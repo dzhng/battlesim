@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Faction, UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
 import { hudIcon } from "@packages/scene-assets/src/icons";
+import { isGameKey } from "../input/keyGuard";
 import { useSessionCatalog } from "../catalog/context";
 import { Icon } from "./icons";
 import { InfoPanel } from "./infoPanel";
@@ -16,6 +17,8 @@ interface PickerProps {
   onChoose: (variant: string) => void;
   /** What a purchase's info card is built with, as the deck's are. */
   rules: PanelRules;
+  /** Whether the shop's key answers: off while a menu or result covers it. */
+  enabled?: boolean;
 }
 /** A price: gold when the credits can pay it, the "can't" red when they
  *  can't, and plain text for what is never sold, since no credits buy it. */
@@ -29,13 +32,27 @@ function Price({ cost, credits, unsold }: { cost: number; credits: number; unsol
 const HOVER_INTENT_MS = 250;
 
 const CATEGORIES: readonly UnitCategory[] = ["rec", "inf", "veh", "sup", "hel", "air"];
-/** The Reinforcements button and the credits. The menu exists only while
- *  open, so every opening starts fresh: first category, empty filter. */
-export function PurchasePicker({ match, player, ...menu }: PickerProps) {
+/** The shop's key. V sits beside the command cluster and names nothing else. */
+const REINFORCEMENTS_KEY = { code: "KeyV", label: "V" } as const;
+/** The Reinforcements button, its key and the credits. The menu exists only
+ *  while open, so every opening starts fresh: first category, empty filter. */
+export function PurchasePicker({ match, player, enabled = true, ...menu }: PickerProps) {
   const viewingPlayer = player ?? match.players[0];
   if (!viewingPlayer) return null;
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
+  // The key opens the shop. The typing guard keeps V a search character while
+  // the field has focus, so the field stays the only owner of the letter.
+  useEffect(() => {
+    if (!enabled) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.code !== REINFORCEMENTS_KEY.code || !isGameKey(event)) return;
+      event.preventDefault();
+      setOpen(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [enabled]);
   return (
     <div className="hud-reinforcements" data-occludes-readouts>
       <div className="hud-purchase-controls">
@@ -44,7 +61,9 @@ export function PurchasePicker({ match, player, ...menu }: PickerProps) {
           type="button"
           className="hud-menu-choice"
           aria-label="Reinforcements"
+          aria-keyshortcuts={REINFORCEMENTS_KEY.label}
           aria-expanded={open}
+          title={`Reinforcements (${REINFORCEMENTS_KEY.label})`}
           onClick={() => setOpen(!open)}
         >
           Reinforcements

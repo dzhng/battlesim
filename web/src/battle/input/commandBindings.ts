@@ -1,5 +1,7 @@
-/** The one command key table (the user's key decisions).
- *  Camera keys (WASD, Q/E, arrows) belong to renderer-core's camera; no
+/** The one command key table (the user's key decisions): the keys
+ *  `useUnitControl` dispatches. Camera keys (WASD, Q/E, arrows) belong to
+ *  renderer-core's camera, and UI keys to their own owners (contact focus in
+ *  `LabViewport`, the shop and the pause menu in their components); no
  *  command may take one of them. */
 import { isGameKey, type KeyPress } from "./keyGuard";
 

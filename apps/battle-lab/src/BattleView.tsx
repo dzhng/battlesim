@@ -251,6 +251,8 @@ export function BattleView({
   useEffect(() => {
     if (sim.error) onFailureRef.current?.(sim.error);
   }, [sim.error]);
+  // The battle accepts keys only while it is the thing on screen.
+  const battleInput = !pause.open && !matchFinished && loadStage === "playable";
 
   if (sim.error && onFailure) return cover ?? null;
   if (!meshes && !sim.error) return cover ?? null;
@@ -260,7 +262,7 @@ export function BattleView({
       {meshes && !sim.error && (
         <LabViewport
           fixture={fixture}
-          inputEnabled={!pause.open && !matchFinished && loadStage === "playable"}
+          inputEnabled={battleInput}
           world={worldFeed}
           {...session.known}
           overlay={overlayFeed}
@@ -364,6 +366,7 @@ export function BattleView({
                   player={viewingPlayer}
                   onChoose={session.purchase.choose}
                   rules={session.rules}
+                  enabled={battleInput}
                 />
               </>
             ) : undefined

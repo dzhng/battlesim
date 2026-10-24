@@ -148,11 +148,11 @@ export function Tutorial() {
       <Section title="Buying units">
         <ul>
           <li>
-            Click <strong>Reinforcements</strong> at the bottom left. Your faction&apos;s shop opens
-            with tabs by role under the cards; point at a tab to switch to it: <strong>REC</strong>{" "}
-            (reconnaissance), <strong>INF</strong> (infantry), <strong>VEH</strong> (fighting
-            vehicles and tanks), <strong>SUP</strong> (supply trucks), <strong>HEL</strong>{" "}
-            (helicopters) and <strong>AIR</strong> (jets).
+            Click <strong>Reinforcements</strong> (or press <kbd>V</kbd>) at the bottom left. Your
+            faction&apos;s shop opens with tabs by role under the cards; point at a tab to switch to
+            it: <strong>REC</strong> (reconnaissance), <strong>INF</strong> (infantry),{" "}
+            <strong>VEH</strong> (fighting vehicles and tanks), <strong>SUP</strong> (supply
+            trucks), <strong>HEL</strong> (helicopters) and <strong>AIR</strong> (jets).
           </li>
           <li>
             Each card is a family of units and shows its cheapest price, which warns you when you
