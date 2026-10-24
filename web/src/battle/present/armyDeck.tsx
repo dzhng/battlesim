@@ -8,11 +8,13 @@ import { InfoPanel } from "./infoPanel";
 import { ownPanel, unitStrength, type PanelRules } from "./panelRows";
 import { CommandBar, unitName } from "./readouts";
 
-/** Own observations populate the army row; selection remains the input owner's. */
+/** Own observations populate the army row; selection remains the input owner's,
+ *  and a plain click on an already selected card asks the page to centre on it. */
 export function ArmyDeck({
   own,
   selected,
   onSelect,
+  onCenter,
   rules,
   control,
   captions,
@@ -23,6 +25,8 @@ export function ArmyDeck({
   own: readonly OwnUnitView[];
   selected: readonly number[];
   onSelect: (ids: number[]) => void;
+  /** A plain click on a card already in `selected`: show this unit on the map. */
+  onCenter?: (unit: OwnUnitView) => void;
   rules: PanelRules;
   control?: Parameters<typeof CommandBar>[0]["control"];
   captions: ReactNode;
@@ -128,6 +132,7 @@ export function ArmyDeck({
               const host = carrierOf(unit);
               const carrier = host === null ? undefined : own.find((u) => u.id === host);
               const picks = carrier?.id ?? unit.id;
+              const selectedHere = selected.includes(picks);
               return (
                 <button
                   type="button"
@@ -139,17 +144,30 @@ export function ArmyDeck({
                   aria-label={
                     carrier ? `${name}, aboard ${unitName(units, carrier)} #${carrier.id}` : name
                   }
-                  aria-pressed={selected.includes(unit.id)}
+                  aria-pressed={selectedHere}
                   aria-describedby={detail?.id === unit.id ? tooltipId : undefined}
-                  onClick={(event) =>
+                  onClick={(event) => {
                     onSelect(
                       event.shiftKey
-                        ? selected.includes(picks)
+                        ? selectedHere
                           ? selected.filter((id) => id !== picks)
                           : [...selected, picks]
                         : [picks],
+                    );
+                    // A double-click lands here twice: the first selects the card,
+                    // the second sees it selected and centres. Modified clicks keep
+                    // their selection meaning and never move the camera.
+                    if (
+                      selectedHere &&
+                      !event.shiftKey &&
+                      !event.ctrlKey &&
+                      !event.metaKey &&
+                      !event.altKey
                     )
-                  }
+                      // A rider's card picks its carrier, so centre on the
+                      // selected unit rather than the passenger.
+                      onCenter?.(carrier ?? unit);
+                  }}
                   // Mouse selection keeps details tied to hover; Tab still offers focus details.
                   onMouseDown={(event) => event.preventDefault()}
                   onMouseEnter={(event) => {

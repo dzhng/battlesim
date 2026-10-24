@@ -27,6 +27,7 @@ import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
 import { gameMapBorder } from "./gameFog";
 import { gameStroke } from "./gameOverlay";
 import { LabViewport } from "./LabViewport";
+import { useUnitFocus } from "./useUnitFocus";
 import { MenuButton, PauseMenu, usePauseMenu } from "./PauseMenu";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 import { commandedEconomy } from "./commandingPlayer";
@@ -160,6 +161,7 @@ export function BattleView({
   const { contacts } = session;
   // Contacts N steps through, newest first.
   const focusTargets = useMemo(() => contactFocusTargets(contacts), [contacts]);
+  const { cameraFocus, focusUnit } = useUnitFocus();
   const { pointerPaint } = session;
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const objectiveMarkers = useRef<ObjectiveMarkersHandle>(null);
@@ -271,6 +273,7 @@ export function BattleView({
           {...session.viewport}
           initialCamera={camera}
           focusTargets={focusTargets}
+          cameraFocus={cameraFocus}
           cameraConfig={cameraConfig}
           groundAt={surfaceZ}
           onPick={input ? session.input.onPick : undefined}
@@ -351,6 +354,7 @@ export function BattleView({
           own={control.controlled}
           selected={control.selected}
           onSelect={control.setSelected}
+          onCenter={input ? focusUnit : undefined}
           rules={session.rules}
           pending={viewingPlayer?.pending}
           tick={observation?.tick}

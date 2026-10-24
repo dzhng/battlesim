@@ -362,6 +362,100 @@ export async function run(ctx) {
     JSON.stringify({ shown: far.filter((d) => d.shown).map((d) => d.unit), detail }),
   );
   await shots(ctx, page, "far-card-detail-1280x800");
+
+  // A card already selected is the camera's own focus: clicking it again
+  // puts the orbit on the tank and keeps the angle and zoom N keeps.
+  const cardTank = (await obs(page)).own.find((u) => u.id === 0);
+  const beforeFocus = await lab(
+    page,
+    ([x, y]) => {
+      const camera = { ...window.__lab.camera(), target: [x, y, 0] };
+      window.__lab.setCamera(camera);
+      return camera;
+    },
+    [cardTank.position[0] + 120, cardTank.position[1] + 120],
+  );
+  await page.locator('.hud-army-card[data-unit="0"]').click();
+  await page.waitForFunction(
+    ([x, y]) => {
+      const target = window.__lab.camera().target;
+      return Math.hypot(target[0] - x, target[1] - y) < 2;
+    },
+    [cardTank.position[0], cardTank.position[1]],
+  );
+  const focused = await lab(page, () => ({
+    camera: window.__lab.camera(),
+    asked: window.__lab.clearance().asked,
+    selected: [...window.__lab.route.selected()],
+  }));
+  ctx.check(
+    "clicking an already selected army card centres the camera on that unit, keeping the angle and zoom",
+    Math.hypot(
+      focused.camera.target[0] - cardTank.position[0],
+      focused.camera.target[1] - cardTank.position[1],
+    ) < 2 &&
+      Math.abs(focused.asked.distance - beforeFocus.distance) < 1e-6 &&
+      Math.abs(focused.asked.yaw - beforeFocus.yaw) < 1e-6 &&
+      Math.abs(focused.asked.pitch - beforeFocus.pitch) < 1e-6 &&
+      focused.selected.join() === "0",
+    JSON.stringify({ before: beforeFocus, focused, tank: cardTank.position }),
+  );
+
+  // A second click is a new request, not an ignored repeat.
+  await lab(
+    page,
+    ([x, y]) => {
+      window.__lab.setCamera({ ...window.__lab.camera(), target: [x, y, 0] });
+    },
+    [cardTank.position[0] - 120, cardTank.position[1] + 60],
+  );
+  await page.locator('.hud-army-card[data-unit="0"]').click();
+  await page.waitForFunction(
+    ([x, y]) => {
+      const target = window.__lab.camera().target;
+      return Math.hypot(target[0] - x, target[1] - y) < 2;
+    },
+    [cardTank.position[0], cardTank.position[1]],
+  );
+  const again = await lab(page, () => window.__lab.camera());
+  ctx.check(
+    "clicking the same selected card again requests a fresh camera move",
+    Math.hypot(again.target[0] - cardTank.position[0], again.target[1] - cardTank.position[1]) < 2,
+    JSON.stringify({ again, tank: cardTank.position }),
+  );
+
+  // A double-click on an unselected card selects it on the first click and
+  // centres on the second, so the same camera is reached from cold.
+  await lab(page, () => window.__lab.route.select([]));
+  const cardRifle = (await obs(page)).own.find((u) => u.id === 1);
+  await lab(
+    page,
+    ([x, y]) => {
+      window.__lab.setCamera({ ...window.__lab.camera(), target: [x, y, 0] });
+    },
+    [cardRifle.position[0] + 80, cardRifle.position[1] + 80],
+  );
+  await page.locator('.hud-army-card[data-unit="1"]').dblclick();
+  await page.waitForFunction(
+    ([x, y]) => {
+      const target = window.__lab.camera().target;
+      return Math.hypot(target[0] - x, target[1] - y) < 2;
+    },
+    [cardRifle.position[0], cardRifle.position[1]],
+  );
+  const doubleFocused = await lab(page, () => ({
+    camera: window.__lab.camera(),
+    selected: [...window.__lab.route.selected()],
+  }));
+  ctx.check(
+    "double-clicking an unselected army card selects it and centres the camera on it",
+    Math.hypot(
+      doubleFocused.camera.target[0] - cardRifle.position[0],
+      doubleFocused.camera.target[1] - cardRifle.position[1],
+    ) < 2 && doubleFocused.selected.join() === "1",
+    JSON.stringify({ doubleFocused, rifle: cardRifle.position }),
+  );
+
   await page.mouse.move(20, 20);
   await lab(page, () => window.__lab.reset());
 

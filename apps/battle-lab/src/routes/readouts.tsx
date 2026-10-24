@@ -8,6 +8,7 @@ import { AckLog } from "../AckLog";
 import { orderLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
+import { useUnitFocus } from "../useUnitFocus";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
@@ -36,6 +37,7 @@ export default function Readouts() {
 function ReadoutsLab({ battle }: { battle: SavedBattle }) {
   const session = useBattleSession({ ...battle, seed: SEED });
   const { world, meshes, sim, control, surfaceZ } = session;
+  const { cameraFocus, focusUnit } = useUnitFocus();
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
 
@@ -78,6 +80,7 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
         {...session.viewport}
         initialCamera={READOUTS_CAMERA}
         {...session.input}
+        cameraFocus={cameraFocus}
         onFrame={(project, camera, pointer, scale) => {
           setRenderScale(scale);
           session.placePanels(project, camera, pointer);
@@ -105,6 +108,7 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
           own={observation?.own ?? []}
           selected={control.selected}
           onSelect={control.setSelected}
+          onCenter={focusUnit}
           rules={session.rules}
           control={control}
           captions={null}
