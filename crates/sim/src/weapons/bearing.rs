@@ -28,6 +28,7 @@ pub(super) fn bearing_from(unit: &Unit, point: V3) -> f64 {
     libm::atan2(to.y, to.x)
 }
 
+/// A turned mount's next bearing toward `desired`, one `step` at most.
 pub(super) fn turned_mount(
     mount: &Mount,
     spec: &MountSpec,
@@ -36,6 +37,8 @@ pub(super) fn turned_mount(
     step: f64,
 ) -> f64 {
     if let Some(arc) = spec.arc {
+        // Within its arc, it turns the way that stays inside it, never
+        // round through the cabin; outside, it waits at the arc's edge.
         let at = arc.off(yaw, mount.bearing).clamp(-arc.half, arc.half);
         let to = arc.off(yaw, desired).clamp(-arc.half, arc.half);
         yaw + arc.centre + at + (to - at).clamp(-step, step)
@@ -62,7 +65,9 @@ pub(super) fn point_mount(
     };
 }
 
-/// Whether a vehicle mount must turn its hull to aim.
+/// A gun fixed in its hull (D8): it bears where the body faces, so the body
+/// turns to aim it. A soldier's weapon turns with him, and a mount on a
+/// turret with its turret.
 pub(super) fn hull_fixed(unit: &Unit, spec: &MountSpec) -> bool {
     unit.is_vehicle() && !spec.turret && spec.on.is_none()
 }
