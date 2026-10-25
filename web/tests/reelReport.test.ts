@@ -126,7 +126,7 @@ test("exports a frozen workload identity and host capture metadata", () => {
   expect(report.canonical).toEqual({
     workloadId: "menu-reel",
     workloadVersion: 1,
-    fingerprint: "c905ce8c",
+    fingerprint: "6427d68b",
     subjectTrackingLagSeconds: 0.5,
     plateComposition: "standalone_center",
     sceneIds: ["market-town", "paris-corner"],

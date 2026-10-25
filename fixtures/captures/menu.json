@@ -39,12 +39,12 @@
             "to": { "target": [3, 22], "distance": 48.4, "yaw": -1.585, "pitch": 0.156 }
           },
           {
-            "seconds": 8,
+            "seconds": 5.4,
             "from": { "target": [3585, 1940], "distance": 62, "yaw": -1.45, "pitch": 0.14 },
             "to": { "target": [3575, 1935], "distance": 56, "yaw": -1.6, "pitch": 0.13 }
           },
           {
-            "seconds": 7,
+            "seconds": 9.6,
             "follow": 0,
             "from": { "target": [20, 9], "distance": 55, "yaw": -2.857, "pitch": 0.17 },
             "to": { "target": [20, 9], "distance": 48.4, "yaw": -2.607, "pitch": 0.156 }
