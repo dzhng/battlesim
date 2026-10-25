@@ -8,8 +8,10 @@ use contract::observation::{ActionReason, ContactId, MountReadiness, WeaponPose}
 use contract::scenario::{Armor, Rules};
 use contract::weapons::{AmmoCapacity, Fire, TargetClass, WeaponDefinition};
 
+mod bearing;
 mod cycle;
 pub mod tick;
+use bearing::{bearing_from, hull_fixed, point_mount, turned_mount};
 use cycle::Cycle;
 
 use crate::damage;
@@ -690,38 +692,6 @@ fn resolve_for(
         },
         _ => r,
     })
-}
-
-fn bearing_from(unit: &Unit, point: V3) -> f64 {
-    let to = point.xy() - unit.position.xy();
-    libm::atan2(to.y, to.x)
-}
-
-fn turned_mount(mount: &Mount, spec: &MountSpec, yaw: f64, desired: f64, step: f64) -> f64 {
-    if let Some(arc) = spec.arc {
-        let at = arc.off(yaw, mount.bearing).clamp(-arc.half, arc.half);
-        let to = arc.off(yaw, desired).clamp(-arc.half, arc.half);
-        yaw + arc.centre + at + (to - at).clamp(-step, step)
-    } else {
-        let err = wrap_angle(desired - mount.bearing);
-        mount.bearing + err.clamp(-step, step)
-    }
-}
-
-fn point_mount(unit: &Unit, mount: &mut Mount, spec: &MountSpec, point: V3, turret_step: f64) {
-    let desired = bearing_from(unit, point);
-    mount.bearing = if spec.arc.is_some() || spec.turret {
-        turned_mount(mount, spec, unit.yaw, desired, turret_step)
-    } else if hull_fixed(unit, spec) {
-        unit.yaw
-    } else {
-        desired
-    };
-}
-
-/// Whether a vehicle mount must turn its hull to aim.
-fn hull_fixed(unit: &Unit, spec: &MountSpec) -> bool {
-    unit.is_vehicle() && !spec.turret && spec.on.is_none()
 }
 
 /// Where a mount's muzzle sits for a unit at `position` heading `yaw`: its
