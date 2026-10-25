@@ -11,6 +11,7 @@ use contract::weapons::{AmmoCapacity, Fire, TargetClass, WeaponDefinition};
 mod bearing;
 mod cycle;
 pub mod tick;
+pub use bearing::Arc;
 use bearing::{bearing_from, hull_fixed, point_mount, turned_mount};
 use cycle::Cycle;
 
@@ -81,25 +82,6 @@ pub struct MountSpec {
     /// The bearings a turret swings through off the hull's heading; `None`,
     /// all round.
     pub arc: Option<Arc>,
-}
-
-/// A turret's arc (`contract::weapons::MountArc`), in radians.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Arc {
-    pub centre: f64,
-    pub half: f64,
-}
-
-impl Arc {
-    /// `bearing` off a hull heading `yaw`, relative to the arc's centre.
-    fn off(self, yaw: f64, bearing: f64) -> f64 {
-        wrap_angle(bearing - yaw - self.centre)
-    }
-
-    /// Whether a hull heading `yaw` brings `bearing` inside the arc.
-    pub fn holds(self, yaw: f64, bearing: f64) -> bool {
-        self.off(yaw, bearing).abs() <= self.half
-    }
 }
 
 /// Every weapon and mount in the battle, fixed at setup.

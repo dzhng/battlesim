@@ -4,6 +4,25 @@ use super::{Mount, MountSpec};
 use crate::math::{wrap_angle, V3};
 use crate::units::Unit;
 
+/// A turret's arc (`contract::weapons::MountArc`), in radians.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Arc {
+    pub centre: f64,
+    pub half: f64,
+}
+
+impl Arc {
+    /// `bearing` off a hull heading `yaw`, relative to the arc's centre.
+    fn off(self, yaw: f64, bearing: f64) -> f64 {
+        wrap_angle(bearing - yaw - self.centre)
+    }
+
+    /// Whether a hull heading `yaw` brings `bearing` inside the arc.
+    pub fn holds(self, yaw: f64, bearing: f64) -> bool {
+        self.off(yaw, bearing).abs() <= self.half
+    }
+}
+
 pub(super) fn bearing_from(unit: &Unit, point: V3) -> f64 {
     let to = point.xy() - unit.position.xy();
     libm::atan2(to.y, to.x)
