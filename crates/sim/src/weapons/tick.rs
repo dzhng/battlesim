@@ -193,13 +193,14 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                 mount.last_enemy_lock_tick = Some(ctx.tick);
             }
             let reset_ticks = (IDLE_TURRET_RESET_S * ctx.rules.tick_hz as f64).round() as Tick;
+            // Ground it was ordered onto, or a round it is tracking, keeps a
+            // turret busy without any enemy in sight.
             let idle_turret = spec.turret
                 && mount.support.is_none()
                 && !current_enemy
-                && !mount
-                    .lock
-                    .as_ref()
-                    .is_some_and(|lock| matches!(lock.target, Target::Round(_)))
+                && !mount.lock.as_ref().is_some_and(|lock| {
+                    matches!(lock.target, Target::Ground(_) | Target::Round(_))
+                })
                 && mount
                     .last_enemy_lock_tick
                     .is_some_and(|last| ctx.tick.saturating_sub(last) >= reset_ticks);
