@@ -15,6 +15,9 @@
 //! bits, the ground runs, and the static groups (corpses, known props, fallen
 //! bodies), which are shared by pointer while unchanged.
 
+mod bits;
+
+use bits::Bits;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -26,9 +29,9 @@ use super::{
     COPY_FIELDS, CORPSE_FIELDS, CRASH_FIELDS, DELIVERY_FIELDS, FALLEN_BODY_FIELDS, GROUND_FIELDS,
     GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS, IDENTIFIED_FIELDS,
     KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS, MEMBER_ORDER_FIELDS, MOUNT_FIELDS,
-    OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, PLAYER_FIELDS, POSE_FIELDS,
-    PROP_DISPLAY_POSE_FIELDS, PROJECTILE_FIELDS, QUEUE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS,
-    REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS, SHOUT_FIELDS,
+    OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, PLAYER_FIELDS, POSE_FIELDS, PROJECTILE_FIELDS,
+    PROP_DISPLAY_POSE_FIELDS, QUEUE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS, REPORT_EVENT_FIELDS,
+    REPORT_TOTAL_FIELDS, SHOUT_FIELDS,
 };
 
 pub type Point2 = [f64; 2];
@@ -51,7 +54,12 @@ view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, c
     blasts: Vec<Blast>, air_transits: Vec<AirTransit>, #[serde(skip)] corpses: Shared<Corpse>, #[serde(skip)] fallen_bodies: Shared<FallenBody>,
     refusals: Vec<Refusal>, crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
     fog: Arc<Fog>, ground_patch: GroundPatch, prop_display_poses: Vec<PropDisplayPose> });
-view!(PropDisplayPose { prop_id: f64, center: Point2, yaw: f64, base_z: f64 });
+view!(PropDisplayPose {
+    prop_id: f64,
+    center: Point2,
+    yaw: f64,
+    base_z: f64
+});
 view!(OwnUnit { id: f64, #[serde(skip_serializing_if = "Option::is_none")] owner: Option<f64>, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, goal_unloads: bool, policy: Option<Name>,
     direction: Option<Name>, reversing: bool, withdrawing: bool, protection: Option<Protection>, state: Name,
     fuel_s: Option<f64>, afterburner: bool, in_dogfight: bool,
@@ -830,7 +838,9 @@ impl Reader {
                 full: f!(h, HEADER, "groundFull") == 1.0,
                 runs,
             },
-            prop_display_poses: map(&rows[group("propDisplayPoses")], |r| Ok(prop_display_pose(r)))?,
+            prop_display_poses: map(&rows[group("propDisplayPoses")], |r| {
+                Ok(prop_display_pose(r))
+            })?,
         })
     }
 
@@ -1354,57 +1364,6 @@ fn split_rows<'a>(group: &GroupLayout, payload: &'a [f32], count: usize) -> Resu
         "observation group values do not match their counts",
     )?;
     Ok(rows)
-}
-
-/// Reads lsb-first bit fields from raw u32 carrier words.
-struct Bits<'a> {
-    words: &'a [u32],
-    bit: usize,
-}
-
-impl Bits<'_> {
-    fn read(&mut self, count: usize) -> Result<u32> {
-        check(
-            self.bit + count <= self.words.len() * 32,
-            "truncated packed publication",
-        )?;
-        let (index, shift) = (self.bit / 32, self.bit % 32);
-        let mut value = (self.words[index] as u64) >> shift;
-        if shift + count > 32 {
-            value |= (self.words[index + 1] as u64) << (32 - shift);
-        }
-        self.bit += count;
-        Ok((value & ((1u64 << count) - 1)) as u32)
-    }
-
-    /// A canonical unsigned LEB128 of at most four bytes.
-    fn integer(&mut self) -> Result<u32> {
-        let mut value = 0;
-        for byte in 0..4 {
-            let part = self.read(8)?;
-            value += (part & 127) << (byte * 7);
-            if part < 128 {
-                check(
-                    byte == 0 || part != 0,
-                    "noncanonical packed publication integer",
-                )?;
-                return Ok(value);
-            }
-        }
-        Err("oversized packed publication integer".into())
-    }
-
-    /// Zero padding to the next carrier word, and no more.
-    fn finish(&mut self) -> Result<()> {
-        check(
-            self.words.len() * 32 - self.bit <= 31,
-            "excess packed publication padding",
-        )?;
-        while self.bit < self.words.len() * 32 {
-            check(self.read(1)? == 0, "nonzero packed publication padding")?;
-        }
-        Ok(())
-    }
 }
 
 /// The packed delivery's bit grammar (`groupDelivery.packed`).
