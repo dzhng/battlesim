@@ -2126,7 +2126,7 @@
       },
       "impact_scale": { "default": 1, "rifle": 1, "hmg": 1.4, "autocannon": 1.8, "grenade": 2.5, "tank_ap": 3, "tank_he": 3.5, "atgm": 3 },
       "blast_scale": { "default": 1, "autocannon": 0.35 },
-      "sparks": { "color": [1.0, 0.72, 0.4], "intensity": 30, "speed_mps": 8, "duration_s": 0.3, "length_m": 0.35, "width_m": 0.03 },
+      "sparks": { "color": [1.0, 0.72, 0.4], "intensity": 30, "speed_mps": 8, "duration_s": 0.3, "length_m": 0.35, "width_m": 0.03, "push_count": 12 },
       "ricochet_sparks": 10,
       "blast": {
         "size_per_radius": 0.9,

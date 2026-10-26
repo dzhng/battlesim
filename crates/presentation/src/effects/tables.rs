@@ -215,12 +215,9 @@ pub struct SparkStyle {
     pub duration_s: f64,
     pub length_m: f64,
     pub width_m: f64,
-    #[serde(default = "default_push_count")]
+    /// Sparks a full-speed push throws each tick; a crawl still throws
+    /// half, so even a slow shove reads from the gameplay camera.
     pub push_count: f64,
-}
-
-fn default_push_count() -> f64 {
-    8.0
 }
 
 /// A burst: its fireball per metre of blast radius, and the one the

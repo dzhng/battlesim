@@ -602,19 +602,6 @@ fn request_route(
     } else {
         Vec::new()
     };
-    // A vehicle actively in contact with a pushable prop is pushing through
-    // it: don't replan because of that prop (Q13). The prop being pushed moves
-    // with the vehicle, and replanning would oscillate detour waypoints.
-    let actively_pushing = unit.ground_footprint().is_some_and(|hull| {
-        ctx.world
-            .props_near(hull.center, hull.half.length())
-            .iter()
-            .any(|prop| {
-                prop.blocks(MoverClass::Vehicle)
-                    && unit.ground().push.pushes(prop.body.weight_class)
-                    && hull.separation(&prop.footprint()).is_some()
-            })
-    });
     let needs = match (&unit.route, unit.state) {
         _ if goal_moved => true,
         (_, MoveState::RouteBlocked) => changed,
@@ -629,7 +616,9 @@ fn request_route(
             // a pusher's route that now shoves one, so A* weighs the shove
             // against a detour (Q13): one it can still steer round, beyond
             // its nose and, on wheels, its turning radius. Nearer, it is
-            // pushed through.
+            // pushed through. A hull already against a body it shoves is
+            // pushing it through: the body moves with the hull, so weighing
+            // it again would swing the route from side to side.
             let swerve = unit.hull.map_or(0.0, |h| h.x)
                 + unit
                     .ground()
@@ -647,8 +636,10 @@ fn request_route(
                     && {
                         let grid = side.grid(ctx.world, ctx.authored);
                         !grid.route_fits(from, route, unit.ground())
-                            || (!actively_pushing
-                                && grid.route_pushes(from, route, unit.ground(), swerve))
+                            || (grid.route_pushes(from, route, unit.ground(), swerve)
+                                && !unit.ground_footprint().is_some_and(|hull| {
+                                    push::pressing(ctx.world, &hull, unit.ground().push)
+                                }))
                     })
         }
     };
@@ -1098,20 +1089,16 @@ fn step_vehicle(
         }
     }
     let turn = ctx.rules.pushing.turn_deg_per_m.to_radians();
-    let push_speed_mps = motion.step / dt;
+    let pusher = push::Pusher {
+        unit: i,
+        hull: hull_at(next, motion.yaw),
+        heading: motion.heading,
+        speed_mps: motion.step / dt,
+    };
     let mut shoved = Vec::new();
     let mut solid = met.solid.is_some();
     for prop in &met.shoved {
-        match push::shove(
-            ctx.world,
-            units,
-            i,
-            &hull_at(next, motion.yaw),
-            motion.heading,
-            prop,
-            turn,
-            push_speed_mps,
-        ) {
+        match push::shove(ctx.world, units, pusher, prop, turn) {
             Some(s) => shoved.push(s),
             None => solid = true,
         }

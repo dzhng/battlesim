@@ -328,93 +328,87 @@ fn a_shove_is_published_each_tick_to_the_sides_that_see_it() {
     }
 }
 
-/// A tank pushing a car holds a steady heading (Q13): actively shoving a prop
-/// should not trigger re-planning that oscillates detour waypoints. The test
-/// tracks the tank's heading during the push and asserts it stays within a
-/// small deviation from the intended path. The lane constrains the tank so
-/// it must push through the car rather than navigate around it.
+/// A tank shoving a parked car out of a row holds its heading (Q13): the car
+/// it is pressed against moves with it, so it never re-plans round the car
+/// and swings from side to side. It drives at the row on a slant, through
+/// one car's flank, to a goal past it.
 #[test]
-fn a_tank_pushing_a_prop_keeps_a_steady_heading() {
-    let r = rules();
-    // A 9.6 m lane between two walls, with a body that fills most of it.
-    // The body is a crate (light weight) that the tank (heavy push class)
-    // can push. Using a wider body to ensure the tank must push through.
-    let map = json!({
-        "size": [200, 60], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
-        "props": [
-            { "kind": "wall", "center": [100, 25.2], "yaw": 0, "half_extents": [100, 0.4, 1.5] },
-            { "kind": "wall", "center": [100, 34.8], "yaw": 0, "half_extents": [100, 0.4, 1.5] },
-            { "kind": "crate", "center": [80, 30], "yaw": 0, "half_extents": [0.8, 3.5, 0.6] }
-        ],
-    })
-    .to_string();
-    let body_id = 2u32; // The body is the third prop (after two walls)
-    let setup = common::scenario_with(
-        &map,
-        json!([vehicle("blue", "test_tank", [15.0, 30.0])]),
-        json!([]),
-        json!([drive("blue", 0, [185.0, 30.0])]),
-    );
-    let mut b = Battle::new(&setup, 1);
-    let initial_yaw = b.unit(UnitId(0)).unwrap().yaw;
-    let mut headings: Vec<f64> = Vec::new();
-    let mut body_moved = false;
-    let initial_body = b.world().prop(body_id).unwrap().center;
-    for _ in 0..(45.0 * r.tick_hz as f64) as u64 {
+fn a_tank_shoving_a_car_holds_its_heading() {
+    let mut b = Battle::new(&car_row(), 1);
+    let car = 2;
+    let parked = b.world().prop(car).unwrap().center;
+    let mut yaws = Vec::new();
+    for _ in 0..30 * b.rules().tick_hz as u64 {
         b.step();
-        let unit = b.unit(UnitId(0)).unwrap();
-        let body = b.world().prop(body_id).unwrap();
-        let body_center = body.center;
-        if (body_center - initial_body).length() > 0.1 {
-            body_moved = true;
-        }
-        // Record heading while pushing (body is moving or tank is near/past initial body position)
-        if body_moved || unit.position.x > initial_body.x - 10.0 {
-            headings.push(unit.yaw.to_degrees());
-        }
-        if body_moved && unit.position.x > body_center.x + 5.0 {
-            break;
-        }
-        if !unit.alive() || unit.state == MoveState::RouteBlocked {
-            break;
+        let shoved = (b.world().prop(car).unwrap().center - parked).length() > 0.1;
+        let tank = b.unit(UnitId(0)).unwrap();
+        if shoved && tank.state != MoveState::Idle {
+            yaws.push(tank.yaw.to_degrees());
         }
     }
-    let unit = b.unit(UnitId(0)).unwrap();
+    let tank = b.unit(UnitId(0)).unwrap();
     assert!(
-        body_moved,
-        "the body was never pushed; tank at {:?}, body at {:?}",
-        unit.position.xy(),
-        b.world().prop(body_id).unwrap().center
+        (tank.position.xy() - v2(27.0, 38.0)).length() < 0.5,
+        "the tank reaches its goal: {:?}",
+        tank.position.xy()
     );
     assert!(
-        unit.position.x > 100.0,
-        "the tank should push through: at {:?}, state {:?}",
-        unit.position.xy(),
-        unit.state
+        yaws.len() > 30,
+        "it shoves the car for a while: {} ticks",
+        yaws.len()
     );
-    assert!(
-        headings.len() > 5,
-        "need multiple heading samples during push"
-    );
-    let mean = headings.iter().sum::<f64>() / headings.len() as f64;
-    let max_dev = headings
+    let (lo, hi) = yaws
         .iter()
-        .map(|h| (h - mean).abs())
-        .fold(0.0f64, f64::max);
+        .fold((f64::MAX, f64::MIN), |(lo, hi), y| (lo.min(*y), hi.max(*y)));
     assert!(
-        max_dev < 5.0,
-        "heading should stay steady during push (max deviation {:.1}° from mean {:.1}°, \
-         expected < 5°); headings: {:?}",
-        max_dev,
-        mean,
-        headings
+        hi - lo < 2.0,
+        "its heading swings {lo:.1}..{hi:.1} degrees while it shoves"
     );
-    let heading_drift = (unit.yaw - initial_yaw).abs().to_degrees();
-    assert!(
-        heading_drift < 10.0,
-        "tank should end roughly on its original heading ({:.1}° drift)",
-        heading_drift
-    );
+}
+
+/// A tank driving at a row of parked cars on a slant, through one car's flank
+/// (prop 2), to a goal past it.
+fn car_row() -> ScenarioDefinition {
+    let cars: Vec<Value> = [15.0, 20.0, 25.0, 30.0, 35.0]
+        .map(|x| json!({ "kind": "parked_car", "center": [x, 30.0], "yaw": 0, "half_extents": [2.1, 0.9, 0.75] }))
+        .to_vec();
+    let map = json!({
+        "size": [60, 60], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": cars,
+    })
+    .to_string();
+    common::scenario_with(
+        &map,
+        json!([vehicle("blue", "test_tank", [22.0, 5.0])]),
+        json!([]),
+        json!([drive("blue", 0, [27.0, 38.0])]),
+    )
+}
+
+/// Sparks fly where the hull grinds the car it shoves: on the car's side
+/// facing the hull, halfway up it, never on its far side.
+#[test]
+fn a_shove_throws_sparks_where_the_hull_meets_the_car() {
+    let mut b = Battle::new(&car_row(), 1);
+    let flank = b.world().prop(2).unwrap().base_z + 0.75;
+    let mut sparks = 0;
+    for _ in 0..30 * b.rules().tick_hz as u64 {
+        b.step();
+        let hull = b.unit(UnitId(0)).unwrap().ground_footprint().unwrap();
+        for c in &b.observe(Side::Blue).push_contacts {
+            let [x, y, z] = c.point;
+            assert!(
+                hull.distance(v2(x, y)) < 0.25,
+                "sparks {:.1} m from the hull",
+                hull.distance(v2(x, y))
+            );
+            assert!(
+                (z - flank).abs() < 1e-9,
+                "sparks at {z:.2} m, not {flank:.2}"
+            );
+            sparks += 1;
+        }
+    }
+    assert!(sparks > 30, "the shove threw sparks for {sparks} ticks");
 }
 
 /// Q28: a test-only smoke prop type: blocks nobody, stops no rounds, gives
