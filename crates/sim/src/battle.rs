@@ -12,8 +12,8 @@ use contract::map::{MoverClass, PropDefinition};
 use contract::observation::{
     AirTransit, AirTransitDirection, Blast, Corpse, EncounterStatus, FallenBody, FallingAirframe,
     GuidedMissile, KnownProp, MemberOrder, MoveState, ObservationFrame, OwnUnit, Posture,
-    SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, SquadArea, UnitSight, VisibilityField,
-    VisibleSegment,
+    PropDisplayPose, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, SquadArea, UnitSight,
+    VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
     EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
@@ -293,6 +293,8 @@ pub struct Battle {
     units: Vec<Unit>,
     /// Props authored with the map (ids below this) are known to every side.
     authored_props: PropId,
+    /// The bodies shoved this tick, and by which side.
+    shoved: Vec<(PropId, Side)>,
     sides: [SideGeometry; 3],
     /// The map's road graph, built once: public terrain, the same for both
     /// sides.
@@ -804,6 +806,7 @@ impl Battle {
                 .clone()
                 .map(|s| crate::skirmish::Skirmish::new(s, &setup.players)),
             authored_props: world.props().count() as PropId,
+            shoved: Vec::new(),
             world,
             rules,
             seed,
@@ -1992,6 +1995,7 @@ impl Battle {
     /// seen an authored body move keeps it where it stood (L1); the soldiers
     /// a body now covers step out of it.
     fn shove_props(&mut self, shoves: Vec<movement::Shove>) {
+        self.shoved.clear();
         for s in shoves {
             let Some(prop) = self.world.prop(s.prop).cloned() else {
                 continue;
@@ -2007,6 +2011,7 @@ impl Battle {
             if let Some(moved) = self.world.prop(s.prop).map(|p| p.footprint()) {
                 let r = self.rules.physics.soldier_radius_m;
                 movement::clear_of(&self.world, &mut self.units, &moved, r);
+                self.shoved.push((s.prop, s.by));
             }
         }
     }
@@ -4412,6 +4417,23 @@ impl Battle {
                     authored_prop: self.world.authored_prop(p.id),
                     wreck_of: p.wreck_of,
                 });
+            }
+            // A body shoved where this side sees it (its own pusher always
+            // does) is drawn where it stands, ahead of the knowledge above.
+            frame.prop_display_poses.clear();
+            for (prop, by) in &self.shoved {
+                let Some(p) = self.world.prop(*prop) else {
+                    continue;
+                };
+                let drawn = frame.prop_display_poses.iter().any(|d| d.prop_id == p.id);
+                if !drawn && (*by == side || fog.visible(p.center.x, p.center.y)) {
+                    frame.prop_display_poses.push(PropDisplayPose {
+                        prop_id: p.id,
+                        center: [p.center.x, p.center.y],
+                        yaw: p.yaw,
+                        base_z: p.base_z,
+                    });
+                }
             }
             frame.projectiles.clear();
             for round in &self.segments {

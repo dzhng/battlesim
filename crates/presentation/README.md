@@ -33,7 +33,8 @@ native.
   the runtime contents it reads; the caller reads them (native from the
   runtime directory, feature `files`; the page by fetching them, through
   [its WebAssembly binding](../presentation-wasm/README.md)), and it decides.
-- [Units](src/units/): interpolation between ticks, the pose feed and driver,
+- [Units](src/units/): interpolation between ticks (of units, falling
+  airframes and the bodies they shove), the pose feed and driver,
   articulation, joint palettes (and each skinned row's rest palette: a corpse
   as it lies, a body in its far pose, which a renderer poses its mesh by once),
   and where each drawn model's muzzles and rotors are.
@@ -78,7 +79,8 @@ native.
   shapes, and its window and per-frame parameters for the last frame's
   camera, and the scenery; and the map's props fitted to their boxes from the
   installed art, less those the side knows replaced, with what it knows
-  (rubble, wrecks, shoved bodies). Buildings, scenery and props are walked
+  (rubble, wrecks, shoved bodies); a body it watches being shoved is drawn
+  where it stands each frame, ahead of what it has learned. Buildings, scenery and props are walked
   per view into the frame's static batches, written only when a list
   changes; the scenery leaves the ground the side has learned cleared.
   Buildings, standing scenery and props select casters against fitted cascade cameras, using

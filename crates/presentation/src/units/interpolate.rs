@@ -8,7 +8,7 @@
 //! the publication, but nothing of it is drawn, picked or heard.
 use std::sync::Arc;
 
-use sim::publication::reader::{Crash, Host, Identified, Observation, OwnUnit};
+use sim::publication::reader::{Crash, Host, Identified, Observation, OwnUnit, PropDisplayPose};
 
 use super::{delta_angle, lerp3};
 use crate::world::Vec3;
@@ -45,6 +45,8 @@ pub struct FrameSample {
     pub identified: Vec<Pose>,
     /// Downed airframes still falling, blended as bodies are (by own and id).
     pub crashes: Vec<Crash>,
+    /// Bodies being shoved, blended likewise (by prop id).
+    pub shoved: Vec<PropDisplayPose>,
 }
 
 /// What own units and identified enemies both publish of their bodies.
@@ -165,6 +167,7 @@ impl TickInterpolator {
             own: Vec::new(),
             identified: Vec::new(),
             crashes: Vec::new(),
+            shoved: Vec::new(),
         });
         let on_field = || latest.own.iter().filter(|u| !riding(u));
         out.own.resize_with(on_field().count(), Pose::default);
@@ -197,6 +200,18 @@ impl TickInterpolator {
                 c.roll = p.roll + (c.roll - p.roll) * t;
             }
             out.crashes.push(c);
+        }
+        out.shoved.clear();
+        for s in &latest.prop_display_poses {
+            let mut s = s.clone();
+            if let Some(p) =
+                previous.and_then(|o| o.prop_display_poses.iter().find(|q| q.prop_id == s.prop_id))
+            {
+                s.center = [0, 1].map(|k| p.center[k] + (s.center[k] - p.center[k]) * t);
+                s.yaw = p.yaw + delta_angle(p.yaw, s.yaw) * t;
+                s.base_z = p.base_z + (s.base_z - p.base_z) * t;
+            }
+            out.shoved.push(s);
         }
         out.time = time_s;
         out.observation = latest;

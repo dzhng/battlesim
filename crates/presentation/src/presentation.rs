@@ -382,6 +382,9 @@ impl Presentation {
         }
         self.latest = None;
         self.interpolator = TickInterpolator::new(self.tick_hz);
+        if self.props.as_mut().is_some_and(|p| p.forget_shoved()) {
+            self.statics.rewalk();
+        }
         self.pending.clear();
         if let Some(loaded) = &mut self.loaded {
             loaded.transits.clear();
@@ -1352,6 +1355,13 @@ impl Presentation {
                 self.statics.rewalk();
             }
         }
+        let sample = self.interpolator.frame(time);
+        // A body the side watches shoved moves every frame, as units do.
+        if let Some(props) = &mut self.props {
+            if props.set_shoved(sample.map_or(&[], |s| &s.shoved)) {
+                self.statics.rewalk();
+            }
+        }
         let mut scenery = match (&mut self.scenery, &self.ground) {
             (Some(walk), Some(ground)) if !walk.rows.is_empty() => {
                 Some(SceneryPopulation { walk, ground })
@@ -1371,8 +1381,7 @@ impl Presentation {
         let f = &mut self.frame;
         self.statics
             .write(&mut populations, camera, &view, generation, f);
-        let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), self.interpolator.frame(time))
-        else {
+        let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), sample) else {
             return Ok(&self.frame);
         };
         let f = &mut self.frame;

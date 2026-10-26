@@ -296,6 +296,38 @@ fn shoves_replay_and_poses_are_in_the_digest() {
     assert_ne!(at(30.0), at(30.01));
 }
 
+/// A shoved body is drawn where it stands each tick, ahead of the knowledge
+/// that re-learns it only in steps: to its pusher always, to a side that
+/// watches it, never to a side that can't see it, and to no one once it lies
+/// still. The pusher still drives on past it to its goal.
+#[test]
+fn a_shove_is_published_each_tick_to_the_sides_that_see_it() {
+    for (red_at, red_sees) in [([150.0, 30.0], true), ([880.0, 30.0], false)] {
+        let mut b = Battle::new(&shove_setup(red_at), 1);
+        let (mut moved, mut red_drawn) = (0, 0);
+        let mut was = b.world().prop(BODY).unwrap().center;
+        for _ in 0..(35.0 * b.rules().tick_hz as f64) as u64 {
+            b.step();
+            let now = b.world().prop(BODY).unwrap().center;
+            if now != was {
+                moved += 1;
+                let drawn = &b.observe(Side::Blue).prop_display_poses;
+                assert_eq!(drawn.len(), 1, "the pusher draws what it moved");
+                assert_eq!(drawn[0].center, [now.x, now.y]);
+            }
+            red_drawn += usize::from(!b.observe(Side::Red).prop_display_poses.is_empty());
+            was = now;
+        }
+        assert!(moved > 10, "the truck shoved the crate along");
+        assert_eq!(red_drawn > 0, red_sees, "red at {red_at:?}");
+        let truck = b.unit(UnitId(0)).unwrap();
+        assert_eq!(truck.state, MoveState::Idle);
+        assert!((truck.position.xy() - v2(110.0, 30.0)).length() < 3.0);
+        b.step();
+        assert!(b.observe(Side::Blue).prop_display_poses.is_empty());
+    }
+}
+
 /// Q28: a test-only smoke prop type: blocks nobody, stops no rounds, gives
 /// no cover, occludes, and lasts 10 s. Each column acts alone.
 fn smoke(units: Value, scripts: Value) -> ScenarioDefinition {

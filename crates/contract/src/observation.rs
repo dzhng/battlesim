@@ -258,6 +258,18 @@ pub struct KnownProp {
     pub wreck_of: Option<TypeIndex>,
 }
 
+/// Where a body shoved this tick stands, for a side that sees it (its
+/// pusher always does). Drawing only: `known_props` re-learns a shoved body
+/// in `relearn_m` steps, and planning reads that.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PropDisplayPose {
+    /// The body's `KnownProp::id`.
+    pub prop_id: u32,
+    pub center: [f64; 2],
+    pub yaw: f64,
+    pub base_z: f64,
+}
+
 /// Which ground this side can currently see: row-major cells of `cell_m`,
 /// one bit per cell, set when visible.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -771,6 +783,9 @@ pub struct ObservationFrame {
     pub shouts: Vec<Shout>,
     /// Obstacles added after setup that this side has seen or run into.
     pub known_props: Vec<KnownProp>,
+    /// The bodies shoved this tick that this side sees, where they stand.
+    #[serde(default)]
+    pub prop_display_poses: Vec<PropDisplayPose>,
     /// Round flight this side may draw this tick (own rounds whole, enemy
     /// rounds only over ground it sees).
     pub projectiles: Vec<VisibleSegment>,

@@ -30,7 +30,10 @@
 //! prop replaces, plus every known prop not destroyed (less a building's
 //! part, which its building's state draws, and a wreck the cook-off draws
 //! moving). A replacement is atomic: the list that drops a wall carries its
-//! rubble, and a fall the side has not seen leaves the wall standing.
+//! rubble, and a fall the side has not seen leaves the wall standing. A
+//! body it watches being shoved is drawn where the frame blends it to, ahead
+//! of its knowledge, which re-learns a shoved body only in steps; once the
+//! shove ends it holds there until that knowledge moves.
 //!
 //! Each drawn model takes the units' tier rule (`view::model_detail`) by its
 //! appearance's size grown by its largest scale, and is listed by look (its
@@ -47,6 +50,7 @@ use crate::static_world::walk::Record;
 use crate::view::{caster_tier, model_detail, model_fog, View, CULLED, SHADOW_MARGIN_M, TIERS};
 use crate::world::{Bounds, Corners, Detail};
 use serde::Deserialize;
+use sim::publication::reader::PropDisplayPose;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::f64::consts::FRAC_PI_2;
 
@@ -177,6 +181,26 @@ pub struct PropBox {
     pub half: [f64; 3],
     pub base_z: f64,
     pub wreck_of: Option<String>,
+}
+
+/// Where a shoved body stands at the drawn moment.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Shoved {
+    center: [f64; 2],
+    yaw: f64,
+    base_z: f64,
+}
+
+impl Shoved {
+    /// `b` moved here.
+    fn on(&self, b: &PropBox) -> PropBox {
+        PropBox {
+            center: self.center,
+            yaw: self.yaw,
+            base_z: self.base_z,
+            ..b.clone()
+        }
+    }
 }
 
 /// What a model is drawn as: an appearance, its state, and `Appearance.draws`.
@@ -525,6 +549,9 @@ pub struct PropPopulation {
     /// What the side knows, as given, and the known wrecks drawn moving.
     known: Vec<KnownBody>,
     moving: Vec<f64>,
+    /// Where the side watches its known bodies shoved, by id: drawn there
+    /// ahead of its knowledge, which re-learns a shoved body only in steps.
+    shoved: BTreeMap<u64, Shoved>,
     known_models: Vec<Model>,
     known_bodies: usize,
     /// The rows the looks draw, set when the world loads.
@@ -590,6 +617,7 @@ impl PropPopulation {
             art,
             known: Vec::new(),
             moving: Vec::new(),
+            shoved: BTreeMap::new(),
             known_models: Vec::new(),
             known_bodies: 0,
             rows: Vec::new(),
@@ -601,7 +629,51 @@ impl PropPopulation {
         if known == self.known {
             return false;
         }
+        // A body no longer shoved holds its pose until the side's knowledge
+        // of it moves.
+        let body = |known: &[KnownBody], id: u64| {
+            known
+                .iter()
+                .find(|k| k.id.is_some_and(|k| k as u64 == id))
+                .and_then(|k| k.body.clone())
+        };
+        let old = &self.known;
+        self.shoved
+            .retain(|&id, _| body(old, id).is_some_and(|b| Some(b) == body(&known, id)));
         self.known = known;
+        self.refit();
+        true
+    }
+
+    /// The known bodies the side watches shoved this frame, blended between
+    /// ticks; true when what is drawn changed.
+    pub fn set_shoved(&mut self, shoved: &[PropDisplayPose]) -> bool {
+        let mut next = self.shoved.clone();
+        for s in shoved {
+            next.insert(
+                s.prop_id as u64,
+                Shoved {
+                    center: s.center,
+                    yaw: s.yaw,
+                    base_z: s.base_z,
+                },
+            );
+        }
+        if next == self.shoved {
+            return false;
+        }
+        self.shoved = next;
+        self.refit();
+        true
+    }
+
+    /// Forget every shove: another side's stream, or the same one again,
+    /// starts from its own knowledge. True when that changed what is drawn.
+    pub fn forget_shoved(&mut self) -> bool {
+        if self.shoved.is_empty() {
+            return false;
+        }
+        self.shoved.clear();
         self.refit();
         true
     }
@@ -632,6 +704,9 @@ impl PropPopulation {
                 self.hidden[self.bodies[b].1.clone()].fill(true);
             }
             if let (false, Some(body)) = (k.destroyed, &k.body) {
+                let shoved = k.id.and_then(|id| self.shoved.get(&(id as u64)));
+                let shoved = shoved.map(|s| s.on(body));
+                let body = shoved.as_ref().unwrap_or(body);
                 let before = looks.list.len();
                 self.art
                     .fit(body, k.authored, &mut looks, &mut self.known_models);
