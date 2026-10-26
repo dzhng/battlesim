@@ -335,44 +335,60 @@ fn a_wreck_drawn_moving_is_left_out_until_it_lies_still() {
 }
 
 #[test]
-fn display_poses_interpolate_between_ticks() {
+fn a_body_watched_shoved_is_drawn_where_it_is_until_its_knowledge_moves() {
     let mut p = town();
-    // Set up a known prop with authored=1.0, which gives id=101 (100+x where x=1)
-    // The prop_id used is k.id.or(k.authored) = Some(101.0) -> 101
-    let initial = known(Some(1.0), "car", 1.0, false);
-    p.set_known(vec![initial.clone()]);
-    let initial_x = p.known_models.first().map(|m| m.record[0]).unwrap();
-    assert!((initial_x - 1.0).abs() < 0.01, "initial position from knowledge");
+    // A wall two modules long, known where it stood.
+    let mut wall = known(Some(2.0), "wall", 20.0, false);
+    wall.body.as_mut().unwrap().half = [4.0, 0.2, 1.0];
+    p.set_known(vec![wall.clone()]);
+    let drawn =
+        |p: &PropPopulation| -> Vec<Record> { p.known_models.iter().map(|m| m.record).collect() };
+    let stood = drawn(&p);
+    assert_eq!(stood.len(), 2);
+    // Shoved 3 m ahead of what the side knows: every module goes with it.
+    let shoved = PropDisplayPose {
+        prop_id: 120.0,
+        center: [23.0, 0.0],
+        yaw: 0.3,
+        base_z: 1.5,
+    };
+    assert!(p.set_shoved(std::slice::from_ref(&shoved)));
+    let moved = drawn(&p);
+    for (m, s) in moved.iter().zip(&stood) {
+        assert!((m[0] - s[0] - 3.0).abs() < 1e-4, "{m:?} from {s:?}");
+        assert_eq!(m[1..4], s[1..4]);
+    }
+    assert!(!p.set_shoved(&[shoved]), "the same pose draws nothing new");
+    // The shove ends: the wall holds where it was last seen, through the
+    // side re-learning it there, and moves on with what the side learns next.
+    assert!(!p.set_shoved(&[]));
+    assert_eq!(drawn(&p), moved);
+    wall.body.as_mut().unwrap().center = [23.0, 0.0];
+    assert!(p.set_known(vec![wall.clone()]));
+    assert_eq!(drawn(&p), moved);
+    wall.body.as_mut().unwrap().center = [30.0, 0.0];
+    assert!(p.set_known(vec![wall]));
+    assert!((drawn(&p)[0][0] - stood[0][0] - 10.0).abs() < 1e-4);
+}
 
-    // Push first display pose at x=1 (tick 1) - use prop_id=101
-    p.push_display_poses(&[(101, [1.0, 0.0], 0.0, 0.0)]);
-    
-    // Push second display pose at x=5 (tick 2) - this shifts tick 1 to previous
-    p.push_display_poses(&[(101, [5.0, 0.0], 0.0, 0.0)]);
-
-    // At t=0.5, should interpolate to midpoint x=3
-    assert!(p.apply_display_poses(0.5), "interpolation should apply");
-    let mid_x = p.known_models.first().map(|m| m.record[0]).unwrap();
-    assert!(
-        (mid_x - 3.0).abs() < 0.01,
-        "t=0.5 should interpolate to midpoint: got {mid_x}"
-    );
-
-    // At t=0, should be at previous tick position x=1
-    assert!(p.apply_display_poses(0.0), "interpolation at t=0");
-    let start_x = p.known_models.first().map(|m| m.record[0]).unwrap();
-    assert!(
-        (start_x - 1.0).abs() < 0.01,
-        "t=0 should interpolate to previous: got {start_x}"
-    );
-
-    // At t=1, should be at current tick position x=5
-    assert!(p.apply_display_poses(1.0), "interpolation at t=1");
-    let end_x = p.known_models.first().map(|m| m.record[0]).unwrap();
-    assert!(
-        (end_x - 5.0).abs() < 0.01,
-        "t=1 should interpolate to current: got {end_x}"
-    );
+#[test]
+fn a_shove_one_stream_watched_is_forgotten_by_the_next() {
+    let mut p = town();
+    let car = known(Some(1.0), "car", 5.0, false);
+    p.set_known(vec![car.clone()]);
+    let at = |p: &PropPopulation| p.known_models[0].record[0];
+    let shoved = PropDisplayPose {
+        prop_id: 105.0,
+        center: [9.0, 0.0],
+        yaw: 0.3,
+        base_z: 1.5,
+    };
+    p.set_shoved(&[shoved]);
+    assert_eq!(at(&p), 9.0);
+    // Another side that knows the car where it stood never saw it go.
+    assert!(p.forget_shoved());
+    assert!(!p.set_known(vec![car]));
+    assert_eq!(at(&p), 5.0);
 }
 
 #[test]

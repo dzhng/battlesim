@@ -30,7 +30,10 @@
 //! prop replaces, plus every known prop not destroyed (less a building's
 //! part, which its building's state draws, and a wreck the cook-off draws
 //! moving). A replacement is atomic: the list that drops a wall carries its
-//! rubble, and a fall the side has not seen leaves the wall standing.
+//! rubble, and a fall the side has not seen leaves the wall standing. A
+//! body it watches being shoved is drawn where the frame blends it to, ahead
+//! of its knowledge, which re-learns a shoved body only in steps; once the
+//! shove ends it holds there until that knowledge moves.
 //!
 //! Each drawn model takes the units' tier rule (`view::model_detail`) by its
 //! appearance's size grown by its largest scale, and is listed by look (its
@@ -47,38 +50,8 @@ use crate::static_world::walk::Record;
 use crate::view::{caster_tier, model_detail, model_fog, View, CULLED, SHADOW_MARGIN_M, TIERS};
 use crate::world::{Bounds, Corners, Detail};
 use serde::Deserialize;
+use sim::publication::reader::PropDisplayPose;
 use std::collections::{BTreeMap, HashMap, HashSet};
-
-/// A pose for interpolation: center, yaw, base_z.
-#[derive(Clone, Copy, Debug, Default)]
-struct Pose {
-    center: [f64; 2],
-    yaw: f64,
-    base_z: f64,
-}
-
-fn delta_angle(current: f64, target: f64) -> f64 {
-    let tau = std::f64::consts::TAU;
-    let diff = target - current;
-    let delta = diff - tau * (diff / tau).floor();
-    if delta > std::f64::consts::PI {
-        delta - tau
-    } else {
-        delta
-    }
-}
-
-fn lerp_pose(a: &Pose, b: &Pose, t: f64) -> Pose {
-    Pose {
-        center: [
-            a.center[0] + t * (b.center[0] - a.center[0]),
-            a.center[1] + t * (b.center[1] - a.center[1]),
-        ],
-        yaw: a.yaw + delta_angle(a.yaw, b.yaw) * t,
-        base_z: a.base_z + t * (b.base_z - a.base_z),
-    }
-}
-
 use std::f64::consts::FRAC_PI_2;
 
 /// What draws a prop's row (`Appearance.draws`): a model fogged face by
@@ -208,6 +181,26 @@ pub struct PropBox {
     pub half: [f64; 3],
     pub base_z: f64,
     pub wreck_of: Option<String>,
+}
+
+/// Where a shoved body stands at the drawn moment.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Shoved {
+    center: [f64; 2],
+    yaw: f64,
+    base_z: f64,
+}
+
+impl Shoved {
+    /// `b` moved here.
+    fn on(&self, b: &PropBox) -> PropBox {
+        PropBox {
+            center: self.center,
+            yaw: self.yaw,
+            base_z: self.base_z,
+            ..b.clone()
+        }
+    }
 }
 
 /// What a model is drawn as: an appearance, its state, and `Appearance.draws`.
@@ -556,21 +549,15 @@ pub struct PropPopulation {
     /// What the side knows, as given, and the known wrecks drawn moving.
     known: Vec<KnownBody>,
     moving: Vec<f64>,
+    /// Where the side watches its known bodies shoved, by id: drawn there
+    /// ahead of its knowledge, which re-learns a shoved body only in steps.
+    shoved: BTreeMap<u64, Shoved>,
     known_models: Vec<Model>,
     known_bodies: usize,
     /// The rows the looks draw, set when the world loads.
     pub rows: Vec<u32>,
     lists: Vec<Vec<Record>>,
     prints: Vec<u64>,
-    /// Display poses from the previous tick, for interpolation.
-    previous_display_poses: HashMap<u32, Pose>,
-    /// Display poses from the current tick.
-    current_display_poses: HashMap<u32, Pose>,
-    /// Held display poses for props that dropped out of current but whose
-    /// knowledge hasn't caught up yet (prevents snap-back on refit).
-    held_display_poses: HashMap<u32, Pose>,
-    /// The model index range for each known prop (by index into `known`).
-    known_model_ranges: Vec<std::ops::Range<usize>>,
 }
 
 impl PropPopulation {
@@ -630,13 +617,10 @@ impl PropPopulation {
             art,
             known: Vec::new(),
             moving: Vec::new(),
+            shoved: BTreeMap::new(),
             known_models: Vec::new(),
             known_bodies: 0,
             rows: Vec::new(),
-            previous_display_poses: HashMap::new(),
-            current_display_poses: HashMap::new(),
-            held_display_poses: HashMap::new(),
-            known_model_ranges: Vec::new(),
         }
     }
 
@@ -645,103 +629,53 @@ impl PropPopulation {
         if known == self.known {
             return false;
         }
+        // A body no longer shoved holds its pose until the side's knowledge
+        // of it moves.
+        let body = |known: &[KnownBody], id: u64| {
+            known
+                .iter()
+                .find(|k| k.id.is_some_and(|k| k as u64 == id))
+                .and_then(|k| k.body.clone())
+        };
+        let old = &self.known;
+        self.shoved
+            .retain(|&id, _| body(old, id).is_some_and(|b| Some(b) == body(&known, id)));
         self.known = known;
         self.refit();
         true
     }
 
-    /// Push new display poses from an observation. Call this when a new
-    /// observation arrives (once per tick), not every frame. This shifts
-    /// current poses to previous and handles props that drop out.
-    pub fn push_display_poses(&mut self, poses: &[(u32, [f64; 2], f64, f64)]) {
-        // Move current → previous
-        std::mem::swap(&mut self.previous_display_poses, &mut self.current_display_poses);
-        
-        // Props that were in current (now previous) but not in the new list
-        // go to held, so they don't snap back on refit
-        for (&prop_id, &pose) in &self.previous_display_poses {
-            if !poses.iter().any(|&(id, ..)| id == prop_id) {
-                self.held_display_poses.insert(prop_id, pose);
-            }
+    /// The known bodies the side watches shoved this frame, blended between
+    /// ticks; true when what is drawn changed.
+    pub fn set_shoved(&mut self, shoved: &[PropDisplayPose]) -> bool {
+        let mut next = self.shoved.clone();
+        for s in shoved {
+            next.insert(
+                s.prop_id as u64,
+                Shoved {
+                    center: s.center,
+                    yaw: s.yaw,
+                    base_z: s.base_z,
+                },
+            );
         }
-        
-        // Set new poses as current
-        self.current_display_poses.clear();
-        for &(prop_id, center, yaw, base_z) in poses {
-            self.current_display_poses.insert(prop_id, Pose { center, yaw, base_z });
-            // If this prop is back in current, remove it from held
-            self.held_display_poses.remove(&prop_id);
+        if next == self.shoved {
+            return false;
         }
+        self.shoved = next;
+        self.refit();
+        true
     }
 
-    /// Apply interpolated display poses to known model records.
-    /// `t` is the blend factor: 0 at previous tick, 1 at current tick.
-    /// Returns true if any model was updated.
-    pub fn apply_display_poses(&mut self, t: f64) -> bool {
-        let mut any = false;
-        for (k_index, k) in self.known.iter().enumerate() {
-            let prop_id = k.id.or(k.authored);
-            let Some(prop_id) = prop_id.map(|id| id as u32) else {
-                continue;
-            };
-            
-            // Determine the pose to apply:
-            // 1. If in current, interpolate from previous (or current if no previous)
-            // 2. If only in held, use held pose (prop dropped out, waiting for knowledge)
-            let pose = if let Some(current) = self.current_display_poses.get(&prop_id) {
-                if let Some(previous) = self.previous_display_poses.get(&prop_id) {
-                    lerp_pose(previous, current, t)
-                } else {
-                    *current
-                }
-            } else if let Some(held) = self.held_display_poses.get(&prop_id) {
-                *held
-            } else {
-                continue;
-            };
-            
-            let range = self.known_model_ranges.get(k_index).cloned().unwrap_or(0..0);
-            if range.is_empty() {
-                continue;
-            }
-            for i in range {
-                let model = &mut self.known_models[i];
-                model.record[0] = pose.center[0] as f32;
-                model.record[1] = pose.center[1] as f32;
-                model.record[2] = pose.base_z as f32;
-                model.record[3] = pose.yaw as f32;
-            }
-            any = true;
+    /// Forget every shove: another side's stream, or the same one again,
+    /// starts from its own knowledge. True when that changed what is drawn.
+    pub fn forget_shoved(&mut self) -> bool {
+        if self.shoved.is_empty() {
+            return false;
         }
-        any
-    }
-    
-    /// Clear held display poses for props whose knowledge has caught up.
-    /// Call this after refit when knowledge changes.
-    pub fn clear_caught_up_held_poses(&mut self) {
-        self.held_display_poses.retain(|&prop_id, held_pose| {
-            // Find the known prop with this id
-            let known_pose = self.known.iter().find_map(|k| {
-                let kid = k.id.or(k.authored).map(|id| id as u32)?;
-                if kid == prop_id {
-                    k.body.as_ref().map(|b| (b.center, b.yaw, b.base_z))
-                } else {
-                    None
-                }
-            });
-            
-            // Keep held if knowledge hasn't caught up (position differs significantly)
-            if let Some((center, _yaw, _base_z)) = known_pose {
-                let dist = ((center[0] - held_pose.center[0]).powi(2)
-                    + (center[1] - held_pose.center[1]).powi(2))
-                .sqrt();
-                // If knowledge is within 0.5m, it has caught up
-                dist > 0.5
-            } else {
-                // Prop not in knowledge, drop the held pose
-                false
-            }
-        });
+        self.shoved.clear();
+        self.refit();
+        true
     }
 
     /// The known props whose wreck is drawn moving (a cook-off): left out
@@ -759,12 +693,10 @@ impl PropPopulation {
     fn refit(&mut self) {
         self.hidden.fill(false);
         self.known_models.clear();
-        self.known_model_ranges.clear();
         self.known_bodies = 0;
         let mut looks = std::mem::take(&mut self.looks);
         for k in &self.known {
             if k.id.is_some_and(|id| self.moving.contains(&id)) {
-                self.known_model_ranges.push(0..0);
                 continue;
             }
             let replaced = k.authored.and_then(|a| self.by_id.get(&(a as u64)));
@@ -772,7 +704,9 @@ impl PropPopulation {
                 self.hidden[self.bodies[b].1.clone()].fill(true);
             }
             if let (false, Some(body)) = (k.destroyed, &k.body) {
-                let first = self.known_models.len();
+                let shoved = k.id.and_then(|id| self.shoved.get(&(id as u64)));
+                let shoved = shoved.map(|s| s.on(body));
+                let body = shoved.as_ref().unwrap_or(body);
                 let before = looks.list.len();
                 self.art
                     .fit(body, k.authored, &mut looks, &mut self.known_models);
@@ -783,15 +717,10 @@ impl PropPopulation {
                     looks.list.truncate(before);
                     looks.index.retain(|_, &mut i| i < before);
                 }
-                self.known_model_ranges.push(first..self.known_models.len());
-            } else {
-                self.known_model_ranges.push(0..0);
             }
         }
         self.known_index = BoundsIndex::new(self.known_models.iter().map(model_bounds));
         self.looks = looks;
-        // Clear held poses for props whose knowledge has caught up
-        self.clear_caught_up_held_poses();
     }
 
     /// Models placed: the map's not hidden, then the known's.

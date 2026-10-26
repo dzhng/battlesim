@@ -382,6 +382,9 @@ impl Presentation {
         }
         self.latest = None;
         self.interpolator = TickInterpolator::new(self.tick_hz);
+        if self.props.as_mut().is_some_and(|p| p.forget_shoved()) {
+            self.statics.rewalk();
+        }
         self.pending.clear();
         if let Some(loaded) = &mut self.loaded {
             loaded.transits.clear();
@@ -401,15 +404,6 @@ impl Presentation {
         let observation = Arc::new(observation);
         self.interpolator.push(observation.clone(), arrived_s);
         self.latest = Some(observation.clone());
-        // Push display poses for actively shoved props (once per tick).
-        if let Some(props) = &mut self.props {
-            let poses: Vec<(u32, [f64; 2], f64, f64)> = observation
-                .prop_display_poses
-                .iter()
-                .map(|p| (p.prop_id as u32, p.center, p.yaw, p.base_z))
-                .collect();
-            props.push_display_poses(&poses);
-        }
         match &mut self.loaded {
             Some(loaded) => loaded.note(&observation),
             None => {
@@ -1361,11 +1355,10 @@ impl Presentation {
                 self.statics.rewalk();
             }
         }
-        // Apply interpolated display poses for actively shoved props (smooth rendering).
-        // The blend factor t interpolates between previous and current tick poses.
+        let sample = self.interpolator.frame(time);
+        // A body the side watches shoved moves every frame, as units do.
         if let Some(props) = &mut self.props {
-            let t = self.interpolator.blend(time);
-            if props.apply_display_poses(t) {
+            if props.set_shoved(sample.map_or(&[], |s| &s.shoved)) {
                 self.statics.rewalk();
             }
         }
@@ -1388,8 +1381,7 @@ impl Presentation {
         let f = &mut self.frame;
         self.statics
             .write(&mut populations, camera, &view, generation, f);
-        let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), self.interpolator.frame(time))
-        else {
+        let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), sample) else {
             return Ok(&self.frame);
         };
         let f = &mut self.frame;

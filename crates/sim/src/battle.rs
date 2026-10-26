@@ -12,8 +12,8 @@ use contract::map::{MoverClass, PropDefinition};
 use contract::observation::{
     AirTransit, AirTransitDirection, Blast, Corpse, EncounterStatus, FallenBody, FallingAirframe,
     GuidedMissile, KnownProp, MemberOrder, MoveState, ObservationFrame, OwnUnit, Posture,
-    SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, SquadArea, UnitSight, VisibilityField,
-    VisibleSegment,
+    PropDisplayPose, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, SquadArea, UnitSight,
+    VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
     EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
@@ -293,6 +293,8 @@ pub struct Battle {
     units: Vec<Unit>,
     /// Props authored with the map (ids below this) are known to every side.
     authored_props: PropId,
+    /// The bodies shoved this tick, and by which side.
+    shoved: Vec<(PropId, Side)>,
     sides: [SideGeometry; 3],
     /// The map's road graph, built once: public terrain, the same for both
     /// sides.
@@ -372,8 +374,6 @@ pub struct Battle {
     shout_before: Vec<shouts::Before>,
     shout_evidence: ShoutEvidence,
     shout_fired: BTreeSet<UnitId>,
-    /// Props shoved this tick, with their true world poses for rendering.
-    tick_shoves: Vec<movement::Shove>,
     shout_kills: BTreeSet<UnitId>,
     shout_under_fire: BTreeSet<UnitId>,
     /// Per listening side, the enemies that shouted unseen since the last
@@ -806,6 +806,7 @@ impl Battle {
                 .clone()
                 .map(|s| crate::skirmish::Skirmish::new(s, &setup.players)),
             authored_props: world.props().count() as PropId,
+            shoved: Vec::new(),
             world,
             rules,
             seed,
@@ -885,7 +886,6 @@ impl Battle {
             shout_before: Vec::new(),
             shout_evidence: ShoutEvidence::default(),
             shout_fired: BTreeSet::new(),
-            tick_shoves: Vec::new(),
             shout_kills: BTreeSet::new(),
             shout_under_fire: BTreeSet::new(),
             shouted_unseen: Default::default(),
@@ -1995,7 +1995,7 @@ impl Battle {
     /// seen an authored body move keeps it where it stood (L1); the soldiers
     /// a body now covers step out of it.
     fn shove_props(&mut self, shoves: Vec<movement::Shove>) {
-        self.tick_shoves.clear();
+        self.shoved.clear();
         for s in shoves {
             let Some(prop) = self.world.prop(s.prop).cloned() else {
                 continue;
@@ -2008,17 +2008,10 @@ impl Battle {
                 side.before_move(&prop, self.authored_props);
             }
             self.world.move_prop(s.prop, s.center, s.yaw, self.tick);
-            if let Some(moved) = self.world.prop(s.prop) {
+            if let Some(moved) = self.world.prop(s.prop).map(|p| p.footprint()) {
                 let r = self.rules.physics.soldier_radius_m;
-                movement::clear_of(&self.world, &mut self.units, &moved.footprint(), r);
-                // Record the shove with true world pose for rendering.
-                self.tick_shoves.push(movement::Shove {
-                    prop: s.prop,
-                    center: moved.center,
-                    yaw: moved.yaw,
-                    by: s.by,
-                    heading: s.heading,
-                });
+                movement::clear_of(&self.world, &mut self.units, &moved, r);
+                self.shoved.push((s.prop, s.by));
             }
         }
     }
@@ -4425,22 +4418,20 @@ impl Battle {
                     wreck_of: p.wreck_of,
                 });
             }
-            // Display poses for actively shoved props: true world position for
-            // smooth rendering, separate from throttled knowledge.
+            // A body shoved where this side sees it (its own pusher always
+            // does) is drawn where it stands, ahead of the knowledge above.
             frame.prop_display_poses.clear();
-            for shove in &self.tick_shoves {
-                // The pusher always sees what it's shoving; other sides need
-                // fog-of-war visibility.
-                let visible = shove.by == side || fog.visible(shove.center.x, shove.center.y);
-                if !visible {
+            for (prop, by) in &self.shoved {
+                let Some(p) = self.world.prop(*prop) else {
                     continue;
-                }
-                if let Some(prop) = self.world.prop(shove.prop) {
-                    frame.prop_display_poses.push(contract::observation::PropDisplayPose {
-                        prop_id: prop.id,
-                        center: [prop.center.x, prop.center.y],
-                        yaw: prop.yaw,
-                        base_z: prop.base_z,
+                };
+                let drawn = frame.prop_display_poses.iter().any(|d| d.prop_id == p.id);
+                if !drawn && (*by == side || fog.visible(p.center.x, p.center.y)) {
+                    frame.prop_display_poses.push(PropDisplayPose {
+                        prop_id: p.id,
+                        center: [p.center.x, p.center.y],
+                        yaw: p.yaw,
+                        base_z: p.base_z,
                     });
                 }
             }

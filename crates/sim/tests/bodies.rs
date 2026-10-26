@@ -296,100 +296,36 @@ fn shoves_replay_and_poses_are_in_the_digest() {
     assert_ne!(at(30.0), at(30.01));
 }
 
-/// A heavy vehicle shoving a lighter body reaches its goal past the body.
-/// Regression test: ensuring the pusher's knowledge updates do not cause
-/// the routing to treat the shoved prop as a new blocking obstacle mid-push.
+/// A shoved body is drawn where it stands each tick, ahead of the knowledge
+/// that re-learns it only in steps: to its pusher always, to a side that
+/// watches it, never to a side that can't see it, and to no one once it lies
+/// still. The pusher still drives on past it to its goal.
 #[test]
-fn a_pusher_reaches_its_goal_past_a_shoved_body() {
-    let goal = [110.0, 30.0];
-    let setup = shove_setup([880.0, 30.0]);
-    let mut b = Battle::new(&setup, 1);
-    run(&mut b, 35.0);
-    let unit = b.unit(UnitId(0)).unwrap();
-    assert_eq!(unit.state, MoveState::Idle, "the pusher finished moving");
-    let goal_v = v2(goal[0], goal[1]);
-    let dist_to_goal = (unit.position.xy() - goal_v).length();
-    assert!(
-        dist_to_goal < 3.0,
-        "the pusher should reach its goal (at {:?}, {:.2}m from goal)",
-        unit.position.xy(),
-        dist_to_goal
-    );
-    let body_moved = (b.world().prop(BODY).unwrap().center - v2(55.0, 30.0)).length();
-    assert!(
-        body_moved > 10.0,
-        "the body should be shoved far ({:.2}m)",
-        body_moved
-    );
-}
-
-/// Once a body stops being pushed (no vehicle contact this tick), the
-/// prop_display_poses should be empty. This ensures no jitter or stale
-/// poses are published for a body at rest.
-#[test]
-fn display_poses_are_empty_once_a_body_stops_being_pushed() {
-    let setup = shove_setup([880.0, 30.0]);
-    let mut b = Battle::new(&setup, 1);
-    run(&mut b, 35.0);
-    let unit = b.unit(UnitId(0)).unwrap();
-    assert_eq!(unit.state, MoveState::Idle, "the pusher finished moving");
-    for _ in 0..10 {
-        b.step();
-    }
-    let poses = &b.observe(Side::Blue).prop_display_poses;
-    assert!(
-        poses.is_empty(),
-        "display poses should be empty at rest (found {} poses)",
-        poses.len()
-    );
-}
-
-/// During an active push, prop_display_poses should be published every tick
-/// with the true world position of the shoved body. This allows smooth
-/// per-tick rendering separate from throttled knowledge updates.
-#[test]
-fn display_poses_are_published_every_tick_during_a_push() {
-    let setup = shove_setup([880.0, 30.0]);
-    let mut b = Battle::new(&setup, 1);
-    let mut poses_seen = 0;
-    let mut pose_count_per_tick: Vec<usize> = Vec::new();
-    let mut body_was_moving = false;
-    let initial_center = v2(55.0, 30.0);
-    for _ in 0..(20.0 * b.rules().tick_hz as f64) as u64 {
-        b.step();
-        let poses = &b.observe(Side::Blue).prop_display_poses;
-        pose_count_per_tick.push(poses.len());
-        if !poses.is_empty() {
-            poses_seen += 1;
-            body_was_moving = true;
-            for pose in poses {
-                assert!(
-                    pose.prop_id > 0,
-                    "display pose should have valid prop_id"
-                );
+fn a_shove_is_published_each_tick_to_the_sides_that_see_it() {
+    for (red_at, red_sees) in [([150.0, 30.0], true), ([880.0, 30.0], false)] {
+        let mut b = Battle::new(&shove_setup(red_at), 1);
+        let (mut moved, mut red_drawn) = (0, 0);
+        let mut was = b.world().prop(BODY).unwrap().center;
+        for _ in 0..(35.0 * b.rules().tick_hz as f64) as u64 {
+            b.step();
+            let now = b.world().prop(BODY).unwrap().center;
+            if now != was {
+                moved += 1;
+                let drawn = &b.observe(Side::Blue).prop_display_poses;
+                assert_eq!(drawn.len(), 1, "the pusher draws what it moved");
+                assert_eq!(drawn[0].center, [now.x, now.y]);
             }
+            red_drawn += usize::from(!b.observe(Side::Red).prop_display_poses.is_empty());
+            was = now;
         }
-        let body_moved = (b.world().prop(BODY).unwrap().center - initial_center).length();
-        if body_moved > 0.0 && body_moved < 5.0 && !poses.is_empty() {
-            let pose_center = v2(poses[0].center[0], poses[0].center[1]);
-            let world_center = b.world().prop(BODY).unwrap().center;
-            let diff = (pose_center - world_center).length();
-            assert!(
-                diff < 0.01,
-                "display pose center should match world position (diff: {:.4}m)",
-                diff
-            );
-        }
+        assert!(moved > 10, "the truck shoved the crate along");
+        assert_eq!(red_drawn > 0, red_sees, "red at {red_at:?}");
+        let truck = b.unit(UnitId(0)).unwrap();
+        assert_eq!(truck.state, MoveState::Idle);
+        assert!((truck.position.xy() - v2(110.0, 30.0)).length() < 3.0);
+        b.step();
+        assert!(b.observe(Side::Blue).prop_display_poses.is_empty());
     }
-    assert!(
-        body_was_moving,
-        "the body should have been pushed during the test"
-    );
-    assert!(
-        poses_seen > 10,
-        "should see display poses on many ticks during push (saw {} ticks with poses)",
-        poses_seen
-    );
 }
 
 /// Q28: a test-only smoke prop type: blocks nobody, stops no rounds, gives
