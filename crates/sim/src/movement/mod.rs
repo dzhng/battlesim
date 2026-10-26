@@ -602,6 +602,19 @@ fn request_route(
     } else {
         Vec::new()
     };
+    // A vehicle actively in contact with a pushable prop is pushing through
+    // it: don't replan because of that prop (Q13). The prop being pushed moves
+    // with the vehicle, and replanning would oscillate detour waypoints.
+    let actively_pushing = unit.ground_footprint().is_some_and(|hull| {
+        ctx.world
+            .props_near(hull.center, hull.half.length())
+            .iter()
+            .any(|prop| {
+                prop.blocks(MoverClass::Vehicle)
+                    && unit.ground().push.pushes(prop.body.weight_class)
+                    && hull.separation(&prop.footprint()).is_some()
+            })
+    });
     let needs = match (&unit.route, unit.state) {
         _ if goal_moved => true,
         (_, MoveState::RouteBlocked) => changed,
@@ -634,7 +647,8 @@ fn request_route(
                     && {
                         let grid = side.grid(ctx.world, ctx.authored);
                         !grid.route_fits(from, route, unit.ground())
-                            || grid.route_pushes(from, route, unit.ground(), swerve)
+                            || (!actively_pushing
+                                && grid.route_pushes(from, route, unit.ground(), swerve))
                     })
         }
     };
