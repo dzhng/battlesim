@@ -103,6 +103,17 @@ pub struct EffectPublication {
     /// Own aircraft flare releases observed since the previous publication.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub flare_deploys: Vec<Vec3>,
+    /// Metal-on-metal push contacts where a vehicle grinds a prop this tick.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub push_contacts: Vec<PushContactEffect>,
+}
+
+/// A contact point where a vehicle is pushing a prop: metal-on-metal sparks.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PushContactEffect {
+    pub point: Vec3,
+    pub heading: [f64; 2],
+    pub intensity: f64,
 }
 
 /// Reads observations into effect publications for one side.
@@ -271,6 +282,15 @@ impl EffectFeed {
             smokes,
             cook_offs: Vec::new(),
             flare_deploys,
+            push_contacts: o
+                .push_contacts
+                .iter()
+                .map(|c| PushContactEffect {
+                    point: c.point,
+                    heading: c.heading,
+                    intensity: c.intensity,
+                })
+                .collect(),
         }
     }
 

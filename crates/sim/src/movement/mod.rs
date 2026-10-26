@@ -1098,6 +1098,7 @@ fn step_vehicle(
         }
     }
     let turn = ctx.rules.pushing.turn_deg_per_m.to_radians();
+    let push_speed_mps = motion.step / dt;
     let mut shoved = Vec::new();
     let mut solid = met.solid.is_some();
     for prop in &met.shoved {
@@ -1109,6 +1110,7 @@ fn step_vehicle(
             motion.heading,
             prop,
             turn,
+            push_speed_mps,
         ) {
             Some(s) => shoved.push(s),
             None => solid = true,

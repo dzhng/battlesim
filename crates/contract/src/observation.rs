@@ -270,6 +270,18 @@ pub struct PropDisplayPose {
     pub base_z: f64,
 }
 
+/// A contact point where a vehicle is pushing a prop this tick: metal-on-metal
+/// grinding that throws sparks. Published for the side that sees the contact.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PushContact {
+    /// The world-space position of the contact point.
+    pub point: [f64; 3],
+    /// The direction the push is going (unit vector).
+    pub heading: [f64; 2],
+    /// Intensity of the push, 0 to 1, based on the pusher's speed.
+    pub intensity: f64,
+}
+
 /// Which ground this side can currently see: row-major cells of `cell_m`,
 /// one bit per cell, set when visible.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -786,6 +798,9 @@ pub struct ObservationFrame {
     /// The bodies shoved this tick that this side sees, where they stand.
     #[serde(default)]
     pub prop_display_poses: Vec<PropDisplayPose>,
+    /// Push contacts where vehicles are grinding props this tick: for sparks.
+    #[serde(default)]
+    pub push_contacts: Vec<PushContact>,
     /// Round flight this side may draw this tick (own rounds whole, enemy
     /// rounds only over ground it sees).
     pub projectiles: Vec<VisibleSegment>,
