@@ -947,6 +947,14 @@ impl EffectFrame {
         for c in &publication.cook_offs {
             self.pool.cook_off(p, t0, c, &mut rng);
         }
+        for c in &publication.push_contacts {
+            let dir: Vec3 = [c.heading[0], c.heading[1], 0.0];
+            let up: Vec3 = [0.0, 0.0, 1.0];
+            let count = (p.sparks.push_count * c.intensity).max(1.0);
+            let scale = 0.5 + 0.5 * c.intensity;
+            self.pool
+                .sparks(&p.sparks, t1, c.point, up, dir, count, &mut rng, scale);
+        }
         self.note_movers(publication, gap, t0);
         self.note_smokers(publication, gap, t0, t1);
         self.note_sources(publication, t0, t1);

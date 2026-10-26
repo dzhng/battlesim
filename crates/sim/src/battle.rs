@@ -12,8 +12,8 @@ use contract::map::{MoverClass, PropDefinition};
 use contract::observation::{
     AirTransit, AirTransitDirection, Blast, Corpse, EncounterStatus, FallenBody, FallingAirframe,
     GuidedMissile, KnownProp, MemberOrder, MoveState, ObservationFrame, OwnUnit, Posture,
-    PropDisplayPose, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, SquadArea, UnitSight,
-    VisibilityField, VisibleSegment,
+    PropDisplayPose, PushContact, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, SquadArea,
+    UnitSight, VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
     EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
@@ -284,6 +284,15 @@ impl std::fmt::Display for ReplayError {
     }
 }
 
+/// A prop shoved this tick and its contact information for sparks.
+struct ShovedProp {
+    prop: PropId,
+    by: Side,
+    contact: V2,
+    heading: V2,
+    speed_mps: f64,
+}
+
 pub struct Battle {
     skirmish: Option<crate::skirmish::Skirmish>,
     world: WorldGeometry,
@@ -293,8 +302,8 @@ pub struct Battle {
     units: Vec<Unit>,
     /// Props authored with the map (ids below this) are known to every side.
     authored_props: PropId,
-    /// The bodies shoved this tick, and by which side.
-    shoved: Vec<(PropId, Side)>,
+    /// The bodies shoved this tick with contact info for display and sparks.
+    shoved: Vec<ShovedProp>,
     sides: [SideGeometry; 3],
     /// The map's road graph, built once: public terrain, the same for both
     /// sides.
@@ -2011,7 +2020,13 @@ impl Battle {
             if let Some(moved) = self.world.prop(s.prop).map(|p| p.footprint()) {
                 let r = self.rules.physics.soldier_radius_m;
                 movement::clear_of(&self.world, &mut self.units, &moved, r);
-                self.shoved.push((s.prop, s.by));
+                self.shoved.push(ShovedProp {
+                    prop: s.prop,
+                    by: s.by,
+                    contact: s.contact,
+                    heading: s.heading,
+                    speed_mps: s.speed_mps,
+                });
             }
         }
     }
@@ -4420,13 +4435,19 @@ impl Battle {
             }
             // A body shoved where this side sees it (its own pusher always
             // does) is drawn where it stands, ahead of the knowledge above.
+            // Also emit push contacts where metal grinds on metal for sparks.
             frame.prop_display_poses.clear();
-            for (prop, by) in &self.shoved {
-                let Some(p) = self.world.prop(*prop) else {
+            frame.push_contacts.clear();
+            for shove in &self.shoved {
+                let Some(p) = self.world.prop(shove.prop) else {
                     continue;
                 };
+                let visible = shove.by == side || fog.visible(p.center.x, p.center.y);
+                if !visible {
+                    continue;
+                }
                 let drawn = frame.prop_display_poses.iter().any(|d| d.prop_id == p.id);
-                if !drawn && (*by == side || fog.visible(p.center.x, p.center.y)) {
+                if !drawn {
                     frame.prop_display_poses.push(PropDisplayPose {
                         prop_id: p.id,
                         center: [p.center.x, p.center.y],
@@ -4434,6 +4455,18 @@ impl Battle {
                         base_z: p.base_z,
                     });
                 }
+                // Sparks where the hull meets the prop, at prop's base height.
+                let len = shove.heading.length();
+                let dir = if len > 1e-9 {
+                    shove.heading * (1.0 / len)
+                } else {
+                    v2(1.0, 0.0)
+                };
+                frame.push_contacts.push(PushContact {
+                    point: [shove.contact.x, shove.contact.y, p.base_z],
+                    heading: [dir.x, dir.y],
+                    intensity: (shove.speed_mps / 10.0).clamp(0.0, 1.0),
+                });
             }
             frame.projectiles.clear();
             for round in &self.segments {

@@ -31,6 +31,10 @@ pub struct Shove {
     pub by: Side,
     /// The pusher's horizontal travel: the way a body it knocks down falls.
     pub heading: V2,
+    /// Where the pusher's hull meets the prop, for sparks.
+    pub contact: V2,
+    /// The pusher's speed in m/s, for spark intensity.
+    pub speed_mps: f64,
 }
 
 /// What a hull moving to `next` from `here` meets among the bodies that
@@ -76,6 +80,7 @@ pub fn shove(
     heading: V2,
     prop: &Prop,
     turn_rad_per_m: f64,
+    speed_mps: f64,
 ) -> Option<Shove> {
     let by = units[pusher].side;
     if prop.body.topples {
@@ -85,6 +90,8 @@ pub fn shove(
             yaw: prop.yaw,
             by,
             heading,
+            contact: prop.center,
+            speed_mps,
         });
     }
     let before = prop.footprint();
@@ -127,5 +134,32 @@ pub fn shove(
         yaw: rect.yaw,
         by,
         heading,
+        contact: contact_point(hull, &rect),
+        speed_mps,
     })
+}
+
+/// The contact point between hull and the (now-pushed) prop: the point on
+/// the prop's edge closest to the hull's center.
+fn contact_point(hull: &Obb2, prop: &Obb2) -> V2 {
+    use crate::math::v2;
+    let to_hull = hull.center - prop.center;
+    let len = to_hull.length();
+    if len < 1e-9 {
+        return prop.center;
+    }
+    let dir = to_hull * (1.0 / len);
+    let (cos, sin) = (prop.yaw.cos(), prop.yaw.sin());
+    let local_dir = v2(cos * dir.x + sin * dir.y, -sin * dir.x + cos * dir.y);
+    let local_contact = v2(
+        local_dir.x.signum() * prop.half.x,
+        local_dir.y.signum() * prop.half.y,
+    );
+    let contact_dist = (local_contact.x / local_dir.x.abs().max(1e-9))
+        .min(local_contact.y / local_dir.y.abs().max(1e-9));
+    let local_edge = local_dir * contact_dist.min(len);
+    v2(
+        prop.center.x + cos * local_edge.x - sin * local_edge.y,
+        prop.center.y + sin * local_edge.x + cos * local_edge.y,
+    )
 }
