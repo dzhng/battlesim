@@ -284,15 +284,6 @@ impl std::fmt::Display for ReplayError {
     }
 }
 
-/// A prop shoved this tick and its contact information for sparks.
-struct ShovedProp {
-    prop: PropId,
-    by: Side,
-    contact: V2,
-    heading: V2,
-    speed_mps: f64,
-}
-
 pub struct Battle {
     skirmish: Option<crate::skirmish::Skirmish>,
     world: WorldGeometry,
@@ -302,8 +293,8 @@ pub struct Battle {
     units: Vec<Unit>,
     /// Props authored with the map (ids below this) are known to every side.
     authored_props: PropId,
-    /// The bodies shoved this tick with contact info for display and sparks.
-    shoved: Vec<ShovedProp>,
+    /// The bodies shoved this tick, by whom and where the hull met them.
+    shoved: Vec<movement::Shove>,
     sides: [SideGeometry; 3],
     /// The map's road graph, built once: public terrain, the same for both
     /// sides.
@@ -2020,13 +2011,7 @@ impl Battle {
             if let Some(moved) = self.world.prop(s.prop).map(|p| p.footprint()) {
                 let r = self.rules.physics.soldier_radius_m;
                 movement::clear_of(&self.world, &mut self.units, &moved, r);
-                self.shoved.push(ShovedProp {
-                    prop: s.prop,
-                    by: s.by,
-                    contact: s.contact,
-                    heading: s.heading,
-                    speed_mps: s.speed_mps,
-                });
+                self.shoved.push(s);
             }
         }
     }
@@ -4434,8 +4419,8 @@ impl Battle {
                 });
             }
             // A body shoved where this side sees it (its own pusher always
-            // does) is drawn where it stands, ahead of the knowledge above.
-            // Also emit push contacts where metal grinds on metal for sparks.
+            // does) is drawn where it stands, ahead of the knowledge above,
+            // and throws sparks where the hull grinds it, halfway up its side.
             frame.prop_display_poses.clear();
             frame.push_contacts.clear();
             for shove in &self.shoved {
@@ -4455,16 +4440,9 @@ impl Battle {
                         base_z: p.base_z,
                     });
                 }
-                // Sparks where the hull meets the prop, at prop's base height.
-                let len = shove.heading.length();
-                let dir = if len > 1e-9 {
-                    shove.heading * (1.0 / len)
-                } else {
-                    v2(1.0, 0.0)
-                };
                 frame.push_contacts.push(PushContact {
-                    point: [shove.contact.x, shove.contact.y, p.base_z],
-                    heading: [dir.x, dir.y],
+                    point: [shove.contact.x, shove.contact.y, p.base_z + p.half.z],
+                    heading: [shove.heading.x, shove.heading.y],
                     intensity: (shove.speed_mps / 10.0).clamp(0.0, 1.0),
                 });
             }

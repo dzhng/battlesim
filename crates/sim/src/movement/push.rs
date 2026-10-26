@@ -9,7 +9,7 @@ use contract::ids::Side;
 use contract::map::MoverClass;
 use contract::scenario::PushClass;
 
-use crate::math::{Obb2, V2};
+use crate::math::{v2, Obb2, V2};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, WorldGeometry};
 
@@ -17,6 +17,8 @@ use crate::world::{Prop, PropId, WorldGeometry};
 /// clears the hull by it, and may leave the body up to it inside another,
 /// as a fence panel slides along the end of the next one in its line.
 const CLEAR_M: f64 = 0.01;
+/// Corners this near the nearest one share its contact.
+const TOUCH_M: f64 = 0.1;
 /// Slide-and-turn passes before a shove that still overlaps gives up.
 const PASSES: usize = 3;
 
@@ -67,21 +69,52 @@ pub fn meet<'a>(world: &'a WorldGeometry, next: &Obb2, here: &Obb2, push: PushCl
     out
 }
 
-/// Where `prop` goes when the hull at `hull`, driving along `heading`,
-/// shoves it (Q2): slid out along the axis of least overlap, turned by
-/// `turn_rad_per_m` per metre slid when struck off the pusher's centreline.
-/// `None` when the shove would drive it into another body that stops
-/// vehicles or another live hull (no chain shoves), or off the map.
+/// Whether `hull` is pressed against a body it shoves: one its last shove
+/// left `CLEAR_M` ahead of it.
+pub fn pressing(world: &WorldGeometry, hull: &Obb2, push: PushClass) -> bool {
+    world
+        .props_near(hull.center, hull.half.length())
+        .iter()
+        .any(|prop| {
+            let body = prop.footprint();
+            let reach = Obb2 {
+                half: body.half + v2(2.0 * CLEAR_M, 2.0 * CLEAR_M),
+                ..body
+            };
+            prop.blocks(MoverClass::Vehicle)
+                && push.pushes(prop.body.weight_class)
+                && hull.separation(&reach).is_some()
+        })
+}
+
+/// A vehicle driving into bodies this tick: the unit, where its hull goes,
+/// its horizontal travel and its speed.
+#[derive(Clone, Copy)]
+pub struct Pusher {
+    pub unit: usize,
+    pub hull: Obb2,
+    pub heading: V2,
+    pub speed_mps: f64,
+}
+
+/// Where `prop` goes when `pusher` shoves it (Q2): slid out along the axis
+/// of least overlap, turned by `turn_rad_per_m` per metre slid when struck
+/// off the pusher's centreline. `None` when the shove would drive it into
+/// another body that stops vehicles or another live hull (no chain shoves),
+/// or off the map.
 pub fn shove(
     world: &WorldGeometry,
     units: &[Unit],
-    pusher: usize,
-    hull: &Obb2,
-    heading: V2,
+    pusher: Pusher,
     prop: &Prop,
     turn_rad_per_m: f64,
-    speed_mps: f64,
 ) -> Option<Shove> {
+    let Pusher {
+        unit: pusher,
+        hull,
+        heading,
+        speed_mps,
+    } = pusher;
     let by = units[pusher].side;
     if prop.body.topples {
         return Some(Shove {
@@ -134,32 +167,29 @@ pub fn shove(
         yaw: rect.yaw,
         by,
         heading,
-        contact: contact_point(hull, &rect),
+        contact: contact_point(&hull, &rect),
         speed_mps,
     })
 }
 
-/// The contact point between hull and the (now-pushed) prop: the point on
-/// the prop's edge closest to the hull's center.
+/// Where the hull meets the shoved body: the corners of either box that
+/// touch the other, averaged (one corner on a slant, the middle of the shared
+/// stretch where two faces lie flush).
 fn contact_point(hull: &Obb2, prop: &Obb2) -> V2 {
-    use crate::math::v2;
-    let to_hull = hull.center - prop.center;
-    let len = to_hull.length();
-    if len < 1e-9 {
-        return prop.center;
-    }
-    let dir = to_hull * (1.0 / len);
-    let (cos, sin) = (prop.yaw.cos(), prop.yaw.sin());
-    let local_dir = v2(cos * dir.x + sin * dir.y, -sin * dir.x + cos * dir.y);
-    let local_contact = v2(
-        local_dir.x.signum() * prop.half.x,
-        local_dir.y.signum() * prop.half.y,
-    );
-    let contact_dist = (local_contact.x / local_dir.x.abs().max(1e-9))
-        .min(local_contact.y / local_dir.y.abs().max(1e-9));
-    let local_edge = local_dir * contact_dist.min(len);
-    v2(
-        prop.center.x + cos * local_edge.x - sin * local_edge.y,
-        prop.center.y + sin * local_edge.x + cos * local_edge.y,
-    )
+    let corners = |o: &Obb2| {
+        [(1.0, 1.0), (1.0, -1.0), (-1.0, -1.0), (-1.0, 1.0)]
+            .map(|(x, y)| o.center + v2(x * o.half.x, y * o.half.y).rotated(o.yaw))
+    };
+    let gaps: Vec<(V2, f64)> = corners(hull)
+        .into_iter()
+        .map(|c| (c, prop.distance(c)))
+        .chain(corners(prop).into_iter().map(|c| (c, hull.distance(c))))
+        .collect();
+    let least = gaps.iter().fold(f64::INFINITY, |m, g| m.min(g.1));
+    let touching: Vec<V2> = gaps
+        .iter()
+        .filter(|g| g.1 <= least + TOUCH_M)
+        .map(|g| g.0)
+        .collect();
+    touching.iter().fold(v2(0.0, 0.0), |s, c| s + *c) * (1.0 / touching.len() as f64)
 }
