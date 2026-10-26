@@ -47,10 +47,22 @@ ROOF = 0.92
 TRUNNION = 1.25
 
 
+# The upper glacis: from the deck's front edge it falls 0.33 m over 1.70 m,
+# about 11 degrees side-on.
+GLACIS_X, GLACIS_RUN, GLACIS_DROP = 2.45, 1.70, 0.33
+PACK_TOP = 1.52
+
+
 def glacis_z(x):
-    if x >= 2.45:
-        return DECK - (x - 2.45) / 1.70 * 0.42
+    if x >= GLACIS_X:
+        return DECK - (x - GLACIS_X) / GLACIS_RUN * GLACIS_DROP
     return DECK
+
+
+def pack_top(x):
+    """The side packs' top at x: level along the deck, then falling with the
+    glacis to the nose."""
+    return min(PACK_TOP, glacis_z(x) + 0.10)
 
 
 def build(variant, v):
@@ -72,21 +84,24 @@ def build(variant, v):
 def hull_body(v):
     m, hull = v.mats, v.hull
     half = v.length / 2
-    prism("hull_upper", [(-half, 1.00), (3.95, 1.00), (half, 1.03), (2.45, DECK), (-4.08, DECK), (-half, 1.40)],
+    prism("hull_upper", [(-half, 1.00), (3.95, 1.00), (half, 1.03), (half, glacis_z(half)), (GLACIS_X, DECK),
+                         (-4.08, DECK), (-half, 1.40)],
           3.50, mat=m["paint"], parent=hull, bevel=0.05)
     prism("hull_lower", [(-3.85, 0.50), (3.55, 0.50), (4.10, 1.02), (-half, 1.02), (-half, 0.82)], 2.30,
           mat=m["paint"], parent=hull, bevel=0.04)
-    slope = math.atan(0.42 / 1.70)
+    slope = math.atan(GLACIS_DROP / GLACIS_RUN)
     VP.hatch("driver_hatch", (2.62, 0, glacis_z(2.62)), m, hull, size=(0.60, 0.70), rot=(0, slope, 0))
     VP.periscope("driver_periscope", (3.02, 0, glacis_z(3.02)), m, hull, size=(0.14, 0.30, 0.08), rot=(0, slope, 0))
     VP.armour_tiles("glacis_tiles", (3.55, 0, glacis_z(3.55) + 0.01), (0.70, 2.00), (1, 4), 0.06, m, hull,
                     rot=(0, slope, 0))
     for side, s in ((1, "L"), (-1, "R")):
-        # The armoured boxes on the nose corners over the tracks, lamps in them.
-        VP.bolted_panel(f"nose_box_{s}", (3.82, side * 1.52, 0.86), (0.62, 0.80, 0.52), m, hull, bolts=(2, 2),
-                        bevel=0.05, lods=VP.ALL)
-        box(f"nose_lamp_{s}", (0.03, 0.22, 0.12), (4.14, side * 1.70, 1.20), m["lamp"], hull, lods=MID)
-        box(f"nose_lamp_hood_{s}", (0.10, 0.28, 0.03), (4.11, side * 1.70, 1.28), m["paint"], hull, lods=NEAR)
+        # The armoured boxes on the nose corners over the tracks, lamps in
+        # them: their feet clear of the track round the idler, their tops
+        # under the glacis' line.
+        VP.bolted_panel(f"nose_box_{s}", (3.82, side * 1.52, 1.08), (0.62, 0.80, 0.17), m, hull, bolts=(2, 2),
+                        bevel=0.04, lods=VP.ALL)
+        box(f"nose_lamp_{s}", (0.03, 0.22, 0.08), (4.14, side * 1.70, 1.16), m["lamp"], hull, lods=MID)
+        box(f"nose_lamp_hood_{s}", (0.10, 0.28, 0.03), (4.11, side * 1.70, 1.225), m["paint"], hull, lods=NEAR)
         VP.tow_hook(f"front_tow_{s}", (4.02, side * 0.62, 0.82), m, hull, size=0.14)
         VP.tow_hook(f"rear_tow_{s}", (-4.02, side * 0.80, 0.86), m, hull, size=0.14, rot=(0, 0, math.pi))
         VP.cable(f"tow_cable_{s}", [(-3.9, side * 1.62, DECK + 0.025), (-2.2, side * 1.64, DECK + 0.025),
@@ -107,23 +122,35 @@ def hull_body(v):
 
 def side_armour(v):
     """The side armour packs over the front two-thirds, as bolted modules,
-    and the bar armour cage over the rear third, standing off the hull."""
+    and the bar armour cage over the rear third, standing off the hull. The
+    packs' tops run level along the deck, then fall with the glacis to the
+    front pack's sloped nose (photos: side, three-quarter front)."""
     m, hull = v.mats, v.hull
+    knee = GLACIS_X + (DECK + 0.10 - PACK_TOP) / GLACIS_DROP * GLACIS_RUN
     for side, s in ((1, "L"), (-1, "R")):
         for k in range(5):
             x = 3.20 - k * 0.86
-            VP.bolted_panel(f"side_pack_{s}_{k}", (x, side * (PACK_Y - 0.13), 0.66), (0.82, 0.26, 0.86), m, hull,
-                            bolts=(2, 1), bevel=0.05, rot=(0, 0, 0), lods=VP.ALL)
-            box(f"side_pack_handle_{s}_{k}", (0.16, 0.04, 0.05), (x, side * (PACK_Y + 0.01), 1.30), m["dark"], hull,
-                lods=NEAR)
+            a, b = x - 0.41, x + 0.41
+            tops = [(t, pack_top(t)) for t in [b] + ([knee] if a < knee < b else []) + [a]]
+            prism(f"side_pack_{s}_{k}_plate", [(a, 0.66), (b, 0.66)] + tops, 0.26,
+                  loc=(0, side * (PACK_Y - 0.13), 0), mat=m["paint"], parent=hull, bevel=0.05)
+            for i, bx in enumerate((a + 0.07, b - 0.07)):
+                cyl(f"side_pack_{s}_{k}_bolt_{i}_0", 0.026, 0.03, (bx, side * (PACK_Y + 0.012), pack_top(bx) - 0.07),
+                    "Y", m["steel"], hull, seg=6, bevel=0.006, lods=FINE)
+            box(f"side_pack_handle_{s}_{k}", (0.16, 0.04, 0.05),
+                (x, side * (PACK_Y + 0.01), min(1.30, pack_top(x) - 0.14)), m["dark"], hull, lods=NEAR)
         # The front pack's sloped nose.
-        prism(f"side_pack_nose_{s}", [(3.62, 0.70), (3.92, 0.95), (3.92, 1.52), (3.62, 1.52)], 0.26,
-              loc=(0, side * (PACK_Y - 0.13), 0), mat=m["paint"], parent=hull, bevel=0.04)
+        prism(f"side_pack_nose_{s}", [(3.62, 0.70), (3.92, 0.95), (3.92, pack_top(3.92)), (3.62, pack_top(3.62))],
+              0.26, loc=(0, side * (PACK_Y - 0.13), 0), mat=m["paint"], parent=hull, bevel=0.04)
         VP.slat_armour(f"side_bars_{s}", (-2.42, side * (PACK_Y - 0.05), 0.68), (2.80, 0.84), m, hull)
         for k, x in enumerate((-1.30, -2.40, -3.50)):
             box(f"bar_bracket_{s}_{k}", (0.06, 0.40, 0.06), (x, side * 1.90, 1.40), m["dark"], hull, lods=MID)
-        box(f"sponson_lip_{s}", (8.0, 0.30, 0.05), (0.0, side * 1.85, DECK - 0.02), m["paint"], hull, bevel=0.015,
-            lods=MID)
+        box(f"sponson_lip_{s}", (GLACIS_X + 4.0, 0.30, 0.05), ((GLACIS_X - 4.0) / 2, side * 1.85, DECK - 0.02),
+            m["paint"], hull, bevel=0.015, lods=MID)
+        slope = math.atan(GLACIS_DROP / GLACIS_RUN)
+        mid = (GLACIS_X + 3.92) / 2
+        box(f"sponson_lip_front_{s}", ((3.92 - GLACIS_X) / math.cos(slope), 0.30, 0.05),
+            (mid, side * 1.85, glacis_z(mid) - 0.02), m["paint"], hull, bevel=0.015, rot=(0, slope, 0), lods=MID)
         stencil(f"pack_number_{s}", "11B", 0.24, (2.34, side * (PACK_Y + 0.003), 1.16),
                 (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], hull)
 

@@ -31,16 +31,18 @@ FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 HEIGHT = 1.24  # the turret's roof over the deck
 
 # The T-14 on the Armata platform (photos: side, three-quarter front, front):
-# its nose low under a glacis raked at about 23 degrees that runs 2.10 m
-# back to the deck; the nose 0.20 m further past the idler than the base,
-# so the lower plate and the skirts' rising front ends make a pointed beak;
+# the upper glacis falling about 11 degrees over the 2.10 m back to the deck,
+# its nose edge high over the idler with the steep lower plate under it; the
+# nose 0.20 m further past the idler than the base, so the lower plate and
+# the skirts' rising front ends make a pointed beak;
 # the skirts hanging to the road wheels' tops, the wheels showing below;
-# their tops falling with the glacis just proud of it toward the nose; a
+# their tops falling with the glacis just proud of it toward the nose, plain
+# slabs with no add-on boxes, standing clear of the track and wheel discs; a
 # narrow steep band from the shoulder to the deck; the engine at the rear
 # under an open deck; the Malachit tile field on the glacis.
-SHAPE = Shape(nose_z=1.02, overhang=0.20, skirt_foot=0.90, shoulder=1.70, band_lean=math.radians(45),
+SHAPE = Shape(nose_z=1.51, overhang=0.20, skirt_foot=0.90, shoulder=1.70, band_lean=math.radians(45),
               under_glacis=-0.06, front_engine=False, troop_compartment=False, glacis_tiles=True, slab=False,
-              number="112", glacis_run=2.10)
+              number="112", glacis_run=2.10, skirt_out=0.03, skirt_boxes=False)
 
 
 def build(variant, v):

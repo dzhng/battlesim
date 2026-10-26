@@ -50,10 +50,13 @@ SPROCKET = (2.90, 0.66, 0.26)  # front drive
 IDLER = (-2.95, 0.62, 0.26)
 RETURNS = [(1.2, 0.84, 0.08), (-0.2, 0.85, 0.08), (-1.6, 0.84, 0.08)]
 DECK = 1.62
-# The nose: one tall blunt plate to 1.42 m, then a short glacis to the deck.
+# The nose: one tall blunt plate to 1.42 m, then the upper glacis rising
+# 0.20 m over 1.03 m to the deck, about 11 degrees side-on.
 NOSE_TOP = 1.42
-GLACIS = 0.55
-SKIRT_Y = 1.60
+GLACIS = 1.03
+# The skirts' centre and thickness: their faces where they were (1.64), their
+# inner faces clear of the track band (1.57).
+SKIRT_Y, SKIRT_T = 1.615, 0.05
 SKIRT_TOP, SKIRT_FOOT = 1.24, 0.66
 ROOF = 0.82  # the turret roof above the pivot, 2.60 m up: high and flat, as the side photos show
 CUPOLA = (-0.70, 0.62)  # the commander's hatch, behind the M2 (turret frame)
@@ -87,7 +90,8 @@ def hull(v):
         VP.stowage_box(f"deck_bin_{s}", (-3.03, side * 1.30, DECK), (0.60, 0.36, 0.30), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
     slope = math.atan((DECK - NOSE_TOP) / GLACIS)
-    VP.hatch("driver_hatch", (half - 0.85, 0.0, DECK), m, h, radius=0.28)
+    VP.hatch("driver_hatch", (half - 0.85, 0.0, NOSE_TOP + 0.85 * math.tan(slope)), m, h, radius=0.28,
+             rot=(0, slope, 0))
     for k, y in enumerate((-0.22, 0.0, 0.22)):
         VP.periscope(f"driver_periscope_{k}", (half - 0.40, y, NOSE_TOP + 0.40 * math.tan(slope) - 0.01), m, h,
                      size=(0.12, 0.16, 0.08), rot=(0, slope, 0))
@@ -111,9 +115,9 @@ def skirts(v):
         front = 1.93 - 1.17 * k
         panels.append([(front - 1.15, SKIRT_FOOT), (front, SKIRT_FOOT), (front, SKIRT_TOP), (front - 1.15, SKIRT_TOP)])
     for side, s in ((1, "L"), (-1, "R")):
-        face = side * (SKIRT_Y + 0.04)
+        face = side * (SKIRT_Y + SKIRT_T / 2)
         for k, outline in enumerate(panels):
-            prism(f"skirt_{s}_{k}", outline, 0.08, loc=(0, side * SKIRT_Y, 0), mat=m["paint"], parent=h, bevel=0.025,
+            prism(f"skirt_{s}_{k}", outline, SKIRT_T, loc=(0, side * SKIRT_Y, 0), mat=m["paint"], parent=h, bevel=0.025,
                   lods=VP.ALL)
             xs = [p[0] for p in outline]
             for j in range(3):

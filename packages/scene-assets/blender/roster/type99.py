@@ -21,9 +21,11 @@ import math
 import os
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
+from t72 import two_tier_hull  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -37,40 +39,63 @@ IDLER = (3.28, 0.52, 0.30)
 RETURNS = [(1.45, 0.86, 0.10), (-0.45, 0.87, 0.10), (-2.35, 0.86, 0.10)]
 DECK = 1.38
 PANEL_Y = 1.80
+# The side panels' thickness: their inner faces clear the track band (1.70)
+# and the road wheels (1.72).
+PANEL_T = 0.075
 FOOT = -0.04
 ROOF = 0.74
 TRUNNION = 1.05
 
 
+# The front is two-tier (photos: side, three-quarter front): the fenders
+# over the tracks fall 0.27 m over 1.40 m to the nose, about 11 degrees
+# side-on; the ERA-covered centre upper glacis between them falls
+# CENTRE_DROP over the same run, about 21 degrees.
+GLACIS_X, GLACIS_RUN, GLACIS_DROP = 2.40, 1.40, 0.27
+CENTRE_DROP = 0.54
+CENTRE_Y = TRACK_Y - TRACK_W / 2  # the centre plate's half-width, between the tracks
+
+
+def centre_z(x):
+    return DECK - max(0.0, x - GLACIS_X) / GLACIS_RUN * CENTRE_DROP
+
+
 def glacis_z(x):
-    if x >= 2.40:
-        return DECK - (x - 2.40) / 1.40 * 0.42
+    if x >= GLACIS_X:
+        return DECK - (x - GLACIS_X) / GLACIS_RUN * GLACIS_DROP
     return DECK
+
+
+def panel_top(x):
+    """The side panels' top at x: just over the deck's edge, then falling with
+    the glacis toward the nose."""
+    return min(DECK, glacis_z(x)) + 0.02
 
 
 def hull_body(v):
     m, hull = v.mats, v.hull
     half = v.length / 2
-    prism("hull_upper", [(-half, 0.94), (3.70, 0.94), (half, 0.96), (2.40, DECK), (-3.75, DECK), (-half, 1.30)],
-          3.20, mat=m["paint"], parent=hull, bevel=0.05)
-    prism("hull_lower", [(-3.55, 0.46), (3.25, 0.46), (3.78, 0.96), (-half, 0.96), (-half, 0.80)], 2.20,
-          mat=m["paint"], parent=hull, bevel=0.04)
-    slope = math.atan(0.42 / 1.40)
-    VP.armour_tiles("glacis_era", (3.15, 0, glacis_z(3.15) + 0.005), (1.10, 1.70), (2, 4), 0.10, m, hull,
+    slope = two_tier_hull(v, half, DECK, GLACIS_X, GLACIS_RUN, GLACIS_DROP, CENTRE_DROP, -3.75, 1.30, -3.55, 3.25,
+                          centre_y=CENTRE_Y, width=3.20, floor=0.94)
+    VP.armour_tiles("glacis_era", (3.05, 0, centre_z(3.05) + 0.005), (1.10, 1.70), (2, 4), 0.10, m, hull,
                     rot=(0, slope, 0))
     VP.hatch("driver_hatch", (2.15, 0, DECK), m, hull, radius=0.30)
     VP.periscope("driver_periscope", (2.42, 0, DECK), m, hull, size=(0.12, 0.26, 0.09))
     for side, s in ((1, "L"), (-1, "R")):
-        # The rounded front fenders over the tracks.
-        prism(f"front_fender_{s}", [(2.30, DECK - 0.02), (3.40, 1.15), (3.75, 0.96), (3.75, 0.90), (2.30, 0.90)],
-              0.80, loc=(0, side * 1.38, 0), mat=m["paint"], parent=hull, bevel=0.10)
-        VP.tow_hook(f"front_tow_{s}", (3.70, side * 0.55, 0.80), m, hull, size=0.14)
+        # The rounded front fenders over the tracks, falling with the glacis,
+        # their undersides clear of the track over the idler.
+        prism(f"front_fender_{s}", [(2.30, DECK - 0.02), (3.40, glacis_z(3.40) - 0.03), (3.75, glacis_z(3.75) - 0.10),
+                                    (3.75, 0.98), (2.30, 0.98)],
+              1.78 - CENTRE_Y, loc=(0, side * (1.78 + CENTRE_Y) / 2, 0), mat=m["paint"], parent=hull, bevel=0.10)
+        VP.tow_hook(f"front_tow_{s}", (3.70, side * 0.55, centre_z(3.70) - 0.06), m, hull, size=0.14)
         VP.tow_hook(f"rear_tow_{s}", (-3.72, side * 0.80, 0.84), m, hull, size=0.13, rot=(0, 0, math.pi))
         VP.cable(f"tow_cable_{s}", [(-3.4, side * 1.48, DECK + 0.02), (-1.8, side * 1.50, DECK + 0.02),
                                     (-0.2, side * 1.50, DECK + 0.02), (1.6, side * 1.48, DECK + 0.02)], m, hull,
                  radius=0.022)
-    VP.bolted_panel("lamp_box", (3.00, 1.05, 1.20), (0.26, 0.30, 0.22), m, hull, bolts=(1, 1), bevel=0.03, lods=VP.ALL)
-    box("lamp", (0.012, 0.18, 0.12), (3.135, 1.05, 1.32), m["lamp"], hull, lods=MID)
+    lamp_z = centre_z(3.13) - 0.02
+    VP.bolted_panel("lamp_box", (3.00, 0.95, lamp_z), (0.26, 0.30, 0.22), m, hull, bolts=(1, 1), bevel=0.03,
+                    lods=VP.ALL)
+    box("lamp", (0.012, 0.18, 0.12), (3.135, 0.95, lamp_z + 0.12), m["lamp"], hull, lods=MID)
     VP.grille("engine_grille", (-2.70, 0, DECK), (1.50, 1.80), m, hull, slats=12)
     VP.bolted_panel("engine_door", (-1.55, 0.0, DECK), (0.70, 1.90, 0.03), m, hull, bolts=(2, 3), bevel=0.01,
                     lods=MID)
@@ -79,21 +104,24 @@ def hull_body(v):
 
 def side_panels(v):
     """The armour panels along each side, their lower edges scalloped in V
-    between the road wheels, bolted along the top."""
+    between the road wheels, bolted along the top; their tops fall with the
+    glacis over the front panel, whose leading edge climbs toward the idler."""
     m, hull = v.mats, v.hull
     for side, s in ((1, "L"), (-1, "R")):
         for k in range(6):
             x0 = 3.40 - k * 1.20
             x1 = x0 - 1.16
             mid = (x0 + x1) / 2
-            outline = [(x1, 0.80), (mid, 0.62), (x0, 0.80), (x0, DECK + 0.02), (x1, DECK + 0.02)]
+            knee = GLACIS_X
+            front = x0 + 0.22 if k == 0 else x0
+            tops = [(x, panel_top(x)) for x in [front] + ([knee] if x1 < knee < front else []) + [x1]]
+            outline = [(x1, 0.80), (mid, 0.62), (x0, 0.80)] + tops
             if k == 0:
-                outline = [(x1, 0.80), (mid, 0.62), (x0 - 0.10, 0.80), (x0 + 0.22, 1.20), (x0 + 0.22, DECK + 0.02),
-                           (x1, DECK + 0.02)]
-            prism(f"side_panel_{s}_{k}", outline, 0.14, loc=(0, side * (PANEL_Y - 0.07), 0), mat=m["paint"],
-                  parent=hull, bevel=0.04)
+                outline = [(x1, 0.80), (mid, 0.62), (x0 - 0.10, 0.80), (front, panel_top(front) - 0.08)] + tops
+            prism(f"side_panel_{s}_{k}", outline, PANEL_T, loc=(0, side * (PANEL_Y - PANEL_T / 2), 0),
+                  mat=m["paint"], parent=hull, bevel=0.03)
             for j, x in enumerate((x1 + 0.18, x0 - 0.18)):
-                cyl(f"panel_bolt_{s}_{k}_{j}", 0.026, 0.02, (x, side * (PANEL_Y + 0.004), DECK - 0.08), "Y",
+                cyl(f"panel_bolt_{s}_{k}_{j}", 0.026, 0.02, (x, side * (PANEL_Y + 0.004), panel_top(x) - 0.10), "Y",
                     m["steel"], hull, seg=6, lods=FINE)
             box(f"panel_port_{s}_{k}", (0.08, 0.02, 0.08), (mid, side * (PANEL_Y + 0.002), 0.88), m["black"], hull,
                 lods=NEAR)
@@ -201,7 +229,7 @@ def wreck(variant, v):
     densify(thrown)
     warp(thrown, heat(0.035, 0.6, seed=9.0))
     for k, (loc, rot) in enumerate((((1.6, -2.45, 0.08), (1.5, 0.2, 0.3)), ((-1.4, -2.50, 0.08), (1.5, -0.1, -0.4)))):
-        solid(f"fallen_panel_{k}", (1.16, 0.14, 0.70), loc, m["paint"], v.hull, rot=rot, bevel=0.03)
+        solid(f"fallen_panel_{k}", (1.16, PANEL_T, 0.70), loc, m["paint"], v.hull, rot=rot, bevel=0.03)
     bend(parts("side_panel_L_4"), (-1.40, PANEL_Y, DECK), (1, 0, 0), (0, 0, -1), 0.5)
     shell = parts("hull_upper", "hull_lower", "side_panel_", "turret_shell", "wedge_", "front_fender_")
     densify(shell, scale=2.0)

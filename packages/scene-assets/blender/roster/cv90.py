@@ -44,18 +44,30 @@ FOOT = -0.02
 ROOF = 0.72
 
 
-def hull_body(v):
+GLACIS_X = 1.30  # the glacis' head on the roof
+NOSE_Z = 1.28  # the nose plate's top, setting the glacis' slope
+
+
+def glacis_z(v, x, nose_z=NOSE_Z):
+    """The hull top's height at x: the roof, then the glacis falling to the
+    nose plate's top at `nose_z`."""
+    half = v.length / 2
+    return ROOF_Z - max(0.0, x - GLACIS_X) / (half - GLACIS_X) * (ROOF_Z - nose_z)
+
+
+def hull_body(v, nose_z=NOSE_Z):
+    """The hull; `nose_z` the nose plate's top (the CV90120 sets its own)."""
     m, hull = v.mats, v.hull
     half = v.length / 2
-    prism("hull_upper", [(-half, 0.90), (3.15, 0.90), (half, 1.05), (half, 1.28), (1.30, ROOF_Z), (-3.35, ROOF_Z),
+    prism("hull_upper", [(-half, 0.90), (3.15, 0.90), (half, 1.05), (half, nose_z), (GLACIS_X, ROOF_Z), (-3.35, ROOF_Z),
                          (-half, 1.75)], 3.00, mat=m["paint"], parent=hull, bevel=0.05)
     prism("hull_lower", [(-3.10, 0.44), (2.85, 0.44), (3.30, 0.92), (-half, 0.92), (-half, 0.72)], 2.24,
           mat=m["paint"], parent=hull, bevel=0.04)
-    slope = math.atan((ROOF_Z - 1.28) / (half - 1.30))
-    VP.hatch("driver_hatch", (2.20, 0.60, 1.28 + (half - 2.20) * math.tan(slope)), m, hull, radius=0.28,
+    slope = math.atan((ROOF_Z - nose_z) / (half - GLACIS_X))
+    VP.hatch("driver_hatch", (2.20, 0.60, nose_z + (half - 2.20) * math.tan(slope)), m, hull, radius=0.28,
              rot=(0, slope, 0))
     for k, y in enumerate((0.40, 0.60, 0.80)):
-        VP.periscope(f"driver_periscope_{k}", (2.55, y, 1.28 + (half - 2.55) * math.tan(slope)), m, hull,
+        VP.periscope(f"driver_periscope_{k}", (2.55, y, nose_z + (half - 2.55) * math.tan(slope)), m, hull,
                      size=(0.12, 0.14, 0.08), rot=(0, slope, 0))
     for side, s in ((1, "L"), (-1, "R")):
         for k, dy in enumerate((0.0, -0.22)):
@@ -71,26 +83,72 @@ def hull_body(v):
     VP.bolted_panel("rear_door", (-half - 0.01, 0, 0.80), (0.04, 1.10, 0.90), m, hull, bolts=(0, 0),
         bevel=0.02, lods=VP.ALL)
     box("rear_door_handle", (0.04, 0.20, 0.04), (-half - 0.04, 0.30, 1.30), m["steel"], hull, lods=NEAR)
-    VP.grille("engine_grille", (2.00, -0.75, 1.28 + (half - 2.00) * math.tan(slope) - 0.01), (0.70, 0.90), m, hull,
+    VP.grille("engine_grille", (2.00, -0.75, nose_z + (half - 2.00) * math.tan(slope) - 0.01), (0.70, 0.90), m, hull,
               slats=7, rot=(0, slope, 0))
     VP.hatch("roof_hatch_L", (-2.20, 0.55, ROOF_Z), m, hull, size=(0.80, 0.70))
     VP.hatch("roof_hatch_R", (-2.20, -0.55, ROOF_Z), m, hull, size=(0.80, 0.70))
 
 
-def hull_sides(v, mk4):
+def follow_tiles(v, s, side, cols, top):
+    """The side armour as tiles whose tops follow `top(x)` (the hull's
+    edge, falling down the glacis), the front lower tile's leading corner
+    cut up toward the nose, so no tile stands above the hull's outline."""
+    m, hull = v.mats, v.hull
+    x0, x1, z0, z1, gap, depth = -3.25, 2.95, 0.64, 1.72, 0.025, 0.08
+    tx, tz = (x1 - x0) / cols, (z1 - z0) / 2
+    y = side * (SIDE_Y - depth / 2)
+    for i in range(cols):
+        a, b = x0 + tx * i + gap / 2, x0 + tx * (i + 1) - gap / 2
+        for j in range(2):
+            lo, hi = z0 + tz * j + gap / 2, z0 + tz * (j + 1) - gap / 2
+            xs = [b] + ([GLACIS_X] if a < GLACIS_X < b else []) + [a]
+            tops = [(x, min(hi, top(x))) for x in xs]
+            if min(z for _, z in tops) - lo < 0.10:
+                continue
+            foot = [(a, lo), (b - 0.25, lo), (b, lo + 0.25)] if (i == cols - 1 and j == 0) else [(a, lo), (b, lo)]
+            prism(f"side_armour_{s}_{i}_{j}", foot + tops, depth, loc=(0, y, 0), mat=m["paint"], parent=hull,
+                  bevel=0.02)
+            for k in range(4):
+                bx = (a + b) / 2 + (k % 2 - 0.5) * (b - a) * 0.7
+                bz = min((lo + hi) / 2 + (k // 2 - 0.5) * (hi - lo) * 0.7, top(bx) - 0.06)
+                cyl(f"side_armour_{s}_{i}_{j}_bolt_{k}", 0.018, 0.016, (bx, side * (SIDE_Y + 0.006), bz), "Y",
+                    m["steel"], hull, seg=6, lods=FINE)
+
+
+def hull_sides(v, mk4, nose_z=None):
     """The tall hull sides in bolted armour panels, a tool rail along their
-    top; the Mk IV's panels larger and flatter."""
+    top; the Mk IV's panels larger and flatter. With `nose_z` (the
+    CV90120's), the panels, rail and skirt lip follow the glacis down and
+    clear the track."""
     m, hull = v.mats, v.hull
     cols = 4 if mk4 else 6
     for side, s in ((1, "L"), (-1, "R")):
-        VP.armour_tiles(f"side_armour_{s}", (-0.15, side * (SIDE_Y - 0.08), 1.18), (6.20, 1.08), (cols, 2), 0.08,
-                        m, hull, rot=(-side * math.pi / 2, 0, 0))
-        box(f"tool_rail_{s}", (5.8, 0.04, 0.04), (-0.20, side * (SIDE_Y - 0.02), 1.76), m["steel"], hull, lods=MID)
-        for k in range(5):
-            box(f"rail_bracket_{s}_{k}", (0.04, 0.08, 0.06), (2.4 - k * 1.2, side * (SIDE_Y - 0.05), 1.76), m["dark"],
-                hull, lods=NEAR)
-        box(f"skirt_lip_{s}", (6.40, 0.10, 0.06), (-0.10, side * (SIDE_Y - 0.06), 0.62), m["paint"], hull,
-            bevel=0.02, lods=MID)
+        if nose_z is None:
+            VP.armour_tiles(f"side_armour_{s}", (-0.15, side * (SIDE_Y - 0.08), 1.18), (6.20, 1.08), (cols, 2), 0.08,
+                            m, hull, rot=(-side * math.pi / 2, 0, 0))
+            box(f"tool_rail_{s}", (5.8, 0.04, 0.04), (-0.20, side * (SIDE_Y - 0.02), 1.76), m["steel"], hull,
+                lods=MID)
+            for k in range(5):
+                box(f"rail_bracket_{s}_{k}", (0.04, 0.08, 0.06), (2.4 - k * 1.2, side * (SIDE_Y - 0.05), 1.76),
+                    m["dark"], hull, lods=NEAR)
+            box(f"skirt_lip_{s}", (6.40, 0.10, 0.06), (-0.10, side * (SIDE_Y - 0.06), 0.62), m["paint"], hull,
+                bevel=0.02, lods=MID)
+        else:
+            def top(x):
+                return glacis_z(v, x, nose_z) - 0.03
+            follow_tiles(v, s, side, cols, top)
+            box(f"tool_rail_{s}", (GLACIS_X + 3.10, 0.04, 0.04), ((GLACIS_X - 3.10) / 2, side * (SIDE_Y - 0.02), 1.76),
+                m["steel"], hull, lods=MID)
+            slope = math.atan((ROOF_Z - nose_z) / (v.length / 2 - GLACIS_X))
+            mid = (GLACIS_X + 2.70) / 2
+            box(f"tool_rail_front_{s}", ((2.70 - GLACIS_X) / math.cos(slope), 0.04, 0.04),
+                (mid, side * (SIDE_Y - 0.02), top(mid) - 0.01), m["steel"], hull, rot=(0, slope, 0), lods=MID)
+            for k in range(5):
+                x = 2.4 - k * 1.2
+                box(f"rail_bracket_{s}_{k}", (0.04, 0.08, 0.06), (x, side * (SIDE_Y - 0.05), min(1.76, top(x) - 0.01)),
+                    m["dark"], hull, lods=NEAR)
+            box(f"skirt_lip_{s}", (6.40, 0.06, 0.06), (-0.10, side * (SIDE_Y - 0.03), 0.62), m["paint"], hull,
+                bevel=0.02, lods=MID)
         box(f"reflector_{s}", (0.10, 0.01, 0.10), (2.60, side * (SIDE_Y + 0.001), 1.02), m["tail"], hull, lods=NEAR)
 
 

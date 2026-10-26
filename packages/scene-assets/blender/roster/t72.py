@@ -41,14 +41,67 @@ SPROCKET = (-2.92, 0.52, 0.32)
 IDLER = (2.95, 0.50, 0.30)
 RETURNS = [(1.62, 0.86, 0.10), (0.02, 0.87, 0.10), (-1.56, 0.86, 0.10)]
 DECK = 1.32
-SKIRT_Y = 1.74  # the side armour's outer face
+SKIRT_Y = 1.79  # the side armour's outer face, its panels clear of the track and wheels
 TRUNNION = 0.95
+# The front is two-tier, as the photos show it (three-quarter front): the
+# fenders over the tracks fall 0.27 m over 1.38 m to the nose, about 11
+# degrees side-on, while the centre upper glacis plate between them falls
+# much more steeply, CENTRE_DROP over the same run (about 22 degrees, the
+# T-72's 68 degrees from vertical), down to the lower glacis.
+GLACIS_X, GLACIS_RUN, GLACIS_DROP = 2.05, 1.38, 0.27
+CENTRE_DROP = 0.56
+CENTRE_Y = 1.11  # the centre plate's half-width: the hull box between the tracks
+
+
+def centre_z(x):
+    """The centre upper glacis plate's height at x."""
+    return DECK - max(0.0, x - GLACIS_X) / GLACIS_RUN * CENTRE_DROP
+
+
+def two_tier_hull(v, half, deck, head, run_, fdrop, cdrop, back, rear_z, lower_back, lower_foot_x, centre_y=CENTRE_Y,
+                  width=3.30, floor=0.92):
+    """The hull's upper box as a steep centre glacis plate between two
+    shallower fender strips over the tracks, and the lower hull under it,
+    its nose tucked under the centre plate; shared by the T-72's family and
+    the Type 99. `back` is where the deck's rear edge starts, `rear_z` the
+    rear plate's top; `lower_back`, `lower_foot_x` the lower hull's belly
+    ends; `floor` the upper box's underside. Returns the centre plate's
+    slope."""
+    m, hull = v.mats, v.hull
+    cnose = deck - cdrop
+    prism("hull_upper", [(-half, floor), (lower_foot_x, floor), (half, cnose - 0.06), (half, cnose), (head, deck),
+                         (back, deck), (-half, rear_z)], 2 * centre_y, mat=m["paint"], parent=hull, bevel=0.05)
+    strip = width / 2 - centre_y
+    for side, s in ((1, "L"), (-1, "R")):
+        prism(f"hull_upper_fender_{s}", [(-half, floor), (half - 0.12, floor), (half, floor + 0.04),
+                                         (half, deck - fdrop), (head, deck), (back, deck), (-half, rear_z)], strip,
+              loc=(0, side * (centre_y + strip / 2), 0), mat=m["paint"], parent=hull, bevel=0.04)
+    # The lower hull's top meets the centre plate's underside just short of
+    # where the plate reaches its height.
+    tuck_z = floor + 0.01
+    tuck_x = head + (deck - tuck_z) / cdrop * run_
+    prism("hull_lower", [(lower_back, floor - 0.48), (lower_foot_x, floor - 0.48), (half - 0.02, cnose - 0.02),
+                         (tuck_x - 0.02, tuck_z), (-half, floor + 0.02), (-half, floor - 0.14)], 2 * centre_y - 0.02,
+          mat=m["paint"], parent=hull, bevel=0.04)
+    return math.atan(cdrop / run_)
+
+
+# The side armour's top, under the deck's edge, and how far under the glacis
+# it runs where the glacis takes over toward the nose.
+ERA_TOP, ERA_UNDER = 1.21, 0.03
 
 
 def glacis_z(x):
-    if x >= 2.05:
-        return DECK - (x - 2.05) / 1.38 * 0.40
+    if x >= GLACIS_X:
+        return DECK - (x - GLACIS_X) / GLACIS_RUN * GLACIS_DROP
     return DECK
+
+
+def era_top(x, glacis=None):
+    """The side armour's top at x: level, then falling with the glacis
+    (`glacis`: head x, run, drop and deck height; the T-72's by default)."""
+    head, run_, drop, deck = glacis or (GLACIS_X, GLACIS_RUN, GLACIS_DROP, DECK)
+    return min(ERA_TOP, deck - max(0.0, x - head) / run_ * drop - ERA_UNDER)
 
 
 # ---------------------------------------------------------------- hull (shared with the T-90M)
@@ -58,20 +111,16 @@ def soviet_hull(v, rear_cage=True):
     slat cage round the rear. Roles: paint, dark, steel, black, glass, lamp."""
     m, hull = v.mats, v.hull
     half = v.length / 2
-    prism("hull_upper", [(-half, 0.92), (3.30, 0.92), (half, 0.94), (2.05, DECK), (-3.36, DECK), (-half, 1.24)],
-          3.30, mat=m["paint"], parent=hull, bevel=0.05)
-    prism("hull_lower", [(-3.20, 0.44), (2.90, 0.44), (3.42, 0.94), (-half, 0.94), (-half, 0.78)], 2.20,
-          mat=m["paint"], parent=hull, bevel=0.04)
-    slope = math.atan(0.40 / 1.38)
-    VP.armour_tiles("glacis_era", (2.78, 0, glacis_z(2.78) + 0.005), (1.10, 2.70), (2, 6), 0.09, m, hull,
-                    rot=(0, slope, 0))
-    prism("splash_board", [(2.16, DECK - 0.02), (2.26, DECK - 0.02), (2.20, DECK + 0.12), (2.10, DECK + 0.12)], 2.60,
-          mat=m["paint"], parent=hull, bevel=0.015)
+    slope = two_tier_hull(v, half, DECK, GLACIS_X, GLACIS_RUN, GLACIS_DROP, CENTRE_DROP, -3.36, 1.24, -3.20, 2.90)
+    VP.armour_tiles("glacis_era", (2.78, 0, centre_z(2.78) + 0.005), (1.10, 2 * CENTRE_Y - 0.12), (2, 5), 0.09, m,
+                    hull, rot=(0, slope, 0))
+    prism("splash_board", [(2.16, DECK - 0.02), (2.26, DECK - 0.02), (2.20, DECK + 0.12), (2.10, DECK + 0.12)],
+          2 * CENTRE_Y - 0.04, mat=m["paint"], parent=hull, bevel=0.015)
     VP.hatch("driver_hatch", (1.80, 0, DECK), m, hull, radius=0.30)
     VP.periscope("driver_periscope", (2.06, 0, DECK), m, hull, size=(0.12, 0.26, 0.09))
     for side, s in ((1, "L"), (-1, "R")):
         VP.light_with_guard(f"headlight_{s}", (2.0, side * 1.30, DECK + 0.10), 0.07, m, hull)
-        VP.tow_hook(f"front_tow_{s}", (3.30, side * 0.62, 0.80), m, hull, size=0.14)
+        VP.tow_hook(f"front_tow_{s}", (3.36, side * 0.62, centre_z(3.36) - 0.06), m, hull, size=0.14)
         VP.tow_hook(f"rear_tow_{s}", (-3.30, side * 0.80, 0.82), m, hull, size=0.13, rot=(0, 0, math.pi))
         # The fenders over the tracks, their front lips raised over the idler.
         box(f"front_fender_{s}", (0.45, 0.60, 0.04), (3.18, side * TRACK_Y, 1.02), m["paint"], hull, bevel=0.012,
@@ -94,27 +143,63 @@ def soviet_gear(v):
                             RETURNS, bolts=6, ribs=8, teeth=12, arm=(0.45, -0.35), pitch=0.15, dual=True)
 
 
-def soviet_skirts(v, label="21", outer=SKIRT_Y, front=2.95, bars=(-2.28, 2.20)):
+def soviet_skirts(v, label="21", outer=SKIRT_Y, front=2.95, bars=(-2.28, 2.20), glacis=None):
     """Two rows of bolted Relikt panels over the front two-thirds of each
     side (their outer face `outer` from the centre line, the first panel's
     centre at `front`), a scalloped rubber skirt under them, slat panels over
-    the rear (`bars`: centre and length)."""
+    the rear (`bars`: centre and length). The panels' tops run level under
+    the deck's edge, then fall with the glacis over the front column; that
+    column's foot climbs toward the idler, which shows under it (photos: side,
+    three-quarter front). Every panel stands clear of the track band.
+    `glacis` is the hull's (head x, run, drop, deck), the T-72's by default."""
     m, hull = v.mats, v.hull
+    head, run_, drop, deck = glacis = glacis or (GLACIS_X, GLACIS_RUN, GLACIS_DROP, DECK)
+
+    def top(x):
+        return era_top(x, glacis)
+
+    thick = min(0.12, outer - 1.725)  # clear of the road wheels (1.72)
+    knee = head + (deck - ERA_UNDER - ERA_TOP) / drop * run_
+    rows = ((0.91, ERA_TOP), (0.68, 0.92))
+
+    def outline(r, x0, x1):
+        lo, hi = rows[r]
+        if r == 1:
+            foot = [(x0, lo), (x1, lo)] if x1 < front else [(x0, lo), (x0 + 0.20, lo), (x1, 0.86)]
+            return foot + [(x1, hi), (x0, hi)]
+        xs = [x1] + ([knee] if x0 < knee < x1 else []) + [x0]
+        return [(x0, lo), (x1, lo)] + [(x, top(x)) for x in xs]
+
     for side, s in ((1, "L"), (-1, "R")):
-        rows = ((1.06, 0.30), (0.80, 0.24))
-        for r, (z, h) in enumerate(rows):
+        face = side * outer
+        for r in range(2):
             for k in range(6):
                 x = front - k * 0.70
-                VP.bolted_panel(f"side_era_{s}_{r}_{k}", (x, side * (outer - 0.06), z), (0.66, 0.12, h), m, hull,
-                                bolts=(2, 1), bevel=0.03, lods=VP.ALL)
+                x0, x1 = x - 0.33, x + 0.33
+                shape = outline(r, x0, x1)
+                prism(f"side_era_{s}_{r}_{k}_plate", shape, thick, loc=(0, side * (outer - thick / 2), 0),
+                      mat=m["paint"], parent=hull, bevel=0.03, lods=VP.ALL)
+                for i, bx in enumerate((x0 + 0.07, x1 - 0.07)):
+                    zs = [z for px, z in shape]
+                    bz = min((min(zs) + rows[r][1]) / 2, (top(bx) if r == 0 else rows[r][1]) - 0.07)
+                    cyl(f"side_era_{s}_{r}_{k}_bolt_{i}_0", 0.026, 0.03, (bx, face + side * 0.012, bz), "Y",
+                        m["steel"], hull, seg=6, bevel=0.006, lods=FINE)
         for k in range(7):
             x = front + 0.10 - k * 0.70
-            box(f"rubber_skirt_{s}_{k}", (0.64, 0.03, 0.22), (x, side * (outer - 0.08), 0.70), m["rubber"], hull,
+            box(f"rubber_skirt_{s}_{k}", (0.64, 0.03, 0.22), (x, side * (outer - thick / 2), 0.70), m["rubber"], hull,
                 taper=(0.8, 1.0), rot=(math.pi, 0, 0), lods=MID)
         VP.slat_armour(f"side_bars_{s}", (bars[0], side * (outer - 0.02), 0.70), (bars[1], 0.64), m, hull)
-        box(f"side_rail_{s}", (v.length - 0.16, 0.10, 0.06), (0.0, side * (outer - 0.10), DECK - 0.02), m["paint"],
-            hull,
-            bevel=0.02, lods=MID)
+        # The fender's edge over the armour: level to the deck's front edge,
+        # then down the glacis to the nose.
+        rear = -v.length / 2 + 0.08
+        box(f"side_rail_{s}", (head - rear, 0.10, 0.06),
+            ((head + rear) / 2, side * (outer - 0.10), deck - 0.02), m["paint"], hull, bevel=0.02, lods=MID)
+        slope = math.atan(drop / run_)
+        nose = v.length / 2 - 0.12
+        mid = (head + nose) / 2
+        box(f"side_rail_front_{s}", ((nose - head) / math.cos(slope), 0.10, 0.06),
+            (mid, side * (outer - 0.10), deck - (mid - head) / run_ * drop - 0.02), m["paint"], hull, bevel=0.02,
+            rot=(0, slope, 0), lods=MID)
         stencil(f"side_number_{s}", label, 0.22, (0.90, side * (outer + 0.003), 1.20),
                 (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], hull)
 

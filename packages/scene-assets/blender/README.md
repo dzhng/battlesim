@@ -46,8 +46,17 @@ places those parts rather than redefining them. A part hung on a hull or
 turret side that leans takes its position and tilt from that face
 (`on_side`), so plates, tiles, skirts and racks lie on the slope the photos
 show instead of standing upright beside it. A family derived from another
-(the T-90M and T-80BVM from the T-72) imports that family's script for what
-they share.
+(the T-90M, T-80BVM and Type 99 from the T-72) imports that family's script
+for what they share.
+
+No tank's hull is flat side-on: its top falls toward the nose over the
+glacis, about 11 degrees along the fenders, and skirts, side armour and
+fender boxes follow that line down. Where the photos show a centre upper
+glacis plate steeper than the fenders beside it (the T-72's family and the
+Type 99), it is its own plate between them, not one slope across the hull.
+Skirts are thin plates whose inner faces stand clear of the track belt and
+the road wheels; nothing in the bake or check catches a skirt cutting into a
+track, so judge it in renders, including from the high battle camera.
 
 A vehicle's surfaces come from the named helpers in [`parts.py`](parts.py),
 each carrying its material role: `tyre()`, `glass()`, `track_steel()`,

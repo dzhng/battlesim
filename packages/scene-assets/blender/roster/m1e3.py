@@ -163,7 +163,8 @@ def skirts(v):
     for side, s in ((1, "L"), (-1, "R")):
         face = side * (sy + 0.045)
         for k, outline in enumerate(panels):
-            prism(f"skirt_{s}_{k}", outline, 0.11, loc=(0, side * (sy - 0.01), 0), mat=m["paint"], parent=hull,
+            # Their inner faces clear of the track band (1.72).
+            prism(f"skirt_{s}_{k}", outline, 0.07, loc=(0, side * (sy + 0.01), 0), mat=m["paint"], parent=hull,
                   bevel=0.03, lods=VP.ALL)
             xs = [p[0] for p in outline]
             for j in range(4):

@@ -44,9 +44,12 @@ ROAD_X = [2.40 - 0.805 * k for k in range(7)]
 SPROCKET = (-3.12, 0.60, 0.32)
 IDLER = (3.30, 0.62, 0.30)
 RETURNS = [(1.98, 0.88, 0.10), (0.38, 0.89, 0.10), (-1.02, 0.89, 0.10), (-2.24, 0.88, 0.10)]
-SKIRT_Y = 1.84  # the skirt's outer face
+SKIRT_Y = 1.88  # the skirt's outer face, the panels clear of the track band (1.81)
 SKIRT_TOP, SKIRT_FOOT = 1.52, 0.80
 DECK = 1.62
+# The glacis: from the deck's front edge it falls 0.34 m over 1.75 m to the
+# nose, about 11 degrees side-on (photos: side).
+GLACIS_X, GLACIS_RUN, GLACIS_DROP = 2.10, 1.75, 0.34
 # Turret (its own frame, origin at the pivot).
 FOOT = -0.14
 ROOF = 0.81
@@ -56,9 +59,15 @@ CORE = [(1.30, 0.0), (1.30, 1.40), (-1.95, 1.45), (-2.30, 1.30), (-2.30, 0.0)]
 
 def glacis_z(x):
     """The hull roof's height at x: the long shallow glacis, then the deck."""
-    if x >= 2.10:
-        return DECK - (x - 2.10) / 1.75 * 0.32
+    if x >= GLACIS_X:
+        return DECK - (x - GLACIS_X) / GLACIS_RUN * GLACIS_DROP
     return DECK
+
+
+def skirt_top(x):
+    """The skirts' top at x: level with the sponson, then falling with the
+    glacis toward the nose, just under its edge."""
+    return min(SKIRT_TOP, glacis_z(x) - 0.01)
 
 
 def build(variant, v):
@@ -83,18 +92,18 @@ def build(variant, v):
 def hull_body(v, a7v):
     m, hull = v.mats, v.hull
     half = v.length / 2
-    prism("hull_upper", [(-half, 1.00), (3.78, 1.00), (half, 1.30), (2.10, DECK), (-3.78, DECK), (-half, 1.56)],
+    prism("hull_upper", [(-half, 1.00), (3.78, 1.00), (half, DECK - GLACIS_DROP), (GLACIS_X, DECK), (-3.78, DECK),
+                         (-half, 1.56)],
           3.56, mat=m["paint"], parent=hull, bevel=0.05)
     prism("hull_lower", [(-3.55, 0.50), (3.15, 0.50), (3.80, 1.02), (-half, 1.02), (-half, 0.86)], 2.30,
           mat=m["paint"], parent=hull, bevel=0.04)
     # The driver's hatch on the right of the glacis head, periscopes ahead of it.
-    VP.hatch("driver_hatch", (2.30, -0.62, glacis_z(2.30)), m, hull, size=(0.62, 0.52),
-             rot=(0, math.atan(0.32 / 1.75), 0))
-    slope = math.atan(0.32 / 1.75)
+    slope = math.atan(GLACIS_DROP / GLACIS_RUN)
+    VP.hatch("driver_hatch", (2.30, -0.62, glacis_z(2.30)), m, hull, size=(0.62, 0.52), rot=(0, slope, 0))
     for k, y in enumerate((-0.40, -0.62, -0.84)):
         VP.periscope(f"driver_periscope_{k}", (2.72, y, glacis_z(2.72) - 0.01), m, hull, size=(0.14, 0.16, 0.08),
                      rot=(0, slope, 0))
-    VP.weld_line("glacis_weld", [(3.80, -1.70, 1.30), (3.80, 1.70, 1.30)], m, hull)
+    VP.weld_line("glacis_weld", [(3.80, -1.70, glacis_z(3.80)), (3.80, 1.70, glacis_z(3.80))], m, hull)
     VP.weld_line("deck_weld", [(2.10, -1.70, DECK + 0.004), (2.10, 1.70, DECK + 0.004)], m, hull)
     for side, s in ((1, "L"), (-1, "R")):
         if not a7v:
@@ -124,7 +133,7 @@ def hull_body(v, a7v):
             m["marking"], hull)
     if a7v:
         # The armour module across the hull front, its lamps let into it.
-        prism("front_module", [(3.30, 1.02), (3.88, 1.06), (3.88, 1.36), (2.95, 1.52)], 3.20, mat=m["paint"],
+        prism("front_module", [(3.30, 1.02), (3.88, 1.06), (3.88, 1.32), (2.95, 1.50)], 3.20, mat=m["paint"],
               parent=hull, bevel=0.05)
         for side, s in ((1, "L"), (-1, "R")):
             for k, y in enumerate((1.30, 0.55)):
@@ -137,36 +146,47 @@ def hull_body(v, a7v):
 
 
 def skirts(v):
-    """Panels a side with their real breaks: the front three thick ballistic
-    panels, the first with its sloped leading edge, then thinner panels to the
-    sprocket, cut up over it; bolts along their tops and a handle on each."""
+    """Panels a side with their real breaks: the front three ballistic
+    panels, the first with its leading edge climbing toward the idler, then
+    thinner panels to the sprocket, cut up over it; their tops level with the
+    sponson, then falling with the glacis to the nose (photos: side, three-
+    quarter front); bolts along their tops and a handle on each. All of them
+    stand clear of the track band."""
     m, hull = v.mats, v.hull
-    panels = [[(2.78, SKIRT_FOOT + 0.06), (3.30, SKIRT_FOOT + 0.06), (3.78, 1.24), (3.78, SKIRT_TOP),
-               (2.78, SKIRT_TOP)]]
+    knee = GLACIS_X + (DECK - SKIRT_TOP + 0.01) / GLACIS_DROP * GLACIS_RUN
+
+    def tops(front, rear):
+        xs = [front] + ([knee] if rear < knee < front else []) + [rear]
+        return [(x, skirt_top(x)) for x in xs]
+
+    panels = [[(2.78, SKIRT_FOOT + 0.06), (3.30, SKIRT_FOOT + 0.06), (3.80, skirt_top(3.80) - 0.07)]
+              + tops(3.80, 2.78)]
     for front, rear in ((2.76, 1.80), (1.78, 0.82)):
-        panels.append([(rear, SKIRT_FOOT), (front, SKIRT_FOOT), (front, SKIRT_TOP), (rear, SKIRT_TOP)])
+        panels.append([(rear, SKIRT_FOOT), (front, SKIRT_FOOT)] + tops(front, rear))
     for front, rear in ((0.80, -0.16), (-0.18, -1.14), (-1.16, -2.12)):
         panels.append([(rear, SKIRT_FOOT), (front, SKIRT_FOOT), (front, SKIRT_TOP), (rear, SKIRT_TOP)])
     panels.append([(-3.60, 1.12), (-3.30, 1.00), (-2.90, SKIRT_FOOT), (-2.14, SKIRT_FOOT), (-2.14, SKIRT_TOP),
                    (-3.60, SKIRT_TOP)])
     for side, s in ((1, "L"), (-1, "R")):
         for k, outline in enumerate(panels):
-            thick = 0.13 if k < 3 else 0.07
+            thick = 0.06 if k < 3 else 0.05
             y = side * (SKIRT_Y - thick / 2)
             prism(f"skirt_{s}_{k}", outline, thick, loc=(0, y, 0), mat=m["paint"], parent=hull,
                   bevel=0.035 if k < 3 else 0.02)
             xs = [p[0] for p in outline]
             mid = (min(xs) + max(xs)) / 2
             face = side * SKIRT_Y
-            box(f"skirt_handle_{s}_{k}", (0.14, 0.04, 0.05), (mid, face + side * 0.02, SKIRT_TOP - 0.16), m["dark"],
-                hull, lods=NEAR)
+            box(f"skirt_handle_{s}_{k}", (0.14, 0.04, 0.05), (mid, face + side * 0.02, skirt_top(mid) - 0.16),
+                m["dark"], hull, lods=NEAR)
             for j in range(3):
                 bx = min(xs) + (max(xs) - min(xs)) * (j + 0.5) / 3
-                cyl(f"skirt_bolt_{s}_{k}_{j}", 0.026, 0.024, (bx, face + side * 0.008, SKIRT_TOP - 0.06), "Y",
+                cyl(f"skirt_bolt_{s}_{k}_{j}", 0.026, 0.024, (bx, face + side * 0.008, skirt_top(bx) - 0.06), "Y",
                     m["steel"], hull, seg=6, lods=FINE)
-        # The sponson's top edge over the skirts.
-        box(f"sponson_lip_{s}", (6.6, 0.12, 0.06), (-0.30, side * (SKIRT_Y - 0.06), SKIRT_TOP + 0.03), m["paint"],
-            hull, bevel=0.02, lods=MID)
+        # The sponson's top edge over the skirts, back from where the glacis
+        # takes over.
+        rear = -3.60
+        box(f"sponson_lip_{s}", (knee - rear, 0.12, 0.06), ((knee + rear) / 2, side * (SKIRT_Y - 0.06),
+                                                             SKIRT_TOP + 0.03), m["paint"], hull, bevel=0.02, lods=MID)
         stencil(f"skirt_cross_{s}", "+", 0.34, (0.32, side * (SKIRT_Y + 0.002), 1.16),
                 (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], hull)
 

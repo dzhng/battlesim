@@ -46,6 +46,22 @@ FOOT = -0.04
 EDGE = 0.36  # the turret's chine, over its foot
 ROOF = 0.90
 TRUNNION = 1.20
+# The upper glacis: from the deck's front edge it falls 0.29 m over 1.50 m to
+# the nose plate, about 11 degrees side-on.
+GLACIS_X, GLACIS_RUN, GLACIS_DROP = 2.40, 1.50, 0.29
+# The side panels' top over the deck's edge, and their thickness: their inner
+# faces clear the track band (1.77).
+PANEL_TOP, PANEL_T = 1.50, 0.06
+
+
+def glacis_z(x):
+    return DECK - max(0.0, x - GLACIS_X) / GLACIS_RUN * GLACIS_DROP
+
+
+def panel_top(x):
+    """The side panels' top at x: level over the deck's edge, then falling
+    with the glacis toward the nose."""
+    return min(PANEL_TOP, glacis_z(x) + 0.04)
 
 
 def build(variant, v):
@@ -65,20 +81,21 @@ def build(variant, v):
 def hull_body(v):
     m, hull = v.mats, v.hull
     half = v.length / 2
-    prism("hull_upper", [(-half, 1.00), (3.70, 1.00), (half, 1.06), (half, 1.30), (2.30, DECK), (-3.80, DECK),
-                         (-half, 1.40)], 3.40, mat=m["paint"], parent=hull, bevel=0.06)
+    prism("hull_upper", [(-half, 1.00), (3.70, 0.98), (half, 1.02), (half, glacis_z(half)), (GLACIS_X, DECK),
+                         (-3.80, DECK), (-half, 1.40)], 3.40, mat=m["paint"], parent=hull, bevel=0.06)
     prism("hull_lower", [(-3.55, 0.50), (3.20, 0.50), (3.85, 1.04), (-half, 1.04), (-half, 0.86)], 2.30,
           mat=m["paint"], parent=hull, bevel=0.04)
-    VP.hatch("driver_hatch", (2.40, -0.58, DECK + 0.02), m, hull, size=(0.60, 0.50),
-             rot=(0, math.atan(0.16 / 1.60), 0))
+    slope = math.atan(GLACIS_DROP / GLACIS_RUN)
+    # The hatch straddles the glacis' head, so it leans half the slope.
+    VP.hatch("driver_hatch", (2.40, -0.58, DECK + 0.02), m, hull, size=(0.60, 0.50), rot=(0, slope / 2, 0))
     for k, y in enumerate((-0.36, -0.58, -0.80)):
-        VP.periscope(f"driver_periscope_{k}", (2.80, y, DECK - 0.02), m, hull, size=(0.14, 0.16, 0.08),
-                     rot=(0, 0.10, 0))
+        VP.periscope(f"driver_periscope_{k}", (2.80, y, glacis_z(2.80)), m, hull, size=(0.14, 0.16, 0.08),
+                     rot=(0, slope, 0))
     for side, s in ((1, "L"), (-1, "R")):
         # The lamp band at the nose plate's top corners.
-        box(f"lamp_band_{s}", (0.05, 0.62, 0.12), (half - 0.01, side * 1.18, 1.22), m["black"], hull, lods=MID)
+        box(f"lamp_band_{s}", (0.05, 0.62, 0.11), (half - 0.01, side * 1.18, 1.09), m["black"], hull, lods=MID)
         for k in range(3):
-            box(f"lamp_{s}_{k}", (0.012, 0.12, 0.06), (half + 0.016, side * (0.98 + k * 0.18), 1.22), m["lamp"], hull,
+            box(f"lamp_{s}_{k}", (0.012, 0.12, 0.06), (half + 0.016, side * (0.98 + k * 0.18), 1.09), m["lamp"], hull,
                 lods=NEAR)
         VP.shackle(f"front_shackle_{s}", (half - 0.02, side * 0.56, 0.98), m, hull, size=0.16,
                    rot=(0, 0, math.pi / 2))
@@ -88,7 +105,7 @@ def hull_body(v):
         VP.cable(f"tow_cable_{s}", [(-3.55, side * 1.58, DECK + 0.025), (-2.0, side * 1.60, DECK + 0.025),
                                     (-0.4, side * 1.60, DECK + 0.02), (1.2, side * 1.58, DECK + 0.02)], m, hull,
                  radius=0.024)
-    stencil("nose_name", "RHEINMETALL", 0.10, (half + 0.002, 0.0, 1.20), (math.pi / 2, 0, math.pi / 2), m["marking"],
+    stencil("nose_name", "RHEINMETALL", 0.08, (half + 0.002, 0.0, 1.09), (math.pi / 2, 0, math.pi / 2), m["marking"],
             hull)
     for k, y in enumerate((0.78, -0.78)):
         VP.grille(f"engine_grille_{k}", (-2.95, y, DECK), (1.35, 1.20), m, hull, slats=11)
@@ -96,20 +113,29 @@ def hull_body(v):
 
 
 def side_panels(v):
-    """The big faceted armour panels down each side: the front one sloped,
-    each with its lower face bevelled in toward the tracks."""
+    """The big faceted armour panels down each side, each with its lower face
+    bevelled in toward the tracks: their tops level over the deck's edge, then
+    falling with the glacis, the front one's leading edge climbing toward the
+    idler (photos: three-quarter front)."""
     m, hull = v.mats, v.hull
     breaks = [(3.85, 2.55), (2.52, 1.12), (1.09, -0.31), (-0.34, -1.74), (-1.77, -3.85)]
     for side, s in ((1, "L"), (-1, "R")):
         for k, (front, rear) in enumerate(breaks):
             nose = front - (0.40 if k == 0 else 0.0)
-            outline = [(rear, 0.86), (nose, 0.86), (front, 1.18 if k == 0 else 0.86), (front, 1.50), (rear, 1.50)]
-            prism(f"side_panel_{s}_{k}", outline, 0.12, loc=(0, side * (PANEL_Y - 0.06), 0), mat=m["paint"],
-                  parent=hull, bevel=0.05, taper_y=lambda z: 1.0 if z > 1.0 else 0.6)
+            tops = [(x, panel_top(x)) for x in [front] + ([GLACIS_X] if rear < GLACIS_X < front else []) + [rear]]
+            outline = [(rear, 0.86), (nose, 0.86), (front, panel_top(front) - 0.08 if k == 0 else 0.86)] + tops
+            prism(f"side_panel_{s}_{k}", outline, PANEL_T, loc=(0, side * (PANEL_Y - PANEL_T / 2), 0),
+                  mat=m["paint"], parent=hull, bevel=0.025, taper_y=lambda z: 1.0 if z > 1.0 else 0.6)
             for j, x in enumerate((rear + 0.20, front - 0.24)):
-                cyl(f"panel_bolt_{s}_{k}_{j}", 0.03, 0.02, (x, side * (PANEL_Y + 0.004), 1.40), "Y", m["steel"], hull,
-                    seg=6, lods=FINE)
-        box(f"panel_lip_{s}", (7.6, 0.16, 0.05), (0.0, side * (PANEL_Y - 0.08), 1.52), m["paint"], hull, bevel=0.02,
+                cyl(f"panel_bolt_{s}_{k}_{j}", 0.03, 0.02, (x, side * (PANEL_Y + 0.004), panel_top(x) - 0.10), "Y",
+                    m["steel"], hull, seg=6, lods=FINE)
+        # The lip along the panels' top: level, then down the glacis.
+        box(f"panel_lip_{s}", (GLACIS_X + 3.80, 0.16, 0.05), ((GLACIS_X - 3.80) / 2, side * (PANEL_Y - 0.08), 1.52),
+            m["paint"], hull, bevel=0.02, lods=MID)
+        slope = math.atan(GLACIS_DROP / GLACIS_RUN)
+        mid = (GLACIS_X + 3.80) / 2
+        box(f"panel_lip_front_{s}", ((3.80 - GLACIS_X) / math.cos(slope), 0.16, 0.05),
+            (mid, side * (PANEL_Y - 0.08), panel_top(mid) + 0.02), m["paint"], hull, bevel=0.02, rot=(0, slope, 0),
             lods=MID)
         stencil(f"panel_name_{s}", "KF51", 0.22, (-1.00, side * (PANEL_Y + 0.003), 1.18),
                 (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], hull)
@@ -213,7 +239,8 @@ def wreck(variant, v):
                    lods=(0, 1, 2, 3))
     densify(thrown)
     warp(thrown, heat(0.035, 0.6, seed=5.0))
-    solid("fallen_panel", (1.40, 0.12, 0.64), (0.4, -2.75, 0.07), m["paint"], v.hull, rot=(1.5, 0.0, 0.3), bevel=0.04)
+    solid("fallen_panel", (1.40, PANEL_T, 0.64), (0.4, -2.75, 0.07), m["paint"], v.hull, rot=(1.5, 0.0, 0.3),
+          bevel=0.04)
     bend(parts("side_panel_L_3"), (-1.0, PANEL_Y, 1.50), (1, 0, 0), (0, 0, -1), 0.55)
     shell = parts("hull_upper", "hull_lower", "side_panel_", "turret_shell")
     densify(shell, scale=2.0)

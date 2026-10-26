@@ -32,42 +32,86 @@ ROAD_R = 0.33
 ROAD_Z = 0.40
 DECK = 1.42
 TRUNNION = 0.85
+# The upper glacis: from 1.10 m back of the nose it falls 0.21 m to the nose's
+# edge, about 11 degrees side-on.
+GLACIS_RUN, GLACIS_DROP = 1.10, 0.21
+NOSE_Z = DECK - GLACIS_DROP
+# The skirts: their outer face, thickness and foot; the add-on modules on the
+# front sections stand this much proud of them. All clear of the track band
+# (1.54) and the road wheels (1.57).
+SKIRT_FACE, SKIRT_T, SKIRT_FOOT, BLOCK_T = 1.635, 0.05, 0.80, 0.03
+
+
+def glacis_z(v, x):
+    head = v.length / 2 - GLACIS_RUN
+    return DECK - max(0.0, x - head) / GLACIS_RUN * GLACIS_DROP
+
+
+def skirt_top(v, x):
+    """The skirts' top at x: just under the deck's edge, then falling with the
+    glacis toward the nose."""
+    return glacis_z(v, x) - 0.03
+
+
+def skirts(v):
+    """Six thin skirt sections a side, their tops under the deck's edge and
+    falling with the glacis over the front one, whose leading edge climbs
+    toward the idler; flat bolted add-on modules on the front three, cut to
+    the same outline (photos: three-quarter front)."""
+    m, h = v.mats, v.hull
+    half = v.length / 2
+    head = half - GLACIS_RUN
+    sections = 6
+    front = half - 0.20
+    length = (front - (-half + 0.25)) / sections
+    for side, s in ((1, "L"), (-1, "R")):
+        for k in range(sections):
+            x1, x0 = front - length * k - 0.015, front - length * (k + 1) + 0.015
+            tops = [(x, skirt_top(v, x)) for x in [x1] + ([head] if x0 < head < x1 else []) + [x0]]
+            if k == 0:
+                foot = [(x0, SKIRT_FOOT), (x1 - 0.45, SKIRT_FOOT), (x1, skirt_top(v, x1) - 0.12)]
+            else:
+                foot = [(x0, SKIRT_FOOT), (x1, SKIRT_FOOT)]
+            outline = foot + tops
+            prism(f"skirt_{s}_{k}_plate", outline, SKIRT_T, loc=(0, side * (SKIRT_FACE - SKIRT_T / 2), 0),
+                  mat=m["paint"], parent=h, bevel=0.015, lods=VP.ALL)
+            for j, x in enumerate((x0 + 0.08, x1 - 0.08 - (0.40 if k == 0 else 0.0))):
+                cyl(f"skirt_{s}_{k}_bolt_{j}_0", 0.022, 0.02, (x, side * (SKIRT_FACE + 0.008), skirt_top(v, x) - 0.06),
+                    "Y", m["steel"], h, seg=6, lods=FINE)
+            if k < 3:
+                inset = [(x + (0.04 if x < (x0 + x1) / 2 else -0.04), z + (0.05 if z < 1.0 else -0.05))
+                         for x, z in outline]
+                prism(f"skirt_armour_{s}_{k}", inset, BLOCK_T, loc=(0, side * (SKIRT_FACE + BLOCK_T / 2), 0),
+                      mat=m["paint"], parent=h, bevel=0.012, lods=VP.ALL)
 
 
 def hull(v):
     m, h = v.mats, v.hull
     half = v.length / 2
-    prism("hull_upper", [(-half, 0.86), (half - 0.30, 0.86), (half, 1.06), (half - 1.10, DECK), (-half + 0.08, DECK),
-                         (-half, DECK - 0.10)], 3.05, mat=m["paint"], parent=h, bevel=0.05)
+    prism("hull_upper", [(-half, 0.86), (half - 0.30, 0.86), (half, 1.06), (half, NOSE_Z), (half - GLACIS_RUN, DECK),
+                         (-half + 0.08, DECK), (-half, DECK - 0.10)], 3.05, mat=m["paint"], parent=h, bevel=0.05)
     prism("hull_lower", [(-half + 0.35, 0.40), (half - 0.70, 0.40), (half - 0.05, 0.88), (-half, 0.88),
                          (-half, 0.70)], 2.10, mat=m["paint"], parent=h, bevel=0.04)
-    slope = math.atan((DECK - 1.06) / 1.10)
-    VP.armour_tiles("glacis_armour", (half - 0.55, 0, 1.06 + (DECK - 1.06) * 0.5), (0.95, 2.60), (2, 5), 0.06, m, h,
+    slope = math.atan(GLACIS_DROP / GLACIS_RUN)
+    VP.armour_tiles("glacis_armour", (half - 0.55, 0, glacis_z(v, half - 0.55)), (0.95, 2.60), (2, 5), 0.06, m, h,
                     rot=(0, slope, 0))
     VP.hatch("driver_hatch", (half - 1.45, 0.55, DECK), m, h, radius=0.27)
     for k in range(3):
         VP.periscope(f"driver_periscope_{k}", (half - 1.12, 0.35 + k * 0.20, DECK), m, h, size=(0.11, 0.16, 0.08))
     for side, s in ((1, "L"), (-1, "R")):
-        VP.light_with_guard(f"headlight_{s}", (half - 0.95, side * 1.30, DECK + 0.08), 0.06, m, h)
+        VP.light_with_guard(f"headlight_{s}", (half - 0.95, side * 1.30, glacis_z(v, half - 0.95) + 0.08), 0.06, m, h)
         VP.tow_hook(f"front_tow_{s}", (half - 0.14, side * 0.65, 0.82), m, h, size=0.12)
         VP.tow_hook(f"rear_tow_{s}", (-half + 0.14, side * 0.75, 0.80), m, h, size=0.12, rot=(0, 0, math.pi))
-        for k in range(6):
-            length = (v.length - 0.6) / 6
-            x = half - 0.35 - length * (k + 0.5)
-            VP.bolted_panel(f"skirt_{s}_{k}", (x, side * 1.58, 0.84), (length - 0.03, 0.08, 0.62), m, h, bolts=(2, 1),
-                            bevel=0.02, lods=VP.ALL)
         VP.stowage_box(f"fender_box_{s}", (-1.6, side * 1.40, DECK), (0.90, 0.32, 0.30), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
         VP.cable(f"tow_cable_{s}", [(-half + 0.3, side * 1.42, DECK + 0.02), (-0.6, side * 1.45, DECK + 0.02),
                                     (0.8, side * 1.42, DECK + 0.02)], m, h, radius=0.02)
     VP.grille("engine_grille", (-2.65, 0, DECK), (1.10, 1.90), m, h, slats=10)
     VP.exhaust("exhaust", (-half - 0.02, -1.05, 1.25), 0.09, 0.25, m, h, rot=(0, 0, math.pi))
-    # The photos' add-on armour: thick bolted modules over the skirts' front
-    # half, spare track links across the nose, jerrycans lying on the deck aft
-    # and a deck box.
+    # The photos' skirts with their add-on modules, spare track links across
+    # the nose, jerrycans lying on the deck aft and a deck box.
+    skirts(v)
     for side, s in ((1, "L"), (-1, "R")):
-        VP.armour_tiles(f"skirt_armour_{s}", (half - 1.75, side * 1.62, 0.84), (2.60, 0.56), (4, 2), 0.07, m, h,
-                        rot=(-side * math.pi / 2, 0, 0))
         VP.jerrycan(f"jerrycan_{s}", (-half + 0.15, side * 1.15, DECK + 0.09), dict(m, paint=m["dark"]), h,
                     rot=(0, math.pi / 2, 0))
     for k in range(4):
@@ -164,7 +208,8 @@ def wreck(variant, v):
     from parts import box as solid, rest_on_ground
     from wreckage import bend, densify, dent, heat, parts, remove, warp
     m = v.mats
-    remove("track_R_band", "wheel_R_2_", "wheel_R_3_", "skirt_R_1_", "skirt_R_2_", "fender_box_R", "loader_hatch",
+    remove("track_R_band", "wheel_R_2_", "wheel_R_3_", "skirt_R_1_", "skirt_R_2_", "skirt_armour_R_1",
+           "skirt_armour_R_2", "fender_box_R", "loader_hatch",
            "bustle_box_lid")
     thrown = solid("thrown_track", (3.4, TRACK_W, 0.05), (0.2, -2.05, 0.03), m["track"], v.hull, rot=(0, 0, 0.08))
     densify(thrown)

@@ -87,11 +87,11 @@ SPONSON = SKIRT_FACE - 0.07
 # and the nose. The deck rises 0.18 m from its head to the engine deck's rear
 # (photos: side, the hull's top edge climbing over the skirts toward the
 # back). The upper glacis between the head and the nose is long and shallow,
-# about 7 degrees (photos: side, three-quarter front); the steep lower plate
+# falling about 11 degrees side-on (photos: side, three-quarter front); the steep lower plate
 # under the nose leans back 0.55 m per metre down.
 DECK_REAR = (-3.80, 1.62)
 GLACIS_HEAD = (2.25, 1.44)
-NOSE = (3.965, 1.22)  # the hull's front edge, at its half length
+NOSE = (3.965, 1.11)  # the hull's front edge, at its half length
 NOSE_LEAN = 0.55
 SLOPE = math.atan2(GLACIS_HEAD[1] - NOSE[1], NOSE[0] - GLACIS_HEAD[0])
 DECK_TILT = math.atan2(DECK_REAR[1] - GLACIS_HEAD[1], GLACIS_HEAD[0] - DECK_REAR[0])
@@ -119,7 +119,8 @@ def skirt_top(x):
 def front_skirt(rear):
     """The long wedge over the idler, from `rear` to the nose: its foot rises
     over the idler and its top follows the hull's side down."""
-    return [(rear, SKIRT_FOOT), (3.22, SKIRT_FOOT), (3.86, 1.04), (3.86, skirt_top(3.86)), (rear, skirt_top(rear))]
+    return [(rear, SKIRT_FOOT), (3.22, SKIRT_FOOT), (3.86, skirt_top(3.86) - 0.07), (3.86, skirt_top(3.86)),
+            (rear, skirt_top(rear))]
 
 
 def build(variant, v):
@@ -235,7 +236,8 @@ def skirts(v):
                    (-3.62, SKIRT_TOP)])
     for side, s in ((1, "L"), (-1, "R")):
         for k, outline in enumerate(panels):
-            thick = 0.10 if k < 2 else 0.07
+            # Thin enough that the inner faces clear the track band (1.72).
+            thick = 0.07
             y = side * (SKIRT_FACE - thick / 2)
             prism(f"skirt_{s}_{k}", outline, thick, loc=(0, y, 0), mat=m["paint"], parent=hull, bevel=0.018)
             xs = [p[0] for p in outline]

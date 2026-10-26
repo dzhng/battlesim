@@ -76,6 +76,11 @@ class Shape:
     number: str
     # How far the glacis runs back from the nose to the deck.
     glacis_run: float = 0.0
+    # How far the skirts (and their lip) stand further out than the base
+    # line, to clear the track band and the road wheels' discs.
+    skirt_out: float = 0.0
+    # Armour tile boxes bolted onto the skirts' front sections.
+    skirt_boxes: bool = True
 
 
 def side_face(shape):
@@ -229,15 +234,16 @@ def skirts(v, shape):
             knee = glacis_x(v, shape, shoulder + under)
             tops = [x1] + ([knee] if x0 + 0.01 < knee < x1 - 0.01 else []) + [x0]
             outline = [(x0, foot(x0)), (x1, foot(x1))] + [(x, top(x)) for x in tops]
-            prism(f"skirt_{s}_{k}", outline, 0.08, loc=(0, side * (SKIRT_Y - 0.05), 0), mat=m["paint"], parent=h,
+            out = shape.skirt_out
+            prism(f"skirt_{s}_{k}", outline, 0.08, loc=(0, side * (SKIRT_Y + out - 0.05), 0), mat=m["paint"], parent=h,
                   bevel=0.025, lods=VP.ALL)
             for j, x in enumerate((x0 + 0.10, x1 - 0.10)):
-                bolt = (x, side * (SKIRT_Y - 0.002), max(0.52, foot(x) + 0.11))
+                bolt = (x, side * (SKIRT_Y + out - 0.002), max(0.52, foot(x) + 0.11))
                 cyl(f"skirt_{s}_{k}_bolt_{j}", 0.026, 0.03, bolt, "Y", m["steel"], h, seg=6, lods=FINE)
             # The lip stops where the skirt's front end narrows under it.
             cut = x1 - min(x1, glacis_x(v, shape, LIP_TOP + under))
             box(f"skirt_lip_{s}_{k}", (length - 0.05 - cut, 0.03, LIP),
-                ((x0 + x1) / 2 - cut / 2, side * (SKIRT_Y - 0.08), LIP_TOP - LIP / 2), m["rubber"], h, lods=MID)
+                ((x0 + x1) / 2 - cut / 2, side * (SKIRT_Y + out - 0.08), LIP_TOP - LIP / 2), m["rubber"], h, lods=MID)
         if shape.slab:
             # Each slab stands on the skirt's top, which runs the band's depth
             # under the glacis, so every slab spans the band from the skirt to
@@ -269,10 +275,12 @@ def skirts(v, shape):
                                 bevel=0.03, lods=VP.ALL)
         # The parade stripe on the skirts' front half, the number behind it.
         for j, (colour, z) in enumerate(((m["tail"], 0.16), (m["marking"], 0.08), (m["tail"], 0.0))):
-            box(f"victory_stripe_{s}_{j}", (1.30, 0.008, 0.06), (0.9, side * (SKIRT_Y + 0.004), shoulder - 0.24 + z),
+            box(f"victory_stripe_{s}_{j}", (1.30, 0.008, 0.06),
+                (0.9, side * (SKIRT_Y + shape.skirt_out + 0.004), shoulder - 0.24 + z),
                 colour, h, lods=NEAR)
         stencil(f"side_number_{s}", shape.number, 0.22,
-                (-1.4, side * (SKIRT_Y + 0.004), shoulder - 0.20), (math.pi / 2, 0, math.pi if side > 0 else 0),
+                (-1.4, side * (SKIRT_Y + shape.skirt_out + 0.004), shoulder - 0.20),
+                (math.pi / 2, 0, math.pi if side > 0 else 0),
                 m["marking"], h)
 
 
@@ -296,7 +304,7 @@ def armour_kit(v, shape):
     # The skirt boxes fill the skirts' depth at their front end.
     foot = skirt_foot(v, shape, half - 1.75)
     deep = min(0.62, skirt_top(v, shape, half - 0.55) - foot - 0.06)
-    for side, s in ((1, "L"), (-1, "R")):
+    for side, s in ((1, "L"), (-1, "R")) if shape.skirt_boxes else ():
         VP.armour_tiles(f"skirt_era_{s}", (half - 1.75, side * (SKIRT_Y - 0.01), foot + 0.03 + deep / 2),
                         (2.40, deep), (4, 2 if deep > 0.45 else 1), 0.07, m, h, rot=(-side * math.pi / 2, 0, 0))
     if not shape.troop_compartment:
@@ -361,5 +369,6 @@ def wreck(shape, variant, v):
     bend(parts("rear_screen"), (-half + 0.03, 0, 1.6), (0, 1, 0), (1, 0, 0), 0.35)
     shell = parts("hull_upper", "hull_lower", "glacis_wedge", "skirt_", "turret_shell", "module_shell")
     densify(shell, scale=2.0)
-    warp(shell, heat(0.022, 0.9, seed=13.0), dent((half - 1.0, 0.6, 1.45), 0.55, 0.12, (-0.6, 0, -1)))
+    hit = (half - 1.0, 0.6, glacis_z(v, shape, half - 1.0) - 0.06)
+    warp(shell, heat(0.022, 0.9, seed=13.0), dent(hit, 0.55, 0.12, (-0.6, 0, -1)))
     rest_on_ground(0.004)

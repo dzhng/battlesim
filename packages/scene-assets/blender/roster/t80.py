@@ -29,7 +29,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
-from t72 import TRUNNION, cupola_mg, dome_rings, gun_2a46, side_modules, soviet_skirts, soviet_wreck  # noqa: E402
+from t72 import (TRUNNION, cupola_mg, dome_rings, gun_2a46, side_modules, soviet_skirts, soviet_wreck,  # noqa: E402
+                 two_tier_hull)
 from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -42,31 +43,40 @@ SPROCKET = (-3.20, 0.52, 0.32)
 IDLER = (3.22, 0.50, 0.29)
 RETURNS = [(1.90, 0.82, 0.09), (1.00, 0.83, 0.09), (0.10, 0.83, 0.09), (-0.80, 0.83, 0.09), (-1.70, 0.82, 0.09)]
 DECK = 1.30
+# The front is two-tier (photos: three-quarter front): the fenders over the
+# tracks fall 0.27 m over 1.40 m, about 11 degrees side-on; the centre upper
+# glacis plate between them falls CENTRE_DROP over the same run, about 22
+# degrees (68 degrees from vertical, as the T-72's).
+GLACIS_X, GLACIS_RUN, GLACIS_DROP = 2.30, 1.40, 0.27
+CENTRE_DROP = 0.565
+GLACIS = (GLACIS_X, GLACIS_RUN, GLACIS_DROP, DECK)
+CENTRE_Y = TRACK_Y - TRACK_W / 2
+
+
+def centre_z(x):
+    return DECK - max(0.0, x - GLACIS_X) / GLACIS_RUN * CENTRE_DROP
 
 
 def glacis_z(x):
-    if x >= 2.30:
-        return DECK - (x - 2.30) / 1.40 * 0.40
+    if x >= GLACIS_X:
+        return DECK - (x - GLACIS_X) / GLACIS_RUN * GLACIS_DROP
     return DECK
 
 
 def hull_body(v):
     m, hull = v.mats, v.hull
     half = v.length / 2
-    prism("hull_upper", [(-half, 0.92), (3.55, 0.92), (half, 0.94), (2.30, DECK), (-3.62, DECK), (-half, 1.22)],
-          3.30, mat=m["paint"], parent=hull, bevel=0.05)
-    prism("hull_lower", [(-3.45, 0.44), (3.15, 0.44), (3.68, 0.94), (-half, 0.94), (-half, 0.78)], 2.20,
-          mat=m["paint"], parent=hull, bevel=0.04)
-    slope = math.atan(0.40 / 1.40)
-    VP.armour_tiles("glacis_era", (3.02, 0, glacis_z(3.02) + 0.005), (1.10, 2.70), (2, 6), 0.09, m, hull,
-                    rot=(0, slope, 0))
-    prism("splash_board", [(2.40, DECK - 0.02), (2.50, DECK - 0.02), (2.44, DECK + 0.12), (2.34, DECK + 0.12)], 2.60,
-          mat=m["paint"], parent=hull, bevel=0.015)
+    slope = two_tier_hull(v, half, DECK, GLACIS_X, GLACIS_RUN, GLACIS_DROP, CENTRE_DROP, -3.62, 1.22, -3.45, 3.15,
+                          centre_y=CENTRE_Y)
+    VP.armour_tiles("glacis_era", (3.02, 0, centre_z(3.02) + 0.005), (1.10, 2 * CENTRE_Y - 0.12), (2, 5), 0.09, m,
+                    hull, rot=(0, slope, 0))
+    prism("splash_board", [(2.40, DECK - 0.02), (2.50, DECK - 0.02), (2.44, DECK + 0.12), (2.34, DECK + 0.12)],
+          2 * CENTRE_Y - 0.04, mat=m["paint"], parent=hull, bevel=0.015)
     VP.hatch("driver_hatch", (2.05, 0, DECK), m, hull, radius=0.30)
     VP.periscope("driver_periscope", (2.31, 0, DECK), m, hull, size=(0.12, 0.26, 0.09))
     for side, s in ((1, "L"), (-1, "R")):
         VP.light_with_guard(f"headlight_{s}", (2.25, side * 1.30, DECK + 0.10), 0.07, m, hull)
-        VP.tow_hook(f"front_tow_{s}", (3.56, side * 0.62, 0.80), m, hull, size=0.14)
+        VP.tow_hook(f"front_tow_{s}", (3.62, side * 0.62, centre_z(3.62) - 0.06), m, hull, size=0.14)
         VP.tow_hook(f"rear_tow_{s}", (-3.56, side * 0.80, 0.82), m, hull, size=0.13, rot=(0, 0, math.pi))
         box(f"front_fender_{s}", (0.45, 0.60, 0.04), (3.45, side * TRACK_Y, 1.02), m["paint"], hull, bevel=0.012,
             rot=(0, 0.35, 0), lods=MID)
@@ -120,7 +130,7 @@ def build(variant, v):
     hull_body(v)
     VP.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, ROAD_X, ROAD_Z, ROAD_R, 0.22, SPROCKET, IDLER,
                             RETURNS, bolts=8, teeth=12, arm=(0.45, -0.35), pitch=0.15)
-    soviet_skirts(v, label="331", front=3.20, bars=(-2.45, 2.40))
+    soviet_skirts(v, label="331", front=3.20, bars=(-2.45, 2.40), glacis=GLACIS)
     mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
     turret, gun, _, _ = mounts["cannon"]
     hmg, hmg_gun, _, _ = mounts["HMG"]

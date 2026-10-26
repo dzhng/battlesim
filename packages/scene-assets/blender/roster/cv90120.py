@@ -41,6 +41,9 @@ WAIST = 0.14  # the turret's upright foot, from the hull roof
 CHEEK_WAIST = ((1.85, 0.52), (1.05, 1.50))
 CHEEK_ROOF = ((1.20, 0.42), (0.45, 1.24))
 SIDE_WAIST, SIDE_ROOF = 1.52, 1.26  # the flanks' half-width, leaning in
+# The nose plate's top: the glacis falls 0.42 m over 2.1 m to it, about 11
+# degrees side-on (the CV90's own, `C.NOSE_Z`, about 14).
+NOSE_Z = 1.38
 
 
 def turret_body(v, turret):
@@ -124,10 +127,10 @@ def gun_120(v, gun):
 
 
 def build(variant, v):
-    C.hull_body(v)
+    C.hull_body(v, nose_z=NOSE_Z)
     VP.tracked_running_gear(v.mats, v.hull, C.TRACK_Y, C.TRACK_W, C.ROAD_X, C.ROAD_Z, C.ROAD_R, 0.20, C.SPROCKET,
                             C.IDLER, (), bolts=6, teeth=11, arm=(0.40, 0.40), pitch=0.15)
-    C.hull_sides(v, mk4=False)
+    C.hull_sides(v, mk4=False, nose_z=NOSE_Z)
     mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
     turret, gun, _, _ = mounts["cannon"]
     hmg, hmg_gun, _, _ = mounts["HMG"]
