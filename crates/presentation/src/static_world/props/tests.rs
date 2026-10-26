@@ -335,34 +335,39 @@ fn a_wreck_drawn_moving_is_left_out_until_it_lies_still() {
 }
 
 #[test]
-fn prop_positions_interpolate_between_ticks() {
+fn display_poses_interpolate_between_ticks() {
     let mut p = town();
+    // Set up a known prop with authored=1.0, which gives id=101 (100+x where x=1)
+    // The prop_id used is k.id.or(k.authored) = Some(101.0) -> 101
     let initial = known(Some(1.0), "car", 1.0, false);
     p.set_known(vec![initial.clone()]);
     let initial_x = p.known_models.first().map(|m| m.record[0]).unwrap();
-    assert!((initial_x - 1.0).abs() < 0.01, "initial position");
+    assert!((initial_x - 1.0).abs() < 0.01, "initial position from knowledge");
 
-    let mut moved = initial.clone();
-    moved.body.as_mut().unwrap().center[0] = 5.0;
-    p.set_known(vec![moved]);
-    let final_x = p.known_models.first().map(|m| m.record[0]).unwrap();
-    assert!((final_x - 5.0).abs() < 0.01, "final position");
+    // Push first display pose at x=1 (tick 1) - use prop_id=101
+    p.push_display_poses(&[(101, [1.0, 0.0], 0.0, 0.0)]);
+    
+    // Push second display pose at x=5 (tick 2) - this shifts tick 1 to previous
+    p.push_display_poses(&[(101, [5.0, 0.0], 0.0, 0.0)]);
 
-    assert!(p.interpolate(0.5), "interpolation should apply");
+    // At t=0.5, should interpolate to midpoint x=3
+    assert!(p.apply_display_poses(0.5), "interpolation should apply");
     let mid_x = p.known_models.first().map(|m| m.record[0]).unwrap();
     assert!(
         (mid_x - 3.0).abs() < 0.01,
         "t=0.5 should interpolate to midpoint: got {mid_x}"
     );
 
-    assert!(p.interpolate(0.0), "interpolation at t=0");
+    // At t=0, should be at previous tick position x=1
+    assert!(p.apply_display_poses(0.0), "interpolation at t=0");
     let start_x = p.known_models.first().map(|m| m.record[0]).unwrap();
     assert!(
         (start_x - 1.0).abs() < 0.01,
         "t=0 should interpolate to previous: got {start_x}"
     );
 
-    assert!(p.interpolate(1.0), "interpolation at t=1");
+    // At t=1, should be at current tick position x=5
+    assert!(p.apply_display_poses(1.0), "interpolation at t=1");
     let end_x = p.known_models.first().map(|m| m.record[0]).unwrap();
     assert!(
         (end_x - 5.0).abs() < 0.01,

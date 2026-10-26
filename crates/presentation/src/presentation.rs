@@ -401,6 +401,15 @@ impl Presentation {
         let observation = Arc::new(observation);
         self.interpolator.push(observation.clone(), arrived_s);
         self.latest = Some(observation.clone());
+        // Push display poses for actively shoved props (once per tick).
+        if let Some(props) = &mut self.props {
+            let poses: Vec<(u32, [f64; 2], f64, f64)> = observation
+                .prop_display_poses
+                .iter()
+                .map(|p| (p.prop_id as u32, p.center, p.yaw, p.base_z))
+                .collect();
+            props.push_display_poses(&poses);
+        }
         match &mut self.loaded {
             Some(loaded) => loaded.note(&observation),
             None => {
@@ -1352,15 +1361,11 @@ impl Presentation {
                 self.statics.rewalk();
             }
         }
-        // Apply display poses for actively shoved props (smooth rendering).
-        if let (Some(props), Some(obs)) = (&mut self.props, &self.latest) {
-            let poses: Vec<(u32, [f64; 2], f64, f64)> = obs
-                .prop_display_poses
-                .iter()
-                .map(|p| (p.prop_id as u32, p.center, p.yaw, p.base_z))
-                .collect();
-            props.set_display_poses(&poses);
-            if props.apply_display_poses() {
+        // Apply interpolated display poses for actively shoved props (smooth rendering).
+        // The blend factor t interpolates between previous and current tick poses.
+        if let Some(props) = &mut self.props {
+            let t = self.interpolator.blend(time);
+            if props.apply_display_poses(t) {
                 self.statics.rewalk();
             }
         }

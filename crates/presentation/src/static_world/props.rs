@@ -57,6 +57,28 @@ struct Pose {
     base_z: f64,
 }
 
+fn delta_angle(current: f64, target: f64) -> f64 {
+    let tau = std::f64::consts::TAU;
+    let diff = target - current;
+    let delta = diff - tau * (diff / tau).floor();
+    if delta > std::f64::consts::PI {
+        delta - tau
+    } else {
+        delta
+    }
+}
+
+fn lerp_pose(a: &Pose, b: &Pose, t: f64) -> Pose {
+    Pose {
+        center: [
+            a.center[0] + t * (b.center[0] - a.center[0]),
+            a.center[1] + t * (b.center[1] - a.center[1]),
+        ],
+        yaw: a.yaw + delta_angle(a.yaw, b.yaw) * t,
+        base_z: a.base_z + t * (b.base_z - a.base_z),
+    }
+}
+
 use std::f64::consts::FRAC_PI_2;
 
 /// What draws a prop's row (`Appearance.draws`): a model fogged face by
@@ -540,9 +562,13 @@ pub struct PropPopulation {
     pub rows: Vec<u32>,
     lists: Vec<Vec<Record>>,
     prints: Vec<u64>,
-    /// Display poses for actively shoved props: true world position from the
-    /// simulation, published every tick during a shove for smooth rendering.
-    display_poses: HashMap<u32, Pose>,
+    /// Display poses from the previous tick, for interpolation.
+    previous_display_poses: HashMap<u32, Pose>,
+    /// Display poses from the current tick.
+    current_display_poses: HashMap<u32, Pose>,
+    /// Held display poses for props that dropped out of current but whose
+    /// knowledge hasn't caught up yet (prevents snap-back on refit).
+    held_display_poses: HashMap<u32, Pose>,
     /// The model index range for each known prop (by index into `known`).
     known_model_ranges: Vec<std::ops::Range<usize>>,
 }
@@ -607,7 +633,9 @@ impl PropPopulation {
             known_models: Vec::new(),
             known_bodies: 0,
             rows: Vec::new(),
-            display_poses: HashMap::new(),
+            previous_display_poses: HashMap::new(),
+            current_display_poses: HashMap::new(),
+            held_display_poses: HashMap::new(),
             known_model_ranges: Vec::new(),
         }
     }
@@ -622,40 +650,60 @@ impl PropPopulation {
         true
     }
 
-    /// Update display poses for actively shoved props. These override the
-    /// known pose for smooth rendering during a push.
-    pub fn set_display_poses(&mut self, poses: &[(u32, [f64; 2], f64, f64)]) {
-        self.display_poses.clear();
+    /// Push new display poses from an observation. Call this when a new
+    /// observation arrives (once per tick), not every frame. This shifts
+    /// current poses to previous and handles props that drop out.
+    pub fn push_display_poses(&mut self, poses: &[(u32, [f64; 2], f64, f64)]) {
+        // Move current → previous
+        std::mem::swap(&mut self.previous_display_poses, &mut self.current_display_poses);
+        
+        // Props that were in current (now previous) but not in the new list
+        // go to held, so they don't snap back on refit
+        for (&prop_id, &pose) in &self.previous_display_poses {
+            if !poses.iter().any(|&(id, ..)| id == prop_id) {
+                self.held_display_poses.insert(prop_id, pose);
+            }
+        }
+        
+        // Set new poses as current
+        self.current_display_poses.clear();
         for &(prop_id, center, yaw, base_z) in poses {
-            self.display_poses.insert(prop_id, Pose {
-                center,
-                yaw,
-                base_z,
-            });
+            self.current_display_poses.insert(prop_id, Pose { center, yaw, base_z });
+            // If this prop is back in current, remove it from held
+            self.held_display_poses.remove(&prop_id);
         }
     }
 
-    /// Apply display poses to known model records for smooth rendering.
+    /// Apply interpolated display poses to known model records.
+    /// `t` is the blend factor: 0 at previous tick, 1 at current tick.
     /// Returns true if any model was updated.
-    pub fn apply_display_poses(&mut self) -> bool {
-        if self.display_poses.is_empty() {
-            return false;
-        }
+    pub fn apply_display_poses(&mut self, t: f64) -> bool {
         let mut any = false;
         for (k_index, k) in self.known.iter().enumerate() {
-            // Find the prop_id for this known prop
             let prop_id = k.id.or(k.authored);
             let Some(prop_id) = prop_id.map(|id| id as u32) else {
                 continue;
             };
-            let Some(pose) = self.display_poses.get(&prop_id) else {
+            
+            // Determine the pose to apply:
+            // 1. If in current, interpolate from previous (or current if no previous)
+            // 2. If only in held, use held pose (prop dropped out, waiting for knowledge)
+            let pose = if let Some(current) = self.current_display_poses.get(&prop_id) {
+                if let Some(previous) = self.previous_display_poses.get(&prop_id) {
+                    lerp_pose(previous, current, t)
+                } else {
+                    *current
+                }
+            } else if let Some(held) = self.held_display_poses.get(&prop_id) {
+                *held
+            } else {
                 continue;
             };
+            
             let range = self.known_model_ranges.get(k_index).cloned().unwrap_or(0..0);
             if range.is_empty() {
                 continue;
             }
-            // Apply display pose to all models for this prop
             for i in range {
                 let model = &mut self.known_models[i];
                 model.record[0] = pose.center[0] as f32;
@@ -666,6 +714,34 @@ impl PropPopulation {
             any = true;
         }
         any
+    }
+    
+    /// Clear held display poses for props whose knowledge has caught up.
+    /// Call this after refit when knowledge changes.
+    pub fn clear_caught_up_held_poses(&mut self) {
+        self.held_display_poses.retain(|&prop_id, held_pose| {
+            // Find the known prop with this id
+            let known_pose = self.known.iter().find_map(|k| {
+                let kid = k.id.or(k.authored).map(|id| id as u32)?;
+                if kid == prop_id {
+                    k.body.as_ref().map(|b| (b.center, b.yaw, b.base_z))
+                } else {
+                    None
+                }
+            });
+            
+            // Keep held if knowledge hasn't caught up (position differs significantly)
+            if let Some((center, _yaw, _base_z)) = known_pose {
+                let dist = ((center[0] - held_pose.center[0]).powi(2)
+                    + (center[1] - held_pose.center[1]).powi(2))
+                .sqrt();
+                // If knowledge is within 0.5m, it has caught up
+                dist > 0.5
+            } else {
+                // Prop not in knowledge, drop the held pose
+                false
+            }
+        });
     }
 
     /// The known props whose wreck is drawn moving (a cook-off): left out
@@ -714,6 +790,8 @@ impl PropPopulation {
         }
         self.known_index = BoundsIndex::new(self.known_models.iter().map(model_bounds));
         self.looks = looks;
+        // Clear held poses for props whose knowledge has caught up
+        self.clear_caught_up_held_poses();
     }
 
     /// Models placed: the map's not hidden, then the known's.
