@@ -2004,17 +2004,9 @@ impl Battle {
                 side.before_move(&prop, self.authored_props);
             }
             self.world.move_prop(s.prop, s.center, s.yaw, self.tick);
-            // The pusher learns the new pose at once (contact, no relearn
-            // throttle): resting=true bypasses the distance check.
-            if let Some(moved) = self.world.prop(s.prop) {
-                self.sides[s.by.index()].learn(
-                    moved,
-                    self.authored_props,
-                    self.rules.pushing.relearn_m,
-                    true,
-                );
+            if let Some(moved) = self.world.prop(s.prop).map(|p| p.footprint()) {
                 let r = self.rules.physics.soldier_radius_m;
-                movement::clear_of(&self.world, &mut self.units, &moved.footprint(), r);
+                movement::clear_of(&self.world, &mut self.units, &moved, r);
             }
         }
     }

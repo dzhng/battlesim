@@ -296,46 +296,30 @@ fn shoves_replay_and_poses_are_in_the_digest() {
     assert_ne!(at(30.0), at(30.01));
 }
 
-/// The pusher's publication tracks the prop's true position every tick
-/// during an active shove, not throttled by relearn_m. This ensures smooth
-/// rendering via presentation interpolation.
+/// A heavy vehicle shoving a lighter body reaches its goal past the body.
+/// Regression test: ensuring the pusher's knowledge updates do not cause
+/// the routing to treat the shoved prop as a new blocking obstacle mid-push.
 #[test]
-fn a_pushers_publication_tracks_every_position_during_a_shove() {
+fn a_pusher_reaches_its_goal_past_a_shoved_body() {
+    let goal = [110.0, 30.0];
     let setup = shove_setup([880.0, 30.0]);
     let mut b = Battle::new(&setup, 1);
-    b.step();
-    let initial = v2(55.0, 30.0);
-    let mut positions: Vec<V2> = Vec::new();
-    for _ in 0..600 {
-        b.step();
-        let world_pos = b.world().prop(BODY).map(|p| p.center);
-        let published = b
-            .observe(Side::Blue)
-            .known_props
-            .iter()
-            .find(|p| p.replaces == Some(BODY))
-            .map(|p| v2(p.center[0], p.center[1]));
-        if let (Some(world), Some(pub_pos)) = (world_pos, published) {
-            if (world - initial).length() > 0.1 {
-                positions.push(world);
-                let delta = (world - pub_pos).length();
-                assert!(
-                    delta < 0.01,
-                    "tick {}: pusher's published position {:.3},{:.3} must match \
-                     world position {:.3},{:.3} (delta {:.3}m)",
-                    b.tick(),
-                    pub_pos.x,
-                    pub_pos.y,
-                    world.x,
-                    world.y,
-                    delta
-                );
-            }
-        }
-    }
+    run(&mut b, 35.0);
+    let unit = b.unit(UnitId(0)).unwrap();
+    assert_eq!(unit.state, MoveState::Idle, "the pusher finished moving");
+    let goal_v = v2(goal[0], goal[1]);
+    let dist_to_goal = (unit.position.xy() - goal_v).length();
     assert!(
-        positions.len() > 10,
-        "should have tracked multiple positions during the shove"
+        dist_to_goal < 3.0,
+        "the pusher should reach its goal (at {:?}, {:.2}m from goal)",
+        unit.position.xy(),
+        dist_to_goal
+    );
+    let body_moved = (b.world().prop(BODY).unwrap().center - v2(55.0, 30.0)).length();
+    assert!(
+        body_moved > 10.0,
+        "the body should be shoved far ({:.2}m)",
+        body_moved
     );
 }
 
