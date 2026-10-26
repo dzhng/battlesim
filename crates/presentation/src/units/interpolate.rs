@@ -145,6 +145,21 @@ impl TickInterpolator {
         Some((from + (latest.tick - from) * fraction) / self.tick_hz)
     }
 
+    /// The blend factor at presentation time `time_s`: 0 at the previous
+    /// tick, 1 at the latest tick; 1 when no previous tick exists.
+    pub fn blend(&self, time_s: f64) -> f64 {
+        let Some(latest) = &self.latest else {
+            return 1.0;
+        };
+        let from = self.previous.as_ref().map_or(latest.tick, |p| p.tick);
+        let span = latest.tick - from;
+        if span > 0.0 {
+            ((time_s * self.tick_hz - from) / span).clamp(0.0, 1.0)
+        } else {
+            1.0
+        }
+    }
+
     /// Everything one drawn frame reads of the battle at presentation time
     /// `time_s` (from [`time`](Self::time)): the poses and the publication
     /// they blend toward, so all a frame draws comes from one tick. Rewritten

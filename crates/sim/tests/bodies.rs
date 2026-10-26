@@ -296,6 +296,49 @@ fn shoves_replay_and_poses_are_in_the_digest() {
     assert_ne!(at(30.0), at(30.01));
 }
 
+/// The pusher's publication tracks the prop's true position every tick
+/// during an active shove, not throttled by relearn_m. This ensures smooth
+/// rendering via presentation interpolation.
+#[test]
+fn a_pushers_publication_tracks_every_position_during_a_shove() {
+    let setup = shove_setup([880.0, 30.0]);
+    let mut b = Battle::new(&setup, 1);
+    b.step();
+    let initial = v2(55.0, 30.0);
+    let mut positions: Vec<V2> = Vec::new();
+    for _ in 0..600 {
+        b.step();
+        let world_pos = b.world().prop(BODY).map(|p| p.center);
+        let published = b
+            .observe(Side::Blue)
+            .known_props
+            .iter()
+            .find(|p| p.replaces == Some(BODY))
+            .map(|p| v2(p.center[0], p.center[1]));
+        if let (Some(world), Some(pub_pos)) = (world_pos, published) {
+            if (world - initial).length() > 0.1 {
+                positions.push(world);
+                let delta = (world - pub_pos).length();
+                assert!(
+                    delta < 0.01,
+                    "tick {}: pusher's published position {:.3},{:.3} must match \
+                     world position {:.3},{:.3} (delta {:.3}m)",
+                    b.tick(),
+                    pub_pos.x,
+                    pub_pos.y,
+                    world.x,
+                    world.y,
+                    delta
+                );
+            }
+        }
+    }
+    assert!(
+        positions.len() > 10,
+        "should have tracked multiple positions during the shove"
+    );
+}
+
 /// Q28: a test-only smoke prop type: blocks nobody, stops no rounds, gives
 /// no cover, occludes, and lasts 10 s. Each column acts alone.
 fn smoke(units: Value, scripts: Value) -> ScenarioDefinition {

@@ -335,6 +335,42 @@ fn a_wreck_drawn_moving_is_left_out_until_it_lies_still() {
 }
 
 #[test]
+fn prop_positions_interpolate_between_ticks() {
+    let mut p = town();
+    let initial = known(Some(1.0), "car", 1.0, false);
+    p.set_known(vec![initial.clone()]);
+    let initial_x = p.known_models.first().map(|m| m.record[0]).unwrap();
+    assert!((initial_x - 1.0).abs() < 0.01, "initial position");
+
+    let mut moved = initial.clone();
+    moved.body.as_mut().unwrap().center[0] = 5.0;
+    p.set_known(vec![moved]);
+    let final_x = p.known_models.first().map(|m| m.record[0]).unwrap();
+    assert!((final_x - 5.0).abs() < 0.01, "final position");
+
+    assert!(p.interpolate(0.5), "interpolation should apply");
+    let mid_x = p.known_models.first().map(|m| m.record[0]).unwrap();
+    assert!(
+        (mid_x - 3.0).abs() < 0.01,
+        "t=0.5 should interpolate to midpoint: got {mid_x}"
+    );
+
+    assert!(p.interpolate(0.0), "interpolation at t=0");
+    let start_x = p.known_models.first().map(|m| m.record[0]).unwrap();
+    assert!(
+        (start_x - 1.0).abs() < 0.01,
+        "t=0 should interpolate to previous: got {start_x}"
+    );
+
+    assert!(p.interpolate(1.0), "interpolation at t=1");
+    let end_x = p.known_models.first().map(|m| m.record[0]).unwrap();
+    assert!(
+        (end_x - 5.0).abs() < 0.01,
+        "t=1 should interpolate to current: got {end_x}"
+    );
+}
+
+#[test]
 fn a_view_draws_what_it_sees_by_its_projected_height() {
     let mut p = town();
     let camera = |eye: [f64; 3], target: [f64; 3]| {

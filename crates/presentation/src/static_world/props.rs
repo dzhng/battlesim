@@ -48,6 +48,25 @@ use crate::view::{caster_tier, model_detail, model_fog, View, CULLED, SHADOW_MAR
 use crate::world::{Bounds, Corners, Detail};
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashMap, HashSet};
+
+/// A pose for interpolation: center, yaw, base_z.
+#[derive(Clone, Copy, Debug, Default)]
+struct Pose {
+    center: [f64; 2],
+    yaw: f64,
+    base_z: f64,
+}
+
+fn delta_angle(current: f64, target: f64) -> f64 {
+    let tau = std::f64::consts::TAU;
+    let diff = target - current;
+    let delta = diff - tau * (diff / tau).floor();
+    if delta > std::f64::consts::PI {
+        delta - tau
+    } else {
+        delta
+    }
+}
 use std::f64::consts::FRAC_PI_2;
 
 /// What draws a prop's row (`Appearance.draws`): a model fogged face by
@@ -531,6 +550,12 @@ pub struct PropPopulation {
     pub rows: Vec<u32>,
     lists: Vec<Vec<Record>>,
     prints: Vec<u64>,
+    /// Previous tick's poses by prop id (id bits as key), for interpolation.
+    previous_poses: HashMap<u64, Pose>,
+    /// Current tick's poses, saved when set_known updates them.
+    current_poses: HashMap<u64, Pose>,
+    /// The model index range for each known prop (by index into `known`).
+    known_model_ranges: Vec<std::ops::Range<usize>>,
 }
 
 impl PropPopulation {
@@ -593,6 +618,9 @@ impl PropPopulation {
             known_models: Vec::new(),
             known_bodies: 0,
             rows: Vec::new(),
+            previous_poses: HashMap::new(),
+            current_poses: HashMap::new(),
+            known_model_ranges: Vec::new(),
         }
     }
 
@@ -600,6 +628,21 @@ impl PropPopulation {
     pub fn set_known(&mut self, known: Vec<KnownBody>) -> bool {
         if known == self.known {
             return false;
+        }
+        // Save current poses as previous for interpolation.
+        std::mem::swap(&mut self.previous_poses, &mut self.current_poses);
+        self.current_poses.clear();
+        for k in &known {
+            if let Some(body) = &k.body {
+                let key = k.id.map(|id| id.to_bits()).unwrap_or_else(|| {
+                    k.authored.map(|a| a.to_bits()).unwrap_or(0)
+                });
+                self.current_poses.insert(key, Pose {
+                    center: body.center,
+                    yaw: body.yaw,
+                    base_z: body.base_z,
+                });
+            }
         }
         self.known = known;
         self.refit();
@@ -621,10 +664,12 @@ impl PropPopulation {
     fn refit(&mut self) {
         self.hidden.fill(false);
         self.known_models.clear();
+        self.known_model_ranges.clear();
         self.known_bodies = 0;
         let mut looks = std::mem::take(&mut self.looks);
         for k in &self.known {
             if k.id.is_some_and(|id| self.moving.contains(&id)) {
+                self.known_model_ranges.push(0..0);
                 continue;
             }
             let replaced = k.authored.and_then(|a| self.by_id.get(&(a as u64)));
@@ -632,6 +677,7 @@ impl PropPopulation {
                 self.hidden[self.bodies[b].1.clone()].fill(true);
             }
             if let (false, Some(body)) = (k.destroyed, &k.body) {
+                let first = self.known_models.len();
                 let before = looks.list.len();
                 self.art
                     .fit(body, k.authored, &mut looks, &mut self.known_models);
@@ -642,10 +688,60 @@ impl PropPopulation {
                     looks.list.truncate(before);
                     looks.index.retain(|_, &mut i| i < before);
                 }
+                self.known_model_ranges.push(first..self.known_models.len());
+            } else {
+                self.known_model_ranges.push(0..0);
             }
         }
         self.known_index = BoundsIndex::new(self.known_models.iter().map(model_bounds));
         self.looks = looks;
+    }
+
+    /// Interpolate known prop positions from previous to current by `t` (0 to 1).
+    /// Returns true if any positions were interpolated.
+    pub fn interpolate(&mut self, t: f64) -> bool {
+        if self.previous_poses.is_empty() {
+            return false;
+        }
+        let t = t.clamp(0.0, 1.0);
+        let mut any = false;
+        for (k_index, k) in self.known.iter().enumerate() {
+            let Some(body) = &k.body else { continue };
+            let key = k.id.map(|id| id.to_bits()).unwrap_or_else(|| {
+                k.authored.map(|a| a.to_bits()).unwrap_or(0)
+            });
+            let Some(prev) = self.previous_poses.get(&key) else {
+                continue;
+            };
+            let range = self.known_model_ranges.get(k_index).cloned().unwrap_or(0..0);
+            if range.is_empty() {
+                continue;
+            }
+            let curr = Pose {
+                center: body.center,
+                yaw: body.yaw,
+                base_z: body.base_z,
+            };
+            if (prev.center[0] - curr.center[0]).abs() < 1e-6
+                && (prev.center[1] - curr.center[1]).abs() < 1e-6
+                && (prev.yaw - curr.yaw).abs() < 1e-6
+            {
+                continue;
+            }
+            let x = prev.center[0] + t * (curr.center[0] - prev.center[0]);
+            let y = prev.center[1] + t * (curr.center[1] - prev.center[1]);
+            let z = prev.base_z + t * (curr.base_z - prev.base_z);
+            let yaw = prev.yaw + delta_angle(prev.yaw, curr.yaw) * t;
+            for i in range {
+                let model = &mut self.known_models[i];
+                model.record[0] = x as f32;
+                model.record[1] = y as f32;
+                model.record[2] = z as f32;
+                model.record[3] = yaw as f32;
+            }
+            any = true;
+        }
+        any
     }
 
     /// Models placed: the map's not hidden, then the known's.

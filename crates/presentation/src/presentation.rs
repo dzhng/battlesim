@@ -1352,6 +1352,13 @@ impl Presentation {
                 self.statics.rewalk();
             }
         }
+        // Interpolate shoved prop positions between ticks for smooth motion.
+        if let Some(props) = &mut self.props {
+            let t = self.interpolator.blend(time);
+            if props.interpolate(t) {
+                self.statics.rewalk();
+            }
+        }
         let mut scenery = match (&mut self.scenery, &self.ground) {
             (Some(walk), Some(ground)) if !walk.rows.is_empty() => {
                 Some(SceneryPopulation { walk, ground })
