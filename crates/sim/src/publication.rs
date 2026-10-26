@@ -200,7 +200,7 @@ const POSE_FIELDS: [&str; 7] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 42] = [
+const HEADER: [&str; 43] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -243,6 +243,7 @@ const HEADER: [&str; 42] = [
     "matchResult",
     "crashCount",
     "shoutCount",
+    "propDisplayPoseCount",
 ];
 const OBJECTIVE_FIELDS: [&str; 8] = [
     "id",
@@ -329,6 +330,7 @@ const SHOUT_FIELDS: [&str; 9] = [
     "trigger",
     "intensity",
 ];
+const PROP_DISPLAY_POSE_FIELDS: [&str; 5] = ["propId", "x", "y", "yaw", "baseZ"];
 const REPORT_TOTAL_FIELDS: [&str; 4] = ["spawned", "spent", "killed", "refunded"];
 const REPORT_EVENT_FIELDS: [&str; 15] = [
     "tickLo",
@@ -560,6 +562,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
     rows("crashes", "crashCount", &CRASH_FIELDS),
     rows("shouts", "shoutCount", &SHOUT_FIELDS),
     rows("players", "playersCount", &PLAYER_FIELDS),
+    rows("propDisplayPoses", "propDisplayPoseCount", &PROP_DISPLAY_POSE_FIELDS),
 ];
 
 /// An integer as its two exact 16-bit limbs.
@@ -1083,6 +1086,7 @@ fn pack_record(
             }),
         frame.crashes.len() as f32,
         frame.shouts.len() as f32,
+        frame.prop_display_poses.len() as f32,
     ]);
     for u in &frame.own {
         let (host_kind, host_id, host_center, host_half) = match u.hold.map(|h| h.host) {
@@ -1650,6 +1654,18 @@ fn pack_record(
     if let Some(ends) = ends.as_mut() {
         ends.push(out.len());
     }
+    for p in &frame.prop_display_poses {
+        out.extend([
+            p.prop_id as f32,
+            p.center[0] as f32,
+            p.center[1] as f32,
+            p.yaw as f32,
+            p.base_z as f32,
+        ]);
+    }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
     let word = |i: usize| {
         let value = fog.bits[i];
         if i + 1 == words && !cells.is_multiple_of(32) {
@@ -1785,6 +1801,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     add(frame.fallen_bodies.len(), FALLEN_BODY_FIELDS.len())?;
     add(frame.crashes.len(), CRASH_FIELDS.len())?;
     add(frame.shouts.len(), SHOUT_FIELDS.len())?;
+    add(frame.prop_display_poses.len(), PROP_DISPLAY_POSE_FIELDS.len())?;
     add(fog, 1)?;
     add(runs, GROUND_FIELDS.len())?;
     Ok(length)
@@ -2105,7 +2122,7 @@ fn write_group_operations(
 const VARIABLE_ANCHOR_WORDS: usize = 3;
 
 /// Non-map groups, in record order.
-pub const GROUPS: usize = 19;
+pub const GROUPS: usize = 20;
 
 /// A non-map group's fixed row width; 0 where variable sections leave no one
 /// width to address complete rows by.

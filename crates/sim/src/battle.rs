@@ -372,6 +372,8 @@ pub struct Battle {
     shout_before: Vec<shouts::Before>,
     shout_evidence: ShoutEvidence,
     shout_fired: BTreeSet<UnitId>,
+    /// Props shoved this tick, with their true world poses for rendering.
+    tick_shoves: Vec<movement::Shove>,
     shout_kills: BTreeSet<UnitId>,
     shout_under_fire: BTreeSet<UnitId>,
     /// Per listening side, the enemies that shouted unseen since the last
@@ -883,6 +885,7 @@ impl Battle {
             shout_before: Vec::new(),
             shout_evidence: ShoutEvidence::default(),
             shout_fired: BTreeSet::new(),
+            tick_shoves: Vec::new(),
             shout_kills: BTreeSet::new(),
             shout_under_fire: BTreeSet::new(),
             shouted_unseen: Default::default(),
@@ -1992,6 +1995,7 @@ impl Battle {
     /// seen an authored body move keeps it where it stood (L1); the soldiers
     /// a body now covers step out of it.
     fn shove_props(&mut self, shoves: Vec<movement::Shove>) {
+        self.tick_shoves.clear();
         for s in shoves {
             let Some(prop) = self.world.prop(s.prop).cloned() else {
                 continue;
@@ -2004,9 +2008,17 @@ impl Battle {
                 side.before_move(&prop, self.authored_props);
             }
             self.world.move_prop(s.prop, s.center, s.yaw, self.tick);
-            if let Some(moved) = self.world.prop(s.prop).map(|p| p.footprint()) {
+            if let Some(moved) = self.world.prop(s.prop) {
                 let r = self.rules.physics.soldier_radius_m;
-                movement::clear_of(&self.world, &mut self.units, &moved, r);
+                movement::clear_of(&self.world, &mut self.units, &moved.footprint(), r);
+                // Record the shove with true world pose for rendering.
+                self.tick_shoves.push(movement::Shove {
+                    prop: s.prop,
+                    center: moved.center,
+                    yaw: moved.yaw,
+                    by: s.by,
+                    heading: s.heading,
+                });
             }
         }
     }
@@ -4412,6 +4424,25 @@ impl Battle {
                     authored_prop: self.world.authored_prop(p.id),
                     wreck_of: p.wreck_of,
                 });
+            }
+            // Display poses for actively shoved props: true world position for
+            // smooth rendering, separate from throttled knowledge.
+            frame.prop_display_poses.clear();
+            for shove in &self.tick_shoves {
+                // The pusher always sees what it's shoving; other sides need
+                // fog-of-war visibility.
+                let visible = shove.by == side || fog.visible(shove.center.x, shove.center.y);
+                if !visible {
+                    continue;
+                }
+                if let Some(prop) = self.world.prop(shove.prop) {
+                    frame.prop_display_poses.push(contract::observation::PropDisplayPose {
+                        prop_id: prop.id,
+                        center: [prop.center.x, prop.center.y],
+                        yaw: prop.yaw,
+                        base_z: prop.base_z,
+                    });
+                }
             }
             frame.projectiles.clear();
             for round in &self.segments {

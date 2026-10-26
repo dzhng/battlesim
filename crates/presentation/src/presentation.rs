@@ -1352,10 +1352,15 @@ impl Presentation {
                 self.statics.rewalk();
             }
         }
-        // Interpolate shoved prop positions between ticks for smooth motion.
-        if let Some(props) = &mut self.props {
-            let t = self.interpolator.blend(time);
-            if props.interpolate(t) {
+        // Apply display poses for actively shoved props (smooth rendering).
+        if let (Some(props), Some(obs)) = (&mut self.props, &self.latest) {
+            let poses: Vec<(u32, [f64; 2], f64, f64)> = obs
+                .prop_display_poses
+                .iter()
+                .map(|p| (p.prop_id as u32, p.center, p.yaw, p.base_z))
+                .collect();
+            props.set_display_poses(&poses);
+            if props.apply_display_poses() {
                 self.statics.rewalk();
             }
         }

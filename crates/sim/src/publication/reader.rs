@@ -26,9 +26,9 @@ use super::{
     COPY_FIELDS, CORPSE_FIELDS, CRASH_FIELDS, DELIVERY_FIELDS, FALLEN_BODY_FIELDS, GROUND_FIELDS,
     GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS, IDENTIFIED_FIELDS,
     KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS, MEMBER_ORDER_FIELDS, MOUNT_FIELDS,
-    OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, PLAYER_FIELDS, POSE_FIELDS, PROJECTILE_FIELDS,
-    QUEUE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS, REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS,
-    SHOUT_FIELDS,
+    OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, PLAYER_FIELDS, POSE_FIELDS,
+    PROP_DISPLAY_POSE_FIELDS, PROJECTILE_FIELDS, QUEUE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS,
+    REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS, SHOUT_FIELDS,
 };
 
 pub type Point2 = [f64; 2];
@@ -50,7 +50,8 @@ view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, c
     audible: Vec<SoundCue>, #[serde(skip)] known_props: Shared<KnownProp>, projectiles: Vec<Projectile>,
     blasts: Vec<Blast>, air_transits: Vec<AirTransit>, #[serde(skip)] corpses: Shared<Corpse>, #[serde(skip)] fallen_bodies: Shared<FallenBody>,
     refusals: Vec<Refusal>, crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
-    fog: Arc<Fog>, ground_patch: GroundPatch });
+    fog: Arc<Fog>, ground_patch: GroundPatch, prop_display_poses: Vec<PropDisplayPose> });
+view!(PropDisplayPose { prop_id: f64, center: Point2, yaw: f64, base_z: f64 });
 view!(OwnUnit { id: f64, #[serde(skip_serializing_if = "Option::is_none")] owner: Option<f64>, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, goal_unloads: bool, policy: Option<Name>,
     direction: Option<Name>, reversing: bool, withdrawing: bool, protection: Option<Protection>, state: Name,
     fuel_s: Option<f64>, afterburner: bool, in_dogfight: bool,
@@ -829,6 +830,7 @@ impl Reader {
                 full: f!(h, HEADER, "groundFull") == 1.0,
                 runs,
             },
+            prop_display_poses: map(&rows[group("propDisplayPoses")], |r| Ok(prop_display_pose(r)))?,
         })
     }
 
@@ -1558,6 +1560,17 @@ fn fallen_body(r: &Row) -> FallenBody {
         at: [v!(f, "x"), v!(f, "y")],
         toward: [v!(f, "towardX"), v!(f, "towardY")],
         tick: v!(f, "tick"),
+    }
+}
+
+fn prop_display_pose(r: &Row) -> PropDisplayPose {
+    const FIELDS: &[&str] = &PROP_DISPLAY_POSE_FIELDS;
+    let f = r.fields;
+    PropDisplayPose {
+        prop_id: v!(f, "propId"),
+        center: [v!(f, "x"), v!(f, "y")],
+        yaw: v!(f, "yaw"),
+        base_z: v!(f, "baseZ"),
     }
 }
 

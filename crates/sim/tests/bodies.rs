@@ -323,6 +323,75 @@ fn a_pusher_reaches_its_goal_past_a_shoved_body() {
     );
 }
 
+/// Once a body stops being pushed (no vehicle contact this tick), the
+/// prop_display_poses should be empty. This ensures no jitter or stale
+/// poses are published for a body at rest.
+#[test]
+fn display_poses_are_empty_once_a_body_stops_being_pushed() {
+    let setup = shove_setup([880.0, 30.0]);
+    let mut b = Battle::new(&setup, 1);
+    run(&mut b, 35.0);
+    let unit = b.unit(UnitId(0)).unwrap();
+    assert_eq!(unit.state, MoveState::Idle, "the pusher finished moving");
+    for _ in 0..10 {
+        b.step();
+    }
+    let poses = &b.observe(Side::Blue).prop_display_poses;
+    assert!(
+        poses.is_empty(),
+        "display poses should be empty at rest (found {} poses)",
+        poses.len()
+    );
+}
+
+/// During an active push, prop_display_poses should be published every tick
+/// with the true world position of the shoved body. This allows smooth
+/// per-tick rendering separate from throttled knowledge updates.
+#[test]
+fn display_poses_are_published_every_tick_during_a_push() {
+    let setup = shove_setup([880.0, 30.0]);
+    let mut b = Battle::new(&setup, 1);
+    let mut poses_seen = 0;
+    let mut pose_count_per_tick: Vec<usize> = Vec::new();
+    let mut body_was_moving = false;
+    let initial_center = v2(55.0, 30.0);
+    for _ in 0..(20.0 * b.rules().tick_hz as f64) as u64 {
+        b.step();
+        let poses = &b.observe(Side::Blue).prop_display_poses;
+        pose_count_per_tick.push(poses.len());
+        if !poses.is_empty() {
+            poses_seen += 1;
+            body_was_moving = true;
+            for pose in poses {
+                assert!(
+                    pose.prop_id > 0,
+                    "display pose should have valid prop_id"
+                );
+            }
+        }
+        let body_moved = (b.world().prop(BODY).unwrap().center - initial_center).length();
+        if body_moved > 0.0 && body_moved < 5.0 && !poses.is_empty() {
+            let pose_center = v2(poses[0].center[0], poses[0].center[1]);
+            let world_center = b.world().prop(BODY).unwrap().center;
+            let diff = (pose_center - world_center).length();
+            assert!(
+                diff < 0.01,
+                "display pose center should match world position (diff: {:.4}m)",
+                diff
+            );
+        }
+    }
+    assert!(
+        body_was_moving,
+        "the body should have been pushed during the test"
+    );
+    assert!(
+        poses_seen > 10,
+        "should see display poses on many ticks during push (saw {} ticks with poses)",
+        poses_seen
+    );
+}
+
 /// Q28: a test-only smoke prop type: blocks nobody, stops no rounds, gives
 /// no cover, occludes, and lasts 10 s. Each column acts alone.
 fn smoke(units: Value, scripts: Value) -> ScenarioDefinition {

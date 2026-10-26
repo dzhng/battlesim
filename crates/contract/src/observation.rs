@@ -258,6 +258,21 @@ pub struct KnownProp {
     pub wreck_of: Option<TypeIndex>,
 }
 
+/// A prop's true world pose for rendering, published every tick during an
+/// active shove. Separate from knowledge: the renderer uses this for smooth
+/// motion while navigation sees only the throttled `known_props` pose.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PropDisplayPose {
+    /// The prop being shoved (matches `KnownProp::id` or authored prop id).
+    pub prop_id: u32,
+    /// True world center this tick.
+    pub center: [f64; 2],
+    /// True world yaw this tick.
+    pub yaw: f64,
+    /// True world base_z this tick.
+    pub base_z: f64,
+}
+
 /// Which ground this side can currently see: row-major cells of `cell_m`,
 /// one bit per cell, set when visible.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -771,6 +786,10 @@ pub struct ObservationFrame {
     pub shouts: Vec<Shout>,
     /// Obstacles added after setup that this side has seen or run into.
     pub known_props: Vec<KnownProp>,
+    /// True world poses of props being actively shoved this tick, for smooth
+    /// rendering. Published every tick during a shove; empty otherwise.
+    #[serde(default)]
+    pub prop_display_poses: Vec<PropDisplayPose>,
     /// Round flight this side may draw this tick (own rounds whole, enemy
     /// rounds only over ground it sees).
     pub projectiles: Vec<VisibleSegment>,
