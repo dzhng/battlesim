@@ -61,12 +61,14 @@ parity and repository closeout run only after all production passes are wired.
 | `df66c2cd3` shared effects and post resources | fog-mask incumbent | Renderer-core WASM/native checks pass; pass counts and attachments unchanged | PR #16 |
 | `dcd58d35d` shared target lifecycle owner | effects/post incumbent | Native/browser-safe checks pass; same allocation and pass count | PR #16 |
 | `5218451be` shared fog compute pipeline owner | lifecycle incumbent | Native/browser-safe checks pass; terrain→merge→whole/copy→cull order unchanged | PR #16 |
+| `417438f93` indexed model draw fix | shared model owner | Browser validation exposed an unbound index buffer; indexed draw now binds the full model and the eleven-row scene passes | PR #16 |
 
 ## Handoff
 
 Incumbent: `a27ca5d27` plus the model-owner commits on PR #16.
 Active task: extract fog compute/material ownership, then browser production
 frame and device-loss seam. Regression set: renderer-core/native-client WASM checks,
-presentation tests, and the interleaved one-renderer scene. Next test: run the
-first focused fog/resource extraction checks, then rerun the browser scene only
-when the shared frame path changes.
+presentation tests, and the interleaved one-renderer scene. The latest rebuilt
+scene passes all eleven rows; it also caught and fixed the indexed-buffer
+validation error in the shared model path. Next test: wire exported production
+pipeline/resource owners into the browser shell.

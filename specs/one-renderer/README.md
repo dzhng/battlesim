@@ -157,11 +157,10 @@ stops the work before a full port is attempted:
    atomically swaps size-dependent targets and increments one shared generation;
    native `Passes` consumes it without changing GPU work. Fog sight/compute and
    device-loss recovery remain open.
-11. **Fog compute and browser production frame — next.** Move fog sight buffers
-   and compute bindings into the shared runtime, then replace the browser
-   fixture frame with the production shared frame. The four compute pipeline
-   bindings and dispatch labels now have a shared owner; presentation uploads
-   and bind groups remain native-only.
+11. **Fog compute and browser production frame — next.** The four fog compute
+   pipeline bindings and dispatch labels now have a shared owner; move the fog
+   sight buffers/bind groups into that runtime, then replace the browser
+   fixture frame with the production shared frame.
 12. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
    shared Rust native on the same frozen presentation frame. Measure startup,
    CPU encode, GPU timestamps, memory, binary/download size, LOC, GPU object
