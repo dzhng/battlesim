@@ -308,3 +308,14 @@ terrain artifact was unchanged while the expected shadow-resource gate failed,
 so the artifact is not caused by the shadow map itself. The probe was restored
 immediately; the next active hypothesis is the shared terrain/fog material ABI
 or its synthetic ground table inputs.
+
+The shared frame-order pass moved native and browser encoding behind
+`renderer_core::frame::encode_frame`. The canonical order is sun shadow,
+depth, fog sight, world, effects, fog mask, overlays, post and fog rim. Native
+adapts its existing pass vector; browser adapts both the production and fixture
+resources. Surface acquire, display composite, overlay composite and present
+remain shell operations. The full eleven-row scene stays green after the
+change, including resize, surface recovery, device loss and 484 shadow passes.
+The browser effects slot is intentionally empty until the effect resource owner
+moves into the shared runtime, so this proves orchestration only and does not
+close production pass parity.

@@ -404,3 +404,21 @@ owner and the shared frame can add scenery without teaching terrain about
 props. **Verdict:** keep the split; never concatenate heterogeneous world
 layers before material selection. **Confidence:** high; the one-renderer scene
 remains green and shadow passes return to 484 after the split.
+
+### Native and browser enter one canonical frame order
+
+The shared core now owns `FrameStage::ORDER` and `encode_frame`. Native adapts
+its existing pass objects through the nine stages, while the browser adapts its
+production and fixture resources through the same entry point. Surface acquire,
+the browser display composite, overlay composite and present remain shell work;
+the browser's surface-only fog rim is encoded during the final shared stage so
+the composite cannot clear it afterward.
+
+**Gap:** browser effects are still an explicit no-op, and native preparation
+still owns a separate presentation/resource path. The native adapter also maps
+the current fixed pass list by name, so adding a new native pass requires adding
+its shared stage. **Reach:** this is the smallest seam that proves one frame
+orchestrator without inventing a second graph. **Verdict:** keep the shared
+stage order and finish resource/prepare extraction before deleting TypeGPU.
+**Confidence:** high; native and browser checks plus the full eleven-row scene
+remain green after the refactor.

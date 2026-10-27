@@ -19,6 +19,42 @@ use crate::models::Surface;
 use crate::scenery::Scenery;
 use crate::shadow::SunShadow;
 
+struct NativeFrame<'a> {
+    passes: &'a Passes,
+    inputs: &'a Inputs<'a>,
+}
+
+fn native_pass_name(stage: renderer_core::frame::FrameStage) -> &'static str {
+    match stage {
+        renderer_core::frame::FrameStage::SunShadow => "sun-shadow",
+        renderer_core::frame::FrameStage::Depth => "depth-prepass",
+        renderer_core::frame::FrameStage::FogSight => "fog-sight",
+        renderer_core::frame::FrameStage::World => "world",
+        renderer_core::frame::FrameStage::Effects => "effects",
+        renderer_core::frame::FrameStage::FogMask => "fog-mask",
+        renderer_core::frame::FrameStage::Overlays => "ghosts",
+        renderer_core::frame::FrameStage::Post => "post",
+        renderer_core::frame::FrameStage::FogRim => "fog-rim",
+    }
+}
+
+impl renderer_core::frame::FrameInputs for NativeFrame<'_> {
+    fn encode_stage(
+        &mut self,
+        stage: renderer_core::frame::FrameStage,
+        encoder: &mut CommandEncoder,
+    ) {
+        let name = native_pass_name(stage);
+        let pass = self
+            .passes
+            .passes
+            .iter()
+            .find(|pass| pass.name() == name)
+            .unwrap_or_else(|| panic!("native frame is missing shared stage {name}"));
+        pass.encode(self.inputs, encoder);
+    }
+}
+
 impl renderer_core::depth::DepthInputs for Inputs<'_> {
     fn depth_view(&self) -> &TextureView {
         &self.targets.depth
@@ -169,11 +205,20 @@ impl Passes {
             effects: &self.effects,
             fog: &self.fog,
         };
-        renderer_core::encode_passes(
-            &mut encoder,
-            self.passes.iter().map(|pass| pass.name()),
-            |index, encoder| self.passes[index].encode(&inputs, encoder),
-        );
+        let mut frame = NativeFrame {
+            passes: self,
+            inputs: &inputs,
+        };
+        for pass in &self.passes {
+            assert!(
+                renderer_core::frame::FrameStage::ORDER
+                    .iter()
+                    .any(|stage| native_pass_name(*stage) == pass.name()),
+                "native pass is missing from the shared frame order: {}",
+                pass.name()
+            );
+        }
+        renderer_core::frame::encode_frame(&mut encoder, &mut frame);
         encoder
     }
 

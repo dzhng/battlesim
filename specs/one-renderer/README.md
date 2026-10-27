@@ -146,10 +146,13 @@ stops the work before a full port is attempted:
 1. **WASM compile boundary — checkpoint complete.** `renderer-core` now
    compiles for `wasm32-unknown-unknown`, while the native client still owns
    the desktop-only shell. The remaining blockers are listed below.
-2. **Pass orchestration — checkpoint complete.** `renderer-core::encode_passes`
-   owns ordered pass-name iteration and debug-group lifecycle used by every
-   native pass. This proves the frame encoding path crosses the shared boundary
-   without a duplicate graph.
+2. **Pass orchestration — checkpoint complete.** `renderer-core::frame::encode_frame`
+   owns the canonical nine-stage order and debug-group lifecycle. Native and
+   browser adapters now enter that same boundary for every frame; the shells
+   retain only surface acquisition, presentation composite and present. This
+   proves the frame encoding path crosses the shared boundary without a
+   duplicate graph. Browser effects remain an explicit no-op until the effect
+   resource owner moves into the shared runtime.
 3. **Pipeline/provider seam — checkpoint complete.** `renderer-core::pipelines`
    owns export parsing, layout/pipeline construction and validation from a
    platform-provided shader source callback. The native shell only reads files

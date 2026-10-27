@@ -9,7 +9,7 @@
 #![cfg(target_arch = "wasm32")]
 
 use native_client::bundle::Library;
-use renderer_core::depth::{DepthInputs, DepthPrepass};
+use renderer_core::depth::DepthPrepass;
 use renderer_core::fog::FogComputeOwner;
 use renderer_core::fog_mask::FogMaskResources;
 use renderer_core::fog_sight::FogSightResources;
@@ -21,7 +21,6 @@ use renderer_core::shadow::{
     CasterBatchLayout, CasterRouting, ShadowResources, CAMERA_BYTES, RECEIVER_BYTES,
 };
 use renderer_core::terrain::TerrainResources;
-use renderer_core::world::{Layer, Surface as WorldSurface, WorldInputs};
 use renderer_core::{encode_grouped, TargetOwner};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -37,6 +36,7 @@ mod asset;
 mod diagnostic;
 mod environment;
 mod export;
+mod fixture;
 mod presentation_upload;
 mod production_model;
 mod recovery;
@@ -44,19 +44,11 @@ mod render;
 mod shadow_upload;
 mod state;
 mod stats_api;
+mod terrain_snapshot;
 use asset::AssetSnapshot;
 use environment::BrowserEnvironment;
 use state::{PresentationSnapshot, Stats};
-
-#[derive(Clone)]
-struct TerrainSnapshot {
-    params: Vec<u32>,
-    nodes: Vec<u32>,
-    plots: Vec<u32>,
-    surfaces: Vec<f32>,
-    surface_index: Vec<u32>,
-    scars: Vec<u32>,
-}
+use terrain_snapshot::TerrainSnapshot;
 
 const PIPELINES: &str = r#"{
   "sizes":{"bloomLevels":0,"skyLut":[1,1],"effectSheet":1,"grassClump":1},
@@ -115,60 +107,7 @@ fn array_view(texture: &Texture) -> TextureView {
     })
 }
 
-struct Fixture<'a> {
-    depth: &'a TextureView,
-    camera: &'a BindGroup,
-    solid: &'a Bound,
-    world: &'a Bound,
-    model: &'a Model,
-}
-
-impl Fixture<'_> {
-    fn draw(&self, pass: &mut RenderPass<'_>, pipeline: &Bound) {
-        pipeline.set(pass, &[("camera", self.camera)]);
-        pass.set_vertex_buffer(0, self.model.vertex().slice(..));
-        pass.set_index_buffer(self.model.index().slice(..), IndexFormat::Uint32);
-        pass.draw_indexed(0..self.model.index_count(), 0, 0..1);
-    }
-}
-
-impl DepthInputs for Fixture<'_> {
-    fn depth_view(&self) -> &TextureView {
-        self.depth
-    }
-    fn camera_group(&self) -> (&'static str, &BindGroup) {
-        ("camera", self.camera)
-    }
-    fn draw_ground_depth(&self, pass: &mut RenderPass<'_>) {
-        self.draw(pass, self.solid);
-    }
-    fn draw_scenery_depth(&self, _pass: &mut RenderPass<'_>) {}
-    fn draw_models_depth(&self, pass: &mut RenderPass<'_>, pipeline: &Bound, _cutout: bool) {
-        self.draw(pass, pipeline);
-    }
-}
-
-impl WorldInputs for Fixture<'_> {
-    fn draw_sky(&self, _pass: &mut RenderPass<'_>) {}
-    fn draw_ground(&self, pass: &mut RenderPass<'_>, _layer: Layer) {
-        self.draw(pass, self.world);
-    }
-    fn draw_skirt(&self, _pass: &mut RenderPass<'_>, _layer: Layer) {}
-    fn bind_models(&self, pass: &mut RenderPass<'_>, _layer: Layer, _surface: WorldSurface) {
-        self.world.set(pass, &[("camera", self.camera)]);
-        pass.set_vertex_buffer(0, self.model.vertex().slice(..));
-    }
-    fn draw_models(&self, pass: &mut RenderPass<'_>, _layer: Layer, _surface: WorldSurface) {
-        pass.set_index_buffer(self.model.index().slice(..), IndexFormat::Uint32);
-        pass.draw_indexed(0..self.model.index_count(), 0, 0..1);
-    }
-    fn draw_scenery(&self, _pass: &mut RenderPass<'_>, _layer: Layer) {}
-    fn draw_grass(&self, _pass: &mut RenderPass<'_>, _layer: Layer) {}
-    fn draw_backdrop(&self, _pass: &mut RenderPass<'_>, _layer: Layer) {}
-    fn draw_water(&self, _pass: &mut RenderPass<'_>, _layer: Layer) {}
-    fn bind_glass(&self, _pass: &mut RenderPass<'_>) {}
-    fn draw_glass(&self, _pass: &mut RenderPass<'_>) {}
-}
+use fixture::Fixture;
 
 #[wasm_bindgen]
 pub struct Renderer {
@@ -213,6 +152,7 @@ pub struct Renderer {
     production_static_vertices: Buffer,
     production_static_vertex_count: u32,
     depth: DepthPrepass,
+    production_depth: DepthPrepass,
     camera_buffer: Buffer,
     camera_group: BindGroup,
     model: Model,
@@ -461,6 +401,7 @@ impl Renderer {
             )],
         );
         let depth = DepthPrepass::new(&pipelines);
+        let production_depth = DepthPrepass::new(&production_pipelines);
         let model = Model::from_indexed_fitted(
             &device,
             &queue,
@@ -536,6 +477,7 @@ impl Renderer {
             production_static_vertices,
             production_static_vertex_count: 0,
             depth,
+            production_depth,
             camera_buffer,
             camera_group,
             model,
