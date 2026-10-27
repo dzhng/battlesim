@@ -30,13 +30,16 @@ pub(crate) mod pipeline_export {
     include!(concat!(env!("OUT_DIR"), "/pipeline_export.rs"));
 }
 mod asset;
+mod diagnostic;
 mod environment;
 mod export;
 mod production_model;
 mod recovery;
 mod shadow_upload;
+mod state;
 use asset::AssetSnapshot;
 use environment::BrowserEnvironment;
+use state::{PresentationSnapshot, Stats};
 
 const PIPELINES: &str = r#"{
   "sizes":{"bloomLevels":0,"skyLut":[1,1],"effectSheet":1,"grassClump":1},
@@ -77,42 +80,6 @@ struct W { @location(0) colour: vec4<f32>, @location(1) fog: vec4<f32> };
   return vec4<f32>(1.0 - exp(-c.rgb), 1.0);
 }
 "#;
-
-#[derive(Debug, Default, Clone, Copy)]
-struct Stats {
-    frames: u32,
-    draw_calls: u32,
-    model_vertices: u32,
-    resizes: u32,
-    shared_passes: u32,
-    target_generation: u64,
-    shared_materials: bool,
-    shared_shadow: bool,
-    shadow_caster_batches: [u32; 4],
-    shared_environment: bool,
-    shared_fog_sight: bool,
-    shared_model_prepass: bool,
-    surface_recoveries: u32,
-    device_recoveries: u32,
-    presentation_uploads: u32,
-    fog_sight_uploads: u32,
-    presentation_bound: bool,
-    presentation_camera_words: u32,
-    presentation_environment_words: u32,
-    presentation_fog_words: u32,
-    presentation_overlay_words: u32,
-}
-
-#[derive(Clone)]
-struct PresentationSnapshot {
-    camera: Vec<f32>,
-    environment: Vec<f32>,
-    fog: Vec<f32>,
-    overlay: Vec<f32>,
-    shadow: Vec<f32>,
-    casters: Vec<f32>,
-    batches: Vec<u32>,
-}
 
 fn build_exported_pipelines(device: &Device) -> Result<Pipelines, String> {
     Pipelines::build(device, pipeline_export::MANIFEST, |_, shader| {
@@ -233,6 +200,7 @@ pub struct Renderer {
     asset_report: Option<String>,
     asset_texture: Option<Texture>,
     asset_snapshot: Option<AssetSnapshot>,
+    model_opaque_diagnostic: bool,
 }
 
 fn js_error(error: impl std::fmt::Display) -> JsValue {
@@ -353,46 +321,14 @@ impl Renderer {
             CAMERA_BYTES,
         );
         let shared_fog_compute = FogComputeOwner::new(&production_pipelines);
-        let material_palette = renderer_core::buffer(
-            &device,
-            "shared-material-palette",
-            BufferUsages::STORAGE | BufferUsages::COPY_DST,
-            &[0; 48],
-        );
-        let material_rows = renderer_core::buffer(
-            &device,
-            "shared-material-rows",
-            BufferUsages::STORAGE | BufferUsages::COPY_DST,
-            &[0; 64],
-        );
-        let material_texture = || {
-            device.create_texture(&TextureDescriptor {
-                label: Some("shared-material-texture"),
-                size: Extent3d {
-                    width: 1,
-                    height: 1,
-                    depth_or_array_layers: 1,
-                },
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: TextureDimension::D2,
-                format: TextureFormat::Rgba8Unorm,
-                usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-                view_formats: &[],
-            })
-        };
-        let material_albedo = material_texture();
-        let material_surface = material_texture();
-        let material_sampler = device.create_sampler(&SamplerDescriptor::default());
-        let material_bindings = ModelMaterialBindings::new(
-            &device,
-            production_pipelines.layout("modelLayout"),
-            &material_palette,
-            &material_rows,
-            &array_view(&material_albedo),
-            &array_view(&material_surface),
-            &material_sampler,
-        );
+        let (
+            material_palette,
+            material_rows,
+            material_albedo,
+            material_surface,
+            material_sampler,
+            material_bindings,
+        ) = diagnostic::material_probe(&device, &queue, production_pipelines.layout("modelLayout"));
         let production_camera = renderer_core::buffer(
             &device,
             "shared-production-camera",
@@ -439,7 +375,10 @@ impl Renderer {
             "shared-production-model-instances",
             BufferUsages::VERTEX,
             bytemuck::cast_slice(&[
-                1.0f32, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+                0.0f32, 0.0, 0.0, 0.0, // placement
+                0.0, 0.0, 0.0, 0.0, // data
+                1.0, 1.0, 1.0, 1.0, // tint
+                1.0, 1.0, 1.0, 1.0, // scale
             ]),
         );
         let camera_buffer = renderer_core::buffer(
@@ -528,6 +467,7 @@ impl Renderer {
             asset_report: None,
             asset_texture: None,
             asset_snapshot: None,
+            model_opaque_diagnostic: false,
         })
     }
 
@@ -745,6 +685,20 @@ impl Renderer {
             self.production_model_vertex_count,
         );
         self.stats.shared_model_prepass = true;
+        if self.model_opaque_diagnostic {
+            production_model::encode_opaque(
+                &mut encoder,
+                &self.targets,
+                &self.production_pipelines,
+                &self.production_camera_group,
+                self.material_bindings.bind_group(),
+                self.shared_fog_sight.group(0),
+                self.environment.bindings.group(),
+                &self.production_model_vertices,
+                &self.production_model_instances,
+                self.production_model_vertex_count,
+            );
+        }
         self.shared_fog_mask.encode(&mut encoder, &self.targets);
         self.shared_post.encode(&mut encoder);
         self.stats.shared_passes += 1;

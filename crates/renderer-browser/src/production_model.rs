@@ -64,7 +64,10 @@ pub fn mesh_vertices(
         bytes.extend_from_slice(&[0; 8]);
         bytes.extend_from_slice(&[0; 8]);
         bytes.extend_from_slice(&colours[index * 4..index * 4 + 4]);
-        bytes.extend_from_slice(&[0; 4]);
+        // Rigid diagnostic skinning: joint zero with full weight. The
+        // exported model shader indexes the palette directly, so a sentinel
+        // joint or zero weights would erase the mesh before lighting.
+        bytes.extend_from_slice(&[0, 0, 0, 0]);
         bytes.extend_from_slice(&[255, 0, 0, 0]);
         bytes.extend_from_slice(&[0, 0, 127, 127]);
         bytes.extend_from_slice(&[0; 4]);
@@ -100,6 +103,69 @@ pub fn encode_prepass(
     pipeline.set(
         &mut pass,
         &[("typegpuCameraLayout", camera), ("modelLayout", materials)],
+    );
+    pass.set_vertex_buffer(0, vertices.slice(..));
+    pass.set_vertex_buffer(1, instances.slice(..));
+    pass.draw(0..vertex_count, 0..1);
+}
+
+/// Diagnostic lit-model pass using the real exported material/environment/fog
+/// contract. It is intentionally opt-in while the browser shell finishes the
+/// surrounding production layers; the pass itself is shared pipeline work.
+#[allow(clippy::too_many_arguments)]
+pub fn encode_opaque(
+    encoder: &mut wgpu::CommandEncoder,
+    targets: &renderer_core::Targets,
+    pipelines: &renderer_core::pipelines::Pipelines,
+    camera: &wgpu::BindGroup,
+    materials: &wgpu::BindGroup,
+    fog: &wgpu::BindGroup,
+    environment: &wgpu::BindGroup,
+    vertices: &wgpu::Buffer,
+    instances: &wgpu::Buffer,
+    vertex_count: u32,
+) {
+    let pipeline = pipelines.bound("modelOpaque");
+    let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("shared-diagnostic-model-opaque"),
+        color_attachments: &[
+            Some(wgpu::RenderPassColorAttachment {
+                view: &targets.hdr_msaa,
+                depth_slice: None,
+                resolve_target: Some(&targets.lit),
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            }),
+            Some(wgpu::RenderPassColorAttachment {
+                view: &targets.fog_mask_msaa,
+                depth_slice: None,
+                resolve_target: Some(&targets.fog_mask),
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            }),
+        ],
+        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+            view: &targets.depth,
+            depth_ops: Some(wgpu::Operations {
+                load: wgpu::LoadOp::Load,
+                store: wgpu::StoreOp::Store,
+            }),
+            stencil_ops: None,
+        }),
+        ..Default::default()
+    });
+    pipeline.set(
+        &mut pass,
+        &[
+            ("typegpuCameraLayout", camera),
+            ("modelLayout", materials),
+            ("fogLayout", fog),
+            ("environment", environment),
+        ],
     );
     pass.set_vertex_buffer(0, vertices.slice(..));
     pass.set_vertex_buffer(1, instances.slice(..));
