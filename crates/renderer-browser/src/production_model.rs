@@ -63,7 +63,7 @@ pub fn encode_prepass(
     instances: &wgpu::Buffer,
     vertex_count: u32,
     instance_count: u32,
-    runs: Option<&[(u32, u32)]>,
+    runs: Option<&[(u32, u32, u32, u32)]>,
 ) {
     let pipeline = pipelines.bound("modelPrepass");
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -102,7 +102,7 @@ pub fn encode_opaque(
     instances: &wgpu::Buffer,
     vertex_count: u32,
     instance_count: u32,
-    runs: Option<&[(u32, u32)]>,
+    runs: Option<&[(u32, u32, u32, u32)]>,
 ) {
     let pipeline = pipelines.bound("modelOpaque");
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -155,11 +155,14 @@ fn draw_runs<'a>(
     pass: &mut wgpu::RenderPass<'a>,
     vertex_count: u32,
     instance_count: u32,
-    runs: Option<&[(u32, u32)]>,
+    runs: Option<&[(u32, u32, u32, u32)]>,
 ) {
     if let Some(runs) = runs {
-        for &(first, count) in runs {
-            pass.draw(0..vertex_count, first..first.saturating_add(count));
+        for &(first, count, vertex_first, vertex_count) in runs {
+            pass.draw(
+                vertex_first..vertex_first.saturating_add(vertex_count),
+                first..first.saturating_add(count),
+            );
         }
     } else {
         pass.draw(0..vertex_count, 0..instance_count);

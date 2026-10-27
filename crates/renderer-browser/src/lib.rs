@@ -23,7 +23,7 @@ use renderer_core::shadow::{
 use renderer_core::terrain::TerrainResources;
 use renderer_core::world::{Layer, Surface as WorldSurface, WorldInputs};
 use renderer_core::{encode_grouped, TargetOwner};
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
@@ -205,9 +205,9 @@ pub struct Renderer {
     production_model_instances: Buffer,
     production_model_vertex_count: u32,
     production_model_instance_count: u32,
-    production_model_runs: Option<Vec<(u32, u32)>>,
+    production_model_runs: Option<Vec<(u32, u32, u32, u32)>>,
     model_batch_state: renderer_core::model::BatchState,
-    available_model_drawables: HashSet<(u32, u32)>,
+    available_model_drawables: HashMap<(u32, u32), (u32, u32)>,
     production_terrain_vertices: Buffer,
     production_terrain_vertex_count: u32,
     depth: DepthPrepass,
@@ -516,7 +516,7 @@ impl Renderer {
             production_model_instance_count: 0,
             production_model_runs: None,
             model_batch_state: renderer_core::model::BatchState::default(),
-            available_model_drawables: HashSet::new(),
+            available_model_drawables: HashMap::new(),
             production_terrain_vertices,
             production_terrain_vertex_count: 0,
             depth,
@@ -714,19 +714,26 @@ impl Renderer {
             .resolve(batches, instances.len() / 16)
             .map_err(js_error)?
             .into_iter()
-            .filter(|run| {
-                run.pass == 0
-                    && self
-                        .available_model_drawables
-                        .contains(&(run.appearance, run.tier))
+            .filter_map(|run| {
+                if run.pass != 0 {
+                    return None;
+                }
+                let &(vertex_first, vertex_count) = self
+                    .available_model_drawables
+                    .get(&(run.appearance, run.tier))?;
+                Some((run.first, run.count, vertex_first, vertex_count))
             })
-            .map(|run| (run.first, run.count))
             .collect::<Vec<_>>();
         if runs.is_empty() && !instances.is_empty() {
             // An empty batch list is the compatibility fixture path; a real
             // frame with no view runs leaves the count at zero.
             if batches.is_empty() {
-                self.production_model_runs = Some(vec![(0, (instances.len() / 16) as u32)]);
+                self.production_model_runs = Some(vec![(
+                    0,
+                    (instances.len() / 16) as u32,
+                    0,
+                    self.production_model_vertex_count,
+                )]);
             } else {
                 self.production_model_runs = Some(Vec::new());
             }

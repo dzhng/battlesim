@@ -232,30 +232,51 @@ impl Renderer {
             );
             self.stats.shared_materials = true;
         }
-        let mesh = match &bundle.shape {
-            native_client::bundle::Shape::Skinned(tiers) => {
-                tiers.iter().find(|mesh| !mesh.indices.is_empty())
-            }
+        let meshes: Vec<(u32, &native_client::bundle::Mesh)> = match &bundle.shape {
+            native_client::bundle::Shape::Skinned(tiers) => tiers
+                .iter()
+                .enumerate()
+                .map(|(tier, mesh)| (tier as u32, mesh))
+                .collect(),
             native_client::bundle::Shape::Articulated(nodes)
             | native_client::bundle::Shape::Static(nodes) => nodes
                 .iter()
-                .flat_map(|node| node.tiers.iter())
-                .find(|mesh| !mesh.indices.is_empty()),
+                .find(|node| node.tiers.iter().any(|mesh| !mesh.indices.is_empty()))
+                .map(|node| {
+                    node.tiers
+                        .iter()
+                        .enumerate()
+                        .map(|(tier, mesh)| (tier as u32, mesh))
+                        .collect()
+                })
+                .unwrap_or_default(),
         };
-        if let Some(mesh) = mesh {
+        let mut production_vertices = Vec::new();
+        self.available_model_drawables.clear();
+        for (tier, mesh) in meshes {
+            if mesh.indices.is_empty() {
+                continue;
+            }
             let mut material_ids = vec![0u16; mesh.indices.len()];
             for draw in &mesh.draws {
                 for id in &mut material_ids[draw.first..draw.first + draw.count] {
                     *id = draw.material as u16;
                 }
             }
-            let (production_vertices, production_count) = production_model::mesh_vertices(
+            let (tier_vertices, tier_count) = production_model::mesh_vertices(
                 &mesh.positions,
                 &mesh.colors,
                 &mesh.indices,
                 &material_ids,
             )
             .map_err(js_error)?;
+            let first = (production_vertices.len() / 48) as u32;
+            production_vertices.extend_from_slice(&tier_vertices);
+            self.available_model_drawables
+                .insert((0, tier), (first, tier_count));
+        }
+        if !production_vertices.is_empty() {
+            let production_count = (production_vertices.len() / 48) as u32;
             self.production_model_vertices = renderer_core::buffer(
                 &self.device,
                 "shared-production-asset-vertices",
@@ -263,11 +284,6 @@ impl Renderer {
                 &production_vertices,
             );
             self.production_model_vertex_count = production_count;
-            // The browser checkpoint currently loads one appearance and one
-            // tier; keep that mapping explicit so presentation batches cannot
-            // silently draw the wrong geometry. Additional bundles add rows
-            // to this shell-owned table as the production loader expands.
-            self.available_model_drawables.insert((0, 1));
             // Keep the authored 48-byte stream for both the prepass and lit
             // draw; presentation groups are already bound by the frame.
             self.stats.model_vertices = production_count;
