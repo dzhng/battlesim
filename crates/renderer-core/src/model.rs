@@ -31,13 +31,19 @@ impl Model {
         if !positions.len().is_multiple_of(3) || colours.len() != positions.len() / 3 * 4 {
             return Err("model fixture attribute lengths differ".into());
         }
+        // The browser fixture pipelines use the shared 28-byte stream:
+        // position (vec3) followed by four normalized float colour channels.
+        // Keep this compatibility constructor aligned with that layout; the
+        // production authored model adapter owns its wider 48-byte stream.
         let mut bytes = Vec::with_capacity(positions.len() / 3 * 28);
         for i in 0..positions.len() / 3 {
             if i >= colours.len() / 4 {
                 return Err("model fixture index out of range".into());
             }
             bytes.extend_from_slice(bytemuck::cast_slice(&positions[i * 3..i * 3 + 3]));
-            bytes.extend_from_slice(&colours[i * 4..i * 4 + 4]);
+            for &channel in &colours[i * 4..i * 4 + 4] {
+                bytes.extend_from_slice(&(channel as f32 / 255.0).to_ne_bytes());
+            }
         }
         Ok(Self {
             indexed: IndexedModel::upload(
