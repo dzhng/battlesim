@@ -16,8 +16,9 @@ You are picking up a three-part feature the user asked for on 2026-10-27:
    video". Port the techniques into our own renderer, not the library. The
    2026-10-27 evaluation rejected adopting RedGPU itself (see
    [Why not adopt RedGPU](#why-not-adopt-redgpu)).
-2. **Add puddles and swamps** as a map terrain type that slows all ground units
-   going through them.
+2. **Add puddles and swamps.** The user's ask was a map terrain type that slows
+   all ground units going through it. The walk settled that swamps are the
+   terrain and puddles are look only (decision 29).
 3. **Draw wakes** when units wade through standing water, like the ripple rings
    in their video.
 
@@ -44,7 +45,8 @@ point, and the checklist.
       [decisions](decisions.md)).
 - [x] Sweep for unknown unknowns (2026-10-27): [sharp edges](#sharp-edges)
       and decisions 21-28.
-- [ ] Settle questions 7-9 under [still open](#still-open) with the user, then
+- [x] Questions 7 and 8 (decisions 19 and 29).
+- [ ] Settle question 9 under [still open](#still-open) with the user, then
       hand over the map.
 - [ ] Freeze the reference: capture RedGPU's lake demo at our camera angles
       (draft ladder, rung 0).
@@ -58,13 +60,15 @@ point, and the checklist.
   in our own palette: colour by depth, a soft shore, a visible bed, refraction,
   caustics and wind-driven ripples. Each kind comes in variants
   ([decisions 9-12](decisions.md#look)).
-- Puddles and swamps are terrain the simulation knows about. Ground units cross
-  them slower, by a factor for each kind and drive
-  ([decisions 1-6](decisions.md#terrain-and-rule)).
+- Swamps are terrain the simulation knows about. Ground units cross them
+  slower, by a factor for each drive, and their dip shapes sight through the
+  ordinary terrain rules ([decisions 1-8](decisions.md#terrain-and-rule)).
+  Puddles are look only (decision 29).
 - A unit the side can see wading through standing water leaves a wake that
   spreads and fades.
-- The browser ships each step first, and native catches up step by step on
-  the same exported shaders ([decision 19](decisions.md#scope-and-acceptance)).
+- Native always runs and gets as close to parity as each step allows. What's
+  too hard goes to the [water native follow-up](../water-native/README.md)
+  ([decision 19](decisions.md#scope-and-acceptance)).
 
 **Non-goals (until the user says otherwise)**
 
@@ -109,7 +113,7 @@ constant is tuned for a ground-level camera.
 | Technique | How it works | Our state | Port? |
 | --- | --- | --- | --- |
 | **Depth-based absorption** (`:415-433`) | Per-channel extinction `exp(−d·k·(2.4, 0.7, 1.1+0.9·turbidity))` blends a shallow colour toward a deep colour by how much light survives. `d` is the optical distance from the water surface to scene depth. | Opacity comes from the analytic distance to the river edge (`terrainMaterial.ts` `waterSurface`), not from depth. | **Yes.** The biggest visual win. |
-| **Soft shoreline fade** (`:373-375`, `:630`) | `smoothstep` on optical depth over a fade distance that is floored by camera distance, so the edge never aliases. | The shore is analytic bands from the river shape. | **Yes.** It also gives puddle and swamp edges for free, whatever their shape. |
+| **Soft shoreline fade** (`:373-375`, `:630`) | `smoothstep` on optical depth over a fade distance that is floored by camera distance, so the edge never aliases. | The shore is analytic bands from the river shape. | **Yes.** It also gives swamp and puddle edges for free, whatever their shape. |
 | **Refraction** (`:380-413`) | Offsets screen UV by the difference between the perturbed and flat normal, scaled by depth over camera distance and clamped. It is rejected where the offset would sample foreground geometry. The mip level rises with depth and turbidity, giving murky blur for free. | None. | **Yes.** Needs the scene colour copy. |
 | **Caustics** (`:435-501`) | Procedural, in the water shader: two normal samples each distort the other's UV, and crests are where they agree. Projected onto the reconstructed bed along the view and sun, faded with depth, and masked off steep walls. Multiplies the refracted colour. | None. | **Yes.** Cheap: four taps. |
 | **Normals** (`:280-346`) | One normal map at three scales (primary, a rotated macro layer, a rotated detail layer), each scrolling along the wind at its own rate, blended with RNM (`blendRNM`, `:35`). Faded toward flat with distance. | Two procedural ripple octaves (`waterNormal`). | **Yes**, with our own normal maps (baked or procedural). |
@@ -122,7 +126,7 @@ constant is tuned for a ground-level camera.
 geometry, copy colour (with a full mip chain) and depth, then draw water over
 the same targets. Today our water draws inside the one MSAA world pass, with
 read-only depth and no colour copy (`worldPass.ts`, `battleFrame.ts`). This seam
-is new work in both clients, and it is the first real architectural change of
+is new work in both clients (native per decision 19), and it is the first real architectural change of
 the feature.
 
 ### Wakes (`src/water/lakeCore/interaction/`)
@@ -147,24 +151,25 @@ Port: **one wind**, resolved in Rust presentation and uploaded like the light,
 read by grass, water normals, smoke and dust drift, and tree sway. This replaces
 both of today's sources; neither survives beside it.
 
-## Wetlands as terrain
+## Swamps as terrain
 
 Per [`tweak-mechanics`](../../.agents/skills/tweak-mechanics/SKILL.md), this is
 this is the rule. The user approved its shape in decisions 1-8.
 
-**Rule:** standing shallow water (a puddle or a swamp) sits in a shallow dip
-that the wetland carves itself, and any ground mover can cross it. Off a road,
-a ground mover's speed there is multiplied by its wetland kind's factor for its
-drive (foot, wheeled or tracked). Where a forest overlaps the wetland, the
-slower of the two factors applies. A road keeps road speed. Craters stack on
-top. Rivers stay deep and impassable.
+**Rule:** a swamp is standing shallow water in a dip it carves itself, and any
+ground mover can cross it. Off a road, a ground mover's speed there is
+multiplied by the swamp's factor for its drive (foot, wheeled or tracked). Where
+a forest overlaps the swamp, the slower of the two factors applies. A road
+keeps road speed and is never carved. Craters stack on top. No sight rule names
+a swamp; the dip hides what the ordinary terrain sight rules say it hides.
+Rivers stay deep and impassable. Puddles are look only.
 
 **Where it lives today, and what it touches**
 
 - **Contract:** `crates/contract/src/map.rs`. `SurfaceKind` (Road, CountryRoad,
   DirtTrack, Paving) is a `SurfaceArea` with a shape. Its speed is the rules'
   `surfaces` row `SurfaceRule.speed_factor` (`scenario.rs`, `game.json`). That
-  factor multiplies *road* speed today. Wetland factors multiply *off-road*
+  factor multiplies *road* speed today. Swamp factors multiply *off-road*
   speed per drive, so they are their own rows, not a second meaning for that
   column.
 - **Sim:** `crates/sim/src/world/mod.rs` `ground_surface_at` and `Surface`
@@ -172,7 +177,7 @@ top. Rivers stay deep and impassable.
   `navigation::Mobility::speed` (`navigation.rs`), read by vehicle movement,
   soldier movement and the route planner.
 - **Planner:** `navigation.rs` `SlowGround` keeps per-tile forest and steep
-  counts for route cost. Wetland needs its own channel, or units will plough
+  counts for route cost. Swamp needs its own channel, or units will plough
   straight through swamps when a dry way round is faster.
 - **Export to presentation:** `sim/src/world/export.rs` strides, read by
   `presentation/src/static_world/ground/`.
@@ -183,15 +188,17 @@ top. Rivers stay deep and impassable.
 **Narrated moments that shaped the rule**
 
 - *A tank column on a dirt track meets a car-sized puddle.* If every tank
-  brakes hard, a viewer laughs. The puddle row's factors are mild, and the
-  planner weighs puddles by those factors rather than avoiding them.
+  brakes hard, a viewer laughs. So puddles are look only, with a splash
+  (decision 29).
 - *A truck tries to cross a swamp.* Bogging down reads well on screen, and
   wheels bog worse than tracks (decision 3).
 - *A road runs across a swamp.* The road is a causeway, so the road wins.
 - *A swamp lies in a forest.* The slower factor applies (decision 4), so each
   number keeps its meaning.
-- *A squad wades a swamp under fire.* It is slower and exposed. Swamps give no
-  concealment (decision 6).
+- *A squad wades a swamp under fire.* It is slower. Seen from far across flat
+  ground, a deep swamp's rim can hide it, and it sees less itself. A tank's
+  higher eye sees in. All of that comes from the ordinary sight rules
+  (decision 6).
 - *A side watches an enemy cross a swamp in the fog.* Wakes come only from
   units the side currently sees, as dust does today. Ripples already spreading
   fade on their own.
@@ -200,13 +207,13 @@ top. Rivers stay deep and impassable.
 
 **Neighbouring rules**
 
-- Ground marks: wetlands refuse them, as water does (decision 7).
+- Ground marks: swamps refuse them, as water does (decision 7).
 - Dust: none in standing water; a wake instead (decision 8).
 - Mapgen keeps settlements, buildings and bridge approaches out of swamps
   (decision 5).
 - The carved dip changes the simulation's height, slope and sight (decision 1).
-- Digests: any map that gains a wetland changes its battle digest. Mapgen
-  placing wetlands changes every generated map. Both are a named decision to
+- Digests: any map that gains a swamp changes its battle digest. Mapgen
+  placing swamps changes every generated map. Both are a named decision to
   record, not a regression.
 
 ## Why not adopt RedGPU
@@ -244,14 +251,15 @@ the one variable it would be judged on.
 5. **Refraction and caustics.** Variable: the bed seen through water.
 6. **Fresnel and sun specular** through the shared light owner. Variable:
    highlights. SSR is reconsidered after this rung (decision 15).
-7. **Wetland contract and rule:** the map contract, the carved dip, the rules
-   rows per kind and drive, sim speed, planner cost and admission, with a test
-   for each ruled-out moment. Variable: none visual; proven on a fixture map
+7. **Swamp contract and rule:** the map contract, the carved dip, the rules
+   row per drive, sim speed, planner cost and admission, with a test for each
+   ruled-out moment, including the sight test in decision 21. Variable: none visual; proven on a fixture map
    with a battle report before and after.
-8. **Mapgen wetlands:** placement per decision 5, previewed in the map
-   workbench. Variable: where wetlands appear.
-9. **Wetlands drawn as water** through the same water owner, with the swamp
-   and puddle variants chosen per decision 12. Variable: puddle and swamp look.
+8. **Mapgen swamps:** placement per decision 5, previewed in the map
+   workbench. Variable: where swamps appear.
+9. **Swamps and puddles drawn as water** through the same water owner. Swamp
+   variants are chosen per decision 12, and look-only puddles are scattered by
+   the ground walk (decision 29). Variable: puddle and swamp look.
 10. **Wake sources** from presentation: units seen in standing water, with
     rings or a V-wake by speed (decision 13), and dust suppressed in water.
     Variable: none visual; a hidden unit must emit nothing.
@@ -262,7 +270,8 @@ the one variable it would be judged on.
 13. **Graphics tiers:** Low drops refraction, caustics and wakes and keeps the
     depth colour (decision 18). This may fold into each rung instead.
 
-Native catches up rung by rung after the browser (decision 19).
+Every rung leaves native running and ports what it reasonably can. The rest
+goes to the [water native follow-up](../water-native/README.md) (decision 19).
 
 Later, if wanted: splashes from rounds landing in water, and helicopter rotor
 downwash on water. Both would feed the same wake sources.
@@ -275,8 +284,9 @@ downwash on water. Both would feed the same wake sources.
   the last check before accepting a shot;
 - [`preview-shots`](../../.agents/skills/preview-shots/SKILL.md) for the user,
   as a non-blocking checkpoint;
-- native parity on the same plate when native catches up. This overlaps the
-  [native gaps](../native-gaps/README.md) item "Judge water on a plate".
+- native draws a water frame on every rung, and matches the plate where the
+  rung ported it. The [water native follow-up](../water-native/README.md) owns
+  the native gaps item "Judge water on a plate".
 
 Rungs that change only presentation must leave battle digests unchanged.
 
@@ -284,12 +294,12 @@ Rungs that change only presentation must leave battle digests unchanged.
 
 These owners must hold through every rung:
 
-- **Water surface:** one material for rivers, puddles and swamps. A wetland is
+- **Water surface:** one material for rivers, swamps and puddles. A swamp or puddle is
   water with a shallow depth and its own look data, not a second water shader.
 - **Wind:** one record, resolved in Rust presentation.
 - **Wake sources:** decided in Rust presentation from what the side sees.
   The renderer runs the height field and never chooses who makes a wake.
-- **Ground speed:** one `Mobility::speed` path. A wetland adds a factor; it does
+- **Ground speed:** one `Mobility::speed` path. A swamp adds a factor; it does
   not add a second speed function.
 - **Look tuning:** biome and `presentation.terrain` data, not constants in the
   shader.
@@ -304,15 +314,15 @@ owning slice. Worst first within each area.
 - **The dip can silently not exist.** `Carve` returns natural height on a map
   with no river (`crates/sim/src/world/carve.rs`), and terrain and navigation
   only look inside registered regions (`terrain.rs`, `world/mod.rs`
-  `navigation_regions`). Wetlands must run the carve on every map and register
+  `navigation_regions`). Swamps must run the carve on every map and register
   their own bounds, or the planner sees open ground while movement slows.
-- **Make wetlands their own map list, like forests, not a new `SurfaceKind`.**
+- **Make swamps their own map list, like forests, not a new `SurfaceKind`.**
   `SurfaceKind::of` turns any non-road kind into Paving, `SurfaceIndex::at`
   keeps only the earliest kind, and every kind needs a road `speed_factor`
-  row. Add a wetland field to the sim's `Surface` and the nav `Cell`.
+  row. Add a swamp field to the sim's `Surface` and the nav `Cell`.
 - **Admission reads uncarved height.** Buildings carry an absolute `base_z`,
   and river and bridge checks use `relief_height`. Add contract rules keeping
-  wetlands off buildings and bridge approaches and a gap from river edges, for
+  swamps off buildings and bridge approaches and a gap from river edges, for
   hand-made maps as well as generated ones.
 - **There are five speed read sites:** vehicle movement, soldier movement,
   `cell_cost`, journey road arcs, and the `SlowGround::stretch` estimate. Today
@@ -328,9 +338,9 @@ owning slice. Worst first within each area.
   New rules rows change the rules hash for every battle. Re-record the parity
   fixtures that embed full rules and maps (`fixtures/parity/*`, including
   `publication/` and `capture/`). Bump the mapgen generator and presets
-  versions, draw wetlands from their own random stream, and re-record
+  versions, draw swamps from their own random stream, and re-record
   `map-layout` and the skirmish corpus.
-- **Mapgen order:** place wetlands after towns and forests, respect the
+- **Mapgen order:** place swamps after towns and forests, respect the
   reserved areas, and add a fairness check between the top and bottom halves.
   Objectives currently refuse forest only, and `open_ground` would count a
   swamp as open.
@@ -340,7 +350,8 @@ owning slice. Worst first within each area.
 - **Native rejects the whole export on any value it doesn't know**
   (`native/client/src/pipelines.rs`, `deny_unknown_fields`). Native's tests
   build pipelines but never draw, so CI stays green while native is broken.
-  See question 7.
+  Decision 19 and the [water native follow-up](../water-native/README.md) own
+  this.
 - **No depth resolve exists,** and `lit` can't be a copy source in either
   client. Resolving into a new target keeps stale pixels on Metal, because it
   skips empty tiles; resolve into `lit` or draw full-screen.
@@ -391,12 +402,5 @@ owning slice. Worst first within each area.
 
 ## Still open
 
-Questions 7-9 below go to the user one at a time.
-
-7. **How native catches up** while the browser ships first (decision 19
-   against the hard-cutover rule).
-8. **Puddles on roads and tracks:** road speed wins over any wetland (decision
-   4), so a puddle on a dirt track does nothing to gameplay today, and the
-   carve would sink a causeway.
-9. **The menu reel has no water** (`fixtures/captures/menu.json` maps), so
-   decision 17's "reel low angles" target has nothing to judge.
+9. **The menu reel has no water** (the `fixtures/captures/menu.json` maps), so
+   decision 17's low-angle target needs somewhere to be shot.
