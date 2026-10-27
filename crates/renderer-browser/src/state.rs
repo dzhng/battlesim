@@ -29,6 +29,7 @@ pub(super) struct Stats {
 #[derive(Clone)]
 pub(super) struct PresentationSnapshot {
     pub(super) camera: Vec<f32>,
+    pub(super) sky: Vec<f32>,
     pub(super) environment: Vec<f32>,
     pub(super) fog: Vec<f32>,
     pub(super) overlay: Vec<f32>,

@@ -91,6 +91,7 @@ impl Renderer {
         self.stats.presentation_overlay_words = overlay_words;
         self.presentation_snapshot = Some(PresentationSnapshot {
             camera: camera[..40].to_vec(),
+            sky: Vec::new(),
             environment: environment.to_vec(),
             fog: fog.to_vec(),
             overlay: overlay.to_vec(),
@@ -98,6 +99,21 @@ impl Renderer {
             casters: Vec::new(),
             batches: Vec::new(),
         });
+        Ok(())
+    }
+
+    /// Bake the resolved presentation sky into the shared environment LUT.
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn upload_sky(&mut self, sky: &[f32]) -> Result<(), JsValue> {
+        if sky.len() < 40 {
+            return Err(js_error("presentation sky record needs 40 words"));
+        }
+        self.environment
+            .bake_sky(&self.device, &self.queue, bytemuck::cast_slice(&sky[..40]));
+        if let Some(snapshot) = &mut self.presentation_snapshot {
+            snapshot.sky = sky[..40].to_vec();
+        }
         Ok(())
     }
 

@@ -13,6 +13,9 @@ pub struct BrowserEnvironment {
     pub dfg: Texture,
     pub sampler: Sampler,
     pub cast_lights: Buffer,
+    sky_light: Buffer,
+    sky_bake_pipeline: renderer_core::pipelines::Bound,
+    sky_bake_group: BindGroup,
 }
 
 const SKY_LUT: [u32; 2] = [384, 192];
@@ -33,6 +36,12 @@ impl BrowserEnvironment {
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             &[0; 1024],
         );
+        let sky_light = renderer_core::buffer(
+            device,
+            "shared-environment-sky-light",
+            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            &[0; 160],
+        );
         let sampled = |label: &str, format: TextureFormat, size: [u32; 2]| {
             device.create_texture(&TextureDescriptor {
                 label: Some(label),
@@ -45,7 +54,9 @@ impl BrowserEnvironment {
                 sample_count: 1,
                 dimension: TextureDimension::D2,
                 format,
-                usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
+                usage: TextureUsages::TEXTURE_BINDING
+                    | TextureUsages::COPY_DST
+                    | TextureUsages::RENDER_ATTACHMENT,
                 view_formats: &[],
             })
         };
@@ -118,6 +129,12 @@ impl BrowserEnvironment {
                 BindingResource::Sampler(&shadow.compare),
             ],
         );
+        let sky_bake_group = renderer_core::bind(
+            device,
+            pipelines.layout("bake - Automatic Bind Group & Layout"),
+            "shared-environment-sky-bake",
+            &[sky_light.as_entire_binding()],
+        );
         Self {
             bindings,
             sky,
@@ -125,6 +142,38 @@ impl BrowserEnvironment {
             dfg,
             sampler,
             cast_lights,
+            sky_light,
+            sky_bake_pipeline: pipelines.bound("bake"),
+            sky_bake_group,
         }
+    }
+
+    /// Bake the resolved presentation sky record into the shared LUT.
+    pub fn bake_sky(&self, device: &Device, queue: &Queue, sky: &[u8]) {
+        queue.write_buffer(&self.sky_light, 0, sky);
+        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
+            label: Some("shared-environment-sky-bake"),
+        });
+        let view = self.sky.create_view(&TextureViewDescriptor::default());
+        let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+            label: Some("shared-environment-sky-lut"),
+            color_attachments: &[Some(RenderPassColorAttachment {
+                view: &view,
+                depth_slice: None,
+                resolve_target: None,
+                ops: Operations {
+                    load: LoadOp::Clear(Color::BLACK),
+                    store: StoreOp::Store,
+                },
+            })],
+            ..Default::default()
+        });
+        self.sky_bake_pipeline.set(
+            &mut pass,
+            &[("bake - Automatic Bind Group & Layout", &self.sky_bake_group)],
+        );
+        pass.draw(0..3, 0..1);
+        drop(pass);
+        queue.submit([encoder.finish()]);
     }
 }

@@ -38,6 +38,9 @@ impl Renderer {
                 &presentation.fog,
                 &presentation.overlay,
             )?;
+            if !presentation.sky.is_empty() {
+                replacement.upload_sky(&presentation.sky)?;
+            }
             if !presentation.shadow.is_empty() {
                 replacement.upload_shadow(
                     &presentation.shadow,

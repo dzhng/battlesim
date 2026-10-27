@@ -557,6 +557,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
+  (renderer as SharedRenderer & { upload_sky: (sky: Float32Array) => void }).upload_sky(rl.sky);
   upload.upload_ground(
     concatMeshes([Float32Array.from(ff.terrain), Float32Array.from(ff.world.props)]),
   );
@@ -636,6 +637,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
+  (renderer as SharedRenderer & { upload_sky: (sky: Float32Array) => void }).upload_sky(rl.sky);
   (
     renderer as SharedRenderer & {
       upload_instances: (instances: Float32Array) => void;

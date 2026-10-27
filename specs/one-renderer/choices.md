@@ -161,3 +161,20 @@ minimum texture contract. **Reach:** model/world parity can now replace the
 neutral texels with a baked sky/PMREM/DFG set without changing bind groups or
 shader layouts. **Verdict:** sound as a prerequisite; the authored bake and
 production world receiver remain open. **Confidence:** high.
+
+### The browser bakes the sky from the shared presentation record
+
+The native client turns the resolved `SkyLight` record into a sky lookup with
+the exported `bake` pipeline before lighting samples it. The browser shell now
+does the same on startup and after device recovery: it uploads the 40-word sky
+record, renders the exported fullscreen bake into the shared LUT, and keeps the
+same environment bind group. The alternative would have kept a neutral texture
+forever and made a production receiver comparison meaningless even though the
+resource dimensions were correct.
+
+**Gap:** the spec named shell-owned asset loading but did not say whether the
+sky bake was a shared pass or a precomputed file. **Reach:** later PMREM and
+world/model parity work receives authored sky radiance without changing the
+browser/native resource boundary. **Verdict:** sound; the scene remains green
+and the bake survives the recovery replay, while PMREM filtering and full world
+inputs remain open. **Confidence:** high.
