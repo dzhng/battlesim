@@ -129,3 +129,19 @@ how to keep a packed-record API auditable. **Reach:** every later extracted pass
 should use the same named-contract rule instead of growing argument lists.
 **Verdict:** sound; clippy's argument-count gate passes without suppression.
 **Confidence:** high.
+
+### Fog fragment groups start with the native layer contract
+
+The fog compute owner allocates five fragment bind groups. A zero-filled layer
+record looks harmless, but the shader uses those four words to decide whether a
+surface is ground, painted, or always visible. Native initializes the groups to
+the five fixed layer records; the shared owner now does the same at allocation,
+before the first presentation upload. The alternative would have left the
+browser's production pipeline with an all-zero fog policy and made its output
+depend on a later upload that only carries sight data.
+
+**Gap:** the extraction plan named the buffers but did not say which owner
+initializes the static layer policy. **Reach:** every shared world/model pass
+can bind the same layer indices during startup, resize, and device recovery.
+**Verdict:** sound; the records match native's fixed layer table and do not add
+per-frame work. **Confidence:** high.

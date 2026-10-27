@@ -14,6 +14,17 @@ const WORD: u64 = 4;
 const MAX_LAYERS: usize = 5;
 const WHOLE_WIDTH: u32 = 256;
 
+// The five fragment groups are a renderer contract, not per-frame data:
+// painted ground is fogged and painted, ordinary ground is fogged, faces are
+// fogged without ground treatment, and units stay visible.
+const LAYER_RECORDS: [[u32; 4]; MAX_LAYERS] = [
+    [1, 0, 1, 0],
+    [0, 0, 1, 0],
+    [1, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 1, 0, 0],
+];
+
 /// A packed upload from a presentation fog sight record.
 ///
 /// All byte slices use the generated presentation record layout. The core
@@ -97,7 +108,9 @@ impl FogSightResources {
     /// no browser frame needs to bind an absent or guessed resource.
     pub fn new(device: &Device, pipelines: &Pipelines, depth: &TextureView) -> Self {
         let params = uniform(device, "fog-params", &[0; 256]);
-        let layers = std::array::from_fn(|_| uniform(device, "fog-layer", &[0; 16]));
+        let layers = std::array::from_fn(|i| {
+            uniform(device, "fog-layer", bytemuck::cast_slice(&LAYER_RECORDS[i]))
+        });
         let paint_style = uniform(device, "fog-paint-style", &[0; 32]);
         let whole_uniform = uniform(device, "fog-whole", &[0; 16]);
         let height = storage(device, "fog-heights", 16);
