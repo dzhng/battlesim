@@ -145,3 +145,19 @@ initializes the static layer policy. **Reach:** every shared world/model pass
 can bind the same layer indices during startup, resize, and device recovery.
 **Verdict:** sound; the records match native's fixed layer table and do not add
 per-frame work. **Confidence:** high.
+
+### Production environment textures use the exported atlas dimensions
+
+The production lighting shaders sample the sky lookup, PMREM atlas, and DFG
+table using dimensions and a top-mip value chosen by native. A browser 1×1
+placeholder satisfies WebGPU's type checker but feeds those coordinate formulas
+the wrong space. The browser shell now allocates the exported atlas dimensions
+and writes neutral half-float texels, and the frame bridge supplies the matching
+top-mip metadata. This is a valid resource contract, not a claim that neutral
+texels reproduce authored sky lighting.
+
+**Gap:** the spec allowed shell-owned asset loading without spelling out the
+minimum texture contract. **Reach:** model/world parity can now replace the
+neutral texels with a baked sky/PMREM/DFG set without changing bind groups or
+shader layouts. **Verdict:** sound as a prerequisite; the authored bake and
+production world receiver remain open. **Confidence:** high.

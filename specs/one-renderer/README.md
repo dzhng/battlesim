@@ -28,8 +28,8 @@ surface/device/assets/audio concerns. Do not add another Rust pass graph.
 Keep TypeGPU as the browser control until the shared native/browser core clears
 the matched-image, startup, frame-time, resize, rebuild, and production pass
 parity gates. The current pickup is the shadow/material parity pass: bind the
-real receiver records and authored material/lighting inputs to the shared
-model/world draws, then compare the same multi-model production fixture. Do
+real receiver records, authored sky/PMREM/DFG assets, and terrain/fog inputs to
+the shared model/world draws, then compare the same multi-model production fixture. Do
 not treat the current range-aware caster counters as a visual shadow proof;
 the latest review still sees no readable contact shadows.
 

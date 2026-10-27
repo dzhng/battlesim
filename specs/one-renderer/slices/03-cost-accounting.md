@@ -24,8 +24,8 @@ a complexity score.
 | Production browser shaders (`packages/battle-renderer/pipelines`) | 63 | 16,714 | 14,696 | 654,269 |
 | Renderer primitives (`packages/renderer-core/src`) | 11 | 1,604 | 1,156 | 64,747 |
 | Rust spike (`crates/renderer-wasm-spike/src`) | 5 | 2,255 | 2,154 | 86,819 |
-| Shared Rust renderer core (`crates/renderer-core/src`) | 14 | 2,854 | 2,417 | 94,849 |
-| Shared Rust browser shell (`crates/renderer-browser/src`) | 11 | 1,902 | 1,755 | 72,968 |
+| Shared Rust renderer core (`crates/renderer-core/src`) | 14 | 2,875 | 2,426 | 95,668 |
+| Shared Rust browser shell (`crates/renderer-browser/src`) | 11 | 1,942 | 1,793 | 74,262 |
 | Native renderer modules (`native/client/src`, pass/resource owners) | 15 | 4,026 | 3,427 | 141,925 |
 | Native platform shell (`native/client/src`, desktop/assets/audio) | 7 | 1,935 | 1,529 | 70,560 |
 | Spike browser harness (`oneRenderer*.ts*`) | 3 | 769 | 728 | 27,483 |
@@ -41,13 +41,13 @@ against both the native client today and the browser TypeGPU renderer.
 The first shared-core checkpoints have landed: target allocation, buffer/bind
 helpers, pass debug-group orchestration, pipeline construction, reverse-Z depth
 and world-target attachment policy now have one owner in `renderer-core`. The
-current extracted core is 2,854 physical lines and the browser shell is 1,902
+current extracted core is 2,875 physical lines and the browser shell is 1,942
 lines; the remaining native pass/resource modules measure 4,026 lines and the
 native platform shell 1,935 lines. This is exact accounting of the current
 split, not a forecast: material, fog, effects and post owners still have native
 or browser-only pieces, so the shared-core total will grow as those owners move.
 
-The generated shared-browser payload measures 1,339,861 bytes of WASM and 84,761
+The generated shared-browser payload measures 1,341,133 bytes of WASM and 84,761
 bytes of generated JavaScript. The standalone transport spike remains 201,249
 bytes of WASM and 72,057 bytes of generated JavaScript. These figures do not
 include the production battle WASM, the 3,960,005 compressed test-tank asset
@@ -58,7 +58,7 @@ payload, or shared application chunks.
 ## Exact current tradeoff
 
 The shared work is additive until the browser TypeGPU renderer is deleted. The
-current measured Rust side is `2,854` shared-core lines plus `1,902` browser-shell
+current measured Rust side is `2,875` shared-core lines plus `1,942` browser-shell
 lines, while the native renderer still retains `4,026` pass/resource lines and
 `1,935` desktop-shell lines. In other words, the extraction has added a browser
 shell and a model seam without yet removing a production pass owner. The

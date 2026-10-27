@@ -15,6 +15,10 @@ pub struct BrowserEnvironment {
     pub cast_lights: Buffer,
 }
 
+const SKY_LUT: [u32; 2] = [384, 192];
+const PMREM: [u32; 2] = [336, 256];
+const DFG: [u32; 2] = [16, 16];
+
 impl BrowserEnvironment {
     pub fn new(
         device: &Device,
@@ -29,12 +33,12 @@ impl BrowserEnvironment {
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             &[0; 1024],
         );
-        let sampled = |label: &str, format: TextureFormat| {
+        let sampled = |label: &str, format: TextureFormat, size: [u32; 2]| {
             device.create_texture(&TextureDescriptor {
                 label: Some(label),
                 size: Extent3d {
-                    width: 1,
-                    height: 1,
+                    width: size[0],
+                    height: size[1],
                     depth_or_array_layers: 1,
                 },
                 mip_level_count: 1,
@@ -45,37 +49,51 @@ impl BrowserEnvironment {
                 view_formats: &[],
             })
         };
-        let sky = sampled("shared-environment-sky", TextureFormat::Rgba16Float);
-        let pmrem = sampled("shared-environment-pmrem", TextureFormat::Rgba16Float);
-        let dfg = sampled("shared-environment-dfg", TextureFormat::Rg16Float);
-        let rgba16 = bytemuck::cast_slice(&[0x3c00u16, 0x3c00, 0x3c00, 0x3c00]);
-        for texture in [&sky, &pmrem] {
+        let sky = sampled(
+            "shared-environment-sky",
+            TextureFormat::Rgba16Float,
+            SKY_LUT,
+        );
+        let pmrem = sampled(
+            "shared-environment-pmrem",
+            TextureFormat::Rgba16Float,
+            PMREM,
+        );
+        let dfg = sampled("shared-environment-dfg", TextureFormat::Rg16Float, DFG);
+        let sky_words = vec![0x3c00u16; (SKY_LUT[0] * SKY_LUT[1] * 4) as usize];
+        let pmrem_words = vec![0x3c00u16; (PMREM[0] * PMREM[1] * 4) as usize];
+        let sky_bytes = bytemuck::cast_slice(&sky_words);
+        let pmrem_bytes = bytemuck::cast_slice(&pmrem_words);
+        for (texture, bytes, size, row_bytes) in [
+            (&sky, sky_bytes, SKY_LUT, SKY_LUT[0] * 8),
+            (&pmrem, pmrem_bytes, PMREM, PMREM[0] * 8),
+        ] {
             queue.write_texture(
                 texture.as_image_copy(),
-                rgba16,
+                bytes,
                 TexelCopyBufferLayout {
                     offset: 0,
-                    bytes_per_row: Some(8),
-                    rows_per_image: Some(1),
+                    bytes_per_row: Some(row_bytes),
+                    rows_per_image: Some(size[1]),
                 },
                 Extent3d {
-                    width: 1,
-                    height: 1,
+                    width: size[0],
+                    height: size[1],
                     depth_or_array_layers: 1,
                 },
             );
         }
         queue.write_texture(
             dfg.as_image_copy(),
-            bytemuck::cast_slice(&[0x3800u16, 0x3800]),
+            bytemuck::cast_slice(&vec![0x3800u16; (DFG[0] * DFG[1] * 2) as usize]),
             TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(4),
-                rows_per_image: Some(1),
+                bytes_per_row: Some(DFG[0] * 4),
+                rows_per_image: Some(DFG[1]),
             },
             Extent3d {
-                width: 1,
-                height: 1,
+                width: DFG[0],
+                height: DFG[1],
                 depth_or_array_layers: 1,
             },
         );

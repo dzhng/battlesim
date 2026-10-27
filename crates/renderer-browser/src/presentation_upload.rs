@@ -1,5 +1,7 @@
 use super::*;
 
+const ENVIRONMENT_MAX_MIP: f32 = 6.0;
+
 #[wasm_bindgen]
 impl Renderer {
     #[cfg(target_arch = "wasm32")]
@@ -60,10 +62,14 @@ impl Renderer {
         );
         self.queue
             .write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&camera[..16]));
+        let mut environment_data = environment.to_vec();
+        if environment_data.len() >= 29 {
+            environment_data[28] = ENVIRONMENT_MAX_MIP;
+        }
         let environment_words = write(
             &self.queue,
             &self.presentation_environment,
-            environment,
+            &environment_data,
             "environment",
         )?;
         self.shared_fog_mask
