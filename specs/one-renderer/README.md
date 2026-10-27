@@ -245,7 +245,7 @@ The runnable surface is the `one-renderer` developer tool and scene:
 
 - Rust versus exported WGSL and TypeGPU versus exported WGSL both had mean
   RGB difference `0` in the captured canvas pixels.
-- The shared browser shell currently emits 508,439 bytes of WASM plus 69,184
+- The shared browser shell currently emits 1,347,401 bytes of WASM plus 84,761
   bytes of generated JS. Its asset proof fetches 3,960,005 compressed bytes
   before decoding the authored test tank.
 - `cargo check -p native-client --target wasm32-unknown-unknown` does not
