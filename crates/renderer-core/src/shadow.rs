@@ -5,7 +5,8 @@
 //! one depth-array layer per cascade, one receiver uniform, one camera buffer
 //! per cascade, and a greater-equal comparison sampler. Keeping this owner in
 //! `renderer-core` prevents the native shell from becoming a second resource
-//! implementation while leaving pass-specific caster routing to each shell.
+//! implementation while letting each shell adapt its presentation records and
+//! provide the concrete caster buffers.
 
 use wgpu::*;
 
@@ -27,8 +28,48 @@ pub const RECEIVER_BYTES: usize = 400;
 /// this small value object lets native and browser shells consume the same
 /// routing contract without importing presentation types into the core.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct CasterBatch {
+    /// First presentation `Instance` in the shell's model buffer.
+    pub first: u32,
+    /// Number of presentation `Instance` records in this run.
+    pub count: u32,
+    /// Cascades this run was admitted to by presentation culling.
+    pub cascade_mask: u32,
+}
+
+/// Word offsets for the packed presentation `Batch` record. The shell owns
+/// schema generation; this value object keeps the shared parser independent of
+/// the presentation crate while making every boundary field explicit.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CasterBatchLayout {
+    /// Words in one packed batch record.
+    pub stride: usize,
+    /// Word offset of the render pass discriminator.
+    pub pass: usize,
+    /// Word offset of the caster tier (`none` means view-only).
+    pub caster: usize,
+    /// Word offset of the first model instance.
+    pub first: usize,
+    /// Word offset of the model instance count.
+    pub count: usize,
+    /// Word offset of the admitted cascade bit mask.
+    pub cascade_mask: usize,
+}
+
+/// Shell-supplied GPU inputs for one model caster pass.
+pub struct ModelCaster<'a> {
+    pub pipeline: &'a Bound,
+    pub materials: &'a BindGroup,
+    pub vertices: &'a Buffer,
+    pub instances: &'a Buffer,
+    pub vertex_count: u32,
+    pub routed: &'a CasterRouting,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CasterRouting {
-    batches: [u32; CASCADES],
+    batches: Vec<CasterBatch>,
+    counts: [u32; CASCADES],
 }
 
 impl CasterRouting {
@@ -38,45 +79,54 @@ impl CasterRouting {
     /// view-only batches, and `cascade_mask` admits a batch to each layer.
     pub fn from_batch_words(
         words: &[u32],
-        stride: usize,
-        pass_offset: usize,
-        caster_offset: usize,
-        cascade_mask_offset: usize,
+        layout: CasterBatchLayout,
         pass: u32,
         none: u32,
     ) -> Self {
         let mut routing = Self::default();
-        if stride == 0 {
+        if layout.stride == 0 {
             return routing;
         }
-        for batch in words.chunks_exact(stride) {
+        for batch in words.chunks_exact(layout.stride) {
             let (Some(&batch_pass), Some(&caster), Some(&mask)) = (
-                batch.get(pass_offset),
-                batch.get(caster_offset),
-                batch.get(cascade_mask_offset),
+                batch.get(layout.pass),
+                batch.get(layout.caster),
+                batch.get(layout.cascade_mask),
             ) else {
                 continue;
             };
             if batch_pass != pass || caster == none {
                 continue;
             }
+            let (Some(&first), Some(&count)) = (batch.get(layout.first), batch.get(layout.count))
+            else {
+                continue;
+            };
+            if first == none || count == 0 || mask == 0 || first.checked_add(count).is_none() {
+                continue;
+            }
+            routing.batches.push(CasterBatch {
+                first,
+                count,
+                cascade_mask: mask,
+            });
             for cascade in 0..CASCADES {
                 if mask & (1 << cascade) != 0 {
-                    routing.batches[cascade] = routing.batches[cascade].saturating_add(1);
+                    routing.counts[cascade] = routing.counts[cascade].saturating_add(1);
                 }
             }
         }
         routing
     }
 
-    /// Number of admitted caster batches for one cascade.
-    pub fn batches(&self, cascade: usize) -> u32 {
-        self.batches.get(cascade).copied().unwrap_or(0)
+    /// The admitted model runs in presentation order.
+    pub fn batches(&self) -> &[CasterBatch] {
+        &self.batches
     }
 
     /// All four cascade counts, for telemetry and shell scheduling.
     pub fn counts(&self) -> [u32; CASCADES] {
-        self.batches
+        self.counts
     }
 }
 
@@ -215,11 +265,66 @@ impl ShadowResources {
         }
         self.active as u32
     }
+
+    /// Draw the routed model caster batches into fitted cascades. Presentation
+    /// supplies the per-cascade admission; the shell supplies model bindings.
+    pub fn encode_models(&self, encoder: &mut CommandEncoder, model: ModelCaster<'_>) -> u32 {
+        let mut passes = 0;
+        for (cascade, layer) in self.layers.iter().take(self.active).enumerate() {
+            if model.routed.counts[cascade] == 0 {
+                continue;
+            }
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("shared-shadow-model-cascade"),
+                color_attachments: &[],
+                depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+                    view: layer,
+                    depth_ops: Some(Operations {
+                        load: LoadOp::Load,
+                        store: StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
+                ..Default::default()
+            });
+            model.pipeline.set(
+                &mut pass,
+                &[
+                    ("typegpuCameraLayout", &self.groups[cascade]),
+                    ("modelLayout", model.materials),
+                ],
+            );
+            pass.set_vertex_buffer(0, model.vertices.slice(..));
+            pass.set_vertex_buffer(1, model.instances.slice(..));
+            for batch in model
+                .routed
+                .batches
+                .iter()
+                .filter(|batch| batch.cascade_mask & (1 << cascade) != 0)
+            {
+                pass.draw(
+                    0..model.vertex_count,
+                    batch.first..batch.first.saturating_add(batch.count),
+                );
+            }
+            passes += 1;
+        }
+        passes
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{CasterRouting, CASCADES};
+    use super::{CasterBatchLayout, CasterRouting, CASCADES};
+
+    const LAYOUT: CasterBatchLayout = CasterBatchLayout {
+        stride: 12,
+        pass: 3,
+        caster: 4,
+        first: 7,
+        count: 8,
+        cascade_mask: 9,
+    };
 
     #[test]
     fn routes_only_cast_batches_to_their_admitted_cascades() {
@@ -234,7 +339,7 @@ mod tests {
             0,
             0,
             0,
-            0,
+            1,
             0b0101,
             0,
             0, // casts 0 and 2
@@ -258,7 +363,7 @@ mod tests {
             0,
             0,
             0,
-            0,
+            1,
             0b1111,
             0,
             0, // view pass
@@ -269,22 +374,61 @@ mod tests {
             3,
             0,
             0,
-            0,
-            0,
+            2,
+            2,
             0b0010,
             0,
             0, // casts 1
         ];
-        let routing = CasterRouting::from_batch_words(&words, 12, 3, 4, 9, 1, u32::MAX);
+        let routing = CasterRouting::from_batch_words(&words, LAYOUT, 1, u32::MAX);
         assert_eq!(routing.counts(), [1, 1, 1, 0]);
-        assert_eq!(routing.batches(CASCADES), 0);
+        assert_eq!(routing.batches().len(), 2);
+        assert_eq!(
+            routing.batches()[0],
+            super::CasterBatch {
+                first: 0,
+                count: 1,
+                cascade_mask: 0b0101
+            }
+        );
+        assert_eq!(
+            routing.batches()[1],
+            super::CasterBatch {
+                first: 2,
+                count: 2,
+                cascade_mask: 0b0010
+            }
+        );
+        assert_eq!(routing.batches().get(CASCADES), None);
     }
 
     #[test]
     fn malformed_stride_and_offsets_are_ignored() {
-        let routing = CasterRouting::from_batch_words(&[1, 2, 3], 0, 0, 1, 2, 1, u32::MAX);
+        let routing = CasterRouting::from_batch_words(
+            &[1, 2, 3],
+            CasterBatchLayout {
+                stride: 0,
+                ..LAYOUT
+            },
+            1,
+            u32::MAX,
+        );
         assert_eq!(routing, CasterRouting::default());
-        let routing = CasterRouting::from_batch_words(&[1, 2, 3], 4, 3, 4, 9, 1, u32::MAX);
+        let routing = CasterRouting::from_batch_words(
+            &[1, 2, 3],
+            CasterBatchLayout {
+                stride: 4,
+                ..LAYOUT
+            },
+            1,
+            u32::MAX,
+        );
+        assert_eq!(routing, CasterRouting::default());
+        let words = [0, 0, 0, 1, 2, 0, 0, u32::MAX - 1, 3, 1, 0, 0];
+        let routing = CasterRouting::from_batch_words(&words, LAYOUT, 1, u32::MAX);
+        assert_eq!(routing, CasterRouting::default());
+        let words = [0, 0, 0, 1, 2, 0, 0, 0, 1, 0, 0, 0];
+        let routing = CasterRouting::from_batch_words(&words, LAYOUT, 1, u32::MAX);
         assert_eq!(routing, CasterRouting::default());
     }
 }

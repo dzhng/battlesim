@@ -17,7 +17,9 @@ use renderer_core::model::Model;
 use renderer_core::model_material::ModelMaterialBindings;
 use renderer_core::pipelines::{Bound, Pipelines};
 use renderer_core::post::PostResources;
-use renderer_core::shadow::{CasterRouting, ShadowResources, CAMERA_BYTES, RECEIVER_BYTES};
+use renderer_core::shadow::{
+    CasterBatchLayout, CasterRouting, ShadowResources, CAMERA_BYTES, RECEIVER_BYTES,
+};
 use renderer_core::world::{Layer, Surface as WorldSurface, WorldInputs};
 use renderer_core::{encode_grouped, TargetOwner};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -188,6 +190,7 @@ pub struct Renderer {
     production_model_vertices: Buffer,
     production_model_instances: Buffer,
     production_model_vertex_count: u32,
+    production_model_instance_count: u32,
     depth: DepthPrepass,
     camera_buffer: Buffer,
     camera_group: BindGroup,
@@ -482,6 +485,7 @@ impl Renderer {
             production_model_vertices,
             production_model_instances,
             production_model_vertex_count,
+            production_model_instance_count: 0,
             depth,
             camera_buffer,
             camera_group,
@@ -626,7 +630,7 @@ impl Renderer {
 
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
-    pub fn upload_instances(&self, instances: &[f32]) -> Result<(), JsValue> {
+    pub fn upload_instances(&mut self, instances: &[f32]) -> Result<(), JsValue> {
         if !instances.len().is_multiple_of(16) {
             return Err(js_error("shared model instances need 16 floats"));
         }
@@ -635,13 +639,14 @@ impl Renderer {
             0,
             bytemuck::cast_slice(instances),
         );
+        self.production_model_instance_count = (instances.len() / 16) as u32;
         Ok(())
     }
 
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedFogSight":{},"shadowCasterBatches":[{},{},{},{}],"shadowPasses":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"fogHeightWords":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedFogSight":{},"shadowCasterBatches":[{},{},{},{}],"shadowPasses":{},"shadowModelPasses":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"fogHeightWords":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -657,6 +662,7 @@ impl Renderer {
             self.stats.shadow_caster_batches[2],
             self.stats.shadow_caster_batches[3],
             self.stats.shadow_passes,
+            self.stats.shadow_model_passes,
             true,
             self.stats.shared_model_prepass,
             self.stats.surface_recoveries,

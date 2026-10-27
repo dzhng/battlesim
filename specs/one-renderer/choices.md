@@ -95,3 +95,37 @@ device-loss injection contract. **Reach:** blocks final TypeGPU deletion until
 the shell can rebuild the device/resource set or the product explicitly owns a
 browser reload policy. **Verdict:** sound to leave open. **Confidence:** high.
 
+### Shared shadow routing preserves each admitted model instance range
+
+The presentation record does not merely say that a cascade has some casters;
+each model batch names the first instance, the number of instances, and the
+cascades that admitted that run. The shared Rust shadow owner now keeps those
+ranges and issues one draw for each admitted run inside the cascade's render
+pass. A model that was culled from a cascade therefore cannot cast there just
+because another model did. The alternative would have kept only per-cascade
+counts and drawn the whole browser instance buffer, which would make a valid
+looking fixture lie about culling and would diverge from native's `Run` list.
+
+**Gap:** the spec required presentation-owned caster routing but did not say
+whether the browser proof could collapse it to counts. **Reach:** native and
+browser must use the same `first/count/cascade_mask` contract before shadow
+receiver sampling can be judged against matched pixels. **Verdict:** sound;
+the shared scene now reports model-caster passes after the range-aware draw
+path, and malformed or empty ranges are rejected at the boundary. **Confidence:**
+high.
+
+### Shared renderer boundaries use named input contracts
+
+The first version of the range-aware change passed nine positional numbers for
+the packed batch layout and eight more for the model draw. That made a swapped
+offset or resource easy to compile and hard to review. The shared core now
+receives a named `CasterBatchLayout` and a named `ModelCaster` input bundle.
+The alternative would be a shorter call site with more positional ambiguity;
+the new shape makes the browser shell's platform adaptation visible while
+keeping the pass implementation in one owner.
+
+**Gap:** the spec required a platform-independent boundary but did not prescribe
+how to keep a packed-record API auditable. **Reach:** every later extracted pass
+should use the same named-contract rule instead of growing argument lists.
+**Verdict:** sound; clippy's argument-count gate passes without suppression.
+**Confidence:** high.

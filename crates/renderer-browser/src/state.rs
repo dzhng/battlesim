@@ -10,6 +10,7 @@ pub(super) struct Stats {
     pub(super) shared_shadow: bool,
     pub(super) shadow_caster_batches: [u32; 4],
     pub(super) shadow_passes: u32,
+    pub(super) shadow_model_passes: u32,
     pub(super) shared_environment: bool,
     pub(super) shared_fog_sight: bool,
     pub(super) shared_model_prepass: bool,

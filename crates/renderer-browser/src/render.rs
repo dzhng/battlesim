@@ -1,6 +1,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use super::*;
+use renderer_core::shadow::ModelCaster;
 
 #[wasm_bindgen]
 impl Renderer {
@@ -36,6 +37,7 @@ impl Renderer {
             &self.production_model_vertices,
             &self.production_model_instances,
             self.production_model_vertex_count,
+            self.production_model_instance_count,
         );
         self.stats.shared_model_prepass = true;
         production_model::encode_opaque(
@@ -49,6 +51,7 @@ impl Renderer {
             &self.production_model_vertices,
             &self.production_model_instances,
             self.production_model_vertex_count,
+            self.production_model_instance_count,
         );
         if self.overlay_vertex_count > 0 {
             self.shared_overlay_resources.encode_geometry(
@@ -121,5 +124,19 @@ impl Renderer {
             self.shadow_ground_count,
         );
         self.stats.shadow_passes = self.stats.shadow_passes.saturating_add(passes);
+        let model_pipeline = self.production_pipelines.bound("modelCaster");
+        let model_passes = self.shared_shadow.encode_models(
+            encoder,
+            ModelCaster {
+                pipeline: &model_pipeline,
+                materials: self.material_bindings.bind_group(),
+                vertices: &self.production_model_vertices,
+                instances: &self.production_model_instances,
+                vertex_count: self.production_model_vertex_count,
+                routed: &self.shadow_routing,
+            },
+        );
+        self.stats.shadow_model_passes =
+            self.stats.shadow_model_passes.saturating_add(model_passes);
     }
 }

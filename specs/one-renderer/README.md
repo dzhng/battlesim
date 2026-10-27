@@ -2,9 +2,9 @@
 
 **Status:** implementation in progress on PR #16. Shared targets, pipelines,
 depth, world, indexed model upload, fog-mask, post, fog-compute, lifecycle,
-presentation upload, and device-loss recovery now have one Rust owner. Full
-production pass parity, native/browser matched output, and TypeGPU deletion
-remain.
+presentation upload, device-loss recovery, and range-aware shadow caster
+routing now have one Rust owner. Full production pass parity, native/browser
+matched output, and TypeGPU deletion remain.
 **Updated:** 2026-10-27.
 
 The first question is answered: Rust `wgpu` can run in browser WASM through
@@ -27,7 +27,11 @@ the shared target formats, target allocation and GPU buffer/bind helpers, and
 surface/device/assets/audio concerns. Do not add another Rust pass graph.
 Keep TypeGPU as the browser control until the shared native/browser core clears
 the matched-image, startup, frame-time, resize, rebuild, and production pass
-parity gates.
+parity gates. The current pickup is the shadow/material parity pass: bind the
+real receiver records and authored material/lighting inputs to the shared
+model/world draws, then compare the same multi-model production fixture. Do
+not treat the current range-aware caster counters as a visual shadow proof;
+the latest review still sees no readable contact shadows.
 
 ## Decision map
 
@@ -190,12 +194,13 @@ stops the work before a full port is attempted:
    The shared browser frame now allocates the real exported pipeline set and
    encodes shared fog-mask, post, rim, and display-space overlay passes on every
    fixture frame. The browser now constructs the shared nine-resource environment bind group,
-   uploads the fitted shadow receiver/caster records, and routes the frozen
-   batch cascade masks. It also allocates the shared fog sight buffers and
+   uploads the fitted shadow receiver/caster records, and routes each admitted
+   model batch's `first/count/cascade_mask` range through the shared shadow
+   pass. It also allocates the shared fog sight buffers and
    bind groups plus a browser upload seam; dispatch runs terrain, merge, whole,
    and cull from the uploaded counts. Remaining bounded inputs are
-   model caster routing/receiver sampling, non-flat fog height-page parity, and
-   a matched production frame, not a second pass implementation. The overlay
+   receiver sampling, non-flat fog height-page parity, and a matched production
+   frame, not a second pass implementation. The overlay
    owner consumes the exported translucent geometry, world depth, transparent
    target, glow blur, and composite order.
    The shared target owner now allocates the overlay depth, paint, resolved
@@ -319,13 +324,15 @@ The runnable surface is the `one-renderer` developer tool and scene:
   omits BattleFrame material, fog, overlay and post behaviour.
 - The shared native/browser row now fetches the real `test_tank` runtime asset
   through the browser shell. Its latest setup/encode/queue-boundary reading is
-  `41.1 / 1.6 / 0.1 ms` for 120 frames. The parser sees 27 textures, 12
+  `168.0 / 6.3 / 0.1 ms` for 120 frames after device-loss recovery. The parser sees 27 textures, 12
   materials, 98,021 vertices and 236,706 indices from 3,960,005 compressed
   wire bytes; it uploads the first authored texture and the shared model owner
-  draws 37,002 indexed vertices. The row also completes a 640×360 → 320×180 →
-  640×360 resize round trip. The screenshot is structurally non-empty but its
-  top-down, low-contrast fixture does not claim production material, fog,
-  shadow, post or overlay parity.
+  draws 37,002 indexed vertices plus 484 model-caster passes. The row also
+  completes a 640×360 → 320×180 → 640×360 resize round trip. The screenshot is
+  structurally non-empty but its top-down, low-contrast fixture does not claim
+  production material, fog, shadow, post or overlay parity. A fresh visual
+  review still finds no readable contact/cast shadows and clipped overlay
+  geometry; those are open parity defects, not accepted output.
 
 ## Current verdict
 

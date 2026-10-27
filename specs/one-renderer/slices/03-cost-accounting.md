@@ -20,16 +20,16 @@ a complexity score.
 
 | Owner | Files | Lines | Code lines | Source bytes |
 | --- | ---: | ---: | ---: | ---: |
-| Production browser renderer TypeScript (`packages/battle-renderer/src`) | 88 | 20,815 | 16,189 | 816,063 |
+| Production browser renderer TypeScript (`packages/battle-renderer/src`) | 88 | 20,815 | 16,189 | 816,050 |
 | Production browser shaders (`packages/battle-renderer/pipelines`) | 63 | 16,714 | 14,696 | 654,269 |
 | Renderer primitives (`packages/renderer-core/src`) | 11 | 1,604 | 1,156 | 64,747 |
-| Rust spike (`crates/renderer-wasm-spike/src`) | 5 | 2,253 | 2,154 | 86,786 |
-| Shared Rust renderer core (`crates/renderer-core/src`) | 5 | 1,079 | 875 | 36,547 |
-| Shared Rust browser shell (`crates/renderer-browser/src`) | 1 | 477 | 448 | 19,804 |
-| Native renderer modules (`native/client/src`, pass/resource owners) | 15 | 4,383 | 3,765 | 154,382 |
-| Native platform shell (`native/client/src`, desktop/assets/audio) | 7 | 2,762 | 2,260 | 105,241 |
-| Spike browser harness (`oneRenderer*.ts*`) | 3 | 1,488 | 1,400 | 53,568 |
-| Spike scene checker (`web/scenes/one-renderer.mjs`) | 1 | 81 | 77 | 3,270 |
+| Rust spike (`crates/renderer-wasm-spike/src`) | 5 | 2,255 | 2,154 | 86,819 |
+| Shared Rust renderer core (`crates/renderer-core/src`) | 14 | 2,854 | 2,417 | 94,849 |
+| Shared Rust browser shell (`crates/renderer-browser/src`) | 11 | 1,902 | 1,755 | 72,968 |
+| Native renderer modules (`native/client/src`, pass/resource owners) | 15 | 4,026 | 3,427 | 141,925 |
+| Native platform shell (`native/client/src`, desktop/assets/audio) | 7 | 1,935 | 1,529 | 70,560 |
+| Spike browser harness (`oneRenderer*.ts*`) | 3 | 769 | 728 | 27,483 |
+| Spike scene checker (`web/scenes/one-renderer.mjs`) | 1 | 138 | 134 | 5,350 |
 
 The standalone Rust source is currently about 6% of the production renderer's
 TypeScript plus WGSL physical lines. It now has a production-shaped pass graph,
@@ -41,13 +41,13 @@ against both the native client today and the browser TypeGPU renderer.
 The first shared-core checkpoints have landed: target allocation, buffer/bind
 helpers, pass debug-group orchestration, pipeline construction, reverse-Z depth
 and world-target attachment policy now have one owner in `renderer-core`. The
-current extracted core is 1,079 physical lines; the remaining native client is
-7,291 lines, of which the measured pass/resource subset is 4,388 lines and the
-desktop/platform shell is 2,647 lines. This is exact accounting of the current
-split, not a forecast: most pass code is still native-only, so the shared-core
-total will grow as world/material, shadow, fog, effects and post owners move.
+current extracted core is 2,854 physical lines and the browser shell is 1,902
+lines; the remaining native pass/resource modules measure 4,026 lines and the
+native platform shell 1,935 lines. This is exact accounting of the current
+split, not a forecast: material, fog, effects and post owners still have native
+or browser-only pieces, so the shared-core total will grow as those owners move.
 
-The generated shared-browser payload measures 508,439 bytes of WASM and 69,184
+The generated shared-browser payload measures 1,339,861 bytes of WASM and 84,761
 bytes of generated JavaScript. The standalone transport spike remains 201,249
 bytes of WASM and 72,057 bytes of generated JavaScript. These figures do not
 include the production battle WASM, the 3,960,005 compressed test-tank asset
@@ -58,17 +58,20 @@ payload, or shared application chunks.
 ## Exact current tradeoff
 
 The shared work is additive until the browser TypeGPU renderer is deleted. The
-current measured Rust side is `1,079` shared-core lines plus `477` browser-shell
-lines, while the native renderer still retains `4,383` pass/resource lines and
-`2,762` desktop-shell lines. In other words, the extraction has added a browser
+current measured Rust side is `2,854` shared-core lines plus `1,902` browser-shell
+lines, while the native renderer still retains `4,026` pass/resource lines and
+`1,935` desktop-shell lines. In other words, the extraction has added a browser
 shell and a model seam without yet removing a production pass owner. The
 complexity payoff starts only when the remaining native pass modules move into
 the shared owner and the equivalent browser TypeScript/WGSL owners are removed.
 
-The current shared browser checkpoint is exact: `41.1 ms` setup including
+The earlier shared-browser asset checkpoint measured `41.1 ms` setup including
 asset fetch/decompression/parse/upload, `1.6 ms` CPU encode for 120 frames and
-`0.1 ms` queue/compositor boundary. It draws 37,002 indexed vertices and
-survives two target reallocations. The TypeGPU production control is
+`0.1 ms` queue/compositor boundary. After range-aware model caster routing and
+the real device-loss recovery round trip, the current interleaved scene reports
+`168.0 / 6.3 / 0.1 ms` for setup / CPU encode / queue boundary. It draws
+37,002 indexed vertices and executes 484 model-caster passes while surviving
+two target reallocations and one device recreation. The TypeGPU production control is
 `154.0 / 32.8 / 140.0 ms` on the same run, while the standalone Rust graph is
 `8.9 / 21.0 / 30.4 ms`; the standalone number is not a migration comparison
 because its image distance is `47.03` and its material/shadow/fog/post owners

@@ -4,10 +4,9 @@ import { requestGpuDevice } from "@packages/renderer-core/src/device";
 import { eyePosition, screenAxes, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { Renderer } from "@wasm/renderer_spike/renderer_wasm_spike.js";
 import { Renderer as SharedRenderer } from "@wasm/renderer_browser/renderer_browser.js";
-import { gzipTransport, readBundle, readGzip } from "@packages/scene-assets/src/gzip";
+import { gzipTransport, readGzip } from "@packages/scene-assets/src/gzip";
 import { bundlePath, texturePath } from "@packages/scene-assets/src/schema";
-import type { Bundle, RuntimeCatalog } from "@packages/scene-assets/src/schema";
-import { posedPalette } from "@packages/battle-renderer/src/models/modelInstances";
+import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import {
   loadPresentation,
@@ -18,9 +17,10 @@ import {
 import { gameFogStyle } from "../gameFog";
 import { gameLight } from "../gameLight";
 import { gameOverlayGlow } from "../gameOverlay";
-import { FOUNDATION, groundPatch, FOUNDATION_CAMERA } from "./frame";
-import { modelEncoder, modelPipeline, type ModelWorkload } from "./oneRendererModel";
+import { groundPatch, FOUNDATION_CAMERA } from "./frame";
+import { modelEncoder, modelPipeline } from "./oneRendererModel";
 import { battleFixture, BATTLE_HEIGHT, BATTLE_WIDTH } from "./oneRendererBattle";
+import { loadTankBundle, mw } from "./oneRendererAssets";
 
 export const WIDTH = 640;
 export const HEIGHT = 360;
@@ -210,101 +210,6 @@ function encodeReal(
   pass.draw(vertices.length / 10);
   pass.end();
   device.queue.submit([encoder.finish()]);
-}
-
-let tankBundle: Promise<Exclude<Bundle, { kind: "clips" }>> | null = null;
-
-async function loadTankBundle(): Promise<Exclude<Bundle, { kind: "clips" }>> {
-  if (!tankBundle) {
-    tankBundle = (async () => {
-      const catalog = (await (await fetch("/catalog.json")).json()) as RuntimeCatalog;
-      const hash = catalog.appearances?.test_tank?.bundle;
-      if (!hash) throw new Error("runtime catalog has no test_tank bundle");
-      return (await readBundle(
-        catalog,
-        hash,
-        async (path) => new Uint8Array(await (await fetch(`/${path}`)).arrayBuffer()),
-      )) as Exclude<Bundle, { kind: "clips" }>;
-    })();
-  }
-  return tankBundle;
-}
-
-function mw(bundle: Exclude<Bundle, { kind: "clips" }>): ModelWorkload {
-  const tier = 1;
-  const posed = posedPalette(bundle, null);
-  const parts =
-    bundle.kind === "articulated"
-      ? bundle.nodes.map((node, nodeIndex) => ({
-          mesh: node.tiers[Math.min(tier, node.tiers.length - 1)],
-          transform:
-            posed.kind === "posed"
-              ? posed.palette.subarray(nodeIndex * 12, nodeIndex * 12 + 12)
-              : null,
-        }))
-      : [
-          {
-            mesh:
-              bundle.kind === "skinned"
-                ? bundle.tiers[Math.min(tier, bundle.tiers.length - 1)]
-                : bundle.states[0].tiers[Math.min(tier, bundle.states[0].tiers.length - 1)],
-            transform: null,
-          },
-        ];
-  const vertices: number[] = [];
-  const indices: number[] = [];
-  for (const { mesh, transform } of parts) {
-    if (!mesh) continue;
-    const base = vertices.length / 9;
-    for (let i = 0; i < mesh.positions.length / 3; i++) {
-      let x = mesh.positions[i * 3];
-      let y = mesh.positions[i * 3 + 1];
-      let z = mesh.positions[i * 3 + 2];
-      if (transform) {
-        [x, y, z] = [
-          transform[0] * x + transform[1] * y + transform[2] * z + transform[3],
-          transform[4] * x + transform[5] * y + transform[6] * z + transform[7],
-          transform[8] * x + transform[9] * y + transform[10] * z + transform[11],
-        ];
-      }
-      vertices.push(
-        x,
-        y,
-        z,
-        mesh.colors[i * 4] / 255,
-        mesh.colors[i * 4 + 1] / 255,
-        mesh.colors[i * 4 + 2] / 255,
-        mesh.colors[i * 4 + 3] / 255,
-        mesh.uvs[i * 2],
-        mesh.uvs[i * 2 + 1],
-      );
-    }
-    for (const index of mesh.indices) indices.push(base + index);
-  }
-  const modelPlacements = FOUNDATION.filter((p) => p.kind === "test_tank").concat(
-    FOUNDATION.filter((p) => p.kind === "test_tank").map((p) => ({ ...p, x: p.x + 9, y: p.y + 7 })),
-  );
-  const instances = modelPlacements.flatMap((p, i) => [
-    p.x,
-    p.y,
-    p.z,
-    p.yaw,
-    i % 2 ? 0.78 : 0.58,
-    i % 2 ? 0.88 : 0.72,
-    1.0,
-    1.0,
-  ]);
-  const source = bundle.textures.find((texture) => texture.levels[0]?.length >= 4);
-  const textureWidth = source?.width ?? 1;
-  const textureHeight = source?.height ?? 1;
-  return {
-    vertices: new Float32Array(vertices),
-    indices: new Uint32Array(indices),
-    instances: new Float32Array(instances),
-    texture: source?.levels[0] ?? Uint8Array.of(255, 255, 255, 255),
-    textureWidth,
-    textureHeight,
-  };
 }
 
 function realFrame(cameraParams: Camera3DParams = FOUNDATION_CAMERA) {
@@ -611,6 +516,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   ).upload_instances(si);
   const ff = battleFixture();
   const f = ff.camera;
+  const shadowBatches = new Uint32Array([...f.batches.u32, 0, 0, 0, 1, 0, 0, 0, 0, 1, 15, 0, 0]);
   const upload = renderer as SharedRenderer & {
     upload_fog_heights: (heights: Uint32Array) => void;
     upload_frame: (
@@ -651,7 +557,9 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
-  upload.upload_ground(concatMeshes([ff.terrain, ff.world.props]));
+  upload.upload_ground(
+    concatMeshes([Float32Array.from(ff.terrain), Float32Array.from(ff.world.props)]),
+  );
   const h = () => {
     const heights = ff.presentation.presentedGround()?.pages();
     if (heights?.length) upload.upload_fog_heights(new Uint32Array(heights));
@@ -704,7 +612,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   ).upload_shadow(
     new Float32Array(f.sun_shadow.f32),
     new Float32Array(f.casters.f32),
-    new Uint32Array(f.batches.u32),
+    shadowBatches,
   );
   canvas.width = 320;
   canvas.height = 180;
@@ -733,7 +641,9 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       upload_instances: (instances: Float32Array) => void;
     }
   ).upload_instances(si);
-  upload.upload_ground(concatMeshes([ff.terrain, ff.world.props]));
+  upload.upload_ground(
+    concatMeshes([Float32Array.from(ff.terrain), Float32Array.from(ff.world.props)]),
+  );
   h();
   upload.overlay(
     concatMeshes([
@@ -751,7 +661,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   ).upload_shadow(
     new Float32Array(f.sun_shadow.f32),
     new Float32Array(f.casters.f32),
-    new Uint32Array(f.batches.u32),
+    shadowBatches,
   );
   renderer.render();
   const setupMs = performance.now() - started;

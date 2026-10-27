@@ -62,6 +62,7 @@ pub fn encode_prepass(
     vertices: &wgpu::Buffer,
     instances: &wgpu::Buffer,
     vertex_count: u32,
+    instance_count: u32,
 ) {
     let pipeline = pipelines.bound("modelPrepass");
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -83,7 +84,7 @@ pub fn encode_prepass(
     );
     pass.set_vertex_buffer(0, vertices.slice(..));
     pass.set_vertex_buffer(1, instances.slice(..));
-    pass.draw(0..vertex_count, 0..1);
+    pass.draw(0..vertex_count, 0..instance_count);
 }
 
 /// Lit-model pass using the exported material/environment/fog contract.
@@ -99,6 +100,7 @@ pub fn encode_opaque(
     vertices: &wgpu::Buffer,
     instances: &wgpu::Buffer,
     vertex_count: u32,
+    instance_count: u32,
 ) {
     let pipeline = pipelines.bound("modelOpaque");
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -144,7 +146,7 @@ pub fn encode_opaque(
     );
     pass.set_vertex_buffer(0, vertices.slice(..));
     pass.set_vertex_buffer(1, instances.slice(..));
-    pass.draw(0..vertex_count, 0..1);
+    pass.draw(0..vertex_count, 0..instance_count);
 }
 
 fn pack<const N: usize>(
