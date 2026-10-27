@@ -150,9 +150,10 @@ stops the work before a full port is attempted:
    rim pass, and attachment policy. Native wraps the shared owner; GPU work and
    pass order are unchanged. Fog sight/compute/material classification remain
    native-only and must move next.
-9. **Effects and post extraction — next.** Move flipbook/effect resource
-   ownership and bloom/grade target ownership into browser-safe core modules,
-   keeping filesystem/runtime asset loading in the native shell.
+9. **Effects and post extraction — checkpoint complete.** Flipbook/effect
+   resource ownership remains shell-provided, while browser-safe effects and
+   bloom/grade target/pass ownership now live in `renderer-core` and are
+   encoded by the shared browser frame.
 10. **Lifecycle extraction — checkpoint complete.** `renderer_core::TargetOwner`
    atomically swaps size-dependent targets and increments one shared generation;
    native `Passes` consumes it without changing GPU work. Fog sight/compute and
