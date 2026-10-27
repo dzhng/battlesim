@@ -225,6 +225,12 @@ impl Renderer {
             surface_index: surface_index.to_vec(),
             scars: scars.to_vec(),
         });
+        self.stats.shared_terrain = true;
+        self.stats.terrain_params_words = params.len() as u32;
+        self.stats.terrain_nodes_words = nodes.len() as u32;
+        self.stats.terrain_plots_words = plots.len() as u32;
+        self.stats.terrain_surface_words = surfaces.len() as u32;
+        self.stats.terrain_index_words = surface_index.len() as u32;
         Ok(())
     }
 

@@ -42,6 +42,7 @@ mod recovery;
 mod render;
 mod shadow_upload;
 mod state;
+mod stats_api;
 use asset::AssetSnapshot;
 use environment::BrowserEnvironment;
 use state::{PresentationSnapshot, Stats};
@@ -723,46 +724,5 @@ impl Renderer {
             (palettes.len() + instances.len() + batches.len()) as u32;
         self.stats.presentation_material_words = material_rows.len() as u32;
         Ok(())
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn stats(&self) -> String {
-        format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedFogSight":{},"shadowCasterBatches":[{},{},{},{}],"shadowPasses":{},"shadowModelPasses":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"fogHeightWords":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"presentationModelWords":{},"presentationMaterialWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
-            self.stats.frames,
-            self.stats.draw_calls,
-            self.stats.model_vertices,
-            self.stats.resizes,
-            self.stats.shared_passes,
-            self.stats.target_generation,
-            self.stats.shared_materials,
-            self.stats.shared_shadow,
-            self.stats.shared_environment,
-            self.stats.shared_fog_sight,
-            self.stats.shadow_caster_batches[0],
-            self.stats.shadow_caster_batches[1],
-            self.stats.shadow_caster_batches[2],
-            self.stats.shadow_caster_batches[3],
-            self.stats.shadow_passes,
-            self.stats.shadow_model_passes,
-            true,
-            self.stats.shared_model_prepass,
-            self.stats.surface_recoveries,
-            self.stats.device_recoveries,
-            self.device_lost.load(Ordering::Relaxed),
-            self.stats.presentation_uploads,
-            self.stats.fog_sight_uploads,
-            self.stats.fog_height_words,
-            self.stats.presentation_bound,
-            self.stats.presentation_camera_words,
-            self.stats.presentation_environment_words,
-            self.stats.presentation_fog_words,
-            self.stats.presentation_overlay_words,
-            self.stats.presentation_model_words,
-            self.stats.presentation_material_words,
-            self.width,
-            self.height,
-            self.asset_report.as_deref().unwrap_or("null")
-        )
     }
 }
