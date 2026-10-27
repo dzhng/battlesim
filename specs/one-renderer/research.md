@@ -106,12 +106,15 @@ parity and repository closeout run only after all production passes are wired.
 ## Handoff
 
 Incumbent: `9783fa7b8` plus the shared browser-owner commits on PR #16.
-Active task: port native-equivalent shadow caster draws and exercise the shared
-fog height-page path against a non-flat production ground, then compare the
-matched production frame.
+Active task: extract native terrain tables, material rows, fog publication state,
+and static/model batch inputs behind the shared frame boundary, then compare the
+matched production frame. The sky/PMREM/DFG environment and non-flat page gates
+are already green; the direct exported world receiver remains diagnostic until
+these inputs are real.
 Regression set:
 renderer-core/native-client WASM checks, presentation tests, and the interleaved
-one-renderer scene. The latest rebuilt scene passes all eleven rows and executes
-the fetched mesh through exported model prepass, restores records after device
-loss, and reports the complete frozen record lengths. Next test: bind real
-environment/fog records to production shading and compare the matched frame.
+one-renderer scene. The latest rebuilt scene passes all eleven rows, executes the
+fetched mesh through exported model prepass, replays authored environment assets
+and a non-flat page after device loss, and reports the complete frozen record
+lengths. Next test: bind real terrain/material/fog publication records to the
+extracted production passes and compare the matched frame.
