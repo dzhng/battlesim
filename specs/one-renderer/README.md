@@ -164,7 +164,8 @@ stops the work before a full port is attempted:
    The browser shell now embeds the exact 63-pipeline export and every WGSL
    source through a generated build-time map; no filesystem access is added,
    and exposes an explicit validation method for building that export on the
-   browser device.
+   browser device. The one-renderer scene calls that validation before the
+   shared row and records all 63 pipelines in its workload.
 12. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
    shared Rust native on the same frozen presentation frame. Measure startup,
    CPU encode, GPU timestamps, memory, binary/download size, LOC, GPU object

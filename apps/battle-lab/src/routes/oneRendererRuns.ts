@@ -572,6 +572,11 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   canvas.width = REAL_WIDTH;
   canvas.height = REAL_HEIGHT;
   const renderer = await SharedRenderer.new(canvas);
+  const exportValidation = await (
+    renderer as SharedRenderer & {
+      validate_export(): Promise<string>;
+    }
+  ).validate_export();
   const catalog = (await (await fetch("/catalog.json")).json()) as RuntimeCatalog;
   const bundleHash = catalog.appearances?.test_tank?.bundle;
   if (!bundleHash) throw new Error("runtime catalog has no test_tank bundle");
@@ -606,7 +611,9 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   const encodeMs = performance.now() - encodeStart;
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   const submitMs = performance.now() - encodeStart - encodeMs;
-  const workload = renderer.stats().replace(/\}$/, `,"bundleWireBytes":${bundleWireBytes}}`);
+  const workload = renderer
+    .stats()
+    .replace(/\}$/, `,"bundleWireBytes":${bundleWireBytes},"export":${exportValidation}}`);
   renderer.free();
   return {
     mode: "shared-rust-core-browser",
