@@ -16,7 +16,7 @@ use renderer_core::model::Model;
 use renderer_core::model_material::ModelMaterialBindings;
 use renderer_core::pipelines::{Bound, Pipelines};
 use renderer_core::post::PostResources;
-use renderer_core::shadow::ShadowResources;
+use renderer_core::shadow::{CasterRouting, ShadowResources, CAMERA_BYTES, RECEIVER_BYTES};
 use renderer_core::world::{Layer, Surface as WorldSurface, WorldInputs};
 use renderer_core::{encode_grouped, TargetOwner};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -25,12 +25,17 @@ use wasm_bindgen::prelude::*;
 use web_sys::HtmlCanvasElement;
 use wgpu::*;
 
-mod pipeline_export {
+pub(crate) mod pipeline_export {
     include!(concat!(env!("OUT_DIR"), "/pipeline_export.rs"));
 }
 mod asset;
+mod environment;
+mod export;
 mod production_model;
+mod recovery;
+mod shadow_upload;
 use asset::AssetSnapshot;
+use environment::BrowserEnvironment;
 
 const PIPELINES: &str = r#"{
   "sizes":{"bloomLevels":0,"skyLut":[1,1],"effectSheet":1,"grassClump":1},
@@ -82,6 +87,8 @@ struct Stats {
     target_generation: u64,
     shared_materials: bool,
     shared_shadow: bool,
+    shadow_caster_batches: [u32; 4],
+    shared_environment: bool,
     shared_model_prepass: bool,
     surface_recoveries: u32,
     device_recoveries: u32,
@@ -99,6 +106,9 @@ struct PresentationSnapshot {
     environment: Vec<f32>,
     fog: Vec<f32>,
     overlay: Vec<f32>,
+    shadow: Vec<f32>,
+    casters: Vec<f32>,
+    batches: Vec<u32>,
 }
 
 fn build_exported_pipelines(device: &Device) -> Result<Pipelines, String> {
@@ -187,12 +197,15 @@ pub struct Renderer {
     material_surface: Texture,
     material_sampler: Sampler,
     shared_shadow: ShadowResources,
+    shadow_routing: CasterRouting,
     shared_fog_compute: FogComputeOwner,
+    environment: BrowserEnvironment,
     /// The presentation camera record bound by the shared model prepass.
     presentation_camera: Buffer,
     /// CPU presentation records staged for the remaining production passes.
+    /// The fog look is owned and bound by `shared_fog_mask`; only its CPU
+    /// snapshot remains here so a device or target rebuild can replay it.
     presentation_environment: Buffer,
-    presentation_fog: Buffer,
     presentation_overlay: Buffer,
     presentation_snapshot: Option<PresentationSnapshot>,
     production_camera_group: BindGroup,
@@ -219,35 +232,6 @@ fn js_error(error: impl std::fmt::Display) -> JsValue {
 
 #[wasm_bindgen]
 impl Renderer {
-    /// Diagnostics for the exact production pipeline export embedded in this
-    /// browser artifact. The fixture frame remains the control while its full
-    /// resource graph is wired.
-    #[wasm_bindgen]
-    pub fn exported_pipeline_count() -> usize {
-        pipeline_export::COUNT
-    }
-
-    #[wasm_bindgen]
-    pub fn exported_pipeline_manifest() -> String {
-        pipeline_export::MANIFEST.to_owned()
-    }
-
-    #[wasm_bindgen]
-    pub fn exported_pipeline_source(name: String) -> Option<String> {
-        pipeline_export::source(&name).map(str::to_owned)
-    }
-
-    /// Build the embedded production pipeline export on this browser device.
-    /// The fixture frame does not call this yet; the method isolates export
-    /// compatibility from the still-bounded frame comparison.
-    pub async fn validate_export(&self) -> Result<String, JsValue> {
-        let built = self.production_pipelines.names().count();
-        let _shared_resources = (&self.shared_post, &self.shared_fog_mask);
-        let _shadow_cascades = self.shared_shadow.active();
-        let _fog_pipeline_owner = &self.shared_fog_compute;
-        Ok(format!("{{\"pipelines\":{built}}}"))
-    }
-
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
     pub async fn new(canvas: HtmlCanvasElement) -> Result<Renderer, JsValue> {
@@ -350,7 +334,13 @@ impl Renderer {
             true,
             true,
         );
-        let shared_shadow = ShadowResources::new(&device, &production_pipelines, 64, &[0; 96], 64);
+        let shared_shadow = ShadowResources::new(
+            &device,
+            &production_pipelines,
+            64,
+            &[0; RECEIVER_BYTES],
+            CAMERA_BYTES,
+        );
         let shared_fog_compute = FogComputeOwner::new(&production_pipelines);
         let material_palette = renderer_core::buffer(
             &device,
@@ -404,17 +394,18 @@ impl Renderer {
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             &[0; 256],
         );
-        let presentation_fog = renderer_core::buffer(
-            &device,
-            "shared-presentation-fog",
-            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-            &[0; 256],
-        );
         let presentation_overlay = renderer_core::buffer(
             &device,
             "shared-presentation-overlay",
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             &[0; 256],
+        );
+        let environment = BrowserEnvironment::new(
+            &device,
+            &queue,
+            &production_pipelines,
+            &presentation_environment,
+            &shared_shadow,
         );
         let production_camera_group = renderer_core::bind(
             &device,
@@ -485,10 +476,11 @@ impl Renderer {
             material_surface,
             material_sampler,
             shared_shadow,
+            shadow_routing: CasterRouting::default(),
             shared_fog_compute,
+            environment,
             presentation_camera: production_camera,
             presentation_environment,
-            presentation_fog,
             presentation_overlay,
             presentation_snapshot: None,
             production_camera_group,
@@ -505,6 +497,7 @@ impl Renderer {
             device_lost,
             stats: Stats {
                 shared_shadow: true,
+                shared_environment: true,
                 ..Stats::default()
             },
             asset_report: None,
@@ -515,8 +508,8 @@ impl Renderer {
 
     /// Upload one frozen presentation frame at the shared renderer boundary.
     /// The camera is immediately bound by the exported model prepass; the
-    /// environment, fog and overlay records are retained in shell-owned
-    /// uniform buffers for the passes that consume them as they are extracted.
+    /// environment and overlay records are retained in shell-owned uniform
+    /// buffers while the shared fog-mask owner binds the resolved fog look.
     /// Inputs are the packed Float32 records returned by `presentation-wasm`.
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
@@ -553,7 +546,11 @@ impl Renderer {
             environment,
             "environment",
         )?;
-        let fog_words = write(&self.queue, &self.presentation_fog, fog, "fog")?;
+        let fog_bytes = bytemuck::cast_slice(fog);
+        self.shared_fog_mask
+            .write_look(&self.queue, fog_bytes)
+            .map_err(js_error)?;
+        let fog_words = fog.len() as u32;
         let overlay_words = write(&self.queue, &self.presentation_overlay, overlay, "overlay")?;
         self.stats.presentation_uploads = self.stats.presentation_uploads.saturating_add(1);
         self.stats.presentation_bound = true;
@@ -566,6 +563,9 @@ impl Renderer {
             environment: environment.to_vec(),
             fog: fog.to_vec(),
             overlay: overlay.to_vec(),
+            shadow: Vec::new(),
+            casters: Vec::new(),
+            batches: Vec::new(),
         });
         Ok(())
     }
@@ -593,6 +593,11 @@ impl Renderer {
                 true,
                 true,
             );
+            if let Some(presentation) = &self.presentation_snapshot {
+                self.shared_fog_mask
+                    .write_look(&self.queue, bytemuck::cast_slice(&presentation.fog))
+                    .expect("presentation fog look fits shared fog owner");
+            }
             self.stats.resizes += 1;
             self.stats.target_generation = self.targets.generation();
         }
@@ -622,40 +627,6 @@ impl Renderer {
     pub fn recover_surface(&mut self) {
         self.configure_surface();
         self.stats.surface_recoveries += 1;
-    }
-
-    /// Recreate the complete renderer after a WebGPU device loss.
-    ///
-    /// A lost device invalidates every pipeline, bind group, buffer and target
-    /// view. Reconfiguring the old surface cannot make those handles usable,
-    /// so this swaps in a fresh renderer built through the same constructor
-    /// used at startup, then reuploads the cached CPU asset snapshot.
-    #[cfg(target_arch = "wasm32")]
-    #[wasm_bindgen]
-    pub async fn recover_device(&mut self, canvas: HtmlCanvasElement) -> Result<(), JsValue> {
-        let previous_stats = self.stats;
-        let previous_lost = self.device_lost.load(Ordering::Relaxed);
-        let snapshot = self.asset_snapshot.clone();
-        let presentation = self.presentation_snapshot.clone();
-        let mut replacement = Self::new(canvas).await?;
-        replacement.stats = previous_stats;
-        replacement.stats.device_recoveries = replacement.stats.device_recoveries.saturating_add(1);
-        replacement
-            .device_lost
-            .store(previous_lost, Ordering::Relaxed);
-        if let Some(snapshot) = snapshot {
-            replacement.load_bundle_bytes(snapshot.name, snapshot.bundle, snapshot.textures)?;
-        }
-        if let Some(presentation) = presentation {
-            replacement.upload_presentation_frame(
-                &presentation.camera,
-                &presentation.environment,
-                &presentation.fog,
-                &presentation.overlay,
-            )?;
-        }
-        *self = replacement;
-        Ok(())
     }
 
     /// Deliberately destroy the device so the browser scene can prove that
@@ -706,6 +677,7 @@ impl Renderer {
             self.production_model_vertex_count,
         );
         self.stats.shared_model_prepass = true;
+        self.shared_fog_mask.encode(&mut encoder, &self.targets);
         self.shared_post.encode(&mut encoder);
         self.stats.shared_passes += 1;
         let surface = match self.surface.get_current_texture() {
@@ -750,7 +722,7 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"shadowCasterBatches":[{},{},{},{}],"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -759,6 +731,11 @@ impl Renderer {
             self.stats.target_generation,
             self.stats.shared_materials,
             self.stats.shared_shadow,
+            self.stats.shared_environment,
+            self.stats.shadow_caster_batches[0],
+            self.stats.shadow_caster_batches[1],
+            self.stats.shadow_caster_batches[2],
+            self.stats.shadow_caster_batches[3],
             true,
             self.stats.shared_model_prepass,
             self.stats.surface_recoveries,
