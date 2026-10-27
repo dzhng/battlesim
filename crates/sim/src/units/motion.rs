@@ -98,10 +98,20 @@ pub fn ground_mobility(t: &UnitType, rules: &Rules) -> Option<Mobility> {
     })
 }
 
-/// Driving rules the vehicle motion model divides and eases by. (Each unit
-/// type's own numbers are the catalog's checks, at load.)
-pub fn validate_drive(rules: &Rules) {
-    let d = &rules.movement.drive;
+/// Movement rules the motion model and the route planner divide and ease
+/// by. (Each unit type's own numbers are the catalog's checks, at load.)
+pub fn validate(rules: &Rules) {
+    let m = &rules.movement;
+    for (name, v) in [
+        ("forest_infantry_multiplier", m.forest_infantry_multiplier),
+        ("forest_vehicle_multiplier", m.forest_vehicle_multiplier),
+    ] {
+        assert!(
+            v > 0.0 && v <= 1.0,
+            "movement.{name} must be in (0, 1]: no forest stops a mover dead"
+        );
+    }
+    let d = &m.drive;
     assert!(
         d.acceleration_s.is_finite()
             && d.acceleration_s > 0.0
