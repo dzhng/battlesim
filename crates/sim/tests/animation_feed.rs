@@ -3,6 +3,7 @@
 //! battles. The simulation never names an animation (Q7).
 use std::collections::{BTreeMap, BTreeSet};
 
+use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::observation::{ObservationFrame, OwnUnit, SegmentHit};
 use serde_json::{json, Value};
@@ -450,13 +451,13 @@ fn struck_firing_into(kind: &str) -> Vec<SegmentHit> {
         json!([]),
         1,
     );
-    let ack = b.accept(contract::command::CommandEnvelope {
+    let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
         player: None,
         seq: 1,
-        order: contract::command::Order::Attack {
+        order: Order::Attack {
             units: vec![UnitId(0)],
-            target: contract::command::TargetRef::Ground {
+            target: TargetRef::Ground {
                 point: [330.0, 300.0, 0.0],
             },
         },

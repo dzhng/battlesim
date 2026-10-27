@@ -70,7 +70,8 @@ pub struct PropBody {
     /// inside (Q22, the named garrison mechanic).
     #[serde(default)]
     pub garrison: bool,
-    /// Its outside is metal: a hull grinding it as it shoves it strikes sparks.
+    /// Its outside is metal: a hull grinding it as it shoves it, or a tracer
+    /// striking it, throws sparks.
     #[serde(default)]
     pub metal: bool,
 }
