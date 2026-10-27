@@ -16,6 +16,11 @@ pub struct BrowserEnvironment {
     sky_light: Buffer,
     sky_bake_pipeline: renderer_core::pipelines::Bound,
     sky_bake_group: BindGroup,
+    pmrem_ping: Texture,
+    pmrem_sampler: Sampler,
+    pmrem_geometry: Vec<Buffer>,
+    pmrem_bake_pipeline: renderer_core::pipelines::Bound,
+    pmrem_filter_pipeline: renderer_core::pipelines::Bound,
 }
 
 const SKY_LUT: [u32; 2] = [384, 192];
@@ -71,6 +76,11 @@ impl BrowserEnvironment {
             PMREM,
         );
         let dfg = sampled("shared-environment-dfg", TextureFormat::Rg16Float, DFG);
+        let pmrem_ping = sampled(
+            "shared-environment-pmrem-ping",
+            TextureFormat::Rgba16Float,
+            PMREM,
+        );
         let sky_words = vec![0x3c00u16; (SKY_LUT[0] * SKY_LUT[1] * 4) as usize];
         let pmrem_words = vec![0x3c00u16; (PMREM[0] * PMREM[1] * 4) as usize];
         let sky_bytes = bytemuck::cast_slice(&sky_words);
@@ -114,6 +124,19 @@ impl BrowserEnvironment {
             min_filter: FilterMode::Linear,
             ..Default::default()
         });
+        let max_mip = (SKY_LUT[0] / 4).ilog2();
+        let count = max_mip - 4 + 1 + 6;
+        let pmrem_geometry = (0..count)
+            .map(|lod| {
+                let size = 1u32 << max_mip.saturating_sub(lod).max(4);
+                renderer_core::buffer(
+                    device,
+                    "shared-environment-pmrem-planes",
+                    BufferUsages::VERTEX,
+                    bytemuck::cast_slice(&pmrem_planes(size)),
+                )
+            })
+            .collect();
         let bindings = EnvironmentBindings::new(
             device,
             pipelines.layout("environment"),
@@ -140,11 +163,16 @@ impl BrowserEnvironment {
             sky,
             pmrem,
             dfg,
-            sampler,
+            sampler: sampler.clone(),
             cast_lights,
             sky_light,
             sky_bake_pipeline: pipelines.bound("bake"),
             sky_bake_group,
+            pmrem_ping,
+            pmrem_sampler: sampler,
+            pmrem_geometry,
+            pmrem_bake_pipeline: pipelines.bound("pmremBake"),
+            pmrem_filter_pipeline: pipelines.bound("pmremFilter"),
         }
     }
 
@@ -175,5 +203,158 @@ impl BrowserEnvironment {
         pass.draw(0..3, 0..1);
         drop(pass);
         queue.submit([encoder.finish()]);
+        self.bake_pmrem(device, queue);
     }
+
+    fn bake_pmrem(&self, device: &Device, queue: &Queue) {
+        let max_mip = (SKY_LUT[0] / 4).ilog2();
+        let cube = 1u32 << max_mip;
+        let count = max_mip - 4 + 1 + 6;
+        let sky_view = self.sky.create_view(&TextureViewDescriptor::default());
+        let source = renderer_core::bind(
+            device,
+            // pmremBake uses the same texture/sampler layout as the simple
+            // exported sampled contract.
+            &self.pmrem_bake_pipeline.pipeline.get_bind_group_layout(0),
+            "shared-environment-pmrem-source",
+            &[
+                BindingResource::TextureView(&sky_view),
+                BindingResource::Sampler(&self.pmrem_sampler),
+            ],
+        );
+        let atlas_view = self.pmrem.create_view(&TextureViewDescriptor::default());
+        let ping_view = self
+            .pmrem_ping
+            .create_view(&TextureViewDescriptor::default());
+        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
+            label: Some("shared-environment-pmrem"),
+        });
+        {
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("shared-environment-pmrem-bake"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view: &atlas_view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: Operations {
+                        load: LoadOp::Clear(Color::TRANSPARENT),
+                        store: StoreOp::Store,
+                    },
+                })],
+                ..Default::default()
+            });
+            self.pmrem_bake_pipeline
+                .set(&mut pass, &[("sampled", &source)]);
+            pass.set_vertex_buffer(0, self.pmrem_geometry[0].slice(..));
+            pass.draw(0..36, 0..1);
+        }
+        for lod in 1..count {
+            let size = 1u32 << max_mip.saturating_sub(lod).max(4);
+            let x = 3 * size * (lod + 4).saturating_sub(max_mip);
+            let y = 4 * (cube - size);
+            let params = renderer_core::buffer(
+                device,
+                "shared-environment-pmrem-params",
+                BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+                bytemuck::cast_slice(&[
+                    (lod as f32 / (count - 1) as f32).powi(2),
+                    (lod as f32 / (count - 1) as f32) * max_mip as f32,
+                    max_mip as f32,
+                    0.0,
+                ]),
+            );
+            let filtering = renderer_core::bind(
+                device,
+                &self.pmrem_filter_pipeline.pipeline.get_bind_group_layout(0),
+                "shared-environment-pmrem-filter",
+                &[
+                    BindingResource::TextureView(if lod == 1 { &atlas_view } else { &ping_view }),
+                    BindingResource::Sampler(&self.pmrem_sampler),
+                    params.as_entire_binding(),
+                ],
+            );
+            let target = if lod == 1 { &ping_view } else { &atlas_view };
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("shared-environment-pmrem-filter"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view: target,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: Operations {
+                        load: if lod == 1 {
+                            LoadOp::Clear(Color::TRANSPARENT)
+                        } else {
+                            LoadOp::Load
+                        },
+                        store: StoreOp::Store,
+                    },
+                })],
+                ..Default::default()
+            });
+            pass.set_viewport(
+                x as f32,
+                y as f32,
+                (3 * size) as f32,
+                (2 * size) as f32,
+                0.0,
+                1.0,
+            );
+            pass.set_scissor_rect(x, y, 3 * size, 2 * size);
+            self.pmrem_filter_pipeline
+                .set(&mut pass, &[("filtering", &filtering)]);
+            pass.set_vertex_buffer(0, self.pmrem_geometry[lod as usize].slice(..));
+            pass.draw(0..36, 0..1);
+        }
+        queue.submit([encoder.finish()]);
+    }
+}
+
+fn pmrem_planes(size: u32) -> Vec<f32> {
+    let border = 1.0 / (size as f32 - 2.0);
+    let uv = [
+        -border,
+        -border,
+        1.0 + border,
+        -border,
+        1.0 + border,
+        1.0 + border,
+        -border,
+        -border,
+        1.0 + border,
+        1.0 + border,
+        -border,
+        1.0 + border,
+    ];
+    let faces = [3.0f32, 1.0, 5.0, 0.0, 4.0, 2.0];
+    let mut data = vec![0.0; 36 * 6];
+    for (face, &slot) in faces.iter().enumerate() {
+        let x = ((face % 3) * 2) as f32 / 3.0 - 1.0;
+        let y = if face > 2 { 0.0 } else { -1.0 };
+        let xy = [
+            x,
+            y,
+            x + 2.0 / 3.0,
+            y,
+            x + 2.0 / 3.0,
+            y + 1.0,
+            x,
+            y,
+            x + 2.0 / 3.0,
+            y + 1.0,
+            x,
+            y + 1.0,
+        ];
+        for v in 0..6 {
+            let at = (slot as usize * 6 + v) * 6;
+            data[at..at + 6].copy_from_slice(&[
+                xy[v * 2],
+                xy[v * 2 + 1],
+                0.0,
+                uv[v * 2],
+                uv[v * 2 + 1],
+                slot,
+            ]);
+        }
+    }
+    data
 }

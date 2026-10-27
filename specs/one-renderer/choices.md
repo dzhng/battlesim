@@ -178,3 +178,19 @@ world/model parity work receives authored sky radiance without changing the
 browser/native resource boundary. **Verdict:** sound; the scene remains green
 and the bake survives the recovery replay, while PMREM filtering and full world
 inputs remain open. **Confidence:** high.
+
+### PMREM filtering stays in the shared browser environment owner
+
+Native renders the baked sky into a cube atlas and filters successive roughness
+levels with the exported `pmremBake` and `pmremFilter` pipelines. The browser
+environment owner now performs that same atlas construction after its sky bake,
+using the same face geometry, viewport layout, and top-mip convention. The
+alternative would have left rough surfaces sampling a neutral placeholder even
+after the sky itself became authored.
+
+**Gap:** the spec did not say whether PMREM was an asset file or a GPU startup
+pass. **Reach:** model/world receivers share one environment atlas contract and
+can later receive authored DFG data without another browser-only lighting path.
+**Verdict:** sound; the one-renderer scene still passes all rows and lifecycle
+gates, while authored DFG and production world input parity remain open.
+**Confidence:** high.
