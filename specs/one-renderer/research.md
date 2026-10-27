@@ -186,3 +186,9 @@ shared row reports 68 model-record words, 312 terrain-param words, 18,928
 terrain-node words, 56,808 plot words, 432 surface-index words, and all
 lifecycle gates green. The next production gate remains a real `PresentedFrame`
 with appearance/tier drawable mapping and static-batch ownership.
+
+The accounting snapshot after this pass is `1,371,265` bytes for shared WASM,
+`88,332` bytes for generated JS, and `93,941` bytes for the one-renderer route
+chunk. The latest measured shared row is `186.1 / 6.6 / 0.1 ms` for setup,
+encode, and queue-boundary drain; these remain browser-compositor measurements,
+not GPU timestamps.
