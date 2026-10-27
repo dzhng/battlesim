@@ -107,25 +107,9 @@ export async function realBattleFixture(): Promise<BattleFixture> {
   presentation.setBattle(battleInput);
   const world = groundPatch();
   presentation.setGround(world.terrain.input, world.scenery);
-  presentation.setFog({
-    sensors: rules.sensors,
-    eyes: [
-      {
-        key: "blue-0",
-        position: [18, 18, 2],
-        forward: 0.2,
-        shape: { front: 28, side: 18, rear: 10 },
-        range: 36,
-      },
-      {
-        key: "blue-1",
-        position: [30, 24, 2],
-        forward: -2.3,
-        shape: { front: 24, side: 14, rear: 8 },
-        range: 30,
-      },
-    ],
-  });
+  // No stand-in eye records: fog derives the blue unit's sight from the real
+  // publication decoded above, exactly as the live battle presentation does.
+  presentation.setFog({ sensors: rules.sensors });
   presentation.setShadow(gameLight, world.terrain.mesh);
   const axes = screenAxes(FOUNDATION_CAMERA);
   const eye = eyePosition(new Float32Array(3) as never, FOUNDATION_CAMERA);
