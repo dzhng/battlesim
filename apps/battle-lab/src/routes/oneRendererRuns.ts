@@ -656,37 +656,42 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
-  const uploadFogSight = () => {
-    const ground = frozenFixture.presentation.presentedGround();
-    const up = ground?.prepare_fog(
-      new Float32Array(frozen.camera.f32),
-      REAL_WIDTH,
-      REAL_HEIGHT,
-      0,
-    );
-    if (!up) return;
-    const reinterpret = (words: Uint32Array) =>
-      new Float32Array(new Uint32Array(words).buffer);
-    try {
-      const foliage = up.foliage();
-      const occluders = up.occluders();
-      upload.upload_fog_sight(
-        reinterpret(up.params()),
-        reinterpret(up.eyes()),
-        foliage ? new Float32Array(foliage) : new Float32Array(0),
-        occluders ? reinterpret(occluders) : new Float32Array(0),
-        new Uint32Array(up.rebuild()),
-        new Uint32Array(up.map_words()),
-        new Uint32Array(up.tiles()),
-        new Uint32Array(up.wholes() ?? []),
-        new Uint32Array(up.whole_items()),
-        new Float32Array(up.whole_uniform()),
+  type FogSightSnapshot = Parameters<typeof upload.upload_fog_sight>;
+  let fogSightSnapshot: FogSightSnapshot | null = null;
+  const uploadFogSight = (refresh: boolean) => {
+    if (!fogSightSnapshot || refresh) {
+      const ground = frozenFixture.presentation.presentedGround();
+      const up = ground?.prepare_fog(
+        new Float32Array(frozen.camera.f32),
+        REAL_WIDTH,
+        REAL_HEIGHT,
+        0,
       );
-    } finally {
-      up.free();
+      if (!up) return;
+      const reinterpret = (words: Uint32Array) =>
+        new Float32Array(new Uint32Array(words).buffer);
+      try {
+        const foliage = up.foliage();
+        const occluders = up.occluders();
+        fogSightSnapshot = [
+          reinterpret(up.params()),
+          reinterpret(up.eyes()),
+          foliage ? new Float32Array(foliage) : new Float32Array(0),
+          occluders ? reinterpret(occluders) : new Float32Array(0),
+          new Uint32Array(up.rebuild()),
+          new Uint32Array(up.map_words()),
+          new Uint32Array(up.tiles()),
+          new Uint32Array(up.wholes() ?? []),
+          new Uint32Array(up.whole_items()),
+          new Float32Array(up.whole_uniform()),
+        ];
+      } finally {
+        up.free();
+      }
     }
+    upload.upload_fog_sight(...fogSightSnapshot!);
   };
-  uploadFogSight();
+  uploadFogSight(true);
   (
     renderer as SharedRenderer & {
       upload_shadow_frame: (
@@ -724,7 +729,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
-  uploadFogSight();
+  uploadFogSight(false);
   (
     renderer as SharedRenderer & {
       upload_shadow_frame: (
