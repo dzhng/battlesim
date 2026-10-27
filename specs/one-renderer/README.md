@@ -378,6 +378,10 @@ The runnable surface is the `one-renderer` developer tool and scene:
   The shared row now reports 240 authored material words and 68 model-record
   words. Model batch selection and full appearance classification remain open,
   so this is not yet a matched BattleFrame image.
+- The native replay count gate now passes after fetching the complete runtime
+  bundle set from Git LFS: `cargo test -p native-client --test counts --
+  --nocapture` reports one passing test over the browser capture. This proves
+  presentation/count contracts, not native/browser pixel parity.
 
 ## Current verdict
 
