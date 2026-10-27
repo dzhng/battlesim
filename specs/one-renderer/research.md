@@ -67,15 +67,15 @@ parity and repository closeout run only after all production passes are wired.
 | `48e059aac` + current scene run | embedded export | Shared browser row now validates all 63 exported pipelines before rendering; full eleven-row scene passes | PR #16 |
 | `0da7aa468` shared model material bindings | model owner | Native palette/material/texture bind-group order now has one browser-safe owner; palette growth rebinds through it | PR #16 |
 | current browser material-owner run | shared model owner | Browser binds the exported `modelLayout` against array texture views and real fetched albedo data; scene records `sharedMaterials: true` | PR #16 |
-| current browser lifecycle run | target/surface owners | Browser rebuilds target-bound fog/post resources after resize and exercises one explicit surface recovery; scene records generation 2 and `surfaceRecoveries: 1` | PR #16 |
+| current browser lifecycle run | target/surface/device owners | Browser rebuilds target-bound fog/post resources after resize, exercises one surface recovery, destroys the real device, and recreates the renderer with cached assets and presentation records; scene records generation 2, `surfaceRecoveries: 1`, `deviceLost: 1`, and `deviceRecoveries: 1` | PR #16 |
 | current browser shadow-owner run | shared shadow resources | Browser allocates the shared four-cascade depth-array/receiver/camera owner; scene records `sharedShadow: true` while caster draws remain open | PR #16 |
 | current exported model-prepass run | shared model pipeline | Browser binds `typegpuCameraLayout` + shared `modelLayout` and executes the exported 48-byte `modelPrepass` over the fetched indexed mesh; scene records `sharedModelPrepass: true` | PR #16 |
 | current browser fog-compute owner run | shared fog pipeline owner | Browser allocates all four exported fog compute bindings in the shared owner; scene records `sharedFogCompute: true` | PR #16 |
 | current model-opaque contract run | shared model/environment/fog groups | Binding the complete exported `modelOpaque` contract with placeholder environment/fog data produced visibly invalid fixture output; the pass is retained as a diagnostic, not the shipped frame path | PR #16 |
 | `35c5f19fd` model-packing split | browser shell shape | Production vertex packing now has a named owner under the file-size ratchet without changing the draw contract | PR #16 |
 | `3c5415d81` lifecycle scene gate | browser shell | The real scene now fails on missing recovery telemetry; device-loss recreation is the remaining lifecycle gap | PR #16 |
-| current device-loss telemetry | browser shell | Browser records device-loss callbacks; the shared scene stays at `deviceLost: 0`; recreation remains an explicit open gate | PR #16 |
-| current browser production-owner run | shared shell | Browser now builds the real exported pipelines and encodes shared fog-mask, post, and rim passes for every fixture frame; target generation reaches 2 after the resize round trip and the eleven-row scene passes | PR #16 |
+| current device-loss recovery | browser shell | `Device::destroy()` triggers the browser callback; `recover_device` rebuilds every GPU owner and replays the BGAT asset plus frozen camera/environment/fog/overlay records before the next frame | PR #16 |
+| current presentation-record bridge | shared shell | Browser uploads the frozen presentation camera (40 words), environment (16), fog (24), and overlay (4) through one API; camera is bound by the shared model prepass and the remaining records are staged for extracted production groups | PR #16 |
 
 ## Handoff
 

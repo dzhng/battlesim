@@ -1,8 +1,9 @@
 # One renderer
 
 **Status:** implementation in progress on PR #16. Shared targets, pipelines,
-depth, world, indexed model upload, and fog-mask resources now have one Rust
-owner; production effects, post, fog compute, lifecycle, and TypeGPU deletion
+depth, world, indexed model upload, fog-mask, post, fog-compute, lifecycle,
+presentation upload, and device-loss recovery now have one Rust owner. Full
+production pass parity, native/browser matched output, and TypeGPU deletion
 remain.
 **Updated:** 2026-10-27.
 
@@ -25,7 +26,8 @@ the shared target formats, target allocation and GPU buffer/bind helpers, and
  pass modules into that crate, then add native and WASM platform shells for
 surface/device/assets/audio concerns. Do not add another Rust pass graph.
 Keep TypeGPU as the browser control until the shared native/browser core clears
-the matched-image, startup, frame-time, resize, rebuild and device-loss gates.
+the matched-image, startup, frame-time, resize, rebuild, and production pass
+parity gates.
 
 ## Decision map
 
@@ -144,20 +146,22 @@ stops the work before a full port is attempted:
    model/material owners upload and draw fetched indexed geometry, and the
    browser production checkpoint exercises a fetched mesh through exported
    `modelPrepass` and `modelOpaque`. Target rebuild and surface recovery are
-   covered; device-loss recreation remains open.
+   covered; the browser scene also recreates the device and cached assets after
+   a real device-loss callback.
 8. **Fog-mask extraction — checkpoint complete.** `renderer-core::fog_mask`
    owns the fog look/view uniforms, optional edge-distance passes, compose pass,
    rim pass, and attachment policy. Native wraps the shared owner; GPU work and
-   pass order are unchanged. Fog sight/compute/material classification remain
-   native-only and must move next.
+   pass order are unchanged. Fog sight/material classification remain
+   native-only and must move next; the shared fog compute pipeline owner is
+   now browser-safe.
 9. **Effects and post extraction — checkpoint complete.** Flipbook/effect
    resource ownership remains shell-provided, while browser-safe effects and
    bloom/grade target/pass ownership now live in `renderer-core` and are
    encoded by the shared browser frame.
 10. **Lifecycle extraction — checkpoint complete.** `renderer_core::TargetOwner`
    atomically swaps size-dependent targets and increments one shared generation;
-   native `Passes` consumes it without changing GPU work. Fog sight/compute and
-   device-loss recovery remain open.
+   native `Passes` consumes it without changing GPU work. Device-loss recovery
+   is now covered by the browser scene; fog sight/material parity remains open.
 11. **Browser production frame — in progress.** The four fog compute pipeline
    bindings and dispatch labels now have a shared owner. The browser builds the
    exported pipeline set and executes shared model prepass/opaque, fog-mask,
@@ -177,26 +181,26 @@ stops the work before a full port is attempted:
    using the production 48-byte vertex layout and shared model material group;
    full authored model shading and instance routing remain open.
    The browser shell also allocates the shared four-stage fog compute owner;
-   presentation upload/bind-group policy and full fog visibility parity remain
-   open.
+   The browser uploads a frozen presentation camera, environment, fog, and
+   overlay record through one shell boundary; binding those records into the
+   extracted production passes and full fog visibility parity remain open.
    A diagnostic full `modelOpaque` pass exposed visibly invalid output with
    placeholder environment/fog data, so it is not in the normal fixture frame
    path. The next parity pass must feed real environment, material, and fog
    records before enabling it.
    The shared browser frame now allocates the real exported pipeline set and
    encodes shared fog-mask, post, and rim passes on every fixture frame. The
-   remaining bounded input is the presentation record feed, not a second pass
-   implementation.
+   remaining bounded inputs are caster routing, real environment/fog bind-groups,
+   overlays, and a matched production frame, not a second pass implementation.
    Browser resize now uses the shared `TargetOwner`, rebuilds the shared fog
    and post resources with the new target set, and reports generation 2 after
    the scene's down/up resize round trip.
    The browser shell also binds the exported model layout through the shared
    material owner and reconnects the fetched albedo texture as a 2D array,
    reporting `sharedMaterials: true` in the run.
-   The browser shell also reconfigures a lost/outdated surface through one
-   recovery method; the scene now requires and records one recovery. Device
-   loss is instrumented (`deviceLost: 0` in the run), but recreating the device
-   and all resources is still an open gate.
+   The browser shell also reconfigures a lost/outdated surface and recreates
+   the device plus cached assets through one recovery method; the scene records
+   `deviceLost: 1`, `deviceRecoveries: 1`, and preserves the asset workload.
 12. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
    shared Rust native on the same frozen presentation frame. Measure startup,
    CPU encode, GPU timestamps, memory, binary/download size, LOC, GPU object
