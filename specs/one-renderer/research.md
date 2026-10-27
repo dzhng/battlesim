@@ -207,3 +207,10 @@ unknown rows are dropped instead of drawing the first available mesh. This
 keeps the shared pass contract honest while the full appearance library is
 still pending. The one-renderer scene remains green with no WebGPU validation
 errors; this is still not a heterogeneous production-frame comparison.
+
+The browser material accounting now retains the authored BGAT rows loaded from
+the bundle instead of overwriting the count with the empty presentation-row
+fixture. The latest shared run reports 240 material words alongside 68 model
+record words, 121 frames, two resize rebuilds, one surface recovery and one
+device recovery. This proves authored material transport and lifetime; it does
+not yet prove that a real `PresentedFrame` selected those rows by appearance.
