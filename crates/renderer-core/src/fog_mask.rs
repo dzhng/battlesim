@@ -19,6 +19,11 @@ struct Screen {
 }
 
 pub struct FogMaskResources {
+    /// The presentation `FogLook` uniform consumed by every screen-space fog
+    /// bind group. The shell updates this buffer at the presentation boundary;
+    /// keeping it here makes fog look data a shared renderer resource instead
+    /// of a shell-only staging record.
+    look: Buffer,
     distances: Option<[Screen; 2]>,
     compose: Screen,
     rim: Option<Screen>,
@@ -48,7 +53,12 @@ pub fn fog_mask(
     has_edge: bool,
     has_rim: bool,
 ) -> FogMaskResources {
-    let look = crate::buffer(device, "fog-look", BufferUsages::UNIFORM, look_bytes);
+    let look = crate::buffer(
+        device,
+        "fog-look",
+        BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        look_bytes,
+    );
     let view = crate::buffer(
         device,
         "fog-mask-view",
@@ -102,6 +112,7 @@ pub fn fog_mask(
         )
     });
     FogMaskResources {
+        look,
         distances,
         compose,
         rim,
@@ -134,6 +145,23 @@ fn draw(
 }
 
 impl FogMaskResources {
+    /// Replace the resolved presentation fog look consumed by the next pass.
+    /// The caller owns the presentation record shape; this owner only requires
+    /// the bytes to fit the buffer allocated when the target set was built.
+    pub fn write_look(&self, queue: &Queue, bytes: &[u8]) -> Result<(), String> {
+        if bytes.len() > self.look.size() as usize {
+            return Err(format!(
+                "fog look record is {} bytes, buffer is {} bytes",
+                bytes.len(),
+                self.look.size()
+            ));
+        }
+        if !bytes.is_empty() {
+            queue.write_buffer(&self.look, 0, bytes);
+        }
+        Ok(())
+    }
+
     /// Encode distance rows/columns and compose the lit world into the post
     /// input, in the same order as the browser fog mask owner.
     pub fn encode(&self, encoder: &mut CommandEncoder, targets: &Targets) {
