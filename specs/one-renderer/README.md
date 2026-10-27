@@ -190,8 +190,11 @@ stops the work before a full port is attempted:
    records before enabling it.
    The shared browser frame now allocates the real exported pipeline set and
    encodes shared fog-mask, post, and rim passes on every fixture frame. The
-   remaining bounded inputs are caster routing, real fog bind-groups, overlay
-   draws, and a matched production frame, not a second pass implementation.
+   The browser now constructs the shared nine-resource environment bind group,
+   uploads the fitted shadow receiver/caster records, and routes the frozen
+   batch cascade masks. Remaining bounded inputs are real fog visibility
+   buffers, overlay draws, and a matched production frame, not a second pass
+   implementation.
    The shared target owner now allocates the overlay depth, paint, resolved
    colour, and half-resolution glow attachments on native and browser resize.
    Browser resize now uses the shared `TargetOwner`, rebuilds the shared fog

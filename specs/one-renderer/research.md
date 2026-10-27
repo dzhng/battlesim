@@ -77,12 +77,15 @@ parity and repository closeout run only after all production passes are wired.
 | current device-loss recovery | browser shell | `Device::destroy()` triggers the browser callback; `recover_device` rebuilds every GPU owner and replays the BGAT asset plus frozen camera/environment/fog/overlay records before the next frame | PR #16 |
 | current presentation-record bridge | shared shell | Browser uploads the frozen presentation camera (40 words), environment (16), fog (24), and overlay (4) through one API; camera is bound by the shared model prepass and the remaining records are staged for extracted production groups | PR #16 |
 | current overlay target owner | shared target lifecycle | Native and browser `TargetOwner` now allocate overlay depth, paint, resolved colour, and half-resolution glow attachments together on resize/rebuild; no visible overlay pass is enabled yet | PR #16 |
+| current environment/shadow browser owners | shared shell | Browser constructs the nine-resource environment bind group and uploads the frozen sun receiver plus cascade camera records; `CasterRouting` preserves per-cascade batch masks (the terrain-only fixture has zero admitted casters) | PR #16 |
+| current fog-look browser owner | shared fog-mask | The 24-word `FogLook` record is written into the shared fog-mask owner and its screen-space passes encode before post; fog sight visibility buffers and compute dispatch remain open | PR #16 |
 
 ## Handoff
 
 Incumbent: `9783fa7b8` plus the shared browser-owner commits on PR #16.
-Active task: consume production presentation environment/fog/overlay records in
-the extracted browser pass groups and add real caster routing. Regression set:
+Active task: consume production fog visibility buffers and overlay draws in the
+extracted browser pass groups, then compare the matched production frame.
+Regression set:
 renderer-core/native-client WASM checks, presentation tests, and the interleaved
 one-renderer scene. The latest rebuilt scene passes all eleven rows and executes
 the fetched mesh through exported model prepass, restores records after device
