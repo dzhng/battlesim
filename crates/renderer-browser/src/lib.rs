@@ -269,7 +269,7 @@ impl Renderer {
         surface.configure(
             &device,
             &SurfaceConfiguration {
-                usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_DST,
+                usage: TextureUsages::RENDER_ATTACHMENT,
                 format,
                 color_space: Default::default(),
                 width,
@@ -452,7 +452,7 @@ impl Renderer {
         self.surface.configure(
             &self.device,
             &SurfaceConfiguration {
-                usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_DST,
+                usage: TextureUsages::RENDER_ATTACHMENT,
                 format: self.format,
                 color_space: Default::default(),
                 width: self.width,
