@@ -189,14 +189,16 @@ stops the work before a full port is attempted:
    path. The next parity pass must feed real environment, material, and fog
    records before enabling it.
    The shared browser frame now allocates the real exported pipeline set and
-   encodes shared fog-mask, post, and rim passes on every fixture frame. The
-   The browser now constructs the shared nine-resource environment bind group,
+   encodes shared fog-mask, post, rim, and display-space overlay passes on every
+   fixture frame. The browser now constructs the shared nine-resource environment bind group,
    uploads the fitted shadow receiver/caster records, and routes the frozen
    batch cascade masks. It also allocates the shared fog sight buffers and
-   bind groups plus a browser upload seam; dispatch remains opt-in until real
-   height pages and due-state inputs are wired. Remaining bounded inputs are
-   fog visibility dispatch, overlay draws, and a matched production frame, not
-   a second pass implementation.
+   bind groups plus a browser upload seam; dispatch runs terrain, merge, whole,
+   and cull from the uploaded counts. Remaining bounded inputs are
+   native-equivalent shadow caster draws, full fog height-page parity, and a
+   matched production frame, not a second pass implementation. The overlay
+   owner consumes the exported translucent geometry, world depth, transparent
+   target, glow blur, and composite order.
    The shared target owner now allocates the overlay depth, paint, resolved
    colour, and half-resolution glow attachments on native and browser resize.
    Browser resize now uses the shared `TargetOwner`, rebuilds the shared fog

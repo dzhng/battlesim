@@ -183,8 +183,18 @@ impl FogMaskResources {
 
     /// Encode the optional seen-side rim over the post output.
     pub fn encode_rim(&self, encoder: &mut CommandEncoder, targets: &Targets) {
+        self.encode_rim_to(encoder, targets, &targets.display);
+    }
+
+    /// Encode the display-space rim into a shell-provided surface view.
+    pub fn encode_rim_to(
+        &self,
+        encoder: &mut CommandEncoder,
+        _targets: &Targets,
+        output: &TextureView,
+    ) {
         if let Some(rim) = &self.rim {
-            draw(encoder, rim, &targets.display, None, LoadOp::Load);
+            draw(encoder, rim, output, None, LoadOp::Load);
         }
     }
 }

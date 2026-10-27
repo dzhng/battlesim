@@ -16,6 +16,8 @@ impl Renderer {
         let model_opaque_diagnostic = self.model_opaque_diagnostic;
         let snapshot = self.asset_snapshot.clone();
         let ground = self.ground_snapshot.clone();
+        let post_bloom = self.post_bloom.clone();
+        let post_grade = self.post_grade.clone();
         let presentation = self.presentation_snapshot.clone();
         let mut replacement = Self::new(canvas).await?;
         replacement.stats = previous_stats;
@@ -28,22 +30,25 @@ impl Renderer {
             replacement.load_bundle_bytes(snapshot.name, snapshot.bundle, snapshot.textures)?;
         }
         if let Some(ground) = ground {
-            replacement.upload_shared_ground(&ground)?;
+            replacement.upload_ground(&ground)?;
         }
         if let Some(presentation) = presentation {
-            replacement.upload_presentation_frame(
+            replacement.upload_frame(
                 &presentation.camera,
                 &presentation.environment,
                 &presentation.fog,
                 &presentation.overlay,
             )?;
             if !presentation.shadow.is_empty() {
-                replacement.upload_shadow_frame(
+                replacement.upload_shadow(
                     &presentation.shadow,
                     &presentation.casters,
                     &presentation.batches,
                 )?;
             }
+        }
+        if !post_bloom.is_empty() || !post_grade.is_empty() {
+            replacement.upload_post(&post_bloom, &post_grade)?;
         }
         *self = replacement;
         Ok(())

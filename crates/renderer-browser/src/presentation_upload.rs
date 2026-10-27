@@ -2,10 +2,25 @@ use super::*;
 
 #[wasm_bindgen]
 impl Renderer {
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn upload_post(&mut self, bloom: &[f32], grade: &[f32]) -> Result<(), JsValue> {
+        self.shared_post
+            .write(
+                &self.queue,
+                bytemuck::cast_slice(bloom),
+                bytemuck::cast_slice(grade),
+            )
+            .map_err(js_error)?;
+        self.post_bloom = bloom.to_vec();
+        self.post_grade = grade.to_vec();
+        Ok(())
+    }
+
     /// Upload the packed presentation camera/environment/fog/overlay records.
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
-    pub fn upload_presentation_frame(
+    pub fn upload_frame(
         &mut self,
         camera: &[f32],
         environment: &[f32],
@@ -44,6 +59,13 @@ impl Renderer {
             .write_look(&self.queue, bytemuck::cast_slice(fog))
             .map_err(js_error)?;
         let overlay_words = write(&self.queue, &self.presentation_overlay, overlay, "overlay")?;
+        let glow = if overlay.len() >= 2 {
+            [overlay[0], overlay[0] / 2.5, overlay[1], 0.0]
+        } else {
+            [0.0; 4]
+        };
+        self.shared_overlay_resources
+            .write_glow(&self.queue, bytemuck::cast_slice(&glow));
         self.stats.presentation_uploads = self.stats.presentation_uploads.saturating_add(1);
         self.stats.presentation_bound = true;
         self.stats.presentation_camera_words = 40;
@@ -65,14 +87,14 @@ impl Renderer {
     /// Upload presentation terrain as xyz/normal/rgba records.
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
-    pub fn upload_shared_ground(&mut self, mesh: &[f32]) -> Result<(), JsValue> {
+    pub fn upload_ground(&mut self, mesh: &[f32]) -> Result<(), JsValue> {
         if !mesh.len().is_multiple_of(10) {
             return Err(js_error("shared ground mesh needs ten floats per vertex"));
         }
         let mut positions = Vec::with_capacity(mesh.len() / 10 * 3);
         let mut colours = Vec::with_capacity(mesh.len() / 10 * 4);
         let mut indices = Vec::with_capacity(mesh.len() / 10);
-        for (index, vertex) in mesh.chunks_exact(10).enumerate() {
+        for (index, vertex) in mesh.as_chunks::<10>().0.iter().enumerate() {
             positions.extend_from_slice(&vertex[..3]);
             colours.extend_from_slice(&[
                 (vertex[6].clamp(0.0, 1.0) * 255.0) as u8,
@@ -99,39 +121,35 @@ impl Renderer {
 
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
-    pub fn upload_overlay(&mut self, mesh: &[f32]) -> Result<(), JsValue> {
+    pub fn overlay(&mut self, mesh: &[f32]) -> Result<(), JsValue> {
         if !mesh.len().is_multiple_of(10) {
             return Err(js_error("shared overlay mesh needs ten floats per vertex"));
         }
-        let mut positions = Vec::with_capacity(mesh.len() / 10 * 3);
-        let mut colours = Vec::with_capacity(mesh.len() / 10 * 4);
-        let indices: Vec<u32> = (0..mesh.len() / 10).map(|i| i as u32).collect();
-        for vertex in mesh.chunks_exact(10) {
-            positions.extend_from_slice(&vertex[..3]);
-            colours.extend_from_slice(&[
-                (vertex[6].clamp(0.0, 1.0) * 255.0) as u8,
-                (vertex[7].clamp(0.0, 1.0) * 255.0) as u8,
-                (vertex[8].clamp(0.0, 1.0) * 255.0) as u8,
-                (vertex[9].clamp(0.0, 1.0) * 255.0) as u8,
-            ]);
+        let mut vertices: Vec<f32> = Vec::with_capacity(mesh.len());
+        for vertex in mesh.as_chunks::<10>().0 {
+            vertices.extend_from_slice(bytemuck::cast_slice(&vertex[..3]));
+            vertices.extend_from_slice(bytemuck::cast_slice(&vertex[3..6]));
+            vertices.extend_from_slice(bytemuck::cast_slice(&vertex[6..10]));
         }
-        self.shared_overlay = Some(
-            Model::from_indexed_fitted(
-                &self.device,
-                &self.queue,
-                "shared-presentation-overlay",
-                &positions,
-                &colours,
-                &indices,
-            )
-            .map_err(js_error)?,
+        let vertex_bytes = if vertices.is_empty() {
+            vec![0; 40]
+        } else {
+            bytemuck::cast_slice(&vertices).to_vec()
+        };
+        self.overlay_vertices = renderer_core::buffer(
+            &self.device,
+            "shared-presentation-overlay",
+            BufferUsages::VERTEX,
+            &vertex_bytes,
         );
+        self.overlay_vertex_count = (mesh.len() / 10) as u32;
         Ok(())
     }
 
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
-    pub fn upload_fog_sight(
+    #[allow(clippy::too_many_arguments)] // The WASM ABI mirrors the packed fog record groups.
+    pub fn upload_fog(
         &mut self,
         params: &[f32],
         eyes: &[f32],

@@ -8,7 +8,7 @@ use super::*;
 impl Renderer {
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
-    pub fn upload_shadow_frame(
+    pub fn upload_shadow(
         &mut self,
         receiver: &[f32],
         casters: &[f32],
@@ -18,15 +18,17 @@ impl Renderer {
             return Err(js_error("presentation sun shadow record needs 100 words"));
         }
         if casters.len() > renderer_core::shadow::CASCADES * CAMERA_BYTES / 4
-            || casters.len() % (CAMERA_BYTES / 4) != 0
+            || !casters.len().is_multiple_of(CAMERA_BYTES / 4)
         {
             return Err(js_error(
                 "presentation caster records need 40 words per cascade",
             ));
         }
         let cameras: Vec<&[u8]> = casters
-            .chunks_exact(CAMERA_BYTES / 4)
-            .map(bytemuck::cast_slice)
+            .as_chunks::<{ CAMERA_BYTES / 4 }>()
+            .0
+            .iter()
+            .map(|camera| bytemuck::cast_slice(camera.as_slice()))
             .collect();
         self.shared_shadow.prepare(
             &self.queue,

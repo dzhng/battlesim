@@ -612,16 +612,17 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   (
     renderer as SharedRenderer & { enable_model_opaque_diagnostic: () => void }
   ).enable_model_opaque_diagnostic();
-  const frozenFixture = battleFixture();
-  const frozen = frozenFixture.camera;
+  const ff = battleFixture();
+  const frozen = ff.camera;
   const upload = renderer as SharedRenderer & {
-    upload_presentation_frame: (
+    upload_frame: (
       camera: Float32Array,
       environment: Float32Array,
       fog: Float32Array,
       overlay: Float32Array,
     ) => void;
-    upload_fog_sight: (
+    upload_post: (bloom: Float32Array, grade: Float32Array) => void;
+    upload_fog: (
       params: Float32Array,
       eyes: Float32Array,
       foliage: Float32Array,
@@ -635,11 +636,12 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       wholeUniform: Float32Array,
       wholeDispatch: Uint32Array,
     ) => void;
-    upload_shared_ground: (mesh: Float32Array) => void;
-    upload_overlay: (mesh: Float32Array) => void;
+    upload_ground: (mesh: Float32Array) => void;
+    overlay: (mesh: Float32Array) => void;
   };
   const resolvedLight = await resolveLight(gameLight);
   const fogLook = resolveFogLook(gameFogStyle);
+  upload.upload_post(resolvedLight.bloom, resolvedLight.grade);
   const sharedEnvironment = new Float32Array(64);
   sharedEnvironment.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], 0);
   sharedEnvironment.set(
@@ -648,26 +650,26 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   );
   sharedEnvironment.set(resolvedLight.sun, 20);
   sharedEnvironment.set(resolvedLight.aerial, 36);
-  upload.upload_presentation_frame(
+  upload.upload_frame(
     new Float32Array(frozen.camera.f32),
     sharedEnvironment,
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
-  upload.upload_shared_ground(concatMeshes([frozenFixture.terrain, frozenFixture.world.props]));
-  upload.upload_overlay(
+  upload.upload_ground(concatMeshes([ff.terrain, ff.world.props]));
+  upload.overlay(
     concatMeshes([
-      frozenFixture.overlay.opaque,
-      frozenFixture.overlay.translucent,
-      frozenFixture.overlay.painted,
-      frozenFixture.overlay.paintedMarching,
+      ff.overlay.opaque,
+      ff.overlay.translucent,
+      ff.overlay.painted,
+      ff.overlay.paintedMarching,
     ]),
   );
-  type FogSightSnapshot = Parameters<typeof upload.upload_fog_sight>;
+  type FogSightSnapshot = Parameters<typeof upload.upload_fog>;
   let fogSightSnapshot: FogSightSnapshot | null = null;
   const uploadFogSight = (refresh: boolean) => {
     if (!fogSightSnapshot || refresh) {
-      const ground = frozenFixture.presentation.presentedGround();
+      const ground = ff.presentation.presentedGround();
       const up = ground?.prepare_fog(
         new Float32Array(frozen.camera.f32),
         REAL_WIDTH,
@@ -697,18 +699,14 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
         up.free();
       }
     }
-    upload.upload_fog_sight(...fogSightSnapshot!);
+    upload.upload_fog(...fogSightSnapshot!);
   };
   uploadFogSight(true);
   (
     renderer as SharedRenderer & {
-      upload_shadow_frame: (
-        receiver: Float32Array,
-        casters: Float32Array,
-        batches: Uint32Array,
-      ) => void;
+      upload_shadow: (receiver: Float32Array, casters: Float32Array, batches: Uint32Array) => void;
     }
-  ).upload_shadow_frame(
+  ).upload_shadow(
     new Float32Array(frozen.sun_shadow.f32),
     new Float32Array(frozen.casters.f32),
     new Uint32Array(frozen.batches.u32),
@@ -729,7 +727,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     throw new Error(`device loss callback did not fire: ${renderer.stats()}`);
   }
   await renderer.recover_device(canvas);
-  upload.upload_presentation_frame(
+  upload.upload_frame(
     new Float32Array(frozen.camera.f32),
     sharedEnvironment,
     new Float32Array(fogLook),
@@ -740,25 +738,21 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       upload_instances: (instances: Float32Array) => void;
     }
   ).upload_instances(si);
-  upload.upload_shared_ground(concatMeshes([frozenFixture.terrain, frozenFixture.world.props]));
-  upload.upload_overlay(
+  upload.upload_ground(concatMeshes([ff.terrain, ff.world.props]));
+  upload.overlay(
     concatMeshes([
-      frozenFixture.overlay.opaque,
-      frozenFixture.overlay.translucent,
-      frozenFixture.overlay.painted,
-      frozenFixture.overlay.paintedMarching,
+      ff.overlay.opaque,
+      ff.overlay.translucent,
+      ff.overlay.painted,
+      ff.overlay.paintedMarching,
     ]),
   );
   uploadFogSight(false);
   (
     renderer as SharedRenderer & {
-      upload_shadow_frame: (
-        receiver: Float32Array,
-        casters: Float32Array,
-        batches: Uint32Array,
-      ) => void;
+      upload_shadow: (receiver: Float32Array, casters: Float32Array, batches: Uint32Array) => void;
     }
-  ).upload_shadow_frame(
+  ).upload_shadow(
     new Float32Array(frozen.sun_shadow.f32),
     new Float32Array(frozen.casters.f32),
     new Uint32Array(frozen.batches.u32),
@@ -774,7 +768,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     .stats()
     .replace(/\}$/, `,"bundleWireBytes":${bundleWireBytes},"export":${exportValidation}}`);
   renderer.free();
-  frozenFixture.presentation.free();
+  ff.presentation.free();
   return {
     mode: "shared-rust-core-browser",
     setupMs,

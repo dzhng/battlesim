@@ -2,6 +2,22 @@
 
 ## Sound
 
+### Shared core owns post and overlay composition order
+
+The browser used to copy the lit HDR target to the canvas and draw a diagnostic
+overlay directly on the surface. That bypassed the production tone map, fog rim,
+depth-tested overlay target, and halo blur. The shared core now owns the same
+target sequence as the production frame: post writes the display target, the
+rim overlays it, then overlay geometry resolves into its transparent target and
+the halo/composite pass draws over the surface. The alternative would have kept
+another browser-only compositor that could drift from native.
+
+**Gap:** the spec required one pass owner but did not prescribe where the
+surface composite should happen. **Reach:** native and browser must use this
+ordering as later caster, model, and fog parity work lands. **Verdict:** sound;
+the browser scene passes and the shared target owner is reused. **Confidence:**
+high.
+
 ### Shared Rust owns attachment policy and pass ordering (fog-mask pass)
 
 When the native client created the fog distance, compose, and rim passes, it

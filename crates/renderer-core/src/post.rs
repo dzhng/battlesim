@@ -16,6 +16,8 @@ struct Stage {
 
 pub struct PostResources {
     stages: Vec<Stage>,
+    bloom: Buffer,
+    grade: Buffer,
 }
 
 fn texture(device: &Device, label: &str, size: [u32; 2]) -> TextureView {
@@ -50,7 +52,14 @@ pub fn new(
         min_filter: FilterMode::Linear,
         ..Default::default()
     });
-    let uniform = |label, bytes: &[u8]| crate::buffer(device, label, BufferUsages::UNIFORM, bytes);
+    let uniform = |label, bytes: &[u8]| {
+        crate::buffer(
+            device,
+            label,
+            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            bytes,
+        )
+    };
     let bloom = uniform("post-bloom", bloom_bytes);
     let grade = uniform("post-grade", grade_bytes);
     let s = BindingResource::Sampler(&sampler);
@@ -126,10 +135,23 @@ pub fn new(
         ),
         target: targets.display.clone(),
     });
-    PostResources { stages }
+    PostResources {
+        stages,
+        bloom,
+        grade,
+    }
 }
 
 impl PostResources {
+    pub fn write(&self, queue: &Queue, bloom: &[u8], grade: &[u8]) -> Result<(), String> {
+        if bloom.len() > self.bloom.size() as usize || grade.len() > self.grade.size() as usize {
+            return Err("post record exceeds allocated uniform".into());
+        }
+        queue.write_buffer(&self.bloom, 0, bloom);
+        queue.write_buffer(&self.grade, 0, grade);
+        Ok(())
+    }
+
     pub fn encode(&self, encoder: &mut CommandEncoder) {
         for stage in &self.stages {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {

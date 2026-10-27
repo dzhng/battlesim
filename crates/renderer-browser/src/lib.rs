@@ -36,6 +36,7 @@ mod export;
 mod presentation_upload;
 mod production_model;
 mod recovery;
+mod render;
 mod shadow_upload;
 mod state;
 use asset::AssetSnapshot;
@@ -165,6 +166,7 @@ pub struct Renderer {
     shared_post: PostResources,
     shared_fog_mask: FogMaskResources,
     shared_fog_sight: FogSightResources,
+    shared_overlay_resources: renderer_core::overlay::OverlayResources,
     material_bindings: ModelMaterialBindings,
     material_palette: Buffer,
     material_rows: Buffer,
@@ -191,11 +193,15 @@ pub struct Renderer {
     camera_group: BindGroup,
     model: Model,
     shared_ground: Option<Model>,
-    shared_overlay: Option<Model>,
+    overlay_vertices: Buffer,
+    overlay_instances: Buffer,
+    overlay_vertex_count: u32,
     ground_snapshot: Option<Vec<f32>>,
     fog_rebuild_dispatch: Option<[u32; 2]>,
     fog_whole_dispatch: Option<[u32; 2]>,
     fog_dispatch_active: bool,
+    post_bloom: Vec<f32>,
+    post_grade: Vec<f32>,
     display_sampler: Sampler,
     display_group: BindGroup,
     width: u32,
@@ -321,6 +327,8 @@ impl Renderer {
         );
         let shared_fog_sight =
             FogSightResources::new(&device, &production_pipelines, &targets.depth);
+        let shared_overlay_resources =
+            renderer_core::overlay::new(&device, &production_pipelines, &targets, &[0; 16], true);
         let shared_shadow = ShadowResources::new(
             &device,
             &production_pipelines,
@@ -354,6 +362,18 @@ impl Renderer {
             "shared-presentation-overlay",
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             &[0; 256],
+        );
+        let overlay_vertices = renderer_core::buffer(
+            &device,
+            "shared-overlay-vertices",
+            BufferUsages::VERTEX,
+            &[0; 40],
+        );
+        let overlay_instances = renderer_core::buffer(
+            &device,
+            "shared-overlay-instance",
+            BufferUsages::VERTEX,
+            bytemuck::cast_slice(&[0.0f32, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0]),
         );
         let environment = BrowserEnvironment::new(
             &device,
@@ -422,7 +442,7 @@ impl Renderer {
             pipelines.layout("sampled"),
             "shared-display-composite-group",
             &[
-                BindingResource::TextureView(&targets.lit),
+                BindingResource::TextureView(&targets.display),
                 BindingResource::Sampler(&display_sampler),
             ],
         );
@@ -436,6 +456,7 @@ impl Renderer {
             shared_post,
             shared_fog_mask,
             shared_fog_sight,
+            shared_overlay_resources,
             material_bindings,
             material_palette,
             material_rows,
@@ -458,11 +479,15 @@ impl Renderer {
             camera_group,
             model,
             shared_ground: None,
-            shared_overlay: None,
+            overlay_vertices,
+            overlay_instances,
+            overlay_vertex_count: 0,
             ground_snapshot: None,
             fog_rebuild_dispatch: None,
             fog_whole_dispatch: None,
             fog_dispatch_active: false,
+            post_bloom: Vec::new(),
+            post_grade: Vec::new(),
             display_sampler,
             display_group,
             width,
@@ -507,12 +532,40 @@ impl Renderer {
                 true,
                 true,
             );
+            self.shared_overlay_resources = renderer_core::overlay::new(
+                &self.device,
+                &self.production_pipelines,
+                &self.targets,
+                &[0; 16],
+                true,
+            );
+            if !self.post_bloom.is_empty() || !self.post_grade.is_empty() {
+                self.shared_post
+                    .write(
+                        &self.queue,
+                        bytemuck::cast_slice(&self.post_bloom),
+                        bytemuck::cast_slice(&self.post_grade),
+                    )
+                    .expect("stored post records fit rebuilt targets");
+            }
+            if let Some(presentation) = &self.presentation_snapshot {
+                if presentation.overlay.len() >= 2 {
+                    let glow = [
+                        presentation.overlay[0],
+                        presentation.overlay[0] / 2.5,
+                        presentation.overlay[1],
+                        0.0,
+                    ];
+                    self.shared_overlay_resources
+                        .write_glow(&self.queue, bytemuck::cast_slice(&glow));
+                }
+            }
             self.display_group = renderer_core::bind(
                 &self.device,
                 self.pipelines.layout("sampled"),
                 "shared-display-composite-group",
                 &[
-                    BindingResource::TextureView(&self.targets.lit),
+                    BindingResource::TextureView(&self.targets.display),
                     BindingResource::Sampler(&self.display_sampler),
                 ],
             );
@@ -572,121 +625,6 @@ impl Renderer {
             0,
             bytemuck::cast_slice(instances),
         );
-        Ok(())
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn render(&mut self) -> Result<(), JsValue> {
-        let mut encoder = self
-            .device
-            .create_command_encoder(&CommandEncoderDescriptor {
-                label: Some("shared-renderer-frame"),
-            });
-        let ground = self.shared_ground.as_ref().unwrap_or(&self.model);
-        let fixture = Fixture {
-            depth: &self.targets.depth,
-            camera: &self.camera_group,
-            solid: &self.pipelines.bound("modelPrepass"),
-            world: &self.pipelines.bound("worldOpaque"),
-            model: ground,
-        };
-        encode_grouped(&mut encoder, "shared-depth", |e| {
-            self.depth.encode(&fixture, e)
-        });
-        encode_grouped(&mut encoder, "shared-world", |e| {
-            renderer_core::world::encode_sky(&fixture, &self.targets, e)
-        });
-        renderer_core::world::encode_world(&fixture, &self.targets, &mut encoder, true, true, true);
-        production_model::encode_prepass(
-            &mut encoder,
-            &self.targets,
-            &self.production_pipelines,
-            &self.production_camera_group,
-            self.material_bindings.bind_group(),
-            &self.production_model_vertices,
-            &self.production_model_instances,
-            self.production_model_vertex_count,
-        );
-        self.stats.shared_model_prepass = true;
-        if self.model_opaque_diagnostic {
-            production_model::encode_opaque(
-                &mut encoder,
-                &self.targets,
-                &self.production_pipelines,
-                &self.production_camera_group,
-                self.material_bindings.bind_group(),
-                self.shared_fog_sight.group(0),
-                self.environment.bindings.group(),
-                &self.production_model_vertices,
-                &self.production_model_instances,
-                self.production_model_vertex_count,
-            );
-        }
-        if self.fog_dispatch_active {
-            self.shared_fog_sight.dispatch(
-                &mut encoder,
-                self.fog_rebuild_dispatch,
-                self.fog_whole_dispatch,
-            );
-        }
-        self.shared_fog_mask.encode(&mut encoder, &self.targets);
-        self.shared_post.encode(&mut encoder);
-        self.stats.shared_passes += 1;
-        let surface = match self.surface.get_current_texture() {
-            CurrentSurfaceTexture::Success(surface)
-            | CurrentSurfaceTexture::Suboptimal(surface) => surface,
-            CurrentSurfaceTexture::Outdated | CurrentSurfaceTexture::Lost => {
-                self.recover_surface();
-                return Ok(());
-            }
-            other => return Err(js_error(format!("surface unavailable: {other:?}"))),
-        };
-        let view = surface
-            .texture
-            .create_view(&TextureViewDescriptor::default());
-        let pipeline = self.pipelines.bound("composite");
-        {
-            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("shared-display-composite"),
-                color_attachments: &[Some(RenderPassColorAttachment {
-                    view: &view,
-                    depth_slice: None,
-                    resolve_target: None,
-                    ops: Operations {
-                        load: LoadOp::Clear(Color::BLACK),
-                        store: StoreOp::Store,
-                    },
-                })],
-                ..Default::default()
-            });
-            pipeline.set(&mut pass, &[("sampled", &self.display_group)]);
-            pass.draw(0..3, 0..1);
-        }
-        if let Some(overlay) = &self.shared_overlay {
-            let pipeline = self.pipelines.bound("overlayDisplay");
-            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("shared-overlay-diagnostic"),
-                color_attachments: &[Some(RenderPassColorAttachment {
-                    view: &view,
-                    depth_slice: None,
-                    resolve_target: None,
-                    ops: Operations {
-                        load: LoadOp::Load,
-                        store: StoreOp::Store,
-                    },
-                })],
-                ..Default::default()
-            });
-            pipeline.set(&mut pass, &[("camera", &self.camera_group)]);
-            pass.set_vertex_buffer(0, overlay.vertex().slice(..));
-            pass.set_index_buffer(overlay.index().slice(..), IndexFormat::Uint32);
-            pass.draw_indexed(0..overlay.index_count(), 0, 0..1);
-            self.stats.draw_calls = self.stats.draw_calls.saturating_add(1);
-        }
-        self.queue.submit([encoder.finish()]);
-        self.queue.present(surface);
-        self.stats.frames += 1;
-        self.stats.draw_calls += 1;
         Ok(())
     }
 
