@@ -95,4 +95,9 @@ export async function run(ctx) {
     sharedWorkload?.sharedShadow === true,
     JSON.stringify(sharedWorkload),
   );
+  ctx.check(
+    "shared browser row executes the exported model prepass",
+    sharedWorkload?.sharedModelPrepass === true,
+    JSON.stringify(sharedWorkload),
+  );
 }

@@ -78,6 +78,7 @@ struct Stats {
     target_generation: u64,
     shared_materials: bool,
     shared_shadow: bool,
+    shared_model_prepass: bool,
     surface_recoveries: u32,
 }
 
@@ -94,6 +95,37 @@ fn array_view(texture: &Texture) -> TextureView {
         dimension: Some(TextureViewDimension::D2Array),
         ..Default::default()
     })
+}
+
+fn production_fixture_vertices() -> (Vec<u8>, u32) {
+    let positions = [
+        [-1.0f32, -1.0, 0.0],
+        [1.0, -1.0, 0.0],
+        [1.0, 1.0, 0.0],
+        [-1.0, -1.0, 0.0],
+        [1.0, 1.0, 0.0],
+        [-1.0, 1.0, 0.0],
+    ];
+    let colours = [
+        [31u8, 107, 184, 255],
+        [31, 107, 184, 255],
+        [209, 122, 31, 255],
+        [31, 107, 184, 255],
+        [209, 122, 31, 255],
+        [31, 107, 184, 255],
+    ];
+    let mut bytes = Vec::with_capacity(positions.len() * 48);
+    for (position, colour) in positions.into_iter().zip(colours) {
+        bytes.extend_from_slice(bytemuck::cast_slice(&position));
+        bytes.extend_from_slice(&[0; 8]);
+        bytes.extend_from_slice(&[0; 8]);
+        bytes.extend_from_slice(&colour);
+        bytes.extend_from_slice(&[0; 4]);
+        bytes.extend_from_slice(&[255, 0, 0, 0]);
+        bytes.extend_from_slice(&[0, 0, 127, 127]);
+        bytes.extend_from_slice(&[0; 4]);
+    }
+    (bytes, 6)
 }
 
 struct Fixture<'a> {
@@ -167,6 +199,10 @@ pub struct Renderer {
     material_surface: Texture,
     material_sampler: Sampler,
     shared_shadow: ShadowResources,
+    production_camera_group: BindGroup,
+    production_model_vertices: Buffer,
+    production_model_instances: Buffer,
+    production_model_vertex_count: u32,
     depth: DepthPrepass,
     camera_group: BindGroup,
     model: Model,
@@ -321,7 +357,7 @@ impl Renderer {
             &device,
             "shared-material-palette",
             BufferUsages::STORAGE | BufferUsages::COPY_DST,
-            &[0; 16],
+            &[0; 48],
         );
         let material_rows = renderer_core::buffer(
             &device,
@@ -356,6 +392,35 @@ impl Renderer {
             &array_view(&material_albedo),
             &array_view(&material_surface),
             &material_sampler,
+        );
+        let production_camera = renderer_core::buffer(
+            &device,
+            "shared-production-camera",
+            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            &[0; 160],
+        );
+        let production_camera_group = renderer_core::bind(
+            &device,
+            production_pipelines.layout("typegpuCameraLayout"),
+            "shared-production-camera-group",
+            &[BindingResource::Buffer(
+                production_camera.as_entire_buffer_binding(),
+            )],
+        );
+        let (production_vertices, production_model_vertex_count) = production_fixture_vertices();
+        let production_model_vertices = renderer_core::buffer(
+            &device,
+            "shared-production-model-vertices",
+            BufferUsages::VERTEX,
+            &production_vertices,
+        );
+        let production_model_instances = renderer_core::buffer(
+            &device,
+            "shared-production-model-instances",
+            BufferUsages::VERTEX,
+            bytemuck::cast_slice(&[
+                1.0f32, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+            ]),
         );
         let camera = renderer_core::buffer(
             &device,
@@ -402,6 +467,10 @@ impl Renderer {
             material_surface,
             material_sampler,
             shared_shadow,
+            production_camera_group,
+            production_model_vertices,
+            production_model_instances,
+            production_model_vertex_count,
             depth,
             camera_group,
             model,
@@ -630,6 +699,33 @@ impl Renderer {
             false,
             true,
         );
+        {
+            let pipeline = self.production_pipelines.bound("modelPrepass");
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("shared-production-model-prepass"),
+                color_attachments: &[],
+                depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+                    view: &self.targets.depth,
+                    depth_ops: Some(Operations {
+                        load: LoadOp::Load,
+                        store: StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
+                ..Default::default()
+            });
+            pipeline.set(
+                &mut pass,
+                &[
+                    ("typegpuCameraLayout", &self.production_camera_group),
+                    ("modelLayout", self.material_bindings.bind_group()),
+                ],
+            );
+            pass.set_vertex_buffer(0, self.production_model_vertices.slice(..));
+            pass.set_vertex_buffer(1, self.production_model_instances.slice(..));
+            pass.draw(0..self.production_model_vertex_count, 0..1);
+            self.stats.shared_model_prepass = true;
+        }
         self.shared_post.encode(&mut encoder);
         self.stats.shared_passes += 1;
         let surface = match self.surface.get_current_texture() {
@@ -674,7 +770,7 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"surfaceRecoveries":{},"deviceLost":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceLost":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -683,6 +779,7 @@ impl Renderer {
             self.stats.target_generation,
             self.stats.shared_materials,
             self.stats.shared_shadow,
+            self.stats.shared_model_prepass,
             self.stats.surface_recoveries,
             self.device_lost.load(Ordering::Relaxed),
             self.width,
