@@ -13,6 +13,72 @@ use crate::pipelines::Pipelines;
 use crate::{bind, buffer};
 
 pub const CASCADES: usize = 4;
+/// `presentation::records::Camera`'s packed size.  The core intentionally
+/// keeps the record boundary byte based so it stays independent of the
+/// presentation crate, while shells can use the generated record constants.
+pub const CAMERA_BYTES: usize = 160;
+/// `presentation::records::SunShadow`'s packed size.
+pub const RECEIVER_BYTES: usize = 400;
+
+/// The per-cascade caster admission derived from presentation batch records.
+///
+/// Presentation owns culling and writes one `cascade_mask` on every caster
+/// batch.  The renderer must preserve that decision for every shadow layer;
+/// this small value object lets native and browser shells consume the same
+/// routing contract without importing presentation types into the core.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct CasterRouting {
+    batches: [u32; CASCADES],
+}
+
+impl CasterRouting {
+    /// Read packed `Batch` words (`stride` words per record).  The offsets are
+    /// supplied by the shell because the core does not own presentation's
+    /// generated schema.  `pass` identifies `CAST_PASS`; `caster` rejects
+    /// view-only batches, and `cascade_mask` admits a batch to each layer.
+    pub fn from_batch_words(
+        words: &[u32],
+        stride: usize,
+        pass_offset: usize,
+        caster_offset: usize,
+        cascade_mask_offset: usize,
+        pass: u32,
+        none: u32,
+    ) -> Self {
+        let mut routing = Self::default();
+        if stride == 0 {
+            return routing;
+        }
+        for batch in words.chunks_exact(stride) {
+            let (Some(&batch_pass), Some(&caster), Some(&mask)) = (
+                batch.get(pass_offset),
+                batch.get(caster_offset),
+                batch.get(cascade_mask_offset),
+            ) else {
+                continue;
+            };
+            if batch_pass != pass || caster == none {
+                continue;
+            }
+            for cascade in 0..CASCADES {
+                if mask & (1 << cascade) != 0 {
+                    routing.batches[cascade] = routing.batches[cascade].saturating_add(1);
+                }
+            }
+        }
+        routing
+    }
+
+    /// Number of admitted caster batches for one cascade.
+    pub fn batches(&self, cascade: usize) -> u32 {
+        self.batches.get(cascade).copied().unwrap_or(0)
+    }
+
+    /// All four cascade counts, for telemetry and shell scheduling.
+    pub fn counts(&self) -> [u32; CASCADES] {
+        self.batches
+    }
+}
 
 pub struct ShadowResources {
     layers: Vec<TextureView>,
@@ -114,5 +180,77 @@ impl ShadowResources {
     }
     pub fn active(&self) -> usize {
         self.active
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{CasterRouting, CASCADES};
+
+    #[test]
+    fn routes_only_cast_batches_to_their_admitted_cascades() {
+        // Batch words in the presentation layout are 12 words wide:
+        // pass=3, caster=4, cascade_mask=9.
+        let words = [
+            0,
+            0,
+            0,
+            1,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0b0101,
+            0,
+            0, // casts 0 and 2
+            0,
+            0,
+            0,
+            1,
+            u32::MAX,
+            0,
+            0,
+            0,
+            0,
+            0b1111,
+            0,
+            0, // no caster
+            0,
+            0,
+            0,
+            0,
+            2,
+            0,
+            0,
+            0,
+            0,
+            0b1111,
+            0,
+            0, // view pass
+            0,
+            0,
+            0,
+            1,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0b0010,
+            0,
+            0, // casts 1
+        ];
+        let routing = CasterRouting::from_batch_words(&words, 12, 3, 4, 9, 1, u32::MAX);
+        assert_eq!(routing.counts(), [1, 1, 1, 0]);
+        assert_eq!(routing.batches(CASCADES), 0);
+    }
+
+    #[test]
+    fn malformed_stride_and_offsets_are_ignored() {
+        let routing = CasterRouting::from_batch_words(&[1, 2, 3], 0, 0, 1, 2, 1, u32::MAX);
+        assert_eq!(routing, CasterRouting::default());
+        let routing = CasterRouting::from_batch_words(&[1, 2, 3], 4, 3, 4, 9, 1, u32::MAX);
+        assert_eq!(routing, CasterRouting::default());
     }
 }
