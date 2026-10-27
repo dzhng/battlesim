@@ -27,7 +27,10 @@ In `crates/mapgen/tests/layout.rs`, over the seed corpus:
 
 ## The human sees
 
-`bun run dev:maps` (the map workbench), stepping through seeds.
+`bun run dev:maps` (the map workbench), stepping through seeds. The plan view
+gains a swamp overlay, and the swamp chance and size are live controls through
+the workbench's existing preset reload. The `wetlands` lab can open a selected
+generated map.
 
 ## Verification
 

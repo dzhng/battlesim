@@ -287,8 +287,10 @@ other slice, a changed digest is a bug.
 - slice 00's native draw check.
 
 **How the drafts were merged:** four drafts each had a different bias (fewest
-slices, risk first, seam quality, feedback loop). Where they agreed, the plan
-follows them:
+slices, risk first, seam quality, feedback loop). Draft D (feedback loop)
+supplied the harnesses: `fixtures/captures/water.json` owns the shots, look
+data reloads live in the `wetlands` lab, and the map workbench gets a swamp
+overlay. Where the drafts agreed, the plan follows them:
 
 - the water scene and a native draw check come first;
 - water reads the existing multisampled depth in its shader, so it needs no
@@ -447,5 +449,3 @@ owning slice. Worst first within each area.
 
 - Fixing the two bugs found beyond this feature (see sharp edges) is the
   user's call. Slices 10 and 11 say where each fix would land.
-- Draft D (feedback loop) failed twice on the provider side. If it returns,
-  fold its harness ideas into slices 00 and 03 as amendments.

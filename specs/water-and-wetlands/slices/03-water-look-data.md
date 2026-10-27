@@ -20,6 +20,17 @@
   look index`. It is keyed like the per-cell seeding of tree stands
   (decision 27). Slice 13 reuses it for swamps.
 
+## Live tuning
+
+The look rows are data, uploaded as uniforms, so they reload without
+rebuilding shaders. Each later look slice tunes its constants live:
+
+- **Reload:** the `wetlands` lab reloads the water look data when its source
+  file changes. Reuse the map workbench's source reload and revision protocol
+  (`apps/map-workbench`) rather than building a second editor.
+- **Pin a look:** `?water_look=<row>` pins one look row on every water feature,
+  so a variant can be judged on its own.
+
 ## Seam tests
 
 In `crates/presentation/tests/`:
@@ -46,7 +57,8 @@ The shader is shared, so this comes almost for free. Native uploads the
 ## Delegated to the implementer
 
 - record layout;
-- the maximum number of look rows.
+- the maximum number of look rows;
+- how the reload is transported (watching the file, or a button).
 
 ## Must stay green
 

@@ -37,6 +37,12 @@ In `crates/presentation/tests/effect_behaviour.rs`, next to the dust tests:
 - wakes don't depend on frame rate;
 - a soldier crossing a puddle makes rings.
 
+## The human sees
+
+The `wetlands` lab has buttons for the moments the tests name: a hidden unit, a
+seen unit, a rider, a still wader, a moving one, and a side switch. They show
+where wake impulses are placed, as debug marks, before slice 16 draws any waves.
+
 ## Verification
 
 1. The tests above pass.

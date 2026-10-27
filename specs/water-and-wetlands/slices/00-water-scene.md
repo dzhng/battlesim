@@ -13,10 +13,18 @@ native:
   the bank. It is a test fixture, not game content, and it opens as
   `/labs/wetlands` through `apps/battle-lab/src/fixtures.json`, like
   `/labs/river`.
-- **Scene:** `web/scenes/water.mjs`, with three framings: close (~65 m),
-  tactical (~260 m) and low angle. Each framing is one `{target, distance,
-  pitch, yaw}` record, so native plates and RedGPU captures use the same
-  numbers.
+- **Shots:** `fixtures/captures/water.json` owns the three framings: close
+  (~65 m), tactical (~260 m) and low angle. It uses the existing capture
+  format (`fixtures/captures/short.json`: map, encounter, seed, `warm_s` and
+  shots of `{target, distance, yaw, pitch}`), so `/labs/capture?capture=water`
+  replays them and native plates and RedGPU captures share the numbers.
+  Slice 16 adds wave warm-up steps to the same file.
+- **Scene:** `web/scenes/water.mjs` reads those shots. It runs the machine
+  checks and writes crops to `throwaway/evidence/`. Use
+  `bun run --cwd web scene -- water` for quick checks, and
+  `bun run visual -- water` once a look is approved as a baseline.
+- **Quick iteration:** the `wetlands` lab takes `?shot=close|tactical|low` and
+  has a reset button, so a single framing can be rerun in seconds.
 - **Water mask:** the simulation-measured mask in `web/scenes/river.mjs`
   (`defineInside`) moves into one shared scene helper, used by both
   `river.mjs` and `water.mjs`. There must not be two copies.
