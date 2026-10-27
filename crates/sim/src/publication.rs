@@ -20,14 +20,10 @@
 //! row, so the rules may hold at most [`MAX_WEAPON_ROWS`] (64) weapon rows:
 //! the mask travels as three floats of 24 bits (`heardLow`, `heardMid`,
 //! `heardHigh`), and rules with more rows are refused at load.
-use contract::catalog::AltitudeLayer;
-use contract::command::{Engagement, MoveDirection, RoutePolicy, TargetRef};
+use contract::command::TargetRef;
 use contract::ids::Side;
 use contract::observation::{
-    ActionReason, AirTransitDirection, ContactSource, EncounterResult, HoldPhase, HostRef,
-    Intensity, LeanSide, MemberLean, MoveState, ObservationFrame, Posture, SegmentHit,
-    ServiceStatus, ShoutSpeaker, ShoutTrigger, SoundBand, SoundCategory, SuppressionTier,
-    WeaponPose,
+    HostRef, MemberLean, ObservationFrame, ShoutSpeaker, ShoutTrigger, WeaponPose,
 };
 use contract::players::ControllerKind;
 use contract::scenario::CoverTier;
@@ -37,134 +33,19 @@ use crate::ground::GroundRunPatch;
 
 mod layout;
 pub mod reader;
+mod tags;
 
 pub use layout::layout_json;
+use tags::*;
 
 /// Atomic publication allowance; uniform Large ground plus finest fog is about
 /// 40.5 MB. Higher-entropy workloads fail admission explicitly, never lose cells.
 pub const MAX_PUBLICATION_BYTES: usize = 64 * 1024 * 1024;
 
-const MOVE_STATES: [MoveState; 7] = [
-    MoveState::Idle,
-    MoveState::Moving,
-    MoveState::Waiting,
-    MoveState::RouteBlocked,
-    MoveState::Halted,
-    MoveState::Packing,
-    MoveState::Planning,
-];
-const COVER_TIERS: [CoverTier; 3] = [CoverTier::Light, CoverTier::Medium, CoverTier::Heavy];
-const LEAN_SIDES: [LeanSide; 2] = [LeanSide::Left, LeanSide::Right];
-const POSTURES: [Posture; 2] = [Posture::Packed, Posture::Deployed];
-const POLICIES: [RoutePolicy; 2] = [RoutePolicy::Shortest, RoutePolicy::Fastest];
-const DIRECTIONS: [MoveDirection; 2] = [MoveDirection::Forward, MoveDirection::Reverse];
-const CONTACT_SOURCES: [ContactSource; 3] = [
-    ContactSource::Firing,
-    ContactSource::LastSeen,
-    ContactSource::Radar,
-];
-const LAYERS: [AltitudeLayer; 3] = [
-    AltitudeLayer::Ground,
-    AltitudeLayer::LowAir,
-    AltitudeLayer::HighAir,
-];
-const AIR_TRANSIT_DIRECTIONS: [AirTransitDirection; 2] =
-    [AirTransitDirection::In, AirTransitDirection::Out];
-const SOUND_CATEGORIES: [SoundCategory; 4] = [
-    SoundCategory::Infantry,
-    SoundCategory::Vehicle,
-    SoundCategory::Shot,
-    SoundCategory::Shout,
-];
-const INTENSITIES: [Intensity; 2] = [Intensity::Steady, Intensity::Stressed];
-const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
 /// At most the fixed 18 km extent at the finest accepted 2 m fog grid.
 /// A snapshot holds two exact 16-bit limbs per word: at most 20,250,000 bytes.
 pub const MAX_FOG_WORDS: usize = 2_531_250;
 const LIMB_BITS: u32 = 16;
-const GROUP_ENCODINGS: [&str; 4] = ["replacement", "snapshot", "copies", "packed"];
-const SEGMENT_HITS: [SegmentHit; 5] = [
-    SegmentHit::None,
-    SegmentHit::Ground,
-    SegmentHit::Hull,
-    SegmentHit::Prop,
-    SegmentHit::Soldier,
-];
-const ENGAGEMENTS: [Engagement; 2] = [Engagement::FireAtWill, Engagement::ReturnFireOnly];
-const ENCOUNTER_RESULTS: [EncounterResult; 4] = [
-    EncounterResult::Running,
-    EncounterResult::Captured,
-    EncounterResult::Defeated,
-    EncounterResult::Inconclusive,
-];
-const SERVICE_STATUSES: [ServiceStatus; 7] = [
-    ServiceStatus::OutOfRange,
-    ServiceStatus::SourceNotDeployed,
-    ServiceStatus::Moving,
-    ServiceStatus::Firing,
-    ServiceStatus::Serving,
-    ServiceStatus::NoStock,
-    ServiceStatus::Full,
-];
-const SUPPRESSION_TIERS: [SuppressionTier; 3] = [
-    SuppressionTier::None,
-    SuppressionTier::Suppressed,
-    SuppressionTier::Pinned,
-];
-const HOLD_PHASES: [HoldPhase; 3] = [HoldPhase::Entering, HoldPhase::Inside, HoldPhase::Exiting];
-const HOST_KINDS: [&str; 2] = ["building", "carrier"];
-/// Every refusal the contract names, in its order; a new reason appends here
-/// and to the codec vectors.
-const ORDER_ERROR_NAMES: [&str; 29] = [
-    "passive_side",
-    "not_skirmish",
-    "match_finished",
-    "unit_unavailable",
-    "wrong_faction",
-    "insufficient_credits",
-    "unit_limit_reached",
-    "out_of_sequence",
-    "no_units",
-    "unknown_unit",
-    "not_own_unit",
-    "wrong_player",
-    "missing_player",
-    "out_of_bounds",
-    "no_valid_destination",
-    "replay_in_progress",
-    "rate_limited",
-    "unknown_target",
-    "air_contact",
-    "destroyed",
-    "not_infantry",
-    "not_a_building",
-    "capacity_full",
-    "one_squad_per_building",
-    "building_occupied",
-    "not_a_carrier",
-    "no_room_to_unload",
-    "aboard",
-    "ai_controlled",
-];
-const REASONS: [ActionReason; 16] = [
-    ActionReason::Firing,
-    ActionReason::NoCompatibleTarget,
-    ActionReason::HoldingFire,
-    ActionReason::OutOfRange,
-    ActionReason::BlockedTrajectory,
-    ActionReason::FriendlyInLine,
-    ActionReason::Aiming,
-    ActionReason::Reloading,
-    ActionReason::TurretTraversing,
-    ActionReason::MovingStationaryWeapon,
-    ActionReason::OutOfAmmo,
-    ActionReason::TrackingLastSighting,
-    ActionReason::Guiding,
-    ActionReason::NoOwnSight,
-    ActionReason::NoFacingSlot,
-    ActionReason::ChangingPosition,
-];
-const TARGET_KINDS: [&str; 4] = ["none", "identified", "contact", "ground"];
 /// Ammunition kinds per mount the record carries (the cannon's AP and HE).
 pub const MAX_AMMO_KINDS: usize = 2;
 /// Weapon rows a firing report's heard mask can name: one bit each of the
@@ -620,28 +501,6 @@ fn member_ids<'a>(
             let [lo, hi] = limbs(id);
             [lo, hi, slot as f32, active.map_or(-1.0, |m| m as f32)]
         })
-}
-
-fn tag<T: PartialEq>(all: &[T], v: &T) -> f32 {
-    all.iter().position(|k| k == v).unwrap() as f32
-}
-
-fn names<T: std::fmt::Debug>(all: &[T]) -> Vec<String> {
-    all.iter()
-        .map(|k| {
-            let s = format!("{k:?}");
-            // CamelCase → snake_case, matching the serde names.
-            s.chars()
-                .enumerate()
-                .fold(String::new(), |mut out, (i, c)| {
-                    if c.is_uppercase() && i > 0 {
-                        out.push('_');
-                    }
-                    out.push(c.to_ascii_lowercase());
-                    out
-                })
-        })
-        .collect()
 }
 
 /// The transport's end of a side's publications: it packs group word changes,

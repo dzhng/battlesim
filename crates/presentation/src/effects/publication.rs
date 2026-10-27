@@ -21,7 +21,7 @@ pub struct Segment {
     pub kind: Arc<str>,
     /// The soldier who fired it, or None for a vehicle's gun.
     pub shooter: Option<f64>,
-    /// What it struck at the path's end: none, ground, hull, prop or soldier.
+    /// What it struck at the path's end: none, ground, hull, prop, soldier or metal_prop.
     pub hit: Arc<str>,
     pub normal: Option<Vec3>,
 }

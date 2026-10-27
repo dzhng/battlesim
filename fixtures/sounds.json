@@ -6035,6 +6035,11 @@
       "rifle": "recorded-hard-05",
       "hmg": "recorded-hard-05"
     },
+    "metal_prop": {
+      "default": "recorded-hard-05",
+      "rifle": "recorded-hard-05",
+      "hmg": "recorded-hard-05"
+    },
     "hull": {
       "rifle": "armour-rifle-hit",
       "hmg": "armour-bullet-hit",
