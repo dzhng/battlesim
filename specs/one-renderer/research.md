@@ -370,3 +370,9 @@ vertex-colour, instance-stream, static-world-colour, shadow-floor, and
 fog-compose A/Bs all left the `47.034991` production image distance unchanged.
 The remaining visual defect is inside the shared model/world lighting ABI or its
 authored resource values, and is still open for the migration verdict.
+
+The native parity harness also completed a real `paris-corner` control capture
+after fetching the runtime LFS textures: six 1280×720 plates, 2,461 frames,
+1–28 vehicles/soldiers per plate, and 10–253 effect instances per plate. This
+is a usable native control workload for the final matched-frame comparison; it
+is not yet wired into the one-renderer browser row.
