@@ -12,6 +12,7 @@ use native_client::bundle::Library;
 use renderer_core::depth::{DepthInputs, DepthPrepass};
 use renderer_core::fog_mask::FogMaskResources;
 use renderer_core::model::Model;
+use renderer_core::model_material::ModelMaterialBindings;
 use renderer_core::pipelines::{Bound, Pipelines};
 use renderer_core::post::PostResources;
 use renderer_core::world::{Layer, Surface as WorldSurface, WorldInputs};
@@ -73,6 +74,7 @@ struct Stats {
     resizes: u32,
     shared_passes: u32,
     target_generation: u64,
+    shared_materials: bool,
 }
 
 fn build_exported_pipelines(device: &Device) -> Result<Pipelines, String> {
@@ -80,6 +82,13 @@ fn build_exported_pipelines(device: &Device) -> Result<Pipelines, String> {
         pipeline_export::source(shader)
             .map(str::to_owned)
             .ok_or_else(|| format!("missing embedded WGSL source: {shader}"))
+    })
+}
+
+fn array_view(texture: &Texture) -> TextureView {
+    texture.create_view(&TextureViewDescriptor {
+        dimension: Some(TextureViewDimension::D2Array),
+        ..Default::default()
     })
 }
 
@@ -148,6 +157,11 @@ pub struct Renderer {
     production_pipelines: Pipelines,
     shared_post: PostResources,
     shared_fog_mask: FogMaskResources,
+    material_bindings: ModelMaterialBindings,
+    material_palette: Buffer,
+    material_rows: Buffer,
+    material_surface: Texture,
+    material_sampler: Sampler,
     depth: DepthPrepass,
     camera_group: BindGroup,
     model: Model,
@@ -286,6 +300,46 @@ impl Renderer {
             true,
             true,
         );
+        let material_palette = renderer_core::buffer(
+            &device,
+            "shared-material-palette",
+            BufferUsages::STORAGE | BufferUsages::COPY_DST,
+            &[0; 16],
+        );
+        let material_rows = renderer_core::buffer(
+            &device,
+            "shared-material-rows",
+            BufferUsages::STORAGE | BufferUsages::COPY_DST,
+            &[0; 64],
+        );
+        let material_texture = || {
+            device.create_texture(&TextureDescriptor {
+                label: Some("shared-material-texture"),
+                size: Extent3d {
+                    width: 1,
+                    height: 1,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: TextureDimension::D2,
+                format: TextureFormat::Rgba8Unorm,
+                usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
+                view_formats: &[],
+            })
+        };
+        let material_albedo = material_texture();
+        let material_surface = material_texture();
+        let material_sampler = device.create_sampler(&SamplerDescriptor::default());
+        let material_bindings = ModelMaterialBindings::new(
+            &device,
+            production_pipelines.layout("modelLayout"),
+            &material_palette,
+            &material_rows,
+            &array_view(&material_albedo),
+            &array_view(&material_surface),
+            &material_sampler,
+        );
         let camera = renderer_core::buffer(
             &device,
             "shared-camera",
@@ -325,6 +379,11 @@ impl Renderer {
             production_pipelines,
             shared_post,
             shared_fog_mask,
+            material_bindings,
+            material_palette,
+            material_rows,
+            material_surface,
+            material_sampler,
             depth,
             camera_group,
             model,
@@ -459,6 +518,18 @@ impl Renderer {
                 size,
             );
             self.asset_texture = Some(gpu);
+            let albedo = array_view(self.asset_texture.as_ref().expect("asset texture uploaded"));
+            let surface = array_view(&self.material_surface);
+            self.material_bindings.rebuild(
+                &self.device,
+                self.production_pipelines.layout("modelLayout"),
+                &self.material_palette,
+                &self.material_rows,
+                &albedo,
+                &surface,
+                &self.material_sampler,
+            );
+            self.stats.shared_materials = true;
         }
         let mesh = match &bundle.shape {
             native_client::bundle::Shape::Skinned(tiers) => {
@@ -566,13 +637,14 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
             self.stats.resizes,
             self.stats.shared_passes,
             self.stats.target_generation,
+            self.stats.shared_materials,
             self.width,
             self.height,
             self.asset_report.as_deref().unwrap_or("null")

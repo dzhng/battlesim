@@ -175,6 +175,9 @@ stops the work before a full port is attempted:
    Browser resize now uses the shared `TargetOwner`, rebuilds the shared fog
    and post resources with the new target set, and reports generation 2 after
    the scene's down/up resize round trip.
+   The browser shell also binds the exported model layout through the shared
+   material owner and reconnects the fetched albedo texture as a 2D array,
+   reporting `sharedMaterials: true` in the run.
 12. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
    shared Rust native on the same frozen presentation frame. Measure startup,
    CPU encode, GPU timestamps, memory, binary/download size, LOC, GPU object
