@@ -332,7 +332,8 @@ The runnable surface is the `one-renderer` developer tool and scene:
   structurally non-empty but its top-down, low-contrast fixture does not claim
   production material, fog, shadow, post or overlay parity. A fresh visual
   review still finds no readable contact/cast shadows and clipped overlay
-  geometry; those are open parity defects, not accepted output.
+  geometry; those are open parity defects, not accepted output. The fog height
+  upload now uses a non-flat eight-word page payload and survives recovery.
 
 ## Current verdict
 

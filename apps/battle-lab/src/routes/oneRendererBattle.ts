@@ -55,6 +55,18 @@ export function battleFixture(): BattleFixture {
   for (let i = 0; i < 7; i++)
     props.box(-22 + i * 2.2, -12, 1.0, 0.8, 0.8, 1.0, [0.32, 0.28, 0.22, 1]);
   const world = { ...base, props: props.build() };
+  // Keep the rendered mesh frozen while giving presentation/fog a real
+  // non-flat page payload. This isolates the height-page transport gate from
+  // terrain-mesh generation and makes recovery replay observable.
+  world.terrain.input.exports.terrain = {
+    nx: 2,
+    ny: 2,
+    spacing: 2,
+    pageSize: 2,
+    minHeight: 0,
+    pageIds: new Uint32Array([0]),
+    heights: new Float32Array([0, 0.35, 0.2, 0.8]),
+  };
   const presentation = new ScenePresentation();
   presentation.setGround(world.terrain.input, world.scenery);
   // Two eyes produce a real seen/unseen boundary over the same static world.

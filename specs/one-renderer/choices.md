@@ -209,3 +209,19 @@ asset's source of truth. **Reach:** shared model/world pixels now use the same
 authored BRDF lookup on both platforms; the remaining gap is full world and
 material input parity. **Verdict:** sound; the browser scene remains green.
 **Confidence:** high.
+
+### The height-page gate uses a non-flat page, while the mesh stays frozen
+
+The old fixture's height payload was a three-word header with no present pages,
+so uploading it proved only that an empty map could cross the boundary. The
+fixture now keeps its authored render mesh and camera but gives presentation a
+single 2×2 page with four distinct height samples. The shared browser row
+uploads eight words, dispatches the same fog stages, and replays that page after
+device recovery. The alternative would have changed the visible mesh to make a
+transport check look like terrain parity, coupling two independent contracts.
+
+**Gap:** the spec required non-flat height-page parity but did not prescribe a
+fixture that isolated page transport from mesh generation. **Reach:** future
+production terrain work can replace this page with real map pages without
+changing the renderer boundary. **Verdict:** sound; the scene remains green
+and reports the non-flat payload through recovery. **Confidence:** high.
