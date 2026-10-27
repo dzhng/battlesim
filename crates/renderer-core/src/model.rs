@@ -56,8 +56,11 @@ impl Model {
     pub fn vertex_count(&self) -> u32 {
         self.indexed.index_count
     }
-    pub fn draw<'a>(&'a self, pass: &mut RenderPass<'a>) {
-        self.indexed.draw(pass, 0);
+    pub fn index(&self) -> &Buffer {
+        &self.indexed.indices
+    }
+    pub fn index_count(&self) -> u32 {
+        self.indexed.index_count
     }
 }
 

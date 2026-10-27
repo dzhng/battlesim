@@ -79,7 +79,8 @@ impl Fixture<'_> {
     fn draw(&self, pass: &mut RenderPass<'_>, pipeline: &Bound) {
         pipeline.set(pass, &[("camera", self.camera)]);
         pass.set_vertex_buffer(0, self.model.vertex().slice(..));
-        pass.draw(0..self.model.vertex_count(), 0..1);
+        pass.set_index_buffer(self.model.index().slice(..), IndexFormat::Uint32);
+        pass.draw_indexed(0..self.model.index_count(), 0, 0..1);
     }
 }
 
@@ -110,7 +111,8 @@ impl WorldInputs for Fixture<'_> {
         pass.set_vertex_buffer(0, self.model.vertex().slice(..));
     }
     fn draw_models(&self, pass: &mut RenderPass<'_>, _layer: Layer, _surface: WorldSurface) {
-        pass.draw(0..self.model.vertex_count(), 0..1);
+        pass.set_index_buffer(self.model.index().slice(..), IndexFormat::Uint32);
+        pass.draw_indexed(0..self.model.index_count(), 0, 0..1);
     }
     fn draw_scenery(&self, _pass: &mut RenderPass<'_>, _layer: Layer) {}
     fn draw_grass(&self, _pass: &mut RenderPass<'_>, _layer: Layer) {}
@@ -461,7 +463,8 @@ impl Renderer {
             });
             pipeline.set(&mut pass, &[("camera", &self.camera_group)]);
             pass.set_vertex_buffer(0, self.model.vertex().slice(..));
-            pass.draw(0..self.model.vertex_count(), 0..1);
+            pass.set_index_buffer(self.model.index().slice(..), IndexFormat::Uint32);
+            pass.draw_indexed(0..self.model.index_count(), 0, 0..1);
         }
         self.queue.submit([encoder.finish()]);
         self.queue.present(surface);
