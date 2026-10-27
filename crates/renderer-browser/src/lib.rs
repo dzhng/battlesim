@@ -28,7 +28,9 @@ use wgpu::*;
 mod pipeline_export {
     include!(concat!(env!("OUT_DIR"), "/pipeline_export.rs"));
 }
+mod asset;
 mod production_model;
+use asset::AssetSnapshot;
 
 const PIPELINES: &str = r#"{
   "sizes":{"bloomLevels":0,"skyLut":[1,1],"effectSheet":1,"grassClump":1},
@@ -82,6 +84,13 @@ struct Stats {
     shared_shadow: bool,
     shared_model_prepass: bool,
     surface_recoveries: u32,
+    device_recoveries: u32,
+    presentation_uploads: u32,
+    presentation_bound: bool,
+    presentation_camera_words: u32,
+    presentation_environment_words: u32,
+    presentation_fog_words: u32,
+    presentation_overlay_words: u32,
 }
 
 fn build_exported_pipelines(device: &Device) -> Result<Pipelines, String> {
@@ -171,6 +180,12 @@ pub struct Renderer {
     material_sampler: Sampler,
     shared_shadow: ShadowResources,
     shared_fog_compute: FogComputeOwner,
+    /// The presentation camera record bound by the shared model prepass.
+    presentation_camera: Buffer,
+    /// CPU presentation records staged for the remaining production passes.
+    presentation_environment: Buffer,
+    presentation_fog: Buffer,
+    presentation_overlay: Buffer,
     production_camera_group: BindGroup,
     production_model_vertices: Buffer,
     production_model_instances: Buffer,
@@ -186,6 +201,7 @@ pub struct Renderer {
     stats: Stats,
     asset_report: Option<String>,
     asset_texture: Option<Texture>,
+    asset_snapshot: Option<AssetSnapshot>,
 }
 
 fn js_error(error: impl std::fmt::Display) -> JsValue {
@@ -262,7 +278,7 @@ impl Renderer {
         let device_lost_callback = device_lost.clone();
         device.set_device_lost_callback(move |reason, message| {
             device_lost_callback.fetch_add(1, Ordering::Relaxed);
-            web_sys::console::error_1(&JsValue::from_str(&format!(
+            web_sys::console::warn_1(&JsValue::from_str(&format!(
                 "shared renderer device lost ({reason:?}): {message}"
             )));
         });
@@ -373,6 +389,24 @@ impl Renderer {
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             &[0; 160],
         );
+        let presentation_environment = renderer_core::buffer(
+            &device,
+            "shared-presentation-environment",
+            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            &[0; 256],
+        );
+        let presentation_fog = renderer_core::buffer(
+            &device,
+            "shared-presentation-fog",
+            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            &[0; 256],
+        );
+        let presentation_overlay = renderer_core::buffer(
+            &device,
+            "shared-presentation-overlay",
+            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            &[0; 256],
+        );
         let production_camera_group = renderer_core::bind(
             &device,
             production_pipelines.layout("typegpuCameraLayout"),
@@ -443,6 +477,10 @@ impl Renderer {
             material_sampler,
             shared_shadow,
             shared_fog_compute,
+            presentation_camera: production_camera,
+            presentation_environment,
+            presentation_fog,
+            presentation_overlay,
             production_camera_group,
             production_model_vertices,
             production_model_instances,
@@ -461,7 +499,59 @@ impl Renderer {
             },
             asset_report: None,
             asset_texture: None,
+            asset_snapshot: None,
         })
+    }
+
+    /// Upload one frozen presentation frame at the shared renderer boundary.
+    /// The camera is immediately bound by the exported model prepass; the
+    /// environment, fog and overlay records are retained in shell-owned
+    /// uniform buffers for the passes that consume them as they are extracted.
+    /// Inputs are the packed Float32 records returned by `presentation-wasm`.
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn upload_presentation_frame(
+        &mut self,
+        camera: &[f32],
+        environment: &[f32],
+        fog: &[f32],
+        overlay: &[f32],
+    ) -> Result<(), JsValue> {
+        if camera.len() < 16 {
+            return Err(js_error("presentation camera record needs 16 words"));
+        }
+        let write = |queue: &Queue, buffer: &Buffer, words: &[f32], label: &str| {
+            let bytes = bytemuck::cast_slice(words);
+            if bytes.len() > 256 {
+                return Err(js_error(format!(
+                    "presentation {label} record exceeds 256 bytes"
+                )));
+            }
+            if !bytes.is_empty() {
+                queue.write_buffer(buffer, 0, bytes);
+            }
+            Ok(words.len() as u32)
+        };
+        self.queue.write_buffer(
+            &self.presentation_camera,
+            0,
+            bytemuck::cast_slice(&camera[..16]),
+        );
+        let environment_words = write(
+            &self.queue,
+            &self.presentation_environment,
+            environment,
+            "environment",
+        )?;
+        let fog_words = write(&self.queue, &self.presentation_fog, fog, "fog")?;
+        let overlay_words = write(&self.queue, &self.presentation_overlay, overlay, "overlay")?;
+        self.stats.presentation_uploads = self.stats.presentation_uploads.saturating_add(1);
+        self.stats.presentation_bound = true;
+        self.stats.presentation_camera_words = 16;
+        self.stats.presentation_environment_words = environment_words;
+        self.stats.presentation_fog_words = fog_words;
+        self.stats.presentation_overlay_words = overlay_words;
+        Ok(())
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -518,143 +608,38 @@ impl Renderer {
         self.stats.surface_recoveries += 1;
     }
 
-    /// Parse one fetched BGAT bundle through the native client's shared asset
-    /// reader and upload its first authored texture to this browser device.
-    /// The returned JSON is the exact boundary accounting used by the spike.
+    /// Recreate the complete renderer after a WebGPU device loss.
+    ///
+    /// A lost device invalidates every pipeline, bind group, buffer and target
+    /// view. Reconfiguring the old surface cannot make those handles usable,
+    /// so this swaps in a fresh renderer built through the same constructor
+    /// used at startup, then reuploads the cached CPU asset snapshot.
     #[cfg(target_arch = "wasm32")]
-    pub fn load_bundle(
-        &mut self,
-        name: String,
-        bundle_bytes: js_sys::Uint8Array,
-        textures: js_sys::Array,
-    ) -> Result<String, JsValue> {
-        let bundle_bytes = bundle_bytes.to_vec();
-        let mut owned = Vec::with_capacity(textures.length() as usize);
-        for value in textures.iter() {
-            let bytes = js_sys::Uint8Array::new(&value).to_vec();
-            owned.push((format!("texture-{}", owned.len()), bytes));
+    #[wasm_bindgen]
+    pub async fn recover_device(&mut self, canvas: HtmlCanvasElement) -> Result<(), JsValue> {
+        let previous_stats = self.stats;
+        let previous_lost = self.device_lost.load(Ordering::Relaxed);
+        let snapshot = self.asset_snapshot.clone();
+        let mut replacement = Self::new(canvas).await?;
+        replacement.stats = previous_stats;
+        replacement.stats.device_recoveries = replacement.stats.device_recoveries.saturating_add(1);
+        replacement
+            .device_lost
+            .store(previous_lost, Ordering::Relaxed);
+        if let Some(snapshot) = snapshot {
+            replacement.load_bundle_bytes(snapshot.name, snapshot.bundle, snapshot.textures)?;
         }
-        let refs: Vec<(&str, &[u8])> = owned
-            .iter()
-            .map(|(id, bytes)| (id.as_str(), bytes.as_slice()))
-            .collect();
-        let library = Library::from_bundle(&name, &bundle_bytes, &refs).map_err(js_error)?;
-        let bundle = library.bundle(&name).map_err(js_error)?;
-        let vertices: usize = match &bundle.shape {
-            native_client::bundle::Shape::Skinned(tiers) => {
-                tiers.iter().map(|m| m.vertices()).sum()
-            }
-            native_client::bundle::Shape::Articulated(nodes)
-            | native_client::bundle::Shape::Static(nodes) => nodes
-                .iter()
-                .flat_map(|node| node.tiers.iter())
-                .map(|m| m.vertices())
-                .sum(),
-        };
-        let indices: usize = match &bundle.shape {
-            native_client::bundle::Shape::Skinned(tiers) => {
-                tiers.iter().map(|m| m.indices.len()).sum()
-            }
-            native_client::bundle::Shape::Articulated(nodes)
-            | native_client::bundle::Shape::Static(nodes) => nodes
-                .iter()
-                .flat_map(|node| node.tiers.iter())
-                .map(|m| m.indices.len())
-                .sum(),
-        };
-        if let Some(texture) = bundle.textures.first() {
-            let size = Extent3d {
-                width: texture.size,
-                height: texture.size,
-                depth_or_array_layers: 1,
-            };
-            let gpu = self.device.create_texture(&TextureDescriptor {
-                label: Some("shared-asset-albedo"),
-                size,
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: TextureDimension::D2,
-                format: if texture.srgb {
-                    TextureFormat::Rgba8UnormSrgb
-                } else {
-                    TextureFormat::Rgba8Unorm
-                },
-                usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-                view_formats: &[],
-            });
-            self.queue.write_texture(
-                TexelCopyTextureInfo {
-                    texture: &gpu,
-                    mip_level: 0,
-                    origin: Origin3d::ZERO,
-                    aspect: TextureAspect::All,
-                },
-                &texture.levels[0],
-                TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(texture.size * 4),
-                    rows_per_image: Some(texture.size),
-                },
-                size,
-            );
-            self.asset_texture = Some(gpu);
-            let albedo = array_view(self.asset_texture.as_ref().expect("asset texture uploaded"));
-            let surface = array_view(&self.material_surface);
-            self.material_bindings.rebuild(
-                &self.device,
-                self.production_pipelines.layout("modelLayout"),
-                &self.material_palette,
-                &self.material_rows,
-                &albedo,
-                &surface,
-                &self.material_sampler,
-            );
-            self.stats.shared_materials = true;
-        }
-        let mesh = match &bundle.shape {
-            native_client::bundle::Shape::Skinned(tiers) => {
-                tiers.iter().find(|mesh| !mesh.indices.is_empty())
-            }
-            native_client::bundle::Shape::Articulated(nodes)
-            | native_client::bundle::Shape::Static(nodes) => nodes
-                .iter()
-                .flat_map(|node| node.tiers.iter())
-                .find(|mesh| !mesh.indices.is_empty()),
-        };
-        if let Some(mesh) = mesh {
-            let (production_vertices, production_count) =
-                production_model::mesh_vertices(&mesh.positions, &mesh.colors, &mesh.indices)
-                    .map_err(js_error)?;
-            self.production_model_vertices = renderer_core::buffer(
-                &self.device,
-                "shared-production-asset-vertices",
-                BufferUsages::VERTEX,
-                &production_vertices,
-            );
-            self.production_model_vertex_count = production_count;
-            self.model = Model::from_indexed_fitted(
-                &self.device,
-                &self.queue,
-                "shared-asset-model",
-                &mesh.positions,
-                &mesh.colors,
-                &mesh.indices,
-            )
-            .map_err(js_error)?;
-            self.stats.model_vertices = self.model.vertex_count();
-        }
-        let report = format!(
-            r#"{{"name":"{}","bundleBytes":{},"textureBytes":{},"textures":{},"materials":{},"vertices":{},"indices":{}}}"#,
-            name,
-            bundle_bytes.len(),
-            owned.iter().map(|(_, b)| b.len()).sum::<usize>(),
-            bundle.textures.len(),
-            bundle.materials.len(),
-            vertices,
-            indices
-        );
-        self.asset_report = Some(report.clone());
-        Ok(report)
+        *self = replacement;
+        Ok(())
+    }
+
+    /// Deliberately destroy the device so the browser scene can prove that
+    /// `recover_device` handles a real device-loss callback, rather than only
+    /// rebuilding an outdated surface.
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn destroy_device_for_test(&self) {
+        self.device.destroy();
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -740,7 +725,7 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceLost":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -752,7 +737,14 @@ impl Renderer {
             true,
             self.stats.shared_model_prepass,
             self.stats.surface_recoveries,
+            self.stats.device_recoveries,
             self.device_lost.load(Ordering::Relaxed),
+            self.stats.presentation_uploads,
+            self.stats.presentation_bound,
+            self.stats.presentation_camera_words,
+            self.stats.presentation_environment_words,
+            self.stats.presentation_fog_words,
+            self.stats.presentation_overlay_words,
             self.width,
             self.height,
             self.asset_report.as_deref().unwrap_or("null")

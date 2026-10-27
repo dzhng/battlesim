@@ -91,6 +91,21 @@ export async function run(ctx) {
     JSON.stringify(sharedWorkload),
   );
   ctx.check(
+    "shared browser row recreates the device and resources",
+    sharedWorkload?.deviceLost >= 1 && sharedWorkload?.deviceRecoveries >= 1,
+    JSON.stringify(sharedWorkload),
+  );
+  ctx.check(
+    "shared browser row uploads the frozen presentation records",
+    sharedWorkload?.presentationUploads >= 1 &&
+      sharedWorkload?.presentationBound === true &&
+      sharedWorkload?.presentationCameraWords === 16 &&
+      sharedWorkload?.presentationEnvironmentWords > 0 &&
+      sharedWorkload?.presentationFogWords > 0 &&
+      sharedWorkload?.presentationOverlayWords === 4,
+    JSON.stringify(sharedWorkload),
+  );
+  ctx.check(
     "shared browser row owns shadow resources",
     sharedWorkload?.sharedShadow === true,
     JSON.stringify(sharedWorkload),

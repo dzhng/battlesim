@@ -17,6 +17,7 @@ import {
 } from "@web/battle/sim/presentation";
 import { gameFogStyle } from "../gameFog";
 import { gameLight } from "../gameLight";
+import { gameOverlayGlow } from "../gameOverlay";
 import { FOUNDATION, groundPatch, FOUNDATION_CAMERA } from "./frame";
 import { modelEncoder, modelPipeline, type ModelWorkload } from "./oneRendererModel";
 import { battleFixture, BATTLE_HEIGHT, BATTLE_WIDTH } from "./oneRendererBattle";
@@ -599,6 +600,28 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     bundleBytes,
     textureBytes.map((bytes) => bytes),
   );
+  const frozen = realFrame(MODEL_CAMERA);
+  const upload = renderer as SharedRenderer & {
+    upload_presentation_frame: (
+      camera: Float32Array,
+      environment: Float32Array,
+      fog: Float32Array,
+      overlay: Float32Array,
+    ) => void;
+  };
+  // This is the actual presentation-wasm record boundary: the camera is
+  // bound by the shared model prepass, while the resolved environment/fog and
+  // overlay records are uploaded into the shared shell's pass-owned buffers.
+  // Keep the values frozen for the whole workload so backend comparisons do
+  // not accidentally compare different presentation clocks.
+  const resolvedLight = await resolveLight(gameLight);
+  const fogLook = resolveFogLook(gameFogStyle);
+  upload.upload_presentation_frame(
+    new Float32Array(frozen.camera.subarray(0, 16)),
+    new Float32Array(resolvedLight.sun),
+    new Float32Array(fogLook),
+    new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
+  );
   canvas.width = 320;
   canvas.height = 180;
   renderer.resize(canvas);
@@ -606,6 +629,16 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   canvas.height = REAL_HEIGHT;
   renderer.resize(canvas);
   renderer.recover_surface();
+  renderer.destroy_device_for_test();
+  await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  const lostBeforeRecovery = JSON.parse(renderer.stats()) as {
+    deviceLost: number;
+  };
+  if (lostBeforeRecovery.deviceLost < 1) {
+    throw new Error(`device loss callback did not fire: ${renderer.stats()}`);
+  }
+  await renderer.recover_device(canvas);
+  renderer.render();
   const setupMs = performance.now() - started;
   const encodeStart = performance.now();
   for (let index = 0; index < FRAMES; index++) renderer.render();

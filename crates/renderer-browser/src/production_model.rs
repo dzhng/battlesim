@@ -46,6 +46,7 @@ pub fn mesh_vertices(
     Ok((bytes, indices.len() as u32))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn encode_prepass(
     encoder: &mut wgpu::CommandEncoder,
     targets: &renderer_core::Targets,
