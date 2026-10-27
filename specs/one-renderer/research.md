@@ -66,12 +66,13 @@ parity and repository closeout run only after all production passes are wired.
 | `1c5da75e8` browser export validation | embedded export | Browser-safe `Pipelines::build` validates the embedded production export; full resource graph is still separate | PR #16 |
 | `48e059aac` + current scene run | embedded export | Shared browser row now validates all 63 exported pipelines before rendering; full eleven-row scene passes | PR #16 |
 | `0da7aa468` shared model material bindings | model owner | Native palette/material/texture bind-group order now has one browser-safe owner; palette growth rebinds through it | PR #16 |
+| current browser production-owner run | shared shell | Browser now builds the real exported pipelines and encodes shared fog-mask, post, and rim passes for every fixture frame; eleven-row scene passes | PR #16 |
 
 ## Handoff
 
 Incumbent: `a27ca5d27` plus the model-owner commits on PR #16.
-Active task: extract fog material/resource ownership, then browser production
-frame and device-loss seam. Regression set: renderer-core/native-client WASM checks,
+Active task: connect production presentation/material records to the browser
+shell, then close device-loss recovery. Regression set: renderer-core/native-client WASM checks,
 presentation tests, and the interleaved one-renderer scene. The latest rebuilt
 scene passes all eleven rows; it also caught and fixed the indexed-buffer
 validation error in the shared model path. Next test: wire exported production

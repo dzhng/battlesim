@@ -168,6 +168,10 @@ stops the work before a full port is attempted:
    shared row and records all 63 pipelines in its workload.
    Model material bind-group ownership is also shared now; native palette
    growth rebinds through `renderer_core::model_material`.
+   The shared browser frame now allocates the real exported pipeline set and
+   encodes shared fog-mask, post, and rim passes on every fixture frame. The
+   fixture model/world draw remains the bounded input until production
+   presentation records and materials are connected.
 12. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
    shared Rust native on the same frozen presentation frame. Measure startup,
    CPU encode, GPU timestamps, memory, binary/download size, LOC, GPU object

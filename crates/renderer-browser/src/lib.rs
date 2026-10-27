@@ -10,8 +10,10 @@
 
 use native_client::bundle::Library;
 use renderer_core::depth::{DepthInputs, DepthPrepass};
+use renderer_core::fog_mask::FogMaskResources;
 use renderer_core::model::Model;
 use renderer_core::pipelines::{Bound, Pipelines};
+use renderer_core::post::PostResources;
 use renderer_core::world::{Layer, Surface as WorldSurface, WorldInputs};
 use renderer_core::{encode_grouped, Targets};
 use std::sync::Arc;
@@ -69,6 +71,15 @@ struct Stats {
     draw_calls: u32,
     model_vertices: u32,
     resizes: u32,
+    shared_passes: u32,
+}
+
+fn build_exported_pipelines(device: &Device) -> Result<Pipelines, String> {
+    Pipelines::build(device, pipeline_export::MANIFEST, |_, shader| {
+        pipeline_export::source(shader)
+            .map(str::to_owned)
+            .ok_or_else(|| format!("missing embedded WGSL source: {shader}"))
+    })
 }
 
 struct Fixture<'a> {
@@ -133,6 +144,9 @@ pub struct Renderer {
     queue: Queue,
     targets: Targets,
     pipelines: Pipelines,
+    production_pipelines: Pipelines,
+    shared_post: PostResources,
+    shared_fog_mask: FogMaskResources,
     depth: DepthPrepass,
     camera_group: BindGroup,
     model: Model,
@@ -172,22 +186,9 @@ impl Renderer {
     /// The fixture frame does not call this yet; the method isolates export
     /// compatibility from the still-bounded frame comparison.
     pub async fn validate_export(&self) -> Result<String, JsValue> {
-        let errors = self.device.push_error_scope(ErrorFilter::Validation);
-        let pipelines = Pipelines::build(&self.device, pipeline_export::MANIFEST, |_, shader| {
-            pipeline_export::source(shader)
-                .map(str::to_owned)
-                .ok_or_else(|| format!("missing embedded WGSL source: {shader}"))
-        })
-        .map_err(js_error)?;
-        if let Some(error) = errors.pop().await {
-            return Err(js_error(format!(
-                "production pipeline validation: {error:?}"
-            )));
-        }
-        Ok(format!(
-            "{{\"pipelines\":{}}}",
-            pipeline_export::COUNT.max(pipelines.names().count())
-        ))
+        let built = self.production_pipelines.names().count();
+        let _shared_resources = (&self.shared_post, &self.shared_fog_mask);
+        Ok(format!("{{\"pipelines\":{built}}}"))
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -267,6 +268,23 @@ impl Renderer {
         if let Some(error) = pipeline_errors.pop().await {
             return Err(js_error(format!("shared pipeline validation: {error:?}")));
         }
+        let production_errors = device.push_error_scope(ErrorFilter::Validation);
+        let production_pipelines = build_exported_pipelines(&device).map_err(js_error)?;
+        if let Some(error) = production_errors.pop().await {
+            return Err(js_error(format!(
+                "production pipeline validation: {error:?}"
+            )));
+        }
+        let shared_post =
+            renderer_core::post::new(&device, &production_pipelines, &targets, &[0; 32], &[0; 80]);
+        let shared_fog_mask = renderer_core::fog_mask::fog_mask(
+            &device,
+            &production_pipelines,
+            &targets,
+            &[0; 96],
+            true,
+            true,
+        );
         let camera = renderer_core::buffer(
             &device,
             "shared-camera",
@@ -303,6 +321,9 @@ impl Renderer {
             queue,
             targets,
             pipelines,
+            production_pipelines,
+            shared_post,
+            shared_fog_mask,
             depth,
             camera_group,
             model,
@@ -482,6 +503,10 @@ impl Renderer {
             false,
             true,
         );
+        self.shared_fog_mask.encode(&mut encoder, &self.targets);
+        self.shared_post.encode(&mut encoder);
+        self.shared_fog_mask.encode_rim(&mut encoder, &self.targets);
+        self.stats.shared_passes += 1;
         let surface = match self.surface.get_current_texture() {
             CurrentSurfaceTexture::Success(surface)
             | CurrentSurfaceTexture::Suboptimal(surface) => surface,
@@ -520,11 +545,12 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
             self.stats.resizes,
+            self.stats.shared_passes,
             self.width,
             self.height,
             self.asset_report.as_deref().unwrap_or("null")
