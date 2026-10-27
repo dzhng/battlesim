@@ -630,9 +630,7 @@ impl Renderer {
             false,
             true,
         );
-        self.shared_fog_mask.encode(&mut encoder, &self.targets);
         self.shared_post.encode(&mut encoder);
-        self.shared_fog_mask.encode_rim(&mut encoder, &self.targets);
         self.stats.shared_passes += 1;
         let surface = match self.surface.get_current_texture() {
             CurrentSurfaceTexture::Success(surface)
@@ -643,25 +641,29 @@ impl Renderer {
             }
             other => return Err(js_error(format!("surface unavailable: {other:?}"))),
         };
-        encoder.copy_texture_to_texture(
-            TexelCopyTextureInfo {
-                texture: &self.targets.display_texture,
-                mip_level: 0,
-                origin: Origin3d::ZERO,
-                aspect: TextureAspect::All,
-            },
-            TexelCopyTextureInfo {
-                texture: &surface.texture,
-                mip_level: 0,
-                origin: Origin3d::ZERO,
-                aspect: TextureAspect::All,
-            },
-            Extent3d {
-                width: self.width,
-                height: self.height,
-                depth_or_array_layers: 1,
-            },
-        );
+        let view = surface
+            .texture
+            .create_view(&TextureViewDescriptor::default());
+        let pipeline = self.pipelines.bound("displayModel");
+        {
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("shared-fixture-display"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view: &view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: Operations {
+                        load: LoadOp::Clear(Color::BLACK),
+                        store: StoreOp::Store,
+                    },
+                })],
+                ..Default::default()
+            });
+            pipeline.set(&mut pass, &[("camera", &self.camera_group)]);
+            pass.set_vertex_buffer(0, self.model.vertex().slice(..));
+            pass.set_index_buffer(self.model.index().slice(..), IndexFormat::Uint32);
+            pass.draw_indexed(0..self.model.index_count(), 0, 0..1);
+        }
         self.queue.submit([encoder.finish()]);
         self.queue.present(surface);
         self.stats.frames += 1;
