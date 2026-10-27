@@ -105,4 +105,9 @@ export async function run(ctx) {
     sharedWorkload?.sharedFogCompute === true,
     JSON.stringify(sharedWorkload),
   );
+  ctx.check(
+    "shared browser row executes exported model opaque shading",
+    sharedWorkload?.sharedModelOpaque === true,
+    JSON.stringify(sharedWorkload),
+  );
 }

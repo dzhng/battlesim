@@ -178,6 +178,9 @@ stops the work before a full port is attempted:
    The browser shell also allocates the shared four-stage fog compute owner;
    presentation upload/bind-group policy and full fog visibility parity remain
    open.
+   The full exported `modelOpaque` contract now also executes against shared
+   HDR, fog-mask, depth, environment, and model groups; real environment data,
+   authored material rows, and fog visibility still need to replace placeholders.
    The shared browser frame now allocates the real exported pipeline set and
    encodes shared fog-mask, post, and rim passes on every fixture frame. The
    fixture model/world draw remains the bounded input until production

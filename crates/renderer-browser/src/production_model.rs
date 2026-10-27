@@ -46,6 +46,39 @@ pub fn mesh_vertices(
     Ok((bytes, indices.len() as u32))
 }
 
+pub fn encode_prepass(
+    encoder: &mut wgpu::CommandEncoder,
+    targets: &renderer_core::Targets,
+    pipelines: &renderer_core::pipelines::Pipelines,
+    camera: &wgpu::BindGroup,
+    materials: &wgpu::BindGroup,
+    vertices: &wgpu::Buffer,
+    instances: &wgpu::Buffer,
+    vertex_count: u32,
+) {
+    let pipeline = pipelines.bound("modelPrepass");
+    let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("shared-production-model-prepass"),
+        color_attachments: &[],
+        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+            view: &targets.depth,
+            depth_ops: Some(wgpu::Operations {
+                load: wgpu::LoadOp::Load,
+                store: wgpu::StoreOp::Store,
+            }),
+            stencil_ops: None,
+        }),
+        ..Default::default()
+    });
+    pipeline.set(
+        &mut pass,
+        &[("typegpuCameraLayout", camera), ("modelLayout", materials)],
+    );
+    pass.set_vertex_buffer(0, vertices.slice(..));
+    pass.set_vertex_buffer(1, instances.slice(..));
+    pass.draw(0..vertex_count, 0..1);
+}
+
 fn pack<const N: usize>(
     vertices: impl Iterator<Item = ([f32; 3], [u8; 4])>,
     count: u32,
