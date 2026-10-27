@@ -630,6 +630,18 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       fog: Float32Array,
       overlay: Float32Array,
     ) => void;
+    upload_fog_sight: (
+      params: Float32Array,
+      eyes: Float32Array,
+      foliage: Float32Array,
+      occluders: Float32Array,
+      rebuild: Uint32Array,
+      mapWords: Uint32Array,
+      tiles: Uint32Array,
+      wholes: Uint32Array,
+      wholeItems: Uint32Array,
+      wholeUniform: Float32Array,
+    ) => void;
   };
   // This is the actual presentation-wasm record boundary: the camera is
   // bound by the shared model prepass, while the resolved environment/fog and
@@ -644,6 +656,37 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
+  const uploadFogSight = () => {
+    const ground = frozenFixture.presentation.presentedGround();
+    const up = ground?.prepare_fog(
+      new Float32Array(frozen.camera.f32),
+      REAL_WIDTH,
+      REAL_HEIGHT,
+      0,
+    );
+    if (!up) return;
+    const reinterpret = (words: Uint32Array) =>
+      new Float32Array(new Uint32Array(words).buffer);
+    try {
+      const foliage = up.foliage();
+      const occluders = up.occluders();
+      upload.upload_fog_sight(
+        reinterpret(up.params()),
+        reinterpret(up.eyes()),
+        foliage ? new Float32Array(foliage) : new Float32Array(0),
+        occluders ? reinterpret(occluders) : new Float32Array(0),
+        new Uint32Array(up.rebuild()),
+        new Uint32Array(up.map_words()),
+        new Uint32Array(up.tiles()),
+        new Uint32Array(up.wholes() ?? []),
+        new Uint32Array(up.whole_items()),
+        new Float32Array(up.whole_uniform()),
+      );
+    } finally {
+      up.free();
+    }
+  };
+  uploadFogSight();
   (
     renderer as SharedRenderer & {
       upload_shadow_frame: (
@@ -681,6 +724,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
+  uploadFogSight();
   (
     renderer as SharedRenderer & {
       upload_shadow_frame: (
