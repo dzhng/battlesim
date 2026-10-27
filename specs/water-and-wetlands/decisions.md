@@ -56,8 +56,10 @@ Only **swamps** are terrain. Puddles are look only (decision 29).
    flat ground. They also see less themselves. A vehicle's higher eye
    (`hull.eye_m`) sees in better. Any reeds drawn stay knee-high, so the screen
    never suggests cover the terrain doesn't give. *Revised:* the user liked this
-   emergent hiding ("emergent property without hardcoding concealment"). That
-   replaces the earlier choice to keep dips too shallow to matter.
+   emergent hiding ("emergent property without hardcoding concealment"), but
+   depth is chosen for the look, not for sight (decision 30). At that depth,
+   the hiding is marginal, and the user accepts that: swamps are mostly about
+   movement.
 7. *agent* **Swamps take no track marks,** as water should refuse them. Marks on
    the dry ground around a swamp still show. *Why:* water keeps one rule for
    marks, and the wake is the trace a unit leaves in water. Today only `burst`
@@ -106,8 +108,8 @@ feature adds no fording.
 ## Scope and acceptance
 
 17. **The water must look its best close up (~65 m), at tactical play (~260 m)
-    and at low cinematic angles.** Far zoom only has to not look wrong. Where
-    the low angles are shot is question 9.
+    and at low cinematic angles.** Far zoom only has to not look wrong. The
+    low angles are shot in the water capture scene (decision 31).
 18. **The Low graphics setting drops refraction, caustics and wakes, and keeps
     the depth colour.**
 19. **Native must always run, and gets as close to parity as each step
@@ -129,13 +131,13 @@ ones decided from the confirmed preferences or by the user.
 
 21. *agent* **Swamps have wide, soft edges.** The edge spans several 4 m height
     cells, and admission checks depth against edge width when the map loads.
-    Depth is a tuning number per swamp variant or preset: deeper swamps hide
-    more (decision 6). *Why:* a steep rim would add the slope slowdown
+    Depth is set by decision 30. *Why:* a steep rim would add the slope slowdown
     (`slope_multiplier`, `navigation.rs`) on top of the swamp's factor, so speed
     would leak back to depth (decision 2). An edge steeper than
-    `steepest_grade` would be an impassable ring. A test proves the mechanic:
-    from flat ground, a far observer loses a unit standing in a deep dip, and a
-    near or high observer still sees it. *Revised:* the depth cap under the fog
+    `steepest_grade` would be an impassable ring. A test proves the sight
+    mechanic on a test dip deep enough to show it, not on the tuned depth: from
+    flat ground, a far observer loses a unit standing in the dip, and a near or
+    high observer still sees it. *Revised:* the depth cap under the fog
     target height was dropped with decision 6.
 22. *agent* **A swamp has a minimum size of about three height cells across.**
     *Why:* anything smaller can't be carved, and a hull's speed is sampled at
@@ -174,3 +176,19 @@ ones decided from the confirmed preferences or by the user.
     the user chose "roads always win" and "make small puddles cosmetic only" to
     simplify. A puddle is too small to carve on a 4 m grid anyway (decision
     22). Anything big enough to matter is a swamp.
+
+## Closing the walk
+
+30. **Swamp depth is chosen for how a unit looks standing in it: about 0.6 m.**
+    The water reaches a soldier's thighs, not most of the body. It is a tuning
+    number in the data, judged on screen with units in the swamp. *Why:* the
+    user cares more about how units look in a swamp than about balancing depth.
+    Depth's effect on balance is marginal; swamps are mostly for the movement
+    slowdown.
+31. **The low-angle shots are taken in a dedicated water capture scene:** a
+    fixed test map with a river and a swamp, framed at close, tactical and low
+    angles. It is the side-by-side target against RedGPU (decision 20). The
+    menu reel stays untouched. *Why:* neither reel map has water, and a new reel
+    shot would need directing and approval on its own. Sharp edge: the
+    automatic graphics-tier check runs on reel maps, so it won't pay the new
+    water's cost until a reel shot has water.

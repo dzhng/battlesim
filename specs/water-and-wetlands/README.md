@@ -1,10 +1,8 @@
 # Water and wetlands (placeholder)
 
-**Status:** placeholder, being mapped. The unknowns walk has settled the
-quadrants of known knowns, known unknowns and unknown knowns
-([decisions](decisions.md)), and the sweep for unknown unknowns has run
-([sharp edges](#sharp-edges)). Three questions remain. Nothing is sliced or
-implemented.
+**Status:** placeholder, mapped. The unknowns walk is finished
+([decisions](decisions.md), [sharp edges](#sharp-edges), and
+[the map](visualizations/unknowns-map.html)). Nothing is sliced or implemented.
 **Updated:** 2026-10-27.
 
 ## Next Agent Prompt
@@ -30,8 +28,7 @@ Read [`development.md`](../../development.md), the
 [`tweak-mechanics`](../../.agents/skills/tweak-mechanics/SKILL.md) before the
 wetland rule. Then run [`write-spec`](../../.agents/skills/write-spec/SKILL.md)
 for real. [`decisions.md`](decisions.md) holds the user's answers. Treat them
-as givens and don't re-ask them. Finish the walk's last quadrant (see
-[still open](#still-open)), then fan out the drafts and turn the
+as givens and don't re-ask them. The walk is finished, so fan out the drafts and turn the
 [draft ladder](#draft-ladder) into slice files under `slices/`. Do not build
 before the ladder is sliced.
 
@@ -45,12 +42,10 @@ point, and the checklist.
       [decisions](decisions.md)).
 - [x] Sweep for unknown unknowns (2026-10-27): [sharp edges](#sharp-edges)
       and decisions 21-28.
-- [x] Questions 7 and 8 (decisions 19 and 29).
-- [ ] Settle question 9 under [still open](#still-open) with the user, then
-      hand over the map.
-- [ ] Freeze the reference: capture RedGPU's lake demo at our camera angles
-      (draft ladder, rung 0).
-- [ ] Slice the ladder, then work through it from rung 0.
+- [x] Questions 7-9 (decisions 19, 29-31), and the map handed over.
+- [ ] Draft and slice the ladder with `write-spec`, starting from rung 0.
+- [ ] Then work through the ladder from rung 0: the water capture scene and the
+      frozen RedGPU reference.
 
 ## Goals and non-goals
 
@@ -119,7 +114,7 @@ constant is tuned for a ground-level camera.
 | **Normals** (`:280-346`) | One normal map at three scales (primary, a rotated macro layer, a rotated detail layer), each scrolling along the wind at its own rate, blended with RNM (`blendRNM`, `:35`). Faded toward flat with distance. | Two procedural ripple octaves (`waterNormal`). | **Yes**, with our own normal maps (baked or procedural). |
 | **Vertex waves** (`lakeVertex.wgsl:30-74`) | Two sines along and 35° off the wind, amplitude scaled by wind strength, with analytic normals. | Flat surface cells. | **Maybe.** Their amplitude is centimetres; it may not read from an RTS height. |
 | **Fresnel and sun specular** (`:503-592`) | Schlick with F0 0.02, three GGX sun lobes at rising roughness, sun in-scatter, and back-lit wave translucency. | `environment.shade` with one water roughness. | **Yes**, through our shared light owner, not a second lighting model. |
-| **Screen-space reflections** (`:94-236`) | A 64-step world-space march with bisection, faded by screen edge, distance and the reflected ray's height. Hits below the water plane are rejected. | None; the sky reflection only. | **Later, optional.** From a steep RTS camera most rays leave the screen. Judge it on the menu reel's low shots first. |
+| **Screen-space reflections** (`:94-236`) | A 64-step world-space march with bisection, faded by screen edge, distance and the reflected ray's height. Hits below the water plane are rejected. | None; the sky reflection only. | **Later, optional.** From a steep RTS camera most rays leave the screen. Judge it on the water capture scene's low shots first (decision 31). |
 | **Received shadows** | RedGPU water doesn't receive shadows. | We already sample the sun shadow on water. | Keep ours. |
 
 **Pass contract RedGPU relies on** (`Renderer.ts:241-336`): draw all opaque
@@ -234,9 +229,10 @@ The 2026-10-27 evaluation found four reasons:
 This is a scouting pass for `write-spec`. It is not sliced yet. Each rung names
 the one variable it would be judged on.
 
-0. **Freeze the reference.** Capture RedGPU's lake demo at the three views
-   that must look best (close ~65 m, tactical ~260 m, menu reel low angles),
-   next to our current river at the same framings. Variable: none; this
+0. **Freeze the reference and build the water capture scene.** Build the
+   fixed test map with a river and a swamp, framed at close (~65 m), tactical
+   (~260 m) and low angles (decision 31). Capture RedGPU's lake demo at the
+   same pitches and heights, next to our current water. Variable: none; this
    produces the targets for the side-by-side read (decision 20).
 1. **One wind.** Resolve one wind in Rust presentation, replacing the biome
    grass wind and `effects.wind_mps`. Variable: grass and smoke share a
@@ -402,5 +398,6 @@ owning slice. Worst first within each area.
 
 ## Still open
 
-9. **The menu reel has no water** (the `fixtures/captures/menu.json` maps), so
-   decision 17's low-angle target needs somewhere to be shot.
+Nothing in the walk. The map is at
+[`visualizations/unknowns-map.html`](visualizations/unknowns-map.html). Fixing
+the two bugs found beyond this feature is the user's call.
