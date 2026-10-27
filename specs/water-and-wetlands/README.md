@@ -449,6 +449,6 @@ owning slice. Worst first within each area.
 
 ## Still open
 
-Nothing. The two bugs found beyond this feature are fixed in
+Nothing. The two bugs found beyond this feature are fixed and merged in
 [PR #17](https://github.com/dzhng/battlesim/pull/17): track wear under bridge
 decks, and unvalidated forest multipliers. Slices 10 and 11 build on it.

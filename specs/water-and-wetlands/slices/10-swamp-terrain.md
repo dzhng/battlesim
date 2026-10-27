@@ -59,10 +59,10 @@ New file `crates/sim/tests/swamps.rs`, using test maps:
 
 ## Builds on PR #17
 
-[PR #17](https://github.com/dzhng/battlesim/pull/17) already made
+[PR #17](https://github.com/dzhng/battlesim/pull/17), merged into `staging`, made
 `GroundLayer::wear` take the world and mark only ground a mover stands on, so
 nothing wears ground under a bridge deck or in water. This slice widens the
-"water" in that check to `Surface::standing_water()`. Rebase onto #17 first.
+"water" in that check to `Surface::standing_water()`. Branch from a `staging` that includes it.
 
 ## Native
 
