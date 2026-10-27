@@ -219,3 +219,10 @@ The latest accounting rerun keeps the same visual distances (`model_rust_vs_brow
 `0.0492`, `battle_rust_vs_browser` `47.035`) and reports the shared row at
 `180.5 / 6.8 / 0.5 ms` setup, encode, and queue-boundary drain. These remain
 submission-boundary measurements, not GPU timestamps.
+
+The model geometry slice now packs all non-empty tiers from the loaded
+appearance into one vertex stream and routes each accepted batch to its tier's
+vertex range. The shared row reports 49,020 model vertices, 240 authored
+material words, and the same recovery gates. This closes the tier-range seam;
+multiple appearance bundles, articulated transforms, and real presentation
+batch selection remain open.

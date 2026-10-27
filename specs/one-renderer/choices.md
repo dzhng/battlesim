@@ -334,3 +334,18 @@ yet replace the native world's complete appearance library. **Reach:** the
 contract makes that expansion an asset-loading concern at the shell boundary,
 while the shared pass remains unchanged. **Verdict:** keep the admission check;
 do not fall back to the first loaded drawable. **Confidence:** high.
+
+### Authored tiers share one packed vertex stream with explicit ranges
+
+The browser now packs every non-empty tier of the loaded appearance into one
+48-byte vertex stream and records its `(appearance, tier) -> vertex range`
+mapping. Model runs carry both the instance range and the selected vertex
+range into the shared prepass and opaque draws. This preserves the native tier
+contract while keeping geometry allocation shell-owned.
+
+**Gap:** the current loader still installs one appearance and does not combine
+multiple bundles or articulated node transforms. **Reach:** adding more
+appearance bundles extends the table and texture/material rows without a new
+pass graph. **Verdict:** keep the packed-range contract; the next real-frame
+slice should populate it from the complete appearance library. **Confidence:**
+high.
