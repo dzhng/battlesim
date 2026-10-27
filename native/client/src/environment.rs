@@ -299,10 +299,9 @@ impl Environment {
             min_filter: FilterMode::Linear,
             ..Default::default()
         });
-        let environment = bind(
+        let environment = renderer_core::environment::EnvironmentBindings::new(
             device,
             pipelines.layout("environment"),
-            "environment",
             &[
                 data.as_entire_binding(),
                 cast_lights.as_entire_binding(),
@@ -314,7 +313,9 @@ impl Environment {
                 BindingResource::TextureView(shadow.depth()),
                 BindingResource::Sampler(shadow.compare()),
             ],
-        );
+        )
+        .group()
+        .clone();
 
         Self {
             camera,
