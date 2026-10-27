@@ -18,7 +18,7 @@ use crate::world::PropId;
 mod hull;
 mod motion;
 pub use hull::{face_toward, hull_face_at, HullFrame};
-pub use motion::{ground_mobility, motion, validate_drive, Flight, Motion};
+pub use motion::{ground_mobility, motion, validate, Flight, Motion};
 
 /// An aircraft smokes below this share of its health (D34).
 const SMOKING_HP_SHARE: f64 = 0.5;

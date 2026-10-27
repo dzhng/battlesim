@@ -634,7 +634,7 @@ impl Battle {
                 && rules.physics.vehicle_aim_height_fraction <= 1.0,
             "physics.vehicle_aim_height_fraction must be in (0, 1]"
         );
-        units::validate_drive(&rules);
+        units::validate(&rules);
         sensing::validate(&rules.sensors);
         damage::validate(&rules);
         ground::validate(&rules);
@@ -1642,9 +1642,9 @@ impl Battle {
         );
         self.shove_props(shoves);
         self.clear_lanes(&before);
-        for ((from, channel), (to, _)) in treads.into_iter().zip(self.treads()) {
-            self.ground.wear(from, to, channel, &self.rules.ground);
-        }
+        let trod = self.treads();
+        self.ground
+            .tread(&self.world, treads, trod, &self.rules.ground);
         let after = self.poses();
         self.trigger_fuel_withdrawals();
         let moved = self.moved(&before, &after, &stood);
