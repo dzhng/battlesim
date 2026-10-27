@@ -434,7 +434,9 @@ impl Renderer {
             &device,
             "shared-production-model-instances",
             BufferUsages::VERTEX | BufferUsages::COPY_DST,
-            &[0u8; 1024],
+            // The browser fixture now uploads the complete presentation
+            // instance stream, including all units in the publication.
+            &[0u8; 1024 * 1024],
         );
         let camera_buffer = renderer_core::buffer(
             &device,

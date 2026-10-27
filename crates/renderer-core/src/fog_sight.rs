@@ -114,7 +114,10 @@ impl FogSightResources {
         let paint_style = uniform(device, "fog-paint-style", &[0; 32]);
         let whole_uniform = uniform(device, "fog-whole", &[0; 16]);
         let height = storage(device, "fog-heights", 16);
-        let eyes = storage(device, "fog-eyes", 16);
+        // The terrain pipeline declares a three-word eye record even when a
+        // frame has no active eyes. Keep the zero-state binding valid; a
+        // 16-byte placeholder violates WebGPU's minimum binding size.
+        let eyes = storage(device, "fog-eyes", 48);
         let maps = storage(device, "fog-maps", 16);
         let terrain_maps = storage(device, "fog-terrain-maps", 16);
         let foliage = storage(device, "fog-foliage", 16);
