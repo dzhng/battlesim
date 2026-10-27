@@ -167,3 +167,12 @@ because contact shadows are absent; the right and lower slabs and the orange
 arc are clipped; and the map boundary falls into black at the frame edges.
 These findings reinforce that the current green harness is an input/lifecycle
 proof, not a visual acceptance result.
+
+The model-record follow-up also corrected the native ABI at the shared
+boundary: `Instance` is 16 floats, `Batch` is 12 words, `Joint` is 12 floats,
+and each material is 20 floats. The shared browser path now keeps dynamic
+batch `first/count` ranges as separate draws and skips `NONE` static batches
+until a browser static holder exists. This removes the earlier half-stride and
+flattened-range errors. The current fixture still has no authored model runs
+from `ScenePresentation`, so the next model gate must supply a real dynamic
+frame or explicitly label a one-bundle fixture as transport-only.

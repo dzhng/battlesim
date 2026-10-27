@@ -256,3 +256,20 @@ selection path is still required. **Reach:** the upload and recovery contract
 can remain unchanged while native material classification and static batches
 are added. **Verdict:** retain as an input seam, not as evidence of visual
 parity. **Confidence:** medium.
+
+### Dynamic model batches keep their native ranges
+
+Presentation `Instance` records are 16 floats and `Batch` records are 12 words.
+The shared browser upload now validates those strides, preserves the complete
+instance stream, and turns dynamic `VIEW_PASS` batches into explicit draw ranges
+for the shared prepass and opaque pass. Batches with `first == NONE` are held
+static batches; the browser skips them until it has a static holder keyed by
+`Batch.key`, matching native's `Statics` owner rather than pretending their
+range is frame-local.
+
+**Gap:** the current fixture has no authored model runs from `ScenePresentation`
+and still loads one test-tank drawable, so this proves range handling rather
+than heterogeneous appearance selection. **Reach:** an appearance/tier
+drawable table and static holder are still required for full production parity.
+**Verdict:** keep the native record strides and explicit run contract; do not
+flatten batches into a synthetic instance stream. **Confidence:** high.

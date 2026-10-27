@@ -41,6 +41,9 @@ layer records, and a non-flat height page now cross the shared browser shell.
 The current pickup is the real production input extraction: move native
 terrain tables, material rows, fog publication state, and static/model batches
 behind the shared frame boundary, then compare the same multi-model fixture.
+The browser model seam now preserves 16-float instances and 12-word dynamic
+batch ranges; finish the appearance/tier drawable mapping and the `NONE` static
+batch holder before claiming model parity.
 Do not treat the current caster counters or the fixture world path as a visual
 shadow/material proof; the latest review still sees no readable contact shadows.
 
@@ -182,7 +185,7 @@ stops the work before a full port is attempted:
    exported pipeline set and executes shared model prepass/opaque, fog-mask,
    post, shadow-resource, and lifecycle seams. Move the real presentation fog,
    environment, overlay, and caster records into these groups next.
-   The browser shell now embeds the exact 63-pipeline export and every WGSL
+ The browser shell now embeds the exact 63-pipeline export and every WGSL
    source through a generated build-time map; no filesystem access is added,
    and exposes an explicit validation method for building that export on the
    browser device. The one-renderer scene calls that validation before the
