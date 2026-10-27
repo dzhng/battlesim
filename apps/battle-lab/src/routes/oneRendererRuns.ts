@@ -578,6 +578,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       wholeDispatch: Uint32Array,
     ) => void;
     upload_ground: (mesh: Float32Array) => void;
+    upload_static_world: (mesh: Float32Array) => void;
     upload_terrain_tables: (
       params: Uint32Array,
       nodes: Uint32Array,
@@ -632,8 +633,9 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   ).upload_model_frame(modelPalettes, modelInstances, modelBatches, new Float32Array(0));
   (renderer as SharedRenderer & { upload_sky: (sky: Float32Array) => void }).upload_sky(rl.sky);
   upload.upload_ground(
-    concatMeshes([Float32Array.from(ff.terrain), Float32Array.from(ff.world.props)]),
+    Float32Array.from(ff.terrain),
   );
+  upload.upload_static_world(Float32Array.from(ff.world.props));
   const uploadTerrainTables = () => {
     const tables = ff.presentation.presentedGround()?.ground_terrain();
     if (!tables) throw new Error("presentation did not resolve terrain tables");
@@ -739,8 +741,9 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     }
   ).upload_model_frame(modelPalettes, modelInstances, modelBatches, new Float32Array(0));
   upload.upload_ground(
-    concatMeshes([Float32Array.from(ff.terrain), Float32Array.from(ff.world.props)]),
+    Float32Array.from(ff.terrain),
   );
+  upload.upload_static_world(Float32Array.from(ff.world.props));
   uploadTerrainTables();
   h();
   upload.overlay(

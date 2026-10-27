@@ -15,6 +15,7 @@ impl Renderer {
         let previous_lost = self.device_lost.load(Ordering::Relaxed);
         let snapshot = self.asset_snapshot.clone();
         let ground = self.ground_snapshot.clone();
+        let static_world = self.static_world_snapshot.clone();
         let terrain = self.terrain_snapshot.clone();
         let post_bloom = self.post_bloom.clone();
         let post_grade = self.post_grade.clone();
@@ -34,6 +35,9 @@ impl Renderer {
         }
         if let Some(ground) = ground {
             replacement.upload_ground(&ground)?;
+        }
+        if let Some(static_world) = static_world {
+            replacement.upload_static_world(&static_world)?;
         }
         if let Some(terrain) = terrain {
             replacement.upload_terrain_tables(

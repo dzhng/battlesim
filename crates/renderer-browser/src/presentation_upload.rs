@@ -180,6 +180,55 @@ impl Renderer {
         Ok(())
     }
 
+    /// Upload static world faces separately from terrain. They use the
+    /// ordinary `worldOpaque` material path; routing them through
+    /// `worldTerrain` applies terrain tables to props and breaks lighting and
+    /// contact-shadow semantics.
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn upload_static_world(&mut self, mesh: &[f32]) -> Result<(), JsValue> {
+        if !mesh.len().is_multiple_of(10) {
+            return Err(js_error(
+                "shared static world mesh needs ten floats per vertex",
+            ));
+        }
+        let mut bytes = Vec::with_capacity(mesh.len() / 10 * 40);
+        for vertex in mesh.as_chunks::<10>().0 {
+            bytes.extend_from_slice(bytemuck::cast_slice(&vertex[..3]));
+            bytes.extend_from_slice(bytemuck::cast_slice(&vertex[3..6]));
+            bytes.extend_from_slice(bytemuck::cast_slice(&vertex[6..10]));
+        }
+        let data = if bytes.is_empty() { vec![0; 40] } else { bytes };
+        self.production_static_vertices = renderer_core::buffer(
+            &self.device,
+            "shared-production-static-vertices",
+            BufferUsages::VERTEX,
+            &data,
+        );
+        self.production_static_vertex_count = (mesh.len() / 10) as u32;
+        let mut shadow_mesh = self.ground_snapshot.clone().unwrap_or_default();
+        shadow_mesh.extend_from_slice(mesh);
+        let mut shadow_bytes = Vec::with_capacity(shadow_mesh.len() / 10 * 40);
+        for vertex in shadow_mesh.as_chunks::<10>().0 {
+            shadow_bytes.extend_from_slice(bytemuck::cast_slice(&vertex[..3]));
+            shadow_bytes.extend_from_slice(bytemuck::cast_slice(&vertex[3..6]));
+            shadow_bytes.extend_from_slice(bytemuck::cast_slice(&vertex[6..10]));
+        }
+        self.shadow_ground_vertices = renderer_core::buffer(
+            &self.device,
+            "shared-shadow-ground-vertices",
+            BufferUsages::VERTEX,
+            if shadow_bytes.is_empty() {
+                &[0; 40]
+            } else {
+                &shadow_bytes
+            },
+        );
+        self.shadow_ground_count = (shadow_mesh.len() / 10) as u32;
+        self.static_world_snapshot = Some(mesh.to_vec());
+        Ok(())
+    }
+
     /// Upload the presentation's resolved terrain material tables.  The
     /// arrays are the exact `GroundTables` words returned by presentation
     /// WASM; the shared owner creates one `terrainLayout` bind group for the

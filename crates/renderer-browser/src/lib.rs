@@ -210,6 +210,8 @@ pub struct Renderer {
     available_model_drawables: HashMap<(u32, u32), (u32, u32)>,
     production_terrain_vertices: Buffer,
     production_terrain_vertex_count: u32,
+    production_static_vertices: Buffer,
+    production_static_vertex_count: u32,
     depth: DepthPrepass,
     camera_buffer: Buffer,
     camera_group: BindGroup,
@@ -221,6 +223,7 @@ pub struct Renderer {
     shadow_ground_vertices: Buffer,
     shadow_ground_count: u32,
     ground_snapshot: Option<Vec<f32>>,
+    static_world_snapshot: Option<Vec<f32>>,
     terrain_snapshot: Option<TerrainSnapshot>,
     fog_rebuild_dispatch: Option<[u32; 2]>,
     fog_whole_dispatch: Option<[u32; 2]>,
@@ -489,6 +492,12 @@ impl Renderer {
             BufferUsages::VERTEX,
             &[0; 40],
         );
+        let production_static_vertices = renderer_core::buffer(
+            &device,
+            "shared-production-static-vertices",
+            BufferUsages::VERTEX,
+            &[0; 40],
+        );
         Ok(Self {
             surface,
             device,
@@ -524,6 +533,8 @@ impl Renderer {
             available_model_drawables: HashMap::new(),
             production_terrain_vertices,
             production_terrain_vertex_count: 0,
+            production_static_vertices,
+            production_static_vertex_count: 0,
             depth,
             camera_buffer,
             camera_group,
@@ -535,6 +546,7 @@ impl Renderer {
             shadow_ground_vertices,
             shadow_ground_count: 0,
             ground_snapshot: None,
+            static_world_snapshot: None,
             terrain_snapshot: None,
             fog_rebuild_dispatch: None,
             fog_whole_dispatch: None,

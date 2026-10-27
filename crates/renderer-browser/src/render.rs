@@ -111,6 +111,52 @@ impl Renderer {
             pass.set_vertex_buffer(1, self.overlay_instances.slice(..));
             pass.draw(0..self.production_terrain_vertex_count, 0..1);
         }
+        if self.terrain_snapshot.is_some() && self.production_static_vertex_count > 0 {
+            let pipeline = self.production_pipelines.bound("worldOpaque");
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("shared-production-static-world"),
+                color_attachments: &[
+                    Some(RenderPassColorAttachment {
+                        view: &self.targets.hdr_msaa,
+                        depth_slice: None,
+                        resolve_target: Some(&self.targets.lit),
+                        ops: Operations {
+                            load: LoadOp::Load,
+                            store: StoreOp::Store,
+                        },
+                    }),
+                    Some(RenderPassColorAttachment {
+                        view: &self.targets.fog_mask_msaa,
+                        depth_slice: None,
+                        resolve_target: Some(&self.targets.fog_mask),
+                        ops: Operations {
+                            load: LoadOp::Load,
+                            store: StoreOp::Store,
+                        },
+                    }),
+                ],
+                depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+                    view: &self.targets.depth,
+                    depth_ops: Some(Operations {
+                        load: LoadOp::Load,
+                        store: StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
+                ..Default::default()
+            });
+            pipeline.set(
+                &mut pass,
+                &[
+                    ("typegpuCameraLayout", &self.production_camera_group),
+                    ("environment", self.environment.bindings.group()),
+                    ("fogLayout", self.shared_fog_sight.group(1)),
+                ],
+            );
+            pass.set_vertex_buffer(0, self.production_static_vertices.slice(..));
+            pass.set_vertex_buffer(1, self.overlay_instances.slice(..));
+            pass.draw(0..self.production_static_vertex_count, 0..1);
+        }
         renderer_core::model_pass::encode_opaque(
             &mut encoder,
             &self.targets,
@@ -207,6 +253,10 @@ impl Renderer {
         pass.set_vertex_buffer(0, self.production_terrain_vertices.slice(..));
         pass.set_vertex_buffer(1, self.overlay_instances.slice(..));
         pass.draw(0..self.production_terrain_vertex_count, 0..1);
+        if self.production_static_vertex_count > 0 {
+            pass.set_vertex_buffer(0, self.production_static_vertices.slice(..));
+            pass.draw(0..self.production_static_vertex_count, 0..1);
+        }
     }
 
     fn encode_shadows(&mut self, encoder: &mut CommandEncoder) {

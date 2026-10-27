@@ -385,3 +385,22 @@ the native and browser shells converge; do not silently retain a diagnostic
 64px target in production. **Verdict:** keep 2048px for the parity gate and
 measure a deliberate quality tier separately. **Confidence:** high; the
 tile-shaped terrain artifact disappeared at the authored resolution.
+
+### Static world faces stay out of the terrain material path
+
+The browser production adapter initially concatenated terrain triangles and
+static props into one vertex stream and drew them all through `worldTerrain`.
+That made props consume terrain tables, terrain fog classification and terrain
+lighting, which showed up as weak grounding and incorrect face shading. The
+adapter now uploads terrain and static world meshes separately: terrain uses
+`worldTerrain`, while props use `worldPrepass`/`worldOpaque` with the ordinary
+environment and face fog group. Shadow geometry is recombined into one caster
+buffer so the color ownership split does not double the shadow-pass cost.
+
+**Gap:** the browser fixture still does not carry the complete production
+appearance/scenery library, and the native shell has not yet called this exact
+shared frame entry point. **Reach:** static faces now have one clear material
+owner and the shared frame can add scenery without teaching terrain about
+props. **Verdict:** keep the split; never concatenate heterogeneous world
+layers before material selection. **Confidence:** high; the one-renderer scene
+remains green and shadow passes return to 484 after the split.
