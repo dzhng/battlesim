@@ -602,11 +602,14 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     batches?: { u32: Uint32Array };
   };
   const fixtureModel = fixtureModelFrame(si);
+  const hasPresentationModels = Boolean(
+    presentationModel.instances?.f32.length && presentationModel.batches?.u32.length,
+  );
   const modelInstances = presentationModel.instances?.f32.length
     ? new Float32Array(presentationModel.instances.f32)
     : si;
-  const modelBatches = presentationModel.batches?.u32.length
-    ? new Uint32Array(presentationModel.batches.u32)
+  const modelBatches = hasPresentationModels
+    ? new Uint32Array(presentationModel.batches!.u32)
     : fixtureModel.batches;
   const modelPalettes = presentationModel.palettes?.f32.length
     ? new Float32Array(presentationModel.palettes.f32)
