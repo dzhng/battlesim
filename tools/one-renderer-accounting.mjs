@@ -227,7 +227,7 @@ const report = {
       area: "resource registry/generation/reset/device loss",
       browser: "GpuRegistry + SizedTargets + frame disposal",
       rust: "ad hoc renderer-owned resources",
-      status: "full lifecycle parity open",
+      status: "shared browser target generation and explicit surface recovery pass; device-loss recreation remains open",
     },
   ],
 };
