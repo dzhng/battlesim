@@ -725,12 +725,14 @@ impl Renderer {
             bytemuck::cast_slice(palettes),
             "palettes",
         )?;
-        write(
-            &self.queue,
-            &self.material_rows,
-            bytemuck::cast_slice(material_rows),
-            "materials",
-        )?;
+        if !material_rows.is_empty() {
+            write(
+                &self.queue,
+                &self.material_rows,
+                bytemuck::cast_slice(material_rows),
+                "materials",
+            )?;
+        }
         self.production_model_instance_count = (selected.len() / 16) as u32;
         if let Some(snapshot) = &mut self.presentation_snapshot {
             snapshot.batches = batches.to_vec();
