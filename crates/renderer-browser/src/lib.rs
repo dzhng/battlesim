@@ -378,12 +378,7 @@ impl Renderer {
             &device,
             "shared-production-model-instances",
             BufferUsages::VERTEX | BufferUsages::COPY_DST,
-            bytemuck::cast_slice(&[
-                0.0f32, 0.0, 0.0, 0.0, // placement
-                0.0, 0.0, 0.0, 0.0, // data
-                1.0, 1.0, 1.0, 1.0, // tint
-                1.0, 1.0, 1.0, 1.0, // scale
-            ]),
+            &[0u8; 1024],
         );
         let camera_buffer = renderer_core::buffer(
             &device,
