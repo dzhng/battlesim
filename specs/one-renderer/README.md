@@ -1,8 +1,9 @@
 # One renderer
 
-**Status:** browser `wgpu` feasibility is proven, but the spike must be
-reframed around sharing the existing native `wgpu` renderer before it can
-answer the migration question.
+**Status:** implementation in progress on PR #16. Shared targets, pipelines,
+depth, world, indexed model upload, and fog-mask resources now have one Rust
+owner; production effects, post, fog compute, lifecycle, and TypeGPU deletion
+remain.
 **Updated:** 2026-10-27.
 
 The first question is answered: Rust `wgpu` can run in browser WASM through
@@ -20,8 +21,8 @@ is not the target architecture and its smaller LOC is not evidence of a win.
 Treat the current `renderer-wasm-spike` as a transport and harness probe only.
 The first extraction checkpoint is now complete: `crates/renderer-core` owns
 the shared target formats, target allocation and GPU buffer/bind helpers, and
-the native client consumes those owners. The next pass must move the actual
-pass modules into that crate, then add native and WASM platform shells for
+ the native client consumes those owners. The next pass must move the actual
+ pass modules into that crate, then add native and WASM platform shells for
 surface/device/assets/audio concerns. Do not add another Rust pass graph.
 Keep TypeGPU as the browser control until the shared native/browser core clears
 the matched-image, startup, frame-time, resize, rebuild and device-loss gates.
@@ -100,7 +101,7 @@ frame in native and browser builds without a second pass implementation. A
 standalone `renderer-wasm-spike` graph may remain as a tiny transport smoke test,
 but it must not be used for the complexity or migration verdict.
 
-## Remaining spikes
+## Remaining implementation passes
 
 There are four focused unknowns left. They are ordered so a failed assumption
 stops the work before a full port is attempted:
@@ -144,7 +145,17 @@ stops the work before a full port is attempted:
    and draws it from the browser shell. The shared row exercises a 37,002-vertex
    fetched tank and resizes 640×360 → 320×180 → 640×360 before measurement.
    Texture/effect assets, rebuild, surface loss and device loss remain open.
-8. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
+8. **Fog-mask extraction — checkpoint complete.** `renderer-core::fog_mask`
+   owns the fog look/view uniforms, optional edge-distance passes, compose pass,
+   rim pass, and attachment policy. Native wraps the shared owner; GPU work and
+   pass order are unchanged. Fog sight/compute/material classification remain
+   native-only and must move next.
+9. **Effects and post extraction — next.** Move flipbook/effect resource
+   ownership and bloom/grade target ownership into browser-safe core modules,
+   keeping filesystem/runtime asset loading in the native shell.
+10. **Fog compute and lifecycle — next.** Move fog sight buffers/compute and
+   resize/rebuild/reset/device-loss ownership into the shared runtime.
+11. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
    shared Rust native on the same frozen presentation frame. Measure startup,
    CPU encode, GPU timestamps, memory, binary/download size, LOC, GPU object
    counts, screenshot distance and recovery behaviour. Only this run can decide

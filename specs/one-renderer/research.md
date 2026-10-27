@@ -45,6 +45,7 @@ parity and repository closeout run only after all production passes are wired.
 | Standalone Rust production-shaped graph | Full frame distance 47.03; incomplete materials/shadows/fog/post | Fast diagnostic, invalid migration comparison | Reject as final architecture |
 | Shared target/pipeline/depth/world owners | Native/browser compile; unchanged pass order/GPU work | Reduces duplicate allocation and attachment policy | Keep |
 | Shared indexed model upload owner | Native/browser compile; queue upload seam | Establishes one model GPU lifetime owner; no measured extra draws | Keep, production integration pending |
+| Shared fog-mask owner | Native/browser-safe core; same 2 optional distance passes + compose + rim | Removes native attachment/pass duplication with zero extra GPU work | Keep |
 | Browser TypeGPU as permanent second renderer | Two pass/resource graphs | Preserves a known control at the cost of permanent duplication | Reject after parity |
 
 ## Attempt ledger
@@ -53,11 +54,12 @@ parity and repository closeout run only after all production passes are wired.
 |---|---|---|---|
 | `a27ca5d27` shared targets/pipelines/depth/world/browser shell | native client before extraction | Compile and browser scene pass; parity incomplete | PR #16, one-renderer evidence |
 | `91102bb19` + `e29e253bf` shared indexed model owner/queue seam | `a27ca5d27` | Focused native/browser checks pass; browser still uses compatibility draw path | PR #16 |
+| `88155dc93` shared fog-mask resources/pass order | model-owner incumbent | Native adapter and renderer-core WASM/native checks pass; GPU work unchanged | PR #16 |
 
 ## Handoff
 
 Incumbent: `a27ca5d27` plus the model-owner commits on PR #16.
-Active task: extract fog/material/resource ownership, then effects/post/overlay
+Active task: extract fog compute/material ownership, then effects/post/overlay
 and lifecycle seams. Regression set: renderer-core/native-client WASM checks,
 presentation tests, and the interleaved one-renderer scene. Next test: run the
 first focused fog/resource extraction checks, then rerun the browser scene only
