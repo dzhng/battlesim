@@ -1,124 +1,101 @@
-//! Shared indexed model geometry ownership.
+//! Shared indexed model GPU ownership.
 //!
-//! The browser and native shells may decode different asset containers, but
-//! once a mesh is reduced to positions, vertex colours and indices this owner
-//! performs the same GPU expansion, upload and draw operation in both targets.
-
-use bytemuck::{Pod, Zeroable};
+//! Platform shells decode appearance bundles and provide packed vertex/index
+//! bytes; this module owns the GPU lifetime and draw contract used by both
+//! native and browser shells.
 use wgpu::*;
 
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-pub struct Vertex {
-    pub position: [f32; 3],
-    pub colour: [f32; 4],
+pub struct IndexedModel {
+    pub vertices: Buffer,
+    pub indices: Buffer,
+    pub index_count: u32,
+    pub vertex_bytes: u64,
+    pub index_bytes: u64,
 }
 
-/// A shell-independent triangle-list model. Materials and skinning remain
-/// higher-level adapters; this owner is the first shared model resource seam.
+/// Packed non-indexed fixture model retained as a compatibility adapter while
+/// callers move to `IndexedModel`.
 pub struct Model {
-    vertex: Buffer,
-    vertex_count: u32,
+    indexed: IndexedModel,
 }
 
 impl Model {
-    pub fn from_indexed(
-        device: &Device,
-        label: &str,
-        positions: &[f32],
-        colours: &[u8],
-        indices: &[u32],
-    ) -> Result<Self, String> {
-        Self::upload(
-            device,
-            label,
-            Self::indexed_vertices(positions, colours, indices)?,
-        )
-    }
-
-    /// Fixture-only helper that fits a mesh into a clip-space inspection view.
     pub fn from_indexed_fitted(
         device: &Device,
+        queue: &Queue,
         label: &str,
         positions: &[f32],
         colours: &[u8],
         indices: &[u32],
     ) -> Result<Self, String> {
-        let mut vertices = Self::indexed_vertices(positions, colours, indices)?;
-        let mut min = [f32::INFINITY; 3];
-        let mut max = [f32::NEG_INFINITY; 3];
-        for vertex in &vertices {
-            for axis in 0..3 {
-                min[axis] = min[axis].min(vertex.position[axis]);
-                max[axis] = max[axis].max(vertex.position[axis]);
-            }
-        }
-        let center: [f32; 3] = std::array::from_fn(|axis| (min[axis] + max[axis]) * 0.5);
-        let extent = (0..3)
-            .map(|axis| max[axis] - min[axis])
-            .fold(0.0f32, f32::max)
-            .max(1e-6);
-        let scale = 1.6 / extent;
-        for vertex in &mut vertices {
-            vertex.position =
-                std::array::from_fn(|axis| (vertex.position[axis] - center[axis]) * scale);
-        }
-        Self::upload(device, label, vertices)
-    }
-
-    fn indexed_vertices(
-        positions: &[f32],
-        colours: &[u8],
-        indices: &[u32],
-    ) -> Result<Vec<Vertex>, String> {
         if !positions.len().is_multiple_of(3) || colours.len() != positions.len() / 3 * 4 {
-            return Err("model vertex arrays have different lengths".into());
+            return Err("model fixture attribute lengths differ".into());
         }
-        if indices
-            .iter()
-            .any(|&index| index as usize >= positions.len() / 3)
-        {
-            return Err("model index is outside the vertex array".into());
+        let mut bytes = Vec::with_capacity(positions.len() / 3 * 28);
+        for i in 0..positions.len() / 3 {
+            if i >= colours.len() / 4 {
+                return Err("model fixture index out of range".into());
+            }
+            bytes.extend_from_slice(bytemuck::cast_slice(&positions[i * 3..i * 3 + 3]));
+            bytes.extend_from_slice(&colours[i * 4..i * 4 + 4]);
         }
-        let vertices = indices
-            .iter()
-            .map(|&index| {
-                let vertex = index as usize;
-                Vertex {
-                    position: positions[vertex * 3..vertex * 3 + 3]
-                        .try_into()
-                        .expect("validated position width"),
-                    colour: std::array::from_fn(|channel| {
-                        f32::from(colours[vertex * 4 + channel]) / 255.0
-                    }),
-                }
-            })
-            .collect::<Vec<_>>();
-        if vertices.is_empty() {
-            Err("model has no indexed triangles".into())
-        } else {
-            Ok(vertices)
-        }
-    }
-
-    fn upload(device: &Device, label: &str, vertices: Vec<Vertex>) -> Result<Self, String> {
-        let vertex = crate::buffer(
-            device,
-            label,
-            BufferUsages::VERTEX,
-            bytemuck::cast_slice(&vertices),
-        );
         Ok(Self {
-            vertex,
-            vertex_count: vertices.len() as u32,
+            indexed: IndexedModel::upload(
+                device,
+                queue,
+                label,
+                &bytes,
+                bytemuck::cast_slice(indices),
+                indices.len() as u32,
+            ),
         })
     }
-
+    pub fn vertex(&self) -> &Buffer {
+        &self.indexed.vertices
+    }
     pub fn vertex_count(&self) -> u32 {
-        self.vertex_count
+        self.indexed.index_count
+    }
+    pub fn draw<'a>(&'a self, pass: &mut RenderPass<'a>) {
+        self.indexed.draw(pass, 0);
+    }
+}
+
+impl IndexedModel {
+    pub fn upload(
+        device: &Device,
+        queue: &Queue,
+        label: &str,
+        vertices: &[u8],
+        indices: &[u8],
+        index_count: u32,
+    ) -> Self {
+        let vertices_buffer = device.create_buffer(&BufferDescriptor {
+            label: Some(&format!("{label}-vertices")),
+            size: vertices.len().max(1) as u64,
+            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        queue.write_buffer(&vertices_buffer, 0, vertices);
+        let indices_buffer = device.create_buffer(&BufferDescriptor {
+            label: Some(&format!("{label}-indices")),
+            size: indices.len().max(1) as u64,
+            usage: BufferUsages::INDEX | BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        queue.write_buffer(&indices_buffer, 0, indices);
+        Self {
+            vertices: vertices_buffer,
+            indices: indices_buffer,
+            index_count,
+            vertex_bytes: vertices.len() as u64,
+            index_bytes: indices.len() as u64,
+        }
     }
 
-    pub fn vertex(&self) -> &Buffer {
-        &self.vertex
+    pub fn draw<'a>(&'a self, pass: &mut RenderPass<'a>, vertex_slot: u32) {
+        pass.set_vertex_buffer(vertex_slot, self.vertices.slice(..));
+        pass.set_index_buffer(self.indices.slice(..), IndexFormat::Uint32);
+        pass.draw_indexed(0..self.index_count, 0, 0..1);
     }
 }
