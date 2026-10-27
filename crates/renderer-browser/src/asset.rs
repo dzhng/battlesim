@@ -162,6 +162,7 @@ impl Renderer {
         if !rows.is_empty() {
             self.queue
                 .write_buffer(&self.material_rows, 0, bytemuck::cast_slice(&rows));
+            self.stats.presentation_material_words = rows.len() as u32;
         }
         let vertices: usize = match &bundle.shape {
             native_client::bundle::Shape::Skinned(tiers) => {
