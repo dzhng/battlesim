@@ -686,7 +686,11 @@ impl Renderer {
         batches: &[u32],
         material_rows: &[f32],
     ) -> Result<(), JsValue> {
-        if !instances.len().is_multiple_of(16) || !palettes.len().is_multiple_of(12) {
+        if !instances.len().is_multiple_of(16)
+            || !palettes.len().is_multiple_of(12)
+            || !batches.len().is_multiple_of(12)
+            || !material_rows.len().is_multiple_of(20)
+        {
             return Err(js_error("presentation model records have invalid strides"));
         }
         let write = |queue: &Queue, buffer: &Buffer, bytes: &[u8], name: &str| {
@@ -707,6 +711,11 @@ impl Renderer {
                 continue;
             }
             let first = batch[7] as usize;
+            if batch[7] == u32::MAX {
+                // A held static batch has no frame-local instance range yet;
+                // the shared browser owner does not own the static cache.
+                continue;
+            }
             let end = first.saturating_add(batch[8] as usize);
             if end > instances.len() / 16 {
                 return Err(js_error("presentation batch range exceeds instances"));
