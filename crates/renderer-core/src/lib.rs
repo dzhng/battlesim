@@ -60,6 +60,8 @@ pub const DEPTH_FORMAT: TextureFormat = TextureFormat::Depth32Float;
 pub const FOG_MASK_FORMAT: TextureFormat = TextureFormat::Rgba8Unorm;
 /// The fog mask passes' distances to the other side of the edge.
 pub const FOG_DISTANCE_FORMAT: TextureFormat = TextureFormat::Rg8Unorm;
+/// Display-space overlay colour, including ground paint and glow.
+pub const OVERLAY_FORMAT: TextureFormat = TextureFormat::Rgba8Unorm;
 
 /// The frame's size-dependent targets.
 ///
@@ -82,6 +84,16 @@ pub struct Targets {
     /// Distances to the other side of the fog edge.
     pub fog_distance_rows: TextureView,
     pub fog_distance: TextureView,
+    /// The prepass depth copied before overlay geometry is drawn.
+    pub overlay_depth: TextureView,
+    /// Display-space overlay geometry and its resolved colour.
+    pub overlay_msaa: TextureView,
+    pub overlay: TextureView,
+    /// Ground paint sampled by the painted world layers.
+    pub paint: TextureView,
+    /// Half-resolution overlay halo targets.
+    pub overlay_glow_rows: TextureView,
+    pub overlay_glow: TextureView,
     /// Post's output, presented and optionally read back by a shell.
     pub display: TextureView,
     pub display_texture: Texture,
@@ -109,6 +121,24 @@ impl Targets {
         let view = |t: Texture| t.create_view(&Default::default());
         let render = TextureUsages::RENDER_ATTACHMENT;
         let sampled = render | TextureUsages::TEXTURE_BINDING;
+        let copy = TextureUsages::COPY_SRC | TextureUsages::COPY_DST;
+        let half = [size[0].div_ceil(2), size[1].div_ceil(2)];
+        let small_texture = |label, format, usage| {
+            device.create_texture(&TextureDescriptor {
+                label: Some(label),
+                size: Extent3d {
+                    width: half[0],
+                    height: half[1],
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: TextureDimension::D2,
+                format,
+                usage,
+                view_formats: &[],
+            })
+        };
         let display_texture = texture(
             "display",
             DISPLAY_FORMAT,
@@ -130,6 +160,20 @@ impl Targets {
                 sampled,
             )),
             fog_distance: view(texture("fog-distance", FOG_DISTANCE_FORMAT, 1, sampled)),
+            overlay_depth: view(texture("overlay-depth", DEPTH_FORMAT, MSAA, sampled | copy)),
+            overlay_msaa: view(texture("overlay-msaa", OVERLAY_FORMAT, MSAA, render)),
+            overlay: view(texture("overlay", OVERLAY_FORMAT, 1, sampled)),
+            paint: view(texture("ground-paint", OVERLAY_FORMAT, 1, sampled)),
+            overlay_glow_rows: view(small_texture(
+                "overlay-glow-rows",
+                OVERLAY_FORMAT,
+                TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+            )),
+            overlay_glow: view(small_texture(
+                "overlay-glow",
+                OVERLAY_FORMAT,
+                TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+            )),
             display: display_texture.create_view(&Default::default()),
             display_texture,
         }
