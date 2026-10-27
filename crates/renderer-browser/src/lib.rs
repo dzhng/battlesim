@@ -27,6 +27,7 @@ use wgpu::*;
 mod pipeline_export {
     include!(concat!(env!("OUT_DIR"), "/pipeline_export.rs"));
 }
+mod production_model;
 
 const PIPELINES: &str = r#"{
   "sizes":{"bloomLevels":0,"skyLut":[1,1],"effectSheet":1,"grassClump":1},
@@ -95,37 +96,6 @@ fn array_view(texture: &Texture) -> TextureView {
         dimension: Some(TextureViewDimension::D2Array),
         ..Default::default()
     })
-}
-
-fn production_fixture_vertices() -> (Vec<u8>, u32) {
-    let positions = [
-        [-1.0f32, -1.0, 0.0],
-        [1.0, -1.0, 0.0],
-        [1.0, 1.0, 0.0],
-        [-1.0, -1.0, 0.0],
-        [1.0, 1.0, 0.0],
-        [-1.0, 1.0, 0.0],
-    ];
-    let colours = [
-        [31u8, 107, 184, 255],
-        [31, 107, 184, 255],
-        [209, 122, 31, 255],
-        [31, 107, 184, 255],
-        [209, 122, 31, 255],
-        [31, 107, 184, 255],
-    ];
-    let mut bytes = Vec::with_capacity(positions.len() * 48);
-    for (position, colour) in positions.into_iter().zip(colours) {
-        bytes.extend_from_slice(bytemuck::cast_slice(&position));
-        bytes.extend_from_slice(&[0; 8]);
-        bytes.extend_from_slice(&[0; 8]);
-        bytes.extend_from_slice(&colour);
-        bytes.extend_from_slice(&[0; 4]);
-        bytes.extend_from_slice(&[255, 0, 0, 0]);
-        bytes.extend_from_slice(&[0, 0, 127, 127]);
-        bytes.extend_from_slice(&[0; 4]);
-    }
-    (bytes, 6)
 }
 
 struct Fixture<'a> {
@@ -407,7 +377,8 @@ impl Renderer {
                 production_camera.as_entire_buffer_binding(),
             )],
         );
-        let (production_vertices, production_model_vertex_count) = production_fixture_vertices();
+        let (production_vertices, production_model_vertex_count) =
+            production_model::fixture_vertices();
         let production_model_vertices = renderer_core::buffer(
             &device,
             "shared-production-model-vertices",
@@ -646,6 +617,16 @@ impl Renderer {
                 .find(|mesh| !mesh.indices.is_empty()),
         };
         if let Some(mesh) = mesh {
+            let (production_vertices, production_count) =
+                production_model::mesh_vertices(&mesh.positions, &mesh.colors, &mesh.indices)
+                    .map_err(js_error)?;
+            self.production_model_vertices = renderer_core::buffer(
+                &self.device,
+                "shared-production-asset-vertices",
+                BufferUsages::VERTEX,
+                &production_vertices,
+            );
+            self.production_model_vertex_count = production_count;
             self.model = Model::from_indexed_fitted(
                 &self.device,
                 &self.queue,
