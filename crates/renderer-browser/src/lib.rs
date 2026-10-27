@@ -203,6 +203,7 @@ pub struct Renderer {
     stats: Stats,
     asset_report: Option<String>,
     asset_texture: Option<Texture>,
+    asset_surface: Option<Texture>,
     asset_snapshot: Option<AssetSnapshot>,
     model_opaque_diagnostic: bool,
 }
@@ -471,6 +472,7 @@ impl Renderer {
             },
             asset_report: None,
             asset_texture: None,
+            asset_surface: None,
             asset_snapshot: None,
             model_opaque_diagnostic: false,
         })

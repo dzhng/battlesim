@@ -1,5 +1,66 @@
 use super::*;
 
+fn upload_texture_array(
+    device: &Device,
+    queue: &Queue,
+    label: &str,
+    format: TextureFormat,
+    textures: &[&native_client::bundle::Texture],
+) -> Option<Texture> {
+    if textures.is_empty() {
+        return None;
+    }
+    let size = textures
+        .iter()
+        .map(|texture| texture.size)
+        .max()
+        .unwrap_or(1);
+    let levels = size.ilog2() + 1;
+    let array = device.create_texture(&TextureDescriptor {
+        label: Some(label),
+        size: Extent3d {
+            width: size,
+            height: size,
+            depth_or_array_layers: textures.len() as u32,
+        },
+        mip_level_count: levels,
+        sample_count: 1,
+        dimension: TextureDimension::D2,
+        format,
+        usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
+        view_formats: &[],
+    });
+    for (layer, texture) in textures.iter().enumerate() {
+        for (level, bytes) in texture.levels.iter().enumerate() {
+            let edge = (texture.size >> level).max(1);
+            queue.write_texture(
+                TexelCopyTextureInfo {
+                    texture: &array,
+                    mip_level: level as u32,
+                    origin: Origin3d {
+                        x: 0,
+                        y: 0,
+                        z: layer as u32,
+                    },
+                    aspect: TextureAspect::All,
+                },
+                bytes,
+                TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(edge * 4),
+                    rows_per_image: Some(edge),
+                },
+                Extent3d {
+                    width: edge,
+                    height: edge,
+                    depth_or_array_layers: 1,
+                },
+            );
+        }
+    }
+    Some(array)
+}
+
 #[derive(Clone)]
 pub(super) struct AssetSnapshot {
     pub(super) name: String,
@@ -44,15 +105,30 @@ impl Renderer {
             .collect();
         let library = Library::from_bundle(&name, &bundle_bytes, &refs).map_err(js_error)?;
         let bundle = library.bundle(&name).map_err(js_error)?;
+        let mut albedo_layers = vec![-1.0f32; bundle.textures.len()];
+        let mut surface_layers = vec![-1.0f32; bundle.textures.len()];
+        let mut albedo_count = 0.0;
+        let mut surface_count = 0.0;
+        for (index, texture) in bundle.textures.iter().enumerate() {
+            if texture.srgb {
+                albedo_layers[index] = albedo_count;
+                albedo_count += 1.0;
+            } else {
+                surface_layers[index] = surface_count;
+                surface_count += 1.0;
+            }
+        }
         let mut rows = Vec::new();
         for material in bundle.materials.iter().take(16) {
             let layer = |key: &str| {
-                material
-                    .textures
-                    .get(key)
-                    .copied()
-                    .filter(|index| *index == 0)
-                    .map_or(-1.0, |_| 0.0)
+                let Some(index) = material.textures.get(key).copied() else {
+                    return -1.0;
+                };
+                if key == "albedo" {
+                    albedo_layers.get(index).copied().unwrap_or(-1.0)
+                } else {
+                    surface_layers.get(index).copied().unwrap_or(-1.0)
+                }
             };
             let cutoff = match material.coverage {
                 native_client::bundle::Coverage::Cutout { cutoff } => cutoff,
@@ -109,44 +185,41 @@ impl Renderer {
                 .map(|m| m.indices.len())
                 .sum(),
         };
-        if let Some(texture) = bundle.textures.first() {
-            let size = Extent3d {
-                width: texture.size,
-                height: texture.size,
-                depth_or_array_layers: 1,
-            };
-            let gpu = self.device.create_texture(&TextureDescriptor {
-                label: Some("shared-asset-albedo"),
-                size,
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: TextureDimension::D2,
-                format: if texture.srgb {
-                    TextureFormat::Rgba8UnormSrgb
-                } else {
-                    TextureFormat::Rgba8Unorm
-                },
-                usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-                view_formats: &[],
-            });
-            self.queue.write_texture(
-                TexelCopyTextureInfo {
-                    texture: &gpu,
-                    mip_level: 0,
-                    origin: Origin3d::ZERO,
-                    aspect: TextureAspect::All,
-                },
-                &texture.levels[0],
-                TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(texture.size * 4),
-                    rows_per_image: Some(texture.size),
-                },
-                size,
-            );
-            self.asset_texture = Some(gpu);
-            let albedo = array_view(self.asset_texture.as_ref().expect("asset texture uploaded"));
-            let surface = array_view(&self.material_surface);
+        let albedo_sources: Vec<_> = bundle
+            .textures
+            .iter()
+            .filter(|texture| texture.srgb)
+            .collect();
+        let surface_sources: Vec<_> = bundle
+            .textures
+            .iter()
+            .filter(|texture| !texture.srgb)
+            .collect();
+        self.asset_texture = upload_texture_array(
+            &self.device,
+            &self.queue,
+            "shared-asset-albedo-array",
+            TextureFormat::Rgba8UnormSrgb,
+            &albedo_sources,
+        );
+        self.asset_surface = upload_texture_array(
+            &self.device,
+            &self.queue,
+            "shared-asset-surface-array",
+            TextureFormat::Rgba8Unorm,
+            &surface_sources,
+        );
+        if self.asset_texture.is_some() || self.asset_surface.is_some() {
+            let albedo = self
+                .asset_texture
+                .as_ref()
+                .map(array_view)
+                .unwrap_or_else(|| array_view(&self.material_surface));
+            let surface = self
+                .asset_surface
+                .as_ref()
+                .map(array_view)
+                .unwrap_or_else(|| array_view(&self.material_surface));
             self.material_bindings.rebuild(
                 &self.device,
                 self.production_pipelines.layout("modelLayout"),
