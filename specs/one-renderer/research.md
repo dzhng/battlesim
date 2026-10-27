@@ -271,3 +271,11 @@ shared pass functions. The six renderer-core tests, WASM check, clippy and full
 eleven-row scene remain green. This is a structural simplification with no
 separate performance claim; the visual review still gates terrain, lighting and
 shadow work.
+
+Accounting after the move is 3,423 lines across the shared Rust core and 2,403
+in the browser shell, versus 3,173 and 2,541 before it. The combined total is
+slightly higher because the generic core seam and its validation are new, but
+the browser-only owner shrinks by 138 lines and the pass code is now available
+to the native shell. This is the intended direction; the final deletion audit
+must still remove the standalone spike and the remaining duplicate native
+adapters.
