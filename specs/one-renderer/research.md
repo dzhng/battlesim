@@ -79,10 +79,10 @@ parity and repository closeout run only after all production passes are wired.
 
 ## Handoff
 
-Incumbent: `a27ca5d27` plus the model-owner commits on PR #16.
-Active task: connect production presentation/material records to the browser
-shell, then close device-loss recovery. Regression set: renderer-core/native-client WASM checks,
-presentation tests, and the interleaved one-renderer scene. The latest rebuilt
-scene passes all eleven rows; it also caught and fixed the indexed-buffer
-validation error in the shared model path. Next test: wire exported production
-pipeline/resource owners into the browser shell.
+Incumbent: `d5c8d7fc6` plus the shared browser-owner commits on PR #16.
+Active task: connect production presentation/environment/fog/overlay records to
+the browser groups, then close device-loss recovery. Regression set:
+renderer-core/native-client WASM checks, presentation tests, and the interleaved
+one-renderer scene. The latest rebuilt scene passes all eleven rows and executes
+the fetched mesh through exported model prepass and opaque passes. Next test:
+replace placeholder environment/fog records with a frozen presentation frame.

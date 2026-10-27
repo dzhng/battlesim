@@ -140,11 +140,11 @@ stops the work before a full port is attempted:
    the authored test-tank bundle, parses it through `Library::from_bundle`, and
    uploads its first texture. The shared model owner then draws an indexed tier
    from that parsed asset; production materials and skinning remain open.
-7. **Shared model/lifecycle shell — model checkpoint complete.** The shared
-   `renderer-core::model::Model` owner now expands indexed geometry, uploads it,
-   and draws it from the browser shell. The shared row exercises a 37,002-vertex
-   fetched tank and resizes 640×360 → 320×180 → 640×360 before measurement.
-   Texture/effect assets, rebuild, surface loss and device loss remain open.
+7. **Shared model/lifecycle shell — checkpoint complete.** The shared
+   model/material owners upload and draw fetched indexed geometry, and the
+   browser production checkpoint exercises a fetched mesh through exported
+   `modelPrepass` and `modelOpaque`. Target rebuild and surface recovery are
+   covered; device-loss recreation remains open.
 8. **Fog-mask extraction — checkpoint complete.** `renderer-core::fog_mask`
    owns the fog look/view uniforms, optional edge-distance passes, compose pass,
    rim pass, and attachment policy. Native wraps the shared owner; GPU work and
@@ -158,10 +158,11 @@ stops the work before a full port is attempted:
    atomically swaps size-dependent targets and increments one shared generation;
    native `Passes` consumes it without changing GPU work. Fog sight/compute and
    device-loss recovery remain open.
-11. **Fog compute and browser production frame — next.** The four fog compute
-   pipeline bindings and dispatch labels now have a shared owner; move the fog
-   sight buffers/bind groups into that runtime, then replace the browser
-   fixture frame with the production shared frame.
+11. **Browser production frame — in progress.** The four fog compute pipeline
+   bindings and dispatch labels now have a shared owner. The browser builds the
+   exported pipeline set and executes shared model prepass/opaque, fog-mask,
+   post, shadow-resource, and lifecycle seams. Move the real presentation fog,
+   environment, overlay, and caster records into these groups next.
    The browser shell now embeds the exact 63-pipeline export and every WGSL
    source through a generated build-time map; no filesystem access is added,
    and exposes an explicit validation method for building that export on the
@@ -183,8 +184,8 @@ stops the work before a full port is attempted:
    authored material rows, and fog visibility still need to replace placeholders.
    The shared browser frame now allocates the real exported pipeline set and
    encodes shared fog-mask, post, and rim passes on every fixture frame. The
-   fixture model/world draw remains the bounded input until production
-   presentation records and materials are connected.
+   remaining bounded input is the presentation record feed, not a second pass
+   implementation.
    Browser resize now uses the shared `TargetOwner`, rebuilds the shared fog
    and post resources with the new target set, and reports generation 2 after
    the scene's down/up resize round trip.
