@@ -31,11 +31,13 @@ impl Renderer {
                 &presentation.fog,
                 &presentation.overlay,
             )?;
-            replacement.upload_shadow_frame(
-                &presentation.shadow,
-                &presentation.casters,
-                &presentation.batches,
-            )?;
+            if !presentation.shadow.is_empty() {
+                replacement.upload_shadow_frame(
+                    &presentation.shadow,
+                    &presentation.casters,
+                    &presentation.batches,
+                )?;
+            }
         }
         *self = replacement;
         Ok(())
