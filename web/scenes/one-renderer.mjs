@@ -99,7 +99,7 @@ export async function run(ctx) {
     "shared browser row uploads the frozen presentation records",
     sharedWorkload?.presentationUploads >= 1 &&
       sharedWorkload?.presentationBound === true &&
-      sharedWorkload?.presentationCameraWords === 16 &&
+      sharedWorkload?.presentationCameraWords === 40 &&
       sharedWorkload?.presentationEnvironmentWords > 0 &&
       sharedWorkload?.presentationFogWords > 0 &&
       sharedWorkload?.presentationOverlayWords === 4,

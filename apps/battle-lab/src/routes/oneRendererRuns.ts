@@ -620,7 +620,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   const resolvedLight = await resolveLight(gameLight);
   const fogLook = resolveFogLook(gameFogStyle);
   upload.upload_presentation_frame(
-    new Float32Array(frozen.camera.subarray(0, 16)),
+    new Float32Array(frozen.camera),
     new Float32Array(resolvedLight.sun),
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
@@ -644,7 +644,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   // Device recreation swaps every GPU handle, so rebind the same frozen
   // presentation records before the first post-recovery frame.
   upload.upload_presentation_frame(
-    new Float32Array(frozen.camera.subarray(0, 16)),
+    new Float32Array(frozen.camera),
     new Float32Array(resolvedLight.sun),
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),

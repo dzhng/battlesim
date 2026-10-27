@@ -527,8 +527,8 @@ impl Renderer {
         fog: &[f32],
         overlay: &[f32],
     ) -> Result<(), JsValue> {
-        if camera.len() < 16 {
-            return Err(js_error("presentation camera record needs 16 words"));
+        if camera.len() < 40 {
+            return Err(js_error("presentation camera record needs 40 words"));
         }
         let write = |queue: &Queue, buffer: &Buffer, words: &[f32], label: &str| {
             let bytes = bytemuck::cast_slice(words);
@@ -545,7 +545,7 @@ impl Renderer {
         self.queue.write_buffer(
             &self.presentation_camera,
             0,
-            bytemuck::cast_slice(&camera[..16]),
+            bytemuck::cast_slice(&camera[..40]),
         );
         let environment_words = write(
             &self.queue,
@@ -557,12 +557,12 @@ impl Renderer {
         let overlay_words = write(&self.queue, &self.presentation_overlay, overlay, "overlay")?;
         self.stats.presentation_uploads = self.stats.presentation_uploads.saturating_add(1);
         self.stats.presentation_bound = true;
-        self.stats.presentation_camera_words = 16;
+        self.stats.presentation_camera_words = 40;
         self.stats.presentation_environment_words = environment_words;
         self.stats.presentation_fog_words = fog_words;
         self.stats.presentation_overlay_words = overlay_words;
         self.presentation_snapshot = Some(PresentationSnapshot {
-            camera: camera[..16].to_vec(),
+            camera: camera[..40].to_vec(),
             environment: environment.to_vec(),
             fog: fog.to_vec(),
             overlay: overlay.to_vec(),
