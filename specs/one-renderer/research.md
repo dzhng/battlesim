@@ -214,3 +214,8 @@ fixture. The latest shared run reports 240 material words alongside 68 model
 record words, 121 frames, two resize rebuilds, one surface recovery and one
 device recovery. This proves authored material transport and lifetime; it does
 not yet prove that a real `PresentedFrame` selected those rows by appearance.
+
+The latest accounting rerun keeps the same visual distances (`model_rust_vs_browser`
+`0.0492`, `battle_rust_vs_browser` `47.035`) and reports the shared row at
+`180.5 / 6.8 / 0.5 ms` setup, encode, and queue-boundary drain. These remain
+submission-boundary measurements, not GPU timestamps.
