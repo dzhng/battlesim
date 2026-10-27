@@ -287,3 +287,18 @@ now reports eight fog-height words plus the authored overlay workload. This
 removes the previous sparse-scene confound; fresh review still finds terrain
 aliasing, weak contact shadows and a black map edge, which are genuine shared
 world/material parity defects rather than missing fixture inputs.
+
+Fresh review of the enriched frame confirms the remaining defects: repeated
+white terrain artifacts dominate the scan; the selected vehicle's silhouette is
+still a brown slab under a clearer cyan ring; the right vehicle is nearly lost
+under a detached red marker; barriers and vehicles lack readable contact
+shadows; the orange range arc is clipped; and the finite ground falls into a
+black void. These are now the active visual parity queue, not transport gaps.
+
+The shared render probe also removed the duplicate compatibility ground draw
+whenever production terrain tables are present, and initialized the no-scar
+directory/page textures explicitly. The duplicate draw was a real ownership
+bug: it put the same mesh through the fixture and production terrain passes at
+the same depth. The full scene remains green; the remaining dark terrain
+pattern persists, so terrain material/fog composition is still an open parity
+issue rather than being hidden by a second ground owner.

@@ -27,7 +27,19 @@ impl Renderer {
         encode_grouped(&mut encoder, "shared-world", |e| {
             renderer_core::world::encode_sky(&fixture, &self.targets, e)
         });
-        renderer_core::world::encode_world(&fixture, &self.targets, &mut encoder, true, true, true);
+        // A production frame owns the terrain draw below. The compatibility
+        // fixture world would submit the same ground mesh at the same depth,
+        // producing z-fighting artifacts over the real terrain material.
+        if self.terrain_snapshot.is_none() {
+            renderer_core::world::encode_world(
+                &fixture,
+                &self.targets,
+                &mut encoder,
+                true,
+                true,
+                true,
+            );
+        }
         if self.terrain_snapshot.is_some() && self.production_terrain_vertex_count > 0 {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("shared-production-terrain-material"),

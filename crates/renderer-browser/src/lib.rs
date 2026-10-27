@@ -362,7 +362,7 @@ impl Renderer {
             CAMERA_BYTES,
         );
         let shared_fog_compute = FogComputeOwner::new(&production_pipelines);
-        let terrain = TerrainResources::new(&device, &production_pipelines);
+        let terrain = TerrainResources::new(&device, &queue, &production_pipelines);
         let (
             material_palette,
             material_rows,

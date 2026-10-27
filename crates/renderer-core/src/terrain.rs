@@ -76,7 +76,7 @@ pub struct TerrainResources {
 }
 
 impl TerrainResources {
-    pub fn new(device: &Device, pipelines: &Pipelines) -> Self {
+    pub fn new(device: &Device, queue: &Queue, pipelines: &Pipelines) -> Self {
         let params = uniform(device, "terrain-params", &[]);
         let nodes = storage(device, "terrain-nodes", &[]);
         let plots = storage(device, "terrain-plots", &[]);
@@ -85,6 +85,37 @@ impl TerrainResources {
         let scar_params = uniform(device, "terrain-scar-params", &[]);
         let scar_pages = texture(device, "terrain-scar-directory", TextureFormat::Rg32Uint);
         let scars = texture(device, "terrain-scar-pages", TextureFormat::Rgba8Unorm);
+        // Explicitly initialize the no-scar resources. Leaving these tiny
+        // textures undefined makes the terrain shader read arbitrary scar
+        // weights on browsers that do not zero newly allocated textures.
+        queue.write_texture(
+            scar_pages.as_image_copy(),
+            &[0u8; 8],
+            TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(8),
+                rows_per_image: Some(1),
+            },
+            Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+        );
+        queue.write_texture(
+            scars.as_image_copy(),
+            &[0u8; 4],
+            TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(4),
+                rows_per_image: Some(1),
+            },
+            Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+        );
         let group = Self::bind(
             device,
             pipelines,
