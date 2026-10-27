@@ -10,7 +10,6 @@ use wgpu::*;
 
 use crate::environment::Environment;
 use crate::frame::{Inputs, Pass, Targets};
-use crate::gpu::bind;
 use crate::pipelines::Pipelines;
 
 /// The browser's flipbook list: its imports name each sheet, and its
@@ -20,10 +19,7 @@ const FLIPBOOKS_TS: &str =
 const INSTANCE_BYTES: u64 = std::mem::size_of::<Effect>() as u64;
 
 pub struct Effects {
-    pipeline: RenderPipeline,
-    group: BindGroup,
-    instances: Buffer,
-    count: u32,
+    resources: renderer_core::effects::EffectsResources,
 }
 
 /// The sheets' file names in layer order, read from `flipbooks.ts`.
@@ -159,15 +155,6 @@ fn atlas(
     }))
 }
 
-fn instances(device: &Device, capacity: u64) -> Buffer {
-    device.create_buffer(&BufferDescriptor {
-        label: Some("effect-instances"),
-        size: capacity * INSTANCE_BYTES,
-        usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
-        mapped_at_creation: false,
-    })
-}
-
 impl Effects {
     pub fn new(
         device: &Device,
@@ -185,10 +172,9 @@ impl Effects {
             mipmap_filter: MipmapFilterMode::Linear,
             ..Default::default()
         });
-        let group = bind(
+        let resources = renderer_core::effects::EffectsResources::new(
             device,
-            pipelines.layout("effects"),
-            "effects",
+            pipelines,
             &[
                 environment.camera_buffer.as_entire_binding(),
                 BindingResource::TextureView(&targets.depth),
@@ -198,31 +184,21 @@ impl Effects {
                 BindingResource::TextureView(&environment.pmrem),
                 environment.cast_lights.as_entire_binding(),
             ],
+            INSTANCE_BYTES,
+            1024 * INSTANCE_BYTES,
         );
-        Ok(Self {
-            pipeline: pipelines.render("effects").clone(),
-            group,
-            instances: instances(device, 1024),
-            count: 0,
-        })
+        Ok(Self { resources })
     }
 
     /// This frame's instances, in draw order, replacing the last.
     pub fn prepare(&mut self, device: &Device, queue: &Queue, effects: &[Effect]) {
-        self.count = effects.len() as u32;
-        if effects.is_empty() {
-            return;
-        }
-        let need = effects.len() as u64;
-        if self.instances.size() < need * INSTANCE_BYTES {
-            self.instances = instances(device, need * 2);
-        }
-        queue.write_buffer(&self.instances, 0, bytemuck::cast_slice(effects));
+        self.resources
+            .prepare(device, queue, bytemuck::cast_slice(effects));
     }
 
     /// Instances drawn this frame.
     pub fn count(&self) -> u32 {
-        self.count
+        self.resources.count()
     }
 }
 
@@ -235,36 +211,6 @@ impl Pass for EffectPass {
     }
 
     fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
-        let effects = inputs.effects;
-        if effects.count == 0 {
-            return;
-        }
-        let t = inputs.targets;
-        let load = Operations {
-            load: LoadOp::Load,
-            store: StoreOp::Store,
-        };
-        let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-            label: Some("effects"),
-            color_attachments: &[
-                Some(RenderPassColorAttachment {
-                    view: &t.lit,
-                    depth_slice: None,
-                    resolve_target: None,
-                    ops: load,
-                }),
-                Some(RenderPassColorAttachment {
-                    view: &t.fog_mask,
-                    depth_slice: None,
-                    resolve_target: None,
-                    ops: load,
-                }),
-            ],
-            ..Default::default()
-        });
-        pass.set_pipeline(&effects.pipeline);
-        pass.set_bind_group(0, &effects.group, &[]);
-        pass.set_vertex_buffer(0, effects.instances.slice(..));
-        pass.draw(0..6, 0..effects.count);
+        inputs.effects.resources.encode(encoder, inputs.targets);
     }
 }
