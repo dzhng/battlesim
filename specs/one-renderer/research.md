@@ -340,3 +340,12 @@ full ground while models, static props, resize, surface recovery, device
 recovery and 484 shadow passes stayed green. Keep the shared pipeline change;
 the exact browser/native depth-value mismatch remains a lower-priority root
 cause investigation.
+
+The first real-atlas trial used an invalid hand-written effect record: its
+shape word selected a streak, so the screenshot showed a detached white
+rectangle. The record was corrected to the presentation ABI for a flipbook
+(`a = position/radius`, `b = turn/frame/layer/softness`, `colour`, then
+`misc = shape/emissive/lit/pad`). The same full scene remains green and the
+candidate now shows a small authored fireball over the selected vehicle rather
+than a billboard artifact. The atlas and upload owner are kept; the remaining
+effect work is publication-driven instance transport and full visual parity.

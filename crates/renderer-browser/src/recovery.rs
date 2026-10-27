@@ -20,6 +20,7 @@ impl Renderer {
         let post_bloom = self.post_bloom.clone();
         let post_grade = self.post_grade.clone();
         let fog_heights = self.fog_height_snapshot.clone();
+        let effect_layers = self.shared_effects.layers().to_vec();
         let presentation = self.presentation_snapshot.clone();
         let model_words = presentation
             .as_ref()
@@ -32,6 +33,11 @@ impl Renderer {
             .store(previous_lost, Ordering::Relaxed);
         if let Some(snapshot) = snapshot {
             replacement.load_bundle_bytes(snapshot.name, snapshot.bundle, snapshot.textures)?;
+        }
+        for (layer, bytes) in effect_layers.iter().enumerate() {
+            if !bytes.is_empty() {
+                replacement.upload_effect_atlas(layer as u32, bytes)?;
+            }
         }
         if let Some(ground) = ground {
             replacement.upload_ground(&ground)?;

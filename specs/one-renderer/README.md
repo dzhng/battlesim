@@ -194,11 +194,10 @@ stops the work before a full port is attempted:
    now browser-safe.
 9. **Effects and post extraction — checkpoint partial.** Bloom/grade target and
    pass ownership lives in `renderer-core` and is encoded by the shared browser
-   frame. The browser now constructs the shared effects owner and rebuilds it
-   with the depth target, but its flipbook atlas is still a placeholder and the
-   production effect upload remains disabled after a black-void visual probe.
-   The real atlas/instance path must land before this is a production parity
-   checkpoint.
+   frame. The browser now constructs the shared effects owner, decodes the two
+   authored flipbook layers into its atlas, uploads a real effect instance, and
+   replays both through device recovery. The complete publication effect feed
+   and native/browser matched effect workload remain open.
 10. **Lifecycle extraction — checkpoint complete.** `renderer_core::TargetOwner`
    atomically swaps size-dependent targets and increments one shared generation;
    native `Passes` consumes it without changing GPU work. Device-loss recovery

@@ -2,8 +2,10 @@ use super::*;
 
 pub(super) struct BrowserEffects {
     resources: renderer_core::effects::EffectsResources,
+    atlas: Texture,
     atlas_view: TextureView,
     sampler: Sampler,
+    layers: Vec<Vec<u8>>,
 }
 
 impl BrowserEffects {
@@ -21,7 +23,7 @@ impl BrowserEffects {
             size: Extent3d {
                 width: pipelines.sizes.effect_sheet,
                 height: pipelines.sizes.effect_sheet,
-                depth_or_array_layers: 1,
+                depth_or_array_layers: 2,
             },
             mip_level_count: 1,
             sample_count: 1,
@@ -58,8 +60,10 @@ impl BrowserEffects {
         );
         Self {
             resources,
+            atlas,
             atlas_view,
             sampler,
+            layers: vec![Vec::new(), Vec::new()],
         }
     }
 
@@ -91,6 +95,46 @@ impl BrowserEffects {
             64 * 1024,
         );
         self.prepare(device, queue, effects);
+    }
+
+    pub(super) fn upload_layer(
+        &mut self,
+        queue: &Queue,
+        layer: u32,
+        rgba: &[u8],
+    ) -> Result<(), String> {
+        if layer >= 2 || rgba.len() != 1024 * 1024 * 4 {
+            return Err("effect atlas layer must be 1024² RGBA8".into());
+        }
+        queue.write_texture(
+            TexelCopyTextureInfo {
+                texture: &self.atlas,
+                mip_level: 0,
+                origin: Origin3d {
+                    x: 0,
+                    y: 0,
+                    z: layer,
+                },
+                aspect: TextureAspect::All,
+            },
+            rgba,
+            TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(1024 * 4),
+                rows_per_image: Some(1024),
+            },
+            Extent3d {
+                width: 1024,
+                height: 1024,
+                depth_or_array_layers: 1,
+            },
+        );
+        self.layers[layer as usize] = rgba.to_vec();
+        Ok(())
+    }
+
+    pub(super) fn layers(&self) -> &[Vec<u8>] {
+        &self.layers
     }
 
     pub(super) fn prepare(&mut self, device: &Device, queue: &Queue, effects: &[f32]) {

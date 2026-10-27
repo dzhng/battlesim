@@ -123,6 +123,17 @@ impl Renderer {
         Ok(())
     }
 
+    /// Upload one premultiplied RGBA8 flipbook layer into the shared effects
+    /// atlas. The browser shell decodes the authored PNG; Rust owns the GPU
+    /// texture and its recovery snapshot.
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn upload_effect_atlas(&mut self, layer: u32, rgba: &[u8]) -> Result<(), JsValue> {
+        self.shared_effects
+            .upload_layer(&self.queue, layer, rgba)
+            .map_err(js_error)
+    }
+
     /// Bake the resolved presentation sky into the shared environment LUT.
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]

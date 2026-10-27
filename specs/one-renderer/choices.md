@@ -414,17 +414,17 @@ the browser display composite, overlay composite and present remain shell work;
 the browser's surface-only fog rim is encoded during the final shared stage so
 the composite cannot clear it afterward.
 
-**Gap:** the browser now constructs the shared effects owner, but its flipbook
-atlas is still a placeholder and the real effect upload remains disabled. Native
-preparation still owns a separate presentation/resource path. The native adapter
-also maps the current fixed pass list by name, so adding a new native pass
-requires adding its shared stage. **Reach:** this is the smallest seam that
-proves one frame orchestrator without inventing a second graph. **Verdict:** keep
-the shared stage order, keep the effects owner, and finish the real atlas and
-prepare/upload extraction before deleting TypeGPU. **Confidence:** high; the
-scene remains green with zero browser effect instances, while the attempted
-dummy effect upload was rejected after a fresh screenshot showed black voids
-covering the terrain.
+**Gap:** the browser now decodes both authored flipbook layers and uploads one
+real effect instance, but the full publication effect feed and native/browser
+matched effect workload remain open. Native preparation still owns a separate
+presentation/resource path. The native adapter also maps the current fixed pass
+list by name, so adding a new native pass requires adding its shared stage.
+**Reach:** this is the smallest seam that proves one frame orchestrator without
+inventing a second graph. **Verdict:** keep the shared stage order and effects
+owner, finish publication effect transport and prepare/upload extraction before
+deleting TypeGPU. **Confidence:** high; the full scene stays green with atlas
+data, 16 uploaded effect words, resize/device recovery and no terrain-hole
+regression.
 
 ### Terrain color pass must not reject its own prepass coverage
 
@@ -444,3 +444,17 @@ the underlying browser/native depth-value mismatch still deserves a later root
 cause audit before adding more depth-tested terrain layers. **Confidence:** high;
 the full scene remains green and the matched screenshot removes the black
 terrain holes.
+
+### Effect records use the presentation ABI
+
+The browser now loads the authored fire and dust flipbooks into the shared
+two-layer atlas and recovers those layers with the device. The first visual
+trial used a hand-written record whose `misc.x` selected a streak; it produced
+a detached white rectangle. The corrected record follows the presentation
+`Effect` layout and selects a flipbook, yielding a coherent small fireball while
+all lifecycle gates remain green.
+
+**Verdict:** keep the real atlas path and treat effect records as a shared ABI,
+not ad-hoc browser fixture data. **Gap:** the browser still needs the real
+publication effect stream and a matched native/browser effect workload before
+this owner is production-complete. **Confidence:** high.
