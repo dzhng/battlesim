@@ -66,7 +66,7 @@ pub(super) fn material_probe(
         device,
         "shared-material-rows",
         BufferUsages::STORAGE | BufferUsages::COPY_DST,
-        &[0; 80],
+        &[0; 80 * 16],
     );
     let texture = |label| {
         device.create_texture(&TextureDescriptor {

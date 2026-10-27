@@ -24,12 +24,13 @@ pub fn mesh_vertices(
     positions: &[f32],
     colours: &[u8],
     indices: &[u32],
+    materials: &[u16],
 ) -> Result<(Vec<u8>, u32), String> {
     if !positions.len().is_multiple_of(3) || colours.len() != positions.len() / 3 * 4 {
         return Err("production model attributes have different lengths".into());
     }
     let mut bytes = Vec::with_capacity(indices.len() * 48);
-    for &index in indices {
+    for (draw_index, &index) in indices.iter().enumerate() {
         let index = index as usize;
         if index >= positions.len() / 3 {
             return Err("production model index is outside the vertex array".into());
@@ -45,7 +46,8 @@ pub fn mesh_vertices(
         bytes.extend_from_slice(&[0, 0, 0, 0]);
         bytes.extend_from_slice(&[255, 0, 0, 0]);
         bytes.extend_from_slice(&[0, 0, 127, 127]);
-        bytes.extend_from_slice(&[0; 4]);
+        let material = materials.get(draw_index).copied().unwrap_or(0);
+        bytes.extend_from_slice(bytemuck::cast_slice(&[material, 0u16]));
     }
     Ok((bytes, indices.len() as u32))
 }

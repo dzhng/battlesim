@@ -44,6 +44,46 @@ impl Renderer {
             .collect();
         let library = Library::from_bundle(&name, &bundle_bytes, &refs).map_err(js_error)?;
         let bundle = library.bundle(&name).map_err(js_error)?;
+        if let Some(material) = bundle.materials.first() {
+            let layer = |key: &str| {
+                material
+                    .textures
+                    .get(key)
+                    .copied()
+                    .filter(|index| *index == 0)
+                    .map_or(-1.0, |_| 0.0)
+            };
+            let cutoff = match material.coverage {
+                native_client::bundle::Coverage::Cutout { cutoff } => cutoff,
+                _ => 0.0,
+            };
+            let wear = material.wear.unwrap_or([0.0, 0.0, 0.0, 1.0]);
+            let base = material.base_color;
+            let row = [
+                base[0] as f32,
+                base[1] as f32,
+                base[2] as f32,
+                base[3] as f32,
+                material.metallic,
+                material.roughness,
+                material.tint,
+                material.colour_scale.unwrap_or(1.0),
+                layer("albedo"),
+                layer("normal"),
+                layer("orm"),
+                if material.wear.is_some() { 1.0 } else { 0.0 },
+                wear[0],
+                wear[1],
+                wear[2],
+                wear[3],
+                cutoff,
+                layer("normal"),
+                0.0,
+                0.0,
+            ];
+            self.queue
+                .write_buffer(&self.material_rows, 0, bytemuck::cast_slice(&row));
+        }
         let vertices: usize = match &bundle.shape {
             native_client::bundle::Shape::Skinned(tiers) => {
                 tiers.iter().map(|m| m.vertices()).sum()
@@ -126,9 +166,19 @@ impl Renderer {
                 .find(|mesh| !mesh.indices.is_empty()),
         };
         if let Some(mesh) = mesh {
-            let (production_vertices, production_count) =
-                production_model::mesh_vertices(&mesh.positions, &mesh.colors, &mesh.indices)
-                    .map_err(js_error)?;
+            let mut material_ids = vec![0u16; mesh.indices.len()];
+            for draw in &mesh.draws {
+                for id in &mut material_ids[draw.first..draw.first + draw.count] {
+                    *id = draw.material as u16;
+                }
+            }
+            let (production_vertices, production_count) = production_model::mesh_vertices(
+                &mesh.positions,
+                &mesh.colors,
+                &mesh.indices,
+                &material_ids,
+            )
+            .map_err(js_error)?;
             self.production_model_vertices = renderer_core::buffer(
                 &self.device,
                 "shared-production-asset-vertices",
