@@ -352,3 +352,12 @@ current deterministic battle publication produces zero effect words at its
 sampled tick, which is evidence that transport is no longer hiding a fake
 effect, not evidence of visual effect parity; a publication with a real launch
 or impact remains a required workload.
+
+An environment-input A/B copied the native `View.view` matrix and observer
+words into the browser's 64-word environment record instead of the previous
+identity view. The shared scene stayed green and its production image distance
+remained `47.034991`, so this fixes an ABI mismatch without explaining the
+dark model/material result. A second A/B skipped fog-mask compose for one run;
+the shared image and distance were unchanged, so fog compose is not the source
+of that darkness. The fog probe was restored; model material/shadow lighting
+parity remains the active hypothesis.

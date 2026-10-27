@@ -496,8 +496,12 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   const effectAtlas = await loadEffectAtlasLayers();
   upload.upload_post(rl.bloom, rl.grade);
   const env = new Float32Array(64);
-  env.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], 0);
-  env.set([f.camera.f32[32], f.camera.f32[33], f.camera.f32[34], 1], 16);
+  // Native writes the resolved presentation View into the environment's
+  // world-to-view and observer fields. Reuse those exact words here; an
+  // identity matrix makes aerial shading diverge while the camera still
+  // appears correct.
+  env.set(f.view.f32.subarray(0, 16), 0);
+  env.set([f.view.f32[32], f.view.f32[33], f.view.f32[34], 1], 16);
   env.set(rl.sun, 20);
   env.set(rl.aerial, 36);
   upload.upload_frame(
