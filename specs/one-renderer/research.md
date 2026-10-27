@@ -226,3 +226,14 @@ vertex range. The shared row reports 49,020 model vertices, 240 authored
 material words, and the same recovery gates. This closes the tier-range seam;
 multiple appearance bundles, articulated transforms, and real presentation
 batch selection remain open.
+
+The real-frame slice now closes that last transport-only model gap. The browser
+constructs a deterministic simulation battle, publishes one real observation,
+resolves its `fieldedBattle` bundle records and clip tables, and frames the
+result through `ScenePresentation`. The shared browser upload receives the
+actual batch, instance, palette and authored material arrays, plus the real
+terrain/fog/shadow records; the latest row reports 920 model-record words and
+240 material words and passes resize, surface recovery and device-loss replay.
+This is still an input/lifecycle gate: the ground remains the lab's frozen
+visual mesh, fog eyes are explicit fixture inputs, and the native renderer has
+not yet rendered the identical production frame for image comparison.

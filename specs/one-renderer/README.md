@@ -3,8 +3,11 @@
 **Status:** implementation in progress on PR #16. Shared targets, pipelines,
 depth, world, indexed model upload, fog-mask, post, fog-compute, lifecycle,
 presentation upload, device-loss recovery, and range-aware shadow caster
-routing now have one Rust owner. Full production pass parity, native/browser
-matched output, and TypeGPU deletion remain.
+  routing now have one Rust owner. The browser harness now also feeds a real
+  simulation publication through `ScenePresentation`, including authored
+  batches, instances, palettes, materials, terrain tables, fog and shadows.
+  Full production pass parity, native/browser matched output, and TypeGPU
+  deletion remain.
 **Updated:** 2026-10-27.
 
 The latest production-input pass adds a shared `terrainLayout` owner. The
@@ -38,9 +41,13 @@ Keep TypeGPU as the browser control until the shared native/browser core clears
 the matched-image, startup, frame-time, resize, rebuild, and production pass
 parity gates. Sky/PMREM/DFG assets, range-aware caster routing, native fog
 layer records, and a non-flat height page now cross the shared browser shell.
-The current pickup is the real production input extraction: move native
-terrain tables, material rows, fog publication state, and static/model batches
-behind the shared frame boundary, then compare the same multi-model fixture.
+The real production-input extraction is now exercised: the shared browser row
+builds a deterministic sim battle, publishes an observation, resolves the
+runtime bundle through `fieldedBattle`, and uploads the resulting
+`ScenePresentation` frame. It reports 920 model-record words and 240 authored
+material words, and survives resize, surface recovery and device loss. The
+remaining comparison must use the complete appearance library and native frame
+against the same camera and world, then close visual/material/shadow parity.
 The browser model seam now preserves 16-float instances and 12-word dynamic
 batch ranges; finish the appearance/tier drawable mapping and the `NONE` static
 batch holder before claiming model parity. The shared core now owns the packed
@@ -384,6 +391,7 @@ weak shadows.
 - [x] Verify pixel equality on the spike workload — [slice 00](slices/00-wasm-backend.md).
 - [x] Port one real presentation-fed terrain pass and its camera/mesh handoff — [slice 01](slices/01-real-frame.md).
 - [x] Port one real authored model pass — [slice 01](slices/01-real-frame.md).
+- [x] Feed a real simulation publication and `ScenePresentation` frame into the shared browser core — [slice 01](slices/01-real-frame.md).
 - [x] Run interleaved reel measurements with startup, bundle, GPU, CPU and reset gates — [slice 01](slices/01-real-frame.md).
 - [ ] Move every production GPU owner into the shared Rust runtime — [slice 02](slices/02-verdict.md).
 - [ ] Clear matched production-frame and lifecycle gates in native and browser — [slice 02](slices/02-verdict.md).
