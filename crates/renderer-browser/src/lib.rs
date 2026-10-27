@@ -567,13 +567,6 @@ impl Renderer {
             0,
             bytemuck::cast_slice(&camera[..40]),
         );
-        // The small fixture display pipeline uses the same view-projection
-        // contract as production but only binds a 16-word camera uniform.
-        // Keep it fitted to the uploaded presentation frame so the display
-        // adapter can show authored world-space vertices without treating
-        // them as clip-space coordinates.
-        self.queue
-            .write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&camera[..16]));
         let environment_words = write(
             &self.queue,
             &self.presentation_environment,
