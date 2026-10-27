@@ -161,6 +161,8 @@ stops the work before a full port is attempted:
    pipeline bindings and dispatch labels now have a shared owner; move the fog
    sight buffers/bind groups into that runtime, then replace the browser
    fixture frame with the production shared frame.
+   The browser shell now embeds the exact 63-pipeline export and every WGSL
+   source through a generated build-time map; no filesystem access is added.
 12. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
    shared Rust native on the same frozen presentation frame. Measure startup,
    CPU encode, GPU timestamps, memory, binary/download size, LOC, GPU object
