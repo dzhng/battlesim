@@ -58,7 +58,7 @@ use crate::visibility::OcclusionGrid;
 use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 use contract::random::Rng;
-use flown::{clip_to_seen, hit, Flown};
+use flown::{clip_to_seen, Flown};
 use replay_identity::{config_digest, scenario_digest};
 use spawn::spawn_unit;
 
@@ -2291,124 +2291,6 @@ impl Battle {
             }
         }
         bodies
-    }
-
-    /// Fly every round one tick against the world and this tick's bodies,
-    /// keeping each round's flown segment for visibility.
-    fn fly(&mut self, before: &Poses, after: &Poses) {
-        let bodies = self.bodies(before, after);
-        // Where each round starts this tick, and the soldier who fired it.
-        let starts: BTreeMap<ProjectileId, (V3, Option<u32>)> = self
-            .projectiles
-            .active()
-            .iter()
-            .map(|p| {
-                let soldier = p
-                    .shooter
-                    .map(|s| s.body.0)
-                    .filter(|&b| b < VEHICLE_BODY_BASE);
-                (p.id, (p.position, soldier))
-            })
-            .collect();
-        self.flight_events.clear();
-        let mut resolver = HullResolver {
-            rules: &self.rules,
-            arsenal: &self.arsenal,
-            rounds: &self.rounds,
-            units: &mut self.units,
-            tick: self.tick,
-            rng: &mut self.ricochet_rng,
-        };
-        flight::advance_projectiles(
-            &mut self.projectiles,
-            &self.world,
-            &bodies,
-            &mut self.flight_events,
-            &mut resolver,
-        );
-        let mut ends: BTreeMap<ProjectileId, V3> = self
-            .projectiles
-            .active()
-            .iter()
-            .map(|p| (p.id, p.position))
-            .collect();
-        let mut struck = BTreeMap::new();
-        let mut ricochets: BTreeMap<ProjectileId, Vec<(V3, V3)>> = BTreeMap::new();
-        self.blasts.clear();
-        for e in &self.flight_events {
-            match e {
-                FlightEvent::Impact(i) => {
-                    ends.insert(i.projectile, i.point);
-                    struck.insert(i.projectile, (hit(&self.world, i.struck), i.normal));
-                    if let Some(round) = self.rounds.get(&i.projectile).filter(|_| i.detonated) {
-                        let blast = Blast {
-                            point: xyz(i.point),
-                            radius: self.arsenal.weapons[round.weapon].def.blast_radius_m,
-                            kind: round.weapon,
-                        };
-                        self.blasts.push((round.side, blast));
-                    }
-                }
-                // Events come in time order, so each round's ricochets do too.
-                FlightEvent::Ricochet(r) => {
-                    ricochets
-                        .entry(r.projectile)
-                        .or_default()
-                        .push((r.point, r.normal));
-                }
-                FlightEvent::Expired(x) => {
-                    ends.insert(x.projectile, x.point);
-                }
-                FlightEvent::NearMiss(_) | FlightEvent::Pass(_) => {}
-            }
-        }
-        self.segments.clear();
-        for (id, (from, shooter)) in starts {
-            if let (Some(&to), Some(round)) = (ends.get(&id), self.rounds.get(&id)) {
-                self.segments.push(Flown {
-                    side: round.side,
-                    from,
-                    ricochets: ricochets.remove(&id).unwrap_or_default(),
-                    to,
-                    weapon: round.weapon,
-                    shooter,
-                    hit: struck.get(&id).copied(),
-                });
-            }
-        }
-        let ctx = DamageContext {
-            world: &self.world,
-            ground: &self.ground,
-            arsenal: &self.arsenal,
-            rules: &self.rules,
-            tick: self.tick,
-        };
-        let outcome = damage::resolve(
-            &ctx,
-            &self.flight_events,
-            &self.rounds,
-            &mut self.suppressed,
-            &mut self.units,
-            &mut self.damage_rng,
-        );
-        self.consequences(outcome);
-        // The rounds that ended this tick are forgotten below.
-        self.shout_under_fire = shouts::under_fire(
-            &self.flight_events,
-            &self.rounds,
-            &self.units,
-            &self.arsenal,
-            &self.rules,
-        );
-        // Each burst marks the ground after it has done its damage.
-        for (_, blast) in &self.blasts {
-            let [x, y, z] = blast.point;
-            self.ground
-                .burst(&self.world, v3(x, y, z), blast.radius, &self.rules.ground);
-        }
-        let live: BTreeSet<ProjectileId> = self.projectiles.active().iter().map(|p| p.id).collect();
-        self.rounds.retain(|id, _| live.contains(id));
-        self.suppressed.retain(|(id, _), _| live.contains(id));
     }
 
     /// Downed aircraft still falling.
