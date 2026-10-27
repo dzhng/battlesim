@@ -107,7 +107,14 @@ export async function run(ctx) {
   );
   ctx.check(
     "shared browser row owns shadow resources",
-    sharedWorkload?.sharedShadow === true,
+    sharedWorkload?.sharedShadow === true &&
+      Array.isArray(sharedWorkload?.shadowCasterBatches) &&
+      sharedWorkload.shadowCasterBatches.some((count) => count > 0),
+    JSON.stringify(sharedWorkload),
+  );
+  ctx.check(
+    "shared browser row owns the environment bind group",
+    sharedWorkload?.sharedEnvironment === true,
     JSON.stringify(sharedWorkload),
   );
   ctx.check(

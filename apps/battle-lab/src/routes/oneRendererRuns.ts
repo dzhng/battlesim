@@ -314,12 +314,16 @@ function realFrame(cameraParams: Camera3DParams = FOUNDATION_CAMERA) {
   const world = groundPatch();
   const presentation = new ScenePresentation();
   presentation.setGround(world.terrain.input, world.scenery);
+  // Fit the same directional cascades that production consumes. The real
+  // frame rows use this frozen fit when the shared Rust shell uploads its
+  // receiver, caster cameras and batch cascade masks.
+  presentation.setShadow(gameLight, world.terrain.mesh);
   const axes = screenAxes(cameraParams);
   const eye = eyePosition(
     new Float32Array(3) as unknown as Parameters<typeof eyePosition>[0],
     cameraParams,
   );
-  const camera = presentation.frame(
+  const frame = presentation.frame(
     0,
     {
       eye: [...eye],
@@ -333,7 +337,14 @@ function realFrame(cameraParams: Camera3DParams = FOUNDATION_CAMERA) {
     { selected: [], xray: false, ghosts: [] },
     0,
   );
-  return { mesh: world.terrain.mesh, camera: camera.camera.f32, presentation };
+  return {
+    mesh: world.terrain.mesh,
+    camera: frame.camera.f32,
+    sun_shadow: frame.sun_shadow.f32,
+    casters: frame.casters.f32,
+    batches: frame.batches.u32,
+    presentation,
+  };
 }
 
 export async function realBrowserRun(canvas: HTMLCanvasElement): Promise<Result> {
@@ -625,6 +636,19 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
+  (
+    renderer as SharedRenderer & {
+      upload_shadow_frame: (
+        receiver: Float32Array,
+        casters: Float32Array,
+        batches: Uint32Array,
+      ) => void;
+    }
+  ).upload_shadow_frame(
+    new Float32Array(frozen.sun_shadow.f32),
+    new Float32Array(frozen.casters.f32),
+    new Uint32Array(frozen.batches.u32),
+  );
   canvas.width = 320;
   canvas.height = 180;
   renderer.resize(canvas);
@@ -648,6 +672,19 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array(resolvedLight.sun),
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
+  );
+  (
+    renderer as SharedRenderer & {
+      upload_shadow_frame: (
+        receiver: Float32Array,
+        casters: Float32Array,
+        batches: Uint32Array,
+      ) => void;
+    }
+  ).upload_shadow_frame(
+    new Float32Array(frozen.sun_shadow.f32),
+    new Float32Array(frozen.casters.f32),
+    new Uint32Array(frozen.batches.u32),
   );
   renderer.render();
   const setupMs = performance.now() - started;
