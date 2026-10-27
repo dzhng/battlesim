@@ -7,7 +7,7 @@
 pub mod batches;
 pub mod buildings;
 pub mod fallen;
-#[cfg(feature = "files")]
+#[cfg(all(feature = "files", not(target_arch = "wasm32")))]
 pub mod files;
 pub mod ground;
 pub mod index;

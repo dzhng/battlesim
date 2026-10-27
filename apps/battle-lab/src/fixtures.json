@@ -17,6 +17,14 @@
     "catalog": "capture"
   },
   {
+    "id": "one-renderer",
+    "route": "/labs/one-renderer",
+    "describe": "Compares TypeGPU, exported WGSL, Rust wgpu in browser WASM, and a mixed Rust-plus-TypeGPU frame on one fullscreen workload.",
+    "map": null,
+    "tool": true,
+    "loading": false
+  },
+  {
     "id": "native-parity-capture",
     "route": "/labs/graphics-test?plates=1",
     "describe": "The native client's control run: the graphics-test reel at 1280×720 with control plates read back from the canvas at each shot's middle; writes each scene's capture, visual presentation manifest and plates to throwaway/native-parity/. PARITY_SCENES=<map,…> films only those scenes.",

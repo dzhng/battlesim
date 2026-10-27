@@ -8,7 +8,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
     "test": "vitest run",
-    "build:wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/game-wasm --target web --release --out-dir ../../web/src/wasm && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/presentation-wasm --target web --release --out-dir ../../web/src/wasm/presentation",
+    "build:wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/game-wasm --target web --release --out-dir ../../web/src/wasm && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/presentation-wasm --target web --release --out-dir ../../web/src/wasm/presentation && bun run build:renderer-wasm && bun run build:shared-renderer-wasm",
+    "build:renderer-wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/renderer-wasm-spike --target web --release --out-dir ../../web/src/wasm/renderer_spike",
+    "build:shared-renderer-wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/renderer-browser --target web --release --out-dir ../../web/src/wasm/renderer_browser",
     "scene": "node scene.mjs",
     "asset": "node asset.mjs",
     "capture": "node capture.mjs",
@@ -16,7 +18,8 @@
     "install-browsers": "playwright install chromium",
     "check-prerequisites": "node check-prerequisites.mjs",
     "verify": "node scene.mjs",
-    "visual": "node scene.mjs --visual"
+    "visual": "node scene.mjs --visual",
+    "build:renderer-browser": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/renderer-browser --target web --release --out-dir ../../web/src/wasm/renderer_browser"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

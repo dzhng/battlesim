@@ -1,7 +1,15 @@
 # Native client
 
-The native client on `wgpu`. It runs the browser's own shaders and passes over the [presentation crate](../../crates/presentation/README.md)'s
+The native client is the desktop shell for the shared Rust `wgpu` renderer. It
+runs the browser's own shaders and passes over the [presentation crate](../../crates/presentation/README.md)'s
 `World` and `Frame`, and decides nothing per entity itself.
+
+GPU target formats, target allocation and low-level buffer/bind helpers live in
+[`renderer-core`](../../crates/renderer-core/README.md) so the same owners can
+compile for browser WASM. This crate retains desktop-only concerns: `winit`
+surface setup, filesystem runtime loading, replay/capture, readback and audio.
+Pass modules are moving into `renderer-core` incrementally; a browser-only
+duplicate pass graph is not an accepted architecture.
 
 ## Windows development
 

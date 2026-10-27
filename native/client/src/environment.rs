@@ -310,9 +310,9 @@ impl Environment {
                 BindingResource::TextureView(&pmrem),
                 BindingResource::TextureView(&dfg.create_view(&Default::default())),
                 BindingResource::Sampler(&linear),
-                shadow.receiver.as_entire_binding(),
-                BindingResource::TextureView(&shadow.depth),
-                BindingResource::Sampler(&shadow.compare),
+                shadow.receiver().as_entire_binding(),
+                BindingResource::TextureView(shadow.depth()),
+                BindingResource::Sampler(shadow.compare()),
             ],
         );
 

@@ -4,9 +4,12 @@
 //! container, and its textures travel as their own files. Only what the
 //! model layer draws is read: meshes, materials and textures.
 use std::collections::BTreeMap;
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
 
-use presentation::assets::{Container, Runtime, View, BUNDLE};
+#[cfg(not(target_arch = "wasm32"))]
+use presentation::assets::Runtime;
+use presentation::assets::{Container, View, BUNDLE};
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -14,7 +17,10 @@ type Result<T> = std::result::Result<T, String>;
 
 /// The runtime catalog, reading bundles on request.
 pub struct Library {
+    #[cfg(not(target_arch = "wasm32"))]
     runtime: Runtime,
+    #[cfg(target_arch = "wasm32")]
+    bundles: BTreeMap<String, Bundle>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -81,6 +87,7 @@ pub struct Texture {
     pub levels: Vec<Vec<u8>>,
 }
 
+#[derive(Clone)]
 pub struct Node {
     pub name: String,
     pub tiers: Vec<Mesh>,
@@ -88,6 +95,7 @@ pub struct Node {
     pub top: Option<f64>,
 }
 
+#[derive(Clone)]
 pub enum Shape {
     /// A posed body's tiers.
     Skinned(Vec<Mesh>),
@@ -97,6 +105,7 @@ pub enum Shape {
     Static(Vec<Node>),
 }
 
+#[derive(Clone)]
 pub struct Bundle {
     pub shape: Shape,
     pub materials: Vec<Material>,
@@ -165,10 +174,12 @@ fn nodes(views: &Views, list: &Value) -> Result<Vec<Node>> {
 }
 
 impl Library {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn open(dir: &Path) -> Result<Self> {
         Runtime::open(dir).map(|runtime| Self { runtime })
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn texture(&self, id: &str) -> Result<Texture> {
         let bytes = self.runtime.read(id, "texture.bin")?;
         let end = bytes.iter().take(64).position(|&b| b == b'\n');
@@ -213,6 +224,7 @@ impl Library {
     }
 
     /// The appearance `name`'s bundle, its textures joined back.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn bundle(&self, name: &str) -> Result<Bundle> {
         let hash = self.runtime.bundle_hash(name)?;
         let bytes = self.runtime.read(hash, "bundle.bin")?;
@@ -245,4 +257,96 @@ impl Library {
             textures,
         })
     }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl Library {
+    /// Build a browser library from fetched bundle and texture payloads. The
+    /// JS shell owns fetching; this shared parser owns the decoded records.
+    pub fn from_bundle(
+        name: &str,
+        bundle_bytes: &[u8],
+        textures: &[(&str, &[u8])],
+    ) -> Result<Self> {
+        let what = format!("bundle {name}");
+        let views = Views::parse(bundle_bytes, BUNDLE, &what)?;
+        let c = &views.content;
+        let fail = |e: String| format!("{what}: {e}");
+        let shape = match c["kind"].as_str() {
+            Some("skinned") => Shape::Skinned(tiers(&views, &c["tiers"]).map_err(fail)?),
+            Some("articulated") => Shape::Articulated(nodes(&views, &c["nodes"]).map_err(fail)?),
+            Some("static") => Shape::Static(nodes(&views, &c["states"]).map_err(fail)?),
+            other => return Err(format!("{what}: kind {other:?}")),
+        };
+        let materials: Vec<Material> =
+            serde_json::from_value(c["materials"].clone()).map_err(|e| fail(e.to_string()))?;
+        let textures = textures
+            .iter()
+            .map(|(id, bytes)| texture_bytes(id, bytes))
+            .collect::<Result<Vec<_>>>()?;
+        for m in &materials {
+            if m.textures.values().any(|&t| t >= textures.len()) {
+                return Err(format!("{what}: a material names a texture it lacks"));
+            }
+        }
+        Ok(Self {
+            bundles: [(
+                name.to_owned(),
+                Bundle {
+                    shape,
+                    materials,
+                    textures,
+                },
+            )]
+            .into_iter()
+            .collect(),
+        })
+    }
+
+    pub fn bundle(&self, name: &str) -> Result<Bundle> {
+        self.bundles
+            .get(name)
+            .cloned()
+            .ok_or_else(|| format!("browser bundle not loaded: {name}"))
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn texture_bytes(id: &str, bytes: &[u8]) -> Result<Texture> {
+    let end = bytes.iter().take(64).position(|&b| b == b'\n');
+    let header = end.and_then(|e| std::str::from_utf8(&bytes[..e]).ok());
+    let parsed = header.and_then(|h| {
+        let (format, size) = h.split_once(' ')?;
+        let (w, h) = size.split_once('x')?;
+        let w: u32 = w.parse().ok()?;
+        (w.to_string() == h && w.is_power_of_two()).then_some((format, w))
+    });
+    let Some((format, size)) = parsed else {
+        return Err(format!("texture {id}: malformed header"));
+    };
+    let srgb = match format {
+        "rgba8unorm-srgb" => true,
+        "rgba8unorm" => false,
+        other => return Err(format!("texture {id}: format {other}")),
+    };
+    let mut at = end.expect("a header line") + 1;
+    let mut levels = Vec::new();
+    let mut edge = size as usize;
+    while edge >= 1 {
+        let n = edge * edge * 4;
+        levels.push(
+            bytes
+                .get(at..at + n)
+                .ok_or(format!("texture {id}: truncated"))?
+                .to_vec(),
+        );
+        at += n;
+        edge >>= 1;
+    }
+    Ok(Texture {
+        id: id.to_owned(),
+        srgb,
+        size,
+        levels,
+    })
 }

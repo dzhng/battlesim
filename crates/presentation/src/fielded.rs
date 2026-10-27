@@ -32,8 +32,6 @@ const MOUNT_MUZZLES: [(&str, &str); 2] = [("gun", "muzzle"), ("hmg", "hmg_muzzle
 /// A gun's pitch where its model states none, degrees [down, up].
 const GUN_PITCH_DEG: [f64; 2] = [-10.0, 20.0];
 const HMG_PITCH_DEG: [f64; 2] = [-10.0, 45.0];
-/// A rotor's vertices past this share of its reach are blade; within this
-/// share of it, mast.
 const BLADE_OUTER: f64 = 0.6;
 const MAST_REACH: f64 = 0.05;
 /// The least angle between two blades round a hub, degrees.
@@ -130,10 +128,10 @@ impl Fielding<'_> {
     }
 }
 
-#[cfg(feature = "files")]
+#[cfg(all(feature = "files", not(target_arch = "wasm32")))]
 pub use files::{encounter_kinds, fielded};
 
-#[cfg(feature = "files")]
+#[cfg(all(feature = "files", not(target_arch = "wasm32")))]
 mod files {
     use super::{Fielded, Fielding};
     use crate::assets::Runtime;

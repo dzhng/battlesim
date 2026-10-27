@@ -34,7 +34,7 @@ function patchHeight(x: number, y: number): number {
 }
 
 /** The patch's own checker, fully over the biome (the tint's alpha is its weight). */
-function groundPatch(): WorldLayers {
+export function groundPatch(): WorldLayers {
   const mesh = new MeshBuilder();
   const vertex = (x: number, y: number): [number, number, number] => [x, y, patchHeight(x, y)];
   const color = (x: number, y: number): Rgba => {
@@ -97,7 +97,7 @@ interface Placed {
 
 const onPatch = (p: Omit<Placed, "z">): Placed => ({ ...p, z: patchHeight(p.x, p.y) });
 
-const FOUNDATION: Placed[] = [
+export const FOUNDATION: Placed[] = [
   onPatch({ kind: "test_tank", x: 0, y: 0, yaw: 0.35 }),
   // A crate the tank's gun reaches over: the depth-overlap check.
   onPatch({ kind: "box", x: 6.4, y: 2.5, yaw: 0.2 }),
@@ -122,7 +122,7 @@ const targetsOf = (units: UnitCatalog): PickBox[] =>
       : { x: p.x, y: p.y, z: p.z, yaw: p.yaw, ...bodyBox(game.physics, hullOf(units, p.kind)) },
   );
 
-const FOUNDATION_CAMERA: Camera3DParams = {
+export const FOUNDATION_CAMERA: Camera3DParams = {
   target: [-2, 1, 0.5],
   distance: 38,
   pitch: 0.6,

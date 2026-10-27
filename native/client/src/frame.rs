@@ -15,93 +15,50 @@ use crate::fog::Fog;
 use crate::grass::Grass;
 use crate::ground::Ground;
 use crate::models::Models;
+use crate::models::Surface;
 use crate::scenery::Scenery;
 use crate::shadow::SunShadow;
 
-/// The lit world before post.
-pub const HDR_FORMAT: TextureFormat = TextureFormat::Rgba16Float;
-/// What post writes: the browser's canvas format.
-pub const DISPLAY_FORMAT: TextureFormat = TextureFormat::Bgra8Unorm;
-/// 4× is the count WebGPU guarantees for every renderable format.
-pub const MSAA: u32 = 4;
-/// Reverse-Z: cleared to 0 (the far plane), nearer is greater.
-pub const DEPTH_FORMAT: TextureFormat = TextureFormat::Depth32Float;
-/// The fog mask the lit passes write beside their colour (`WORLD_OUT`).
-pub const FOG_MASK_FORMAT: TextureFormat = TextureFormat::Rgba8Unorm;
-/// The fog mask passes' distances to each side of the edge.
-pub const FOG_DISTANCE_FORMAT: TextureFormat = TextureFormat::Rg8Unorm;
+impl renderer_core::depth::DepthInputs for Inputs<'_> {
+    fn depth_view(&self) -> &TextureView {
+        &self.targets.depth
+    }
 
-/// The frame's size-dependent targets.
-pub struct Targets {
-    pub size: [u32; 2],
-    /// The world, multisampled: resolved into `lit`, then the fogged world
-    /// (and the ghosts over it) resolved into `hdr`.
-    pub hdr_msaa: TextureView,
-    /// The lit world, the effects drawn over it.
-    pub lit: TextureView,
-    /// The world with fog applied: post's input.
-    pub hdr: TextureView,
-    /// The world's depth, multisampled; the effects read it.
-    pub depth: TextureView,
-    /// The fog mask, multisampled, resolved into `fog_mask`.
-    pub fog_mask_msaa: TextureView,
-    pub fog_mask: TextureView,
-    /// The distances to the other side of the fog edge: along rows, then
-    /// the Euclidean result.
-    pub fog_distance_rows: TextureView,
-    pub fog_distance: TextureView,
-    /// Post's output: presented, and read back for a plate.
-    pub display: TextureView,
-    pub display_texture: Texture,
-}
+    fn camera_group(&self) -> (&'static str, &BindGroup) {
+        let [camera, ..] = self.environment.groups();
+        camera
+    }
 
-impl Targets {
-    pub fn new(device: &Device, size: [u32; 2]) -> Self {
-        let texture = |label, format, samples, usage| {
-            device.create_texture(&TextureDescriptor {
-                label: Some(label),
-                size: Extent3d {
-                    width: size[0],
-                    height: size[1],
-                    depth_or_array_layers: 1,
-                },
-                mip_level_count: 1,
-                sample_count: samples,
-                dimension: TextureDimension::D2,
-                format,
-                usage,
-                view_formats: &[],
-            })
-        };
-        let view = |t: Texture| t.create_view(&Default::default());
-        let render = TextureUsages::RENDER_ATTACHMENT;
-        let sampled = render | TextureUsages::TEXTURE_BINDING;
-        let display_texture = texture(
-            "display",
-            DISPLAY_FORMAT,
-            1,
-            render | TextureUsages::COPY_SRC,
+    fn draw_ground_depth(&self, pass: &mut RenderPass<'_>) {
+        self.ground.draw_depth(pass, self.camera_group());
+    }
+
+    fn draw_scenery_depth(&self, pass: &mut RenderPass<'_>) {
+        self.scenery
+            .draw_depth(pass, self.camera_group(), self.models.statics());
+    }
+
+    fn draw_models_depth(
+        &self,
+        pass: &mut RenderPass<'_>,
+        pipeline: &renderer_core::pipelines::Bound,
+        cutout: bool,
+    ) {
+        pipeline.set(pass, &[self.camera_group(), self.models.group()]);
+        self.models.draw(
+            pass,
+            if cutout {
+                Surface::Cutout
+            } else {
+                Surface::Solid
+            },
         );
-        Self {
-            size,
-            hdr_msaa: view(texture("hdr-msaa", HDR_FORMAT, MSAA, render)),
-            lit: view(texture("lit", HDR_FORMAT, 1, sampled)),
-            hdr: view(texture("hdr", HDR_FORMAT, 1, sampled)),
-            depth: view(texture("depth", DEPTH_FORMAT, MSAA, sampled)),
-            fog_mask_msaa: view(texture("fog-mask-msaa", FOG_MASK_FORMAT, MSAA, render)),
-            fog_mask: view(texture("fog-mask", FOG_MASK_FORMAT, 1, sampled)),
-            fog_distance_rows: view(texture(
-                "fog-distance-rows",
-                FOG_DISTANCE_FORMAT,
-                1,
-                sampled,
-            )),
-            fog_distance: view(texture("fog-distance", FOG_DISTANCE_FORMAT, 1, sampled)),
-            display: display_texture.create_view(&Default::default()),
-            display_texture,
-        }
     }
 }
+
+pub use renderer_core::{
+    Targets, DEPTH_FORMAT, DISPLAY_FORMAT, FOG_DISTANCE_FORMAT, FOG_MASK_FORMAT, HDR_FORMAT, MSAA,
+};
 
 /// What a pass draws from.
 pub struct Inputs<'a> {
@@ -211,11 +168,11 @@ impl Passes {
             effects: &self.effects,
             fog: &self.fog,
         };
-        for pass in &self.passes {
-            encoder.push_debug_group(pass.name());
-            pass.encode(&inputs, &mut encoder);
-            encoder.pop_debug_group();
-        }
+        renderer_core::encode_passes(
+            &mut encoder,
+            self.passes.iter().map(|pass| pass.name()),
+            |index, encoder| self.passes[index].encode(&inputs, encoder),
+        );
         encoder
     }
 

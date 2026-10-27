@@ -119,12 +119,23 @@ impl Sky {
 impl Sky {
     /// The shown sky along the view's rays: the world pass's background,
     /// its own pass before the world draws over it (`encodeBackground`).
-    pub fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
-        let (view, targets) = (inputs.view, inputs.targets);
+    pub fn prepare(&self, inputs: &Inputs) {
+        let view = inputs.view;
         let rays: &[f32] = &[view.sky_origin, view.sky_dx, view.sky_dy].concat();
         inputs
             .queue
             .write_buffer(&self.rays, 0, bytemuck::cast_slice(rays));
+    }
+
+    pub fn draw(&self, pass: &mut RenderPass<'_>) {
+        pass.set_pipeline(&self.pipeline);
+        pass.set_bind_group(0, &self.group, &[]);
+        pass.draw(0..3, 0..1);
+    }
+
+    pub fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
+        self.prepare(inputs);
+        let targets = inputs.targets;
         let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("sky"),
             color_attachments: &[Some(RenderPassColorAttachment {
@@ -140,8 +151,6 @@ impl Sky {
             })],
             ..Default::default()
         });
-        pass.set_pipeline(&self.pipeline);
-        pass.set_bind_group(0, &self.group, &[]);
-        pass.draw(0..3, 0..1);
+        self.draw(&mut pass);
     }
 }

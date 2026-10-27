@@ -4,23 +4,15 @@
 //! both to the frame's camera; this only uploads and draws.
 use wgpu::*;
 
-use crate::frame::{Inputs, Pass, DEPTH_FORMAT};
-use crate::gpu::{bind, buffer};
+use crate::frame::{Inputs, Pass};
 use crate::models::Surface;
 use crate::pipelines::{Bound, Pipelines};
 use presentation::records::{Camera, SunShadow as Receiver};
-use presentation::shadow::{SunShadowFrame, CASCADES};
+use presentation::shadow::SunShadowFrame;
+use renderer_core::shadow::ShadowResources;
 
 pub struct SunShadow {
-    layers: Vec<TextureView>,
-    /// The whole array, as receivers sample it.
-    pub depth: TextureView,
-    pub receiver: Buffer,
-    pub compare: Sampler,
-    cameras: Vec<Buffer>,
-    groups: Vec<BindGroup>,
-    /// Cascades the last fit made.
-    active: usize,
+    resources: ShadowResources,
 }
 
 impl SunShadow {
@@ -31,91 +23,35 @@ impl SunShadow {
         map_size: u32,
         cold: &SunShadowFrame,
     ) -> Self {
-        let texture = device.create_texture(&TextureDescriptor {
-            label: Some("sun-depth"),
-            size: Extent3d {
-                width: map_size,
-                height: map_size,
-                depth_or_array_layers: CASCADES as u32,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: TextureDimension::D2,
-            format: DEPTH_FORMAT,
-            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
-            view_formats: &[],
-        });
-        let layers = (0..CASCADES as u32)
-            .map(|layer| {
-                texture.create_view(&TextureViewDescriptor {
-                    dimension: Some(TextureViewDimension::D2),
-                    base_array_layer: layer,
-                    array_layer_count: Some(1),
-                    ..Default::default()
-                })
-            })
-            .collect();
-        let depth = texture.create_view(&TextureViewDescriptor {
-            dimension: Some(TextureViewDimension::D2Array),
-            ..Default::default()
-        });
-        let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
-        let receiver = buffer(
-            device,
-            "sun-shadow",
-            uniform,
-            bytemuck::bytes_of(&cold.receiver),
-        );
-        let cameras: Vec<Buffer> = (0..CASCADES)
-            .map(|_| {
-                buffer(
-                    device,
-                    "sun-caster",
-                    uniform,
-                    bytemuck::bytes_of(&Camera::default()),
-                )
-            })
-            .collect();
-        let groups = cameras
-            .iter()
-            .map(|c| {
-                bind(
-                    device,
-                    pipelines.layout("typegpuCameraLayout"),
-                    "sun-caster",
-                    &[c.as_entire_binding()],
-                )
-            })
-            .collect();
-        let compare = device.create_sampler(&SamplerDescriptor {
-            label: Some("sun-compare"),
-            mag_filter: FilterMode::Linear,
-            min_filter: FilterMode::Linear,
-            compare: Some(CompareFunction::GreaterEqual),
-            ..Default::default()
-        });
         Self {
-            layers,
-            depth,
-            receiver,
-            compare,
-            cameras,
-            groups,
-            active: 0,
+            resources: ShadowResources::new(
+                device,
+                pipelines,
+                map_size,
+                bytemuck::bytes_of(&cold.receiver),
+                std::mem::size_of::<Camera>(),
+            ),
         }
     }
 
     /// Uploads the frame's fit.
     pub fn prepare(&mut self, queue: &Queue, fit: &SunShadowFrame) {
-        queue.write_buffer(
-            &self.receiver,
-            0,
+        let cameras: Vec<&[u8]> = fit.casters.iter().map(bytemuck::bytes_of).collect();
+        self.resources.prepare(
+            queue,
             bytemuck::bytes_of::<Receiver>(&fit.receiver),
+            &cameras,
         );
-        for (buffer, camera) in self.cameras.iter().zip(&fit.casters) {
-            queue.write_buffer(buffer, 0, bytemuck::bytes_of(camera));
-        }
-        self.active = fit.casters.len().min(CASCADES);
+    }
+
+    pub fn depth(&self) -> &TextureView {
+        &self.resources.depth
+    }
+    pub fn receiver(&self) -> &Buffer {
+        &self.resources.receiver
+    }
+    pub fn compare(&self) -> &Sampler {
+        &self.resources.compare
     }
 }
 
@@ -143,10 +79,11 @@ impl Pass for ShadowPass {
     fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
         let shadow = inputs.shadow;
         for (cascade, (layer, camera)) in shadow
-            .layers
+            .resources
+            .layers()
             .iter()
-            .zip(&shadow.groups)
-            .take(shadow.active)
+            .zip(shadow.resources.groups())
+            .take(shadow.resources.active())
             .enumerate()
         {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {

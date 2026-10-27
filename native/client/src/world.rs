@@ -11,6 +11,8 @@ use crate::models::Surface;
 use crate::pipelines::{Bound, Pipelines};
 use crate::sky::Sky;
 
+use renderer_core::world::{Layer as CoreLayer, Surface as CoreSurface, WorldInputs};
+
 fn depth(
     view: &TextureView,
     load: LoadOp<f32>,
@@ -26,19 +28,11 @@ fn depth(
     }
 }
 
-/// The frame's depth: every opaque surface before any colour, the world's
-/// ground first, so the colour pass shades each sample once (`encodeDepth`).
-pub struct DepthPrepass {
-    solid: Bound,
-    cutout: Bound,
-}
+pub struct DepthPrepass(renderer_core::depth::DepthPrepass);
 
 impl DepthPrepass {
     pub fn new(pipelines: &Pipelines) -> Self {
-        Self {
-            solid: pipelines.bound("modelPrepass"),
-            cutout: pipelines.bound("modelPrepassCutout"),
-        }
+        Self(renderer_core::depth::DepthPrepass::new(pipelines))
     }
 }
 
@@ -48,24 +42,7 @@ impl Pass for DepthPrepass {
     }
 
     fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
-        let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-            label: Some("depth-prepass"),
-            depth_stencil_attachment: Some(depth(&inputs.targets.depth, LoadOp::Clear(0.0), false)),
-            ..Default::default()
-        });
-        let models = inputs.models;
-        let [camera, ..] = inputs.environment.groups();
-        inputs.ground.draw_depth(&mut pass, camera);
-        inputs
-            .scenery
-            .draw_depth(&mut pass, camera, models.statics());
-        for (bound, surface) in [
-            (&self.solid, Surface::Solid),
-            (&self.cutout, Surface::Cutout),
-        ] {
-            bound.set(&mut pass, &[camera, models.group()]);
-            models.draw(&mut pass, surface);
-        }
+        self.0.encode(inputs, encoder);
     }
 }
 
@@ -110,7 +87,12 @@ impl Pass for WorldColour {
             scars.apply(queue, upload);
         }
         inputs.grass.encode_build(encoder, ground.layout_group());
-        self.sky.encode(inputs, encoder);
+        self.sky.prepare(inputs);
+        let adapter = WorldAdapter {
+            world: self,
+            inputs,
+        };
+        renderer_core::world::encode_sky(&adapter, inputs.targets, encoder);
         let frame = inputs.environment.groups();
         // Each surface binds the fog group of what it is (`fog::Layer`).
         let fogged = |layer| {
@@ -132,8 +114,13 @@ impl Pass for WorldColour {
                 scars.apply(queue, upload);
                 let mut region = inputs.device.create_command_encoder(&Default::default());
                 let first = i == 0;
-                let mut pass =
-                    world_pass(&mut region, inputs.targets, "ground-region", first, true);
+                let mut pass = renderer_core::world::begin_world_pass(
+                    &mut region,
+                    inputs.targets,
+                    "ground-region",
+                    first,
+                    true,
+                );
                 let [x, y, w, h] = *rect;
                 pass.set_scissor_rect(x, y, w, h);
                 ground.draw_terrain(&mut pass, &painted_ground);
@@ -144,86 +131,111 @@ impl Pass for WorldColour {
             scars.apply(queue, upload);
         }
         let drew = !scars.region_uploads().is_empty();
-        let mut pass = world_pass(encoder, inputs.targets, "world", !drew, false);
-        if !regional {
-            ground.draw_terrain(&mut pass, &painted_ground);
-        }
-        let faces = fogged(Layer::Faces);
-        inputs.ground.draw_skirt(&mut pass, &faces);
-        let models = inputs.models;
-        // The models by how fog takes them, as `worldPass.ts` draws them.
-        for layer in [
-            Layer::Units,
-            Layer::Faces,
-            Layer::Ground,
-            Layer::PaintedFaces,
-        ] {
-            let mut groups = fogged(layer);
-            groups.push(models.group());
-            for (bound, surface) in &self.surfaces {
-                bound.set(&mut pass, &groups);
-                models.draw_fogged(&mut pass, *surface, layer);
-            }
-        }
-        inputs.scenery.draw(&mut pass, &faces, models.statics());
-        inputs.grass.draw(&mut pass, &painted_ground);
-        inputs.ground.draw_backdrop(&mut pass, &painted_ground);
-        inputs
-            .ground
-            .draw_water(&mut pass, &fogged(Layer::PaintedFaces));
-        // Glass takes no fog: it draws over what is fogged behind it.
-        let mut groups = frame.to_vec();
-        groups.push(models.group());
-        self.glass.set(&mut pass, &groups);
-        models.draw(&mut pass, Surface::Blended);
+        let adapter = WorldAdapter {
+            world: self,
+            inputs,
+        };
+        renderer_core::world::encode_world(
+            &adapter,
+            inputs.targets,
+            encoder,
+            !drew,
+            false,
+            !regional,
+        );
     }
 }
 
-/// A pass of the lit world over the sky and the prepass's depth, with the
-/// fog mask beside it (cleared when `first`); both resolve. Only a pass
-/// another follows (a region of the ground) keeps the samples: the last
-/// one's resolves are all that is read after it.
-fn world_pass<'a>(
-    encoder: &'a mut CommandEncoder,
-    t: &'a crate::frame::Targets,
-    label: &'static str,
-    first: bool,
-    kept: bool,
-) -> RenderPass<'a> {
-    let store = if kept {
-        StoreOp::Store
-    } else {
-        StoreOp::Discard
-    };
-    encoder.begin_render_pass(&RenderPassDescriptor {
-        label: Some(label),
-        color_attachments: &[
-            Some(RenderPassColorAttachment {
-                view: &t.hdr_msaa,
-                depth_slice: None,
-                resolve_target: Some(&t.lit),
-                ops: Operations {
-                    load: LoadOp::Load,
-                    store,
-                },
-            }),
-            Some(RenderPassColorAttachment {
-                view: &t.fog_mask_msaa,
-                depth_slice: None,
-                resolve_target: Some(&t.fog_mask),
-                ops: Operations {
-                    load: if first {
-                        LoadOp::Clear(Color::TRANSPARENT)
-                    } else {
-                        LoadOp::Load
-                    },
-                    store,
-                },
-            }),
-        ],
-        depth_stencil_attachment: Some(depth(&t.depth, LoadOp::Load, false)),
-        ..Default::default()
-    })
+struct WorldAdapter<'a> {
+    world: &'a WorldColour,
+    inputs: &'a Inputs<'a>,
+}
+
+impl WorldAdapter<'_> {
+    fn fogged(&self, layer: CoreLayer) -> Vec<(&'static str, &'_ BindGroup)> {
+        let layer = match layer {
+            CoreLayer::Units => Layer::Units,
+            CoreLayer::Faces => Layer::Faces,
+            CoreLayer::Ground => Layer::Ground,
+            CoreLayer::PaintedFaces => Layer::PaintedFaces,
+            CoreLayer::PaintedGround => Layer::PaintedGround,
+        };
+        let mut groups = self.inputs.environment.groups().to_vec();
+        groups.push(self.inputs.fog.group(layer));
+        groups
+    }
+}
+
+impl WorldInputs for WorldAdapter<'_> {
+    fn draw_sky(&self, pass: &mut RenderPass<'_>) {
+        self.world.sky.draw(pass);
+    }
+
+    fn draw_ground(&self, pass: &mut RenderPass<'_>, layer: CoreLayer) {
+        self.inputs.ground.draw_terrain(pass, &self.fogged(layer));
+    }
+
+    fn draw_skirt(&self, pass: &mut RenderPass<'_>, layer: CoreLayer) {
+        self.inputs.ground.draw_skirt(pass, &self.fogged(layer));
+    }
+
+    fn bind_models(&self, pass: &mut RenderPass<'_>, layer: CoreLayer, surface: CoreSurface) {
+        let groups = self.fogged(layer);
+        let mut groups = groups;
+        groups.push(self.inputs.models.group());
+        let pipeline = match surface {
+            CoreSurface::Opaque => &self.world.surfaces[0].0,
+            CoreSurface::Cutout => &self.world.surfaces[1].0,
+            CoreSurface::Room => &self.world.surfaces[2].0,
+            CoreSurface::Blended => &self.world.glass,
+        };
+        pipeline.set(pass, &groups);
+    }
+
+    fn draw_models(&self, pass: &mut RenderPass<'_>, layer: CoreLayer, surface: CoreSurface) {
+        let layer = match layer {
+            CoreLayer::Units => Layer::Units,
+            CoreLayer::Faces => Layer::Faces,
+            CoreLayer::Ground => Layer::Ground,
+            CoreLayer::PaintedFaces => Layer::PaintedFaces,
+            CoreLayer::PaintedGround => Layer::PaintedGround,
+        };
+        let surface = match surface {
+            CoreSurface::Opaque => Surface::Opaque,
+            CoreSurface::Cutout => Surface::Cutout,
+            CoreSurface::Room => Surface::Room,
+            CoreSurface::Blended => Surface::Blended,
+        };
+        self.inputs.models.draw_fogged(pass, surface, layer);
+    }
+
+    fn draw_scenery(&self, pass: &mut RenderPass<'_>, layer: CoreLayer) {
+        self.inputs
+            .scenery
+            .draw(pass, &self.fogged(layer), self.inputs.models.statics());
+    }
+
+    fn draw_grass(&self, pass: &mut RenderPass<'_>, layer: CoreLayer) {
+        self.inputs.grass.draw(pass, &self.fogged(layer));
+    }
+
+    fn draw_backdrop(&self, pass: &mut RenderPass<'_>, layer: CoreLayer) {
+        self.inputs.ground.draw_backdrop(pass, &self.fogged(layer));
+    }
+
+    fn draw_water(&self, pass: &mut RenderPass<'_>, layer: CoreLayer) {
+        self.inputs.ground.draw_water(pass, &self.fogged(layer));
+    }
+
+    fn bind_glass(&self, pass: &mut RenderPass<'_>) {
+        let mut groups = self.inputs.environment.groups().to_vec();
+        groups.push(self.inputs.models.group());
+        self.world.glass.set(pass, &groups);
+    }
+
+    fn draw_glass(&self, pass: &mut RenderPass<'_>) {
+        self.inputs.models.draw(pass, Surface::Blended);
+    }
 }
 
 /// Where the UI's units will stand: translucent, over the fogged world,
