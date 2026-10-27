@@ -23,17 +23,16 @@ view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, c
     audible: Vec<SoundCue>, #[serde(skip)] known_props: Shared<KnownProp>, projectiles: Vec<Projectile>,
     blasts: Vec<Blast>, air_transits: Vec<AirTransit>, #[serde(skip)] corpses: Shared<Corpse>, #[serde(skip)] fallen_bodies: Shared<FallenBody>,
     refusals: Vec<Refusal>, crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
-    fog: Arc<Fog>, ground_patch: GroundPatch, prop_display_poses: Vec<PropDisplayPose>, push_contacts: Vec<PushContact> });
+    fog: Arc<Fog>, ground_patch: GroundPatch, prop_display_poses: Vec<PropDisplayPose>, grinds: Vec<Grind> });
 view!(PropDisplayPose {
     prop_id: f64,
     center: Point2,
     yaw: f64,
     base_z: f64
 });
-view!(PushContact {
+view!(Grind {
     point: Point3,
-    heading: Point2,
-    intensity: f64
+    heading: Point2
 });
 view!(OwnUnit { id: f64, #[serde(skip_serializing_if = "Option::is_none")] owner: Option<f64>, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, goal_unloads: bool, policy: Option<Name>,
     direction: Option<Name>, reversing: bool, withdrawing: bool, protection: Option<Protection>, state: Name,

@@ -437,31 +437,32 @@ fn a_tank_shoving_a_car_still_goes_round_one_left_in_its_way() {
     );
 }
 
-/// Sparks fly where the hull grinds the car it shoves: on the car's side
-/// facing the hull, halfway up it, never on its far side.
+/// A hull grinds the car it shoves where they meet: on the car's side facing
+/// the hull, never its far side, halfway up the lower of the two.
 #[test]
-fn a_shove_throws_sparks_where_the_hull_meets_the_car() {
+fn a_hull_grinds_the_car_it_shoves_where_they_meet() {
     let mut b = Battle::new(&car_row(), 1);
-    let flank = b.world().prop(2).unwrap().base_z + 0.75;
-    let mut sparks = 0;
+    let hull_half = b.unit(UnitId(0)).unwrap().hull.unwrap().z;
+    let flank = b.world().prop(2).unwrap().base_z + hull_half.min(0.75);
+    let mut grinds = 0;
     for _ in 0..30 * b.rules().tick_hz as u64 {
         b.step();
         let hull = b.unit(UnitId(0)).unwrap().ground_footprint().unwrap();
-        for c in &b.observe(Side::Blue).push_contacts {
+        for c in &b.observe(Side::Blue).grinds {
             let [x, y, z] = c.point;
             assert!(
                 hull.distance(v2(x, y)) < 0.25,
-                "sparks {:.1} m from the hull",
+                "the grind {:.1} m from the hull",
                 hull.distance(v2(x, y))
             );
             assert!(
                 (z - flank).abs() < 1e-9,
-                "sparks at {z:.2} m, not {flank:.2}"
+                "the grind at {z:.2} m, not {flank:.2}"
             );
-            sparks += 1;
+            grinds += 1;
         }
     }
-    assert!(sparks > 30, "the shove threw sparks for {sparks} ticks");
+    assert!(grinds > 30, "the hull grinds the car for {grinds} ticks");
 }
 
 /// Q28: a test-only smoke prop type: blocks nobody, stops no rounds, gives

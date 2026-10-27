@@ -3,7 +3,7 @@
     "wreck": {
       "abstract": true,
       "wreck": true,
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "armor": 0.5},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "armor": 0.5, "metal": true},
       "appearance": {"drawn_by": "wreck"}
     },
     "light_wreck": {

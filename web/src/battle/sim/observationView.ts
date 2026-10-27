@@ -614,6 +614,12 @@ export interface ObservationView {
     revision: number;
     full: boolean;
   };
+  /** The bodies shoved this tick that this side sees, where they stand
+   *  (ahead of `knownProps`, which re-learns a shoved body only now and then). */
+  propDisplayPoses: { propId: number; center: Point2; yaw: number; baseZ: number }[];
+  /** Where hulls grind the metal bodies shoved this tick that this side sees:
+   *  halfway up the lower of hull and body, with the pusher's travel. */
+  grinds: { point: Point3; heading: Point2 }[];
 }
 
 export interface AirTransitView {

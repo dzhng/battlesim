@@ -96,7 +96,7 @@ fn incoming_missile_shout_starts_the_authored_warning() {
         smokes: Vec::new(),
         cook_offs: Vec::new(),
         flare_deploys: Vec::new(),
-        push_contacts: Vec::new(),
+        grinds: Vec::new(),
     };
     let shout = Shout {
         own: true,
@@ -132,7 +132,7 @@ fn flare_deploy_starts_the_positional_flare_sound() {
         smokes: Vec::new(),
         cook_offs: Vec::new(),
         flare_deploys: vec![[20.0, 0.0, 1000.0]],
-        push_contacts: Vec::new(),
+        grinds: Vec::new(),
     };
     s.note(
         &Heard {
@@ -261,7 +261,7 @@ fn shot(tick: f64, shooter: f64, at: [f64; 3], kind: &str) -> (EffectPublication
         smokes: Vec::new(),
         cook_offs: Vec::new(),
         flare_deploys: Vec::new(),
-        push_contacts: Vec::new(),
+        grinds: Vec::new(),
     };
     let l = Launch {
         shooter,
@@ -353,7 +353,7 @@ fn the_budget_holds_and_the_loudest_win() {
         smokes: Vec::new(),
         cook_offs: Vec::new(),
         flare_deploys: Vec::new(),
-        push_contacts: Vec::new(),
+        grinds: Vec::new(),
     };
     s.note(
         &Heard {

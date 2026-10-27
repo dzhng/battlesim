@@ -1008,7 +1008,6 @@ fn step_vehicle(
         unit: i,
         hull: hull_at(next, motion.yaw),
         heading: motion.heading,
-        speed_mps: motion.step / dt,
     };
     let mut shoved = Vec::new();
     let mut solid = met.solid.is_some();
