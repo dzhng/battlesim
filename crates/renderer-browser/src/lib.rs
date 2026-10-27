@@ -269,7 +269,7 @@ impl Renderer {
         surface.configure(
             &device,
             &SurfaceConfiguration {
-                usage: TextureUsages::RENDER_ATTACHMENT,
+                usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_DST,
                 format,
                 color_space: Default::default(),
                 width,
@@ -452,7 +452,7 @@ impl Renderer {
         self.surface.configure(
             &self.device,
             &SurfaceConfiguration {
-                usage: TextureUsages::RENDER_ATTACHMENT,
+                usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_DST,
                 format: self.format,
                 color_space: Default::default(),
                 width: self.width,
@@ -643,29 +643,25 @@ impl Renderer {
             }
             other => return Err(js_error(format!("surface unavailable: {other:?}"))),
         };
-        let view = surface
-            .texture
-            .create_view(&TextureViewDescriptor::default());
-        let pipeline = self.pipelines.bound("displayModel");
-        {
-            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("shared-composite"),
-                color_attachments: &[Some(RenderPassColorAttachment {
-                    view: &view,
-                    depth_slice: None,
-                    resolve_target: None,
-                    ops: Operations {
-                        load: LoadOp::Clear(Color::BLACK),
-                        store: StoreOp::Store,
-                    },
-                })],
-                ..Default::default()
-            });
-            pipeline.set(&mut pass, &[("camera", &self.camera_group)]);
-            pass.set_vertex_buffer(0, self.model.vertex().slice(..));
-            pass.set_index_buffer(self.model.index().slice(..), IndexFormat::Uint32);
-            pass.draw_indexed(0..self.model.index_count(), 0, 0..1);
-        }
+        encoder.copy_texture_to_texture(
+            TexelCopyTextureInfo {
+                texture: &self.targets.display_texture,
+                mip_level: 0,
+                origin: Origin3d::ZERO,
+                aspect: TextureAspect::All,
+            },
+            TexelCopyTextureInfo {
+                texture: &surface.texture,
+                mip_level: 0,
+                origin: Origin3d::ZERO,
+                aspect: TextureAspect::All,
+            },
+            Extent3d {
+                width: self.width,
+                height: self.height,
+                depth_or_array_layers: 1,
+            },
+        );
         self.queue.submit([encoder.finish()]);
         self.queue.present(surface);
         self.stats.frames += 1;

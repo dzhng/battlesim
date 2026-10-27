@@ -172,6 +172,9 @@ stops the work before a full port is attempted:
    The browser shell now also allocates the shared four-cascade shadow owner;
    caster routing and shadow sampling remain part of the production parity
    gap.
+   The browser canvas now presents the shared post `display_texture` output
+   through a texture copy; the fixture's direct display pipeline is no longer
+   the presented path.
    The shared browser frame now allocates the real exported pipeline set and
    encodes shared fog-mask, post, and rim passes on every fixture frame. The
    fixture model/world draw remains the bounded input until production
