@@ -257,3 +257,10 @@ now sees textured authored vehicles, but still rejects the frame as production
 parity: the vehicles remain low-contrast, terrain marks alias heavily, the
 ground ends in black, and contact/cast shadows and gameplay anchors are absent.
 This keeps the ABI fix and makes those remaining defects explicit next work.
+
+The ABI packer is now `renderer_core::model_vertex::pack`, with the browser
+bundle reader reduced to a thin attribute adapter. A renderer-core unit test
+pins the 48-byte offsets and exact weight/tangent narrowing; the full WASM scene
+still passes unchanged. This removes one browser-only owner and leaves the
+native shell able to consume the same pack contract when its model upload is
+moved across the boundary.

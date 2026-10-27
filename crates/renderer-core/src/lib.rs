@@ -17,6 +17,7 @@ pub mod fog_mask;
 pub mod fog_sight;
 pub mod model;
 pub mod model_material;
+pub mod model_vertex;
 pub mod overlay;
 pub mod pipelines;
 pub mod post;
