@@ -153,9 +153,14 @@ stops the work before a full port is attempted:
 9. **Effects and post extraction — next.** Move flipbook/effect resource
    ownership and bloom/grade target ownership into browser-safe core modules,
    keeping filesystem/runtime asset loading in the native shell.
-10. **Fog compute and lifecycle — next.** Move fog sight buffers/compute and
-   resize/rebuild/reset/device-loss ownership into the shared runtime.
-11. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
+10. **Lifecycle extraction — checkpoint complete.** `renderer_core::TargetOwner`
+   atomically swaps size-dependent targets and increments one shared generation;
+   native `Passes` consumes it without changing GPU work. Fog sight/compute and
+   device-loss recovery remain open.
+11. **Fog compute and browser production frame — next.** Move fog sight buffers
+   and compute bindings into the shared runtime, then replace the browser
+   fixture frame with the production shared frame.
+12. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
    shared Rust native on the same frozen presentation frame. Measure startup,
    CPU encode, GPU timestamps, memory, binary/download size, LOC, GPU object
    counts, screenshot distance and recovery behaviour. Only this run can decide
