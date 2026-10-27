@@ -354,9 +354,9 @@ The runnable surface is the `one-renderer` developer tool and scene:
 - The terrain-input pass now binds the real presentation `GroundTables` to the
   exported `worldTerrain` pipeline. The latest eleven-row scene emits no
   WebGPU validation errors and replays those records after device recovery.
-  The shared row still reports zero uploaded production material rows: model
-  batch selection and authored material classification remain the next parity
-  seam, so this is not yet a matched BattleFrame image.
+  The shared row now reports 240 authored material words and 68 model-record
+  words. Model batch selection and full appearance classification remain open,
+  so this is not yet a matched BattleFrame image.
 
 ## Current verdict
 
