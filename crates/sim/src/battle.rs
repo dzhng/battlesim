@@ -58,7 +58,7 @@ use crate::visibility::OcclusionGrid;
 use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 use contract::random::Rng;
-use flown::{clip_to_seen, Flown};
+use flown::{clip_to_seen, hit, Flown};
 use replay_identity::{config_digest, scenario_digest};
 use spawn::spawn_unit;
 
@@ -2339,13 +2339,7 @@ impl Battle {
             match e {
                 FlightEvent::Impact(i) => {
                     ends.insert(i.projectile, i.point);
-                    let hit = match i.struck {
-                        Struck::Terrain => SegmentHit::Ground,
-                        Struck::Prop(_) => SegmentHit::Prop,
-                        Struck::Body(b) if b.0 >= VEHICLE_BODY_BASE => SegmentHit::Hull,
-                        Struck::Body(_) => SegmentHit::Soldier,
-                    };
-                    struck.insert(i.projectile, (hit, i.normal));
+                    struck.insert(i.projectile, (hit(&self.world, i.struck), i.normal));
                     if let Some(round) = self.rounds.get(&i.projectile).filter(|_| i.detonated) {
                         let blast = Blast {
                             point: xyz(i.point),

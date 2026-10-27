@@ -326,9 +326,12 @@ pub enum SegmentHit {
     Ground,
     /// A vehicle hull.
     Hull,
-    /// A building, wall, wreck or other prop.
+    /// A building, wall, hedge or other prop that is not metal.
     Prop,
     Soldier,
+    /// A prop whose body is metal (`PropBody.metal`): a car, wreck, lamp
+    /// post or railing.
+    MetalProp,
 }
 
 /// A stretch of a round's flight this side may draw this tick.

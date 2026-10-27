@@ -45,12 +45,13 @@ pub(super) const SOUND_CATEGORIES: [SoundCategory; 4] = [
 pub(super) const INTENSITIES: [Intensity; 2] = [Intensity::Steady, Intensity::Stressed];
 pub(super) const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
 pub(super) const GROUP_ENCODINGS: [&str; 4] = ["replacement", "snapshot", "copies", "packed"];
-pub(super) const SEGMENT_HITS: [SegmentHit; 5] = [
+pub(super) const SEGMENT_HITS: [SegmentHit; 6] = [
     SegmentHit::None,
     SegmentHit::Ground,
     SegmentHit::Hull,
     SegmentHit::Prop,
     SegmentHit::Soldier,
+    SegmentHit::MetalProp,
 ];
 pub(super) const ENGAGEMENTS: [Engagement; 2] =
     [Engagement::FireAtWill, Engagement::ReturnFireOnly];
