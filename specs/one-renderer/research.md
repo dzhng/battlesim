@@ -376,3 +376,11 @@ after fetching the runtime LFS textures: six 1280×720 plates, 2,461 frames,
 1–28 vehicles/soldiers per plate, and 10–253 effect instances per plate. This
 is a usable native control workload for the final matched-frame comparison; it
 is not yet wired into the one-renderer browser row.
+
+Native replay of that same committed capture produced six Rust plates and matched
+the browser control's counts on every plate. The fixed-image comparison is also
+near-identical: parity distances are `0.00478`, `0.00641`, `0.00144`, `0.00011`,
+`0.00166`, and `0.00007` (worst `plate-660`), with pixelmatch ratios at or below
+`0.00308`. This validates the native control and capture contract; it does not
+yet compare the extracted shared browser core, which still lacks the full
+appearance/world upload for this workload.
