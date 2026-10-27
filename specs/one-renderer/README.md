@@ -43,7 +43,10 @@ terrain tables, material rows, fog publication state, and static/model batches
 behind the shared frame boundary, then compare the same multi-model fixture.
 The browser model seam now preserves 16-float instances and 12-word dynamic
 batch ranges; finish the appearance/tier drawable mapping and the `NONE` static
-batch holder before claiming model parity.
+batch holder before claiming model parity. The shared core now owns the packed
+batch decoder and recovery-safe static range state, and the browser admits only
+loaded `(appearance, tier)` drawables. The remaining model gap is the complete
+appearance library and its heterogeneous vertex/material ranges.
 Do not treat the current caster counters or the fixture world path as a visual
 shadow/material proof; the latest review still sees no readable contact shadows.
 
