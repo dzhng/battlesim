@@ -28,6 +28,7 @@ pub struct FogSightUpload<'a> {
     pub map_words: [u32; 2],
     pub tiles: [u32; 3],
     pub wholes: &'a [u32],
+    pub whole_items: &'a [u8],
     pub whole_uniform: &'a [u8],
 }
 
@@ -323,7 +324,16 @@ impl FogSightResources {
                 },
                 self.wholes.size(),
             );
+            let flags_size =
+                (up.wholes.len() as u64).div_ceil(WHOLE_WIDTH as u64) * WHOLE_WIDTH as u64 * WORD;
+            if flags_size > self.flags.size() {
+                self.flags = storage(device, "fog-whole-flags", flags_size);
+            }
             rebind = true;
+        }
+        if !up.whole_items.is_empty() {
+            rebind |= grow(device, &mut self.items, "fog-whole-items", up.whole_items);
+            queue.write_buffer(&self.items, 0, up.whole_items);
         }
         self.map_words = up.map_words;
         self.tiles = up.tiles;
