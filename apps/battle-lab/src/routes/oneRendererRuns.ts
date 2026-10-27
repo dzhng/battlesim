@@ -610,7 +610,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     }
   ).upload_instances(si);
   const ff = battleFixture();
-  const frozen = ff.camera;
+  const f = ff.camera;
   const upload = renderer as SharedRenderer & {
     upload_fog_heights: (heights: Uint32Array) => void;
     upload_frame: (
@@ -642,18 +642,18 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   upload.upload_post(rl.bloom, rl.grade);
   const env = new Float32Array(64);
   env.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], 0);
-  env.set([frozen.camera.f32[32], frozen.camera.f32[33], frozen.camera.f32[34], 1], 16);
+  env.set([f.camera.f32[32], f.camera.f32[33], f.camera.f32[34], 1], 16);
   env.set(rl.sun, 20);
   env.set(rl.aerial, 36);
   upload.upload_frame(
-    new Float32Array(frozen.camera.f32),
+    new Float32Array(f.camera.f32),
     env,
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
   upload.upload_ground(concatMeshes([ff.terrain, ff.world.props]));
   const h = () => {
-    const heights = ff.presentation.presentedGround()?.ground_heights();
+    const heights = ff.presentation.presentedGround()?.pages();
     if (heights?.length) upload.upload_fog_heights(new Uint32Array(heights));
   };
   h();
@@ -670,12 +670,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   const uploadFogSight = (refresh: boolean) => {
     if (!fogSightSnapshot || refresh) {
       const ground = ff.presentation.presentedGround();
-      const up = ground?.prepare_fog(
-        new Float32Array(frozen.camera.f32),
-        REAL_WIDTH,
-        REAL_HEIGHT,
-        0,
-      );
+      const up = ground?.prepare_fog(new Float32Array(f.camera.f32), REAL_WIDTH, REAL_HEIGHT, 0);
       if (!up) return;
       const reinterpret = (words: Uint32Array) => new Float32Array(new Uint32Array(words).buffer);
       try {
@@ -707,9 +702,9 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       upload_shadow: (receiver: Float32Array, casters: Float32Array, batches: Uint32Array) => void;
     }
   ).upload_shadow(
-    new Float32Array(frozen.sun_shadow.f32),
-    new Float32Array(frozen.casters.f32),
-    new Uint32Array(frozen.batches.u32),
+    new Float32Array(f.sun_shadow.f32),
+    new Float32Array(f.casters.f32),
+    new Uint32Array(f.batches.u32),
   );
   canvas.width = 320;
   canvas.height = 180;
@@ -728,7 +723,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   }
   await renderer.recover_device(canvas);
   upload.upload_frame(
-    new Float32Array(frozen.camera.f32),
+    new Float32Array(f.camera.f32),
     env,
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
@@ -754,9 +749,9 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       upload_shadow: (receiver: Float32Array, casters: Float32Array, batches: Uint32Array) => void;
     }
   ).upload_shadow(
-    new Float32Array(frozen.sun_shadow.f32),
-    new Float32Array(frozen.casters.f32),
-    new Uint32Array(frozen.batches.u32),
+    new Float32Array(f.sun_shadow.f32),
+    new Float32Array(f.casters.f32),
+    new Uint32Array(f.batches.u32),
   );
   renderer.render();
   const setupMs = performance.now() - started;
@@ -765,7 +760,9 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   const encodeMs = performance.now() - encodeStart;
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   const submitMs = performance.now() - encodeStart - encodeMs;
-  const workload = renderer.stats().replace(/\}$/, `,"bw":${bw},"export":${exportValidation}}`);
+  const workload = renderer
+    .stats()
+    .replace(/\}$/, `,"bundleWireBytes":${bw},"export":${exportValidation}}`);
   renderer.free();
   ff.presentation.free();
   return {

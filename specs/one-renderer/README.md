@@ -194,7 +194,7 @@ stops the work before a full port is attempted:
    batch cascade masks. It also allocates the shared fog sight buffers and
    bind groups plus a browser upload seam; dispatch runs terrain, merge, whole,
    and cull from the uploaded counts. Remaining bounded inputs are
-   native-equivalent shadow caster draws, non-flat fog height-page parity, and
+   model caster routing/receiver sampling, non-flat fog height-page parity, and
    a matched production frame, not a second pass implementation. The overlay
    owner consumes the exported translucent geometry, world depth, transparent
    target, glow blur, and composite order.

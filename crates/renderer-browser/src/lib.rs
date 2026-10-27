@@ -196,6 +196,8 @@ pub struct Renderer {
     overlay_vertices: Buffer,
     overlay_instances: Buffer,
     overlay_vertex_count: u32,
+    shadow_ground_vertices: Buffer,
+    shadow_ground_count: u32,
     ground_snapshot: Option<Vec<f32>>,
     fog_rebuild_dispatch: Option<[u32; 2]>,
     fog_whole_dispatch: Option<[u32; 2]>,
@@ -375,6 +377,12 @@ impl Renderer {
             BufferUsages::VERTEX,
             bytemuck::cast_slice(&[0.0f32, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0]),
         );
+        let shadow_ground_vertices = renderer_core::buffer(
+            &device,
+            "shared-shadow-ground-vertices",
+            BufferUsages::VERTEX,
+            &[0; 40],
+        );
         let environment = BrowserEnvironment::new(
             &device,
             &queue,
@@ -482,6 +490,8 @@ impl Renderer {
             overlay_vertices,
             overlay_instances,
             overlay_vertex_count: 0,
+            shadow_ground_vertices,
+            shadow_ground_count: 0,
             ground_snapshot: None,
             fog_rebuild_dispatch: None,
             fog_whole_dispatch: None,
@@ -631,7 +641,7 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedFogSight":{},"shadowCasterBatches":[{},{},{},{}],"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"fogHeightWords":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedFogSight":{},"shadowCasterBatches":[{},{},{},{}],"shadowPasses":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"fogHeightWords":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -646,6 +656,7 @@ impl Renderer {
             self.stats.shadow_caster_batches[1],
             self.stats.shadow_caster_batches[2],
             self.stats.shadow_caster_batches[3],
+            self.stats.shadow_passes,
             true,
             self.stats.shared_model_prepass,
             self.stats.surface_recoveries,

@@ -11,6 +11,7 @@ impl Renderer {
             .create_command_encoder(&CommandEncoderDescriptor {
                 label: Some("shared-renderer-frame"),
             });
+        self.encode_shadows(&mut encoder);
         let ground = self.shared_ground.as_ref().unwrap_or(&self.model);
         let fixture = Fixture {
             depth: &self.targets.depth,
@@ -108,5 +109,17 @@ impl Renderer {
         self.stats.frames += 1;
         self.stats.draw_calls += 5;
         Ok(())
+    }
+
+    fn encode_shadows(&mut self, encoder: &mut CommandEncoder) {
+        let pipeline = self.production_pipelines.bound("worldCaster");
+        let passes = self.shared_shadow.encode_ground(
+            encoder,
+            &pipeline,
+            &self.shadow_ground_vertices,
+            &self.overlay_instances,
+            self.shadow_ground_count,
+        );
+        self.stats.shadow_passes = self.stats.shadow_passes.saturating_add(passes);
     }
 }

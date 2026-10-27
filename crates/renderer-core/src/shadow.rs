@@ -9,7 +9,7 @@
 
 use wgpu::*;
 
-use crate::pipelines::Pipelines;
+use crate::pipelines::{Bound, Pipelines};
 use crate::{bind, buffer};
 
 pub const CASCADES: usize = 4;
@@ -180,6 +180,40 @@ impl ShadowResources {
     }
     pub fn active(&self) -> usize {
         self.active
+    }
+
+    /// Draw one shared ground caster into every fitted cascade. Shells provide
+    /// the exported caster pipeline and packed geometry; cascade attachment,
+    /// camera binding, clear policy and ordering stay owned here.
+    pub fn encode_ground(
+        &self,
+        encoder: &mut CommandEncoder,
+        pipeline: &Bound,
+        vertices: &Buffer,
+        instances: &Buffer,
+        vertex_count: u32,
+    ) -> u32 {
+        for (index, layer) in self.layers.iter().take(self.active).enumerate() {
+            let camera = &self.groups[index];
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("shared-shadow-cascade"),
+                color_attachments: &[],
+                depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+                    view: layer,
+                    depth_ops: Some(Operations {
+                        load: LoadOp::Clear(0.0),
+                        store: StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
+                ..Default::default()
+            });
+            pipeline.set(&mut pass, &[("typegpuCameraLayout", camera)]);
+            pass.set_vertex_buffer(0, vertices.slice(..));
+            pass.set_vertex_buffer(1, instances.slice(..));
+            pass.draw(0..vertex_count, 0..1);
+        }
+        self.active as u32
     }
 }
 

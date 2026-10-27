@@ -126,6 +126,24 @@ impl Renderer {
             )
             .map_err(js_error)?,
         );
+        let mut shadow = Vec::with_capacity(mesh.len());
+        for vertex in mesh.as_chunks::<10>().0 {
+            shadow.extend_from_slice(&vertex[..3]);
+            shadow.extend_from_slice(&vertex[3..6]);
+            shadow.extend_from_slice(&vertex[6..10]);
+        }
+        let shadow_bytes = if shadow.is_empty() {
+            vec![0; 40]
+        } else {
+            bytemuck::cast_slice(&shadow).to_vec()
+        };
+        self.shadow_ground_vertices = renderer_core::buffer(
+            &self.device,
+            "shared-shadow-ground-vertices",
+            BufferUsages::VERTEX,
+            &shadow_bytes,
+        );
+        self.shadow_ground_count = (mesh.len() / 10) as u32;
         self.ground_snapshot = Some(mesh.to_vec());
         Ok(())
     }

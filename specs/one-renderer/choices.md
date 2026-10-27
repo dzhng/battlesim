@@ -2,6 +2,22 @@
 
 ## Sound
 
+### Shared shadow resources own cascade attachment and ground-caster order
+
+The browser had allocated four shadow layers and their camera records but did
+not draw anything into them. The shared shadow owner now clears each fitted
+cascade, binds its camera, and draws the shell-supplied packed ground caster
+geometry. The native and browser shells can therefore use one cascade order and
+depth policy; only the geometry source and platform resource setup remain at the
+boundary. The alternative would have kept a browser-only shadow loop beside the
+native pass.
+
+**Gap:** the spec required one shadow owner but did not say whether attachment
+clearing belonged to the owner or the shell. **Reach:** model/scenery caster
+routing and receiver sampling must extend this same pass boundary. **Verdict:**
+sound; the scene records four cascades per frame and the shared owner contains
+the order. **Confidence:** high.
+
 ### Shared core owns post and overlay composition order
 
 The browser used to copy the lit HDR target to the canvas and draw a diagnostic
