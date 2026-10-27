@@ -85,6 +85,7 @@ impl Renderer {
             &self.production_model_instances,
             self.production_model_vertex_count,
             self.production_model_instance_count,
+            self.production_model_runs.as_deref(),
         );
         self.stats.shared_model_prepass = true;
         production_model::encode_opaque(
@@ -99,6 +100,7 @@ impl Renderer {
             &self.production_model_instances,
             self.production_model_vertex_count,
             self.production_model_instance_count,
+            self.production_model_runs.as_deref(),
         );
         if self.overlay_vertex_count > 0 {
             self.shared_overlay_resources.encode_geometry(

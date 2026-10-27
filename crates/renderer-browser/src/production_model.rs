@@ -63,6 +63,7 @@ pub fn encode_prepass(
     instances: &wgpu::Buffer,
     vertex_count: u32,
     instance_count: u32,
+    runs: Option<&[(u32, u32)]>,
 ) {
     let pipeline = pipelines.bound("modelPrepass");
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -84,7 +85,7 @@ pub fn encode_prepass(
     );
     pass.set_vertex_buffer(0, vertices.slice(..));
     pass.set_vertex_buffer(1, instances.slice(..));
-    pass.draw(0..vertex_count, 0..instance_count);
+    draw_runs(&mut pass, vertex_count, instance_count, runs);
 }
 
 /// Lit-model pass using the exported material/environment/fog contract.
@@ -101,6 +102,7 @@ pub fn encode_opaque(
     instances: &wgpu::Buffer,
     vertex_count: u32,
     instance_count: u32,
+    runs: Option<&[(u32, u32)]>,
 ) {
     let pipeline = pipelines.bound("modelOpaque");
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -146,7 +148,22 @@ pub fn encode_opaque(
     );
     pass.set_vertex_buffer(0, vertices.slice(..));
     pass.set_vertex_buffer(1, instances.slice(..));
-    pass.draw(0..vertex_count, 0..instance_count);
+    draw_runs(&mut pass, vertex_count, instance_count, runs);
+}
+
+fn draw_runs<'a>(
+    pass: &mut wgpu::RenderPass<'a>,
+    vertex_count: u32,
+    instance_count: u32,
+    runs: Option<&[(u32, u32)]>,
+) {
+    if let Some(runs) = runs {
+        for &(first, count) in runs {
+            pass.draw(0..vertex_count, first..first.saturating_add(count));
+        }
+    } else {
+        pass.draw(0..vertex_count, 0..instance_count);
+    }
 }
 
 fn pack<const N: usize>(

@@ -204,6 +204,7 @@ pub struct Renderer {
     production_model_instances: Buffer,
     production_model_vertex_count: u32,
     production_model_instance_count: u32,
+    production_model_runs: Option<Vec<(u32, u32)>>,
     production_terrain_vertices: Buffer,
     production_terrain_vertex_count: u32,
     depth: DepthPrepass,
@@ -510,6 +511,7 @@ impl Renderer {
             production_model_instances,
             production_model_vertex_count,
             production_model_instance_count: 0,
+            production_model_runs: None,
             production_terrain_vertices,
             production_terrain_vertex_count: 0,
             depth,
@@ -667,6 +669,7 @@ impl Renderer {
             bytemuck::cast_slice(instances),
         );
         self.production_model_instance_count = (instances.len() / 16) as u32;
+        self.production_model_runs = None;
         Ok(())
     }
 
@@ -697,7 +700,7 @@ impl Renderer {
             }
             Ok(())
         };
-        let mut selected = Vec::new();
+        let mut runs = Vec::new();
         for batch in batches.chunks_exact(12) {
             // Batch fields: pass=3, first=7, count=8. VIEW_PASS is zero.
             if batch[3] != 0 {
@@ -708,15 +711,12 @@ impl Renderer {
             if end > instances.len() / 16 {
                 return Err(js_error("presentation batch range exceeds instances"));
             }
-            selected.extend_from_slice(&instances[first * 16..end * 16]);
-        }
-        if selected.is_empty() {
-            selected.extend_from_slice(instances);
+            runs.push((first as u32, batch[8]));
         }
         write(
             &self.queue,
             &self.production_model_instances,
-            bytemuck::cast_slice(&selected),
+            bytemuck::cast_slice(instances),
             "instances",
         )?;
         write(
@@ -733,7 +733,8 @@ impl Renderer {
                 "materials",
             )?;
         }
-        self.production_model_instance_count = (selected.len() / 16) as u32;
+        self.production_model_instance_count = (instances.len() / 16) as u32;
+        self.production_model_runs = Some(runs);
         if let Some(snapshot) = &mut self.presentation_snapshot {
             snapshot.batches = batches.to_vec();
             snapshot.palettes = palettes.to_vec();
