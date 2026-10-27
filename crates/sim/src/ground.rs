@@ -324,9 +324,32 @@ impl GroundLayer {
         }
     }
 
+    /// Each tread in `before` moved to its place in `after` (the same treads,
+    /// in order): wear the ground it entered.
+    pub fn tread(
+        &mut self,
+        world: &WorldGeometry,
+        before: Vec<(V2, Wear)>,
+        after: Vec<(V2, Wear)>,
+        rules: &GroundRules,
+    ) {
+        for ((from, channel), (to, _)) in before.into_iter().zip(after) {
+            self.wear(world, from, to, channel, rules);
+        }
+    }
+
     /// A track or a soldier moved from `from` to `to`: entering a new cell
-    /// adds one pass of wear there.
-    pub fn wear(&mut self, from: V2, to: V2, channel: Wear, rules: &GroundRules) {
+    /// adds one pass of wear there. Only ground it stands on takes the wear:
+    /// a bridge deck carries it over whatever lies below, and water takes no
+    /// marks.
+    pub fn wear(
+        &mut self,
+        world: &WorldGeometry,
+        from: V2,
+        to: V2,
+        channel: Wear,
+        rules: &GroundRules,
+    ) {
         let amount = match channel {
             Wear::Tracks => rules.tracks_per_pass,
             Wear::Trampled => rules.trampled_per_pass,
@@ -338,6 +361,12 @@ impl GroundLayer {
             return;
         };
         if self.index(from.x, from.y) == Some((i, j)) {
+            return;
+        }
+        let on_ground = world
+            .surface_at(to.x, to.y)
+            .is_some_and(|s| !matches!(s.kind, SurfaceKind::Bridge | SurfaceKind::Water));
+        if !on_ground {
             return;
         }
         self.mark(i, j, |c| match channel {

@@ -573,8 +573,15 @@ mod tests {
     fn learned_cells_are_digested_and_only_seen_fog_cells_are_learned() {
         let rules = rules();
         let mut layer = GroundLayer::new(64.0, 64.0, &rules);
-        layer.wear(v2(3.5, 3.5), v2(20.5, 4.5), Wear::Tracks, &rules);
-        layer.wear(v2(3.5, 3.5), v2(40.5, 40.5), Wear::Tracks, &rules);
+        let game: contract::scenario::Rules =
+            serde_json::from_value(crate::fixtures::test_game()).unwrap();
+        let map = serde_json::from_value(serde_json::json!({
+            "size":[64,64],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[]
+        }))
+        .unwrap();
+        let world = WorldGeometry::new(&map, &game);
+        layer.wear(&world, v2(3.5, 3.5), v2(20.5, 4.5), Wear::Tracks, &rules);
+        layer.wear(&world, v2(3.5, 3.5), v2(40.5, 40.5), Wear::Tracks, &rules);
         layer.seal();
         let mut known = KnownGround::new(&layer);
         let blank = digest(&known);
