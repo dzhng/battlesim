@@ -57,12 +57,12 @@ New file `crates/sim/tests/swamps.rs`, using test maps:
 
 `/labs/wetlands`: units walk into the dip and their feet drop.
 
-## Separate commits for the bugs found nearby
+## Builds on PR #17
 
-Each lands in its own commit, if the user agrees:
-
-- track wear is written under bridge decks;
-- forest multipliers are never validated (slice 11 covers the admission).
+[PR #17](https://github.com/dzhng/battlesim/pull/17) already made
+`GroundLayer::wear` take the world and mark only ground a mover stands on, so
+nothing wears ground under a bridge deck or in water. This slice widens the
+"water" in that check to `Surface::standing_water()`. Rebase onto #17 first.
 
 ## Native
 

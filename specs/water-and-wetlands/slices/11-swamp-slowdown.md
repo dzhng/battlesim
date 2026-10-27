@@ -6,9 +6,13 @@ battle report.
 ## Contract
 
 - **Rules row:** `movement.swamp { foot, wheeled, tracked }` (decision 3).
-  `MovementRules` gains `deny_unknown_fields`. Every movement multiplier,
-  forest's included, is admitted only in (0, 1]. That one rule also fixes the
-  found bug where a 0 divides by zero in `SlowGround::stretch`.
+  `units::validate` already refuses forest multipliers outside (0, 1]
+  ([PR #17](https://github.com/dzhng/battlesim/pull/17)). The swamp's three
+  factors join that same check.
+- **`MovementRules` gains `deny_unknown_fields`.** `crates/contract/src/scenario.rs`
+  is over its file-size budget and may not grow, so first move the movement
+  rules (`MovementRules`, `DriveRules`) into their own contract file, as a
+  separate commit with no behaviour change.
 - **Mobility:** `ground_mobility` (`crates/sim/src/units/motion.rs`) resolves
   the row by drive into `Mobility.swamp_multiplier`, as it does for
   `forest_multiplier`. Planning never reads `Drive` itself.

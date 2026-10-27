@@ -438,14 +438,17 @@ owning slice. Worst first within each area.
   `fixtures/parity/exact-numbers.json` (compared as text) and native smoke
   plates. The sound's wind is separate.
 
-**Bugs found beyond this feature** (each fix is its own commit):
+**Bugs found beyond this feature**, fixed in
+[PR #17](https://github.com/dzhng/battlesim/pull/17):
 
-- Track wear is recorded on ground cells under bridge decks, because `wear`
-  has no surface check (`crates/sim/src/ground.rs`).
-- Forest multipliers are never validated. A 0 divides by zero in
-  `SlowGround::stretch`, and `MovementRules` lacks `deny_unknown_fields`.
+- Track wear was recorded on ground cells under bridge decks, because `wear`
+  had no surface check (`crates/sim/src/ground.rs`).
+- Forest multipliers were never validated, so a 0 divided by zero in
+  `SlowGround::stretch`. Making `MovementRules` refuse unknown keys is left to
+  slice 11, because `scenario.rs` has to be split first.
 
 ## Still open
 
-- Fixing the two bugs found beyond this feature (see sharp edges) is the
-  user's call. Slices 10 and 11 say where each fix would land.
+Nothing. The two bugs found beyond this feature are fixed in
+[PR #17](https://github.com/dzhng/battlesim/pull/17): track wear under bridge
+decks, and unvalidated forest multipliers. Slices 10 and 11 build on it.
