@@ -311,9 +311,6 @@ function realFrame(cameraParams: Camera3DParams = FOUNDATION_CAMERA) {
   const world = groundPatch();
   const presentation = new ScenePresentation();
   presentation.setGround(world.terrain.input, world.scenery);
-  // Fit the same directional cascades that production consumes. The real
-  // frame rows use this frozen fit when the shared Rust shell uploads its
-  // receiver, caster cameras and batch cascade masks.
   presentation.setShadow(gameLight, world.terrain.mesh);
   const axes = screenAxes(cameraParams);
   const eye = eyePosition(
@@ -457,8 +454,6 @@ export async function modelRustRun(canvas: HTMLCanvasElement): Promise<Result> {
       real.camera,
     );
   const encodeMs = performance.now() - encodeStart;
-  // wgpu presents through the browser queue; allow a few compositor turns
-  // before the harness captures this canvas after repeated interleaved runs.
   await new Promise<void>((resolve) => {
     let frames = 3;
     const tick = () => (frames-- > 0 ? requestAnimationFrame(tick) : resolve());
@@ -602,12 +597,18 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     bundleBytes,
     textureBytes.map((bytes) => bytes),
   );
-  const sharedModelWorkload = modelWorkload(await loadTankBundle());
+  const sharedModel = modelWorkload(await loadTankBundle());
+  const sharedInstances = new Float32Array((sharedModel.instances.length / 8) * 16);
+  for (let i = 0; i < sharedModel.instances.length / 8; i++) {
+    sharedInstances.set(sharedModel.instances.subarray(i * 8, i * 8 + 4), i * 16);
+    sharedInstances.set(sharedModel.instances.subarray(i * 8 + 4, i * 8 + 8), i * 16 + 8);
+    sharedInstances.set([1, 1, 1, 1], i * 16 + 12);
+  }
   (
     renderer as SharedRenderer & {
       upload_shared_model_instances: (instances: Float32Array) => void;
     }
-  ).upload_shared_model_instances(sharedModelWorkload.instances);
+  ).upload_shared_model_instances(sharedInstances);
   (
     renderer as SharedRenderer & { enable_model_opaque_diagnostic: () => void }
   ).enable_model_opaque_diagnostic();
@@ -637,9 +638,17 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   };
   const resolvedLight = await resolveLight(gameLight);
   const fogLook = resolveFogLook(gameFogStyle);
+  const sharedEnvironment = new Float32Array(64);
+  sharedEnvironment.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], 0);
+  sharedEnvironment.set(
+    [frozen.camera.f32[32], frozen.camera.f32[33], frozen.camera.f32[34], 1],
+    16,
+  );
+  sharedEnvironment.set(resolvedLight.sun, 20);
+  sharedEnvironment.set(resolvedLight.aerial, 36);
   upload.upload_presentation_frame(
     new Float32Array(frozen.camera.f32),
-    new Float32Array(resolvedLight.sun),
+    sharedEnvironment,
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
@@ -718,7 +727,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   await renderer.recover_device(canvas);
   upload.upload_presentation_frame(
     new Float32Array(frozen.camera.f32),
-    new Float32Array(resolvedLight.sun),
+    sharedEnvironment,
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
@@ -726,7 +735,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     renderer as SharedRenderer & {
       upload_shared_model_instances: (instances: Float32Array) => void;
     }
-  ).upload_shared_model_instances(sharedModelWorkload.instances);
+  ).upload_shared_model_instances(sharedInstances);
   upload.upload_shared_ground(concatMeshes([frozenFixture.terrain, frozenFixture.world.props]));
   upload.upload_shared_overlay(
     concatMeshes([
@@ -825,8 +834,6 @@ export async function rustRun(canvas: HTMLCanvasElement): Promise<Result> {
   const encodeStart = performance.now();
   for (let i = 0; i < FRAMES; i++) renderer.render();
   const encodeMs = performance.now() - encodeStart;
-  // `render` submits synchronously to wgpu's browser backend. Give the browser
-  // one frame boundary so this row includes the same present pressure.
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   const submitMs = performance.now() - encodeStart - encodeMs;
   renderer.free();
@@ -845,8 +852,6 @@ export async function mixedRun(
   const context = canvasOf(overlayCanvas, info.device, info.format, "premultiplied");
   const root = tgpu.initFromDevice({ device: info.device });
   const fragment = tgpu.fragmentFn({ in: { uv: d.vec2f }, out: d.vec4f })`{
-    // The overlay surface is premultiplied; keep its colour premultiplied so
-    // the browser can composite its registration cue over the Rust base.
     if (in.uv.x > 0.02 && in.uv.x < 0.07 && in.uv.y > 0.02 && in.uv.y < 0.10) {
       return vec4f(0.0, 0.35, 0.5, 0.45);
     }
