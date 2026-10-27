@@ -80,7 +80,7 @@ parity and repository closeout run only after all production passes are wired.
 | current environment/shadow browser owners | shared shell | Browser constructs the nine-resource environment bind group and uploads the frozen sun receiver plus cascade camera records; `CasterRouting` preserves per-cascade batch masks (the terrain-only fixture has zero admitted casters) | PR #16 |
 | current fog-look browser owner | shared fog-mask | The 24-word `FogLook` record is written into the shared fog-mask owner and its screen-space passes encode before post; fog sight visibility buffers and compute dispatch remain open | PR #16 |
 | current fog-sight browser owner | shared fog compute | Shared owner allocates params, eyes, foliage, occluders, maps, tiles, wholes, flags, and all four compute bind groups; browser exposes packed upload validation, while dispatch remains opt-in until height pages and due-state handling are ported | PR #16 |
-| current accounting run | three-way harness | Shared browser WASM is 1,302,624 bytes plus 79,182 bytes JS; the shared row encodes 121 frames at 3.6 ms with 0.1 ms compositor drain, while forced device recovery is included in its 175.8 ms setup. Battle image distance remains 47.03 because production opaque/fog/overlay draws are not yet enabled | PR #16 |
+| current accounting run | three-way harness | Shared browser WASM is 1,302,624 bytes plus 79,182 bytes JS; the shared row encodes 121 frames at roughly 4 ms with a small compositor drain, while forced device recovery is included in its roughly 200 ms setup. Battle image distance remains 47.03 because production opaque/fog/overlay draws are not yet enabled; the shared fixture screenshot is a diagnostic colour quad, not visual parity evidence | PR #16 |
 
 ## Handoff
 
