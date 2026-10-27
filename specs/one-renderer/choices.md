@@ -38,3 +38,28 @@ checkpoint. **Reach:** determines when browser source files and the dependency
 can be removed. **Verdict:** needs-user, provisionally keep until parity.
 **Confidence:** medium.
 
+## Sound
+
+### Rebuild target-bound shared resources together on resize
+
+When the browser changes from 640×360 to 320×180, the target textures change.
+The fog-mask and post bind groups point at those textures, so keeping the old
+groups would submit work against stale attachments. The browser now swaps the
+target owner and rebuilds those shared groups in the same operation. The
+alternative would be a target swap with hidden old-resource ownership.
+
+**Gap:** the spec required resize recovery but did not say which dependent
+resources must be rebuilt atomically. **Reach:** every future size-dependent
+pass must join this rebuild boundary. **Verdict:** sound. **Confidence:** high.
+
+### Keep device-loss recreation as an explicit remaining gate
+
+The browser shell can reconfigure an outdated or lost surface, and the scene
+now exercises that call. A true device loss invalidates the device and every
+GPU resource; the current shell reports the condition but does not recreate the
+device and all owners. We keep that as an open gate rather than claiming the
+surface recovery proves device recovery. **Gap:** the existing spike had no
+device-loss injection contract. **Reach:** blocks final TypeGPU deletion until
+the shell can rebuild the device/resource set or the product explicitly owns a
+browser reload policy. **Verdict:** sound to leave open. **Confidence:** high.
+
