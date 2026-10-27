@@ -6,6 +6,7 @@
 //! in the platform shells. It has no filesystem, windowing or presentation
 //! feature dependencies and therefore checks for `wasm32-unknown-unknown`.
 
+use std::ops::{Deref, DerefMut};
 use wgpu::*;
 
 pub mod depth;
@@ -129,6 +130,59 @@ impl Targets {
             display: display_texture.create_view(&Default::default()),
             display_texture,
         }
+    }
+}
+
+/// Owns the size-dependent target set and its rebuild generation.
+///
+/// A shell keeps this owner alongside its surface. Rebuilding swaps the whole
+/// set before the next frame, so old views cannot leak into a resized pass;
+/// the generation gives static/resource adapters one shared invalidation
+/// signal without importing a window or presentation type into this crate.
+pub struct TargetOwner {
+    targets: Targets,
+    generation: u64,
+}
+
+impl TargetOwner {
+    pub fn new(device: &Device, size: [u32; 2]) -> Self {
+        Self {
+            targets: Targets::new(device, size),
+            generation: 0,
+        }
+    }
+
+    /// Rebuild the complete target set when the pixel size changes. Returns
+    /// whether a swap occurred; callers should invalidate size-bound groups
+    /// only on `true`.
+    pub fn rebuild(&mut self, device: &Device, size: [u32; 2]) -> bool {
+        if self.targets.size == size {
+            return false;
+        }
+        self.targets = Targets::new(device, size);
+        self.generation = self.generation.wrapping_add(1);
+        true
+    }
+
+    pub fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    pub fn as_targets(&self) -> &Targets {
+        &self.targets
+    }
+}
+
+impl Deref for TargetOwner {
+    type Target = Targets;
+    fn deref(&self) -> &Self::Target {
+        &self.targets
+    }
+}
+
+impl DerefMut for TargetOwner {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.targets
     }
 }
 

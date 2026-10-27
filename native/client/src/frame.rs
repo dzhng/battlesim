@@ -57,7 +57,8 @@ impl renderer_core::depth::DepthInputs for Inputs<'_> {
 }
 
 pub use renderer_core::{
-    Targets, DEPTH_FORMAT, DISPLAY_FORMAT, FOG_DISTANCE_FORMAT, FOG_MASK_FORMAT, HDR_FORMAT, MSAA,
+    TargetOwner, Targets, DEPTH_FORMAT, DISPLAY_FORMAT, FOG_DISTANCE_FORMAT, FOG_MASK_FORMAT,
+    HDR_FORMAT, MSAA,
 };
 
 /// What a pass draws from.
@@ -83,7 +84,7 @@ pub trait Pass {
 
 /// The layers and the passes in the order they draw.
 pub struct Passes {
-    pub targets: Targets,
+    pub targets: TargetOwner,
     pub environment: Environment,
     pub shadow: SunShadow,
     pub ground: Ground,

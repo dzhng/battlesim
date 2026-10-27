@@ -29,7 +29,7 @@ use native_client::effects::{EffectPass, Effects};
 use native_client::environment::Environment;
 use native_client::fog::{Fog, FogSight};
 use native_client::fog_mask::fog_mask;
-use native_client::frame::{Passes, Targets, DISPLAY_FORMAT};
+use native_client::frame::{Passes, TargetOwner, DISPLAY_FORMAT};
 use native_client::gpu::{self, Gpu};
 use native_client::grass::Grass;
 use native_client::ground::Ground;
@@ -287,7 +287,7 @@ impl Run {
             built.elapsed().as_secs_f64(),
             gpu.adapter.get_info().name
         );
-        let targets = Targets::new(&gpu.device, size);
+        let targets = TargetOwner::new(&gpu.device, size);
         let light = &replay.light;
         let sky = Sky::new(&gpu.device, &gpu.queue, &pipelines, &light.sky());
         let post = Post::new(
