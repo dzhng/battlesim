@@ -73,16 +73,17 @@ parity and repository closeout run only after all production passes are wired.
 | current browser fog-compute owner run | shared fog pipeline owner | Browser allocates all four exported fog compute bindings in the shared owner; scene records `sharedFogCompute: true` | PR #16 |
 | current model-opaque contract run | shared model/environment/fog groups | Binding the complete exported `modelOpaque` contract with placeholder environment/fog data produced visibly invalid fixture output; the pass is retained as a diagnostic, not the shipped frame path | PR #16 |
 | `35c5f19fd` model-packing split | browser shell shape | Production vertex packing now has a named owner under the file-size ratchet without changing the draw contract | PR #16 |
-| `3c5415d81` lifecycle scene gate | browser shell | The real scene now fails on missing recovery telemetry; device-loss recreation is the remaining lifecycle gap | PR #16 |
+| `3c5415d81` lifecycle scene gate | browser shell | The real scene fails on missing surface-recovery telemetry; the later device-loss gate now covers full recreation | PR #16 |
 | current device-loss recovery | browser shell | `Device::destroy()` triggers the browser callback; `recover_device` rebuilds every GPU owner and replays the BGAT asset plus frozen camera/environment/fog/overlay records before the next frame | PR #16 |
 | current presentation-record bridge | shared shell | Browser uploads the frozen presentation camera (40 words), environment (16), fog (24), and overlay (4) through one API; camera is bound by the shared model prepass and the remaining records are staged for extracted production groups | PR #16 |
 
 ## Handoff
 
-Incumbent: `d5c8d7fc6` plus the shared browser-owner commits on PR #16.
-Active task: connect production presentation/environment/fog/overlay records to
-the browser groups, then close device-loss recovery. Regression set:
+Incumbent: `9783fa7b8` plus the shared browser-owner commits on PR #16.
+Active task: consume production presentation environment/fog/overlay records in
+the extracted browser pass groups and add real caster routing. Regression set:
 renderer-core/native-client WASM checks, presentation tests, and the interleaved
 one-renderer scene. The latest rebuilt scene passes all eleven rows and executes
-the fetched mesh through exported model prepass and opaque passes. Next test:
-replace placeholder environment/fog records with a frozen presentation frame.
+the fetched mesh through exported model prepass, restores records after device
+loss, and reports the complete frozen record lengths. Next test: bind real
+environment/fog records to production shading and compare the matched frame.
