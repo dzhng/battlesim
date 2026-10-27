@@ -44,7 +44,8 @@ impl Renderer {
             .collect();
         let library = Library::from_bundle(&name, &bundle_bytes, &refs).map_err(js_error)?;
         let bundle = library.bundle(&name).map_err(js_error)?;
-        if let Some(material) = bundle.materials.first() {
+        let mut rows = Vec::new();
+        for material in bundle.materials.iter().take(16) {
             let layer = |key: &str| {
                 material
                     .textures
@@ -59,7 +60,7 @@ impl Renderer {
             };
             let wear = material.wear.unwrap_or([0.0, 0.0, 0.0, 1.0]);
             let base = material.base_color;
-            let row = [
+            rows.extend_from_slice(&[
                 base[0] as f32,
                 base[1] as f32,
                 base[2] as f32,
@@ -80,9 +81,11 @@ impl Renderer {
                 layer("normal"),
                 0.0,
                 0.0,
-            ];
+            ]);
+        }
+        if !rows.is_empty() {
             self.queue
-                .write_buffer(&self.material_rows, 0, bytemuck::cast_slice(&row));
+                .write_buffer(&self.material_rows, 0, bytemuck::cast_slice(&rows));
         }
         let vertices: usize = match &bundle.shape {
             native_client::bundle::Shape::Skinned(tiers) => {
