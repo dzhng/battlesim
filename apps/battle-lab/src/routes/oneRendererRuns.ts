@@ -16,7 +16,7 @@ import { groundPatch, FOUNDATION_CAMERA } from "./frame";
 import { modelEncoder, modelPipeline } from "./oneRendererModel";
 import { realBattleFixture } from "./oneRendererBattle";
 import { fixtureModelFrame, loadTankBundle, mw, shadowBatchWords } from "./oneRendererAssets";
-import { EFFECT_INSTANCES, loadEffectAtlasLayers } from "./oneRendererEffects";
+import { loadEffectAtlasLayers } from "./oneRendererEffects";
 import { battleRustRun } from "./oneRendererBattleRust";
 
 export const WIDTH = 640;
@@ -507,7 +507,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
   effectAtlas.forEach((rgba, layer) => upload.upload_effect_atlas(layer, rgba));
-  upload.upload_effects(EFFECT_INSTANCES);
+  upload.upload_effects(new Float32Array(f.effects.f32));
   const presentationModel = f as unknown as {
     palettes?: { f32: Float32Array };
     instances?: { f32: Float32Array };
@@ -633,7 +633,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
   effectAtlas.forEach((rgba, layer) => upload.upload_effect_atlas(layer, rgba));
-  upload.upload_effects(EFFECT_INSTANCES);
+  upload.upload_effects(new Float32Array(f.effects.f32));
   (renderer as SharedRenderer & { upload_sky: (sky: Float32Array) => void }).upload_sky(rl.sky);
   (
     renderer as SharedRenderer & {

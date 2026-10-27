@@ -88,8 +88,22 @@ export async function realBattleFixture(): Promise<BattleFixture> {
   });
   const sim = await loadSimModule();
   const battle = sim.createBattle(scenario, 7);
+  const ack = JSON.parse(
+    battle.accept(
+      JSON.stringify({
+        side: "blue",
+        seq: 1,
+        order: { kind: "attack", units: [0], target: { kind: "ground", point: [10, 4, 0] } },
+        queued: false,
+      }),
+    ),
+  ) as { error?: string | null; refused?: unknown[] };
+  if (ack.error) throw new Error(`one-renderer attack fixture rejected: ${ack.error}`);
+  if (ack.refused?.length)
+    throw new Error(`one-renderer attack fixture refused: ${JSON.stringify(ack)}`);
   const presentation = new ScenePresentation(battle.observation_layout(), rules.tick_hz);
   battle.resync_observation();
+  for (let i = 0; i < 60; i++) battle.step();
   const length = battle.publish("blue");
   const packed = new Uint32Array(length);
   packed.set(new Uint32Array(sim.memory.buffer, battle.publication_ptr(), length));
@@ -122,7 +136,7 @@ export async function realBattleFixture(): Promise<BattleFixture> {
   const axes = screenAxes(FOUNDATION_CAMERA);
   const eye = eyePosition(new Float32Array(3) as never, FOUNDATION_CAMERA);
   const camera = presentation.frame(
-    0,
+    20 / rules.tick_hz,
     {
       eye: [...eye],
       target: [...FOUNDATION_CAMERA.target],

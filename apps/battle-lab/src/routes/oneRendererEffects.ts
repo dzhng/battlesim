@@ -1,9 +1,5 @@
 import { FLIPBOOKS, FLIPBOOK_SIZE } from "@packages/battle-renderer/src/effects/flipbooks";
 
-export const EFFECT_INSTANCES = new Float32Array([
-  0, 0, 1.8, 2.5, 0, 8, 0, 0.3, 1.0, 0.35, 0.05, 0.8, 2, 1, 0, 0,
-]);
-
 export async function loadEffectAtlasLayers(): Promise<Uint8Array[]> {
   return Promise.all(
     FLIPBOOKS.map(async (book) => {
