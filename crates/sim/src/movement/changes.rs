@@ -57,52 +57,41 @@ impl SideGeometry {
         }
     }
 
-    /// Whether a replan after revision `since` weighs body `id` again (Q13):
-    /// one that changed since (any, once the log no longer reaches back that
-    /// far), unless the hull is `pressed` against it. That one moves with the
-    /// hull, so weighing it again would swing the route from side to side;
-    /// the rest were weighed when the route was planned.
-    pub fn reweighs(&self, since: u64, pressed: Vec<PropId>) -> impl Fn(PropId) -> bool {
+    /// The changes logged after revision `since`, newest first; `None` once
+    /// the log no longer reaches back that far, when any body may have.
+    fn after(&self, since: u64) -> Option<impl Iterator<Item = &Change>> {
         let lost =
             since < self.revision && self.changes.front().is_none_or(|c| c.revision > since + 1);
-        let changed: Vec<PropId> = (self.changes.iter().rev())
-            .take_while(|c| c.revision > since)
-            .map(|c| c.prop)
-            .collect();
-        move |id| !pressed.contains(&id) && (lost || changed.contains(&id))
+        (!lost).then(|| {
+            self.changes
+                .iter()
+                .rev()
+                .take_while(move |c| c.revision > since)
+        })
+    }
+
+    /// Whether a replan after revision `since` weighs body `id` again (Q13):
+    /// one that changed since, unless the hull is `pressed` against it. That
+    /// one moves with the hull, so weighing it again would swing the route
+    /// from side to side; the rest were weighed when the route was planned.
+    pub fn reweighs(&self, since: u64, pressed: Vec<PropId>) -> impl Fn(PropId) -> bool {
+        let changed: Option<Vec<PropId>> = self.after(since).map(|c| c.map(|c| c.prop).collect());
+        move |id| !pressed.contains(&id) && changed.as_ref().is_none_or(|c| c.contains(&id))
     }
 
     /// Whether any change after revision `since` came within `reach` of
     /// `at`: always, once the log no longer reaches back that far.
     pub fn changed_near(&self, since: u64, at: V2, reach: f64) -> bool {
-        if since >= self.revision {
-            return false;
-        }
-        if self.changes.front().is_none_or(|c| c.revision > since + 1) {
-            return true;
-        }
-        self.changes
-            .iter()
-            .rev()
-            .take_while(|c| c.revision > since)
-            .any(|c| (c.at - at).within_radius(reach + c.radius))
+        self.after(since)
+            .is_none_or(|mut c| c.any(|c| (c.at - at).within_radius(reach + c.radius)))
     }
 
     /// Whether any change after revision `since` came within `reach` of
     /// the way from `from` along `route`: always, once the log no longer
     /// reaches back that far.
     pub fn changed_along(&self, since: u64, from: V2, route: &[V2], reach: f64) -> bool {
-        if since >= self.revision {
-            return false;
-        }
-        if self.changes.front().is_none_or(|c| c.revision > since + 1) {
-            return true;
-        }
-        self.changes
-            .iter()
-            .rev()
-            .take_while(|c| c.revision > since)
-            .any(|c| {
+        self.after(since).is_none_or(|mut changes| {
+            changes.any(|c| {
                 let mut a = from;
                 route.iter().any(|&b| {
                     let ab = b - a;
@@ -117,5 +106,6 @@ impl SideGeometry {
                     near
                 })
             })
+        })
     }
 }
