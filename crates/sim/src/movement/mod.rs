@@ -192,7 +192,7 @@ impl SideGeometry {
         }
         let was = self.seen.insert(prop.id, now).map(|w| w.center);
         self.stale.insert(prop.id);
-        self.changed(span(prop, was));
+        self.changed(prop.id, span(prop, was));
     }
 
     /// `prop` is about to be shoved: an authored body the side has not seen
@@ -234,7 +234,7 @@ impl SideGeometry {
             self.standing_index.remove(&gone);
             let was = self.seen.remove(&prop).map(|s| s.center);
             self.stale.insert(prop);
-            self.changed(span(&gone, was));
+            self.changed(prop, span(&gone, was));
         }
     }
 
@@ -242,7 +242,7 @@ impl SideGeometry {
     pub fn forget(&mut self, prop: &Prop) {
         let was = self.seen.remove(&prop.id).map(|s| s.center);
         self.stale.insert(prop.id);
-        self.changed(span(prop, was));
+        self.changed(prop.id, span(prop, was));
     }
 
     /// Whether this side plans with `prop`: authored with the map, remains
@@ -534,9 +534,7 @@ fn request_route(
             // a pusher's route that now shoves one, so A* weighs the shove
             // against a detour (Q13): one it can still steer round, beyond
             // its nose and, on wheels, its turning radius. Nearer, it is
-            // pushed through. A hull already against a body it shoves is
-            // pushing it through: the body moves with the hull, so weighing
-            // it again would swing the route from side to side.
+            // pushed through; only bodies new to the route are weighed again.
             let swerve = unit.hull.map_or(0.0, |h| h.x)
                 + unit
                     .ground()
@@ -552,12 +550,11 @@ fn request_route(
                         ROUTE_RECHECK_REACH_M,
                     )
                     && {
+                        let weighs =
+                            side.reweighs(unit.planned_revision, push::pressed(ctx.world, unit));
                         let grid = side.grid(ctx.world, ctx.authored);
                         !grid.route_fits(from, route, unit.ground())
-                            || (grid.route_pushes(from, route, unit.ground(), swerve)
-                                && !unit.ground_footprint().is_some_and(|hull| {
-                                    push::pressing(ctx.world, &hull, unit.ground().push)
-                                }))
+                            || grid.route_pushes_where(from, route, unit.ground(), swerve, &weighs)
                     })
         }
     };

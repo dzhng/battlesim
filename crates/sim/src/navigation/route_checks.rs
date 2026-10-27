@@ -2,6 +2,7 @@
 //! still fits, whether it shoves a body aside, and how long it takes.
 use super::{Mobility, Mover, NavGrid, NAV_CELL_M};
 use crate::math::V2;
+use crate::world::PropId;
 use contract::command::RoutePolicy;
 use contract::map::MoverClass;
 use contract::scenario::PushClass;
@@ -11,8 +12,22 @@ impl NavGrid {
     /// footprint would shove aside: a pusher weighs every such body against
     /// a detour when it learns of it (Q13).
     /// Only bodies more than `reach` metres along it count: one nearer than a
-    /// vehicle can steer round is pushed through, not weighed again.
+    /// vehicle can steer round is pushed through, not weighed again. Every
+    /// other body counts, for diagnostics and tests; a replan asks
+    /// [`route_pushes_where`](Self::route_pushes_where).
     pub fn route_pushes(&self, from: V2, route: &[V2], m: &Mobility, reach: f64) -> bool {
+        self.route_pushes_where(from, route, m, reach, &|_| true)
+    }
+
+    /// [`route_pushes`](Self::route_pushes), of the bodies a replan `weighs`.
+    pub fn route_pushes_where(
+        &self,
+        from: V2,
+        route: &[V2],
+        m: &Mobility,
+        reach: f64,
+        weighs: &dyn Fn(PropId) -> bool,
+    ) -> bool {
         if m.class == MoverClass::Infantry {
             return false;
         }
@@ -23,7 +38,12 @@ impl NavGrid {
             let pushes = (0..samples).any(|k| {
                 let t = (k as f64 + 0.5) / samples as f64;
                 along + length * t > reach
-                    && !self.bodies_clear(a + (b - a) * t, m.half_width_m, PushClass::None)
+                    && !self.bodies_clear_counting(
+                        a + (b - a) * t,
+                        m.half_width_m,
+                        PushClass::None,
+                        weighs,
+                    )
             });
             (a, along) = (b, along + length);
             pushes
