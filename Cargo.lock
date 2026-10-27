@@ -1831,6 +1831,7 @@ dependencies = [
  "native-client",
  "pollster",
  "renderer-core",
+ "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
