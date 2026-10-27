@@ -618,9 +618,9 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     bundleBytes,
     textureBytes.map((bytes) => bytes),
   );
-  // Use the same frozen presentation frame as the BattleFrame control so the
-  // Rust shell receives a fitted SunShadow receiver/caster record, not an
-  // empty model-only camera record.
+  (
+    renderer as SharedRenderer & { enable_model_opaque_diagnostic: () => void }
+  ).enable_model_opaque_diagnostic();
   const frozenFixture = battleFixture();
   const frozen = frozenFixture.camera;
   const upload = renderer as SharedRenderer & {
@@ -653,7 +653,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
-  upload.upload_shared_ground(new Float32Array(frozenFixture.terrain));
+  upload.upload_shared_ground(concatMeshes([frozenFixture.terrain, frozenFixture.world.props]));
   type FogSightSnapshot = Parameters<typeof upload.upload_fog_sight>;
   let fogSightSnapshot: FogSightSnapshot | null = null;
   const uploadFogSight = (refresh: boolean) => {
