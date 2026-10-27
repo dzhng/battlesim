@@ -294,9 +294,6 @@ function modelWorkload(bundle: Exclude<Bundle, { kind: "clips" }>): ModelWorkloa
     1.0,
     1.0,
   ]);
-  // Use the bundle's first authored texture as a deliberately bounded material
-  // proof; the production renderer's material table can add the remaining
-  // channels once the full frame is ported.
   const source = bundle.textures.find((texture) => texture.levels[0]?.length >= 4);
   const textureWidth = source?.width ?? 1;
   const textureHeight = source?.height ?? 1;
@@ -605,6 +602,12 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     bundleBytes,
     textureBytes.map((bytes) => bytes),
   );
+  const sharedModelWorkload = modelWorkload(await loadTankBundle());
+  (
+    renderer as SharedRenderer & {
+      upload_shared_model_instances: (instances: Float32Array) => void;
+    }
+  ).upload_shared_model_instances(sharedModelWorkload.instances);
   (
     renderer as SharedRenderer & { enable_model_opaque_diagnostic: () => void }
   ).enable_model_opaque_diagnostic();
@@ -632,7 +635,6 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     upload_shared_ground: (mesh: Float32Array) => void;
     upload_shared_overlay: (mesh: Float32Array) => void;
   };
-  // Upload one frozen presentation record set for all backend comparisons.
   const resolvedLight = await resolveLight(gameLight);
   const fogLook = resolveFogLook(gameFogStyle);
   upload.upload_presentation_frame(
@@ -714,14 +716,17 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     throw new Error(`device loss callback did not fire: ${renderer.stats()}`);
   }
   await renderer.recover_device(canvas);
-  // Device recreation swaps every GPU handle, so rebind the same frozen
-  // presentation records before the first post-recovery frame.
   upload.upload_presentation_frame(
     new Float32Array(frozen.camera.f32),
     new Float32Array(resolvedLight.sun),
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
+  (
+    renderer as SharedRenderer & {
+      upload_shared_model_instances: (instances: Float32Array) => void;
+    }
+  ).upload_shared_model_instances(sharedModelWorkload.instances);
   upload.upload_shared_ground(concatMeshes([frozenFixture.terrain, frozenFixture.world.props]));
   upload.upload_shared_overlay(
     concatMeshes([

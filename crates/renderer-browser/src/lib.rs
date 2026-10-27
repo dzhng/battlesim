@@ -377,7 +377,7 @@ impl Renderer {
         let production_model_instances = renderer_core::buffer(
             &device,
             "shared-production-model-instances",
-            BufferUsages::VERTEX,
+            BufferUsages::VERTEX | BufferUsages::COPY_DST,
             bytemuck::cast_slice(&[
                 0.0f32, 0.0, 0.0, 0.0, // placement
                 0.0, 0.0, 0.0, 0.0, // data
@@ -599,6 +599,20 @@ impl Renderer {
     #[wasm_bindgen]
     pub fn destroy_device_for_test(&self) {
         self.device.destroy();
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn upload_shared_model_instances(&self, instances: &[f32]) -> Result<(), JsValue> {
+        if !instances.len().is_multiple_of(16) {
+            return Err(js_error("shared model instances need 16 floats"));
+        }
+        self.queue.write_buffer(
+            &self.production_model_instances,
+            0,
+            bytemuck::cast_slice(instances),
+        );
+        Ok(())
     }
 
     #[cfg(target_arch = "wasm32")]
