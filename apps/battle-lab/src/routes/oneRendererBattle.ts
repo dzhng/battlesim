@@ -108,7 +108,12 @@ export async function realBattleFixture(): Promise<BattleFixture> {
     blocked: [1, 0.1, 0.1, 0.8],
   });
   presentation.setBattle(battleInput);
-  const world = groundPatch();
+  // Reuse the lab's frozen static world and overlay workload so the real
+  // publication row is compared on the same visible scene as BattleFrame.
+  // Only the model/fog records below come from the simulation publication.
+  const visual = battleFixture();
+  visual.presentation.free();
+  const world = visual.world;
   presentation.setGround(world.terrain.input, world.scenery);
   // No stand-in eye records: fog derives the blue unit's sight from the real
   // publication decoded above, exactly as the live battle presentation does.
@@ -130,31 +135,13 @@ export async function realBattleFixture(): Promise<BattleFixture> {
     { selected: [], xray: false, ghosts: [] },
     0,
   );
-  const props = new MeshBuilder();
-  props.orientedBox(20, 12, 0.12, [5, 1, 1], 0.15, [0.23, 0.27, 0.25, 1]);
   return {
-    terrain: world.terrain.mesh,
+    terrain: visual.terrain,
     camera: structuredClone(camera),
-    instances: FOUNDATION.filter((placed) => placed.kind === "box").map((placed) => ({
-      kind: "box" as const,
-      x: placed.x,
-      y: placed.y,
-      z: placed.z,
-      yaw: placed.yaw,
-      color: [1, 1, 1] as const,
-    })),
-    world: { ...world, props: props.build() },
+    instances: visual.instances,
+    world,
     presentation,
-    overlay: emptyOverlay(),
-  };
-}
-
-function emptyOverlay(): BattleFixture["overlay"] {
-  return {
-    opaque: new MeshBuilder().build(),
-    translucent: new MeshBuilder().build(),
-    painted: new MeshBuilder().build(),
-    paintedMarching: new MeshBuilder().build(),
+    overlay: visual.overlay,
   };
 }
 

@@ -279,3 +279,11 @@ the browser-only owner shrinks by 138 lines and the pass code is now available
 to the native shell. This is the intended direction; the final deletion audit
 must still remove the standalone spike and the remaining duplicate native
 adapters.
+
+The real-publication visual probe now reuses the frozen lab's complete static
+props and overlay mesh while retaining the simulation publication's model,
+material and fog records. The shared row still passes all lifecycle gates and
+now reports eight fog-height words plus the authored overlay workload. This
+removes the previous sparse-scene confound; fresh review still finds terrain
+aliasing, weak contact shadows and a black map edge, which are genuine shared
+world/material parity defects rather than missing fixture inputs.
