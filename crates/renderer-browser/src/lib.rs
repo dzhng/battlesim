@@ -15,7 +15,7 @@ use renderer_core::model::Model;
 use renderer_core::pipelines::{Bound, Pipelines};
 use renderer_core::post::PostResources;
 use renderer_core::world::{Layer, Surface as WorldSurface, WorldInputs};
-use renderer_core::{encode_grouped, Targets};
+use renderer_core::{encode_grouped, TargetOwner};
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlCanvasElement;
@@ -72,6 +72,7 @@ struct Stats {
     model_vertices: u32,
     resizes: u32,
     shared_passes: u32,
+    target_generation: u64,
 }
 
 fn build_exported_pipelines(device: &Device) -> Result<Pipelines, String> {
@@ -142,7 +143,7 @@ pub struct Renderer {
     surface: wgpu::Surface<'static>,
     device: Device,
     queue: Queue,
-    targets: Targets,
+    targets: TargetOwner,
     pipelines: Pipelines,
     production_pipelines: Pipelines,
     shared_post: PostResources,
@@ -249,7 +250,7 @@ impl Renderer {
                 view_formats: vec![],
             },
         );
-        let targets = Targets::new(&device, [width, height]);
+        let targets = TargetOwner::new(&device, [width, height]);
         let pipeline_export = PIPELINES.replace(
             "\"bgra8unorm\"",
             &format!(
@@ -340,8 +341,28 @@ impl Renderer {
     pub fn resize(&mut self, canvas: HtmlCanvasElement) {
         self.width = canvas.width().max(1);
         self.height = canvas.height().max(1);
-        self.targets = Targets::new(&self.device, [self.width, self.height]);
-        self.stats.resizes += 1;
+        if self
+            .targets
+            .rebuild(&self.device, [self.width, self.height])
+        {
+            self.shared_post = renderer_core::post::new(
+                &self.device,
+                &self.production_pipelines,
+                &self.targets,
+                &[0; 32],
+                &[0; 80],
+            );
+            self.shared_fog_mask = renderer_core::fog_mask::fog_mask(
+                &self.device,
+                &self.production_pipelines,
+                &self.targets,
+                &[0; 96],
+                true,
+                true,
+            );
+            self.stats.resizes += 1;
+            self.stats.target_generation = self.targets.generation();
+        }
         self.surface.configure(
             &self.device,
             &SurfaceConfiguration {
@@ -545,12 +566,13 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
             self.stats.resizes,
             self.stats.shared_passes,
+            self.stats.target_generation,
             self.width,
             self.height,
             self.asset_report.as_deref().unwrap_or("null")

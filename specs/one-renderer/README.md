@@ -172,6 +172,9 @@ stops the work before a full port is attempted:
    encodes shared fog-mask, post, and rim passes on every fixture frame. The
    fixture model/world draw remains the bounded input until production
    presentation records and materials are connected.
+   Browser resize now uses the shared `TargetOwner`, rebuilds the shared fog
+   and post resources with the new target set, and reports generation 2 after
+   the scene's down/up resize round trip.
 12. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
    shared Rust native on the same frozen presentation frame. Measure startup,
    CPU encode, GPU timestamps, memory, binary/download size, LOC, GPU object
