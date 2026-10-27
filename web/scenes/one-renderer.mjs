@@ -128,4 +128,9 @@ export async function run(ctx) {
     sharedWorkload?.sharedFogCompute === true,
     JSON.stringify(sharedWorkload),
   );
+  ctx.check(
+    "shared browser row uploads frozen fog sight records",
+    sharedWorkload?.fogSightUploads >= 1,
+    JSON.stringify(sharedWorkload),
+  );
 }
