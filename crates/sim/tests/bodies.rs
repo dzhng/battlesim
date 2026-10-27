@@ -369,19 +369,72 @@ fn a_tank_shoving_a_car_holds_its_heading() {
 /// A tank driving at a row of parked cars on a slant, through one car's flank
 /// (prop 2), to a goal past it.
 fn car_row() -> ScenarioDefinition {
+    car_row_to([27.0, 38.0], json!([]))
+}
+
+fn car_row_to(goal: [f64; 2], events: Value) -> ScenarioDefinition {
     let cars: Vec<Value> = [15.0, 20.0, 25.0, 30.0, 35.0]
         .map(|x| json!({ "kind": "parked_car", "center": [x, 30.0], "yaw": 0, "half_extents": [2.1, 0.9, 0.75] }))
         .to_vec();
     let map = json!({
-        "size": [60, 60], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": cars,
+        "size": [60, 70], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": cars,
     })
     .to_string();
     common::scenario_with(
         &map,
         json!([vehicle("blue", "test_tank", [22.0, 5.0])]),
-        json!([]),
-        json!([drive("blue", 0, [27.0, 38.0])]),
+        events,
+        json!([drive("blue", 0, goal)]),
     )
+}
+
+/// A body that turns up on a pusher's way while it shoves another is still
+/// weighed against a detour (Q13): a car left across the road beyond the row
+/// while the tank is pressed against the one it shoves, the tank drives
+/// round it, never through where it was left.
+#[test]
+fn a_tank_shoving_a_car_still_goes_round_one_left_in_its_way() {
+    let at = v2(28.5, 50.0);
+    let left = json!([{ "tick": 180, "add_prop":
+        { "kind": "parked_car", "center": [at.x, at.y], "yaw": 0, "half_extents": [2.1, 0.9, 0.75] } }]);
+    let mut b = Battle::new(&car_row_to([30.0, 62.0], left), 1);
+    let parked = b.world().prop(2).unwrap().center;
+    let mut shoving_when_left = false;
+    let mut box_left = None;
+    let mut nearest = f64::INFINITY;
+    for _ in 0..40 * b.rules().tick_hz as u64 {
+        b.step();
+        let tank = b.unit(UnitId(0)).unwrap().position.xy();
+        if box_left.is_none() {
+            box_left = b
+                .world()
+                .props()
+                .find(|p| p.center == at)
+                .map(|p| p.footprint());
+            if box_left.is_some() {
+                let shoved = b.world().prop(2).unwrap();
+                shoving_when_left =
+                    shoved.center != parked && shoved.footprint().distance(tank) < 4.0;
+            }
+        }
+        if let Some(left) = box_left {
+            nearest = nearest.min(left.distance(tank));
+        }
+    }
+    assert!(
+        shoving_when_left,
+        "the car is left while the tank shoves the first"
+    );
+    assert!(
+        nearest > 0.0,
+        "the tank drives round the car left in its way, never through where it stood"
+    );
+    let tank = b.unit(UnitId(0)).unwrap();
+    assert!(
+        (tank.position.xy() - v2(30.0, 62.0)).length() < 0.5,
+        "the tank reaches its goal: {:?}",
+        tank.position.xy()
+    );
 }
 
 /// Sparks fly where the hull grinds the car it shoves: on the car's side

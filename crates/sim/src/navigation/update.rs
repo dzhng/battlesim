@@ -58,6 +58,15 @@ impl BodyCheck {
         }
     }
     pub(super) fn advance(&mut self, grid: &NavGrid, paid: bool) -> Option<bool> {
+        self.advance_counting(grid, paid, &|_| true)
+    }
+    /// [`advance`](Self::advance), passing over the bodies `counts` refuses.
+    pub(super) fn advance_counting(
+        &mut self,
+        grid: &NavGrid,
+        paid: bool,
+        counts: &dyn Fn(PropId) -> bool,
+    ) -> Option<bool> {
         if self.bucket == self.buckets.len() {
             return Some(true);
         }
@@ -76,7 +85,7 @@ impl BodyCheck {
                 {
                     Some(id) => {
                         self.index += 1;
-                        grid.laid[id].as_ref()
+                        grid.laid[id].as_ref().filter(|_| counts(*id))
                     }
                     None => {
                         self.bucket += 1;
@@ -89,7 +98,7 @@ impl BodyCheck {
                 match grid.base.bodies_in(bucket).nth(self.index) {
                     Some((id, body)) => {
                         self.index += 1;
-                        (!grid.laid.contains_key(id)).then_some(body)
+                        (!grid.laid.contains_key(id) && counts(*id)).then_some(body)
                     }
                     None => {
                         self.own = true;
@@ -260,9 +269,20 @@ impl NavGrid {
         width: f64,
         push: contract::scenario::PushClass,
     ) -> bool {
+        self.bodies_clear_counting(point, width, push, &|_| true)
+    }
+
+    /// [`bodies_clear`](Self::bodies_clear) of the bodies `counts` keeps.
+    pub(super) fn bodies_clear_counting(
+        &self,
+        point: V2,
+        width: f64,
+        push: contract::scenario::PushClass,
+        counts: &dyn Fn(PropId) -> bool,
+    ) -> bool {
         let mut check = BodyCheck::new(self, point, width, push);
         loop {
-            if let Some(clear) = check.advance(self, false) {
+            if let Some(clear) = check.advance_counting(self, false, counts) {
                 return clear;
             }
         }

@@ -69,13 +69,16 @@ pub fn meet<'a>(world: &'a WorldGeometry, next: &Obb2, here: &Obb2, push: PushCl
     out
 }
 
-/// Whether `hull` is pressed against a body it shoves: one its last shove
-/// left `CLEAR_M` ahead of it.
-pub fn pressing(world: &WorldGeometry, hull: &Obb2, push: PushClass) -> bool {
+/// The bodies `unit`'s hull is pressed against and shoves: those its last
+/// shove left `CLEAR_M` ahead of it.
+pub fn pressed(world: &WorldGeometry, unit: &Unit) -> Vec<PropId> {
+    let (Some(hull), push) = (unit.ground_footprint(), unit.ground().push) else {
+        return Vec::new();
+    };
     world
         .props_near(hull.center, hull.half.length())
-        .iter()
-        .any(|prop| {
+        .into_iter()
+        .filter(|prop| {
             let body = prop.footprint();
             let reach = Obb2 {
                 half: body.half + v2(2.0 * CLEAR_M, 2.0 * CLEAR_M),
@@ -85,6 +88,8 @@ pub fn pressing(world: &WorldGeometry, hull: &Obb2, push: PushClass) -> bool {
                 && push.pushes(prop.body.weight_class)
                 && hull.separation(&reach).is_some()
         })
+        .map(|prop| prop.id)
+        .collect()
 }
 
 /// A vehicle driving into bodies this tick: the unit, where its hull goes,
