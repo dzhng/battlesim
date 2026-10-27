@@ -439,3 +439,59 @@ fn a_blast_on_unseen_ground_is_not_published_to_the_enemy() {
         "red sees blasts on ground blue cannot see"
     );
 }
+
+/// What blue's rifle squad is shown its rounds striking as it fires for ten
+/// seconds at the ground under a body of `kind` 30 m east of it.
+fn struck_firing_into(kind: &str) -> Vec<SegmentHit> {
+    let body = json!([{ "kind": kind, "center": [330.0, 300.0], "yaw": 0, "half_extents": [0.9, 2.1, 0.75] }]);
+    let mut b = battle(
+        body,
+        json!([{ "side": "blue", "kind": "test_rifle", "position": [300, 300] }]),
+        json!([]),
+        1,
+    );
+    let ack = b.accept(contract::command::CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: 1,
+        order: contract::command::Order::Attack {
+            units: vec![UnitId(0)],
+            target: contract::command::TargetRef::Ground {
+                point: [330.0, 300.0, 0.0],
+            },
+        },
+        queued: false,
+    });
+    assert_eq!(ack.error, None);
+    let mut hits = Vec::new();
+    for _ in 0..300 {
+        b.step();
+        let f = b.observe(Side::Blue);
+        hits.extend(f.projectiles.iter().map(|s| s.hit));
+    }
+    hits.retain(|h| *h != SegmentHit::None);
+    hits
+}
+
+#[test]
+fn a_round_striking_a_metal_body_is_shown_striking_metal() {
+    // A parked car's body is metal; sandbags' is not. Sparks on a bullet
+    // hit answer only the first.
+    let count = |hits: &[SegmentHit], h| hits.iter().filter(|&&x| x == h).count();
+    let car = struck_firing_into("parked_car");
+    let sandbags = struck_firing_into("sandbags");
+    assert!(
+        count(&car, SegmentHit::MetalProp) > 10,
+        "into the car: {car:?}"
+    );
+    assert_eq!(count(&car, SegmentHit::Prop), 0, "the car is metal");
+    assert!(
+        count(&sandbags, SegmentHit::Prop) > 10,
+        "into the sandbags: {sandbags:?}"
+    );
+    assert_eq!(
+        count(&sandbags, SegmentHit::MetalProp),
+        0,
+        "sandbags are not"
+    );
+}

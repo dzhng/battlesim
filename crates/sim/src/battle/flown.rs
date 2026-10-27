@@ -23,6 +23,18 @@ pub(super) struct Flown {
     pub(super) hit: Option<(SegmentHit, V3)>,
 }
 
+/// What a round struck, as its segment shows it: a body's id says whether
+/// it is a hull, a prop's row whether it is metal.
+pub(super) fn hit(world: &WorldGeometry, struck: Struck) -> SegmentHit {
+    match struck {
+        Struck::Terrain => SegmentHit::Ground,
+        Struck::Prop(id) if world.prop(id).is_some_and(|p| p.body.metal) => SegmentHit::MetalProp,
+        Struck::Prop(_) => SegmentHit::Prop,
+        Struck::Body(b) if b.0 >= VEHICLE_BODY_BASE => SegmentHit::Hull,
+        Struck::Body(_) => SegmentHit::Soldier,
+    }
+}
+
 impl Flown {
     /// The path's corners: the start, each ricochet, the end.
     fn corners(&self) -> impl Iterator<Item = V3> + '_ {
