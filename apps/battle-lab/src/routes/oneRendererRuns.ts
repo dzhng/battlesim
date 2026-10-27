@@ -595,7 +595,10 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       readGzip(catalog, "texture", id, texturePath, read),
     ),
   );
-  renderer.load_bundle(
+  const assets = renderer as SharedRenderer & {
+    load_bundle: (name: string, bundle: Uint8Array, textures: Uint8Array[]) => string;
+  };
+  assets.load_bundle(
     "test_tank",
     bundleBytes,
     textureBytes.map((bytes) => bytes),
