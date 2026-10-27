@@ -17,6 +17,7 @@ use renderer_core::pipelines::{Bound, Pipelines};
 use renderer_core::post::PostResources;
 use renderer_core::world::{Layer, Surface as WorldSurface, WorldInputs};
 use renderer_core::{encode_grouped, TargetOwner};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlCanvasElement;
@@ -170,6 +171,7 @@ pub struct Renderer {
     height: u32,
     format: TextureFormat,
     alpha_mode: CompositeAlphaMode,
+    device_lost: Arc<AtomicU32>,
     stats: Stats,
     asset_report: Option<String>,
     asset_texture: Option<Texture>,
@@ -243,6 +245,14 @@ impl Renderer {
                 "shared renderer wgpu error: {error:?}"
             )));
         }));
+        let device_lost = Arc::new(AtomicU32::new(0));
+        let device_lost_callback = device_lost.clone();
+        device.set_device_lost_callback(move |reason, message| {
+            device_lost_callback.fetch_add(1, Ordering::Relaxed);
+            web_sys::console::error_1(&JsValue::from_str(&format!(
+                "shared renderer device lost ({reason:?}): {message}"
+            )));
+        });
         let caps = surface.get_capabilities(&adapter);
         let format = caps
             .formats
@@ -393,6 +403,7 @@ impl Renderer {
             height,
             format,
             alpha_mode: caps.alpha_modes[0],
+            device_lost,
             stats: Stats::default(),
             asset_report: None,
             asset_texture: None,
@@ -656,7 +667,7 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"surfaceRecoveries":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"surfaceRecoveries":{},"deviceLost":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -665,6 +676,7 @@ impl Renderer {
             self.stats.target_generation,
             self.stats.shared_materials,
             self.stats.surface_recoveries,
+            self.device_lost.load(Ordering::Relaxed),
             self.width,
             self.height,
             self.asset_report.as_deref().unwrap_or("null")

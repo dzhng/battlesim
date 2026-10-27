@@ -180,7 +180,9 @@ stops the work before a full port is attempted:
    material owner and reconnects the fetched albedo texture as a 2D array,
    reporting `sharedMaterials: true` in the run.
    The browser shell also reconfigures a lost/outdated surface through one
-   recovery method; the scene now requires and records one recovery.
+   recovery method; the scene now requires and records one recovery. Device
+   loss is instrumented (`deviceLost: 0` in the run), but recreating the device
+   and all resources is still an open gate.
 12. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
    shared Rust native on the same frozen presentation frame. Measure startup,
    CPU encode, GPU timestamps, memory, binary/download size, LOC, GPU object

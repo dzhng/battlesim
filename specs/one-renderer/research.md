@@ -69,6 +69,7 @@ parity and repository closeout run only after all production passes are wired.
 | current browser material-owner run | shared model owner | Browser binds the exported `modelLayout` against array texture views and real fetched albedo data; scene records `sharedMaterials: true` | PR #16 |
 | current browser lifecycle run | target/surface owners | Browser rebuilds target-bound fog/post resources after resize and exercises one explicit surface recovery; scene records generation 2 and `surfaceRecoveries: 1` | PR #16 |
 | `3c5415d81` lifecycle scene gate | browser shell | The real scene now fails on missing recovery telemetry; device-loss recreation is the remaining lifecycle gap | PR #16 |
+| current device-loss telemetry | browser shell | Browser records device-loss callbacks; the shared scene stays at `deviceLost: 0`; recreation remains an explicit open gate | PR #16 |
 | current browser production-owner run | shared shell | Browser now builds the real exported pipelines and encodes shared fog-mask, post, and rim passes for every fixture frame; target generation reaches 2 after the resize round trip and the eleven-row scene passes | PR #16 |
 
 ## Handoff
