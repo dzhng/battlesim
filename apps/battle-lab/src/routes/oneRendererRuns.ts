@@ -485,8 +485,6 @@ export async function battleRustRun(canvas: HTMLCanvasElement): Promise<Result> 
   canvas.height = BATTLE_HEIGHT;
   renderer.resize(canvas);
   const fixture = battleFixture();
-  // Use the same authored tank mesh/material bytes as the browser BattleFrame
-  // control, with four matching placements.
   const workload = modelWorkload(await loadTankBundle());
   await loadPresentation();
   const resolvedLight = await resolveLight(gameLight);
@@ -514,23 +512,12 @@ export async function battleRustRun(canvas: HTMLCanvasElement): Promise<Result> 
     ) => number;
     production_stats: () => string;
   };
-  // Clone the presentation view before another wasm call can grow/move its
-  // memory; passing a borrowed view through wasm-bindgen can otherwise become
-  // a null pointer during the production upload boundary.
   const camera = new Float32Array(fixture.camera.camera.f32.subarray(0, 16));
-  // Presentation fitted these matrices against the actual light, camera and
-  // terrain. Each caster record is a full Camera uniform; the Rust pass only
-  // needs its view-projection head, so no synthetic identity cascades remain.
   const shadowCameras = new Float32Array(64);
   const casterWords = fixture.camera.casters.f32;
   for (let cascade = 0; cascade < 4; cascade++)
     shadowCameras.set(casterWords.subarray(cascade * 40, cascade * 40 + 16), cascade * 16);
-  // The resolved presentation Sun record is already the renderer's uniform
-  // contract: direction, radiance, cascade settings, and sky fill.
   const environment = new Float32Array(resolvedLight.sun);
-  // Keep the Rust fog target compact while deriving it from the resolved
-  // FogLook rather than hand-writing a second style. The first vec4 is the
-  // authored unseen tint/dim; params carry veil, rim strength and saturation.
   const fogParams = new Float32Array([
     fogLook[0],
     fogLook[1],
@@ -643,6 +630,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       wholeUniform: Float32Array,
     ) => void;
     upload_shared_ground: (mesh: Float32Array) => void;
+    upload_shared_overlay: (mesh: Float32Array) => void;
   };
   // Upload one frozen presentation record set for all backend comparisons.
   const resolvedLight = await resolveLight(gameLight);
@@ -654,6 +642,14 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
   upload.upload_shared_ground(concatMeshes([frozenFixture.terrain, frozenFixture.world.props]));
+  upload.upload_shared_overlay(
+    concatMeshes([
+      frozenFixture.overlay.opaque,
+      frozenFixture.overlay.translucent,
+      frozenFixture.overlay.painted,
+      frozenFixture.overlay.paintedMarching,
+    ]),
+  );
   type FogSightSnapshot = Parameters<typeof upload.upload_fog_sight>;
   let fogSightSnapshot: FogSightSnapshot | null = null;
   const uploadFogSight = (refresh: boolean) => {
@@ -725,6 +721,15 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array(resolvedLight.sun),
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
+  );
+  upload.upload_shared_ground(concatMeshes([frozenFixture.terrain, frozenFixture.world.props]));
+  upload.upload_shared_overlay(
+    concatMeshes([
+      frozenFixture.overlay.opaque,
+      frozenFixture.overlay.translucent,
+      frozenFixture.overlay.painted,
+      frozenFixture.overlay.paintedMarching,
+    ]),
   );
   uploadFogSight(false);
   (

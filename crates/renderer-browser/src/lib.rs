@@ -56,7 +56,8 @@ const PIPELINES: &str = r#"{
     {"name":"modelPrepassCutout","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"depthStencil":{"format":"depth32float","depthWriteEnabled":true,"depthCompare":"greater"},"multisample":{"count":4}},
     {"name":"worldOpaque","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"fragment":{"entryPoint":"world","targets":[{"format":"rgba16float"},{"format":"rgba8unorm"}]},"depthStencil":{"format":"depth32float","depthWriteEnabled":false,"depthCompare":"always"},"multisample":{"count":4}},
     {"name":"displayModel","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"fragment":{"entryPoint":"display","targets":[{"format":"bgra8unorm"}]}},
-    {"name":"composite","kind":"render","shader":"fixture.wgsl","layout":["sampled"],"vertex":{"entryPoint":"fullscreen","buffers":[]},"primitive":{"topology":"triangle-list"},"fragment":{"entryPoint":"composite","targets":[{"format":"bgra8unorm"}]}}
+    {"name":"composite","kind":"render","shader":"fixture.wgsl","layout":["sampled"],"vertex":{"entryPoint":"fullscreen","buffers":[]},"primitive":{"topology":"triangle-list"},"fragment":{"entryPoint":"composite","targets":[{"format":"bgra8unorm"}]}},
+    {"name":"overlayDisplay","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"fragment":{"entryPoint":"display","targets":[{"format":"bgra8unorm","blend":{"color":{"srcFactor":"src-alpha","dstFactor":"one-minus-src-alpha"},"alpha":{"srcFactor":"one","dstFactor":"one-minus-src-alpha"}}}]}}
   ]
 }"#;
 
@@ -190,6 +191,7 @@ pub struct Renderer {
     camera_group: BindGroup,
     model: Model,
     shared_ground: Option<Model>,
+    shared_overlay: Option<Model>,
     ground_snapshot: Option<Vec<f32>>,
     display_sampler: Sampler,
     display_group: BindGroup,
@@ -457,6 +459,7 @@ impl Renderer {
             camera_group,
             model,
             shared_ground: None,
+            shared_overlay: None,
             ground_snapshot: None,
             display_sampler,
             display_group,
@@ -677,6 +680,27 @@ impl Renderer {
             });
             pipeline.set(&mut pass, &[("sampled", &self.display_group)]);
             pass.draw(0..3, 0..1);
+        }
+        if let Some(overlay) = &self.shared_overlay {
+            let pipeline = self.pipelines.bound("overlayDisplay");
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("shared-overlay-diagnostic"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view: &view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: Operations {
+                        load: LoadOp::Load,
+                        store: StoreOp::Store,
+                    },
+                })],
+                ..Default::default()
+            });
+            pipeline.set(&mut pass, &[("camera", &self.camera_group)]);
+            pass.set_vertex_buffer(0, overlay.vertex().slice(..));
+            pass.set_index_buffer(overlay.index().slice(..), IndexFormat::Uint32);
+            pass.draw_indexed(0..overlay.index_count(), 0, 0..1);
+            self.stats.draw_calls = self.stats.draw_calls.saturating_add(1);
         }
         self.queue.submit([encoder.finish()]);
         self.queue.present(surface);

@@ -96,4 +96,36 @@ impl Renderer {
         self.ground_snapshot = Some(mesh.to_vec());
         Ok(())
     }
+
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn upload_shared_overlay(&mut self, mesh: &[f32]) -> Result<(), JsValue> {
+        if !mesh.len().is_multiple_of(10) {
+            return Err(js_error("shared overlay mesh needs ten floats per vertex"));
+        }
+        let mut positions = Vec::with_capacity(mesh.len() / 10 * 3);
+        let mut colours = Vec::with_capacity(mesh.len() / 10 * 4);
+        let indices: Vec<u32> = (0..mesh.len() / 10).map(|i| i as u32).collect();
+        for vertex in mesh.chunks_exact(10) {
+            positions.extend_from_slice(&vertex[..3]);
+            colours.extend_from_slice(&[
+                (vertex[6].clamp(0.0, 1.0) * 255.0) as u8,
+                (vertex[7].clamp(0.0, 1.0) * 255.0) as u8,
+                (vertex[8].clamp(0.0, 1.0) * 255.0) as u8,
+                (vertex[9].clamp(0.0, 1.0) * 255.0) as u8,
+            ]);
+        }
+        self.shared_overlay = Some(
+            Model::from_indexed_fitted(
+                &self.device,
+                &self.queue,
+                "shared-presentation-overlay",
+                &positions,
+                &colours,
+                &indices,
+            )
+            .map_err(js_error)?,
+        );
+        Ok(())
+    }
 }
