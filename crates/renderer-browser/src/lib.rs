@@ -354,10 +354,13 @@ impl Renderer {
             FogSightResources::new(&device, &production_pipelines, &targets.depth);
         let shared_overlay_resources =
             renderer_core::overlay::new(&device, &production_pipelines, &targets, &[0; 16], true);
+        // Match the presentation light's authored 2048px cascade maps. The
+        // earlier 64px diagnostic target made receiver sampling visibly
+        // alias across the terrain even when the caster pass was correct.
         let shared_shadow = ShadowResources::new(
             &device,
             &production_pipelines,
-            64,
+            2048,
             &[0; RECEIVER_BYTES],
             CAMERA_BYTES,
         );

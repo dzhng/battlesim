@@ -7,7 +7,9 @@ presentation upload, device-loss recovery, and range-aware shadow caster
   simulation publication through `ScenePresentation`, including authored
   batches, instances, palettes, materials, terrain tables, fog and shadows.
   Full production pass parity, native/browser matched output, and TypeGPU
-  deletion remain.
+  deletion remain. The browser production row now uses the production camera
+  depth prepass and authored 2048px shadow targets; the earlier fixture-depth
+  and 64px-shadow artifacts are recorded in `choices.md`.
 **Updated:** 2026-10-27.
 
 The latest production-input pass adds a shared `terrainLayout` owner. The
@@ -363,6 +365,13 @@ The runnable surface is the `one-renderer` developer tool and scene:
   review still finds no readable contact/cast shadows and clipped overlay
   geometry; those are open parity defects, not accepted output. The fog height
   upload now uses a non-flat eight-word page payload and survives recovery.
+- The shared production browser frame now runs `worldPrepass` over the
+  production terrain stream before color, rather than reusing the fixture
+  depth adapter. This removes the previous repeated black terrain holes. Its
+  shadow owner uses the authored 2048px cascade maps instead of the 64px probe
+  target; that removes the tile-shaped shadow artifact at the cost of roughly
+  64MiB for the four depth layers. Weak contact shadows, clipped markers and
+  framing, and complete native/browser parity remain open.
 - The terrain-input pass now binds the real presentation `GroundTables` to the
   exported `worldTerrain` pipeline. The latest eleven-row scene emits no
   WebGPU validation errors and replays those records after device recovery.

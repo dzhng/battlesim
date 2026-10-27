@@ -349,3 +349,39 @@ appearance bundles extends the table and texture/material rows without a new
 pass graph. **Verdict:** keep the packed-range contract; the next real-frame
 slice should populate it from the complete appearance library. **Confidence:**
 high.
+
+### Production depth must consume the production terrain and camera
+
+The first shared production frame reused the small fixture depth adapter. Its
+camera and 28-byte fixture model were unrelated to the 40-byte presentation
+terrain stream, so the real terrain color pass compared against stale depth and
+rendered repeated black holes. The shared browser shell now switches to the
+exported `worldPrepass` pipeline with the production camera and terrain stream,
+then runs the shared authored-model prepass before fog and world color. The
+fixture depth path remains only for the bounded controls.
+
+**Gap:** native still needs to call the same extracted production depth owner
+when the full runtime moves out of its shell. **Reach:** depth convention and
+ordering are now explicit for the browser production row instead of being
+hidden in the fixture adapter. **Verdict:** keep separate fixture and
+production adapters behind one shared frame order; never use fixture depth for
+production inputs. **Confidence:** high; the black terrain artifact vanished
+when the production depth gate was restored.
+
+### Shared browser shadow targets use the authored cascade resolution
+
+The browser shell initially allocated 64px cascade maps as a cheap resource
+probe. That made the shared receiver produce visible terrain tiling even after
+the depth fix. The presentation light's authored cascades are 2048px, so the
+shared shadow owner now allocates the same resolution. The one-renderer row
+still reports 484 terrain/model shadow passes and passes resize/device recovery;
+setup rose from roughly 350ms to 416ms on this browser run and encode from
+roughly 5.5ms to 7.1ms. The extra depth resource is roughly 64MiB for four
+`depth32float` layers, which is the cost of matching the production contract.
+
+**Gap:** native/browser matched GPU timestamps and complete caster/material
+parity remain open. **Reach:** keep the authored map size as a shell input when
+the native and browser shells converge; do not silently retain a diagnostic
+64px target in production. **Verdict:** keep 2048px for the parity gate and
+measure a deliberate quality tier separately. **Confidence:** high; the
+tile-shaped terrain artifact disappeared at the authored resolution.

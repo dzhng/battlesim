@@ -13,24 +13,36 @@ impl Renderer {
                 label: Some("shared-renderer-frame"),
             });
         self.encode_shadows(&mut encoder);
-        let ground = self.shared_ground.as_ref().unwrap_or(&self.model);
-        let fixture = Fixture {
-            depth: &self.targets.depth,
-            camera: &self.camera_group,
-            solid: &self.pipelines.bound("modelPrepass"),
-            world: &self.pipelines.bound("worldOpaque"),
-            model: ground,
-        };
-        encode_grouped(&mut encoder, "shared-depth", |e| {
-            self.depth.encode(&fixture, e)
-        });
-        encode_grouped(&mut encoder, "shared-world", |e| {
-            renderer_core::world::encode_sky(&fixture, &self.targets, e)
-        });
-        // A production frame owns the terrain draw below. The compatibility
-        // fixture world would submit the same ground mesh at the same depth,
-        // producing z-fighting artifacts over the real terrain material.
-        if self.terrain_snapshot.is_none() {
+        if self.terrain_snapshot.is_some() {
+            self.encode_production_depth(&mut encoder);
+            renderer_core::model_pass::encode_prepass(
+                &mut encoder,
+                &self.targets,
+                &self.production_pipelines,
+                &self.production_camera_group,
+                self.material_bindings.bind_group(),
+                &self.production_model_vertices,
+                &self.production_model_instances,
+                self.production_model_vertex_count,
+                self.production_model_instance_count,
+                self.production_model_runs.as_deref(),
+            );
+            self.stats.shared_model_prepass = true;
+        } else {
+            let ground = self.shared_ground.as_ref().unwrap_or(&self.model);
+            let fixture = Fixture {
+                depth: &self.targets.depth,
+                camera: &self.camera_group,
+                solid: &self.pipelines.bound("modelPrepass"),
+                world: &self.pipelines.bound("worldOpaque"),
+                model: ground,
+            };
+            encode_grouped(&mut encoder, "shared-depth", |e| {
+                self.depth.encode(&fixture, e)
+            });
+            encode_grouped(&mut encoder, "shared-world", |e| {
+                renderer_core::world::encode_sky(&fixture, &self.targets, e)
+            });
             renderer_core::world::encode_world(
                 &fixture,
                 &self.targets,
@@ -40,6 +52,18 @@ impl Renderer {
                 true,
             );
         }
+        // Fog sight maps are read by the terrain and model fragment shaders;
+        // build them after depth has established the view and before any
+        // production world material samples them.
+        if self.fog_dispatch_active {
+            self.shared_fog_sight.dispatch(
+                &mut encoder,
+                self.fog_rebuild_dispatch,
+                self.fog_whole_dispatch,
+            );
+        }
+        // A production frame owns the terrain draw below; the fixture world
+        // is encoded only on the compatibility path above.
         if self.terrain_snapshot.is_some() && self.production_terrain_vertex_count > 0 {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("shared-production-terrain-material"),
@@ -49,7 +73,7 @@ impl Renderer {
                         depth_slice: None,
                         resolve_target: Some(&self.targets.lit),
                         ops: Operations {
-                            load: LoadOp::Load,
+                            load: LoadOp::Clear(Color::BLACK),
                             store: StoreOp::Store,
                         },
                     }),
@@ -58,7 +82,7 @@ impl Renderer {
                         depth_slice: None,
                         resolve_target: Some(&self.targets.fog_mask),
                         ops: Operations {
-                            load: LoadOp::Load,
+                            load: LoadOp::Clear(Color::BLACK),
                             store: StoreOp::Store,
                         },
                     }),
@@ -87,19 +111,6 @@ impl Renderer {
             pass.set_vertex_buffer(1, self.overlay_instances.slice(..));
             pass.draw(0..self.production_terrain_vertex_count, 0..1);
         }
-        renderer_core::model_pass::encode_prepass(
-            &mut encoder,
-            &self.targets,
-            &self.production_pipelines,
-            &self.production_camera_group,
-            self.material_bindings.bind_group(),
-            &self.production_model_vertices,
-            &self.production_model_instances,
-            self.production_model_vertex_count,
-            self.production_model_instance_count,
-            self.production_model_runs.as_deref(),
-        );
-        self.stats.shared_model_prepass = true;
         renderer_core::model_pass::encode_opaque(
             &mut encoder,
             &self.targets,
@@ -122,13 +133,6 @@ impl Renderer {
                 &self.overlay_vertices,
                 &self.overlay_instances,
                 self.overlay_vertex_count,
-            );
-        }
-        if self.fog_dispatch_active {
-            self.shared_fog_sight.dispatch(
-                &mut encoder,
-                self.fog_rebuild_dispatch,
-                self.fog_whole_dispatch,
             );
         }
         self.shared_fog_mask.encode(&mut encoder, &self.targets);
@@ -173,6 +177,36 @@ impl Renderer {
         self.stats.frames += 1;
         self.stats.draw_calls += 5;
         Ok(())
+    }
+
+    /// Depth for the real presentation terrain and static world.  The
+    /// compatibility fixture depth pass uses its own camera and 28-byte
+    /// fixture model, which cannot establish the depth consumed by the
+    /// production 40-byte terrain stream.  Keep this production owner beside
+    /// the shared frame ordering so the terrain color pass reads the same
+    /// reverse-Z coverage it was authored against.
+    fn encode_production_depth(&self, encoder: &mut CommandEncoder) {
+        let pipeline = self.production_pipelines.bound("worldPrepass");
+        let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+            label: Some("shared-production-terrain-depth"),
+            color_attachments: &[],
+            depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+                view: &self.targets.depth,
+                depth_ops: Some(Operations {
+                    load: LoadOp::Clear(0.0),
+                    store: StoreOp::Store,
+                }),
+                stencil_ops: None,
+            }),
+            ..Default::default()
+        });
+        pipeline.set(
+            &mut pass,
+            &[("typegpuCameraLayout", &self.production_camera_group)],
+        );
+        pass.set_vertex_buffer(0, self.production_terrain_vertices.slice(..));
+        pass.set_vertex_buffer(1, self.overlay_instances.slice(..));
+        pass.draw(0..self.production_terrain_vertex_count, 0..1);
     }
 
     fn encode_shadows(&mut self, encoder: &mut CommandEncoder) {
