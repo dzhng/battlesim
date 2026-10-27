@@ -329,3 +329,14 @@ units, so the atlas ABI is not proven by a bind-group that merely validates.
 The browser scene now keeps the owner present but uploads zero effect instances
 until the real flipbook fetch/decode path is wired. This preserves the clean
 frame boundary without accepting a visual regression.
+
+The terrain-hole probe used the current shared browser row as the fixed parent.
+Skipping fog-mask compose left the holes unchanged, so fog composition was
+discarded. Skipping production terrain depth removed all terrain, proving the
+color pass depends on that reverse-Z coverage. Adding depth bias `1` to either
+`worldPrepass` or `worldTerrain` also left the image unchanged. Changing only
+the exported `worldTerrain` color pass to `depthCompare: always` restored the
+full ground while models, static props, resize, surface recovery, device
+recovery and 484 shadow passes stayed green. Keep the shared pipeline change;
+the exact browser/native depth-value mismatch remains a lower-priority root
+cause investigation.

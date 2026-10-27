@@ -373,9 +373,11 @@ The runnable surface is the `one-renderer` developer tool and scene:
   upload now uses a non-flat eight-word page payload and survives recovery.
 - The shared production browser frame now runs `worldPrepass` over the
   production terrain stream before color, rather than reusing the fixture
-  depth adapter. This removes the previous repeated black terrain holes. Its
-  shadow owner uses the authored 2048px cascade maps instead of the 64px probe
-  target; that removes the tile-shaped shadow artifact at the cost of roughly
+  depth adapter. A matched A/B then showed the remaining holes came from the
+  terrain color pass's depth comparison, so the exported `worldTerrain` pass
+  uses `always` while keeping depth writes disabled; terrain is the first world
+  color layer and models/props still depth-test afterward. Its shadow owner uses
+  the authored 2048px cascade maps instead of the 64px probe target, at roughly
   64MiB for the four depth layers. Weak contact shadows, clipped markers and
   framing, and complete native/browser parity remain open.
 - The terrain-input pass now binds the real presentation `GroundTables` to the

@@ -1802,7 +1802,7 @@
       "depthStencil": {
         "format": "depth32float",
         "depthWriteEnabled": false,
-        "depthCompare": "greater-equal"
+        "depthCompare": "always"
       },
       "multisample": {
         "count": 4

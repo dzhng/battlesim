@@ -425,3 +425,22 @@ prepare/upload extraction before deleting TypeGPU. **Confidence:** high; the
 scene remains green with zero browser effect instances, while the attempted
 dummy effect upload was rejected after a fresh screenshot showed black voids
 covering the terrain.
+
+### Terrain color pass must not reject its own prepass coverage
+
+The browser production terrain stream and the shared reverse-Z prepass use the
+same camera and vertex buffer, but `worldTerrain`'s `greater-equal` color depth
+test still left large missing terrain regions. Auto-research probes ruled out
+the fog-mask compose and shadow caster owner: disabling fog compose preserved
+the holes, while skipping terrain depth removed the entire ground. A matched
+pipeline A/B with `worldTerrain.depthCompare = always` restored the full terrain
+without changing the later model/prop draws, which still depth-test against the
+prepass.
+
+**Verdict:** keep the exported terrain color pass depth comparison at `always`
+with depth writes disabled. The terrain is the first opaque world color layer;
+models and static props are drawn afterward and retain depth ownership. **Gap:**
+the underlying browser/native depth-value mismatch still deserves a later root
+cause audit before adding more depth-tested terrain layers. **Confidence:** high;
+the full scene remains green and the matched screenshot removes the black
+terrain holes.
