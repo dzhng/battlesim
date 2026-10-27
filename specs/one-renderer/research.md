@@ -302,3 +302,9 @@ bug: it put the same mesh through the fixture and production terrain passes at
 the same depth. The full scene remains green; the remaining dark terrain
 pattern persists, so terrain material/fog composition is still an open parity
 issue rather than being hidden by a second ground owner.
+
+An auto-research shadow probe disabled shared cascade encoding for one run. The
+terrain artifact was unchanged while the expected shadow-resource gate failed,
+so the artifact is not caused by the shadow map itself. The probe was restored
+immediately; the next active hypothesis is the shared terrain/fog material ABI
+or its synthetic ground table inputs.
