@@ -696,10 +696,26 @@ impl Renderer {
             }
             Ok(())
         };
+        let mut selected = Vec::new();
+        for batch in batches.chunks_exact(13) {
+            // Batch fields: pass=3, first=7, count=8. VIEW_PASS is zero.
+            if batch[3] != 0 {
+                continue;
+            }
+            let first = batch[7] as usize;
+            let end = first.saturating_add(batch[8] as usize);
+            if end > instances.len() / 8 {
+                return Err(js_error("presentation batch range exceeds instances"));
+            }
+            selected.extend_from_slice(&instances[first * 8..end * 8]);
+        }
+        if selected.is_empty() {
+            selected.extend_from_slice(instances);
+        }
         write(
             &self.queue,
             &self.production_model_instances,
-            bytemuck::cast_slice(instances),
+            bytemuck::cast_slice(&selected),
             "instances",
         )?;
         write(
@@ -714,7 +730,7 @@ impl Renderer {
             bytemuck::cast_slice(material_rows),
             "materials",
         )?;
-        self.production_model_instance_count = (instances.len() / 8) as u32;
+        self.production_model_instance_count = (selected.len() / 8) as u32;
         if let Some(snapshot) = &mut self.presentation_snapshot {
             snapshot.batches = batches.to_vec();
             snapshot.palettes = palettes.to_vec();
