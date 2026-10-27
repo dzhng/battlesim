@@ -15,6 +15,7 @@ use renderer_core::model::Model;
 use renderer_core::model_material::ModelMaterialBindings;
 use renderer_core::pipelines::{Bound, Pipelines};
 use renderer_core::post::PostResources;
+use renderer_core::shadow::ShadowResources;
 use renderer_core::world::{Layer, Surface as WorldSurface, WorldInputs};
 use renderer_core::{encode_grouped, TargetOwner};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -76,6 +77,7 @@ struct Stats {
     shared_passes: u32,
     target_generation: u64,
     shared_materials: bool,
+    shared_shadow: bool,
     surface_recoveries: u32,
 }
 
@@ -164,6 +166,7 @@ pub struct Renderer {
     material_rows: Buffer,
     material_surface: Texture,
     material_sampler: Sampler,
+    shared_shadow: ShadowResources,
     depth: DepthPrepass,
     camera_group: BindGroup,
     model: Model,
@@ -207,6 +210,7 @@ impl Renderer {
     pub async fn validate_export(&self) -> Result<String, JsValue> {
         let built = self.production_pipelines.names().count();
         let _shared_resources = (&self.shared_post, &self.shared_fog_mask);
+        let _shadow_cascades = self.shared_shadow.active();
         Ok(format!("{{\"pipelines\":{built}}}"))
     }
 
@@ -312,6 +316,7 @@ impl Renderer {
             true,
             true,
         );
+        let shared_shadow = ShadowResources::new(&device, &production_pipelines, 64, &[0; 96], 64);
         let material_palette = renderer_core::buffer(
             &device,
             "shared-material-palette",
@@ -396,6 +401,7 @@ impl Renderer {
             material_rows,
             material_surface,
             material_sampler,
+            shared_shadow,
             depth,
             camera_group,
             model,
@@ -404,7 +410,10 @@ impl Renderer {
             format,
             alpha_mode: caps.alpha_modes[0],
             device_lost,
-            stats: Stats::default(),
+            stats: Stats {
+                shared_shadow: true,
+                ..Stats::default()
+            },
             asset_report: None,
             asset_texture: None,
         })
@@ -667,7 +676,7 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"surfaceRecoveries":{},"deviceLost":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"surfaceRecoveries":{},"deviceLost":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -675,6 +684,7 @@ impl Renderer {
             self.stats.shared_passes,
             self.stats.target_generation,
             self.stats.shared_materials,
+            self.stats.shared_shadow,
             self.stats.surface_recoveries,
             self.device_lost.load(Ordering::Relaxed),
             self.width,

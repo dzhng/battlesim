@@ -90,4 +90,9 @@ export async function run(ctx) {
     sharedWorkload?.surfaceRecoveries >= 1,
     JSON.stringify(sharedWorkload),
   );
+  ctx.check(
+    "shared browser row owns shadow resources",
+    sharedWorkload?.sharedShadow === true,
+    JSON.stringify(sharedWorkload),
+  );
 }
