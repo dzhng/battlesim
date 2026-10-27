@@ -179,9 +179,10 @@ stops the work before a full port is attempted:
    The browser shell also allocates the shared four-stage fog compute owner;
    presentation upload/bind-group policy and full fog visibility parity remain
    open.
-   The full exported `modelOpaque` contract now also executes against shared
-   HDR, fog-mask, depth, environment, and model groups; real environment data,
-   authored material rows, and fog visibility still need to replace placeholders.
+   A diagnostic full `modelOpaque` pass exposed visibly invalid output with
+   placeholder environment/fog data, so it is not in the normal fixture frame
+   path. The next parity pass must feed real environment, material, and fog
+   records before enabling it.
    The shared browser frame now allocates the real exported pipeline set and
    encodes shared fog-mask, post, and rim passes on every fixture frame. The
    remaining bounded input is the presentation record feed, not a second pass

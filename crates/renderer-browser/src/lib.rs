@@ -29,7 +29,6 @@ mod pipeline_export {
     include!(concat!(env!("OUT_DIR"), "/pipeline_export.rs"));
 }
 mod production_model;
-mod production_opaque;
 
 const PIPELINES: &str = r#"{
   "sizes":{"bloomLevels":0,"skyLut":[1,1],"effectSheet":1,"grassClump":1},
@@ -82,7 +81,6 @@ struct Stats {
     shared_materials: bool,
     shared_shadow: bool,
     shared_model_prepass: bool,
-    shared_model_opaque: bool,
     surface_recoveries: u32,
 }
 
@@ -173,7 +171,6 @@ pub struct Renderer {
     material_sampler: Sampler,
     shared_shadow: ShadowResources,
     shared_fog_compute: FogComputeOwner,
-    production_opaque: production_opaque::OpaqueResources,
     production_camera_group: BindGroup,
     production_model_vertices: Buffer,
     production_model_instances: Buffer,
@@ -330,8 +327,6 @@ impl Renderer {
         );
         let shared_shadow = ShadowResources::new(&device, &production_pipelines, 64, &[0; 96], 64);
         let shared_fog_compute = FogComputeOwner::new(&production_pipelines);
-        let production_opaque =
-            production_opaque::new(&device, &production_pipelines, &shared_shadow);
         let material_palette = renderer_core::buffer(
             &device,
             "shared-material-palette",
@@ -448,7 +443,6 @@ impl Renderer {
             material_sampler,
             shared_shadow,
             shared_fog_compute,
-            production_opaque,
             production_camera_group,
             production_model_vertices,
             production_model_instances,
@@ -702,18 +696,6 @@ impl Renderer {
             self.production_model_vertex_count,
         );
         self.stats.shared_model_prepass = true;
-        production_opaque::encode(
-            &mut encoder,
-            &self.targets,
-            &self.production_pipelines,
-            &self.production_camera_group,
-            self.material_bindings.bind_group(),
-            &self.production_opaque,
-            &self.production_model_vertices,
-            &self.production_model_instances,
-            self.production_model_vertex_count,
-        );
-        self.stats.shared_model_opaque = true;
         self.shared_post.encode(&mut encoder);
         self.stats.shared_passes += 1;
         let surface = match self.surface.get_current_texture() {
@@ -758,7 +740,7 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedFogCompute":{},"sharedModelPrepass":{},"sharedModelOpaque":{},"surfaceRecoveries":{},"deviceLost":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceLost":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -769,7 +751,6 @@ impl Renderer {
             self.stats.shared_shadow,
             true,
             self.stats.shared_model_prepass,
-            self.stats.shared_model_opaque,
             self.stats.surface_recoveries,
             self.device_lost.load(Ordering::Relaxed),
             self.width,
