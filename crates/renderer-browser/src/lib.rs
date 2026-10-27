@@ -93,6 +93,14 @@ struct Stats {
     presentation_overlay_words: u32,
 }
 
+#[derive(Clone)]
+struct PresentationSnapshot {
+    camera: Vec<f32>,
+    environment: Vec<f32>,
+    fog: Vec<f32>,
+    overlay: Vec<f32>,
+}
+
 fn build_exported_pipelines(device: &Device) -> Result<Pipelines, String> {
     Pipelines::build(device, pipeline_export::MANIFEST, |_, shader| {
         pipeline_export::source(shader)
@@ -186,6 +194,7 @@ pub struct Renderer {
     presentation_environment: Buffer,
     presentation_fog: Buffer,
     presentation_overlay: Buffer,
+    presentation_snapshot: Option<PresentationSnapshot>,
     production_camera_group: BindGroup,
     production_model_vertices: Buffer,
     production_model_instances: Buffer,
@@ -481,6 +490,7 @@ impl Renderer {
             presentation_environment,
             presentation_fog,
             presentation_overlay,
+            presentation_snapshot: None,
             production_camera_group,
             production_model_vertices,
             production_model_instances,
@@ -551,6 +561,12 @@ impl Renderer {
         self.stats.presentation_environment_words = environment_words;
         self.stats.presentation_fog_words = fog_words;
         self.stats.presentation_overlay_words = overlay_words;
+        self.presentation_snapshot = Some(PresentationSnapshot {
+            camera: camera[..16].to_vec(),
+            environment: environment.to_vec(),
+            fog: fog.to_vec(),
+            overlay: overlay.to_vec(),
+        });
         Ok(())
     }
 
@@ -620,6 +636,7 @@ impl Renderer {
         let previous_stats = self.stats;
         let previous_lost = self.device_lost.load(Ordering::Relaxed);
         let snapshot = self.asset_snapshot.clone();
+        let presentation = self.presentation_snapshot.clone();
         let mut replacement = Self::new(canvas).await?;
         replacement.stats = previous_stats;
         replacement.stats.device_recoveries = replacement.stats.device_recoveries.saturating_add(1);
@@ -628,6 +645,14 @@ impl Renderer {
             .store(previous_lost, Ordering::Relaxed);
         if let Some(snapshot) = snapshot {
             replacement.load_bundle_bytes(snapshot.name, snapshot.bundle, snapshot.textures)?;
+        }
+        if let Some(presentation) = presentation {
+            replacement.upload_presentation_frame(
+                &presentation.camera,
+                &presentation.environment,
+                &presentation.fog,
+                &presentation.overlay,
+            )?;
         }
         *self = replacement;
         Ok(())
