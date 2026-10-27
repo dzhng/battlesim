@@ -1642,9 +1642,9 @@ impl Battle {
         );
         self.shove_props(shoves);
         self.clear_lanes(&before);
-        for ((from, channel), (to, _)) in treads.into_iter().zip(self.treads()) {
-            self.ground.wear(from, to, channel, &self.rules.ground);
-        }
+        let trod = self.treads();
+        self.ground
+            .tread(&self.world, treads, trod, &self.rules.ground);
         let after = self.poses();
         self.trigger_fuel_withdrawals();
         let moved = self.moved(&before, &after, &stood);
