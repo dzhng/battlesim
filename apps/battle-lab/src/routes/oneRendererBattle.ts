@@ -77,8 +77,11 @@ export async function realBattleFixture(): Promise<BattleFixture> {
     map: map.definition,
     rules,
     units: [
-      { side: "blue", kind: "test_tank", position: [16, 16], yaw: 0.25 },
-      { side: "red", kind: "test_tank", position: [28, 22], yaw: -2.4 },
+      // Keep the publication's units inside the frozen lab camera so the
+      // comparison exercises authored model pixels instead of an off-screen
+      // transport record.
+      { side: "blue", kind: "test_tank", position: [0, 0], yaw: 0.25 },
+      { side: "red", kind: "test_tank", position: [10, 4], yaw: -2.4 },
     ],
     events: [],
     scripts: [],

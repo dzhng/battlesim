@@ -54,7 +54,11 @@ batch holder before claiming model parity. The shared core now owns the packed
 batch decoder and recovery-safe static range state, and the browser admits only
 loaded `(appearance, tier)` drawables. The remaining model gap is the complete
 appearance library, articulated transforms, and real `PresentedFrame` batch
-selection. Loaded tiers now share one packed vertex stream with explicit ranges.
+selection. Loaded tiers now share one packed vertex stream with explicit ranges,
+and the adapter preserves the authored 48-byte normal/UV/weight/tangent layout.
+The resulting real-frame screenshot is more textured but still fails visual
+acceptance because model contrast, terrain aliasing, world framing and contact
+shadows are not yet production parity.
 Do not treat the current caster counters or the fixture world path as a visual
 shadow/material proof; the latest review still sees no readable contact shadows.
 

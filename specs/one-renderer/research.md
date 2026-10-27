@@ -246,3 +246,14 @@ words. The candidate is kept because it removes a lab-only visibility input
 without changing the shared lifecycle/workload gates. Setup/encode/queue timing
 remained within run-to-run noise (candidate 364.9/6.9/1.2 ms versus the prior
 346.6/6.7/0.6 ms), so no performance claim is attached to this change.
+
+The next visual probe fixed the browser asset adapter's vertex ABI. Its prior
+packer kept positions and colours but synthesized normals, malformed UV bytes,
+rigid weights and a zero tangent. It now preserves the bundle's normals, UVs,
+colours, joints, normalized weights, tangents and material ids in the same
+48-byte layout as `modelLayer.packVertices`; the before/after shared-frame PNGs
+are byte-different and the full scene remains green. The fresh visual review
+now sees textured authored vehicles, but still rejects the frame as production
+parity: the vehicles remain low-contrast, terrain marks alias heavily, the
+ground ends in black, and contact/cast shadows and gameplay anchors are absent.
+This keeps the ABI fix and makes those remaining defects explicit next work.

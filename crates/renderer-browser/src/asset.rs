@@ -263,13 +263,8 @@ impl Renderer {
                     *id = draw.material as u16;
                 }
             }
-            let (tier_vertices, tier_count) = production_model::mesh_vertices(
-                &mesh.positions,
-                &mesh.colors,
-                &mesh.indices,
-                &material_ids,
-            )
-            .map_err(js_error)?;
+            let (tier_vertices, tier_count) =
+                production_model::mesh_vertices(mesh, &material_ids).map_err(js_error)?;
             let first = (production_vertices.len() / 48) as u32;
             production_vertices.extend_from_slice(&tier_vertices);
             self.available_model_drawables
