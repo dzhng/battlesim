@@ -235,5 +235,14 @@ actual batch, instance, palette and authored material arrays, plus the real
 terrain/fog/shadow records; the latest row reports 920 model-record words and
 240 material words and passes resize, surface recovery and device-loss replay.
 This is still an input/lifecycle gate: the ground remains the lab's frozen
-visual mesh, fog eyes are explicit fixture inputs, and the native renderer has
+visual mesh, and the native renderer has
 not yet rendered the identical production frame for image comparison.
+
+Auto-research follow-up `c574cfd97` removed those explicit fixture eyes. The
+same publication now supplies the blue unit sight records through
+`ScenePresentation.setFog({ sensors })`; the complete eleven-row scene still
+passes with no WebGPU errors, `fogEyes: 2`, 920 model words and 240 material
+words. The candidate is kept because it removes a lab-only visibility input
+without changing the shared lifecycle/workload gates. Setup/encode/queue timing
+remained within run-to-run noise (candidate 364.9/6.9/1.2 ms versus the prior
+346.6/6.7/0.6 ms), so no performance claim is attached to this change.
