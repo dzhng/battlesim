@@ -25,7 +25,7 @@ pub(super) struct Flown {
 
 /// What a round struck, as its segment shows it: a body's id says whether
 /// it is a hull, a prop's row whether it is metal.
-fn hit(world: &WorldGeometry, struck: Struck) -> SegmentHit {
+fn segment_hit(world: &WorldGeometry, struck: Struck) -> SegmentHit {
     match struck {
         Struck::Terrain => SegmentHit::Ground,
         Struck::Prop(id) if world.prop(id).is_some_and(|p| p.body.metal) => SegmentHit::MetalProp,
@@ -172,7 +172,7 @@ impl Battle {
             match e {
                 FlightEvent::Impact(i) => {
                     ends.insert(i.projectile, i.point);
-                    struck.insert(i.projectile, (hit(&self.world, i.struck), i.normal));
+                    struck.insert(i.projectile, (segment_hit(&self.world, i.struck), i.normal));
                     if let Some(round) = self.rounds.get(&i.projectile).filter(|_| i.detonated) {
                         let blast = Blast {
                             point: xyz(i.point),
