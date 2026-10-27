@@ -184,10 +184,9 @@ stops the work before a full port is attempted:
    The browser uploads a frozen presentation camera, environment, fog, and
    overlay record through one shell boundary; binding those records into the
    extracted production passes and full fog visibility parity remain open.
-   A diagnostic full `modelOpaque` pass exposed visibly invalid output with
-   placeholder environment/fog data, so it is not in the normal fixture frame
-   path. The next parity pass must feed real environment, material, and fog
-   records before enabling it.
+   The shared frame feeds the exported `modelOpaque` pass with the fetched
+   material rows, environment, and fog groups; remaining visual differences are
+   material classification, lighting assets, and missing caster/world batches.
    The shared browser frame now allocates the real exported pipeline set and
    encodes shared fog-mask, post, rim, and display-space overlay passes on every
    fixture frame. The browser now constructs the shared nine-resource environment bind group,

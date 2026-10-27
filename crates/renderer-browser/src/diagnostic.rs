@@ -99,14 +99,3 @@ pub(super) fn material_probe(
     );
     (palette, rows, albedo, surface, sampler, bindings)
 }
-
-#[wasm_bindgen]
-impl Renderer {
-    /// Enable the exported lit-model pass for a screenshot/validation probe.
-    /// The normal shared fixture remains unchanged until this probe is ready.
-    #[cfg(target_arch = "wasm32")]
-    #[wasm_bindgen]
-    pub fn enable_model_opaque_diagnostic(&mut self) {
-        self.model_opaque_diagnostic = true;
-    }
-}

@@ -609,9 +609,6 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       upload_instances: (instances: Float32Array) => void;
     }
   ).upload_instances(si);
-  (
-    renderer as SharedRenderer & { enable_model_opaque_diagnostic: () => void }
-  ).enable_model_opaque_diagnostic();
   const ff = battleFixture();
   const frozen = ff.camera;
   const upload = renderer as SharedRenderer & {

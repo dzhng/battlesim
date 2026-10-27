@@ -13,7 +13,6 @@ impl Renderer {
     pub async fn recover_device(&mut self, canvas: HtmlCanvasElement) -> Result<(), JsValue> {
         let previous_stats = self.stats;
         let previous_lost = self.device_lost.load(Ordering::Relaxed);
-        let model_opaque_diagnostic = self.model_opaque_diagnostic;
         let snapshot = self.asset_snapshot.clone();
         let ground = self.ground_snapshot.clone();
         let post_bloom = self.post_bloom.clone();
@@ -22,7 +21,6 @@ impl Renderer {
         let mut replacement = Self::new(canvas).await?;
         replacement.stats = previous_stats;
         replacement.stats.device_recoveries = replacement.stats.device_recoveries.saturating_add(1);
-        replacement.model_opaque_diagnostic = model_opaque_diagnostic;
         replacement
             .device_lost
             .store(previous_lost, Ordering::Relaxed);

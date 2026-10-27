@@ -86,9 +86,7 @@ pub fn encode_prepass(
     pass.draw(0..vertex_count, 0..1);
 }
 
-/// Diagnostic lit-model pass using the real exported material/environment/fog
-/// contract. It is intentionally opt-in while the browser shell finishes the
-/// surrounding production layers; the pass itself is shared pipeline work.
+/// Lit-model pass using the exported material/environment/fog contract.
 #[allow(clippy::too_many_arguments)]
 pub fn encode_opaque(
     encoder: &mut wgpu::CommandEncoder,
@@ -104,7 +102,7 @@ pub fn encode_opaque(
 ) {
     let pipeline = pipelines.bound("modelOpaque");
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        label: Some("shared-diagnostic-model-opaque"),
+        label: Some("shared-model-opaque"),
         color_attachments: &[
             Some(wgpu::RenderPassColorAttachment {
                 view: &targets.hdr_msaa,

@@ -262,10 +262,8 @@ impl Renderer {
                 &production_vertices,
             );
             self.production_model_vertex_count = production_count;
-            // Keep the diagnostic display fixture's camera-compatible stream.
-            // The authored 48-byte production stream is consumed by the
-            // prepass; its final lit draw remains disabled until the
-            // presentation camera/environment groups are complete.
+            // Keep the authored 48-byte stream for both the prepass and lit
+            // draw; presentation groups are already bound by the frame.
             self.stats.model_vertices = production_count;
         }
         let report = format!(

@@ -37,20 +37,18 @@ impl Renderer {
             self.production_model_vertex_count,
         );
         self.stats.shared_model_prepass = true;
-        if self.model_opaque_diagnostic {
-            production_model::encode_opaque(
-                &mut encoder,
-                &self.targets,
-                &self.production_pipelines,
-                &self.production_camera_group,
-                self.material_bindings.bind_group(),
-                self.shared_fog_sight.group(0),
-                self.environment.bindings.group(),
-                &self.production_model_vertices,
-                &self.production_model_instances,
-                self.production_model_vertex_count,
-            );
-        }
+        production_model::encode_opaque(
+            &mut encoder,
+            &self.targets,
+            &self.production_pipelines,
+            &self.production_camera_group,
+            self.material_bindings.bind_group(),
+            self.shared_fog_sight.group(0),
+            self.environment.bindings.group(),
+            &self.production_model_vertices,
+            &self.production_model_instances,
+            self.production_model_vertex_count,
+        );
         if self.overlay_vertex_count > 0 {
             self.shared_overlay_resources.encode_geometry(
                 &mut encoder,
