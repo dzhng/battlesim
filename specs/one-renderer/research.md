@@ -176,3 +176,13 @@ until a browser static holder exists. This removes the earlier half-stride and
 flattened-range errors. The current fixture still has no authored model runs
 from `ScenePresentation`, so the next model gate must supply a real dynamic
 frame or explicitly label a one-bundle fixture as transport-only.
+
+The browser harness now uses a one-bundle frozen model fixture when the
+presentation frame has no dynamic model rows: it creates 16-float instances,
+12-word view batches, and one identity joint, then sends those through the
+same shared upload and range-selection path. This is explicitly a transport
+fixture, not a claim that `ScenePresentation` produced those rows. The latest
+shared row reports 68 model-record words, 312 terrain-param words, 18,928
+terrain-node words, 56,808 plot words, 432 surface-index words, and all
+lifecycle gates green. The next production gate remains a real `PresentedFrame`
+with appearance/tier drawable mapping and static-batch ownership.

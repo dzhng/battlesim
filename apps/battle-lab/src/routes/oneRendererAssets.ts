@@ -74,7 +74,11 @@ export function mw(bundle: Exclude<Bundle, { kind: "clips" }>): ModelWorkload {
     for (const index of mesh.indices) indices.push(base + index);
   }
   const modelPlacements = FOUNDATION.filter((p) => p.kind === "test_tank").concat(
-    FOUNDATION.filter((p) => p.kind === "test_tank").map((p) => ({ ...p, x: p.x + 9, y: p.y + 7 })),
+    FOUNDATION.filter((p) => p.kind === "test_tank").map((p) => ({
+      ...p,
+      x: p.x + 9,
+      y: p.y + 7,
+    })),
   );
   const instances = modelPlacements.flatMap((p, i) => [
     p.x,
@@ -97,4 +101,29 @@ export function mw(bundle: Exclude<Bundle, { kind: "clips" }>): ModelWorkload {
     textureWidth,
     textureHeight,
   };
+}
+
+/** A compact one-bundle model record stream for the shared renderer seam. */
+export function fixtureModelFrame(instances: Float32Array) {
+  const batches = new Uint32Array(12 * (instances.length / 16));
+  for (let index = 0; index < instances.length / 16; index++) {
+    const o = index * 12;
+    batches[o] = index;
+    batches[o + 2] = 1;
+    batches[o + 3] = 0;
+    batches[o + 4] = 1;
+    batches[o + 6] = 1;
+    batches[o + 7] = index;
+    batches[o + 8] = 1;
+    batches[o + 9] = 15;
+  }
+  return {
+    palettes: new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0]),
+    instances,
+    batches,
+  };
+}
+
+export function shadowBatchWords(batches: Uint32Array) {
+  return new Uint32Array([...batches, 0, 0, 0, 1, 0, 0, 0, 0, 1, 15, 0, 0]);
 }

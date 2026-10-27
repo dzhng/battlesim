@@ -273,3 +273,19 @@ than heterogeneous appearance selection. **Reach:** an appearance/tier
 drawable table and static holder are still required for full production parity.
 **Verdict:** keep the native record strides and explicit run contract; do not
 flatten batches into a synthetic instance stream. **Confidence:** high.
+
+### The empty lab frame uses an explicit one-bundle transport fixture
+
+The frozen lab presentation has no dynamic unit rows because it does not load
+a battle publication. The harness therefore creates a small record stream from
+the already loaded `test_tank` asset: 16-float instances, 12-word view batches,
+and an identity joint. These records exercise the same upload, validation,
+recovery, and per-range draw code as a real frame, while the report labels the
+fixture as transport evidence. We keep this separate from the eventual
+production gate instead of pretending that hand-authored rows came from the
+simulation.
+
+**Gap:** it does not prove appearance/tier lookup, static batch holding, or
+multi-bundle material routing. **Reach:** the next real-frame fixture must come
+from `ScenePresentation` with those records populated. **Verdict:** useful and
+honest as a bounded seam test; insufficient for parity. **Confidence:** high.

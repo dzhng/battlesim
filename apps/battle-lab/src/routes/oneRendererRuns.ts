@@ -20,7 +20,7 @@ import { gameOverlayGlow } from "../gameOverlay";
 import { groundPatch, FOUNDATION_CAMERA } from "./frame";
 import { modelEncoder, modelPipeline } from "./oneRendererModel";
 import { battleFixture, BATTLE_HEIGHT, BATTLE_WIDTH } from "./oneRendererBattle";
-import { loadTankBundle, mw } from "./oneRendererAssets";
+import { fixtureModelFrame, loadTankBundle, mw, shadowBatchWords } from "./oneRendererAssets";
 
 export const WIDTH = 640;
 export const HEIGHT = 360;
@@ -91,7 +91,10 @@ function canvasOf(
 }
 
 function rawPipeline(device: GPUDevice, format: GPUTextureFormat, shader: string) {
-  const module = device.createShaderModule({ label: "one-renderer-exported-wgsl", code: shader });
+  const module = device.createShaderModule({
+    label: "one-renderer-exported-wgsl",
+    code: shader,
+  });
   return device.createRenderPipeline({
     label: "one-renderer-exported-wgsl-pipeline",
     layout: "auto",
@@ -107,7 +110,9 @@ function encodeRaw(
   pipeline: GPURenderPipeline,
 ): void {
   const view = context.getCurrentTexture().createView();
-  const encoder = device.createCommandEncoder({ label: "one-renderer-raw-frame" });
+  const encoder = device.createCommandEncoder({
+    label: "one-renderer-raw-frame",
+  });
   const pass = encoder.beginRenderPass({
     colorAttachments: [
       {
@@ -164,7 +169,11 @@ function realPipeline(
     },
     fragment: { module, entryPoint: "fragment", targets: [{ format }] },
     depthStencil: withDepth
-      ? { format: "depth32float", depthWriteEnabled: true, depthCompare: "greater" }
+      ? {
+          format: "depth32float",
+          depthWriteEnabled: true,
+          depthCompare: "greater",
+        }
       : undefined,
   });
 }
@@ -193,7 +202,9 @@ function encodeReal(
     entries: [{ binding: 0, resource: { buffer: uniform } }],
   });
   const view = context.getCurrentTexture().createView();
-  const encoder = device.createCommandEncoder({ label: "one-renderer-real-ground-frame" });
+  const encoder = device.createCommandEncoder({
+    label: "one-renderer-real-ground-frame",
+  });
   const pass = encoder.beginRenderPass({
     colorAttachments: [
       {
@@ -281,7 +292,13 @@ export async function realRustRun(canvas: HTMLCanvasElement): Promise<Result> {
   const submitMs = performance.now() - encodeStart - encodeMs;
   real.presentation.free();
   renderer.free();
-  return { mode: "real-rust-wgpu", setupMs, encodeMs, submitMs, frames: FRAMES };
+  return {
+    mode: "real-rust-wgpu",
+    setupMs,
+    encodeMs,
+    submitMs,
+    frames: FRAMES,
+  };
 }
 
 export async function modelBrowserRun(canvas: HTMLCanvasElement): Promise<Result> {
@@ -290,10 +307,18 @@ export async function modelBrowserRun(canvas: HTMLCanvasElement): Promise<Result
   const context = canvasOf(canvas, info.device, info.format);
   canvas.width = 320;
   canvas.height = 180;
-  context.configure({ device: info.device, format: info.format, alphaMode: "opaque" });
+  context.configure({
+    device: info.device,
+    format: info.format,
+    alphaMode: "opaque",
+  });
   canvas.width = REAL_WIDTH;
   canvas.height = REAL_HEIGHT;
-  context.configure({ device: info.device, format: info.format, alphaMode: "opaque" });
+  context.configure({
+    device: info.device,
+    format: info.format,
+    alphaMode: "opaque",
+  });
   const real = realFrame(MODEL_CAMERA);
   const workload = mw(await loadTankBundle());
   const terrain = realPipeline(info.device, info.format, true);
@@ -367,7 +392,13 @@ export async function modelRustRun(canvas: HTMLCanvasElement): Promise<Result> {
   const submitMs = performance.now() - encodeStart - encodeMs;
   real.presentation.free();
   renderer.free();
-  return { mode: "model-rust-wgpu", setupMs, encodeMs, submitMs, frames: FRAMES };
+  return {
+    mode: "model-rust-wgpu",
+    setupMs,
+    encodeMs,
+    submitMs,
+    frames: FRAMES,
+  };
 }
 
 export async function battleRustRun(canvas: HTMLCanvasElement): Promise<Result> {
@@ -516,7 +547,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   ).upload_instances(si);
   const ff = battleFixture();
   const f = ff.camera;
-  const shadowBatches = new Uint32Array([...f.batches.u32, 0, 0, 0, 1, 0, 0, 0, 0, 1, 15, 0, 0]);
+  const shadowBatches = shadowBatchWords(f.batches.u32);
   const upload = renderer as SharedRenderer & {
     upload_fog_heights: (heights: Uint32Array) => void;
     upload_frame: (
@@ -570,6 +601,16 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     instances?: { f32: Float32Array };
     batches?: { u32: Uint32Array };
   };
+  const fixtureModel = fixtureModelFrame(si);
+  const modelInstances = presentationModel.instances?.f32.length
+    ? new Float32Array(presentationModel.instances.f32)
+    : si;
+  const modelBatches = presentationModel.batches?.u32.length
+    ? new Uint32Array(presentationModel.batches.u32)
+    : fixtureModel.batches;
+  const modelPalettes = presentationModel.palettes?.f32.length
+    ? new Float32Array(presentationModel.palettes.f32)
+    : fixtureModel.palettes;
   (
     renderer as SharedRenderer & {
       upload_model_frame: (
@@ -579,12 +620,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
         materialRows: Float32Array,
       ) => void;
     }
-  ).upload_model_frame(
-    new Float32Array(presentationModel.palettes?.f32 ?? []),
-    new Float32Array(presentationModel.instances?.f32 ?? []),
-    new Uint32Array(presentationModel.batches?.u32 ?? []),
-    new Float32Array(0),
-  );
+  ).upload_model_frame(modelPalettes, modelInstances, modelBatches, new Float32Array(0));
   (renderer as SharedRenderer & { upload_sky: (sky: Float32Array) => void }).upload_sky(rl.sky);
   upload.upload_ground(
     concatMeshes([Float32Array.from(ff.terrain), Float32Array.from(ff.world.props)]),
@@ -685,9 +721,14 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   (renderer as SharedRenderer & { upload_sky: (sky: Float32Array) => void }).upload_sky(rl.sky);
   (
     renderer as SharedRenderer & {
-      upload_instances: (instances: Float32Array) => void;
+      upload_model_frame: (
+        palettes: Float32Array,
+        instances: Float32Array,
+        batches: Uint32Array,
+        materialRows: Float32Array,
+      ) => void;
     }
-  ).upload_instances(si);
+  ).upload_model_frame(modelPalettes, modelInstances, modelBatches, new Float32Array(0));
   upload.upload_ground(
     concatMeshes([Float32Array.from(ff.terrain), Float32Array.from(ff.world.props)]),
   );
@@ -752,7 +793,10 @@ export async function browserRun(
   const pipeline = mode === "exported-wgsl" ? rawPipeline(info.device, info.format, shader) : null;
   const typegpuPipeline =
     mode === "typegpu" && root && fragment
-      ? root.createRenderPipeline({ vertex: common.fullScreenTriangle, fragment })
+      ? root.createRenderPipeline({
+          vertex: common.fullScreenTriangle,
+          fragment,
+        })
       : null;
   typegpuPipeline?.initSync();
   const setupMs = performance.now() - started;
@@ -809,14 +853,19 @@ export async function mixedRun(
     }
     return vec4f(0.0, 0.0, 0.0, 0.0);
   }`;
-  const pipeline = root.createRenderPipeline({ vertex: common.fullScreenTriangle, fragment });
+  const pipeline = root.createRenderPipeline({
+    vertex: common.fullScreenTriangle,
+    fragment,
+  });
   pipeline.initSync();
   const setupMs = performance.now() - started;
   const encodeStart = performance.now();
   for (let i = 0; i < FRAMES; i++) {
     renderer.render();
     const view = context.getCurrentTexture().createView();
-    const encoder = root["~unstable"].createCommandEncoder({ label: "one-renderer-mixed-overlay" });
+    const encoder = root["~unstable"].createCommandEncoder({
+      label: "one-renderer-mixed-overlay",
+    });
     pipeline.with(encoder).withColorAttachment({ view }).draw(3);
     info.device.queue.submit([root.unwrap(encoder).finish()]);
   }
