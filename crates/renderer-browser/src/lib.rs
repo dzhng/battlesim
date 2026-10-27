@@ -95,6 +95,7 @@ struct Stats {
     surface_recoveries: u32,
     device_recoveries: u32,
     presentation_uploads: u32,
+    fog_sight_uploads: u32,
     presentation_bound: bool,
     presentation_camera_words: u32,
     presentation_environment_words: u32,
@@ -592,6 +593,47 @@ impl Renderer {
         Ok(())
     }
 
+    /// Upload the presentation fog sight records into the shared compute
+    /// owner. The browser scene currently sends an inactive zero record; a
+    /// production bridge can pass the packed `FogUpload` arrays directly.
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn upload_fog_sight(
+        &mut self,
+        params: &[f32],
+        eyes: &[f32],
+        foliage: &[f32],
+        occluders: &[f32],
+        rebuild: &[u32],
+        map_words: &[u32],
+        tiles: &[u32],
+        wholes: &[u32],
+        whole_uniform: &[f32],
+    ) -> Result<(), JsValue> {
+        if params.len() < 64 || map_words.len() < 2 || tiles.len() < 3 {
+            return Err(js_error("invalid fog sight record"));
+        }
+        self.shared_fog_sight
+            .upload(
+                &self.device,
+                &self.queue,
+                &renderer_core::fog_sight::FogSightUpload {
+                    params: bytemuck::cast_slice(&params[..64]),
+                    eyes: bytemuck::cast_slice(eyes),
+                    foliage: bytemuck::cast_slice(foliage),
+                    occluders: bytemuck::cast_slice(occluders),
+                    rebuild: bytemuck::cast_slice(rebuild),
+                    map_words: [map_words[0], map_words[1]],
+                    tiles: [tiles[0], tiles[1], tiles[2]],
+                    wholes,
+                    whole_uniform: bytemuck::cast_slice(whole_uniform),
+                },
+            )
+            .map_err(js_error)?;
+        self.stats.fog_sight_uploads = self.stats.fog_sight_uploads.saturating_add(1);
+        Ok(())
+    }
+
     #[cfg(target_arch = "wasm32")]
     pub fn resize(&mut self, canvas: HtmlCanvasElement) {
         self.width = canvas.width().max(1);
@@ -743,7 +785,7 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"shadowCasterBatches":[{},{},{},{}],"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedFogSight":{},"shadowCasterBatches":[{},{},{},{}],"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -753,6 +795,7 @@ impl Renderer {
             self.stats.shared_materials,
             self.stats.shared_shadow,
             self.stats.shared_environment,
+            self.stats.shared_fog_sight,
             self.stats.shadow_caster_batches[0],
             self.stats.shadow_caster_batches[1],
             self.stats.shadow_caster_batches[2],
@@ -763,6 +806,7 @@ impl Renderer {
             self.stats.device_recoveries,
             self.device_lost.load(Ordering::Relaxed),
             self.stats.presentation_uploads,
+            self.stats.fog_sight_uploads,
             self.stats.presentation_bound,
             self.stats.presentation_camera_words,
             self.stats.presentation_environment_words,
