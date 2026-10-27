@@ -193,6 +193,9 @@ pub struct Renderer {
     shared_ground: Option<Model>,
     shared_overlay: Option<Model>,
     ground_snapshot: Option<Vec<f32>>,
+    fog_rebuild_dispatch: Option<[u32; 2]>,
+    fog_whole_dispatch: Option<[u32; 2]>,
+    fog_dispatch_active: bool,
     display_sampler: Sampler,
     display_group: BindGroup,
     width: u32,
@@ -457,6 +460,9 @@ impl Renderer {
             shared_ground: None,
             shared_overlay: None,
             ground_snapshot: None,
+            fog_rebuild_dispatch: None,
+            fog_whole_dispatch: None,
+            fog_dispatch_active: false,
             display_sampler,
             display_group,
             width,
@@ -476,49 +482,6 @@ impl Renderer {
             asset_snapshot: None,
             model_opaque_diagnostic: false,
         })
-    }
-
-    /// Upload the presentation fog sight records into the shared compute
-    /// owner. The browser scene currently sends an inactive zero record; a
-    /// production bridge can pass the packed `FogUpload` arrays directly.
-    #[cfg(target_arch = "wasm32")]
-    #[wasm_bindgen]
-    pub fn upload_fog_sight(
-        &mut self,
-        params: &[f32],
-        eyes: &[f32],
-        foliage: &[f32],
-        occluders: &[f32],
-        rebuild: &[u32],
-        map_words: &[u32],
-        tiles: &[u32],
-        wholes: &[u32],
-        whole_items: &[u32],
-        whole_uniform: &[f32],
-    ) -> Result<(), JsValue> {
-        if params.len() < 64 || map_words.len() < 2 || tiles.len() < 3 {
-            return Err(js_error("invalid fog sight record"));
-        }
-        self.shared_fog_sight
-            .upload(
-                &self.device,
-                &self.queue,
-                &renderer_core::fog_sight::FogSightUpload {
-                    params: bytemuck::cast_slice(&params[..64]),
-                    eyes: bytemuck::cast_slice(eyes),
-                    foliage: bytemuck::cast_slice(foliage),
-                    occluders: bytemuck::cast_slice(occluders),
-                    rebuild: bytemuck::cast_slice(rebuild),
-                    map_words: [map_words[0], map_words[1]],
-                    tiles: [tiles[0], tiles[1], tiles[2]],
-                    wholes,
-                    whole_items: bytemuck::cast_slice(whole_items),
-                    whole_uniform: bytemuck::cast_slice(whole_uniform),
-                },
-            )
-            .map_err(js_error)?;
-        self.stats.fog_sight_uploads = self.stats.fog_sight_uploads.saturating_add(1);
-        Ok(())
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -600,7 +563,7 @@ impl Renderer {
 
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
-    pub fn upload_shared_model_instances(&self, instances: &[f32]) -> Result<(), JsValue> {
+    pub fn upload_instances(&self, instances: &[f32]) -> Result<(), JsValue> {
         if !instances.len().is_multiple_of(16) {
             return Err(js_error("shared model instances need 16 floats"));
         }
@@ -657,6 +620,13 @@ impl Renderer {
                 &self.production_model_vertices,
                 &self.production_model_instances,
                 self.production_model_vertex_count,
+            );
+        }
+        if self.fog_dispatch_active {
+            self.shared_fog_sight.dispatch(
+                &mut encoder,
+                self.fog_rebuild_dispatch,
+                self.fog_whole_dispatch,
             );
         }
         self.shared_fog_mask.encode(&mut encoder, &self.targets);

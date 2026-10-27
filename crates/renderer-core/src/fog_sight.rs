@@ -105,7 +105,7 @@ impl FogSightResources {
         let maps = storage(device, "fog-maps", 16);
         let terrain_maps = storage(device, "fog-terrain-maps", 16);
         let foliage = storage(device, "fog-foliage", 16);
-        let occluders = storage(device, "fog-occluders", 16);
+        let occluders = storage(device, "fog-occluders", 32);
         let rebuild = storage(device, "fog-rebuild", 16);
         let lists = storage(device, "fog-tile-lists", 16);
         let counts = storage(device, "fog-tile-counts", 16);

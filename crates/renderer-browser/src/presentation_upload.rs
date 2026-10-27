@@ -99,7 +99,7 @@ impl Renderer {
 
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
-    pub fn upload_shared_overlay(&mut self, mesh: &[f32]) -> Result<(), JsValue> {
+    pub fn upload_overlay(&mut self, mesh: &[f32]) -> Result<(), JsValue> {
         if !mesh.len().is_multiple_of(10) {
             return Err(js_error("shared overlay mesh needs ten floats per vertex"));
         }
@@ -126,6 +126,53 @@ impl Renderer {
             )
             .map_err(js_error)?,
         );
+        Ok(())
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn upload_fog_sight(
+        &mut self,
+        params: &[f32],
+        eyes: &[f32],
+        foliage: &[f32],
+        occluders: &[f32],
+        rebuild: &[u32],
+        rebuild_dispatch: &[u32],
+        map_words: &[u32],
+        tiles: &[u32],
+        wholes: &[u32],
+        whole_items: &[u32],
+        whole_uniform: &[f32],
+        whole_dispatch: &[u32],
+    ) -> Result<(), JsValue> {
+        if params.len() < 64 || map_words.len() < 2 || tiles.len() < 3 {
+            return Err(js_error("invalid fog sight record"));
+        }
+        self.shared_fog_sight
+            .upload(
+                &self.device,
+                &self.queue,
+                &renderer_core::fog_sight::FogSightUpload {
+                    params: bytemuck::cast_slice(&params[..64]),
+                    eyes: bytemuck::cast_slice(eyes),
+                    foliage: bytemuck::cast_slice(foliage),
+                    occluders: bytemuck::cast_slice(occluders),
+                    rebuild: bytemuck::cast_slice(rebuild),
+                    map_words: [map_words[0], map_words[1]],
+                    tiles: [tiles[0], tiles[1], tiles[2]],
+                    wholes,
+                    whole_items: bytemuck::cast_slice(whole_items),
+                    whole_uniform: bytemuck::cast_slice(whole_uniform),
+                },
+            )
+            .map_err(js_error)?;
+        self.fog_rebuild_dispatch =
+            (rebuild_dispatch.len() >= 2).then(|| [rebuild_dispatch[0], rebuild_dispatch[1]]);
+        self.fog_whole_dispatch =
+            (whole_dispatch.len() >= 3).then(|| [whole_dispatch[1], whole_dispatch[2]]);
+        self.fog_dispatch_active = true;
+        self.stats.fog_sight_uploads = self.stats.fog_sight_uploads.saturating_add(1);
         Ok(())
     }
 }

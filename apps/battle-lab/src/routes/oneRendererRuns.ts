@@ -597,18 +597,18 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     bundleBytes,
     textureBytes.map((bytes) => bytes),
   );
-  const sharedModel = modelWorkload(await loadTankBundle());
-  const sharedInstances = new Float32Array((sharedModel.instances.length / 8) * 16);
-  for (let i = 0; i < sharedModel.instances.length / 8; i++) {
-    sharedInstances.set(sharedModel.instances.subarray(i * 8, i * 8 + 4), i * 16);
-    sharedInstances.set(sharedModel.instances.subarray(i * 8 + 4, i * 8 + 8), i * 16 + 8);
-    sharedInstances.set([1, 1, 1, 1], i * 16 + 12);
+  const sm = modelWorkload(await loadTankBundle());
+  const si = new Float32Array((sm.instances.length / 8) * 16);
+  for (let i = 0; i < sm.instances.length / 8; i++) {
+    si.set(sm.instances.subarray(i * 8, i * 8 + 4), i * 16);
+    si.set(sm.instances.subarray(i * 8 + 4, i * 8 + 8), i * 16 + 8);
+    si.set([1, 1, 1, 1], i * 16 + 12);
   }
   (
     renderer as SharedRenderer & {
-      upload_shared_model_instances: (instances: Float32Array) => void;
+      upload_instances: (instances: Float32Array) => void;
     }
-  ).upload_shared_model_instances(sharedInstances);
+  ).upload_instances(si);
   (
     renderer as SharedRenderer & { enable_model_opaque_diagnostic: () => void }
   ).enable_model_opaque_diagnostic();
@@ -627,14 +627,16 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       foliage: Float32Array,
       occluders: Float32Array,
       rebuild: Uint32Array,
+      rebuildDispatch: Uint32Array,
       mapWords: Uint32Array,
       tiles: Uint32Array,
       wholes: Uint32Array,
       wholeItems: Uint32Array,
       wholeUniform: Float32Array,
+      wholeDispatch: Uint32Array,
     ) => void;
     upload_shared_ground: (mesh: Float32Array) => void;
-    upload_shared_overlay: (mesh: Float32Array) => void;
+    upload_overlay: (mesh: Float32Array) => void;
   };
   const resolvedLight = await resolveLight(gameLight);
   const fogLook = resolveFogLook(gameFogStyle);
@@ -653,7 +655,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
   upload.upload_shared_ground(concatMeshes([frozenFixture.terrain, frozenFixture.world.props]));
-  upload.upload_shared_overlay(
+  upload.upload_overlay(
     concatMeshes([
       frozenFixture.overlay.opaque,
       frozenFixture.overlay.translucent,
@@ -683,11 +685,13 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
           foliage ? new Float32Array(foliage) : new Float32Array(0),
           occluders ? reinterpret(occluders) : new Float32Array(0),
           new Uint32Array(up.rebuild()),
+          new Uint32Array(up.rebuild_dispatch()),
           new Uint32Array(up.map_words()),
           new Uint32Array(up.tiles()),
           new Uint32Array(up.wholes() ?? []),
           new Uint32Array(up.whole_items()),
           new Float32Array(up.whole_uniform()),
+          new Uint32Array(up.whole()),
         ];
       } finally {
         up.free();
@@ -733,11 +737,11 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   );
   (
     renderer as SharedRenderer & {
-      upload_shared_model_instances: (instances: Float32Array) => void;
+      upload_instances: (instances: Float32Array) => void;
     }
-  ).upload_shared_model_instances(sharedInstances);
+  ).upload_instances(si);
   upload.upload_shared_ground(concatMeshes([frozenFixture.terrain, frozenFixture.world.props]));
-  upload.upload_shared_overlay(
+  upload.upload_overlay(
     concatMeshes([
       frozenFixture.overlay.opaque,
       frozenFixture.overlay.translucent,
