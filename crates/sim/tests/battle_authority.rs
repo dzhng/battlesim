@@ -271,6 +271,17 @@ fn a_zero_ground_cell_is_refused_by_name() {
     Battle::new(&setup, 1);
 }
 
+/// A forest no mover can cross at all would freeze a unit inside it and
+/// divide the route planner's estimate by zero, so a zero forest
+/// multiplier is refused by name.
+#[test]
+#[should_panic(expected = "movement.forest_vehicle_multiplier must be in (0, 1]")]
+fn a_zero_forest_multiplier_is_refused_by_name() {
+    let mut setup = scenario();
+    setup.rules.movement.forest_vehicle_multiplier = 0.0;
+    Battle::new(&setup, 1);
+}
+
 /// Reports measure the production tick, including replay and side observations.
 #[test]
 fn profiling_preserves_every_tick_and_side_observation() {
