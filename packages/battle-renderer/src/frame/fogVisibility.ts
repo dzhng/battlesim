@@ -529,10 +529,10 @@ export interface FogProbeInput {
   normal?: readonly [number, number, number];
 }
 
-/** What fog is drawn from: the scene's presentation, which decides it. */
+/** Presentation decides what fog is drawn from. */
 export type FogSource = Pick<
   Presentation,
-  "prepare_fog" | "resend_fog" | "rebuild_fog" | "fog_stats" | "fog_occluders"
+  "prepare_fog" | "resend_fog" | "rebuild_fog" | "fog_stats" | "fog_occluders" | "pages"
 >;
 
 /** The pipelines' text constants (`presentation.fog_geometry`): the cull's

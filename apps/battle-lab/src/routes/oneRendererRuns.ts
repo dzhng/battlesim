@@ -230,7 +230,7 @@ async function loadTankBundle(): Promise<Exclude<Bundle, { kind: "clips" }>> {
   return tankBundle;
 }
 
-function modelWorkload(bundle: Exclude<Bundle, { kind: "clips" }>): ModelWorkload {
+function mw(bundle: Exclude<Bundle, { kind: "clips" }>): ModelWorkload {
   const tier = 1;
   const posed = posedPalette(bundle, null);
   const parts =
@@ -390,7 +390,7 @@ export async function modelBrowserRun(canvas: HTMLCanvasElement): Promise<Result
   canvas.height = REAL_HEIGHT;
   context.configure({ device: info.device, format: info.format, alphaMode: "opaque" });
   const real = realFrame(MODEL_CAMERA);
-  const workload = modelWorkload(await loadTankBundle());
+  const workload = mw(await loadTankBundle());
   const terrain = realPipeline(info.device, info.format, true);
   const model = modelPipeline(info.device, info.format, true);
   const encode = modelEncoder(
@@ -426,7 +426,7 @@ export async function modelRustRun(canvas: HTMLCanvasElement): Promise<Result> {
   canvas.height = REAL_HEIGHT;
   renderer.resize(canvas);
   const real = realFrame(MODEL_CAMERA);
-  const workload = modelWorkload(await loadTankBundle());
+  const workload = mw(await loadTankBundle());
   const setupMs = performance.now() - started;
   const encodeStart = performance.now();
   for (let i = 0; i < FRAMES; i++)
@@ -477,9 +477,9 @@ export async function battleRustRun(canvas: HTMLCanvasElement): Promise<Result> 
   canvas.height = BATTLE_HEIGHT;
   renderer.resize(canvas);
   const fixture = battleFixture();
-  const workload = modelWorkload(await loadTankBundle());
+  const workload = mw(await loadTankBundle());
   await loadPresentation();
-  const resolvedLight = await resolveLight(gameLight);
+  const rl = await resolveLight(gameLight);
   const fogLook = resolveFogLook(gameFogStyle);
   const modelInstances = new Float32Array([
     -1, 0, 0, 0.35, 0.58, 0.72, 1, 1, 8, 6, 0, -0.9, 1, 0.48, 0.38, 1, -10, -8, 0, 1.7, 0.58, 0.72,
@@ -509,7 +509,7 @@ export async function battleRustRun(canvas: HTMLCanvasElement): Promise<Result> 
   const casterWords = fixture.camera.casters.f32;
   for (let cascade = 0; cascade < 4; cascade++)
     shadowCameras.set(casterWords.subarray(cascade * 40, cascade * 40 + 16), cascade * 16);
-  const environment = new Float32Array(resolvedLight.sun);
+  const environment = new Float32Array(rl.sun);
   const fogParams = new Float32Array([
     fogLook[0],
     fogLook[1],
@@ -549,7 +549,7 @@ export async function battleRustRun(canvas: HTMLCanvasElement): Promise<Result> 
     requestAnimationFrame(tick);
   });
   const submitMs = performance.now() - encodeStart - encodeMs;
-  const productionWorkload = production.production_stats();
+  const pw = production.production_stats();
   fixture.presentation.free();
   renderer.free();
   return {
@@ -558,7 +558,7 @@ export async function battleRustRun(canvas: HTMLCanvasElement): Promise<Result> 
     encodeMs,
     submitMs,
     frames: FRAMES,
-    workload: productionWorkload,
+    workload: pw,
   };
 }
 
@@ -575,7 +575,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   const catalog = (await (await fetch("/catalog.json")).json()) as RuntimeCatalog;
   const bundleHash = catalog.appearances?.test_tank?.bundle;
   if (!bundleHash) throw new Error("runtime catalog has no test_tank bundle");
-  const bundleWireBytes =
+  const bw =
     gzipTransport(catalog, bundleHash).bytes +
     (catalog.textures?.[bundleHash] ?? []).reduce(
       (bytes, id) => bytes + gzipTransport(catalog, id).bytes,
@@ -597,7 +597,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     bundleBytes,
     textureBytes.map((bytes) => bytes),
   );
-  const sm = modelWorkload(await loadTankBundle());
+  const sm = mw(await loadTankBundle());
   const si = new Float32Array((sm.instances.length / 8) * 16);
   for (let i = 0; i < sm.instances.length / 8; i++) {
     si.set(sm.instances.subarray(i * 8, i * 8 + 4), i * 16);
@@ -612,6 +612,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   const ff = battleFixture();
   const frozen = ff.camera;
   const upload = renderer as SharedRenderer & {
+    upload_fog_heights: (heights: Uint32Array) => void;
     upload_frame: (
       camera: Float32Array,
       environment: Float32Array,
@@ -636,24 +637,26 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     upload_ground: (mesh: Float32Array) => void;
     overlay: (mesh: Float32Array) => void;
   };
-  const resolvedLight = await resolveLight(gameLight);
+  const rl = await resolveLight(gameLight);
   const fogLook = resolveFogLook(gameFogStyle);
-  upload.upload_post(resolvedLight.bloom, resolvedLight.grade);
-  const sharedEnvironment = new Float32Array(64);
-  sharedEnvironment.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], 0);
-  sharedEnvironment.set(
-    [frozen.camera.f32[32], frozen.camera.f32[33], frozen.camera.f32[34], 1],
-    16,
-  );
-  sharedEnvironment.set(resolvedLight.sun, 20);
-  sharedEnvironment.set(resolvedLight.aerial, 36);
+  upload.upload_post(rl.bloom, rl.grade);
+  const env = new Float32Array(64);
+  env.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], 0);
+  env.set([frozen.camera.f32[32], frozen.camera.f32[33], frozen.camera.f32[34], 1], 16);
+  env.set(rl.sun, 20);
+  env.set(rl.aerial, 36);
   upload.upload_frame(
     new Float32Array(frozen.camera.f32),
-    sharedEnvironment,
+    env,
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
   upload.upload_ground(concatMeshes([ff.terrain, ff.world.props]));
+  const h = () => {
+    const heights = ff.presentation.presentedGround()?.ground_heights();
+    if (heights?.length) upload.upload_fog_heights(new Uint32Array(heights));
+  };
+  h();
   upload.overlay(
     concatMeshes([
       ff.overlay.opaque,
@@ -726,7 +729,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   await renderer.recover_device(canvas);
   upload.upload_frame(
     new Float32Array(frozen.camera.f32),
-    sharedEnvironment,
+    env,
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
@@ -736,6 +739,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     }
   ).upload_instances(si);
   upload.upload_ground(concatMeshes([ff.terrain, ff.world.props]));
+  h();
   upload.overlay(
     concatMeshes([
       ff.overlay.opaque,
@@ -761,9 +765,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   const encodeMs = performance.now() - encodeStart;
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   const submitMs = performance.now() - encodeStart - encodeMs;
-  const workload = renderer
-    .stats()
-    .replace(/\}$/, `,"bundleWireBytes":${bundleWireBytes},"export":${exportValidation}}`);
+  const workload = renderer.stats().replace(/\}$/, `,"bw":${bw},"export":${exportValidation}}`);
   renderer.free();
   ff.presentation.free();
   return {

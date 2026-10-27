@@ -91,15 +91,16 @@ parity and repository closeout run only after all production passes are wired.
 | current model visibility fix | shared model lifecycle/vertex boundary | The authored vertex adapter packs a valid +Z snorm16 normal and the opaque model draw is part of the normal shared frame. The shared screenshot now shows the authored model after recovery; its material is still a neutral diagnostic row rather than the bundle's full material table, so texture/material parity remains open | PR #16 |
 | current bundle material upload | shared asset/material boundary | Browser asset loading now writes up to sixteen decoded BGAT material rows, propagates mesh draw material ids, and uploads decoded sRGB/linear bundle textures into shared 2D arrays with mip levels. The model remains visually stable; exact native material classification and all appearance tiers remain open | PR #16 |
 | current fog dispatch | shared visibility compute boundary | The browser now forwards `FogUpload.rebuild_dispatch` and whole-structure dispatch metadata, then runs terrain, merge, whole and cull compute stages in the shared frame after the authoritative fog upload. The scene passes with no WebGPU validation errors; full height-page/visibility image parity remains open | PR #16 |
+| current fog height upload | shared static ground boundary | Presentation WASM now exposes the packed `Grid::pages()` payload; the browser uploads it into the shared `fog-heights` storage owner, replays it after device recovery, and the scene records the three-word flat-fixture header. The transport and binding are real; this fixture has no present height pages, so non-flat production page parity remains open | PR #16 |
 | current shared post/overlay composition | shared display target boundary | Browser post now receives the resolved bloom/grade records and presents `targets.display`; the shared overlay owner uses the exported translucent geometry pipeline against world depth, resolves the transparent overlay target, blurs its halo, composites it after the fog rim, and replays the records across resize/device rebuild. The scene remains green; exact BattleFrame pixels still differ because caster draws and full model/world material passes are incomplete | PR #16 |
 | current accounting run | three-way harness | Shared browser WASM is 1,328,778 bytes plus 82,501 bytes generated JS; the shared row encodes 121 frames at 4.9 ms with a 0.1 ms compositor drain, while forced device recovery is included in its 193.3 ms setup. The shared overlay/post path is included in the frame submission and the accounting now reports five display/composite draws per frame. Battle image distance remains 47.03 because production fog/shadow/overlay target composition is not yet matched | PR #16 |
 
 ## Handoff
 
 Incumbent: `9783fa7b8` plus the shared browser-owner commits on PR #16.
-Active task: port native-equivalent shadow caster draws and full fog height-page
-visibility into the shared browser pass groups, then compare the matched
-production frame.
+Active task: port native-equivalent shadow caster draws and exercise the shared
+fog height-page path against a non-flat production ground, then compare the
+matched production frame.
 Regression set:
 renderer-core/native-client WASM checks, presentation tests, and the interleaved
 one-renderer scene. The latest rebuilt scene passes all eleven rows and executes

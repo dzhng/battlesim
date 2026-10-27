@@ -39,6 +39,12 @@ fn ground(inner: &Inner) -> Result<&Ground, JsError> {
 
 #[wasm_bindgen]
 impl Presentation {
+    /// The packed height pages consumed by the renderer's fog and terrain
+    /// compute passes (`page_size`, directory, then height bit patterns).
+    pub fn pages(&self) -> Result<Vec<u32>, JsError> {
+        Ok(ground(&self.inner)?.source.grid.pages())
+    }
+
     /// Sets the map's ground: `extents` is the physical map's `[min x, min y,
     /// max x, max y]`, the playable rectangle, then its rendered
     /// surroundings' where it has them;

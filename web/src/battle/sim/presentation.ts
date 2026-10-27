@@ -206,6 +206,7 @@ function groundOf(rust: Presentation): PresentedGround {
     rebuild_fog: () => rust.rebuild_fog(),
     fog_stats: () => rust.fog_stats(),
     fog_occluders: () => rust.fog_occluders(),
+    pages: () => rust.pages(),
     ground_terrain: () => rust.ground_terrain(),
     ground_plots: (textured) => rust.ground_plots(textured),
     ground_water_mesh: () => rust.ground_water_mesh(),

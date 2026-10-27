@@ -17,6 +17,7 @@ impl Renderer {
         let ground = self.ground_snapshot.clone();
         let post_bloom = self.post_bloom.clone();
         let post_grade = self.post_grade.clone();
+        let fog_heights = self.fog_height_snapshot.clone();
         let presentation = self.presentation_snapshot.clone();
         let mut replacement = Self::new(canvas).await?;
         replacement.stats = previous_stats;
@@ -47,6 +48,9 @@ impl Renderer {
         }
         if !post_bloom.is_empty() || !post_grade.is_empty() {
             replacement.upload_post(&post_bloom, &post_grade)?;
+        }
+        if let Some(heights) = fog_heights {
+            replacement.upload_fog_heights(&heights)?;
         }
         *self = replacement;
         Ok(())

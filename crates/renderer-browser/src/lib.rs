@@ -200,6 +200,7 @@ pub struct Renderer {
     fog_rebuild_dispatch: Option<[u32; 2]>,
     fog_whole_dispatch: Option<[u32; 2]>,
     fog_dispatch_active: bool,
+    fog_height_snapshot: Option<Vec<u32>>,
     post_bloom: Vec<f32>,
     post_grade: Vec<f32>,
     display_sampler: Sampler,
@@ -485,6 +486,7 @@ impl Renderer {
             fog_rebuild_dispatch: None,
             fog_whole_dispatch: None,
             fog_dispatch_active: false,
+            fog_height_snapshot: None,
             post_bloom: Vec::new(),
             post_grade: Vec::new(),
             display_sampler,
@@ -629,7 +631,7 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedFogSight":{},"shadowCasterBatches":[{},{},{},{}],"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedFogSight":{},"shadowCasterBatches":[{},{},{},{}],"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"fogHeightWords":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -651,6 +653,7 @@ impl Renderer {
             self.device_lost.load(Ordering::Relaxed),
             self.stats.presentation_uploads,
             self.stats.fog_sight_uploads,
+            self.stats.fog_height_words,
             self.stats.presentation_bound,
             self.stats.presentation_camera_words,
             self.stats.presentation_environment_words,

@@ -16,6 +16,7 @@ pub(super) struct Stats {
     pub(super) device_recoveries: u32,
     pub(super) presentation_uploads: u32,
     pub(super) fog_sight_uploads: u32,
+    pub(super) fog_height_words: u32,
     pub(super) presentation_bound: bool,
     pub(super) presentation_camera_words: u32,
     pub(super) presentation_environment_words: u32,

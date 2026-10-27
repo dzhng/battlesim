@@ -4,6 +4,17 @@ use super::*;
 impl Renderer {
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
+    pub fn upload_fog_heights(&mut self, heights: &[u32]) -> Result<(), JsValue> {
+        self.shared_fog_sight
+            .upload_heights(&self.device, &self.queue, bytemuck::cast_slice(heights))
+            .map_err(js_error)?;
+        self.fog_height_snapshot = Some(heights.to_vec());
+        self.stats.fog_height_words = heights.len() as u32;
+        Ok(())
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
     pub fn upload_post(&mut self, bloom: &[f32], grade: &[f32]) -> Result<(), JsValue> {
         self.shared_post
             .write(

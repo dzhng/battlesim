@@ -343,6 +343,24 @@ impl FogSightResources {
         Ok(())
     }
 
+    /// Upload the static ground height pages once per ground generation.
+    pub fn upload_heights(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        heights: &[u8],
+    ) -> Result<(), String> {
+        if heights.is_empty() {
+            return Ok(());
+        }
+        let rebind = grow(device, &mut self.height, "fog-heights", heights);
+        queue.write_buffer(&self.height, 0, heights);
+        if rebind {
+            self.rebind(device);
+        }
+        Ok(())
+    }
+
     /// Dispatch terrain/merge and cull/whole in native order. This remains an
     /// explicit opt-in so a shell can keep its visible fixture unchanged while
     /// it proves all uploaded resources on a real device.
