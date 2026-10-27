@@ -38,6 +38,7 @@ mod diagnostic;
 mod environment;
 mod export;
 mod fixture;
+mod model_instances;
 mod presentation_upload;
 mod production_model;
 mod recovery;
@@ -664,6 +665,7 @@ impl Renderer {
         if !instances.len().is_multiple_of(16) {
             return Err(js_error("shared model instances need 16 floats"));
         }
+        self.ensure_production_model_instances(std::mem::size_of_val(instances));
         self.queue.write_buffer(
             &self.production_model_instances,
             0,
@@ -736,6 +738,7 @@ impl Renderer {
         } else {
             self.production_model_runs = Some(runs);
         }
+        self.ensure_production_model_instances(std::mem::size_of_val(instances));
         write(
             &self.queue,
             &self.production_model_instances,

@@ -390,6 +390,20 @@ The runnable surface is the `one-renderer` developer tool and scene:
   bundle set from Git LFS: `cargo test -p native-client --test counts --
   --nocapture` reports one passing test over the browser capture. This proves
   presentation/count contracts, not native/browser pixel parity.
+- The captured `paris-corner` diagnostic now decodes the approved
+  `plate-660.png` publication through the browser `ScenePresentation`, resolves
+  the capture catalog, Paris static world, scenery, city kits, fog and effect
+  records, and reaches the shared Rust browser frame after the real resize and
+  device-loss cycle. The capture row records 121 frames, 4,048 effect words,
+  662,508 model words, 2 admitted model runs, 240 material words, 37/41/41/41
+  shadow caster batches, and 484 shadow passes. The shared instance buffer now
+  grows from its probe allocation to admit this real stream. This is a transport
+  and lifecycle result, not full captured visual parity: the browser shell still
+  bootstraps only the `test_tank` drawable, so capture appearance bundles are
+  resolved by presentation but not all admitted as shared GPU drawables. A
+  browser BattleFrame control over the complete capture asset set exceeds the
+  scene timeout, which keeps the missing appearance upload as the next bounded
+  gate rather than hiding it behind a substitute model.
 
 ## Current verdict
 

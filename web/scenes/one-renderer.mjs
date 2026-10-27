@@ -16,7 +16,7 @@ function meanDiff(a, b) {
 
 export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1280, height: 2300 } });
-  await page.goto(ctx.url);
+  await page.goto(`${ctx.url}${process.env.ONE_RENDERER_CAPTURE === "1" ? "?capture=1" : ""}`);
   await page.getByRole("button", { name: "Run comparison" }).waitFor({ timeout: 60_000 });
   await page.getByRole("button", { name: "Run comparison" }).click();
   await page.waitForFunction(() => document.querySelectorAll("tbody tr").length === 11, undefined, {

@@ -171,7 +171,12 @@ export function gameAppearances(
 /** Load the catalog afresh (it was re-baked) for a session running `units`:
  *  the page's appearances from now on. The new bake's kits are fetched when
  *  asked for again. */
-export function reloadGameAppearances(units: UnitCatalog): Promise<InstalledAppearances> {
+export function reloadGameAppearances(
+  units: UnitCatalog,
+  wearing: ReadonlySet<string> = units.appearances,
+  factions?: ReadonlySet<string> | null,
+  scenery?: ReadonlySet<string> | null,
+): Promise<InstalledAppearances> {
   loading = null;
   loadingFactions = undefined;
   loadingScenery = undefined;
@@ -181,7 +186,7 @@ export function reloadGameAppearances(units: UnitCatalog): Promise<InstalledAppe
     prefetchTimer = null;
   }
   prefetchStatus = { state: "idle" };
-  return gameAppearances(units);
+  return gameAppearances(units, [], wearing, factions, scenery);
 }
 
 const NOTHING: ReadonlySet<string> = new Set();

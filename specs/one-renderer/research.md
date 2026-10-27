@@ -220,6 +220,37 @@ The latest accounting rerun keeps the same visual distances (`model_rust_vs_brow
 `180.5 / 6.8 / 0.5 ms` setup, encode, and queue-boundary drain. These remain
 submission-boundary measurements, not GPU timestamps.
 
+## 2026-10-27 captured Paris workload
+
+The shared browser row now has a second diagnostic input selected by
+`ONE_RENDERER_CAPTURE=1`. It reads the committed `paris-corner` capture, decodes
+every publication through the `plate-660.png` tick, resolves the capture unit
+catalog and the Paris map through the same browser WASM adapters, loads the
+map's city kits and biome scenery, and sends the resulting `ScenePresentation`
+frame through the shared Rust core. The one-shot run completed 120 measured
+frames plus the recovery frame with `791.7 ms` setup, `8.8 ms` CPU encode and
+`0.1 ms` queue-boundary drain. It carried 662,508 model words, 4,048 effect
+words, 240 material words, 37/41/41/41 caster batches and 484 shadow passes;
+the full record is saved in `throwaway/evidence/one-renderer-capture/result.json`.
+
+This run found and fixed two real ownership defects: the adapter had been
+passing simulation unit ids as appearance requests, and the shared browser
+model instance buffer was a fixed one-megabyte probe allocation. The loader now
+resolves unit ids to their worn appearance set and the Rust shell grows its
+renderer-owned instance buffer before upload, preserving the same recovery
+snapshot contract.
+
+The captured run is intentionally still open. The browser shell's asset bootstrap
+loads only the `test_tank` drawable into the shared model owner, so the capture
+frame's decoded appearance/material records are not yet all admitted to GPU
+drawables; the two reported model runs are therefore not a complete capture
+visual comparison. Attempting to drive the full capture through the existing
+BattleFrame control exceeds the scene's 60-second gate while installing the
+complete appearance generation. The next experiment is to stream every
+appearance/tier referenced by the capture into the shared drawable table, then
+rerun the browser-control versus shared-Rust screenshot and GPU comparison on
+the same plate. No substitute model or relaxed gate is acceptable.
+
 The model geometry slice now packs all non-empty tiers from the loaded
 appearance into one vertex stream and routes each accepted batch to its tier's
 vertex range. The shared row reports 49,020 model vertices, 240 authored

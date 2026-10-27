@@ -14,7 +14,7 @@ import { gameLight } from "../gameLight";
 import { gameOverlayGlow } from "../gameOverlay";
 import { groundPatch, FOUNDATION_CAMERA } from "./frame";
 import { modelEncoder, modelPipeline } from "./oneRendererModel";
-import { realBattleFixture } from "./oneRendererBattle";
+import { capturedParisFixture, realBattleFixture } from "./oneRendererBattle";
 import { fixtureModelFrame, loadTankBundle, mw, shadowBatchWords } from "./oneRendererAssets";
 import { loadEffectAtlasLayers } from "./oneRendererEffects";
 import { battleRustRun } from "./oneRendererBattleRust";
@@ -447,7 +447,9 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   ).upload_instances(si);
   let ff;
   try {
-    ff = await realBattleFixture();
+    ff = window.location.search.includes("capture=1")
+      ? await capturedParisFixture()
+      : await realBattleFixture();
   } catch (error) {
     console.error("one-renderer realBattleFixture failed", error);
     throw error;

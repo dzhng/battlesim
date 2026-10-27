@@ -15,8 +15,9 @@ import {
   resolveLight,
   ScenePresentation,
 } from "@web/battle/sim/presentation";
+import { decodePresentationCapture } from "@web/battle/benchmark/presentationCapture";
 import { gameFogGeometry, gameFogStyle } from "../gameFog";
-import { gameGlass, gameModelDetail } from "../gameModels";
+import { gameBuildingStyle, gameGlass, gameModelDetail } from "../gameModels";
 import { gameLight } from "../gameLight";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
 import { readBundle, readGzip } from "@packages/scene-assets/src/gzip";
@@ -26,9 +27,25 @@ import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import { FOUNDATION, FOUNDATION_CAMERA, groundPatch } from "./frame";
 import { catalogSet } from "@web/battle/catalog/sets";
 import { loadMap } from "@web/maps/browser";
-import { loadSimModule } from "@web/battle/sim/module";
+import { loadSimModule, loadWasm } from "@web/battle/sim/module";
 import { fieldedBattle } from "../presentedFrame";
 import type { RuntimeFiles } from "../presentedFrame";
+import {
+  gameAppearances,
+  gameRuntime,
+  mapAppearances,
+  mapDownloads,
+  reloadGameAppearances,
+} from "../gameAppearances";
+import { gameBiome } from "../gameBiome";
+import {
+  buildWorldLayers,
+  readWorldExports,
+  type WorldLayout,
+} from "@packages/battle-renderer/src/worldMesh";
+import { mapProps } from "@packages/battle-renderer/src/models/propAppearance";
+import { indexBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
+import parisCapture from "@fixtures/parity/capture/run/paris-corner/capture.json";
 
 export const BATTLE_WIDTH = 640;
 export const BATTLE_HEIGHT = 360;
@@ -156,6 +173,132 @@ export async function realBattleFixture(): Promise<BattleFixture> {
     world,
     presentation,
     overlay: visual.overlay,
+  };
+}
+
+let capturedParisFixturePromise: Promise<BattleFixture> | null = null;
+
+/** Build one real native parity plate through the browser presentation seam.
+ * The shared comparison invokes this row once per timing repeat; retain the
+ * decoded publication and resident art generation across those repeats. */
+export function capturedParisFixture(): Promise<BattleFixture> {
+  return (capturedParisFixturePromise ??= buildCapturedParisFixture());
+}
+
+async function buildCapturedParisFixture(): Promise<BattleFixture> {
+  const capture = decodePresentationCapture(JSON.stringify(parisCapture));
+  const frame = capture.frames.find((row) => row.plate === "plate-660.png");
+  if (!frame) throw new Error("paris-corner capture has no plate-660 frame");
+  const sample = [...capture.samples].reverse().find((row) => row.tick <= frame.tick);
+  if (!sample) throw new Error(`paris-corner capture has no publication for tick ${frame.tick}`);
+  const [catalog, map, wasm] = await Promise.all([
+    catalogSet("capture"),
+    loadMap("paris-corner"),
+    loadWasm(),
+  ]);
+  const rules = catalog.rules;
+  const presentation = new ScenePresentation(capture.layout, capture.tickHz);
+  let observation = null;
+  for (const row of capture.samples) {
+    if (row.tick > frame.tick) break;
+    observation = presentation.decode(
+      Uint32Array.from(row.publication),
+      (row.tick * 1000) / capture.tickHz,
+    );
+  }
+  if (!observation) throw new Error(`capture publication at tick ${sample.tick} was stale`);
+  const kinds = [
+    ...new Set([...observation.own, ...observation.identified].map((unit) => unit.kind)),
+  ];
+  const worldView = new wasm.WorldView(JSON.stringify(map.definition), JSON.stringify(rules));
+  const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules))) as WorldLayout;
+  const exports = readWorldExports(worldView);
+  const buildings = indexBuildings(exports.buildings, mapProps(exports, layout));
+  // `kinds` are simulation type ids, while the loader's second argument is
+  // reserved for map-specific appearance names (kits and regional looks).
+  // Resolve the unit ids to the art they wear explicitly; passing the ids as
+  // appearance requests happens to work for `test_tank` because the fixture
+  // has an appearance with that name, but fails for capture-only ids.
+  const wearing = catalog.units.appearancesFor(kinds);
+  // Scenery is a separate catalog slice from fielded unit art. Keep the
+  // request explicit so this fixture does not depend on which other row ran
+  // first in the interleaved comparison page.
+  const scenery = new Set([
+    ...gameBiome.trees.species.map((species) => species.appearance),
+    gameBiome.trees.hedgerows.appearance,
+    gameBiome.trees.understorey.appearance,
+    ...gameBiome.forest_floor.dressing.kinds.map((kind) => kind.appearance),
+  ]);
+  const installed = await reloadGameAppearances(catalog.units, wearing, null, scenery);
+  const complete = await gameAppearances(
+    catalog.units,
+    mapDownloads(installed, buildings.placed, exports.buildings.regionalFamily, true),
+    wearing,
+    null,
+    scenery,
+  );
+  const modelAppearances = mapAppearances(
+    complete,
+    { exports, layout },
+    buildings.placed,
+    true,
+    true,
+  );
+  // The scenery and grass passes need the complete generation. The model
+  // layer receives the filtered view above, matching the live battle route.
+  const layers = buildWorldLayers(exports, layout, gameBiome, "surface", complete, true);
+  const battle = await fieldedBattle({
+    rules: JSON.stringify(rules),
+    catalog: catalog.units.view,
+    kinds,
+    runtime: gameRuntime,
+    side: capture.side,
+    tickHz: capture.tickHz,
+    sun: { azimuth: gameLight.sun_azimuth, elevation: gameLight.sun_elevation },
+    soldier: rules.physics,
+    xray: { own: [0.2, 0.6, 1, 0.8], selected: [1, 0.8, 0.1, 0.9], ally: [0.2, 1, 0.5, 0.8] },
+    blocked: [1, 0.1, 0.1, 0.8],
+  });
+  presentation.setBattle(battle);
+  presentation.setBuildings(
+    { placed: buildings.placed, partBuilding: buildings.partBuilding, shells: new Set() },
+    modelAppearances,
+    gameBuildingStyle,
+    {
+      azimuth: gameLight.sun_azimuth,
+      elevation: gameLight.sun_elevation,
+      farM: gameLight.cascades.max_far_m,
+    },
+  );
+  presentation.setGround(layers.terrain.input, layers.scenery);
+  presentation.setFog({ sensors: rules.sensors });
+  presentation.setShadow(gameLight, layers.terrain.mesh);
+  const camera = presentation.frame(
+    frame.simTime,
+    {
+      eye: frame.eye,
+      target: frame.target,
+      up: frame.up,
+      fovY: 0.8,
+      near: 1,
+      width: 640,
+      height: 360,
+    },
+    { selected: [], xray: false, ghosts: [] },
+    0,
+  );
+  return {
+    terrain: layers.terrain.mesh,
+    camera: structuredClone(camera),
+    instances: [],
+    world: layers,
+    presentation,
+    overlay: {
+      opaque: new MeshBuilder().build(),
+      translucent: new MeshBuilder().build(),
+      painted: new MeshBuilder().build(),
+      paintedMarching: new MeshBuilder().build(),
+    },
   };
 }
 
