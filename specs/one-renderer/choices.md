@@ -304,3 +304,18 @@ still need drawable buffers. **Reach:** native and browser now agree on the
 packed batch contract before that mapping is added. **Verdict:** keep the
 decoder in `renderer-core`; do not duplicate record parsing in either shell.
 **Confidence:** high.
+
+### Static batch ranges survive frame rebuilds through the shared batch state
+
+Native treats `Batch.first == NONE` as a held static range. The shared model
+core now keeps those ranges by `Batch.key`, reuses them when a later frame
+publishes the held marker, and snapshots the state with the presentation upload
+so device recovery rebuilds the same draw ranges. Dynamic batches still use
+their frame-local `first/count` records and the full instance stream remains
+available to the shadow owner.
+
+**Gap:** the browser still needs an appearance/tier drawable table for
+heterogeneous static rows; the holder only solves range lifetime. **Reach:**
+this removes one lifecycle divergence without adding a second renderer graph.
+**Verdict:** keep the holder in the shared model boundary and add drawable
+mapping next. **Confidence:** high.

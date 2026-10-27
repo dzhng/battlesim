@@ -192,3 +192,11 @@ The accounting snapshot after this pass is `1,371,265` bytes for shared WASM,
 chunk. The latest measured shared row is `186.1 / 6.6 / 0.1 ms` for setup,
 encode, and queue-boundary drain; these remain browser-compositor measurements,
 not GPU timestamps.
+
+The static-batch follow-up now moves held-range lifetime into the shared model
+boundary. `BatchState` records dynamic ranges by key and resolves later
+`first == NONE` records from that state; the snapshot is restored before the
+browser replays model records after device loss. Renderer-core now has five
+focused tests, including a held-range recovery contract. This closes the static
+range lifecycle seam, while appearance/tier drawable mapping and a real
+production frame remain open.
