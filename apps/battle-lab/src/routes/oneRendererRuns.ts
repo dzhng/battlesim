@@ -605,6 +605,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   canvas.width = REAL_WIDTH;
   canvas.height = REAL_HEIGHT;
   renderer.resize(canvas);
+  renderer.recover_surface();
   const setupMs = performance.now() - started;
   const encodeStart = performance.now();
   for (let index = 0; index < FRAMES; index++) renderer.render();

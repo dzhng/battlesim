@@ -85,4 +85,9 @@ export async function run(ctx) {
       sharedWorkload?.height === 360,
     JSON.stringify(sharedWorkload),
   );
+  ctx.check(
+    "shared browser row exercises surface recovery",
+    sharedWorkload?.surfaceRecoveries >= 1,
+    JSON.stringify(sharedWorkload),
+  );
 }

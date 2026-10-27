@@ -75,6 +75,7 @@ struct Stats {
     shared_passes: u32,
     target_generation: u64,
     shared_materials: bool,
+    surface_recoveries: u32,
 }
 
 fn build_exported_pipelines(device: &Device) -> Result<Pipelines, String> {
@@ -168,6 +169,7 @@ pub struct Renderer {
     width: u32,
     height: u32,
     format: TextureFormat,
+    alpha_mode: CompositeAlphaMode,
     stats: Stats,
     asset_report: Option<String>,
     asset_texture: Option<Texture>,
@@ -390,6 +392,7 @@ impl Renderer {
             width,
             height,
             format,
+            alpha_mode: caps.alpha_modes[0],
             stats: Stats::default(),
             asset_report: None,
             asset_texture: None,
@@ -422,6 +425,10 @@ impl Renderer {
             self.stats.resizes += 1;
             self.stats.target_generation = self.targets.generation();
         }
+        self.configure_surface();
+    }
+
+    fn configure_surface(&self) {
         self.surface.configure(
             &self.device,
             &SurfaceConfiguration {
@@ -432,10 +439,18 @@ impl Renderer {
                 height: self.height,
                 present_mode: PresentMode::Fifo,
                 desired_maximum_frame_latency: 2,
-                alpha_mode: CompositeAlphaMode::Opaque,
+                alpha_mode: self.alpha_mode,
                 view_formats: vec![],
             },
         );
+    }
+
+    /// Reconfigure the existing browser surface after an outdated/lost
+    /// surface status. The device and shared resources remain valid.
+    #[wasm_bindgen]
+    pub fn recover_surface(&mut self) {
+        self.configure_surface();
+        self.stats.surface_recoveries += 1;
     }
 
     /// Parse one fetched BGAT bundle through the native client's shared asset
@@ -602,6 +617,10 @@ impl Renderer {
         let surface = match self.surface.get_current_texture() {
             CurrentSurfaceTexture::Success(surface)
             | CurrentSurfaceTexture::Suboptimal(surface) => surface,
+            CurrentSurfaceTexture::Outdated | CurrentSurfaceTexture::Lost => {
+                self.recover_surface();
+                return Ok(());
+            }
             other => return Err(js_error(format!("surface unavailable: {other:?}"))),
         };
         let view = surface
@@ -637,7 +656,7 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"surfaceRecoveries":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -645,6 +664,7 @@ impl Renderer {
             self.stats.shared_passes,
             self.stats.target_generation,
             self.stats.shared_materials,
+            self.stats.surface_recoveries,
             self.width,
             self.height,
             self.asset_report.as_deref().unwrap_or("null")

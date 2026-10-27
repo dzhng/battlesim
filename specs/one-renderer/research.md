@@ -67,6 +67,7 @@ parity and repository closeout run only after all production passes are wired.
 | `48e059aac` + current scene run | embedded export | Shared browser row now validates all 63 exported pipelines before rendering; full eleven-row scene passes | PR #16 |
 | `0da7aa468` shared model material bindings | model owner | Native palette/material/texture bind-group order now has one browser-safe owner; palette growth rebinds through it | PR #16 |
 | current browser material-owner run | shared model owner | Browser binds the exported `modelLayout` against array texture views and real fetched albedo data; scene records `sharedMaterials: true` | PR #16 |
+| current browser lifecycle run | target/surface owners | Browser rebuilds target-bound fog/post resources after resize and exercises one explicit surface recovery; scene records generation 2 and `surfaceRecoveries: 1` | PR #16 |
 | current browser production-owner run | shared shell | Browser now builds the real exported pipelines and encodes shared fog-mask, post, and rim passes for every fixture frame; target generation reaches 2 after the resize round trip and the eleven-row scene passes | PR #16 |
 
 ## Handoff

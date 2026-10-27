@@ -178,6 +178,8 @@ stops the work before a full port is attempted:
    The browser shell also binds the exported model layout through the shared
    material owner and reconnects the fetched albedo texture as a 2D array,
    reporting `sharedMaterials: true` in the run.
+   The browser shell also reconfigures a lost/outdated surface through one
+   recovery method; the scene now requires and records one recovery.
 12. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
    shared Rust native on the same frozen presentation frame. Measure startup,
    CPU encode, GPU timestamps, memory, binary/download size, LOC, GPU object
