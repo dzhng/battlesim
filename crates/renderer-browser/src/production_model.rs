@@ -46,31 +46,6 @@ pub fn fixture_display_vertices() -> (Vec<u8>, u32) {
     display_pack(positions.into_iter().zip(colours), 6)
 }
 
-/// Build a display stream from an authored mesh's indexed positions and
-/// byte colours.  This is a presentation adapter only; the production
-/// prepass continues to consume `mesh_vertices` and its full authored layout.
-pub fn display_vertices(
-    positions: &[f32],
-    colours: &[u8],
-    indices: &[u32],
-) -> Result<(Vec<u8>, u32), String> {
-    if !positions.len().is_multiple_of(3) || colours.len() != positions.len() / 3 * 4 {
-        return Err("display model attributes have different lengths".into());
-    }
-    let mut bytes = Vec::with_capacity(indices.len() * 28);
-    for &index in indices {
-        let index = index as usize;
-        if index >= positions.len() / 3 {
-            return Err("display model index is outside the vertex array".into());
-        }
-        bytes.extend_from_slice(bytemuck::cast_slice(&positions[index * 3..index * 3 + 3]));
-        for &channel in &colours[index * 4..index * 4 + 4] {
-            bytes.extend_from_slice(&(channel as f32 / 255.0).to_ne_bytes());
-        }
-    }
-    Ok((bytes, indices.len() as u32))
-}
-
 pub fn mesh_vertices(
     positions: &[f32],
     colours: &[u8],
