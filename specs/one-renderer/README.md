@@ -27,11 +27,13 @@ the shared target formats, target allocation and GPU buffer/bind helpers, and
 surface/device/assets/audio concerns. Do not add another Rust pass graph.
 Keep TypeGPU as the browser control until the shared native/browser core clears
 the matched-image, startup, frame-time, resize, rebuild, and production pass
-parity gates. The current pickup is the shadow/material parity pass: bind the
-real receiver records, authored sky/PMREM/DFG assets, and terrain/fog inputs to
-the shared model/world draws, then compare the same multi-model production fixture. Do
-not treat the current range-aware caster counters as a visual shadow proof;
-the latest review still sees no readable contact shadows.
+parity gates. Sky/PMREM/DFG assets, range-aware caster routing, native fog
+layer records, and a non-flat height page now cross the shared browser shell.
+The current pickup is the real production input extraction: move native
+terrain tables, material rows, fog publication state, and static/model batches
+behind the shared frame boundary, then compare the same multi-model fixture.
+Do not treat the current caster counters or the fixture world path as a visual
+shadow/material proof; the latest review still sees no readable contact shadows.
 
 ## Decision map
 
