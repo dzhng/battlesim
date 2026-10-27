@@ -69,7 +69,7 @@ parity and repository closeout run only after all production passes are wired.
 ## Handoff
 
 Incumbent: `a27ca5d27` plus the model-owner commits on PR #16.
-Active task: extract fog compute/material ownership, then browser production
+Active task: extract fog material/resource ownership, then browser production
 frame and device-loss seam. Regression set: renderer-core/native-client WASM checks,
 presentation tests, and the interleaved one-renderer scene. The latest rebuilt
 scene passes all eleven rows; it also caught and fixed the indexed-buffer

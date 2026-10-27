@@ -208,8 +208,8 @@ const report = {
     {
       area: "terrain and authored tank",
       browser: "worldPass/modelLayer and oneRendererModel.ts",
-      rust: "renderer-wasm-spike model path; renderer-browser asset parser/upload proof",
-      status: "bounded model pixels pass in the transport spike; shared core parses/uploads the real tank but does not draw it yet",
+      rust: "renderer-browser shared asset parser/upload/indexed draw; renderer-wasm-spike remains transport probe",
+      status: "shared browser core parses, uploads, and draws the real tank through renderer-core; production material parity remains open",
     },
     {
       area: "reverse-Z depth",
