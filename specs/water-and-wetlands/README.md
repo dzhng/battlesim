@@ -2,8 +2,9 @@
 
 **Status:** placeholder, being mapped. The unknowns walk has settled the
 quadrants of known knowns, known unknowns and unknown knowns
-([decisions](decisions.md)). The sweep for unknown unknowns is next. Nothing is
-sliced or implemented.
+([decisions](decisions.md)), and the sweep for unknown unknowns has run
+([sharp edges](#sharp-edges)). Three questions remain. Nothing is sliced or
+implemented.
 **Updated:** 2026-10-27.
 
 ## Next Agent Prompt
@@ -41,8 +42,10 @@ point, and the checklist.
 
 - [x] Known knowns, known unknowns and unknown knowns (2026-10-27,
       [decisions](decisions.md)).
-- [ ] Sweep for unknown unknowns, starting with the items under
-      [still open](#still-open).
+- [x] Sweep for unknown unknowns (2026-10-27): [sharp edges](#sharp-edges)
+      and decisions 21-28.
+- [ ] Settle questions 7-9 under [still open](#still-open) with the user, then
+      hand over the map.
 - [ ] Freeze the reference: capture RedGPU's lake demo at our camera angles
       (draft ladder, rung 0).
 - [ ] Slice the ladder, then work through it from rung 0.
@@ -291,13 +294,109 @@ These owners must hold through every rung:
 - **Look tuning:** biome and `presentation.terrain` data, not constants in the
   shader.
 
+## Sharp edges
+
+The 2026-10-27 sweep found these. They need no decision, but each must reach its
+owning slice. Worst first within each area.
+
+**Simulation and map generation**
+
+- **The dip can silently not exist.** `Carve` returns natural height on a map
+  with no river (`crates/sim/src/world/carve.rs`), and terrain and navigation
+  only look inside registered regions (`terrain.rs`, `world/mod.rs`
+  `navigation_regions`). Wetlands must run the carve on every map and register
+  their own bounds, or the planner sees open ground while movement slows.
+- **Make wetlands their own map list, like forests, not a new `SurfaceKind`.**
+  `SurfaceKind::of` turns any non-road kind into Paving, `SurfaceIndex::at`
+  keeps only the earliest kind, and every kind needs a road `speed_factor`
+  row. Add a wetland field to the sim's `Surface` and the nav `Cell`.
+- **Admission reads uncarved height.** Buildings carry an absolute `base_z`,
+  and river and bridge checks use `relief_height`. Add contract rules keeping
+  wetlands off buildings and bridge approaches and a gap from river edges, for
+  hand-made maps as well as generated ones.
+- **There are five speed read sites:** vehicle movement, soldier movement,
+  `cell_cost`, journey road arcs, and the `SlowGround::stretch` estimate. Today
+  the combination is road, else forest, else open, then slope, then craters
+  for vehicles only. Give `SlowGround` one combined channel per mover, so a
+  forest and a swamp on the same tile aren't counted twice.
+  `examples/navigation_quality/dense.rs` has its own copy of `speed()`.
+- **Resolve the per-drive factor in `ground_mobility`** into a field on
+  `Mobility`, as `forest_multiplier` is today. `Drive` is documented as never
+  read by planning.
+- **Serialization:** the new map field needs
+  `default, skip_serializing_if = "Vec::is_empty"`, or every map hash changes.
+  New rules rows change the rules hash for every battle. Re-record the parity
+  fixtures that embed full rules and maps (`fixtures/parity/*`, including
+  `publication/` and `capture/`). Bump the mapgen generator and presets
+  versions, draw wetlands from their own random stream, and re-record
+  `map-layout` and the skirmish corpus.
+- **Mapgen order:** place wetlands after towns and forests, respect the
+  reserved areas, and add a fairness check between the top and bottom halves.
+  Objectives currently refuse forest only, and `open_ground` would count a
+  swamp as open.
+
+**Renderer and native**
+
+- **Native rejects the whole export on any value it doesn't know**
+  (`native/client/src/pipelines.rs`, `deny_unknown_fields`). Native's tests
+  build pipelines but never draw, so CI stays green while native is broken.
+  See question 7.
+- **No depth resolve exists,** and `lit` can't be a copy source in either
+  client. Resolving into a new target keeps stale pixels on Metal, because it
+  skips empty tiles; resolve into `lit` or draw full-screen.
+- **Pass order must be** opaque, then copy, then water, then glass, then
+  effects. Today glass draws after water in the same pass and writes no depth.
+- **Refraction samples colour before fog,** so a seen water pixel refracting an
+  unseen neighbour shows a seam at the fog edge. Copy the fog mask alongside
+  the colour. Water's blended fog coverage changes meaning once water is
+  opaque.
+- **Ground marks under water would show twice,** once on the bed and once on
+  the water, and refraction would make order lines double and wobble. One layer
+  must own the paint.
+- **A Low tier toggle must be a uniform** (plus a stub binding when the copy is
+  skipped). The export never varies quality, so a pipeline only Low used would
+  never be exported or checked. Water look data must be uniforms too, because
+  `presentation.terrain` is written into the shader text.
+- **The river frame baseline is captured on Low,** and the river scene checks
+  shore placement against the simulation's distance to the edge, plus
+  waterline flicker. A depth-taken shore follows 4 m triangles, so expect those
+  checks to fail and re-judge them. Don't loosen them to pass.
+
+**Presentation and wakes**
+
+- **Riders make false wakes.** Every own unit becomes a mover record, and a
+  carried squad stands at its APC's position. Wake sources must skip held units
+  (the `riding()` test) and get a test beside "hidden emits nothing".
+- **The wake decision can't see feet or water today.** Mover records carry
+  member ids but not positions, and `EffectFrame::note` has no ground access.
+  Shots that land in water spawn dust too.
+- **Decide wakes per tick, not from the pose driver's gait phase,** which
+  follows frame rate. Use smoke's fixed rate for rings and dust's spacing for
+  the V-wake.
+- **The wave field lives outside presentation's resets.** Rust should publish a
+  capped step count per frame and a counter that changes on reset, side switch
+  or load. Captures warm up a fixed number of steps from a reset. Native plates
+  jump between frames, so leave the wave state out of parity, or warm it up the
+  same way on both.
+- **Unifying the wind re-records** `grass-vectors.json`, `effect-vectors.json`,
+  `fixtures/parity/exact-numbers.json` (compared as text) and native smoke
+  plates. The sound's wind is separate.
+
+**Bugs found beyond this feature** (each fix is its own commit):
+
+- Track wear is recorded on ground cells under bridge decks, because `wear`
+  has no surface check (`crates/sim/src/ground.rs`).
+- Forest multipliers are never validated. A 0 divides by zero in
+  `SlowGround::stretch`, and `MovementRules` lacks `deny_unknown_fields`.
+
 ## Still open
 
-The walk's unknown-unknowns sweep owns these. Each needs an answer before slicing.
+Questions 7-9 below go to the user one at a time.
 
-- **How native catches up.** Native fails to start on a pipeline setting it
-  doesn't know (`native/client/README.md`). Browser-first steps need a defined
-  way for native to skip a pipeline it doesn't support yet, or each browser
-  step breaks the native build.
-- The rest of the sweep: fog-of-war leaks through wakes and refraction, cost at
-  far zoom and on Low, the menu reel, and the digests of generated maps.
+7. **How native catches up** while the browser ships first (decision 19
+   against the hard-cutover rule).
+8. **Puddles on roads and tracks:** road speed wins over any wetland (decision
+   4), so a puddle on a dirt track does nothing to gameplay today, and the
+   carve would sink a causeway.
+9. **The menu reel has no water** (`fixtures/captures/menu.json` maps), so
+   decision 17's "reel low angles" target has nothing to judge.

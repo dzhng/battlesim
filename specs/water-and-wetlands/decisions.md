@@ -102,3 +102,50 @@ feature adds no fording.
     placeholder's "both clients in the same step".
 20. **Done is a side-by-side read:** at our camera, next to RedGPU, ours reads as
     good. Slice 0's captures are the target for that comparison.
+
+## From the landmine sweep
+
+The sweep of unknown unknowns (2026-10-27) covered the simulation and map
+generation, the renderer and native, and presentation. The findings that need
+no taste call are under [sharp edges](README.md#sharp-edges). These are the
+ones decided from the confirmed preferences.
+
+21. *agent* **Wetlands are shallow and wide-edged.** Depth stays well under the
+    fog target height (`fog_target_height_m`, 1.0 m in `fixtures/game.json`),
+    and the soft edge spans several 4 m height cells. Admission checks depth
+    against edge width when the map loads. *Why:* a deep rim would hide units
+    on flat ground, which is the concealment decision 6 rules out. A steep rim
+    would add the slope slowdown (`slope_multiplier`, `navigation.rs`) on top
+    of the kind's factor, so speed would leak back to depth (decision 2). A
+    test proves sight is unchanged by a wetland.
+22. *agent* **A wetland has a minimum size of about three height cells
+    across.** Anything smaller can't be carved, and a hull's speed is sampled
+    at its centre only. Smaller puddles are paint only (see question 8). *Why:*
+    a puddle that slows some tanks and not others reads as a bug.
+23. *agent* **Rounds landing in a wetland burst at the water's surface and leave
+    no crater.** They make a splash, which is a later wake source. Wetlands
+    refuse craters and track wear alike. *Why:* water keeps one rule for marks
+    (decision 7). Today only `burst` refuses river water; `wear` has no surface
+    check at all (`crates/sim/src/ground.rs`).
+24. *agent* **A wake already on the water may keep showing a unit's heading for
+    a few seconds after the unit leaves sight.** The wave field clears on a
+    side switch, world reload or reset. *Why:* the side saw the wake being
+    made, and dust puffs already behave the same way. Clearing on a side
+    switch stops one side's waves leaking to the other.
+25. *agent* **Water is drawn single-sampled after the MSAA resolve, unless rung
+    2's cost probe shows that storing the samples is cheap.** *Why:* the soft
+    shoreline blurs water edges anyway, and the world pass discards its MSAA
+    samples on purpose to save bandwidth on Apple GPUs (commit `54bc94c03`).
+    Glass moves after water and follows the same choice.
+26. *agent* **The one wind keeps the grass heading (35°).** Smoke and dust drift
+    turns about 8° to match. The record carries both gust speed and drift
+    speed, because they are different quantities. *Why:* grass is the most
+    visible wind in the menu reel's liked shots, so it stays put.
+27. *agent* **Variants are picked from the biome seed plus each river's or
+    wetland's identity,** as tree stands are seeded per cell. This needs a
+    river index and a wetland index in the export. *Why:* presentation has no
+    map seed, and this follows the existing pattern.
+28. *agent* **A puddle's look follows the surface kind at its centre:** mirror
+    on `road` and `paving`, muddy on `country_road`, `dirt_track` and open
+    ground. *Why:* "hard track" wasn't a real kind; this maps decision 12 onto
+    the kinds that exist.
