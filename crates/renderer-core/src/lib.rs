@@ -14,6 +14,7 @@ pub mod effects;
 pub mod fog;
 pub mod fog_mask;
 pub mod model;
+pub mod model_material;
 pub mod pipelines;
 pub mod post;
 pub mod shadow;

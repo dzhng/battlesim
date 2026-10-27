@@ -22,7 +22,6 @@ use wgpu::*;
 use crate::fog::Layer;
 
 use crate::bundle::{Bundle, Coverage, Library, Material, Mesh, Shape, Texture};
-use crate::gpu::bind;
 use crate::pipelines::Pipelines;
 use crate::statics::Statics;
 
@@ -471,7 +470,7 @@ pub struct Models {
     palette: Buffer,
     instances: Buffer,
     statics: Statics,
-    group: BindGroup,
+    material_bindings: renderer_core::model_material::ModelMaterialBindings,
     runs: Vec<Run>,
     drawn: Drawn,
 }
@@ -635,14 +634,14 @@ impl Models {
             anisotropy_clamp: 8,
             ..Default::default()
         });
-        let layout = pipelines.layout("modelLayout").clone();
         let palette = growable(device, "model-palette", BufferUsages::STORAGE, 0);
         let instances = growable(device, "model-instances", BufferUsages::VERTEX, 0);
-        let group = Self::bind_group(
+        let layout = pipelines.layout("modelLayout").clone();
+        let material_bindings = renderer_core::model_material::ModelMaterialBindings::new(
             device, &layout, &palette, &materials, &albedo, &surface, &sampler,
         );
         Ok(Self {
-            group,
+            material_bindings,
             rows,
             layout,
             materials,
@@ -655,29 +654,6 @@ impl Models {
             runs: Vec::new(),
             drawn: Drawn::default(),
         })
-    }
-
-    fn bind_group(
-        device: &Device,
-        layout: &BindGroupLayout,
-        palette: &Buffer,
-        materials: &Buffer,
-        albedo: &TextureView,
-        surface: &TextureView,
-        sampler: &Sampler,
-    ) -> BindGroup {
-        bind(
-            device,
-            layout,
-            "models",
-            &[
-                palette.as_entire_binding(),
-                materials.as_entire_binding(),
-                BindingResource::TextureView(albedo),
-                BindingResource::TextureView(surface),
-                BindingResource::Sampler(sampler),
-            ],
-        )
     }
 
     /// Writes `frame`'s palettes and instances, takes its static batches,
@@ -698,7 +674,7 @@ impl Models {
                 BufferUsages::STORAGE,
                 palette.len() as u64 * 2,
             );
-            self.group = Self::bind_group(
+            self.material_bindings.rebuild(
                 device,
                 &self.layout,
                 &self.palette,
@@ -790,7 +766,7 @@ impl Models {
 
     /// The layer's own group, by the layout it fills.
     pub fn group(&self) -> (&'static str, &BindGroup) {
-        ("modelLayout", &self.group)
+        ("modelLayout", self.material_bindings.bind_group())
     }
 
     /// Every run `tier_of` gives a tier, through `range` of its drawable.
