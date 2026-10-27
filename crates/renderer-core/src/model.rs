@@ -5,6 +5,44 @@
 //! native and browser shells.
 use wgpu::*;
 
+pub const BATCH_WORDS: usize = 12;
+pub const NONE: u32 = u32::MAX;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DrawableRun {
+    pub appearance: u32,
+    pub tier: u32,
+    pub pass: u32,
+    pub first: u32,
+    pub count: u32,
+    pub static_held: bool,
+}
+
+/// Decode presentation batches without inventing a second frame contract.
+/// `first == NONE` is an explicit static batch held by the renderer; the
+/// browser shell must retain its previous GPU range rather than read absent
+/// instance words.
+pub fn drawable_runs(words: &[u32]) -> Result<Vec<DrawableRun>, String> {
+    if !words.len().is_multiple_of(BATCH_WORDS) {
+        return Err("presentation batches are not 12-word records".into());
+    }
+    words
+        .as_chunks::<BATCH_WORDS>()
+        .0
+        .iter()
+        .map(|b| {
+            Ok(DrawableRun {
+                appearance: b[1],
+                tier: b[2],
+                pass: b[3],
+                first: b[7],
+                count: b[8],
+                static_held: b[7] == NONE,
+            })
+        })
+        .collect()
+}
+
 pub struct IndexedModel {
     pub vertices: Buffer,
     pub indices: Buffer,
@@ -106,5 +144,32 @@ impl IndexedModel {
         pass.set_vertex_buffer(vertex_slot, self.vertices.slice(..));
         pass.set_index_buffer(self.indices.slice(..), IndexFormat::Uint32);
         pass.draw_indexed(0..self.index_count, 0, 0..1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{drawable_runs, NONE};
+    #[test]
+    fn separates_dynamic_and_held_static_ranges() {
+        let mut words = vec![0; 24];
+        words[1] = 4;
+        words[2] = 1;
+        words[3] = 0;
+        words[7] = 2;
+        words[8] = 3;
+        words[13] = 5;
+        words[14] = 2;
+        words[15] = 0;
+        words[19] = NONE;
+        words[20] = 7;
+        let runs = drawable_runs(&words).unwrap();
+        assert_eq!(runs[0].count, 3);
+        assert!(!runs[0].static_held);
+        assert!(runs[1].static_held);
+    }
+    #[test]
+    fn rejects_partial_batch() {
+        assert!(drawable_runs(&[0; 11]).is_err());
     }
 }

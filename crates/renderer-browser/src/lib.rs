@@ -705,22 +705,19 @@ impl Renderer {
             Ok(())
         };
         let mut runs = Vec::new();
-        for batch in batches.chunks_exact(12) {
-            // Batch fields: pass=3, first=7, count=8. VIEW_PASS is zero.
-            if batch[3] != 0 {
+        for run in renderer_core::model::drawable_runs(batches).map_err(js_error)? {
+            if run.pass != 0 || run.static_held {
                 continue;
             }
-            let first = batch[7] as usize;
-            if batch[7] == u32::MAX {
-                // A held static batch has no frame-local instance range yet;
-                // the shared browser owner does not own the static cache.
-                continue;
-            }
-            let end = first.saturating_add(batch[8] as usize);
+            let first = run.first as usize;
+            let end = first.saturating_add(run.count as usize);
             if end > instances.len() / 16 {
                 return Err(js_error("presentation batch range exceeds instances"));
             }
-            runs.push((first as u32, batch[8]));
+            runs.push((first as u32, run.count));
+        }
+        if runs.is_empty() && !instances.is_empty() {
+            runs.push((0, (instances.len() / 16) as u32));
         }
         write(
             &self.queue,
