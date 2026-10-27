@@ -199,11 +199,17 @@ impl Renderer {
                 "terrain table upload contains an empty required table",
             ));
         }
+        // `GroundTables.params` is the authored terrain look.  The native
+        // owner appends the frame's four-word view suffix before binding it;
+        // keep the same ABI here so uniform alignment and the shader's
+        // `TerrainParams` size agree on both shells.
+        let mut params_with_view = params.to_vec();
+        params_with_view.extend([0; 4]);
         self.terrain.upload(
             &self.device,
             &self.production_pipelines,
             renderer_core::terrain::TerrainUpload {
-                params: bytemuck::cast_slice(params),
+                params: bytemuck::cast_slice(&params_with_view),
                 nodes: bytemuck::cast_slice(nodes),
                 plots: bytemuck::cast_slice(plots),
                 surfaces: bytemuck::cast_slice(surfaces),
