@@ -151,11 +151,14 @@ ones decided from the confirmed preferences or by the user.
     side switch, world reload or reset. *Why:* the side saw the wake being
     made, and dust puffs already behave the same way. Clearing on a side
     switch stops one side's waves leaking to the other.
-25. *agent* **Water is drawn single-sampled after the MSAA resolve, unless rung
-    2's cost probe shows that storing the samples is cheap.** *Why:* the soft
+25. *agent* **Water is drawn single-sampled after the MSAA resolve, unless slice
+    02's cost probe shows that storing the samples is cheap.** *Why:* the soft
     shoreline blurs water edges anyway, and the world pass discards its MSAA
     samples on purpose to save bandwidth on Apple GPUs (commit `54bc94c03`).
-    Glass moves after water and follows the same choice.
+    Glass stays in the MSAA world pass, before the copy. *Revised* while
+    drafting: moving glass after water would cost MSAA on every window edge to
+    fix water seen through two panes of glass, which an RTS camera almost
+    never shows. Slice 02 checks a vehicle-by-the-river crop.
 26. *agent* **The one wind keeps the grass heading (35°).** Smoke and dust drift
     turns about 8° to match. The record carries both gust speed and drift
     speed, because they are different quantities. *Why:* grass is the most
@@ -192,3 +195,23 @@ ones decided from the confirmed preferences or by the user.
     shot would need directing and approval on its own. Sharp edge: the
     automatic graphics-tier check runs on reel maps, so it won't pay the new
     water's cost until a reel shot has water.
+
+## From slicing
+
+32. *agent* **Swamp water stops rounds and sight at its surface, as river water
+    does,** through the one `water_hit` (`crates/sim/src/world/mod.rs`). This
+    adds no concealment: the simulation has no prone posture, and a standing
+    soldier's eye (1.6 m), aim (1.0 m) and centre (0.9 m) all sit above 0.6 m
+    of water. A test proves a soldier standing in a swamp is seen and can be
+    hit. *Why:* water keeps one rule. This answers a drafter's objection that
+    the water plane might hide low targets.
+33. *agent* **A wading soldier is never drawn lying down.** Presentation's pose
+    stance skips prone wherever the standing water is deeper than a lying
+    soldier's height. *Why:* the film picture; a soldier lying underwater looks
+    silly. It is a physical comparison, not a swamp rule.
+34. *agent* **Puddle placement is a pure function of the biome seed and the
+    ground walk's cell.** *Why:* wakes, grass and both clients must agree on
+    where a puddle is whatever the camera has walked (decision 29 needs it).
+35. *agent* **The water scene ships the river first. The swamp joins it in slice
+    10,** with the swamp contract. *Why:* the scene can't contain a swamp
+    before the contract exists, and a placeholder dip would be scaffolding.

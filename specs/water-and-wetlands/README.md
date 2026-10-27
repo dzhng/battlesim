@@ -1,51 +1,63 @@
-# Water and wetlands (placeholder)
+# Water and wetlands
 
-**Status:** placeholder, mapped. The unknowns walk is finished
-([decisions](decisions.md), [sharp edges](#sharp-edges), and
-[the map](visualizations/unknowns-map.html)). Nothing is sliced or implemented.
+**Status:** sliced, not started. The unknowns walk ([decisions](decisions.md),
+[sharp edges](#sharp-edges), [the map](visualizations/unknowns-map.html))
+and the parallel drafts are done. The plan is the [slice graph](#slice-graph).
+Nothing is implemented.
 **Updated:** 2026-10-27.
 
 ## Next Agent Prompt
 
-You are picking up a three-part feature the user asked for on 2026-10-27:
+You are implementing a three-part feature the user asked for on 2026-10-27:
 
-1. **Port water quality** from RedGPU's `Lake` (a MIT WebGPU engine; see
-   [the reference](#the-reference)). The user wants "the same quality as their
-   video". Port the techniques into our own renderer, not the library. The
-   2026-10-27 evaluation rejected adopting RedGPU itself (see
-   [Why not adopt RedGPU](#why-not-adopt-redgpu)).
-2. **Add puddles and swamps.** The user's ask was a map terrain type that slows
-   all ground units going through it. The walk settled that swamps are the
-   terrain and puddles are look only (decision 29).
-3. **Draw wakes** when units wade through standing water, like the ripple rings
-   in their video.
+1. **Port water quality** from RedGPU's `Lake` (an MIT-licensed WebGPU engine;
+   see [the reference](#the-reference)) into our own renderer, aiming for "the
+   same quality as their video". Port the techniques, not the library
+   ([Why not adopt RedGPU](#why-not-adopt-redgpu)).
+2. **Swamps** are terrain that slows ground units, a factor for each drive.
+   **Puddles** are look only (decision 29).
+3. **Wakes** appear when units the side can see wade through standing water.
 
 Read [`development.md`](../../development.md), the
 [battle renderer README](../../packages/battle-renderer/README.md), the
 [pipelines README](../../crates/pipelines/README.md) and the
-[native client README](../../native/client/README.md). Load
-[`renderer`](../../.agents/skills/renderer/SKILL.md) before GPU work and
-[`tweak-mechanics`](../../.agents/skills/tweak-mechanics/SKILL.md) before the
-wetland rule. Then run [`write-spec`](../../.agents/skills/write-spec/SKILL.md)
-for real. [`decisions.md`](decisions.md) holds the user's answers. Treat them
-as givens and don't re-ask them. The walk is finished, so fan out the drafts and turn the
-[draft ladder](#draft-ladder) into slice files under `slices/`. Do not build
-before the ladder is sliced.
+[native client README](../../native/client/README.md).
 
-Work on the branch `spec/water-and-wetlands`. Keep pushing to it, and keep its
-PR to `staging` current.
+- Load [`renderer`](../../.agents/skills/renderer/SKILL.md) before GPU work.
+- Load [`tweak-mechanics`](../../.agents/skills/tweak-mechanics/SKILL.md) and
+  [`write-tests`](../../.agents/skills/write-tests/SKILL.md) before slices 10
+  and 11.
+- Use [`implement-spec`](../../.agents/skills/implement-spec/SKILL.md) to work
+  through the slices.
 
-Before ending a pass, update this section: what is settled, the next pickup
-point, and the checklist.
+[`decisions.md`](decisions.md) is a list of givens. Don't re-ask them. Each
+slice file names the decisions it may still make. Anything else you have to
+decide goes in a `choices.md` ledger beside this file.
 
-- [x] Known knowns, known unknowns and unknown knowns (2026-10-27,
-      [decisions](decisions.md)).
-- [x] Sweep for unknown unknowns (2026-10-27): [sharp edges](#sharp-edges)
-      and decisions 21-28.
-- [x] Questions 7-9 (decisions 19, 29-31), and the map handed over.
-- [ ] Draft and slice the ladder with `write-spec`, starting from rung 0.
-- [ ] Then work through the ladder from rung 0: the water capture scene and the
-      frozen RedGPU reference.
+**Pick up at [slice 00](slices/00-water-scene.md).** Slice 10 (sim lane) can
+start in parallel on day one, and slice 01 can run alongside slice 02.
+
+**Warning:** native must start and draw water at every slice (decision 19). A
+slice that changes an exported pipeline's layout, sample count or targets ports
+native in the same slice. Anything too hard goes to
+[`water-native`](../water-native/README.md), which you keep updated.
+
+Work on the branch `spec/water-and-wetlands`, push to it as you go, and keep
+its PR to `staging` (#15) current. Before ending a pass, update this section and
+the checklist.
+
+- [x] The unknowns walk and the landmine sweep (2026-10-27).
+- [x] Parallel drafts and slicing (2026-10-27).
+- [ ] Render lane: [00](slices/00-water-scene.md), [01](slices/01-one-wind.md), [02](slices/02-water-pass.md),
+      [03](slices/03-water-look-data.md), [04](slices/04-depth-colour.md), [05](slices/05-soft-shore.md),
+      [06](slices/06-surface-normals.md), [07](slices/07-refraction.md), [08](slices/08-caustics.md),
+      [09](slices/09-highlights.md).
+- [ ] Sim lane: [10](slices/10-swamp-terrain.md), [11](slices/11-swamp-slowdown.md),
+      [12](slices/12-mapgen-swamps.md).
+- [ ] Wet lane: [13](slices/13-swamp-look.md), [14](slices/14-puddles.md),
+      [15](slices/15-wake-sources.md), [16](slices/16-wave-field.md).
+- [ ] [17](slices/17-tree-sway.md), tree sway, any time after 01.
+- [ ] [18](slices/18-closeout.md), closeout: run everything once.
 
 ## Goals and non-goals
 
@@ -92,7 +104,7 @@ video. The stills are in [`assets/`](assets/):
 | [`redgpu-wading-shore.jpg`](assets/redgpu-wading-shore.jpg) | Soft shoreline and a unit standing in water |
 | [`redgpu-wake-rings.jpg`](assets/redgpu-wake-rings.jpg) | Wake rings around a wading unit, seen from above |
 
-Their camera is a ground-level third-person view. Ours is an RTS camera. Rung 0
+Their camera is a ground-level third-person view. Ours is an RTS camera. Slice 00
 re-captures the live demo
 ([examples](https://redcamel.github.io/RedGPU/examples/?tab=3D&q=lake)) at our
 pitches and heights, so later comparisons judge like against like.
@@ -132,7 +144,7 @@ the feature.
 | **Coupling to the surface** (`lakeFragment.wgsl:348-365`) | Flattens the base normal where ripples are strong, RNM-blends the ripple normal on top, and fades at the domain edge. | **Yes.** |
 | **Capture pass** (`LakeCapturePass.ts`, `lakeCapturePenetration.wgsl`) | Renders opted-in meshes from below into an impulse texture, keeping only the parts just under the waterline. | **No.** Replace it with impulses splatted from a list: the Rust presentation crate already decides per-entity effects (dust behind hulls, `effects/frame.rs` `note_movers`), and it should decide wake sources the same way. |
 | **Motion tracking** (`LakeInteractionManager.ts`) | Speed from model-matrix deltas, plus a synthetic footstep pulse `|cos(phase)|^8`. | The idea, yes: a soldier's footstep pulse and a hull's bow wave. Computed in presentation, from observed motion. |
-| **Domain** | One 20 m square following one target. | **No.** An RTS view needs a domain that follows the camera and is sized to the view, or a few domains. This is a sizing and cost question for its rung. |
+| **Domain** | One 20 m square following one target. | **No.** An RTS view needs a domain that follows the camera and is sized to the view, or a few domains. Slice 16 sizes it with a cost probe. |
 
 ### Wind (`src/wind/WindManager.ts`, `systemStruct.Wind.wgsl`)
 
@@ -224,71 +236,81 @@ The 2026-10-27 evaluation found four reasons:
   with what each side knows of the world.
 - It is a one-person alpha.
 
-## Draft ladder
+## Slice graph
 
-This is a scouting pass for `write-spec`. It is not sliced yet. Each rung names
-the one variable it would be judged on.
+```
+render  00 ─┬─ 02 ─ 03 ─ 04 ─ 05 ─ 06 ─ 07 ─ 08 ─ 09
+            └─ 01 ──────────────────┘ (06 needs 01)
+               01 ─ 17 (tree sway, any time)
+sim     10 ─ 11 ─ 12                      (from day one)
+wet     05 + 10 ─ 13 ─ 14 ─ 15 ─ 16       (16 also needs 06)
+all     ─ 18 closeout
+```
 
-0. **Freeze the reference and build the water capture scene.** Build the
-   fixed test map with a river and a swamp, framed at close (~65 m), tactical
-   (~260 m) and low angles (decision 31). Capture RedGPU's lake demo at the
-   same pitches and heights, next to our current water. Variable: none; this
-   produces the targets for the side-by-side read (decision 20).
-1. **One wind.** Resolve one wind in Rust presentation, replacing the biome
-   grass wind and `effects.wind_mps`. Variable: grass and smoke share a
-   heading, with no other visual change.
-2. **Scene colour and depth copy before water,** in the browser and the
-   pipeline export. Variable: none. The shots must be unchanged; this rung is
-   the seam.
-3. **Absorption and shoreline fade,** in the two river variants. Variable:
-   colour against depth, judged on the water mask only.
-4. **Wind-driven multi-scale normals** with normal maps generated in a shader.
-   Variable: surface detail and motion.
-5. **Refraction and caustics.** Variable: the bed seen through water.
-6. **Fresnel and sun specular** through the shared light owner. Variable:
-   highlights. SSR is reconsidered after this rung (decision 15).
-7. **Swamp contract and rule:** the map contract, the carved dip, the rules
-   row per drive, sim speed, planner cost and admission, with a test for each
-   ruled-out moment, including the sight test in decision 21. Variable: none visual; proven on a fixture map
-   with a battle report before and after.
-8. **Mapgen swamps:** placement per decision 5, previewed in the map
-   workbench. Variable: where swamps appear.
-9. **Swamps and puddles drawn as water** through the same water owner. Swamp
-   variants are chosen per decision 12, and look-only puddles are scattered by
-   the ground walk (decision 29). Variable: puddle and swamp look.
-10. **Wake sources** from presentation: units seen in standing water, with
-    rings or a V-wake by speed (decision 13), and dust suppressed in water.
-    Variable: none visual; a hidden unit must emit nothing.
-11. **Wave simulation and surface coupling** on a camera-following area at a
-    fixed step. Variable: wake rings, against `redgpu-wake-rings.jpg`.
-12. **Tree sway** from the one wind, with a trunk-only shadow variant.
-    Variable: canopy motion.
-13. **Graphics tiers:** Low drops refraction, caustics and wakes and keeps the
-    depth colour (decision 18). This may fold into each rung instead.
+| Slice | Judged on | Native |
+| --- | --- | --- |
+| [00 Water scene and reference](slices/00-water-scene.md) | the targets themselves | adds the draw check |
+| [01 One wind](slices/01-one-wind.md) | smoke heading | ports |
+| [02 Water pass](slices/02-water-pass.md) | nothing changes | ports |
+| [03 Water look data](slices/03-water-look-data.md) | nothing changes | uploads the looks |
+| [04 Depth colour](slices/04-depth-colour.md) | colour against depth | free |
+| [05 Soft shore](slices/05-soft-shore.md) | shoreline | free |
+| [06 Surface normals](slices/06-surface-normals.md) | surface detail and motion | ports the bake, or defers |
+| [07 Refraction and Low tier](slices/07-refraction.md) | the bed through water | free, or runs at `depth` |
+| [08 Caustics](slices/08-caustics.md) | caustic pattern | free |
+| [09 Highlights](slices/09-highlights.md) | highlights, plus the SSR call | free |
+| [10 Swamp terrain](slices/10-swamp-terrain.md) | tests: carve, marks, rounds, sight | none |
+| [11 Swamp slowdown](slices/11-swamp-slowdown.md) | tests and a battle report | none |
+| [12 Mapgen swamps](slices/12-mapgen-swamps.md) | where swamps lie | none |
+| [13 Swamp look](slices/13-swamp-look.md) | a swamp with units in it | free |
+| [14 Puddles](slices/14-puddles.md) | puddle look | free |
+| [15 Wake sources](slices/15-wake-sources.md) | tests only | ignores the records |
+| [16 Wave field](slices/16-wave-field.md) | wake rings | deferred |
+| [17 Tree sway](slices/17-tree-sway.md) | canopy motion | ports if a layout changes |
+| [18 Closeout](slices/18-closeout.md) | the whole frame beside RedGPU | lists every gap |
 
-Every rung leaves native running and ports what it reasonably can. The rest
-goes to the [water native follow-up](../water-native/README.md) (decision 19).
+**Digests:** only slices 10 to 12 change battle digests. Slice 10 changes
+only maps that contain swamps. Slice 11 changes every battle once, through the
+rules hash. Slice 12 changes generated maps. Each is a named decision. In any
+other slice, a changed digest is a bug.
 
-Later, if wanted: splashes from rounds landing in water, and helicopter rotor
-downwash on water. Both would feed the same wake sources.
-
-**Standing gates for every visual rung:**
+**Standing gates for every visual slice:**
 
 - [`compare-screenshots`](../../.agents/skills/compare-screenshots/SKILL.md)
-  against rung 0's frozen captures and the stills in `assets/`;
-- [`screenshot-critique`](../../.agents/skills/screenshot-critique/SKILL.md) as
-  the last check before accepting a shot;
-- [`preview-shots`](../../.agents/skills/preview-shots/SKILL.md) for the user,
-  as a non-blocking checkpoint;
-- native draws a water frame on every rung, and matches the plate where the
-  rung ported it. The [water native follow-up](../water-native/README.md) owns
-  the native gaps item "Judge water on a plate".
+  against slice 00's frozen captures and the stills in `assets/`, on that
+  slice's crop only;
+- [`screenshot-critique`](../../.agents/skills/screenshot-critique/SKILL.md),
+  unprimed, as the last check before accepting a shot;
+- [`preview-shots`](../../.agents/skills/preview-shots/SKILL.md) for the
+  user's checkpoints, which are non-blocking: wait about 5 minutes, then
+  decide on the evidence, record it, close the shots and continue;
+- slice 00's native draw check.
 
-Rungs that change only presentation must leave battle digests unchanged.
+**How the drafts were merged:** four drafts each had a different bias (fewest
+slices, risk first, seam quality, feedback loop). Where they agreed, the plan
+follows them:
 
-## One owner per concept
+- the water scene and a native draw check come first;
+- water reads the existing multisampled depth in its shader, so it needs no
+  depth copy;
+- the swamp's simulation lane runs in parallel from day one;
+- only the swamp slices change digests.
 
-These owners must hold through every rung:
+Where they split, the plan chose:
+
+- **Separate visual slices**, rather than A's eight-slice merge. A merged
+  absorption with shore, and normals with highlights. That broke the rule of
+  one visual variable per slice, which A flagged itself as a reslice point.
+- **Glass stays in the MSAA world pass** (A's objection, adopted as decision 25
+  revised).
+- **The look data and variant pick get their own slice with no visual change**
+  (C's W3), so every later look slice only tunes data.
+- **Swamp water stops sight at its surface** (C's objection, answered by
+  decision 32). The simulation has no prone posture, so this adds no
+  concealment.
+
+## Owners
+
 
 - **Water surface:** one material for rivers, swamps and puddles. A swamp or puddle is
   water with a shallow depth and its own look data, not a second water shader.
@@ -297,8 +319,33 @@ These owners must hold through every rung:
   The renderer runs the height field and never chooses who makes a wake.
 - **Ground speed:** one `Mobility::speed` path. A swamp adds a factor; it does
   not add a second speed function.
-- **Look tuning:** biome and `presentation.terrain` data, not constants in the
-  shader.
+- **Look tuning:** `WaterLook` rows from the biome data and
+  `presentation.terrain`, uploaded as uniforms, never spliced into shader text
+  (slice 03).
+- **Standing water in presentation:** `StandingWater.at`, shared by drawing,
+  dust suppression and wakes (slices 13 to 15). It is built from the
+  simulation's export and reuses the contract's membership test
+  (`crates/contract/src/river.rs` `section`). It never re-derives where water
+  is with a rule of its own.
+- **Standing water in the simulation:** `Surface::standing_water()`, shared by
+  craters, track wear and `water_hit` (slice 10).
+- **Ground footing:** one `Footing` value feeds all five speed read sites
+  (slice 11).
+- **Variant pick:** one `look(seed, feature)` function (slice 03).
+- **Wave clock:** `presentation::wave::WaveClock`, which publishes steps and an
+  epoch. The renderer owns only the field's textures (slice 16).
+- **Pass order:** `worldPass.ts` and `battleFrame.ts` alone (slice 02).
+
+**The end state reads as designed today, not as features tacked on.** Each
+slice deletes what it replaces:
+- the analytic shore bands (05);
+- the procedural ripple octaves (06);
+- the two old winds (01);
+- the shader-text water tuning (03);
+- `dense.rs`'s private speed function (11).
+
+No old path survives beside a new one. The only transitional state is native
+running at `depth` detail, and its `water-native` item names when that ends.
 
 ## Sharp edges
 
@@ -398,6 +445,7 @@ owning slice. Worst first within each area.
 
 ## Still open
 
-Nothing in the walk. The map is at
-[`visualizations/unknowns-map.html`](visualizations/unknowns-map.html). Fixing
-the two bugs found beyond this feature is the user's call.
+- Fixing the two bugs found beyond this feature (see sharp edges) is the
+  user's call. Slices 10 and 11 say where each fix would land.
+- Draft D (feedback loop) failed twice on the provider side. If it returns,
+  fold its harness ideas into slices 00 and 03 as amendments.

@@ -96,7 +96,7 @@ button{margin-top:6px;background:var(--primary,#5fb8d8);color:var(--primary-fore
 <h2>4 · Unknown unknowns <small>trap cards, worst first</small></h2>
 <p class="note">Green: decided. Amber: a sharp edge the slice must handle. Red: open.</p>
 <div class="card dec"><b>Native refuses the whole export on any value it doesn't know.</b><p><span class="k">Evidence:</span> <code>native/client/src/pipelines.rs</code> uses <code>deny_unknown_fields</code>. Its tests build pipelines but never draw.</p><p><span class="k">Changes:</span> each step teaches native the new values, and a native draw check runs every step (decision 19).</p></div>
-<div class="card sharp"><b>The world pass discards its MSAA samples, and there's no depth resolve.</b><p><span class="k">Evidence:</span> <code>worldPass.ts</code> uses <code>storeOp: "discard"</code> (commit <code>54bc94c03</code>), and <code>lit</code> has no <code>COPY_SRC</code> usage.</p><p><span class="k">Changes:</span> rung 2 adds the copy seam. Resolve into <code>lit</code>, because Metal skips empty tiles and a new target would keep stale pixels.</p></div>
+<div class="card sharp"><b>The world pass discards its MSAA samples, and there's no depth resolve.</b><p><span class="k">Evidence:</span> <code>worldPass.ts</code> uses <code>storeOp: "discard"</code> (commit <code>54bc94c03</code>), and <code>lit</code> has no <code>COPY_SRC</code> usage.</p><p><span class="k">Changes:</span> slice 02 adds the copy seam. Resolve into <code>lit</code>, because Metal skips empty tiles and a new target would keep stale pixels.</p></div>
 <div class="card sharp"><b>Pass order is constrained.</b><p>The order must be opaque → copy → water → glass → effects. Glass currently draws after water and writes no depth.</p></div>
 <div class="card sharp"><b>Refraction samples colour before fog is applied.</b><p>This shows a seam at the fog edge. Copy the fog mask along with the colour.</p></div>
 <div class="card sharp"><b>Ground marks would show twice under water,</b> once on the bed and once on the water. One layer must own the paint.</div>
@@ -122,19 +122,10 @@ button{margin-top:6px;background:var(--primary,#5fb8d8);color:var(--primary-fore
  <li>The swamp depth and edge width, judged on screen with soldiers standing in the water (decision 30).</li>
 </ul>
 
-<h2>Plan <small>most likely to change first</small></h2>
-<details open><summary>Judgment calls</summary><ul>
- <li>Rung 0: the water capture scene's framing, and the frozen RedGPU reference.</li>
- <li>Rungs 3–6: the water look in both variants, with one variable judged per rung.</li>
- <li>Rungs 9 and 11: how swamps and puddles look, and how strong wakes are.</li>
- <li>Rung 12: tree sway.</li>
-</ul></details>
-<details><summary>Mechanical work (trusted to the builder)</summary><ul>
- <li>Rung 1: one wind. Rung 2: the copy seam (no visual change). Rung 7: the swamp contract and rule. Rung 8: placing swamps in mapgen. Rung 10: wake sources. Rung 13: the Low tier.</li>
- <li>Native ports per rung, with the overflow going to <code>specs/water-native</code>.</li>
-</ul></details>
+<h2>Plan</h2>
+<p class="note">Superseded: the walk's draft plan has been sliced. The plan is the slice graph in <code>specs/water-and-wetlands/README.md</code>, and the slice files are in <code>slices/</code>.</p>
 
 <h2>Next message <small>paste to start</small></h2>
-<textarea id="p">Run write-spec on specs/water-and-wetlands on branch spec/water-and-wetlands (PR #15 to staging). decisions.md and the README's sharp edges are givens: don't re-ask them. Fan out the drafts, synthesize, and slice the draft ladder into slices/, with screenshot-critique and compare-screenshots as standing visual gates and the water capture scene (decision 31) as the target surface. Keep specs/water-native updated as native gaps appear. Then start implement-spec at rung 0, pushing to the branch as you go.</textarea>
+<textarea id="p">Run implement-spec on specs/water-and-wetlands on branch spec/water-and-wetlands (PR #15 to staging). Start at slice 00 (the water scene and the frozen RedGPU reference), and run slice 10 (swamp terrain) in parallel. decisions.md is a list of givens. Keep specs/water-native updated as native gaps appear, and push to the branch as you go.</textarea>
 <button onclick="navigator.clipboard.writeText(document.getElementById('p').value);this.textContent='Copied'">Copy</button>
 </body></html>
