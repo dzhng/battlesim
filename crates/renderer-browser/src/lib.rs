@@ -217,7 +217,6 @@ pub struct Renderer {
     production_model_instances: Buffer,
     production_model_vertex_count: u32,
     depth: DepthPrepass,
-    camera_buffer: Buffer,
     camera_group: BindGroup,
     model: Model,
     /// Display-only position/float-colour stream.  Production model uploads
@@ -511,7 +510,6 @@ impl Renderer {
             production_model_instances,
             production_model_vertex_count,
             depth,
-            camera_buffer,
             camera_group,
             model,
             display_model_vertices,
