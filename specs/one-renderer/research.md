@@ -361,3 +361,12 @@ dark model/material result. A second A/B skipped fog-mask compose for one run;
 the shared image and distance were unchanged, so fog compose is not the source
 of that darkness. The fog probe was restored; model material/shadow lighting
 parity remains the active hypothesis.
+
+The browser workload now reports resolved model-run admission separately from
+uploaded vertex words. The real frozen frame resolves one admitted presentation
+model run (`presentationModelRuns: 1`) while the shared model prepass executes;
+the dark silhouettes therefore are not an empty-draw artifact. The bundle-row,
+vertex-colour, shadow-floor, and fog-compose A/Bs all left the `47.034991`
+production image distance unchanged. The remaining visual defect is inside the
+shared model lighting/material ABI or its authored resource values, and is still
+open for the migration verdict.

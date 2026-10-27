@@ -33,6 +33,7 @@ pub(super) struct Stats {
     pub(super) presentation_overlay_words: u32,
     pub(super) presentation_effect_words: u32,
     pub(super) presentation_model_words: u32,
+    pub(super) presentation_model_runs: u32,
     pub(super) presentation_material_words: u32,
 }
 

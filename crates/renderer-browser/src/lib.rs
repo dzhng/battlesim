@@ -757,6 +757,10 @@ impl Renderer {
             )?;
         }
         self.production_model_instance_count = (instances.len() / 16) as u32;
+        self.stats.presentation_model_runs = self
+            .production_model_runs
+            .as_ref()
+            .map_or(0, |runs| runs.len() as u32);
         if let Some(snapshot) = &mut self.presentation_snapshot {
             snapshot.batches = batches.to_vec();
             snapshot.palettes = palettes.to_vec();

@@ -121,8 +121,8 @@ export async function run(ctx) {
     JSON.stringify(sharedWorkload),
   );
   ctx.check(
-    "shared browser row executes the exported model prepass",
-    sharedWorkload?.sharedModelPrepass === true,
+    "shared browser row executes an admitted presentation model run",
+    sharedWorkload?.sharedModelPrepass === true && sharedWorkload?.presentationModelRuns > 0,
     JSON.stringify(sharedWorkload),
   );
   ctx.check(
