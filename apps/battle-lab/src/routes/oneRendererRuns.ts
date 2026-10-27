@@ -19,7 +19,7 @@ import { gameLight } from "../gameLight";
 import { gameOverlayGlow } from "../gameOverlay";
 import { groundPatch, FOUNDATION_CAMERA } from "./frame";
 import { modelEncoder, modelPipeline } from "./oneRendererModel";
-import { battleFixture, BATTLE_HEIGHT, BATTLE_WIDTH } from "./oneRendererBattle";
+import { battleFixture, realBattleFixture, BATTLE_HEIGHT, BATTLE_WIDTH } from "./oneRendererBattle";
 import { fixtureModelFrame, loadTankBundle, mw, shadowBatchWords } from "./oneRendererAssets";
 
 export const WIDTH = 640;
@@ -545,7 +545,13 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       upload_instances: (instances: Float32Array) => void;
     }
   ).upload_instances(si);
-  const ff = battleFixture();
+  let ff;
+  try {
+    ff = await realBattleFixture();
+  } catch (error) {
+    console.error("one-renderer realBattleFixture failed", error);
+    throw error;
+  }
   const f = ff.camera;
   const shadowBatches = shadowBatchWords(f.batches.u32);
   const upload = renderer as SharedRenderer & {

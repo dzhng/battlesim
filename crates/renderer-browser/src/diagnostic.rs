@@ -56,11 +56,19 @@ pub(super) fn material_probe(
     Sampler,
     ModelMaterialBindings,
 ) {
+    // A real presentation frame carries every articulated/skinned joint
+    // palette, not just the one-joint probe record. Keep the shared buffer
+    // comfortably above the largest authored unit while preserving the same
+    // bind layout; the upload path still rejects malformed strides.
     let palette = renderer_core::buffer(
         device,
         "shared-material-palette",
         BufferUsages::STORAGE | BufferUsages::COPY_DST,
-        &[0; 48],
+        // Presentation frames can carry several articulated appearances at
+        // once. Keep this staging buffer large enough for the real battle
+        // fixture; production asset streaming can replace it with a sized
+        // allocation once the complete appearance library is admitted.
+        &[0; 1024 * 1024],
     );
     let rows = renderer_core::buffer(
         device,

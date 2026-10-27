@@ -19,10 +19,16 @@ import { gameFogGeometry, gameFogStyle } from "../gameFog";
 import { gameGlass, gameModelDetail } from "../gameModels";
 import { gameLight } from "../gameLight";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
-import { readBundle } from "@packages/scene-assets/src/gzip";
+import { readBundle, readGzip } from "@packages/scene-assets/src/gzip";
+import { bundlePath } from "@packages/scene-assets/src/schema";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import { FOUNDATION, FOUNDATION_CAMERA, groundPatch } from "./frame";
+import { catalogSet } from "@web/battle/catalog/sets";
+import { loadMap } from "@web/maps/browser";
+import { loadSimModule } from "@web/battle/sim/module";
+import { fieldedBattle } from "../presentedFrame";
+import type { RuntimeFiles } from "../presentedFrame";
 
 export const BATTLE_WIDTH = 640;
 export const BATTLE_HEIGHT = 360;
@@ -34,6 +40,135 @@ export interface BattleFixture {
   world: ReturnType<typeof groundPatch>;
   presentation: ScenePresentation;
   overlay: { opaque: Mesh; translucent: Mesh; painted: Mesh; paintedMarching: Mesh };
+}
+
+/**
+ * Build the same battle records that the live browser session consumes.
+ *
+ * The old fixture below is intentionally synchronous and remains useful for
+ * the small pass-graph controls. This async variant is the parity gate: the
+ * test map and catalog go through the simulation WASM, one publication is
+ * encoded with its real observation layout, and `fieldedBattle` resolves the
+ * production unit/effect sections and clip tables from the runtime catalog.
+ */
+export async function realBattleFixture(): Promise<BattleFixture> {
+  const [catalog, map] = await Promise.all([catalogSet("test"), loadMap("ground")]);
+  const runtimeCatalog = (await (await fetch("/catalog.json")).json()) as RuntimeCatalog;
+  // Fielding consumes the bundle records, not their texture pixels. Read only
+  // those bundle files here; this keeps the real presentation fixture usable in
+  // a source checkout where optional texture payloads may still be LFS pointers.
+  const runtime: RuntimeFiles = {
+    catalog: runtimeCatalog,
+    contents: (hashes) =>
+      Promise.all(
+        hashes.map((hash) =>
+          readGzip(
+            runtimeCatalog,
+            "bundle",
+            hash,
+            bundlePath,
+            async (path) => new Uint8Array(await (await fetch(`/${path}`)).arrayBuffer()),
+          ),
+        ),
+      ),
+  };
+  const rules = catalog.rules;
+  const scenario = JSON.stringify({
+    map: map.definition,
+    rules,
+    units: [
+      { side: "blue", kind: "test_tank", position: [16, 16], yaw: 0.25 },
+      { side: "red", kind: "test_tank", position: [28, 22], yaw: -2.4 },
+    ],
+    events: [],
+    scripts: [],
+  });
+  const sim = await loadSimModule();
+  const battle = sim.createBattle(scenario, 7);
+  const presentation = new ScenePresentation(battle.observation_layout(), rules.tick_hz);
+  battle.resync_observation();
+  const length = battle.publish("blue");
+  const packed = new Uint32Array(length);
+  packed.set(new Uint32Array(sim.memory.buffer, battle.publication_ptr(), length));
+  battle.free();
+  presentation.decode(packed, 0);
+  const battleInput = await fieldedBattle({
+    rules: JSON.stringify(rules),
+    catalog: catalog.units.view,
+    kinds: ["test_tank"],
+    runtime,
+    side: "blue",
+    tickHz: rules.tick_hz,
+    sun: { azimuth: gameLight.sun_azimuth, elevation: gameLight.sun_elevation },
+    soldier: rules.physics,
+    xray: { own: [0.2, 0.6, 1, 0.8], selected: [1, 0.8, 0.1, 0.9], ally: [0.2, 1, 0.5, 0.8] },
+    blocked: [1, 0.1, 0.1, 0.8],
+  });
+  presentation.setBattle(battleInput);
+  const world = groundPatch();
+  presentation.setGround(world.terrain.input, world.scenery);
+  presentation.setFog({
+    sensors: rules.sensors,
+    eyes: [
+      {
+        key: "blue-0",
+        position: [18, 18, 2],
+        forward: 0.2,
+        shape: { front: 28, side: 18, rear: 10 },
+        range: 36,
+      },
+      {
+        key: "blue-1",
+        position: [30, 24, 2],
+        forward: -2.3,
+        shape: { front: 24, side: 14, rear: 8 },
+        range: 30,
+      },
+    ],
+  });
+  presentation.setShadow(gameLight, world.terrain.mesh);
+  const axes = screenAxes(FOUNDATION_CAMERA);
+  const eye = eyePosition(new Float32Array(3) as never, FOUNDATION_CAMERA);
+  const camera = presentation.frame(
+    0,
+    {
+      eye: [...eye],
+      target: [...FOUNDATION_CAMERA.target],
+      up: axes.up,
+      fovY: FOUNDATION_CAMERA.fovY,
+      near: FOUNDATION_CAMERA.near,
+      width: BATTLE_WIDTH,
+      height: BATTLE_HEIGHT,
+    },
+    { selected: [], xray: false, ghosts: [] },
+    0,
+  );
+  const props = new MeshBuilder();
+  props.orientedBox(20, 12, 0.12, [5, 1, 1], 0.15, [0.23, 0.27, 0.25, 1]);
+  return {
+    terrain: world.terrain.mesh,
+    camera: structuredClone(camera),
+    instances: FOUNDATION.filter((placed) => placed.kind === "box").map((placed) => ({
+      kind: "box" as const,
+      x: placed.x,
+      y: placed.y,
+      z: placed.z,
+      yaw: placed.yaw,
+      color: [1, 1, 1] as const,
+    })),
+    world: { ...world, props: props.build() },
+    presentation,
+    overlay: emptyOverlay(),
+  };
+}
+
+function emptyOverlay(): BattleFixture["overlay"] {
+  return {
+    opaque: new MeshBuilder().build(),
+    translucent: new MeshBuilder().build(),
+    painted: new MeshBuilder().build(),
+    paintedMarching: new MeshBuilder().build(),
+  };
 }
 
 /** A frozen presentation frame for the production BattleFrame constructor. */
