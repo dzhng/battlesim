@@ -638,6 +638,14 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     throw new Error(`device loss callback did not fire: ${renderer.stats()}`);
   }
   await renderer.recover_device(canvas);
+  // Device recreation swaps every GPU handle, so rebind the same frozen
+  // presentation records before the first post-recovery frame.
+  upload.upload_presentation_frame(
+    new Float32Array(frozen.camera.subarray(0, 16)),
+    new Float32Array(resolvedLight.sun),
+    new Float32Array(fogLook),
+    new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
+  );
   renderer.render();
   const setupMs = performance.now() - started;
   const encodeStart = performance.now();

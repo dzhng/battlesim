@@ -7,11 +7,13 @@ pub(super) struct AssetSnapshot {
     pub(super) textures: Vec<Vec<u8>>,
 }
 
+#[wasm_bindgen]
 impl Renderer {
     /// Parse one fetched BGAT bundle through the native client's shared asset
     /// reader and upload its first authored texture to this browser device.
     /// The returned JSON is the exact boundary accounting used by the spike.
     #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
     pub fn load_bundle(
         &mut self,
         name: String,
