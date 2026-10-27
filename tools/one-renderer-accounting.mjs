@@ -209,7 +209,7 @@ const report = {
       area: "terrain and authored tank",
       browser: "worldPass/modelLayer and oneRendererModel.ts",
       rust: "renderer-browser shared asset parser/upload/indexed draw; renderer-wasm-spike remains transport probe",
-      status: "shared browser core parses, uploads, and draws the real tank through renderer-core; production material parity remains open",
+      status: "shared browser core parses, uploads, binds shared materials, and draws the real tank through renderer-core; production material shading parity remains open",
     },
     {
       area: "reverse-Z depth",
@@ -221,7 +221,7 @@ const report = {
       area: "shadows, fog, effects, post, overlays",
       browser: "BattleFrame world/fog/effects/post/overlay owners",
       rust: "native renderer modules, moving into shared core",
-      status: "depth pass shared; world/material and remaining pass owners open",
+      status: "shared fog-mask/post/effects/shadow resources are allocated and encoded; production caster routing, sampling, overlays and full fog compute remain open",
     },
     {
       area: "resource registry/generation/reset/device loss",
