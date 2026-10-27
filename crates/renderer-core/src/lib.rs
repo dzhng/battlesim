@@ -11,6 +11,7 @@ use wgpu::*;
 
 pub mod depth;
 pub mod effects;
+pub mod fog;
 pub mod fog_mask;
 pub mod model;
 pub mod pipelines;

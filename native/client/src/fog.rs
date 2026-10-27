@@ -16,7 +16,7 @@ use wgpu::*;
 
 use crate::frame::{Inputs, Pass, Targets};
 use crate::gpu::{bind, buffer};
-use crate::pipelines::{BoundCompute, Pipelines};
+use crate::pipelines::Pipelines;
 
 const WORD: u64 = 4;
 
@@ -124,7 +124,7 @@ pub struct Fog {
     lists: Buffer,
     counts: Buffer,
     tiles: [u32; 3],
-    pipelines: [BoundCompute; 4],
+    pipelines: renderer_core::fog::FogComputeOwner,
     fog_layout: BindGroupLayout,
     build_layout: BindGroupLayout,
     cull_layout: BindGroupLayout,
@@ -234,8 +234,7 @@ impl Fog {
             lists: storage(device, "fog-tile-lists", 16, BufferUsages::empty()),
             counts: storage(device, "fog-tile-counts", 16, copy),
             tiles: [0; 3],
-            pipelines: ["fogTerrain", "fogMerge", "fogCull", "fogWhole"]
-                .map(|n| pipelines.bound_compute(n)),
+            pipelines: renderer_core::fog::FogComputeOwner::new(pipelines),
             fog_layout: pipelines.layout("fogLayout").clone(),
             build_layout: pipelines.layout("buildLayout").clone(),
             cull_layout: pipelines.layout("cullLayout").clone(),
@@ -432,19 +431,6 @@ impl Fog {
 
     /// The passes the last upload asked for, in the browser's order.
     fn encode(&self, encoder: &mut CommandEncoder) {
-        let compute = |encoder: &mut CommandEncoder,
-                       label,
-                       bound: &BoundCompute,
-                       groups: &[(&str, &BindGroup)],
-                       [x, y]: [u32; 2]| {
-            let mut pass = encoder.begin_compute_pass(&ComputePassDescriptor {
-                label: Some(label),
-                timestamp_writes: None,
-            });
-            bound.set(&mut pass, groups);
-            pass.dispatch_workgroups(x, y, 1);
-        };
-        let [terrain, merge, cull, whole] = &self.pipelines;
         let group = |g: &Option<BindGroup>| {
             g.as_ref()
                 .expect("fog's groups are bound at its start")
@@ -453,8 +439,14 @@ impl Fog {
         if let Some([t, m]) = self.due.rebuild {
             let build = group(&self.build);
             let build = [("buildLayout", &build)];
-            compute(encoder, "fog-terrain", terrain, &build, [t, 1]);
-            compute(encoder, "fog-merge", merge, &build, [m, 1]);
+            self.pipelines.dispatch(
+                encoder,
+                renderer_core::fog::FogStage::Terrain,
+                &build,
+                [t, 1],
+            );
+            self.pipelines
+                .dispatch(encoder, renderer_core::fog::FogStage::Merge, &build, [m, 1]);
         }
         let Some(tiles) = self.due.cull else {
             return;
@@ -465,7 +457,12 @@ impl Fog {
             if count > 0 {
                 let whole_group = group(&self.whole);
                 let groups = [("wholeLayout", &whole_group), self.group(Layer::Faces)];
-                compute(encoder, "fog-whole", whole, &groups, [x, y]);
+                self.pipelines.dispatch(
+                    encoder,
+                    renderer_core::fog::FogStage::Whole,
+                    &groups,
+                    [x, y],
+                );
             }
             encoder.copy_buffer_to_texture(
                 TexelCopyBufferInfo {
@@ -494,10 +491,9 @@ impl Fog {
             );
         }
         encoder.clear_buffer(&self.counts, 0, None);
-        compute(
+        self.pipelines.dispatch(
             encoder,
-            "fog-cull",
-            cull,
+            renderer_core::fog::FogStage::Cull,
             &[("cullLayout", &group(&self.cull))],
             tiles,
         );
