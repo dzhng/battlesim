@@ -24,6 +24,8 @@ pub(super) struct Stats {
     pub(super) presentation_environment_words: u32,
     pub(super) presentation_fog_words: u32,
     pub(super) presentation_overlay_words: u32,
+    pub(super) presentation_model_words: u32,
+    pub(super) presentation_material_words: u32,
 }
 
 #[derive(Clone)]
@@ -36,4 +38,6 @@ pub(super) struct PresentationSnapshot {
     pub(super) shadow: Vec<f32>,
     pub(super) casters: Vec<f32>,
     pub(super) batches: Vec<u32>,
+    pub(super) palettes: Vec<f32>,
+    pub(super) instances: Vec<f32>,
 }

@@ -21,6 +21,7 @@ pub mod overlay;
 pub mod pipelines;
 pub mod post;
 pub mod shadow;
+pub mod terrain;
 pub mod world;
 
 /// Encode an ordered pass list with one shared debug-group boundary.

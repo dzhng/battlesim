@@ -15,10 +15,14 @@ impl Renderer {
         let previous_lost = self.device_lost.load(Ordering::Relaxed);
         let snapshot = self.asset_snapshot.clone();
         let ground = self.ground_snapshot.clone();
+        let terrain = self.terrain_snapshot.clone();
         let post_bloom = self.post_bloom.clone();
         let post_grade = self.post_grade.clone();
         let fog_heights = self.fog_height_snapshot.clone();
         let presentation = self.presentation_snapshot.clone();
+        let model_words = presentation
+            .as_ref()
+            .map(|p| (p.palettes.clone(), p.instances.clone(), p.batches.clone()));
         let mut replacement = Self::new(canvas).await?;
         replacement.stats = previous_stats;
         replacement.stats.device_recoveries = replacement.stats.device_recoveries.saturating_add(1);
@@ -30,6 +34,16 @@ impl Renderer {
         }
         if let Some(ground) = ground {
             replacement.upload_ground(&ground)?;
+        }
+        if let Some(terrain) = terrain {
+            replacement.upload_terrain_tables(
+                &terrain.params,
+                &terrain.nodes,
+                &terrain.plots,
+                &terrain.surfaces,
+                &terrain.surface_index,
+                &terrain.scars,
+            )?;
         }
         if let Some(presentation) = presentation {
             replacement.upload_frame(
@@ -47,6 +61,9 @@ impl Renderer {
                     &presentation.casters,
                     &presentation.batches,
                 )?;
+            }
+            if let Some((palettes, instances, batches)) = model_words {
+                replacement.upload_model_frame(&palettes, &instances, &batches, &[])?;
             }
         }
         if !post_bloom.is_empty() || !post_grade.is_empty() {

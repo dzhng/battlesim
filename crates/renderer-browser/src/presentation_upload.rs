@@ -98,6 +98,8 @@ impl Renderer {
             shadow: Vec::new(),
             casters: Vec::new(),
             batches: Vec::new(),
+            palettes: Vec::new(),
+            instances: Vec::new(),
         });
         Ok(())
     }
@@ -166,7 +168,57 @@ impl Renderer {
             &shadow_bytes,
         );
         self.shadow_ground_count = (mesh.len() / 10) as u32;
+        self.production_terrain_vertices = renderer_core::buffer(
+            &self.device,
+            "shared-production-terrain-vertices",
+            BufferUsages::VERTEX,
+            bytemuck::cast_slice(mesh),
+        );
+        self.production_terrain_vertex_count = (mesh.len() / 10) as u32;
         self.ground_snapshot = Some(mesh.to_vec());
+        Ok(())
+    }
+
+    /// Upload the presentation's resolved terrain material tables.  The
+    /// arrays are the exact `GroundTables` words returned by presentation
+    /// WASM; the shared owner creates one `terrainLayout` bind group for the
+    /// extracted world pass.
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn upload_terrain_tables(
+        &mut self,
+        params: &[u32],
+        nodes: &[u32],
+        plots: &[u32],
+        surfaces: &[f32],
+        surface_index: &[u32],
+        scars: &[u32],
+    ) -> Result<(), JsValue> {
+        if params.is_empty() || nodes.is_empty() || plots.is_empty() || surfaces.is_empty() {
+            return Err(js_error(
+                "terrain table upload contains an empty required table",
+            ));
+        }
+        self.terrain.upload(
+            &self.device,
+            &self.production_pipelines,
+            renderer_core::terrain::TerrainUpload {
+                params: bytemuck::cast_slice(params),
+                nodes: bytemuck::cast_slice(nodes),
+                plots: bytemuck::cast_slice(plots),
+                surfaces: bytemuck::cast_slice(surfaces),
+                surface_index: bytemuck::cast_slice(surface_index),
+                scars: bytemuck::cast_slice(scars),
+            },
+        );
+        self.terrain_snapshot = Some(super::TerrainSnapshot {
+            params: params.to_vec(),
+            nodes: nodes.to_vec(),
+            plots: plots.to_vec(),
+            surfaces: surfaces.to_vec(),
+            surface_index: surface_index.to_vec(),
+            scars: scars.to_vec(),
+        });
         Ok(())
     }
 

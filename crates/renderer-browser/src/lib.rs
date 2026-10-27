@@ -20,6 +20,7 @@ use renderer_core::post::PostResources;
 use renderer_core::shadow::{
     CasterBatchLayout, CasterRouting, ShadowResources, CAMERA_BYTES, RECEIVER_BYTES,
 };
+use renderer_core::terrain::TerrainResources;
 use renderer_core::world::{Layer, Surface as WorldSurface, WorldInputs};
 use renderer_core::{encode_grouped, TargetOwner};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -44,6 +45,16 @@ mod state;
 use asset::AssetSnapshot;
 use environment::BrowserEnvironment;
 use state::{PresentationSnapshot, Stats};
+
+#[derive(Clone)]
+struct TerrainSnapshot {
+    params: Vec<u32>,
+    nodes: Vec<u32>,
+    plots: Vec<u32>,
+    surfaces: Vec<f32>,
+    surface_index: Vec<u32>,
+    scars: Vec<u32>,
+}
 
 const PIPELINES: &str = r#"{
   "sizes":{"bloomLevels":0,"skyLut":[1,1],"effectSheet":1,"grassClump":1},
@@ -177,6 +188,7 @@ pub struct Renderer {
     shared_shadow: ShadowResources,
     shadow_routing: CasterRouting,
     shared_fog_compute: FogComputeOwner,
+    terrain: TerrainResources,
     environment: BrowserEnvironment,
     /// The presentation camera record bound by the shared model prepass.
     presentation_camera: Buffer,
@@ -191,6 +203,8 @@ pub struct Renderer {
     production_model_instances: Buffer,
     production_model_vertex_count: u32,
     production_model_instance_count: u32,
+    production_terrain_vertices: Buffer,
+    production_terrain_vertex_count: u32,
     depth: DepthPrepass,
     camera_buffer: Buffer,
     camera_group: BindGroup,
@@ -202,6 +216,7 @@ pub struct Renderer {
     shadow_ground_vertices: Buffer,
     shadow_ground_count: u32,
     ground_snapshot: Option<Vec<f32>>,
+    terrain_snapshot: Option<TerrainSnapshot>,
     fog_rebuild_dispatch: Option<[u32; 2]>,
     fog_whole_dispatch: Option<[u32; 2]>,
     fog_dispatch_active: bool,
@@ -342,6 +357,7 @@ impl Renderer {
             CAMERA_BYTES,
         );
         let shared_fog_compute = FogComputeOwner::new(&production_pipelines);
+        let terrain = TerrainResources::new(&device, &production_pipelines);
         let (
             material_palette,
             material_rows,
@@ -457,6 +473,12 @@ impl Renderer {
                 BindingResource::Sampler(&display_sampler),
             ],
         );
+        let production_terrain_vertices = renderer_core::buffer(
+            &device,
+            "shared-production-terrain-vertices",
+            BufferUsages::VERTEX,
+            &[0; 40],
+        );
         Ok(Self {
             surface,
             device,
@@ -476,6 +498,7 @@ impl Renderer {
             shared_shadow,
             shadow_routing: CasterRouting::default(),
             shared_fog_compute,
+            terrain,
             environment,
             presentation_camera: production_camera,
             presentation_environment,
@@ -486,6 +509,8 @@ impl Renderer {
             production_model_instances,
             production_model_vertex_count,
             production_model_instance_count: 0,
+            production_terrain_vertices,
+            production_terrain_vertex_count: 0,
             depth,
             camera_buffer,
             camera_group,
@@ -497,6 +522,7 @@ impl Renderer {
             shadow_ground_vertices,
             shadow_ground_count: 0,
             ground_snapshot: None,
+            terrain_snapshot: None,
             fog_rebuild_dispatch: None,
             fog_whole_dispatch: None,
             fog_dispatch_active: false,
@@ -643,10 +669,66 @@ impl Renderer {
         Ok(())
     }
 
+    /// Upload the presentation model records as one recovery-safe snapshot.
+    /// The arrays are the FrameHeader sets: Joint palettes, Instance records,
+    /// Batch words, and the material rows selected by the appearance table.
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn upload_model_frame(
+        &mut self,
+        palettes: &[f32],
+        instances: &[f32],
+        batches: &[u32],
+        material_rows: &[f32],
+    ) -> Result<(), JsValue> {
+        if !instances.len().is_multiple_of(8) || !palettes.len().is_multiple_of(12) {
+            return Err(js_error("presentation model records have invalid strides"));
+        }
+        let write = |queue: &Queue, buffer: &Buffer, bytes: &[u8], name: &str| {
+            if bytes.len() > buffer.size() as usize {
+                return Err(js_error(format!(
+                    "presentation {name} exceeds buffer capacity"
+                )));
+            }
+            if !bytes.is_empty() {
+                queue.write_buffer(buffer, 0, bytes);
+            }
+            Ok(())
+        };
+        write(
+            &self.queue,
+            &self.production_model_instances,
+            bytemuck::cast_slice(instances),
+            "instances",
+        )?;
+        write(
+            &self.queue,
+            &self.material_palette,
+            bytemuck::cast_slice(palettes),
+            "palettes",
+        )?;
+        write(
+            &self.queue,
+            &self.material_rows,
+            bytemuck::cast_slice(material_rows),
+            "materials",
+        )?;
+        self.production_model_instance_count = (instances.len() / 8) as u32;
+        if let Some(snapshot) = &mut self.presentation_snapshot {
+            snapshot.batches = batches.to_vec();
+            snapshot.palettes = palettes.to_vec();
+            snapshot.instances = instances.to_vec();
+        }
+        self.stats.presentation_model_words =
+            (palettes.len() + instances.len() + batches.len()) as u32;
+        self.stats.presentation_material_words = material_rows.len() as u32;
+        Ok(())
+    }
+
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedFogSight":{},"shadowCasterBatches":[{},{},{},{}],"shadowPasses":{},"shadowModelPasses":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"fogHeightWords":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedFogSight":{},"shadowCasterBatches":[{},{},{},{}],"shadowPasses":{},"shadowModelPasses":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"fogHeightWords":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"presentationModelWords":{},"presentationMaterialWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -676,6 +758,8 @@ impl Renderer {
             self.stats.presentation_environment_words,
             self.stats.presentation_fog_words,
             self.stats.presentation_overlay_words,
+            self.stats.presentation_model_words,
+            self.stats.presentation_material_words,
             self.width,
             self.height,
             self.asset_report.as_deref().unwrap_or("null")

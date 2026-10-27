@@ -541,6 +541,14 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       wholeDispatch: Uint32Array,
     ) => void;
     upload_ground: (mesh: Float32Array) => void;
+    upload_terrain_tables: (
+      params: Uint32Array,
+      nodes: Uint32Array,
+      plots: Uint32Array,
+      surfaces: Float32Array,
+      surfaceIndex: Uint32Array,
+      scars: Uint32Array,
+    ) => void;
     overlay: (mesh: Float32Array) => void;
   };
   const rl = await resolveLight(gameLight);
@@ -557,10 +565,47 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
+  const presentationModel = f as unknown as {
+    palettes?: { f32: Float32Array };
+    instances?: { f32: Float32Array };
+    batches?: { u32: Uint32Array };
+  };
+  (
+    renderer as SharedRenderer & {
+      upload_model_frame: (
+        palettes: Float32Array,
+        instances: Float32Array,
+        batches: Uint32Array,
+        materialRows: Float32Array,
+      ) => void;
+    }
+  ).upload_model_frame(
+    new Float32Array(presentationModel.palettes?.f32 ?? []),
+    new Float32Array(presentationModel.instances?.f32 ?? []),
+    new Uint32Array(presentationModel.batches?.u32 ?? []),
+    new Float32Array(0),
+  );
   (renderer as SharedRenderer & { upload_sky: (sky: Float32Array) => void }).upload_sky(rl.sky);
   upload.upload_ground(
     concatMeshes([Float32Array.from(ff.terrain), Float32Array.from(ff.world.props)]),
   );
+  const uploadTerrainTables = () => {
+    const tables = ff.presentation.presentedGround()?.ground_terrain();
+    if (!tables) throw new Error("presentation did not resolve terrain tables");
+    try {
+      upload.upload_terrain_tables(
+        new Uint32Array(tables.params()),
+        new Uint32Array(tables.nodes()),
+        new Uint32Array(tables.plots()),
+        new Float32Array(tables.surfaces()),
+        new Uint32Array(tables.surface_index()),
+        new Uint32Array(tables.scars()),
+      );
+    } finally {
+      tables.free();
+    }
+  };
+  uploadTerrainTables();
   const h = () => {
     const heights = ff.presentation.presentedGround()?.pages();
     if (heights?.length) upload.upload_fog_heights(new Uint32Array(heights));
@@ -646,6 +691,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   upload.upload_ground(
     concatMeshes([Float32Array.from(ff.terrain), Float32Array.from(ff.world.props)]),
   );
+  uploadTerrainTables();
   h();
   upload.overlay(
     concatMeshes([
