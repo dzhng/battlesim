@@ -23,6 +23,7 @@ use renderer_core::shadow::{
 use renderer_core::terrain::TerrainResources;
 use renderer_core::world::{Layer, Surface as WorldSurface, WorldInputs};
 use renderer_core::{encode_grouped, TargetOwner};
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
@@ -206,6 +207,7 @@ pub struct Renderer {
     production_model_instance_count: u32,
     production_model_runs: Option<Vec<(u32, u32)>>,
     model_batch_state: renderer_core::model::BatchState,
+    available_model_drawables: HashSet<(u32, u32)>,
     production_terrain_vertices: Buffer,
     production_terrain_vertex_count: u32,
     depth: DepthPrepass,
@@ -514,6 +516,7 @@ impl Renderer {
             production_model_instance_count: 0,
             production_model_runs: None,
             model_batch_state: renderer_core::model::BatchState::default(),
+            available_model_drawables: HashSet::new(),
             production_terrain_vertices,
             production_terrain_vertex_count: 0,
             depth,
@@ -711,7 +714,12 @@ impl Renderer {
             .resolve(batches, instances.len() / 16)
             .map_err(js_error)?
             .into_iter()
-            .filter(|run| run.pass == 0)
+            .filter(|run| {
+                run.pass == 0
+                    && self
+                        .available_model_drawables
+                        .contains(&(run.appearance, run.tier))
+            })
             .map(|run| (run.first, run.count))
             .collect::<Vec<_>>();
         if runs.is_empty() && !instances.is_empty() {

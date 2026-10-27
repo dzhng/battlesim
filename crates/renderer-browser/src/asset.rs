@@ -262,6 +262,11 @@ impl Renderer {
                 &production_vertices,
             );
             self.production_model_vertex_count = production_count;
+            // The browser checkpoint currently loads one appearance and one
+            // tier; keep that mapping explicit so presentation batches cannot
+            // silently draw the wrong geometry. Additional bundles add rows
+            // to this shell-owned table as the production loader expands.
+            self.available_model_drawables.insert((0, 1));
             // Keep the authored 48-byte stream for both the prepass and lit
             // draw; presentation groups are already bound by the frame.
             self.stats.model_vertices = production_count;
