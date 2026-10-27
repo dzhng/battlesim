@@ -22,6 +22,10 @@ fn main() {
             "{name:?} => Some(include_str!({:?})),\n",
             pipeline_dir.join(shader).canonicalize().unwrap()
         ));
+        generated.push_str(&format!(
+            "{shader:?} => Some(include_str!({:?})),\n",
+            pipeline_dir.join(shader).canonicalize().unwrap()
+        ));
     }
     generated.push_str("_ => None, } }\n");
     fs::write(

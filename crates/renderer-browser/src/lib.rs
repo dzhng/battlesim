@@ -168,6 +168,28 @@ impl Renderer {
         pipeline_export::source(&name).map(str::to_owned)
     }
 
+    /// Build the embedded production pipeline export on this browser device.
+    /// The fixture frame does not call this yet; the method isolates export
+    /// compatibility from the still-bounded frame comparison.
+    pub async fn validate_export(&self) -> Result<String, JsValue> {
+        let errors = self.device.push_error_scope(ErrorFilter::Validation);
+        let pipelines = Pipelines::build(&self.device, pipeline_export::MANIFEST, |_, shader| {
+            pipeline_export::source(shader)
+                .map(str::to_owned)
+                .ok_or_else(|| format!("missing embedded WGSL source: {shader}"))
+        })
+        .map_err(js_error)?;
+        if let Some(error) = errors.pop().await {
+            return Err(js_error(format!(
+                "production pipeline validation: {error:?}"
+            )));
+        }
+        Ok(format!(
+            "{{\"pipelines\":{}}}",
+            pipeline_export::COUNT.max(pipelines.names().count())
+        ))
+    }
+
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
     pub async fn new(canvas: HtmlCanvasElement) -> Result<Renderer, JsValue> {
