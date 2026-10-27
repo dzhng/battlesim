@@ -26,6 +26,15 @@ pub struct BrowserEnvironment {
 const SKY_LUT: [u32; 2] = [384, 192];
 const PMREM: [u32; 2] = [336, 256];
 const DFG: [u32; 2] = [16, 16];
+const DFG_LUT_TS: &str = include_str!("../../../packages/battle-renderer/src/shaders/dfgLut.ts");
+
+fn dfg_lut() -> Vec<u16> {
+    DFG_LUT_TS
+        .split(|c: char| !c.is_ascii_alphanumeric())
+        .filter_map(|token| token.strip_prefix("0x"))
+        .filter_map(|hex| u16::from_str_radix(hex, 16).ok())
+        .collect()
+}
 
 impl BrowserEnvironment {
     pub fn new(
@@ -104,9 +113,11 @@ impl BrowserEnvironment {
                 },
             );
         }
+        let dfg_words = dfg_lut();
+        assert_eq!(dfg_words.len(), (DFG[0] * DFG[1] * 2) as usize);
         queue.write_texture(
             dfg.as_image_copy(),
-            bytemuck::cast_slice(&vec![0x3800u16; (DFG[0] * DFG[1] * 2) as usize]),
+            bytemuck::cast_slice(&dfg_words),
             TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(DFG[0] * 4),

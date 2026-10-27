@@ -194,3 +194,18 @@ can later receive authored DFG data without another browser-only lighting path.
 **Verdict:** sound; the one-renderer scene still passes all rows and lifecycle
 gates, while authored DFG and production world input parity remain open.
 **Confidence:** high.
+
+### The shared browser environment uses the authored DFG LUT
+
+The production BRDF lighting shader reads a 16×16 split-sum DFG table. The
+browser shell previously filled that table with a neutral half-float value,
+which was valid GPU data but not the game's light. It now parses the checked-in
+`dfgLut.ts` words into the same texture format native uploads. The alternative
+would have left every roughness/metalness comparison in the browser on a
+diagnostic approximation.
+
+**Gap:** the spec named the environment bind group but did not name the DFG
+asset's source of truth. **Reach:** shared model/world pixels now use the same
+authored BRDF lookup on both platforms; the remaining gap is full world and
+material input parity. **Verdict:** sound; the browser scene remains green.
+**Confidence:** high.
