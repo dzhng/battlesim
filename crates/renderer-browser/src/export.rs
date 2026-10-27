@@ -27,6 +27,7 @@ impl Renderer {
         let _resources = (
             &self.shared_post,
             &self.shared_fog_mask,
+            &self.shared_effects,
             &self.shared_fog_sight,
             self.environment.bindings.group(),
             &self.environment.sky,

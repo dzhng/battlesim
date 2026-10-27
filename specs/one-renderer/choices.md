@@ -414,11 +414,14 @@ the browser display composite, overlay composite and present remain shell work;
 the browser's surface-only fog rim is encoded during the final shared stage so
 the composite cannot clear it afterward.
 
-**Gap:** browser effects are still an explicit no-op, and native preparation
-still owns a separate presentation/resource path. The native adapter also maps
-the current fixed pass list by name, so adding a new native pass requires adding
-its shared stage. **Reach:** this is the smallest seam that proves one frame
-orchestrator without inventing a second graph. **Verdict:** keep the shared
-stage order and finish resource/prepare extraction before deleting TypeGPU.
-**Confidence:** high; native and browser checks plus the full eleven-row scene
-remain green after the refactor.
+**Gap:** the browser now constructs the shared effects owner, but its flipbook
+atlas is still a placeholder and the real effect upload remains disabled. Native
+preparation still owns a separate presentation/resource path. The native adapter
+also maps the current fixed pass list by name, so adding a new native pass
+requires adding its shared stage. **Reach:** this is the smallest seam that
+proves one frame orchestrator without inventing a second graph. **Verdict:** keep
+the shared stage order, keep the effects owner, and finish the real atlas and
+prepare/upload extraction before deleting TypeGPU. **Confidence:** high; the
+scene remains green with zero browser effect instances, while the attempted
+dummy effect upload was rejected after a fresh screenshot showed black voids
+covering the terrain.

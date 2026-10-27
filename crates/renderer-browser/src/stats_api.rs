@@ -4,7 +4,7 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedFogSight":{},"sharedTerrain":{},"terrainParamsWords":{},"terrainNodesWords":{},"terrainPlotsWords":{},"terrainSurfaceWords":{},"terrainIndexWords":{},"shadowCasterBatches":[{},{},{},{}],"shadowPasses":{},"shadowModelPasses":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"fogHeightWords":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"presentationModelWords":{},"presentationMaterialWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedEffects":{},"sharedFogSight":{},"sharedTerrain":{},"terrainParamsWords":{},"terrainNodesWords":{},"terrainPlotsWords":{},"terrainSurfaceWords":{},"terrainIndexWords":{},"shadowCasterBatches":[{},{},{},{}],"shadowPasses":{},"shadowModelPasses":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"fogHeightWords":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"presentationEffectWords":{},"presentationModelWords":{},"presentationMaterialWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -14,6 +14,7 @@ impl Renderer {
             self.stats.shared_materials,
             self.stats.shared_shadow,
             self.stats.shared_environment,
+            self.stats.shared_effects,
             self.stats.shared_fog_sight,
             self.stats.shared_terrain,
             self.stats.terrain_params_words,
@@ -40,6 +41,7 @@ impl Renderer {
             self.stats.presentation_environment_words,
             self.stats.presentation_fog_words,
             self.stats.presentation_overlay_words,
+            self.stats.presentation_effect_words,
             self.stats.presentation_model_words,
             self.stats.presentation_material_words,
             self.width,

@@ -319,3 +319,13 @@ change, including resize, surface recovery, device loss and 484 shadow passes.
 The browser effects slot is intentionally empty until the effect resource owner
 moves into the shared runtime, so this proves orchestration only and does not
 close production pass parity.
+
+The next effects probe constructed the browser's shared `EffectsResources`
+owner, bound it to the production depth, camera, environment and PMREM records,
+rebuilt it after resize, and replayed it during device recovery. A dummy one
+layer atlas plus the frozen 16-word effect instance was deliberately rejected:
+the fresh screenshot showed black voids swallowing most of the terrain and
+units, so the atlas ABI is not proven by a bind-group that merely validates.
+The browser scene now keeps the owner present but uploads zero effect instances
+until the real flipbook fetch/decode path is wired. This preserves the clean
+frame boundary without accepting a visual regression.

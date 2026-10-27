@@ -95,6 +95,7 @@ impl Renderer {
             environment: environment.to_vec(),
             fog: fog.to_vec(),
             overlay: overlay.to_vec(),
+            effects: Vec::new(),
             shadow: Vec::new(),
             casters: Vec::new(),
             batches: Vec::new(),
@@ -102,6 +103,23 @@ impl Renderer {
             instances: Vec::new(),
             batch_state: renderer_core::model::BatchState::default(),
         });
+        Ok(())
+    }
+
+    /// Upload the packed presentation effect instances used by the shared
+    /// lit-world effects pass.
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen]
+    pub fn upload_effects(&mut self, effects: &[f32]) -> Result<(), JsValue> {
+        if !effects.len().is_multiple_of(16) {
+            return Err(js_error("effect instances need sixteen floats each"));
+        }
+        self.shared_effects
+            .prepare(&self.device, &self.queue, bytemuck::cast_slice(effects));
+        if let Some(snapshot) = &mut self.presentation_snapshot {
+            snapshot.effects = effects.to_vec();
+        }
+        self.stats.presentation_effect_words = effects.len() as u32;
         Ok(())
     }
 

@@ -288,7 +288,9 @@ impl Renderer {
                     );
                 }
             }
-            renderer_core::frame::FrameStage::Effects => {}
+            renderer_core::frame::FrameStage::Effects => {
+                self.shared_effects.encode(encoder, &self.targets);
+            }
             renderer_core::frame::FrameStage::FogMask => {
                 self.shared_fog_mask.encode(encoder, &self.targets);
             }

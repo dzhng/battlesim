@@ -192,10 +192,13 @@ stops the work before a full port is attempted:
    pass order are unchanged. Fog sight/material classification remain
    native-only and must move next; the shared fog compute pipeline owner is
    now browser-safe.
-9. **Effects and post extraction — checkpoint complete.** Flipbook/effect
-   resource ownership remains shell-provided, while browser-safe effects and
-   bloom/grade target/pass ownership now live in `renderer-core` and are
-   encoded by the shared browser frame.
+9. **Effects and post extraction — checkpoint partial.** Bloom/grade target and
+   pass ownership lives in `renderer-core` and is encoded by the shared browser
+   frame. The browser now constructs the shared effects owner and rebuilds it
+   with the depth target, but its flipbook atlas is still a placeholder and the
+   production effect upload remains disabled after a black-void visual probe.
+   The real atlas/instance path must land before this is a production parity
+   checkpoint.
 10. **Lifecycle extraction — checkpoint complete.** `renderer_core::TargetOwner`
    atomically swaps size-dependent targets and increments one shared generation;
    native `Passes` consumes it without changing GPU work. Device-loss recovery

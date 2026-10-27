@@ -33,6 +33,7 @@ pub(crate) mod pipeline_export {
     include!(concat!(env!("OUT_DIR"), "/pipeline_export.rs"));
 }
 mod asset;
+mod browser_effects;
 mod diagnostic;
 mod environment;
 mod export;
@@ -46,6 +47,7 @@ mod state;
 mod stats_api;
 mod terrain_snapshot;
 use asset::AssetSnapshot;
+use browser_effects::BrowserEffects;
 use environment::BrowserEnvironment;
 use state::{PresentationSnapshot, Stats};
 use terrain_snapshot::TerrainSnapshot;
@@ -118,6 +120,7 @@ pub struct Renderer {
     pipelines: Pipelines,
     production_pipelines: Pipelines,
     shared_post: PostResources,
+    shared_effects: BrowserEffects,
     shared_fog_mask: FogMaskResources,
     shared_fog_sight: FogSightResources,
     shared_overlay_resources: renderer_core::overlay::OverlayResources,
@@ -400,6 +403,16 @@ impl Renderer {
                 camera_buffer.as_entire_buffer_binding(),
             )],
         );
+        let environment_pmrem = environment.pmrem.create_view(&Default::default());
+        let shared_effects = BrowserEffects::new(
+            &device,
+            &targets,
+            &production_pipelines,
+            &production_camera,
+            &presentation_environment,
+            &environment_pmrem,
+            &environment.cast_lights,
+        );
         let depth = DepthPrepass::new(&pipelines);
         let production_depth = DepthPrepass::new(&production_pipelines);
         let model = Model::from_indexed_fitted(
@@ -447,6 +460,7 @@ impl Renderer {
             pipelines,
             production_pipelines,
             shared_post,
+            shared_effects,
             shared_fog_mask,
             shared_fog_sight,
             shared_overlay_resources,
@@ -506,6 +520,7 @@ impl Renderer {
             stats: Stats {
                 shared_shadow: true,
                 shared_environment: true,
+                shared_effects: true,
                 shared_fog_sight: true,
                 ..Stats::default()
             },
@@ -546,6 +561,7 @@ impl Renderer {
                 &[0; 16],
                 true,
             );
+            self.rebuild_effects();
             if !self.post_bloom.is_empty() || !self.post_grade.is_empty() {
                 self.shared_post
                     .write(
@@ -567,6 +583,7 @@ impl Renderer {
                         .write_glow(&self.queue, bytemuck::cast_slice(&glow));
                 }
             }
+
             self.display_group = renderer_core::bind(
                 &self.device,
                 self.pipelines.layout("sampled"),
@@ -585,6 +602,26 @@ impl Renderer {
             self.stats.target_generation = self.targets.generation();
         }
         self.configure_surface();
+    }
+
+    fn rebuild_effects(&mut self) {
+        let pmrem = self.environment.pmrem.create_view(&Default::default());
+        let effects = self
+            .presentation_snapshot
+            .as_ref()
+            .map(|snapshot| snapshot.effects.as_slice())
+            .unwrap_or_default();
+        self.shared_effects.rebuild(
+            &self.device,
+            &self.queue,
+            &self.targets,
+            &self.production_pipelines,
+            &self.presentation_camera,
+            &self.presentation_environment,
+            &pmrem,
+            &self.environment.cast_lights,
+            effects,
+        );
     }
 
     fn configure_surface(&self) {

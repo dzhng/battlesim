@@ -57,6 +57,7 @@ impl Renderer {
                 &presentation.fog,
                 &presentation.overlay,
             )?;
+            replacement.upload_effects(&presentation.effects)?;
             if !presentation.sky.is_empty() {
                 replacement.upload_sky(&presentation.sky)?;
             }

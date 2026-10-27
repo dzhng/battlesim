@@ -12,6 +12,7 @@ pub(super) struct Stats {
     pub(super) shadow_passes: u32,
     pub(super) shadow_model_passes: u32,
     pub(super) shared_environment: bool,
+    pub(super) shared_effects: bool,
     pub(super) shared_fog_sight: bool,
     pub(super) shared_model_prepass: bool,
     pub(super) shared_terrain: bool,
@@ -30,6 +31,7 @@ pub(super) struct Stats {
     pub(super) presentation_environment_words: u32,
     pub(super) presentation_fog_words: u32,
     pub(super) presentation_overlay_words: u32,
+    pub(super) presentation_effect_words: u32,
     pub(super) presentation_model_words: u32,
     pub(super) presentation_material_words: u32,
 }
@@ -41,6 +43,7 @@ pub(super) struct PresentationSnapshot {
     pub(super) environment: Vec<f32>,
     pub(super) fog: Vec<f32>,
     pub(super) overlay: Vec<f32>,
+    pub(super) effects: Vec<f32>,
     pub(super) shadow: Vec<f32>,
     pub(super) casters: Vec<f32>,
     pub(super) batches: Vec<u32>,
