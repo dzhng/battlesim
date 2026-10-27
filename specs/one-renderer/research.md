@@ -384,3 +384,12 @@ near-identical: parity distances are `0.00478`, `0.00641`, `0.00144`, `0.00011`,
 `0.00308`. This validates the native control and capture contract; it does not
 yet compare the extracted shared browser core, which still lacks the full
 appearance/world upload for this workload.
+
+The matched `paris-corner` performance controls are now recorded as well. The
+native release replay runs 2,400 post-warmup frames at 84.6 FPS, with CPU p50
+`1.13 ms`, CPU p95 `6.76 ms`, GPU mean `11.57 ms`, and GPU p95 `14.14 ms` on
+Apple M6 AC power. The browser production capture runs 2,341 post-warmup
+frames at a paced 60 FPS, with CPU p50 `3.24 ms`, CPU p95 `3.80 ms`, GPU mean
+`9.10 ms`, and GPU p95 `12.08 ms`. These are controls for the same native
+renderer workload; the shared browser Rust row still needs this workload before
+its performance tradeoff is final.
