@@ -221,13 +221,13 @@ const report = {
       area: "shadows, fog, effects, post, overlays",
       browser: "BattleFrame world/fog/effects/post/overlay owners",
       rust: "native renderer modules, moving into shared core",
-      status: "shared fog-mask/post/effects/shadow resources are allocated and encoded; production caster routing, sampling, overlays and full fog compute remain open",
+      status: "shared fog-look/post/effects/shadow resources and caster routing are allocated and encoded; overlay draws, shadow sampling and full fog compute remain open",
     },
     {
       area: "resource registry/generation/reset/device loss",
       browser: "GpuRegistry + SizedTargets + frame disposal",
       rust: "ad hoc renderer-owned resources",
-      status: "shared browser target generation and explicit surface recovery pass; device-loss recreation remains open",
+      status: "shared browser target generation, surface recovery, and whole-device recreation are scene-gated; native registry parity remains open",
     },
   ],
 };
