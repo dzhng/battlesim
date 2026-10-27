@@ -762,7 +762,9 @@ impl Renderer {
         }
         self.stats.presentation_model_words =
             (palettes.len() + instances.len() + batches.len()) as u32;
-        self.stats.presentation_material_words = material_rows.len() as u32;
+        if !material_rows.is_empty() {
+            self.stats.presentation_material_words = material_rows.len() as u32;
+        }
         Ok(())
     }
 }
