@@ -264,3 +264,10 @@ pins the 48-byte offsets and exact weight/tangent narrowing; the full WASM scene
 still passes unchanged. This removes one browser-only owner and leaves the
 native shell able to consume the same pack contract when its model upload is
 moved across the boundary.
+
+The model prepass and opaque draw encoder now also live in
+`renderer_core::model_pass`; the browser shell only adapts assets and calls the
+shared pass functions. The six renderer-core tests, WASM check, clippy and full
+eleven-row scene remain green. This is a structural simplification with no
+separate performance claim; the visual review still gates terrain, lighting and
+shadow work.

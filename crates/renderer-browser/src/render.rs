@@ -75,7 +75,7 @@ impl Renderer {
             pass.set_vertex_buffer(1, self.overlay_instances.slice(..));
             pass.draw(0..self.production_terrain_vertex_count, 0..1);
         }
-        production_model::encode_prepass(
+        renderer_core::model_pass::encode_prepass(
             &mut encoder,
             &self.targets,
             &self.production_pipelines,
@@ -88,7 +88,7 @@ impl Renderer {
             self.production_model_runs.as_deref(),
         );
         self.stats.shared_model_prepass = true;
-        production_model::encode_opaque(
+        renderer_core::model_pass::encode_opaque(
             &mut encoder,
             &self.targets,
             &self.production_pipelines,
