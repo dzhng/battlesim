@@ -35,8 +35,9 @@ pub fn mesh_vertices(
             return Err("production model index is outside the vertex array".into());
         }
         bytes.extend_from_slice(bytemuck::cast_slice(&positions[index * 3..index * 3 + 3]));
-        bytes.extend_from_slice(&[0; 8]);
-        bytes.extend_from_slice(&[0; 8]);
+        // snorm16x4 normal: +Z, with a zero w component.
+        bytes.extend_from_slice(&[0, 0, 0, 0, 255, 127, 0, 0]);
+        bytes.extend_from_slice(&[0, 0, 0, 0, 255, 127, 0, 0]);
         bytes.extend_from_slice(&colours[index * 4..index * 4 + 4]);
         // Rigid diagnostic skinning: joint zero with full weight. The
         // exported model shader indexes the palette directly, so a sentinel
