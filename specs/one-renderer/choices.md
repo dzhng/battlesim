@@ -289,3 +289,18 @@ simulation.
 multi-bundle material routing. **Reach:** the next real-frame fixture must come
 from `ScenePresentation` with those records populated. **Verdict:** useful and
 honest as a bounded seam test; insufficient for parity. **Confidence:** high.
+
+### Batch decoding belongs in the shared model core
+
+The browser previously decoded packed `Batch` words locally. The shared model
+core now owns the 12-word decoder and returns named appearance, tier, pass,
+range, and static-held fields. Browser code only filters the dynamic view runs
+it can currently draw. The decoder rejects partial records and explicitly
+recognizes `first == NONE`; this keeps the static-cache gap visible rather than
+turning it into an accidental instance read.
+
+**Gap:** static batches still need a browser holder and appearance/tier rows
+still need drawable buffers. **Reach:** native and browser now agree on the
+packed batch contract before that mapping is added. **Verdict:** keep the
+decoder in `renderer-core`; do not duplicate record parsing in either shell.
+**Confidence:** high.
