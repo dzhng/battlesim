@@ -28,6 +28,53 @@ impl Renderer {
             renderer_core::world::encode_sky(&fixture, &self.targets, e)
         });
         renderer_core::world::encode_world(&fixture, &self.targets, &mut encoder, true, true, true);
+        if self.terrain_snapshot.is_some() && self.production_terrain_vertex_count > 0 {
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("shared-production-terrain-material"),
+                color_attachments: &[
+                    Some(RenderPassColorAttachment {
+                        view: &self.targets.hdr_msaa,
+                        depth_slice: None,
+                        resolve_target: Some(&self.targets.lit),
+                        ops: Operations {
+                            load: LoadOp::Load,
+                            store: StoreOp::Store,
+                        },
+                    }),
+                    Some(RenderPassColorAttachment {
+                        view: &self.targets.fog_mask_msaa,
+                        depth_slice: None,
+                        resolve_target: Some(&self.targets.fog_mask),
+                        ops: Operations {
+                            load: LoadOp::Load,
+                            store: StoreOp::Store,
+                        },
+                    }),
+                ],
+                depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+                    view: &self.targets.depth,
+                    depth_ops: Some(Operations {
+                        load: LoadOp::Load,
+                        store: StoreOp::Store,
+                    }),
+                    stencil_ops: None,
+                }),
+                ..Default::default()
+            });
+            let terrain = self.production_pipelines.bound("worldTerrain");
+            terrain.set(
+                &mut pass,
+                &[
+                    ("typegpuCameraLayout", &self.production_camera_group),
+                    ("terrainLayout", self.terrain.bind_group()),
+                    ("fogLayout", self.shared_fog_sight.group(0)),
+                    ("environment", self.environment.bindings.group()),
+                ],
+            );
+            pass.set_vertex_buffer(0, self.production_terrain_vertices.slice(..));
+            pass.set_vertex_buffer(1, self.overlay_instances.slice(..));
+            pass.draw(0..self.production_terrain_vertex_count, 0..1);
+        }
         production_model::encode_prepass(
             &mut encoder,
             &self.targets,
