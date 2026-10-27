@@ -129,6 +129,9 @@ impl Renderer {
             let (production_vertices, production_count) =
                 production_model::mesh_vertices(&mesh.positions, &mesh.colors, &mesh.indices)
                     .map_err(js_error)?;
+            let (display_vertices, display_count) =
+                production_model::display_vertices(&mesh.positions, &mesh.colors, &mesh.indices)
+                    .map_err(js_error)?;
             self.production_model_vertices = renderer_core::buffer(
                 &self.device,
                 "shared-production-asset-vertices",
@@ -136,16 +139,14 @@ impl Renderer {
                 &production_vertices,
             );
             self.production_model_vertex_count = production_count;
-            self.model = Model::from_indexed_fitted(
+            self.display_model_vertices = renderer_core::buffer(
                 &self.device,
-                &self.queue,
-                "shared-asset-model",
-                &mesh.positions,
-                &mesh.colors,
-                &mesh.indices,
-            )
-            .map_err(js_error)?;
-            self.stats.model_vertices = self.model.vertex_count();
+                "shared-display-asset-vertices",
+                BufferUsages::VERTEX,
+                &display_vertices,
+            );
+            self.display_model_vertex_count = display_count;
+            self.stats.model_vertices = display_count;
         }
         let report = format!(
             r#"{{"name":"{}","bundleBytes":{},"textureBytes":{},"textures":{},"materials":{},"vertices":{},"indices":{}}}"#,

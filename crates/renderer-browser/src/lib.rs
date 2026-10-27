@@ -12,6 +12,7 @@ use native_client::bundle::Library;
 use renderer_core::depth::{DepthInputs, DepthPrepass};
 use renderer_core::fog::FogComputeOwner;
 use renderer_core::fog_mask::FogMaskResources;
+use renderer_core::fog_sight::FogSightResources;
 use renderer_core::model::Model;
 use renderer_core::model_material::ModelMaterialBindings;
 use renderer_core::pipelines::{Bound, Pipelines};
@@ -89,6 +90,7 @@ struct Stats {
     shared_shadow: bool,
     shadow_caster_batches: [u32; 4],
     shared_environment: bool,
+    shared_fog_sight: bool,
     shared_model_prepass: bool,
     surface_recoveries: u32,
     device_recoveries: u32,
@@ -191,6 +193,7 @@ pub struct Renderer {
     production_pipelines: Pipelines,
     shared_post: PostResources,
     shared_fog_mask: FogMaskResources,
+    shared_fog_sight: FogSightResources,
     material_bindings: ModelMaterialBindings,
     material_palette: Buffer,
     material_rows: Buffer,
@@ -215,6 +218,11 @@ pub struct Renderer {
     depth: DepthPrepass,
     camera_group: BindGroup,
     model: Model,
+    /// Display-only position/float-colour stream.  Production model uploads
+    /// use a wider authored vertex layout and must not be rebound to the
+    /// fixture's small final display pipeline.
+    display_model_vertices: Buffer,
+    display_model_vertex_count: u32,
     width: u32,
     height: u32,
     format: TextureFormat,
@@ -334,6 +342,8 @@ impl Renderer {
             true,
             true,
         );
+        let shared_fog_sight =
+            FogSightResources::new(&device, &production_pipelines, &targets.depth);
         let shared_shadow = ShadowResources::new(
             &device,
             &production_pipelines,
@@ -461,6 +471,14 @@ impl Renderer {
             &[0, 1, 2, 3, 4, 5],
         )
         .map_err(js_error)?;
+        let (display_vertices, display_model_vertex_count) =
+            production_model::fixture_display_vertices();
+        let display_model_vertices = renderer_core::buffer(
+            &device,
+            "shared-display-model-vertices",
+            BufferUsages::VERTEX,
+            &display_vertices,
+        );
         Ok(Self {
             surface,
             device,
@@ -470,6 +488,7 @@ impl Renderer {
             production_pipelines,
             shared_post,
             shared_fog_mask,
+            shared_fog_sight,
             material_bindings,
             material_palette,
             material_rows,
@@ -490,6 +509,8 @@ impl Renderer {
             depth,
             camera_group,
             model,
+            display_model_vertices,
+            display_model_vertex_count,
             width,
             height,
             format,
@@ -498,6 +519,7 @@ impl Renderer {
             stats: Stats {
                 shared_shadow: true,
                 shared_environment: true,
+                shared_fog_sight: true,
                 ..Stats::default()
             },
             asset_report: None,
@@ -708,9 +730,8 @@ impl Renderer {
                 ..Default::default()
             });
             pipeline.set(&mut pass, &[("camera", &self.camera_group)]);
-            pass.set_vertex_buffer(0, self.model.vertex().slice(..));
-            pass.set_index_buffer(self.model.index().slice(..), IndexFormat::Uint32);
-            pass.draw_indexed(0..self.model.index_count(), 0, 0..1);
+            pass.set_vertex_buffer(0, self.display_model_vertices.slice(..));
+            pass.draw(0..self.display_model_vertex_count, 0..1);
         }
         self.queue.submit([encoder.finish()]);
         self.queue.present(surface);
