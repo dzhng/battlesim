@@ -319,3 +319,18 @@ heterogeneous static rows; the holder only solves range lifetime. **Reach:**
 this removes one lifecycle divergence without adding a second renderer graph.
 **Verdict:** keep the holder in the shared model boundary and add drawable
 mapping next. **Confidence:** high.
+
+### Model runs require an explicit appearance/tier drawable admission
+
+The browser shell now keeps a shell-owned `(appearance, tier)` admission table
+when it loads a bundle. Shared model runs are filtered through that table before
+they reach the prepass and opaque draws, so a batch cannot silently use the
+currently loaded geometry for a different appearance or tier. The one-bundle
+fixture admits `test_tank` tier 1; expanding to heterogeneous production rows
+still requires loading their bundles and adding their vertex ranges.
+
+**Gap:** the current table is deliberately one appearance/tier and does not
+yet replace the native world's complete appearance library. **Reach:** the
+contract makes that expansion an asset-loading concern at the shell boundary,
+while the shared pass remains unchanged. **Verdict:** keep the admission check;
+do not fall back to the first loaded drawable. **Confidence:** high.

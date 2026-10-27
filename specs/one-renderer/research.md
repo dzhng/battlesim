@@ -200,3 +200,10 @@ browser replays model records after device loss. Renderer-core now has five
 focused tests, including a held-range recovery contract. This closes the static
 range lifecycle seam, while appearance/tier drawable mapping and a real
 production frame remain open.
+
+The latest model slice adds an explicit `(appearance, tier)` drawable
+admission. The browser only accepts a batch for the loaded `test_tank` tier;
+unknown rows are dropped instead of drawing the first available mesh. This
+keeps the shared pass contract honest while the full appearance library is
+still pending. The one-renderer scene remains green with no WebGPU validation
+errors; this is still not a heterogeneous production-frame comparison.
