@@ -118,3 +118,52 @@ fetched mesh through exported model prepass, replays authored environment assets
 and a non-flat page after device loss, and reports the complete frozen record
 lengths. Next test: bind real terrain/material/fog publication records to the
 extracted production passes and compare the matched frame.
+
+## 2026-10-27 terrain and model-record pass
+
+The browser shell now has one shared `TerrainResources` owner for the native
+`terrainLayout` contract. `GroundTables` crosses the presentation WASM seam as
+params, nodes, plots, surfaces, surface index and scar-look words; the browser
+adds the native four-word frame-view suffix, binds the exported `worldTerrain`
+pipeline, and snapshots the upload for device recovery. A first run exposed a
+uniform-size mismatch because the suffix was omitted; appending it fixed the
+WebGPU validation error without changing shader work. This confirms the real
+terrain input seam, but the scar directory/pool textures are still diagnostic
+and the mesh is not yet selected by native terrain partition rules.
+
+The same pass exposes a recovery-safe model-record upload for palettes,
+instances and batches, and reports their word count. The frozen fixture sends
+24 model-record words, while material rows remain zero and the full production
+batch/material draw path is not yet selected. This is transport evidence, not
+material parity.
+
+The rebuilt `one-renderer` scene passes all eleven rows with no WebGPU
+validation errors. The shared row reports 121 frames, 484 ground and model
+shadow passes, two resize rebuilds, one surface recovery, one device recovery,
+eight fog-height words, and 63 validated embedded pipelines. Its latest run
+was approximately `176.4 ms` setup, `6.4 ms` encode and `0.2 ms` queue-boundary
+drain for the 120 measured frames; setup includes asset loading and recovery,
+so it is not a native startup comparison. The production BattleFrame distance
+remains `47.03`, and fresh visual review still finds flat lighting, missing
+readable contact shadows, clipped overlays and weak model detail.
+
+The focused checks remain green: formatter, workspace clippy, renderer-core
+check, renderer-browser WASM check, browser typecheck, shared-renderer WASM
+build, and the full one-renderer scene. `cargo test -p presentation` has 111
+unit tests passing; the known `ally_xray` integration prerequisite still points
+at a Git LFS runtime bundle and is not weakened.
+
+**Next experiment:** transport the authored material rows and static/model
+batch ranges from the presentation frame into the shared model owner, bind
+those records to the production model passes, and compare the same frozen
+BattleFrame against native and browser TypeGPU output. Keep the terrain
+directory/pool and receiver sampling as separate follow-up variables so a
+visual improvement can be attributed.
+
+The fresh screenshot review of the current shared capture adds concrete visual
+regressions to that gate: high-frequency pale terrain noise overwhelms the
+lime ground and weakens prop/overlay contrast; the dark bars read as floating
+because contact shadows are absent; the right and lower slabs and the orange
+arc are clipped; and the map boundary falls into black at the frame edges.
+These findings reinforce that the current green harness is an input/lifecycle
+proof, not a visual acceptance result.

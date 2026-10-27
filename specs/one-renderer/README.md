@@ -7,6 +7,15 @@ routing now have one Rust owner. Full production pass parity, native/browser
 matched output, and TypeGPU deletion remain.
 **Updated:** 2026-10-27.
 
+The latest production-input pass adds a shared `terrainLayout` owner. The
+browser uploads the presentation's resolved terrain params, plot nodes and
+records, surface records/index and scar look, binds them to the exported
+`worldTerrain` pipeline, and replays the table snapshot after device loss. The
+native four-word terrain view suffix is appended at the browser boundary so
+the uniform ABI is identical. This proves the input and binding seam; scar
+directory/pool textures, full terrain vertex selection, and matched material
+pixels remain open.
+
 The first question is answered: Rust `wgpu` can run in browser WASM through
 its `BrowserWebGpu` backend, attach to the same HTML canvas contract, consume
 WGSL, and submit frames. The important question is different: can the existing
@@ -336,6 +345,12 @@ The runnable surface is the `one-renderer` developer tool and scene:
   review still finds no readable contact/cast shadows and clipped overlay
   geometry; those are open parity defects, not accepted output. The fog height
   upload now uses a non-flat eight-word page payload and survives recovery.
+- The terrain-input pass now binds the real presentation `GroundTables` to the
+  exported `worldTerrain` pipeline. The latest eleven-row scene emits no
+  WebGPU validation errors and replays those records after device recovery.
+  The shared row still reports zero uploaded production material rows: model
+  batch selection and authored material classification remain the next parity
+  seam, so this is not yet a matched BattleFrame image.
 
 ## Current verdict
 

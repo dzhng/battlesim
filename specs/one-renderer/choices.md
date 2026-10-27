@@ -225,3 +225,34 @@ fixture that isolated page transport from mesh generation. **Reach:** future
 production terrain work can replace this page with real map pages without
 changing the renderer boundary. **Verdict:** sound; the scene remains green
 and reports the non-flat payload through recovery. **Confidence:** high.
+
+### Terrain material tables cross one explicit shared owner
+
+The browser now receives the same resolved terrain tables that native uploads:
+params, plot nodes, plot records, surface records, surface index and scar look.
+`renderer-core::TerrainResources` owns the `terrainLayout` bind-group order,
+while the browser shell owns only the WASM conversion and recovery snapshot.
+The native frame-view suffix is appended at that boundary because the native
+owner adds it before binding the uniform. This keeps one ABI and avoids a
+browser-only terrain-material layout.
+
+**Gap:** the first attempt omitted the suffix and WebGPU rejected the uniform
+as too small. **Reach:** the table seam is now valid, but scar directory/pool
+textures and native terrain partition selection still need real inputs before
+the pixels are a parity result. **Verdict:** keep this owner and contract;
+finish the missing resources in the production parity pass. **Confidence:**
+high.
+
+### Model frame records are uploaded before full batch/material selection
+
+The browser shell accepts presentation palettes, instances and batch words in
+one recovery-safe upload and reports their size. This establishes the record
+transport without inventing a second model schema. The current fixture sends
+the frozen records but leaves material rows empty and still draws the fetched
+asset through the existing shared model path.
+
+**Gap:** wiring the bytes into the complete production material and batch
+selection path is still required. **Reach:** the upload and recovery contract
+can remain unchanged while native material classification and static batches
+are added. **Verdict:** retain as an input seam, not as evidence of visual
+parity. **Confidence:** medium.

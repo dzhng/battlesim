@@ -671,8 +671,9 @@ impl Renderer {
     }
 
     /// Upload the presentation model records as one recovery-safe snapshot.
-    /// The arrays are the FrameHeader sets: Joint palettes, Instance records,
-    /// Batch words, and the material rows selected by the appearance table.
+    /// The arrays are the FrameHeader sets: Joint palettes, 16-float Instance
+    /// records, Batch words, and the material rows selected by the appearance
+    /// table.
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
     pub fn upload_model_frame(
@@ -682,7 +683,7 @@ impl Renderer {
         batches: &[u32],
         material_rows: &[f32],
     ) -> Result<(), JsValue> {
-        if !instances.len().is_multiple_of(8) || !palettes.len().is_multiple_of(12) {
+        if !instances.len().is_multiple_of(16) || !palettes.len().is_multiple_of(12) {
             return Err(js_error("presentation model records have invalid strides"));
         }
         let write = |queue: &Queue, buffer: &Buffer, bytes: &[u8], name: &str| {
@@ -697,17 +698,17 @@ impl Renderer {
             Ok(())
         };
         let mut selected = Vec::new();
-        for batch in batches.chunks_exact(13) {
+        for batch in batches.chunks_exact(12) {
             // Batch fields: pass=3, first=7, count=8. VIEW_PASS is zero.
             if batch[3] != 0 {
                 continue;
             }
             let first = batch[7] as usize;
             let end = first.saturating_add(batch[8] as usize);
-            if end > instances.len() / 8 {
+            if end > instances.len() / 16 {
                 return Err(js_error("presentation batch range exceeds instances"));
             }
-            selected.extend_from_slice(&instances[first * 8..end * 8]);
+            selected.extend_from_slice(&instances[first * 16..end * 16]);
         }
         if selected.is_empty() {
             selected.extend_from_slice(instances);
@@ -730,7 +731,7 @@ impl Renderer {
             bytemuck::cast_slice(material_rows),
             "materials",
         )?;
-        self.production_model_instance_count = (selected.len() / 8) as u32;
+        self.production_model_instance_count = (selected.len() / 16) as u32;
         if let Some(snapshot) = &mut self.presentation_snapshot {
             snapshot.batches = batches.to_vec();
             snapshot.palettes = palettes.to_vec();
