@@ -10,6 +10,7 @@
 
 use native_client::bundle::Library;
 use renderer_core::depth::{DepthInputs, DepthPrepass};
+use renderer_core::fog::FogComputeOwner;
 use renderer_core::fog_mask::FogMaskResources;
 use renderer_core::model::Model;
 use renderer_core::model_material::ModelMaterialBindings;
@@ -169,6 +170,7 @@ pub struct Renderer {
     material_surface: Texture,
     material_sampler: Sampler,
     shared_shadow: ShadowResources,
+    shared_fog_compute: FogComputeOwner,
     production_camera_group: BindGroup,
     production_model_vertices: Buffer,
     production_model_instances: Buffer,
@@ -217,6 +219,7 @@ impl Renderer {
         let built = self.production_pipelines.names().count();
         let _shared_resources = (&self.shared_post, &self.shared_fog_mask);
         let _shadow_cascades = self.shared_shadow.active();
+        let _fog_pipeline_owner = &self.shared_fog_compute;
         Ok(format!("{{\"pipelines\":{built}}}"))
     }
 
@@ -323,6 +326,7 @@ impl Renderer {
             true,
         );
         let shared_shadow = ShadowResources::new(&device, &production_pipelines, 64, &[0; 96], 64);
+        let shared_fog_compute = FogComputeOwner::new(&production_pipelines);
         let material_palette = renderer_core::buffer(
             &device,
             "shared-material-palette",
@@ -438,6 +442,7 @@ impl Renderer {
             material_surface,
             material_sampler,
             shared_shadow,
+            shared_fog_compute,
             production_camera_group,
             production_model_vertices,
             production_model_instances,
@@ -751,7 +756,7 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceLost":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceLost":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
             self.stats.draw_calls,
             self.stats.model_vertices,
@@ -760,6 +765,7 @@ impl Renderer {
             self.stats.target_generation,
             self.stats.shared_materials,
             self.stats.shared_shadow,
+            true,
             self.stats.shared_model_prepass,
             self.stats.surface_recoveries,
             self.device_lost.load(Ordering::Relaxed),

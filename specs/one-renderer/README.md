@@ -175,6 +175,9 @@ stops the work before a full port is attempted:
    It also executes one exported `modelPrepass` over the fetched indexed mesh
    using the production 48-byte vertex layout and shared model material group;
    full authored model shading and instance routing remain open.
+   The browser shell also allocates the shared four-stage fog compute owner;
+   presentation upload/bind-group policy and full fog visibility parity remain
+   open.
    The shared browser frame now allocates the real exported pipeline set and
    encodes shared fog-mask, post, and rim passes on every fixture frame. The
    fixture model/world draw remains the bounded input until production

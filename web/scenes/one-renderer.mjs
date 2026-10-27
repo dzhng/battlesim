@@ -100,4 +100,9 @@ export async function run(ctx) {
     sharedWorkload?.sharedModelPrepass === true,
     JSON.stringify(sharedWorkload),
   );
+  ctx.check(
+    "shared browser row owns fog compute pipelines",
+    sharedWorkload?.sharedFogCompute === true,
+    JSON.stringify(sharedWorkload),
+  );
 }
