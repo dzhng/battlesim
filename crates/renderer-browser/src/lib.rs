@@ -238,6 +238,7 @@ impl Renderer {
         let depth = DepthPrepass::new(&pipelines);
         let model = Model::from_indexed_fitted(
             &device,
+            &queue,
             "shared-fixture-model",
             &[
                 -1.0, -1.0, 0.0, 1.0, -1.0, 0.0, 1.0, 1.0, 0.0, -1.0, -1.0, 0.0, 1.0, 1.0, 0.0,
@@ -384,6 +385,7 @@ impl Renderer {
         if let Some(mesh) = mesh {
             self.model = Model::from_indexed_fitted(
                 &self.device,
+                &self.queue,
                 "shared-asset-model",
                 &mesh.positions,
                 &mesh.colors,
