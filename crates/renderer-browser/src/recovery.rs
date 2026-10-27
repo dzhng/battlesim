@@ -46,6 +46,7 @@ impl Renderer {
             )?;
         }
         if let Some(presentation) = presentation {
+            replacement.model_batch_state = presentation.batch_state.clone();
             replacement.upload_frame(
                 &presentation.camera,
                 &presentation.environment,

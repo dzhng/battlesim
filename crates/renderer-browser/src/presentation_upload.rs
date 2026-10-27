@@ -100,6 +100,7 @@ impl Renderer {
             batches: Vec::new(),
             palettes: Vec::new(),
             instances: Vec::new(),
+            batch_state: renderer_core::model::BatchState::default(),
         });
         Ok(())
     }

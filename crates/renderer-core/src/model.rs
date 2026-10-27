@@ -10,6 +10,7 @@ pub const NONE: u32 = u32::MAX;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DrawableRun {
+    pub key: u32,
     pub appearance: u32,
     pub tier: u32,
     pub pass: u32,
@@ -32,6 +33,7 @@ pub fn drawable_runs(words: &[u32]) -> Result<Vec<DrawableRun>, String> {
         .iter()
         .map(|b| {
             Ok(DrawableRun {
+                key: b[0],
                 appearance: b[1],
                 tier: b[2],
                 pass: b[3],
@@ -108,6 +110,41 @@ impl Model {
     }
 }
 
+/// Holds the GPU ranges of static batches between presentation frames.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct BatchState {
+    held: Vec<(u32, u32, u32)>,
+}
+
+impl BatchState {
+    pub fn resolve(
+        &mut self,
+        words: &[u32],
+        instance_count: usize,
+    ) -> Result<Vec<DrawableRun>, String> {
+        let mut runs = Vec::new();
+        for mut run in drawable_runs(words)? {
+            if run.static_held {
+                let Some(&(_, first, count)) = self.held.iter().find(|(key, _, _)| *key == run.key)
+                else {
+                    continue;
+                };
+                run.first = first;
+                run.count = count;
+                run.static_held = false;
+            } else if run.first as usize + run.count as usize > instance_count {
+                return Err("presentation batch range exceeds instances".into());
+            } else if let Some(held) = self.held.iter_mut().find(|(key, _, _)| *key == run.key) {
+                *held = (run.key, run.first, run.count);
+            } else {
+                self.held.push((run.key, run.first, run.count));
+            }
+            runs.push(run);
+        }
+        Ok(runs)
+    }
+}
+
 impl IndexedModel {
     pub fn upload(
         device: &Device,
@@ -149,7 +186,7 @@ impl IndexedModel {
 
 #[cfg(test)]
 mod tests {
-    use super::{drawable_runs, NONE};
+    use super::{drawable_runs, BatchState, NONE};
     #[test]
     fn separates_dynamic_and_held_static_ranges() {
         let mut words = vec![0; 24];
@@ -171,5 +208,22 @@ mod tests {
     #[test]
     fn rejects_partial_batch() {
         assert!(drawable_runs(&[0; 11]).is_err());
+    }
+
+    #[test]
+    fn holds_a_static_batch_range_for_the_next_frame() {
+        let mut state = BatchState::default();
+        let mut dynamic = vec![0; 12];
+        dynamic[0] = 9;
+        dynamic[3] = 0;
+        dynamic[7] = 2;
+        dynamic[8] = 1;
+        let first = state.resolve(&dynamic, 3).unwrap();
+        assert_eq!(first[0].first, 2);
+        let mut held = dynamic;
+        held[7] = NONE;
+        let second = state.resolve(&held, 0).unwrap();
+        assert_eq!(second[0].first, 2);
+        assert_eq!(second[0].count, 1);
     }
 }

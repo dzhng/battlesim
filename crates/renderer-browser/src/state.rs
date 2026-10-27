@@ -46,4 +46,5 @@ pub(super) struct PresentationSnapshot {
     pub(super) batches: Vec<u32>,
     pub(super) palettes: Vec<f32>,
     pub(super) instances: Vec<f32>,
+    pub(super) batch_state: renderer_core::model::BatchState,
 }

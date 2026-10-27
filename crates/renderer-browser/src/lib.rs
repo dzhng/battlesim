@@ -205,6 +205,7 @@ pub struct Renderer {
     production_model_vertex_count: u32,
     production_model_instance_count: u32,
     production_model_runs: Option<Vec<(u32, u32)>>,
+    model_batch_state: renderer_core::model::BatchState,
     production_terrain_vertices: Buffer,
     production_terrain_vertex_count: u32,
     depth: DepthPrepass,
@@ -512,6 +513,7 @@ impl Renderer {
             production_model_vertex_count,
             production_model_instance_count: 0,
             production_model_runs: None,
+            model_batch_state: renderer_core::model::BatchState::default(),
             production_terrain_vertices,
             production_terrain_vertex_count: 0,
             depth,
@@ -704,20 +706,24 @@ impl Renderer {
             }
             Ok(())
         };
-        let mut runs = Vec::new();
-        for run in renderer_core::model::drawable_runs(batches).map_err(js_error)? {
-            if run.pass != 0 || run.static_held {
-                continue;
-            }
-            let first = run.first as usize;
-            let end = first.saturating_add(run.count as usize);
-            if end > instances.len() / 16 {
-                return Err(js_error("presentation batch range exceeds instances"));
-            }
-            runs.push((first as u32, run.count));
-        }
+        let runs = self
+            .model_batch_state
+            .resolve(batches, instances.len() / 16)
+            .map_err(js_error)?
+            .into_iter()
+            .filter(|run| run.pass == 0)
+            .map(|run| (run.first, run.count))
+            .collect::<Vec<_>>();
         if runs.is_empty() && !instances.is_empty() {
-            runs.push((0, (instances.len() / 16) as u32));
+            // An empty batch list is the compatibility fixture path; a real
+            // frame with no view runs leaves the count at zero.
+            if batches.is_empty() {
+                self.production_model_runs = Some(vec![(0, (instances.len() / 16) as u32)]);
+            } else {
+                self.production_model_runs = Some(Vec::new());
+            }
+        } else {
+            self.production_model_runs = Some(runs);
         }
         write(
             &self.queue,
@@ -740,11 +746,11 @@ impl Renderer {
             )?;
         }
         self.production_model_instance_count = (instances.len() / 16) as u32;
-        self.production_model_runs = Some(runs);
         if let Some(snapshot) = &mut self.presentation_snapshot {
             snapshot.batches = batches.to_vec();
             snapshot.palettes = palettes.to_vec();
             snapshot.instances = instances.to_vec();
+            snapshot.batch_state = self.model_batch_state.clone();
         }
         self.stats.presentation_model_words =
             (palettes.len() + instances.len() + batches.len()) as u32;
