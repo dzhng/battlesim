@@ -337,12 +337,16 @@ function realFrame(cameraParams: Camera3DParams = FOUNDATION_CAMERA) {
     { selected: [], xray: false, ghosts: [] },
     0,
   );
+  const cameraWords = new Float32Array(frame.camera.f32);
+  const shadowWords = new Float32Array(frame.sun_shadow.f32);
+  const casterWords = new Float32Array(frame.casters.f32);
+  const batchWords = new Uint32Array(frame.batches.u32);
   return {
     mesh: world.terrain.mesh,
-    camera: frame.camera.f32,
-    sun_shadow: frame.sun_shadow.f32,
-    casters: frame.casters.f32,
-    batches: frame.batches.u32,
+    camera: cameraWords,
+    sun_shadow: shadowWords,
+    casters: casterWords,
+    batches: batchWords,
     presentation,
   };
 }
@@ -614,7 +618,11 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     bundleBytes,
     textureBytes.map((bytes) => bytes),
   );
-  const frozen = realFrame(MODEL_CAMERA);
+  // Use the same frozen presentation frame as the BattleFrame control so the
+  // Rust shell receives a fitted SunShadow receiver/caster record, not an
+  // empty model-only camera record.
+  const frozenFixture = battleFixture();
+  const frozen = frozenFixture.camera;
   const upload = renderer as SharedRenderer & {
     upload_presentation_frame: (
       camera: Float32Array,
@@ -631,7 +639,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   const resolvedLight = await resolveLight(gameLight);
   const fogLook = resolveFogLook(gameFogStyle);
   upload.upload_presentation_frame(
-    new Float32Array(frozen.camera),
+    new Float32Array(frozen.camera.f32),
     new Float32Array(resolvedLight.sun),
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
@@ -668,7 +676,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   // Device recreation swaps every GPU handle, so rebind the same frozen
   // presentation records before the first post-recovery frame.
   upload.upload_presentation_frame(
-    new Float32Array(frozen.camera),
+    new Float32Array(frozen.camera.f32),
     new Float32Array(resolvedLight.sun),
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
@@ -697,6 +705,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     .stats()
     .replace(/\}$/, `,"bundleWireBytes":${bundleWireBytes},"export":${exportValidation}}`);
   renderer.free();
+  frozenFixture.presentation.free();
   return {
     mode: "shared-rust-core-browser",
     setupMs,

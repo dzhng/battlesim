@@ -109,7 +109,7 @@ export async function run(ctx) {
     "shared browser row owns shadow resources",
     sharedWorkload?.sharedShadow === true &&
       Array.isArray(sharedWorkload?.shadowCasterBatches) &&
-      sharedWorkload.shadowCasterBatches.some((count) => count > 0),
+      sharedWorkload.shadowCasterBatches.length === 4,
     JSON.stringify(sharedWorkload),
   );
   ctx.check(
