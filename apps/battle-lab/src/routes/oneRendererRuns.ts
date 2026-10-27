@@ -642,12 +642,9 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       wholeItems: Uint32Array,
       wholeUniform: Float32Array,
     ) => void;
+    upload_shared_ground: (mesh: Float32Array) => void;
   };
-  // This is the actual presentation-wasm record boundary: the camera is
-  // bound by the shared model prepass, while the resolved environment/fog and
-  // overlay records are uploaded into the shared shell's pass-owned buffers.
-  // Keep the values frozen for the whole workload so backend comparisons do
-  // not accidentally compare different presentation clocks.
+  // Upload one frozen presentation record set for all backend comparisons.
   const resolvedLight = await resolveLight(gameLight);
   const fogLook = resolveFogLook(gameFogStyle);
   upload.upload_presentation_frame(
@@ -656,6 +653,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
   );
+  upload.upload_shared_ground(new Float32Array(frozenFixture.terrain));
   type FogSightSnapshot = Parameters<typeof upload.upload_fog_sight>;
   let fogSightSnapshot: FogSightSnapshot | null = null;
   const uploadFogSight = (refresh: boolean) => {
@@ -668,8 +666,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
         0,
       );
       if (!up) return;
-      const reinterpret = (words: Uint32Array) =>
-        new Float32Array(new Uint32Array(words).buffer);
+      const reinterpret = (words: Uint32Array) => new Float32Array(new Uint32Array(words).buffer);
       try {
         const foliage = up.foliage();
         const occluders = up.occluders();

@@ -14,6 +14,7 @@ impl Renderer {
         let previous_stats = self.stats;
         let previous_lost = self.device_lost.load(Ordering::Relaxed);
         let snapshot = self.asset_snapshot.clone();
+        let ground = self.ground_snapshot.clone();
         let presentation = self.presentation_snapshot.clone();
         let mut replacement = Self::new(canvas).await?;
         replacement.stats = previous_stats;
@@ -23,6 +24,9 @@ impl Renderer {
             .store(previous_lost, Ordering::Relaxed);
         if let Some(snapshot) = snapshot {
             replacement.load_bundle_bytes(snapshot.name, snapshot.bundle, snapshot.textures)?;
+        }
+        if let Some(ground) = ground {
+            replacement.upload_shared_ground(&ground)?;
         }
         if let Some(presentation) = presentation {
             replacement.upload_presentation_frame(

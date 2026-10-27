@@ -144,7 +144,7 @@ impl Targets {
             "display",
             DISPLAY_FORMAT,
             1,
-            render | TextureUsages::COPY_SRC,
+            render | TextureUsages::COPY_SRC | TextureUsages::TEXTURE_BINDING,
         );
         Self {
             size,

@@ -33,6 +33,7 @@ mod asset;
 mod diagnostic;
 mod environment;
 mod export;
+mod presentation_upload;
 mod production_model;
 mod recovery;
 mod shadow_upload;
@@ -53,8 +54,9 @@ const PIPELINES: &str = r#"{
   "pipelines":[
     {"name":"modelPrepass","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"depthStencil":{"format":"depth32float","depthWriteEnabled":true,"depthCompare":"greater"},"multisample":{"count":4}},
     {"name":"modelPrepassCutout","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"depthStencil":{"format":"depth32float","depthWriteEnabled":true,"depthCompare":"greater"},"multisample":{"count":4}},
-    {"name":"worldOpaque","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"fragment":{"entryPoint":"world","targets":[{"format":"rgba16float"},{"format":"rgba8unorm"}]},"depthStencil":{"format":"depth32float","depthWriteEnabled":true,"depthCompare":"greater"},"multisample":{"count":4}},
-    {"name":"displayModel","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"fragment":{"entryPoint":"display","targets":[{"format":"bgra8unorm"}]}}
+    {"name":"worldOpaque","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"fragment":{"entryPoint":"world","targets":[{"format":"rgba16float"},{"format":"rgba8unorm"}]},"depthStencil":{"format":"depth32float","depthWriteEnabled":false,"depthCompare":"always"},"multisample":{"count":4}},
+    {"name":"displayModel","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"fragment":{"entryPoint":"display","targets":[{"format":"bgra8unorm"}]}},
+    {"name":"composite","kind":"render","shader":"fixture.wgsl","layout":["sampled"],"vertex":{"entryPoint":"fullscreen","buffers":[]},"primitive":{"topology":"triangle-list"},"fragment":{"entryPoint":"composite","targets":[{"format":"bgra8unorm"}]}}
   ]
 }"#;
 
@@ -75,9 +77,9 @@ struct W { @location(0) colour: vec4<f32>, @location(1) fog: vec4<f32> };
 @group(0) @binding(0) var lit: texture_2d<f32>;
 @group(0) @binding(1) var linear: sampler;
 @fragment fn composite(in: V) -> @location(0) vec4<f32> {
-  let uv = vec2<f32>(in.position.x / 640.0, 1.0 - in.position.y / 360.0);
+  let uv = vec2<f32>(in.position.x / 640.0, in.position.y / 360.0);
   let c = textureSample(lit, linear, uv);
-  return vec4<f32>(1.0 - exp(-c.rgb), 1.0);
+  return vec4<f32>(c.rgb, 1.0);
 }
 "#;
 
@@ -184,13 +186,13 @@ pub struct Renderer {
     production_model_instances: Buffer,
     production_model_vertex_count: u32,
     depth: DepthPrepass,
+    camera_buffer: Buffer,
     camera_group: BindGroup,
     model: Model,
-    /// Display-only position/float-colour stream.  Production model uploads
-    /// use a wider authored vertex layout and must not be rebound to the
-    /// fixture's small final display pipeline.
-    display_model_vertices: Buffer,
-    display_model_vertex_count: u32,
+    shared_ground: Option<Model>,
+    ground_snapshot: Option<Vec<f32>>,
+    display_sampler: Sampler,
+    display_group: BindGroup,
     width: u32,
     height: u32,
     format: TextureFormat,
@@ -324,7 +326,7 @@ impl Renderer {
         let (
             material_palette,
             material_rows,
-            material_albedo,
+            _material_albedo,
             material_surface,
             material_sampler,
             material_bindings,
@@ -413,13 +415,15 @@ impl Renderer {
             &[0, 1, 2, 3, 4, 5],
         )
         .map_err(js_error)?;
-        let (display_vertices, display_model_vertex_count) =
-            production_model::fixture_display_vertices();
-        let display_model_vertices = renderer_core::buffer(
+        let display_sampler = device.create_sampler(&SamplerDescriptor::default());
+        let display_group = renderer_core::bind(
             &device,
-            "shared-display-model-vertices",
-            BufferUsages::VERTEX,
-            &display_vertices,
+            pipelines.layout("sampled"),
+            "shared-display-composite-group",
+            &[
+                BindingResource::TextureView(&targets.lit),
+                BindingResource::Sampler(&display_sampler),
+            ],
         );
         Ok(Self {
             surface,
@@ -449,10 +453,13 @@ impl Renderer {
             production_model_instances,
             production_model_vertex_count,
             depth,
+            camera_buffer,
             camera_group,
             model,
-            display_model_vertices,
-            display_model_vertex_count,
+            shared_ground: None,
+            ground_snapshot: None,
+            display_sampler,
+            display_group,
             width,
             height,
             format,
@@ -469,70 +476,6 @@ impl Renderer {
             asset_snapshot: None,
             model_opaque_diagnostic: false,
         })
-    }
-
-    /// Upload one frozen presentation frame at the shared renderer boundary.
-    /// The camera is immediately bound by the exported model prepass; the
-    /// environment and overlay records are retained in shell-owned uniform
-    /// buffers while the shared fog-mask owner binds the resolved fog look.
-    /// Inputs are the packed Float32 records returned by `presentation-wasm`.
-    #[cfg(target_arch = "wasm32")]
-    #[wasm_bindgen]
-    pub fn upload_presentation_frame(
-        &mut self,
-        camera: &[f32],
-        environment: &[f32],
-        fog: &[f32],
-        overlay: &[f32],
-    ) -> Result<(), JsValue> {
-        if camera.len() < 40 {
-            return Err(js_error("presentation camera record needs 40 words"));
-        }
-        let write = |queue: &Queue, buffer: &Buffer, words: &[f32], label: &str| {
-            let bytes = bytemuck::cast_slice(words);
-            if bytes.len() > 256 {
-                return Err(js_error(format!(
-                    "presentation {label} record exceeds 256 bytes"
-                )));
-            }
-            if !bytes.is_empty() {
-                queue.write_buffer(buffer, 0, bytes);
-            }
-            Ok(words.len() as u32)
-        };
-        self.queue.write_buffer(
-            &self.presentation_camera,
-            0,
-            bytemuck::cast_slice(&camera[..40]),
-        );
-        let environment_words = write(
-            &self.queue,
-            &self.presentation_environment,
-            environment,
-            "environment",
-        )?;
-        let fog_bytes = bytemuck::cast_slice(fog);
-        self.shared_fog_mask
-            .write_look(&self.queue, fog_bytes)
-            .map_err(js_error)?;
-        let fog_words = fog.len() as u32;
-        let overlay_words = write(&self.queue, &self.presentation_overlay, overlay, "overlay")?;
-        self.stats.presentation_uploads = self.stats.presentation_uploads.saturating_add(1);
-        self.stats.presentation_bound = true;
-        self.stats.presentation_camera_words = 40;
-        self.stats.presentation_environment_words = environment_words;
-        self.stats.presentation_fog_words = fog_words;
-        self.stats.presentation_overlay_words = overlay_words;
-        self.presentation_snapshot = Some(PresentationSnapshot {
-            camera: camera[..40].to_vec(),
-            environment: environment.to_vec(),
-            fog: fog.to_vec(),
-            overlay: overlay.to_vec(),
-            shadow: Vec::new(),
-            casters: Vec::new(),
-            batches: Vec::new(),
-        });
-        Ok(())
     }
 
     /// Upload the presentation fog sight records into the shared compute
@@ -601,6 +544,15 @@ impl Renderer {
                 true,
                 true,
             );
+            self.display_group = renderer_core::bind(
+                &self.device,
+                self.pipelines.layout("sampled"),
+                "shared-display-composite-group",
+                &[
+                    BindingResource::TextureView(&self.targets.lit),
+                    BindingResource::Sampler(&self.display_sampler),
+                ],
+            );
             if let Some(presentation) = &self.presentation_snapshot {
                 self.shared_fog_mask
                     .write_look(&self.queue, bytemuck::cast_slice(&presentation.fog))
@@ -653,12 +605,13 @@ impl Renderer {
             .create_command_encoder(&CommandEncoderDescriptor {
                 label: Some("shared-renderer-frame"),
             });
+        let ground = self.shared_ground.as_ref().unwrap_or(&self.model);
         let fixture = Fixture {
             depth: &self.targets.depth,
             camera: &self.camera_group,
             solid: &self.pipelines.bound("modelPrepass"),
             world: &self.pipelines.bound("worldOpaque"),
-            model: &self.model,
+            model: ground,
         };
         encode_grouped(&mut encoder, "shared-depth", |e| {
             self.depth.encode(&fixture, e)
@@ -666,14 +619,7 @@ impl Renderer {
         encode_grouped(&mut encoder, "shared-world", |e| {
             renderer_core::world::encode_sky(&fixture, &self.targets, e)
         });
-        renderer_core::world::encode_world(
-            &fixture,
-            &self.targets,
-            &mut encoder,
-            true,
-            false,
-            true,
-        );
+        renderer_core::world::encode_world(&fixture, &self.targets, &mut encoder, true, true, true);
         production_model::encode_prepass(
             &mut encoder,
             &self.targets,
@@ -714,10 +660,10 @@ impl Renderer {
         let view = surface
             .texture
             .create_view(&TextureViewDescriptor::default());
-        let pipeline = self.pipelines.bound("displayModel");
+        let pipeline = self.pipelines.bound("composite");
         {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("shared-fixture-display"),
+                label: Some("shared-display-composite"),
                 color_attachments: &[Some(RenderPassColorAttachment {
                     view: &view,
                     depth_slice: None,
@@ -729,9 +675,8 @@ impl Renderer {
                 })],
                 ..Default::default()
             });
-            pipeline.set(&mut pass, &[("camera", &self.camera_group)]);
-            pass.set_vertex_buffer(0, self.display_model_vertices.slice(..));
-            pass.draw(0..self.display_model_vertex_count, 0..1);
+            pipeline.set(&mut pass, &[("sampled", &self.display_group)]);
+            pass.draw(0..3, 0..1);
         }
         self.queue.submit([encoder.finish()]);
         self.queue.present(surface);

@@ -20,32 +20,6 @@ pub fn fixture_vertices() -> (Vec<u8>, u32) {
     pack::<6>(positions.into_iter().zip(colours), 6)
 }
 
-/// Pack the small display-only adapter used by the shared fixture's final
-/// canvas pass.  The production model stream below is intentionally a 48-byte
-/// authored layout (including skinning and material channels); the fixture
-/// display pipeline consumes the simpler 28-byte position + float colour
-/// layout.  Expand indices here so the display pass never interprets the
-/// production bytes as a different vertex format.
-pub fn fixture_display_vertices() -> (Vec<u8>, u32) {
-    let positions = [
-        [-1.0f32, -1.0, 0.0],
-        [1.0, -1.0, 0.0],
-        [1.0, 1.0, 0.0],
-        [-1.0, -1.0, 0.0],
-        [1.0, 1.0, 0.0],
-        [-1.0, 1.0, 0.0],
-    ];
-    let colours = [
-        [31u8, 107, 184, 255],
-        [31, 107, 184, 255],
-        [209, 122, 31, 255],
-        [31, 107, 184, 255],
-        [209, 122, 31, 255],
-        [31, 107, 184, 255],
-    ];
-    display_pack(positions.into_iter().zip(colours), 6)
-}
-
 pub fn mesh_vertices(
     positions: &[f32],
     colours: &[u8],
@@ -186,17 +160,6 @@ fn pack<const N: usize>(
         bytes.extend_from_slice(&[255, 0, 0, 0]);
         bytes.extend_from_slice(&[0, 0, 127, 127]);
         bytes.extend_from_slice(&[0; 4]);
-    }
-    (bytes, count)
-}
-
-fn display_pack(vertices: impl Iterator<Item = ([f32; 3], [u8; 4])>, count: u32) -> (Vec<u8>, u32) {
-    let mut bytes = Vec::with_capacity(count as usize * 28);
-    for (position, colour) in vertices {
-        bytes.extend_from_slice(bytemuck::cast_slice(&position));
-        for channel in colour {
-            bytes.extend_from_slice(&(channel as f32 / 255.0).to_ne_bytes());
-        }
     }
     (bytes, count)
 }
