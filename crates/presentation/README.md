@@ -40,7 +40,9 @@ native.
   and where each drawn model's muzzles and rotors are.
 - [Effects](src/effects/): the effect publication, launches (the one derivation
   the flashes, the firing soldiers and the gunfire sounds read), the effect frame,
-  the cast lights it chooses for the view, and cook-offs.
+  the cast lights it chooses for the view, cook-offs, and the sparks a hull
+  throws where it grinds a metal body it shoves (the simulation publishes
+  where they meet).
 - [The view](src/view.rs): what the camera means for culling and detail, the one
   tier rule every drawn model takes and the tier it casts with, and the
   frame's `View` record (with the sky's corner rays) and camera uniform,

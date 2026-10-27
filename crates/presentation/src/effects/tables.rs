@@ -34,6 +34,8 @@ pub struct EffectPresentation {
     pub blast_scale: HashMap<String, f64>,
     pub sparks: SparkStyle,
     pub ricochet_sparks: f64,
+    /// Sparks a second a hull grinding a metal body throws.
+    pub grind_sparks_per_s: f64,
     pub blast: BlastStyle,
     pub cook_off: CookOffFeel,
     pub dust: DustStyle,

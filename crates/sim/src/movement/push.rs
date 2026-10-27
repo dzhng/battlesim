@@ -9,7 +9,7 @@ use contract::ids::Side;
 use contract::map::MoverClass;
 use contract::scenario::PushClass;
 
-use crate::math::{Obb2, V2};
+use crate::math::{v2, v3, Obb2, V2, V3};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, WorldGeometry};
 
@@ -17,6 +17,8 @@ use crate::world::{Prop, PropId, WorldGeometry};
 /// clears the hull by it, and may leave the body up to it inside another,
 /// as a fence panel slides along the end of the next one in its line.
 const CLEAR_M: f64 = 0.01;
+/// Corners this near the nearest one share its contact.
+const TOUCH_M: f64 = 0.1;
 /// Slide-and-turn passes before a shove that still overlaps gives up.
 const PASSES: usize = 3;
 
@@ -31,6 +33,8 @@ pub struct Shove {
     pub by: Side,
     /// The pusher's horizontal travel: the way a body it knocks down falls.
     pub heading: V2,
+    /// Where the hull meets the body, halfway up the lower of the two.
+    pub contact: V3,
 }
 
 /// What a hull moving to `next` from `here` meets among the bodies that
@@ -63,21 +67,64 @@ pub fn meet<'a>(world: &'a WorldGeometry, next: &Obb2, here: &Obb2, push: PushCl
     out
 }
 
-/// Where `prop` goes when the hull at `hull`, driving along `heading`,
-/// shoves it (Q2): slid out along the axis of least overlap, turned by
-/// `turn_rad_per_m` per metre slid when struck off the pusher's centreline.
-/// `None` when the shove would drive it into another body that stops
-/// vehicles or another live hull (no chain shoves), or off the map.
+/// The bodies `unit`'s hull is pressed against and shoves: those its last
+/// shove left `CLEAR_M` ahead of it.
+pub fn pressed(world: &WorldGeometry, unit: &Unit) -> Vec<PropId> {
+    let (Some(hull), push) = (unit.ground_footprint(), unit.ground().push) else {
+        return Vec::new();
+    };
+    world
+        .props_near(hull.center, hull.half.length())
+        .into_iter()
+        .filter(|prop| {
+            let body = prop.footprint();
+            let reach = Obb2 {
+                half: body.half + v2(2.0 * CLEAR_M, 2.0 * CLEAR_M),
+                ..body
+            };
+            prop.blocks(MoverClass::Vehicle)
+                && push.pushes(prop.body.weight_class)
+                && hull.separation(&reach).is_some()
+        })
+        .map(|prop| prop.id)
+        .collect()
+}
+
+/// A vehicle driving into bodies this tick: the unit, where its hull goes
+/// and its horizontal travel.
+#[derive(Clone, Copy)]
+pub struct Pusher {
+    pub unit: usize,
+    pub hull: Obb2,
+    pub heading: V2,
+}
+
+/// Where `prop` goes when `pusher` shoves it (Q2): slid out along the axis
+/// of least overlap, turned by `turn_rad_per_m` per metre slid when struck
+/// off the pusher's centreline. `None` when the shove would drive it into
+/// another body that stops vehicles or another live hull (no chain shoves),
+/// or off the map.
 pub fn shove(
     world: &WorldGeometry,
     units: &[Unit],
-    pusher: usize,
-    hull: &Obb2,
-    heading: V2,
+    pusher: Pusher,
     prop: &Prop,
     turn_rad_per_m: f64,
 ) -> Option<Shove> {
+    let Pusher {
+        unit: pusher,
+        hull,
+        heading,
+    } = pusher;
     let by = units[pusher].side;
+    let before = prop.footprint();
+    let contact = |body: &Obb2| {
+        let c = contact_point(&hull, body);
+        let half_height = units[pusher]
+            .hull
+            .map_or(prop.half.z, |h| h.z.min(prop.half.z));
+        v3(c.x, c.y, prop.base_z + half_height)
+    };
     if prop.body.topples {
         return Some(Shove {
             prop: prop.id,
@@ -85,9 +132,9 @@ pub fn shove(
             yaw: prop.yaw,
             by,
             heading,
+            contact: contact(&before),
         });
     }
-    let before = prop.footprint();
     let mut rect = before;
     for _ in 0..PASSES {
         let Some(mtv) = hull.separation(&rect) else {
@@ -127,5 +174,25 @@ pub fn shove(
         yaw: rect.yaw,
         by,
         heading,
+        contact: contact(&rect),
     })
+}
+
+/// Where the hull meets the shoved body: the corners of either box that
+/// touch the other, averaged (one corner on a slant, the middle of the shared
+/// stretch where two faces lie flush).
+fn contact_point(hull: &Obb2, prop: &Obb2) -> V2 {
+    let gaps: Vec<(V2, f64)> = hull
+        .corners()
+        .into_iter()
+        .map(|c| (c, prop.distance(c)))
+        .chain(prop.corners().into_iter().map(|c| (c, hull.distance(c))))
+        .collect();
+    let least = gaps.iter().fold(f64::INFINITY, |m, g| m.min(g.1));
+    let touching: Vec<V2> = gaps
+        .iter()
+        .filter(|g| g.1 <= least + TOUCH_M)
+        .map(|g| g.0)
+        .collect();
+    touching.iter().fold(v2(0.0, 0.0), |s, c| s + *c) * (1.0 / touching.len() as f64)
 }

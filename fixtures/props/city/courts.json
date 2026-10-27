@@ -1,7 +1,7 @@
 {
   "props": {
     "bike_rack": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 20, "cover_tier": "light"},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 20, "cover_tier": "light", "metal": true},
       "destroyed": "removed",
       "appearance": {"drawn_by": "bike_rack", "map_only": true}
     },
@@ -11,12 +11,12 @@
       "appearance": {"drawn_by": "playground_frame", "map_only": true}
     },
     "swing": {
-      "body": {"blocks": {"infantry": false, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 30},
+      "body": {"blocks": {"infantry": false, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 30, "metal": true},
       "destroyed": "removed",
       "appearance": {"drawn_by": "swing", "map_only": true}
     },
     "bike_shed": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "medium", "hp": 80, "cover_tier": "light"},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "medium", "hp": 80, "cover_tier": "light", "metal": true},
       "destroyed": "removed",
       "appearance": {"drawn_by": "bike_shed", "map_only": true}
     },
@@ -26,22 +26,22 @@
       "appearance": {"drawn_by": "pingpong_table", "map_only": true}
     },
     "outdoor_gym": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "medium", "hp": 60},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "medium", "hp": 60, "metal": true},
       "destroyed": "removed",
       "appearance": {"drawn_by": "outdoor_gym", "map_only": true}
     },
     "laundry_poles": {
-      "body": {"blocks": {"infantry": false, "vehicle": false}, "stops_rounds": false, "occludes": true, "weight_class": "light", "hp": 10},
+      "body": {"blocks": {"infantry": false, "vehicle": false}, "stops_rounds": false, "occludes": true, "weight_class": "light", "hp": 10, "metal": true},
       "destroyed": "removed",
       "appearance": {"drawn_by": "laundry_poles", "map_only": true}
     },
     "chainlink_fence": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 25},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 25, "metal": true},
       "destroyed": "removed",
       "appearance": {"drawn_by": "chainlink_fence", "modular": true, "map_only": true}
     },
     "basketball_hoop": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "medium", "hp": 60},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "medium", "hp": 60, "metal": true},
       "destroyed": "removed",
       "appearance": {"drawn_by": "basketball_hoop", "map_only": true}
     },
@@ -55,12 +55,12 @@
       "appearance": {"drawn_by": "garage_row", "map_only": true}
     },
     "dumpster": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 180, "cover_tier": "medium"},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 180, "cover_tier": "medium", "metal": true},
       "destroyed": "removed",
       "appearance": {"drawn_by": "dumpster", "map_only": true}
     },
     "kiosk": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "medium", "hp": 80, "cover_tier": "light"},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "medium", "hp": 80, "cover_tier": "light", "metal": true},
       "destroyed": "removed",
       "appearance": {"drawn_by": "kiosk", "map_only": true}
     },
@@ -74,12 +74,12 @@
       "appearance": {"drawn_by": "courtyard_wall", "modular": true, "map_only": true}
     },
     "iron_railing": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "topples": true, "hp": 30},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "topples": true, "hp": 30, "metal": true},
       "destroyed": "removed",
       "appearance": {"drawn_by": "iron_railing", "modular": true, "map_only": true}
     },
     "plinth_railing": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "medium", "topples": true, "hp": 150, "cover_tier": "light"},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "medium", "topples": true, "hp": 150, "cover_tier": "light", "metal": true},
       "destroyed": {"into": {"prop": "rubble", "height_m": 0.3}},
       "appearance": {"drawn_by": "plinth_railing", "modular": true, "map_only": true}
     }

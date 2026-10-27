@@ -1,6 +1,7 @@
 //! Combat effects: what a side's publications say happened becomes
 //! short-lived effects, and each frame the effect pass's instances and the
 //! cast lights at the presentation clock.
+mod batch;
 pub mod cook_off;
 pub mod cook_offs;
 pub mod frame;
