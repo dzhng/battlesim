@@ -192,9 +192,11 @@ stops the work before a full port is attempted:
    encodes shared fog-mask, post, and rim passes on every fixture frame. The
    The browser now constructs the shared nine-resource environment bind group,
    uploads the fitted shadow receiver/caster records, and routes the frozen
-   batch cascade masks. Remaining bounded inputs are real fog visibility
-   buffers, overlay draws, and a matched production frame, not a second pass
-   implementation.
+   batch cascade masks. It also allocates the shared fog sight buffers and
+   bind groups plus a browser upload seam; dispatch remains opt-in until real
+   height pages and due-state inputs are wired. Remaining bounded inputs are
+   fog visibility dispatch, overlay draws, and a matched production frame, not
+   a second pass implementation.
    The shared target owner now allocates the overlay depth, paint, resolved
    colour, and half-resolution glow attachments on native and browser resize.
    Browser resize now uses the shared `TargetOwner`, rebuilds the shared fog
