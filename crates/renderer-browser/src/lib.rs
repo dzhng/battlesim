@@ -19,6 +19,10 @@ use wasm_bindgen::prelude::*;
 use web_sys::HtmlCanvasElement;
 use wgpu::*;
 
+mod pipeline_export {
+    include!(concat!(env!("OUT_DIR"), "/pipeline_export.rs"));
+}
+
 const PIPELINES: &str = r#"{
   "sizes":{"bloomLevels":0,"skyLut":[1,1],"effectSheet":1,"grassClump":1},
   "layouts":{
@@ -146,6 +150,24 @@ fn js_error(error: impl std::fmt::Display) -> JsValue {
 
 #[wasm_bindgen]
 impl Renderer {
+    /// Diagnostics for the exact production pipeline export embedded in this
+    /// browser artifact. The fixture frame remains the control while its full
+    /// resource graph is wired.
+    #[wasm_bindgen]
+    pub fn exported_pipeline_count() -> usize {
+        pipeline_export::COUNT
+    }
+
+    #[wasm_bindgen]
+    pub fn exported_pipeline_manifest() -> String {
+        pipeline_export::MANIFEST.to_owned()
+    }
+
+    #[wasm_bindgen]
+    pub fn exported_pipeline_source(name: String) -> Option<String> {
+        pipeline_export::source(&name).map(str::to_owned)
+    }
+
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
     pub async fn new(canvas: HtmlCanvasElement) -> Result<Renderer, JsValue> {
