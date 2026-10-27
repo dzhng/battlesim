@@ -217,6 +217,7 @@ pub struct Renderer {
     production_model_instances: Buffer,
     production_model_vertex_count: u32,
     depth: DepthPrepass,
+    camera_buffer: Buffer,
     camera_group: BindGroup,
     model: Model,
     /// Display-only position/float-colour stream.  Production model uploads
@@ -442,7 +443,7 @@ impl Renderer {
                 1.0f32, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
             ]),
         );
-        let camera = renderer_core::buffer(
+        let camera_buffer = renderer_core::buffer(
             &device,
             "shared-camera",
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
@@ -454,7 +455,9 @@ impl Renderer {
             &device,
             pipelines.layout("camera"),
             "shared-camera-group",
-            &[BindingResource::Buffer(camera.as_entire_buffer_binding())],
+            &[BindingResource::Buffer(
+                camera_buffer.as_entire_buffer_binding(),
+            )],
         );
         let depth = DepthPrepass::new(&pipelines);
         let model = Model::from_indexed_fitted(
@@ -508,6 +511,7 @@ impl Renderer {
             production_model_instances,
             production_model_vertex_count,
             depth,
+            camera_buffer,
             camera_group,
             model,
             display_model_vertices,
@@ -563,6 +567,13 @@ impl Renderer {
             0,
             bytemuck::cast_slice(&camera[..40]),
         );
+        // The small fixture display pipeline uses the same view-projection
+        // contract as production but only binds a 16-word camera uniform.
+        // Keep it fitted to the uploaded presentation frame so the display
+        // adapter can show authored world-space vertices without treating
+        // them as clip-space coordinates.
+        self.queue
+            .write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&camera[..16]));
         let environment_words = write(
             &self.queue,
             &self.presentation_environment,
@@ -608,6 +619,7 @@ impl Renderer {
         map_words: &[u32],
         tiles: &[u32],
         wholes: &[u32],
+        whole_items: &[u32],
         whole_uniform: &[f32],
     ) -> Result<(), JsValue> {
         if params.len() < 64 || map_words.len() < 2 || tiles.len() < 3 {
@@ -626,6 +638,7 @@ impl Renderer {
                     map_words: [map_words[0], map_words[1]],
                     tiles: [tiles[0], tiles[1], tiles[2]],
                     wholes,
+                    whole_items: bytemuck::cast_slice(whole_items),
                     whole_uniform: bytemuck::cast_slice(whole_uniform),
                 },
             )
