@@ -34,6 +34,8 @@ pub struct EffectPresentation {
     pub blast_scale: HashMap<String, f64>,
     pub sparks: SparkStyle,
     pub ricochet_sparks: f64,
+    /// Sparks a second a hull grinding a metal body throws.
+    pub grind_sparks_per_s: f64,
     pub blast: BlastStyle,
     pub cook_off: CookOffFeel,
     pub dust: DustStyle,
@@ -215,9 +217,6 @@ pub struct SparkStyle {
     pub duration_s: f64,
     pub length_m: f64,
     pub width_m: f64,
-    /// Sparks a full-speed push throws each tick; a crawl still throws
-    /// half, so even a slow shove reads from the gameplay camera.
-    pub push_count: f64,
 }
 
 /// A burst: its fireball per metre of blast radius, and the one the

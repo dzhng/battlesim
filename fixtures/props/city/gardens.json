@@ -16,7 +16,7 @@
       "appearance": {"drawn_by": "garden_fence", "modular": true, "map_only": true}
     },
     "washing_line": {
-      "body": {"blocks": {"infantry": false, "vehicle": false}, "stops_rounds": false, "occludes": true, "weight_class": "light", "hp": 10},
+      "body": {"blocks": {"infantry": false, "vehicle": false}, "stops_rounds": false, "occludes": true, "weight_class": "light", "hp": 10, "metal": true},
       "destroyed": "removed",
       "appearance": {"drawn_by": "washing_line", "map_only": true}
     },

@@ -247,7 +247,7 @@ const HEADER: [&str; 44] = [
     "crashCount",
     "shoutCount",
     "propDisplayPoseCount",
-    "pushContactCount",
+    "grindCount",
 ];
 const OBJECTIVE_FIELDS: [&str; 8] = [
     "id",
@@ -335,7 +335,7 @@ const SHOUT_FIELDS: [&str; 9] = [
     "intensity",
 ];
 const PROP_DISPLAY_POSE_FIELDS: [&str; 5] = ["propId", "x", "y", "yaw", "baseZ"];
-const PUSH_CONTACT_FIELDS: [&str; 6] = ["x", "y", "z", "headingX", "headingY", "intensity"];
+const GRIND_FIELDS: [&str; 5] = ["x", "y", "z", "headingX", "headingY"];
 const REPORT_TOTAL_FIELDS: [&str; 4] = ["spawned", "spent", "killed", "refunded"];
 const REPORT_EVENT_FIELDS: [&str; 15] = [
     "tickLo",
@@ -572,7 +572,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
         "propDisplayPoseCount",
         &PROP_DISPLAY_POSE_FIELDS,
     ),
-    rows("pushContacts", "pushContactCount", &PUSH_CONTACT_FIELDS),
+    rows("grinds", "grindCount", &GRIND_FIELDS),
 ];
 
 /// An integer as its two exact 16-bit limbs.
@@ -944,7 +944,7 @@ fn pack_record(
         frame.crashes.len() as f32,
         frame.shouts.len() as f32,
         frame.prop_display_poses.len() as f32,
-        frame.push_contacts.len() as f32,
+        frame.grinds.len() as f32,
     ]);
     for u in &frame.own {
         let (host_kind, host_id, host_center, host_half) = match u.hold.map(|h| h.host) {
@@ -1524,14 +1524,13 @@ fn pack_record(
     if let Some(ends) = ends.as_mut() {
         ends.push(out.len());
     }
-    for c in &frame.push_contacts {
+    for g in &frame.grinds {
         out.extend([
-            c.point[0] as f32,
-            c.point[1] as f32,
-            c.point[2] as f32,
-            c.heading[0] as f32,
-            c.heading[1] as f32,
-            c.intensity as f32,
+            g.point[0] as f32,
+            g.point[1] as f32,
+            g.point[2] as f32,
+            g.heading[0] as f32,
+            g.heading[1] as f32,
         ]);
     }
     if let Some(ends) = ends.as_mut() {
@@ -1676,7 +1675,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
         frame.prop_display_poses.len(),
         PROP_DISPLAY_POSE_FIELDS.len(),
     )?;
-    add(frame.push_contacts.len(), PUSH_CONTACT_FIELDS.len())?;
+    add(frame.grinds.len(), GRIND_FIELDS.len())?;
     add(fog, 1)?;
     add(runs, GROUND_FIELDS.len())?;
     Ok(length)

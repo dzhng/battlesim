@@ -70,6 +70,9 @@ pub struct PropBody {
     /// inside (Q22, the named garrison mechanic).
     #[serde(default)]
     pub garrison: bool,
+    /// Its outside is metal: a hull grinding it as it shoves it strikes sparks.
+    #[serde(default)]
+    pub metal: bool,
 }
 
 /// A fixed integrity value, or a coefficient per square metre and usable floor band.

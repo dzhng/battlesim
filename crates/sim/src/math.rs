@@ -164,6 +164,12 @@ impl Obb2 {
         (p - self.center).rotated(-self.yaw)
     }
 
+    /// Its four corners, front-left first, counter-clockwise.
+    pub fn corners(&self) -> [V2; 4] {
+        [(1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0)]
+            .map(|(x, y)| self.center + v2(self.half.x * x, self.half.y * y).rotated(self.yaw))
+    }
+
     /// Distance from `p` to the rectangle (0 inside).
     pub fn distance(&self, p: V2) -> f64 {
         let d = self.to_local(p);

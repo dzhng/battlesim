@@ -11,9 +11,9 @@ use contract::ids::{Side, Tick, UnitId};
 use contract::map::{MoverClass, PropDefinition};
 use contract::observation::{
     AirTransit, AirTransitDirection, Blast, Corpse, EncounterStatus, FallenBody, FallingAirframe,
-    GuidedMissile, KnownProp, MemberOrder, MoveState, ObservationFrame, OwnUnit, Posture,
-    PropDisplayPose, PushContact, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, SquadArea,
-    UnitSight, VisibilityField, VisibleSegment,
+    Grind, GuidedMissile, KnownProp, MemberOrder, MoveState, ObservationFrame, OwnUnit, Posture,
+    PropDisplayPose, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, SquadArea, UnitSight,
+    VisibilityField, VisibleSegment,
 };
 use contract::scenario::{
     EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
@@ -4419,10 +4419,10 @@ impl Battle {
                 });
             }
             // A body shoved where this side sees it (its own pusher always
-            // does) is drawn where it stands, ahead of the knowledge above,
-            // and throws sparks where the hull grinds it, halfway up its side.
+            // does) is drawn where it stands, ahead of the knowledge above;
+            // a metal one throws sparks where the hull grinds it.
             frame.prop_display_poses.clear();
-            frame.push_contacts.clear();
+            frame.grinds.clear();
             for shove in &self.shoved {
                 let Some(p) = self.world.prop(shove.prop) else {
                     continue;
@@ -4440,11 +4440,12 @@ impl Battle {
                         base_z: p.base_z,
                     });
                 }
-                frame.push_contacts.push(PushContact {
-                    point: [shove.contact.x, shove.contact.y, p.base_z + p.half.z],
-                    heading: [shove.heading.x, shove.heading.y],
-                    intensity: (shove.speed_mps / 10.0).clamp(0.0, 1.0),
-                });
+                if p.body.metal {
+                    frame.grinds.push(Grind {
+                        point: [shove.contact.x, shove.contact.y, shove.contact.z],
+                        heading: [shove.heading.x, shove.heading.y],
+                    });
+                }
             }
             frame.projectiles.clear();
             for round in &self.segments {

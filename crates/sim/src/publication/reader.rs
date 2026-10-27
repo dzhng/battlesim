@@ -26,12 +26,12 @@ use serde_json::{json, Value};
 
 use super::{
     fixed_row_width, GroupLayout, AIR_TRANSIT_FIELDS, AUDIBLE_FIELDS, BLAST_FIELDS, CONTACT_FIELDS,
-    COPY_FIELDS, CORPSE_FIELDS, CRASH_FIELDS, DELIVERY_FIELDS, FALLEN_BODY_FIELDS, GROUND_FIELDS,
-    GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS, IDENTIFIED_FIELDS,
-    KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS, MEMBER_ORDER_FIELDS, MOUNT_FIELDS,
-    OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, PLAYER_FIELDS, POSE_FIELDS, PROJECTILE_FIELDS,
-    PROP_DISPLAY_POSE_FIELDS, PUSH_CONTACT_FIELDS, QUEUE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS,
-    REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS, SHOUT_FIELDS,
+    COPY_FIELDS, CORPSE_FIELDS, CRASH_FIELDS, DELIVERY_FIELDS, FALLEN_BODY_FIELDS, GRIND_FIELDS,
+    GROUND_FIELDS, GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS,
+    IDENTIFIED_FIELDS, KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS,
+    MEMBER_ORDER_FIELDS, MOUNT_FIELDS, OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, PLAYER_FIELDS,
+    POSE_FIELDS, PROJECTILE_FIELDS, PROP_DISPLAY_POSE_FIELDS, QUEUE_FIELDS, RANGE_FIELDS,
+    REFUSAL_FIELDS, REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS, SHOUT_FIELDS,
 };
 
 pub use view::*;
@@ -667,7 +667,7 @@ impl Reader {
             prop_display_poses: map(&rows[group("propDisplayPoses")], |r| {
                 Ok(prop_display_pose(r))
             })?,
-            push_contacts: map(&rows[group("pushContacts")], |r| Ok(push_contact(r)))?,
+            grinds: map(&rows[group("grinds")], |r| Ok(grind(r)))?,
         })
     }
 
@@ -1360,13 +1360,12 @@ fn prop_display_pose(r: &Row) -> PropDisplayPose {
     }
 }
 
-fn push_contact(r: &Row) -> PushContact {
-    const FIELDS: &[&str] = &PUSH_CONTACT_FIELDS;
+fn grind(r: &Row) -> Grind {
+    const FIELDS: &[&str] = &GRIND_FIELDS;
     let f = r.fields;
-    PushContact {
+    Grind {
         point: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
         heading: [v!(f, "headingX"), v!(f, "headingY")],
-        intensity: v!(f, "intensity"),
     }
 }
 
