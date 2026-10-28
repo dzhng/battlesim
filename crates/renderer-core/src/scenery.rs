@@ -15,7 +15,7 @@
 //!
 //! Its batches are held between frames with the rest of the static world's
 //! (`statics.rs`).
-use presentation::presentation::Presentation;
+use presentation::presentation::catalog::CatalogView;
 use presentation::records::{CAST_PASS, VIEW_PASS};
 use presentation::static_world::ground::mesh::VERTEX_FLOATS;
 use presentation::static_world::ground::walk::{Draws, DRAWS};
@@ -98,6 +98,7 @@ impl Run {
 mod cascade_tests;
 
 pub struct Scenery {
+    pub submissions: crate::submitted::Submissions,
     trees_shown: bool,
     rows: Vec<Option<Row>>,
     /// Per kind, its tiers, shared by every row that draws the kind.
@@ -121,10 +122,10 @@ impl Scenery {
         device: &Device,
         pipelines: &Pipelines,
         library: &impl BundleSource,
-        presentation: &Presentation,
+        catalog: CatalogView<'_>,
     ) -> Result<Self, String> {
-        let world = presentation.world();
-        let kinds = presentation
+        let world = catalog.world();
+        let kinds = catalog
             .ground()
             .map_or_else(Vec::new, |g| g.scenery_kinds());
         Self::from_world(
@@ -134,7 +135,7 @@ impl Scenery {
             &world.appearances,
             &world.strings,
             &kinds,
-            |row| presentation.stump_mesh(row),
+            |row| catalog.stump_mesh(row),
         )
     }
 
@@ -189,6 +190,7 @@ impl Scenery {
             }));
         }
         Ok(Self {
+            submissions: Default::default(),
             trees_shown: true,
             rows,
             tiers,
@@ -278,7 +280,8 @@ impl Scenery {
         bound: impl Fn(Draws) -> &'a Bound,
         groups: &[(&str, &BindGroup)],
         statics: &Statics,
-    ) {
+    ) -> crate::submitted::SubmittedDraws {
+        let mut submitted = crate::submitted::SubmittedDraws::default();
         for run in self.runs.iter().filter(|r| r.draws_in(which, cascade)) {
             let row = self.rows[run.row].as_ref().expect("a scenery row");
             let draws = DRAWS[row.draws as usize - 1];
@@ -292,8 +295,11 @@ impl Scenery {
                 .unwrap_or(&self.tiers[row.kind][run.tier]);
             pass.set_vertex_buffer(0, mesh.slice(..));
             pass.set_vertex_buffer(1, statics.buffer(run.key).slice(..));
-            pass.draw(0..*vertices, 0..self.instances(row, run.count));
+            let count = self.instances(row, run.count);
+            pass.draw(0..*vertices, 0..count);
+            submitted.record(*vertices, count);
         }
+        submitted
     }
 
     /// The listed casters into one cascade.
@@ -308,7 +314,11 @@ impl Scenery {
             Draws::Felled => &self.felled_caster,
             _ => &self.caster,
         };
-        self.draw_runs(pass, CAST_PASS, Some(cascade), bound, &[camera], statics);
+        let work = self.draw_runs(pass, CAST_PASS, Some(cascade), bound, &[camera], statics);
+        self.submissions
+            .record(crate::submitted::Pass::Cascade(cascade), |stats| {
+                stats.scenery.add(work)
+            });
     }
 
     /// The scenery in view into the depth prepass.
@@ -318,7 +328,11 @@ impl Scenery {
             Draws::Dressing => &self.dressing_prepass,
             _ => &self.prepass,
         };
-        self.draw_runs(pass, VIEW_PASS, None, bound, &[camera], statics);
+        let work = self.draw_runs(pass, VIEW_PASS, None, bound, &[camera], statics);
+        self.submissions
+            .record(crate::submitted::Pass::Depth, |stats| {
+                stats.scenery.add(work)
+            });
     }
 
     /// The scenery in view, lit; `groups` the frame's (camera, environment,
@@ -330,7 +344,11 @@ impl Scenery {
             Draws::Dressing => &self.dressing,
             _ => &self.forest,
         };
-        self.draw_runs(pass, VIEW_PASS, None, bound, groups, statics);
+        let work = self.draw_runs(pass, VIEW_PASS, None, bound, groups, statics);
+        self.submissions
+            .record(crate::submitted::Pass::Color, |stats| {
+                stats.scenery.add(work)
+            });
     }
 }
 
@@ -346,5 +364,87 @@ impl Scenery {
                 memory.buffer(buffer);
             }
         }
+    }
+}
+
+impl Scenery {
+    pub fn diagnostics(&self, walk: [usize; 8], pending: bool, falling: bool) -> serde_json::Value {
+        let population = |draws: Draws, placed: usize| {
+            let mut tiers = [0u64; TIERS];
+            let (mut triangles, mut casters) = (0u64, 0u64);
+            for run in &self.runs {
+                let row = self.rows[run.row].as_ref().expect("prepared scenery row");
+                if row.draws != draws as u32 {
+                    continue;
+                }
+                let count = self.instances(row, run.count);
+                if run.pass == CAST_PASS {
+                    casters += u64::from(count);
+                } else {
+                    tiers[run.tier] += u64::from(count);
+                    let (_, vertices) = row
+                        .stump
+                        .as_ref()
+                        .unwrap_or(&self.tiers[row.kind][run.tier]);
+                    triangles += u64::from(*vertices / 3) * u64::from(count);
+                }
+            }
+            serde_json::json!({"placed": placed, "tiers": tiers, "triangles": triangles, "casters": casters})
+        };
+        let mut dressing = population(Draws::Dressing, 0);
+        let placed: u64 = dressing["tiers"]
+            .as_array()
+            .expect("tier array")
+            .iter()
+            .map(|v| v.as_u64().expect("tier count"))
+            .sum();
+        dressing["placed"] = placed.into();
+        dressing["cells"] = walk[3].into();
+        dressing["bytes"] = (placed * size_of::<presentation::records::Instance>() as u64).into();
+        dressing["pending"] = pending.into();
+        let felled = population(Draws::Felled, 0);
+        let stumps = population(Draws::Stump, 0);
+        let count = |v: &serde_json::Value| {
+            v["tiers"]
+                .as_array()
+                .expect("tier array")
+                .iter()
+                .map(|n| n.as_u64().expect("tier count"))
+                .sum::<u64>()
+        };
+        let submitted = self.submissions.snapshot();
+        serde_json::json!({
+            "kinds": self.tiers.iter().filter(|tiers| !tiers.is_empty()).count(),
+            "visitedBounds": walk[4],
+            "forest": population(Draws::Forest, walk[0]),
+            "understorey": population(Draws::Understorey, walk[1]),
+            "backdrop": population(Draws::Backdrop, walk[2]),
+            "dressing": dressing,
+            "felled": { "trees": count(&felled), "stumps": count(&stumps), "falling": falling,
+                "work": {"envelopeRowsTotal": walk[5], "snapshotRowsTotal": walk[6], "membershipChecks": walk[7]} },
+            "draws": submitted.depth.scenery.draws + submitted.color.scenery.draws + submitted.cascades.iter().map(|c| c.scenery.draws).sum::<u64>(),
+        })
+    }
+}
+
+impl Scenery {
+    pub fn drawn_instances(&self) -> serde_json::Value {
+        let mut populations: [Vec<u64>; 6] =
+            std::array::from_fn(|i| vec![0; self.tiers.len() * if i == 5 { 1 } else { TIERS }]);
+        for run in self.runs.iter().filter(|run| run.pass == VIEW_PASS) {
+            let row = self.rows[run.row].as_ref().expect("prepared scenery row");
+            if !self.trees_shown && row.draws != Draws::Dressing as u32 {
+                continue;
+            }
+            let index = if row.draws == Draws::Stump as u32 {
+                row.kind
+            } else {
+                row.kind * TIERS + run.tier
+            };
+            populations[row.draws as usize - 1][index] += u64::from(self.instances(row, run.count));
+        }
+        let [forest, understorey, backdrop, dressing, felled, stumps] = populations;
+        serde_json::json!({"forest": forest, "understorey": understorey, "backdrop": backdrop,
+            "dressing": dressing, "felled": felled, "stumps": stumps})
     }
 }

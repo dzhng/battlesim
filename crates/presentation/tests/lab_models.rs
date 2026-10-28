@@ -33,6 +33,34 @@ fn camera() -> Camera {
 }
 
 #[test]
+fn tooling_detail_uses_its_admitted_thresholds_when_gameplay_quality_changes() {
+    let mut p = Presentation::new(None, 30.0).unwrap();
+    p.install_lab_assets(
+        [("study".into(), static_asset())].into(),
+        Detail {
+            lod_px: [80.0, 40.0, 20.0],
+            impostor_px: 0.0,
+            shadow_caster_px: 0.0,
+        },
+    );
+    p.set_lab_models(
+        serde_json::from_value(json!([{
+            "appearance":"study", "x":0, "y":0, "z":0, "yaw":0,
+            "pose":{"kind":"static", "state":"default"}
+        }]))
+        .unwrap(),
+    )
+    .unwrap();
+    let tier = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap().batches[0].tier;
+    p.set_detail_scale(8.0, 8.0);
+    let changed = p.frame(0.0, &camera(), &Ui::default(), 0).unwrap();
+    assert_eq!(
+        changed.batches[0].tier, tier,
+        "tooling owns explicit detail thresholds independently of gameplay quality"
+    );
+}
+
+#[test]
 fn lab_models_compose_named_states_motion_and_ghosts_in_the_canonical_frame() {
     let mut p = Presentation::new(None, 30.0).unwrap();
     p.install_lab_assets(
@@ -165,7 +193,9 @@ fn skinned_lab_bodies_and_corpses_select_cards_and_ghosts_keep_meshes() {
             {"appearance":"body","x":1,"y":0,"z":0,"yaw":0,"tier":4,
              "pose":{"kind":"corpse","lies":0}},
             {"appearance":"body","x":2,"y":0,"z":0,"yaw":0,"tier":4,
-             "pose":{"kind":"rest"},"ghost":[0.1,0.5,1,0.4]}
+             "pose":{"kind":"rest"},"ghost":[0.1,0.5,1,0.4]},
+            {"appearance":"body","x":3,"y":0,"z":0,"yaw":0,"tier":4,
+             "pose":{"kind":"rest"},"highlight":true}
         ]))
         .unwrap(),
     )
@@ -175,7 +205,11 @@ fn skinned_lab_bodies_and_corpses_select_cards_and_ghosts_keep_meshes() {
         frame
             .batches
             .iter()
-            .find(|batch| frame.instances[batch.first as usize].placement[0] == x)
+            .find(|batch| {
+                frame.instances[batch.first as usize..(batch.first + batch.count) as usize]
+                    .iter()
+                    .any(|instance| instance.placement[0] == x)
+            })
             .unwrap()
     };
     for x in [0.0, 1.0] {
@@ -184,6 +218,12 @@ fn skinned_lab_bodies_and_corpses_select_cards_and_ghosts_keep_meshes() {
     }
     assert_eq!(at(2.0).tier, 3, "a ghost always keeps actual geometry");
     assert_eq!(at(2.0).pass, GHOST_PASS);
+    assert_eq!(
+        at(3.0).tier,
+        3,
+        "highlight keeps mesh geometry rather than losing its cue on a card"
+    );
+    assert_eq!(frame.instances[at(3.0).first as usize].tint[3], -2.0);
 }
 
 #[test]

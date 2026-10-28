@@ -270,6 +270,10 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         "high air is excluded from x-ray candidates"
     );
     let world = world_pixels(&gpu, &targets, &models);
+    let submitted = models.submissions.snapshot();
+    assert_eq!(submitted.color.models_including_props.triangles, 1);
+    assert_eq!(submitted.color.models_including_props.instances, 1);
+    assert_eq!(submitted.color.models_including_props.draws, 1);
     let world_at = (SIZE[1] / 2 * SIZE[0] + SIZE[0] / 4) as usize;
     let high_at = (SIZE[1] / 2 * SIZE[0] + SIZE[0] * 3 / 4) as usize;
     assert_eq!(
@@ -305,6 +309,11 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
     post.encode(&mut encoder, post::PostMode::Look);
     high.encode(&mut encoder, &targets, &environment, &models, &fog, &post);
     let pixels = read(&gpu.device, &gpu.queue, high.texture(), encoder);
+    let submitted = models.submissions.snapshot();
+    assert_eq!(submitted.depth.models_including_props.triangles, 1);
+    assert_eq!(submitted.high_depth.models_including_props.triangles, 1);
+    assert_eq!(submitted.high_color.models_including_props.triangles, 1);
+    assert_eq!(submitted.high_color.models_including_props.draws, 1);
     let world = pixels[(SIZE[1] / 2 * SIZE[0] + SIZE[0] / 4) as usize];
     let airborne = pixels[(SIZE[1] / 2 * SIZE[0] + SIZE[0] * 3 / 4) as usize];
     assert_eq!(world, [0; 4], "world model leaked into high-air layer");
@@ -350,10 +359,119 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         2,
         "single-output native mode retains combined view routing"
     );
+    models.submissions.reset();
     let combined = world_pixels(&gpu, &targets, &models);
+    let submitted = models.submissions.snapshot();
+    assert_eq!(submitted.color.models_including_props.triangles, 2);
+    assert_eq!(submitted.color.models_including_props.instances, 2);
+    assert_eq!(submitted.color.models_including_props.draws, 2);
+    assert_eq!(submitted.high_color.models_including_props.draws, 0);
     assert_eq!(combined[world_at], [255; 4]);
     assert_eq!(
         combined[high_at], [255; 4],
         "single-output shell lost high air"
+    );
+    models.set_surface_shown(Surface::Opaque, false);
+    models.submissions.reset();
+    let hidden = world_pixels(&gpu, &targets, &models);
+    assert!(hidden.iter().all(|pixel| *pixel == [0; 4]));
+    assert_eq!(
+        models
+            .submissions
+            .snapshot()
+            .color
+            .models_including_props
+            .draws,
+        0
+    );
+}
+
+#[test]
+fn model_suppression_preserves_static_props_and_buildings() {
+    let gpu = gpu::open(&gpu::headless_instance(), None).expect("real GPU");
+    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).unwrap();
+    let targets = Targets::new(&gpu.device, SIZE);
+    let appearances = [
+        Appearance {
+            name_len: 4,
+            lies: NONE,
+            ..Default::default()
+        },
+        Appearance {
+            name_len: 4,
+            lies: NONE,
+            placed: 1,
+            draws: 7,
+            ..Default::default()
+        },
+        Appearance {
+            name_len: 4,
+            lies: NONE,
+            placed: 1,
+            ..Default::default()
+        },
+    ];
+    let mut models = Models::from_world(
+        &gpu.device,
+        &gpu.queue,
+        &pipelines,
+        &Source,
+        &appearances,
+        "body",
+        |_| None,
+    )
+    .unwrap();
+    let instances: Vec<_> = [-0.5, 0., 0.5]
+        .into_iter()
+        .map(|x| ModelInstance {
+            placement: [x, 0., 0., 0.],
+            data: [0.; 4],
+            tint: [1.; 4],
+            scale: [1.; 4],
+        })
+        .collect();
+    let batches: Vec<_> = (0..3)
+        .map(|i| Batch {
+            key: i,
+            appearance: i,
+            first: i,
+            count: 1,
+            pass: VIEW_PASS,
+            caster: NONE,
+            fog: FOG_UNITS,
+            ..Default::default()
+        })
+        .collect();
+    models
+        .prepare_records(&gpu.device, &gpu.queue, &[], &instances, &batches)
+        .unwrap();
+    let visible = world_pixels(&gpu, &targets, &models);
+    let points =
+        [SIZE[0] / 4, SIZE[0] / 2, SIZE[0] * 3 / 4].map(|x| (SIZE[1] / 2 * SIZE[0] + x) as usize);
+    assert!(points.iter().all(|&at| visible[at] == [255; 4]));
+    models.set_models_shown(false);
+    models.submissions.reset();
+    let hidden = world_pixels(&gpu, &targets, &models);
+    assert_eq!(
+        hidden[points[0]], [0; 4],
+        "dynamic model survived suppression"
+    );
+    assert_eq!(hidden[points[1]], [255; 4], "static prop disappeared");
+    assert_eq!(hidden[points[2]], [255; 4], "building disappeared");
+    let work = models.submissions.snapshot();
+    assert_eq!(work.color.models_including_props.triangles, 1);
+    assert_eq!(work.color.models_including_props.instances, 1);
+    assert_eq!(work.color.buildings.triangles, 1);
+    models.set_models_shown(true);
+    models.submissions.reset();
+    assert_eq!(world_pixels(&gpu, &targets, &models), visible);
+    assert_eq!(
+        models
+            .submissions
+            .snapshot()
+            .color
+            .models_including_props
+            .triangles,
+        2
     );
 }

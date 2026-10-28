@@ -32,9 +32,10 @@ struct modelVertex_Output {
   @location(5) @interpolate(flat) material: u32,
   @location(6) track: f32,
   @location(7) tint: vec3f,
-  @location(8) @interpolate(flat) anchor: vec3f,
-  @location(9) @interpolate(flat) xray: vec4f,
-  @location(10) @interpolate(flat) instance: u32,
+  @location(8) @interpolate(flat) highlight: f32,
+  @location(9) @interpolate(flat) anchor: vec3f,
+  @location(10) @interpolate(flat) xray: vec4f,
+  @location(11) @interpolate(flat) instance: u32,
 }
 
 @vertex fn modelVertex(@location(0) position: vec3f, @location(1) normal: vec4f, @location(2) uv: vec2f, @location(3) color: vec4f, @location(4) joints: vec4u, @location(5) weights: vec4f, @location(6) tangent: vec4f, @location(7) material: vec2u, @builtin(instance_index) instance: u32, @location(8) placement: vec4f, @location(9) data: vec4f, @location(10) tint: vec4f, @location(11) scale: vec4f) -> modelVertex_Output {
@@ -71,7 +72,7 @@ struct modelVertex_Output {
   let red = floor((packed / 65536f));
   let green = (floor((packed / 256f)) - (red * 256f));
   let blue = (packed - (floor((packed / 256f)) * 256f));
-  return modelVertex_Output((cam.viewProj * vec4f(world, 1f)), world, normal_1, tangent_1, color, vec2f((uv.x - scroll), uv.y), material.x, track, tint.xyz, placement.xyz, vec4f((red / 255f), (green / 255f), (blue / 255f), scale.w), instance);
+  return modelVertex_Output((cam.viewProj * vec4f(world, 1f)), world, normal_1, tangent_1, color, vec2f((uv.x - scroll), uv.y), material.x, track, tint.xyz, max(0f, (-1f - tint.w)), placement.xyz, vec4f((red / 255f), (green / 255f), (blue / 255f), scale.w), instance);
 }
 
 @group(1) @binding(1) var<storage, read> materials: array<vec4f>;
@@ -466,6 +467,10 @@ fn unlit(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
   return unlitAlgorithm(colour, position, eye, data.observer.xyz, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.y, data.settings.x, data.aerial, sky, pmrem, linear);
 }
 
+fn highlightGlow(highlight: f32) -> vec3f {
+  return (vec3f(0.949999988079071, 0.800000011920929, 0.20000000298023224) * (highlight * 0.7f));
+}
+
 fn fogCoverage(seen: f32, alpha: f32) -> vec4f {
   if (params.enabled == 0u || layer_1.seen == 1u) {
     return vec4f(0.0, 0.0, 0.0, alpha);
@@ -487,9 +492,10 @@ struct _Input {
   @location(5) @interpolate(flat) material: u32,
   @location(6) track: f32,
   @location(7) tint: vec3f,
-  @location(8) @interpolate(flat) anchor: vec3f,
-  @location(9) @interpolate(flat) xray: vec4f,
-  @location(10) @interpolate(flat) instance: u32,
+  @location(8) @interpolate(flat) highlight: f32,
+  @location(9) @interpolate(flat) anchor: vec3f,
+  @location(10) @interpolate(flat) xray: vec4f,
+  @location(11) @interpolate(flat) instance: u32,
 }
 
 @fragment fn item(_arg_0: _Input, @builtin(position) clip: vec4f) -> item_1 {
@@ -509,5 +515,5 @@ struct _Input {
     n = -(n);
   }
   let seen = modelSeen(_arg_0.world, n, _arg_0.anchor, clip.xy);
-  return item_1(vec4f(unlit(colour, _arg_0.world, (*eye)).xyz, 1f), fogCoverage(seen, 1f));
+  return item_1(vec4f((unlit(colour, _arg_0.world, (*eye)).xyz + highlightGlow(_arg_0.highlight)), 1f), fogCoverage(seen, 1f));
 }

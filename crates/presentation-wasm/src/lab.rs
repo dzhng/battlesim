@@ -5,6 +5,10 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 impl Presentation {
+    pub fn canonical_appearance_rows(&self) -> u32 {
+        self.inner.canonical_appearance_rows() as u32
+    }
+
     /// Starts a replacement catalog. The active catalog remains usable until
     /// installation succeeds; a failed fetch or decode cannot clear it.
     pub fn begin_lab_assets(&mut self) {

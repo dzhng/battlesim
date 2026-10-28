@@ -15,7 +15,7 @@ pub trait BundleSource {
 /// Fetched bundles retained by a platform shell across renderer rebuilds.
 #[derive(Clone, Default)]
 pub struct Library {
-    bundles: BTreeMap<String, Bundle>,
+    bundles: BTreeMap<String, std::sync::Arc<Bundle>>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -200,6 +200,16 @@ pub fn decode(name: &str, bundle_bytes: &[u8], textures: &[(&str, &[u8])]) -> Re
 }
 
 impl Library {
+    /// Retained immutable sources share payload ownership while a replacement
+    /// is staged. Admission still receives independently owned decoded bundles.
+    pub fn replace_with(&mut self, replacements: Self) {
+        self.bundles.extend(replacements.bundles);
+    }
+
+    pub fn retain(&mut self, mut keep: impl FnMut(&str) -> bool) {
+        self.bundles.retain(|name, _| keep(name));
+    }
+
     pub fn from_bundle(name: &str, bytes: &[u8], textures: &[(&str, &[u8])]) -> Result<Self> {
         let mut library = Self::default();
         library.insert_bundle(name, bytes, textures)?;
@@ -212,15 +222,17 @@ impl Library {
         bytes: &[u8],
         textures: &[(&str, &[u8])],
     ) -> Result<()> {
-        self.bundles
-            .insert(name.to_owned(), decode(name, bytes, textures)?);
+        self.bundles.insert(
+            name.to_owned(),
+            std::sync::Arc::new(decode(name, bytes, textures)?),
+        );
         Ok(())
     }
 
     pub fn bundle(&self, name: &str) -> Result<Bundle> {
         self.bundles
             .get(name)
-            .cloned()
+            .map(|bundle| (**bundle).clone())
             .ok_or_else(|| format!("bundle not loaded: {name}"))
     }
 }

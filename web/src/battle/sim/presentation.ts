@@ -1,19 +1,13 @@
 /** Browser binding of Rust presentation: side publications in, observations
  * and frame views out. Rust owns decoding, poses, effects and static walks. */
-import type { Renderer } from "@wasm/renderer_browser";
+import type { Renderer, PreparedAppearances } from "@wasm/renderer_browser";
+import type { ModelAsset } from "../render/modelAssets";
+import type { GrassClumpRow } from "@packages/battle-renderer/src/frame/grassClump";
 import type { BattleAudio } from "@packages/battle-audio/src/battleAudio";
 import init, { Presentation, fog_look, light_records } from "@wasm/renderer_browser";
 import { LearnedGround, groundOf, type SceneGround } from "./presentationGround";
 import wasmUrl from "@wasm/renderer_browser/renderer_browser_bg.wasm?url";
-import {
-  APPEARANCE_WORDS,
-  Appearance,
-  Batch,
-  BATCH_WORDS,
-  NONE,
-  frameViews,
-  worldViews,
-} from "@packages/battle-renderer/src/records.gen";
+import { Batch, BATCH_WORDS, NONE, frameViews } from "@packages/battle-renderer/src/records.gen";
 import {
   resolvedLight,
   type LightPresentation,
@@ -37,8 +31,7 @@ import {
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { setGround, type GroundInput } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { tierMesh } from "@packages/battle-renderer/src/scenery/appearance";
-import { concatMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
-import { STUMP } from "@packages/battle-renderer/src/frame/sceneryLayer";
+import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import { occluderBoxes, type FogOccluder } from "@packages/battle-renderer/src/frame/fogVisibility";
 import type { WorldScenery } from "@packages/battle-renderer/src/scene";
 import { propArt, type KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
@@ -48,9 +41,12 @@ import {
 } from "@packages/battle-renderer/src/frame/sceneryLayer";
 import { TEMPLATE_STATES, type TemplateState } from "@packages/scene-assets/src/templateLibrary";
 import { countedFetch } from "../../downloads";
+import type { LabAsset } from "../render/modelAssets";
 import {
   labModelsJson,
-  type LabAsset,
+  readAppearanceRows,
+  prepareAppearances,
+  type PresentedAppearance,
   type LabModel,
   type ModelDetail,
 } from "./presentationModels";
@@ -179,19 +175,6 @@ export interface PresentationProbe {
     muzzles: { name: string; at: P3 }[];
   }[];
 }
-/** One drawable the frame's batches name, by `World.appearances` row;
- *  `placed` for the static world's (`Appearance.placed`). */
-export interface PresentedAppearance {
-  name: string;
-  state: string;
-  lies: number;
-  placed: boolean;
-  /** What draws it (`Appearance.draws`): 0 a model or kit module, else the scenery. */
-  draws: number;
-  /** A felled tree's stump row's mesh (`draws` 6; `Presentation::stump_mesh`). */
-  stump?: Mesh;
-}
-
 const buffer = () => memory!.buffer;
 
 /** One own eye fog sees from (`presentation::fog::sight::Eye`). */
@@ -393,28 +376,7 @@ export class ScenePresentation {
   }
 
   private readWorld(ptr: number): PresentedAppearance[] {
-    const views = worldViews(buffer(), ptr);
-    const text = new TextDecoder();
-    const rows = views.appearances.u32;
-    const name = (at: number, len: number) => text.decode(views.strings.subarray(at, at + len));
-    const loaded: PresentedAppearance[] = Array.from(
-      { length: views.appearances.count },
-      (_, r) => {
-        const o = r * APPEARANCE_WORDS;
-        return {
-          name: name(rows[o + Appearance.name], rows[o + Appearance.name_len]),
-          state: name(rows[o + Appearance.state], rows[o + Appearance.state_len]),
-          lies: rows[o + Appearance.lies],
-          placed: rows[o + Appearance.placed] === 1,
-          draws: rows[o + Appearance.draws],
-        };
-      },
-    );
-    // After the views: each call may grow memory.
-    loaded.forEach((row, r) => {
-      if (row.draws === STUMP) row.stump = this.rust.stump_mesh(r) as Mesh;
-    });
-    return (this.rows = loaded);
+    return (this.rows = readAppearanceRows(buffer(), ptr, this.rust));
   }
 
   /** Installs a complete external art generation without fabricating a battle.
@@ -426,9 +388,48 @@ export class ScenePresentation {
     return (this.loaded = this.readWorld(ptr));
   }
 
+  /** Prepare a complete source/GPU generation while the active catalog stays live. */
+  prepareRendererAppearances(
+    renderer: Pick<Renderer, "prepare_appearances">,
+    assets: readonly ModelAsset[],
+    detail: ModelDetail,
+  ): Promise<PreparedAppearances> {
+    return prepareAppearances(renderer, this.rust, assets, detail);
+  }
+
+  /** Call at a frame boundary, then publish a fresh canonical frame before drawing. */
+  commitRendererAppearances(
+    renderer: Pick<Renderer, "commit_appearances">,
+    prepared: PreparedAppearances,
+    models: readonly LabModel[],
+  ): boolean {
+    const ptr = renderer.commit_appearances(this.rust, prepared, labModelsJson(models));
+    if (!ptr) return false;
+    this.loaded = this.readWorld(ptr);
+    return true;
+  }
+
+  /** Adopt the source generation committed by Rust without reloading its observer.
+   * Independent changes to world or template topology keep their stale marker. */
+  adoptRendererAppearanceSource(
+    installed: InstalledAppearances | null,
+    scenery = this.sceneryArt,
+  ): void {
+    this.installed = installed;
+    this.art = buildingArt(installed);
+    this.proppedBy = installed;
+    this.sceneryArt = scenery;
+    this.placedBy = scenery;
+  }
+
   /** Tooling models supplement the battle and static world on the next frame. */
   setLabModels(models: readonly LabModel[]): void {
     this.rust.set_lab_models(labModelsJson(models));
+  }
+
+  /** Battle/static source names exclude the replaceable tooling suffix. */
+  canonicalAppearanceRows(): readonly PresentedAppearance[] {
+    return this.rows.slice(0, this.rust.canonical_appearance_rows());
   }
 
   /** The drawables named by the last loaded world, in frame row order. */
@@ -442,6 +443,11 @@ export class ScenePresentation {
     if (battle === this.battle) return;
     this.battle = battle;
     this.stale = true;
+  }
+
+  /** Canonical battle topology is staged before the worker starts publishing. */
+  hasBattle(): boolean {
+    return this.battle !== null;
   }
 
   /** Stage the scene's buildings (null: none) drawn from `installed`'s
@@ -774,6 +780,11 @@ export class ScenePresentation {
   /** Install canonical scene state without crossing a second WASM memory. */
   installRenderer(renderer: Pick<Renderer, "install_presentation">) {
     renderer.install_presentation(this.rust);
+  }
+
+  /** Snapshot actual GPU grass without exposing the canonical Rust handle. */
+  grassClumps(renderer: Pick<Renderer, "grass_clumps">): Promise<GrassClumpRow[]> {
+    return renderer.grass_clumps(this.rust);
   }
 
   /** Live controls apply to the same canonical scene and survive recovery. */

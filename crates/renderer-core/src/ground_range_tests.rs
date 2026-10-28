@@ -11,6 +11,7 @@ fn mesh_ranges_route_camera_and_cascades_without_full_mesh_fallback() {
     // the shared ground's depth, colour and cascade draws consume.
     let mut mesh = Mesh {
         buffer: None,
+        visited: 0,
         partition: Some(partition.clone()),
         view: vec![],
         cascades: std::array::from_fn(|_| vec![]),

@@ -11,6 +11,9 @@ pub struct Controls {
     pub grass: bool,
     pub trees: bool,
     pub buildings: bool,
+    pub models: bool,
+    pub effects: bool,
+    pub scars: bool,
     pub road_wear: bool,
     pub field_texture: bool,
     pub cast_lights: bool,
@@ -29,6 +32,9 @@ impl Default for Controls {
             grass: true,
             trees: true,
             buildings: true,
+            models: true,
+            effects: true,
+            scars: true,
             road_wear: true,
             field_texture: true,
             cast_lights: true,
@@ -52,7 +58,12 @@ impl Runtime {
             self.ground
                 .set_field_texture(queue, presentation, controls.field_texture)?;
         let road_changed = self.ground.set_road_wear(queue, controls.road_wear);
-        if texture_changed || road_changed || self.config.controls.grass != controls.grass {
+        self.ground.material.scars.set_shown(queue, controls.scars);
+        if texture_changed
+            || road_changed
+            || self.config.controls.grass != controls.grass
+            || self.config.controls.scars != controls.scars
+        {
             if let Some(grass) = &mut self.grass {
                 grass.regrow();
             }
@@ -66,11 +77,18 @@ impl Runtime {
             _ => FogMaskView::None,
         };
         self.fog_mask.set_mask_view(queue, mask);
-        self.scenery.set_trees_shown(controls.trees);
         if let Some(xray) = &mut self.xray {
             xray.set_coverage_enabled(queue, controls.xray_coverage);
         }
+        self.apply_asset_controls(queue, controls);
+        self.config.controls = controls;
+        self.prepared_frame = None;
+        Ok(())
+    }
+    pub(super) fn apply_asset_controls(&mut self, queue: &Queue, controls: Controls) {
+        self.scenery.set_trees_shown(controls.trees);
         self.models.set_buildings_shown(controls.buildings);
+        self.models.set_models_shown(controls.models);
         self.models
             .set_texture_channels(queue, controls.texture_channels);
         for (surface, shown) in [
@@ -86,8 +104,5 @@ impl Runtime {
         }
         self.models
             .set_high_apart(self.config.separate_high_air && controls.view == FrameView::Final);
-        self.config.controls = controls;
-        self.prepared_frame = None;
-        Ok(())
     }
 }

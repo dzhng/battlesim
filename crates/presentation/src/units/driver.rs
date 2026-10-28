@@ -1,9 +1,5 @@
-//! The pose driver: the one place a pose is derived from
-//! what the simulation published. It reads a feed frame (each unit's
-//! soldiers by id and position, its mounts' bearings, elevations and shot
-//! counts, deployment, suppression, and the fallen) and rewrites a
-//! [`PoseFrame`]: one pose per living or dying soldier, one articulation
-//! per vehicle, and the corpses.
+//! Derives [`PoseFrame`] from the published feed: one pose per living or
+//! dying soldier, one articulation per vehicle, and the corpses.
 //!
 //! Everything is per soldier: his gait and facing come from his own
 //! velocity, never a formation slot's or the squad's heading. The fallen
@@ -11,6 +7,8 @@
 //! are reconciled only when the feed hands over a new list. At most
 //! `corpses.max` lie drawn: past it the oldest sinks away and is gone,
 //! though the simulation still lists him.
+mod catalog;
+
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 use std::sync::Arc;

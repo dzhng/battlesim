@@ -346,6 +346,10 @@ fn shade(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal
   return shadeAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun_1, eye, data.observer.xyz, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, data.aerial, sky, pmrem, dfg, linear);
 }
 
+fn highlightGlow(highlight: f32) -> vec3f {
+  return (vec3f(0.949999988079071, 0.800000011920929, 0.20000000298023224) * (highlight * 0.7f));
+}
+
 struct FogLayer {
   ground: u32,
   seen: u32,
@@ -599,7 +603,7 @@ struct worldFragment_Input {
   let albedo = srgbToLinear(_arg_0.color.xyz);
   let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
   let lit = shade(albedo, vec3f(), 0.85f, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
-  let glow = (vec3f(0.949999988079071, 0.800000011920929, 0.20000000298023224) * (_arg_0.highlight * 0.7f));
+  let glow = highlightGlow(_arg_0.highlight);
   let seen = fogTerm(_arg_0.world, n, clip.xy, fogIsGround());
   return worldFragment_Output(vec4f((lit.xyz + glow), _arg_0.color.w), fogCoverage(seen, _arg_0.color.w));
 }

@@ -4,12 +4,20 @@ use presentation::static_world::ground::mesh;
 
 /// World vertices use the canonical ten-float layout. Geometry is retained for
 /// device recreation; selection and GPU allocation belong to the runtime.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct WorldGeometry {
     pub terrain: Vec<f32>,
     pub skirt: Vec<f32>,
     pub backdrop: Vec<f32>,
     pub water: Vec<f32>,
+}
+
+impl super::Runtime {
+    /// Keep recovery bytes and the drawn geometry under the same lifetime.
+    pub fn set_world_props(&mut self, device: &wgpu::Device, words: Vec<f32>) {
+        self.ground.set_skirt(device, &words);
+        std::sync::Arc::make_mut(&mut self.geometry).skirt = words;
+    }
 }
 
 impl WorldGeometry {

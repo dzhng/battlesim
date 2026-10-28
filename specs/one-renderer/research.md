@@ -23,10 +23,87 @@ parity and repository closeout run only after all production passes are wired.
 
 ## Current task — production feature integration (2026-10-28)
 
-The committed incumbent is `ab0dc6629`, the unified runtime and presentation
-module. The current pass adds player depth/paint/x-ray, separate high-air output,
-canonical tooling poses, actual impostor atlases/cards, live controls and explicit
-GPU queries. Production viewport/sheet integration and deletion remain open.
+The committed incumbent is `a7c668458`. The current uncommitted pass migrates
+the production viewport and detached workbench sheets to the shared page GPU,
+actual presentation, and canvas/pixel APIs. Core appearance admission stages
+source, pose/placement facts and GPU owners together; bounded browser scheduling
+retains the committed catalog until the latest complete generation is ready.
+Shared diagnostics count actual issued ranges; model/effect/scar suppression keeps
+current knowledge. TypeGPU deletion and the final performance cohort remain open.
+
+Focused production results: foundation, geometry and river pass their existing
+approved-image gates; workbench C remains pixel-identical while A prepares
+and B supersedes it; the original deploy-change threshold passes once the sheet
+actually seeds and commits its requested geometry. CPU boundary checks pass
+(13 tests across page lifetime, admission, workbench source and proxies).
+Logs: `throwaway/production-frame-smoke-4.log`,
+`throwaway/production-workbench-race-1.log`,
+`throwaway/production-cpu-boundaries-8.log`.
+
+Rejected initial transport: loading the entire installed game catalog exhausted
+the WASM address space. Admission now transports canonical world source names,
+requested external models and enabled grass, including separately owned scenery
+sources. This changes startup scope, not per-frame rendering policy.
+
+Canonical world admission regression is fixed. The instrumented river probe
+installed/baked row 210 as a wreck, then presentation loaded it as `test_rifle`
+before drawing. The GPU still owned the old rows. The same class broke the menu
+battle and left unrelated fragments in the aircraft plane. The first proposed
+fix waited for an observed frame, which deadlocked because publications start
+only after GPU readiness. It was rejected. Admission now waits for staged battle
+topology, frames it on the CPU, then builds the GPU scene. External world reloads
+replace that scene before drawing. Worker startup order remains unchanged.
+
+The strengthened aircraft test failed with the F-16 source absent despite a
+nonempty plane, then passed with the authored source admitted and real geometry.
+Fresh unprimed visual review sees the complete aircraft and no apparent departures
+from the approved frame references. The aircraft world's strong hatching follows
+its intentionally unseen ground; unselected command icons remain disabled. Raw
+reference comparisons retain small raster differences (262/330/464 pixels for
+foundation/geometry/river respectively); the unchanged spatial screenshot gates
+report zero unmatched pixels. Do not describe this as byte identity. The full app journey subsequently passes, including resource-lifetime checks.
+Evidence: `throwaway/river-admission-probe-2.log`,
+`throwaway/production-world-admission-frame-green-3.log`,
+`throwaway/production-world-admission-green-2.log` (aircraft only; its frame run
+was invalidated by source-formatting HMR),
+`throwaway/production-high-air-red.log`, and
+`throwaway/production-frame-review/{raw-comparison.json,critique.md}`.
+
+The full app journey passes all checks in 111 seconds: actual generated forests,
+input and engagement acknowledgement, restart/history/replay digests, one GPU and
+audio owner, and zero retained buffer/texture wrappers on both returns to menu.
+The observer uses weak identities plus one explicit collection checkpoint after
+queue drain; it measures wrapper lifetime, not driver/process residency.
+Evidence: `throwaway/production-appflow-lifetime-3.log`.
+
+Shared model admission now stores immutable geometry once per resolved bundle
+state and corpse orientation, while routing/placement rows retain independent
+metadata. Owned GPU payload on the same generated skirmish falls from
+2,670,304,601 to 1,223,999,969 bytes (54.2%); textures stay unchanged. The full
+before/after image has zero changed pixels. Unique resident vertices are counted
+once at admission, so per-frame diagnostics do no cache traversal.
+Evidence: `throwaway/skirmish-geometry-shared.log`,
+`throwaway/skirmish-geometry-pixels.json`, `throwaway/model-memory-audit.md`.
+
+The 19-test viewport suite covers observer reset, newest quality/instance replay,
+retired appearance continuations and superseded creation rejection. Every new
+regression has a failing negative control; current-request failures remain
+terminal. Independent targeted review completed with three findings, all fixed.
+Evidence: `throwaway/review/admission-final-targeted/verdict.md` and
+`throwaway/viewport-lifecycle-{final-19,appearance-red,instances-red,rejection-red}.log`.
+
+Actual grass probes pass growth mixtures/exclusions, crop rows, retuning,
+brightness/dry patches and camera-stable kinds. Production fog passes oracle,
+visibility/edge/turret and cost checks. The garrison assertion first failed:
+zero facade eyes/one drawn eye versus nine published eyes. A scratch trace proved
+the viewport still presented tick 36 while the observer had tick 66. The check now
+uses the existing publication-presented wait before reading canonical fog eyes;
+the unchanged assertion passes with two facade eyes and nine drawn/published eyes.
+Evidence: `throwaway/production-grass-probes-artifact7.log`,
+`throwaway/production-fog-probe-artifact7.log`, `throwaway/fog-repro-4.log` and
+`throwaway/production-fog-probe-green.log`. This focused scratch run does not apply
+the general scene runner's oversized React measure guard; that harness diagnostic
+remains a separate closeout concern.
 
 The captured browser street now includes external articulated poses and a
 placement ghost alongside paint, pointer marks and selection. The source-pixel

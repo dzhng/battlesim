@@ -3,6 +3,22 @@ use super::*;
 
 #[wasm_bindgen]
 impl Renderer {
+    /// Update external world faces on the existing runtime and retain the same
+    /// source for recovery. Canonical terrain and appearance owners stay live.
+    pub fn set_world_props(&mut self, words: Vec<f32>) -> Result<(), JsValue> {
+        if !words.len().is_multiple_of(10) {
+            return Err(js_error("world geometry needs ten floats per vertex"));
+        }
+        let runtime = self
+            .runtime
+            .as_mut()
+            .ok_or_else(|| js_error("install presentation before replacing world props"))?;
+        self.geometry = None;
+        runtime.set_world_props(&self.gpu.device, words);
+        self.geometry = Some(runtime.geometry());
+        Ok(())
+    }
+
     /// Only external meshes cross this boundary; ground tables stay in presentation.
     pub fn set_world_geometry(
         &mut self,
@@ -50,8 +66,8 @@ impl Renderer {
 
     pub fn install_presentation(&mut self, presentation: &mut Presentation) -> Result<(), JsValue> {
         let mut runtime = Runtime::new(
-            &self.device,
-            &self.queue,
+            &self.gpu.device,
+            &self.gpu.queue,
             self.config.clone(),
             RuntimeWorld {
                 presentation: presentation.core_mut(),
@@ -73,7 +89,7 @@ impl Renderer {
             },
         )
         .map_err(js_error)?;
-        runtime.set_overlay_glow(&self.queue, self.overlay_glow);
+        runtime.set_overlay_glow(&self.gpu.queue, self.overlay_glow);
         self.stats.fog_sight_uploads += self
             .runtime
             .as_ref()
@@ -89,7 +105,7 @@ impl Renderer {
         self.runtime
             .as_mut()
             .ok_or_else(|| js_error("install presentation before preparing assets"))?
-            .prepare_assets(&self.device, &self.queue)
+            .prepare_assets(&self.gpu.device, &self.gpu.queue)
             .await
             .map_err(js_error)
     }
@@ -98,7 +114,7 @@ impl Renderer {
         let controls = serde_json::from_str(json).map_err(js_error)?;
         if let Some(runtime) = &mut self.runtime {
             runtime
-                .set_controls(&self.queue, presentation.core(), controls)
+                .set_controls(&self.gpu.queue, presentation.core(), controls)
                 .map_err(js_error)?;
         }
         self.config.controls = controls;
@@ -118,7 +134,7 @@ impl Renderer {
         let look = style.look().map_err(js_error)?;
         self.config.fog_look = look;
         if let Some(runtime) = &mut self.runtime {
-            runtime.set_fog_look(&self.queue, look);
+            runtime.set_fog_look(&self.gpu.queue, look);
         }
         Ok(())
     }
@@ -126,7 +142,7 @@ impl Renderer {
     pub fn set_overlay_glow(&mut self, radius_px: f32, strength: f32) {
         self.overlay_glow = [radius_px, radius_px / 2.5, strength, 0.0];
         if let Some(runtime) = &mut self.runtime {
-            runtime.set_overlay_glow(&self.queue, self.overlay_glow);
+            runtime.set_overlay_glow(&self.gpu.queue, self.overlay_glow);
         }
     }
 }

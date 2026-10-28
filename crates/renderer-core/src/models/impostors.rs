@@ -154,19 +154,27 @@ impl Models {
             .map(|cards| ("cardLayout", &cards.group))
     }
     pub fn draw_cards(&self, pass: &mut RenderPass, layer: Layer) {
-        if !self.surfaces[OPAQUE] {
+        if !self.models_shown || !self.surfaces[OPAQUE] {
             return;
         }
         if let Some(cards) = &self.cards {
-            cards.draw(pass, layer, |pass| self.in_world(pass));
+            let work = cards.draw(pass, layer, |pass| self.in_world(pass));
+            self.submissions
+                .record(crate::submitted::Pass::Color, |stats| {
+                    stats.models_including_props.add(work);
+                });
         }
     }
     pub fn draw_high_air_cards(&self, pass: &mut RenderPass, layer: Layer) {
-        if !self.surfaces[OPAQUE] {
+        if !self.models_shown || !self.surfaces[OPAQUE] {
             return;
         }
         if let Some(cards) = &self.cards {
-            cards.draw(pass, layer, |pass| pass == HIGH_PASS);
+            let work = cards.draw(pass, layer, |pass| pass == HIGH_PASS);
+            self.submissions
+                .record(crate::submitted::Pass::HighColor, |stats| {
+                    stats.models_including_props.add(work);
+                });
         }
     }
 }

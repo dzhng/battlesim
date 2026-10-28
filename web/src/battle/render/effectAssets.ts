@@ -1,6 +1,6 @@
+/** Authored source transport; Rust owns decoding, mip chains and GPU atlases. */
 import { FLIPBOOKS } from "@packages/battle-renderer/src/effects/flipbooks";
 
-/** Both platforms pass authored PNGs to the same Rust decoder/mip owner. */
 export async function loadEffectAtlasLayers(): Promise<Uint8Array[]> {
   return Promise.all(
     FLIPBOOKS.map(async (book) => {

@@ -129,6 +129,7 @@ pub struct FrameInputs<'a> {
 
 /// Pipeline policy for a complete production frame, shared on every target.
 pub struct FrameRenderer {
+    frames: std::cell::Cell<u64>,
     depth: DepthPrepass,
     world: WorldColour,
     caster: Bound,
@@ -139,6 +140,7 @@ pub struct FrameRenderer {
 impl FrameRenderer {
     pub fn new(pipelines: &Pipelines) -> Self {
         Self {
+            frames: Default::default(),
             depth: DepthPrepass::new(pipelines),
             world: WorldColour::new(pipelines),
             caster: pipelines.bound("modelCaster"),
@@ -147,10 +149,17 @@ impl FrameRenderer {
         }
     }
 
+    pub fn frames(&self) -> u64 {
+        self.frames.get()
+    }
+
     /// May submit and replace `encoder` while loading regional scar pages.
     /// Initial/final timestamp markers belong before/after this call, so they
     /// span those ordered submissions as well as the final command buffer.
     pub fn encode(&self, inputs: &FrameInputs<'_>, encoder: &mut CommandEncoder) {
+        inputs.ground.submissions.reset();
+        inputs.models.submissions.reset();
+        inputs.scenery.submissions.reset();
         let display_overlays = inputs.xray.is_some()
             || inputs.overlay_geometry.opaque.is_some()
             || inputs.overlay_geometry.translucent.is_some();
@@ -273,6 +282,7 @@ impl FrameRenderer {
                 high_air.clear(encoder);
             }
         }
+        self.frames.set(self.frames.get() + 1);
     }
 
     fn encode_shadows(&self, inputs: &FrameInputs<'_>, encoder: &mut CommandEncoder) {

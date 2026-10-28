@@ -26,6 +26,7 @@ const IDENTITY: [f32; 8] = [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0];
 struct Mesh {
     buffer: Option<Buffer>,
     partition: Option<std::sync::Arc<TerrainPartition>>,
+    visited: usize,
     view: Vec<Range<u32>>,
     cascades: [Vec<Range<u32>>; CASCADES],
 }
@@ -42,6 +43,7 @@ impl Mesh {
                 )
             }),
             partition: None,
+            visited: 0,
             view: std::iter::once(0..(words.len() / VERTEX_FLOATS) as u32).collect(),
             cascades: std::array::from_fn(|_| Vec::new()),
         }
@@ -59,10 +61,10 @@ impl Mesh {
         let Some(partition) = &self.partition else {
             return;
         };
-        partition.select(&camera.view_proj, &mut self.view);
+        self.visited = partition.select(&camera.view_proj, &mut self.view);
         for (i, ranges) in self.cascades.iter_mut().enumerate() {
             if let Some(caster) = casters.get(i) {
-                partition.select(&caster.view_proj, ranges);
+                self.visited += partition.select(&caster.view_proj, ranges);
             } else {
                 ranges.clear();
             }
@@ -73,13 +75,23 @@ impl Mesh {
         cascade.map_or(&self.view, |i| &self.cascades[i])
     }
 
-    fn draw(&self, pass: &mut RenderPass, identity: &Buffer, cascade: Option<usize>) {
-        let Some(buffer) = &self.buffer else { return };
+    fn draw(
+        &self,
+        pass: &mut RenderPass,
+        identity: &Buffer,
+        cascade: Option<usize>,
+    ) -> crate::submitted::SubmittedDraws {
+        let mut submitted = crate::submitted::SubmittedDraws::default();
+        let Some(buffer) = &self.buffer else {
+            return submitted;
+        };
         pass.set_vertex_buffer(0, buffer.slice(..));
         pass.set_vertex_buffer(1, identity.slice(..));
         for range in self.ranges(cascade) {
             pass.draw(range.clone(), 0..1);
+            submitted.record(range.end - range.start, 1);
         }
+        submitted
     }
 }
 
@@ -96,6 +108,7 @@ pub struct GroundData<'a> {
 }
 
 pub struct Ground {
+    pub submissions: crate::submitted::Submissions,
     pub material: TerrainResources,
     /// The height pages fog and grass read (`Grid::pages`).
     pub heights: Buffer,
@@ -116,6 +129,12 @@ pub struct Ground {
 }
 
 impl Ground {
+    /// Replace external world-face geometry without rebuilding terrain tables,
+    /// targets or appearance resources. Selection is prepared on the next draw.
+    pub fn set_skirt(&mut self, device: &Device, words: &[f32]) {
+        self.skirt = Mesh::partitioned(device, "skirt", words);
+    }
+
     pub fn from_data(
         device: &Device,
         queue: &Queue,
@@ -137,6 +156,7 @@ impl Ground {
         let skirt = Mesh::partitioned(device, "skirt", data.skirt);
         let water = Mesh::partitioned(device, "water", data.water);
         Self {
+            submissions: Default::default(),
             material,
             heights,
             map_box,
@@ -227,17 +247,34 @@ impl Ground {
     /// The ground, the skirt and the backdrop into the depth prepass.
     pub fn draw_depth(&self, pass: &mut RenderPass, camera: (&str, &BindGroup)) {
         self.prepass.set(pass, &[camera]);
-        self.terrain.draw(pass, &self.identity, None);
-        for mesh in [&self.skirt, &self.backdrop] {
-            mesh.draw(pass, &self.identity, None);
-        }
+        self.submissions
+            .record(crate::submitted::Pass::Depth, |stats| {
+                stats
+                    .terrain
+                    .add(self.terrain.draw(pass, &self.identity, None));
+                stats
+                    .skirt_and_debug_props
+                    .add(self.skirt.draw(pass, &self.identity, None));
+                stats
+                    .backdrop
+                    .add(self.backdrop.draw(pass, &self.identity, None));
+            });
     }
 
     /// The ground and the skirt into one cascade (the backdrop casts nothing).
     pub fn draw_casters(&self, pass: &mut RenderPass, camera: (&str, &BindGroup), cascade: usize) {
         self.caster.set(pass, &[camera]);
-        self.terrain.draw(pass, &self.identity, Some(cascade));
-        self.skirt.draw(pass, &self.identity, Some(cascade));
+        self.submissions
+            .record(crate::submitted::Pass::Cascade(cascade), |stats| {
+                stats
+                    .terrain
+                    .add(self.terrain.draw(pass, &self.identity, Some(cascade)));
+                stats.skirt_and_debug_props.add(self.skirt.draw(
+                    pass,
+                    &self.identity,
+                    Some(cascade),
+                ));
+            });
     }
 
     /// The lit terrain, `groups` the frame's (camera, environment, fog).
@@ -245,13 +282,23 @@ impl Ground {
         let mut all = groups.to_vec();
         all.push(self.layout_group());
         self.lit_terrain.set(pass, &all);
-        self.terrain.draw(pass, &self.identity, None);
+        self.submissions
+            .record(crate::submitted::Pass::Color, |stats| {
+                stats
+                    .terrain
+                    .add(self.terrain.draw(pass, &self.identity, None));
+            });
     }
 
     /// The map's skirt, lit as the world's faces.
     pub fn draw_skirt(&self, pass: &mut RenderPass, groups: &[(&str, &BindGroup)]) {
         self.lit_skirt.set(pass, groups);
-        self.skirt.draw(pass, &self.identity, None);
+        self.submissions
+            .record(crate::submitted::Pass::Color, |stats| {
+                stats
+                    .skirt_and_debug_props
+                    .add(self.skirt.draw(pass, &self.identity, None));
+            });
     }
 
     /// The backdrop: the ground's material past the map, never shadowed.
@@ -259,7 +306,12 @@ impl Ground {
         let mut all = groups.to_vec();
         all.push(self.layout_group());
         self.lit_backdrop.set(pass, &all);
-        self.backdrop.draw(pass, &self.identity, None);
+        self.submissions
+            .record(crate::submitted::Pass::Color, |stats| {
+                stats
+                    .backdrop
+                    .add(self.backdrop.draw(pass, &self.identity, None));
+            });
     }
 
     /// The water's surface over the rivers' cells: blended over everything
@@ -268,7 +320,10 @@ impl Ground {
         let mut all = groups.to_vec();
         all.push(self.layout_group());
         self.lit_water.set(pass, &all);
-        self.water.draw(pass, &self.identity, None);
+        self.submissions
+            .record(crate::submitted::Pass::Color, |stats| {
+                stats.water.add(self.water.draw(pass, &self.identity, None));
+            });
     }
 }
 
@@ -286,5 +341,17 @@ impl Ground {
             }
         }
         self.material.record_memory(memory);
+    }
+}
+
+impl Ground {
+    pub fn mesh_diagnostics(&self) -> serde_json::Value {
+        serde_json::json!({
+            "terrainVisitedNodes": self.terrain.visited,
+            "skirtVisitedNodes": self.skirt.visited,
+            "waterVisitedNodes": self.water.visited,
+            "worldVertices": ([&self.terrain, &self.skirt, &self.water, &self.backdrop].iter()
+                .filter_map(|mesh| mesh.buffer.as_ref()).map(|buffer| buffer.size() / (VERTEX_FLOATS * 4) as u64).sum::<u64>()),
+        })
     }
 }

@@ -2,6 +2,124 @@
 
 ## Sound
 
+### Share immutable geometry across catalog routing rows
+
+**When:** production skirmish memory admission.
+
+Catalog rows distinguish placement, visibility, routing and corpse poses. Those
+facts do not require separate immutable vertex buffers when the resolved source
+state is the same. Admission shares tiers by source name, resolved state and
+corpse orientation within that material generation; each row keeps its own
+metadata. The sharing map exists only during construction, so there is no lasting
+cache invalidation policy. Resident geometry diagnostics are computed once at
+admission.
+
+**Gap:** the spec required one runtime but did not prescribe vertex ownership.
+**Reach:** native and browser share the same immutable GPU owner. **Verdict:**
+sound. **Confidence:** high; the real generated skirmish's owned payload falls
+54.2%, its image is pixel-identical, and focused tests retain placement/routing.
+
+### Only current scene admission failures end readiness
+
+**When:** independent production lifecycle review.
+
+A complete scene candidate captures observer, world, source and quality inputs.
+The same current-input predicate rejects both superseded results and superseded
+failures. Newest proxy instances and model poses are replayed before installation.
+Late appearance callbacks also verify scene identity before touching presentation.
+The single candidate/latest desired ownership remains bounded; unchanged current
+failures still reach the existing terminal boundary.
+
+**Gap:** successful supersession was specified but rejected obsolete work was not.
+**Reach:** viewport lifetime and reset/quality transitions. **Verdict:** sound.
+**Confidence:** high; 19 viewport tests pass and each reviewed defect has a failing
+negative control.
+
+### Observe browser resource release through weak identities
+
+**When:** production viewport migration.
+
+After leaving a battle, the lifetime check must know whether its GPU objects
+remain reachable. Rust's browser backend releases ordinary buffer and texture
+references without calling their JavaScript `destroy` methods. Keeping those
+objects in the old strong-reference tracker would itself keep the battle alive.
+The journey now observes weak references, drains queued work at departure, and
+performs one explicit browser collection before inspecting old identities. It
+also verifies that the observer sees real live resources before departure.
+
+**Gap:** the old destruction-based observer could not measure Rust ownership.
+**Reach:** browser release checks judge wrapper reachability; driver reclamation
+and process memory require separate measurements. The collection happens only
+in verification, never in gameplay. **Verdict:** sound. **Confidence:** medium;
+this follows the backend's actual lifetime semantics while retaining a falsifiable
+release check.
+
+### Admit complete appearance generations without rebuilding the observer
+
+**When:** production catalog and workbench migration.
+
+When a workbench model changes while its new cards bake, the current model keeps
+drawing and receiving pose updates. One candidate prepares source facts and GPU
+resources; newer intent replaces the desired request rather than starting another
+candidate. At a frame boundary, only the desired complete candidate may replace
+the active catalog, using the latest requested pose. The presentation's retained
+battle history and learned world remain the authority throughout.
+
+**Gap:** latest-generation behavior did not prescribe concurrency or the scope of
+replacement. **Reach:** asset changes replace asset owners; topology changes use
+whole-scene admission. No presentation borrow survives asynchronous preparation.
+**Verdict:** sound. **Confidence:** high; this bounds work and gives canonical
+facts, retained sources and GPU art one commit boundary.
+
+### Keep required-GPU failures in the existing application error boundary
+
+**When:** production workbench admission.
+
+An invalid dropped model remains a workbench validation result, so the current
+model can remain visible. If required GPU preparation itself fails, the existing
+application failure boundary reports the error and unmounts the viewport. The
+transaction still leaves the old generation unchanged until teardown; it does
+not silently retry or pretend the requested generation was installed.
+
+**Gap:** transactional retention alone did not specify the application's response
+to a current required-resource failure. **Reach:** recoverable source validation
+and terminal renderer failures retain their existing separate product meanings.
+**Verdict:** sound. **Confidence:** high; this preserves the application's failure
+policy without inventing a second recovery mode.
+
+### Use canonical ground and latest-world admission in review sheets
+
+**When:** production sheet migration.
+
+A low-angle review sheet can see past its display floor onto the surrounding
+terrain. Its canonical scene now supplies the actual ground material tables;
+the original sheet omitted them and showed a dark band. A grass model loading
+during asynchronous viewport startup can also change the world containing its
+scale figure. Admission catches up that world before publishing the scene;
+the original viewport could drop it and lose the figure and its shadow.
+
+**Gap:** preserving review behavior did not require retaining accidental missing
+inputs. **Reach:** tools use the same complete canonical world as gameplay rather
+than renderer-specific zero/default ground or stale startup snapshots.
+**Verdict:** sound. **Confidence:** high; these are named visual corrections to
+ownership omissions, rather than exceptions in the shared renderer.
+
+### Admit only sources named by the canonical scene and external requests
+
+**When:** production source transport.
+
+The installed game catalog can include models a scene cannot draw. Transporting
+all of it into a viewport exhausted the browser module's address space. The
+browser instead transports source names from the canonical scene, requested
+external models and enabled grass. Separately owned scenery sources participate
+in the same transport. Catalog lookup data remains available to future requests.
+
+**Gap:** fetched catalog availability did not define GPU admission scope.
+**Reach:** loading another model or world can change the admitted generation;
+keeping a catalog entry does not allocate its meshes automatically.
+**Verdict:** sound. **Confidence:** high; actual scene contracts select resources
+without another GPU cache or platform-specific rendering policy.
+
 ### Shared shadow resources own cascade attachment and ground-caster order
 
 The browser had allocated four shadow layers and their camera records but did

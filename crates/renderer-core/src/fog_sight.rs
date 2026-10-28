@@ -585,3 +585,14 @@ impl FogSightResources {
         memory.texture(&self.wholes);
     }
 }
+
+impl FogSightResources {
+    pub fn allocation_diagnostics(&self) -> serde_json::Value {
+        serde_json::json!({
+            "mapBytes": self.maps.size(),
+            "terrainMapBytes": self.terrain_maps.size(),
+            "tileListBytes": self.lists.size() + self.counts.size(),
+            "tiles": [self.tiles[0], self.tiles[1]],
+        })
+    }
+}

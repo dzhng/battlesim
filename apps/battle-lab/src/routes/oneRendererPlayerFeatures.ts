@@ -7,7 +7,8 @@ import {
 } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type { ScenePresentation } from "@web/battle/sim/presentation";
-import { labAssetsOf, type LabModel } from "@web/battle/sim/presentationModels";
+import type { LabModel } from "@web/battle/sim/presentationModels";
+import { modelAssetsOf } from "@web/battle/render/modelAssets";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { gameModelDetail } from "../gameModels";
 import { REST_ARTICULATION } from "@packages/scene-assets/src/articulation";
@@ -113,6 +114,6 @@ export function installLabFixture(
       ghost: [0.15, 0.8, 1, 0.45],
     },
   ];
-  presentation.installLabAssets(labAssetsOf(installed, [name]), JSON.parse(gameModelDetail));
+  presentation.installLabAssets(modelAssetsOf(installed, [name]), JSON.parse(gameModelDetail));
   presentation.setLabModels(models);
 }

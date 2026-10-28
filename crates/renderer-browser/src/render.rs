@@ -25,13 +25,13 @@ impl Renderer {
             .as_mut()
             .ok_or_else(|| js_error("install presentation and prepare assets before rendering"))?;
         let resized = runtime.resize(
-            &self.device,
-            &self.queue,
+            &self.gpu.device,
+            &self.gpu.queue,
             [self.width, self.height],
             presentation.core_mut(),
         );
         runtime
-            .prepare(&self.device, &self.queue, presentation.core_mut())
+            .prepare(&self.gpu.device, &self.gpu.queue, presentation.core_mut())
             .map_err(js_error)?;
         self.update_stats(presentation.core());
         if resized {
@@ -39,6 +39,7 @@ impl Renderer {
         }
         let runtime = self.runtime.as_ref().expect("installed runtime");
         let mut encoder = self
+            .gpu
             .device
             .create_command_encoder(&CommandEncoderDescriptor {
                 label: Some("battle-frame"),
@@ -47,8 +48,8 @@ impl Renderer {
             timer.begin(&mut encoder);
         }
         runtime.encode(
-            &self.device,
-            &self.queue,
+            &self.gpu.device,
+            &self.gpu.queue,
             &presentation.core().last_frame().view,
             &mut encoder,
             self.player_meshes.draw(&self.overlay_instances),
@@ -75,13 +76,13 @@ impl Renderer {
         if let Some(timer) = &self.gpu_timer {
             timer.end(&mut encoder);
         }
-        self.queue.submit([encoder.finish()]);
+        self.gpu.queue.submit([encoder.finish()]);
         if let Some(timer) = &mut self.gpu_timer {
             timer.submitted();
         }
-        self.queue.present(surface);
+        self.gpu.queue.present(surface);
         if let Some(high) = high {
-            self.queue.present(high);
+            self.gpu.queue.present(high);
         }
         self.stats.shared_passes += 1;
         self.stats.frames += 1;
@@ -91,7 +92,7 @@ impl Renderer {
     /// Match WebGPU's queue completion boundary in the browser control.
     pub fn drain(&self) -> js_sys::Promise {
         js_sys::Promise::new(&mut |resolve, _reject| {
-            self.queue.on_submitted_work_done(move || {
+            self.gpu.queue.on_submitted_work_done(move || {
                 let _ = resolve.call0(&JsValue::UNDEFINED);
             });
         })

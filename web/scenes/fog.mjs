@@ -8,7 +8,7 @@
 import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
 import { decode } from "./_png.mjs";
-import { advance, lab, obs, snapshot, until } from "./_lab.mjs";
+import { advance, lab, obs, snapshot, until, presented } from "./_lab.mjs";
 import { streetMap } from "./_units.mjs";
 
 /** Spike 02's bar: at most 5% of 8 m cells outside the one-cell band disagree. */
@@ -447,6 +447,9 @@ export async function run(ctx) {
     JSON.stringify(garrisoned?.own.map((u) => [u.kind, u.hold?.phase, u.sight.eyes.length])),
   );
   if (garrisoned) {
+    // Side changes replace the catalog asynchronously; inspect the publication
+    // only after the viewport has actually presented the garrisoned tick.
+    await presented(page);
     await page.evaluate(() => window.__lab.frame());
     const squad = garrisoned.own.find((u) => u.hold?.phase === "inside");
     const eyes = await lab(

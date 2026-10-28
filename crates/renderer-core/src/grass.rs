@@ -334,3 +334,13 @@ impl Grass {
         }
     }
 }
+
+impl Grass {
+    pub fn diagnostics(&self) -> serde_json::Value {
+        serde_json::json!({
+            "tiles": u64::from(self.window.tiles_x) * u64::from(self.window.tiles_y),
+            "capacity": self.capacity,
+            "clumpBytes": self.clumps.size(),
+        })
+    }
+}

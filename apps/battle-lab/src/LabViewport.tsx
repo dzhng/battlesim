@@ -5,7 +5,6 @@ import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
 import { useLabLoading } from "./LabLoading";
 import { diagnosticsSource } from "@web/diagnostics";
 import {
-  loadPresentation,
   ScenePresentation,
   type PropStats,
   NO_PROP_STATS,
@@ -15,10 +14,9 @@ import { useCursorAction, type CursorAction } from "@web/battle/present/gameCurs
 import { useEffect, useRef, useState } from "react";
 import { gpuFailureMessage } from "@packages/renderer-core/src/device";
 import { appResources } from "./appResources";
-import {
-  trackGpuAllocations,
-  type GpuAllocationTracker,
-} from "@packages/renderer-core/src/gpuAllocations";
+import type { BrowserGpu } from "@wasm/renderer_browser";
+import { BrowserScene, pixelsPng } from "@web/battle/render/scene";
+import type { AllocationCounts, BrowserGpuInfo, SceneStats } from "@web/battle/render/sceneStats";
 import { vec3 } from "math";
 import {
   createGpuMat4,
@@ -31,7 +29,6 @@ import {
   type WorldRay,
 } from "@packages/renderer-core/src/camera3d";
 import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
-import { readTexturePng } from "@packages/renderer-core/src/textureReadback";
 import {
   CAMERA_KEYS,
   CameraController,
@@ -52,13 +49,13 @@ import { isGameKey } from "@web/battle/input/keyGuard";
 import { HIGH_PLANE_ATTR, type Project } from "@web/battle/present/readouts";
 import { gameCamera } from "./gameCamera";
 import { gameLightFor } from "./gameLight";
-import { gameFogGeometry, gameFogStyle } from "./gameFog";
+import { applyShadowQuality } from "@packages/renderer-core/src/lightQuality";
+import { gameFogStyle } from "./gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "./gameOverlay";
-import { gameBuildingStyle, gameGlass, gameModelDetail } from "./gameModels";
+import { gameBuildingStyle, gameModelDetail } from "./gameModels";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import type {
-  BattleFrame,
   DrawnInstances,
   FrameView,
   SceneInstance,
@@ -71,7 +68,6 @@ import type {
   SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { SurfaceClass } from "@packages/battle-renderer/src/models/surfaceParts";
-import { cascadeLight, createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import type { GrassClumpRow } from "@packages/battle-renderer/src/frame/grassPass";
 import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
@@ -82,15 +78,7 @@ import {
   type EffectCounts,
   type ModelCounts,
 } from "./presentedFrame";
-import { emptyBuildingWalkStats } from "@packages/battle-renderer/src/models/buildingLayer";
-import { NO_SCENERY_WALK } from "@packages/battle-renderer/src/frame/sceneryLayer";
-import {
-  resolveFogLook,
-  resolveLight,
-  type FogRequest,
-  type PresentedAppearance,
-  type PresentedFrame,
-} from "@web/battle/sim/presentation";
+import { type FogRequest, type PresentedFrame } from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 import {
@@ -100,7 +88,6 @@ import {
 } from "./graphicsSettings";
 
 const NO_INSTANCES: readonly SceneInstance[] = [];
-const NO_WALK = emptyBuildingWalkStats();
 /** A frame of a world no battle publishes into: no units, no selection. */
 const NO_UI: PresentedUi = { selected: [], xray: false, ghosts: [] };
 
@@ -138,7 +125,7 @@ interface LabViewportProps {
    *  stable object (`useFeed`): never a prop that changes with them. */
   overlay?: FeedSource<WorldMeshes | undefined>;
   /** Ground paint that follows the pointer (the range ruler), fed like the
-   *  overlay and uploaded apart from it (`BattleFrame.setPointerMarks`). */
+   *  overlay and uploaded apart from it. */
   pointerMarks?: FeedSource<Mesh>;
   /** The side's fog of war, which its presentation decides (its sensor
    *  rules, foliage, and a lab's stand-ins), fed like the overlay; omitted
@@ -267,7 +254,7 @@ export interface ViewportPilot {
   /** Renderer diagnostics and a fresh GPU measurement boundary. */
   attach?(frame: {
     adapter: string;
-    stats: () => ReturnType<BattleFrame["stats"]> & {
+    stats: () => SceneStats & {
       receiverFit: ReturnType<ScenePresentation["shadowStats"]> | null;
     };
     resetGpuTiming: () => void;
@@ -291,12 +278,11 @@ export interface ViewportPilot {
 
 /** What the viewport's device reports once it is up. */
 export interface ViewportGpu {
-  allocations: GpuAllocationTracker;
-  /** The device and canvas format, for work beside the viewport (model sheets). */
-  device: GPUDevice;
-  format: GPUTextureFormat;
-  /** The live battle frame (it is rebuilt by `rebuild`). */
-  frame: () => BattleFrame;
+  allocations: () => AllocationCounts;
+  /** Independent workbench outputs share the page's admitted GPU. */
+  gpu: BrowserGpu;
+  /** The live scene (it is replaced by `rebuild`). */
+  frame: () => BrowserScene;
 }
 
 const _projector_world = vec3.create();
@@ -378,18 +364,10 @@ export function LabViewport({
   const appearancesRef = useRef(appearances?.current ?? null);
   const modelsRef = useRef(models);
   modelsRef.current = models;
-  const presentedWorldRef = useRef<readonly PresentedAppearance[]>([]);
   const countsRef = useRef<ModelCounts>(emptyModelCounts());
   const effectCountsRef = useRef<EffectCounts>(emptyEffectCounts());
   /** The lab's scenery switches: the dressing and the tree lines' shrubs. */
   const sceneryShown = useRef({ dressing: true, understorey: true });
-  const modelsSuppressed = useRef(false);
-  const effectsSuppressed = useRef(false);
-  const scarsSuppressed = useRef(false);
-  /** The side's learned ground as the last frame reported it. */
-  const groundRef = useRef<GroundMarks | null>(null);
-  /** The ground the battle frame draws: none while suppressed. */
-  const groundNow = () => (scarsSuppressed.current ? null : groundRef.current);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const setCursorActionRef = useRef(useCursorAction());
   const frameRate = useRef<FrameRateHandle>(null);
@@ -413,8 +391,8 @@ export function LabViewport({
   fixedPicksRef.current = fixedPicks;
   const worldRef = useRef(world);
   worldRef.current = world;
-  const sceneRef = useRef<BattleFrame | null>(null);
-  const [inspecting, setInspecting] = useState<BattleFrame | null>(null);
+  const sceneRef = useRef<BrowserScene | null>(null);
+  const [inspecting, setInspecting] = useState<BrowserScene | null>(null);
   instancesRef.current = instances;
 
   const redrawRef = useRef<() => void>(() => {});
@@ -441,7 +419,8 @@ export function LabViewport({
   useEffect(
     () =>
       world.subscribe((next) => {
-        if (next) sceneRef.current?.setWorld(next);
+        if (next && sceneRef.current && !sceneRef.current.stageWorld(next))
+          void window.__lab?.rebuild?.();
         redrawRef.current();
       }),
     [world],
@@ -474,7 +453,7 @@ export function LabViewport({
   fogStyleRef.current = fogStyle;
   const lightRef = useRef(light);
   useEffect(() => {
-    sceneRef.current?.setFogLook(resolveFogLook(fogStyle ?? gameFogStyle));
+    sceneRef.current?.setFogStyle(fogStyle ?? gameFogStyle);
     redrawRef.current();
   }, [fogStyle]);
   const fogSuppressed = useRef(false);
@@ -494,10 +473,17 @@ export function LabViewport({
       appearancesRef.current = next;
       const scene = sceneRef.current;
       if (!scene) return;
-      void scene.setAppearances(next).then(() => {
-        if (modelsRef.current) scene.setModels(modelsRef.current);
-        redrawRef.current();
-      });
+      void scene
+        .setAppearances(next, modelsRef.current ?? [])
+        .then(() => {
+          if (sceneRef.current !== scene) return;
+          if (modelsRef.current) scene.setModels(modelsRef.current);
+          redrawRef.current();
+        })
+        .catch((error: unknown) => {
+          if (sceneRef.current !== scene) return;
+          setError(gpuFailureMessage(error));
+        });
     };
     install(appearances?.current ?? null);
     return appearances?.subscribe(install);
@@ -520,8 +506,6 @@ export function LabViewport({
     window.__lab = handle;
     const lifetime = new AbortController();
     const { signal } = lifetime;
-    let device: GPUDevice | null = null;
-    let canvasContext: GPUCanvasContext | null = null;
     let raf = 0;
     const setCursorAction = setCursorActionRef.current;
     // The battlefield the pointer acts on: the canvas, or a callout over it.
@@ -627,20 +611,10 @@ export function LabViewport({
 
     (async () => {
       try {
-        const info = await appResources.gpu();
-        device = info.device;
+        const gpu = await appResources.gpu();
+        const info = JSON.parse(gpu.info()) as BrowserGpuInfo;
         if (signal.aborted) return;
-        const allocations = trackGpuAllocations(device);
-        const context = canvas.getContext("webgpu");
-        if (!context) throw new Error("Canvas refused a WebGPU context.");
-        canvasContext = context;
         const plates = pilot?.plates === true;
-        context.configure({
-          device,
-          format: info.format,
-          alphaMode: "opaque",
-          usage: GPUTextureUsage.RENDER_ATTACHMENT | (plates ? GPUTextureUsage.COPY_SRC : 0),
-        });
         const syncSize = () => {
           const scale = qualityRef.current?.renderScale ?? 1;
           const w = Math.max(1, Math.round(canvas.clientWidth * scale));
@@ -648,6 +622,7 @@ export function LabViewport({
           if (canvas.width !== w || canvas.height !== h) {
             canvas.width = w;
             canvas.height = h;
+            sceneRef.current?.resize();
             dirty = true;
           }
         };
@@ -658,58 +633,38 @@ export function LabViewport({
         // and low-air card. Without them, and for control plates (which a
         // second client's single picture is held to), the models draw with
         // the world.
-        let high: { canvas: HTMLCanvasElement; context: GPUCanvasContext } | null = null;
-        signal.addEventListener("abort", () => {
-          high?.context.unconfigure();
-          high?.canvas.remove();
-        });
+        const high = plates ? undefined : document.createElement("canvas");
+        if (high) Object.assign(high.style, { position: "absolute", pointerEvents: "none" });
+        signal.addEventListener("abort", () => high?.remove());
         let highAt = "";
-        const highTarget = (): GPUTextureView | null => {
-          const host = plates ? null : document.querySelector(`[${HIGH_PLANE_ATTR}]`);
-          if (!host) {
-            high?.canvas.remove();
-            return null;
-          }
-          if (!high) {
-            const made = document.createElement("canvas");
-            const context = made.getContext("webgpu");
-            if (!context) return null;
-            context.configure({ device: device!, format: info.format, alphaMode: "premultiplied" });
-            high = { canvas: made, context };
-          }
-          const { canvas: over, context: overContext } = high;
-          if (over.parentElement !== host) host.appendChild(over);
-          if (over.width !== canvas.width || over.height !== canvas.height) {
-            over.width = canvas.width;
-            over.height = canvas.height;
-          }
+        const placeHigh = () => {
+          if (!high) return;
+          const host = document.querySelector(`[${HIGH_PLANE_ATTR}]`) ?? canvas.parentElement!;
+          if (high.parentElement !== host) host.appendChild(high);
           const r = canvas.getBoundingClientRect();
           const h = host.getBoundingClientRect();
           const at = `${r.left - h.left} ${r.top - h.top} ${r.width} ${r.height}`;
           if (at !== highAt) {
             highAt = at;
-            Object.assign(over.style, {
+            Object.assign(high.style, {
               left: `${r.left - h.left}px`,
               top: `${r.top - h.top}px`,
               width: `${r.width}px`,
               height: `${r.height}px`,
             });
           }
-          return overContext.getCurrentTexture().createView();
         };
         let clock = 0;
         // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
         const light = () => lightRef.current ?? gameLightFor(window.location.search);
         /** Presentation for a scene without a battle. */
         let own: ScenePresentation | null = null;
-        let moduleLoaded = false;
-        void loadPresentation().then(() => (moduleLoaded = true));
         signal.addEventListener("abort", () => own?.free());
         /** The scene's one presentation: the battle's, else the viewport's own. */
         const scenePresentation = (): ScenePresentation | null => {
           const battle = presentationRef.current;
           if (battle) return battle.current;
-          if (!own && moduleLoaded) own = new ScenePresentation();
+          if (!own) own = new ScenePresentation();
           return own;
         };
         const propStats = (): PropStats => scenePresentation()?.propStats() ?? NO_PROP_STATS;
@@ -718,12 +673,7 @@ export function LabViewport({
         let staticStyle = gameBuildingStyle;
         let staticSun = { azimuth: 0, elevation: 1, farM: 0 };
         let shadowLight: LightPresentation | null = null;
-        /** A presentation that frames the camera alone, while the battle's
-         *  is not there yet. */
-        let bare: ScenePresentation | null = null;
-        let receiverPresentation: ScenePresentation | null = null;
-        const receiverStats = () => receiverPresentation?.shadowStats() ?? null;
-        signal.addEventListener("abort", () => bare?.free());
+        const receiverStats = () => scenePresentation()?.shadowStats() ?? null;
         /** The presentation and quality the detail scale was last given to. */
         let detailed: [
           ScenePresentation | null,
@@ -731,7 +681,46 @@ export function LabViewport({
           boolean,
           boolean,
         ] = [null, undefined, true, true];
-        const build = async () => {
+        const reportFailure = (error: unknown) => {
+          if (signal.aborted) return;
+          const message = gpuFailureMessage(error);
+          handle.error = message;
+          handle.ready = false;
+          setReady(false);
+          setError(message);
+        };
+        const admissionFrame = () =>
+          new Promise<void>((resolve) => {
+            const done = () => {
+              signal.removeEventListener("abort", abort);
+              resolve();
+            };
+            const frame = requestAnimationFrame(done);
+            const abort = () => {
+              cancelAnimationFrame(frame);
+              done();
+            };
+            signal.addEventListener("abort", abort, { once: true });
+          });
+        let rebuilding = false;
+        const readyPresentation = async (): Promise<ScenePresentation> => {
+          while (!signal.aborted) {
+            const decoder = scenePresentation();
+            const waitingArt =
+              appearances &&
+              !appearancesRef.current &&
+              (presentationRef.current ||
+                modelsRef.current?.length ||
+                buildingsRef.current?.current);
+            if (decoder && !waitingArt) return decoder;
+            await admissionFrame();
+          }
+          throw new Error("Viewport departed during renderer admission");
+        };
+        const build = async (): Promise<BrowserScene> => {
+          const decoder = await readyPresentation();
+          const quality = qualityRef.current;
+          const qualityKey = JSON.stringify(quality);
           const lit = light();
           staticSun = {
             azimuth: lit.sun_azimuth,
@@ -739,53 +728,82 @@ export function LabViewport({
             farM: lit.cascades.max_far_m,
           };
           staticStyle = buildingStyleRef.current ?? gameBuildingStyle;
-          shadowLight = cascadeLight(lit, qualityRef.current);
-          const next = await createBattleFrame(device!, info.format, {
-            light: await resolveLight(lit),
-            fogGeometry: gameFogGeometry,
-            fogLook: resolveFogLook(fogStyleRef.current ?? gameFogStyle),
-            overlayGlow: gameOverlayGlow,
-            paint: gamePaint,
-            xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
-            models: gameModelDetail,
-            glass: gameGlass,
-            quality: qualityRef.current,
-            world: worldRef.current.current!,
-            instances: instancesRef.current,
-            width: canvas.width,
-            height: canvas.height,
-            requestRedraw: () => (dirty = true),
-          });
+          shadowLight = applyShadowQuality(lit, quality);
+          const world = worldRef.current.current!;
+          const installed = appearancesRef.current;
+          const current = () =>
+            decoder === scenePresentation() &&
+            installed === appearancesRef.current &&
+            world === worldRef.current.current &&
+            qualityKey === JSON.stringify(qualityRef.current);
+          decoder.setBuildings(
+            buildingsRef.current?.current ?? null,
+            installed,
+            staticStyle,
+            staticSun,
+          );
+          decoder.setGround(world.terrain.input, world.scenery);
+          decoder.setShadow(shadowLight, world.terrain.mesh);
+          decoder.setFog(fogSuppressed.current ? null : (fogRef.current?.current ?? null));
+          let first = frameRef.current?.(performance.now(), snapshot(), 0);
+          // Publications start only after GPU readiness. Admit the complete
+          // staged battle topology before its first observed frame exists.
+          while (presentationRef.current && !decoder.hasBattle() && !signal.aborted) {
+            await admissionFrame();
+            if (!current()) return build();
+            first = frameRef.current?.(performance.now(), snapshot(), 0);
+          }
+          if (signal.aborted) throw new Error("Viewport departed during renderer admission");
+          if (first?.clock !== undefined) clock = first.clock;
+          if (!first?.presented) decoder.frame(clock, presentedCamera(snapshot()), NO_UI, 0);
+          let next: BrowserScene;
+          try {
+            next = await BrowserScene.create({
+              gpu,
+              canvas,
+              highCanvas: high,
+              presentation: decoder,
+              world,
+              settings: {
+                light: shadowLight,
+                fog: fogStyleRef.current ?? gameFogStyle,
+                grassDensity: world.grass ? (quality?.grassDensity ?? 1) : undefined,
+                paint: gamePaint,
+                xrayMinHiddenFraction: gameXrayMinHiddenFragmentFraction,
+              },
+              detail: JSON.parse(gameModelDetail),
+              overlayGlow: gameOverlayGlow,
+              appearances: installed,
+              models: modelsRef.current ?? [],
+              instances: instancesRef.current,
+              redraw: () => (dirty = true),
+              failed: reportFailure,
+            });
+          } catch (error) {
+            if (!current()) return build();
+            throw error;
+          }
           if (signal.aborted) {
             next.dispose();
             return next;
           }
-          // Prop effects and feeds can update this frame while appearances load.
-          sceneRef.current = next;
-          try {
-            const meshes = overlayRef.current?.current;
-            if (meshes) next.setOverlay(meshes);
-            const marks = pointerMarksRef.current?.current;
-            if (marks) next.setPointerMarks(marks);
-            if (appearancesRef.current) await next.setAppearances(appearancesRef.current);
-            if (signal.aborted) {
-              next.dispose();
-              return next;
-            }
-            if (modelsRef.current) next.setModels(modelsRef.current);
-            next.setPresentationWorld(presentedWorldRef.current);
-            next.setPresentedGround(scenePresentation()?.presentedGround() ?? null);
-            next.setGround(groundNow());
-            return next;
-          } catch (error) {
-            if (sceneRef.current === next) sceneRef.current = null;
+          if (!current() || !next.worldCurrent()) {
             next.dispose();
-            throw error;
+            return build();
           }
+          next.setModels(modelsRef.current ?? []);
+          next.setInstances(instancesRef.current);
+          const meshes = overlayRef.current?.current;
+          if (meshes) next.setOverlay(meshes);
+          const marks = pointerMarksRef.current?.current;
+          if (marks) next.setPointerMarks(marks);
+          return next;
         };
         let scene = await build();
         if (signal.aborted) return;
-        const adapter = info.description || `${info.vendor} ${info.architecture}`.trim();
+        sceneRef.current = scene;
+        const allocations = () => scene.stats().memory;
+        const adapter = info.name || info.backend;
         pilot?.attach?.({
           adapter,
           stats: () => ({ ...scene.stats(), receiverFit: receiverStats() }),
@@ -796,7 +814,6 @@ export function LabViewport({
           "abort",
           diagnosticsSource("battle view", () => ({
             adapter,
-            format: info.format,
             canvas: [canvas.width, canvas.height],
             gpu: scene.stats().gpu,
             gpuAllocations: allocations(),
@@ -805,22 +822,20 @@ export function LabViewport({
         const draw = () => {
           // Cleared first: a frame may ask to be drawn again (`requestRedraw`).
           dirty = false;
-          scene.render(context.getCurrentTexture().createView(), highTarget());
+          placeHigh();
+          scene.render();
         };
         /** Whether the lab took the grass away (`suppressGrass`). */
         let grassSuppressed = false;
         /** Read back without grass, then restore the scene's grass setting. */
         const readPlain = () => {
-          const texture = device!.createTexture({
-            label: "plate-readback",
-            size: [canvas.width, canvas.height],
-            format: info.format,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
-          });
           scene.grassProbes.suppress(true);
-          scene.render(texture.createView());
+          scene.render();
+          const pixels = scene.readPixels();
           scene.grassProbes.suppress(grassSuppressed);
-          return readTexturePng(device!, texture).finally(() => texture.destroy());
+          // Restore the visible canvas as well as the live controls.
+          scene.render();
+          return pixelsPng(pixels);
         };
         const counts = (): FrameCounts => ({
           drawn: scene.drawnInstances(),
@@ -830,7 +845,7 @@ export function LabViewport({
         // What the frame drew is read first: the grass-less draw changes the
         // frame, and may lay more dressing or expand more buildings.
         const plate = (): FramePlate => ({
-          png: readTexturePng(device!, context.getCurrentTexture()),
+          png: pixelsPng(scene.readPixels()),
           clumps: scene.grassProbes.clumps(),
           ...counts(),
           plain: readPlain(),
@@ -842,7 +857,16 @@ export function LabViewport({
         let lastFrame = performance.now();
         // eslint-disable-next-line complexity -- debt: its stages read and write the effect's mutable locals (scene, dirty, pointer, grassSuppressed, lastFrame); split needs those in one frame-state object the stages take, not more closures.
         const loop = (now: number) => {
-          if (signal.aborted) return;
+          if (signal.aborted || handle.error) return;
+          if (rebuilding) {
+            raf = requestAnimationFrame(loop);
+            return;
+          }
+          if (scene.presentation !== scenePresentation()) {
+            void handle.rebuild?.();
+            raf = requestAnimationFrame(loop);
+            return;
+          }
           const dt = Math.min(0.1, (now - lastFrame) / 1000);
           lastFrame = now;
           // Sized before the camera is framed: the frame draws at the size
@@ -887,18 +911,19 @@ export function LabViewport({
           see(dt);
           // The scene's presentation is staged with its buildings before the
           // battle frames it (or, without one, the viewport frames it).
-          const decoder = scenePresentation();
-          const terrain = worldRef.current.current?.terrain?.mesh ?? null;
+          const decoder = scene.presentation;
+          const terrain = scene.world().terrain.mesh;
           let animated: ViewportFrame | null | undefined = null;
           try {
+            if (scene.flush()) dirty = true;
             if (decoder) {
               decoder.setBuildings(
                 buildingsRef.current?.current ?? null,
-                appearancesRef.current ?? null,
+                scene.appearances(),
                 staticStyle,
                 staticSun,
               );
-              const layers = worldRef.current.current;
+              const layers = scene.world();
               decoder.setGround(layers?.terrain.input ?? null, layers?.scenery ?? null);
               decoder.setShadow(shadowLight!, terrain);
               decoder.setFog(fogSuppressed.current ? null : (fogRef.current?.current ?? null));
@@ -921,12 +946,9 @@ export function LabViewport({
             }
             animated = frameRef.current?.(now, snapshot(), scene.staticGeneration);
           } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            handle.error = message;
-            setError(message);
+            reportFailure(err);
+            return;
           }
-          if (animated?.ground !== undefined) groundRef.current = animated.ground;
-          if (scene.setGround(groundNow())) dirty = true;
           if (animated) {
             if (animated.clock !== undefined) clock = animated.clock;
             if (animated.instances) {
@@ -934,62 +956,35 @@ export function LabViewport({
               scene.setInstances(animated.instances);
             }
             if (animated.picks) picksRef.current = animated.picks;
-            const world = decoder?.world();
-            if (world && world !== presentedWorldRef.current) {
-              presentedWorldRef.current = world;
-              scene.setPresentationWorld(world);
-            }
-            if (animated.presented)
-              scene.setFrame(animated.presented, {
-                models: !modelsSuppressed.current,
-                effects: !effectsSuppressed.current,
-              });
             if (animated.counts) countsRef.current = animated.counts;
             if (animated.effectCounts) effectCountsRef.current = animated.effectCounts;
             dirty = true;
           }
-          // Rust walks the static world. Without a battle publication, frame
-          // the static scene here; before presentation loads, frame only the camera.
           try {
-            let views: PresentedFrame | null = null;
-            let walk = NO_WALK;
-            let scenery = NO_SCENERY_WALK;
-            if (!decoder) {
-              bare ??= new ScenePresentation();
-              bare.setShadow(shadowLight!, terrain);
-              views = bare.frame(clock, presentedCamera(snapshot()), NO_UI, 0);
-            } else {
-              if (!animated?.presented) {
-                decoder.frame(
-                  clock,
-                  presentedCamera(snapshot()),
-                  { ...NO_UI, known: buildingsRef.current?.current?.known },
-                  scene.staticGeneration,
-                );
-                const world = decoder.world();
-                if (world && world !== presentedWorldRef.current) {
-                  presentedWorldRef.current = world;
-                  scene.setPresentationWorld(world);
-                }
-              }
-              // A new ground's tables and the stats calls may grow memory:
-              // the views are taken after them.
-              scene.setPresentedGround(decoder.presentedGround());
-              walk = decoder.buildingWalk();
-              scenery = decoder.sceneryWalk();
-              views = decoder.lastFrame();
-            }
-            receiverPresentation = decoder ?? bare;
-            if (views) scene.setCamera(views);
-            if (scene.setStaticFrame(decoder ? views : null, { buildings: walk, scenery }))
-              dirty = true;
-          } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            handle.error = message;
-            setError(message);
+            if (!animated?.presented)
+              decoder.frame(
+                clock,
+                presentedCamera(snapshot()),
+                { ...NO_UI, known: buildingsRef.current?.current?.known },
+                scene.staticGeneration,
+              );
+            if (decoder.sceneryWalk().pending || decoder.sceneryWalk().falling) dirty = true;
+          } catch (error) {
+            reportFailure(error);
+            return;
+          }
+          if (!scene.worldCurrent()) {
+            void handle.rebuild?.();
+            raf = requestAnimationFrame(loop);
+            return;
           }
           const drawn = dirty;
-          if (drawn) draw();
+          try {
+            if (drawn) draw();
+          } catch (error) {
+            reportFailure(error);
+            return;
+          }
           frameRate.current?.frame(now, drawn);
           const surface = pointer
             ? interactionSurface(document.elementFromPoint(pointer.x, pointer.y))
@@ -1062,12 +1057,7 @@ export function LabViewport({
         };
 
         Object.assign(handle, {
-          adapter: {
-            vendor: info.vendor,
-            architecture: info.architecture,
-            description: info.description,
-            format: info.format,
-          },
+          adapter: info,
           stats: () => ({ ...scene.stats(), props: propStats(), receiverFit: receiverStats() }),
           resetGpuTiming: () => scene.resetGpuTiming(),
           allocations,
@@ -1115,15 +1105,23 @@ export function LabViewport({
             see(0);
           },
           async rebuild() {
-            // Build the replacement while the current generation remains live;
-            // only swap after every GPU resource has initialized successfully.
-            const previous = scene;
-            const next = await build();
-            scene = next;
-            previous.dispose();
-            if (signal.aborted) return;
-            setInspecting((shown) => (shown ? scene : shown));
-            await nextFrame();
+            if (rebuilding) return;
+            rebuilding = true;
+            try {
+              const previous = scene;
+              const next = await build();
+              if (signal.aborted) return;
+              scene = next;
+              sceneRef.current = next;
+              previous.dispose();
+              setInspecting((shown) => (shown ? scene : shown));
+              dirty = true;
+            } catch (error) {
+              reportFailure(error);
+            } finally {
+              rebuilding = false;
+            }
+            if (!signal.aborted) await nextFrame();
           },
           rayAt(cssX: number, cssY: number) {
             const rect = canvas.getBoundingClientRect();
@@ -1140,7 +1138,7 @@ export function LabViewport({
           },
           frame: nextFrame,
           async setFrameView(view: FrameView) {
-            scene.setView(view);
+            scene.setControls({ view });
             await nextFrame();
           },
           fog: () => scene.fogProbes,
@@ -1156,20 +1154,19 @@ export function LabViewport({
             await nextFrame();
           },
           async suppressScars(on: boolean) {
-            scarsSuppressed.current = on;
+            scene.setControls({ scars: !on });
             await nextFrame();
           },
           async suppressFieldTexture(on: boolean) {
-            scene.setFieldTextureShown(!on);
+            scene.setControls({ fieldTexture: !on });
             await nextFrame();
           },
           async suppressModels(on: boolean) {
-            modelsSuppressed.current = on;
-            scene.setModels(on ? [] : (modelsRef.current ?? []));
+            scene.setControls({ models: !on });
             await nextFrame();
           },
           async suppressTrees(on: boolean) {
-            scene.setTreesShown(!on);
+            scene.setControls({ trees: !on });
             await nextFrame();
           },
           async suppressDressing(on: boolean) {
@@ -1181,7 +1178,7 @@ export function LabViewport({
             await nextFrame();
           },
           async suppressBuildings(on: boolean) {
-            scene.setBuildingsShown(!on);
+            scene.setControls({ buildings: !on });
             await nextFrame();
           },
           async suppressSurface(surface: SurfaceClass, on: boolean) {
@@ -1189,23 +1186,23 @@ export function LabViewport({
             await nextFrame();
           },
           async suppressRoadWear(on: boolean) {
-            scene.setRoadWearShown(!on);
+            scene.setControls({ roadWear: !on });
             await nextFrame();
           },
           async suppressEffects(on: boolean) {
-            effectsSuppressed.current = on;
+            scene.setControls({ effects: !on });
             await nextFrame();
           },
           async suppressCastLights(on: boolean) {
-            scene.setCastLightsShown(!on);
+            scene.setControls({ castLights: !on });
             await nextFrame();
           },
           async suppressXrayCoverage(on: boolean) {
-            scene.setXrayCoverageEnabled(!on);
+            scene.setControls({ xrayCoverage: !on });
             await nextFrame();
           },
           async suppressPaint(on: boolean) {
-            scene.setPaintShown(!on);
+            scene.setControls({ paint: !on });
             await nextFrame();
           },
           async setOverlayGlowStrength(strength: number | null) {
@@ -1392,12 +1389,11 @@ export function LabViewport({
           setInspecting(scene);
         }
         requestAnimationFrame(() => {
-          if (signal.aborted) return;
+          if (signal.aborted || handle.error) return;
           setReady(true);
           onReadyRef.current?.({
             allocations,
-            device: info.device,
-            format: info.format,
+            gpu,
             frame: () => scene,
           });
         });
@@ -1419,7 +1415,6 @@ export function LabViewport({
       onRightPressRef.current?.(null);
       sceneRef.current?.dispose();
       sceneRef.current = null;
-      canvasContext?.unconfigure();
       if (window.__lab === handle) delete window.__lab;
     };
     // The viewport is rebuilt only when the fixture identity changes.

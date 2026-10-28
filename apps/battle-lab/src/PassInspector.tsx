@@ -3,12 +3,7 @@
 // white show exactly what the overlay pass lays over post; where the two
 // agree, the overlay is opaque and its colour is its own.
 import { useEffect, useState } from "react";
-import {
-  FRAME_VIEWS,
-  type BattleFrame,
-  type FrameStats,
-  type FrameView,
-} from "@packages/battle-renderer/src/scene";
+import { FRAME_VIEWS, type SceneStats, type FrameView } from "@web/battle/render/sceneStats";
 
 const MIB = 2 ** 20;
 const REFRESH_MS = 500;
@@ -17,10 +12,10 @@ export function PassInspector({
   frame,
   setView,
 }: {
-  frame: BattleFrame;
+  frame: { stats(): SceneStats };
   setView: (view: FrameView) => void;
 }) {
-  const [stats, setStats] = useState<FrameStats>(() => frame.stats());
+  const [stats, setStats] = useState<SceneStats>(() => frame.stats());
   useEffect(() => {
     const timer = setInterval(() => setStats(frame.stats()), REFRESH_MS);
     return () => clearInterval(timer);

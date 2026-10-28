@@ -36,8 +36,15 @@ native.
 - [External models](src/presentation/lab.rs): tooling admits authored art and
   descriptive poses independently of a battle roster. Its instances supplement
   the same frame, sharing pose math, detail, fog and batch identity with battle
-  models. Catalog replacement preserves battle/static rows and replaces tooling
-  rows as one generation; unchanged time still permits edited geometry.
+  models. [Catalog admission](src/presentation/catalog.rs) stages prospective rows and
+  pose and placement facts without replacing the observer. Prop fitting, building
+  extents and scenery trunks/stumps follow the new authored art while current
+  learned, fallen and held movement state survives. Matching GPU assets and the latest
+  model requests commit together; stale or failed work preserves the active
+  generation. Battle replacements preserve the pose vocabulary used by retained
+  history. Unchanged time still permits edited geometry. Mesh
+  selection cues retain actual geometry rather than silently disappearing when
+  detail would otherwise select an impostor.
 - [Units](src/units/): interpolation between ticks (of units, falling
   airframes and the bodies they shove), the pose feed and driver,
   articulation, joint palettes (and each skinned row's rest palette: a corpse

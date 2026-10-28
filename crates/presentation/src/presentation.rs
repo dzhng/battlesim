@@ -1,5 +1,7 @@
 //! One side's publications into a frame of poses, effects, batches and palettes.
+pub mod catalog;
 pub mod lab;
+pub use catalog::World;
 mod static_frame;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -32,7 +34,6 @@ use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
 use crate::static_world::ground::biome::Biome;
 use crate::static_world::ground::grass::{frame_params, metres_per_pixel, Window};
-use crate::static_world::ground::kinds;
 use crate::static_world::ground::partition::TerrainPartition;
 use crate::static_world::ground::walk::{
     Cleared, Draws, FelledTree, Quality as SceneryQuality, SceneryPopulation, SceneryWalk, DRAWS,
@@ -112,55 +113,6 @@ pub struct Frame {
     pub counts: Counts,
 }
 
-/// The world's records, read once per load.
-#[derive(Default)]
-pub struct World {
-    pub appearances: Vec<Row>,
-    pub strings: String,
-    rows: HashMap<(String, String, u32, u32, bool), u32>,
-}
-
-impl World {
-    fn row(&mut self, name: &str, state: &str, lies: u32, skin: u32, placed: bool) -> u32 {
-        self.drawn_row(name, state, lies, skin, placed, 0)
-    }
-
-    fn drawn_row(
-        &mut self,
-        name: &str,
-        state: &str,
-        lies: u32,
-        skin: u32,
-        placed: bool,
-        draws: u32,
-    ) -> u32 {
-        let key = (name.to_owned(), state.to_owned(), lies, draws, placed);
-        if let Some(&row) = self.rows.get(&key) {
-            return row;
-        }
-        let mut text = |s: &str| {
-            let at = self.strings.len() as u32;
-            self.strings.push_str(s);
-            (at, s.len() as u32)
-        };
-        let (name_at, name_len) = text(name);
-        let (state_at, state_len) = text(state);
-        let row = self.appearances.len() as u32;
-        self.appearances.push(Row {
-            name: name_at,
-            name_len,
-            state: state_at,
-            state_len,
-            lies,
-            skin,
-            placed: u32::from(placed),
-            draws,
-        });
-        self.rows.insert(key, row);
-        row
-    }
-}
-
 /// One model this frame may draw, before batching.
 struct Model {
     row: u32,
@@ -169,6 +121,7 @@ struct Model {
     at: Vec3,
     yaw: f64,
     tint: [f32; 3],
+    highlight: bool,
     scale: [f32; 3],
     colour: [f64; 4],
     /// First palette joint, or 0 (identity).
@@ -244,6 +197,7 @@ pub struct Presentation {
     /// values (`set_detail_scale`).
     detail_scale: [f64; 2],
     world: World,
+    catalog_revision: u32,
     lab: lab::Lab,
     models: Vec<Model>,
     frame: Frame,
@@ -363,6 +317,7 @@ impl Presentation {
             felled_from: None,
             detail_scale: [1.0, 1.0],
             world: World::default(),
+            catalog_revision: catalog::next_revision(),
             lab: lab::Lab::default(),
             models: Vec::new(),
             frame: Frame::default(),
@@ -474,6 +429,7 @@ impl Presentation {
         if let Some(fit) = &mut self.shadow {
             fit.invalidate();
         }
+        self.catalog_revision = catalog::next_revision();
         self.world = World::default();
         self.lab.frontier = None;
         self.fallen.clear();
@@ -695,6 +651,12 @@ impl Presentation {
 
     /// The buildings' walk as the last frame left it (`BuildingWalk::stats`);
     /// none without buildings.
+    pub fn building_population(&self) -> Option<(usize, usize)> {
+        self.buildings
+            .as_ref()
+            .map(|b| (b.walk.buildings.len(), b.walk.pool_capacity()))
+    }
+
     pub fn building_stats(&self) -> Option<&[usize]> {
         self.buildings.as_ref().map(|b| &b.walk.stats[..])
     }
@@ -932,6 +894,7 @@ impl Presentation {
             fog.known_from = None;
             fog.dirty = true;
         }
+        self.catalog_revision = catalog::next_revision();
         self.ground = Some(ground);
         self.scenery = None;
         self.props = None;
@@ -945,6 +908,7 @@ impl Presentation {
 
     /// The ground's mutably (a lab growing grass by other rules).
     pub fn ground_mut(&mut self) -> Option<&mut Ground> {
+        self.catalog_revision = catalog::next_revision();
         self.ground.as_mut()
     }
 
@@ -958,28 +922,8 @@ impl Presentation {
             .ground
             .as_ref()
             .ok_or("scenery stands on a ground: set_ground first")?;
-        let names = ground.scenery_kinds();
-        if finest.len() != names.len() {
-            return Err(format!(
-                "scenery: {} kinds' meshes for {} kinds",
-                finest.len(),
-                names.len()
-            ));
-        }
-        let trees = &ground.biome.trees;
-        let kinds = names
-            .iter()
-            .zip(finest)
-            .map(|(name, tier)| {
-                let tree = trees.species.iter().any(|s| &s.appearance == name);
-                kinds::kind(tier, tree.then_some(&trees.felled)).map_err(|e| format!("{name}: {e}"))
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        let sizes: Vec<_> = kinds.iter().map(|k| k.size).collect();
-        let trunks = kinds.iter().map(|k| k.trunk).collect();
-        let mut walk = SceneryWalk::new(ground.scenery(&sizes), sizes, trunks);
-        walk.stump_meshes = kinds.into_iter().map(|k| k.stump).collect();
-        walk.set_quality(self.scenery_quality);
+        let walk = catalog::scenery_from_art(ground, finest, self.scenery_quality)?;
+        self.catalog_revision = catalog::next_revision();
         self.scenery = Some(walk);
         self.felled_from = None;
         self.cleared_from = (0, 0);
@@ -997,6 +941,7 @@ impl Presentation {
         let layout = PropLayout::parse(layout)?;
         let props = crate::static_world::props::map_props(records, &layout);
         self.props = Some(PropPopulation::new(PropArt::new(layout, input)?, props));
+        self.catalog_revision = catalog::next_revision();
         self.known_from = KnownFrom::Unread;
         Ok(())
     }
@@ -1345,13 +1290,8 @@ impl Presentation {
                 &mut self.models,
             );
         }
-        self.lab.append(
-            &view,
-            &self.world,
-            self.detail_scale[0],
-            &mut self.frame,
-            &mut self.models,
-        );
+        self.lab
+            .append(&view, &self.world, &mut self.frame, &mut self.models);
         batches(&mut self.models, &mut self.frame);
         Ok(&self.frame)
     }
@@ -1505,6 +1445,7 @@ impl Loaded {
             at,
             yaw,
             tint,
+            highlight: false,
             scale: [1.0; 3],
             colour,
             palette,
@@ -1867,7 +1808,12 @@ fn batches(models: &mut [Model], f: &mut Frame) {
                 fract(m.scroll[1]),
                 pack_colour(m.colour),
             ],
-            tint: [m.tint[0], m.tint[1], m.tint[2], -1.0],
+            tint: [
+                m.tint[0],
+                m.tint[1],
+                m.tint[2],
+                if m.highlight { -2.0 } else { -1.0 },
+            ],
             scale: [m.scale[0], m.scale[1], m.scale[2], m.colour[3] as f32],
         }));
     }

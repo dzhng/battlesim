@@ -12,19 +12,7 @@ impl Renderer {
         texture_ids: js_sys::Array,
         textures: js_sys::Array,
     ) -> Result<String, JsValue> {
-        if texture_ids.length() != textures.length() {
-            return Err(js_error("bundle texture ids and payloads differ"));
-        }
-        let payloads = texture_ids
-            .iter()
-            .zip(textures.iter())
-            .map(|(id, data)| {
-                let id = id
-                    .as_string()
-                    .ok_or_else(|| js_error("texture id must be a content hash"))?;
-                Ok((id, js_sys::Uint8Array::new(&data).to_vec()))
-            })
-            .collect::<Result<Vec<_>, JsValue>>()?;
+        let payloads = texture_payloads(texture_ids, textures)?;
         let refs = payloads
             .iter()
             .map(|(id, data)| (id.as_str(), data.as_slice()))
@@ -41,4 +29,23 @@ impl Renderer {
         self.asset_report = Some(report.clone());
         Ok(report)
     }
+}
+
+pub(super) fn texture_payloads(
+    texture_ids: js_sys::Array,
+    textures: js_sys::Array,
+) -> Result<Vec<(String, Vec<u8>)>, JsValue> {
+    if texture_ids.length() != textures.length() {
+        return Err(js_error("bundle texture ids and payloads differ"));
+    }
+    texture_ids
+        .iter()
+        .zip(textures.iter())
+        .map(|(id, data)| {
+            let id = id
+                .as_string()
+                .ok_or_else(|| js_error("texture id must be a content hash"))?;
+            Ok((id, js_sys::Uint8Array::new(&data).to_vec()))
+        })
+        .collect::<Result<Vec<_>, JsValue>>()
 }

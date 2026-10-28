@@ -27,6 +27,9 @@ impl Models {
             Surface::Blended => self.surfaces[BLENDED] = on,
         }
     }
+    pub fn set_models_shown(&mut self, on: bool) {
+        self.models_shown = on;
+    }
     pub fn set_buildings_shown(&mut self, on: bool) {
         self.buildings_shown = on;
     }

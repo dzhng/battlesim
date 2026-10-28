@@ -62,6 +62,8 @@ export interface ModelInstance {
   pose: ModelPose;
   /** The side's tint on tint-masked surfaces; none keeps the authored colours. */
   tint?: readonly [number, number, number];
+  /** Additive selection cue on actual mesh geometry; highlighted models never use cards. */
+  highlight?: boolean;
   /** Mesh tier, 0 finest. Omitted, the frame picks it by projected size and
    *  draws a far model as an impostor. */
   tier?: number;
@@ -182,7 +184,7 @@ export function writeRecord(
   const presentation = inst.ghost ?? inst.xray ?? NO_XRAY;
   into[r + 7] = packXray(presentation);
   into.set(inst.tint ?? NO_TINT, r + 8);
-  into[r + 11] = layer;
+  into[r + 11] = layer < 0 && inst.highlight ? -2 : layer;
   into.set(inst.scale ?? UNIT_SCALE, r + 12);
   into[r + 15] = presentation[3];
 }

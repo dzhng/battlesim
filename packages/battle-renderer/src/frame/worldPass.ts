@@ -3,6 +3,7 @@
 // depth precedes x-ray, then unit depth precedes color; fog and post compose later.
 // Material, visibility and resource contracts live in the renderer README and
 // the individual layer owners below.
+import { highlightGlow } from "./highlight";
 import { createSubmittedFrame, type SubmittedDraws } from "./submitted";
 import { SpatialMeshDraws } from "./spatialMeshDraws";
 import { drawTerrainRegions } from "./terrainRegions";
@@ -105,8 +106,6 @@ const srgbToLinear = tgpu.fn(
   return std.pow(std.max(c, d.vec3f(0)), d.vec3f(2.2));
 });
 
-/** Selection glow added to a highlighted proxy. */
-const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
 /** A rough dielectric: the flat box world has no material maps yet. */
 const ROUGHNESS = 0.85;
 
@@ -140,7 +139,7 @@ export async function createWorldPass(
     const albedo = srgbToLinear(v.color.xyz);
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const lit = environment.shade(albedo, d.vec3f(0), ROUGHNESS, 0, 0, 1, n, v.world, sun, eye);
-    const glow = std.mul(d.vec3f(HIGHLIGHT[0], HIGHLIGHT[1], HIGHLIGHT[2]), v.highlight * 0.7);
+    const glow = highlightGlow(v.highlight);
     const seen = fogTerm(v.world, n, v.clip.xy, fogIsGround());
     return {
       color: d.vec4f(std.add(lit.xyz, glow), v.color.w),

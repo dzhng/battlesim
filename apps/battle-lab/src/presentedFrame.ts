@@ -9,7 +9,7 @@ import {
   EFFECT_WORDS,
   SHAPE_NAMES,
 } from "@packages/battle-renderer/src/records.gen";
-import { MIN_TARGET_PX } from "@packages/battle-renderer/src/frame/battleFrame";
+import { MIN_TARGET_PX } from "@packages/renderer-core/src/renderTargets";
 import game from "@fixtures/game.json";
 import type { AppearanceLibrary } from "@packages/scene-assets/src/loader";
 import type { CatalogView } from "@packages/scene-assets/src/units";

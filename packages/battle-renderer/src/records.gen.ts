@@ -150,7 +150,7 @@ export const Instance = d.unstruct({
   placement: d.float32x4,
   /** First `Joint` of its palette (0: the identity), the left and right track scrolls (fractions of a link), and the x-ray or ghost colour packed as `r·65536 + g·256 + b` bytes. */
   data: d.float32x4,
-  /** The side's tint (linear rgb) on tint-masked surfaces, and the impostor atlas layer a card draws (the renderer's; −1 for a mesh). */
+  /** The side's tint (linear rgb) on tint-masked surfaces, and the impostor atlas layer a card draws (the renderer's; >=0), or a mesh cue: −1 ordinary, −2 highlighted. Highlight keeps mesh geometry. */
   tint: d.float32x4,
   /** Per-axis scale in its own frame, and the x-ray or ghost alpha. */
   scale: d.float32x4,

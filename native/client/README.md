@@ -54,8 +54,9 @@ adaptation preserves the cutout test and leaves the browser export unchanged.
   LFS; pull the ones a scene needs), read through the presentation crate's
   runtime reader (`presentation::assets`) as the browser reads them: the
   catalog, gzip transport, the bundle container and its texture files. Every
-  `World.appearances` row is loaded once into the browser's vertex layout, and
-  each `Frame` batch is one run of instances over one row's tier. A corpse is
+  authored state/pose owns its GPU mesh tiers; routing and placement rows share
+  those immutable buffers. Each `Frame` batch is one run of instances over one
+  row's tier. A corpse is
   its body posed once by the presentation crate's rest palette. Bodies and
   corpses at the impostor tier use the shared atlas bake and relit card owner.
   Startup prepares those atlases before drawing; device recreation prepares

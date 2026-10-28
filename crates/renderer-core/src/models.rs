@@ -2,7 +2,7 @@
 //! moving wreck pieces a `Frame` lists, drawn from the browser's appearance
 //! bundles through the browser's model pipelines.
 //!
-//! At load, every `World.appearances` row becomes its mesh tiers on the GPU,
+//! At load, `World.appearances` rows share their authored mesh tiers on the GPU,
 //! packed into the browser's 48-byte vertex (`packVertices`) with each mesh's
 //! indices ordered by surface class (`surfaceParts.ts`): a posed body and an
 //! articulated hull skin by the frame's palettes; a corpse is its body posed
@@ -12,8 +12,8 @@
 //! frames (`statics.rs`). Each batch is one run of instances over one row's
 //! tier.
 use std::collections::HashMap;
+use std::sync::Arc;
 
-use presentation::presentation::Presentation;
 use presentation::records::{Joint, CAST_PASS, GHOST_PASS, HIGH_PASS, NONE, VIEW_PASS};
 use presentation::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
 use presentation::view::IMPOSTOR;
@@ -26,6 +26,7 @@ use crate::pipelines::Pipelines;
 use crate::statics::Statics;
 
 mod admission;
+mod diagnostics;
 mod geometry;
 mod impostors;
 mod visibility;
@@ -71,7 +72,7 @@ struct Part {
     count: u32,
 }
 
-/// One tier of one row on the GPU.
+/// One immutable authored geometry tier, shared by appearance routing rows.
 struct Drawable {
     vertices: Buffer,
     indices: Buffer,
@@ -109,7 +110,8 @@ enum Kind {
 struct Row {
     kind: Kind,
     building: bool,
-    tiers: Vec<Drawable>,
+    prop: bool,
+    tiers: Arc<[Drawable]>,
     /// Baked atlas layer; the authored rest pose is kept for alternate bakes.
     card: Option<u32>,
     rest: Option<RestPose>,
@@ -358,12 +360,17 @@ fn drawable(
 }
 
 pub struct Models {
+    installed: Vec<String>,
+    resident_vertices: u32,
+    row_names: Vec<String>,
+    pub submissions: crate::submitted::Submissions,
     rows: Vec<Option<Row>>,
     layout: BindGroupLayout,
     materials: Buffer,
     authored_materials: Vec<f32>,
     surfaces: [bool; 4],
     buildings_shown: bool,
+    models_shown: bool,
     albedo: TextureView,
     surface: TextureView,
     sampler: Sampler,
@@ -553,12 +560,7 @@ impl Models {
 
     /// Resident authored mesh geometry; cards carry only their atlas images.
     pub fn resident_vertices(&self) -> u32 {
-        self.rows
-            .iter()
-            .flatten()
-            .flat_map(|row| row.tiers.iter())
-            .map(|drawable| (drawable.vertices.size() / VERTEX_BYTES as u64) as u32)
-            .sum()
+        self.resident_vertices
     }
 
     pub fn material_words(&self) -> u32 {
@@ -591,7 +593,7 @@ impl Models {
 
     /// Whether the prepared publication contains an eligible silhouette cue.
     pub fn has_xray_meshes(&self) -> bool {
-        self.has_xray_meshes
+        self.models_shown && self.has_xray_meshes
     }
 
     /// A browser with a separate transparent canvas lifts high air above the
@@ -605,12 +607,17 @@ impl Models {
     }
 
     pub fn has_high_meshes(&self) -> bool {
-        self.runs.iter().any(|run| run.pass == HIGH_PASS)
-            || (self.surfaces[OPAQUE]
-                && self
-                    .cards
+        self.runs.iter().any(|run| {
+            run.pass == HIGH_PASS
+                && self.rows[run.row]
                     .as_ref()
-                    .is_some_and(|cards| cards.has_pass(HIGH_PASS)))
+                    .is_some_and(|row| self.models_shown || row.prop || row.building)
+        }) || (self.models_shown
+            && self.surfaces[OPAQUE]
+            && self
+                .cards
+                .as_ref()
+                .is_some_and(|cards| cards.has_pass(HIGH_PASS)))
     }
 
     /// The layer's own group, by the layout it fills.
@@ -624,6 +631,7 @@ impl Models {
         pass: &mut RenderPass,
         tier_of: impl Fn(&Run) -> Option<usize>,
         range: impl Fn(&Drawable) -> Part,
+        submitted: Option<crate::submitted::Pass>,
     ) {
         for run in &self.runs {
             let Some(tier) = tier_of(run) else { continue };
@@ -633,7 +641,9 @@ impl Models {
             let Some(d) = row.drawable(tier) else {
                 continue;
             };
-            if row.building && !self.buildings_shown {
+            if (!self.models_shown && !row.prop && !row.building)
+                || (row.building && !self.buildings_shown)
+            {
                 continue;
             }
             let part = range(d);
@@ -653,6 +663,16 @@ impl Models {
                         0,
                         run.first..run.first + run.count,
                     );
+                    if let Some(which) = submitted {
+                        self.submissions.record(which, |stats| {
+                            let counter = if row.building {
+                                &mut stats.buildings
+                            } else {
+                                &mut stats.models_including_props
+                            };
+                            counter.record(part.count, run.count);
+                        });
+                    }
                 }
             }
         }
@@ -662,7 +682,15 @@ impl Models {
     /// Separate high air draws through `draw_high_air` after the world.
     pub fn draw(&self, pass: &mut RenderPass, surface: Surface) {
         let view = |r: &Run| self.in_world(r.pass).then_some(r.tier);
-        self.each_run(pass, view, |d| d.part(surface));
+        self.each_run(
+            pass,
+            view,
+            |d| d.part(surface),
+            Some(match surface {
+                Surface::Solid | Surface::Cutout => crate::submitted::Pass::Depth,
+                _ => crate::submitted::Pass::Color,
+            }),
+        );
     }
 
     /// World structures occlude paint and hidden-unit coverage before unit depth.
@@ -683,42 +711,76 @@ impl Models {
                     .is_some_and(|row| row.building == buildings))
             .then_some(r.tier)
         };
-        self.each_run(pass, view, |d| d.part(surface));
+        self.each_run(
+            pass,
+            view,
+            |d| d.part(surface),
+            Some(crate::submitted::Pass::Depth),
+        );
     }
 
     /// As `draw`, the runs fog takes as `layer` only.
     pub fn draw_fogged(&self, pass: &mut RenderPass, surface: Surface, layer: Layer) {
         let view = |r: &Run| (self.in_world(r.pass) && r.fog == layer).then_some(r.tier);
-        self.each_run(pass, view, |d| d.part(surface));
+        self.each_run(
+            pass,
+            view,
+            |d| d.part(surface),
+            Some(crate::submitted::Pass::Color),
+        );
     }
 
     pub fn draw_high_air(&self, pass: &mut RenderPass, surface: Surface) {
         let high = |r: &Run| (r.pass == HIGH_PASS).then_some(r.tier);
-        self.each_run(pass, high, |d| d.part(surface));
+        self.each_run(
+            pass,
+            high,
+            |d| d.part(surface),
+            Some(if matches!(surface, Surface::Blended) {
+                crate::submitted::Pass::HighColor
+            } else {
+                crate::submitted::Pass::HighDepth
+            }),
+        );
     }
 
     pub fn draw_high_air_fogged(&self, pass: &mut RenderPass, surface: Surface, layer: Layer) {
         let high = |r: &Run| (r.pass == HIGH_PASS && r.fog == layer).then_some(r.tier);
-        self.each_run(pass, high, |d| d.part(surface));
+        self.each_run(
+            pass,
+            high,
+            |d| d.part(surface),
+            Some(crate::submitted::Pass::HighColor),
+        );
     }
 
     /// One surface class of every caster into a cascade (`drawCasters`).
     pub fn draw_casters(&self, pass: &mut RenderPass, surface: Surface, cascade: usize) {
-        self.each_run(pass, |r| r.caster_for(cascade), |d| d.part(surface));
+        self.each_run(
+            pass,
+            |r| r.caster_for(cascade),
+            |d| d.part(surface),
+            Some(crate::submitted::Pass::Cascade(cascade)),
+        );
     }
 
     /// The placement ghosts: whole meshes, every surface.
     pub fn draw_ghosts(&self, pass: &mut RenderPass) {
         let ghost = |r: &Run| (r.pass == GHOST_PASS).then_some(r.tier);
-        self.each_run(pass, ghost, |d| Part {
-            first: d.parts[CUTOUT].first,
-            count: d.count,
-        });
+        self.each_run(
+            pass,
+            ghost,
+            |d| Part {
+                first: d.parts[CUTOUT].first,
+                count: d.count,
+            },
+            None,
+        );
     }
 
     /// Whether any run is a ghost.
     pub fn has_ghosts(&self) -> bool {
-        self.runs.iter().any(|r| r.pass == GHOST_PASS)
+        self.models_shown && self.runs.iter().any(|r| r.pass == GHOST_PASS)
     }
 }
 
@@ -730,7 +792,7 @@ impl Models {
         memory.view(&self.albedo);
         memory.view(&self.surface);
         for row in self.rows.iter().flatten() {
-            for drawable in &row.tiers {
+            for drawable in row.tiers.iter() {
                 memory.buffer(&drawable.vertices);
                 memory.buffer(&drawable.indices);
             }

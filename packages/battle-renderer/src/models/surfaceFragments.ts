@@ -7,6 +7,7 @@
 //   the prepass kept;
 // - glass is lit like any surface and laid over what is behind it;
 // - a room is a cell of the interior atlas, shown unlit.
+import { highlightGlow } from "../frame/highlight";
 import { tgpu, d, std } from "typegpu";
 import { INTERIOR_ATLAS } from "@packages/scene-assets/src/schema";
 import type { EnvironmentFrame } from "../frame/environmentFrame";
@@ -157,7 +158,7 @@ export function validateGlass(glass: GlassStyle): GlassStyle {
 /**
  * A blended surface's fragment: the pane lit like any surface (the one shade
  * function: sun, sky, cast lights, haze), over what is behind it by its
- * coverage value. Nothing refracts and nothing glows, and the fog mask stays
+ * coverage value. The selection cue is added after lighting; the fog mask stays
  * what the surface behind the pane wrote. Its light is bounded by `style` so
  * that glass is a dark opening from every side.
  */
@@ -190,7 +191,10 @@ export function createGlassFragment(environment: EnvironmentFrame, style: GlassS
     // Its pipeline leaves the fog mask as it is: what is seen is what
     // stands behind the pane.
     return {
-      color: d.vec4f(std.min(shaded.xyz, ceiling), coverageValue(v.material, v.uv)),
+      color: d.vec4f(
+        std.add(std.min(shaded.xyz, ceiling), highlightGlow(v.highlight)),
+        coverageValue(v.material, v.uv),
+      ),
       fog: d.vec4f(0),
     };
   });
@@ -278,7 +282,10 @@ export function createRoomFragment(environment: EnvironmentFrame) {
     }
     const seen = modelSeen(v.world, n, v.anchor, v.clip.xy);
     return {
-      color: d.vec4f(environment.unlit(colour, v.world, eye).xyz, 1),
+      color: d.vec4f(
+        std.add(environment.unlit(colour, v.world, eye).xyz, highlightGlow(v.highlight)),
+        1,
+      ),
       fog: fogCoverage(seen, 1),
     };
   });

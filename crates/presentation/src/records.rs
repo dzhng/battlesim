@@ -133,7 +133,8 @@ records! {
         /// packed as `r·65536 + g·256 + b` bytes.
         data: [f32; 4],
         /// The side's tint (linear rgb) on tint-masked surfaces, and the
-        /// impostor atlas layer a card draws (the renderer's; −1 for a mesh).
+        /// impostor atlas layer a card draws (the renderer's; >=0), or
+        /// a mesh cue: −1 ordinary, −2 highlighted. Highlight keeps mesh geometry.
         tint: [f32; 4],
         /// Per-axis scale in its own frame, and the x-ray or ghost alpha.
         scale: [f32; 4],

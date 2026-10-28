@@ -6,7 +6,7 @@ use renderer_core::bundle::Library;
 use renderer_core::effects::EffectSheets;
 use renderer_core::pipelines::Pipelines;
 use renderer_core::runtime::{Runtime, RuntimeConfig, RuntimeWorld, WorldGeometry};
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::rc::Rc;
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 use web_sys::HtmlCanvasElement;
@@ -15,10 +15,14 @@ use wgpu::*;
 pub(crate) mod pipeline_export {
     include!(concat!(env!("OUT_DIR"), "/pipeline_export.rs"));
 }
+mod appearance;
 mod asset;
+pub use appearance::{AppearanceDraft, PreparedAppearances};
 mod diagnostics;
 mod export;
 mod geometry;
+mod gpu;
+pub use gpu::BrowserGpu;
 mod high_surface;
 mod queries;
 mod recovery;
@@ -65,8 +69,7 @@ struct Settings {
 pub struct Renderer {
     surface: wgpu::Surface<'static>,
     high_surface: Option<high_surface::HighSurface>,
-    device: Device,
-    queue: Queue,
+    gpu: Rc<gpu::GpuInner>,
     runtime: Option<Runtime>,
     config: RuntimeConfig,
     geometry: Option<Arc<WorldGeometry>>,
@@ -83,7 +86,7 @@ pub struct Renderer {
     height: u32,
     format: TextureFormat,
     alpha_mode: CompositeAlphaMode,
-    device_lost: Arc<AtomicU32>,
+    previous_device_losses: u32,
     stats: Stats,
     asset_report: Option<String>,
 }
@@ -94,31 +97,38 @@ fn js_error(error: impl std::fmt::Display) -> JsValue {
 
 #[wasm_bindgen]
 impl Renderer {
-    /// Device admission is asynchronous; canonical presentation borrows are not.
-    pub async fn new(
+    /// Clone page ownership before awaiting, so disposal may race admission safely.
+    #[wasm_bindgen(js_name = new, unchecked_return_type = "Promise<Renderer>")]
+    pub fn create(
+        gpu: &BrowserGpu,
         canvas: HtmlCanvasElement,
         settings: String,
         high_canvas: Option<HtmlCanvasElement>,
-    ) -> Result<Renderer, JsValue> {
+    ) -> Result<js_sys::Promise, JsValue> {
         let settings: Settings = serde_json::from_str(&settings).map_err(js_error)?;
         if let Some(paint) = settings.paint {
             paint.validate().map_err(js_error)?;
         }
-        Self::admit(
-            canvas,
-            high_canvas.clone(),
-            RuntimeConfig {
-                size: [1, 1],
-                light: settings.light,
-                fog_look: settings.fog.look().map_err(js_error)?,
-                grass_density: settings.grass_density,
-                paint: settings.paint,
-                xray_min_hidden_fraction: settings.xray_min_hidden_fraction,
-                separate_high_air: high_canvas.is_some(),
-                controls: settings.controls.unwrap_or_default(),
-            },
-        )
-        .await
+        let gpu = gpu.inner.clone();
+        Ok(wasm_bindgen_futures::future_to_promise(async move {
+            let renderer = Self::admit(
+                gpu,
+                canvas,
+                high_canvas.clone(),
+                RuntimeConfig {
+                    size: [1, 1],
+                    light: settings.light,
+                    fog_look: settings.fog.look().map_err(js_error)?,
+                    grass_density: settings.grass_density,
+                    paint: settings.paint,
+                    xray_min_hidden_fraction: settings.xray_min_hidden_fraction,
+                    separate_high_air: high_canvas.is_some(),
+                    controls: settings.controls.unwrap_or_default(),
+                },
+            )
+            .await?;
+            Ok(renderer.into())
+        }))
     }
 
     /// Rebuild targets while synchronously borrowing current knowledge.
@@ -128,7 +138,12 @@ impl Renderer {
             [self.width, self.height] = size;
             self.config.size = size;
             if let Some(runtime) = &mut self.runtime {
-                runtime.resize(&self.device, &self.queue, size, presentation.core_mut());
+                runtime.resize(
+                    &self.gpu.device,
+                    &self.gpu.queue,
+                    size,
+                    presentation.core_mut(),
+                );
             }
             self.rebind_display();
             self.stats.resizes += 1;
@@ -142,57 +157,24 @@ impl Renderer {
     }
 
     pub fn destroy_device_for_test(&self) {
-        self.device.destroy();
+        self.gpu.device.destroy();
     }
 }
 
 impl Renderer {
     async fn admit(
+        gpu: Rc<gpu::GpuInner>,
         canvas: HtmlCanvasElement,
         high_canvas: Option<HtmlCanvasElement>,
         mut config: RuntimeConfig,
     ) -> Result<Renderer, JsValue> {
-        let instance = Instance::new(InstanceDescriptor {
-            backends: Backends::BROWSER_WEBGPU,
-            ..InstanceDescriptor::new_without_display_handle()
-        });
-        let surface = instance
+        gpu.ensure_live()?;
+        let device = &gpu.device;
+        let surface = gpu
+            .instance
             .create_surface(SurfaceTarget::Canvas(canvas.clone()))
             .map_err(js_error)?;
-        let adapter = instance
-            .request_adapter(&RequestAdapterOptions {
-                power_preference: PowerPreference::HighPerformance,
-                compatible_surface: Some(&surface),
-                force_fallback_adapter: false,
-                ..Default::default()
-            })
-            .await
-            .map_err(js_error)?;
-        let (device, queue) = adapter
-            .request_device(&DeviceDescriptor {
-                label: Some("shared-renderer-browser"),
-                required_features: adapter.features() & Features::TIMESTAMP_QUERY,
-                required_limits: adapter.limits(),
-                experimental_features: ExperimentalFeatures::disabled(),
-                memory_hints: MemoryHints::Performance,
-                trace: Trace::Off,
-            })
-            .await
-            .map_err(js_error)?;
-        device.on_uncaptured_error(Arc::new(|error| {
-            web_sys::console::error_1(&JsValue::from_str(&format!(
-                "shared renderer wgpu error: {error:?}"
-            )));
-        }));
-        let device_lost = Arc::new(AtomicU32::new(0));
-        let device_lost_callback = device_lost.clone();
-        device.set_device_lost_callback(move |reason, message| {
-            device_lost_callback.fetch_add(1, Ordering::Relaxed);
-            web_sys::console::warn_1(&JsValue::from_str(&format!(
-                "shared renderer device lost ({reason:?}): {message}"
-            )));
-        });
-        let caps = surface.get_capabilities(&adapter);
+        let caps = surface.get_capabilities(&gpu.adapter);
         let format = caps
             .formats
             .iter()
@@ -202,7 +184,7 @@ impl Renderer {
         let width = canvas.width().max(1);
         let height = canvas.height().max(1);
         surface.configure(
-            &device,
+            device,
             &SurfaceConfiguration {
                 usage: TextureUsages::RENDER_ATTACHMENT,
                 format,
@@ -218,26 +200,27 @@ impl Renderer {
         let high_surface = high_canvas
             .map(|canvas| {
                 high_surface::HighSurface::new(
-                    &instance,
-                    &adapter,
-                    &device,
+                    &gpu.instance,
+                    &gpu.adapter,
+                    device,
                     canvas,
                     [width, height],
                 )
             })
             .transpose()?;
         let pipeline_errors = device.push_error_scope(ErrorFilter::Validation);
-        let display_pipelines = Pipelines::build(&device, DISPLAY_PIPELINES, |_, _| {
+        let display_pipelines = Pipelines::build(device, DISPLAY_PIPELINES, |_, _| {
             Ok(DISPLAY_SHADER.to_owned())
         })
         .map_err(js_error)?;
         if let Some(error) = pipeline_errors.pop().await {
             return Err(js_error(format!("display pipeline validation: {error:?}")));
         }
+        gpu.ensure_live()?;
         let display_sampler = device.create_sampler(&SamplerDescriptor::default());
-        let player_meshes = geometry::PlayerMeshes::new(&device);
+        let player_meshes = geometry::PlayerMeshes::new(device);
         let overlay_instances = renderer_core::buffer(
-            &device,
+            device,
             "overlay-instance",
             BufferUsages::VERTEX,
             bytemuck::cast_slice(&[0.0f32, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0]),
@@ -246,8 +229,7 @@ impl Renderer {
         Ok(Self {
             surface,
             high_surface,
-            device,
-            queue,
+            gpu,
             runtime: None,
             config,
             geometry: None,
@@ -264,7 +246,7 @@ impl Renderer {
             height,
             format,
             alpha_mode: caps.alpha_modes[0],
-            device_lost,
+            previous_device_losses: 0,
             stats: Stats::default(),
             asset_report: None,
         })
@@ -272,10 +254,10 @@ impl Renderer {
 
     fn configure_surface(&self) {
         if let Some(high) = &self.high_surface {
-            high.configure(&self.device, [self.width, self.height]);
+            high.configure(&self.gpu.device, [self.width, self.height]);
         }
         self.surface.configure(
-            &self.device,
+            &self.gpu.device,
             &SurfaceConfiguration {
                 usage: TextureUsages::RENDER_ATTACHMENT,
                 format: self.format,
@@ -298,7 +280,7 @@ impl Renderer {
                 .and_then(|runtime| runtime.high_air.as_ref())
                 .map(|air| {
                     renderer_core::bind(
-                        &self.device,
+                        &self.gpu.device,
                         self.display_pipelines.layout("sampled"),
                         "high-air-surface",
                         &[
@@ -311,7 +293,7 @@ impl Renderer {
 
         self.display_group = self.runtime.as_ref().map(|runtime| {
             renderer_core::bind(
-                &self.device,
+                &self.gpu.device,
                 self.display_pipelines.layout("sampled"),
                 "display-surface",
                 &[

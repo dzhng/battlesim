@@ -41,40 +41,47 @@ renderer cannot establish that benefit.
 
 ## Next Agent Prompt
 
-Continue with [slice 04](slices/04-player-features.md). Native and browser now call
-one core Runtime for composition, preparation, rebuilding and encoding; browser
-presentation/audio/rendering share one artifact and actual Rust records. Canonical
-copy/upload/recovery protocols and the standalone presentation artifact are gone.
+Continue the [migration/deletion verdict](slices/05-migration.md) on the existing
+PR. Production viewport/workbench integration is implemented and reviewed: one
+page GPU, canonical BrowserScene, atomic appearance admission and shared stats.
+The newest checkpoint contains the 19-test admission lifetime corrections and
+source-sharing memory reduction. The spec remains incomplete.
 
-Priority order:
+Current pickup and priority order:
 
-1. Finish the current player-feature checkpoint: paint/x-ray/high-air and actual
-   lab poses/impostors now share core owners; all eight browser inspector views
-   match. Query snapshot/concurrent-render and fresh visual checks pass. The tiny
-   native delta is isolated to removal of the obsolete terrain depth workaround.
-   Integrated review's fog recovery, lab card eligibility and Metal paint-clear
-   findings are fixed with focused regressions. Checkpoint before widening consumers.
-2. Finish proxy/workbench/sheet admission, quality and exact diagnostics, then
-   replace the application's TypeGPU canvas interface. Read the scratch lab/model
-   contract map rather than retaining a separate lab renderer. A nonempty browser
-   high-air composition and appearance-generation races remain explicit gates.
-3. Run the [migration/deletion verdict](slices/05-migration.md): final three-target
-   workload/resolution measurements and source/owner accounting. Delete TypeGPU
-   and the standalone Rust graph; run repository closeout once, review and archive.
+1. Build the final matched TypeGPU-browser / shared-Rust-browser / shared-Rust-
+   native cohort through actual production admission. Match 1280×720 and exact
+   replay frame indices; measure frozen and changing input separately. Existing
+   timing controls use 640×360 and direct Renderer installation, so they are
+   historical evidence. The 43.2% CPU saving already used unified WASM and does
+   not isolate an individual cause.
+2. Preserve that control, then delete TypeGPU, its duplicate resource/pass owners,
+   shader authoring dependency and standalone Rust graph. Extract CPU contracts
+   and give WGSL/pipeline authoring one lasting owner before deleting exports.
+3. Finish whole-spec review, full repository closeout, choice consolidation and
+   archival. The general browser runner's oversized React measure diagnostic
+   during the fog journey remains a closeout concern; the focused fog behavior
+   probes pass after waiting for the actual presented tick.
 
-The runtime checkpoint preserves the matched frozen street and all six native
-plates byte for byte against their incumbents, including real device-loss pixels.
-The dynamic browser pair consumes 120 captured frames / 60 publications and matches
-final canonical state and source pixels essentially exactly. Detailed CPU/GPU,
-artifact/memory limits and all failed trials live in research. Independent Codex
-review found no actionable correctness issue; local cleanup refreshed views after
-allocating stats calls and freed the temporary WorldView.
+Current raw protocol and deletion inventory are in ignored
+`throwaway/final-perf/protocol.md` and `throwaway/deletion-inventory.md`. The
+native lane is adding held-frame benchmark options; do not overwrite its work.
 
-The default eleven-row scene remains green. Keep its controls while completing
-parity. Capture final canvas pixels before destroying either backend's device:
-a compositor screenshot after disposal may show the previous frame. Prefer the
-retained native-resolution source pixels as the renderer comparison, with CSS
-captures retained for composition evidence.
+Production sheets and the workbench's latest-source races pass. Correcting the
+old controls' missing canonical ground and lost startup world update closes both
+visible differences without changing picture tolerances. Shared immutable model
+geometry reduces the same generated skirmish's owned GPU payload from 2.670 GB to
+1.224 GB with pixel-identical output. These are feature and memory results; the
+final performance and complexity verdict remains open.
+
+The code still contains TypeGPU controls and exported shaders. Deletion must
+extract live CPU contracts first, give shared WGSL and pipeline metadata a lasting
+owner, then remove the old graph and dependencies. Do not turn 64 duplicated
+shader exports into manually maintained copies. The application no longer imports
+the old BattleFrame owner outside the retained comparison route.
+
+Detailed measurements, current failure and raw evidence live in
+[research](research.md); scratch implementation protocols stay in `throwaway/`.
 
 ## Verification contract
 

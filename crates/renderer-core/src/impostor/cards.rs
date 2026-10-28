@@ -174,7 +174,13 @@ impl Cards {
             }
         }
     }
-    pub fn draw(&self, pass: &mut RenderPass, layer: Layer, selected: impl Fn(u32) -> bool) {
+    pub fn draw(
+        &self,
+        pass: &mut RenderPass,
+        layer: Layer,
+        selected: impl Fn(u32) -> bool,
+    ) -> crate::submitted::SubmittedDraws {
+        let mut submitted = crate::submitted::SubmittedDraws::default();
         pass.set_vertex_buffer(0, self.instances.slice(..));
         for run in self
             .runs
@@ -182,7 +188,12 @@ impl Cards {
             .filter(|run| run.fog == layer && selected(run.pass))
         {
             pass.draw(0..6, run.first..run.first + run.count);
+            submitted.record(6, run.count);
         }
+        submitted
+    }
+    pub fn layers(&self) -> u32 {
+        self.albedo.texture().depth_or_array_layers()
     }
     pub fn run_count(&self) -> u32 {
         self.runs.len() as u32

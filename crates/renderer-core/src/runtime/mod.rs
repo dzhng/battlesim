@@ -1,5 +1,8 @@
 //! Resource composition and canonical presentation preparation shared by all shells.
+mod assets;
 mod controls;
+mod stats;
+pub use assets::{PendingAssets, ReadyAssets};
 mod world;
 pub use controls::Controls;
 pub use world::WorldGeometry;
@@ -11,7 +14,6 @@ use presentation::light::LightSettings;
 use presentation::presentation::Presentation;
 use presentation::records::{Camera, FogLook, View};
 use presentation::shadow::SunShadowFrame;
-use presentation::static_world::ground::grass::Quality;
 use wgpu::*;
 
 use crate::bundle::BundleSource;
@@ -20,7 +22,7 @@ use crate::environment::Environment;
 use crate::fog::Fog;
 use crate::fog_mask::{self, FogMaskResources};
 use crate::frame::{FrameInputs, FrameRenderer, PaintFrame};
-use crate::grass::{Grass, GrassData};
+use crate::grass::Grass;
 use crate::ground::{Ground, GroundData};
 use crate::models::Models;
 use crate::overlay::{self, OverlayResources};
@@ -75,7 +77,8 @@ pub struct PreparationStats {
 }
 
 pub struct Runtime {
-    pub pipelines: Pipelines,
+    frame_metadata: stats::FrameMetadata,
+    pub pipelines: Arc<Pipelines>,
     pub targets: TargetOwner,
     pub environment: Environment,
     pub shadow: ShadowResources,
@@ -100,6 +103,7 @@ pub struct Runtime {
     refresh_statics: bool,
     refresh_knowledge: bool,
     prepared_frame: Option<u32>,
+    pending_catalog_frame: Option<u32>,
     preparation_stats: PreparationStats,
 }
 
@@ -115,7 +119,7 @@ impl Runtime {
         if let Some(paint) = config.paint {
             paint.validate()?;
         }
-        let pipelines = Pipelines::build(device, pipeline_manifest, source)?;
+        let pipelines = Arc::new(Pipelines::build(device, pipeline_manifest, source)?);
         let targets = TargetOwner::new(device, config.size);
         let sky = Sky::new(device, queue, &pipelines, &config.light.sky());
         let cold = SunShadowFrame::cold(&config.light);
@@ -161,32 +165,23 @@ impl Runtime {
                 water: &world.geometry.water,
             },
         );
-        let grass = config
-            .grass_density
-            .map(|density| {
-                let packed = crate::grass::pack_shapes(world.assets, &resolved.grass_kinds())?;
-                let params = resolved.grass_params(
-                    &packed.facts,
-                    &presentation::static_world::ground::grass::LIMITS,
-                    &Quality { density },
-                )?;
-                Ok::<_, String>(Grass::from_data(
-                    device,
-                    &pipelines,
-                    &ground.heights,
-                    GrassData {
-                        params: &params,
-                        props: &resolved.grass_props(),
-                        shapes: &packed.shapes,
-                        max_blades: packed.max_blades,
-                        capacity: resolved.biome.grass.capacity,
-                    },
-                ))
-            })
-            .transpose()?;
-        let mut models = Models::new(device, queue, &pipelines, world.assets, presentation)?;
+        let grass = assets::grass(
+            device,
+            &pipelines,
+            world.assets,
+            presentation.catalog(),
+            &ground.heights,
+            config.grass_density,
+        )?;
+        let mut models = Models::new(
+            device,
+            queue,
+            &pipelines,
+            world.assets,
+            presentation.catalog(),
+        )?;
         models.set_high_apart(config.separate_high_air);
-        let scenery = Scenery::new(device, &pipelines, world.assets, presentation)?;
+        let scenery = Scenery::new(device, &pipelines, world.assets, presentation.catalog())?;
         let effects = EffectsResources::new(
             device,
             queue,
@@ -231,6 +226,7 @@ impl Runtime {
         )));
         let controls = config.controls;
         let mut runtime = Self {
+            frame_metadata: stats::FrameMetadata::new(presentation),
             pipelines,
             targets,
             environment,
@@ -256,6 +252,7 @@ impl Runtime {
             refresh_statics: true,
             refresh_knowledge: true,
             prepared_frame: None,
+            pending_catalog_frame: None,
             preparation_stats: PreparationStats::default(),
         };
         runtime.set_controls(queue, presentation, controls)?;
@@ -303,6 +300,10 @@ impl Runtime {
         queue: &Queue,
         presentation: &mut Presentation,
     ) -> Result<(), String> {
+        if self.pending_catalog_frame == Some(presentation.last_frame().index) {
+            return Err("publish a fresh canonical frame after appearance commit".into());
+        }
+        self.pending_catalog_frame = None;
         if self.refresh_statics {
             presentation.resend_static_frame(self.generation);
         }
@@ -349,10 +350,18 @@ impl Runtime {
                 },
                 wrap,
             );
-            self.effects
-                .prepare(device, queue, bytemuck::cast_slice(presentation.effects()));
+            self.effects.prepare(
+                device,
+                queue,
+                bytemuck::cast_slice(if self.config.controls.effects {
+                    presentation.effects()
+                } else {
+                    &[]
+                }),
+            );
             self.preparation_stats.effect_preparations += 1;
         }
+        self.frame_metadata.update(presentation);
         self.prepared_frame = Some(index);
         self.preparation_stats.frame_preparations += 1;
         self.refresh_statics = false;

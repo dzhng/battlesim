@@ -38,6 +38,7 @@
 //! Each drawn model takes the units' tier rule (`view::model_detail`) by its
 //! appearance's size grown by its largest scale, and is listed by look (its
 //! appearance, state, and whether movers stand on it) and tier.
+mod admission;
 mod bodies;
 pub use bodies::{map_props, KnownBody, MapProp};
 
@@ -86,7 +87,7 @@ struct Binding {
 /// The world layout (`sim::world::export::layout_json`) as the props read
 /// it: the prop kinds, what draws each, the kinds that stop a mover class,
 /// and each unit type's hull model.
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PropLayout {
     prop_kinds: Vec<String>,
@@ -160,6 +161,7 @@ struct Candidate {
 /// The fit: each bound kind's candidates in choosing order, each unit
 /// type's wreck, and the stand-in.
 pub struct PropArt {
+    source: PropInput,
     layout: PropLayout,
     candidates: Vec<Candidate>,
     by_kind: HashMap<String, Vec<usize>>,
@@ -233,6 +235,7 @@ impl PropArt {
                 ));
             }
         }
+        let source = input.clone();
         let PropInput {
             appearances,
             wrecks: unit_wrecks,
@@ -254,6 +257,7 @@ impl PropArt {
             (corners.bounds(), tints)
         });
         let mut art = PropArt {
+            source,
             candidates: Vec::new(),
             by_kind: HashMap::new(),
             wrecks: HashMap::new(),
@@ -561,69 +565,6 @@ pub struct PropPopulation {
 }
 
 impl PropPopulation {
-    /// The map's `props` drawn from `art`.
-    pub fn new(art: PropArt, props: Vec<MapProp>) -> Self {
-        let mut looks = Looks::default();
-        art.looks(
-            &props.iter().map(|p| p.body.clone()).collect::<Vec<_>>(),
-            &mut looks,
-        );
-        let mut map = Vec::new();
-        let mut bodies = Vec::new();
-        for p in props {
-            if art.is_tree(&p.body.kind) {
-                continue;
-            }
-            let first = map.len();
-            art.fit(&p.body, Some(p.id), &mut looks, &mut map);
-            bodies.push((p, first..map.len()));
-        }
-        let by_id = bodies
-            .iter()
-            .enumerate()
-            .map(|(i, (p, _))| (p.id as u64, i))
-            .collect();
-        let mut cells: BTreeMap<(i64, i64), Chunk> = BTreeMap::new();
-        for (i, m) in map.iter().enumerate() {
-            let [x, y] = [m.record[0], m.record[1]].map(f64::from);
-            let cell = ((y / CHUNK_M).floor() as i64, (x / CHUNK_M).floor() as i64);
-            let b = model_bounds(m);
-            let chunk = cells.entry(cell).or_insert(Chunk {
-                bounds: b,
-                models: Vec::new(),
-            });
-            for k in 0..3 {
-                chunk.bounds[k] = chunk.bounds[k].min(b[k]);
-                chunk.bounds[k + 3] = chunk.bounds[k + 3].max(b[k + 3]);
-            }
-            chunk.models.push(i);
-        }
-        let chunks: Vec<_> = cells.into_values().collect();
-        let lists = vec![Vec::new(); looks.list.len() * TIERS * (1 + CASCADES)];
-        PropPopulation {
-            hidden: vec![false; map.len()],
-            prints: vec![0; lists.len()],
-            lists,
-            chunk_index: BoundsIndex::new(chunks.iter().map(|c| c.bounds)),
-            chunks,
-            known_index: BoundsIndex::default(),
-            candidates: Vec::new(),
-            known_candidates: Vec::new(),
-            visited: 0,
-            map,
-            by_id,
-            bodies,
-            looks,
-            art,
-            known: Vec::new(),
-            moving: Vec::new(),
-            shoved: BTreeMap::new(),
-            known_models: Vec::new(),
-            known_bodies: 0,
-            rows: Vec::new(),
-        }
-    }
-
     /// What the side knows from now on; true when that changed.
     pub fn set_known(&mut self, known: Vec<KnownBody>) -> bool {
         if known == self.known {

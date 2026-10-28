@@ -156,6 +156,7 @@ impl XrayResources {
         camera: &BindGroup,
         models: &Models,
     ) {
+        let _untracked = models.submissions.exclude();
         encoder.clear_buffer(&self.counts, 0, None);
         if self.coverage_enabled && models.has_xray_meshes() {
             encoder.copy_texture_to_texture(

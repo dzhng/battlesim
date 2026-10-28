@@ -1,6 +1,27 @@
 use super::*;
 #[wasm_bindgen]
 impl Renderer {
+    pub fn frame_stats(&self) -> Result<String, JsValue> {
+        let runtime = self
+            .runtime
+            .as_ref()
+            .ok_or_else(|| js_error("install presentation before inspecting frame stats"))?;
+        let mut stats = runtime.frame_stats();
+        stats["frames"] = self.stats.frames.into();
+        stats["memory"] = serde_json::to_value(self.memory_snapshot().gpu).map_err(js_error)?;
+        stats["gpu"] = serde_json::to_value(self.gpu_timer.as_ref().map(|timer| timer.stats()))
+            .map_err(js_error)?;
+        serde_json::to_string(&stats).map_err(js_error)
+    }
+
+    pub fn drawn_instances(&self) -> Result<String, JsValue> {
+        let runtime = self
+            .runtime
+            .as_ref()
+            .ok_or_else(|| js_error("install presentation before inspecting drawn instances"))?;
+        serde_json::to_string(&runtime.drawn_instances()).map_err(js_error)
+    }
+
     pub fn stats(&self) -> String {
         let mut stats = serde_json::to_value(self.stats).expect("renderer counters serialize");
         let fields = stats
@@ -13,7 +34,7 @@ impl Renderer {
             "preparation": self.runtime.as_ref().map(|r| r.preparation_stats()),
             "fogSightUploads": self.stats.fog_sight_uploads + self.runtime.as_ref().map_or(0, |r| r.fog.upload_count() as u32),
             "fogTablesReady": self.runtime.as_ref().is_some_and(|r| r.fog.has_complete_tables()),
-            "deviceLost": self.device_lost.load(Ordering::Relaxed),
+            "deviceLost": self.previous_device_losses + self.gpu.losses(),
             "width": self.width,
             "height": self.height,
             "sharedTargets": self.runtime.is_some(),

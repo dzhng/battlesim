@@ -3,7 +3,7 @@ import { common, d, tgpu } from "typegpu";
 import { requestGpuDevice } from "@packages/renderer-core/src/device";
 import { eyePosition, screenAxes, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { Renderer } from "@wasm/renderer_spike/renderer_wasm_spike.js";
-import { Renderer as SharedRenderer } from "@wasm/renderer_browser";
+import { BrowserGpu, Renderer as SharedRenderer } from "@wasm/renderer_browser";
 import { loadPresentation, ScenePresentation } from "@web/battle/sim/presentation";
 import { gameFogStyle } from "../gameFog";
 import { gameLight } from "../gameLight";
@@ -12,9 +12,9 @@ import { groundPatch, FOUNDATION_CAMERA } from "./frame";
 import { modelEncoder, modelPipeline } from "./oneRendererModel";
 import { capturedParisFixture, realBattleFixture } from "./oneRendererBattle";
 import { loadSharedAppearances, loadTankBundle, mw } from "./oneRendererAssets";
-import { loadEffectAtlasLayers } from "./oneRendererEffects";
+import { loadEffectAtlasLayers } from "@web/battle/render/effectAssets";
 import { battleRustRun } from "./oneRendererBattleRust";
-import { loadSharedGround } from "./oneRendererGround";
+import { installSceneGeometry } from "@web/battle/render/sceneGeometry";
 import { measureFrames } from "./oneRendererTiming";
 import { captureInspectorViews, comparisonControls } from "./oneRendererControls";
 import { captureSharedQueries, fogQueryPoints } from "./oneRendererQueries";
@@ -437,7 +437,13 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     canvas.parentElement.style.position = "relative";
     canvas.parentElement.append(highCanvas);
   }
+  const gpu = await BrowserGpu.new();
+  let initialFailure: string | undefined;
+  void gpu.failure().then((reason) => {
+    initialFailure = reason;
+  });
   const renderer = await SharedRenderer.new(
+    gpu,
     canvas,
     JSON.stringify({
       light: gameLight,
@@ -452,7 +458,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   stage("asset download and model admission");
   const assetAccounting = await loadSharedAppearances(renderer, fixture.presentation);
   renderer.load_effect_atlas(await loadEffectAtlasLayers());
-  loadSharedGround(renderer, fixture);
+  installSceneGeometry(renderer, fixture.presentation, fixture.world, gameLight);
   renderer.set_overlay_glow(gameOverlayGlow.radius_px, gameOverlayGlow.strength);
   renderer.set_overlays(
     fixture.overlay.opaque,
@@ -512,8 +518,19 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   if (lostBeforeRecovery.deviceLost < 1) {
     throw new Error(`device loss callback did not fire: ${renderer.stats()}`);
   }
+  if (!initialFailure?.startsWith("WebGPU device lost"))
+    throw new Error(
+      `unexpected initial GPU failure: ${initialFailure ?? "missing loss notification"}`,
+    );
   stage("device recovery");
-  await renderer.recover_device(canvas);
+  const recoveredGpu = await BrowserGpu.new();
+  let recoveredFailure: string | undefined;
+  void recoveredGpu.failure().then((reason) => {
+    recoveredFailure = reason;
+  });
+  await renderer.recover_device(recoveredGpu, canvas);
+  gpu.dispose();
+  gpu.free();
   stage("recovered knowledge preparation");
   fixture.presentation.installRenderer(renderer);
   await renderer.prepare_assets();
@@ -560,6 +577,11 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     ...(fixture.changing ? { changing: fixture.changing.result() } : {}),
   });
   renderer.free();
+  recoveredGpu.dispose();
+  const disposedFailure = await recoveredGpu.failure();
+  recoveredGpu.free();
+  if (recoveredFailure || disposedFailure)
+    throw new Error(`recovered GPU failed: ${recoveredFailure ?? disposedFailure}`);
   if (!capture || dynamic) fixture.presentation.free();
   return {
     mode: "shared-rust-core-browser",

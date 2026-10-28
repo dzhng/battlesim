@@ -25,6 +25,7 @@ const DFG_LUT_TS: &str = include_str!("../../../packages/battle-renderer/src/sha
 const DFG_LUT_SIZE: u32 = 16;
 
 pub struct Environment {
+    cast_count: std::cell::Cell<usize>,
     pub camera: BindGroup,
     pub environment: BindGroup,
     /// The camera uniform, the environment uniform, its PMREM and the cast
@@ -318,6 +319,7 @@ impl Environment {
         );
 
         Self {
+            cast_count: Default::default(),
             camera,
             environment,
             camera_buffer,
@@ -346,10 +348,15 @@ impl Environment {
         queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&self.image));
     }
 
+    pub fn cast_light_count(&self) -> usize {
+        self.cast_count.get()
+    }
+
     /// The frame's cast lights as the presentation chose them for the view,
     /// each reaching `wrap` round a surface past facing it (`setCastLights`).
     pub fn set_cast_lights(&self, queue: &Queue, lights: &[CastLight], wrap: f32) {
         let lights = &lights[..lights.len().min(CAST_LIGHTS_MAX)];
+        self.cast_count.set(lights.len());
         let header = [lights.len() as f32, wrap, 0.0, 0.0];
         queue.write_buffer(&self.cast_lights, 0, bytemuck::cast_slice(&header));
         if !lights.is_empty() {

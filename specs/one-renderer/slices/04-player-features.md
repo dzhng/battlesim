@@ -1,8 +1,8 @@
 # Slice 04 — production browser feature parity
 
-**Status:** active. Shared paint/x-ray, high-air, canonical lab models, actual
-impostors, inspector modes and core GPU queries are implemented. Browser
-viewport/workbench integration and remaining feature gates are still open.
+**Status:** production integration implemented; reviewed checkpoint pending.
+Shared paint/x-ray, high-air, canonical lab/proxy models, impostors, inspector
+modes, queries, production viewport and sheets use the common runtime.
 
 The native replay lacks player/browser surfaces. Preserve them through shared
 Rust GPU owners before replacing the production renderer. JavaScript continues
@@ -56,8 +56,9 @@ preserves the original frame while another view renders before mapping completes
 its shared fog-shape probe returns the required ordered GPU samples.
 
 Raw evidence and the remaining native numerical investigation live in
-[research](../research.md). This does not complete the slice: the normal
-application still owns its TypeGPU canvas interface.
+[research](../research.md). The normal application now receives canvas/pixel APIs from the shared Rust
+runtime. TypeGPU remains only as a temporary comparison/tooling owner pending
+slice 05 deletion.
 
 ## Remaining gates
 

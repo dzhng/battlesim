@@ -123,16 +123,16 @@ impl Renderer {
         marching: &[f32],
     ) -> Result<(), JsValue> {
         validate(&[opaque, translucent, paint, marching])?;
-        self.player_meshes.opaque = Mesh::new(&self.device, opaque.to_vec());
-        self.player_meshes.translucent = Mesh::new(&self.device, translucent.to_vec());
-        self.player_meshes.paint = Mesh::new(&self.device, paint.to_vec());
-        self.player_meshes.marching = Mesh::new(&self.device, marching.to_vec());
+        self.player_meshes.opaque = Mesh::new(&self.gpu.device, opaque.to_vec());
+        self.player_meshes.translucent = Mesh::new(&self.gpu.device, translucent.to_vec());
+        self.player_meshes.paint = Mesh::new(&self.gpu.device, paint.to_vec());
+        self.player_meshes.marching = Mesh::new(&self.gpu.device, marching.to_vec());
         Ok(())
     }
 
     pub fn set_pointer_marks(&mut self, pointer: &[f32]) -> Result<(), JsValue> {
         validate(&[pointer])?;
-        self.player_meshes.pointer = Mesh::new(&self.device, pointer.to_vec());
+        self.player_meshes.pointer = Mesh::new(&self.gpu.device, pointer.to_vec());
         Ok(())
     }
 }

@@ -8,9 +8,9 @@ impl Models {
         queue: &Queue,
         pipelines: &Pipelines,
         library: &impl BundleSource,
-        presentation: &Presentation,
+        catalog: presentation::presentation::catalog::CatalogView<'_>,
     ) -> Result<Self, String> {
-        let world = presentation.world();
+        let world = catalog.world();
         Self::from_world(
             device,
             queue,
@@ -18,7 +18,7 @@ impl Models {
             library,
             &world.appearances,
             &world.strings,
-            |row| presentation.rest_palette(row),
+            |row| catalog.rest_palette(row),
         )
     }
 
@@ -39,6 +39,9 @@ impl Models {
         let mut materials: Vec<f32> = Vec::new();
         let mut layers = Layers::default();
         let mut rows = Vec::new();
+        // Routing and placement rows share immutable geometry within this
+        // material generation. Corpse poses remain distinct authored meshes.
+        let mut geometry: HashMap<(String, String, u32), Arc<[Drawable]>> = HashMap::new();
         for (r, a) in appearances.iter().enumerate() {
             // The scenery's rows are the scenery layer's (`scenery.rs`).
             let prop = a.draws == DRAWS_PROP || a.draws == DRAWS_PROP_GROUND;
@@ -74,13 +77,19 @@ impl Models {
                     let rest = tiers.first().map(|mesh| {
                         RestPose::new(name, &posed_mesh(mesh, &palette), RestPose::identity())
                     });
-                    let tiers = tiers
-                        .iter()
-                        .map(|m| single(&posed_mesh(m, &palette), Some(0)))
-                        .collect();
+                    let tiers = geometry
+                        .entry((name.to_owned(), String::new(), a.lies))
+                        .or_insert_with(|| {
+                            tiers
+                                .iter()
+                                .map(|m| single(&posed_mesh(m, &palette), Some(0)))
+                                .collect()
+                        })
+                        .clone();
                     Row {
                         kind: Kind::Corpse,
                         building: a.draws == 0 && a.placed != 0,
+                        prop,
                         tiers,
                         card: None,
                         rest,
@@ -94,36 +103,51 @@ impl Models {
                     Row {
                         kind: Kind::Soldier,
                         building: a.draws == 0 && a.placed != 0,
+                        prop,
                         card: None,
                         rest,
-                        tiers: tiers.iter().map(|m| single(m, None)).collect(),
+                        tiers: geometry
+                            .entry((name.to_owned(), String::new(), NONE))
+                            .or_insert_with(|| tiers.iter().map(|m| single(m, None)).collect())
+                            .clone(),
                     }
                 }
                 Shape::Articulated(nodes) => {
                     let count = nodes.first().map_or(0, |n| n.tiers.len());
-                    let tiers = (0..count)
-                        .map(|t| {
-                            let meshes: Vec<(&Mesh, Vec<u8>)> = nodes
-                                .iter()
-                                .enumerate()
-                                .map(|(i, n)| {
-                                    let track = match n.name.as_str() {
-                                        "track_L" => 1,
-                                        "track_R" => 2,
-                                        _ => 0,
-                                    };
-                                    (
-                                        &n.tiers[t],
-                                        pack_vertices(&n.tiers[t], *base, Some(i as u8), track),
-                                    )
+                    let tiers = geometry
+                        .entry((name.to_owned(), String::new(), NONE))
+                        .or_insert_with(|| {
+                            (0..count)
+                                .map(|t| {
+                                    let meshes: Vec<(&Mesh, Vec<u8>)> = nodes
+                                        .iter()
+                                        .enumerate()
+                                        .map(|(i, n)| {
+                                            let track = match n.name.as_str() {
+                                                "track_L" => 1,
+                                                "track_R" => 2,
+                                                _ => 0,
+                                            };
+                                            (
+                                                &n.tiers[t],
+                                                pack_vertices(
+                                                    &n.tiers[t],
+                                                    *base,
+                                                    Some(i as u8),
+                                                    track,
+                                                ),
+                                            )
+                                        })
+                                        .collect();
+                                    drawable(device, &label, bundle, &meshes)
                                 })
-                                .collect();
-                            drawable(device, &label, bundle, &meshes)
+                                .collect()
                         })
-                        .collect();
+                        .clone();
                     Row {
                         kind: Kind::Vehicle,
                         building: a.draws == 0 && a.placed != 0,
+                        prop,
                         tiers,
                         card: None,
                         rest: rest_palette(r as u32)
@@ -144,7 +168,11 @@ impl Models {
                     Row {
                         kind: if prop { Kind::Prop } else { Kind::Piece },
                         building: a.draws == 0 && a.placed != 0,
-                        tiers: s.tiers.iter().map(|m| single(m, Some(0))).collect(),
+                        prop,
+                        tiers: geometry
+                            .entry((name.to_owned(), s.name.clone(), NONE))
+                            .or_insert_with(|| s.tiers.iter().map(|m| single(m, Some(0))).collect())
+                            .clone(),
                         card: None,
                         rest: s
                             .tiers
@@ -195,7 +223,21 @@ impl Models {
         let material_bindings = crate::model_material::ModelMaterialBindings::new(
             device, &layout, &palette, &materials, &albedo, &surface, &sampler,
         );
+        let mut installed: Vec<_> = bundles.into_keys().collect();
+        installed.sort();
+        let resident_vertices = geometry
+            .values()
+            .flat_map(|tiers| tiers.iter())
+            .map(|drawable| (drawable.vertices.size() / VERTEX_BYTES as u64) as u32)
+            .sum();
         Ok(Self {
+            installed,
+            resident_vertices,
+            row_names: appearances
+                .iter()
+                .map(|a| text(a.name, a.name_len).to_owned())
+                .collect(),
+            submissions: Default::default(),
             material_bindings,
             rows,
             layout,
@@ -203,6 +245,7 @@ impl Models {
             authored_materials,
             surfaces: [true; 4],
             buildings_shown: true,
+            models_shown: true,
             albedo,
             surface,
             sampler,

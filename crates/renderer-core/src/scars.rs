@@ -51,6 +51,8 @@ pub struct ScarFrame {
 }
 
 pub struct Scars {
+    shown: bool,
+    active: std::cell::Cell<u32>,
     pool: Texture,
     directory: Texture,
     pub params: Buffer,
@@ -96,6 +98,8 @@ impl Scars {
         words[PARAMS_WORDS..PARAMS_WORDS + look.len()].copy_from_slice(look);
         let usage = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
         Self {
+            shown: true,
+            active: Default::default(),
             pool,
             directory: texture(
                 device,
@@ -110,6 +114,13 @@ impl Scars {
             regions: Vec::new(),
             regional: false,
         }
+    }
+
+    /// Hide material/grass marks while keeping canonical uploads and textures live.
+    pub fn set_shown(&mut self, queue: &Queue, shown: bool) {
+        self.shown = shown;
+        let active = if shown { self.active.get() } else { 0 };
+        queue.write_buffer(&self.params, 3 * 4, bytemuck::bytes_of(&active));
     }
 
     pub fn directory_view(&self) -> TextureView {
@@ -287,6 +298,10 @@ impl Scars {
         }
         let mut words = self.words;
         words[..PARAMS_WORDS].copy_from_slice(&upload.params);
+        self.active.set(words[3]);
+        if !self.shown {
+            words[3] = 0;
+        }
         queue.write_buffer(&self.params, 0, bytemuck::cast_slice(&words));
     }
 }
@@ -296,5 +311,18 @@ impl Scars {
         memory.buffer(&self.params);
         memory.texture(&self.pool);
         memory.texture(&self.directory);
+    }
+}
+
+impl Scars {
+    pub fn allocation_diagnostics(&self) -> serde_json::Value {
+        let mut pool = crate::memory::ResourceMemory::default();
+        pool.texture(&self.pool);
+        let mut directory = crate::memory::ResourceMemory::default();
+        directory.texture(&self.directory);
+        serde_json::json!({
+            "textureBytes": pool.counts().texture_bytes,
+            "directoryBytes": directory.counts().texture_bytes,
+        })
     }
 }

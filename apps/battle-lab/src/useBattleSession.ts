@@ -514,13 +514,10 @@ export function useBattleSession({
   );
   const modelAppearancesFeed = useFeed(modelAppearances);
 
-  // What the battle draws, handed to the presentation once the runtime
-  // catalog is loaded: its units and effects, which Rust resolves from the
-  // files the page reads. Another fielded kind loads again, the last battle
-  // drawn meanwhile; another scenario or side draws none until its own.
-  const factions = skirmish
-    ? ([sideFaction("blue")!, sideFaction("red")!] as [string, string])
-    : undefined;
+  // Retain the current battle while its fielded catalog loads. Scenario and
+  // observer changes draw nothing until their own catalog is ready.
+  const blueFaction = sideFaction("blue");
+  const redFaction = sideFaction("red");
   const presentation = sim.client?.presentation ?? null;
   const artLoaded = appearances !== null;
   const [fieldedFor, setFielded] = useState<{
@@ -547,7 +544,7 @@ export function useBattleSession({
       rules: rulesText,
       catalog: units.view,
       kinds: requestedKinds,
-      factions,
+      factions: skirmish ? [blueFaction!, redFaction!] : undefined,
       runtime: gameRuntime,
       ...facts,
     }).then(
@@ -560,7 +557,18 @@ export function useBattleSession({
     return () => {
       live = false;
     };
-  }, [artLoaded, scenario, rulesText, units, requestedKinds, factions, rules, side]);
+  }, [
+    artLoaded,
+    scenario,
+    rulesText,
+    units,
+    requestedKinds,
+    skirmish,
+    blueFaction,
+    redFaction,
+    rules,
+    side,
+  ]);
   // Each unit placed during preparation stands as a ghost where it will go,
   // turned as it was placed, until the battle starts.
   const placedGhostList = useMemo(
@@ -587,7 +595,7 @@ export function useBattleSession({
       // buildings by its next frame, the viewport's until the first publication.
       presentation?.setBattle(worldInput);
       const time = observation && published ? presentation?.clock(now) : null;
-      if (time == null || !published || !presentation) {
+      if (time == null || !published || !presentation || !worldInput) {
         drawnObservation.current = null;
         return null;
       }

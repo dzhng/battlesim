@@ -129,7 +129,7 @@ struct PrimitiveDesc {
     cull_mode: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct DepthDesc {
     format: String,
@@ -282,6 +282,7 @@ pub struct Pipelines {
     layouts: HashMap<String, BindGroupLayout>,
     /// Each pipeline's bind group layouts, by slot.
     slots: HashMap<String, Vec<String>>,
+    depth_states: HashMap<String, DepthDesc>,
     pub sizes: Sizes,
 }
 
@@ -335,6 +336,16 @@ impl BoundCompute {
 }
 
 impl Pipelines {
+    /// Installed descriptor facts, used by diagnostics rather than a second
+    /// hand-maintained statement of the engine's depth convention.
+    pub fn depth_state(&self, name: &str) -> serde_json::Value {
+        let state = self
+            .depth_states
+            .get(name)
+            .expect("pipeline has a depth state");
+        serde_json::json!({ "format": state.format, "compare": state.depth_compare })
+    }
+
     /// The compute pipeline `name` with its slots' layouts.
     pub fn bound_compute(&self, name: &str) -> BoundCompute {
         match self.pipelines.get(name) {
@@ -409,6 +420,16 @@ impl Pipelines {
             pipelines,
             layouts,
             slots,
+            depth_states: export
+                .pipelines
+                .iter()
+                .filter_map(|pipeline| {
+                    pipeline
+                        .depth_stencil
+                        .clone()
+                        .map(|state| (pipeline.name.clone(), state))
+                })
+                .collect(),
             sizes: export.sizes,
         })
     }

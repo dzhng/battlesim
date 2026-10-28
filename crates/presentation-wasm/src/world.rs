@@ -87,7 +87,7 @@ impl Presentation {
 }
 
 impl Presentation {
-    pub(crate) fn refresh_world_header(&mut self) -> u32 {
+    pub fn refresh_world_header(&mut self) -> u32 {
         let world = self.inner.world();
         self.world_header = WorldHeader {
             appearances: set(&world.appearances),

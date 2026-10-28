@@ -23,7 +23,7 @@ import type { BattleFrame, FrameView, SceneInstance, WorldLayers } from "../scen
 import { typegpuCameraLayout } from "../world/camera";
 import { createTypegpuPost } from "../world/post";
 import { battleWorldDepth } from "../worldDepth";
-import type { LightPresentation, ResolvedLight } from "../light/sceneLight";
+import type { ResolvedLight } from "../light/sceneLight";
 import type { FogShaders } from "./fogVisibility";
 import { createEnvironmentFrame } from "./environmentFrame";
 import { GpuRegistry } from "./registry";
@@ -40,10 +40,10 @@ import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
 import { Camera, CAMERA_WORDS, CameraAt, FrameHeader, VIEW_WORDS } from "../records.gen";
 import { EMPTY_MESH } from "../mesh";
+import { MIN_TARGET_PX } from "@packages/renderer-core/src/renderTargets";
+import { applyShadowQuality } from "@packages/renderer-core/src/lightQuality";
 
 const EMPTY = new Float32Array(0);
-/** Post's five-level bloom needs at least this many pixels a side. */
-export const MIN_TARGET_PX = 64;
 
 export interface BattleFrameOptions {
   /** Optional resolved graphics quality; omitted preserves authored High.
@@ -96,21 +96,6 @@ let generations = 0;
 /** A graphics quality's cascades: its shadow map size and reach over the
  *  authored light's. The battle frame draws them, and the presentation
  *  fits them (`ScenePresentation.setShadow`). */
-export function cascadeLight(
-  light: LightPresentation,
-  quality?: BattleFrameOptions["quality"],
-): LightPresentation {
-  if (!quality) return light;
-  return {
-    ...light,
-    cascades: {
-      ...light.cascades,
-      map_size: quality.shadowMapSize,
-      max_far_m: quality.shadowReach,
-    },
-  };
-}
-
 /** Caller owns the device and canvas; the frame owns every allocation it makes. */
 export async function createBattleFrame(
   device: GPUDevice,
@@ -126,7 +111,7 @@ export async function createBattleFrame(
     const quality = options.quality;
     const effectiveLight = {
       ...options.light,
-      settings: cascadeLight(options.light.settings, quality),
+      settings: applyShadowQuality(options.light.settings, quality),
     };
     const environment = await createEnvironmentFrame(device, registry, effectiveLight);
     const models = await createModelLayer(root, registry, options.models);

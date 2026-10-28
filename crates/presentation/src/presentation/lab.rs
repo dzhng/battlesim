@@ -19,6 +19,7 @@ pub struct State {
     name: String,
     tiers: u32,
     bounds: Bounds,
+    corners: Corners,
 }
 
 impl Asset {
@@ -49,6 +50,7 @@ impl Asset {
                             name: s["name"].as_str().ok_or("lab model: unnamed state")?.into(),
                             tiers: s["tiers"].as_array().ok_or("lab model: no tiers")?.len() as u32,
                             bounds: corners.bounds(),
+                            corners,
                         })
                     })
                     .collect::<Result<Vec<_>, String>>()
@@ -62,7 +64,20 @@ impl Asset {
         })
     }
 
-    fn palette(&self, pose: &Pose) -> Option<(Vec<Joint>, [f64; 2])> {
+    pub(super) fn state_corners(&self, state: &str) -> Option<Corners> {
+        let Self::Static(states) = self else {
+            return None;
+        };
+        states.iter().find(|s| s.name == state).map(|s| s.corners)
+    }
+    pub(super) fn first_corners(&self) -> Option<Corners> {
+        let Self::Static(states) = self else {
+            return None;
+        };
+        states.first().map(|s| s.corners)
+    }
+
+    pub(super) fn palette(&self, pose: &Pose) -> Option<(Vec<Joint>, [f64; 2])> {
         match pose {
             Pose::Posed { palette, scroll } => Some((
                 palette
@@ -185,6 +200,9 @@ pub struct ModelInput {
     pub tint: [f32; 3],
     pub pose: Pose,
     pub tier: Option<u32>,
+    /// Mesh-only selection cue. Highlighted models cannot select a card.
+    #[serde(default)]
+    pub highlight: bool,
     pub xray: Option<[f64; 4]>,
     pub ghost: Option<[f64; 4]>,
 }
@@ -221,9 +239,9 @@ pub enum Pose {
 
 #[derive(Default)]
 pub(super) struct Lab {
-    assets: BTreeMap<String, Asset>,
-    detail: Option<Detail>,
-    models: Vec<ModelInput>,
+    pub(super) assets: BTreeMap<String, Asset>,
+    pub(super) detail: Option<Detail>,
+    pub(super) models: Vec<ModelInput>,
     /// Canonical battle/static rows and strings precede replaceable tooling rows.
     pub(super) frontier: Option<(usize, usize)>,
 }
@@ -233,22 +251,14 @@ impl Presentation {
     /// battle, observations or static world. Reinstall the renderer's tables
     /// after this call; world rows can have moved.
     pub fn install_lab_assets(&mut self, assets: BTreeMap<String, Asset>, detail: Detail) {
+        self.catalog_revision = super::catalog::next_revision();
         self.lab.assets = assets;
         self.lab.detail = Some(detail);
         self.register_lab_rows();
     }
 
     pub fn set_lab_models(&mut self, models: Vec<ModelInput>) -> Result<(), String> {
-        for m in &models {
-            if let Pose::Posed { palette, .. } = &m.pose {
-                if palette.len() % 12 != 0 {
-                    return Err(format!(
-                        "{}: palette must contain complete Joint records",
-                        m.appearance
-                    ));
-                }
-            }
-        }
+        validate_models(&models)?;
         self.lab.models = models;
         Ok(())
     }
@@ -261,32 +271,7 @@ impl Presentation {
         self.world.appearances.truncate(rows);
         self.world.strings.truncate(strings);
         self.world.rows.retain(|_, row| (*row as usize) < rows);
-        for (name, asset) in &self.lab.assets {
-            match asset {
-                Asset::Static(states) => {
-                    for s in states {
-                        for draws in [DRAWS_PROP, DRAWS_PROP_GROUND] {
-                            self.world.drawn_row(name, &s.name, NONE, 0, false, draws);
-                        }
-                    }
-                }
-                Asset::Animated { appearance, .. } => match appearance.as_ref() {
-                    Appearance::Skinned {
-                        joints,
-                        corpse_poses,
-                        ..
-                    } => {
-                        self.world.row(name, "", NONE, joints.len() as u32, false);
-                        for lies in 0..corpse_poses.len() {
-                            self.world.row(name, "", lies as u32, 0, false);
-                        }
-                    }
-                    Appearance::Articulated { nodes, .. } => {
-                        self.world.row(name, "", NONE, nodes.len() as u32, false);
-                    }
-                },
-            }
-        }
+        register_rows(&mut self.world, &self.lab.assets);
     }
 
     pub(super) fn lab_rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
@@ -296,22 +281,7 @@ impl Presentation {
             .strings
             .get(r.name as usize..(r.name + r.name_len) as usize)?;
         let asset = self.lab.assets.get(name)?;
-        if r.lies == NONE {
-            return asset.palette(&Pose::Rest).map(|p| p.0);
-        }
-        let Asset::Animated { appearance, .. } = asset else {
-            return None;
-        };
-        let Appearance::Skinned { corpse_poses, .. } = appearance.as_ref() else {
-            return None;
-        };
-        let pose = corpse_poses.get(r.lies as usize)?;
-        asset
-            .palette(&Pose::Clip {
-                clip: pose.clip.clone(),
-                phase: pose.phase,
-            })
-            .map(|p| p.0)
+        super::catalog::asset_rest_palette(asset, r.lies)
     }
 }
 
@@ -320,15 +290,12 @@ impl Lab {
         &self,
         view: &View,
         world: &World,
-        detail_scale: f64,
         f: &mut Frame,
         models: &mut Vec<Model>,
     ) {
-        let Some(mut detail) = self.detail else {
+        let Some(detail) = self.detail else {
             return;
         };
-        detail.lod_px = detail.lod_px.map(|v| v * detail_scale);
-        detail.impostor_px *= detail_scale;
         for m in &self.models {
             let Some(asset) = self.assets.get(&m.appearance) else {
                 continue;
@@ -371,7 +338,7 @@ impl Lab {
                 _ => 0.0,
             };
             let at = [m.x, m.y, m.z];
-            let has_card = card && m.ghost.is_none();
+            let has_card = card && m.ghost.is_none() && !m.highlight;
             let tier = match m.tier {
                 Some(t) if t == IMPOSTOR as u32 && has_card => t as i32,
                 Some(t) => t.min(tiers - 1) as i32,
@@ -420,6 +387,7 @@ impl Lab {
                 at,
                 yaw: m.yaw,
                 tint: m.tint,
+                highlight: m.highlight,
                 scale: m.scale,
                 colour,
                 palette: base,
@@ -483,5 +451,48 @@ impl Presentation {
                 .map(|(w, ib)| joint(&skin::affine(&skin::mul(w, ib))))
                 .collect(),
         )
+    }
+}
+
+pub(super) fn validate_models(models: &[ModelInput]) -> Result<(), String> {
+    for m in models {
+        if let Pose::Posed { palette, .. } = &m.pose {
+            if palette.len() % 12 != 0 {
+                return Err(format!(
+                    "{}: palette must contain complete Joint records",
+                    m.appearance
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+pub(super) fn register_rows(world: &mut World, assets: &BTreeMap<String, Asset>) {
+    for (name, asset) in assets {
+        match asset {
+            Asset::Static(states) => {
+                for s in states {
+                    for draws in [DRAWS_PROP, DRAWS_PROP_GROUND] {
+                        world.drawn_row(name, &s.name, NONE, 0, false, draws);
+                    }
+                }
+            }
+            Asset::Animated { appearance, .. } => match appearance.as_ref() {
+                Appearance::Skinned {
+                    joints,
+                    corpse_poses,
+                    ..
+                } => {
+                    world.row(name, "", NONE, joints.len() as u32, false);
+                    for lies in 0..corpse_poses.len() {
+                        world.row(name, "", lies as u32, 0, false);
+                    }
+                }
+                Appearance::Articulated { nodes, .. } => {
+                    world.row(name, "", NONE, nodes.len() as u32, false);
+                }
+            },
+        }
     }
 }

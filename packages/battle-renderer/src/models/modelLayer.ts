@@ -5,6 +5,7 @@
 // Surface coverage belongs to surfaceParts/surfaceFragments; buildings share
 // these pipelines through buildingLayer's packed instance buffer.
 
+import { highlightGlow } from "../frame/highlight";
 import { createPropBatches, clearPropBatches, setPropBatches, drawnProps } from "./propBatches";
 import { recordDraw, type SubmittedDraws } from "../frame/submitted";
 import type { Drawable3, CardDrawable } from "./modelDraw";
@@ -230,6 +231,7 @@ export const modelVertex = tgpu.vertexFn({
     material: d.interpolate("flat", d.u32),
     track: d.f32,
     tint: d.vec3f,
+    highlight: d.interpolate("flat", d.f32),
     // The model's own position, the same at every fragment to the bit: what
     // a room behind a window is chosen by.
     anchor: d.interpolate("flat", d.vec3f),
@@ -307,6 +309,7 @@ export const modelVertex = tgpu.vertexFn({
     material: v.material.x,
     track,
     tint: v.tint.xyz,
+    highlight: std.max(0, -1 - v.tint.w),
     anchor: v.placement.xyz,
     xray: d.vec4f(red / 255, green / 255, blue / 255, v.scale.w),
     instance: v.instance,
@@ -323,6 +326,7 @@ export const modelVaryings = {
   material: d.interpolate("flat", d.u32),
   track: d.f32,
   tint: d.vec3f,
+  highlight: d.interpolate("flat", d.f32),
   anchor: d.interpolate("flat", d.vec3f),
   xray: d.interpolate("flat", d.vec4f),
   instance: d.interpolate("flat", d.u32),
@@ -454,7 +458,10 @@ export function createModelFragments(environment: EnvironmentFrame) {
       eye,
     );
     const seen = paintedSeen(modelSeen(v.world, n, v.anchor, v.clip.xy), paint);
-    return { color: d.vec4f(std.add(shaded.xyz, paintGlow(paint)), 1), fog: fogCoverage(seen, 1) };
+    return {
+      color: d.vec4f(std.add(std.add(shaded.xyz, paintGlow(paint)), highlightGlow(v.highlight)), 1),
+      fog: fogCoverage(seen, 1),
+    };
   });
   /** The impostor bake's targets, each with coverage in alpha: display-encoded
    *  albedo before the side's tint (the battle tints cards itself), with its
@@ -625,7 +632,6 @@ interface CardRun {
 }
 
 export interface ModelStats {
-  /** Appearance names installed on the GPU. */
   installed: string[];
   appearances: number;
   /** Prepared mesh population; actual pass submissions live in SubmittedFrame. */
@@ -634,20 +640,15 @@ export interface ModelStats {
   /** Prepared runs, before surface/pass filtering. */
   draws: number;
   paletteMatrices: number;
-  /** Bodies drawn posed by their palettes this frame. */
   skinned: number;
-  /** Mesh-drawn models per tier. */
   tiers: number[];
-  /** Of those, posed bodies (soldiers) per tier. */
   bodyTiers: number[];
   /** Models drawn as impostor cards (corpses in far chunks included). */
   cards: number;
-  /** Models skipped as off screen. */
   culled: number;
   /** Of those, posed bodies (soldiers): with `skinned` and `cards`, every
    *  soldier handed to the frame is accounted for. */
   culledBodies: number;
-  /** Corpses handed to the frame. */
   corpses: number;
   /** Impostor atlas layers installed, and how long their bake took (ms). */
   atlasLayers: number;
@@ -1142,7 +1143,7 @@ export async function createModelLayer(
    *  (`CULLED`, a mesh tier or `IMPOSTOR`), in `units`' order. A model whose
    *  appearance is not installed is sized nothing; its tier goes unread. */
   function cardLayer(gpu: GpuAppearance, inst: ModelInstance): number {
-    if (inst.ghost) return -1;
+    if (inst.ghost || inst.highlight) return -1;
     const pose = inst.pose;
     if (
       pose.kind === "static" &&

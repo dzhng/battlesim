@@ -13,6 +13,10 @@ static states, articulated nodes, corpse poses or material surface classes. The
 native filesystem library is a source adapter to the same bundle decoder used
 for browser fetches. The held static batch buffers also belong to this core, so
 a frame that names an unchanged batch has the same meaning on either target.
+Appearance rows route instances rather than own copies of their meshes. Rows
+that select the same authored state/pose share immutable GPU tiers within one
+asset generation; corpse poses remain distinct. Admission computes resident
+geometry totals once from those owners.
 Scenery also shares authored tier admission and held-batch routing. The runtime
 reads the ground's kind order and stump meshes from presentation, preserving its
 authority over placement.
@@ -23,6 +27,15 @@ same atlases and shader; the impostor tier never substitutes a coarsest mesh.
 Asynchronous asset preparation finishes before a frame may request cards.
 Configurable offscreen bakes capture owned GPU resources, so replacing the
 source catalog cannot invalidate a pending review image.
+
+[Appearance replacement](src/runtime/assets.rs) stages a complete asset generation
+against the presentation's prospective catalog. Asynchronous card baking owns
+its resources and holds no live renderer or presentation borrow. Commit moves
+matching canonical facts and GPU owners together, checks the actual device and
+runtime/catalog identity, transfers current placement knowledge, reapplies
+current controls, and requires a fresh
+canonical frame before drawing the new rows. Targets, compiled pipelines, sky,
+fog and learned ground retain their active owners throughout loading.
 
 Sky and environment lighting share one owner too. The sky lookup and its
 reflection prefilter are baked from the presentation's light records at
@@ -86,6 +99,19 @@ A fog probe can consume new canonical knowledge before any frame is drawn. The
 GPU owner retains those uploads even for an inactive or empty query, and rebuilds
 due horizon maps. Whole-structure flags and screen-tile lists still belong to the
 next drawn view; probing never replaces the last view's diagnostic snapshot.
+
+[Frame diagnostics](src/runtime/stats.rs) keep prepared population facts separate
+from [actual issued world work](src/submitted.rs). Surface splits, scar regions,
+independent depth and cascades repeat submissions without inventing new objects.
+X-ray, ghosts and information marks stay outside that partial-world accounting.
+Inspection uses the metadata captured during preparation, so a later publication
+cannot silently relabel an already prepared scene. Platform shells add their own
+resource payloads and measured GPU timings.
+
+Diagnostic suppression preserves knowledge: hiding dynamic models leaves static
+props and buildings, effects and their cast lights have independent switches,
+and hiding material scars keeps consuming their uploads so restoring them shows
+the current learned ground. Grass regrows when that material choice changes.
 
 Memory diagnostics count buffers and textures held by the owners, deduplicating
 shared handles and reading allocation descriptors. These are owned payload

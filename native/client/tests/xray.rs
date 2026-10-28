@@ -187,7 +187,13 @@ fn draw(
         );
         models.draw_fogged(&mut pass, Surface::Solid, Layer::Faces);
     }
+    let world_submissions = models.submissions.snapshot();
     xray.encode(&mut encoder, targets, camera, models);
+    assert_eq!(
+        models.submissions.snapshot(),
+        world_submissions,
+        "partial-world counters exclude both x-ray coverage and silhouette draws"
+    );
     let readback = read_overlay(&gpu.device, &mut encoder, &targets.overlay_msaa);
     gpu.queue.submit([encoder.finish()]);
     readback.map_async(MapMode::Read, .., |result| result.expect("overlay mapped"));

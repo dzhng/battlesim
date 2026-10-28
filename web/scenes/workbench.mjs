@@ -5,6 +5,7 @@
 // bakes the impostor twice for one hash; produces a sheet headlessly; and
 // captures the named views at 1920×1080 as evidence.
 import { writeFile } from "node:fs/promises";
+import { PNG } from "pngjs";
 import { decode } from "./_png.mjs";
 
 const VIEWPORT = { width: 1920, height: 1080 };
@@ -352,39 +353,140 @@ export async function run(ctx) {
     grassSheet.strips.some((s) => s.name === "states"),
     grassSheet.strips.map((s) => s.name).join(","),
   );
-  // Hold the older model's card readback while a newer model is requested.
-  // Both updates must finish in request order, including their card bakes.
   await Promise.all([page.close(), served.close(), grass.close()]);
+  await appearanceRace(ctx);
+}
+
+/** Real GPU catalog replacement, current presentation, failure and departure contract. */
+export async function appearanceRace(ctx) {
   const race = await ctx.newPage({ viewport: VIEWPORT });
   await ctx.openLab(race);
   const rifle = await synthetic(race, "soldierGlb");
   const tank = await synthetic(race, "tankGlb", { muzzleX: 5.9 });
+  await drop(race, "committed.glb", await synthetic(race, "truckGlb"), "test_supply");
+  await race.evaluate(() =>
+    window.__workbench.show({ figure: false, hitBox: false, sockets: false }),
+  );
   await race.getByTestId("workbench-yaw").selectOption("90");
-  await race.evaluate(() => {
-    const map = GPUBuffer.prototype.mapAsync;
-    GPUBuffer.prototype.mapAsync = function (...args) {
-      const mapped = map.apply(this, args);
-      if (this.label !== "impostor-read") return mapped;
-      GPUBuffer.prototype.mapAsync = map;
-      return mapped.then(
-        () =>
-          new Promise((resolve) => {
-            window.releaseOlderCards = resolve;
-          }),
-      );
-    };
-  });
+  const committedBefore = await race.evaluate(() => window.__lab.stats().models.installed);
+  await race.evaluate(
+    async (cameraModule) => {
+      const { ScenePresentation } = await import("/src/battle/sim/presentation.ts");
+      const { presentedCamera } = await import(cameraModule);
+      const canvas = document.querySelector("canvas");
+      const camera = presentedCamera({
+        camera3d: window.__lab.camera(),
+        width: canvas.width,
+        height: canvas.height,
+      });
+      const prepare = ScenePresentation.prototype.prepareRendererAppearances;
+      ScenePresentation.prototype.prepareRendererAppearances = function (...args) {
+        ScenePresentation.prototype.prepareRendererAppearances = prepare;
+        const renderer = args[0];
+        window.committedPresentation = this;
+        window.captureCommitted = async () => {
+          this.frame(
+            0,
+            camera,
+            { selected: [], xray: false, ghosts: [] },
+            renderer.static_generation(),
+          );
+          this.render(renderer);
+          const frame = this.lastFrame();
+          const facts = {
+            rows: this.appearanceRows(),
+            instances: Array.from(frame.instances.f32),
+            palettes: Array.from(frame.palettes.f32),
+          };
+          const { width, height, rgba } = await renderer.read_rgba(false);
+          let binary = "";
+          for (let i = 0; i < rgba.length; i += 8192)
+            binary += String.fromCharCode(...rgba.subarray(i, i + 8192));
+          return { width, height, rgba: btoa(binary), facts };
+        };
+        window.committedBeforePixels = window.captureCommitted();
+        const before = this.appearanceRows().map((row) => row.name);
+        window.heldAppearanceFacts = () => ({
+          before,
+          current: this.appearanceRows().map((row) => row.name),
+        });
+        return prepare.apply(this, args).then(
+          (assets) =>
+            new Promise((resolve) => {
+              window.releaseOlderAssets = () => resolve(assets);
+            }),
+        );
+      };
+    },
+    `/@fs${new URL("../../apps/battle-lab/src/presentedFrame.ts", import.meta.url).pathname}`,
+  );
   await drop(race, "older.glb", rifle, "test_rifle", false);
-  await race.waitForFunction(() => window.releaseOlderCards);
+  await race.waitForFunction(() => window.releaseOlderAssets);
   await drop(race, "latest.glb", tank, "test_tank", false);
   await race.waitForFunction(() => window.__workbench.state().model === "latest.glb");
   const baking = await race.evaluate(() => window.__lab.stats().models.installed);
+  const [beforePixels, duringPixels] = await race.evaluate(async () => [
+    await window.committedBeforePixels,
+    await window.captureCommitted(),
+  ]);
+  const raw = (snapshot) => ({ ...snapshot, data: Buffer.from(snapshot.rgba, "base64") });
   ctx.check(
-    "the next appearance waits for the previous model's card readback",
-    baking.length === 1 && baking[0] === "older.glb",
+    "the replacement race begins with a nonempty rendered generation",
+    committedBefore.includes("committed.glb"),
+    JSON.stringify(committedBefore),
+  );
+  ctx.check(
+    "pending and superseded generations preserve frozen committed pixels",
+    changed(raw(beforePixels), raw(duringPixels), 0) === 0,
+    `${changed(raw(beforePixels), raw(duringPixels), 0)} changed pixels`,
+  );
+  ctx.check(
+    "pending generation preserves canonical committed instances and poses",
+    JSON.stringify(beforePixels.facts) === JSON.stringify(duringPixels.facts),
+    JSON.stringify({
+      rows: duringPixels.facts.rows,
+      instanceWords: duringPixels.facts.instances.length,
+      paletteWords: duringPixels.facts.palettes.length,
+    }),
+  );
+  for (const [name, snapshot] of [
+    ["committed-before", beforePixels],
+    ["committed-pending", duringPixels],
+  ])
+    await writeFile(ctx.evidencePath(`${name}.png`), PNG.sync.write(raw(snapshot)));
+  ctx.check(
+    "candidate preparation preserves the committed GPU generation",
+    JSON.stringify(baking) === JSON.stringify(committedBefore),
     JSON.stringify(baking),
   );
-  await race.evaluate(() => window.releaseOlderCards());
+  const heldFacts = await race.evaluate(() => window.heldAppearanceFacts());
+  ctx.check(
+    "candidate preparation preserves the committed presentation model facts",
+    JSON.stringify(heldFacts.current) === JSON.stringify(heldFacts.before),
+    JSON.stringify(heldFacts),
+  );
+  const [movedPixels, restoredPixels] = await race.evaluate(async () => {
+    const p = window.committedPresentation;
+    p.setLabModels([
+      { appearance: "committed.glb", x: 1, y: 0, z: 0, yaw: 0, pose: { kind: "rest" } },
+    ]);
+    const moved = await window.captureCommitted();
+    p.setLabModels([
+      { appearance: "committed.glb", x: 0, y: 0, z: 0, yaw: 0, pose: { kind: "rest" } },
+    ]);
+    return [moved, await window.captureCommitted()];
+  });
+  ctx.check(
+    "pending GPU work still renders changes from the current presentation",
+    changed(raw(beforePixels), raw(movedPixels), 0) > 0,
+    `${changed(raw(beforePixels), raw(movedPixels), 0)} changed pixels`,
+  );
+  ctx.check(
+    "restoring the current presentation restores its exact pixels",
+    changed(raw(beforePixels), raw(restoredPixels), 0) === 0,
+    `${changed(raw(beforePixels), raw(restoredPixels), 0)} changed pixels`,
+  );
+  await race.evaluate(() => window.releaseOlderAssets());
   await drawnOnBench(race, "latest.glb");
   const latest = await race.evaluate(() => window.__lab.stats().models);
   ctx.check(
@@ -396,5 +498,83 @@ export async function run(ctx) {
     JSON.stringify(latest),
   );
   await race.screenshot({ path: ctx.evidencePath("latest-appearance.png") });
+  await race.evaluate(async () => {
+    const { ScenePresentation } = await import("/src/battle/sim/presentation.ts");
+    const prepare = ScenePresentation.prototype.prepareRendererAppearances;
+    ScenePresentation.prototype.prepareRendererAppearances = function (...args) {
+      ScenePresentation.prototype.prepareRendererAppearances = prepare;
+      return prepare.apply(this, args).then((assets) => {
+        assets.free();
+        throw new Error("deliberate latest candidate failure");
+      });
+    };
+  });
+  await race.evaluate((bytes) => {
+    void window.__workbench.drop("failed.glb", new Uint8Array(bytes), {
+      type: "test_rifle",
+      yaw: 90,
+    });
+  }, rifle);
+  await race.getByTestId("error").waitFor();
+  await race.getByRole("button", { name: /details/i }).click();
+  await race.getByText("deliberate latest candidate failure", { exact: false }).first().waitFor();
+  await race.waitForFunction(() => !window.__workbench && !window.__lab);
+  const failure = await race.evaluate(() => ({
+    reported: document.body.innerText.includes("deliberate latest candidate failure"),
+    workbench: !!window.__workbench,
+    lab: !!window.__lab,
+  }));
+  ctx.check(
+    "failed newest GPU generation reports its error and unmounts the failed renderer",
+    failure.reported && !failure.workbench && !failure.lab,
+    JSON.stringify(failure),
+  );
+  await race.screenshot({ path: ctx.evidencePath("failed-appearance.png") });
   await race.close();
+
+  const leaving = await ctx.newPage({ viewport: VIEWPORT });
+  await ctx.openLab(leaving);
+  await drop(leaving, "departure-current.glb", tank, "test_tank");
+  await leaving.evaluate(async () => {
+    const { ScenePresentation } = await import("/src/battle/sim/presentation.ts");
+    const prepare = ScenePresentation.prototype.prepareRendererAppearances;
+    const commit = ScenePresentation.prototype.commitRendererAppearances;
+    window.departureCommits = window.departureFrees = 0;
+    ScenePresentation.prototype.commitRendererAppearances = function (...args) {
+      window.departureCommits++;
+      return commit.apply(this, args);
+    };
+    ScenePresentation.prototype.prepareRendererAppearances = function (...args) {
+      ScenePresentation.prototype.prepareRendererAppearances = prepare;
+      return prepare.apply(this, args).then((assets) => {
+        const free = assets.free.bind(assets);
+        assets.free = () => {
+          window.departureFrees++;
+          free();
+        };
+        return new Promise((resolve) => {
+          window.releaseDepartingAssets = () => resolve(assets);
+        });
+      });
+    };
+  });
+  await drop(leaving, "departure-pending.glb", rifle, "test_rifle", false);
+  await leaving.waitForFunction(() => window.releaseDepartingAssets);
+  await leaving.evaluate(() => {
+    history.pushState({ key: "workbench-departure" }, "", "/labs");
+    dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await leaving.waitForFunction(() => !window.__workbench);
+  await leaving.evaluate(() => window.releaseDepartingAssets());
+  await leaving.waitForFunction(() => window.departureFrees > 0);
+  const departure = await leaving.evaluate(() => ({
+    commits: window.departureCommits,
+    frees: window.departureFrees,
+  }));
+  ctx.check(
+    "departure frees the prepared candidate without committing to freed presentation",
+    departure.commits === 0 && departure.frees === 1,
+    JSON.stringify(departure),
+  );
+  await leaving.close();
 }

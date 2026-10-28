@@ -245,6 +245,10 @@ impl EffectsResources {
         queue.write_buffer(&self.instances, 0, bytes);
     }
 
+    pub fn capacity(&self) -> u64 {
+        self.instances.size() / self.instance_stride
+    }
+
     pub fn count(&self) -> u32 {
         self.count
     }

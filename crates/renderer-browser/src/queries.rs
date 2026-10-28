@@ -27,10 +27,11 @@ impl Renderer {
             &runtime.targets.display_texture
         };
         let (width, height) = (texture.width(), texture.height());
-        let mut encoder = self.device.create_command_encoder(&Default::default());
-        let read = RgbaReadback::encode(&self.device, &mut encoder, texture).map_err(js_error)?;
-        self.queue.submit([encoder.finish()]);
-        let device = self.device.clone();
+        let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
+        let read =
+            RgbaReadback::encode(&self.gpu.device, &mut encoder, texture).map_err(js_error)?;
+        self.gpu.queue.submit([encoder.finish()]);
+        let device = self.gpu.device.clone();
         Ok(future_to_promise(async move {
             let bytes = read.read(&device).await.map_err(js_error)?;
             let image = js_sys::Object::new();
@@ -42,14 +43,22 @@ impl Renderer {
     }
 
     pub fn bake_impostor(&self, row: u32, spec: &str) -> Result<js_sys::Promise, JsValue> {
-        let spec = serde_json::from_str(spec).map_err(js_error)?;
+        let spec = serde_json::from_str::<Option<renderer_core::impostor::Spec>>(spec)
+            .map_err(js_error)?
+            .unwrap_or_default();
         let runtime = self
             .runtime
             .as_ref()
             .ok_or_else(|| js_error("install presentation before baking an impostor"))?;
         let request = runtime
             .models
-            .impostor_request(&self.device, &self.queue, &runtime.pipelines, row, &spec)
+            .impostor_request(
+                &self.gpu.device,
+                &self.gpu.queue,
+                &runtime.pipelines,
+                row,
+                &spec,
+            )
             .map_err(js_error)?;
         Ok(future_to_promise(async move {
             let atlas = request.read().await.map_err(js_error)?;
@@ -99,10 +108,15 @@ impl Renderer {
             .as_mut()
             .ok_or_else(|| js_error("install presentation before probing fog"))?;
         let read = runtime
-            .probe_fog(&self.device, &self.queue, presentation.core_mut(), &points)
+            .probe_fog(
+                &self.gpu.device,
+                &self.gpu.queue,
+                presentation.core_mut(),
+                &points,
+            )
             .map_err(js_error)?;
         presentation.refresh_frame_header();
-        let device = self.device.clone();
+        let device = self.gpu.device.clone();
         Ok(future_to_promise(async move {
             let bytes = read.read_u8(&device).await.map_err(js_error)?;
             Ok(js_sys::Uint8Array::from(bytes.as_slice()).into())
@@ -119,9 +133,9 @@ impl Renderer {
             .as_ref()
             .ok_or_else(|| js_error("install presentation before probing fog"))?;
         let read = FogProbes::new(&runtime.pipelines)
-            .shape(&self.device, &self.queue, rows)
+            .shape(&self.gpu.device, &self.gpu.queue, rows)
             .map_err(js_error)?;
-        let device = self.device.clone();
+        let device = self.gpu.device.clone();
         Ok(future_to_promise(async move {
             let values = read.read_f32(&device).await.map_err(js_error)?;
             Ok(js_sys::Float32Array::from(values.as_slice()).into())
@@ -133,9 +147,9 @@ impl Renderer {
             .runtime
             .as_ref()
             .ok_or_else(|| js_error("install presentation before probing fog"))?;
-        let read =
-            FogProbes::tile_counts(&self.device, &self.queue, &runtime.fog).map_err(js_error)?;
-        let device = self.device.clone();
+        let read = FogProbes::tile_counts(&self.gpu.device, &self.gpu.queue, &runtime.fog)
+            .map_err(js_error)?;
+        let device = self.gpu.device.clone();
         Ok(future_to_promise(async move {
             let values = read.read_u32(&device).await.map_err(js_error)?;
             Ok(js_sys::Uint32Array::from(values.as_slice()).into())
@@ -147,9 +161,14 @@ impl Renderer {
             .runtime
             .as_ref()
             .ok_or_else(|| js_error("install presentation before probing fog"))?;
-        let read = FogProbes::whole_flags(&self.device, &self.queue, &runtime.fog, count as usize)
-            .map_err(js_error)?;
-        let device = self.device.clone();
+        let read = FogProbes::whole_flags(
+            &self.gpu.device,
+            &self.gpu.queue,
+            &runtime.fog,
+            count as usize,
+        )
+        .map_err(js_error)?;
+        let device = self.gpu.device.clone();
         Ok(future_to_promise(async move {
             let values = read.read_u8(&device).await.map_err(js_error)?;
             Ok(js_sys::Uint8Array::from(values.as_slice()).into())
@@ -165,10 +184,10 @@ impl Renderer {
             .grass
             .as_ref()
             .filter(|_| runtime.config().controls.grass)
-            .map(|field| grass::queue_counts(&self.device, &self.queue, field))
+            .map(|field| grass::queue_counts(&self.gpu.device, &self.gpu.queue, field))
             .transpose()
             .map_err(js_error)?;
-        let device = self.device.clone();
+        let device = self.gpu.device.clone();
         Ok(future_to_promise(async move {
             let counts = match read {
                 Some(read) => read.read(&device).await.map_err(js_error)?,
@@ -191,10 +210,10 @@ impl Renderer {
             .grass
             .as_ref()
             .filter(|_| runtime.config().controls.grass)
-            .map(|field| grass::queue_clumps(&self.device, &self.queue, field, &names))
+            .map(|field| grass::queue_clumps(&self.gpu.device, &self.gpu.queue, field, &names))
             .transpose()
             .map_err(js_error)?;
-        let device = self.device.clone();
+        let device = self.gpu.device.clone();
         Ok(future_to_promise(async move {
             let clumps = match read {
                 Some(read) => read.read(&device).await.map_err(js_error)?,
