@@ -30,7 +30,7 @@ import { createWater } from "./waterPass";
 import { createGhostPass } from "./ghostPass";
 import { createTerrainHeights } from "./terrainHeights";
 import { createFogVisibility, type FogShaders, type FogTiles } from "./fogVisibility";
-import { createTerrainSource } from "./terrainMaterial";
+import { createTerrainSource } from "./terrainSource";
 import { createSceneryLayer, type SceneryWalkStats } from "./sceneryLayer";
 import type { PresentedGround } from "../terrain/terrainSurface";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";

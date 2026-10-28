@@ -6,7 +6,8 @@
 // surface there, so nothing hides it and nothing steps. Its numbers are its
 // row's, which the water's pass reads too.
 import { tgpu, d, std } from "typegpu";
-import { groundCell, groundWater, terrainLayout, valueNoise } from "./terrainMaterial";
+import { groundCell, groundWater, valueNoise } from "./terrainMaterial";
+import { terrainLayout } from "./terrainLayout";
 import { WaterLook } from "./waterLook";
 
 /** Ripple height at `xy` under look `w`: two octaves of value noise, in
