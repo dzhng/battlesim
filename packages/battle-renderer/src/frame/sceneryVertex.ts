@@ -5,6 +5,7 @@ import { tgpu, d, std } from "typegpu";
 import { typegpuCameraLayout } from "../world/camera";
 import { KICK_RADII } from "../scenery/appearance";
 import { vertexLayout } from "./geometry";
+import { sway } from "./sway";
 
 /** The frame's instance record (`Instance`) as the scenery reads it: its
  *  placement is the pose, its scale the shape (with the heart), its tint the
@@ -105,8 +106,22 @@ const placedNormal = tgpu.fn(
   return std.normalize(d.vec3f(nx * c - ny * s, nx * s + ny * c, normal.z / shape.z));
 });
 
+/** Where a point of a standing appearance stands: placed (`placedPoint`),
+ *  then moved in the wind (`sway`); `leaf` is the point's leaf flag, zero in
+ *  a shadow caster. Its height share is over twice its crown's heart. */
+const standing = tgpu.fn(
+  [d.vec3f, d.vec4f, d.vec4f, d.f32],
+  d.vec3f,
+)((local, pose, shape, leaf) => {
+  "use gpu";
+  const at = placedPoint(local, pose);
+  const height = std.max(2 * shape.w, 1);
+  return std.add(at, sway(pose.xyz, at, local.z / height, height, leaf));
+});
+
 /** Places the appearance: scale per axis, yaw about +Z, then the instance's
- *  foot. Normals take the inverse scale. */
+ *  foot, bent in the wind with its leaves shivering. Normals take the
+ *  inverse scale. The depth prepass and the colour passes share it. */
 export const placedVertex = tgpu.vertexFn({ in: placedIn, out: placedOut })((v) => {
   "use gpu";
   const local = d.vec3f(
@@ -114,13 +129,33 @@ export const placedVertex = tgpu.vertexFn({ in: placedIn, out: placedOut })((v) 
     v.position.y * v.shape.y,
     v.position.z * v.shape.z,
   );
-  const world = placedPoint(local, v.pose);
+  const world = standing(local, v.pose, v.shape, std.select(0, 1, v.color.w > 0.5));
   return {
     clip: std.mul(typegpuCameraLayout.$.cam.viewProj, d.vec4f(world, 1)),
     world,
     normal: placedNormal(v.normal, v.shape, v.pose.w),
     color: d.vec4f(std.mul(v.color.xyz, v.tint.xyz), v.color.w),
     local: d.vec3f(local.x + v.tint.w, local.y, local.z),
+    heart: d.vec3f(v.pose.x, v.pose.y, v.pose.z + v.shape.w),
+  };
+});
+
+/** `placedVertex` for a sun cascade: the trunk bends, the leaves hold
+ *  still, so a shadow follows the tree without shivering. */
+export const casterVertex = tgpu.vertexFn({ in: placedIn, out: placedOut })((v) => {
+  "use gpu";
+  const local = d.vec3f(
+    v.position.x * v.shape.x,
+    v.position.y * v.shape.y,
+    v.position.z * v.shape.z,
+  );
+  const world = standing(local, v.pose, v.shape, 0);
+  return {
+    clip: std.mul(typegpuCameraLayout.$.cam.viewProj, d.vec4f(world, 1)),
+    world,
+    normal: placedNormal(v.normal, v.shape, v.pose.w),
+    color: d.vec4f(std.mul(v.color.xyz, v.tint.xyz), v.color.w),
+    local,
     heart: d.vec3f(v.pose.x, v.pose.y, v.pose.z + v.shape.w),
   };
 });

@@ -27,6 +27,7 @@
 // the plain crown as a pixel grows past a clump.
 import { recordDraw, type SubmittedDraws } from "./submitted";
 import {
+  casterVertex,
   dressingVertex,
   felledAttribs,
   felledLayout,
@@ -266,6 +267,7 @@ export async function createSceneryLayer(
   const caster = root
     .createRenderPipeline({
       ...base,
+      vertex: casterVertex,
       // Both faces cast: a crown's far side must shadow its own underside.
       primitive: { topology: "triangle-list", cullMode: "none" },
       depthStencil: battleWorldDepth("read-write"),

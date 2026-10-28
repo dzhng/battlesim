@@ -823,3 +823,35 @@ against the code. Each says what was chosen, why, and how sure the agent is.
 - **The reach:** slice 16's wave field must be judged the same way.
 - **Verdict:** sound.
 - **Confidence:** medium.
+
+## Slice 17: tree sway
+
+1. **The wind moved from the `Environment` uniform into the `Camera`
+   record (`Camera.wind`, one `Wind` in a one-record array).** *Why:* a sun
+   cascade's caster binds only its camera, and could not bind the
+   environment (it holds the very depth array the caster draws into); the
+   camera is the one uniform every vertex stage binds and already carries
+   the clock. The environment's wind, `setWind`, `ground_wind` and native's
+   wind argument are deleted, so the wind still has one owner. This revises
+   slice 01's upload contract. *Confidence:* high.
+2. **Every cascade camera now runs on the frame's clock and wind**
+   (`presentation/cameras.rs`); the fit is still reused, only those two
+   fields are refreshed each frame. Before, casters ran at time 0.
+   *Confidence:* high.
+3. **`sway(foot, point, up, height, leaf)`** (`frame/sway.ts`) is the one
+   function; the standing-tree vertex stage (prepass, forest and backdrop
+   colour) passes the vertex's leaf flag, the new `casterVertex` passes 0,
+   so shadows bend with the trunk and do not shiver. Height share is the
+   point's height over twice the crown's heart (`shape.w`). Felled trees
+   and forest-floor dressing do not sway. *Confidence:* medium on the
+   height proxy.
+4. **Tuning (look only, in `sway.ts`):** the top bends 10% of the tree's
+   height at full strength (gust fronts at 6 m/s or faster), a quarter of it
+   a steady lean and the rest a slow swing (1.6 rad/s, with RedGPU's
+   overtone); leaves shiver up to 0.15 m at 7 rad/s. Strength follows the
+   wind's gust speed, so a calm biome stands still. Two unprimed critiques
+   found the first, smaller amplitudes invisible at the water scene's
+   framings. *Confidence:* low, by design.
+5. **Splits for the size ratchet:** the side's fog out of `presentation.rs`,
+   and the scenery's vertex stages out of `sceneryLayer.ts`, each in its own
+   commit.
