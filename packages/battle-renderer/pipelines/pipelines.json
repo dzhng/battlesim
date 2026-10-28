@@ -437,6 +437,26 @@
           "fragment",
           "compute"
         ]
+      },
+      {
+        "binding": 8,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 9,
+        "sampler": {
+          "type": "filtering"
+        },
+        "visibility": [
+          "fragment"
+        ]
       }
     ],
     "modelLayout": [
@@ -3870,6 +3890,22 @@
       },
       "multisample": {
         "count": 4
+      }
+    },
+    {
+      "name": "waterNormalsBake",
+      "kind": "render",
+      "shader": "waterNormalsBake.wgsl",
+      "layout": [],
+      "vertex": {
+        "buffers": []
+      },
+      "fragment": {
+        "targets": [
+          {
+            "format": "rgba16float"
+          }
+        ]
       }
     },
     {

@@ -81,9 +81,10 @@
 //!   `crossing_cos`; a dash keeps `clear_m` from a crossing's bars; paint
 //!   wears in patches `wear_m` across where their noise crosses `wear_cut`.
 //! - `water`: it fades in from its edge over `shore_fade_m` of depth (or a
-//!   few pixels, if wider); its roughness; the share of its light it keeps in shadow; two
-//!   octaves of ripples (`long_m`, `short_m` at `short_weight`) tilting the
-//!   normal by `slope` read `step_m` either way, gone over `fade_m` pixels;
+//!   few pixels, if wider); its roughness; the share of its light it keeps
+//!   in shadow; its baked normal map (`normals`) on three layers of
+//!   `tiles_m`, each drifting at its share (`drifts`) of the wind's drift,
+//!   leaning by `strength`, gone over `fade_m` pixels;
 //!   its light in lanes `m` wide holding their distance from the bank,
 //!   drifting `drift` lanes over `drift_m`, broken into streaks `streak_m`
 //!   long, lit where lane and streak (`weights`) pass `lit`, about `lit_mean`.
@@ -136,17 +137,19 @@ pub struct WaterTuning {
     pub shore_fade_m: f64,
     pub roughness: f64,
     pub shadow: f64,
-    pub ripple: Ripple,
+    pub normals: Normals,
     pub lanes: Lanes,
 }
 
+/// The baked normal map's three layers (`waterNormal`): their tiles in
+/// metres (primary, macro, detail), each's share of the wind's drift, how
+/// far the map's slope leans the normal, and the pixel footprints the
+/// ripples and the streaks fade over.
 #[derive(Clone, Deserialize)]
-pub struct Ripple {
-    pub long_m: f64,
-    pub short_m: f64,
-    pub short_weight: f64,
-    pub slope: f64,
-    pub step_m: f64,
+pub struct Normals {
+    pub tiles_m: [f64; 3],
+    pub drifts: [f64; 3],
+    pub strength: f64,
     pub fade_m: [f64; 2],
 }
 

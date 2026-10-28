@@ -38,12 +38,11 @@ export const WaterLook = d.struct({
    *  crosses (`exp(-e·d)`), and the share of its own light it keeps in
    *  shadow. */
   surface: d.vec4f,
-  /** 1 / the long and short ripples' size, the short ones' weight, the
-   *  metres a ripple's slope is read either way. */
-  ripple: d.vec4f,
-  /** Their slope over twice that step, the pixel footprints they fade over;
-   *  unused. */
-  rippleSlope: d.vec4f,
+  /** 1 / the primary, macro and detail normal layers' tile in metres, and
+   *  how far the baked slope leans the normal. */
+  normals: d.vec4f,
+  /** Each layer's share of the wind's drift it moves at; unused. */
+  drifts: d.vec4f,
   /** The light's lanes: their width, their drift (in lanes), 1 / the
    *  drift's scale, 1 / a streak's length. */
   lanes: d.vec4f,
@@ -51,6 +50,7 @@ export const WaterLook = d.struct({
    *  whole. */
   lanesLit: d.vec4f,
   /** The lanes' mean light at a distance, the depth (metres) the water
-   *  fades in over from its edge; unused. */
+   *  fades in over from its edge, the pixel footprints (metres) its ripples
+   *  and streaks fade over. */
   lanesMean: d.vec4f,
 });

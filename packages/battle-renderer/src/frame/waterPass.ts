@@ -19,7 +19,7 @@ import {
   paintedSeen,
   paintGlow,
 } from "./fogTerm";
-import { terrainLayout } from "./terrainMaterial";
+import { terrainLayout } from "./terrainLayout";
 import { waterNormal, waterStreaks } from "./waterSurface";
 import { FRAME_MSAA, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
 

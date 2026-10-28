@@ -84,10 +84,10 @@ import {
   groundVerge,
   groundWheeling,
   groundWater,
-  terrainLayout,
-  type TerrainSource,
   valueNoise,
 } from "./terrainMaterial";
+import { terrainLayout } from "./terrainLayout";
+import type { TerrainSource } from "./terrainSource";
 import { groundScars, scarredSurface } from "./groundScars";
 import { triangleRuleHeight } from "./triangleRule";
 import { terrainSample, type TerrainHeights } from "./terrainHeights";

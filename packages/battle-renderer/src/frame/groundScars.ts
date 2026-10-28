@@ -6,7 +6,8 @@
 import { tgpu, d } from "typegpu";
 import game from "@fixtures/game.json";
 import { scarFilterQuanta, scarFilterPosition } from "./scarFilter";
-import { terrainLayout, valueNoise, wgslFloat } from "./terrainMaterial";
+import { valueNoise, wgslFloat } from "./terrainMaterial";
+import { terrainLayout } from "./terrainLayout";
 import { SCAR_DENSE, SCAR_KEY_MASK, SCAR_UNIFORM } from "../records.gen";
 const tuning = game.presentation.terrain;
 
