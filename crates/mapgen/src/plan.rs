@@ -50,6 +50,10 @@ pub struct MapPlan {
     /// Decks that carry movers over the rivers, in the contract's shape.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub bridges: Vec<contract::map::Bridge>,
+    /// Standing shallow water, each in the dip it carves, in the contract's
+    /// shape.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub swamps: Vec<contract::swamp::Swamp>,
     /// Where towns stand and what each district is built from, the main
     /// settlement first. Plan-only: the parcel pass turns them into
     /// `buildings`; nothing here reaches the map.

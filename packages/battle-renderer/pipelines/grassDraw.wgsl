@@ -53,6 +53,13 @@ struct GrassShapeVertex {
 
 @group(1) @binding(3) var<storage, read> shapes: array<GrassShapeVertex>;
 
+struct Wind {
+  toward: vec3f,
+  driftMps: f32,
+  gustMps: f32,
+  gustPerM: f32,
+}
+
 struct Camera {
   viewProj: mat4x4f,
   invViewProj: mat4x4f,
@@ -61,50 +68,12 @@ struct Camera {
   width: f32,
   height: f32,
   time: f32,
+  wind: array<Wind, 1>,
 }
 
 @group(0) @binding(0) var<uniform> cam: Camera;
 
-struct Wind {
-  toward: vec3f,
-  driftMps: f32,
-  gustMps: f32,
-  gustPerM: f32,
-}
-
-struct Aerial {
-  extinction: vec3f,
-  clearRadiusKm: f32,
-  sunTint: vec3f,
-  sunStrength: f32,
-  mistColor: vec3f,
-  mistColorStrength: f32,
-  overviewFromM: f32,
-  rangeNearM: f32,
-  rangeFarM: f32,
-  rangePower: f32,
-  rangeStrength: f32,
-  mistOpacity: f32,
-  sunPower: f32,
-  mistHeightM: vec2f,
-  mistDistanceM: vec2f,
-  horizonFade: vec2f,
-}
-
-struct Environment {
-  worldToView: mat4x4f,
-  observer: vec4f,
-  sunDirection: vec4f,
-  sunRadiance: vec4f,
-  settings: vec4f,
-  fill: vec4f,
-  aerial: Aerial,
-  wind: Wind,
-}
-
-@group(2) @binding(0) var<uniform> data: Environment;
-
-fn environmentWind() -> Wind { return data.wind; }
+fn cameraWind() -> Wind { return cam.wind[0]; }
 
 fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
   let P = &params;
@@ -128,7 +97,7 @@ fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
   let side = vec3f(sd.x * cs - sd.y * sn, sd.x * sn + sd.y * cs, sd.z);
   // The one wind: a steady lean, gust fronts rolling downwind, a flutter.
   let t = cam.time;
-  let wind = environmentWind();
+  let wind = cameraWind();
   let dir = wind.toward.xy;
   let along = dot(c.root.xy, dir);
   let front = sin(6.2831853 * (along - t * wind.gustMps) * wind.gustPerM);
@@ -189,7 +158,7 @@ struct FogLayer {
   pad: u32,
 }
 
-@group(3) @binding(1) var<uniform> layer: FogLayer;
+@group(2) @binding(1) var<uniform> layer: FogLayer;
 
 fn fogIsGround() -> bool {
   return (layer.ground == 1u);
@@ -237,9 +206,9 @@ struct FogParams {
   wholeFlagsBase: u32,
 }
 
-@group(3) @binding(0) var<uniform> params_1: FogParams;
+@group(2) @binding(0) var<uniform> params_1: FogParams;
 
-@group(3) @binding(8) var wholes: texture_2d<u32>;
+@group(2) @binding(8) var wholes: texture_2d<u32>;
 
 fn fogWholeWord(i: u32) -> u32 {
   return textureLoad(wholes, vec2u(i % 256u, i / 256u), 0).x;
@@ -272,7 +241,7 @@ fn fogWholeSeen(p: vec3f) -> bool {
   return false;
 }
 
-@group(3) @binding(5) var<storage, read> counts: array<u32>;
+@group(2) @binding(5) var<storage, read> counts: array<u32>;
 
 fn fogProbePoint(world: vec3f, normal: vec3f, ground: bool) -> vec3f {
   if (ground) { return world + vec3f(0.0, 0.0, params_1.targetHeightM); }
@@ -290,7 +259,7 @@ struct FogEye {
   slot: u32,
 }
 
-@group(3) @binding(2) var<storage, read> eyes: array<FogEye>;
+@group(2) @binding(2) var<storage, read> eyes: array<FogEye>;
 
 fn fogShape(front: f32, side: f32, rear: f32, off: f32) -> f32 {
   let c = cos(off);
@@ -307,7 +276,7 @@ fn fogUnpack(w: u32) -> vec3f {
   return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * 0.005);
 }
 
-@group(3) @binding(3) var<storage, read> maps: array<u32>;
+@group(2) @binding(3) var<storage, read> maps: array<u32>;
 
 fn fogSeenBy(ei: u32, p: vec3f, n: vec3f) -> bool {
   let e = eyes[ei];
@@ -391,7 +360,7 @@ fn fogSeenSurface(ei: u32, world: vec3f, normal: vec3f, ground: bool) -> bool {
   return fogSeenBy(ei, q, vec3f(0.0));
 }
 
-@group(3) @binding(4) var<storage, read> lists: array<u32>;
+@group(2) @binding(4) var<storage, read> lists: array<u32>;
 
 fn fogTerm(world: vec3f, normal: vec3f, pixel: vec2f, isGround: bool) -> f32 {
   let P = params_1;
@@ -405,6 +374,35 @@ fn fogTerm(world: vec3f, normal: vec3f, pixel: vec2f, isGround: bool) -> f32 {
     }
   }
   return 0.0;
+}
+
+struct Aerial {
+  extinction: vec3f,
+  clearRadiusKm: f32,
+  sunTint: vec3f,
+  sunStrength: f32,
+  mistColor: vec3f,
+  mistColorStrength: f32,
+  overviewFromM: f32,
+  rangeNearM: f32,
+  rangeFarM: f32,
+  rangePower: f32,
+  rangeStrength: f32,
+  mistOpacity: f32,
+  sunPower: f32,
+  mistHeightM: vec2f,
+  mistDistanceM: vec2f,
+  horizonFade: vec2f,
+}
+
+struct Environment {
+  worldToView: mat4x4f,
+  observer: vec4f,
+  sunDirection: vec4f,
+  sunRadiance: vec4f,
+  settings: vec4f,
+  fill: vec4f,
+  aerial: Aerial,
 }
 
 struct SunCascade {
@@ -504,17 +502,19 @@ fn inheritedSunShadow(environment: Environment, sunShadow: SunShadow, sunDepth: 
   return shade;
 }
 
-@group(2) @binding(6) var<uniform> sun: SunShadow;
+@group(3) @binding(0) var<uniform> data: Environment;
 
-@group(2) @binding(7) var sunDepth: texture_depth_2d_array;
+@group(3) @binding(6) var<uniform> sun: SunShadow;
 
-@group(2) @binding(8) var sunCompare: sampler_comparison;
+@group(3) @binding(7) var sunDepth: texture_depth_2d_array;
+
+@group(3) @binding(8) var sunCompare: sampler_comparison;
 
 fn sampleSunShadow(world: vec3f, normal: vec3f, pixel: vec2f) -> f32 {
   return inheritedSunShadow(data, sun, sunDepth, sunCompare, world, normal, pixel);
 }
 
-@group(3) @binding(7) var paint: texture_2d<f32>;
+@group(2) @binding(7) var paint: texture_2d<f32>;
 
 fn groundPaint(ground: vec3f) -> vec4f {
   if (layer.painted == 0u) { return vec4f(0.0); }
@@ -545,7 +545,7 @@ struct CastLights {
   lights: array<CastLight, 24>,
 }
 
-@group(2) @binding(1) var<uniform> lights: CastLights;
+@group(3) @binding(1) var<uniform> lights: CastLights;
 
 fn castLight(base: vec3f, normal: vec3f, position: vec3f) -> vec3f {
   let count = u32(lights.header.x);
@@ -672,11 +672,11 @@ fn lightAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f
  return standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
  }
 
-@group(2) @binding(3) var pmrem: texture_2d<f32>;
+@group(3) @binding(3) var pmrem: texture_2d<f32>;
 
-@group(2) @binding(4) var dfg: texture_2d<f32>;
+@group(3) @binding(4) var dfg: texture_2d<f32>;
 
-@group(2) @binding(5) var linear: sampler;
+@group(3) @binding(5) var linear: sampler;
 
 fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec3f {
   let sun_1 = mix(data.settings.y, 1f, shadow);
@@ -709,7 +709,7 @@ fn applyAerial(surface: vec4f, position: vec3f, camera: vec3f, observer: vec3f, 
     return vec4f(surface.rgb*transmit+mistSkyLight*(vec3f(1)-transmit),surface.a);
   }
 
-@group(2) @binding(2) var sky: texture_2d<f32>;
+@group(3) @binding(2) var sky: texture_2d<f32>;
 
 fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
   return applyAerial(vec4f(colour, 1f), position, eye, data.observer.xyz, data.sunDirection.xyz, data.aerial, sky, linear);
@@ -730,7 +730,7 @@ struct GroundPaintStyle {
   pad2: f32,
 }
 
-@group(3) @binding(6) var<uniform> paintStyle: GroundPaintStyle;
+@group(2) @binding(6) var<uniform> paintStyle: GroundPaintStyle;
 
 fn paintColour(paint: vec4f) -> vec3f {
   let c = pow(max(paint.xyz / max(paint.w, 1e-4), vec3f(0.0)), vec3f(2.2));

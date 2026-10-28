@@ -12,6 +12,13 @@
   - The prepass and colour pipelines must call the identical function, or the
     equal-depth test leaves holes.
 - Sway is look only. Felled trees lying on the ground don't sway.
+- **The wind every pass reads is the camera's** (`Camera.wind`), not the
+  environment uniform's: a sun cascade's caster binds only its camera, so
+  the one `Wind` record moved there, every cascade camera runs on the
+  frame's clock and wind, and the environment's copy is deleted
+  ([choice 1](../choices.md#slice-17-tree-sway)). No bind-group layout
+  changed; the camera's struct grew, which native uploads from the
+  presentation's records as they are.
 
 ## Verification
 

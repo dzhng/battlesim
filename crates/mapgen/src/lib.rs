@@ -62,6 +62,9 @@ pub enum DiagnosticCode {
     /// A river the terrain cannot carry, or a bridge whose ends no ramp
     /// reaches (`contract::river::validate`).
     InvalidRiver,
+    /// A swamp the terrain cannot carve, or one on ground it must keep off
+    /// (`contract::swamp::validate`).
+    InvalidSwamp,
     ComplexityLimit,
     InvalidPresets,
     /// A bounded search found no layout; the diagnostic names what ran out.
@@ -355,6 +358,12 @@ pub fn validate_plan(plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
                 format!("$.plan.rivers[{i}]"),
                 river.points().iter().map(|p| p.xy).collect(),
             )
+        }))
+        .chain(plan.swamps.iter().enumerate().map(|(i, swamp)| {
+            (
+                format!("$.plan.swamps[{i}]"),
+                shape_points(&swamp.shape).to_vec(),
+            )
         }));
     for (location, points) in shapes {
         // A stroke or a river may overhang the edge by its width; its
@@ -575,7 +584,7 @@ pub(crate) fn materialize(
         surfaces: request.plan.surfaces.clone(),
         bridges: Vec::new(),
         forests: request.plan.forests.clone(),
-        swamps: Vec::new(),
+        swamps: request.plan.swamps.clone(),
         props: request.plan.props.clone(),
         buildings: Vec::new(),
         template_catalog_hash: Some(catalogue.hash().into()),
@@ -615,6 +624,14 @@ pub(crate) fn materialize(
         })?;
         map.buildings.push(building);
     }
+    contract::swamp::validate(&map).map_err(|message| {
+        vec![Diagnostic {
+            code: DiagnosticCode::InvalidSwamp,
+            feature: None,
+            location: "$.plan.swamps".into(),
+            message,
+        }]
+    })?;
     let authored = map.authored_props().map_err(|message| {
         vec![Diagnostic {
             code: DiagnosticCode::InvalidAuthoredIds,
@@ -715,6 +732,11 @@ pub fn ground_points(plan: &MapPlan) -> u64 {
             .rivers
             .iter()
             .map(|river| river.samples().len() as u64)
+            .sum::<u64>()
+        + plan
+            .swamps
+            .iter()
+            .map(|swamp| count(&swamp.shape))
             .sum::<u64>()
 }
 

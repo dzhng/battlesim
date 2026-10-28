@@ -453,6 +453,8 @@ passes.
   world's layers arrive; until then nothing draws grass.
 - **Verdict:** sound.
 - **Confidence:** high.
+- **Superseded in slice 17:** the wind rides in the camera; `ground_wind`,
+  `setWind` and native's argument are gone ([slice 17, choice 1](#slice-17-tree-sway)).
 
 ### Grass's environment and fog groups swapped slots
 
@@ -466,6 +468,8 @@ passes.
 - **The reach:** none outside the export.
 - **Verdict:** sound.
 - **Confidence:** high.
+- **Superseded in slice 17:** grass reads `cameraWind()` and its groups
+  are camera, grass, fog, environment again.
 
 ### The effect vectors gained a bless path and a `wind` input
 
@@ -679,6 +683,71 @@ against the code. Each says what was chosen, why, and how sure the agent is.
    `speed_follows_surface_and_slope` folded in as a slope test. *Why:*
    `tests/navigation.rs` was over the size budget, and speed over ground is
    one concept. *Confidence:* high.
+9. **The owed evidence is a paired crossing, not a full battle report:**
+   the `wetlands` water encounter's squad and tank each moved across the
+   swamp alone, with the shipped factors and with every factor at 1.0
+   (slice 11's Evidence holds the table). *Why:* the encounter has no
+   opposing force, so a battle report would measure nothing but this; the
+   crossing isolates the one variable. Recorded, not retuned.
+   *Confidence:* high on the numbers; the factors themselves stay tuning.
+
+## Slice 12: swamps in map generation
+
+1. **Swamps come in pairs: one in each half, of one drawn size.** *Why:*
+   the halves then hold the same wet ground by construction; `verify`
+   still measures the split against `swamps.fairness` and refuses a plan
+   outside it, as it does woods. *Confidence:* high.
+2. **Each map type's chance is `swamps.chance.<type>` in the presets' own
+   swamp section, not a `swamp_chance` field beside `river_chance`.**
+   *Why:* `layout/presets.rs`, which holds the type rows, is over the size
+   budget and may not grow; the swamp section owns every swamp number.
+   Shipped chances: open 0.45, mixed 0.35, metro 0.2. *Confidence:* high
+   on the place, low on the values (tuning).
+3. **Placement:** after towns, woods and the skirmish reservation, before
+   `verify`, from the `swamps` stream. A swamp lies wholly inside its half
+   and the map, keeps `settlement_gap_m` from every settlement outline (both
+   rings' vertices) and every skirmish objective (its whole radius) and
+   entry, keeps `road_gap_m` from every road's edge and `wood_gap_m` from
+   every wood, keeps off every reserved corridor, keeps `bridge_gap_m` from
+   a deck lengthened by its approach (a circle test), keeps `swamp_gap_m`
+   from other swamps, and with a river lies between `river_gap_m` and
+   `river_reach_m` of the water with its long axis along the river's course
+   there. *Why:* the first unprimed critique of a six-seed sheet found roads
+   running through swamps, swamps notched into woods, one crowding a
+   village, and round ponds unrelated to the river; generated swamps now
+   keep off all of those (hand-made maps may still lay a causeway across
+   one). The second critique found no placement error. *Confidence:* medium
+   on the gaps and sizes (tuning).
+4. **Later passes keep off swamps through what they already keep off:** the
+   open country counts a swamp with the woods it never furnishes
+   (`open_country/country.rs`), and the ground-sight coverage counts its
+   depth in the lowest ground. Parcels and street furniture stand in
+   settlements, which swamps keep clear of. *Why:* no new owner, and
+   `open_country/mod.rs` is over the size budget. *Confidence:* medium:
+   street furniture along a rural road across a swamp could stand in its
+   water; none of the corpus seeds did.
+5. **The compiler runs `contract::swamp::validate` on the lowered map** and
+   refuses with `InvalidSwamp`, so a placement rule that misses a building
+   or a bridge approach is a named seed refusal, not a world assertion.
+6. **Preset validation refuses a swamp the terrain cannot carve:** a depth
+   past `contract::swamp::deepest_m` (now the contract's one rule), a
+   narrowest drawn swamp under four height samples across, and a river gap
+   inside a river's cut bank plus the swamp's edge. *Confidence:* high.
+7. **Versions:** generator `layout-20`, presets `layout-presets-20`. Plans
+   and maps without swamps serialize as before (`swamps` is skipped when
+   empty). *Confidence:* high.
+8. **The deck clearance is belt and braces:** with the shipped river gap no
+   swamp reaches a bridge approach, so its test is the compiled map's
+   admission, not the placement rule alone.
+9. **Splits for the size ratchet:** the presets document
+   (`layout/presets/definitions.rs`) and the open country's clearance
+   reading (`open_country/country.rs`) moved out in their own commits.
+10. **Left for tuning and slice 13:** the second critique still read the
+    swamps as neat ponds of one family, small at 6 km, and noted the
+    riverside ones never meet the river. The gap is the contract's (a
+    swamp may not stand on a river's cut bank); size and variety are preset
+    numbers; the crisp outline is the plan picture's symbol, and the look on
+    the battlefield is slice 13's.
 9. **No paired battle report on the `wetlands` map yet.** That map comes
    from slice 00 in the other lane; run the report once it is merged.
 
@@ -759,6 +828,56 @@ against the code. Each says what was chosen, why, and how sure the agent is.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
+## Slice 17: tree sway
+
+1. **The wind moved from the `Environment` uniform into the `Camera`
+   record (`Camera.wind`, one `Wind` in a one-record array).** *Why:* a sun
+   cascade's caster binds only its camera, and could not bind the
+   environment (it holds the very depth array the caster draws into); the
+   camera is the one uniform every vertex stage binds and already carries
+   the clock. The environment's wind, `setWind`, `ground_wind` and native's
+   wind argument are deleted, so the wind still has one owner. This revises
+   slice 01's upload contract. *Confidence:* high.
+2. **Every cascade camera now runs on the frame's clock and wind**
+   (`presentation/cameras.rs`); the fit is still reused, only those two
+   fields are refreshed each frame. Before, casters ran at time 0.
+   *Confidence:* high.
+3. **`sway(foot, point, up, height, leaf)`** (`frame/sway.ts`) is the one
+   function; the standing-tree vertex stage (prepass, forest and backdrop
+   colour) passes the vertex's leaf flag, the new `casterVertex` passes 0,
+   so shadows bend with the trunk and do not shiver. The tree's height is
+   the crown's heart (`shape.w`) over the walk's `HEART`, the inverse of
+   how the walk wrote it. Felled trees and forest-floor dressing do not
+   sway. *Confidence:* high.
+4. **Tuning (look only), owned by Rust (`static_world/ground/sway.rs`) and
+   generated into `SWAY` for the shader.** At strength 1 (gust speed 6 m/s
+   or more) the top bends `0.18 × height × (0.15 lean + 0.7 × gust front +
+   0.35 × swing × (1 + front)/2)`: under a passing gust front a crown leans
+   up to about 18% of its height and swings harder; between fronts it
+   holds a small lean and a slow swing (1.6 rad/s, with RedGPU's overtone).
+   Leaves shiver up to 0.15 m at 7 rad/s, more under a front. Strength
+   follows the wind's gust speed, so a calm biome stands still. Raised from
+   10% after the coordinator asked for a strong gust to bend a crown
+   visibly at the 80 m low shot. The last unprimed critique still found the
+   forced full gust hard to tell from the summer breeze in that shot. There
+   the summer wind (35°) blows almost along the camera's axis, so crowns
+   bend toward the lens, and the tree models already lean at rest. From
+   above (tactical) the shift reads, and nothing shears, detaches or
+   stretches. I stopped at this round rather than push the amplitude into
+   rubber. *Confidence:* low, by design.
+5. **Splits for the size ratchet:** the side's fog out of `presentation.rs`,
+   and the scenery's vertex stages out of `sceneryLayer.ts`, each in its own
+   commit.
+6. **The walk's chunk bounds take in the sway's reach** (`Sway::reach`,
+   from the same numbers the shader uses): the top's largest bend plus the
+   leaves' shiver, added to the chunk's radius and height. A tree's whole
+   bent crown can leave its rest box, so a rest-box cull dropped crowns and
+   shadows at the view's and cascades' edges. *Confidence:* high.
+7. **The frame scene's `geometry` baseline is re-blessed.** The geometry
+   lab's trees stand in the summer wind at the scene's held clock, so they
+   now bend. The still moved by a pixel at this tuning (2 px at an earlier
+   one), the same on repeated runs; foundation and river did not move.
+   *Confidence:* high.
 ## Slice 07: refraction, and the Low tier
 
 ### The bed shifts in metres along the slope, then is projected

@@ -4,8 +4,7 @@
 // through it, is the water's pass's (`waterPass.ts`). Its numbers are its
 // row's, which the water's pass reads too.
 import { tgpu, d, std } from "typegpu";
-import { typegpuCameraLayout } from "../world/camera";
-import { environmentWind } from "../world/environment";
+import { cameraWind, typegpuCameraLayout } from "../world/camera";
 import { terrainLayout } from "./terrainLayout";
 import { WATER_NORMALS_SIZE } from "./waterNormals";
 
@@ -52,7 +51,7 @@ export const waterCarried = tgpu.fn(
   d.vec2f,
 )(() => {
   "use gpu";
-  const wind = environmentWind();
+  const wind = cameraWind();
   return std.mul(wind.toward.xy, typegpuCameraLayout.$.cam.time * wind.driftMps);
 });
 

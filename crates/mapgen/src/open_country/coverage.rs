@@ -270,8 +270,8 @@ impl<'a> Coverage<'a> {
             .map(|u| u.hull().map_or(physics.infantry_eye_m, |h| h.eye_m))
             .fold(physics.fog_target_height_m, f64::max);
         let high = map.bridges.iter().map(|b| b.deck_z).fold(0., f64::max);
-        // Generated land has no relief. Each river can only lower it;
-        // summing each possible fall is conservative even for overlap.
+        // Generated land has no relief. Each river and swamp can only lower
+        // it; summing each possible fall is conservative even for overlap.
         if !map.relief.is_empty() {
             return Err("ground-sight coverage does not support relief yet".into());
         }
@@ -281,7 +281,8 @@ impl<'a> Coverage<'a> {
             .map(|r| {
                 r.surface_z().min(0.) - r.samples().iter().map(|p| p.depth_m).fold(0., f64::max)
             })
-            .sum::<f64>();
+            .sum::<f64>()
+            - map.swamps.iter().map(|s| s.depth_m).fold(0., f64::max);
         let tree = physics.catalog.props().by_id(&physics.forests.tree).body;
         let rule = physics.forests.rule;
         if low + rule.canopy_height_m <= high + eye {

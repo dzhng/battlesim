@@ -15,6 +15,7 @@ pub mod plots;
 pub mod scenery;
 mod shapes;
 mod strokes;
+pub mod sway;
 pub mod tables;
 #[cfg(test)]
 mod tests;

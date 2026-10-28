@@ -39,6 +39,12 @@ pub fn edge_m(height_grid_m: f64) -> f64 {
     EDGE_CELLS * height_grid_m
 }
 
+/// The deepest a swamp may be on that grid under that slope cutoff: its
+/// easing edge then falls no steeper than [`steepest_grade`].
+pub fn deepest_m(height_grid_m: f64, slope_cutoff_deg: f64) -> f64 {
+    steepest_grade(slope_cutoff_deg) * edge_m(height_grid_m) / EASE_STEEPEST
+}
+
 impl Swamp {
     fn ring(&self) -> &[[f64; 2]] {
         match &self.shape {
@@ -133,7 +139,6 @@ fn footings(
 pub fn validate(map: &MapDefinition) -> Result<(), String> {
     let grid = map.height_grid_m;
     let edge = edge_m(grid);
-    let steepest = steepest_grade(map.slope_cutoff_deg);
     // A cut sample moves every triangle it is a corner of.
     let triangle = grid * std::f64::consts::SQRT_2;
     let [nx, ny] = map.height_grid_size();
@@ -146,7 +151,7 @@ pub fn validate(map: &MapDefinition) -> Result<(), String> {
         if !swamp.depth_m.is_finite() || swamp.depth_m <= 0.0 {
             return Err(format!("swamps[{k}] needs a finite positive depth"));
         }
-        if EASE_STEEPEST * swamp.depth_m / edge > steepest {
+        if swamp.depth_m > deepest_m(grid, map.slope_cutoff_deg) {
             return Err(format!(
                 "swamps[{k}] is {} m deep over its {edge} m edge: steeper than the map's {}° slope cutoff allows",
                 swamp.depth_m, map.slope_cutoff_deg

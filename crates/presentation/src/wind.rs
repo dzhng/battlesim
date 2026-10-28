@@ -1,7 +1,8 @@
 //! The one wind: the biome's `wind` block resolved into the [`Wind`] record
-//! every shader reads in the environment uniform, as grass leans and gusts
-//! in it, and the effects read on the CPU, as smoke and dust drift on it.
-//! Its clock is the camera's (`Camera.time`): the record holds none.
+//! every camera carries (`Camera.wind`, the sun's cascades included), as
+//! grass, water and trees move in it, and the effects read on the CPU, as
+//! smoke and dust drift on it. Its clock is the camera's (`Camera.time`):
+//! the record holds none.
 use serde::Deserialize;
 
 use crate::records::Wind;

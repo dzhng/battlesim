@@ -17,7 +17,7 @@ import {
 import type { ObservationLayout } from "../src/battle/sim/observationView";
 import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
-import { FogParamsAt } from "@packages/battle-renderer/src/records.gen";
+import { CAMERA_WORDS, FogParamsAt } from "@packages/battle-renderer/src/records.gen";
 import {
   readWorldExports,
   type WorldExports,
@@ -77,7 +77,7 @@ function fogOver(
   if (publication) decoder.decode(publication.words);
   decoder.frame(0, OVERHEAD, { selected: [], xray: false, ghosts: [] }, 0);
   decoder.setFog({ sensors: sensorRules });
-  const upload = decoder.presentedGround()!.prepare_fog(new Float32Array(40), 64, 64, 0)!;
+  const upload = decoder.presentedGround()!.prepare_fog(new Float32Array(CAMERA_WORDS), 64, 64, 0)!;
   return { decoder, upload, exports };
 }
 

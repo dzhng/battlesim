@@ -40,8 +40,8 @@ Its preview checkpoint passed without feedback, so the framings stand.
 Slice 02 is done: the water draws multisampled in its own pass after glass.
 Its cost probe settled decision 25 that way. Before reading the frame in the
 water's shader, read its note on the four-bind-group limit.
-Slice 01 is done: one `Wind` record in the environment uniform, read by grass
-and by smoke and dust; slice 17 (tree sway) can start. Slice 03 is done: each
+Slice 01 is done: one `Wind` record, read by grass and by smoke and dust
+(slice 17 moved it from the environment uniform into the camera); slice 17 (tree sway) can start. Slice 03 is done: each
 river draws one of its biome's water looks, uniforms the water's shader reads,
 retuned live on the dev server. Slice 04 is done: the water shows its bed by
 depth, through each look's per-channel extinction. Slice 05 is done: the

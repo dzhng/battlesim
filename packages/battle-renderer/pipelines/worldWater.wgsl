@@ -1,3 +1,10 @@
+struct Wind {
+  toward: vec3f,
+  driftMps: f32,
+  gustMps: f32,
+  gustPerM: f32,
+}
+
 struct Camera {
   viewProj: mat4x4f,
   invViewProj: mat4x4f,
@@ -6,6 +13,7 @@ struct Camera {
   width: f32,
   height: f32,
   time: f32,
+  wind: array<Wind, 1>,
 }
 
 @group(0) @binding(0) var<uniform> cam: Camera;
@@ -92,49 +100,10 @@ struct TerrainParams {
 
 @group(1) @binding(0) var<uniform> params: TerrainParams;
 
-struct Wind {
-  toward: vec3f,
-  driftMps: f32,
-  gustMps: f32,
-  gustPerM: f32,
-}
-
-struct Aerial {
-  extinction: vec3f,
-  clearRadiusKm: f32,
-  sunTint: vec3f,
-  sunStrength: f32,
-  mistColor: vec3f,
-  mistColorStrength: f32,
-  overviewFromM: f32,
-  rangeNearM: f32,
-  rangeFarM: f32,
-  rangePower: f32,
-  rangeStrength: f32,
-  mistOpacity: f32,
-  sunPower: f32,
-  mistHeightM: vec2f,
-  mistDistanceM: vec2f,
-  horizonFade: vec2f,
-}
-
-struct Environment {
-  worldToView: mat4x4f,
-  observer: vec4f,
-  sunDirection: vec4f,
-  sunRadiance: vec4f,
-  settings: vec4f,
-  fill: vec4f,
-  aerial: Aerial,
-  wind: Wind,
-}
-
-@group(2) @binding(0) var<uniform> data: Environment;
-
-fn environmentWind() -> Wind { return data.wind; }
+fn cameraWind() -> Wind { return cam.wind[0]; }
 
 fn waterCarried() -> vec2f {
-  let wind = environmentWind();
+  let wind = cameraWind();
   return (wind.toward.xy * (cam.time * wind.driftMps));
 }
 
@@ -166,6 +135,35 @@ fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
   let n = blendRnm(blendRnm(macro_1, primary), detail);
   let shown = (1f - smoothstep((*w).fades.y, (*w).fades.z, footprint));
   return normalize(mix(vec3f(0, 0, 1), n, shown));
+}
+
+struct Aerial {
+  extinction: vec3f,
+  clearRadiusKm: f32,
+  sunTint: vec3f,
+  sunStrength: f32,
+  mistColor: vec3f,
+  mistColorStrength: f32,
+  overviewFromM: f32,
+  rangeNearM: f32,
+  rangeFarM: f32,
+  rangePower: f32,
+  rangeStrength: f32,
+  mistOpacity: f32,
+  sunPower: f32,
+  mistHeightM: vec2f,
+  mistDistanceM: vec2f,
+  horizonFade: vec2f,
+}
+
+struct Environment {
+  worldToView: mat4x4f,
+  observer: vec4f,
+  sunDirection: vec4f,
+  sunRadiance: vec4f,
+  settings: vec4f,
+  fill: vec4f,
+  aerial: Aerial,
 }
 
 struct SunCascade {
@@ -264,6 +262,8 @@ fn inheritedSunShadow(environment: Environment, sunShadow: SunShadow, sunDepth: 
   }
   return shade;
 }
+
+@group(2) @binding(0) var<uniform> data: Environment;
 
 @group(2) @binding(6) var<uniform> sun: SunShadow;
 

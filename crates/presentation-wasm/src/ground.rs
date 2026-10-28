@@ -121,12 +121,6 @@ impl Presentation {
         ))
     }
 
-    /// The biome's wind, the `Wind` record's words (`presentation::wind`).
-    pub fn ground_wind(&self) -> Result<Vec<f32>, JsError> {
-        let wind = ground(&self.inner)?.biome.wind.record();
-        Ok(bytemuck::cast_slice(&[wind]).to_vec())
-    }
-
     /// The plots' records, with or without their texture.
     pub fn ground_plots(&self, textured: bool) -> Result<Vec<u32>, JsError> {
         Ok(ground(&self.inner)?.plot_records(textured))

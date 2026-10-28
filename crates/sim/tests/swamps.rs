@@ -521,3 +521,19 @@ fn the_export_gives_each_swamp_its_outline_and_index() {
         assert_eq!(edges[swamp], expected, "swamp {swamp}");
     }
 }
+
+/// Map analysis counts a swamp's water as no open ground, as it does a
+/// river's: no approach or sight sample stands in it. A causeway across it
+/// and the dry rim round it still count.
+#[test]
+fn map_analysis_counts_no_swamp_water_as_open_ground() {
+    let w = world(ROAD);
+    let sites = contract::encounter::EncounterSites::default();
+    let open = |x: f64, y: f64| sim::map_analysis::open_ground(&w, &sites, v2(x, y));
+    for (x, y) in [(150.0, 120.0), (101.0, 180.0), (199.0, 101.0)] {
+        assert!(!open(x, y), "swamp water at ({x}, {y})");
+    }
+    for (x, y) in [(150.0, 150.0), (96.0, 120.0), (300.0, 250.0)] {
+        assert!(open(x, y), "dry ground at ({x}, {y})");
+    }
+}

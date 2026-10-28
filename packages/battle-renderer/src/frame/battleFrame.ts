@@ -293,7 +293,6 @@ export async function createBattleFrame(
         setPresentedGround(ground) {
           if (disposed) return;
           world.setPresentedGround(ground);
-          environment.setWind(ground?.ground_wind() ?? null);
         },
         setGround(next) {
           return !disposed && world.setGround(next);

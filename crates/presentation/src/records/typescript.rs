@@ -57,6 +57,26 @@ pub fn typescript() -> String {
         crate::effects::lights::CAST_LIGHTS_MAX
     ));
     {
+        use crate::static_world::ground::{sway::SWAY, walk::HEART};
+        out.push_str(&format!(
+            "/** How a standing tree sways in the wind, which the scenery walk's bounds\n \
+             *  reach by (`static_world/ground/sway.rs`), and its crown's heart as a share\n \
+             *  of its height (`walk.rs`): the shader finds the tree's height from it. */\n\
+             export const SWAY = {{\n  bend: {},\n  lean: {},\n  gust: {},\n  swing: {},\n  \
+             rate: {},\n  fullGustMps: {},\n  shiverM: {},\n  shiverRate: {},\n  heart: {},\n\
+             }} as const;\n",
+            SWAY.bend,
+            SWAY.lean,
+            SWAY.gust,
+            SWAY.swing,
+            SWAY.rate,
+            SWAY.full_gust_mps,
+            SWAY.shiver_m,
+            SWAY.shiver_rate,
+            HEART,
+        ));
+    }
+    {
         use crate::effects::frame::{EFFECT_KINDS, SHAPE_NAMES};
         // One line when it fits the formatter's width, else a name a line.
         let names = |name: &str, names: &[&str]| {

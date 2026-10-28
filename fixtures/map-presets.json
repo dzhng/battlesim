@@ -17,7 +17,7 @@
     "pin_rounds": 4,
     "shortest_run_m": 1.0
   },
-  "revision": "layout-presets-19",
+  "revision": "layout-presets-20",
   "terrain": { "render_margin_m": 1500, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": { "small": 1000, "medium": 1800, "large": 1800, "xl": 1800 },
@@ -153,6 +153,24 @@
       "reuse_m": { "country_road": 600, "dirt_track": 1200 },
       "worth_m": 800
     }
+  },
+  "swamps": {
+    "chance": { "open": 0.45, "mixed": 0.35, "metro": 0.2 },
+    "pairs": [1, 2],
+    "radius_m": [90, 200],
+    "aspect": [0.3, 0.6],
+    "outline_noise": 0.45,
+    "outline_points": 32,
+    "depth_m": 0.6,
+    "river_reach_m": 140,
+    "river_gap_m": 30,
+    "settlement_gap_m": 60,
+    "swamp_gap_m": 80,
+    "bridge_gap_m": 40,
+    "road_gap_m": 20,
+    "wood_gap_m": 20,
+    "attempts": 60,
+    "fairness": { "rel": 0.05, "abs": 0.0002 }
   },
   "retries": { "centre": 60, "site": 200, "forest": 60, "river": 150, "repair_settlements": 4, "repair_woods": 5, "repair_blocks": 4, "infill": 6, "fit": 3 },
   "parcels": {

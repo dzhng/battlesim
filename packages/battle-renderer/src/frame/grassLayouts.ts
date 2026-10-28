@@ -33,7 +33,7 @@ export const GrassParams = d
     counts: d.vec4u,
     /** The height grid's spacing, then 0. */
     ground: d.vec4f,
-    /** How grass sways in the wind (`environmentWind`): steady lean, gust
+    /** How grass sways in the wind (`cameraWind`): steady lean, gust
      *  lean, flutter, flutter radians a second. */
     sway: d.vec4f,
     /** Per plot kind (the verge last): density, height scale, grasses mixed,
