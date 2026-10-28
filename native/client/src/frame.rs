@@ -1,10 +1,6 @@
-//! The frame: one ordered list of passes, encoded in order each drawn frame
-//! (Bevy 0.19+'s fixed pass order without a render graph; `battleFrame.ts`
-//! is the browser's). Each presentation `Frame` first prepares the layers
-//! (its camera and view, the sun's cascades it fitted, the cast lights, the
-//! grass's window, the models' palettes and instances, the effects'
-//! instances); then each pass reads the frame's `View`, the sized targets
-//! and the layers, and encodes its work. The list is the whole frame.
+//! Native scene preparation and display readback around the shared GPU frame.
+//! Presentation supplies canonical records; the shared `FrameRenderer` owns
+//! every render-pass decision and the completed display texture.
 use presentation::presentation::Presentation;
 use presentation::records::View;
 use wgpu::*;
@@ -15,111 +11,16 @@ use crate::fog::Fog;
 use crate::grass::Grass;
 use crate::ground::Ground;
 use crate::models::Models;
-use crate::models::Surface;
 use crate::scenery::Scenery;
 use crate::shadow::SunShadow;
-
-struct NativeFrame<'a> {
-    passes: &'a Passes,
-    inputs: &'a Inputs<'a>,
-}
-
-fn native_pass_name(stage: renderer_core::frame::FrameStage) -> &'static str {
-    match stage {
-        renderer_core::frame::FrameStage::SunShadow => "sun-shadow",
-        renderer_core::frame::FrameStage::Depth => "depth-prepass",
-        renderer_core::frame::FrameStage::FogSight => "fog-sight",
-        renderer_core::frame::FrameStage::World => "world",
-        renderer_core::frame::FrameStage::Effects => "effects",
-        renderer_core::frame::FrameStage::FogMask => "fog-mask",
-        renderer_core::frame::FrameStage::Overlays => "ghosts",
-        renderer_core::frame::FrameStage::Post => "post",
-        renderer_core::frame::FrameStage::FogRim => "fog-rim",
-    }
-}
-
-impl renderer_core::frame::FrameInputs for NativeFrame<'_> {
-    fn encode_stage(
-        &mut self,
-        stage: renderer_core::frame::FrameStage,
-        encoder: &mut CommandEncoder,
-    ) {
-        let name = native_pass_name(stage);
-        let pass = self
-            .passes
-            .passes
-            .iter()
-            .find(|pass| pass.name() == name)
-            .unwrap_or_else(|| panic!("native frame is missing shared stage {name}"));
-        pass.encode(self.inputs, encoder);
-    }
-}
-
-impl renderer_core::depth::DepthInputs for Inputs<'_> {
-    fn depth_view(&self) -> &TextureView {
-        &self.targets.depth
-    }
-
-    fn camera_group(&self) -> (&'static str, &BindGroup) {
-        let [camera, ..] = self.environment.groups();
-        camera
-    }
-
-    fn draw_ground_depth(&self, pass: &mut RenderPass<'_>) {
-        self.ground.draw_depth(pass, self.camera_group());
-    }
-
-    fn draw_scenery_depth(&self, pass: &mut RenderPass<'_>) {
-        self.scenery
-            .draw_depth(pass, self.camera_group(), self.models.statics());
-    }
-
-    fn draw_models_depth(
-        &self,
-        pass: &mut RenderPass<'_>,
-        pipeline: &renderer_core::pipelines::Bound,
-        cutout: bool,
-    ) {
-        pipeline.set(pass, &[self.camera_group(), self.models.group()]);
-        self.models.draw(
-            pass,
-            if cutout {
-                Surface::Cutout
-            } else {
-                Surface::Solid
-            },
-        );
-    }
-}
 
 pub use renderer_core::{
     TargetOwner, Targets, DEPTH_FORMAT, DISPLAY_FORMAT, FOG_DISTANCE_FORMAT, FOG_MASK_FORMAT,
     HDR_FORMAT, MSAA,
 };
 
-/// What a pass draws from.
-pub struct Inputs<'a> {
-    pub device: &'a Device,
-    pub queue: &'a Queue,
-    pub view: &'a View,
-    pub targets: &'a Targets,
-    pub environment: &'a Environment,
-    pub shadow: &'a SunShadow,
-    pub ground: &'a Ground,
-    pub grass: &'a Grass,
-    pub models: &'a Models,
-    pub scenery: &'a Scenery,
-    pub effects: &'a Effects,
-    pub fog: &'a Fog,
-}
-
-pub trait Pass {
-    fn name(&self) -> &'static str;
-    fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder);
-}
-
-/// The layers and the passes in the order they draw.
-pub struct Passes {
+/// Native retention and presentation adapters for the shared scene owners.
+pub struct Scene {
     pub targets: TargetOwner,
     pub environment: Environment,
     pub shadow: SunShadow,
@@ -129,10 +30,13 @@ pub struct Passes {
     pub scenery: Scenery,
     pub effects: Effects,
     pub fog: Fog,
-    pub passes: Vec<Box<dyn Pass>>,
+    pub sky: renderer_core::sky::Sky,
+    pub frame: renderer_core::frame::FrameRenderer,
+    pub post: renderer_core::post::PostResources,
+    pub fog_mask: renderer_core::fog_mask::FogMaskResources,
 }
 
-impl Passes {
+impl Scene {
     /// Prepares the layers for `presentation`'s last frame.
     pub fn prepare(
         &mut self,
@@ -191,34 +95,25 @@ impl Passes {
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
             label: Some("battle-frame"),
         });
-        let inputs = Inputs {
+        let inputs = renderer_core::frame::FrameInputs {
             device,
             queue,
             view,
             targets: &self.targets,
+            sky: &self.sky,
             environment: &self.environment,
-            shadow: &self.shadow,
+            shadow: self.shadow.resources(),
             ground: &self.ground,
-            grass: &self.grass,
+            grass: Some(&self.grass),
             models: &self.models,
             scenery: &self.scenery,
-            effects: &self.effects,
+            effects: self.effects.resources(),
             fog: &self.fog,
+            fog_mask: &self.fog_mask,
+            post: &self.post,
+            overlays: None,
         };
-        let mut frame = NativeFrame {
-            passes: self,
-            inputs: &inputs,
-        };
-        for pass in &self.passes {
-            assert!(
-                renderer_core::frame::FrameStage::ORDER
-                    .iter()
-                    .any(|stage| native_pass_name(*stage) == pass.name()),
-                "native pass is missing from the shared frame order: {}",
-                pass.name()
-            );
-        }
-        renderer_core::frame::encode_frame(&mut encoder, &mut frame);
+        self.frame.encode(&inputs, &mut encoder);
         encoder
     }
 

@@ -74,16 +74,53 @@ against `ab00ccef5`, not the final migration source budget. Asset admission,
 model/scenery/held-batch routing now each have one Rust owner; native and browser
 call those same owners. Remaining native shell rendering is still counted.
 
-Next hypothesis: reusing native sky/ground/fog ownership will close these differences
-with less code than repairing browser-specific adapters. Extract the real native
-owners; keep native behavior fixed as the winner. Regression set: shared core and
-native host/WASM checks, native pose/count/scenery/cascade tests, normal eleven-row
-scene, and the captured `plate-240` pair. Preserve `plate-660` as an effects-heavy
-follow-up; its foreground explosion alone is too weak to judge world materials.
+The next experiment reused the actual native sky, environment, ground, grass,
+scars and fog owners, then replaced both callback frame adapters with one concrete
+`FrameRenderer`. **Keep:** the captured `plate-240` control/candidate RGB MAE is
+`0.000010049120099044128`, with zero grayscale/pixelmatch/edge distance in the
+full frame and the architecture, sky, tank and street crops. The native client
+also reproduces all six pre-extraction native plates byte for byte. A fresh
+unprimed critique found no candidate-specific regression; diagonal vehicle
+striping and weak tank grounding are visible in both controls and remain
+existing visual concerns. Evidence: `shared-frame-review/`,
+`native-shared-frame-diff/` under `throwaway/evidence/one-renderer/`.
+
+The detailed development protocol uses serial queue completion between frames,
+three rotated repeats and 120 actual GPU timestamp samples in every repeat.
+Both controls use the same marker-pass technique; instrumentation remains off
+in the default batched-throughput run. CPU includes each renderer's preparation
+and encoding, including the candidate's cross-WASM fog/scar transport. The
+normal eleven-row regression and captured lifecycle checks pass.
+
+| Browser target, frozen 640×360 street | CPU p50 across repeats | CPU p95 across repeats | GPU mean across repeats | GPU p95 across repeats |
+| --- | ---: | ---: | ---: | ---: |
+| TypeGPU BattleFrame | 0.390–0.410 ms | 0.445–0.610 ms | 3.635–3.653 ms | 3.804–3.829 ms |
+| Shared Rust runtime in WASM | 0.120–0.130 ms | 0.140–0.230 ms | 3.945–3.955 ms | 3.998–4.017 ms |
+
+Owned GPU payload is `408,256,869` bytes for TypeGPU and `372,836,805` bytes for
+the Rust candidate, including profiling allocations. Rust additionally reports
+`185,333,300` decoded asset payload bytes and `11,155,820` recovery snapshot bytes
+on the CPU. These are ownership/payload figures, not whole-process memory or
+driver residency; the TypeGPU control has no equivalent CPU heap measurement.
+Raw per-repeat/per-frame evidence is in `shared-frame-profile/samples.json`,
+with compact results in `shared-frame-timing-summary.json`.
+
+These timings support a roughly threefold CPU reduction and an approximately
+eight-percent GPU cost on this frame, not the final migration verdict. Browser
+paint/x-ray/high-air/diagnostic features remain unported. The candidate still
+needs canonical effect-atlas mip ownership and fog-look enable flags; startup
+includes fixture/cache-order effects and is not a cold-download comparison.
+Next: preserve these pixels while finishing the production feature seams, then
+expand to an effects-heavy plate and matched native/browser resolution. Final
+source accounting must include deletion of TypeGPU and the standalone graph.
 
 A transient browser startup failure also occurred: a fresh static data page
 failed before game code; after bounded GPU-disabled and Metal probes the default
 browser loaded again. Those attempts have no renderer timing interpretation.
+The first detailed timestamp run also timed out before any canvas reported a
+stage. Adding progress stages to the TypeGPU control produced a complete repeat;
+the timed-out attempt provides no timing result and remains an infrastructure/
+initialization uncertainty rather than an assigned renderer regression.
 
 ## Hypothesis queue
 

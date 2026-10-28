@@ -9,7 +9,7 @@ use presentation::presentation::Presentation;
 use presentation::scars::{self, ScarUpload, PARAMS_WORDS, POOL_HEIGHT, POOL_WIDTH};
 use wgpu::*;
 
-use crate::gpu::buffer;
+use crate::buffer;
 
 /// `ScarParams`: the cache's words, then the biome's look (`full` on).
 const WORDS: usize = 52;
@@ -29,6 +29,25 @@ fn texture(device: &Device, label: &str, size: [u32; 2], format: TextureFormat) 
         usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
         view_formats: &[],
     })
+}
+
+/// Camera and presentation records used to choose scar submissions. Keeping
+/// scissor selection here gives native and copied-WASM inputs the same policy.
+pub struct ScarView<'a> {
+    pub grass: Option<ScarUpload>,
+    pub regions: &'a [[f64; 4]],
+    pub camera: &'a presentation::records::Camera,
+    pub map_box: Option<&'a [f64; 6]>,
+    pub size: [u32; 2],
+}
+
+/// Presentation-resolved uploads in submission order for one frame.
+#[derive(Clone, Default)]
+pub struct ScarFrame {
+    pub grass: Option<ScarUpload>,
+    pub view: Option<ScarUpload>,
+    pub regions: Vec<([u32; 4], ScarUpload)>,
+    pub regional: bool,
 }
 
 pub struct Scars {
@@ -117,27 +136,72 @@ impl Scars {
         map_box: Option<&[f64; 6]>,
         size: [u32; 2],
     ) -> bool {
-        self.grass = grass.map(|window| presentation.prepare_scars(Some(window), false));
+        // Preparing grass can drain learned-ground changes and change which
+        // regions fit; query the region list only after that upload is resolved.
+        let grass = grass.map(|window| presentation.prepare_scars(Some(window), false));
         let regions = presentation.scar_regions();
-        self.regional = !regions.is_empty();
         let camera = presentation.last_frame().camera;
-        let view_proj = camera.view_proj.first_chunk().expect("a 4×4 matrix");
-        let on_screen = |r| scars::scissor(r, map_box, view_proj, size);
-        (self.view, self.regions) = if regions.is_empty() {
-            (Some(presentation.prepare_scars(None, false)), Vec::new())
+        self.prepare_records(
+            device,
+            ScarView {
+                grass,
+                regions: &regions,
+                camera: &camera,
+                map_box,
+                size,
+            },
+            |region, clipped| presentation.prepare_scars(region, clipped),
+        )
+    }
+
+    /// Choose the same bounded regional submissions with a platform-provided
+    /// source of presentation uploads. The grass upload has already been
+    /// resolved before the region list, since it can change cache admission.
+    pub fn prepare_records(
+        &mut self,
+        device: &Device,
+        view: ScarView<'_>,
+        mut prepare_upload: impl FnMut(Option<[f64; 4]>, bool) -> ScarUpload,
+    ) -> bool {
+        let grass = view.grass;
+        let regions = view.regions;
+        let regional = !regions.is_empty();
+        let view_proj = view.camera.view_proj.first_chunk().expect("a 4×4 matrix");
+        let on_screen = |r| scars::scissor(r, view.map_box, view_proj, view.size);
+        let (view, regions) = if regions.is_empty() {
+            (Some(prepare_upload(None, false)), Vec::new())
         } else {
             let shown: Vec<_> = regions
-                .into_iter()
+                .iter()
+                .copied()
                 .filter_map(|r| on_screen(r).map(|rect| (r, rect)))
                 .collect();
             (
                 None,
                 shown
                     .into_iter()
-                    .map(|(r, rect)| (rect, presentation.prepare_scars(Some(r), true)))
+                    .map(|(r, rect)| (rect, prepare_upload(Some(r), true)))
                     .collect(),
             )
         };
+        self.prepare_uploads(
+            device,
+            ScarFrame {
+                grass,
+                view,
+                regions,
+                regional,
+            },
+        )
+    }
+
+    /// Stage copied presentation uploads from a separate platform memory.
+    /// Returns whether the directory grew and its bind group must be rebuilt.
+    pub fn prepare_uploads(&mut self, device: &Device, frame: ScarFrame) -> bool {
+        self.grass = frame.grass;
+        self.view = frame.view;
+        self.regions = frame.regions;
+        self.regional = frame.regional;
         let size = self.directory.size();
         let [mut w, mut h] = [size.width, size.height];
         let regions = self.regions.iter().map(|(_, u)| u);
@@ -224,5 +288,13 @@ impl Scars {
         let mut words = self.words;
         words[..PARAMS_WORDS].copy_from_slice(&upload.params);
         queue.write_buffer(&self.params, 0, bytemuck::cast_slice(&words));
+    }
+}
+
+impl Scars {
+    pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        memory.buffer(&self.params);
+        memory.texture(&self.pool);
+        memory.texture(&self.directory);
     }
 }

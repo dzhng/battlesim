@@ -25,6 +25,7 @@ export async function run(ctx) {
     url.searchParams.set("capture", "1");
     url.searchParams.set("plate", plate);
   }
+  if (process.env.ONE_RENDERER_TIMING === "1") url.searchParams.set("timing", "1");
   await page.goto(url.href);
   await page.getByRole("button", { name: "Run comparison" }).waitFor({ timeout: 60_000 });
   await page.getByRole("button", { name: "Run comparison" }).click();
@@ -48,6 +49,10 @@ export async function run(ctx) {
     ),
   );
   await writeFile(evidencePath("result.json"), JSON.stringify(result, null, 2));
+  const samples = await page
+    .locator("tbody tr")
+    .evaluateAll((rows) => rows.flatMap((row) => JSON.parse(row.dataset.samples ?? "[]")));
+  await writeFile(evidencePath("samples.json"), JSON.stringify(samples, null, 2));
   await page.screenshot({ path: evidencePath("comparison.png"), fullPage: true });
   if (capture) {
     const browser = await page.locator("canvas").nth(9).screenshot();
@@ -71,6 +76,11 @@ export async function run(ctx) {
     ctx.check(
       "fresh shared renderer receives a complete fog snapshot",
       workload?.fogInitialUploadComplete === true,
+      JSON.stringify(workload),
+    );
+    ctx.check(
+      "shared renderer consumes a fresh fog record each drawn frame",
+      workload?.fogSightUploads >= Number(result[1]?.[4]),
       JSON.stringify(workload),
     );
     ctx.check(

@@ -18,6 +18,7 @@ pub struct PostResources {
     stages: Vec<Stage>,
     bloom: Buffer,
     grade: Buffer,
+    steps: Vec<Buffer>,
 }
 
 fn texture(device: &Device, label: &str, size: [u32; 2]) -> TextureView {
@@ -67,6 +68,7 @@ pub fn new(
         crate::bind(device, pipelines.layout(layout), layout, resources)
     };
     let mut stages = Vec::new();
+    let mut steps = Vec::new();
     let [mut w, mut h] = targets.size.map(|v| v / 2);
     let bright = texture(device, "bloom-bright", [w, h]);
     stages.push(Stage {
@@ -107,6 +109,7 @@ pub fn new(
                 ),
                 target: to.clone(),
             });
+            steps.push(step);
         }
         source = vertical.clone();
         levels.push(vertical);
@@ -139,6 +142,7 @@ pub fn new(
         stages,
         bloom,
         grade,
+        steps,
     }
 }
 
@@ -170,6 +174,19 @@ impl PostResources {
             pass.set_pipeline(&stage.pipeline);
             pass.set_bind_group(0, &stage.group, &[]);
             pass.draw(0..3, 0..1);
+        }
+    }
+}
+
+impl PostResources {
+    pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        memory.buffer(&self.bloom);
+        memory.buffer(&self.grade);
+        for step in &self.steps {
+            memory.buffer(step);
+        }
+        for stage in &self.stages {
+            memory.view(&stage.target);
         }
     }
 }

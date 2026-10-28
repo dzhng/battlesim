@@ -7,14 +7,15 @@
 #![cfg(target_arch = "wasm32")]
 
 use renderer_core::bundle::Library;
-use renderer_core::depth::DepthPrepass;
 use renderer_core::fog_mask::FogMaskResources;
 use renderer_core::fog_sight::FogSightResources;
+use renderer_core::frame::FrameRenderer;
+use renderer_core::grass::Grass;
+use renderer_core::ground::Ground;
 use renderer_core::models::Models;
-use renderer_core::pipelines::{Bound, Pipelines};
+use renderer_core::pipelines::Pipelines;
 use renderer_core::post::PostResources;
 use renderer_core::shadow::{ShadowResources, CAMERA_BYTES, RECEIVER_BYTES};
-use renderer_core::terrain::TerrainResources;
 use renderer_core::TargetOwner;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
@@ -27,23 +28,24 @@ pub(crate) mod pipeline_export {
 }
 mod asset;
 mod browser_effects;
-mod environment;
+mod diagnostics;
 mod export;
+mod ground_upload;
 mod presentation_upload;
 mod recovery;
 mod render;
-mod render_world;
 mod scenery;
 mod shadow_upload;
 mod state;
 mod stats_api;
-mod terrain_snapshot;
 use asset::{ModelFrameSnapshot, ModelWorldSnapshot};
 use browser_effects::BrowserEffects;
-use environment::BrowserEnvironment;
+use ground_upload::{GrassSnapshot, GroundSnapshot};
+use renderer_core::environment::Environment;
+use renderer_core::sky::Sky;
 use scenery::SceneryWorldSnapshot;
+use state::LightingSnapshot;
 use state::{PresentationSnapshot, Stats};
-use terrain_snapshot::TerrainSnapshot;
 
 const DISPLAY_PIPELINES: &str = r#"{
   "sizes":{"bloomLevels":0,"skyLut":[1,1],"effectSheet":1,"grassClump":1},
@@ -89,22 +91,16 @@ pub struct Renderer {
     shared_fog_sight: FogSightResources,
     shared_overlay_resources: renderer_core::overlay::OverlayResources,
     shared_shadow: ShadowResources,
-    terrain: TerrainResources,
-    environment: BrowserEnvironment,
-    /// The presentation camera record bound by the shared model prepass.
-    presentation_camera: Buffer,
-    /// CPU presentation records staged for the remaining production passes.
-    /// The fog look is owned and bound by `shared_fog_mask`; only its CPU
-    /// snapshot remains here so a device or target rebuild can replay it.
-    presentation_environment: Buffer,
-    presentation_overlay: Buffer,
+    ground: Option<Ground>,
+    grass: Option<Grass>,
+    ground_snapshot: Option<Arc<GroundSnapshot>>,
+    grass_snapshot: Option<Arc<GrassSnapshot>>,
+    environment: Environment,
+    sky: Sky,
+    lighting: LightingSnapshot,
     presentation_snapshot: Option<PresentationSnapshot>,
-    production_camera_group: BindGroup,
-    production_terrain_vertices: Buffer,
-    production_terrain_vertex_count: u32,
-    production_static_vertices: Buffer,
-    production_static_vertex_count: u32,
-    depth: DepthPrepass,
+    frame: FrameRenderer,
+    gpu_timer: Option<renderer_core::timing::FrameTimer>,
     models: Option<Models>,
     scenery: Option<renderer_core::scenery::Scenery>,
     scenery_world: Option<Arc<SceneryWorldSnapshot>>,
@@ -114,15 +110,6 @@ pub struct Renderer {
     overlay_vertices: Buffer,
     overlay_instances: Buffer,
     overlay_vertex_count: u32,
-    shadow_ground_vertices: Buffer,
-    shadow_ground_count: u32,
-    ground_snapshot: Option<Vec<f32>>,
-    static_world_snapshot: Option<Vec<f32>>,
-    terrain_snapshot: Option<TerrainSnapshot>,
-    fog_rebuild_dispatch: Option<[u32; 2]>,
-    fog_whole_dispatch: Option<[u32; 2]>,
-    fog_dispatch_active: bool,
-    fog_height_snapshot: Option<Vec<u32>>,
     post_bloom: Vec<f32>,
     post_grade: Vec<f32>,
     display_sampler: Sampler,
@@ -140,11 +127,27 @@ fn js_error(error: impl std::fmt::Display) -> JsValue {
     JsValue::from_str(&error.to_string())
 }
 
+fn record<T: bytemuck::Pod>(words: &[f32], label: &str) -> Result<T, JsValue> {
+    bytemuck::try_from_bytes(bytemuck::cast_slice(words))
+        .copied()
+        .map_err(|error| js_error(format!("{label}: {error}")))
+}
+
 #[wasm_bindgen]
 impl Renderer {
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
-    pub async fn new(canvas: HtmlCanvasElement) -> Result<Renderer, JsValue> {
+    pub async fn new(
+        canvas: HtmlCanvasElement,
+        sky: Vec<f32>,
+        sun: Vec<f32>,
+        aerial: Vec<f32>,
+    ) -> Result<Renderer, JsValue> {
+        let lighting = LightingSnapshot {
+            sky: record(&sky, "sky light")?,
+            sun: record(&sun, "sun light")?,
+            aerial: record(&aerial, "aerial light")?,
+        };
         let instance = Instance::new(InstanceDescriptor {
             backends: Backends::BROWSER_WEBGPU,
             ..InstanceDescriptor::new_without_display_handle()
@@ -164,7 +167,7 @@ impl Renderer {
         let (device, queue) = adapter
             .request_device(&DeviceDescriptor {
                 label: Some("shared-renderer-browser"),
-                required_features: Features::empty(),
+                required_features: adapter.features() & Features::TIMESTAMP_QUERY,
                 required_limits: adapter.limits(),
                 experimental_features: ExperimentalFeatures::disabled(),
                 memory_hints: MemoryHints::Performance,
@@ -258,25 +261,6 @@ impl Renderer {
             &[0; RECEIVER_BYTES],
             CAMERA_BYTES,
         );
-        let terrain = TerrainResources::new(&device, &queue, &production_pipelines);
-        let production_camera = renderer_core::buffer(
-            &device,
-            "shared-production-camera",
-            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-            &[0; 160],
-        );
-        let presentation_environment = renderer_core::buffer(
-            &device,
-            "shared-presentation-environment",
-            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-            &[0; 256],
-        );
-        let presentation_overlay = renderer_core::buffer(
-            &device,
-            "shared-presentation-overlay",
-            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-            &[0; 256],
-        );
         let overlay_vertices = renderer_core::buffer(
             &device,
             "shared-overlay-vertices",
@@ -289,38 +273,26 @@ impl Renderer {
             BufferUsages::VERTEX,
             bytemuck::cast_slice(&[0.0f32, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0]),
         );
-        let shadow_ground_vertices = renderer_core::buffer(
-            &device,
-            "shared-shadow-ground-vertices",
-            BufferUsages::VERTEX,
-            &[0; 40],
-        );
-        let environment = BrowserEnvironment::new(
+        let sky = Sky::new(&device, &queue, &production_pipelines, &lighting.sky);
+        let environment = Environment::new(
             &device,
             &queue,
             &production_pipelines,
-            &presentation_environment,
+            &sky.lut,
+            &lighting.sun,
+            &lighting.aerial,
             &shared_shadow,
         );
-        let production_camera_group = renderer_core::bind(
-            &device,
-            production_pipelines.layout("typegpuCameraLayout"),
-            "shared-production-camera-group",
-            &[BindingResource::Buffer(
-                production_camera.as_entire_buffer_binding(),
-            )],
-        );
-        let environment_pmrem = environment.pmrem.create_view(&Default::default());
         let shared_effects = BrowserEffects::new(
             &device,
             &targets,
             &production_pipelines,
-            &production_camera,
-            &presentation_environment,
-            &environment_pmrem,
+            &environment.camera_buffer,
+            &environment.data,
+            &environment.pmrem,
             &environment.cast_lights,
         );
-        let depth = DepthPrepass::new(&production_pipelines);
+        let frame = FrameRenderer::new(&production_pipelines);
         let display_sampler = device.create_sampler(&SamplerDescriptor::default());
         let display_group = renderer_core::bind(
             &device,
@@ -330,18 +302,6 @@ impl Renderer {
                 BindingResource::TextureView(&targets.display),
                 BindingResource::Sampler(&display_sampler),
             ],
-        );
-        let production_terrain_vertices = renderer_core::buffer(
-            &device,
-            "shared-production-terrain-vertices",
-            BufferUsages::VERTEX,
-            &[0; 40],
-        );
-        let production_static_vertices = renderer_core::buffer(
-            &device,
-            "shared-production-static-vertices",
-            BufferUsages::VERTEX,
-            &[0; 40],
         );
         Ok(Self {
             surface,
@@ -356,18 +316,16 @@ impl Renderer {
             shared_fog_sight,
             shared_overlay_resources,
             shared_shadow,
-            terrain,
+            ground: None,
+            grass: None,
+            ground_snapshot: None,
+            grass_snapshot: None,
             environment,
-            presentation_camera: production_camera,
-            presentation_environment,
-            presentation_overlay,
+            sky,
+            lighting,
             presentation_snapshot: None,
-            production_camera_group,
-            production_terrain_vertices,
-            production_terrain_vertex_count: 0,
-            production_static_vertices,
-            production_static_vertex_count: 0,
-            depth,
+            frame,
+            gpu_timer: None,
             models: None,
             scenery: None,
             scenery_world: None,
@@ -377,15 +335,6 @@ impl Renderer {
             overlay_vertices,
             overlay_instances,
             overlay_vertex_count: 0,
-            shadow_ground_vertices,
-            shadow_ground_count: 0,
-            ground_snapshot: None,
-            static_world_snapshot: None,
-            terrain_snapshot: None,
-            fog_rebuild_dispatch: None,
-            fog_whole_dispatch: None,
-            fog_dispatch_active: false,
-            fog_height_snapshot: None,
             post_bloom: Vec::new(),
             post_grade: Vec::new(),
             display_sampler,
@@ -482,7 +431,6 @@ impl Renderer {
     }
 
     fn rebuild_effects(&mut self) {
-        let pmrem = self.environment.pmrem.create_view(&Default::default());
         let effects = self
             .presentation_snapshot
             .as_ref()
@@ -494,9 +442,9 @@ impl Renderer {
             &self.production_pipelines,
             browser_effects::EffectsFrame {
                 targets: &self.targets,
-                camera: &self.presentation_camera,
-                environment: &self.presentation_environment,
-                pmrem: &pmrem,
+                camera: &self.environment.camera_buffer,
+                environment: &self.environment.data,
+                pmrem: &self.environment.pmrem,
                 cast_lights: &self.environment.cast_lights,
             },
             effects,

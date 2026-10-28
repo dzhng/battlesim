@@ -272,3 +272,50 @@ fn texture_bytes(id: &str, bytes: &[u8]) -> Result<Texture> {
         levels,
     })
 }
+
+impl Library {
+    /// Decoded mesh and texture array payloads retained for device recreation.
+    /// Excludes allocator, container and string metadata overhead.
+    pub fn payload_bytes(&self) -> usize {
+        fn mesh_bytes(mesh: &Mesh) -> usize {
+            size_of_val(mesh.positions.as_slice())
+                + size_of_val(mesh.normals.as_slice())
+                + mesh
+                    .tangents
+                    .as_ref()
+                    .map_or(0, |v| size_of_val(v.as_slice()))
+                + size_of_val(mesh.uvs.as_slice())
+                + size_of_val(mesh.colors.as_slice())
+                + mesh
+                    .joints
+                    .as_ref()
+                    .map_or(0, |v| size_of_val(v.as_slice()))
+                + mesh
+                    .weights
+                    .as_ref()
+                    .map_or(0, |v| size_of_val(v.as_slice()))
+                + size_of_val(mesh.indices.as_slice())
+                + size_of_val(mesh.draws.as_slice())
+        }
+        self.bundles
+            .values()
+            .map(|bundle| {
+                let meshes: usize = match &bundle.shape {
+                    Shape::Skinned(tiers) => tiers.iter().map(mesh_bytes).sum(),
+                    Shape::Static(nodes) | Shape::Articulated(nodes) => nodes
+                        .iter()
+                        .flat_map(|node| node.tiers.iter())
+                        .map(mesh_bytes)
+                        .sum(),
+                };
+                meshes
+                    + bundle
+                        .textures
+                        .iter()
+                        .flat_map(|texture| texture.levels.iter())
+                        .map(|level| level.len())
+                        .sum::<usize>()
+            })
+            .sum()
+    }
+}

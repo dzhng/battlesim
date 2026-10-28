@@ -170,6 +170,42 @@ impl Presentation {
             .map_err(error)
     }
 
+    /// Grass buffer capacities resolved by the admitted biome.
+    pub fn grass_capacity(&self) -> Result<Vec<u32>, JsError> {
+        Ok(ground(&self.inner)?.biome.grass.capacity.to_vec())
+    }
+
+    /// Resolve grass parameters from the renderer's canonical authored blade facts.
+    pub fn grass_params_from_facts(
+        &self,
+        facts: JsValue,
+        density: f64,
+    ) -> Result<Vec<u32>, JsError> {
+        let facts: Vec<ground::grass::KindFacts> =
+            serde_wasm_bindgen::from_value(facts).map_err(error)?;
+        ground(&self.inner)?
+            .grass_params(&facts, &LIMITS, &Quality { density })
+            .map_err(error)
+    }
+
+    /// The shared renderer's window record, including the canonical pixel span.
+    pub fn grass_window_record(&self) -> Result<Vec<f64>, JsError> {
+        ground(&self.inner)?;
+        Ok(self
+            .inner
+            .grass_window()
+            .map_or_else(Vec::new, |(window, scale)| {
+                vec![
+                    window.x0,
+                    window.y0,
+                    f64::from(window.tiles_x),
+                    f64::from(window.tiles_y),
+                    window.reach,
+                    scale,
+                ]
+            }))
+    }
+
     /// The window of tiles the grass grows over for the last frame's camera:
     /// its corner x and y, tiles across and up, reach, and the far corner x
     /// and y; empty before a frame.

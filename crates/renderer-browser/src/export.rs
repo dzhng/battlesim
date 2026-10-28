@@ -29,11 +29,9 @@ impl Renderer {
             &self.shared_fog_mask,
             &self.shared_effects,
             &self.shared_fog_sight,
-            self.environment.bindings.group(),
-            &self.environment.sky,
+            &self.environment.environment,
+            &self.sky.lut,
             &self.environment.pmrem,
-            &self.environment.dfg,
-            &self.environment.sampler,
             &self.environment.cast_lights,
             self.shared_shadow.active(),
         );

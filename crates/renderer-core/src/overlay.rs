@@ -168,3 +168,9 @@ impl OverlayResources {
         Self::screen(encoder, &self.composite, output, LoadOp::Load);
     }
 }
+
+impl OverlayResources {
+    pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        memory.buffer(&self.glow);
+    }
+}

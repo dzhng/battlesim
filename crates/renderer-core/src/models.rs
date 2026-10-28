@@ -803,3 +803,20 @@ impl Models {
 fn in_view(pass: u32) -> bool {
     pass == VIEW_PASS || pass == HIGH_PASS
 }
+
+impl Models {
+    pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        for buffer in [&self.materials, &self.palette, &self.instances] {
+            memory.buffer(buffer);
+        }
+        memory.view(&self.albedo);
+        memory.view(&self.surface);
+        for row in self.rows.iter().flatten() {
+            for drawable in row.tiers.iter().chain(row.card.iter()) {
+                memory.buffer(&drawable.vertices);
+                memory.buffer(&drawable.indices);
+            }
+        }
+        self.statics.record_memory(memory);
+    }
+}

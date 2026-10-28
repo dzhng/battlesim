@@ -497,3 +497,56 @@ bytes. Earlier one-bundle fallback, packed nonindexed tier and probe BatchState
 choices are superseded by this actual owner. **Verdict:** sound.
 **Confidence:** high; native replay/count/pose tests and browser lifecycle checks
 exercise the same implementation.
+
+### Canonical object transport preserves optional fog and scar updates
+
+**When:** 2026-10-28 shared production frame.
+
+When a browser frame has no new occluder table, the renderer must keep the old
+table; when it sends an empty table, the renderer must clear it. Presentation
+now serializes its actual Rust fog/scar records through `serde-wasm-bindgen`,
+and rendering deserializes those same types in its separate WASM memory. This
+preserves optional values and pass metadata without a second JavaScript schema
+or a long positional argument list.
+
+**Gap:** the spec left cross-memory transport open. **Reach:** adds one boundary
+dependency and object serialization each drawn frame. The measured candidate
+CPU cost includes this transport; future optimization can change transport while
+retaining the canonical records. **Verdict:** sound. **Confidence:** medium;
+the simple contract is valuable, but dynamic crowded-frame transport remains to
+be measured beyond the frozen capture.
+
+### Recover current knowledge from presentation instead of replaying old deltas
+
+**When:** 2026-10-28 shared production frame.
+
+When a GPU device is recreated after the camera or the side's knowledge changed,
+its fog textures and scar cache are empty. Replaying the latest small update, or
+the first frame's complete update, cannot restore current state. The platform
+bridge asks the live presentation to resend fog and scars, then prepares them
+before the first recovered draw. Static art and the last explicit model frame
+still rebuild from the retained CPU data.
+
+**Gap:** recovery was required without a chosen knowledge-cache strategy.
+**Reach:** the platform must prepare current knowledge after recreation; it does
+not keep a parallel CPU mirror of GPU visibility maps. **Verdict:** sound.
+**Confidence:** high; presentation already owns the complete current knowledge
+and exposes the resend operations used by native startup.
+
+### Count owned GPU payloads without extending resource lifetimes
+
+**When:** 2026-10-28 shared production frame.
+
+When taking a memory snapshot, the diagnostic visits the resources each renderer
+owner holds, deduplicates shared handles, and reads their actual allocation
+descriptors. It releases those diagnostic handles immediately. Keeping every
+Rust-created WebGPU object in JavaScript's existing strong-reference registry
+would prevent garbage collection after Rust dropped it, changing the lifetime
+being measured.
+
+**Gap:** memory comparison needed an implementation that works across Rust and
+JavaScript ownership. **Reach:** reports live owned payload bytes and retained
+CPU recovery data, while excluding allocator, driver and canvas storage. Each
+new owner must expose its allocations to the diagnostic visitor. **Verdict:**
+sound. **Confidence:** high; this makes measurement passive and its limits
+explicit instead of calling payload accounting whole-process memory.

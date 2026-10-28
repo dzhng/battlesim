@@ -9,7 +9,7 @@ use presentation::records::Effect;
 use wgpu::*;
 
 use crate::environment::Environment;
-use crate::frame::{Inputs, Pass, Targets};
+use crate::frame::Targets;
 use crate::pipelines::Pipelines;
 
 /// The browser's flipbook list: its imports name each sheet, and its
@@ -196,21 +196,12 @@ impl Effects {
             .prepare(device, queue, bytemuck::cast_slice(effects));
     }
 
+    pub fn resources(&self) -> &renderer_core::effects::EffectsResources {
+        &self.resources
+    }
+
     /// Instances drawn this frame.
     pub fn count(&self) -> u32 {
         self.resources.count()
-    }
-}
-
-/// The effects over the resolved world and its fog mask.
-pub struct EffectPass;
-
-impl Pass for EffectPass {
-    fn name(&self) -> &'static str {
-        "effects"
-    }
-
-    fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
-        inputs.effects.resources.encode(encoder, inputs.targets);
     }
 }

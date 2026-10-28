@@ -1,3 +1,4 @@
+import { FrameHeader } from "@packages/battle-renderer/src/records.gen";
 import type { RefObject } from "react";
 import { common, d, tgpu } from "typegpu";
 import { requestGpuDevice } from "@packages/renderer-core/src/device";
@@ -15,6 +16,8 @@ import { capturedParisFixture, realBattleFixture } from "./oneRendererBattle";
 import { loadSharedAppearances, loadTankBundle, mw } from "./oneRendererAssets";
 import { loadEffectAtlasLayers } from "./oneRendererEffects";
 import { battleRustRun } from "./oneRendererBattleRust";
+import { loadSharedGround } from "./oneRendererGround";
+import { measureFrames } from "./oneRendererTiming";
 
 export const WIDTH = 640;
 export const HEIGHT = 360;
@@ -49,6 +52,7 @@ export interface Result {
   frames: number;
   error?: string;
   workload?: string;
+  samples?: Result[];
 }
 
 export const LABELS: Record<Mode, string> = {
@@ -409,7 +413,8 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   stage("device setup");
   canvas.width = REAL_WIDTH;
   canvas.height = REAL_HEIGHT;
-  const renderer = await SharedRenderer.new(canvas);
+  const light = await resolveLight(gameLight);
+  const renderer = await SharedRenderer.new(canvas, light.sky, light.sun, light.aerial);
   const exportValidation = await renderer.validate_export();
   const capture = new URLSearchParams(window.location.search).get("capture") === "1";
   stage("presentation fixture");
@@ -420,24 +425,17 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   stage("presentation upload");
   const shadowBatches = new Uint32Array(f.batches.u32);
   const upload = renderer;
-  const rl = await resolveLight(gameLight);
   const fogLook = resolveFogLook(gameFogStyle);
   const effectAtlas = await loadEffectAtlasLayers();
-  upload.upload_post(rl.bloom, rl.grade);
-  const env = new Float32Array(64);
-  // Native writes the resolved presentation View into the environment's
-  // world-to-view and observer fields. Reuse those exact words here; an
-  // identity matrix makes aerial shading diverge while the camera still
-  // appears correct.
-  env.set(f.view.f32.subarray(0, 16), 0);
-  env.set([f.view.f32[32], f.view.f32[33], f.view.f32[34], 1], 16);
-  env.set(rl.sun, 20);
-  env.set(rl.aerial, 36);
+  upload.upload_post(light.bloom, light.grade);
+  const lightWrap = new Float32Array(f.header.buffer, f.header.byteOffset)[FrameHeader.light_wrap];
   upload.upload_frame(
     new Float32Array(f.camera.f32),
-    env,
+    new Float32Array(f.view.f32),
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
+    new Float32Array(f.lights.f32),
+    lightWrap,
   );
   effectAtlas.forEach((rgba, layer) => upload.upload_effect_atlas(layer, rgba));
   upload.upload_effects(new Float32Array(f.effects.f32));
@@ -445,31 +443,8 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   const modelBatches = new Uint32Array(f.batches.u32);
   const modelPalettes = new Float32Array(f.palettes.f32);
   renderer.upload_model_frame(modelPalettes, modelInstances, modelBatches);
-  renderer.upload_sky(rl.sky);
-  upload.upload_ground(Float32Array.from(fixture.terrain));
-  upload.upload_static_world(Float32Array.from(fixture.world.props));
-  const uploadTerrainTables = () => {
-    const tables = fixture.presentation.presentedGround()?.ground_terrain();
-    if (!tables) throw new Error("presentation did not resolve terrain tables");
-    try {
-      upload.upload_terrain_tables(
-        new Uint32Array(tables.params()),
-        new Uint32Array(tables.nodes()),
-        new Uint32Array(tables.plots()),
-        new Float32Array(tables.surfaces()),
-        new Uint32Array(tables.surface_index()),
-        new Uint32Array(tables.scars()),
-      );
-    } finally {
-      tables.free();
-    }
-  };
-  uploadTerrainTables();
-  const h = () => {
-    const heights = fixture.presentation.presentedGround()?.pages();
-    if (heights?.length) upload.upload_fog_heights(new Uint32Array(heights));
-  };
-  h();
+  const prepareGround = loadSharedGround(renderer, fixture);
+  prepareGround(true);
   upload.overlay(
     concatMeshes([
       fixture.overlay.opaque,
@@ -478,41 +453,22 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       fixture.overlay.paintedMarching,
     ]),
   );
-  type FogSightSnapshot = Parameters<typeof upload.upload_fog>;
-  let fogSightSnapshot: FogSightSnapshot | null = null;
   let fogInitialUploadComplete = false;
   const uploadFogSight = (refresh: boolean) => {
-    if (!fogSightSnapshot || refresh) {
-      const ground = fixture.presentation.presentedGround();
-      // The cached presentation also feeds the control. A newly attached GPU
-      // owner needs the complete state, not that other consumer's next delta.
-      ground?.resend_fog();
-      const up = ground?.prepare_fog(new Float32Array(f.camera.f32), REAL_WIDTH, REAL_HEIGHT, 0);
-      if (!up) return;
-      const reinterpret = (words: Uint32Array) => new Float32Array(new Uint32Array(words).buffer);
-      try {
-        const foliage = up.foliage();
-        const occluders = up.occluders();
-        fogInitialUploadComplete = foliage != null && occluders != null;
-        fogSightSnapshot = [
-          reinterpret(up.params()),
-          reinterpret(up.eyes()),
-          foliage ? new Float32Array(foliage) : new Float32Array(0),
-          occluders ? reinterpret(occluders) : new Float32Array(0),
-          new Uint32Array(up.rebuild()),
-          new Uint32Array(up.rebuild_dispatch()),
-          new Uint32Array(up.map_words()),
-          new Uint32Array(up.tiles()),
-          new Uint32Array(up.wholes() ?? []),
-          new Uint32Array(up.whole_items()),
-          new Float32Array(up.whole_uniform()),
-          new Uint32Array(up.whole()),
-        ];
-      } finally {
-        up.free();
+    const ground = fixture.presentation.presentedGround();
+    // Another consumer may have drained the deltas. New GPU owners need the
+    // current complete state; ordinary frames take only their fresh work.
+    if (refresh) ground?.resend_fog();
+    const up = ground?.prepare_fog(new Float32Array(f.camera.f32), REAL_WIDTH, REAL_HEIGHT, 0);
+    if (!up) return;
+    try {
+      if (refresh) {
+        fogInitialUploadComplete = up.foliage() != null && up.occluders() != null;
       }
+      upload.upload_fog(up.snapshot());
+    } finally {
+      up.free();
     }
-    upload.upload_fog(...fogSightSnapshot!);
   };
   uploadFogSight(true);
   renderer.upload_shadow(
@@ -543,18 +499,16 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   stage("recovered presentation upload");
   upload.upload_frame(
     new Float32Array(f.camera.f32),
-    env,
+    new Float32Array(f.view.f32),
     new Float32Array(fogLook),
     new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
+    new Float32Array(f.lights.f32),
+    lightWrap,
   );
   effectAtlas.forEach((rgba, layer) => upload.upload_effect_atlas(layer, rgba));
   upload.upload_effects(new Float32Array(f.effects.f32));
-  renderer.upload_sky(rl.sky);
   renderer.upload_model_frame(modelPalettes, modelInstances, modelBatches);
-  upload.upload_ground(Float32Array.from(fixture.terrain));
-  upload.upload_static_world(Float32Array.from(fixture.world.props));
-  uploadTerrainTables();
-  h();
+  prepareGround(true);
   upload.overlay(
     concatMeshes([
       fixture.overlay.opaque,
@@ -563,7 +517,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       fixture.overlay.paintedMarching,
     ]),
   );
-  uploadFogSight(false);
+  uploadFogSight(true);
   renderer.upload_shadow(
     new Float32Array(f.sun_shadow.f32),
     new Float32Array(f.casters.f32),
@@ -572,18 +526,26 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   renderer.render();
   await renderer.drain();
   const setupMs = startupMs;
+  renderer.set_gpu_timing(new URLSearchParams(window.location.search).get("timing") === "1");
+  renderer.reset_gpu_timing();
   stage("frame encode");
-  const encodeStart = performance.now();
-  for (let index = 0; index < FRAMES; index++) renderer.render();
-  const encodeMs = performance.now() - encodeStart;
-  stage("queue drain");
-  await renderer.drain();
-  const submitMs = performance.now() - encodeStart - encodeMs;
+  const measured = await measureFrames(
+    FRAMES,
+    () => {
+      prepareGround(false);
+      uploadFogSight(false);
+      renderer.render();
+    },
+    () => renderer.drain(),
+  );
   stage("complete");
   const workload = JSON.stringify({
     ...JSON.parse(renderer.stats()),
     ...assetAccounting,
     fogInitialUploadComplete,
+    timing: measured.timing,
+    gpu: renderer.gpu_timing(),
+    allocations: renderer.memory(),
     phases,
     export: JSON.parse(exportValidation),
   });
@@ -592,8 +554,8 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   return {
     mode: "shared-rust-core-browser",
     setupMs,
-    encodeMs,
-    submitMs,
+    encodeMs: measured.encodeMs,
+    submitMs: measured.submitMs,
     frames: FRAMES,
     workload,
   };
@@ -716,6 +678,7 @@ export function averageResults(mode: Mode, samples: readonly Result[]): Result {
     frames: Math.min(...samples.map((sample) => sample.frames)),
     error: failure?.error,
     workload: samples.find((sample) => sample.workload)?.workload,
+    samples: [...samples],
   };
 }
 

@@ -8,16 +8,58 @@ use presentation::static_world::ground::grass::Quality;
 use presentation::static_world::ground::Ground as GroundTables;
 use wgpu::*;
 
-use crate::bundle::{Library, Shape};
-use crate::gpu::{bind, buffer};
+use crate::bundle::{BundleSource, Shape};
 use crate::pipelines::{Bound, BoundCompute, Pipelines};
+use crate::{bind, buffer};
 use presentation::static_world::ground::grass::{
-    self as field, KindMesh, TierMesh, Window, FIELD_SEGMENTS,
+    self as field, KindMesh, PackedShapes, TierMesh, Window, FIELD_SEGMENTS,
 };
 
 /// Two indexed-indirect draws' arguments (5 words each), then each tier's
 /// raw count.
 const ARGS_WORDS: usize = 12;
+
+/// Pack authored grass bundles through the same decoder and blade layout on every platform.
+pub fn pack_shapes(library: &impl BundleSource, names: &[String]) -> Result<PackedShapes, String> {
+    let bundles = names
+        .iter()
+        .map(|name| library.bundle(name))
+        .collect::<Result<Vec<_>, _>>()?;
+    let kinds = names
+        .iter()
+        .zip(&bundles)
+        .map(|(name, bundle)| {
+            let Shape::Static(states) = &bundle.shape else {
+                return Err(format!("grass {name} is not a static bundle"));
+            };
+            let state = states.first().ok_or(format!("grass {name} has no state"))?;
+            Ok(KindMesh {
+                name,
+                tiers: state
+                    .tiers
+                    .iter()
+                    .map(|m| TierMesh {
+                        positions: &m.positions,
+                        normals: &m.normals,
+                        uvs: &m.uvs,
+                        colors: &m.colors,
+                    })
+                    .collect(),
+                top: state.top.ok_or(format!("grass {name} has no bounds"))?,
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    field::pack_shapes(&kinds)
+}
+
+/// World-load inputs resolved by the presentation from the authored blade facts.
+pub struct GrassData<'a> {
+    pub params: &'a [u32],
+    pub props: &'a [u32],
+    pub shapes: &'a [f32],
+    pub max_blades: u32,
+    pub capacity: [u32; 2],
+}
 
 pub struct Grass {
     build: BoundCompute,
@@ -26,6 +68,10 @@ pub struct Grass {
     build_group: BindGroup,
     draw_groups: Vec<BindGroup>,
     params: Buffer,
+    props: Buffer,
+    clumps: Buffer,
+    shapes: Buffer,
+    tiers: Vec<Buffer>,
     /// `GrassParams` as the ground laid it, its per-frame fields rewritten
     /// each regrow.
     words: Vec<u32>,
@@ -45,43 +91,35 @@ impl Grass {
     pub fn new(
         device: &Device,
         pipelines: &Pipelines,
-        library: &Library,
+        library: &impl BundleSource,
         ground: &GroundTables,
         heights: &Buffer,
     ) -> Result<Self, String> {
         let names = ground.grass_kinds();
-        let bundles = names
-            .iter()
-            .map(|name| library.bundle(name))
-            .collect::<Result<Vec<_>, _>>()?;
-        let kinds = names
-            .iter()
-            .zip(&bundles)
-            .map(|(name, bundle)| {
-                let Shape::Static(states) = &bundle.shape else {
-                    return Err(format!("grass {name} is not a static bundle"));
-                };
-                let state = states.first().ok_or(format!("grass {name} has no state"))?;
-                Ok(KindMesh {
-                    name,
-                    tiers: state
-                        .tiers
-                        .iter()
-                        .map(|m| TierMesh {
-                            positions: &m.positions,
-                            normals: &m.normals,
-                            uvs: &m.uvs,
-                            colors: &m.colors,
-                        })
-                        .collect(),
-                    top: state.top.ok_or(format!("grass {name} has no bounds"))?,
-                })
-            })
-            .collect::<Result<Vec<_>, String>>()?;
-        let packed = field::pack_shapes(&kinds)?;
+        let packed = pack_shapes(library, &names)?;
         let words =
             ground.grass_params(&packed.facts, &field::LIMITS, &Quality { density: 1.0 })?;
-        let rules = &ground.biome.grass;
+        Ok(Self::from_data(
+            device,
+            pipelines,
+            heights,
+            GrassData {
+                params: &words,
+                props: &ground.grass_props(),
+                shapes: &packed.shapes,
+                max_blades: packed.max_blades,
+                capacity: ground.biome.grass.capacity,
+            },
+        ))
+    }
+
+    pub fn from_data(
+        device: &Device,
+        pipelines: &Pipelines,
+        heights: &Buffer,
+        data: GrassData<'_>,
+    ) -> Self {
+        let words = data.params.to_vec();
         let storage = BufferUsages::STORAGE;
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
         let params = buffer(
@@ -90,9 +128,13 @@ impl Grass {
             uniform,
             bytemuck::cast_slice(&words),
         );
-        let props = ground.grass_props();
-        let props = buffer(device, "grass-props", storage, bytemuck::cast_slice(&props));
-        let [near, far] = [rules.capacity[0] as u64, rules.capacity[1] as u64];
+        let props = buffer(
+            device,
+            "grass-props",
+            storage,
+            bytemuck::cast_slice(data.props),
+        );
+        let [near, far] = [data.capacity[0] as u64, data.capacity[1] as u64];
         let clumps = device.create_buffer(&BufferDescriptor {
             label: Some("grass-clumps"),
             size: ((near + far) * pipelines.sizes.grass_clump).max(16),
@@ -103,7 +145,7 @@ impl Grass {
             device,
             "grass-shapes",
             storage,
-            bytemuck::cast_slice(&packed.shapes),
+            bytemuck::cast_slice(data.shapes),
         );
         let args = device.create_buffer(&BufferDescriptor {
             label: Some("grass-args"),
@@ -125,8 +167,9 @@ impl Grass {
         );
         let mut indices = Vec::new();
         let mut draw_groups = Vec::new();
+        let mut tiers = Vec::new();
         for (t, segments) in FIELD_SEGMENTS.into_iter().enumerate() {
-            let mut strip = field::strip_indices(packed.max_blades, segments);
+            let mut strip = field::strip_indices(data.max_blades, segments);
             let count = strip.len() as u32;
             strip.resize(strip.len().next_multiple_of(2), 0);
             indices.push((
@@ -157,14 +200,19 @@ impl Grass {
                     shapes.as_entire_binding(),
                 ],
             ));
+            tiers.push(tier);
         }
-        Ok(Self {
+        Self {
             build: pipelines.bound_compute("grassBuild"),
             finish: pipelines.bound_compute("grassFinish"),
             draw: pipelines.bound("grassDraw"),
             build_group,
             draw_groups,
             params,
+            props,
+            clumps,
+            shapes,
+            tiers,
             words,
             args,
             indices,
@@ -178,15 +226,33 @@ impl Grass {
             grown_for: None,
             drawn: false,
             regrow: false,
-        })
+        }
     }
 
     /// Fits the window to `presentation`'s last frame and, if its view
     /// moved, writes the parameters for a regrow.
     pub fn prepare(&mut self, queue: &Queue, presentation: &Presentation) {
+        self.prepare_records(
+            queue,
+            presentation.grass_window(),
+            &presentation.last_frame().camera,
+            |words, window| presentation.grass_frame_params(words, window),
+        );
+    }
+
+    /// Retain the native view-change gate while accepting copied presentation
+    /// records. `write_params` supplies the presentation-owned frame fields
+    /// only when a regrow is needed.
+    pub fn prepare_records(
+        &mut self,
+        queue: &Queue,
+        window: Option<(Window, f64)>,
+        camera: &presentation::records::Camera,
+        write_params: impl FnOnce(&mut [u32], &Window),
+    ) {
         self.drawn = false;
         self.regrow = false;
-        let Some((window, scale)) = presentation.grass_window() else {
+        let Some((window, scale)) = window else {
             return;
         };
         self.window = window;
@@ -194,14 +260,14 @@ impl Grass {
             return;
         }
         self.drawn = true;
-        let view_proj = presentation.last_frame().camera.view_proj;
+        let view_proj = camera.view_proj;
         let key = (*view_proj.first_chunk().unwrap(), scale as f32);
         if self.grown_for == Some(key) {
             return;
         }
         self.grown_for = Some(key);
         self.regrow = true;
-        presentation.grass_frame_params(&mut self.words, &self.window);
+        write_params(&mut self.words, &self.window);
         queue.write_buffer(&self.params, 0, bytemuck::cast_slice(&self.words));
         let mut args = [0u32; ARGS_WORDS];
         args[0] = self.indices[0].1;
@@ -257,6 +323,26 @@ impl Grass {
             self.draw.set(pass, &all);
             pass.set_index_buffer(indices.slice(..), IndexFormat::Uint16);
             pass.draw_indexed_indirect(&self.args, (t * 20) as u64);
+        }
+    }
+}
+
+impl Grass {
+    pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        for buffer in [
+            &self.params,
+            &self.props,
+            &self.clumps,
+            &self.shapes,
+            &self.args,
+        ] {
+            memory.buffer(buffer);
+        }
+        for tier in &self.tiers {
+            memory.buffer(tier);
+        }
+        for (buffer, _) in &self.indices {
+            memory.buffer(buffer);
         }
     }
 }

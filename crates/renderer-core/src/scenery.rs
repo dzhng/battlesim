@@ -324,3 +324,18 @@ impl Scenery {
         self.draw_runs(pass, VIEW_PASS, None, bound, groups, statics);
     }
 }
+
+impl Scenery {
+    pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        for tiers in &self.tiers {
+            for (buffer, _) in tiers {
+                memory.buffer(buffer);
+            }
+        }
+        for row in self.rows.iter().flatten() {
+            if let Some((buffer, _)) = &row.stump {
+                memory.buffer(buffer);
+            }
+        }
+    }
+}

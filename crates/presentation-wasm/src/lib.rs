@@ -345,6 +345,11 @@ pub struct ScarUpload(presentation::scars::ScarUpload);
 
 #[wasm_bindgen]
 impl ScarUpload {
+    /// Canonical scar publication copied into the renderer's separate memory.
+    pub fn snapshot(&self) -> Result<JsValue, JsValue> {
+        serde_wasm_bindgen::to_value(&self.0).map_err(|error| JsValue::from_str(&error.to_string()))
+    }
+
     /// The directory's words (two a `rg32uint` texel) when it changed.
     pub fn directory(&self) -> Option<Vec<u32>> {
         self.0.directory.as_ref().map(|(words, _)| words.clone())

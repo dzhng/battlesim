@@ -192,3 +192,20 @@ impl Renderer {
         Ok(())
     }
 }
+
+impl ModelWorldSnapshot {
+    pub(super) fn payload_bytes(&self) -> usize {
+        size_of_val(self.appearances.as_slice())
+            + self.strings.len()
+            + size_of_val(self.offsets.as_slice())
+            + size_of_val(self.rest.as_slice())
+    }
+}
+
+impl ModelFrameSnapshot {
+    pub(super) fn payload_bytes(&self) -> usize {
+        size_of_val(self.palettes.as_slice())
+            + size_of_val(self.instances.as_slice())
+            + size_of_val(self.batches.as_slice())
+    }
+}

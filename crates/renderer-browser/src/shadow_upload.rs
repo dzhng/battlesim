@@ -41,6 +41,7 @@ impl Renderer {
         snapshot.shadow = receiver[..renderer_core::shadow::RECEIVER_BYTES / 4].to_vec();
         snapshot.casters = casters.to_vec();
         snapshot.batches = batches.to_vec();
+        self.prepare_ground()?;
         Ok(())
     }
 }

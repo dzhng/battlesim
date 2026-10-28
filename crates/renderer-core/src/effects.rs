@@ -99,3 +99,9 @@ impl EffectsResources {
         pass.draw(0..6, 0..self.count);
     }
 }
+
+impl EffectsResources {
+    pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        memory.buffer(&self.instances);
+    }
+}

@@ -8,9 +8,21 @@ import type {
 } from "@packages/battle-renderer/src/frame/scarTexture";
 import type { GroundLayout } from "./observationView";
 
+export type SceneGround = PresentedGround &
+  Pick<
+    Presentation,
+    | "grass_capacity"
+    | "grass_window_record"
+    | "grass_params_from_facts"
+    | "scars_changed"
+    | "scar_regions"
+    | "prepare_scars"
+    | "resend_scars"
+  >;
+
 /** The ground `rust` holds, as the renderer reads its tables: a new object
  *  for each ground set, so a renderer knows to read them again. */
-export function groundOf(rust: Presentation): PresentedGround {
+export function groundOf(rust: Presentation): SceneGround {
   return {
     prepare_fog: (camera, width, height, probes) => rust.prepare_fog(camera, width, height, probes),
     resend_fog: () => rust.resend_fog(),
@@ -26,7 +38,14 @@ export function groundOf(rust: Presentation): PresentedGround {
     grass_window: () => rust.grass_window(),
     grass_frame_params: (words, window) => rust.grass_frame_params(words, window),
     grass_props: () => rust.grass_props(),
+    grass_capacity: () => rust.grass_capacity(),
+    grass_window_record: () => rust.grass_window_record(),
+    grass_params_from_facts: (facts, density) => rust.grass_params_from_facts(facts, density),
     retune_grass: (rules) => rust.retune_grass(rules),
+    scars_changed: () => rust.scars_changed(),
+    scar_regions: () => rust.scar_regions(),
+    prepare_scars: (region, clipped) => rust.prepare_scars(region, clipped),
+    resend_scars: () => rust.resend_scars(),
   };
 }
 

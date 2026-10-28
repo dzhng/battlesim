@@ -117,3 +117,42 @@ latest asset proof consumed 3,960,005 compressed wire bytes,
 selects a 37,002-vertex indexed tier. This is still not a production screenshot
 comparison: native material rows, fog, shadows, effects, post and overlays
 remain outside the shared browser fixture.
+
+## Browser application migration acceptance
+
+The Rust shell owns its WebGPU device and canvas surface. The browser application
+must hand it canvases and plain scene/presentation data, replacing the current
+`BattleFrame.render(GPUTextureView, high)` boundary. Raw JavaScript GPU handles
+cannot bridge an independent Rust `wgpu` device. Resize, readback, probes and the
+high-air canvas must use that same ownership boundary.
+
+Before an awaited asset admission, copy all presentation frame streams and world
+metadata. After installing a new world, frame again with its new static generation
+so unchanged held batches are published in full. Never retain a typed view across
+a call that can grow presentation memory, and never invent a second static-batch
+cache in the JavaScript shell.
+
+The native-owner extraction does not yet implement every browser contract. Keep
+these acceptance gates open until the shared runtime preserves their behavior:
+
+- [ ] Ground paint, marching orders and pointer marks retain their lit, shadowed,
+  fogged placement under models/effects, including grass-root painting.
+- [ ] Display overlays retain separate opaque/translucent geometry, world depth,
+  glow and information colors after postprocessing.
+- [ ] Own-unit x-ray retains the hidden-fragment coverage gate and its diagnostic
+  control; geometry visible normally never acquires a duplicate cue.
+- [ ] High-air models can render to the transparent canvas between the page's
+  card planes, using the same light and grade as the world.
+- [ ] Proxy scenes, standalone articulated/skinned lab models, material channel
+  controls and impostor baking keep their current authoring/workbench behavior.
+- [ ] Graphics quality controls retain grass density and shadow resolution/reach.
+- [ ] Pass-inspector views, surface/world visibility controls and fog/grass probes
+  remain useful through canonical Rust diagnostics and readback.
+- [ ] Capture, screenshot readback, submitted geometry, allocation and timing
+  reports measure actual shared resources without fabricated compatibility stats.
+
+Prioritize production overlay/paint semantics before the inspector surface, but
+retain all these gates for final deletion. The current contracts and consumers
+live in [the scene boundary](../../../packages/battle-renderer/src/scene.ts) and
+[the viewport](../../../apps/battle-lab/src/LabViewport.tsx); the browser transport
+modules live under [render](../../../web/src/battle/render/).

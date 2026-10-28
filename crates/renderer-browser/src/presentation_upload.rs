@@ -1,20 +1,7 @@
 use super::*;
 
-const ENVIRONMENT_MAX_MIP: f32 = 6.0;
-
 #[wasm_bindgen]
 impl Renderer {
-    #[cfg(target_arch = "wasm32")]
-    #[wasm_bindgen]
-    pub fn upload_fog_heights(&mut self, heights: &[u32]) -> Result<(), JsValue> {
-        self.shared_fog_sight
-            .upload_heights(&self.device, &self.queue, bytemuck::cast_slice(heights))
-            .map_err(js_error)?;
-        self.fog_height_snapshot = Some(heights.to_vec());
-        self.stats.fog_height_words = heights.len() as u32;
-        Ok(())
-    }
-
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
     pub fn upload_post(&mut self, bloom: &[f32], grade: &[f32]) -> Result<(), JsValue> {
@@ -30,50 +17,28 @@ impl Renderer {
         Ok(())
     }
 
-    /// Upload the packed presentation camera/environment/fog/overlay records.
-    #[cfg(target_arch = "wasm32")]
+    /// Upload canonical camera/view records, cast lights and screen treatments.
     #[wasm_bindgen]
     pub fn upload_frame(
         &mut self,
         camera: &[f32],
-        environment: &[f32],
+        view: &[f32],
         fog: &[f32],
         overlay: &[f32],
+        lights: &[f32],
+        light_wrap: f32,
     ) -> Result<(), JsValue> {
-        if camera.len() < 40 {
-            return Err(js_error("presentation camera record needs 40 words"));
-        }
-        let write = |queue: &Queue, buffer: &Buffer, words: &[f32], label: &str| {
-            let bytes = bytemuck::cast_slice(words);
-            if bytes.len() > 256 {
-                return Err(js_error(format!(
-                    "presentation {label} record exceeds 256 bytes"
-                )));
-            }
-            if !bytes.is_empty() {
-                queue.write_buffer(buffer, 0, bytes);
-            }
-            Ok(words.len() as u32)
-        };
-        self.queue.write_buffer(
-            &self.presentation_camera,
-            0,
-            bytemuck::cast_slice(&camera[..40]),
-        );
-        let mut environment_data = environment.to_vec();
-        if environment_data.len() >= 29 {
-            environment_data[28] = ENVIRONMENT_MAX_MIP;
-        }
-        let environment_words = write(
-            &self.queue,
-            &self.presentation_environment,
-            &environment_data,
-            "environment",
-        )?;
+        let camera_record = record(camera, "camera")?;
+        let view_record = record(view, "view")?;
+        let cast_lights = bytemuck::try_cast_slice(lights).map_err(js_error)?;
+        self.environment
+            .prepare(&self.queue, &view_record, &camera_record);
+        self.environment
+            .set_cast_lights(&self.queue, cast_lights, light_wrap);
+        self.sky.prepare(&self.queue, &view_record);
         self.shared_fog_mask
             .write_look(&self.queue, bytemuck::cast_slice(fog))
             .map_err(js_error)?;
-        let overlay_words = write(&self.queue, &self.presentation_overlay, overlay, "overlay")?;
         let glow = if overlay.len() >= 2 {
             [overlay[0], overlay[0] / 2.5, overlay[1], 0.0]
         } else {
@@ -83,14 +48,15 @@ impl Renderer {
             .write_glow(&self.queue, bytemuck::cast_slice(&glow));
         self.stats.presentation_uploads = self.stats.presentation_uploads.saturating_add(1);
         self.stats.presentation_bound = true;
-        self.stats.presentation_camera_words = 40;
-        self.stats.presentation_environment_words = environment_words;
+        self.stats.presentation_camera_words = camera.len() as u32;
+        self.stats.presentation_environment_words = self.environment.data.size() as u32 / 4;
         self.stats.presentation_fog_words = fog.len() as u32;
-        self.stats.presentation_overlay_words = overlay_words;
+        self.stats.presentation_overlay_words = overlay.len() as u32;
         self.presentation_snapshot = Some(PresentationSnapshot {
-            camera: camera[..40].to_vec(),
-            sky: Vec::new(),
-            environment: environment.to_vec(),
+            camera: camera.to_vec(),
+            view: view.to_vec(),
+            lights: lights.to_vec(),
+            light_wrap,
             fog: fog.to_vec(),
             overlay: overlay.to_vec(),
             effects: Vec::new(),
@@ -98,6 +64,7 @@ impl Renderer {
             casters: Vec::new(),
             batches: Vec::new(),
         });
+        self.prepare_ground()?;
         Ok(())
     }
 
@@ -129,161 +96,6 @@ impl Renderer {
             .map_err(js_error)
     }
 
-    /// Bake the resolved presentation sky into the shared environment LUT.
-    #[cfg(target_arch = "wasm32")]
-    #[wasm_bindgen]
-    pub fn upload_sky(&mut self, sky: &[f32]) -> Result<(), JsValue> {
-        if sky.len() < 40 {
-            return Err(js_error("presentation sky record needs 40 words"));
-        }
-        self.environment
-            .bake_sky(&self.device, &self.queue, bytemuck::cast_slice(&sky[..40]));
-        if let Some(snapshot) = &mut self.presentation_snapshot {
-            snapshot.sky = sky[..40].to_vec();
-        }
-        Ok(())
-    }
-
-    /// Upload presentation terrain as xyz/normal/rgba records.
-    #[cfg(target_arch = "wasm32")]
-    #[wasm_bindgen]
-    pub fn upload_ground(&mut self, mesh: &[f32]) -> Result<(), JsValue> {
-        if !mesh.len().is_multiple_of(10) {
-            return Err(js_error("shared ground mesh needs ten floats per vertex"));
-        }
-        let mut shadow = Vec::with_capacity(mesh.len());
-        for vertex in mesh.as_chunks::<10>().0 {
-            shadow.extend_from_slice(&vertex[..3]);
-            shadow.extend_from_slice(&vertex[3..6]);
-            shadow.extend_from_slice(&vertex[6..10]);
-        }
-        let shadow_bytes = if shadow.is_empty() {
-            vec![0; 40]
-        } else {
-            bytemuck::cast_slice(&shadow).to_vec()
-        };
-        self.shadow_ground_vertices = renderer_core::buffer(
-            &self.device,
-            "shared-shadow-ground-vertices",
-            BufferUsages::VERTEX,
-            &shadow_bytes,
-        );
-        self.shadow_ground_count = (mesh.len() / 10) as u32;
-        self.production_terrain_vertices = renderer_core::buffer(
-            &self.device,
-            "shared-production-terrain-vertices",
-            BufferUsages::VERTEX,
-            bytemuck::cast_slice(mesh),
-        );
-        self.production_terrain_vertex_count = (mesh.len() / 10) as u32;
-        self.ground_snapshot = Some(mesh.to_vec());
-        Ok(())
-    }
-
-    /// Upload static world faces separately from terrain. They use the
-    /// ordinary `worldOpaque` material path; routing them through
-    /// `worldTerrain` applies terrain tables to props and breaks lighting and
-    /// contact-shadow semantics.
-    #[cfg(target_arch = "wasm32")]
-    #[wasm_bindgen]
-    pub fn upload_static_world(&mut self, mesh: &[f32]) -> Result<(), JsValue> {
-        if !mesh.len().is_multiple_of(10) {
-            return Err(js_error(
-                "shared static world mesh needs ten floats per vertex",
-            ));
-        }
-        let mut bytes = Vec::with_capacity(mesh.len() / 10 * 40);
-        for vertex in mesh.as_chunks::<10>().0 {
-            bytes.extend_from_slice(bytemuck::cast_slice(&vertex[..3]));
-            bytes.extend_from_slice(bytemuck::cast_slice(&vertex[3..6]));
-            bytes.extend_from_slice(bytemuck::cast_slice(&vertex[6..10]));
-        }
-        let data = if bytes.is_empty() { vec![0; 40] } else { bytes };
-        self.production_static_vertices = renderer_core::buffer(
-            &self.device,
-            "shared-production-static-vertices",
-            BufferUsages::VERTEX,
-            &data,
-        );
-        self.production_static_vertex_count = (mesh.len() / 10) as u32;
-        let mut shadow_mesh = self.ground_snapshot.clone().unwrap_or_default();
-        shadow_mesh.extend_from_slice(mesh);
-        let mut shadow_bytes = Vec::with_capacity(shadow_mesh.len() / 10 * 40);
-        for vertex in shadow_mesh.as_chunks::<10>().0 {
-            shadow_bytes.extend_from_slice(bytemuck::cast_slice(&vertex[..3]));
-            shadow_bytes.extend_from_slice(bytemuck::cast_slice(&vertex[3..6]));
-            shadow_bytes.extend_from_slice(bytemuck::cast_slice(&vertex[6..10]));
-        }
-        self.shadow_ground_vertices = renderer_core::buffer(
-            &self.device,
-            "shared-shadow-ground-vertices",
-            BufferUsages::VERTEX,
-            if shadow_bytes.is_empty() {
-                &[0; 40]
-            } else {
-                &shadow_bytes
-            },
-        );
-        self.shadow_ground_count = (shadow_mesh.len() / 10) as u32;
-        self.static_world_snapshot = Some(mesh.to_vec());
-        Ok(())
-    }
-
-    /// Upload the presentation's resolved terrain material tables.  The
-    /// arrays are the exact `GroundTables` words returned by presentation
-    /// WASM; the shared owner creates one `terrainLayout` bind group for the
-    /// extracted world pass.
-    #[cfg(target_arch = "wasm32")]
-    #[wasm_bindgen]
-    pub fn upload_terrain_tables(
-        &mut self,
-        params: &[u32],
-        nodes: &[u32],
-        plots: &[u32],
-        surfaces: &[f32],
-        surface_index: &[u32],
-        scars: &[u32],
-    ) -> Result<(), JsValue> {
-        if params.is_empty() || nodes.is_empty() || plots.is_empty() || surfaces.is_empty() {
-            return Err(js_error(
-                "terrain table upload contains an empty required table",
-            ));
-        }
-        // `GroundTables.params` is the authored terrain look.  The native
-        // owner appends the frame's four-word view suffix before binding it;
-        // keep the same ABI here so uniform alignment and the shader's
-        // `TerrainParams` size agree on both shells.
-        let mut params_with_view = params.to_vec();
-        params_with_view.extend([0; 4]);
-        self.terrain.upload(
-            &self.device,
-            &self.production_pipelines,
-            renderer_core::terrain::TerrainUpload {
-                params: bytemuck::cast_slice(&params_with_view),
-                nodes: bytemuck::cast_slice(nodes),
-                plots: bytemuck::cast_slice(plots),
-                surfaces: bytemuck::cast_slice(surfaces),
-                surface_index: bytemuck::cast_slice(surface_index),
-                scars: bytemuck::cast_slice(scars),
-            },
-        );
-        self.terrain_snapshot = Some(super::TerrainSnapshot {
-            params: params.to_vec(),
-            nodes: nodes.to_vec(),
-            plots: plots.to_vec(),
-            surfaces: surfaces.to_vec(),
-            surface_index: surface_index.to_vec(),
-            scars: scars.to_vec(),
-        });
-        self.stats.shared_terrain = true;
-        self.stats.terrain_params_words = params.len() as u32;
-        self.stats.terrain_nodes_words = nodes.len() as u32;
-        self.stats.terrain_plots_words = plots.len() as u32;
-        self.stats.terrain_surface_words = surfaces.len() as u32;
-        self.stats.terrain_index_words = surface_index.len() as u32;
-        Ok(())
-    }
-
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
     pub fn overlay(&mut self, mesh: &[f32]) -> Result<(), JsValue> {
@@ -313,48 +125,12 @@ impl Renderer {
 
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen]
-    #[allow(clippy::too_many_arguments)] // The WASM ABI mirrors the packed fog record groups.
-    pub fn upload_fog(
-        &mut self,
-        params: &[f32],
-        eyes: &[f32],
-        foliage: &[f32],
-        occluders: &[f32],
-        rebuild: &[u32],
-        rebuild_dispatch: &[u32],
-        map_words: &[u32],
-        tiles: &[u32],
-        wholes: &[u32],
-        whole_items: &[u32],
-        whole_uniform: &[f32],
-        whole_dispatch: &[u32],
-    ) -> Result<(), JsValue> {
-        if params.len() < 64 || map_words.len() < 2 || tiles.len() < 3 {
-            return Err(js_error("invalid fog sight record"));
-        }
+    /// Upload the canonical presentation fog record across separate WASM memories.
+    pub fn upload_fog(&mut self, snapshot: JsValue) -> Result<(), JsValue> {
+        let upload: renderer_core::fog_sight::FogUpload =
+            serde_wasm_bindgen::from_value(snapshot).map_err(js_error)?;
         self.shared_fog_sight
-            .upload(
-                &self.device,
-                &self.queue,
-                &renderer_core::fog_sight::FogSightUpload {
-                    params: bytemuck::cast_slice(&params[..64]),
-                    eyes: bytemuck::cast_slice(eyes),
-                    foliage: bytemuck::cast_slice(foliage),
-                    occluders: bytemuck::cast_slice(occluders),
-                    rebuild: bytemuck::cast_slice(rebuild),
-                    map_words: [map_words[0], map_words[1]],
-                    tiles: [tiles[0], tiles[1], tiles[2]],
-                    wholes,
-                    whole_items: bytemuck::cast_slice(whole_items),
-                    whole_uniform: bytemuck::cast_slice(whole_uniform),
-                },
-            )
-            .map_err(js_error)?;
-        self.fog_rebuild_dispatch =
-            (rebuild_dispatch.len() >= 2).then(|| [rebuild_dispatch[0], rebuild_dispatch[1]]);
-        self.fog_whole_dispatch =
-            (whole_dispatch.len() >= 3).then(|| [whole_dispatch[1], whole_dispatch[2]]);
-        self.fog_dispatch_active = true;
+            .upload(&self.device, &self.queue, &upload);
         self.stats.fog_sight_uploads = self.stats.fog_sight_uploads.saturating_add(1);
         Ok(())
     }

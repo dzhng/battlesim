@@ -25,23 +25,22 @@ use native_client::bench::{self, Bench};
 use native_client::bundle::Library;
 use native_client::capture::Replay;
 use native_client::counts::Counted;
-use native_client::effects::{EffectPass, Effects};
+use native_client::effects::Effects;
 use native_client::environment::Environment;
-use native_client::fog::{Fog, FogSight};
-use native_client::fog_mask::fog_mask;
-use native_client::frame::{Passes, TargetOwner, DISPLAY_FORMAT};
+use native_client::fog::Fog;
+use native_client::frame::{Scene, TargetOwner, DISPLAY_FORMAT};
 use native_client::gpu::{self, Gpu};
 use native_client::grass::Grass;
 use native_client::ground::Ground;
 use native_client::models::Models;
-use native_client::post::Post;
 use native_client::scenery::Scenery;
-use native_client::shadow::{ShadowPass, SunShadow};
+use native_client::shadow::SunShadow;
 use native_client::sky::Sky;
-use native_client::world::{DepthPrepass, Ghosts, WorldColour};
 use presentation::assets::RUNTIME;
 use presentation::records::View;
 use presentation::shadow::SunShadowFrame;
+use renderer_core::frame::{FrameRenderer, FrameStage};
+use renderer_core::{fog_mask, post};
 use wgpu::{
     CommandEncoder, CurrentSurfaceTexture, PresentMode, SubmissionIndex, Surface,
     SurfaceConfiguration,
@@ -183,7 +182,7 @@ struct Run {
     window: Arc<Window>,
     surface: Surface<'static>,
     gpu: Gpu,
-    passes: Passes,
+    scene: Scene,
     replay: Replay,
     next: usize,
     /// The static batches' generation: bumped whenever the passes stop
@@ -290,12 +289,12 @@ impl Run {
         let targets = TargetOwner::new(&gpu.device, size);
         let light = &replay.light;
         let sky = Sky::new(&gpu.device, &gpu.queue, &pipelines, &light.sky());
-        let post = Post::new(
+        let post = post::new(
             &gpu.device,
             &pipelines,
             &targets,
-            &light.bloom(),
-            &light.grade(),
+            bytemuck::bytes_of(&light.bloom()),
+            bytemuck::bytes_of(&light.grade()),
         );
         let shadow = SunShadow::new(
             &gpu.device,
@@ -310,7 +309,7 @@ impl Run {
             &sky.lut,
             &light.sun(),
             &light.aerial(),
-            &shadow,
+            shadow.resources(),
         );
         let installed = Instant::now();
         let presentation = replay.presentation();
@@ -347,9 +346,16 @@ impl Run {
             &root.join("assets/third-party/effects"),
         )?;
         // Fog of war over the ground's height pages; a fresh renderer holds none.
-        let fog = Fog::new(&gpu.device, &pipelines, &targets, &ground.heights);
+        let fog = Fog::with_heights(&gpu.device, &pipelines, &targets.depth, &ground.heights);
         replay.presentation_mut().resend_fog();
-        let (fog_mask, fog_rim) = fog_mask(&gpu.device, &pipelines, &targets, &replay.fog_look);
+        let fog_mask = fog_mask::fog_mask(
+            &gpu.device,
+            &pipelines,
+            &targets,
+            bytemuck::bytes_of(&replay.fog_look),
+            replay.fog_look.has_edge(),
+            replay.fog_look.has_rim(),
+        );
         if let Some(dir) = args.out.as_ref().or(args.bench.as_ref()) {
             std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
         }
@@ -377,7 +383,7 @@ impl Run {
             window,
             surface,
             gpu,
-            passes: Passes {
+            scene: Scene {
                 targets,
                 environment,
                 shadow,
@@ -387,17 +393,10 @@ impl Run {
                 scenery,
                 effects,
                 fog,
-                passes: vec![
-                    Box::new(ShadowPass::new(&pipelines)),
-                    Box::new(DepthPrepass::new(&pipelines)),
-                    Box::new(FogSight),
-                    Box::new(WorldColour::new(&pipelines, sky)),
-                    Box::new(EffectPass),
-                    Box::new(fog_mask),
-                    Box::new(Ghosts::new(&pipelines)),
-                    Box::new(post),
-                    Box::new(fog_rim),
-                ],
+                sky,
+                frame: FrameRenderer::new(&pipelines),
+                post,
+                fog_mask,
             },
             replay,
             next: 0,
@@ -438,7 +437,7 @@ impl Run {
                 return self.gpu.queue.submit([encoder.finish()]);
             }
         };
-        let targets = &self.passes.targets;
+        let targets = &self.scene.targets;
         encoder.copy_texture_to_texture(
             targets.display_texture.as_image_copy(),
             texture.texture.as_image_copy(),
@@ -455,20 +454,20 @@ impl Run {
     fn prepare(&mut self) -> Result<(), String> {
         // The scars changed under the grass: it regrows over them.
         if self.replay.presentation_mut().scars_changed() {
-            self.passes.grass.regrow();
+            self.scene.grass.regrow();
         }
         let frame = self.replay.last_frame();
         self.view = frame.view;
         let wrap = frame.light_wrap;
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
-        self.passes
+        self.scene
             .prepare(device, queue, self.replay.presentation())?;
-        self.passes
+        self.scene
             .prepare_scars(device, self.replay.presentation_mut());
-        self.passes
+        self.scene
             .prepare_fog(device, queue, self.replay.presentation_mut())?;
         let presentation = self.replay.presentation();
-        self.passes
+        self.scene
             .prepare_effects(device, queue, presentation, wrap);
         Ok(())
     }
@@ -490,14 +489,14 @@ impl Run {
         bench.mark();
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         bench.begin(device, queue);
-        let mut encoder = self.passes.encode(device, queue, &self.view);
+        let mut encoder = self.scene.encode(device, queue, &self.view);
         bench.end(&mut encoder);
         bench.mark();
         let index = self.present(encoder);
         let bench = self.bench.as_mut().ok_or("not a bench")?;
         bench.submitted(&self.gpu.device, index)?;
         // What the frame drew, tallied outside its timed phases.
-        let d = self.passes.models.drawn();
+        let d = self.scene.models.drawn();
         let scenery = Counted::of(self.replay.presentation()).scenery;
         let trees: u32 = scenery.iter().flatten().sum();
         let bytes = std::mem::size_of_val(&self.replay.last_frame().instances[..]);
@@ -508,7 +507,7 @@ impl Run {
             f64::from(d.pieces),
             d.triangles as f64,
             f64::from(trees),
-            f64::from(self.passes.effects.count()),
+            f64::from(self.scene.effects.count()),
             bytes as f64,
             f64::from(d.props),
         ];
@@ -562,7 +561,7 @@ impl Run {
                 ));
             // What the models and effects draw of what the frame lists: a
             // soldier off screen is counted, not drawn.
-            let drawn = self.passes.models.drawn();
+            let drawn = self.scene.models.drawn();
             let d = &drawn;
             for (what, got, listed) in [
                 (
@@ -572,7 +571,7 @@ impl Run {
                 ),
                 (
                     "effect instances drawn of those listed",
-                    self.passes.effects.count(),
+                    self.scene.effects.count(),
                     presentation.effects().len() as u32,
                 ),
             ] {
@@ -586,14 +585,14 @@ impl Run {
             println!(
                 "{plate}: drawn {drawn:?}, culled soldiers {}, effects {} and {} lights, scar pages {} ({})",
                 counts.culled,
-                self.passes.effects.count(),
+                self.scene.effects.count(),
                 counts.lights,
                 scars.pages,
-                if self.passes.ground.scars.regional() { "by region" } else { "at once" },
+                if self.scene.ground.material.scars.regional() { "by region" } else { "at once" },
             );
-            let encoder = self.passes.encode(device, queue, &self.view);
-            let rgba = self.passes.read_display(device, queue, encoder);
-            output::write_png(&out.join(&plate), self.passes.targets.size, &rgba)?;
+            let encoder = self.scene.encode(device, queue, &self.view);
+            let rgba = self.scene.read_display(device, queue, encoder);
+            output::write_png(&out.join(&plate), self.scene.targets.size, &rgba)?;
             self.plates += 1;
             let encoder = device.create_command_encoder(&Default::default());
             self.present(encoder);
@@ -602,7 +601,7 @@ impl Run {
         if self.paced < args.pace {
             self.paced += 1;
             let encoder = self
-                .passes
+                .scene
                 .encode(&self.gpu.device, &self.gpu.queue, &self.view);
             self.present(encoder);
             return Ok(true);
@@ -666,7 +665,7 @@ impl Run {
     fn bench_report(&mut self, args: &Args, dir: &std::path::Path) -> Result<(), String> {
         let frames = self.next.max(1) as f64;
         let mean = |i: usize| (self.drew[i] / frames).round();
-        let passes: Vec<&str> = self.passes.passes.iter().map(|p| p.name()).collect();
+        let passes = FrameStage::ORDER.map(FrameStage::label);
         let p = &self.presents;
         let conditions = serde_json::json!({
             "power": bench::power_source(),
@@ -693,7 +692,7 @@ impl Run {
         let report = self.bench.as_mut().ok_or("not a bench")?.report(
             &self.gpu.device,
             &scene,
-            self.passes.targets.size,
+            self.scene.targets.size,
             conditions,
         )?;
         let stamp = std::time::SystemTime::now()

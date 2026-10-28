@@ -18,15 +18,21 @@ pub mod fog;
 pub mod fog_mask;
 pub mod fog_sight;
 pub mod frame;
+pub mod grass;
+pub mod ground;
+pub mod memory;
 pub mod model_material;
 pub mod models;
 pub mod overlay;
 pub mod pipelines;
 pub mod post;
+pub mod scars;
 pub mod scenery;
 pub mod shadow;
+pub mod sky;
 pub mod statics;
 pub mod terrain;
+pub mod timing;
 pub mod world;
 
 /// Encode an ordered pass list with one shared debug-group boundary.
@@ -277,4 +283,29 @@ pub fn bind(
         layout,
         entries: &entries,
     })
+}
+
+impl Targets {
+    pub fn record_memory(&self, memory: &mut memory::ResourceMemory) {
+        for view in [
+            &self.hdr_msaa,
+            &self.lit,
+            &self.hdr,
+            &self.depth,
+            &self.fog_mask_msaa,
+            &self.fog_mask,
+            &self.fog_distance_rows,
+            &self.fog_distance,
+            &self.overlay_depth,
+            &self.overlay_msaa,
+            &self.overlay,
+            &self.paint,
+            &self.overlay_glow_rows,
+            &self.overlay_glow,
+            &self.display,
+        ] {
+            memory.view(view);
+        }
+        memory.texture(&self.display_texture);
+    }
 }

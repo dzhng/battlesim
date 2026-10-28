@@ -149,3 +149,16 @@ impl ShadowResources {
         self.active as u32
     }
 }
+
+impl ShadowResources {
+    pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        memory.buffer(&self.receiver);
+        for camera in &self.cameras {
+            memory.buffer(camera);
+        }
+        memory.view(&self.depth);
+        for view in &self.layers {
+            memory.view(view);
+        }
+    }
+}

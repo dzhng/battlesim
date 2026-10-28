@@ -15,9 +15,10 @@ use wgpu::*;
 
 use presentation::presentation::Presentation;
 
-use crate::gpu::{bind, buffer};
+use crate::buffer;
 use crate::pipelines::{Bound, Pipelines};
-use crate::scars::Scars;
+use crate::scars::ScarFrame;
+use crate::terrain::{TerrainResources, TerrainUpload};
 
 /// `TerrainParams`' last `vec4u`, the frame's view: the lit ground (not its
 /// classes), the roads worn.
@@ -86,45 +87,20 @@ impl Mesh {
     }
 }
 
-/// `terrainLayout`'s group: the tables, then the scars.
-fn terrain_group(
-    device: &Device,
-    layout: &BindGroupLayout,
-    tables: &[Buffer; 5],
-    scars: &Scars,
-) -> BindGroup {
-    let [params, nodes, plots, surfaces, index] = tables;
-    bind(
-        device,
-        layout,
-        "terrain",
-        &[
-            params.as_entire_binding(),
-            nodes.as_entire_binding(),
-            plots.as_entire_binding(),
-            surfaces.as_entire_binding(),
-            index.as_entire_binding(),
-            scars.params.as_entire_binding(),
-            BindingResource::TextureView(&scars.directory_view()),
-            BindingResource::TextureView(&scars.pool_view()),
-        ],
-    )
-}
-
-/// A storage table holding at least one record of `record` bytes.
-fn table(device: &Device, label: &str, bytes: &[u8], record: usize) -> Buffer {
-    let mut padded = bytes.to_vec();
-    padded.resize(bytes.len().max(record), 0);
-    buffer(device, label, BufferUsages::STORAGE, &padded)
+/// Borrowed presentation tables and world meshes, uploaded once per world.
+/// Meshes use the shared ten-float world vertex layout; partitioning and all
+/// per-frame camera/cascade selection stay inside this owner.
+pub struct GroundData<'a> {
+    pub material: TerrainUpload<'a>,
+    pub heights: &'a [u32],
+    pub terrain: &'a [f32],
+    pub skirt: &'a [f32],
+    pub backdrop: &'a [f32],
+    pub water: &'a [f32],
 }
 
 pub struct Ground {
-    /// `terrainLayout`: the terrain's tables and the side's scars.
-    pub group: BindGroup,
-    layout: BindGroupLayout,
-    /// The terrain's tables: params, plot nodes, plots, surfaces and their index.
-    tables: [Buffer; 5],
-    pub scars: Scars,
+    pub material: TerrainResources,
     /// The height pages fog and grass read (`Grid::pages`).
     pub heights: Buffer,
     /// The box the map's ground and what stands on it fill (`mapBox`).
@@ -155,64 +131,70 @@ impl Ground {
         backdrop_m: f64,
     ) -> Result<Self, String> {
         let tables = ground.terrain_tables(ground.terrain_field()?);
-        let uniform = BufferUsages::UNIFORM;
-        let params: Vec<u32> = tables.params.iter().copied().chain(VIEW).collect();
-        let params = buffer(
-            device,
-            "terrain-params",
-            uniform,
-            bytemuck::cast_slice(&params),
-        );
-        let nodes = table(
-            device,
-            "terrain-nodes",
-            bytemuck::cast_slice(&tables.nodes),
-            32,
-        );
         let plots = ground.plot_records(true);
-        let plots = table(device, "terrain-plots", bytemuck::cast_slice(&plots), 96);
-        let surfaces = table(
+        let terrain = mesh::terrain(positions, indices, None);
+        let map_box = map_box(&terrain);
+        let backdrop = map_box.map_or_else(Vec::new, |b| mesh::backdrop(&b, backdrop_m));
+        Ok(Self::from_data(
             device,
-            "terrain-surfaces",
-            bytemuck::cast_slice(&tables.surfaces),
-            32,
-        );
-        let index = table(
+            queue,
+            pipelines,
+            GroundData {
+                material: TerrainUpload {
+                    params: bytemuck::cast_slice(&tables.params),
+                    nodes: bytemuck::cast_slice(&tables.nodes),
+                    plots: bytemuck::cast_slice(&plots),
+                    surfaces: bytemuck::cast_slice(&tables.surfaces),
+                    surface_index: bytemuck::cast_slice(&tables.surface_index),
+                    scars: bytemuck::cast_slice(&tables.scars),
+                },
+                heights: &ground.source.grid.pages(),
+                terrain: &terrain,
+                skirt: &mesh::skirt(positions),
+                backdrop: &backdrop,
+                water: &mesh::water(&ground.water_cells()),
+            },
+        ))
+    }
+
+    pub fn from_data(
+        device: &Device,
+        queue: &Queue,
+        pipelines: &Pipelines,
+        data: GroundData<'_>,
+    ) -> Self {
+        let mut params = data.material.params.to_vec();
+        params.extend_from_slice(bytemuck::cast_slice(&VIEW));
+        let material = TerrainResources::from_upload(
             device,
-            "terrain-index",
-            bytemuck::cast_slice(&tables.surface_index),
-            4,
+            queue,
+            pipelines,
+            TerrainUpload {
+                params: &params,
+                ..data.material
+            },
         );
-        let scars = Scars::new(device, queue, &tables.scars);
-        let tables = [params, nodes, plots, surfaces, index];
-        let layout = pipelines.layout("terrainLayout").clone();
-        let group = terrain_group(device, &layout, &tables, &scars);
         let heights = buffer(
             device,
             "terrain-heights",
             BufferUsages::STORAGE,
-            bytemuck::cast_slice(&ground.source.grid.pages()),
+            bytemuck::cast_slice(data.heights),
         );
-        let terrain = mesh::terrain(positions, indices, None);
-        let map_box = map_box(&terrain);
+        let map_box = map_box(data.terrain);
         // Coarse spatial batches avoid one draw per terrain cell while allowing
         // the camera and each shadow cascade to exclude distant ground.
-        let terrain = Mesh::partitioned(device, "terrain", &terrain);
+        let terrain = Mesh::partitioned(device, "terrain", data.terrain);
         let terrain_partition = terrain.partition.as_ref().unwrap().clone();
-        let backdrop = map_box.map_or_else(Vec::new, |b| mesh::backdrop(&b, backdrop_m));
-        let skirt = Mesh::partitioned(device, "skirt", &mesh::skirt(positions));
-        let water = Mesh::partitioned(device, "water", &mesh::water(&ground.water_cells()));
-        Ok(Self {
-            group,
-            layout,
-            tables,
-            scars,
+        let skirt = Mesh::partitioned(device, "skirt", data.skirt);
+        let water = Mesh::partitioned(device, "water", data.water);
+        Self {
+            material,
             heights,
             map_box,
             terrain,
             terrain_partition,
             skirt,
-            backdrop: Mesh::new(device, "backdrop", &backdrop),
+            backdrop: Mesh::new(device, "backdrop", data.backdrop),
             water,
             identity: buffer(
                 device,
@@ -226,12 +208,17 @@ impl Ground {
             lit_skirt: pipelines.bound("worldOpaque"),
             lit_backdrop: pipelines.bound("worldBackdrop"),
             lit_water: pipelines.bound("worldWater"),
-        })
+        }
     }
 
     /// Select from the same camera records uploaded for the colour and shadow passes.
     pub fn prepare(&mut self, camera: &Camera, shadow: Option<&SunShadowFrame>) {
         let casters = shadow.map_or(&[][..], |fit| fit.casters.as_slice());
+        self.prepare_records(camera, casters);
+    }
+
+    /// Select bounded ranges from the camera and cascade camera publications.
+    pub fn prepare_records(&mut self, camera: &Camera, casters: &[Camera]) {
         self.terrain.prepare(camera, casters);
         self.skirt.prepare(camera, casters);
         self.water.prepare(camera, &[]);
@@ -247,16 +234,24 @@ impl Ground {
         size: [u32; 2],
     ) {
         if self
+            .material
             .scars
             .prepare(device, presentation, grass, self.map_box.as_ref(), size)
         {
-            self.group = terrain_group(device, &self.layout, &self.tables, &self.scars);
+            self.material.rebind_scars(device);
+        }
+    }
+
+    /// Stage presentation-resolved scar updates without borrowing a native presentation.
+    pub fn prepare_scar_uploads(&mut self, device: &Device, frame: ScarFrame) {
+        if self.material.scars.prepare_uploads(device, frame) {
+            self.material.rebind_scars(device);
         }
     }
 
     /// The group by the layout it fills.
     pub fn layout_group(&self) -> (&'static str, &BindGroup) {
-        ("terrainLayout", &self.group)
+        ("terrainLayout", self.material.bind_group())
     }
 
     /// The ground, the skirt and the backdrop into the depth prepass.
@@ -310,3 +305,16 @@ impl Ground {
 #[cfg(test)]
 #[path = "ground_range_tests.rs"]
 mod range_tests;
+
+impl Ground {
+    pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        memory.buffer(&self.heights);
+        memory.buffer(&self.identity);
+        for mesh in [&self.terrain, &self.skirt, &self.backdrop, &self.water] {
+            if let Some(buffer) = &mesh.buffer {
+                memory.buffer(buffer);
+            }
+        }
+        self.material.record_memory(memory);
+    }
+}

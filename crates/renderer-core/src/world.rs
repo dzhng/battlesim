@@ -1,39 +1,18 @@
-//! Shared world-pass attachment setup.
-
+//! The production world policy: scar-page submissions, grass growth,
+//! sky, fogged materials, scenery, water and glass in one shared owner.
+use crate::fog::Layer;
+use crate::frame::FrameInputs;
+use crate::models::Surface;
+use crate::pipelines::{Bound, Pipelines};
+use crate::Targets;
 use wgpu::*;
 
-use crate::Targets;
-
-use crate::fog::Layer;
-
-#[derive(Clone, Copy, Debug)]
-pub enum Surface {
-    Opaque,
-    Cutout,
-    Room,
-    Blended,
+pub struct WorldColour {
+    surfaces: [(Bound, Surface); 3],
+    glass: Bound,
 }
 
-/// Resource-specific drawing for the production world pass. The core owns
-/// the pass boundaries and order; a shell only adapts its ground, scenery,
-/// models, fog groups and sky resources.
-pub trait WorldInputs {
-    fn draw_sky(&self, pass: &mut RenderPass<'_>);
-    fn draw_ground(&self, pass: &mut RenderPass<'_>, layer: Layer);
-    fn draw_skirt(&self, pass: &mut RenderPass<'_>, layer: Layer);
-    fn bind_models(&self, pass: &mut RenderPass<'_>, layer: Layer, surface: Surface);
-    fn draw_models(&self, pass: &mut RenderPass<'_>, layer: Layer, surface: Surface);
-    fn draw_scenery(&self, pass: &mut RenderPass<'_>, layer: Layer);
-    fn draw_grass(&self, pass: &mut RenderPass<'_>, layer: Layer);
-    fn draw_backdrop(&self, pass: &mut RenderPass<'_>, layer: Layer);
-    fn draw_water(&self, pass: &mut RenderPass<'_>, layer: Layer);
-    fn bind_glass(&self, pass: &mut RenderPass<'_>);
-    fn draw_glass(&self, pass: &mut RenderPass<'_>);
-}
-
-/// Begin the lit world pass with the shared HDR, fog-mask and reverse-Z
-/// attachments. Resource-specific draw calls stay in the platform adapter.
-pub fn begin_world_pass<'a>(
+fn begin_world_pass<'a>(
     encoder: &'a mut CommandEncoder,
     targets: &'a Targets,
     label: &'static str,
@@ -83,57 +62,107 @@ pub fn begin_world_pass<'a>(
     })
 }
 
-/// Encode the sky attachment. This is separate from `encode_world` so a
-/// shell with regional terrain uploads can submit those regions between the
-/// sky and the final world pass without duplicating the production ordering.
-pub fn encode_sky<I: WorldInputs>(inputs: &I, targets: &Targets, encoder: &mut CommandEncoder) {
-    let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-        label: Some("sky"),
-        color_attachments: &[Some(RenderPassColorAttachment {
-            view: &targets.hdr_msaa,
-            depth_slice: None,
-            resolve_target: Some(&targets.lit),
-            ops: Operations {
-                load: LoadOp::Clear(Color::BLACK),
-                store: StoreOp::Store,
-            },
-        })],
-        ..Default::default()
-    });
-    inputs.draw_sky(&mut pass);
+fn groups<'a>(inputs: &'a FrameInputs<'_>, layer: Layer) -> [(&'static str, &'a BindGroup); 3] {
+    let [camera, environment] = inputs.environment.groups();
+    [camera, environment, inputs.fog.group(layer)]
 }
 
-/// Encode the production lit-world sequence after the sky. `draw_ground`
-/// allows scar-region shells to render terrain separately while sharing all
-/// remaining world/material ordering.
-pub fn encode_world<I: WorldInputs>(
-    inputs: &I,
-    targets: &Targets,
-    encoder: &mut CommandEncoder,
-    first: bool,
-    kept: bool,
-    draw_ground: bool,
-) {
-    let mut pass = begin_world_pass(encoder, targets, "world", first, kept);
-    if draw_ground {
-        inputs.draw_ground(&mut pass, Layer::PaintedGround);
-    }
-    inputs.draw_skirt(&mut pass, Layer::Faces);
-    for layer in [
-        Layer::Units,
-        Layer::Faces,
-        Layer::Ground,
-        Layer::PaintedFaces,
-    ] {
-        for surface in [Surface::Opaque, Surface::Cutout, Surface::Room] {
-            inputs.bind_models(&mut pass, layer, surface);
-            inputs.draw_models(&mut pass, layer, surface);
+impl WorldColour {
+    pub fn new(pipelines: &Pipelines) -> Self {
+        Self {
+            surfaces: [
+                (pipelines.bound("modelOpaque"), Surface::Opaque),
+                (pipelines.bound("modelCutout"), Surface::Cutout),
+                (pipelines.bound("modelRooms"), Surface::Room),
+            ],
+            glass: pipelines.bound("modelBlended"),
         }
     }
-    inputs.draw_scenery(&mut pass, Layer::Faces);
-    inputs.draw_grass(&mut pass, Layer::PaintedGround);
-    inputs.draw_backdrop(&mut pass, Layer::PaintedGround);
-    inputs.draw_water(&mut pass, Layer::PaintedFaces);
-    inputs.bind_glass(&mut pass);
-    inputs.draw_glass(&mut pass);
+
+    pub fn encode(&self, inputs: &FrameInputs<'_>, encoder: &mut CommandEncoder) {
+        let (queue, ground) = (inputs.queue, inputs.ground);
+        let scars = &ground.material.scars;
+        if let Some(upload) = scars.grass_upload() {
+            scars.apply(queue, upload);
+        }
+        if let Some(grass) = inputs.grass {
+            grass.encode_build(encoder, ground.layout_group());
+        }
+        inputs.sky.prepare(queue, inputs.view);
+        {
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("sky"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view: &inputs.targets.hdr_msaa,
+                    depth_slice: None,
+                    resolve_target: Some(&inputs.targets.lit),
+                    ops: Operations {
+                        load: LoadOp::Clear(Color::BLACK),
+                        store: StoreOp::Store,
+                    },
+                })],
+                ..Default::default()
+            });
+            inputs.sky.draw(&mut pass);
+        }
+        let regional = scars.regional();
+        if regional {
+            let done = std::mem::replace(
+                encoder,
+                inputs.device.create_command_encoder(&Default::default()),
+            );
+            queue.submit([done.finish()]);
+            for (index, (rect, upload)) in scars.region_uploads().iter().enumerate() {
+                scars.apply(queue, upload);
+                let mut region = inputs.device.create_command_encoder(&Default::default());
+                let mut pass = begin_world_pass(
+                    &mut region,
+                    inputs.targets,
+                    "ground-region",
+                    index == 0,
+                    true,
+                );
+                let [x, y, w, h] = *rect;
+                pass.set_scissor_rect(x, y, w, h);
+                ground.draw_terrain(&mut pass, &groups(inputs, Layer::PaintedGround));
+                drop(pass);
+                queue.submit([region.finish()]);
+            }
+        } else if let Some(upload) = scars.view_upload() {
+            scars.apply(queue, upload);
+        }
+        let drew = !scars.region_uploads().is_empty();
+        let mut pass = begin_world_pass(encoder, inputs.targets, "world", !drew, false);
+        if !regional {
+            ground.draw_terrain(&mut pass, &groups(inputs, Layer::PaintedGround));
+        }
+        ground.draw_skirt(&mut pass, &groups(inputs, Layer::Faces));
+        for layer in [
+            Layer::Units,
+            Layer::Faces,
+            Layer::Ground,
+            Layer::PaintedFaces,
+        ] {
+            let mut groups = groups(inputs, layer).to_vec();
+            groups.push(inputs.models.group());
+            for (pipeline, surface) in &self.surfaces {
+                pipeline.set(&mut pass, &groups);
+                inputs.models.draw_fogged(&mut pass, *surface, layer);
+            }
+        }
+        inputs.scenery.draw(
+            &mut pass,
+            &groups(inputs, Layer::Faces),
+            inputs.models.statics(),
+        );
+        if let Some(grass) = inputs.grass {
+            grass.draw(&mut pass, &groups(inputs, Layer::PaintedGround));
+        }
+        ground.draw_backdrop(&mut pass, &groups(inputs, Layer::PaintedGround));
+        ground.draw_water(&mut pass, &groups(inputs, Layer::PaintedFaces));
+        let mut groups = inputs.environment.groups().to_vec();
+        groups.push(inputs.models.group());
+        self.glass.set(&mut pass, &groups);
+        inputs.models.draw(&mut pass, Surface::Blended);
+    }
 }

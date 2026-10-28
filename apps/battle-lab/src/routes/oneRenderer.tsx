@@ -260,7 +260,7 @@ export default function OneRenderer() {
           </thead>
           <tbody>
             {results.map((row) => (
-              <tr key={row.mode}>
+              <tr key={row.mode} data-samples={JSON.stringify(row.samples)}>
                 <td style={{ padding: 8 }}>{LABELS[row.mode]}</td>
                 <td style={{ padding: 8 }}>{formatMs(row.setupMs)}</td>
                 <td style={{ padding: 8 }}>{formatMs(row.encodeMs)}</td>

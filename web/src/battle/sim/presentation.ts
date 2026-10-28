@@ -5,7 +5,7 @@ import init, {
   fog_look,
   light_records,
 } from "@wasm/presentation/presentation_wasm.js";
-import { LearnedGround, groundOf } from "./presentationGround";
+import { LearnedGround, groundOf, type SceneGround } from "./presentationGround";
 import wasmUrl from "@wasm/presentation/presentation_wasm_bg.wasm?url";
 import {
   APPEARANCE_WORDS,
@@ -37,11 +37,7 @@ import {
   type SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import {
-  setGround,
-  type GroundInput,
-  type PresentedGround,
-} from "@packages/battle-renderer/src/terrain/terrainSurface";
+import { setGround, type GroundInput } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { tierMesh } from "@packages/battle-renderer/src/scenery/appearance";
 import { concatMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
 import { STUMP } from "@packages/battle-renderer/src/frame/sceneryLayer";
@@ -308,7 +304,7 @@ export class ScenePresentation {
   /** The installed art the ground's props were placed from. */
   private proppedBy: InstalledAppearances | null = null;
   /** The ground the page reads tables from, new with each ground set. */
-  private presented: PresentedGround | null = null;
+  private presented: SceneGround | null = null;
   /** The fog asked for, the one set, and the foliage handed over. */
   private fogStaged: FogRequest | null = null;
   private fogSet: FogRequest | null | undefined = undefined;
@@ -534,7 +530,7 @@ export class ScenePresentation {
 
   /** The ground the scene's presentation resolved, for the terrain, the
    *  grass and the water; null before one is set. */
-  presentedGround(): PresentedGround | null {
+  presentedGround(): SceneGround | null {
     return this.presented;
   }
 

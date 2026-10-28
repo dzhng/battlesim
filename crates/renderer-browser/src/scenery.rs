@@ -91,3 +91,11 @@ impl Renderer {
         }
     }
 }
+
+impl SceneryWorldSnapshot {
+    pub(super) fn payload_bytes(&self) -> usize {
+        self.kinds.iter().map(String::len).sum::<usize>()
+            + size_of_val(self.offsets.as_slice())
+            + size_of_val(self.stumps.as_slice())
+    }
+}

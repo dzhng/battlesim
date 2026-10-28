@@ -33,27 +33,25 @@ renderer cannot establish that benefit.
 
 ## Next Agent Prompt
 
-Continue the actual native-owner extraction, then use the matched captured
-Paris workload to close visual gaps. Do not add functionality to the browser's
-old model approximation: the native model/material/static-batch owner is moving
-into the core and must replace it. Its exact contract includes all articulated
-nodes, corpse/rest palettes, named static states, indexed tiers, surface classes,
-texture identity and held batches. The browser presentation bridge exports the
-same appearance ABI and authored rest palettes from its separate WASM memory.
+Continue from the shared production frame. Native and browser now call the same
+concrete Rust frame encoder over the actual sky, environment, ground, grass,
+scars, fog, model, scenery, effects and post owners. Callback stage adapters and
+the browser's parallel ground/environment/fog implementations are deleted.
+Preserve native behavior while closing the matched captured Paris visual gate.
 
 Priority order:
 
-1. The shared native model/static/scenery replacement now renders through the
-   browser, and the complete captured pair passes transport/recovery. Preserve
-   this ownership and its regression checks. The valid `plate-240` comparison
-   still fails visual parity; research records its metrics and screenshots.
-2. Extract the remaining native scenery/grass/ground/sky/frame owners and route
-   them through the shared runtime. Replace browser pass approximations rather
-   than extending them. Preserve native behavior first; change it only as a
-   separately measured experiment.
-3. Close matched native/browser material, lighting, contact-shadow, fog, effect,
-   post, overlay and framing differences. Green counters are input/lifetime
-   evidence, never visual acceptance.
+1. Inspect the new captured `plate-240` pair and rerun native plates against the
+   saved pre-extraction native control. The preceding valid comparison failed
+   visual parity; research preserves its evidence. Green transport/lifetime
+   counters never override missing or different rendered content.
+2. Complete the production browser canvas/transport shell and the remaining
+   shared features listed in slice 02. Preserve paint, pointer marks, x-ray,
+   high-air composition and the existing diagnostic contracts when replacing
+   BattleFrame; the native replay alone does not cover these browser features.
+3. Compare matched visual, CPU, GPU timestamp and owned memory results. Prepare
+   fresh fog/scar/grass records for each drawn frame. After device recreation,
+   resend current knowledge from presentation; an old delta cannot recover it.
 4. Measure the three production targets with matched inputs, separate cold
    startup from recovery, record CPU/GPU/memory/download costs, and account for
    code/owners after deletion. Delete the replaced graphs, run repository
@@ -97,8 +95,9 @@ Established before the current pass:
 
 - Browser `wgpu`/WASM submission works; exported WGSL and bounded terrain/model
   transport controls match their browser counterparts.
-- Shared target/pipeline/depth/world ordering, environment, fog, shadow resources,
-  effects/post/overlay and resize/device-loss seams compile and execute.
+- Shared production frame encoding, actual GPU owners, and resize/device-loss
+  seams compile on native and WASM. Optional GPU timestamps and exact owned
+  allocation snapshots support the matched measurements.
 - A captured publication reaches the shared browser shell, including dynamic
   model, terrain, effect and caster records. Earlier dynamic-only admission and
   synthetic controls are not full production pixel or performance evidence.

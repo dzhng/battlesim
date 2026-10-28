@@ -157,3 +157,11 @@ impl Statics {
         self.listed.iter().map(|key| &self.held[key])
     }
 }
+
+impl Statics {
+    pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        for held in self.held.values() {
+            memory.buffer(&held.buffer);
+        }
+    }
+}

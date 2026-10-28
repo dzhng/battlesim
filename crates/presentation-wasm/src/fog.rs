@@ -80,12 +80,19 @@ impl Presentation {
     }
 }
 
-/// One frame's fog uploads and passes (`presentation::fog::sight::FogUpload`).
+/// One frame's fog uploads and passes (`presentation::fog::upload::FogUpload`).
 #[wasm_bindgen]
-pub struct FogUpload(presentation::fog::sight::FogUpload);
+pub struct FogUpload(presentation::fog::upload::FogUpload);
 
 #[wasm_bindgen]
 impl FogUpload {
+    /// The canonical fog record as an owned JavaScript value for a renderer
+    /// running in a separate WASM memory. Optional tables preserve absent
+    /// deltas separately from explicitly empty tables.
+    pub fn snapshot(&self) -> Result<JsValue, JsError> {
+        serde_wasm_bindgen::to_value(&self.0).map_err(|error| JsError::new(&error.to_string()))
+    }
+
     /// `FogParams`' words.
     pub fn params(&self) -> Vec<u32> {
         bytemuck::cast_slice(bytemuck::bytes_of(&self.0.params)).to_vec()

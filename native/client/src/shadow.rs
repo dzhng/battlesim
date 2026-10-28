@@ -4,9 +4,7 @@
 //! both to the frame's camera; this only uploads and draws.
 use wgpu::*;
 
-use crate::frame::{Inputs, Pass};
-use crate::models::Surface;
-use crate::pipelines::{Bound, Pipelines};
+use crate::pipelines::Pipelines;
 use presentation::records::{Camera, SunShadow as Receiver};
 use presentation::shadow::SunShadowFrame;
 use renderer_core::shadow::ShadowResources;
@@ -44,56 +42,7 @@ impl SunShadow {
         );
     }
 
-    pub fn depth(&self) -> &TextureView {
-        &self.resources.depth
-    }
-    pub fn receiver(&self) -> &Buffer {
-        &self.resources.receiver
-    }
-    pub fn compare(&self) -> &Sampler {
-        &self.resources.compare
-    }
-}
-
-/// One clear-to-far depth pass per fitted cascade, drawing every caster:
-/// the ground's, the models' and the scenery's (`encodeShadows`).
-pub struct ShadowPass {
-    solid: Bound,
-    cutout: Bound,
-}
-
-impl ShadowPass {
-    pub fn new(pipelines: &Pipelines) -> Self {
-        Self {
-            solid: pipelines.bound("modelCaster"),
-            cutout: pipelines.bound("modelCasterCutout"),
-        }
-    }
-}
-
-impl Pass for ShadowPass {
-    fn name(&self) -> &'static str {
-        "sun-shadow"
-    }
-
-    fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
-        let shadow = inputs.shadow;
-        shadow
-            .resources
-            .encode_cascades(encoder, |cascade, camera, pass| {
-                let camera = ("typegpuCameraLayout", camera);
-                inputs.ground.draw_casters(pass, camera, cascade);
-                let models = inputs.models;
-                for (bound, surface) in [
-                    (&self.solid, Surface::Solid),
-                    (&self.cutout, Surface::Cutout),
-                ] {
-                    bound.set(pass, &[camera, models.group()]);
-                    models.draw_casters(pass, surface, cascade);
-                }
-                inputs
-                    .scenery
-                    .draw_casters(pass, camera, models.statics(), cascade);
-            });
+    pub fn resources(&self) -> &ShadowResources {
+        &self.resources
     }
 }

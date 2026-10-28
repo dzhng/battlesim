@@ -8,6 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 wasm-bindgen = "0.2"
+serde-wasm-bindgen = "0.6"
 sim = { path = "../sim" }
 serde = "1"
 serde_json.workspace = true

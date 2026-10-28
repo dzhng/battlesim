@@ -1,8 +1,8 @@
-//! Shared fog sight compute pipeline ownership.
-//!
-//! Presentation upload and bind-group lifetime stay in the shell because they
-//! depend on its fog record layout. This owner keeps the four exported compute
-//! pipelines and their dispatch labels/order in one browser-safe Rust module.
+//! Fog surface classes and the shared sight compute pipelines.
+//! Canonical presentation uploads, GPU resources and encoding live in the
+//! shared sight owner used by both platform shells.
+
+pub use crate::fog_sight::FogSightResources as Fog;
 
 use presentation::records::{FOG_FACES, FOG_GROUND, FOG_PAINTED_FACES};
 use wgpu::*;

@@ -46,6 +46,7 @@ import {
 import { mapProps } from "@packages/battle-renderer/src/models/propAppearance";
 import { indexBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
 import parisCapture from "@fixtures/parity/capture/run/paris-corner/capture.json";
+import { measureFrames } from "./oneRendererTiming";
 
 export const BATTLE_WIDTH = 640;
 export const BATTLE_HEIGHT = 360;
@@ -490,6 +491,7 @@ export async function fullBattleBrowserRun(
   canvas: HTMLCanvasElement,
   frames: number,
 ): Promise<BattleRunResult> {
+  canvas.dataset.stage = "TypeGPU device setup";
   await loadPresentation();
   const started = performance.now();
   canvas.width = BATTLE_WIDTH;
@@ -498,11 +500,15 @@ export async function fullBattleBrowserRun(
   if (!context) throw new Error("Canvas refused a WebGPU context.");
   const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
   if (!adapter) throw new Error("WebGPU adapter unavailable for BattleFrame control.");
-  const device = await adapter.requestDevice();
+  const timing = new URLSearchParams(window.location.search).get("timing") === "1";
+  const device = await adapter.requestDevice({
+    requiredFeatures: timing && adapter.features.has("timestamp-query") ? ["timestamp-query"] : [],
+  });
   const format = navigator.gpu.getPreferredCanvasFormat();
   context.configure({ device, format, alphaMode: "opaque" });
   const capture = new URLSearchParams(window.location.search).get("capture") === "1";
   const fixture = capture ? await capturedParisFixture() : battleFixture();
+  canvas.dataset.stage = "TypeGPU frame construction";
   const frame = await createBattleFrame(device, format, {
     light: await resolveLight(gameLight),
     fogGeometry: gameFogGeometry,
@@ -520,6 +526,7 @@ export async function fullBattleBrowserRun(
   // Captured frames use the exact appearance generation that built their
   // presentation rows; the small control keeps its authored vehicle fixture.
   const installed = fixture.appearances ?? (await loadSpikeAppearances());
+  canvas.dataset.stage = "TypeGPU appearance admission";
   await frame.setAppearances(installed);
   frame.setPresentationWorld(fixture.presentation.appearanceRows());
   const authored = (
@@ -561,23 +568,28 @@ export async function fullBattleBrowserRun(
     scenery: fixture.presentation.sceneryWalk(),
   });
   const setupMs = performance.now() - started;
+  canvas.dataset.stage = "TypeGPU warm frame";
   frame.render(context.getCurrentTexture().createView());
   await device.queue.onSubmittedWorkDone();
-  const encodeStart = performance.now();
-  for (let index = 0; index < frames; index++)
-    frame.render(context.getCurrentTexture().createView());
-  const encodeMs = performance.now() - encodeStart;
-  const submitStart = performance.now();
-  await device.queue.onSubmittedWorkDone();
-  const submitMs = performance.now() - submitStart;
+  frame.resetGpuTiming();
+  let encodedFrames = 0;
+  const measured = await measureFrames(
+    frames,
+    () => {
+      canvas.dataset.stage = `TypeGPU frame ${++encodedFrames}`;
+      frame.render(context.getCurrentTexture().createView());
+    },
+    () => device.queue.onSubmittedWorkDone(),
+  );
   const stats = frame.stats();
+  canvas.dataset.stage = "TypeGPU complete";
   frame.dispose();
   if (!capture) fixture.presentation.free();
   device.destroy();
   return {
     setupMs,
-    encodeMs,
-    submitMs,
+    encodeMs: measured.encodeMs,
+    submitMs: measured.submitMs,
     frames,
     workload: JSON.stringify({
       passes: ["shadows", "depth", "world", "effects", "fog", "post", "overlays"],
@@ -587,6 +599,8 @@ export async function fullBattleBrowserRun(
       shadowCascades: stats.shadow.cascades,
       fogEyes: stats.fog.eyes,
       allocations: stats.memory,
+      timing: measured.timing,
+      gpu: stats.gpu,
     }),
   };
 }

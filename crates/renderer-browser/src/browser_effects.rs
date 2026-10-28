@@ -147,7 +147,14 @@ impl BrowserEffects {
             .prepare(device, queue, bytemuck::cast_slice(effects));
     }
 
-    pub(super) fn encode(&self, encoder: &mut CommandEncoder, targets: &TargetOwner) {
-        self.resources.encode(encoder, targets);
+    pub(super) fn resources(&self) -> &renderer_core::effects::EffectsResources {
+        &self.resources
+    }
+}
+
+impl BrowserEffects {
+    pub(super) fn record_memory(&self, memory: &mut renderer_core::memory::ResourceMemory) {
+        memory.texture(&self.atlas);
+        self.resources.record_memory(memory);
     }
 }

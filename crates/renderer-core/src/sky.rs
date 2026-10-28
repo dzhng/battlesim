@@ -1,12 +1,12 @@
 //! The sky (`world/sky.ts`): the clear-sky lookup baked once from the
 //! world's light, then each frame the shown sky along the view's rays, with
 //! its sun disc and clouds, into the multisampled HDR target, resolved.
-use presentation::records::SkyLight;
+use presentation::records::{SkyLight, View};
 use wgpu::*;
 
-use crate::frame::{Inputs, HDR_FORMAT};
-use crate::gpu::buffer;
+use crate::buffer;
 use crate::pipelines::Pipelines;
+use crate::HDR_FORMAT;
 
 /// The view's three corner rays (`Rays`).
 const RAYS_BYTES: usize = 48;
@@ -15,6 +15,7 @@ pub struct Sky {
     pipeline: RenderPipeline,
     group: BindGroup,
     rays: Buffer,
+    light: Buffer,
     /// The clear-sky lookup: the environment light and the haze read it too.
     pub lut: TextureView,
 }
@@ -111,6 +112,7 @@ impl Sky {
             pipeline: pipelines.render("background").clone(),
             group,
             rays,
+            light,
             lut: lut_view,
         }
     }
@@ -119,12 +121,9 @@ impl Sky {
 impl Sky {
     /// The shown sky along the view's rays: the world pass's background,
     /// its own pass before the world draws over it (`encodeBackground`).
-    pub fn prepare(&self, inputs: &Inputs) {
-        let view = inputs.view;
+    pub fn prepare(&self, queue: &Queue, view: &View) {
         let rays: &[f32] = &[view.sky_origin, view.sky_dx, view.sky_dy].concat();
-        inputs
-            .queue
-            .write_buffer(&self.rays, 0, bytemuck::cast_slice(rays));
+        queue.write_buffer(&self.rays, 0, bytemuck::cast_slice(rays));
     }
 
     pub fn draw(&self, pass: &mut RenderPass<'_>) {
@@ -132,25 +131,12 @@ impl Sky {
         pass.set_bind_group(0, &self.group, &[]);
         pass.draw(0..3, 0..1);
     }
+}
 
-    pub fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
-        self.prepare(inputs);
-        let targets = inputs.targets;
-        let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-            label: Some("sky"),
-            color_attachments: &[Some(RenderPassColorAttachment {
-                view: &targets.hdr_msaa,
-                depth_slice: None,
-                resolve_target: Some(&targets.lit),
-                // Kept: the world pass draws over it. It resolves too, since
-                // Metal skips the resolve of a tile a pass draws nothing into.
-                ops: Operations {
-                    load: LoadOp::Clear(Color::BLACK),
-                    store: StoreOp::Store,
-                },
-            })],
-            ..Default::default()
-        });
-        self.draw(&mut pass);
+impl Sky {
+    pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        memory.buffer(&self.rays);
+        memory.buffer(&self.light);
+        memory.view(&self.lut);
     }
 }

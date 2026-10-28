@@ -24,6 +24,7 @@ pub struct FogMaskResources {
     /// keeping it here makes fog look data a shared renderer resource instead
     /// of a shell-only staging record.
     look: Buffer,
+    view: Buffer,
     distances: Option<[Screen; 2]>,
     compose: Screen,
     rim: Option<Screen>,
@@ -113,6 +114,7 @@ pub fn fog_mask(
     });
     FogMaskResources {
         look,
+        view,
         distances,
         compose,
         rim,
@@ -196,5 +198,12 @@ impl FogMaskResources {
         if let Some(rim) = &self.rim {
             draw(encoder, rim, output, None, LoadOp::Load);
         }
+    }
+}
+
+impl FogMaskResources {
+    pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
+        memory.buffer(&self.look);
+        memory.buffer(&self.view);
     }
 }
