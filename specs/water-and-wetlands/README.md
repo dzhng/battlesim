@@ -37,8 +37,11 @@ decide goes in a `choices.md` ledger beside this file.
 Slice 00 is done: the water scene (`bun run --cwd web scene -- water`) films
 the wetlands reel on both clients and is every visual slice's place to judge.
 Its preview checkpoint passed without feedback, so the framings stand.
-**Pick up at [slice 02](slices/02-water-pass.md)**, with
-[slice 01](slices/01-one-wind.md) alongside it. The sim lane (slice 10 on)
+Slice 02 is done: the water draws multisampled in its own pass after glass.
+Its cost probe settled decision 25 that way. Before reading the frame in the
+water's shader, read its note on the four-bind-group limit.
+**Pick up at [slice 01](slices/01-one-wind.md)**, then
+[slice 03](slices/03-water-look-data.md). The sim lane (slice 10 on)
 runs in parallel on `spec/water-and-wetlands-sim` and merges in here.
 
 **Warning:** native must start and draw water at every slice (decision 19). A
@@ -53,7 +56,8 @@ the checklist.
 - [x] The unknowns walk and the landmine sweep (2026-10-27).
 - [x] Parallel drafts and slicing (2026-10-27).
 - [x] [00](slices/00-water-scene.md), the water scene (2026-10-27).
-- [ ] Render lane: [01](slices/01-one-wind.md), [02](slices/02-water-pass.md),
+- [x] [02](slices/02-water-pass.md), the water pass (2026-10-28).
+- [ ] Render lane: [01](slices/01-one-wind.md),
       [03](slices/03-water-look-data.md), [04](slices/04-depth-colour.md), [05](slices/05-soft-shore.md),
       [06](slices/06-surface-normals.md), [07](slices/07-refraction.md), [08](slices/08-caustics.md),
       [09](slices/09-highlights.md).

@@ -39,7 +39,7 @@ use native_client::post::Post;
 use native_client::scenery::Scenery;
 use native_client::shadow::{ShadowPass, SunShadow};
 use native_client::sky::Sky;
-use native_client::world::{DepthPrepass, Ghosts, WorldColour};
+use native_client::world::{DepthPrepass, Ghosts, Water, WorldColour};
 use presentation::assets::RUNTIME;
 use presentation::records::View;
 use presentation::shadow::SunShadowFrame;
@@ -392,6 +392,7 @@ impl Run {
                     Box::new(DepthPrepass::new(&pipelines)),
                     Box::new(FogSight),
                     Box::new(WorldColour::new(&pipelines, sky)),
+                    Box::new(Water),
                     Box::new(EffectPass),
                     Box::new(fog_mask),
                     Box::new(Ghosts::new(&pipelines)),

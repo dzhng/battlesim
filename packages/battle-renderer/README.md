@@ -39,8 +39,9 @@ reorders whole triangles once, preserving their vertex words. Terrain, water,
 and skirt/debug meshes reuse that owner; the constant-size backdrop needs no index.
 Both clients query
 its hierarchy with the actual GPU camera and each caster matrix independently;
-selection adds no far cutoff. Water selects only for the camera and retains its
-blended, read-only-depth pass. Camera ranges serve depth and color, including each
+selection adds no far cutoff. Water selects only for the camera. It blends
+over the world's kept samples in a pass of its own, after glass, reading depth
+and writing none. Camera ranges serve depth and color, including each
 scar-region submission. Traversal work is distinct from issued draw counts.
 Physical bounds and
 visual-only landscape remain

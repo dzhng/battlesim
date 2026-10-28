@@ -120,3 +120,54 @@ passes.
   technique, not palette.
 - **Verdict:** sound.
 - **Confidence:** medium.
+
+## Slice 02: the water pass
+
+### The water stays multisampled, in its own pass after glass
+
+- **When:** slice 02.
+- **The choice:** decision 25 kept single-sampled water unless the probe
+  found storing the world's samples cheap. It did: whole-frame GPU time with
+  the samples kept was within run-to-run noise of single-sampled water, on
+  High and Low (the slice's table). So the world pass now stores its samples,
+  and the water draws over them in a pass of its own, with depth attached
+  read-only. The single-sampled build also worked on both clients, but its
+  waterline stepped where the bank crosses the water.
+- **The gap:** the spec chose by cost alone and expected (a) to win.
+- **The reach:** every later water slice draws in this pass. A GPU where
+  storing 4× samples is dear would flip the verdict; the probe has run on one
+  Apple machine only. The probe scene is not kept. It was a throwaway toggle,
+  and a rerun means rebuilding it.
+- **Verdict:** sound for now. Revisit if a weaker GPU's frame time shows the
+  store.
+- **Confidence:** medium.
+
+### The scene-colour and fog-mask copies wait for slice 04
+
+- **When:** slice 02.
+- **The choice:** the spec put both copies, with mips, in slice 02. Nothing
+  reads them before slice 04 (colour) and slice 07 (mips), so they arrive
+  with their first reader, which also decides their shape.
+- **The gap:** the spec staged the plumbing ahead of its use.
+- **The reach:** slice 04 adds the copy and its binding; slice 07 adds the
+  mips.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### A water shader that reads the frame must fit in four bind groups
+
+- **When:** slice 02.
+- **The choice:** none yet, a finding. The water binds four groups (camera,
+  terrain, environment, fog), and four is the WebGPU default and what Chrome
+  reports here. Reading the depth or the scene colour in the water's shader
+  needs a fifth. The trial that worked put the depth in the fog layout, the
+  groups that already carry the frame's screen-space ground paint. Every
+  group the world pass binds held a 1×1 placeholder, as the fog groups
+  already do for missing paint, because that pass writes the depth it would
+  otherwise sample.
+- **The gap:** the spec assumed a free bind group.
+- **The reach:** slice 04 picks the home for the depth and the colour copy.
+  The fog layout is the tried route; the terrain layout would need the same
+  placeholder. Native mirrors whichever it picks.
+- **Verdict:** open, for slice 04.
+- **Confidence:** high that the limit binds.

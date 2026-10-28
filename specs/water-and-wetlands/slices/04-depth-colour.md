@@ -31,9 +31,18 @@
 **Out of scope, even if visibly wrong:** shore softness (slice 05), ripples
 (06), the bed's sharpness and offset (07), caustics (08) and highlights (09).
 
+## Inherited from slice 02
+
+The water draws multisampled in its own pass, after glass, over the world's
+kept samples, with the depth attached read-only. This slice adds the scene
+colour copy: `lit` after the world pass, before the water's, single-level
+(slice 07 adds mips). The water's shader reads it and the depth. A pipeline
+binds at most four groups, and the water already uses four, so both must go
+into one of them ([choices](../choices.md), slice 02).
+
 ## Native
 
-Gets this for free. The shader is shared, and the copy came with slice 02.
+The shader is shared. Native adds the same copy and binding as the browser.
 
 ## Delegated to the implementer
 

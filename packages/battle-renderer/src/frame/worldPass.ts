@@ -26,7 +26,7 @@ import {
 import { fogCoverage, fogIsGround, fogTerm } from "./fogTerm";
 import { createGroundFragments, ROUGHNESS, srgbToLinear } from "./groundFragments";
 import { createGrassPass } from "./grassPass";
-import { createWaterPipeline } from "./waterPass";
+import { createWater } from "./waterPass";
 import { createGhostPass } from "./ghostPass";
 import { createTerrainHeights } from "./terrainHeights";
 import { createFogVisibility, type FogShaders, type FogTiles } from "./fogVisibility";
@@ -142,7 +142,7 @@ export async function createWorldPass(
       multisample: { count: FRAME_MSAA },
     })
     .$name("worldOpaque");
-  const water = createWaterPipeline(root, environment);
+  const water = createWater(root, environment);
   const terrainPipeline = root
     .createRenderPipeline({
       ...base,
@@ -305,7 +305,7 @@ export async function createWorldPass(
       prepass,
       caster,
       opaque,
-      water,
+      water.pipeline,
       terrainPipeline,
       backdropPipeline,
       modelPrepass,
@@ -644,7 +644,7 @@ export async function createWorldPass(
         targets.height,
       ]);
     },
-    /** Lit world and blended water, with their fog coverage alongside. */
+    /** Lit world and glass, then the water, with their fog coverage alongside. */
     encode(
       encoder: TgpuCommandEncoder,
       raw: GPUCommandEncoder,
@@ -693,13 +693,13 @@ export async function createWorldPass(
             view: colorView,
             resolveTarget: litView,
             loadOp: "load",
-            storeOp: "discard",
+            storeOp: "store",
           },
           {
             view: targets.fogMaskMsaa.createView(),
             resolveTarget: targets.fogMask.createView(),
             loadOp: first ? "clear" : "load",
-            storeOp: "discard",
+            storeOp: "store",
             clearValue: [0, 0, 0, 0],
           },
         ],
@@ -790,16 +790,6 @@ export async function createWorldPass(
           .with(terrain.group),
         submitted.color.backdrop,
       );
-      if (!classView)
-        world.water.draw(
-          water
-            .with(pass)
-            .with(cameraGroup)
-            .with(environment.group)
-            .with(fogGroups.paintedFaces)
-            .with(terrain.group),
-          submitted.color.water,
-        );
       // Glass last, over everything: in the order the layer packs it, not by
       // depth (two panes of one glass blend nearly the same either way round).
       if (!classView) {
@@ -820,6 +810,14 @@ export async function createWorldPass(
         );
       }
       pass.end();
+      if (!classView)
+        water.encode(
+          encoder,
+          targets,
+          world.water,
+          [cameraGroup, fogGroups.paintedFaces, terrain.group],
+          submitted.color.water,
+        );
       return { encoder, raw };
     },
     /** The high-air models on their own plane (`ModelLayer.setHighApart`):
