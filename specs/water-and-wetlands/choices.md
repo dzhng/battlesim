@@ -1155,3 +1155,48 @@ against the code. Each says what was chosen, why, and how sure the agent is.
 - **The reach:** a later cinematic pass could add it for the menu reel.
 - **Verdict:** sound.
 - **Confidence:** medium.
+
+## Slice 13: swamps drawn as water (the posture rule)
+
+### A posture is taken only where it holds the chest above the water
+
+- **When:** slice 13, the posture rule (decision 33).
+- **The choice:** each posture carries the height it holds a soldier's chest
+  over the ground under him: `presentation.pose.stance.chest_m`, standing,
+  kneeling, lying, `[1.35, 0.85, 0.3]`. Where a man would kneel or lie, the
+  pose driver asks the one `StandingWater` how deep the water at his feet
+  stands. He takes the first posture from his own upward whose chest clears
+  it, and he stands in any water. Rivers count as swamps do. So in the 0.6 m
+  marsh a pinned or firing man who would lie kneels, water at his belt, and
+  in a river deeper than 0.85 m he stands. The rule lives with the stance
+  (`units/driver/stance.rs`: `Stance::posture`, which now holds the whole
+  posture choice: lean, pin, fire, crawl speed, water).
+- **The gap:** decision 33 compares against "a lying soldier's height", and
+  no pose data held one. The coordinator's note said kneeling in thigh-deep
+  water puts the chest under. On one knee a 1.8 m man's chest stands at
+  about 0.85 to 0.95 m, so at 0.6 m he kneels with the water at his belt,
+  as soldiers hunker in a paddy in a war film. The chest, not the head, is
+  the line: a man lying with only his face clear, or kneeling up to his
+  chin, reads as drowning.
+- **The reach:** the dead still fall and lie where they die, half under
+  the water (a body in the marsh is the film's picture). Moving men keep
+  moving in their posture, so a crouched move in a river becomes an upright
+  walk.
+- **Verdict:** sound; the heights are data, tuned by eye like the stance
+  shares.
+- **Confidence:** medium on the kneeling height.
+
+### The driver takes the ground and asks it for the standing water each frame
+
+- **When:** slice 13, the posture rule.
+- **The choice:** `PoseDriver::update(frame, units, ground)` builds
+  `ground.standing_water()` once per frame. Only men who would go down look
+  up the depth. Building it costs about 0.8 µs on the wetlands map (its swamp
+  outline has four edges), and a lookup about 0.75 µs, mostly the river's
+  365 stretches. So no cached copy is kept beside the ground.
+- **The gap:** the coordinator suggested building it once when the ground
+  is set; the measurement showed no need.
+- **The reach:** a firefight of 200 men down costs about 0.15 ms a frame
+  natively. A bounds check per stretch would cut it if it ever shows.
+- **Verdict:** sound.
+- **Confidence:** high.

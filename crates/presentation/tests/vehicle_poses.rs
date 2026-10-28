@@ -35,14 +35,18 @@ fn a_diving_jet_pitches_nose_down() {
     let mut jet = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
     jet.kind = "test_jet".into();
     jet.position[2] = 100.0;
-    driver.update(&frame(0.0, vec![jet.clone()], &none), &units);
+    driver.update(&frame(0.0, vec![jet.clone()], &none), &units, None);
     for time in 1..=8 {
         jet.position[0] = f64::from(time) * 100.0;
-        driver.update(&frame(f64::from(time), vec![jet.clone()], &none), &units);
+        driver.update(
+            &frame(f64::from(time), vec![jet.clone()], &none),
+            &units,
+            None,
+        );
     }
     jet.position = [900.0, 0.0, 90.0];
     let motion = driver
-        .update(&frame(9.0, vec![jet], &none), &units)
+        .update(&frame(9.0, vec![jet], &none), &units, None)
         .vehicles[0]
         .motion
         .expect("a diving jet tilts");
@@ -70,14 +74,18 @@ fn a_climbing_jet_pitches_nose_up() {
     let mut jet = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
     jet.kind = "test_jet".into();
     jet.position[2] = 100.0;
-    driver.update(&frame(0.0, vec![jet.clone()], &none), &units);
+    driver.update(&frame(0.0, vec![jet.clone()], &none), &units, None);
     for time in 1..=8 {
         jet.position[0] = f64::from(time) * 100.0;
-        driver.update(&frame(f64::from(time), vec![jet.clone()], &none), &units);
+        driver.update(
+            &frame(f64::from(time), vec![jet.clone()], &none),
+            &units,
+            None,
+        );
     }
     jet.position = [900.0, 0.0, 110.0];
     let motion = driver
-        .update(&frame(9.0, vec![jet], &none), &units)
+        .update(&frame(9.0, vec![jet], &none), &units, None)
         .vehicles[0]
         .motion
         .expect("a climbing jet tilts");
@@ -105,15 +113,19 @@ fn a_turning_jet_banks_into_the_turn() {
     let mut jet = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
     jet.kind = "test_jet".into();
     jet.position[2] = 100.0;
-    driver.update(&frame(0.0, vec![jet.clone()], &none), &units);
+    driver.update(&frame(0.0, vec![jet.clone()], &none), &units, None);
     for time in 1..=8 {
         jet.position[0] = f64::from(time) * 100.0;
-        driver.update(&frame(f64::from(time), vec![jet.clone()], &none), &units);
+        driver.update(
+            &frame(f64::from(time), vec![jet.clone()], &none),
+            &units,
+            None,
+        );
     }
     jet.position[0] = 900.0;
     jet.yaw = 0.4;
     let motion = driver
-        .update(&frame(9.0, vec![jet], &none), &units)
+        .update(&frame(9.0, vec![jet], &none), &units, None)
         .vehicles[0]
         .motion
         .expect("a turning jet banks");
@@ -133,10 +145,10 @@ fn a_helicopters_attitude_is_unchanged() {
     let mut heli = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
     heli.kind = "test_heli".into();
     heli.position[2] = 20.0;
-    driver.update(&frame(0.0, vec![heli.clone()], &none), &units);
+    driver.update(&frame(0.0, vec![heli.clone()], &none), &units, None);
     heli.position[0] = 10.0;
     let motion = driver
-        .update(&frame(1.0, vec![heli], &none), &units)
+        .update(&frame(1.0, vec![heli], &none), &units, None)
         .vehicles[0]
         .motion
         .expect("an accelerating helicopter leans");
@@ -155,7 +167,11 @@ fn a_tank_s_turret_slews_to_its_bearing_its_gun_eases_and_recoils_on_a_shot() {
     let rate = feel(&units, "/mount/gun_elevation_rad_s");
     let mut driver = PoseDriver::new(&units).unwrap();
     let mut at = |time: f64, gun: (f64, f64, f64)| {
-        let poses = driver.update(&frame(time, vec![tank(0.0, 0.5, gun, 1.0)], &none), &units);
+        let poses = driver.update(
+            &frame(time, vec![tank(0.0, 0.5, gun, 1.0)], &none),
+            &units,
+            None,
+        );
         poses.vehicles[0].articulation
     };
     // First seen with rounds counted: posed as published, nothing to recoil from.
@@ -196,6 +212,7 @@ fn driving_rolls_both_tracks_and_turning_in_place_counter_rotates_them() {
         let poses = driver.update(
             &frame(time, vec![tank(x, yaw, (0.0, 0.0, 0.0), 0.0)], &none),
             &units,
+            None,
         );
         let a = poses.vehicles[0].articulation;
         (a.travel_l, a.travel_r, a.rotor)
@@ -225,7 +242,7 @@ fn an_aircraft_s_rotors_turn_and_blur_while_nothing_it_has_rolls() {
         heli.kind = "capture_heli".into();
         heli.position[2] = 20.0;
         driver
-            .update(&frame(time, vec![heli], &none), &units)
+            .update(&frame(time, vec![heli], &none), &units, None)
             .vehicles[0]
             .clone()
     };
@@ -270,7 +287,7 @@ fn kicked(bearing: f64, seconds: f64, hz: f64, gun: f64, hmg: f64) -> Vec<(f64, 
             let fired = if time >= 1.0 { 1.0 } else { 0.0 };
             let mut unit = tank(0.0, 0.0, (bearing, 0.0, gun * fired), bearing);
             unit.mounts[1].shots = hmg * fired;
-            let poses = driver.update(&frame(time, vec![unit], &none), &units);
+            let poses = driver.update(&frame(time, vec![unit], &none), &units, None);
             (time, poses.vehicles[0].motion)
         })
         .collect()
@@ -364,6 +381,7 @@ fn the_drawn_muzzle_rides_the_rocking_hull_so_the_flash_stays_on_the_barrel() {
         .update(
             &frame(0.0, vec![tank(10.0, 0.0, (0.0, 0.0, 0.0), 0.0)], &none),
             &units,
+            None,
         )
         .clone();
     let mut drawn = DrawnModels::new(Arc::new(units), Arc::new(ClipTables::new()), "blue");

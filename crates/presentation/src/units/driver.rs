@@ -23,10 +23,11 @@ use super::pose::{
     Articulation, ClipBlend, CorpsePose, FadingCorpse, Kick, PoseFrame, SoldierPose, VehiclePose,
 };
 use crate::seed::{side_key, Mulberry32};
+use crate::static_world::ground::{water::StandingWater, Ground};
 use crate::world::{Appearance, Clip, UnitType, UnitsSection, Vec3};
 
 mod stance;
-pub use stance::StanceShares;
+pub use stance::StanceFeel;
 use stance::{fall_of, lies_after, stance_manner, Posture, Stance};
 
 /// The cook-offs' gravity: what an aircraft's lift tilts against.
@@ -103,7 +104,7 @@ pub struct FeedFrame {
 pub struct PoseFeel {
     pub gait: Gait,
     pub rest: Rest,
-    pub stance: StanceShares,
+    pub stance: StanceFeel,
     pub lean: Lean,
     pub mount: MountFeel,
     /// How a shot kicks the hull on the ground that fires it; none: never.
@@ -670,8 +671,14 @@ impl PoseDriver {
         self.out.fading.clear();
     }
 
-    /// Advance to `frame` and pose everything in it.
-    pub fn update(&mut self, frame: &FeedFrame, units: &UnitsSection) -> &PoseFrame {
+    /// Advance to `frame` and pose everything in it, on `ground`.
+    pub fn update(
+        &mut self,
+        frame: &FeedFrame,
+        units: &UnitsSection,
+        ground: Option<&Ground>,
+    ) -> &PoseFrame {
+        let water = ground.map(Ground::standing_water);
         // Time running backwards is a new battle (a reset or a reloaded replay).
         if self.time.is_some_and(|t| frame.time < t) {
             self.reset();
@@ -685,7 +692,7 @@ impl PoseDriver {
         for unit in &frame.units {
             match units.types.get(&*unit.kind) {
                 Some(ty) if ty.hull.is_some() => self.vehicle(unit, ty, frame.time, dt, generation),
-                _ => self.squad(unit, units, frame.time, dt, generation),
+                _ => self.squad(unit, units, water.as_ref(), frame.time, dt, generation),
             }
         }
         let mut relisted = false;
@@ -718,6 +725,7 @@ impl PoseDriver {
         &mut self,
         unit: &FeedUnit,
         units: &UnitsSection,
+        water: Option<&StandingWater>,
         time: f64,
         dt: f64,
         generation: u64,
@@ -835,23 +843,13 @@ impl PoseDriver {
                 _ => Kick::default(),
             };
 
-            // Out on his lean he kneels to fire, pinned or not; otherwise,
-            // under fire or firing, each man takes his own stance. Lying down
-            // he can only crawl so fast: quicker, he goes crouched.
-            let held = if soldier.lean.is_some() {
-                Posture::Kneel
-            } else if unit.pinned {
-                state.stance.pinned
-            } else if firing {
-                state.stance.firing
-            } else {
-                Posture::Stand
-            };
-            let posture = if held == Posture::Prone && speed >= gait.crawl_mps {
-                Posture::Kneel
-            } else {
-                held
-            };
+            let [x, y, _] = soldier.position;
+            let wet = || water.and_then(|w| w.at(x, y)).map_or(0.0, |w| w.depth_m);
+            let lean = soldier.lean.is_some();
+            let fast = speed >= gait.crawl_mps;
+            let posture = state
+                .stance
+                .posture(lean, unit.pinned, firing, fast, wet, &feel.stance);
             state.posture = posture;
             let running = speed >= gait.run_mps;
             // Down or shooting, he keeps his weapon toward the threat whichever

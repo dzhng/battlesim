@@ -1095,7 +1095,6 @@ impl Presentation {
         let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), sample) else {
             return Ok(&self.frame);
         };
-        let f = &mut self.frame;
         f.tick = sample.observation.tick as u32;
         loaded.frame(
             sample,
@@ -1166,7 +1165,7 @@ impl Loaded {
             ..
         } = self;
         let time = sample.time;
-        let poses = driver.update(feed.frame(sample, units, &input.effects), units);
+        let poses = driver.update(feed.frame(sample, units, &input.effects), units, ground);
         drawn.update(poses);
         let rotors = drawn.rotors();
         let side: &str = &input.side;

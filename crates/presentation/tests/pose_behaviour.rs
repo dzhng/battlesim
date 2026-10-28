@@ -34,7 +34,10 @@ fn each_soldier_walks_runs_or_stands_by_his_own_motion_and_faces_his_own_way() {
         let men = (0..3).map(|i| man(i as f64 + 1.0, places[i].0, places[i].1, 0.0));
         let mut unit = squad(men.collect(), false);
         unit.yaw = PI; // the squad's heading is nobody's way
-        format!("{:?}", d.update(&frame(time, vec![unit], &none), &units))
+        format!(
+            "{:?}",
+            d.update(&frame(time, vec![unit], &none), &units, None)
+        )
     };
     at(0.0, [(0.0, 0.0), (0.0, 5.0), (0.0, 9.0)], &mut driver);
     // Over a second: the first walks east, the second runs north, the third stands.
@@ -80,7 +83,10 @@ fn paused_everyone_holds_mid_stride_and_resumed_carries_on_as_if_never_paused() 
         victim.soldiers = alive;
         let tank = tank(20.0 + 4.0 * time, 0.0, (0.0, 0.0, 0.0), 0.0);
         let units_now = vec![walker, crawler, victim, tank];
-        format!("{:?}", d.update(&frame(time, units_now, gone), &units))
+        format!(
+            "{:?}",
+            d.update(&frame(time, units_now, gone), &units, None)
+        )
     };
     let mut paused = PoseDriver::new(&units).unwrap();
     let mut straight = PoseDriver::new(&units).unwrap();
@@ -119,7 +125,7 @@ fn a_squad_under_fire_is_never_a_row_of_copies_and_each_man_falls_from_his_postu
             .iter()
             .map(|&id| man(id, id * 2.0, 0.0, shots))
             .collect();
-        let poses = driver.update(&frame(time, vec![squad(men, pinned)], &none), &units);
+        let poses = driver.update(&frame(time, vec![squad(men, pinned)], &none), &units, None);
         ids.iter().map(|&id| clip_of(poses, id)).collect::<Vec<_>>()
     };
     at(0.0, 0.0, false);
@@ -149,7 +155,7 @@ fn a_squad_under_fire_is_never_a_row_of_copies_and_each_man_falls_from_his_postu
 
     // All fall at once: kneeling he slumps, lying he goes slack.
     let down = fallen(&ids);
-    let fell = driver.update(&frame(3.1, vec![squad(vec![], true)], &down), &units);
+    let fell = driver.update(&frame(3.1, vec![squad(vec![], true)], &down), &units, None);
     for (id, was) in ids.iter().zip(&pinned) {
         let fall = if was == "prone_pinned" {
             "death_prone"
@@ -163,7 +169,7 @@ fn a_squad_under_fire_is_never_a_row_of_copies_and_each_man_falls_from_his_postu
         "nobody lies before his fall has played"
     );
     // Every fall played out: each lies static, and none is posed.
-    let lain = driver.update(&frame(5.0, vec![squad(vec![], true)], &down), &units);
+    let lain = driver.update(&frame(5.0, vec![squad(vec![], true)], &down), &units, None);
     assert!(lain.soldiers.is_empty());
     let lying: BTreeSet<_> = lain.corpses.iter().map(|c| c.soldier as u32).collect();
     assert_eq!(lying, (1..=8).collect());
@@ -175,16 +181,20 @@ fn killed_standing_some_fall_back_and_some_pitch_forward_each_lying_as_he_fell()
     let mut driver = PoseDriver::new(&units).unwrap();
     let ids: Vec<f64> = (1..=20).map(f64::from).collect();
     let men = ids.iter().map(|&id| man(id, id * 2.0, 0.0, 0.0)).collect();
-    driver.update(&frame(0.0, vec![squad(men, false)], &fallen(&[])), &units);
+    driver.update(
+        &frame(0.0, vec![squad(men, false)], &fallen(&[])),
+        &units,
+        None,
+    );
     let down = fallen(&ids);
-    let falls = driver.update(&frame(1.0, vec![squad(vec![], false)], &down), &units);
+    let falls = driver.update(&frame(1.0, vec![squad(vec![], false)], &down), &units, None);
     let falls: Vec<(f64, String, f64)> = ids
         .iter()
         .map(|&id| (id, clip_of(falls, id), pose_of(falls, id).facing))
         .collect();
     let kinds: BTreeSet<_> = falls.iter().map(|f| f.1.as_str()).collect();
     assert_eq!(kinds, BTreeSet::from(["death", "death_back"]));
-    let lain = driver.update(&frame(4.0, vec![squad(vec![], false)], &down), &units);
+    let lain = driver.update(&frame(4.0, vec![squad(vec![], false)], &down), &units, None);
     for (id, fall, facing) in &falls {
         let corpse = lain.corpses.iter().find(|c| c.soldier == *id).unwrap();
         assert_eq!(
@@ -207,7 +217,11 @@ fn lying_down_he_crawls_whichever_way_he_goes_facing_the_threat_and_runs_when_fa
         let mut at = |time: f64, x: f64, y: f64, shots: f64| {
             let mut unit = squad(vec![man(1.0, x, y, 0.0)], true);
             unit.mounts[0].shots = shots;
-            pose_of(driver.update(&frame(time, vec![unit], &none), &units), 1.0).clone()
+            pose_of(
+                driver.update(&frame(time, vec![unit], &none), &units, None),
+                1.0,
+            )
+            .clone()
         };
         at(0.0, 0.0, 0.0, 0.0);
         assert_eq!(&*at(0.5, 0.0, 0.0, 3.0).clip, "prone_pinned");
@@ -245,6 +259,7 @@ fn out_on_his_lean_he_kneels_and_slides_out_then_eases_back_never_walking() {
         let poses = driver.update(
             &frame(time, vec![squad(vec![soldier], true)], &none),
             &units,
+            None,
         );
         let s = pose_of(poses, 1.0);
         assert!(
@@ -274,7 +289,7 @@ fn past_the_cap_a_battle_joined_lies_its_newest_and_a_reset_forgets_the_gone() {
     let units = units_with(|v| v["pose"]["corpses"]["max"] = 3.into());
     let mut driver = PoseDriver::new(&units).unwrap();
     let mut at = |time: f64, ids: &[f64]| {
-        let poses = driver.update(&frame(time, vec![], &fallen(ids)), &units);
+        let poses = driver.update(&frame(time, vec![], &fallen(ids)), &units, None);
         let lying: Vec<f64> = poses.corpses.iter().map(|c| c.soldier).collect();
         let fading: Vec<f64> = poses.fading.iter().map(|f| f.corpse.soldier).collect();
         (lying, fading)
@@ -307,7 +322,7 @@ fn each_of_his_own_shots_kicks_a_soldier_back_by_his_weapon_s_kick_and_he_recove
             false,
         );
         unit.mounts[0].shots = own;
-        let poses = driver.update(&frame(time, vec![unit], &none), &units);
+        let poses = driver.update(&frame(time, vec![unit], &none), &units, None);
         (pose_of(poses, 1.0).kick, pose_of(poses, 2.0).kick)
     };
     let rest = Kick::default();
