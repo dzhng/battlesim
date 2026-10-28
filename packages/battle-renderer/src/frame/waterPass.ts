@@ -19,7 +19,7 @@ import {
   paintedSeen,
   paintGlow,
 } from "./fogTerm";
-import { waterNormal, waterSurface } from "./terrainMaterial";
+import { waterNormal, waterSurface } from "./waterSurface";
 import { FRAME_MSAA, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
 const terrainTuning = game.presentation.terrain;
 
