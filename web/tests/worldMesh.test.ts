@@ -92,6 +92,7 @@ const exports = {
   buildings: { catalogueHash: null, regionalFamily: null, buildings: [] },
   rivers: new Float32Array(0),
   riverRuns: new Float32Array(0),
+  swamps: new Float32Array(0),
   forests: new Float32Array(0),
   forestTrunkRanges: new Uint32Array(0),
   forestRectIds: new Uint32Array(0),

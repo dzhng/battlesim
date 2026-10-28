@@ -25,6 +25,28 @@ export function waterInside(rivers, stride) {
   };
 }
 
+/** How far (x, y) lies inside a swamp's outline (negative outside), by the
+ *  simulation's exported swamp edges `swamps`, `stride` floats each: the
+ *  distance to the nearest edge, signed by an even-odd count. */
+export function swampInside(swamps, stride) {
+  return (x, y) => {
+    const best = new Map();
+    for (let o = 0; o < swamps.length; o += stride) {
+      const [ax, ay, bx, by, k] = swamps.slice(o, o + 5);
+      const s = best.get(k) ?? { near: Infinity, within: false };
+      if (ay > y !== by > y && x < ax + ((y - ay) * (bx - ax)) / (by - ay)) s.within = !s.within;
+      const dx = bx - ax,
+        dy = by - ay;
+      const t = Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+      s.near = Math.min(s.near, Math.hypot(x - ax - dx * t, y - ay - dy * t));
+      best.set(k, s);
+    }
+    let out = -Infinity;
+    for (const s of best.values()) out = Math.max(out, s.within ? s.near : -s.near);
+    return out;
+  };
+}
+
 /** In a lab page: `window.__inside(x, y)`, `waterInside` over the route's
  *  own exports. */
 export const installInside = (page) =>
@@ -33,16 +55,26 @@ export const installInside = (page) =>
   );
 
 /** Saved map `id`'s water as the simulation builds it under the capture
- *  catalog: `inside(x, y)`, and the height of its surface. */
+ *  catalog: `inside(x, y)` for its rivers and its swamps together, and
+ *  `surfaceAt(x, y)`, the height of the nearer water's surface (one swamp's
+ *  for every swamp: the scenes' maps hold one). */
 export async function mapWater(id) {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
   const rules = JSON.stringify((await nodeCatalogSet("capture")).rules);
   const view = new WorldView(JSON.stringify(loadMap(id).definition), rules);
   const rivers = view.rivers();
-  const { riverStride, riverFields } = JSON.parse(world_layout(rules));
+  const swamps = view.swamps();
+  const { riverStride, riverFields, swampStride } = JSON.parse(world_layout(rules));
   view.free();
-  const surfaceZ = rivers[riverFields.indexOf("surfaceZ")];
-  return { inside: waterInside(rivers, riverStride), surfaceZ };
+  const riverZ = rivers[riverFields.indexOf("surfaceZ")];
+  // A swamp edge: ax, ay, bx, by, its swamp, its surface, its depth.
+  const swampZ = swamps[5] ?? riverZ;
+  const river = waterInside(rivers, riverStride);
+  const swamp = swampInside(swamps, swampStride);
+  return {
+    inside: (x, y) => Math.max(river(x, y), swamp(x, y)),
+    surfaceAt: (x, y) => (swamp(x, y) > river(x, y) ? swampZ : riverZ),
+  };
 }
 
 /** The pixel a parity frame record (its `eye`, `target`, `up` and `canvas`)
@@ -90,7 +122,7 @@ export function waterAndBank(
       const inside = water.inside(x, y);
       const region = inside >= inset ? "water" : -inside >= near && -inside <= far ? "bank" : null;
       if (!region) continue;
-      const px = project([x, y, region === "water" ? water.surfaceZ : 0]);
+      const px = project([x, y, region === "water" ? water.surfaceAt(x, y) : 0]);
       if (px) regions[region].set(px[1] * frame.canvas[0] + px[0], px);
     }
   return { water: [...regions.water.values()], bank: [...regions.bank.values()] };

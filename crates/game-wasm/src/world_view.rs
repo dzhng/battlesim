@@ -88,6 +88,10 @@ impl WorldView {
         self.world.export_river_runs()
     }
 
+    pub fn swamps(&self) -> Vec<f32> {
+        self.world.export_swamps()
+    }
+
     pub fn forests(&self) -> Vec<f32> {
         self.world.export_forests()
     }

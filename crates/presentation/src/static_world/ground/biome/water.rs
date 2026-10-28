@@ -26,23 +26,29 @@ pub struct Shore {
 pub const WATER_LOOKS_MAX: usize = 8;
 
 /// The water's looks, by the kind of water they dress: each river draws one
-/// of `rivers`, picked by weight (`water::look`).
+/// of `rivers`, and each swamp one of `swamps`, picked by weight
+/// (`water::look`).
 #[derive(Clone, Deserialize)]
 pub struct Water {
     pub rivers: Vec<WaterLook>,
+    pub swamps: Vec<WaterLook>,
 }
 
 /// One look of a water surface: its body's colours (`palette`: where little
 /// light survives the depth, then where most does), the share of each of
 /// red, green and blue it takes per metre of water the light crosses
-/// (`extinction_per_m`, as `e` in `exp(-e·d)`), and how often it is picked
-/// against its kind's other looks.
+/// (`extinction_per_m`, as `e` in `exp(-e·d)`), how often it is picked
+/// against its kind's other looks, and, for standing water over land (a
+/// swamp), the plot kind of the ground it floods (`ground`): no crop stands
+/// in water.
 #[derive(Clone, Deserialize)]
 pub struct WaterLook {
     pub name: String,
     pub weight: f64,
     pub palette: String,
     pub extinction_per_m: Rgb,
+    #[serde(default)]
+    pub ground: Option<String>,
 }
 
 impl Biome {
@@ -58,7 +64,14 @@ impl Biome {
         within("shore.lift", s.lift, 1.0, 3.0)?;
         within("shore.relief", s.relief, 0.0, 1.0)?;
         self.check_water_looks("water.rivers", &self.water.rivers)?;
-        if self.water.rivers.len() > WATER_LOOKS_MAX {
+        self.check_water_looks("water.swamps", &self.water.swamps)?;
+        for (i, l) in self.water.swamps.iter().enumerate() {
+            let ground = l.ground.as_deref().unwrap_or_default();
+            if !self.plots.iter().any(|p| p.name == ground) {
+                return bad(&format!("water.swamps[{i}].ground"), "names no plot kind");
+            }
+        }
+        if self.water.rivers.len() + self.water.swamps.len() > WATER_LOOKS_MAX {
             return bad("water", format!("holds at most {WATER_LOOKS_MAX} looks"));
         }
         Ok(())

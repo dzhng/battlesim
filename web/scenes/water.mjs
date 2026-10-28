@@ -21,7 +21,7 @@ import { mapWater, waterAndBank, waterAndBankColours } from "./_water.mjs";
 const ROOT = new URL("../../", import.meta.url);
 const MAP = "wetlands";
 /** The reel's shots, in order (the capture format names none). */
-const SHOTS = ["close", "tactical", "low"];
+const SHOTS = ["close", "tactical", "low", "swamp", "wading"];
 /** The browser's river reads as water when its mean colour stands at least
  *  this far from its dry bank's (CIE76 ΔE): a loose floor. */
 const APART_MIN = 10;
@@ -33,9 +33,14 @@ const NATIVE_MAX = 3;
 const exec = promisify(execFile);
 
 export async function run(ctx) {
-  // `WATER_LOOK=<row>` films one water look on every river (`?water_look=`).
-  const look = process.env.WATER_LOOK;
-  const runDir = await filmParityRun(ctx, look ? `${ctx.url}&water_look=${look}` : ctx.url);
+  // `WATER_LOOK=<row>` films one water look on every river (`?water_look=`),
+  // `SWAMP_LOOK=<row>` one on every swamp (`?swamp_look=`).
+  const pins = { water_look: process.env.WATER_LOOK, swamp_look: process.env.SWAMP_LOOK };
+  const look = Object.entries(pins).filter(([, row]) => row !== undefined);
+  const runDir = await filmParityRun(
+    ctx,
+    ctx.url + look.map(([k, row]) => `&${k}=${row}`).join(""),
+  );
   if (!runDir) return;
   const dir = new URL(`${MAP}/`, runDir);
   const capture = JSON.parse(await readFile(new URL("capture.json", dir), "utf8"));
@@ -72,7 +77,7 @@ export async function run(ctx) {
     const browser = waterAndBankColours(decode(browserBytes), regions);
     const apart = deltaE(browser.water, browser.bank);
     ctx.check(
-      `browser ${SHOTS[k]}: the river stands apart from its bank`,
+      `browser ${SHOTS[k]}: the water stands apart from its bank`,
       apart >= APART_MIN,
       `ΔE ${apart.toFixed(1)} over ${regions.water.length} water and ${regions.bank.length} bank pixels`,
     );
@@ -81,10 +86,10 @@ export async function run(ctx) {
     const nativeBytes = await readFile(`${native}${frame.plate}`);
     cells.push({ caption: `native · ${SHOTS[k]}`, png: nativeBytes });
     // Native reads its own biome: a pinned look is the browser's alone.
-    if (look) continue;
+    if (look.length) continue;
     const off = deltaE(waterAndBankColours(decode(nativeBytes), regions).water, browser.water);
     ctx.check(
-      `native ${SHOTS[k]}: draws the river as the browser does`,
+      `native ${SHOTS[k]}: draws the water as the browser does`,
       off <= NATIVE_MAX,
       `ΔE ${off.toFixed(1)} from the browser's over the water`,
     );

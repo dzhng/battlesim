@@ -5,30 +5,32 @@ import { useSyncExternalStore } from "react";
 import summer from "@fixtures/biomes/summer.json";
 import type { Biome } from "@packages/battle-renderer/src/terrain/terrainSurface";
 
-/** `biome` with every river drawing look `row` (`?water_look=<row>`): the
- *  other looks lose their weight, so Rust's one pick (`water::look`) draws
- *  that row everywhere. */
-function pinned(biome: Biome, row: string | null): Biome {
-  if (row === null) return biome;
-  const rivers = biome.water.rivers;
+/** `looks` with the row query parameter `param` names drawn everywhere
+ *  (`?water_look=<row>` for every river, `?swamp_look=<row>` for every
+ *  swamp): the other looks lose their weight, so Rust's one pick
+ *  (`water::look`) draws that row. */
+function pin<T extends { name: string; weight: number }>(looks: T[], param: string): T[] {
+  const row =
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get(param);
+  if (row === null) return looks;
   const at = Number(row);
-  if (!Number.isInteger(at) || at < 0 || at >= rivers.length)
+  if (!Number.isInteger(at) || at < 0 || at >= looks.length)
     throw new Error(
-      `?water_look=${row}: the biome's rivers have looks 0 to ${rivers.length - 1} (${rivers.map((l) => l.name).join(", ")})`,
+      `?${param}=${row}: the biome has looks 0 to ${looks.length - 1} (${looks.map((l) => l.name).join(", ")})`,
     );
-  const water = {
-    ...biome.water,
-    rivers: rivers.map((l, i) => ({ ...l, weight: i === at ? 1 : 0 })),
-  };
-  return { ...biome, water };
+  return looks.map((l, i) => ({ ...l, weight: i === at ? 1 : 0 }));
 }
 
-const look = () =>
-  typeof window === "undefined"
-    ? null
-    : new URLSearchParams(window.location.search).get("water_look");
+/** `biome` with its rivers' and its swamps' looks pinned (`pin`). */
+function pinned(biome: Biome): Biome {
+  const { rivers, swamps } = biome.water;
+  return {
+    ...biome,
+    water: { rivers: pin(rivers, "water_look"), swamps: pin(swamps, "swamp_look") },
+  };
+}
 
-export const gameBiome: Biome = pinned(summer, look());
+export const gameBiome: Biome = pinned(summer);
 
 // On the dev server, an edit to the biome's file reaches a battle's ground
 // in place (`useGameBiome`), with no shader rebuilt: its looks are uniforms.
@@ -37,7 +39,7 @@ const listeners = new Set<() => void>();
 if (import.meta.hot)
   import.meta.hot.accept("@fixtures/biomes/summer.json", (next) => {
     if (!next) return;
-    live = pinned(next.default as Biome, look());
+    live = pinned(next.default as Biome);
     for (const listener of listeners) listener();
   });
 

@@ -130,6 +130,8 @@ pub struct Source {
     pub surface_boundaries: Vec<f32>,
     pub rivers: Vec<f32>,
     pub river_runs: Vec<f32>,
+    /// Every swamp's outline, edge by edge (`SWAMP_STRIDE`).
+    pub swamps: Vec<f32>,
     pub forests: Vec<f32>,
     pub forest_rect_ids: Vec<u32>,
     pub forest_metadata: Vec<f32>,
@@ -196,6 +198,7 @@ pub fn source(
         surface_boundaries: world.export_surface_boundaries(),
         rivers: world.export_rivers(),
         river_runs: world.export_river_runs(),
+        swamps: world.export_swamps(),
         forests: world.export_forests(),
         forest_rect_ids: world.export_forest_rect_ids(),
         forest_metadata: world.export_forest_metadata(),
@@ -248,12 +251,15 @@ impl Ground {
         field::field(&self.source, &self.forests, strokes, reach)
     }
 
-    /// The water surface's cells (`water::cells`), each with the look its
-    /// river draws (`water::look`): a row of `TerrainParams.waterLooks`.
+    /// The standing water of its rivers and swamps (`water::StandingWater`).
+    pub fn standing_water(&self) -> water::StandingWater<'_> {
+        let s = &self.source;
+        water::StandingWater::new(&s.rivers, &s.swamps, &s.grid, &self.biome)
+    }
+
+    /// The water surface's cells (`StandingWater::cells`), each with the
+    /// look its water draws: a row of `TerrainParams.waterLooks`.
     pub fn water_cells(&self) -> Vec<f32> {
-        let b = &self.biome;
-        water::cells(&self.source.rivers, |river| {
-            water::look(b.seed, river, &b.water.rivers)
-        })
+        self.standing_water().cells()
     }
 }

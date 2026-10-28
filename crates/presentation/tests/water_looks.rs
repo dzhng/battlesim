@@ -42,13 +42,15 @@ fn ground(map: &Value, biome: Biome) -> Ground {
     Ground::new(source, biome, tuning).unwrap()
 }
 
-/// The look every water cell of `g` draws.
-fn looks(g: &Ground) -> Vec<usize> {
+/// The look every river cell of `g` draws (the river looks' rows come
+/// first, `rivers` of them).
+fn looks(g: &Ground, rivers: usize) -> Vec<usize> {
     let cells = g.water_cells();
     assert!(!cells.is_empty(), "the map has water");
     cells
         .chunks(CELL_FLOATS)
         .map(|c| c[LOOK] as usize)
+        .filter(|&l| l < rivers)
         .collect()
 }
 
@@ -72,14 +74,15 @@ fn a_river_draws_the_look_its_seed_and_index_pick_whatever_else_the_map_holds() 
     for seed in 0..12 {
         let mut biome = summer();
         biome.seed = seed;
-        let want = water::look(seed, 0, &biome.water.rivers);
+        let want = water::look(seed, water::Kind::River, 0, &biome.water.rivers);
         picked.insert(want);
-        let plain = looks(&ground(&plain, biome.clone()));
+        let rivers = biome.water.rivers.len();
+        let plain = looks(&ground(&plain, biome.clone()), rivers);
         assert!(
             plain.iter().all(|&l| l == want),
             "seed {seed}: every cell of river 0 draws look {want}"
         );
-        assert_eq!(looks(&ground(&busy, biome)), plain, "seed {seed}");
+        assert_eq!(looks(&ground(&busy, biome), rivers), plain, "seed {seed}");
     }
     assert!(picked.len() > 1, "the seeds pick more than one look");
 }
@@ -96,10 +99,109 @@ fn a_look_of_no_weight_is_never_drawn() {
     for seed in 0..500 {
         for river in 0..8 {
             assert_ne!(
-                water::look(seed, river, rivers),
+                water::look(seed, water::Kind::River, river, rivers),
                 0,
                 "seed {seed}, river {river}"
             );
         }
     }
+}
+
+#[test]
+fn a_swamp_draws_a_swamp_look_its_seed_and_index_pick_whatever_else_the_map_holds() {
+    let swamp = |ring: serde_json::Value| serde_json::json!({ "shape": { "kind": "polygon", "ring": ring }, "depth_m": 0.6 });
+    let mut one = river_map();
+    one["swamps"] = serde_json::json!([swamp(serde_json::json!([
+        [440, 380],
+        [560, 380],
+        [560, 450],
+        [440, 450]
+    ]))]);
+    // The same swamp with another after it, and the woods reordered.
+    let mut two = one.clone();
+    two["swamps"]
+        .as_array_mut()
+        .unwrap()
+        .push(swamp(serde_json::json!([
+            [100, 380],
+            [200, 380],
+            [200, 450],
+            [100, 450]
+        ])));
+    two["forests"].as_array_mut().unwrap().reverse();
+    let mut picked = std::collections::BTreeSet::new();
+    for seed in 0..12 {
+        let mut biome = summer();
+        biome.seed = seed;
+        let rivers = biome.water.rivers.len();
+        let want = rivers + water::look(seed, water::Kind::Swamp, 0, &biome.water.swamps);
+        picked.insert(want);
+        // The first swamp's cells: those with a swamp look, west of x 300 in
+        // the map with two.
+        let first = |g: &Ground| -> Vec<usize> {
+            let cells = g.water_cells();
+            cells
+                .chunks(CELL_FLOATS)
+                .filter(|c| c[LOOK] as usize >= rivers && c[0] > 300.0)
+                .map(|c| c[LOOK] as usize)
+                .collect()
+        };
+        let alone = first(&ground(&one, biome.clone()));
+        assert!(!alone.is_empty(), "seed {seed}: the swamp has water cells");
+        assert!(
+            alone.iter().all(|&l| l == want),
+            "seed {seed}: every cell of swamp 0 draws look {want}"
+        );
+        assert_eq!(first(&ground(&two, biome)), alone, "seed {seed}");
+    }
+    assert!(picked.len() > 1, "the seeds pick more than one swamp look");
+}
+
+#[test]
+fn no_crop_stands_in_a_swamp_its_plots_are_the_ground_its_look_floods() {
+    let mut map = river_map();
+    let ring = [
+        [440.0, 380.0],
+        [560.0, 380.0],
+        [560.0, 450.0],
+        [440.0, 450.0],
+    ];
+    map["swamps"] =
+        serde_json::json!([{ "shape": { "kind": "polygon", "ring": ring }, "depth_m": 0.6 }]);
+    let inside =
+        |[x, y]: [f64; 2]| x > ring[0][0] && x < ring[1][0] && y > ring[0][1] && y < ring[2][1];
+    let mut grounds = std::collections::BTreeSet::new();
+    for seed in 0..12 {
+        let mut biome = summer();
+        biome.seed = seed;
+        let looks = &biome.water.swamps;
+        let want = looks[water::look(seed, water::Kind::Swamp, 0, looks)]
+            .ground
+            .clone()
+            .unwrap();
+        grounds.insert(want.clone());
+        let g = ground(&map, biome.clone());
+        let flooded: Vec<_> = g
+            .plots
+            .plots
+            .iter()
+            .filter(|p| {
+                let n = p.outline.len() / 2;
+                let c = (0..n).fold([0.0, 0.0], |c, i| {
+                    [
+                        c[0] + p.outline[2 * i] / n as f64,
+                        c[1] + p.outline[2 * i + 1] / n as f64,
+                    ]
+                });
+                inside(c)
+            })
+            .map(|p| biome.plots[p.kind].name.clone())
+            .collect();
+        assert!(!flooded.is_empty(), "seed {seed}: plots lie in the swamp");
+        assert!(
+            flooded.iter().all(|k| *k == want),
+            "seed {seed}: every plot in the swamp is {want}, not {flooded:?}"
+        );
+    }
+    assert!(grounds.len() > 1, "the seeds flood more than one ground");
 }

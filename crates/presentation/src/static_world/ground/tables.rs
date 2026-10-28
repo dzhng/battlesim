@@ -155,7 +155,7 @@ impl Ground {
     fn water_looks(&self, p: &mut Vec<u32>) {
         let (b, w) = (&self.biome, &self.tuning.terrain.water);
         let (r, lobes) = (&w.normals, &w.lobes);
-        for look in &b.water.rivers {
+        for look in b.water.rivers.iter().chain(&b.water.swamps) {
             let colours = b.palette(&look.palette);
             vec4(p, rgb(linear(colours[0]), 0.0));
             vec4(p, rgb(linear(colours[1]), 0.0));
@@ -171,7 +171,7 @@ impl Ground {
             let c = &w.caustics;
             vec4(p, [1.0 / c.tile_m, c.strength, c.fade_per_m, c.sharpness]);
         }
-        let rows = WATER_LOOKS_MAX - b.water.rivers.len();
+        let rows = WATER_LOOKS_MAX - b.water.rivers.len() - b.water.swamps.len();
         p.extend(std::iter::repeat_n(0, rows * WATER_LOOK_WORDS));
     }
 

@@ -22,6 +22,16 @@
             "seconds": 4,
             "from": { "target": [320, 208], "distance": 80, "yaw": 3.0, "pitch": 0.2 },
             "to": { "target": [320, 208], "distance": 80, "yaw": 3.0, "pitch": 0.2 }
+          },
+          {
+            "seconds": 4,
+            "from": { "target": [396, 70], "distance": 45, "yaw": -1.22, "pitch": 0.75 },
+            "to": { "target": [396, 70], "distance": 45, "yaw": -1.22, "pitch": 0.75 }
+          },
+          {
+            "seconds": 4,
+            "from": { "target": [396, 70], "distance": 12, "yaw": -1.22, "pitch": 0.35 },
+            "to": { "target": [396, 70], "distance": 12, "yaw": -1.22, "pitch": 0.35 }
           }
         ]
       }

@@ -21,6 +21,8 @@
     "water_bed": [[0.31, 0.31, 0.25]],
     "water": [[0.14, 0.16, 0.15], [0.2, 0.22, 0.2]],
     "water_murky": [[0.2, 0.185, 0.14], [0.24, 0.225, 0.18]],
+    "swamp_meadow": [[0.12, 0.13, 0.08], [0.2, 0.21, 0.14]],
+    "swamp_marsh": [[0.1, 0.09, 0.055], [0.17, 0.15, 0.1]],
     "shore": [[0.3, 0.295, 0.285], [0.325, 0.305, 0.28]],
     "distant": [[0.37, 0.369, 0.301]],
     "crater_soil": [[0.3, 0.24, 0.17]],
@@ -300,6 +302,10 @@
     "rivers": [
       { "name": "temperate", "weight": 3, "palette": "water", "extinction_per_m": [0.9, 0.7, 0.8] },
       { "name": "murky lowland", "weight": 1, "palette": "water_murky", "extinction_per_m": [1.6, 1.4, 1.8] }
+    ],
+    "swamps": [
+      { "name": "flooded meadow", "weight": 1, "palette": "swamp_meadow", "extinction_per_m": [0.7, 0.55, 0.85], "ground": "meadow" },
+      { "name": "low reed marsh", "weight": 1, "palette": "swamp_marsh", "extinction_per_m": [2.4, 2.0, 2.6], "ground": "rough" }
     ]
   },
   "forest_floor": {

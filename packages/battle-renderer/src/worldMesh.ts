@@ -106,6 +106,8 @@ export interface WorldExports {
   rivers: Float32Array;
   /** The rivers' long runs (`ax, ay, bx, by`): what fields are cut along. */
   riverRuns: Float32Array;
+  /** Every swamp's outline, edge by edge (`layout.swampStride`): its water. */
+  swamps: Float32Array;
   /** Exact rectangular fast-path rows; general shapes stay in native primitive streams. */
   forests: Float32Array;
   forestTrunkRanges: Uint32Array;
@@ -138,6 +140,7 @@ export interface WorldExportSource {
   buildings(): string;
   rivers(): Float32Array;
   river_runs(): Float32Array;
+  swamps(): Float32Array;
   forests(): Float32Array;
   forest_trunk_ranges(): Uint32Array;
   forest_rect_ids(): Uint32Array;
@@ -167,6 +170,7 @@ export function readWorldExports(view: WorldExportSource): WorldExports {
     buildings: JSON.parse(view.buildings()),
     rivers: view.rivers(),
     riverRuns: view.river_runs(),
+    swamps: view.swamps(),
     forests: view.forests(),
     forestTrunkRanges: view.forest_trunk_ranges(),
     forestRectIds: view.forest_rect_ids(),

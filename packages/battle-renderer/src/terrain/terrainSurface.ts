@@ -89,6 +89,7 @@ export function setGround(presentation: Presentation, input: GroundInput): void 
     e.surfaceBoundaries ?? none,
     e.rivers ?? none,
     e.riverRuns ?? none,
+    e.swamps ?? none,
     e.forests ?? none,
     e.forestRectIds ?? ids,
     e.forestMetadata ?? none,
