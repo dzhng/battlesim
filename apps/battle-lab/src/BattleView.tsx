@@ -256,6 +256,8 @@ export function BattleView({
   // The battle accepts keys only while it is the thing on screen.
   const battleInput = !pause.open && !matchFinished && loadStage === "playable";
 
+  const armyState = useFeed({ own: control.controlled, control: input ? control : undefined });
+
   if (sim.error && onFailure) return cover ?? null;
   if (!meshes && !sim.error) return cover ?? null;
   return (
@@ -351,14 +353,13 @@ export function BattleView({
         )}
         <MenuButton onOpen={() => pause.show(true)} />
         <ArmyDeck
-          own={control.controlled}
+          state={armyState}
           selected={control.selected}
           onSelect={control.setSelected}
           onCenter={input ? focusUnit : undefined}
           rules={session.rules}
           pending={viewingPlayer?.pending}
           tick={observation?.tick}
-          control={input ? control : undefined}
           captions={<CaptionList captions={cues} />}
           reinforcements={
             input && session.purchase && observation?.skirmish ? (

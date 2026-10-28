@@ -1,3 +1,4 @@
+import { useFeed } from "../feed";
 import { useLabLoading } from "../LabLoading";
 // The UI gallery: every piece of the battle's interface that the panel
 // workbench (`panels.tsx`) and cursor lab do not already draw, each in fixed
@@ -186,10 +187,11 @@ function Purchase({ match }: { match: SkirmishView }) {
   const own = ["test_tank", "test_rifle", "test_at"].map((kind, i) =>
     specimenUnit(catalog, kind, { id: i + 1 }),
   );
+  const armyState = useFeed({ own });
   return (
     <div className="hud">
       <ArmyDeck
-        own={own}
+        state={armyState}
         selected={[1]}
         onSelect={() => {}}
         rules={rules}

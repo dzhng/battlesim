@@ -1,5 +1,5 @@
-// Large, often-changing GPU data (the overlay's meshes, the fog's inputs)
-// handed to the viewport through one stable object rather than as props that
+// Large, often-changing presentation data reaches its consumer through one
+// stable object rather than as props that
 // change with it. React's development build logs every changed prop of a
 // commit into a `performance.measure` detail, walking objects two levels
 // deep and typed arrays element by element: an overlay mesh (a Float32Array)
@@ -7,9 +7,9 @@
 // of megabytes a commit once a house fell in the ground lab, until cloning a
 // detail ran the page out of memory. The scene runner
 // fails any page whose measure details grow that large.
-import { useEffect, useState } from "react";
+import { useCallback, useLayoutEffect, useState, useSyncExternalStore } from "react";
 
-/** What a consumer (the viewport) reads: the latest value and its changes. */
+/** What a consumer reads: the latest value and its changes. */
 export interface FeedSource<T> {
   readonly current: T;
   subscribe(listener: (value: T) => void): () => void;
@@ -38,6 +38,15 @@ export class Feed<T> implements FeedSource<T> {
 /** One feed for the component's life, carrying the latest `value`. */
 export function useFeed<T>(value: T): Feed<T> {
   const [feed] = useState(() => new Feed<T>(value));
-  useEffect(() => feed.set(value), [feed, value]);
+  // React subscribers must see the committed publication before the browser paints.
+  useLayoutEffect(() => feed.set(value), [feed, value]);
   return feed;
+}
+
+/** Render the latest publication without placing its contents in React props. */
+export function useFeedValue<T>(feed: FeedSource<T>): T {
+  return useSyncExternalStore(
+    useCallback((changed) => feed.subscribe(changed), [feed]),
+    useCallback(() => feed.current, [feed]),
+  );
 }

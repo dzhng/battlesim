@@ -98,11 +98,13 @@ installs previews through the same appearance loader used by battles.
 ## Observation feeds
 
 [Stable feeds](src/feed.ts) carry large, changing presentation data to the
-viewport without making it a new React prop tree on every publication. React's
+viewport and army HUD without making it a new React prop tree on every publication. React's
 development instrumentation traverses changed typed-array props, so an apparently
 ordinary prop update can retain enormous diagnostic payloads. Keep live geometry,
-fog and effects behind the existing feed boundary rather than copying them into
-component state.
+fog, effects and complete unit observations behind the feed boundary. Consumers
+that render React views subscribe to the same feed, publishing before paint so
+cards and commands agree with the committed selection. This keeps full observations
+out of development profiling details.
 
 [Page resources](src/appResources.ts) retain the admitted GPU across screen changes;
 [the viewport](src/LabViewport.tsx) owns the canvas configuration and scene

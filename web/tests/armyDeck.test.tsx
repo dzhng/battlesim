@@ -1,12 +1,13 @@
-import { cleanup, fireEvent, render as renderView } from "@testing-library/react";
+import { act, cleanup, fireEvent, render as renderView } from "@testing-library/react";
+import { Feed, useFeed } from "@apps/battle-lab/src/feed";
 import { WithTestCatalog } from "./catalog";
 import { TEST_CATALOG } from "./catalog";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import game from "@fixtures/game.json";
 import { specimenUnit } from "@apps/battle-lab/src/panelSpecimens";
 import type { PanelRules } from "../src/battle/present/panelRows";
-import { CommandBar } from "../src/battle/present/readouts";
+import type { CommandControl } from "../src/battle/present/commandBar";
 import { ArmyDeck } from "../src/battle/present/armyDeck";
 
 /** Views render under the test set, as a lab page provides it. */
@@ -24,6 +25,75 @@ afterEach(cleanup);
 /** What a card says on its face, whitespace collapsed. */
 const words = (node: HTMLElement) => (node.textContent ?? "").replace(/\s+/g, " ").trim();
 
+test("army observation and selection read the same publication before paint", () => {
+  const beforePaint: number[][] = [];
+  function Harness() {
+    const [own, setOwn] = useState([specimenUnit(TEST_CATALOG, "test_tank", { id: 11 })]);
+    const state = useFeed({ own });
+    useLayoutEffect(() => {
+      beforePaint.push(state.current.own.map((unit) => unit.id));
+    }, [state, own]);
+    return (
+      <>
+        <button onClick={() => setOwn([specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 })])}>
+          Replace army
+        </button>
+        <ArmyDeck
+          state={state}
+          selected={own.map((unit) => unit.id)}
+          onSelect={vi.fn()}
+          rules={game as unknown as PanelRules}
+          captions={null}
+        />
+      </>
+    );
+  }
+  const view = render(<Harness />);
+  fireEvent.click(view.getByRole("button", { name: "Replace army" }));
+  expect(beforePaint).toEqual([[11], [22]]);
+  expect(view.getByRole("button", { name: "Rifle Section #22" }).getAttribute("aria-pressed")).toBe(
+    "true",
+  );
+});
+
+test("live army publications refresh cards and command availability without replacing the feed", () => {
+  const tank = specimenUnit(TEST_CATALOG, "test_tank", { id: 11 });
+  const state = new Feed({
+    own: [tank],
+    control: {
+      selectedUnits: [tank],
+      mode: "move" as const,
+      setMode: vi.fn(),
+      stop: vi.fn(),
+      togglePolicy: vi.fn(),
+      toggleDeployment: vi.fn(),
+      exitBuilding: vi.fn(),
+      pressUnload: vi.fn(),
+    },
+  });
+  const view = render(
+    <ArmyDeck
+      state={state}
+      selected={[11]}
+      onSelect={vi.fn()}
+      rules={game as unknown as PanelRules}
+      captions={null}
+    />,
+  );
+  expect(view.getByRole("button", { name: "Tank #11" })).toBeTruthy();
+  expect(view.getByRole("button", { name: /^Stop/ }).hasAttribute("disabled")).toBe(false);
+  const rifle = specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 });
+  act(() => state.set({ own: [rifle], control: { ...state.current.control, selectedUnits: [] } }));
+  expect(view.queryByRole("button", { name: "Tank #11" })).toBeNull();
+  expect(view.getByRole("button", { name: "Rifle Section #22" })).toBeTruthy();
+  expect(view.getByRole("button", { name: /^Stop/ }).hasAttribute("disabled")).toBe(true);
+  act(() =>
+    state.set({ own: [rifle], control: { ...state.current.control, selectedUnits: [rifle] } }),
+  );
+  fireEvent.click(view.getByRole("button", { name: /^Stop/ }));
+  expect(state.current.control.stop).toHaveBeenCalledOnce();
+});
+
 test("the army row includes unselected own units and stays visible without a selection", () => {
   const own = [
     specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
@@ -31,7 +101,7 @@ test("the army row includes unselected own units and stays visible without a sel
   ];
   const view = render(
     <ArmyDeck
-      own={own}
+      state={new Feed({ own })}
       selected={[]}
       onSelect={vi.fn()}
       rules={game as unknown as PanelRules}
@@ -51,10 +121,14 @@ test("card selection replaces the current selection and Shift toggles individual
     const [selected, setSelected] = useState([11]);
     return (
       <ArmyDeck
-        own={[
-          specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
-          specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 }),
-        ]}
+        state={
+          new Feed({
+            own: [
+              specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
+              specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 }),
+            ],
+          })
+        }
         selected={selected}
         onSelect={setSelected}
         rules={game as unknown as PanelRules}
@@ -84,7 +158,7 @@ test("a selected card asks the camera to centre while an unselected card only se
     const [selected, setSelected] = useState([11]);
     return (
       <ArmyDeck
-        own={[tank, rifle]}
+        state={new Feed({ own: [tank, rifle] })}
         selected={selected}
         onSelect={setSelected}
         onCenter={onCenter}
@@ -125,7 +199,7 @@ test("hover and focus expose live unit facts, health and casualty removal withou
     rules: game as unknown as PanelRules,
     captions: null,
   };
-  const view = render(<ArmyDeck {...props} own={[tank, rifle]} />);
+  const view = render(<ArmyDeck state={new Feed({ own: [tank, rifle] })} {...props} />);
   const card = view.getByRole("button", { name: "Rifle Section #22" });
   fireEvent.mouseEnter(card);
   const hint = view.getByRole("tooltip");
@@ -151,14 +225,14 @@ test("hover and focus expose live unit facts, health and casualty removal withou
   fireEvent.mouseEnter(card);
   view.rerender(
     <ArmyDeck
+      state={new Feed({ own: [tank, { ...rifle, memberHp: rifle.memberHp.map((hp) => hp / 2) }] })}
       {...props}
-      own={[tank, { ...rifle, memberHp: rifle.memberHp.map((hp) => hp / 2) }]}
     />,
   );
   expect(
     view.getByRole("meter", { name: "Rifle Section #22 health" }).getAttribute("aria-valuenow"),
   ).toBe("50");
-  view.rerender(<ArmyDeck {...props} own={[tank]} />);
+  view.rerender(<ArmyDeck state={new Feed({ own: [tank] })} {...props} />);
   expect(view.queryByRole("button", { name: "Rifle Section #22" })).toBeNull();
   expect(view.queryByRole("tooltip")).toBeNull();
 });
@@ -166,7 +240,7 @@ test("hover and focus expose live unit facts, health and casualty removal withou
 test("hover detail anchors to the deck rather than the lower HUD stack", () => {
   const view = render(
     <ArmyDeck
-      own={[specimenUnit(TEST_CATALOG, "test_tank", { id: 11 })]}
+      state={new Feed({ own: [specimenUnit(TEST_CATALOG, "test_tank", { id: 11 })] })}
       selected={[]}
       onSelect={vi.fn()}
       rules={game as unknown as PanelRules}
@@ -186,7 +260,7 @@ test("the army remains in replay and empty selection while commands follow only 
   ];
   function Harness({ replay = false }: { replay?: boolean }) {
     const [selected, setSelected] = useState<number[]>([]);
-    const control: Parameters<typeof CommandBar>[0]["control"] = {
+    const control: CommandControl = {
       selectedUnits: own.filter((unit) => selected.includes(unit.id)),
       mode: "move",
       setMode: vi.fn(),
@@ -198,11 +272,10 @@ test("the army remains in replay and empty selection while commands follow only 
     };
     return (
       <ArmyDeck
-        own={own}
+        state={new Feed({ own, control: replay ? undefined : control })}
         selected={selected}
         onSelect={setSelected}
         rules={game as unknown as PanelRules}
-        control={replay ? undefined : control}
         captions={null}
       />
     );
@@ -226,10 +299,14 @@ test("the army remains in replay and empty selection while commands follow only 
 test("keyboard focus takes ownership from an old hover and mouse leave restores focused facts", () => {
   const view = render(
     <ArmyDeck
-      own={[
-        specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
-        specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 }),
-      ]}
+      state={
+        new Feed({
+          own: [
+            specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
+            specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 }),
+          ],
+        })
+      }
       selected={[]}
       onSelect={vi.fn()}
       rules={game as unknown as PanelRules}
@@ -251,7 +328,7 @@ test("keyboard focus takes ownership from an old hover and mouse leave restores 
 test("reinforcements remain available before the first unit enters", () => {
   const view = render(
     <ArmyDeck
-      own={[]}
+      state={new Feed({ own: [] })}
       selected={[]}
       onSelect={vi.fn()}
       rules={game as unknown as PanelRules}
@@ -266,7 +343,7 @@ test("reinforcements remain available before the first unit enters", () => {
 test("pending reinforcements reuse dimmed vertical cards with deployment hover text", () => {
   const view = render(
     <ArmyDeck
-      own={[]}
+      state={new Feed({ own: [] })}
       selected={[]}
       onSelect={vi.fn()}
       rules={game as unknown as PanelRules}
@@ -313,7 +390,7 @@ test("a waiting aircraft's pending card counts down to its arrival, whole second
   };
   const deck = (tick: number) => (
     <ArmyDeck
-      own={[]}
+      state={new Feed({ own: [] })}
       selected={[]}
       onSelect={vi.fn()}
       rules={game as unknown as PanelRules}
@@ -346,12 +423,11 @@ test("the command row exposes refund for a selected skirmish unit", () => {
   };
   const view = render(
     <ArmyDeck
-      own={[unit]}
+      state={new Feed({ own: [unit], control })}
       selected={[11]}
       onSelect={vi.fn()}
       rules={game as unknown as PanelRules}
       captions={null}
-      control={control}
     />,
   );
   fireEvent.click(view.getByRole("button", { name: "Refund · Return to base" }));
@@ -367,7 +443,7 @@ test("a squad aboard a carrier keeps its card, dimmed as aboard, and clicking it
   const onSelect = vi.fn();
   const view = render(
     <ArmyDeck
-      own={[apc, rider]}
+      state={new Feed({ own: [apc, rider] })}
       selected={[]}
       onSelect={onSelect}
       rules={game as unknown as PanelRules}
@@ -392,7 +468,7 @@ test("a rider's selected card centres on the carrier it selects", () => {
     const [selected, setSelected] = useState<number[]>([]);
     return (
       <ArmyDeck
-        own={[apc, rider]}
+        state={new Feed({ own: [apc, rider] })}
         selected={selected}
         onSelect={setSelected}
         onCenter={onCenter}

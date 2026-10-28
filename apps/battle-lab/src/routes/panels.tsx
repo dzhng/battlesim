@@ -1,3 +1,4 @@
+import { useFeed } from "../feed";
 import { useLabLoading } from "../LabLoading";
 // The panel workbench: every info panel the battle can draw (the specimens
 // in `panelSpecimens.ts`), through the battle's own `InfoPanel`, on a plain
@@ -13,7 +14,7 @@ import { useSessionCatalog } from "@web/battle/catalog/context";
 import { presentationRules } from "@web/battle/catalog/sets";
 import { panelSpecimens, specimenUnit, type Specimen } from "../panelSpecimens";
 
-import { CommandBar } from "@web/battle/present/readouts";
+import type { CommandControl } from "@web/battle/present/commandBar";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { CaptionList } from "@web/battle/present/captions";
@@ -178,7 +179,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     { name: "Replay", units: [specimenUnit(catalog, "test_tank")], replay: true },
   ];
   const [chosen, setChosen] = useState(0);
-  const [mode, setMode] = useState<Parameters<typeof CommandBar>[0]["control"]["mode"]>("move");
+  const [mode, setMode] = useState<CommandControl["mode"]>("move");
   const [action, setAction] = useState("");
   const selection = cases[chosen];
   const [selected, setSelected] = useState<number[]>([1]);
@@ -192,6 +193,11 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     exitBuilding: () => setAction("Leave building"),
     pressUnload: () => setAction("Unload"),
   };
+  const armyState = useFeed({
+    own: selection.units,
+    control: selection.replay ? undefined : control,
+  });
+
   const skirmish = {
     phase: "preparation" as const,
     players: [
@@ -244,11 +250,10 @@ function DeckReview({ onBack }: { onBack: () => void }) {
       <output style={{ position: "absolute", top: 90, left: 16 }}>{action}</output>
       <div className="hud">
         <ArmyDeck
-          own={selection.units}
+          state={armyState}
           selected={selected}
           onSelect={setSelected}
           rules={rules}
-          control={selection.replay ? undefined : control}
           captions={
             <CaptionList
               captions={{

@@ -68,6 +68,8 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = { ...session.probes, mode: () => control.mode };
 
+  const armyState = useFeed({ own: observation?.own ?? [], control });
+
   if (!meshes) return null;
   return (
     <>
@@ -105,12 +107,11 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
       </aside>
       <div className="hud">
         <ArmyDeck
-          own={observation?.own ?? []}
+          state={armyState}
           selected={control.selected}
           onSelect={control.setSelected}
           onCenter={focusUnit}
           rules={session.rules}
-          control={control}
           captions={null}
         />
       </div>
