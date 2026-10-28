@@ -199,3 +199,60 @@ fn a_tank_on_a_bridge_over_the_river_does_not_wade() {
     });
     assert!(seen > 0);
 }
+
+#[test]
+fn a_soldier_crossing_a_puddle_makes_rings() {
+    // The river lab with a metalled road across its north, where puddles lie.
+    let mut map: Value = serde_json::from_str(
+        &std::fs::read_to_string(root().join("fixtures/maps/river/map.json")).unwrap(),
+    )
+    .unwrap();
+    map["surfaces"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({ "kind": "road",
+        "shape": { "kind": "stroke", "points": [[100, 440], [700, 440]], "width_m": 8 } }));
+    let bare: ScenarioDefinition = serde_json::from_value(json!({
+        "map": map, "rules": sim::fixtures::test_game(), "units": [], "events": [], "scripts": [],
+    }))
+    .unwrap();
+    let ground = ground_of(&bare);
+    let puddle = ground
+        .puddles
+        .iter()
+        .filter(|p| (p.centre[1] - 440.0).abs() < 2.0 && p.radius_m > 0.8)
+        .max_by(|a, b| a.radius_m.total_cmp(&b.radius_m))
+        .expect("a puddle on the road");
+    let [px, py] = puddle.centre;
+    // A rifle squad walks along the road, through it.
+    let mut v = serde_json::to_value(&bare).unwrap();
+    v["units"] = json!([{ "side": "blue", "kind": "test_rifle", "position": [px - 25.0, py],
+        "engagement": "return_fire_only" }]);
+    v["scripts"] = json!([{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
+        "gesture": 1, "goal": [px + 25.0, py], "route": "shortest" } }]);
+    let scenario: ScenarioDefinition = serde_json::from_value(v).unwrap();
+    let f = fielded::fielded(&root(), &game(), "air", &["test_rifle".to_owned()]).unwrap();
+    let presentation =
+        presentation::effects::tables::EffectPresentation::from_value(&f.effects.presentation)
+            .unwrap();
+    let mut frame = presentation::effects::frame::EffectFrame::new(30.0, presentation);
+    let (mut waded, mut made) = (0, vec![]);
+    watch(&scenario, "air", 30 * 30, |o, p| {
+        waded += p.shooters.iter().map(|s| s.wading.len()).sum::<usize>();
+        frame.note(p);
+        let t = o.tick / 30.0;
+        made.extend(frame.wakes(t - 1.0 / 30.0, t).copied());
+    });
+    assert!(waded > 0, "the squad waded through the puddle");
+    let near = |w: &&presentation::effects::frame::WakeImpulse| {
+        (w.xy[0] - px).hypot(w.xy[1] - py) <= puddle.radius_m + 0.5
+    };
+    let there: Vec<_> = made.iter().filter(near).collect();
+    assert!(!there.is_empty(), "a wake in the puddle");
+    assert!(
+        there
+            .iter()
+            .all(|w| w.kind == presentation::effects::frame::WakeKind::Rings),
+        "rings, never a V, in a puddle: {there:?}"
+    );
+}

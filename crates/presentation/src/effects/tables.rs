@@ -149,12 +149,14 @@ pub struct DustStyle {
 
 /// How a unit the side sees wading in standing water pushes on it: rings
 /// round a still or slow wader, `ring_hz` a second each, and at `vee_mps`
-/// or faster a V-wake, a push every `spacing_m` along its way. A soldier's
-/// push reaches `soldier_radius_m`, a hull's its half width.
+/// or faster a V-wake, a push every `spacing_m` along its way, where the
+/// water stands `vee_depth_m` deep or more (shallower, a splash's rings).
+/// A soldier's push reaches `soldier_radius_m`, a hull's its half width.
 #[derive(Clone, Copy, Debug, Deserialize)]
 pub struct WakeStyle {
     pub ring_hz: f64,
     pub vee_mps: f64,
+    pub vee_depth_m: f64,
     pub spacing_m: f64,
     pub soldier_radius_m: f64,
     pub ring_strength: f64,
