@@ -187,6 +187,10 @@ export const terrainLayout = tgpu.bindGroupLayout({
    *  trampled per cell. */
   scarPages: { texture: d.texture2d(d.u32), visibility: ["fragment", "compute"] },
   scars: { texture: d.texture2dArray(d.f32), visibility: ["fragment", "compute"] },
+  /** The water's normal map (`waterNormals.ts`), and the sampler that
+   *  tiles it. */
+  waterNormals: { texture: d.texture2d(d.f32), visibility: ["fragment"] },
+  waterTiles: { sampler: "filtering", visibility: ["fragment"] },
 });
 
 export const NODE_WORDS = 8;

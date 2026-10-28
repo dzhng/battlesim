@@ -5,6 +5,7 @@ import { tgpu, d } from "typegpu";
 import type { PresentedGround } from "../terrain/terrainSurface";
 import { SURFACE_FLOATS } from "../terrain/surfaceField";
 import type { GpuRegistry, GpuSlot } from "./registry";
+import { createWaterNormals } from "./waterNormals";
 import {
   createScarTexture,
   type ScarRegion,
@@ -75,8 +76,11 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       scarParams,
       scars: scars.texture.createView({ dimension: "2d-array" }),
       scarPages: scars.directory.createView(),
+      waterNormals: waterNormals.view,
+      waterTiles: waterNormals.sampler,
     });
   const scars = createScarTexture(registry);
+  const waterNormals = createWaterNormals(root, registry);
   /** `TerrainParams` as `set` last packed it, its last `vec4u` the frame's view. */
   let look: Uint32Array | null = null;
   let classView = false;

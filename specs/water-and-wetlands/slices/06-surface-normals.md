@@ -2,6 +2,7 @@
 
 **Lane:** render. **Depends on:** 01 and 05.
 **Visual variable:** surface detail and motion.
+**Status:** done (2026-10-28).
 
 ## Contract
 
@@ -16,22 +17,46 @@
 - **Vertex waves:** judged at the low framing. They are dropped if they don't
   read.
 
-## Verification
+## What changed from the plan
 
-1. Run `compare-screenshots` on the water mask at all three framings. Targets:
-   `../assets/redgpu-overhead-shadows.jpg` and slice 00's stills. Include a
-   motion pair: two frames 0.5 s apart on the presentation clock.
-2. Check that pausing freezes the surface, because the clock stands still.
-3. Probe the bake's cost and the per-frame cost.
-4. Run `screenshot-critique` last, on the still and the motion pair.
+- The map has no mips; each layer flattens as a pixel outgrows its texels
+  ([choices](../choices.md)).
+- Vertex waves were not built: centimetres don't read from an RTS height.
+- The streaks of light along the stream stay, for slice 09 to judge.
 
-**Out of scope:** highlights (slice 09). The surface stays on the existing
-`environment.shade`.
+## Verification (done)
+
+1. `compare-screenshots` on the water at all three framings, against slice
+   05's plates and `../assets/redgpu-overhead-shadows.jpg`:
+   - Low: the even field of procedural ripples is replaced by waves at
+     three scales, which break the sun's glint into many facets.
+   - Close and tactical: little change from a steep camera, where the
+     streaks and the depth colour own the look.
+   The motion pair (two plates 0.49 s apart, from a throwaway two-shot reel
+   in the graphics test) shows the surface drifting downwind. Verdict: less
+   wrong at the low framing; even at the steep ones.
+2. Pausing freezes the surface: a paused lab's frames are identical,
+   because its clock stops with the battle.
+3. Cost: the bake is one 256×256 full-screen draw at load. Per frame,
+   interleaved against a flat normal at the tactical framing in the river
+   lab: High 9.21 ± 1.09 ms against 9.29 ± 0.91 ms, Low 6.410 ± 0.033 ms
+   against 6.419 ± 0.033 ms. Within noise.
+4. An unprimed `screenshot-critique` of the still and the motion pair, on
+   the first tuning, found blown-out glints and a soft near field (tuned),
+   streaks reading as brushed metal (slice 09), and a surface that slides
+   rather than churns (the three layers' drift rates now differ more).
+5. The water, river and frame scenes pass. The frame baselines are
+   unchanged: their compositions are far enough out that the normals fade
+   flat.
+6. `fixtures/parity/exact-numbers.json` was re-recorded for the renamed
+   tuning (`ripple` became `normals`); its digest rows are unchanged.
+7. Codex found the turned layers' slopes used as if along the map's axes;
+   they are now turned back before they lean the normal.
 
 ## Native
 
-Port the one-time bake. If that's hard, native draws a flat normal and a
-[`water-native`](../../water-native/README.md) item records it.
+Ported: native replays the exported bake once (`water_normals.rs`) and
+binds the map with the terrain's tables.
 
 ## Delegated to the implementer
 

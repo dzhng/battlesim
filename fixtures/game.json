@@ -1229,14 +1229,7 @@
         "shore_fade_m": 0.25,
         "roughness": 0.14,
         "shadow": 0.55,
-        "ripple": {
-          "long_m": 3.2,
-          "short_m": 0.9,
-          "short_weight": 0.5,
-          "slope": 0.09,
-          "step_m": 0.25,
-          "fade_m": [0.15, 1.2]
-        },
+        "normals": { "tiles_m": [9, 31, 2.2], "drifts": [0.6, 0.3, 1.4], "strength": 0.35, "fade_m": [0.15, 1.2] },
         "lanes": {
           "m": 0.5,
           "drift": 2.5,

@@ -681,3 +681,80 @@ against the code. Each says what was chosen, why, and how sure the agent is.
    one concept. *Confidence:* high.
 9. **No paired battle report on the `wetlands` map yet.** That map comes
    from slice 00 in the other lane; run the report once it is merged.
+
+## Slice 06: wind-driven normals
+
+### The normal map is a sum of whole-cycle waves, baked once beside the terrain's tables
+
+- **When:** slice 06.
+- **The choice:** `waterNormalsBake` (`frame/waterNormals.ts`) draws a
+  256×256 `rgba16float` slope map once at load. It sums 24 waves, each
+  turning a whole number of times across the tile (spread by the golden
+  angle, two to about twelve cycles, shorter ones lower), so it tiles at any
+  scale. That is a formula, with no seeded randomness. The terrain source
+  owns it, and the terrain layout binds it with a repeat sampler
+  (`waterNormals`, `waterTiles`), because the water's surface material
+  already reads that layout. Native replays the same exported bake into its
+  own texture (`water_normals.rs`).
+- **The gap:** decision 16 named the bake, not the generator or its owner.
+- **The reach:** swamps and puddles (slices 13, 14) sample the same map.
+  The wave field (16) adds its own texture beside it.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### No mips: each layer flattens as a pixel outgrows its texels
+
+- **When:** slice 06.
+- **The choice:** the map has one level. Each of the three layers (tiles of
+  9, 31 and 2.2 m, turned 0.6 and −1.1 rad off the primary) leans the
+  normal by `strength` (0.35). Each flattens as a pixel spans 1.5 to 6 of
+  its texels, so a layer finer than the pixel fades instead of aliasing.
+  The layers drift downwind at 0.6, 0.3 and 1.4 of the wind's drift, on the
+  camera's clock. These are first values in
+  `presentation.terrain.water.normals`. An unprimed critique of the first
+  tuning found glints blown into blobs and a soft near field; this tuning
+  breaks them up.
+- **The gap:** the implementer's to pick.
+- **The reach:** mips would keep detail at a distance, as averaged
+  roughness; add them with slice 07's scene-colour mips if far water reads
+  flat.
+- **Verdict:** sound for now.
+- **Confidence:** medium.
+
+### No vertex waves
+
+- **When:** slice 06.
+- **The choice:** vertex waves were not built. RedGPU's are centimetres
+  high, and at the low framing (80 m out) a pixel spans several
+  centimetres at the near water and metres at the far, so a vertex swell
+  would move the surface by less than a pixel. The normals carry the waves.
+- **The gap:** the slice said to judge them at the low framing.
+- **The reach:** wakes (slice 16) displace no vertices either; they are a
+  normal field.
+- **Verdict:** sound; judged by measure, not by a build.
+- **Confidence:** medium.
+
+### The streaks of light stay, for slice 09
+
+- **When:** slice 06.
+- **The choice:** the streaks laid in lanes along the stream (now
+  `waterStreaks`) are not ripples, so this slice didn't delete them. From
+  a steep camera they still own the water's look, which the critique read
+  as brushed metal. Slice 09's highlights decide whether they stay.
+- **The gap:** none; a scope line.
+- **The reach:** slice 09.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Motion is judged in the graphics test, whose clock runs
+
+- **When:** slice 06.
+- **The choice:** scene runs hold the wall clock, so a lab's water stands
+  still even as its ticks advance (the presentation clock interpolates on
+  wall time). The motion pair came from a throwaway two-shot water reel in
+  the graphics test, its plates 0.49 s apart. Pausing freezes the water by
+  the same rule, since the clock stops with the battle.
+- **The gap:** the slice assumed a lab could step the presentation clock.
+- **The reach:** slice 16's wave field must be judged the same way.
+- **Verdict:** sound.
+- **Confidence:** medium.

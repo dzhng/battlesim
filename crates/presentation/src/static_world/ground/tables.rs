@@ -154,23 +154,18 @@ impl Ground {
     /// (`presentation.terrain.water`).
     fn water_looks(&self, p: &mut Vec<u32>) {
         let (b, w) = (&self.biome, &self.tuning.terrain.water);
-        let (r, l) = (&w.ripple, &w.lanes);
+        let (r, l) = (&w.normals, &w.lanes);
         for look in &b.water.rivers {
             let colours = b.palette(&look.palette);
             vec4(p, rgb(linear(colours[0]), look.streak));
             vec4(p, rgb(linear(colours[1]), w.roughness));
             vec4(p, rgb(look.extinction_per_m, w.shadow));
-            vec4(
-                p,
-                [1.0 / r.long_m, 1.0 / r.short_m, r.short_weight, r.step_m],
-            );
-            vec4(
-                p,
-                [r.slope / (2.0 * r.step_m), r.fade_m[0], r.fade_m[1], 0.0],
-            );
+            let [primary, macro_m, detail] = r.tiles_m;
+            vec4(p, [1.0 / primary, 1.0 / macro_m, 1.0 / detail, r.strength]);
+            vec4(p, [r.drifts[0], r.drifts[1], r.drifts[2], 0.0]);
             vec4(p, [l.m, l.drift, 1.0 / l.drift_m, 1.0 / l.streak_m]);
             vec4(p, [l.weights[0], l.weights[1], l.lit[0], l.lit[1]]);
-            vec4(p, [l.lit_mean, w.shore_fade_m, 0.0, 0.0]);
+            vec4(p, [l.lit_mean, w.shore_fade_m, r.fade_m[0], r.fade_m[1]]);
         }
         let rows = WATER_LOOKS_MAX - b.water.rivers.len();
         p.extend(std::iter::repeat_n(0, rows * WATER_LOOK_WORDS));
