@@ -157,7 +157,7 @@ The ignored scratch folder is `throwaway/`.
 ## Plans and docs
 
 Active plans live under [specs](specs/README.md). A plan's README is its live
-handoff, and its choices ledger records decisions made where the plan was
+handoff, and its decisions ledger records what was decided where the plan was
 silent; finished specs preserve durable rationale. Use
 [write-spec](.agents/skills/write-spec/SKILL.md) for large or risky features and
 [review](.agents/skills/review/SKILL.md) before calling a substantive slice
