@@ -386,8 +386,7 @@ const valueNoise3 = tgpu
   .$uses({ pcgHash });
 
 /** Leaf clumps about half a metre across: the normal bent toward each clump and the
- *  gaps between them darkened, faded out by `fade`. At distance (low fade), a
- *  coarser pattern keeps some crown definition. Returns (normal, shade). */
+ *  gaps between them darkened, faded out by `fade`. Returns (normal, shade). */
 const leafClumps = tgpu
   .fn(
     [d.vec3f, d.vec3f, d.f32],
@@ -399,19 +398,9 @@ const leafClumps = tgpu
     valueNoise3(q + vec3f(17.3, 5.1, 9.7)),
     valueNoise3(q + vec3f(3.7, 29.3, 13.1)),
   ) - vec3f(0.5);
-  // At distance, add coarser crown-scale undulation to keep some definition.
-  let coarse = p * 0.6;
-  let wave = vec3f(
-    valueNoise3(coarse),
-    valueNoise3(coarse + vec3f(11.1, 7.3, 2.9)),
-    valueNoise3(coarse + vec3f(5.7, 13.1, 9.3)),
-  ) - vec3f(0.5);
-  let blended = bend * fade + wave * 0.5 * (1.0 - fade);
-  let bent = normalize(n + blended * 0.7);
+  let bent = normalize(n + bend * (0.7 * fade));
   let gap = valueNoise3(p * 3.4 + vec3f(7.0, 1.0, 3.0));
-  // Coarser shading at distance for visible crown clumping.
-  let coarseGap = valueNoise3(p * 1.1 + vec3f(3.0, 5.0, 1.0));
-  let shade = mix(1.0, 0.72 + 0.4 * gap, fade) * mix(1.0, 0.85 + 0.2 * coarseGap, 1.0 - fade);
+  let shade = mix(1.0, 0.72 + 0.4 * gap, fade);
   return vec4f(bent, shade);
 }`)
   .$uses({ valueNoise3 });
@@ -432,8 +421,7 @@ export async function createSceneryLayer(
     let shade = d.f32(1);
     let roughness = d.f32(BARK_ROUGHNESS);
     // Detail fades as a pixel grows past a clump (derivatives before any branch).
-    // Extended range so coarser detail persists at battle-camera distances.
-    const fade = 1 - std.smoothstep(0.08, 0.7, std.length(std.fwidth(world)));
+    const fade = 1 - std.smoothstep(0.08, 0.45, std.length(std.fwidth(world)));
     // Past the clumps' fade there is nothing to add: skip the noise.
     if (color.w > 0.5 && fade > 0) {
       const clumps = leafClumps(local, n, fade);

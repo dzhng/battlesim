@@ -448,9 +448,9 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
                     };
                     shapes[o + 8 + c] = (f64::from(mesh.normals[v * 4 + c]) / 32767.0) as f32;
                     let raw = linear(mesh.colors[v * 4 + c]) / target[c];
-                    // Soft cap: tips can brighten up to ~1.3, stems have a floor
-                    // that rises with height so low blades keep their color.
-                    let floor = 0.6 + 0.35 * h;
+                    // Soft cap: tips can brighten up to ~1.3, stems have a low
+                    // floor so dark gaps remain while keeping mean luminance.
+                    let floor = 0.3 + 0.5 * h;
                     let cap = 1.0 + 0.3 * (1.0 - libm::exp(-2.5 * (raw - 1.0).max(0.0)));
                     let tint = raw.max(floor).min(cap);
                     shapes[o + 12 + c] = tint as f32;
