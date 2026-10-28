@@ -3,12 +3,14 @@
 //! chance through its flight, a wreck that burns, smoulders and goes out, a
 //! paused clock that holds, a long gap that makes only what is still alive,
 //! a smoke budget that thins every wreck alike, dust behind a moving hull
-//! and off a hull whose heavy gun fires, and rotors that show their blades still and smear when fast. Driven by
+//! and off a hull whose heavy gun fires, smoke and dust drifting the way the
+//! grass leans, and rotors that show their blades still and smear when fast. Driven by
 //! synthetic publications over the fixture's presentation.
 use presentation::effects::frame::{EffectBatch, EffectFrame, EFFECT_FLOATS};
 use presentation::effects::publication::EffectPublication;
 use presentation::effects::tables::EffectPresentation;
 use presentation::effects::DrawnRotor;
+use presentation::wind::WindSettings;
 use std::f64::consts::FRAC_PI_2;
 
 use serde_json::{json, Value};
@@ -47,10 +49,15 @@ fn publ(tick: f64, fields: Value) -> EffectPublication {
     serde_json::from_value(p).unwrap()
 }
 
-/// What `f` draws at `clock`: each instance's sixteen floats.
+/// What `f` draws at `clock` in still air: each instance's sixteen floats.
 fn drawn(f: &mut EffectFrame, clock: f64) -> Vec<Vec<f32>> {
+    drawn_in(f, clock, None)
+}
+
+/// What `f` draws at `clock` in `wind`.
+fn drawn_in(f: &mut EffectFrame, clock: f64, wind: Option<&WindSettings>) -> Vec<Vec<f32>> {
     let mut batch = EffectBatch::new(f.presentation().capacity);
-    f.build(clock, &mut batch, None, &[], &[]);
+    f.build(clock, &mut batch, None, &[], &[], wind);
     assert_eq!(batch.dropped, 0, "a frame never exceeds capacity");
     batch.data[..batch.count * EFFECT_FLOATS]
         .chunks(EFFECT_FLOATS)
@@ -188,7 +195,7 @@ fn a_known_wreck_burns_then_smoulders_then_is_out() {
         smoke.len() > 20 && smoke.iter().any(|i| i[2] > 15.0),
         "a column of smoke"
     );
-    f.build(f64::from(burning) * DT, &mut batch, None, &[], &[]);
+    f.build(f64::from(burning) * DT, &mut batch, None, &[], &[], None);
     assert!(batch.lights.count > 0, "the fire lights the ground");
     assert_eq!(f.stats().sources, 1);
 
@@ -198,7 +205,14 @@ fn a_known_wreck_burns_then_smoulders_then_is_out() {
     assert!(layer(&d, 0.0).is_empty(), "no fire left");
     let thin = layer(&d, 1.0).len();
     assert!(thin > 0 && thin < smoke.len(), "thinner smoke: {thin}");
-    f.build(f64::from(smouldering) * DT, &mut batch, None, &[], &[]);
+    f.build(
+        f64::from(smouldering) * DT,
+        &mut batch,
+        None,
+        &[],
+        &[],
+        None,
+    );
     assert_eq!(batch.lights.count, 0);
 
     // Out, though the wreck is still known: nothing left.
@@ -284,6 +298,74 @@ fn a_moving_hull_raises_dust_behind_it_and_an_aircraft_none() {
     assert!(dust(8.0, true).0.is_empty(), "flying over the ground, none");
 }
 
+/// The biome's wind block, blowing toward `heading_deg` at `drift_mps`.
+fn wind(heading_deg: f64, drift_mps: f64) -> WindSettings {
+    let block = json!({"heading_deg": heading_deg, "drift_mps": drift_mps, "gust_m": 40.0, "gust_mps": 4.0});
+    serde_json::from_value(block).unwrap()
+}
+
+/// What a cause draws in a wind: its puffs' floats.
+type Puffs = fn(&WindSettings) -> Vec<Vec<f32>>;
+
+#[test]
+fn smoke_and_dust_drift_the_way_the_grass_leans_whatever_the_heading() {
+    // A wreck's smoke, and the dust a hull raises driving north.
+    let smoke = |w: &WindSettings| {
+        let mut f = frame();
+        burn(&mut f, 1, 150, &json!([wreck(100.0, 200.0)]));
+        layer(&drawn_in(&mut f, 150.0 * DT, Some(w)), 1.0)
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    let dust = |w: &WindSettings| {
+        let mut f = frame();
+        for t in 1..=60 {
+            let mut hull = tank(3.0, 0.0);
+            hull["position"] = json!([0.0, 8.0 * f64::from(t) * DT, 0.0]);
+            f.note(&publ(f64::from(t), json!({ "shooters": [hull] })));
+        }
+        layer(&drawn_in(&mut f, 60.0 * DT, Some(w)), 1.0)
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    for heading in [0.0, 35.0, 100.0, 190.0, 260.0, 330.0] {
+        // Grass leans along the record's `toward` (`grassVertex.ts`).
+        let blowing = wind(heading, 2.0);
+        let lean = blowing.record().toward.map(f64::from);
+        let causes: [(&str, Puffs); 2] = [("smoke", smoke), ("dust", dust)];
+        for (cause, puffs) in causes {
+            let (moved, still) = (puffs(&blowing), puffs(&wind(heading, 0.0)));
+            assert!(
+                moved.len() > 10 && moved.len() == still.len(),
+                "{cause}: the same puffs"
+            );
+            let mut drifted = 0;
+            for (a, b) in moved.iter().zip(&still) {
+                let d: [f64; 3] = std::array::from_fn(|i| f64::from(a[i] - b[i]));
+                let (along, across) = (
+                    d[0] * lean[0] + d[1] * lean[1],
+                    d[1] * lean[0] - d[0] * lean[1],
+                );
+                assert!(
+                    along >= -1e-3 && across.abs() < 1e-3 + 1e-3 * along,
+                    "{cause} at {heading}°: {d:?}"
+                );
+                assert!(
+                    d[2].abs() < 1e-3,
+                    "{cause} at {heading}°: the wind is level"
+                );
+                drifted += usize::from(along > 0.5);
+            }
+            assert!(
+                drifted > moved.len() / 2,
+                "{cause} at {heading}°: most puffs drift downwind"
+            );
+        }
+    }
+}
+
 #[test]
 fn a_still_rotor_shows_its_blades_and_a_fast_one_smears_them_never_past_a_turn() {
     let rotor = |turned: f64| {
@@ -292,7 +374,7 @@ fn a_still_rotor_shows_its_blades_and_a_fast_one_smears_them_never_past_a_turn()
         let r: DrawnRotor = serde_json::from_value(r).unwrap();
         let mut f = frame();
         let mut batch = EffectBatch::new(f.presentation().capacity);
-        f.build(0.0, &mut batch, None, &[r], &[]);
+        f.build(0.0, &mut batch, None, &[r], &[], None);
         let d = batch.data[..batch.count * EFFECT_FLOATS].to_vec();
         d.chunks(EFFECT_FLOATS)
             .map(<[f32]>::to_vec)

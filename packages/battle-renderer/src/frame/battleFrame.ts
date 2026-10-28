@@ -288,7 +288,9 @@ export async function createBattleFrame(
           return world.setStaticFrame(frame, stats.scenery) || buildings;
         },
         setPresentedGround(ground) {
-          if (!disposed) world.setPresentedGround(ground);
+          if (disposed) return;
+          world.setPresentedGround(ground);
+          environment.setWind(ground?.ground_wind() ?? null);
         },
         setGround(next) {
           return !disposed && world.setGround(next);

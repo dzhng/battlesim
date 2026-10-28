@@ -209,6 +209,7 @@ function groundOf(rust: Presentation): PresentedGround {
     ground_terrain: () => rust.ground_terrain(),
     ground_plots: (textured) => rust.ground_plots(textured),
     ground_water_mesh: () => rust.ground_water_mesh(),
+    ground_wind: () => rust.ground_wind(),
     grass_kinds: () => rust.grass_kinds(),
     grass_params: (shapes, density) => rust.grass_params(shapes, density),
     grass_window: () => rust.grass_window(),

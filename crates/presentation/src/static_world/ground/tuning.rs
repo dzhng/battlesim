@@ -112,8 +112,8 @@
 //! patches past `parched_cut`; `mix`: drifts past `drift_cut`, a grass wholly
 //! of its drifts `drift_gather` times its share in one; `tier_jitter` scales
 //! the near tier's threshold per clump; a laid clump leans `laid.lean` of its
-//! height and sinks `laid.sink`; the wind leans from where its wave passes
-//! `wind.gust_from`, its flutter turning `flutter_phase` radians a metre
+//! height and sinks `laid.sink`; grass sways from where the wind's wave passes
+//! `sway.gust_from`, its flutter turning `flutter_phase` radians a metre
 //! downwind and `flutter_across` of that across; a blade's roughness.
 use serde::Deserialize;
 

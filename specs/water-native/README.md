@@ -2,9 +2,9 @@
 
 **Status:** placeholder. It collects the native-client work from
 [water and wetlands](../water-and-wetlands/README.md) that is too complicated to
-port in the same step as the browser. Nothing is listed yet, because no step
-has been built.
-**Updated:** 2026-10-27.
+port in the same step as the browser. Nothing is listed yet: slices 00, 01
+and 02 ported everything.
+**Updated:** 2026-10-28.
 
 ## Next Agent Prompt
 
@@ -50,4 +50,6 @@ native.
 
 ## Gaps
 
-None yet.
+None yet. Slice 01's wind rides in native's environment uniform
+(`Environment::new` takes it with the light), its grass binds the reordered
+groups by layout name, and its smoke drifts in the shared presentation.

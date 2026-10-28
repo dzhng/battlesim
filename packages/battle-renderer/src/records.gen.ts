@@ -401,6 +401,29 @@ export const AerialAt = {
 } as const;
 export const AERIAL_WORDS = 28;
 
+/** The one wind, in every lit shader's environment uniform after the haze (`wind.rs`): grass leans and gusts in it, smoke and dust drift on it. Its clock is the camera's (`Camera.time`). */
+export const Wind = d
+  .struct({
+    /** Unit vector it blows toward, level (z 0). */
+    toward: d.vec3f,
+    /** How fast it carries smoke and dust (m/s). */
+    driftMps: d.f32,
+    /** How fast a gust front rolls downwind (m/s). */
+    gustMps: d.f32,
+    /** 1 / the gust fronts' spacing (per metre). */
+    gustPerM: d.f32,
+  })
+  .$name("Wind");
+/** Where `Wind`'s fields lie, in words. */
+export const WindAt = {
+  toward: 0,
+  drift_mps: 3,
+  gust_mps: 4,
+  gust_per_m: 5,
+  pad: 6,
+} as const;
+export const WIND_WORDS = 8;
+
 /** The sun and the shadow fill, as the environment uniform carries them after its view (`sunDirection` to `fill`). */
 export const Sun = {
   /** Unit vector toward the sun; w 0. (f32 × 4) */

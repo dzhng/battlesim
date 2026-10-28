@@ -50,6 +50,13 @@ struct Aerial {
   horizonFade: vec2f,
 }
 
+struct Wind {
+  toward: vec3f,
+  driftMps: f32,
+  gustMps: f32,
+  gustPerM: f32,
+}
+
 struct Environment {
   worldToView: mat4x4f,
   observer: vec4f,
@@ -58,6 +65,7 @@ struct Environment {
   settings: vec4f,
   fill: vec4f,
   aerial: Aerial,
+  wind: Wind,
 }
 
 struct SunCascade {

@@ -49,8 +49,6 @@ pub struct EffectPresentation {
     pub smoke: HashMap<String, Arc<SmokeSourceStyle>>,
     /// Instances every smoke source together may hold; past it each thins alike.
     pub smoke_budget: f64,
-    /// The wind carrying smoke and dust, m/s (east, north).
-    pub wind_mps: [f64; 2],
     /// How far round a surface a cast light reaches past facing it, 0..1.
     pub cast_wrap: f64,
 }
