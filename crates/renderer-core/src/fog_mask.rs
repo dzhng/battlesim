@@ -9,6 +9,17 @@ use crate::Targets;
 
 const VIEW_BYTES: usize = 16;
 
+/// The exported compose shader's views over actual resolved mask samples.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[repr(u32)]
+pub enum FogMaskView {
+    #[default]
+    None = 0,
+    Fog = 1,
+    Ground = 2,
+    Classes = 3,
+}
+
 struct Screen {
     pipeline: RenderPipeline,
     group: BindGroup,
@@ -22,6 +33,7 @@ pub struct FogMaskResources {
     look: Buffer,
     record: FogLook,
     view: Buffer,
+    mask_view: FogMaskView,
     distances: [Screen; 2],
     compose: Screen,
     rim: Screen,
@@ -56,7 +68,7 @@ pub fn fog_mask(
     let view = crate::buffer(
         device,
         "fog-mask-view",
-        BufferUsages::UNIFORM,
+        BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         &[0; VIEW_BYTES],
     );
     let tex = BindingResource::TextureView;
@@ -105,6 +117,7 @@ pub fn fog_mask(
         look,
         record: *record,
         view,
+        mask_view: FogMaskView::None,
         distances,
         compose,
         rim,
@@ -137,6 +150,18 @@ fn draw(
 }
 
 impl FogMaskResources {
+    pub fn set_mask_view(&mut self, queue: &Queue, view: FogMaskView) {
+        if self.mask_view == view {
+            return;
+        }
+        self.mask_view = view;
+        queue.write_buffer(&self.view, 0, bytemuck::cast_slice(&[view as u32, 0, 0, 0]));
+    }
+
+    pub fn mask_view(&self) -> FogMaskView {
+        self.mask_view
+    }
+
     /// Update the uniform and draw decisions from the same canonical record.
     pub fn set_look(&mut self, queue: &Queue, look: &FogLook) {
         self.record = *look;
@@ -149,7 +174,7 @@ impl FogMaskResources {
 
     /// Encode the enabled distances, then compose the lit world into post input.
     pub fn encode(&self, encoder: &mut CommandEncoder, targets: &Targets) {
-        if self.record.has_edge() {
+        if self.record.has_edge() && self.mask_view == FogMaskView::None {
             for (screen, target) in self
                 .distances
                 .iter()
@@ -169,7 +194,7 @@ impl FogMaskResources {
 
     /// Encode the optional seen-side rim over the completed display target.
     pub fn encode_rim(&self, encoder: &mut CommandEncoder, targets: &Targets) {
-        if self.record.has_rim() {
+        if self.record.has_rim() && self.mask_view == FogMaskView::None {
             draw(encoder, &self.rim, &targets.display, None, LoadOp::Load);
         }
     }

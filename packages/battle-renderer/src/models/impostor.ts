@@ -166,20 +166,23 @@ export function createImpostorBaker(
 ) {
   const device = root.device;
   const fragments = createModelFragments(environment);
-  const pipeline = root.createRenderPipeline({
-    attribs: modelAttribs,
-    vertex: modelVertex,
-    fragment: fragments.impostor,
-    targets: {
-      albedo: { format: ATLAS_FORMAT },
-      normal: { format: ATLAS_FORMAT },
-      mask: { format: ATLAS_FORMAT },
-    },
-    primitive: { topology: "triangle-list", cullMode: "none" },
-    depthStencil: battleWorldDepth("read-write"),
-  });
+  const pipeline = root
+    .createRenderPipeline({
+      attribs: modelAttribs,
+      vertex: modelVertex,
+      fragment: fragments.impostor,
+      targets: {
+        albedo: { format: ATLAS_FORMAT },
+        normal: { format: ATLAS_FORMAT },
+        mask: { format: ATLAS_FORMAT },
+      },
+      primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: battleWorldDepth("read-write"),
+    })
+    .$name("modelImpostor");
 
   return {
+    ready: () => pipeline.initAsync(),
     /** Bake `appearance` in `pose` (its far pose) into an atlas. */
     async bake(
       appearance: string,

@@ -4,6 +4,7 @@
 mod fielded;
 mod fog;
 mod ground;
+mod lab;
 mod shadow;
 mod world;
 
@@ -33,6 +34,7 @@ use wasm_bindgen::prelude::*;
 pub struct Presentation {
     inner: Inner,
     tables: ClipTables,
+    lab_assets: std::collections::BTreeMap<String, presentation::presentation::lab::Asset>,
     buildings: Option<PlacedBuildings>,
     /// The static groups and the fog the page last took, kept to compare by pointer.
     taken: Option<(Shared<Corpse>, Shared<KnownProp>, Shared<FallenBody>)>,
@@ -130,6 +132,7 @@ impl Presentation {
         Ok(Presentation {
             inner: Inner::new(layout.as_deref(), tick_hz.unwrap_or(30.0)).map_err(error)?,
             tables: ClipTables::new(),
+            lab_assets: Default::default(),
             buildings: None,
             taken: None,
             taken_fog: None,

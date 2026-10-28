@@ -56,8 +56,10 @@ adaptation preserves the cutout test and leaves the browser export unchanged.
   catalog, gzip transport, the bundle container and its texture files. Every
   `World.appearances` row is loaded once into the browser's vertex layout, and
   each `Frame` batch is one run of instances over one row's tier. A corpse is
-  its body posed once by the presentation crate's rest palette; so is a body
-  at the impostor tier (its far pose), since impostor cards are not baked yet.
+  its body posed once by the presentation crate's rest palette. Bodies and
+  corpses at the impostor tier use the shared atlas bake and relit card owner.
+  Startup prepares those atlases before drawing; device recreation prepares
+  them from the same authored poses again.
 - **The ground** is the presentation's (`Presentation::set_ground`), from
   the saved map as the simulation's own world code exports it
   (`static_world::files::ground`, what the page reads from `WorldView`): the

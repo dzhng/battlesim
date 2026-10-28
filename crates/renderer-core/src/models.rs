@@ -25,8 +25,13 @@ use crate::bundle::{Bundle, BundleSource, Coverage, Material, Mesh, Shape, Textu
 use crate::pipelines::Pipelines;
 use crate::statics::Statics;
 
+mod admission;
 mod geometry;
+mod impostors;
+mod visibility;
+use crate::impostor::{CardInstance, Cards};
 pub use geometry::{pack_vertices, posed_mesh, VERTEX_BYTES};
+use impostors::RestPose;
 /// Material rows a material takes in the materials buffer (`MATERIAL_ROWS`).
 const MATERIAL_ROWS: usize = 5;
 
@@ -103,20 +108,15 @@ enum Kind {
 
 struct Row {
     kind: Kind,
+    building: bool,
     tiers: Vec<Drawable>,
-    /// A body's coarsest mesh posed in its far pose: what its impostor card
-    /// shows, drawn in the card's place.
-    card: Option<Drawable>,
+    /// Baked atlas layer; the authored rest pose is kept for alternate bakes.
+    card: Option<u32>,
+    rest: Option<RestPose>,
 }
 
 impl Row {
-    /// The drawable at `tier`. No impostor cards are baked: an impostor is
-    /// the coarsest mesh in the pose its card would show, the far pose or
-    /// the way a corpse lies. Only bodies and corpses take the impostor tier.
     fn drawable(&self, tier: usize) -> Option<&Drawable> {
-        if tier == IMPOSTOR as usize {
-            return self.card.as_ref().or(self.tiers.last());
-        }
         self.tiers.get(tier)
     }
 }
@@ -159,7 +159,7 @@ pub struct Drawn {
     pub pieces: u32,
     pub props: u32,
     pub ghosts: u32,
-    /// Of those, at the impostor tier: drawn as the mesh their card shows.
+    /// Of those, actually drawn as relit six-vertex impostor cards.
     pub impostors: u32,
     /// The instances the frame's batches list.
     pub listed: u32,
@@ -361,6 +361,9 @@ pub struct Models {
     rows: Vec<Option<Row>>,
     layout: BindGroupLayout,
     materials: Buffer,
+    authored_materials: Vec<f32>,
+    surfaces: [bool; 4],
+    buildings_shown: bool,
     albedo: TextureView,
     surface: TextureView,
     sampler: Sampler,
@@ -372,6 +375,8 @@ pub struct Models {
     drawn: Drawn,
     xray_instance_count: u32,
     has_xray_meshes: bool,
+    high_apart: bool,
+    cards: Option<Cards>,
 }
 
 fn growable(device: &Device, label: &str, usage: BufferUsages, bytes: u64) -> Buffer {
@@ -384,198 +389,6 @@ fn growable(device: &Device, label: &str, usage: BufferUsages, bytes: u64) -> Bu
 }
 
 impl Models {
-    /// Installs every row of the presentation's world from `library`.
-    pub fn new(
-        device: &Device,
-        queue: &Queue,
-        pipelines: &Pipelines,
-        library: &impl BundleSource,
-        presentation: &Presentation,
-    ) -> Result<Self, String> {
-        let world = presentation.world();
-        Self::from_world(
-            device,
-            queue,
-            pipelines,
-            library,
-            &world.appearances,
-            &world.strings,
-            |row| presentation.rest_palette(row),
-        )
-    }
-
-    /// Install the exact world appearance publication. A shell supplies each
-    /// body's presentation-owned far or corpse pose through `rest_palette`.
-    #[allow(clippy::too_many_arguments)]
-    pub fn from_world(
-        device: &Device,
-        queue: &Queue,
-        pipelines: &Pipelines,
-        library: &impl BundleSource,
-        appearances: &[presentation::records::Appearance],
-        strings: &str,
-        rest_palette: impl Fn(u32) -> Option<Vec<Joint>>,
-    ) -> Result<Self, String> {
-        let text = |at: u32, len: u32| &strings[at as usize..(at + len) as usize];
-        let mut bundles: HashMap<String, (Bundle, usize)> = HashMap::new();
-        let mut materials: Vec<f32> = Vec::new();
-        let mut layers = Layers::default();
-        let mut rows = Vec::new();
-        for (r, a) in appearances.iter().enumerate() {
-            // The scenery's rows are the scenery layer's (`scenery.rs`).
-            let prop = a.draws == DRAWS_PROP || a.draws == DRAWS_PROP_GROUND;
-            if a.draws != 0 && !prop {
-                rows.push(None);
-                continue;
-            }
-            let (name, state) = (text(a.name, a.name_len), text(a.state, a.state_len));
-            if !bundles.contains_key(name) {
-                let bundle = library.bundle(name)?;
-                let base = materials.len() / (MATERIAL_ROWS * 4);
-                for m in &bundle.materials {
-                    let mut layer =
-                        |c: &str| layers.layer(m.textures.get(c).map(|&i| &bundle.textures[i]));
-                    materials.extend(material_rows(m, &mut layer));
-                }
-                bundles.insert(name.to_owned(), (bundle, base));
-            }
-            let (bundle, base) = &bundles[name];
-            let label = format!("{name}-{r}");
-            let single = |mesh: &Mesh, rigid| {
-                drawable(
-                    device,
-                    &label,
-                    bundle,
-                    &[(mesh, pack_vertices(mesh, *base, rigid, 0))],
-                )
-            };
-            let rest = || rest_palette(r as u32).ok_or(format!("{name}: no rest pose for row {r}"));
-            let row = match &bundle.shape {
-                Shape::Skinned(tiers) if a.lies != NONE => {
-                    let palette = rest()?;
-                    let tiers = tiers
-                        .iter()
-                        .map(|m| single(&posed_mesh(m, &palette), Some(0)))
-                        .collect();
-                    Row {
-                        kind: Kind::Corpse,
-                        tiers,
-                        card: None,
-                    }
-                }
-                Shape::Skinned(tiers) => Row {
-                    kind: Kind::Soldier,
-                    card: match tiers.last() {
-                        Some(m) => Some(single(&posed_mesh(m, &rest()?), Some(0))),
-                        None => None,
-                    },
-                    tiers: tiers.iter().map(|m| single(m, None)).collect(),
-                },
-                Shape::Articulated(nodes) => {
-                    let count = nodes.first().map_or(0, |n| n.tiers.len());
-                    let tiers = (0..count)
-                        .map(|t| {
-                            let meshes: Vec<(&Mesh, Vec<u8>)> = nodes
-                                .iter()
-                                .enumerate()
-                                .map(|(i, n)| {
-                                    let track = match n.name.as_str() {
-                                        "track_L" => 1,
-                                        "track_R" => 2,
-                                        _ => 0,
-                                    };
-                                    (
-                                        &n.tiers[t],
-                                        pack_vertices(&n.tiers[t], *base, Some(i as u8), track),
-                                    )
-                                })
-                                .collect();
-                            drawable(device, &label, bundle, &meshes)
-                        })
-                        .collect();
-                    Row {
-                        kind: Kind::Vehicle,
-                        tiers,
-                        card: None,
-                    }
-                }
-                Shape::Static(states) => {
-                    // A piece the bundle lacks (a wreck with no turret to
-                    // throw) is a row nothing draws, as in the browser.
-                    let found = states
-                        .iter()
-                        .find(|s| s.name == state)
-                        .or_else(|| state.is_empty().then(|| states.first()).flatten());
-                    let Some(s) = found else {
-                        rows.push(None);
-                        continue;
-                    };
-                    Row {
-                        kind: if prop { Kind::Prop } else { Kind::Piece },
-                        tiers: s.tiers.iter().map(|m| single(m, Some(0))).collect(),
-                        card: None,
-                    }
-                }
-            };
-            rows.push(Some(row));
-        }
-        if materials.is_empty() {
-            materials.resize(MATERIAL_ROWS * 4, 0.0);
-        }
-        let materials = upload(
-            device,
-            "model-materials",
-            BufferUsages::STORAGE,
-            bytemuck::cast_slice(&materials),
-        );
-        let albedo = texture_array(
-            device,
-            queue,
-            "model-albedo",
-            TextureFormat::Rgba8UnormSrgb,
-            &layers.albedo,
-        );
-        let surface = texture_array(
-            device,
-            queue,
-            "model-surface",
-            TextureFormat::Rgba8Unorm,
-            &layers.surface,
-        );
-        let sampler = device.create_sampler(&SamplerDescriptor {
-            label: Some("model-textures"),
-            address_mode_u: AddressMode::Repeat,
-            address_mode_v: AddressMode::Repeat,
-            mag_filter: FilterMode::Linear,
-            min_filter: FilterMode::Linear,
-            mipmap_filter: MipmapFilterMode::Linear,
-            anisotropy_clamp: 8,
-            ..Default::default()
-        });
-        let palette = growable(device, "model-palette", BufferUsages::STORAGE, 0);
-        let instances = growable(device, "model-instances", BufferUsages::VERTEX, 0);
-        let layout = pipelines.layout("modelLayout").clone();
-        let material_bindings = crate::model_material::ModelMaterialBindings::new(
-            device, &layout, &palette, &materials, &albedo, &surface, &sampler,
-        );
-        Ok(Self {
-            material_bindings,
-            rows,
-            layout,
-            materials,
-            albedo,
-            surface,
-            sampler,
-            palette,
-            instances,
-            statics: Statics::from_rows(appearances),
-            runs: Vec::new(),
-            drawn: Drawn::default(),
-            xray_instance_count: 0,
-            has_xray_meshes: false,
-        })
-    }
-
     /// Writes `frame`'s palettes and instances, takes its static batches,
     /// and makes each batch a run.
     pub fn prepare(
@@ -652,6 +465,7 @@ impl Models {
             (h.row, run, Some(h.key), 0, h.count)
         });
         let batches: Vec<_> = units.chain(statics).collect();
+        let mut card_instances = Vec::new();
         for (appearance, (tier, pass, caster, cascade_mask, fog), held, first, count) in batches {
             let Some(Some(row)) = self.rows.get(appearance as usize) else {
                 continue;
@@ -661,11 +475,38 @@ impl Models {
             }
             let impostor = tier == IMPOSTOR as u32;
             let tier = tier as usize;
+            if impostor {
+                let atlas = row.card.ok_or_else(|| {
+                    format!(
+                        "appearance row {appearance}: impostor requested before its atlas is baked"
+                    )
+                })?;
+                let records = held.map_or(instance_records, |key| self.statics.records(key));
+                for record in &records[first as usize..(first + count) as usize] {
+                    let mut record = *record;
+                    record.tint[3] = atlas as f32;
+                    card_instances.push(CardInstance {
+                        record,
+                        pass,
+                        fog: Layer::of(fog),
+                    });
+                }
+                self.drawn.impostors += count;
+                self.drawn.triangles += u64::from(count) * 2;
+                match row.kind {
+                    Kind::Corpse => self.drawn.corpses += count,
+                    _ => self.drawn.soldiers += count,
+                }
+                continue;
+            }
             let Some(drawable) = row.drawable(tier) else {
                 continue;
             };
             let layer = Layer::of(fog);
-            if in_view(pass) && layer == Layer::Units && drawable.part(Surface::Opaque).count > 0 {
+            if self.in_world(pass)
+                && layer == Layer::Units
+                && drawable.part(Surface::Opaque).count > 0
+            {
                 self.xray_instance_count = self.xray_instance_count.max(first + count);
                 let records = held.map_or(instance_records, |key| self.statics.records(key));
                 self.has_xray_meshes |= records[first as usize..(first + count) as usize]
@@ -696,8 +537,10 @@ impl Models {
                 (_, Kind::Piece) => d.pieces += count,
                 (_, Kind::Prop) => d.props += count,
             }
-            d.impostors += if impostor { count } else { 0 };
             d.triangles += u64::from(count) * u64::from(drawable.count) / 3;
+        }
+        if let Some(cards) = &mut self.cards {
+            cards.prepare(device, queue, &card_instances);
         }
         Ok(())
     }
@@ -708,12 +551,12 @@ impl Models {
         &self.statics
     }
 
-    /// Resident authored geometry, including the posed far meshes.
+    /// Resident authored mesh geometry; cards carry only their atlas images.
     pub fn resident_vertices(&self) -> u32 {
         self.rows
             .iter()
             .flatten()
-            .flat_map(|row| row.tiers.iter().chain(row.card.iter()))
+            .flat_map(|row| row.tiers.iter())
             .map(|drawable| (drawable.vertices.size() / VERTEX_BYTES as u64) as u32)
             .sum()
     }
@@ -723,7 +566,7 @@ impl Models {
     }
 
     pub fn run_count(&self) -> u32 {
-        self.runs.len() as u32
+        self.runs.len() as u32 + self.cards.as_ref().map_or(0, Cards::run_count)
     }
 
     pub fn caster_run_counts(&self) -> [u32; 4] {
@@ -751,6 +594,25 @@ impl Models {
         self.has_xray_meshes
     }
 
+    /// A browser with a separate transparent canvas lifts high air above the
+    /// world and its overlays. A single-output shell keeps it in the world.
+    pub fn set_high_apart(&mut self, apart: bool) {
+        self.high_apart = apart;
+    }
+
+    pub(crate) fn in_world(&self, pass: u32) -> bool {
+        pass == VIEW_PASS || (pass == HIGH_PASS && !self.high_apart)
+    }
+
+    pub fn has_high_meshes(&self) -> bool {
+        self.runs.iter().any(|run| run.pass == HIGH_PASS)
+            || (self.surfaces[OPAQUE]
+                && self
+                    .cards
+                    .as_ref()
+                    .is_some_and(|cards| cards.has_pass(HIGH_PASS)))
+    }
+
     /// The layer's own group, by the layout it fills.
     pub fn group(&self) -> (&'static str, &BindGroup) {
         ("modelLayout", self.material_bindings.bind_group())
@@ -771,6 +633,9 @@ impl Models {
             let Some(d) = row.drawable(tier) else {
                 continue;
             };
+            if row.building && !self.buildings_shown {
+                continue;
+            }
             let part = range(d);
             if part.count == 0 {
                 continue;
@@ -781,26 +646,60 @@ impl Models {
             pass.set_vertex_buffer(1, instances.slice(..));
             pass.set_vertex_buffer(0, d.vertices.slice(..));
             pass.set_index_buffer(d.indices.slice(..), IndexFormat::Uint32);
-            pass.draw_indexed(
-                part.first..part.first + part.count,
-                0,
-                run.first..run.first + run.count,
-            );
+            for part in self.visible_parts(d, part) {
+                if part.count != 0 {
+                    pass.draw_indexed(
+                        part.first..part.first + part.count,
+                        0,
+                        run.first..run.first + run.count,
+                    );
+                }
+            }
         }
     }
 
-    /// One surface class of every run but the ghosts, into a pass whose
-    /// pipeline and groups are set. The high-air models draw with the view:
-    /// this client lays no cards over the world for them to rise above.
+    /// One surface class in the world, into a pass whose groups are set.
+    /// Separate high air draws through `draw_high_air` after the world.
     pub fn draw(&self, pass: &mut RenderPass, surface: Surface) {
-        let view = |r: &Run| in_view(r.pass).then_some(r.tier);
+        let view = |r: &Run| self.in_world(r.pass).then_some(r.tier);
+        self.each_run(pass, view, |d| d.part(surface));
+    }
+
+    /// World structures occlude paint and hidden-unit coverage before unit depth.
+    pub fn draw_buildings(&self, pass: &mut RenderPass, surface: Surface) {
+        self.draw_depth_partition(pass, surface, true);
+    }
+
+    /// Movable models and props join depth after ground paint and x-ray sampling.
+    pub fn draw_non_buildings(&self, pass: &mut RenderPass, surface: Surface) {
+        self.draw_depth_partition(pass, surface, false);
+    }
+
+    fn draw_depth_partition(&self, pass: &mut RenderPass, surface: Surface, buildings: bool) {
+        let view = |r: &Run| {
+            (self.in_world(r.pass)
+                && self.rows[r.row]
+                    .as_ref()
+                    .is_some_and(|row| row.building == buildings))
+            .then_some(r.tier)
+        };
         self.each_run(pass, view, |d| d.part(surface));
     }
 
     /// As `draw`, the runs fog takes as `layer` only.
     pub fn draw_fogged(&self, pass: &mut RenderPass, surface: Surface, layer: Layer) {
-        let view = |r: &Run| (in_view(r.pass) && r.fog == layer).then_some(r.tier);
+        let view = |r: &Run| (self.in_world(r.pass) && r.fog == layer).then_some(r.tier);
         self.each_run(pass, view, |d| d.part(surface));
+    }
+
+    pub fn draw_high_air(&self, pass: &mut RenderPass, surface: Surface) {
+        let high = |r: &Run| (r.pass == HIGH_PASS).then_some(r.tier);
+        self.each_run(pass, high, |d| d.part(surface));
+    }
+
+    pub fn draw_high_air_fogged(&self, pass: &mut RenderPass, surface: Surface, layer: Layer) {
+        let high = |r: &Run| (r.pass == HIGH_PASS && r.fog == layer).then_some(r.tier);
+        self.each_run(pass, high, |d| d.part(surface));
     }
 
     /// One surface class of every caster into a cascade (`drawCasters`).
@@ -823,12 +722,6 @@ impl Models {
     }
 }
 
-/// Whether a batch's pass draws into the view here: the view's own, and the
-/// high-air models' (`HIGH_PASS`).
-fn in_view(pass: u32) -> bool {
-    pass == VIEW_PASS || pass == HIGH_PASS
-}
-
 impl Models {
     pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
         for buffer in [&self.materials, &self.palette, &self.instances] {
@@ -837,11 +730,14 @@ impl Models {
         memory.view(&self.albedo);
         memory.view(&self.surface);
         for row in self.rows.iter().flatten() {
-            for drawable in row.tiers.iter().chain(row.card.iter()) {
+            for drawable in &row.tiers {
                 memory.buffer(&drawable.vertices);
                 memory.buffer(&drawable.indices);
             }
         }
         self.statics.record_memory(memory);
+        if let Some(cards) = &self.cards {
+            cards.record_memory(memory);
+        }
     }
 }

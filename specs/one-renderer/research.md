@@ -21,7 +21,66 @@ Cheap evaluator: focused Rust/WASM checks, then the `one-renderer` browser
 scene with interleaved repeats and screenshot/accounting output. Full native
 parity and repository closeout run only after all production passes are wired.
 
-## Current task — native owner replacement (2026-10-28)
+## Current task — production feature integration (2026-10-28)
+
+The committed incumbent is `ab0dc6629`, the unified runtime and presentation
+module. The current pass adds player depth/paint/x-ray, separate high-air output,
+canonical tooling poses, actual impostor atlases/cards, live controls and explicit
+GPU queries. Production viewport/sheet integration and deletion remain open.
+
+The captured browser street now includes external articulated poses and a
+placement ghost alongside paint, pointer marks and selection. The source-pixel
+mean RGB difference is `0.0000014467592592592592` on the 0–255 scale. All eight
+inspector modes match their TypeGPU control: final/world have that same tiny
+difference; both overlay backgrounds, both masks, classes and paint match exactly.
+Leaving inspection restores both complete frames, and resize/device recovery
+preserves both browser canvas outputs in this run. Evidence:
+`throwaway/evidence/one-renderer/player-feature-review/capture/`.
+
+Actual authored MRT impostor baking matches TypeGPU albedo, normal and mask
+bytes, metadata and hash exactly. Native GPU regressions draw real relit cards,
+exercise a card-only high-air frame and prove missing submissions fail. Asset
+admission now explicitly separates synchronous presentation borrowing from async
+GPU preparation. Configurable review bakes and probes queue owned snapshots
+before returning their promises, so asynchronous completion retains no scene
+borrow. Evidence: `throwaway/one-renderer-impostor/` and focused GPU test logs.
+
+The native delta is isolated: exporting the actual TypeGPU pipeline removes
+the earlier Rust-only terrain `depthCompare: always` workaround in favor of
+reverse-Z `greater-equal`. With the same binary and WGSL, reverting only this
+descriptor restores all six old images byte for byte. The correct common rule
+changes eleven pixels / twenty-one RGB channels across 5,529,600 pixels, maximum
+delta 4/255; all remaining channels and counts are preserved. Current-current
+repeats and old/new camera words are bit-identical. Keep the shared depth rule
+as a named correction, recorded in choices; do not widen a screenshot threshold.
+Evidence: `throwaway/native-depth-control-result.json`.
+
+Browser readback now proves a queued frame snapshot remains byte-identical to
+the source while a different inspector view renders before the promise resolves.
+Restoring controls restores the complete source image. The browser executes the
+same real fog-shape shader and returns the required ordered samples. All default
+eleven-row controls still pass. New neutral image review finds no visible A/B
+difference; shared vehicle hatching, weak contact shadows and muted secondary
+paint remain existing visual concerns, with no migration-specific change.
+
+Independent integrated Codex review found three correctness gaps and completed
+successfully. All are resolved: recovered fog queries restore retained knowledge
+before consuming canonical uploads; skinned lab bodies/corpses publish their
+actual card capability; resolved paint clears independently before the MSAA pass
+because Metal may skip untouched tile resolves. The new recovery query failed
+with false visibility behind walls, then matched after the Runtime fix. The lab
+card regression failed on tier 3, then produced actual tier 4 while ghosts kept
+mesh tiers. Existing hidden-paint GPU clearing, all eight browser views, queued
+readback and full captured recovery remain green. Review and red/green evidence:
+`throwaway/review/player-core/`, `throwaway/fog-recovery-probe-{red-2,green}.log`
+and `throwaway/lab-cards-{red,green}.log`.
+
+These are feature correctness experiments, not a new performance cohort. The
+43.2% changing-frame CPU saving below predates this pass. The earlier separate-
+module CPU saving also predates module unification; neither isolates a causal
+contribution from module packaging or an individual rendering optimization.
+
+## Historical native owner replacement (2026-10-28)
 
 Incumbent: PR #16, based on `ab00ccef5`, with the current shared native model,
 static-batch and scenery extraction. The browser no longer has its own model
@@ -244,14 +303,15 @@ or timing confirmation.
 
 ## Hypothesis queue
 
-1. **Unified runtime (active):** one browser module and direct canonical
+1. **Unified runtime (verified):** one browser module and direct canonical
    preparation should remove transport/recovery owners while preserving held
-   and changing images. Held/recovery/native plates pass; changing images are
-   being diagnosed. Module packaging alone has no isolated frame-time verdict.
-2. **Browser feature completion (next):** shared paint, x-ray, high-air, lab
+   and changing images. Held/recovery/changing/native checkpoint gates pass.
+   Module packaging alone has no isolated frame-time verdict.
+2. **Browser feature completion (active):** shared paint, x-ray, high-air, lab
    models, quality and diagnostics must preserve every production consumer.
-   An isolated real-GPU x-ray owner is implemented; production depth/overlay
-   integration remains open.
+   Core paint/x-ray/lab/inspector captures pass; actual impostor baking matches.
+   Production viewport, proxy/sheet admission, diagnostic bindings and final
+   quality controls remain open. Native depth-policy delta is isolated and named.
 3. **Final measured/deleted architecture:** compare both browser backends and
    native at matching workload/resolution, then delete TypeGPU and the separate
    spike graph. Source totals must count the resulting shared runtime and shells.
@@ -265,12 +325,15 @@ or timing confirmation.
 | --- | --- | --- | --- |
 | Standalone Rust production-shaped graph | Incomplete production materials/shadows/fog/post | Useful transport probe, invalid migration comparison | Reject as final architecture |
 | Shared native resource/frame owners | Matched frozen browser street; all six native incumbent plates unchanged | Removes duplicated resource and pass policy | Keep |
-| One browser module + common Runtime | Actual GPU recovery/frozen parity; Node memory/header/audio checks | Deletes canonical frame/world/fog/scar copies, bridge callbacks and recovery replay | Keep; changing-frame gate active |
+| One browser module + common Runtime | Actual GPU recovery/frozen/changing parity; Node memory/header/audio checks | Deletes canonical frame/world/fog/scar copies, bridge callbacks and recovery replay | Keep |
 | Reprepare every held model/effect stream | First unified frozen trial repeatedly uploaded large unchanged streams | Unnecessary CPU work, 223.5 ms over 120 held draws | Reject |
-| Reuse unchanged canonical model/effect frame | Actual counters 1 model / 1 effect across 121 frame preparations; frozen images unchanged | Restores bounded held-frame upload work; fog/scar preparation stays live | Keep; changing-frame gate separate |
+| Reuse unchanged canonical model/effect frame | Actual counters 1 model / 1 effect across 121 held preparations; every changed frame prepared in dynamic cohort | Restores bounded held-frame upload work; fog/scar preparation stays live | Keep |
 | Canonical PNG decode/full atlas mips | Shared native/browser source; frozen/native images preserved | Removes browser decoding and atlas owner; adds mip storage versus old browser atlas | Keep |
 | Owned allocation visitor | Descriptor-based deduplicated GPU handles, transient diagnostic lifetime | Measures owned payload without keeping dropped resources alive | Keep; excludes allocator/driver residency |
 | Browser TypeGPU as permanent second renderer | Two runtime graphs | Retains duplicate policy and lifetime owners | Reject after production parity |
+| Canonical lab poses and ordinary model batches | Actual articulated/ghost browser capture and canonical frame regressions | Shares authored poses, batching, fog and model GPU ownership | Keep; viewport migration open |
+| Actual MRT impostor atlas/cards | Native vs TypeGPU bytes/hash exact; real card/tint/high-air GPU regressions | Replaces coarse-mesh substitution with production far-model behavior | Keep; final startup/memory measurements open |
+| Shared live inspector/quality controls | All eight captured browser views match; raw/mask/paint GPU negative controls | Keeps debug depth/color/post policy in the same renderer | Keep; remaining production wiring open |
 
 ## Attempt ledger
 

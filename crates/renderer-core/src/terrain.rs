@@ -4,6 +4,7 @@ use wgpu::*;
 use crate::pipelines::Pipelines;
 use crate::scars::Scars;
 use crate::{bind, buffer};
+use presentation::static_world::ground::Ground;
 
 fn table(device: &Device, label: &str, usage: BufferUsages, bytes: &[u8], record: usize) -> Buffer {
     let mut data = bytes.to_vec();
@@ -14,6 +15,7 @@ fn table(device: &Device, label: &str, usage: BufferUsages, bytes: &[u8], record
 /// The presentation-owned table bytes consumed by `terrainLayout`.
 #[derive(Clone, Copy, Default)]
 pub struct TerrainUpload<'a> {
+    /// Canonical params without the renderer-owned final view vec4u.
     pub params: &'a [u8],
     pub nodes: &'a [u8],
     pub plots: &'a [u8],
@@ -29,20 +31,32 @@ pub struct TerrainResources {
     layout: BindGroupLayout,
     tables: [Buffer; 5],
     pub scars: Scars,
+    class_view: bool,
+    road_wear: bool,
+    field_texture: bool,
 }
 
 fn tables(device: &Device, upload: TerrainUpload<'_>) -> [Buffer; 5] {
     let storage = BufferUsages::STORAGE;
+    // The canonical table excludes the renderer's final view vec4u.
+    let mut params = upload.params.to_vec();
+    params.extend_from_slice(bytemuck::cast_slice(&[0u32; 4]));
     [
         table(
             device,
             "terrain-params",
-            BufferUsages::UNIFORM,
-            upload.params,
+            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            &params,
             16,
         ),
         table(device, "terrain-nodes", storage, upload.nodes, 32),
-        table(device, "terrain-plots", storage, upload.plots, 96),
+        table(
+            device,
+            "terrain-plots",
+            storage | BufferUsages::COPY_DST,
+            upload.plots,
+            96,
+        ),
         table(device, "terrain-surfaces", storage, upload.surfaces, 32),
         table(device, "terrain-index", storage, upload.surface_index, 4),
     ]
@@ -64,6 +78,9 @@ impl TerrainResources {
             layout,
             tables,
             scars,
+            class_view: false,
+            road_wear: true,
+            field_texture: true,
         }
     }
 
@@ -98,6 +115,56 @@ impl TerrainResources {
 
     pub fn bind_group(&self) -> &BindGroup {
         &self.group
+    }
+
+    fn write_view(&self, queue: &Queue) {
+        let words = [u32::from(self.class_view), u32::from(!self.road_wear), 0, 0];
+        queue.write_buffer(
+            &self.tables[0],
+            self.tables[0].size() - 16,
+            bytemuck::cast_slice(&words),
+        );
+    }
+
+    pub fn set_class_view(&mut self, queue: &Queue, on: bool) -> bool {
+        if self.class_view == on {
+            return false;
+        }
+        self.class_view = on;
+        self.write_view(queue);
+        true
+    }
+
+    /// Disabling wear draws each road's flat colour to its authored edge.
+    /// A changed shoulder material also requires the caller to regrow grass.
+    pub fn set_road_wear(&mut self, queue: &Queue, on: bool) -> bool {
+        if self.road_wear == on {
+            return false;
+        }
+        self.road_wear = on;
+        self.write_view(queue);
+        true
+    }
+
+    /// Resolve plot rows through their canonical owner. Fine grain, broken
+    /// rows and wheelings toggle together; their authored mean colour stays.
+    pub fn set_field_texture(
+        &mut self,
+        queue: &Queue,
+        ground: &Ground,
+        on: bool,
+    ) -> Result<bool, String> {
+        if self.field_texture == on {
+            return Ok(false);
+        }
+        let plots = ground.plot_records(on);
+        let bytes = bytemuck::cast_slice(&plots);
+        if bytes.len() as u64 != self.tables[2].size() {
+            return Err("field texture update belongs to a different ground generation".into());
+        }
+        queue.write_buffer(&self.tables[2], 0, bytes);
+        self.field_texture = on;
+        Ok(true)
     }
 }
 

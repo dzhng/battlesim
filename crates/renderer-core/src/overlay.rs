@@ -4,20 +4,46 @@ use crate::pipelines::Pipelines;
 use crate::Targets;
 use wgpu::*;
 
+/// A caller-owned mesh in the world's ten-float vertex layout, with the
+/// shared placement/tint instance layout. Pass owners select its pipeline.
+#[derive(Clone, Copy)]
+pub struct MeshDraw<'a> {
+    pub vertices: &'a Buffer,
+    pub instances: &'a Buffer,
+    pub vertex_count: u32,
+}
+
+impl MeshDraw<'_> {
+    pub fn draw(&self, pass: &mut RenderPass) {
+        pass.set_vertex_buffer(0, self.vertices.slice(..));
+        pass.set_vertex_buffer(1, self.instances.slice(..));
+        pass.draw(0..self.vertex_count, 0..1);
+    }
+}
+
+#[derive(Clone, Copy, Default)]
+pub struct Geometry<'a> {
+    pub opaque: Option<MeshDraw<'a>>,
+    pub translucent: Option<MeshDraw<'a>>,
+}
+
 struct Screen {
     pipeline: RenderPipeline,
     group: BindGroup,
 }
 
-/// Owns the production overlay targets, depth-tested geometry bindings and
-/// display-space halo passes. Mesh packing and presentation policy stay in the
-/// platform shell; pass order and target ownership stay here.
+/// Owns the display-space geometry and halo passes. Geometry loads the
+/// silhouettes left by x-ray and always resolves, including an empty UI frame.
+/// Opaque marks write the pre-grass depth copy; translucent marks only read it.
 pub struct OverlayResources {
     glow: Buffer,
-    geometry: RenderPipeline,
+    opaque: RenderPipeline,
+    translucent: RenderPipeline,
     rows: Option<Screen>,
     columns: Option<Screen>,
     composite: Screen,
+    paint: Screen,
+    no_glow: Buffer,
 }
 
 fn bind(device: &Device, layout: &BindGroupLayout, resources: &[BindingResource<'_>]) -> BindGroup {
@@ -37,7 +63,8 @@ pub fn new(
         BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         glow,
     );
-    let geometry = pipelines.render("overlayTranslucent").clone();
+    let opaque = pipelines.render("overlayOpaque").clone();
+    let translucent = pipelines.render("overlayTranslucent").clone();
     let glow_binding = glow.as_entire_binding();
     let rows = halo.then(|| Screen {
         pipeline: pipelines.render("glowRows").clone(),
@@ -73,16 +100,55 @@ pub fn new(
             ],
         ),
     };
+    // Paint inspection reads the stored mark itself, with no halo or lighting.
+    let no_glow = crate::buffer(
+        device,
+        "paint-no-glow",
+        BufferUsages::UNIFORM,
+        bytemuck::cast_slice(&[1.0f32, 0.0, 0.0, 0.0]),
+    );
+    let paint = Screen {
+        pipeline: pipelines.render("overlayComposite").clone(),
+        group: bind(
+            device,
+            pipelines.layout("overlaySource"),
+            &[
+                no_glow.as_entire_binding(),
+                BindingResource::TextureView(&targets.paint),
+                BindingResource::TextureView(&targets.overlay_glow),
+            ],
+        ),
+    };
     OverlayResources {
         glow,
-        geometry,
+        opaque,
+        translucent,
         rows,
         columns,
         composite,
+        paint,
+        no_glow,
     }
 }
 
 impl OverlayResources {
+    /// Start an overlay frame when no earlier silhouette pass clears it.
+    pub fn clear(&self, encoder: &mut CommandEncoder, targets: &Targets) {
+        let _pass = encoder.begin_render_pass(&RenderPassDescriptor {
+            label: Some("overlay-clear"),
+            color_attachments: &[Some(RenderPassColorAttachment {
+                view: &targets.overlay_msaa,
+                depth_slice: None,
+                resolve_target: None,
+                ops: Operations {
+                    load: LoadOp::Clear(Color::TRANSPARENT),
+                    store: StoreOp::Store,
+                },
+            })],
+            ..Default::default()
+        });
+    }
+
     pub fn write_glow(&self, queue: &Queue, bytes: &[u8]) {
         queue.write_buffer(&self.glow, 0, bytes);
     }
@@ -92,9 +158,7 @@ impl OverlayResources {
         encoder: &mut CommandEncoder,
         targets: &Targets,
         camera: &BindGroup,
-        vertices: &Buffer,
-        instances: &Buffer,
-        vertex_count: u32,
+        geometry: Geometry<'_>,
     ) {
         let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("shared-overlay"),
@@ -103,22 +167,30 @@ impl OverlayResources {
                 depth_slice: None,
                 resolve_target: Some(&targets.overlay),
                 ops: Operations {
-                    load: LoadOp::Clear(Color::TRANSPARENT),
-                    store: StoreOp::Store,
+                    load: LoadOp::Load,
+                    store: StoreOp::Discard,
                 },
             })],
             depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
-                view: &targets.depth,
-                depth_ops: None,
+                view: &targets.overlay_depth,
+                depth_ops: Some(Operations {
+                    load: LoadOp::Load,
+                    store: StoreOp::Discard,
+                }),
                 stencil_ops: None,
             }),
             ..Default::default()
         });
-        pass.set_pipeline(&self.geometry);
-        pass.set_bind_group(0, camera, &[]);
-        pass.set_vertex_buffer(0, vertices.slice(..));
-        pass.set_vertex_buffer(1, instances.slice(..));
-        pass.draw(0..vertex_count, 0..1);
+        for (pipeline, mesh) in [
+            (&self.opaque, geometry.opaque),
+            (&self.translucent, geometry.translucent),
+        ] {
+            if let Some(mesh) = mesh {
+                pass.set_pipeline(pipeline);
+                pass.set_bind_group(0, camera, &[]);
+                mesh.draw(&mut pass);
+            }
+        }
     }
 
     fn screen(
@@ -167,10 +239,15 @@ impl OverlayResources {
         }
         Self::screen(encoder, &self.composite, output, LoadOp::Load);
     }
+
+    pub fn encode_paint(&self, encoder: &mut CommandEncoder, output: &TextureView) {
+        Self::screen(encoder, &self.paint, output, LoadOp::Load);
+    }
 }
 
 impl OverlayResources {
     pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
         memory.buffer(&self.glow);
+        memory.buffer(&self.no_glow);
     }
 }

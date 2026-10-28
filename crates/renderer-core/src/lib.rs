@@ -20,12 +20,17 @@ pub mod fog_sight;
 pub mod frame;
 pub mod grass;
 pub mod ground;
+pub mod high_air;
+pub mod impostor;
 pub mod memory;
 pub mod model_material;
 pub mod models;
 pub mod overlay;
+pub mod paint;
 pub mod pipelines;
 pub mod post;
+pub mod probes;
+pub mod readback;
 pub mod runtime;
 pub mod scars;
 pub mod scenery;
@@ -166,7 +171,12 @@ impl Targets {
             hdr_msaa: view(texture("hdr-msaa", HDR_FORMAT, MSAA, render)),
             lit: view(texture("lit", HDR_FORMAT, 1, sampled)),
             hdr: view(texture("hdr", HDR_FORMAT, 1, sampled)),
-            depth: view(texture("depth", DEPTH_FORMAT, MSAA, sampled)),
+            depth: view(texture(
+                "depth",
+                DEPTH_FORMAT,
+                MSAA,
+                sampled | TextureUsages::COPY_SRC,
+            )),
             fog_mask_msaa: view(texture("fog-mask-msaa", FOG_MASK_FORMAT, MSAA, render)),
             fog_mask: view(texture("fog-mask", FOG_MASK_FORMAT, 1, sampled)),
             fog_distance_rows: view(texture(

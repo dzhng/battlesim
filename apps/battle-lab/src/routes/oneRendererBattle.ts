@@ -49,7 +49,9 @@ import {
 import { mapProps } from "@packages/battle-renderer/src/models/propAppearance";
 import { indexBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
 import parisCapture from "@fixtures/parity/capture/run/paris-corner/capture.json";
+import { installLabFixture, playerFeatureInputs } from "./oneRendererPlayerFeatures";
 import { measureFrames } from "./oneRendererTiming";
+import { applyTypeGpuControls, captureInspectorViews } from "./oneRendererControls";
 
 export const BATTLE_WIDTH = 640;
 export const BATTLE_HEIGHT = 360;
@@ -61,7 +63,13 @@ export interface BattleFixture {
   world: ReturnType<typeof groundPatch>;
   presentation: ScenePresentation;
   appearances?: InstalledAppearances;
-  overlay: { opaque: Mesh; translucent: Mesh; painted: Mesh; paintedMarching: Mesh };
+  overlay: {
+    opaque: Mesh;
+    translucent: Mesh;
+    painted: Mesh;
+    paintedMarching: Mesh;
+  };
+  pointer?: Mesh;
   changing?: {
     next(generation: number): BattleFixture["camera"];
     result(): {
@@ -74,7 +82,12 @@ export interface BattleFixture {
       frames: number;
       publications: number;
       state: ReturnType<ScenePresentation["probe"]>;
-      records: { camera: number[]; view: number[]; shadow: number[]; casters: number[] };
+      records: {
+        camera: number[];
+        view: number[];
+        shadow: number[];
+        casters: number[];
+      };
     };
   };
 }
@@ -130,7 +143,11 @@ export async function realBattleFixture(): Promise<BattleFixture> {
       JSON.stringify({
         side: "blue",
         seq: 1,
-        order: { kind: "attack", units: [0], target: { kind: "ground", point: [10, 4, 0] } },
+        order: {
+          kind: "attack",
+          units: [0],
+          target: { kind: "ground", point: [10, 4, 0] },
+        },
         queued: false,
       }),
     ),
@@ -155,7 +172,11 @@ export async function realBattleFixture(): Promise<BattleFixture> {
     tickHz: rules.tick_hz,
     sun: { azimuth: gameLight.sun_azimuth, elevation: gameLight.sun_elevation },
     soldier: rules.physics,
-    xray: { own: [0.2, 0.6, 1, 0.8], selected: [1, 0.8, 0.1, 0.9], ally: [0.2, 1, 0.5, 0.8] },
+    xray: {
+      own: [0.2, 0.6, 1, 0.8],
+      selected: [1, 0.8, 0.1, 0.9],
+      ally: [0.2, 1, 0.5, 0.8],
+    },
     blocked: [1, 0.1, 0.1, 0.8],
   });
   presentation.setBattle(battleInput);
@@ -297,12 +318,20 @@ async function buildCapturedParisFixture(
     tickHz: capture.tickHz,
     sun: { azimuth: gameLight.sun_azimuth, elevation: gameLight.sun_elevation },
     soldier: rules.physics,
-    xray: { own: [0.2, 0.6, 1, 0.8], selected: [1, 0.8, 0.1, 0.9], ally: [0.2, 1, 0.5, 0.8] },
+    xray: {
+      own: [0.2, 0.6, 1, 0.8],
+      selected: [1, 0.8, 0.1, 0.9],
+      ally: [0.2, 1, 0.5, 0.8],
+    },
     blocked: [1, 0.1, 0.1, 0.8],
   });
   presentation.setBattle(battle);
   presentation.setBuildings(
-    { placed: buildings.placed, partBuilding: buildings.partBuilding, shells: new Set() },
+    {
+      placed: buildings.placed,
+      partBuilding: buildings.partBuilding,
+      shells: new Set(),
+    },
     modelAppearances,
     gameBuildingStyle,
     {
@@ -314,6 +343,8 @@ async function buildCapturedParisFixture(
   presentation.setGround(layers.terrain.input, layers.scenery);
   presentation.setFog({ sensors: rules.sensors });
   presentation.setShadow(gameLight, layers.terrain.mesh);
+  installLabFixture(presentation, modelAppearances, initial.target);
+  const playerFeatures = playerFeatureInputs(observation.own, initial.eye);
   const draw = (record: PresentationFrame, generation: number) =>
     presentation.frame(
       record.simTime,
@@ -326,7 +357,11 @@ async function buildCapturedParisFixture(
         width: 640,
         height: 360,
       },
-      { selected: [], xray: false, ghosts: [] },
+      {
+        selected: playerFeatures?.selected ?? [],
+        xray: playerFeatures !== null,
+        ghosts: [],
+      },
       generation,
     );
   const camera = draw(initial, 0);
@@ -383,7 +418,8 @@ async function buildCapturedParisFixture(
     world: layers,
     presentation,
     changing,
-    overlay: {
+    pointer: playerFeatures?.pointer,
+    overlay: playerFeatures?.overlay ?? {
       opaque: new MeshBuilder().build(),
       translucent: new MeshBuilder().build(),
       painted: new MeshBuilder().build(),
@@ -489,7 +525,11 @@ export function battleFixture(): BattleFixture {
     dashed: true,
     colorIn: [1, 0.55, 0.08, 0.9],
   });
-  groundStrip(paint, [-13, -5], [15, 4], 0.12, [0.25, 0.75, 1, 0.9], { z, dashed: true, step: 2 });
+  groundStrip(paint, [-13, -5], [15, 4], 0.12, [0.25, 0.75, 1, 0.9], {
+    z,
+    dashed: true,
+    step: 2,
+  });
   overlay.segment([-17, 11, 1.2], [17, 11, 1.2], 0.06, [0.96, 0.72, 0.2, 0.95]);
   translucent.mark([7, 2, 3.2], 1.1, [1, 0.18, 0.06, 0.78]);
   return {
@@ -588,7 +628,9 @@ export async function fullBattleBrowserRun(
   canvas.height = BATTLE_HEIGHT;
   const context = canvas.getContext("webgpu");
   if (!context) throw new Error("Canvas refused a WebGPU context.");
-  const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+  const adapter = await navigator.gpu.requestAdapter({
+    powerPreference: "high-performance",
+  });
   if (!adapter) throw new Error("WebGPU adapter unavailable for BattleFrame control.");
   const timing = new URLSearchParams(window.location.search).get("timing") === "1";
   const device = await adapter.requestDevice({
@@ -653,6 +695,7 @@ export async function fullBattleBrowserRun(
   frame.setPresentedGround(fixture.presentation.presentedGround());
   frame.setGround(fixture.presentation.ground);
   frame.setOverlay(fixture.overlay);
+  if (fixture.pointer) frame.setPointerMarks(fixture.pointer);
   frame.setOverlayGlow(gameOverlayGlow);
   frame.setFrame(fixture.camera, { models: true, effects: true });
   frame.setCamera(fixture.camera);
@@ -660,10 +703,19 @@ export async function fullBattleBrowserRun(
     buildings: fixture.presentation.buildingWalk(),
     scenery: fixture.presentation.sceneryWalk(),
   });
+  applyTypeGpuControls(frame);
   const setupMs = performance.now() - started;
   canvas.dataset.stage = "TypeGPU warm frame";
   frame.render(context.getCurrentTexture().createView());
   await device.queue.onSubmittedWorkDone();
+  await captureInspectorViews(
+    canvas,
+    (view) => {
+      frame.setView(view);
+      frame.render(context.getCurrentTexture().createView());
+    },
+    () => device.queue.onSubmittedWorkDone(),
+  );
   frame.resetGpuTiming();
   let encodedFrames = 0;
   const measured = await measureFrames(
@@ -676,7 +728,10 @@ export async function fullBattleBrowserRun(
         frame.setCamera(current);
         const buildings = fixture.presentation.buildingWalk();
         const scenery = fixture.presentation.sceneryWalk();
-        frame.setStaticFrame(fixture.presentation.lastFrame(), { buildings, scenery });
+        frame.setStaticFrame(fixture.presentation.lastFrame(), {
+          buildings,
+          scenery,
+        });
       }
       frame.render(context.getCurrentTexture().createView());
     },

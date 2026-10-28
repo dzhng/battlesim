@@ -74,12 +74,7 @@ impl Presentation {
                 self.buildings.take(),
             )
             .map_err(error)?;
-        let world = self.inner.world();
-        self.world_header = WorldHeader {
-            appearances: set(&world.appearances),
-            strings: set(world.strings.as_bytes()),
-        };
-        Ok(&self.world_header as *const WorldHeader as u32)
+        Ok(self.refresh_world_header())
     }
 
     /// The authored rest pose for an appearance row, in the same packed
@@ -88,5 +83,16 @@ impl Presentation {
         self.inner
             .rest_palette(row)
             .map(|joints| bytemuck::cast_slice(&joints).to_vec())
+    }
+}
+
+impl Presentation {
+    pub(crate) fn refresh_world_header(&mut self) -> u32 {
+        let world = self.inner.world();
+        self.world_header = WorldHeader {
+            appearances: set(&world.appearances),
+            strings: set(world.strings.as_bytes()),
+        };
+        &self.world_header as *const WorldHeader as u32
     }
 }

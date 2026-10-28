@@ -1,5 +1,7 @@
 //! Resource composition and canonical presentation preparation shared by all shells.
+mod controls;
 mod world;
+pub use controls::Controls;
 pub use world::WorldGeometry;
 
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -17,17 +19,19 @@ use crate::effects::{EffectSheets, EffectsResources};
 use crate::environment::Environment;
 use crate::fog::Fog;
 use crate::fog_mask::{self, FogMaskResources};
-use crate::frame::{FrameInputs, FrameRenderer, OverlayFrame};
+use crate::frame::{FrameInputs, FrameRenderer, PaintFrame};
 use crate::grass::{Grass, GrassData};
 use crate::ground::{Ground, GroundData};
 use crate::models::Models;
 use crate::overlay::{self, OverlayResources};
+use crate::paint::{PaintGeometry, PaintResources};
 use crate::pipelines::Pipelines;
 use crate::post::{self, PostResources};
 use crate::scenery::Scenery;
 use crate::shadow::ShadowResources;
 use crate::sky::Sky;
 use crate::terrain::TerrainUpload;
+use crate::xray::XrayResources;
 use crate::TargetOwner;
 
 static NEXT_GENERATION: AtomicU32 = AtomicU32::new(1);
@@ -39,6 +43,10 @@ pub struct RuntimeConfig {
     pub fog_look: FogLook,
     /// None disables grass; otherwise density scales the authored field.
     pub grass_density: Option<f64>,
+    pub xray_min_hidden_fraction: Option<f32>,
+    pub paint: Option<crate::paint::Paint>,
+    pub separate_high_air: bool,
+    pub controls: Controls,
 }
 
 /// CPU inputs rather than platform-assembled GPU resources. Presentation is
@@ -50,11 +58,11 @@ pub struct RuntimeWorld<'a, S: BundleSource> {
     pub effect_sheets: Arc<EffectSheets>,
 }
 
-/// Shell-owned UI vertex streams; their resources and pass policy are shared.
-pub struct OverlayGeometry<'a> {
-    pub vertices: &'a Buffer,
-    pub instances: &'a Buffer,
-    pub vertex_count: u32,
+/// External player geometry; resource lifetimes remain with its caller.
+#[derive(Default)]
+pub struct PlayerGeometry<'a> {
+    pub overlay: overlay::Geometry<'a>,
+    pub paint: PaintGeometry<'a>,
 }
 
 /// Actual preparation calls, independent of source record sizes or draw counts.
@@ -82,6 +90,9 @@ pub struct Runtime {
     pub post: PostResources,
     pub fog_mask: FogMaskResources,
     pub overlays: OverlayResources,
+    pub xray: Option<XrayResources>,
+    pub paint: Option<PaintResources>,
+    pub high_air: Option<crate::high_air::HighAir>,
     config: RuntimeConfig,
     geometry: Arc<WorldGeometry>,
     overlay_glow: [f32; 4],
@@ -101,6 +112,9 @@ impl Runtime {
         pipeline_manifest: &str,
         source: impl FnMut(&str, &str) -> Result<String, String>,
     ) -> Result<Self, String> {
+        if let Some(paint) = config.paint {
+            paint.validate()?;
+        }
         let pipelines = Pipelines::build(device, pipeline_manifest, source)?;
         let targets = TargetOwner::new(device, config.size);
         let sky = Sky::new(device, queue, &pipelines, &config.light.sky());
@@ -170,7 +184,8 @@ impl Runtime {
                 ))
             })
             .transpose()?;
-        let models = Models::new(device, queue, &pipelines, world.assets, presentation)?;
+        let mut models = Models::new(device, queue, &pipelines, world.assets, presentation)?;
+        models.set_high_apart(config.separate_high_air);
         let scenery = Scenery::new(device, &pipelines, world.assets, presentation)?;
         let effects = EffectsResources::new(
             device,
@@ -180,7 +195,11 @@ impl Runtime {
             &environment,
             world.effect_sheets,
         );
-        let fog = Fog::with_heights(device, &pipelines, &targets.depth, &ground.heights);
+        let mut fog = Fog::with_heights(device, &pipelines, &targets.depth, &ground.heights);
+        let paint = config.paint.map(|style| {
+            fog.set_paint(device, queue, &targets.paint, &style);
+            PaintResources::new(&pipelines)
+        });
         let fog_mask = fog_mask::fog_mask(device, &pipelines, &targets, &config.fog_look);
         let post = post::new(
             device,
@@ -197,13 +216,21 @@ impl Runtime {
             bytemuck::cast_slice(&overlay_glow),
             true,
         );
+        let xray = config
+            .xray_min_hidden_fraction
+            .map(|fraction| XrayResources::new(device, &pipelines, &targets, fraction))
+            .transpose()?;
+        let high_air = config
+            .separate_high_air
+            .then(|| crate::high_air::HighAir::new(device, &pipelines, &targets));
         let frame = FrameRenderer::new(&pipelines);
         // Presentation and drawing share one local terrain receiver hierarchy.
         presentation.set_shadow(Some((
             config.light.clone(),
             ground.terrain_partition.clone(),
         )));
-        Ok(Self {
+        let controls = config.controls;
+        let mut runtime = Self {
             pipelines,
             targets,
             environment,
@@ -219,6 +246,9 @@ impl Runtime {
             post,
             fog_mask,
             overlays,
+            xray,
+            paint,
+            high_air,
             config,
             geometry: world.geometry,
             overlay_glow,
@@ -227,11 +257,19 @@ impl Runtime {
             refresh_knowledge: true,
             prepared_frame: None,
             preparation_stats: PreparationStats::default(),
-        })
+        };
+        runtime.set_controls(queue, presentation, controls)?;
+        Ok(runtime)
     }
 
     pub fn preparation_stats(&self) -> PreparationStats {
         self.preparation_stats
+    }
+
+    /// GPU readback for authored cards never borrows canonical presentation.
+    /// Complete this admission phase before preparing the first frame.
+    pub async fn prepare_assets(&mut self, device: &Device, queue: &Queue) -> Result<(), String> {
+        self.models.bake_cards(device, queue, &self.pipelines).await
     }
 
     pub fn config(&self) -> &RuntimeConfig {
@@ -268,10 +306,7 @@ impl Runtime {
         if self.refresh_statics {
             presentation.resend_static_frame(self.generation);
         }
-        if self.refresh_knowledge {
-            presentation.resend_scars();
-            presentation.resend_fog();
-        }
+        self.restore_knowledge(presentation);
         if presentation.scars_changed() {
             if let Some(grass) = &mut self.grass {
                 grass.regrow();
@@ -289,12 +324,15 @@ impl Runtime {
             self.shadow
                 .prepare(queue, bytemuck::bytes_of(&fit.receiver), &cameras);
         }
-        if let Some(grass) = &mut self.grass {
+        if let Some(grass) = self.grass.as_mut().filter(|_| self.config.controls.grass) {
             grass.prepare(queue, presentation);
         }
         if changed {
             self.models.prepare(device, queue, frame)?;
             self.scenery.prepare(self.models.statics());
+            if let Some(xray) = &mut self.xray {
+                xray.prepare(device, &self.models);
+            }
             self.preparation_stats.model_preparations += 1;
         }
         let bounds = self.grass.as_ref().and_then(Grass::scar_bounds);
@@ -302,8 +340,15 @@ impl Runtime {
             .prepare_scars(device, presentation, bounds, self.targets.size);
         self.fog.prepare(device, queue, presentation, &camera)?;
         if changed {
-            self.environment
-                .set_cast_lights(queue, presentation.lights(), wrap);
+            self.environment.set_cast_lights(
+                queue,
+                if self.config.controls.cast_lights {
+                    presentation.lights()
+                } else {
+                    &[]
+                },
+                wrap,
+            );
             self.effects
                 .prepare(device, queue, bytemuck::cast_slice(presentation.effects()));
             self.preparation_stats.effect_preparations += 1;
@@ -311,8 +356,38 @@ impl Runtime {
         self.prepared_frame = Some(index);
         self.preparation_stats.frame_preparations += 1;
         self.refresh_statics = false;
-        self.refresh_knowledge = false;
         Ok(())
+    }
+
+    fn restore_knowledge(&mut self, presentation: &mut Presentation) {
+        if self.refresh_knowledge {
+            presentation.resend_scars();
+            presentation.resend_fog();
+            self.refresh_knowledge = false;
+        }
+    }
+
+    /// Queries can be the first consumer after recovery. Restore canonical
+    /// retained work before either a probe or a drawn frame consumes it.
+    pub fn probe_fog(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        presentation: &mut Presentation,
+        points: &[crate::probes::FogPoint],
+    ) -> Result<crate::probes::ProbeReadback, String> {
+        let count = u32::try_from(points.len()).map_err(|e| e.to_string())?;
+        self.restore_knowledge(presentation);
+        let upload = presentation
+            .prepare_fog(None, self.config.size[0], self.config.size[1], count)?
+            .unwrap_or_default();
+        crate::probes::FogProbes::new(&self.pipelines).probe(
+            device,
+            queue,
+            &mut self.fog,
+            &upload,
+            points,
+        )
     }
 
     pub fn encode(
@@ -321,32 +396,35 @@ impl Runtime {
         queue: &Queue,
         view: &View,
         encoder: &mut CommandEncoder,
-        geometry: Option<OverlayGeometry<'_>>,
+        geometry: PlayerGeometry<'_>,
     ) {
-        let overlays = geometry.map(|geometry| OverlayFrame {
-            resources: &self.overlays,
-            vertices: geometry.vertices,
-            instances: geometry.instances,
-            vertex_count: geometry.vertex_count,
-        });
         self.frame.encode(
             &FrameInputs {
                 device,
                 queue,
                 view,
+                frame_view: self.config.controls.view,
                 targets: &self.targets,
                 sky: &self.sky,
                 environment: &self.environment,
                 shadow: &self.shadow,
                 ground: &self.ground,
-                grass: self.grass.as_ref(),
+                grass: self.grass.as_ref().filter(|_| self.config.controls.grass),
                 models: &self.models,
                 scenery: &self.scenery,
                 effects: &self.effects,
                 fog: &self.fog,
                 fog_mask: &self.fog_mask,
                 post: &self.post,
-                overlays,
+                overlays: &self.overlays,
+                overlay_geometry: geometry.overlay,
+                paint: self.paint.as_ref().map(|resources| PaintFrame {
+                    resources,
+                    geometry: geometry.paint,
+                    shown: self.config.controls.paint,
+                }),
+                xray: self.xray.as_ref(),
+                high_air: self.high_air.as_ref(),
             },
             encoder,
         );
@@ -365,6 +443,7 @@ impl Runtime {
     pub fn resize(
         &mut self,
         device: &Device,
+        queue: &Queue,
         size: [u32; 2],
         presentation: &mut Presentation,
     ) -> bool {
@@ -385,6 +464,15 @@ impl Runtime {
             &self.targets,
             &self.config.fog_look,
         );
+        self.fog_mask.set_mask_view(
+            queue,
+            match self.config.controls.view {
+                crate::frame::FrameView::FogMask => fog_mask::FogMaskView::Fog,
+                crate::frame::FrameView::GroundMask => fog_mask::FogMaskView::Ground,
+                crate::frame::FrameView::GroundClasses => fog_mask::FogMaskView::Classes,
+                _ => fog_mask::FogMaskView::None,
+            },
+        );
         self.overlays = overlay::new(
             device,
             &self.pipelines,
@@ -393,39 +481,26 @@ impl Runtime {
             true,
         );
         self.fog.rebind_depth(device, &self.targets.depth);
+        if let Some(style) = self.config.paint {
+            self.fog
+                .set_paint(device, queue, &self.targets.paint, &style);
+        }
+        if let Some(xray) = &mut self.xray {
+            xray.rebind_depth(device, &self.targets);
+            xray.set_coverage_enabled(queue, self.config.controls.xray_coverage);
+        }
+        if self.high_air.is_some() {
+            self.high_air = Some(crate::high_air::HighAir::new(
+                device,
+                &self.pipelines,
+                &self.targets,
+            ));
+        }
         self.effects
             .rebind(device, &self.pipelines, &self.targets, &self.environment);
         // The next draw derives fresh size-dependent dispatches from knowledge.
         presentation.resend_fog();
         true
-    }
-
-    /// Recreate all device resources from retained immutable CPU inputs and the
-    /// current presentation, never replaying an earlier frame or knowledge delta.
-    pub fn recreate<S: BundleSource>(
-        &mut self,
-        device: &Device,
-        queue: &Queue,
-        world: (&S, &mut Presentation),
-        pipeline_manifest: &str,
-        source: impl FnMut(&str, &str) -> Result<String, String>,
-    ) -> Result<(), String> {
-        let mut replacement = Self::new(
-            device,
-            queue,
-            self.config.clone(),
-            RuntimeWorld {
-                presentation: world.1,
-                assets: world.0,
-                geometry: self.geometry.clone(),
-                effect_sheets: self.effects.sheets(),
-            },
-            pipeline_manifest,
-            source,
-        )?;
-        replacement.set_overlay_glow(queue, self.overlay_glow);
-        *self = replacement;
-        Ok(())
     }
 
     pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
@@ -444,5 +519,11 @@ impl Runtime {
         self.post.record_memory(memory);
         self.fog_mask.record_memory(memory);
         self.overlays.record_memory(memory);
+        if let Some(xray) = &self.xray {
+            xray.record_memory(memory);
+        }
+        if let Some(high) = &self.high_air {
+            high.record_memory(memory);
+        }
     }
 }

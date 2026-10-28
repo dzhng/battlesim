@@ -33,6 +33,11 @@ native.
   the runtime contents it reads; the caller reads them (native from the
   runtime directory, feature `files`; the page by fetching them, through
   [its WebAssembly binding](../presentation-wasm/README.md)), and it decides.
+- [External models](src/presentation/lab.rs): tooling admits authored art and
+  descriptive poses independently of a battle roster. Its instances supplement
+  the same frame, sharing pose math, detail, fog and batch identity with battle
+  models. Catalog replacement preserves battle/static rows and replaces tooling
+  rows as one generation; unchanged time still permits edited geometry.
 - [Units](src/units/): interpolation between ticks (of units, falling
   airframes and the bodies they shove), the pose feed and driver,
   articulation, joint palettes (and each skinned row's rest palette: a corpse
@@ -45,8 +50,8 @@ native.
   tier rule every drawn model takes and the tier it casts with, and the
   frame's `View` record (with the sky's corner rays) and camera uniform,
   the browser's camera math to the bit. Each batch also names the fog group
-  it binds (`Batch.fog`); a lab's own models, which reach a renderer without
-  a frame, take the same tier, caster and fog rules through the module.
+  it binds (`Batch.fog`). Battle and external tooling models take these same
+  policies before becoming canonical frame records.
 - [The light](src/light.rs): the fixture's light resolved into the sky's,
   bloom's and grade's uniform records, as the browser's sky model resolves it.
 - [Scars](src/scars/): the side's learned ground, from its publications'

@@ -17,6 +17,13 @@ Scenery also shares authored tier admission and held-batch routing. The runtime
 reads the ground's kind order and stump meshes from presentation, preserving its
 authority over placement.
 
+[Impostors](src/impostor/) bake through the same authored model/material path,
+then filter coverage before uploading relit cards. Native and browser use the
+same atlases and shader; the impostor tier never substitutes a coarsest mesh.
+Asynchronous asset preparation finishes before a frame may request cards.
+Configurable offscreen bakes capture owned GPU resources, so replacing the
+source catalog cannot invalidate a pending review image.
+
 Sky and environment lighting share one owner too. The sky lookup and its
 reflection prefilter are baked from the presentation's light records at
 construction. Each frame supplies the canonical view, camera and cast lights;
@@ -36,7 +43,16 @@ The same owner routes model surface classes and fog, encodes cascades, grows
 grass over the prepared scar pages, and submits regional ground draws when the
 scar budget requires them. It completes post, the fog rim and optional player
 overlays into one display texture. Surface admission, presentation of that
-texture and readback remain shell concerns.
+texture and requests for readback remain shell concerns; the core owns the
+shared copy and mapping protocol.
+
+Ground paint and display marks share geometry inputs but have separate depth
+contracts. [Paint](src/paint.rs) sees world-only depth before units and grass;
+painted materials sample its resolved color through the fog owner. X-ray counts
+against that same world-only depth, then leaves silhouettes for
+[display overlays](src/overlay.rs) to load and resolve even with no UI geometry.
+Opaque display marks write a copy of physical depth taken before grass;
+translucent marks only read it. Their information colors compose after post.
 
 Pipeline construction accepts exported metadata plus a source provider, so the
 native shell reads files while the browser shell supplies fetched strings.
@@ -57,6 +73,19 @@ GPU profiling is opt-in. Whole-frame timestamp markers bracket the actual
 ordered frame, including any regional scar submissions, and bounded asynchronous
 readbacks skip saturated frames instead of waiting for the GPU. Resetting the
 measurement window excludes pending samples from the old window.
+
+[Explicit probes](src/probes.rs) inspect actual GPU sight, indirect arguments
+and grass clumps. They queue bounded snapshot copies before mapping, so later
+frames cannot change the result. Pending completion owns staging resources and
+holds no renderer or presentation borrow; browser frames can continue while
+readback waits for the event loop. Native polling runs only on explicit requests,
+with a timeout. The shared [readback owner](src/readback.rs) also restores compact
+RGBA rows from copyable display textures.
+
+A fog probe can consume new canonical knowledge before any frame is drawn. The
+GPU owner retains those uploads even for an inactive or empty query, and rebuilds
+due horizon maps. Whole-structure flags and screen-tile lists still belong to the
+next drawn view; probing never replaces the last view's diagnostic snapshot.
 
 Memory diagnostics count buffers and textures held by the owners, deduplicating
 shared handles and reading allocation descriptors. These are owned payload

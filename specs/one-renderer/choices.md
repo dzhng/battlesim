@@ -609,3 +609,22 @@ unchanged frame should behave; the native replay normally advances each time.
 protocol, controls reuse in the common Runtime. **Verdict:** sound.
 **Confidence:** high; it removes unnecessary work while preserving every actual
 changed frame's preparation. The first always-upload policy is rejected.
+
+### Remove the terrain depth workaround when exporting the common pipeline
+
+**When:** 2026-10-28 player-feature integration.
+
+The early browser Rust spike forced terrain color depth comparison to `always`
+to work around an incomplete depth/input path. The actual TypeGPU pipeline uses
+reverse-Z `greater-equal`. Exporting its real metadata restores that shared rule.
+
+**Gap:** preservation could mean retaining the workaround or adopting the
+common physical depth contract after full input parity. **Reach:** terrain color
+now respects the same prepass as the browser control. With the same native
+binary and WGSL, changing only this descriptor back to `always` restores all six
+old images byte for byte; camera calculations are bit-identical. The normal rule
+changes eleven pixels / twenty-one RGB channels across six 1280×720 plates,
+maximum channel delta 4/255, with all other channels and model counts preserved.
+**Verdict:** sound; remove the obsolete workaround. **Confidence:** high; the
+one-factor control proves the source of the complete delta. Evidence:
+`throwaway/native-depth-control-result.json`.

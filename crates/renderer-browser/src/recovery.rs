@@ -7,9 +7,8 @@ impl Renderer {
     pub async fn recover_device(&mut self, canvas: HtmlCanvasElement) -> Result<(), JsValue> {
         let mut replacement = Self::admit(
             canvas,
-            self.config.light.clone(),
-            self.config.fog_look,
-            self.config.grass_density,
+            self.high_surface.as_ref().map(|high| high.canvas.clone()),
+            self.config.clone(),
         )
         .await?;
         replacement.stats = self.stats;
@@ -23,7 +22,7 @@ impl Renderer {
         replacement.effect_sheets = self.effect_sheets.clone();
         replacement.overlay_glow = self.overlay_glow;
         replacement.asset_report = self.asset_report.clone();
-        replacement.overlay(&self.overlay_snapshot)?;
+        replacement.player_meshes = self.player_meshes.recreate(&replacement.device);
         *self = replacement;
         Ok(())
     }

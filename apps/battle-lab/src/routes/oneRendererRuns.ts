@@ -4,11 +4,10 @@ import { requestGpuDevice } from "@packages/renderer-core/src/device";
 import { eyePosition, screenAxes, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { Renderer } from "@wasm/renderer_spike/renderer_wasm_spike.js";
 import { Renderer as SharedRenderer } from "@wasm/renderer_browser";
-import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import { loadPresentation, ScenePresentation } from "@web/battle/sim/presentation";
 import { gameFogStyle } from "../gameFog";
 import { gameLight } from "../gameLight";
-import { gameOverlayGlow } from "../gameOverlay";
+import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
 import { groundPatch, FOUNDATION_CAMERA } from "./frame";
 import { modelEncoder, modelPipeline } from "./oneRendererModel";
 import { capturedParisFixture, realBattleFixture } from "./oneRendererBattle";
@@ -17,6 +16,8 @@ import { loadEffectAtlasLayers } from "./oneRendererEffects";
 import { battleRustRun } from "./oneRendererBattleRust";
 import { loadSharedGround } from "./oneRendererGround";
 import { measureFrames } from "./oneRendererTiming";
+import { captureInspectorViews, comparisonControls } from "./oneRendererControls";
+import { captureSharedQueries, fogQueryPoints } from "./oneRendererQueries";
 
 export const WIDTH = 640;
 export const HEIGHT = 360;
@@ -421,36 +422,75 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     ? await capturedParisFixture(undefined, dynamic ? FRAMES : 0)
     : await realBattleFixture();
   stage("device setup");
+  const playerFeatures = new URLSearchParams(window.location.search).get("playerFeatures") === "1";
+  canvas.parentElement?.querySelector("canvas[data-high-air]")?.remove();
+  const highCanvas = playerFeatures ? document.createElement("canvas") : undefined;
+  if (highCanvas && canvas.parentElement) {
+    highCanvas.dataset.highAir = "true";
+    Object.assign(highCanvas.style, {
+      position: "absolute",
+      left: "0",
+      bottom: "0",
+      width: "100%",
+      pointerEvents: "none",
+    });
+    canvas.parentElement.style.position = "relative";
+    canvas.parentElement.append(highCanvas);
+  }
   const renderer = await SharedRenderer.new(
     canvas,
-    JSON.stringify(gameLight),
-    JSON.stringify(gameFogStyle),
-    fixture.world.grass ? 1 : undefined,
+    JSON.stringify({
+      light: gameLight,
+      fog: gameFogStyle,
+      grassDensity: fixture.world.grass ? 1 : undefined,
+      paint: gamePaint,
+      xrayMinHiddenFraction: gameXrayMinHiddenFragmentFraction,
+      controls: comparisonControls(),
+    }),
+    highCanvas,
   );
   stage("asset download and model admission");
   const assetAccounting = await loadSharedAppearances(renderer, fixture.presentation);
   renderer.load_effect_atlas(await loadEffectAtlasLayers());
   loadSharedGround(renderer, fixture);
   renderer.set_overlay_glow(gameOverlayGlow.radius_px, gameOverlayGlow.strength);
-  renderer.overlay(
-    concatMeshes([
-      fixture.overlay.opaque,
-      fixture.overlay.translucent,
-      fixture.overlay.painted,
-      fixture.overlay.paintedMarching,
-    ]),
+  renderer.set_overlays(
+    fixture.overlay.opaque,
+    fixture.overlay.translucent,
+    fixture.overlay.painted,
+    fixture.overlay.paintedMarching,
   );
+  if (fixture.pointer) renderer.set_pointer_marks(fixture.pointer);
   stage("canonical runtime installation");
   fixture.presentation.installRenderer(renderer);
+  await renderer.prepare_assets();
   const exportValidation = await renderer.validate_export();
   const startupMs = performance.now() - started;
   stage("initial frame proof");
   fixture.presentation.render(renderer);
   await renderer.drain();
+  await captureInspectorViews(
+    canvas,
+    (view) => {
+      fixture.presentation.setRendererControls(renderer, { ...comparisonControls(), view });
+      fixture.presentation.render(renderer);
+    },
+    () => renderer.drain(),
+  );
   const fogInitialUploadComplete = (JSON.parse(renderer.stats()) as { fogTablesReady: boolean })
     .fogTablesReady;
+  await captureSharedQueries(renderer, fixture.presentation, canvas);
+  const queryPoints =
+    new URLSearchParams(window.location.search).get("readbacks") === "1"
+      ? fogQueryPoints(fixture.presentation)
+      : null;
+  const beforeProbe = queryPoints
+    ? Array.from(await fixture.presentation.probeFog(renderer, queryPoints))
+    : null;
   const beforeRecovery = canvas.toDataURL();
+  const beforeHighRecovery = highCanvas?.toDataURL();
   canvas.dataset.recoveryBefore = beforeRecovery;
+  if (beforeHighRecovery) canvas.dataset.highRecoveryBefore = beforeHighRecovery;
   stage("resize and surface recovery");
   canvas.width = 320;
   canvas.height = 180;
@@ -459,6 +499,10 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   canvas.height = REAL_HEIGHT;
   fixture.presentation.resizeRenderer(renderer, canvas);
   renderer.recover_surface();
+  // Consume resize's retained-table refresh before losing the device, so a
+  // recovery query must initialize its own new GPU owner.
+  fixture.presentation.render(renderer);
+  await renderer.drain();
   renderer.destroy_device_for_test();
   stage("device loss callback");
   await new Promise<void>((resolve) => setTimeout(resolve, 50));
@@ -471,11 +515,22 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   stage("device recovery");
   await renderer.recover_device(canvas);
   stage("recovered knowledge preparation");
+  fixture.presentation.installRenderer(renderer);
+  await renderer.prepare_assets();
+  if (queryPoints) {
+    canvas.dataset.fogRecoveryProbe = JSON.stringify({
+      before: beforeProbe,
+      recovered: Array.from(await fixture.presentation.probeFog(renderer, queryPoints)),
+    });
+  }
   fixture.presentation.render(renderer);
   await renderer.drain();
   const afterRecovery = canvas.toDataURL();
   canvas.dataset.recoveryAfter = afterRecovery;
-  const recoveryPixelsMatch = beforeRecovery === afterRecovery;
+  const afterHighRecovery = highCanvas?.toDataURL();
+  if (afterHighRecovery) canvas.dataset.highRecoveryAfter = afterHighRecovery;
+  const recoveryPixelsMatch =
+    beforeRecovery === afterRecovery && beforeHighRecovery === afterHighRecovery;
   const setupMs = startupMs;
   renderer.set_gpu_timing(new URLSearchParams(window.location.search).get("timing") === "1");
   renderer.reset_gpu_timing();
@@ -489,6 +544,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     () => renderer.drain(),
   );
   if (capture) canvas.dataset.finalFrame = canvas.toDataURL();
+  if (highCanvas) canvas.dataset.finalHighFrame = highCanvas.toDataURL();
   stage("complete");
   const workload = JSON.stringify({
     ...JSON.parse(renderer.stats()),

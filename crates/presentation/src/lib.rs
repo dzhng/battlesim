@@ -21,3 +21,5 @@ pub mod static_world;
 pub mod units;
 pub mod view;
 pub mod world;
+
+pub(crate) mod appearance;

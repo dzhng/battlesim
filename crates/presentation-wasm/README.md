@@ -33,3 +33,10 @@ a saved frame or the last fog delta cannot restore visibility correctly. The
 page still owns asset transport, input, UI observations and probes. Fielding
 names the authored contents it needs, and the page fetches them without
 reinterpreting their battle meaning.
+
+External tooling art is admitted as an atomic catalog generation before its
+models are requested. A decode failure leaves the active catalog usable.
+Requests describe installed appearances, transforms and authored or explicit
+poses; they supplement observed entities in the canonical frame. Texture
+transport and GPU installation belong to rendering. Replacing tooling art
+requires reinstalling renderer tables from the republished world header.

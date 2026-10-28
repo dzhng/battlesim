@@ -1,4 +1,5 @@
 //! One side's publications into a frame of poses, effects, batches and palettes.
+pub mod lab;
 mod static_frame;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -116,7 +117,7 @@ pub struct Frame {
 pub struct World {
     pub appearances: Vec<Row>,
     pub strings: String,
-    rows: HashMap<(String, String, u32, u32), u32>,
+    rows: HashMap<(String, String, u32, u32, bool), u32>,
 }
 
 impl World {
@@ -133,7 +134,7 @@ impl World {
         placed: bool,
         draws: u32,
     ) -> u32 {
-        let key = (name.to_owned(), state.to_owned(), lies, draws);
+        let key = (name.to_owned(), state.to_owned(), lies, draws, placed);
         if let Some(&row) = self.rows.get(&key) {
             return row;
         }
@@ -209,7 +210,6 @@ struct Loaded {
     shadow_fall: [f64; 2],
     locals: Vec<Trs>,
     worlds: Vec<Mat4>,
-    models: Vec<Model>,
 }
 
 pub struct Presentation {
@@ -244,6 +244,8 @@ pub struct Presentation {
     /// values (`set_detail_scale`).
     detail_scale: [f64; 2],
     world: World,
+    lab: lab::Lab,
+    models: Vec<Model>,
     frame: Frame,
     /// The camera the last frame was asked for.
     camera: Option<Camera>,
@@ -361,6 +363,8 @@ impl Presentation {
             felled_from: None,
             detail_scale: [1.0, 1.0],
             world: World::default(),
+            lab: lab::Lab::default(),
+            models: Vec::new(),
             frame: Frame::default(),
             camera: None,
             shadow: None,
@@ -471,6 +475,7 @@ impl Presentation {
             fit.invalidate();
         }
         self.world = World::default();
+        self.lab.frontier = None;
         self.fallen.clear();
         self.known_from = KnownFrom::Unread;
         self.knowledge = Knowledge::default();
@@ -530,6 +535,7 @@ impl Presentation {
         self.loaded = None;
         let (azimuth, elevation) = (input.sun_azimuth, input.sun_elevation);
         let Some(input) = input.battle else {
+            self.register_lab_rows();
             return Ok(());
         };
         let units = Arc::new(input.units.clone());
@@ -591,7 +597,6 @@ impl Presentation {
             shadow_fall,
             locals: Vec::new(),
             worlds: Vec::new(),
-            models: Vec::new(),
             inverse_binds,
             units,
             tables,
@@ -610,6 +615,7 @@ impl Presentation {
             loaded.note(&o);
         }
         self.loaded = Some(loaded);
+        self.register_lab_rows();
         Ok(())
     }
 
@@ -701,56 +707,6 @@ impl Presentation {
             b.walk.set_lod_scale(buildings);
         }
         self.statics.invalidate();
-    }
-
-    /// A skinned row's body as it holds still (`World.appearances`): a
-    /// corpse row as it lies (its `corpse_poses` entry), a body row in its
-    /// far pose (what its impostor card shows). Each joint's bind-to-model
-    /// motion: a renderer skins the body's mesh by it once, when it loads
-    /// the row (`posedMesh`), and draws that mesh where the frame's
-    /// instance takes the identity. None for a rigid row, or before a world
-    /// loads.
-    pub fn rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
-        let loaded = self.loaded.as_ref()?;
-        let r = self.world.appearances.get(row as usize)?;
-        let name = self
-            .world
-            .strings
-            .get(r.name as usize..(r.name + r.name_len) as usize)?;
-        let Some(Appearance::Skinned {
-            joints,
-            clips,
-            table,
-            far_pose,
-            corpse_poses,
-            ..
-        }) = loaded.units.appearances.get(name)
-        else {
-            return None;
-        };
-        let pose = match r.lies {
-            NONE => far_pose,
-            lies => corpse_poses.get(lies as usize)?,
-        };
-        let mut worlds = Vec::new();
-        let table = loaded.tables.get(table)?;
-        skin::joint_worlds(
-            joints,
-            clips,
-            table,
-            &pose.clip,
-            pose.phase,
-            None,
-            &mut worlds,
-        );
-        let ibs = &loaded.inverse_binds[name];
-        Some(
-            worlds
-                .iter()
-                .zip(ibs)
-                .map(|(w, ib)| joint(&skin::affine(&skin::mul(w, ib))))
-                .collect(),
-        )
     }
 
     /// The presentation time at wall time `wall_s` (live only).
@@ -1374,20 +1330,29 @@ impl Presentation {
         let f = &mut self.frame;
         self.statics
             .write(&mut populations, camera, &view, generation, f);
-        let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), sample) else {
-            return Ok(&self.frame);
-        };
-        let f = &mut self.frame;
-        f.tick = sample.observation.tick as u32;
-        loaded.frame(
-            sample,
+        self.models.clear();
+        if let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), sample) {
+            let f = &mut self.frame;
+            f.tick = sample.observation.tick as u32;
+            loaded.frame(
+                sample,
+                &view,
+                ui,
+                &self.world,
+                self.ground.as_ref(),
+                self.detail_scale[0],
+                f,
+                &mut self.models,
+            );
+        }
+        self.lab.append(
             &view,
-            ui,
             &self.world,
-            self.ground.as_ref(),
             self.detail_scale[0],
-            f,
+            &mut self.frame,
+            &mut self.models,
         );
+        batches(&mut self.models, &mut self.frame);
         Ok(&self.frame)
     }
 }
@@ -1423,6 +1388,7 @@ impl Loaded {
         ground: Option<&Ground>,
         unit_scale: f64,
         f: &mut Frame,
+        models: &mut Vec<Model>,
     ) {
         let Loaded {
             input,
@@ -1444,7 +1410,6 @@ impl Loaded {
             shadow_fall,
             worlds,
             locals,
-            models,
             ..
         } = self;
         let time = sample.time;
@@ -1521,9 +1486,8 @@ impl Loaded {
         };
         let tint = |s: &str| units.tints.get(s).map_or([1.0; 3], |t| t.map(|v| v as f32));
         let row = |name: &str, state: &str, lies: u32| {
-            world.rows[&(name.to_owned(), state.to_owned(), lies, 0)]
+            world.rows[&(name.to_owned(), state.to_owned(), lies, 0, false)]
         };
-        models.clear();
         // Soldiers off screen, as the gates count bodies drawn, carded or culled.
         let mut culled = 0;
         let model = |row: u32,
@@ -1862,7 +1826,6 @@ impl Loaded {
             ));
         }
         f.counts.culled = culled;
-        batches(models, f);
         picks(sample, units, input, f);
         emitters(o, poses, side, units, f);
     }

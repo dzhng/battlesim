@@ -1802,7 +1802,7 @@
       "depthStencil": {
         "format": "depth32float",
         "depthWriteEnabled": false,
-        "depthCompare": "always"
+        "depthCompare": "greater-equal"
       },
       "multisample": {
         "count": 4
@@ -4144,6 +4144,113 @@
             }
           }
         ]
+      }
+    },
+    {
+      "name": "modelImpostor",
+      "kind": "render",
+      "shader": "modelImpostor.wgsl",
+      "layout": [
+        "typegpuCameraLayout",
+        "modelLayout"
+      ],
+      "vertex": {
+        "buffers": [
+          {
+            "arrayStride": 48,
+            "stepMode": "vertex",
+            "attributes": [
+              {
+                "format": "float32x3",
+                "offset": 0,
+                "shaderLocation": 0
+              },
+              {
+                "format": "snorm16x4",
+                "offset": 12,
+                "shaderLocation": 1
+              },
+              {
+                "format": "float32x2",
+                "offset": 20,
+                "shaderLocation": 2
+              },
+              {
+                "format": "unorm8x4",
+                "offset": 28,
+                "shaderLocation": 3
+              },
+              {
+                "format": "uint8x4",
+                "offset": 32,
+                "shaderLocation": 4
+              },
+              {
+                "format": "unorm8x4",
+                "offset": 36,
+                "shaderLocation": 5
+              },
+              {
+                "format": "snorm8x4",
+                "offset": 40,
+                "shaderLocation": 6
+              },
+              {
+                "format": "uint16x2",
+                "offset": 44,
+                "shaderLocation": 7
+              }
+            ]
+          },
+          {
+            "arrayStride": 64,
+            "stepMode": "instance",
+            "attributes": [
+              {
+                "format": "float32x4",
+                "offset": 0,
+                "shaderLocation": 8
+              },
+              {
+                "format": "float32x4",
+                "offset": 16,
+                "shaderLocation": 9
+              },
+              {
+                "format": "float32x4",
+                "offset": 32,
+                "shaderLocation": 10
+              },
+              {
+                "format": "float32x4",
+                "offset": 48,
+                "shaderLocation": 11
+              }
+            ]
+          }
+        ]
+      },
+      "fragment": {
+        "targets": [
+          {
+            "format": "rgba8unorm"
+          },
+          {
+            "format": "rgba8unorm"
+          },
+          {
+            "format": "rgba8unorm"
+          }
+        ]
+      },
+      "primitive": {
+        "topology": "triangle-list",
+        "cullMode": "none"
+      },
+      "depthStencil": {
+        "format": "depth32float",
+        "depthWriteEnabled": true,
+        "depthCompare": "greater"
       }
     },
     {

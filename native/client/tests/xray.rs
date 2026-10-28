@@ -96,14 +96,7 @@ fn targets(device: &Device) -> Targets {
             view_formats: &[],
         })
     };
-    // Additional usages are local to the test's physical readback. Production
-    // snapshots and overlay composition retain their own target contracts.
-    targets.depth = texture(
-        "test-world-depth",
-        TextureFormat::Depth32Float,
-        TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_SRC,
-    )
-    .create_view(&Default::default());
+    // Multisample texture sampling is only needed for this test's pixel readback.
     targets.overlay_msaa = texture(
         "test-overlay",
         TextureFormat::Rgba8Unorm,

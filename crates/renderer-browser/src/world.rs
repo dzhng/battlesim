@@ -84,6 +84,27 @@ impl Renderer {
         Ok(())
     }
 
+    /// Async GPU asset work is separate from synchronous presentation admission.
+    pub async fn prepare_assets(&mut self) -> Result<(), JsValue> {
+        self.runtime
+            .as_mut()
+            .ok_or_else(|| js_error("install presentation before preparing assets"))?
+            .prepare_assets(&self.device, &self.queue)
+            .await
+            .map_err(js_error)
+    }
+
+    pub fn set_controls(&mut self, presentation: &Presentation, json: &str) -> Result<(), JsValue> {
+        let controls = serde_json::from_str(json).map_err(js_error)?;
+        if let Some(runtime) = &mut self.runtime {
+            runtime
+                .set_controls(&self.queue, presentation.core(), controls)
+                .map_err(js_error)?;
+        }
+        self.config.controls = controls;
+        Ok(())
+    }
+
     /// Canonical static-batch generation for the next presentation frame.
     pub fn static_generation(&self) -> Result<u32, JsValue> {
         self.runtime
@@ -107,25 +128,5 @@ impl Renderer {
         if let Some(runtime) = &mut self.runtime {
             runtime.set_overlay_glow(&self.queue, self.overlay_glow);
         }
-    }
-
-    /// Player geometry is an external input and retained through device loss.
-    pub fn overlay(&mut self, mesh: &[f32]) -> Result<(), JsValue> {
-        if !mesh.len().is_multiple_of(10) {
-            return Err(js_error("overlay needs ten floats per vertex"));
-        }
-        self.overlay_vertices = renderer_core::buffer(
-            &self.device,
-            "presentation-overlay",
-            BufferUsages::VERTEX,
-            if mesh.is_empty() {
-                &[0; 40]
-            } else {
-                bytemuck::cast_slice(mesh)
-            },
-        );
-        self.overlay_vertex_count = (mesh.len() / 10) as u32;
-        self.overlay_snapshot = mesh.to_vec();
-        Ok(())
     }
 }

@@ -12,14 +12,49 @@ use crate::fog_mask::FogMaskResources;
 use crate::grass::Grass;
 use crate::ground::Ground;
 use crate::models::{Models, Surface};
-use crate::overlay::OverlayResources;
+use crate::overlay::{Geometry, OverlayResources};
+use crate::paint::{PaintGeometry, PaintResources};
 use crate::pipelines::{Bound, Pipelines};
-use crate::post::PostResources;
+use crate::post::{PostMode, PostResources};
 use crate::scenery::Scenery;
 use crate::shadow::ShadowResources;
 use crate::sky::Sky;
 use crate::world::WorldColour;
+use crate::xray::XrayResources;
 use crate::Targets;
+
+/// Player display and inspector outputs share the same prepared GPU frame.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum FrameView {
+    #[default]
+    Final,
+    World,
+    OverlaysOnBlack,
+    OverlaysOnWhite,
+    FogMask,
+    GroundMask,
+    GroundClasses,
+    Paint,
+}
+
+impl FrameView {
+    fn post_mode(self) -> Option<PostMode> {
+        match self {
+            Self::Final | Self::World => Some(PostMode::Look),
+            Self::FogMask | Self::GroundMask => Some(PostMode::Ungraded),
+            Self::GroundClasses => Some(PostMode::Raw),
+            Self::OverlaysOnBlack | Self::OverlaysOnWhite | Self::Paint => None,
+        }
+    }
+
+    fn has_display_overlays(self) -> bool {
+        matches!(
+            self,
+            Self::Final | Self::OverlaysOnBlack | Self::OverlaysOnWhite
+        )
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FrameStage {
@@ -61,19 +96,18 @@ impl FrameStage {
     }
 }
 
-/// Optional player-facing geometry shares the world's depth and the frame's
-/// display output. A shell without player overlays supplies none.
-pub struct OverlayFrame<'a> {
-    pub resources: &'a OverlayResources,
-    pub vertices: &'a Buffer,
-    pub instances: &'a Buffer,
-    pub vertex_count: u32,
+/// Player paint uses world-only depth before unit coverage joins it.
+pub struct PaintFrame<'a> {
+    pub resources: &'a PaintResources,
+    pub geometry: PaintGeometry<'a>,
+    pub shown: bool,
 }
 
 pub struct FrameInputs<'a> {
     pub device: &'a Device,
     pub queue: &'a Queue,
     pub view: &'a View,
+    pub frame_view: FrameView,
     pub targets: &'a Targets,
     pub sky: &'a Sky,
     pub environment: &'a Environment,
@@ -86,7 +120,11 @@ pub struct FrameInputs<'a> {
     pub fog: &'a Fog,
     pub fog_mask: &'a FogMaskResources,
     pub post: &'a PostResources,
-    pub overlays: Option<OverlayFrame<'a>>,
+    pub overlays: &'a OverlayResources,
+    pub overlay_geometry: Geometry<'a>,
+    pub paint: Option<PaintFrame<'a>>,
+    pub xray: Option<&'a XrayResources>,
+    pub high_air: Option<&'a crate::high_air::HighAir>,
 }
 
 /// Pipeline policy for a complete production frame, shared on every target.
@@ -113,6 +151,10 @@ impl FrameRenderer {
     /// Initial/final timestamp markers belong before/after this call, so they
     /// span those ordered submissions as well as the final command buffer.
     pub fn encode(&self, inputs: &FrameInputs<'_>, encoder: &mut CommandEncoder) {
+        let display_overlays = inputs.xray.is_some()
+            || inputs.overlay_geometry.opaque.is_some()
+            || inputs.overlay_geometry.translucent.is_some();
+        let player_depth = display_overlays || inputs.paint.is_some();
         for stage in FrameStage::ORDER {
             // Regional ground draws replace the encoder; their render-pass
             // labels provide boundaries without a debug group crossing submit.
@@ -121,35 +163,115 @@ impl FrameRenderer {
             }
             match stage {
                 FrameStage::SunShadow => self.encode_shadows(inputs, encoder),
-                FrameStage::Depth => self.depth.encode(inputs, encoder),
+                FrameStage::Depth => {
+                    self.depth.encode_world(inputs, encoder, player_depth);
+                    if player_depth {
+                        if let Some(paint) = &inputs.paint {
+                            paint.resources.encode(
+                                encoder,
+                                inputs.targets,
+                                &inputs.environment.camera,
+                                paint.geometry,
+                                paint.shown,
+                            );
+                        }
+                        if let Some(xray) = inputs.xray {
+                            xray.encode(
+                                encoder,
+                                inputs.targets,
+                                &inputs.environment.camera,
+                                inputs.models,
+                            );
+                        } else {
+                            inputs.overlays.clear(encoder, inputs.targets);
+                        }
+                        self.depth.encode_models(inputs, encoder);
+                    }
+                }
                 FrameStage::FogSight => inputs.fog.encode(encoder),
                 FrameStage::World => self.world.encode(inputs, encoder),
-                FrameStage::Effects => inputs.effects.encode(encoder, inputs.targets),
+                FrameStage::Effects => {
+                    if inputs.frame_view != FrameView::GroundClasses {
+                        inputs.effects.encode(encoder, inputs.targets);
+                    }
+                }
                 FrameStage::FogMask => inputs.fog_mask.encode(encoder, inputs.targets),
                 FrameStage::Overlays => {
-                    self.encode_ghosts(inputs, encoder);
-                    if let Some(overlay) = &inputs.overlays {
-                        overlay.resources.encode_geometry(
+                    if matches!(inputs.frame_view, FrameView::Final | FrameView::World) {
+                        self.encode_ghosts(inputs, encoder);
+                    }
+                    if display_overlays && inputs.frame_view.has_display_overlays() {
+                        inputs.overlays.encode_geometry(
                             encoder,
                             inputs.targets,
                             &inputs.environment.camera,
-                            overlay.vertices,
-                            overlay.instances,
-                            overlay.vertex_count,
+                            inputs.overlay_geometry,
                         );
                     }
                 }
-                FrameStage::Post => inputs.post.encode(encoder),
-                FrameStage::FogRim => inputs.fog_mask.encode_rim(encoder, inputs.targets),
+                FrameStage::Post => {
+                    if let Some(mode) = inputs.frame_view.post_mode() {
+                        inputs.post.encode(encoder, mode);
+                    } else {
+                        let value = if inputs.frame_view == FrameView::OverlaysOnWhite {
+                            1.0
+                        } else {
+                            0.0
+                        };
+                        encoder.begin_render_pass(&RenderPassDescriptor {
+                            label: Some("inspector-backdrop"),
+                            color_attachments: &[Some(RenderPassColorAttachment {
+                                view: &inputs.targets.display,
+                                depth_slice: None,
+                                resolve_target: None,
+                                ops: Operations {
+                                    load: LoadOp::Clear(Color {
+                                        r: value,
+                                        g: value,
+                                        b: value,
+                                        a: 1.0,
+                                    }),
+                                    store: StoreOp::Store,
+                                },
+                            })],
+                            ..Default::default()
+                        });
+                    }
+                }
+                FrameStage::FogRim => {
+                    if inputs.frame_view.post_mode().is_some() {
+                        inputs.fog_mask.encode_rim(encoder, inputs.targets);
+                    }
+                }
             }
             if stage != FrameStage::World {
                 encoder.pop_debug_group();
             }
         }
-        if let Some(overlay) = &inputs.overlays {
-            overlay
-                .resources
+        if inputs.frame_view == FrameView::Paint {
+            if inputs.paint.as_ref().is_some_and(|paint| paint.shown) {
+                inputs
+                    .overlays
+                    .encode_paint(encoder, &inputs.targets.display);
+            }
+        } else if display_overlays && inputs.frame_view.has_display_overlays() {
+            inputs
+                .overlays
                 .encode_composite(encoder, inputs.targets, &inputs.targets.display);
+        }
+        if let Some(high_air) = inputs.high_air {
+            if inputs.frame_view == FrameView::Final {
+                high_air.encode(
+                    encoder,
+                    inputs.targets,
+                    inputs.environment,
+                    inputs.models,
+                    inputs.fog,
+                    inputs.post,
+                );
+            } else {
+                high_air.clear(encoder);
+            }
         }
     }
 

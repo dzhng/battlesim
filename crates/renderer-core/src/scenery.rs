@@ -98,6 +98,7 @@ impl Run {
 mod cascade_tests;
 
 pub struct Scenery {
+    trees_shown: bool,
     rows: Vec<Option<Row>>,
     /// Per kind, its tiers, shared by every row that draws the kind.
     tiers: Vec<Vec<Mesh>>,
@@ -188,6 +189,7 @@ impl Scenery {
             }));
         }
         Ok(Self {
+            trees_shown: true,
             rows,
             tiers,
             runs: Vec::new(),
@@ -244,6 +246,10 @@ impl Scenery {
         self.runs.len() as u32
     }
 
+    pub fn set_trees_shown(&mut self, shown: bool) {
+        self.trees_shown = shown;
+    }
+
     pub fn caster_run_counts(&self) -> [u32; 4] {
         std::array::from_fn(|cascade| {
             self.runs
@@ -276,6 +282,9 @@ impl Scenery {
         for run in self.runs.iter().filter(|r| r.draws_in(which, cascade)) {
             let row = self.rows[run.row].as_ref().expect("a scenery row");
             let draws = DRAWS[row.draws as usize - 1];
+            if !self.trees_shown && draws != Draws::Dressing {
+                continue;
+            }
             bound(draws).set(pass, groups);
             let (mesh, vertices) = row
                 .stump

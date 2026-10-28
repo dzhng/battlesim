@@ -7,6 +7,9 @@ impl Renderer {
             .as_object_mut()
             .expect("renderer counters are an object");
         fields.extend(serde_json::json!({
+            "playerGeometryVertices": self.player_meshes.vertex_counts(),
+            "xrayMeshes": self.runtime.as_ref().is_some_and(|r| r.models.has_xray_meshes()),
+            "separateHighAir": self.high_surface.is_some(),
             "preparation": self.runtime.as_ref().map(|r| r.preparation_stats()),
             "fogSightUploads": self.stats.fog_sight_uploads + self.runtime.as_ref().map_or(0, |r| r.fog.upload_count() as u32),
             "fogTablesReady": self.runtime.as_ref().is_some_and(|r| r.fog.has_complete_tables()),

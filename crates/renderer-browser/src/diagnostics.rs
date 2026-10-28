@@ -45,13 +45,12 @@ impl Renderer {
         if let Some(runtime) = &self.runtime {
             runtime.record_memory(&mut memory);
         }
-        memory.buffer(&self.overlay_vertices);
+        let player_bytes = self.player_meshes.record_memory(&mut memory);
         memory.buffer(&self.overlay_instances);
         if let Some(timer) = &self.gpu_timer {
             timer.record_memory(&mut memory);
         }
-        let snapshot_bytes = self.geometry.as_ref().map_or(0, |g| g.payload_bytes())
-            + size_of_val(self.overlay_snapshot.as_slice());
+        let snapshot_bytes = self.geometry.as_ref().map_or(0, |g| g.payload_bytes()) + player_bytes;
         serde_wasm_bindgen::to_value(&MemoryStats {
             gpu: memory.counts(),
             cpu_snapshot_payload_bytes: snapshot_bytes,

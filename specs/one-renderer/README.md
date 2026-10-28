@@ -48,13 +48,16 @@ copy/upload/recovery protocols and the standalone presentation artifact are gone
 
 Priority order:
 
-1. Integrate the isolated shared x-ray owner into the production depth sequence
-   and overlay preservation. Its native GPU threshold/color/clear regression is
-   red/green proved, but the frame does not invoke it yet. Complete paint/pointer,
-   opaque/translucent overlays and high-air composition in those same owners.
-2. Finish lab/proxy/pose/impostor, quality and real diagnostic/readback contracts,
-   then replace the application's TypeGPU canvas interface. Read the scratch
-   lab/model contract map rather than retaining a separate lab renderer.
+1. Finish the current player-feature checkpoint: paint/x-ray/high-air and actual
+   lab poses/impostors now share core owners; all eight browser inspector views
+   match. Query snapshot/concurrent-render and fresh visual checks pass. The tiny
+   native delta is isolated to removal of the obsolete terrain depth workaround.
+   Integrated review's fog recovery, lab card eligibility and Metal paint-clear
+   findings are fixed with focused regressions. Checkpoint before widening consumers.
+2. Finish proxy/workbench/sheet admission, quality and exact diagnostics, then
+   replace the application's TypeGPU canvas interface. Read the scratch lab/model
+   contract map rather than retaining a separate lab renderer. A nonempty browser
+   high-air composition and appearance-generation races remain explicit gates.
 3. Run the [migration/deletion verdict](slices/05-migration.md): final three-target
    workload/resolution measurements and source/owner accounting. Delete TypeGPU
    and the standalone Rust graph; run repository closeout once, review and archive.

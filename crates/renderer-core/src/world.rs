@@ -1,7 +1,7 @@
 //! The production world policy: scar-page submissions, grass growth,
 //! sky, fogged materials, scenery, water and glass in one shared owner.
 use crate::fog::Layer;
-use crate::frame::FrameInputs;
+use crate::frame::{FrameInputs, FrameView};
 use crate::models::Surface;
 use crate::pipelines::{Bound, Pipelines};
 use crate::Targets;
@@ -10,6 +10,7 @@ use wgpu::*;
 pub struct WorldColour {
     surfaces: [(Bound, Surface); 3],
     glass: Bound,
+    cards: Bound,
 }
 
 fn begin_world_pass<'a>(
@@ -76,6 +77,7 @@ impl WorldColour {
                 (pipelines.bound("modelRooms"), Surface::Room),
             ],
             glass: pipelines.bound("modelBlended"),
+            cards: pipelines.bound("modelCards"),
         }
     }
 
@@ -149,20 +151,30 @@ impl WorldColour {
                 pipeline.set(&mut pass, &groups);
                 inputs.models.draw_fogged(&mut pass, *surface, layer);
             }
+            if let Some(cards) = inputs.models.card_group() {
+                let mut groups = inputs.environment.groups().to_vec();
+                groups.extend([inputs.fog.group(layer), cards]);
+                self.cards.set(&mut pass, &groups);
+                inputs.models.draw_cards(&mut pass, layer);
+            }
         }
         inputs.scenery.draw(
             &mut pass,
             &groups(inputs, Layer::Faces),
             inputs.models.statics(),
         );
-        if let Some(grass) = inputs.grass {
-            grass.draw(&mut pass, &groups(inputs, Layer::PaintedGround));
+        if inputs.frame_view != FrameView::GroundClasses {
+            if let Some(grass) = inputs.grass {
+                grass.draw(&mut pass, &groups(inputs, Layer::PaintedGround));
+            }
         }
         ground.draw_backdrop(&mut pass, &groups(inputs, Layer::PaintedGround));
-        ground.draw_water(&mut pass, &groups(inputs, Layer::PaintedFaces));
-        let mut groups = inputs.environment.groups().to_vec();
-        groups.push(inputs.models.group());
-        self.glass.set(&mut pass, &groups);
-        inputs.models.draw(&mut pass, Surface::Blended);
+        if inputs.frame_view != FrameView::GroundClasses {
+            ground.draw_water(&mut pass, &groups(inputs, Layer::PaintedFaces));
+            let mut groups = inputs.environment.groups().to_vec();
+            groups.push(inputs.models.group());
+            self.glass.set(&mut pass, &groups);
+            inputs.models.draw(&mut pass, Surface::Blended);
+        }
     }
 }

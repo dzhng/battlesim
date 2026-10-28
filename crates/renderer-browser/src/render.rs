@@ -1,28 +1,32 @@
 //! Surface admission before the runtime consumes canonical incremental work.
 use super::*;
-use renderer_core::runtime::OverlayGeometry;
 
 #[wasm_bindgen]
 impl Renderer {
     pub fn render_presentation(&mut self, presentation: &mut Presentation) -> Result<u32, JsValue> {
-        let surface = match self.surface.get_current_texture() {
-            CurrentSurfaceTexture::Success(surface)
-            | CurrentSurfaceTexture::Suboptimal(surface) => surface,
-            CurrentSurfaceTexture::Outdated | CurrentSurfaceTexture::Lost => {
-                self.recover_surface();
-                if let Some(runtime) = &mut self.runtime {
-                    runtime.invalidate_statics();
-                }
-                return Ok(presentation.refresh_frame_header());
+        let surface = acquire(&self.surface)?;
+        let high = self
+            .high_surface
+            .as_ref()
+            .map(|high| acquire(&high.surface))
+            .transpose()?;
+        let unavailable = surface.is_none() || high.as_ref().is_some_and(Option::is_none);
+        if unavailable {
+            self.recover_surface();
+            if let Some(runtime) = &mut self.runtime {
+                runtime.invalidate_statics();
             }
-            other => return Err(js_error(format!("surface unavailable: {other:?}"))),
-        };
-        if self.runtime.is_none() {
-            self.install_presentation(presentation)?;
+            return Ok(presentation.refresh_frame_header());
         }
-        let runtime = self.runtime.as_mut().expect("installed runtime");
+        let surface = surface.expect("acquired world output");
+        let high = high.flatten();
+        let runtime = self
+            .runtime
+            .as_mut()
+            .ok_or_else(|| js_error("install presentation and prepare assets before rendering"))?;
         let resized = runtime.resize(
             &self.device,
+            &self.queue,
             [self.width, self.height],
             presentation.core_mut(),
         );
@@ -47,16 +51,27 @@ impl Renderer {
             &self.queue,
             &presentation.core().last_frame().view,
             &mut encoder,
-            (self.overlay_vertex_count > 0).then_some(OverlayGeometry {
-                vertices: &self.overlay_vertices,
-                instances: &self.overlay_instances,
-                vertex_count: self.overlay_vertex_count,
-            }),
+            self.player_meshes.draw(&self.overlay_instances),
         );
         let view = surface
             .texture
             .create_view(&TextureViewDescriptor::default());
-        self.encode_surface(&mut encoder, &view);
+        self.encode_surface(
+            &mut encoder,
+            &view,
+            self.display_group.as_ref().expect("installed display"),
+        );
+        if let Some(high) = &high {
+            let view = high.texture.create_view(&TextureViewDescriptor::default());
+            self.encode_surface(
+                &mut encoder,
+                &view,
+                self.high_surface
+                    .as_ref()
+                    .and_then(|s| s.group.as_ref())
+                    .expect("installed high-air display"),
+            );
+        }
         if let Some(timer) = &self.gpu_timer {
             timer.end(&mut encoder);
         }
@@ -65,6 +80,9 @@ impl Renderer {
             timer.submitted();
         }
         self.queue.present(surface);
+        if let Some(high) = high {
+            self.queue.present(high);
+        }
         self.stats.shared_passes += 1;
         self.stats.frames += 1;
         Ok(presentation.refresh_frame_header())
@@ -79,7 +97,12 @@ impl Renderer {
         })
     }
 
-    fn encode_surface(&self, encoder: &mut CommandEncoder, surface: &TextureView) {
+    fn encode_surface(
+        &self,
+        encoder: &mut CommandEncoder,
+        surface: &TextureView,
+        group: &BindGroup,
+    ) {
         let pipeline = self.display_pipelines.bound("composite");
         let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("display-surface"),
@@ -88,19 +111,23 @@ impl Renderer {
                 depth_slice: None,
                 resolve_target: None,
                 ops: Operations {
-                    load: LoadOp::Clear(Color::BLACK),
+                    load: LoadOp::Clear(Color::TRANSPARENT),
                     store: StoreOp::Store,
                 },
             })],
             ..Default::default()
         });
-        pipeline.set(
-            &mut pass,
-            &[(
-                "sampled",
-                self.display_group.as_ref().expect("installed display"),
-            )],
-        );
+        pipeline.set(&mut pass, &[("sampled", group)]);
         pass.draw(0..3, 0..1);
+    }
+}
+
+fn acquire(surface: &wgpu::Surface<'_>) -> Result<Option<SurfaceTexture>, JsValue> {
+    match surface.get_current_texture() {
+        CurrentSurfaceTexture::Success(texture) | CurrentSurfaceTexture::Suboptimal(texture) => {
+            Ok(Some(texture))
+        }
+        CurrentSurfaceTexture::Outdated | CurrentSurfaceTexture::Lost => Ok(None),
+        other => Err(js_error(format!("surface unavailable: {other:?}"))),
     }
 }

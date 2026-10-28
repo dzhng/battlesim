@@ -18,6 +18,9 @@ pub(crate) mod pipeline_export {
 mod asset;
 mod diagnostics;
 mod export;
+mod geometry;
+mod high_surface;
+mod queries;
 mod recovery;
 mod render;
 mod state;
@@ -43,13 +46,25 @@ struct V { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> };
 @group(0) @binding(0) var display: texture_2d<f32>;
 @group(0) @binding(1) var linear: sampler;
 @fragment fn composite(in: V) -> @location(0) vec4<f32> {
-  return vec4<f32>(textureSample(display, linear, in.uv).rgb, 1.0);
+  return textureSample(display, linear, in.uv);
 }
 "#;
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct Settings {
+    light: presentation::light::LightSettings,
+    fog: presentation::fog::FogStyle,
+    grass_density: Option<f64>,
+    paint: Option<renderer_core::paint::Paint>,
+    xray_min_hidden_fraction: Option<f32>,
+    controls: Option<renderer_core::runtime::Controls>,
+}
 
 #[wasm_bindgen]
 pub struct Renderer {
     surface: wgpu::Surface<'static>,
+    high_surface: Option<high_surface::HighSurface>,
     device: Device,
     queue: Queue,
     runtime: Option<Runtime>,
@@ -61,10 +76,8 @@ pub struct Renderer {
     display_sampler: Sampler,
     display_group: Option<BindGroup>,
     gpu_timer: Option<renderer_core::timing::FrameTimer>,
-    overlay_vertices: Buffer,
+    player_meshes: geometry::PlayerMeshes,
     overlay_instances: Buffer,
-    overlay_vertex_count: u32,
-    overlay_snapshot: Vec<f32>,
     overlay_glow: [f32; 4],
     width: u32,
     height: u32,
@@ -84,17 +97,26 @@ impl Renderer {
     /// Device admission is asynchronous; canonical presentation borrows are not.
     pub async fn new(
         canvas: HtmlCanvasElement,
-        light: String,
-        fog: String,
-        grass_density: Option<f64>,
+        settings: String,
+        high_canvas: Option<HtmlCanvasElement>,
     ) -> Result<Renderer, JsValue> {
-        let light = serde_json::from_str(&light).map_err(js_error)?;
-        let style: presentation::fog::FogStyle = serde_json::from_str(&fog).map_err(js_error)?;
+        let settings: Settings = serde_json::from_str(&settings).map_err(js_error)?;
+        if let Some(paint) = settings.paint {
+            paint.validate().map_err(js_error)?;
+        }
         Self::admit(
             canvas,
-            light,
-            style.look().map_err(js_error)?,
-            grass_density,
+            high_canvas.clone(),
+            RuntimeConfig {
+                size: [1, 1],
+                light: settings.light,
+                fog_look: settings.fog.look().map_err(js_error)?,
+                grass_density: settings.grass_density,
+                paint: settings.paint,
+                xray_min_hidden_fraction: settings.xray_min_hidden_fraction,
+                separate_high_air: high_canvas.is_some(),
+                controls: settings.controls.unwrap_or_default(),
+            },
         )
         .await
     }
@@ -106,7 +128,7 @@ impl Renderer {
             [self.width, self.height] = size;
             self.config.size = size;
             if let Some(runtime) = &mut self.runtime {
-                runtime.resize(&self.device, size, presentation.core_mut());
+                runtime.resize(&self.device, &self.queue, size, presentation.core_mut());
             }
             self.rebind_display();
             self.stats.resizes += 1;
@@ -127,9 +149,8 @@ impl Renderer {
 impl Renderer {
     async fn admit(
         canvas: HtmlCanvasElement,
-        light: presentation::light::LightSettings,
-        fog_look: presentation::records::FogLook,
-        grass_density: Option<f64>,
+        high_canvas: Option<HtmlCanvasElement>,
+        mut config: RuntimeConfig,
     ) -> Result<Renderer, JsValue> {
         let instance = Instance::new(InstanceDescriptor {
             backends: Backends::BROWSER_WEBGPU,
@@ -194,6 +215,17 @@ impl Renderer {
                 view_formats: vec![],
             },
         );
+        let high_surface = high_canvas
+            .map(|canvas| {
+                high_surface::HighSurface::new(
+                    &instance,
+                    &adapter,
+                    &device,
+                    canvas,
+                    [width, height],
+                )
+            })
+            .transpose()?;
         let pipeline_errors = device.push_error_scope(ErrorFilter::Validation);
         let display_pipelines = Pipelines::build(&device, DISPLAY_PIPELINES, |_, _| {
             Ok(DISPLAY_SHADER.to_owned())
@@ -203,25 +235,21 @@ impl Renderer {
             return Err(js_error(format!("display pipeline validation: {error:?}")));
         }
         let display_sampler = device.create_sampler(&SamplerDescriptor::default());
-        let overlay_vertices =
-            renderer_core::buffer(&device, "overlay-vertices", BufferUsages::VERTEX, &[0; 40]);
+        let player_meshes = geometry::PlayerMeshes::new(&device);
         let overlay_instances = renderer_core::buffer(
             &device,
             "overlay-instance",
             BufferUsages::VERTEX,
             bytemuck::cast_slice(&[0.0f32, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0]),
         );
+        config.size = [width, height];
         Ok(Self {
             surface,
+            high_surface,
             device,
             queue,
             runtime: None,
-            config: RuntimeConfig {
-                size: [width, height],
-                light,
-                fog_look,
-                grass_density,
-            },
+            config,
             geometry: None,
             effect_sheets: None,
             model_library: Arc::new(Library::default()),
@@ -229,10 +257,8 @@ impl Renderer {
             display_sampler,
             display_group: None,
             gpu_timer: None,
-            overlay_vertices,
+            player_meshes,
             overlay_instances,
-            overlay_vertex_count: 0,
-            overlay_snapshot: Vec::new(),
             overlay_glow: [0.0; 4],
             width,
             height,
@@ -245,6 +271,9 @@ impl Renderer {
     }
 
     fn configure_surface(&self) {
+        if let Some(high) = &self.high_surface {
+            high.configure(&self.device, [self.width, self.height]);
+        }
         self.surface.configure(
             &self.device,
             &SurfaceConfiguration {
@@ -262,6 +291,24 @@ impl Renderer {
     }
 
     fn rebind_display(&mut self) {
+        if let Some(high) = &mut self.high_surface {
+            high.group = self
+                .runtime
+                .as_ref()
+                .and_then(|runtime| runtime.high_air.as_ref())
+                .map(|air| {
+                    renderer_core::bind(
+                        &self.device,
+                        self.display_pipelines.layout("sampled"),
+                        "high-air-surface",
+                        &[
+                            BindingResource::TextureView(air.output()),
+                            BindingResource::Sampler(&self.display_sampler),
+                        ],
+                    )
+                });
+        }
+
         self.display_group = self.runtime.as_ref().map(|runtime| {
             renderer_core::bind(
                 &self.device,

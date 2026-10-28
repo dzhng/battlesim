@@ -290,8 +290,12 @@ impl Run {
             light,
             fog_look: replay.fog_look,
             grass_density: Some(1.0),
+            xray_min_hidden_fraction: None,
+            paint: None,
+            separate_high_air: false,
+            controls: Default::default(),
         };
-        let scene = Runtime::new(
+        let mut scene = Runtime::new(
             &gpu.device,
             &gpu.queue,
             config,
@@ -306,6 +310,7 @@ impl Run {
                 native_client::pipelines::source(&pipeline_dir.to_string_lossy(), name, shader)
             },
         )?;
+        pollster::block_on(scene.prepare_assets(&gpu.device, &gpu.queue))?;
         println!(
             "pipelines: {} built and world installed in {:.2} s on {}",
             scene.pipelines.names().count(),
@@ -422,7 +427,7 @@ impl Run {
         bench.begin(device, queue);
         let mut encoder = device.create_command_encoder(&Default::default());
         self.scene
-            .encode(device, queue, &self.view, &mut encoder, None);
+            .encode(device, queue, &self.view, &mut encoder, Default::default());
         bench.end(&mut encoder);
         bench.mark();
         let index = self.present(encoder);
@@ -526,7 +531,7 @@ impl Run {
             );
             let mut encoder = device.create_command_encoder(&Default::default());
             self.scene
-                .encode(device, queue, &self.view, &mut encoder, None);
+                .encode(device, queue, &self.view, &mut encoder, Default::default());
             let rgba =
                 native_client::readback::read_display(device, queue, &self.scene.targets, encoder);
             output::write_png(&out.join(&plate), self.scene.targets.size, &rgba)?;
@@ -543,7 +548,7 @@ impl Run {
                 &self.gpu.queue,
                 &self.view,
                 &mut encoder,
-                None,
+                Default::default(),
             );
             self.present(encoder);
             return Ok(true);

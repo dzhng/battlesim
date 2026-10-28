@@ -29,6 +29,12 @@ export async function run(ctx) {
   }
   if (process.env.ONE_RENDERER_TIMING === "1") url.searchParams.set("timing", "1");
   if (dynamic) url.searchParams.set("dynamic", "1");
+  if (process.env.ONE_RENDERER_PLAYER_FEATURES === "1") url.searchParams.set("playerFeatures", "1");
+  if (process.env.ONE_RENDERER_LAB_MODELS === "1") url.searchParams.set("labModels", "1");
+  if (process.env.ONE_RENDERER_VIEW)
+    url.searchParams.set("frameView", process.env.ONE_RENDERER_VIEW);
+  if (process.env.ONE_RENDERER_INSPECT_VIEWS === "1") url.searchParams.set("inspectViews", "1");
+  if (process.env.ONE_RENDERER_READBACKS === "1") url.searchParams.set("readbacks", "1");
   await page.goto(url.href);
   await page.getByRole("button", { name: "Run comparison" }).waitFor({ timeout: 60_000 });
   await page.getByRole("button", { name: "Run comparison" }).click();
@@ -44,7 +50,9 @@ export async function run(ctx) {
     const stages = await page
       .locator("canvas")
       .evaluateAll((canvases) => canvases.map((canvas) => canvas.dataset.stage ?? null));
-    throw new Error(`renderer comparison stalled: ${JSON.stringify(stages)}`, { cause: error });
+    throw new Error(`renderer comparison stalled: ${JSON.stringify(stages)}`, {
+      cause: error,
+    });
   }
   const result = await page.evaluate(() =>
     [...document.querySelectorAll("tbody tr")].map((row) =>
@@ -52,6 +60,8 @@ export async function run(ctx) {
     ),
   );
   await writeFile(evidencePath("result.json"), JSON.stringify(result, null, 2));
+  const failed = result.filter((row) => row[6] !== "ok");
+  if (failed.length) throw new Error(`renderer comparison failed: ${JSON.stringify(failed)}`);
   const samples = await page
     .locator("tbody tr")
     .evaluateAll((rows) => rows.flatMap((row) => JSON.parse(row.dataset.samples ?? "[]")));
@@ -62,6 +72,8 @@ export async function run(ctx) {
     .evaluate((canvas) => ({
       before: canvas.dataset.recoveryBefore,
       after: canvas.dataset.recoveryAfter,
+      "high-before": canvas.dataset.highRecoveryBefore,
+      "high-after": canvas.dataset.highRecoveryAfter,
     }));
   for (const [phase, data] of Object.entries(recovery)) {
     if (data)
@@ -70,7 +82,10 @@ export async function run(ctx) {
         Buffer.from(data.split(",")[1], "base64"),
       );
   }
-  await page.screenshot({ path: evidencePath("comparison.png"), fullPage: true });
+  await page.screenshot({
+    path: evidencePath("comparison.png"),
+    fullPage: true,
+  });
   if (capture) {
     const browser = await page.locator("canvas").nth(9).screenshot();
     const shared = await page.locator("canvas").nth(11).screenshot();
@@ -109,6 +124,85 @@ export async function run(ctx) {
         meanRgbDifference: meanDiff(nativeCaptures.shared, nativeCaptures.browser),
       }),
     );
+    if (process.env.ONE_RENDERER_INSPECT_VIEWS === "1") {
+      const captures = [];
+      for (const index of [9, 11]) {
+        captures.push(
+          await page
+            .locator("canvas")
+            .nth(index)
+            .evaluate((canvas) => ({
+              images: JSON.parse(canvas.dataset.inspectorViews ?? "null"),
+              restored: canvas.dataset.inspectorRestored === "true",
+            })),
+        );
+      }
+      const distances = {};
+      for (const [view, source] of Object.entries(captures[0].images ?? {})) {
+        const pair = [source, captures[1].images?.[view]].map((data) => {
+          if (!data) throw new Error(`missing inspector view ${view}`);
+          return Buffer.from(data.split(",")[1], "base64");
+        });
+        for (let i = 0; i < pair.length; i++)
+          await writeFile(evidencePath(`view-${view}-${i}.png`), pair[i]);
+        distances[view] = meanDiff(decode(pair[0]), decode(pair[1]));
+      }
+      await writeFile(evidencePath("inspector-views.json"), JSON.stringify(distances, null, 2));
+      ctx.check(
+        "every inspector view matches browser control",
+        Object.keys(distances).length === 8 &&
+          Object.values(distances).every((distance) => distance < 1),
+        JSON.stringify(distances),
+      );
+      ctx.check(
+        "leaving inspector restores the complete frame",
+        captures.every((capture) => capture.restored),
+      );
+    }
+    if (process.env.ONE_RENDERER_READBACKS === "1") {
+      const query = await page
+        .locator("canvas")
+        .nth(11)
+        .evaluate((canvas) => ({
+          before: canvas.dataset.queryBefore,
+          readback: canvas.dataset.queryReadback,
+          restored: canvas.dataset.queryRestored === "true",
+          shape: JSON.parse(canvas.dataset.queryShape ?? "null"),
+          fog: JSON.parse(canvas.dataset.fogRecoveryProbe ?? "null"),
+        }));
+      for (const [key, data] of [
+        ["before", query.before],
+        ["snapshot", query.readback],
+      ]) {
+        if (!data) throw new Error(`missing GPU query ${key}`);
+        await writeFile(
+          evidencePath(`readback-${key}.png`),
+          Buffer.from(data.split(",")[1], "base64"),
+        );
+      }
+      const [before, snapshot] = [query.before, query.readback].map((data) =>
+        decode(Buffer.from(data.split(",")[1], "base64")),
+      );
+      ctx.check(
+        "GPU readback preserves its submitted frame while another view renders",
+        meanDiff(before, snapshot) === 0 && query.restored,
+        JSON.stringify({ difference: meanDiff(before, snapshot), restored: query.restored }),
+      );
+      const expected = [3, 2, 1, 2.5, 1.5];
+      ctx.check(
+        "browser fog probe executes shared shape shader",
+        query.shape?.length === expected.length &&
+          expected.every((value, i) => Math.abs(value - query.shape[i]) < 1e-5),
+        JSON.stringify(query.shape),
+      );
+      ctx.check(
+        "fog query restores retained knowledge before first recovered draw",
+        query.fog?.before?.includes(0) &&
+          query.fog.before.includes(1) &&
+          JSON.stringify(query.fog.before) === JSON.stringify(query.fog.recovered),
+        JSON.stringify(query.fog),
+      );
+    }
     const workload = JSON.parse(result[1]?.[5] ?? "null");
     ctx.check(
       "captured controls complete",
@@ -135,6 +229,25 @@ export async function run(ctx) {
       workload?.recoveryPixelsMatch === true,
       JSON.stringify(workload),
     );
+    if (process.env.ONE_RENDERER_PLAYER_FEATURES === "1") {
+      ctx.check(
+        "player paint, pointer and both overlay streams reach shared renderer",
+        workload?.playerGeometryVertices?.length === 5 &&
+          workload.playerGeometryVertices.every((n) => n > 0) &&
+          workload?.xrayMeshes === true &&
+          workload?.separateHighAir === true,
+        JSON.stringify(workload),
+      );
+      const high = await page
+        .locator("canvas")
+        .nth(11)
+        .evaluate((canvas) => canvas.dataset.finalHighFrame);
+      if (!high) throw new Error("high-air canvas did not retain its rendered frame");
+      await writeFile(
+        evidencePath("captured-high-air.png"),
+        Buffer.from(high.split(",")[1], "base64"),
+      );
+    }
     const browserWorkload = JSON.parse(result[0]?.[5] ?? "null");
     ctx.check(
       dynamic

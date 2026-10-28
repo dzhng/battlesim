@@ -168,7 +168,7 @@ impl FogSightResources {
             .iter()
             .map(|l| buffer(device, "fog-layer", uniform, bytemuck::cast_slice(l)))
             .collect();
-        // The ground paint (the UI's marks) is absent: a replay has no UI.
+        // Scenes without player marks keep an empty paint until one is bound.
         let paint_style = buffer(device, "fog-paint-style", uniform, &[0; 32]);
         let paint = device
             .create_texture(&TextureDescriptor {
@@ -306,6 +306,20 @@ impl FogSightResources {
         self.bind(device);
     }
 
+    /// Painted materials read the shared screen-space paint, with the exact
+    /// shader uniform layout. Resizing binds the new target without changing sight.
+    pub fn set_paint(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        texture: &TextureView,
+        style: &crate::paint::Paint,
+    ) {
+        queue.write_buffer(&self.paint_style, 0, bytemuck::bytes_of(style));
+        self.paint = texture.clone();
+        self.bind(device);
+    }
+
     /// Bind the ground owner's height pages when a world is installed.
     pub fn rebind_heights(&mut self, device: &Device, heights: &Buffer) {
         self.heights = heights.clone();
@@ -343,10 +357,20 @@ impl FogSightResources {
     /// After device recreation the presentation must supply its initial full
     /// tables and rebuild every eye map before incremental uploads resume.
     pub fn upload(&mut self, device: &Device, queue: &Queue, up: &FogUpload) {
+        self.upload_for(device, queue, up, true);
+    }
+
+    /// A point probe consumes canonical map work without replacing last frame's
+    /// screen-tile lists or whole-structure flags.
+    pub fn upload_probe(&mut self, device: &Device, queue: &Queue, up: &FogUpload) {
+        self.upload_for(device, queue, up, false);
+    }
+
+    fn upload_for(&mut self, device: &Device, queue: &Queue, up: &FogUpload, view: bool) {
         self.uploads += 1;
         self.complete_tables |= up.foliage.is_some() && up.occluders.is_some();
         self.due = Due::default();
-        if self.upload_buffers(device, queue, up) {
+        if self.upload_buffers(device, queue, up, view) {
             self.bind(device);
         }
     }
@@ -362,7 +386,13 @@ impl FogSightResources {
     }
 
     /// Uploads `up`; true when a buffer a group binds was replaced.
-    fn upload_buffers(&mut self, device: &Device, queue: &Queue, up: &FogUpload) -> bool {
+    fn upload_buffers(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        up: &FogUpload,
+        view: bool,
+    ) -> bool {
         let mut rebind = false;
         let copy = BufferUsages::COPY_SRC | BufferUsages::COPY_DST;
         if up.map_words != self.map_words {
@@ -411,7 +441,7 @@ impl FogSightResources {
             self.due.rebuild = Some(up.rebuild_dispatch);
         }
         queue.write_buffer(&self.params, 0, bytemuck::bytes_of(&up.params));
-        if !up.active {
+        if !up.active || !view {
             return rebind;
         }
         let [x, y, eyes_max] = up.tiles;
@@ -451,6 +481,26 @@ impl FogSightResources {
         rebind
     }
 
+    pub(crate) fn probe_tile_counts(&self) -> Option<(&Buffer, u64)> {
+        let bytes = u64::from(self.tiles[0]) * u64::from(self.tiles[1]) * WORD;
+        (bytes > 0).then_some((&self.counts, bytes))
+    }
+
+    pub(crate) fn probe_whole_flags(&self) -> &Buffer {
+        &self.flags
+    }
+
+    pub fn encode_maps(&self, encoder: &mut CommandEncoder) {
+        if let Some([t, m]) = self.due.rebuild {
+            let build = self.build.as_ref().expect("fog build group is installed");
+            let build = [("buildLayout", build)];
+            self.pipelines
+                .dispatch(encoder, crate::fog::FogStage::Terrain, &build, [t, 1]);
+            self.pipelines
+                .dispatch(encoder, crate::fog::FogStage::Merge, &build, [m, 1]);
+        }
+    }
+
     /// The passes the last upload asked for, in the browser's order.
     pub fn encode(&self, encoder: &mut CommandEncoder) {
         let group = |g: &Option<BindGroup>| {
@@ -458,14 +508,7 @@ impl FogSightResources {
                 .expect("fog's groups are bound at its start")
                 .clone()
         };
-        if let Some([t, m]) = self.due.rebuild {
-            let build = group(&self.build);
-            let build = [("buildLayout", &build)];
-            self.pipelines
-                .dispatch(encoder, crate::fog::FogStage::Terrain, &build, [t, 1]);
-            self.pipelines
-                .dispatch(encoder, crate::fog::FogStage::Merge, &build, [m, 1]);
-        }
+        self.encode_maps(encoder);
         let Some(tiles) = self.due.cull else {
             return;
         };

@@ -74,6 +74,8 @@ pub struct Grass {
     /// each regrow.
     words: Vec<u32>,
     args: Buffer,
+    capacity: [u32; 2],
+    clump_stride: u64,
     indices: Vec<(Buffer, u32)>,
     window: Window,
     /// The view the clumps were last grown for (view-projection, pixel
@@ -109,7 +111,7 @@ impl Grass {
         let clumps = device.create_buffer(&BufferDescriptor {
             label: Some("grass-clumps"),
             size: ((near + far) * pipelines.sizes.grass_clump).max(16),
-            usage: storage,
+            usage: storage | BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
         let shapes = buffer(
@@ -121,7 +123,10 @@ impl Grass {
         let args = device.create_buffer(&BufferDescriptor {
             label: Some("grass-args"),
             size: (ARGS_WORDS * 4) as u64,
-            usage: storage | BufferUsages::INDIRECT | BufferUsages::COPY_DST,
+            usage: storage
+                | BufferUsages::INDIRECT
+                | BufferUsages::COPY_DST
+                | BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
         let build_group = bind(
@@ -186,6 +191,8 @@ impl Grass {
             tiers,
             words,
             args,
+            capacity: data.capacity,
+            clump_stride: pipelines.sizes.grass_clump,
             indices,
             window: Window {
                 x0: 0.0,
@@ -198,6 +205,16 @@ impl Grass {
             drawn: false,
             regrow: false,
         }
+    }
+
+    pub fn probe_source(&self) -> Option<crate::probes::grass::GrassProbeSource<'_>> {
+        self.drawn
+            .then_some(crate::probes::grass::GrassProbeSource {
+                args: &self.args,
+                clumps: &self.clumps,
+                capacity: self.capacity,
+                stride: self.clump_stride,
+            })
     }
 
     /// Fits the window to `presentation`'s last frame and, if its view

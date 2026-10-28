@@ -19,9 +19,6 @@ use crate::pipelines::{Bound, Pipelines};
 use crate::scars::ScarFrame;
 use crate::terrain::{TerrainResources, TerrainUpload};
 
-/// `TerrainParams`' last `vec4u`, the frame's view: the lit ground (not its
-/// classes), the roads worn.
-const VIEW: [u32; 4] = [0, 0, 0, 0];
 /// The identity instance (`identityInstance`): no offset, unit scale, no tint.
 const IDENTITY: [f32; 8] = [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0];
 
@@ -125,17 +122,7 @@ impl Ground {
         pipelines: &Pipelines,
         data: GroundData<'_>,
     ) -> Self {
-        let mut params = data.material.params.to_vec();
-        params.extend_from_slice(bytemuck::cast_slice(&VIEW));
-        let material = TerrainResources::from_upload(
-            device,
-            queue,
-            pipelines,
-            TerrainUpload {
-                params: &params,
-                ..data.material
-            },
-        );
+        let material = TerrainResources::from_upload(device, queue, pipelines, data.material);
         let heights = buffer(
             device,
             "terrain-heights",
@@ -177,6 +164,27 @@ impl Ground {
     pub fn prepare(&mut self, camera: &Camera, shadow: Option<&SunShadowFrame>) {
         let casters = shadow.map_or(&[][..], |fit| fit.casters.as_slice());
         self.prepare_records(camera, casters);
+    }
+
+    pub fn set_class_view(&mut self, queue: &Queue, on: bool) -> bool {
+        self.material.set_class_view(queue, on)
+    }
+
+    pub fn set_road_wear(&mut self, queue: &Queue, on: bool) -> bool {
+        self.material.set_road_wear(queue, on)
+    }
+
+    /// True when the changed material requires grass to regrow.
+    pub fn set_field_texture(
+        &mut self,
+        queue: &Queue,
+        presentation: &Presentation,
+        on: bool,
+    ) -> Result<bool, String> {
+        let ground = presentation
+            .ground()
+            .ok_or("renderer world has no presentation ground")?;
+        self.material.set_field_texture(queue, ground, on)
     }
 
     /// Select bounded ranges from the camera and cascade camera publications.

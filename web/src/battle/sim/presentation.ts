@@ -48,6 +48,12 @@ import {
 } from "@packages/battle-renderer/src/frame/sceneryLayer";
 import { TEMPLATE_STATES, type TemplateState } from "@packages/scene-assets/src/templateLibrary";
 import { countedFetch } from "../../downloads";
+import {
+  labModelsJson,
+  type LabAsset,
+  type LabModel,
+  type ModelDetail,
+} from "./presentationModels";
 
 import type { ObservationLayout, ObservationView } from "./observationView";
 
@@ -383,7 +389,10 @@ export class ScenePresentation {
       );
     }
     // The call may grow memory: the views are taken after it.
-    const ptr = this.rust.load_world(JSON.stringify(world));
+    return this.readWorld(this.rust.load_world(JSON.stringify(world)));
+  }
+
+  private readWorld(ptr: number): PresentedAppearance[] {
     const views = worldViews(buffer(), ptr);
     const text = new TextDecoder();
     const rows = views.appearances.u32;
@@ -406,6 +415,20 @@ export class ScenePresentation {
       if (row.draws === STUMP) row.stump = this.rust.stump_mesh(r) as Mesh;
     });
     return (this.rows = loaded);
+  }
+
+  /** Installs a complete external art generation without fabricating a battle.
+   *  Reinstall renderer tables after admission; returned rows include both. */
+  installLabAssets(assets: readonly LabAsset[], detail: ModelDetail): PresentedAppearance[] {
+    this.rust.begin_lab_assets();
+    for (const asset of assets) this.rust.add_lab_asset(asset.name, asset.bundle, asset.skeleton);
+    const ptr = this.rust.install_lab_assets(JSON.stringify(detail));
+    return (this.loaded = this.readWorld(ptr));
+  }
+
+  /** Tooling models supplement the battle and static world on the next frame. */
+  setLabModels(models: readonly LabModel[]): void {
+    this.rust.set_lab_models(labModelsJson(models));
   }
 
   /** The drawables named by the last loaded world, in frame row order. */
@@ -751,6 +774,19 @@ export class ScenePresentation {
   /** Install canonical scene state without crossing a second WASM memory. */
   installRenderer(renderer: Pick<Renderer, "install_presentation">) {
     renderer.install_presentation(this.rust);
+  }
+
+  /** Live controls apply to the same canonical scene and survive recovery. */
+  setRendererControls(renderer: Pick<Renderer, "set_controls">, controls: object) {
+    renderer.set_controls(this.rust, JSON.stringify(controls));
+  }
+
+  /** Queue a canonical visibility query without exposing the Rust handle. */
+  probeFog(
+    renderer: Pick<Renderer, "fog_probe">,
+    points: readonly { position: readonly number[]; normal?: readonly number[] }[],
+  ): Promise<Uint8Array> {
+    return renderer.fog_probe(this.rust, JSON.stringify(points));
   }
 
   /** Rebuild targets against the canonical state; reacquire UI views afterward. */
