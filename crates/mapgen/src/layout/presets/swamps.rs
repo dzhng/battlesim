@@ -31,10 +31,13 @@ pub struct Swamps {
     /// Least dry ground between a swamp's edge and a river's water.
     pub river_gap_m: f64,
     /// Least ground between a swamp and a settlement's outline, another
-    /// swamp, and a bridge deck lengthened by its approach.
+    /// swamp, a bridge deck lengthened by its approach, a road's edge and a
+    /// wood.
     pub settlement_gap_m: f64,
     pub swamp_gap_m: f64,
     pub bridge_gap_m: f64,
+    pub road_gap_m: f64,
+    pub wood_gap_m: f64,
     /// Attempts at each swamp before its pair is given up.
     pub attempts: u32,
     /// How far the halves' swamp areas may differ.
@@ -105,6 +108,8 @@ impl Swamps {
                     self.settlement_gap_m,
                     self.swamp_gap_m,
                     self.bridge_gap_m,
+                    self.road_gap_m,
+                    self.wood_gap_m,
                 ]
                 .into_iter()
                 .all(finite)

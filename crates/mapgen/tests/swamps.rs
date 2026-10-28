@@ -260,3 +260,38 @@ fn swamps_keep_clear_of_settlements_buildings_and_bridge_approaches() {
     }
     assert!(swamps >= 2, "only {swamps} swamps on whole maps");
 }
+
+/// A generated swamp lies in open country: no road runs through or along it
+/// and no wood stands in it, so it reads as a marsh, not a pond on a road.
+#[test]
+fn a_generated_swamp_keeps_off_roads_and_woods() {
+    let presets = presets(1.0);
+    let mut checked = 0;
+    for (seed, plan) in corpus(&presets, GenerationProfile::Standard) {
+        for swamp in &plan.swamps {
+            for area in &plan.surfaces {
+                if let GroundShape::Stroke {
+                    centerline,
+                    width_m,
+                } = &area.shape
+                {
+                    for p in centerline.samples() {
+                        assert!(
+                            gap(ring(swamp), *p) > width_m / 2.0,
+                            "seed {seed}: a road runs through a swamp at {p:?}"
+                        );
+                    }
+                }
+            }
+            for wood in &plan.forests {
+                if let GroundShape::Polygon { ring: wood } = &wood.shape {
+                    let touches = wood.iter().any(|p| gap(ring(swamp), *p) == 0.0)
+                        || ring(swamp).iter().any(|p| gap(wood, *p) == 0.0);
+                    assert!(!touches, "seed {seed}: a wood stands in a swamp");
+                }
+            }
+            checked += 1;
+        }
+    }
+    assert!(checked >= 12, "only {checked} swamps checked");
+}

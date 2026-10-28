@@ -134,13 +134,19 @@ against the code. Each says what was chosen, why, and how sure the agent is.
    on the place, low on the values (tuning).
 3. **Placement:** after towns, woods and the skirmish reservation, before
    `verify`, from the `swamps` stream. A swamp lies wholly inside its half
-   and the map, keeps `settlement_gap_m` from every settlement outline and
-   every skirmish objective (its whole radius) and entry, keeps off every
-   reserved corridor, keeps `bridge_gap_m` from a deck lengthened by its
-   approach (a circle test), keeps `swamp_gap_m` from other swamps, and
-   with a river lies between `river_gap_m` and `river_reach_m` of the
-   water. Roads and woods may cross it: a causeway, a wooded swamp.
-   *Confidence:* medium on the gaps (tuning).
+   and the map, keeps `settlement_gap_m` from every settlement outline (both
+   rings' vertices) and every skirmish objective (its whole radius) and
+   entry, keeps `road_gap_m` from every road's edge and `wood_gap_m` from
+   every wood, keeps off every reserved corridor, keeps `bridge_gap_m` from
+   a deck lengthened by its approach (a circle test), keeps `swamp_gap_m`
+   from other swamps, and with a river lies between `river_gap_m` and
+   `river_reach_m` of the water with its long axis along the river's course
+   there. *Why:* the first unprimed critique of a six-seed sheet found roads
+   running through swamps, swamps notched into woods, one crowding a
+   village, and round ponds unrelated to the river; generated swamps now
+   keep off all of those (hand-made maps may still lay a causeway across
+   one). The second critique found no placement error. *Confidence:* medium
+   on the gaps and sizes (tuning).
 4. **Later passes keep off swamps through what they already keep off:** the
    open country counts a swamp with the woods it never furnishes
    (`open_country/country.rs`), and the ground-sight coverage counts its
@@ -165,3 +171,9 @@ against the code. Each says what was chosen, why, and how sure the agent is.
 9. **Splits for the size ratchet:** the presets document
    (`layout/presets/definitions.rs`) and the open country's clearance
    reading (`open_country/country.rs`) moved out in their own commits.
+10. **Left for tuning and slice 13:** the second critique still read the
+    swamps as neat ponds of one family, small at 6 km, and noted the
+    riverside ones never meet the river. The gap is the contract's (a
+    swamp may not stand on a river's cut bank); size and variety are preset
+    numbers; the crisp outline is the plan picture's symbol, and the look on
+    the battlefield is slice 13's.

@@ -191,6 +191,8 @@ pub fn generate_layout(
             reserved: &placed.reserved,
             water: &water,
             bridges: &bridges,
+            roads: &surfaces,
+            woods: &forests,
             skirmish: skirmish.as_ref(),
         },
     );
