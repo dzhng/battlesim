@@ -1,6 +1,7 @@
 //! Wakes: where a unit the side sees wading pushes on the water, decided
 //! per tick from what is published, never from how often frames are drawn.
 use super::*;
+use crate::effects::publication::Wading;
 use crate::effects::tables::WakeStyle;
 use crate::records::WaveSplat;
 use crate::view::Camera;
@@ -12,11 +13,12 @@ pub(super) const WAKE_KEEP_S: f64 = 1.0;
 
 /// The wake wader `u` makes over the tick from `t0`, `dt` long, having come
 /// `d` (x, y) since the last: at `vee_mps` or faster a V-wake push from
-/// each of its waders for every `spacing_m` it covers, when and where it
-/// passed (`carry`: how far it has come since its last); slower, rings
-/// round each every 1/`ring_hz` s of the clock, each seeded by the unit,
-/// the wader and its count. A unit first seen, or seen again after a gap,
-/// starts clean.
+/// each of its waders in water `vee_depth_m` deep or more, for every
+/// `spacing_m` it covers, when and where it passed (`carry`: how far it has
+/// come since its last); slower, and from waders in shallower water (a
+/// puddle splashes, it drags no V), rings round each every 1/`ring_hz` s of
+/// the clock, each seeded by the unit, the wader and its count. A unit
+/// first seen, or seen again after a gap, starts clean.
 #[allow(clippy::too_many_arguments)]
 pub(super) fn wake(
     out: &mut Vec<WakeImpulse>,
@@ -30,11 +32,13 @@ pub(super) fn wake(
 ) {
     let radius = u.half.map_or(style.soldier_radius_m, |h| h[1]);
     let dist = libm::hypot(d[0], d[1]);
-    if !gap && dist / dt >= style.vee_mps {
+    let moving = !gap && dist / dt >= style.vee_mps;
+    let drags = |w: &Wading| moving && w.depth_m >= style.vee_depth_m;
+    if moving {
         let mut ahead = style.spacing_m - *carry;
         while ahead <= dist {
             let back = 1.0 - ahead / dist;
-            out.extend(u.wading.iter().map(|w| WakeImpulse {
+            out.extend(u.wading.iter().filter(|w| drags(w)).map(|w| WakeImpulse {
                 xy: [w.at[0] - d[0] * back, w.at[1] - d[1] * back],
                 radius,
                 strength: style.vee_strength,
@@ -44,12 +48,12 @@ pub(super) fn wake(
             ahead += style.spacing_m;
         }
         *carry = dist - (ahead - style.spacing_m);
-        return;
+    } else {
+        *carry = 0.0;
     }
-    *carry = 0.0;
     let mut k = (t0 * style.ring_hz).ceil();
     while k / style.ring_hz < t0 + dt {
-        for (i, w) in u.wading.iter().enumerate() {
+        for (i, w) in u.wading.iter().enumerate().filter(|(_, w)| !drags(w)) {
             let mut rng = Key::new()
                 .text("wake")
                 .num(u.key)
@@ -76,6 +80,13 @@ pub struct WaveFrame {
 }
 
 impl EffectFrame {
+    /// Start the wave field over, in a new epoch (a side switch), with none
+    /// of the wakes the old side saw made still waiting to splat.
+    pub fn restart_waves(&mut self) {
+        self.waves.restart();
+        self.wakes.clear();
+    }
+
     /// The wave field's frame at presentation time `clock` for `camera`
     /// (`WaveClock::advance`), with every wake impulse made in the steps it
     /// runs, each at the step that covers it: none is splatted twice, and

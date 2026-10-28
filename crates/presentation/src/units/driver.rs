@@ -843,8 +843,7 @@ impl PoseDriver {
                 _ => Kick::default(),
             };
 
-            let [x, y, _] = soldier.position;
-            let wet = || water.and_then(|w| w.at(x, y)).map_or(0.0, |w| w.depth_m);
+            let wet = || water?.under(soldier.position);
             let lean = soldier.lean.is_some();
             let fast = speed >= gait.crawl_mps;
             let posture = state

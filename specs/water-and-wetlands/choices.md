@@ -1442,8 +1442,31 @@ against the code. Each says what was chosen, why, and how sure the agent is.
 - **Verdict:** sound.
 - **Confidence:** high.
 - **Not done:** the slice's debug lab (wake marks on a test copy of the
-  wetlands ground) and "a soldier crossing a puddle makes rings", which
-  waits for slice 14.
+  wetlands ground). "A soldier crossing a puddle makes rings" landed after
+  slice 14, in `wake_sources.rs`: a rifle squad walking a road through the
+  river lab's largest road puddle.
+
+### A V-wake needs depth; a puddle only splashes rings
+
+- **When:** after slice 14 (Codex review of 15 and 16).
+- **The choice:** `wake.vee_depth_m` (0.2 m). A wader moving at
+  `vee_mps` or faster drags a V only where the water stands that deep;
+  in shallower water (a puddle, a swamp's shoaling edge) it makes rings at
+  the ring rate, moving or not. A boot in a puddle splashes; it raises no
+  bow wave (decisions 13 and 29).
+- **Verdict:** sound.
+- **Confidence:** medium on the depth.
+
+### Only what stands below the water's surface wades
+
+- **When:** after slice 16 (Codex review).
+- **The choice:** `StandingWater::under(at)`: the water at a point whose
+  surface is above the feet or hull there. A tank or soldier on a bridge's
+  deck over the river is dry. The effects' waders, the posture rule and a
+  round's splash all use it. A round is looked for 5 cm below where it
+  stopped, since the simulation stops it on the surface itself.
+- **Verdict:** sound.
+- **Confidence:** high.
 
 ## Slice 16: the wave field
 
@@ -1513,6 +1536,18 @@ against the code. Each says what was chosen, why, and how sure the agent is.
   splats or drawing them as quads would bound it.
 - **Verdict:** sound for the look; the cost is unmeasured.
 - **Confidence:** medium.
+
+### A side switch starts the field over; the renderer obeys every packet
+
+- **When:** after slice 16 (Codex review).
+- **The choice:** `Presentation::invalidate` restarts the wave clock
+  (`Loaded::forget`), so a side switch opens a new epoch before the new
+  side's world loads. The renderer's `wavePlan` clears the field on a new
+  epoch or an empty packet (no battle), even in a frame with no step. A
+  frame with a camera shift but no step runs a still pass that only moves
+  the field, so the field stays laid where `Camera.waves` says.
+- **Verdict:** sound.
+- **Confidence:** high.
 
 ### Captures warm the field by playing the reel, not by a fixed warm-up
 

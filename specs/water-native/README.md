@@ -2,8 +2,8 @@
 
 **Status:** placeholder. It collects the native-client work from
 [water and wetlands](../water-and-wetlands/README.md) that is too complicated to
-port in the same step as the browser. Nothing is listed yet: slices 00, 01
-and 02 ported everything.
+port in the same step as the browser. One gap is listed: slice 16's wakes
+(see [Gaps](#gaps)).
 **Updated:** 2026-10-28.
 
 ## Next Agent Prompt

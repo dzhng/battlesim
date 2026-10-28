@@ -148,3 +148,29 @@ fn each_wake_impulse_splats_once_at_the_step_that_covers_it_whatever_the_frame_r
     assert!(!slow.is_empty(), "the still squad rings the water");
     assert_eq!(slow, splats(144.0));
 }
+
+/// A side switch (`Presentation::invalidate`, which starts the field over)
+/// discards the wakes the old side saw made and not yet splatted: none
+/// reaches the new side's field.
+#[test]
+fn a_side_switch_splats_none_of_the_old_sides_wakes() {
+    let camera = looking_at(40.0, 20.0, 60.0);
+    let mut f = effects();
+    f.waves(0.0, &camera);
+    for tick in 1..=16 {
+        f.note(&wading(f64::from(tick)));
+    }
+    // Drawn up to 0.49 s: the squad's 0.5 s rings are queued, not yet splatted.
+    assert!(f.wakes(0.49, 0.6).count() > 0, "a wake waits");
+    f.waves(0.49, &camera);
+    f.restart_waves();
+    let cleared = f.waves(0.5, &camera);
+    let next = f.waves(0.7, &camera);
+    assert_eq!(next.step.epoch, cleared.step.epoch);
+    assert!(next.step.steps > 0);
+    assert!(
+        next.splats.is_empty(),
+        "the old side's wakes: {:?}",
+        next.splats
+    );
+}

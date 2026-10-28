@@ -44,15 +44,19 @@ fn chest(units: &UnitsSection) -> [f64; 3] {
     serde_json::from_value(units.pose["stance"]["chest_m"].clone()).unwrap()
 }
 
-/// Every clip twelve men at (x, y) play, first pinned, then firing, in
-/// `ground`.
-fn clips(units: &UnitsSection, ground: Option<&Ground>, x: f64, y: f64) -> Vec<String> {
+/// Every clip twelve men with their feet at (x, y, z) play, first pinned,
+/// then firing, on `ground`.
+fn clips(units: &UnitsSection, ground: Option<&Ground>, [x, y, z]: [f64; 3]) -> Vec<String> {
     let none = fallen(&[]);
     let mut seen = vec![];
     for pinned in [true, false] {
         let mut driver = PoseDriver::new(units).unwrap();
         for (time, shots) in [(0.0, 0.0), (0.5, 1.0)] {
-            let men = (0..12).map(|i| man(f64::from(i) + 1.0, x + f64::from(i % 4), y, shots));
+            let men = (0..12).map(|i| {
+                let mut m = man(f64::from(i) + 1.0, x + f64::from(i % 4), y, shots);
+                m.position[2] = z;
+                m
+            });
             let poses = driver.update(
                 &frame(time, vec![squad(men.collect(), pinned)], &none),
                 units,
@@ -79,18 +83,20 @@ fn a_soldier_standing_in_water_deeper_than_a_lying_soldier_is_never_posed_prone(
     let water = ground.standing_water();
     let [_, kneel, prone] = chest(&units);
     let (x, y) = (496.0, 415.0);
-    let depth = water.at(x, y).expect("the swamp holds water there").depth_m;
+    let wet = water.at(x, y).expect("the swamp holds water there");
+    let depth = wet.depth_m;
     assert!(
         prone < depth && depth < kneel,
         "a swamp a lying man drowns in: {depth} m"
     );
+    let feet = [x, y, wet.surface_z - depth];
 
-    let dry = clips(&units, None, x, y);
+    let dry = clips(&units, None, feet);
     assert!(
         dry.iter().any(|c| lying(c)),
         "on dry ground some lie down: {dry:?}"
     );
-    let wet = clips(&units, Some(&ground), x, y);
+    let wet = clips(&units, Some(&ground), feet);
     assert!(
         !wet.iter().any(|c| lying(c)),
         "in the swamp nobody lies: {wet:?}"
@@ -108,17 +114,36 @@ fn in_a_river_deeper_than_a_kneeling_soldier_s_chest_he_stands() {
     let water = ground.standing_water();
     let [_, kneel, _] = chest(&units);
     let (x, y) = (20.0, 240.0);
-    let depth = water.at(x, y).expect("the river runs there").depth_m;
+    let wet = water.at(x, y).expect("the river runs there");
+    let depth = wet.depth_m;
     assert!(kneel < depth, "a river a kneeling man drowns in: {depth} m");
+    let feet = [x, y, wet.surface_z - depth];
 
-    let dry = clips(&units, None, x, y);
+    let dry = clips(&units, None, feet);
     assert!(
         dry.iter().any(|c| kneeling(c)),
         "on dry ground some kneel: {dry:?}"
     );
-    let wet = clips(&units, Some(&ground), x, y);
+    let wet = clips(&units, Some(&ground), feet);
     assert!(
         !wet.iter().any(|c| lying(c) || kneeling(c)),
         "in the river everyone stands: {wet:?}"
+    );
+}
+
+#[test]
+fn on_a_bridge_over_deep_water_a_soldier_lies_down_as_on_dry_ground() {
+    let units = units();
+    let ground = wet_ground();
+    // The river lab's bridge: its deck 0.1 m up, over the river.
+    let deck = [60.0, 240.0, 0.1];
+    assert!(
+        ground.standing_water().at(deck[0], deck[1]).is_some(),
+        "the river runs under it"
+    );
+    let on = clips(&units, Some(&ground), deck);
+    assert!(
+        on.iter().any(|c| lying(c)),
+        "dry on the deck, some lie down: {on:?}"
     );
 }

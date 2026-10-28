@@ -246,6 +246,13 @@ impl<'a> StandingWater<'a> {
         w.swamps.get(look)?.ground.as_deref()
     }
 
+    /// The water something stands in with its feet or hull at `at`: the
+    /// standing water there, if its surface is above them. A deck over a
+    /// river, or anything else above the water, is dry.
+    pub fn under(&self, [x, y, z]: [f64; 3]) -> Option<Wet> {
+        self.at(x, y).filter(|w| z < w.surface_z)
+    }
+
     /// The water surface's square cells (`CELL_FLOATS` each): the
     /// south-west corner, the surface height and the side, in metres, the
     /// look it draws, then a puddle's centre and radius (zeros for a river's
