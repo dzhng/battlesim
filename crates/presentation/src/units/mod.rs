@@ -8,7 +8,18 @@ pub mod interpolate;
 pub mod pose;
 pub mod skin;
 
+use sim::publication::reader::{Host, OwnUnit};
+
 use crate::world::Vec3;
+
+/// Aboard a carrier past its entry timer: inside, or still inside while
+/// leaving it. A rider is off the field: nothing of it is drawn, picked,
+/// heard or wades.
+pub fn riding(u: &OwnUnit) -> bool {
+    u.hold
+        .as_ref()
+        .is_some_and(|h| matches!(h.host, Host::Carrier { .. }) && &*h.phase != "entering")
+}
 
 /// The signed turn from `current` to `target`, in (−π, π] (`math`'s `deltaAngle`).
 pub fn delta_angle(current: f64, target: f64) -> f64 {

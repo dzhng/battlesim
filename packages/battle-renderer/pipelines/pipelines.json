@@ -10,6 +10,37 @@
     "sceneColourMips": 4
   },
   "layouts": {
+    "waveLayout": [
+      {
+        "binding": 0,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 1,
+        "buffer": {
+          "type": "uniform"
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 2,
+        "buffer": {
+          "type": "read-only-storage"
+        },
+        "visibility": [
+          "fragment"
+        ]
+      }
+    ],
     "bake - Automatic Bind Group & Layout": [
       {
         "binding": 0,
@@ -364,6 +395,17 @@
       },
       {
         "binding": 12,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 13,
         "texture": {
           "sampleType": "float",
           "viewDimension": "2d",
@@ -1415,6 +1457,24 @@
   },
   "pipelines": [
     {
+      "name": "waveStep",
+      "kind": "render",
+      "shader": "waveStep.wgsl",
+      "layout": [
+        "waveLayout"
+      ],
+      "vertex": {
+        "buffers": []
+      },
+      "fragment": {
+        "targets": [
+          {
+            "format": "rgba16float"
+          }
+        ]
+      }
+    },
+    {
       "name": "bake",
       "kind": "render",
       "shader": "bake.wgsl",
@@ -1732,8 +1792,8 @@
       "layout": [
         "typegpuCameraLayout",
         "terrainLayout",
-        "environment",
-        "fogLayout"
+        "fogLayout",
+        "environment"
       ],
       "vertex": {
         "buffers": [

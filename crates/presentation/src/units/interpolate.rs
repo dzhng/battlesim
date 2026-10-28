@@ -8,18 +8,10 @@
 //! the publication, but nothing of it is drawn, picked or heard.
 use std::sync::Arc;
 
-use sim::publication::reader::{Crash, Host, Identified, Observation, OwnUnit, PropDisplayPose};
+use sim::publication::reader::{Crash, Identified, Observation, OwnUnit, PropDisplayPose};
 
-use super::{delta_angle, lerp3};
+use super::{delta_angle, lerp3, riding};
 use crate::world::Vec3;
-
-/// Aboard a carrier past its entry timer: inside, or still inside while
-/// leaving it.
-fn riding(u: &OwnUnit) -> bool {
-    u.hold
-        .as_ref()
-        .is_some_and(|h| matches!(h.host, Host::Carrier { .. }) && &*h.phase != "entering")
-}
 
 /// One unit's body at the drawn moment.
 #[derive(Clone, Debug, Default)]

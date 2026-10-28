@@ -77,6 +77,23 @@ pub fn typescript() -> String {
         ));
     }
     {
+        use crate::wave::WAVE;
+        out.push_str(&format!(
+            "/** The wave field's tuning (`wave.rs`): steps a second and the most a frame\n \
+             *  runs, texels a side and metres a texel, RedGPU's wave speed and damping a\n \
+             *  step, and how steeply its slope tilts the water's normal. */\n\
+             export const WAVE = {{\n  hz: {},\n  maxSteps: {},\n  texels: {},\n  texelM: {},\n  \
+             speed: {},\n  damping: {},\n  normal: {},\n}} as const;\n",
+            WAVE.hz,
+            WAVE.max_steps,
+            WAVE.texels,
+            WAVE.texel_m,
+            WAVE.speed,
+            WAVE.damping,
+            WAVE.normal,
+        ));
+    }
+    {
         use crate::effects::frame::{EFFECT_KINDS, SHAPE_NAMES};
         // One line when it fits the formatter's width, else a name a line.
         let names = |name: &str, names: &[&str]| {

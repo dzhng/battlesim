@@ -278,6 +278,7 @@ pub fn camera_record(
         time,
         pad: 0.0,
         wind: [Default::default()],
+        waves: [0.0; 4],
     }
 }
 

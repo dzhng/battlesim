@@ -316,6 +316,8 @@ impl Fog {
                     BindingResource::TextureView(scene),
                     BindingResource::Sampler(&self.scene_taps),
                     BindingResource::TextureView(seen),
+                    // The wave field: native draws no wakes (water-native).
+                    BindingResource::TextureView(&self.no_scene),
                 ],
             )
         };

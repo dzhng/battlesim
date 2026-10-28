@@ -1307,3 +1307,228 @@ against the code. Each says what was chosen, why, and how sure the agent is.
   darker wet rim and a stronger sky sheen as the candidates.
 - **Verdict:** unfinished.
 - **Confidence:** low.
+## Slice 13: swamps drawn as water (the posture rule)
+
+### A posture is taken only where it holds the chest above the water
+
+- **When:** slice 13, the posture rule (decision 33).
+- **The choice:** each posture carries the height it holds a soldier's chest
+  over the ground under him: `presentation.pose.stance.chest_m`, standing,
+  kneeling, lying, `[1.35, 0.85, 0.3]`. Where a man would kneel or lie, the
+  pose driver asks the one `StandingWater` how deep the water at his feet
+  stands. He takes the first posture from his own upward whose chest clears
+  it, and he stands in any water. Rivers count as swamps do. So in the 0.6 m
+  marsh a pinned or firing man who would lie kneels, water at his belt, and
+  in a river deeper than 0.85 m he stands. The rule lives with the stance
+  (`units/driver/stance.rs`: `Stance::posture`, which now holds the whole
+  posture choice: lean, pin, fire, crawl speed, water).
+- **The gap:** decision 33 compares against "a lying soldier's height", and
+  no pose data held one. The coordinator's note said kneeling in thigh-deep
+  water puts the chest under. On one knee a 1.8 m man's chest stands at
+  about 0.85 to 0.95 m, so at 0.6 m he kneels with the water at his belt,
+  as soldiers hunker in a paddy in a war film. The chest, not the head, is
+  the line: a man lying with only his face clear, or kneeling up to his
+  chin, reads as drowning.
+- **The reach:** the dead still fall and lie where they die, half under
+  the water (a body in the marsh is the film's picture). Moving men keep
+  moving in their posture, so a crouched move in a river becomes an upright
+  walk.
+- **Verdict:** sound; the heights are data, tuned by eye like the stance
+  shares.
+- **Confidence:** medium on the kneeling height.
+
+### The driver takes the ground and asks it for the standing water each frame
+
+- **When:** slice 13, the posture rule.
+- **The choice:** `PoseDriver::update(frame, units, ground)` builds
+  `ground.standing_water()` once per frame. Only men who would go down look
+  up the depth. Building it costs about 0.8 µs on the wetlands map (its swamp
+  outline has four edges), and a lookup about 0.75 µs, mostly the river's
+  365 stretches. So no cached copy is kept beside the ground.
+- **The gap:** the coordinator suggested building it once when the ground
+  is set; the measurement showed no need.
+- **The reach:** a firefight of 200 men down costs about 0.15 ms a frame
+  natively. A bounds check per stretch would cut it if it ever shows.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+## Slice 15: wake sources
+
+### Who wades: a ground hull at its centre, each soldier in the water
+
+- **When:** slice 15.
+- **The choice:** `EffectFeed::publication` takes the ground's
+  `StandingWater` and fills `Shooter.wading` with `Wading { at, depth_m }`:
+  a hull on the ground at its centre, otherwise each member standing in the
+  water. Each sits on the water's surface. Aircraft, and squads riding a
+  carrier (`units::riding`, now the one test that both interpolation and the
+  feed use), wade nowhere. Enemies wade only while identified, because the feed
+  reads only what the side sees. `Loaded::note` moved to
+  `presentation/taken.rs` and takes the ground, so `presentation.rs` didn't
+  grow.
+- **The gap:** the contract named the sources, not where a hull's push
+  sits. The centre is what the contract said; a hull half in the water at
+  a bank still wades or not by its centre.
+- **The reach:** puddles come with slice 14 through the same `at`.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### A round on the water splashes: its hit is `water`
+
+- **When:** slice 15.
+- **The choice:** the simulation stops a round on standing water as it
+  does on ground and publishes `ground`. The feed renames a `ground` hit
+  that ends in standing water to `water`, and `impacts.water` draws it as a
+  pale spray, white-blue, not the ground's tan dust. Sound gives `water` the
+  ground's impact sound and gain (`sound.impacts.water`) until there is a
+  splash sound.
+- **The gap:** the contract said "splash instead of dust" without a look.
+- **The reach:** a blast's dirt (grenades, shells) is still dirt over
+  water. A burst's own splash is a later look pass.
+- **Verdict:** sound.
+- **Confidence:** medium on the spray's colour.
+
+### Impulses carry their time, not a step; kept a second
+
+- **When:** slice 15.
+- **The choice:** `WakeImpulse { xy, radius, strength, kind, at }`.
+  - `at` is the presentation time it is made, in seconds. The step rate is
+    slice 16's `WaveClock`, which maps a time to its step.
+  - `kind` (`WakeKind::Rings` or `Vee`) is the contract's `style`. The data
+    row already took that name (`WakeStyle`).
+  - `EffectFrame::wakes(from, to)` hands a renderer what was made in its
+    frame's span. Impulses are kept one second past the last tick taken,
+    then pruned.
+  - A reset clears them.
+- **The gap:** the contract's `step` field before the step clock exists.
+- **The reach:** slice 16 reads `wakes(last, now)` each frame.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Rings at a fixed rate, a V at dust's spacing, split at 1 m/s
+
+- **When:** slice 15.
+- **The choice:** `presentation.effects.wake` is
+  `{ ring_hz: 2, vee_mps: 1, spacing_m: 1.5, soldier_radius_m: 0.35,
+  ring_strength: 0.5, vee_strength: 1 }`.
+  - The style follows the unit's speed between ticks (a squad's by its
+    centre).
+  - Below 1 m/s each wader makes rings every half second of the clock. They
+    are counted like damage smoke's puffs (`k / ring_hz` within the tick),
+    each strength ±20% from a seed keyed by unit, wader and count.
+  - At 1 m/s or faster each wader makes a V push every 1.5 m, carried
+    across ticks like dust, where it was at that moment.
+  - A hull's push reaches its half width.
+  - It is decided in `note_movers` with the dust, in `frame/wake.rs`, so
+    it follows ticks, not frames.
+- **The gap:** delegated (strengths and the threshold).
+- **The reach:** tuned by eye once slice 16 draws waves.
+- **Verdict:** sound for now.
+- **Confidence:** low, by design.
+
+### The battle-driven seam tests live in `wake_sources.rs`
+
+- **When:** slice 15.
+- **The choice:** the frame tests sit beside the dust tests in
+  `effect_behaviour.rs`. These are a hull in water makes a wake and no
+  dust, a still wader rings and a moving one drags a V, a unit out of sight
+  makes none, and wakes don't depend on frame rate. The rider and splash
+  tests need real observations, so they run battles in `wake_sources.rs`:
+  the transport lab with swamps laid under its boarding ground, and a
+  rifle firing at a man in a swamp. The transport lab's red squad is
+  identified from its first tick, so the out-of-sight case is proven at the
+  frame level, and the battle proves a seen enemy in water wades.
+- **The gap:** the slice named one file for all of them.
+- **Verdict:** sound.
+- **Confidence:** high.
+- **Not done:** the slice's debug lab (wake marks on a test copy of the
+  wetlands ground) and "a soldier crossing a puddle makes rings", which
+  waits for slice 14.
+
+## Slice 16: the wave field
+
+### The clock counts steps on the presentation clock and lives with the wakes
+
+- **When:** slice 16.
+- **The choice:** `wave::WaveClock::advance(clock, camera)` runs the steps
+  up to `floor(clock · hz)` since the last, at most `max_steps`, so any
+  split into frames runs the same steps. A jump drops the excess, and the
+  clock running backwards starts over.
+  - `epoch` is a process-wide counter, new for every clock. The clock lives
+    in `EffectFrame`, beside the wakes it splats, so a load or a side switch
+    (both make a new `Loaded`) opens a new epoch, and so does a reset
+    (`EffectFrame::reset`).
+  - `EffectFrame::waves` hands each impulse to the step that covers its
+    `at`, in field texels.
+  - `Presentation::waves` (in `presentation/cameras.rs`, beside the camera
+    that places the field) feeds the wasm call `waves()`: a float array of
+    steps, epoch, shift, then `WaveSplat` records.
+  - The page takes it once per presented frame (`ScenePresentation.frame`)
+    and hands it to the renderer with the frame's views (`setCamera`). The
+    renderer runs each array once.
+- **The gap:** the contract placed the clock and its consumer, not who
+  holds the state.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The field follows the camera's target, carried in the camera record
+
+- **When:** slice 16.
+- **The choice:** `Camera.waves` holds the field's south-west corner on the
+  texel grid round what the camera looks at, its side, and how much shows.
+  How much fades from whole at 180 m eye-to-target to none at 320 m. It is
+  a pure function of the camera, so the water's shader needs no new
+  uniform, and native gets it with the camera it already uploads. On Low
+  (`TerrainParams.view.z`) the water ignores the field and the renderer
+  runs no steps.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### 1024² at 12.5 cm, 30 steps a second, fine rings that die within a metre or two
+
+- **When:** slice 16.
+- **The choice:** `WAVE` (`wave.rs`, generated for the shaders): 1024 texels
+  of 0.125 m (a 128 m square), 30 Hz, at most 6 steps a frame. RedGPU's
+  speed 0.2 and damping 0.08 a step, and slope scale 0.15. Each splat is a
+  ring (a dip with a rim summing to nothing), not RedGPU's push, because
+  pushes made again and again piled into a mound that read as brown discs.
+  A soldier's push reaches 0.15 m (`wake.soldier_radius_m`, down from
+  0.35). These came from three rounds of looking:
+  - 512² at 25 cm with RedGPU's numbers: saturated bands across the marsh;
+  - with harder damping: mounds;
+  - the ring splat at 25 cm: clear but too big.
+
+  An unprimed critique of that last round found rings that read as rings on
+  water, nothing changed on the river shots, and no seams. It also found
+  them too big, regular and strong, like contour lines at 12 m and halo-like
+  rings at 45 m. It asked for 10 to 25 cm ripples dying within a metre or
+  two. The final round gives fine collars round each man at 12 m and nothing
+  at 45 m.
+- **The gap:** delegated (texel count, damping, splat shape).
+- **The reach:** the cost probe was not measured on the GPU. The frame
+  timer measures whole frames only, and an interleaved A/B needs a lab.
+  Estimate: a step is one 1024² fragment pass of ten texture loads plus a
+  loop over the frame's splats (at most 256), about two steps a frame at
+  60 fps. The splat loop is the term to watch in a big battle; binning
+  splats or drawing them as quads would bound it.
+- **Verdict:** sound for the look; the cost is unmeasured.
+- **Confidence:** medium.
+
+### Captures warm the field by playing the reel, not by a fixed warm-up
+
+- **When:** slice 16.
+- **The choice:** the capture tool plays the reel frame by frame at fixed
+  reel times, so the field runs the same steps each time and its shots
+  repeat. No separate warm-up count was added. Native draws no wakes (see
+  `specs/water-native`). The water scene's native check compares the mean
+  water colour, which the final wakes move by ΔE 0.1 on the wading shot.
+- **The gap:** the slice asked for a fixed warm-up from a reset.
+- **The reach:** a capture that jumps straight to a plate would need one.
+- **Verdict:** sound for the reel's captures.
+- **Confidence:** medium.
+
+### Size splits
+
+The wasm crate's scar upload moved to `presentation-wasm/src/scars.rs`, and
+the page's probe types to `web/src/battle/sim/presentationProbe.ts`, to make
+room.

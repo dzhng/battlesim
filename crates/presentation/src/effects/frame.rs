@@ -14,7 +14,8 @@
 //!   a hot flash and its light; sparks at every ricochet corner;
 //! - a fireball for every blast, and the dirt and smoke it throws up;
 //! - dust behind a hull the side sees move, by the distance it covers, and
-//!   smoke behind a smoking one, by time;
+//!   smoke behind a smoking one, by time; in standing water, wake impulses
+//!   instead of dust, from a hull or a squad ([`WakeImpulse`]);
 //! - flames and a smoke column over every smoke source the side knows,
 //!   burning, then smouldering, then out, all thinned alike past `smoke_budget`;
 //! - a watched hull's cook-off: fireballs out of its ring, then sparks and
@@ -45,15 +46,18 @@ use super::tables::{
 };
 use super::{DrawnRotor, MuzzleSource};
 use crate::seed::{Key, Mulberry32, GOLDEN};
+use crate::wave::WaveClock;
 use crate::wind::WindSettings;
 use crate::world::Vec3;
 
 mod draw;
 mod pool;
 mod smoke;
+mod wake;
 use draw::*;
 use pool::Pool;
 use smoke::{draw_puff, draw_trail};
+pub use wake::WaveFrame;
 
 // ---- Effects in flight. ----
 
@@ -280,6 +284,25 @@ struct Mover {
     seen: bool,
 }
 
+/// How a wake impulse spreads: rings round a still or slow wader, a V
+/// behind a moving one.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WakeKind {
+    Rings,
+    Vee,
+}
+
+/// A push on the water's surface: where, how wide (metres) and hard, its
+/// kind, and when it is made on the presentation clock (seconds).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct WakeImpulse {
+    pub xy: [f64; 2],
+    pub radius: f64,
+    pub strength: f64,
+    pub kind: WakeKind,
+    pub at: f64,
+}
+
 pub struct EffectFrame {
     p: EffectPresentation,
     pool: Pool,
@@ -291,6 +314,10 @@ pub struct EffectFrame {
     /// The share of smoke sources' births kept, under `smoke_budget`.
     keep: f64,
     movers: HashMap<u64, Mover>,
+    /// The wake impulses made within `WAKE_KEEP_S` of the last tick taken.
+    wakes: Vec<WakeImpulse>,
+    /// The wave field's clock, which splats them (`waves`).
+    waves: WaveClock,
     /// Where each smoking hull was last published.
     smokers: HashMap<u64, Mover>,
     last_tick: f64,
@@ -312,6 +339,8 @@ impl EffectFrame {
             noted: 0.0,
             keep: 1.0,
             movers: HashMap::new(),
+            wakes: Vec::new(),
+            waves: WaveClock::new(),
             smokers: HashMap::new(),
             last_tick: -1.0,
             launches: LaunchTracker::default(),
@@ -331,6 +360,8 @@ impl EffectFrame {
         self.sources.clear();
         self.source_index.clear();
         self.movers.clear();
+        self.wakes.clear();
+        self.waves.restart();
         self.smokers.clear();
         self.launches.reset();
         self.last_tick = -1.0;
@@ -429,17 +460,20 @@ impl EffectFrame {
 
     /// Dust behind every hull the side sees move on the ground: a puff off
     /// each track for every `spacing_m` it covers, when and where it
-    /// passed. A hull first seen, or seen again after a gap, starts clean.
+    /// passed; in standing water, a wake instead (`wake`), from a hull or a
+    /// squad alike. A unit first seen, or seen again after a gap, starts clean.
     fn note_movers(&mut self, publication: &EffectPublication, gap: bool, t0: f64) {
         let style = &self.p.dust;
         let dt = self.pool.dt;
         for m in self.movers.values_mut() {
             m.seen = false;
         }
+        self.wakes.retain(|w| w.at >= t0 - wake::WAKE_KEEP_S);
         for u in &publication.shooters {
-            let Some([hl, hw, _]) = u.half.filter(|_| !u.airborne) else {
+            let wading = !u.wading.is_empty();
+            if u.airborne || (u.half.is_none() && !wading) {
                 continue;
-            };
+            }
             let [x, y, z] = u.position;
             let Some(m) = self.movers.get_mut(&u.key.to_bits()) else {
                 let mover = Mover {
@@ -454,7 +488,22 @@ impl EffectFrame {
             let (dx, dy) = (x - m.at[0], y - m.at[1]);
             let dist = libm::hypot(dx, dy);
             let speed = dist / dt;
-            if !gap && speed >= style.min_speed_mps && dist > 1e-6 {
+            if wading {
+                let d = [dx, dy];
+                wake::wake(
+                    &mut self.wakes,
+                    &self.p.wake,
+                    u,
+                    d,
+                    &mut m.carry,
+                    t0,
+                    dt,
+                    gap,
+                );
+            } else if let Some([hl, hw, _]) = u
+                .half
+                .filter(|_| !gap && speed >= style.min_speed_mps && dist > 1e-6)
+            {
                 let (fx, fy) = (dx / dist, dy / dist);
                 let thick = (speed / style.full_speed_mps).min(1.0);
                 let mut ahead = style.spacing_m - m.carry;
@@ -695,6 +744,12 @@ impl EffectFrame {
         }
         self.instances = batch.count;
         self.dropped = batch.dropped;
+    }
+
+    /// The wake impulses made from `from` up to `to` on the presentation
+    /// clock, kept a second (`WAKE_KEEP_S`) past the last tick taken.
+    pub fn wakes(&self, from: f64, to: f64) -> impl Iterator<Item = &WakeImpulse> {
+        self.wakes.iter().filter(move |w| from <= w.at && w.at < to)
     }
 
     /// What the last `build`, at `clock` into `batch`, drew.

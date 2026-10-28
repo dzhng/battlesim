@@ -179,7 +179,7 @@ fn a_fixture_runs_plate_counts_are_the_pages_replay_of_its_capture() {
                 .decode(&words)
                 .expect("decodes")
                 .expect("an observation");
-            frame.note(&feed.publication(&o, &units, &effects));
+            frame.note(&feed.publication(&o, &units, &effects, None));
         }
         let Some(plate) = f["plate"].as_str() else {
             continue;

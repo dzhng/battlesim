@@ -52,8 +52,10 @@ use crate::world::{
 };
 
 mod cameras;
+mod picks;
 mod probe;
 mod side_fog;
+mod taken;
 use side_fog::Fog;
 pub use side_fog::FogSetup;
 
@@ -371,7 +373,7 @@ impl Presentation {
         self.interpolator.push(observation.clone(), arrived_s);
         self.latest = Some(observation.clone());
         match &mut self.loaded {
-            Some(loaded) => loaded.note(&observation),
+            Some(loaded) => loaded.note(&observation, self.ground.as_ref()),
             None => {
                 // Older than any effect lives: a battle's appearances load in seconds.
                 if self.pending.len() == PENDING_MAX {
@@ -568,11 +570,11 @@ impl Presentation {
         // what it saw destroyed) is drawn without waiting for the next.
         if self.pending.is_empty() {
             if let Some(o) = &self.latest {
-                loaded.note(o);
+                loaded.note(o, self.ground.as_ref());
             }
         }
         for o in self.pending.drain(..) {
-            loaded.note(&o);
+            loaded.note(&o, self.ground.as_ref());
         }
         self.loaded = Some(loaded);
         Ok(())
@@ -1094,7 +1096,6 @@ impl Presentation {
         let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), sample) else {
             return Ok(&self.frame);
         };
-        let f = &mut self.frame;
         f.tick = sample.observation.tick as u32;
         loaded.frame(
             sample,
@@ -1110,26 +1111,6 @@ impl Presentation {
 }
 
 impl Loaded {
-    /// One publication noted for effects (and sound), with the hulls the
-    /// side watched brew up.
-    fn note(&mut self, o: &Observation) {
-        self.transits.note(
-            &o.air_transits,
-            o.tick,
-            self.input.tick_hz,
-            &self.input.units.transit,
-        );
-        let mut publication =
-            self.effect_feed
-                .publication(o, &self.input.units, &self.input.effects);
-        let effects = &self.input.effects;
-        publication.cook_offs =
-            self.cook_offs
-                .note(o, &self.input.units, effects, &effects.wreck_looks);
-        let launches = self.effects.note(&publication);
-        self.sound = Some((publication, launches));
-    }
-
     #[allow(clippy::too_many_arguments)]
     fn frame(
         &mut self,
@@ -1165,7 +1146,7 @@ impl Loaded {
             ..
         } = self;
         let time = sample.time;
-        let poses = driver.update(feed.frame(sample, units, &input.effects), units);
+        let poses = driver.update(feed.frame(sample, units, &input.effects), units, ground);
         drawn.update(poses);
         let rotors = drawn.rotors();
         let side: &str = &input.side;
@@ -1581,7 +1562,7 @@ impl Loaded {
         }
         f.counts.culled = culled;
         batches(models, f);
-        picks(sample, units, input, f);
+        picks::picks(sample, units, input, f);
         emitters(o, poses, side, units, f);
     }
 }
@@ -1686,60 +1667,6 @@ fn pose_vehicle(
     let first = palettes.len() as u32;
     palettes.extend(worlds.iter().map(|w| joint(&skin::affine(w))));
     (first, track_scroll(rig, articulation))
-}
-
-/// The boxes of every drawn soldier and vehicle, for the UI's hit tests:
-/// a hull's box, else each soldier's (`bodyBox`), and each unit's drawn
-/// position as a box of no size.
-fn picks(sample: &FrameSample, units: &UnitsSection, input: &BattleInput, f: &mut Frame) {
-    let o = &sample.observation;
-    let kinds = o
-        .own
-        .iter()
-        .map(|u| (u.id, &u.kind, 1))
-        .chain(o.identified.iter().map(|e| (e.id, &e.kind, 2)));
-    let poses = sample.own.iter().chain(&sample.identified);
-    let by_id: HashMap<(u64, u32), &Arc<str>> = kinds
-        .map(|(id, kind, flag)| ((id.to_bits(), flag), kind))
-        .collect();
-    let soldier = input.soldier;
-    for (pose, flag) in sample
-        .own
-        .iter()
-        .map(|p| (p, 1))
-        .chain(sample.identified.iter().map(|p| (p, 2)))
-    {
-        let _ = &poses;
-        let Some(kind) = by_id.get(&(pose.id.to_bits(), flag)) else {
-            continue;
-        };
-        let aloft = units.types.get(&***kind).is_some_and(|t| t.airborne);
-        let flags = flag | if aloft { 4 } else { 0 };
-        let pick = |member: u32, at: Vec3, half: Vec3| Pick {
-            unit: pose.id as u32,
-            member,
-            flags,
-            pad: 0,
-            centre: [
-                at[0] as f32,
-                at[1] as f32,
-                (at[2] + half[2]) as f32,
-                pose.yaw as f32,
-            ],
-            half: [half[0] as f32, half[1] as f32, half[2] as f32, 0.0],
-        };
-        match input.effects.types.get(&***kind).and_then(|t| t.half) {
-            Some(hull) => f.picks.push(pick(NONE, pose.position, hull)),
-            None => {
-                f.picks.push(pick(NONE, pose.position, [0.0; 3]));
-                let half = [soldier.radius_m, soldier.radius_m, soldier.height_m / 2.0];
-                for (at, id) in pose.members.iter().zip(&pose.member_ids) {
-                    f.picks
-                        .push(pick(id.map_or(NONE, |id| id as u32), *at, half));
-                }
-            }
-        }
-    }
 }
 
 /// What audio hears move this frame: each drawn vehicle's tracks and

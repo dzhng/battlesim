@@ -22,6 +22,7 @@ import { terrainLayout } from "./terrainLayout";
 import { waterCaustics } from "./waterCaustics";
 import { createWaterLight } from "./waterLight";
 import { waterNormal } from "./waterSurface";
+import { waveNormal } from "./waveNormal";
 import { createSceneMips, ndcAt, waterDepth, waterUnder } from "./waterUnder";
 import { FRAME_MSAA, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
 
@@ -71,8 +72,14 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     // The cell's look rides its vertex colour (`mesh::water`).
     const look = d.u32(std.round(v.color.x));
     const w = terrainLayout.$.params.waterLooks[look];
-    // A puddle stands still: no wind ripples it, so the sky lies in it whole.
-    const n = std.select(waterNormal(v.world.xy, footprint, look), d.vec3f(0, 0, 1), v.color.w > 0);
+    // A puddle stands still: no wind ripples it, so the sky lies in it
+    // whole; a wake still does (decision 29).
+    const still = std.select(
+      waterNormal(v.world.xy, footprint, look),
+      d.vec3f(0, 0, 1),
+      v.color.w > 0,
+    );
+    const n = waveNormal(v.world.xy, still);
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const paint = groundPaint(v.world);
     // A puddle carves nothing, so its depth is its shape's (`mesh::water`

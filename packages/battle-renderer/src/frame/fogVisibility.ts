@@ -120,6 +120,8 @@ export interface FogTiles {
    *  and the fog mask before it, where the water refracts. */
   sceneColourView: GPUTextureView;
   seenUnderView: GPUTextureView | null;
+  /** The wave field's latest heights, which the water reads. */
+  wavesView: GPUTextureView;
 }
 
 /** `Presentation.fog_occluders`' seven numbers a box, as boxes. */
@@ -364,6 +366,7 @@ export async function createFogVisibility(
       sceneColour: (under && t?.sceneColourView) || noScene.createView(),
       sceneTaps,
       seenUnder: (under && t?.seenUnderView) || noScene.createView(),
+      waves: (under && t?.wavesView) || noScene.createView(),
     });
   const cullGroup = (t: FogTiles) =>
     root.createBindGroup(cullLayout, {
@@ -495,6 +498,7 @@ export async function createFogVisibility(
       paint: GPUTexture,
       sceneColour: GPUTexture,
       seenUnder: GPUTexture | null,
+      waves: GPUTextureView,
     ): FogTiles {
       return {
         scope,
@@ -506,6 +510,7 @@ export async function createFogVisibility(
         paintView: paint.createView(),
         sceneColourView: sceneColour.createView(),
         seenUnderView: seenUnder?.createView() ?? null,
+        wavesView: waves,
       };
     },
     /** This frame's rebuilds, structures and tile cull over the prepass

@@ -26,6 +26,7 @@ struct Camera {
   height: f32,
   time: f32,
   wind: array<Wind, 1>,
+  waves: vec4f,
 }
 
 @group(0) @binding(0) var<uniform> cam: Camera;

@@ -4,9 +4,12 @@
 //! paused clock that holds, a long gap that makes only what is still alive,
 //! a smoke budget that thins every wreck alike, dust behind a moving hull
 //! and off a hull whose heavy gun fires, smoke and dust drifting the way the
-//! grass leans, and rotors that show their blades still and smear when fast. Driven by
-//! synthetic publications over the fixture's presentation.
-use presentation::effects::frame::{EffectBatch, EffectFrame, EFFECT_FLOATS};
+//! grass leans, rotors that show their blades still and smear when fast, and
+//! wakes off whoever the side sees wading, decided by tick, not by frame.
+//! Driven by synthetic publications over the fixture's presentation.
+use presentation::effects::frame::{
+    EffectBatch, EffectFrame, WakeImpulse, WakeKind, EFFECT_FLOATS,
+};
 use presentation::effects::publication::EffectPublication;
 use presentation::effects::tables::EffectPresentation;
 use presentation::effects::DrawnRotor;
@@ -458,4 +461,115 @@ fn a_heavy_gun_s_shot_shakes_dust_off_its_whole_hull_and_blows_it_off_the_ground
     assert!(!light.is_empty() && light.len() < dust.len() / 2);
     assert!(shot_dust("hmg", false).is_empty());
     assert!(shot_dust("tank_ap", true).is_empty());
+}
+
+/// `tank`'s hull at (`x`, 50), wading in water 0.6 m deep wherever `wet`.
+fn hull_at(x: f64, wet: bool) -> Value {
+    let mut hull = tank(3.0, 0.0);
+    hull["position"] = json!([x, 50.0, 0.0]);
+    if wet {
+        hull["wading"] = json!([{ "at": [x, 50.0, 0.0], "depth_m": 0.6 }]);
+    }
+    hull
+}
+
+/// A squad of two at (`x`, 20), both wading.
+fn squad_at(x: f64) -> Value {
+    json!({"key": 5.0, "position": [x, 20.0, 0.0], "half": null, "yaw": 0.0,
+        "members": [7.0, 8.0], "mounts": [],
+        "wading": [{ "at": [x, 19.0, 0.0], "depth_m": 0.6 }, { "at": [x, 21.0, 0.0], "depth_m": 0.6 }]})
+}
+
+/// Every wake impulse `f` made over ticks `1..=ticks` of `unit(t)`, taken
+/// tick by tick as a renderer takes them.
+fn wakes(f: &mut EffectFrame, ticks: u32, unit: impl Fn(u32) -> Value) -> Vec<WakeImpulse> {
+    let mut made = vec![];
+    for t in 1..=ticks {
+        f.note(&publ(f64::from(t), json!({ "shooters": [unit(t)] })));
+        made.extend(f.wakes(f64::from(t - 1) * DT, f64::from(t) * DT).cloned());
+    }
+    made
+}
+
+#[test]
+fn a_hull_moving_in_standing_water_makes_a_wake_and_no_dust() {
+    let run = |wet: bool| {
+        let mut f = frame();
+        let made = wakes(&mut f, 60, |t| {
+            hull_at(100.0 + 8.0 * f64::from(t) * DT, wet)
+        });
+        (made, layer(&drawn(&mut f, 60.0 * DT), 1.0).len())
+    };
+    let (made, dust) = run(true);
+    assert!(made.len() > 5, "a wake behind it: {made:?}");
+    assert_eq!(dust, 0, "no dust off the water");
+    let (made, dust) = run(false);
+    assert!(made.is_empty(), "no wake on dry ground");
+    assert!(dust > 10, "the dust it raised there");
+}
+
+#[test]
+fn a_still_wader_makes_rings_and_a_moving_one_drags_a_v() {
+    let still = wakes(&mut frame(), 60, |_| squad_at(40.0));
+    assert!(!still.is_empty(), "a still squad rings the water");
+    assert!(still.iter().all(|w| w.kind == WakeKind::Rings), "{still:?}");
+    let moving = wakes(&mut frame(), 60, |t| {
+        squad_at(40.0 + 3.0 * f64::from(t) * DT)
+    });
+    assert!(!moving.is_empty(), "a moving squad drags a wake");
+    assert!(moving.iter().all(|w| w.kind == WakeKind::Vee), "{moving:?}");
+    // Each wader's own: both men's lines, along their path.
+    for y in [19.0, 21.0] {
+        assert!(
+            moving.iter().any(|w| (w.xy[1] - y).abs() < 1e-9),
+            "the man at y {y}"
+        );
+    }
+}
+
+#[test]
+fn a_unit_out_of_sight_makes_no_wake() {
+    let mut f = frame();
+    // Seen wading for a second, then gone from the publication.
+    let made = wakes(&mut f, 60, |t| {
+        if t <= 30 {
+            squad_at(40.0)
+        } else {
+            json!({"key": 9.0, "position": [0.0, 0.0, 0.0], "half": null, "yaw": 0.0,
+                "members": [], "mounts": []})
+        }
+    });
+    assert!(!made.is_empty());
+    let last_seen = 30.0 * DT;
+    assert!(
+        made.iter().all(|w| w.at <= last_seen),
+        "none after it hid: {made:?}"
+    );
+}
+
+#[test]
+fn wakes_do_not_depend_on_frame_rate() {
+    // The same ticks, drawn at 24 and at 144 frames a second, each
+    // publication taken as the clock reaches the tick it covers.
+    let at = |fps: f64| {
+        let mut f = frame();
+        let mut made = vec![];
+        let (mut clock, mut tick) = (0.0, 0);
+        while clock < 2.0 {
+            let next = clock + 1.0 / fps;
+            while f64::from(tick) * DT <= next {
+                tick += 1;
+                let x = 100.0 + 8.0 * f64::from(tick) * DT;
+                let units = json!([hull_at(x, true), squad_at(40.0)]);
+                f.note(&publ(f64::from(tick), json!({ "shooters": units })));
+            }
+            drawn(&mut f, next);
+            made.extend(f.wakes(clock, next).cloned());
+            clock = next;
+        }
+        made
+    };
+    let slow = at(24.0);
+    assert!(slow.len() > 10, "{slow:?}");
+    assert_eq!(format!("{slow:?}"), format!("{:?}", at(144.0)));
 }

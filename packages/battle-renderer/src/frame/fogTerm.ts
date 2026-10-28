@@ -103,6 +103,10 @@ export const fogLayout = tgpu.bindGroupLayout({
   sceneColour: { texture: d.texture2d(d.f32), visibility: ["fragment"] },
   sceneTaps: { sampler: "filtering", visibility: ["fragment"] },
   seenUnder: { texture: d.texture2d(d.f32), visibility: ["fragment"] },
+  /** The wave field's latest heights (`waveField.ts`), which tilt the
+   *  water's normal (`waveNormal.ts`); a placeholder in every group but the
+   *  water's. */
+  waves: { texture: d.texture2d(d.f32), visibility: ["fragment"] },
 });
 
 /** A structure's whole fog reaches this far above its box's top (a pitched

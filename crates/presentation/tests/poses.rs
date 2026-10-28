@@ -243,7 +243,7 @@ fn the_browser_s_poses_of_the_fixture_capture() {
         let sample = interpolator
             .frame(record["simTime"].as_f64().unwrap())
             .unwrap();
-        let poses = driver.update(feed.frame(sample, &units, &effects), &units);
+        let poses = driver.update(feed.frame(sample, &units, &effects), &units, None);
         last.clone_from(poses);
         let Some(want) = wanted.iter().find(|w| w["index"] == record["index"]) else {
             continue;
@@ -497,7 +497,7 @@ fn the_fallen_play_their_death_lie_and_give_way_past_the_cap() {
             units: vec![squad(ids)],
             fallen: down.clone(),
         };
-        let poses = driver.update(&frame, &units);
+        let poses = driver.update(&frame, &units, None);
         let soldiers: Vec<_> = poses
             .soldiers
             .iter()

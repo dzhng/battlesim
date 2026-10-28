@@ -21,7 +21,6 @@ import {
   type ResolvedLight,
 } from "@packages/battle-renderer/src/light/sceneLight";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
-import type { Articulation } from "@packages/scene-assets/src/articulation";
 import {
   emptyBuildingWalkStats,
   type BuildingWalkStats,
@@ -150,38 +149,10 @@ export interface PresentedUi {
   known?: readonly (KnownPart & Partial<KnownProp>)[];
 }
 
-export type PresentedFrame = ReturnType<typeof frameViews>;
+export type PresentedFrame = ReturnType<typeof frameViews> & { waves?: Float32Array };
 
-type P3 = [number, number, number];
-
-/** The last frame as the labs' scenes probe it. */
-export interface PresentationProbe {
-  effects: { live: number; instances: number; dropped: number; sources: number; tick: number };
-  effectInstances: { shape: number; at: P3; to: P3; rgb: P3; size: number; rays: number }[];
-  castLights: { at: P3; radius: number; rgb: P3; cause: string }[];
-  lying: number[];
-  cookOffPieces: { appearance: string; state: string; sunk: number }[];
-  soldiers: {
-    appearance: string;
-    position: P3;
-    yaw: number;
-    clip: string;
-    phase: number;
-    /** His weapon's muzzle where his body draws it (crossfaded and kicked),
-     *  or null with no weapon up. */
-    muzzle: P3 | null;
-  }[];
-  vehicles: {
-    appearance: string;
-    position: P3;
-    yaw: number;
-    tint: P3 | null;
-    articulation: Articulation;
-    /** Each mount's muzzle where the hull draws it (articulated and rocked),
-     *  by its muzzle node's name. */
-    muzzles: { name: string; at: P3 }[];
-  }[];
-}
+import type { PresentationProbe } from "./presentationProbe";
+export type { PresentationProbe };
 /** One drawable the frame's batches name, by `World.appearances` row;
  *  `placed` for the static world's (`Appearance.placed`). */
 export interface PresentedAppearance {
@@ -395,6 +366,8 @@ export class ScenePresentation {
   private last: ObservationView | null = null;
   /** The last frame's header. */
   private framePtr = 0;
+  /** The wave field's frame the last `frame` took (`Presentation.waves`). */
+  private waves: Float32Array = new Float32Array(0);
   private battle: PresentedBattle | null = null;
   private buildings: SceneBuildings | null = null;
   private installed: InstalledAppearances | null = null;
@@ -835,7 +808,9 @@ export class ScenePresentation {
     );
     this.walk.selectMs = performance.now() - started;
     this.framePtr = ptr;
-    const views = frameViews(buffer(), ptr);
+    // Before the views: it may grow the module's memory.
+    this.waves = this.rust.waves();
+    const views = { ...frameViews(buffer(), ptr), waves: this.waves };
     const batches = views.batches.u32;
     this.walked = false;
     for (let b = 0; b < views.batches.count && !this.walked; b++) {
@@ -848,7 +823,7 @@ export class ScenePresentation {
 
   /** The last frame's views, taken again after another call into the module. */
   lastFrame(): PresentedFrame {
-    return frameViews(buffer(), this.framePtr);
+    return { ...frameViews(buffer(), this.framePtr), waves: this.waves };
   }
 
   /** The module's presentation, which battle sound hears
