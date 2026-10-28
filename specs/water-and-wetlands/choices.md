@@ -845,20 +845,39 @@ against the code. Each says what was chosen, why, and how sure the agent is.
 3. **`sway(foot, point, up, height, leaf)`** (`frame/sway.ts`) is the one
    function; the standing-tree vertex stage (prepass, forest and backdrop
    colour) passes the vertex's leaf flag, the new `casterVertex` passes 0,
-   so shadows bend with the trunk and do not shiver. Height share is the
-   point's height over twice the crown's heart (`shape.w`). Felled trees
-   and forest-floor dressing do not sway. *Confidence:* medium on the
-   height proxy.
-4. **Tuning (look only, in `sway.ts`):** the top bends 10% of the tree's
-   height at full strength (gust fronts at 6 m/s or faster), a quarter of it
-   a steady lean and the rest a slow swing (1.6 rad/s, with RedGPU's
-   overtone); leaves shiver up to 0.15 m at 7 rad/s. Strength follows the
-   wind's gust speed, so a calm biome stands still. Two unprimed critiques
-   found the first, smaller amplitudes invisible at the water scene's
-   framings. *Confidence:* low, by design.
+   so shadows bend with the trunk and do not shiver. The tree's height is
+   the crown's heart (`shape.w`) over the walk's `HEART`, the inverse of
+   how the walk wrote it. Felled trees and forest-floor dressing do not
+   sway. *Confidence:* high.
+4. **Tuning (look only), owned by Rust (`static_world/ground/sway.rs`) and
+   generated into `SWAY` for the shader.** At strength 1 (gust speed 6 m/s
+   or more) the top bends `0.18 × height × (0.15 lean + 0.7 × gust front +
+   0.35 × swing × (1 + front)/2)`: under a passing gust front a crown leans
+   up to about 18% of its height and swings harder; between fronts it
+   holds a small lean and a slow swing (1.6 rad/s, with RedGPU's overtone).
+   Leaves shiver up to 0.15 m at 7 rad/s, more under a front. Strength
+   follows the wind's gust speed, so a calm biome stands still. Raised from
+   10% after the coordinator asked for a strong gust to bend a crown
+   visibly at the 80 m low shot. The last unprimed critique still found the
+   forced full gust hard to tell from the summer breeze in that shot. There
+   the summer wind (35°) blows almost along the camera's axis, so crowns
+   bend toward the lens, and the tree models already lean at rest. From
+   above (tactical) the shift reads, and nothing shears, detaches or
+   stretches. I stopped at this round rather than push the amplitude into
+   rubber. *Confidence:* low, by design.
 5. **Splits for the size ratchet:** the side's fog out of `presentation.rs`,
    and the scenery's vertex stages out of `sceneryLayer.ts`, each in its own
    commit.
+6. **The walk's chunk bounds take in the sway's reach** (`Sway::reach`,
+   from the same numbers the shader uses): the top's largest bend plus the
+   leaves' shiver, added to the chunk's radius and height. A tree's whole
+   bent crown can leave its rest box, so a rest-box cull dropped crowns and
+   shadows at the view's and cascades' edges. *Confidence:* high.
+7. **The frame scene's `geometry` baseline is re-blessed.** The geometry
+   lab's trees stand in the summer wind at the scene's held clock, so they
+   now bend. The still moved by a pixel at this tuning (2 px at an earlier
+   one), the same on repeated runs; foundation and river did not move.
+   *Confidence:* high.
 ## Slice 07: refraction, and the Low tier
 
 ### The bed shifts in metres along the slope, then is projected
