@@ -206,9 +206,19 @@ export async function rulerTour(ctx) {
       {
         kind: "move",
         units: [scoutId],
-        gesture: 2901,
-        goal: [550, 910],
+        gesture: 2900,
+        goal: [450, 620],
         route: "shortest",
+      },
+      {
+        order: {
+          kind: "move",
+          units: [scoutId],
+          gesture: 2901,
+          goal: [550, 910],
+          route: "shortest",
+        },
+        queued: true,
       },
     ],
     "ruler scout approach",
