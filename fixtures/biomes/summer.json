@@ -298,8 +298,8 @@
   "shore": { "palette": "shore", "wet_m": 0.6, "mud_m": 5, "wander": 0.5, "wander_scale_m": 9, "lift": 1.27, "relief": 0.5 },
   "water": {
     "rivers": [
-      { "name": "temperate", "weight": 3, "palette": "water", "extinction_per_m": [0.9, 0.7, 0.8], "streak": 0.6 },
-      { "name": "murky lowland", "weight": 1, "palette": "water_murky", "extinction_per_m": [1.6, 1.4, 1.8], "streak": 0.25 }
+      { "name": "temperate", "weight": 3, "palette": "water", "extinction_per_m": [0.9, 0.7, 0.8] },
+      { "name": "murky lowland", "weight": 1, "palette": "water_murky", "extinction_per_m": [1.6, 1.4, 1.8] }
     ]
   },
   "forest_floor": {

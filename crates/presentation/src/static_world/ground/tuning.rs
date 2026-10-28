@@ -81,15 +81,13 @@
 //!   `crossing_cos`; a dash keeps `clear_m` from a crossing's bars; paint
 //!   wears in patches `wear_m` across where their noise crosses `wear_cut`.
 //! - `water`: it fades in from its edge over `shore_fade_m` of depth (or a
-//!   few pixels, if wider); its roughness; the share of its light it keeps
-//!   in shadow; its baked normal map (`normals`) on three layers of
+//!   few pixels, if wider); its reflection in three `lobes` of rising
+//!   `roughness`, each `weights` of the light; the share of its light it
+//!   keeps in shadow; its baked normal map (`normals`) on three layers of
 //!   `tiles_m`, each drifting at its share (`drifts`) of the wind's drift,
-//!   leaning by `strength`, gone over `fade_m` pixels;
-//!   its light in lanes `m` wide holding their distance from the bank,
-//!   drifting `drift` lanes over `drift_m`, broken into streaks `streak_m`
-//!   long, lit where lane and streak (`weights`) pass `lit`, about `lit_mean`;
-//!   the bed seen through it shifted and blurred (`refraction`), and lit
-//!   by the light its waves focus (`caustics`).
+//!   leaning by `strength`, gone over `fade_m` pixels; the bed seen through
+//!   it shifted and blurred (`refraction`), and lit by the light its waves
+//!   focus (`caustics`).
 //! - `scars` (depths in full craters): read no deeper than `depth_cap`; the
 //!   rim `rim_reach_cells` out, slopes from taps `slope_tap_cells` either
 //!   side; relief fading over `detail_fade` cells; the bowl's lip at `lip`
@@ -137,12 +135,19 @@ pub struct TerrainTuning {
 #[derive(Clone, Deserialize)]
 pub struct WaterTuning {
     pub shore_fade_m: f64,
-    pub roughness: f64,
+    pub lobes: Lobes,
     pub shadow: f64,
     pub normals: Normals,
-    pub lanes: Lanes,
     pub refraction: Refraction,
     pub caustics: Caustics,
+}
+
+/// The sun's and the sky's reflection off the water (`waterPass`): three
+/// lobes of rising roughness, each weighted by its share of the light.
+#[derive(Clone, Deserialize)]
+pub struct Lobes {
+    pub roughness: [f64; 3],
+    pub weights: [f64; 3],
 }
 
 /// The light the waves focus on the bed (`waterCaustics`): their pattern's
@@ -171,24 +176,13 @@ pub struct Refraction {
 /// The baked normal map's three layers (`waterNormal`): their tiles in
 /// metres (primary, macro, detail), each's share of the wind's drift, how
 /// far the map's slope leans the normal, and the pixel footprints the
-/// ripples and the streaks fade over.
+/// ripples fade over.
 #[derive(Clone, Deserialize)]
 pub struct Normals {
     pub tiles_m: [f64; 3],
     pub drifts: [f64; 3],
     pub strength: f64,
     pub fade_m: [f64; 2],
-}
-
-#[derive(Clone, Deserialize)]
-pub struct Lanes {
-    pub m: f64,
-    pub drift: f64,
-    pub drift_m: f64,
-    pub streak_m: f64,
-    pub weights: [f64; 2],
-    pub lit: [f64; 2],
-    pub lit_mean: f64,
 }
 
 /// The bank's bands (`groundShore`) and its ground (`ShoreTuning` in

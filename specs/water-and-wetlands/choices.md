@@ -1064,3 +1064,94 @@ against the code. Each says what was chosen, why, and how sure the agent is.
   through a look of its own.
 - **Verdict:** sound for now.
 - **Confidence:** medium.
+
+## Slice 09: Fresnel and sun highlights
+
+### Water's F0 through the shared light is half metal on a black base
+
+- **When:** slice 09.
+- **The choice:** `standardPbr` fixes a dielectric's F0 at 0.04. Water's is
+  0.02, and on a black base a metalness of a half gives exactly that, in the
+  sun's lobe and the sky's (the DFG terms mix the same way), with no diffuse
+  light. So the water's reflection (`waterReflection`, `frame/waterLight.ts`)
+  stays inside the one light owner: no F0 parameter and no second model.
+  The body's own light is still a dielectric's lit surface less its
+  reflection, at metalness 0.
+- **The gap:** the contract asked for F0 about 0.02 through the shared
+  owner, without saying how.
+- **The reach:** puddles and swamps (13, 14) reflect the same way.
+- **Verdict:** sound; a reader of `WATER_METAL` needs its comment.
+- **Confidence:** medium.
+
+### Three lobes at RedGPU's weights; a sharper first lobe only glared
+
+- **When:** slice 09.
+- **The choice:** `presentation.terrain.water.lobes` is
+  `{ roughness: [0.15, 0.22, 0.32], weights: [0.58, 0.34, 0.08] }`,
+  RedGPU's steps over our old single roughness (0.14), replacing it. A
+  first lobe of 0.07 put the sun in one bright hotspot with a bloom halo,
+  not finer sparkles: the glints' size is the normal map's, whose fine
+  layer has faded flat at 80 m. Each lobe is a full `surfaceLight` call,
+  three where there was one.
+- **The gap:** delegated (the lobe weights and roughness steps).
+- **The reach:** finer glints need normal detail that survives distance
+  (slice 06's mip note).
+- **Verdict:** sound for now.
+- **Confidence:** medium.
+
+### What comes up from under the surface loses its reflection
+
+- **When:** slice 09.
+- **The choice:** the bed's light, and the air the bed's copy already
+  carries, are scaled by Schlick's transmission at F0 0.02
+  (`waterTransmission`). From above nearly all of it crosses; at a grazing
+  angle the surface turns to a mirror, which two critiques asked for. This
+  is a weight on light the shared owner never sees, not a second lighting
+  model.
+- **The gap:** none; slice 04 left it out.
+- **The reach:** puddles (14), whose mirror look depends on it.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The streaks of light are deleted
+
+- **When:** slice 09.
+- **The choice:** `waterStreaks`, its lanes tuning and each look's
+  `streak` are gone (slice 06 left the call here). Every unprimed critique
+  since slice 04 read them as brushed metal or motion blur, and with them
+  off the close shot reads calmer and more like water. The tactical river
+  loses the faint lines that broke its band, which the checkpoint below
+  weighs. The look record's freed words now hold the lobes (`roughness`,
+  `lobes`) and the fades (`fades`); its size is unchanged.
+- **The gap:** none; slice 06 deferred it here. Slice 03's done record
+  still lists `streak` as a look field, as it shipped then.
+- **The reach:** none.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### No sun in-scatter term beyond the body's own light
+
+- **When:** slice 09.
+- **The choice:** RedGPU adds volume in-scatter and a low-sun forward
+  scatter. Ours already lights the water's body by the sun and the sky in
+  place of what the depth takes (`own`), which is that in-scatter; a
+  forward-scatter glow was not built, since no framing looks through a
+  wave toward a low sun.
+- **The gap:** the contract said "if it reads".
+- **The reach:** none.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### No screen-space reflections (decision 15)
+
+- **When:** slice 09.
+- **The choice:** at the low framing the surface reflects the sky's
+  environment, not the far bank or its trees. SSR would mirror the bank at
+  the low cinematic angle only; from the tactical height, where play
+  happens, a reflected bank is a few percent of a dark band. It would need
+  the world's colour and depth at full resolution in the water's pass, and
+  a ray march per pixel. It doesn't earn that now; the README records it.
+- **The gap:** decision 15 asked for the call.
+- **The reach:** a later cinematic pass could add it for the menu reel.
+- **Verdict:** sound.
+- **Confidence:** medium.

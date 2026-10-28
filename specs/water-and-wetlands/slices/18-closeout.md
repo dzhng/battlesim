@@ -10,6 +10,10 @@
   each with what native draws instead.
 - **Done** is decision 20's side-by-side read: at our camera, next to RedGPU,
   ours reads as good.
+- **The far water keeps its surface.** Slice 09's checkpoint found the
+  tactical river an untextured band: its normals fade flat at 260 m. Keep
+  the slope variance a pixel averages away as roughness, so it keeps a
+  varying sheen ([README](../README.md#still-open)).
 
 ## Verification
 
