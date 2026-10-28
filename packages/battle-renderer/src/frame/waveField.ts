@@ -22,9 +22,40 @@ const SPLAT_FLOATS = 8;
 /** How far in from the field's edge its border absorbs a wave (texels). */
 const BORDER = 24;
 
-/** One step: which of the frame's it is, how many splats the frame has, and
- *  how far the field moved (texels; the first step only). */
-const WaveRun = d.struct({ shift: d.vec2i, step: d.u32, splats: d.u32 });
+/** One run: which of the frame's steps it is, how many splats the frame
+ *  has, how far the field moved (texels; the first run only), and 1 when it
+ *  only moves the field without stepping it. */
+const WaveRun = d.struct({ shift: d.vec2i, step: d.u32, splats: d.u32, still: d.u32 });
+
+/** One pass over the field: a step, or a frame with none moving it alone. */
+export interface WaveRunPlan {
+  shift: [number, number];
+  step: number;
+  still: boolean;
+}
+
+/** What `packet` (`Presentation.waves`) asks of a field last run in epoch
+ *  `epoch` (null: no battle). A new epoch, or a battle gone (an empty
+ *  packet), clears it first, even with no step to run, so one side's waves
+ *  never linger for the next. A frame's first run carries its shift, and a
+ *  frame with no step still moves the field by it, so every texel the camera
+ *  moves reaches the field. */
+export function wavePlan(
+  packet: Float32Array,
+  epoch: number | null,
+): { epoch: number | null; clear: boolean; runs: WaveRunPlan[] } {
+  if (packet.length < HEAD) return { epoch: null, clear: epoch !== null, runs: [] };
+  const [steps, next, sx, sy] = packet;
+  const clear = next !== epoch;
+  const runs: WaveRunPlan[] = Array.from({ length: steps }, (_, k) => ({
+    shift: k === 0 ? [sx, sy] : [0, 0],
+    step: k,
+    still: false,
+  }));
+  if (steps === 0 && !clear && (sx !== 0 || sy !== 0))
+    runs.push({ shift: [sx, sy], step: 0, still: true });
+  return { epoch: next, clear, runs };
+}
 
 const waveLayout = tgpu.bindGroupLayout({
   was: { texture: d.texture2d(d.f32), visibility: ["fragment"] },
@@ -59,6 +90,7 @@ const waveStep = tgpu
     let here = c + shift;
     let was = select(vec4f(0.0), textureLoad(waveLayout.$.was, here, 0),
       all(here >= vec2i(0)) && all(here < size));
+    if (waveLayout.$.run.still == 1u) { return was; }
     let laplacian = ((h[1] + h[3] + h[5] + h[7]) * 0.5 + (h[0] + h[2] + h[6] + h[8]) * 0.25
       - 3.0 * h[4]) * 0.333333;
     var next = (2.0 - ${WAVE.damping}) * h[4] - (1.0 - ${WAVE.damping}) * was.g
@@ -113,7 +145,7 @@ export function createWaveField(root: Root, registry: GpuRegistry) {
     fields.map((was) => root.createBindGroup(waveLayout, { was: was.createView(), run, splats })),
   );
   let current = 0;
-  let epoch = -1;
+  let epoch: number | null = null;
   const clear = (raw: GPUCommandEncoder, views: GPUTexture[]) =>
     raw
       .beginRenderPass({
@@ -130,29 +162,26 @@ export function createWaveField(root: Root, registry: GpuRegistry) {
     pipeline,
     /** The latest step's heights, for the water's fog group. */
     view: shown.createView(),
-    /** This frame's steps from `waves` (`Presentation.waves`): a new epoch
-     *  clears the field first. */
+    /** This frame's runs from `waves` (`Presentation.waves`, `wavePlan`). */
     encode(encoder: TgpuCommandEncoder, waves: Float32Array) {
-      if (waves.length < HEAD) return;
       const raw = root.unwrap(encoder);
-      const [steps, next, sx, sy] = waves;
-      if (next !== epoch) {
-        epoch = next;
-        clear(raw, [...fields, shown]);
-      }
-      if (steps === 0) return;
-      const count = Math.min((waves.length - HEAD) / SPLAT_FLOATS, MAX_SPLATS);
+      const plan = wavePlan(waves, epoch);
+      epoch = plan.epoch;
+      if (plan.clear) clear(raw, [...fields, shown]);
+      if (plan.runs.length === 0) return;
+      const count = Math.min(Math.max(waves.length - HEAD, 0) / SPLAT_FLOATS, MAX_SPLATS);
       if (count > 0)
         root.device.queue.writeBuffer(
           root.unwrap(splats),
           0,
           Float32Array.from(waves.subarray(HEAD, HEAD + count * SPLAT_FLOATS)),
         );
-      for (let k = 0; k < steps; k++) {
+      for (const [k, run] of plan.runs.entries()) {
         runs[k].write({
-          shift: k === 0 ? d.vec2i(sx, sy) : d.vec2i(0, 0),
-          step: k,
+          shift: d.vec2i(...run.shift),
+          step: run.step,
           splats: count,
+          still: run.still ? 1 : 0,
         });
         pipeline
           .with(encoder)

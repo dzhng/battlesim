@@ -16,6 +16,7 @@ struct WaveRun {
   shift: vec2i,
   step: u32,
   splats: u32,
+  still: u32,
 }
 
 @group(0) @binding(1) var<uniform> run: WaveRun;
@@ -45,6 +46,7 @@ fn waveStep(pos: vec2f) -> vec4f {
     let here = c + shift;
     let was = select(vec4f(0.0), textureLoad(was, here, 0),
       all(here >= vec2i(0)) && all(here < size));
+    if (run.still == 1u) { return was; }
     let laplacian = ((h[1] + h[3] + h[5] + h[7]) * 0.5 + (h[0] + h[2] + h[6] + h[8]) * 0.25
       - 3.0 * h[4]) * 0.333333;
     var next = (2.0 - 0.08) * h[4] - (1.0 - 0.08) * was.g
