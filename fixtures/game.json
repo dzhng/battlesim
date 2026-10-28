@@ -1,7 +1,5 @@
 {
-  "status": "provisional-tuning; runtime owner (moved from the spec in slice 01)",
   "seed": 20260925,
-  "units": "metres-seconds-radians",
   "tick_hz": 30,
   "commands": { "orders_per_s": 30 },
   "buildings": {
@@ -1108,7 +1106,6 @@
     "infantry_aim_m": 1.0,
     "vehicle_aim_height_fraction": 0.75,
     "infantry_center_m": 0.9,
-    "blast_falloff": "linear conditional damage; quadratic hit probability; cover scales probability only",
     "moving_scatter_multiplier": 1.4142135623730951,
     "friendly_prefire_margin_m": 1.0
   },

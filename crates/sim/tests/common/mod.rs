@@ -322,8 +322,7 @@ pub fn saved_map(id: &str) -> &'static str {
     })
 }
 
-/// The runtime rules of a scenario: the game fixture itself (rules read the
-/// sections they own and ignore the rest).
+/// The runtime rules of a scenario: the game fixture.
 pub fn scenario_rules() -> serde_json::Value {
     game()
 }

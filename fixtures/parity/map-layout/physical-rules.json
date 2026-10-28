@@ -44,7 +44,6 @@
     "infantry_aim_m": 1,
     "vehicle_aim_height_fraction": 0.75,
     "infantry_center_m": 0.9,
-    "blast_falloff": "linear conditional damage; quadratic hit probability; cover scales probability only",
     "moving_scatter_multiplier": 1.4142135623730951,
     "friendly_prefire_margin_m": 1
   },

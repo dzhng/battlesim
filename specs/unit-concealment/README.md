@@ -10,7 +10,7 @@ Every unit type gets its own concealment, which multiplies the concealment its g
 You are implementing this spec in its pull request. Start at the first unchecked slice and follow its file. Use `implement-spec`. Use `write-tests` (red first) for every behaviour, and `tweak-mechanics` before slice 06. Finish the whole spec without asking for approval: judge the digests, the menu reel and the workbench GIF yourself, and say in each commit what you checked. Fix any failure you see, and fix unrelated failures in their own commit. Before you end a pass, tick what you finished and rewrite this section.
 
 - [x] [00 Every transcendental function is libm's](slices/00-libm-everywhere.md): done. No digest, record, reel or map moved.
-- [ ] [01 Rules refuse unknown keys](slices/01-strict-rules.md): every rules struct denies unknown fields; `game.json`'s non-simulation sections get an explicit owner.
+- [x] [01 Rules refuse unknown keys](slices/01-strict-rules.md): done. Digest rows and compiled map hashes are identical.
 - [ ] [02 Fallbacks become data](slices/02-explicit-fallbacks.md): `partial_from`, per-layer range and scatter, the air layer, the afterburner multipliers, and the rules-side defaults. Change the editor in the same slice.
 - [ ] [03 Sight bands and the radar signature](slices/03-sight-bands-and-radar.md): `low_air_m` and `high_air_m` become required, `radar_emitter` replaces the radar struct, and the TypeScript copies are deleted.
 - [ ] [04 The concealment mechanism, neutral](slices/04-concealment-mechanism.md): the whole formula, moving and HIDDEN, coded with neutral data, plus the system test and editor fields.

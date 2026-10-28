@@ -5,6 +5,10 @@ own battle and presentation numbers. [Units](units/), [props](props/) and [biome
 own component catalogs and terrain palettes; [catalog resolution](../crates/contract/src/catalog.rs)
 produces the browser's resolved [catalog](catalog.json).
 
+[Rules admission](../crates/contract/src/scenario.rs) refuses unknown sections
+and fields, including in encounter overrides. Application settings carried
+alongside the rules have explicit owners and do not enter resolved battle rules.
+
 [Map presets](map-presets.json) and the generator's [physical template library](prototype-building-templates.json)
 feed [mapgen](../crates/mapgen/README.md). Its templates are derived from accepted
 [city sets](../packages/scene-assets/README.md#city-buildings), and it is the one

@@ -35,6 +35,7 @@ pub struct FlightRules {
 /// What a guided missile does once its launcher stops supporting it (the
 /// fixture's `guided` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GuidedRules {
     /// A released missile flies straight on for this long, then goes to
     /// ground: its commanded point becomes where it would be after this many

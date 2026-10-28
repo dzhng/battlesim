@@ -56,8 +56,9 @@ fn main() {
             "instruction tracer uses the fixed safe 1 km input"
         );
     }
-    let fixture = sim::fixtures::with_map("ground");
-    let fog_cell_m = fixture["map"]["fog_cell_m"].as_f64().unwrap();
+    let mut fixture = sim::fixtures::with_map("ground");
+    let map = fixture.as_object_mut().unwrap().remove("map").unwrap();
+    let fog_cell_m = map["fog_cell_m"].as_f64().unwrap();
     let rules: Rules = serde_json::from_value(fixture).unwrap();
     assert_eq!(rules.ground.cell_m, 1.0);
     let mut truth = stage("truth_empty", || {
