@@ -67,6 +67,7 @@ import {
   WORLD_OUT,
   worldTargets,
   type FrameTargets,
+  type WaterDetail,
 } from "./targets";
 import type { GpuRegistry } from "./registry";
 
@@ -84,7 +85,8 @@ export async function createWorldPass(
   paintStyle: PaintStyle,
   xrayMinHiddenFragmentFraction: number,
   glass: GlassStyle,
-  grassDensity = 1,
+  grassDensity: number,
+  detail: WaterDetail,
 ) {
   const worldFragment = tgpu.fragmentFn({
     in: {
@@ -215,10 +217,9 @@ export async function createWorldPass(
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
-  // A blended surface (glass) is drawn after everything opaque, over it by
-  // its coverage, as the water is: it reads depth and writes none, is in no
-  // prepass and casts no shadow. Unlike the water it leaves the fog mask
-  // alone: a pane is not the thing seen or unseen, what stands behind it is.
+  // Glass is drawn after everything opaque, over it by its coverage: it
+  // reads depth and writes none, is in no prepass and casts no shadow. It
+  // leaves the fog mask alone: a pane is not the thing seen or unseen.
   const modelBlended = root.createRenderPipeline({
     ...modelBase,
     fragment: createGlassFragment(environment, glass),
@@ -305,7 +306,7 @@ export async function createWorldPass(
       prepass,
       caster,
       opaque,
-      water.pipeline,
+      ...water.pipelines,
       terrainPipeline,
       backdropPipeline,
       modelPrepass,
@@ -342,7 +343,7 @@ export async function createWorldPass(
   const terrainHeights = createTerrainHeights(registry);
   const fog = await createFogVisibility(root, registry, fogGeometry, terrainHeights);
   const scenery = await createSceneryLayer(root, registry, environment);
-  const terrain = createTerrainSource(root, registry);
+  const terrain = createTerrainSource(root, registry, detail);
   const grass = await createGrassPass(
     root,
     registry,

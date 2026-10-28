@@ -855,3 +855,189 @@ against the code. Each says what was chosen, why, and how sure the agent is.
 5. **Splits for the size ratchet:** the side's fog out of `presentation.rs`,
    and the scenery's vertex stages out of `sceneryLayer.ts`, each in its own
    commit.
+## Slice 07: refraction, and the Low tier
+
+### The bed shifts in metres along the slope, then is projected
+
+- **When:** slice 07.
+- **The choice:** `waterUnder` (`frame/waterUnder.ts`) moves the bed
+  point along the surface's slope (`n.xy`) by a share of the depth it is
+  seen through, capped at `depth_m`. It projects that world shift to the
+  screen and clamps it to `most` of the screen's height. RedGPU instead
+  scales the normal's view-space delta by depth over camera distance in UV.
+  Projecting a world shift gets the perspective falloff from the camera
+  itself, and keeps the one number (`share`) a physical ratio. The shift
+  is dropped where its sample lies within 0.15 m in front of the water's
+  own surface (a bank, a pier), and where the fog mask copy says the sample
+  is less seen than the pixel (ramped over half a pixel's unseen coverage).
+  Extinction reads the refracted distance; the soft edge keeps the straight
+  depth (as RedGPU does).
+- **The gap:** delegated (the scale and clamp).
+- **The reach:** caustics (slice 08) light the bed this reads; the wave
+  field (16) bends the same normal.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### The shift is eight times the physical one
+
+- **When:** slice 07.
+- **The choice:** `presentation.terrain.water.refraction` is
+  `{ share: 2, depth_m: 2.5, most: 0.015, blur_m: 1 }`. The physical shift
+  through water is about a quarter of the depth times the slope, which at
+  the close framing (65 m) moves the bed about a pixel: refraction didn't
+  read at all. At 2 the shallows break into a wobbling bed; at the
+  tactical framing (260 m) it stays under a pixel. A Hollywood choice, by
+  eye.
+- **The gap:** the implementer's to pick.
+- **The reach:** every look shares it; a look of its own would move it
+  into the biome's `WaterLook`.
+- **Verdict:** sound for now.
+- **Confidence:** medium.
+
+### The bed's mips are a 2×2 box drawn by an exported pipeline
+
+- **When:** slice 07.
+- **The choice:** `FrameTargets.sceneColour` carries four levels where the
+  water refracts. `sceneColourMip` draws each from the one before, with a
+  bilinear tap at the shared corner of four texels. Native replays the same
+  pipeline (`world::Water`), and reads the level count from the export's
+  `sizes` (`sceneColourMips`), as Codex asked, so it can't drift. The bed blurs a level for every metre of water
+  it is seen through (`blur_m`), by at most three. Against the same run
+  with no blur, the blur moved no visible pixel: the bed shows only in
+  the shallows, and the bed there has no detail yet to soften.
+- **The gap:** delegated (how mips are generated).
+- **The reach:** slice 06's note: the normal map could take averaged
+  roughness from mips like these if far water reads flat.
+- **Verdict:** sound, but the blur is unproven until the bed has detail.
+- **Confidence:** low on the blur's value; high on the mechanism.
+
+### Low's word is `TerrainParams.view.z`; the targets carry the rest
+
+- **When:** slice 07.
+- **The choice:** `GraphicsQualityProfile.waterDetail` (`"depth"` on Low
+  and the test-only minimum, `"full"` on Medium and High) reaches
+  `BattleFrameOptions.quality`. An omitted quality draws `full`, as it
+  draws High. `WaterDetail` lives in `frame/targets.ts`. The battle frame
+  hands it to the terrain source, which writes `view.z` (1 for `depth`),
+  and to the targets, which allocate the mips and the fog mask copy
+  (`fogMaskUnder`) only for `full`. The water pass copies and builds mips
+  only when that copy exists. The shader's `depth` branch reads the copy at
+  the pixel exactly as slice 06 did: the frame scene's Low baselines (river,
+  geometry) differ by 0 px. The 1×1 stub is the fog's existing `noScene`
+  placeholder. Native draws `full` (its view word is zero).
+- **The gap:** the slice named a uniform word, not where; `view.z` was
+  the free one.
+- **The reach:** slices 08 and 16 read the same word, and skip their
+  passes where the targets say the water doesn't refract.
+- **Verdict:** sound; one setting, read in two places from one value.
+- **Confidence:** medium.
+
+### The fog mask copy and the bed's sampler ride the fog layout
+
+- **When:** slice 07.
+- **The choice:** `fogLayout` gained `sceneTaps` (a linear sampler) and
+  `seenUnder` (the fog mask before the water), beside slice 04's `depth`
+  and `sceneColour`, for the same reason: a pipeline binds four groups and
+  the water binds four. The world pass's groups bind placeholders.
+- **The gap:** none; slice 02's rule.
+- **The reach:** caustics' and wakes' inputs must fit the same groups.
+- **Verdict:** sound, but the fog layout is filling with water's inputs.
+- **Confidence:** medium.
+
+### Slice 06's saved plates weren't the before
+
+- **When:** slice 07.
+- **The choice:** the saved slice 06 plates were taken before its last
+  retune, so they differed from this slice even with refraction off, most
+  in the low shot's glints. Before and after were judged against a run of
+  this build with no shift and no blur, which is slice 06's water. The
+  graphics test's plates repeat exactly from run to run, so the pairs are
+  comparable.
+- **The gap:** a process slip, caught by the paired run.
+- **The reach:** keep the before as a run of the slice's own build with
+  its feature off.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Cost is judged as a pair on High, not as Low against High
+
+- **When:** slice 07.
+- **The choice:** Low and High differ in render scale, grass and shadows,
+  so their totals say nothing about the water. The probe measured High
+  with refraction against High with it off, interleaved (eight arms of
+  120 frames each, at the tactical framing in the river lab): 9.17 ±
+  0.72 ms against 9.24 ± 0.84 ms, within noise. Low on the same run:
+  10.47 ± 0.64 ms, slower than High as slice 02 found, with other load on
+  the machine.
+- **The gap:** the slice asked for Low against High.
+- **The reach:** slices 08 and 16 measure the same pair.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+## Slice 08: caustics
+
+### Four taps of the surface's own map, drifting with its layers
+
+- **When:** slice 08.
+- **The choice:** `waterCaustics` (`frame/waterCaustics.ts`) samples the
+  baked normal map four times, as RedGPU does: two scales (1 and 1.8 of
+  the pattern's tile), each bending the other's coordinates by 0.18 of a
+  tile, bright where their slopes agree along either diagonal. They drift
+  with the primary and detail normal layers' shares of the wind
+  (`waterCarried`, now one helper the normals read too), because the
+  surface's own waves make the caustics. They light the bed seen down the
+  view, from where the sun's ray came down through the surface, its slant
+  taken as three quarters of the dry one for the water's bend. The light
+  scales the bed's own (`bed × (1 + caustics × sun)`), so it stops in the
+  surface's shadow and takes the bed's colour.
+- **The gap:** delegated (the tap count).
+- **The reach:** puddles and swamps (slices 13, 14) can call the same
+  function where their water is clear.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### The caustics fade by the finest wave, not by texels
+
+- **When:** slice 08.
+- **The choice:** the pattern fades as a pixel spans a quarter to a half
+  of the finer layer's finest wave (`WATER_NORMALS_FINEST`, the bake's
+  12.4 cycles a tile). Slice 06's texel-based fade, used first, put a
+  pixel over 13 texels at the close framing and drew no caustics at all.
+  A crest narrower than half its pixel widens to it and dims in step
+  (`crest`), which took out the crawling lines at the low view. They fade
+  with depth as RedGPU's do (`fade_per_m` 0.85, gone in the first
+  centimetre and whole by 8 cm), fade off walls from about 45° to 72°,
+  and weaken as the sun lowers.
+- **The gap:** delegated (the depth fade).
+- **The reach:** none yet; the wave field (16) adds finer waves the fade
+  must count.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### The bed is rebuilt from the straight depth
+
+- **When:** slice 08.
+- **The choice:** the caustics' bed point and its steepness come from the
+  water's straight depth, not the refracted distance. Refraction moves each
+  pixel's bed sample on its own, and the steep-wall mask's derivatives of
+  that point flecked the low view with dark single pixels.
+- **The gap:** none; a defect the critique found.
+- **The reach:** none.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Cells several times larger than real, so they read from 65 m
+
+- **When:** slice 08.
+- **The choice:** `presentation.terrain.water.caustics` is
+  `{ tile_m: 24, strength: 1.2, fade_per_m: 0.85, sharpness: 5 }`, so a
+  cell spans a metre or so. A real stream's cells are a hand across, which
+  at the close framing is under a pixel: at a 16 m tile an unprimed
+  critique still read them as foam or fine texture at full scale, and at
+  an 8 m tile they were sparkle. A Hollywood choice. At the tactical
+  framing (260 m) they fade out: no pixel there can hold them.
+- **The gap:** the implementer's to pick.
+- **The reach:** every look shares them; a murky look could weaken them
+  through a look of its own.
+- **Verdict:** sound for now.
+- **Confidence:** medium.

@@ -6,8 +6,7 @@
 // surface there, so nothing hides it and nothing steps. Its numbers are its
 // row's, which the water's pass reads too.
 import { tgpu, d, std } from "typegpu";
-import { typegpuCameraLayout } from "../world/camera";
-import { cameraWind } from "../world/camera";
+import { cameraWind, typegpuCameraLayout } from "../world/camera";
 import { groundCell, groundWater, valueNoise } from "./terrainMaterial";
 import { terrainLayout } from "./terrainLayout";
 import { WATER_NORMALS_SIZE } from "./waterNormals";
@@ -75,20 +74,29 @@ const blendRnm = tgpu.fn(
   return std.normalize(std.sub(std.mul(t, std.dot(t, u) / t.z), u));
 });
 
+/** How far downwind (metres) the wind has carried the water's surface by
+ *  the camera's clock: a paused battle's water stands still. */
+export const waterCarried = tgpu.fn(
+  [],
+  d.vec2f,
+)(() => {
+  "use gpu";
+  const wind = cameraWind();
+  return std.mul(wind.toward.xy, typegpuCameraLayout.$.cam.time * wind.driftMps);
+});
+
 /** The water's normal at `xy` in look `look` (RedGPU
  *  `lakeFragment.wgsl:280-346`): the baked map at three scales, the macro and
  *  detail layers turned off the primary's, each drifting downwind at its own
  *  share of the wind's drift, blended with RNM, and flattening where a pixel
- *  spans more than a ripple (`footprint` metres), so far water lies calm.
- *  The clock is the camera's: a paused battle's water stands still. */
+ *  spans more than a ripple (`footprint` metres), so far water lies calm. */
 export const waterNormal = tgpu.fn(
   [d.vec2f, d.f32, d.u32],
   d.vec3f,
 )((xy, footprint, look) => {
   "use gpu";
   const w = terrainLayout.$.params.waterLooks[look];
-  const wind = cameraWind();
-  const carried = std.mul(wind.toward.xy, typegpuCameraLayout.$.cam.time * wind.driftMps);
+  const carried = waterCarried();
   const primary = waterLayer(
     xy,
     w.normals.x,

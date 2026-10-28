@@ -15,6 +15,7 @@ use crate::fog::Fog;
 use crate::grass::Grass;
 use crate::ground::Ground;
 use crate::models::Models;
+use crate::pipelines::Sizes;
 use crate::scenery::Scenery;
 use crate::shadow::SunShadow;
 
@@ -40,8 +41,9 @@ pub struct Targets {
     /// The lit world, the effects drawn over it.
     pub lit: TextureView,
     pub lit_texture: Texture,
-    /// `lit` as the world pass left it, before the water: what the water
-    /// shows of the bed through it (`world::Water`).
+    /// `lit` as the world pass left it, before the water, with its mips:
+    /// what the water shows of the bed through it (`world::Water`). Native
+    /// draws the water `full` (`WaterDetail`), refracted.
     pub scene_colour: TextureView,
     pub scene_colour_texture: Texture,
     /// The world with fog applied: post's input.
@@ -51,6 +53,11 @@ pub struct Targets {
     /// The fog mask, multisampled, resolved into `fog_mask`.
     pub fog_mask_msaa: TextureView,
     pub fog_mask: TextureView,
+    pub fog_mask_texture: Texture,
+    /// `fog_mask` before the water: how seen the ground is that the water
+    /// shows displaced.
+    pub fog_mask_under: TextureView,
+    pub fog_mask_under_texture: Texture,
     /// The distances to the other side of the fog edge: along rows, then
     /// the Euclidean result.
     pub fog_distance_rows: TextureView,
@@ -61,8 +68,8 @@ pub struct Targets {
 }
 
 impl Targets {
-    pub fn new(device: &Device, size: [u32; 2]) -> Self {
-        let texture = |label, format, samples, usage| {
+    pub fn new(device: &Device, size: [u32; 2], sizes: &Sizes) -> Self {
+        let mipped = |label, format, samples, usage, mips| {
             device.create_texture(&TextureDescriptor {
                 label: Some(label),
                 size: Extent3d {
@@ -70,7 +77,7 @@ impl Targets {
                     height: size[1],
                     depth_or_array_layers: 1,
                 },
-                mip_level_count: 1,
+                mip_level_count: mips,
                 sample_count: samples,
                 dimension: TextureDimension::D2,
                 format,
@@ -78,6 +85,7 @@ impl Targets {
                 view_formats: &[],
             })
         };
+        let texture = |label, format, samples, usage| mipped(label, format, samples, usage, 1);
         let view = |t: Texture| t.create_view(&Default::default());
         let render = TextureUsages::RENDER_ATTACHMENT;
         let sampled = render | TextureUsages::TEXTURE_BINDING;
@@ -88,9 +96,22 @@ impl Targets {
             render | TextureUsages::COPY_SRC,
         );
         let lit_texture = texture("lit", HDR_FORMAT, 1, sampled | TextureUsages::COPY_SRC);
-        let scene_colour_texture = texture(
+        let scene_colour_texture = mipped(
             "scene-colour",
             HDR_FORMAT,
+            1,
+            sampled | TextureUsages::COPY_DST,
+            sizes.scene_colour_mips,
+        );
+        let fog_mask_texture = texture(
+            "fog-mask",
+            FOG_MASK_FORMAT,
+            1,
+            sampled | TextureUsages::COPY_SRC,
+        );
+        let fog_mask_under_texture = texture(
+            "fog-mask-under",
+            FOG_MASK_FORMAT,
             1,
             TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
         );
@@ -104,7 +125,10 @@ impl Targets {
             hdr: view(texture("hdr", HDR_FORMAT, 1, sampled)),
             depth: view(texture("depth", DEPTH_FORMAT, MSAA, sampled)),
             fog_mask_msaa: view(texture("fog-mask-msaa", FOG_MASK_FORMAT, MSAA, render)),
-            fog_mask: view(texture("fog-mask", FOG_MASK_FORMAT, 1, sampled)),
+            fog_mask: fog_mask_texture.create_view(&Default::default()),
+            fog_mask_texture,
+            fog_mask_under: fog_mask_under_texture.create_view(&Default::default()),
+            fog_mask_under_texture,
             fog_distance_rows: view(texture(
                 "fog-distance-rows",
                 FOG_DISTANCE_FORMAT,

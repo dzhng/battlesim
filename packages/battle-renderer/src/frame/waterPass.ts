@@ -12,7 +12,6 @@ import type { SubmittedDraws } from "./submitted";
 import {
   fogCoverage,
   fogIsGround,
-  fogLayout,
   fogTerm,
   groundPaint,
   paintedAlbedo,
@@ -20,38 +19,13 @@ import {
   paintGlow,
 } from "./fogTerm";
 import { terrainLayout } from "./terrainLayout";
+import { waterCaustics } from "./waterCaustics";
 import { waterNormal, waterStreaks } from "./waterSurface";
+import { createSceneMips, ndcAt, waterDepth, waterUnder } from "./waterUnder";
 import { FRAME_MSAA, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
 
 /** Rec. 709's weights: a linear colour's luminance is its dot with them. */
 const LUMA = d.vec3f(0.2126, 0.7152, 0.0722);
-/** The farthest the water reads down to the bed, metres: past it the bed's
- *  light is all but gone, and the cleared depth (sky) is no distance. */
-const BED_FAR_M = 50;
-
-/** What lies under the water at fragment `clip` of its surface point
- *  `world`: the world's colour before the water there, and how far down
- *  (along the view) the world's depth lies, both from the water's fog group
- *  (`fogLayout.depth` and `sceneColour`). The distance is the mean over the
- *  depth's samples, as the colour is their resolve: one sample alone puts a
- *  terrain triangle's edge into the shallows as a line. */
-const waterBed = tgpu
-  .fn(
-    [d.vec4f, d.vec3f],
-    d.vec4f,
-  )(/* wgsl */ `(clip: vec4f, world: vec3f) -> vec4f {
-    let at = vec2i(clip.xy);
-    let colour = textureLoad(fogLayout.$.sceneColour, at, 0).rgb;
-    let cam = typegpuCameraLayout.$.cam;
-    let ndc = vec2f(clip.x / cam.width * 2.0 - 1.0, 1.0 - clip.y / cam.height * 2.0);
-    var far = 0.0;
-    for (var s = 0; s < ${FRAME_MSAA}; s++) {
-      let p = cam.invViewProj * vec4f(ndc, textureLoad(fogLayout.$.depth, at, s), 1.0);
-      far += min(length(p.xyz / p.w - world), ${BED_FAR_M}.0);
-    }
-    return vec4f(colour, far / ${FRAME_MSAA}.0);
-  }`)
-  .$uses({ fogLayout, typegpuCameraLayout });
 
 /** The world point the pixel's centre shows at fragment `clip`'s depth. Its
  *  derivatives hold across the water's triangles, where the centroid
@@ -61,12 +35,10 @@ const atPixel = tgpu
     [d.vec4f],
     d.vec3f,
   )(/* wgsl */ `(clip: vec4f) -> vec3f {
-    let cam = typegpuCameraLayout.$.cam;
-    let ndc = vec2f(clip.x / cam.width * 2.0 - 1.0, 1.0 - clip.y / cam.height * 2.0);
-    let p = cam.invViewProj * vec4f(ndc, clip.z, 1.0);
+    let p = typegpuCameraLayout.$.cam.invViewProj * vec4f(ndcAt(vec2i(clip.xy)), clip.z, 1.0);
     return p.xyz / p.w;
   }`)
-  .$uses({ typegpuCameraLayout });
+  .$uses({ ndcAt, typegpuCameraLayout });
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -79,9 +51,9 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     color: d.vec4f,
     highlight: d.f32,
   };
-  /** The water: the bed under it (the world before the water, at the
-   *  pixel) dimmed per channel by the light the water takes over the
-   *  distance down to it (`exp(-e·d)`, as RedGPU's extinction,
+  /** The water: the bed under it (the world before the water, seen
+   *  through the surface, `waterUnder`) dimmed per channel by the light the
+   *  water takes over the distance down to it (`exp(-e·d)`, as RedGPU's extinction,
    *  `lakeFragment.wgsl:415-433`, with each look's own `e`), its body's
    *  colour, lit, in place of what it takes, and the sky's and the sun's
    *  reflection over both, with the air between it and the eye once. The
@@ -100,8 +72,11 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     const n = waterNormal(v.world.xy, footprint, look);
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const paint = groundPaint(v.world);
-    const bed = waterBed(v.clip, v.world);
+    const depth = waterDepth(v.clip, v.world);
+    const bed = waterUnder(v.clip, v.world, n, depth, look);
     const through = std.exp(std.mul(w.surface.xyz, -bed.w));
+    // The waves' light focused on the bed where the sun reaches the water.
+    const lit = std.mul(bed.xyz, 1 + waterCaustics(v.world, depth, footprint, look) * sun);
     const body = std.mul(std.mix(w.edge.xyz, w.channel.xyz, 1 - std.dot(through, LUMA)), streaks);
     // The surface's light before the air: lit with no albedo, a surface
     // shows only what it reflects; the body's own light in place of what
@@ -140,14 +115,14 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     // so the bed's share of the air is taken off again.
     const surfaceInAir = environment.air(std.mul(water, shadowed), v.world, eye).xyz;
     const bedAir = std.mul(environment.air(d.vec3f(0), v.world, eye).xyz, through);
-    const wet = std.add(std.sub(surfaceInAir, bedAir), std.mul(bed.xyz, through));
+    const wet = std.add(std.sub(surfaceInAir, bedAir), std.mul(lit, through));
     // The edge by depth (RedGPU `lakeFragment.wgsl:373-375`): the water fades
     // in over its look's shore depth, or over a few pixels where that is
     // narrower, wider as the surface is seen edge-on, so it never aliases.
     const facing = std.max(0.35, std.dot(n, std.normalize(std.sub(eye, v.world))));
     const pixel = std.length(std.fwidth(atPixel(v.clip).xy));
     const fade = std.max(w.lanesMean.y, (pixel * 3) / facing);
-    const edge = std.smoothstep(0, 1, std.clamp(bed.w / fade, 0, 1));
+    const edge = std.smoothstep(0, 1, std.clamp(depth / fade, 0, 1));
     // The mark lies over the water by its own coverage, whole at the bank
     // too, where the water fades and the bed under it is unpainted.
     const marked = std.mul(environment.air(std.mul(mark, shadowed), v.world, eye).xyz, paint.w);
@@ -175,8 +150,10 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
       multisample: { count: FRAME_MSAA },
     })
     .$name("worldWater");
+  const mips = createSceneMips(root);
   return {
-    pipeline,
+    /** What it compiles: the water's, and its bed's mips'. */
+    pipelines: [pipeline, mips.pipeline],
     /** The water's pass, over the samples the world pass kept (it stores
      *  them), resolving the lit world and the fog mask again; the `mesh`
      *  drawn with the camera's, the water's fog group (`FogGroups.water`)
@@ -192,13 +169,19 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
       [camera, fog, terrain]: readonly [CameraGroup, TgpuBindGroup, TgpuBindGroup],
       submitted: SubmittedDraws,
     ) {
-      // The world as it stands is what the water shows of its bed.
-      root
-        .unwrap(encoder)
-        .copyTextureToTexture({ texture: targets.lit }, { texture: targets.sceneColour }, [
-          targets.width,
-          targets.height,
-        ]);
+      // The world as it stands is what the water shows of its bed, and,
+      // where it refracts, how seen each pixel of it is.
+      const size = [targets.width, targets.height];
+      const raw = root.unwrap(encoder);
+      raw.copyTextureToTexture({ texture: targets.lit }, { texture: targets.sceneColour }, size);
+      if (targets.fogMaskUnder) {
+        raw.copyTextureToTexture(
+          { texture: targets.fogMask },
+          { texture: targets.fogMaskUnder },
+          size,
+        );
+        mips.encode(encoder, targets);
+      }
       const pass = encoder.beginRenderPass({
         label: "water",
         colorAttachments: [

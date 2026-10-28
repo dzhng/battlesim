@@ -1,10 +1,10 @@
 # Water and wetlands
 
-**Status:** sliced, not started. The unknowns walk ([decisions](decisions.md),
+**Status:** in progress. The unknowns walk ([decisions](decisions.md),
 [sharp edges](#sharp-edges), [the map](visualizations/unknowns-map.html))
-and the parallel drafts are done. The plan is the [slice graph](#slice-graph).
-Nothing is implemented.
-**Updated:** 2026-10-27.
+and the slicing are done; the checklist below says which slices have
+shipped. The plan is the [slice graph](#slice-graph).
+**Updated:** 2026-10-28.
 
 ## Next Agent Prompt
 
@@ -46,8 +46,11 @@ river draws one of its biome's water looks, uniforms the water's shader reads,
 retuned live on the dev server. Slice 04 is done: the water shows its bed by
 depth, through each look's per-channel extinction. Slice 05 is done: the
 water fades in from where its depth is zero. Slice 06 is done: a baked
-normal map at three scales, drifting with the wind. **Pick up at
-[slice 07](slices/07-refraction.md)**. The sim lane (slice 10 on)
+normal map at three scales, drifting with the wind. Slice 07 is done: the
+bed shows displaced through the surface, and Low keeps the depth colour
+alone through one uniform word (`WaterDetail`). Slice 08 is done: caustics
+on the bed, from the surface's own waves. **Pick up at
+[slice 09](slices/09-highlights.md)**. The sim lane (slice 10 on)
 runs in parallel on `spec/water-and-wetlands-sim` and merges in here.
 
 **Warning:** native must start and draw water at every slice (decision 19). A
@@ -68,8 +71,9 @@ the checklist.
 - [x] [04](slices/04-depth-colour.md), depth colour (2026-10-28).
 - [x] [05](slices/05-soft-shore.md), the soft shore (2026-10-28).
 - [x] [06](slices/06-surface-normals.md), wind-driven normals (2026-10-28).
-- [ ] Render lane: [07](slices/07-refraction.md), [08](slices/08-caustics.md),
-      [09](slices/09-highlights.md).
+- [x] [07](slices/07-refraction.md), refraction and the Low tier (2026-10-28).
+- [x] [08](slices/08-caustics.md), caustics (2026-10-28).
+- [ ] Render lane: [09](slices/09-highlights.md).
 - [x] [10](slices/10-swamp-terrain.md), swamp terrain, with the wetlands map's
       swamp (2026-10-28).
 - [x] [11](slices/11-swamp-slowdown.md), swamp slowdown; its paired battle

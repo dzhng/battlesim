@@ -50,6 +50,8 @@ native.
 
 ## Gaps
 
-None yet. Slice 01's wind rides in native's environment uniform
+None yet. Slice 07's refraction draws on native as in the browser: native
+allocates the scene copy's mips and the fog mask copy, and replays the
+exported `sceneColourMip`, at `full`. Slice 01's wind rides in native's environment uniform
 (`Environment::new` takes it with the light), its grass binds the reordered
 groups by layout name, and its smoke drifts in the shared presentation.

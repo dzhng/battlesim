@@ -13,7 +13,7 @@ use std::f64::consts::SQRT_2;
 const LEVELS: usize = 32;
 const LUMA: [f64; 3] = [0.2126, 0.7152, 0.0722];
 /// Words a `WaterLook` row: eight vec4s.
-const WATER_LOOK_WORDS: usize = 32;
+const WATER_LOOK_WORDS: usize = 40;
 
 /// `v` as the f32 a `Float32Array` holds, in its word.
 pub fn word(v: f64) -> u32 {
@@ -149,7 +149,7 @@ impl Ground {
     }
 
     /// `TerrainParams.waterLooks`: every water look the biome holds, then
-    /// zeros to `WATER_LOOKS_MAX` rows, eight vec4s a row. A row is its
+    /// zeros to `WATER_LOOKS_MAX` rows, ten vec4s a row. A row is its
     /// look's own (`biome.water`) over the shared surface
     /// (`presentation.terrain.water`).
     fn water_looks(&self, p: &mut Vec<u32>) {
@@ -166,6 +166,10 @@ impl Ground {
             vec4(p, [l.m, l.drift, 1.0 / l.drift_m, 1.0 / l.streak_m]);
             vec4(p, [l.weights[0], l.weights[1], l.lit[0], l.lit[1]]);
             vec4(p, [l.lit_mean, w.shore_fade_m, r.fade_m[0], r.fade_m[1]]);
+            let f = &w.refraction;
+            vec4(p, [f.share, f.depth_m, f.most, f.blur_m]);
+            let c = &w.caustics;
+            vec4(p, [1.0 / c.tile_m, c.strength, c.fade_per_m, c.sharpness]);
         }
         let rows = WATER_LOOKS_MAX - b.water.rivers.len();
         p.extend(std::iter::repeat_n(0, rows * WATER_LOOK_WORDS));

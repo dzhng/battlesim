@@ -68,6 +68,8 @@ struct WaterLook {
   lanes: vec4f,
   lanesLit: vec4f,
   lanesMean: vec4f,
+  refraction: vec4f,
+  caustics: vec4f,
 }
 
 struct TerrainParams {
@@ -164,6 +166,11 @@ fn waterStreaks(xy: vec2f, footprint: f32, look: u32) -> f32 {
 
 fn cameraWind() -> Wind { return cam.wind[0]; }
 
+fn waterCarried() -> vec2f {
+  let wind = cameraWind();
+  return (wind.toward.xy * (cam.time * wind.driftMps));
+}
+
 @group(1) @binding(8) var waterNormals: texture_2d<f32>;
 
 @group(1) @binding(9) var waterTiles: sampler;
@@ -185,8 +192,7 @@ fn blendRnm(base: vec3f, detail: vec3f) -> vec3f {
 
 fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
   let w = (&params.waterLooks[look]);
-  let wind = cameraWind();
-  let carried = (wind.toward.xy * (cam.time * wind.driftMps));
+  let carried = waterCarried();
   let primary = waterLayer(xy, (*w).normals.x, vec2f(1, 0), (carried * (*w).drifts.x), (*w).normals.w, footprint);
   let macro_1 = waterLayer(xy, (*w).normals.y, vec2f(0.824999988079071, 0.5649999976158142), (carried * (*w).drifts.y), (*w).normals.w, footprint);
   let detail = waterLayer(xy, (*w).normals.z, vec2f(0.45399999618530273, -0.890999972820282), (carried * (*w).drifts.z), (*w).normals.w, footprint);
@@ -356,22 +362,102 @@ fn groundPaint(ground: vec3f) -> vec4f {
   return vec4f(p.xyz * 2, p.w);
 }
 
-@group(3) @binding(10) var sceneColour: texture_2d<f32>;
+fn ndcAt(at: vec2i) -> vec2f {
+    let cam = cam;
+    let centre = vec2f(at) + 0.5;
+    return vec2f(centre.x / cam.width * 2.0 - 1.0, 1.0 - centre.y / cam.height * 2.0);
+  }
 
 @group(3) @binding(9) var depth: texture_depth_multisampled_2d;
 
-fn waterBed(clip: vec4f, world: vec3f) -> vec4f {
-    let at = vec2i(clip.xy);
-    let colour = textureLoad(sceneColour, at, 0).rgb;
+fn bedDistance(at: vec2i, world: vec3f) -> f32 {
     let cam = cam;
-    let ndc = vec2f(clip.x / cam.width * 2.0 - 1.0, 1.0 - clip.y / cam.height * 2.0);
+    let ndc = ndcAt(at);
     var far = 0.0;
     for (var s = 0; s < 4; s++) {
       let p = cam.invViewProj * vec4f(ndc, textureLoad(depth, at, s), 1.0);
       far += min(length(p.xyz / p.w - world), 50.0);
     }
-    return vec4f(colour, far / 4.0);
+    return far / 4.0;
   }
+
+fn waterDepth(clip: vec4f, world: vec3f) -> f32 {
+  return bedDistance(vec2i(clip.xy), world);
+}
+
+@group(3) @binding(10) var sceneColour: texture_2d<f32>;
+
+@group(3) @binding(12) var seenUnder: texture_2d<f32>;
+
+@group(3) @binding(11) var sceneTaps: sampler;
+
+fn waterUnder(clip: vec4f, world: vec3f, n: vec3f, straight: f32, look: u32) -> vec4f {
+    let here = vec2i(clip.xy);
+    if (params.view.z == 1u) {
+      return vec4f(textureLoad(sceneColour, here, 0).rgb, straight);
+    }
+    let r = params.waterLooks[look].refraction;
+    let cam = cam;
+    let screen = vec2f(cam.width, cam.height);
+    let shift = vec3f(n.xy * (min(straight, r.y) * r.x), 0.0);
+    let a = cam.viewProj * vec4f(world, 1.0);
+    let b = cam.viewProj * vec4f(world + shift, 1.0);
+    var px = (b.xy / b.w - a.xy / a.w) * vec2f(0.5, -0.5) * screen;
+    px *= min(1.0, r.z * cam.height / max(length(px), 1e-6));
+    let to = vec2i(clamp(clip.xy + px, vec2f(0.0), screen - 1.0));
+    let ahead = cam.invViewProj * vec4f(ndcAt(to), textureLoad(depth, to, 0), 1.0);
+    let behind = length(ahead.xyz / ahead.w - cam.eye) - length(world - cam.eye);
+    let unseen = textureLoad(seenUnder, to, 0).x
+      - textureLoad(seenUnder, here, 0).x;
+    let keep = smoothstep(0.0, 0.15, behind) * (1.0 - smoothstep(0.0, 0.5, unseen));
+    let at = clip.xy + px * keep;
+    let far = bedDistance(vec2i(at), world);
+    let level = min(far / r.w, f32(textureNumLevels(sceneColour) - 1));
+    let colour = textureSampleLevel(sceneColour, sceneTaps, at / screen, level);
+    return vec4f(colour.rgb, far);
+  }
+
+fn environmentSun() -> vec3f { return data.sunDirection.xyz; }
+
+fn slopeAt(uv: vec2f) -> vec2f {
+  return textureSampleLevel(waterNormals, waterTiles, uv, 0).xy;
+}
+
+fn crest(apart: f32, width: f32) -> f32 {
+  let blur = (0.5f * fwidth(apart));
+  let c = ((1f - smoothstep(0f, (width + blur), abs(apart))) * (width / (width + blur)));
+  return (c * c);
+}
+
+fn crests(a: vec2f, b: vec2f, sharpness: f32) -> f32 {
+  let one = crest(((((a.x + a.y) - b.x) + b.y) * sharpness), 0.85f);
+  let two = crest(((((a.x - a.y) - b.x) - b.y) * sharpness), 0.85f);
+  return ((one + two) * 0.9f);
+}
+
+fn waterCaustics(world: vec3f, far: f32, footprint: f32, look: u32) -> f32 {
+  if ((params.view.z == 1u)) {
+    return 0f;
+  }
+  let w = (&params.waterLooks[look]);
+  let c = (&(*w).caustics);
+  let view = normalize((cam.eye - world));
+  let bed = (world - (view * far));
+  let depth_1 = max((world.z - bed.z), 0f);
+  let up = abs(normalize(cross(dpdx(bed), dpdy(bed))).z);
+  let level = smoothstep(0.3f, 0.7f, up);
+  let sun_1 = environmentSun();
+  let through = (bed.xy + (sun_1.xy * ((0.75f * depth_1) / max(sun_1.z, 0.3f))));
+  let carried = waterCarried();
+  let uv1 = ((through - (carried * (*w).drifts.x)) * (*c).x);
+  let uv2 = ((through - (carried * (*w).drifts.z)) * ((*c).x * 1.8f));
+  let s1 = slopeAt((uv1 + (slopeAt(uv2) * 0.18f)));
+  let s2 = slopeAt((uv2 + (slopeAt(uv1) * 0.18f)));
+  let fade = (exp((-(depth_1) * (*c).z)) * smoothstep(0.01f, 0.08f, depth_1));
+  let held = (1f - smoothstep(0.25f, 0.5f, (((footprint * (*c).x) * 1.8f) * 12.36931687685298f)));
+  let high = clamp((sun_1.z * 1.5f), 0.35f, 1f);
+  return (((((crests(s1, s2, (*c).w) * (*c).y) * fade) * level) * held) * high);
+}
 
 struct CastLight {
   position: vec4f,
@@ -579,9 +665,7 @@ fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
 }
 
 fn atPixel(clip: vec4f) -> vec3f {
-    let cam = cam;
-    let ndc = vec2f(clip.x / cam.width * 2.0 - 1.0, 1.0 - clip.y / cam.height * 2.0);
-    let p = cam.invViewProj * vec4f(ndc, clip.z, 1.0);
+    let p = cam.invViewProj * vec4f(ndcAt(vec2i(clip.xy)), clip.z, 1.0);
     return p.xyz / p.w;
   }
 
@@ -838,8 +922,10 @@ struct waterFragment_Input {
   let n = waterNormal(_arg_0.world.xy, footprint, look);
   let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
   let paint_1 = groundPaint(_arg_0.world);
-  let bed = waterBed(clip, _arg_0.world);
+  let depth_1 = waterDepth(clip, _arg_0.world);
+  let bed = waterUnder(clip, _arg_0.world, n, depth_1, look);
   let through = exp(((*w).surface.xyz * -(bed.w)));
+  let lit = (bed.xyz * (1f + (waterCaustics(_arg_0.world, depth_1, footprint, look) * sun_1)));
   let body = (mix((*w).edge.xyz, (*w).channel.xyz, (1f - dot(through, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)))) * streaks);
   let reflected = surfaceLight(vec3f(), vec3f(), (*w).edge.w, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
   let own = (surfaceLight(body, vec3f(), (*w).edge.w, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye)) - reflected);
@@ -848,11 +934,11 @@ struct waterFragment_Input {
   let shadowed = mix((*w).surface.w, 1f, sun_1);
   let surfaceInAir = air((water * shadowed), _arg_0.world, (*eye)).xyz;
   let bedAir = (air(vec3f(), _arg_0.world, (*eye)).xyz * through);
-  let wet = ((surfaceInAir - bedAir) + (bed.xyz * through));
+  let wet = ((surfaceInAir - bedAir) + (lit * through));
   let facing = max(0.35f, dot(n, normalize(((*eye) - _arg_0.world))));
   let pixel = length(fwidth(atPixel(clip).xy));
   let fade = max((*w).lanesMean.y, ((pixel * 3f) / facing));
-  let edge = smoothstep(0f, 1f, clamp((bed.w / fade), 0f, 1f));
+  let edge = smoothstep(0f, 1f, clamp((depth_1 / fade), 0f, 1f));
   let marked = (air((mark * shadowed), _arg_0.world, (*eye)).xyz * paint_1.w);
   let cover = (paint_1.w + (edge * (1f - paint_1.w)));
   let colour = (((marked + paintGlow(paint_1)) + (wet * (edge * (1f - paint_1.w)))) / max(cover, 1e-4f));

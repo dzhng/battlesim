@@ -111,9 +111,12 @@ pub struct Fog {
     heights: Buffer,
     depth: TextureView,
     scene_colour: TextureView,
+    seen_under: TextureView,
+    scene_taps: Sampler,
     /// What the groups the world pass binds hold for what lies under the
-    /// water (`fogLayout.depth`, `sceneColour`): only the water's group holds
-    /// the real ones, since the world pass writes that depth.
+    /// water (`fogLayout.depth`, `sceneColour`, `seenUnder`): only the
+    /// water's group holds the real ones, since the world pass writes that
+    /// depth.
     no_depth: TextureView,
     no_scene: TextureView,
     eyes: Grown,
@@ -242,6 +245,13 @@ impl Fog {
             heights: heights.clone(),
             depth: targets.depth.clone(),
             scene_colour: targets.scene_colour.clone(),
+            seen_under: targets.fog_mask_under.clone(),
+            scene_taps: device.create_sampler(&SamplerDescriptor {
+                label: Some("fog-scene-taps"),
+                mag_filter: FilterMode::Linear,
+                min_filter: FilterMode::Linear,
+                ..Default::default()
+            }),
             no_depth,
             no_scene,
             eyes: Grown::new(
@@ -287,7 +297,7 @@ impl Fog {
     /// Every group again, over the buffers as they are now.
     fn bind(&mut self, device: &Device) {
         let wholes = self.wholes.create_view(&Default::default());
-        let fragment = |layer: &Buffer, [depth, scene]: [&TextureView; 2]| {
+        let fragment = |layer: &Buffer, [depth, scene, seen]: [&TextureView; 3]| {
             bind(
                 device,
                 &self.fog_layout,
@@ -304,12 +314,14 @@ impl Fog {
                     BindingResource::TextureView(&wholes),
                     BindingResource::TextureView(depth),
                     BindingResource::TextureView(scene),
+                    BindingResource::Sampler(&self.scene_taps),
+                    BindingResource::TextureView(seen),
                 ],
             )
         };
-        let under = [&self.depth, &self.scene_colour];
+        let under = [&self.depth, &self.scene_colour, &self.seen_under];
         let water = fragment(&self.layers[Layer::PaintedFaces as usize], under);
-        let none = [&self.no_depth, &self.no_scene];
+        let none = [&self.no_depth, &self.no_scene, &self.no_scene];
         self.groups = self
             .layers
             .iter()

@@ -84,6 +84,15 @@ const standardPbr = tgpu
   )(standardPbrWgsl)
   .$uses({ samplePmrem });
 const equirectUv = tgpu.fn([d.vec3f], d.vec2f)(equirectUvWgsl);
+/** The direction toward the sun, for any stage that binds the environment:
+ *  the water's caustics lie where it shines down through the surface. */
+export const environmentSun = tgpu
+  .fn(
+    [],
+    d.vec3f,
+  )(/* wgsl */ `() -> vec3f { return layout.$.data.sunDirection.xyz; }`)
+  .$uses({ layout });
+
 /** The receiver's sun-shadow entry point: the inherited sampling body (see
  * shadow.ts for that boundary) bound to THIS owner's typed resources — the
  * environment block and the cascade depth array. It reads the shared view

@@ -109,7 +109,8 @@ export const TerrainParams = d.struct({
   waterLooks: d.arrayOf(WaterLook, WATER_LOOKS_MAX),
   /** 1 draws the ground's classes (`groundClasses`) in place of its lit
    *  colour: the "ground-classes" frame view. Then 1 draws the roads plain
-   *  (`setRoadWear`). Then unused. */
+   *  (`setRoadWear`). Then 1 keeps the water's depth colour alone (the
+   *  tier's `WaterDetail`). Then unused. */
   view: d.vec4u,
 });
 /** The scar texture's grid and the biome's scar look (`biome.scars`). */
