@@ -33,6 +33,7 @@ import {
   paintGlow,
 } from "./fogTerm";
 import { createGrassPass } from "./grassPass";
+import { createWaterPipeline } from "./waterPass";
 import { createTerrainHeights } from "./terrainHeights";
 import { createFogVisibility, type FogShaders, type FogTiles } from "./fogVisibility";
 import {
@@ -48,11 +49,8 @@ import {
   groundSite,
   groundBank,
   groundWater,
-  waterNormal,
-  waterSurface,
 } from "./terrainMaterial";
 import { groundScarsSeen, scarredNormal, scarredSurface, scarRegionContains } from "./groundScars";
-import game from "@fixtures/game.json";
 import { createSceneryLayer, type SceneryWalkStats } from "./sceneryLayer";
 import type { PresentedGround } from "../terrain/terrainSurface";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
@@ -92,7 +90,6 @@ import {
   type FrameTargets,
 } from "./targets";
 import type { GpuRegistry } from "./registry";
-const terrainTuning = game.presentation.terrain;
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -249,39 +246,6 @@ export async function createWorldPass(
     };
   });
 
-  /** The water surface (the terrain material's `waterSurface`): ripples that
-   *  break the sky's and sun's reflection, the bed through it at the shore.
-   *  It takes the ground paint as the ground does (its layer is painted): a
-   *  mark over the water shows on it, not drowned under it. */
-  const waterFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
-    "use gpu";
-    const eye = typegpuCameraLayout.$.cam.eye;
-    const footprint = std.length(std.fwidth(v.world.xy));
-    const surface = waterSurface(v.world.xy, footprint);
-    const n = waterNormal(v.world.xy, footprint);
-    const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
-    const paint = groundPaint(v.world);
-    const lit = environment.shade(
-      paintedAlbedo(surface.xyz, paint),
-      d.vec3f(0),
-      terrainTuning.water.roughness,
-      0,
-      0,
-      1,
-      n,
-      v.world,
-      sun,
-      eye,
-    );
-    const shaded = std.add(
-      std.mul(lit.xyz, std.mix(terrainTuning.water.shadow, 1, sun)),
-      paintGlow(paint),
-    );
-    const seen = paintedSeen(fogTerm(v.world, n, v.clip.xy, fogIsGround()), paint);
-    const alpha = std.max(surface.w, paint.w);
-    return { color: d.vec4f(shaded, alpha), fog: fogCoverage(seen, alpha) };
-  });
-
   const base = {
     attribs: meshAttribs,
     vertex: meshVertex,
@@ -310,20 +274,7 @@ export async function createWorldPass(
       multisample: { count: FRAME_MSAA },
     })
     .$name("worldOpaque");
-  const water = root
-    .createRenderPipeline({
-      ...base,
-      fragment: waterFragment,
-      // The fog mask blends as the colour does: water over unseen ground is as
-      // unseen as its alpha lets the ground through.
-      targets: worldTargets({
-        color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
-        alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
-      }),
-      depthStencil: battleWorldDepth("read"),
-      multisample: { count: FRAME_MSAA },
-    })
-    .$name("worldWater");
+  const water = createWaterPipeline(root, environment);
   const terrainPipeline = root
     .createRenderPipeline({
       ...base,
