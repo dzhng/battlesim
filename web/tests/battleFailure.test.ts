@@ -14,12 +14,26 @@ test("a rejected replay shows its refusal and draws no battlefield", async () =>
     server: { port: 0, host: "127.0.0.1" },
   });
   let browser: Browser | undefined;
+  const failures: string[] = [];
+  const responses: Promise<void>[] = [];
   try {
     await server.listen();
     browser = await launchBrowser({
       args: ["--disable-gpu", "--disable-software-rasterizer"],
     });
     const page = await browser.newPage();
+    page.on("requestfailed", (request) => {
+      failures.push(`${request.url()}: ${request.failure()?.errorText}`);
+    });
+    page.on("response", (response) => {
+      if (response.status() < 400) return;
+      responses.push(
+        (async () => {
+          const body = await response.text().catch(String);
+          failures.push(`${response.status()} ${response.url()}: ${body.slice(0, 4000)}`);
+        })(),
+      );
+    });
     const base = server.resolvedUrls!.local[0];
     await page.goto(base);
     await page.evaluate(
@@ -109,6 +123,10 @@ test("a rejected replay shows its refusal and draws no battlefield", async () =>
     await page.screenshot({
       path: fileURLToPath(new URL("../../throwaway/battle-failure.png", import.meta.url)),
     });
+  } catch (error) {
+    await Promise.all(responses);
+    if (failures.length) throw new Error(failures.join("\n"), { cause: error });
+    throw error;
   } finally {
     await browser?.close();
     await server.close();
