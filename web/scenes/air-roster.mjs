@@ -157,12 +157,12 @@ async function recordsPanel(ctx) {
     const t = unitType(kind);
     const rec = records.find((r) => r.kind === kind);
     const caps = t.capabilities;
-    const radar = caps.radar;
     const want = {
       layer: layerOf(t),
+      sensors: `${t.sensors.ground_m}/${t.sensors.low_air_m}/${t.sensors.high_air_m}`,
       fuel: caps.air ? String(caps.air.fuel_capacity_s) : "—",
       air_reach: `${reach(kind).low_air}/${reach(kind).high_air}`,
-      radar: radar ? `${radar.emits ? "emits" : "silent"}/${radar.detection_m}` : "—",
+      radar: caps.radar_emitter ? "emits" : "—",
       radar_receiver: caps.radar_receiver ? String(caps.radar_receiver.range_m) : "—",
     };
     const targets = Object.fromEntries(

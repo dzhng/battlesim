@@ -21,7 +21,7 @@ fn base_tank() -> Value {
             "weight_class": "heavy", "push_class": "heavy", "wreck": "heavy_wreck"
         } },
         "mobility": { "tracked": { "offroad_kmh": 22, "road_kmh": 43, "turn_deg_s": 45, "reverse_fraction": 0.4 } },
-        "sensors": { "ground_m": 350, "sight_shape": { "front": 1, "side": 0.5, "rear": 0.3 }, "on": "cannon" },
+        "sensors": { "ground_m": 350, "low_air_m": 350, "high_air_m": 300, "sight_shape": { "front": 1, "side": 0.5, "rear": 0.3 }, "on": "cannon" },
         "mounts": [
             { "id": "cannon", "name": "Main Gun", "weapons": ["ap", "he"], "turret": true, "pivot_m": [0, 0, 1.45], "muzzle_m": [5.9, 0, 0.55] },
             { "id": "HMG", "name": "HMG", "weapons": ["hmg"], "turret": true, "on": "cannon", "pivot_m": [-0.25, -0.58, 2.35], "muzzle_m": [1.4, 0, 0.3] }
@@ -130,7 +130,7 @@ fn aircraft_capability_carries_air_ranges_afterburner_and_refund() {
     });
     let catalog = resolve(&units(json!({ "aircraft": aircraft }))).unwrap();
     let t = catalog.by_id("aircraft");
-    assert_eq!(t.sensors.high_air_m, Some(3000.0));
+    assert_eq!(t.sensors.high_air_m, 3000.0);
     assert_eq!(
         t.capabilities
             .air

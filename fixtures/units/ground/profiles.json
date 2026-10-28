@@ -4,6 +4,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 750,
+        "low_air_m": 750,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -26,6 +28,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 800,
+        "low_air_m": 800,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -48,6 +52,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 800,
+        "low_air_m": 800,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -69,6 +75,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 600,
+        "low_air_m": 600,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -90,6 +98,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 550,
+        "low_air_m": 550,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -111,6 +121,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 650,
+        "low_air_m": 650,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -132,6 +144,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 600,
+        "low_air_m": 600,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -153,6 +167,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 550,
+        "low_air_m": 550,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -174,6 +190,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 700,
+        "low_air_m": 700,
+        "high_air_m": 300,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -189,6 +207,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 850,
+        "low_air_m": 850,
+        "high_air_m": 300,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -205,6 +225,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 850,
+        "low_air_m": 850,
+        "high_air_m": 300,
         "sight_shape": {
           "front": 1,
           "side": 1,
@@ -221,6 +243,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 450,
+        "low_air_m": 450,
+        "high_air_m": 300,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -236,6 +260,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 450,
+        "low_air_m": 450,
+        "high_air_m": 300,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -251,6 +277,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 500,
+        "low_air_m": 500,
+        "high_air_m": 300,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -266,6 +294,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 550,
+        "low_air_m": 550,
+        "high_air_m": 300,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -281,6 +311,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 550,
+        "low_air_m": 550,
+        "high_air_m": 300,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -296,6 +328,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 600,
+        "low_air_m": 600,
+        "high_air_m": 300,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -311,6 +345,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 550,
+        "low_air_m": 550,
+        "high_air_m": 300,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -326,6 +362,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 650,
+        "low_air_m": 650,
+        "high_air_m": 300,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -341,6 +379,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 550,
+        "low_air_m": 550,
+        "high_air_m": 300,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -356,6 +396,7 @@
       "abstract": true,
       "sensors": {
         "ground_m": 550,
+        "low_air_m": 550,
         "high_air_m": 0,
         "sight_shape": {
           "front": 1,
@@ -372,6 +413,7 @@
       "abstract": true,
       "sensors": {
         "ground_m": 450,
+        "low_air_m": 450,
         "high_air_m": 0,
         "sight_shape": {
           "front": 1,
@@ -388,6 +430,7 @@
       "abstract": true,
       "sensors": {
         "ground_m": 500,
+        "low_air_m": 500,
         "high_air_m": 0,
         "sight_shape": {
           "front": 1,
@@ -404,6 +447,7 @@
       "abstract": true,
       "sensors": {
         "ground_m": 550,
+        "low_air_m": 550,
         "high_air_m": 0,
         "sight_shape": {
           "front": 1,
@@ -420,6 +464,7 @@
       "abstract": true,
       "sensors": {
         "ground_m": 500,
+        "low_air_m": 500,
         "high_air_m": 0,
         "sight_shape": {
           "front": 1,
@@ -436,6 +481,7 @@
       "abstract": true,
       "sensors": {
         "ground_m": 600,
+        "low_air_m": 600,
         "high_air_m": 0,
         "sight_shape": {
           "front": 1,
@@ -452,6 +498,8 @@
       "abstract": true,
       "sensors": {
         "ground_m": 300,
+        "low_air_m": 300,
+        "high_air_m": 300,
         "sight_shape": {
           "front": 1,
           "side": 0.5,

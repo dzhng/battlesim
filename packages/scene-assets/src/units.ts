@@ -72,30 +72,6 @@ export const airborne = (type: Pick<UnitType, "mobility">): boolean => "air" in 
 export const highAir = (type: Pick<UnitType, "mobility">): boolean =>
   "air" in type.mobility && type.mobility.air.layer === "high_air";
 
-/** What a type without radar or its own high-air sight sees of the
- *  high-air layer, by body and flight: the rules' `sensors.unaided_high_air_m`. */
-export interface UnaidedHighAirSight {
-  on_foot: number;
-  aircraft: number;
-  ground_vehicle: number;
-}
-
-/** How far a type sees the high-air layer: an emitting radar's reach, else
- *  its own high-air sight (0 is blind), else what it sees unaided (the
- *  simulation's `UnitType::high_air_sight_m`). */
-export const highAirSight = (
-  type: Pick<UnitType, "sensors" | "capabilities" | "body" | "mobility">,
-  unaided: UnaidedHighAirSight,
-): number =>
-  type.capabilities.radar?.emits
-    ? type.capabilities.radar.detection_m
-    : (type.sensors.high_air_m ??
-      ("squad" in type.body
-        ? unaided.on_foot
-        : airborne(type)
-          ? unaided.aircraft
-          : unaided.ground_vehicle));
-
 /** A type's altitude layer, as the simulation names it. */
 export const layerOf = (type: Pick<UnitType, "mobility">): "ground" | "low_air" | "high_air" =>
   "air" in type.mobility ? (highAir(type) ? "high_air" : "low_air") : "ground";
@@ -206,8 +182,8 @@ export interface UnitType {
   mobility: Mobility;
   sensors: {
     ground_m: number;
-    low_air_m?: number;
-    high_air_m?: number;
+    low_air_m: number;
+    high_air_m: number;
     sight_shape: { front: number; side: number; rear: number };
     on?: string;
   };
@@ -237,7 +213,7 @@ export interface UnitType {
       afterburner?: { speed_multiplier: number; fuel_multiplier: number };
     };
     flares?: { capacity: number; reload_s: number };
-    radar?: { emits: boolean; detection_m: number };
+    radar_emitter?: boolean;
     /** It finds enemy radars that emit, within `range_m`. */
     radar_receiver?: { range_m: number };
   };

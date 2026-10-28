@@ -424,9 +424,6 @@ pub struct SensorRules {
     /// together: no one is seen through the crack between two houses, nor the
     /// sliver between a near one and a far one (`WorldGeometry::squeezed`).
     pub min_sight_gap_m: f64,
-    /// How far a unit with neither an emitting radar nor its own high-air
-    /// reach sees the high-air band, by its body and flight (D48).
-    pub unaided_high_air_m: UnaidedHighAirSight,
     /// How coarsely a radar receiver reports what it finds.
     pub radar_report: RadarReport,
 }
@@ -441,32 +438,8 @@ pub struct RadarReport {
     pub min_radius_m: f64,
 }
 
-/// High-air sight without radar, by body and flight: soldiers on foot look
-/// up and see a jet a fair way off, and so does an aircraft's crew; a ground
-/// vehicle's crew, looking out through vision blocks and sights, sees it only
-/// nearly overhead. A unit that authors its own `sensors.high_air_m` (a jet,
-/// an optical AA gun, a closed-up tank's 0) overrides it
-/// ([`crate::catalog::UnitType::high_air_sight_m`]).
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct UnaidedHighAirSight {
-    /// A squad's soldiers.
-    pub on_foot: f64,
-    /// An airborne hull's crew.
-    pub aircraft: f64,
-    /// Any other hull's crew.
-    pub ground_vehicle: f64,
-}
-
 impl SensorRules {
     fn check(&self) -> Result<(), String> {
-        let u = self.unaided_high_air_m;
-        if [u.on_foot, u.aircraft, u.ground_vehicle]
-            .iter()
-            .any(|m| !m.is_finite() || *m < 0.0)
-        {
-            return Err("unaided_high_air_m: every row must be finite and not negative".into());
-        }
         let r = self.radar_report;
         if [r.bearing_step_deg, r.range_step_m, r.min_radius_m]
             .iter()

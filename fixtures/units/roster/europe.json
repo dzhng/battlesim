@@ -568,6 +568,7 @@
       "appearance": "europe_caesar_88",
       "sensors": {
         "ground_m": 500,
+        "low_air_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -895,7 +896,8 @@
         }
       ],
       "sensors": {
-        "ground_m": 600
+        "ground_m": 600,
+        "low_air_m": 600
       }
     },
     "europe_cv90120_light_tank": {
@@ -1599,13 +1601,11 @@
         }
       },
       "sensors": {
-        "low_air_m": 900
+        "low_air_m": 900,
+        "high_air_m": 3200
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 3200
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {
@@ -2207,7 +2207,8 @@
         }
       ],
       "sensors": {
-        "ground_m": 600
+        "ground_m": 600,
+        "low_air_m": 600
       }
     },
     "europe_man_hx_general_resupply": {
@@ -2381,6 +2382,7 @@
       "appearance": "europe_mars_ii_multiple_launch_rocket_system",
       "sensors": {
         "ground_m": 450,
+        "low_air_m": 450,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2506,13 +2508,11 @@
         }
       },
       "sensors": {
-        "low_air_m": 1800
+        "low_air_m": 1800,
+        "high_air_m": 7000
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 7000
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {
@@ -2791,6 +2791,7 @@
       "appearance": "europe_pzh_2000_tracked_155_mm_howitzer",
       "sensors": {
         "ground_m": 500,
+        "low_air_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -3272,13 +3273,11 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 3200
+        "low_air_m": 3200,
+        "high_air_m": 3200
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 3200
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {

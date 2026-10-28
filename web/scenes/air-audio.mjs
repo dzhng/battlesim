@@ -7,7 +7,7 @@
 // The battle runs live, as a player hears it, after a first click. The tests
 // behind the episode rule and the sighting:
 //   crates/presentation/tests/sound.rs::first_high_air_entry_raises_one_alarm_until_the_episode_ends
-//   crates/sim/tests/radar.rs::without_radar_a_unit_sees_a_cruising_jet_as_far_as_its_body_looks_up
+//   crates/sim/tests/radar.rs::each_bands_sight_is_the_units_own_and_zero_is_blind
 //
 // Not shown: distance attenuation and side-local hearing, which the
 // presentation's sound tests hold (crates/presentation/tests/sound.rs::

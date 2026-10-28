@@ -156,12 +156,10 @@ in passes, dogfight only another winged aircraft in their own layer, and arrive 
 back edge, since they can't land at the base (`air`). Loading refuses a pair
 no flight law flies yet.
 
-How far a unit sees into high air (`UnitType::high_air_sight_m`, read by
-`sight::of_layer`) is an emitting radar's reach; else its own
-`sensors.high_air_m`, where 0 is blind (a closed-up tank); else what it sees
-unaided, by body and flight, from the rules' `sensors.unaided_high_air_m`:
-soldiers on foot and aircrew look up, a ground vehicle's crew sees a jet only
-nearly overhead. It never falls back to ground sight. Low air still does.
+A unit authors its sight in each altitude band. `Sensors::reach_m`, read by
+`sight::of_layer`, owns the lookup; zero air reach is blind. Radar emission is
+an independent signature, so receivers and anti-radiation weapons read it
+without changing the emitter's sight.
 
 Where a mechanic depends on how big or how extreme a unit can be, the extreme
 is data: the rules' `hull_limits` bound every hull a battle may field, loading

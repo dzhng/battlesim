@@ -551,11 +551,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 armor: Some(unit.armor(ctx.rules).copied()),
                 layer: unit.layer(),
                 class: Some(unit.unit_type(ctx.rules).target_class()),
-                emits: unit
-                    .unit_type(ctx.rules)
-                    .capabilities
-                    .radar
-                    .is_some_and(|radar| radar.emits),
+                emits: unit.unit_type(ctx.rules).capabilities.radar_emitter,
             })
         }
         Target::Contact(c) => {

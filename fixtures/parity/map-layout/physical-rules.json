@@ -1732,6 +1732,8 @@
           ],
           "sensors": {
             "ground_m": 600,
+            "low_air_m": 600,
+            "high_air_m": 600,
             "sight_shape": {
               "front": 1,
               "rear": 1,
@@ -1814,6 +1816,8 @@
           ],
           "sensors": {
             "ground_m": 450,
+            "low_air_m": 450,
+            "high_air_m": 300,
             "sight_shape": {
               "front": 1,
               "rear": 1,
@@ -1854,6 +1858,8 @@
           "sensors": {
             "concealed_range_multiplier": 2,
             "ground_m": 650,
+            "low_air_m": 650,
+            "high_air_m": 600,
             "sight_shape": {
               "front": 1,
               "rear": 1,
@@ -1897,6 +1903,8 @@
           ],
           "sensors": {
             "ground_m": 600,
+            "low_air_m": 600,
+            "high_air_m": 600,
             "sight_shape": {
               "front": 1,
               "rear": 1,
@@ -1964,6 +1972,8 @@
           ],
           "sensors": {
             "ground_m": 300,
+            "low_air_m": 300,
+            "high_air_m": 300,
             "sight_shape": {
               "front": 1,
               "rear": 0.3,
@@ -2067,6 +2077,8 @@
           ],
           "sensors": {
             "ground_m": 350,
+            "low_air_m": 350,
+            "high_air_m": 300,
             "on": "cannon",
             "sight_shape": {
               "front": 1,

@@ -1286,6 +1286,7 @@
       "appearance": "us_m109_paladin_m109a7",
       "sensors": {
         "ground_m": 500,
+        "low_air_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1553,6 +1554,7 @@
       "appearance": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
       "sensors": {
         "ground_m": 500,
+        "low_air_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1721,6 +1723,7 @@
       "appearance": "us_m142_himars_gmlrs",
       "sensors": {
         "ground_m": 450,
+        "low_air_m": 450,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1804,6 +1807,7 @@
       "appearance": "us_m142_himars_prsm",
       "sensors": {
         "ground_m": 450,
+        "low_air_m": 450,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2060,7 +2064,8 @@
         }
       ],
       "sensors": {
-        "ground_m": 600
+        "ground_m": 600,
+        "low_air_m": 600
       }
     },
     "us_m1e3_abrams": {
@@ -2178,6 +2183,7 @@
       "appearance": "us_m270_mlrs_m270a2",
       "sensors": {
         "ground_m": 450,
+        "low_air_m": 450,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -3122,13 +3128,11 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 1800
+        "low_air_m": 1800,
+        "high_air_m": 7000
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 7000
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {
@@ -3206,13 +3210,11 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 3200
+        "low_air_m": 3200,
+        "high_air_m": 3200
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 3200
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {

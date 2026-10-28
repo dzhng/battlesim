@@ -288,25 +288,23 @@ fn high_air_has_no_ground_vision_but_can_identify_low_air() {
 /// second medium SAM that a tower hides from blue's approach.
 fn air_defence_battle(blue: Value, hidden: bool) -> Battle {
     let mut fixture = fixture();
-    let aa = |name: &str, weapon: &str, radar_m: u32| {
+    let aa = |name: &str, weapon: &str, high_air_m: u32, radar_emitter: bool| {
         json!({
             "extends": "test_jeep", "name": name,
             "mounts": [{ "id": "HMG", "weapons": [weapon] }],
-            "sensors": { "low_air_m": 900 },
+            "sensors": { "low_air_m": 900, "high_air_m": high_air_m },
             "capabilities": {
-                "radar": { "emits": radar_m > 0, "detection_m": radar_m }
+                "radar_emitter": radar_emitter
             }
         })
     };
-    let mut short = aa("Short AA", "aa_ballistic", 0);
-    short["sensors"]["high_air_m"] = json!(900);
     fixture["catalog"]
         .as_array_mut()
         .unwrap()
         .push(json!({ "units": {
-            "test_aa_short": short,
-            "test_aa_medium": aa("Medium SAM", "aa_medium", 3200),
-            "test_aa_long": aa("Long SAM", "aa_long", 7000),
+            "test_aa_short": aa("Short AA", "aa_ballistic", 900, false),
+            "test_aa_medium": aa("Medium SAM", "aa_medium", 3200, true),
+            "test_aa_long": aa("Long SAM", "aa_long", 7000, true),
         }}));
     let red = |kind: &str, at: [f64; 2]| json!({ "side": "red", "kind": kind, "position": at, "yaw": std::f64::consts::PI });
     let mut units = vec![
@@ -1228,37 +1226,4 @@ fn a_high_air_unit_lights_no_ground_fog_in_its_sides_picture() {
     };
     assert_eq!(eyes(0), 0, "a high-air unit lights no ground fog");
     assert!(eyes(1) > 0, "a low-air unit still does");
-}
-
-/// Whether a jeep whose low-air sight is `low_air_m` (absent: as far as it
-/// sees the ground, 450 m) identifies a helicopter hovering 300 m off.
-fn jeep_sees_the_helicopter(low_air_m: Option<f64>) -> bool {
-    let mut fixture = fixture();
-    if let Some(m) = low_air_m {
-        sim::fixtures::patch_catalog(
-            &mut fixture,
-            "units",
-            "test_jeep",
-            json!({ "sensors": { "low_air_m": m } }),
-        );
-    }
-    let mut b = battle_with(
-        &fixture,
-        open_map(),
-        json!([
-            { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0, "engagement": "return_fire_only" },
-            { "side": "red", "kind": "test_heli", "position": [400, 200], "engagement": "return_fire_only" }
-        ]),
-    );
-    b.step();
-    b.step();
-    !b.observe(Side::Blue).identified.is_empty()
-}
-
-#[test]
-fn low_air_sight_is_the_units_own_else_its_ground_sight_and_zero_is_blind() {
-    assert!(jeep_sees_the_helicopter(None), "absent: its ground sight");
-    assert!(!jeep_sees_the_helicopter(Some(0.0)), "0: blind to low air");
-    assert!(!jeep_sees_the_helicopter(Some(200.0)));
-    assert!(jeep_sees_the_helicopter(Some(600.0)));
 }

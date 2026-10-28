@@ -120,10 +120,8 @@ A unit type is **one catalog entry**, addressed by its string id (`"us_m1_abrams
 validation and inheritance. Families contain unit, soldier, role and upgrade
 records; ids are defined once across authored files. Behavior comes from body,
 mobility, sensors, mounts and capabilities rather than the type's name.
-A unit's `sensors.high_air_m` is optional: absent, it sees high air unaided,
-by `game.json`'s `sensors.unaided_high_air_m` for its body and flight; an
-authored 0 is blind to high air; a unit whose radar emits sees it by the
-radar and never authors one.
+Sight bands are authored on each resolved unit; radar emission is independent
+of reach ([sight and radar](../crates/sim/README.md#checks)).
 A unit's `capabilities.carriage.seats` (3, 8 or 16) makes it a carrier; nothing
 else does. The rules' `carriage` row sets the boarding timer and reach, and their
 `bail_out` rows, one per kind of host (building, ground, air), set how a garrison
@@ -137,7 +135,7 @@ to search for a place to stand.
   - a unit's `parts` gather along the chain, the parent's first;
   - anything else is replaced, a list of strings (`roles`, `slots`) whole.
   - What a variant can't do: drop a key or a mount (by id) it inherits. A type that loses a mount extends a common parent instead.
-- **Parts are upgrades:** `"parts": ["trophy_aps"]` merges each part's `patch` into the type after inheritance, by the same rules, so a part may add any capability: the Trophy adds active protection, and a radar or a flare pod would add `radar`, `radar_receiver` or `flares` the same way. A part that needs a capability the simulation doesn't build yet is refused at load, because the type no longer parses. A part names the model nodes that show its hardware (`nodes`), and the type's model must draw them.
+- **Parts are upgrades:** `"parts": ["trophy_aps"]` merges each part's `patch` into the type after inheritance, by the same rules, so a part may add any capability: the Trophy adds active protection, and a radar or a flare pod would add `radar_emitter`, `radar_receiver` or `flares` the same way. A part that needs a capability the simulation doesn't build yet is refused at load, because the type no longer parses. A part names the model nodes that show its hardware (`nodes`), and the type's model must draw them.
 
 Resolution happens once through the contract owner. Invalid inheritance,
 references, physical mounts or numbers fail at load with an entry-specific error.

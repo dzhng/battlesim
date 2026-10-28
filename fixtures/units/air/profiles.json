@@ -32,6 +32,8 @@
       },
       "sensors": {
         "ground_m": 700,
+        "low_air_m": 700,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 0.6,
@@ -81,6 +83,8 @@
       },
       "sensors": {
         "ground_m": 700,
+        "low_air_m": 700,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 0.6,
@@ -130,6 +134,8 @@
       },
       "sensors": {
         "ground_m": 700,
+        "low_air_m": 700,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 0.6,
@@ -179,6 +185,8 @@
       },
       "sensors": {
         "ground_m": 900,
+        "low_air_m": 900,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 0.6,
@@ -228,6 +236,8 @@
       },
       "sensors": {
         "ground_m": 850,
+        "low_air_m": 850,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 0.6,

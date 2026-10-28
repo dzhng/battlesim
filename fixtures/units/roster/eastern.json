@@ -75,6 +75,7 @@
       "appearance": "eastern_2s19_msta_s_2s19m2",
       "sensors": {
         "ground_m": 500,
+        "low_air_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -158,6 +159,7 @@
       "appearance": "eastern_9k515_tornado_s_heavy_rocket_artillery",
       "sensors": {
         "ground_m": 400,
+        "low_air_m": 400,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -331,6 +333,7 @@
       "appearance": "eastern_bm_21_grad_bm_21_rocket_artillery",
       "sensors": {
         "ground_m": 400,
+        "low_air_m": 400,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -762,13 +765,11 @@
         }
       },
       "sensors": {
-        "low_air_m": 3200
+        "low_air_m": 3200,
+        "high_air_m": 3200
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 3200
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {
@@ -1488,13 +1489,11 @@
         }
       },
       "sensors": {
-        "low_air_m": 3200
+        "low_air_m": 3200,
+        "high_air_m": 3200
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 3200
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {
@@ -1593,6 +1592,7 @@
       "appearance": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
       "sensors": {
         "ground_m": 500,
+        "low_air_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -3260,13 +3260,11 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 1800
+        "low_air_m": 1800,
+        "high_air_m": 7000
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 7000
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {
@@ -3344,13 +3342,11 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 1800
+        "low_air_m": 1800,
+        "high_air_m": 7000
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 7000
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {

@@ -6,7 +6,6 @@ import {
   airReach,
   airRole,
   FACTIONS,
-  highAirSight,
   layerOf,
   type AirRole,
 } from "@packages/scene-assets/src/units";
@@ -361,19 +360,15 @@ function AirPanel({ kind, scenario }: { kind: "records" | "matrix"; scenario: st
 function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
   const t = catalog.units.type(id);
   const { sensors, capabilities: caps } = t;
-  const radar = caps.radar;
   const reach = airReach(t, catalog.weapons);
   const fields: [string, string][] = [
     ["layer", layerOf(t)],
     ["flight", "air" in t.mobility ? t.mobility.air.flight : "—"],
-    [
-      "sensors",
-      `${sensors.ground_m}/${sensors.low_air_m ?? sensors.ground_m}/${highAirSight(t, catalog.rules.sensors.unaided_high_air_m)}`,
-    ],
+    ["sensors", `${sensors.ground_m}/${sensors.low_air_m}/${sensors.high_air_m}`],
     ["fuel", caps.air ? String(caps.air.fuel_capacity_s) : "—"],
     ["flares", caps.flares ? `${caps.flares.capacity}/${caps.flares.reload_s}` : "—"],
     ["air_reach", `${reach.low_air}/${reach.high_air}`],
-    ["radar", radar ? `${radar.emits ? "emits" : "silent"}/${radar.detection_m}` : "—"],
+    ["radar", caps.radar_emitter ? "emits" : "—"],
     ["radar_receiver", caps.radar_receiver ? String(caps.radar_receiver.range_m) : "—"],
   ];
   const weapons = t.mounts.flatMap((m) => m.weapons);

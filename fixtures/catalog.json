@@ -6707,6 +6707,8 @@
           },
           "sensors": {
             "ground_m": 900.0,
+            "high_air_m": 600.0,
+            "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -6759,6 +6761,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 600.0,
+            "low_air_m": 550.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -6848,6 +6852,8 @@
           },
           "sensors": {
             "ground_m": 500.0,
+            "high_air_m": 300.0,
+            "low_air_m": 500.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -6938,6 +6944,8 @@
           },
           "sensors": {
             "ground_m": 400.0,
+            "high_air_m": 300.0,
+            "low_air_m": 400.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -6984,6 +6992,8 @@
           },
           "sensors": {
             "ground_m": 600.0,
+            "high_air_m": 600.0,
+            "low_air_m": 600.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -7030,6 +7040,8 @@
           },
           "sensors": {
             "ground_m": 600.0,
+            "high_air_m": 600.0,
+            "low_air_m": 600.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -7081,6 +7093,8 @@
           },
           "sensors": {
             "ground_m": 600.0,
+            "high_air_m": 600.0,
+            "low_air_m": 600.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -7171,6 +7185,8 @@
           },
           "sensors": {
             "ground_m": 400.0,
+            "high_air_m": 300.0,
+            "low_air_m": 400.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -7285,6 +7301,8 @@
           },
           "sensors": {
             "ground_m": 500.0,
+            "high_air_m": 300.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -7401,6 +7419,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 300.0,
+            "low_air_m": 550.0,
             "on": "main_gun",
             "sight_shape": {
               "front": 1.0,
@@ -7496,6 +7516,8 @@
           "sensors": {
             "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
+            "high_air_m": 300.0,
+            "low_air_m": 850.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -7591,6 +7613,8 @@
           },
           "sensors": {
             "ground_m": 500.0,
+            "high_air_m": 300.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -7632,10 +7656,7 @@
             }
           },
           "capabilities": {
-            "radar": {
-              "detection_m": 3200.0,
-              "emits": true
-            }
+            "radar_emitter": true
           },
           "cost": 300,
           "description": "Buk-M3 medium-range air defense",
@@ -7687,6 +7708,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 3200.0,
             "low_air_m": 3200.0,
             "sight_shape": {
               "front": 1.0,
@@ -8055,6 +8077,8 @@
           },
           "sensors": {
             "ground_m": 900.0,
+            "high_air_m": 600.0,
+            "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8156,6 +8180,8 @@
           },
           "sensors": {
             "ground_m": 650.0,
+            "high_air_m": 600.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -8275,6 +8301,8 @@
           },
           "sensors": {
             "ground_m": 850.0,
+            "high_air_m": 600.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8391,6 +8419,8 @@
           },
           "sensors": {
             "ground_m": 850.0,
+            "high_air_m": 600.0,
+            "low_air_m": 850.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8518,6 +8548,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8872,10 +8904,7 @@
             }
           },
           "capabilities": {
-            "radar": {
-              "detection_m": 3200.0,
-              "emits": true
-            }
+            "radar_emitter": true
           },
           "cost": 250,
           "description": "Pantsir-SM",
@@ -8927,6 +8956,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 3200.0,
             "low_air_m": 3200.0,
             "sight_shape": {
               "front": 1.0,
@@ -9017,6 +9047,8 @@
           },
           "sensors": {
             "ground_m": 500.0,
+            "high_air_m": 300.0,
+            "low_air_m": 500.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -9068,6 +9100,8 @@
           },
           "sensors": {
             "ground_m": 600.0,
+            "high_air_m": 600.0,
+            "low_air_m": 600.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -9114,6 +9148,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 600.0,
+            "low_air_m": 550.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -9160,6 +9196,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 600.0,
+            "low_air_m": 550.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -9200,10 +9238,7 @@
             }
           },
           "capabilities": {
-            "radar": {
-              "detection_m": 7000.0,
-              "emits": true
-            }
+            "radar_emitter": true
           },
           "cost": 360,
           "description": "S-300PMU2 Favorit long-range air defence.",
@@ -9255,6 +9290,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 7000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
@@ -9296,10 +9332,7 @@
             }
           },
           "capabilities": {
-            "radar": {
-              "detection_m": 7000.0,
-              "emits": true
-            }
+            "radar_emitter": true
           },
           "cost": 360,
           "description": "S-350 long-range air defence.",
@@ -9351,6 +9384,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 7000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
@@ -9420,6 +9454,8 @@
           "sensors": {
             "concealed_range_multiplier": 2.0,
             "ground_m": 750.0,
+            "high_air_m": 600.0,
+            "low_air_m": 750.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -9465,6 +9501,8 @@
           },
           "sensors": {
             "ground_m": 800.0,
+            "high_air_m": 600.0,
+            "low_air_m": 800.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -10438,6 +10476,7 @@
           "sensors": {
             "ground_m": 600.0,
             "high_air_m": 0.0,
+            "low_air_m": 600.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -10553,6 +10592,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 300.0,
+            "low_air_m": 550.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -10666,6 +10707,7 @@
           "sensors": {
             "ground_m": 450.0,
             "high_air_m": 0.0,
+            "low_air_m": 450.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -10779,6 +10821,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 0.0,
+            "low_air_m": 500.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -10892,6 +10935,7 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
+            "low_air_m": 550.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -10987,6 +11031,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 300.0,
+            "low_air_m": 700.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -11100,6 +11146,7 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
+            "low_air_m": 550.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -11213,6 +11260,7 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
+            "low_air_m": 550.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -11289,6 +11337,8 @@
           },
           "sensors": {
             "ground_m": 300.0,
+            "high_air_m": 300.0,
+            "low_air_m": 300.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -11405,6 +11455,8 @@
           },
           "sensors": {
             "ground_m": 900.0,
+            "high_air_m": 600.0,
+            "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -11532,6 +11584,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -11626,6 +11680,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 300.0,
+            "low_air_m": 550.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -11717,6 +11773,8 @@
           "sensors": {
             "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
+            "high_air_m": 300.0,
+            "low_air_m": 850.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -11764,6 +11822,8 @@
           },
           "sensors": {
             "ground_m": 600.0,
+            "high_air_m": 600.0,
+            "low_air_m": 600.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -11891,6 +11951,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -11990,6 +12052,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -12084,6 +12148,8 @@
           },
           "sensors": {
             "ground_m": 450.0,
+            "high_air_m": 300.0,
+            "low_air_m": 450.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -12179,6 +12245,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 300.0,
+            "low_air_m": 550.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -12362,6 +12430,8 @@
           },
           "sensors": {
             "ground_m": 500.0,
+            "high_air_m": 300.0,
+            "low_air_m": 500.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -12475,6 +12545,7 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
+            "low_air_m": 550.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -12603,6 +12674,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -12715,6 +12788,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 0.0,
+            "low_air_m": 500.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -12841,6 +12915,7 @@
           "sensors": {
             "ground_m": 600.0,
             "high_air_m": 0.0,
+            "low_air_m": 600.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -12954,6 +13029,7 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
+            "low_air_m": 550.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -13048,6 +13124,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 300.0,
+            "low_air_m": 550.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -13142,6 +13220,8 @@
           },
           "sensors": {
             "ground_m": 600.0,
+            "high_air_m": 300.0,
+            "low_air_m": 600.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -13255,6 +13335,8 @@
           "sensors": {
             "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
+            "high_air_m": 300.0,
+            "low_air_m": 850.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -13372,6 +13454,8 @@
           },
           "sensors": {
             "ground_m": 900.0,
+            "high_air_m": 600.0,
+            "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -13488,6 +13572,8 @@
           },
           "sensors": {
             "ground_m": 900.0,
+            "high_air_m": 600.0,
+            "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -13715,6 +13801,8 @@
           "sensors": {
             "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
+            "high_air_m": 300.0,
+            "low_air_m": 850.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -13756,10 +13844,7 @@
             }
           },
           "capabilities": {
-            "radar": {
-              "detection_m": 3200.0,
-              "emits": true
-            }
+            "radar_emitter": true
           },
           "cost": 200,
           "description": "Twin 35 mm radar-directed anti-aircraft gun on a Leopard 1 hull",
@@ -13810,6 +13895,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 3200.0,
             "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
@@ -13851,10 +13937,7 @@
             }
           },
           "capabilities": {
-            "radar": {
-              "detection_m": 3200.0,
-              "emits": true
-            }
+            "radar_emitter": true
           },
           "cost": 360,
           "description": "IRIS-T SLM long-range air defence.",
@@ -13906,6 +13989,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 3200.0,
             "low_air_m": 3200.0,
             "sight_shape": {
               "front": 1.0,
@@ -14228,6 +14312,7 @@
           "sensors": {
             "ground_m": 600.0,
             "high_air_m": 0.0,
+            "low_air_m": 600.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -14341,6 +14426,7 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
+            "low_air_m": 550.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -14454,6 +14540,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 0.0,
+            "low_air_m": 500.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -14567,6 +14654,7 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
+            "low_air_m": 550.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -14693,6 +14781,7 @@
           "sensors": {
             "ground_m": 600.0,
             "high_air_m": 0.0,
+            "low_air_m": 600.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -14769,6 +14858,8 @@
           },
           "sensors": {
             "ground_m": 300.0,
+            "high_air_m": 300.0,
+            "low_air_m": 300.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -14818,6 +14909,8 @@
           },
           "sensors": {
             "ground_m": 650.0,
+            "high_air_m": 600.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -14907,6 +15000,8 @@
           },
           "sensors": {
             "ground_m": 450.0,
+            "high_air_m": 300.0,
+            "low_air_m": 450.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -15083,10 +15178,7 @@
             }
           },
           "capabilities": {
-            "radar": {
-              "detection_m": 7000.0,
-              "emits": true
-            }
+            "radar_emitter": true
           },
           "cost": 300,
           "description": "NASAMS 3",
@@ -15138,6 +15230,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 7000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
@@ -15266,6 +15359,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -15380,6 +15475,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 300.0,
+            "low_air_m": 550.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -15470,6 +15567,8 @@
           },
           "sensors": {
             "ground_m": 500.0,
+            "high_air_m": 300.0,
+            "low_air_m": 500.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -15674,6 +15773,8 @@
           "sensors": {
             "concealed_range_multiplier": 2.0,
             "ground_m": 750.0,
+            "high_air_m": 600.0,
+            "low_air_m": 750.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -16085,6 +16186,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 300.0,
+            "low_air_m": 550.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -16180,6 +16283,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 300.0,
+            "low_air_m": 700.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -16544,6 +16649,8 @@
           },
           "sensors": {
             "ground_m": 600.0,
+            "high_air_m": 600.0,
+            "low_air_m": 600.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -16591,6 +16698,8 @@
           },
           "sensors": {
             "ground_m": 600.0,
+            "high_air_m": 600.0,
+            "low_air_m": 600.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -16643,6 +16752,8 @@
           },
           "sensors": {
             "ground_m": 600.0,
+            "high_air_m": 600.0,
+            "low_air_m": 600.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -16873,6 +16984,8 @@
           },
           "sensors": {
             "ground_m": 450.0,
+            "high_air_m": 300.0,
+            "low_air_m": 450.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -16990,6 +17103,8 @@
           },
           "sensors": {
             "ground_m": 900.0,
+            "high_air_m": 600.0,
+            "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -17106,6 +17221,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -17233,6 +17350,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -17280,6 +17399,8 @@
           "sensors": {
             "concealed_range_multiplier": 2.0,
             "ground_m": 750.0,
+            "high_air_m": 600.0,
+            "low_air_m": 750.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -17326,6 +17447,8 @@
           },
           "sensors": {
             "ground_m": 600.0,
+            "high_air_m": 600.0,
+            "low_air_m": 600.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -17453,6 +17576,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -18382,6 +18507,8 @@
           "sensors": {
             "concealed_range_multiplier": 2.0,
             "ground_m": 800.0,
+            "high_air_m": 600.0,
+            "low_air_m": 800.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -18528,6 +18655,8 @@
           },
           "sensors": {
             "ground_m": 500.0,
+            "high_air_m": 300.0,
+            "low_air_m": 500.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -18619,6 +18748,8 @@
           },
           "sensors": {
             "ground_m": 650.0,
+            "high_air_m": 300.0,
+            "low_air_m": 650.0,
             "on": "launcher",
             "sight_shape": {
               "front": 1.0,
@@ -18709,6 +18840,8 @@
           },
           "sensors": {
             "ground_m": 500.0,
+            "high_air_m": 300.0,
+            "low_air_m": 500.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -18821,6 +18954,7 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
+            "low_air_m": 550.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -18917,6 +19051,8 @@
           "sensors": {
             "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
+            "high_air_m": 300.0,
+            "low_air_m": 850.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -19008,6 +19144,8 @@
           },
           "sensors": {
             "ground_m": 500.0,
+            "high_air_m": 300.0,
+            "low_air_m": 500.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -19102,6 +19240,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 300.0,
+            "low_air_m": 700.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -19193,6 +19333,8 @@
           },
           "sensors": {
             "ground_m": 450.0,
+            "high_air_m": 300.0,
+            "low_air_m": 450.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -19283,6 +19425,8 @@
           },
           "sensors": {
             "ground_m": 450.0,
+            "high_air_m": 300.0,
+            "low_air_m": 450.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -19395,6 +19539,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 0.0,
+            "low_air_m": 500.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -19521,6 +19666,7 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 0.0,
+            "low_air_m": 500.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -19647,6 +19793,7 @@
           "sensors": {
             "ground_m": 600.0,
             "high_air_m": 0.0,
+            "low_air_m": 600.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -19773,6 +19920,7 @@
           "sensors": {
             "ground_m": 600.0,
             "high_air_m": 0.0,
+            "low_air_m": 600.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -19863,6 +20011,8 @@
           },
           "sensors": {
             "ground_m": 450.0,
+            "high_air_m": 300.0,
+            "low_air_m": 450.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -19977,6 +20127,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 300.0,
+            "low_air_m": 550.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -20093,6 +20245,8 @@
           "sensors": {
             "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
+            "high_air_m": 300.0,
+            "low_air_m": 850.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -20169,6 +20323,8 @@
           },
           "sensors": {
             "ground_m": 300.0,
+            "high_air_m": 300.0,
+            "low_air_m": 300.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20220,6 +20376,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 600.0,
+            "low_air_m": 550.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -20269,6 +20427,8 @@
           },
           "sensors": {
             "ground_m": 650.0,
+            "high_air_m": 600.0,
+            "low_air_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -20335,10 +20495,7 @@
             }
           },
           "capabilities": {
-            "radar": {
-              "detection_m": 3200.0,
-              "emits": true
-            }
+            "radar_emitter": true
           },
           "cost": 360,
           "description": "NASAMS 3 long-range air defence.",
@@ -20390,6 +20547,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 3200.0,
             "low_air_m": 3200.0,
             "sight_shape": {
               "front": 1.0,
@@ -20431,10 +20589,7 @@
             }
           },
           "capabilities": {
-            "radar": {
-              "detection_m": 7000.0,
-              "emits": true
-            }
+            "radar_emitter": true
           },
           "cost": 360,
           "description": "Patriot PAC-3 long-range air defence.",
@@ -20486,6 +20641,7 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 7000.0,
             "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
@@ -20574,6 +20730,8 @@
           },
           "sensors": {
             "ground_m": 800.0,
+            "high_air_m": 600.0,
+            "low_air_m": 800.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -20668,6 +20826,8 @@
           },
           "sensors": {
             "ground_m": 450.0,
+            "high_air_m": 300.0,
+            "low_air_m": 450.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -20759,6 +20919,8 @@
           },
           "sensors": {
             "ground_m": 650.0,
+            "high_air_m": 300.0,
+            "low_air_m": 650.0,
             "on": "launcher",
             "sight_shape": {
               "front": 1.0,
@@ -20854,6 +21016,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
+            "high_air_m": 300.0,
+            "low_air_m": 550.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -21074,6 +21238,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -21201,6 +21367,8 @@
           },
           "sensors": {
             "ground_m": 700.0,
+            "high_air_m": 600.0,
+            "low_air_m": 700.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -25297,6 +25465,8 @@
       },
       "sensors": {
         "ground_m": 900.0,
+        "high_air_m": 600.0,
+        "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -25484,6 +25654,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 600.0,
+        "low_air_m": 550.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -25576,6 +25748,8 @@
       },
       "sensors": {
         "ground_m": 500.0,
+        "high_air_m": 300.0,
+        "low_air_m": 500.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -25669,6 +25843,8 @@
       },
       "sensors": {
         "ground_m": 400.0,
+        "high_air_m": 300.0,
+        "low_air_m": 400.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -25777,6 +25953,8 @@
       },
       "sensors": {
         "ground_m": 600.0,
+        "high_air_m": 600.0,
+        "low_air_m": 600.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -25885,6 +26063,8 @@
       },
       "sensors": {
         "ground_m": 600.0,
+        "high_air_m": 600.0,
+        "low_air_m": 600.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -26002,6 +26182,8 @@
       },
       "sensors": {
         "ground_m": 600.0,
+        "high_air_m": 600.0,
+        "low_air_m": 600.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -26095,6 +26277,8 @@
       },
       "sensors": {
         "ground_m": 400.0,
+        "high_air_m": 300.0,
+        "low_air_m": 400.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -26213,6 +26397,8 @@
       },
       "sensors": {
         "ground_m": 500.0,
+        "high_air_m": 300.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -26333,6 +26519,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 300.0,
+        "low_air_m": 550.0,
         "on": "main_gun",
         "sight_shape": {
           "front": 1.0,
@@ -26431,6 +26619,8 @@
       "sensors": {
         "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
+        "high_air_m": 300.0,
+        "low_air_m": 850.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -26529,6 +26719,8 @@
       },
       "sensors": {
         "ground_m": 500.0,
+        "high_air_m": 300.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -26571,10 +26763,7 @@
         }
       },
       "capabilities": {
-        "radar": {
-          "detection_m": 3200.0,
-          "emits": true
-        }
+        "radar_emitter": true
       },
       "cost": 300,
       "description": "Buk-M3 medium-range air defense",
@@ -26628,6 +26817,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 3200.0,
         "low_air_m": 3200.0,
         "sight_shape": {
           "front": 1.0,
@@ -27007,6 +27197,8 @@
       },
       "sensors": {
         "ground_m": 900.0,
+        "high_air_m": 600.0,
+        "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -27201,6 +27393,8 @@
       },
       "sensors": {
         "ground_m": 650.0,
+        "high_air_m": 600.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -27324,6 +27518,8 @@
       },
       "sensors": {
         "ground_m": 850.0,
+        "high_air_m": 600.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -27444,6 +27640,8 @@
       },
       "sensors": {
         "ground_m": 850.0,
+        "high_air_m": 600.0,
+        "low_air_m": 850.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -27575,6 +27773,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -27918,10 +28118,7 @@
         }
       },
       "capabilities": {
-        "radar": {
-          "detection_m": 3200.0,
-          "emits": true
-        }
+        "radar_emitter": true
       },
       "cost": 250,
       "description": "Pantsir-SM",
@@ -27975,6 +28172,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 3200.0,
         "low_air_m": 3200.0,
         "sight_shape": {
           "front": 1.0,
@@ -28068,6 +28266,8 @@
       },
       "sensors": {
         "ground_m": 500.0,
+        "high_air_m": 300.0,
+        "low_air_m": 500.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -28234,6 +28434,8 @@
       },
       "sensors": {
         "ground_m": 600.0,
+        "high_air_m": 600.0,
+        "low_air_m": 600.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -28342,6 +28544,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 600.0,
+        "low_air_m": 550.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -28450,6 +28654,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 600.0,
+        "low_air_m": 550.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -28491,10 +28697,7 @@
         }
       },
       "capabilities": {
-        "radar": {
-          "detection_m": 7000.0,
-          "emits": true
-        }
+        "radar_emitter": true
       },
       "cost": 360,
       "description": "S-300PMU2 Favorit long-range air defence.",
@@ -28548,6 +28751,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 7000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
@@ -28590,10 +28794,7 @@
         }
       },
       "capabilities": {
-        "radar": {
-          "detection_m": 7000.0,
-          "emits": true
-        }
+        "radar_emitter": true
       },
       "cost": 360,
       "description": "S-350 long-range air defence.",
@@ -28647,6 +28848,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 7000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
@@ -28753,6 +28955,8 @@
       "sensors": {
         "concealed_range_multiplier": 2.0,
         "ground_m": 750.0,
+        "high_air_m": 600.0,
+        "low_air_m": 750.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -28855,6 +29059,8 @@
       },
       "sensors": {
         "ground_m": 800.0,
+        "high_air_m": 600.0,
+        "low_air_m": 800.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -29858,6 +30064,7 @@
       "sensors": {
         "ground_m": 600.0,
         "high_air_m": 0.0,
+        "low_air_m": 600.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -29977,6 +30184,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 300.0,
+        "low_air_m": 550.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -30094,6 +30303,7 @@
       "sensors": {
         "ground_m": 450.0,
         "high_air_m": 0.0,
+        "low_air_m": 450.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -30211,6 +30421,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 0.0,
+        "low_air_m": 500.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -30328,6 +30539,7 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
+        "low_air_m": 550.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -30426,6 +30638,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 300.0,
+        "low_air_m": 700.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -30543,6 +30757,7 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
+        "low_air_m": 550.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -30660,6 +30875,7 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
+        "low_air_m": 550.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -30739,6 +30955,8 @@
       },
       "sensors": {
         "ground_m": 300.0,
+        "high_air_m": 300.0,
+        "low_air_m": 300.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30859,6 +31077,8 @@
       },
       "sensors": {
         "ground_m": 900.0,
+        "high_air_m": 600.0,
+        "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30990,6 +31210,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -31087,6 +31309,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 300.0,
+        "low_air_m": 550.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -31181,6 +31405,8 @@
       "sensors": {
         "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
+        "high_air_m": 300.0,
+        "low_air_m": 850.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -31290,6 +31516,8 @@
       },
       "sensors": {
         "ground_m": 600.0,
+        "high_air_m": 600.0,
+        "low_air_m": 600.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -31421,6 +31649,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -31523,6 +31753,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -31620,6 +31852,8 @@
       },
       "sensors": {
         "ground_m": 450.0,
+        "high_air_m": 300.0,
+        "low_air_m": 450.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -31718,6 +31952,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 300.0,
+        "low_air_m": 550.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -31907,6 +32143,8 @@
       },
       "sensors": {
         "ground_m": 500.0,
+        "high_air_m": 300.0,
+        "low_air_m": 500.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -32024,6 +32262,7 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
+        "low_air_m": 550.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32156,6 +32395,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -32272,6 +32513,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 0.0,
+        "low_air_m": 500.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32402,6 +32644,7 @@
       "sensors": {
         "ground_m": 600.0,
         "high_air_m": 0.0,
+        "low_air_m": 600.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32519,6 +32762,7 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
+        "low_air_m": 550.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32616,6 +32860,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 300.0,
+        "low_air_m": 550.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -32713,6 +32959,8 @@
       },
       "sensors": {
         "ground_m": 600.0,
+        "high_air_m": 300.0,
+        "low_air_m": 600.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -32830,6 +33078,8 @@
       "sensors": {
         "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
+        "high_air_m": 300.0,
+        "low_air_m": 850.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -32951,6 +33201,8 @@
       },
       "sensors": {
         "ground_m": 900.0,
+        "high_air_m": 600.0,
+        "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -33071,6 +33323,8 @@
       },
       "sensors": {
         "ground_m": 900.0,
+        "high_air_m": 600.0,
+        "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -33305,6 +33559,8 @@
       "sensors": {
         "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
+        "high_air_m": 300.0,
+        "low_air_m": 850.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -33347,10 +33603,7 @@
         }
       },
       "capabilities": {
-        "radar": {
-          "detection_m": 3200.0,
-          "emits": true
-        }
+        "radar_emitter": true
       },
       "cost": 200,
       "description": "Twin 35 mm radar-directed anti-aircraft gun on a Leopard 1 hull",
@@ -33403,6 +33656,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 3200.0,
         "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
@@ -33445,10 +33699,7 @@
         }
       },
       "capabilities": {
-        "radar": {
-          "detection_m": 3200.0,
-          "emits": true
-        }
+        "radar_emitter": true
       },
       "cost": 360,
       "description": "IRIS-T SLM long-range air defence.",
@@ -33502,6 +33753,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 3200.0,
         "low_air_m": 3200.0,
         "sight_shape": {
           "front": 1.0,
@@ -33781,6 +34033,7 @@
       "sensors": {
         "ground_m": 600.0,
         "high_air_m": 0.0,
+        "low_air_m": 600.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -33898,6 +34151,7 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
+        "low_air_m": 550.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -34015,6 +34269,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 0.0,
+        "low_air_m": 500.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -34132,6 +34387,7 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
+        "low_air_m": 550.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -34262,6 +34518,7 @@
       "sensors": {
         "ground_m": 600.0,
         "high_air_m": 0.0,
+        "low_air_m": 600.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -34341,6 +34598,8 @@
       },
       "sensors": {
         "ground_m": 300.0,
+        "high_air_m": 300.0,
+        "low_air_m": 300.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -34535,6 +34794,8 @@
       },
       "sensors": {
         "ground_m": 650.0,
+        "high_air_m": 600.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -34627,6 +34888,8 @@
       },
       "sensors": {
         "ground_m": 450.0,
+        "high_air_m": 300.0,
+        "low_air_m": 450.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -34808,10 +35071,7 @@
         }
       },
       "capabilities": {
-        "radar": {
-          "detection_m": 7000.0,
-          "emits": true
-        }
+        "radar_emitter": true
       },
       "cost": 300,
       "description": "NASAMS 3",
@@ -34865,6 +35125,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 7000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
@@ -34997,6 +35258,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -35115,6 +35378,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 300.0,
+        "low_air_m": 550.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -35208,6 +35473,8 @@
       },
       "sensors": {
         "ground_m": 500.0,
+        "high_air_m": 300.0,
+        "low_air_m": 500.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -35475,6 +35742,8 @@
       "sensors": {
         "concealed_range_multiplier": 2.0,
         "ground_m": 750.0,
+        "high_air_m": 600.0,
+        "low_air_m": 750.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -35855,6 +36124,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 300.0,
+        "low_air_m": 550.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -35953,6 +36224,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 300.0,
+        "low_air_m": 700.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -36389,6 +36662,8 @@
       },
       "sensors": {
         "ground_m": 600.0,
+        "high_air_m": 600.0,
+        "low_air_m": 600.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -36498,6 +36773,8 @@
       },
       "sensors": {
         "ground_m": 600.0,
+        "high_air_m": 600.0,
+        "low_air_m": 600.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -36665,6 +36942,8 @@
       },
       "sensors": {
         "ground_m": 600.0,
+        "high_air_m": 600.0,
+        "low_air_m": 600.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -36902,6 +37181,8 @@
       },
       "sensors": {
         "ground_m": 450.0,
+        "high_air_m": 300.0,
+        "low_air_m": 450.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -37023,6 +37304,8 @@
       },
       "sensors": {
         "ground_m": 900.0,
+        "high_air_m": 600.0,
+        "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -37143,6 +37426,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -37274,6 +37559,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -37379,6 +37666,8 @@
       "sensors": {
         "concealed_range_multiplier": 2.0,
         "ground_m": 750.0,
+        "high_air_m": 600.0,
+        "low_air_m": 750.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -37491,6 +37780,8 @@
       },
       "sensors": {
         "ground_m": 600.0,
+        "high_air_m": 600.0,
+        "low_air_m": 600.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -37622,6 +37913,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -38656,6 +38949,8 @@
       "sensors": {
         "concealed_range_multiplier": 2.0,
         "ground_m": 800.0,
+        "high_air_m": 600.0,
+        "low_air_m": 800.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -38753,6 +39048,8 @@
       },
       "sensors": {
         "ground_m": 500.0,
+        "high_air_m": 300.0,
+        "low_air_m": 500.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -38847,6 +39144,8 @@
       },
       "sensors": {
         "ground_m": 650.0,
+        "high_air_m": 300.0,
+        "low_air_m": 650.0,
         "on": "launcher",
         "sight_shape": {
           "front": 1.0,
@@ -38940,6 +39239,8 @@
       },
       "sensors": {
         "ground_m": 500.0,
+        "high_air_m": 300.0,
+        "low_air_m": 500.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -39056,6 +39357,7 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
+        "low_air_m": 550.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -39155,6 +39457,8 @@
       "sensors": {
         "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
+        "high_air_m": 300.0,
+        "low_air_m": 850.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -39249,6 +39553,8 @@
       },
       "sensors": {
         "ground_m": 500.0,
+        "high_air_m": 300.0,
+        "low_air_m": 500.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -39346,6 +39652,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 300.0,
+        "low_air_m": 700.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -39440,6 +39748,8 @@
       },
       "sensors": {
         "ground_m": 450.0,
+        "high_air_m": 300.0,
+        "low_air_m": 450.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -39533,6 +39843,8 @@
       },
       "sensors": {
         "ground_m": 450.0,
+        "high_air_m": 300.0,
+        "low_air_m": 450.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -39649,6 +39961,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 0.0,
+        "low_air_m": 500.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -39779,6 +40092,7 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 0.0,
+        "low_air_m": 500.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -39909,6 +40223,7 @@
       "sensors": {
         "ground_m": 600.0,
         "high_air_m": 0.0,
+        "low_air_m": 600.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -40039,6 +40354,7 @@
       "sensors": {
         "ground_m": 600.0,
         "high_air_m": 0.0,
+        "low_air_m": 600.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -40132,6 +40448,8 @@
       },
       "sensors": {
         "ground_m": 450.0,
+        "high_air_m": 300.0,
+        "low_air_m": 450.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -40250,6 +40568,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 300.0,
+        "low_air_m": 550.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -40370,6 +40690,8 @@
       "sensors": {
         "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
+        "high_air_m": 300.0,
+        "low_air_m": 850.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -40449,6 +40771,8 @@
       },
       "sensors": {
         "ground_m": 300.0,
+        "high_air_m": 300.0,
+        "low_air_m": 300.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -40635,6 +40959,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 600.0,
+        "low_air_m": 550.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -40829,6 +41155,8 @@
       },
       "sensors": {
         "ground_m": 650.0,
+        "high_air_m": 600.0,
+        "low_air_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -40870,10 +41198,7 @@
         }
       },
       "capabilities": {
-        "radar": {
-          "detection_m": 3200.0,
-          "emits": true
-        }
+        "radar_emitter": true
       },
       "cost": 360,
       "description": "NASAMS 3 long-range air defence.",
@@ -40927,6 +41252,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 3200.0,
         "low_air_m": 3200.0,
         "sight_shape": {
           "front": 1.0,
@@ -40969,10 +41295,7 @@
         }
       },
       "capabilities": {
-        "radar": {
-          "detection_m": 7000.0,
-          "emits": true
-        }
+        "radar_emitter": true
       },
       "cost": 360,
       "description": "Patriot PAC-3 long-range air defence.",
@@ -41026,6 +41349,7 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 7000.0,
         "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
@@ -41129,6 +41453,8 @@
       },
       "sensors": {
         "ground_m": 800.0,
+        "high_air_m": 600.0,
+        "low_air_m": 800.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -41226,6 +41552,8 @@
       },
       "sensors": {
         "ground_m": 450.0,
+        "high_air_m": 300.0,
+        "low_air_m": 450.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -41320,6 +41648,8 @@
       },
       "sensors": {
         "ground_m": 650.0,
+        "high_air_m": 300.0,
+        "low_air_m": 650.0,
         "on": "launcher",
         "sight_shape": {
           "front": 1.0,
@@ -41418,6 +41748,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
+        "high_air_m": 300.0,
+        "low_air_m": 550.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -41645,6 +41977,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -41776,6 +42110,8 @@
       },
       "sensors": {
         "ground_m": 700.0,
+        "high_air_m": 600.0,
+        "low_air_m": 700.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,

@@ -8,6 +8,7 @@ import { encodeGlb, type GltfJson } from "@packages/scene-assets/src/glb.ts";
 import { quat, type Mat4, type Quat, type Vec3 } from "math";
 import { inverse, mul, trsMatrix } from "@packages/scene-assets/src/trs.ts";
 import { readBundle } from "@packages/scene-assets/src/gzip.ts";
+import { hullType } from "./unitType.ts";
 import type {
   AppearanceEntry,
   Authority,
@@ -48,45 +49,6 @@ export const tankMounts = (reach = 3): MountRow[] => [
 
 /** The rigs the synthetic tank model draws its mounts with. */
 export const TANK_DRAWS: MountDraws = { cannon: "gun", HMG: "hmg" };
-
-const armor = { front: 1, side: 1, rear: 1, roof: 1 };
-/** A hull type, drawn by appearance `appearance`, with the vehicle class
- *  the catalog's view would give its physics (heavy hull). */
-const hullType = (
-  id: string,
-  appearance: string,
-  half: Vec3,
-  mobility: UnitType["mobility"],
-  vehicle_class: string | null,
-  rest: Partial<UnitType> = {},
-): UnitType => ({
-  id,
-  name: id,
-  description: "",
-  faction: "test",
-  family: "vehicles",
-  roles: ["test"],
-  cost: 1,
-  body: {
-    hull: {
-      half_extents_m: half,
-      eye_m: 2,
-      hp: 1,
-      armor: { ...armor, ricochet: armor },
-      weight_class: "heavy",
-      push_class: "heavy",
-      wreck: "heavy_wreck",
-    },
-  },
-  mobility,
-  vehicle_class,
-  sensors: { ground_m: 1, sight_shape: { front: 1, side: 1, rear: 1 } },
-  mounts: [],
-  capabilities: {},
-  sound: { profile: "vehicle", loudness_m: 1 },
-  appearance,
-  ...rest,
-});
 
 /** The synthetic unit catalog the test art is fitted to: a tank (drawn by
  *  "tank"), a supply truck ("truck") and a rifle squad of riflemen

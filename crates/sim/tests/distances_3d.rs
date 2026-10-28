@@ -33,9 +33,9 @@ fn high_air_fixture() -> Value {
         "units",
         "test_jeep",
         json!({
-            "sensors": { "ground_m": 1000, "low_air_m": 3000 },
+            "sensors": { "ground_m": 1000, "low_air_m": 3000, "high_air_m": 3000 },
             "capabilities": {
-                "radar": { "emits": true, "detection_m": 3000 }
+                "radar_emitter": true
             },
             "mounts": [{
                 "id": "AA", "name": "AA", "weapons": ["aa_ballistic"],
@@ -154,9 +154,7 @@ fn interceptor_case(high: bool) -> Battle {
         &mut fixture,
         "units",
         "test_aa",
-        json!({ "capabilities": {
-            "radar": { "emits": true, "detection_m": 1200 }
-        } }),
+        json!({ "sensors": { "high_air_m": 1200 }, "capabilities": { "radar_emitter": true } }),
     );
     sim::fixtures::patch_catalog(
         &mut fixture,
@@ -243,7 +241,7 @@ fn radar_detection_range_is_3d() {
         "test_jeep",
         json!({
             "capabilities": {
-                "radar": { "emits": true, "detection_m": 1200 }
+                "radar_emitter": true
             }
         }),
     );
