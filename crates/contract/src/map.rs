@@ -108,6 +108,9 @@ pub struct MapDefinition<B = BuildingDefinition> {
     pub bridges: Vec<Bridge>,
     #[serde(default)]
     pub forests: Vec<Forest>,
+    /// Standing shallow water, each in the dip it carves.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub swamps: Vec<crate::swamp::Swamp>,
     #[serde(default)]
     pub props: Vec<AuthoredPropDefinition>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -168,6 +171,7 @@ impl<B> MapDefinition<B> {
             surfaces: self.surfaces,
             bridges: self.bridges,
             forests: self.forests,
+            swamps: self.swamps,
             props: self.props,
             buildings,
             template_catalog_hash: self.template_catalog_hash,

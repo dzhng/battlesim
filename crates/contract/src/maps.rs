@@ -370,6 +370,7 @@ pub fn admit_world(map: &MapDefinition, rules: &crate::scenario::Rules) -> Vec<R
         ));
     }
     checks.push(("map".into(), crate::river::validate(map)));
+    checks.push(("map".into(), crate::swamp::validate(map)));
     checks
         .into_iter()
         .filter_map(|(location, checked)| {

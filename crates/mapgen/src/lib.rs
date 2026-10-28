@@ -575,6 +575,7 @@ pub(crate) fn materialize(
         surfaces: request.plan.surfaces.clone(),
         bridges: Vec::new(),
         forests: request.plan.forests.clone(),
+        swamps: Vec::new(),
         props: request.plan.props.clone(),
         buildings: Vec::new(),
         template_catalog_hash: Some(catalogue.hash().into()),
