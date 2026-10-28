@@ -29,6 +29,9 @@ const waves = Array.from({ length: WAVES }, (_, i) => {
   const k = Math.hypot(m, n) || 1;
   return { m, n, height: 1 / k ** 1.5, phase: ((i * 0.618034) % 1) * 2 * Math.PI };
 });
+/** The finest wave's cycles across the tile: what a pixel must resolve for
+ *  the map's detail to show. */
+export const WATER_NORMALS_FINEST = Math.max(...waves.map((w) => Math.hypot(w.m, w.n)));
 /** The steepest a texel can lean, so the slopes stay about one at most. */
 const STEEPEST = waves.reduce((sum, w) => sum + w.height * 2 * Math.PI * Math.hypot(w.m, w.n), 0);
 const terms = waves

@@ -58,4 +58,8 @@ export const WaterLook = d.struct({
    *  shift as a share of the screen's height, and the metres of water per
    *  mip the bed blurs by (`waterUnder`). */
   refraction: d.vec4f,
+  /** The caustics on the bed (`waterCaustics`): 1 / their pattern's tile in
+   *  metres, their strength, the share of their light lost a metre down,
+   *  and how sharp their crests are. */
+  caustics: d.vec4f,
 });

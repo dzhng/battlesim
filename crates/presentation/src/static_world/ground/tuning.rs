@@ -88,7 +88,8 @@
 //!   its light in lanes `m` wide holding their distance from the bank,
 //!   drifting `drift` lanes over `drift_m`, broken into streaks `streak_m`
 //!   long, lit where lane and streak (`weights`) pass `lit`, about `lit_mean`;
-//!   the bed seen through it shifted and blurred (`refraction`).
+//!   the bed seen through it shifted and blurred (`refraction`), and lit
+//!   by the light its waves focus (`caustics`).
 //! - `scars` (depths in full craters): read no deeper than `depth_cap`; the
 //!   rim `rim_reach_cells` out, slopes from taps `slope_tap_cells` either
 //!   side; relief fading over `detail_fade` cells; the bowl's lip at `lip`
@@ -141,6 +142,18 @@ pub struct WaterTuning {
     pub normals: Normals,
     pub lanes: Lanes,
     pub refraction: Refraction,
+    pub caustics: Caustics,
+}
+
+/// The light the waves focus on the bed (`waterCaustics`): their pattern's
+/// tile, their strength, the share of their light lost a metre down, and
+/// how sharp their crests are.
+#[derive(Clone, Deserialize)]
+pub struct Caustics {
+    pub tile_m: f64,
+    pub strength: f64,
+    pub fade_per_m: f64,
+    pub sharpness: f64,
 }
 
 /// How the bed shows displaced through the surface's slope (`waterUnder`):

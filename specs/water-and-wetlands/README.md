@@ -48,8 +48,9 @@ depth, through each look's per-channel extinction. Slice 05 is done: the
 water fades in from where its depth is zero. Slice 06 is done: a baked
 normal map at three scales, drifting with the wind. Slice 07 is done: the
 bed shows displaced through the surface, and Low keeps the depth colour
-alone through one uniform word (`WaterDetail`). **Pick up at
-[slice 08](slices/08-caustics.md)**. The sim lane (slice 10 on)
+alone through one uniform word (`WaterDetail`). Slice 08 is done: caustics
+on the bed, from the surface's own waves. **Pick up at
+[slice 09](slices/09-highlights.md)**. The sim lane (slice 10 on)
 runs in parallel on `spec/water-and-wetlands-sim` and merges in here.
 
 **Warning:** native must start and draw water at every slice (decision 19). A
@@ -71,7 +72,8 @@ the checklist.
 - [x] [05](slices/05-soft-shore.md), the soft shore (2026-10-28).
 - [x] [06](slices/06-surface-normals.md), wind-driven normals (2026-10-28).
 - [x] [07](slices/07-refraction.md), refraction and the Low tier (2026-10-28).
-- [ ] Render lane: [08](slices/08-caustics.md), [09](slices/09-highlights.md).
+- [x] [08](slices/08-caustics.md), caustics (2026-10-28).
+- [ ] Render lane: [09](slices/09-highlights.md).
 - [x] [10](slices/10-swamp-terrain.md), swamp terrain, with the wetlands map's
       swamp (2026-10-28).
 - [x] [11](slices/11-swamp-slowdown.md), swamp slowdown; its paired battle

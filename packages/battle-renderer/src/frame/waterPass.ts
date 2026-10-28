@@ -19,6 +19,7 @@ import {
   paintGlow,
 } from "./fogTerm";
 import { terrainLayout } from "./terrainLayout";
+import { waterCaustics } from "./waterCaustics";
 import { waterNormal, waterStreaks } from "./waterSurface";
 import { createSceneMips, ndcAt, waterDepth, waterUnder } from "./waterUnder";
 import { FRAME_MSAA, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
@@ -74,6 +75,8 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     const depth = waterDepth(v.clip, v.world);
     const bed = waterUnder(v.clip, v.world, n, depth, look);
     const through = std.exp(std.mul(w.surface.xyz, -bed.w));
+    // The waves' light focused on the bed where the sun reaches the water.
+    const lit = std.mul(bed.xyz, 1 + waterCaustics(v.world, depth, footprint, look) * sun);
     const body = std.mul(std.mix(w.edge.xyz, w.channel.xyz, 1 - std.dot(through, LUMA)), streaks);
     // The surface's light before the air: lit with no albedo, a surface
     // shows only what it reflects; the body's own light in place of what
@@ -112,7 +115,7 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     // so the bed's share of the air is taken off again.
     const surfaceInAir = environment.air(std.mul(water, shadowed), v.world, eye).xyz;
     const bedAir = std.mul(environment.air(d.vec3f(0), v.world, eye).xyz, through);
-    const wet = std.add(std.sub(surfaceInAir, bedAir), std.mul(bed.xyz, through));
+    const wet = std.add(std.sub(surfaceInAir, bedAir), std.mul(lit, through));
     // The edge by depth (RedGPU `lakeFragment.wgsl:373-375`): the water fades
     // in over its look's shore depth, or over a few pixels where that is
     // narrower, wider as the surface is seen edge-on, so it never aliases.
