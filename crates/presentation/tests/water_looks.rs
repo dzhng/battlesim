@@ -79,6 +79,10 @@ fn a_river_draws_the_look_its_seed_and_index_pick_whatever_else_the_map_holds() 
         let rivers = biome.water.rivers.len();
         let plain = looks(&ground(&plain, biome.clone()), rivers);
         assert!(
+            !plain.is_empty(),
+            "seed {seed}: the river draws a river look"
+        );
+        assert!(
             plain.iter().all(|&l| l == want),
             "seed {seed}: every cell of river 0 draws look {want}"
         );
@@ -204,4 +208,23 @@ fn no_crop_stands_in_a_swamp_its_plots_are_the_ground_its_look_floods() {
         );
     }
     assert!(grounds.len() > 1, "the seeds flood more than one ground");
+}
+
+#[test]
+fn a_road_across_a_swamp_stands_dry_as_the_simulation_keeps_it() {
+    let mut map = river_map();
+    // Across the country road (x 60, 9 m wide).
+    map["swamps"] = serde_json::json!([{
+        "shape": { "kind": "polygon", "ring": [[20, 380], [100, 380], [100, 440], [20, 440]] },
+        "depth_m": 0.6,
+    }]);
+    let g = ground(&map, summer());
+    let water = g.standing_water();
+    assert!(
+        water.at(30.0, 410.0).is_some_and(|w| w.depth_m > 0.3),
+        "the swamp beside the road holds water"
+    );
+    for y in [385.0, 410.0, 435.0] {
+        assert_eq!(water.at(60.0, y), None, "the road at y {y} is dry");
+    }
 }

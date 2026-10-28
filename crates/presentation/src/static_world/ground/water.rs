@@ -133,14 +133,6 @@ impl Swamp {
     }
 }
 
-/// The swamp (its index in map order) whose outline, among the exported
-/// `swamps`, holds `(x, y)`.
-pub(super) fn swamp_under(swamps: &[f32], x: f64, y: f64) -> Option<usize> {
-    Swamp::all(swamps)
-        .iter()
-        .position(|s| s.inside(x, y) >= 0.0)
-}
-
 /// Standing water at a point: its surface's height, how deep it stands over
 /// the ground there, and its look (a row of `TerrainParams.waterLooks`).
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -218,6 +210,15 @@ impl<'a> StandingWater<'a> {
             .enumerate()
             .find(|(_, s)| s.inside(x, y) >= 0.0)?;
         wet(s.surface_z, self.swamp_look(k))
+    }
+
+    /// The plot kind the standing water at `(x, y)` floods, by name: its
+    /// swamp look's `ground`. None on dry ground, and in a river, which
+    /// floods no plot (its bed is the water's own).
+    pub fn flooded(&self, x: f64, y: f64) -> Option<&'a str> {
+        let rivers = self.biome.water.rivers.len();
+        let look = self.at(x, y)?.look.checked_sub(rivers)?;
+        self.biome.water.swamps[look].ground.as_deref()
     }
 
     /// The water surface's square cells (`CELL_FLOATS` each): the

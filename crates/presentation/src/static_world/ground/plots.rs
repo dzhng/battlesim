@@ -7,7 +7,7 @@
 //! edge, where the verge grows, as sharp up close as from afar.
 use super::biome::{Biome, FieldRules, PLOT_HUE_JITTER};
 use super::shapes::{centroid, segments_cross, signed_area};
-use super::water::{self, swamp_under};
+use super::water::StandingWater;
 use super::{chunks, is_road, Source, RUN, SURFACE_BOUNDARY, SURFACE_STROKE, SURFACE_TRIANGLE};
 use crate::seed::Mulberry32;
 use sim::world::export::SWAMP_STRIDE as SWAMP;
@@ -168,6 +168,8 @@ struct Split<'a> {
     rules: &'a FieldRules,
     biome: &'a Biome,
     source: &'a Source,
+    /// Where the ground stands flooded, so no crop is drilled there.
+    water: StandingWater<'a>,
     rng: Mulberry32,
     /// The guides fields are cut along, `ax, ay, bx, by` each, and which
     /// of them are the rivers'.
@@ -246,17 +248,8 @@ impl Split<'_> {
     /// round that its surround, where no crop is drilled; a swamp floods the
     /// ground its look names.
     fn pick_kind(&mut self, centre: [f64; 2]) -> usize {
-        if let Some(k) = swamp_under(&self.source.swamps, centre[0], centre[1]) {
-            let looks = &self.biome.water.swamps;
-            let ground = looks[water::look(self.biome.seed, water::Kind::Swamp, k, looks)]
-                .ground
-                .as_deref();
-            if let Some(p) = self
-                .biome
-                .plots
-                .iter()
-                .position(|p| Some(p.name.as_str()) == ground)
-            {
+        if let Some(ground) = self.water.flooded(centre[0], centre[1]) {
+            if let Some(p) = self.biome.plots.iter().position(|p| p.name == ground) {
                 return p;
             }
         }
@@ -483,6 +476,7 @@ pub fn plots(s: &Source, strip_runs: &[f32], biome: &Biome) -> Result<Plots, Str
         rules,
         biome,
         source: s,
+        water: StandingWater::new(&s.rivers, &s.swamps, &s.grid, biome),
         rng,
         roads,
         rivers,
