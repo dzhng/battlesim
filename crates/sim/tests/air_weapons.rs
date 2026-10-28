@@ -178,12 +178,13 @@ fn a_gun_scatters_wider_at_a_helicopter_than_along_the_ground() {
     let counting = || {
         let mut f = sim::fixtures::test_game();
         f["weapons"]["autocannon"]["damage"] = json!(1.0);
+        f["weapons"]["autocannon"]["targets"]["ground"]["scatter_mrad"] = json!(8.0);
         f["weapons"]["hmg"]["damage"] = json!(0.0);
         f
     };
     let mut ground_aim = counting();
     ground_aim["weapons"]["autocannon"]["targets"]["low_air"]["scatter_mrad"] =
-        ground_aim["weapons"]["hmg"]["scatter_mrad"].clone();
+        ground_aim["weapons"]["autocannon"]["targets"]["ground"]["scatter_mrad"].clone();
     let air = against_at(&counting(), "test_gun_jeep", 250.0, 180);
     let ground = against_at(&ground_aim, "test_gun_jeep", 250.0, 180);
     assert!(

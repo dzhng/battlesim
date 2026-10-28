@@ -61,7 +61,7 @@
           "wreck": "light_wreck"
         }
       },
-      "mobility": { "air": { "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6, "flight": "rotor" } },
+      "mobility": { "air": { "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6, "layer": "low_air", "flight": "rotor" } },
       "sensors": { "ground_m": 700, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
       "mounts": [
         { "id": "HMG", "name": "Door HMG", "weapons": ["hmg"], "turret": true, "pivot_m": [1.6, 1.12, 1.25], "muzzle_m": [1.2, 0, 0] }

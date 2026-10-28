@@ -85,7 +85,9 @@ fn main() {
             &config,
             &profile,
             &aim,
-            profile.scatter_mrad,
+            weapon_row["targets"]["ground"]["scatter_mrad"]
+                .as_f64()
+                .expect("ground spread"),
             &mut rng,
             None,
             |_| false,

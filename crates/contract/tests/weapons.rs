@@ -70,31 +70,6 @@ fn an_unpowered_row_with_range_is_refused() {
     );
 }
 
-/// A bomb has no reach of its own, in any layer: its release decides where
-/// it falls.
-#[test]
-fn an_unpowered_row_with_a_layer_range_is_refused() {
-    let mut rows = test_rows(json!({ "ground": { "classes": ["vehicle"], "range_m": 5 } }));
-    rows["test_gun"]["delivery"] = json!("unpowered");
-    rows["test_gun"].as_object_mut().unwrap().remove("range_m");
-    rows["test_gun"]
-        .as_object_mut()
-        .unwrap()
-        .remove("speed_mps");
-    let error = contract::weapons::resolve_weapons(rows.clone())
-        .unwrap_err()
-        .to_string();
-    assert!(
-        error.contains("weapons.test_gun") && error.contains("targets.ground.range_m"),
-        "{error}"
-    );
-    rows["test_gun"]["targets"]["ground"]
-        .as_object_mut()
-        .unwrap()
-        .remove("range_m");
-    contract::weapons::resolve_weapons(rows).expect("a bomb without a reach loads");
-}
-
 /// A weapon row's `name` is what the player reads on a card and its `icon`
 /// names a generated drawing: an identifier, a slug, a long description or
 /// a missing icon is refused at load, naming the row.
@@ -245,11 +220,17 @@ fn every_air_target_row_reaches_its_range_within_its_lifetime() {
 /// A fake direct-fire row whose `targets` each test writes, so no roster
 /// row's eligibility is pinned.
 fn test_rows(targets: Value) -> Value {
+    let mut targets = targets;
+    for fire in targets.as_object_mut().unwrap().values_mut() {
+        let fire = fire.as_object_mut().unwrap();
+        fire.entry("range_m").or_insert(json!(300));
+        fire.entry("scatter_mrad").or_insert(json!(5));
+    }
     json!({ "test_gun": {
         "name": "Test Gun", "description": "A test row.", "icon": "rifle",
         "stationary": false, "range_m": 300, "speed_mps": 800,
         "aim_s": 1, "reload_s": 2, "ammo": "unlimited",
-        "penetration": 5, "damage": 10, "scatter_mrad": 5,
+        "penetration": 5, "partial_from": 0.6, "damage": 10,
         "near_miss_suppression": 0, "suppression_radius_m": 0, "blast_radius_m": 0,
         "targets": targets
     }})
@@ -318,6 +299,7 @@ fn a_removed_or_unknown_weapon_field_is_refused_by_name() {
         ("can_intercept", json!("missile")),
         ("aa_tier", json!("short")),
         ("fov_deg", json!(60)),
+        ("scatter_mrad", json!(8)),
     ] {
         let mut rows = test_rows(json!({ "ground": { "classes": ["vehicle"] } }));
         rows["test_gun"][field] = value;
@@ -403,25 +385,55 @@ fn a_row_listing_missile_needs_a_proximity_fuse() {
     contract::weapons::resolve_weapons(fused).expect("a fused interceptor loads");
 }
 
-/// How gently an explosive round's damage fades short of the armour is its
-/// own row's to say: a row with a blast must author `partial_from`, while a
-/// row without one may leave it to the rules.
+/// Every resolved row states its damage fade and each layer's fire values.
 #[test]
-fn an_explosive_row_states_its_own_partial_from() {
-    let targets = json!({ "ground": { "classes": ["infantry", "vehicle"] } });
-    let load = |blast: f64, partial_from: Option<f64>| {
-        let mut rows = test_rows(targets.clone());
-        rows["test_gun"]["blast_radius_m"] = json!(blast);
-        if let Some(p) = partial_from {
-            rows["test_gun"]["partial_from"] = json!(p);
-        }
-        contract::weapons::resolve_weapons(rows).map(|rows| rows["test_gun"].partial_from)
+fn resolved_weapons_require_explicit_damage_and_layer_values() {
+    let base = || {
+        test_rows(json!({
+            "ground": { "classes": ["vehicle"], "range_m": 300, "scatter_mrad": 5 }
+        }))
     };
-    let error = load(3.0, None).unwrap_err().to_string();
-    assert!(
-        error.contains("weapons.test_gun") && error.contains("partial_from"),
-        "{error}"
+    let mut inherited = base();
+    inherited["child"] = json!({ "extends": "test_gun", "range_m": 400 });
+    let resolved = contract::weapons::resolve_weapons(inherited).unwrap();
+    assert_eq!(
+        resolved["child"]
+            .against(contract::catalog::AltitudeLayer::Ground)
+            .unwrap()
+            .range_m,
+        300.0
     );
-    assert_eq!(load(3.0, Some(0.08)).unwrap(), Some(0.08));
-    assert_eq!(load(0.0, None).unwrap(), None);
+
+    let mut bomb = base();
+    bomb["test_gun"]["delivery"] = json!("unpowered");
+    bomb["test_gun"].as_object_mut().unwrap().remove("range_m");
+    bomb["test_gun"]
+        .as_object_mut()
+        .unwrap()
+        .remove("speed_mps");
+    bomb["test_gun"]["targets"]["ground"]["range_m"] = json!(0.0);
+    contract::weapons::resolve_weapons(bomb).expect("a bomb carries its former zero reach");
+
+    for (field, path) in [
+        ("partial_from", "partial_from"),
+        ("range_m", "targets.ground.range_m"),
+    ] {
+        let mut rows = base();
+        if field == "partial_from" {
+            rows["test_gun"].as_object_mut().unwrap().remove(field);
+        } else {
+            rows["test_gun"]["targets"]["ground"]
+                .as_object_mut()
+                .unwrap()
+                .remove(field);
+        }
+        let error = contract::weapons::resolve_weapons(rows)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains("weapons.test_gun")
+                && error.contains(path.split('.').next_back().unwrap()),
+            "{error}"
+        );
+    }
 }

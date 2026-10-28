@@ -41823,7 +41823,6 @@
       "range_m": 1500.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 6.0,
       "speed_mps": 600.0,
       "stationary": false,
       "structural_damage": 8.0,
@@ -41833,7 +41832,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 1500.0,
+          "scatter_mrad": 6.0
         },
         "high_air": {
           "classes": [
@@ -41885,7 +41886,6 @@
       "range_m": 5200.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
-      "scatter_mrad": 0.5,
       "seeker": "radar",
       "seeker_fov_deg": 100.0,
       "speed_mps": 100.0,
@@ -41897,7 +41897,9 @@
           "classes": [
             "air_rotor",
             "air_fixed_wing"
-          ]
+          ],
+          "range_m": 5200.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 290.0,
@@ -41931,7 +41933,6 @@
       "range_m": 2600.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "seeker": "radar",
       "seeker_fov_deg": 120.0,
       "speed_mps": 100.0,
@@ -41943,13 +41944,17 @@
           "classes": [
             "air_rotor",
             "air_fixed_wing"
-          ]
+          ],
+          "range_m": 2600.0,
+          "scatter_mrad": 0.5
         },
         "low_air": {
           "classes": [
             "air_rotor",
             "air_fixed_wing"
-          ]
+          ],
+          "range_m": 2600.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 290.0,
@@ -41976,12 +41981,11 @@
       "min_range_m": 0.0,
       "name": "AP Shell",
       "near_miss_suppression": 0.2,
-      "partial_from": null,
+      "partial_from": 0.6,
       "penetration": 300.0,
       "range_m": 900.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -41991,7 +41995,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 900.0,
+          "scatter_mrad": 3.43
         }
       },
       "top_speed_mps": null,
@@ -42023,7 +42029,6 @@
       "range_m": 900.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -42033,7 +42038,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 900.0,
+          "scatter_mrad": 3.43
         }
       },
       "top_speed_mps": null,
@@ -42066,7 +42073,6 @@
       "range_m": 0.0,
       "reload_s": 3.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 4.0,
       "speed_mps": 0.0,
       "stationary": false,
       "structural_damage": 80.0,
@@ -42076,7 +42082,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 0.0,
+          "scatter_mrad": 4.0
         }
       },
       "top_speed_mps": null,
@@ -42113,7 +42121,6 @@
       "range_m": 0.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 28.0,
       "speed_mps": 0.0,
       "stationary": false,
       "structural_damage": 35.0,
@@ -42123,7 +42130,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 0.0,
+          "scatter_mrad": 28.0
         }
       },
       "top_speed_mps": null,
@@ -42156,7 +42165,6 @@
       "range_m": 2000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -42165,7 +42173,9 @@
         "ground": {
           "classes": [
             "vehicle"
-          ]
+          ],
+          "range_m": 2000.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 400.0,
@@ -42204,7 +42214,6 @@
       "range_m": 900.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 6.0,
       "speed_mps": 600.0,
       "stationary": false,
       "structural_damage": 8.0,
@@ -42214,7 +42223,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 900.0,
+          "scatter_mrad": 6.0
         },
         "high_air": {
           "classes": [
@@ -42264,7 +42275,6 @@
       "range_m": 3000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "seeker": "infrared",
       "seeker_fov_deg": 70.0,
       "speed_mps": 100.0,
@@ -42276,13 +42286,17 @@
           "classes": [
             "air_rotor",
             "air_fixed_wing"
-          ]
+          ],
+          "range_m": 3000.0,
+          "scatter_mrad": 0.5
         },
         "low_air": {
           "classes": [
             "air_rotor",
             "air_fixed_wing"
-          ]
+          ],
+          "range_m": 3000.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 290.0,
@@ -42315,7 +42329,6 @@
       "range_m": 900.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
@@ -42324,7 +42337,9 @@
         "ground": {
           "classes": [
             "vehicle"
-          ]
+          ],
+          "range_m": 900.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_attack": {
@@ -42360,7 +42375,6 @@
       "range_m": 2500.0,
       "reload_s": 7.0,
       "requires_clear_launch_path": true,
-      "scatter_mrad": 18.0,
       "speed_mps": 160.0,
       "stationary": true,
       "structural_damage": 180.0,
@@ -42370,7 +42384,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 2500.0,
+          "scatter_mrad": 18.0
         }
       },
       "top_speed_mps": null,
@@ -42402,7 +42418,6 @@
       "range_m": 1800.0,
       "reload_s": 5.0,
       "requires_clear_launch_path": true,
-      "scatter_mrad": 26.0,
       "speed_mps": 145.0,
       "stationary": true,
       "structural_damage": 110.0,
@@ -42412,7 +42427,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 1800.0,
+          "scatter_mrad": 26.0
         }
       },
       "top_speed_mps": null,
@@ -42448,7 +42465,6 @@
       "range_m": 2500.0,
       "reload_s": 12.0,
       "requires_clear_launch_path": true,
-      "scatter_mrad": 22.0,
       "speed_mps": 160.0,
       "stationary": true,
       "structural_damage": 220.0,
@@ -42458,7 +42474,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 2500.0,
+          "scatter_mrad": 22.0
         }
       },
       "top_speed_mps": null,
@@ -42494,7 +42512,6 @@
       "range_m": 2200.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
-      "scatter_mrad": 24.0,
       "speed_mps": 160.0,
       "stationary": true,
       "structural_damage": 150.0,
@@ -42504,7 +42521,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 2200.0,
+          "scatter_mrad": 24.0
         }
       },
       "top_speed_mps": null,
@@ -42536,7 +42555,6 @@
       "range_m": 2500.0,
       "reload_s": 15.0,
       "requires_clear_launch_path": true,
-      "scatter_mrad": 14.0,
       "speed_mps": 160.0,
       "stationary": true,
       "structural_damage": 300.0,
@@ -42546,7 +42564,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 2500.0,
+          "scatter_mrad": 14.0
         }
       },
       "top_speed_mps": null,
@@ -42579,7 +42599,6 @@
       "range_m": 900.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
@@ -42588,7 +42607,9 @@
         "ground": {
           "classes": [
             "vehicle"
-          ]
+          ],
+          "range_m": 900.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 200.0,
@@ -42627,7 +42648,6 @@
       "range_m": 650.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 6.0,
       "speed_mps": 600.0,
       "stationary": false,
       "structural_damage": 8.0,
@@ -42637,7 +42657,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 650.0,
+          "scatter_mrad": 6.0
         },
         "low_air": {
           "classes": [
@@ -42678,7 +42700,6 @@
       "range_m": 650.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
@@ -42687,7 +42708,9 @@
         "ground": {
           "classes": [
             "vehicle"
-          ]
+          ],
+          "range_m": 650.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 200.0,
@@ -42721,12 +42744,11 @@
       "min_range_m": 0.0,
       "name": "Carbine",
       "near_miss_suppression": 0.025,
-      "partial_from": null,
+      "partial_from": 0.6,
       "penetration": 5.0,
       "range_m": 240.0,
       "reload_s": 0.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 10.0,
       "speed_mps": 800.0,
       "stationary": false,
       "structural_damage": 0.25,
@@ -42736,7 +42758,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 240.0,
+          "scatter_mrad": 10.0
         },
         "low_air": {
           "classes": [
@@ -42778,7 +42802,6 @@
       "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "speed_mps": 100.0,
       "stationary": true,
       "structural_damage": 20.0,
@@ -42788,7 +42811,9 @@
           "classes": [
             "air_rotor",
             "air_fixed_wing"
-          ]
+          ],
+          "range_m": 1500.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 290.0,
@@ -42820,7 +42845,6 @@
       "range_m": 150.0,
       "reload_s": 5.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 30.0,
       "speed_mps": 100.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -42830,7 +42854,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 150.0,
+          "scatter_mrad": 30.0
         }
       },
       "top_speed_mps": null,
@@ -42857,12 +42883,11 @@
       "min_range_m": 0.0,
       "name": "AP Shell",
       "near_miss_suppression": 0.2,
-      "partial_from": null,
+      "partial_from": 0.6,
       "penetration": 250.0,
       "range_m": 850.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -42872,7 +42897,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 850.0,
+          "scatter_mrad": 3.43
         }
       },
       "top_speed_mps": null,
@@ -42904,7 +42931,6 @@
       "range_m": 850.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -42914,7 +42940,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 850.0,
+          "scatter_mrad": 3.43
         }
       },
       "top_speed_mps": null,
@@ -42941,12 +42969,11 @@
       "min_range_m": 0.0,
       "name": "Heavy Sniper",
       "near_miss_suppression": 0.025,
-      "partial_from": null,
+      "partial_from": 0.6,
       "penetration": 30.0,
       "range_m": 700.0,
       "reload_s": 2.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 8.0,
       "speed_mps": 800.0,
       "stationary": false,
       "structural_damage": 0.25,
@@ -42956,7 +42983,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 700.0,
+          "scatter_mrad": 8.0
         },
         "low_air": {
           "classes": [
@@ -42997,7 +43026,6 @@
       "range_m": 1200.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -43006,7 +43034,9 @@
         "ground": {
           "classes": [
             "vehicle"
-          ]
+          ],
+          "range_m": 1200.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 200.0,
@@ -43038,7 +43068,6 @@
       "range_m": 800.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 300.0,
@@ -43048,7 +43077,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 800.0,
+          "scatter_mrad": 3.43
         }
       },
       "top_speed_mps": null,
@@ -43082,12 +43113,11 @@
       "min_range_m": 0.0,
       "name": "HMG",
       "near_miss_suppression": 0.04,
-      "partial_from": null,
+      "partial_from": 0.6,
       "penetration": 20.0,
       "range_m": 400.0,
       "reload_s": 5.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 6.0,
       "speed_mps": 800.0,
       "stationary": false,
       "structural_damage": 4.0,
@@ -43097,7 +43127,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 400.0,
+          "scatter_mrad": 6.0
         },
         "low_air": {
           "classes": [
@@ -43137,7 +43169,6 @@
       "range_m": 650.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 4.0,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -43147,7 +43178,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 650.0,
+          "scatter_mrad": 4.0
         }
       },
       "top_speed_mps": null,
@@ -43181,7 +43214,6 @@
       "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "speed_mps": 100.0,
       "stationary": true,
       "structural_damage": 20.0,
@@ -43191,7 +43223,9 @@
           "classes": [
             "air_rotor",
             "air_fixed_wing"
-          ]
+          ],
+          "range_m": 1500.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 290.0,
@@ -43224,7 +43258,6 @@
       "range_m": 800.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
@@ -43233,7 +43266,9 @@
         "ground": {
           "classes": [
             "vehicle"
-          ]
+          ],
+          "range_m": 800.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_attack": {
@@ -43270,7 +43305,6 @@
       "range_m": 950.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
@@ -43279,7 +43313,9 @@
         "ground": {
           "classes": [
             "vehicle"
-          ]
+          ],
+          "range_m": 950.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 200.0,
@@ -43306,12 +43342,11 @@
       "min_range_m": 0.0,
       "name": "AP Shell",
       "near_miss_suppression": 0.2,
-      "partial_from": null,
+      "partial_from": 0.6,
       "penetration": 170.0,
       "range_m": 750.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -43321,7 +43356,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 750.0,
+          "scatter_mrad": 3.43
         }
       },
       "top_speed_mps": null,
@@ -43353,7 +43390,6 @@
       "range_m": 750.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -43363,7 +43399,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 750.0,
+          "scatter_mrad": 3.43
         }
       },
       "top_speed_mps": null,
@@ -43397,12 +43435,11 @@
       "min_range_m": 0.0,
       "name": "LMG",
       "near_miss_suppression": 0.05,
-      "partial_from": null,
+      "partial_from": 0.6,
       "penetration": 8.0,
       "range_m": 400.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 9.0,
       "speed_mps": 800.0,
       "stationary": false,
       "structural_damage": 1.0,
@@ -43412,7 +43449,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 400.0,
+          "scatter_mrad": 9.0
         },
         "low_air": {
           "classes": [
@@ -43451,12 +43490,11 @@
       "min_range_m": 0.0,
       "name": "Marksman Rifle",
       "near_miss_suppression": 0.025,
-      "partial_from": null,
+      "partial_from": 0.6,
       "penetration": 8.0,
       "range_m": 450.0,
       "reload_s": 3.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 8.0,
       "speed_mps": 800.0,
       "stationary": false,
       "structural_damage": 0.25,
@@ -43466,7 +43504,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 450.0,
+          "scatter_mrad": 8.0
         },
         "low_air": {
           "classes": [
@@ -43508,7 +43548,6 @@
       "range_m": 2600.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "seeker": "radar",
       "seeker_fov_deg": 120.0,
       "speed_mps": 100.0,
@@ -43521,14 +43560,18 @@
             "air_rotor",
             "air_fixed_wing",
             "missile"
-          ]
+          ],
+          "range_m": 2600.0,
+          "scatter_mrad": 0.5
         },
         "low_air": {
           "classes": [
             "air_rotor",
             "air_fixed_wing",
             "missile"
-          ]
+          ],
+          "range_m": 2600.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 290.0,
@@ -43562,7 +43605,6 @@
       "range_m": 5200.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
-      "scatter_mrad": 0.5,
       "seeker": "radar",
       "seeker_fov_deg": 100.0,
       "speed_mps": 100.0,
@@ -43575,7 +43617,9 @@
             "air_rotor",
             "air_fixed_wing",
             "missile"
-          ]
+          ],
+          "range_m": 5200.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 290.0,
@@ -43609,12 +43653,11 @@
       "min_range_m": 0.0,
       "name": "Rifle",
       "near_miss_suppression": 0.025,
-      "partial_from": null,
+      "partial_from": 0.6,
       "penetration": 5.0,
       "range_m": 300.0,
       "reload_s": 0.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 8.0,
       "speed_mps": 800.0,
       "stationary": false,
       "structural_damage": 0.25,
@@ -43624,7 +43667,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 300.0,
+          "scatter_mrad": 8.0
         },
         "low_air": {
           "classes": [
@@ -43668,7 +43713,6 @@
       "range_m": 900.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 12.0,
       "speed_mps": 450.0,
       "stationary": false,
       "structural_damage": 80.0,
@@ -43678,7 +43722,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 900.0,
+          "scatter_mrad": 12.0
         }
       },
       "top_speed_mps": null,
@@ -43710,7 +43756,6 @@
       "range_m": 400.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 8.0,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -43719,7 +43764,9 @@
         "ground": {
           "classes": [
             "vehicle"
-          ]
+          ],
+          "range_m": 400.0,
+          "scatter_mrad": 8.0
         }
       },
       "top_speed_mps": null,
@@ -43751,7 +43798,6 @@
       "range_m": 300.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 8.0,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -43760,7 +43806,9 @@
         "ground": {
           "classes": [
             "vehicle"
-          ]
+          ],
+          "range_m": 300.0,
+          "scatter_mrad": 8.0
         }
       },
       "top_speed_mps": null,
@@ -43792,7 +43840,6 @@
       "range_m": 280.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 10.0,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 35.0,
@@ -43802,7 +43849,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 280.0,
+          "scatter_mrad": 10.0
         }
       },
       "top_speed_mps": null,
@@ -43835,7 +43884,6 @@
       "range_m": 6500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "seeker": "radar",
       "seeker_fov_deg": 90.0,
       "speed_mps": 100.0,
@@ -43846,7 +43894,9 @@
         "ground": {
           "classes": [
             "vehicle"
-          ]
+          ],
+          "range_m": 6500.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 600.0,
@@ -43879,7 +43929,6 @@
       "range_m": 900.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
@@ -43888,7 +43937,9 @@
         "ground": {
           "classes": [
             "vehicle"
-          ]
+          ],
+          "range_m": 900.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 200.0,
@@ -43922,7 +43973,6 @@
       "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "speed_mps": 100.0,
       "stationary": true,
       "structural_damage": 20.0,
@@ -43932,7 +43982,9 @@
           "classes": [
             "air_rotor",
             "air_fixed_wing"
-          ]
+          ],
+          "range_m": 1500.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 290.0,
@@ -43959,12 +44011,11 @@
       "min_range_m": 0.0,
       "name": "AP Shell",
       "near_miss_suppression": 0.2,
-      "partial_from": null,
+      "partial_from": 0.6,
       "penetration": 180.0,
       "range_m": 800.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -43974,7 +44025,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 800.0,
+          "scatter_mrad": 3.43
         }
       },
       "top_speed_mps": null,
@@ -44006,7 +44059,6 @@
       "range_m": 800.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -44016,7 +44068,9 @@
           "classes": [
             "infantry",
             "vehicle"
-          ]
+          ],
+          "range_m": 800.0,
+          "scatter_mrad": 3.43
         }
       },
       "top_speed_mps": null,
@@ -44049,7 +44103,6 @@
       "range_m": 900.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
-      "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
@@ -44058,7 +44111,9 @@
         "ground": {
           "classes": [
             "vehicle"
-          ]
+          ],
+          "range_m": 900.0,
+          "scatter_mrad": 0.5
         }
       },
       "top_speed_mps": 200.0,

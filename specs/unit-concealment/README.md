@@ -1,6 +1,6 @@
 # Unit concealment and spotting
 
-**Status:** sliced, not started. All decisions were settled with the user on 2026-10-28 ([the unknowns map](assets/unknowns-map.html)).
+**Status:** in progress (slices 00–02 landed). All decisions were settled with the user on 2026-10-28 ([the unknowns map](assets/unknowns-map.html)).
 **Updated:** 2026-10-28.
 
 Every unit type gets its own concealment, which multiplies the concealment its ground gives it. Each unit's spotting can cancel concealment or deepen it, and a moving unit loses some of its cover. Along the way, config stops hiding values in code: forest gets one value, sight bands and the radar signature become authored data, and four other fallbacks go. This spec sets up the mechanisms. It is not a balance pass: the values are starting guesses, and slice 05's report is the tool for retuning them.
@@ -11,7 +11,7 @@ You are implementing this spec in its pull request. Start at the first unchecked
 
 - [x] [00 Every transcendental function is libm's](slices/00-libm-everywhere.md): done. No digest, record, reel or map moved.
 - [x] [01 Rules refuse unknown keys](slices/01-strict-rules.md): done. Digest rows and compiled map hashes are identical.
-- [ ] [02 Fallbacks become data](slices/02-explicit-fallbacks.md): `partial_from`, per-layer range and scatter, the air layer, the afterburner multipliers, and the rules-side defaults. Change the editor in the same slice.
+- [x] [02 Fallbacks become data](slices/02-explicit-fallbacks.md): done. The row-level `scatter_mrad` also went, since layers own spread (see choices). Digest rows and map hashes are identical.
 - [ ] [03 Sight bands and the radar signature](slices/03-sight-bands-and-radar.md): `low_air_m` and `high_air_m` become required, `radar_emitter` replaces the radar struct, and the TypeScript copies are deleted.
 - [ ] [04 The concealment mechanism, neutral](slices/04-concealment-mechanism.md): the whole formula, moving and HIDDEN, coded with neutral data, plus the system test and editor fields.
 - [ ] [05 Spotting report](slices/05-spotting-report.md): the balance matrix, generated from real data through the sensing functions.

@@ -78,8 +78,7 @@ fn an_at_team_counts_against_armour_and_an_aa_unit_against_aircraft() {
     // The teams' riflemen fight soldiers only: each team's reach beyond
     // that is its launcher's.
     let mut fixture = serde_json::to_value(team_rules()).unwrap();
-    fixture["weapons"]["rifle"]["targets"] =
-        serde_json::json!({ "ground": { "classes": ["infantry"] } });
+    fixture["weapons"]["rifle"]["targets"] = serde_json::json!({ "ground": { "classes": ["infantry"], "range_m": 300, "scatter_mrad": 8 } });
     let rules: Rules = serde_json::from_value(fixture).unwrap();
     let card = |id: &str| rules.catalog.index(id).unwrap();
     let against = |id: &str| Threat::of(&rules, [card(id)]);

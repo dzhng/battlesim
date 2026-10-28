@@ -297,7 +297,6 @@ pub struct BodyRules {
     /// Where rounds aim on a soldier, above his feet.
     pub infantry_aim_m: f64,
     /// Nominal aim height as a fraction of a vehicle body's full height.
-    #[serde(default = "middle_aim")]
     pub vehicle_aim_height_fraction: f64,
     /// A soldier's middle, above his feet: where blast and near misses
     /// reach him.
@@ -308,10 +307,6 @@ pub struct BodyRules {
     pub friendly_prefire_margin_m: f64,
     #[serde(flatten)]
     pub flight: crate::ballistics::FlightRules,
-}
-
-fn middle_aim() -> f64 {
-    0.5
 }
 
 /// What a launcher needing a clear launch path (a weapon row's
@@ -357,17 +352,6 @@ impl FaceChances {
     }
 }
 
-/// How armour meets a round that falls short of piercing it (the fixture's
-/// `penetration` section).
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct PenetrationRules {
-    /// The share of a face's armour a round's penetration must reach to do
-    /// any damage there. From there up to the full armour its damage rises
-    /// in proportion; at or past the armour it does all of it.
-    pub partial_from: f64,
-}
-
 /// How a round glancing off a hull flies on (the fixture's `ricochet` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -411,10 +395,8 @@ impl Armor {
 #[serde(deny_unknown_fields)]
 pub struct SensorRules {
     /// Minimum fraction of living soldiers one observer must see to identify a squad.
-    #[serde(default = "squad_identification_fraction")]
     pub squad_identification_fraction: f64,
     /// Fraction of living soldiers that concealment must exceed for HIDDEN.
-    #[serde(default = "squad_hidden_fraction")]
     pub squad_hidden_fraction: f64,
     /// A ground ray whose foliage depth (the sum of each crossed metre's
     /// `attenuation_per_m` below the canopy) reaches this is blocked
@@ -498,13 +480,6 @@ impl SensorRules {
     }
 }
 
-fn squad_identification_fraction() -> f64 {
-    0.2
-}
-fn squad_hidden_fraction() -> f64 {
-    0.8
-}
-
 /// How far a unit sees by direction, as multipliers of its ground range:
 /// dead ahead, abeam and astern. `sim::sight` owns how it eases between them.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -563,7 +538,6 @@ pub struct Rules {
     /// `fixtures/props/`).
     pub catalog: crate::catalog::Catalog,
     pub pushing: PushingRules,
-    pub penetration: PenetrationRules,
     pub ricochet: RicochetRules,
     pub guided: crate::ballistics::GuidedRules,
     pub launch: LaunchRules,
@@ -878,13 +852,11 @@ struct UncheckedRules {
     commands: CommandRules,
     movement: MovementRules,
     navigation: NavigationRules,
-    #[serde(default)]
     formation: FormationRules,
     infantry_movement: InfantryMovementRules,
     physics: BodyRules,
     catalog: crate::catalog::Catalog,
     pushing: PushingRules,
-    penetration: PenetrationRules,
     ricochet: RicochetRules,
     guided: crate::ballistics::GuidedRules,
     launch: LaunchRules,
@@ -956,7 +928,6 @@ impl TryFrom<UncheckedRules> for Rules {
             physics: r.physics,
             catalog: r.catalog,
             pushing: r.pushing,
-            penetration: r.penetration,
             ricochet: r.ricochet,
             guided: r.guided,
             launch: r.launch,
@@ -1059,19 +1030,6 @@ pub struct FormationRules {
     /// gets its intended-point check, even when this allowance is exhausted.
     pub candidate_checks: u32,
     pub max_expansions: u32,
-}
-
-impl Default for FormationRules {
-    fn default() -> Self {
-        Self {
-            min_radius_m: 40.0,
-            spacing_m: 1.0,
-            fill_ratio: 0.6,
-            growth_factor: 1.5,
-            candidate_checks: 32768,
-            max_expansions: 8,
-        }
-    }
 }
 
 impl FormationRules {

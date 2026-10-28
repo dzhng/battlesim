@@ -66,11 +66,11 @@ export function attackGroundSpread(
     for (const mount of units.type(unit.kind).mounts) {
       for (const id of mount.weapons) {
         const weapon = weapons[id] as
-          | { scatter_mrad?: number; targets?: { ground?: { scatter_mrad?: number } } }
+          | { targets?: { ground?: { scatter_mrad: number } } }
           | undefined;
         if (!weapon?.targets?.ground) continue;
         hasGroundWeapon = true;
-        const scatter = weapon.targets.ground.scatter_mrad ?? weapon.scatter_mrad ?? 0;
+        const scatter = weapon.targets.ground.scatter_mrad;
         radius = Math.max(radius, (distance * scatter) / 1000);
       }
     }

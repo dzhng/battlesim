@@ -129,8 +129,7 @@ export function airRole(
 }
 
 /** How far a type's weapons reach into each air layer, metres: the farthest
- *  of its rows' `targets.<layer>.range_m`, a row's own `range_m` where the
- *  layer doesn't say (`WeaponDefinition::against`), and 0 where none reaches. */
+ *  of its rows' explicit `targets.<layer>.range_m`, and 0 where none reaches. */
 export function airReach(
   type: Pick<UnitType, "mounts">,
   weapons: Record<string, WeaponRow>,
@@ -139,7 +138,7 @@ export function airReach(
   for (const w of type.mounts.flatMap((m) => m.weapons).map((id) => weapons[id]))
     for (const layer of ["low_air", "high_air"] as const) {
       const fire = w?.targets?.[layer];
-      if (fire) reach[layer] = Math.max(reach[layer], fire.range_m ?? w.range_m);
+      if (fire) reach[layer] = Math.max(reach[layer], fire.range_m);
     }
   return reach;
 }
@@ -323,8 +322,10 @@ export interface WeaponRow {
   reload_s: number;
   ammo: number | "unlimited";
   penetration: number;
-  /** The layers it engages and how far at each; absent, the ground only. */
-  targets?: Partial<Record<"ground" | "low_air" | "high_air", { range_m?: number }>>;
+  /** Each layer it engages owns its range and launch spread. */
+  targets?: Partial<
+    Record<"ground" | "low_air" | "high_air", { range_m: number; scatter_mrad: number }>
+  >;
   [field: string]: unknown;
 }
 

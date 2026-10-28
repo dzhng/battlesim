@@ -94,7 +94,7 @@ pub struct Arsenal {
     pub config: FlightConfig,
 }
 
-/// Admit launch profiles and the weapon table before constructing battle resources.
+/// Admit every row's flight and the weapon table.
 pub fn check_rules(rules: &Rules) -> Result<FlightConfig, String> {
     let config = FlightConfig::new(&rules.physics.flight, rules.tick_hz)
         .map_err(|e| format!("physics: {e}"))?;
@@ -102,6 +102,11 @@ pub fn check_rules(rules: &Rules) -> Result<FlightConfig, String> {
         config
             .profile(&weapon.ballistics)
             .map_err(|e| format!("weapons.{id}: {e}"))?;
+        for (layer, fire) in &weapon.targets {
+            config
+                .check_layer(&weapon.ballistics, fire.range_m, fire.scatter_mrad)
+                .map_err(|e| format!("weapons.{id}.{layer:?}: {e}"))?;
+        }
     }
     if rules.weapons.len() > crate::publication::MAX_WEAPON_ROWS {
         return Err(format!(
@@ -421,16 +426,12 @@ struct Resolved {
 }
 
 impl Resolved {
-    /// How `def` fires at this target, or `None` when it does not engage
-    /// it: its layer is not one the row lists, or the row's classes there
-    /// leave the target out.
+    /// How `def` fires here; `None` when its layer or classes leave it out.
     fn fire(&self, def: &WeaponDefinition) -> Option<Fire> {
         def.engages(self.layer, self.class)
     }
 
-    /// Whether `def` is worth firing at it: at a round, a row listing
-    /// `missile` in the round's layer (a round is no area, W10); otherwise
-    /// what [`effective`] says.
+    /// Worth firing at: a round by a row listing `missile` (W10), else [`effective`].
     fn worth(&self, def: &WeaponDefinition, rules: &Rules) -> bool {
         if self.class == Some(TargetClass::Missile) {
             self.fire(def).is_some()

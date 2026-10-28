@@ -121,6 +121,7 @@ fn interceptor_on_a_helicopter() -> Battle {
         "low_air": { "classes": ["air_rotor", "missile"] }
     }));
     row["range_m"] = serde_json::json!(800);
+    row["targets"]["low_air"]["range_m"] = serde_json::json!(800);
     rules["weapons"]["test_interceptor"] = row;
     rules["service"]["round_costs"]["test_interceptor"] = serde_json::json!(1);
     crate::fixtures::patch_catalog(
@@ -169,8 +170,7 @@ fn a_unit_out_of_the_battle_draws_no_flare() {
     rules["weapons"]["atgm"]["seeker"] = serde_json::json!("infrared");
     rules["weapons"]["atgm"]["seeker_fov_deg"] = serde_json::json!(180);
     rules["weapons"]["atgm"]["decoyable"] = serde_json::json!(true);
-    rules["weapons"]["atgm"]["targets"] =
-        serde_json::json!({"low_air": {"classes": ["air_rotor"]}});
+    rules["weapons"]["atgm"]["targets"] = serde_json::json!({"low_air": {"classes": ["air_rotor"], "range_m": 650, "scatter_mrad": 0.5}});
     crate::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -286,12 +286,17 @@ fn a_round_crossing_whose_meeting_point_lies_past_reach_is_left_alone() {
 }
 
 /// A ballistic gun that `targets` as given: 1,500 m, 40 rounds.
-fn test_interceptor(targets: serde_json::Value) -> serde_json::Value {
+fn test_interceptor(mut targets: serde_json::Value) -> serde_json::Value {
+    for fire in targets.as_object_mut().unwrap().values_mut() {
+        let fire = fire.as_object_mut().unwrap();
+        fire.entry("range_m").or_insert(serde_json::json!(1500));
+        fire.entry("scatter_mrad").or_insert(serde_json::json!(16));
+    }
     serde_json::json!({
         "name": "Test AA", "description": "A test row.", "icon": "autocannon",
         "stationary": false, "range_m": 1500, "speed_mps": 600, "gravity_scale": 0.5,
         "aim_s": 0.5, "reload_s": 3.5, "ammo": 40, "penetration": 65, "partial_from": 0.08,
-        "damage": 100, "scatter_mrad": 5, "near_miss_suppression": 0.1,
+        "damage": 100, "near_miss_suppression": 0.1,
         "suppression_radius_m": 6, "blast_radius_m": 2, "proximity_fuse_m": 5,
         "structural_damage": 8, "targets": targets
     })
@@ -414,10 +419,10 @@ fn test_guided_interceptor(seeker: bool) -> serde_json::Value {
         "stationary": true, "range_m": 1500, "min_range_m": 50,
         "speed_mps": 100, "accel_mps2": 95, "top_speed_mps": 290,
         "aim_s": 0.5, "reload_s": 4, "ammo": 6, "penetration": 300, "partial_from": 0.08,
-        "damage": 100, "scatter_mrad": 0.5, "turn_deg_s": 180, "guidance": "stationary",
+        "damage": 100, "turn_deg_s": 180, "guidance": "stationary",
         "lifetime_s": 10, "near_miss_suppression": 0, "suppression_radius_m": 0,
         "blast_radius_m": 3, "proximity_fuse_m": 5, "structural_damage": 20,
-        "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] } }
+        "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"], "range_m": 1500, "scatter_mrad": 6 } }
     });
     if seeker {
         row["seeker"] = serde_json::json!("radar");

@@ -192,6 +192,34 @@ async function nativeStore() {
   return { root, editor: new MechanicsStore(root, nativeValidator(project)) };
 }
 
+test("a re-enabled layer remains editable through native preview and save", async () => {
+  const { editor } = await nativeStore();
+  const initial = await editor.snapshot();
+  const { editDraft, resetDraft } = await import("../../apps/mechanics-editor/src/draft");
+  const target = { section: "weapons" as const, id: "grenade" };
+  const layerPath = ["targets", "ground"];
+  const rangePath = [...layerPath, "range_m"];
+  const weapon = (initial.catalog.weapons as JsonObject).grenade as JsonObject;
+  const fire = (weapon.targets as JsonObject).ground as JsonObject;
+  let draft = editDraft({ revision: initial.revision, changes: [] }, target, layerPath, null);
+  draft = editDraft(draft, target, layerPath, fire);
+  draft = editDraft(draft, target, rangePath, 135);
+  draft = editDraft(draft, target, [...layerPath, "scatter_mrad"], 32);
+  const preview = await editor.preview(draft);
+  expect(((preview.catalog.weapons as JsonObject).grenade as JsonObject).targets).toEqual({
+    ground: { ...fire, range_m: 135, scatter_mrad: 32 },
+  });
+  const undone = resetDraft(draft, target, rangePath, initial);
+  const restored = await editor.preview(undone);
+  expect(((restored.catalog.weapons as JsonObject).grenade as JsonObject).targets).toEqual({
+    ground: { ...fire, scatter_mrad: 32 },
+  });
+  const saved = await editor.save(draft);
+  expect(((saved.catalog.weapons as JsonObject).grenade as JsonObject).targets).toEqual({
+    ground: { ...fire, range_m: 135, scatter_mrad: 32 },
+  });
+}, 30000);
+
 test("a shared weapon preview names all users and invalid flight settings never write", async () => {
   const { editor } = await nativeStore();
   const initial = await editor.snapshot();
@@ -276,7 +304,12 @@ test("decimal gameplay values survive native admission and publication without r
   const saved = await editor.save({
     revision: snapshot.revision,
     changes: [
-      { section: "weapons", id: "grenade", path: ["scatter_mrad"], value: scatter },
+      {
+        section: "weapons",
+        id: "grenade",
+        path: ["targets", "ground", "scatter_mrad"],
+        value: scatter,
+      },
       {
         section: "units",
         id: "test_rifle",
@@ -285,10 +318,12 @@ test("decimal gameplay values survive native admission and publication without r
       },
     ],
   });
-  expect((saved.catalog.weapons as JsonObject).grenade).toMatchObject({ scatter_mrad: scatter });
+  expect((saved.catalog.weapons as JsonObject).grenade).toMatchObject({
+    targets: { ground: { scatter_mrad: scatter } },
+  });
   expect(
-    JSON.parse(await readFile(join(root, "fixtures/game.json"), "utf8")).weapons.grenade
-      .scatter_mrad,
+    JSON.parse(await readFile(join(root, "fixtures/game.json"), "utf8")).weapons.grenade.targets
+      .ground.scatter_mrad,
   ).toBe(scatter);
   expect((saved.catalog.documents as JsonObject[])[0].units).toMatchObject({
     test_rifle: { mobility: { foot: { offroad_kmh: 12.3456789 } } },

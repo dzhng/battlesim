@@ -9,16 +9,13 @@ use sim::battle::Battle;
 use sim::flight::steer;
 use sim::math::v3;
 
-use crate::common::{self, Commander};
+use crate::common::{self as c, Commander};
 
 fn battle(props: Value, units: Value, seed: u64) -> Battle {
     let map =
         json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
             .to_string();
-    Battle::new(
-        &common::scenario_with(&map, units, json!([]), json!([])),
-        seed,
-    )
+    Battle::new(&c::scenario_with(&map, units, json!([]), json!([])), seed)
 }
 
 pub(crate) fn own(b: &Battle, side: Side, id: u32) -> Option<OwnUnit> {
@@ -125,7 +122,7 @@ fn identical_launchers_can_hold_different_targets_from_their_own_muzzles() {
             seed,
             |r| {
                 paired(r);
-                r["weapons"]["atgm"]["range_m"] = json!(range);
+                c::json_ground_weapon(&mut r["weapons"]["atgm"], range);
             },
         );
         until_launch(&mut b);
@@ -291,7 +288,7 @@ pub(crate) fn ambush(seed: u64) -> Battle {
             { "kind": "wall", "center": [560, 336], "yaw": 0, "half_extents": [0.5, 30, 4] }
         ] })
     .to_string();
-    let mut setup = common::scenario_with(
+    let mut setup = c::scenario_with(
         &map,
         json!([
             { "side": "blue", "kind": "test_at", "position": [100, 300], "engagement": "fire_at_will" },
@@ -320,7 +317,7 @@ pub(crate) fn move_to(unit: u32, goal: [f64; 2]) -> Order {
 /// The game rules with a quick ATGM (0.5 s aim, 1 s reload) so a next
 /// round is ready while one is still in flight, and any `tweak` applied.
 pub(crate) fn quick(props: Value, units: Value, seed: u64, tweak: impl Fn(&mut Value)) -> Battle {
-    let mut rules = common::game();
+    let mut rules = c::game();
     rules["weapons"]["atgm"]["aim_s"] = json!(0.5);
     rules["weapons"]["atgm"]["reload_s"] = json!(1.0);
     tweak(&mut rules);
@@ -337,7 +334,7 @@ pub(crate) fn quick(props: Value, units: Value, seed: u64, tweak: impl Fn(&mut V
 /// tank's hp once the first missile has ended, and whether the missile
 /// was guided all the way (never released).
 fn crossing_shot(range_m: f64, seed: u64) -> (f64, bool) {
-    let mut rules = common::game();
+    let mut rules = c::game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -372,11 +369,9 @@ fn a_missile_hits_a_tank_driving_across_its_line_near_and_at_full_range() {
     // after the launch, close in and near its full range (100 m short of it,
     // since the tank also stands 100 m off the launcher's line). (With
     // steering off, the missile misses.)
-    let full = common::hull("test_tank").hp;
-    let damage = common::game()["weapons"]["atgm"]["damage"]
-        .as_f64()
-        .unwrap();
-    let far = common::weapon("atgm").range_m - 100.0;
+    let full = c::hull("test_tank").hp;
+    let damage = c::game()["weapons"]["atgm"]["damage"].as_f64().unwrap();
+    let far = c::weapon("atgm").range_m - 100.0;
     for range_m in [300.0, far] {
         for seed in 1..=3 {
             let (hp, guided) = crossing_shot(range_m, seed);
@@ -495,7 +490,7 @@ fn shared_identification_supports_a_missile_beyond_the_launchers_sensor_range() 
                 "test_at",
                 json!({ "sensors": { "ground_m": 100 } }),
             );
-            r["weapons"]["atgm"]["range_m"] = json!(900);
+            c::json_ground_weapon(&mut r["weapons"]["atgm"], 900.0);
             for w in r["weapons"].as_object_mut().unwrap().values_mut() {
                 w["damage"] = json!(0);
             }
@@ -568,7 +563,7 @@ fn a_guided_missile_ends_at_its_lifetime() {
         3,
         |r| {
             r["weapons"]["atgm"]["lifetime_s"] = json!(4.0);
-            r["weapons"]["atgm"]["range_m"] = json!(1400);
+            c::json_ground_weapon(&mut r["weapons"]["atgm"], 1400.0);
             r["weapons"]["atgm"]["speed_mps"] = json!(150.0);
         },
     );
@@ -612,7 +607,7 @@ fn a_survivor_keeps_a_top_attack_missile_climbing_and_diving_onto_the_tank() {
             b.step();
         }
         assert!(apex(&path) > 30.0, "it climbed: apex {:.1} m", apex(&path));
-        if own(&b, Side::Red, 1).unwrap().hp < common::hull("test_tank").hp {
+        if own(&b, Side::Red, 1).unwrap().hp < c::hull("test_tank").hp {
             struck += 1;
         }
     }
@@ -742,9 +737,7 @@ pub(crate) fn horizontal(a: [f64; 3], b: [f64; 3]) -> f64 {
 
 /// A round left from this soldier's own muzzle where he stands.
 fn standing_at(origin: [f64; 3], soldier: [f64; 3]) -> bool {
-    let muzzle = common::game()["physics"]["infantry_muzzle_m"]
-        .as_f64()
-        .unwrap();
+    let muzzle = c::game()["physics"]["infantry_muzzle_m"].as_f64().unwrap();
     horizontal(origin, soldier) < 0.05 && (origin[2] - soldier[2] - muzzle).abs() < 0.05
 }
 
@@ -891,7 +884,7 @@ fn a_seen_team_does_not_publish_its_unseen_launcher_operator() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == common::unit_kind("test_at"))
+        .find(|e| e.kind == c::unit_kind("test_at"))
         .unwrap();
     let gunner = seen.weapon_poses[1]
         .operator
@@ -907,7 +900,7 @@ fn a_seen_team_does_not_publish_its_unseen_launcher_operator() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == common::unit_kind("test_at"))
+        .find(|e| e.kind == c::unit_kind("test_at"))
         .expect("the guards still identify the team");
     assert!(
         !seen.member_ids.contains(&gunner),
@@ -972,7 +965,7 @@ fn a_top_attack_missile_kills_through_the_roof_a_tank_whose_front_it_cannot_pier
     // A missile past the tank's roof armour but too far short of its front
     // to get any damage through, lethal when it pierces: diving onto the roof
     // kills; the same row flown at the front does not get through.
-    let hull = common::hull("test_tank");
+    let hull = c::hull("test_tank");
     let lethal = |r: &mut Value| {
         // A shaped charge whose damage cuts off at 60 % of the armour.
         r["weapons"]["atgm"]["partial_from"] = json!(0.6);
@@ -1010,7 +1003,7 @@ fn a_top_attack_launcher_under_tree_crowns_climbs_out_through_them_and_dives_ont
     // climb leaves through them; trunks stand upright, so a climb in the
     // vertical plane of the line the launch checked passes them as that line
     // does.
-    let mut rules = common::game();
+    let mut rules = c::game();
     top_attack(&mut rules);
     let map = json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [],
         "forests": [{ "shape": { "kind": "polygon", "ring": [[0, 303], [60, 303], [60, 340], [0, 340]] } }] });
@@ -1030,7 +1023,7 @@ fn a_top_attack_launcher_under_tree_crowns_climbs_out_through_them_and_dives_ont
     let (b, path) = first_missile(b);
     assert!(apex(&path) > 30.0, "it climbed: apex {:.1} m", apex(&path));
     assert!(
-        own(&b, Side::Red, 1).unwrap().hp < common::hull("test_tank").hp,
+        own(&b, Side::Red, 1).unwrap().hp < c::hull("test_tank").hp,
         "it struck the tank, {} ticks after launch",
         b.tick() - launched
     );
@@ -1049,7 +1042,7 @@ fn a_released_top_attack_missile_drops_its_climb_and_goes_to_ground_at_its_fixed
         { "side": "blue", "kind": "test_at", "position": [100, 300], "engagement": "fire_at_will" },
         { "side": "red", "kind": "test_tank", "position": [600, 300], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" }
     ]);
-    let full = common::hull("test_tank").hp;
+    let full = c::hull("test_tank").hp;
     for (case, side, unit, goal, after) in [
         ("the tank hides", Side::Red, 1, [600.0, 345.0], 0),
         ("the team moves", Side::Blue, 0, [100.0, 200.0], 40),
@@ -1092,9 +1085,6 @@ fn a_released_top_attack_missile_drops_its_climb_and_goes_to_ground_at_its_fixed
     }
 }
 
-/// One aim rule, keyed on the target: a guided missile is steered at an
-/// aircraft's hull centre, and at a ground vehicle three quarters of the way
-/// up its hull, whatever fires.
 #[test]
 fn test_a_guided_missile_aims_at_an_aircrafts_centre_and_high_on_a_ground_hull() {
     let aim = |target: &str| {
@@ -1108,8 +1098,8 @@ fn test_a_guided_missile_aims_at_an_aircrafts_centre_and_high_on_a_ground_hull()
             |r| {
                 r["physics"]["vehicle_aim_height_fraction"] = json!(0.75);
                 r["weapons"]["atgm"]["targets"] = json!({
-                    "ground": { "classes": ["vehicle"] },
-                    "low_air": { "classes": ["air_rotor"] }
+                    "ground": { "classes": ["vehicle"], "range_m": 650, "scatter_mrad": 0.5 },
+                    "low_air": { "classes": ["air_rotor"], "range_m": 650, "scatter_mrad": 0.5 }
                 });
                 sim::fixtures::patch_catalog(
                     r,

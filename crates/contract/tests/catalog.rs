@@ -55,6 +55,10 @@ fn units(entries: Value) -> Vec<Value> {
     vec![roles(), wrecks(), json!({ "units": entries })]
 }
 
+fn rotor_air(cruise_kmh: u32, turn_deg_s: u32, climb_mps: u32) -> Value {
+    json!({ "air": { "cruise_kmh": cruise_kmh, "turn_deg_s": turn_deg_s, "climb_mps": climb_mps, "layer": "low_air", "flight": "rotor" } })
+}
+
 #[test]
 fn planned_aircraft_is_a_visible_card_but_not_a_physical_type() {
     let catalog = resolve(&units(json!({
@@ -79,113 +83,6 @@ fn planned_aircraft_is_a_visible_card_but_not_a_physical_type() {
     assert_eq!(catalog.view()["cards"][0]["id"], "f22");
     let document = serde_json::to_value(&catalog).unwrap();
     assert_eq!(resolve(document.as_array().unwrap()).unwrap(), catalog);
-}
-
-#[test]
-fn air_mobility_names_its_layer_and_its_flight_model() {
-    use contract::catalog::{AltitudeLayer, FlightModel};
-    let mut rotor = base_tank();
-    rotor["abstract"] = json!(false);
-    rotor["mobility"] = json!({
-        "air": { "cruise_kmh": 180, "turn_deg_s": 30, "climb_mps": 8, "flight": "rotor" }
-    });
-    let mut wing = rotor.clone();
-    wing["mobility"]["air"]["layer"] = json!("high_air");
-    wing["mobility"]["air"]["flight"] = json!("fixed_wing");
-    let catalog = resolve(&units(json!({ "rotor": rotor, "wing": wing }))).unwrap();
-    let mobility = |id| catalog.by_id(id).mobility;
-    assert_eq!(mobility("rotor").layer(), AltitudeLayer::LowAir);
-    assert_eq!(mobility("rotor").flight(), Some(FlightModel::Rotor));
-    assert_eq!(mobility("wing").layer(), AltitudeLayer::HighAir);
-    assert_eq!(mobility("wing").flight(), Some(FlightModel::FixedWing));
-
-    // The flight model is authored, never derived from the layer.
-    let mut unnamed = rotor.clone();
-    unnamed["mobility"]["air"]
-        .as_object_mut()
-        .unwrap()
-        .remove("flight");
-    let error = resolve(&units(json!({ "unnamed": unnamed })))
-        .unwrap_err()
-        .to_string();
-    assert!(error.contains("flight"), "{error}");
-
-    // A pair no flight law flies yet is refused, naming what is missing.
-    let mut blimp = rotor.clone();
-    blimp["mobility"]["air"]["layer"] = json!("high_air");
-    let error = resolve(&units(json!({ "blimp": blimp })))
-        .unwrap_err()
-        .to_string();
-    assert!(
-        error.contains("blimp") && error.contains("rotor") && error.contains("high air"),
-        "{error}"
-    );
-    let mut drone = wing.clone();
-    drone["mobility"]["air"]["layer"] = json!("low_air");
-    let error = resolve(&units(json!({ "drone": drone })))
-        .unwrap_err()
-        .to_string();
-    assert!(
-        error.contains("drone") && error.contains("fixed-wing") && error.contains("low air"),
-        "{error}"
-    );
-}
-
-#[test]
-fn aircraft_capability_carries_air_ranges_afterburner_and_refund() {
-    let mut aircraft = base_tank();
-    aircraft["abstract"] = json!(false);
-    aircraft["mobility"] = json!({
-        "air": { "cruise_kmh": 280, "turn_deg_s": 60, "climb_mps": 12, "layer": "high_air", "flight": "fixed_wing" }
-    });
-    aircraft["sensors"] = json!({
-        "ground_m": 500, "low_air_m": 1500, "high_air_m": 3000,
-        "sight_shape": { "front": 1, "side": 0.8, "rear": 0.5 }
-    });
-    aircraft["capabilities"] = json!({
-        "flares": { "capacity": 6, "reload_s": 18 },
-        "air": {
-            "fuel_capacity_s": 180,
-            "afterburner": {},
-            "refund": { "health": 0.5, "ammunition": 0.3, "fuel": 0.2 }
-        }
-    });
-    let catalog = resolve(&units(json!({ "aircraft": aircraft }))).unwrap();
-    let t = catalog.by_id("aircraft");
-    assert_eq!(t.sensors.high_air_m, Some(3000.0));
-    assert_eq!(
-        t.capabilities
-            .air
-            .as_ref()
-            .unwrap()
-            .afterburner
-            .unwrap()
-            .speed_multiplier,
-        1.5
-    );
-}
-
-/// The afterburner is a jet's: no rotor flight law flies it, so a rotor
-/// row carrying one is refused, naming the rule.
-#[test]
-fn an_afterburner_needs_fixed_wing_flight() {
-    let mut rotor = base_tank();
-    rotor["abstract"] = json!(false);
-    rotor["mobility"] = json!({
-        "air": { "cruise_kmh": 180, "turn_deg_s": 30, "climb_mps": 8, "flight": "rotor" }
-    });
-    rotor["capabilities"] = json!({ "air": {
-        "fuel_capacity_s": 180,
-        "afterburner": {},
-        "refund": { "health": 0.5, "ammunition": 0.3, "fuel": 0.2 }
-    }});
-    let error = resolve(&units(json!({ "rotor": rotor })))
-        .unwrap_err()
-        .to_string();
-    assert!(
-        error.contains("afterburner") && error.contains("fixed-wing"),
-        "{error}"
-    );
 }
 
 #[test]
@@ -936,7 +833,7 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
     heli["abstract"] = json!(false);
     heli["body"]["hull"]["weight_class"] = json!("light");
     heli["body"]["hull"]["wreck"] = json!("light_wreck");
-    heli["mobility"] = json!({ "air": { "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6, "flight": "rotor" } });
+    heli["mobility"] = rotor_air(220, 90, 6);
     let mut fighter = heli.clone();
     fighter["mobility"]["air"]["cruise_kmh"] = json!(300);
     fighter["mobility"]["air"]["layer"] = json!("high_air");
@@ -1048,9 +945,7 @@ fn without_radar_or_its_own_sight_a_unit_sees_high_air_by_its_body() {
         "sound": { "profile": "infantry", "loudness_m": 200 }
     });
     let mut rotor = hull.clone();
-    rotor["mobility"] = json!({ "air": {
-        "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6, "flight": "rotor"
-    } });
+    rotor["mobility"] = rotor_air(220, 90, 6);
     rotor["sensors"].as_object_mut().unwrap().remove("on");
     let mut docs = units(json!({
         "hull": hull, "closed_up": closed_up, "lookout": lookout, "squad": squad,

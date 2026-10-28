@@ -24,6 +24,7 @@ fn launcher(requires: bool) -> Value {
         "extends": "artillery_mortar",
         "speed_mps": 80,
         "range_m": 650,
+        "targets": { "ground": { "range_m": 650, "scatter_mrad": 26 } },
         "requires_clear_launch_path": requires,
     })
 }

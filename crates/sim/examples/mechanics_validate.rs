@@ -70,21 +70,31 @@ mod tests {
     }
 
     #[test]
-    fn rejects_launch_profiles_tighter_than_the_games_accuracy_ceiling() {
-        // A row nothing extends, so the error names it and no other.
-        let mut game = game();
-        game["weapons"]["heavy_sniper"]["scatter_mrad"] = json!(0);
-        let error = sim::fixtures::admit(
-            game,
-            sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game),
-        )
-        .expect_err("invalid spread must fail");
-        assert!(
-            error.contains("weapons.heavy_sniper")
-                && error.contains("Landing spread must be at least")
-                && error.contains("entered 0 m"),
-            "{error}"
-        );
+    fn rejects_each_layer_tighter_than_the_games_accuracy_ceiling() {
+        let documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
+        for (layer, named, class) in [
+            ("ground", "Ground", "infantry"),
+            ("low_air", "LowAir", "air_rotor"),
+            ("high_air", "HighAir", "air_fixed_wing"),
+        ] {
+            let mut game = game();
+            game["physics"]["min_spread_at_max_range_m"] = json!(2);
+            game["weapons"]["ceiling_test"] = json!({
+                "extends": "rifle", "range_m": 500,
+                "targets": { layer: { "classes": [class], "range_m": 500, "scatter_mrad": 4 } }
+            });
+            sim::fixtures::admit(game.clone(), documents.clone())
+                .expect("spread at the ceiling loads");
+            game["weapons"]["ceiling_test"]["targets"][layer]["scatter_mrad"] = json!(3);
+            let error = sim::fixtures::admit(game, documents.clone())
+                .expect_err("spread below the ceiling must fail");
+            assert!(
+                error.contains(&format!("weapons.ceiling_test.{named}"))
+                    && error.contains("Landing spread must be at least 2 m")
+                    && error.contains("entered 1.5 m"),
+                "{error}"
+            );
+        }
     }
     #[test]
     fn rejects_more_weapon_rows_than_the_publication_can_carry() {

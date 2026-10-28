@@ -19,7 +19,6 @@ fn lob_weapon() -> WeaponBallistics {
         range_m: 300.0,
         speed_mps: 24.0,
         gravity_scale: 0.09,
-        scatter_mrad: 15.0,
         ..weapon("grenade")
     }
 }
@@ -283,19 +282,14 @@ fn a_motor_needs_a_guided_row_with_a_top_speed_above_launch() {
 fn an_unguided_row_tighter_than_the_spread_ceiling_is_refused_and_a_guided_one_is_exempt() {
     // The accuracy ceiling (`min_spread_at_max_range_m`) is checked at load:
     // every shipped row loading is the proof it holds for them.
-    let tight = WeaponBallistics {
-        scatter_mrad: 1.0,
-        ..weapon("tank_ap")
-    };
+    let tight = weapon("tank_ap");
     assert!(matches!(
-        config().profile(&tight),
+        config().check_layer(&tight, tight.range_m, 1.0),
         Err(FlightConfigError::TighterThanCeiling { .. })
     ));
-    let guided = WeaponBallistics {
-        scatter_mrad: 0.1,
-        ..weapon("atgm")
-    };
-    assert!(config().profile(&guided).is_ok());
+    let guided = weapon("atgm");
+    assert!(config().check_layer(&guided, guided.range_m, 0.0).is_ok());
+    assert!(config().check_layer(&weapon("air_bomb"), 0.0, 0.0).is_ok());
 }
 
 fn unpowered_bomb_launch(carrier: V3, velocity: V3, aim: V3, profile: &LaunchProfile) -> Launch {
@@ -395,7 +389,7 @@ fn cluster_bombs_scatter_around_the_aim_point() {
     let mut rng = Rng::new(20261014);
     let mut store = Projectiles::new(config());
     for _ in 0..64 {
-        let scattered = scatter_aim(carrier, aim, profile.scatter_mrad, &mut rng);
+        let scattered = scatter_aim(carrier, aim, 28.0, &mut rng);
         let scattered = v3(scattered.x, scattered.y, aim.z);
         store.launch(unpowered_bomb_launch(
             carrier,
@@ -770,7 +764,6 @@ fn a_synthetic_artillery_profile_reaches_2500m_on_the_high_arc() {
             range_m: 2_500.0,
             speed_mps: 160.0,
             gravity_scale: 1.0,
-            scatter_mrad: 12.0,
             trajectory: Trajectory::Indirect,
             lifetime_s: Some(30.0),
             ..lob_weapon()

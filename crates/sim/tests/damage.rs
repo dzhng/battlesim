@@ -93,7 +93,7 @@ fn rounds_far_short_of_the_armour_do_nothing() {
         setup.rules.weapons.get_mut("rifle").unwrap().penetration = if penetrates {
             a.front.max(a.side).max(a.rear).max(a.roof) + 1.0
         } else {
-            setup.rules.penetration.partial_from * a.weakest()
+            setup.rules.weapons["rifle"].partial_from * a.weakest()
         };
         let mut b = Battle::new(&setup, 2);
         let mut hits = 0;
@@ -376,7 +376,7 @@ fn a_bursting_round_costs_the_soldier_it_strikes_its_damage_once() {
     // Wide enough to reach his neighbours in the squad's spacing.
     gun.blast_radius_m = 4.0;
     gun.damage = damage;
-    gun.ballistics.scatter_mrad = 0.0;
+    common::ground_spread(gun, 0.0);
     setup.rules.physics.flight.min_spread_at_max_range_m = 0.0;
     let mut b = Battle::new(&setup, 3);
     let (mut direct, mut fragments) = (0, 0);
@@ -571,13 +571,7 @@ fn a_wall_shields_soldiers_from_a_blast_beside_it() {
             // Only the shells can hurt red; rifle-calibre fire is not the control.
             setup.rules.weapons.get_mut("hmg").unwrap().damage = 0.0;
             setup.rules.physics.flight.min_spread_at_max_range_m = 0.0;
-            setup
-                .rules
-                .weapons
-                .get_mut("tank_he")
-                .unwrap()
-                .ballistics
-                .scatter_mrad = 0.0;
+            common::ground_spread(setup.rules.weapons.get_mut("tank_he").unwrap(), 0.0);
             let mut b = Battle::new(&setup, seed);
             let full: f64 = b
                 .unit(UnitId(1))
@@ -745,7 +739,7 @@ fn test_an_aircrafts_side_takes_less_only_through_its_armour() {
         hmg["damage"] = json!(10.0);
         hmg["partial_from"] = json!(0.08);
         hmg["targets"]["low_air"] =
-            json!({ "classes": ["air_rotor"], "range_m": 300, "scatter_mrad": 0 });
+            json!({ "classes": ["air_rotor"], "range_m": 300, "scatter_mrad": 8 });
         sim::fixtures::patch_catalog(
             &mut game,
             "units",

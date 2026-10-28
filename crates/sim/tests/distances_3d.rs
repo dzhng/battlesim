@@ -175,9 +175,9 @@ fn interceptor_case(high: bool) -> Battle {
     );
     fixture["weapons"]["stinger"]["interceptable"] = json!(true);
     fixture["weapons"]["stinger"]["targets"] = json!({
-        "ground": { "range_m": 1500, "classes": ["infantry", "vehicle"] },
-        "low_air": { "classes": ["air_rotor", "air_fixed_wing"] },
-        "high_air": { "classes": ["air_rotor", "air_fixed_wing"] }
+        "ground": { "range_m": 1500, "scatter_mrad": 0.5, "classes": ["infantry", "vehicle"] },
+        "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 1500, "scatter_mrad": 0.5 },
+        "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 1500, "scatter_mrad": 0.5 }
     });
     fixture["weapons"]["stinger"]["damage"] = json!(0);
     fixture["weapons"]["stinger"]["structural_damage"] = json!(0);

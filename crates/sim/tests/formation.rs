@@ -4,6 +4,17 @@ use contract::scenario::FormationRules;
 use sim::formation::{self, Member};
 use sim::math::v2;
 
+fn formation_rules() -> FormationRules {
+    FormationRules {
+        min_radius_m: 40.0,
+        spacing_m: 1.0,
+        fill_ratio: 0.6,
+        growth_factor: 1.5,
+        candidate_checks: 32768,
+        max_expansions: 8,
+    }
+}
+
 #[test]
 fn queued_destinations_do_not_assume_an_unfinished_attack_will_end() {
     use contract::command::{CommandEnvelope, Order, TargetRef};
@@ -96,7 +107,7 @@ fn crowded_mixed_groups_place_every_unit_without_overlapping() {
             yaw: 0.0,
         })
         .collect();
-    let rules = FormationRules::default();
+    let rules = formation_rules();
     let plan = formation::place(
         &members,
         v2(500.0, 500.0),
@@ -145,7 +156,7 @@ fn an_obstructed_destination_expands_past_the_old_snap_reach() {
         &members,
         v2(500.0, 500.0),
         None,
-        &FormationRules::default(),
+        &formation_rules(),
         1500.0,
         |_, p| (p.x < 450.0 && p.x >= 0.0 && p.y >= 0.0 && p.y <= 1000.0).then_some(p),
     );
@@ -180,14 +191,14 @@ fn a_failed_member_does_not_discard_the_members_that_fit() {
         &members,
         v2(500.0, 500.0),
         None,
-        &FormationRules::default(),
+        &formation_rules(),
         1500.0,
         |id, p| (id == UnitId(7)).then_some(p),
     );
     assert_eq!(plan.slots[0].point, Some(v2(496.0, 490.0)));
     assert_eq!(plan.slots[1].id, UnitId(9));
     assert_eq!(plan.slots[1].point, None);
-    assert!(plan.checks <= members.len() + FormationRules::default().candidate_checks as usize);
+    assert!(plan.checks <= members.len() + formation_rules().candidate_checks as usize);
 }
 
 #[test]
@@ -342,7 +353,7 @@ fn partial_placement_keeps_moving_destinations_clear_of_units_that_hold() {
             yaw: 0.0,
         },
     ];
-    let rules = FormationRules::default();
+    let rules = formation_rules();
     let plan = formation::place(&members, v2(504.0, 515.0), None, &rules, 1500.0, |id, p| {
         (id == UnitId(7)).then_some(p)
     });

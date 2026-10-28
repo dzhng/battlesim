@@ -352,20 +352,20 @@ fn covered_tank_battle(
         "interceptable": true, "stationary": false, "guidance": "on_the_move",
         "range_m": 1500, "min_range_m": 5, "speed_mps": 50, "accel_mps2": 140,
         "top_speed_mps": 300, "aim_s": 0.1, "reload_s": 4, "ammo": 1,
-        "penetration": 400, "partial_from": 0.08, "damage": 400, "scatter_mrad": 0.5,
+        "penetration": 400, "partial_from": 0.08, "damage": 400,
         "turn_deg_s": 60, "lifetime_s": 15, "near_miss_suppression": 0,
         "suppression_radius_m": 0, "blast_radius_m": 4, "structural_damage": 20,
-        "targets": { "ground": { "classes": ["vehicle"] } }
+        "targets": { "ground": { "classes": ["vehicle"], "range_m": 1500, "scatter_mrad": 0.5 } }
     });
     rules["weapons"]["test_interceptor"] = json!({
         "name": "Test SAM", "description": "A test row.", "icon": "aa_missile",
         "stationary": true, "guidance": "stationary", "range_m": 1500, "min_range_m": 50,
         "speed_mps": 100, "accel_mps2": 95, "top_speed_mps": 290,
         "aim_s": 0.5, "reload_s": 4, "ammo": 6, "penetration": 300, "partial_from": 0.08,
-        "damage": 100, "scatter_mrad": 0.5, "turn_deg_s": 180,
+        "damage": 100, "turn_deg_s": 180,
         "lifetime_s": 10, "near_miss_suppression": 0, "suppression_radius_m": 0,
         "blast_radius_m": 3, "proximity_fuse_m": 5, "structural_damage": 20,
-        "targets": { intercepts_in: { "classes": ["missile"] } }
+        "targets": { intercepts_in: { "classes": ["missile"], "range_m": 1500, "scatter_mrad": 0.5 } }
     });
     rules["air"]["fixed_wing"]["edge_margin_m"] = json!(300.0);
     rules["service"]["round_costs"]["test_agm"] = json!(1);

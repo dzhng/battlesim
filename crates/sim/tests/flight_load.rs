@@ -141,7 +141,9 @@ fn run(rate_scale: f64, seconds: f64) {
                     &config,
                     &profile,
                     &aim,
-                    profile.scatter_mrad,
+                    game["weapons"][*name]["targets"]["ground"]["scatter_mrad"]
+                        .as_f64()
+                        .unwrap(),
                     &mut rng,
                     shooter,
                     |_| false,

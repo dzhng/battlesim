@@ -248,8 +248,7 @@ pub enum Mobility {
         turn_deg_s: f64,
         /// How fast it climbs or sinks toward its target height.
         climb_mps: f64,
-        /// The altitude layer this aircraft occupies; LowAir when unnamed.
-        #[serde(default = "default_air_layer")]
+        /// The altitude layer this aircraft occupies.
         layer: AltitudeLayer,
         /// How it flies: always authored, never read off the layer.
         flight: FlightModel,
@@ -323,10 +322,6 @@ impl Mobility {
         let (offroad, road) = self.speeds_kmh();
         (offroad / 3.6, road / 3.6)
     }
-}
-
-fn default_air_layer() -> AltitudeLayer {
-    AltitudeLayer::LowAir
 }
 
 /// A unit's one sight.
@@ -432,23 +427,12 @@ pub struct FlareCapability {
     pub reload_s: f64,
 }
 
-/// The explicit afterburner tradeoff. Defaults are the initial 50% speed and
-/// 2x fuel tuning, but remain authored for later aircraft variants.
+/// The explicit afterburner tradeoff. Both multipliers are authored.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AfterburnerCapability {
-    #[serde(default = "afterburner_speed_multiplier")]
     pub speed_multiplier: f64,
-    #[serde(default = "afterburner_fuel_multiplier")]
     pub fuel_multiplier: f64,
-}
-
-fn afterburner_speed_multiplier() -> f64 {
-    1.5
-}
-
-fn afterburner_fuel_multiplier() -> f64 {
-    2.0
 }
 
 /// Health/ammunition/fuel shares of an aircraft's withdrawal refund.
