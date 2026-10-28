@@ -90,6 +90,30 @@ fn gap(ring: &[[f64; 2]], p: [f64; 2]) -> f64 {
         .fold(f64::INFINITY, f64::min)
 }
 
+/// Whether segments `ab` and `cd` cross or touch.
+fn crossing(a: [f64; 2], b: [f64; 2], c: [f64; 2], d: [f64; 2]) -> bool {
+    use contract::ground::cross;
+    let side = |v: f64| v.partial_cmp(&0.0).unwrap();
+    side(cross(a, b, c)) != side(cross(a, b, d)) && side(cross(c, d, a)) != side(cross(c, d, b))
+}
+
+/// The least ground between two rings: zero where an edge of one crosses an
+/// edge of the other or one holds a point of the other, whatever their
+/// vertices' distances.
+fn rings_gap(a: &[[f64; 2]], b: &[[f64; 2]]) -> f64 {
+    use contract::ground::edges;
+    let overlap = edges(a).any(|(p, q)| edges(b).any(|(r, s)| crossing(*p, *q, *r, *s)))
+        || contract::ground::polygon_contains(a, b[0])
+        || contract::ground::polygon_contains(b, a[0]);
+    if overlap {
+        return 0.0;
+    }
+    a.iter()
+        .map(|p| gap(b, *p))
+        .chain(b.iter().map(|p| gap(a, *p)))
+        .fold(f64::INFINITY, f64::min)
+}
+
 fn json(value: &impl serde::Serialize) -> String {
     serde_json::to_string(value).unwrap()
 }
@@ -254,11 +278,11 @@ fn swamps_keep_clear_of_settlements_buildings_and_bridge_approaches() {
             contract::swamp::validate(&generated.map).unwrap();
             for swamp in &generated.map.swamps {
                 for settlement in &plan.settlements {
-                    let apart = ring(swamp)
-                        .iter()
-                        .all(|p| gap(&settlement.outline, *p) >= presets.swamps.settlement_gap_m);
+                    let apart = rings_gap(ring(swamp), &settlement.outline)
+                        >= presets.swamps.settlement_gap_m;
                     assert!(apart, "seed {seed}: a swamp in {}", settlement.id);
                 }
+
                 swamps += 1;
             }
         }
@@ -290,9 +314,10 @@ fn a_generated_swamp_keeps_off_roads_and_woods() {
             }
             for wood in &plan.forests {
                 if let GroundShape::Polygon { ring: wood } = &wood.shape {
-                    let touches = wood.iter().any(|p| gap(ring(swamp), *p) == 0.0)
-                        || ring(swamp).iter().any(|p| gap(wood, *p) == 0.0);
-                    assert!(!touches, "seed {seed}: a wood stands in a swamp");
+                    assert!(
+                        rings_gap(ring(swamp), wood) >= presets.swamps.wood_gap_m,
+                        "seed {seed}: a wood within its gap of a swamp"
+                    );
                 }
             }
             checked += 1;

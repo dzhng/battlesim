@@ -6,9 +6,7 @@
 //! a swamp lies along it, as a marsh on its floodplain does. They are drawn
 //! from their own stream, after everything they keep clear of, so a seed's
 //! other features never move.
-use super::geometry::{
-    distance, ring_distance, segment_crossing, segment_distance, Outline, Point, PI,
-};
+use super::geometry::{distance, ring_distance, ring_gap, segment_ring_gap, Outline, Point, PI};
 use super::rng::Stream;
 use super::sites::Corridor;
 use super::towns::Town;
@@ -111,32 +109,13 @@ fn draw(
     None
 }
 
-/// The least ground between `ring` and the segment `ab`: zero where they
-/// meet or the segment lies inside.
-fn segment_gap(ring: &[Point], a: Point, b: Point) -> f64 {
-    let edges = || contract::ground::edges(ring);
-    if contract::ground::polygon_contains(ring, a)
-        || edges().any(|(c, d)| segment_crossing(a, b, *c, *d).is_some())
-    {
-        return 0.0;
-    }
-    edges()
-        .map(|(c, d)| {
-            segment_distance(a, b, *c)
-                .min(segment_distance(a, b, *d))
-                .min(segment_distance(*c, *d, a))
-                .min(segment_distance(*c, *d, b))
-        })
-        .fold(f64::INFINITY, f64::min)
-}
-
 fn fits(context: &Context, clear: &Clear, placed: &[Outline], swamp: &Outline) -> bool {
     let rules = &context.presets.swamps;
     let (center, reach, ring) = (swamp.center, swamp.reach, &swamp.ring[..]);
-    // Every vertex of each ring keeps the gap from the other.
+    // Rings that cross or hold one another are never apart, whatever the gap.
     let apart = |other: &[Point], gap: f64| {
-        ring.iter().all(|p| ring_distance(other, *p) >= gap)
-            && other.iter().all(|p| ring_distance(ring, *p) >= gap)
+        let between = ring_gap(ring, other);
+        between > 0.0 && between >= gap
     };
     let roads = clear.roads.iter().all(|road| match &road.shape {
         GroundShape::Stroke {
@@ -146,7 +125,7 @@ fn fits(context: &Context, clear: &Clear, placed: &[Outline], swamp: &Outline) -
             let clearance = width_m / 2.0 + rules.road_gap_m;
             centerline.samples().windows(2).all(|pair| {
                 distance(pair[0], center) > reach + clearance + distance(pair[0], pair[1])
-                    || segment_gap(ring, pair[0], pair[1]) >= clearance
+                    || segment_ring_gap(ring, pair[0], pair[1]) >= clearance
             })
         }
         GroundShape::Polygon { ring: other } => apart(other, rules.road_gap_m),
