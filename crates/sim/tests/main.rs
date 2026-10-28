@@ -78,6 +78,7 @@ mod skirmish_team;
 mod soldier_bodies;
 mod supply;
 mod suppression;
+mod swamps;
 mod top_attack;
 mod transport;
 mod turret_reset;

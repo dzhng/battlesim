@@ -49,8 +49,11 @@ New file `crates/sim/tests/swamps.rs`, using test maps:
   in `rivers.rs`);
 - a soldier standing in a swamp is seen and can be hit;
 - the sight mechanic (decision 21), on a test dip deeper than the tuned one: a
-  far observer on flat ground loses a unit in the dip, and a near or high
-  observer sees it;
+  far observer on flat ground loses the dip's floor from its ground sight
+  sweep, and a near or high observer sees it. Identification can't show it:
+  with water at the land's level stopping sight (decision 32), no line
+  between two points above the water passes under the rim
+  ([choice 12](../choices.md));
 - one admission test per rule.
 
 ## The human sees

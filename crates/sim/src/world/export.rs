@@ -32,6 +32,9 @@ pub const SURFACE_BOUNDARY_STRIDE: usize = 5;
 /// water's half width at each, the bank's grade at each, how high the land
 /// stands above the water at the edge at each, the surface height.
 pub const RIVER_STRIDE: usize = 11;
+/// One edge of a swamp's outline: end a, end b, the swamp's index (in map
+/// order), its water's surface height and its depth.
+pub const SWAMP_STRIDE: usize = 7;
 
 fn surface_tag(kind: SurfaceKind) -> u8 {
     SURFACE_KINDS.iter().position(|k| *k == kind).unwrap() as u8
@@ -125,6 +128,9 @@ pub fn layout_json(catalog: &Catalog) -> String {
     // long as the `json!` macro expands.)
     layout["surfaceAreaKinds"] = area_kinds(&|_| true).into();
     layout["roadAreaKinds"] = area_kinds(&|k| k.is_road()).into();
+    layout["swampStride"] = SWAMP_STRIDE.into();
+    layout["swampFields"] =
+        serde_json::json!(["ax", "ay", "bx", "by", "swamp", "surfaceZ", "depth"]);
     // A wreck's unit type is its index here; a hull's model, by unit type,
     // is what a wreck of that type is drawn as.
     layout["unitKinds"] = serde_json::json!(catalog.ids());
@@ -257,6 +263,35 @@ impl WorldGeometry {
                         bank(0.0),
                         bank(1.0),
                         river.surface_z(),
+                    ]
+                    .map(|v| v as f32),
+                );
+            }
+        }
+        out
+    }
+
+    /// Every swamp's outline, edge by edge: ax, ay, bx, by, the swamp's
+    /// index, its water's surface height, its depth. A point is in its
+    /// water inside the outline (`contract::swamp::Swamp::inside`) and on
+    /// no road.
+    pub fn export_swamps(&self) -> Vec<f32> {
+        let mut out = Vec::new();
+        for (index, swamp) in self.surfaces.swamps().iter().enumerate() {
+            let contract::ground::GroundShape::Polygon { ring } = &swamp.shape else {
+                unreachable!("an admitted swamp is a polygon")
+            };
+            let surface_z = self.surfaces.swamp_surface_z(index);
+            for (a, b) in contract::ground::edges(ring) {
+                out.extend(
+                    [
+                        a[0],
+                        a[1],
+                        b[0],
+                        b[1],
+                        index as f64,
+                        surface_z,
+                        swamp.depth_m,
                     ]
                     .map(|v| v as f32),
                 );

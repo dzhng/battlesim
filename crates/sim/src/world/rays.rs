@@ -1,7 +1,7 @@
 //! What a line meets: a round's flight and an eye's sight against the
 //! terrain, the water's surface and the bodies that stop or hide.
 use super::{Prop, PropId, WorldGeometry};
-use crate::math::{v2, v3, V3};
+use crate::math::{v2, v3, V2, V3};
 use contract::catalog::PropBody;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -234,26 +234,31 @@ impl WorldGeometry {
             || self.water_hit(origin, dir, max_t).is_some()
     }
 
-    /// Where a line falling along `origin + dir * t`, t ∈ [0, max_t], meets a
-    /// river's surface: water stops a round as the ground does, so a shell
-    /// bursts on the river, not on its bed.
+    /// Where a line falling along `origin + dir * t`, t ∈ [0, max_t], meets
+    /// standing water's surface, a river's or a swamp's: water stops a round
+    /// as the ground does, so a shell bursts on the water, not on its bed.
     fn water_hit(&self, origin: V3, dir: V3, max_t: f64) -> Option<f64> {
         if dir.z >= 0.0 {
             return None;
         }
-        self.surfaces
+        let meets = |surface_z: f64, wet: &dyn Fn(V2) -> bool| {
+            let t = (surface_z - origin.z) / dir.z;
+            let p = origin + dir * t;
+            ((0.0..=max_t).contains(&t) && self.field.contains(p.x, p.y) && wet(p.xy()))
+                .then_some(t)
+        };
+        let surfaces = &self.surfaces;
+        let rivers = surfaces
             .rivers()
             .iter()
             .enumerate()
-            .filter_map(|(river, definition)| {
-                let t = (definition.surface_z() - origin.z) / dir.z;
-                let p = origin + dir * t;
-                ((0.0..=max_t).contains(&t)
-                    && self.field.contains(p.x, p.y)
-                    && self.surfaces.in_river(river, p.xy()))
-                .then_some(t)
+            .filter_map(|(river, r)| meets(r.surface_z(), &|p| surfaces.in_river(river, p)));
+        let swamps = (0..surfaces.swamps().len()).filter_map(|swamp| {
+            meets(surfaces.swamp_surface_z(swamp), &|p| {
+                surfaces.in_swamp(swamp, p)
             })
-            .min_by(f64::total_cmp)
+        });
+        rivers.chain(swamps).min_by(f64::total_cmp)
     }
 }
 

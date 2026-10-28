@@ -1,4 +1,4 @@
-//! What rivers and bridges do to the land's height.
+//! What rivers, bridges and swamps do to the land's height.
 //!
 //! In the water the ground is the river's cross-section (`contract::river`).
 //! On the bank it is the land, cut down by however far the cross-section
@@ -11,12 +11,17 @@
 //! draw under the slope cutoff (`contract::river::steepest_grade`), so the
 //! cut is over by the deck's end and the deck is stepped onto from the
 //! land's own height.
+//!
+//! A swamp lowers the land inside its outline by its depth, easing in over
+//! its edge (`contract::swamp`). A road's side ends the cut as the outline
+//! does, a triangle clear of the road, so no road is ever cut.
 use super::surfaces::SurfaceIndex;
 use super::terrain::HEIGHT_PAGE_SIZE;
 use crate::math::{v2, Obb2, V2};
 use contract::ground::limits;
 use contract::map::MapDefinition;
 use contract::river::steepest_grade;
+use contract::swamp;
 
 pub(super) struct Carve<'a> {
     map: &'a MapDefinition,
@@ -27,6 +32,11 @@ pub(super) struct Carve<'a> {
     reach: f64,
     approaches: Vec<Approach>,
     regions: Vec<[f64; 4]>,
+    /// The width a swamp's cut eases in over.
+    swamp_edge: f64,
+    /// How far from a road a swamp's cut starts: every triangle touching
+    /// the road keeps the land's height.
+    road_clear: f64,
 }
 
 /// Where a bridge is come onto: its deck, lengthened at both ends by the
@@ -125,6 +135,11 @@ impl<'a> Carve<'a> {
                 })
                 .collect();
         }
+        // A cut sample moves the triangles it is a corner of.
+        regions.extend(ground.swamps().iter().map(|s| {
+            let [x0, y0, x1, y1] = s.limits(grid);
+            [x0, y0, x1 - x0, y1 - y0]
+        }));
         Self {
             map,
             ground,
@@ -132,6 +147,8 @@ impl<'a> Carve<'a> {
             reach,
             approaches,
             regions,
+            swamp_edge: swamp::edge_m(grid),
+            road_clear: grid * std::f64::consts::SQRT_2,
         }
     }
 
@@ -142,9 +159,20 @@ impl<'a> Carve<'a> {
 
     /// The carved height at `p`, where the land stands `natural` high.
     pub fn height(&self, natural: f64, p: V2) -> f64 {
-        if self.ground.rivers().is_empty() {
-            return natural;
+        let mut h = natural;
+        if !self.ground.rivers().is_empty() {
+            h = self.river_height(natural, p);
         }
+        for (k, inside) in self.ground.swamps_at(p) {
+            let reach = self.swamp_edge + self.road_clear;
+            let road = self.ground.road_distance(p, reach) - self.road_clear;
+            let cut = self.ground.swamps()[k].cut(inside.min(road), self.swamp_edge);
+            h = h.min(natural - cut);
+        }
+        h
+    }
+
+    fn river_height(&self, natural: f64, p: V2) -> f64 {
         // On an approach, bed and bank alike take the steepest grade: still
         // one plane through the waterline, so a ramp never stands in the water.
         let least_grade = self

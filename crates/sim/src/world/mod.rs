@@ -60,9 +60,19 @@ pub struct Surface {
     pub road_factor: f64,
     /// Forest ground, not cleared (Q16): forest speed applies.
     pub forest: bool,
+    /// A swamp's water: inside a swamp's outline and on no road.
+    pub swamp: bool,
     /// Ground units may stand here: not water, and below the shared slope cutoff.
     /// Solid props are separate obstacles (see `props_near`).
     pub traversable: bool,
+}
+
+impl Surface {
+    /// Standing water, a river's or a swamp's: it takes no marks, and rounds
+    /// and sight stop at its surface.
+    pub fn standing_water(&self) -> bool {
+        self.kind == SurfaceKind::Water || self.swamp
+    }
 }
 
 #[derive(Clone)]
@@ -168,11 +178,7 @@ impl WorldGeometry {
         );
         let authored = map.authored_props().expect("admitted map");
         let forests = &rules.forests;
-        let surfaces = Arc::new(surfaces::SurfaceIndex::new(
-            &map.surfaces,
-            &map.rivers,
-            map.size,
-        ));
+        let surfaces = Arc::new(surfaces::SurfaceIndex::new(map));
         let field = Arc::new(HeightField::build(map, &surfaces));
         let mut world = WorldGeometry {
             relief: map.relief.clone(),
@@ -496,6 +502,7 @@ impl WorldGeometry {
                 kind: SurfaceKind::Bridge,
                 road_factor: 1.0,
                 forest: ground.forest,
+                swamp: false,
                 traversable: true,
             }),
             None => Some(ground),
@@ -537,6 +544,7 @@ impl WorldGeometry {
             road_factor,
             // Water is neither road nor forest, whatever is authored over it.
             forest: kind != SurfaceKind::Water && self.forest_ground(x, y),
+            swamp: self.surfaces.swamp_water_at(p),
             traversable: kind != SurfaceKind::Water && slope_deg < self.slope_cutoff_deg,
         })
     }
