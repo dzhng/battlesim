@@ -397,14 +397,6 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
     let mut at = 0;
     for (kind, &blades) in kinds.iter().zip(&blades) {
         let lod0 = &kind.tiers[0];
-        let vertices = lod0.positions.len() / 3;
-        let mean: [f64; 3] = std::array::from_fn(|c| {
-            let mut sum = 0.0;
-            for v in 0..vertices {
-                sum += linear(lod0.colors[v * 4 + c]);
-            }
-            (sum / vertices as f64).max(1e-4)
-        });
         let mut mesh_height = 0.0f64;
         for tier in &kind.tiers {
             for z in tier.positions.iter().skip(2).step_by(3) {
@@ -423,6 +415,21 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
                     format!("grass: {} LOD{lod} is not {blades} blade strips", kind.name)
                 })?;
             let p = |v: usize, c: usize| f64::from(mesh.positions[v * 3 + c]);
+            // Normalize by a height-weighted mean so the visible average matches
+            // the far tier's ground color, while preserving bright tips and color
+            // variation. Tips (height ~1) can exceed 1.0 up to a soft cap; stems
+            // (height ~0) have a floor so they don't go too dark or grey.
+            let target: [f64; 3] = std::array::from_fn(|c| {
+                let mut sum = 0.0;
+                let mut weight_sum = 0.0;
+                for v in 0..blades * per {
+                    let h = f64::from(mesh.uvs[v * 2 + 1]);
+                    let w = h * h + 0.15;
+                    sum += w * linear(mesh.colors[v * 4 + c]);
+                    weight_sum += w;
+                }
+                (sum / weight_sum.max(1e-4)).max(1e-4)
+            });
             for v in 0..blades * per {
                 let o = at * SHAPE_FLOATS;
                 let in_blade = v % per;
@@ -430,6 +437,7 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
                 // A strip pair's spine is its midpoint; the tip is its own spine.
                 let left = if tip { v } else { v - in_blade % 2 };
                 let right = if tip { v } else { left + 1 };
+                let h = f64::from(mesh.uvs[v * 2 + 1]);
                 for c in 0..3 {
                     let spine = (p(left, c) + p(right, c)) / 2.0;
                     shapes[o + c] = spine as f32;
@@ -439,7 +447,13 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
                         (p(v, c) - spine) as f32
                     };
                     shapes[o + 8 + c] = (f64::from(mesh.normals[v * 4 + c]) / 32767.0) as f32;
-                    shapes[o + 12 + c] = (linear(mesh.colors[v * 4 + c]) / mean[c]) as f32;
+                    let raw = linear(mesh.colors[v * 4 + c]) / target[c];
+                    // Soft cap: tips can brighten up to ~1.3, stems have a floor
+                    // that rises with height so low blades keep their color.
+                    let floor = 0.6 + 0.35 * h;
+                    let cap = 1.0 + 0.3 * (1.0 - libm::exp(-2.5 * (raw - 1.0).max(0.0)));
+                    let tint = raw.max(floor).min(cap);
+                    shapes[o + 12 + c] = tint as f32;
                 }
                 shapes[o + 3] = mesh.uvs[v * 2 + 1];
                 shapes[o + 7] = mesh.uvs[v * 2];
