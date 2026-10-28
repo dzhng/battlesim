@@ -6,7 +6,8 @@
       192
     ],
     "effectSheet": 1024,
-    "grassClump": 48
+    "grassClump": 48,
+    "sceneColourMips": 4
   },
   "layouts": {
     "bake - Automatic Bind Group & Layout": [
@@ -351,6 +352,26 @@
         "visibility": [
           "fragment"
         ]
+      },
+      {
+        "binding": 11,
+        "sampler": {
+          "type": "filtering"
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 12,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
       }
     ],
     "terrainLayout": [
@@ -451,6 +472,28 @@
       },
       {
         "binding": 9,
+        "sampler": {
+          "type": "filtering"
+        },
+        "visibility": [
+          "fragment"
+        ]
+      }
+    ],
+    "sceneMipLayout": [
+      {
+        "binding": 0,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 1,
         "sampler": {
           "type": "filtering"
         },
@@ -1774,6 +1817,24 @@
       },
       "multisample": {
         "count": 4
+      }
+    },
+    {
+      "name": "sceneColourMip",
+      "kind": "render",
+      "shader": "sceneColourMip.wgsl",
+      "layout": [
+        "sceneMipLayout"
+      ],
+      "vertex": {
+        "buffers": []
+      },
+      "fragment": {
+        "targets": [
+          {
+            "format": "rgba16float"
+          }
+        ]
       }
     },
     {

@@ -29,7 +29,7 @@ import type { LightPresentation, ResolvedLight } from "../light/sceneLight";
 import type { FogShaders } from "./fogVisibility";
 import { createEnvironmentFrame } from "./environmentFrame";
 import { GpuRegistry } from "./registry";
-import { allocateFrameTargets, SizedTargets } from "./targets";
+import { allocateFrameTargets, SizedTargets, type WaterDetail } from "./targets";
 import { createWorldPass } from "./worldPass";
 import { createFogMaskPass, type FogMaskViewKind } from "./fogMaskPass";
 import { createOverlayPass, type OverlayGlowStyle } from "./overlayPass";
@@ -55,6 +55,7 @@ export interface BattleFrameOptions {
     grassDensity: number;
     shadowMapSize: 512 | 1024 | 2048;
     shadowReach: number;
+    waterDetail: WaterDetail;
   };
   /** `presentation.light`: sun, sky, haze, grade, bloom and cascades. */
   light: ResolvedLight;
@@ -126,6 +127,7 @@ export async function createBattleFrame(
     const camera = registry.own(root.createBuffer(Camera).$usage("uniform"));
     const cameraGroup = root.createBindGroup(typegpuCameraLayout, { cam: camera });
     const quality = options.quality;
+    const water = quality?.waterDetail ?? "full";
     const effectiveLight = {
       ...options.light,
       settings: cascadeLight(options.light.settings, quality),
@@ -143,6 +145,7 @@ export async function createBattleFrame(
       options.xrayMinHiddenFragmentFraction,
       options.glass,
       quality?.grassDensity ?? 1,
+      water,
     );
     const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogLook);
     const impostors = createImpostorBaker(root, registry, models, environment);
@@ -151,7 +154,7 @@ export async function createBattleFrame(
     const cameraBuffer = root.unwrap(camera);
     const timer = createFrameTimer(device, registry);
     const targets = new SizedTargets(registry, async (scope, width, height) => {
-      const t = allocateFrameTargets(scope, width, height);
+      const t = allocateFrameTargets(scope, width, height, water);
       const post = await createTypegpuPost(
         device,
         t.hdr.createView(),
@@ -161,7 +164,7 @@ export async function createBattleFrame(
         effectiveLight,
       );
       scope.adopt(post.dispose);
-      const fog = world.fogTiles(scope, t.depth, t.paint, t.sceneColour);
+      const fog = world.fogTiles(scope, t.depth, t.paint, t.sceneColour, t.fogMaskUnder);
       return {
         ...t,
         post,

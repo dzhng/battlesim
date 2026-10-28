@@ -12,7 +12,7 @@ import { fakeGpuDevice } from "./support/gpuDevice";
  *  tick later like the real async post pipelines. */
 async function build(scope: GpuRegistry, width: number, height: number) {
   await Promise.resolve();
-  const targets = allocateFrameTargets(scope, width, height);
+  const targets = allocateFrameTargets(scope, width, height, "full");
   scope.texture({ size: [width >> 1, height >> 1], format: "rgba16float", usage: 0 });
   return targets;
 }
@@ -46,7 +46,7 @@ test("the frame allocates and accounts for all four HDR samples", () => {
   const { device } = native;
   const live = trackGpuAllocations(device);
   const registry = new GpuRegistry(device);
-  const targets = allocateFrameTargets(registry, 1920, 1080);
+  const targets = allocateFrameTargets(registry, 1920, 1080, "full");
   const allocated = live().textureBytes;
   expect(native.resources.has(targets.hdrMsaa)).toBe(true);
   targets.hdrMsaa.destroy();

@@ -116,8 +116,10 @@ export interface FogTiles {
   depthView: GPUTextureView;
   /** The frame's ground paint, which the painted layers read. */
   paintView: GPUTextureView;
-  /** The world before the water, which the water reads over its depth. */
+  /** The world before the water, which the water reads over its depth,
+   *  and the fog mask before it, where the water refracts. */
   sceneColourView: GPUTextureView;
+  seenUnderView: GPUTextureView | null;
 }
 
 /** `Presentation.fog_occluders`' seven numbers a box, as boxes. */
@@ -210,6 +212,11 @@ export async function createFogVisibility(
     size: [1, 1],
     format: HDR_FORMAT,
     usage: GPUTextureUsage.TEXTURE_BINDING,
+  });
+  const sceneTaps = device.createSampler({
+    label: "fog-scene-taps",
+    magFilter: "linear",
+    minFilter: "linear",
   });
   const storage = (label: string, bytes: number) =>
     device.createBuffer({ label, size: Math.max(16, bytes), usage: STORAGE | COPY_DST });
@@ -355,6 +362,8 @@ export async function createFogVisibility(
       wholes: buffers.wholes.current!.createView(),
       depth: (under && t?.depthView) || noDepth.createView(),
       sceneColour: (under && t?.sceneColourView) || noScene.createView(),
+      sceneTaps,
+      seenUnder: (under && t?.seenUnderView) || noScene.createView(),
     });
   const cullGroup = (t: FogTiles) =>
     root.createBindGroup(cullLayout, {
@@ -485,6 +494,7 @@ export async function createFogVisibility(
       depth: GPUTexture,
       paint: GPUTexture,
       sceneColour: GPUTexture,
+      seenUnder: GPUTexture | null,
     ): FogTiles {
       return {
         scope,
@@ -495,6 +505,7 @@ export async function createFogVisibility(
         depthView: depth.createView(),
         paintView: paint.createView(),
         sceneColourView: sceneColour.createView(),
+        seenUnderView: seenUnder?.createView() ?? null,
       };
     },
     /** This frame's rebuilds, structures and tile cull over the prepass

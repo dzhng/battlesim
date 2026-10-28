@@ -1238,7 +1238,8 @@
           "weights": [0.6, 0.4],
           "lit": [0.55, 0.8],
           "lit_mean": 0.1
-        }
+        },
+        "refraction": { "share": 2, "depth_m": 2.5, "most": 0.015, "blur_m": 1 }
       },
       "scars": {
         "depth_cap": 1.6,

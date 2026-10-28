@@ -60,6 +60,7 @@ struct WaterLook {
   lanes: vec4f,
   lanesLit: vec4f,
   lanesMean: vec4f,
+  refraction: vec4f,
 }
 
 struct TerrainParams {
@@ -356,21 +357,59 @@ fn groundPaint(ground: vec3f) -> vec4f {
   return vec4f(p.xyz * 2, p.w);
 }
 
-@group(3) @binding(10) var sceneColour: texture_2d<f32>;
+fn ndcAt(at: vec2i) -> vec2f {
+    let cam = cam;
+    let centre = vec2f(at) + 0.5;
+    return vec2f(centre.x / cam.width * 2.0 - 1.0, 1.0 - centre.y / cam.height * 2.0);
+  }
 
 @group(3) @binding(9) var depth: texture_depth_multisampled_2d;
 
-fn waterBed(clip: vec4f, world: vec3f) -> vec4f {
-    let at = vec2i(clip.xy);
-    let colour = textureLoad(sceneColour, at, 0).rgb;
+fn bedDistance(at: vec2i, world: vec3f) -> f32 {
     let cam = cam;
-    let ndc = vec2f(clip.x / cam.width * 2.0 - 1.0, 1.0 - clip.y / cam.height * 2.0);
+    let ndc = ndcAt(at);
     var far = 0.0;
     for (var s = 0; s < 4; s++) {
       let p = cam.invViewProj * vec4f(ndc, textureLoad(depth, at, s), 1.0);
       far += min(length(p.xyz / p.w - world), 50.0);
     }
-    return vec4f(colour, far / 4.0);
+    return far / 4.0;
+  }
+
+fn waterDepth(clip: vec4f, world: vec3f) -> f32 {
+  return bedDistance(vec2i(clip.xy), world);
+}
+
+@group(3) @binding(10) var sceneColour: texture_2d<f32>;
+
+@group(3) @binding(12) var seenUnder: texture_2d<f32>;
+
+@group(3) @binding(11) var sceneTaps: sampler;
+
+fn waterUnder(clip: vec4f, world: vec3f, n: vec3f, straight: f32, look: u32) -> vec4f {
+    let here = vec2i(clip.xy);
+    if (params.view.z == 1u) {
+      return vec4f(textureLoad(sceneColour, here, 0).rgb, straight);
+    }
+    let r = params.waterLooks[look].refraction;
+    let cam = cam;
+    let screen = vec2f(cam.width, cam.height);
+    let shift = vec3f(n.xy * (min(straight, r.y) * r.x), 0.0);
+    let a = cam.viewProj * vec4f(world, 1.0);
+    let b = cam.viewProj * vec4f(world + shift, 1.0);
+    var px = (b.xy / b.w - a.xy / a.w) * vec2f(0.5, -0.5) * screen;
+    px *= min(1.0, r.z * cam.height / max(length(px), 1e-6));
+    let to = vec2i(clamp(clip.xy + px, vec2f(0.0), screen - 1.0));
+    let ahead = cam.invViewProj * vec4f(ndcAt(to), textureLoad(depth, to, 0), 1.0);
+    let behind = length(ahead.xyz / ahead.w - cam.eye) - length(world - cam.eye);
+    let unseen = textureLoad(seenUnder, to, 0).x
+      - textureLoad(seenUnder, here, 0).x;
+    let keep = smoothstep(0.0, 0.15, behind) * (1.0 - smoothstep(0.0, 0.5, unseen));
+    let at = clip.xy + px * keep;
+    let far = bedDistance(vec2i(at), world);
+    let level = min(far / r.w, f32(textureNumLevels(sceneColour) - 1));
+    let colour = textureSampleLevel(sceneColour, sceneTaps, at / screen, level);
+    return vec4f(colour.rgb, far);
   }
 
 struct CastLight {
@@ -579,9 +618,7 @@ fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
 }
 
 fn atPixel(clip: vec4f) -> vec3f {
-    let cam = cam;
-    let ndc = vec2f(clip.x / cam.width * 2.0 - 1.0, 1.0 - clip.y / cam.height * 2.0);
-    let p = cam.invViewProj * vec4f(ndc, clip.z, 1.0);
+    let p = cam.invViewProj * vec4f(ndcAt(vec2i(clip.xy)), clip.z, 1.0);
     return p.xyz / p.w;
   }
 
@@ -838,7 +875,8 @@ struct waterFragment_Input {
   let n = waterNormal(_arg_0.world.xy, footprint, look);
   let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
   let paint_1 = groundPaint(_arg_0.world);
-  let bed = waterBed(clip, _arg_0.world);
+  let depth_1 = waterDepth(clip, _arg_0.world);
+  let bed = waterUnder(clip, _arg_0.world, n, depth_1, look);
   let through = exp(((*w).surface.xyz * -(bed.w)));
   let body = (mix((*w).edge.xyz, (*w).channel.xyz, (1f - dot(through, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)))) * streaks);
   let reflected = surfaceLight(vec3f(), vec3f(), (*w).edge.w, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
@@ -852,7 +890,7 @@ struct waterFragment_Input {
   let facing = max(0.35f, dot(n, normalize(((*eye) - _arg_0.world))));
   let pixel = length(fwidth(atPixel(clip).xy));
   let fade = max((*w).lanesMean.y, ((pixel * 3f) / facing));
-  let edge = smoothstep(0f, 1f, clamp((bed.w / fade), 0f, 1f));
+  let edge = smoothstep(0f, 1f, clamp((depth_1 / fade), 0f, 1f));
   let marked = (air((mark * shadowed), _arg_0.world, (*eye)).xyz * paint_1.w);
   let cover = (paint_1.w + (edge * (1f - paint_1.w)));
   let colour = (((marked + paintGlow(paint_1)) + (wet * (edge * (1f - paint_1.w)))) / max(cover, 1e-4f));

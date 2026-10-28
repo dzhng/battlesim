@@ -41,7 +41,9 @@ Both clients query
 its hierarchy with the actual GPU camera and each caster matrix independently;
 selection adds no far cutoff. Water selects only for the camera. It blends
 over the world's kept samples in a pass of its own, after glass, reading depth
-and writing none. Camera ranges serve depth and color, including each
+and writing none, and shows its bed from a copy of the world before it: by
+depth on every tier, refracted on the tiers that draw it `full` (`WaterDetail`;
+Low keeps the depth colour alone). Camera ranges serve depth and color, including each
 scar-region submission. Traversal work is distinct from issued draw counts.
 Physical bounds and
 visual-only landscape remain

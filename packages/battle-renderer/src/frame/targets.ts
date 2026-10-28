@@ -17,6 +17,15 @@ export const FOG_MASK_FORMAT = "rgba8unorm" as const;
  *  `FOG_DISTANCE_CAP_PX`. */
 export const FOG_DISTANCE_FORMAT = "rg8unorm" as const;
 
+/** How much of the water a graphics tier draws: `full` refracts the bed
+ *  (`waterUnder`); `depth` keeps its colour by depth alone (decision 18).
+ *  The water's shader reads it as `TerrainParams.view.z`, 1 for `depth`. */
+export type WaterDetail = "full" | "depth";
+/** The world's copy before the water and its mips, where the water
+ *  refracts: the bed blurs with the water it is seen through, by no more
+ *  than three levels. */
+export const SCENE_COLOUR_MIPS = 4;
+
 /** What every world colour-pass fragment writes: its lit colour and its fog
  *  mask sample (`fogCoverage`). */
 export const WORLD_OUT = { color: d.vec4f, fog: d.vec4f };
@@ -36,11 +45,15 @@ export interface FrameTargets {
   hdrMsaa: GPUTexture;
   lit: GPUTexture;
   /** `lit` as the world pass left it, before the water: what the water shows
-   *  of the bed through it (`waterPass.ts`). */
+   *  of the bed through it (`waterUnder.ts`), with its mips where the water
+   *  refracts (`WaterDetail`). */
   sceneColour: GPUTexture;
   /** The fog mask beside it, multisampled; resolved into `fogMask`. */
   fogMaskMsaa: GPUTexture;
   fogMask: GPUTexture;
+  /** `fogMask` before the water, where the water refracts: how seen the
+   *  ground is that it shows displaced. Null when it does not. */
+  fogMaskUnder: GPUTexture | null;
   /** The fog mask pass's distances to the other side: along rows, then the
    *  Euclidean result. */
   fogDistanceRows: GPUTexture;
@@ -78,8 +91,10 @@ export function allocateFrameTargets(
   scope: GpuRegistry,
   width: number,
   height: number,
+  water: WaterDetail,
 ): FrameTargets {
   const size = [width, height];
+  const refracts = water === "full";
   const half = [Math.ceil(width / 2), Math.ceil(height / 2)];
   return {
     width,
@@ -101,7 +116,9 @@ export function allocateFrameTargets(
       label: "frame-scene-colour",
       size,
       format: HDR_FORMAT,
-      usage: SAMPLED | COPY_DST,
+      mipLevelCount: refracts ? SCENE_COLOUR_MIPS : 1,
+      // Each mip is drawn from the one before (`createSceneMips`).
+      usage: SAMPLED | COPY_DST | (refracts ? RENDER : 0),
     }),
     fogMaskMsaa: scope.texture({
       label: "frame-fog-mask-msaa",
@@ -114,8 +131,16 @@ export function allocateFrameTargets(
       label: "frame-fog-mask",
       size,
       format: FOG_MASK_FORMAT,
-      usage: RENDER | SAMPLED,
+      usage: RENDER | SAMPLED | COPY_SRC,
     }),
+    fogMaskUnder: refracts
+      ? scope.texture({
+          label: "frame-fog-mask-under",
+          size,
+          format: FOG_MASK_FORMAT,
+          usage: SAMPLED | COPY_DST,
+        })
+      : null,
     fogDistanceRows: scope.texture({
       label: "frame-fog-distance-rows",
       size,

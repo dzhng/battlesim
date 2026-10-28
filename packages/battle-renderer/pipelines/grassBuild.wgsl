@@ -123,6 +123,7 @@ struct WaterLook {
   lanes: vec4f,
   lanesLit: vec4f,
   lanesMean: vec4f,
+  refraction: vec4f,
 }
 
 struct TerrainParams {

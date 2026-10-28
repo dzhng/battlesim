@@ -53,4 +53,9 @@ export const WaterLook = d.struct({
    *  fades in over from its edge, the pixel footprints (metres) its ripples
    *  and streaks fade over. */
   lanesMean: d.vec4f,
+  /** The bed's shift through the surface's slope, as a share of the depth
+   *  it is seen through, the most depth it shifts by (metres), the most
+   *  shift as a share of the screen's height, and the metres of water per
+   *  mip the bed blurs by (`waterUnder`). */
+  refraction: d.vec4f,
 });

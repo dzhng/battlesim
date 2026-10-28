@@ -7,7 +7,8 @@
 use wgpu::*;
 
 use crate::fog::Layer;
-use crate::frame::{Inputs, Pass};
+use crate::frame::{Inputs, Pass, Targets};
+use crate::gpu::bind;
 use crate::models::Surface;
 use crate::pipelines::{Bound, Pipelines};
 use crate::sky::Sky;
@@ -217,10 +218,54 @@ fn world_pass<'a>(
 }
 
 /// The water over the world's samples, resolved again into `lit` and
-/// `fog_mask` (`encode`), over a copy of `lit` (`scene_colour`), which it
-/// shows of its bed by depth: it reads depth and writes none, and draws over
-/// any pane it lies behind.
-pub struct Water;
+/// `fog_mask` (`encode`), over a copy of `lit` (`scene_colour`) and its
+/// mips, which it shows of its bed by depth, refracted where the copy of
+/// the fog mask (`fog_mask_under`) says the bed is seen: it reads depth and
+/// writes none, and draws over any pane it lies behind.
+pub struct Water {
+    mip: RenderPipeline,
+    /// Each mip's view and the group that reads the one before it.
+    mips: Vec<(TextureView, BindGroup)>,
+}
+
+impl Water {
+    pub fn new(device: &Device, pipelines: &Pipelines, targets: &Targets) -> Self {
+        let taps = device.create_sampler(&SamplerDescriptor {
+            label: Some("scene-colour-mips"),
+            mag_filter: FilterMode::Linear,
+            min_filter: FilterMode::Linear,
+            ..Default::default()
+        });
+        let level = |mip| {
+            targets
+                .scene_colour_texture
+                .create_view(&TextureViewDescriptor {
+                    base_mip_level: mip,
+                    mip_level_count: Some(1),
+                    ..Default::default()
+                })
+        };
+        let mips = (1..targets.scene_colour_texture.mip_level_count())
+            .map(|mip| {
+                let source = level(mip - 1);
+                let group = bind(
+                    device,
+                    pipelines.layout("sceneMipLayout"),
+                    "scene-colour-mip",
+                    &[
+                        BindingResource::TextureView(&source),
+                        BindingResource::Sampler(&taps),
+                    ],
+                );
+                (level(mip), group)
+            })
+            .collect();
+        Self {
+            mip: pipelines.render("sceneColourMip").clone(),
+            mips,
+        }
+    }
+}
 
 impl Pass for Water {
     fn name(&self) -> &'static str {
@@ -229,16 +274,41 @@ impl Pass for Water {
 
     fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
         let t = inputs.targets;
-        // The world as it stands is what the water shows of its bed.
+        // The world as it stands is what the water shows of its bed, and how
+        // seen each pixel of it is.
+        let size = Extent3d {
+            width: t.size[0],
+            height: t.size[1],
+            depth_or_array_layers: 1,
+        };
         encoder.copy_texture_to_texture(
             t.lit_texture.as_image_copy(),
             t.scene_colour_texture.as_image_copy(),
-            Extent3d {
-                width: t.size[0],
-                height: t.size[1],
-                depth_or_array_layers: 1,
-            },
+            size,
         );
+        encoder.copy_texture_to_texture(
+            t.fog_mask_texture.as_image_copy(),
+            t.fog_mask_under_texture.as_image_copy(),
+            size,
+        );
+        for (view, group) in &self.mips {
+            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("scene-colour-mip"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: Operations {
+                        load: LoadOp::Clear(Color::BLACK),
+                        store: StoreOp::Store,
+                    },
+                })],
+                ..Default::default()
+            });
+            pass.set_pipeline(&self.mip);
+            pass.set_bind_group(0, group, &[]);
+            pass.draw(0..3, 0..1);
+        }
         let resolved = |view, resolve_target| {
             Some(RenderPassColorAttachment {
                 view,

@@ -87,7 +87,8 @@
 //!   leaning by `strength`, gone over `fade_m` pixels;
 //!   its light in lanes `m` wide holding their distance from the bank,
 //!   drifting `drift` lanes over `drift_m`, broken into streaks `streak_m`
-//!   long, lit where lane and streak (`weights`) pass `lit`, about `lit_mean`.
+//!   long, lit where lane and streak (`weights`) pass `lit`, about `lit_mean`;
+//!   the bed seen through it shifted and blurred (`refraction`).
 //! - `scars` (depths in full craters): read no deeper than `depth_cap`; the
 //!   rim `rim_reach_cells` out, slopes from taps `slope_tap_cells` either
 //!   side; relief fading over `detail_fade` cells; the bowl's lip at `lip`
@@ -139,6 +140,19 @@ pub struct WaterTuning {
     pub shadow: f64,
     pub normals: Normals,
     pub lanes: Lanes,
+    pub refraction: Refraction,
+}
+
+/// How the bed shows displaced through the surface's slope (`waterUnder`):
+/// its shift as a share of the depth it is seen through, over at most
+/// `depth_m`, never past `most` of the screen's height; the metres of water
+/// per mip it blurs by.
+#[derive(Clone, Deserialize)]
+pub struct Refraction {
+    pub share: f64,
+    pub depth_m: f64,
+    pub most: f64,
+    pub blur_m: f64,
 }
 
 /// The baked normal map's three layers (`waterNormal`): their tiles in

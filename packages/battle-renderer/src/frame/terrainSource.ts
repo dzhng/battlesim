@@ -5,6 +5,7 @@ import { tgpu, d } from "typegpu";
 import type { PresentedGround } from "../terrain/terrainSurface";
 import { SURFACE_FLOATS } from "../terrain/surfaceField";
 import type { GpuRegistry, GpuSlot } from "./registry";
+import type { WaterDetail } from "./targets";
 import { createWaterNormals } from "./waterNormals";
 import {
   createScarTexture,
@@ -44,7 +45,7 @@ const NO_SCARS: Omit<ScarStats, "textureBytes" | "directoryBytes"> = {
 };
 
 /** The terrain's GPU tables, rebuilt whole when the world is set. */
-export function createTerrainSource(root: Root, registry: GpuRegistry) {
+export function createTerrainSource(root: Root, registry: GpuRegistry, water: WaterDetail) {
   const params = registry.own(root.createBuffer(TerrainParams).$usage("uniform"));
   // Each table holds at least one record: a storage binding cannot be empty.
   const nodeBuffer = (n: number) =>
@@ -90,7 +91,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
   let textured = true;
   const writeParams = () => {
     if (!look) return;
-    look.set([classView ? 1 : 0, roadWear ? 0 : 1, 0, 0], look.length - 4);
+    look.set([classView ? 1 : 0, roadWear ? 0 : 1, water === "depth" ? 1 : 0, 0], look.length - 4);
     params.write(look.buffer as ArrayBuffer);
   };
 
