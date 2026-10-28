@@ -168,3 +168,34 @@ fn a_round_landing_in_the_water_splashes_and_one_on_the_bank_raises_dust() {
     assert!(splashed > 0, "some rounds fell in the water");
     assert!(dusty > 0, "some fell on the bank");
 }
+
+#[test]
+fn a_tank_on_a_bridge_over_the_river_does_not_wade() {
+    let scenario: ScenarioDefinition = serde_json::from_value(json!({
+        "map": serde_json::from_str::<Value>(
+            &std::fs::read_to_string(root().join("fixtures/maps/river/map.json")).unwrap()
+        ).unwrap(),
+        "rules": sim::fixtures::test_game(),
+        "units": [{ "side": "blue", "kind": "test_tank", "position": [60.0, 240.0],
+            "engagement": "return_fire_only" }],
+        "events": [], "scripts": [],
+    }))
+    .unwrap();
+    let water = ground_of(&scenario);
+    assert!(
+        water.standing_water().at(60.0, 240.0).is_some(),
+        "the river runs under it"
+    );
+    let mut seen = 0;
+    watch(&scenario, "air", 60, |o, p| {
+        let tank = &o.own[0];
+        let s = p
+            .shooters
+            .iter()
+            .find(|s| s.key == side_key(tank.id, true))
+            .unwrap();
+        assert!(s.wading.is_empty(), "on the deck at {:?}", tank.position);
+        seen += 1;
+    });
+    assert!(seen > 0);
+}

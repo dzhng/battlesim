@@ -322,7 +322,8 @@ impl EffectFeed {
 }
 
 /// Where `s` stands in `water`: a hull on the ground at its centre, else
-/// each of its soldiers (`members`) in it, on the water's surface.
+/// each of its soldiers (`members`) in it (`StandingWater::under`: below
+/// its surface, so not on a deck over it), on the water's surface.
 fn wading(water: Option<&StandingWater>, s: &Shooter, members: &[Vec3]) -> Vec<Wading> {
     let Some(water) = water.filter(|_| !s.airborne) else {
         return vec![];
@@ -335,8 +336,8 @@ fn wading(water: Option<&StandingWater>, s: &Shooter, members: &[Vec3]) -> Vec<W
     };
     points
         .iter()
-        .filter_map(|&[x, y, _]| {
-            let wet = water.at(x, y)?;
+        .filter_map(|&[x, y, z]| {
+            let wet = water.under([x, y, z])?;
             Some(Wading {
                 at: [x, y, wet.surface_z],
                 depth_m: wet.depth_m,
@@ -346,9 +347,11 @@ fn wading(water: Option<&StandingWater>, s: &Shooter, members: &[Vec3]) -> Vec<W
 }
 
 /// What round `p` struck: water where it lands on the ground in `water`
-/// (the simulation stops it on the surface, as on ground), so it splashes.
+/// (the simulation stops it on the surface, as on ground, so it is looked
+/// for just under where it stopped; a round on a deck over the water is
+/// dry), so it splashes.
 fn splashed(water: Option<&StandingWater>, p: &Projectile) -> Arc<str> {
-    let wet = |[x, y, _]: Vec3| water.is_some_and(|w| w.at(x, y).is_some());
+    let wet = |[x, y, z]: Vec3| water.is_some_and(|w| w.under([x, y, z - 0.05]).is_some());
     match p.path.last() {
         Some(&end) if &*p.hit == "ground" && wet(end) => "water".into(),
         _ => p.hit.clone(),

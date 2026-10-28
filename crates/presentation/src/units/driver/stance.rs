@@ -3,6 +3,8 @@
 //! for life, from his id), and the fall he plays from each.
 use serde::Deserialize;
 
+use crate::static_world::ground::water::Wet;
+
 /// `presentation.pose.stance`: what share of men fire lying down or
 /// standing, kneel when pinned, and fall back onto their backs, and how
 /// high each posture (standing, kneeling, lying) holds a man's chest over
@@ -64,14 +66,14 @@ impl Stance {
     /// His posture this moment. Out on his `lean` he kneels to fire, pinned
     /// or not; otherwise, `pinned` or `firing`, he takes his own stance.
     /// Lying down he can only crawl so fast: `fast`er, he goes crouched. In
-    /// water `depth` deep he rises until his chest is clear of it.
+    /// the water he stands `wet` in, he rises until his chest is clear of it.
     pub(super) fn posture(
         self,
         lean: bool,
         pinned: bool,
         firing: bool,
         fast: bool,
-        depth: impl FnOnce() -> f64,
+        wet: impl FnOnce() -> Option<Wet>,
         feel: &StanceFeel,
     ) -> Posture {
         let held = if lean {
@@ -88,7 +90,7 @@ impl Stance {
         } else {
             held
         };
-        posture.above_water(depth, &feel.chest_m)
+        posture.above_water(|| wet().map_or(0.0, |w| w.depth_m), &feel.chest_m)
     }
 }
 
