@@ -529,12 +529,15 @@ fn production_shadow_hold_reuses_fit_and_camera_changes_refit() {
         let work = p.shadow_stats();
         assert!(!work.reused);
         assert!(work.bounds_visited > 0 && work.triangle_tests > 0 && work.clip_tests > 0);
+        // The same fit, its casters on the new frame's clock.
+        let mut held = expected.clone();
+        held.casters.iter_mut().for_each(|c| c.time = 1.);
         assert_eq!(
             p.frame(1., &camera, &Ui::default(), 0)
                 .unwrap()
                 .shadow
                 .as_ref(),
-            Some(&expected)
+            Some(&held)
         );
         let hold = p.shadow_stats();
         assert!(hold.reused);
@@ -650,5 +653,28 @@ fn receiver_work_stays_local_as_remote_triangle_population_grows() {
             (0, 0, 0)
         );
         println!("remote tiles={count}: fit={work:?}, hold={hold:?}");
+    }
+}
+
+/// Whatever moves in the wind casts as it is drawn: every cascade's camera
+/// runs on the frame's clock and in its wind, though the fit is reused.
+#[test]
+fn every_cascade_camera_runs_on_the_frames_clock_and_wind() {
+    use presentation::presentation::{Presentation, Ui};
+    use std::sync::Arc;
+    let camera = orbit([800., 800., 0.], 260., 0.85, -1.57);
+    let mut presentation = Presentation::new(None, 30.).unwrap();
+    presentation.set_shadow(Some((game_light(), Arc::new(street()))));
+    for time in [0.0, 3.5, 7.25] {
+        let frame = presentation
+            .frame(time, &camera, &Ui::default(), 0)
+            .unwrap();
+        let shadow = frame.shadow.as_ref().unwrap();
+        assert!(!shadow.casters.is_empty());
+        assert_eq!(frame.camera.time, time as f32);
+        for caster in &shadow.casters {
+            assert_eq!(caster.time, frame.camera.time, "at {time} s");
+            assert_eq!(bits(&caster.wind), bits(&frame.camera.wind), "at {time} s");
+        }
     }
 }

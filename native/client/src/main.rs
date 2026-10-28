@@ -311,7 +311,6 @@ impl Run {
             &pipelines,
             &sky.lut,
             light,
-            &resolved.biome.wind.record(),
             &shadow,
         );
         let installed = Instant::now();

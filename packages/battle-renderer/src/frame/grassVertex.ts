@@ -4,7 +4,7 @@
 import { tgpu, d } from "typegpu";
 import game from "@fixtures/game.json";
 import { typegpuCameraLayout } from "../world/camera";
-import { environmentWind } from "../world/environment";
+import { cameraWind } from "../world/camera";
 import { grassDrawLayout } from "./grassLayouts";
 
 const tuning = game.presentation.grass;
@@ -49,7 +49,7 @@ const grassVertexOf = tgpu
   let side = vec3f(sd.x * cs - sd.y * sn, sd.x * sn + sd.y * cs, sd.z);
   // The one wind: a steady lean, gust fronts rolling downwind, a flutter.
   let t = typegpuCameraLayout.$.cam.time;
-  let wind = environmentWind();
+  let wind = cameraWind();
   let dir = wind.toward.xy;
   let along = dot(c.root.xy, dir);
   let front = sin(6.2831853 * (along - t * wind.gustMps) * wind.gustPerM);
@@ -88,7 +88,7 @@ const grassVertexOf = tgpu
   out.ground = mix(1.0 - (*P).shading.y, 1.0, plain);
   return out;
 }`)
-  .$uses({ grassDrawLayout, typegpuCameraLayout, environmentWind, GrassVertex });
+  .$uses({ grassDrawLayout, typegpuCameraLayout, cameraWind, GrassVertex });
 
 export const grassVertex = tgpu.vertexFn({
   in: { vid: d.builtin.vertexIndex, iid: d.builtin.instanceIndex },

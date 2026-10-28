@@ -7,7 +7,7 @@
 //! groups are fog's (`fog.rs`).
 use presentation::effects::lights::CAST_LIGHTS_MAX;
 use presentation::light::LightSettings;
-use presentation::records::{Camera as CameraRecord, CastLight, View, Wind};
+use presentation::records::{Camera as CameraRecord, CastLight, View};
 use wgpu::*;
 
 use crate::frame::HDR_FORMAT;
@@ -34,7 +34,7 @@ pub struct Environment {
     pub data: Buffer,
     pub pmrem: TextureView,
     pub cast_lights: Buffer,
-    /// The environment uniform's light and wind, set once.
+    /// The environment uniform's light, set once.
     image: Vec<f32>,
 }
 
@@ -245,15 +245,14 @@ fn dfg_lut() -> Vec<u16> {
 }
 
 impl Environment {
-    /// The environment for the world's light and the ground's wind,
-    /// prefiltering the sky's lookup.
+    /// The environment for the world's light, prefiltering the sky's
+    /// lookup. The wind rides in the camera (`Camera.wind`).
     pub fn new(
         device: &Device,
         queue: &Queue,
         pipelines: &Pipelines,
         sky_lut: &TextureView,
         light: &LightSettings,
-        wind: &Wind,
         shadow: &SunShadow,
     ) -> Self {
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
@@ -275,7 +274,6 @@ impl Environment {
         image.extend_from_slice(bytemuck::cast_slice(bytemuck::bytes_of(&light.sun())));
         image[SUN_AT / 4 + 8] = top_mip as f32;
         image.extend_from_slice(bytemuck::cast_slice(bytemuck::bytes_of(&light.aerial())));
-        image.extend_from_slice(bytemuck::cast_slice(bytemuck::bytes_of(wind)));
         let data = buffer(device, "environment", uniform, bytemuck::cast_slice(&image));
         let cast_lights = buffer(device, "cast-lights", uniform, &[0; CAST_LIGHTS_BYTES]);
         let pmrem = pmrem.create_view(&Default::default());

@@ -401,7 +401,7 @@ export const AerialAt = {
 } as const;
 export const AERIAL_WORDS = 28;
 
-/** The one wind, in every lit shader's environment uniform after the haze (`wind.rs`): grass leans and gusts in it, smoke and dust drift on it. Its clock is the camera's (`Camera.time`). */
+/** The one wind, in the camera every shader binds (`Camera.wind`, `wind.rs`): grass, water and trees move in it on the camera's clock, and smoke and dust drift on it. */
 export const Wind = d
   .struct({
     /** Unit vector it blows toward, level (z 0). */
@@ -557,7 +557,7 @@ export const FogLookAt = {
 } as const;
 export const FOG_LOOK_WORDS = 24;
 
-/** A camera as every world, shadow and overlay shader binds it: the frame's eye, or a sun cascade posed as its light. */
+/** A camera as every world, shadow and overlay shader binds it: the frame's eye, or a sun cascade posed as its light, with what animates the world it draws: the clock and the wind. */
 export const Camera = d
   .struct({
     /**  */
@@ -574,6 +574,8 @@ export const Camera = d
     height: d.f32,
     /** The animation clock (s). */
     time: d.f32,
+    /** The ground's wind (calm before a ground), its one record: grass, water and trees move in it, in every pass that draws them, shadows included. */
+    wind: d.arrayOf(Wind, 1),
   })
   .$name("Camera");
 /** Where `Camera`'s fields lie, in words. */
@@ -586,8 +588,9 @@ export const CameraAt = {
   height: 37,
   time: 38,
   pad: 39,
+  wind: 40,
 } as const;
-export const CAMERA_WORDS = 40;
+export const CAMERA_WORDS = 48;
 
 /** One sun cascade as a shadow receiver reads it. An unfitted cascade is the identity over [1, 1]. */
 export const SunCascade = d

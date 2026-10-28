@@ -4,8 +4,8 @@
 // cascades, and hands every world material the same bind group, `shade` and
 // `sampleSunShadow`. Each frame, `prepare` poses the sky and takes the
 // cascades the presentation fitted to the camera and the map,
-// `setCastLights` hands every material the effects' lights
-// (`light/castLights.ts`), and `setWind` the ground's wind.
+// and `setCastLights` hands every material the effects' lights
+// (`light/castLights.ts`). The wind is the camera's (`cameraWind`).
 import type { TgpuCommandEncoder, TgpuRenderPass } from "typegpu";
 import { createTypegpuEnvironment } from "../world/environment";
 import { createTypegpuSunShadow } from "../world/shadow";
@@ -52,8 +52,6 @@ export async function createEnvironmentFrame(
       });
       shadow.update(sunShadow, casters, count);
     },
-    /** The presented ground's `Wind` record (`ground_wind`), or calm. */
-    setWind: environment.setWind,
     /** This frame's cast lights as the presentation chose them (`CastLight`
      *  rows, at most `CAST_LIGHTS_MAX`) and their facing wrap. */
     setCastLights(rows: Float32Array, count: number, wrap: number) {

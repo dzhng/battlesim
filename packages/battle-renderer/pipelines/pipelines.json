@@ -3915,8 +3915,8 @@
       "layout": [
         "typegpuCameraLayout",
         "grassDrawLayout",
-        "environment",
-        "fogLayout"
+        "fogLayout",
+        "environment"
       ],
       "vertex": {
         "buffers": []

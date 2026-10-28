@@ -7,7 +7,7 @@
 // row's, which the water's pass reads too.
 import { tgpu, d, std } from "typegpu";
 import { typegpuCameraLayout } from "../world/camera";
-import { environmentWind } from "../world/environment";
+import { cameraWind } from "../world/camera";
 import { groundCell, groundWater, valueNoise } from "./terrainMaterial";
 import { terrainLayout } from "./terrainLayout";
 import { WATER_NORMALS_SIZE } from "./waterNormals";
@@ -87,7 +87,7 @@ export const waterNormal = tgpu.fn(
 )((xy, footprint, look) => {
   "use gpu";
   const w = terrainLayout.$.params.waterLooks[look];
-  const wind = environmentWind();
+  const wind = cameraWind();
   const carried = std.mul(wind.toward.xy, typegpuCameraLayout.$.cam.time * wind.driftMps);
   const primary = waterLayer(
     xy,

@@ -4,6 +4,13 @@ fn placedPoint(local: vec3f, pose: vec4f) -> vec3f {
   return vec3f((((local.x * c) - (local.y * s)) + pose.x), (((local.x * s) + (local.y * c)) + pose.y), (local.z + pose.z));
 }
 
+struct Wind {
+  toward: vec3f,
+  driftMps: f32,
+  gustMps: f32,
+  gustPerM: f32,
+}
+
 struct Camera {
   viewProj: mat4x4f,
   invViewProj: mat4x4f,
@@ -12,6 +19,7 @@ struct Camera {
   width: f32,
   height: f32,
   time: f32,
+  wind: array<Wind, 1>,
 }
 
 @group(0) @binding(0) var<uniform> cam: Camera;
@@ -279,13 +287,6 @@ struct Aerial {
   horizonFade: vec2f,
 }
 
-struct Wind {
-  toward: vec3f,
-  driftMps: f32,
-  gustMps: f32,
-  gustPerM: f32,
-}
-
 struct Environment {
   worldToView: mat4x4f,
   observer: vec4f,
@@ -294,7 +295,6 @@ struct Environment {
   settings: vec4f,
   fill: vec4f,
   aerial: Aerial,
-  wind: Wind,
 }
 
 struct SunCascade {

@@ -277,6 +277,7 @@ pub fn camera_record(
         height: size[1],
         time,
         pad: 0.0,
+        wind: [Default::default()],
     }
 }
 

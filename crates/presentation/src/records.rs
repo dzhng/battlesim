@@ -383,9 +383,9 @@ records! {
         pad1: [f32; 2],
     }
 
-    /// The one wind, in every lit shader's environment uniform after the
-    /// haze (`wind.rs`): grass leans and gusts in it, smoke and dust drift
-    /// on it. Its clock is the camera's (`Camera.time`).
+    /// The one wind, in the camera every shader binds (`Camera.wind`,
+    /// `wind.rs`): grass, water and trees move in it on the camera's clock,
+    /// and smoke and dust drift on it.
     Struct Wind {
         /// Unit vector it blows toward, level (z 0).
         toward: [f32; 3],
@@ -470,7 +470,8 @@ records! {
     }
 
     /// A camera as every world, shadow and overlay shader binds it: the
-    /// frame's eye, or a sun cascade posed as its light.
+    /// frame's eye, or a sun cascade posed as its light, with what animates
+    /// the world it draws: the clock and the wind.
     Struct Camera {
         view_proj: [f32; 16],
         inv_view_proj: [f32; 16],
@@ -482,6 +483,10 @@ records! {
         /// The animation clock (s).
         time: f32,
         pad: f32,
+        /// The ground's wind (calm before a ground), its one record: grass,
+        /// water and trees move in it, in every pass that draws them,
+        /// shadows included.
+        wind: [Wind; 1],
     }
 
     /// One sun cascade as a shadow receiver reads it. An unfitted cascade is

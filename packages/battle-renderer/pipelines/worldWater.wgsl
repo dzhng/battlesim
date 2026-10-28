@@ -1,3 +1,10 @@
+struct Wind {
+  toward: vec3f,
+  driftMps: f32,
+  gustMps: f32,
+  gustPerM: f32,
+}
+
 struct Camera {
   viewProj: mat4x4f,
   invViewProj: mat4x4f,
@@ -6,6 +13,7 @@ struct Camera {
   width: f32,
   height: f32,
   time: f32,
+  wind: array<Wind, 1>,
 }
 
 @group(0) @binding(0) var<uniform> cam: Camera;
@@ -154,11 +162,37 @@ fn waterStreaks(xy: vec2f, footprint: f32, look: u32) -> f32 {
   return (1f + ((*w).channel.w * mix((*w).lanesMean.x, lit, shown)));
 }
 
-struct Wind {
-  toward: vec3f,
-  driftMps: f32,
-  gustMps: f32,
-  gustPerM: f32,
+fn cameraWind() -> Wind { return cam.wind[0]; }
+
+@group(1) @binding(8) var waterNormals: texture_2d<f32>;
+
+@group(1) @binding(9) var waterTiles: sampler;
+
+fn waterLayer(xy: vec2f, scale: f32, turn: vec2f, wind: vec2f, strength: f32, footprint: f32) -> vec3f {
+  let held = (1f - smoothstep(1.5f, 6f, ((footprint * scale) * 256f)));
+  let at = (xy - wind);
+  let uv = (vec2f(((at.x * turn.x) + (at.y * turn.y)), ((at.y * turn.x) - (at.x * turn.y))) * scale);
+  let slope = textureSampleLevel(waterNormals, waterTiles, uv, 0).xy;
+  let along = vec2f(((slope.x * turn.x) - (slope.y * turn.y)), ((slope.x * turn.y) + (slope.y * turn.x)));
+  return normalize(vec3f((along * (-(strength) * held)), 1f));
+}
+
+fn blendRnm(base: vec3f, detail: vec3f) -> vec3f {
+  let t = (base + vec3f(0, 0, 1));
+  let u = (detail * vec3f(-1, -1, 1));
+  return normalize(((t * (dot(t, u) / t.z)) - u));
+}
+
+fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
+  let w = (&params.waterLooks[look]);
+  let wind = cameraWind();
+  let carried = (wind.toward.xy * (cam.time * wind.driftMps));
+  let primary = waterLayer(xy, (*w).normals.x, vec2f(1, 0), (carried * (*w).drifts.x), (*w).normals.w, footprint);
+  let macro_1 = waterLayer(xy, (*w).normals.y, vec2f(0.824999988079071, 0.5649999976158142), (carried * (*w).drifts.y), (*w).normals.w, footprint);
+  let detail = waterLayer(xy, (*w).normals.z, vec2f(0.45399999618530273, -0.890999972820282), (carried * (*w).drifts.z), (*w).normals.w, footprint);
+  let n = blendRnm(blendRnm(macro_1, primary), detail);
+  let shown = (1f - smoothstep((*w).lanesMean.z, (*w).lanesMean.w, footprint));
+  return normalize(mix(vec3f(0, 0, 1), n, shown));
 }
 
 struct Aerial {
@@ -188,42 +222,6 @@ struct Environment {
   settings: vec4f,
   fill: vec4f,
   aerial: Aerial,
-  wind: Wind,
-}
-
-@group(2) @binding(0) var<uniform> data: Environment;
-
-fn environmentWind() -> Wind { return data.wind; }
-
-@group(1) @binding(8) var waterNormals: texture_2d<f32>;
-
-@group(1) @binding(9) var waterTiles: sampler;
-
-fn waterLayer(xy: vec2f, scale: f32, turn: vec2f, wind: vec2f, strength: f32, footprint: f32) -> vec3f {
-  let held = (1f - smoothstep(1.5f, 6f, ((footprint * scale) * 256f)));
-  let at = (xy - wind);
-  let uv = (vec2f(((at.x * turn.x) + (at.y * turn.y)), ((at.y * turn.x) - (at.x * turn.y))) * scale);
-  let slope = textureSampleLevel(waterNormals, waterTiles, uv, 0).xy;
-  let along = vec2f(((slope.x * turn.x) - (slope.y * turn.y)), ((slope.x * turn.y) + (slope.y * turn.x)));
-  return normalize(vec3f((along * (-(strength) * held)), 1f));
-}
-
-fn blendRnm(base: vec3f, detail: vec3f) -> vec3f {
-  let t = (base + vec3f(0, 0, 1));
-  let u = (detail * vec3f(-1, -1, 1));
-  return normalize(((t * (dot(t, u) / t.z)) - u));
-}
-
-fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
-  let w = (&params.waterLooks[look]);
-  let wind = environmentWind();
-  let carried = (wind.toward.xy * (cam.time * wind.driftMps));
-  let primary = waterLayer(xy, (*w).normals.x, vec2f(1, 0), (carried * (*w).drifts.x), (*w).normals.w, footprint);
-  let macro_1 = waterLayer(xy, (*w).normals.y, vec2f(0.824999988079071, 0.5649999976158142), (carried * (*w).drifts.y), (*w).normals.w, footprint);
-  let detail = waterLayer(xy, (*w).normals.z, vec2f(0.45399999618530273, -0.890999972820282), (carried * (*w).drifts.z), (*w).normals.w, footprint);
-  let n = blendRnm(blendRnm(macro_1, primary), detail);
-  let shown = (1f - smoothstep((*w).lanesMean.z, (*w).lanesMean.w, footprint));
-  return normalize(mix(vec3f(0, 0, 1), n, shown));
 }
 
 struct SunCascade {
@@ -322,6 +320,8 @@ fn inheritedSunShadow(environment: Environment, sunShadow: SunShadow, sunDepth: 
   }
   return shade;
 }
+
+@group(2) @binding(0) var<uniform> data: Environment;
 
 @group(2) @binding(6) var<uniform> sun: SunShadow;
 

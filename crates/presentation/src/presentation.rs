@@ -51,6 +51,7 @@ use crate::world::{
     bounds_size, Appearance, BattleInput, Bounds, Trs, UnitsSection, Vec3, WorldInput,
 };
 
+mod cameras;
 mod probe;
 mod side_fog;
 use side_fog::Fog;
@@ -1054,8 +1055,7 @@ impl Presentation {
         f.light_wrap = 0.0;
         let view = View::new(camera);
         f.view = view.record(camera);
-        f.camera = view.camera(camera, time);
-        f.shadow = self.shadow.as_mut().map(|fit| fit.frame(camera));
+        cameras::cameras(f, &view, &mut self.shadow, &self.ground, camera, time);
         self.follow_felled(time);
         self.follow_cleared();
         // A wreck the cook-off draws moving is left out of the props until
