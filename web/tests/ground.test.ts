@@ -7,11 +7,8 @@ import { beforeAll, expect, test } from "vitest";
 import { initSync, Battle, WorldView } from "@wasm/game_wasm.js";
 import { cellPatchRuns, groundRecords } from "./groundRuns";
 import type { ObservationLayout } from "../src/battle/sim/observationView";
-import {
-  ScenePresentation,
-  loadPresentation,
-  type LearnedGround,
-} from "../src/battle/sim/presentation";
+import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
+import type { LearnedGround } from "../src/battle/sim/presentationGround";
 import { TEST_RULES, labScenario } from "./catalog";
 import { type LabEvent } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
