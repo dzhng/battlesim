@@ -75,6 +75,18 @@ fn the_installed_kinds_pack_as_recorded() {
         .collect();
     let packed = pack_shapes(&kinds).unwrap();
     let shapes: Vec<u32> = packed.shapes.iter().map(|f| f.to_bits()).collect();
+    let update = std::env::var("UPDATE_GRASS_VECTORS").is_ok();
+    if update {
+        let shapes_hex: String = shapes.iter()
+            .flat_map(|w| w.to_le_bytes())
+            .map(|b| format!("{:02x}", b))
+            .collect();
+        let mut fixture: serde_json::Value = v.clone();
+        fixture["shapes"] = shapes_hex.into();
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/grass-vectors.json");
+        std::fs::write(path, serde_json::to_string(&fixture).unwrap()).unwrap();
+        panic!("fixture updated; rerun without UPDATE_GRASS_VECTORS");
+    }
     assert_eq!(shapes, words(&v["shapes"]));
     let facts: Vec<f64> = packed
         .facts
@@ -176,10 +188,11 @@ fn blade(segments: u32, rgb: [u8; 3]) -> Tier {
 }
 
 #[test]
-fn a_clump_tints_by_its_mean_colour_and_a_broken_kind_is_refused_by_name() {
+fn a_clump_tints_toward_the_weighted_mean_and_a_broken_kind_is_refused_by_name() {
     let tiers: Vec<Tier> = [4, 3, 2, 1].map(|s| blade(s, [60, 120, 30])).into();
     let packed = pack_shapes(&[kind("tuft", &tiers, 1.0)]).unwrap();
-    // One colour throughout: every tint is one, so the ground's colour shows.
+    // One colour throughout: the weighted mean equals every vertex's colour,
+    // so every tint is one and the ground's colour shows through unchanged.
     for v in packed.shapes.chunks(SHAPE_FLOATS) {
         assert!(v[12..15].iter().all(|t| (t - 1.0).abs() < 1e-6), "{v:?}");
     }
