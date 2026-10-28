@@ -35,15 +35,14 @@ pub struct Water {
 /// One look of a water surface: its body's colours (`palette`: where little
 /// light survives the depth, then where most does), the share of each of
 /// red, green and blue it takes per metre of water the light crosses
-/// (`extinction_per_m`, as `e` in `exp(-e·d)`), its streaks' light, and how
-/// often it is picked against its kind's other looks.
+/// (`extinction_per_m`, as `e` in `exp(-e·d)`), and how often it is picked
+/// against its kind's other looks.
 #[derive(Clone, Deserialize)]
 pub struct WaterLook {
     pub name: String,
     pub weight: f64,
     pub palette: String,
     pub extinction_per_m: Rgb,
-    pub streak: f64,
 }
 
 impl Biome {
@@ -75,7 +74,6 @@ impl Biome {
             for (c, e) in ["r", "g", "b"].iter().zip(l.extinction_per_m) {
                 within(&format!("{at}.extinction_per_m.{c}"), e, 0.01, 20.0)?;
             }
-            within(&format!("{at}.streak"), l.streak, 0.0, 1.0)?;
         }
         if !looks.iter().any(|l| l.weight > 0.0) {
             return bad(at, "needs a look with some weight");

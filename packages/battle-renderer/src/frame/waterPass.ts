@@ -20,7 +20,8 @@ import {
 } from "./fogTerm";
 import { terrainLayout } from "./terrainLayout";
 import { waterCaustics } from "./waterCaustics";
-import { waterNormal, waterStreaks } from "./waterSurface";
+import { createWaterLight } from "./waterLight";
+import { waterNormal } from "./waterSurface";
 import { createSceneMips, ndcAt, waterDepth, waterUnder } from "./waterUnder";
 import { FRAME_MSAA, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
 
@@ -51,14 +52,16 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     color: d.vec4f,
     highlight: d.f32,
   };
+  const { waterReflection, waterTransmission } = createWaterLight(environment);
   /** The water: the bed under it (the world before the water, seen
    *  through the surface, `waterUnder`) dimmed per channel by the light the
-   *  water takes over the distance down to it (`exp(-e·d)`, as RedGPU's extinction,
-   *  `lakeFragment.wgsl:415-433`, with each look's own `e`), its body's
-   *  colour, lit, in place of what it takes, and the sky's and the sun's
-   *  reflection over both, with the air between it and the eye once. The
-   *  body turns from the look's edge colour to its channel colour as less
-   *  light survives. It takes the ground paint as the ground does (its layer
+   *  water takes over the distance down to it (`exp(-e·d)`, as RedGPU's
+   *  extinction, `lakeFragment.wgsl:415-433`, with each look's own `e`),
+   *  its body's colour, lit, in place of what it takes, and the sky's and
+   *  the sun's reflection over both (`waterLight.ts`), with the air between
+   *  it and the eye once. What comes up from under the surface loses what
+   *  the surface reflects. The body turns from the look's edge colour to its
+   *  channel colour as less light survives. It takes the ground paint as the ground does (its layer
    *  is painted): a mark lies over the water by its coverage, once, the bed
    *  under it unpainted. */
   const waterFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
@@ -68,7 +71,6 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     // The cell's look rides its vertex colour (`mesh::water`).
     const look = d.u32(std.round(v.color.x));
     const w = terrainLayout.$.params.waterLooks[look];
-    const streaks = waterStreaks(v.world.xy, footprint, look);
     const n = waterNormal(v.world.xy, footprint, look);
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const paint = groundPaint(v.world);
@@ -77,14 +79,16 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     const through = std.exp(std.mul(w.surface.xyz, -bed.w));
     // The waves' light focused on the bed where the sun reaches the water.
     const lit = std.mul(bed.xyz, 1 + waterCaustics(v.world, depth, footprint, look) * sun);
-    const body = std.mul(std.mix(w.edge.xyz, w.channel.xyz, 1 - std.dot(through, LUMA)), streaks);
-    // The surface's light before the air: lit with no albedo, a surface
-    // shows only what it reflects; the body's own light in place of what
-    // the water takes; a mark wholly covering where the paint lies.
-    const reflected = environment.surfaceLight(
+    const body = std.mix(w.edge.xyz, w.channel.xyz, 1 - std.dot(through, LUMA));
+    // The surface's light before the air: its reflection; the body's own
+    // light in place of what the water takes (a lit surface's less its
+    // reflection, as a dielectric's); a mark wholly covering where the paint
+    // lies.
+    const reflected = waterReflection(n, v.world, sun, eye, look);
+    const dry = environment.surfaceLight(
       d.vec3f(0),
       d.vec3f(0),
-      w.edge.w,
+      w.roughness.x,
       0,
       0,
       1,
@@ -94,13 +98,13 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
       eye,
     );
     const own = std.sub(
-      environment.surfaceLight(body, d.vec3f(0), w.edge.w, 0, 0, 1, n, v.world, sun, eye),
-      reflected,
+      environment.surfaceLight(body, d.vec3f(0), w.roughness.x, 0, 0, 1, n, v.world, sun, eye),
+      dry,
     );
     const mark = environment.surfaceLight(
       paintedAlbedo(body, std.div(paint, std.max(paint.w, 1e-4))),
       d.vec3f(0),
-      w.edge.w,
+      w.roughness.x,
       0,
       0,
       1,
@@ -110,18 +114,19 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
       eye,
     );
     const water = std.add(std.mul(own, std.sub(d.vec3f(1), through)), reflected);
+    const seenUp = std.mul(through, waterTransmission(n, std.normalize(std.sub(eye, v.world))));
     const shadowed = std.mix(w.surface.w, 1, sun);
     // The air over it once: the bed's copy already lies behind its own air,
     // so the bed's share of the air is taken off again.
     const surfaceInAir = environment.air(std.mul(water, shadowed), v.world, eye).xyz;
-    const bedAir = std.mul(environment.air(d.vec3f(0), v.world, eye).xyz, through);
-    const wet = std.add(std.sub(surfaceInAir, bedAir), std.mul(lit, through));
+    const bedAir = std.mul(environment.air(d.vec3f(0), v.world, eye).xyz, seenUp);
+    const wet = std.add(std.sub(surfaceInAir, bedAir), std.mul(lit, seenUp));
     // The edge by depth (RedGPU `lakeFragment.wgsl:373-375`): the water fades
     // in over its look's shore depth, or over a few pixels where that is
     // narrower, wider as the surface is seen edge-on, so it never aliases.
     const facing = std.max(0.35, std.dot(n, std.normalize(std.sub(eye, v.world))));
     const pixel = std.length(std.fwidth(atPixel(v.clip).xy));
-    const fade = std.max(w.lanesMean.y, (pixel * 3) / facing);
+    const fade = std.max(w.fades.x, (pixel * 3) / facing);
     const edge = std.smoothstep(0, 1, std.clamp(depth / fade, 0, 1));
     // The mark lies over the water by its own coverage, whole at the bank
     // too, where the water fades and the bed under it is unpainted.

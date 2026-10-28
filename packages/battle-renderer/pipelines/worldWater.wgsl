@@ -57,9 +57,9 @@ struct WaterLook {
   surface: vec4f,
   normals: vec4f,
   drifts: vec4f,
-  lanes: vec4f,
-  lanesLit: vec4f,
-  lanesMean: vec4f,
+  fades: vec4f,
+  roughness: vec4f,
+  lobes: vec4f,
   refraction: vec4f,
   caustics: vec4f,
 }
@@ -91,70 +91,6 @@ struct TerrainParams {
 }
 
 @group(1) @binding(0) var<uniform> params: TerrainParams;
-
-@group(1) @binding(4) var<storage, read> surfaceIndex: array<u32>;
-
-fn groundCell(xy: vec2f, footprint: f32) -> vec4u {
- let P=params;
- var level=0u;var widest=P.field.w;
- while(footprint>widest&&level+1u<P.fieldGrid.z){widest*=2.0;level++;}
- let shift=surfaceIndex[level*2u+1u];
- let finest=clamp(vec2i(floor((xy-P.field.xy)*P.field.z)),vec2i(0),vec2i(P.fieldGrid.xy)-1);
- let cell=vec2u(finest)>>vec2u(shift);
- let cols=((P.fieldGrid.x-1u)>>shift)+1u;
- let at=surfaceIndex[level*2u]+(cell.y*cols+cell.x)*3u;
- return vec4u(surfaceIndex[at],surfaceIndex[at+1u],surfaceIndex[at+2u],surfaceIndex[at+3u]);
-}
-
-struct SurfaceRecord {
-  ends: vec4f,
-  detail: vec4f,
-}
-
-@group(1) @binding(3) var<storage, read> surfaces: array<SurfaceRecord>;
-
-fn groundWater(xy: vec2f, cell: vec4u) -> f32 {
- var bed=-1e9;
- for(var i=cell.z;i<cell.w;i++){
-  let stretch=surfaces[surfaceIndex[i]&536870911u];
-  let a=stretch.ends.xy;let ab=stretch.ends.zw-a;let len2=dot(ab,ab);
-  var t=0.0;if(len2>0.0){t=clamp(dot(xy-a,ab)/len2,0.0,1.0);}
-  let half=stretch.detail.x+(stretch.detail.y-stretch.detail.x)*t;
-  bed=max(bed,half-length(xy-(a+ab*t)));
- }
- return bed;
-}
-
-fn pcgHash(v: u32) -> u32 {
-  let s = v * 747796405u + 2891336453u;
-  let w = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u;
-  return (w >> 22u) ^ w;
-}
-
-fn valueNoise(p: vec2f) -> f32 {
-  let cell = floor(p);
-  let f = p - cell;
-  let u = f * f * (3.0 - 2.0 * f);
-  let ix = bitcast<u32>(i32(cell.x));
-  let iy = bitcast<u32>(i32(cell.y));
-  var h = array<f32, 4>();
-  for (var k = 0u; k < 4u; k++) {
-    let s = pcgHash(((ix + (k & 1u)) * 1597334677u) ^ ((iy + (k >> 1u)) * 3812015801u));
-    h[k] = f32(s) * (1.0 / 4294967295.0);
-  }
-  return mix(mix(h[0], h[1], u.x), mix(h[2], h[3], u.x), u.y);
-}
-
-fn waterStreaks(xy: vec2f, footprint: f32, look: u32) -> f32 {
-  let w = (&params.waterLooks[look]);
-  let water = groundWater(xy, groundCell(xy, footprint));
-  let shown = (1f - smoothstep((*w).lanesMean.z, (*w).lanesMean.w, footprint));
-  let drift = ((*w).lanes.y * valueNoise((xy * (*w).lanes.z)));
-  let lane = valueNoise(vec2f(((water / (*w).lanes.x) + drift), 3.7f));
-  let streak = valueNoise(((xy * (*w).lanes.w) + vec2f(63.099998474121094, 29.299999237060547)));
-  let lit = smoothstep((*w).lanesLit.z, (*w).lanesLit.w, (((*w).lanesLit.x * lane) + ((*w).lanesLit.y * streak)));
-  return (1f + ((*w).channel.w * mix((*w).lanesMean.x, lit, shown)));
-}
 
 struct Wind {
   toward: vec3f,
@@ -228,7 +164,7 @@ fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
   let macro_1 = waterLayer(xy, (*w).normals.y, vec2f(0.824999988079071, 0.5649999976158142), (carried * (*w).drifts.y), (*w).normals.w, footprint);
   let detail = waterLayer(xy, (*w).normals.z, vec2f(0.45399999618530273, -0.890999972820282), (carried * (*w).drifts.z), (*w).normals.w, footprint);
   let n = blendRnm(blendRnm(macro_1, primary), detail);
-  let shown = (1f - smoothstep((*w).lanesMean.z, (*w).lanesMean.w, footprint));
+  let shown = (1f - smoothstep((*w).fades.y, (*w).fades.z, footprint));
   return normalize(mix(vec3f(0, 0, 1), n, shown));
 }
 
@@ -607,6 +543,18 @@ fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32
   return lightAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun_1, eye, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, pmrem, dfg, linear);
 }
 
+fn lobe(roughness: f32, n: vec3f, world: vec3f, sun_1: f32, eye: vec3f) -> vec3f {
+  return surfaceLight(vec3f(), vec3f(), roughness, 0f, 0.5f, 1f, n, world, sun_1, eye);
+}
+
+fn waterReflection(n: vec3f, world: vec3f, sun_1: f32, eye: vec3f, look: u32) -> vec3f {
+  let w = (&params.waterLooks[look]);
+  let sharp = (lobe((*w).roughness.x, n, world, sun_1, eye) * (*w).lobes.x);
+  let sheen = (lobe((*w).roughness.y, n, world, sun_1, eye) * (*w).lobes.y);
+  let broad = (lobe((*w).roughness.z, n, world, sun_1, eye) * (*w).lobes.z);
+  return ((sharp + sheen) + broad);
+}
+
 struct GroundPaintStyle {
   albedo: f32,
   emissive: f32,
@@ -630,6 +578,11 @@ fn paintedAlbedo(albedo: vec3f, paint: vec4f) -> vec3f {
   if (paint.w <= 0.0) { return albedo; }
   let colour = min(paintColour(paint), vec3f(1.0));
   return mix(albedo, colour * paintStyle.albedo, paint.w);
+}
+
+fn waterTransmission(n: vec3f, view: vec3f) -> f32 {
+  let edgeOn = (1f - clamp(dot(n, view), 0f, 1f));
+  return (1f - (0.02f + (0.98f * pow(edgeOn, 5f))));
 }
 
 fn equirectUv(direction: vec3f) -> vec2f {
@@ -918,7 +871,6 @@ struct waterFragment_Input {
   let footprint = length(fwidth(_arg_0.world.xy));
   let look = u32(round(_arg_0.color.x));
   let w = (&params.waterLooks[look]);
-  let streaks = waterStreaks(_arg_0.world.xy, footprint, look);
   let n = waterNormal(_arg_0.world.xy, footprint, look);
   let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
   let paint_1 = groundPaint(_arg_0.world);
@@ -926,18 +878,20 @@ struct waterFragment_Input {
   let bed = waterUnder(clip, _arg_0.world, n, depth_1, look);
   let through = exp(((*w).surface.xyz * -(bed.w)));
   let lit = (bed.xyz * (1f + (waterCaustics(_arg_0.world, depth_1, footprint, look) * sun_1)));
-  let body = (mix((*w).edge.xyz, (*w).channel.xyz, (1f - dot(through, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)))) * streaks);
-  let reflected = surfaceLight(vec3f(), vec3f(), (*w).edge.w, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
-  let own = (surfaceLight(body, vec3f(), (*w).edge.w, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye)) - reflected);
-  let mark = surfaceLight(paintedAlbedo(body, (paint_1 / max(paint_1.w, 1e-4f))), vec3f(), (*w).edge.w, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
+  let body = mix((*w).edge.xyz, (*w).channel.xyz, (1f - dot(through, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023))));
+  let reflected = waterReflection(n, _arg_0.world, sun_1, (*eye), look);
+  let dry = surfaceLight(vec3f(), vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
+  let own = (surfaceLight(body, vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye)) - dry);
+  let mark = surfaceLight(paintedAlbedo(body, (paint_1 / max(paint_1.w, 1e-4f))), vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
   let water = ((own * (vec3f(1) - through)) + reflected);
+  let seenUp = (through * waterTransmission(n, normalize(((*eye) - _arg_0.world))));
   let shadowed = mix((*w).surface.w, 1f, sun_1);
   let surfaceInAir = air((water * shadowed), _arg_0.world, (*eye)).xyz;
-  let bedAir = (air(vec3f(), _arg_0.world, (*eye)).xyz * through);
-  let wet = ((surfaceInAir - bedAir) + (lit * through));
+  let bedAir = (air(vec3f(), _arg_0.world, (*eye)).xyz * seenUp);
+  let wet = ((surfaceInAir - bedAir) + (lit * seenUp));
   let facing = max(0.35f, dot(n, normalize(((*eye) - _arg_0.world))));
   let pixel = length(fwidth(atPixel(clip).xy));
-  let fade = max((*w).lanesMean.y, ((pixel * 3f) / facing));
+  let fade = max((*w).fades.x, ((pixel * 3f) / facing));
   let edge = smoothstep(0f, 1f, clamp((depth_1 / fade), 0f, 1f));
   let marked = (air((mark * shadowed), _arg_0.world, (*eye)).xyz * paint_1.w);
   let cover = (paint_1.w + (edge * (1f - paint_1.w)));

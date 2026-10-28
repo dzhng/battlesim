@@ -49,8 +49,12 @@ water fades in from where its depth is zero. Slice 06 is done: a baked
 normal map at three scales, drifting with the wind. Slice 07 is done: the
 bed shows displaced through the surface, and Low keeps the depth colour
 alone through one uniform word (`WaterDetail`). Slice 08 is done: caustics
-on the bed, from the surface's own waves. **Pick up at
-[slice 09](slices/09-highlights.md)**. The sim lane (slice 10 on)
+on the bed, from the surface's own waves. Slice 09 is done: the water
+reflects through the shared light at water's F0, in three lobes, the bed's
+light loses what the surface reflects, the streaks are gone, and SSR is
+not built. **Pick up at [slice 13](slices/13-swamp-look.md)** (the wet
+lane), once the sim lane's slice 17 has merged; the tactical read is open
+below. The sim lane (slice 10 on)
 runs in parallel on `spec/water-and-wetlands-sim` and merges in here.
 
 **Warning:** native must start and draw water at every slice (decision 19). A
@@ -73,7 +77,7 @@ the checklist.
 - [x] [06](slices/06-surface-normals.md), wind-driven normals (2026-10-28).
 - [x] [07](slices/07-refraction.md), refraction and the Low tier (2026-10-28).
 - [x] [08](slices/08-caustics.md), caustics (2026-10-28).
-- [ ] Render lane: [09](slices/09-highlights.md).
+- [x] [09](slices/09-highlights.md), Fresnel and sun highlights (2026-10-28).
 - [x] [10](slices/10-swamp-terrain.md), swamp terrain, with the wetlands map's
       swamp (2026-10-28).
 - [x] [11](slices/11-swamp-slowdown.md), swamp slowdown; its paired battle
@@ -151,7 +155,7 @@ constant is tuned for a ground-level camera.
 | **Normals** (`:280-346`) | One normal map at three scales (primary, a rotated macro layer, a rotated detail layer), each scrolling along the wind at its own rate, blended with RNM (`blendRNM`, `:35`). Faded toward flat with distance. | Two procedural ripple octaves (`waterNormal`). | **Yes**, with our own normal maps (baked or procedural). |
 | **Vertex waves** (`lakeVertex.wgsl:30-74`) | Two sines along and 35° off the wind, amplitude scaled by wind strength, with analytic normals. | Flat surface cells. | **Maybe.** Their amplitude is centimetres; it may not read from an RTS height. |
 | **Fresnel and sun specular** (`:503-592`) | Schlick with F0 0.02, three GGX sun lobes at rising roughness, sun in-scatter, and back-lit wave translucency. | `environment.shade` with one water roughness. | **Yes**, through our shared light owner, not a second lighting model. |
-| **Screen-space reflections** (`:94-236`) | A 64-step world-space march with bisection, faded by screen edge, distance and the reflected ray's height. Hits below the water plane are rejected. | None; the sky reflection only. | **Later, optional.** From a steep RTS camera most rays leave the screen. Judge it on the water capture scene's low shots first (decision 31). |
+| **Screen-space reflections** (`:94-236`) | A 64-step world-space march with bisection, faded by screen edge, distance and the reflected ray's height. Hits below the water plane are rejected. | None; the sky reflection only. | **Not built (slice 09's call, decision 15).** At the low framing it would mirror the far bank; from the tactical height a reflected bank is a few percent of a dark band, and the march costs a pass's worth of taps. |
 | **Received shadows** | RedGPU water doesn't receive shadows. | We already sample the sun shadow on water. | Keep ours. |
 
 **Pass contract RedGPU relies on** (`Renderer.ts:241-336`): draw all opaque
@@ -474,6 +478,16 @@ owning slice. Worst first within each area.
 
 ## Still open
 
-Nothing. The two bugs found beyond this feature are fixed and merged in
+- **The tactical read (decision 20).** Slice 09's whole-look checkpoint,
+  ours beside RedGPU at the three framings, passed no feedback. Close and
+  low read as water: the displaced bed, the caustic net and the mirror at a
+  grazing angle carry them. From the tactical height (260 m) the deep
+  channel is still an untextured band, which an unprimed critique read as a
+  tube or asphalt. The normals fade flat there, so nothing of the surface
+  survives. Slice 18 takes it: keep the slope variance a pixel averages
+  away, as roughness, so far water keeps a sheen that varies. The summer
+  palette stays ours (decision 9).
+
+Earlier: the two bugs found beyond this feature are fixed and merged in
 [PR #17](https://github.com/dzhng/battlesim/pull/17): track wear under bridge
 decks, and unvalidated forest multipliers. Slices 10 and 11 build on it.

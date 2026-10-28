@@ -1227,18 +1227,9 @@
       },
       "water": {
         "shore_fade_m": 0.25,
-        "roughness": 0.14,
+        "lobes": { "roughness": [0.15, 0.22, 0.32], "weights": [0.58, 0.34, 0.08] },
         "shadow": 0.55,
         "normals": { "tiles_m": [9, 31, 2.2], "drifts": [0.6, 0.3, 1.4], "strength": 0.35, "fade_m": [0.15, 1.2] },
-        "lanes": {
-          "m": 0.5,
-          "drift": 2.5,
-          "drift_m": 11,
-          "streak_m": 3.5,
-          "weights": [0.6, 0.4],
-          "lit": [0.55, 0.8],
-          "lit_mean": 0.1
-        },
         "refraction": { "share": 2, "depth_m": 2.5, "most": 0.015, "blur_m": 1 },
         "caustics": { "tile_m": 24, "strength": 1.2, "fade_per_m": 0.85, "sharpness": 5 }
       },

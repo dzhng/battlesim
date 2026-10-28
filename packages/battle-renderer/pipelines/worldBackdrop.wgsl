@@ -57,9 +57,9 @@ struct WaterLook {
   surface: vec4f,
   normals: vec4f,
   drifts: vec4f,
-  lanes: vec4f,
-  lanesLit: vec4f,
-  lanesMean: vec4f,
+  fades: vec4f,
+  roughness: vec4f,
+  lobes: vec4f,
   refraction: vec4f,
   caustics: vec4f,
 }
