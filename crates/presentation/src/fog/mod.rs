@@ -5,6 +5,7 @@
 //! lines, and the boundary carries a rim on its seen side. Both clients
 //! upload the record as it is.
 pub mod sight;
+pub mod upload;
 
 use std::collections::BTreeMap;
 
