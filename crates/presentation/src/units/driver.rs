@@ -25,6 +25,10 @@ use super::pose::{
 use crate::seed::{side_key, Mulberry32};
 use crate::world::{Appearance, Clip, UnitType, UnitsSection, Vec3};
 
+mod stance;
+pub use stance::StanceShares;
+use stance::{fall_of, lies_after, stance_manner, Posture, Stance};
+
 /// The cook-offs' gravity: what an aircraft's lift tilts against.
 const GRAVITY: f64 = 9.81;
 
@@ -130,14 +134,6 @@ pub struct Rest {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct StanceShares {
-    pub fire_prone: f64,
-    pub fire_stand: f64,
-    pub pinned_kneel: f64,
-    pub fall_back: f64,
-}
-
-#[derive(Clone, Debug, Deserialize)]
 pub struct Lean {
     pub out_s: f64,
     pub back_s: f64,
@@ -225,13 +221,6 @@ pub struct CorpseCap {
     pub sink_m: f64,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum Posture {
-    Stand,
-    Kneel,
-    Prone,
-}
-
 /// Each posture's gait (`INFANTRY_MOVES`), and its clip for each way he
 /// goes relative to his facing (`INFANTRY_WAYS`: ahead, left, back, right).
 const GAITS: [&str; 3] = ["walk_aim", "crouch", "crawl"];
@@ -246,10 +235,6 @@ const WAY_NAMES: [&str; 4] = ["f", "l", "b", "r"];
 /// How far past the halfway bearing between two ways he keeps the way he is
 /// going, so a diagonal does not flicker between two clips, radians.
 const WAY_HOLD_RAD: f64 = 0.2;
-/// The fall a soldier plays dying in each posture (`INFANTRY_DEATHS`), and
-/// standing, back onto his back.
-const DEATHS: [&str; 3] = ["death", "death_kneel", "death_prone"];
-const FALL_BACK: &str = "death_back";
 
 /// The way (an index of `WAY_BEARINGS`) he goes at bearing `rel` from his
 /// facing: the nearest, unless `current` is already a way of `gait` and
@@ -278,11 +263,6 @@ fn gait_of_clip(clip: &str) -> Option<&str> {
     GAITS.contains(&gait).then_some(gait)
 }
 
-/// The corpse (an `INFANTRY_CORPSES` index: face down, face up) a fall ends in.
-fn lies_after(fall: &str) -> usize {
-    usize::from(fall == FALL_BACK)
-}
-
 /// Where a soldier starts a looping clip: his own offset (the golden ratio
 /// over his id), so a squad never moves in lockstep.
 pub fn loop_start(soldier: f64) -> f64 {
@@ -298,48 +278,6 @@ fn rest_manner(soldier: f64, rest: &Rest) -> (f64, f64, bool) {
     let turn = (state.sample() * 2.0 - 1.0) * rest.turn_rad;
     let tempo = rest.tempo[0] + state.sample() * (rest.tempo[1] - rest.tempo[0]);
     (turn, tempo, soldier % rest.watch_every == 2.0)
-}
-
-/// How a soldier holds himself under fire, his own for life (from his id).
-#[derive(Clone, Copy, Debug)]
-struct Stance {
-    firing: Posture,
-    pinned: Posture,
-    falls_back: bool,
-}
-
-/// One place along a low-discrepancy sequence decides both postures, so
-/// neighbouring ids spread across the stances and the men who fire lying
-/// down are the ones who stay flat when pinned.
-fn stance_manner(soldier: f64, s: &StanceShares) -> Stance {
-    let u = (soldier * 0.414_213_562_373_095_15) % 1.0;
-    let firing = if u < s.fire_prone {
-        Posture::Prone
-    } else if u >= 1.0 - s.fire_stand {
-        Posture::Stand
-    } else {
-        Posture::Kneel
-    };
-    let pinned = if u >= 1.0 - s.pinned_kneel {
-        Posture::Kneel
-    } else {
-        Posture::Prone
-    };
-    // A second sequence, so how he falls does not follow how he stands.
-    let falls_back = (soldier * 0.754_877_666_246_692_7) % 1.0 < s.fall_back;
-    Stance {
-        firing,
-        pinned,
-        falls_back,
-    }
-}
-
-fn fall_of(posture: Posture, stance: Stance) -> &'static str {
-    if posture == Posture::Stand && stance.falls_back {
-        FALL_BACK
-    } else {
-        DEATHS[posture as usize]
-    }
 }
 
 /// The clip `name` as soldier `pose`'s appearance has it (resolved as the
