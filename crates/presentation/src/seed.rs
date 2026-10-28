@@ -88,7 +88,9 @@ pub fn stream(seed: u32, salt: i64) -> Mulberry32 {
     Mulberry32::new(seed ^ ((salt + 1) as u32).wrapping_mul(GOLDEN))
 }
 
-/// One of `weights`' indices by weight.
+/// One of `weights`' indices by weight, never one of no weight while any
+/// has some (rounding that leaves the draw past every weight takes the last
+/// weighted index).
 pub fn weighted(rng: &mut Mulberry32, weights: impl Iterator<Item = f64> + Clone) -> usize {
     let mut r = rng.float(0.0, weights.clone().fold(0.0, |a, w| a + w));
     let mut last = 0;
@@ -97,7 +99,9 @@ pub fn weighted(rng: &mut Mulberry32, weights: impl Iterator<Item = f64> + Clone
         if r < 0.0 {
             return i;
         }
-        last = i;
+        if w > 0.0 {
+            last = i;
+        }
     }
     last
 }

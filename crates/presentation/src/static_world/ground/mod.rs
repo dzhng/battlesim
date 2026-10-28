@@ -20,7 +20,7 @@ pub mod tables;
 mod tests;
 pub mod tuning;
 pub mod walk;
-mod water;
+pub mod water;
 
 use biome::{Biome, AREA_KINDS};
 use field::Field;
@@ -248,7 +248,12 @@ impl Ground {
         field::field(&self.source, &self.forests, strokes, reach)
     }
 
+    /// The water surface's cells (`water::cells`), each with the look its
+    /// river draws (`water::look`): a row of `TerrainParams.waterLooks`.
     pub fn water_cells(&self) -> Vec<f32> {
-        water::cells(&self.source.rivers)
+        let b = &self.biome;
+        water::cells(&self.source.rivers, |river| {
+            water::look(b.seed, river, &b.water.rivers)
+        })
     }
 }

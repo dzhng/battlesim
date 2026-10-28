@@ -1,6 +1,6 @@
 //! The biome's water: the bands of the water's edge (`Shore`) and the
-//! surface's look (`Water`).
-use super::{range, within, Biome, Range};
+//! surface's looks (`Water`).
+use super::{bad, range, within, Biome, Range};
 use serde::Deserialize;
 
 /// The water's edge along every river, in bands by distance from it: wet
@@ -21,10 +21,26 @@ pub struct Shore {
     pub relief: f64,
 }
 
-/// The water surface's look: its opacity at its edge and out in the channel,
-/// how far in it takes 63% of the channel's, and its streaks' light.
+/// The most water looks a biome holds, every kind of water together: the
+/// `TerrainParams.waterLooks` array's length.
+pub const WATER_LOOKS_MAX: usize = 8;
+
+/// The water's looks, by the kind of water they dress: each river draws one
+/// of `rivers`, picked by weight (`water::look`).
 #[derive(Clone, Deserialize)]
 pub struct Water {
+    pub rivers: Vec<WaterLook>,
+}
+
+/// One look of a water surface: its colours (`palette`, the channel's and
+/// the edge's), its opacity at its edge and out in the channel, how far in
+/// it takes 63% of the channel's, its streaks' light, and how often it is
+/// picked against its kind's other looks.
+#[derive(Clone, Deserialize)]
+pub struct WaterLook {
+    pub name: String,
+    pub weight: f64,
+    pub palette: String,
     pub opacity: Range,
     pub shallows_m: f64,
     pub streak: f64,
@@ -42,9 +58,27 @@ impl Biome {
         within("shore.wander_scale_m", s.wander_scale_m, 0.5, 1000.0)?;
         within("shore.lift", s.lift, 1.0, 3.0)?;
         within("shore.relief", s.relief, 0.0, 1.0)?;
-        range("water.opacity", self.water.opacity, 0.0, 1.0)?;
-        within("water.shallows_m", self.water.shallows_m, 0.05, 50.0)?;
-        within("water.streak", self.water.streak, 0.0, 1.0)?;
+        self.check_water_looks("water.rivers", &self.water.rivers)?;
+        if self.water.rivers.len() > WATER_LOOKS_MAX {
+            return bad("water", format!("holds at most {WATER_LOOKS_MAX} looks"));
+        }
+        Ok(())
+    }
+
+    /// One kind of water's looks: each with a palette of two colours, and
+    /// one with some weight to pick by.
+    fn check_water_looks(&self, at: &str, looks: &[WaterLook]) -> Result<(), String> {
+        for (i, l) in looks.iter().enumerate() {
+            let at = format!("{at}[{i}]");
+            self.has_palette(&format!("{at}.palette"), &l.palette, 2)?;
+            within(&format!("{at}.weight"), l.weight, 0.0, 1e6)?;
+            range(&format!("{at}.opacity"), l.opacity, 0.0, 1.0)?;
+            within(&format!("{at}.shallows_m"), l.shallows_m, 0.05, 50.0)?;
+            within(&format!("{at}.streak"), l.streak, 0.0, 1.0)?;
+        }
+        if !looks.iter().any(|l| l.weight > 0.0) {
+            return bad(at, "needs a look with some weight");
+        }
         Ok(())
     }
 }

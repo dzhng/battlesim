@@ -3,7 +3,6 @@
 // writing none, in a pass of its own. `worldPass.ts` draws it, in the order
 // `encode` gives.
 import { tgpu, d, std, type TgpuBindGroup, type TgpuCommandEncoder } from "typegpu";
-import game from "@fixtures/game.json";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
 import type { EnvironmentFrame } from "./environmentFrame";
@@ -19,9 +18,9 @@ import {
   paintedSeen,
   paintGlow,
 } from "./fogTerm";
+import { terrainLayout } from "./terrainMaterial";
 import { waterNormal, waterSurface } from "./waterSurface";
 import { FRAME_MSAA, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
-const terrainTuning = game.presentation.terrain;
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -41,14 +40,17 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     "use gpu";
     const eye = typegpuCameraLayout.$.cam.eye;
     const footprint = std.length(std.fwidth(v.world.xy));
-    const surface = waterSurface(v.world.xy, footprint);
-    const n = waterNormal(v.world.xy, footprint);
+    // The cell's look rides its vertex colour (`mesh::water`).
+    const look = d.u32(std.round(v.color.x));
+    const w = terrainLayout.$.params.waterLooks[look];
+    const surface = waterSurface(v.world.xy, footprint, look);
+    const n = waterNormal(v.world.xy, footprint, look);
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const paint = groundPaint(v.world);
     const lit = environment.shade(
       paintedAlbedo(surface.xyz, paint),
       d.vec3f(0),
-      terrainTuning.water.roughness,
+      w.surface.z,
       0,
       0,
       1,
@@ -57,10 +59,7 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
       sun,
       eye,
     );
-    const shaded = std.add(
-      std.mul(lit.xyz, std.mix(terrainTuning.water.shadow, 1, sun)),
-      paintGlow(paint),
-    );
+    const shaded = std.add(std.mul(lit.xyz, std.mix(w.surface.w, 1, sun)), paintGlow(paint));
     const seen = paintedSeen(fogTerm(v.world, n, v.clip.xy, fogIsGround()), paint);
     const alpha = std.max(surface.w, paint.w);
     return { color: d.vec4f(shaded, alpha), fog: fogCoverage(seen, alpha) };

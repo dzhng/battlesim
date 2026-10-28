@@ -171,3 +171,107 @@ passes.
   placeholder. Native mirrors whichever it picks.
 - **Verdict:** open, for slice 04.
 - **Confidence:** high that the limit binds.
+
+## Slice 03: water look data
+
+### A look row is the biome's look over the shared surface; the shore is one record
+
+- **When:** slice 03.
+- **The choice:** each `WaterLook` row in `TerrainParams.waterLooks` packs
+  two things. First, its biome look (`biome.water.rivers[i]`: palette,
+  opacity, shallows and streak). Second, the shared surface
+  (`presentation.terrain.water`: roughness, shadow, ripples and lanes),
+  repeated in every row. The water's shader reads one row. The shore's
+  tuning (`presentation.terrain.shore`) shapes the bank, which the terrain
+  fragment draws without knowing which river it borders. So it is one
+  shared `shoreTuning` record, not per look. The alternative, a look index
+  in every surface record for the terrain to read, waits for a slice that
+  needs a bank per look.
+- **The gap:** the spec said the rows come "from the biome data and
+  `presentation.terrain`" without saying how the two combine.
+- **The reach:** a later look slice makes a shared number per look by moving
+  it from `presentation.terrain.water` into the biome's looks, a data change
+  plus one packing line. Rows are packed in Rust (`tables::water_looks`) and
+  hand-mirrored in `terrainMaterial.ts`, as the rest of `TerrainParams` is.
+  The browser now refuses a table whose length differs from the struct's.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### A cell's look rides its quad's vertex colour
+
+- **When:** slice 03.
+- **The choice:** water cells are now `WaterCell {corner, surface_z, side,
+  look}`, five floats each. The water's mesh carries the look in its vertex
+  colour's red: the water takes no tint, so the channel was unused. The
+  alternative was a new vertex attribute or an instanced cell record. Either
+  would change the one mesh format both clients share.
+- **The gap:** the spec named the record, not how the shader reads it.
+- **The reach:** `mesh::water` and the water's fragment agree on red. The
+  recorded mesh vectors (`ground-mesh-vectors.json`) were re-recorded with
+  cells carrying look 1, from a mirror of `mesh::water` that reproduced the
+  old digests first.
+- **Verdict:** sound for now. A second per-cell value (a swamp's depth, say)
+  should move to a real attribute.
+- **Confidence:** medium.
+
+### The pick takes the river's index, not a feature
+
+- **When:** slice 03.
+- **The choice:** `water::look(seed, river, looks)` picks among one kind's
+  looks by weight. It seeds by a salt, the biome's seed and the river's
+  index, with tree stands' `stream` and `weighted`, which moved to
+  `crate::seed` for it. Slice 13 adds swamps by calling it with the swamps'
+  looks and indices (or salt), not by a second pick. `weighted` now never
+  returns an index of no weight: rounding past the last weight takes the
+  last weighted index. That case was a fall-through before, which tree
+  picks could also hit.
+- **The gap:** the spec wrote `look(biome_seed, feature)`.
+- **The reach:** the export's river stride gained `river`, its index in
+  `MapDefinition.rivers` (12 floats now; readers find fields by name). The
+  curve-strokes parity oracle was blessed with that column only.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Rivers weigh temperate 3 to murky lowland 1, both today's look
+
+- **When:** slice 03.
+- **The choice:** summer's two river looks are identical, today's look, so
+  nothing changes on screen. Temperate is picked three times as often as
+  murky lowland. Slice 04 makes them differ.
+- **The gap:** decision 9 named the variants, not their odds.
+- **The reach:** the wetlands map's one river draws whichever its seed picks;
+  `?water_look=<row>` shows either.
+- **Verdict:** sound; a taste call for the user.
+- **Confidence:** low.
+
+### The shore's lattice turns are packed as cosine and sine
+
+- **When:** slice 03.
+- **The choice:** the shore's two lattice turns were constants, which the
+  shader compiler folds to exact cosines and sines. Read from a uniform, the
+  GPU would compute them itself, approximately, and the bank's wander would
+  move by a fraction of a pixel. Rust packs `cos` and `sin` of each, so the
+  bank stays as it was.
+- **The gap:** none; a consequence of the move to uniforms.
+- **The reach:** `turned` takes the cosine and sine.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Live tuning rides the dev server's hot update of the biome's file
+
+- **When:** slice 03.
+- **The choice:** every battle page reads its biome from one module
+  (`gameBiome.ts`). On the dev server it accepts the hot update of
+  `summer.json`, and `useGameBiome` hands the new biome to the battle
+  session, which rebuilds its ground through the existing `setGround` path.
+  The looks then reach the GPU as uniforms, with no shader rebuilt.
+  `?water_look=<row>` pins a look by zeroing the other looks' weights, so
+  Rust's one pick draws it everywhere. An edit to `game.json`'s shared
+  water tuning still reloads the page. The map workbench's protocol, which
+  the spec named, serves the workbench's own server and its preset files,
+  not a battle page.
+- **The gap:** the spec asked to reuse the workbench's reload protocol.
+- **The reach:** labs built on `useBattleSession` reload live. A route that
+  builds its own layers from `gameBiome` keeps the value it loaded with.
+- **Verdict:** sound.
+- **Confidence:** medium.

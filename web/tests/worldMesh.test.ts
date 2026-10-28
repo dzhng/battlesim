@@ -37,7 +37,7 @@ const layout: WorldLayout = {
   surfaceBoundaryStride: 5,
   surfaceTriangleFields: ["ax", "ay", "bx", "by", "cx", "cy", "kind"],
   surfaceBoundaryFields: ["ax", "ay", "bx", "by", "kind"],
-  riverStride: 11,
+  riverStride: 12,
   riverFields: [
     "ax",
     "ay",
@@ -50,6 +50,7 @@ const layout: WorldLayout = {
     "bankA",
     "bankB",
     "surfaceZ",
+    "river",
   ],
   riverRunStride: 4,
   riverRunFields: ["ax", "ay", "bx", "by"],

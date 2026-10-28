@@ -13,7 +13,7 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 
 mod water;
-pub use water::{Shore, Water};
+pub use water::*;
 
 pub type Rgb = [f64; 3];
 pub type Range = [f64; 2];

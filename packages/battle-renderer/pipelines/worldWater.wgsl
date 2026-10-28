@@ -44,6 +44,24 @@ struct RoadLook {
   stones: vec4f,
 }
 
+struct ShoreTuning {
+  bands: vec4f,
+  turns: vec4f,
+  ground: vec4f,
+  fade: vec4f,
+}
+
+struct WaterLook {
+  channel: vec4f,
+  edge: vec4f,
+  surface: vec4f,
+  ripple: vec4f,
+  rippleSlope: vec4f,
+  lanes: vec4f,
+  lanesLit: vec4f,
+  lanesMean: vec4f,
+}
+
 struct TerrainParams {
   region: vec4f,
   field: vec4f,
@@ -61,22 +79,21 @@ struct TerrainParams {
   forestDapple: vec4f,
   forestLine: vec4f,
   waterBed: vec4f,
-  water: vec4f,
-  waterEdge: vec4f,
-  waterLook: vec4f,
   shore: vec4f,
   shoreEarth: vec4f,
   shoreEdge: vec4f,
   distant: vec4f,
+  shoreTuning: ShoreTuning,
+  waterLooks: array<WaterLook, 8>,
   view: vec4u,
 }
 
-@group(1) @binding(0) var<uniform> params_1: TerrainParams;
+@group(1) @binding(0) var<uniform> params: TerrainParams;
 
 @group(1) @binding(4) var<storage, read> surfaceIndex: array<u32>;
 
 fn groundCell(xy: vec2f, footprint: f32) -> vec4u {
- let P=params_1;
+ let P=params;
  var level=0u;var widest=P.field.w;
  while(footprint>widest&&level+1u<P.fieldGrid.z){widest*=2.0;level++;}
  let shift=surfaceIndex[level*2u+1u];
@@ -126,30 +143,31 @@ fn valueNoise(p: vec2f) -> f32 {
   return mix(mix(h[0], h[1], u.x), mix(h[2], h[3], u.x), u.y);
 }
 
-fn waterSurface(xy: vec2f, footprint: f32) -> vec4f {
-  let params = (&params_1);
+fn waterSurface(xy: vec2f, footprint: f32, look: u32) -> vec4f {
+  let w = (&params.waterLooks[look]);
   let water = groundWater(xy, groundCell(xy, footprint));
-  let deep = (1f - exp((-(max(water, 0f)) * (*params).waterLook.x)));
-  let shown = (1f - smoothstep(0.15f, 1.2f, footprint));
-  let drift = (2.5f * valueNoise((xy * 0.09090909090909091f)));
-  let lane = valueNoise(vec2f(((water / 0.5f) + drift), 3.7f));
-  let streak = valueNoise(((xy * 0.2857142857142857f) + vec2f(63.099998474121094, 29.299999237060547)));
-  let lit = smoothstep(0.55f, 0.8f, ((0.6f * lane) + (0.4f * streak)));
-  let colour = (mix((*params).waterEdge.xyz, (*params).water.xyz, deep) * (1f + ((*params).waterLook.y * mix(0.1f, lit, shown))));
+  let deep = (1f - exp((-(max(water, 0f)) * (*w).surface.x)));
+  let shown = (1f - smoothstep((*w).rippleSlope.y, (*w).rippleSlope.z, footprint));
+  let drift = ((*w).lanes.y * valueNoise((xy * (*w).lanes.z)));
+  let lane = valueNoise(vec2f(((water / (*w).lanes.x) + drift), 3.7f));
+  let streak = valueNoise(((xy * (*w).lanes.w) + vec2f(63.099998474121094, 29.299999237060547)));
+  let lit = smoothstep((*w).lanesLit.z, (*w).lanesLit.w, (((*w).lanesLit.x * lane) + ((*w).lanesLit.y * streak)));
+  let colour = (mix((*w).edge.xyz, (*w).channel.xyz, deep) * (1f + ((*w).surface.y * mix((*w).lanesMean.x, lit, shown))));
   let edge = smoothstep((-(footprint) * 0.5f), (footprint * 0.5f), water);
-  return vec4f(colour, (mix((*params).waterEdge.w, (*params).water.w, deep) * edge));
+  return vec4f(colour, (mix((*w).edge.w, (*w).channel.w, deep) * edge));
 }
 
-fn rippleHeight(xy: vec2f) -> f32 {
-  return (valueNoise((xy * 0.3125f)) + (0.5f * valueNoise(((xy * 1.1111111111111112f) + vec2f(17.299999237060547, 5.099999904632568)))));
+fn rippleHeight(xy: vec2f, w: WaterLook) -> f32 {
+  return (valueNoise((xy * w.ripple.x)) + (w.ripple.z * valueNoise(((xy * w.ripple.y) + vec2f(17.299999237060547, 5.099999904632568)))));
 }
 
-fn waterNormal(xy: vec2f, footprint: f32) -> vec3f {
-  let ex = vec2f(0.25, 0);
-  let ey = vec2f(0, 0.25);
-  let dx = (rippleHeight((xy + ex)) - rippleHeight((xy - ex)));
-  let dy = (rippleHeight((xy + ey)) - rippleHeight((xy - ey)));
-  let k = (0.18f * (1f - smoothstep(0.15f, 1.2f, footprint)));
+fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
+  let w = (&params.waterLooks[look]);
+  let ex = vec2f((*w).ripple.w, 0f);
+  let ey = vec2f(0f, (*w).ripple.w);
+  let dx = (rippleHeight((xy + ex), (*w)) - rippleHeight((xy - ex), (*w)));
+  let dy = (rippleHeight((xy + ey), (*w)) - rippleHeight((xy - ey), (*w)));
+  let k = ((*w).rippleSlope.x * (1f - smoothstep((*w).rippleSlope.y, (*w).rippleSlope.z, footprint)));
   return normalize(vec3f((-(dx) * k), (-(dy) * k), 1f));
 }
 
@@ -567,7 +585,7 @@ struct FogParams {
   wholeFlagsBase: u32,
 }
 
-@group(3) @binding(0) var<uniform> params: FogParams;
+@group(3) @binding(0) var<uniform> params_1: FogParams;
 
 @group(3) @binding(8) var wholes: texture_2d<u32>;
 
@@ -576,7 +594,7 @@ fn fogWholeWord(i: u32) -> u32 {
 }
 
 fn fogWholeSeen(p: vec3f) -> bool {
-  let P = params;
+  let P = params_1;
   if (P.wholeCount == 0u) { return false; }
   let c = (p.xy - P.wholeOrigin) / P.wholeCellM;
   if (c.x < 0.0 || c.y < 0.0 || c.x >= f32(P.wholeNx) || c.y >= f32(P.wholeNy)) { return false; }
@@ -605,8 +623,8 @@ fn fogWholeSeen(p: vec3f) -> bool {
 @group(3) @binding(5) var<storage, read> counts: array<u32>;
 
 fn fogProbePoint(world: vec3f, normal: vec3f, ground: bool) -> vec3f {
-  if (ground) { return world + vec3f(0.0, 0.0, params.targetHeightM); }
-  return world + normal * params.faceProbeM;
+  if (ground) { return world + vec3f(0.0, 0.0, params_1.targetHeightM); }
+  return world + normal * params_1.faceProbeM;
 }
 
 struct FogEye {
@@ -641,7 +659,7 @@ fn fogUnpack(w: u32) -> vec3f {
 
 fn fogSeenBy(ei: u32, p: vec3f, n: vec3f) -> bool {
   let e = eyes[ei];
-  let P = params;
+  let P = params_1;
   if (p.x < P.playable.x || p.y < P.playable.y ||
       p.x > P.playable.x + P.playable.z || p.y > P.playable.y + P.playable.w) {
     // The visual margin is outside the simulation. Keep it permanently unseen
@@ -707,7 +725,7 @@ fn fogSeenSurface(ei: u32, world: vec3f, normal: vec3f, ground: bool) -> bool {
   let n = select(normal, vec3f(0.0), ground);
   if (fogSeenBy(ei, p, n)) { return true; }
   let e = eyes[ei];
-  let P = params;
+  let P = params_1;
   if (ground || P.roofReachM <= 0.0 || normal.z < 0.7 || world.z <= e.position.z) {
     return false;
   }
@@ -724,7 +742,7 @@ fn fogSeenSurface(ei: u32, world: vec3f, normal: vec3f, ground: bool) -> bool {
 @group(3) @binding(4) var<storage, read> lists: array<u32>;
 
 fn fogTerm(world: vec3f, normal: vec3f, pixel: vec2f, isGround: bool) -> f32 {
-  let P = params;
+  let P = params_1;
   if (P.enabled == 0u || layer.seen == 1u) { return 1.0; }
   if (fogWholeSeen(world)) { return 1.0; }
   let tile = u32(pixel.x) / P.tilePx + (u32(pixel.y) / P.tilePx) * P.tilesX;
@@ -742,7 +760,7 @@ fn paintedSeen(seen: f32, paint: vec4f) -> f32 {
 }
 
 fn fogCoverage(seen: f32, alpha: f32) -> vec4f {
-  if (params.enabled == 0u || layer.seen == 1u) {
+  if (params_1.enabled == 0u || layer.seen == 1u) {
     return vec4f(0.0, 0.0, 0.0, alpha);
   }
   return vec4f(1.0 - seen, seen, f32(layer.ground), alpha);
@@ -763,12 +781,14 @@ struct waterFragment_Input {
 @fragment fn waterFragment(_arg_0: waterFragment_Input, @builtin(position) clip: vec4f) -> waterFragment_Output {
   let eye = (&cam.eye);
   let footprint = length(fwidth(_arg_0.world.xy));
-  let surface = waterSurface(_arg_0.world.xy, footprint);
-  let n = waterNormal(_arg_0.world.xy, footprint);
+  let look = u32(round(_arg_0.color.x));
+  let w = (&params.waterLooks[look]);
+  let surface = waterSurface(_arg_0.world.xy, footprint, look);
+  let n = waterNormal(_arg_0.world.xy, footprint, look);
   let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
   let paint_1 = groundPaint(_arg_0.world);
-  let lit = shade(paintedAlbedo(surface.xyz, paint_1), vec3f(), 0.14f, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
-  let shaded = ((lit.xyz * mix(0.55f, 1f, sun_1)) + paintGlow(paint_1));
+  let lit = shade(paintedAlbedo(surface.xyz, paint_1), vec3f(), (*w).surface.z, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
+  let shaded = ((lit.xyz * mix((*w).surface.w, 1f, sun_1)) + paintGlow(paint_1));
   let seen = paintedSeen(fogTerm(_arg_0.world, n, clip.xy, fogIsGround()), paint_1);
   let alpha = max(surface.w, paint_1.w);
   return waterFragment_Output(vec4f(shaded, alpha), fogCoverage(seen, alpha));

@@ -3,7 +3,7 @@
 //! parameters and the scars' look. Each record is the terrain material's
 //! `d.struct` (`frame/terrainMaterial.ts`) word for word: every field a
 //! `vec4`, f32 unless named.
-use super::biome::{linear, Road, AREA_KINDS};
+use super::biome::{linear, Road, AREA_KINDS, WATER_LOOKS_MAX};
 use super::field::{Field, FOOTPRINT_M};
 use super::{is_road, Ground, RIVER};
 use std::f64::consts::SQRT_2;
@@ -12,6 +12,8 @@ use std::f64::consts::SQRT_2;
 /// far past any map.
 const LEVELS: usize = 32;
 const LUMA: [f64; 3] = [0.2126, 0.7152, 0.0722];
+/// Words a `WaterLook` row: eight vec4s.
+const WATER_LOOK_WORDS: usize = 32;
 
 /// `v` as the f32 a `Float32Array` holds, in its word.
 pub fn word(v: f64) -> u32 {
@@ -128,6 +130,55 @@ impl Ground {
     }
 
     /// Every terrain table but the scars' grid, from `field` (`terrain_field`).
+    /// `TerrainParams.shoreTuning`: the bank's bands and ground, four vec4s.
+    fn shore_tuning(&self, p: &mut Vec<u32>) {
+        let t = &self.tuning.terrain.shore;
+        let [a, b] = t.turns;
+        vec4(p, [t.wet_whole, t.earth_whole, t.fine, t.fine_share]);
+        vec4(p, [a.cos(), a.sin(), b.cos(), b.sin()]);
+        vec4(
+            p,
+            [
+                t.earth_mottle,
+                t.field_ease_m,
+                t.earth_roughness,
+                t.wet_roughness,
+            ],
+        );
+        vec4(p, [t.fine_fade[0], t.fine_fade[1], t.bed_ease_m, 0.0]);
+    }
+
+    /// `TerrainParams.waterLooks`: every water look the biome holds, then
+    /// zeros to `WATER_LOOKS_MAX` rows, eight vec4s a row. A row is its
+    /// look's own (`biome.water`) over the shared surface
+    /// (`presentation.terrain.water`).
+    fn water_looks(&self, p: &mut Vec<u32>) {
+        let (b, w) = (&self.biome, &self.tuning.terrain.water);
+        let (r, l) = (&w.ripple, &w.lanes);
+        for look in &b.water.rivers {
+            let colours = b.palette(&look.palette);
+            vec4(p, rgb(linear(colours[0]), look.opacity[1]));
+            vec4(p, rgb(linear(colours[1]), look.opacity[0]));
+            vec4(
+                p,
+                [1.0 / look.shallows_m, look.streak, w.roughness, w.shadow],
+            );
+            vec4(
+                p,
+                [1.0 / r.long_m, 1.0 / r.short_m, r.short_weight, r.step_m],
+            );
+            vec4(
+                p,
+                [r.slope / (2.0 * r.step_m), r.fade_m[0], r.fade_m[1], 0.0],
+            );
+            vec4(p, [l.m, l.drift, 1.0 / l.drift_m, 1.0 / l.streak_m]);
+            vec4(p, [l.weights[0], l.weights[1], l.lit[0], l.lit[1]]);
+            vec4(p, [l.lit_mean, 0.0, 0.0, 0.0]);
+        }
+        let rows = WATER_LOOKS_MAX - b.water.rivers.len();
+        p.extend(std::iter::repeat_n(0, rows * WATER_LOOK_WORDS));
+    }
+
     pub fn terrain_tables(&self, field: Field) -> TerrainTables {
         let (s, b) = (&self.source, &self.biome);
         let mut nodes = vec![];
@@ -202,12 +253,6 @@ impl Ground {
         );
         vec4(&mut p, [f.tree_line.taper_m, f.tree_line.warp_m, 0.0, 0.0]);
         vec4(&mut p, rgb(one("water_bed"), s.grid.spacing * SQRT_2));
-        vec4(&mut p, rgb(one("water"), b.water.opacity[1]));
-        vec4(
-            &mut p,
-            rgb(linear(b.palette("water")[1]), b.water.opacity[0]),
-        );
-        vec4(&mut p, [1.0 / b.water.shallows_m, b.water.streak, 0.0, 0.0]);
         let (shore, bank) = (&b.shore, b.palette(&b.shore.palette));
         vec4(&mut p, rgb(linear(bank[0]), shore.wet_m));
         vec4(&mut p, rgb(linear(bank[1]), shore.mud_m));
@@ -221,6 +266,8 @@ impl Ground {
             ],
         );
         vec4(&mut p, rgb(one("distant"), 0.0));
+        self.shore_tuning(&mut p);
+        self.water_looks(&mut p);
         let sc = &b.scars;
         let mut scars = vec![];
         vec4(

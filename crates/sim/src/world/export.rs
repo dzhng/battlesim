@@ -30,8 +30,9 @@ pub const SURFACE_TRIANGLE_STRIDE: usize = 7;
 pub const SURFACE_BOUNDARY_STRIDE: usize = 5;
 /// One stretch of a river between two rounded samples: end a, end b, the
 /// water's half width at each, the bank's grade at each, how high the land
-/// stands above the water at the edge at each, the surface height.
-pub const RIVER_STRIDE: usize = 11;
+/// stands above the water at the edge at each, the surface height, and which
+/// of the map's rivers it is (its index in `MapDefinition.rivers`).
+pub const RIVER_STRIDE: usize = 12;
 
 fn surface_tag(kind: SurfaceKind) -> u8 {
     SURFACE_KINDS.iter().position(|k| *k == kind).unwrap() as u8
@@ -105,7 +106,7 @@ pub fn layout_json(catalog: &Catalog) -> String {
         "surfaceBoundaryStride": SURFACE_BOUNDARY_STRIDE,
         "surfaceBoundaryFields": ["ax", "ay", "bx", "by", "kind"],
         "riverStride": RIVER_STRIDE,
-        "riverFields": ["ax", "ay", "bx", "by", "halfA", "halfB", "gradeA", "gradeB", "bankA", "bankB", "surfaceZ"],
+        "riverFields": ["ax", "ay", "bx", "by", "halfA", "halfB", "gradeA", "gradeB", "bankA", "bankB", "surfaceZ", "river"],
         "riverRunStride": 4,
         "riverRunFields": ["ax", "ay", "bx", "by"],
         "forestTrunkRangeStride": 2,
@@ -227,7 +228,7 @@ impl WorldGeometry {
     /// Every river's rounded stretches: ax, ay, bx, by, the water's half
     /// width at each end, the bank's grade at each end, the height of the
     /// land above the water at the edge at each end (the lower of the two
-    /// banks), the surface height.
+    /// banks), the surface height, the river's index.
     /// A point's distance inside the water is the half width at the closest
     /// point of a stretch less its distance to it, the deepest over stretches
     /// (`contract::river::section`): the drawing's edge is the rule's. The
@@ -235,7 +236,7 @@ impl WorldGeometry {
     /// that follows the cross-section and not the grid's triangles.
     pub fn export_rivers(&self) -> Vec<f32> {
         let mut out = Vec::new();
-        for river in self.rivers() {
+        for (index, river) in self.rivers().iter().enumerate() {
             for p in river.samples().windows(2) {
                 let bank = |t: f64| {
                     contract::river::edges(&p[0], &p[1], t)
@@ -257,6 +258,7 @@ impl WorldGeometry {
                         bank(0.0),
                         bank(1.0),
                         river.surface_z(),
+                        index as f64,
                     ]
                     .map(|v| v as f32),
                 );

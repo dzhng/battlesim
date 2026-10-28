@@ -39,9 +39,10 @@ export async function mapWater(id) {
   const rules = JSON.stringify((await nodeCatalogSet("capture")).rules);
   const view = new WorldView(JSON.stringify(loadMap(id).definition), rules);
   const rivers = view.rivers();
-  const { riverStride } = JSON.parse(world_layout(rules));
+  const { riverStride, riverFields } = JSON.parse(world_layout(rules));
   view.free();
-  return { inside: waterInside(rivers, riverStride), surfaceZ: rivers[riverStride - 1] };
+  const surfaceZ = rivers[riverFields.indexOf("surfaceZ")];
+  return { inside: waterInside(rivers, riverStride), surfaceZ };
 }
 
 /** The pixel a parity frame record (its `eye`, `target`, `up` and `canvas`)

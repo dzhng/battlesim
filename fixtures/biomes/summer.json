@@ -295,7 +295,12 @@
     }
   },
   "shore": { "palette": "shore", "wet_m": 0.6, "mud_m": 5, "wander": 0.5, "wander_scale_m": 9, "lift": 1.27, "relief": 0.5 },
-  "water": { "opacity": [0.6, 0.9], "shallows_m": 0.35, "streak": 0.6 },
+  "water": {
+    "rivers": [
+      { "name": "temperate", "weight": 3, "palette": "water", "opacity": [0.6, 0.9], "shallows_m": 0.35, "streak": 0.6 },
+      { "name": "murky lowland", "weight": 1, "palette": "water", "opacity": [0.6, 0.9], "shallows_m": 0.35, "streak": 0.6 }
+    ]
+  },
   "forest_floor": {
     "palette": "forest_floor",
     "patch_m": 6,
