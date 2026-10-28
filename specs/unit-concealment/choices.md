@@ -26,3 +26,18 @@ Decisions made where the spec was silent or wrong, with verdicts. Final consolid
 - **Shared sight bands live on the existing profiles, with child overrides only where a unit's former reach differed.** Every unit doesn't get a copy of each leaf. Each ground profile authors `low_air_m` equal to its `ground_m` (the old fallback) and `high_air_m` from the old body table (600 on foot and for aircraft, 300 for ground vehicles). Each former radar emitter carries its old `detection_m` as `high_air_m`. *Verdict: sound; the resolved-reach dump is byte-identical for the game, test and capture sets.*
 - **Test patches that made a unit an emitter no longer raise its high-air sight.** `radar_emitter` is only the signature now. The radar tests that relied on emitting to see high air author `high_air_m` themselves, and the band test merged into `each_bands_sight_is_the_units_own_and_zero_is_blind`. *Verdict: sound; that coupling was the thing being deleted.*
 - **The browser test's fake unit factory moved to `web/tests/sceneAssets/unitType.ts`**, so that `synthetic.ts` shrinks under the ratchet. *Verdict: sound.*
+
+## Slice 04
+
+- **The neutral data is 2.8 on every hull, 1 on every squad, forest 0.25 and moving 1.0.** The resolved catalog has 117 hulls at 2.8 and 22 squads at 1. Squads author it on their infantry profiles, hulls on their profiles or units. `2.8 × 0.25` reproduces the old vehicle forest value of 0.7 exactly, so no digest moved. *Verdict: evidence.*
+- **HIDDEN now runs over the same samples for hulls and squads.** Before, a hull checked one point and a squad its living members. A hull's two samples share one ground point, so its answer doesn't change. *Verdict: sound; one path.*
+- **`sensing::validate` folded into `SensorRules::check`**, which also admits `moving_concealment ≥ 1`. The forest rule admits `concealment` in (0, 1]. *Verdict: sound; the spec's single owner.*
+- **Split by concept to stay under the ratchet:**
+  - `contract::catalog::sensors` (the `Sensors` type and `reach_m`);
+  - `contract::scenario::sensors` (`SensorRules` and its check);
+  - `sim::units::digest` (unit replay digest);
+  - `contract/tests/common/catalog.rs` (shared admission inputs);
+  - `mechanics-editor/src/{fieldSchema,mountFields}.ts`.
+
+  *Verdict: sound; each file owns one idea.*
+- **Clearing Spotting in the editor writes the neutral 1**, and the display treats its omission as 1. The rejected alternative was a nullable reset. *Verdict: sound.*

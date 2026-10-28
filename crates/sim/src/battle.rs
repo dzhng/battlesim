@@ -635,7 +635,6 @@ impl Battle {
             "physics.vehicle_aim_height_fraction must be in (0, 1]"
         );
         units::validate(&rules);
-        sensing::validate(&rules.sensors);
         damage::validate(&rules);
         ground::validate(&rules);
         crate::cover::validate(&rules);

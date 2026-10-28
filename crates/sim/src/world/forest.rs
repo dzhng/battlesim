@@ -357,16 +357,11 @@ impl WorldGeometry {
     }
 
     /// Forest concealment is a binary ground property, independent of crown coverage.
-    pub fn forest_concealment(&self, infantry: bool, x: f64, y: f64) -> f64 {
+    pub fn forest_concealment(&self, x: f64, y: f64) -> f64 {
         if !self.forest_ground(x, y) || self.surfaces.water_at(v2(x, y)) {
             return 1.0;
         }
-        let rule = self.forest.rule;
-        if infantry {
-            rule.concealment_infantry
-        } else {
-            rule.concealment_vehicle
-        }
+        self.forest.rule.concealment
     }
 
     /// The foliage over (x, y): its fog cell's, or open ground where the

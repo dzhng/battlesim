@@ -18,6 +18,7 @@ mod bodies;
 mod build_identity;
 mod buildings;
 mod catalog;
+mod concealment;
 mod contacts;
 mod cover;
 mod damage;

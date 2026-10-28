@@ -1,119 +1,12 @@
 import type { Json, JsonObject, Section } from "./protocol";
 
-export type FieldKind =
-  | "number"
-  | "boolean"
-  | "enum"
-  | "reference"
-  | "strings"
-  | "vector"
-  | "ammo"
-  | "object"
-  | "mounts";
-export type Conversion = "percent" | "cadence" | "dimensions";
-export const CONVERSION_CAPTIONS: Record<Conversion, string> = {
-  percent: "Stored fraction · 1 = 100%",
-  cadence: "Shot interval · seconds",
-  dimensions: "Half dimensions · metres",
-};
-export interface GameplayField {
-  path: string[];
-  label: string;
-  group: string;
-  explanation: string;
-  kind: FieldKind;
-  unit?: string;
-  conversion?: Conversion;
-  choices?: readonly string[];
-  references?: "weapons" | "soldiers" | "props" | "roles" | "parts" | "mounts";
-  optional?: boolean;
-  integer?: boolean;
-  min?: number;
-  max?: number;
-  initial?: Json;
-}
+import { field, type GameplayField, type ParsedField } from "./fieldSchema";
+import { mounts } from "./mountFields";
+export { CONVERSION_CAPTIONS } from "./fieldSchema";
+export type { Conversion, FieldKind, GameplayField, ParsedField } from "./fieldSchema";
 
-const field = (
-  path: string,
-  label: string,
-  group: string,
-  explanation: string,
-  extra: Partial<GameplayField> = {},
-): GameplayField => ({
-  path: path.split("."),
-  label,
-  group,
-  explanation,
-  kind: "number",
-  min: 0,
-  ...extra,
-});
 const faces = ["front", "side", "rear", "roof"];
 const weights = ["light", "medium", "heavy", "immovable"];
-const mounts = (soldier: boolean): GameplayField[] => [
-  field(
-    "mounts",
-    "Weapon mounts",
-    "Weapons",
-    "Physical weapons, each an id and the label its card shows. Adding a mount gives it its own firing cycle and ammunition. Inherited mounts cannot be removed; extend a common parent to omit one.",
-    { kind: "mounts" },
-  ),
-  field(
-    "mounts.*.weapons",
-    "Ammunition / weapon rows",
-    "Weapons",
-    "Shared weapon rows available to this physical mount. Changing the assignment changes this unit; changing a linked weapon row affects all its users.",
-    { kind: "strings", references: "weapons" },
-  ),
-  ...(soldier
-    ? [
-        field(
-          "mounts.*.squad",
-          "Default squad gun",
-          "Weapons",
-          "Each living carrier fires independently; these guns share the squad targeting and ammunition readout.",
-          { kind: "boolean" },
-        ),
-        field(
-          "mounts.*.special",
-          "Transferable special weapon",
-          "Weapons",
-          "A surviving soldier can recover this weapon and its remaining rounds when its original carrier falls.",
-          { kind: "boolean" },
-        ),
-      ]
-    : [
-        field(
-          "mounts.*.turret",
-          "Traversing mount",
-          "Weapons",
-          "Turns toward its target at the turret rate and fires only within the permitted bearing tolerance.",
-          { kind: "boolean" },
-        ),
-        field(
-          "mounts.*.on",
-          "Carrier mount",
-          "Weapons",
-          "An earlier turret mount that carries this weapon. None means attached to the hull.",
-          { kind: "reference", references: "mounts", optional: true },
-        ),
-        field(
-          "mounts.*.pivot_m",
-          "Pivot position",
-          "Weapons",
-          "Forward, left and up coordinates in the carrier frame where this mount rotates. Geometry affects flight origins and must agree with the model.",
-          { kind: "vector", unit: "m", min: undefined },
-        ),
-        field(
-          "mounts.*.muzzle_m",
-          "Muzzle offset",
-          "Weapons",
-          "Forward, left and up from the pivot, rotated with the mount. None is a hand weapon muzzle. Model-fit checks still apply.",
-          { kind: "vector", unit: "m", min: undefined, optional: true },
-        ),
-      ]),
-];
-
 const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
   units: [
     field(
@@ -269,6 +162,20 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "Movement",
       "How fast it climbs over roofs and sinks to a low hover; the heights themselves are the rules' air section.",
       { unit: "m/s" },
+    ),
+    field(
+      "concealment",
+      "Concealment",
+      "Reconnaissance",
+      "Intrinsic visual concealment, multiplied by ground cover and movement. Below 1 hides better; above 1 is easier to spot. HIDDEN also requires concealing ground.",
+      { min: Number.MIN_VALUE },
+    ),
+    field(
+      "sensors.spotting",
+      "Spotting",
+      "Reconnaissance",
+      "Above 1 cancels target concealment; below 1 deepens it. Never extends full sight. Omitted means 1.",
+      { optional: true, initial: 1, min: Number.MIN_VALUE },
     ),
     field(
       "sensors.ground_m",
@@ -689,8 +596,24 @@ export function valueAt(value: Json | undefined, path: readonly string[]): Json 
   return cursor;
 }
 
+export const rawText = (value: Json | undefined) =>
+  value === undefined || value === null
+    ? ""
+    : Array.isArray(value)
+      ? value.join(", ")
+      : typeof value === "object"
+        ? JSON.stringify(value, null, 2)
+        : String(value);
+
 const numericText = (n: number) => Number(n.toPrecision(14)).toString();
+
+/** Native catalogs omit neutral numeric values; every editor reader agrees on them. */
+export function fieldValue(f: GameplayField | null, value: Json | undefined): Json | undefined {
+  return value === undefined && f?.kind === "number" ? f.initial : value;
+}
+
 export function displayFieldValue(f: GameplayField, value: Json | undefined): string {
+  value = fieldValue(f, value);
   if (value === undefined || value === null) return "";
   if (f.kind === "vector" && Array.isArray(value))
     return value
@@ -790,14 +713,13 @@ function validateNumbers(f: GameplayField, value: Json): string | undefined {
   return undefined;
 }
 
-export type ParsedField = { value: Json; error?: never } | { error: string; value?: never };
 export function parseFieldValue(f: GameplayField, text: string, entry: JsonObject): ParsedField {
   const trimmed = text.trim();
   if (!trimmed)
     return f.kind === "strings"
       ? { value: [] }
       : f.optional
-        ? { value: null }
+        ? { value: f.kind === "number" ? (f.initial ?? null) : null }
         : { error: "A value is required." };
   const current = valueAt(entry, f.path);
   // Preserve the original bits when a rounded human display is submitted unchanged.

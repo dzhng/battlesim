@@ -5,7 +5,7 @@ import { join, relative, resolve as resolvePath } from "node:path";
 import { FixturePublication, mechanicsSourcePaths } from "../fixture-publication/publication";
 import type { Plugin } from "vite";
 import { isGameDocument } from "../../web/src/battle/catalog/compose";
-import { gameplayField, isObject, validateGameplayValue, valueAt } from "./src/fields";
+import { fieldValue, gameplayField, isObject, validateGameplayValue, valueAt } from "./src/fields";
 import {
   MECHANICS_API,
   targetKey,
@@ -106,7 +106,9 @@ function checkIntent(
       ]);
       if (isObject(parent)) delete parent[later.path.at(-1)!];
     }
-    if (!matchesIntent(valueAt(entry(catalog, change.section, id), change.path), expected))
+    const actual = valueAt(entry(catalog, change.section, id), change.path);
+    const field = gameplayField(change.section, change.path);
+    if (!matchesIntent(fieldValue(field, actual), expected))
       throw new MechanicsError(
         "Inheritance or an upgrade part overrides this field. The requested value would not take effect.",
       );

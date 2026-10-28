@@ -664,3 +664,43 @@ it("returning from authoring uses the app menu without replacing the document", 
   expect(screen.getByText("Retained app menu")).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "Mechanics" })).toBeNull();
 });
+
+it("shows the neutral spotting value in preview and after saving a cleared input", async () => {
+  const fixture = structuredClone(snapshot);
+  const accepted = structuredClone(fixture.catalog);
+  const rows = (accepted.documents as JsonObject[])[0].units as Record<string, JsonObject>;
+  delete (rows.test_recon.sensors as JsonObject).spotting;
+  const unit = (accepted.units as JsonObject[]).find((u) => u.id === "test_recon")!;
+  delete (unit.sensors as JsonObject).spotting;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.endsWith("/preview"))
+        return respond({
+          revision: fixture.revision,
+          catalog: accepted,
+          soldierIds: {},
+          affectedUnits: ["test_recon"],
+          warnings: [],
+          files: [],
+        });
+      if (url.endsWith("/save"))
+        return respond({ ...fixture, revision: "saved", catalog: accepted });
+      return respond(fixture);
+    }),
+  );
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
+  fireEvent.change(await screen.findByRole("searchbox"), { target: { value: "test_recon" } });
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Recon Team" }));
+  const input = screen.getByLabelText("test_recon Spotting");
+  expect((input as HTMLInputElement).value).toBe("2");
+  fireEvent.change(input, { target: { value: "" } });
+  fireEvent.blur(input);
+  expect((input as HTMLInputElement).value).toBe("1");
+  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+  const preview = await screen.findByRole("region", { name: "Save preview" });
+  expect(within(preview).getByText("2 → 1")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Save authored JSON" }));
+  await waitFor(() => expect(screen.queryByRole("region", { name: "Save preview" })).toBeNull());
+  expect((screen.getByLabelText("test_recon Spotting") as HTMLInputElement).value).toBe("1");
+});

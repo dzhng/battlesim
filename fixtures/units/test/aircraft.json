@@ -34,6 +34,7 @@
       "mounts": [
         { "id": "gun", "name": "Forward Cannon", "weapons": ["air_gun"], "turret": false, "pivot_m": [0, 0, 1.8], "muzzle_m": [7, 0, 0] }
       ],
+      "concealment": 2.8,
       "sound": { "profile": "vehicle", "loudness_m": 900 },
       "appearance": "test_jet"
     },
@@ -66,6 +67,7 @@
       "mounts": [
         { "id": "HMG", "name": "Door HMG", "weapons": ["hmg"], "turret": true, "pivot_m": [1.6, 1.12, 1.25], "muzzle_m": [1.2, 0, 0] }
       ],
+      "concealment": 2.8,
       "sound": { "profile": "vehicle", "loudness_m": 900 },
       "appearance": "test_heli"
     },

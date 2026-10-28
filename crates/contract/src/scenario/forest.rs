@@ -25,9 +25,8 @@ pub struct ForestRule {
     /// Each trunk moves up to this fraction of the spacing off its cell's
     /// centre, on each axis (seeded by the forest, so every reader agrees).
     pub trunk_jitter: f64,
-    /// Detection-range multiplier for a target on uncleared forest ground, by class.
-    pub concealment_infantry: f64,
-    pub concealment_vehicle: f64,
+    /// Concealment of uncleared forest ground, independent of the target.
+    pub concealment: f64,
     /// Foliage depth per metre a sight line crosses below the canopy.
     pub attenuation_per_m: f64,
     /// A trunk's crown: it attenuates sight through fog cells whose centres lie this near.
@@ -51,6 +50,12 @@ pub struct ForestRule {
 impl ForestRules {
     /// Physical floor bodies must be ordinary catalog props the world can stand.
     pub fn check(&self, catalog: &crate::catalog::Catalog) -> Result<(), String> {
+        if !self.rule.concealment.is_finite()
+            || self.rule.concealment <= 0.0
+            || self.rule.concealment > 1.0
+        {
+            return Err("concealment must lie in (0, 1]".into());
+        }
         for (name, kind, density, half) in [
             (
                 "log",

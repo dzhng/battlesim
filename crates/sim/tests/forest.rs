@@ -64,7 +64,7 @@ fn the_rule_sets_trunk_spacing_in_every_forest() {
     assert_eq!(trunks_in(&w, 0.0, 300.0), trunks_in(&again, 0.0, 300.0));
 }
 
-/// Q21, Q-G8b: every forest hides alike, infantry more than vehicles, and
+/// Q21, Q-G8b: every forest hides alike, and
 /// open ground not at all.
 #[test]
 fn every_forest_conceals_alike() {
@@ -73,25 +73,21 @@ fn every_forest_conceals_alike() {
         forest([150.0, 0.0, 120.0, 120.0])
     ]));
     // Forest ground grants the same bonus regardless of tree crown coverage.
-    let mean = |x0: f64, infantry: bool| {
+    let mean = |x0: f64| {
         let mut sum = 0.0;
         let mut n = 0.0;
         for i in 0..20 {
             for j in 0..20 {
                 let p = v2(x0 + 20.0 + 4.0 * i as f64, 20.0 + 4.0 * j as f64);
-                sum += w.forest_concealment(infantry, p.x, p.y);
+                sum += w.forest_concealment(p.x, p.y);
                 n += 1.0;
             }
         }
         sum / n
     };
-    for infantry in [true, false] {
-        let (a, b) = (mean(0.0, infantry), mean(150.0, infantry));
-        assert!(a < 1.0 && (a - b).abs() < 0.02, "{infantry}: {a} vs {b}");
-    }
-    // Infantry hides more than a vehicle in the same foliage (the class rule).
-    assert!(mean(150.0, true) < mean(150.0, false));
-    assert_eq!(w.forest_concealment(true, 135.0, 60.0), 1.0);
+    let (a, b) = (mean(0.0), mean(150.0));
+    assert!(a < 1.0 && (a - b).abs() < 0.02, "{a} vs {b}");
+    assert_eq!(w.forest_concealment(135.0, 60.0), 1.0);
     assert!(!w.surface_at(135.0, 60.0).unwrap().forest);
     assert!(w.surface_at(210.0, 60.0).unwrap().forest);
 }
@@ -132,8 +128,8 @@ fn a_cleared_lane_reads_as_open_ground() {
     assert!(!w.surface_at(on.x, on.y).unwrap().forest);
     assert!(w.surface_at(off.x, off.y).unwrap().forest);
     // Sensing: no concealment, and no foliage along the lane.
-    assert_eq!(w.forest_concealment(true, on.x, on.y), 1.0);
-    assert!(w.forest_concealment(true, off.x, off.y) < 1.0);
+    assert_eq!(w.forest_concealment(on.x, on.y), 1.0);
+    assert!(w.forest_concealment(off.x, off.y) < 1.0);
     let along = |y: f64| w.foliage_depth(v3(35.0, y, 1.5), v3(230.0, y, 1.5));
     assert_eq!(along(60.0), 0.0);
     assert!(along(80.0) > 0.5);

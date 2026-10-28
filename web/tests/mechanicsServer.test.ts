@@ -537,3 +537,63 @@ test("a save response resolves its catalog from the same captured sources after 
   expect(saved.catalog.weapons).toMatchObject({ rifle: { damage: 60 } });
   expect(saved).toEqual(await editor.snapshot());
 });
+
+test("inherited concealment previews, saves and restores through native admission", async () => {
+  const { root, editor } = await nativeStore();
+  const initial = await editor.snapshot();
+  const source = join(root, "fixtures/units/test/infantry.json");
+  const before = await readFile(source, "utf8");
+  const draft = {
+    revision: initial.revision,
+    changes: [{ section: "units" as const, id: "test_recon", path: ["concealment"], value: 0.5 }],
+  };
+  const preview = await editor.preview(draft);
+  expect(await readFile(source, "utf8")).toBe(before);
+  expect(preview.affectedUnits).toContain("test_recon");
+  const saved = await editor.save(draft);
+  const authored = JSON.parse(await readFile(source, "utf8"));
+  expect(authored.units.test_recon.concealment).toBe(0.5);
+  const units = saved.catalog.units as JsonObject[];
+  expect(units.find((u) => u.id === "test_recon")?.concealment).toBe(0.5);
+  expect(units.find((u) => u.id === "test_rifle")?.concealment).toBe(
+    authored.units.test_squad.concealment,
+  );
+  const restored = await editor.save({
+    revision: saved.revision,
+    changes: [{ section: "units", id: "test_recon", path: ["concealment"], restore: true }],
+  });
+  expect(JSON.parse(await readFile(source, "utf8")).units.test_recon).not.toHaveProperty(
+    "concealment",
+  );
+  expect(
+    (restored.catalog.units as JsonObject[]).find((u) => u.id === "test_recon")?.concealment,
+  ).toBe(authored.units.test_squad.concealment);
+}, 30000);
+
+test("clearing spotting previews and saves its neutral value through native admission", async () => {
+  const { root, editor } = await nativeStore();
+  const { gameplayField, parseFieldValue } = await import("../../apps/mechanics-editor/src/fields");
+  const initial = await editor.snapshot();
+  const field = gameplayField("units", ["sensors", "spotting"])!;
+  const cleared = parseFieldValue(field, "", {});
+  expect(cleared).toHaveProperty("value");
+  const draft = {
+    revision: initial.revision,
+    changes: [
+      { section: "units" as const, id: "test_recon", path: field.path, value: cleared.value! },
+    ],
+  };
+  const source = join(root, "fixtures/units/test/infantry.json");
+  const before = await readFile(source, "utf8");
+  const preview = await editor.preview(draft);
+  expect(preview.affectedUnits).toContain("test_recon");
+  expect(await readFile(source, "utf8")).toBe(before);
+  const saved = await editor.save(draft);
+  expect(JSON.parse(await readFile(source, "utf8")).units.test_recon.sensors.spotting).toBe(1);
+  expect(
+    (
+      (saved.catalog.units as JsonObject[]).find((u) => u.id === "test_recon")!
+        .sensors as JsonObject
+    ).spotting,
+  ).toBeUndefined();
+}, 30000);

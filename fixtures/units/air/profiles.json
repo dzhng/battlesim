@@ -40,6 +40,7 @@
           "rear": 0.3
         }
       },
+      "concealment": 2.8,
       "sound": {
         "profile": "vehicle",
         "loudness_m": 800
@@ -91,6 +92,7 @@
           "rear": 0.3
         }
       },
+      "concealment": 2.8,
       "sound": {
         "profile": "vehicle",
         "loudness_m": 900
@@ -142,6 +144,7 @@
           "rear": 0.3
         }
       },
+      "concealment": 2.8,
       "sound": {
         "profile": "vehicle",
         "loudness_m": 1000
@@ -193,6 +196,7 @@
           "rear": 0.3
         }
       },
+      "concealment": 2.8,
       "sound": {
         "profile": "vehicle",
         "loudness_m": 900
@@ -244,6 +248,7 @@
           "rear": 0.3
         }
       },
+      "concealment": 2.8,
       "sound": {
         "profile": "vehicle",
         "loudness_m": 900

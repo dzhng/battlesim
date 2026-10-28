@@ -46,3 +46,24 @@ it("names the allowed choices when a choice list is not a list", () => {
   expect(validateGameplayValue("weapons", classes, ["tank"])).toBe(expected);
   expect(validateGameplayValue("weapons", classes, ["infantry"])).toBeUndefined();
 });
+
+it("edits required concealment and optional spotting below one", () => {
+  const concealment = gameplayField("units", ["concealment"]);
+  const spotting = gameplayField("units", ["sensors", "spotting"]);
+  expect(concealment).not.toBeNull();
+  expect(spotting).not.toBeNull();
+  expect(parseFieldValue(concealment!, "0.5", {})).toEqual({ value: 0.5 });
+  expect(parseFieldValue(concealment!, "", {})).toHaveProperty("error");
+  expect(parseFieldValue(spotting!, "0.8", {})).toEqual({ value: 0.8 });
+  expect(parseFieldValue(spotting!, "", {})).toEqual({ value: 1 });
+});
+
+it("shows omitted numeric defaults and refuses nonpositive concealment inputs", () => {
+  const spotting = gameplayField("units", ["sensors", "spotting"])!;
+  expect(displayFieldValue(spotting, undefined)).toBe("1");
+  for (const path of [["concealment"], ["sensors", "spotting"]]) {
+    const field = gameplayField("units", path)!;
+    expect(parseFieldValue(field, "0", {})).toHaveProperty("error");
+    expect(parseFieldValue(field, "-0.5", {})).toHaveProperty("error");
+  }
+});

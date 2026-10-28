@@ -1,6 +1,7 @@
 {
   "units": {
     "eastern_2s19_msta_s_2s19m2": {
+                                    "concealment": 2.8,
       "name": "2S19M2 Msta-S",
       "description": "2S19M2",
       "faction": "eastern",
@@ -84,6 +85,7 @@
       }
     },
     "eastern_9k515_tornado_s_heavy_rocket_artillery": {
+                                                        "concealment": 2.8,
       "name": "Tornado-S",
       "description": "Heavy rocket artillery",
       "faction": "eastern",
@@ -258,6 +260,7 @@
       }
     },
     "eastern_bm_21_grad_bm_21_rocket_artillery": {
+                                                   "concealment": 2.8,
       "name": "BM-21 Grad",
       "description": "BM-21 rocket artillery",
       "faction": "eastern",
@@ -342,6 +345,7 @@
       }
     },
     "eastern_bmp_ifv_family_bmp_2m_berezhok": {
+                                                "concealment": 2.8,
       "name": "BMP-2M Berezhok",
       "description": "BMP-2M Berezhok; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -445,6 +449,7 @@
       }
     },
     "eastern_bmp_ifv_family_bmp_3": {
+                                      "concealment": 2.8,
       "name": "BMP-3",
       "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; direct optical guidance only, no top attack or fire-and-forget",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -549,6 +554,7 @@
       }
     },
     "eastern_brm_brm_3k": {
+                            "concealment": 2.8,
       "name": "BRM-3K",
       "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
       "capabilities": { "carriage": { "seats": 3 } },
@@ -627,6 +633,7 @@
       }
     },
     "eastern_btr_btr_82a": {
+                             "concealment": 2.8,
       "name": "BTR-82A",
       "description": "BTR-82A; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -712,6 +719,7 @@
       }
     },
     "eastern_buk_buk_m3_medium_range_air_defense": {
+                                                     "concealment": 2.8,
       "name": "Buk-M3",
       "description": "Buk-M3 medium-range air defense",
       "faction": "eastern",
@@ -1436,6 +1444,7 @@
       }
     },
     "eastern_pantsir_pantsir_sm": {
+                                    "concealment": 2.8,
       "name": "Pantsir-SM",
       "description": "Pantsir-SM",
       "faction": "eastern",
@@ -1518,6 +1527,7 @@
       "appearance": "eastern_pantsir_pantsir_sm"
     },
     "eastern_plz_05_chinese_tracked_155_mm_howitzer": {
+                                                        "concealment": 2.8,
       "name": "PLZ-05",
       "description": "Chinese tracked 155 mm howitzer",
       "faction": "eastern",
@@ -2158,6 +2168,7 @@
       "appearance": "eastern_sukhoi_flanker_family_su_35s"
     },
     "eastern_t_14_armata_main_battle_tank": {
+                                              "concealment": 2.8,
       "name": "T-14 Armata",
       "description": "Main battle tank",
       "faction": "eastern",
@@ -2255,6 +2266,7 @@
       }
     },
     "eastern_t_15_armata_heavy_ifv": {
+                                       "concealment": 2.8,
       "name": "T-15 Armata",
       "description": "Heavy IFV; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -2352,6 +2364,7 @@
       }
     },
     "eastern_t_72_t_72b3_2016": {
+                                  "concealment": 2.8,
       "name": "T-72B3",
       "description": "T-72B3 (2016)",
       "faction": "eastern",
@@ -2455,6 +2468,7 @@
       }
     },
     "eastern_t_80_t_80bvm": {
+                              "concealment": 2.8,
       "name": "T-80BVM",
       "description": "T-80BVM",
       "faction": "eastern",
@@ -2558,6 +2572,7 @@
       }
     },
     "eastern_t_90_t_90m_proryv": {
+                                   "concealment": 2.8,
       "name": "T-90M",
       "description": "T-90M Proryv",
       "faction": "eastern",
@@ -2661,6 +2676,7 @@
       }
     },
     "eastern_tigr_tigr_m": {
+                             "concealment": 2.8,
       "name": "Tigr-M",
       "description": "Tigr-M",
       "capabilities": { "carriage": { "seats": 3 } },
@@ -2746,6 +2762,7 @@
       }
     },
     "eastern_type_15_ztq_15_light_tank": {
+                                           "concealment": 2.8,
       "name": "ZTQ-15",
       "description": "ZTQ-15 light tank",
       "faction": "eastern",
@@ -2844,6 +2861,7 @@
       }
     },
     "eastern_type_99_ztz_99a": {
+                                 "concealment": 2.8,
       "name": "ZTZ-99A",
       "description": "ZTZ-99A",
       "faction": "eastern",
@@ -2947,6 +2965,7 @@
       }
     },
     "eastern_ural_4320_general_resupply": {
+                                            "concealment": 2.8,
       "name": "Ural-4320",
       "description": "General resupply",
       "faction": "eastern",
@@ -3157,6 +3176,7 @@
       "appearance": "eastern_z_20_utility_transport"
     },
     "eastern_zbl_08_wheeled_ifv": {
+                                    "concealment": 2.8,
       "name": "ZBL-08",
       "description": "Wheeled IFV; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -3242,6 +3262,7 @@
       }
     },
     "eastern_s300_long": {
+                           "concealment": 2.8,
       "name": "S-300PMU2 Favorit",
       "description": "S-300PMU2 Favorit long-range air defence.",
       "faction": "eastern",
@@ -3324,6 +3345,7 @@
       }
     },
     "eastern_s350_long": {
+                           "concealment": 2.8,
       "name": "S-350",
       "description": "S-350 long-range air defence.",
       "faction": "eastern",

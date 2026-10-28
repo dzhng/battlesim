@@ -7,7 +7,7 @@
 use std::collections::BTreeSet;
 
 use contract::ids::{Side, UnitId};
-use contract::observation::{MoveState, SoundBand, SoundCategory, SoundCue};
+use contract::observation::{SoundBand, SoundCategory, SoundCue};
 use contract::scenario::Rules;
 
 use crate::knowledge::SideKnowledge;
@@ -65,7 +65,7 @@ pub fn hear(
                 } else {
                     SoundBand::Far
                 },
-                moving: category == base.0 && source.state == MoveState::Moving,
+                moving: category == base.0 && source.moving(),
             });
         }
     }

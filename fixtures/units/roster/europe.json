@@ -1,6 +1,7 @@
 {
   "units": {
     "europe_ajax_tracked_reconnaissance_vehicle": {
+                                                    "concealment": 2.8,
       "name": "Ajax",
       "description": "Tracked reconnaissance vehicle",
       "faction": "europe",
@@ -80,7 +81,7 @@
           "side": 1,
           "rear": 1
         },
-        "concealed_range_multiplier": 1.5,
+        "spotting": 1.5,
         "on": "autocannon"
       }
     },
@@ -244,6 +245,7 @@
       "appearance": "europe_aw159_wildcat_ah1"
     },
     "europe_boxer_apc": {
+                          "concealment": 2.8,
       "name": "Boxer APC",
       "description": "APC; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -329,6 +331,7 @@
       }
     },
     "europe_boxer_rct30": {
+                            "concealment": 2.8,
       "name": "Boxer RCT30",
       "description": "RCT30; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -414,6 +417,7 @@
       }
     },
     "europe_boxer_skyranger_30_gun_and_missile_air_defense": {
+                                                               "concealment": 2.8,
       "name": "Skyranger 30",
       "description": "Gun-and-missile air-defense vehicle",
       "faction": "europe",
@@ -493,6 +497,7 @@
       "appearance": "europe_boxer_skyranger_30_gun_and_missile_air_defense"
     },
     "europe_caesar_88": {
+                          "concealment": 2.8,
       "name": "CAESAR 8\u00d78",
       "description": "8\u00d78",
       "faction": "europe",
@@ -577,6 +582,7 @@
       }
     },
     "europe_centauro_ii": {
+                            "concealment": 2.8,
       "name": "Centauro II",
       "description": "Wheeled 120 mm tank destroyer",
       "faction": "europe",
@@ -752,6 +758,7 @@
       "appearance": "europe_ch_47_chinook_hc6"
     },
     "europe_challenger_challenger_2_tes": {
+                                            "concealment": 2.8,
       "name": "Challenger 2 TES",
       "description": "Challenger 2 TES",
       "faction": "europe",
@@ -901,6 +908,7 @@
       }
     },
     "europe_cv90120_light_tank": {
+                                   "concealment": 2.8,
       "name": "CV90120",
       "description": "Light tank",
       "faction": "europe",
@@ -999,6 +1007,7 @@
       }
     },
     "europe_cv90_cv9040c": {
+                             "concealment": 2.8,
       "name": "CV9040C",
       "description": "CV9040C; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -1083,6 +1092,7 @@
       }
     },
     "europe_cv90_mk_iv": {
+                           "concealment": 2.8,
       "name": "CV90 Mk IV",
       "description": "Mk IV; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -1167,6 +1177,7 @@
       }
     },
     "europe_ebrc_jaguar_armed_reconnaissance_vehicle": {
+                                                         "concealment": 2.8,
       "name": "Jaguar",
       "description": "Armed reconnaissance vehicle",
       "faction": "europe",
@@ -1464,6 +1475,7 @@
       "appearance": "europe_eurofighter_typhoon_tranche_3"
     },
     "europe_fennek_reconnaissance_vehicle": {
+                                              "concealment": 2.8,
       "name": "Fennek",
       "description": "Reconnaissance vehicle",
       "faction": "europe",
@@ -1544,11 +1556,12 @@
           "side": 1,
           "rear": 1
         },
-        "concealed_range_multiplier": 1.5,
+        "spotting": 1.5,
         "on": "HMG"
       }
     },
     "europe_gepard_1a2": {
+                           "concealment": 2.8,
       "name": "Gepard 1A2",
       "description": "Twin 35 mm radar-directed anti-aircraft gun on a Leopard 1 hull",
       "faction": "europe",
@@ -1764,6 +1777,7 @@
       }
     },
     "europe_kf51_panther_prototype_main_battle_tank": {
+                                                        "concealment": 2.8,
       "name": "KF51 Panther",
       "description": "Prototype main battle tank",
       "faction": "europe",
@@ -1867,6 +1881,7 @@
       }
     },
     "europe_leclerc_xlr": {
+                            "concealment": 2.8,
       "name": "Leclerc XLR",
       "description": "XLR",
       "faction": "europe",
@@ -1970,6 +1985,7 @@
       }
     },
     "europe_leopard_2_2a6": {
+                              "concealment": 2.8,
       "name": "Leopard 2A6",
       "description": "2A6",
       "faction": "europe",
@@ -2073,6 +2089,7 @@
       }
     },
     "europe_leopard_2_2a7v": {
+                               "concealment": 2.8,
       "name": "Leopard 2A7V",
       "description": "2A7V",
       "faction": "europe",
@@ -2212,6 +2229,7 @@
       }
     },
     "europe_man_hx_general_resupply": {
+                                        "concealment": 2.8,
       "name": "MAN HX",
       "description": "General resupply",
       "faction": "europe",
@@ -2308,6 +2326,7 @@
       }
     },
     "europe_mars_ii_multiple_launch_rocket_system": {
+                                                      "concealment": 2.8,
       "name": "MARS II",
       "description": "Multiple-launch rocket system",
       "faction": "europe",
@@ -2455,6 +2474,7 @@
       "appearance": "europe_mirage_2000_2000d_rmv"
     },
     "europe_nasams_nasams_3": {
+                                "concealment": 2.8,
       "name": "NASAMS 3",
       "description": "NASAMS 3",
       "faction": "europe",
@@ -2614,6 +2634,7 @@
       "appearance": "europe_nh90_tth"
     },
     "europe_puma_level_c": {
+                             "concealment": 2.8,
       "name": "Puma Level C",
       "description": "Level C; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -2717,6 +2738,7 @@
       }
     },
     "europe_pzh_2000_tracked_155_mm_howitzer": {
+                                                 "concealment": 2.8,
       "name": "PzH 2000",
       "description": "Tracked 155 mm howitzer",
       "faction": "europe",
@@ -3085,6 +3107,7 @@
       "appearance": "europe_tornado_ids"
     },
     "europe_vbci_infantry_fighting_vehicle": {
+                                               "concealment": 2.8,
       "name": "VBCI",
       "description": "Infantry fighting vehicle",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -3170,6 +3193,7 @@
       }
     },
     "europe_vbl_machine_gun_scout": {
+                                      "concealment": 2.8,
       "name": "VBL",
       "description": "Machine-gun scout",
       "capabilities": { "carriage": { "seats": 3 } },
@@ -3255,6 +3279,7 @@
       }
     },
     "europe_iris_t_medium": {
+                              "concealment": 2.8,
       "name": "IRIS-T SLM",
       "description": "IRIS-T SLM long-range air defence.",
       "faction": "europe",

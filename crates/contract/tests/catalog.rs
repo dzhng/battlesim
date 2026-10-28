@@ -3,60 +3,9 @@
 use contract::catalog::{resolve, Body, CatalogError, Mobility};
 use serde_json::{json, Value};
 
-fn roles() -> Value {
-    json!({ "roles": {
-        "mbt": { "name": "Main battle tank", "description": "", "symbol": ["armour"] },
-        "infantry": { "name": "Infantry", "description": "", "symbol": ["infantry"] },
-    } })
-}
-
-/// A complete tracked tank entry, abstract so leaves extend it.
-fn base_tank() -> Value {
-    json!({
-        "abstract": true,
-        "name": "Tank", "description": "", "faction": "test", "family": "tanks",
-        "roles": ["mbt"], "cost": 200,
-        "body": { "hull": {
-            "half_extents_m": [3.5, 1.8, 1.2], "eye_m": 2.3, "hp": 100,
-            "armor": { "front": 140, "side": 100, "rear": 60, "roof": 40,
-                "ricochet": { "front": 0.5, "side": 0.3, "rear": 0.2, "roof": 0.6 } },
-            "weight_class": "heavy", "push_class": "heavy", "wreck": "heavy_wreck"
-        } },
-        "mobility": { "tracked": { "offroad_kmh": 22, "road_kmh": 43, "turn_deg_s": 45, "reverse_fraction": 0.4 } },
-        "sensors": { "ground_m": 350, "low_air_m": 350, "high_air_m": 300, "sight_shape": { "front": 1, "side": 0.5, "rear": 0.3 }, "on": "cannon" },
-        "mounts": [
-            { "id": "cannon", "name": "Main Gun", "weapons": ["ap", "he"], "turret": true, "pivot_m": [0, 0, 1.45], "muzzle_m": [5.9, 0, 0.55] },
-            { "id": "HMG", "name": "HMG", "weapons": ["hmg"], "turret": true, "on": "cannon", "pivot_m": [-0.25, -0.58, 2.35], "muzzle_m": [1.4, 0, 0.3] }
-        ],
-        "sound": { "profile": "vehicle", "loudness_m": 650 },
-        "appearance": "tank"
-    })
-}
-
-/// The prop types the test units leave behind: a tank's wreck that burns
-/// down to a lighter one.
-fn wrecks() -> Value {
-    json!({ "props": {
-        "wreck": { "abstract": true, "wreck": true,
-            "body": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true,
-                "occludes": false, "armor": 0.5 },
-            "appearance": { "drawn_by": "wreck" } },
-        "light_wreck": { "extends": "wreck",
-            "body": { "weight_class": "light", "cover_tier": "light", "hp": 150 },
-            "destroyed": "removed" },
-        "heavy_wreck": { "extends": "wreck",
-            "body": { "weight_class": "heavy", "cover_tier": "heavy", "hp": 400 },
-            "destroyed": { "into": { "prop": "light_wreck", "height_m": 1.2 } } },
-    } })
-}
-
-fn units(entries: Value) -> Vec<Value> {
-    vec![roles(), wrecks(), json!({ "units": entries })]
-}
-
-fn rotor_air(cruise_kmh: u32, turn_deg_s: u32, climb_mps: u32) -> Value {
-    json!({ "air": { "cruise_kmh": cruise_kmh, "turn_deg_s": turn_deg_s, "climb_mps": climb_mps, "layer": "low_air", "flight": "rotor" } })
-}
+#[path = "common/catalog.rs"]
+mod inputs;
+use inputs::{base_tank, roles, rotor_air, units};
 
 #[test]
 fn planned_aircraft_is_a_visible_card_but_not_a_physical_type() {
@@ -102,17 +51,14 @@ fn aircraft_refund_weights_must_sum_to_one() {
 }
 
 #[test]
-fn concealed_detection_bonus_cannot_reduce_ordinary_sight() {
-    for multiplier in [0.5, 0.0, -1.0] {
+fn spotting_must_be_positive() {
+    for multiplier in [0.0, -1.0] {
         let mut base = base_tank();
-        base["sensors"]["concealed_range_multiplier"] = json!(multiplier);
+        base["sensors"]["spotting"] = json!(multiplier);
         let error = resolve(&units(json!({ "base": base, "t": { "extends": "base" } })))
             .unwrap_err()
             .to_string();
-        assert!(
-            error.contains("sensors.concealed_range_multiplier"),
-            "{error}"
-        );
+        assert!(error.contains("sensors.spotting"), "{error}");
     }
 }
 
@@ -183,7 +129,7 @@ fn a_squad_carries_its_soldiers_mounts_by_slot() {
         "body": { "squad": { "slots": ["rifleman", "gunner", "rifleman"] } },
         "mobility": { "foot": { "offroad_kmh": 11, "road_kmh": 14 } },
         "sensors": { "ground_m": 600, "low_air_m": 600, "high_air_m": 600, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
-        "sound": { "profile": "infantry", "loudness_m": 200 }
+        "concealment": 1, "sound": { "profile": "infantry", "loudness_m": 200 }
     } }));
     docs.push(soldiers);
     let catalog = resolve(&docs).unwrap();
@@ -202,6 +148,18 @@ fn a_squad_carries_its_soldiers_mounts_by_slot() {
 
 fn error(entries: Value) -> CatalogError {
     resolve(&units(entries)).unwrap_err()
+}
+
+#[test]
+fn a_physical_unit_resolving_without_concealment_is_refused() {
+    let mut base = base_tank();
+    base.as_object_mut().unwrap().remove("concealment");
+    let error = error(json!({ "base": base, "t": { "extends": "base" } }));
+    assert!(
+        matches!(&error, CatalogError::Invalid { id, error, .. }
+        if id == "t" && error.contains("concealment")),
+        "{error}"
+    );
 }
 
 #[test]
@@ -850,7 +808,7 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
             "body": { "squad": { "slots": ["rifleman"] } },
             "mobility": { "foot": { "offroad_kmh": 11, "road_kmh": 14 } },
             "sensors": { "ground_m": 600, "low_air_m": 600, "high_air_m": 600, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
-            "sound": { "profile": "infantry", "loudness_m": 200 }
+            "concealment": 1, "sound": { "profile": "infantry", "loudness_m": 200 }
         }
     }));
     docs.push(roles);
@@ -920,7 +878,7 @@ fn flares_need_a_hull() {
         "body": { "squad": { "slots": ["rifleman"] } },
         "mobility": { "foot": { "offroad_kmh": 11, "road_kmh": 14 } },
         "sensors": { "ground_m": 600, "low_air_m": 600, "high_air_m": 600, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
-        "sound": { "profile": "infantry", "loudness_m": 200 },
+        "concealment": 1, "sound": { "profile": "infantry", "loudness_m": 200 },
         "capabilities": { "flares": { "capacity": 2, "reload_s": 3 } }
     } }));
     docs.push(soldiers);

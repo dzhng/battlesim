@@ -26,6 +26,7 @@ fn base_tank() -> Value {
             { "id": "cannon", "name": "Main Gun", "weapons": ["ap", "he"], "turret": true, "pivot_m": [0, 0, 1.45], "muzzle_m": [5.9, 0, 0.55] },
             { "id": "HMG", "name": "HMG", "weapons": ["hmg"], "turret": true, "on": "cannon", "pivot_m": [-0.25, -0.58, 2.35], "muzzle_m": [1.4, 0, 0.3] }
         ],
+        "concealment": 2.8,
         "sound": { "profile": "vehicle", "loudness_m": 650 },
         "appearance": "tank"
     })

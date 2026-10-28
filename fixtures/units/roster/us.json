@@ -65,6 +65,7 @@
       "appearance": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
     },
     "us_acv_acv_p": {
+                      "concealment": 2.8,
       "name": "ACV-P",
       "description": "ACV-P; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -1043,6 +1044,7 @@
       }
     },
     "us_lav_lav_25a2": {
+                         "concealment": 2.8,
       "name": "LAV-25A2",
       "description": "LAV-25A2; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -1128,6 +1130,7 @@
       }
     },
     "us_lav_lav_at": {
+                       "concealment": 2.8,
       "name": "LAV-AT",
       "description": "LAV-AT; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
@@ -1212,6 +1215,7 @@
       }
     },
     "us_m109_paladin_m109a7": {
+                                "concealment": 2.8,
       "name": "M109A7 Paladin",
       "description": "M109A7",
       "faction": "us",
@@ -1295,6 +1299,7 @@
       }
     },
     "us_m10_booker": {
+                       "concealment": 2.8,
       "name": "M10 Booker",
       "description": "Light tank",
       "faction": "us",
@@ -1393,6 +1398,7 @@
       }
     },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
+                                                    "concealment": 2.8,
       "name": "Stryker RV",
       "description": "Reconnaissance vehicle",
       "capabilities": { "carriage": { "seats": 3 } },
@@ -1474,11 +1480,12 @@
           "side": 1,
           "rear": 1
         },
-        "concealed_range_multiplier": 1.5,
+        "spotting": 1.5,
         "on": "HMG"
       }
     },
     "us_m1129_stryker_mortar_120_mm_mortar_carrier": {
+                                                       "concealment": 2.8,
       "name": "Stryker Mortar",
       "description": "120 mm mortar carrier",
       "faction": "us",
@@ -1563,6 +1570,7 @@
       }
     },
     "us_m1151_hmmwv_hmg": {
+                            "concealment": 2.8,
       "name": "M1151 HMMWV",
       "description": "HMG",
       "capabilities": { "carriage": { "seats": 3 } },
@@ -1648,6 +1656,7 @@
       }
     },
     "us_m142_himars_gmlrs": {
+                              "concealment": 2.8,
       "name": "HIMARS GMLRS",
       "description": "GMLRS",
       "faction": "us",
@@ -1732,6 +1741,7 @@
       }
     },
     "us_m142_himars_prsm": {
+                             "concealment": 2.8,
       "name": "HIMARS PrSM",
       "description": "PrSM",
       "faction": "us",
@@ -1816,6 +1826,7 @@
       }
     },
     "us_m1_abrams_sep_v2": {
+                             "concealment": 2.8,
       "name": "M1A2 SEP v2",
       "description": "SEP v2",
       "faction": "us",
@@ -2109,6 +2120,7 @@
       ]
     },
     "us_m270_mlrs_m270a2": {
+                             "concealment": 2.8,
       "name": "M270A2 MLRS",
       "description": "M270A2",
       "faction": "us",
@@ -2192,6 +2204,7 @@
       }
     },
     "us_m2_bradley_ifv_m2a4": {
+                                "concealment": 2.8,
       "name": "M2A4 Bradley",
       "description": "M2A4; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -2295,6 +2308,7 @@
       }
     },
     "us_m3_bradley_cfv_m3a3": {
+                                "concealment": 2.8,
       "name": "M3A3 Bradley",
       "description": "M3A3; direct optical guidance only, no top attack or fire-and-forget",
       "capabilities": { "carriage": { "seats": 3 } },
@@ -2394,11 +2408,12 @@
           "side": 1,
           "rear": 1
         },
-        "concealed_range_multiplier": 1.5,
+        "spotting": 1.5,
         "on": "autocannon"
       }
     },
     "us_m977_hemtt_general_resupply": {
+                                        "concealment": 2.8,
       "name": "M977 HEMTT",
       "description": "General resupply",
       "faction": "us",
@@ -2623,6 +2638,7 @@
       }
     },
     "us_stryker_m1126_icv": {
+                              "concealment": 2.8,
       "name": "Stryker ICV",
       "description": "M1126 ICV; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -2708,6 +2724,7 @@
       }
     },
     "us_stryker_m1134_atgm": {
+                               "concealment": 2.8,
       "name": "Stryker ATGM",
       "description": "M1134 ATGM; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
@@ -2792,6 +2809,7 @@
       }
     },
     "us_stryker_m1296_dragoon": {
+                                  "concealment": 2.8,
       "name": "Stryker Dragoon",
       "description": "M1296 Dragoon; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -2877,6 +2895,7 @@
       }
     },
     "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": {
+                                                                 "concealment": 2.8,
       "name": "Stryker M-SHORAD",
       "description": "Gun-and-missile air-defense vehicle",
       "faction": "us",
@@ -3110,6 +3129,7 @@
       "appearance": "us_uh_60_black_hawk_uh_60m"
     },
     "us_patriot_long": {
+                         "concealment": 2.8,
       "name": "Patriot PAC-3",
       "description": "Patriot PAC-3 long-range air defence.",
       "faction": "us",
@@ -3192,6 +3212,7 @@
       }
     },
     "us_nasams_medium": {
+                          "concealment": 2.8,
       "name": "NASAMS 3",
       "description": "NASAMS 3 long-range air defence.",
       "faction": "us",

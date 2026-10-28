@@ -33,10 +33,12 @@ import {
 import {
   CONVERSION_CAPTIONS,
   displayFieldValue,
+  fieldValue,
   entryFields,
   gameplayField,
   isObject,
   parseFieldValue,
+  rawText,
   validateGameplayValue,
   valueAt,
   type GameplayField,
@@ -74,15 +76,6 @@ const emptyDraft = (snapshot: MechanicsSnapshot): MechanicsDraft => ({
   revision: snapshot.revision,
   changes: [],
 });
-const rawText = (value: Json | undefined) =>
-  value === undefined || value === null
-    ? ""
-    : Array.isArray(value)
-      ? value.join(", ")
-      : typeof value === "object"
-        ? JSON.stringify(value, null, 2)
-        : String(value);
-
 function ChangeSummary({
   change,
   preview,
@@ -98,6 +91,7 @@ function ChangeSummary({
   const beforeValue = valueAt(before, change.path);
   const afterValue = valueAt(after, change.path);
   const formatted = (value: Json | undefined) => {
+    value = fieldValue(field, value);
     if (value === undefined) return "Unset";
     if (value === null) return "Disabled";
     const text = field ? displayFieldValue(field, value) : rawText(value);
@@ -223,7 +217,7 @@ function ValueInput({
 }) {
   const editor = useEditor();
   const key = `${changeKey(target, field.path)}:${raw ? "raw" : "human"}`;
-  const original = valueAt(entry, field.path);
+  const original = fieldValue(field, valueAt(entry, field.path));
   const value = field.kind === "mounts" ? mountValue(target, original) : original;
   const buffer = editor.texts[key];
   const text = buffer?.text ?? (raw ? rawText(value) : displayFieldValue(field, value));

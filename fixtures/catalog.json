@@ -6614,6 +6614,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 360,
           "description": "AH-64E Guardian",
           "faction": "us",
@@ -6736,6 +6737,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 110,
           "description": "Close-quarters infantry",
           "faction": "generic",
@@ -6803,6 +6805,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 270,
           "description": "2S19M2",
           "faction": "eastern",
@@ -6894,6 +6897,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 360,
           "description": "Heavy rocket artillery",
           "faction": "eastern",
@@ -6968,6 +6972,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 100,
           "description": "FN-6",
           "faction": "eastern",
@@ -7016,6 +7021,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 100,
           "description": "Igla-S",
           "faction": "eastern",
@@ -7069,6 +7075,7 @@
               "seconds": 3.0
             }
           },
+          "concealment": 1.0,
           "cost": 140,
           "description": "Kornet; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "eastern",
@@ -7135,6 +7142,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 220,
           "description": "BM-21 rocket artillery",
           "faction": "eastern",
@@ -7231,6 +7239,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 190,
           "description": "BMP-2M Berezhok; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "eastern",
@@ -7348,6 +7357,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 210,
           "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "eastern",
@@ -7466,6 +7476,7 @@
               "seats": 3
             }
           },
+          "concealment": 2.8,
           "cost": 180,
           "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
           "faction": "eastern",
@@ -7514,7 +7525,6 @@
             "variant": "BRM-3K"
           },
           "sensors": {
-            "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
             "high_air_m": 300.0,
             "low_air_m": 850.0,
@@ -7523,7 +7533,8 @@
               "front": 1.0,
               "rear": 1.0,
               "side": 1.0
-            }
+            },
+            "spotting": 1.5
           },
           "sound": {
             "loudness_m": 650.0,
@@ -7563,6 +7574,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 140,
           "description": "BTR-82A; infantry carrier",
           "faction": "eastern",
@@ -7658,6 +7670,7 @@
           "capabilities": {
             "radar_emitter": true
           },
+          "concealment": 2.8,
           "cost": 300,
           "description": "Buk-M3 medium-range air defense",
           "faction": "eastern",
@@ -7767,6 +7780,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 340,
           "description": "J-10C",
           "faction": "eastern",
@@ -7903,6 +7917,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 490,
           "description": "Stealth fighter",
           "faction": "eastern",
@@ -8006,6 +8021,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 360,
           "description": "Ka-52M",
           "faction": "eastern",
@@ -8156,6 +8172,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 110,
           "description": "SVD-equipped longer-range infantry",
           "faction": "eastern",
@@ -8230,6 +8247,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 270,
           "description": "Mi-35M",
           "faction": "eastern",
@@ -8348,6 +8366,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 330,
           "description": "Mi-28NM",
           "faction": "eastern",
@@ -8469,6 +8488,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 170,
           "description": "Mi-8AMTSh",
           "faction": "eastern",
@@ -8607,6 +8627,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 280,
           "description": "MiG-29SMT",
           "faction": "eastern",
@@ -8764,6 +8785,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 350,
           "description": "MiG-31BM",
           "faction": "eastern",
@@ -8906,6 +8928,7 @@
           "capabilities": {
             "radar_emitter": true
           },
+          "concealment": 2.8,
           "cost": 250,
           "description": "Pantsir-SM",
           "faction": "eastern",
@@ -8998,6 +9021,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 280,
           "description": "Chinese tracked 155 mm howitzer",
           "faction": "eastern",
@@ -9076,6 +9100,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 90,
           "description": "Standard infantry with a general-purpose RPG.",
           "faction": "eastern",
@@ -9124,6 +9149,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 110,
           "description": "RPG-29",
           "faction": "eastern",
@@ -9172,6 +9198,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 90,
           "description": "RPG-7",
           "faction": "eastern",
@@ -9240,6 +9267,7 @@
           "capabilities": {
             "radar_emitter": true
           },
+          "concealment": 2.8,
           "cost": 360,
           "description": "S-300PMU2 Favorit long-range air defence.",
           "faction": "eastern",
@@ -9334,6 +9362,7 @@
           "capabilities": {
             "radar_emitter": true
           },
+          "concealment": 2.8,
           "cost": 360,
           "description": "S-350 long-range air defence.",
           "faction": "eastern",
@@ -9429,6 +9458,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 80,
           "description": "Light patrol",
           "faction": "eastern",
@@ -9452,7 +9482,6 @@
             "variant": "Light patrol"
           },
           "sensors": {
-            "concealed_range_multiplier": 2.0,
             "ground_m": 750.0,
             "high_air_m": 600.0,
             "low_air_m": 750.0,
@@ -9460,7 +9489,8 @@
               "front": 1.0,
               "rear": 1.0,
               "side": 1.0
-            }
+            },
+            "spotting": 2.0
           },
           "sound": {
             "loudness_m": 200.0,
@@ -9477,6 +9507,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 100,
           "description": "ASVK heavy sniper team",
           "faction": "eastern",
@@ -9560,6 +9591,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 270,
           "description": "Su-25SM3",
           "faction": "eastern",
@@ -9696,6 +9728,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 480,
           "description": "Stealth multirole fighter",
           "faction": "eastern",
@@ -9853,6 +9886,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 310,
           "description": "Su-27SM3",
           "faction": "eastern",
@@ -9992,6 +10026,7 @@
               "range_m": 5000.0
             }
           },
+          "concealment": 2.8,
           "cost": 370,
           "description": "Su-30SM2",
           "faction": "eastern",
@@ -10128,6 +10163,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 390,
           "description": "Su-34",
           "faction": "eastern",
@@ -10285,6 +10321,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 410,
           "description": "Su-35S",
           "faction": "eastern",
@@ -10404,6 +10441,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 440,
           "description": "Main battle tank",
           "faction": "eastern",
@@ -10522,6 +10560,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 300,
           "description": "Heavy IFV; infantry carrier",
           "faction": "eastern",
@@ -10635,6 +10674,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 280,
           "description": "T-72B3 (2016)",
           "faction": "eastern",
@@ -10749,6 +10789,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 310,
           "description": "T-80BVM",
           "faction": "eastern",
@@ -10863,6 +10904,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 360,
           "description": "T-90M Proryv",
           "faction": "eastern",
@@ -10981,6 +11023,7 @@
               "seats": 3
             }
           },
+          "concealment": 2.8,
           "cost": 90,
           "description": "Tigr-M",
           "faction": "eastern",
@@ -11074,6 +11117,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 230,
           "description": "ZTQ-15 light tank",
           "faction": "eastern",
@@ -11188,6 +11232,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 360,
           "description": "ZTZ-99A",
           "faction": "eastern",
@@ -11310,6 +11355,7 @@
               "stock": 250
             }
           },
+          "concealment": 2.8,
           "cost": 90,
           "description": "General resupply",
           "faction": "eastern",
@@ -11384,6 +11430,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 300,
           "description": "Attack helicopter",
           "faction": "eastern",
@@ -11505,6 +11552,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 180,
           "description": "Utility transport",
           "faction": "eastern",
@@ -11630,6 +11678,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 190,
           "description": "Wheeled IFV; infantry carrier",
           "faction": "eastern",
@@ -11723,6 +11772,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 220,
           "description": "Tracked reconnaissance vehicle",
           "faction": "europe",
@@ -11771,7 +11821,6 @@
             "variant": "Tracked reconnaissance vehicle"
           },
           "sensors": {
-            "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
             "high_air_m": 300.0,
             "low_air_m": 850.0,
@@ -11780,7 +11829,8 @@
               "front": 1.0,
               "rear": 1.0,
               "side": 1.0
-            }
+            },
+            "spotting": 1.5
           },
           "sound": {
             "loudness_m": 650.0,
@@ -11798,6 +11848,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 150,
           "description": "Akeron MP; top attack, the gunner must keep sight",
           "faction": "europe",
@@ -11872,6 +11923,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 230,
           "description": "HC4",
           "faction": "europe",
@@ -11998,6 +12050,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 170,
           "description": "AH1",
           "faction": "europe",
@@ -12098,6 +12151,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 170,
           "description": "APC; infantry carrier",
           "faction": "europe",
@@ -12195,6 +12249,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 240,
           "description": "RCT30; infantry carrier",
           "faction": "europe",
@@ -12288,6 +12343,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 180,
           "description": "Gun-and-missile air-defense vehicle",
           "faction": "europe",
@@ -12380,6 +12436,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 260,
           "description": "8×8",
           "faction": "europe",
@@ -12472,6 +12529,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 240,
           "description": "Wheeled 120 mm tank destroyer",
           "faction": "europe",
@@ -12595,6 +12653,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 240,
           "description": "HC6",
           "faction": "europe",
@@ -12716,6 +12775,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 390,
           "description": "Challenger 2 TES",
           "faction": "europe",
@@ -12840,6 +12900,7 @@
               "stock_per_charge": 20
             }
           },
+          "concealment": 2.8,
           "cost": 450,
           "description": "Challenger 3",
           "faction": "europe",
@@ -12957,6 +13018,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 250,
           "description": "Light tank",
           "faction": "europe",
@@ -13075,6 +13137,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 220,
           "description": "CV9040C; infantry carrier",
           "faction": "europe",
@@ -13171,6 +13234,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 260,
           "description": "Mk IV; infantry carrier",
           "faction": "europe",
@@ -13263,6 +13327,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 230,
           "description": "Armed reconnaissance vehicle",
           "faction": "europe",
@@ -13333,7 +13398,6 @@
             "variant": "Armed reconnaissance vehicle"
           },
           "sensors": {
-            "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
             "high_air_m": 300.0,
             "low_air_m": 850.0,
@@ -13342,7 +13406,8 @@
               "front": 1.0,
               "rear": 1.0,
               "side": 1.0
-            }
+            },
+            "spotting": 1.5
           },
           "sound": {
             "loudness_m": 650.0,
@@ -13383,6 +13448,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 350,
           "description": "HAD",
           "faction": "europe",
@@ -13501,6 +13567,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 330,
           "description": "UHT",
           "faction": "europe",
@@ -13631,6 +13698,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 410,
           "description": "Tranche 3",
           "faction": "europe",
@@ -13750,6 +13818,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 130,
           "description": "Reconnaissance vehicle",
           "faction": "europe",
@@ -13799,7 +13868,6 @@
             "variant": "Reconnaissance vehicle"
           },
           "sensors": {
-            "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
             "high_air_m": 300.0,
             "low_air_m": 850.0,
@@ -13808,7 +13876,8 @@
               "front": 1.0,
               "rear": 1.0,
               "side": 1.0
-            }
+            },
+            "spotting": 1.5
           },
           "sound": {
             "loudness_m": 650.0,
@@ -13846,6 +13915,7 @@
           "capabilities": {
             "radar_emitter": true
           },
+          "concealment": 2.8,
           "cost": 200,
           "description": "Twin 35 mm radar-directed anti-aircraft gun on a Leopard 1 hull",
           "faction": "europe",
@@ -13939,6 +14009,7 @@
           "capabilities": {
             "radar_emitter": true
           },
+          "concealment": 2.8,
           "cost": 360,
           "description": "IRIS-T SLM long-range air defence.",
           "faction": "europe",
@@ -14048,6 +14119,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 350,
           "description": "E",
           "faction": "europe",
@@ -14240,6 +14312,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 460,
           "description": "Prototype main battle tank",
           "faction": "europe",
@@ -14354,6 +14427,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 390,
           "description": "XLR",
           "faction": "europe",
@@ -14468,6 +14542,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 340,
           "description": "2A6",
           "faction": "europe",
@@ -14582,6 +14657,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 390,
           "description": "2A7V",
           "faction": "europe",
@@ -14706,6 +14782,7 @@
               "stock_per_charge": 20
             }
           },
+          "concealment": 2.8,
           "cost": 450,
           "description": "2A8",
           "faction": "europe",
@@ -14831,6 +14908,7 @@
               "stock": 250
             }
           },
+          "concealment": 2.8,
           "cost": 90,
           "description": "General resupply",
           "faction": "europe",
@@ -14885,6 +14963,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 110,
           "description": "Longer-range infantry",
           "faction": "europe",
@@ -14951,6 +15030,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 340,
           "description": "Multiple-launch rocket system",
           "faction": "europe",
@@ -15059,6 +15139,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 290,
           "description": "2000D RMV",
           "faction": "europe",
@@ -15180,6 +15261,7 @@
           "capabilities": {
             "radar_emitter": true
           },
+          "concealment": 2.8,
           "cost": 300,
           "description": "NASAMS 3",
           "faction": "europe",
@@ -15280,6 +15362,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 190,
           "description": "TTH",
           "faction": "europe",
@@ -15405,6 +15488,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 260,
           "description": "Level C; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "europe",
@@ -15518,6 +15602,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 310,
           "description": "Tracked 155 mm howitzer",
           "faction": "europe",
@@ -15626,6 +15711,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 420,
           "description": "C F4",
           "faction": "europe",
@@ -15748,6 +15834,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 80,
           "description": "Light patrol",
           "faction": "europe",
@@ -15771,7 +15858,6 @@
             "variant": "Light patrol"
           },
           "sensors": {
-            "concealed_range_multiplier": 2.0,
             "ground_m": 750.0,
             "high_air_m": 600.0,
             "low_air_m": 750.0,
@@ -15779,7 +15865,8 @@
               "front": 1.0,
               "rear": 1.0,
               "side": 1.0
-            }
+            },
+            "spotting": 2.0
           },
           "sound": {
             "loudness_m": 200.0,
@@ -15877,6 +15964,7 @@
               "range_m": 5000.0
             }
           },
+          "concealment": 2.8,
           "cost": 340,
           "description": "ECR",
           "faction": "europe",
@@ -16013,6 +16101,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 310,
           "description": "IDS",
           "faction": "europe",
@@ -16136,6 +16225,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 220,
           "description": "Infantry fighting vehicle",
           "faction": "europe",
@@ -16233,6 +16323,7 @@
               "seats": 3
             }
           },
+          "concealment": 2.8,
           "cost": 90,
           "description": "Machine-gun scout",
           "faction": "europe",
@@ -16343,6 +16434,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 350,
           "description": "F-16C Block 50",
           "faction": "us",
@@ -16501,6 +16593,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 470,
           "description": "F-35A",
           "faction": "us",
@@ -16624,6 +16717,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 150,
           "description": "FGM-148 Javelin; top attack, the gunner must keep sight",
           "faction": "us",
@@ -16673,6 +16767,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 100,
           "description": "FIM-92 Stinger",
           "faction": "us",
@@ -16727,6 +16822,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 90,
           "description": "Standard infantry",
           "faction": "generic",
@@ -16811,6 +16907,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 300,
           "description": "A-10C",
           "faction": "us",
@@ -16934,6 +17031,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 170,
           "description": "ACV-P; infantry carrier",
           "faction": "us",
@@ -17032,6 +17130,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 320,
           "description": "Attack helicopter",
           "faction": "us",
@@ -17150,6 +17249,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 180,
           "description": "AH-6M",
           "faction": "us",
@@ -17271,6 +17371,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 120,
           "description": "MH-6M",
           "faction": "us",
@@ -17374,6 +17475,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 80,
           "description": "Light patrol",
           "faction": "us",
@@ -17397,7 +17499,6 @@
             "variant": "Light patrol"
           },
           "sensors": {
-            "concealed_range_multiplier": 2.0,
             "ground_m": 750.0,
             "high_air_m": 600.0,
             "low_air_m": 750.0,
@@ -17405,7 +17506,8 @@
               "front": 1.0,
               "rear": 1.0,
               "side": 1.0
-            }
+            },
+            "spotting": 2.0
           },
           "sound": {
             "loudness_m": 200.0,
@@ -17423,6 +17525,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 130,
           "description": "BGM-71 TOW 2A; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "us",
@@ -17497,6 +17600,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 240,
           "description": "CH-47F",
           "faction": "us",
@@ -17638,6 +17742,7 @@
               "range_m": 5000.0
             }
           },
+          "concealment": 2.8,
           "cost": 380,
           "description": "Electronic-warfare aircraft",
           "faction": "us",
@@ -17774,6 +17879,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 400,
           "description": "F-15E Strike Eagle",
           "faction": "us",
@@ -17931,6 +18037,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 430,
           "description": "F-15EX Eagle II",
           "faction": "us",
@@ -18067,6 +18174,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 500,
           "description": "F-22A",
           "faction": "us",
@@ -18203,6 +18311,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 490,
           "description": "F-35B",
           "faction": "us",
@@ -18360,6 +18469,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 370,
           "description": "F/A-18E",
           "faction": "us",
@@ -18482,6 +18592,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 100,
           "description": "Recon patrol",
           "faction": "us",
@@ -18505,7 +18616,6 @@
             "variant": "Recon patrol"
           },
           "sensors": {
-            "concealed_range_multiplier": 2.0,
             "ground_m": 800.0,
             "high_air_m": 600.0,
             "low_air_m": 800.0,
@@ -18513,7 +18623,8 @@
               "front": 1.0,
               "rear": 1.0,
               "side": 1.0
-            }
+            },
+            "spotting": 2.0
           },
           "sound": {
             "loudness_m": 200.0,
@@ -18605,6 +18716,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 160,
           "description": "LAV-25A2; infantry carrier",
           "faction": "us",
@@ -18698,6 +18810,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 180,
           "description": "LAV-AT; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "us",
@@ -18791,6 +18904,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 280,
           "description": "M109A7",
           "faction": "us",
@@ -18882,6 +18996,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 240,
           "description": "Light tank",
           "faction": "us",
@@ -19000,6 +19115,7 @@
               "seats": 3
             }
           },
+          "concealment": 2.8,
           "cost": 130,
           "description": "Reconnaissance vehicle",
           "faction": "us",
@@ -19049,7 +19165,6 @@
             "variant": "Reconnaissance vehicle"
           },
           "sensors": {
-            "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
             "high_air_m": 300.0,
             "low_air_m": 850.0,
@@ -19058,7 +19173,8 @@
               "front": 1.0,
               "rear": 1.0,
               "side": 1.0
-            }
+            },
+            "spotting": 1.5
           },
           "sound": {
             "loudness_m": 650.0,
@@ -19094,6 +19210,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 180,
           "description": "120 mm mortar carrier",
           "faction": "us",
@@ -19190,6 +19307,7 @@
               "seats": 3
             }
           },
+          "concealment": 2.8,
           "cost": 90,
           "description": "HMG",
           "faction": "us",
@@ -19283,6 +19401,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 300,
           "description": "GMLRS",
           "faction": "us",
@@ -19375,6 +19494,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 400,
           "description": "PrSM",
           "faction": "us",
@@ -19467,6 +19587,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 350,
           "description": "SEP v2",
           "faction": "us",
@@ -19591,6 +19712,7 @@
               "stock_per_charge": 20
             }
           },
+          "concealment": 2.8,
           "cost": 410,
           "description": "SEP v2 Trophy",
           "faction": "us",
@@ -19718,6 +19840,7 @@
               "stock_per_charge": 20
             }
           },
+          "concealment": 2.8,
           "cost": 450,
           "description": "SEP v3 Trophy",
           "faction": "us",
@@ -19845,6 +19968,7 @@
               "stock_per_charge": 20
             }
           },
+          "concealment": 2.8,
           "cost": 460,
           "description": "M1E3 prototype main battle tank",
           "faction": "us",
@@ -19962,6 +20086,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 350,
           "description": "M270A2",
           "faction": "us",
@@ -20057,6 +20182,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 230,
           "description": "M2A4; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "us",
@@ -20174,6 +20300,7 @@
               "seats": 3
             }
           },
+          "concealment": 2.8,
           "cost": 210,
           "description": "M3A3; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "us",
@@ -20243,7 +20370,6 @@
             "variant": "M3A3"
           },
           "sensors": {
-            "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
             "high_air_m": 300.0,
             "low_air_m": 850.0,
@@ -20252,7 +20378,8 @@
               "front": 1.0,
               "rear": 1.0,
               "side": 1.0
-            }
+            },
+            "spotting": 1.5
           },
           "sound": {
             "loudness_m": 650.0,
@@ -20296,6 +20423,7 @@
               "stock": 250
             }
           },
+          "concealment": 2.8,
           "cost": 90,
           "description": "General resupply",
           "faction": "us",
@@ -20352,6 +20480,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 110,
           "description": "Close-quarters infantry",
           "faction": "us",
@@ -20403,6 +20532,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 110,
           "description": "M110-equipped longer-range infantry",
           "faction": "us",
@@ -20497,6 +20627,7 @@
           "capabilities": {
             "radar_emitter": true
           },
+          "concealment": 2.8,
           "cost": 360,
           "description": "NASAMS 3 long-range air defence.",
           "faction": "us",
@@ -20591,6 +20722,7 @@
           "capabilities": {
             "radar_emitter": true
           },
+          "concealment": 2.8,
           "cost": 360,
           "description": "Patriot PAC-3 long-range air defence.",
           "faction": "us",
@@ -20706,6 +20838,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 1.0,
           "cost": 100,
           "description": "M107 heavy sniper team",
           "faction": "us",
@@ -20776,6 +20909,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 140,
           "description": "M1126 ICV; infantry carrier",
           "faction": "us",
@@ -20869,6 +21003,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 190,
           "description": "M1134 ATGM; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "us",
@@ -20966,6 +21101,7 @@
               "seats": 8
             }
           },
+          "concealment": 2.8,
           "cost": 200,
           "description": "M1296 Dragoon; infantry carrier",
           "faction": "us",
@@ -21059,6 +21195,7 @@
             }
           },
           "capabilities": {},
+          "concealment": 2.8,
           "cost": 180,
           "description": "Gun-and-missile air-defense vehicle",
           "faction": "us",
@@ -21159,6 +21296,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 160,
           "description": "Utility transport",
           "faction": "us",
@@ -21288,6 +21426,7 @@
               "reload_s": 3.0
             }
           },
+          "concealment": 2.8,
           "cost": 180,
           "description": "UH-60M",
           "faction": "us",
@@ -25368,6 +25507,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 360,
       "description": "AH-64E Guardian",
       "faction": "us",
@@ -25495,6 +25635,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 110,
       "description": "Close-quarters infantry",
       "faction": "generic",
@@ -25697,6 +25838,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 270,
       "description": "2S19M2",
       "faction": "eastern",
@@ -25791,6 +25933,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 360,
       "description": "Heavy rocket artillery",
       "faction": "eastern",
@@ -25868,6 +26011,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 100,
       "description": "FN-6",
       "faction": "eastern",
@@ -25978,6 +26122,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 100,
       "description": "Igla-S",
       "faction": "eastern",
@@ -26093,6 +26238,7 @@
           "seconds": 3.0
         }
       },
+      "concealment": 1.0,
       "cost": 140,
       "description": "Kornet; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
@@ -26225,6 +26371,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 220,
       "description": "BM-21 rocket artillery",
       "faction": "eastern",
@@ -26324,6 +26471,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 190,
       "description": "BMP-2M Berezhok; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
@@ -26445,6 +26593,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 210,
       "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
@@ -26567,6 +26716,7 @@
           "seats": 3
         }
       },
+      "concealment": 2.8,
       "cost": 180,
       "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
       "faction": "eastern",
@@ -26617,7 +26767,6 @@
         "variant": "BRM-3K"
       },
       "sensors": {
-        "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
         "high_air_m": 300.0,
         "low_air_m": 850.0,
@@ -26626,7 +26775,8 @@
           "front": 1.0,
           "rear": 1.0,
           "side": 1.0
-        }
+        },
+        "spotting": 1.5
       },
       "sound": {
         "loudness_m": 650.0,
@@ -26667,6 +26817,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 140,
       "description": "BTR-82A; infantry carrier",
       "faction": "eastern",
@@ -26765,6 +26916,7 @@
       "capabilities": {
         "radar_emitter": true
       },
+      "concealment": 2.8,
       "cost": 300,
       "description": "Buk-M3 medium-range air defense",
       "faction": "eastern",
@@ -26877,6 +27029,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 340,
       "description": "J-10C",
       "faction": "eastern",
@@ -27017,6 +27170,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 490,
       "description": "Stealth fighter",
       "faction": "eastern",
@@ -27123,6 +27277,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 360,
       "description": "Ka-52M",
       "faction": "eastern",
@@ -27225,6 +27380,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 110,
       "description": "SVD-equipped longer-range infantry",
       "faction": "eastern",
@@ -27444,6 +27600,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 270,
       "description": "Mi-35M",
       "faction": "eastern",
@@ -27566,6 +27723,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 330,
       "description": "Mi-28NM",
       "faction": "eastern",
@@ -27691,6 +27849,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 170,
       "description": "Mi-8AMTSh",
       "faction": "eastern",
@@ -27833,6 +27992,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 280,
       "description": "MiG-29SMT",
       "faction": "eastern",
@@ -27995,6 +28155,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 350,
       "description": "MiG-31BM",
       "faction": "eastern",
@@ -28120,6 +28281,7 @@
       "capabilities": {
         "radar_emitter": true
       },
+      "concealment": 2.8,
       "cost": 250,
       "description": "Pantsir-SM",
       "faction": "eastern",
@@ -28215,6 +28377,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 280,
       "description": "Chinese tracked 155 mm howitzer",
       "faction": "eastern",
@@ -28296,6 +28459,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 90,
       "description": "Standard infantry with a general-purpose RPG.",
       "faction": "eastern",
@@ -28459,6 +28623,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 110,
       "description": "RPG-29",
       "faction": "eastern",
@@ -28569,6 +28734,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 90,
       "description": "RPG-7",
       "faction": "eastern",
@@ -28699,6 +28865,7 @@
       "capabilities": {
         "radar_emitter": true
       },
+      "concealment": 2.8,
       "cost": 360,
       "description": "S-300PMU2 Favorit long-range air defence.",
       "faction": "eastern",
@@ -28796,6 +28963,7 @@
       "capabilities": {
         "radar_emitter": true
       },
+      "concealment": 2.8,
       "cost": 360,
       "description": "S-350 long-range air defence.",
       "faction": "eastern",
@@ -28873,6 +29041,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 80,
       "description": "Light patrol",
       "faction": "eastern",
@@ -28953,7 +29122,6 @@
         "variant": "Light patrol"
       },
       "sensors": {
-        "concealed_range_multiplier": 2.0,
         "ground_m": 750.0,
         "high_air_m": 600.0,
         "low_air_m": 750.0,
@@ -28961,7 +29129,8 @@
           "front": 1.0,
           "rear": 1.0,
           "side": 1.0
-        }
+        },
+        "spotting": 2.0
       },
       "sound": {
         "loudness_m": 200.0,
@@ -28979,6 +29148,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 100,
       "description": "ASVK heavy sniper team",
       "faction": "eastern",
@@ -29119,6 +29289,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 270,
       "description": "Su-25SM3",
       "faction": "eastern",
@@ -29259,6 +29430,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 480,
       "description": "Stealth multirole fighter",
       "faction": "eastern",
@@ -29421,6 +29593,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 310,
       "description": "Su-27SM3",
       "faction": "eastern",
@@ -29564,6 +29737,7 @@
           "range_m": 5000.0
         }
       },
+      "concealment": 2.8,
       "cost": 370,
       "description": "Su-30SM2",
       "faction": "eastern",
@@ -29704,6 +29878,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 390,
       "description": "Su-34",
       "faction": "eastern",
@@ -29866,6 +30041,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 410,
       "description": "Su-35S",
       "faction": "eastern",
@@ -29989,6 +30165,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 440,
       "description": "Main battle tank",
       "faction": "eastern",
@@ -30111,6 +30288,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 300,
       "description": "Heavy IFV; infantry carrier",
       "faction": "eastern",
@@ -30228,6 +30406,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 280,
       "description": "T-72B3 (2016)",
       "faction": "eastern",
@@ -30346,6 +30525,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 310,
       "description": "T-80BVM",
       "faction": "eastern",
@@ -30464,6 +30644,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 360,
       "description": "T-90M Proryv",
       "faction": "eastern",
@@ -30586,6 +30767,7 @@
           "seats": 3
         }
       },
+      "concealment": 2.8,
       "cost": 90,
       "description": "Tigr-M",
       "faction": "eastern",
@@ -30682,6 +30864,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 230,
       "description": "ZTQ-15 light tank",
       "faction": "eastern",
@@ -30800,6 +30983,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 360,
       "description": "ZTZ-99A",
       "faction": "eastern",
@@ -30926,6 +31110,7 @@
           "stock": 250
         }
       },
+      "concealment": 2.8,
       "cost": 90,
       "description": "General resupply",
       "faction": "eastern",
@@ -31003,6 +31188,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 300,
       "description": "Attack helicopter",
       "faction": "eastern",
@@ -31128,6 +31314,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 180,
       "description": "Utility transport",
       "faction": "eastern",
@@ -31257,6 +31444,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 190,
       "description": "Wheeled IFV; infantry carrier",
       "faction": "eastern",
@@ -31353,6 +31541,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 220,
       "description": "Tracked reconnaissance vehicle",
       "faction": "europe",
@@ -31403,7 +31592,6 @@
         "variant": "Tracked reconnaissance vehicle"
       },
       "sensors": {
-        "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
         "high_air_m": 300.0,
         "low_air_m": 850.0,
@@ -31412,7 +31600,8 @@
           "front": 1.0,
           "rear": 1.0,
           "side": 1.0
-        }
+        },
+        "spotting": 1.5
       },
       "sound": {
         "loudness_m": 650.0,
@@ -31431,6 +31620,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 150,
       "description": "Akeron MP; top attack, the gunner must keep sight",
       "faction": "europe",
@@ -31567,6 +31757,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 230,
       "description": "HC4",
       "faction": "europe",
@@ -31697,6 +31888,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 170,
       "description": "AH1",
       "faction": "europe",
@@ -31800,6 +31992,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 170,
       "description": "APC; infantry carrier",
       "faction": "europe",
@@ -31900,6 +32093,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 240,
       "description": "RCT30; infantry carrier",
       "faction": "europe",
@@ -31996,6 +32190,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 180,
       "description": "Gun-and-missile air-defense vehicle",
       "faction": "europe",
@@ -32091,6 +32286,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 260,
       "description": "8×8",
       "faction": "europe",
@@ -32186,6 +32382,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 240,
       "description": "Wheeled 120 mm tank destroyer",
       "faction": "europe",
@@ -32313,6 +32510,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 240,
       "description": "HC6",
       "faction": "europe",
@@ -32438,6 +32636,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 390,
       "description": "Challenger 2 TES",
       "faction": "europe",
@@ -32566,6 +32765,7 @@
           "stock_per_charge": 20
         }
       },
+      "concealment": 2.8,
       "cost": 450,
       "description": "Challenger 3",
       "faction": "europe",
@@ -32687,6 +32887,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 250,
       "description": "Light tank",
       "faction": "europe",
@@ -32809,6 +33010,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 220,
       "description": "CV9040C; infantry carrier",
       "faction": "europe",
@@ -32908,6 +33110,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 260,
       "description": "Mk IV; infantry carrier",
       "faction": "europe",
@@ -33003,6 +33206,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 230,
       "description": "Armed reconnaissance vehicle",
       "faction": "europe",
@@ -33076,7 +33280,6 @@
         "variant": "Armed reconnaissance vehicle"
       },
       "sensors": {
-        "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
         "high_air_m": 300.0,
         "low_air_m": 850.0,
@@ -33085,7 +33288,8 @@
           "front": 1.0,
           "rear": 1.0,
           "side": 1.0
-        }
+        },
+        "spotting": 1.5
       },
       "sound": {
         "loudness_m": 650.0,
@@ -33127,6 +33331,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 350,
       "description": "HAD",
       "faction": "europe",
@@ -33249,6 +33454,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 330,
       "description": "UHT",
       "faction": "europe",
@@ -33383,6 +33589,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 410,
       "description": "Tranche 3",
       "faction": "europe",
@@ -33506,6 +33713,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 130,
       "description": "Reconnaissance vehicle",
       "faction": "europe",
@@ -33557,7 +33765,6 @@
         "variant": "Reconnaissance vehicle"
       },
       "sensors": {
-        "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
         "high_air_m": 300.0,
         "low_air_m": 850.0,
@@ -33566,7 +33773,8 @@
           "front": 1.0,
           "rear": 1.0,
           "side": 1.0
-        }
+        },
+        "spotting": 1.5
       },
       "sound": {
         "loudness_m": 650.0,
@@ -33605,6 +33813,7 @@
       "capabilities": {
         "radar_emitter": true
       },
+      "concealment": 2.8,
       "cost": 200,
       "description": "Twin 35 mm radar-directed anti-aircraft gun on a Leopard 1 hull",
       "faction": "europe",
@@ -33701,6 +33910,7 @@
       "capabilities": {
         "radar_emitter": true
       },
+      "concealment": 2.8,
       "cost": 360,
       "description": "IRIS-T SLM long-range air defence.",
       "faction": "europe",
@@ -33813,6 +34023,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 350,
       "description": "E",
       "faction": "europe",
@@ -33958,6 +34169,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 460,
       "description": "Prototype main battle tank",
       "faction": "europe",
@@ -34076,6 +34288,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 390,
       "description": "XLR",
       "faction": "europe",
@@ -34194,6 +34407,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 340,
       "description": "2A6",
       "faction": "europe",
@@ -34312,6 +34526,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 390,
       "description": "2A7V",
       "faction": "europe",
@@ -34440,6 +34655,7 @@
           "stock_per_charge": 20
         }
       },
+      "concealment": 2.8,
       "cost": 450,
       "description": "2A8",
       "faction": "europe",
@@ -34569,6 +34785,7 @@
           "stock": 250
         }
       },
+      "concealment": 2.8,
       "cost": 90,
       "description": "General resupply",
       "faction": "europe",
@@ -34626,6 +34843,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 110,
       "description": "Longer-range infantry",
       "faction": "europe",
@@ -34837,6 +35055,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 340,
       "description": "Multiple-launch rocket system",
       "faction": "europe",
@@ -34948,6 +35167,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 290,
       "description": "2000D RMV",
       "faction": "europe",
@@ -35073,6 +35293,7 @@
       "capabilities": {
         "radar_emitter": true
       },
+      "concealment": 2.8,
       "cost": 300,
       "description": "NASAMS 3",
       "faction": "europe",
@@ -35176,6 +35397,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 190,
       "description": "TTH",
       "faction": "europe",
@@ -35305,6 +35527,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 260,
       "description": "Level C; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "europe",
@@ -35422,6 +35645,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 310,
       "description": "Tracked 155 mm howitzer",
       "faction": "europe",
@@ -35533,6 +35757,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 420,
       "description": "C F4",
       "faction": "europe",
@@ -35660,6 +35885,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 80,
       "description": "Light patrol",
       "faction": "europe",
@@ -35740,7 +35966,6 @@
         "variant": "Light patrol"
       },
       "sensors": {
-        "concealed_range_multiplier": 2.0,
         "ground_m": 750.0,
         "high_air_m": 600.0,
         "low_air_m": 750.0,
@@ -35748,7 +35973,8 @@
           "front": 1.0,
           "rear": 1.0,
           "side": 1.0
-        }
+        },
+        "spotting": 2.0
       },
       "sound": {
         "loudness_m": 200.0,
@@ -35805,6 +36031,7 @@
           "range_m": 5000.0
         }
       },
+      "concealment": 2.8,
       "cost": 340,
       "description": "ECR",
       "faction": "europe",
@@ -35945,6 +36172,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 310,
       "description": "IDS",
       "faction": "europe",
@@ -36072,6 +36300,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 220,
       "description": "Infantry fighting vehicle",
       "faction": "europe",
@@ -36172,6 +36401,7 @@
           "seats": 3
         }
       },
+      "concealment": 2.8,
       "cost": 90,
       "description": "Machine-gun scout",
       "faction": "europe",
@@ -36285,6 +36515,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 350,
       "description": "F-16C Block 50",
       "faction": "us",
@@ -36448,6 +36679,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 470,
       "description": "F-35A",
       "faction": "us",
@@ -36576,6 +36808,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 150,
       "description": "FGM-148 Javelin; top attack, the gunner must keep sight",
       "faction": "us",
@@ -36687,6 +36920,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 100,
       "description": "FIM-92 Stinger",
       "faction": "us",
@@ -36803,6 +37037,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 90,
       "description": "Standard infantry",
       "faction": "generic",
@@ -37002,6 +37237,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 300,
       "description": "A-10C",
       "faction": "us",
@@ -37129,6 +37365,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 170,
       "description": "ACV-P; infantry carrier",
       "faction": "us",
@@ -37230,6 +37467,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 320,
       "description": "Attack helicopter",
       "faction": "us",
@@ -37352,6 +37590,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 180,
       "description": "AH-6M",
       "faction": "us",
@@ -37477,6 +37716,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 120,
       "description": "MH-6M",
       "faction": "us",
@@ -37584,6 +37824,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 80,
       "description": "Light patrol",
       "faction": "us",
@@ -37664,7 +37905,6 @@
         "variant": "Light patrol"
       },
       "sensors": {
-        "concealed_range_multiplier": 2.0,
         "ground_m": 750.0,
         "high_air_m": 600.0,
         "low_air_m": 750.0,
@@ -37672,7 +37912,8 @@
           "front": 1.0,
           "rear": 1.0,
           "side": 1.0
-        }
+        },
+        "spotting": 2.0
       },
       "sound": {
         "loudness_m": 200.0,
@@ -37691,6 +37932,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 130,
       "description": "BGM-71 TOW 2A; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
@@ -37831,6 +38073,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 240,
       "description": "CH-47F",
       "faction": "us",
@@ -37976,6 +38219,7 @@
           "range_m": 5000.0
         }
       },
+      "concealment": 2.8,
       "cost": 380,
       "description": "Electronic-warfare aircraft",
       "faction": "us",
@@ -38116,6 +38360,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 400,
       "description": "F-15E Strike Eagle",
       "faction": "us",
@@ -38278,6 +38523,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 430,
       "description": "F-15EX Eagle II",
       "faction": "us",
@@ -38418,6 +38664,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 500,
       "description": "F-22A",
       "faction": "us",
@@ -38558,6 +38805,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 490,
       "description": "F-35B",
       "faction": "us",
@@ -38720,6 +38968,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 370,
       "description": "F/A-18E",
       "faction": "us",
@@ -38847,6 +39096,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 100,
       "description": "Recon patrol",
       "faction": "us",
@@ -38947,7 +39197,6 @@
         "variant": "Recon patrol"
       },
       "sensors": {
-        "concealed_range_multiplier": 2.0,
         "ground_m": 800.0,
         "high_air_m": 600.0,
         "low_air_m": 800.0,
@@ -38955,7 +39204,8 @@
           "front": 1.0,
           "rear": 1.0,
           "side": 1.0
-        }
+        },
+        "spotting": 2.0
       },
       "sound": {
         "loudness_m": 200.0,
@@ -38996,6 +39246,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 160,
       "description": "LAV-25A2; infantry carrier",
       "faction": "us",
@@ -39092,6 +39343,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 180,
       "description": "LAV-AT; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
@@ -39188,6 +39440,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 280,
       "description": "M109A7",
       "faction": "us",
@@ -39282,6 +39535,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 240,
       "description": "Light tank",
       "faction": "us",
@@ -39404,6 +39658,7 @@
           "seats": 3
         }
       },
+      "concealment": 2.8,
       "cost": 130,
       "description": "Reconnaissance vehicle",
       "faction": "us",
@@ -39455,7 +39710,6 @@
         "variant": "Reconnaissance vehicle"
       },
       "sensors": {
-        "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
         "high_air_m": 300.0,
         "low_air_m": 850.0,
@@ -39464,7 +39718,8 @@
           "front": 1.0,
           "rear": 1.0,
           "side": 1.0
-        }
+        },
+        "spotting": 1.5
       },
       "sound": {
         "loudness_m": 650.0,
@@ -39501,6 +39756,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 180,
       "description": "120 mm mortar carrier",
       "faction": "us",
@@ -39600,6 +39856,7 @@
           "seats": 3
         }
       },
+      "concealment": 2.8,
       "cost": 90,
       "description": "HMG",
       "faction": "us",
@@ -39696,6 +39953,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 300,
       "description": "GMLRS",
       "faction": "us",
@@ -39791,6 +40049,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 400,
       "description": "PrSM",
       "faction": "us",
@@ -39886,6 +40145,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 350,
       "description": "SEP v2",
       "faction": "us",
@@ -40014,6 +40274,7 @@
           "stock_per_charge": 20
         }
       },
+      "concealment": 2.8,
       "cost": 410,
       "description": "SEP v2 Trophy",
       "faction": "us",
@@ -40145,6 +40406,7 @@
           "stock_per_charge": 20
         }
       },
+      "concealment": 2.8,
       "cost": 450,
       "description": "SEP v3 Trophy",
       "faction": "us",
@@ -40276,6 +40538,7 @@
           "stock_per_charge": 20
         }
       },
+      "concealment": 2.8,
       "cost": 460,
       "description": "M1E3 prototype main battle tank",
       "faction": "us",
@@ -40397,6 +40660,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 350,
       "description": "M270A2",
       "faction": "us",
@@ -40495,6 +40759,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 230,
       "description": "M2A4; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
@@ -40616,6 +40881,7 @@
           "seats": 3
         }
       },
+      "concealment": 2.8,
       "cost": 210,
       "description": "M3A3; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
@@ -40688,7 +40954,6 @@
         "variant": "M3A3"
       },
       "sensors": {
-        "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
         "high_air_m": 300.0,
         "low_air_m": 850.0,
@@ -40697,7 +40962,8 @@
           "front": 1.0,
           "rear": 1.0,
           "side": 1.0
-        }
+        },
+        "spotting": 1.5
       },
       "sound": {
         "loudness_m": 650.0,
@@ -40742,6 +41008,7 @@
           "stock": 250
         }
       },
+      "concealment": 2.8,
       "cost": 90,
       "description": "General resupply",
       "faction": "us",
@@ -40801,6 +41068,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 110,
       "description": "Close-quarters infantry",
       "faction": "us",
@@ -40987,6 +41255,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 110,
       "description": "M110-equipped longer-range infantry",
       "faction": "us",
@@ -41200,6 +41469,7 @@
       "capabilities": {
         "radar_emitter": true
       },
+      "concealment": 2.8,
       "cost": 360,
       "description": "NASAMS 3 long-range air defence.",
       "faction": "us",
@@ -41297,6 +41567,7 @@
       "capabilities": {
         "radar_emitter": true
       },
+      "concealment": 2.8,
       "cost": 360,
       "description": "Patriot PAC-3 long-range air defence.",
       "faction": "us",
@@ -41373,6 +41644,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 1.0,
       "cost": 100,
       "description": "M107 heavy sniper team",
       "faction": "us",
@@ -41500,6 +41772,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 140,
       "description": "M1126 ICV; infantry carrier",
       "faction": "us",
@@ -41596,6 +41869,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 190,
       "description": "M1134 ATGM; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
@@ -41696,6 +41970,7 @@
           "seats": 8
         }
       },
+      "concealment": 2.8,
       "cost": 200,
       "description": "M1296 Dragoon; infantry carrier",
       "faction": "us",
@@ -41792,6 +42067,7 @@
         }
       },
       "capabilities": {},
+      "concealment": 2.8,
       "cost": 180,
       "description": "Gun-and-missile air-defense vehicle",
       "faction": "us",
@@ -41895,6 +42171,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 160,
       "description": "Utility transport",
       "faction": "us",
@@ -42028,6 +42305,7 @@
           "reload_s": 3.0
         }
       },
+      "concealment": 2.8,
       "cost": 180,
       "description": "UH-60M",
       "faction": "us",

@@ -29,6 +29,7 @@
       },
       "sensors": { "ground_m": 300, "low_air_m": 300, "high_air_m": 300, "sight_shape": { "front": 1.0, "side": 0.5, "rear": 0.3 } },
       "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 }, "supply": { "stock": 250 } },
+      "concealment": 2.8,
       "sound": { "profile": "vehicle", "loudness_m": 650 },
       "appearance": "test_supply_truck"
     },
@@ -63,6 +64,7 @@
       "mounts": [
         { "id": "HMG", "name": "HMG", "weapons": ["hmg"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }
       ],
+      "concealment": 2.8,
       "sound": { "profile": "vehicle", "loudness_m": 500 },
       "appearance": "test_jeep"
     },

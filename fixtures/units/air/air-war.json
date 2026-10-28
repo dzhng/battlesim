@@ -61,6 +61,7 @@
           "rear": 0.5
         }
       },
+      "concealment": 2.8,
       "sound": {
         "profile": "vehicle",
         "loudness_m": 1400
