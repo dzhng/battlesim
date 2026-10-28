@@ -355,7 +355,7 @@ impl Presentation {
         }
         self.pending.clear();
         if let Some(loaded) = &mut self.loaded {
-            loaded.transits.clear();
+            loaded.forget();
         }
         Ok(())
     }

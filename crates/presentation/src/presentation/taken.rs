@@ -1,5 +1,6 @@
 //! A publication taken for the effects and sound: the air transits it
-//! shows, what the effects read of it, and the hulls the side watched brew up.
+//! shows, what the effects read of it, and the hulls the side watched brew
+//! up; and forgotten when the records in flight go stale.
 use super::*;
 
 impl Loaded {
@@ -22,5 +23,13 @@ impl Loaded {
                 .note(o, &self.input.units, effects, &effects.wreck_looks);
         let launches = self.effects.note(&publication);
         self.sound = Some((publication, launches));
+    }
+
+    /// Records still in flight are stale (`Presentation::invalidate`): the
+    /// air transits seen so far go, and the wave field starts over, so no
+    /// wave one side saw made lingers for the next.
+    pub(super) fn forget(&mut self) {
+        self.transits.clear();
+        self.effects.restart_waves();
     }
 }

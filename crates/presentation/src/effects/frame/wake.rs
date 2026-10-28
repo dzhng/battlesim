@@ -76,6 +76,11 @@ pub struct WaveFrame {
 }
 
 impl EffectFrame {
+    /// Start the wave field over, in a new epoch (a side switch).
+    pub fn restart_waves(&mut self) {
+        self.waves.restart();
+    }
+
     /// The wave field's frame at presentation time `clock` for `camera`
     /// (`WaveClock::advance`), with every wake impulse made in the steps it
     /// runs, each at the step that covers it: none is splatted twice, and
