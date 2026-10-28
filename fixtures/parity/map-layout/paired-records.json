@@ -95,7 +95,7 @@
       "name": "metro medium seed 10",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"10\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "e0512b9817f7b8a2874fa6e70969b598540681ed415bb818ff5a5581884d0f6a",
+      "native_sha256": "6a55d6327768315c4f498fa7cd7688f71071e4989709370c5fb0be5d759610e7",
       "exit_code": 0
     },
     {
