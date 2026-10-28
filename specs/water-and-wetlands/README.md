@@ -69,8 +69,11 @@ the checklist.
 - [ ] Render lane:
       [06](slices/06-surface-normals.md), [07](slices/07-refraction.md), [08](slices/08-caustics.md),
       [09](slices/09-highlights.md).
-- [ ] Sim lane: [10](slices/10-swamp-terrain.md), [11](slices/11-swamp-slowdown.md),
-      [12](slices/12-mapgen-swamps.md).
+- [x] [10](slices/10-swamp-terrain.md), swamp terrain, with the wetlands map's
+      swamp (2026-10-28).
+- [x] [11](slices/11-swamp-slowdown.md), swamp slowdown; its paired battle
+      report on the wetlands map is still owed (2026-10-28).
+- [ ] Sim lane: [12](slices/12-mapgen-swamps.md).
 - [ ] Wet lane: [13](slices/13-swamp-look.md), [14](slices/14-puddles.md),
       [15](slices/15-wake-sources.md), [16](slices/16-wave-field.md).
 - [ ] [17](slices/17-tree-sway.md), tree sway, any time after 01.

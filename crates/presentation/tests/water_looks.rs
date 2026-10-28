@@ -55,13 +55,19 @@ fn looks(g: &Ground) -> Vec<usize> {
 #[test]
 fn a_river_draws_the_look_its_seed_and_index_pick_whatever_else_the_map_holds() {
     let plain = river_map();
-    // The same river among more features, and its other features reordered.
+    // The same river among more features (a swamp, another wood), and its
+    // other features reordered.
     let mut busy = plain.clone();
     for list in ["surfaces", "forests"] {
         busy[list].as_array_mut().unwrap().reverse();
     }
     let wood = busy["forests"][0].clone();
     busy["forests"].as_array_mut().unwrap().push(wood);
+    // A swamp on the open ground north of the river.
+    busy["swamps"] = serde_json::json!([{
+        "shape": { "kind": "polygon", "ring": [[440, 380], [560, 380], [560, 450], [440, 450]] },
+        "depth_m": 0.6,
+    }]);
     let mut picked = std::collections::BTreeSet::new();
     for seed in 0..12 {
         let mut biome = summer();

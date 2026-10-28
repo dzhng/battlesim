@@ -1,7 +1,7 @@
 {
   "identity": {
     "kind": "authored",
-    "map_hash": "b4379e0c9f9e4ef57514752cc76df6632447701441983ec26e33632c30590c76",
+    "map_hash": "8b71818466b96d0c1e09b24d61e7836ea46cb60ebe8736e0e8901b02553afb76",
     "template_catalog_hash": null
   },
   "catalogue": {
@@ -11,8 +11,8 @@
   "inputs": [
     {
       "kind": "supplied",
-      "label": "a Catmull-Rom river through hand-placed control points, sampled every 4 m",
-      "sha256": "e0f65943c4c11ce1e58ce66fe67b7c10c753e0599082682d30529516019cc2b9"
+      "label": "a Catmull-Rom river through hand-placed control points, sampled every 4 m, and a swamp on the flat ground south-east of it",
+      "sha256": "c0e52f8319436454c878271838db3421b97864e8f2b8a6effc7d7354b2b2c989"
     }
   ]
 }

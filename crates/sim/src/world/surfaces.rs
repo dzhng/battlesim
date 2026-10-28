@@ -1,13 +1,14 @@
-//! Sparse broad phase over the exact authored ground shapes: the paving and
-//! the rivers.
+//! Sparse broad phase over the exact authored ground shapes: the paving, the
+//! rivers and the swamps.
 use std::collections::{BTreeSet, HashMap};
 
 use contract::ground::{
     cross, edges, limits, polygon_area, polygon_contains, segment_distance, stretch_contains,
-    stretches, triangulate, GroundShape,
+    stretch_distance, stretches, triangulate, GroundShape,
 };
-use contract::map::{Rect, SurfaceArea, SurfaceKind};
+use contract::map::{MapDefinition, Rect, SurfaceArea, SurfaceKind};
 use contract::river::{section, River, Section};
+use contract::swamp::Swamp;
 
 use crate::math::{v2, V2};
 
@@ -47,10 +48,16 @@ pub(super) struct SurfaceIndex {
     /// Each bucket's river stretches: the river, and the first of the
     /// stretch's two rounded samples.
     stretches: HashMap<(i32, i32), Vec<(u32, u32)>>,
+    swamps: Vec<Swamp>,
+    /// Each swamp's water surface (`Swamp::surface_z`).
+    swamp_levels: Vec<f64>,
+    /// Each bucket's swamps, by index.
+    swamp_buckets: HashMap<(i32, i32), Vec<u32>>,
 }
 
 impl SurfaceIndex {
-    pub fn new(areas: &[SurfaceArea], rivers: &[River], size: [f64; 2]) -> Self {
+    pub fn new(map: &MapDefinition) -> Self {
+        let (areas, rivers, size) = (&map.surfaces, &map.rivers, map.size);
         let mut index = Self {
             areas: areas.to_vec(),
             primitives: Vec::new(),
@@ -61,7 +68,23 @@ impl SurfaceIndex {
             boundaries: Vec::new(),
             rivers: rivers.to_vec(),
             stretches: HashMap::new(),
+            swamps: map.swamps.clone(),
+            swamp_levels: map
+                .swamps
+                .iter()
+                .map(|s| s.surface_z(&map.relief))
+                .collect(),
+            swamp_buckets: HashMap::new(),
         };
+        for (swamp, definition) in map.swamps.iter().enumerate() {
+            let [x0, y0, x1, y1] = index.bucket_bounds(definition.limits(0.0));
+            for j in y0..=y1 {
+                for i in x0..=x1 {
+                    let bucket = index.swamp_buckets.entry((i, j)).or_default();
+                    bucket.push(swamp as u32);
+                }
+            }
+        }
         for (river, definition) in rivers.iter().enumerate() {
             for (stretch, pair) in definition.samples().windows(2).enumerate() {
                 let reach = pair[0].half_width_m.max(pair[1].half_width_m);
@@ -320,6 +343,91 @@ impl SurfaceIndex {
             && self
                 .river_sections(p, margin)
                 .any(|(_, s)| s.inside_m >= -margin)
+    }
+
+    pub fn swamps(&self) -> &[Swamp] {
+        &self.swamps
+    }
+
+    /// The height swamp `swamp`'s water stands at.
+    pub fn swamp_surface_z(&self, swamp: usize) -> f64 {
+        self.swamp_levels[swamp]
+    }
+
+    /// Every swamp whose outline holds `p`, each once, with how far inside
+    /// its outline `p` lies.
+    pub fn swamps_at(&self, p: V2) -> impl Iterator<Item = (usize, f64)> + '_ {
+        let key = (
+            (p.x / BUCKET_M).floor() as i32,
+            (p.y / BUCKET_M).floor() as i32,
+        );
+        self.swamp_buckets
+            .get(&key)
+            .into_iter()
+            .flatten()
+            .filter_map(move |&swamp| {
+                let inside = self.swamps[swamp as usize].inside([p.x, p.y]);
+                (inside >= 0.0).then_some((swamp as usize, inside))
+            })
+    }
+
+    /// Whether `p` is in swamp `swamp`'s water: inside its outline and on no
+    /// road, for a road across a swamp is a causeway.
+    pub fn in_swamp(&self, swamp: usize, p: V2) -> bool {
+        self.swamps[swamp].inside([p.x, p.y]) >= 0.0 && !self.on_road(p)
+    }
+
+    /// Whether `p` is in any swamp's water.
+    pub fn swamp_water_at(&self, p: V2) -> bool {
+        !self.swamps.is_empty() && self.swamps_at(p).next().is_some() && !self.on_road(p)
+    }
+
+    fn on_road(&self, p: V2) -> bool {
+        self.at(p).is_some_and(SurfaceKind::is_road)
+    }
+
+    /// How far `p` lies from the nearest road, or `reach` where none is
+    /// nearer: zero on a road.
+    pub fn road_distance(&self, p: V2, reach: f64) -> f64 {
+        let [x0, y0, x1, y1] =
+            self.bucket_bounds([p.x - reach, p.y - reach, p.x + reach, p.y + reach]);
+        let mut nearest = reach;
+        for j in y0..=y1 {
+            for i in x0..=x1 {
+                for &id in self.buckets.get(&(i, j)).into_iter().flatten() {
+                    let primitive = &self.primitives[id];
+                    let area = &self.areas[primitive.area()];
+                    if !area.kind.is_road() {
+                        continue;
+                    }
+                    let distance = match (primitive, &area.shape) {
+                        (
+                            Primitive::Segment { edge, cuts, .. },
+                            GroundShape::Stroke {
+                                centerline,
+                                width_m,
+                            },
+                        ) => {
+                            let points = centerline.samples();
+                            let (a, b) = (points[*edge], points[*edge + 1]);
+                            stretch_distance(a, b, *cuts, width_m / 2.0, [p.x, p.y])
+                        }
+                        (Primitive::Polygon { .. }, GroundShape::Polygon { ring }) => {
+                            if polygon_contains(ring, [p.x, p.y]) {
+                                0.0
+                            } else {
+                                edges(ring)
+                                    .map(|(a, b)| segment_distance(*a, *b, [p.x, p.y]))
+                                    .fold(f64::INFINITY, f64::min)
+                            }
+                        }
+                        _ => unreachable!(),
+                    };
+                    nearest = nearest.min(distance);
+                }
+            }
+        }
+        nearest
     }
 
     pub fn road_near(&self, p: V2, margin: f64) -> bool {

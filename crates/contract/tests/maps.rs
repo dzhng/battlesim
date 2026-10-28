@@ -462,3 +462,17 @@ fn a_selection_is_identified_by_its_own_templates_alone() {
         admitted(&definition, &sources).expect_err("the whole library is another catalogue");
     assert_eq!(error.location, "map.json.template_catalog_hash");
 }
+
+#[test]
+fn recomputing_content_hash_cannot_admit_a_swamp_the_terrain_cannot_carry() {
+    let mut map = serde_json::to_value(geometry()).unwrap();
+    map["swamps"] = json!([{
+        "shape": { "kind": "polygon", "ring": [[10, 10], [14, 10], [14, 14], [10, 14]] },
+        "depth_m": 0.6
+    }]);
+    let definition: MapDefinition = serde_json::from_value(map).unwrap();
+    let error = admitted(&definition, &sources(&definition))
+        .expect_err("a content hash is not swamp validation");
+    assert_eq!(serde_json::to_value(&error).unwrap()["code"], "invalid_map");
+    assert!(error.message.contains("too small"), "{error}");
+}

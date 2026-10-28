@@ -34,6 +34,19 @@ pub struct Arc {
     pub bridge: bool,
 }
 
+impl Arc {
+    /// What a mover's speed reads of its road: flat, its kind's share of
+    /// road speed.
+    pub fn footing(&self) -> super::Footing {
+        super::Footing {
+            road_factor: self.factor,
+            forest: false,
+            swamp: false,
+            slope_deg: 0.0,
+        }
+    }
+}
+
 /// A point of an arc near a place off the road.
 #[derive(Clone, Copy, Debug)]
 pub struct Access {

@@ -71,6 +71,7 @@ fn main() {
                 off_road_mps: 6.0,
                 road_mps: 12.0,
                 forest_multiplier: 0.4,
+                swamp_multiplier: 0.4,
                 half_width_m: if class == MoverClass::Infantry {
                     0.5
                 } else {
