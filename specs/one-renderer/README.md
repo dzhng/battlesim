@@ -1,8 +1,8 @@
 # One renderer
 
 **Status:** implementing on [PR #16](https://github.com/dzhng/battlesim/pull/16).
-**Updated:** 2026-10-28. The architecture is settled; production parity and the
-final deletion/performance gates remain open.
+**Updated:** 2026-10-28. Shared frame parity passes; one browser module, full
+production integration and the final deletion/performance gates remain open.
 
 ## Architecture
 
@@ -20,6 +20,14 @@ surface live in `native/client`; fetched bytes and the WebGPU canvas live in
 visibility, tier/caster selection and static batches. Rendering must preserve
 battle digests and publication layouts.
 
+The browser exports presentation, rendering and the existing sound bindings from
+one WASM module. Rendering synchronously borrows the actual Rust presentation;
+it does not copy canonical frames or reconstruct knowledge through JavaScript.
+The simulation worker remains separate. All browser classes use one generated
+module/initializer, and JavaScript reacquires typed views after allocating calls
+because rendering can grow that same memory. The core runtime owns resource
+composition and preparation as well as pass encoding.
+
 TypeGPU is a temporary control and shader migration input. After parity, delete
 its browser runtime, duplicate pass/resource owners and dependency. Retaining a
 build-only authoring dependency requires its own evidence that the tooling is
@@ -33,29 +41,26 @@ renderer cannot establish that benefit.
 
 ## Next Agent Prompt
 
-Continue from the shared production frame. Native and browser now call the same
-concrete Rust frame encoder over the actual sky, environment, ground, grass,
-scars, fog, model, scenery, effects and post owners. Callback stage adapters and
-the browser's parallel ground/environment/fog implementations are deleted.
-Preserve native behavior while closing the matched captured Paris visual gate.
+Continue with [slice 03](slices/03-runtime.md): consolidate resource composition
+and preparation into the core runtime and use one browser WASM module. The
+packaging/direct-borrow spike passes; actual unified GPU parity is the next gate.
+The shared-frame checkpoint is committed, and its valid screenshots/timings are
+the incumbent. Preserve those pixels while deleting the extra transport layer.
 
 Priority order:
 
-1. Inspect the new captured `plate-240` pair and rerun native plates against the
-   saved pre-extraction native control. The preceding valid comparison failed
-   visual parity; research preserves its evidence. Green transport/lifetime
-   counters never override missing or different rendered content.
-2. Complete the production browser canvas/transport shell and the remaining
-   shared features listed in slice 02. Preserve paint, pointer marks, x-ray,
-   high-air composition and the existing diagnostic contracts when replacing
-   BattleFrame; the native replay alone does not cover these browser features.
-3. Compare matched visual, CPU, GPU timestamp and owned memory results. Prepare
-   fresh fog/scar/grass records for each drawn frame. After device recreation,
-   resend current knowledge from presentation; an old delta cannot recover it.
-4. Measure the three production targets with matched inputs, separate cold
-   startup from recovery, record CPU/GPU/memory/download costs, and account for
-   code/owners after deletion. Delete the replaced graphs, run repository
-   closeout once, review the whole change, and archive the spec when shipped.
+1. Complete the common runtime and direct browser presentation borrowing. Share
+   effect-atlas decoding/mips and live fog-look policy too. Delete copied
+   frame/world recovery records and canonical fog/scar serialization once the
+   unified GPU path passes the incumbent gates. Keep UI/audio handle lifetimes
+   explicit; a standalone presentation object cannot cross the unified binder.
+2. Finish [player feature parity](slices/04-player-features.md), then replace the
+   production canvas interface. Paint, pointer marks, x-ray, high-air composition
+   and diagnostic contracts remain required; native replay alone cannot prove them.
+3. Run the [migration/deletion verdict](slices/05-migration.md): matched three-target
+   visuals, dynamic and frozen CPU/GPU costs, startup, recovery, owned allocations,
+   WASM high-water memory and source/owner accounting. Delete TypeGPU and the
+   standalone graph, run repository closeout once, review and archive.
 
 A browser environment failure occurred during this continuation: a minimal
 Playwright data page timed out without game code; a bounded GPU-disabled probe
@@ -88,7 +93,8 @@ regression coverage or prove visual parity automatically.
 
 [Research](research.md) owns the hypothesis queue, attempts, measurements and
 limitations. [Choices](choices.md) owns decisions made where the spec was silent.
-[Slice 02](slices/02-verdict.md) owns the migration/deletion gates. Scratch
+[Slice 02](slices/02-verdict.md) records the shared-frame checkpoint; slices 03–05
+own the remaining runtime, player-feature and migration gates. Scratch
 screenshots, logs and raw measurements stay under ignored `throwaway/`.
 
 Established before the current pass:
@@ -101,18 +107,22 @@ Established before the current pass:
 - A captured publication reaches the shared browser shell, including dynamic
   model, terrain, effect and caster records. Earlier dynamic-only admission and
   synthetic controls are not full production pixel or performance evidence.
-- Native replay/count contracts pass. Full visual parity remains unproven.
+- Native replay/count contracts pass; production feature coverage and the final
+  migration gate remain open.
 
-The current model audit invalidates the old browser asset adapter as a final
-implementation: first-node articulated geometry, fallback static states and
-partial texture-array uploads differ from native. Reusing native admission is
-both the parity fix and the complexity reduction.
+The shared-frame checkpoint matches the captured browser street essentially byte
+for byte and preserves all six native replay plates byte for byte. Fresh critiques
+found no candidate-specific regression. The default eleven-row scene passes.
+Device recreation now preserves complete frame pixels without the harness
+manually replaying scene/overlay uploads; its overlay-loss regression was proved
+red then green. Detailed development timings and their limits live in research.
 
 ## Global TODO
 
 - [x] Prove browser Rust WASM backend and four ownership variants — [slice 00](slices/00-wasm-backend.md).
 - [x] Prove bounded real terrain/model transport and publication input — [slice 01](slices/01-real-frame.md).
-- [ ] Move every production GPU owner into the shared runtime — [slice 02](slices/02-verdict.md).
-- [ ] Clear matched production-frame, performance and lifecycle gates on both targets — [slice 02](slices/02-verdict.md).
-- [ ] Delete TypeGPU runtime/dependency and duplicate production-shaped graph — [slice 02](slices/02-verdict.md).
+- [x] Share actual production frame encoding and preserve the native/browser captured controls — [slice 02](slices/02-verdict.md).
+- [ ] Consolidate the runtime and use direct presentation borrowing in one browser module — [slice 03](slices/03-runtime.md).
+- [ ] Complete browser player-feature parity — [slice 04](slices/04-player-features.md).
+- [ ] Clear final lifecycle/performance gates and delete TypeGPU/duplicate graphs — [slice 05](slices/05-migration.md).
 - [ ] Review the full implementation, run repository closeout, consolidate choices and archive.

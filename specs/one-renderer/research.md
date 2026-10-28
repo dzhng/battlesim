@@ -122,6 +122,57 @@ stage. Adding progress stages to the TypeGPU control produced a complete repeat;
 the timed-out attempt provides no timing result and remains an infrastructure/
 initialization uncertainty rather than an assigned renderer regression.
 
+## Next task — one browser module and complete runtime ownership
+
+The separate-module shared frame is the incumbent. The CPU reduction above was
+measured **before module unification** and is not evidence of a benefit caused
+by it. It compares the complete measured TypeGPU/Rust paths on a frozen frame;
+the savings have not been isolated to individual mechanisms.
+
+A bounded scratch experiment linked the existing presentation bindings as an
+rlib into the actual renderer. Both full class APIs, sound bindings and free
+functions can share one WASM module; Node exercises canonical frame/fog borrowing
+and exact camera records in that memory. Borrowing actual model slices into the
+renderer compiles/exports. An exports-only control confirms that no artificial
+probe exports are needed to retain the existing classes.
+
+| Optimized WASM bytes | Separate modules, summed | Unified exports-only |
+| --- | ---: | ---: |
+| Raw | 5,035,788 | 4,952,412 |
+| gzip level 9 | 1,631,450 | 1,567,702 |
+| Brotli quality 11 | 1,102,643 | 1,025,680 |
+
+Identical empty-world initialization/frame preparation retains `3,145,728` bytes
+of separate WASM memories versus `2,031,616` unified. Freeing the presentation
+does not shrink those memories. This is an empty-world Node control, not a
+full-battle GPU or process-memory claim. All builds use matching optimization,
+SIMD and wasm-opt settings, isolated scratch target/output, with no product
+source changes. Detailed commands, hashes and evidence boundaries are in
+`throwaway/unified-wasm-spike/REPORT.md`; the scratch build target was removed.
+
+**Keep for implementation:** one browser module and direct canonical borrowing
+can delete cross-memory frame/fog/scar protocol and recovery replay machinery.
+**Unproven:** actual unified GPU pixels, frame cost, full-workload memory and
+complete runtime ownership. Renderer allocations now also invalidate JavaScript
+presentation views when memory grows, so the integration must refresh them and
+keep every class on the same generated initializer.
+
+The next discriminating test is [slice 03](slices/03-runtime.md)'s real unified
+GPU path against the saved separate-module street, native plates and lifecycle
+incumbents. Share resource composition and preparation, including atlas mips
+and live fog-look flags, before deleting the extra bridges. A separate direct
+output-target trial may explain the remaining GPU cost; do not attribute that
+or any combined gain to packaging without an isolated comparison.
+
+The independent shared-frame review found an existing overlay-loss bug during
+device recreation. The harness now renders before loss, removes manual scene
+replay after recreation, and compares raw before/after pixels. The missing marks
+were reproduced red, retained overlay source geometry makes the check green,
+and an unprimed critique confirms continuity. Evidence: `recovery-pixels-red.log`,
+`recovery-pixels-confirmation.log`, and `recovery-review/` under the renderer
+evidence folder. One attempted green run overlapped lint-staged hiding the
+unstaged harness and is invalid; its workload lacks the new comparison field.
+
 ## Hypothesis queue
 
 1. **Shared resource owners first (active):** moving native model/material,

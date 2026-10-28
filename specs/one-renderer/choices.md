@@ -550,3 +550,26 @@ CPU recovery data, while excluding allocator, driver and canvas storage. Each
 new owner must expose its allocations to the diagnostic visitor. **Verdict:**
 sound. **Confidence:** high; this makes measurement passive and its limits
 explicit instead of calling payload accounting whole-process memory.
+
+### Export browser presentation and rendering from one WASM module
+
+**When:** 2026-10-28 packaging experiment and runtime plan.
+
+When drawing a battle, the browser currently asks one Rust module for a frame,
+copies it into JavaScript and hands it to another Rust module. Both modules
+already understand the same Rust presentation types. The target now links the
+bindings into the renderer's browser entrypoint, so drawing can synchronously
+borrow the actual presentation and use native's preparation path directly.
+Simulation remains in its worker; input, DOM and fetched bytes remain browser
+responsibilities. A new permanent umbrella package adds no useful owner.
+
+**Gap:** the original plan did not settle browser module packaging and inherited
+the separate modules. **Reach:** deletes copy schemas, per-frame upload calls
+and stale recovery records after GPU parity. It also changes view lifetime: a
+renderer allocation can enlarge the shared byte buffer and detach a JavaScript
+view of presentation data, so callers must reacquire views afterward. Audio
+and rendering must use the same initialized class identity and keep the
+presentation handle private. **Verdict:** sound. **Confidence:** high; the
+packaging and direct-borrow experiment passes and simplifies ownership. Actual
+unified GPU behavior/performance remains an implementation gate, not a claimed
+result of the packaging experiment.
