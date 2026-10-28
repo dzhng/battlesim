@@ -14,6 +14,7 @@ struct Camera {
   height: f32,
   time: f32,
   wind: array<Wind, 1>,
+  waves: vec4f,
 }
 
 @group(0) @binding(0) var<uniform> cam: Camera;
@@ -135,6 +136,33 @@ fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
   let n = blendRnm(blendRnm(macro_1, primary), detail);
   let shown = (1f - smoothstep((*w).fades.y, (*w).fades.z, footprint));
   return normalize(mix(vec3f(0, 0, 1), n, shown));
+}
+
+@group(2) @binding(13) var waves: texture_2d<f32>;
+
+@group(2) @binding(11) var sceneTaps: sampler;
+
+fn waveHeight(uv: vec2f) -> f32 {
+  return textureSampleLevel(waves, sceneTaps, uv, 0).x;
+}
+
+fn waveNormal(xy: vec2f, n: vec3f) -> vec3f {
+  let area = (&cam.waves);
+  let low = f32((params.view.z == 1u));
+  let shown = ((*area).w * (1f - low));
+  let uv = ((xy - (*area).xy) / (*area).z);
+  let inside = min(uv, (vec2f(1) - uv));
+  if (((shown <= 0f) || (min(inside.x, inside.y) <= 0f))) {
+    return n;
+  }
+  const texel = 9.765625e-4;
+  let dx = (waveHeight((uv + vec2f(texel, 0f))) - waveHeight((uv - vec2f(texel, 0f))));
+  let dy = (waveHeight((uv + vec2f(0f, texel))) - waveHeight((uv - vec2f(0f, texel))));
+  let edge = smoothstep(0f, 0.08f, min(inside.x, inside.y));
+  let ripple = (vec2f(dx, dy) * ((2.4f * shown) * edge));
+  let flatten = (saturate((length(ripple) * 1.8f)) * 0.72f);
+  let calmed = normalize(mix(n, vec3f(0, 0, 1), flatten));
+  return blendRnm(calmed, normalize(vec3f((ripple * -1f), 1f)));
 }
 
 struct Aerial {
@@ -263,13 +291,13 @@ fn inheritedSunShadow(environment: Environment, sunShadow: SunShadow, sunDepth: 
   return shade;
 }
 
-@group(2) @binding(0) var<uniform> data: Environment;
+@group(3) @binding(0) var<uniform> data: Environment;
 
-@group(2) @binding(6) var<uniform> sun: SunShadow;
+@group(3) @binding(6) var<uniform> sun: SunShadow;
 
-@group(2) @binding(7) var sunDepth: texture_depth_2d_array;
+@group(3) @binding(7) var sunDepth: texture_depth_2d_array;
 
-@group(2) @binding(8) var sunCompare: sampler_comparison;
+@group(3) @binding(8) var sunCompare: sampler_comparison;
 
 fn sampleSunShadow(world: vec3f, normal: vec3f, pixel: vec2f) -> f32 {
   return inheritedSunShadow(data, sun, sunDepth, sunCompare, world, normal, pixel);
@@ -282,9 +310,9 @@ struct FogLayer {
   pad: u32,
 }
 
-@group(3) @binding(1) var<uniform> layer: FogLayer;
+@group(2) @binding(1) var<uniform> layer: FogLayer;
 
-@group(3) @binding(7) var paint: texture_2d<f32>;
+@group(2) @binding(7) var paint: texture_2d<f32>;
 
 fn groundPaint(ground: vec3f) -> vec4f {
   if (layer.painted == 0u) { return vec4f(0.0); }
@@ -304,7 +332,7 @@ fn ndcAt(at: vec2i) -> vec2f {
     return vec2f(centre.x / cam.width * 2.0 - 1.0, 1.0 - centre.y / cam.height * 2.0);
   }
 
-@group(3) @binding(9) var depth: texture_depth_multisampled_2d;
+@group(2) @binding(9) var depth: texture_depth_multisampled_2d;
 
 fn bedDistance(at: vec2i, world: vec3f) -> f32 {
     let cam = cam;
@@ -321,11 +349,9 @@ fn waterDepth(clip: vec4f, world: vec3f) -> f32 {
   return bedDistance(vec2i(clip.xy), world);
 }
 
-@group(3) @binding(10) var sceneColour: texture_2d<f32>;
+@group(2) @binding(10) var sceneColour: texture_2d<f32>;
 
-@group(3) @binding(12) var seenUnder: texture_2d<f32>;
-
-@group(3) @binding(11) var sceneTaps: sampler;
+@group(2) @binding(12) var seenUnder: texture_2d<f32>;
 
 fn waterUnder(clip: vec4f, world: vec3f, n: vec3f, straight: f32, look: u32) -> vec4f {
     let here = vec2i(clip.xy);
@@ -405,7 +431,7 @@ struct CastLights {
   lights: array<CastLight, 24>,
 }
 
-@group(2) @binding(1) var<uniform> lights: CastLights;
+@group(3) @binding(1) var<uniform> lights: CastLights;
 
 fn castLight(base: vec3f, normal: vec3f, position: vec3f) -> vec3f {
   let count = u32(lights.header.x);
@@ -532,11 +558,11 @@ fn lightAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f
  return standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
  }
 
-@group(2) @binding(3) var pmrem: texture_2d<f32>;
+@group(3) @binding(3) var pmrem: texture_2d<f32>;
 
-@group(2) @binding(4) var dfg: texture_2d<f32>;
+@group(3) @binding(4) var dfg: texture_2d<f32>;
 
-@group(2) @binding(5) var linear: sampler;
+@group(3) @binding(5) var linear: sampler;
 
 fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec3f {
   let sun_1 = mix(data.settings.y, 1f, shadow);
@@ -566,7 +592,7 @@ struct GroundPaintStyle {
   pad2: f32,
 }
 
-@group(3) @binding(6) var<uniform> paintStyle: GroundPaintStyle;
+@group(2) @binding(6) var<uniform> paintStyle: GroundPaintStyle;
 
 fn paintColour(paint: vec4f) -> vec3f {
   let c = pow(max(paint.xyz / max(paint.w, 1e-4), vec3f(0.0)), vec3f(2.2));
@@ -611,7 +637,7 @@ fn applyAerial(surface: vec4f, position: vec3f, camera: vec3f, observer: vec3f, 
     return vec4f(surface.rgb*transmit+mistSkyLight*(vec3f(1)-transmit),surface.a);
   }
 
-@group(2) @binding(2) var sky: texture_2d<f32>;
+@group(3) @binding(2) var sky: texture_2d<f32>;
 
 fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
   return applyAerial(vec4f(colour, 1f), position, eye, data.observer.xyz, data.sunDirection.xyz, data.aerial, sky, linear);
@@ -673,9 +699,9 @@ struct FogParams {
   wholeFlagsBase: u32,
 }
 
-@group(3) @binding(0) var<uniform> params_1: FogParams;
+@group(2) @binding(0) var<uniform> params_1: FogParams;
 
-@group(3) @binding(8) var wholes: texture_2d<u32>;
+@group(2) @binding(8) var wholes: texture_2d<u32>;
 
 fn fogWholeWord(i: u32) -> u32 {
   return textureLoad(wholes, vec2u(i % 256u, i / 256u), 0).x;
@@ -708,7 +734,7 @@ fn fogWholeSeen(p: vec3f) -> bool {
   return false;
 }
 
-@group(3) @binding(5) var<storage, read> counts: array<u32>;
+@group(2) @binding(5) var<storage, read> counts: array<u32>;
 
 fn fogProbePoint(world: vec3f, normal: vec3f, ground: bool) -> vec3f {
   if (ground) { return world + vec3f(0.0, 0.0, params_1.targetHeightM); }
@@ -726,7 +752,7 @@ struct FogEye {
   slot: u32,
 }
 
-@group(3) @binding(2) var<storage, read> eyes: array<FogEye>;
+@group(2) @binding(2) var<storage, read> eyes: array<FogEye>;
 
 fn fogShape(front: f32, side: f32, rear: f32, off: f32) -> f32 {
   let c = cos(off);
@@ -743,7 +769,7 @@ fn fogUnpack(w: u32) -> vec3f {
   return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * 0.005);
 }
 
-@group(3) @binding(3) var<storage, read> maps: array<u32>;
+@group(2) @binding(3) var<storage, read> maps: array<u32>;
 
 fn fogSeenBy(ei: u32, p: vec3f, n: vec3f) -> bool {
   let e = eyes[ei];
@@ -827,7 +853,7 @@ fn fogSeenSurface(ei: u32, world: vec3f, normal: vec3f, ground: bool) -> bool {
   return fogSeenBy(ei, q, vec3f(0.0));
 }
 
-@group(3) @binding(4) var<storage, read> lists: array<u32>;
+@group(2) @binding(4) var<storage, read> lists: array<u32>;
 
 fn fogTerm(world: vec3f, normal: vec3f, pixel: vec2f, isGround: bool) -> f32 {
   let P = params_1;
@@ -871,7 +897,7 @@ struct waterFragment_Input {
   let footprint = length(fwidth(_arg_0.world.xy));
   let look = u32(round(_arg_0.color.x));
   let w = (&params.waterLooks[look]);
-  let n = waterNormal(_arg_0.world.xy, footprint, look);
+  let n = waveNormal(_arg_0.world.xy, waterNormal(_arg_0.world.xy, footprint, look));
   let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
   let paint_1 = groundPaint(_arg_0.world);
   let depth_1 = waterDepth(clip, _arg_0.world);

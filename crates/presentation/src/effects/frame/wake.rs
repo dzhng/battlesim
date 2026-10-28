@@ -2,6 +2,9 @@
 //! per tick from what is published, never from how often frames are drawn.
 use super::*;
 use crate::effects::tables::WakeStyle;
+use crate::records::WaveSplat;
+use crate::view::Camera;
+use crate::wave::{WaveStep, WAVE};
 
 /// How long a wake impulse is kept after it is made, presentation seconds:
 /// past it a renderer that has not taken it never will.
@@ -62,5 +65,44 @@ pub(super) fn wake(
             });
         }
         k += 1.0;
+    }
+}
+
+/// A frame of the wave field: its steps, and the wake impulses each splats.
+#[derive(Clone, Debug, Default)]
+pub struct WaveFrame {
+    pub step: WaveStep,
+    pub splats: Vec<WaveSplat>,
+}
+
+impl EffectFrame {
+    /// The wave field's frame at presentation time `clock` for `camera`
+    /// (`WaveClock::advance`), with every wake impulse made in the steps it
+    /// runs, each at the step that covers it: none is splatted twice, and
+    /// any split into frames splats the same.
+    pub fn waves(&mut self, clock: f64, camera: &Camera) -> WaveFrame {
+        let step = self.waves.advance(clock, camera);
+        let to = self.waves.done().unwrap_or_default();
+        let first = to - i64::from(step.steps);
+        let [ox, oy] = step.origin_texel.map(f64::from);
+        let splats = self
+            .wakes
+            .iter()
+            .filter_map(|w| {
+                let k = (w.at * WAVE.hz).floor() as i64;
+                (first..to).contains(&k).then(|| WaveSplat {
+                    splat: [
+                        (w.xy[0] / WAVE.texel_m - ox) as f32,
+                        (w.xy[1] / WAVE.texel_m - oy) as f32,
+                        (w.radius / WAVE.texel_m) as f32,
+                        w.strength as f32,
+                    ],
+                    step: (k - first) as f32,
+                    kind: f32::from(u8::from(w.kind == WakeKind::Vee)),
+                    pad: [0.0; 2],
+                })
+            })
+            .collect();
+        WaveFrame { step, splats }
     }
 }

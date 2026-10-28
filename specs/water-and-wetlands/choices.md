@@ -1293,3 +1293,91 @@ against the code. Each says what was chosen, why, and how sure the agent is.
 - **Not done:** the slice's debug lab (wake marks on a test copy of the
   wetlands ground) and "a soldier crossing a puddle makes rings", which
   waits for slice 14.
+
+## Slice 16: the wave field
+
+### The clock counts steps on the presentation clock and lives with the wakes
+
+- **When:** slice 16.
+- **The choice:** `wave::WaveClock::advance(clock, camera)` runs the steps
+  up to `floor(clock · hz)` since the last, at most `max_steps`, so any
+  split into frames runs the same steps. A jump drops the excess, and the
+  clock running backwards starts over.
+  - `epoch` is a process-wide counter, new for every clock. The clock lives
+    in `EffectFrame`, beside the wakes it splats, so a load or a side switch
+    (both make a new `Loaded`) opens a new epoch, and so does a reset
+    (`EffectFrame::reset`).
+  - `EffectFrame::waves` hands each impulse to the step that covers its
+    `at`, in field texels.
+  - `Presentation::waves` (in `presentation/cameras.rs`, beside the camera
+    that places the field) feeds the wasm call `waves()`: a float array of
+    steps, epoch, shift, then `WaveSplat` records.
+  - The page takes it once per presented frame (`ScenePresentation.frame`)
+    and hands it to the renderer with the frame's views (`setCamera`). The
+    renderer runs each array once.
+- **The gap:** the contract placed the clock and its consumer, not who
+  holds the state.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The field follows the camera's target, carried in the camera record
+
+- **When:** slice 16.
+- **The choice:** `Camera.waves` holds the field's south-west corner on the
+  texel grid round what the camera looks at, its side, and how much shows.
+  How much fades from whole at 180 m eye-to-target to none at 320 m. It is
+  a pure function of the camera, so the water's shader needs no new
+  uniform, and native gets it with the camera it already uploads. On Low
+  (`TerrainParams.view.z`) the water ignores the field and the renderer
+  runs no steps.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### 1024² at 12.5 cm, 30 steps a second, fine rings that die within a metre or two
+
+- **When:** slice 16.
+- **The choice:** `WAVE` (`wave.rs`, generated for the shaders): 1024 texels
+  of 0.125 m (a 128 m square), 30 Hz, at most 6 steps a frame. RedGPU's
+  speed 0.2 and damping 0.08 a step, and slope scale 0.15. Each splat is a
+  ring (a dip with a rim summing to nothing), not RedGPU's push, because
+  pushes made again and again piled into a mound that read as brown discs.
+  A soldier's push reaches 0.15 m (`wake.soldier_radius_m`, down from
+  0.35). These came from three rounds of looking:
+  - 512² at 25 cm with RedGPU's numbers: saturated bands across the marsh;
+  - with harder damping: mounds;
+  - the ring splat at 25 cm: clear but too big.
+
+  An unprimed critique of that last round found rings that read as rings on
+  water, nothing changed on the river shots, and no seams. It also found
+  them too big, regular and strong, like contour lines at 12 m and halo-like
+  rings at 45 m. It asked for 10 to 25 cm ripples dying within a metre or
+  two. The final round gives fine collars round each man at 12 m and nothing
+  at 45 m.
+- **The gap:** delegated (texel count, damping, splat shape).
+- **The reach:** the cost probe was not measured on the GPU. The frame
+  timer measures whole frames only, and an interleaved A/B needs a lab.
+  Estimate: a step is one 1024² fragment pass of ten texture loads plus a
+  loop over the frame's splats (at most 256), about two steps a frame at
+  60 fps. The splat loop is the term to watch in a big battle; binning
+  splats or drawing them as quads would bound it.
+- **Verdict:** sound for the look; the cost is unmeasured.
+- **Confidence:** medium.
+
+### Captures warm the field by playing the reel, not by a fixed warm-up
+
+- **When:** slice 16.
+- **The choice:** the capture tool plays the reel frame by frame at fixed
+  reel times, so the field runs the same steps each time and its shots
+  repeat. No separate warm-up count was added. Native draws no wakes (see
+  `specs/water-native`). The water scene's native check compares the mean
+  water colour, which the final wakes move by ΔE 0.1 on the wading shot.
+- **The gap:** the slice asked for a fixed warm-up from a reset.
+- **The reach:** a capture that jumps straight to a plate would need one.
+- **Verdict:** sound for the reel's captures.
+- **Confidence:** medium.
+
+### Size splits
+
+The wasm crate's scar upload moved to `presentation-wasm/src/scars.rs`, and
+the page's probe types to `web/src/battle/sim/presentationProbe.ts`, to make
+room.

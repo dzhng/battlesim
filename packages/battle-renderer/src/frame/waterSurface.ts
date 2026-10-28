@@ -34,7 +34,7 @@ const waterLayer = tgpu.fn(
 
 /** Two tangent-space normals as one: reoriented normal mapping, `detail`
  *  laid over `base` as if it were on its slope. */
-const blendRnm = tgpu.fn(
+export const blendRnm = tgpu.fn(
   [d.vec3f, d.vec3f],
   d.vec3f,
 )((base, detail) => {

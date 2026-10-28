@@ -40,6 +40,18 @@ export const SWAY = {
   shiverRate: 7,
   heart: 0.62,
 } as const;
+/** The wave field's tuning (`wave.rs`): steps a second and the most a frame
+ *  runs, texels a side and metres a texel, RedGPU's wave speed and damping a
+ *  step, and how steeply its slope tilts the water's normal. */
+export const WAVE = {
+  hz: 30,
+  maxSteps: 6,
+  texels: 1024,
+  texelM: 0.125,
+  speed: 0.2,
+  damping: 0.08,
+  normal: 0.15,
+} as const;
 /** Each effect kind (`Counts.running`'s order) and instance shape
  *  (`Effect.misc.x`), as a capture's effect counts name them (`effects/frame.rs`). */
 export const EFFECT_KINDS = [
@@ -590,6 +602,8 @@ export const Camera = d
     time: d.f32,
     /** The ground's wind (calm before a ground), its one record: grass, water and trees move in it, in every pass that draws them, shadows included. */
     wind: d.arrayOf(Wind, 1),
+    /** The wave field (`wave::area`): its south-west corner and side (m), and how much of its waves show, 0 where none are drawn. */
+    waves: d.vec4f,
   })
   .$name("Camera");
 /** Where `Camera`'s fields lie, in words. */
@@ -603,8 +617,29 @@ export const CameraAt = {
   time: 38,
   pad: 39,
   wind: 40,
+  waves: 48,
 } as const;
-export const CAMERA_WORDS = 48;
+export const CAMERA_WORDS = 52;
+
+/** A wake impulse as the wave field splats it (`EffectFrame::waves`). */
+export const WaveSplat = d
+  .struct({
+    /** Where in the field (texels from its south-west corner), how wide (texels) and how hard. */
+    splat: d.vec4f,
+    /** Which of the frame's steps splats it, and its kind (0 rings, 1 a V-wake). */
+    step: d.f32,
+    /**  */
+    kind: d.f32,
+  })
+  .$name("WaveSplat");
+/** Where `WaveSplat`'s fields lie, in words. */
+export const WaveSplatAt = {
+  splat: 0,
+  step: 4,
+  kind: 5,
+  pad: 6,
+} as const;
+export const WAVE_SPLAT_WORDS = 8;
 
 /** One sun cascade as a shadow receiver reads it. An unfitted cascade is the identity over [1, 1]. */
 export const SunCascade = d

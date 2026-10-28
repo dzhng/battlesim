@@ -2181,7 +2181,7 @@
         "landing_sparks": 14,
         "debris": { "hold_s": 20, "fade_s": 4 }
       },
-      "wake": { "ring_hz": 2, "vee_mps": 1, "spacing_m": 1.5, "soldier_radius_m": 0.35, "ring_strength": 0.5, "vee_strength": 1 },
+      "wake": { "ring_hz": 2, "vee_mps": 1, "spacing_m": 1.5, "soldier_radius_m": 0.15, "ring_strength": 0.5, "vee_strength": 1 },
       "dust": {
         "albedo": [0.74, 0.63, 0.48],
         "opacity": 0.4,

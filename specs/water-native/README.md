@@ -50,7 +50,21 @@ native.
 
 ## Gaps
 
-None yet. Slice 07's refraction draws on native as in the browser: native
+- **Wakes (slice 16, the wave field).** Native draws no wakes: still water
+  around anything wading, as before the slice. The browser steps a height
+  field (`waveField.ts`, the exported `waveStep`) from the splats
+  `Presentation::waves` hands it each frame, and the water reads it through
+  the fog layout's new `waves` texture. Native builds `waveStep` and never
+  runs it, binds its fog groups' `waves` to the empty scene placeholder
+  (`fog.rs`), and uploads the camera's `waves` area as the presentation
+  writes it, so its water samples a flat field. Hard because the field
+  carries state from frame to frame, and native's parity plates jump between
+  frames: porting it means stepping it in native too and warming it up the
+  same way on both clients, or keeping wakes out of plate parity (the water
+  scene's native check compares the mean water colour, which wakes barely
+  move).
+
+Slice 07's refraction draws on native as in the browser: native
 allocates the scene copy's mips and the fog mask copy, and replays the
 exported `sceneColourMip`, at `full`. Slice 01's wind rides in the
 camera records native uploads as the presentation writes them (slice 17

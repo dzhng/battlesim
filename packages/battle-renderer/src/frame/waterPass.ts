@@ -22,6 +22,7 @@ import { terrainLayout } from "./terrainLayout";
 import { waterCaustics } from "./waterCaustics";
 import { createWaterLight } from "./waterLight";
 import { waterNormal } from "./waterSurface";
+import { waveNormal } from "./waveNormal";
 import { createSceneMips, ndcAt, waterDepth, waterUnder } from "./waterUnder";
 import { FRAME_MSAA, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
 
@@ -71,7 +72,7 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     // The cell's look rides its vertex colour (`mesh::water`).
     const look = d.u32(std.round(v.color.x));
     const w = terrainLayout.$.params.waterLooks[look];
-    const n = waterNormal(v.world.xy, footprint, look);
+    const n = waveNormal(v.world.xy, waterNormal(v.world.xy, footprint, look));
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const paint = groundPaint(v.world);
     const depth = waterDepth(v.clip, v.world);

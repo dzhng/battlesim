@@ -487,6 +487,21 @@ records! {
         /// water and trees move in it, in every pass that draws them,
         /// shadows included.
         wind: [Wind; 1],
+        /// The wave field (`wave::area`): its south-west corner and side
+        /// (m), and how much of its waves show, 0 where none are drawn.
+        waves: [f32; 4],
+    }
+
+    /// A wake impulse as the wave field splats it (`EffectFrame::waves`).
+    Struct WaveSplat {
+        /// Where in the field (texels from its south-west corner), how wide
+        /// (texels) and how hard.
+        splat: [f32; 4],
+        /// Which of the frame's steps splats it, and its kind (0 rings, 1 a
+        /// V-wake).
+        step: f32,
+        kind: f32,
+        pad: [f32; 2],
     }
 
     /// One sun cascade as a shadow receiver reads it. An unfitted cascade is

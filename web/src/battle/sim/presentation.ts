@@ -149,7 +149,7 @@ export interface PresentedUi {
   known?: readonly (KnownPart & Partial<KnownProp>)[];
 }
 
-export type PresentedFrame = ReturnType<typeof frameViews>;
+export type PresentedFrame = ReturnType<typeof frameViews> & { waves?: Float32Array };
 
 import type { PresentationProbe } from "./presentationProbe";
 export type { PresentationProbe };
@@ -366,6 +366,8 @@ export class ScenePresentation {
   private last: ObservationView | null = null;
   /** The last frame's header. */
   private framePtr = 0;
+  /** The wave field's frame the last `frame` took (`Presentation.waves`). */
+  private waves: Float32Array = new Float32Array(0);
   private battle: PresentedBattle | null = null;
   private buildings: SceneBuildings | null = null;
   private installed: InstalledAppearances | null = null;
@@ -806,7 +808,9 @@ export class ScenePresentation {
     );
     this.walk.selectMs = performance.now() - started;
     this.framePtr = ptr;
-    const views = frameViews(buffer(), ptr);
+    // Before the views: it may grow the module's memory.
+    this.waves = this.rust.waves();
+    const views = { ...frameViews(buffer(), ptr), waves: this.waves };
     const batches = views.batches.u32;
     this.walked = false;
     for (let b = 0; b < views.batches.count && !this.walked; b++) {
@@ -819,7 +823,7 @@ export class ScenePresentation {
 
   /** The last frame's views, taken again after another call into the module. */
   lastFrame(): PresentedFrame {
-    return frameViews(buffer(), this.framePtr);
+    return { ...frameViews(buffer(), this.framePtr), waves: this.waves };
   }
 
   /** The module's presentation, which battle sound hears

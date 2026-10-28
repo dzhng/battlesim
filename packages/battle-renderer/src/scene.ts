@@ -198,8 +198,9 @@ export interface BattleFrame {
    *  view, the camera uniform at the frame's clock (the wind's), and the
    *  sun's cascades fitted to it, uploaded as they are. Read at once: the
    *  views last only until the next call into the module. A frame without
-   *  cascades keeps the last. */
-  setCamera(frame: ReturnType<typeof frameViews>): void;
+   *  cascades keeps the last. With it, the wave field's steps and splats
+   *  since the frame before (`Presentation.waves`), run once each. */
+  setCamera(frame: ReturnType<typeof frameViews> & { waves?: Float32Array }): void;
   /** The static world: the terrain and the props on it. */
   setWorld(world: WorldLayers): void;
   /** The static batches of the scene's presentation frame

@@ -46,6 +46,7 @@ use super::tables::{
 };
 use super::{DrawnRotor, MuzzleSource};
 use crate::seed::{Key, Mulberry32, GOLDEN};
+use crate::wave::WaveClock;
 use crate::wind::WindSettings;
 use crate::world::Vec3;
 
@@ -56,6 +57,7 @@ mod wake;
 use draw::*;
 use pool::Pool;
 use smoke::{draw_puff, draw_trail};
+pub use wake::WaveFrame;
 
 // ---- Effects in flight. ----
 
@@ -314,6 +316,8 @@ pub struct EffectFrame {
     movers: HashMap<u64, Mover>,
     /// The wake impulses made within `WAKE_KEEP_S` of the last tick taken.
     wakes: Vec<WakeImpulse>,
+    /// The wave field's clock, which splats them (`waves`).
+    waves: WaveClock,
     /// Where each smoking hull was last published.
     smokers: HashMap<u64, Mover>,
     last_tick: f64,
@@ -336,6 +340,7 @@ impl EffectFrame {
             keep: 1.0,
             movers: HashMap::new(),
             wakes: Vec::new(),
+            waves: WaveClock::new(),
             smokers: HashMap::new(),
             last_tick: -1.0,
             launches: LaunchTracker::default(),
@@ -356,6 +361,7 @@ impl EffectFrame {
         self.source_index.clear();
         self.movers.clear();
         self.wakes.clear();
+        self.waves.restart();
         self.smokers.clear();
         self.launches.reset();
         self.last_tick = -1.0;
