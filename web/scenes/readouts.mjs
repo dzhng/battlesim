@@ -328,6 +328,7 @@ export async function run(ctx) {
   await page.setViewportSize({ width: 1280, height: 800 });
   await lab(page, () => window.__lab.route.select([0]));
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  await lab(page, () => window.__lab.frame());
   const priority = await page.locator("[data-testid=readouts] .ro-callout").evaluateAll((nodes) =>
     nodes.map((n) => ({
       selected: n.classList.contains("ro-selected"),
