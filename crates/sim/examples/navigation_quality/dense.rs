@@ -63,7 +63,7 @@ pub struct Drive {
     pub radius_m: f64,
     pub reverse_fraction: f64,
     /// How every vehicle drives (`movement.drive`).
-    pub feel: contract::scenario::DriveRules,
+    pub feel: contract::movement::DriveRules,
 }
 
 impl Mobility {

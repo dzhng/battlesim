@@ -17,6 +17,7 @@ pub mod ids;
 pub mod labels;
 pub mod map;
 pub mod maps;
+pub mod movement;
 pub mod numbers;
 pub mod observation;
 pub mod players;
