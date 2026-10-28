@@ -51,6 +51,9 @@ native.
   a frame, take the same tier, caster and fog rules through the module.
 - [The light](src/light.rs): the fixture's light resolved into the sky's,
   bloom's and grade's uniform records, as the browser's sky model resolves it.
+- [The wind](src/wind.rs): the biome's one wind as the `Wind` record, which
+  every lit shader finds in the environment uniform and grass sways in, and
+  which the effects drift smoke and dust on.
 - [Scars](src/scars/): the side's learned ground, from its publications'
   patches, and the bounded GPU cache of its scars. A renderer uploads what it
   is handed (the directory's words, the pool's texels, `ScarParams`' words

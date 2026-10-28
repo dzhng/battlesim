@@ -31,6 +31,7 @@ fn puff_radius(s: &PuffStyle, x: f64) -> f64 {
 /// faded as its middle's age, so stretches meet end to end unbroken.
 pub(super) fn draw_trail(
     p: &EffectPresentation,
+    wind: &[f64; 2],
     e: &Effect,
     s: &TrailStyle,
     age: f64,
@@ -53,8 +54,8 @@ pub(super) fn draw_trail(
         let per_m = dt / length;
         let age_lo = age - lo * per_m;
         let age_hi = (age - hi * per_m).max(0.0);
-        let a = smoke_at(&p.wind_mps, point_along(e, lo), rise, puff.life_s, age_lo);
-        let b = smoke_at(&p.wind_mps, point_along(e, hi), rise, puff.life_s, age_hi);
+        let a = smoke_at(wind, point_along(e, lo), rise, puff.life_s, age_lo);
+        let b = smoke_at(wind, point_along(e, hi), rise, puff.life_s, age_hi);
         let x = ((age_lo + age_hi) / 2.0 / puff.life_s).min(1.0);
         // Thinning before its puffs fade, so an old trail loosens into them.
         let opacity = s.ribbon * ((1.0 - x) * (1.0 - x));

@@ -14,8 +14,8 @@ use serde_json::Value;
 #[test]
 fn a_shadow_lies_on_the_ground_with_offset_proportional_to_actual_height() {
     let fall = [2.0, -1.0];
-    let low = presentation::presentation::aircraft_shadow([12.0, 34.0, 17.5], 7.5, fall);
-    let high = presentation::presentation::aircraft_shadow([12.0, 34.0, 27.5], 7.5, fall);
+    let low = presentation::shadow::aircraft_shadow([12.0, 34.0, 17.5], 7.5, fall);
+    let high = presentation::shadow::aircraft_shadow([12.0, 34.0, 27.5], 7.5, fall);
     assert_eq!(low, [32.0, 24.0, 7.5]);
     assert_eq!(high, [52.0, 14.0, 7.5]);
 }

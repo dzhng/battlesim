@@ -15,7 +15,7 @@ import { aerialWgsl } from "../shaders/aerial";
 import { equirectUvWgsl } from "../shaders/physicalSky";
 import { DFG_LUT_DATA, DFG_LUT_SIZE } from "../shaders/dfgLut";
 import { shadeEnvironmentWgsl } from "../shaders/environment";
-import { Aerial, CAST_LIGHTS_MAX, SunShadow } from "../records.gen";
+import { Aerial, CAST_LIGHTS_MAX, SunShadow, Wind, WIND_WORDS } from "../records.gen";
 import {
   CAST_ALBEDO_FLOOR,
   CAST_ALBEDO_GREY,
@@ -35,9 +35,11 @@ export const Environment = d.struct({
   fill: d.vec4f,
   /** The battle's haze (`shaders/aerial.ts`). */
   aerial: Aerial,
+  /** The ground's wind (`presentation::wind`); calm before a ground. */
+  wind: Wind,
 });
-/** Where the light's records and the view lie in the uniform, in words: the
- *  `Sun` record covers `sunDirection` to `fill`, the `Aerial` record `aerial`. */
+/** Where the light's records, the wind and the view lie in the uniform, in
+ *  words: the `Sun` record covers `sunDirection` to `fill`. */
 const word = (field: (e: d.Infer<typeof Environment>) => unknown) =>
   d.memoryLayoutOf(Environment, field).offset / 4;
 const AT = {
@@ -46,6 +48,7 @@ const AT = {
   sun: word((e) => e.sunDirection),
   topMip: word((e) => e.settings.x),
   aerial: word((e) => e.aerial),
+  wind: word((e) => e.wind),
 };
 const environmentEntries = {
   data: { uniform: Environment, visibility: ["vertex", "fragment"] },
@@ -84,6 +87,13 @@ const standardPbr = tgpu
   )(standardPbrWgsl)
   .$uses({ samplePmrem });
 const equirectUv = tgpu.fn([d.vec3f], d.vec2f)(equirectUvWgsl);
+/** The one wind, for any stage that binds the environment: grass sways in it. */
+export const environmentWind = tgpu
+  .fn(
+    [],
+    Wind,
+  )(/* wgsl */ `() -> Wind { return layout.$.data.wind; }`)
+  .$uses({ layout });
 
 /** The receiver's sun-shadow entry point: the inherited sampling body (see
  * shadow.ts for that boundary) bound to THIS owner's typed resources — the
@@ -336,6 +346,11 @@ export async function createTypegpuEnvironment(
         if (disposed) return;
         const bytes = castLightsBytes(Math.min(CAST_LIGHTS_MAX, count));
         device.queue.writeBuffer(root.unwrap(lights), 0, image.buffer, image.byteOffset, bytes);
+      },
+      /** The ground's `Wind` record, or calm: sent with the next view. */
+      setWind(wind: Float32Array | null) {
+        image.fill(0, AT.wind, AT.wind + WIND_WORDS);
+        if (wind) image.set(wind, AT.wind);
       },
       setView(worldToView: ArrayLike<number>, observer: readonly [number, number, number]) {
         if (disposed) throw Error("TypeGPU environment disposed");

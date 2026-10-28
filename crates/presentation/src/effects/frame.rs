@@ -45,6 +45,7 @@ use super::tables::{
 };
 use super::{DrawnRotor, MuzzleSource};
 use crate::seed::{Key, Mulberry32, GOLDEN};
+use crate::wind::WindSettings;
 use crate::world::Vec3;
 
 mod draw;
@@ -620,7 +621,8 @@ impl EffectFrame {
     /// Every running effect at presentation time `clock` (seconds) into
     /// `batch`, the rotors' blurs under them; effects that have run their
     /// course are dropped. `muzzles` says where the models are drawn at
-    /// `clock`, for the flashes to sit on.
+    /// `clock`, for the flashes to sit on; smoke and dust drift on `wind`,
+    /// calm without one.
     pub fn build(
         &mut self,
         clock: f64,
@@ -628,6 +630,7 @@ impl EffectFrame {
         mut muzzles: Option<&mut dyn MuzzleSource>,
         rotors: &[DrawnRotor],
         shadows: &[GroundShadow],
+        wind: Option<&WindSettings>,
     ) {
         batch.count = 0;
         batch.dropped = 0;
@@ -640,11 +643,12 @@ impl EffectFrame {
         // Rotor blurs first, under every puff: smoke drifts across them.
         draw_rotors(&p.rotor_blur, rotors, batch);
         let dt = self.pool.dt;
+        let drift = wind.map_or([0.0; 2], |w| w.record().drift());
         // Trails' ribbons next, under every puff: drawn in their turn, a
         // later stretch's ribbon would cover an earlier stretch's puffs.
         for e in &self.pool.live {
             if let (Look::Trail(s), true) = (&e.look, e.start <= clock && clock < e.end) {
-                draw_trail(p, e, s, clock - e.start, dt, batch);
+                draw_trail(p, &drift, e, s, clock - e.start, dt, batch);
             }
         }
         let live = &mut self.pool.live;
@@ -680,7 +684,7 @@ impl EffectFrame {
                 Look::Impact { style, visible } => draw_impact(p, e, style, *visible, age, batch),
                 Look::Sparks => draw_sparks(p, e, age, batch),
                 Look::Blast => draw_blast(p, e, age, batch),
-                Look::Puff(s) => draw_puff(&p.wind_mps, e, s, age, batch),
+                Look::Puff(s) => draw_puff(&drift, e, s, age, batch),
                 Look::Flame(s) => draw_flame(e, s, age, batch),
                 Look::Trail(_) => {}
             }

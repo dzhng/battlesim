@@ -303,18 +303,18 @@ impl Run {
             light.cascades.map_size,
             &SunShadowFrame::cold(light),
         );
+        let presentation = replay.presentation();
+        let resolved = presentation.ground().ok_or("the replay set no ground")?;
         let environment = Environment::new(
             &gpu.device,
             &gpu.queue,
             &pipelines,
             &sky.lut,
-            &light.sun(),
-            &light.aerial(),
+            light,
+            &resolved.biome.wind.record(),
             &shadow,
         );
         let installed = Instant::now();
-        let presentation = replay.presentation();
-        let resolved = presentation.ground().ok_or("the replay set no ground")?;
         let (positions, indices) = &replay.terrain;
         let ground = Ground::new(
             &gpu.device,

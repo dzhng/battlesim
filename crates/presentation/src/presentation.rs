@@ -23,7 +23,7 @@ use crate::records::{
     Joint, Pick, View as ViewRecord, GHOST_PASS, HIGH_PASS, NONE, VIEW_PASS,
 };
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
-use crate::shadow::{ReceiverStats, ShadowFit, SunShadowFrame};
+use crate::shadow::{aircraft_shadow, ReceiverStats, ShadowFit, SunShadowFrame};
 use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
 use crate::static_world::batches::{Population, StaticBatches};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
@@ -256,17 +256,6 @@ pub struct Presentation {
     scars: ScarCache,
     /// Fog of war's sight over the ground (`set_fog`); none draws no fog.
     fog: Option<Fog>,
-}
-
-/// Where an aircraft's shadow lies: thrown along the sun (`shadow_fall`, per
-/// metre of height) from its actual height above the ground under it.
-pub fn aircraft_shadow(position: [f64; 3], ground_z: f64, shadow_fall: [f64; 2]) -> [f64; 3] {
-    let height = position[2] - ground_z;
-    [
-        position[0] + shadow_fall[0] * height,
-        position[1] + shadow_fall[1] * height,
-        ground_z,
-    ]
 }
 
 /// What a scene asks of fog of war (`Presentation::set_fog`).
@@ -1381,7 +1370,8 @@ impl Loaded {
                     Some(high_air_ground_shadow(at, yaw, *plan, height, &style))
                 }),
         );
-        effects.build(time, batch, Some(drawn), &rotors, shadows);
+        let wind = ground.map(|g| &g.biome.wind);
+        effects.build(time, batch, Some(drawn), &rotors, shadows, wind);
         let counts = effects.counts(time, batch);
         f.light_wrap = batch.lights.wrap as f32;
         lights.pack(&batch.lights, view);

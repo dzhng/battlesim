@@ -383,6 +383,21 @@ records! {
         pad1: [f32; 2],
     }
 
+    /// The one wind, in every lit shader's environment uniform after the
+    /// haze (`wind.rs`): grass leans and gusts in it, smoke and dust drift
+    /// on it. Its clock is the camera's (`Camera.time`).
+    Struct Wind {
+        /// Unit vector it blows toward, level (z 0).
+        toward: [f32; 3],
+        /// How fast it carries smoke and dust (m/s).
+        drift_mps: f32,
+        /// How fast a gust front rolls downwind (m/s).
+        gust_mps: f32,
+        /// 1 / the gust fronts' spacing (per metre).
+        gust_per_m: f32,
+        pad: [f32; 2],
+    }
+
     /// The sun and the shadow fill, as the environment uniform carries them
     /// after its view (`sunDirection` to `fill`).
     Plain Sun {

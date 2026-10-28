@@ -31,13 +31,14 @@ export interface GroundInput {
 }
 
 /** The ground a scene's presentation resolved: the calls the terrain
- *  material, the grass and the water read its tables through, and fog of
- *  war's sight over it. */
+ *  material, the grass, the water and the wind read its tables through, and
+ *  fog of war's sight over it. */
 export type PresentedGround = Pick<
   Presentation,
   | "ground_terrain"
   | "ground_plots"
   | "ground_water_mesh"
+  | "ground_wind"
   | "grass_kinds"
   | "grass_params"
   | "grass_window"

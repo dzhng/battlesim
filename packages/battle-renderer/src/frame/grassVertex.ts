@@ -4,6 +4,7 @@
 import { tgpu, d } from "typegpu";
 import game from "@fixtures/game.json";
 import { typegpuCameraLayout } from "../world/camera";
+import { environmentWind } from "../world/environment";
 import { grassDrawLayout } from "./grassLayouts";
 
 const tuning = game.presentation.grass;
@@ -48,11 +49,12 @@ const grassVertexOf = tgpu
   let side = vec3f(sd.x * cs - sd.y * sn, sd.x * sn + sd.y * cs, sd.z);
   // The one wind: a steady lean, gust fronts rolling downwind, a flutter.
   let t = typegpuCameraLayout.$.cam.time;
-  let dir = (*P).wind.xy;
+  let wind = environmentWind();
+  let dir = wind.toward.xy;
   let along = dot(c.root.xy, dir);
-  let front = sin(6.2831853 * (along - t * (*P).gusts.y) * (*P).gusts.x);
-  let gust = smoothstep(${tuning.wind.gust_from}, 1.0, front);
-  let flutter = (*P).gusts.z * sin((*P).gusts.w * t + s.side.w * 6.2831853 + along * ${tuning.wind.flutter_phase});
+  let front = sin(6.2831853 * (along - t * wind.gustMps) * wind.gustPerM);
+  let gust = smoothstep(${tuning.sway.gust_from}, 1.0, front);
+  let flutter = (*P).sway.z * sin((*P).sway.w * t + s.side.w * 6.2831853 + along * ${tuning.sway.flutter_phase});
   let bend = s.spine.w * s.spine.w;
   let packed = unpack4x8unorm(c.colour);
   // Laid over by tracks or trampling: the clump sinks and its blades lean
@@ -60,8 +62,8 @@ const grassVertexOf = tgpu
   // wind less (its shape's own response).
   let flat = 1.0 - packed.w;
   let answer = s.tint.w * (1.0 - flat);
-  let lean = ((*P).wind.z + (*P).wind.w * gust + flutter) * answer;
-  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * ${tuning.wind.flutter_across} * answer;
+  let lean = ((*P).sway.x + (*P).sway.y * gust + flutter) * answer;
+  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * ${tuning.sway.flutter_across} * answer;
   let laid = vec2f(cs, sn) * flat * ${tuning.laid.lean};
   var world = c.root + vec3f(spine.xy, spine.z * (1.0 - flat * ${tuning.laid.sink})) + side + vec3f((push + laid) * c.height * bend, 0.0);
   world.z -= 0.5 * dot(push, push) * c.height * bend;
@@ -86,7 +88,7 @@ const grassVertexOf = tgpu
   out.ground = mix(1.0 - (*P).shading.y, 1.0, plain);
   return out;
 }`)
-  .$uses({ grassDrawLayout, typegpuCameraLayout, GrassVertex });
+  .$uses({ grassDrawLayout, typegpuCameraLayout, environmentWind, GrassVertex });
 
 export const grassVertex = tgpu.vertexFn({
   in: { vid: d.builtin.vertexIndex, iid: d.builtin.instanceIndex },

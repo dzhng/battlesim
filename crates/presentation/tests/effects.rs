@@ -1,10 +1,10 @@
 //! The effects draw what is recorded for the same causes: every instance's
 //! sixteen floats and every cast light at fixed clocks after a few
-//! publications that exercise every kind of effect, and a fixture run's
-//! plate's effect counts replayed from its capture, its units and effects
-//! resolved from the repository as native resolves them. `BLESS_PARITY=1`
-//! re-records the instances, and only the instances: the lights and counts
-//! must still hold.
+//! publications that exercise every kind of effect, in the recorded biome's
+//! wind, and a fixture run's plate's effect counts replayed from its capture,
+//! its units and effects resolved from the repository as native resolves
+//! them. `BLESS_PARITY=1` re-records the instances, and only the instances:
+//! the lights and counts must still hold.
 use std::path::PathBuf;
 
 use presentation::effects::frame::{
@@ -15,6 +15,7 @@ use presentation::effects::publication::{EffectFeed, EffectPublication};
 use presentation::effects::tables::EffectPresentation;
 use presentation::effects::{DrawnRotor, MuzzleSource};
 use presentation::fielded::{self, Fielded};
+use presentation::wind::WindSettings;
 use presentation::world::Vec3;
 use serde_json::Value;
 use sim::publication::reader::Reader;
@@ -69,6 +70,7 @@ fn effects_match_the_recorded_vectors() {
     let p = EffectPresentation::from_value(&v["presentation"]).expect("presentation");
     let mut batch = EffectBatch::new(p.capacity);
     let mut frame = EffectFrame::new(v["tickHz"].as_f64().unwrap(), p);
+    let wind = serde_json::from_value::<WindSettings>(v["wind"].clone()).expect("wind");
     let publications: Vec<EffectPublication> =
         serde_json::from_value(v["publications"].clone()).expect("publications");
     let mut muzzles = Muzzles(serde_json::from_value(v["muzzles"].clone()).expect("muzzles"));
@@ -87,6 +89,7 @@ fn effects_match_the_recorded_vectors() {
             Some(&mut muzzles),
             std::slice::from_ref(&rotor),
             &[],
+            Some(&wind),
         );
         let mut instances: Vec<f64> = serde_json::from_value(want["instances"].clone()).unwrap();
         if bless {
@@ -182,7 +185,8 @@ fn a_fixture_runs_plate_counts_are_the_pages_replay_of_its_capture() {
             continue;
         };
         let clock = f["simTime"].as_f64().unwrap();
-        frame.build(clock, &mut batch, None, &[], &[]);
+        // Counts don't move with where smoke drifts.
+        frame.build(clock, &mut batch, None, &[], &[], None);
         counts.push((plate.to_owned(), frame.counts(clock, &batch)));
     }
     let want = manifest["effectCounts"].as_array().unwrap();

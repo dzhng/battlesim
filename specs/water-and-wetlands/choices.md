@@ -171,3 +171,128 @@ passes.
   placeholder. Native mirrors whichever it picks.
 - **Verdict:** open, for slice 04.
 - **Confidence:** high that the limit binds.
+
+## Slice 01: one wind
+
+### The record holds no clock: grass keeps the camera's
+
+- **When:** slice 01.
+- **The choice:** the contract listed "the clock" among the `Wind` record's
+  fields. Grass already sways on the camera uniform's `time`, which every
+  stage binds, and smoke runs on the presentation clock on the CPU. A second
+  copy of the time in the environment uniform would be written every frame
+  and could disagree with the camera's. So the record is static per ground:
+  heading (`toward`, a level unit vector), `drift_mps`, `gust_mps` and
+  `gust_per_m`, 32 bytes, appended to `Environment` after the haze.
+- **The gap:** the spec named the clock without saying whose.
+- **The reach:** a later wind that changes over the battle (a gusting
+  heading, a storm) writes the record per frame with the view; nothing else
+  moves.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The biome's `wind` block sits at its top level; grass keeps a `sway` block
+
+- **When:** slice 01.
+- **The choice:** the block is `wind: { heading_deg, drift_mps, gust_m,
+  gust_mps }` at the biome's top level, beside `scars`, because no single
+  layer owns it. Grass's response moved from `grass.wind` to `grass.sway`
+  (`lean`, `gust`, `flutter`, `flutter_hz`), and the shader's response
+  tuning in `game.json` (`presentation.grass.wind`: where a gust starts, the
+  flutter's phase and its sideways share) was renamed `sway` with it, so
+  `wind` names only the one wind. `wind.rs` owns the block's range checks.
+- **The gap:** delegated to the implementer.
+- **The reach:** a second biome writes its own `wind` block; a biome without
+  one is refused.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The drift keeps its old speed and turns to the grass's heading
+
+- **When:** slice 01.
+- **The choice:** the old smoke wind was `[0.6, 0.3]` m/s: 0.67 m/s toward
+  26.6°. The new block drifts at `drift_mps: 0.67` toward the grass's 35°,
+  so smoke turns 8.4° and keeps its speed (decision 26). Gusts keep 45 m
+  spacing at 5 m/s, which is a different quantity from the drift.
+- **The gap:** decision 26 fixed the heading but not the drift's speed.
+- **The reach:** retuning the drift is one number in the biome.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Without a ground the air is calm
+
+- **When:** slice 01.
+- **The choice:** the wind is the ground's, so a presentation without a
+  presented ground draws smoke and dust rising straight up, and the
+  environment's wind words are zero. Before, every presentation drifted on
+  the effects' fixed wind. The effects take the biome's block as an option
+  (`EffectFrame::build`) and read the record's f32 direction, the one the
+  shaders read.
+- **The gap:** the spec didn't say what a groundless frame does.
+- **The reach:** labs and tests that draw effects with no ground see no
+  drift. Native always has a ground.
+- **Verdict:** sound.
+- **Confidence:** medium. A lab that judges smoke with no ground would see
+  it change.
+
+### The browser uploads the wind where the presented ground arrives
+
+- **When:** slice 01.
+- **The choice:** `battleFrame.ts`'s `setPresentedGround` hands the ground's
+  `Wind` record (`ground_wind`) to the environment frame (`setWind`), beside
+  handing the ground to the world pass. The world pass's `setGround` fan-out
+  was the other candidate, but it doesn't own the environment, and
+  `worldPass.ts` is over the size budget. Native passes the record to
+  `Environment::new` once, with the light, after it resolves the ground.
+- **The gap:** the spec said "the way the light records are uploaded", and
+  the light is fixed at startup while the ground arrives later.
+- **The reach:** the wind follows the presented ground even before the
+  world's layers arrive; until then nothing draws grass.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Grass's environment and fog groups swapped slots
+
+- **When:** slice 01.
+- **The choice:** the grass vertex stage now reads the environment
+  (`environmentWind()`), so TypeGPU orders the grass pipelines' groups
+  camera, grass, environment, fog instead of camera, grass, fog,
+  environment. Both clients bind by layout, so neither needed a change.
+- **The gap:** the spec said no bind group gains an entry, which holds; it
+  didn't foresee the reordering.
+- **The reach:** none outside the export.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The effect vectors gained a bless path and a `wind` input
+
+- **When:** slice 01.
+- **The choice:** `tests/effects.rs` had no way to re-record its vectors.
+  `BLESS_PARITY=1` now rewrites each frame's instances, and only those, as
+  `poses.rs` and `fog_sight.rs` do; lights and counts must still hold. The
+  vectors' inputs gained the biome's `wind` block in place of the effects'
+  `wind_mps`. The grass vectors moved only their input block (`wind` to
+  `sway`); their recorded words are unchanged. `exact-numbers.json` moved
+  only by the renamed and deleted keys; its digests are unchanged.
+- **The gap:** the spec asked for a re-record with no path to record by.
+- **The reach:** any later change that moves smoke re-records with one
+  command.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Two over-budget files made room by moving a concept to its owner
+
+- **When:** slice 01.
+- **The choice:** the size ratchet refuses any growth in a file over budget,
+  measured against the commit before. A prior split that leaves the file
+  over budget doesn't help. `effects/frame.rs` was split under budget in its
+  own commit: drawing to `frame/draw.rs` and the pool's spawning to
+  `frame/pool.rs`. `presentation.rs` is far over budget (72 KB), so the wind
+  commit itself moves `aircraft_shadow`, the sun-thrown shadow's position,
+  to its owner `shadow.rs`, and the file shrinks. `biome.rs` shrinks
+  because the wind's checks moved to `wind.rs`.
+- **The gap:** the ratchet's rule against the spec's touch list.
+- **The reach:** the next change to `presentation.rs` faces the same wall;
+  it needs a real split.
+- **Verdict:** sound, but the next change pays.
+- **Confidence:** high.
