@@ -25,25 +25,28 @@ export function waterInside(rivers, stride) {
   };
 }
 
-/** How far (x, y) lies inside a swamp's outline (negative outside), by the
- *  simulation's exported swamp edges `swamps`, `stride` floats each: the
- *  distance to the nearest edge, signed by an even-odd count. */
-export function swampInside(swamps, stride) {
+/** The swamp outline nearest to holding (x, y), of the exported swamp edges
+ *  `swamps` (`stride` floats each: ax, ay, bx, by, its swamp, its surface,
+ *  its depth): how far inside it the point lies, and its surface's height. */
+function swampsInside(swamps, stride) {
   return (x, y) => {
-    const best = new Map();
+    const each = new Map();
     for (let o = 0; o < swamps.length; o += stride) {
-      const [ax, ay, bx, by, k] = swamps.slice(o, o + 5);
-      const s = best.get(k) ?? { near: Infinity, within: false };
+      const [ax, ay, bx, by, k, z] = swamps.slice(o, o + 6);
+      const s = each.get(k) ?? { near: Infinity, within: false, z };
       if (ay > y !== by > y && x < ax + ((y - ay) * (bx - ax)) / (by - ay)) s.within = !s.within;
       const dx = bx - ax,
         dy = by - ay;
       const t = Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
       s.near = Math.min(s.near, Math.hypot(x - ax - dx * t, y - ay - dy * t));
-      best.set(k, s);
+      each.set(k, s);
     }
-    let out = -Infinity;
-    for (const s of best.values()) out = Math.max(out, s.within ? s.near : -s.near);
-    return out;
+    let best = { inside: -Infinity, z: 0 };
+    for (const s of each.values()) {
+      const inside = s.within ? s.near : -s.near;
+      if (inside > best.inside) best = { inside, z: s.z };
+    }
+    return best;
   };
 }
 
@@ -56,8 +59,8 @@ export const installInside = (page) =>
 
 /** Saved map `id`'s water as the simulation builds it under the capture
  *  catalog: `inside(x, y)` for its rivers and its swamps together, and
- *  `surfaceAt(x, y)`, the height of the nearer water's surface (one swamp's
- *  for every swamp: the scenes' maps hold one). */
+ *  `surfaceAt(x, y)`, the height of the surface of the water it lies
+ *  deepest in. */
 export async function mapWater(id) {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
   const rules = JSON.stringify((await nodeCatalogSet("capture")).rules);
@@ -67,13 +70,14 @@ export async function mapWater(id) {
   const { riverStride, riverFields, swampStride } = JSON.parse(world_layout(rules));
   view.free();
   const riverZ = rivers[riverFields.indexOf("surfaceZ")];
-  // A swamp edge: ax, ay, bx, by, its swamp, its surface, its depth.
-  const swampZ = swamps[5] ?? riverZ;
   const river = waterInside(rivers, riverStride);
-  const swamp = swampInside(swamps, swampStride);
+  const swamp = swampsInside(swamps, swampStride);
   return {
-    inside: (x, y) => Math.max(river(x, y), swamp(x, y)),
-    surfaceAt: (x, y) => (swamp(x, y) > river(x, y) ? swampZ : riverZ),
+    inside: (x, y) => Math.max(river(x, y), swamp(x, y).inside),
+    surfaceAt: (x, y) => {
+      const s = swamp(x, y);
+      return s.inside > river(x, y) ? s.z : riverZ;
+    },
   };
 }
 

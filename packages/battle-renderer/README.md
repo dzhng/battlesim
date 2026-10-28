@@ -104,7 +104,8 @@ in [the ground's tuning](../../crates/presentation/src/static_world/ground/tunin
 spliced into the WGSL as constants; hash multipliers, decorrelation offsets and
 lattice turns stay in the shader as part of the formula. The water's and the
 shore's are uniforms instead (`TerrainParams.waterLooks`, `shoreTuning`): each
-river draws one of its biome's water looks, picked in Rust, and a look retunes
+river and each swamp draws one of its biome's water looks for its kind, picked
+in Rust (`StandingWater`, the one owner of standing water), and a look retunes
 without rebuilding a shader. A second client draws the
 same world from the same Rust output, and `drawnInstances` says what the last
 frame drew of the buildings and the scenery.

@@ -1,8 +1,10 @@
 // The water scene (specs/water-and-wetlands): the water reel
 // (`fixtures/captures/water.json`) on the wetlands capture map, filmed by the
 // graphics test with control plates and replayed by the native client from
-// the same run. Each shot's browser plate must show the simulation's river
-// apart from its dry bank, and native's must show it as the browser does. The
+// the same run: the river at three framings, then a squad standing in the
+// swamp, from above and wading. Each shot's browser plate must show the
+// simulation's water (river or swamp) apart from its dry bank, and native's
+// must show it as the browser does. The
 // plates go to the evidence
 // in one sheet beside RedGPU's frozen stills
 // (`specs/water-and-wetlands/assets/`), for the side-by-side read; the look
@@ -22,10 +24,10 @@ const ROOT = new URL("../../", import.meta.url);
 const MAP = "wetlands";
 /** The reel's shots, in order (the capture format names none). */
 const SHOTS = ["close", "tactical", "low", "swamp", "wading"];
-/** The browser's river reads as water when its mean colour stands at least
+/** The browser's water reads as water when its mean colour stands at least
  *  this far from its dry bank's (CIE76 ΔE): a loose floor. */
 const APART_MIN = 10;
-/** Native draws the river as the browser does when their mean colours over
+/** Native draws the water as the browser does when their mean colours over
  *  it lie within this (ΔE). Native replays the browser's frames, so the two
  *  agree to a hair; a native that drew no water would show its bed, which
  *  lies far past this from the water. */

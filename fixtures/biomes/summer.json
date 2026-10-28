@@ -304,7 +304,7 @@
       { "name": "murky lowland", "weight": 1, "palette": "water_murky", "extinction_per_m": [1.6, 1.4, 1.8] }
     ],
     "swamps": [
-      { "name": "flooded meadow", "weight": 1, "palette": "swamp_meadow", "extinction_per_m": [0.7, 0.55, 0.85], "ground": "meadow" },
+      { "name": "flooded meadow", "weight": 1, "palette": "swamp_meadow", "extinction_per_m": [0.95, 0.8, 1.2], "ground": "meadow" },
       { "name": "low reed marsh", "weight": 1, "palette": "swamp_marsh", "extinction_per_m": [2.4, 2.0, 2.6], "ground": "rough" }
     ]
   },
