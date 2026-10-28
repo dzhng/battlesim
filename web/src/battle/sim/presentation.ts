@@ -319,6 +319,8 @@ export class ScenePresentation {
   private stale = false;
   /** The drawables of the last load, and those the page has not taken yet. */
   private rows: readonly PresentedAppearance[] = [];
+  private appearanceWords = new Uint32Array(0);
+  private appearanceStrings = "";
   private loaded: PresentedAppearance[] | null = null;
   /** The last frame wrote the static batches: its walk changed something. */
   private walked = false;
@@ -393,6 +395,8 @@ export class ScenePresentation {
     const views = worldViews(buffer(), ptr);
     const text = new TextDecoder();
     const rows = views.appearances.u32;
+    this.appearanceWords = new Uint32Array(rows);
+    this.appearanceStrings = text.decode(views.strings);
     const name = (at: number, len: number) => text.decode(views.strings.subarray(at, at + len));
     const loaded: PresentedAppearance[] = Array.from(
       { length: views.appearances.count },
@@ -412,6 +416,46 @@ export class ScenePresentation {
       if (row.draws === STUMP) row.stump = this.rust.stump_mesh(r) as Mesh;
     });
     return (this.rows = loaded);
+  }
+
+  /** The drawables named by the last loaded world, in frame row order. */
+  appearanceRows(): readonly PresentedAppearance[] {
+    return this.rows;
+  }
+
+  /** Copy the native model owner's world ABI and its authored rest palettes.
+   * The renderer lives in a separate WASM memory, so all arrays are owned
+   * snapshots, never views invalidated by another presentation call. */
+  modelWorld() {
+    const offsets = new Uint32Array(this.rows.length + 1);
+    const palettes = this.rows.map((_, row) => this.rust.rest_palette(row) ?? new Float32Array(0));
+    let words = 0;
+    palettes.forEach((palette, row) => {
+      offsets[row] = words;
+      words += palette.length;
+    });
+    offsets[this.rows.length] = words;
+    const rest = new Float32Array(words);
+    palettes.forEach((palette, row) => rest.set(palette, offsets[row]));
+    return { appearances: this.appearanceWords, strings: this.appearanceStrings, offsets, rest };
+  }
+
+  /** Scenery kind order and presentation-owned stump meshes share the model
+   * world's appearance row order. Offsets index the packed world-vertex words. */
+  sceneryWorld() {
+    const kinds = JSON.parse(this.rust.scenery_kinds()) as string[];
+    const offsets = new Uint32Array(this.rows.length + 1);
+    let words = 0;
+    this.rows.forEach((row, index) => {
+      offsets[index] = words;
+      words += row.stump?.length ?? 0;
+    });
+    offsets[this.rows.length] = words;
+    const stumps = new Float32Array(words);
+    this.rows.forEach((row, index) => {
+      if (row.stump) stumps.set(row.stump, offsets[index]);
+    });
+    return { kinds, offsets, stumps };
   }
 
   /** Stage what the battle draws (null: none); loaded with the rest by the

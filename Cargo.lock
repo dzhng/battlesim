@@ -1828,8 +1828,8 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "js-sys",
- "native-client",
  "pollster",
+ "presentation",
  "renderer-core",
  "serde_json",
  "wasm-bindgen",
@@ -1844,6 +1844,7 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "pollster",
+ "presentation",
  "serde",
  "serde_json",
  "wgpu",

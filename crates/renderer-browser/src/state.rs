@@ -1,8 +1,11 @@
 #[derive(Debug, Default, Clone, Copy)]
 pub(super) struct Stats {
     pub(super) frames: u32,
-    pub(super) draw_calls: u32,
     pub(super) model_vertices: u32,
+    pub(super) shared_scenery: bool,
+    pub(super) scenery_vertices: u32,
+    pub(super) scenery_runs: u32,
+    pub(super) shadow_scenery_batches: [u32; 4],
     pub(super) resizes: u32,
     pub(super) shared_passes: u32,
     pub(super) target_generation: u64,
@@ -48,7 +51,4 @@ pub(super) struct PresentationSnapshot {
     pub(super) shadow: Vec<f32>,
     pub(super) casters: Vec<f32>,
     pub(super) batches: Vec<u32>,
-    pub(super) palettes: Vec<f32>,
-    pub(super) instances: Vec<f32>,
-    pub(super) batch_state: renderer_core::model::BatchState,
 }

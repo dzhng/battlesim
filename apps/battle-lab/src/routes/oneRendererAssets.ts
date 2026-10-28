@@ -1,4 +1,7 @@
-import { readBundle } from "@packages/scene-assets/src/gzip";
+import type { Renderer as SharedRenderer } from "@wasm/renderer_browser/renderer_browser.js";
+import type { ScenePresentation } from "@web/battle/sim/presentation";
+import { bundlePath, texturePath } from "@packages/scene-assets/src/schema";
+import { gzipTransport, readBundle, readGzip } from "@packages/scene-assets/src/gzip";
 import type { Bundle, RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import { posedPalette } from "@packages/battle-renderer/src/models/modelInstances";
 import { FOUNDATION } from "./frame";
@@ -103,27 +106,46 @@ export function mw(bundle: Exclude<Bundle, { kind: "clips" }>): ModelWorkload {
   };
 }
 
-/** A compact one-bundle model record stream for the shared renderer seam. */
-export function fixtureModelFrame(instances: Float32Array) {
-  const batches = new Uint32Array(12 * (instances.length / 16));
-  for (let index = 0; index < instances.length / 16; index++) {
-    const o = index * 12;
-    batches[o] = index;
-    batches[o + 2] = 1;
-    batches[o + 3] = 0;
-    batches[o + 4] = 1;
-    batches[o + 6] = 1;
-    batches[o + 7] = index;
-    batches[o + 8] = 1;
-    batches[o + 9] = 15;
+/** Transport only: native model admission owns state, pose, tier and material
+ * interpretation. Content hashes keep texture identities stable across bundles. */
+export async function loadSharedAppearances(
+  renderer: SharedRenderer,
+  presentation: ScenePresentation,
+) {
+  const catalog = (await (await fetch("/catalog.json")).json()) as RuntimeCatalog;
+  const read = async (path: string) =>
+    new Uint8Array(await (await fetch(`/${path}`)).arrayBuffer());
+  const rows = presentation.appearanceRows();
+  const names = new Set(rows.map((row) => row.name));
+  const payloads = new Map<string, { bundle: Uint8Array; textures: Uint8Array[] }>();
+  const wireIds = new Set<string>();
+  for (const name of names) {
+    const hash = catalog.appearances?.[name]?.bundle;
+    if (!hash) throw new Error(`runtime catalog has no appearance ${name}`);
+    const ids = catalog.textures?.[hash] ?? [];
+    let payload = payloads.get(hash);
+    if (!payload) {
+      const [bundle, textures] = await Promise.all([
+        readGzip(catalog, "bundle", hash, bundlePath, read),
+        Promise.all(ids.map((id) => readGzip(catalog, "texture", id, texturePath, read))),
+      ]);
+      payload = { bundle, textures };
+      payloads.set(hash, payload);
+      wireIds.add(hash);
+      ids.forEach((id) => wireIds.add(id));
+    }
+    renderer.load_bundle(name, payload.bundle, ids, payload.textures);
   }
+  const world = presentation.modelWorld();
+  renderer.load_model_world(world.appearances, world.strings, world.offsets, world.rest);
+  const scenery = presentation.sceneryWorld();
+  renderer.load_scenery_world(scenery.kinds, scenery.offsets, scenery.stumps);
   return {
-    palettes: new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0]),
-    instances,
-    batches,
+    bundleWireBytes: [...wireIds].reduce(
+      (bytes, id) => bytes + gzipTransport(catalog, id).bytes,
+      0,
+    ),
+    uniqueBundles: payloads.size,
+    appearanceRows: rows.length,
   };
-}
-
-export function shadowBatchWords(batches: Uint32Array) {
-  return new Uint32Array([...batches, 0, 0, 0, 1, 0, 0, 0, 0, 1, 15, 0, 0]);
 }

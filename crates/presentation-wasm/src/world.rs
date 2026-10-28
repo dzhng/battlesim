@@ -81,4 +81,12 @@ impl Presentation {
         };
         Ok(&self.world_header as *const WorldHeader as u32)
     }
+
+    /// The authored rest pose for an appearance row, in the same packed
+    /// Joint layout used by the native model owner for corpses and far meshes.
+    pub fn rest_palette(&self, row: u32) -> Option<Vec<f32>> {
+        self.inner
+            .rest_palette(row)
+            .map(|joints| bytemuck::cast_slice(&joints).to_vec())
+    }
 }

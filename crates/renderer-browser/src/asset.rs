@@ -1,304 +1,194 @@
+//! Browser byte transport into the shared authored-model owner.
 use super::*;
+use presentation::records::{Appearance, Batch, Instance as ModelInstance, Joint, NONE};
 
-fn upload_texture_array(
-    device: &Device,
-    queue: &Queue,
-    label: &str,
-    format: TextureFormat,
-    textures: &[&native_client::bundle::Texture],
-) -> Option<Texture> {
-    if textures.is_empty() {
-        return None;
-    }
-    let size = textures
-        .iter()
-        .map(|texture| texture.size)
-        .max()
-        .unwrap_or(1);
-    let levels = size.ilog2() + 1;
-    let array = device.create_texture(&TextureDescriptor {
-        label: Some(label),
-        size: Extent3d {
-            width: size,
-            height: size,
-            depth_or_array_layers: textures.len() as u32,
-        },
-        mip_level_count: levels,
-        sample_count: 1,
-        dimension: TextureDimension::D2,
-        format,
-        usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-        view_formats: &[],
-    });
-    for (layer, texture) in textures.iter().enumerate() {
-        for (level, bytes) in texture.levels.iter().enumerate() {
-            let edge = (texture.size >> level).max(1);
-            queue.write_texture(
-                TexelCopyTextureInfo {
-                    texture: &array,
-                    mip_level: level as u32,
-                    origin: Origin3d {
-                        x: 0,
-                        y: 0,
-                        z: layer as u32,
-                    },
-                    aspect: TextureAspect::All,
-                },
-                bytes,
-                TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(edge * 4),
-                    rows_per_image: Some(edge),
-                },
-                Extent3d {
-                    width: edge,
-                    height: edge,
-                    depth_or_array_layers: 1,
-                },
-            );
-        }
-    }
-    Some(array)
+pub(super) struct ModelWorldSnapshot {
+    pub(super) appearances: Vec<Appearance>,
+    pub(super) strings: String,
+    offsets: Vec<u32>,
+    rest: Vec<Joint>,
 }
 
-#[derive(Clone)]
-pub(super) struct AssetSnapshot {
-    pub(super) name: String,
-    pub(super) bundle: Vec<u8>,
-    pub(super) textures: Vec<Vec<u8>>,
+pub(super) struct ModelFrameSnapshot {
+    palettes: Vec<Joint>,
+    instances: Vec<ModelInstance>,
+    batches: Vec<Batch>,
+}
+
+fn records<Source: bytemuck::Pod, Record: bytemuck::Pod>(
+    words: &[Source],
+) -> Result<&[Record], JsValue> {
+    bytemuck::try_cast_slice(words).map_err(js_error)
 }
 
 #[wasm_bindgen]
 impl Renderer {
-    /// Parse one fetched BGAT bundle through the native client's shared asset
-    /// reader and upload its first authored texture to this browser device.
-    /// The returned JSON is the exact boundary accounting used by the spike.
-    #[cfg(target_arch = "wasm32")]
+    /// Decode fetched assets without constructing GPU tables per appearance.
     #[wasm_bindgen]
     pub fn load_bundle(
         &mut self,
         name: String,
-        bundle_bytes: js_sys::Uint8Array,
+        bundle: &[u8],
+        texture_ids: js_sys::Array,
         textures: js_sys::Array,
     ) -> Result<String, JsValue> {
-        let bundle_bytes = bundle_bytes.to_vec();
-        let mut texture_bytes = Vec::with_capacity(textures.length() as usize);
-        for value in textures.iter() {
-            texture_bytes.push(js_sys::Uint8Array::new(&value).to_vec());
+        if texture_ids.length() != textures.length() {
+            return Err(js_error("bundle texture ids and payloads differ"));
         }
-        self.load_bundle_bytes(name, bundle_bytes, texture_bytes)
-    }
-
-    pub(super) fn load_bundle_bytes(
-        &mut self,
-        name: String,
-        bundle_bytes: Vec<u8>,
-        texture_bytes: Vec<Vec<u8>>,
-    ) -> Result<String, JsValue> {
-        let mut owned = Vec::with_capacity(texture_bytes.len());
-        for bytes in texture_bytes {
-            owned.push((format!("texture-{}", owned.len()), bytes));
-        }
-        let refs: Vec<(&str, &[u8])> = owned
+        let payloads = texture_ids
             .iter()
-            .map(|(id, bytes)| (id.as_str(), bytes.as_slice()))
-            .collect();
-        let library = Library::from_bundle(&name, &bundle_bytes, &refs).map_err(js_error)?;
-        let bundle = library.bundle(&name).map_err(js_error)?;
-        let mut albedo_layers = vec![-1.0f32; bundle.textures.len()];
-        let mut surface_layers = vec![-1.0f32; bundle.textures.len()];
-        let mut albedo_count = 0.0;
-        let mut surface_count = 0.0;
-        for (index, texture) in bundle.textures.iter().enumerate() {
-            if texture.srgb {
-                albedo_layers[index] = albedo_count;
-                albedo_count += 1.0;
-            } else {
-                surface_layers[index] = surface_count;
-                surface_count += 1.0;
-            }
-        }
-        let mut rows = Vec::new();
-        for material in bundle.materials.iter().take(16) {
-            let layer = |key: &str| {
-                let Some(index) = material.textures.get(key).copied() else {
-                    return -1.0;
-                };
-                if key == "albedo" {
-                    albedo_layers.get(index).copied().unwrap_or(-1.0)
-                } else {
-                    surface_layers.get(index).copied().unwrap_or(-1.0)
-                }
-            };
-            let cutoff = match material.coverage {
-                native_client::bundle::Coverage::Cutout { cutoff } => cutoff,
-                _ => 0.0,
-            };
-            let wear = material.wear.unwrap_or([0.0, 0.0, 0.0, 1.0]);
-            let base = material.base_color;
-            rows.extend_from_slice(&[
-                base[0] as f32,
-                base[1] as f32,
-                base[2] as f32,
-                base[3] as f32,
-                material.metallic,
-                material.roughness,
-                material.tint,
-                material.colour_scale.unwrap_or(1.0),
-                layer("albedo"),
-                layer("normal"),
-                layer("orm"),
-                if material.wear.is_some() { 1.0 } else { 0.0 },
-                wear[0],
-                wear[1],
-                wear[2],
-                wear[3],
-                cutoff,
-                layer("normal"),
-                0.0,
-                0.0,
-            ]);
-        }
-        if !rows.is_empty() {
-            self.queue
-                .write_buffer(&self.material_rows, 0, bytemuck::cast_slice(&rows));
-            self.stats.presentation_material_words = rows.len() as u32;
-        }
-        let vertices: usize = match &bundle.shape {
-            native_client::bundle::Shape::Skinned(tiers) => {
-                tiers.iter().map(|m| m.vertices()).sum()
-            }
-            native_client::bundle::Shape::Articulated(nodes)
-            | native_client::bundle::Shape::Static(nodes) => nodes
-                .iter()
-                .flat_map(|node| node.tiers.iter())
-                .map(|m| m.vertices())
-                .sum(),
-        };
-        let indices: usize = match &bundle.shape {
-            native_client::bundle::Shape::Skinned(tiers) => {
-                tiers.iter().map(|m| m.indices.len()).sum()
-            }
-            native_client::bundle::Shape::Articulated(nodes)
-            | native_client::bundle::Shape::Static(nodes) => nodes
-                .iter()
-                .flat_map(|node| node.tiers.iter())
-                .map(|m| m.indices.len())
-                .sum(),
-        };
-        let albedo_sources: Vec<_> = bundle
-            .textures
+            .zip(textures.iter())
+            .map(|(id, data)| {
+                let id = id
+                    .as_string()
+                    .ok_or_else(|| js_error("texture id must be a content hash"))?;
+                Ok((id, js_sys::Uint8Array::new(&data).to_vec()))
+            })
+            .collect::<Result<Vec<_>, JsValue>>()?;
+        let refs = payloads
             .iter()
-            .filter(|texture| texture.srgb)
-            .collect();
-        let surface_sources: Vec<_> = bundle
-            .textures
-            .iter()
-            .filter(|texture| !texture.srgb)
-            .collect();
-        self.asset_texture = upload_texture_array(
-            &self.device,
-            &self.queue,
-            "shared-asset-albedo-array",
-            TextureFormat::Rgba8UnormSrgb,
-            &albedo_sources,
-        );
-        self.asset_surface = upload_texture_array(
-            &self.device,
-            &self.queue,
-            "shared-asset-surface-array",
-            TextureFormat::Rgba8Unorm,
-            &surface_sources,
-        );
-        if self.asset_texture.is_some() || self.asset_surface.is_some() {
-            let albedo = self
-                .asset_texture
-                .as_ref()
-                .map(array_view)
-                .unwrap_or_else(|| array_view(&self.material_surface));
-            let surface = self
-                .asset_surface
-                .as_ref()
-                .map(array_view)
-                .unwrap_or_else(|| array_view(&self.material_surface));
-            self.material_bindings.rebuild(
-                &self.device,
-                self.production_pipelines.layout("modelLayout"),
-                &self.material_palette,
-                &self.material_rows,
-                &albedo,
-                &surface,
-                &self.material_sampler,
-            );
-            self.stats.shared_materials = true;
-        }
-        let meshes: Vec<(u32, &native_client::bundle::Mesh)> = match &bundle.shape {
-            native_client::bundle::Shape::Skinned(tiers) => tiers
-                .iter()
-                .enumerate()
-                .map(|(tier, mesh)| (tier as u32, mesh))
-                .collect(),
-            native_client::bundle::Shape::Articulated(nodes)
-            | native_client::bundle::Shape::Static(nodes) => nodes
-                .iter()
-                .find(|node| node.tiers.iter().any(|mesh| !mesh.indices.is_empty()))
-                .map(|node| {
-                    node.tiers
-                        .iter()
-                        .enumerate()
-                        .map(|(tier, mesh)| (tier as u32, mesh))
-                        .collect()
-                })
-                .unwrap_or_default(),
-        };
-        let mut production_vertices = Vec::new();
-        self.available_model_drawables.clear();
-        for (tier, mesh) in meshes {
-            if mesh.indices.is_empty() {
-                continue;
-            }
-            let mut material_ids = vec![0u16; mesh.indices.len()];
-            for draw in &mesh.draws {
-                for id in &mut material_ids[draw.first..draw.first + draw.count] {
-                    *id = draw.material as u16;
-                }
-            }
-            let (tier_vertices, tier_count) =
-                production_model::mesh_vertices(mesh, &material_ids).map_err(js_error)?;
-            let first = (production_vertices.len() / 48) as u32;
-            production_vertices.extend_from_slice(&tier_vertices);
-            self.available_model_drawables
-                .insert((0, tier), (first, tier_count));
-        }
-        if !production_vertices.is_empty() {
-            let production_count = (production_vertices.len() / 48) as u32;
-            self.production_model_vertices = renderer_core::buffer(
-                &self.device,
-                "shared-production-asset-vertices",
-                BufferUsages::VERTEX,
-                &production_vertices,
-            );
-            self.production_model_vertex_count = production_count;
-            // Keep the authored 48-byte stream for both the prepass and lit
-            // draw; presentation groups are already bound by the frame.
-            self.stats.model_vertices = production_count;
-        }
+            .map(|(id, data)| (id.as_str(), data.as_slice()))
+            .collect::<Vec<_>>();
+        Arc::make_mut(&mut self.model_library)
+            .insert_bundle(&name, bundle, &refs)
+            .map_err(js_error)?;
         let report = format!(
-            r#"{{"name":"{}","bundleBytes":{},"textureBytes":{},"textures":{},"materials":{},"vertices":{},"indices":{}}}"#,
-            name,
-            bundle_bytes.len(),
-            owned.iter().map(|(_, b)| b.len()).sum::<usize>(),
-            bundle.textures.len(),
-            bundle.materials.len(),
-            vertices,
-            indices
+            "{{\"name\":{}}}",
+            js_sys::JSON::stringify(&JsValue::from_str(&name))?
+                .as_string()
+                .unwrap_or_default()
         );
         self.asset_report = Some(report.clone());
-        self.asset_snapshot = Some(AssetSnapshot {
-            name,
-            bundle: bundle_bytes,
-            textures: owned.into_iter().map(|(_, bytes)| bytes).collect(),
-        });
         Ok(report)
+    }
+
+    /// Install the exact presentation appearance ABI and its rest palettes.
+    /// Rest offsets index float words; each palette contains 12-word joints.
+    #[wasm_bindgen]
+    pub fn load_model_world(
+        &mut self,
+        appearance_words: &[u32],
+        strings: String,
+        offsets: &[u32],
+        rest: &[f32],
+    ) -> Result<(), JsValue> {
+        let appearances = records::<_, Appearance>(appearance_words)?;
+        if offsets.len() != appearances.len() + 1
+            || offsets.first() != Some(&0)
+            || offsets.last().copied() != Some(rest.len() as u32)
+            || offsets.windows(2).any(|pair| {
+                pair[0] > pair[1] || !pair[0].is_multiple_of(12) || !pair[1].is_multiple_of(12)
+            })
+        {
+            return Err(js_error("appearance rest palette offsets are invalid"));
+        }
+        let world = Arc::new(ModelWorldSnapshot {
+            appearances: appearances.to_vec(),
+            strings,
+            offsets: offsets.iter().map(|offset| offset / 12).collect(),
+            rest: records::<_, Joint>(rest)?.to_vec(),
+        });
+        self.install_model_world(world)
+    }
+
+    /// Upload a frame through the same indexed-model owner as native.
+    #[wasm_bindgen]
+    pub fn upload_model_frame(
+        &mut self,
+        palettes: &[f32],
+        instances: &[f32],
+        batches: &[u32],
+    ) -> Result<(), JsValue> {
+        let palettes = records::<_, Joint>(palettes)?;
+        let instances = records::<_, ModelInstance>(instances)?;
+        let batches = records::<_, Batch>(batches)?;
+        self.prepare_model_frame(palettes, instances, batches)?;
+        // Materialize unchanged static batches for a fresh device. Their CPU
+        // records have the same lifetime owner as their retained GPU buffers.
+        let models = self.models.as_ref().expect("prepared models exist");
+        let mut instances = instances.to_vec();
+        let mut batches = batches.to_vec();
+        for batch in &mut batches {
+            if batch.first == NONE {
+                batch.first = instances.len() as u32;
+                instances.extend_from_slice(models.statics().records(batch.key));
+            }
+        }
+        self.model_frame = Some(Arc::new(ModelFrameSnapshot {
+            palettes: palettes.to_vec(),
+            instances,
+            batches,
+        }));
+        Ok(())
+    }
+}
+
+impl Renderer {
+    pub(super) fn install_model_world(
+        &mut self,
+        world: Arc<ModelWorldSnapshot>,
+    ) -> Result<(), JsValue> {
+        let models = Models::from_world(
+            &self.device,
+            &self.queue,
+            &self.production_pipelines,
+            self.model_library.as_ref(),
+            &world.appearances,
+            &world.strings,
+            |row| {
+                let start = world.offsets[row as usize] as usize;
+                let end = world.offsets[row as usize + 1] as usize;
+                (start != end).then(|| world.rest[start..end].to_vec())
+            },
+        )
+        .map_err(js_error)?;
+        self.stats.model_vertices = models.resident_vertices();
+        self.stats.presentation_material_words = models.material_words();
+        self.stats.shared_materials = true;
+        self.models = Some(models);
+        self.model_world = Some(world);
+        self.model_frame = None;
+        self.scenery = None;
+        self.scenery_world = None;
+        self.stats.shared_scenery = false;
+        self.stats.scenery_vertices = 0;
+        self.stats.scenery_runs = 0;
+        self.stats.shadow_scenery_batches = [0; 4];
+        Ok(())
+    }
+
+    pub(super) fn prepare_model_frame(
+        &mut self,
+        palettes: &[Joint],
+        instances: &[ModelInstance],
+        batches: &[Batch],
+    ) -> Result<(), JsValue> {
+        let models = self
+            .models
+            .as_mut()
+            .ok_or_else(|| js_error("load model world before uploading a model frame"))?;
+        models
+            .prepare_records(&self.device, &self.queue, palettes, instances, batches)
+            .map_err(js_error)?;
+        if let Some(scenery) = &mut self.scenery {
+            scenery.prepare(models.statics());
+        }
+        self.stats.presentation_model_runs = models.run_count();
+        self.stats.shadow_caster_batches = models.caster_run_counts();
+        self.stats.presentation_model_words = (std::mem::size_of_val(palettes)
+            + std::mem::size_of_val(instances)
+            + std::mem::size_of_val(batches)) as u32
+            / 4;
+        self.update_scenery_stats();
+        Ok(())
+    }
+
+    pub(super) fn restore_model_frame(
+        &mut self,
+        frame: Arc<ModelFrameSnapshot>,
+    ) -> Result<(), JsValue> {
+        self.prepare_model_frame(&frame.palettes, &frame.instances, &frame.batches)?;
+        self.model_frame = Some(frame);
+        Ok(())
     }
 }

@@ -60,8 +60,6 @@ impl Renderer {
             0,
             bytemuck::cast_slice(&camera[..40]),
         );
-        self.queue
-            .write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&camera[..16]));
         let mut environment_data = environment.to_vec();
         if environment_data.len() >= 29 {
             environment_data[28] = ENVIRONMENT_MAX_MIP;
@@ -99,9 +97,6 @@ impl Renderer {
             shadow: Vec::new(),
             casters: Vec::new(),
             batches: Vec::new(),
-            palettes: Vec::new(),
-            instances: Vec::new(),
-            batch_state: renderer_core::model::BatchState::default(),
         });
         Ok(())
     }
@@ -156,30 +151,6 @@ impl Renderer {
         if !mesh.len().is_multiple_of(10) {
             return Err(js_error("shared ground mesh needs ten floats per vertex"));
         }
-        let mut positions = Vec::with_capacity(mesh.len() / 10 * 3);
-        let mut colours = Vec::with_capacity(mesh.len() / 10 * 4);
-        let mut indices = Vec::with_capacity(mesh.len() / 10);
-        for (index, vertex) in mesh.as_chunks::<10>().0.iter().enumerate() {
-            positions.extend_from_slice(&vertex[..3]);
-            colours.extend_from_slice(&[
-                (vertex[6].clamp(0.0, 1.0) * 255.0) as u8,
-                (vertex[7].clamp(0.0, 1.0) * 255.0) as u8,
-                (vertex[8].clamp(0.0, 1.0) * 255.0) as u8,
-                (vertex[9].clamp(0.0, 1.0) * 255.0) as u8,
-            ]);
-            indices.push(index as u32);
-        }
-        self.shared_ground = Some(
-            Model::from_indexed_fitted(
-                &self.device,
-                &self.queue,
-                "shared-presentation-ground",
-                &positions,
-                &colours,
-                &indices,
-            )
-            .map_err(js_error)?,
-        );
         let mut shadow = Vec::with_capacity(mesh.len());
         for vertex in mesh.as_chunks::<10>().0 {
             shadow.extend_from_slice(&vertex[..3]);

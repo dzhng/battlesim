@@ -8,7 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 renderer-core = { path = "../renderer-core" }
-native-client = { path = "../../native/client" }
+presentation = { path = "../presentation" }
 wgpu = { version = "30.0.1", default-features = false, features = ["webgpu", "wgsl"] }
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"

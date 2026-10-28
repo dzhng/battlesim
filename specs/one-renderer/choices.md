@@ -458,3 +458,42 @@ all lifecycle gates remain green.
 not ad-hoc browser fixture data. **Gap:** the browser still needs the real
 publication effect stream and a matched native/browser effect workload before
 this owner is production-complete. **Confidence:** high.
+
+### Retain decoded assets and held instance records for device recreation
+
+**When:** 2026-10-28 native model/scenery extraction.
+
+When the browser loses its GPU device, every GPU object must be recreated. The
+browser now keeps the already decoded appearance library behind `Arc`, Rust's
+shared ownership pointer, rather than storing another set of compressed bundle
+payloads and parsing them again. Static batches keep their CPU instance records
+beside their GPU buffers. Recovery builds the ordinary shared owners and turns
+any “unchanged batch” references into explicit records before restoring the
+last frame. It does not maintain a second recovery renderer.
+
+**Gap:** the spec required recovery but did not choose which CPU representation
+to retain. **Reach:** this favors a simple, ordinary reconstruction path and
+avoids repeated parsing; it retains decoded art and static instance memory for
+the lifetime of the renderer. Final memory accounting must include that cost.
+**Verdict:** sound. **Confidence:** medium; the lifetime contract is proven,
+while the final memory/performance comparison remains open.
+
+### Share canonical presentation records across the Rust runtime boundary
+
+**When:** 2026-10-28 native model/scenery extraction.
+
+Native can hand a presentation frame directly to the renderer. Browser
+presentation and rendering occupy separate WASM memories, so the browser copies
+the same appearance, joint, instance and batch layouts, plus the string table
+and authored rest palettes. The core now depends on the presentation crate's
+record types instead of keeping another decoder with hand-maintained offsets.
+That removes the probe's parallel range/state interpretation. Both platforms
+use the same native model and scenery admission rules.
+
+**Gap:** the spec specified shared records but not the crate dependency or the
+separate-memory copy representation. **Reach:** changes to the presentation ABI
+now compile against the real shared types; the JS bridge only transports their
+bytes. Earlier one-bundle fallback, packed nonindexed tier and probe BatchState
+choices are superseded by this actual owner. **Verdict:** sound.
+**Confidence:** high; native replay/count/pose tests and browser lifecycle checks
+exercise the same implementation.

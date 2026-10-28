@@ -17,12 +17,11 @@ pub mod frame;
 pub mod gpu;
 pub mod grass;
 pub mod ground;
-pub mod models;
 pub mod pipelines;
 pub mod post;
 pub mod scars;
-pub mod scenery;
 pub mod shadow;
 pub mod sky;
-pub mod statics;
 pub mod world;
+
+pub use renderer_core::{models, scenery, statics};

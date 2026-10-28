@@ -4,10 +4,16 @@ impl Renderer {
     #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
         format!(
-            r#"{{"frames":{},"drawCalls":{},"modelVertices":{},"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedEffects":{},"sharedFogSight":{},"sharedTerrain":{},"terrainParamsWords":{},"terrainNodesWords":{},"terrainPlotsWords":{},"terrainSurfaceWords":{},"terrainIndexWords":{},"shadowCasterBatches":[{},{},{},{}],"shadowPasses":{},"shadowModelPasses":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"fogHeightWords":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"presentationEffectWords":{},"presentationModelWords":{},"presentationModelRuns":{},"presentationMaterialWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
+            r#"{{"frames":{},"modelVertices":{},"sharedScenery":{},"sceneryVertices":{},"sceneryRuns":{},"shadowSceneryBatches":[{},{},{},{}],"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedEffects":{},"sharedFogSight":{},"sharedTerrain":{},"terrainParamsWords":{},"terrainNodesWords":{},"terrainPlotsWords":{},"terrainSurfaceWords":{},"terrainIndexWords":{},"shadowCasterBatches":[{},{},{},{}],"shadowPasses":{},"shadowModelPasses":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"fogHeightWords":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"presentationEffectWords":{},"presentationModelWords":{},"presentationModelRuns":{},"presentationMaterialWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
             self.stats.frames,
-            self.stats.draw_calls,
             self.stats.model_vertices,
+            self.stats.shared_scenery,
+            self.stats.scenery_vertices,
+            self.stats.scenery_runs,
+            self.stats.shadow_scenery_batches[0],
+            self.stats.shadow_scenery_batches[1],
+            self.stats.shadow_scenery_batches[2],
+            self.stats.shadow_scenery_batches[3],
             self.stats.resizes,
             self.stats.shared_passes,
             self.stats.target_generation,

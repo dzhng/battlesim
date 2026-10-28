@@ -21,6 +21,70 @@ Cheap evaluator: focused Rust/WASM checks, then the `one-renderer` browser
 scene with interleaved repeats and screenshot/accounting output. Full native
 parity and repository closeout run only after all production passes are wired.
 
+## Current task — native owner replacement (2026-10-28)
+
+Incumbent: PR #16, based on `ab00ccef5`, with the current shared native model,
+static-batch and scenery extraction. The browser no longer has its own model
+vertex/material/state interpretation. The native client directly reexports the
+same owners. Replaced model probes, range decoders and nonindexed pass modules
+are deleted; the browser no longer depends on the native platform crate.
+
+The normal eleven-row scene passed with the shared native model owner. The
+focused captured pair now installs the same complete appearance generation and
+calls BattleFrame's separate static-frame upload as production does. The first
+captured runs omitted that call and scoped scenery to trees; their timing/image
+results are **invalid as matched production comparisons**. They exposed missing
+buildings and proxy parked cars in the control and were corrected, not promoted.
+
+The valid `plate-240` development run uses 151 appearance rows, 36 unique bundles,
+30,538,294 unique compressed asset bytes, 2,850,537 resident model vertices,
+227,838 scenery vertices, 232 prepared model runs and seven scenery runs. It
+renders ten effects and passes resize, surface recovery and real device recovery.
+Raw results and images: `throwaway/evidence/one-renderer/plate-240.png/`.
+
+| Browser target | Setup | CPU encode, 120 frames | Queue completion after encode |
+| --- | ---: | ---: | ---: |
+| TypeGPU BattleFrame | 810.1 ms | 50.3 ms | 386.8 ms |
+| Shared native Rust core in WASM | 706.9 ms | 12.1 ms | 558.6 ms |
+
+Three interleaved repeats; setup excludes forced recovery on the candidate, but
+fixture construction/cache order still affects startup. Queue completion now uses
+`onSubmittedWorkDone` in both paths, rather than a compositor animation frame.
+These are development diagnostics, **not a migration verdict**: sky is absent and
+lighting/fog/ground still differ. No GPU timestamp or complete shared memory
+accounting is established. The old synthetic `drawCalls += 5` telemetry is deleted.
+
+An independent Codex review found another shared-fixture defect: the browser
+control consumed the presentation's incremental fog upload before a fresh Rust
+renderer attached. A captured-scene assertion reproduced the missing full
+snapshot (red), then `resend_fog()` before the initial snapshot made it green.
+The corrected candidate restores the adjacent parked car and removes broad
+hatching from the street/sidewalk. The table above is this corrected run.
+
+Matched screenshot metrics still reject parity: grayscale MAE
+`48.86802`, pixelmatch ratio `0.79827`,
+parity distance `0.43178`. Sky remains absent, shaded buildings too
+dark, and fog/material treatment differs. Full-frame/cropped reports and fresh
+critique live under `throwaway/evidence/one-renderer/paris-240-review/fog-after/`.
+A green transport/lifecycle scene does not override this red visual gate.
+
+This extraction checkpoint deletes 1,185 net physical source lines (including
+comments, excluding docs), before TypeGPU removal. That is incremental deletion
+against `ab00ccef5`, not the final migration source budget. Asset admission,
+model/scenery/held-batch routing now each have one Rust owner; native and browser
+call those same owners. Remaining native shell rendering is still counted.
+
+Next hypothesis: reusing native sky/ground/fog ownership will close these differences
+with less code than repairing browser-specific adapters. Extract the real native
+owners; keep native behavior fixed as the winner. Regression set: shared core and
+native host/WASM checks, native pose/count/scenery/cascade tests, normal eleven-row
+scene, and the captured `plate-240` pair. Preserve `plate-660` as an effects-heavy
+follow-up; its foreground explosion alone is too weak to judge world materials.
+
+A transient browser startup failure also occurred: a fresh static data page
+failed before game code; after bounded GPU-disabled and Metal probes the default
+browser loaded again. Those attempts have no renderer timing interpretation.
+
 ## Hypothesis queue
 
 1. **Shared resource owners first (active):** moving native model/material,
@@ -102,22 +166,6 @@ parity and repository closeout run only after all production passes are wired.
 | current shared shadow caster pass | shared cascade pass boundary | `renderer-core::ShadowResources` now owns cascade attachment clearing, camera binding, and ground caster draw order; the browser shell supplies the exported `worldCaster` pipeline and packed ground vertices. Four cascades execute every frame without changing presentation routing; model caster batches and receiver sampling remain open | PR #16 |
 | current shared post/overlay composition | shared display target boundary | Browser post now receives the resolved bloom/grade records and presents `targets.display`; the shared overlay owner uses the exported translucent geometry pipeline against world depth, resolves the transparent overlay target, blurs its halo, composites it after the fog rim, and replays the records across resize/device rebuild. The scene remains green; exact BattleFrame pixels still differ because model/world material, receiver sampling, non-flat fog pages, and production framing are incomplete | PR #16 |
 | current accounting run | three-way harness | Shared browser WASM is 1,347,401 bytes plus 84,761 bytes generated JS; the shared row encodes 121 frames at 6.0 ms with a 0.9 ms compositor drain, includes 484 ground and model shadow passes, replays recovery, and uploads an eight-word non-flat page. Battle image distance remains 47.03 because model/world material, receiver sampling, and production framing are not yet matched | PR #16 |
-
-## Handoff
-
-Incumbent: `9783fa7b8` plus the shared browser-owner commits on PR #16.
-Active task: extract native terrain tables, material rows, fog publication state,
-and static/model batch inputs behind the shared frame boundary, then compare the
-matched production frame. The sky/PMREM/DFG environment and non-flat page gates
-are already green; the direct exported world receiver remains diagnostic until
-these inputs are real.
-Regression set:
-renderer-core/native-client WASM checks, presentation tests, and the interleaved
-one-renderer scene. The latest rebuilt scene passes all eleven rows, executes the
-fetched mesh through exported model prepass, replays authored environment assets
-and a non-flat page after device loss, and reports the complete frozen record
-lengths. Next test: bind real terrain/material/fog publication records to the
-extracted production passes and compare the matched frame.
 
 ## 2026-10-27 terrain and model-record pass
 

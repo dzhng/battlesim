@@ -23,6 +23,7 @@ pub struct Held {
     pub fog: u32,
     pub count: u32,
     pub buffer: Buffer,
+    records: Vec<Instance>,
 }
 
 pub struct Statics {
@@ -36,7 +37,10 @@ pub struct Statics {
 
 impl Statics {
     pub fn new(presentation: &Presentation) -> Self {
-        let rows = &presentation.world().appearances;
+        Self::from_rows(&presentation.world().appearances)
+    }
+
+    pub fn from_rows(rows: &[presentation::records::Appearance]) -> Self {
         Self {
             placed: rows.iter().map(|a| a.placed != 0).collect(),
             held: HashMap::new(),
@@ -49,8 +53,18 @@ impl Statics {
     /// unchanged that is not held is refused: the frame's batches were
     /// written for a renderer that took the frames between.
     pub fn prepare(&mut self, device: &Device, queue: &Queue, frame: &Frame) -> Result<(), String> {
+        self.prepare_records(device, queue, &frame.instances, &frame.batches)
+    }
+
+    pub fn prepare_records(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        instances: &[Instance],
+        batches: &[presentation::records::Batch],
+    ) -> Result<(), String> {
         self.listed.clear();
-        for b in &frame.batches {
+        for b in batches {
             if !self.holds(b.appearance) {
                 continue;
             }
@@ -80,11 +94,18 @@ impl Statics {
                             fog: b.fog,
                             count: b.count,
                             buffer,
+                            records: Vec::new(),
                         },
                     );
                 }
-                let records = &frame.instances[b.first as usize..(b.first + b.count) as usize];
-                queue.write_buffer(&self.held[&b.key].buffer, 0, bytemuck::cast_slice(records));
+                let records = &instances[b.first as usize..(b.first + b.count) as usize];
+                let held = self
+                    .held
+                    .get_mut(&b.key)
+                    .expect("a written static batch is held");
+                held.records.clear();
+                held.records.extend_from_slice(records);
+                queue.write_buffer(&held.buffer, 0, bytemuck::cast_slice(records));
             }
             let Some(h) = self.held.get_mut(&b.key) else {
                 return Err(format!(
@@ -124,6 +145,11 @@ impl Statics {
     /// The buffer of the held batch `key`.
     pub fn buffer(&self, key: u32) -> &Buffer {
         &self.held[&key].buffer
+    }
+
+    /// CPU records retained with a held GPU batch for device reconstruction.
+    pub fn records(&self, key: u32) -> &[Instance] {
+        &self.held[&key].records
     }
 
     /// The batches the last frame listed, in its order.

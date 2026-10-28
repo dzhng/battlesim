@@ -51,7 +51,7 @@ export default function OneRenderer() {
   const run = async () => {
     setRunning(true);
     setResults([]);
-    const taskFactories: readonly [Mode, () => Promise<Result>][] = [
+    const allTasks: readonly [Mode, () => Promise<Result>][] = [
       ["typegpu", () => runMode("typegpu", canvases)],
       ["exported-wgsl", () => runMode("exported-wgsl", canvases)],
       ["rust-wgpu", () => runMode("rust-wgpu", canvases)],
@@ -71,6 +71,12 @@ export default function OneRenderer() {
       ["battle-rust-wgpu", () => runMode("battle-rust-wgpu", canvases)],
       ["shared-rust-core-browser", () => runMode("shared-rust-core-browser", canvases)],
     ];
+    const capture = new URLSearchParams(window.location.search).get("capture") === "1";
+    const taskFactories = capture
+      ? allTasks.filter(
+          ([mode]) => mode === "battle-browser" || mode === "shared-rust-core-browser",
+        )
+      : allTasks;
     const samples = new Map<Mode, Result[]>();
     for (let repeat = 0; repeat < REPEATS; repeat++) {
       // Rotate the order between repeats so one adapter/browser scheduling

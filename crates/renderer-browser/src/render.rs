@@ -1,64 +1,5 @@
-#![allow(clippy::too_many_arguments)]
-
 use super::*;
-use renderer_core::shadow::ModelCaster;
-
-struct ProductionDepth<'a> {
-    depth: &'a TextureView,
-    camera: &'a BindGroup,
-    world_pipeline: renderer_core::pipelines::Bound,
-    terrain: &'a Buffer,
-    terrain_count: u32,
-    static_world: &'a Buffer,
-    static_count: u32,
-    models: &'a Buffer,
-    instances: &'a Buffer,
-    model_count: u32,
-    instance_count: u32,
-    materials: &'a BindGroup,
-}
-
-impl renderer_core::depth::DepthInputs for ProductionDepth<'_> {
-    fn depth_view(&self) -> &TextureView {
-        self.depth
-    }
-
-    fn camera_group(&self) -> (&'static str, &BindGroup) {
-        ("typegpuCameraLayout", self.camera)
-    }
-
-    fn draw_ground_depth(&self, pass: &mut RenderPass<'_>) {
-        self.world_pipeline
-            .set(pass, &[("typegpuCameraLayout", self.camera)]);
-        pass.set_vertex_buffer(0, self.terrain.slice(..));
-        pass.set_vertex_buffer(1, self.instances.slice(..));
-        pass.draw(0..self.terrain_count, 0..1);
-        if self.static_count > 0 {
-            pass.set_vertex_buffer(0, self.static_world.slice(..));
-            pass.draw(0..self.static_count, 0..1);
-        }
-    }
-
-    fn draw_scenery_depth(&self, _pass: &mut RenderPass<'_>) {}
-
-    fn draw_models_depth(
-        &self,
-        pass: &mut RenderPass<'_>,
-        pipeline: &renderer_core::pipelines::Bound,
-        _cutout: bool,
-    ) {
-        pipeline.set(
-            pass,
-            &[
-                ("typegpuCameraLayout", self.camera),
-                ("modelLayout", self.materials),
-            ],
-        );
-        pass.set_vertex_buffer(0, self.models.slice(..));
-        pass.set_vertex_buffer(1, self.instances.slice(..));
-        pass.draw(0..self.model_count, 0..self.instance_count);
-    }
-}
+use renderer_core::models::Surface;
 
 struct BrowserFrame<'a> {
     renderer: &'a mut Renderer,
@@ -77,7 +18,6 @@ impl renderer_core::frame::FrameInputs for BrowserFrame<'_> {
 
 #[wasm_bindgen]
 impl Renderer {
-    #[cfg(target_arch = "wasm32")]
     pub fn render(&mut self) -> Result<(), JsValue> {
         let mut encoder = self
             .device
@@ -96,20 +36,29 @@ impl Renderer {
         let view = surface
             .texture
             .create_view(&TextureViewDescriptor::default());
-        let mut frame = BrowserFrame {
-            renderer: self,
-            surface: &view,
-        };
-        renderer_core::frame::encode_frame(&mut encoder, &mut frame);
-        frame.renderer.stats.shared_passes += 1;
-        drop(frame);
+        {
+            let mut frame = BrowserFrame {
+                renderer: self,
+                surface: &view,
+            };
+            renderer_core::frame::encode_frame(&mut encoder, &mut frame);
+        }
+        self.stats.shared_passes += 1;
         self.shared_overlay_resources
             .encode_composite(&mut encoder, &self.targets, &view);
         self.queue.submit([encoder.finish()]);
         self.queue.present(surface);
         self.stats.frames += 1;
-        self.stats.draw_calls += 5;
         Ok(())
+    }
+
+    /// Match WebGPU's queue completion boundary in the browser control.
+    pub fn drain(&self) -> js_sys::Promise {
+        js_sys::Promise::new(&mut |resolve, _reject| {
+            self.queue.on_submitted_work_done(move || {
+                let _ = resolve.call0(&JsValue::UNDEFINED);
+            });
+        })
     }
 
     fn encode_stage(
@@ -118,37 +67,17 @@ impl Renderer {
         encoder: &mut CommandEncoder,
         surface: &TextureView,
     ) {
+        use renderer_core::frame::FrameStage;
         match stage {
-            renderer_core::frame::FrameStage::SunShadow => self.encode_shadows(encoder),
-            renderer_core::frame::FrameStage::Depth => {
-                if self.terrain_snapshot.is_some() {
-                    self.encode_production_depth(encoder);
-                    renderer_core::model_pass::encode_prepass(
-                        encoder,
-                        &self.targets,
-                        &self.production_pipelines,
-                        &self.production_camera_group,
-                        self.material_bindings.bind_group(),
-                        &self.production_model_vertices,
-                        &self.production_model_instances,
-                        self.production_model_vertex_count,
-                        self.production_model_instance_count,
-                        self.production_model_runs.as_deref(),
-                    );
-                    self.stats.shared_model_prepass = true;
-                } else {
-                    let ground = self.shared_ground.as_ref().unwrap_or(&self.model);
-                    let fixture = Fixture {
-                        depth: &self.targets.depth,
-                        camera: &self.camera_group,
-                        solid: &self.pipelines.bound("modelPrepass"),
-                        world: &self.pipelines.bound("worldOpaque"),
-                        model: ground,
-                    };
-                    encode_grouped(encoder, "shared-depth", |e| self.depth.encode(&fixture, e));
-                }
+            FrameStage::SunShadow => self.encode_shadows(encoder),
+            FrameStage::Depth => {
+                self.depth.encode(
+                    &super::render_world::BrowserWorld { renderer: self },
+                    encoder,
+                );
+                self.stats.shared_model_prepass = self.models.is_some();
             }
-            renderer_core::frame::FrameStage::FogSight => {
+            FrameStage::FogSight => {
                 if self.fog_dispatch_active {
                     self.shared_fog_sight.dispatch(
                         encoder,
@@ -157,144 +86,24 @@ impl Renderer {
                     );
                 }
             }
-            renderer_core::frame::FrameStage::World => {
-                if self.terrain_snapshot.is_some() {
-                    if self.production_terrain_vertex_count > 0 {
-                        let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                            label: Some("shared-production-terrain-material"),
-                            color_attachments: &[
-                                Some(RenderPassColorAttachment {
-                                    view: &self.targets.hdr_msaa,
-                                    depth_slice: None,
-                                    resolve_target: Some(&self.targets.lit),
-                                    ops: Operations {
-                                        load: LoadOp::Clear(Color::BLACK),
-                                        store: StoreOp::Store,
-                                    },
-                                }),
-                                Some(RenderPassColorAttachment {
-                                    view: &self.targets.fog_mask_msaa,
-                                    depth_slice: None,
-                                    resolve_target: Some(&self.targets.fog_mask),
-                                    ops: Operations {
-                                        load: LoadOp::Clear(Color::BLACK),
-                                        store: StoreOp::Store,
-                                    },
-                                }),
-                            ],
-                            depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
-                                view: &self.targets.depth,
-                                depth_ops: Some(Operations {
-                                    load: LoadOp::Load,
-                                    store: StoreOp::Store,
-                                }),
-                                stencil_ops: None,
-                            }),
-                            ..Default::default()
-                        });
-                        let terrain = self.production_pipelines.bound("worldTerrain");
-                        terrain.set(
-                            &mut pass,
-                            &[
-                                ("typegpuCameraLayout", &self.production_camera_group),
-                                ("terrainLayout", self.terrain.bind_group()),
-                                ("fogLayout", self.shared_fog_sight.group(0)),
-                                ("environment", self.environment.bindings.group()),
-                            ],
-                        );
-                        pass.set_vertex_buffer(0, self.production_terrain_vertices.slice(..));
-                        pass.set_vertex_buffer(1, self.overlay_instances.slice(..));
-                        pass.draw(0..self.production_terrain_vertex_count, 0..1);
-                    }
-                    if self.production_static_vertex_count > 0 {
-                        let pipeline = self.production_pipelines.bound("worldOpaque");
-                        let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                            label: Some("shared-production-static-world"),
-                            color_attachments: &[
-                                Some(RenderPassColorAttachment {
-                                    view: &self.targets.hdr_msaa,
-                                    depth_slice: None,
-                                    resolve_target: Some(&self.targets.lit),
-                                    ops: Operations {
-                                        load: LoadOp::Load,
-                                        store: StoreOp::Store,
-                                    },
-                                }),
-                                Some(RenderPassColorAttachment {
-                                    view: &self.targets.fog_mask_msaa,
-                                    depth_slice: None,
-                                    resolve_target: Some(&self.targets.fog_mask),
-                                    ops: Operations {
-                                        load: LoadOp::Load,
-                                        store: StoreOp::Store,
-                                    },
-                                }),
-                            ],
-                            depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
-                                view: &self.targets.depth,
-                                depth_ops: Some(Operations {
-                                    load: LoadOp::Load,
-                                    store: StoreOp::Store,
-                                }),
-                                stencil_ops: None,
-                            }),
-                            ..Default::default()
-                        });
-                        pipeline.set(
-                            &mut pass,
-                            &[
-                                ("typegpuCameraLayout", &self.production_camera_group),
-                                ("environment", self.environment.bindings.group()),
-                                ("fogLayout", self.shared_fog_sight.group(1)),
-                            ],
-                        );
-                        pass.set_vertex_buffer(0, self.production_static_vertices.slice(..));
-                        pass.set_vertex_buffer(1, self.overlay_instances.slice(..));
-                        pass.draw(0..self.production_static_vertex_count, 0..1);
-                    }
-                    renderer_core::model_pass::encode_opaque(
-                        encoder,
-                        &self.targets,
-                        &self.production_pipelines,
-                        &self.production_camera_group,
-                        self.material_bindings.bind_group(),
-                        self.shared_fog_sight.group(0),
-                        self.environment.bindings.group(),
-                        &self.production_model_vertices,
-                        &self.production_model_instances,
-                        self.production_model_vertex_count,
-                        self.production_model_instance_count,
-                        self.production_model_runs.as_deref(),
-                    );
-                } else {
-                    let ground = self.shared_ground.as_ref().unwrap_or(&self.model);
-                    let fixture = Fixture {
-                        depth: &self.targets.depth,
-                        camera: &self.camera_group,
-                        solid: &self.pipelines.bound("modelPrepass"),
-                        world: &self.pipelines.bound("worldOpaque"),
-                        model: ground,
-                    };
-                    encode_grouped(encoder, "shared-world", |e| {
-                        renderer_core::world::encode_sky(&fixture, &self.targets, e)
-                    });
-                    renderer_core::world::encode_world(
-                        &fixture,
-                        &self.targets,
-                        encoder,
-                        true,
-                        true,
-                        true,
-                    );
-                }
+            FrameStage::World => {
+                let inputs = super::render_world::BrowserWorld { renderer: self };
+                renderer_core::world::encode_sky(&inputs, &self.targets, encoder);
+                renderer_core::world::encode_world(
+                    &inputs,
+                    &self.targets,
+                    encoder,
+                    true,
+                    true,
+                    true,
+                );
             }
-            renderer_core::frame::FrameStage::Effects => {
-                self.shared_effects.encode(encoder, &self.targets);
-            }
-            renderer_core::frame::FrameStage::FogMask => {
+            FrameStage::Effects => self.shared_effects.encode(encoder, &self.targets),
+            FrameStage::FogMask => {
                 self.shared_fog_mask.encode(encoder, &self.targets);
+                self.encode_ghosts(encoder);
             }
-            renderer_core::frame::FrameStage::Overlays => {
+            FrameStage::Overlays => {
                 if self.overlay_vertex_count > 0 {
                     self.shared_overlay_resources.encode_geometry(
                         encoder,
@@ -306,9 +115,9 @@ impl Renderer {
                     );
                 }
             }
-            renderer_core::frame::FrameStage::Post => self.shared_post.encode(encoder),
-            renderer_core::frame::FrameStage::FogRim => {
-                let pipeline = self.pipelines.bound("composite");
+            FrameStage::Post => self.shared_post.encode(encoder),
+            FrameStage::FogRim => {
+                let pipeline = self.display_pipelines.bound("composite");
                 {
                     let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                         label: Some("shared-display-composite"),
@@ -332,47 +141,71 @@ impl Renderer {
         }
     }
 
-    fn encode_production_depth(&self, encoder: &mut CommandEncoder) {
-        let inputs = ProductionDepth {
-            depth: &self.targets.depth,
-            camera: &self.production_camera_group,
-            world_pipeline: self.production_pipelines.bound("worldPrepass"),
-            terrain: &self.production_terrain_vertices,
-            terrain_count: self.production_terrain_vertex_count,
-            static_world: &self.production_static_vertices,
-            static_count: self.production_static_vertex_count,
-            models: &self.production_model_vertices,
-            instances: &self.production_model_instances,
-            model_count: self.production_model_vertex_count,
-            instance_count: self.production_model_instance_count,
-            materials: self.material_bindings.bind_group(),
-        };
-        self.production_depth.encode(&inputs, encoder);
+    fn encode_shadows(&mut self, encoder: &mut CommandEncoder) {
+        let world_pipeline = self.production_pipelines.bound("worldCaster");
+        let solid = self.production_pipelines.bound("modelCaster");
+        let cutout = self.production_pipelines.bound("modelCasterCutout");
+        let passes = self
+            .shared_shadow
+            .encode_cascades(encoder, |cascade, camera, pass| {
+                let camera = ("typegpuCameraLayout", camera);
+                world_pipeline.set(pass, &[camera]);
+                pass.set_vertex_buffer(0, self.shadow_ground_vertices.slice(..));
+                pass.set_vertex_buffer(1, self.overlay_instances.slice(..));
+                pass.draw(0..self.shadow_ground_count, 0..1);
+                if let Some(models) = &self.models {
+                    for (pipeline, surface) in
+                        [(&solid, Surface::Solid), (&cutout, Surface::Cutout)]
+                    {
+                        pipeline.set(pass, &[camera, models.group()]);
+                        models.draw_casters(pass, surface, cascade);
+                    }
+                    if let Some(scenery) = &self.scenery {
+                        scenery.draw_casters(pass, camera, models.statics(), cascade);
+                    }
+                }
+            });
+        self.stats.shadow_passes += passes;
+        self.stats.shadow_model_passes += self
+            .stats
+            .shadow_caster_batches
+            .iter()
+            .take(self.shared_shadow.active())
+            .filter(|&&count| count > 0)
+            .count() as u32;
     }
 
-    fn encode_shadows(&mut self, encoder: &mut CommandEncoder) {
-        let pipeline = self.production_pipelines.bound("worldCaster");
-        let passes = self.shared_shadow.encode_ground(
-            encoder,
-            &pipeline,
-            &self.shadow_ground_vertices,
-            &self.overlay_instances,
-            self.shadow_ground_count,
+    fn encode_ghosts(&self, encoder: &mut CommandEncoder) {
+        let Some(models) = self.models.as_ref().filter(|models| models.has_ghosts()) else {
+            return;
+        };
+        let pipeline = self.production_pipelines.bound("modelGhost");
+        let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+            label: Some("placement-ghosts"),
+            color_attachments: &[Some(RenderPassColorAttachment {
+                view: &self.targets.hdr_msaa,
+                depth_slice: None,
+                resolve_target: Some(&self.targets.hdr),
+                ops: Operations {
+                    load: LoadOp::Load,
+                    store: StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+                view: &self.targets.depth,
+                depth_ops: None,
+                stencil_ops: None,
+            }),
+            ..Default::default()
+        });
+        pipeline.set(
+            &mut pass,
+            &[
+                ("typegpuCameraLayout", &self.production_camera_group),
+                ("environment", self.environment.bindings.group()),
+                models.group(),
+            ],
         );
-        self.stats.shadow_passes = self.stats.shadow_passes.saturating_add(passes);
-        let model_pipeline = self.production_pipelines.bound("modelCaster");
-        let model_passes = self.shared_shadow.encode_models(
-            encoder,
-            ModelCaster {
-                pipeline: &model_pipeline,
-                materials: self.material_bindings.bind_group(),
-                vertices: &self.production_model_vertices,
-                instances: &self.production_model_instances,
-                vertex_count: self.production_model_vertex_count,
-                routed: &self.shadow_routing,
-            },
-        );
-        self.stats.shadow_model_passes =
-            self.stats.shadow_model_passes.saturating_add(model_passes);
+        models.draw_ghosts(&mut pass);
     }
 }

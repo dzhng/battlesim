@@ -4,9 +4,6 @@ import { requestGpuDevice } from "@packages/renderer-core/src/device";
 import { eyePosition, screenAxes, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { Renderer } from "@wasm/renderer_spike/renderer_wasm_spike.js";
 import { Renderer as SharedRenderer } from "@wasm/renderer_browser/renderer_browser.js";
-import { gzipTransport, readGzip } from "@packages/scene-assets/src/gzip";
-import { bundlePath, texturePath } from "@packages/scene-assets/src/schema";
-import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import { resolveFogLook, resolveLight, ScenePresentation } from "@web/battle/sim/presentation";
 import { gameFogStyle } from "../gameFog";
@@ -15,7 +12,7 @@ import { gameOverlayGlow } from "../gameOverlay";
 import { groundPatch, FOUNDATION_CAMERA } from "./frame";
 import { modelEncoder, modelPipeline } from "./oneRendererModel";
 import { capturedParisFixture, realBattleFixture } from "./oneRendererBattle";
-import { fixtureModelFrame, loadTankBundle, mw, shadowBatchWords } from "./oneRendererAssets";
+import { loadSharedAppearances, loadTankBundle, mw } from "./oneRendererAssets";
 import { loadEffectAtlasLayers } from "./oneRendererEffects";
 import { battleRustRun } from "./oneRendererBattleRust";
 
@@ -400,99 +397,29 @@ export async function modelRustRun(canvas: HTMLCanvasElement): Promise<Result> {
 
 export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<Result> {
   const started = performance.now();
+  const phases: Record<string, number> = {};
+  let phaseStarted = started;
+  const stage = (name: string) => {
+    const now = performance.now();
+    if (canvas.dataset.stage) phases[canvas.dataset.stage] = now - phaseStarted;
+    canvas.dataset.stage = name;
+    phaseStarted = now;
+  };
+  delete canvas.dataset.stage;
+  stage("device setup");
   canvas.width = REAL_WIDTH;
   canvas.height = REAL_HEIGHT;
   const renderer = await SharedRenderer.new(canvas);
-  const exportValidation = await (
-    renderer as SharedRenderer & {
-      validate_export(): Promise<string>;
-    }
-  ).validate_export();
-  const catalog = (await (await fetch("/catalog.json")).json()) as RuntimeCatalog;
-  const bundleHash = catalog.appearances?.test_tank?.bundle;
-  if (!bundleHash) throw new Error("runtime catalog has no test_tank bundle");
-  const bw =
-    gzipTransport(catalog, bundleHash).bytes +
-    (catalog.textures?.[bundleHash] ?? []).reduce(
-      (bytes, id) => bytes + gzipTransport(catalog, id).bytes,
-      0,
-    );
-  const read = async (path: string) =>
-    new Uint8Array(await (await fetch(`/${path}`)).arrayBuffer());
-  const bundleBytes = await readGzip(catalog, "bundle", bundleHash, bundlePath, read);
-  const textureBytes = await Promise.all(
-    (catalog.textures?.[bundleHash] ?? []).map((id) =>
-      readGzip(catalog, "texture", id, texturePath, read),
-    ),
-  );
-  const assets = renderer as SharedRenderer & {
-    load_bundle: (name: string, bundle: Uint8Array, textures: Uint8Array[]) => string;
-  };
-  assets.load_bundle(
-    "test_tank",
-    bundleBytes,
-    textureBytes.map((bytes) => bytes),
-  );
-  const sm = mw(await loadTankBundle());
-  const si = new Float32Array((sm.instances.length / 8) * 16);
-  for (let i = 0; i < sm.instances.length / 8; i++) {
-    si.set(sm.instances.subarray(i * 8, i * 8 + 4), i * 16);
-    si.set(sm.instances.subarray(i * 8 + 4, i * 8 + 8), i * 16 + 8);
-    si.set([1, 1, 1, 1], i * 16 + 12);
-  }
-  (
-    renderer as SharedRenderer & {
-      upload_instances: (instances: Float32Array) => void;
-    }
-  ).upload_instances(si);
-  let ff;
-  try {
-    ff = window.location.search.includes("capture=1")
-      ? await capturedParisFixture()
-      : await realBattleFixture();
-  } catch (error) {
-    console.error("one-renderer realBattleFixture failed", error);
-    throw error;
-  }
-  const f = ff.camera;
-  const shadowBatches = shadowBatchWords(f.batches.u32);
-  const upload = renderer as SharedRenderer & {
-    upload_fog_heights: (heights: Uint32Array) => void;
-    upload_frame: (
-      camera: Float32Array,
-      environment: Float32Array,
-      fog: Float32Array,
-      overlay: Float32Array,
-    ) => void;
-    upload_effect_atlas: (layer: number, rgba: Uint8Array) => void;
-    upload_effects: (effects: Float32Array) => void;
-    upload_post: (bloom: Float32Array, grade: Float32Array) => void;
-    upload_fog: (
-      params: Float32Array,
-      eyes: Float32Array,
-      foliage: Float32Array,
-      occluders: Float32Array,
-      rebuild: Uint32Array,
-      rebuildDispatch: Uint32Array,
-      mapWords: Uint32Array,
-      tiles: Uint32Array,
-      wholes: Uint32Array,
-      wholeItems: Uint32Array,
-      wholeUniform: Float32Array,
-      wholeDispatch: Uint32Array,
-    ) => void;
-    upload_ground: (mesh: Float32Array) => void;
-    upload_static_world: (mesh: Float32Array) => void;
-    upload_terrain_tables: (
-      params: Uint32Array,
-      nodes: Uint32Array,
-      plots: Uint32Array,
-      surfaces: Float32Array,
-      surfaceIndex: Uint32Array,
-      scars: Uint32Array,
-    ) => void;
-    overlay: (mesh: Float32Array) => void;
-  };
+  const exportValidation = await renderer.validate_export();
+  const capture = new URLSearchParams(window.location.search).get("capture") === "1";
+  stage("presentation fixture");
+  const fixture = capture ? await capturedParisFixture() : await realBattleFixture();
+  const f = fixture.camera;
+  stage("asset download and model admission");
+  const assetAccounting = await loadSharedAppearances(renderer, fixture.presentation);
+  stage("presentation upload");
+  const shadowBatches = new Uint32Array(f.batches.u32);
+  const upload = renderer;
   const rl = await resolveLight(gameLight);
   const fogLook = resolveFogLook(gameFogStyle);
   const effectAtlas = await loadEffectAtlasLayers();
@@ -514,39 +441,15 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   );
   effectAtlas.forEach((rgba, layer) => upload.upload_effect_atlas(layer, rgba));
   upload.upload_effects(new Float32Array(f.effects.f32));
-  const presentationModel = f as unknown as {
-    palettes?: { f32: Float32Array };
-    instances?: { f32: Float32Array };
-    batches?: { u32: Uint32Array };
-  };
-  const fixtureModel = fixtureModelFrame(si);
-  const hasPresentationModels = Boolean(
-    presentationModel.instances?.f32.length && presentationModel.batches?.u32.length,
-  );
-  const modelInstances = presentationModel.instances?.f32.length
-    ? new Float32Array(presentationModel.instances.f32)
-    : si;
-  const modelBatches = hasPresentationModels
-    ? new Uint32Array(presentationModel.batches!.u32)
-    : fixtureModel.batches;
-  const modelPalettes = presentationModel.palettes?.f32.length
-    ? new Float32Array(presentationModel.palettes.f32)
-    : fixtureModel.palettes;
-  (
-    renderer as SharedRenderer & {
-      upload_model_frame: (
-        palettes: Float32Array,
-        instances: Float32Array,
-        batches: Uint32Array,
-        materialRows: Float32Array,
-      ) => void;
-    }
-  ).upload_model_frame(modelPalettes, modelInstances, modelBatches, new Float32Array(0));
-  (renderer as SharedRenderer & { upload_sky: (sky: Float32Array) => void }).upload_sky(rl.sky);
-  upload.upload_ground(Float32Array.from(ff.terrain));
-  upload.upload_static_world(Float32Array.from(ff.world.props));
+  const modelInstances = new Float32Array(f.instances.f32);
+  const modelBatches = new Uint32Array(f.batches.u32);
+  const modelPalettes = new Float32Array(f.palettes.f32);
+  renderer.upload_model_frame(modelPalettes, modelInstances, modelBatches);
+  renderer.upload_sky(rl.sky);
+  upload.upload_ground(Float32Array.from(fixture.terrain));
+  upload.upload_static_world(Float32Array.from(fixture.world.props));
   const uploadTerrainTables = () => {
-    const tables = ff.presentation.presentedGround()?.ground_terrain();
+    const tables = fixture.presentation.presentedGround()?.ground_terrain();
     if (!tables) throw new Error("presentation did not resolve terrain tables");
     try {
       upload.upload_terrain_tables(
@@ -563,29 +466,34 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   };
   uploadTerrainTables();
   const h = () => {
-    const heights = ff.presentation.presentedGround()?.pages();
+    const heights = fixture.presentation.presentedGround()?.pages();
     if (heights?.length) upload.upload_fog_heights(new Uint32Array(heights));
   };
   h();
   upload.overlay(
     concatMeshes([
-      ff.overlay.opaque,
-      ff.overlay.translucent,
-      ff.overlay.painted,
-      ff.overlay.paintedMarching,
+      fixture.overlay.opaque,
+      fixture.overlay.translucent,
+      fixture.overlay.painted,
+      fixture.overlay.paintedMarching,
     ]),
   );
   type FogSightSnapshot = Parameters<typeof upload.upload_fog>;
   let fogSightSnapshot: FogSightSnapshot | null = null;
+  let fogInitialUploadComplete = false;
   const uploadFogSight = (refresh: boolean) => {
     if (!fogSightSnapshot || refresh) {
-      const ground = ff.presentation.presentedGround();
+      const ground = fixture.presentation.presentedGround();
+      // The cached presentation also feeds the control. A newly attached GPU
+      // owner needs the complete state, not that other consumer's next delta.
+      ground?.resend_fog();
       const up = ground?.prepare_fog(new Float32Array(f.camera.f32), REAL_WIDTH, REAL_HEIGHT, 0);
       if (!up) return;
       const reinterpret = (words: Uint32Array) => new Float32Array(new Uint32Array(words).buffer);
       try {
         const foliage = up.foliage();
         const occluders = up.occluders();
+        fogInitialUploadComplete = foliage != null && occluders != null;
         fogSightSnapshot = [
           reinterpret(up.params()),
           reinterpret(up.eyes()),
@@ -607,15 +515,13 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     upload.upload_fog(...fogSightSnapshot!);
   };
   uploadFogSight(true);
-  (
-    renderer as SharedRenderer & {
-      upload_shadow: (receiver: Float32Array, casters: Float32Array, batches: Uint32Array) => void;
-    }
-  ).upload_shadow(
+  renderer.upload_shadow(
     new Float32Array(f.sun_shadow.f32),
     new Float32Array(f.casters.f32),
     shadowBatches,
   );
+  const startupMs = performance.now() - started;
+  stage("resize and surface recovery");
   canvas.width = 320;
   canvas.height = 180;
   renderer.resize(canvas);
@@ -624,6 +530,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   renderer.resize(canvas);
   renderer.recover_surface();
   renderer.destroy_device_for_test();
+  stage("device loss callback");
   await new Promise<void>((resolve) => setTimeout(resolve, 50));
   const lostBeforeRecovery = JSON.parse(renderer.stats()) as {
     deviceLost: number;
@@ -631,7 +538,9 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   if (lostBeforeRecovery.deviceLost < 1) {
     throw new Error(`device loss callback did not fire: ${renderer.stats()}`);
   }
+  stage("device recovery");
   await renderer.recover_device(canvas);
+  stage("recovered presentation upload");
   upload.upload_frame(
     new Float32Array(f.camera.f32),
     env,
@@ -640,51 +549,46 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   );
   effectAtlas.forEach((rgba, layer) => upload.upload_effect_atlas(layer, rgba));
   upload.upload_effects(new Float32Array(f.effects.f32));
-  (renderer as SharedRenderer & { upload_sky: (sky: Float32Array) => void }).upload_sky(rl.sky);
-  (
-    renderer as SharedRenderer & {
-      upload_model_frame: (
-        palettes: Float32Array,
-        instances: Float32Array,
-        batches: Uint32Array,
-        materialRows: Float32Array,
-      ) => void;
-    }
-  ).upload_model_frame(modelPalettes, modelInstances, modelBatches, new Float32Array(0));
-  upload.upload_ground(Float32Array.from(ff.terrain));
-  upload.upload_static_world(Float32Array.from(ff.world.props));
+  renderer.upload_sky(rl.sky);
+  renderer.upload_model_frame(modelPalettes, modelInstances, modelBatches);
+  upload.upload_ground(Float32Array.from(fixture.terrain));
+  upload.upload_static_world(Float32Array.from(fixture.world.props));
   uploadTerrainTables();
   h();
   upload.overlay(
     concatMeshes([
-      ff.overlay.opaque,
-      ff.overlay.translucent,
-      ff.overlay.painted,
-      ff.overlay.paintedMarching,
+      fixture.overlay.opaque,
+      fixture.overlay.translucent,
+      fixture.overlay.painted,
+      fixture.overlay.paintedMarching,
     ]),
   );
   uploadFogSight(false);
-  (
-    renderer as SharedRenderer & {
-      upload_shadow: (receiver: Float32Array, casters: Float32Array, batches: Uint32Array) => void;
-    }
-  ).upload_shadow(
+  renderer.upload_shadow(
     new Float32Array(f.sun_shadow.f32),
     new Float32Array(f.casters.f32),
     shadowBatches,
   );
   renderer.render();
-  const setupMs = performance.now() - started;
+  await renderer.drain();
+  const setupMs = startupMs;
+  stage("frame encode");
   const encodeStart = performance.now();
   for (let index = 0; index < FRAMES; index++) renderer.render();
   const encodeMs = performance.now() - encodeStart;
-  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  stage("queue drain");
+  await renderer.drain();
   const submitMs = performance.now() - encodeStart - encodeMs;
-  const workload = renderer
-    .stats()
-    .replace(/\}$/, `,"bundleWireBytes":${bw},"export":${exportValidation}}`);
+  stage("complete");
+  const workload = JSON.stringify({
+    ...JSON.parse(renderer.stats()),
+    ...assetAccounting,
+    fogInitialUploadComplete,
+    phases,
+    export: JSON.parse(exportValidation),
+  });
   renderer.free();
-  ff.presentation.free();
+  if (!capture) fixture.presentation.free();
   return {
     mode: "shared-rust-core-browser",
     setupMs,

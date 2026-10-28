@@ -25,8 +25,6 @@ const groups = {
     "native/client/src/frame.rs",
     "native/client/src/world.rs",
     "native/client/src/ground.rs",
-    "native/client/src/models.rs",
-    "native/client/src/scenery.rs",
     "native/client/src/grass.rs",
     "native/client/src/shadow.rs",
     "native/client/src/environment.rs",
@@ -35,7 +33,6 @@ const groups = {
     "native/client/src/effects.rs",
     "native/client/src/post.rs",
     "native/client/src/sky.rs",
-    "native/client/src/statics.rs",
     "native/client/src/scars.rs",
   ],
   "native-platform-shell": [
@@ -48,11 +45,9 @@ const groups = {
     "native/client/src/audio.rs",
   ],
   "spike-rust": ["crates/renderer-wasm-spike/src"],
-  "spike-browser-typescript": [
-    "apps/battle-lab/src/routes/oneRenderer.tsx",
-    "apps/battle-lab/src/routes/oneRendererBattle.ts",
-    "apps/battle-lab/src/routes/oneRendererModel.ts",
-  ],
+  "spike-browser-typescript": (await readdir(path.join(root, "apps/battle-lab/src/routes")))
+    .filter((name) => name.startsWith("oneRenderer") && extensions.has(path.extname(name)))
+    .map((name) => `apps/battle-lab/src/routes/${name}`),
   "spike-scene": ["web/scenes/one-renderer.mjs"],
 };
 
@@ -82,7 +77,7 @@ function lineMetrics(source) {
     if (blockComment) {
       comments++;
       if (line.includes("*/")) blockComment = false;
-    } else if (line.startsWith("//") || line.startsWith("#") || line.startsWith("*")) {
+    } else if (line.startsWith("//") || (line.startsWith("#!") && !line.startsWith("#!["))) {
       comments++;
     } else if (line.startsWith("/*")) {
       comments++;

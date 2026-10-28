@@ -2,6 +2,15 @@
 
 **Status:** normative target 2026-10-27; implementation gates remain open.
 
+The native model/material/static-batch and scenery implementations now live in
+`renderer-core` and execute in both shells. The browser's parallel asset/state/
+vertex admission and nonindexed model passes have been removed. Production
+camera comparisons must install BattleFrame's static frame as well as its
+dynamic frame; both use the complete production appearance generation. The
+captured run now proves transport and recovery, while missing sky and different
+lighting/fog/ground keep visual acceptance red. Current measurements and the
+next discriminating experiment live in [research](../research.md#current-task--native-owner-replacement-2026-10-28).
+
 The spike no longer treats these as equal final choices. The clean architecture
 is:
 

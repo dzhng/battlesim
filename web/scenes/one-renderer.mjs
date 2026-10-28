@@ -1,6 +1,6 @@
 // Browser proof for the one-renderer spike. The page runs all ownership
 // variants sequentially on the same adapter and publishes the measured rows.
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { decode } from "./_png.mjs";
 
 function meanDiff(a, b) {
@@ -15,24 +15,75 @@ function meanDiff(a, b) {
 }
 
 export async function run(ctx) {
+  const capture = process.env.ONE_RENDERER_CAPTURE === "1";
+  const plate = process.env.ONE_RENDERER_PLATE ?? "plate-660.png";
+  const evidencePath = (name) => ctx.evidencePath(capture ? `${plate}/${name}` : name);
+  if (capture) await mkdir(ctx.evidencePath(plate), { recursive: true });
   const page = await ctx.newPage({ viewport: { width: 1280, height: 2300 } });
-  await page.goto(`${ctx.url}${process.env.ONE_RENDERER_CAPTURE === "1" ? "?capture=1" : ""}`);
+  const url = new URL(ctx.url);
+  if (capture) {
+    url.searchParams.set("capture", "1");
+    url.searchParams.set("plate", plate);
+  }
+  await page.goto(url.href);
   await page.getByRole("button", { name: "Run comparison" }).waitFor({ timeout: 60_000 });
   await page.getByRole("button", { name: "Run comparison" }).click();
-  await page.waitForFunction(() => document.querySelectorAll("tbody tr").length === 11, undefined, {
-    timeout: 60_000,
-  });
+  try {
+    await page.waitForFunction(
+      (count) => document.querySelectorAll("tbody tr").length === count,
+      capture ? 2 : 11,
+      {
+        timeout: 60_000,
+      },
+    );
+  } catch (error) {
+    const stages = await page
+      .locator("canvas")
+      .evaluateAll((canvases) => canvases.map((canvas) => canvas.dataset.stage ?? null));
+    throw new Error(`renderer comparison stalled: ${JSON.stringify(stages)}`, { cause: error });
+  }
   const result = await page.evaluate(() =>
     [...document.querySelectorAll("tbody tr")].map((row) =>
       [...row.querySelectorAll("td")].map((cell) => cell.textContent?.trim() ?? ""),
     ),
   );
-  await writeFile(ctx.evidencePath("result.json"), JSON.stringify(result, null, 2));
-  await page.screenshot({ path: ctx.evidencePath("comparison.png"), fullPage: true });
+  await writeFile(evidencePath("result.json"), JSON.stringify(result, null, 2));
+  await page.screenshot({ path: evidencePath("comparison.png"), fullPage: true });
+  if (capture) {
+    const browser = await page.locator("canvas").nth(9).screenshot();
+    const shared = await page.locator("canvas").nth(11).screenshot();
+    await writeFile(evidencePath("captured-browser.png"), browser);
+    await writeFile(evidencePath("captured-shared.png"), shared);
+    await writeFile(
+      evidencePath("visual.json"),
+      JSON.stringify(
+        { captured_shared_vs_browser: meanDiff(decode(shared), decode(browser)) },
+        null,
+        2,
+      ),
+    );
+    const workload = JSON.parse(result[1]?.[5] ?? "null");
+    ctx.check(
+      "captured controls complete",
+      result.every((row) => row[6] === "ok"),
+      JSON.stringify(result),
+    );
+    ctx.check(
+      "fresh shared renderer receives a complete fog snapshot",
+      workload?.fogInitialUploadComplete === true,
+      JSON.stringify(workload),
+    );
+    ctx.check(
+      "captured shared renderer admits models and recovers the device",
+      workload?.presentationModelRuns > 0 && workload?.deviceRecoveries >= 1,
+      JSON.stringify(workload),
+    );
+    return;
+  }
   const canvasShots = [];
   for (let i = 0; i < 12; i++) {
     const shot = await page.locator("canvas").nth(i).screenshot();
-    await writeFile(ctx.evidencePath(`canvas-${i}.png`), shot);
+    await writeFile(evidencePath(`canvas-${i}.png`), shot);
     canvasShots.push(decode(shot));
   }
   const visual = {
@@ -42,7 +93,7 @@ export async function run(ctx) {
     model_rust_vs_browser: meanDiff(canvasShots[7], canvasShots[6]),
     battle_rust_vs_browser: meanDiff(canvasShots[10], canvasShots[9]),
   };
-  await writeFile(ctx.evidencePath("visual.json"), JSON.stringify(visual, null, 2));
+  await writeFile(evidencePath("visual.json"), JSON.stringify(visual, null, 2));
   const failures = result.filter((row) => row[6] !== "ok");
   ctx.check("all renderer paths complete", failures.length === 0, JSON.stringify(result));
   ctx.check(

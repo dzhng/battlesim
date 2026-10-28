@@ -1,441 +1,119 @@
 # One renderer
 
-**Status:** implementation in progress on PR #16. Shared targets, pipelines,
-depth, world, indexed model upload, fog-mask, post, fog-compute, lifecycle,
-presentation upload, device-loss recovery, and range-aware shadow caster
-  routing now have one Rust owner. The browser harness now also feeds a real
-  simulation publication through `ScenePresentation`, including authored
-  batches, instances, palettes, materials, terrain tables, fog and shadows.
-  Full production pass parity, native/browser matched output, and TypeGPU
-  deletion remain. The browser production row now uses the production camera
-  depth prepass and authored 2048px shadow targets; the earlier fixture-depth
-  and 64px-shadow artifacts are recorded in `choices.md`.
-**Updated:** 2026-10-27.
+**Status:** implementing on [PR #16](https://github.com/dzhng/battlesim/pull/16).
+**Updated:** 2026-10-28. The architecture is settled; production parity and the
+final deletion/performance gates remain open.
 
-The latest production-input pass adds a shared `terrainLayout` owner. The
-browser uploads the presentation's resolved terrain params, plot nodes and
-records, surface records/index and scar look, binds them to the exported
-`worldTerrain` pipeline, and replays the table snapshot after device loss. The
-native four-word terrain view suffix is appended at the browser boundary so
-the uniform ABI is identical. This proves the input and binding seam; scar
-directory/pool textures, full terrain vertex selection, and matched material
-pixels remain open.
+## Architecture
 
-The first question is answered: Rust `wgpu` can run in browser WASM through
-its `BrowserWebGpu` backend, attach to the same HTML canvas contract, consume
-WGSL, and submit frames. The important question is different: can the existing
-native `wgpu` renderer become one shared renderer core compiled for both native
-and browser targets? The native client already owns the complete pass graph in
-`native/client/src/`—frame orchestration, targets, shadows, world/models,
-effects, fog, post, scenery and resource lifetimes—and already consumes the
-browser's exported WGSL and presentation records. A second bounded Rust graph
-is not the target architecture and its smaller LOC is not evidence of a win.
+One Rust `wgpu` runtime owns rendering for native and browser WASM. Both targets
+consume the same presentation records, authored assets and pipeline metadata.
+The runtime owns asset interpretation, GPU resources, pass order, materials,
+models, shadows, terrain, scenery, grass, fog, effects, post and overlays.
+Platform shells own only surface/device admission, asset transport, window/DOM,
+audio and platform diagnostics. A browser-specific copy of native rendering
+policy fails this architecture even when it looks similar.
+
+`crates/renderer-core` is the runtime. Native filesystem loading and the desktop
+surface live in `native/client`; fetched bytes and the WebGPU canvas live in
+`crates/renderer-browser`. `presentation` remains the sole authority for poses,
+visibility, tier/caster selection and static batches. Rendering must preserve
+battle digests and publication layouts.
+
+TypeGPU is a temporary control and shader migration input. After parity, delete
+its browser runtime, duplicate pass/resource owners and dependency. Retaining a
+build-only authoring dependency requires its own evidence that the tooling is
+simpler. A permanent mixed runtime is not the target. Delete the standalone
+production-shaped Rust graph as well.
+
+The benefit being tested is **less total code and fewer owners across both
+platforms**. Equal or slightly worse frame time is acceptable when the final
+architecture removes substantial complexity. A smaller separately written Rust
+renderer cannot establish that benefit.
 
 ## Next Agent Prompt
 
-Treat the current `renderer-wasm-spike` as a transport and harness probe only.
-The first extraction checkpoint is now complete: `crates/renderer-core` owns
-the shared target formats, target allocation and GPU buffer/bind helpers, and
- the native client consumes those owners. The next pass must move the actual
- pass modules into that crate, then add native and WASM platform shells for
-surface/device/assets/audio concerns. Do not add another Rust pass graph.
-Keep TypeGPU as the browser control until the shared native/browser core clears
-the matched-image, startup, frame-time, resize, rebuild, and production pass
-parity gates. Sky/PMREM/DFG assets, range-aware caster routing, native fog
-layer records, and a non-flat height page now cross the shared browser shell.
-The real production-input extraction is now exercised: the shared browser row
-builds a deterministic sim battle, publishes an observation, resolves the
-runtime bundle through `fieldedBattle`, and uploads the resulting
-`ScenePresentation` frame. It reports 920 model-record words and 240 authored
-material words, and survives resize, surface recovery and device loss. The
-remaining comparison must use the complete appearance library and native frame
-against the same camera and world, then close visual/material/shadow parity.
-The browser model seam now preserves 16-float instances and 12-word dynamic
-batch ranges; finish the appearance/tier drawable mapping and the `NONE` static
-batch holder before claiming model parity. The shared core now owns the packed
-batch decoder and recovery-safe static range state, and the browser admits only
-loaded `(appearance, tier)` drawables. The remaining model gap is the complete
-appearance library, articulated transforms, and real `PresentedFrame` batch
-selection. Loaded tiers now share one packed vertex stream with explicit ranges,
-and the adapter preserves the authored 48-byte normal/UV/weight/tangent layout.
-The resulting real-frame screenshot is more textured but still fails visual
-acceptance because model contrast, terrain aliasing, world framing and contact
-shadows are not yet production parity.
-Do not treat the current caster counters or the fixture world path as a visual
-shadow/material proof; the latest review still sees no readable contact shadows.
+Continue the actual native-owner extraction, then use the matched captured
+Paris workload to close visual gaps. Do not add functionality to the browser's
+old model approximation: the native model/material/static-batch owner is moving
+into the core and must replace it. Its exact contract includes all articulated
+nodes, corpse/rest palettes, named static states, indexed tiers, surface classes,
+texture identity and held batches. The browser presentation bridge exports the
+same appearance ABI and authored rest palettes from its separate WASM memory.
 
-## Decision map
+Priority order:
 
-The user delegated the spike choices: test all four useful ownership shapes and
-let evidence decide. The spike therefore covers:
+1. The shared native model/static/scenery replacement now renders through the
+   browser, and the complete captured pair passes transport/recovery. Preserve
+   this ownership and its regression checks. The valid `plate-240` comparison
+   still fails visual parity; research records its metrics and screenshots.
+2. Extract the remaining native scenery/grass/ground/sky/frame owners and route
+   them through the shared runtime. Replace browser pass approximations rather
+   than extending them. Preserve native behavior first; change it only as a
+   separately measured experiment.
+3. Close matched native/browser material, lighting, contact-shadow, fog, effect,
+   post, overlay and framing differences. Green counters are input/lifetime
+   evidence, never visual acceptance.
+4. Measure the three production targets with matched inputs, separate cold
+   startup from recovery, record CPU/GPU/memory/download costs, and account for
+   code/owners after deletion. Delete the replaced graphs, run repository
+   closeout once, review the whole change, and archive the spec when shipped.
 
-1. TypeGPU authoring and browser WebGPU submission (the current control).
-2. Exported WGSL and direct browser WebGPU submission (no TypeGPU runtime).
-3. The existing native Rust `wgpu` renderer compiled for browser WASM using the
-   same exported WGSL and presentation records.
-4. Rust base plus a TypeGPU overlay plane.
+A browser environment failure occurred during this continuation: a minimal
+Playwright data page timed out without game code; a bounded GPU-disabled probe
+and a Metal probe loaded, and the default browser subsequently loaded again.
+Those failed runs establish no renderer timings. Preserve their distinction from
+application failures if it recurs.
 
-TypeGPU remains a temporary shader authoring source during this spike.
-Rewriting the shader language is a separate build-tool decision, but TypeGPU has
-no permanent renderer role. The final shipped architecture deletes the TypeGPU
-runtime and dependency unless a dedicated build-only authoring spike proves
-that retaining it pays for its complexity. The mixed result currently uses a
-second canvas plane; same-device, same-texture interop is unproven and must not
-be inferred from that result.
+## Verification contract
 
-## Settled contracts and constraints
+The production acceptance workload is one frozen presentation publication,
+camera, viewport, quality, simulation time and authored asset generation in the
+TypeGPU browser control, shared Rust browser candidate and shared Rust native
+control. Capture both the whole image and local material/shadow landmarks.
+Inspect screenshots and get an unprimed critique; never bless missing content
+because full-frame image distance improved.
 
-- Rust `presentation` remains the only owner of battle observations, frame
-  records, culling, tiers, shadows and side knowledge. The spike renderer only
-  consumes a canvas and draw inputs.
-- Native already consumes the browser's exported WGSL and pipeline metadata;
-  the browser target must reuse that native renderer core, not implement a
-  second pass graph in `renderer-wasm-spike`.
-- Platform-specific code may differ only at the shell: surface creation,
-  adapter/device setup, runtime asset loading, file access and audio. Pass
-  ordering, targets, bindings, resource lifetimes and presentation-record
-  handling have one shared owner.
-- The browser's existing TypeGPU frame remains a temporary control. Its real contract
-  includes pass order, reverse-Z depth, targets, fog, shadows, effects, post,
-  overlays, resource lifetimes and the `presentation-wasm` feed.
-- The browser must remain shippable during any future migration. A measured
-  backend experiment is reversible and does not change battle digests or
-  publication layouts.
-- The acceptance workload for the next slice is the same real frozen
-  presentation frame rendered by the native renderer core in both targets, not
-  an empty or synthetic camera. It must report startup, bundle bytes,
-  CPU/frame, GPU duration, submitted work, memory and a matched image for both
-  targets, plus the shared-core versus platform-shell LOC and complexity.
+Report startup and asset transport/decode separately from resize, surface
+recovery and real device-loss recreation. CPU encoding and queue drain are
+separate measurements; queue drain/compositor turns are not GPU timestamps.
+Record submitted geometry/draws/passes, resident allocations, binary/download
+size, native/browser shell LOC and shared core LOC. The final complexity result
+must include deleted owners, not just added Rust files.
 
-## The decision this spec must answer
+The normal `one-renderer` scene retains all ownership controls. Its capture mode
+is a focused development experiment over the same Paris fixture in production
+BattleFrame and the shared Rust browser core. It does not replace normal
+regression coverage or prove visual parity automatically.
 
-The candidate architecture is **one Rust `wgpu` renderer core, two thin
-platform shells**:
+## Evidence and research
 
-```text
-presentation records + exported WGSL
-              │
-              ▼
-     shared native/browser wgpu core
-          ┌──────────────┐
-          ▼              ▼
-   native surface     browser WASM surface
-```
+[Research](research.md) owns the hypothesis queue, attempts, measurements and
+limitations. [Choices](choices.md) owns decisions made where the spec was silent.
+[Slice 02](slices/02-verdict.md) owns the migration/deletion gates. Scratch
+screenshots, logs and raw measurements stay under ignored `throwaway/`.
 
-The comparison is not “TypeGPU versus a separately written Rust renderer.” It
-is:
+Established before the current pass:
 
-| Question | Browser TypeGPU | Shared Rust `wgpu` core |
-| --- | --- | --- |
-| Production pass implementation | Existing `packages/battle-renderer` | Existing `native/client` core, extracted once |
-| Browser target | Direct WebGPU/TypeGPU control | `wgpu` `BrowserWebGpu` WASM shell |
-| Native target | N/A for the browser control | Existing native `wgpu` shell |
-| Shader source | TypeGPU exports WGSL | Same exported WGSL/pipeline metadata |
-| Main decision | Current baseline | Whether one core removes more code/drift than it adds |
+- Browser `wgpu`/WASM submission works; exported WGSL and bounded terrain/model
+  transport controls match their browser counterparts.
+- Shared target/pipeline/depth/world ordering, environment, fog, shadow resources,
+  effects/post/overlay and resize/device-loss seams compile and execute.
+- A captured publication reaches the shared browser shell, including dynamic
+  model, terrain, effect and caster records. Earlier dynamic-only admission and
+  synthetic controls are not full production pixel or performance evidence.
+- Native replay/count contracts pass. Full visual parity remains unproven.
 
-The spike is successful only if the shared Rust core renders the same production
-frame in native and browser builds without a second pass implementation. A
-standalone `renderer-wasm-spike` graph may remain as a tiny transport smoke test,
-but it must not be used for the complexity or migration verdict.
-
-## Remaining implementation passes
-
-There are four focused unknowns left. They are ordered so a failed assumption
-stops the work before a full port is attempted:
-
-1. **WASM compile boundary — checkpoint complete.** `renderer-core` now
-   compiles for `wasm32-unknown-unknown`, while the native client still owns
-   the desktop-only shell. The remaining blockers are listed below.
-2. **Pass orchestration — checkpoint complete.** `renderer-core::frame::encode_frame`
-   owns the canonical nine-stage order and debug-group lifecycle. Native and
-   browser adapters now enter that same boundary for every frame; the shells
-   retain only surface acquisition, presentation composite and present. This
-   proves the frame encoding path crosses the shared boundary without a
-   duplicate graph. Browser effects remain an explicit no-op until the effect
-   resource owner moves into the shared runtime.
-3. **Pipeline/provider seam — checkpoint complete.** `renderer-core::pipelines`
-   owns export parsing, layout/pipeline construction and validation from a
-   platform-provided shader source callback. The native shell only reads files
-   and retains its Windows cutout adaptation; a browser shell can fetch the same
-   export and shader bytes.
-4. **Depth-pass extraction — checkpoint complete.** The reverse-Z depth prepass
-   now lives in `renderer-core::depth`; the native shell adapts its ground,
-   scenery and model resources through `DepthInputs`. This is the first actual
-   pass implementation shared by both targets.
-5. **World/material extraction — checkpoint complete.** `renderer-core::world`
-   now owns the HDR/fog-mask color attachments, sky/world ordering, reverse-Z
-   depth load/store, layer/surface iteration and clear/load policy. The native
-   shell adapts concrete ground, scenery, fog, models and sky resources through
-   `WorldInputs`; normal and regional scar passes preserve their submitted work.
-   The shared addition is 148 Rust lines; the native world module is 17 lines
-   smaller net (122 added, 105 removed). Native compile and presentation tests
-   remain green. This extraction adds no GPU work and no extra render pass.
-6. **WASM renderer-core boundary — checkpoint complete.** The presentation
-   filesystem modules are desktop-only under `wasm32`, and
-   `cargo check -p native-client --target wasm32-unknown-unknown` now passes for
-   the full package. The desktop binary shell is cfg-isolated (`main.rs`
-   imports audio, replay, counts, `RUNTIME` and filesystem `Library::open` only
-   on native), while `bundle::Library` has an explicit browser stub so the
-   shared model/grass/scenery code compiles. The browser shell now also fetches
-   the authored test-tank bundle, parses it through `Library::from_bundle`, and
-   uploads its first texture. The shared model owner then draws an indexed tier
-   from that parsed asset; production materials and skinning remain open.
-7. **Shared model/lifecycle shell — checkpoint complete.** The shared
-   model/material owners upload and draw fetched indexed geometry, and the
-   browser production checkpoint exercises a fetched mesh through exported
-   `modelPrepass` and `modelOpaque`. Target rebuild and surface recovery are
-   covered; the browser scene also recreates the device and cached assets after
-   a real device-loss callback.
-8. **Fog-mask extraction — checkpoint complete.** `renderer-core::fog_mask`
-   owns the fog look/view uniforms, optional edge-distance passes, compose pass,
-   rim pass, and attachment policy. Native wraps the shared owner; GPU work and
-   pass order are unchanged. Fog sight/material classification remain
-   native-only and must move next; the shared fog compute pipeline owner is
-   now browser-safe.
-9. **Effects and post extraction — checkpoint partial.** Bloom/grade target and
-   pass ownership lives in `renderer-core` and is encoded by the shared browser
-   frame. The browser now constructs the shared effects owner, decodes the two
-   authored flipbook layers into its atlas, uploads the copied
-   `ScenePresentation` effect stream, and replays both through device recovery.
-   The current frozen publication has zero effect words; a launch/impact
-   publication and native/browser matched effect workload remain open.
-10. **Lifecycle extraction — checkpoint complete.** `renderer_core::TargetOwner`
-   atomically swaps size-dependent targets and increments one shared generation;
-   native `Passes` consumes it without changing GPU work. Device-loss recovery
-   is now covered by the browser scene; fog sight/material parity remains open.
-11. **Browser production frame — in progress.** The four fog compute pipeline
-   bindings and dispatch labels now have a shared owner. The browser builds the
-   exported pipeline set and executes shared model prepass/opaque, fog-mask,
-   post, shadow-resource, and lifecycle seams. Move the real presentation fog,
-   environment, overlay, and caster records into these groups next.
- The browser shell now embeds the exact 63-pipeline export and every WGSL
-   source through a generated build-time map; no filesystem access is added,
-   and exposes an explicit validation method for building that export on the
-   browser device. The one-renderer scene calls that validation before the
-   shared row and records all 63 pipelines in its workload.
-   Model material bind-group ownership is also shared now; native palette
-   growth rebinds through `renderer_core::model_material`.
-   The browser shell now also allocates the shared four-cascade shadow owner;
-   caster routing and shadow sampling remain part of the production parity
-   gap.
-   It also executes one exported `modelPrepass` over the fetched indexed mesh
-   using the production 48-byte vertex layout and shared model material group;
-   full authored model shading and instance routing remain open.
-   The browser shell also allocates the shared four-stage fog compute owner;
-   The browser uploads a frozen presentation camera, environment, fog, and
-   overlay record through one shell boundary; binding those records into the
-   extracted production passes and full fog visibility parity remain open.
-   The shared frame feeds the exported `modelOpaque` pass with the fetched
-   material rows, environment, and fog groups; remaining visual differences are
-   material classification, lighting assets, and missing caster/world batches.
-   The shared browser frame now allocates the real exported pipeline set and
-   encodes shared fog-mask, post, rim, and display-space overlay passes on every
-   fixture frame. The browser now constructs the shared nine-resource environment bind group,
-   uploads the fitted shadow receiver/caster records, and routes each admitted
-   model batch's `first/count/cascade_mask` range through the shared shadow
-   pass. It also allocates the shared fog sight buffers and
-   bind groups plus a browser upload seam; dispatch runs terrain, merge, whole,
-   and cull from the uploaded counts. Remaining bounded inputs are
-   receiver sampling, non-flat fog height-page parity, and a matched production
-   frame, not a second pass implementation. The overlay
-   owner consumes the exported translucent geometry, world depth, transparent
-   target, glow blur, and composite order.
-   The shared target owner now allocates the overlay depth, paint, resolved
-   colour, and half-resolution glow attachments on native and browser resize.
-   Browser resize now uses the shared `TargetOwner`, rebuilds the shared fog
-   and post resources with the new target set, and reports generation 2 after
-   the scene's down/up resize round trip.
-   The browser shell also binds the exported model layout through the shared
-   material owner and reconnects the fetched albedo texture as a 2D array,
-   reporting `sharedMaterials: true` in the run.
-   The browser shell also reconfigures a lost/outdated surface and recreates
-   the device plus cached assets through one recovery method; the scene records
-   `deviceLost: 1`, `deviceRecoveries: 1`, and preserves the asset workload.
-12. **Three-way decision run.** Compare TypeGPU browser, shared Rust browser and
-   shared Rust native on the same frozen presentation frame. Measure startup,
-   CPU encode, GPU timestamps, memory, binary/download size, LOC, GPU object
-   counts, screenshot distance and recovery behaviour. Only this run can decide
-   whether the shared core is simpler overall.
-
-## Evidence from the completed spike
-
-The runnable surface is the `one-renderer` developer tool and scene:
-
-- `crates/renderer-wasm-spike` compiles for `wasm32-unknown-unknown` with
-  `wgpu` features `webgpu` and `wgsl`.
-- `apps/battle-lab/src/routes/oneRenderer.tsx` runs eleven paths for 120 frames
-  on one adapter.
-- `web/scenes/one-renderer.mjs` checks completion, captures the eleven canvases,
-  compares the control pixels, and writes evidence under `throwaway/`.
-- The post-fix scene runs passed. The initial four micro-workload readings were:
-
-  | Path | Setup | Encode | GPU drain |
-  | --- | ---: | ---: | ---: |
-  | TypeGPU authoring + browser WebGPU | 17.0 ms | 1.0 ms | 7.2 ms |
-  | Exported WGSL + browser WebGPU | 1.2 ms | 0.4 ms | 4.9 ms |
-  | Rust `wgpu` + BrowserWebGpu WASM | 2.1 ms | 1.0 ms | 8.1 ms |
-  | Rust base + TypeGPU overlay | 3.4 ms | 1.3 ms | 6.7 ms |
-
-  These are micro-workload diagnostics, not battle-frame performance claims.
-  GPU drain is affected by browser scheduling and each row creates its own
-  device; use the next slice's interleaved frozen battle run for a decision.
-
-- Rust versus exported WGSL and TypeGPU versus exported WGSL both had mean
-  RGB difference `0` in the captured canvas pixels.
-- The shared browser shell currently emits 1,347,401 bytes of WASM plus 84,761
-  bytes of generated JS. Its asset proof fetches 3,960,005 compressed bytes
-  before decoding the authored test tank.
-- `cargo check -p native-client --target wasm32-unknown-unknown` does not
-  compile the existing native client: the `presentation` files feature reaches
-  `sim::maps` and `sim::fixtures`, which are gated out on WASM. The native
-  client also owns desktop window/audio dependencies. The spike avoids those
-  boundaries rather than hiding them.
-- The first screenshot review found a clipped layout and an indistinct mixed
-  overlay. The harness now uses a taller viewport, eight result rows, and a
-  visible premultiplied overlay marker; the final screenshot captures the full
-  comparison and the overlay registration.
-- The real terrain pair now uses the same `ScenePresentation` camera record and
-  authored 10-float terrain mesh in both backends. Its captured mean RGB
-  difference is `0`; this is a geometry/camera handoff proof, not full material
-  parity.
-- The authored model pair loads the existing `test_tank` runtime bundle through
-  the catalog and gzip/texture codec, selects its authored LOD1 meshes and
-  vertex colours, applies the bundle's resting articulated palette, and uploads
-  the bundle's first authored albedo texture and UVs. Browser and Rust receive
-  the same 9-float vertex stream, u32 index stream, 8-float placement/tint
-  records, texture bytes and `Frame.camera` record. Its captured mean RGB
-  difference is `0.049`, below the `0.1` scene gate.
-- A representative 120-frame model run measured browser setup/encode/GPU drain
-  at `76.6 / 0.9 / 14.0 ms` and Rust setup/encode/present-boundary at
-  `7.2 / 23.3 / 0.2 ms`. Browser setup includes runtime bundle, texture decode,
-  and persistent GPU buffer allocation; the Rust row reuses those browser
-  arrays. These numbers prove the seam and upload shape, not whole-game startup
-  parity.
-- The model pair now uses a shared reverse-Z `depth32float` target with
-  `greater` comparison for both terrain and model passes. This proves the first
-  depth/resource-lifetime seam; production shadow cascades and fog depth remain
-  open.
-- Each model row now reconfigures its canvas down to 320×180 and back to
-  640×360 before the measured frames. Both browser WebGPU and Rust `wgpu`
-  complete the resize gate before drawing the captured workload.
-- The scene now runs three 120-frame repeats with the row order rotated on each
-  repeat, then reports the per-path average. The latest averages were:
-
-  | Path | Setup | Encode | GPU/present boundary |
-  | --- | ---: | ---: | ---: |
-  | TypeGPU authoring + browser WebGPU | 6.0 ms | 0.6 ms | 5.8 ms |
-  | Exported WGSL + browser WebGPU | 0.3 ms | 0.3 ms | 4.6 ms |
-  | Rust `wgpu` + BrowserWebGpu WASM | 0.9 ms | 0.9 ms | 10.2 ms |
-  | Rust base + TypeGPU overlay | 2.8 ms | 1.1 ms | 6.1 ms |
-  | Real terrain + browser WebGPU | 6.4 ms | 5.9 ms | 4.0 ms |
-  | Real terrain + Rust `wgpu` WASM | 2.3 ms | 4.7 ms | 4.9 ms |
-  | Authored tank mesh + browser WebGPU | 17.7 ms | 0.4 ms | 12.6 ms |
-  | Authored tank mesh + Rust `wgpu` WASM | 4.0 ms | 15.5 ms | 39.6 ms |
-
-  The Rust row's present boundary includes compositor turns needed to make
-  repeated WASM captures stable; neither boundary is a GPU-time claim.
-- Fresh visual review confirms the real pair is byte-identical, while also
-  calling out the limit of this pass: the fixture is a low-detail terrain patch
-  with no units, shadows or material landmarks. That is intentional evidence
-  for the handoff seam, not a claim of full battle visual parity.
-- The latest unprimed review confirms the 1280×2300 capture contains all eight
-  panels and table rows. The authored tank pair is readable and contained,
-  though its dark navy shading is low-contrast against the muted terrain at
-  full-page scale; the first three gradient controls remain intentionally
-  featureless micro-workloads. No clipping or broken model edges were found.
-- The fresh interleaved review found no tank clipping or depth-order defects,
-  while noting that the near-black palette and hard diagonal terrain boundary
-  make this fixture weak for material and scene-fidelity judgments.
-- The production BattleFrame control runs the real light, fog, shadow,
-  effect-atlas, target, post, overlay and static-prop workload on the frozen
-  patch. Rust consumes the authored tanks, static prop mesh, fitted cascade
-  matrices, resolved sun/fog records and a synthetic effect record through the
-  WASM seam. The browser fixture's live effect count remains zero, so effect
-  content is still an explicit input mismatch. The latest run is
-  `154.0 / 32.8 / 140.0 ms` for browser setup, CPU encoding
-  and queue drain versus `8.9 / 21.0 / 30.4 ms` for Rust. Rust executes 480
-  shadow passes, 120 world/effect/fog/post passes and 1,560 draw calls, but
-  reports three unsupported material channels and unsupported shadow sampling.
-  The full-frame mean RGB distance is `47.03`. This is pass-graph and cost
-  evidence, not a parity gate: the Rust image is visibly underexposed and
-  omits BattleFrame material, fog, overlay and post behaviour.
-- The shared native/browser row now fetches the real `test_tank` runtime asset
-  through the browser shell. Its latest setup/encode/queue-boundary reading is
-  `168.0 / 6.3 / 0.1 ms` for 120 frames after device-loss recovery. The parser sees 27 textures, 12
-  materials, 98,021 vertices and 236,706 indices from 3,960,005 compressed
-  wire bytes; it uploads the first authored texture and the shared model owner
-  draws 37,002 indexed vertices plus 484 model-caster passes. The row also
-  completes a 640×360 → 320×180 → 640×360 resize round trip. The screenshot is
-  structurally non-empty but its top-down, low-contrast fixture does not claim
-  production material, fog, shadow, post or overlay parity. A fresh visual
-  review still finds no readable contact/cast shadows and clipped overlay
-  geometry; those are open parity defects, not accepted output. The fog height
-  upload now uses a non-flat eight-word page payload and survives recovery.
-- The shared production browser frame now runs `worldPrepass` over the
-  production terrain stream before color, rather than reusing the fixture
-  depth adapter. A matched A/B then showed the remaining holes came from the
-  terrain color pass's depth comparison, so the exported `worldTerrain` pass
-  uses `always` while keeping depth writes disabled; terrain is the first world
-  color layer and models/props still depth-test afterward. Its shadow owner uses
-  the authored 2048px cascade maps instead of the 64px probe target, at roughly
-  64MiB for the four depth layers. Weak contact shadows, clipped markers and
-  framing, and complete native/browser parity remain open.
-- The terrain-input pass now binds the real presentation `GroundTables` to the
-  exported `worldTerrain` pipeline. The latest eleven-row scene emits no
-  WebGPU validation errors and replays those records after device recovery.
-  The shared row now reports 240 authored material words and 68 model-record
-  words. Model batch selection and full appearance classification remain open,
-  so this is not yet a matched BattleFrame image.
-- The native replay count gate now passes after fetching the complete runtime
-  bundle set from Git LFS: `cargo test -p native-client --test counts --
-  --nocapture` reports one passing test over the browser capture. This proves
-  presentation/count contracts, not native/browser pixel parity.
-- The captured `paris-corner` diagnostic now decodes the approved
-  `plate-660.png` publication through the browser `ScenePresentation`, resolves
-  the capture catalog, Paris static world, scenery, city kits, fog and effect
-  records, and reaches the shared Rust browser frame after the real resize and
-  device-loss cycle. The capture row records 121 frames, 4,048 effect words,
-  662,508 model words, 2 admitted model runs, 240 material words, 37/41/41/41
-  shadow caster batches, and 484 shadow passes. The shared instance buffer now
-  grows from its probe allocation to admit this real stream. This is a transport
-  and lifecycle result, not full captured visual parity: the browser shell still
-  bootstraps only the `test_tank` drawable, so capture appearance bundles are
-  resolved by presentation but not all admitted as shared GPU drawables. A
-  browser BattleFrame control over the complete capture asset set exceeds the
-  scene timeout, which keeps the missing appearance upload as the next bounded
-  gate rather than hiding it behind a substitute model.
-
-## Current verdict
-
-The browser backend is feasible, and the exported WGSL and presentation
-contracts are already shared with native. The bounded terrain/model checks pass,
-but the standalone Rust production-shaped graph is not the architecture this
-spec is meant to decide. It duplicates renderer ownership beside the existing
-native `wgpu` client, so its smaller LOC and faster setup cannot answer whether
-one Rust core is simpler overall.
-
-The target is the shared Rust runtime, not a permanent hybrid. Keep TypeGPU only
-as a temporary control and shader migration input while the Rust runtime clears
-the gates. Then delete the browser TypeGPU renderer and dependency, unless a
-separate build-only authoring experiment proves that retaining TypeGPU produces
-enough value to justify its complexity. The current screenshot review remains
-useful as a transport diagnostic: the standalone Rust image is visibly
-underexposed and the fixture control has placeholder markers, clipped edges and
-weak shadows.
+The current model audit invalidates the old browser asset adapter as a final
+implementation: first-node articulated geometry, fallback static states and
+partial texture-array uploads differ from native. Reusing native admission is
+both the parity fix and the complexity reduction.
 
 ## Global TODO
 
-- [x] Add a Rust `wgpu` WebAssembly canvas backend — [slice 00](slices/00-wasm-backend.md).
-- [x] Compare TypeGPU, exported WGSL, Rust `wgpu`, and mixed ownership — [slice 00](slices/00-wasm-backend.md).
-- [x] Verify pixel equality on the spike workload — [slice 00](slices/00-wasm-backend.md).
-- [x] Port one real presentation-fed terrain pass and its camera/mesh handoff — [slice 01](slices/01-real-frame.md).
-- [x] Port one real authored model pass — [slice 01](slices/01-real-frame.md).
-- [x] Feed a real simulation publication and `ScenePresentation` frame into the shared browser core — [slice 01](slices/01-real-frame.md).
-- [x] Run interleaved reel measurements with startup, bundle, GPU, CPU and reset gates — [slice 01](slices/01-real-frame.md).
-- [ ] Move every production GPU owner into the shared Rust runtime — [slice 02](slices/02-verdict.md).
-- [ ] Clear matched production-frame and lifecycle gates in native and browser — [slice 02](slices/02-verdict.md).
-- [ ] Delete the browser TypeGPU renderer and standalone production-shaped graph — [slice 02](slices/02-verdict.md).
-
-No compatibility layer or migration scaffold is approved. A future production
-slice must either delete the replaced TypeGPU path or explicitly record why a
-small mixed plane remains an owner with a removal condition.
+- [x] Prove browser Rust WASM backend and four ownership variants — [slice 00](slices/00-wasm-backend.md).
+- [x] Prove bounded real terrain/model transport and publication input — [slice 01](slices/01-real-frame.md).
+- [ ] Move every production GPU owner into the shared runtime — [slice 02](slices/02-verdict.md).
+- [ ] Clear matched production-frame, performance and lifecycle gates on both targets — [slice 02](slices/02-verdict.md).
+- [ ] Delete TypeGPU runtime/dependency and duplicate production-shaped graph — [slice 02](slices/02-verdict.md).
+- [ ] Review the full implementation, run repository closeout, consolidate choices and archive.

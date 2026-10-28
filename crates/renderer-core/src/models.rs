@@ -21,11 +21,12 @@ use wgpu::*;
 
 use crate::fog::Layer;
 
-use crate::bundle::{Bundle, Coverage, Library, Material, Mesh, Shape, Texture};
+use crate::bundle::{Bundle, BundleSource, Coverage, Material, Mesh, Shape, Texture};
 use crate::pipelines::Pipelines;
 use crate::statics::Statics;
 
-pub const VERTEX_BYTES: usize = 48;
+mod geometry;
+pub use geometry::{pack_vertices, posed_mesh, VERTEX_BYTES};
 /// Material rows a material takes in the materials buffer (`MATERIAL_ROWS`).
 const MATERIAL_ROWS: usize = 5;
 
@@ -163,110 +164,6 @@ pub struct Drawn {
     /// The instances the frame's batches list.
     pub listed: u32,
     pub triangles: u64,
-}
-
-/// A mesh's vertices in the 48-byte layout (`packVertices`): `rigid` binds
-/// every vertex wholly to one palette joint, else the mesh's own skin;
-/// `track` is 1 or 2 for a track's links (their scroll), else 0.
-pub fn pack_vertices(mesh: &Mesh, material_base: usize, rigid: Option<u8>, track: u16) -> Vec<u8> {
-    let n = mesh.vertices();
-    let mut material = vec![0u16; n];
-    for d in &mesh.draws {
-        for &i in &mesh.indices[d.first..d.first + d.count] {
-            material[i as usize] = (material_base + d.material) as u16;
-        }
-    }
-    let mut out = vec![0u8; n * VERTEX_BYTES];
-    for (v, o) in out.as_chunks_mut::<VERTEX_BYTES>().0.iter_mut().enumerate() {
-        for c in 0..3 {
-            o[c * 4..c * 4 + 4].copy_from_slice(&mesh.positions[v * 3 + c].to_le_bytes());
-        }
-        for c in 0..4 {
-            o[12 + c * 2..14 + c * 2].copy_from_slice(&mesh.normals[v * 4 + c].to_le_bytes());
-        }
-        o[20..24].copy_from_slice(&mesh.uvs[v * 2].to_le_bytes());
-        o[24..28].copy_from_slice(&mesh.uvs[v * 2 + 1].to_le_bytes());
-        o[28..32].copy_from_slice(&mesh.colors[v * 4..v * 4 + 4]);
-        let weights = match (rigid, &mesh.joints, &mesh.weights) {
-            (None, Some(joints), Some(weights)) => {
-                o[32..36].copy_from_slice(&joints[v * 4..v * 4 + 4]);
-                // Narrowed to unorm8, still summing to exactly one.
-                let w: [u16; 4] = std::array::from_fn(|c| weights[v * 4 + c]);
-                let mut narrow = w.map(|x| f64::round(f64::from(x) / 65535.0 * 255.0) as i32);
-                let heaviest = (0..4).fold(0, |h, c| if w[c] > w[h] { c } else { h });
-                narrow[heaviest] += 255 - narrow.iter().sum::<i32>();
-                narrow.map(|x| x as u8)
-            }
-            _ => {
-                o[32..36].fill(rigid.unwrap_or(0));
-                [255, 0, 0, 0]
-            }
-        };
-        o[36..40].copy_from_slice(&weights);
-        if let Some(t) = &mesh.tangents {
-            for c in 0..4 {
-                o[40 + c] = f64::round(f64::from(t[v * 4 + c]) / 258.0) as i8 as u8;
-            }
-        }
-        o[44..46].copy_from_slice(&material[v].to_le_bytes());
-        o[46..48].copy_from_slice(&track.to_le_bytes());
-    }
-    out
-}
-
-/// `mesh` skinned once by `palette` (bind to model) into a rigid mesh
-/// (`posedMesh`): positions, normals and tangents posed, the skin dropped.
-pub fn posed_mesh(mesh: &Mesh, palette: &[Joint]) -> Mesh {
-    let mut posed = mesh.clone();
-    posed.joints = None;
-    posed.weights = None;
-    let (Some(joints), Some(weights)) = (&mesh.joints, &mesh.weights) else {
-        return posed;
-    };
-    let moved = |j: &Joint, p: [f32; 3], w: f32| -> [f32; 3] {
-        let row = |r: &[f32; 4]| r[0] * p[0] + r[1] * p[1] + r[2] * p[2] + r[3] * w;
-        [row(&j.x), row(&j.y), row(&j.z)]
-    };
-    let unit = |s: &[i16]| [s[0], s[1], s[2]].map(|c| f32::from(c) / 32767.0);
-    let n = mesh.vertices();
-    posed.normals.fill(0);
-    if let Some(t) = &mut posed.tangents {
-        t.fill(0);
-    }
-    for v in 0..n {
-        let p = [0, 1, 2].map(|c| mesh.positions[v * 3 + c]);
-        let normal = unit(&mesh.normals[v * 4..]);
-        let tangent = mesh.tangents.as_ref().map(|t| unit(&t[v * 4..]));
-        let (mut sp, mut sn, mut st) = ([0.0f32; 3], [0.0f32; 3], [0.0f32; 3]);
-        for k in 0..4 {
-            let w = f32::from(weights[v * 4 + k]) / 65535.0;
-            if w == 0.0 {
-                continue;
-            }
-            let j = &palette[joints[v * 4 + k] as usize];
-            let add = |sum: &mut [f32; 3], a: [f32; 3]| (0..3).for_each(|c| sum[c] += a[c] * w);
-            add(&mut sp, moved(j, p, 1.0));
-            add(&mut sn, moved(j, normal, 0.0));
-            if let Some(t) = tangent {
-                add(&mut st, moved(j, t, 0.0));
-            }
-        }
-        posed.positions[v * 3..v * 3 + 3].copy_from_slice(&sp);
-        let len = |a: [f32; 3]| (a[0] * a[0] + a[1] * a[1] + a[2] * a[2]).sqrt();
-        let snorm = |a: [f32; 3], l: f32| a.map(|c| f64::round(f64::from(c / l * 32767.0)) as i16);
-        let ln = len(sn);
-        if ln > 0.0 {
-            posed.normals[v * 4..v * 4 + 3].copy_from_slice(&snorm(sn, ln));
-        }
-        if let (Some(out), Some(src)) = (&mut posed.tangents, &mesh.tangents) {
-            let lt = len(st);
-            if lt > 1e-8 {
-                out[v * 4..v * 4 + 3].copy_from_slice(&snorm(st, lt));
-                out[v * 4 + 3] = src[v * 4 + 3];
-            }
-        }
-    }
-    posed
 }
 
 /// The installed textures, one layer each in two arrays (`TextureLayers`):
@@ -434,7 +331,7 @@ fn order_surfaces(meshes: &[&Mesh], class: &dyn Fn(usize) -> usize) -> (Vec<u32>
 }
 
 fn upload(device: &Device, label: &str, usage: BufferUsages, bytes: &[u8]) -> Buffer {
-    crate::gpu::buffer(device, label, usage, bytes)
+    crate::buffer(device, label, usage, bytes)
 }
 
 /// One tier's drawable from `meshes` and their packed vertices.
@@ -470,7 +367,7 @@ pub struct Models {
     palette: Buffer,
     instances: Buffer,
     statics: Statics,
-    material_bindings: renderer_core::model_material::ModelMaterialBindings,
+    material_bindings: crate::model_material::ModelMaterialBindings,
     runs: Vec<Run>,
     drawn: Drawn,
 }
@@ -490,16 +387,39 @@ impl Models {
         device: &Device,
         queue: &Queue,
         pipelines: &Pipelines,
-        library: &Library,
+        library: &impl BundleSource,
         presentation: &Presentation,
     ) -> Result<Self, String> {
         let world = presentation.world();
-        let text = |at: u32, len: u32| &world.strings[at as usize..(at + len) as usize];
+        Self::from_world(
+            device,
+            queue,
+            pipelines,
+            library,
+            &world.appearances,
+            &world.strings,
+            |row| presentation.rest_palette(row),
+        )
+    }
+
+    /// Install the exact world appearance publication. A shell supplies each
+    /// body's presentation-owned far or corpse pose through `rest_palette`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_world(
+        device: &Device,
+        queue: &Queue,
+        pipelines: &Pipelines,
+        library: &impl BundleSource,
+        appearances: &[presentation::records::Appearance],
+        strings: &str,
+        rest_palette: impl Fn(u32) -> Option<Vec<Joint>>,
+    ) -> Result<Self, String> {
+        let text = |at: u32, len: u32| &strings[at as usize..(at + len) as usize];
         let mut bundles: HashMap<String, (Bundle, usize)> = HashMap::new();
         let mut materials: Vec<f32> = Vec::new();
         let mut layers = Layers::default();
         let mut rows = Vec::new();
-        for (r, a) in world.appearances.iter().enumerate() {
+        for (r, a) in appearances.iter().enumerate() {
             // The scenery's rows are the scenery layer's (`scenery.rs`).
             let prop = a.draws == DRAWS_PROP || a.draws == DRAWS_PROP_GROUND;
             if a.draws != 0 && !prop {
@@ -527,11 +447,7 @@ impl Models {
                     &[(mesh, pack_vertices(mesh, *base, rigid, 0))],
                 )
             };
-            let rest = || {
-                presentation
-                    .rest_palette(r as u32)
-                    .ok_or(format!("{name}: no rest pose for row {r}"))
-            };
+            let rest = || rest_palette(r as u32).ok_or(format!("{name}: no rest pose for row {r}"));
             let row = match &bundle.shape {
                 Shape::Skinned(tiers) if a.lies != NONE => {
                     let palette = rest()?;
@@ -637,7 +553,7 @@ impl Models {
         let palette = growable(device, "model-palette", BufferUsages::STORAGE, 0);
         let instances = growable(device, "model-instances", BufferUsages::VERTEX, 0);
         let layout = pipelines.layout("modelLayout").clone();
-        let material_bindings = renderer_core::model_material::ModelMaterialBindings::new(
+        let material_bindings = crate::model_material::ModelMaterialBindings::new(
             device, &layout, &palette, &materials, &albedo, &surface, &sampler,
         );
         Ok(Self {
@@ -650,7 +566,7 @@ impl Models {
             sampler,
             palette,
             instances,
-            statics: Statics::new(presentation),
+            statics: Statics::from_rows(appearances),
             runs: Vec::new(),
             drawn: Drawn::default(),
         })
@@ -664,9 +580,29 @@ impl Models {
         queue: &Queue,
         frame: &presentation::presentation::Frame,
     ) -> Result<(), String> {
-        self.statics.prepare(device, queue, frame)?;
-        let palette: &[u8] = bytemuck::cast_slice(&frame.palettes);
-        let instances: &[u8] = bytemuck::cast_slice(&frame.instances);
+        self.prepare_records(
+            device,
+            queue,
+            &frame.palettes,
+            &frame.instances,
+            &frame.batches,
+        )
+    }
+
+    /// Prepare copied presentation records, independent of a platform's WASM
+    /// memory or native `Frame` ownership.
+    pub fn prepare_records(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        palettes: &[Joint],
+        instance_records: &[presentation::records::Instance],
+        batches: &[presentation::records::Batch],
+    ) -> Result<(), String> {
+        self.statics
+            .prepare_records(device, queue, instance_records, batches)?;
+        let palette: &[u8] = bytemuck::cast_slice(palettes);
+        let instances: &[u8] = bytemuck::cast_slice(instance_records);
         if palette.len() as u64 > self.palette.size() {
             self.palette = growable(
                 device,
@@ -698,8 +634,7 @@ impl Models {
         self.drawn = Drawn::default();
         // The units' batches, from the frame's instances, then the static
         // world's, held.
-        let units = frame
-            .batches
+        let units = batches
             .iter()
             .filter(|b| !self.statics.holds(b.appearance))
             .map(|b| {
@@ -757,6 +692,33 @@ impl Models {
     /// its own from them.
     pub fn statics(&self) -> &Statics {
         &self.statics
+    }
+
+    /// Resident authored geometry, including the posed far meshes.
+    pub fn resident_vertices(&self) -> u32 {
+        self.rows
+            .iter()
+            .flatten()
+            .flat_map(|row| row.tiers.iter().chain(row.card.iter()))
+            .map(|drawable| (drawable.vertices.size() / VERTEX_BYTES as u64) as u32)
+            .sum()
+    }
+
+    pub fn material_words(&self) -> u32 {
+        (self.materials.size() / 4) as u32
+    }
+
+    pub fn run_count(&self) -> u32 {
+        self.runs.len() as u32
+    }
+
+    pub fn caster_run_counts(&self) -> [u32; 4] {
+        std::array::from_fn(|cascade| {
+            self.runs
+                .iter()
+                .filter(|run| run.caster_for(cascade).is_some())
+                .count() as u32
+        })
     }
 
     /// What the last prepared frame draws.

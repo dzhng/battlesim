@@ -1,5 +1,14 @@
 use super::*;
 
+/// Per-frame bindings that change with the shared targets or environment.
+pub(super) struct EffectsFrame<'a> {
+    pub(super) targets: &'a TargetOwner,
+    pub(super) camera: &'a Buffer,
+    pub(super) environment: &'a Buffer,
+    pub(super) pmrem: &'a TextureView,
+    pub(super) cast_lights: &'a Buffer,
+}
+
 pub(super) struct BrowserEffects {
     resources: renderer_core::effects::EffectsResources,
     atlas: Texture,
@@ -71,25 +80,21 @@ impl BrowserEffects {
         &mut self,
         device: &Device,
         queue: &Queue,
-        targets: &TargetOwner,
         pipelines: &Pipelines,
-        camera: &Buffer,
-        environment: &Buffer,
-        pmrem: &TextureView,
-        cast_lights: &Buffer,
+        frame: EffectsFrame<'_>,
         effects: &[f32],
     ) {
         self.resources = renderer_core::effects::EffectsResources::new(
             device,
             pipelines,
             &[
-                BindingResource::Buffer(camera.as_entire_buffer_binding()),
-                BindingResource::TextureView(&targets.depth),
+                BindingResource::Buffer(frame.camera.as_entire_buffer_binding()),
+                BindingResource::TextureView(&frame.targets.depth),
                 BindingResource::TextureView(&self.atlas_view),
                 BindingResource::Sampler(&self.sampler),
-                BindingResource::Buffer(environment.as_entire_buffer_binding()),
-                BindingResource::TextureView(pmrem),
-                BindingResource::Buffer(cast_lights.as_entire_buffer_binding()),
+                BindingResource::Buffer(frame.environment.as_entire_buffer_binding()),
+                BindingResource::TextureView(frame.pmrem),
+                BindingResource::Buffer(frame.cast_lights.as_entire_buffer_binding()),
             ],
             64,
             64 * 1024,

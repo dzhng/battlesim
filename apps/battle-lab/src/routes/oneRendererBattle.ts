@@ -56,6 +56,7 @@ export interface BattleFixture {
   instances: readonly SceneInstance[];
   world: ReturnType<typeof groundPatch>;
   presentation: ScenePresentation;
+  appearances?: InstalledAppearances;
   overlay: { opaque: Mesh; translucent: Mesh; painted: Mesh; paintedMarching: Mesh };
 }
 
@@ -176,19 +177,26 @@ export async function realBattleFixture(): Promise<BattleFixture> {
   };
 }
 
-let capturedParisFixturePromise: Promise<BattleFixture> | null = null;
+const capturedParisFixtures = new Map<string, Promise<BattleFixture>>();
 
 /** Build one real native parity plate through the browser presentation seam.
  * The shared comparison invokes this row once per timing repeat; retain the
  * decoded publication and resident art generation across those repeats. */
-export function capturedParisFixture(): Promise<BattleFixture> {
-  return (capturedParisFixturePromise ??= buildCapturedParisFixture());
+export function capturedParisFixture(
+  plate = new URLSearchParams(window.location.search).get("plate") ?? "plate-660.png",
+): Promise<BattleFixture> {
+  let fixture = capturedParisFixtures.get(plate);
+  if (!fixture) {
+    fixture = buildCapturedParisFixture(plate);
+    capturedParisFixtures.set(plate, fixture);
+  }
+  return fixture;
 }
 
-async function buildCapturedParisFixture(): Promise<BattleFixture> {
+async function buildCapturedParisFixture(plate: string): Promise<BattleFixture> {
   const capture = decodePresentationCapture(JSON.stringify(parisCapture));
-  const frame = capture.frames.find((row) => row.plate === "plate-660.png");
-  if (!frame) throw new Error("paris-corner capture has no plate-660 frame");
+  const frame = capture.frames.find((row) => row.plate === plate);
+  if (!frame) throw new Error(`paris-corner capture has no ${plate} frame`);
   const sample = [...capture.samples].reverse().find((row) => row.tick <= frame.tick);
   if (!sample) throw new Error(`paris-corner capture has no publication for tick ${frame.tick}`);
   const [catalog, map, wasm] = await Promise.all([
@@ -220,22 +228,12 @@ async function buildCapturedParisFixture(): Promise<BattleFixture> {
   // appearance requests happens to work for `test_tank` because the fixture
   // has an appearance with that name, but fails for capture-only ids.
   const wearing = catalog.units.appearancesFor(kinds);
-  // Scenery is a separate catalog slice from fielded unit art. Keep the
-  // request explicit so this fixture does not depend on which other row ran
-  // first in the interleaved comparison page.
-  const scenery = new Set([
-    ...gameBiome.trees.species.map((species) => species.appearance),
-    gameBiome.trees.hedgerows.appearance,
-    gameBiome.trees.understorey.appearance,
-    ...gameBiome.forest_floor.dressing.kinds.map((kind) => kind.appearance),
-  ]);
-  const installed = await reloadGameAppearances(catalog.units, wearing, null, scenery);
+  const installed = await reloadGameAppearances(catalog.units, wearing, null);
   const complete = await gameAppearances(
     catalog.units,
     mapDownloads(installed, buildings.placed, exports.buildings.regionalFamily, true),
     wearing,
     null,
-    scenery,
   );
   const modelAppearances = mapAppearances(
     complete,
@@ -289,6 +287,7 @@ async function buildCapturedParisFixture(): Promise<BattleFixture> {
   );
   return {
     terrain: layers.terrain.mesh,
+    appearances: modelAppearances,
     camera: structuredClone(camera),
     instances: [],
     world: layers,
@@ -502,7 +501,8 @@ export async function fullBattleBrowserRun(
   const device = await adapter.requestDevice();
   const format = navigator.gpu.getPreferredCanvasFormat();
   context.configure({ device, format, alphaMode: "opaque" });
-  const fixture = battleFixture();
+  const capture = new URLSearchParams(window.location.search).get("capture") === "1";
+  const fixture = capture ? await capturedParisFixture() : battleFixture();
   const frame = await createBattleFrame(device, format, {
     light: await resolveLight(gameLight),
     fogGeometry: gameFogGeometry,
@@ -517,12 +517,11 @@ export async function fullBattleBrowserRun(
     width: BATTLE_WIDTH,
     height: BATTLE_HEIGHT,
   });
-  // Install the same runtime appearance generation used by the battle lab,
-  // then feed several authored vehicles through BattleFrame's real model
-  // layer. This makes the control include material upload, tier selection,
-  // shadow caster selection, model fog and post rather than a proxy cube.
-  const installed = await loadSpikeAppearances();
+  // Captured frames use the exact appearance generation that built their
+  // presentation rows; the small control keeps its authored vehicle fixture.
+  const installed = fixture.appearances ?? (await loadSpikeAppearances());
   await frame.setAppearances(installed);
+  frame.setPresentationWorld(fixture.presentation.appearanceRows());
   const authored = (
     appearance: string,
     x: number,
@@ -544,22 +543,26 @@ export async function fullBattleBrowserRun(
       xray: [0.1, 0.65, 1, 0.75],
     };
   };
-  frame.setModels([
-    authored("test_tank", -1, 0, 0.35, [0.58, 0.72, 1]),
-    authored("test_tank", 8, 6, -0.9, [1, 0.48, 0.38]),
-    authored("test_tank", -10, -8, 1.7, [0.58, 0.72, 1]),
-    authored("test_tank", 12, -8, -2.1, [1, 0.48, 0.38]),
-  ]);
+  if (!capture)
+    frame.setModels([
+      authored("test_tank", -1, 0, 0.35, [0.58, 0.72, 1]),
+      authored("test_tank", 8, 6, -0.9, [1, 0.48, 0.38]),
+      authored("test_tank", -10, -8, 1.7, [0.58, 0.72, 1]),
+      authored("test_tank", 12, -8, -2.1, [1, 0.48, 0.38]),
+    ]);
   frame.setPresentedGround(fixture.presentation.presentedGround());
   frame.setGround(fixture.presentation.ground);
   frame.setOverlay(fixture.overlay);
   frame.setOverlayGlow(gameOverlayGlow);
-  // The camera record is also a valid empty dynamic batch record. Calling
-  // setFrame keeps the production model/effect ownership path exercised even
-  // though this frozen fixture does not field a live simulation publication.
   frame.setFrame(fixture.camera, { models: true, effects: true });
   frame.setCamera(fixture.camera);
+  frame.setStaticFrame(fixture.camera, {
+    buildings: fixture.presentation.buildingWalk(),
+    scenery: fixture.presentation.sceneryWalk(),
+  });
   const setupMs = performance.now() - started;
+  frame.render(context.getCurrentTexture().createView());
+  await device.queue.onSubmittedWorkDone();
   const encodeStart = performance.now();
   for (let index = 0; index < frames; index++)
     frame.render(context.getCurrentTexture().createView());
@@ -569,7 +572,7 @@ export async function fullBattleBrowserRun(
   const submitMs = performance.now() - submitStart;
   const stats = frame.stats();
   frame.dispose();
-  fixture.presentation.free();
+  if (!capture) fixture.presentation.free();
   device.destroy();
   return {
     setupMs,

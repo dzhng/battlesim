@@ -36,8 +36,6 @@ impl Renderer {
             &self.environment.sampler,
             &self.environment.cast_lights,
             self.shared_shadow.active(),
-            self.shadow_routing.counts(),
-            &self.shared_fog_compute,
         );
         Ok(format!("{{\"pipelines\":{built}}}"))
     }

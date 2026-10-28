@@ -35,20 +35,6 @@ impl Renderer {
             bytemuck::cast_slice(&receiver[..renderer_core::shadow::RECEIVER_BYTES / 4]),
             &cameras,
         );
-        self.shadow_routing = CasterRouting::from_batch_words(
-            batches,
-            CasterBatchLayout {
-                stride: 12,
-                pass: 3,
-                caster: 4,
-                first: 7,
-                count: 8,
-                cascade_mask: 9,
-            },
-            1,
-            u32::MAX,
-        );
-        self.stats.shadow_caster_batches = self.shadow_routing.counts();
         let Some(snapshot) = &mut self.presentation_snapshot else {
             return Err(js_error("upload presentation records before shadow frame"));
         };

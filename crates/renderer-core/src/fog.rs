@@ -4,7 +4,37 @@
 //! depend on its fog record layout. This owner keeps the four exported compute
 //! pipelines and their dispatch labels/order in one browser-safe Rust module.
 
+use presentation::records::{FOG_FACES, FOG_GROUND, FOG_PAINTED_FACES};
 use wgpu::*;
+
+/// What a drawn surface is to fog (`FogLayer`): its `ground`, `seen` and
+/// `painted` words.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum Layer {
+    /// The terrain, its grass and the backdrop.
+    PaintedGround,
+    /// What movers stand on that fog takes face by face: the water, a
+    /// bridge deck.
+    PaintedFaces,
+    /// What lies on the ground as a body: the fallen.
+    Ground,
+    /// Buildings, props, scenery and wreck pieces, face by face.
+    Faces,
+    /// Units: never fogged.
+    Units,
+}
+
+impl Layer {
+    /// The layer a batch's fog class names (`Batch.fog`).
+    pub fn of(fog: u32) -> Self {
+        match fog {
+            FOG_FACES => Layer::Faces,
+            FOG_GROUND => Layer::Ground,
+            FOG_PAINTED_FACES => Layer::PaintedFaces,
+            _ => Layer::Units,
+        }
+    }
+}
 
 use crate::pipelines::{BoundCompute, Pipelines};
 

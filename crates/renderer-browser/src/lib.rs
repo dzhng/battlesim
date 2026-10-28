@@ -1,28 +1,21 @@
 //! Browser shell for the shared renderer core.
 //!
-//! This is deliberately a small, real frame checkpoint. It uses the shared
-//! target allocation, pipeline parser, reverse-Z depth pass and world-pass
-//! attachment/order code. The shell owns only WebGPU surface setup and a tiny
-//! fixture adapter; native's production resource owners remain in
-//! `native-client`.
+//! This shell supplies a browser surface and copied presentation records to
+//! the shared resource and pass owners. Authored models use the same admission,
+//! indexed geometry, materials and draw runs as the native client.
 
 #![cfg(target_arch = "wasm32")]
 
-use native_client::bundle::Library;
+use renderer_core::bundle::Library;
 use renderer_core::depth::DepthPrepass;
-use renderer_core::fog::FogComputeOwner;
 use renderer_core::fog_mask::FogMaskResources;
 use renderer_core::fog_sight::FogSightResources;
-use renderer_core::model::Model;
-use renderer_core::model_material::ModelMaterialBindings;
+use renderer_core::models::Models;
 use renderer_core::pipelines::{Bound, Pipelines};
 use renderer_core::post::PostResources;
-use renderer_core::shadow::{
-    CasterBatchLayout, CasterRouting, ShadowResources, CAMERA_BYTES, RECEIVER_BYTES,
-};
+use renderer_core::shadow::{ShadowResources, CAMERA_BYTES, RECEIVER_BYTES};
 use renderer_core::terrain::TerrainResources;
-use renderer_core::{encode_grouped, TargetOwner};
-use std::collections::HashMap;
+use renderer_core::TargetOwner;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
@@ -34,64 +27,43 @@ pub(crate) mod pipeline_export {
 }
 mod asset;
 mod browser_effects;
-mod diagnostic;
 mod environment;
 mod export;
-mod fixture;
-mod model_instances;
 mod presentation_upload;
-mod production_model;
 mod recovery;
 mod render;
+mod render_world;
+mod scenery;
 mod shadow_upload;
 mod state;
 mod stats_api;
 mod terrain_snapshot;
-use asset::AssetSnapshot;
+use asset::{ModelFrameSnapshot, ModelWorldSnapshot};
 use browser_effects::BrowserEffects;
 use environment::BrowserEnvironment;
+use scenery::SceneryWorldSnapshot;
 use state::{PresentationSnapshot, Stats};
 use terrain_snapshot::TerrainSnapshot;
 
-const PIPELINES: &str = r#"{
+const DISPLAY_PIPELINES: &str = r#"{
   "sizes":{"bloomLevels":0,"skyLut":[1,1],"effectSheet":1,"grassClump":1},
-  "layouts":{
-    "camera":[{"binding":0,"buffer":{"type":"uniform"},"visibility":["vertex"]}],
-    "sampled":[
-      {"binding":0,"texture":{"sampleType":"float","viewDimension":"2d","multisampled":false},"visibility":["fragment"]},
-      {"binding":1,"sampler":{"type":"filtering"},"visibility":["fragment"]}
-    ]
-  },
-  "pipelines":[
-    {"name":"modelPrepass","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"depthStencil":{"format":"depth32float","depthWriteEnabled":true,"depthCompare":"greater"},"multisample":{"count":4}},
-    {"name":"modelPrepassCutout","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"depthStencil":{"format":"depth32float","depthWriteEnabled":true,"depthCompare":"greater"},"multisample":{"count":4}},
-    {"name":"worldOpaque","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"fragment":{"entryPoint":"world","targets":[{"format":"rgba16float"},{"format":"rgba8unorm"}]},"depthStencil":{"format":"depth32float","depthWriteEnabled":false,"depthCompare":"always"},"multisample":{"count":4}},
-    {"name":"displayModel","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"fragment":{"entryPoint":"display","targets":[{"format":"bgra8unorm"}]}},
-    {"name":"composite","kind":"render","shader":"fixture.wgsl","layout":["sampled"],"vertex":{"entryPoint":"fullscreen","buffers":[]},"primitive":{"topology":"triangle-list"},"fragment":{"entryPoint":"composite","targets":[{"format":"bgra8unorm"}]}},
-    {"name":"overlayDisplay","kind":"render","shader":"fixture.wgsl","layout":["camera"],"vertex":{"entryPoint":"vertex","buffers":[{"arrayStride":28,"stepMode":"vertex","attributes":[{"format":"float32x3","offset":0,"shaderLocation":0},{"format":"float32x4","offset":12,"shaderLocation":1}]}]},"primitive":{"topology":"triangle-list","cullMode":"none"},"fragment":{"entryPoint":"display","targets":[{"format":"bgra8unorm","blend":{"color":{"srcFactor":"src-alpha","dstFactor":"one-minus-src-alpha"},"alpha":{"srcFactor":"one","dstFactor":"one-minus-src-alpha"}}}]}}
-  ]
+  "layouts":{"sampled":[
+    {"binding":0,"texture":{"sampleType":"float","viewDimension":"2d","multisampled":false},"visibility":["fragment"]},
+    {"binding":1,"sampler":{"type":"filtering"},"visibility":["fragment"]}
+  ]},
+  "pipelines":[{"name":"composite","kind":"render","shader":"display.wgsl","layout":["sampled"],"vertex":{"entryPoint":"fullscreen","buffers":[]},"primitive":{"topology":"triangle-list"},"fragment":{"entryPoint":"composite","targets":[{"format":"bgra8unorm"}]}}]
 }"#;
 
-const SHADER: &str = r#"
-struct Camera { view_proj: mat4x4<f32> };
-@group(0) @binding(0) var<uniform> camera: Camera;
-struct V { @builtin(position) position: vec4<f32>, @location(0) colour: vec4<f32> };
-@vertex fn vertex(@location(0) position: vec3<f32>, @location(1) colour: vec4<f32>) -> V {
-  var out: V; out.position = camera.view_proj * vec4<f32>(position, 1.0); out.colour = colour; return out;
-}
-struct W { @location(0) colour: vec4<f32>, @location(1) fog: vec4<f32> };
-@fragment fn world(in: V) -> W { var out: W; out.colour = in.colour; out.fog = vec4<f32>(0.0); return out; }
-@fragment fn display(in: V) -> @location(0) vec4<f32> { return in.colour; }
+const DISPLAY_SHADER: &str = r#"
+struct V { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> };
 @vertex fn fullscreen(@builtin(vertex_index) i: u32) -> V {
   var p = array<vec2<f32>, 3>(vec2<f32>(-1.0,-1.0), vec2<f32>(3.0,-1.0), vec2<f32>(-1.0,3.0));
-  var out: V; out.position = vec4<f32>(p[i], 0.0, 1.0); out.colour = vec4<f32>(1.0); return out;
+  var out: V; out.position = vec4<f32>(p[i], 0.0, 1.0); out.uv = p[i] * vec2<f32>(0.5,-0.5) + vec2<f32>(0.5); return out;
 }
-@group(0) @binding(0) var lit: texture_2d<f32>;
+@group(0) @binding(0) var display: texture_2d<f32>;
 @group(0) @binding(1) var linear: sampler;
 @fragment fn composite(in: V) -> @location(0) vec4<f32> {
-  let uv = vec2<f32>(in.position.x / 640.0, in.position.y / 360.0);
-  let c = textureSample(lit, linear, uv);
-  return vec4<f32>(c.rgb, 1.0);
+  return vec4<f32>(textureSample(display, linear, in.uv).rgb, 1.0);
 }
 "#;
 
@@ -103,36 +75,20 @@ fn build_exported_pipelines(device: &Device) -> Result<Pipelines, String> {
     })
 }
 
-fn array_view(texture: &Texture) -> TextureView {
-    texture.create_view(&TextureViewDescriptor {
-        dimension: Some(TextureViewDimension::D2Array),
-        ..Default::default()
-    })
-}
-
-use fixture::Fixture;
-
 #[wasm_bindgen]
 pub struct Renderer {
     surface: wgpu::Surface<'static>,
     device: Device,
     queue: Queue,
     targets: TargetOwner,
-    pipelines: Pipelines,
+    display_pipelines: Pipelines,
     production_pipelines: Pipelines,
     shared_post: PostResources,
     shared_effects: BrowserEffects,
     shared_fog_mask: FogMaskResources,
     shared_fog_sight: FogSightResources,
     shared_overlay_resources: renderer_core::overlay::OverlayResources,
-    material_bindings: ModelMaterialBindings,
-    material_palette: Buffer,
-    material_rows: Buffer,
-    material_surface: Texture,
-    material_sampler: Sampler,
     shared_shadow: ShadowResources,
-    shadow_routing: CasterRouting,
-    shared_fog_compute: FogComputeOwner,
     terrain: TerrainResources,
     environment: BrowserEnvironment,
     /// The presentation camera record bound by the shared model prepass.
@@ -144,23 +100,17 @@ pub struct Renderer {
     presentation_overlay: Buffer,
     presentation_snapshot: Option<PresentationSnapshot>,
     production_camera_group: BindGroup,
-    production_model_vertices: Buffer,
-    production_model_instances: Buffer,
-    production_model_vertex_count: u32,
-    production_model_instance_count: u32,
-    production_model_runs: Option<Vec<(u32, u32, u32, u32)>>,
-    model_batch_state: renderer_core::model::BatchState,
-    available_model_drawables: HashMap<(u32, u32), (u32, u32)>,
     production_terrain_vertices: Buffer,
     production_terrain_vertex_count: u32,
     production_static_vertices: Buffer,
     production_static_vertex_count: u32,
     depth: DepthPrepass,
-    production_depth: DepthPrepass,
-    camera_buffer: Buffer,
-    camera_group: BindGroup,
-    model: Model,
-    shared_ground: Option<Model>,
+    models: Option<Models>,
+    scenery: Option<renderer_core::scenery::Scenery>,
+    scenery_world: Option<Arc<SceneryWorldSnapshot>>,
+    model_library: Arc<Library>,
+    model_world: Option<Arc<ModelWorldSnapshot>>,
+    model_frame: Option<Arc<ModelFrameSnapshot>>,
     overlay_vertices: Buffer,
     overlay_instances: Buffer,
     overlay_vertex_count: u32,
@@ -184,9 +134,6 @@ pub struct Renderer {
     device_lost: Arc<AtomicU32>,
     stats: Stats,
     asset_report: Option<String>,
-    asset_texture: Option<Texture>,
-    asset_surface: Option<Texture>,
-    asset_snapshot: Option<AssetSnapshot>,
 }
 
 fn js_error(error: impl std::fmt::Display) -> JsValue {
@@ -262,7 +209,7 @@ impl Renderer {
             },
         );
         let targets = TargetOwner::new(&device, [width, height]);
-        let pipeline_export = PIPELINES.replace(
+        let pipeline_export = DISPLAY_PIPELINES.replace(
             "\"bgra8unorm\"",
             &format!(
                 "\"{}\"",
@@ -273,8 +220,8 @@ impl Renderer {
             ),
         );
         let pipeline_errors = device.push_error_scope(ErrorFilter::Validation);
-        let pipelines = Pipelines::build(&device, &pipeline_export, |_name, _shader| {
-            Ok(SHADER.to_owned())
+        let display_pipelines = Pipelines::build(&device, &pipeline_export, |_name, _shader| {
+            Ok(DISPLAY_SHADER.to_owned())
         })
         .map_err(js_error)?;
         if let Some(error) = pipeline_errors.pop().await {
@@ -311,16 +258,7 @@ impl Renderer {
             &[0; RECEIVER_BYTES],
             CAMERA_BYTES,
         );
-        let shared_fog_compute = FogComputeOwner::new(&production_pipelines);
         let terrain = TerrainResources::new(&device, &queue, &production_pipelines);
-        let (
-            material_palette,
-            material_rows,
-            _material_albedo,
-            material_surface,
-            material_sampler,
-            material_bindings,
-        ) = diagnostic::material_probe(&device, &queue, production_pipelines.layout("modelLayout"));
         let production_camera = renderer_core::buffer(
             &device,
             "shared-production-camera",
@@ -372,38 +310,6 @@ impl Renderer {
                 production_camera.as_entire_buffer_binding(),
             )],
         );
-        let (production_vertices, production_model_vertex_count) =
-            production_model::fixture_vertices();
-        let production_model_vertices = renderer_core::buffer(
-            &device,
-            "shared-production-model-vertices",
-            BufferUsages::VERTEX,
-            &production_vertices,
-        );
-        let production_model_instances = renderer_core::buffer(
-            &device,
-            "shared-production-model-instances",
-            BufferUsages::VERTEX | BufferUsages::COPY_DST,
-            // The browser fixture now uploads the complete presentation
-            // instance stream, including all units in the publication.
-            &[0u8; 1024 * 1024],
-        );
-        let camera_buffer = renderer_core::buffer(
-            &device,
-            "shared-camera",
-            BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-            bytemuck::cast_slice(&[
-                1.0f32, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-            ]),
-        );
-        let camera_group = renderer_core::bind(
-            &device,
-            pipelines.layout("camera"),
-            "shared-camera-group",
-            &[BindingResource::Buffer(
-                camera_buffer.as_entire_buffer_binding(),
-            )],
-        );
         let environment_pmrem = environment.pmrem.create_view(&Default::default());
         let shared_effects = BrowserEffects::new(
             &device,
@@ -414,27 +320,11 @@ impl Renderer {
             &environment_pmrem,
             &environment.cast_lights,
         );
-        let depth = DepthPrepass::new(&pipelines);
-        let production_depth = DepthPrepass::new(&production_pipelines);
-        let model = Model::from_indexed_fitted(
-            &device,
-            &queue,
-            "shared-fixture-model",
-            &[
-                -1.0, -1.0, 0.0, 1.0, -1.0, 0.0, 1.0, 1.0, 0.0, -1.0, -1.0, 0.0, 1.0, 1.0, 0.0,
-                -1.0, 1.0, 0.0,
-            ],
-            &[
-                31, 107, 184, 255, 31, 107, 184, 255, 209, 122, 31, 255, 31, 107, 184, 255, 209,
-                122, 31, 255, 31, 107, 184, 255,
-            ],
-            &[0, 1, 2, 3, 4, 5],
-        )
-        .map_err(js_error)?;
+        let depth = DepthPrepass::new(&production_pipelines);
         let display_sampler = device.create_sampler(&SamplerDescriptor::default());
         let display_group = renderer_core::bind(
             &device,
-            pipelines.layout("sampled"),
+            display_pipelines.layout("sampled"),
             "shared-display-composite-group",
             &[
                 BindingResource::TextureView(&targets.display),
@@ -458,21 +348,14 @@ impl Renderer {
             device,
             queue,
             targets,
-            pipelines,
+            display_pipelines,
             production_pipelines,
             shared_post,
             shared_effects,
             shared_fog_mask,
             shared_fog_sight,
             shared_overlay_resources,
-            material_bindings,
-            material_palette,
-            material_rows,
-            material_surface,
-            material_sampler,
             shared_shadow,
-            shadow_routing: CasterRouting::default(),
-            shared_fog_compute,
             terrain,
             environment,
             presentation_camera: production_camera,
@@ -480,23 +363,17 @@ impl Renderer {
             presentation_overlay,
             presentation_snapshot: None,
             production_camera_group,
-            production_model_vertices,
-            production_model_instances,
-            production_model_vertex_count,
-            production_model_instance_count: 0,
-            production_model_runs: None,
-            model_batch_state: renderer_core::model::BatchState::default(),
-            available_model_drawables: HashMap::new(),
             production_terrain_vertices,
             production_terrain_vertex_count: 0,
             production_static_vertices,
             production_static_vertex_count: 0,
             depth,
-            production_depth,
-            camera_buffer,
-            camera_group,
-            model,
-            shared_ground: None,
+            models: None,
+            scenery: None,
+            scenery_world: None,
+            model_library: Arc::new(Library::default()),
+            model_world: None,
+            model_frame: None,
             overlay_vertices,
             overlay_instances,
             overlay_vertex_count: 0,
@@ -526,9 +403,6 @@ impl Renderer {
                 ..Stats::default()
             },
             asset_report: None,
-            asset_texture: None,
-            asset_surface: None,
-            asset_snapshot: None,
         })
     }
 
@@ -562,6 +436,8 @@ impl Renderer {
                 &[0; 16],
                 true,
             );
+            self.shared_fog_sight
+                .rebind_depth(&self.device, &self.targets.depth);
             self.rebuild_effects();
             if !self.post_bloom.is_empty() || !self.post_grade.is_empty() {
                 self.shared_post
@@ -587,7 +463,7 @@ impl Renderer {
 
             self.display_group = renderer_core::bind(
                 &self.device,
-                self.pipelines.layout("sampled"),
+                self.display_pipelines.layout("sampled"),
                 "shared-display-composite-group",
                 &[
                     BindingResource::TextureView(&self.targets.display),
@@ -615,12 +491,14 @@ impl Renderer {
         self.shared_effects.rebuild(
             &self.device,
             &self.queue,
-            &self.targets,
             &self.production_pipelines,
-            &self.presentation_camera,
-            &self.presentation_environment,
-            &pmrem,
-            &self.environment.cast_lights,
+            browser_effects::EffectsFrame {
+                targets: &self.targets,
+                camera: &self.presentation_camera,
+                environment: &self.presentation_environment,
+                pmrem: &pmrem,
+                cast_lights: &self.environment.cast_lights,
+            },
             effects,
         );
     }
@@ -657,124 +535,5 @@ impl Renderer {
     #[wasm_bindgen]
     pub fn destroy_device_for_test(&self) {
         self.device.destroy();
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    #[wasm_bindgen]
-    pub fn upload_instances(&mut self, instances: &[f32]) -> Result<(), JsValue> {
-        if !instances.len().is_multiple_of(16) {
-            return Err(js_error("shared model instances need 16 floats"));
-        }
-        self.ensure_production_model_instances(std::mem::size_of_val(instances));
-        self.queue.write_buffer(
-            &self.production_model_instances,
-            0,
-            bytemuck::cast_slice(instances),
-        );
-        self.production_model_instance_count = (instances.len() / 16) as u32;
-        self.production_model_runs = None;
-        Ok(())
-    }
-
-    /// Upload the presentation model records as one recovery-safe snapshot.
-    /// The arrays are the FrameHeader sets: Joint palettes, 16-float Instance
-    /// records, Batch words, and the material rows selected by the appearance
-    /// table.
-    #[cfg(target_arch = "wasm32")]
-    #[wasm_bindgen]
-    pub fn upload_model_frame(
-        &mut self,
-        palettes: &[f32],
-        instances: &[f32],
-        batches: &[u32],
-        material_rows: &[f32],
-    ) -> Result<(), JsValue> {
-        if !instances.len().is_multiple_of(16)
-            || !palettes.len().is_multiple_of(12)
-            || !batches.len().is_multiple_of(12)
-            || !material_rows.len().is_multiple_of(20)
-        {
-            return Err(js_error("presentation model records have invalid strides"));
-        }
-        let write = |queue: &Queue, buffer: &Buffer, bytes: &[u8], name: &str| {
-            if bytes.len() > buffer.size() as usize {
-                return Err(js_error(format!(
-                    "presentation {name} exceeds buffer capacity"
-                )));
-            }
-            if !bytes.is_empty() {
-                queue.write_buffer(buffer, 0, bytes);
-            }
-            Ok(())
-        };
-        let runs = self
-            .model_batch_state
-            .resolve(batches, instances.len() / 16)
-            .map_err(js_error)?
-            .into_iter()
-            .filter_map(|run| {
-                if run.pass != 0 {
-                    return None;
-                }
-                let &(vertex_first, vertex_count) = self
-                    .available_model_drawables
-                    .get(&(run.appearance, run.tier))?;
-                Some((run.first, run.count, vertex_first, vertex_count))
-            })
-            .collect::<Vec<_>>();
-        if runs.is_empty() && !instances.is_empty() {
-            // An empty batch list is the compatibility fixture path; a real
-            // frame with no view runs leaves the count at zero.
-            if batches.is_empty() {
-                self.production_model_runs = Some(vec![(
-                    0,
-                    (instances.len() / 16) as u32,
-                    0,
-                    self.production_model_vertex_count,
-                )]);
-            } else {
-                self.production_model_runs = Some(Vec::new());
-            }
-        } else {
-            self.production_model_runs = Some(runs);
-        }
-        self.ensure_production_model_instances(std::mem::size_of_val(instances));
-        write(
-            &self.queue,
-            &self.production_model_instances,
-            bytemuck::cast_slice(instances),
-            "instances",
-        )?;
-        write(
-            &self.queue,
-            &self.material_palette,
-            bytemuck::cast_slice(palettes),
-            "palettes",
-        )?;
-        if !material_rows.is_empty() {
-            write(
-                &self.queue,
-                &self.material_rows,
-                bytemuck::cast_slice(material_rows),
-                "materials",
-            )?;
-        }
-        self.production_model_instance_count = (instances.len() / 16) as u32;
-        self.stats.presentation_model_runs = self
-            .production_model_runs
-            .as_ref()
-            .map_or(0, |runs| runs.len() as u32);
-        if let Some(snapshot) = &mut self.presentation_snapshot {
-            snapshot.batches = batches.to_vec();
-            snapshot.palettes = palettes.to_vec();
-            snapshot.instances = instances.to_vec();
-            snapshot.batch_state = self.model_batch_state.clone();
-        }
-        self.stats.presentation_model_words =
-            (palettes.len() + instances.len() + batches.len()) as u32;
-        if !material_rows.is_empty() {
-            self.stats.presentation_material_words = material_rows.len() as u32;
-        }
-        Ok(())
     }
 }

@@ -6,6 +6,16 @@ dependencies. Platform shells provide the surface, adapter/device policy,
 runtime asset bytes and presentation bridge; the core owns pass order, targets,
 GPU resource lifetimes and draw encoding.
 
+Authored model admission has one owner here. The platforms supply bundle bytes
+and the presentation's appearance, pose and batch records; they do not reinterpret
+static states, articulated nodes, corpse poses or material surface classes. The
+native filesystem library is a source adapter to the same bundle decoder used
+for browser fetches. The held static batch buffers also belong to this core, so
+a frame that names an unchanged batch has the same meaning on either target.
+Scenery also shares authored tier admission and held-batch routing; shells
+supply the ground's kind order and presentation-owned stump meshes. Keeping
+those inputs separate preserves presentation's authority over placement.
+
 The extraction checkpoints own target formats, the sized target set,
 buffer/bind helpers, pass debug-group orchestration, and pipeline construction.
 Pipeline construction accepts exported metadata plus a source provider, so the

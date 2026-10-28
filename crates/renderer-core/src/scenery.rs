@@ -22,8 +22,8 @@ use presentation::static_world::ground::walk::{Draws, DRAWS};
 use presentation::view::TIERS;
 use wgpu::*;
 
-use crate::bundle::{Bundle, Library, Shape};
-use crate::gpu::buffer;
+use crate::buffer;
+use crate::bundle::{Bundle, BundleSource, Shape};
 use crate::pipelines::{Bound, Pipelines};
 use crate::statics::Statics;
 
@@ -119,22 +119,46 @@ impl Scenery {
     pub fn new(
         device: &Device,
         pipelines: &Pipelines,
-        library: &Library,
+        library: &impl BundleSource,
         presentation: &Presentation,
     ) -> Result<Self, String> {
         let world = presentation.world();
         let kinds = presentation
             .ground()
             .map_or_else(Vec::new, |g| g.scenery_kinds());
-        let text = |at: u32, len: u32| &world.strings[at as usize..(at + len) as usize];
+        Self::from_world(
+            device,
+            pipelines,
+            library,
+            &world.appearances,
+            &world.strings,
+            &kinds,
+            |row| presentation.stump_mesh(row),
+        )
+    }
+
+    /// Installs the exact appearance publication and ground kind order. A shell
+    /// supplies presentation-owned stump meshes by appearance row, so admission
+    /// does not depend on sharing the presentation's native or WASM memory.
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_world<'a>(
+        device: &Device,
+        pipelines: &Pipelines,
+        library: &impl BundleSource,
+        appearances: &[presentation::records::Appearance],
+        strings: &str,
+        kinds: &[String],
+        stump_mesh: impl Fn(u32) -> Option<&'a [f32]>,
+    ) -> Result<Self, String> {
+        let text = |at: u32, len: u32| &strings[at as usize..(at + len) as usize];
         let upload = |name: &str, mesh: &[f32]| -> Mesh {
             let bytes = bytemuck::cast_slice(mesh);
             let vertices = (mesh.len() / VERTEX_FLOATS) as u32;
             (buffer(device, name, BufferUsages::VERTEX, bytes), vertices)
         };
         let mut tiers: Vec<Vec<Mesh>> = kinds.iter().map(|_| Vec::new()).collect();
-        let mut rows = Vec::with_capacity(world.appearances.len());
-        for (r, a) in world.appearances.iter().enumerate() {
+        let mut rows = Vec::with_capacity(appearances.len());
+        for (r, a) in appearances.iter().enumerate() {
             let name = text(a.name, a.name_len);
             let kind = kinds.iter().position(|k| k == name);
             let (Some(kind), true) = (kind, a.draws != 0) else {
@@ -143,7 +167,7 @@ impl Scenery {
             };
             let stump = if a.draws == Draws::Stump as u32 {
                 // Only a tree leaves a stump; a shrub's stump row draws nothing.
-                let Some(mesh) = presentation.stump_mesh(r as u32) else {
+                let Some(mesh) = stump_mesh(r as u32) else {
                     rows.push(None);
                     continue;
                 };
@@ -199,6 +223,34 @@ impl Scenery {
                 count: b.count,
             });
         }
+    }
+
+    /// Resident authored tiers and presentation-generated stump meshes.
+    pub fn resident_vertices(&self) -> u32 {
+        self.tiers
+            .iter()
+            .flatten()
+            .chain(
+                self.rows
+                    .iter()
+                    .flatten()
+                    .filter_map(|row| row.stump.as_ref()),
+            )
+            .map(|(_, vertices)| *vertices)
+            .sum()
+    }
+
+    pub fn run_count(&self) -> u32 {
+        self.runs.len() as u32
+    }
+
+    pub fn caster_run_counts(&self) -> [u32; 4] {
+        std::array::from_fn(|cascade| {
+            self.runs
+                .iter()
+                .filter(|run| run.draws_in(CAST_PASS, Some(cascade)))
+                .count() as u32
+        })
     }
 
     /// A felled tree is two records an instance.

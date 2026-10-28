@@ -11,7 +11,7 @@ use crate::models::Surface;
 use crate::pipelines::{Bound, Pipelines};
 use crate::sky::Sky;
 
-use renderer_core::world::{Layer as CoreLayer, Surface as CoreSurface, WorldInputs};
+use renderer_core::world::{Surface as CoreSurface, WorldInputs};
 
 fn depth(
     view: &TextureView,
@@ -152,14 +152,7 @@ struct WorldAdapter<'a> {
 }
 
 impl WorldAdapter<'_> {
-    fn fogged(&self, layer: CoreLayer) -> Vec<(&'static str, &'_ BindGroup)> {
-        let layer = match layer {
-            CoreLayer::Units => Layer::Units,
-            CoreLayer::Faces => Layer::Faces,
-            CoreLayer::Ground => Layer::Ground,
-            CoreLayer::PaintedFaces => Layer::PaintedFaces,
-            CoreLayer::PaintedGround => Layer::PaintedGround,
-        };
+    fn fogged(&self, layer: Layer) -> Vec<(&'static str, &'_ BindGroup)> {
         let mut groups = self.inputs.environment.groups().to_vec();
         groups.push(self.inputs.fog.group(layer));
         groups
@@ -171,15 +164,15 @@ impl WorldInputs for WorldAdapter<'_> {
         self.world.sky.draw(pass);
     }
 
-    fn draw_ground(&self, pass: &mut RenderPass<'_>, layer: CoreLayer) {
+    fn draw_ground(&self, pass: &mut RenderPass<'_>, layer: Layer) {
         self.inputs.ground.draw_terrain(pass, &self.fogged(layer));
     }
 
-    fn draw_skirt(&self, pass: &mut RenderPass<'_>, layer: CoreLayer) {
+    fn draw_skirt(&self, pass: &mut RenderPass<'_>, layer: Layer) {
         self.inputs.ground.draw_skirt(pass, &self.fogged(layer));
     }
 
-    fn bind_models(&self, pass: &mut RenderPass<'_>, layer: CoreLayer, surface: CoreSurface) {
+    fn bind_models(&self, pass: &mut RenderPass<'_>, layer: Layer, surface: CoreSurface) {
         let groups = self.fogged(layer);
         let mut groups = groups;
         groups.push(self.inputs.models.group());
@@ -192,14 +185,7 @@ impl WorldInputs for WorldAdapter<'_> {
         pipeline.set(pass, &groups);
     }
 
-    fn draw_models(&self, pass: &mut RenderPass<'_>, layer: CoreLayer, surface: CoreSurface) {
-        let layer = match layer {
-            CoreLayer::Units => Layer::Units,
-            CoreLayer::Faces => Layer::Faces,
-            CoreLayer::Ground => Layer::Ground,
-            CoreLayer::PaintedFaces => Layer::PaintedFaces,
-            CoreLayer::PaintedGround => Layer::PaintedGround,
-        };
+    fn draw_models(&self, pass: &mut RenderPass<'_>, layer: Layer, surface: CoreSurface) {
         let surface = match surface {
             CoreSurface::Opaque => Surface::Opaque,
             CoreSurface::Cutout => Surface::Cutout,
@@ -209,21 +195,21 @@ impl WorldInputs for WorldAdapter<'_> {
         self.inputs.models.draw_fogged(pass, surface, layer);
     }
 
-    fn draw_scenery(&self, pass: &mut RenderPass<'_>, layer: CoreLayer) {
+    fn draw_scenery(&self, pass: &mut RenderPass<'_>, layer: Layer) {
         self.inputs
             .scenery
             .draw(pass, &self.fogged(layer), self.inputs.models.statics());
     }
 
-    fn draw_grass(&self, pass: &mut RenderPass<'_>, layer: CoreLayer) {
+    fn draw_grass(&self, pass: &mut RenderPass<'_>, layer: Layer) {
         self.inputs.grass.draw(pass, &self.fogged(layer));
     }
 
-    fn draw_backdrop(&self, pass: &mut RenderPass<'_>, layer: CoreLayer) {
+    fn draw_backdrop(&self, pass: &mut RenderPass<'_>, layer: Layer) {
         self.inputs.ground.draw_backdrop(pass, &self.fogged(layer));
     }
 
-    fn draw_water(&self, pass: &mut RenderPass<'_>, layer: CoreLayer) {
+    fn draw_water(&self, pass: &mut RenderPass<'_>, layer: Layer) {
         self.inputs.ground.draw_water(pass, &self.fogged(layer));
     }
 

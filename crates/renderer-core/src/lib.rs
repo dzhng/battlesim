@@ -2,13 +2,15 @@
 //!
 //! This crate deliberately stops at the device-facing boundary. It owns the
 //! target formats, resize allocation and small resource helpers used by every
-//! pass, while surface creation, adapter policy, runtime files and audio stay
-//! in the platform shells. It has no filesystem, windowing or presentation
-//! feature dependencies and therefore checks for `wasm32-unknown-unknown`.
+//! pass and consumes the shared presentation records. Surface creation,
+//! adapter policy, runtime files and audio stay in the platform shells. It has
+//! no filesystem or windowing dependencies and therefore checks for
+//! `wasm32-unknown-unknown`.
 
 use std::ops::{Deref, DerefMut};
 use wgpu::*;
 
+pub mod bundle;
 pub mod depth;
 pub mod effects;
 pub mod environment;
@@ -16,14 +18,14 @@ pub mod fog;
 pub mod fog_mask;
 pub mod fog_sight;
 pub mod frame;
-pub mod model;
 pub mod model_material;
-pub mod model_pass;
-pub mod model_vertex;
+pub mod models;
 pub mod overlay;
 pub mod pipelines;
 pub mod post;
+pub mod scenery;
 pub mod shadow;
+pub mod statics;
 pub mod terrain;
 pub mod world;
 

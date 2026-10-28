@@ -78,39 +78,22 @@ impl Pass for ShadowPass {
 
     fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
         let shadow = inputs.shadow;
-        for (cascade, (layer, camera)) in shadow
+        shadow
             .resources
-            .layers()
-            .iter()
-            .zip(shadow.resources.groups())
-            .take(shadow.resources.active())
-            .enumerate()
-        {
-            let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("sun-cascade"),
-                depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
-                    view: layer,
-                    depth_ops: Some(Operations {
-                        load: LoadOp::Clear(0.0),
-                        store: StoreOp::Store,
-                    }),
-                    stencil_ops: None,
-                }),
-                ..Default::default()
+            .encode_cascades(encoder, |cascade, camera, pass| {
+                let camera = ("typegpuCameraLayout", camera);
+                inputs.ground.draw_casters(pass, camera, cascade);
+                let models = inputs.models;
+                for (bound, surface) in [
+                    (&self.solid, Surface::Solid),
+                    (&self.cutout, Surface::Cutout),
+                ] {
+                    bound.set(pass, &[camera, models.group()]);
+                    models.draw_casters(pass, surface, cascade);
+                }
+                inputs
+                    .scenery
+                    .draw_casters(pass, camera, models.statics(), cascade);
             });
-            let camera = ("typegpuCameraLayout", camera);
-            inputs.ground.draw_casters(&mut pass, camera, cascade);
-            let models = inputs.models;
-            for (bound, surface) in [
-                (&self.solid, Surface::Solid),
-                (&self.cutout, Surface::Cutout),
-            ] {
-                bound.set(&mut pass, &[camera, models.group()]);
-                models.draw_casters(&mut pass, surface, cascade);
-            }
-            inputs
-                .scenery
-                .draw_casters(&mut pass, camera, models.statics(), cascade);
-        }
     }
 }

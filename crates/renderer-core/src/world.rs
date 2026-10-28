@@ -4,16 +4,7 @@ use wgpu::*;
 
 use crate::Targets;
 
-/// Fog layers used by the shared world ordering. The platform adapter maps
-/// these stable values to its presentation/fog bind groups.
-#[derive(Clone, Copy, Debug)]
-pub enum Layer {
-    Units,
-    Faces,
-    Ground,
-    PaintedFaces,
-    PaintedGround,
-}
+use crate::fog::Layer;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Surface {

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+presentation = { path = "../presentation" }
 wgpu = { version = "30.0.1", default-features = false, features = ["webgpu", "wgsl"] }
 bytemuck = { version = "1.25", features = ["derive"] }
 

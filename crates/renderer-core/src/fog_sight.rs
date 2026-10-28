@@ -359,6 +359,12 @@ impl FogSightResources {
         Ok(())
     }
 
+    /// Rebind depth-dependent culling when the shared target set is replaced.
+    pub fn rebind_depth(&mut self, device: &Device, depth: &TextureView) {
+        self.depth = depth.clone();
+        self.rebind(device);
+    }
+
     /// Upload the static ground height pages once per ground generation.
     pub fn upload_heights(
         &mut self,

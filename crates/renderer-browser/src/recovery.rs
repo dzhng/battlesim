@@ -13,7 +13,10 @@ impl Renderer {
     pub async fn recover_device(&mut self, canvas: HtmlCanvasElement) -> Result<(), JsValue> {
         let previous_stats = self.stats;
         let previous_lost = self.device_lost.load(Ordering::Relaxed);
-        let snapshot = self.asset_snapshot.clone();
+        let library = self.model_library.clone();
+        let model_world = self.model_world.clone();
+        let model_frame = self.model_frame.clone();
+        let scenery_world = self.scenery_world.clone();
         let ground = self.ground_snapshot.clone();
         let static_world = self.static_world_snapshot.clone();
         let terrain = self.terrain_snapshot.clone();
@@ -22,17 +25,21 @@ impl Renderer {
         let fog_heights = self.fog_height_snapshot.clone();
         let effect_layers = self.shared_effects.layers().to_vec();
         let presentation = self.presentation_snapshot.clone();
-        let model_words = presentation
-            .as_ref()
-            .map(|p| (p.palettes.clone(), p.instances.clone(), p.batches.clone()));
         let mut replacement = Self::new(canvas).await?;
         replacement.stats = previous_stats;
         replacement.stats.device_recoveries = replacement.stats.device_recoveries.saturating_add(1);
         replacement
             .device_lost
             .store(previous_lost, Ordering::Relaxed);
-        if let Some(snapshot) = snapshot {
-            replacement.load_bundle_bytes(snapshot.name, snapshot.bundle, snapshot.textures)?;
+        replacement.model_library = library;
+        if let Some(world) = model_world {
+            replacement.install_model_world(world)?;
+        }
+        if let Some(scenery) = scenery_world {
+            replacement.install_scenery_world(scenery)?;
+        }
+        if let Some(frame) = model_frame {
+            replacement.restore_model_frame(frame)?;
         }
         for (layer, bytes) in effect_layers.iter().enumerate() {
             if !bytes.is_empty() {
@@ -56,7 +63,6 @@ impl Renderer {
             )?;
         }
         if let Some(presentation) = presentation {
-            replacement.model_batch_state = presentation.batch_state.clone();
             replacement.upload_frame(
                 &presentation.camera,
                 &presentation.environment,
@@ -73,9 +79,6 @@ impl Renderer {
                     &presentation.casters,
                     &presentation.batches,
                 )?;
-            }
-            if let Some((palettes, instances, batches)) = model_words {
-                replacement.upload_model_frame(&palettes, &instances, &batches, &[])?;
             }
         }
         if !post_bloom.is_empty() || !post_grade.is_empty() {
