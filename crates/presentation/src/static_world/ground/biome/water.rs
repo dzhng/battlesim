@@ -32,6 +32,30 @@ pub const WATER_LOOKS_MAX: usize = 8;
 pub struct Water {
     pub rivers: Vec<WaterLook>,
     pub swamps: Vec<WaterLook>,
+    /// Where puddles lie, and their looks; none without.
+    #[serde(default)]
+    pub puddles: Option<Puddles>,
+}
+
+/// Where puddles lie (`ground::puddles`): at most one a cell `cell_m` wide,
+/// `radius_m` across its range, `depth_m` deep at its middle, its surface
+/// `lift_m` over the ground at its centre; on each surface (a paved kind of
+/// `AREA_KINDS`, or `ground`) at its chance, in one of `looks`, picked by
+/// that surface, not by weight.
+#[derive(Clone, Deserialize)]
+pub struct Puddles {
+    pub looks: Vec<WaterLook>,
+    pub cell_m: f64,
+    pub radius_m: [f64; 2],
+    pub depth_m: f64,
+    pub lift_m: f64,
+    pub on: std::collections::BTreeMap<String, PuddleOn>,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct PuddleOn {
+    pub chance: f64,
+    pub look: String,
 }
 
 /// One look of a water surface: its body's colours (`palette`: where little
@@ -71,7 +95,31 @@ impl Biome {
                 return bad(&format!("water.swamps[{i}].ground"), "names no plot kind");
             }
         }
-        if self.water.rivers.len() + self.water.swamps.len() > WATER_LOOKS_MAX {
+        if let Some(p) = &self.water.puddles {
+            self.check_water_looks("water.puddles.looks", &p.looks)?;
+            within("puddles.cell_m", p.cell_m, 4.0, 1000.0)?;
+            within("puddles.radius_m[0]", p.radius_m[0], 0.2, p.radius_m[1])?;
+            within(
+                "puddles.radius_m[1]",
+                p.radius_m[1],
+                p.radius_m[0],
+                p.cell_m / 2.0,
+            )?;
+            within("puddles.depth_m", p.depth_m, 0.0, 0.5)?;
+            for (kind, on) in &p.on {
+                if kind != "ground" && !super::AREA_KINDS.contains(&kind.as_str()) {
+                    return bad(&format!("puddles.on.{kind}"), "names no surface");
+                }
+                within(&format!("puddles.on.{kind}.chance"), on.chance, 0.0, 1.0)?;
+                if !p.looks.iter().any(|l| l.name == on.look) {
+                    return bad(&format!("puddles.on.{kind}.look"), "names no puddle look");
+                }
+            }
+        }
+        let w = &self.water;
+        if w.rivers.len() + w.swamps.len() + w.puddles.as_ref().map_or(0, |p| p.looks.len())
+            > WATER_LOOKS_MAX
+        {
             return bad("water", format!("holds at most {WATER_LOOKS_MAX} looks"));
         }
         Ok(())

@@ -83,8 +83,9 @@ the checklist.
 - [x] [11](slices/11-swamp-slowdown.md), swamp slowdown; its paired battle
       report on the wetlands map is still owed (2026-10-28).
 - [ ] Sim lane: [12](slices/12-mapgen-swamps.md).
-- [ ] Wet lane: [13](slices/13-swamp-look.md), [14](slices/14-puddles.md),
-      [15](slices/15-wake-sources.md), [16](slices/16-wave-field.md).
+- [x] [13](slices/13-swamp-look.md), swamps drawn as water (2026-10-28).
+- [x] [14](slices/14-puddles.md), puddles; their look is open (2026-10-28).
+- [ ] Wet lane: [15](slices/15-wake-sources.md), [16](slices/16-wave-field.md).
 - [ ] [17](slices/17-tree-sway.md), tree sway, any time after 01.
 - [ ] [18](slices/18-closeout.md), closeout: run everything once.
 
@@ -487,6 +488,18 @@ owning slice. Worst first within each area.
   survives. Slice 18 takes it: keep the slope variance a pixel averages
   away, as roughness, so far water keeps a sheen that varies. The summer
   palette stays ours (decision 9).
+
+- **Reeds (slice 13).** The reed marsh grows rough grass under its water:
+  reeds knee-high out of 0.6 m of water would pass the grass owner's 0.9 m
+  cap, which is measured from the ground. Measure a grass's height from the
+  water's surface where it stands in water, and add a reed grass kind.
+  Slice 18 takes it.
+- **Puddles (slice 14).** They lie only on the paved kinds and read as
+  wet mud patches rather than reflective water; field puddles need the
+  grass owner to read puddles. Slice 18 judges them.
+- **Swamp depth for the user (decision 30).** 0.6 m reaches just above a
+  soldier's knee on screen, where the decision also says thighs. The
+  number stays until the user picks.
 
 Earlier: the two bugs found beyond this feature are fixed and merged in
 [PR #17](https://github.com/dzhng/battlesim/pull/17): track wear under bridge

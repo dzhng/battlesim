@@ -137,7 +137,7 @@ fn a_swamp_draws_a_swamp_look_its_seed_and_index_pick_whatever_else_the_map_hold
     for seed in 0..12 {
         let mut biome = summer();
         biome.seed = seed;
-        let rivers = biome.water.rivers.len();
+        let (rivers, swamps) = (biome.water.rivers.len(), biome.water.swamps.len());
         let want = rivers + water::look(seed, water::Kind::Swamp, 0, &biome.water.swamps);
         picked.insert(want);
         // The first swamp's cells: those with a swamp look, west of x 300 in
@@ -146,7 +146,7 @@ fn a_swamp_draws_a_swamp_look_its_seed_and_index_pick_whatever_else_the_map_hold
             let cells = g.water_cells();
             cells
                 .chunks(CELL_FLOATS)
-                .filter(|c| c[LOOK] as usize >= rivers && c[0] > 300.0)
+                .filter(|c| (rivers..rivers + swamps).contains(&(c[LOOK] as usize)) && c[0] > 300.0)
                 .map(|c| c[LOOK] as usize)
                 .collect()
         };

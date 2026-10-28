@@ -12,6 +12,7 @@ pub mod kinds;
 pub mod mesh;
 pub mod partition;
 pub mod plots;
+pub mod puddles;
 pub mod scenery;
 mod shapes;
 mod strokes;
@@ -216,6 +217,8 @@ pub struct Ground {
     pub tuning: Tuning,
     pub forests: Vec<Forest>,
     pub plots: Plots,
+    /// Its puddles (`puddles::puddles`).
+    pub puddles: Vec<puddles::Puddle>,
     /// The paved strokes as drawn; `None` where they are the source's.
     pub drawn: Option<Vec<f32>>,
 }
@@ -231,12 +234,24 @@ impl Ground {
                 .is_some_and(|p| plots.plots[p].kind == plots.settlement)
         };
         let drawn = strokes::drawn(&source.surface_strokes, &biome, built);
+        // A puddle lies in no other water.
+        let s = &source;
+        let water = water::StandingWater::new(&s.rivers, &s.swamps, &[], &s.grid, &biome);
+        let puddles = puddles::PuddleGround {
+            source: s,
+            strokes: drawn.as_deref().unwrap_or(&s.surface_strokes),
+            forests: &forests,
+            biome: &biome,
+            in_water: &|x, y| water.at(x, y).is_some(),
+        }
+        .puddles();
         Ok(Ground {
             source,
             biome,
             tuning,
             forests,
             plots,
+            puddles,
             drawn,
         })
     }
@@ -255,7 +270,7 @@ impl Ground {
     /// The standing water of its rivers and swamps (`water::StandingWater`).
     pub fn standing_water(&self) -> water::StandingWater<'_> {
         let s = &self.source;
-        water::StandingWater::new(&s.rivers, &s.swamps, &s.grid, &self.biome)
+        water::StandingWater::new(&s.rivers, &s.swamps, &self.puddles, &s.grid, &self.biome)
     }
 
     /// The water surface's cells (`StandingWater::cells`), each with the

@@ -1156,6 +1156,157 @@ against the code. Each says what was chosen, why, and how sure the agent is.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
+## Slice 13: swamps drawn as water
+
+### One standing-water owner, by depth
+
+- **When:** slice 13.
+- **The choice:** `StandingWater` (presentation `ground::water`), built from
+  the exported rivers and swamps, answers `at(x, y)` (surface, depth and
+  look row), lays the one list of water cells, and tells the plots what a
+  point floods. Water stands where its surface lies above the ground: so a
+  road across a swamp, which the simulation leaves uncarved, is dry by
+  depth alone, with no road rule. A river's look rows come first, then the
+  swamps'; a swamp's look is picked by the seed, the kind and the swamp's
+  index (`look(seed, Kind::Swamp, k)`), on its own salt, so river looks
+  are unchanged.
+- **The gap:** the contract named the owner; where swamps enter the
+  presentation, and the depth rule for roads, were mine (Codex found the
+  causeway case).
+- **The reach:** slice 15's wakes and dust ask the same owner; slice 13's
+  posture rule too.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### No crop stands in a swamp: its fields are cut along it, and flood
+
+- **When:** slice 13.
+- **The choice:** the first swamp shot showed a wheat field growing through
+  the water. Fields are now cut along a swamp's outline as along a river's
+  run, and a plot inside it takes the plot kind its swamp look names
+  (`ground`: meadow for the flooded meadow, rough for the reed marsh), so
+  the grass owner grows that ground's grass under the water. A test pins
+  it, and fails with the rule taken out.
+- **The gap:** none in the contract; a defect on screen.
+- **The reach:** puddles (14) lie on tracks and fields and change no plot.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Reeds are not built yet
+
+- **When:** slice 13.
+- **The choice:** the reed marsh grows the rough plot's grass, under the
+  water. Reeds standing knee-high out of 0.6 m water would be over a metre
+  tall, past the grass owner's 0.9 m cap ("half a soldier", measured from
+  the ground). The physical fix is to measure a grass's height from the
+  water's surface where it stands in water, plus a reed grass kind. That
+  is the grass owner's change, recorded open in the README for slice 18.
+- **The gap:** the contract asked for reeds from the grass owner.
+- **The reach:** slice 18, or a follow-up.
+- **Verdict:** unfinished.
+- **Confidence:** high that it is open.
+
+### The swamp's 0.6 m reads knee-deep, and stays
+
+- **When:** slice 13.
+- **The choice:** a wading shot at 12 m (now in the water reel) shows the
+  squad in the full 0.6 m of decision 30, which reaches just above a 1.8 m
+  soldier's knee. An unprimed critique read it as knee-deep, not thigh-deep.
+  The number is the simulation's (the dip lowers eyes for sight, decision
+  6), so it stays; the user decides if thighs should win.
+- **The gap:** decision 30 says both "about 0.6 m" and "thighs".
+- **The reach:** mapgen's swamp depth and the wetlands map.
+- **Verdict:** raised with the user.
+- **Confidence:** medium.
+
+### The flooded meadow is tinted, so it reads apart from dry meadow
+
+- **When:** slice 13.
+- **The choice:** the flooded meadow's extinction is
+  `[0.95, 0.8, 1.2]` a metre, a tea-coloured flood. At first (`[0.7, 0.55,
+  0.85]`) its clear water over grass stood under ΔE 10 from the dry meadow
+  in the wading shot. The scene's floor is a loose tripwire; the tint is
+  truer to standing floodwater, and the shot clears it narrowly (10.1).
+- **The gap:** delegated (each look's colours).
+- **The reach:** none.
+- **Verdict:** sound, but the margin is thin.
+- **Confidence:** medium.
+
+## Slice 14: puddles
+
+### One puddle a cell, from the seed and the cell alone
+
+- **When:** slice 14.
+- **The choice:** `ground::puddles::candidate(…, i, j)` draws a cell's
+  puddle (14 m cells) from a key of the biome's seed and the cell: a
+  centre, a radius (0.7 to 2.2 m), a roll against the chance of the
+  surface under the centre. `Ground::new` walks every cell once into
+  `Ground.puddles`; a test asks each cell alone, in reverse, and gets the
+  walk's puddle. A puddle on a rutted kind moves into the nearer wheel rut
+  (its kind's `ruts.offsets_m`) and is no wider than the rut, since rain
+  stands in the ruts: an unprimed critique of the first shot found them on
+  the grass strip between.
+- **The gap:** decision 34 named the purity; the cell size and the rut
+  rule were mine.
+- **The reach:** slice 15's wakes ask `StandingWater`, which holds the
+  puddles.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Puddles lie only on the paved kinds; the track's centre strip grows through
+
+- **When:** slice 14.
+- **The choice:** the contract wanted puddles on tracks and fields, with
+  the grass and dressing reading the same function. Puddles here lie only
+  on the paved kinds (`puddles.on` names road, paving, country road and
+  dirt track), where no plot grass or dressing grows, so neither needs a
+  puddle test. Putting them in the surface field's water list would have
+  done it for grass, but the shore's bands (a few metres of wet bank and
+  earth, sized for rivers) would ring every puddle in mud, asphalt too.
+  The dirt track's own centre-strip grass still stands where a puddle
+  reaches it; the rut rule keeps most puddles off the strip.
+- **The gap:** a deviation from the contract: no puddles in fields, and no
+  grass test.
+- **The reach:** field puddles need the grass owner to read puddles (a
+  water list the shore ignores): slice 18, or a follow-up.
+- **Verdict:** a deliberate narrowing, recorded.
+- **Confidence:** medium.
+
+### A puddle's depth and edge are its shape's, carried by its cell
+
+- **When:** slice 14.
+- **The choice:** a puddle carves nothing, so the depth buffer has none.
+  Each puddle is one water cell over its disc whose vertex colour carries
+  its look, centre and radius (`[look, cx, cy, r]`; rivers and swamps carry
+  a zero radius). The one water material reads that: its depth is
+  `depth_m · (1 − (r/R)²)` along the view, it fades in over its rim (a sixth
+  of its radius, or a pixel and a half) rather than over a few pixels of
+  depth, which never filled in at 6 cm, and its water is still (an
+  unrippled normal). The look row carries the depth (`fades.w`). The water
+  cell record grew from 5 floats to 8; the recorded browser mesh vectors
+  were re-encoded.
+- **The gap:** the contract asked for a per-cell input to the one
+  material; this is it.
+- **The reach:** none.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Puddles read as wet mud, not yet as reflective water
+
+- **When:** slice 14.
+- **The choice:** an unprimed critique read the first puddles as dark
+  mounds, stains or cow pats, with no sky in them. Darker mud made them
+  read as holes; the last tuning (muddy `[0.11, 0.095, 0.07]`–`[0.15, 0.13,
+  0.095]`, extinction 10–12 a metre, mirror near black) reads as wet mud
+  patches in the rut. What's missing is sheen: at the reel's sun the sky
+  they reflect is a pale haze close to the track's colour, and at water's
+  F0 from above it barely shows. Mirror puddles on asphalt were not filmed:
+  the wetlands map has no metalled road.
+- **The gap:** delegated (density, size, shape).
+- **The reach:** slice 18 judges it beside a wet-road reference, with a
+  darker wet rim and a stronger sky sheen as the candidates.
+- **Verdict:** unfinished.
+- **Confidence:** low.
 ## Slice 13: swamps drawn as water (the posture rule)
 
 ### A posture is taken only where it holds the chest above the water
