@@ -6,8 +6,13 @@
 
 ## Contract
 
-Rust presentation resolves **one `Wind` record** from the biome, and both
-clients upload it in the `Environment` uniform, after the haze (`Aerial`).
+Rust presentation resolves **one `Wind` record** from the biome, and every
+camera the frame draws with carries it (`Camera.wind`, a one-record array
+after the clock): the frame's eye and each sun cascade, so whatever moves in
+the wind moves alike in the shadows. Slice 01 shipped the record in the
+`Environment` uniform, after the haze; slice 17 moved it into the camera,
+because a cascade's caster binds only its camera
+([choice 1](../choices.md#slice-17-tree-sway)).
 
 - **The record** (`crates/presentation/src/records.rs`, generated into
   `records.gen.ts`), 32 bytes:
@@ -18,8 +23,8 @@ clients upload it in the `Environment` uniform, after the haze (`Aerial`).
   - two words of padding.
 
   Gust speed and drift speed are separate quantities (decision 26). The
-  record holds no clock: grass sways on the camera's `time`, and smoke on the
-  presentation clock.
+  record holds no clock: what moves in it does so on the camera's `time`,
+  and smoke on the presentation clock.
 - **Source data:** the biome's top-level `wind` block, `{ heading_deg,
   drift_mps, gust_m, gust_mps }` (`fixtures/biomes/summer.json`). Grass keeps
   only how it answers, in `grass.sway` (`lean`, `gust`, `flutter`,
@@ -28,14 +33,18 @@ clients upload it in the `Environment` uniform, after the haze (`Aerial`).
 - **Owner:** `presentation::wind` (`WindSettings`: the block, its checks and
   its record).
 - **Readers:**
-  - grass's vertex stage reads `environmentWind()`
-    (`world/environment.ts`). The grass pipelines now bind the environment,
-    so their groups are camera, grass, environment, fog;
+  - grass's vertex stage, the water's drift (`waterCarried`) and the trees'
+    sway read `cameraWind()` (`world/camera.ts`). The grass pipelines' groups
+    are camera, grass, fog, environment, and both clients bind them by
+    layout name;
   - the effects drift smoke and dust on the record's direction
     (`EffectFrame::build` takes the biome's block, and none means calm air).
-- **Upload:** the browser's `battleFrame.ts` hands the presented ground's
-  record (`ground_wind`) to the environment frame (`setWind`). Native passes
-  it to `Environment::new` with the light, after resolving the ground.
+- **Upload:** the presentation fills the frame's camera with the presented
+  ground's record, calm before a ground, and copies it and the clock into
+  every cascade camera (`presentation/cameras.rs`). Both clients upload the
+  camera records as they are, so neither handles the wind itself. Slice 01's
+  `environmentWind`, `ground_wind`, `setWind` and native's
+  `Environment::new` wind argument were deleted in slice 17.
 - **Deleted:** `presentation.effects.wind_mps`, the biome's `grass.wind`, and
   the wind words in `GrassParams` (one `vec4f` fewer). The old sources and
   the new one never coexist.

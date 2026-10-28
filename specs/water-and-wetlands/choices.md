@@ -453,6 +453,8 @@ passes.
   world's layers arrive; until then nothing draws grass.
 - **Verdict:** sound.
 - **Confidence:** high.
+- **Superseded in slice 17:** the wind rides in the camera; `ground_wind`,
+  `setWind` and native's argument are gone ([slice 17, choice 1](#slice-17-tree-sway)).
 
 ### Grass's environment and fog groups swapped slots
 
@@ -466,6 +468,8 @@ passes.
 - **The reach:** none outside the export.
 - **Verdict:** sound.
 - **Confidence:** high.
+- **Superseded in slice 17:** grass reads `cameraWind()` and its groups
+  are camera, grass, fog, environment again.
 
 ### The effect vectors gained a bless path and a `wind` input
 
