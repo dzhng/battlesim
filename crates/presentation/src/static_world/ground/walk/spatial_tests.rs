@@ -439,13 +439,14 @@ fn fixed_fall_envelope_keeps_tipped_compressed_and_stump_extremes() {
             for along in [-radius, radius] {
                 for across in [-radius, radius] {
                     for z in [0., (h - hinge).max(0.)] {
-                        let a = along * angle.cos() + z * angle.sin() + 2. * trunk * landed;
+                        let a =
+                            along * libm::cos(angle) + z * libm::sin(angle) + 2. * trunk * landed;
                         let b = across * spread;
                         points.push([
                             0.6 * a - 0.8 * b,
                             0.8 * a + 0.6 * b,
-                            trunk * landed + hinge * (1. - landed) + z * angle.cos()
-                                - along * squash * angle.sin(),
+                            trunk * landed + hinge * (1. - landed) + z * libm::cos(angle)
+                                - along * squash * libm::sin(angle),
                         ]);
                     }
                 }

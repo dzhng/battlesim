@@ -91,7 +91,7 @@ pub fn max_momentary_loudness(channels: &[Vec<f32>], sample_rate: f64) -> f64 {
         }
     }
     if maximum > 0.0 {
-        -0.691 + 10.0 * maximum.log10()
+        -0.691 + 10.0 * libm::log10(maximum)
     } else {
         f64::NEG_INFINITY
     }

@@ -220,7 +220,7 @@ impl Relief {
             } => {
                 let dx = (rect[0] - x).max(x - (rect[0] + rect[2])).max(0.0);
                 let dy = (rect[1] - y).max(y - (rect[1] + rect[3])).max(0.0);
-                (height_m - libm::hypot(dx, dy) * side_degrees.to_radians().tan()).max(0.0)
+                (height_m - libm::hypot(dx, dy) * libm::tan(side_degrees.to_radians())).max(0.0)
             }
         }
     }

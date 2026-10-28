@@ -515,14 +515,14 @@ impl WorldGeometry {
     }
 
     /// Whether a mover may stand at (x, y): [`surface_at`](Self::surface_at)'s
-    /// `traversable`, without working out the road, forest and height the
-    /// surface also carries.
+    /// `traversable`, without the road, forest and height the surface also
+    /// carries.
     pub fn traversable_at(&self, x: f64, y: f64) -> bool {
         let Some((_, normal)) = self.field.height_normal(x, y) else {
             return false;
         };
         self.bridges.iter().any(|b| bridge_contains(b, v2(x, y)))
-            || (normal.z.clamp(-1.0, 1.0).acos().to_degrees() < self.slope_cutoff_deg
+            || (libm::acos(normal.z.clamp(-1.0, 1.0)).to_degrees() < self.slope_cutoff_deg
                 && !self.surfaces.water_at(v2(x, y)))
     }
 
@@ -530,7 +530,7 @@ impl WorldGeometry {
     pub fn ground_surface_at(&self, x: f64, y: f64) -> Option<Surface> {
         let (z, normal) = self.field.height_normal(x, y)?;
         let p = v2(x, y);
-        let slope_deg = normal.z.clamp(-1.0, 1.0).acos().to_degrees();
+        let slope_deg = libm::acos(normal.z.clamp(-1.0, 1.0)).to_degrees();
         let paved = self.surfaces.at(p);
         let kind = if self.surfaces.water_at(p) {
             SurfaceKind::Water

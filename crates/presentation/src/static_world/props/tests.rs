@@ -558,7 +558,7 @@ fn fitted_shadow(camera: &Camera, base_z: f64) -> CasterVolumes {
     let mut light: crate::light::LightSettings =
         serde_json::from_value(fixture["lights"]["game"].clone()).unwrap();
     light.sun_azimuth = std::f64::consts::PI;
-    light.sun_elevation = (0.1_f64).atan();
+    light.sun_elevation = libm::atan(0.1_f64);
     light.cascades.max_far_m = 100.;
     let z = base_z as f32;
     let terrain = TerrainPartition::new(

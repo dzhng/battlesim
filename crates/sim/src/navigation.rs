@@ -818,11 +818,10 @@ impl NavGrid {
         });
         let (length, width) = (hull.half.x, hull.half.y.max(1e-3));
         let along = v2(libm::cos(yaw), libm::sin(yaw));
-        // Discs about `width` apart, each covering its stretch of the box's
-        // full width.
+        // Discs about `width` apart, each spanning the box's full width.
         let discs = ((2.0 * length / width).ceil() as usize).max(1);
         let step = 2.0 * length / discs as f64;
-        let radius = width.hypot(step / 2.0);
+        let radius = libm::hypot(width, step / 2.0);
         (0..discs).all(|k| {
             let c = q + along * (-length + step * (k as f64 + 0.5));
             self.ground_clear(c, radius, false) && self.bodies_clear(c, radius, PushClass::None)

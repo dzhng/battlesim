@@ -12,9 +12,9 @@ never touches the simulation, so tuning it never moves a digest or a replay.
 `frame()` is a pure function of the world it loaded, the publications pushed and
 the frames asked for: no wall clock, no unseeded randomness. Every seed is
 Mulberry32 over a [`Key`](src/seed.rs) hashed from the numbers and names of
-what it decides for, and every transcendental function is `libm`'s, so a dust
-puff, a tracer's chance or a placed tree falls the same in WebAssembly and
-native.
+what it decides for, and every transcendental function is `libm`'s ([the
+simulation's rule](../sim/README.md#determinism-and-evidence)), so a dust puff,
+a tracer's chance or a placed tree falls the same in WebAssembly and native.
 
 ## What it owns
 

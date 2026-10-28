@@ -48,7 +48,7 @@ pub fn open_share(
     let mut open = 0;
     for index in 0..bearings {
         let angle = index as f64 / bearings as f64 * std::f64::consts::TAU;
-        let (dx, dy) = (angle.cos(), angle.sin());
+        let (dx, dy) = (libm::cos(angle), libm::sin(angle));
         // To full range, or to just inside the map's edge.
         let mut reach = sight.range_at(angle) - 0.01;
         for (from, along, limit) in [(at.x, dx, width), (at.y, dy, depth)] {

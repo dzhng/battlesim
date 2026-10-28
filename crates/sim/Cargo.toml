@@ -26,3 +26,7 @@ path = "tests/main.rs"
 [[example]]
 name = "cover_report"
 test = true
+
+# Native-only tests and examples may use std math; the library denies it (crates/clippy.toml).
+[lints.clippy]
+disallowed_methods = "allow"

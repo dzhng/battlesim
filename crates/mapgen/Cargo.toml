@@ -25,3 +25,7 @@ test = true
 name = "skirmish_tournament"
 path = "examples/skirmish_tournament/main.rs"
 test = true
+
+# Native-only tests and examples may use std math; the library denies it (crates/clippy.toml).
+[lints.clippy]
+disallowed_methods = "allow"

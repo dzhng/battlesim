@@ -11,7 +11,9 @@ and units belong to [contract](../contract/README.md), with WebAssembly exposed 
 Battle state belongs in [the digest](src/digest.rs). Equal digests mean equal
 battles; replays must reproduce outcomes as well as presentation evidence. Seeded
 choices use explicit integer widths before converting to platform-sized indices,
-so native and WebAssembly make the same decisions. An
+so native and WebAssembly make the same decisions. Every transcendental function
+under `crates/` is `libm`'s, never the standard library's, for the same reason;
+[the clippy configuration](../clippy.toml) refuses the others in library code. An
 optimization that changes a digest has changed behavior, even if a picture looks
 the same. Seeded randomness and iteration order are part of that contract. A body
 still where the map authored it is held by one digest of the authored props, taken

@@ -1,3 +1,4 @@
+#![deny(clippy::disallowed_methods)]
 //! Plan-only preparation; consumers receive the contract's final physical map.
 use contract::identity::{GenerationIdentity, Seed};
 use contract::map::{AuthoredPropDefinition, BuildingPartReference, MapDefinition, SurfaceArea};
@@ -466,8 +467,8 @@ pub struct GenerationFailure {
     pub diagnostics: Vec<Diagnostic>,
 }
 
-/// Developer inspection and normal generation share one generation/lowering pipeline.
-/// Returns the exact retained plan beside its compiled outcome, without generating twice.
+/// Inspection and normal generation share one pipeline: the retained plan
+/// beside its compiled outcome, generated once.
 pub fn generate_with_plan(
     request_json: &str,
     presets_json: &str,

@@ -102,7 +102,7 @@ pub fn foliage_reach(range: f64, depth: f64, s: &SensorRules) -> Option<f64> {
     } else if depth == 0.0 {
         Some(range)
     } else {
-        Some(range * (-depth).exp())
+        Some(range * libm::exp(-depth))
     }
 }
 
@@ -263,7 +263,7 @@ pub fn evaluate(
             let to = target.position - observer.position;
             let distance = to.xy().length();
             let arc = if distance > spread {
-                (spread / distance).asin()
+                libm::asin(spread / distance)
             } else {
                 std::f64::consts::PI
             };

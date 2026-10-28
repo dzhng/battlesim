@@ -21,7 +21,7 @@ Replace each standard-library call with its `libm` equivalent. All 13 sites as o
 | `crates/contract/src/map.rs:223` | `tan` |
 | `crates/mapgen/src/joints.rs:1629, 1776-1777` | `cos`, `sin` |
 
-Test code follows the same rule (e.g. `skirmish_ai/tests/backline.rs:128`, `hypot`). `sqrt`, `to_radians` and `to_degrees` are exactly rounded or plain multiplication, so they stay.
+In-crate test modules count as library code (e.g. `skirmish_ai/tests/backline.rs:128`). Test and example crates run natively only and are exempt: the four crates allow the lint package-wide and deny it in `lib.rs` ([choices](../choices.md)). `sqrt`, `powi`, `to_radians` and `to_degrees` are exactly rounded, integer powers or plain multiplication, so they stay.
 
 **Guard, so the rule can't regress:** a `crates/clippy.toml` with `disallowed-methods` covering the `f64`/`f32` transcendental methods (`exp`, `exp2`, `ln`, `log2`, `log10`, `powf`, `sin`, `cos`, `tan`, `sin_cos`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `hypot`, `cbrt`). Clippy finds the file from each crate's directory upward. That covers every crate under `crates/` (the presentation crate already complies) and leaves the native client in `native/` alone. The pre-commit hook already runs `cargo clippy --workspace --all-targets -D warnings`.
 

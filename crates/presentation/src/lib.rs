@@ -1,3 +1,4 @@
+#![deny(clippy::disallowed_methods)]
 //! The per-frame presentation both clients share: one side's publications
 //! in, a [`Frame`] of flat records out. It interpolates between ticks,
 //! poses every soldier and vehicle (joint palettes included),

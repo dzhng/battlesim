@@ -248,7 +248,7 @@ impl FlightConfig {
             }
             Some(t) => Some(Loft {
                 height_m: t.loft_m,
-                slope: t.dive_deg.to_radians().tan(),
+                slope: libm::tan(t.dive_deg.to_radians()),
             }),
         };
         let spread_m = weapon.scatter_mrad * 1e-3 * weapon.range_m;
@@ -1514,14 +1514,14 @@ pub fn lead(from: V3, from_velocity: V3, at: V3, velocity: V3) -> V3 {
     }
 }
 
-/// `velocity` turned toward `toward` by at most `max_angle`, keeping its speed.
+/// `velocity` turned toward `toward` by at most `max_angle`.
 pub fn steer(velocity: V3, toward: V3, max_angle: f64) -> V3 {
     let speed = velocity.length();
     if speed == 0.0 || toward.length() < 1e-9 {
         return velocity;
     }
     let (a, b) = (velocity * (1.0 / speed), toward.normalized());
-    let angle = a.dot(b).clamp(-1.0, 1.0).acos();
+    let angle = libm::acos(a.dot(b).clamp(-1.0, 1.0));
     if angle <= max_angle {
         return b * speed;
     }
