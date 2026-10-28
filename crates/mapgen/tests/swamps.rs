@@ -110,8 +110,13 @@ fn drawing_swamps_leaves_every_other_feature_of_a_seed_unchanged() {
                 };
                 assert!(without.swamps.is_empty());
                 swamped += usize::from(!with.swamps.is_empty());
-                let mut with = with;
+                // The open approaches are measured on the finished plan, so
+                // a swamp may narrow one (`no_open_approach_runs_through_a_swamp`);
+                // nothing a swamp is drawn after moves.
+                let (mut with, mut without) = (with, without);
                 with.swamps.clear();
+                with.approaches.clear();
+                without.approaches.clear();
                 assert_eq!(
                     json(&with),
                     json(&without),
@@ -294,4 +299,56 @@ fn a_generated_swamp_keeps_off_roads_and_woods() {
         }
     }
     assert!(checked >= 12, "only {checked} swamps checked");
+}
+
+/// A published open approach is ground a force advances over: no swamp
+/// water lies in it, as no river does, along every lane of every bearing it
+/// measured.
+#[test]
+fn no_open_approach_runs_through_a_swamp() {
+    let presets = presets(1.0);
+    let mut sampled = 0;
+    for (seed, plan) in corpus(&presets, GenerationProfile::Standard) {
+        if plan.swamps.is_empty() {
+            continue;
+        }
+        for approach in &plan.approaches {
+            let settlement = &plan.settlements[approach.settlement];
+            let steps = 24;
+            for k in 0..=steps {
+                let bearing = approach.from_rad
+                    + (approach.to_rad - approach.from_rad) * k as f64 / steps as f64;
+                let toward = [libm::cos(bearing), libm::sin(bearing)];
+                let aside = [-toward[1], toward[0]];
+                let edge = mapgen::layout::corridor_start(
+                    &settlement.outline,
+                    settlement.center,
+                    toward,
+                    approach.front_m,
+                );
+                for across in [-approach.front_m / 2.0, 0.0, approach.front_m / 2.0] {
+                    let mut open = 10.0;
+                    while open < approach.depth_m {
+                        let along = edge + open;
+                        let p = [
+                            settlement.center[0] + toward[0] * along + aside[0] * across,
+                            settlement.center[1] + toward[1] * along + aside[1] * across,
+                        ];
+                        for swamp in &plan.swamps {
+                            assert!(
+                                gap(ring(swamp), p) > 0.0,
+                                "seed {seed}: {approach:?} runs through a swamp at {p:?}"
+                            );
+                        }
+                        sampled += 1;
+                        open += 10.0;
+                    }
+                }
+            }
+        }
+    }
+    assert!(
+        sampled > 1000,
+        "only {sampled} approach samples beside swamps"
+    );
 }

@@ -385,7 +385,7 @@ pub fn approach_corridors(plan: &MapPlan) -> Vec<Corridor> {
 pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPlan> {
     let rule = &presets.approach;
     let depth_m = rule.depth_m(plan.size[0].min(plan.size[1]));
-    let water = super::water::rings(&plan.rivers);
+    let water = super::water::standing(plan);
     // What stands in the open country ends an approach as a wood does, but
     // is smaller than the gap between a corridor's lanes, so each is asked
     // as a disc: a yard, a copse, a single tree, and a tree line as a disc
