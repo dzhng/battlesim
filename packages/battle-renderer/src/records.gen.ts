@@ -26,6 +26,20 @@ export const WHOLE_BOX_WORDS = 8;
 export const SUN_CASCADES = 4;
 /** The cast lights a frame's uniform holds (`effects/lights.rs`). */
 export const CAST_LIGHTS_MAX = 24;
+/** How a standing tree sways in the wind, which the scenery walk's bounds
+ *  reach by (`static_world/ground/sway.rs`), and its crown's heart as a share
+ *  of its height (`walk.rs`): the shader finds the tree's height from it. */
+export const SWAY = {
+  bend: 0.18,
+  lean: 0.15,
+  gust: 0.7,
+  swing: 0.35,
+  rate: 1.6,
+  fullGustMps: 6,
+  shiverM: 0.15,
+  shiverRate: 7,
+  heart: 0.62,
+} as const;
 /** Each effect kind (`Counts.running`'s order) and instance shape
  *  (`Effect.misc.x`), as a capture's effect counts name them (`effects/frame.rs`). */
 export const EFFECT_KINDS = [

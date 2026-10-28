@@ -45,7 +45,8 @@ fn sway(foot: vec3f, point: vec3f, up: f32, height: f32, leaf: f32) -> vec3f {
   let swing = sin(t * 1.6 + phase) + 0.25 * sin(1.5 * t * 1.6 + 1.8 * phase);
   let h = clamp(up, 0.0, 1.0);
   let reach = h * h * h;
-  let bend = height * 0.1 * strength * (0.25 * (1.0 + gust) + 0.75 * swing) * reach;
+  let carried = 0.15 + 0.7 * gust + 0.35 * swing * 0.5 * (1.0 + gust);
+  let bend = height * 0.18 * strength * carried * reach;
   // Bent, the point keeps its distance from the foot: it drops a little.
   var offset = vec3f(dir * bend, -0.5 * bend * bend / max(height * h, 1.0));
   let q = point - foot;
@@ -54,13 +55,13 @@ fn sway(foot: vec3f, point: vec3f, up: f32, height: f32, leaf: f32) -> vec3f {
     sin(t * 7 * 1.3 + q.y * 1.9 + q.z * 0.8 + phase),
     sin(t * 7 * 0.9 + q.z * 2.3 + q.x * 0.6 + phase),
   );
-  offset += shiver * (0.15 * strength * (0.5 + gust) * leaf * h);
+  offset += shiver * (0.15 * strength * 0.5 * (1.0 + gust) * leaf * h);
   return offset;
 }
 
 fn standing(local: vec3f, pose: vec4f, shape: vec4f, leaf: f32) -> vec3f {
   let at = placedPoint(local, pose);
-  let height = max((2f * shape.w), 1f);
+  let height = max((shape.w / 0.62f), 1f);
   return (at + sway(pose.xyz, at, (local.z / height), height, leaf));
 }
 

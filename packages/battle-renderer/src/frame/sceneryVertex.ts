@@ -6,6 +6,7 @@ import { typegpuCameraLayout } from "../world/camera";
 import { KICK_RADII } from "../scenery/appearance";
 import { vertexLayout } from "./geometry";
 import { sway } from "./sway";
+import { SWAY } from "../records.gen";
 
 /** The frame's instance record (`Instance`) as the scenery reads it: its
  *  placement is the pose, its scale the shape (with the heart), its tint the
@@ -108,14 +109,14 @@ const placedNormal = tgpu.fn(
 
 /** Where a point of a standing appearance stands: placed (`placedPoint`),
  *  then moved in the wind (`sway`); `leaf` is the point's leaf flag, zero in
- *  a shadow caster. Its height share is over twice its crown's heart. */
+ *  a shadow caster. Its height is its crown's heart over `SWAY.heart`. */
 const standing = tgpu.fn(
   [d.vec3f, d.vec4f, d.vec4f, d.f32],
   d.vec3f,
 )((local, pose, shape, leaf) => {
   "use gpu";
   const at = placedPoint(local, pose);
-  const height = std.max(2 * shape.w, 1);
+  const height = std.max(shape.w / SWAY.heart, 1);
   return std.add(at, sway(pose.xyz, at, local.z / height, height, leaf));
 });
 
