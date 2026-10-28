@@ -25,6 +25,7 @@ impl Renderer {
         let post_grade = self.post_grade.clone();
         let effect_layers = self.shared_effects.layers().to_vec();
         let presentation = self.presentation_snapshot.clone();
+        let overlay = self.overlay_snapshot.clone();
         let mut replacement = Self::new(
             canvas,
             bytemuck::cast_slice(&[lighting.sky]).to_vec(),
@@ -80,6 +81,7 @@ impl Renderer {
         if !post_bloom.is_empty() || !post_grade.is_empty() {
             replacement.upload_post(&post_bloom, &post_grade)?;
         }
+        replacement.overlay(&overlay)?;
         *self = replacement;
         Ok(())
     }

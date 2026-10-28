@@ -53,6 +53,20 @@ export async function run(ctx) {
     .locator("tbody tr")
     .evaluateAll((rows) => rows.flatMap((row) => JSON.parse(row.dataset.samples ?? "[]")));
   await writeFile(evidencePath("samples.json"), JSON.stringify(samples, null, 2));
+  const recovery = await page
+    .locator("canvas")
+    .nth(11)
+    .evaluate((canvas) => ({
+      before: canvas.dataset.recoveryBefore,
+      after: canvas.dataset.recoveryAfter,
+    }));
+  for (const [phase, data] of Object.entries(recovery)) {
+    if (data)
+      await writeFile(
+        evidencePath(`recovery-${phase}.png`),
+        Buffer.from(data.split(",")[1], "base64"),
+      );
+  }
   await page.screenshot({ path: evidencePath("comparison.png"), fullPage: true });
   if (capture) {
     const browser = await page.locator("canvas").nth(9).screenshot();
@@ -86,6 +100,11 @@ export async function run(ctx) {
     ctx.check(
       "captured shared renderer admits models and recovers the device",
       workload?.presentationModelRuns > 0 && workload?.deviceRecoveries >= 1,
+      JSON.stringify(workload),
+    );
+    ctx.check(
+      "captured frame pixels survive device recreation",
+      workload?.recoveryPixelsMatch === true,
       JSON.stringify(workload),
     );
     return;
@@ -154,6 +173,11 @@ export async function run(ctx) {
   ctx.check(
     "shared browser row recreates the device and resources",
     sharedWorkload?.deviceLost >= 1 && sharedWorkload?.deviceRecoveries >= 1,
+    JSON.stringify(sharedWorkload),
+  );
+  ctx.check(
+    "shared browser row restores complete frame pixels after device recreation",
+    sharedWorkload?.recoveryPixelsMatch === true,
     JSON.stringify(sharedWorkload),
   );
   ctx.check(

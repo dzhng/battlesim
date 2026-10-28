@@ -83,6 +83,7 @@ impl Renderer {
                 .map_or(0, |s| s.payload_bytes())
             + size_of_val(self.post_bloom.as_slice())
             + size_of_val(self.post_grade.as_slice())
+            + size_of_val(self.overlay_snapshot.as_slice())
             + self
                 .shared_effects
                 .layers()

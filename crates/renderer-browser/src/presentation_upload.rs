@@ -120,6 +120,7 @@ impl Renderer {
             &vertex_bytes,
         );
         self.overlay_vertex_count = (mesh.len() / 10) as u32;
+        self.overlay_snapshot = mesh.to_vec();
         Ok(())
     }
 

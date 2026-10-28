@@ -477,6 +477,11 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     shadowBatches,
   );
   const startupMs = performance.now() - started;
+  stage("initial frame proof");
+  renderer.render();
+  await renderer.drain();
+  const beforeRecovery = canvas.toDataURL();
+  canvas.dataset.recoveryBefore = beforeRecovery;
   stage("resize and surface recovery");
   canvas.width = 320;
   canvas.height = 180;
@@ -496,35 +501,14 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   }
   stage("device recovery");
   await renderer.recover_device(canvas);
-  stage("recovered presentation upload");
-  upload.upload_frame(
-    new Float32Array(f.camera.f32),
-    new Float32Array(f.view.f32),
-    new Float32Array(fogLook),
-    new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
-    new Float32Array(f.lights.f32),
-    lightWrap,
-  );
-  effectAtlas.forEach((rgba, layer) => upload.upload_effect_atlas(layer, rgba));
-  upload.upload_effects(new Float32Array(f.effects.f32));
-  renderer.upload_model_frame(modelPalettes, modelInstances, modelBatches);
+  stage("recovered knowledge preparation");
   prepareGround(true);
-  upload.overlay(
-    concatMeshes([
-      fixture.overlay.opaque,
-      fixture.overlay.translucent,
-      fixture.overlay.painted,
-      fixture.overlay.paintedMarching,
-    ]),
-  );
   uploadFogSight(true);
-  renderer.upload_shadow(
-    new Float32Array(f.sun_shadow.f32),
-    new Float32Array(f.casters.f32),
-    shadowBatches,
-  );
   renderer.render();
   await renderer.drain();
+  const afterRecovery = canvas.toDataURL();
+  canvas.dataset.recoveryAfter = afterRecovery;
+  const recoveryPixelsMatch = beforeRecovery === afterRecovery;
   const setupMs = startupMs;
   renderer.set_gpu_timing(new URLSearchParams(window.location.search).get("timing") === "1");
   renderer.reset_gpu_timing();
@@ -543,6 +527,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     ...JSON.parse(renderer.stats()),
     ...assetAccounting,
     fogInitialUploadComplete,
+    recoveryPixelsMatch,
     timing: measured.timing,
     gpu: renderer.gpu_timing(),
     allocations: renderer.memory(),
