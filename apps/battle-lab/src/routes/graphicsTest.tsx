@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useSessionCatalog } from "@web/battle/catalog/context";
-import { MENU_REEL_WORKLOAD } from "@web/battle/benchmark/menuReel";
+import { REELS, type ReelWorkload } from "@web/battle/benchmark/reels";
 import type { FrameCount, PresentationLayer } from "@web/battle/benchmark/visualPresentation";
 import { listMaps } from "@web/maps/catalogue";
 import game from "@fixtures/game.json";
@@ -19,12 +19,44 @@ import { createReelReport, type ReelReport } from "../benchmark/reelReport";
 import { FrameChart } from "../benchmark/FrameChart";
 import { graphicsProfiles, type GraphicsTier } from "../graphicsSettings";
 
-const scenes = validateCapture({ scenes: MENU_REEL_WORKLOAD.scenes }, listMaps()).scenes;
-// The rig films every scene's closest framing, however few scenes run.
-const cameraConfig = filmCamera(
-  gameCamera.config,
-  scenes.map((s) => s.reel),
-);
+/** What each reel plays, for the page's lead. */
+const REEL_SUBJECTS: Record<keyof typeof REELS, string> = {
+  menu: "the complete main-menu battle sequence",
+  water: "the water reel on the wetlands map",
+};
+
+/** The reel `?capture=<name>` names (the menu's without it), its scenes
+ *  admitted against the map catalogue, or the refusal naming what the test
+ *  films. */
+function chooseReel(name: string | null) {
+  const id = name ?? "menu";
+  if (!Object.hasOwn(REELS, id))
+    return `The graphics test films the ${Object.keys(REELS).join(" or ")} reel; not ${id}.`;
+  const workload: ReelWorkload = REELS[id as keyof typeof REELS];
+  const scenes = validateCapture({ scenes: workload.scenes }, listMaps()).scenes;
+  return {
+    workload,
+    subject: REEL_SUBJECTS[id as keyof typeof REELS],
+    scenes,
+    // The rig films every scene's closest framing, however few scenes run.
+    cameraConfig: filmCamera(
+      gameCamera.config,
+      scenes.map((s) => s.reel),
+    ),
+    // A renderer or resource stall must produce a terminal result, while a
+    // valid reel gets its authored shot duration plus one minute of setup margin.
+    timeoutMs:
+      scenes.reduce(
+        (total, scene) =>
+          total + scene.reel.shots.reduce((seconds, shot) => seconds + shot.seconds, 0),
+        0,
+      ) *
+        1000 +
+      60_000,
+  };
+}
+type Reel = Exclude<ReturnType<typeof chooseReel>, string>;
+
 /** What the reel's viewport is handed: the battle, with no orders, and with
  *  no fog of war unless `?fog=1` asks for the side's. */
 const REEL_LAYERS: readonly PresentationLayer[] = [
@@ -40,19 +72,12 @@ const REEL_LAYERS: readonly PresentationLayer[] = [
   "effects",
   "scars",
 ];
-/** A renderer or resource stall must produce a terminal result, while a valid
- * reel gets its authored shot duration plus one minute of setup margin. */
-const REEL_TIMEOUT_MS =
-  scenes.reduce(
-    (total, scene) => total + scene.reel.shots.reduce((seconds, shot) => seconds + shot.seconds, 0),
-    0,
-  ) *
-    1000 +
-  60_000;
 
-/** The scenes `?scenes=<map,…>` names, in that order (every scene without
- *  it), or the refusal naming a map the reel does not film. */
-function chooseScenes(names: string | null): readonly CaptureScene[] | string {
+/** The scenes of `reel` that `?scenes=<map,…>` names, in that order (every
+ *  scene without it), or the refusal naming a map the reel does not film. */
+function chooseScenes(reel: Reel | string, names: string | null): readonly CaptureScene[] | string {
+  if (typeof reel === "string") return reel;
+  const { scenes } = reel;
   if (names === null) return scenes;
   const chosen = names.split(",").map((name) => scenes.find((s) => s.map === name) ?? name);
   const unknown = chosen.filter((s) => typeof s === "string");
@@ -79,7 +104,8 @@ declare global {
 
 export default function GraphicsTest() {
   const [params] = useSearchParams();
-  const [chosen] = useState(() => chooseScenes(params.get("scenes")));
+  const [reel] = useState(() => chooseReel(params.get("capture")));
+  const [chosen] = useState(() => chooseScenes(reel, params.get("scenes")));
   const [plates] = useState(() => params.get("plates") === "1");
   const [counts] = useState(() => params.get("counts") === "1");
   const [fog] = useState(() => params.get("fog") === "1");
@@ -93,6 +119,7 @@ export default function GraphicsTest() {
   const run = typeof chosen === "string" ? [] : chosen;
   const reportOf = (done: readonly ReelResult[], reason: string | null) =>
     createReelReport(done, {
+      reel: typeof reel === "string" ? undefined : reel.workload,
       maps: run.map((s) => s.map),
       plates,
       layers: fog ? [...REEL_LAYERS, "fog"] : REEL_LAYERS,
@@ -132,19 +159,21 @@ export default function GraphicsTest() {
     setResults(next);
     if (result.outcome.status !== "complete" || next.length === run.length) setStage("results");
   };
+  const timeoutMs = typeof reel === "string" ? 0 : reel.timeoutMs;
   useEffect(() => {
     if (stage !== "running") return;
     const timer = window.setTimeout(() => {
-      setFailure(`Graphics test did not complete within ${REEL_TIMEOUT_MS / 1000} s.`);
+      setFailure(`Graphics test did not complete within ${timeoutMs / 1000} s.`);
       setStage("results");
-    }, REEL_TIMEOUT_MS);
+    }, timeoutMs);
     return () => window.clearTimeout(timer);
-  }, [stage]);
+  }, [stage, timeoutMs]);
   if (stage === "running")
     return (
       <ReelScene
         key={results.length}
         scene={run[results.length]}
+        cameraConfig={(reel as Reel).cameraConfig}
         plates={plates}
         counts={counts}
         fog={fog}
@@ -171,8 +200,8 @@ export default function GraphicsTest() {
           </h1>
         </header>
         <p className="bench-sub">
-          Play the complete main-menu battle sequence at your current resolution. Loading between
-          scenes is excluded.
+          Play {typeof reel === "string" ? "a reel" : reel.subject} at your current resolution.
+          Loading between scenes is excluded.
         </p>
         {typeof chosen === "string" && <p role="alert">{chosen}</p>}
         {failure && <p role="alert">{failure}</p>}
@@ -215,6 +244,7 @@ export default function GraphicsTest() {
 
 function ReelScene({
   scene,
+  cameraConfig,
   plates,
   counts,
   fog,
@@ -223,6 +253,7 @@ function ReelScene({
   onFailure,
 }: {
   scene: CaptureScene;
+  cameraConfig: Reel["cameraConfig"];
   plates: boolean;
   counts: boolean;
   fog: boolean;
@@ -243,6 +274,7 @@ function ReelScene({
   return (
     <ReelBattle
       scene={scene}
+      cameraConfig={cameraConfig}
       scenario={built}
       plates={plates}
       counts={counts}
@@ -255,6 +287,7 @@ function ReelScene({
 
 function ReelBattle({
   scene,
+  cameraConfig,
   scenario,
   plates,
   counts,
@@ -263,6 +296,7 @@ function ReelBattle({
   onDone,
 }: {
   scene: CaptureScene;
+  cameraConfig: Reel["cameraConfig"];
   scenario: string;
   plates: boolean;
   /** Count what chosen frames drew (`createReelRun`'s `counts`). */

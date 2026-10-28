@@ -34,8 +34,12 @@ Read [`development.md`](../../development.md), the
 slice file names the decisions it may still make. Anything else you have to
 decide goes in a `choices.md` ledger beside this file.
 
-**Pick up at [slice 00](slices/00-water-scene.md).** Slice 10 (sim lane) can
-start in parallel on day one, and slice 01 can run alongside slice 02.
+Slice 00 is done: the water scene (`bun run --cwd web scene -- water`) films
+the wetlands reel on both clients and is every visual slice's place to judge.
+Its preview checkpoint passed without feedback, so the framings stand.
+**Pick up at [slice 02](slices/02-water-pass.md)**, with
+[slice 01](slices/01-one-wind.md) alongside it. The sim lane (slice 10 on)
+runs in parallel on `spec/water-and-wetlands-sim` and merges in here.
 
 **Warning:** native must start and draw water at every slice (decision 19). A
 slice that changes an exported pipeline's layout, sample count or targets ports
@@ -48,7 +52,8 @@ the checklist.
 
 - [x] The unknowns walk and the landmine sweep (2026-10-27).
 - [x] Parallel drafts and slicing (2026-10-27).
-- [ ] Render lane: [00](slices/00-water-scene.md), [01](slices/01-one-wind.md), [02](slices/02-water-pass.md),
+- [x] [00](slices/00-water-scene.md), the water scene (2026-10-27).
+- [ ] Render lane: [01](slices/01-one-wind.md), [02](slices/02-water-pass.md),
       [03](slices/03-water-look-data.md), [04](slices/04-depth-colour.md), [05](slices/05-soft-shore.md),
       [06](slices/06-surface-normals.md), [07](slices/07-refraction.md), [08](slices/08-caustics.md),
       [09](slices/09-highlights.md).
@@ -289,8 +294,8 @@ other slice, a changed digest is a bug.
 **How the drafts were merged:** four drafts each had a different bias (fewest
 slices, risk first, seam quality, feedback loop). Draft D (feedback loop)
 supplied the harnesses: `fixtures/captures/water.json` owns the shots, look
-data reloads live in the `wetlands` lab, and the map workbench gets a swamp
-overlay. Where the drafts agreed, the plan follows them:
+data reloads live on the water scene's page, and the map workbench gets a
+swamp overlay. Where the drafts agreed, the plan follows them:
 
 - the water scene and a native draw check come first;
 - water reads the existing multisampled depth in its shader, so it needs no

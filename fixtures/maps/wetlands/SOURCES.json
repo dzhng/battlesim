@@ -1,0 +1,18 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "b4379e0c9f9e4ef57514752cc76df6632447701441983ec26e33632c30590c76",
+    "template_catalog_hash": null
+  },
+  "catalogue": {
+    "library": "prototype-building-templates.json",
+    "template_ids": []
+  },
+  "inputs": [
+    {
+      "kind": "supplied",
+      "label": "a Catmull-Rom river through hand-placed control points, sampled every 4 m",
+      "sha256": "e0f65943c4c11ce1e58ce66fe67b7c10c753e0599082682d30529516019cc2b9"
+    }
+  ]
+}

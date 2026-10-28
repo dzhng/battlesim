@@ -55,7 +55,8 @@ New file `crates/sim/tests/swamps.rs`, using test maps:
 
 ## The human sees
 
-`/labs/wetlands`: units walk into the dip and their feet drop.
+The water scene, once its encounter walks a unit into the swamp: its feet
+drop.
 
 ## Builds on PR #17
 

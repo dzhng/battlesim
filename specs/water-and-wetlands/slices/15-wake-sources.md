@@ -39,9 +39,12 @@ In `crates/presentation/tests/effect_behaviour.rs`, next to the dust tests:
 
 ## The human sees
 
-The `wetlands` lab has buttons for the moments the tests name: a hidden unit, a
-seen unit, a rider, a still wader, a moving one, and a side switch. They show
-where wake impulses are placed, as debug marks, before slice 16 draws any waves.
+A lab has buttons for the moments the tests name: a hidden unit, a seen unit, a
+rider, a still wader, a moving one, and a side switch. They show where wake
+impulses are placed, as debug marks, before slice 16 draws any waves. Labs open
+only `test` maps, and `wetlands` is a `capture` map (the capture tool films
+only those), so this lab stands on its own `test` copy of the wetlands
+ground, per [saved maps](../../../fixtures/README.md#saved-maps).
 
 ## Verification
 

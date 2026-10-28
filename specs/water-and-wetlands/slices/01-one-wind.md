@@ -34,7 +34,8 @@ mechanic, not a value.
 
 ## The human sees
 
-`/labs/wetlands` and the menu reel's smoke shot. Grass doesn't change; smoke
+The water scene (`bun run --cwd web scene -- water`) and the menu reel's smoke
+shot. Grass doesn't change; smoke
 drifts with it.
 
 ## Verification

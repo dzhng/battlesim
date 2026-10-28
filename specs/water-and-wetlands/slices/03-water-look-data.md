@@ -25,8 +25,9 @@
 The look rows are data, uploaded as uniforms, so they reload without
 rebuilding shaders. Each later look slice tunes its constants live:
 
-- **Reload:** the `wetlands` lab reloads the water look data when its source
-  file changes. Reuse the map workbench's source reload and revision protocol
+- **Reload:** the water scene's page (`/labs/graphics-test?capture=water`,
+  or one shot through `/labs/capture?capture=water&scene=0`) reloads the
+  water look data when its source file changes. Reuse the map workbench's source reload and revision protocol
   (`apps/map-workbench`) rather than building a second editor.
 - **Pin a look:** `?water_look=<row>` pins one look row on every water feature,
   so a variant can be judged on its own.
