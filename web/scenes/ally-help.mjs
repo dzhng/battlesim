@@ -122,7 +122,8 @@ export async function run(ctx) {
       return answering(o).length > 0;
     },
     150 * 30,
-    300,
+    // A helper can halt to aim for less than two seconds between movements.
+    15,
   );
   await ctx.writeEvidence("path.json", path);
   ctx.check(
