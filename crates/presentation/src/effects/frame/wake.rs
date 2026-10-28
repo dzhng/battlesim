@@ -80,9 +80,11 @@ pub struct WaveFrame {
 }
 
 impl EffectFrame {
-    /// Start the wave field over, in a new epoch (a side switch).
+    /// Start the wave field over, in a new epoch (a side switch), with none
+    /// of the wakes the old side saw made still waiting to splat.
     pub fn restart_waves(&mut self) {
         self.waves.restart();
+        self.wakes.clear();
     }
 
     /// The wave field's frame at presentation time `clock` for `camera`
