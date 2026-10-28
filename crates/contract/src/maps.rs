@@ -551,6 +551,12 @@ pub fn resolve(
             location: "map.json.authored_parts".into(),
             message,
         })?;
+    // Swamps keep off buildings, so they are checked once those stand.
+    crate::swamp::validate(&definition).map_err(|message| ResolveError {
+        code: ResolveCode::InvalidMap,
+        location: "map.json".into(),
+        message,
+    })?;
     let map_hash = crate::identity::json_hash(&definition).map_err(|e| ResolveError {
         code: ResolveCode::InvalidMap,
         location: "map.json".into(),
