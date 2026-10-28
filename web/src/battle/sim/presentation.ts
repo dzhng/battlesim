@@ -1,12 +1,10 @@
 /** Browser binding of Rust presentation: side publications in, observations
  * and frame views out. Rust owns decoding, poses, effects and static walks. */
-import init, {
-  Presentation,
-  fog_look,
-  light_records,
-} from "@wasm/presentation/presentation_wasm.js";
+import type { Renderer } from "@wasm/renderer_browser";
+import type { BattleAudio } from "@packages/battle-audio/src/battleAudio";
+import init, { Presentation, fog_look, light_records } from "@wasm/renderer_browser";
 import { LearnedGround, groundOf, type SceneGround } from "./presentationGround";
-import wasmUrl from "@wasm/presentation/presentation_wasm_bg.wasm?url";
+import wasmUrl from "@wasm/renderer_browser/renderer_browser_bg.wasm?url";
 import {
   APPEARANCE_WORDS,
   Appearance,
@@ -65,13 +63,13 @@ export interface ReceiverFitStats {
 }
 
 /** Initialises the module once per realm; decoders need it first. */
-export function loadPresentation(): Promise<unknown> {
+export function loadPresentation(): Promise<{ memory: WebAssembly.Memory }> {
   // Vitest runs in Node, where Vite's asset URL cannot be fetched (module.ts).
   loaded ??= (
     typeof process !== "undefined" && process.versions?.node
       ? import("node:fs/promises")
           .then(({ readFile }) =>
-            readFile(`${import.meta.dirname}/../../wasm/presentation/presentation_wasm_bg.wasm`),
+            readFile(`${import.meta.dirname}/../../wasm/renderer_browser/renderer_browser_bg.wasm`),
           )
           .then((bytes) => init({ module_or_path: bytes }))
       : init({ module_or_path: countedFetch(wasmUrl) })
@@ -315,8 +313,6 @@ export class ScenePresentation {
   private stale = false;
   /** The drawables of the last load, and those the page has not taken yet. */
   private rows: readonly PresentedAppearance[] = [];
-  private appearanceWords = new Uint32Array(0);
-  private appearanceStrings = "";
   private loaded: PresentedAppearance[] | null = null;
   /** The last frame wrote the static batches: its walk changed something. */
   private walked = false;
@@ -391,8 +387,6 @@ export class ScenePresentation {
     const views = worldViews(buffer(), ptr);
     const text = new TextDecoder();
     const rows = views.appearances.u32;
-    this.appearanceWords = new Uint32Array(rows);
-    this.appearanceStrings = text.decode(views.strings);
     const name = (at: number, len: number) => text.decode(views.strings.subarray(at, at + len));
     const loaded: PresentedAppearance[] = Array.from(
       { length: views.appearances.count },
@@ -417,41 +411,6 @@ export class ScenePresentation {
   /** The drawables named by the last loaded world, in frame row order. */
   appearanceRows(): readonly PresentedAppearance[] {
     return this.rows;
-  }
-
-  /** Copy the native model owner's world ABI and its authored rest palettes.
-   * The renderer lives in a separate WASM memory, so all arrays are owned
-   * snapshots, never views invalidated by another presentation call. */
-  modelWorld() {
-    const offsets = new Uint32Array(this.rows.length + 1);
-    const palettes = this.rows.map((_, row) => this.rust.rest_palette(row) ?? new Float32Array(0));
-    let words = 0;
-    palettes.forEach((palette, row) => {
-      offsets[row] = words;
-      words += palette.length;
-    });
-    offsets[this.rows.length] = words;
-    const rest = new Float32Array(words);
-    palettes.forEach((palette, row) => rest.set(palette, offsets[row]));
-    return { appearances: this.appearanceWords, strings: this.appearanceStrings, offsets, rest };
-  }
-
-  /** Scenery kind order and presentation-owned stump meshes share the model
-   * world's appearance row order. Offsets index the packed world-vertex words. */
-  sceneryWorld() {
-    const kinds = JSON.parse(this.rust.scenery_kinds()) as string[];
-    const offsets = new Uint32Array(this.rows.length + 1);
-    let words = 0;
-    this.rows.forEach((row, index) => {
-      offsets[index] = words;
-      words += row.stump?.length ?? 0;
-    });
-    offsets[this.rows.length] = words;
-    const stumps = new Float32Array(words);
-    this.rows.forEach((row, index) => {
-      if (row.stump) stumps.set(row.stump, offsets[index]);
-    });
-    return { kinds, offsets, stumps };
   }
 
   /** Stage what the battle draws (null: none); loaded with the rest by the
@@ -784,15 +743,41 @@ export class ScenePresentation {
     return views;
   }
 
-  /** The last frame's views, taken again after another call into the module. */
+  /** Reacquire views after any allocating presentation, rendering or audio call. */
   lastFrame(): PresentedFrame {
     return frameViews(buffer(), this.framePtr);
   }
 
-  /** The module's presentation, which battle sound hears
-   *  (`battle-audio`'s `SoundFrame`). */
-  get wasm(): Presentation {
-    return this.rust;
+  /** Install canonical scene state without crossing a second WASM memory. */
+  installRenderer(renderer: Pick<Renderer, "install_presentation">) {
+    renderer.install_presentation(this.rust);
+  }
+
+  /** Rebuild targets against the canonical state; reacquire UI views afterward. */
+  resizeRenderer(renderer: Pick<Renderer, "resize">, canvas: HTMLCanvasElement) {
+    renderer.resize(canvas, this.rust);
+  }
+
+  /** Rust acquires the output and prepares/draws from the canonical frame.
+   * Recreate UI views afterward: renderer allocation can grow this memory. */
+  render(renderer: Pick<Renderer, "render_presentation">): PresentedFrame {
+    this.framePtr = renderer.render_presentation(this.rust);
+    return this.lastFrame();
+  }
+
+  /** The side's publication heard by sound, without exposing the Rust handle. */
+  noteAudio(audio: Pick<BattleAudio, "note"> | null | undefined) {
+    audio?.note(this.rust);
+  }
+
+  /** Sound's presentation frame, heard after rendering prepares the view. */
+  updateAudio(audio: Pick<BattleAudio, "update"> | null | undefined) {
+    audio?.update(this.rust);
+  }
+
+  /** Canonical ground-patch rows, copied by the binding for observation consumers. */
+  groundRuns(): Float32Array {
+    return this.rust.ground_runs();
   }
 
   /** The last frame as the labs' scenes probe it (`Presentation::probe_json`). */

@@ -22,12 +22,9 @@ const groups = {
   "shared-rust-renderer-core": ["crates/renderer-core/src"],
   "shared-rust-browser-shell": ["crates/renderer-browser/src"],
   "browser-platform-transport": ["web/src/battle/render"],
-  "native-renderer-modules": [
-    "native/client/src/frame.rs",
-    "native/client/src/shadow.rs",
-    "native/client/src/effects.rs",
-  ],
   "native-platform-shell": [
+    "native/client/src/readback.rs",
+    "native/client/src/effects.rs",
     "native/client/src/main.rs",
     "native/client/src/main_desktop.rs",
     "native/client/src/main_app.rs",
@@ -190,38 +187,7 @@ const report = {
         visualDiff: visual,
       }
     : null,
-  ownership: [
-    {
-      area: "canvas/device/surface",
-      browser: "BattleFrame caller + TypeGPU root/device",
-      rust: "renderer-browser WASM shell over renderer-core",
-      status: "shared target/pipeline/pass seam runs in browser; surface shell remains platform-specific",
-    },
-    {
-      area: "terrain and authored tank",
-      browser: "worldPass/modelLayer and oneRendererModel.ts",
-      rust: "renderer-browser shared asset parser/upload/indexed draw; renderer-wasm-spike remains transport probe",
-      status: "shared browser core parses, uploads, binds shared materials, and draws the real tank through renderer-core; production material shading parity remains open",
-    },
-    {
-      area: "reverse-Z depth",
-      browser: "SizedTargets / worldDepth / BattleFrame",
-      rust: "renderer-core::depth::DepthPrepass called by both native and renderer-browser",
-      status: "shared depth pass executes in browser WASM fixture; native adapter compiles",
-    },
-    {
-      area: "shadows, fog, effects, post, overlays",
-      browser: "BattleFrame world/fog/effects/post/overlay owners",
-      rust: "native renderer modules, moving into shared core",
-      status: "shared fog-look/post/effects/shadow resources and caster routing are allocated and encoded; overlay draws, shadow sampling and full fog compute remain open",
-    },
-    {
-      area: "resource registry/generation/reset/device loss",
-      browser: "GpuRegistry + SizedTargets + frame disposal",
-      rust: "ad hoc renderer-owned resources",
-      status: "shared browser target generation, surface recovery, and whole-device recreation are scene-gated; native registry parity remains open",
-    },
-  ],
+
 };
 
 const output = JSON.stringify(report, null, 2) + "\n";

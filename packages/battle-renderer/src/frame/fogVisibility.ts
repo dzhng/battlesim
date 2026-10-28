@@ -18,7 +18,7 @@
 // tests), and `probeShape` runs the WGSL sight shape against Rust's vectors.
 // Probes read back: lab only, never in the frame.
 import { tgpu, d } from "typegpu";
-import type { FogUpload, Presentation } from "@wasm/presentation/presentation_wasm.js";
+import type { FogUpload, Presentation } from "@wasm/renderer_browser";
 import type { GpuRegistry, GpuSlot } from "./registry";
 import { triangleRuleHeight } from "./triangleRule";
 import { terrainSample, type TerrainHeights } from "./terrainHeights";

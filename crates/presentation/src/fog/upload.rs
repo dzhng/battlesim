@@ -4,7 +4,7 @@ use crate::records::{FogBox, FogEye, FogParams};
 /// The structures pass of one frame (`fogWhole`): clear the flags, flag each
 /// row's structure seen or not, copy the flags into the `wholes` texture's
 /// rows from `flags_row`.
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct WholePass {
     /// Rows to flag (`whole_records`), and their words.
     pub count: u32,
@@ -20,7 +20,7 @@ pub struct WholePass {
 /// One drawn frame's fog: what to upload, then which passes to run, in order
 /// (rebuild, structures, cull). A renderer sizes its buffers to what it is
 /// handed and holds the rest from earlier frames.
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct FogUpload {
     pub params: FogParams,
     /// Whether fog is drawn: off, the passes run nothing and `params` says so.

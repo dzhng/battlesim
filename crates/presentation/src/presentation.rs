@@ -1,4 +1,5 @@
 //! One side's publications into a frame of poses, effects, batches and palettes.
+mod static_frame;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -25,7 +26,7 @@ use crate::records::{
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
 use crate::shadow::{ReceiverStats, ShadowFit, SunShadowFrame};
 use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
-use crate::static_world::batches::{Population, StaticBatches};
+use crate::static_world::batches::StaticBatches;
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
 use crate::static_world::ground::biome::Biome;
@@ -1368,16 +1369,8 @@ impl Presentation {
             }
             _ => None,
         };
-        let mut populations: Vec<&mut dyn Population> = Vec::new();
-        if let Some(b) = &mut self.buildings {
-            populations.push(b);
-        }
-        if let Some(s) = &mut scenery {
-            populations.push(s);
-        }
-        if let Some(p) = self.props.as_mut().filter(|p| !p.rows.is_empty()) {
-            populations.push(p);
-        }
+        let mut populations =
+            static_frame::populations(&mut self.buildings, &mut scenery, &mut self.props);
         let f = &mut self.frame;
         self.statics
             .write(&mut populations, camera, &view, generation, f);

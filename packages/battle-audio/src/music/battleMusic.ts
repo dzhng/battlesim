@@ -5,7 +5,7 @@
 // music commands out on a player: a start fades a track in, a stop fades
 // every track out (a crossfade is the two over the same span), and a duck
 // dips the bus.
-import { Score } from "@wasm/presentation/presentation_wasm.js";
+import { Score } from "@wasm/renderer_browser";
 import type { Duck } from "../audioPresentation";
 import type { VoiceRequest } from "../voices/chatter";
 import type { Mood } from "./musicCatalog";

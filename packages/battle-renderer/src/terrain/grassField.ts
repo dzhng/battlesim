@@ -13,7 +13,7 @@
 // reshuffles as the camera moves.
 import type { StaticBundle } from "@packages/scene-assets/src/schema.ts";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader.ts";
-import { GrassShapes } from "@wasm/presentation/presentation_wasm.js";
+import { GrassShapes } from "@wasm/renderer_browser";
 
 /** Plot kinds the GPU growth table holds; the last row is the verge. */
 export const GRASS_GROWTH_ROWS = 16;

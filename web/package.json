@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
     "test": "vitest run",
-    "build:wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/game-wasm --target web --release --out-dir ../../web/src/wasm && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/presentation-wasm --target web --release --out-dir ../../web/src/wasm/presentation && bun run build:renderer-wasm && bun run build:shared-renderer-wasm",
+    "build:wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/game-wasm --target web --release --out-dir ../../web/src/wasm && bun run build:renderer-wasm && bun run build:shared-renderer-wasm",
     "build:renderer-wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/renderer-wasm-spike --target web --release --out-dir ../../web/src/wasm/renderer_spike",
     "build:shared-renderer-wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/renderer-browser --target web --release --out-dir ../../web/src/wasm/renderer_browser",
     "scene": "node scene.mjs",

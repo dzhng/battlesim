@@ -43,7 +43,7 @@ function decodeCapture(capturePath: string): FixtureObservation[] {
       fixture.fog.bits = sha256Words(Array.from(view.fog.bits));
       fixture.groundPatch = {
         ...fixture.groundPatch,
-        runs: Array.from(decoder.wasm.ground_runs()),
+        runs: Array.from(decoder.groundRuns()),
       };
       return fixture;
     });

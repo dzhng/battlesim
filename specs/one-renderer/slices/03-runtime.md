@@ -1,6 +1,8 @@
 # Slice 03 — one runtime and direct browser presentation
 
-**Status:** next. Depends on the shared-frame checkpoint in slice 02.
+**Status:** complete. Unified browser/native runtime, held/changing-frame parity,
+recovery, memory-view lifetime and review gates pass.
+Depends on the shared-frame checkpoint in slice 02.
 
 ## Contract
 

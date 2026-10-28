@@ -15,7 +15,10 @@ import {
   resolveLight,
   ScenePresentation,
 } from "@web/battle/sim/presentation";
-import { decodePresentationCapture } from "@web/battle/benchmark/presentationCapture";
+import {
+  decodePresentationCapture,
+  type PresentationFrame,
+} from "@web/battle/benchmark/presentationCapture";
 import { gameFogGeometry, gameFogStyle } from "../gameFog";
 import { gameBuildingStyle, gameGlass, gameModelDetail } from "../gameModels";
 import { gameLight } from "../gameLight";
@@ -59,6 +62,21 @@ export interface BattleFixture {
   presentation: ScenePresentation;
   appearances?: InstalledAppearances;
   overlay: { opaque: Mesh; translucent: Mesh; painted: Mesh; paintedMarching: Mesh };
+  changing?: {
+    next(generation: number): BattleFixture["camera"];
+    result(): {
+      inputs: {
+        fingerprint: string;
+        seed: number;
+        first: PresentationFrame;
+        last: PresentationFrame;
+      };
+      frames: number;
+      publications: number;
+      state: ReturnType<ScenePresentation["probe"]>;
+      records: { camera: number[]; view: number[]; shadow: number[]; casters: number[] };
+    };
+  };
 }
 
 /**
@@ -185,7 +203,11 @@ const capturedParisFixtures = new Map<string, Promise<BattleFixture>>();
  * decoded publication and resident art generation across those repeats. */
 export function capturedParisFixture(
   plate = new URLSearchParams(window.location.search).get("plate") ?? "plate-660.png",
+  changingFrames = 0,
 ): Promise<BattleFixture> {
+  // A changing run consumes authority publications and must start fresh for
+  // each backend/repeat. The frozen control retains its original cache.
+  if (changingFrames) return buildCapturedParisFixture(plate, changingFrames);
   let fixture = capturedParisFixtures.get(plate);
   if (!fixture) {
     fixture = buildCapturedParisFixture(plate);
@@ -194,10 +216,17 @@ export function capturedParisFixture(
   return fixture;
 }
 
-async function buildCapturedParisFixture(plate: string): Promise<BattleFixture> {
+async function buildCapturedParisFixture(
+  plate: string,
+  changingFrames = 0,
+): Promise<BattleFixture> {
   const capture = decodePresentationCapture(JSON.stringify(parisCapture));
   const frame = capture.frames.find((row) => row.plate === plate);
   if (!frame) throw new Error(`paris-corner capture has no ${plate} frame`);
+  if (changingFrames > frame.index)
+    throw new Error(`${plate} has fewer than ${changingFrames} preceding captured frames`);
+  const sequence = capture.frames.slice(frame.index - changingFrames, frame.index + 1);
+  const initial = sequence[0];
   const sample = [...capture.samples].reverse().find((row) => row.tick <= frame.tick);
   if (!sample) throw new Error(`paris-corner capture has no publication for tick ${frame.tick}`);
   const [catalog, map, wasm] = await Promise.all([
@@ -206,22 +235,35 @@ async function buildCapturedParisFixture(plate: string): Promise<BattleFixture> 
     loadWasm(),
   ]);
   const rules = catalog.rules;
-  const presentation = new ScenePresentation(capture.layout, capture.tickHz);
+  let presentation = new ScenePresentation(capture.layout, capture.tickHz);
   let observation = null;
+  const observedKinds = new Set<string>();
   for (const row of capture.samples) {
     if (row.tick > frame.tick) break;
     observation = presentation.decode(
       Uint32Array.from(row.publication),
       (row.tick * 1000) / capture.tickHz,
     );
+    if (changingFrames && observation)
+      for (const unit of [...observation.own, ...observation.identified])
+        observedKinds.add(unit.kind);
   }
   if (!observation) throw new Error(`capture publication at tick ${sample.tick} was stale`);
-  const kinds = [
-    ...new Set([...observation.own, ...observation.identified].map((unit) => unit.kind)),
-  ];
+  const kinds = changingFrames
+    ? [...observedKinds]
+    : [...new Set([...observation.own, ...observation.identified].map((unit) => unit.kind))];
+  if (changingFrames) {
+    presentation.free();
+    presentation = new ScenePresentation(capture.layout, capture.tickHz);
+    for (const row of capture.samples) {
+      if (row.tick > initial.tick) break;
+      presentation.decode(Uint32Array.from(row.publication), (row.tick * 1000) / capture.tickHz);
+    }
+  }
   const worldView = new wasm.WorldView(JSON.stringify(map.definition), JSON.stringify(rules));
   const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules))) as WorldLayout;
   const exports = readWorldExports(worldView);
+  worldView.free();
   const buildings = indexBuildings(exports.buildings, mapProps(exports, layout));
   // `kinds` are simulation type ids, while the loader's second argument is
   // reserved for map-specific appearance names (kits and regional looks).
@@ -272,20 +314,67 @@ async function buildCapturedParisFixture(plate: string): Promise<BattleFixture> 
   presentation.setGround(layers.terrain.input, layers.scenery);
   presentation.setFog({ sensors: rules.sensors });
   presentation.setShadow(gameLight, layers.terrain.mesh);
-  const camera = presentation.frame(
-    frame.simTime,
-    {
-      eye: frame.eye,
-      target: frame.target,
-      up: frame.up,
-      fovY: 0.8,
-      near: 1,
-      width: 640,
-      height: 360,
-    },
-    { selected: [], xray: false, ghosts: [] },
-    0,
-  );
+  const draw = (record: PresentationFrame, generation: number) =>
+    presentation.frame(
+      record.simTime,
+      {
+        eye: record.eye,
+        target: record.target,
+        up: record.up,
+        fovY: 0.8,
+        near: 1,
+        width: 640,
+        height: 360,
+      },
+      { selected: [], xray: false, ghosts: [] },
+      generation,
+    );
+  const camera = draw(initial, 0);
+  let drawn = 0;
+  let publications = 0;
+  let sampleIndex = capture.samples.findIndex((row) => row.tick > initial.tick);
+  if (sampleIndex < 0) sampleIndex = capture.samples.length;
+  const changing = changingFrames
+    ? {
+        next(generation: number) {
+          const record = sequence[++drawn];
+          if (!record) throw new Error("changing capture sequence exhausted");
+          while (
+            sampleIndex < capture.samples.length &&
+            capture.samples[sampleIndex].tick <= record.tick
+          ) {
+            const row = capture.samples[sampleIndex++];
+            presentation.decode(
+              Uint32Array.from(row.publication),
+              (row.tick * 1000) / capture.tickHz,
+            );
+            publications++;
+          }
+          return draw(record, generation);
+        },
+        result() {
+          const state = presentation.probe();
+          const records = presentation.lastFrame();
+          return {
+            inputs: {
+              fingerprint: capture.workload.fingerprint,
+              seed: capture.workload.seed,
+              first: initial,
+              last: frame,
+            },
+            frames: drawn,
+            publications,
+            state,
+            records: {
+              camera: Array.from(records.camera.f32),
+              view: Array.from(records.view.f32),
+              shadow: Array.from(records.sun_shadow.f32),
+              casters: Array.from(records.casters.f32),
+            },
+          };
+        },
+      }
+    : undefined;
   return {
     terrain: layers.terrain.mesh,
     appearances: modelAppearances,
@@ -293,6 +382,7 @@ async function buildCapturedParisFixture(plate: string): Promise<BattleFixture> 
     instances: [],
     world: layers,
     presentation,
+    changing,
     overlay: {
       opaque: new MeshBuilder().build(),
       translucent: new MeshBuilder().build(),
@@ -507,7 +597,10 @@ export async function fullBattleBrowserRun(
   const format = navigator.gpu.getPreferredCanvasFormat();
   context.configure({ device, format, alphaMode: "opaque" });
   const capture = new URLSearchParams(window.location.search).get("capture") === "1";
-  const fixture = capture ? await capturedParisFixture() : battleFixture();
+  const dynamic = capture && new URLSearchParams(window.location.search).get("dynamic") === "1";
+  const fixture = capture
+    ? await capturedParisFixture(undefined, dynamic ? frames : 0)
+    : battleFixture();
   canvas.dataset.stage = "TypeGPU frame construction";
   const frame = await createBattleFrame(device, format, {
     light: await resolveLight(gameLight),
@@ -577,14 +670,24 @@ export async function fullBattleBrowserRun(
     frames,
     () => {
       canvas.dataset.stage = `TypeGPU frame ${++encodedFrames}`;
+      if (fixture.changing) {
+        const current = fixture.changing.next(frame.staticGeneration);
+        frame.setFrame(current, { models: true, effects: true });
+        frame.setCamera(current);
+        const buildings = fixture.presentation.buildingWalk();
+        const scenery = fixture.presentation.sceneryWalk();
+        frame.setStaticFrame(fixture.presentation.lastFrame(), { buildings, scenery });
+      }
       frame.render(context.getCurrentTexture().createView());
     },
     () => device.queue.onSubmittedWorkDone(),
   );
   const stats = frame.stats();
+  const changing = fixture.changing?.result();
+  if (capture) canvas.dataset.finalFrame = canvas.toDataURL();
   canvas.dataset.stage = "TypeGPU complete";
   frame.dispose();
-  if (!capture) fixture.presentation.free();
+  if (!capture || dynamic) fixture.presentation.free();
   device.destroy();
   return {
     setupMs,
@@ -601,6 +704,7 @@ export async function fullBattleBrowserRun(
       allocations: stats.memory,
       timing: measured.timing,
       gpu: stats.gpu,
+      ...(changing ? { changing } : {}),
     }),
   };
 }

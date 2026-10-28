@@ -1,12 +1,11 @@
-import { FrameHeader } from "@packages/battle-renderer/src/records.gen";
 import type { RefObject } from "react";
 import { common, d, tgpu } from "typegpu";
 import { requestGpuDevice } from "@packages/renderer-core/src/device";
 import { eyePosition, screenAxes, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { Renderer } from "@wasm/renderer_spike/renderer_wasm_spike.js";
-import { Renderer as SharedRenderer } from "@wasm/renderer_browser/renderer_browser.js";
+import { Renderer as SharedRenderer } from "@wasm/renderer_browser";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import { resolveFogLook, resolveLight, ScenePresentation } from "@web/battle/sim/presentation";
+import { loadPresentation, ScenePresentation } from "@web/battle/sim/presentation";
 import { gameFogStyle } from "../gameFog";
 import { gameLight } from "../gameLight";
 import { gameOverlayGlow } from "../gameOverlay";
@@ -401,51 +400,39 @@ export async function modelRustRun(canvas: HTMLCanvasElement): Promise<Result> {
 
 export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<Result> {
   const started = performance.now();
+  const { memory } = await loadPresentation();
   const phases: Record<string, number> = {};
+  const wasmLinearMemoryBytes: Record<string, number> = {};
   let phaseStarted = started;
   const stage = (name: string) => {
     const now = performance.now();
     if (canvas.dataset.stage) phases[canvas.dataset.stage] = now - phaseStarted;
+    wasmLinearMemoryBytes[name] = memory.buffer.byteLength;
     canvas.dataset.stage = name;
     phaseStarted = now;
   };
   delete canvas.dataset.stage;
-  stage("device setup");
+  stage("presentation fixture");
   canvas.width = REAL_WIDTH;
   canvas.height = REAL_HEIGHT;
-  const light = await resolveLight(gameLight);
-  const renderer = await SharedRenderer.new(canvas, light.sky, light.sun, light.aerial);
-  const exportValidation = await renderer.validate_export();
   const capture = new URLSearchParams(window.location.search).get("capture") === "1";
-  stage("presentation fixture");
-  const fixture = capture ? await capturedParisFixture() : await realBattleFixture();
-  const f = fixture.camera;
+  const dynamic = capture && new URLSearchParams(window.location.search).get("dynamic") === "1";
+  const fixture = capture
+    ? await capturedParisFixture(undefined, dynamic ? FRAMES : 0)
+    : await realBattleFixture();
+  stage("device setup");
+  const renderer = await SharedRenderer.new(
+    canvas,
+    JSON.stringify(gameLight),
+    JSON.stringify(gameFogStyle),
+    fixture.world.grass ? 1 : undefined,
+  );
   stage("asset download and model admission");
   const assetAccounting = await loadSharedAppearances(renderer, fixture.presentation);
-  stage("presentation upload");
-  const shadowBatches = new Uint32Array(f.batches.u32);
-  const upload = renderer;
-  const fogLook = resolveFogLook(gameFogStyle);
-  const effectAtlas = await loadEffectAtlasLayers();
-  upload.upload_post(light.bloom, light.grade);
-  const lightWrap = new Float32Array(f.header.buffer, f.header.byteOffset)[FrameHeader.light_wrap];
-  upload.upload_frame(
-    new Float32Array(f.camera.f32),
-    new Float32Array(f.view.f32),
-    new Float32Array(fogLook),
-    new Float32Array([gameOverlayGlow.radius_px, gameOverlayGlow.strength, 0, 0]),
-    new Float32Array(f.lights.f32),
-    lightWrap,
-  );
-  effectAtlas.forEach((rgba, layer) => upload.upload_effect_atlas(layer, rgba));
-  upload.upload_effects(new Float32Array(f.effects.f32));
-  const modelInstances = new Float32Array(f.instances.f32);
-  const modelBatches = new Uint32Array(f.batches.u32);
-  const modelPalettes = new Float32Array(f.palettes.f32);
-  renderer.upload_model_frame(modelPalettes, modelInstances, modelBatches);
-  const prepareGround = loadSharedGround(renderer, fixture);
-  prepareGround(true);
-  upload.overlay(
+  renderer.load_effect_atlas(await loadEffectAtlasLayers());
+  loadSharedGround(renderer, fixture);
+  renderer.set_overlay_glow(gameOverlayGlow.radius_px, gameOverlayGlow.strength);
+  renderer.overlay(
     concatMeshes([
       fixture.overlay.opaque,
       fixture.overlay.translucent,
@@ -453,42 +440,24 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
       fixture.overlay.paintedMarching,
     ]),
   );
-  let fogInitialUploadComplete = false;
-  const uploadFogSight = (refresh: boolean) => {
-    const ground = fixture.presentation.presentedGround();
-    // Another consumer may have drained the deltas. New GPU owners need the
-    // current complete state; ordinary frames take only their fresh work.
-    if (refresh) ground?.resend_fog();
-    const up = ground?.prepare_fog(new Float32Array(f.camera.f32), REAL_WIDTH, REAL_HEIGHT, 0);
-    if (!up) return;
-    try {
-      if (refresh) {
-        fogInitialUploadComplete = up.foliage() != null && up.occluders() != null;
-      }
-      upload.upload_fog(up.snapshot());
-    } finally {
-      up.free();
-    }
-  };
-  uploadFogSight(true);
-  renderer.upload_shadow(
-    new Float32Array(f.sun_shadow.f32),
-    new Float32Array(f.casters.f32),
-    shadowBatches,
-  );
+  stage("canonical runtime installation");
+  fixture.presentation.installRenderer(renderer);
+  const exportValidation = await renderer.validate_export();
   const startupMs = performance.now() - started;
   stage("initial frame proof");
-  renderer.render();
+  fixture.presentation.render(renderer);
   await renderer.drain();
+  const fogInitialUploadComplete = (JSON.parse(renderer.stats()) as { fogTablesReady: boolean })
+    .fogTablesReady;
   const beforeRecovery = canvas.toDataURL();
   canvas.dataset.recoveryBefore = beforeRecovery;
   stage("resize and surface recovery");
   canvas.width = 320;
   canvas.height = 180;
-  renderer.resize(canvas);
+  fixture.presentation.resizeRenderer(renderer, canvas);
   canvas.width = REAL_WIDTH;
   canvas.height = REAL_HEIGHT;
-  renderer.resize(canvas);
+  fixture.presentation.resizeRenderer(renderer, canvas);
   renderer.recover_surface();
   renderer.destroy_device_for_test();
   stage("device loss callback");
@@ -502,9 +471,7 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   stage("device recovery");
   await renderer.recover_device(canvas);
   stage("recovered knowledge preparation");
-  prepareGround(true);
-  uploadFogSight(true);
-  renderer.render();
+  fixture.presentation.render(renderer);
   await renderer.drain();
   const afterRecovery = canvas.toDataURL();
   canvas.dataset.recoveryAfter = afterRecovery;
@@ -516,12 +483,12 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
   const measured = await measureFrames(
     FRAMES,
     () => {
-      prepareGround(false);
-      uploadFogSight(false);
-      renderer.render();
+      fixture.changing?.next(renderer.static_generation());
+      fixture.presentation.render(renderer);
     },
     () => renderer.drain(),
   );
+  if (capture) canvas.dataset.finalFrame = canvas.toDataURL();
   stage("complete");
   const workload = JSON.stringify({
     ...JSON.parse(renderer.stats()),
@@ -532,10 +499,12 @@ export async function sharedCoreBrowserRun(canvas: HTMLCanvasElement): Promise<R
     gpu: renderer.gpu_timing(),
     allocations: renderer.memory(),
     phases,
+    wasmLinearMemoryBytes,
     export: JSON.parse(exportValidation),
+    ...(fixture.changing ? { changing: fixture.changing.result() } : {}),
   });
   renderer.free();
-  if (!capture) fixture.presentation.free();
+  if (!capture || dynamic) fixture.presentation.free();
   return {
     mode: "shared-rust-core-browser",
     setupMs,

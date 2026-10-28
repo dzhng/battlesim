@@ -56,7 +56,7 @@ macro_rules! records {
         $(
             $(#[doc = $doc])*
             #[repr(C)]
-            #[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+            #[derive(Clone, Copy, Debug, PartialEq)]
             pub struct $name { $($(#[doc = $fdoc])* pub $field: $ty),* }
             // SAFETY: `repr(C)`, every field a 4-byte scalar or an array of
             // them, and the size a multiple of 16 (asserted): no padding.

@@ -23,18 +23,11 @@ impl Renderer {
     /// Validate the embedded export while proving the shared environment,
     /// shadow, and fog owners are all constructed on this device.
     pub async fn validate_export(&self) -> Result<String, JsValue> {
-        let built = self.production_pipelines.names().count();
-        let _resources = (
-            &self.shared_post,
-            &self.shared_fog_mask,
-            &self.shared_effects,
-            &self.shared_fog_sight,
-            &self.environment.environment,
-            &self.sky.lut,
-            &self.environment.pmrem,
-            &self.environment.cast_lights,
-            self.shared_shadow.active(),
-        );
+        let runtime = self
+            .runtime
+            .as_ref()
+            .ok_or_else(|| JsValue::from_str("install presentation before validating export"))?;
+        let built = runtime.pipelines.names().count();
         Ok(format!("{{\"pipelines\":{built}}}"))
     }
 }

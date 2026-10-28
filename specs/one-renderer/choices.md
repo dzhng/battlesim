@@ -573,3 +573,39 @@ presentation handle private. **Verdict:** sound. **Confidence:** high; the
 packaging and direct-borrow experiment passes and simplifies ownership. Actual
 unified GPU behavior/performance remains an implementation gate, not a claimed
 result of the packaging experiment.
+
+### Rebuild held static lists without reframing the battle
+
+**When:** 2026-10-28 unified Runtime integration.
+
+A device can disappear while a selected unit is moving and the current frame
+only names static lists that its old renderer already held. Recovery asks
+presentation to materialize those current lists into the same frame. It keeps
+the moving units, selection, picks, effects and time exactly as they were,
+then makes the next ordinary frame publish a complete new renderer generation.
+Calling the whole frame builder again would need to reconstruct the UI inputs
+and could silently select a different moment.
+
+**Gap:** canonical ownership settled the source of recovery data, but not how to
+refresh a held frame without repeating presentation. **Reach:** presentation
+owns this narrow operation; platform shells no longer retain copies of static
+records for recovery. Header publication follows materialization because its
+arrays can move. **Verdict:** sound. **Confidence:** high; current population
+records remain authoritative without replaying dynamic decisions.
+
+### Reuse GPU streams only while the canonical frame is unchanged
+
+**When:** 2026-10-28 held-frame preparation experiment.
+
+When the browser redraws the same held battle frame, it keeps model and effect
+buffers already prepared for that frame. A new canonical frame or renderer
+static generation uploads them again. Fog and scars still prepare every draw,
+because replaying their last incremental work could repeat rebuilds or miss
+completed work. A newly installed world always starts with an empty cache.
+
+**Gap:** sharing native preparation did not specify how repeated draws of one
+unchanged frame should behave; the native replay normally advances each time.
+**Reach:** frame identity, rather than hashes or a second JavaScript dirty
+protocol, controls reuse in the common Runtime. **Verdict:** sound.
+**Confidence:** high; it removes unnecessary work while preserving every actual
+changed frame's preparation. The first always-upload policy is rejected.

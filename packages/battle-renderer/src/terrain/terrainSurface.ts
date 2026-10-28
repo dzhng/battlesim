@@ -7,7 +7,7 @@
 // scenery are resolved by the scene's presentation (`crates/presentation`'s
 // `static_world::ground`) from what is set here (`GroundInput`); the
 // presentation module must have loaded (`loadPresentation`).
-import { Presentation, terrain_mesh } from "@wasm/presentation/presentation_wasm.js";
+import { Presentation, terrain_mesh } from "@wasm/renderer_browser";
 import game from "@fixtures/game.json";
 import type summer from "@fixtures/biomes/summer.json";
 import type { Mesh, Rgba } from "../mesh";

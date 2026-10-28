@@ -16,6 +16,8 @@ function meanDiff(a, b) {
 
 export async function run(ctx) {
   const capture = process.env.ONE_RENDERER_CAPTURE === "1";
+  const dynamic = process.env.ONE_RENDERER_DYNAMIC === "1";
+  if (dynamic && !capture) throw new Error("changing-frame comparison requires capture mode");
   const plate = process.env.ONE_RENDERER_PLATE ?? "plate-660.png";
   const evidencePath = (name) => ctx.evidencePath(capture ? `${plate}/${name}` : name);
   if (capture) await mkdir(ctx.evidencePath(plate), { recursive: true });
@@ -26,6 +28,7 @@ export async function run(ctx) {
     url.searchParams.set("plate", plate);
   }
   if (process.env.ONE_RENDERER_TIMING === "1") url.searchParams.set("timing", "1");
+  if (dynamic) url.searchParams.set("dynamic", "1");
   await page.goto(url.href);
   await page.getByRole("button", { name: "Run comparison" }).waitFor({ timeout: 60_000 });
   await page.getByRole("button", { name: "Run comparison" }).click();
@@ -73,13 +76,38 @@ export async function run(ctx) {
     const shared = await page.locator("canvas").nth(11).screenshot();
     await writeFile(evidencePath("captured-browser.png"), browser);
     await writeFile(evidencePath("captured-shared.png"), shared);
+    const nativeCaptures = {};
+    for (const [name, index] of [
+      ["browser", 9],
+      ["shared", 11],
+    ]) {
+      const source = await page
+        .locator("canvas")
+        .nth(index)
+        .evaluate((canvas) => canvas.dataset.finalFrame);
+      if (!source)
+        throw new Error(`${name} did not retain the drawn capture before device disposal`);
+      const bytes = Buffer.from(source.split(",")[1], "base64");
+      nativeCaptures[name] = decode(bytes);
+      await writeFile(evidencePath(`captured-${name}-native.png`), bytes);
+    }
     await writeFile(
       evidencePath("visual.json"),
       JSON.stringify(
-        { captured_shared_vs_browser: meanDiff(decode(shared), decode(browser)) },
+        {
+          captured_shared_vs_browser: meanDiff(decode(shared), decode(browser)),
+          native_shared_vs_browser: meanDiff(nativeCaptures.shared, nativeCaptures.browser),
+        },
         null,
         2,
       ),
+    );
+    ctx.check(
+      "captured source pixels match between browser backends",
+      meanDiff(nativeCaptures.shared, nativeCaptures.browser) < 1,
+      JSON.stringify({
+        meanRgbDifference: meanDiff(nativeCaptures.shared, nativeCaptures.browser),
+      }),
     );
     const workload = JSON.parse(result[1]?.[5] ?? "null");
     ctx.check(
@@ -107,6 +135,37 @@ export async function run(ctx) {
       workload?.recoveryPixelsMatch === true,
       JSON.stringify(workload),
     );
+    const browserWorkload = JSON.parse(result[0]?.[5] ?? "null");
+    ctx.check(
+      dynamic
+        ? "changing capture inputs and final state match"
+        : "frozen capture prepares large streams once",
+      dynamic
+        ? browserWorkload?.changing?.frames === 120 &&
+            workload?.changing?.frames === 120 &&
+            browserWorkload.changing.publications > 1 &&
+            JSON.stringify(browserWorkload.changing) === JSON.stringify(workload.changing)
+        : workload?.preparation?.modelPreparations === 1 &&
+            workload?.preparation?.effectPreparations === 1,
+      JSON.stringify({
+        browser: browserWorkload?.changing,
+        shared: workload?.changing,
+        preparation: workload?.preparation,
+      }),
+    );
+    if (dynamic) {
+      ctx.check(
+        "changing canonical frames prepare new model and effect streams",
+        workload?.preparation?.modelPreparations === 121 &&
+          workload?.preparation?.effectPreparations === 121,
+        JSON.stringify(workload?.preparation),
+      );
+      ctx.check(
+        "changing capture final pixels match between renderers",
+        meanDiff(decode(shared), decode(browser)) < 1,
+        JSON.stringify({ meanDiff: meanDiff(decode(shared), decode(browser)) }),
+      );
+    }
     return;
   }
   const canvasShots = [];
@@ -181,8 +240,8 @@ export async function run(ctx) {
     JSON.stringify(sharedWorkload),
   );
   ctx.check(
-    "shared browser row uploads the frozen presentation records",
-    sharedWorkload?.presentationUploads >= 1 &&
+    "shared browser row borrows the frozen presentation records",
+    sharedWorkload?.presentationPreparations >= 1 &&
       sharedWorkload?.presentationBound === true &&
       sharedWorkload?.presentationCameraWords === 40 &&
       sharedWorkload?.presentationEnvironmentWords > 0 &&
@@ -216,7 +275,7 @@ export async function run(ctx) {
     JSON.stringify(sharedWorkload),
   );
   ctx.check(
-    "shared browser row uploads frozen fog sight records",
+    "shared browser row consumes current fog sight records",
     sharedWorkload?.fogSightUploads >= 1 && sharedWorkload?.fogHeightWords >= 3,
     JSON.stringify(sharedWorkload),
   );

@@ -25,22 +25,12 @@ use native_client::bench::{self, Bench};
 use native_client::bundle::Library;
 use native_client::capture::Replay;
 use native_client::counts::Counted;
-use native_client::effects::Effects;
-use native_client::environment::Environment;
-use native_client::fog::Fog;
-use native_client::frame::{Scene, TargetOwner, DISPLAY_FORMAT};
 use native_client::gpu::{self, Gpu};
-use native_client::grass::Grass;
-use native_client::ground::Ground;
-use native_client::models::Models;
-use native_client::scenery::Scenery;
-use native_client::shadow::SunShadow;
-use native_client::sky::Sky;
 use presentation::assets::RUNTIME;
 use presentation::records::View;
-use presentation::shadow::SunShadowFrame;
-use renderer_core::frame::{FrameRenderer, FrameStage};
-use renderer_core::{fog_mask, post};
+use renderer_core::frame::FrameStage;
+use renderer_core::runtime::{Runtime, RuntimeConfig, RuntimeWorld, WorldGeometry};
+use renderer_core::DISPLAY_FORMAT;
 use wgpu::{
     CommandEncoder, CurrentSurfaceTexture, PresentMode, SubmissionIndex, Surface,
     SurfaceConfiguration,
@@ -182,13 +172,9 @@ struct Run {
     window: Arc<Window>,
     surface: Surface<'static>,
     gpu: Gpu,
-    scene: Scene,
+    scene: Runtime,
     replay: Replay,
     next: usize,
-    /// The static batches' generation: bumped whenever the passes stop
-    /// holding what the presentation last wrote (a record framed but not
-    /// drawn, so the next drawn one follows a jump).
-    generation: u32,
     view: View,
     plates: usize,
     count_mismatches: Vec<String>,
@@ -278,83 +264,53 @@ impl Run {
 
         let built = Instant::now();
         let pipeline_dir = root.join("packages/battle-renderer/pipelines");
-        let pipelines =
-            native_client::pipelines::build(&gpu.device, &pipeline_dir.to_string_lossy())?;
+        let manifest = std::fs::read_to_string(pipeline_dir.join("pipelines.json"))
+            .map_err(|e| e.to_string())?;
+        let metadata: serde_json::Value =
+            serde_json::from_str(&manifest).map_err(|e| e.to_string())?;
+        let sizes: renderer_core::pipelines::Sizes =
+            serde_json::from_value(metadata["sizes"].clone()).map_err(|e| e.to_string())?;
+        let effect_sheets = native_client::effects::load_sheets(
+            &root.join("assets/third-party/effects"),
+            sizes.effect_sheet,
+        )?;
+        let light = replay.light.clone();
+        let resolved = replay
+            .presentation()
+            .ground()
+            .ok_or("the replay set no ground")?;
+        let geometry = Arc::new(WorldGeometry::from_triangles(
+            &replay.terrain.0,
+            &replay.terrain.1,
+            &resolved.water_cells(),
+            light.backdrop.reach_m,
+        ));
+        let config = RuntimeConfig {
+            size,
+            light,
+            fog_look: replay.fog_look,
+            grass_density: Some(1.0),
+        };
+        let scene = Runtime::new(
+            &gpu.device,
+            &gpu.queue,
+            config,
+            RuntimeWorld {
+                presentation: replay.presentation_mut(),
+                assets: &library,
+                geometry,
+                effect_sheets,
+            },
+            &manifest,
+            |name, shader| {
+                native_client::pipelines::source(&pipeline_dir.to_string_lossy(), name, shader)
+            },
+        )?;
         println!(
-            "pipelines: {} built in {:.2} s on {}",
-            pipelines.names().count(),
+            "pipelines: {} built and world installed in {:.2} s on {}",
+            scene.pipelines.names().count(),
             built.elapsed().as_secs_f64(),
             gpu.adapter.get_info().name
-        );
-        let targets = TargetOwner::new(&gpu.device, size);
-        let light = &replay.light;
-        let sky = Sky::new(&gpu.device, &gpu.queue, &pipelines, &light.sky());
-        let post = post::new(
-            &gpu.device,
-            &pipelines,
-            &targets,
-            bytemuck::bytes_of(&light.bloom()),
-            bytemuck::bytes_of(&light.grade()),
-        );
-        let shadow = SunShadow::new(
-            &gpu.device,
-            &pipelines,
-            light.cascades.map_size,
-            &SunShadowFrame::cold(light),
-        );
-        let environment = Environment::new(
-            &gpu.device,
-            &gpu.queue,
-            &pipelines,
-            &sky.lut,
-            &light.sun(),
-            &light.aerial(),
-            shadow.resources(),
-        );
-        let installed = Instant::now();
-        let presentation = replay.presentation();
-        let resolved = presentation.ground().ok_or("the replay set no ground")?;
-        let (positions, indices) = &replay.terrain;
-        let ground = Ground::new(
-            &gpu.device,
-            &gpu.queue,
-            &pipelines,
-            resolved,
-            (positions, indices),
-            light.backdrop.reach_m,
-        )?;
-        let grass = Grass::new(&gpu.device, &pipelines, &library, resolved, &ground.heights)?;
-        let models = Models::new(&gpu.device, &gpu.queue, &pipelines, &library, presentation)?;
-        let scenery = Scenery::new(&gpu.device, &pipelines, &library, presentation)?;
-        println!(
-            "{}: ground, grass, {} drawables and the scenery installed in {:.2} s",
-            replay.map,
-            presentation.world().appearances.len(),
-            installed.elapsed().as_secs_f64()
-        );
-        // A fresh renderer holds no scars: the first upload writes them all.
-        replay.presentation_mut().resend_scars();
-        // The sun's cascades are fitted over the ground's box each frame.
-        let fitted = Some((replay.light.clone(), ground.terrain_partition.clone()));
-        replay.presentation_mut().set_shadow(fitted);
-        let effects = Effects::new(
-            &gpu.device,
-            &gpu.queue,
-            &pipelines,
-            &environment,
-            &targets,
-            &root.join("assets/third-party/effects"),
-        )?;
-        // Fog of war over the ground's height pages; a fresh renderer holds none.
-        let fog = Fog::with_heights(&gpu.device, &pipelines, &targets.depth, &ground.heights);
-        replay.presentation_mut().resend_fog();
-        let fog_mask = fog_mask::fog_mask(
-            &gpu.device,
-            &pipelines,
-            &targets,
-            bytemuck::bytes_of(&replay.fog_look),
-            replay.fog_look.has_edge(),
-            replay.fog_look.has_rim(),
         );
         if let Some(dir) = args.out.as_ref().or(args.bench.as_ref()) {
             std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
@@ -383,24 +339,9 @@ impl Run {
             window,
             surface,
             gpu,
-            scene: Scene {
-                targets,
-                environment,
-                shadow,
-                ground,
-                grass,
-                models,
-                scenery,
-                effects,
-                fog,
-                sky,
-                frame: FrameRenderer::new(&pipelines),
-                post,
-                fog_mask,
-            },
+            scene,
             replay,
             next: 0,
-            generation: 0,
             view: View::default(),
             plates: 0,
             count_mismatches: Vec::new(),
@@ -452,23 +393,12 @@ impl Run {
 
     /// Prepares the layers to draw the last frame framed.
     fn prepare(&mut self) -> Result<(), String> {
-        // The scars changed under the grass: it regrows over them.
-        if self.replay.presentation_mut().scars_changed() {
-            self.scene.grass.regrow();
-        }
-        let frame = self.replay.last_frame();
-        self.view = frame.view;
-        let wrap = frame.light_wrap;
-        let (device, queue) = (&self.gpu.device, &self.gpu.queue);
-        self.scene
-            .prepare(device, queue, self.replay.presentation())?;
-        self.scene
-            .prepare_scars(device, self.replay.presentation_mut());
-        self.scene
-            .prepare_fog(device, queue, self.replay.presentation_mut())?;
-        let presentation = self.replay.presentation();
-        self.scene
-            .prepare_effects(device, queue, presentation, wrap);
+        self.view = self.replay.last_frame().view;
+        self.scene.prepare(
+            &self.gpu.device,
+            &self.gpu.queue,
+            self.replay.presentation_mut(),
+        )?;
         Ok(())
     }
 
@@ -482,14 +412,17 @@ impl Run {
         bench.start();
         // Every frame is drawn: one generation, the static batches it names
         // unchanged held from the frame before.
-        self.replay.frame(&record, self.generation, |_| {})?;
+        self.replay
+            .frame(&record, self.scene.static_generation(), |_| {})?;
         self.bench.as_mut().ok_or("not a bench")?.mark();
         self.prepare()?;
         let bench = self.bench.as_mut().ok_or("not a bench")?;
         bench.mark();
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         bench.begin(device, queue);
-        let mut encoder = self.scene.encode(device, queue, &self.view);
+        let mut encoder = device.create_command_encoder(&Default::default());
+        self.scene
+            .encode(device, queue, &self.view, &mut encoder, None);
         bench.end(&mut encoder);
         bench.mark();
         let index = self.present(encoder);
@@ -528,14 +461,15 @@ impl Run {
             // The reel's wall time is both the sound's wall and its mixer clock.
             let now = record.reel_ms / 1000.0;
             let mut sound = self.sound.as_mut();
-            self.replay.frame(&record, self.generation, |p| {
-                if let Some(audio) = sound.as_mut() {
-                    audio.note(p, now);
-                }
-            })?;
+            self.replay
+                .frame(&record, self.scene.static_generation(), |p| {
+                    if let Some(audio) = sound.as_mut() {
+                        audio.note(p, now);
+                    }
+                })?;
             if record.plate.is_none() {
                 // The passes took none of it: the next frame writes them all.
-                self.generation += 1;
+                self.scene.invalidate_statics();
             }
             if let Some(audio) = self.sound.as_mut() {
                 audio.hear(self.replay.presentation(), now, now);
@@ -590,8 +524,11 @@ impl Run {
                 scars.pages,
                 if self.scene.ground.material.scars.regional() { "by region" } else { "at once" },
             );
-            let encoder = self.scene.encode(device, queue, &self.view);
-            let rgba = self.scene.read_display(device, queue, encoder);
+            let mut encoder = device.create_command_encoder(&Default::default());
+            self.scene
+                .encode(device, queue, &self.view, &mut encoder, None);
+            let rgba =
+                native_client::readback::read_display(device, queue, &self.scene.targets, encoder);
             output::write_png(&out.join(&plate), self.scene.targets.size, &rgba)?;
             self.plates += 1;
             let encoder = device.create_command_encoder(&Default::default());
@@ -600,9 +537,14 @@ impl Run {
         }
         if self.paced < args.pace {
             self.paced += 1;
-            let encoder = self
-                .scene
-                .encode(&self.gpu.device, &self.gpu.queue, &self.view);
+            let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
+            self.scene.encode(
+                &self.gpu.device,
+                &self.gpu.queue,
+                &self.view,
+                &mut encoder,
+                None,
+            );
             self.present(encoder);
             return Ok(true);
         }

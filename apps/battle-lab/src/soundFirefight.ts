@@ -24,7 +24,7 @@ import {
 } from "@packages/battle-audio/src/soundFrame";
 import { WebAudioSink } from "@packages/battle-audio/src/webAudioSink";
 import { mountMuzzles, type MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
-import { launches } from "@wasm/presentation/presentation_wasm.js";
+import { launches } from "@wasm/renderer_browser";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { gameAudio } from "./soundFeed";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";

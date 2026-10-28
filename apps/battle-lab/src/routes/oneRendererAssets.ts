@@ -1,11 +1,10 @@
-import type { Renderer as SharedRenderer } from "@wasm/renderer_browser/renderer_browser.js";
+import type { Renderer as SharedRenderer } from "@wasm/renderer_browser";
 import type { ScenePresentation } from "@web/battle/sim/presentation";
 import { readBundle } from "@packages/scene-assets/src/gzip";
 import type { Bundle, RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import { posedPalette } from "@packages/battle-renderer/src/models/modelInstances";
 import { FOUNDATION } from "./frame";
 import { RuntimeAssets } from "@web/battle/render/runtimeAssets";
-import { copyPresentationWorld } from "@web/battle/render/publication";
 import type { ModelWorkload } from "./oneRendererModel";
 
 let tankBundle: Promise<Exclude<Bundle, { kind: "clips" }>> | null = null;
@@ -114,23 +113,16 @@ export async function loadSharedAppearances(
   presentation: ScenePresentation,
 ) {
   const appearanceRows = presentation.appearanceRows().length;
-  const world = copyPresentationWorld(presentation);
+  const names = [...new Set(presentation.appearanceRows().map((row) => row.name))];
   const ground = presentation.presentedGround();
   const grassKinds = ground ? (JSON.parse(ground.grass_kinds()) as string[]) : [];
   const catalog = (await (await fetch("/catalog.json")).json()) as RuntimeCatalog;
   const read = async (path: string) =>
     new Uint8Array(await (await fetch(`/${path}`)).arrayBuffer());
   const assets = await new RuntimeAssets(catalog, read).install(renderer, [
-    ...world.names,
+    ...names,
     ...grassKinds,
   ]);
-  renderer.load_model_world(
-    world.models.appearances,
-    world.models.strings,
-    world.models.offsets,
-    world.models.rest,
-  );
-  renderer.load_scenery_world(world.scenery.kinds, world.scenery.offsets, world.scenery.stumps);
   return {
     bundleWireBytes: assets.transportBytes,
     uniqueBundles: assets.bundleCount,

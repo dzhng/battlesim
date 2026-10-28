@@ -208,7 +208,7 @@ export function useBattleSession({
   const noteDecoded = useCallback(
     (o: ObservationView, digest: string) => {
       const presentation = presentationRef.current;
-      if (presentation) audio?.note(presentation.wasm);
+      presentation?.noteAudio(audio);
       // An enemy kind's voice set loads once the side first identifies one.
       audio?.identified(o.identified.map((unit) => unit.kind));
       responses.current?.observed(o);
@@ -679,7 +679,7 @@ export function useBattleSession({
   /** Sound for the last frame, heard from its camera: call once a frame. */
   const hear = useCallback(() => {
     const presentation = sim.client?.presentation;
-    if (audio && presentation) audio.update(presentation.wasm);
+    presentation?.updateAudio(audio);
   }, [audio, sim.client]);
 
   const semanticPick = useCallback(

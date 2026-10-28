@@ -1,8 +1,8 @@
 # One renderer
 
 **Status:** implementing on [PR #16](https://github.com/dzhng/battlesim/pull/16).
-**Updated:** 2026-10-28. Shared frame parity passes; one browser module, full
-production integration and the final deletion/performance gates remain open.
+**Updated:** 2026-10-28. Unified runtime and changing-frame parity pass; production player-feature
+integration and final deletion/performance gates remain open.
 
 ## Architecture
 
@@ -41,32 +41,37 @@ renderer cannot establish that benefit.
 
 ## Next Agent Prompt
 
-Continue with [slice 03](slices/03-runtime.md): consolidate resource composition
-and preparation into the core runtime and use one browser WASM module. The
-packaging/direct-borrow spike passes; actual unified GPU parity is the next gate.
-The shared-frame checkpoint is committed, and its valid screenshots/timings are
-the incumbent. Preserve those pixels while deleting the extra transport layer.
+Continue with [slice 04](slices/04-player-features.md). Native and browser now call
+one core Runtime for composition, preparation, rebuilding and encoding; browser
+presentation/audio/rendering share one artifact and actual Rust records. Canonical
+copy/upload/recovery protocols and the standalone presentation artifact are gone.
 
 Priority order:
 
-1. Complete the common runtime and direct browser presentation borrowing. Share
-   effect-atlas decoding/mips and live fog-look policy too. Delete copied
-   frame/world recovery records and canonical fog/scar serialization once the
-   unified GPU path passes the incumbent gates. Keep UI/audio handle lifetimes
-   explicit; a standalone presentation object cannot cross the unified binder.
-2. Finish [player feature parity](slices/04-player-features.md), then replace the
-   production canvas interface. Paint, pointer marks, x-ray, high-air composition
-   and diagnostic contracts remain required; native replay alone cannot prove them.
-3. Run the [migration/deletion verdict](slices/05-migration.md): matched three-target
-   visuals, dynamic and frozen CPU/GPU costs, startup, recovery, owned allocations,
-   WASM high-water memory and source/owner accounting. Delete TypeGPU and the
-   standalone graph, run repository closeout once, review and archive.
+1. Integrate the isolated shared x-ray owner into the production depth sequence
+   and overlay preservation. Its native GPU threshold/color/clear regression is
+   red/green proved, but the frame does not invoke it yet. Complete paint/pointer,
+   opaque/translucent overlays and high-air composition in those same owners.
+2. Finish lab/proxy/pose/impostor, quality and real diagnostic/readback contracts,
+   then replace the application's TypeGPU canvas interface. Read the scratch
+   lab/model contract map rather than retaining a separate lab renderer.
+3. Run the [migration/deletion verdict](slices/05-migration.md): final three-target
+   workload/resolution measurements and source/owner accounting. Delete TypeGPU
+   and the standalone Rust graph; run repository closeout once, review and archive.
 
-A browser environment failure occurred during this continuation: a minimal
-Playwright data page timed out without game code; a bounded GPU-disabled probe
-and a Metal probe loaded, and the default browser subsequently loaded again.
-Those failed runs establish no renderer timings. Preserve their distinction from
-application failures if it recurs.
+The runtime checkpoint preserves the matched frozen street and all six native
+plates byte for byte against their incumbents, including real device-loss pixels.
+The dynamic browser pair consumes 120 captured frames / 60 publications and matches
+final canonical state and source pixels essentially exactly. Detailed CPU/GPU,
+artifact/memory limits and all failed trials live in research. Independent Codex
+review found no actionable correctness issue; local cleanup refreshed views after
+allocating stats calls and freed the temporary WorldView.
+
+The default eleven-row scene remains green. Keep its controls while completing
+parity. Capture final canvas pixels before destroying either backend's device:
+a compositor screenshot after disposal may show the previous frame. Prefer the
+retained native-resolution source pixels as the renderer comparison, with CSS
+captures retained for composition evidence.
 
 ## Verification contract
 
@@ -122,7 +127,7 @@ red then green. Detailed development timings and their limits live in research.
 - [x] Prove browser Rust WASM backend and four ownership variants — [slice 00](slices/00-wasm-backend.md).
 - [x] Prove bounded real terrain/model transport and publication input — [slice 01](slices/01-real-frame.md).
 - [x] Share actual production frame encoding and preserve the native/browser captured controls — [slice 02](slices/02-verdict.md).
-- [ ] Consolidate the runtime and use direct presentation borrowing in one browser module — [slice 03](slices/03-runtime.md).
+- [x] Consolidate the runtime and use direct presentation borrowing in one browser module — [slice 03](slices/03-runtime.md).
 - [ ] Complete browser player-feature parity — [slice 04](slices/04-player-features.md).
 - [ ] Clear final lifecycle/performance gates and delete TypeGPU/duplicate graphs — [slice 05](slices/05-migration.md).
 - [ ] Review the full implementation, run repository closeout, consolidate choices and archive.

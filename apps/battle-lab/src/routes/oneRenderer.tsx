@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import initRenderer from "@wasm/renderer_spike/renderer_wasm_spike.js";
 import rendererWasmUrl from "@wasm/renderer_spike/renderer_wasm_spike_bg.wasm?url";
-import initSharedRenderer from "@wasm/renderer_browser/renderer_browser.js";
-import sharedRendererWasmUrl from "@wasm/renderer_browser/renderer_browser_bg.wasm?url";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import { fullBattleBrowserRun, BATTLE_HEIGHT, BATTLE_WIDTH } from "./oneRendererBattle";
 import {
   averageResults,
@@ -42,10 +41,9 @@ export default function OneRenderer() {
   useEffect(() => {
     if (wasmLoaded.current) return;
     wasmLoaded.current = true;
-    void Promise.all([
-      initRenderer({ module_or_path: rendererWasmUrl }),
-      initSharedRenderer({ module_or_path: sharedRendererWasmUrl }),
-    ]).then(() => setWasmReady(true));
+    void Promise.all([initRenderer({ module_or_path: rendererWasmUrl }), loadPresentation()]).then(
+      () => setWasmReady(true),
+    );
   }, []);
 
   const run = async () => {

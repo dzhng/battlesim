@@ -11,7 +11,7 @@ import {
   sector_pan,
   vehicle_loops,
   type Presentation,
-} from "@wasm/presentation/presentation_wasm.js";
+} from "@wasm/renderer_browser";
 import type { AudioPresentation, Bus, VehicleSound } from "./audioPresentation";
 import type { SoundCatalog } from "./catalog";
 import type { Chatter, ChatterUpdate } from "./voices/chatter";

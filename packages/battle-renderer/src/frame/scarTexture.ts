@@ -1,7 +1,7 @@
 // The GPU side of the side's learned scars. The presentation keeps the
 // learned ground and its bounded cache (`crates/presentation/src/scars`) and
 // says what to upload; this holds the two textures and writes what it is told.
-import { scar_normalization } from "@wasm/presentation/presentation_wasm.js";
+import { scar_normalization } from "@wasm/renderer_browser";
 import type { GpuRegistry, GpuSlot } from "./registry";
 import { SCAR_NORMALIZATION_WORDS, SCAR_POOL_HEIGHT, SCAR_POOL_WIDTH } from "../records.gen";
 

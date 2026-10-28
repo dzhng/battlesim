@@ -1,5 +1,5 @@
 /** Ground table and learned-scar bridges over the presentation WASM owner. */
-import type { Presentation } from "@wasm/presentation/presentation_wasm.js";
+import type { Presentation } from "@wasm/renderer_browser";
 import type { PresentedGround } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import type {
   GroundMarks,
@@ -9,16 +9,7 @@ import type {
 import type { GroundLayout } from "./observationView";
 
 export type SceneGround = PresentedGround &
-  Pick<
-    Presentation,
-    | "grass_capacity"
-    | "grass_window_record"
-    | "grass_params_from_facts"
-    | "scars_changed"
-    | "scar_regions"
-    | "prepare_scars"
-    | "resend_scars"
-  >;
+  Pick<Presentation, "scars_changed" | "scar_regions" | "prepare_scars" | "resend_scars">;
 
 /** The ground `rust` holds, as the renderer reads its tables: a new object
  *  for each ground set, so a renderer knows to read them again. */
@@ -38,9 +29,6 @@ export function groundOf(rust: Presentation): SceneGround {
     grass_window: () => rust.grass_window(),
     grass_frame_params: (words, window) => rust.grass_frame_params(words, window),
     grass_props: () => rust.grass_props(),
-    grass_capacity: () => rust.grass_capacity(),
-    grass_window_record: () => rust.grass_window_record(),
-    grass_params_from_facts: (facts, density) => rust.grass_params_from_facts(facts, density),
     retune_grass: (rules) => rust.retune_grass(rules),
     scars_changed: () => rust.scars_changed(),
     scar_regions: () => rust.scar_regions(),

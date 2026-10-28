@@ -38,77 +38,25 @@ struct MemoryStats {
 
 #[wasm_bindgen]
 impl Renderer {
-    /// GPU buffer/texture ownership plus retained CPU recovery payloads.
-    /// CPU payloads cover browser recovery snapshots and decoded asset arrays;
-    /// they exclude core selection caches, container/allocator overhead and presentation's
-    /// separate WASM memory; GPU counts exclude driver and canvas storage.
+    /// Renderer-owned GPU payloads and retained external CPU asset/geometry bytes.
+    /// Excludes presentation, selection caches, allocator overhead and driver residency.
     pub fn memory(&self) -> Result<JsValue, JsValue> {
         let mut memory = renderer_core::memory::ResourceMemory::default();
-        self.targets.record_memory(&mut memory);
-        self.environment.record_memory(&mut memory);
-        self.sky.record_memory(&mut memory);
-        self.shared_shadow.record_memory(&mut memory);
-        self.shared_post.record_memory(&mut memory);
-        self.shared_fog_mask.record_memory(&mut memory);
-        self.shared_fog_sight.record_memory(&mut memory);
-        self.shared_effects.record_memory(&mut memory);
-        self.shared_overlay_resources.record_memory(&mut memory);
+        if let Some(runtime) = &self.runtime {
+            runtime.record_memory(&mut memory);
+        }
         memory.buffer(&self.overlay_vertices);
         memory.buffer(&self.overlay_instances);
-        if let Some(ground) = &self.ground {
-            ground.record_memory(&mut memory);
-        }
-        if let Some(grass) = &self.grass {
-            grass.record_memory(&mut memory);
-        }
-        if let Some(models) = &self.models {
-            models.record_memory(&mut memory);
-        }
-        if let Some(scenery) = &self.scenery {
-            scenery.record_memory(&mut memory);
-        }
         if let Some(timer) = &self.gpu_timer {
             timer.record_memory(&mut memory);
         }
-        let mut snapshot_bytes = self.model_world.as_ref().map_or(0, |s| s.payload_bytes())
-            + self.model_frame.as_ref().map_or(0, |s| s.payload_bytes())
-            + self.scenery_world.as_ref().map_or(0, |s| s.payload_bytes())
-            + self
-                .ground_snapshot
-                .as_ref()
-                .map_or(0, |s| s.payload_bytes())
-            + self
-                .grass_snapshot
-                .as_ref()
-                .map_or(0, |s| s.payload_bytes())
-            + size_of_val(self.post_bloom.as_slice())
-            + size_of_val(self.post_grade.as_slice())
-            + size_of_val(self.overlay_snapshot.as_slice())
-            + self
-                .shared_effects
-                .layers()
-                .iter()
-                .map(Vec::len)
-                .sum::<usize>();
-        if let Some(presentation) = &self.presentation_snapshot {
-            for values in [
-                &presentation.camera,
-                &presentation.view,
-                &presentation.lights,
-                &presentation.fog,
-                &presentation.overlay,
-                &presentation.effects,
-                &presentation.shadow,
-                &presentation.casters,
-            ] {
-                snapshot_bytes += size_of_val(values.as_slice());
-            }
-            snapshot_bytes += size_of_val(presentation.batches.as_slice());
-        }
+        let snapshot_bytes = self.geometry.as_ref().map_or(0, |g| g.payload_bytes())
+            + size_of_val(self.overlay_snapshot.as_slice());
         serde_wasm_bindgen::to_value(&MemoryStats {
             gpu: memory.counts(),
             cpu_snapshot_payload_bytes: snapshot_bytes,
-            cpu_bundle_payload_bytes: self.model_library.payload_bytes(),
+            cpu_bundle_payload_bytes: self.model_library.payload_bytes()
+                + self.effect_sheets.as_ref().map_or(0, |s| s.payload_bytes()),
         })
         .map_err(js_error)
     }

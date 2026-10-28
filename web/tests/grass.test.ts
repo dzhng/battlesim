@@ -30,7 +30,7 @@ import {
   grassShapes,
 } from "@packages/battle-renderer/src/terrain/grassField.ts";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import { grass_limits } from "@wasm/presentation/presentation_wasm.js";
+import { grass_limits } from "@wasm/renderer_browser";
 import summer from "@fixtures/biomes/summer.json";
 import { AUTHORITY, GRASS_SPEC, TOLERANCES } from "./sceneAssets/synthetic";
 

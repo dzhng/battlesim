@@ -1,13 +1,14 @@
-//! The browser's presentation module, the WASM binding of
-//! `crates/presentation`: one side's publications in; the game UI's
-//! observation, and each drawn frame's records as views over this module's
-//! memory, out. It links the publication reader and the presentation crate,
-//! not the rules, and runs on the page's main thread.
+//! Presentation and sound bindings linked into the browser renderer's module.
+//! Side publications become canonical Rust frames and UI observation views;
+//! rendering borrows those records directly in the same memory.
 mod fielded;
 mod fog;
 mod ground;
 mod shadow;
 mod world;
+
+#[cfg(test)]
+mod header_tests;
 
 use std::sync::Arc;
 
@@ -40,6 +41,49 @@ pub struct Presentation {
     world_header: WorldHeader,
     /// The biome's own grass rules, while a lab grows the ground's by others.
     grass: Option<presentation::static_world::ground::biome::GrassRules>,
+}
+
+impl Presentation {
+    /// The canonical presentation borrowed by the browser's Rust renderer.
+    pub fn core(&self) -> &Inner {
+        &self.inner
+    }
+
+    /// Publish current canonical record pointers after preparation may append
+    /// batches or instances without invoking the JavaScript frame entrypoint.
+    pub fn refresh_frame_header(&mut self) -> u32 {
+        let f = self.inner.last_frame();
+        let shadow = f.shadow.as_ref();
+        let header = FrameHeader {
+            clock: f.clock as f32,
+            tick: f.tick,
+            index: f.index,
+            light_wrap: f.light_wrap,
+            batches: set(&f.batches),
+            instances: set(&f.instances),
+            palettes: set(&f.palettes),
+            effects: [0; 2],
+            lights: [0; 2],
+            picks: set(&f.picks),
+            emitters: set(&f.emitters),
+            counts: set(std::slice::from_ref(&f.counts)),
+            view: set(std::slice::from_ref(&f.view)),
+            camera: set(std::slice::from_ref(&f.camera)),
+            sun_shadow: set(shadow.map_or(&[][..], |s| std::slice::from_ref(&s.receiver))),
+            casters: set(shadow.map_or(&[][..], |s| &s.casters)),
+        };
+        self.frame_header = FrameHeader {
+            effects: set(self.inner.effects()),
+            lights: set(self.inner.lights()),
+            ..header
+        };
+        &self.frame_header as *const FrameHeader as u32
+    }
+
+    /// Mutable preparation never carries a borrow across an asynchronous call.
+    pub fn core_mut(&mut self) -> &mut Inner {
+        &mut self.inner
+    }
 }
 
 fn error(e: impl std::fmt::Display) -> JsError {
@@ -288,35 +332,10 @@ impl Presentation {
             ghosts: &ghosts,
             known: known.as_deref(),
         };
-        let f = self
-            .inner
+        self.inner
             .frame(time, &camera, &ui, generation)
             .map_err(error)?;
-        let shadow = f.shadow.as_ref();
-        let header = FrameHeader {
-            clock: f.clock as f32,
-            tick: f.tick,
-            index: f.index,
-            light_wrap: f.light_wrap,
-            batches: set(&f.batches),
-            instances: set(&f.instances),
-            palettes: set(&f.palettes),
-            effects: [0; 2],
-            lights: [0; 2],
-            picks: set(&f.picks),
-            emitters: set(&f.emitters),
-            counts: set(std::slice::from_ref(&f.counts)),
-            view: set(std::slice::from_ref(&f.view)),
-            camera: set(std::slice::from_ref(&f.camera)),
-            sun_shadow: set(shadow.map_or(&[][..], |s| std::slice::from_ref(&s.receiver))),
-            casters: set(shadow.map_or(&[][..], |s| &s.casters)),
-        };
-        self.frame_header = FrameHeader {
-            effects: set(self.inner.effects()),
-            lights: set(self.inner.lights()),
-            ..header
-        };
-        Ok(&self.frame_header as *const FrameHeader as u32)
+        Ok(self.refresh_frame_header())
     }
 
     /// The last frame as the labs' scenes probe it, JSON.
@@ -345,11 +364,6 @@ pub struct ScarUpload(presentation::scars::ScarUpload);
 
 #[wasm_bindgen]
 impl ScarUpload {
-    /// Canonical scar publication copied into the renderer's separate memory.
-    pub fn snapshot(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.0).map_err(|error| JsValue::from_str(&error.to_string()))
-    }
-
     /// The directory's words (two a `rg32uint` texel) when it changed.
     pub fn directory(&self) -> Option<Vec<u32>> {
         self.0.directory.as_ref().map(|(words, _)| words.clone())

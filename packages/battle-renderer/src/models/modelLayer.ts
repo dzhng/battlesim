@@ -73,7 +73,7 @@ import {
   VIEW_PASS,
   type frameViews,
 } from "../records.gen";
-import { batch_caster, model_fog, model_tiers } from "@wasm/presentation/presentation_wasm.js";
+import { batch_caster, model_fog, model_tiers } from "@wasm/renderer_browser";
 import { uploadCardAtlases, type CardGroup } from "./impostorCards";
 import type { ImpostorAtlas } from "./impostor";
 import { createBuildingLayer, type BuildingStats, type BuildingWalkStats } from "./buildingLayer";

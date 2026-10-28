@@ -13,7 +13,7 @@ import { MIN_TARGET_PX } from "@packages/battle-renderer/src/frame/battleFrame";
 import game from "@fixtures/game.json";
 import type { AppearanceLibrary } from "@packages/scene-assets/src/loader";
 import type { CatalogView } from "@packages/scene-assets/src/units";
-import { Fielding } from "@wasm/presentation/presentation_wasm.js";
+import { Fielding } from "@wasm/renderer_browser";
 import type {
   PresentedBattle,
   PresentedCamera,

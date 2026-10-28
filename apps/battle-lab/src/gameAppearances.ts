@@ -27,7 +27,7 @@ import { TemplateArtError, templateKits } from "@packages/scene-assets/src/templ
 import type { PlacedBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
 import { propArt } from "@packages/battle-renderer/src/models/propAppearance";
 import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh";
-import { prop_appearances } from "@wasm/presentation/presentation_wasm.js";
+import { prop_appearances } from "@wasm/renderer_browser";
 import { diagnosticsSource } from "@web/diagnostics";
 import { appResources } from "./appResources";
 import type { RuntimeFiles } from "./presentedFrame";

@@ -2,7 +2,7 @@
 // The directory and height bits occupy one storage binding, so paging does not
 // consume another binding on passes already at the device's storage limit.
 import { tgpu, d, type TgpuFn } from "typegpu";
-import { terrain_heights } from "@wasm/presentation/presentation_wasm.js";
+import { terrain_heights } from "@wasm/renderer_browser";
 import type { TerrainGrid } from "../terrain/terrainGrid";
 import type { GpuRegistry } from "./registry";
 

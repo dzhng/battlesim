@@ -26,6 +26,7 @@ pub mod models;
 pub mod overlay;
 pub mod pipelines;
 pub mod post;
+pub mod runtime;
 pub mod scars;
 pub mod scenery;
 pub mod shadow;
@@ -34,6 +35,7 @@ pub mod statics;
 pub mod terrain;
 pub mod timing;
 pub mod world;
+pub mod xray;
 
 /// Encode an ordered pass list with one shared debug-group boundary.
 ///

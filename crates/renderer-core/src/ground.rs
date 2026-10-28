@@ -8,9 +8,8 @@ use std::ops::Range;
 
 use presentation::records::Camera;
 use presentation::shadow::{map_box, SunShadowFrame, CASCADES};
-use presentation::static_world::ground::mesh::{self, VERTEX_FLOATS};
+use presentation::static_world::ground::mesh::VERTEX_FLOATS;
 use presentation::static_world::ground::partition::{TerrainPartition, CELL_M};
-use presentation::static_world::ground::Ground as Resolved;
 use wgpu::*;
 
 use presentation::presentation::Presentation;
@@ -120,43 +119,6 @@ pub struct Ground {
 }
 
 impl Ground {
-    /// Uploads `ground` over the simulation's terrain triangles (`positions`
-    /// and `indices`), its backdrop reaching `backdrop_m` past the map.
-    pub fn new(
-        device: &Device,
-        queue: &Queue,
-        pipelines: &Pipelines,
-        ground: &Resolved,
-        (positions, indices): (&[f32], &[u32]),
-        backdrop_m: f64,
-    ) -> Result<Self, String> {
-        let tables = ground.terrain_tables(ground.terrain_field()?);
-        let plots = ground.plot_records(true);
-        let terrain = mesh::terrain(positions, indices, None);
-        let map_box = map_box(&terrain);
-        let backdrop = map_box.map_or_else(Vec::new, |b| mesh::backdrop(&b, backdrop_m));
-        Ok(Self::from_data(
-            device,
-            queue,
-            pipelines,
-            GroundData {
-                material: TerrainUpload {
-                    params: bytemuck::cast_slice(&tables.params),
-                    nodes: bytemuck::cast_slice(&tables.nodes),
-                    plots: bytemuck::cast_slice(&plots),
-                    surfaces: bytemuck::cast_slice(&tables.surfaces),
-                    surface_index: bytemuck::cast_slice(&tables.surface_index),
-                    scars: bytemuck::cast_slice(&tables.scars),
-                },
-                heights: &ground.source.grid.pages(),
-                terrain: &terrain,
-                skirt: &mesh::skirt(positions),
-                backdrop: &backdrop,
-                water: &mesh::water(&ground.water_cells()),
-            },
-        ))
-    }
-
     pub fn from_data(
         device: &Device,
         queue: &Queue,

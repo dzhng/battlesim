@@ -13,7 +13,7 @@ use super::{
 };
 
 /// What a renderer writes before drawing with the scars.
-#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ScarUpload {
     /// The directory's words (two a texel, `rg32uint`) and its texture's
     /// width and height, when it changed.

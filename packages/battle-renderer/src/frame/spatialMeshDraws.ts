@@ -1,5 +1,5 @@
 // Exact static world triangles, spatially selected by the shared Rust owner.
-import { TerrainPartition } from "@wasm/presentation/presentation_wasm.js";
+import { TerrainPartition } from "@wasm/renderer_browser";
 import type { SubmittedDraws } from "./submitted";
 import type { Mesh } from "../mesh";
 import { CAMERA_WORDS, CameraAt } from "../records.gen";

@@ -47,7 +47,6 @@ pub const LIMITS: Limits = Limits {
 /// highest vertex of any tier, its first state's top, its blades and a
 /// blade's root width, and where its near and far tiers start among the
 /// shape vertices.
-#[derive(serde::Serialize, serde::Deserialize)]
 pub struct KindFacts {
     pub mesh_height: f64,
     pub top: f64,
@@ -348,8 +347,6 @@ pub struct KindMesh<'a> {
 /// Every kind's two field tiers as clump vertices ([`SHAPE_FLOATS`] each),
 /// each kind's facts for [`Ground::grass_params`], and the most blades any
 /// kind has (the index lists' blades).
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct PackedShapes {
     pub shapes: Vec<f32>,
     pub facts: Vec<KindFacts>,

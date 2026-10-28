@@ -10,9 +10,8 @@ pub mod capture;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod counts;
 pub mod effects;
-pub mod frame;
 pub mod gpu;
 pub mod pipelines;
-pub mod shadow;
+pub mod readback;
 
 pub use renderer_core::{environment, fog, grass, ground, models, scars, scenery, sky, statics};

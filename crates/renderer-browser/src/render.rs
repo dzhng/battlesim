@@ -1,69 +1,57 @@
-//! Browser surface admission and presentation around the shared GPU frame.
+//! Surface admission before the runtime consumes canonical incremental work.
 use super::*;
-use renderer_core::frame::{FrameInputs, OverlayFrame};
+use renderer_core::runtime::OverlayGeometry;
 
 #[wasm_bindgen]
 impl Renderer {
-    pub fn render(&mut self) -> Result<(), JsValue> {
-        let ground = self
-            .ground
-            .as_ref()
-            .ok_or_else(|| js_error("load ground before rendering"))?;
-        let models = self
-            .models
-            .as_ref()
-            .ok_or_else(|| js_error("load model world before rendering"))?;
-        let scenery = self
-            .scenery
-            .as_ref()
-            .ok_or_else(|| js_error("load scenery world before rendering"))?;
-        let presentation = self
-            .presentation_snapshot
-            .as_ref()
-            .ok_or_else(|| js_error("upload frame before rendering"))?;
-        let frame_view = record(&presentation.view, "view")?;
-        let mut encoder = self
-            .device
-            .create_command_encoder(&CommandEncoderDescriptor {
-                label: Some("battle-frame"),
-            });
+    pub fn render_presentation(&mut self, presentation: &mut Presentation) -> Result<u32, JsValue> {
         let surface = match self.surface.get_current_texture() {
             CurrentSurfaceTexture::Success(surface)
             | CurrentSurfaceTexture::Suboptimal(surface) => surface,
             CurrentSurfaceTexture::Outdated | CurrentSurfaceTexture::Lost => {
                 self.recover_surface();
-                return Ok(());
+                if let Some(runtime) = &mut self.runtime {
+                    runtime.invalidate_statics();
+                }
+                return Ok(presentation.refresh_frame_header());
             }
             other => return Err(js_error(format!("surface unavailable: {other:?}"))),
         };
+        if self.runtime.is_none() {
+            self.install_presentation(presentation)?;
+        }
+        let runtime = self.runtime.as_mut().expect("installed runtime");
+        let resized = runtime.resize(
+            &self.device,
+            [self.width, self.height],
+            presentation.core_mut(),
+        );
+        runtime
+            .prepare(&self.device, &self.queue, presentation.core_mut())
+            .map_err(js_error)?;
+        self.update_stats(presentation.core());
+        if resized {
+            self.rebind_display();
+        }
+        let runtime = self.runtime.as_ref().expect("installed runtime");
+        let mut encoder = self
+            .device
+            .create_command_encoder(&CommandEncoderDescriptor {
+                label: Some("battle-frame"),
+            });
         if let Some(timer) = &mut self.gpu_timer {
             timer.begin(&mut encoder);
         }
-        self.frame.encode(
-            &FrameInputs {
-                device: &self.device,
-                queue: &self.queue,
-                view: &frame_view,
-                targets: &self.targets,
-                sky: &self.sky,
-                environment: &self.environment,
-                shadow: &self.shared_shadow,
-                ground,
-                grass: self.grass.as_ref(),
-                models,
-                scenery,
-                effects: self.shared_effects.resources(),
-                fog: &self.shared_fog_sight,
-                fog_mask: &self.shared_fog_mask,
-                post: &self.shared_post,
-                overlays: (self.overlay_vertex_count > 0).then_some(OverlayFrame {
-                    resources: &self.shared_overlay_resources,
-                    vertices: &self.overlay_vertices,
-                    instances: &self.overlay_instances,
-                    vertex_count: self.overlay_vertex_count,
-                }),
-            },
+        runtime.encode(
+            &self.device,
+            &self.queue,
+            &presentation.core().last_frame().view,
             &mut encoder,
+            (self.overlay_vertex_count > 0).then_some(OverlayGeometry {
+                vertices: &self.overlay_vertices,
+                instances: &self.overlay_instances,
+                vertex_count: self.overlay_vertex_count,
+            }),
         );
         let view = surface
             .texture
@@ -78,17 +66,8 @@ impl Renderer {
         }
         self.queue.present(surface);
         self.stats.shared_passes += 1;
-        self.stats.shared_model_prepass = true;
-        self.stats.shadow_passes += self.shared_shadow.active() as u32;
-        self.stats.shadow_model_passes += self
-            .stats
-            .shadow_caster_batches
-            .iter()
-            .take(self.shared_shadow.active())
-            .filter(|&&count| count > 0)
-            .count() as u32;
         self.stats.frames += 1;
-        Ok(())
+        Ok(presentation.refresh_frame_header())
     }
 
     /// Match WebGPU's queue completion boundary in the browser control.
@@ -115,7 +94,13 @@ impl Renderer {
             })],
             ..Default::default()
         });
-        pipeline.set(&mut pass, &[("sampled", &self.display_group)]);
+        pipeline.set(
+            &mut pass,
+            &[(
+                "sampled",
+                self.display_group.as_ref().expect("installed display"),
+            )],
+        );
         pass.draw(0..3, 0..1);
     }
 }

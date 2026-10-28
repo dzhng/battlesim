@@ -17,12 +17,15 @@ pub const DIR: &str = concat!(
 /// Build the shared pipeline graph from the native runtime export.
 pub fn build(device: &Device, dir: &str) -> Result<Pipelines> {
     let text = fs::read_to_string(format!("{dir}/pipelines.json")).map_err(|e| e.to_string())?;
-    Pipelines::build(device, &text, |_name, shader| {
-        let source = fs::read_to_string(format!("{dir}/{shader}")).map_err(|e| e.to_string())?;
-        #[cfg(windows)]
-        let source = native_shader_source(name, source);
-        Ok(source)
-    })
+    Pipelines::build(device, &text, |name, shader| source(dir, name, shader))
+}
+
+/// Platform filesystem and driver-specific source adaptation only.
+pub fn source(dir: &str, _name: &str, shader: &str) -> Result<String> {
+    let source = fs::read_to_string(format!("{dir}/{shader}")).map_err(|e| e.to_string())?;
+    #[cfg(windows)]
+    let source = native_shader_source(_name, source);
+    Ok(source)
 }
 
 #[cfg(windows)]

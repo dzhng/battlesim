@@ -13,7 +13,7 @@ import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth, BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
 import { CameraAt } from "../records.gen";
 import type { EnvironmentFrame } from "./environmentFrame";
-import { backdrop_mesh, map_box, scar_scissor } from "@wasm/presentation/presentation_wasm.js";
+import { backdrop_mesh, map_box, scar_scissor } from "@wasm/renderer_browser";
 import {
   identityInstance,
   type CameraGroup,

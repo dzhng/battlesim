@@ -1,59 +1,67 @@
 use super::*;
 #[wasm_bindgen]
 impl Renderer {
-    #[cfg(target_arch = "wasm32")]
     pub fn stats(&self) -> String {
-        format!(
-            r#"{{"frames":{},"modelVertices":{},"sharedScenery":{},"sceneryVertices":{},"sceneryRuns":{},"shadowSceneryBatches":[{},{},{},{}],"resizes":{},"sharedPasses":{},"targetGeneration":{},"sharedMaterials":{},"sharedShadow":{},"sharedEnvironment":{},"sharedEffects":{},"sharedFogSight":{},"sharedTerrain":{},"terrainParamsWords":{},"terrainNodesWords":{},"terrainPlotsWords":{},"terrainSurfaceWords":{},"terrainIndexWords":{},"shadowCasterBatches":[{},{},{},{}],"shadowPasses":{},"shadowModelPasses":{},"sharedFogCompute":{},"sharedModelPrepass":{},"surfaceRecoveries":{},"deviceRecoveries":{},"deviceLost":{},"presentationUploads":{},"fogSightUploads":{},"fogHeightWords":{},"presentationBound":{},"presentationCameraWords":{},"presentationEnvironmentWords":{},"presentationFogWords":{},"presentationOverlayWords":{},"presentationEffectWords":{},"presentationModelWords":{},"presentationModelRuns":{},"presentationMaterialWords":{},"width":{},"height":{},"sharedTargets":true,"sharedDepth":true,"sharedWorld":true,"asset":{}}}"#,
-            self.stats.frames,
-            self.stats.model_vertices,
-            self.stats.shared_scenery,
-            self.stats.scenery_vertices,
-            self.stats.scenery_runs,
-            self.stats.shadow_scenery_batches[0],
-            self.stats.shadow_scenery_batches[1],
-            self.stats.shadow_scenery_batches[2],
-            self.stats.shadow_scenery_batches[3],
-            self.stats.resizes,
-            self.stats.shared_passes,
-            self.stats.target_generation,
-            self.stats.shared_materials,
-            self.stats.shared_shadow,
-            self.stats.shared_environment,
-            self.stats.shared_effects,
-            self.stats.shared_fog_sight,
-            self.stats.shared_terrain,
-            self.stats.terrain_params_words,
-            self.stats.terrain_nodes_words,
-            self.stats.terrain_plots_words,
-            self.stats.terrain_surface_words,
-            self.stats.terrain_index_words,
-            self.stats.shadow_caster_batches[0],
-            self.stats.shadow_caster_batches[1],
-            self.stats.shadow_caster_batches[2],
-            self.stats.shadow_caster_batches[3],
-            self.stats.shadow_passes,
-            self.stats.shadow_model_passes,
-            true,
-            self.stats.shared_model_prepass,
-            self.stats.surface_recoveries,
-            self.stats.device_recoveries,
-            self.device_lost.load(Ordering::Relaxed),
-            self.stats.presentation_uploads,
-            self.stats.fog_sight_uploads,
-            self.stats.fog_height_words,
-            self.stats.presentation_bound,
-            self.stats.presentation_camera_words,
-            self.stats.presentation_environment_words,
-            self.stats.presentation_fog_words,
-            self.stats.presentation_overlay_words,
-            self.stats.presentation_effect_words,
-            self.stats.presentation_model_words,
-            self.stats.presentation_model_runs,
-            self.stats.presentation_material_words,
-            self.width,
-            self.height,
-            self.asset_report.as_deref().unwrap_or("null")
-        )
+        let mut stats = serde_json::to_value(self.stats).expect("renderer counters serialize");
+        let fields = stats
+            .as_object_mut()
+            .expect("renderer counters are an object");
+        fields.extend(serde_json::json!({
+            "preparation": self.runtime.as_ref().map(|r| r.preparation_stats()),
+            "fogSightUploads": self.stats.fog_sight_uploads + self.runtime.as_ref().map_or(0, |r| r.fog.upload_count() as u32),
+            "fogTablesReady": self.runtime.as_ref().is_some_and(|r| r.fog.has_complete_tables()),
+            "deviceLost": self.device_lost.load(Ordering::Relaxed),
+            "width": self.width,
+            "height": self.height,
+            "sharedTargets": self.runtime.is_some(),
+            "sharedDepth": self.runtime.is_some(),
+            "sharedWorld": self.runtime.is_some(),
+            "sharedFogCompute": self.runtime.is_some(),
+            "asset": self.asset_report.as_ref().map(|r| serde_json::from_str::<serde_json::Value>(r).expect("stored asset report is JSON")),
+        }).as_object().expect("diagnostic fields are an object").clone());
+        serde_json::to_string(&stats).expect("renderer counters serialize")
+    }
+}
+
+impl Renderer {
+    pub(super) fn update_stats(&mut self, presentation: &presentation::presentation::Presentation) {
+        let runtime = self.runtime.as_ref().expect("installed runtime");
+        let f = presentation.last_frame();
+        let s = &mut self.stats;
+        s.model_vertices = runtime.models.resident_vertices();
+        s.presentation_material_words = runtime.models.material_words();
+        s.shared_scenery = true;
+        s.scenery_vertices = runtime.scenery.resident_vertices();
+        s.scenery_runs = runtime.scenery.run_count();
+        s.shadow_scenery_batches = runtime.scenery.caster_run_counts();
+        s.presentation_model_runs = runtime.models.run_count();
+        s.shadow_caster_batches = runtime.models.caster_run_counts();
+        s.presentation_model_words = (size_of_val(f.palettes.as_slice())
+            + size_of_val(f.instances.as_slice())
+            + size_of_val(f.batches.as_slice())) as u32
+            / 4;
+        s.presentation_effect_words = size_of_val(presentation.effects()) as u32 / 4;
+        s.fog_height_words = (runtime.ground.heights.size() / 4) as u32;
+        s.presentation_preparations += 1;
+        s.presentation_bound = true;
+        s.presentation_camera_words = size_of_val(&f.camera) as u32 / 4;
+        s.presentation_environment_words = (runtime.environment.data.size() / 4) as u32;
+        s.presentation_fog_words = size_of_val(&self.config.fog_look) as u32 / 4;
+        s.presentation_overlay_words = self.overlay_glow.len() as u32;
+        s.shared_terrain = true;
+        s.shared_materials = true;
+        s.shared_shadow = true;
+        s.shared_environment = true;
+        s.shared_effects = true;
+        s.shared_fog_sight = true;
+        s.shared_model_prepass = true;
+        s.target_generation = runtime.targets.generation();
+        s.shadow_passes += runtime.shadow.active() as u32;
+        s.shadow_model_passes += s
+            .shadow_caster_batches
+            .iter()
+            .take(runtime.shadow.active())
+            .filter(|&&n| n > 0)
+            .count() as u32;
     }
 }

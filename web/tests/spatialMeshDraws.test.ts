@@ -1,7 +1,6 @@
 // @vitest-environment node
-import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
-import { initSync } from "@wasm/presentation/presentation_wasm.js";
+import { loadPresentation } from "@web/battle/sim/presentation";
 import { SpatialMeshDraws } from "@packages/battle-renderer/src/frame/spatialMeshDraws";
 import { MeshSlot } from "@packages/battle-renderer/src/frame/geometry";
 import { CAMERA_WORDS, CameraAt } from "@packages/battle-renderer/src/records.gen";
@@ -9,12 +8,9 @@ import { submittedDraws } from "@packages/battle-renderer/src/frame/submitted";
 import { GpuRegistry } from "@packages/battle-renderer/src/frame/registry";
 import { fakeGpuDevice } from "./support/gpuDevice";
 
+await loadPresentation();
+
 test("shared Wasm selection submits camera and independent cascade ranges with exact counters", () => {
-  initSync({
-    module: readFileSync(
-      new URL("../src/wasm/presentation/presentation_wasm_bg.wasm", import.meta.url),
-    ),
-  });
   const { device } = fakeGpuDevice();
   const registry = new GpuRegistry(device);
   const uploads: Float32Array[] = [];

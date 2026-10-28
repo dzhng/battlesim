@@ -1,5 +1,5 @@
 /** Verified runtime transport; authored asset interpretation belongs to Rust. */
-import type { Renderer } from "@wasm/renderer_browser/renderer_browser.js";
+import type { Renderer } from "@wasm/renderer_browser";
 import { gzipTransport, readGzip, type ReadRuntime } from "@packages/scene-assets/src/gzip";
 import { bundlePath, texturePath, type RuntimeCatalog } from "@packages/scene-assets/src/schema";
 

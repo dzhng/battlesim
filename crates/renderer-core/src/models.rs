@@ -370,6 +370,8 @@ pub struct Models {
     material_bindings: crate::model_material::ModelMaterialBindings,
     runs: Vec<Run>,
     drawn: Drawn,
+    xray_instance_count: u32,
+    has_xray_meshes: bool,
 }
 
 fn growable(device: &Device, label: &str, usage: BufferUsages, bytes: u64) -> Buffer {
@@ -569,6 +571,8 @@ impl Models {
             statics: Statics::from_rows(appearances),
             runs: Vec::new(),
             drawn: Drawn::default(),
+            xray_instance_count: 0,
+            has_xray_meshes: false,
         })
     }
 
@@ -632,6 +636,8 @@ impl Models {
         queue.write_buffer(&self.instances, 0, instances);
         self.runs.clear();
         self.drawn = Drawn::default();
+        self.xray_instance_count = 0;
+        self.has_xray_meshes = false;
         // The units' batches, from the frame's instances, then the static
         // world's, held.
         let units = batches
@@ -658,6 +664,14 @@ impl Models {
             let Some(drawable) = row.drawable(tier) else {
                 continue;
             };
+            let layer = Layer::of(fog);
+            if in_view(pass) && layer == Layer::Units && drawable.part(Surface::Opaque).count > 0 {
+                self.xray_instance_count = self.xray_instance_count.max(first + count);
+                let records = held.map_or(instance_records, |key| self.statics.records(key));
+                self.has_xray_meshes |= records[first as usize..(first + count) as usize]
+                    .iter()
+                    .any(|instance| instance.scale[3] > 0.0);
+            }
             let ghost = pass == GHOST_PASS;
             self.runs.push(Run {
                 row: appearance as usize,
@@ -665,7 +679,7 @@ impl Models {
                 pass,
                 caster: (caster != NONE).then_some(caster as usize),
                 cascade_mask,
-                fog: Layer::of(fog),
+                fog: layer,
                 held,
                 first,
                 count,
@@ -724,6 +738,17 @@ impl Models {
     /// What the last prepared frame draws.
     pub fn drawn(&self) -> Drawn {
         self.drawn
+    }
+
+    /// Highest instance extent of drawable opaque unit runs. Instance indices
+    /// remain those in the publication, including any holes before these runs.
+    pub fn xray_instance_count(&self) -> u32 {
+        self.xray_instance_count
+    }
+
+    /// Whether the prepared publication contains an eligible silhouette cue.
+    pub fn has_xray_meshes(&self) -> bool {
+        self.has_xray_meshes
     }
 
     /// The layer's own group, by the layout it fills.

@@ -173,35 +173,104 @@ and an unprimed critique confirms continuity. Evidence: `recovery-pixels-red.log
 evidence folder. One attempted green run overlapped lint-staged hiding the
 unstaged harness and is invalid; its workload lacks the new comparison field.
 
+## Unified runtime development results
+
+The actual browser integration now links presentation/audio/rendering in one
+artifact and calls the common Runtime for composition/preparation/rebuilding.
+Its first captured GPU run preserves the same browser street distance
+(`0.000010049120099044128` mean RGB, 0–255), exact recovery pixels and all six
+native incumbent plates byte for byte. New neutral critique finds no
+candidate-specific regression; both controls retain the previously reported
+vehicle hatching and weak tank grounding. Evidence: `unified-runtime-first/`,
+`unified-runtime-review/` and `unified-native-plates.json` under renderer evidence.
+
+The first held-frame trial exposed repeated full model uploads: the new Runtime
+prepared the same materialized publication on every draw, unlike the old frozen
+control which uploaded it once outside measurement. Its 223.5 ms CPU total over
+120 frames is retained as a rejected preparation policy, not a packaging cost.
+The runtime now reuses model/effect buffers until the canonical frame index
+changes or its static generation is invalidated. Fog/scar work still prepares
+every actual draw. Actual counters confirm one model/effect preparation across
+121 held-frame preparations after recovery. Changing-frame validation remains a
+separate gate; it must include every changed publication's preparation.
+
+Three rotated serial/timestamp repeats after held-frame reuse:
+
+| Frozen 640×360 street | CPU p50 range | CPU p95 range | GPU mean range |
+| --- | ---: | ---: | ---: |
+| TypeGPU in current cohort | 0.595–0.735 ms | 0.760–0.990 ms | 3.758–3.894 ms |
+| Unified shared Rust runtime | 0.275–0.300 ms | 0.330–0.400 ms | 4.069–4.150 ms |
+
+Both current CPU controls are slower than the saved separate-module cohort, so
+those historical absolute values cannot isolate the effect of packaging. The
+current pair supports a whole-path CPU saving and a modest GPU overhead on this
+held frame only. Raw repeats: `unified-runtime-profile/samples.json`.
+
+The integration also adopts canonical effect PNG decoding/mips and live typed
+fog settings, so it is a coupled runtime change, not an isolated module toggle.
+Decoded atlas payload moves into asset accounting; its full mip chain adds GPU
+storage compared with the old browser's base-only atlas. Owned memory excludes
+allocator/driver/canvas residency. The shared module's linear memory remains at
+its high-water size after payloads are freed; per-stage values are recorded in
+the raw workload rather than described as live retained payload.
+
+Changing-frame development confirmation now replays the exact same 120 captured
+frames and 60 authority publications in both browser backends. It includes
+publication decode, canonical framing and each backend's per-frame preparation
+in the measured loop. Current model/effect counters are 121 each including the
+warm frame, and final camera/view/shadow/caster words and presentation probe
+match exactly. Source 640×360 output differs in 13 channels, maximum 2, mean RGB
+`0.00002170138888888889` (mean RGBA `0.000016276041666666668`). Fresh visual
+critique found no candidate-specific difference.
+
+| Changing 120-frame street window | Per-repeat CPU mean | Per-repeat GPU mean |
+| --- | --- | --- |
+| TypeGPU | 1.1385 / 1.1570 / 1.2805 ms | 6.543 / 4.035 / 4.743 ms |
+| Shared Rust | 0.6808 / 0.6465 / 0.7052 ms | 6.736 / 6.646 / 4.376 ms |
+
+The CPU cohort mean is 1.1920 ms versus 0.6775 ms (43.2% lower for Rust). GPU values
+have substantial between-repeat drift and a per-repeat reversal; their cohort
+mean is not a stable GPU verdict. Evidence and complete raw samples:
+`changing-plate240-attempt3/`. Final dynamic-vs-frozen history is not byte-identical;
+those are different presentation histories and are not compared as equal outputs.
+
+Two earlier dynamic attempts are retained. Attempt1 saved the TypeGPU image
+after destroying its device, allowing a prior compositor frame and a misleading
+CSS image difference 2.42082. Attempt2 found raw post-destroy TypeGPU canvas pixels
+were black. Attempt3 retains each final native-size canvas before disposal,
+outside the measured loop. It preserves CSS captures as secondary evidence and
+proves the actual final source pixels. Neither failed capture is renderer parity
+or timing confirmation.
+
 ## Hypothesis queue
 
-1. **Shared resource owners first (active):** moving native model/material,
-   shadow, and fog target ownership into `renderer-core` gives both shells one
-   lifetime owner without changing GPU work. Falsifier: browser-safe types cannot
-   represent the existing assets or native behavior without a second graph.
-2. **Pass seams before browser integration:** extracting fog, effects, post and
-   overlays as input traits/records will make the native frame callable from the
-   browser shell while retaining pass order. Falsifier: the seam requires DOM,
-   filesystem, or platform-specific resource types in the core.
-3. **Lifecycle is the complexity gate:** shared resize/rebuild/reset/device-loss
-   ownership removes more duplicated state than it adds. Falsifier: either
-   shell needs an independent registry or cannot return to a clean baseline.
-4. **Deletion is the final win:** after parity, deleting TypeGPU runtime owners
-   produces the complexity reduction. Falsifier: keeping TypeGPU as a runtime
-   materially lowers maintenance without duplicating rendering ownership.
+1. **Unified runtime (active):** one browser module and direct canonical
+   preparation should remove transport/recovery owners while preserving held
+   and changing images. Held/recovery/native plates pass; changing images are
+   being diagnosed. Module packaging alone has no isolated frame-time verdict.
+2. **Browser feature completion (next):** shared paint, x-ray, high-air, lab
+   models, quality and diagnostics must preserve every production consumer.
+   An isolated real-GPU x-ray owner is implemented; production depth/overlay
+   integration remains open.
+3. **Final measured/deleted architecture:** compare both browser backends and
+   native at matching workload/resolution, then delete TypeGPU and the separate
+   spike graph. Source totals must count the resulting shared runtime and shells.
+4. **Direct output target (optional, separate experiment):** removing the extra
+   browser display-composite pass may reduce GPU overhead. No causal result yet;
+   preserve output formats and readback when testing it.
 
 ## Parameter-effect map
 
 | Strategy | Current evidence | Effect | Status |
-|---|---|---|---|
-| Standalone Rust production-shaped graph | Full frame distance 47.03; incomplete materials/shadows/fog/post | Fast diagnostic, invalid migration comparison | Reject as final architecture |
-| Shared target/pipeline/depth/world owners | Native/browser compile; unchanged pass order/GPU work | Reduces duplicate allocation and attachment policy | Keep |
-| Shared indexed model upload owner | Native/browser compile; queue upload seam | Establishes one model GPU lifetime owner; no measured extra draws | Keep, production integration pending |
-| Shared fog-mask owner | Native/browser-safe core; same 2 optional distance passes + compose + rim | Removes native attachment/pass duplication with zero extra GPU work | Keep |
-| Shared effects/post owners | Native/browser-safe resource and ordered fullscreen/instanced draws | Removes native pass/resource duplication; asset decoding remains shell-owned | Keep |
-| Shared target lifecycle owner | Atomic target swap plus generation counter | Makes resize invalidation one contract with no extra GPU passes | Keep |
-| Shared fog compute pipeline owner | Four exported compute bindings and stable dispatch labels/order | Removes pipeline/dispatch drift; presentation upload and bind groups stay shell-owned | Keep |
-| Browser TypeGPU as permanent second renderer | Two pass/resource graphs | Preserves a known control at the cost of permanent duplication | Reject after parity |
+| --- | --- | --- | --- |
+| Standalone Rust production-shaped graph | Incomplete production materials/shadows/fog/post | Useful transport probe, invalid migration comparison | Reject as final architecture |
+| Shared native resource/frame owners | Matched frozen browser street; all six native incumbent plates unchanged | Removes duplicated resource and pass policy | Keep |
+| One browser module + common Runtime | Actual GPU recovery/frozen parity; Node memory/header/audio checks | Deletes canonical frame/world/fog/scar copies, bridge callbacks and recovery replay | Keep; changing-frame gate active |
+| Reprepare every held model/effect stream | First unified frozen trial repeatedly uploaded large unchanged streams | Unnecessary CPU work, 223.5 ms over 120 held draws | Reject |
+| Reuse unchanged canonical model/effect frame | Actual counters 1 model / 1 effect across 121 frame preparations; frozen images unchanged | Restores bounded held-frame upload work; fog/scar preparation stays live | Keep; changing-frame gate separate |
+| Canonical PNG decode/full atlas mips | Shared native/browser source; frozen/native images preserved | Removes browser decoding and atlas owner; adds mip storage versus old browser atlas | Keep |
+| Owned allocation visitor | Descriptor-based deduplicated GPU handles, transient diagnostic lifetime | Measures owned payload without keeping dropped resources alive | Keep; excludes allocator/driver residency |
+| Browser TypeGPU as permanent second renderer | Two runtime graphs | Retains duplicate policy and lifetime owners | Reject after production parity |
 
 ## Attempt ledger
 

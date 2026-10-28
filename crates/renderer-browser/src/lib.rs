@@ -1,22 +1,11 @@
-//! Browser shell for the shared renderer core.
-//!
-//! This shell supplies a browser surface and copied presentation records to
-//! the shared resource and pass owners. Authored models use the same admission,
-//! indexed geometry, materials and draw runs as the native client.
-
+//! Browser device, surface and byte transport for the common Rust runtime.
 #![cfg(target_arch = "wasm32")]
 
+pub use presentation_wasm::*;
 use renderer_core::bundle::Library;
-use renderer_core::fog_mask::FogMaskResources;
-use renderer_core::fog_sight::FogSightResources;
-use renderer_core::frame::FrameRenderer;
-use renderer_core::grass::Grass;
-use renderer_core::ground::Ground;
-use renderer_core::models::Models;
+use renderer_core::effects::EffectSheets;
 use renderer_core::pipelines::Pipelines;
-use renderer_core::post::PostResources;
-use renderer_core::shadow::{ShadowResources, CAMERA_BYTES, RECEIVER_BYTES};
-use renderer_core::TargetOwner;
+use renderer_core::runtime::{Runtime, RuntimeConfig, RuntimeWorld, WorldGeometry};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
@@ -27,25 +16,14 @@ pub(crate) mod pipeline_export {
     include!(concat!(env!("OUT_DIR"), "/pipeline_export.rs"));
 }
 mod asset;
-mod browser_effects;
 mod diagnostics;
 mod export;
-mod ground_upload;
-mod presentation_upload;
 mod recovery;
 mod render;
-mod scenery;
-mod shadow_upload;
 mod state;
 mod stats_api;
-use asset::{ModelFrameSnapshot, ModelWorldSnapshot};
-use browser_effects::BrowserEffects;
-use ground_upload::{GrassSnapshot, GroundSnapshot};
-use renderer_core::environment::Environment;
-use renderer_core::sky::Sky;
-use scenery::SceneryWorldSnapshot;
-use state::LightingSnapshot;
-use state::{PresentationSnapshot, Stats};
+mod world;
+use state::Stats;
 
 const DISPLAY_PIPELINES: &str = r#"{
   "sizes":{"bloomLevels":0,"skyLut":[1,1],"effectSheet":1,"grassClump":1},
@@ -69,52 +47,25 @@ struct V { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> };
 }
 "#;
 
-fn build_exported_pipelines(device: &Device) -> Result<Pipelines, String> {
-    Pipelines::build(device, pipeline_export::MANIFEST, |_, shader| {
-        pipeline_export::source(shader)
-            .map(str::to_owned)
-            .ok_or_else(|| format!("missing embedded WGSL source: {shader}"))
-    })
-}
-
 #[wasm_bindgen]
 pub struct Renderer {
     surface: wgpu::Surface<'static>,
     device: Device,
     queue: Queue,
-    targets: TargetOwner,
-    display_pipelines: Pipelines,
-    production_pipelines: Pipelines,
-    shared_post: PostResources,
-    shared_effects: BrowserEffects,
-    shared_fog_mask: FogMaskResources,
-    shared_fog_sight: FogSightResources,
-    shared_overlay_resources: renderer_core::overlay::OverlayResources,
-    shared_shadow: ShadowResources,
-    ground: Option<Ground>,
-    grass: Option<Grass>,
-    ground_snapshot: Option<Arc<GroundSnapshot>>,
-    grass_snapshot: Option<Arc<GrassSnapshot>>,
-    environment: Environment,
-    sky: Sky,
-    lighting: LightingSnapshot,
-    presentation_snapshot: Option<PresentationSnapshot>,
-    frame: FrameRenderer,
-    gpu_timer: Option<renderer_core::timing::FrameTimer>,
-    models: Option<Models>,
-    scenery: Option<renderer_core::scenery::Scenery>,
-    scenery_world: Option<Arc<SceneryWorldSnapshot>>,
+    runtime: Option<Runtime>,
+    config: RuntimeConfig,
+    geometry: Option<Arc<WorldGeometry>>,
+    effect_sheets: Option<Arc<EffectSheets>>,
     model_library: Arc<Library>,
-    model_world: Option<Arc<ModelWorldSnapshot>>,
-    model_frame: Option<Arc<ModelFrameSnapshot>>,
+    display_pipelines: Pipelines,
+    display_sampler: Sampler,
+    display_group: Option<BindGroup>,
+    gpu_timer: Option<renderer_core::timing::FrameTimer>,
     overlay_vertices: Buffer,
     overlay_instances: Buffer,
     overlay_vertex_count: u32,
     overlay_snapshot: Vec<f32>,
-    post_bloom: Vec<f32>,
-    post_grade: Vec<f32>,
-    display_sampler: Sampler,
-    display_group: BindGroup,
+    overlay_glow: [f32; 4],
     width: u32,
     height: u32,
     format: TextureFormat,
@@ -128,27 +79,58 @@ fn js_error(error: impl std::fmt::Display) -> JsValue {
     JsValue::from_str(&error.to_string())
 }
 
-fn record<T: bytemuck::Pod>(words: &[f32], label: &str) -> Result<T, JsValue> {
-    bytemuck::try_from_bytes(bytemuck::cast_slice(words))
-        .copied()
-        .map_err(|error| js_error(format!("{label}: {error}")))
-}
-
 #[wasm_bindgen]
 impl Renderer {
-    #[cfg(target_arch = "wasm32")]
-    #[wasm_bindgen]
+    /// Device admission is asynchronous; canonical presentation borrows are not.
     pub async fn new(
         canvas: HtmlCanvasElement,
-        sky: Vec<f32>,
-        sun: Vec<f32>,
-        aerial: Vec<f32>,
+        light: String,
+        fog: String,
+        grass_density: Option<f64>,
     ) -> Result<Renderer, JsValue> {
-        let lighting = LightingSnapshot {
-            sky: record(&sky, "sky light")?,
-            sun: record(&sun, "sun light")?,
-            aerial: record(&aerial, "aerial light")?,
-        };
+        let light = serde_json::from_str(&light).map_err(js_error)?;
+        let style: presentation::fog::FogStyle = serde_json::from_str(&fog).map_err(js_error)?;
+        Self::admit(
+            canvas,
+            light,
+            style.look().map_err(js_error)?,
+            grass_density,
+        )
+        .await
+    }
+
+    /// Rebuild targets while synchronously borrowing current knowledge.
+    pub fn resize(&mut self, canvas: HtmlCanvasElement, presentation: &mut Presentation) {
+        let size = [canvas.width().max(1), canvas.height().max(1)];
+        if size != [self.width, self.height] {
+            [self.width, self.height] = size;
+            self.config.size = size;
+            if let Some(runtime) = &mut self.runtime {
+                runtime.resize(&self.device, size, presentation.core_mut());
+            }
+            self.rebind_display();
+            self.stats.resizes += 1;
+        }
+        self.configure_surface();
+    }
+
+    pub fn recover_surface(&mut self) {
+        self.configure_surface();
+        self.stats.surface_recoveries += 1;
+    }
+
+    pub fn destroy_device_for_test(&self) {
+        self.device.destroy();
+    }
+}
+
+impl Renderer {
+    async fn admit(
+        canvas: HtmlCanvasElement,
+        light: presentation::light::LightSettings,
+        fog_look: presentation::records::FogLook,
+        grass_density: Option<f64>,
+    ) -> Result<Renderer, JsValue> {
         let instance = Instance::new(InstanceDescriptor {
             backends: Backends::BROWSER_WEBGPU,
             ..InstanceDescriptor::new_without_display_handle()
@@ -212,245 +194,54 @@ impl Renderer {
                 view_formats: vec![],
             },
         );
-        let targets = TargetOwner::new(&device, [width, height]);
-        let pipeline_export = DISPLAY_PIPELINES.replace(
-            "\"bgra8unorm\"",
-            &format!(
-                "\"{}\"",
-                match format {
-                    TextureFormat::Bgra8UnormSrgb => "bgra8unorm-srgb",
-                    _ => "bgra8unorm",
-                }
-            ),
-        );
         let pipeline_errors = device.push_error_scope(ErrorFilter::Validation);
-        let display_pipelines = Pipelines::build(&device, &pipeline_export, |_name, _shader| {
+        let display_pipelines = Pipelines::build(&device, DISPLAY_PIPELINES, |_, _| {
             Ok(DISPLAY_SHADER.to_owned())
         })
         .map_err(js_error)?;
         if let Some(error) = pipeline_errors.pop().await {
-            return Err(js_error(format!("shared pipeline validation: {error:?}")));
+            return Err(js_error(format!("display pipeline validation: {error:?}")));
         }
-        let production_errors = device.push_error_scope(ErrorFilter::Validation);
-        let production_pipelines = build_exported_pipelines(&device).map_err(js_error)?;
-        if let Some(error) = production_errors.pop().await {
-            return Err(js_error(format!(
-                "production pipeline validation: {error:?}"
-            )));
-        }
-        let shared_post =
-            renderer_core::post::new(&device, &production_pipelines, &targets, &[0; 32], &[0; 80]);
-        let shared_fog_mask = renderer_core::fog_mask::fog_mask(
-            &device,
-            &production_pipelines,
-            &targets,
-            &[0; 96],
-            true,
-            true,
-        );
-        let shared_fog_sight =
-            FogSightResources::new(&device, &production_pipelines, &targets.depth);
-        let shared_overlay_resources =
-            renderer_core::overlay::new(&device, &production_pipelines, &targets, &[0; 16], true);
-        // Match the presentation light's authored 2048px cascade maps. The
-        // earlier 64px diagnostic target made receiver sampling visibly
-        // alias across the terrain even when the caster pass was correct.
-        let shared_shadow = ShadowResources::new(
-            &device,
-            &production_pipelines,
-            2048,
-            &[0; RECEIVER_BYTES],
-            CAMERA_BYTES,
-        );
-        let overlay_vertices = renderer_core::buffer(
-            &device,
-            "shared-overlay-vertices",
-            BufferUsages::VERTEX,
-            &[0; 40],
-        );
+        let display_sampler = device.create_sampler(&SamplerDescriptor::default());
+        let overlay_vertices =
+            renderer_core::buffer(&device, "overlay-vertices", BufferUsages::VERTEX, &[0; 40]);
         let overlay_instances = renderer_core::buffer(
             &device,
-            "shared-overlay-instance",
+            "overlay-instance",
             BufferUsages::VERTEX,
             bytemuck::cast_slice(&[0.0f32, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0]),
-        );
-        let sky = Sky::new(&device, &queue, &production_pipelines, &lighting.sky);
-        let environment = Environment::new(
-            &device,
-            &queue,
-            &production_pipelines,
-            &sky.lut,
-            &lighting.sun,
-            &lighting.aerial,
-            &shared_shadow,
-        );
-        let shared_effects = BrowserEffects::new(
-            &device,
-            &targets,
-            &production_pipelines,
-            &environment.camera_buffer,
-            &environment.data,
-            &environment.pmrem,
-            &environment.cast_lights,
-        );
-        let frame = FrameRenderer::new(&production_pipelines);
-        let display_sampler = device.create_sampler(&SamplerDescriptor::default());
-        let display_group = renderer_core::bind(
-            &device,
-            display_pipelines.layout("sampled"),
-            "shared-display-composite-group",
-            &[
-                BindingResource::TextureView(&targets.display),
-                BindingResource::Sampler(&display_sampler),
-            ],
         );
         Ok(Self {
             surface,
             device,
             queue,
-            targets,
-            display_pipelines,
-            production_pipelines,
-            shared_post,
-            shared_effects,
-            shared_fog_mask,
-            shared_fog_sight,
-            shared_overlay_resources,
-            shared_shadow,
-            ground: None,
-            grass: None,
-            ground_snapshot: None,
-            grass_snapshot: None,
-            environment,
-            sky,
-            lighting,
-            presentation_snapshot: None,
-            frame,
-            gpu_timer: None,
-            models: None,
-            scenery: None,
-            scenery_world: None,
+            runtime: None,
+            config: RuntimeConfig {
+                size: [width, height],
+                light,
+                fog_look,
+                grass_density,
+            },
+            geometry: None,
+            effect_sheets: None,
             model_library: Arc::new(Library::default()),
-            model_world: None,
-            model_frame: None,
+            display_pipelines,
+            display_sampler,
+            display_group: None,
+            gpu_timer: None,
             overlay_vertices,
             overlay_instances,
             overlay_vertex_count: 0,
             overlay_snapshot: Vec::new(),
-            post_bloom: Vec::new(),
-            post_grade: Vec::new(),
-            display_sampler,
-            display_group,
+            overlay_glow: [0.0; 4],
             width,
             height,
             format,
             alpha_mode: caps.alpha_modes[0],
             device_lost,
-            stats: Stats {
-                shared_shadow: true,
-                shared_environment: true,
-                shared_effects: true,
-                shared_fog_sight: true,
-                ..Stats::default()
-            },
+            stats: Stats::default(),
             asset_report: None,
         })
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn resize(&mut self, canvas: HtmlCanvasElement) {
-        self.width = canvas.width().max(1);
-        self.height = canvas.height().max(1);
-        if self
-            .targets
-            .rebuild(&self.device, [self.width, self.height])
-        {
-            self.shared_post = renderer_core::post::new(
-                &self.device,
-                &self.production_pipelines,
-                &self.targets,
-                &[0; 32],
-                &[0; 80],
-            );
-            self.shared_fog_mask = renderer_core::fog_mask::fog_mask(
-                &self.device,
-                &self.production_pipelines,
-                &self.targets,
-                &[0; 96],
-                true,
-                true,
-            );
-            self.shared_overlay_resources = renderer_core::overlay::new(
-                &self.device,
-                &self.production_pipelines,
-                &self.targets,
-                &[0; 16],
-                true,
-            );
-            self.shared_fog_sight
-                .rebind_depth(&self.device, &self.targets.depth);
-            self.rebuild_effects();
-            if !self.post_bloom.is_empty() || !self.post_grade.is_empty() {
-                self.shared_post
-                    .write(
-                        &self.queue,
-                        bytemuck::cast_slice(&self.post_bloom),
-                        bytemuck::cast_slice(&self.post_grade),
-                    )
-                    .expect("stored post records fit rebuilt targets");
-            }
-            if let Some(presentation) = &self.presentation_snapshot {
-                if presentation.overlay.len() >= 2 {
-                    let glow = [
-                        presentation.overlay[0],
-                        presentation.overlay[0] / 2.5,
-                        presentation.overlay[1],
-                        0.0,
-                    ];
-                    self.shared_overlay_resources
-                        .write_glow(&self.queue, bytemuck::cast_slice(&glow));
-                }
-            }
-
-            self.display_group = renderer_core::bind(
-                &self.device,
-                self.display_pipelines.layout("sampled"),
-                "shared-display-composite-group",
-                &[
-                    BindingResource::TextureView(&self.targets.display),
-                    BindingResource::Sampler(&self.display_sampler),
-                ],
-            );
-            if let Some(presentation) = &self.presentation_snapshot {
-                self.shared_fog_mask
-                    .write_look(&self.queue, bytemuck::cast_slice(&presentation.fog))
-                    .expect("presentation fog look fits shared fog owner");
-            }
-            self.stats.resizes += 1;
-            self.stats.target_generation = self.targets.generation();
-        }
-        self.configure_surface();
-    }
-
-    fn rebuild_effects(&mut self) {
-        let effects = self
-            .presentation_snapshot
-            .as_ref()
-            .map(|snapshot| snapshot.effects.as_slice())
-            .unwrap_or_default();
-        self.shared_effects.rebuild(
-            &self.device,
-            &self.queue,
-            &self.production_pipelines,
-            browser_effects::EffectsFrame {
-                targets: &self.targets,
-                camera: &self.environment.camera_buffer,
-                environment: &self.environment.data,
-                pmrem: &self.environment.pmrem,
-                cast_lights: &self.environment.cast_lights,
-            },
-            effects,
-        );
     }
 
     fn configure_surface(&self) {
@@ -470,20 +261,17 @@ impl Renderer {
         );
     }
 
-    /// Reconfigure the existing browser surface after an outdated/lost
-    /// surface status. The device and shared resources remain valid.
-    #[wasm_bindgen]
-    pub fn recover_surface(&mut self) {
-        self.configure_surface();
-        self.stats.surface_recoveries += 1;
-    }
-
-    /// Deliberately destroy the device so the browser scene can prove that
-    /// `recover_device` handles a real device-loss callback, rather than only
-    /// rebuilding an outdated surface.
-    #[cfg(target_arch = "wasm32")]
-    #[wasm_bindgen]
-    pub fn destroy_device_for_test(&self) {
-        self.device.destroy();
+    fn rebind_display(&mut self) {
+        self.display_group = self.runtime.as_ref().map(|runtime| {
+            renderer_core::bind(
+                &self.device,
+                self.display_pipelines.layout("sampled"),
+                "display-surface",
+                &[
+                    BindingResource::TextureView(&runtime.targets.display),
+                    BindingResource::Sampler(&self.display_sampler),
+                ],
+            )
+        });
     }
 }

@@ -1075,7 +1075,6 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "flate2",
- "js-sys",
  "kira",
  "pipelines",
  "png",
@@ -1086,7 +1085,6 @@ dependencies = [
  "serde_json",
  "sha2",
  "symphonia",
- "wasm-bindgen",
  "wgpu",
  "winit",
 ]
@@ -1694,7 +1692,6 @@ dependencies = [
  "bytemuck",
  "presentation",
  "serde",
- "serde-wasm-bindgen",
  "serde_json",
  "sim",
  "wasm-bindgen",
@@ -1829,8 +1826,8 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "js-sys",
- "pollster",
  "presentation",
+ "presentation-wasm",
  "renderer-core",
  "serde",
  "serde-wasm-bindgen",
@@ -1846,6 +1843,7 @@ name = "renderer-core"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "png",
  "pollster",
  "presentation",
  "serde",

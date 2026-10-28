@@ -4,8 +4,6 @@
 //! tables are the ground's (`Ground::grass_params`, `grass_props`) and the
 //! blade shapes packed from the grass appearances' bundles by the same crate.
 use presentation::presentation::Presentation;
-use presentation::static_world::ground::grass::Quality;
-use presentation::static_world::ground::Ground as GroundTables;
 use wgpu::*;
 
 use crate::bundle::{BundleSource, Shape};
@@ -86,33 +84,6 @@ pub struct Grass {
 }
 
 impl Grass {
-    /// The field `ground` grows, its kinds read from `library`; the
-    /// terrain's group and height pages are `terrain` and `heights`.
-    pub fn new(
-        device: &Device,
-        pipelines: &Pipelines,
-        library: &impl BundleSource,
-        ground: &GroundTables,
-        heights: &Buffer,
-    ) -> Result<Self, String> {
-        let names = ground.grass_kinds();
-        let packed = pack_shapes(library, &names)?;
-        let words =
-            ground.grass_params(&packed.facts, &field::LIMITS, &Quality { density: 1.0 })?;
-        Ok(Self::from_data(
-            device,
-            pipelines,
-            heights,
-            GrassData {
-                params: &words,
-                props: &ground.grass_props(),
-                shapes: &packed.shapes,
-                max_blades: packed.max_blades,
-                capacity: ground.biome.grass.capacity,
-            },
-        ))
-    }
-
     pub fn from_data(
         device: &Device,
         pipelines: &Pipelines,

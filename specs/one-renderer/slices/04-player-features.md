@@ -1,6 +1,7 @@
 # Slice 04 — production browser feature parity
 
-**Status:** pending. Runtime ownership depends on slice 03; independent feature
+**Status:** active. Isolated x-ray GPU owner/regression implemented; production
+depth/overlay integration is next. Runtime ownership depends on slice 03; independent feature
 investigation and implementation may proceed against its canonical interfaces.
 
 The native replay lacks player/browser surfaces. Preserve them through shared
@@ -29,3 +30,12 @@ targets, lifetime, drawing and capture. Keep the public application behavior and
 loading/failure/input/audio contracts while deleting the old GPU interface.
 
 Finish with the final three-target migration/deletion gate in slice 05.
+
+
+Current owner gaps (not completion waivers): Rust still draws high-air models
+into the world, substitutes far posed meshes for actual impostor cards, and lacks
+lab-model/proxy admission and material/surface/debug controls. Ground paint and
+pointer geometry must bind through shared fog/material policy, not be flattened
+into display overlays. The x-ray test currently adds depth-copy usage locally;
+production integration must add it to the actual targets and remove that local
+substitution so the GPU regression covers the real allocation contract.

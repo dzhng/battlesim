@@ -1,4 +1,5 @@
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(super) struct Stats {
     pub(super) frames: u32,
     pub(super) model_vertices: u32,
@@ -19,14 +20,9 @@ pub(super) struct Stats {
     pub(super) shared_fog_sight: bool,
     pub(super) shared_model_prepass: bool,
     pub(super) shared_terrain: bool,
-    pub(super) terrain_params_words: u32,
-    pub(super) terrain_nodes_words: u32,
-    pub(super) terrain_plots_words: u32,
-    pub(super) terrain_surface_words: u32,
-    pub(super) terrain_index_words: u32,
     pub(super) surface_recoveries: u32,
     pub(super) device_recoveries: u32,
-    pub(super) presentation_uploads: u32,
+    pub(super) presentation_preparations: u32,
     pub(super) fog_sight_uploads: u32,
     pub(super) fog_height_words: u32,
     pub(super) presentation_bound: bool,
@@ -38,25 +34,4 @@ pub(super) struct Stats {
     pub(super) presentation_model_words: u32,
     pub(super) presentation_model_runs: u32,
     pub(super) presentation_material_words: u32,
-}
-
-#[derive(Clone)]
-pub(super) struct PresentationSnapshot {
-    pub(super) camera: Vec<f32>,
-    pub(super) view: Vec<f32>,
-    pub(super) lights: Vec<f32>,
-    pub(super) light_wrap: f32,
-    pub(super) fog: Vec<f32>,
-    pub(super) overlay: Vec<f32>,
-    pub(super) effects: Vec<f32>,
-    pub(super) shadow: Vec<f32>,
-    pub(super) casters: Vec<f32>,
-    pub(super) batches: Vec<u32>,
-}
-
-#[derive(Clone, Copy)]
-pub(super) struct LightingSnapshot {
-    pub(super) sky: presentation::records::SkyLight,
-    pub(super) sun: presentation::records::Sun,
-    pub(super) aerial: presentation::records::Aerial,
 }

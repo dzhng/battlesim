@@ -49,7 +49,7 @@ import {
   grass_blade_vertices,
   grass_field_segments,
   grass_strip_indices,
-} from "@wasm/presentation/presentation_wasm.js";
+} from "@wasm/renderer_browser";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
 import type { Biome, PresentedGround, TerrainSurface } from "../terrain/terrainSurface";

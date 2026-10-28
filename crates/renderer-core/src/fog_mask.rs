@@ -1,11 +1,7 @@
-//! Shared screen-space fog-mask resources and pass order.
-//!
-//! Fog sight and material classification remain shell-specific. This owner
-//! starts at the common presentation boundary: the resolved look uniform,
-//! distance targets, fogged-world composite, and optional post rim. Native and
-//! browser shells therefore share target bindings and pass ordering without
-//! sharing TypeGPU or presentation types.
-
+//! Canonical live fog-look uniform, screen bindings and pass admission.
+//! The same FogLook record controls edge distances and the display rim on
+//! every target, including transitions while a renderer remains alive.
+use presentation::records::FogLook;
 use wgpu::*;
 
 use crate::pipelines::Pipelines;
@@ -24,10 +20,11 @@ pub struct FogMaskResources {
     /// keeping it here makes fog look data a shared renderer resource instead
     /// of a shell-only staging record.
     look: Buffer,
+    record: FogLook,
     view: Buffer,
-    distances: Option<[Screen; 2]>,
+    distances: [Screen; 2],
     compose: Screen,
-    rim: Option<Screen>,
+    rim: Screen,
 }
 
 fn screen(
@@ -43,22 +40,18 @@ fn screen(
     }
 }
 
-/// Build the common fog mask resources. The shell resolves whether the look
-/// needs edge distances/rim because that policy belongs to its presentation
-/// record type; the core only receives the two booleans.
+/// Build screen bindings once; the current canonical look decides which draw.
 pub fn fog_mask(
     device: &Device,
     pipelines: &Pipelines,
     targets: &Targets,
-    look_bytes: &[u8],
-    has_edge: bool,
-    has_rim: bool,
+    record: &FogLook,
 ) -> FogMaskResources {
     let look = crate::buffer(
         device,
         "fog-look",
         BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-        look_bytes,
+        bytemuck::bytes_of(record),
     );
     let view = crate::buffer(
         device,
@@ -67,28 +60,26 @@ pub fn fog_mask(
         &[0; VIEW_BYTES],
     );
     let tex = BindingResource::TextureView;
-    let distances = has_edge.then(|| {
-        [
-            screen(
-                device,
-                pipelines,
-                "fogMaskRows",
-                "rowsLayout",
-                &[look.as_entire_binding(), tex(&targets.fog_mask)],
-            ),
-            screen(
-                device,
-                pipelines,
-                "fogMaskColumns",
-                "columnsLayout",
-                &[
-                    look.as_entire_binding(),
-                    tex(&targets.fog_mask),
-                    tex(&targets.fog_distance_rows),
-                ],
-            ),
-        ]
-    });
+    let distances = [
+        screen(
+            device,
+            pipelines,
+            "fogMaskRows",
+            "rowsLayout",
+            &[look.as_entire_binding(), tex(&targets.fog_mask)],
+        ),
+        screen(
+            device,
+            pipelines,
+            "fogMaskColumns",
+            "columnsLayout",
+            &[
+                look.as_entire_binding(),
+                tex(&targets.fog_mask),
+                tex(&targets.fog_distance_rows),
+            ],
+        ),
+    ];
     let compose_resources = [
         look.as_entire_binding(),
         view.as_entire_binding(),
@@ -103,17 +94,16 @@ pub fn fog_mask(
         "composeLayout",
         &compose_resources,
     );
-    let rim = has_rim.then(|| {
-        screen(
-            device,
-            pipelines,
-            "fogMaskRim",
-            "composeLayout",
-            &compose_resources,
-        )
-    });
+    let rim = screen(
+        device,
+        pipelines,
+        "fogMaskRim",
+        "composeLayout",
+        &compose_resources,
+    );
     FogMaskResources {
         look,
+        record: *record,
         view,
         distances,
         compose,
@@ -147,32 +137,26 @@ fn draw(
 }
 
 impl FogMaskResources {
-    /// Replace the resolved presentation fog look consumed by the next pass.
-    /// The caller owns the presentation record shape; this owner only requires
-    /// the bytes to fit the buffer allocated when the target set was built.
-    pub fn write_look(&self, queue: &Queue, bytes: &[u8]) -> Result<(), String> {
-        if bytes.len() > self.look.size() as usize {
-            return Err(format!(
-                "fog look record is {} bytes, buffer is {} bytes",
-                bytes.len(),
-                self.look.size()
-            ));
-        }
-        if !bytes.is_empty() {
-            queue.write_buffer(&self.look, 0, bytes);
-        }
-        Ok(())
+    /// Update the uniform and draw decisions from the same canonical record.
+    pub fn set_look(&mut self, queue: &Queue, look: &FogLook) {
+        self.record = *look;
+        queue.write_buffer(&self.look, 0, bytemuck::bytes_of(look));
     }
 
-    /// Encode distance rows/columns and compose the lit world into the post
-    /// input, in the same order as the browser fog mask owner.
+    pub fn look(&self) -> FogLook {
+        self.record
+    }
+
+    /// Encode the enabled distances, then compose the lit world into post input.
     pub fn encode(&self, encoder: &mut CommandEncoder, targets: &Targets) {
-        for (screen, target) in self.distances.as_ref().into_iter().flat_map(|screens| {
-            screens
+        if self.record.has_edge() {
+            for (screen, target) in self
+                .distances
                 .iter()
                 .zip([&targets.fog_distance_rows, &targets.fog_distance])
-        }) {
-            draw(encoder, screen, target, None, LoadOp::Clear(Color::WHITE));
+            {
+                draw(encoder, screen, target, None, LoadOp::Clear(Color::WHITE));
+            }
         }
         draw(
             encoder,
@@ -183,20 +167,10 @@ impl FogMaskResources {
         );
     }
 
-    /// Encode the optional seen-side rim over the post output.
+    /// Encode the optional seen-side rim over the completed display target.
     pub fn encode_rim(&self, encoder: &mut CommandEncoder, targets: &Targets) {
-        self.encode_rim_to(encoder, targets, &targets.display);
-    }
-
-    /// Encode the display-space rim into a shell-provided surface view.
-    pub fn encode_rim_to(
-        &self,
-        encoder: &mut CommandEncoder,
-        _targets: &Targets,
-        output: &TextureView,
-    ) {
-        if let Some(rim) = &self.rim {
-            draw(encoder, rim, output, None, LoadOp::Load);
+        if self.record.has_rim() {
+            draw(encoder, &self.rim, &targets.display, None, LoadOp::Load);
         }
     }
 }
