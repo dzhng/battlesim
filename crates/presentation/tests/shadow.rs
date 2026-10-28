@@ -656,25 +656,48 @@ fn receiver_work_stays_local_as_remote_triangle_population_grows() {
     }
 }
 
-/// Whatever moves in the wind casts as it is drawn: every cascade's camera
-/// runs on the frame's clock and in its wind, though the fit is reused.
+/// Whatever moves in the wind casts as it is drawn: the frame's camera
+/// carries the ground's wind, and every cascade's camera runs on the
+/// frame's clock and in that wind, though the fit is reused.
 #[test]
 fn every_cascade_camera_runs_on_the_frames_clock_and_wind() {
     use presentation::presentation::{Presentation, Ui};
+    use presentation::static_world::ground::{self, biome::Biome, Tuning};
     use std::sync::Arc;
-    let camera = orbit([800., 800., 0.], 260., 0.85, -1.57);
+    let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+    let read = |path: &str| std::fs::read_to_string(format!("{root}/{path}")).unwrap();
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+    let map = sim::maps::Catalogue::shipped()
+        .load("wetlands")
+        .unwrap()
+        .definition;
+    let world = sim::world::WorldGeometry::new(&map, &rules);
+    let layout = sim::world::export::layout_json(&rules.catalog);
+    let source = ground::source(&world, &map.extents(), &layout).unwrap();
+    let mut biome = Biome::load(&read("fixtures/biomes/summer.json"), None).unwrap();
+    // A wind of the test's own, blowing somewhere and gusting.
+    biome.wind.heading_deg = 120.0;
+    biome.wind.gust_mps = 7.5;
+    let wind = biome.wind.record();
+    assert!(wind.gust_mps > 0.0 && wind.toward[1] > 0.0);
+    let game: serde_json::Value = serde_json::from_str(&read("fixtures/game.json")).unwrap();
+    let tuning: Tuning = serde_json::from_value(game["presentation"].clone()).unwrap();
     let mut presentation = Presentation::new(None, 30.).unwrap();
+    presentation.set_ground(source, biome, tuning).unwrap();
     presentation.set_shadow(Some((game_light(), Arc::new(street()))));
+    let camera = orbit([240., 180., 0.], 260., 0.85, -1.57);
     for time in [0.0, 3.5, 7.25] {
         let frame = presentation
             .frame(time, &camera, &Ui::default(), 0)
             .unwrap();
+        assert_eq!(frame.camera.time, time as f32);
+        assert_eq!(bits(&frame.camera.wind), bits(&[wind]), "the ground's wind");
         let shadow = frame.shadow.as_ref().unwrap();
         assert!(!shadow.casters.is_empty());
-        assert_eq!(frame.camera.time, time as f32);
         for caster in &shadow.casters {
             assert_eq!(caster.time, frame.camera.time, "at {time} s");
-            assert_eq!(bits(&caster.wind), bits(&frame.camera.wind), "at {time} s");
+            assert_eq!(bits(&caster.wind), bits(&[wind]), "at {time} s");
         }
     }
 }
