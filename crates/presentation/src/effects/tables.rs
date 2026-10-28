@@ -39,6 +39,7 @@ pub struct EffectPresentation {
     pub blast: BlastStyle,
     pub cook_off: CookOffFeel,
     pub dust: DustStyle,
+    pub wake: WakeStyle,
     /// The dust a heavy gun's shot raises; none where absent.
     pub shot_dust: Option<ShotDustStyle>,
     pub damage_smoke: DamageSmokeStyle,
@@ -144,6 +145,20 @@ pub struct DustStyle {
     pub spacing_m: f64,
     pub min_speed_mps: f64,
     pub full_speed_mps: f64,
+}
+
+/// How a unit the side sees wading in standing water pushes on it: rings
+/// round a still or slow wader, `ring_hz` a second each, and at `vee_mps`
+/// or faster a V-wake, a push every `spacing_m` along its way. A soldier's
+/// push reaches `soldier_radius_m`, a hull's its half width.
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct WakeStyle {
+    pub ring_hz: f64,
+    pub vee_mps: f64,
+    pub spacing_m: f64,
+    pub soldier_radius_m: f64,
+    pub ring_strength: f64,
+    pub vee_strength: f64,
 }
 
 /// The dust a heavy gun's shot raises at full strength (`FlashStyle::dust`):

@@ -55,6 +55,7 @@ mod cameras;
 mod picks;
 mod probe;
 mod side_fog;
+mod taken;
 use side_fog::Fog;
 pub use side_fog::FogSetup;
 
@@ -372,7 +373,7 @@ impl Presentation {
         self.interpolator.push(observation.clone(), arrived_s);
         self.latest = Some(observation.clone());
         match &mut self.loaded {
-            Some(loaded) => loaded.note(&observation),
+            Some(loaded) => loaded.note(&observation, self.ground.as_ref()),
             None => {
                 // Older than any effect lives: a battle's appearances load in seconds.
                 if self.pending.len() == PENDING_MAX {
@@ -569,11 +570,11 @@ impl Presentation {
         // what it saw destroyed) is drawn without waiting for the next.
         if self.pending.is_empty() {
             if let Some(o) = &self.latest {
-                loaded.note(o);
+                loaded.note(o, self.ground.as_ref());
             }
         }
         for o in self.pending.drain(..) {
-            loaded.note(&o);
+            loaded.note(&o, self.ground.as_ref());
         }
         self.loaded = Some(loaded);
         Ok(())
@@ -1110,26 +1111,6 @@ impl Presentation {
 }
 
 impl Loaded {
-    /// One publication noted for effects (and sound), with the hulls the
-    /// side watched brew up.
-    fn note(&mut self, o: &Observation) {
-        self.transits.note(
-            &o.air_transits,
-            o.tick,
-            self.input.tick_hz,
-            &self.input.units.transit,
-        );
-        let mut publication =
-            self.effect_feed
-                .publication(o, &self.input.units, &self.input.effects);
-        let effects = &self.input.effects;
-        publication.cook_offs =
-            self.cook_offs
-                .note(o, &self.input.units, effects, &effects.wreck_looks);
-        let launches = self.effects.note(&publication);
-        self.sound = Some((publication, launches));
-    }
-
     #[allow(clippy::too_many_arguments)]
     fn frame(
         &mut self,

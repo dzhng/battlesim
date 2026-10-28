@@ -1200,3 +1200,96 @@ against the code. Each says what was chosen, why, and how sure the agent is.
   natively. A bounds check per stretch would cut it if it ever shows.
 - **Verdict:** sound.
 - **Confidence:** high.
+
+## Slice 15: wake sources
+
+### Who wades: a ground hull at its centre, each soldier in the water
+
+- **When:** slice 15.
+- **The choice:** `EffectFeed::publication` takes the ground's
+  `StandingWater` and fills `Shooter.wading` with `Wading { at, depth_m }`:
+  a hull on the ground at its centre, otherwise each member standing in the
+  water. Each sits on the water's surface. Aircraft, and squads riding a
+  carrier (`units::riding`, now the one test that both interpolation and the
+  feed use), wade nowhere. Enemies wade only while identified, because the feed
+  reads only what the side sees. `Loaded::note` moved to
+  `presentation/taken.rs` and takes the ground, so `presentation.rs` didn't
+  grow.
+- **The gap:** the contract named the sources, not where a hull's push
+  sits. The centre is what the contract said; a hull half in the water at
+  a bank still wades or not by its centre.
+- **The reach:** puddles come with slice 14 through the same `at`.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### A round on the water splashes: its hit is `water`
+
+- **When:** slice 15.
+- **The choice:** the simulation stops a round on standing water as it
+  does on ground and publishes `ground`. The feed renames a `ground` hit
+  that ends in standing water to `water`, and `impacts.water` draws it as a
+  pale spray, white-blue, not the ground's tan dust. Sound gives `water` the
+  ground's impact sound and gain (`sound.impacts.water`) until there is a
+  splash sound.
+- **The gap:** the contract said "splash instead of dust" without a look.
+- **The reach:** a blast's dirt (grenades, shells) is still dirt over
+  water. A burst's own splash is a later look pass.
+- **Verdict:** sound.
+- **Confidence:** medium on the spray's colour.
+
+### Impulses carry their time, not a step; kept a second
+
+- **When:** slice 15.
+- **The choice:** `WakeImpulse { xy, radius, strength, kind, at }`.
+  - `at` is the presentation time it is made, in seconds. The step rate is
+    slice 16's `WaveClock`, which maps a time to its step.
+  - `kind` (`WakeKind::Rings` or `Vee`) is the contract's `style`. The data
+    row already took that name (`WakeStyle`).
+  - `EffectFrame::wakes(from, to)` hands a renderer what was made in its
+    frame's span. Impulses are kept one second past the last tick taken,
+    then pruned.
+  - A reset clears them.
+- **The gap:** the contract's `step` field before the step clock exists.
+- **The reach:** slice 16 reads `wakes(last, now)` each frame.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Rings at a fixed rate, a V at dust's spacing, split at 1 m/s
+
+- **When:** slice 15.
+- **The choice:** `presentation.effects.wake` is
+  `{ ring_hz: 2, vee_mps: 1, spacing_m: 1.5, soldier_radius_m: 0.35,
+  ring_strength: 0.5, vee_strength: 1 }`.
+  - The style follows the unit's speed between ticks (a squad's by its
+    centre).
+  - Below 1 m/s each wader makes rings every half second of the clock. They
+    are counted like damage smoke's puffs (`k / ring_hz` within the tick),
+    each strength ±20% from a seed keyed by unit, wader and count.
+  - At 1 m/s or faster each wader makes a V push every 1.5 m, carried
+    across ticks like dust, where it was at that moment.
+  - A hull's push reaches its half width.
+  - It is decided in `note_movers` with the dust, in `frame/wake.rs`, so
+    it follows ticks, not frames.
+- **The gap:** delegated (strengths and the threshold).
+- **The reach:** tuned by eye once slice 16 draws waves.
+- **Verdict:** sound for now.
+- **Confidence:** low, by design.
+
+### The battle-driven seam tests live in `wake_sources.rs`
+
+- **When:** slice 15.
+- **The choice:** the frame tests sit beside the dust tests in
+  `effect_behaviour.rs`. These are a hull in water makes a wake and no
+  dust, a still wader rings and a moving one drags a V, a unit out of sight
+  makes none, and wakes don't depend on frame rate. The rider and splash
+  tests need real observations, so they run battles in `wake_sources.rs`:
+  the transport lab with swamps laid under its boarding ground, and a
+  rifle firing at a man in a swamp. The transport lab's red squad is
+  identified from its first tick, so the out-of-sight case is proven at the
+  frame level, and the battle proves a seen enemy in water wades.
+- **The gap:** the slice named one file for all of them.
+- **Verdict:** sound.
+- **Confidence:** high.
+- **Not done:** the slice's debug lab (wake marks on a test copy of the
+  wetlands ground) and "a soldier crossing a puddle makes rings", which
+  waits for slice 14.
