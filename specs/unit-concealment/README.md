@@ -1,47 +1,99 @@
-# Unit concealment and spotting (placeholder)
+# Unit concealment and spotting
 
-**Status:** placeholder. Nothing is sliced or implemented yet.
+**Status:** decided, not started. Every question below was settled with the user on 2026-10-28 ([the unknowns map](assets/unknowns-map.html)). Implement it to the end without asking for approvals: judge digests, the reel and the workbench GIF yourself.
 **Updated:** 2026-10-28.
+
+This spec sets up the mechanisms. It is not a balance pass: the values below are starting guesses that the spotting report exists to retune.
 
 ## Next Agent Prompt
 
-The user wants every unit type to carry two sensing stats:
+Use `implement-spec`. Run `tweak-mechanics` before slice 2, and `write-tests` (red first) for each behaviour. Update this section before you end each pass.
 
-- **How hidden it is.** The more hidden a unit is, the closer an enemy has to get to spot it.
-- **How well it spots hidden units.** 1 is normal. Below 1 it is worse and has to get closer. Above 1 it spots hidden units from farther away, but never past its own sight range.
+- [ ] **Slice 0: rules reject unknown keys.** `SensorRules` and `UncheckedRules` (`crates/contract/src/scenario.rs`) get `deny_unknown_fields`, in their own commit. Fix any stale keys it exposes there too.
+- [ ] **Slice 0b: no hidden fallbacks outside sensing.** The four fallbacks under "Other fallbacks" below become authored data, and the code that supplied them is deleted. Author exactly the values the fallbacks produced, so every digest stays the same.
+- [ ] **Slice 1: the mechanism, with no battle changes.** The contract changes below, the formula as one public function in `sensing.rs`, the forest collapse with every hull at 2.8, required sight bands, `radar_emitter`, and `spotting_report`. Proof: every digest and parity record is unchanged.
+- [ ] **Slice 2: what changes battles.** The moving rule, spotting below 1, and the banded values. Re-record parity and the menu reel, then judge them yourself.
+- [ ] **Slice 3: tools and proof.** Mechanics editor fields, one large system test, and a scripted workbench GIF.
+- [ ] Run everything once, then archive with `close-spec`.
 
-The spotting stat already exists but cannot go below 1. The hiding stat does not exist. Concealment here belongs to the ground (forest, building), not to the unit. This page records what is there today and what the user has decided.
+## The contract
 
-This changes battle outcomes. Run `tweak-mechanics` first, then `write-spec` to turn this page into a sliced plan, then `write-tests` (red first) for each slice. Update this section before you end each pass.
+Per visibility sample (a hull's two, or each living soldier):
 
-- [ ] Add a per-unit-type hiding stat and multiply it with the ground's concealment.
-- [ ] Let the spotting stat go below 1, applied only against concealed targets.
-- [ ] Settle the open questions below with the user before slicing.
+```
+ground    = min(forest.concealment, building shelter)     // 1 in the open; aircraft always 1 (early return stays first)
+target    = unit.concealment × ground × (moving ? rules.sensors.moving_concealment : 1)
+effective = spotting ≥ 1 ? min(1, target × spotting)
+                         : min(1, target) ^ (1 / spotting)
+identified when distance ≤ sight × effective, line of sight is clear, and foliage allows (sees_point, unchanged)
+```
 
-## How sensing works today
+- **`moving`** means `unit.state == MoveState::Moving`, a whole unit following a route under an order. This is the same signal the sound cue reads (`hearing.rs`). Waiting, halted, packing, planning and route-blocked units are still. Soldiers shuffling inside a held squad don't count.
+- **Caps.** The moving multiplier applies to the whole product, and only the final value is capped. Capping the unit's own value first would make a moving tank harder to see than a parked one. Both spotting branches are capped at 1.
+- **One owner.** The formula is one public function in `crates/sim/src/sensing.rs`. `evaluate` and `spotting_report` both call it. Target-side concealment is computed once per sample; spotting is applied per observer.
+- **HIDDEN** (`sensing::concealed`) lights when `ground < 1` **and** the net target concealment (unit × ground × moving) is below 1. It reads `unit.state` at publication, so no new state is stored. As a result, an MBT driving through forest (0.7 × 1.5) loses HIDDEN, which is intended.
 
-Read `crates/sim/src/sensing.rs`. A target sample is identified when it is within the observer's directional sight range multiplied by a **concealment** factor (at most 1, lower is harder to spot), with clear sight and with foliage attenuation on top (`sees_point`).
+## Data
 
-- **Concealment comes only from where the target stands** (`target_concealment`). Forest ground gives one value for all infantry and another for all vehicles (`forest_concealment` in `crates/sim/src/world/forest.rs`, values `concealment_infantry` / `concealment_vehicle` in the forest rules, e.g. `fixtures/game.json`). A garrisoned squad gets its building's `sensors.building_range_multiplier`, scaled by shelter. The stronger of the two wins. In the open it is 1. Aircraft are always 1.
-- **The spotting stat is `sensors.concealed_range_multiplier`** on each unit type (`Sensors` in `crates/contract/src/catalog.rs`). It defaults to 1, and roster units author 1.5 or 2. In `evaluate` it is applied as `(ground concealment × multiplier).min(1.0)`, so the cap at ordinary sight range is already there.
-- **Validation forbids values below 1** (`catalog.rs`, "sensors.concealed_range_multiplier must be finite and at least 1"). The test `concealed_detection_bonus_cannot_reduce_ordinary_sight` in `crates/contract/tests/catalog.rs` pins that rule. The user's request reverses it, so that test changes on purpose.
-- **The HIDDEN readout** (`concealed` in `sensing.rs`) is true when enough of a unit stands on concealing ground. It reads the same `target_concealment`.
+| Field | Where | Rule |
+|---|---|---|
+| `concealment` | top-level on the unit type, beside `sound` | **Required** in the resolved type, so inheritance through `extends` satisfies it. Finite and > 0, and may exceed 1. It has no neutral value: 1 on a hull would mean "as hidden as a soldier". |
+| `sensors.spotting` | renamed from `sensors.concealed_range_multiplier` | Optional: omitted means 1, which is normal sight and the neutral value. Finite and > 0, and may go below 1. |
+| `sensors.low_air_m`, `sensors.high_air_m` | already on `Sensors` | **Required.** The `ground_m` fallback and `rules.sensors.unaided_high_air_m` are deleted. |
+| `capabilities.radar_emitter: true` | replaces `capabilities.radar { emits, detection_m }` | A pure signature: radar warning receivers and anti-radiation weapons read it. Each emitter's old `detection_m` moves into its `sensors.high_air_m`, and nothing ties the two together. |
+| `forest.concealment` | replaces `concealment_infantry` and `concealment_vehicle` | One value, 0.25. |
+| `sensors.moving_concealment` | rules (`fixtures/game.json`) | 1.5. |
 
-## Decisions
+### Other fallbacks
 
-- **The two concealments multiply** (decided by the user). Effective concealment = unit hiding stat × ground concealment. For example, a sniper team at 0.6 in forest (infantry concealment 0.25 in `fixtures/game.json`) is spotted at 0.15 of the spotter's sight range. A 1.5 spotter raises that to 0.225, and a 0.8 spotter lowers it to 0.12. It is always capped at 1 (ordinary sight range).
-- **The spotting stat applies only against concealed targets** (my proposal, not yet confirmed). With the current formula, a 0.8 spotter would see an unconcealed tank in the open at 80% of its range. That makes it a general sight penalty, which the user did not ask for. Apply the spotting stat only when effective concealment is below 1.
-- **The hiding stat reads like the existing concealment factors** (my proposal, not yet confirmed): a range multiplier where 1 is normal and lower is harder to spot. The user described it as "higher = more hidden". If they want that scale, it is a display/authoring choice over the same multiplier. Ask once while settling the open questions.
-- **Where to build:** a battlegame worktree branched from `origin/staging`, not the main checkout.
+The rule: leaving a field out may only mean "none" or "off". It never stands for a value that code picks, or copies from another field, a class or a rules table. Opt-in flags that default to `false`, zero minimums, full gravity, and the physics bound on an unguided round's lifetime are all "off" or "physical", so they stay optional. These four do not:
 
-## Open questions
+| Field | Today when omitted | After |
+|---|---|---|
+| weapon `partial_from` | the rules' `penetration.partial_from` (0.6); 31 of 49 weapon rows rely on it | required on every row, with base rows (`extends`) carrying it; the rules' `penetration` section is deleted |
+| `targets.<layer>.range_m` and `scatter_mrad` | copied from the row's own values; 30 layer entries rely on this | required in every layer entry |
+| air `mobility.layer` | low air (`default_air_layer`) | required |
+| afterburner `speed_multiplier` and `fuel_multiplier` | 1.5 and 2.0 (default functions) | required |
 
-- Does a unit's own hiding stat count in the open, with no forest or building? Under multiplication, yes. A 0.6 sniper team in the open is spotted at 0.6 of range. Confirm this is intended.
-- Does the hiding stat apply to aircraft (for example the stealth fighters in the roster), which currently ignore concealment entirely?
-- Should the HIDDEN readout reflect the unit's own stat, or stay about ground cover only? `tweak-mechanics` notes that HIDDEN publication is distinct from physical concealment.
-- Should the field live in `Sensors` (for example `sensors.concealment`) next to the spotting stat? That is the obvious home. Confirm the name.
-- Which unit types get non-default values, and what values? Recon and sniper infantry are the obvious candidates. Authoring roster numbers moves battle digests and parity fixtures (`fixtures/parity/`), so each value is a named decision.
+Starting values (guesses, to tune with the report):
 
-## Where this came from
+| Who | `concealment` | `spotting` |
+|---|---|---|
+| Rifle, assault, marksman, weapon and RPG teams | 1 | 1 |
+| Scouts and elite scouts (`roster_profile_scout`, `_elite_scout`) | 0.8 | 2 |
+| Sniper teams (`roster_profile_sniper`) | 0.5 | 2 |
+| Hull, box volume ≤ 35 m³ (`8 × half_extents_m` product) | 1.8 | profile |
+| Hull, 35–65 m³ | 2.4 | profile |
+| Hull, > 65 m³ | 2.8 | profile |
+| Wheeled and tracked recon profiles | by volume | 1.5 |
+| The five `*_mbt` profiles | by volume | 0.8 |
+| Aircraft profiles, drones | 1 | 1 |
 
-A 2026-10-28 conversation that started in a duet session. Nothing was changed or left on any machine, and there are no branches or scratch results.
+Profiles don't follow size: `roster_profile_wheeled_ifv` holds both the Stryker Dragoon and the S-300. So hull concealment is per unit, written into the roster files by a one-off script in the scratch folder. Only the data is committed. In slice 1 every hull, including the test and capture hulls, is set to 2.8; `2.8 × 0.25 == 0.7` is exact in floating point, so no battle changes.
+
+## Spotting report
+
+`crates/sim/examples/spotting_report.rs` follows `crates/sim/examples/README.md`. It reads `fixtures/catalog.json` and `fixtures/game.json` and calls the sensing function. Rows group the target units that share an identical `concealment`, with their names listed, and each row is split into open, forest and garrisoned, both still and moving. Columns group observers that share an identical sight range and spotting. Cells are metres. It writes an HTML matrix to the scratch folder and a text table to the terminal. This is the balance tool, so make it quick to rerun.
+
+## Sharp edges
+
+- **Required low air changes inheritance.** About 25 test patches change only `ground_m` and relied on low air following it, and each now needs its low-air value written out. `crates/sim/tests/air.rs` `jeep_sees_the_helicopter(None)` tests the deleted fallback; delete it.
+- **Radar readers.** `knowledge.rs` (receivers), `weapons.rs` (anti-radiation), `catalog.rs` (`high_air_sight_m`, emitter validation), `packages/scene-assets/src/units.ts` (the TypeScript copy of `highAirSight` becomes `sensors.high_air_m`, and its optional types become required), `apps/battle-lab/src/routes/airWar.tsx`, `web/scenes/air-roster.mjs`, and 9 roster entries.
+- **The frozen file `fixtures/parity/map-layout/physical-rules.json`** is edited by hand and never regenerated (`fixtures/README.md`). Change its forest fields, the spotting rename and the required air bands. Map generation doesn't read them, so its pinned hashes stay.
+- **Shouts and rounds** keep passing concealment 1 (`shouts.rs`, `side_sees_round`).
+- **The menu reel** uses its own units (`fixtures/units/capture/`), built on the test units. Change any of their stats or scenario to get the scene; never narrow the mechanic for the reel.
+- **Tests that change on purpose:** `contract/tests/catalog.rs` (spotting can't reduce sight, emitting radar is high-air sight, unaided by body), and `sim/tests/{sensing,forest,rivers,air,radar,distances_3d}.rs`.
+- **Parity records slice 2 moves:** `fixtures/parity/exact-numbers.json`, `skirmish-objectives.json`, `skirmish-purchases.json` (`BLESS_PARITY`).
+- **Docs:** `crates/sim/README.md` (sensing and high air) and `fixtures/README.md` (high-air fallback, forest rule).
+- **Checked and clean:** the fog sweep never reads concealment. Map analysis, map generation, the presentation fog and the skirmish AI read only sight range or foliage, so the formula has no second copy.
+
+## Confirm before coding
+
+- Every concrete unit resolves `concealment` through `extends`. The 13 roster units with no `extends` (drones and others) and every test base author it directly.
+- The MBTs are exactly the units that inherit the five `*_mbt` profiles.
+
+## Out of scope
+
+- Aircraft and radar stealth. This spec covers visual spotting only.
+- Firing reveals only the rough contact patch (`knowledge.rs`). That patch can be fired on, by order or automatically, and can kill the shooter, so firing gets no concealment penalty.
+- Balance. Retune with the report afterwards.

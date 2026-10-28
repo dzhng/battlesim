@@ -70,6 +70,13 @@ Roles and families group the roster and pick symbols and voices; they never
 decide behaviour. If a rule asks "is this an X unit?", find the property that
 makes it one and read that instead.
 
+Values live on the unit, not in code. When a value differs between units,
+author it on each unit type; a shared profile (`extends`) sets it for a whole
+group, and a script may rewrite many at once. Code never derives such a value
+from a unit's body, class or another field: no fallback tables, no class
+splits, no capability that silently overrides an authored value. Leaving a
+field out may only mean "none" or "off", never a value code picks or copies.
+
 A catalog row describes a body, while its placement supplies geometry
 ownership. Garrison slots and building-scaled integrity require a placed
 building aggregate; ordinary props, generated forest bodies, bridge decks, and
