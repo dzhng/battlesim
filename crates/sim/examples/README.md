@@ -19,6 +19,11 @@ ffmpeg. These top-down native pictures show paths and collisions; they do not
 certify the WebGPU battle appearance. [Ricochet tracing](ricochet_trace.rs) reports
 flown trajectories and actual hull outcomes rather than a damage-only probability.
 
+[Spotting](spotting_report.rs) compares catalog groups through the sensing owner's
+concealment functions, without running a battle. Its matrix isolates identification
+range under stated sight and shelter assumptions; it is a tuning tool, not a
+record of line-of-sight or foliage outcomes on a map.
+
 Resource probes distinguish full-world construction, retained side knowledge,
 publication and route search. [Navigation resources](navigation_resources.rs) and
 [ground resources](ground_resources.rs) report stage-local allocation and work,

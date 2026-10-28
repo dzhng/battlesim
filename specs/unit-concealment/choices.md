@@ -41,3 +41,10 @@ Decisions made where the spec was silent or wrong, with verdicts. Final consolid
 
   *Verdict: sound; each file owns one idea.*
 - **Clearing Spotting in the editor writes the neutral 1**, and the display treats its omission as 1. The rejected alternative was a nullable reset. *Verdict: sound.*
+
+## Slice 05
+
+- **The report takes no flags and always writes `throwaway/spotting/report.html`.** Heat shades the fraction of full front sight, not absolute metres, and each group lists its unit names with catalog ids. *Verdict: sound; fast to rerun (well under a second).*
+- **Only groups with a squad get a garrisoned row**, because only squads garrison. Codex's first cut gave hull groups one too. *Verdict: corrected in review.*
+- **Ground-blind observers stay in.** Fast jets author 1 m of ground sight, so they form their own column. *Verdict: sound; it is the real data.*
+- **Browser parity ran once and closed the neutral half:** `exactNumbers`, `skirmishObjectives`, `skirmishPurchases` and `mapLayout` passed 15/15 after a fresh wasm build, with no re-blessing. *Verdict: evidence.*

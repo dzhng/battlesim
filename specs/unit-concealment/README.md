@@ -1,6 +1,6 @@
 # Unit concealment and spotting
 
-**Status:** in progress (slices 00–04 landed). All decisions were settled with the user on 2026-10-28 ([the unknowns map](assets/unknowns-map.html)).
+**Status:** in progress (slices 00–05 landed; the neutral half is closed). All decisions were settled with the user on 2026-10-28 ([the unknowns map](assets/unknowns-map.html)).
 **Updated:** 2026-10-28.
 
 Every unit type gets its own concealment, which multiplies the concealment its ground gives it. Each unit's spotting can cancel concealment or deepen it, and a moving unit loses some of its cover. Along the way, config stops hiding values in code: forest gets one value, sight bands and the radar signature become authored data, and four other fallbacks go. This spec sets up the mechanisms. It is not a balance pass: the values are starting guesses, and slice 05's report is the tool for retuning them.
@@ -14,7 +14,7 @@ You are implementing this spec in its pull request. Start at the first unchecked
 - [x] [02 Fallbacks become data](slices/02-explicit-fallbacks.md): done. The row-level `scatter_mrad` also went, since layers own spread (see choices). Digest rows and map hashes are identical.
 - [x] [03 Sight bands and the radar signature](slices/03-sight-bands-and-radar.md): done. Every unit's per-band reach and radar signature are byte-identical, and so are the digest rows and map hashes.
 - [x] [04 The concealment mechanism, neutral](slices/04-concealment-mechanism.md): done. The whole formula and HIDDEN are coded with neutral data (hulls 2.8, squads 1, forest 0.25, moving 1.0). Digest rows, map hashes and HIDDEN publications are identical.
-- [ ] [05 Spotting report](slices/05-spotting-report.md): the balance matrix, generated from real data through the sensing functions.
+- [x] [05 Spotting report](slices/05-spotting-report.md): done. Run `cargo run -p sim --release --example spotting_report`. Browser parity passed once (15/15), which closes the neutral half.
 - [ ] [06 Starting values](slices/06-starting-values.md): data only. This slice changes battles, so re-record and judge.
 - [ ] [07 Workbench GIF and closeout](slices/07-gif-and-closeout.md): the scripted GIF, docs, one full run, then `close-spec`.
 
