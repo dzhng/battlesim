@@ -50,6 +50,7 @@ export const WaterLook = d.struct({
   /** The lane's and the streak's weights, where the light starts and is
    *  whole. */
   lanesLit: d.vec4f,
-  /** The lanes' mean light at a distance; unused. */
+  /** The lanes' mean light at a distance, the depth (metres) the water
+   *  fades in over from its edge; unused. */
   lanesMean: d.vec4f,
 });

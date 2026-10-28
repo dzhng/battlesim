@@ -170,7 +170,7 @@ impl Ground {
             );
             vec4(p, [l.m, l.drift, 1.0 / l.drift_m, 1.0 / l.streak_m]);
             vec4(p, [l.weights[0], l.weights[1], l.lit[0], l.lit[1]]);
-            vec4(p, [l.lit_mean, 0.0, 0.0, 0.0]);
+            vec4(p, [l.lit_mean, w.shore_fade_m, 0.0, 0.0]);
         }
         let rows = WATER_LOOKS_MAX - b.water.rivers.len();
         p.extend(std::iter::repeat_n(0, rows * WATER_LOOK_WORDS));

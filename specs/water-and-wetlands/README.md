@@ -44,8 +44,9 @@ Slice 01 is done: one `Wind` record in the environment uniform, read by grass
 and by smoke and dust; slice 17 (tree sway) can start. Slice 03 is done: each
 river draws one of its biome's water looks, uniforms the water's shader reads,
 retuned live on the dev server. Slice 04 is done: the water shows its bed by
-depth, through each look's per-channel extinction. **Pick up at
-[slice 05](slices/05-soft-shore.md)**. The sim lane (slice 10 on)
+depth, through each look's per-channel extinction. Slice 05 is done: the
+water fades in from where its depth is zero. **Pick up at
+[slice 06](slices/06-surface-normals.md)**. The sim lane (slice 10 on)
 runs in parallel on `spec/water-and-wetlands-sim` and merges in here.
 
 **Warning:** native must start and draw water at every slice (decision 19). A
@@ -64,7 +65,8 @@ the checklist.
 - [x] [01](slices/01-one-wind.md), one wind (2026-10-28).
 - [x] [03](slices/03-water-look-data.md), water look data (2026-10-28).
 - [x] [04](slices/04-depth-colour.md), depth colour (2026-10-28).
-- [ ] Render lane: [05](slices/05-soft-shore.md),
+- [x] [05](slices/05-soft-shore.md), the soft shore (2026-10-28).
+- [ ] Render lane:
       [06](slices/06-surface-normals.md), [07](slices/07-refraction.md), [08](slices/08-caustics.md),
       [09](slices/09-highlights.md).
 - [ ] Sim lane: [10](slices/10-swamp-terrain.md), [11](slices/11-swamp-slowdown.md),

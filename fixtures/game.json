@@ -1221,6 +1221,7 @@
         "wear_cut": [0.4, 0.6]
       },
       "water": {
+        "shore_fade_m": 0.25,
         "roughness": 0.14,
         "shadow": 0.55,
         "ripple": {

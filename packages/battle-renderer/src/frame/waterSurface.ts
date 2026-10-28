@@ -22,18 +22,17 @@ const rippleHeight = tgpu.fn(
   );
 });
 
-/** The water surface at `xy` in look `look` (a row of
- *  `TerrainParams.waterLooks`), as `(light, edge)`: how its streaks of light
- *  scale its colour, and its coverage, none outside the water's edge
- *  (`groundWater`), feathered over a pixel. The streaks lie in lanes along
- *  the stream: a reflection shows the ripples only where the sun or the
- *  sky's bright edge happens to lie behind the water, and without them a
- *  reach seen from above is a flat band. A pixel wider than a ripple takes
- *  their mean, so the water keeps its value as the camera pulls out.
- *  `footprint` is the metres one pixel spans. */
-export const waterSurface = tgpu.fn(
+/** How the streaks of light on the water at `xy` in look `look` (a row of
+ *  `TerrainParams.waterLooks`) scale its colour. They lie in lanes along the
+ *  stream, held at their distance from the bank (`groundWater`): a
+ *  reflection shows the ripples only where the sun or the sky's bright edge
+ *  happens to lie behind the water, and without them a reach seen from
+ *  above is a flat band. A pixel wider than a ripple takes their mean, so
+ *  the water keeps its value as the camera pulls out. `footprint` is the
+ *  metres one pixel spans. */
+export const waterStreaks = tgpu.fn(
   [d.vec2f, d.f32, d.u32],
-  d.vec2f,
+  d.f32,
 )((xy, footprint, look) => {
   "use gpu";
   const w = terrainLayout.$.params.waterLooks[look];
@@ -47,8 +46,7 @@ export const waterSurface = tgpu.fn(
     w.lanesLit.w,
     w.lanesLit.x * lane + w.lanesLit.y * streak,
   );
-  const edge = std.smoothstep(-footprint * 0.5, footprint * 0.5, water);
-  return d.vec2f(1 + w.channel.w * std.mix(w.lanesMean.x, lit, shown), edge);
+  return 1 + w.channel.w * std.mix(w.lanesMean.x, lit, shown);
 });
 
 /** The water's normal at `xy` in look `look`: small ripples, fading out

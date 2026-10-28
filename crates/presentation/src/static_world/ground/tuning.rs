@@ -80,7 +80,8 @@
 //!   stroke crosses a road where their directions' cosine is under
 //!   `crossing_cos`; a dash keeps `clear_m` from a crossing's bars; paint
 //!   wears in patches `wear_m` across where their noise crosses `wear_cut`.
-//! - `water`: its roughness; the share of its light it keeps in shadow; two
+//! - `water`: it fades in from its edge over `shore_fade_m` of depth (or a
+//!   few pixels, if wider); its roughness; the share of its light it keeps in shadow; two
 //!   octaves of ripples (`long_m`, `short_m` at `short_weight`) tilting the
 //!   normal by `slope` read `step_m` either way, gone over `fade_m` pixels;
 //!   its light in lanes `m` wide holding their distance from the bank,
@@ -132,6 +133,7 @@ pub struct TerrainTuning {
 /// The water's surface, as every look draws it (`WaterLook`'s shared part).
 #[derive(Clone, Deserialize)]
 pub struct WaterTuning {
+    pub shore_fade_m: f64,
     pub roughness: f64,
     pub shadow: f64,
     pub ripple: Ripple,

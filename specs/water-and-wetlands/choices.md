@@ -499,3 +499,66 @@ passes.
   it needs a real split.
 - **Verdict:** sound, but the next change pays.
 - **Confidence:** high.
+
+## Slice 05: the soft shore
+
+### The water's edge is its depth; the bank's own bands stay
+
+- **When:** slice 05.
+- **The choice:** the water fades in from where its depth is zero, over
+  `presentation.terrain.water.shore_fade_m` (0.25 m), or over three pixels
+  seen at the pixel's slant where that is wider. This replaces its analytic
+  edge feather (the old `waterSurface`, now `waterStreaks`, which keeps
+  only the streaks of light). The bank's wet silt and bare earth, and the
+  bed's colour under the water, are the ground's look on its own side of
+  the waterline. They stay, though the contract listed "the shore and bed
+  bands" for deletion. Deleting them would run grass to the water's edge
+  with no bank, and the river scene's check of those bands, which the
+  slice didn't expect to fail, still says what the player should see.
+- **The gap:** the contract's deletion list mixed the water's edge with the
+  ground's.
+  A mark is its own layer over the faded water, covering by
+  `p + edge·(1 − p)`, so a ring crossing the bank keeps one strength (Codex
+  caught it dimming in the shallows, where the bed is unpainted).
+- **The reach:** swamps and puddles (slices 13, 14) take their edge from
+  this fade, whatever their shape. The ground still paints and colours by
+  the simulation's analytic distance, so the two can sit up to a triangle
+  apart where the 4 m grid crosses the water.
+- **Verdict:** sound; a call the user may overrule.
+- **Confidence:** medium.
+
+### The fade's footprint is taken at the pixel's centre
+
+- **When:** slice 05.
+- **The choice:** the "three pixels" floor measures a pixel from the water's
+  surface point rebuilt at the pixel's centre (`atPixel`, from `clip` and
+  `invViewProj`). The world varying is interpolated at the centroid, and
+  its derivatives step on a partly covered pixel. That drew the water
+  cells' triangle edges as faint lines in the shallows, which an unprimed
+  critique caught. The slant floor is 0.35, not RedGPU's 0.12: theirs
+  widened the shallows into a milky band at a low camera, where the light's
+  path through the water already lengthens on its own. The bed's distance
+  is now the mean over the depth's four samples, as its colour is their
+  resolve.
+- **The gap:** the reference has no MSAA and no centroid varying.
+- **The reach:** any other water term that reads a footprint near its
+  triangles' edges should measure it the same way; the streaks and ripples
+  still use the centroid one (slice 06 replaces them).
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### The river scene's shore checks stand unchanged
+
+- **When:** slice 05.
+- **The choice:** the slice expected the river scene's shore-placement and
+  flicker checks to fail and need rewriting. Both passed. Re-judged, they
+  still say what the player should see: the bank's bands at the
+  simulation's distances, and a waterline that doesn't flicker as the
+  camera moves by a centimetre. The depth fade can't fight the ground the
+  way the old edge could. No check was rewritten or loosened. A check
+  that the edge "sits where the depth reaches zero" would restate the
+  shader's formula.
+- **The gap:** the spec predicted a failure that didn't come.
+- **The reach:** none.
+- **Verdict:** sound.
+- **Confidence:** medium.
