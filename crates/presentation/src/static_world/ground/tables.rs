@@ -157,12 +157,9 @@ impl Ground {
         let (r, l) = (&w.ripple, &w.lanes);
         for look in &b.water.rivers {
             let colours = b.palette(&look.palette);
-            vec4(p, rgb(linear(colours[0]), look.opacity[1]));
-            vec4(p, rgb(linear(colours[1]), look.opacity[0]));
-            vec4(
-                p,
-                [1.0 / look.shallows_m, look.streak, w.roughness, w.shadow],
-            );
+            vec4(p, rgb(linear(colours[0]), look.streak));
+            vec4(p, rgb(linear(colours[1]), w.roughness));
+            vec4(p, rgb(look.extinction_per_m, w.shadow));
             vec4(
                 p,
                 [1.0 / r.long_m, 1.0 / r.short_m, r.short_weight, r.step_m],

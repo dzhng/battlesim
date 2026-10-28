@@ -41,8 +41,9 @@ Slice 02 is done: the water draws multisampled in its own pass after glass.
 Its cost probe settled decision 25 that way. Before reading the frame in the
 water's shader, read its note on the four-bind-group limit.
 Slice 03 is done: each river draws one of its biome's water looks, uniforms
-the water's shader reads, retuned live on the dev server. **Pick up at
-[slice 04](slices/04-depth-colour.md)**. Slice 01 is being finished on
+the water's shader reads, retuned live on the dev server. Slice 04 is done:
+the water shows its bed by depth, through each look's per-channel
+extinction. **Pick up at [slice 05](slices/05-soft-shore.md)**. Slice 01 is being finished on
 `spec/water-and-wetlands-wind`, and slice 06 waits for it. The sim lane (slice 10 on)
 runs in parallel on `spec/water-and-wetlands-sim` and merges in here.
 
@@ -60,7 +61,8 @@ the checklist.
 - [x] [00](slices/00-water-scene.md), the water scene (2026-10-27).
 - [x] [02](slices/02-water-pass.md), the water pass (2026-10-28).
 - [x] [03](slices/03-water-look-data.md), water look data (2026-10-28).
-- [ ] Render lane: [01](slices/01-one-wind.md), [04](slices/04-depth-colour.md), [05](slices/05-soft-shore.md),
+- [x] [04](slices/04-depth-colour.md), depth colour (2026-10-28).
+- [ ] Render lane: [01](slices/01-one-wind.md), [05](slices/05-soft-shore.md),
       [06](slices/06-surface-normals.md), [07](slices/07-refraction.md), [08](slices/08-caustics.md),
       [09](slices/09-highlights.md).
 - [ ] Sim lane: [10](slices/10-swamp-terrain.md), [11](slices/11-swamp-slowdown.md),

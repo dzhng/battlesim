@@ -102,8 +102,11 @@ export function createGroundFragments(environment: EnvironmentFrame) {
     const relief = groundRoadRelief(v.world.xy, footprint, paved);
     ground = std.normalize(std.sub(ground, std.mul(d.vec3f(relief, 0), ground.z * biome)));
     const shading = std.normalize(std.mix(ground, scarredNormal(ground, scar), biome));
-    // The ground paint on it (its layer is painted).
-    const paint = groundPaint(v.world);
+    // The ground paint on it (its layer is painted), but not on the bed: the
+    // water over it takes the paint (`waterPass.ts`), so a mark shows once.
+    const water = groundWater(v.world.xy, cell);
+    const dry = 1 - std.smoothstep(-footprint * 0.5, footprint * 0.5, water);
+    const paint = std.mul(groundPaint(v.world), dry);
     // Sun flecks through the crowns lift the canopy's whole shadow.
     const flecks = groundDapple(v.world.xy, footprint, cell);
     const sun = std.max(environment.sampleSunShadow(v.world, n, v.clip.xy), flecks);

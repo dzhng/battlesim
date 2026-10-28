@@ -28,12 +28,15 @@ export const WATER_LOOKS_MAX = 8;
  *  (`biome.water.rivers`) over the shared surface
  *  (`presentation.terrain.water`). */
 export const WaterLook = d.struct({
-  /** Its colour (linear rgb) out in the channel, and its opacity there. */
+  /** Its body's colour (linear rgb) where little light survives the depth,
+   *  and its streaks' light. */
   channel: d.vec4f,
-  /** Its colour (linear rgb) at its edge, and its opacity there. */
+  /** Its body's colour (linear rgb) where most of the light survives, and
+   *  the surface's roughness. */
   edge: d.vec4f,
-  /** 1 / the shallows' width in metres, the streaks' light, the surface's
-   *  roughness, the share of its light it keeps in shadow. */
+  /** The share of red, green and blue it takes per metre of water the light
+   *  crosses (`exp(-e·d)`), and the share of its own light it keeps in
+   *  shadow. */
   surface: d.vec4f,
   /** 1 / the long and short ripples' size, the short ones' weight, the
    *  metres a ripple's slope is read either way. */

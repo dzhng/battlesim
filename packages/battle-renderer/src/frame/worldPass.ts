@@ -815,7 +815,7 @@ export async function createWorldPass(
           encoder,
           targets,
           world.water,
-          [cameraGroup, fogGroups.paintedFaces, terrain.group],
+          [cameraGroup, fogGroups.water, terrain.group],
           submitted.color.water,
         );
       return { encoder, raw };

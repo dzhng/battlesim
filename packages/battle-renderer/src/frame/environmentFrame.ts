@@ -35,6 +35,9 @@ export async function createEnvironmentFrame(
     /** The light as raw resources (uniform, PMREM) for raw passes. */
     raw: environment.raw,
     shade: environment.shade,
+    /** `shade` in two: a surface's light, then the air over a colour. */
+    surfaceLight: environment.surfaceLight,
+    air: environment.air,
     unlit: environment.unlit,
     sampleSunShadow: environment.sampleSunShadow,
     /** Pose the sky and the environment for the frame's `View` record, and

@@ -217,8 +217,9 @@ fn world_pass<'a>(
 }
 
 /// The water over the world's samples, resolved again into `lit` and
-/// `fog_mask` (`encode`): it reads depth and writes none, and draws over any
-/// pane it lies behind.
+/// `fog_mask` (`encode`), over a copy of `lit` (`scene_colour`), which it
+/// shows of its bed by depth: it reads depth and writes none, and draws over
+/// any pane it lies behind.
 pub struct Water;
 
 impl Pass for Water {
@@ -228,6 +229,16 @@ impl Pass for Water {
 
     fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
         let t = inputs.targets;
+        // The world as it stands is what the water shows of its bed.
+        encoder.copy_texture_to_texture(
+            t.lit_texture.as_image_copy(),
+            t.scene_colour_texture.as_image_copy(),
+            Extent3d {
+                width: t.size[0],
+                height: t.size[1],
+                depth_or_array_layers: 1,
+            },
+        );
         let resolved = |view, resolve_target| {
             Some(RenderPassColorAttachment {
                 view,
@@ -249,7 +260,7 @@ impl Pass for Water {
             ..Default::default()
         });
         let mut groups = inputs.environment.groups().to_vec();
-        groups.push(inputs.fog.group(Layer::PaintedFaces));
+        groups.push(inputs.fog.water_group());
         inputs.ground.draw_water(&mut pass, &groups);
     }
 }

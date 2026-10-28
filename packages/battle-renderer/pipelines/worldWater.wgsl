@@ -143,18 +143,16 @@ fn valueNoise(p: vec2f) -> f32 {
   return mix(mix(h[0], h[1], u.x), mix(h[2], h[3], u.x), u.y);
 }
 
-fn waterSurface(xy: vec2f, footprint: f32, look: u32) -> vec4f {
+fn waterSurface(xy: vec2f, footprint: f32, look: u32) -> vec2f {
   let w = (&params.waterLooks[look]);
   let water = groundWater(xy, groundCell(xy, footprint));
-  let deep = (1f - exp((-(max(water, 0f)) * (*w).surface.x)));
   let shown = (1f - smoothstep((*w).rippleSlope.y, (*w).rippleSlope.z, footprint));
   let drift = ((*w).lanes.y * valueNoise((xy * (*w).lanes.z)));
   let lane = valueNoise(vec2f(((water / (*w).lanes.x) + drift), 3.7f));
   let streak = valueNoise(((xy * (*w).lanes.w) + vec2f(63.099998474121094, 29.299999237060547)));
   let lit = smoothstep((*w).lanesLit.z, (*w).lanesLit.w, (((*w).lanesLit.x * lane) + ((*w).lanesLit.y * streak)));
-  let colour = (mix((*w).edge.xyz, (*w).channel.xyz, deep) * (1f + ((*w).surface.y * mix((*w).lanesMean.x, lit, shown))));
   let edge = smoothstep((-(footprint) * 0.5f), (footprint * 0.5f), water);
-  return vec4f(colour, (mix((*w).edge.w, (*w).channel.w, deep) * edge));
+  return vec2f((1f + ((*w).channel.w * mix((*w).lanesMean.x, lit, shown))), edge);
 }
 
 fn rippleHeight(xy: vec2f, w: WaterLook) -> f32 {
@@ -332,30 +330,19 @@ fn groundPaint(ground: vec3f) -> vec4f {
   return vec4f(p.xyz * 2, p.w);
 }
 
-struct GroundPaintStyle {
-  albedo: f32,
-  emissive: f32,
-  fogKeep: f32,
-  grassGlow: f32,
-  grassFalloff: f32,
-  saturation: f32,
-  pad1: f32,
-  pad2: f32,
-}
+@group(3) @binding(10) var sceneColour: texture_2d<f32>;
 
-@group(3) @binding(6) var<uniform> paintStyle: GroundPaintStyle;
+@group(3) @binding(9) var depth: texture_depth_multisampled_2d;
 
-fn paintColour(paint: vec4f) -> vec3f {
-  let c = pow(max(paint.xyz / max(paint.w, 1e-4), vec3f(0.0)), vec3f(2.2));
-  let grey = dot(c, vec3f(0.2126, 0.7152, 0.0722));
-  return max(mix(vec3f(grey), c, paintStyle.saturation), vec3f(0.0));
-}
-
-fn paintedAlbedo(albedo: vec3f, paint: vec4f) -> vec3f {
-  if (paint.w <= 0.0) { return albedo; }
-  let colour = min(paintColour(paint), vec3f(1.0));
-  return mix(albedo, colour * paintStyle.albedo, paint.w);
-}
+fn waterBed(clip: vec4f, world: vec3f) -> vec4f {
+    let at = vec2i(clip.xy);
+    let colour = textureLoad(sceneColour, at, 0).rgb;
+    let z = textureLoad(depth, at, 0);
+    let cam = cam;
+    let ndc = vec2f(clip.x / cam.width * 2.0 - 1.0, 1.0 - clip.y / cam.height * 2.0);
+    let p = cam.invViewProj * vec4f(ndc, z, 1.0);
+    return vec4f(colour, min(length(p.xyz / p.w - world), 50.0));
+  }
 
 struct CastLight {
   position: vec4f,
@@ -490,6 +477,46 @@ fn standardPbr(base: vec3f, emissive: vec3f, authoredRoughness: f32, geometryRou
   return max((directDiffuse+indirectDiffuse)+(directSpecular+indirectSpecular)+emissive,vec3f(0));
 }
 
+fn lightAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linear: sampler) -> vec3f {
+ return standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
+ }
+
+@group(2) @binding(3) var pmrem: texture_2d<f32>;
+
+@group(2) @binding(4) var dfg: texture_2d<f32>;
+
+@group(2) @binding(5) var linear: sampler;
+
+fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec3f {
+  let sun_1 = mix(data.settings.y, 1f, shadow);
+  return lightAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun_1, eye, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, pmrem, dfg, linear);
+}
+
+struct GroundPaintStyle {
+  albedo: f32,
+  emissive: f32,
+  fogKeep: f32,
+  grassGlow: f32,
+  grassFalloff: f32,
+  saturation: f32,
+  pad1: f32,
+  pad2: f32,
+}
+
+@group(3) @binding(6) var<uniform> paintStyle: GroundPaintStyle;
+
+fn paintColour(paint: vec4f) -> vec3f {
+  let c = pow(max(paint.xyz / max(paint.w, 1e-4), vec3f(0.0)), vec3f(2.2));
+  let grey = dot(c, vec3f(0.2126, 0.7152, 0.0722));
+  return max(mix(vec3f(grey), c, paintStyle.saturation), vec3f(0.0));
+}
+
+fn paintedAlbedo(albedo: vec3f, paint: vec4f) -> vec3f {
+  if (paint.w <= 0.0) { return albedo; }
+  let colour = min(paintColour(paint), vec3f(1.0));
+  return mix(albedo, colour * paintStyle.albedo, paint.w);
+}
+
 fn equirectUv(direction: vec3f) -> vec2f {
   return vec2f(atan2(direction.z, direction.x) * 1.5915494309189535e-1f + 0.5,
     asin(clamp(direction.y, -1.0, 1.0)) * 3.1830988618379069e-1f + 0.5);
@@ -516,22 +543,10 @@ fn applyAerial(surface: vec4f, position: vec3f, camera: vec3f, observer: vec3f, 
     return vec4f(surface.rgb*transmit+mistSkyLight*(vec3f(1)-transmit),surface.a);
   }
 
-fn shadeAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, observer: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, air: Aerial, sky: texture_2d<f32>, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linear: sampler) -> vec4f {
- let lit=standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
- return applyAerial(vec4f(lit,1),worldPosition,eye,observer,sunDirection,air,sky,linear);
- }
-
 @group(2) @binding(2) var sky: texture_2d<f32>;
 
-@group(2) @binding(3) var pmrem: texture_2d<f32>;
-
-@group(2) @binding(4) var dfg: texture_2d<f32>;
-
-@group(2) @binding(5) var linear: sampler;
-
-fn shade(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec4f {
-  let sun_1 = mix(data.settings.y, 1f, shadow);
-  return shadeAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun_1, eye, data.observer.xyz, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, data.aerial, sky, pmrem, dfg, linear);
+fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
+  return applyAerial(vec4f(colour, 1f), position, eye, data.observer.xyz, data.sunDirection.xyz, data.aerial, sky, linear);
 }
 
 fn paintGlow(paint: vec4f) -> vec3f {
@@ -787,9 +802,17 @@ struct waterFragment_Input {
   let n = waterNormal(_arg_0.world.xy, footprint, look);
   let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
   let paint_1 = groundPaint(_arg_0.world);
-  let lit = shade(paintedAlbedo(surface.xyz, paint_1), vec3f(), (*w).surface.z, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
-  let shaded = ((lit.xyz * mix((*w).surface.w, 1f, sun_1)) + paintGlow(paint_1));
+  let bed = waterBed(clip, _arg_0.world);
+  let through = exp(((*w).surface.xyz * -(bed.w)));
+  let body = (mix((*w).edge.xyz, (*w).channel.xyz, (1f - dot(through, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)))) * surface.x);
+  let reflected = surfaceLight(vec3f(), vec3f(), (*w).edge.w, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
+  let own = (surfaceLight(body, vec3f(), (*w).edge.w, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye)) - reflected);
+  let mark = surfaceLight(paintedAlbedo(body, (paint_1 / max(paint_1.w, 1e-4f))), vec3f(), (*w).edge.w, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
+  let water = ((own * (vec3f(1) - through)) + reflected);
+  let lit = (mix(water, mark, paint_1.w) * mix((*w).surface.w, 1f, sun_1));
+  let under = (through * (1f - paint_1.w));
+  let inAir = (air(lit, _arg_0.world, (*eye)).xyz - (air(vec3f(), _arg_0.world, (*eye)).xyz * under));
+  let colour = ((inAir + (bed.xyz * under)) + paintGlow(paint_1));
   let seen = paintedSeen(fogTerm(_arg_0.world, n, clip.xy, fogIsGround()), paint_1);
-  let alpha = max(surface.w, paint_1.w);
-  return waterFragment_Output(vec4f(shaded, alpha), fogCoverage(seen, alpha));
+  return waterFragment_Output(vec4f(colour, surface.y), fogCoverage(seen, surface.y));
 }

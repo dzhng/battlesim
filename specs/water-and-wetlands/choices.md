@@ -275,3 +275,103 @@ passes.
   builds its own layers from `gameBiome` keeps the value it loaded with.
 - **Verdict:** sound.
 - **Confidence:** medium.
+
+## Slice 04: depth colour
+
+### The water composites the bed, its own body and its reflection
+
+- **When:** slice 04.
+- **The choice:** the water's colour is the bed under it (`sceneColour`, at
+  its pixel) times the light that survives the distance down to it,
+  `exp(-e·d)`, per channel. Its lit body colour replaces what the water
+  takes, and the sky's and sun's reflection is added whole. The reflection
+  is `environment.shade` with no albedo. The body is the look's edge colour
+  turning to its channel colour as less light survives. The water is now
+  opaque over its bed: its alpha is only its one-pixel edge feather. The
+  distance is along the view ray to the world's depth (its first sample),
+  capped at 50 m. The water's own light is composed before the air between
+  it and the eye, and the air goes on once. The environment's `shade` is now
+  `air(surfaceLight(...))`, both exported, and the bed's copy already lies
+  behind its own air, so the bed's share of the air is taken off again
+  (Codex found the first composite counting the haze twice). A mark lies
+  over the water by its coverage, once.
+- **The gap:** the spec named RedGPU's formula but not how it joins our one
+  lighting owner.
+- **The reach:** slices 05 to 09 build on this composite: the shore fade
+  (05) multiplies it, refraction (07) moves where `sceneColour` is read,
+  and caustics (08) light the bed term. The looks lost `opacity` and
+  `shallows_m`, which this replaces.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Each look carries its extinction per channel
+
+- **When:** slice 04.
+- **The choice:** a look's `extinction_per_m` is three numbers, red, green
+  and blue, each the `e` in `exp(-e·d)`. RedGPU's fixed ratios
+  `(2.4, 0.7, 1.1 + 0.9·turbidity)` turned our beige bed a saturated green
+  through mid-depth water, and teal at the banks, against decision 9's "no
+  tropical turquoise". With the three as data, a green-grey look takes the
+  channels nearly evenly, and a murky look takes more of the blue and reads
+  brown. Summer's first values are temperate `[0.9, 0.7, 0.8]` and murky
+  lowland `[1.6, 1.4, 1.8]`, over greyer, lighter palettes than slice 03's.
+- **The gap:** decision 9 named the looks; the reference's ratios don't
+  give them.
+- **The reach:** every water look, swamps included (slice 13), tunes these
+  three. They are first values, judged by eye and an unprimed critique, not
+  targets.
+- **Verdict:** sound.
+- **Confidence:** medium on the values, high on the shape.
+
+### What lies under the water reaches it through its fog group
+
+- **When:** slice 04.
+- **The choice:** the water reads the world's depth and a copy of `lit`
+  (`FrameTargets.sceneColour`, made by `copyTextureToTexture` after the
+  world pass, before the water's) through the fog layout's two new
+  bindings. Only the water's own fog group (`FogGroups.water`, the painted
+  faces' layer) holds them. Every group the world pass binds holds 1×1
+  placeholders, because that pass writes the depth. This is slice 02's
+  tried route for the four-bind-group limit. The copy is single-level;
+  slice 07 adds mips when it blurs. `lit` gains `COPY_SRC`. Native mirrors
+  each piece.
+- **The gap:** settled slice 02's open entry.
+- **The reach:** any later water texture that the world pass doesn't
+  attach (the wave field, wakes) joins the water's group the same way.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### The bed is unpainted under the water, and the water takes the paint
+
+- **When:** slice 04.
+- **The choice:** the terrain's paint fades out over the water's edge
+  feather, by the same distance as the water's alpha. The water draws the
+  mark over its composite whole, at any depth: the bed's light under it
+  shows only where no mark lies. A selected squad's ring at the river's
+  edge crosses onto the water as one line (evidence in the slice).
+- **The gap:** the README's sharp edge said one layer must own the paint,
+  not which.
+- **The reach:** refraction (slice 07) displaces only the bed term, so
+  marks stay put.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### "Native draws water" now means native's river matches the browser's
+
+- **When:** slice 04.
+- **The choice:** slice 00's measure, the river at least 12 bluer (CIELAB
+  b*) than its bank, stopped telling water from no water once the looks
+  turned green-grey and brown. Its own entry said to re-judge it, not lower
+  it. The water scene now checks two things. The browser's river must
+  stand at least ΔE 10 from its dry bank, against 24 to 35 measured. And
+  native's river must lie within ΔE 3 of the browser's, against 0.0
+  measured. A native that drew no water would show its bed, which lies 18
+  to 35 from the water: measured by standing the bare shore band in for
+  the missing surface, as slice 00's falsification did. The check
+  immediately caught a stale shader export that native was running.
+- **The gap:** slice 00's measure assumed bluish water.
+- **The reach:** `WATER_LOOK=<row>` films a pinned look in the browser.
+  Native reads its own biome, so a pinned run skips the native match,
+  because native draws the river's own look.
+- **Verdict:** sound.
+- **Confidence:** high.

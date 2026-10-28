@@ -12,6 +12,7 @@ import type { SubmittedDraws } from "./submitted";
 import {
   fogCoverage,
   fogIsGround,
+  fogLayout,
   fogTerm,
   groundPaint,
   paintedAlbedo,
@@ -21,6 +22,31 @@ import {
 import { terrainLayout } from "./terrainMaterial";
 import { waterNormal, waterSurface } from "./waterSurface";
 import { FRAME_MSAA, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
+
+/** Rec. 709's weights: a linear colour's luminance is its dot with them. */
+const LUMA = d.vec3f(0.2126, 0.7152, 0.0722);
+/** The farthest the water reads down to the bed, metres: past it the bed's
+ *  light is all but gone, and the cleared depth (sky) is no distance. */
+const BED_FAR_M = 50;
+
+/** What lies under the water at fragment `clip` of its surface point
+ *  `world`: the world's colour before the water there, and how far down
+ *  (along the view) the world's depth lies, both from the water's fog group
+ *  (`fogLayout.depth`, its first sample, and `sceneColour`). */
+const waterBed = tgpu
+  .fn(
+    [d.vec4f, d.vec3f],
+    d.vec4f,
+  )(/* wgsl */ `(clip: vec4f, world: vec3f) -> vec4f {
+    let at = vec2i(clip.xy);
+    let colour = textureLoad(fogLayout.$.sceneColour, at, 0).rgb;
+    let z = textureLoad(fogLayout.$.depth, at, 0);
+    let cam = typegpuCameraLayout.$.cam;
+    let ndc = vec2f(clip.x / cam.width * 2.0 - 1.0, 1.0 - clip.y / cam.height * 2.0);
+    let p = cam.invViewProj * vec4f(ndc, z, 1.0);
+    return vec4f(colour, min(length(p.xyz / p.w - world), ${BED_FAR_M}.0));
+  }`)
+  .$uses({ fogLayout, typegpuCameraLayout });
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -33,9 +59,16 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     color: d.vec4f,
     highlight: d.f32,
   };
-  /** Ripples that break the sky's and sun's reflection, the bed through it
-   *  at the shore. It takes the ground paint as the ground does (its layer
-   *  is painted): a mark over the water shows on it, not drowned under it. */
+  /** The water: the bed under it (the world before the water, at the
+   *  pixel) dimmed per channel by the light the water takes over the
+   *  distance down to it (`exp(-e·d)`, as RedGPU's extinction,
+   *  `lakeFragment.wgsl:415-433`, with each look's own `e`), its body's
+   *  colour, lit, in place of what it takes, and the sky's and the sun's
+   *  reflection over both, with the air between it and the eye once. The
+   *  body turns from the look's edge colour to its channel colour as less
+   *  light survives. It takes the ground paint as the ground does (its layer
+   *  is painted): a mark lies over the water by its coverage, once, the bed
+   *  under it unpainted. */
   const waterFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
     "use gpu";
     const eye = typegpuCameraLayout.$.cam.eye;
@@ -47,10 +80,16 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     const n = waterNormal(v.world.xy, footprint, look);
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const paint = groundPaint(v.world);
-    const lit = environment.shade(
-      paintedAlbedo(surface.xyz, paint),
+    const bed = waterBed(v.clip, v.world);
+    const through = std.exp(std.mul(w.surface.xyz, -bed.w));
+    const body = std.mul(std.mix(w.edge.xyz, w.channel.xyz, 1 - std.dot(through, LUMA)), surface.x);
+    // The surface's light before the air: lit with no albedo, a surface
+    // shows only what it reflects; the body's own light in place of what
+    // the water takes; a mark wholly covering where the paint lies.
+    const reflected = environment.surfaceLight(
       d.vec3f(0),
-      w.surface.z,
+      d.vec3f(0),
+      w.edge.w,
       0,
       0,
       1,
@@ -59,10 +98,34 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
       sun,
       eye,
     );
-    const shaded = std.add(std.mul(lit.xyz, std.mix(w.surface.w, 1, sun)), paintGlow(paint));
+    const own = std.sub(
+      environment.surfaceLight(body, d.vec3f(0), w.edge.w, 0, 0, 1, n, v.world, sun, eye),
+      reflected,
+    );
+    const mark = environment.surfaceLight(
+      paintedAlbedo(body, std.div(paint, std.max(paint.w, 1e-4))),
+      d.vec3f(0),
+      w.edge.w,
+      0,
+      0,
+      1,
+      n,
+      v.world,
+      sun,
+      eye,
+    );
+    const water = std.add(std.mul(own, std.sub(d.vec3f(1), through)), reflected);
+    const lit = std.mul(std.mix(water, mark, paint.w), std.mix(w.surface.w, 1, sun));
+    // The air over it once: the bed's copy already lies behind its own air,
+    // so the bed's share of the air is taken off again.
+    const under = std.mul(through, 1 - paint.w);
+    const inAir = std.sub(
+      environment.air(lit, v.world, eye).xyz,
+      std.mul(environment.air(d.vec3f(0), v.world, eye).xyz, under),
+    );
+    const colour = std.add(std.add(inAir, std.mul(bed.xyz, under)), paintGlow(paint));
     const seen = paintedSeen(fogTerm(v.world, n, v.clip.xy, fogIsGround()), paint);
-    const alpha = std.max(surface.w, paint.w);
-    return { color: d.vec4f(shaded, alpha), fog: fogCoverage(seen, alpha) };
+    return { color: d.vec4f(colour, surface.y), fog: fogCoverage(seen, surface.y) };
   });
   const pipeline = root
     .createRenderPipeline({
@@ -84,7 +147,8 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     pipeline,
     /** The water's pass, over the samples the world pass kept (it stores
      *  them), resolving the lit world and the fog mask again; the `mesh`
-     *  drawn with the camera's, the fog's and the terrain's `groups`. The
+     *  drawn with the camera's, the water's fog group (`FogGroups.water`)
+     *  and the terrain's `groups`. The
      *  world pass resolves too: Metal skips the resolve of a tile this pass
      *  leaves empty. Storing the samples cost less than run-to-run noise
      *  against single-sampled water (decision 25). Water behind a pane draws
@@ -96,6 +160,13 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
       [camera, fog, terrain]: readonly [CameraGroup, TgpuBindGroup, TgpuBindGroup],
       submitted: SubmittedDraws,
     ) {
+      // The world as it stands is what the water shows of its bed.
+      root
+        .unwrap(encoder)
+        .copyTextureToTexture({ texture: targets.lit }, { texture: targets.sceneColour }, [
+          targets.width,
+          targets.height,
+        ]);
       const pass = encoder.beginRenderPass({
         label: "water",
         colorAttachments: [

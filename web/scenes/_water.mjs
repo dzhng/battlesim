@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { initSync, WorldView, world_layout } from "../src/wasm/game_wasm.js";
 import { loadMap } from "../src/maps/node.ts";
 import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
-import { chroma, linear, meanColour } from "./_colour.mjs";
+import { linear, meanColour } from "./_colour.mjs";
 
 /** How far (x, y) lies inside the water's edge (negative outside), by the
  *  simulation's exported river stretches `rivers`, `stride` floats each.
@@ -96,13 +96,9 @@ export function waterAndBank(
   return { water: [...regions.water.values()], bank: [...regions.bank.values()] };
 }
 
-/** How the water reads against its bank in `png`: each region's mean
- *  colour, and how much bluer the water is, as the fall in CIELAB b* (its
- *  yellow-blue axis) from bank to water. The bare bed a missing surface
- *  would show is no bluer than grass. */
-export function waterAgainstBank(png, regions) {
-  const water = meanColour(png, regions.water);
-  const bank = meanColour(png, regions.bank);
-  const yellow = (region) => chroma(region.rgb.map(linear))[1];
-  return { water, bank, bluer: yellow(bank) - yellow(water) };
+/** The mean colours of `png` over the water and the bank `regions`, linear
+ *  rgb. */
+export function waterAndBankColours(png, regions) {
+  const mean = (pixels) => meanColour(png, pixels).rgb.map(linear);
+  return { water: mean(regions.water), bank: mean(regions.bank) };
 }

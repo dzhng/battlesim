@@ -19,7 +19,8 @@
     "shoulder_dirt": [[0.46, 0.42, 0.34]],
     "forest_floor": [[0.34, 0.3, 0.22], [0.27, 0.31, 0.17], [0.2, 0.18, 0.14]],
     "water_bed": [[0.31, 0.31, 0.25]],
-    "water": [[0.14, 0.245, 0.28], [0.22, 0.31, 0.3]],
+    "water": [[0.14, 0.16, 0.15], [0.2, 0.22, 0.2]],
+    "water_murky": [[0.2, 0.185, 0.14], [0.24, 0.225, 0.18]],
     "shore": [[0.3, 0.295, 0.285], [0.325, 0.305, 0.28]],
     "distant": [[0.37, 0.369, 0.301]],
     "crater_soil": [[0.3, 0.24, 0.17]],
@@ -297,8 +298,8 @@
   "shore": { "palette": "shore", "wet_m": 0.6, "mud_m": 5, "wander": 0.5, "wander_scale_m": 9, "lift": 1.27, "relief": 0.5 },
   "water": {
     "rivers": [
-      { "name": "temperate", "weight": 3, "palette": "water", "opacity": [0.6, 0.9], "shallows_m": 0.35, "streak": 0.6 },
-      { "name": "murky lowland", "weight": 1, "palette": "water", "opacity": [0.6, 0.9], "shallows_m": 0.35, "streak": 0.6 }
+      { "name": "temperate", "weight": 3, "palette": "water", "extinction_per_m": [0.9, 0.7, 0.8], "streak": 0.6 },
+      { "name": "murky lowland", "weight": 1, "palette": "water_murky", "extinction_per_m": [1.6, 1.4, 1.8], "streak": 0.25 }
     ]
   },
   "forest_floor": {

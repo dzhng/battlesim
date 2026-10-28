@@ -161,7 +161,7 @@ export async function createBattleFrame(
         effectiveLight,
       );
       scope.adopt(post.dispose);
-      const fog = world.fogTiles(scope, t.depth, t.paint);
+      const fog = world.fogTiles(scope, t.depth, t.paint, t.sceneColour);
       return {
         ...t,
         post,

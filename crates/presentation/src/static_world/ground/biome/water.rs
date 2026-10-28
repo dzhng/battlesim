@@ -1,6 +1,6 @@
 //! The biome's water: the bands of the water's edge (`Shore`) and the
 //! surface's looks (`Water`).
-use super::{bad, range, within, Biome, Range};
+use super::{bad, within, Biome, Rgb};
 use serde::Deserialize;
 
 /// The water's edge along every river, in bands by distance from it: wet
@@ -32,17 +32,17 @@ pub struct Water {
     pub rivers: Vec<WaterLook>,
 }
 
-/// One look of a water surface: its colours (`palette`, the channel's and
-/// the edge's), its opacity at its edge and out in the channel, how far in
-/// it takes 63% of the channel's, its streaks' light, and how often it is
-/// picked against its kind's other looks.
+/// One look of a water surface: its body's colours (`palette`: where little
+/// light survives the depth, then where most does), the share of each of
+/// red, green and blue it takes per metre of water the light crosses
+/// (`extinction_per_m`, as `e` in `exp(-e·d)`), its streaks' light, and how
+/// often it is picked against its kind's other looks.
 #[derive(Clone, Deserialize)]
 pub struct WaterLook {
     pub name: String,
     pub weight: f64,
     pub palette: String,
-    pub opacity: Range,
-    pub shallows_m: f64,
+    pub extinction_per_m: Rgb,
     pub streak: f64,
 }
 
@@ -72,8 +72,9 @@ impl Biome {
             let at = format!("{at}[{i}]");
             self.has_palette(&format!("{at}.palette"), &l.palette, 2)?;
             within(&format!("{at}.weight"), l.weight, 0.0, 1e6)?;
-            range(&format!("{at}.opacity"), l.opacity, 0.0, 1.0)?;
-            within(&format!("{at}.shallows_m"), l.shallows_m, 0.05, 50.0)?;
+            for (c, e) in ["r", "g", "b"].iter().zip(l.extinction_per_m) {
+                within(&format!("{at}.extinction_per_m.{c}"), e, 0.01, 20.0)?;
+            }
             within(&format!("{at}.streak"), l.streak, 0.0, 1.0)?;
         }
         if !looks.iter().any(|l| l.weight > 0.0) {

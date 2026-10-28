@@ -39,6 +39,11 @@ pub struct Targets {
     pub hdr_msaa: TextureView,
     /// The lit world, the effects drawn over it.
     pub lit: TextureView,
+    pub lit_texture: Texture,
+    /// `lit` as the world pass left it, before the water: what the water
+    /// shows of the bed through it (`world::Water`).
+    pub scene_colour: TextureView,
+    pub scene_colour_texture: Texture,
     /// The world with fog applied: post's input.
     pub hdr: TextureView,
     /// The world's depth, multisampled; the effects read it.
@@ -82,10 +87,20 @@ impl Targets {
             1,
             render | TextureUsages::COPY_SRC,
         );
+        let lit_texture = texture("lit", HDR_FORMAT, 1, sampled | TextureUsages::COPY_SRC);
+        let scene_colour_texture = texture(
+            "scene-colour",
+            HDR_FORMAT,
+            1,
+            TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
+        );
         Self {
             size,
             hdr_msaa: view(texture("hdr-msaa", HDR_FORMAT, MSAA, render)),
-            lit: view(texture("lit", HDR_FORMAT, 1, sampled)),
+            lit: lit_texture.create_view(&Default::default()),
+            lit_texture,
+            scene_colour: scene_colour_texture.create_view(&Default::default()),
+            scene_colour_texture,
             hdr: view(texture("hdr", HDR_FORMAT, 1, sampled)),
             depth: view(texture("depth", DEPTH_FORMAT, MSAA, sampled)),
             fog_mask_msaa: view(texture("fog-mask-msaa", FOG_MASK_FORMAT, MSAA, render)),

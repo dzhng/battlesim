@@ -18,6 +18,8 @@
 // tests), and `probeShape` runs the WGSL sight shape against Rust's vectors.
 // Probes read back: lab only, never in the frame.
 import { tgpu, d } from "typegpu";
+import { GPU_DEPTH_FORMAT } from "@packages/renderer-core/src/depthContract";
+import { FRAME_MSAA, HDR_FORMAT } from "./targets";
 import type { FogUpload, Presentation } from "@wasm/presentation/presentation_wasm.js";
 import type { GpuRegistry, GpuSlot } from "./registry";
 import type { TerrainHeights } from "./terrainHeights";
@@ -114,6 +116,8 @@ export interface FogTiles {
   depthView: GPUTextureView;
   /** The frame's ground paint, which the painted layers read. */
   paintView: GPUTextureView;
+  /** The world before the water, which the water reads over its depth. */
+  sceneColourView: GPUTextureView;
 }
 
 /** `Presentation.fog_occluders`' seven numbers a box, as boxes. */
@@ -191,6 +195,20 @@ export async function createFogVisibility(
     label: "fog-no-paint",
     size: [1, 1],
     format: "rgba8unorm",
+    usage: GPUTextureUsage.TEXTURE_BINDING,
+  });
+  // What the groups the world pass binds hold for the water's views.
+  const noDepth = registry.texture({
+    label: "fog-no-depth",
+    size: [1, 1],
+    format: GPU_DEPTH_FORMAT,
+    sampleCount: FRAME_MSAA,
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+  const noScene = registry.texture({
+    label: "fog-no-scene",
+    size: [1, 1],
+    format: HDR_FORMAT,
     usage: GPUTextureUsage.TEXTURE_BINDING,
   });
   const storage = (label: string, bytes: number) =>
@@ -320,9 +338,11 @@ export async function createFogVisibility(
     ground: ReturnType<typeof fragmentGroup>;
     faces: ReturnType<typeof fragmentGroup>;
     units: ReturnType<typeof fragmentGroup>;
+    /** The water's: the painted faces', with what lies under the water. */
+    water: ReturnType<typeof fragmentGroup>;
     cull: ReturnType<typeof cullGroup> | null;
   }
-  const fragmentGroup = (layer: typeof layers.ground, t: FogTiles | null) =>
+  const fragmentGroup = (layer: typeof layers.ground, t: FogTiles | null, under = false) =>
     root.createBindGroup(fogLayout, {
       params,
       layer,
@@ -333,6 +353,8 @@ export async function createFogVisibility(
       paintStyle,
       paint: t?.paintView ?? noPaint.createView(),
       wholes: buffers.wholes.current!.createView(),
+      depth: (under && t?.depthView) || noDepth.createView(),
+      sceneColour: (under && t?.sceneColourView) || noScene.createView(),
     });
   const cullGroup = (t: FogTiles) =>
     root.createBindGroup(cullLayout, {
@@ -353,6 +375,7 @@ export async function createFogVisibility(
           ground: fragmentGroup(layers.ground, tiles),
           faces: fragmentGroup(layers.faces, tiles),
           units: fragmentGroup(layers.units, tiles),
+          water: fragmentGroup(layers.paintedFaces, tiles, true),
           cull: tiles?.lists ? cullGroup(tiles) : null,
         },
       };
@@ -457,7 +480,12 @@ export async function createFogVisibility(
       });
     },
     /** The tile lists for a frame size, owned by that size's scope. */
-    sized(scope: GpuRegistry, depth: GPUTexture, paint: GPUTexture): FogTiles {
+    sized(
+      scope: GpuRegistry,
+      depth: GPUTexture,
+      paint: GPUTexture,
+      sceneColour: GPUTexture,
+    ): FogTiles {
       return {
         scope,
         tilesX: 0,
@@ -466,6 +494,7 @@ export async function createFogVisibility(
         counts: null,
         depthView: depth.createView(),
         paintView: paint.createView(),
+        sceneColourView: sceneColour.createView(),
       };
     },
     /** This frame's rebuilds, structures and tile cull over the prepass

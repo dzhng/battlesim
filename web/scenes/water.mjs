@@ -1,8 +1,9 @@
 // The water scene (specs/water-and-wetlands): the water reel
 // (`fixtures/captures/water.json`) on the wetlands capture map, filmed by the
 // graphics test with control plates and replayed by the native client from
-// the same run. Each shot's plate, in both clients, must show the
-// simulation's river bluer than its dry bank. The plates go to the evidence
+// the same run. Each shot's browser plate must show the simulation's river
+// apart from its dry bank, and native's must show it as the browser does. The
+// plates go to the evidence
 // in one sheet beside RedGPU's frozen stills
 // (`specs/water-and-wetlands/assets/`), for the side-by-side read; the look
 // is judged there by eye, not here. Run it under the GPU lock.
@@ -14,20 +15,27 @@ import { loadMap } from "../src/maps/node.ts";
 import { filmParityRun } from "./_parityRun.mjs";
 import { decode } from "./_png.mjs";
 import { writeSheet } from "./_sheet.mjs";
-import { mapWater, waterAgainstBank, waterAndBank } from "./_water.mjs";
+import { deltaE } from "./_colour.mjs";
+import { mapWater, waterAndBank, waterAndBankColours } from "./_water.mjs";
 
 const ROOT = new URL("../../", import.meta.url);
 const MAP = "wetlands";
 /** The reel's shots, in order (the capture format names none). */
 const SHOTS = ["close", "tactical", "low"];
-/** The river reads as water when it is at least this much bluer than its
- *  bank (CIELAB b*): a loose floor that a missing water surface, showing
- *  the bed, falls under. */
-const BLUER_MIN = 12;
+/** The browser's river reads as water when its mean colour stands at least
+ *  this far from its dry bank's (CIE76 ΔE): a loose floor. */
+const APART_MIN = 10;
+/** Native draws the river as the browser does when their mean colours over
+ *  it lie within this (ΔE). Native replays the browser's frames, so the two
+ *  agree to a hair; a native that drew no water would show its bed, which
+ *  lies far past this from the water. */
+const NATIVE_MAX = 3;
 const exec = promisify(execFile);
 
 export async function run(ctx) {
-  const runDir = await filmParityRun(ctx, ctx.url);
+  // `WATER_LOOK=<row>` films one water look on every river (`?water_look=`).
+  const look = process.env.WATER_LOOK;
+  const runDir = await filmParityRun(ctx, look ? `${ctx.url}&water_look=${look}` : ctx.url);
   if (!runDir) return;
   const dir = new URL(`${MAP}/`, runDir);
   const capture = JSON.parse(await readFile(new URL("capture.json", dir), "utf8"));
@@ -60,18 +68,26 @@ export async function run(ctx) {
   const cells = [];
   for (const [k, frame] of frames.entries()) {
     const regions = waterAndBank(frame, lens.fovY, water, size);
-    const clients = [["browser", new URL(frame.plate, dir).pathname]];
-    if (nativePlates.includes(frame.plate)) clients.push(["native", `${native}${frame.plate}`]);
-    for (const [client, file] of clients) {
-      const bytes = await readFile(file);
-      const read = waterAgainstBank(decode(bytes), regions);
-      ctx.check(
-        `${client} ${SHOTS[k]}: the river reads as water, bluer than its bank`,
-        read.bluer >= BLUER_MIN,
-        `b* ${read.bluer.toFixed(1)} lower over ${read.water.count} water and ${read.bank.count} bank pixels`,
-      );
-      cells.push({ caption: `${client} · ${SHOTS[k]}`, png: bytes });
-    }
+    const browserBytes = await readFile(new URL(frame.plate, dir));
+    const browser = waterAndBankColours(decode(browserBytes), regions);
+    const apart = deltaE(browser.water, browser.bank);
+    ctx.check(
+      `browser ${SHOTS[k]}: the river stands apart from its bank`,
+      apart >= APART_MIN,
+      `ΔE ${apart.toFixed(1)} over ${regions.water.length} water and ${regions.bank.length} bank pixels`,
+    );
+    cells.push({ caption: `browser · ${SHOTS[k]}`, png: browserBytes });
+    if (!nativePlates.includes(frame.plate)) continue;
+    const nativeBytes = await readFile(`${native}${frame.plate}`);
+    cells.push({ caption: `native · ${SHOTS[k]}`, png: nativeBytes });
+    // Native reads its own biome: a pinned look is the browser's alone.
+    if (look) continue;
+    const off = deltaE(waterAndBankColours(decode(nativeBytes), regions).water, browser.water);
+    ctx.check(
+      `native ${SHOTS[k]}: draws the river as the browser does`,
+      off <= NATIVE_MAX,
+      `ΔE ${off.toFixed(1)} from the browser's over the water`,
+    );
   }
   const stills = new URL("specs/water-and-wetlands/assets/", ROOT);
   for (const file of (await readdir(stills)).filter((f) => f.startsWith("redgpu-")).sort())
