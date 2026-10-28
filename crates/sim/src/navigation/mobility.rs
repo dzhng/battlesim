@@ -20,6 +20,8 @@ pub struct Mobility {
     pub off_road_mps: f64,
     pub road_mps: f64,
     pub forest_multiplier: f64,
+    /// Its drive's factor in a swamp's water (`movement.swamp`).
+    pub swamp_multiplier: f64,
     /// Distance the footprint needs from any obstacle centre line.
     pub half_width_m: f64,
     /// Which props stop it.
@@ -44,20 +46,41 @@ pub struct Drive {
     pub feel: contract::movement::DriveRules,
 }
 
+/// What a mover's speed reads of the ground under it: the walkable
+/// surface (`world::Surface`) where it moves, a navigation cell's copy of
+/// it where it plans.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Footing {
+    /// The surface kind's share of road speed: 0 off any road.
+    pub road_factor: f64,
+    pub forest: bool,
+    pub swamp: bool,
+    pub slope_deg: f64,
+}
+
 impl Mobility {
-    /// Travel speed on a surface. A road (`road_factor` above 0, the surface
-    /// kind's share of road speed) takes precedence over forest and is never
-    /// slower than open ground; slopes slow continuously up to the shared
-    /// cutoff.
-    pub fn speed(&self, road_factor: f64, forest: bool, slope_deg: f64) -> f64 {
-        let base = if road_factor > 0.0 {
-            (self.road_mps * road_factor).max(self.off_road_mps)
-        } else if forest {
-            self.off_road_mps * self.forest_multiplier
+    /// Travel speed over `ground`. A road (`road_factor` above 0, the
+    /// surface kind's share of road speed) takes precedence over forest and
+    /// swamp and is never slower than open ground. Off it, forest and swamp
+    /// each multiply open-ground speed, and where both lie the slower one
+    /// applies, once. Slopes slow continuously up to the shared cutoff.
+    pub fn speed(&self, ground: Footing) -> f64 {
+        let base = if ground.road_factor > 0.0 {
+            (self.road_mps * ground.road_factor).max(self.off_road_mps)
         } else {
-            self.off_road_mps
+            let forest = if ground.forest {
+                self.forest_multiplier
+            } else {
+                1.0
+            };
+            let swamp = if ground.swamp {
+                self.swamp_multiplier
+            } else {
+                1.0
+            };
+            self.off_road_mps * forest.min(swamp)
         };
-        base * slope_multiplier(slope_deg)
+        base * slope_multiplier(ground.slope_deg)
     }
 
     pub fn max_speed(&self) -> f64 {

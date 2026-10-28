@@ -68,6 +68,16 @@ pub struct Surface {
 }
 
 impl Surface {
+    /// What a mover's speed reads of it.
+    pub fn footing(&self) -> crate::navigation::Footing {
+        crate::navigation::Footing {
+            road_factor: self.road_factor,
+            forest: self.forest,
+            swamp: self.swamp,
+            slope_deg: self.slope_deg,
+        }
+    }
+
     /// Standing water, a river's or a swamp's: it takes no marks, and rounds
     /// and sight stop at its surface.
     pub fn standing_water(&self) -> bool {

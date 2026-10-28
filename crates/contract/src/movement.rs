@@ -4,12 +4,26 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct MovementRules {
     pub forest_infantry_multiplier: f64,
     pub forest_vehicle_multiplier: f64,
+    /// Off a road, a swamp's water multiplies a ground mover's speed by its
+    /// drive's factor here, wherever it wades and however deep.
+    pub swamp: SwampRules,
     pub turret_turn_deg_s: f64,
     pub bearing_tolerance_deg: f64,
     pub drive: DriveRules,
+}
+
+/// A swamp's slowdown by how a mover crosses ground: wheels bog worse
+/// than tracks (decision 3). Each lies in (0, 1]: nothing stops dead.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SwampRules {
+    pub foot: f64,
+    pub wheeled: f64,
+    pub tracked: f64,
 }
 
 /// How every vehicle drives its route (Q29, Q30), whatever its own speeds

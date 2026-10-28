@@ -106,25 +106,18 @@ fn a_swamp_carves_its_dip_on_a_map_with_no_river() {
     }
 }
 
-/// What movement reads (`surface_at`) and what the planner reads (each
-/// navigation cell's copy of the surface at its centre) agree on the swamp,
-/// round its edge and either side of a road across it.
+/// A swamp's water is its outline less any road across it, cell by cell
+/// round its edge and either side of the road. (That planning reads the
+/// same water as movement is `ground_speed`'s.)
 #[test]
-fn the_planner_and_movement_see_the_same_swamp() {
-    use sim::navigation::{NavBase, NavGrid, NAV_CELL_M};
+fn a_swamps_water_is_its_outline_off_the_road() {
     let w = world(ROAD);
-    let grid = NavGrid::new(std::sync::Arc::new(NavBase::build(
-        &w,
-        w.props(),
-        common::physics("soldier_radius_m"),
-    )));
     let outline = &map(ROAD).swamps[0];
     let (mut wet, mut dry) = (0, 0);
     for j in 40..110 {
         for i in 40..110 {
-            let c = v2((i as f64 + 0.5) * NAV_CELL_M, (j as f64 + 0.5) * NAV_CELL_M);
+            let c = v2(i as f64 * 2.0 + 1.0, j as f64 * 2.0 + 1.0);
             let surface = w.surface_at(c.x, c.y).unwrap();
-            assert_eq!(grid.swamp_at(c), surface.swamp, "at {c:?}");
             let inside = outline.inside([c.x, c.y]) >= 0.0;
             assert_eq!(
                 surface.swamp,

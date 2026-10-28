@@ -898,9 +898,7 @@ fn step_vehicle(
     let target = unit.route.as_ref().unwrap()[0];
     let here = unit.position.xy();
     let surface = ctx.world.surface_at(here.x, here.y);
-    let speed = surface.map_or(0.0, |s| {
-        unit.ground().speed(s.road_factor, s.forest, s.slope_deg)
-    });
+    let speed = surface.map_or(0.0, |s| unit.ground().speed(s.footing()));
     // Craters under the hull slow it slightly; never to a stop (Q8).
     let speed = speed * ctx.ground.vehicle_speed(here.x, here.y, &ctx.rules.ground);
     let before_manoeuvre = unit.manoeuvre;

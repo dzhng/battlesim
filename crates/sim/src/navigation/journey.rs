@@ -283,7 +283,7 @@ impl AccessSearch {
 fn pace(roads: &RoadNet, arc: u32, leg: Leg) -> f64 {
     match leg.policy {
         RoutePolicy::Shortest => 1.0,
-        RoutePolicy::Fastest => 1.0 / leg.m.speed(roads.arc(arc).factor, false, 0.0),
+        RoutePolicy::Fastest => 1.0 / leg.m.speed(roads.arc(arc).footing()),
     }
 }
 

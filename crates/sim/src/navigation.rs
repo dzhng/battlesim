@@ -61,7 +61,7 @@ use base::Body;
 pub use base::NavBase;
 use cells::{cell_center, cell_of, sub_center, sub_of, Cell, Cells, ALL_FREE, NO_BODY, SUB, SUB_M};
 pub use journey::Journey;
-pub use mobility::{slope_multiplier, Drive, Mobility, Parking};
+pub use mobility::{slope_multiplier, Drive, Footing, Mobility, Parking};
 pub use pockets::Pockets;
 use regions::Regions;
 pub use roads::RoadNet;
@@ -577,7 +577,7 @@ impl NavGrid {
     fn cell_cost(c: &Cell, m: &Mobility, policy: RoutePolicy, length: f64) -> f64 {
         let base = match policy {
             RoutePolicy::Shortest => length,
-            RoutePolicy::Fastest => length / m.speed(c.road_factor, c.forest, c.slope_deg),
+            RoutePolicy::Fastest => length / m.speed(c.footing()),
         };
         match (m.class, c.heaviest) {
             (MoverClass::Vehicle, NO_BODY) | (MoverClass::Infantry, _) => base,

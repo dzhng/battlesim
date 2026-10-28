@@ -157,6 +157,7 @@ fn sparse_floor_cover_keeps_all_open_forest_cells_reachable() {
                 off_road_mps: 3.0,
                 road_mps: 3.0,
                 forest_multiplier: 0.5,
+                swamp_multiplier: 0.5,
                 half_width_m,
                 class,
                 push,

@@ -44,6 +44,7 @@ mod formation;
 mod garrison;
 mod ground;
 mod ground_delivery;
+mod ground_speed;
 mod guidance;
 mod guidance_release;
 mod hull_guns;

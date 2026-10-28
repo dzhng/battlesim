@@ -52,10 +52,15 @@ pub fn motion(t: &UnitType, rules: &Rules) -> Motion {
 pub fn ground_mobility(t: &UnitType, rules: &Rules) -> Option<Mobility> {
     let m = &rules.movement;
     let (off_road_mps, road_mps) = t.mobility.speeds_mps();
-    let vehicle = |drive| Mobility {
+    let vehicle = |drive: crate::navigation::Drive| Mobility {
         off_road_mps,
         road_mps,
         forest_multiplier: m.forest_vehicle_multiplier,
+        swamp_multiplier: if drive.tracked {
+            m.swamp.tracked
+        } else {
+            m.swamp.wheeled
+        },
         half_width_m: t.hull().expect("a vehicle has a hull").half_extents_m[1],
         class: MoverClass::Vehicle,
         push: t.hull().expect("a vehicle has a hull").push_class,
@@ -67,6 +72,7 @@ pub fn ground_mobility(t: &UnitType, rules: &Rules) -> Option<Mobility> {
             off_road_mps,
             road_mps,
             forest_multiplier: m.forest_infantry_multiplier,
+            swamp_multiplier: m.swamp.foot,
             half_width_m: rules.infantry_movement.path_clearance_m,
             class: MoverClass::Infantry,
             push: contract::scenario::PushClass::None,
@@ -105,10 +111,13 @@ pub fn validate(rules: &Rules) {
     for (name, v) in [
         ("forest_infantry_multiplier", m.forest_infantry_multiplier),
         ("forest_vehicle_multiplier", m.forest_vehicle_multiplier),
+        ("swamp.foot", m.swamp.foot),
+        ("swamp.wheeled", m.swamp.wheeled),
+        ("swamp.tracked", m.swamp.tracked),
     ] {
         assert!(
             v > 0.0 && v <= 1.0,
-            "movement.{name} must be in (0, 1]: no forest stops a mover dead"
+            "movement.{name} must be in (0, 1]: no forest or swamp stops a mover dead"
         );
     }
     let d = &m.drive;

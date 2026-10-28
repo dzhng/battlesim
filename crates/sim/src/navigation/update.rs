@@ -452,7 +452,10 @@ impl NavGrid {
             );
         }
         assert_eq!(kept.stopping, fresh.stopping, "{step}: stopping ranks");
-        assert_eq!(kept.slow.forest, fresh.slow.forest, "{step}: forest tiles");
+        assert_eq!(
+            kept.slow.ground, fresh.slow.ground,
+            "{step}: forest and swamp tiles"
+        );
         assert_eq!(kept.slow.steep, fresh.slow.steep, "{step}: steep tiles");
         for bucket in 0..Regions::buckets(&kept.base.regions) {
             assert!(
@@ -466,6 +469,7 @@ impl NavGrid {
                 off_road_mps: 6.0,
                 road_mps: 12.0,
                 forest_multiplier: 0.4,
+                swamp_multiplier: 0.4,
                 half_width_m: 1.8,
                 class: MoverClass::Vehicle,
                 push,

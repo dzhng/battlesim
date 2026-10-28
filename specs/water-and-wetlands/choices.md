@@ -79,3 +79,43 @@ against the code. Each says what was chosen, why, and how sure the agent is.
     `world/rays.rs`, and mapgen's plan types to `mapgen/src/plan.rs`,** each
     in its own commit with no behaviour change. *Why:* both files were over
     the size budget and slice 10 had to touch them. *Confidence:* high.
+
+## Slice 11: swamp slowdown
+
+1. **First shipped factors: foot 0.5, wheeled 0.3, tracked 0.55**
+   (`movement.swamp` in `fixtures/game.json`). *Why:* wading thigh-deep
+   halves a soldier's pace, trucks bog worst, tanks churn through a little
+   faster than a soldier wades. They are tuning, not requirements; the
+   paired battle report is still owed (see below). *Confidence:* low, by
+   design.
+2. **`Footing { road_factor, forest, swamp, slope_deg }` lives beside
+   `Mobility` and is built by `Surface::footing()`, `Cell::footing()` and a
+   road `Arc::footing()`.** *Why:* each owner of a piece of ground says what
+   a mover's speed reads of it; the five read sites shrank rather than grew,
+   which the size budget on `soldier.rs`, `journey.rs` and `navigation.rs`
+   needed. *Confidence:* high.
+3. **Off a road the speed is open speed × min(forest factor, swamp
+   factor),** each 1 where its ground is absent. *Why:* decision 4's "the
+   slower applies"; for ground with neither it is bit-identical to the old
+   arithmetic, so only the rules hash moves digests. *Confidence:* high.
+4. **`SlowGround` keeps three counts per tile off any road: forest only,
+   swamp only, both,** and the estimate weighs "both" by the slower factor.
+   The expression keeps the old one's order, so a map with no swamp
+   estimates bit for bit as before. *Confidence:* high.
+5. **`NavGrid::swamp_at` is deleted.** The planning seam test now compares
+   each cell's planned cost with movement's speed at its middle
+   (`ground_speed::planning_costs_each_cell_at_the_speed_movement_takes_there`),
+   which is the claim the query stood in for. *Confidence:* high.
+6. **`MovementRules` and `SwampRules` refuse unknown keys; `DriveRules`
+   does not yet.** *Why:* the slice named `MovementRules`; the drive row is
+   unchanged here. *Confidence:* medium.
+7. **The dense reference planner in `examples/navigation_quality` reads
+   `sim::navigation::Mobility` and its `speed`;** its road cells are road
+   factor 1 and never swamp. *Why:* the slice deletes its private copy.
+   *Confidence:* high.
+8. **Ground-speed tests live in `tests/ground_speed.rs`,** with the old
+   `speed_follows_surface_and_slope` folded in as a slope test. *Why:*
+   `tests/navigation.rs` was over the size budget, and speed over ground is
+   one concept. *Confidence:* high.
+9. **No paired battle report on the `wetlands` map yet.** That map comes
+   from slice 00 in the other lane; run the report once it is merged.

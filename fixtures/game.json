@@ -47,6 +47,11 @@
   "movement": {
     "forest_infantry_multiplier": 0.7,
     "forest_vehicle_multiplier": 0.4,
+    "swamp": {
+      "foot": 0.5,
+      "wheeled": 0.3,
+      "tracked": 0.55
+    },
     "turret_turn_deg_s": 60,
     "bearing_tolerance_deg": 2,
     "drive": {

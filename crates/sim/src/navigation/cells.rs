@@ -175,12 +175,15 @@ impl IndexMut<usize> for Cells {
     }
 }
 
-impl super::NavGrid {
-    /// Whether the planner takes `p` for a swamp's water: the surface under
-    /// its cell's centre is.
-    pub fn swamp_at(&self, p: V2) -> bool {
-        let (i, j) = cell_of(p);
-        self.index(i, j).is_some_and(|at| self.cells[at].swamp)
+impl Cell {
+    /// What a mover's speed reads of it: `Surface::footing` as it was read.
+    pub fn footing(&self) -> super::Footing {
+        super::Footing {
+            road_factor: self.road_factor,
+            forest: self.forest,
+            swamp: self.swamp,
+            slope_deg: self.slope_deg,
+        }
     }
 }
 
