@@ -2,7 +2,9 @@
 //! sixteen floats and every cast light at fixed clocks after a few
 //! publications that exercise every kind of effect, and a fixture run's
 //! plate's effect counts replayed from its capture, its units and effects
-//! resolved from the repository as native resolves them.
+//! resolved from the repository as native resolves them. `BLESS_PARITY=1`
+//! re-records the instances, and only the instances: the lights and counts
+//! must still hold.
 use std::path::PathBuf;
 
 use presentation::effects::frame::{
@@ -62,7 +64,8 @@ impl MuzzleSource for Muzzles {
 
 #[test]
 fn effects_match_the_recorded_vectors() {
-    let v = kicked("effect-vectors.json");
+    let mut v = kicked("effect-vectors.json");
+    let bless = std::env::var("BLESS_PARITY").as_deref() == Ok("1");
     let p = EffectPresentation::from_value(&v["presentation"]).expect("presentation");
     let mut batch = EffectBatch::new(p.capacity);
     let mut frame = EffectFrame::new(v["tickHz"].as_f64().unwrap(), p);
@@ -71,6 +74,7 @@ fn effects_match_the_recorded_vectors() {
     let mut muzzles = Muzzles(serde_json::from_value(v["muzzles"].clone()).expect("muzzles"));
     let rotor: DrawnRotor = serde_json::from_value(v["rotor"].clone()).expect("rotor");
     let mut noted = 0;
+    let mut blessed = vec![];
     for want in v["frames"].as_array().unwrap() {
         let clock = want["clock"].as_f64().unwrap();
         while noted < want["noted"].as_u64().unwrap() as usize {
@@ -84,7 +88,14 @@ fn effects_match_the_recorded_vectors() {
             std::slice::from_ref(&rotor),
             &[],
         );
-        let instances: Vec<f64> = serde_json::from_value(want["instances"].clone()).unwrap();
+        let mut instances: Vec<f64> = serde_json::from_value(want["instances"].clone()).unwrap();
+        if bless {
+            instances = batch.data[..batch.count * EFFECT_FLOATS]
+                .iter()
+                .map(|&x| round(x))
+                .collect();
+            blessed.push(instances.clone());
+        }
         assert_eq!(
             batch.count,
             instances.len() / EFFECT_FLOATS,
@@ -124,6 +135,14 @@ fn effects_match_the_recorded_vectors() {
             counts_of(&want["counts"]),
             "at {clock} s"
         );
+    }
+    if bless {
+        for (want, instances) in v["frames"].as_array_mut().unwrap().iter_mut().zip(blessed) {
+            want["instances"] = instances.into();
+        }
+        let at =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/effect-vectors.json");
+        std::fs::write(at, serde_json::to_string(&v).unwrap()).unwrap();
     }
 }
 
