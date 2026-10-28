@@ -2,6 +2,7 @@
 use serde_json::{json, Value};
 
 const PRESETS: &str = include_str!("../../src/layout/presets.rs");
+const DEFINITIONS: &str = include_str!("../../src/layout/presets/definitions.rs");
 const COUNTRY: &str = include_str!("../../src/open_country/rules.rs");
 
 fn schema_help(schema: &str, owner: &str, key: &str) -> Option<String> {
@@ -213,7 +214,7 @@ fn help(document: &str, path: &[String], key: &str, group: &str) -> String {
                 _ => "Rules",
             },
         ),
-        _ => (PRESETS, "PresetDefinitions"),
+        _ => (DEFINITIONS, "PresetDefinitions"),
     };
     let described = schema_help(schema, owner, key)
         .filter(|text| !text.is_empty())
