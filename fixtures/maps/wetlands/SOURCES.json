@@ -1,0 +1,18 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "8b71818466b96d0c1e09b24d61e7836ea46cb60ebe8736e0e8901b02553afb76",
+    "template_catalog_hash": null
+  },
+  "catalogue": {
+    "library": "prototype-building-templates.json",
+    "template_ids": []
+  },
+  "inputs": [
+    {
+      "kind": "supplied",
+      "label": "a Catmull-Rom river through hand-placed control points, sampled every 4 m, and a swamp on the flat ground south-east of it",
+      "sha256": "c0e52f8319436454c878271838db3421b97864e8f2b8a6effc7d7354b2b2c989"
+    }
+  ]
+}

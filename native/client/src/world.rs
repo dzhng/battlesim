@@ -1,7 +1,8 @@
 //! The world's passes (`frame/worldPass.ts`), in the order `battleFrame`
 //! encodes them: the depth prepass, then the grass's growth, the sky and
-//! the lit colour pass with its fog mask, both resolved for the effects and
-//! the fog mask passes, then the placement ghosts over the fogged world.
+//! the lit colour pass with its fog mask, then the water over their samples,
+//! both resolved for the effects and the fog mask passes, then the placement
+//! ghosts over the fogged world.
 //! The ground, the scenery and the models draw into them.
 use wgpu::*;
 
@@ -71,9 +72,9 @@ impl Pass for DepthPrepass {
 
 /// The grass grown for the view, then the sky, then the lit world over it at
 /// the prepass's depth, with the fog mask beside it (`encode`): the terrain,
-/// the skirt, the models, the scenery, the grass, the backdrop, the water,
-/// and glass last, over everything. Both resolve: the lit world into `lit`, the mask into
-/// `fog_mask`.
+/// the skirt, the models, the scenery, the grass, the backdrop, and glass
+/// last, over everything. Both resolve, the lit world into `lit` and the mask
+/// into `fog_mask`, and keep their samples for the water.
 pub struct WorldColour {
     sky: Sky,
     surfaces: Vec<(Bound, Surface)>,
@@ -132,8 +133,7 @@ impl Pass for WorldColour {
                 scars.apply(queue, upload);
                 let mut region = inputs.device.create_command_encoder(&Default::default());
                 let first = i == 0;
-                let mut pass =
-                    world_pass(&mut region, inputs.targets, "ground-region", first, true);
+                let mut pass = world_pass(&mut region, inputs.targets, "ground-region", first);
                 let [x, y, w, h] = *rect;
                 pass.set_scissor_rect(x, y, w, h);
                 ground.draw_terrain(&mut pass, &painted_ground);
@@ -144,7 +144,7 @@ impl Pass for WorldColour {
             scars.apply(queue, upload);
         }
         let drew = !scars.region_uploads().is_empty();
-        let mut pass = world_pass(encoder, inputs.targets, "world", !drew, false);
+        let mut pass = world_pass(encoder, inputs.targets, "world", !drew);
         if !regional {
             ground.draw_terrain(&mut pass, &painted_ground);
         }
@@ -168,9 +168,6 @@ impl Pass for WorldColour {
         inputs.scenery.draw(&mut pass, &faces, models.statics());
         inputs.grass.draw(&mut pass, &painted_ground);
         inputs.ground.draw_backdrop(&mut pass, &painted_ground);
-        inputs
-            .ground
-            .draw_water(&mut pass, &fogged(Layer::PaintedFaces));
         // Glass takes no fog: it draws over what is fogged behind it.
         let mut groups = frame.to_vec();
         groups.push(models.group());
@@ -180,21 +177,14 @@ impl Pass for WorldColour {
 }
 
 /// A pass of the lit world over the sky and the prepass's depth, with the
-/// fog mask beside it (cleared when `first`); both resolve. Only a pass
-/// another follows (a region of the ground) keeps the samples: the last
-/// one's resolves are all that is read after it.
+/// fog mask beside it (cleared when `first`); both resolve, and keep their
+/// samples for the pass after (a region of the ground, or the water).
 fn world_pass<'a>(
     encoder: &'a mut CommandEncoder,
     t: &'a crate::frame::Targets,
     label: &'static str,
     first: bool,
-    kept: bool,
 ) -> RenderPass<'a> {
-    let store = if kept {
-        StoreOp::Store
-    } else {
-        StoreOp::Discard
-    };
     encoder.begin_render_pass(&RenderPassDescriptor {
         label: Some(label),
         color_attachments: &[
@@ -204,7 +194,7 @@ fn world_pass<'a>(
                 resolve_target: Some(&t.lit),
                 ops: Operations {
                     load: LoadOp::Load,
-                    store,
+                    store: StoreOp::Store,
                 },
             }),
             Some(RenderPassColorAttachment {
@@ -217,13 +207,62 @@ fn world_pass<'a>(
                     } else {
                         LoadOp::Load
                     },
-                    store,
+                    store: StoreOp::Store,
                 },
             }),
         ],
         depth_stencil_attachment: Some(depth(&t.depth, LoadOp::Load, false)),
         ..Default::default()
     })
+}
+
+/// The water over the world's samples, resolved again into `lit` and
+/// `fog_mask` (`encode`), over a copy of `lit` (`scene_colour`), which it
+/// shows of its bed by depth: it reads depth and writes none, and draws over
+/// any pane it lies behind.
+pub struct Water;
+
+impl Pass for Water {
+    fn name(&self) -> &'static str {
+        "water"
+    }
+
+    fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
+        let t = inputs.targets;
+        // The world as it stands is what the water shows of its bed.
+        encoder.copy_texture_to_texture(
+            t.lit_texture.as_image_copy(),
+            t.scene_colour_texture.as_image_copy(),
+            Extent3d {
+                width: t.size[0],
+                height: t.size[1],
+                depth_or_array_layers: 1,
+            },
+        );
+        let resolved = |view, resolve_target| {
+            Some(RenderPassColorAttachment {
+                view,
+                depth_slice: None,
+                resolve_target: Some(resolve_target),
+                ops: Operations {
+                    load: LoadOp::Load,
+                    store: StoreOp::Discard,
+                },
+            })
+        };
+        let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
+            label: Some("water"),
+            color_attachments: &[
+                resolved(&t.hdr_msaa, &t.lit),
+                resolved(&t.fog_mask_msaa, &t.fog_mask),
+            ],
+            depth_stencil_attachment: Some(depth(&t.depth, LoadOp::Load, true)),
+            ..Default::default()
+        });
+        let mut groups = inputs.environment.groups().to_vec();
+        groups.push(inputs.fog.water_group());
+        inputs.ground.draw_water(&mut pass, &groups);
+    }
 }
 
 /// Where the UI's units will stand: translucent, over the fogged world,

@@ -19,7 +19,8 @@
     "shoulder_dirt": [[0.46, 0.42, 0.34]],
     "forest_floor": [[0.34, 0.3, 0.22], [0.27, 0.31, 0.17], [0.2, 0.18, 0.14]],
     "water_bed": [[0.31, 0.31, 0.25]],
-    "water": [[0.14, 0.245, 0.28], [0.22, 0.31, 0.3]],
+    "water": [[0.14, 0.16, 0.15], [0.2, 0.22, 0.2]],
+    "water_murky": [[0.2, 0.185, 0.14], [0.24, 0.225, 0.18]],
     "shore": [[0.3, 0.295, 0.285], [0.325, 0.305, 0.28]],
     "distant": [[0.37, 0.369, 0.301]],
     "crater_soil": [[0.3, 0.24, 0.17]],
@@ -295,7 +296,12 @@
     }
   },
   "shore": { "palette": "shore", "wet_m": 0.6, "mud_m": 5, "wander": 0.5, "wander_scale_m": 9, "lift": 1.27, "relief": 0.5 },
-  "water": { "opacity": [0.6, 0.9], "shallows_m": 0.35, "streak": 0.6 },
+  "water": {
+    "rivers": [
+      { "name": "temperate", "weight": 3, "palette": "water", "extinction_per_m": [0.9, 0.7, 0.8], "streak": 0.6 },
+      { "name": "murky lowland", "weight": 1, "palette": "water_murky", "extinction_per_m": [1.6, 1.4, 1.8], "streak": 0.25 }
+    ]
+  },
   "forest_floor": {
     "palette": "forest_floor",
     "patch_m": 6,
@@ -460,7 +466,7 @@
     "near_tier_px": 40,
     "min_blade_px": 1.4,
     "clear_m": { "prop": 0.3, "area": 0.5 },
-    "wind": { "heading_deg": 35, "lean": 0.08, "gust": 0.18, "gust_m": 45, "gust_mps": 5, "flutter": 0.04, "flutter_hz": 1.3 },
+    "sway": { "lean": 0.08, "gust": 0.18, "flutter": 0.04, "flutter_hz": 1.3 },
     "capacity": [20000, 120000]
   },
   "scars": {
@@ -469,5 +475,6 @@
     "tracks": { "palette": "track_soil", "full": 48, "strength": 0.85 },
     "trampled": { "palette": "trampled", "full": 12, "strength": 0.15 },
     "grass": { "thin": 0.9, "tracks_thin": 0.85, "flatten": 0.85 }
-  }
+  },
+  "wind": { "heading_deg": 35, "drift_mps": 0.67, "gust_m": 45, "gust_mps": 5 }
 }

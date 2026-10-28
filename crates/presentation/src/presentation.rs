@@ -23,7 +23,7 @@ use crate::records::{
     Joint, Pick, View as ViewRecord, GHOST_PASS, HIGH_PASS, NONE, VIEW_PASS,
 };
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
-use crate::shadow::{ReceiverStats, ShadowFit, SunShadowFrame};
+use crate::shadow::{aircraft_shadow, ReceiverStats, ShadowFit, SunShadowFrame};
 use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
 use crate::static_world::batches::{Population, StaticBatches};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
@@ -50,6 +50,8 @@ use crate::view::{batch_caster, model_detail, model_fog, Camera, View, CULLED, I
 use crate::world::{
     bounds_size, Appearance, BattleInput, Bounds, Trs, UnitsSection, Vec3, WorldInput,
 };
+
+mod probe;
 
 /// Publications kept for the effects while the world loads: two minutes at 30 Hz.
 const PENDING_MAX: usize = 3600;
@@ -254,17 +256,6 @@ pub struct Presentation {
     scars: ScarCache,
     /// Fog of war's sight over the ground (`set_fog`); none draws no fog.
     fog: Option<Fog>,
-}
-
-/// Where an aircraft's shadow lies: thrown along the sun (`shadow_fall`, per
-/// metre of height) from its actual height above the ground under it.
-pub fn aircraft_shadow(position: [f64; 3], ground_z: f64, shadow_fall: [f64; 2]) -> [f64; 3] {
-    let height = position[2] - ground_z;
-    [
-        position[0] + shadow_fall[0] * height,
-        position[1] + shadow_fall[1] * height,
-        ground_z,
-    ]
 }
 
 /// What a scene asks of fog of war (`Presentation::set_fog`).
@@ -844,114 +835,6 @@ impl Presentation {
             .muzzle(crate::seed::side_key(unit, true), mount, None)
     }
 
-    /// The last frame as the labs' scenes probe it, JSON: the effects'
-    /// state, instances and offered lights, the soldiers and vehicles as
-    /// posed, the corpses lying, and a cook-off's pieces.
-    pub fn probe_json(&self) -> String {
-        let Some(l) = &self.loaded else {
-            return "null".into();
-        };
-        let poses = l.driver.poses();
-        let units = &l.units;
-        let (mut locals, mut worlds) = (Vec::new(), Vec::new());
-        let name = |kind: &str,
-                    side: &str,
-                    id: f64,
-                    slot: usize,
-                    op: Option<usize>,
-                    active: Option<usize>| {
-            units
-                .resolve(kind, side, id, slot, op, active)
-                .unwrap_or("")
-                .to_owned()
-        };
-        let stats = l.effects.stats();
-        let lights = &l.batch.lights;
-        let looks = &l.input.effects.wreck_looks;
-        let pieces: Vec<_> = l
-            .pieces
-            .iter()
-            .filter_map(|p| {
-                let state = p.state?;
-                let _ = looks;
-                Some(serde_json::json!({
-                    "appearance": &*p.appearance,
-                    "state": state,
-                    "sunk": -p.motion.map_or(0.0, |m| m[14]),
-                }))
-            })
-            .collect();
-        serde_json::json!({
-            "effects": {
-                "live": stats.live,
-                "instances": stats.instances,
-                "dropped": stats.dropped,
-                "sources": stats.sources,
-                "tick": stats.tick,
-            },
-            "effectInstances": l.batch.data[..l.batch.count * EFFECT_FLOATS]
-                .chunks(EFFECT_FLOATS)
-                .map(|d| serde_json::json!({
-                    "shape": d[12],
-                    "at": [d[0], d[1], d[2]],
-                    "to": [d[4], d[5], d[6]],
-                    "rgb": [d[8], d[9], d[10]],
-                    "size": d[3],
-                    "rays": d[6],
-                }))
-                .collect::<Vec<_>>(),
-            "castLights": (0..lights.count)
-                .map(|i| {
-                    let r = &lights.data[i * 8..i * 8 + 8];
-                    serde_json::json!({
-                        "at": [r[0], r[1], r[2]],
-                        "radius": r[3],
-                        "rgb": [r[4], r[5], r[6]],
-                        "cause": &*lights.causes[i],
-                    })
-                })
-                .collect::<Vec<_>>(),
-            "lying": poses.corpses.iter().map(|c| c.soldier).collect::<Vec<_>>(),
-            "cookOffPieces": pieces,
-            "soldiers": poses.soldiers.iter().map(|s| serde_json::json!({
-                "appearance": name(&s.kind, &s.side, s.soldier, s.slot, s.operator_mount, s.active_mount),
-                "position": s.position,
-                "yaw": s.facing,
-                "clip": &*s.clip,
-                "phase": s.phase,
-                // His weapon's muzzle where his body draws it, crossfaded and kicked.
-                "muzzle": s.active_mount.and_then(|m| {
-                    crate::units::drawn::soldier_muzzle(units, &l.tables, s, m, &mut worlds)
-                }),
-            })).collect::<Vec<_>>(),
-            "vehicles": poses.vehicles.iter().map(|v| {
-                let a = v.articulation;
-                serde_json::json!({
-                    "appearance": name(&v.kind, &v.side, v.unit, 0, None, None),
-                    "position": v.position,
-                    "yaw": v.yaw,
-                    "tint": units.tints.get(&*v.side),
-                    "articulation": {
-                        "turret_yaw": a.turret_yaw, "gun_pitch": a.gun_pitch, "recoil": a.recoil,
-                        "hmg_yaw": a.hmg_yaw, "hmg_pitch": a.hmg_pitch, "travel_l": a.travel_l,
-                        "travel_r": a.travel_r, "deploy": a.deploy, "rotor": a.rotor,
-                        "rotor_blur": a.rotor_blur,
-                    },
-                    // Each mount's muzzle where the hull draws it, rocked and articulated.
-                    "muzzles": (0..units.types.get(&*v.kind).map_or(0, |t| t.roles.len()))
-                        .filter_map(|m| {
-                            let (name, at) = crate::units::drawn::vehicle_muzzle(
-                                units, v, m, &mut locals, &mut worlds,
-                            )?;
-                            Some(serde_json::json!({ "name": name, "at": at }))
-                        })
-                        .collect::<Vec<_>>(),
-                })
-            }).collect::<Vec<_>>(),
-        })
-        .to_string()
-    }
-
     /// The map's ground, resolved from `source` under `biome` (its region's
     /// finish) and the fixture's tuning; its scenery is placed by
     /// `place_scenery` and drawn from the next `load_world`.
@@ -1487,7 +1370,8 @@ impl Loaded {
                     Some(high_air_ground_shadow(at, yaw, *plan, height, &style))
                 }),
         );
-        effects.build(time, batch, Some(drawn), &rotors, shadows);
+        let wind = ground.map(|g| &g.biome.wind);
+        effects.build(time, batch, Some(drawn), &rotors, shadows, wind);
         let counts = effects.counts(time, batch);
         f.light_wrap = batch.lights.wrap as f32;
         lights.pack(&batch.lights, view);

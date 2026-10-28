@@ -14,8 +14,8 @@ import { standardPbrWgsl } from "../shaders/standardPbr";
 import { aerialWgsl } from "../shaders/aerial";
 import { equirectUvWgsl } from "../shaders/physicalSky";
 import { DFG_LUT_DATA, DFG_LUT_SIZE } from "../shaders/dfgLut";
-import { shadeEnvironmentWgsl } from "../shaders/environment";
-import { Aerial, CAST_LIGHTS_MAX, SunShadow } from "../records.gen";
+import { lightEnvironmentWgsl } from "../shaders/environment";
+import { Aerial, CAST_LIGHTS_MAX, SunShadow, Wind, WIND_WORDS } from "../records.gen";
 import {
   CAST_ALBEDO_FLOOR,
   CAST_ALBEDO_GREY,
@@ -35,9 +35,11 @@ export const Environment = d.struct({
   fill: d.vec4f,
   /** The battle's haze (`shaders/aerial.ts`). */
   aerial: Aerial,
+  /** The ground's wind (`presentation::wind`); calm before a ground. */
+  wind: Wind,
 });
-/** Where the light's records and the view lie in the uniform, in words: the
- *  `Sun` record covers `sunDirection` to `fill`, the `Aerial` record `aerial`. */
+/** Where the light's records, the wind and the view lie in the uniform, in
+ *  words: the `Sun` record covers `sunDirection` to `fill`. */
 const word = (field: (e: d.Infer<typeof Environment>) => unknown) =>
   d.memoryLayoutOf(Environment, field).offset / 4;
 const AT = {
@@ -46,6 +48,7 @@ const AT = {
   sun: word((e) => e.sunDirection),
   topMip: word((e) => e.settings.x),
   aerial: word((e) => e.aerial),
+  wind: word((e) => e.wind),
 };
 const environmentEntries = {
   data: { uniform: Environment, visibility: ["vertex", "fragment"] },
@@ -84,6 +87,13 @@ const standardPbr = tgpu
   )(standardPbrWgsl)
   .$uses({ samplePmrem });
 const equirectUv = tgpu.fn([d.vec3f], d.vec2f)(equirectUvWgsl);
+/** The one wind, for any stage that binds the environment: grass sways in it. */
+export const environmentWind = tgpu
+  .fn(
+    [],
+    Wind,
+  )(/* wgsl */ `() -> Wind { return layout.$.data.wind; }`)
+  .$uses({ layout });
 
 /** The receiver's sun-shadow entry point: the inherited sampling body (see
  * shadow.ts for that boundary) bound to THIS owner's typed resources — the
@@ -126,7 +136,7 @@ const applyAerial = tgpu
     d.vec4f,
   )(aerialWgsl)
   .$uses({ equirectUv, Aerial });
-const shadeAlgorithm = tgpu
+const lightAlgorithm = tgpu
   .fn(
     [
       d.vec3f,
@@ -142,17 +152,14 @@ const shadeAlgorithm = tgpu
       d.vec3f,
       d.vec3f,
       d.vec3f,
-      d.vec3f,
       d.f32,
-      Aerial,
-      d.texture2d(),
       d.texture2d(),
       d.texture2d(),
       d.sampler(),
     ],
-    d.vec4f,
-  )(shadeEnvironmentWgsl)
-  .$uses({ standardPbr, applyAerial, Aerial });
+    d.vec3f,
+  )(lightEnvironmentWgsl)
+  .$uses({ standardPbr });
 /** The frame's cast lights on a surface of albedo `base` at `position`
  *  facing `normal`: each one's falloff inside its radius, its facing
  *  wrapped by the header's wrap, as Lambert on the albedo greyed by
@@ -184,14 +191,16 @@ const castLight = tgpu.fn(
   );
   return std.mul(albedo, std.mul(sum, 1 / Math.PI));
 });
-const shade = tgpu.fn(
+/** A surface's light at `position`, before the air between it and the
+ *  eye: what `shade` puts the air over. */
+const surfaceLight = tgpu.fn(
   [d.vec3f, d.vec3f, d.f32, d.f32, d.f32, d.f32, d.vec3f, d.vec3f, d.f32, d.vec3f],
-  d.vec4f,
+  d.vec3f,
 )((base, emissive, roughness, geomRoughness, metal, ao, normal, position, shadow, eye) => {
   "use gpu";
   // A sun shadow keeps the light's shadow floor (`settings.y`) of the sun.
   const sun = std.mix(layout.$.data.settings.y, 1, shadow);
-  return shadeAlgorithm(
+  return lightAlgorithm(
     base,
     std.add(emissive, castLight(base, normal, position)),
     roughness,
@@ -202,16 +211,53 @@ const shade = tgpu.fn(
     position,
     sun,
     eye,
-    layout.$.data.observer.xyz,
     layout.$.data.sunDirection.xyz,
     layout.$.data.sunRadiance.xyz,
     layout.$.data.fill.xyz,
     layout.$.data.settings.x,
-    layout.$.data.aerial,
-    layout.$.sky,
     layout.$.pmrem,
     layout.$.dfg,
     layout.$.linear,
+  );
+});
+/** `colour` at `position`, behind the air between it and the eye. */
+const air = tgpu.fn(
+  [d.vec3f, d.vec3f, d.vec3f],
+  d.vec4f,
+)((colour, position, eye) => {
+  "use gpu";
+  return applyAerial(
+    d.vec4f(colour, 1),
+    position,
+    eye,
+    layout.$.data.observer.xyz,
+    layout.$.data.sunDirection.xyz,
+    layout.$.data.aerial,
+    layout.$.sky,
+    layout.$.linear,
+  );
+});
+/** A lit surface behind the air between it and the eye. */
+const shade = tgpu.fn(
+  [d.vec3f, d.vec3f, d.f32, d.f32, d.f32, d.f32, d.vec3f, d.vec3f, d.f32, d.vec3f],
+  d.vec4f,
+)((base, emissive, roughness, geomRoughness, metal, ao, normal, position, shadow, eye) => {
+  "use gpu";
+  return air(
+    surfaceLight(
+      base,
+      emissive,
+      roughness,
+      geomRoughness,
+      metal,
+      ao,
+      normal,
+      position,
+      shadow,
+      eye,
+    ),
+    position,
+    eye,
   );
 });
 const unlitAlgorithm = tgpu
@@ -328,6 +374,8 @@ export async function createTypegpuEnvironment(
       raw: { uniform: root.unwrap(data), pmrem: pmrem.texture, lights: root.unwrap(lights) },
       sampleSunShadow,
       shade,
+      surfaceLight,
+      air,
       unlit,
       sky,
       /** This frame's cast lights, a packed `CastLights` image
@@ -336,6 +384,11 @@ export async function createTypegpuEnvironment(
         if (disposed) return;
         const bytes = castLightsBytes(Math.min(CAST_LIGHTS_MAX, count));
         device.queue.writeBuffer(root.unwrap(lights), 0, image.buffer, image.byteOffset, bytes);
+      },
+      /** The ground's `Wind` record, or calm: sent with the next view. */
+      setWind(wind: Float32Array | null) {
+        image.fill(0, AT.wind, AT.wind + WIND_WORDS);
+        if (wind) image.set(wind, AT.wind);
       },
       setView(worldToView: ArrayLike<number>, observer: readonly [number, number, number]) {
         if (disposed) throw Error("TypeGPU environment disposed");

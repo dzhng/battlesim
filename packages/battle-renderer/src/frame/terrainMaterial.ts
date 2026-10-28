@@ -54,6 +54,7 @@ import {
   CLASS_KIND_SHIFT,
   CLASS_STEPS_PER_M,
 } from "../terrain/groundClasses";
+import { ShoreTuning, WATER_LOOKS_MAX, WaterLook } from "./waterLook";
 import game from "@fixtures/game.json";
 import type { GpuRegistry, GpuSlot } from "./registry";
 import {
@@ -156,12 +157,6 @@ export const TerrainParams = d.struct({
   /** The water bed's colour (linear rgb), and how far past a bank's top a
    *  ground triangle can carry its tilt, in metres: a triangle's diagonal. */
   waterBed: d.vec4f,
-  /** The water surface's colour (linear rgb) out in the channel, and its opacity there. */
-  water: d.vec4f,
-  /** The surface's colour (linear rgb) at its edge, and its opacity there. */
-  waterEdge: d.vec4f,
-  /** 1 / the shallows' width in metres, the streaks' light, then unused. */
-  waterLook: d.vec4f,
   /** The wet bank's silt (linear rgb) and its width in metres. */
   shore: d.vec4f,
   /** The bare earth behind it (linear rgb) and how far from the water it ends. */
@@ -171,6 +166,9 @@ export const TerrainParams = d.struct({
    *  share of a bank's slope its shading shows. */
   shoreEdge: d.vec4f,
   distant: d.vec4f,
+  shoreTuning: ShoreTuning,
+  /** The biome's water looks, by a cell's look (`mesh::water`). */
+  waterLooks: d.arrayOf(WaterLook, WATER_LOOKS_MAX),
   /** 1 draws the ground's classes (`groundClasses`) in place of its lit
    *  colour: the "ground-classes" frame view. Then 1 draws the roads plain
    *  (`setRoadWear`). Then unused. */
@@ -920,15 +918,13 @@ export const groundBank = tgpu
 }`)
   .$uses({ terrainLayout });
 
-/** `xy` on a lattice turned `turn` radians from the map's axes. */
+/** `xy` on a lattice turned from the map's axes by (cos, sin) `turn`. */
 const turned = tgpu.fn(
-  [d.vec2f, d.f32],
+  [d.vec2f, d.vec2f],
   d.vec2f,
 )((xy, turn) => {
   "use gpu";
-  const c = std.cos(turn);
-  const s = std.sin(turn);
-  return d.vec2f(xy.x * c + xy.y * s, xy.y * c - xy.x * s);
+  return d.vec2f(xy.x * turn.x + xy.y * turn.y, xy.y * turn.x - xy.x * turn.y);
 });
 
 /** The shore's bands `water` metres inside the water's edge (`groundWater`:
@@ -953,17 +949,18 @@ export const groundShore = tgpu.fn(
   if (out >= reach) {
     return d.vec3f(0);
   }
-  const broad = valueNoise(std.mul(turned(xy, tuning.shore.turns[0]), params.shoreEdge.y));
-  const scale = params.shoreEdge.y * tuning.shore.fine;
+  const t = params.shoreTuning;
+  const broad = valueNoise(std.mul(turned(xy, t.turns.xy), params.shoreEdge.y));
+  const scale = params.shoreEdge.y * t.bands.z;
   const fine = std.mix(
-    valueNoise(std.add(std.mul(turned(xy, tuning.shore.turns[1]), scale), d.vec2f(41.7, 13.1))),
+    valueNoise(std.add(std.mul(turned(xy, t.turns.zw), scale), d.vec2f(41.7, 13.1))),
     0.5,
-    std.smoothstep(tuning.shore.fine_fade[0], tuning.shore.fine_fade[1], footprint * scale),
+    std.smoothstep(t.fade.x, t.fade.y, footprint * scale),
   );
-  const line = reach * (1 - params.shoreEdge.x * std.mix(broad, fine, tuning.shore.fine_share));
+  const line = reach * (1 - params.shoreEdge.x * std.mix(broad, fine, t.bands.w));
   return d.vec3f(
-    1 - std.smoothstep(wet * tuning.shore.wet_whole, wet, out),
-    1 - std.smoothstep(std.mix(wet, line, tuning.shore.earth_whole), line, out),
+    1 - std.smoothstep(wet * t.bands.x, wet, out),
+    1 - std.smoothstep(std.mix(wet, line, t.bands.y), line, out),
     1 - std.smoothstep(wet, line, out),
   );
 });
@@ -1489,21 +1486,21 @@ export const groundColour = tgpu.fn(
     const field = std.mix(
       std.dot(params.verge.xyz, LUMA),
       std.dot(plot.colour.xyz, LUMA) * (1 - 0.5 * plot.rows.w),
-      std.smoothstep(0, tuning.shore.field_ease_m, site.y),
+      std.smoothstep(0, params.shoreTuning.ground.y, site.y),
     );
     const least = field * params.shoreEdge.z;
-    const earth = std.mul(params.shoreEarth.xyz, 1 + tuning.shore.earth_mottle * noise);
+    const earth = std.mul(params.shoreEarth.xyz, 1 + params.shoreTuning.ground.x * noise);
     albedo = std.mix(albedo, atLeast(earth, least), shore.y);
-    roughness = std.mix(roughness, tuning.shore.earth_roughness, shore.y);
+    roughness = std.mix(roughness, params.shoreTuning.ground.z, shore.y);
     albedo = std.mix(albedo, atLeast(params.shore.xyz, least), shore.x);
-    roughness = std.mix(roughness, tuning.shore.wet_roughness, shore.x);
+    roughness = std.mix(roughness, params.shoreTuning.ground.w, shore.x);
   }
 
   // The roads, over all but water.
   const paving = groundRoads(xy, footprint, paved, d.vec4f(albedo, roughness));
 
   // The water bed, under the simulation's rivers (water wins over road).
-  const bed = std.smoothstep(-aa, std.max(aa, tuning.shore.bed_ease_m), water);
+  const bed = std.smoothstep(-aa, std.max(aa, params.shoreTuning.fade.z), water);
   albedo = std.mix(paving.xyz, params.waterBed.xyz, bed);
   return d.vec4f(std.max(albedo, d.vec3f(0)), paving.w);
 });
@@ -1552,80 +1549,6 @@ export const groundClasses = tgpu.fn(
   const hash = pcgHash(d.u32(site.x)) & CLASS_HASH_MASK;
   const packed = (forest << CLASS_FOREST_SHIFT) | (kind << CLASS_KIND_SHIFT) | hash;
   return d.vec3f(classDistance(site.z), classDistance(water), d.f32(packed) / 255);
-});
-
-// The water surface's look (presentation, not rules; the biome's `water`
-// row): clear at its edge, where the bed shows through, taking on the
-// channel's colour and opacity over the shallows; smooth enough that sky and
-// sun reflect in it, broken by two octaves of ripples. The surface ends on the
-// simulation's water edge, feathered over a pixel: the ground meets the
-// surface there, so nothing hides it and nothing steps. Its numbers are
-// `presentation.terrain.water`, which the world pass reads too.
-
-/** Ripple height at `xy`: two octaves of value noise, in about [0, 1.5]. */
-const rippleHeight = tgpu.fn(
-  [d.vec2f],
-  d.f32,
-)((xy) => {
-  "use gpu";
-  return (
-    valueNoise(std.mul(xy, 1 / tuning.water.ripple.long_m)) +
-    tuning.water.ripple.short_weight *
-      valueNoise(std.add(std.mul(xy, 1 / tuning.water.ripple.short_m), d.vec2f(17.3, 5.1)))
-  );
-});
-
-/** The water surface at `xy`: linear colour and opacity (clear at the shore,
- *  murky out in the channel, `groundWater` giving how far in it lies), none
- *  outside the water's edge. Streaks of light lie on it in lanes along the
- *  stream: a reflection shows the ripples only where the sun or the sky's
- *  bright edge happens to lie behind the water, and without the streaks a
- *  reach seen from above is a flat band. A pixel wider than a ripple takes
- *  their mean, so the water keeps its value as the camera pulls out.
- *  `footprint` is the metres one pixel spans. */
-export const waterSurface = tgpu.fn(
-  [d.vec2f, d.f32],
-  d.vec4f,
-)((xy, footprint) => {
-  "use gpu";
-  const params = terrainLayout.$.params;
-  const water = groundWater(xy, groundCell(xy, footprint));
-  const deep = 1 - std.exp(-std.max(water, 0) * params.waterLook.x);
-  const shown =
-    1 - std.smoothstep(tuning.water.ripple.fade_m[0], tuning.water.ripple.fade_m[1], footprint);
-  const drift = tuning.water.lanes.drift * valueNoise(std.mul(xy, 1 / tuning.water.lanes.drift_m));
-  const lane = valueNoise(d.vec2f(water / tuning.water.lanes.m + drift, 3.7));
-  const streak = valueNoise(
-    std.add(std.mul(xy, 1 / tuning.water.lanes.streak_m), d.vec2f(63.1, 29.3)),
-  );
-  const lit = std.smoothstep(
-    tuning.water.lanes.lit[0],
-    tuning.water.lanes.lit[1],
-    tuning.water.lanes.weights[0] * lane + tuning.water.lanes.weights[1] * streak,
-  );
-  const colour = std.mul(
-    std.mix(params.waterEdge.xyz, params.water.xyz, deep),
-    1 + params.waterLook.y * std.mix(tuning.water.lanes.lit_mean, lit, shown),
-  );
-  const edge = std.smoothstep(-footprint * 0.5, footprint * 0.5, water);
-  return d.vec4f(colour, std.mix(params.waterEdge.w, params.water.w, deep) * edge);
-});
-
-/** The water's normal at `xy`: small ripples, fading out where a pixel spans
- *  more than a ripple (`footprint` metres), so far water lies flat and calm. */
-export const waterNormal = tgpu.fn(
-  [d.vec2f, d.f32],
-  d.vec3f,
-)((xy, footprint) => {
-  "use gpu";
-  const ex = d.vec2f(tuning.water.ripple.step_m, 0);
-  const ey = d.vec2f(0, tuning.water.ripple.step_m);
-  const dx = rippleHeight(std.add(xy, ex)) - rippleHeight(std.sub(xy, ex));
-  const dy = rippleHeight(std.add(xy, ey)) - rippleHeight(std.sub(xy, ey));
-  const k =
-    (tuning.water.ripple.slope / (2 * tuning.water.ripple.step_m)) *
-    (1 - std.smoothstep(tuning.water.ripple.fade_m[0], tuning.water.ripple.fade_m[1], footprint));
-  return std.normalize(d.vec3f(-dx * k, -dy * k, 1));
 });
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
@@ -1768,7 +1691,10 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       surfaceIndex.set(indexBuffer(index.length)).write(upload(index));
       look = new Uint32Array(d.sizeOf(TerrainParams) / 4);
       if (tables) {
-        look.set(tables.params());
+        const words = tables.params();
+        // All but its `view`; a short one would draw zeros.
+        if (words.length !== look.length - 4) throw new Error("terrain params: bad length");
+        look.set(words);
         scarWords.set(tables.scars(), SCAR_PARAMS_WORDS);
         tables.free();
       }

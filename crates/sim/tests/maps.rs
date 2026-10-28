@@ -41,7 +41,7 @@ fn every_saved_map_says_whether_it_is_a_tests_or_the_capture_maps() {
             catalogue.category(id).unwrap_or_else(|e| panic!("{e}")) == MapCategory::Capture
         })
         .collect();
-    assert_eq!(capture, ["market-town", "paris-corner"]);
+    assert_eq!(capture, ["market-town", "paris-corner", "wetlands"]);
 }
 
 #[test]

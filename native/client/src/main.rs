@@ -39,7 +39,7 @@ use native_client::post::Post;
 use native_client::scenery::Scenery;
 use native_client::shadow::{ShadowPass, SunShadow};
 use native_client::sky::Sky;
-use native_client::world::{DepthPrepass, Ghosts, WorldColour};
+use native_client::world::{DepthPrepass, Ghosts, Water, WorldColour};
 use presentation::assets::RUNTIME;
 use presentation::records::View;
 use presentation::shadow::SunShadowFrame;
@@ -303,18 +303,18 @@ impl Run {
             light.cascades.map_size,
             &SunShadowFrame::cold(light),
         );
+        let presentation = replay.presentation();
+        let resolved = presentation.ground().ok_or("the replay set no ground")?;
         let environment = Environment::new(
             &gpu.device,
             &gpu.queue,
             &pipelines,
             &sky.lut,
-            &light.sun(),
-            &light.aerial(),
+            light,
+            &resolved.biome.wind.record(),
             &shadow,
         );
         let installed = Instant::now();
-        let presentation = replay.presentation();
-        let resolved = presentation.ground().ok_or("the replay set no ground")?;
         let (positions, indices) = &replay.terrain;
         let ground = Ground::new(
             &gpu.device,
@@ -392,6 +392,7 @@ impl Run {
                     Box::new(DepthPrepass::new(&pipelines)),
                     Box::new(FogSight),
                     Box::new(WorldColour::new(&pipelines, sky)),
+                    Box::new(Water),
                     Box::new(EffectPass),
                     Box::new(fog_mask),
                     Box::new(Ghosts::new(&pipelines)),

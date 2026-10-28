@@ -2,7 +2,7 @@
 import { expect, test } from "vitest";
 import { BenchmarkRecording } from "@web/battle/benchmark/recording";
 import { createReelReport } from "@apps/battle-lab/src/benchmark/reelReport";
-import { MENU_REEL_WORKLOAD, menuReelFingerprint } from "@web/battle/benchmark/menuReel";
+import { MENU_REEL_WORKLOAD, reelFingerprint } from "@web/battle/benchmark/reels";
 import type { ReelResult } from "@apps/battle-lab/src/benchmark/reelRun";
 
 const pose = { target: [0, 0] as const, distance: 40, yaw: 0, pitch: 0.2 };
@@ -92,7 +92,7 @@ test("exports each scene's capture with the frames it drew and what it drew them
 test("a run of some scenes reports their workload, never the whole reel's", () => {
   const whole = createReelReport([]);
   expect(whole.workload).toEqual(MENU_REEL_WORKLOAD);
-  expect(whole.fingerprint).toBe(menuReelFingerprint());
+  expect(whole.fingerprint).toBe(reelFingerprint());
   const last = MENU_REEL_WORKLOAD.scenes.at(-1)!;
   const report = createReelReport([result(last.map, 1000, [10])], {
     maps: [last.map],
@@ -101,14 +101,14 @@ test("a run of some scenes reports their workload, never the whole reel's", () =
   expect(report.outcome.status).toBe("complete");
   expect(report.workload.scenes).toEqual([last]);
   expect(report.canonical.sceneIds).toEqual([last.map]);
-  expect(report.fingerprint).not.toBe(menuReelFingerprint());
+  expect(report.fingerprint).not.toBe(reelFingerprint());
   expect(report.canonical.fingerprint).toBe(report.fingerprint);
   expect(report.tour.phases.map((p) => p.name)).toEqual([last.map]);
   expect(report.durationMs).toBe(last.reel.shots.reduce((ms, shot) => ms + shot.seconds * 1000, 0));
   expect(report.capture.frameTimingComparable).toBe(false);
   // Its capture still names the scene within the whole reel.
   expect(JSON.parse(report.presentationCaptureJson[0]).workload.fingerprint).toBe(
-    menuReelFingerprint(),
+    reelFingerprint(),
   );
   expect(() => createReelReport([], { maps: ["nowhere"] })).toThrow(/nowhere/);
 });

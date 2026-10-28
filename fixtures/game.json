@@ -1226,6 +1226,7 @@
         "wear_cut": [0.4, 0.6]
       },
       "water": {
+        "shore_fade_m": 0.25,
         "roughness": 0.14,
         "shadow": 0.55,
         "ripple": {
@@ -1296,7 +1297,7 @@
       "mix": { "drift_cut": [0.4, 0.65], "drift_gather": 3 },
       "tier_jitter": [0.85, 1.15],
       "laid": { "lean": 1.1, "sink": 0.6 },
-      "wind": { "gust_from": 0.2, "flutter_phase": 0.35, "flutter_across": 0.5 },
+      "sway": { "gust_from": 0.2, "flutter_phase": 0.35, "flutter_across": 0.5 },
       "blade": { "roughness": 0.9 }
     },
     "audio": {
@@ -2336,8 +2337,7 @@
         }
       },
       "smoke_budget": 4096,
-      "cast_wrap": 0.9,
-      "wind_mps": [0.6, 0.3]
+      "cast_wrap": 0.9
     }
   },
   "hull_limits": {

@@ -12,6 +12,11 @@ use serde::Deserialize;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
+use crate::wind::WindSettings;
+
+mod water;
+pub use water::*;
+
 pub type Rgb = [f64; 3];
 pub type Range = [f64; 2];
 
@@ -36,6 +41,8 @@ pub struct Biome {
     pub trees: Trees,
     pub grass: GrassRules,
     pub scars: Scars,
+    /// The one wind: grass sways in it, smoke and dust drift on it.
+    pub wind: WindSettings,
 }
 
 /// One kind of plot in the patchwork: a meadow, a crop, ploughed earth.
@@ -124,33 +131,6 @@ pub struct Verge {
     pub palette: String,
     pub width_m: f64,
     pub feather_m: f64,
-}
-
-/// The water's edge along every river, in bands by distance from it: wet
-/// silt for `wet_m`, then bare earth out to `mud_m`, whose outer line
-/// wanders in by up to `wander` of `mud_m` over `wander_scale_m`.
-#[derive(Clone, Deserialize)]
-pub struct Shore {
-    /// Two colours: the wet silt, the bare earth.
-    pub palette: String,
-    pub wet_m: f64,
-    pub mud_m: f64,
-    pub wander: f64,
-    pub wander_scale_m: f64,
-    /// Both bands are drawn at least this many times as light as the ground
-    /// they cover.
-    pub lift: f64,
-    /// The share of a bank's true slope its shading shows.
-    pub relief: f64,
-}
-
-/// The water surface's look: its opacity at its edge and out in the channel,
-/// how far in it takes 63% of the channel's, and its streaks' light.
-#[derive(Clone, Deserialize)]
-pub struct Water {
-    pub opacity: Range,
-    pub shallows_m: f64,
-    pub streak: f64,
 }
 
 /// One kind of paving's surface, drawn exactly where the simulation's rule
@@ -515,7 +495,7 @@ pub struct GrassRules {
     pub min_blade_px: f64,
     /// Bare margins round props, and forest and water edges.
     pub clear_m: GrassClear,
-    pub wind: Wind,
+    pub sway: Sway,
     /// Clumps the near and far tiers hold at most in one frame.
     pub capacity: [u32; 2],
 }
@@ -569,16 +549,12 @@ pub struct GrassClear {
     pub area: f64,
 }
 
-/// The travelling wind: where it blows toward (degrees from +x), its steady
-/// lean, a gust front's extra lean, their spacing and speed, and a blade's
-/// flutter.
+/// How grass answers the biome's wind: its steady lean, a gust front's
+/// extra lean, and a blade's flutter and its rate.
 #[derive(Clone, Deserialize)]
-pub struct Wind {
-    pub heading_deg: f64,
+pub struct Sway {
     pub lean: f64,
     pub gust: f64,
-    pub gust_m: f64,
-    pub gust_mps: f64,
     pub flutter: f64,
     pub flutter_hz: f64,
 }
@@ -815,21 +791,11 @@ impl Biome {
         for (kind, road) in &self.roads {
             self.check_road(&format!("roads.{kind}"), kind, road)?;
         }
-        let s = &self.shore;
-        self.has_palette("shore.palette", &s.palette, 2)?;
-        within("shore.wet_m", s.wet_m, 0.0, 20.0)?;
-        within("shore.wander", s.wander, 0.0, 0.9)?;
-        // The earth's line never wanders in over the wet bank.
-        within("shore.mud_m", s.mud_m, s.wet_m / (1.0 - s.wander), 20.0)?;
-        within("shore.wander_scale_m", s.wander_scale_m, 0.5, 1000.0)?;
-        within("shore.lift", s.lift, 1.0, 3.0)?;
-        within("shore.relief", s.relief, 0.0, 1.0)?;
-        range("water.opacity", self.water.opacity, 0.0, 1.0)?;
-        within("water.shallows_m", self.water.shallows_m, 0.05, 50.0)?;
-        within("water.streak", self.water.streak, 0.0, 1.0)?;
+        self.check_water()?;
         self.check_floor()?;
         self.check_trees()?;
         self.check_grass()?;
+        self.wind.check()?;
         let sc = &self.scars;
         for (key, m) in [
             ("crater", &sc.crater.mark),
@@ -1163,14 +1129,11 @@ impl Biome {
         within("grass.min_blade_px", g.min_blade_px, 0.0, 8.0)?;
         within("grass.clear_m.prop", g.clear_m.prop, 0.0, 20.0)?;
         within("grass.clear_m.area", g.clear_m.area, 0.0, 20.0)?;
-        let w = &g.wind;
-        within("grass.wind.heading_deg", w.heading_deg, -360.0, 360.0)?;
-        within("grass.wind.lean", w.lean, 0.0, 1.0)?;
-        within("grass.wind.gust", w.gust, 0.0, 1.0)?;
-        within("grass.wind.gust_m", w.gust_m, 1.0, 10000.0)?;
-        within("grass.wind.gust_mps", w.gust_mps, 0.0, 100.0)?;
-        within("grass.wind.flutter", w.flutter, 0.0, 1.0)?;
-        within("grass.wind.flutter_hz", w.flutter_hz, 0.0, 20.0)?;
+        let s = &g.sway;
+        within("grass.sway.lean", s.lean, 0.0, 1.0)?;
+        within("grass.sway.gust", s.gust, 0.0, 1.0)?;
+        within("grass.sway.flutter", s.flutter, 0.0, 1.0)?;
+        within("grass.sway.flutter_hz", s.flutter_hz, 0.0, 20.0)?;
         for (i, &c) in g.capacity.iter().enumerate() {
             within(&format!("grass.capacity[{i}]"), c as f64, 1.0, 4e6)?;
         }
@@ -1191,7 +1154,7 @@ fn bad(at: &str, why: impl std::fmt::Display) -> Result<(), String> {
     Err(format!("biome.{}: {why}", at.trim_end_matches('.')))
 }
 
-fn within(at: &str, v: f64, lo: f64, hi: f64) -> Result<(), String> {
+pub(crate) fn within(at: &str, v: f64, lo: f64, hi: f64) -> Result<(), String> {
     match v.is_finite() && v >= lo && v <= hi {
         true => Ok(()),
         false => bad(at, format!("must be within [{lo}, {hi}], got {v}")),
@@ -1245,10 +1208,10 @@ pub mod tests {
 
     #[test]
     fn a_bad_number_is_refused_by_its_path() {
-        let e = summer(|b| b["grass"]["wind"]["lean"] = 2.into())
+        let e = summer(|b| b["grass"]["sway"]["lean"] = 2.into())
             .err()
             .unwrap();
-        assert_eq!(e, "biome.grass.wind.lean: must be within [0, 1], got 2");
+        assert_eq!(e, "biome.grass.sway.lean: must be within [0, 1], got 2");
         let e = summer(|b| b["roads"]["paving"]["families"]["paris"]["mottle"] = 3.into());
         assert_eq!(
             e.err().unwrap(),

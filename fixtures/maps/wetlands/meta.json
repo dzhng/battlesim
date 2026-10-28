@@ -1,0 +1,13 @@
+{
+  "category": "capture",
+  "status": "draft",
+  "label": "Wetlands",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [480, 360],
+  "tags": ["river", "road", "bridge", "forest"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["water"],
+  "benchmarks": []
+}

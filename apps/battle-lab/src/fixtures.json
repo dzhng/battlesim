@@ -38,6 +38,15 @@
     "catalog": "capture"
   },
   {
+    "id": "water",
+    "route": "/labs/graphics-test?capture=water&plates=1",
+    "describe": "The water scene: the water reel (fixtures/captures/water.json: close, tactical and low shots of the wetlands capture map's river) filmed by the graphics test with control plates and replayed by the native client from the same run. Each plate, in both clients, must show the simulation's river as water, bluer than its dry bank; the plates are written to the evidence in one sheet beside RedGPU's frozen stills for the side-by-side read.",
+    "map": null,
+    "timeout_s": 600,
+    "serial": true,
+    "catalog": "capture"
+  },
+  {
     "id": "cursor",
     "route": "/labs/cursor",
     "describe": "Arrow and action cursor at native screen size over grass, road and fog; every badge and a moving pointer through the real presentation component.",

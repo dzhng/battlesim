@@ -35,6 +35,9 @@ export interface FrameTargets {
   /** The lit HDR world, multisampled; resolved into `lit`. */
   hdrMsaa: GPUTexture;
   lit: GPUTexture;
+  /** `lit` as the world pass left it, before the water: what the water shows
+   *  of the bed through it (`waterPass.ts`). */
+  sceneColour: GPUTexture;
   /** The fog mask beside it, multisampled; resolved into `fogMask`. */
   fogMaskMsaa: GPUTexture;
   fogMask: GPUTexture;
@@ -92,7 +95,13 @@ export function allocateFrameTargets(
       label: "frame-lit",
       size,
       format: HDR_FORMAT,
-      usage: RENDER | SAMPLED,
+      usage: RENDER | SAMPLED | COPY_SRC,
+    }),
+    sceneColour: scope.texture({
+      label: "frame-scene-colour",
+      size,
+      format: HDR_FORMAT,
+      usage: SAMPLED | COPY_DST,
     }),
     fogMaskMsaa: scope.texture({
       label: "frame-fog-mask-msaa",

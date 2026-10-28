@@ -34,8 +34,20 @@ Read [`development.md`](../../development.md), the
 slice file names the decisions it may still make. Anything else you have to
 decide goes in a `choices.md` ledger beside this file.
 
-**Pick up at [slice 00](slices/00-water-scene.md).** Slice 10 (sim lane) can
-start in parallel on day one, and slice 01 can run alongside slice 02.
+Slice 00 is done: the water scene (`bun run --cwd web scene -- water`) films
+the wetlands reel on both clients and is every visual slice's place to judge.
+Its preview checkpoint passed without feedback, so the framings stand.
+Slice 02 is done: the water draws multisampled in its own pass after glass.
+Its cost probe settled decision 25 that way. Before reading the frame in the
+water's shader, read its note on the four-bind-group limit.
+Slice 01 is done: one `Wind` record in the environment uniform, read by grass
+and by smoke and dust; slice 17 (tree sway) can start. Slice 03 is done: each
+river draws one of its biome's water looks, uniforms the water's shader reads,
+retuned live on the dev server. Slice 04 is done: the water shows its bed by
+depth, through each look's per-channel extinction. Slice 05 is done: the
+water fades in from where its depth is zero. **Pick up at
+[slice 06](slices/06-surface-normals.md)**. The sim lane (slice 10 on)
+runs in parallel on `spec/water-and-wetlands-sim` and merges in here.
 
 **Warning:** native must start and draw water at every slice (decision 19). A
 slice that changes an exported pipeline's layout, sample count or targets ports
@@ -48,12 +60,20 @@ the checklist.
 
 - [x] The unknowns walk and the landmine sweep (2026-10-27).
 - [x] Parallel drafts and slicing (2026-10-27).
-- [ ] Render lane: [00](slices/00-water-scene.md), [01](slices/01-one-wind.md), [02](slices/02-water-pass.md),
-      [03](slices/03-water-look-data.md), [04](slices/04-depth-colour.md), [05](slices/05-soft-shore.md),
+- [x] [00](slices/00-water-scene.md), the water scene (2026-10-27).
+- [x] [02](slices/02-water-pass.md), the water pass (2026-10-28).
+- [x] [01](slices/01-one-wind.md), one wind (2026-10-28).
+- [x] [03](slices/03-water-look-data.md), water look data (2026-10-28).
+- [x] [04](slices/04-depth-colour.md), depth colour (2026-10-28).
+- [x] [05](slices/05-soft-shore.md), the soft shore (2026-10-28).
+- [ ] Render lane:
       [06](slices/06-surface-normals.md), [07](slices/07-refraction.md), [08](slices/08-caustics.md),
       [09](slices/09-highlights.md).
-- [ ] Sim lane: [10](slices/10-swamp-terrain.md), [11](slices/11-swamp-slowdown.md),
-      [12](slices/12-mapgen-swamps.md).
+- [x] [10](slices/10-swamp-terrain.md), swamp terrain, with the wetlands map's
+      swamp (2026-10-28).
+- [x] [11](slices/11-swamp-slowdown.md), swamp slowdown; its paired battle
+      report on the wetlands map is still owed (2026-10-28).
+- [ ] Sim lane: [12](slices/12-mapgen-swamps.md).
 - [ ] Wet lane: [13](slices/13-swamp-look.md), [14](slices/14-puddles.md),
       [15](slices/15-wake-sources.md), [16](slices/16-wave-field.md).
 - [ ] [17](slices/17-tree-sway.md), tree sway, any time after 01.
@@ -289,8 +309,8 @@ other slice, a changed digest is a bug.
 **How the drafts were merged:** four drafts each had a different bias (fewest
 slices, risk first, seam quality, feedback loop). Draft D (feedback loop)
 supplied the harnesses: `fixtures/captures/water.json` owns the shots, look
-data reloads live in the `wetlands` lab, and the map workbench gets a swamp
-overlay. Where the drafts agreed, the plan follows them:
+data reloads live on the water scene's page, and the map workbench gets a
+swamp overlay. Where the drafts agreed, the plan follows them:
 
 - the water scene and a native draw check come first;
 - water reads the existing multisampled depth in its shader, so it needs no

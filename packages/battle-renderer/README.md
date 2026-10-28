@@ -39,8 +39,9 @@ reorders whole triangles once, preserving their vertex words. Terrain, water,
 and skirt/debug meshes reuse that owner; the constant-size backdrop needs no index.
 Both clients query
 its hierarchy with the actual GPU camera and each caster matrix independently;
-selection adds no far cutoff. Water selects only for the camera and retains its
-blended, read-only-depth pass. Camera ranges serve depth and color, including each
+selection adds no far cutoff. Water selects only for the camera. It blends
+over the world's kept samples in a pass of its own, after glass, reading depth
+and writing none. Camera ranges serve depth and color, including each
 scar-region submission. Traversal work is distinct from issued draw counts.
 Physical bounds and
 visual-only landscape remain
@@ -99,7 +100,10 @@ The ground's and the grass's look numbers that are not the biome's are data,
 `presentation.terrain` and `presentation.grass` in the game fixture (documented
 in [the ground's tuning](../../crates/presentation/src/static_world/ground/tuning.rs)),
 spliced into the WGSL as constants; hash multipliers, decorrelation offsets and
-lattice turns stay in the shader as part of the formula. A second client draws the
+lattice turns stay in the shader as part of the formula. The water's and the
+shore's are uniforms instead (`TerrainParams.waterLooks`, `shoreTuning`): each
+river draws one of its biome's water looks, picked in Rust, and a look retunes
+without rebuilding a shader. A second client draws the
 same world from the same Rust output, and `drawnInstances` says what the last
 frame drew of the buildings and the scenery.
 

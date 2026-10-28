@@ -5,8 +5,10 @@
 //   into the overlay target, the units; copied for the overlays) → fog
 //   (moved eyes' horizon maps,
 //   then the per-tile eye lists from that depth) → sky + HDR world (4× MSAA,
-//   rgba16float, with FogTerm's mask beside it) → combat effects (into the
-//   resolved world and its mask) → fog mask pass (distances,
+//   rgba16float, with FogTerm's mask beside it, glass last; samples kept) →
+//   water (over those samples, resolved into the world and its mask) →
+//   combat effects (into the resolved world and its mask) → fog mask pass
+//   (distances,
 //   then the unseen look, before post) → post (bloom, grade, AgX, into the
 //   canvas) → fog rim (display space) → overlays (display space, against the
 //   world's depth) → composite → the high-air plane (its models alone, lit
@@ -159,7 +161,7 @@ export async function createBattleFrame(
         effectiveLight,
       );
       scope.adopt(post.dispose);
-      const fog = world.fogTiles(scope, t.depth, t.paint);
+      const fog = world.fogTiles(scope, t.depth, t.paint, t.sceneColour);
       return {
         ...t,
         post,
@@ -286,7 +288,9 @@ export async function createBattleFrame(
           return world.setStaticFrame(frame, stats.scenery) || buildings;
         },
         setPresentedGround(ground) {
-          if (!disposed) world.setPresentedGround(ground);
+          if (disposed) return;
+          world.setPresentedGround(ground);
+          environment.setWind(ground?.ground_wind() ?? null);
         },
         setGround(next) {
           return !disposed && world.setGround(next);

@@ -329,6 +329,28 @@
           "fragment",
           "compute"
         ]
+      },
+      {
+        "binding": 9,
+        "texture": {
+          "sampleType": "depth",
+          "viewDimension": "2d",
+          "multisampled": true
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 10,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
       }
     ],
     "terrainLayout": [
@@ -3857,8 +3879,8 @@
       "layout": [
         "typegpuCameraLayout",
         "grassDrawLayout",
-        "fogLayout",
-        "environment"
+        "environment",
+        "fogLayout"
       ],
       "vertex": {
         "buffers": []

@@ -1,6 +1,9 @@
-//! The water surface's cells along the exported rivers.
+//! The water surface's cells along the exported rivers, and the look each
+//! river draws.
+use super::biome::WaterLook;
 use super::shapes::distance;
 use super::RIVER;
+use crate::seed::{stream, weighted};
 use std::collections::HashSet;
 
 /// The water surface is laid as square cells this wide, and reaches this far
@@ -9,6 +12,22 @@ use std::collections::HashSet;
 const CELL_M: f64 = 8.0;
 const MARGIN_M: f64 = 4.0;
 const SURFACE_Z: usize = 10;
+const RIVER_INDEX: usize = 11;
+/// Parts the look pick's stream from every other population's.
+const LOOK_SALT: u32 = 0x10c4_a7e5;
+/// Floats a water cell (`cells`).
+pub const CELL_FLOATS: usize = 5;
+
+/// The look river `river` (its index in the map's rivers) draws: one of
+/// `looks` by weight, seeded by the biome's `seed` and the river alone, as a
+/// tree stand is by its cell, so no other feature moves it. A look of no
+/// weight is never drawn.
+pub fn look(seed: u32, river: usize, looks: &[WaterLook]) -> usize {
+    weighted(
+        &mut stream(seed ^ LOOK_SALT, river as i64),
+        looks.iter().map(|l| l.weight),
+    )
+}
 
 /// How far `(x, y)` lies inside the water's edge of the stretch `r`
 /// (negative outside): the half width at the stretch's closest point, which
@@ -26,11 +45,12 @@ pub(super) fn stretch_inside(r: &[f32], x: f64, y: f64) -> f64 {
     half - distance([x, y], [ax + rx * t, ay + ry * t])
 }
 
-/// The water surface's square cells, four floats each: the south-west
-/// corner, the surface height and the side, in metres. Cells never overlap,
-/// so the blended surface is drawn once however the river bends; where
-/// rivers meet, the cell is the first river's.
-pub fn cells(rivers: &[f32]) -> Vec<f32> {
+/// The water surface's square cells (`CELL_FLOATS` each): the south-west
+/// corner, the surface height and the side, in metres, then the look it
+/// draws, `look` of its river's index. Cells never overlap, so the blended
+/// surface is drawn once however the river bends; where rivers meet, the
+/// cell is the first river's, its surface and its look.
+pub fn cells(rivers: &[f32], look: impl Fn(usize) -> usize) -> Vec<f32> {
     let mut out = vec![];
     let mut laid = HashSet::new();
     let cell = CELL_M;
@@ -54,6 +74,7 @@ pub fn cells(rivers: &[f32]) -> Vec<f32> {
                         (j * cell) as f32,
                         r[SURFACE_Z],
                         cell as f32,
+                        look(r[RIVER_INDEX] as usize) as f32,
                     ]);
                 }
                 i += 1.0;

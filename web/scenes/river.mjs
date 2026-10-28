@@ -8,6 +8,7 @@ import { chroma, linear, luminance, median } from "./_colour.mjs";
 import { aim, lab, openBattle, snapshot } from "./_lab.mjs";
 import { decode, pixel, writeCrop } from "./_png.mjs";
 import { BIOME, classAt, openStations, shoot } from "./_groundStations.mjs";
+import { installInside } from "./_water.mjs";
 
 const VIEWPORT = { width: 1920, height: 1080 };
 /** Looking north, as the lab opens. */
@@ -52,27 +53,6 @@ function chromaAt(png, p, reach) {
   return chroma(mean.map((v) => v / (2 * reach + 1) ** 2));
 }
 
-/** In the page: `window.__inside(x, y)`, how far a point lies inside the
- *  water's edge by the simulation's exported stretches (negative outside). */
-const defineInside = (page) =>
-  lab(page, () => {
-    const { rivers } = window.__lab.route.exports();
-    const stride = window.__lab.route.layout().riverStride;
-    window.__inside = (x, y) => {
-      let best = -Infinity;
-      for (let o = 0; o < rivers.length; o += stride) {
-        const ax = rivers[o],
-          ay = rivers[o + 1],
-          dx = rivers[o + 2] - ax,
-          dy = rivers[o + 3] - ay;
-        const t = Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
-        const half = rivers[o + 4] + (rivers[o + 5] - rivers[o + 4]) * t;
-        best = Math.max(best, half - Math.hypot(x - ax - dx * t, y - ay - dy * t));
-      }
-      return best;
-    };
-  });
-
 /** Sections across the banks, every two metres along the stream on each side
  *  (`side` -1 or 1): the page point `offsets[k]` metres outside the water's
  *  edge, for every offset, where all of them are in the frame. */
@@ -116,7 +96,7 @@ const bankSections = (page, offsets) =>
 async function waterEdge(ctx) {
   const { shore } = BIOME;
   const page = await openStations(ctx, "river");
-  await defineInside(page);
+  await installInside(page);
   // Where each band is whole: the middle of the wet bank, the bare earth
   // short of where its outer line can wander in to, and the grass past it.
   const earthEnds = shore.mud_m * (1 - shore.wander);
