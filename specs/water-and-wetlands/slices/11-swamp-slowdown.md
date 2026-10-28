@@ -49,6 +49,31 @@ These use test rows with extreme factors, never the shipped numbers.
 A paired battle report on the `wetlands` map, before and after. Record the
 shift; don't retune in the same pass (`tweak-mechanics`).
 
+**Recorded 2026-10-28** (shipped factors foot 0.5, wheeled 0.3, tracked
+0.55, against every factor at 1.0; same seed). The `wetlands` water
+encounter's squad (`capture_rifle`, foot) and tank (`capture_us_tank`,
+tracked) each move alone from their encounter positions north-west of the
+swamp to a point beyond it: through its middle to (440, 20), and past its
+north-east end to (470, 70). Time is to arriving, length is the ground the
+unit's centre covered. The scratch test that made these is
+`throwaway/evidence/swamp_evidence.rs` (not committed).
+
+| Unit | Route | Goal | Swamp factors | Factors 1.0 | Shift |
+| --- | --- | --- | --- | --- | --- |
+| squad | shortest | (440, 20) | 130.6 s, 259 m | 95.7 s, 259 m | +36% time |
+| squad | fastest | (440, 20) | 111.0 s, 281 m | 95.7 s, 259 m | +16% time, +22 m round the deep part |
+| squad | shortest | (470, 70) | 108.4 s, 254 m | 94.6 s, 254 m | +15% time |
+| squad | fastest | (470, 70) | 103.3 s, 262 m, stays dry | 94.6 s, 254 m | +9% time, +8 m round it |
+| tank | shortest | (440, 20) | 54.4 s, 233 m | 41.4 s, 233 m | +31% time |
+| tank | fastest | (440, 20) | 48.0 s, 265 m | 41.4 s, 233 m | +16% time, +32 m |
+| tank | shortest | (470, 70) | 43.3 s, 226 m | 39.7 s, 226 m | +9% time |
+| tank | fastest | (470, 70) | 40.3 s, 235 m, stays dry | 39.7 s, 226 m | +2% time, +9 m round it |
+
+Read: ordered straight through (`shortest`), the squad loses about a third
+of its time across the swamp and the tank a little less; asked for the
+quickest way (`fastest`), both mostly skirt the water and pay about half
+that. No factor was retuned in this pass.
+
 ## Re-recorded, as the one named digest decision
 
 The rules hash changes for every battle. Re-record `fixtures/parity/*`,

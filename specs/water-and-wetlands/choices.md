@@ -679,8 +679,13 @@ against the code. Each says what was chosen, why, and how sure the agent is.
    `speed_follows_surface_and_slope` folded in as a slope test. *Why:*
    `tests/navigation.rs` was over the size budget, and speed over ground is
    one concept. *Confidence:* high.
-9. **No paired battle report on the `wetlands` map yet.** That map comes
-   from slice 00 in the other lane; run the report once it is merged.
+9. **The owed evidence is a paired crossing, not a full battle report:**
+   the `wetlands` water encounter's squad and tank each moved across the
+   swamp alone, with the shipped factors and with every factor at 1.0
+   (slice 11's Evidence holds the table). *Why:* the encounter has no
+   opposing force, so a battle report would measure nothing but this; the
+   crossing isolates the one variable. Recorded, not retuned.
+   *Confidence:* high on the numbers; the factors themselves stay tuning.
 
 ## Slice 12: swamps in map generation
 
