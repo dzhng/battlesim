@@ -9,6 +9,7 @@ Every unit type gets its own concealment, which multiplies the concealment its g
 
 You are implementing this spec in its pull request. Start at the first unchecked slice and follow its file. Use `implement-spec`. Use `write-tests` (red first) for every behaviour, and `tweak-mechanics` before slice 06. Finish the whole spec without asking for approval: judge the digests, the menu reel and the workbench GIF yourself, and say in each commit what you checked. Fix any failure you see, and fix unrelated failures in their own commit. Before you end a pass, tick what you finished and rewrite this section.
 
+- [ ] [00 Every transcendental function is libm's](slices/00-libm-everywhere.md): replace the 13 standard-library math calls in sim, contract and mapgen, and add a clippy guard. It may move native digests; re-record if it does, and that becomes the baseline for 01–05.
 - [ ] [01 Rules refuse unknown keys](slices/01-strict-rules.md): every rules struct denies unknown fields; `game.json`'s non-simulation sections get an explicit owner.
 - [ ] [02 Fallbacks become data](slices/02-explicit-fallbacks.md): `partial_from`, per-layer range and scatter, the air layer, the afterburner multipliers, and the rules-side defaults. Change the editor in the same slice.
 - [ ] [03 Sight bands and the radar signature](slices/03-sight-bands-and-radar.md): `low_air_m` and `high_air_m` become required, `radar_emitter` replaces the radar struct, and the TypeScript copies are deleted.
@@ -17,16 +18,16 @@ You are implementing this spec in its pull request. Start at the first unchecked
 - [ ] [06 Starting values](slices/06-starting-values.md): data only. This slice changes battles, so re-record and judge.
 - [ ] [07 Workbench GIF and closeout](slices/07-gif-and-closeout.md): the scripted GIF, docs, one full run, then `close-spec`.
 
-**Warning:** slices 01–05 must not change any battle. "Unchanged" means the digest rows inside each parity record. It doesn't mean the record files themselves, which embed rules and units and so change with every schema edit (see [proof](#proof-that-nothing-changed)).
+**Warning:** slices 01–05 must not change any battle, measured against the baseline slice 00 leaves. "Unchanged" means the digest rows inside each parity record. It doesn't mean the record files themselves, which embed rules and units and so change with every schema edit (see [proof](#proof-that-nothing-changed)).
 
 ## Slice graph
 
 ```
-01 strict rules ─▶ 02 fallbacks ─▶ 03 sight bands + radar ─┐
+00 libm ─▶ 01 strict rules ─▶ 02 fallbacks ─▶ 03 sight bands + radar ─┐
                                 └▶ 04 concealment mechanism ┴▶ 05 report ─▶ 06 values ─▶ 07 GIF + close
 ```
 
-03 and 04 are independent; land them in either order. Slices 01–05 change no battle. Slice 06 is the only one that changes battles, and it is data only. If 06 needs a code change, the mechanism was wrong: stop and reslice 04.
+03 and 04 are independent; land them in either order. Slice 00 may move native digests (it makes native agree with WebAssembly). Slices 01–05 change no battle. Slice 06 is the only one that changes battles, and it is data only. If 06 needs a code change, the mechanism was wrong: stop and reslice 04.
 
 ## The contract
 
@@ -102,7 +103,7 @@ Slices 01–05 must leave every battle identical:
 - **No compatibility layers, migrations or shims.** It's a hard cutover. Re-record fixtures instead.
 - **Never narrow a mechanic to keep a recording.** The reel's units (`fixtures/units/capture/`) and scenario may be changed freely to get the scene.
 - **Files over the size budget may only shrink.** These include `apps/mechanics-editor/src/fields.ts`, `crates/contract/src/catalog.rs`, `crates/contract/src/scenario.rs`, `crates/contract/tests/catalog.rs` and `crates/sim/tests/air.rs`, all enforced by the pre-commit ratchet. Pay for any growth by deleting code (the fallbacks, `RadarCapability`, `high_air_sight_m` and its TypeScript copy) or by splitting by concept.
-- **Use `libm` for transcendental functions in the simulation,** so that native and WebAssembly agree.
+- **Every transcendental function under `crates/` is `libm`'s** (slice 00 adds the clippy guard), so that native and WebAssembly agree.
 - **Tests test mechanics, not configuration.** No test may pin a roster value. The system test authors its own values.
 
 ## Decisions and why (from the walk)
@@ -119,11 +120,11 @@ Slices 01–05 must leave every battle identical:
 | Sight bands and the radar signature become data | Config over business logic | A fallback table keyed on body; radar silently overriding sight |
 | `concealment` required, `spotting` optional | Concealment has no neutral value; spotting's neutral value is 1 | Both required, or both optional |
 | Visual spotting only | User scope | Aircraft and radar stealth |
+| Every transcendental function in `crates/` is `libm`'s, guarded by clippy | Native and WebAssembly must agree. The user asked for this on 2026-10-28 after the drafts found `foliage_reach` using the standard library's `exp` | Fixing only `foliage_reach` |
 | Aircraft are hulls like any other, valued by volume | One rule with no special case; the value only matters when an aircraft isn't airborne (synthesis decision, 2026-10-28) | Special-casing aircraft at 1, which an earlier draft of the table had |
 
 ## Out of scope and follow-ups
 
 - **Aircraft and radar stealth.**
 - **Balance.** Retune with the report after this spec.
-- **`foliage_reach` uses the standard library's `.exp()`** (`sensing.rs:105`), not `libm`. That is a hazard for native/WebAssembly parity. Switching it may move native digests, so it needs its own decision and commit. Don't fold it into this spec; raise it with the user at closeout.
 - **The `low_air_m` / `unaided_high_air_m` naming confusion** goes away with slice 03. No separate rename is needed.

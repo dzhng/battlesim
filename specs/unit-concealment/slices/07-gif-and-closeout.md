@@ -23,5 +23,4 @@
 
 1. Run everything once (the full check ladder and the balance workload). This is the only full run in the spec.
 2. Run `review` (refactor-clean, code-review, write-docs).
-3. Raise the `foliage_reach` `.exp()` parity follow-up with the user.
-4. Archive with `close-spec`.
+3. Archive with `close-spec`.
