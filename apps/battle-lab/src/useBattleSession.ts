@@ -13,7 +13,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
 import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
-import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import { knownStanding, type PropBox } from "@packages/battle-renderer/src/models/propAppearance";
 import { pickBox } from "@packages/battle-renderer/src/picking";
 import {
@@ -26,7 +25,7 @@ import {
   buildingPartProps,
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
-import { gameBiome } from "./gameBiome";
+import { useWorldLayers } from "./useWorldLayers";
 import { gameRuntime, mapAppearances, useMapAppearances } from "./gameAppearances";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { gameHud } from "@web/battle/present/hudTheme";
@@ -354,20 +353,7 @@ export function useBattleSession({
   // The ground, and the art its scenery and grass draw from; its props and
   // what the side knows of them (rubble, wrecks, shoved bodies where it last
   // saw them) are the battle's presentation's to draw.
-  const meshes = useMemo(
-    () =>
-      world &&
-      appearances &&
-      buildWorldLayers(
-        world.exports,
-        world.layout,
-        gameBiome,
-        "surface",
-        appearances,
-        sceneryForArt !== null,
-      ),
-    [world, appearances, sceneryForArt],
-  );
+  const meshes = useWorldLayers(world, appearances, sceneryForArt);
   const knownProps = observation?.knownProps;
   const knownKey = useMemo(() => JSON.stringify(knownProps ?? []), [knownProps]);
   // What the side knows of the map's buildings, apart from everything else
