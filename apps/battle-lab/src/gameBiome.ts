@@ -26,7 +26,7 @@ function pinned(biome: Biome): Biome {
   const { rivers, swamps } = biome.water;
   return {
     ...biome,
-    water: { rivers: pin(rivers, "water_look"), swamps: pin(swamps, "swamp_look") },
+    water: { ...biome.water, rivers: pin(rivers, "water_look"), swamps: pin(swamps, "swamp_look") },
   };
 }
 

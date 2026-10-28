@@ -155,7 +155,20 @@ impl Ground {
     fn water_looks(&self, p: &mut Vec<u32>) {
         let (b, w) = (&self.biome, &self.tuning.terrain.water);
         let (r, lobes) = (&w.normals, &w.lobes);
-        for look in b.water.rivers.iter().chain(&b.water.swamps) {
+        // A puddle's row fades its water in over the first third of its
+        // depth, which it carries (`fades.w`): its depth is its shape's.
+        let puddles = b
+            .water
+            .puddles
+            .iter()
+            .flat_map(|q| q.looks.iter().map(|l| (l, q.depth_m)));
+        let deep = b
+            .water
+            .rivers
+            .iter()
+            .chain(&b.water.swamps)
+            .map(|l| (l, 0.0));
+        for (look, puddle_m) in deep.chain(puddles) {
             let colours = b.palette(&look.palette);
             vec4(p, rgb(linear(colours[0]), 0.0));
             vec4(p, rgb(linear(colours[1]), 0.0));
@@ -163,7 +176,12 @@ impl Ground {
             let [primary, macro_m, detail] = r.tiles_m;
             vec4(p, [1.0 / primary, 1.0 / macro_m, 1.0 / detail, r.strength]);
             vec4(p, [r.drifts[0], r.drifts[1], r.drifts[2], 0.0]);
-            vec4(p, [w.shore_fade_m, r.fade_m[0], r.fade_m[1], 0.0]);
+            let shore = if puddle_m > 0.0 {
+                puddle_m / 3.0
+            } else {
+                w.shore_fade_m
+            };
+            vec4(p, [shore, r.fade_m[0], r.fade_m[1], puddle_m]);
             vec4(p, rgb(lobes.roughness, 0.0));
             vec4(p, rgb(lobes.weights, 0.0));
             let f = &w.refraction;
@@ -171,7 +189,10 @@ impl Ground {
             let c = &w.caustics;
             vec4(p, [1.0 / c.tile_m, c.strength, c.fade_per_m, c.sharpness]);
         }
-        let rows = WATER_LOOKS_MAX - b.water.rivers.len() - b.water.swamps.len();
+        let w = &b.water;
+        let looks =
+            w.rivers.len() + w.swamps.len() + w.puddles.as_ref().map_or(0, |q| q.looks.len());
+        let rows = WATER_LOOKS_MAX - looks;
         p.extend(std::iter::repeat_n(0, rows * WATER_LOOK_WORDS));
     }
 

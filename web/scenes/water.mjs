@@ -23,7 +23,7 @@ import { mapWater, waterAndBank, waterAndBankColours } from "./_water.mjs";
 const ROOT = new URL("../../", import.meta.url);
 const MAP = "wetlands";
 /** The reel's shots, in order (the capture format names none). */
-const SHOTS = ["close", "tactical", "low", "swamp", "wading"];
+const SHOTS = ["close", "tactical", "low", "swamp", "wading", "puddles"];
 /** The browser's water reads as water when its mean colour stands at least
  *  this far from its dry bank's (CIE76 ΔE): a loose floor. */
 const APART_MIN = 10;
@@ -76,6 +76,18 @@ export async function run(ctx) {
   for (const [k, frame] of frames.entries()) {
     const regions = waterAndBank(frame, lens.fovY, water, size);
     const browserBytes = await readFile(new URL(frame.plate, dir));
+    cells.push({ caption: `browser · ${SHOTS[k]}`, png: browserBytes });
+    // The puddle shot is of the presentation's own water (look only,
+    // decision 29), none of the simulation's: both clients' plates go to the
+    // sheet, judged by eye. Every other shot must find its water.
+    if (SHOTS[k] === "puddles") {
+      if (nativePlates.includes(frame.plate))
+        cells.push({
+          caption: `native · ${SHOTS[k]}`,
+          png: await readFile(`${native}${frame.plate}`),
+        });
+      continue;
+    }
     const browser = waterAndBankColours(decode(browserBytes), regions);
     const apart = deltaE(browser.water, browser.bank);
     ctx.check(
@@ -83,7 +95,6 @@ export async function run(ctx) {
       apart >= APART_MIN,
       `ΔE ${apart.toFixed(1)} over ${regions.water.length} water and ${regions.bank.length} bank pixels`,
     );
-    cells.push({ caption: `browser · ${SHOTS[k]}`, png: browserBytes });
     if (!nativePlates.includes(frame.plate)) continue;
     const nativeBytes = await readFile(`${native}${frame.plate}`);
     cells.push({ caption: `native · ${SHOTS[k]}`, png: nativeBytes });

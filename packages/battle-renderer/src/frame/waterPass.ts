@@ -71,12 +71,20 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     // The cell's look rides its vertex colour (`mesh::water`).
     const look = d.u32(std.round(v.color.x));
     const w = terrainLayout.$.params.waterLooks[look];
-    const n = waterNormal(v.world.xy, footprint, look);
+    // A puddle stands still: no wind ripples it, so the sky lies in it whole.
+    const n = std.select(waterNormal(v.world.xy, footprint, look), d.vec3f(0, 0, 1), v.color.w > 0);
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const paint = groundPaint(v.world);
-    const depth = waterDepth(v.clip, v.world);
+    // A puddle carves nothing, so its depth is its shape's (`mesh::water`
+    // carries its centre and radius): deepest at its middle, nothing at
+    // its rim, along the view. Other water's is the ground's.
+    const puddle = v.color.w > 0;
+    const middle = std.length(std.sub(v.world.xy, v.color.yz)) / std.max(v.color.w, 1e-4);
+    const up = std.max(std.normalize(std.sub(eye, v.world)).z, 0.2);
+    const shaped = (w.fades.w * std.max(1 - middle * middle, 0)) / up;
+    const depth = std.select(waterDepth(v.clip, v.world), shaped, puddle);
     const bed = waterUnder(v.clip, v.world, n, depth, look);
-    const through = std.exp(std.mul(w.surface.xyz, -bed.w));
+    const through = std.exp(std.mul(w.surface.xyz, -std.select(bed.w, depth, puddle)));
     // The waves' light focused on the bed where the sun reaches the water.
     const lit = std.mul(bed.xyz, 1 + waterCaustics(v.world, depth, footprint, look) * sun);
     const body = std.mix(w.edge.xyz, w.channel.xyz, 1 - std.dot(through, LUMA));
@@ -127,7 +135,12 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
     const facing = std.max(0.35, std.dot(n, std.normalize(std.sub(eye, v.world))));
     const pixel = std.length(std.fwidth(atPixel(v.clip).xy));
     const fade = std.max(w.fades.x, (pixel * 3) / facing);
-    const edge = std.smoothstep(0, 1, std.clamp(depth / fade, 0, 1));
+    // A puddle, far shallower than a few pixels, fades in over its rim
+    // instead: a sixth of its radius, or a pixel and a half if wider.
+    const rim = (1 - middle) * v.color.w;
+    const ring = std.max(v.color.w / 6, pixel * 1.5);
+    const fill = std.select(depth / fade, rim / ring, puddle);
+    const edge = std.smoothstep(0, 1, std.clamp(fill, 0, 1));
     // The mark lies over the water by its own coverage, whole at the bank
     // too, where the water fades and the bed under it is unpainted.
     const marked = std.mul(environment.air(std.mul(mark, shadowed), v.world, eye).xyz, paint.w);

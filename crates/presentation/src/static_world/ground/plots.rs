@@ -476,7 +476,7 @@ pub fn plots(s: &Source, strip_runs: &[f32], biome: &Biome) -> Result<Plots, Str
         rules,
         biome,
         source: s,
-        water: StandingWater::new(&s.rivers, &s.swamps, &s.grid, biome),
+        water: StandingWater::new(&s.rivers, &s.swamps, &[], &s.grid, biome),
         rng,
         roads,
         rivers,

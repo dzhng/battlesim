@@ -23,6 +23,8 @@
     "water_murky": [[0.2, 0.185, 0.14], [0.24, 0.225, 0.18]],
     "swamp_meadow": [[0.12, 0.13, 0.08], [0.2, 0.21, 0.14]],
     "swamp_marsh": [[0.1, 0.09, 0.055], [0.17, 0.15, 0.1]],
+    "puddle_mirror": [[0.02, 0.022, 0.025], [0.04, 0.042, 0.046]],
+    "puddle_muddy": [[0.11, 0.095, 0.07], [0.15, 0.13, 0.095]],
     "shore": [[0.3, 0.295, 0.285], [0.325, 0.305, 0.28]],
     "distant": [[0.37, 0.369, 0.301]],
     "crater_soil": [[0.3, 0.24, 0.17]],
@@ -306,7 +308,23 @@
     "swamps": [
       { "name": "flooded meadow", "weight": 1, "palette": "swamp_meadow", "extinction_per_m": [0.95, 0.8, 1.2], "ground": "meadow" },
       { "name": "low reed marsh", "weight": 1, "palette": "swamp_marsh", "extinction_per_m": [2.4, 2.0, 2.6], "ground": "rough" }
-    ]
+    ],
+    "puddles": {
+      "looks": [
+        { "name": "mirror", "weight": 1, "palette": "puddle_mirror", "extinction_per_m": [1.2, 1.1, 1.0] },
+        { "name": "muddy", "weight": 1, "palette": "puddle_muddy", "extinction_per_m": [10, 11, 12] }
+      ],
+      "cell_m": 14,
+      "radius_m": [0.7, 2.2],
+      "depth_m": 0.06,
+      "lift_m": 0.03,
+      "on": {
+        "road": { "chance": 0.25, "look": "mirror" },
+        "paving": { "chance": 0.15, "look": "mirror" },
+        "country_road": { "chance": 0.45, "look": "muddy" },
+        "dirt_track": { "chance": 0.7, "look": "muddy" }
+      }
+    }
   },
   "forest_floor": {
     "palette": "forest_floor",
