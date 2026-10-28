@@ -119,3 +119,49 @@ against the code. Each says what was chosen, why, and how sure the agent is.
    one concept. *Confidence:* high.
 9. **No paired battle report on the `wetlands` map yet.** That map comes
    from slice 00 in the other lane; run the report once it is merged.
+
+## Slice 12: swamps in map generation
+
+1. **Swamps come in pairs: one in each half, of one drawn size.** *Why:*
+   the halves then hold the same wet ground by construction; `verify`
+   still measures the split against `swamps.fairness` and refuses a plan
+   outside it, as it does woods. *Confidence:* high.
+2. **Each map type's chance is `swamps.chance.<type>` in the presets' own
+   swamp section, not a `swamp_chance` field beside `river_chance`.**
+   *Why:* `layout/presets.rs`, which holds the type rows, is over the size
+   budget and may not grow; the swamp section owns every swamp number.
+   Shipped chances: open 0.45, mixed 0.35, metro 0.2. *Confidence:* high
+   on the place, low on the values (tuning).
+3. **Placement:** after towns, woods and the skirmish reservation, before
+   `verify`, from the `swamps` stream. A swamp lies wholly inside its half
+   and the map, keeps `settlement_gap_m` from every settlement outline and
+   every skirmish objective (its whole radius) and entry, keeps off every
+   reserved corridor, keeps `bridge_gap_m` from a deck lengthened by its
+   approach (a circle test), keeps `swamp_gap_m` from other swamps, and
+   with a river lies between `river_gap_m` and `river_reach_m` of the
+   water. Roads and woods may cross it: a causeway, a wooded swamp.
+   *Confidence:* medium on the gaps (tuning).
+4. **Later passes keep off swamps through what they already keep off:** the
+   open country counts a swamp with the woods it never furnishes
+   (`open_country/country.rs`), and the ground-sight coverage counts its
+   depth in the lowest ground. Parcels and street furniture stand in
+   settlements, which swamps keep clear of. *Why:* no new owner, and
+   `open_country/mod.rs` is over the size budget. *Confidence:* medium:
+   street furniture along a rural road across a swamp could stand in its
+   water; none of the corpus seeds did.
+5. **The compiler runs `contract::swamp::validate` on the lowered map** and
+   refuses with `InvalidSwamp`, so a placement rule that misses a building
+   or a bridge approach is a named seed refusal, not a world assertion.
+6. **Preset validation refuses a swamp the terrain cannot carve:** a depth
+   past `contract::swamp::deepest_m` (now the contract's one rule), a
+   narrowest drawn swamp under four height samples across, and a river gap
+   inside a river's cut bank plus the swamp's edge. *Confidence:* high.
+7. **Versions:** generator `layout-20`, presets `layout-presets-20`. Plans
+   and maps without swamps serialize as before (`swamps` is skipped when
+   empty). *Confidence:* high.
+8. **The deck clearance is belt and braces:** with the shipped river gap no
+   swamp reaches a bridge approach, so its test is the compiled map's
+   admission, not the placement rule alone.
+9. **Splits for the size ratchet:** the presets document
+   (`layout/presets/definitions.rs`) and the open country's clearance
+   reading (`open_country/country.rs`) moved out in their own commits.

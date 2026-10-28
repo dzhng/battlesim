@@ -14,10 +14,13 @@ impl<'a> Country<'a> {
             .iter()
             .map(|settlement| Ground::new(&settlement.outline))
             .collect();
+        // Ground the country furnishes none of: woods, and swamps' water.
         let woods: Vec<Ground> = plan
             .forests
             .iter()
-            .filter_map(|forest| match &forest.shape {
+            .map(|forest| &forest.shape)
+            .chain(plan.swamps.iter().map(|swamp| &swamp.shape))
+            .filter_map(|shape| match shape {
                 GroundShape::Polygon { ring } => Some(Ground::new(ring)),
                 GroundShape::Stroke { .. } => None,
             })

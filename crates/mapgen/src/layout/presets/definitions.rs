@@ -2,6 +2,10 @@
 //! request reads of it.
 use super::*;
 
+#[path = "swamps.rs"]
+mod swamps;
+pub use swamps::Swamps;
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PresetDefinitions {
@@ -18,6 +22,7 @@ pub struct PresetDefinitions {
     pub towns: Towns,
     pub forests: Forests,
     pub rivers: Rivers,
+    pub swamps: Swamps,
     pub retries: Retries,
     /// District id to what stands there and how its ground is cut. A town
     /// is a mosaic of single-use districts, not a blend on every block.
@@ -61,7 +66,12 @@ impl PresetDefinitions {
     pub fn from_json(source: &str) -> Result<Self, Vec<Diagnostic>> {
         let presets: Self = serde_json::from_str(source)
             .map_err(|error| vec![refusal("$.presets".into(), error.to_string())])?;
-        let errors = presets.errors();
+        let mut errors = presets.errors();
+        errors.extend(presets.swamps.errors(
+            presets.terrain.height_grid_m,
+            presets.terrain.slope_cutoff_deg,
+            presets.rivers.bank_m(),
+        ));
         if errors.is_empty() {
             Ok(presets)
         } else {
