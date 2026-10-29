@@ -58,7 +58,7 @@ def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
     box("antiglare", (1.0, 0.5, 0.03), (7.0, 0, 2.5), m["dark"], hull, rot=(0, 0.22, 0), lods=MID)
-    A.blade_antenna("antenna_spine", (0.2, 0, 2.94), 0.22, m, hull)
+    A.blade_antenna("antenna_spine", (0.2, 0, 2.87), 0.22, m, hull)
     # The PLA's red star and bars aft on the body and on the wings, the
     # photo's red 05 on the nose and the fin.
     A.markings(v, [

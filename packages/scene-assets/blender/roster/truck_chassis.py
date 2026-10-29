@@ -55,12 +55,22 @@ def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_
                           rim_radius=wheel_r * 0.55, ctis=True)
         box(f"frame_rail_{s}", (v.length - 0.6, 0.12, 0.30), (-0.2, side * 0.50, rail_z), m["dark"], h, bevel=0.01)
         for k, x in enumerate(axles):
-            box(f"axle_{s}_{k}", (0.20, track - 0.45, 0.16), (x, side * (track / 2 + 0.05), wheel_r), m["dark"], h,
+            # Axle extends from frame rail to wheel hub (inside the tyre)
+            axle_inner = 0.50 - 0.10  # frame rail inner edge
+            axle_outer = track - wheel_w / 2 + 0.02  # just past wheel inner edge
+            axle_width = axle_outer - axle_inner
+            axle_center = (axle_inner + axle_outer) / 2
+            box(f"axle_{s}_{k}", (0.20, axle_width, 0.16), (x, side * axle_center, wheel_r), m["dark"], h,
                 lods=MID)
             box(f"spring_{s}_{k}", (0.9, 0.10, 0.10), (x, side * 0.50, rail_z - 0.22), m["dark"], h, lods=NEAR)
-            # A fender over each wheel.
+            # A fender over each wheel, with brackets to the frame.
+            fender_z = wheel_r * 2 + 0.10
+            fender_inner_y = side * (track - wheel_w / 2 - 0.04)
+            bracket_height = fender_z - rail_z + 0.05
             box(f"fender_{s}_{k}", (wheel_r * 2.3, wheel_w + 0.12, 0.04),
-                (x, side * track, wheel_r * 2 + 0.10), m["paint"], h, bevel=0.01, lods=MID)
+                (x, side * track, fender_z), m["paint"], h, bevel=0.01, lods=MID)
+            box(f"fender_bracket_{s}_{k}", (0.08, 0.10, bracket_height),
+                (x, fender_inner_y, rail_z + bracket_height / 2 - 0.02), m["dark"], h, lods=FINE)
         VP.mudflap(f"mudflap_{s}", (axles[-1] - wheel_r - 0.15, side * track, wheel_r + 0.55), (wheel_w + 0.05, 0.5),
                    m, h)
         VP.light_with_guard(f"tail_light_{s}", (-half + 0.05, side * (track - 0.05), rail_z + 0.05), 0.05,
@@ -181,7 +191,9 @@ def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1, soft=False):
             loc, rot = VP.on_side(door_x - 0.05, waist + 0.30, side, *face, proud=0.005)
             box(f"door_window_frame_{n}", (window[0] + 0.10, window[1] + 0.10, 0.03), loc, m["paint"], h, rot=rot,
                 bevel=0.01, lods=NEAR)
-            box(f"door_handle_{n}", (0.16, 0.04, 0.04), (door_x - 0.36, side * (half_w + 0.06), waist - 0.20),
+            box(f"door_handle_{n}", (0.16, 0.04, 0.04), (door_x - 0.36, side * (half_w + 0.04), waist - 0.20),
+                m["steel"], h, lods=FINE)
+            box(f"door_handle_mount_{n}", (0.06, 0.06, 0.08), (door_x - 0.36, side * (half_w + 0.02), waist - 0.20),
                 m["steel"], h, lods=FINE)
             for k, z in enumerate((floor + 0.05, waist - 0.35)):
                 box(f"door_hinge_{n}_{k}", (0.06, 0.05, 0.12), (door_x + 0.49, side * (half_w + 0.05), z + 0.2),
@@ -189,8 +201,11 @@ def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1, soft=False):
             for k, z in enumerate((wheel_r * 0.75, wheel_r * 0.75 + 0.32)):
                 box(f"step_{n}_{k}", (0.42, 0.24, 0.04), (door_x - 0.1, side * (half_w - 0.10), z), m["steel"], h,
                     lods=MID)
-            box(f"grab_rail_{n}", (0.03, 0.03, 0.60), (door_x - 0.55, side * (half_w + 0.05), waist - 0.45),
+            box(f"grab_rail_{n}", (0.03, 0.03, 0.60), (door_x - 0.55, side * (half_w + 0.03), waist - 0.45),
                 m["steel"], h, lods=NEAR)
+            for rb, rbz in enumerate((waist - 0.25, waist - 0.65)):
+                box(f"grab_rail_bracket_{n}_{rb}", (0.04, 0.06, 0.06),
+                    (door_x - 0.55, side * (half_w + 0.01), rbz), m["steel"], h, lods=FINE)
         # The rear quarter window behind the door.
         loc, rot = VP.on_side(x0 + 0.30, waist + 0.30, side, *face, proud=0.012)
         box(f"rear_window_{s}", (0.30, 0.30, 0.03), loc, m["glass"], h, rot=rot, lods=MID)
@@ -199,10 +214,16 @@ def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1, soft=False):
     for k in range(3):
         cyl(f"roof_marker_{k}", 0.03, 0.04, (front - rake - 0.06, -0.35 + k * 0.35, height + 0.02), "Z", m["tail"], h,
             seg=8, lods=FINE)
-    box("dash", (0.35, half_w * 1.7, 0.20), (front - 0.55, 0, waist - 0.05), m["black"], h, lods=NEAR)
+    dash_z = waist - 0.05
+    dash_support_height = dash_z - floor - 0.05
+    box("dash", (0.35, half_w * 1.7, 0.20), (front - 0.55, 0, dash_z), m["black"], h, lods=NEAR)
+    box("dash_support", (0.06, half_w * 1.9, dash_support_height), (front - 0.55, 0, floor + dash_support_height / 2 + 0.05),
+        m["black"], h, lods=NEAR)
     for side in (-1, 1):
         box(f"seat_back_{side}", (0.12, 0.50, 0.60), (x0 + 0.45, side * 0.50, waist - 0.05), m["black"], h,
             lods=NEAR)
+        box(f"seat_base_{side}", (0.40, 0.50, waist - floor - 0.35), (x0 + 0.35, side * 0.50, (floor + waist - 0.35) / 2),
+            m["black"], h, lods=NEAR)
 
 
 def cab_fittings(v, x0, front, height, half_w, floor, wheel_r):
@@ -218,14 +239,20 @@ def cab_fittings(v, x0, front, height, half_w, floor, wheel_r):
                                            (d0, y, floor + 0.08)], m, h, radius=0.012)
         box(f"door_window_{side}", ((d1 - d0) * 0.70, 0.03, 0.40), ((d0 + d1) / 2, y, height - 0.40), m["glass"], h,
             lods=MID)
-        box(f"door_handle_{side}", (0.14, 0.04, 0.04), (d0 + 0.15, y + side * 0.02, height - 0.80), m["steel"], h,
+        box(f"door_handle_{side}", (0.14, 0.04, 0.04), (d0 + 0.15, y, height - 0.80), m["steel"], h,
             lods=FINE)
+        box(f"door_handle_mount_{side}", (0.06, 0.06, 0.10), (d0 + 0.15, y - side * 0.02, height - 0.80),
+            m["steel"], h, lods=FINE)
         box(f"step_{side}", (0.32, 0.22, 0.04), ((d0 + d1) / 2, y - side * 0.05, wheel_r * 0.8), m["steel"], h,
             lods=MID)
     for side in (-1, 1):
-        # Each half cab's dash and seat, beside the engine between them.
+        # Each half cab's dash, dash support and seat, beside the engine between them.
         y = side * (half_w - 0.62)
-        box(f"dash_{side}", (0.30, 0.90, 0.18), (cab_front - 0.35, y, height - 0.75), m["black"], h, lods=NEAR)
+        dash_z = height - 0.75
+        dash_support_height = dash_z - floor + 0.05
+        box(f"dash_{side}", (0.30, 0.90, 0.18), (cab_front - 0.35, y, dash_z), m["black"], h, lods=NEAR)
+        box(f"dash_support_{side}", (0.06, 0.85, dash_support_height),
+            (cab_front - 0.35, y, floor + dash_support_height / 2), m["black"], h, lods=NEAR)
         box(f"seat_back_{side}", (0.12, 0.42, 0.55), (x0 + 0.30, y, height - 0.80), m["black"], h, lods=NEAR)
 
 

@@ -46,7 +46,12 @@ def build(variant, v):
         for k, x in enumerate(AXLES):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.32, tread="bar", hub_bolts=10)
-            box(f"axle_{s}_{k}", (0.18, 0.55, 0.18), (x, side * 0.55, WHEEL_R), m["dark"], hull, lods=NEAR)
+            # Axle extends from frame rail (0.45 - 0.07 inner) to wheel hub (inside tyre)
+            axle_inner = 0.38
+            axle_outer = WHEEL_Y - WHEEL_W / 2 + 0.02
+            axle_width = axle_outer - axle_inner
+            box(f"axle_{s}_{k}", (0.18, axle_width, 0.18), (x, side * (axle_inner + axle_outer) / 2, WHEEL_R),
+                m["dark"], hull, lods=NEAR)
         box(f"chassis_rail_{s}", (9.80, 0.14, 0.26), (-0.20, side * 0.45, RAIL_Z), m["dark"], hull, bevel=0.01,
             lods=MID)
         VP.mudflap(f"mudflap_{s}", (-4.65, side * WHEEL_Y, BED_FLOOR - 0.15), (0.42, 0.55), m, hull)
@@ -84,6 +89,13 @@ def cab(v):
         for k, z in enumerate((0.55, 0.85)):
             box(f"step_{s}_{k}", (0.30, 0.22, 0.04), (2.78, side * (width / 2 - 0.08), z + 0.20), m["steel"], hull,
                 lods=MID)
+        # Step bracket: vertical from step to under cab, horizontal connecting vertical to engine block
+        vert_y = side * (width / 2 - 0.10)
+        box(f"step_bracket_v_{s}", (0.06, 0.06, 0.56), (2.78, vert_y, 1.03), m["dark"], hull, lods=MID)
+        inner_y = side * 0.35
+        horiz_span = abs(vert_y - inner_y) + 0.06
+        horiz_center = (vert_y + inner_y) / 2
+        box(f"step_bracket_h_{s}", (0.06, horiz_span, 0.06), (2.78, horiz_center, CAB_FLOOR - 0.03), m["dark"], hull, lods=MID)
         mirror = empty(f"dressing_mirror_{s}", parent=hull)
         box(f"mirror_frame_{s}", (0.04, 0.04, 0.60), (4.45, side * 1.32, 2.30), m["black"], mirror, lods=NEAR)
         box(f"mirror_{s}", (0.05, 0.18, 0.40), (4.45, side * 1.34, 2.35), m["black"], mirror, bevel=0.01, lods=MID)
@@ -92,8 +104,11 @@ def cab(v):
     for side in (-1, 1):
         box(f"windscreen_{side}", (0.03, 1.02, 0.78), (NOSE - 0.52, side * 0.57, 2.42), m["glass"], hull,
             rot=(0, -rake, 0), lods=MID)
-        box(f"seat_back_{side}", (0.12, 0.50, 0.60), (3.55, side * 0.55, 1.90), m["black"], hull, lods=NEAR)
+        # Seat: base on floor, back attached to base
+        box(f"seat_base_{side}", (0.50, 0.50, 0.45), (3.65, side * 0.55, CAB_FLOOR + 0.23), m["dark"], hull, lods=NEAR)
+        box(f"seat_back_{side}", (0.12, 0.50, 0.60), (3.48, side * 0.55, 1.65), m["black"], hull, lods=NEAR)
     box("dash", (0.40, 2.00, 0.22), (4.40, 0, 1.92), m["black"], hull, lods=NEAR)
+    box("dash_support", (0.06, 1.90, 0.55), (4.40, 0, 1.62), m["black"], hull, lods=NEAR)
     for k in range(5):
         cyl(f"roof_marker_{k}", 0.03, 0.04, (NOSE - 0.72, -0.80 + k * 0.40, ROOF + 0.02), "Z", m["tail"], hull, seg=8,
             lods=FINE)

@@ -113,6 +113,9 @@ def fittings(v):
             VP.bolted_panel(f"side_panel_{s}_{k}", loc, (1.25, 0.72, 0.025), m, hull, bolts=(4, 3), rot=rot,
                             bevel=0.012)
         box(f"grab_rail_{s}", (2.40, 0.04, 0.04), (-1.60, side * 1.38, ROOF + 0.10), m["steel"], hull, lods=NEAR)
+        for k in range(5):
+            box(f"rail_bracket_{s}_{k}", (0.04, 0.06, 0.10), (-2.80 + k * 0.60, side * 1.38, ROOF + 0.05),
+                m["steel"], hull, lods=FINE)
     VP.exhaust("exhaust", (2.10, -1.52, 2.00), 0.07, 0.35, m, hull, rot=(0, 0, -math.pi / 2))
     for k, (x, y) in enumerate(((-2.85, 0.60), (-2.85, -0.60), (-3.55, 0.60), (-3.55, -0.60))):
         VP.hatch(f"troop_hatch_{k}", (x, y, ROOF), m, hull, size=(0.66, 0.62))

@@ -93,7 +93,7 @@ def build(variant, v):
             hub=0.42, mast=0.0, droop=0.025, phase=0.4)
     A.rotor("tail", (tail + 0.55, -0.32, 3.05), 1.68, 4, 0.25, m, hull, hub=0.16, mast=0.0, droop=0.0,
             rot=(math.pi / 2 - 0.35, 0, 0), thick=0.12)
-    A.mirrored(lambda side, k: box(f"step_{k}", (0.4, 0.2, 0.04), (length / 2 - 2.6, side * 1.0, 0.5), m["dark"], hull,
+    A.mirrored(lambda side, k: box(f"step_{k}", (0.4, 0.2, 0.04), (length / 2 - 2.6, side * 1.04, 0.85), m["dark"], hull,
                                    lods=NEAR))
     A.blade_antenna("antenna_belly", (-0.8, 0, 0.6), 0.25, m, hull, down=True)
     if z20:

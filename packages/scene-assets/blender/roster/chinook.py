@@ -72,7 +72,7 @@ def build(variant, v):
     cyl("mast_rear", 0.2, 0.55, (-6.0, 0, 5.15), "Z", m["dark"], hull, seg=12)
     A.rotor("front", (5.6, 0, 4.2), 9.14, 3, 0.8, m, hull, hub=0.44, mast=0.0, droop=0.03, phase=0.3)
     A.rotor("rear", (-6.0, 0, 5.43), 9.14, 3, 0.8, m, hull, hub=0.44, mast=0.0, droop=0.03, phase=0.3 + 1.047)
-    A.mirrored(lambda side, k: box(f"step_{k}", (0.4, 0.2, 0.04), (6.2, side * 1.25, 0.7), m["dark"], hull,
+    A.mirrored(lambda side, k: box(f"step_{k}", (0.4, 0.2, 0.04), (6.2, side * 1.08, 0.85), m["dark"], hull,
                                    lods=NEAR))
     A.door_guns(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.2)
 

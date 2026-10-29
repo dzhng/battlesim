@@ -99,7 +99,7 @@ def build(variant, v):
     # Speed brakes either side of the nozzle, closed.
     A.mirrored(lambda side, s: box(f"speed_brake_{s}", (0.9, 0.06, 0.55), (-6.45, side * 0.62, 1.86), m["paint"],
                                    hull, bevel=0.02, lods=MID))
-    A.blade_antenna("antenna_spine", (-1.6, 0, 2.78), 0.22, m, hull)
+    A.blade_antenna("antenna_spine", (-1.6, 0, 2.75), 0.22, m, hull)
     A.blade_antenna("antenna_belly", (0.2, 0, 1.2), 0.22, m, hull, down=True)
     A.markings(v, MARKINGS)
 

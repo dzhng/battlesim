@@ -63,7 +63,7 @@ def build(variant, v):
                m["paint"], hull, seg=18, loc=(0, side * 1.1, 0))
     A.sensor_ball("irst", (4.95, 0.25, 2.92), 0.14, m, hull)
     box("antiglare", (0.9, 0.55, 0.03), (5.6, 0, 2.8), m["dark"], hull, rot=(0, 0.12, 0), lods=MID)
-    A.blade_antenna("antenna_spine", (-1.0, 0, 3.3), 0.22, m, hull)
+    A.blade_antenna("antenna_spine", (-1.0, 0, 3.22), 0.22, m, hull)
     # The VKS's red star on the fins (both faces) and under the wings, the
     # photo's blue 777 on the intakes.
     fin_x, fin_z = -3.6 - 1.9 * 0.6 - 0.9, 2.6 + 2.13 * 0.6

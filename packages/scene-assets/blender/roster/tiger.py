@@ -76,7 +76,7 @@ def build(variant, v):
         A.store(f"rail_missile_{k}", "missile", (1.1, side * 2.0, 1.22), 1.6, 0.09, m, hull)
     A.body("mast_fairing", [(1.3, 0.0, 2.6, 2.6), (0.9, 0.42, 2.4, 3.0, 2.65), (-0.6, 0.42, 2.4, 2.95, 2.65),
                             (-1.1, 0.0, 2.65, 2.65)], m["paint"], hull, seg=14)
-    cyl("mast", 0.14, 0.6, (0.3, 0, 3.2), "Z", m["dark"], hull, seg=12)
+    cyl("mast", 0.16, 0.65, (0.3, 0, 3.17), "Z", m["dark"], hull, seg=12)
     A.rotor("main", (0.3, 0, 3.52), 6.5, 4, 0.5, m, hull, hub=0.36, mast=0.0, droop=0.025, phase=0.5)
     A.rotor("tail", (-6.55, -0.24, 2.95), 1.35, 3, 0.24, m, hull, hub=0.13, mast=0.0, droop=0.0,
             rot=(math.pi / 2, 0, 0), thick=0.12)

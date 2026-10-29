@@ -185,7 +185,10 @@ def underside(v):
         VP.mudflap(f"rear_mudflap_{s}", (-half + 0.70, side * 1.03, 0.95), (0.42, 0.50), m, h)
     VP.fuel_tank("fuel_tank", (0.40, 0.95, 1.00), 1.30, 0.30, m, h)
     box("battery_box", (1.10, 0.40, 0.50), (0.40, -0.98, 0.95), m["paint"], h, bevel=0.02)
+    box("battery_bracket", (0.10, 0.50, 0.08), (0.40, -0.72, 1.18), m["dark"], h, lods=MID)
     box("rear_underrun", (0.12, 2.20, 0.14), (-half + 0.10, 0, 0.70), m["dark"], h, bevel=0.012)
+    for side, s in ((1, "L"), (-1, "R")):
+        box(f"underrun_bracket_{s}", (0.08, 0.10, 0.40), (-half + 0.10, side * 0.45, 0.90), m["dark"], h, lods=MID)
     VP.tow_hook("pintle", (-half + 0.18, 0, 0.92), m, h, size=0.10, rot=(0, 0, math.pi))
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=h)

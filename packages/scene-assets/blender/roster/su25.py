@@ -62,7 +62,7 @@ def build(variant, v):
     box("windscreen_frame", (0.08, 0.7, 0.4), (5.55, 0, 2.82), m["dark"], hull, rot=(0, -0.5, 0), lods=MID)
     A.mirrored(lambda side, k: box(f"wing_tip_brake_{k}", (1.4, 0.06, 0.18), (-0.9, side * 6.95, WING_Z - 0.2),
                                    m["paint"], hull, lods=MID))
-    A.pitot("air_data_probe", (7.6, 0.3, 2.1), 0.8, m, hull)
+    A.pitot("air_data_probe", (7.65, 0.0, 1.95), 0.8, m, hull)
     # The photo's markings: the red star, VKS ROSSII and the serial on the
     # fin, red stars under the wings, the red 10 on the nose.
     A.markings(v, [

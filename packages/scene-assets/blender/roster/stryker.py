@@ -138,10 +138,22 @@ def wheels(v):
         for k, x in enumerate(WHEEL_X):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.29, ctis=True)
-            # Suspension arms reaching in from the hub to the belly.
-            box(f"suspension_arm_{s}_{k}", (0.16, 0.42, 0.10), (x, side * (WHEEL_Y - 0.36), WHEEL_R + 0.05),
+            # Suspension arms reaching in from the hub to the belly, with coil
+            # spring mounted on a bracket behind the arm.
+            arm_x, arm_y = x, side * (WHEEL_Y - 0.36)
+            arm_z = WHEEL_R + 0.05
+            box(f"suspension_arm_{s}_{k}", (0.16, 0.42, 0.10), (arm_x, arm_y, arm_z),
                 m["dark"], hull, lods=NEAR)
-            cyl(f"spring_{s}_{k}", 0.07, 0.38, (x - 0.18, side * (WHEEL_Y - 0.42), WHEEL_R + 0.30), "Z", m["dark"],
+            # Spring position and mounting bracket connecting to arm
+            spring_x = x - 0.18
+            spring_y = side * (WHEEL_Y - 0.42)
+            spring_bottom = WHEEL_R + 0.30 - 0.19  # spring is 0.38 tall, centered
+            # Bracket bridges from arm rear edge to spring base
+            bracket_x = (arm_x - 0.08 + spring_x + 0.07) / 2  # between arm rear and spring front
+            bracket_len = (arm_x - 0.08) - (spring_x + 0.07) + 0.04  # overlap both ends
+            box(f"spring_bracket_{s}_{k}", (bracket_len, 0.10, 0.06),
+                (bracket_x, spring_y, spring_bottom + 0.03), m["dark"], hull, lods=FINE)
+            cyl(f"spring_{s}_{k}", 0.07, 0.38, (spring_x, spring_y, WHEEL_R + 0.30), "Z", m["dark"],
                 hull, seg=10, lods=FINE)
         # Mudflaps hang behind the rear wheels from under the lower hull.
         VP.mudflap(f"mudflap_{s}", (-2.75, side * WHEEL_Y, 0.95), (0.40, 0.50), m, hull)
