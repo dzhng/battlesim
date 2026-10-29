@@ -88,12 +88,12 @@ pub fn test_game() -> Value {
 }
 
 /// Add to `fixture`'s catalog a hull at each drive's absolute limits
-/// (`hull_limits`): `test_limit_tracked`, the test tank grown to the tracked
+/// (`contract::HullLimits`): `test_limit_tracked`, the test tank grown to the tracked
 /// limits, and `test_limit_wheeled`, the test truck grown to the wheeled
 /// limits and turning as wide as they allow. What is proven for them holds
 /// for every unit the limits admit.
-pub fn with_units_at_limits(fixture: &mut Value) {
-    let limits = fixture["hull_limits"].clone();
+pub fn with_units_at_limits(fixture: &mut Value, limits: contract::HullLimits) {
+    let limits = serde_json::to_value(limits).unwrap();
     let hull = |base: &str, drive: &str| {
         let height = fixture["catalog"]
             .as_array()
@@ -118,14 +118,19 @@ pub fn with_units_at_limits(fixture: &mut Value) {
         .push(serde_json::json!({ "units": units }));
 }
 
-/// Lift `fixture`'s hull limits, for a test that needs a hull no battle may
-/// field (a truck too long to turn a corner, a tank wider than any street)
-/// to show how a mechanic fails.
-pub fn lift_hull_limits(fixture: &mut Value) {
-    let far =
-        serde_json::json!({ "half_width_m": 1e6, "half_length_m": 1e6, "turning_radius_m": 1e6 });
-    fixture["hull_limits"] =
-        serde_json::json!({ "tracked": far, "wheeled": far, "rotor": far, "fixed_wing": far });
+/// Bounds for tests that deliberately field a hull no battle may admit.
+pub fn lift_hull_limits() -> contract::HullLimits {
+    let far = contract::DriveLimits {
+        half_width_m: 1e6,
+        half_length_m: 1e6,
+        turning_radius_m: Some(1e6),
+    };
+    contract::HullLimits {
+        tracked: far,
+        wheeled: far,
+        rotor: far,
+        fixed_wing: far,
+    }
 }
 
 /// The catalog documents at `roots` under `fixtures/` (a directory, walked,

@@ -157,7 +157,7 @@ impl SideGeometry {
             .filter_map(|p| self.belief(p, authored))
             .filter(|p| walls_aircraft(world, rules, p))
             .collect();
-        let grid = Arc::new(AirGrid::build(world, rules, walls.iter()));
+        let grid = Arc::new(AirGrid::build(world, walls.iter()));
         self.air = Some((stamp.0, stamp.1, grid.clone()));
         grid
     }

@@ -1024,13 +1024,6 @@
     "boulder": "boulder",
     "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment": 0.25, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2, "logs_per_ha": 0, "boulders_per_ha": 0, "log_half_extents_m": [2.2, 0.35, 0.35], "boulder_half_extents_m": [1, 0.8, 0.75] }
   },
-  "hull_limits": {
-    "tracked": { "half_width_m": 2.1, "half_length_m": 4.8 },
-    "wheeled": { "half_width_m": 1.6, "half_length_m": 6.2, "turning_radius_m": 8.0 },
-    "rotor": { "half_width_m": 3.7, "half_length_m": 10.0 },
-    "fixed_wing": { "half_width_m": 8.8, "half_length_m": 11.7 }
-  },
-  "air_speed_limits_kmh": { "rotor": 320, "fixed_wing": 1000 },
   "shouts": {
     "cooldown_s": 8,
     "talk_s": {

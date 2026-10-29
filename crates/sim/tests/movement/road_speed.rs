@@ -19,7 +19,6 @@ fn a_supply_truck_builds_road_speed_instead_of_jumping_to_it() {
     );
     let mut rules = common::scenario_rules();
     // Its hull is past what the game admits.
-    sim::fixtures::lift_hull_limits(&mut rules);
     rules["movement"]["drive"]["acceleration_s"] = serde_json::json!(4.5);
     rules["movement"]["drive"]["braking_s"] = serde_json::json!(1.5);
     rules["movement"]["speed_factors"]["wheeled"]["surfaces"]["road"] = serde_json::json!(1.0);
@@ -34,6 +33,14 @@ fn a_supply_truck_builds_road_speed_instead_of_jumping_to_it() {
         }),
     );
     setup.rules = serde_json::from_value(rules).unwrap();
+    setup
+        .rules
+        .catalog
+        .check_limits(
+            sim::fixtures::lift_hull_limits(),
+            contract::AirSpeedLimits::SHIPPED,
+        )
+        .unwrap();
     let hz = setup.rules.tick_hz;
     let mut b = Battle::new(&setup, 1);
     let mut orders = Orders { seq: 0 };

@@ -1461,7 +1461,7 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         }) {
             return Some("mobility: arrival.delay_s must be [min, max] with 0 <= min <= max");
         }
-        // Its upper limit is the rules' (`air_speed_limits_kmh`).
+        // Admission checks its flight model's speed envelope.
         if !positive(cruise_kmh) {
             return Some("mobility: an aircraft's cruise_kmh must be positive");
         }

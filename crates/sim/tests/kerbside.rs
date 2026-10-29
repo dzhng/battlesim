@@ -474,7 +474,7 @@ fn drive_onto_the_wreck(ratio: Option<f64>) -> (V2, f64, f64) {
     // A truck at the wheeled limits: as wide, as long and as wide-turning as
     // any wheeled hull a battle may field.
     let mut rules = common::scenario_rules();
-    sim::fixtures::with_units_at_limits(&mut rules);
+    sim::fixtures::with_units_at_limits(&mut rules, contract::HullLimits::SHIPPED);
     if let Some(ratio) = ratio {
         rules["navigation"]["stop_short_detour_ratio"] = json!(ratio);
     }
@@ -514,7 +514,7 @@ fn drive_onto_the_wreck(ratio: Option<f64>) -> (V2, f64, f64) {
 fn a_long_truck_pulls_up_beside_parked_cars_where_it_was_sent() {
     let bearing = 0.0;
     let mut rules = common::scenario_rules();
-    sim::fixtures::with_units_at_limits(&mut rules);
+    sim::fixtures::with_units_at_limits(&mut rules, contract::HullLimits::SHIPPED);
     let from = at(bearing, -200.0, 0.0);
     let units =
         json!([{ "side": "blue", "kind": "test_limit_wheeled", "position": from, "yaw": bearing }]);
@@ -558,13 +558,18 @@ fn a_long_truck_pulls_up_beside_parked_cars_where_it_was_sent() {
 #[test]
 fn a_hull_at_its_drives_limits_drives_a_lane_a_little_wider_than_itself() {
     let mut rules = common::scenario_rules();
-    sim::fixtures::with_units_at_limits(&mut rules);
+    sim::fixtures::with_units_at_limits(&mut rules, contract::HullLimits::SHIPPED);
     for (kind, drive) in [
         ("test_limit_tracked", "tracked"),
         ("test_limit_wheeled", "wheeled"),
     ] {
-        let [half_width, half_length] = ["half_width_m", "half_length_m"]
-            .map(|k| rules["hull_limits"][drive][k].as_f64().unwrap());
+        let limits = contract::HullLimits::SHIPPED;
+        let hull = if drive == "tracked" {
+            limits.tracked
+        } else {
+            limits.wheeled
+        };
+        let (half_width, half_length) = (hull.half_width_m, hull.half_length_m);
         let bearing = 30f64.to_radians();
         let way = 2.0 * half_width + 2.4;
         let wall = |side: f64| {

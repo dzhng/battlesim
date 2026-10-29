@@ -29,8 +29,6 @@ pub(super) struct UncheckedRules {
     garrison: GarrisonRules,
     carriage: CarriageRules,
     bail_out: std::collections::BTreeMap<BailOutHost, BailOutRow>,
-    hull_limits: HullLimits,
-    air_speed_limits_kmh: AirSpeedLimits,
     air: AirRules,
     shouts: ShoutRules,
 }
@@ -62,8 +60,6 @@ impl TryFrom<UncheckedRules> for Rules {
             garrison: r.garrison,
             carriage: r.carriage,
             bail_out: r.bail_out,
-            hull_limits: r.hull_limits,
-            air_speed_limits_kmh: r.air_speed_limits_kmh,
             air: r.air,
             shouts: r.shouts,
         };
@@ -112,12 +108,6 @@ impl Rules {
         self.catalog
             .check_weapons(&self.weapons)
             .map_err(|e| RulesError::new("catalog", e.to_string()))?;
-        self.hull_limits
-            .check(&self.catalog)
-            .map_err(|e| RulesError::new("hull_limits", e.to_string()))?;
-        self.air_speed_limits_kmh
-            .check(&self.catalog)
-            .map_err(|e| RulesError::new("air_speed_limits_kmh", e.to_string()))?;
         for (id, checked) in [
             ("suppression", self.suppression.check()),
             ("navigation", self.navigation.check()),

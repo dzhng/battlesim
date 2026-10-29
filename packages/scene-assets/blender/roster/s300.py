@@ -21,7 +21,7 @@ What the photos settle:
 The frame is the travelling launcher's length, width and height. The
 published 13.11 m (5P85S, karopka.ru's figures for the MAZ-543M launcher:
 13.11 x 3.15 x 3.8 m) runs past the simulation's longest wheeled hull
-(`hull_limits`), so the card is that limit's length and the containers' overhang
+(`contract::HullLimits::SHIPPED`), so the card is that limit's length and the containers' overhang
 past the chassis is that much shorter. The launcher is a fixed mount drawn
 stowed: its catalog pivot is the erector's hinge (`HINGE`), its muzzle the
 containers' tops.

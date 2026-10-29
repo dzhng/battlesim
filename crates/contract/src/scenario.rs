@@ -394,8 +394,6 @@ pub struct Rules {
     pub garrison: GarrisonRules,
     pub carriage: CarriageRules,
     pub bail_out: std::collections::BTreeMap<BailOutHost, BailOutRow>,
-    pub hull_limits: HullLimits,
-    pub air_speed_limits_kmh: AirSpeedLimits,
     pub air: AirRules,
     pub shouts: ShoutRules,
 }
@@ -555,122 +553,6 @@ impl AirRules {
             crate::catalog::AltitudeLayer::HighAir => Some(self.high_air.floor_agl_m),
             _ => None,
         }
-    }
-}
-
-/// The largest hull each drive may have: what the map generator and the
-/// route planner are proven against, by tests that drive hulls built at
-/// these limits. A unit past them is refused where the rules load, so every
-/// admitted unit is covered by those tests.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct HullLimits {
-    pub tracked: DriveLimits,
-    pub wheeled: DriveLimits,
-    /// A helicopter's hull, without its rotor disc.
-    pub rotor: DriveLimits,
-    /// A fixed-wing aircraft's hull.
-    pub fixed_wing: DriveLimits,
-}
-
-impl HullLimits {
-    /// The limits of an aircraft that flies by `flight`.
-    pub fn flight(&self, flight: crate::catalog::FlightModel) -> &DriveLimits {
-        match flight {
-            crate::catalog::FlightModel::Rotor => &self.rotor,
-            crate::catalog::FlightModel::FixedWing => &self.fixed_wing,
-        }
-    }
-}
-
-/// The fastest an aircraft of each flight model may cruise, km/h.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AirSpeedLimits {
-    pub rotor: f64,
-    pub fixed_wing: f64,
-}
-
-impl AirSpeedLimits {
-    /// The fastest an aircraft that flies by `flight` may cruise, km/h.
-    pub fn flight(&self, flight: crate::catalog::FlightModel) -> f64 {
-        match flight {
-            crate::catalog::FlightModel::Rotor => self.rotor,
-            crate::catalog::FlightModel::FixedWing => self.fixed_wing,
-        }
-    }
-
-    /// The first aircraft of `catalog` cruising past its flight model's limit.
-    fn check(&self, catalog: &crate::catalog::Catalog) -> Result<(), crate::catalog::CatalogError> {
-        use crate::catalog::Mobility;
-        for index in catalog.indices() {
-            let Mobility::Air {
-                cruise_kmh, flight, ..
-            } = catalog.get(index).mobility
-            else {
-                continue;
-            };
-            let (name, limit) = (flight.name(), self.flight(flight));
-            if cruise_kmh > limit {
-                return Err(crate::catalog::CatalogError::Invalid {
-                    section: "units",
-                    id: catalog.id(index).into(),
-                    error: format!(
-                        "its {name} cruise_kmh {cruise_kmh} is past the limit of {limit} (air_speed_limits_kmh)"
-                    ),
-                });
-            }
-        }
-        Ok(())
-    }
-}
-
-/// One drive's largest hull; a tracked hull pivots and has no turn limit.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct DriveLimits {
-    pub half_width_m: f64,
-    pub half_length_m: f64,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub turning_radius_m: Option<f64>,
-}
-
-impl HullLimits {
-    /// The first unit of `catalog` whose hull passes its drive's limits.
-    fn check(&self, catalog: &crate::catalog::Catalog) -> Result<(), crate::catalog::CatalogError> {
-        use crate::catalog::Mobility;
-        for index in catalog.indices() {
-            let unit = catalog.get(index);
-            let Some(hull) = unit.hull() else { continue };
-            let (drive, limits, radius) = match unit.mobility {
-                Mobility::Tracked { .. } => ("tracked", &self.tracked, None),
-                Mobility::Wheeled {
-                    turning_radius_m, ..
-                } => ("wheeled", &self.wheeled, Some(turning_radius_m)),
-                Mobility::Air { flight, .. } => (flight.name(), self.flight(flight), None),
-                // A squad has no hull; the catalog refuses a hull on foot.
-                Mobility::Foot { .. } => continue,
-            };
-            let [length, width, _] = hull.half_extents_m;
-            let past = [
-                ("half width", width, Some(limits.half_width_m)),
-                ("half length", length, Some(limits.half_length_m)),
-            ]
-            .into_iter()
-            .chain(radius.map(|r| ("turning radius", r, limits.turning_radius_m)))
-            .find(|(_, value, limit)| limit.is_some_and(|limit| *value > limit));
-            if let Some((what, value, limit)) = past {
-                return Err(crate::catalog::CatalogError::Invalid {
-                    section: "units",
-                    id: catalog.id(index).into(),
-                    error: format!(
-                        "its {drive} {what} {value} m is past the limit of {} m (hull_limits)",
-                        limit.unwrap()
-                    ),
-                });
-            }
-        }
-        Ok(())
     }
 }
 

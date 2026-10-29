@@ -183,7 +183,6 @@ mod tests {
         for (half_width, accepted) in [(1.0, true), (4.0, false)] {
             let mut input = crate::fixtures::test_game();
             // A hull this wide is past what the game admits.
-            crate::fixtures::lift_hull_limits(&mut input);
             for document in input["catalog"].as_array_mut().unwrap() {
                 if let Some(jeep) = document
                     .get_mut("units")

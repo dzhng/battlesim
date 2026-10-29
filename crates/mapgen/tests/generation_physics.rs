@@ -116,13 +116,8 @@ fn an_aircraft_row_moves_nothing_on_the_ground() {
         CompileOutcome::Error { diagnostics } => panic!("generation refused: {diagnostics:?}"),
     };
     // Airframes may be far wider than anything that drives.
-    const WIDE_M: f64 = 40.0;
+    const WIDE_M: f64 = contract::HullLimits::SHIPPED.rotor.half_width_m;
     let mut rules = sim::fixtures::test_game();
-    for flight in ["rotor", "fixed_wing"] {
-        rules["hull_limits"][flight] = serde_json::json!({
-            "half_width_m": WIDE_M, "half_length_m": WIDE_M
-        });
-    }
     let before = build(&rules);
     let aircraft = rules["catalog"]
         .as_array()

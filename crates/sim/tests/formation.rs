@@ -218,7 +218,6 @@ fn a_partial_order_moves_the_units_that_fit_and_holds_the_others() {
     );
     let mut rules = crate::common::scenario_rules();
     // Its hull is past what the game admits.
-    sim::fixtures::lift_hull_limits(&mut rules);
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -228,6 +227,14 @@ fn a_partial_order_moves_the_units_that_fit_and_holds_the_others() {
         }),
     );
     setup.rules = serde_json::from_value(rules).unwrap();
+    setup
+        .rules
+        .catalog
+        .check_limits(
+            sim::fixtures::lift_hull_limits(),
+            contract::AirSpeedLimits::SHIPPED,
+        )
+        .unwrap();
     let mut battle = Battle::new(&setup, 1);
     let order = Order::Move {
         units: vec![UnitId(0), UnitId(1)],

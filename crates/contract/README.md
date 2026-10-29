@@ -35,7 +35,9 @@ owns authored documents and resolved catalog publication.
 The catalog separates player card identity from physical admission. Planned
 variants retain faction memberships, price and a disabled reason without acquiring
 a live type index. Admitted variants supply validated physics and carried mounts;
-developer scenario types may have no player membership. Shared equipment has one
+developer scenario types may have no player membership. [Catalog limits](src/limits.rs)
+bound supported hulls and air speeds independently of overridable battle rules;
+simulation admission applies the shipped limits. Shared equipment has one
 canonical variant and several memberships, so factions do not duplicate tuning.
 
 What a card shows is authored beside what code addresses: a unit, family, mount,

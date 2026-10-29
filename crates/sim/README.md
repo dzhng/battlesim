@@ -189,12 +189,12 @@ back edge, since they can't land at the base (`air`). Loading refuses a pair
 no flight law flies yet.
 
 Where a mechanic depends on how big or how extreme a unit can be, the extreme
-is data: the rules' `hull_limits` bound every hull a battle may field, loading
+is a catalog admission constant: `contract::HullLimits::SHIPPED` bounds every hull a battle may field; admission
 refuses a unit past them, and the mechanic is proven against fake units built
 at the limits (`fixtures::with_units_at_limits`: `test_limit_tracked`,
 `test_limit_wheeled`). What holds at the limit holds
 for every unit inside it. A test that needs a shape past the limits, to show
-how a mechanic fails, lifts them explicitly (`fixtures::lift_hull_limits`).
+how a mechanic fails, passes lifted limits explicitly (`fixtures::lift_hull_limits`) to catalog admission.
 
 ## Reports and cost
 
