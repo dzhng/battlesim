@@ -14,8 +14,7 @@ import math
 import os
 import sys
 from pathlib import Path
-from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import Callable
 
 import bpy
 import bmesh
@@ -23,6 +22,17 @@ from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from vehicle_lint_core import (
+    LintIssue,
+    LintResult,
+    load_baseline as _load_baseline_core,
+    save_baseline as _save_baseline_core,
+    load_allowlist as _load_allowlist_core,
+    filter_by_baseline,
+    filter_by_allowlist,
+    format_issues,
+)
 
 REPO = Path(__file__).resolve().parents[3]
 BASELINE_PATH = REPO / "packages/scene-assets/blender/vehicle_lint_baseline.json"
@@ -33,98 +43,11 @@ _SUPPRESS_EXPORT_LINT = False
 _SUPPRESS_EXPORT = False
 
 # --------------------------------------------------------------------- config
-# Per-asset-type check configuration. Each asset type specifies which checks
-# run and with what tolerances.
-
-ASSET_CONFIGS = {
-    "vehicle": {
-        "checks": ["interpenetration", "floating_part", "ground_contact"],
-        "interpenetration_tolerance": 0.005,  # 5mm
-        "floating_threshold": 0.02,  # 2cm
-        "ground_tolerance": 0.01,  # 1cm
-    },
-    "aircraft": {
-        "checks": ["interpenetration", "floating_part", "ground_contact"],
-        "interpenetration_tolerance": 0.005,
-        "floating_threshold": 0.02,
-        "ground_tolerance": 0.015,  # 1.5cm - landing gear has more flex
-    },
-    "building": {
-        "checks": ["interpenetration", "floating_part"],
-        "interpenetration_tolerance": 0.01,  # 1cm - buildings have more tolerance
-        "floating_threshold": 0.05,  # 5cm
-    },
-    "default": {
-        "checks": ["interpenetration", "floating_part"],
-        "interpenetration_tolerance": 0.005,
-        "floating_threshold": 0.02,
-    },
-}
-
-# Default tolerances when not specified
-INTERPENETRATION_TOLERANCE = 0.005
-FLOATING_PART_THRESHOLD = 0.02
-GROUND_CONTACT_TOLERANCE = 0.01
+# Tolerances for vehicle geometry checks.
+INTERPENETRATION_TOLERANCE = 0.005  # 5mm
+FLOATING_PART_THRESHOLD = 0.02  # 2cm
+GROUND_CONTACT_TOLERANCE = 0.01  # 1cm
 GROUND_PLANE_Z = 0.0
-
-
-@dataclass
-class LintIssue:
-    """A single lint finding."""
-    check: str
-    severity: str
-    message: str
-    parts: tuple[str, ...] = ()
-    distance_m: Optional[float] = None
-
-    def to_dict(self):
-        d = {"check": self.check, "severity": self.severity, "message": self.message}
-        if self.parts:
-            d["parts"] = list(self.parts)
-        if self.distance_m is not None:
-            d["distance_m"] = round(self.distance_m, 4)
-        return d
-
-    @classmethod
-    def from_dict(cls, d):
-        return cls(
-            check=d["check"],
-            severity=d["severity"],
-            message=d["message"],
-            parts=tuple(d.get("parts", [])),
-            distance_m=d.get("distance_m"),
-        )
-
-    def matches_baseline(self, other, distance_tolerance=0.005):
-        """Check if this issue matches a baseline entry.
-        
-        Matches if check and parts are the same, AND the distance hasn't grown
-        more than distance_tolerance (5mm default) past the baseline value.
-        A part whose gap grows past its baselined value fails.
-        """
-        if self.check != other.check or set(self.parts) != set(other.parts):
-            return False
-        # If baseline has no distance, match by name only (legacy)
-        if other.distance_m is None:
-            return True
-        # If current has no distance, match (can't compare)
-        if self.distance_m is None:
-            return True
-        # Fail if gap has grown more than tolerance past baseline
-        return self.distance_m <= other.distance_m + distance_tolerance
-
-
-@dataclass
-class LintResult:
-    """Results from linting one vehicle."""
-    vehicle_id: str
-    issues: list[LintIssue] = field(default_factory=list)
-    passed: bool = True
-
-    def add(self, issue: LintIssue):
-        self.issues.append(issue)
-        if issue.severity == "error":
-            self.passed = False
 
 
 # --------------------------------------------------------------------- helpers
@@ -734,30 +657,18 @@ LINT_CHECKS: dict[str, Callable[[LintResult], None]] = {
 }
 
 
-def lint_current_scene(vehicle_id: str, asset_type: str = "vehicle") -> LintResult:
-    """Run lint checks on the current Blender scene.
-    
-    Args:
-        vehicle_id: Identifier for the asset being linted
-        asset_type: Type of asset ("vehicle", "aircraft", "building", "default")
-    """
+def lint_current_scene(vehicle_id: str) -> LintResult:
+    """Run lint checks on the current Blender scene."""
     result = LintResult(vehicle_id=vehicle_id)
-    config = ASSET_CONFIGS.get(asset_type, ASSET_CONFIGS["default"])
-    checks_to_run = config.get("checks", [])
     
-    for check_name in checks_to_run:
-        check_fn = LINT_CHECKS.get(check_name)
-        if check_fn is None:
-            continue
-        
-        # Get tolerance from config
+    for check_name, check_fn in LINT_CHECKS.items():
         kwargs = {}
         if check_name == "interpenetration":
-            kwargs["tolerance"] = config.get("interpenetration_tolerance", INTERPENETRATION_TOLERANCE)
+            kwargs["tolerance"] = INTERPENETRATION_TOLERANCE
         elif check_name == "floating_part":
-            kwargs["threshold"] = config.get("floating_threshold", FLOATING_PART_THRESHOLD)
+            kwargs["threshold"] = FLOATING_PART_THRESHOLD
         elif check_name == "ground_contact":
-            kwargs["tolerance"] = config.get("ground_tolerance", GROUND_CONTACT_TOLERANCE)
+            kwargs["tolerance"] = GROUND_CONTACT_TOLERANCE
         
         try:
             check_fn(result, **kwargs)
@@ -803,66 +714,6 @@ def save_allowlist(allowlist: dict[str, list[dict]]):
     ALLOWLIST_PATH.write_text(json.dumps(allowlist, indent=2, sort_keys=True) + "\n")
 
 
-def filter_by_baseline(result: LintResult, baseline: dict[str, list[dict]]) -> LintResult:
-    """Filter out issues that are in the baseline."""
-    known = baseline.get(result.vehicle_id, [])
-    known_issues = [LintIssue.from_dict(d) for d in known]
-    
-    filtered = LintResult(vehicle_id=result.vehicle_id)
-    for issue in result.issues:
-        is_known = any(issue.matches_baseline(k) for k in known_issues)
-        if not is_known:
-            filtered.add(issue)
-    return filtered
-
-
-def _matches_pattern(part_name: str, pattern: str) -> bool:
-    """Check if a part name matches an allowlist pattern.
-    
-    Supports glob-style patterns with * wildcards:
-    - "wheel_*_sprocket_hub" matches "wheel_L_sprocket_hub", "wheel_R_sprocket_hub"
-    - "dash*" matches "dash", "dash_-1", "dash_1"
-    """
-    import fnmatch
-    return fnmatch.fnmatch(part_name.lower(), pattern.lower())
-
-
-def filter_by_allowlist(result: LintResult, allowlist: dict) -> LintResult:
-    """Filter out issues that are in the allowlist (intentional gaps).
-    
-    The allowlist supports two formats:
-    1. Per-vehicle exact matches: {"vehicle_id": [{"check": ..., "parts": [...]}]}
-    2. Global pattern matches: {"patterns": [{"part_pattern": "...", "reason": "..."}]}
-    """
-    # Collect patterns from allowlist
-    patterns = []
-    if "patterns" in allowlist:
-        patterns = [p["part_pattern"] for p in allowlist["patterns"] if "part_pattern" in p]
-    
-    # Per-vehicle exact matches
-    vehicle_allowed = allowlist.get(result.vehicle_id, [])
-    vehicle_issues = [LintIssue.from_dict(d) for d in vehicle_allowed if isinstance(d, dict) and "check" in d]
-    
-    filtered = LintResult(vehicle_id=result.vehicle_id)
-    for issue in result.issues:
-        # Check exact vehicle-specific allowlist
-        is_exact_match = any(issue.matches_baseline(a) for a in vehicle_issues)
-        if is_exact_match:
-            continue
-        
-        # Check pattern matches on part names
-        is_pattern_match = False
-        for part in issue.parts:
-            if any(_matches_pattern(part, pattern) for pattern in patterns):
-                is_pattern_match = True
-                break
-        
-        if not is_pattern_match:
-            filtered.add(issue)
-    
-    return filtered
-
-
 def lint_and_report(vehicle_id: str, fail_on_new=True) -> tuple[LintResult, LintResult]:
     """Lint the current scene, returning (all issues, new issues not in baseline/allowlist)."""
     result = lint_current_scene(vehicle_id)
@@ -874,16 +725,6 @@ def lint_and_report(vehicle_id: str, fail_on_new=True) -> tuple[LintResult, Lint
     remaining = filter_by_allowlist(remaining, allowlist)
     
     return result, remaining
-
-
-def format_issues(issues: list[LintIssue]) -> str:
-    """Format issues for printing."""
-    lines = []
-    for issue in issues:
-        parts_str = f" ({', '.join(issue.parts)})" if issue.parts else ""
-        dist_str = f" [{issue.distance_m*1000:.1f}mm]" if issue.distance_m is not None else ""
-        lines.append(f"  {issue.severity.upper()}: [{issue.check}]{parts_str} {issue.message}{dist_str}")
-    return "\n".join(lines)
 
 
 # --------------------------------------------------------------------- roster scanning
