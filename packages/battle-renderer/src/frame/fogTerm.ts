@@ -94,8 +94,9 @@ export const fogLayout = tgpu.bindGroupLayout({
   wholes: { texture: d.texture2d(d.u32), visibility: ["fragment", "compute"] },
   /** What the water sees under it (`waterUnder.ts`): the world's depth, its
    *  colour before the water (`FrameTargets.sceneColour`) and the sampler
-   *  that reads its mips, and the fog mask before the water
-   *  (`fogMaskUnder`). Only the water's group holds them; the world pass
+   *  that reads its mips, and its guard (`fogMaskUnder`: how unseen and
+   *  how painted the world before the water is, each mip the worst of its
+   *  footprint). Only the water's group holds them; the world pass
    *  writes that depth, so the groups it binds hold placeholders, as the
    *  water's does for the mask where it does not refract. Here because a
    *  pipeline binds at most four groups, and the water already binds four. */

@@ -9,16 +9,35 @@
 // water reads the latest from `shown` (`waveNormal.ts`); the renderer
 // never decides who makes a wake.
 import { tgpu, d, common, type TgpuCommandEncoder } from "typegpu";
-import { WAVE, WaveSplat } from "../records.gen";
+import { WAVE, WaveSplat, WaveSplatAt, WAVE_SPLAT_WORDS } from "../records.gen";
 import type { GpuRegistry } from "./registry";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
-/** Splats one frame takes at most; past it the rest are dropped. */
-const MAX_SPLATS = 256;
+/** Splats one step takes at most; past it the rest of that step's are
+ *  dropped. A budget per step, not per frame, so how many steps a frame
+ *  covers decides nothing. */
+const STEP_SPLATS = 256;
+/** Splats a frame holds: every step's budget. */
+const MAX_SPLATS = STEP_SPLATS * WAVE.maxSteps;
 /** Floats before the splats in `Presentation.waves`: steps, epoch, shift. */
 const HEAD = 4;
-const SPLAT_FLOATS = 8;
+const SPLAT_FLOATS = WAVE_SPLAT_WORDS;
+
+/** The splats of `packet` (after its head), each step's first `STEP_SPLATS`
+ *  kept in order. */
+export function budgetedSplats(packet: Float32Array): Float32Array {
+  const taken = new Map<number, number>();
+  const out: number[] = [];
+  for (let o = HEAD; o + SPLAT_FLOATS <= packet.length; o += SPLAT_FLOATS) {
+    const step = packet[o + WaveSplatAt.step];
+    const n = taken.get(step) ?? 0;
+    if (n >= STEP_SPLATS) continue;
+    taken.set(step, n + 1);
+    for (let k = 0; k < SPLAT_FLOATS; k++) out.push(packet[o + k]);
+  }
+  return Float32Array.from(out);
+}
 /** How far in from the field's edge its border absorbs a wave (texels). */
 const BORDER = 24;
 
@@ -169,13 +188,9 @@ export function createWaveField(root: Root, registry: GpuRegistry) {
       epoch = plan.epoch;
       if (plan.clear) clear(raw, [...fields, shown]);
       if (plan.runs.length === 0) return;
-      const count = Math.min(Math.max(waves.length - HEAD, 0) / SPLAT_FLOATS, MAX_SPLATS);
-      if (count > 0)
-        root.device.queue.writeBuffer(
-          root.unwrap(splats),
-          0,
-          Float32Array.from(waves.subarray(HEAD, HEAD + count * SPLAT_FLOATS)),
-        );
+      const kept = budgetedSplats(waves);
+      const count = kept.length / SPLAT_FLOATS;
+      if (count > 0) root.device.queue.writeBuffer(root.unwrap(splats), 0, kept);
       for (const [k, run] of plan.runs.entries()) {
         runs[k].write({
           shift: d.vec2i(...run.shift),

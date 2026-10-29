@@ -174,6 +174,11 @@ fn wholes_texture(device: &Device, rows: u32) -> Texture {
 }
 
 impl Fog {
+    /// The ground paint the fog's groups bind (`fogLayout.paint`).
+    pub fn paint(&self) -> &TextureView {
+        &self.paint
+    }
+
     /// Fog over the ground's height pages `heights`, culled over `targets`'
     /// depth; drawn clear until the presentation hands it sight.
     pub fn new(

@@ -29,6 +29,8 @@ pub const MSAA: u32 = 4;
 pub const DEPTH_FORMAT: TextureFormat = TextureFormat::Depth32Float;
 /// The fog mask the lit passes write beside their colour (`WORLD_OUT`).
 pub const FOG_MASK_FORMAT: TextureFormat = TextureFormat::Rgba8Unorm;
+/// The water's guard (`Targets::fog_mask_under`).
+pub const GUARD_FORMAT: TextureFormat = TextureFormat::Rg8Unorm;
 /// The fog mask passes' distances to each side of the edge.
 pub const FOG_DISTANCE_FORMAT: TextureFormat = TextureFormat::Rg8Unorm;
 
@@ -53,9 +55,9 @@ pub struct Targets {
     /// The fog mask, multisampled, resolved into `fog_mask`.
     pub fog_mask_msaa: TextureView,
     pub fog_mask: TextureView,
-    pub fog_mask_texture: Texture,
-    /// `fog_mask` before the water: how seen the ground is that the water
-    /// shows displaced.
+    /// The water's guard: how unseen the ground is before the water
+    /// (`fog_mask`'s unseen share) and how much the paint covers it, each
+    /// mip the worst of its footprint in `scene_colour`'s mips.
     pub fog_mask_under: TextureView,
     pub fog_mask_under_texture: Texture,
     /// The distances to the other side of the fog edge: along rows, then
@@ -103,17 +105,13 @@ impl Targets {
             sampled | TextureUsages::COPY_DST,
             sizes.scene_colour_mips,
         );
-        let fog_mask_texture = texture(
-            "fog-mask",
-            FOG_MASK_FORMAT,
-            1,
-            sampled | TextureUsages::COPY_SRC,
-        );
-        let fog_mask_under_texture = texture(
+
+        let fog_mask_under_texture = mipped(
             "fog-mask-under",
-            FOG_MASK_FORMAT,
+            GUARD_FORMAT,
             1,
-            TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
+            sampled,
+            sizes.scene_colour_mips,
         );
         Self {
             size,
@@ -125,8 +123,7 @@ impl Targets {
             hdr: view(texture("hdr", HDR_FORMAT, 1, sampled)),
             depth: view(texture("depth", DEPTH_FORMAT, MSAA, sampled)),
             fog_mask_msaa: view(texture("fog-mask-msaa", FOG_MASK_FORMAT, MSAA, render)),
-            fog_mask: fog_mask_texture.create_view(&Default::default()),
-            fog_mask_texture,
+            fog_mask: view(texture("fog-mask", FOG_MASK_FORMAT, 1, sampled)),
             fog_mask_under: fog_mask_under_texture.create_view(&Default::default()),
             fog_mask_under_texture,
             fog_distance_rows: view(texture(

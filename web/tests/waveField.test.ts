@@ -3,7 +3,8 @@
 // one side's waves never linger for the next; and every texel the camera
 // moves reaches the field, whether or not the frame steps it.
 import { expect, test } from "vitest";
-import { wavePlan } from "@packages/battle-renderer/src/frame/waveField";
+import { budgetedSplats, wavePlan } from "@packages/battle-renderer/src/frame/waveField";
+import { WaveSplatAt, WAVE_SPLAT_WORDS } from "@packages/battle-renderer/src/records.gen";
 
 const packet = (steps: number, epoch: number, sx: number, sy = 0) =>
   Float32Array.of(steps, epoch, sx, sy);
@@ -42,4 +43,24 @@ test("only a frame's first step carries its shift, and a still run never steps",
     [[0, 0], false],
   ]);
   expect(wavePlan(packet(0, 3, 5, -2), 3).runs).toEqual([{ shift: [5, -2], step: 0, still: true }]);
+});
+
+test("each step keeps its own splats however the frames batch the steps", () => {
+  // `n` splats at step `step`, each marked by its index.
+  const splats = (step: number, n: number) =>
+    Array.from({ length: n }, (_, i) => {
+      const row = new Array(WAVE_SPLAT_WORDS).fill(0);
+      row[0] = i;
+      row[WaveSplatAt.step] = step;
+      return row;
+    }).flat();
+  // Two steps of 300 splats each, over the budget: in one frame (steps 0 and
+  // 1), or in two frames of one step each.
+  const together = budgetedSplats(
+    Float32Array.of(2, 1, 0, 0, ...splats(0, 300), ...splats(1, 300)),
+  );
+  const first = budgetedSplats(Float32Array.of(1, 1, 0, 0, ...splats(0, 300)));
+  const second = budgetedSplats(Float32Array.of(1, 1, 0, 0, ...splats(0, 300)));
+  expect(together.length).toBe(first.length + second.length);
+  expect(first.length / WAVE_SPLAT_WORDS).toBe(256);
 });

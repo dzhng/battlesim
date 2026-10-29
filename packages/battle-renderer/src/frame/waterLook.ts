@@ -44,7 +44,9 @@ export const WaterLook = d.struct({
   /** Each layer's share of the wind's drift it moves at; unused. */
   drifts: d.vec4f,
   /** The depth (metres) the water fades in over from its edge, the pixel
-   *  footprints (metres) its ripples fade over; unused. */
+   *  footprints (metres) its ripples fade over, and a puddle's depth at its
+   *  centre (0 for a river's or a swamp's look, whose depth is the
+   *  ground's). */
   fades: d.vec4f,
   /** Its reflection's three lobes' roughness, rising; unused. */
   roughness: d.vec4f,

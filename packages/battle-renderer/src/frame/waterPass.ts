@@ -179,7 +179,7 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
   const mips = createSceneMips(root);
   return {
     /** What it compiles: the water's, and its bed's mips'. */
-    pipelines: [pipeline, mips.pipeline],
+    pipelines: [pipeline, ...mips.pipelines],
     /** The water's pass, over the samples the world pass kept (it stores
      *  them), resolving the lit world and the fog mask again; the `mesh`
      *  drawn with the camera's, the water's fog group (`FogGroups.water`)
@@ -200,14 +200,7 @@ export function createWater(root: Root, environment: EnvironmentFrame) {
       const size = [targets.width, targets.height];
       const raw = root.unwrap(encoder);
       raw.copyTextureToTexture({ texture: targets.lit }, { texture: targets.sceneColour }, size);
-      if (targets.fogMaskUnder) {
-        raw.copyTextureToTexture(
-          { texture: targets.fogMask },
-          { texture: targets.fogMaskUnder },
-          size,
-        );
-        mips.encode(encoder, targets);
-      }
+      if (targets.fogMaskUnder) mips.encode(encoder, targets);
       const pass = encoder.beginRenderPass({
         label: "water",
         colorAttachments: [

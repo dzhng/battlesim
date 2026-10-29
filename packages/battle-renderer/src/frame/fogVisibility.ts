@@ -117,7 +117,7 @@ export interface FogTiles {
   /** The frame's ground paint, which the painted layers read. */
   paintView: GPUTextureView;
   /** The world before the water, which the water reads over its depth,
-   *  and the fog mask before it, where the water refracts. */
+   *  and its guard, where the water refracts. */
   sceneColourView: GPUTextureView;
   seenUnderView: GPUTextureView | null;
   /** The wave field's latest heights, which the water reads. */

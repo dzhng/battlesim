@@ -43,7 +43,11 @@ selection adds no far cutoff. Water selects only for the camera. It blends
 over the world's kept samples in a pass of its own, after glass, reading depth
 and writing none, and shows its bed from a copy of the world before it: by
 depth on every tier, refracted and lit by its waves' caustics on the tiers
-that draw it `full` (`WaterDetail`; Low keeps the depth colour alone). Camera ranges serve depth and color, including each
+that draw it `full` (`WaterDetail`; Low keeps the depth colour alone). Its
+waves are a height field the renderer steps from each frame's packet
+(`Presentation.waves`: the steps, the epoch, the shift, then the wakes'
+`WaveSplat` records); a step takes a bounded number of splats, so a big
+battle's wakes cost the same however frames batch the steps. Camera ranges serve depth and color, including each
 scar-region submission. Traversal work is distinct from issued draw counts.
 Physical bounds and
 visual-only landscape remain

@@ -349,7 +349,7 @@ impl Run {
         let fog = Fog::new(&gpu.device, &pipelines, &targets, &ground.heights);
         replay.presentation_mut().resend_fog();
         let (fog_mask, fog_rim) = fog_mask(&gpu.device, &pipelines, &targets, &replay.fog_look);
-        let water = Water::new(&gpu.device, &pipelines, &targets);
+        let water = Water::new(&gpu.device, &pipelines, &targets, fog.paint());
         if let Some(dir) = args.out.as_ref().or(args.bench.as_ref()) {
             std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
         }

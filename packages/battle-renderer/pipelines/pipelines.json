@@ -544,6 +544,43 @@
         ]
       }
     ],
+    "guardSeedLayout": [
+      {
+        "binding": 0,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 1,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      }
+    ],
+    "guardMipLayout": [
+      {
+        "binding": 0,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      }
+    ],
     "modelLayout": [
       {
         "binding": 0,
@@ -1893,6 +1930,42 @@
         "targets": [
           {
             "format": "rgba16float"
+          }
+        ]
+      }
+    },
+    {
+      "name": "waterGuardSeed",
+      "kind": "render",
+      "shader": "waterGuardSeed.wgsl",
+      "layout": [
+        "guardSeedLayout"
+      ],
+      "vertex": {
+        "buffers": []
+      },
+      "fragment": {
+        "targets": [
+          {
+            "format": "rg8unorm"
+          }
+        ]
+      }
+    },
+    {
+      "name": "waterGuardMip",
+      "kind": "render",
+      "shader": "waterGuardMip.wgsl",
+      "layout": [
+        "guardMipLayout"
+      ],
+      "vertex": {
+        "buffers": []
+      },
+      "fragment": {
+        "targets": [
+          {
+            "format": "rg8unorm"
           }
         ]
       }

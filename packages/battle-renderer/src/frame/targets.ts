@@ -13,6 +13,9 @@ export const OVERLAY_FORMAT = "rgba8unorm" as const;
 /** The fog mask: per-sample (unseen, seen, ground, alpha) coverage, resolved
  *  to fractions (`fogCoverage`). */
 export const FOG_MASK_FORMAT = "rgba8unorm" as const;
+/** The water's guard (\`fogMaskUnder\`): how unseen, and how much painted,
+ *  the world before the water is, each mip the worst of its footprint. */
+export const GUARD_FORMAT = "rg8unorm" as const;
 /** Distances to each side of the fog edge on the ground, over
  *  `FOG_DISTANCE_CAP_PX`. */
 export const FOG_DISTANCE_FORMAT = "rg8unorm" as const;
@@ -51,8 +54,10 @@ export interface FrameTargets {
   /** The fog mask beside it, multisampled; resolved into `fogMask`. */
   fogMaskMsaa: GPUTexture;
   fogMask: GPUTexture;
-  /** `fogMask` before the water, where the water refracts: how seen the
-   *  ground is that it shows displaced. Null when it does not. */
+  /** The water's guard, where it refracts: how unseen the ground is before
+   *  the water (\`fogMask\`'s unseen share) and how much the paint covers
+   *  it, each mip the worst of its footprint in the copy's mips. Null when
+   *  it does not refract. */
   fogMaskUnder: GPUTexture | null;
   /** The fog mask pass's distances to the other side: along rows, then the
    *  Euclidean result. */
@@ -131,14 +136,17 @@ export function allocateFrameTargets(
       label: "frame-fog-mask",
       size,
       format: FOG_MASK_FORMAT,
-      usage: RENDER | SAMPLED | COPY_SRC,
+      usage: RENDER | SAMPLED,
     }),
     fogMaskUnder: refracts
       ? scope.texture({
           label: "frame-fog-mask-under",
           size,
-          format: FOG_MASK_FORMAT,
-          usage: SAMPLED | COPY_DST,
+          format: GUARD_FORMAT,
+          mipLevelCount: SCENE_COLOUR_MIPS,
+          // Seeded from the fog mask and the paint, each mip from the one
+          // before (\`createSceneMips\`).
+          usage: SAMPLED | RENDER,
         })
       : null,
     fogDistanceRows: scope.texture({

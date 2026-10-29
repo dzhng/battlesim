@@ -27,7 +27,7 @@ struct WaveSplat {
   kind: f32,
 }
 
-@group(0) @binding(2) var<storage, read> splats: array<WaveSplat, 256>;
+@group(0) @binding(2) var<storage, read> splats: array<WaveSplat, 1536>;
 
 fn waveStep(pos: vec2f) -> vec4f {
     let size = vec2i(textureDimensions(was));

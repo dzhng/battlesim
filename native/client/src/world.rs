@@ -219,35 +219,46 @@ fn world_pass<'a>(
 
 /// The water over the world's samples, resolved again into `lit` and
 /// `fog_mask` (`encode`), over a copy of `lit` (`scene_colour`) and its
-/// mips, which it shows of its bed by depth, refracted where the copy of
-/// the fog mask (`fog_mask_under`) says the bed is seen: it reads depth and
-/// writes none, and draws over any pane it lies behind.
+/// mips, which it shows of its bed by depth, refracted and blurred where
+/// its guard (`fog_mask_under`) says the bed is seen and unmarked: it reads
+/// depth and writes none, and draws over any pane it lies behind.
 pub struct Water {
     mip: RenderPipeline,
-    /// Each mip's view and the group that reads the one before it.
+    seed: RenderPipeline,
+    guard: RenderPipeline,
+    /// Each mip's view and the group that reads the one before it, the
+    /// copy's then the guard's, and the guard's first level and its group.
     mips: Vec<(TextureView, BindGroup)>,
+    guards: Vec<(TextureView, BindGroup)>,
+    seeded: (TextureView, BindGroup),
 }
 
 impl Water {
-    pub fn new(device: &Device, pipelines: &Pipelines, targets: &Targets) -> Self {
+    /// The water's pass over `targets`, its guard seeded from the fog mask
+    /// and `paint`, the fog's ground paint.
+    pub fn new(
+        device: &Device,
+        pipelines: &Pipelines,
+        targets: &Targets,
+        paint: &TextureView,
+    ) -> Self {
         let taps = device.create_sampler(&SamplerDescriptor {
             label: Some("scene-colour-mips"),
             mag_filter: FilterMode::Linear,
             min_filter: FilterMode::Linear,
             ..Default::default()
         });
-        let level = |mip| {
-            targets
-                .scene_colour_texture
-                .create_view(&TextureViewDescriptor {
-                    base_mip_level: mip,
-                    mip_level_count: Some(1),
-                    ..Default::default()
-                })
+        let level = |texture: &Texture, mip| {
+            texture.create_view(&TextureViewDescriptor {
+                base_mip_level: mip,
+                mip_level_count: Some(1),
+                ..Default::default()
+            })
         };
-        let mips = (1..targets.scene_colour_texture.mip_level_count())
+        let colour = &targets.scene_colour_texture;
+        let mips = (1..colour.mip_level_count())
             .map(|mip| {
-                let source = level(mip - 1);
+                let source = level(colour, mip - 1);
                 let group = bind(
                     device,
                     pipelines.layout("sceneMipLayout"),
@@ -257,12 +268,41 @@ impl Water {
                         BindingResource::Sampler(&taps),
                     ],
                 );
-                (level(mip), group)
+                (level(colour, mip), group)
             })
             .collect();
+        let guard = &targets.fog_mask_under_texture;
+        let guards = (1..guard.mip_level_count())
+            .map(|mip| {
+                let source = level(guard, mip - 1);
+                let group = bind(
+                    device,
+                    pipelines.layout("guardMipLayout"),
+                    "water-guard-mip",
+                    &[BindingResource::TextureView(&source)],
+                );
+                (level(guard, mip), group)
+            })
+            .collect();
+        let seeded = (
+            level(guard, 0),
+            bind(
+                device,
+                pipelines.layout("guardSeedLayout"),
+                "water-guard-seed",
+                &[
+                    BindingResource::TextureView(&targets.fog_mask),
+                    BindingResource::TextureView(paint),
+                ],
+            ),
+        );
         Self {
             mip: pipelines.render("sceneColourMip").clone(),
+            seed: pipelines.render("waterGuardSeed").clone(),
+            guard: pipelines.render("waterGuardMip").clone(),
             mips,
+            guards,
+            seeded,
         }
     }
 }
@@ -274,8 +314,8 @@ impl Pass for Water {
 
     fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
         let t = inputs.targets;
-        // The world as it stands is what the water shows of its bed, and how
-        // seen each pixel of it is.
+        // The world as it stands is what the water shows of its bed, and its
+        // guard how seen and how marked each pixel of it is.
         let size = Extent3d {
             width: t.size[0],
             height: t.size[1],
@@ -286,14 +326,15 @@ impl Pass for Water {
             t.scene_colour_texture.as_image_copy(),
             size,
         );
-        encoder.copy_texture_to_texture(
-            t.fog_mask_texture.as_image_copy(),
-            t.fog_mask_under_texture.as_image_copy(),
-            size,
-        );
-        for (view, group) in &self.mips {
+        let draws = self
+            .mips
+            .iter()
+            .map(|m| (&self.mip, m))
+            .chain([(&self.seed, &self.seeded)])
+            .chain(self.guards.iter().map(|m| (&self.guard, m)));
+        for (pipeline, (view, group)) in draws {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("scene-colour-mip"),
+                label: Some("water-under-mip"),
                 color_attachments: &[Some(RenderPassColorAttachment {
                     view,
                     depth_slice: None,
@@ -305,7 +346,7 @@ impl Pass for Water {
                 })],
                 ..Default::default()
             });
-            pass.set_pipeline(&self.mip);
+            pass.set_pipeline(pipeline);
             pass.set_bind_group(0, group, &[]);
             pass.draw(0..3, 0..1);
         }

@@ -353,6 +353,13 @@ fn waterDepth(clip: vec4f, world: vec3f) -> f32 {
 
 @group(2) @binding(12) var seenUnder: texture_2d<f32>;
 
+fn tapped(u: vec2f, size: vec2f) -> vec4i {
+    let last = size - 1.0;
+    let first = clamp(floor(u - 1.0 / 256.0), vec2f(0.0), last);
+    let end = clamp(floor(u + 1.0 / 256.0) + 1.0, vec2f(0.0), last);
+    return vec4i(vec2i(first), vec2i(end));
+  }
+
 fn waterUnder(clip: vec4f, world: vec3f, n: vec3f, straight: f32, look: u32) -> vec4f {
     let here = vec2i(clip.xy);
     if (params.view.z == 1u) {
@@ -375,6 +382,28 @@ fn waterUnder(clip: vec4f, world: vec3f, n: vec3f, straight: f32, look: u32) -> 
     let at = clip.xy + px * keep;
     let far = bedDistance(vec2i(at), world);
     let level = min(far / r.w, f32(textureNumLevels(sceneColour) - 1));
+    // The blurred tap averages its footprint's unfogged colours, and a
+    // swamp's bed keeps its paint. Where any of that footprint is seen less
+    // than the water's own pixel, or is marked, the bed is read at the
+    // pixel, unshifted and unblurred: nothing unseen shows through, and the
+    // bed's mark lies under the surface's, so it shows once. The guard's
+    // level holds the worst of each texel's footprint (`guardMip`), so its
+    // texels under the tap, at either level the sampler may pick, say it
+    // exactly.
+    let mine = textureLoad(seenUnder, here, 0).x;
+    var worst = vec2f(0.0, textureLoad(paint, here, 0).a);
+    for (var m = u32(floor(level)); m <= u32(ceil(level)); m++) {
+      let size = vec2f(textureDimensions(seenUnder, m));
+      let taps = tapped(at / screen * size - 0.5, size);
+      for (var y = taps.y; y <= taps.w; y++) {
+        for (var x = taps.x; x <= taps.z; x++) {
+          worst = max(worst, textureLoad(seenUnder, vec2i(x, y), m).xy);
+        }
+      }
+    }
+    if (worst.x > mine || worst.y > 0.0) {
+      return vec4f(textureLoad(sceneColour, here, 0).rgb, straight);
+    }
     let colour = textureSampleLevel(sceneColour, sceneTaps, at / screen, level);
     return vec4f(colour.rgb, far);
   }
