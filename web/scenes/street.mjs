@@ -34,9 +34,10 @@ import {
   game,
   streetAttack,
   streetMap,
+  visuals,
 } from "./_units.mjs";
 
-const CAMERA = game.presentation.camera;
+const CAMERA = visuals.camera;
 const roadStrokes = streetMap.surfaces
   .filter((s) => s.shape.kind === "stroke" && s.kind !== "paving") // carriageways
   .map((s) => s.shape);
@@ -1086,7 +1087,7 @@ function yellowInk(png) {
  *  none. Holding Space shows the same marks, pixel for pixel. A queued
  *  (Shift) order flashes too. */
 async function orderFlashTour(ctx) {
-  const { flash } = game.presentation.overlay.orders;
+  const { flash } = visuals.overlay.orders;
   const tickHz = game.tick_hz;
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const o = await obs(page);
@@ -1624,7 +1625,7 @@ async function orderTour(ctx) {
     // The route runs from the edge of the circle the squad stands in to the
     // edge of its area ring (both drawn at the fixture's scale):
     // sample only the line between them.
-    const scale = game.presentation.overlay.orders.area_draw_scale;
+    const scale = visuals.overlay.orders.area_draw_scale;
     const here = Math.max(
       ...u.members.map((m) => Math.hypot(m[0] - u.position[0], m[1] - u.position[1])),
     );
@@ -1812,8 +1813,7 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const o = await obs(page);
   const squad = o.own.find((u) => u.id === squadId);
   const vehicle = o.own.find((u) => u.id === vehicleId);
-  const { area_draw_scale: scale, vehicle_marker_margin_m: margin } =
-    game.presentation.overlay.orders;
+  const { area_draw_scale: scale, vehicle_marker_margin_m: margin } = visuals.overlay.orders;
   const vehicleR = hullOf(vehicle.kind).half_extents_m[0] + margin;
   // The paint (the orders and the selection), each mark in its own colour.
   const paint = await orderPaint(ctx, page, "orders-selected");
@@ -1962,7 +1962,7 @@ async function checkRimJoin(ctx, page, squadId) {
     }
     return c;
   };
-  const { color, selected: amberRgb, glow } = game.presentation.overlay.orders;
+  const { color, selected: amberRgb, glow } = visuals.overlay.orders;
   const Y = color.map((v) => v * glow.order);
   const A = amberRgb.map((v) => v * glow.selected);
   const det = A[0] * Y[1] - A[1] * Y[0];
@@ -2037,9 +2037,7 @@ async function checkPaintedLight(ctx, page, vehicleId) {
     yaw: CAMERA.default.yaw,
   });
   await lab(page, () => window.__lab.frame());
-  const r =
-    hullOf(vehicle.kind).half_extents_m[0] +
-    game.presentation.overlay.orders.vehicle_marker_margin_m;
+  const r = hullOf(vehicle.kind).half_extents_m[0] + visuals.overlay.orders.vehicle_marker_margin_m;
   const at = [];
   for (let k = 0; k < 64; k++) {
     const a = (k / 64) * 2 * Math.PI;
@@ -2276,7 +2274,7 @@ const WORKS = {
 
 async function worksTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
-  const { distance, yaw } = game.presentation.camera.default;
+  const { distance, yaw } = visuals.camera.default;
   for (const [name, at] of Object.entries(WORKS)) {
     await aim(page, at, { distance, pitch: 0.85, yaw });
     await snapshot(ctx, page, `works-${name}-1920x1080.png`);

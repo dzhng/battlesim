@@ -37,7 +37,7 @@ fn row(body: &str) -> ScenarioDefinition {
 fn shove_through(body: &str) -> (f64, Vec<(Grind, f64)>) {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let game: Value =
-        serde_json::from_slice(&std::fs::read(root.join("fixtures/game.json")).unwrap()).unwrap();
+        serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
     let f = fielded::fielded(&root, &game, "air", &[KIND.to_owned()]).unwrap();
     let mut battle = Battle::new(&row(body), 1);
     let parked = battle.world().prop(SHOVED as u32).unwrap().center;

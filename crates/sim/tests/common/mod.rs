@@ -1,5 +1,5 @@
 //! Shared test setup. Rules always come from the one fixture owner
-//! (game.json): scenario rules for authority tests; flight rules, weapon
+//! (rules.json): scenario rules for authority tests; flight rules, weapon
 //! rows, analytic maps and constant-velocity bodies for flight tests.
 #![allow(dead_code)]
 use contract::ballistics::{FlightRules, WeaponBallistics};

@@ -1,10 +1,10 @@
-/** The HUD's look, from the one fixture owner's presentation block
+/** The HUD's look, from `fixtures/presentation.json`
  *  (`presentation.hud`): the holo-tactical accents, text and glass
  *  the readouts, callouts and panel draw with. Applied once as CSS custom
  *  properties (`--hud-<name>`: "r g b" channels, so a rule picks its own
  *  alpha with `rgb(var(--hud-accent) / 0.5)`), so the stylesheet holds no
  *  colour of its own. */
-import game from "@fixtures/game.json";
+import { presentationSettings } from "@web/presentationSettings";
 import type { Vec3 } from "math";
 
 export interface HudTheme {
@@ -56,7 +56,9 @@ export function validateCalloutGlow(callouts: number): number {
   return callouts;
 }
 
-export const gameCalloutGlow: number = validateCalloutGlow(game.presentation.overlay.glow.callouts);
+export const gameCalloutGlow: number = validateCalloutGlow(
+  presentationSettings.overlay.glow.callouts,
+);
 
 const COLOURS = [
   "accent",
@@ -89,7 +91,7 @@ export function validateHudTheme(theme: HudTheme): HudTheme {
   return theme;
 }
 
-export const gameHud: HudTheme = validateHudTheme(game.presentation.hud as unknown as HudTheme);
+export const gameHud: HudTheme = validateHudTheme(presentationSettings.hud as unknown as HudTheme);
 
 /** A 0–1 colour's rgb as CSS channels ("r g b", 0–255): `rgb(${…})`. */
 export const channels = (c: readonly number[]) =>

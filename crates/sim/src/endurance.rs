@@ -6,7 +6,7 @@
 //! fight turning over for an hour: waves of attack-moves to shifting points,
 //! reserves arriving from the rear edge, supply trucks setting up behind the
 //! lines. The optional late state adds the remains of a fully destroyed roster:
-//! 800 corpses and 100 wrecks. Rules come from the one fixture owner (game.json).
+//! 800 corpses and 100 wrecks. Rules come from the one fixture owner (rules.json).
 use contract::command::{Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;

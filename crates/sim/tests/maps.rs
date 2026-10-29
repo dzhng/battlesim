@@ -74,7 +74,7 @@ fn every_saved_encounter_makes_a_battle_on_its_map() {
     // map's on the test set (labs field the game's units too, the Apache),
     // the menu's on the menu's set.
     let rules_of = |set| {
-        let mut game = sim::fixtures::game();
+        let mut game = sim::fixtures::rules();
         game["catalog"] = serde_json::Value::Array(sim::fixtures::catalog_documents(set));
         serde_json::from_value::<contract::scenario::Rules>(game).unwrap()
     };
@@ -366,7 +366,7 @@ fn an_overridden_encounter_plays_its_paired_record() {
         "../../../fixtures/parity/scenario-overrides.json"
     ))
     .unwrap();
-    let mut game = sim::fixtures::game();
+    let mut game = sim::fixtures::rules();
     game["catalog"] = serde_json::Value::Array(sim::fixtures::catalog_documents(
         sim::fixtures::CatalogSet::Test,
     ));

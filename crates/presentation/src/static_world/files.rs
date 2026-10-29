@@ -45,12 +45,12 @@ pub struct MapGround {
 /// simulation's own world code under the rules of the battle fought on it
 /// (the game's, with the units of the map's own category: a capture map's the
 /// capture set's, a test map's the tests'), in the map's biome (`meta.json`) and
-/// regional finish, with `fixtures/game.json`'s `presentation` tunings: what
+/// regional finish, with `fixtures/presentation.json`'s tunings: what
 /// the page reads from `WorldView` and hands `set_ground`.
 pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
     let folder = root.join("fixtures/maps").join(map);
     let resolved = sim::maps::load_folder(&folder).map_err(|e| e.to_string())?;
-    let game = json(&root.join("fixtures/game.json"))?;
+    let presentation = json(&root.join("fixtures/presentation.json"))?;
     let meta = json(&folder.join("meta.json"))?;
     let rules = rules(root, map)?;
     let map_def = &resolved.definition;
@@ -64,10 +64,11 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
     let biome_text = std::fs::read_to_string(&biome_path)
         .map_err(|e| format!("{}: {e}", biome_path.display()))?;
     let biome = Biome::load(&biome_text, map_def.regional_family.as_deref())?;
-    let tuning: Tuning = serde_json::from_value(game["presentation"].clone())
-        .map_err(|e| format!("presentation: {e}"))?;
+    let tuning: Tuning =
+        serde_json::from_value(presentation).map_err(|e| format!("presentation: {e}"))?;
     let sensors =
-        serde_json::from_value(game["sensors"].clone()).map_err(|e| format!("sensors: {e}"))?;
+        serde_json::from_value(serde_json::to_value(&rules.sensors).map_err(|e| e.to_string())?)
+            .map_err(|e| format!("sensors: {e}"))?;
     Ok(MapGround {
         source,
         biome,
@@ -92,7 +93,7 @@ pub fn rules(root: &Path, map: &str) -> Result<contract::scenario::Rules, String
         MapCategory::Capture => sim::fixtures::CatalogSet::Capture,
         MapCategory::Test => sim::fixtures::CatalogSet::Test,
     };
-    let mut fixture = sim::fixtures::game();
+    let mut fixture = sim::fixtures::rules();
     fixture["catalog"] = Value::Array(sim::fixtures::catalog_documents(set));
     serde_json::from_value(fixture).map_err(|e| format!("rules: {e}"))
 }
@@ -124,7 +125,7 @@ pub fn side_foliage(world: &World, learned: &crate::scars::LearnedGround) -> Vec
 /// and the fixture's stand-in tints and model tiers.
 pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<PropInput, String> {
     let runtime = Runtime::open(&root.join("assets/runtime"))?;
-    let game = json(&root.join("fixtures/game.json"))?;
+    let presentation = json(&root.join("fixtures/presentation.json"))?;
     let none = serde_json::Map::new();
     let entries = runtime.catalog["appearances"].as_object().unwrap_or(&none);
     let worn = |name: &str| wearing.contains(&name);
@@ -179,7 +180,6 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
         }
         _ => None,
     };
-    let presentation = &game["presentation"];
     Ok(PropInput {
         appearances,
         wrecks: serde_json::from_value(Value::Object(wrecks)).map_err(|e| e.to_string())?,
@@ -231,7 +231,7 @@ pub fn placed_buildings(
     let (_, shells) = crate::fielded::building_remains(&rules(root, map)?.catalog.view());
     let shells: Vec<String> = shells.into_iter().collect();
     let style: BuildingStyle = serde_json::from_value(
-        json(&root.join("fixtures/game.json"))?["presentation"]["buildings"].clone(),
+        json(&root.join("fixtures/presentation.json"))?["buildings"].clone(),
     )
     .map_err(|e| format!("presentation.buildings: {e}"))?;
     let runtime = Runtime::open(&root.join("assets/runtime"))?;

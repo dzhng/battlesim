@@ -1,11 +1,11 @@
 // @vitest-environment node
+import { inputSettings } from "@web/battle/input/settings";
 import { UNITS } from "./catalog";
 import { expect, test } from "vitest";
-import game from "@fixtures/game.json";
 import { inReverseZone } from "../src/battle/input/reverseZone";
 import type { OwnUnitView } from "../src/battle/sim/observationView";
 
-const { reverse_zone_length_m: length, reverse_zone_margin_m: margin } = game.controls;
+const { reverse_zone_length_m: length, reverse_zone_margin_m: margin } = inputSettings;
 const [halfLength, halfWidth] = UNITS.hull("test_tank")!.half_extents_m;
 
 /** A unit as the zone reads it: kind, position and yaw. */

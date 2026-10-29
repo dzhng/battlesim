@@ -72,7 +72,9 @@ fn run(case: cases::Case, runtime: &Runtime, out: &Path, dumps: &mut Dumps) -> V
     let kinds: Vec<String> = case.scenario.units.iter().map(|u| u.kind.clone()).collect();
     let rules = serde_json::to_value(battle.rules()).unwrap();
     let fielded = Fielding {
-        game: &case.game,
+        presentation: &serde_json::from_str(include_str!("../../../fixtures/presentation.json"))
+            .unwrap(),
+        weapons: &case.game["weapons"],
         rules: &rules,
         catalog: &catalog,
         runtime: &runtime.catalog,
@@ -103,7 +105,7 @@ fn run(case: cases::Case, runtime: &Runtime, out: &Path, dumps: &mut Dumps) -> V
     // Same command-only setup and deterministic durations as sound.rs;
     // no audio device or recording decoder is part of this control.
     let mut sound = Sound::from_json(&json!({
-        "audio": case.game["presentation"]["audio"],
+        "audio": serde_json::from_str::<Value>(include_str!("../../../fixtures/audio.json")).unwrap(),
         "catalog": serde_json::from_slice::<Value>(&fs::read(sim::fixtures::dir().join("sounds.json")).unwrap()).unwrap(),
         "weapons": case.game["weapons"], "tick_hz": tick_hz,
         "effects": {"smoke": effects.presentation["smoke"], "cook_off": effects.presentation["cook_off"]}
@@ -325,7 +327,7 @@ fn main() {
         events: open("events.jsonl"),
     };
     let runtime = Runtime::open(&sim::fixtures::dir().join("../assets/runtime")).unwrap();
-    let game = sim::fixtures::game();
+    let game = sim::fixtures::rules();
     let weapons = game["weapons"].as_object().unwrap();
     let filter = std::env::args().nth(2);
     assert_eq!(

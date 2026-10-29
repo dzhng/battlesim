@@ -1,3 +1,4 @@
+import { shippedRules } from "@web/shippedRules";
 import { fixtureMap } from "../fixtures";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -11,7 +12,6 @@ import {
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import type { MapDefinition } from "@web/maps/resolve";
 import { SavedMap } from "../savedMaps";
-import game from "@fixtures/game.json";
 import type { WeaponRow } from "@packages/scene-assets/src/units";
 import { LabViewport } from "../LabViewport";
 import type { ViewportFrame } from "../presentedFrame";
@@ -32,8 +32,8 @@ import { gameCamera } from "../gameCamera";
 // traces and marks, not as the battle's combat effects.
 
 const SEED = 20260925;
-const TICK_HZ = game.tick_hz;
-const P = game.physics;
+const TICK_HZ = shippedRules.tick_hz;
+const P = shippedRules.physics;
 
 type Xyz = [number, number, number];
 

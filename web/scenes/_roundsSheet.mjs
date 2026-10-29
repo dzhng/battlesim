@@ -19,10 +19,10 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { lab, advance, openBattle, aim, hideHud } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
-import { game, curvePitch } from "./_units.mjs";
+import { game, curvePitch, visuals } from "./_units.mjs";
 
-const CAMERA = game.presentation.camera;
-const TRACERS = game.presentation.effects.tracers;
+const CAMERA = visuals.camera;
+const TRACERS = visuals.effects.tracers;
 /** Every round look, or ROUNDS_KINDS (comma-separated) while iterating. */
 const KINDS =
   process.env.ROUNDS_KINDS?.split(",") ?? Object.keys(TRACERS).filter((k) => k !== "default");

@@ -1,5 +1,5 @@
 // The fixtures as the scenes read them: the game's rules and presentation
-// (`fixtures/game.json`), the street test map, resolved from the saved catalogue, and
+// (`fixtures/rules.json`, `fixtures/presentation.json`), the street test map, resolved from the saved catalogue, and
 // the test catalog (the game's units and the test units labs field), the
 // simulation's resolved view, unit and prop types by id. The derived questions mirror
 // `packages/scene-assets/src/units.ts`, answered from a type's components.
@@ -7,9 +7,17 @@ import { readFile } from "node:fs/promises";
 import { loadEncounter, loadMap } from "../src/maps/node.ts";
 import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
 
-/** `fixtures/game.json`. */
+/** `fixtures/rules.json`. */
 export const game = JSON.parse(
-  await readFile(new URL("../../fixtures/game.json", import.meta.url), "utf8"),
+  await readFile(new URL("../../fixtures/rules.json", import.meta.url), "utf8"),
+);
+
+/** Visual settings and the audio mix are independent of battle rules. */
+export const visuals = JSON.parse(
+  await readFile(new URL("../../fixtures/presentation.json", import.meta.url), "utf8"),
+);
+export const audioMix = JSON.parse(
+  await readFile(new URL("../../fixtures/audio.json", import.meta.url), "utf8"),
 );
 
 /** The street test map (`fixtures/maps/street`), resolved: the ground of
@@ -20,7 +28,7 @@ export const streetAttack = loadEncounter("street", "attack");
 
 /** The camera curve's pitch at `distance` (the controller's own rule). */
 export function curvePitch(distance) {
-  const curve = game.presentation.camera.pitch_curve;
+  const curve = visuals.camera.pitch_curve;
   if (distance <= curve[0][0]) return curve[0][1];
   for (let k = 1; k < curve.length; k++)
     if (distance <= curve[k][0]) {

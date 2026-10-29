@@ -9,7 +9,8 @@
 //
 // It also samples what loading voice packs costs a battle: how long a fresh
 // battle's sounds take to be ready, with packs served and without.
-import game from "@fixtures/game.json";
+import { audioMix } from "@web/audioMix";
+import { shippedRules } from "@web/shippedRules";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
 import {
   BattleMusic,
@@ -26,7 +27,7 @@ import { KIND, SET } from "./soundResponses";
 
 const SECONDS = 7;
 const FPS = 60;
-const HZ = game.tick_hz;
+const HZ = shippedRules.tick_hz;
 
 /** Who shouts, and when (seconds): a seen enemy off to the right, then an
  *  own tank nearer, off to the left; the listener stands at the origin
@@ -89,7 +90,7 @@ export async function renderBarks(): Promise<BarksRender> {
   const moodOf = (track: string): BattleMood =>
     gameSounds.music.moods.combat.includes(track) ? "combat" : "tension";
   const score = new BattleMusic(
-    game.presentation.audio.music as BattleMusicRules,
+    audioMix.music as BattleMusicRules,
     gameSounds.music.moods,
     {
       play: (track: string) => void moods.push({ at: sink.t, mood: moodOf(track) }),

@@ -797,10 +797,10 @@ fn a_synthetic_artillery_profile_reaches_2500m_on_the_high_arc() {
 
 #[test]
 fn every_shipped_artillery_row_reaches_its_declared_range_on_the_high_arc() {
-    let game: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    let raw: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
     let rules: contract::ballistics::FlightRules =
-        serde_json::from_value(game["physics"].clone()).unwrap();
+        serde_json::from_value(raw["physics"].clone()).unwrap();
     let config = FlightConfig::new(&rules, 30).unwrap();
     for name in [
         "artillery_howitzer",
@@ -809,7 +809,7 @@ fn every_shipped_artillery_row_reaches_its_declared_range_on_the_high_arc() {
         "artillery_rocket_heavy",
         "artillery_strike_missile",
     ] {
-        let row: WeaponBallistics = serde_json::from_value(game["weapons"][name].clone()).unwrap();
+        let row: WeaponBallistics = serde_json::from_value(raw["weapons"][name].clone()).unwrap();
         let profile = config.profile(&row).unwrap();
         let world = flat([row.range_m + 400.0, 400.0], "");
         let aim = Aim {

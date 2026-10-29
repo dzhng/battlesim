@@ -86,7 +86,7 @@ export interface CascadeSettings {
   softness_m: number;
 }
 
-/** `presentation.light` in `fixtures/game.json`. */
+/** `light` in `fixtures/presentation.json`. */
 export interface LightPresentation extends PostSettings {
   /** Radians counter-clockwise from world +X. */
   sun_azimuth: number;

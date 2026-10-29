@@ -99,16 +99,9 @@ fn fog_point_probe_rebuilds_the_same_horizons_that_hide_a_wall_and_enforce_reach
     use renderer_core::{fog::Fog, probes::FogPoint, Targets};
     let gpu = gpu::open(&gpu::headless_instance(), None).unwrap();
     let pipelines = pipelines::build(&gpu.device).unwrap();
-    let game: serde_json::Value = serde_json::from_slice(
-        &std::fs::read(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../fixtures/game.json"
-        ))
-        .unwrap(),
-    )
-    .unwrap();
-    let geometry: Geometry =
-        serde_json::from_value(game["presentation"]["fog_geometry"].clone()).unwrap();
+    let settings: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
+    let geometry: Geometry = serde_json::from_value(settings["fog_geometry"].clone()).unwrap();
     let mut sight = FogSight::new(geometry).unwrap();
     sight
         .set_world(

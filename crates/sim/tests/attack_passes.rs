@@ -8,6 +8,7 @@ use contract::scenario::FixedWingFlight;
 use serde_json::json;
 use sim::air::pass::{advance, begin, choose_weapon, PassPhase, PassWeapon};
 use sim::air::{Bounds, FixedWingState};
+use sim::fixtures;
 use sim::flight::Release;
 use sim::math::v3;
 
@@ -28,7 +29,7 @@ fn ground_attack_battle_with(
     patch: impl FnOnce(&mut serde_json::Value),
     units: &[serde_json::Value],
 ) -> sim::battle::Battle {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = fixtures::test_game();
     let mounts: Vec<_> = weapons
         .iter()
         .enumerate()
@@ -43,7 +44,7 @@ fn ground_attack_battle_with(
             })
         })
         .collect();
-    sim::fixtures::patch_catalog(&mut rules, "units", "test_jet", json!({ "mounts": mounts }));
+    fixtures::patch_catalog(&mut rules, "units", "test_jet", json!({ "mounts": mounts }));
     rules["weapons"]["air_bomb"]["ammo"] = json!(bomb_ammo);
     rules["weapons"]["air_bomb"]["aim_s"] = json!(0.1);
     patch(&mut rules);
@@ -80,10 +81,10 @@ fn ground_attack_battle_with(
 const NARROW_FIELD_MARGIN_M: f64 = 50.0;
 
 fn air_battle() -> sim::battle::Battle {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = fixtures::test_game();
     // A narrow field: the edge guard, not this test's subject, keeps out of it.
     rules["air"]["fixed_wing"]["edge_margin_m"] = json!(NARROW_FIELD_MARGIN_M);
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jet",
@@ -284,7 +285,7 @@ fn a_limited_ground_weapon_is_chosen_before_the_gun() {
 
 /// Every fixed-wing row in the game's catalog.
 fn fixed_wing_rows() -> Vec<String> {
-    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let rules: contract::scenario::Rules = serde_json::from_value(fixtures::rules()).unwrap();
     let catalog = &rules.catalog;
     let rows: Vec<String> = catalog
         .indices()
@@ -304,7 +305,7 @@ fn fixed_wing_rows() -> Vec<String> {
 /// attacks an enemy fighter and fires on it.
 #[test]
 fn every_loadout_fires_at_a_legal_target() {
-    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let rules: contract::scenario::Rules = serde_json::from_value(fixtures::rules()).unwrap();
     let catalog = &rules.catalog;
     let vehicle = catalog
         .indices()
@@ -318,7 +319,7 @@ fn every_loadout_fires_at_a_legal_target() {
             units.extend(others.as_array().unwrap().iter().cloned());
             let setup = serde_json::from_value(json!({
                 "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-                "rules": sim::fixtures::game(),
+                "rules": fixtures::rules(),
                 "units": units,
                 "events": [], "scripts": []
             }))
@@ -402,8 +403,8 @@ fn every_fixed_wing_row_arrives_and_withdraws_on_low_fuel() {
 
 /// Blue buys `row` on an open 3 km field and the battle runs its life out.
 fn bought_jet_arrives_and_withdraws_on_low_fuel(row: &str) {
-    let mut rules = sim::fixtures::game();
-    sim::fixtures::patch_catalog(
+    let mut rules = fixtures::rules();
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         row,
@@ -824,13 +825,13 @@ fn attack_move_battle_with_hp(target_hp: f64) -> sim::battle::Battle {
 }
 
 fn attack_move_battle_with_hp_and_fire(target_hp: f64, fire: bool) -> sim::battle::Battle {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = fixtures::test_game();
     // A narrow field: the edge guard, not this test's subject, keeps out of it.
     rules["air"]["fixed_wing"]["edge_margin_m"] = json!(NARROW_FIELD_MARGIN_M);
     if fire {
         rules["sensors"]["contact_lifetime_s"] = json!(100.0);
     }
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jet",
@@ -859,10 +860,10 @@ fn attack_move_battle_with_hp_and_fire(target_hp: f64, fire: bool) -> sim::battl
 }
 
 fn holding_ground_battle(engagement: &str, fire_event: bool) -> sim::battle::Battle {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = fixtures::test_game();
     // A narrow field: the edge guard, not this test's subject, keeps out of it.
     rules["air"]["fixed_wing"]["edge_margin_m"] = json!(NARROW_FIELD_MARGIN_M);
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jet",
@@ -960,8 +961,8 @@ fn attack_move_picks_up_targets_then_holds_circling() {
 #[test]
 fn attack_move_leaves_an_enemy_beyond_reach_of_its_leg() {
     const REACH_M: f64 = 500.0;
-    let mut rules = sim::fixtures::test_game();
-    sim::fixtures::patch_catalog(
+    let mut rules = fixtures::test_game();
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jet",
@@ -1010,10 +1011,10 @@ fn attack_move_leaves_an_enemy_beyond_reach_of_its_leg() {
 #[test]
 fn attack_move_leaves_an_enemy_no_row_engages() {
     const OFF_LEG_M: f64 = 400.0;
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = fixtures::test_game();
     // The mount replaces the jet's own cannon: its one row is a missile
     // that engages vehicles alone.
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jet",
@@ -1222,7 +1223,7 @@ fn a_tank_on_high_ground_gets_attack_runs_not_a_dogfight() {
             "size": [2400, 1200], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
             "relief": [{ "kind": "mesa", "rect": [1300, 400, 1700, 800], "height_m": 140, "side_degrees": 40 }]
         },
-        "rules": sim::fixtures::test_game(),
+        "rules": fixtures::test_game(),
         "units": [
             { "side": "blue", "kind": "test_jet", "position": [500, 600], "yaw": 0.0 },
             { "side": "blue", "kind": "test_recon", "position": [1450, 600], "engagement": "return_fire_only" },
@@ -1272,12 +1273,12 @@ fn a_tank_on_high_ground_gets_attack_runs_not_a_dogfight() {
 /// rather than circling on a release point no bomb could fall to.
 #[test]
 fn a_bomb_carrier_strafes_a_helicopter_attacker_above_it() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = fixtures::test_game();
     let mount = |id: &str, weapon: &str| {
         json!({ "id": id, "name": "Test Mount", "weapons": [weapon], "turret": false,
             "pivot_m": [0, 0, 1.2], "muzzle_m": [7, 0, 0] })
     };
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jet",
@@ -1286,7 +1287,7 @@ fn a_bomb_carrier_strafes_a_helicopter_attacker_above_it() {
             "body": { "hull": { "hp": 1_000_000 } } }),
     );
     // The helicopter's gun reaches up to the jet, so it is an attacker.
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_heli",
@@ -1382,7 +1383,7 @@ fn run_bounds() -> RunBounds {
 /// The test rules for the run tests, with the test jet carrying `weapons`,
 /// each on its own mount.
 fn run_rules(weapons: &[&str]) -> serde_json::Value {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = fixtures::test_game();
     rules["air"]["fixed_wing"]["edge_margin_m"] = json!(RUN_EDGE_MARGIN_M);
     rules["air"]["fixed_wing"]["bomb_ceiling_m"] = json!(RUN_BOMB_CEILING_M);
     rules["air"]["fixed_wing"]["strafe_ceiling_m"] = json!(RUN_STRAFE_CEILING_M);
@@ -1409,7 +1410,7 @@ fn run_rules(weapons: &[&str]) -> serde_json::Value {
             })
         })
         .collect();
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jet",
@@ -1824,8 +1825,8 @@ fn a_jet_circles_where_its_attack_ended() {
     const CRUISE_KMH: f64 = 540.0;
     const TURN_DEG_S: f64 = 60.0;
     let radius = CRUISE_KMH / 3.6 / TURN_DEG_S.to_radians();
-    let mut rules = sim::fixtures::test_game();
-    sim::fixtures::patch_catalog(
+    let mut rules = fixtures::test_game();
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jet",
@@ -1948,8 +1949,8 @@ fn a_wingman_in_trail_never_strafes_through_his_lead() {
 /// The strafe band reaches well below cruise, so their seeded pass heights
 /// stand the wingman some metres above his lead.
 fn trail_strafe(behind_m: f64) -> sim::battle::Battle {
-    let mut rules = sim::fixtures::test_game();
-    sim::fixtures::patch_catalog(
+    let mut rules = fixtures::test_game();
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jet",

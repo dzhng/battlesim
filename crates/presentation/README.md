@@ -27,8 +27,9 @@ a tracer's chance or a placed tree falls the same in WebAssembly and native.
   `files`) of the runtime directory: its catalog and each gzipped transport
   file. The native client reads its models through it.
 - [What a battle fields](src/fielded.rs): `load_world`'s units, effects and
-  clip tables for the units a battle fields, resolved from the rules
-  fixture, the battle's rules and their catalog, and the runtime bundles,
+  clip tables for the units a battle fields, resolved from presentation
+  settings, authored weapon inheritance, the battle's rules and their catalog,
+  and the runtime bundles,
   as a page wearing those units installs them, for both clients. It names
   the runtime contents it reads; the caller reads them (native from the
   runtime directory, feature `files`; the page by fetching them, through

@@ -69,24 +69,28 @@ async function fixture() {
   const text = JSON.stringify(baseline); // Preserve unformatted bytes on no-op.
   await writeFile(join(root, "fixtures/sounds.json"), text);
   await writeFile(
-    join(root, "fixtures/game.json"),
+    join(root, "fixtures/rules.json"),
     JSON.stringify({
       weapons: { rifle: { speed_mps: 900 }, carbine: { extends: "rifle", speed_mps: 850 } },
-      presentation: {
-        audio: {
-          shots: {
-            default: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 },
-            rifle: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 },
-          },
-          impacts: {
-            ground: { sound: "impact_ground", gain: 0.2 },
-            hull: { sound: "impact_hull", gain: 0.4 },
-          },
-          vehicles: {},
-          footsteps: { sound: "footstep", gain: 0.07, stride_m: 0.8, max_step_m: 2 },
-        },
-        pose: { gait: { run_mps: 2.2 } },
+    }),
+  );
+  await writeFile(
+    join(root, "fixtures/presentation.json"),
+    JSON.stringify({ pose: { gait: { run_mps: 2.2 } } }),
+  );
+  await writeFile(
+    join(root, "fixtures/audio.json"),
+    JSON.stringify({
+      shots: {
+        default: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 },
+        rifle: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 },
       },
+      impacts: {
+        ground: { sound: "impact_ground", gain: 0.2 },
+        hull: { sound: "impact_hull", gain: 0.4 },
+      },
+      vehicles: {},
+      footsteps: { sound: "footstep", gain: 0.07, stride_m: 0.8, max_step_m: 2 },
     }),
   );
   const store = new SoundWorkbenchStore(root, validateSoundCatalog, Object.keys(SOUNDS));
@@ -196,7 +200,7 @@ test("HTTP refuses invalid identity, malformed clips, changed baselines and clie
       await request("preview", {
         revision: snapshot.revision,
         catalog: snapshot.catalog,
-        path: "fixtures/game.json",
+        path: "fixtures/rules.json",
       })
     ).status,
   ).toBe(400);

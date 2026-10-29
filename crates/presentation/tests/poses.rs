@@ -210,7 +210,7 @@ fn the_browser_s_poses_of_the_fixture_capture() {
     let kinds =
         fielded::encounter_kinds(&root, map, workload["encounter"].as_str().unwrap()).unwrap();
     let game: Value =
-        serde_json::from_slice(&std::fs::read(root.join("fixtures/game.json")).unwrap()).unwrap();
+        serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
     let effects = fielded::fielded(&root, &game, map, &kinds).unwrap().effects;
     let tick_hz = capture["tickHz"].as_f64().unwrap();
     let mut reader = Reader::new(capture["layout"].as_str().unwrap()).unwrap();

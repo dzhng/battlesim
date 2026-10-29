@@ -4,9 +4,10 @@
 // TypeScript arbitration wrote): a loaded take and a request in, a start
 // command on the voices bus out; a battle's lines heard from where its sound
 // frame last heard, never the world origin.
+import { presentationSettings } from "@web/presentationSettings";
+import { audioMix } from "@web/audioMix";
 import { beforeAll, expect, test } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import game from "@fixtures/game.json";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import { SoundFrame, type VoiceSink } from "@packages/battle-audio/src/soundFrame";
@@ -73,10 +74,10 @@ test("a battle's lines are heard from its sound frame's listener", () => {
   const frame = new SoundFrame(
     {
       tickHz: 30,
-      presentation: game.presentation.audio as unknown as AudioPresentation,
+      presentation: audioMix as unknown as AudioPresentation,
       catalog: gameSounds,
-      smokeTimes: game.presentation.effects.smoke,
-      cookOff: game.presentation.effects.cook_off,
+      smokeTimes: presentationSettings.effects.smoke,
+      cookOff: presentationSettings.effects.cook_off,
     },
     sink,
   );

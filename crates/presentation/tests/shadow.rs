@@ -43,9 +43,12 @@ fn street() -> TerrainPartition {
 }
 
 fn game_light() -> LightSettings {
-    let at = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/game.json");
+    let at = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../fixtures/presentation.json"
+    );
     let game: Value = serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap();
-    serde_json::from_value(game["presentation"]["light"].clone()).unwrap()
+    serde_json::from_value(game["light"].clone()).unwrap()
 }
 
 /// An orbit camera over `target`, `distance` out at `pitch` and `yaw`, as
@@ -681,8 +684,9 @@ fn every_cascade_camera_runs_on_the_frames_clock_and_wind() {
     biome.wind.gust_mps = 7.5;
     let wind = biome.wind.record();
     assert!(wind.gust_mps > 0.0 && wind.toward[1] > 0.0);
-    let game: serde_json::Value = serde_json::from_str(&read("fixtures/game.json")).unwrap();
-    let tuning: Tuning = serde_json::from_value(game["presentation"].clone()).unwrap();
+    let game: serde_json::Value =
+        serde_json::from_str(&read("fixtures/presentation.json")).unwrap();
+    let tuning: Tuning = serde_json::from_value(game.clone()).unwrap();
     let mut presentation = Presentation::new(None, 30.).unwrap();
     presentation.set_ground(source, biome, tuning).unwrap();
     presentation.set_shadow(Some((game_light(), Arc::new(street()))));

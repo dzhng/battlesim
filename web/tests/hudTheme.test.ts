@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { presentationSettings } from "@web/presentationSettings";
 import { expect, test } from "vitest";
 import {
   hudProperties,
@@ -12,7 +13,6 @@ import {
   GLOW_MAX_RADIUS_PX,
   validateOverlayGlow,
 } from "../../packages/battle-renderer/src/overlayStyle";
-import game from "../../fixtures/game.json";
 
 test("the HUD theme becomes channel triples every rule can give its own alpha", () => {
   const props = hudProperties(gameHud);
@@ -28,7 +28,7 @@ test("a HUD theme missing a colour, or one out of range, is refused", () => {
 });
 
 test("the overlay glow is the fixture's, and one past the blur's reach is refused", () => {
-  const glow = game.presentation.overlay.glow;
+  const glow = presentationSettings.overlay.glow;
   const halo = { radius_px: glow.radius_px, strength: glow.overlay };
   expect(validateOverlayGlow(halo)).toEqual(halo);
   expect(hudProperties(gameHud, gameCalloutGlow)["--hud-callout-glow"]).toBe(String(glow.callouts));

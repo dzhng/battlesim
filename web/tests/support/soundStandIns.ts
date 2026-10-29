@@ -1,4 +1,4 @@
-import game from "@fixtures/game.json";
+import { presentationSettings } from "@web/presentationSettings";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import { battleSounds } from "@packages/battle-audio/src/soundFrame";
@@ -21,7 +21,7 @@ export function standInPresentationRecordings(
       row.reverse,
     ]),
   ]);
-  const { smoke, cook_off } = game.presentation.effects;
+  const { smoke, cook_off } = presentationSettings.effects;
   const plays = battleSounds({
     tickHz: 30,
     presentation,

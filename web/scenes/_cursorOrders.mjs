@@ -1,7 +1,7 @@
 // Player gestures through the shared session and real worker authority.
 import { lab, obs, advance, until, openBattle, snapshot, presented } from "./_lab.mjs";
 import { decode, writeCrop } from "./_png.mjs";
-import { game } from "./_units.mjs";
+import { visuals } from "./_units.mjs";
 
 const base = (ctx) => new URL(ctx.url).origin;
 const select = async (page, ids) => {
@@ -825,7 +825,7 @@ export async function readoutEdge(ctx) {
   );
   // A card keeps `panel_edge_hide_px` clear of the screen's edge (nearer, it
   // hides), so the one framed against the right edge stands at that margin.
-  const margin = 430 - game.presentation.hud.panel_edge_hide_px;
+  const margin = 430 - visuals.hud.panel_edge_hide_px;
   const box = await page.locator('.ro-unit[data-unit="0"]').boundingBox();
   if (!box || box.x + box.width < margin - 4)
     throw Error(`own readout is not framed against the screen edge: ${JSON.stringify(box)}`);

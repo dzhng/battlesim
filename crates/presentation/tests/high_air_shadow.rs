@@ -35,7 +35,7 @@ fn root() -> PathBuf {
 fn framed() -> Presentation {
     let root = root();
     let game: Value =
-        serde_json::from_slice(&std::fs::read(root.join("fixtures/game.json")).unwrap()).unwrap();
+        serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
     let setup = serde_json::from_value(json!({
         "map": { "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": sim::fixtures::test_game(),

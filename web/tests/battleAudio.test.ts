@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
+import { presentationSettings } from "@web/presentationSettings";
+import { audioMix } from "@web/audioMix";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import game from "@fixtures/game.json";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
@@ -12,7 +13,7 @@ import { MusicPlayer } from "@packages/battle-audio/src/music/musicPlayer";
 
 beforeAll(() => loadPresentation());
 
-const COOK_OFF = game.presentation.effects.cook_off;
+const COOK_OFF = presentationSettings.effects.cook_off;
 
 const param = () => ({
   setTargetAtTime() {},
@@ -152,13 +153,13 @@ function setupDecode(
     effects: {},
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
-  const presentation = game.presentation.audio as unknown as AudioPresentation;
+  const presentation = audioMix as unknown as AudioPresentation;
   standInPresentationRecordings(catalog, presentation);
   const app = new AppAudio({ presentation, catalog });
   const audio = app.createBattle(
     {
       tickHz: 30,
-      presentation: game.presentation.audio as unknown as AudioPresentation,
+      presentation: audioMix as unknown as AudioPresentation,
       smokeTimes: {},
       cookOff: COOK_OFF,
     },
@@ -234,7 +235,7 @@ test("a departed battle cannot admit late decoding and its replacement shares th
   const next = active.at(-1)!.createBattle(
     {
       tickHz: 30,
-      presentation: game.presentation.audio as unknown as AudioPresentation,
+      presentation: audioMix as unknown as AudioPresentation,
       smokeTimes: {},
       cookOff: COOK_OFF,
     },
@@ -412,8 +413,8 @@ test("a battle's own shout plays its kind's bark where it was shouted, and the m
   frame();
   await vi.waitFor(() => expect(played.filter((b) => b === take)).toHaveLength(1));
   expect(placed).toContainEqual([30, 10, 1]);
-  const { depth } = game.presentation.audio.music.duck;
-  expect(ducks).toHaveBeenCalledWith(depth, game.presentation.audio.music.duck.attack_s);
+  const { depth } = audioMix.music.duck;
+  expect(ducks).toHaveBeenCalledWith(depth, audioMix.music.duck.attack_s);
 });
 
 test("a skirmish loads the sets of its fielded units and of enemy kinds once identified; the rest only lend their shout pool", async () => {

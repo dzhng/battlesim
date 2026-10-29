@@ -6,6 +6,7 @@
 // sun lays long shadows beside the sight shadows, the case fog must never be
 // mistaken for; two material glyph specimens, at infantry and vehicle
 // uncertainty scales, stand beside the battle's published reports.
+import { shippedRules } from "@web/shippedRules";
 import { useMemo, useState } from "react";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import { buildContactGlyphs, type ContactShape } from "@packages/battle-renderer/src/contactGlyph";
@@ -16,7 +17,6 @@ import { resolveFogLook, type FogEye, type FogRequest } from "@web/battle/sim/pr
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { FrameView } from "@web/battle/render/sceneStats";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
-import game from "@fixtures/game.json";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { contactLayer } from "../battleOverlay";
 import { useContactFacing } from "../contactFacing";
@@ -47,12 +47,12 @@ const lightFor = (sun: Sun, bloom: boolean): LightPresentation => ({
  *  half-diagonal or half a full squad's spread plus a soldier's body. */
 function contactRadius(units: UnitCatalog, kind: string): number {
   const hull = units.hull(kind);
-  const m = game.infantry_movement;
+  const m = shippedRules.infantry_movement;
   const footprint = hull
     ? Math.hypot(hull.half_extents_m[0], hull.half_extents_m[1])
     : (m.spread_m * Math.sqrt(units.slots(kind).length / m.spread_squad_size)) / 2 +
-      game.physics.soldier_radius_m;
-  return game.sensors.contact_radius_factor * footprint;
+      shippedRules.physics.soldier_radius_m;
+  return shippedRules.sensors.contact_radius_factor * footprint;
 }
 
 /** Material specimens at infantry and vehicle uncertainty scales. */
@@ -437,7 +437,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
         </div>
         <TickStatus tick={observation?.tick} status={sim.status.status} />
         <strong>Fixture block</strong>
-        <div className="lab-hint">Paste over `presentation.fog` in fixtures/game.json.</div>
+        <div className="lab-hint">Paste over `fog` in fixtures/presentation.json.</div>
         <textarea
           data-testid="fog-block"
           readOnly

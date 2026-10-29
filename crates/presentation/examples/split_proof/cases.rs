@@ -128,7 +128,7 @@ pub fn weapon(id: &str, added: bool, soldier: bool) -> Case {
 }
 
 pub fn bmp() -> Case {
-    let mut game = sim::fixtures::game();
+    let mut game = sim::fixtures::rules();
     game["catalog"] = json!(sim::fixtures::catalog_documents(
         sim::fixtures::CatalogSet::Test
     ));

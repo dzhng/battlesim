@@ -12,9 +12,9 @@
 // missile's flare and smoke trail, and a garrisoned squad's circle says where
 // it holds. Labs compose the layers their fixture exercises, the rest among
 // them as diagnostics.
+import { shippedRules } from "@web/shippedRules";
 import { gameHud } from "@web/battle/present/hudTheme";
 import type { SideName } from "@web/battle/sim/protocol";
-import game from "@fixtures/game.json";
 import { airborne, fixedWing, type UnitCatalog } from "@packages/scene-assets/src/units";
 import { buildContactGlyphs, type ContactFacing } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
@@ -258,7 +258,7 @@ export function orderLayer(
   ghosts = false,
   allies: ReadonlyMap<number, unknown> = new Map(),
 ): WorldMeshes {
-  const aloft = ghostAloft(units, game.air);
+  const aloft = ghostAloft(units, shippedRules.air);
   return buildOrderOverlay(
     o.own
       // A squad a carrier holds has no marks of its own: it is off the field.
@@ -352,7 +352,7 @@ export function buildBattleOverlay(
       objective.center,
       objective.radiusM,
       line,
-      objective.contested && Math.floor(o.tick / game.tick_hz) % 2 === 1
+      objective.contested && Math.floor(o.tick / shippedRules.tick_hz) % 2 === 1
         ? [...gameHud.warn, 1]
         : objective.owner === "red"
           ? [...gameHud.enemy, 1]

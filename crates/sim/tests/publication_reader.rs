@@ -137,7 +137,7 @@ fn market_town_window_matches_a_fresh_stream_after_its_preamble() {
         .collect();
     assert_eq!(window.len(), 7);
     let mut game: Value =
-        serde_json::from_str(&std::fs::read_to_string(fixtures::dir().join("game.json")).unwrap())
+        serde_json::from_str(&std::fs::read_to_string(fixtures::dir().join("rules.json")).unwrap())
             .unwrap();
     game["catalog"] = Value::Array(fixtures::catalog_documents(CatalogSet::Capture));
     let rules: contract::scenario::Rules = serde_json::from_value(game).unwrap();

@@ -5,9 +5,9 @@
 // side draws and at which tier are the presentation's
 // (`crates/presentation/src/static_world/props.rs`): the page draws the
 // frame's batches.
+import { presentationSettings } from "@web/presentationSettings";
 import { STAND_IN_KIT, STAND_IN_MODULE } from "@packages/scene-assets/src/standInKit";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import game from "@fixtures/game.json";
 import type { WorldExports, WorldLayout } from "../worldMesh";
 
 /** A prop's box: centred on `center` at ground level `baseZ`, turned by `yaw`. */
@@ -116,9 +116,9 @@ export function propArt(
     appearances,
     wrecks,
     stand_in: standIn,
-    stand_in_tints: game.presentation.stand_ins.tints,
+    stand_in_tints: presentationSettings.stand_ins.tints,
     family,
-    detail: game.presentation.models,
+    detail: presentationSettings.models,
     dynamic,
   });
 }

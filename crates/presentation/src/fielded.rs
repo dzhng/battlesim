@@ -58,11 +58,12 @@ pub type Read<'a> = dyn Fn(&str) -> Result<Vec<u8>, String> + 'a;
 /// A battle fielding `kinds` of the resolved unit catalog `catalog`
 /// (`Catalog::view`) under `rules` (how long a soldier holds his firing
 /// pose, how a dead hull stops), each side fighting for the faction
-/// `factions` names (blue, red; none: one look each), with `game`'s
-/// presentation tunings (`fixtures/game.json`) and the art of the runtime
-/// catalog `runtime`.
+/// `factions` names (blue, red; none: one look each), with visual settings
+/// (`fixtures/presentation.json`) and art from `runtime`. Weapon inheritance
+/// comes from the authored `weapons` rows.
 pub struct Fielding<'a> {
-    pub game: &'a Value,
+    pub presentation: &'a Value,
+    pub weapons: &'a Value,
     pub rules: &'a Value,
     pub catalog: &'a Value,
     pub runtime: &'a Value,
@@ -77,7 +78,7 @@ impl Fielding<'_> {
     pub fn contents(&self) -> Result<Vec<String>, String> {
         let catalog = Catalog::new(self.catalog)?;
         let art = Art::new(self.runtime, &catalog, self.kinds, self.factions)?;
-        let (_, drawn) = unit_types(self.game, &catalog, &art, self.kinds, self.factions)?;
+        let (_, drawn) = unit_types(self.presentation, &catalog, &art, self.kinds, self.factions)?;
         let mut contents = BTreeSet::new();
         for name in drawn.iter().chain(hull_wrecks(&catalog, &art).values()) {
             contents.insert(art.bundle(name)?.to_owned());
@@ -97,14 +98,21 @@ impl Fielding<'_> {
             ..Art::new(self.runtime, &catalog, self.kinds, self.factions)?
         };
         let (units, tables) = units(
-            self.game,
+            self.presentation,
             self.rules,
             &catalog,
             &art,
             self.kinds,
             self.factions,
         )?;
-        let effects = effects::section(self.game, self.rules, &catalog, &art, self.kinds)?;
+        let effects = effects::section(
+            self.presentation,
+            self.weapons,
+            self.rules,
+            &catalog,
+            &art,
+            self.kinds,
+        )?;
         Ok(Sections {
             units,
             effects,
@@ -150,19 +158,21 @@ mod files {
     }
 
     /// What a battle on saved map `map` fielding `kinds` draws its units and
-    /// effects from: its rules `game`'s, its catalog the map's category's,
+    /// effects from: its supplied rules, its catalog the map's category's,
     /// its art read from the runtime directory.
     pub fn fielded(
         root: &Path,
-        game: &Value,
+        rules: &Value,
         map: &str,
         kinds: &[String],
     ) -> Result<Fielded, String> {
         let catalog = crate::static_world::files::rules(root, map)?.catalog.view();
         let runtime = Runtime::open(&root.join("assets/runtime"))?;
+        let presentation = read_json(&root.join("fixtures/presentation.json"))?;
         Fielding {
-            game,
-            rules: game,
+            presentation: &presentation,
+            weapons: &rules["weapons"],
+            rules,
             catalog: &catalog,
             runtime: &runtime.catalog,
             kinds,
@@ -363,13 +373,13 @@ impl<'a> Art<'a> {
 /// Each fielded type's facts and the appearance sets it draws from per
 /// side, and every appearance those sets name.
 fn unit_types(
-    game: &Value,
+    presentation: &Value,
     catalog: &Catalog,
     art: &Art,
     kinds: &[String],
     factions: Option<[&str; 2]>,
 ) -> Result<(Map<String, Value>, BTreeSet<String>), String> {
-    let pose = &game["presentation"]["pose"];
+    let pose = &presentation["pose"];
     let look = |side: usize, list: &mut dyn Iterator<Item = String>| -> Vec<String> {
         list.filter(|n| art.has(n))
             .map(|n| {
@@ -482,14 +492,14 @@ fn unit_types(
 /// the appearance sets it draws from per side, and every one of those
 /// appearances' joints and clips, or rig.
 fn units(
-    game: &Value,
+    presentation: &Value,
     rules: &Value,
     catalog: &Catalog,
     art: &Art,
     kinds: &[String],
     factions: Option<[&str; 2]>,
 ) -> Result<(Value, ClipTables), String> {
-    let (types, drawn) = unit_types(game, catalog, art, kinds, factions)?;
+    let (types, drawn) = unit_types(presentation, catalog, art, kinds, factions)?;
     let mut appearances = Map::new();
     let mut tables = ClipTables::new();
     let mut table_of: Vec<(Vec<f32>, String)> = Vec::new();
@@ -526,10 +536,10 @@ fn units(
     }
     let sides = &art.runtime["sides"];
     let units = json!({
-        "pose": game["presentation"]["pose"],
-        "transit": game["presentation"]["transit"],
+        "pose": presentation["pose"],
+        "transit": presentation["transit"],
         "leanHold": number(rules, "cover", "lean_hold_s")?,
-        "detail": game["presentation"]["models"],
+        "detail": presentation["models"],
         "tints": { "blue": sides["blue"], "red": sides["red"] },
         "types": types,
         "appearances": appearances,

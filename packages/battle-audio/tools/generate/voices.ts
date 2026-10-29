@@ -1,5 +1,5 @@
+import { shippedRules } from "../../../../web/src/shippedRules";
 import { spawn, spawnSync } from "node:child_process";
-import game from "../../../../fixtures/game.json";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,7 +35,7 @@ import { matches } from "./transcript";
  *  response, which the simulation never sees, is held to `RESPONSE_TALK_S`. */
 const RESPONSE_TALK_S = 4;
 const BARK_TALK_S: Record<string, number> = Object.fromEntries(
-  Object.entries(game.shouts.talk_s).map(([key, seconds]) => [barkTrigger(key), seconds]),
+  Object.entries(shippedRules.shouts.talk_s).map(([key, seconds]) => [barkTrigger(key), seconds]),
 );
 function talkTime(trigger: string): number {
   return BARK_TALK_S[trigger] ?? RESPONSE_TALK_S;

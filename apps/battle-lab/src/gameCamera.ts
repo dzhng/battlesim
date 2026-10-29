@@ -1,5 +1,5 @@
-// The player camera's numbers, from the one fixture owner's presentation block.
-import game from "@fixtures/game.json";
+// The player camera's numbers, from `fixtures/presentation.json`.
+import { presentationSettings } from "@web/presentationSettings";
 import generated from "@fixtures/generated-battle.json";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
@@ -7,7 +7,7 @@ import {
   type CameraPresentation,
 } from "@packages/renderer-core/src/cameraController";
 
-const presentation = game.presentation.camera;
+const presentation = presentationSettings.camera;
 const config: CameraPresentation = {
   ...presentation,
   pitch_curve: presentation.pitch_curve as [number, number][],

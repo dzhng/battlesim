@@ -1,8 +1,8 @@
-// The overlays' presentation, from the one fixture owner's presentation block
+// The overlays' presentation, from `fixtures/presentation.json`
 // (`presentation.overlay`): the halo every overlay carries, the orders'
 // colours and widths, supply's colour and the objective zone's edge. Every
 // lab route draws with them.
-import game from "@fixtures/game.json";
+import { presentationSettings } from "@web/presentationSettings";
 import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
 import {
   validateOverlayGlow,
@@ -33,18 +33,18 @@ import { gameCamera } from "./gameCamera";
  *  The painted ground marks glow by their own emissive (`gamePaint`), the
  *  callouts by the HUD's CSS (`glow.callouts`, `hudTheme.ts`). */
 export const gameOverlayGlow: OverlayGlowStyle = validateOverlayGlow({
-  radius_px: game.presentation.overlay.glow.radius_px,
-  strength: game.presentation.overlay.glow.overlay,
+  radius_px: presentationSettings.overlay.glow.radius_px,
+  strength: presentationSettings.overlay.glow.overlay,
 });
 
 /** The ground paint (`frame/paintedMarks.ts`): its emissive glow
  *  (`glow.ground`), `paint`'s reflectance and fog. */
 export const gamePaint: PaintStyle = validatePaintStyle({
-  emissive: game.presentation.overlay.glow.ground,
-  ...game.presentation.overlay.paint,
+  emissive: presentationSettings.overlay.glow.ground,
+  ...presentationSettings.overlay.paint,
 });
 
-const { flash: orderFlash, ...orders } = game.presentation.overlay.orders;
+const { flash: orderFlash, ...orders } = presentationSettings.overlay.orders;
 
 /** The HUD's one "can't" colour, as the ground marks draw it: a route the
  *  unit can't take, a range ruler past its last reach. */
@@ -65,24 +65,24 @@ export const gameOrderStyle: OrderStyle = validateOrderStyle({
 export const gameOrderFlash: OrderFlash = validateOrderFlash(orderFlash);
 
 export const gameSupplyStyle: SupplyStyle = validateSupplyStyle(
-  game.presentation.overlay.supply as unknown as SupplyStyle,
+  presentationSettings.overlay.supply as unknown as SupplyStyle,
 );
 
 /** The range ruler's ground paint (Space held with a selection). */
 export const gameRulerStyle: RulerStyle = validateRulerStyle({
-  ...(game.presentation.overlay.ruler as unknown as Omit<RulerStyle, "beyond">),
+  ...(presentationSettings.overlay.ruler as unknown as Omit<RulerStyle, "beyond">),
   beyond: CANNOT,
 });
 
 /** The objective zone's edge. */
-export const gameZone: Rgba = validateZoneColor(game.presentation.overlay.zone);
+export const gameZone: Rgba = validateZoneColor(presentationSettings.overlay.zone);
 
 /** The colour a unit's hidden parts are drawn in through the world in front
  *  of it (`ModelInstance.xray`). */
 export const gameXray: XrayStyle = (() => {
   // A selected unit's hidden parts take the selection's colour, so the x-ray
   // and the selection marker can never disagree; only the alpha is set here.
-  const x = game.presentation.overlay.xray as unknown as {
+  const x = presentationSettings.overlay.xray as unknown as {
     own: Rgba;
     ally: Rgba;
     selected_alpha: number;
@@ -93,7 +93,7 @@ export const gameXray: XrayStyle = (() => {
 
 /** How every painted mark's stroke thins as the camera pulls out
  *  (`presentation.overlay.stroke`). */
-const gameStrokeRule: StrokeRule = validateStrokeRule(game.presentation.overlay.stroke);
+const gameStrokeRule: StrokeRule = validateStrokeRule(presentationSettings.overlay.stroke);
 
 /** The marks' stroke widths where one pixel spans `metresPerPx`. */
 export function gameStroke(metresPerPx: number, renderScale = 1): StrokeWidth {
@@ -109,4 +109,4 @@ export const OPENING_METRES_PER_PX = (() => {
 
 /** Ignore incidental occluded fragments; coverage is measured per drawn model. */
 export const gameXrayMinHiddenFragmentFraction =
-  game.presentation.overlay.xray.min_hidden_fragment_fraction;
+  presentationSettings.overlay.xray.min_hidden_fragment_fraction;

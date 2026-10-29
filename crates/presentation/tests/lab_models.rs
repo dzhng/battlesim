@@ -318,7 +318,7 @@ fn battle_and_lab_instances_of_one_appearance_share_one_batch_without_replacing_
     };
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let game: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(root.join("fixtures/game.json")).unwrap()).unwrap();
+        serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
     let battle = Battle::new(
         &serde_json::from_value(json!({
             "map":{"size":[600,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},

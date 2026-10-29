@@ -295,7 +295,7 @@ export class MechanicsStore {
     text: (file: FileState) => string,
     changes?: MechanicsChange[],
   ) {
-    const game = files.find((file) => file.path === "fixtures/game.json")!;
+    const game = files.find((file) => file.path === "fixtures/rules.json")!;
     const run = (rows: FileState[], changes?: MechanicsChange[]) =>
       this.validate(
         game.value,
@@ -344,7 +344,7 @@ export class MechanicsStore {
     const raw = (section: string, id: string) => {
       const doc =
         section === "weapons"
-          ? documents.find((file) => file.path === "fixtures/game.json")
+          ? documents.find((file) => file.path === "fixtures/rules.json")
           : documents.find((file) => {
               const rows = file.value[section];
               return (
@@ -596,7 +596,7 @@ export function mechanicsPlugin(root: string): Plugin {
     handleHotUpdate(context) {
       const path = relative(root, context.file).replaceAll("\\", "/");
       if (
-        path === "fixtures/game.json" ||
+        path === "fixtures/rules.json" ||
         path === "fixtures/catalog.json" ||
         path.startsWith("fixtures/units/") ||
         path.startsWith("fixtures/props/")

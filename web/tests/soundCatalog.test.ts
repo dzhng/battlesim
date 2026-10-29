@@ -1,4 +1,7 @@
 // @vitest-environment node
+import { presentationSettings } from "@web/presentationSettings";
+import { audioMix } from "@web/audioMix";
+import { shippedRules } from "@web/shippedRules";
 import { existsSync } from "node:fs";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -15,7 +18,6 @@ import {
   type SoundSource,
 } from "@packages/battle-audio/src/catalog";
 import { musicUrl } from "@packages/battle-audio/src/music/musicCatalog";
-import game from "@fixtures/game.json";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import { battleSounds } from "@packages/battle-audio/src/soundFrame";
 import { loadPresentation } from "@web/battle/sim/presentation";
@@ -211,11 +213,11 @@ test("air-war audio keeps downloaded rights-unassigned receipts beside placehold
   });
   const prepared = battleSounds({
     tickHz: 30,
-    presentation: game.presentation.audio as unknown as AudioPresentation,
+    presentation: audioMix as unknown as AudioPresentation,
     catalog: sounds,
-    weapons: game.weapons,
-    smokeTimes: game.presentation.effects.smoke,
-    cookOff: game.presentation.effects.cook_off,
+    weapons: shippedRules.weapons,
+    smokeTimes: presentationSettings.effects.smoke,
+    cookOff: presentationSettings.effects.cook_off,
   });
   expect(prepared).not.toContain("airwar-air-alarm-placeholder");
 });

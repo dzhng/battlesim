@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import shippedGame from "@fixtures/game.json";
+import shippedGame from "@fixtures/rules.json";
 import shippedCatalog from "@fixtures/catalog.json";
 const baselineGame = structuredClone(shippedGame);
 const baselineCatalog = structuredClone(shippedCatalog);
@@ -9,7 +9,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-test("page startup captures one accepted rules and presentation generation", async () => {
+test("page startup captures one accepted rules generation", async () => {
   const { startWithMechanics } = await import("@web/mechanicsStartup");
   const game = structuredClone(baselineGame);
   const catalog = structuredClone(baselineCatalog);
@@ -25,7 +25,7 @@ test("page startup captures one accepted rules and presentation generation", asy
       new Response(
         JSON.stringify({
           revision: "accepted",
-          documents: [{ path: "fixtures/game.json", value: game }],
+          documents: [{ path: "fixtures/rules.json", value: game }],
           catalog,
           game: catalog,
         }),
@@ -74,7 +74,7 @@ test("production startup uses shipped rules without the development backend", as
   await startWithMechanics(
     false,
     async () => {
-      const { default: game } = await import("@fixtures/game.json");
+      const { default: game } = await import("@fixtures/rules.json");
       const { catalogSet } = await import("@web/battle/catalog/sets");
       const { weapons } = await catalogSet("game");
       expect(game.weapons.grenade.speed_mps).toBe(baselineGame.weapons.grenade.speed_mps);

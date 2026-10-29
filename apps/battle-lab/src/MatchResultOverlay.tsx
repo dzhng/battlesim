@@ -1,13 +1,13 @@
 // The end-of-match report: the result as the viewer's side reads it, every
 // player's totals as a scoreboard under their side, and the battle's story,
 // each line naming the player behind it.
+import { shippedRules } from "@web/shippedRules";
 import { cardIcon, hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { Icon } from "@web/battle/present/icons";
 import { playerName, type Seat } from "@web/battle/present/playerName";
 import type { MatchEventView, SkirmishView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
-import game from "@fixtures/game.json";
 import { clock, outcome } from "./battleStatus";
 
 type Report = NonNullable<SkirmishView["report"]>;
@@ -31,7 +31,7 @@ type Line =
     }
   | { kind: "kill"; tick: number; event: Extract<MatchEventView, { kind: "kill" }> };
 
-const MINUTE = 60 * game.tick_hz;
+const MINUTE = 60 * shippedRules.tick_hz;
 
 function timeline(events: readonly MatchEventView[]): Line[] {
   const lines: Line[] = [];

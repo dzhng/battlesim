@@ -13,13 +13,13 @@
 // for the paired cost), `?fog=1` puts an eye before each station whose sight
 // ends across it, `?azimuth=` and `?sun=` turn and raise the sun, and
 // `?order=reversed` hands the frame the same modules in the opposite order.
+import { shippedRules } from "@web/shippedRules";
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { FogRequest } from "@web/battle/sim/presentation";
 import { validateLight } from "@packages/battle-renderer/src/light/sceneLight";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import type { WorldLayers } from "@packages/battle-renderer/src/scene";
 import { CameraController, type CameraPose } from "@packages/renderer-core/src/cameraController";
-import game from "@fixtures/game.json";
 import { useFeed } from "../feed";
 import { useGameAppearances } from "../gameAppearances";
 import { gameCamera } from "../gameCamera";
@@ -155,7 +155,7 @@ function fogRequest(): FogRequest {
       range,
     };
   });
-  return { sensors: game.sensors, eyes };
+  return { sensors: shippedRules.sensors, eyes };
 }
 
 export default function Facade() {

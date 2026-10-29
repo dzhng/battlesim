@@ -1,3 +1,4 @@
+import { DEFAULT_BATTLE_SEED } from "../../apps/battle-lab/src/lobby/defaults.ts";
 // The street test map's battle as a game.
 //
 // On `/labs/street?watch` (scene `street-watch`: blue's start ordered onto
@@ -38,9 +39,9 @@ import {
 import { anyNear, decode, mostChanged } from "./_png.mjs";
 import { trackPageResources, pageResources } from "./_leaks.mjs";
 import { orderPaint, paintOnly } from "./_overlays.mjs";
-import { hasRole, game, streetMap, streetAttack, curvePitch } from "./_units.mjs";
+import { hasRole, streetMap, streetAttack, curvePitch, visuals } from "./_units.mjs";
 
-const CAMERA = game.presentation.camera;
+const CAMERA = visuals.camera;
 const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 3600);
 const VIEWPORT = { width: 1920, height: 1080 };
 
@@ -132,7 +133,7 @@ export async function battleTour(ctx) {
   await lab(page, () => window.__lab.setFrameView("final"));
   await ctx.writeEvidence("battle-frames.json", {
     tick: o.tick,
-    seed: game.seed,
+    seed: DEFAULT_BATTLE_SEED,
     encounter: "advance",
     frames,
     craters,

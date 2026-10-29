@@ -358,17 +358,7 @@ pub struct ServiceRules {
     pub stock_per_flare: u32,
 }
 
-/// Browser input controls carried alongside the simulation rules. The browser
-/// owns their behavior (`reverseZone.ts`); the shared loader admits the
-/// authored shape so it cannot be mistaken for an arbitrary rules section.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Controls {
-    pub reverse_zone_length_m: f64,
-    pub reverse_zone_margin_m: f64,
-}
-
-/// The game's rules (`fixtures/game.json` with its catalog). Loading
+/// The game's rules (`fixtures/rules.json` with its catalog). Loading
 /// them checks what crosses sections: every mount names a weapon row.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(try_from = "UncheckedRules")]
@@ -684,14 +674,6 @@ impl HullLimits {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct UncheckedRules {
-    // These sections belong to presentation and browser input, never simulation.
-    #[serde(rename = "presentation")]
-    _presentation: Option<serde::de::IgnoredAny>,
-    #[serde(rename = "controls")]
-    _controls: Option<Controls>,
-    // The battle lab's default; a battle supplies its own seed separately.
-    #[serde(rename = "seed")]
-    _seed: Option<u64>,
     tick_hz: u32,
     commands: CommandRules,
     movement: MovementRules,
@@ -797,7 +779,7 @@ impl Rules {
     /// These rules with a scenario's `overrides` merged in, read and checked
     /// again as the shipped rules are, so an override is held to every rule
     /// a shipped row is. The patch is shaped like the authored rules: a rules
-    /// section of `game.json` (`weapons`, `sensors`, `air`, ...) or a catalog
+    /// section of `rules.json` (`weapons`, `sensors`, `air`, ...) or a catalog
     /// section (`units`, `soldiers`, `parts`, `roles`, `props`). It merges
     /// into the resolved rows as an `extends` child merges into its parent
     /// ([`crate::catalog::merge_entry`]); a row the rules lack is added, and

@@ -30,7 +30,7 @@ export interface VoiceRequest {
   at: number;
 }
 
-/** `presentation.audio.voices` in `fixtures/game.json`. */
+/** `voices` in `fixtures/audio.json`. */
 export interface ChatterRules {
   /** Lines sounding at once. */
   lines: number;

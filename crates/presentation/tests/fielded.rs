@@ -12,7 +12,7 @@ use std::path::PathBuf;
 fn a_battle_reads_only_the_contents_it_names() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let game: Value =
-        serde_json::from_slice(&std::fs::read(root.join("fixtures/game.json")).unwrap()).unwrap();
+        serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
     let catalog = presentation::static_world::files::rules(&root, "market-town")
         .unwrap()
         .catalog
@@ -20,7 +20,11 @@ fn a_battle_reads_only_the_contents_it_names() {
     let runtime = Runtime::open(&root.join("assets/runtime")).unwrap();
     let kinds = fielded::encounter_kinds(&root, "market-town", "menu").unwrap();
     let fielding = Fielding {
-        game: &game,
+        presentation: &serde_json::from_slice(
+            &std::fs::read(root.join("fixtures/presentation.json")).unwrap(),
+        )
+        .unwrap(),
+        weapons: &game["weapons"],
         rules: &game,
         catalog: &catalog,
         runtime: &runtime.catalog,

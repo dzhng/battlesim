@@ -24,7 +24,7 @@ fn root() -> PathBuf {
 }
 
 fn game() -> Value {
-    serde_json::from_slice(&std::fs::read(root().join("fixtures/game.json")).unwrap()).unwrap()
+    serde_json::from_slice(&std::fs::read(root().join("fixtures/rules.json")).unwrap()).unwrap()
 }
 
 /// `scenario` with a swamp 0.6 m deep over each of `rects` (x0, y0, x1, y1).
@@ -48,7 +48,9 @@ fn ground_of(scenario: &ScenarioDefinition) -> Ground {
     let source = ground::source(&world, &scenario.map.extents(), &layout).unwrap();
     let summer = std::fs::read_to_string(root().join("fixtures/biomes/summer.json")).unwrap();
     let biome = Biome::load(&summer, None).unwrap();
-    let tuning: Tuning = serde_json::from_value(game()["presentation"].clone()).unwrap();
+    let tuning: Tuning =
+        serde_json::from_slice(&std::fs::read(root().join("fixtures/presentation.json")).unwrap())
+            .unwrap();
     Ground::new(source, biome, tuning).unwrap()
 }
 

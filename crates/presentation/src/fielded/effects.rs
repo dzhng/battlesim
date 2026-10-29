@@ -5,11 +5,11 @@ use super::*;
 
 /// `presentation.effects` with a row for every weapon of `weapons` that has
 /// none in the tables each weapon's round reads: its nearest ancestor's.
-fn game_effects(game: &Value) -> Result<Value, String> {
-    let mut effects = game["presentation"]["effects"].clone();
-    let parents: BTreeMap<String, Option<String>> = game["weapons"]
+fn weapon_effects(presentation: &Value, weapons: &Value) -> Result<Value, String> {
+    let mut effects = presentation["effects"].clone();
+    let parents: BTreeMap<String, Option<String>> = weapons
         .as_object()
-        .ok_or("game.json has no weapons")?
+        .ok_or("rules.json has no weapons")?
         .iter()
         .map(|(k, w)| (k.clone(), w["extends"].as_str().map(str::to_owned)))
         .collect();
@@ -31,7 +31,8 @@ fn game_effects(game: &Value) -> Result<Value, String> {
 /// known, and each installed hull's wreck: what a cook-off throws, how it is
 /// fitted and how hard the dead hull stops.
 pub(super) fn section(
-    game: &Value,
+    presentation: &Value,
+    weapons: &Value,
     rules: &Value,
     catalog: &Catalog,
     art: &Art,
@@ -121,7 +122,7 @@ pub(super) fn section(
         );
     }
     Ok(json!({
-        "presentation": game_effects(game)?,
+        "presentation": weapon_effects(presentation, weapons)?,
         "types": types,
         "smokes": smokes,
         "wrecks": wrecks,

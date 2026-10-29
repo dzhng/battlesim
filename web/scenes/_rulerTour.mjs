@@ -9,9 +9,9 @@ import {
   pointerOffCanvas,
 } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
-import { unitType, game, streetMap } from "./_units.mjs";
+import { unitType, game, streetMap, visuals } from "./_units.mjs";
 import { stageStreetMoves } from "./_streetStaging.mjs";
-const CAMERA = game.presentation.camera;
+const CAMERA = visuals.camera;
 /** The range ruler (Space held with a selection) and right-clicking a
  *  contact's area to attack it. */
 export async function rulerTour(ctx) {

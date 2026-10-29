@@ -1,3 +1,4 @@
+import { shippedRules } from "@web/shippedRules";
 import { useFeed } from "../feed";
 import { useLabLoading } from "../LabLoading";
 // The panel workbench: every info panel the battle can draw (the specimens
@@ -6,7 +7,6 @@ import { useLabLoading } from "../LabLoading";
 // draws the per-type and heard groups for the pinned test units only. No 3D scene: the
 // panels are DOM over the battlefield. The scene (`web/scenes/panels.mjs`)
 // shoots the contact sheet.
-import game from "@fixtures/game.json";
 import { InfoPanel, PanelCallout, PassengerCards } from "@web/battle/present/infoPanel";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import { useEffect, useState } from "react";
@@ -19,7 +19,7 @@ import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { CaptionList } from "@web/battle/present/captions";
 
-const GAME_RULES = game as unknown as PanelRules;
+const GAME_RULES = shippedRules as unknown as PanelRules;
 
 /** The specimens shown again over grass: one of each kind of panel. */
 const OVER_GRASS = [

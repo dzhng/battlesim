@@ -30,7 +30,7 @@ async function store() {
   await mkdir(join(root, "fixtures/units"), { recursive: true });
   await mkdir(join(root, "fixtures/props"), { recursive: true });
   await writeFile(
-    join(root, "fixtures/game.json"),
+    join(root, "fixtures/rules.json"),
     JSON.stringify({ weapons: { rifle: { damage: 35 } } }),
   );
   await writeFile(
@@ -60,12 +60,12 @@ test("preview changes no files and save writes the reviewed JSON and matching ca
   };
   const preview = await editor.preview(draft);
   expect(
-    JSON.parse(await readFile(join(root, "fixtures/game.json"), "utf8")).weapons.rifle.damage,
+    JSON.parse(await readFile(join(root, "fixtures/rules.json"), "utf8")).weapons.rifle.damage,
   ).toBe(35);
-  expect(preview.files.find((file) => file.path === "fixtures/game.json")?.after).toContain("40");
+  expect(preview.files.find((file) => file.path === "fixtures/rules.json")?.after).toContain("40");
   await editor.save(draft);
   expect(
-    JSON.parse(await readFile(join(root, "fixtures/game.json"), "utf8")).weapons.rifle.damage,
+    JSON.parse(await readFile(join(root, "fixtures/rules.json"), "utf8")).weapons.rifle.damage,
   ).toBe(40);
   expect(
     JSON.parse(await readFile(join(root, "fixtures/catalog.json"), "utf8")).weapons.rifle.damage,
@@ -85,7 +85,7 @@ test("a change to an untouched source makes the draft stale without overwriting 
   ).rejects.toMatchObject({ status: 409 });
   expect(await readFile(join(root, "fixtures/units/test.json"), "utf8")).toBe(outside);
   expect(
-    JSON.parse(await readFile(join(root, "fixtures/game.json"), "utf8")).weapons.rifle.damage,
+    JSON.parse(await readFile(join(root, "fixtures/rules.json"), "utf8")).weapons.rifle.damage,
   ).toBe(35);
   expect(await readFile(join(root, "fixtures/catalog.json"), "utf8")).toBe("{}");
 });
@@ -134,7 +134,7 @@ test("an outside edit during publication aborts the save and survives rollback",
   const outside = '{"units":{"test":{"cost":2}}}\n';
   vi.mocked(filesystem.rename).mockImplementation(async (from, to) => {
     await rename(from, to);
-    if (String(to) === join(root, "fixtures/game.json"))
+    if (String(to) === join(root, "fixtures/rules.json"))
       await writeFile(join(root, "fixtures/units/test.json"), outside);
   });
   await expect(
@@ -145,7 +145,7 @@ test("an outside edit during publication aborts the save and survives rollback",
   ).rejects.toMatchObject({ status: 409 });
   expect(await readFile(join(root, "fixtures/units/test.json"), "utf8")).toBe(outside);
   expect(
-    JSON.parse(await readFile(join(root, "fixtures/game.json"), "utf8")).weapons.rifle.damage,
+    JSON.parse(await readFile(join(root, "fixtures/rules.json"), "utf8")).weapons.rifle.damage,
   ).toBe(35);
   expect(await readFile(join(root, "fixtures/catalog.json"), "utf8")).toBe("{}");
 });
@@ -187,7 +187,7 @@ async function nativeStore() {
   const root = await mkdtemp(join(tmpdir(), "mechanics-native-"));
   roots.push(root);
   await mkdir(join(root, "fixtures"));
-  for (const path of ["game.json", "catalog.json", "units", "props"])
+  for (const path of ["rules.json", "catalog.json", "units", "props"])
     await cp(join(project, "fixtures", path), join(root, "fixtures", path), { recursive: true });
   return { root, editor: new MechanicsStore(root, nativeValidator(project)) };
 }
@@ -322,7 +322,7 @@ test("decimal gameplay values survive native admission and publication without r
     targets: { ground: { scatter_mrad: scatter } },
   });
   expect(
-    JSON.parse(await readFile(join(root, "fixtures/game.json"), "utf8")).weapons.grenade.targets
+    JSON.parse(await readFile(join(root, "fixtures/rules.json"), "utf8")).weapons.grenade.targets
       .ground.scatter_mrad,
   ).toBe(scatter);
   expect((saved.catalog.documents as JsonObject[])[0].units).toMatchObject({
@@ -340,10 +340,10 @@ test("save publishes the Rust catalog generator’s exact canonical bytes of the
   const texts: string[] = [];
   // The committed catalog is the game's documents alone: never a test unit.
   for (const path of (await mechanicsSourcePaths(root)).filter(
-    (path) => path !== "fixtures/game.json" && isGameDocument(path),
+    (path) => path !== "fixtures/rules.json" && isGameDocument(path),
   ))
     texts.push(await readFile(join(root, path), "utf8"));
-  const game = await readFile(join(root, "fixtures/game.json"), "utf8");
+  const game = await readFile(join(root, "fixtures/rules.json"), "utf8");
   const native = spawnSync(
     resolve("..", process.env.CARGO_TARGET_DIR ?? "target", "debug/examples/mechanics_validate"),
     [],
@@ -525,13 +525,13 @@ test("a save response resolves its catalog from the same captured sources after 
   vi.spyOn(filesystem, "rm").mockImplementation(async (path, options) => {
     await real.rm(path, options);
     if (String(path) === join(root, "throwaway/mechanics-editor-transaction.json"))
-      await writeFile(join(root, "fixtures/game.json"), '{"weapons":{"rifle":{"damage":60}}}');
+      await writeFile(join(root, "fixtures/rules.json"), '{"weapons":{"rifle":{"damage":60}}}');
   });
   const saved = await editor.save({
     revision: initial.revision,
     changes: [{ section: "weapons", id: "rifle", path: ["damage"], value: 40 }],
   });
-  expect(saved.documents.find((file) => file.path === "fixtures/game.json")?.value).toMatchObject({
+  expect(saved.documents.find((file) => file.path === "fixtures/rules.json")?.value).toMatchObject({
     weapons: { rifle: { damage: 60 } },
   });
   expect(saved.catalog.weapons).toMatchObject({ rifle: { damage: 60 } });

@@ -25,10 +25,11 @@ fn fixture(name: &str) -> Value {
 
 /// The game's sound, as a player sets it up.
 fn sound() -> Sound {
-    let game = fixture("game.json");
-    let fx = &game["presentation"]["effects"];
+    let game = fixture("rules.json");
+    let presentation = fixture("presentation.json");
+    let fx = &presentation["effects"];
     let setup = json!({
-        "audio": game["presentation"]["audio"],
+        "audio": fixture("audio.json"),
         "catalog": fixture("sounds.json"),
         "weapons": game["weapons"],
         "tick_hz": game["tick_hz"],
@@ -144,7 +145,7 @@ fn flare_deploy_starts_the_positional_flare_sound() {
         0.0,
     );
     let commands = s.update(1.0 / 30.0, 0.0, 0.0, &Motion::default(), HERE);
-    let flare = fixture("game.json")["presentation"]["audio"]["flare_deploy"]["sound"].clone();
+    let flare = fixture("audio.json")["flare_deploy"]["sound"].clone();
     assert!(commands.iter().any(|c| matches!(c, Command::Start { voice, .. } if voice.sound == flare.as_str().unwrap() && voice.position == Some([20.0, 0.0, 1000.0]))));
 }
 

@@ -187,10 +187,10 @@ mod tests {
     fn fixture() -> FogPresentation {
         let game: serde_json::Value = serde_json::from_str(include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../fixtures/game.json"
+            "/../../fixtures/presentation.json"
         )))
         .unwrap();
-        serde_json::from_value(game["presentation"]["fog"].clone()).unwrap()
+        serde_json::from_value(game["fog"].clone()).unwrap()
     }
 
     fn base() -> FogStyle {

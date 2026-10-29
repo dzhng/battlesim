@@ -66,8 +66,8 @@ fn presentation(map: &str, layout: &str) -> Presentation {
         meta["biome"].as_str().unwrap()
     ));
     let biome = Biome::load(&biome, def.regional_family.as_deref()).unwrap();
-    let game: Value = serde_json::from_str(&read("fixtures/game.json")).unwrap();
-    let tuning: Tuning = serde_json::from_value(game["presentation"].clone()).unwrap();
+    let game: Value = serde_json::from_str(&read("fixtures/rules.json")).unwrap();
+    let tuning: Tuning = serde_json::from_str(&read("fixtures/presentation.json")).unwrap();
     let sensors: Sensors = serde_json::from_value(game["sensors"].clone()).unwrap();
     let mut p = Presentation::new(Some(layout), 30.0).unwrap();
     p.set_ground(source, biome, tuning).unwrap();

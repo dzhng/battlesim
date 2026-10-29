@@ -250,7 +250,7 @@ fn building_replacement_updates_culling_extents_and_keeps_the_latest_known_ruin(
 fn prospective_scenery_uses_new_trunk_and_stump_geometry_before_atomic_commit() {
     use presentation::static_world::ground::{biome::Biome, tables::Grid, Source};
     let game: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
     let biome = Biome::load(include_str!("../../../fixtures/biomes/summer.json"), None).unwrap();
     let tree_name = biome.trees.species[0].appearance.clone();
     let mut p = Presentation::new(None, 30.0).unwrap();
@@ -268,7 +268,7 @@ fn prospective_scenery_uses_new_trunk_and_stump_geometry_before_atomic_commit() 
             ..Default::default()
         },
         biome,
-        serde_json::from_value(game["presentation"].clone()).unwrap(),
+        serde_json::from_value(game.clone()).unwrap(),
     )
     .unwrap();
     let mesh = |radius: f32, height: f32| {

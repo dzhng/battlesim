@@ -1,7 +1,7 @@
 // @vitest-environment node
+import { audioMix } from "@web/audioMix";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import game from "@fixtures/game.json";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import type { SoundBank } from "@packages/battle-audio/src/soundBank";
@@ -99,7 +99,7 @@ test("the browser's master limiter and clip are the presentation's limiter", () 
   } as unknown as BaseAudioContext;
   const limiter = { threshold_db: -9, attack_s: 0.004, release_s: 0.3, ratio: 8, clip_db: -3 };
   const presentation = {
-    ...(game.presentation.audio as unknown as AudioPresentation),
+    ...(audioMix as unknown as AudioPresentation),
     limiter,
   };
   new WebAudioSink(context, presentation, {} as SoundCatalog, {} as SoundBank);

@@ -18,12 +18,16 @@ fn read(name: &str) -> Value {
     serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
 }
 
-/// The player for `game.json` with `tune` applied to its
-/// `presentation.audio`.
+/// The player with `tune` applied to its `audio.json` mix.
 fn player(tune: impl Fn(&mut Value)) -> Audio {
-    let mut game = read("game.json");
-    tune(&mut game["presentation"]["audio"]);
-    let setup = audio::setup(&game, &read("sounds.json"));
+    let mut mix = read("audio.json");
+    tune(&mut mix);
+    let setup = audio::setup(
+        &read("rules.json"),
+        &read("presentation.json"),
+        &mix,
+        &read("sounds.json"),
+    );
     let output = OutputSettings::Buffer(audio::SAMPLE_RATE);
     Audio::new(&setup, Path::new(RUNTIME), output).unwrap()
 }
@@ -226,13 +230,18 @@ const SHOUT_S: f64 = 6.0;
 /// shouts "under fire" 36 m off at [`SHOUT_S`] (`shout`), with the voices
 /// bus at `voices` times its level.
 fn scored(music: bool, shout: bool, voices: f64) -> (Vec<f32>, Audio) {
-    let mut game = read("game.json");
-    let bus = &mut game["presentation"]["audio"]["buses"]["voices"];
+    let mut mix = read("audio.json");
+    let bus = &mut mix["buses"]["voices"];
     *bus = json!(bus.as_f64().unwrap() * voices);
     let mut catalog = read("sounds.json");
     catalog["music"]["moods"]["tension"] = json!(if music { vec![TRACK] } else { vec![] });
     catalog["music"]["moods"]["combat"] = json!([]);
-    let setup = audio::setup(&game, &catalog);
+    let setup = audio::setup(
+        &read("rules.json"),
+        &read("presentation.json"),
+        &mix,
+        &catalog,
+    );
     let output = OutputSettings::Buffer(audio::SAMPLE_RATE);
     let mut a = Audio::new(&setup, Path::new(RUNTIME), output).unwrap();
     a.speakers(Speakers {
@@ -249,7 +258,7 @@ fn scored(music: bool, shout: bool, voices: f64) -> (Vec<f32>, Audio) {
         flare_deploys: Vec::new(),
         grinds: Vec::new(),
     };
-    let hz = read("game.json")["tick_hz"].as_f64().unwrap();
+    let hz = read("rules.json")["tick_hz"].as_f64().unwrap();
     let dt = 1.0 / 60.0;
     let mut now = 0.0;
     while now < 10.0 {
@@ -327,7 +336,7 @@ fn the_score_streams_a_voice_line_sounds_and_the_score_dips_under_it() {
     assert!(rms(span(&voice, 4.0, SHOUT_S)) < 1e-6, "nothing before it");
 
     // Under the line the music dips by the duck depth, and recovers after.
-    let depth = read("game.json")["presentation"]["audio"]["music"]["duck"]["depth"]
+    let depth = read("audio.json")["music"]["duck"]["depth"]
         .as_f64()
         .unwrap();
     let dipped = minus(&unheard, &bed);

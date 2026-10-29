@@ -390,8 +390,8 @@ mod tests {
     /// `presentation.models`, as the fixture tunes it.
     fn detail() -> Detail {
         let game: serde_json::Value =
-            serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
-        serde_json::from_value(game["presentation"]["models"].clone()).unwrap()
+            serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
+        serde_json::from_value(game["models"].clone()).unwrap()
     }
 
     /// 65 m out from a target on the ground, looking north, at 1080p.

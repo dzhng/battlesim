@@ -1,5 +1,5 @@
 //! Admit supplied mechanics without loading a map or changing fixture files.
-//! Reads { "game": <game.json>, "catalog": [<authored documents>] } on stdin.
+//! Reads { "game": <rules.json>, "catalog": [<authored documents>] } on stdin.
 use std::io::{self, Read};
 
 use serde::Deserialize;
@@ -42,21 +42,14 @@ mod tests {
     use serde_json::json;
 
     fn game() -> Value {
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap()
+        serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap()
     }
 
     #[test]
     fn unknown_rules_keys_are_refused() {
         let documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
-        sim::fixtures::admit(game(), documents.clone()).expect("the shipped game.json loads");
-        for path in [
-            "/sensors",
-            "",
-            "/physics",
-            "/guided",
-            "/cover/tiers",
-            "/controls",
-        ] {
+        sim::fixtures::admit(game(), documents.clone()).expect("the shipped rules.json loads");
+        for path in ["/sensors", "", "/physics", "/guided", "/cover/tiers"] {
             let mut game = game();
             game.pointer_mut(path).unwrap()["stale_rules_key"] = json!({});
             let error = sim::fixtures::admit(game, documents.clone())

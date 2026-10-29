@@ -31,7 +31,7 @@ export async function rendererLifecycle(ctx) {
         import(file("apps/battle-lab/src/gameOverlay.ts")),
         import(file("apps/battle-lab/src/gameModels.ts")),
         import(file("apps/battle-lab/src/presentedFrame.ts")),
-        import(file("fixtures/game.json")),
+        import(file("fixtures/rules.json")),
       ]);
       await presentation.loadPresentation();
       const installed = await new assets.AppearanceLibrary().load("/");

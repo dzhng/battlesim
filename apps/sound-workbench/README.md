@@ -21,7 +21,7 @@ Recipe and assignment gains remain the authoring controls for intentional level 
 Audition centers mono material in stereo and uses a memoryless safety ceiling;
 safe brief attacks are not attenuated by a newly created compressor's startup.
 
-Firing choices name a weapon row from `game.json`. A row without its own choice
+Firing choices name a weapon row from `rules.json`. A row without its own choice
 shows and plays its nearest ancestor's, else the default row's; restoring a row's
 own choice exposes that fallback, including its effect replacement. Movement is
 auditioned as the battle plays it: each vehicle class drives at a chosen speed, turret

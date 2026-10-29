@@ -5,16 +5,16 @@
  *  rows expire a few seconds after the sound was last heard, and only the
  *  newest few show. Hearing cues are always captioned, independently of
  *  audio settings. */
+import { shippedRules } from "@web/shippedRules";
 import { useSessionCatalog } from "../catalog/context";
 import { useCallback, useState } from "react";
-import game from "@fixtures/game.json";
 import type { ObservationView, SoundCueView } from "../sim/observationView";
 import { unitName } from "./readouts";
 
 /** Rows shown at most. */
 export const CAPTION_ROWS = 3;
 /** A row lasts this long after its sound was last heard (ticks). */
-export const CAPTION_TICKS = 5 * game.tick_hz;
+export const CAPTION_TICKS = 5 * shippedRules.tick_hz;
 
 const DIRECTIONS = [
   "east",

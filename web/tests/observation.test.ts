@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { shippedRules } from "@web/shippedRules";
 import { UNITS } from "./catalog";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
@@ -16,7 +17,6 @@ import { packedGroundRuns } from "./groundRuns";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import { labScenario, TEST_RULES } from "./catalog";
 import { loadEncounter, loadMap } from "@web/maps/node";
-import game from "@fixtures/game.json";
 import type { Order } from "../src/battle/sim/protocol";
 
 await loadPresentation();
@@ -248,8 +248,8 @@ test("deployment progress, its target and the packing state decode", () => {
   const send = (seq: number, order: Order) =>
     JSON.parse(battle.accept(JSON.stringify({ side: "blue", seq, order, queued: false })));
   const timing = UNITS.type("test_supply").capabilities.deploy!;
-  const ticks = timing.seconds * game.tick_hz;
-  const packTicks = (timing.pack_seconds ?? timing.seconds) * game.tick_hz;
+  const ticks = timing.seconds * shippedRules.tick_hz;
+  const packTicks = (timing.pack_seconds ?? timing.seconds) * shippedRules.tick_hz;
   for (let t = 0; t < ticks / 2; t++) battle.step();
   let [supply, tank] = decode().own;
   // A stopped supply unit sets up where it stands; a tank never deploys.
@@ -687,7 +687,7 @@ test("a live battle publishes poses, soldier ids, tracer kinds and blasts", () =
     blast ??= frame.blasts.find((b) => b.kind === "tank_he") ?? null;
   }
   expect(kinds.has("rifle")).toBe(true);
-  expect(blast?.radius).toBe(game.weapons.tank_he.blast_radius_m);
+  expect(blast?.radius).toBe(shippedRules.weapons.tank_he.blast_radius_m);
   const tank = frame.own[0];
   expect(tank.weaponPoses.map((p) => p.mount)).toEqual([0, 1]);
   expect(tank.weaponPoses[0].shots).toBeGreaterThan(0);

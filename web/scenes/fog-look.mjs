@@ -21,7 +21,7 @@
 import { decode } from "./_png.mjs";
 import { snapshotCanvas } from "./_canvas.mjs";
 import { advance, lab, snapshot } from "./_lab.mjs";
-import { game, streetMap } from "./_units.mjs";
+import { streetMap, visuals } from "./_units.mjs";
 
 /** The street's buildings as its map places them, in the map's order (A, B
  *  and C): each one's footprint and top. Walls are named by compass, so the
@@ -622,9 +622,7 @@ export async function run(ctx) {
   const along = Math.hypot(...away);
   const u = away.map((c) => c / along);
   const past =
-    Math.min(B.hx / Math.abs(u[0]), B.hy / Math.abs(u[1])) +
-    game.presentation.fog_geometry.roof_reach_m +
-    10;
+    Math.min(B.hx / Math.abs(u[0]), B.hy / Math.abs(u[1])) + visuals.fog_geometry.roof_reach_m + 10;
   const lower = [B.x + u[0] * past, B.y + u[1] * past];
   if (B.top <= 6) throw new Error(`building B (${B.top} m) is no taller than the lower roof`);
   const hidden = [

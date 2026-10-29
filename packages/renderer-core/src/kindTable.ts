@@ -14,7 +14,7 @@ export function requireDefaults<K extends string>(
   for (const t of tables) if (!owner[t].default) throw new Error(`${at}.${t} needs a default`);
 }
 
-/** `table` with a row for every weapon of `weapons` (rows as `game.json`
+/** `table` with a row for every weapon of `weapons` (rows as `rules.json`
  *  holds them, with their `extends`) that has none of its own: its nearest
  *  ancestor's. A weapon derived from the rifle then looks and sounds like
  *  one; one with no styled ancestor keeps the default. */

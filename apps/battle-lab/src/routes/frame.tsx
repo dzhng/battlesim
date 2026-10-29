@@ -1,5 +1,5 @@
+import { shippedRules } from "@web/shippedRules";
 import { useMemo, useState } from "react";
-import game from "@fixtures/game.json";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -119,7 +119,13 @@ const targetsOf = (units: UnitCatalog): PickBox[] =>
   FOUNDATION.map((p) =>
     p.kind === "box"
       ? proxyPickBox({ ...p, kind: "box", color: [1, 1, 1] })
-      : { x: p.x, y: p.y, z: p.z, yaw: p.yaw, ...bodyBox(game.physics, hullOf(units, p.kind)) },
+      : {
+          x: p.x,
+          y: p.y,
+          z: p.z,
+          yaw: p.yaw,
+          ...bodyBox(shippedRules.physics, hullOf(units, p.kind)),
+        },
   );
 
 export const FOUNDATION_CAMERA: Camera3DParams = {

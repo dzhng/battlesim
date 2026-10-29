@@ -1,3 +1,4 @@
+import { shippedRules } from "@web/shippedRules";
 import { useFeed } from "../feed";
 import { useLabLoading } from "../LabLoading";
 // The UI gallery: every piece of the battle's interface that the panel
@@ -7,7 +8,6 @@ import { useLabLoading } from "../LabLoading";
 // composes it (its overlays are fixed to the viewport, so one shot per page);
 // without it the page lists them (the list the scene reads). The scene (`web/scenes/ui.mjs`) matches
 // every shot against its approved picture. Test units only: the roster grows.
-import game from "@fixtures/game.json";
 import { Link } from "react-router";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
@@ -39,7 +39,7 @@ import { specimenUnit } from "../panelSpecimens";
 import { MatchResultOverlay } from "../MatchResultOverlay";
 import { reportSpecimen } from "../reportSpecimens";
 
-const GAME_RULES = game as unknown as PanelRules;
+const GAME_RULES = shippedRules as unknown as PanelRules;
 
 const MATCH: SkirmishView = {
   phase: "active",
@@ -326,7 +326,7 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
     draw: () => (
       <div className="hud">
         <header className="hud-panel hud-top">
-          <BattleClock tick={game.tick_hz * 754} />
+          <BattleClock tick={shippedRules.tick_hz * 754} />
         </header>
       </div>
     ),

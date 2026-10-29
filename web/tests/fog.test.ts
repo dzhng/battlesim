@@ -4,6 +4,7 @@
 // former TypeScript): the mirror of Rust's sight shape, what the static
 // world gives it, and that a side's fog sees only what it has learned. The
 // GPU half runs in the `fog` scene.
+import { shippedRules } from "@web/shippedRules";
 import { TEST_RULES } from "./catalog";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
@@ -27,7 +28,6 @@ import { gameBiome } from "@apps/battle-lab/src/gameBiome";
 import { labScenario } from "./catalog";
 import { type LabEvent } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
-import game from "@fixtures/game.json";
 
 await loadPresentation();
 
@@ -91,7 +91,7 @@ test("the TypeScript sight shape matches sim::sight::multiplier's oracle vectors
 });
 
 test("fog reads the simulation's terrain grid and the foliage its trees give", () => {
-  const { decoder, upload, exports } = fogOver(sensors, game.sensors);
+  const { decoder, upload, exports } = fogOver(sensors, shippedRules.sensors);
   try {
     const words = upload.params();
     const floats = new Float32Array(words.buffer);
@@ -115,7 +115,7 @@ test("fog reads the simulation's terrain grid and the foliage its trees give", (
     decoder.free();
   }
   // Foliage is stored in 8 bits: a full block past that is refused.
-  expect(() => fogOver(sensors, { ...game.sensors, foliage_full_block: 2 })).toThrow(
+  expect(() => fogOver(sensors, { ...shippedRules.sensors, foliage_full_block: 2 })).toThrow(
     /foliage_full_block/,
   );
 });
@@ -138,7 +138,7 @@ function blueFog(events: LabEvent[]) {
   const length = battle.publish("blue");
   const words = new Float32Array(memory.buffer, battle.publication_ptr(), length).slice();
   battle.free();
-  const { decoder, upload } = fogOver(sensors, game.sensors, { layout, words });
+  const { decoder, upload } = fogOver(sensors, shippedRules.sensors, { layout, words });
   try {
     return { eyes: decoder.fogEyes(), occluders: decoder.fogOccluders() };
   } finally {

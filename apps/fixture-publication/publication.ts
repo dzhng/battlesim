@@ -23,7 +23,7 @@ const queues = new Map<string, Promise<unknown>>();
 
 /** Authored mechanics sources, also used to validate interrupted destinations. */
 export async function mechanicsSourcePaths(root: string): Promise<string[]> {
-  const out = ["fixtures/game.json"];
+  const out = ["fixtures/rules.json"];
   const candidates: string[] = [];
   const sections = new Set(["parts", "props", "roles", "soldiers", "units", "weapons"]);
   async function walk(path: string) {

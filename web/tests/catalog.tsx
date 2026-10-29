@@ -10,7 +10,7 @@ import type { LabEvent, LabScript, LabUnit } from "@apps/battle-lab/src/scenario
 export const TEST_CATALOG = await catalogSet("test");
 export const UNITS = TEST_CATALOG.units;
 export const WEAPONS = TEST_CATALOG.weapons;
-/** `game.json` with the test set's documents as its catalog. */
+/** `rules.json` with the test set's documents as its catalog. */
 export const TEST_RULES = TEST_CATALOG.rules;
 
 /** A lab scenario: `map` with `units`, `events` and scripted orders under

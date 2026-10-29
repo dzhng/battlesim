@@ -45,11 +45,14 @@ export class SoundWorkbenchStore {
 
   private async inputs(): Promise<Inputs> {
     const texts = await Promise.all(
-      ["sounds", "game"].map((name) => readFile(join(this.root, `fixtures/${name}.json`), "utf8")),
+      ["sounds", "rules", "presentation", "audio"].map((name) =>
+        readFile(join(this.root, `fixtures/${name}.json`), "utf8"),
+      ),
     );
     const catalog = this.validateCatalog(JSON.parse(texts[0]));
-    const game = JSON.parse(texts[1]);
-    const audio = game.presentation.audio as AudioPresentation;
+    const rules = JSON.parse(texts[1]);
+    const presentation = JSON.parse(texts[2]);
+    const audio = JSON.parse(texts[3]) as AudioPresentation;
     const media: [string, string][] = [];
     for (const [id, clip] of Object.entries(catalog.clips)) {
       let bytes;
@@ -67,10 +70,10 @@ export class SoundWorkbenchStore {
       texts,
       catalog,
       audio,
-      runMps: game.presentation.pose.gait.run_mps,
+      runMps: presentation.pose.gait.run_mps,
       // Each row's lineage only: what it inherits a firing choice from.
       weapons: Object.fromEntries(
-        Object.entries(game.weapons as Record<string, { extends?: string }>).map(([kind, row]) => [
+        Object.entries(rules.weapons as Record<string, { extends?: string }>).map(([kind, row]) => [
           kind,
           row.extends ? { extends: row.extends } : {},
         ]),

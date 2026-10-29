@@ -107,8 +107,8 @@ fn world() -> Source {
 
 fn tuning() -> Tuning {
     let game: serde_json::Value =
-        serde_json::from_str(include_str!("../../../../../fixtures/game.json")).unwrap();
-    serde_json::from_value(game["presentation"].clone()).unwrap()
+        serde_json::from_str(include_str!("../../../../../fixtures/presentation.json")).unwrap();
+    serde_json::from_value(game.clone()).unwrap()
 }
 
 fn ground_with(biome: Biome) -> Ground {

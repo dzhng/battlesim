@@ -4,12 +4,12 @@
 // each side's publication pushed into a presentation that draws the map's
 // buildings, and the state its frame draws each in. A low compound is shelled down and a tower gutted while
 // blue watches and red stands behind two slabs; later red walks out and sees.
+import { presentationSettings } from "@web/presentationSettings";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { gameBuildingStyle } from "@apps/battle-lab/src/gameModels";
 import { buildingRemains } from "@packages/scene-assets/src/authority";
 import { shippedBuildingArt } from "./support/presentedBuildings";
-import game from "@fixtures/game.json";
 import { TEST_RULES, labScenario } from "./catalog";
 import { type LabEncounter } from "@apps/battle-lab/src/scenarios";
 import { Battle, initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
@@ -233,7 +233,7 @@ test("a side knows a building collapsed or gutted once it has seen it, and intac
 
     // What a side knows destroyed smokes for it (the presentation's effects,
     // `crates/presentation`): ruins and gutted shells each have a look.
-    expect(Object.keys(game.presentation.effects.smoke)).toEqual(
+    expect(Object.keys(presentationSettings.effects.smoke)).toEqual(
       expect.arrayContaining(["gutted", "ruin"]),
     );
 

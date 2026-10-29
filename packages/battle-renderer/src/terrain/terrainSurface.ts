@@ -7,8 +7,8 @@
 // scenery are resolved by the scene's presentation (`crates/presentation`'s
 // `static_world::ground`) from what is set here (`GroundInput`); the
 // presentation module must have loaded (`loadPresentation`).
+import { presentationSettings } from "@web/presentationSettings";
 import { Presentation, terrain_mesh } from "@wasm/renderer_browser";
-import game from "@fixtures/game.json";
 import type summer from "@fixtures/biomes/summer.json";
 import type { Mesh, Rgba } from "../mesh";
 import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
@@ -99,7 +99,7 @@ export function setGround(presentation: Presentation, input: GroundInput): void 
     layout,
     JSON.stringify(biome),
     family ?? undefined,
-    JSON.stringify(game.presentation),
+    JSON.stringify(presentationSettings),
   );
 }
 

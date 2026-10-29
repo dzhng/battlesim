@@ -115,7 +115,7 @@ fn runtime_dir(executable: &Path, configured: Option<&Path>) -> PathBuf {
 
 fn repository_root(executable: &Path) -> PathBuf {
     for ancestor in executable.ancestors() {
-        if ancestor.join("fixtures/game.json").is_file() {
+        if ancestor.join("fixtures/rules.json").is_file() {
             return ancestor.to_owned();
         }
     }
@@ -371,7 +371,9 @@ impl Run {
                 };
                 let fixtures = root.join("fixtures");
                 let setup = audio::setup(
-                    &read(&fixtures.join("game.json").to_string_lossy())?,
+                    &read(&fixtures.join("rules.json").to_string_lossy())?,
+                    &read(&fixtures.join("presentation.json").to_string_lossy())?,
+                    &read(&fixtures.join("audio.json").to_string_lossy())?,
                     &read(&fixtures.join("sounds.json").to_string_lossy())?,
                 );
                 let output = OutputSettings::Buffer(audio::SAMPLE_RATE);

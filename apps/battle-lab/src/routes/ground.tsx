@@ -1,3 +1,5 @@
+import { DEFAULT_BATTLE_SEED } from "@apps/battle-lab/src/lobby/defaults";
+import { shippedRules } from "@web/shippedRules";
 import { gameStroke, OPENING_METRES_PER_PX } from "../gameOverlay";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -6,7 +8,6 @@ import type { ScenePresentation } from "@web/battle/sim/presentation";
 import type { LearnedGround } from "@web/battle/sim/presentationGround";
 import type { ObservationView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
-import game from "@fixtures/game.json";
 import { BattleMemory, orderLayer, remainsLayer, tracerLayer } from "../battleOverlay";
 import {
   buildGroundCellOverlay,
@@ -70,7 +71,7 @@ function StreetGround() {
       {(battle) => (
         <GroundInspector
           scenario={battle.scenario}
-          seed={game.seed}
+          seed={DEFAULT_BATTLE_SEED}
           camera={STREET_INSPECT_CAMERA}
           legend="the street test map's rear"
         />
@@ -96,7 +97,7 @@ function LabField({ battle }: { battle: SavedBattle }) {
       scenario={battle.scenario}
       seed={SEED}
       camera={GROUND_CAMERA}
-      legend={`the lab field (${game.ground.cell_m} m cells)`}
+      legend={`the lab field (${shippedRules.ground.cell_m} m cells)`}
       extra={(observation) => {
         const own = observation?.own ?? [];
         const x = (id: number) => own.find((u) => u.id === id)?.position[0];
@@ -311,10 +312,11 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
           Flat cells {side} has learned on {legend}: only ground its fog has shown, as it was when
           last seen. Stronger marks are more opaque; a cell shows its first shown channel.
           <br />
-          Craters: {game.cover.crater} cover for infantry once {game.cover.crater_min_fill * 100}%
-          full · tracks ×{game.movement.speed_factors.tracked.crater}, wheels ×
-          {game.movement.speed_factors.wheeled.crater} over a full crater. Scorch, tracks and
-          trampling change nothing.
+          Craters: {shippedRules.cover.crater} cover for infantry once{" "}
+          {shippedRules.cover.crater_min_fill * 100}% full · tracks ×
+          {shippedRules.movement.speed_factors.tracked.crater}, wheels ×
+          {shippedRules.movement.speed_factors.wheeled.crater} over a full crater. Scorch, tracks
+          and trampling change nothing.
         </div>
         {extra?.(observation)}
       </aside>

@@ -1,5 +1,5 @@
 //! The shipped fixtures as native tools (tests, reports, the shot runner)
-//! read them: `fixtures/game.json` with a unit catalog's documents (a
+//! read them: `fixtures/rules.json` with a unit catalog's documents (a
 //! [`CatalogSet`]: the game's, or the game's plus test or capture units) as its
 //! `catalog`. The browser gets the game's set resolved from
 //! `fixtures/catalog.json`, which [`catalog_view`] writes and a test keeps
@@ -79,10 +79,10 @@ pub fn test_documents() -> Vec<Value> {
     documents(&[TEST_ROOT, "units/roles.json", "props"])
 }
 
-/// The game fixture as [`game`] reads it, with [`test_documents`] as its
+/// The game fixture as [`rules`] reads it, with [`test_documents`] as its
 /// catalog.
 pub fn test_game() -> Value {
-    let mut fixture = game();
+    let mut fixture = rules();
     fixture["catalog"] = Value::Array(test_documents());
     fixture
 }
@@ -165,11 +165,11 @@ fn documents(roots: &[&str]) -> Vec<Value> {
         .collect()
 }
 
-/// The game fixture as `Rules` read it: the rules (`game.json`) with the
+/// The game fixture as `Rules` read it: the rules (`rules.json`) with the
 /// game's unit catalog. It carries no map: a battle's ground is its own
 /// (generated, or a saved map named by [`with_map`]).
-pub fn game() -> Value {
-    let mut fixture = read(&dir().join("game.json"));
+pub fn rules() -> Value {
+    let mut fixture = read(&dir().join("rules.json"));
     fixture["catalog"] = Value::Array(catalog_documents(CatalogSet::Game));
     fixture
 }
@@ -209,11 +209,11 @@ pub fn admit(mut game: Value, documents: Vec<Value>) -> Result<Value, String> {
 }
 
 /// The resolved catalog's view (`Catalog::view`) as `fixtures/catalog.json`
-/// holds it, with `weapons`: `game.json`'s weapon rows, `extends`
+/// holds it, with `weapons`: `rules.json`'s weapon rows, `extends`
 /// resolved, as the mounts name them.
 pub fn catalog_view() -> String {
     let view = admit(
-        read(&dir().join("game.json")),
+        read(&dir().join("rules.json")),
         catalog_documents(CatalogSet::Game),
     )
     .unwrap_or_else(|e| panic!("the mechanics: {e}"));

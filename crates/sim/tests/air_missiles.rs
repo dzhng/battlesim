@@ -129,7 +129,7 @@ fn its_rockets_never_go_up_at_an_aircraft() {
 
 #[test]
 fn a_guided_row_must_say_how_it_guides() {
-    let mut fixture = sim::fixtures::game();
+    let mut fixture = sim::fixtures::rules();
     fixture["weapons"]["atgm"]
         .as_object_mut()
         .unwrap()

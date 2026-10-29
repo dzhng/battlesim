@@ -4,7 +4,7 @@
 import { decode, pixel, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, snapshot, until, openBattle } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
-import { hull, game, unitType, weapons } from "./_units.mjs";
+import { hull, unitType, weapons, visuals } from "./_units.mjs";
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -116,7 +116,7 @@ export async function run(ctx) {
       }
       return null;
     },
-    game.presentation.overlay.orders.area_draw_scale,
+    visuals.overlay.orders.area_draw_scale,
   );
   ctx.check(
     "the infantry picking probe is inside its circle and clear of bodies and panels",
@@ -505,7 +505,7 @@ async function vehicleMarker(ctx) {
     TANK,
   );
   const radius =
-    hull("test_tank").half_extents_m[0] + game.presentation.overlay.orders.vehicle_marker_margin_m;
+    hull("test_tank").half_extents_m[0] + visuals.overlay.orders.vehicle_marker_margin_m;
   // Ground paint lies on the ground itself.
   const place = (target, yaw) =>
     lab(

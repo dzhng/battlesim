@@ -3,6 +3,8 @@
 // capture's plates record. And what the page hands the presentation once
 // per battle (`load_world`'s battle), which Rust resolves from the files the
 // page reads.
+import { presentationSettings } from "@web/presentationSettings";
+import { shippedRules } from "@web/shippedRules";
 import {
   Counts,
   EFFECT_KINDS,
@@ -10,7 +12,6 @@ import {
   SHAPE_NAMES,
   MIN_TARGET_PX,
 } from "@packages/battle-renderer/src/records.gen";
-import game from "@fixtures/game.json";
 import type { AppearanceLibrary } from "@packages/scene-assets/src/loader";
 import type { CatalogView } from "@packages/scene-assets/src/units";
 import { Fielding } from "@wasm/renderer_browser";
@@ -108,7 +109,7 @@ export type RuntimeFiles = Pick<AppearanceLibrary, "catalog" | "contents">;
  *  for `factions` (blue, red).
  *  Rust resolves what its units and effects draw from
  *  (`presentation::fielded`); the page only reads the files it names
- *  (`fixtures/game.json`, the runtime catalog, its bundles and skeleton
+ *  (`fixtures/presentation.json`, authored weapon rows, the runtime catalog, its bundles and skeleton
  *  clips) and adds the facts the presentation reads of the battle and the
  *  page. */
 export async function fieldedBattle(input: {
@@ -127,7 +128,8 @@ export async function fieldedBattle(input: {
   const catalog = input.runtime.catalog;
   if (!catalog) throw new Error("a battle was fielded before the runtime catalog was loaded");
   const fielding = new Fielding(
-    JSON.stringify(game),
+    JSON.stringify(presentationSettings),
+    JSON.stringify(shippedRules.weapons),
     input.rules,
     JSON.stringify(input.catalog),
     JSON.stringify(catalog),

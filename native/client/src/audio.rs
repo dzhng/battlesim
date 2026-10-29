@@ -181,13 +181,13 @@ pub struct Audio {
 /// The game's sound setup, as the browser builds it (`soundFeed.ts`):
 /// `presentation.audio`, the sound catalog, the weapon rows, the tick rate,
 /// and the effects' smoke and cook-off.
-pub fn setup(game: &Value, catalog: &Value) -> String {
-    let fx = &game["presentation"]["effects"];
+pub fn setup(rules: &Value, presentation: &Value, audio: &Value, catalog: &Value) -> String {
+    let fx = &presentation["effects"];
     json!({
-        "audio": game["presentation"]["audio"],
+        "audio": audio,
         "catalog": catalog,
-        "weapons": game["weapons"],
-        "tick_hz": game["tick_hz"],
+        "weapons": rules["weapons"],
+        "tick_hz": rules["tick_hz"],
         "effects": { "smoke": fx["smoke"], "cook_off": fx["cook_off"] },
     })
     .to_string()

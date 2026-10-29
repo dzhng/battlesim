@@ -151,10 +151,10 @@ test("a changed read-only receipt makes a reviewed save stale without touching d
   draft.documents.presets.density = 0.8;
   const reviewed = await store.preview(draft);
   const original = await readFile(join(root, "fixtures/map-presets.json"), "utf8");
-  const outside = '{"seed":2}\n';
-  await writeFile(join(root, "fixtures/game.json"), outside);
+  const outside = '{"tick_hz":2}\n';
+  await writeFile(join(root, "fixtures/rules.json"), outside);
   await expect(store.save(reviewed)).rejects.toMatchObject({ status: 409 });
-  expect(await readFile(join(root, "fixtures/game.json"), "utf8")).toBe(outside);
+  expect(await readFile(join(root, "fixtures/rules.json"), "utf8")).toBe(outside);
   expect(await readFile(join(root, "fixtures/map-presets.json"), "utf8")).toBe(original);
 });
 
@@ -291,7 +291,7 @@ test("a workbench snapshot recovers an interrupted mechanics publication", async
   await mkdir(join(root, "fixtures/units"));
   await mkdir(join(root, "fixtures/props"));
   const files = [
-    { path: "fixtures/game.json", before: '{"seed":1}', after: '{"seed":2}' },
+    { path: "fixtures/rules.json", before: '{"tick_hz":1}', after: '{"tick_hz":2}' },
     {
       path: "fixtures/catalog.json",
       before: '{"documents":[],"units":[],"props":[]}',
@@ -319,7 +319,7 @@ test("a workbench snapshot refuses an active mechanics publication", async () =>
     JSON.stringify({ pid: process.pid, files: [] }),
   );
   await expect(store.snapshot()).rejects.toMatchObject({ status: 409 });
-  expect(await readFile(join(root, "fixtures/game.json"), "utf8")).toBe('{"seed":1}');
+  expect(await readFile(join(root, "fixtures/rules.json"), "utf8")).toBe('{"tick_hz":1}');
 });
 
 test("a workbench snapshot waits for the complete mechanics source and catalog publication", async () => {
@@ -328,7 +328,7 @@ test("a workbench snapshot waits for the complete mechanics source and catalog p
   await mkdir(join(root, "fixtures/props"));
   const catalog = (damage: number) =>
     JSON.stringify({ weapons: { rifle: { damage } }, documents: [{ soldiers: {} }], units: [] });
-  await writeFile(join(root, "fixtures/game.json"), '{"weapons":{"rifle":{"damage":35}}}');
+  await writeFile(join(root, "fixtures/rules.json"), '{"weapons":{"rifle":{"damage":35}}}');
   await writeFile(join(root, "fixtures/catalog.json"), catalog(35));
   const mechanics = new MechanicsStore(root, async (game) =>
     catalog((game.weapons as { rifle: { damage: number } }).rifle.damage),
@@ -346,7 +346,7 @@ test("a workbench snapshot waits for the complete mechanics source and catalog p
   });
   vi.mocked(filesystem.rename).mockImplementation(async (from, to) => {
     await rename(from, to);
-    if (String(to) === join(root, "fixtures/game.json")) {
+    if (String(to) === join(root, "fixtures/rules.json")) {
       replaced();
       await paused;
     }
@@ -367,7 +367,7 @@ test("a workbench snapshot waits for the complete mechanics source and catalog p
   await saving;
   expect((await captured!).receipts).toMatchObject({
     rules: createHash("sha256")
-      .update(await readFile(join(root, "fixtures/game.json"), "utf8"))
+      .update(await readFile(join(root, "fixtures/rules.json"), "utf8"))
       .digest("hex"),
     catalog: createHash("sha256")
       .update(workbenchCatalog(root, catalog(40)))
@@ -745,4 +745,14 @@ test("the latest refusal receipt survives a subsequent undisplayed success", asy
     choice: { ...choice, seed: "4" },
   });
   expect((await store.export(refused.artifactId!)).report).toEqual(refused);
+});
+
+test("presentation and audio edits leave the map-workbench revision unchanged", async () => {
+  const { root, store } = await fixture();
+  const before = await store.snapshot();
+  await writeFile(join(root, "fixtures/presentation.json"), '{"camera":{"zoom_max":1000}}');
+  await writeFile(join(root, "fixtures/audio.json"), '{"buses":{"master":0.5}}');
+  const after = await store.snapshot();
+  expect(after.revision).toBe(before.revision);
+  expect(after.receipts).toEqual(before.receipts);
 });

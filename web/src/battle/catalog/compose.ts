@@ -38,7 +38,7 @@ export function isGameDocument(path: string): boolean {
     .every((folder) => !path.startsWith(`fixtures/${folder}/`));
 }
 
-/** The game's committed view: `Catalog::view` plus `game.json`'s resolved weapons. */
+/** The game's committed view: `Catalog::view` plus `rules.json`'s resolved weapons. */
 export type GameView = CatalogView & { weapons: Record<string, WeaponRow> };
 
 /** One battle's unit catalog, owned by its session. */
@@ -46,15 +46,15 @@ export interface SessionCatalog {
   readonly set: CatalogSetName;
   /** The resolved unit, soldier, card and prop types. */
   readonly units: UnitCatalog;
-  /** `game.json`'s weapon rows, `extends` resolved, by the names mounts give them. */
+  /** `rules.json`'s weapon rows, `extends` resolved, by the names mounts give them. */
   readonly weapons: Record<string, WeaponRow>;
-  /** The rules a scenario on this catalog carries: `game.json` with this
+  /** The rules a scenario on this catalog carries: `rules.json` with this
    *  set's documents as `catalog`, so the authority runs what the page draws. */
   readonly rules: GameRules;
 }
 
-/** `fixtures/game.json` with a set's documents as its `catalog`. */
-export type GameRules = Omit<typeof import("../../../../fixtures/game.json"), "default"> & {
+/** `fixtures/rules.json` with a set's documents as its `catalog`. */
+export type GameRules = Omit<typeof import("../../../../fixtures/rules.json"), "default"> & {
   catalog: unknown[];
 };
 
@@ -64,7 +64,7 @@ export type GameRules = Omit<typeof import("../../../../fixtures/game.json"), "d
  *  wrote. */
 export function composeCatalog(
   set: CatalogSetName,
-  game: Omit<GameRules, "catalog">,
+  rules: Omit<GameRules, "catalog">,
   gameView: GameView,
   added: readonly string[],
   resolve: (documentsJson: string) => string,
@@ -77,7 +77,7 @@ export function composeCatalog(
     set,
     units: new UnitCatalog(view),
     weapons: gameView.weapons,
-    rules: { ...game, catalog: view.documents },
+    rules: { ...rules, catalog: view.documents },
   };
 }
 

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { shippedRules } from "@web/shippedRules";
 import { readFileSync } from "node:fs";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { initSync } from "@wasm/game_wasm.js";
@@ -13,7 +14,6 @@ import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "../src/battle/sim/timing";
 import type { CommandEnvelope, SimReply } from "../src/battle/sim/protocol";
 import type { ObservationLayout } from "../src/battle/sim/observationView";
 import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
-import game from "@fixtures/game.json";
 import { loadMap } from "@web/maps/node";
 import { labScenario } from "./catalog";
 
@@ -37,7 +37,7 @@ const scenario = labScenario(geometry, [
   { side: "blue", kind: "test_tank", position: [40, 150] },
   { side: "red", kind: "test_rifle", position: [360, 150] },
 ]);
-const TICK_MS = 1000 / game.tick_hz;
+const TICK_MS = 1000 / shippedRules.tick_hz;
 
 /** A host with a hand-driven clock that really detaches transferred buffers. */
 function harness(load: () => Promise<SimModule> = async () => sim) {
@@ -231,7 +231,7 @@ test("ready reports the rules' tick rate exactly: the presentation's clock is th
   await h.init();
   const ready = h.replies.find((r) => r.type === "ready") as { tickHz: number };
   // Not 1000 / (1000 / 30): the presentation times every effect from it.
-  expect(ready.tickHz).toBe(game.tick_hz);
+  expect(ready.tickHz).toBe(shippedRules.tick_hz);
 });
 
 test("nothing ticks before start, then ticks follow the clock", async () => {

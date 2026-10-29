@@ -283,9 +283,9 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
     );
     let targets = renderer_core::Targets::new(&gpu.device, [128, 64]);
     let game: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
     let light: presentation::light::LightSettings =
-        serde_json::from_value(game["presentation"]["light"].clone()).unwrap();
+        serde_json::from_value(game["light"].clone()).unwrap();
     let cold = presentation::shadow::SunShadowFrame::cold(&light);
     let shadow = renderer_core::shadow::ShadowResources::new(
         &gpu.device,

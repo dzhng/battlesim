@@ -5,8 +5,8 @@
 // resolved and tested in the presentation crate (`crates/presentation/tests/
 // light.rs` and `shadow.rs`); here, the page's binding hands the renderer the
 // words defined by the shared Rust record layouts.
+import { presentationSettings } from "@web/presentationSettings";
 import { expect, test } from "vitest";
-import game from "@fixtures/game.json";
 import {
   validateLight,
   type LightPresentation,
@@ -20,7 +20,7 @@ import {
 
 await loadPresentation();
 
-const LIGHT = game.presentation.light as unknown as LightPresentation;
+const LIGHT = presentationSettings.light as unknown as LightPresentation;
 const withLight = (edit: (l: LightPresentation) => void): LightPresentation => {
   const copy = structuredClone(LIGHT);
   edit(copy);

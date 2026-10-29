@@ -37,7 +37,7 @@ export async function modelGhostAgreement(ctx) {
         import(file("apps/battle-lab/src/gameModels.ts")),
         import(file("web/src/battle/sim/presentation.ts")),
         import(file("apps/battle-lab/src/presentedFrame.ts")),
-        import(file("fixtures/game.json")),
+        import(file("fixtures/rules.json")),
       ]);
       const installed = await new assets.AppearanceLibrary().load("/");
       const chosen = ["skinned", "articulated", "static"].map((kind) =>

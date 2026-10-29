@@ -203,9 +203,8 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
     let pipelines = pipelines::build(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, SIZE);
     let game: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
-    let mut light: LightSettings =
-        serde_json::from_value(game["presentation"]["light"].clone()).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
+    let mut light: LightSettings = serde_json::from_value(game["light"].clone()).unwrap();
     light.bloom.strength = 0.;
     let cold = SunShadowFrame::cold(&light);
     let shadow = ShadowResources::new(

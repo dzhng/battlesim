@@ -375,7 +375,7 @@ mod tests {
 
     fn rules() -> GroundRules {
         let fixture: serde_json::Value =
-            serde_json::from_str(include_str!("../../../../fixtures/game.json")).unwrap();
+            serde_json::from_str(include_str!("../../../../fixtures/rules.json")).unwrap();
         serde_json::from_value(fixture["ground"].clone()).unwrap()
     }
 

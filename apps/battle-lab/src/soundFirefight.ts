@@ -9,7 +9,8 @@
 // a guided missile late on. Red's identified tank fires AP, HE and HMG
 // bursts from the far side; a round glances off it. A wreck burns. An
 // unseen red truck and unseen riflemen are heard only as cues.
-import game from "@fixtures/game.json";
+import { presentationSettings } from "@web/presentationSettings";
+import { shippedRules } from "@web/shippedRules";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { vec3 } from "math";
 import type { AudioPresentation, Bus } from "@packages/battle-audio/src/audioPresentation";
@@ -67,7 +68,7 @@ async function heard(pubs: readonly EffectPublication[]): Promise<HeardPublicati
 }
 
 const FIREFIGHT_S = 8;
-const HZ = game.tick_hz;
+const HZ = shippedRules.tick_hz;
 const DT = 1 / HZ;
 /** Frames a second the offline render schedules at, like a display. */
 const FPS = 60;
@@ -95,7 +96,7 @@ const tickAt = (s: number) => Math.round(s * HZ);
 /** Whether a gun firing bursts from `starts` (ticks) fires a round at `tick`:
  *  its weapon's burst of rounds, its shot interval apart. */
 function inBurst(kind: "rifle" | "hmg", starts: (start: number) => boolean, tick: number) {
-  const { shot_interval_s, burst } = game.weapons[kind].magazine;
+  const { shot_interval_s, burst } = shippedRules.weapons[kind].magazine;
   const step = tickAt(shot_interval_s);
   for (let round = 0; round < burst.rounds; round++) if (starts(tick - round * step)) return true;
   return false;
@@ -398,9 +399,9 @@ export async function offlineSound(
     tickHz: HZ,
     presentation,
     catalog,
-    weapons: game.weapons,
-    smokeTimes: game.presentation.effects.smoke,
-    cookOff: game.presentation.effects.cook_off,
+    weapons: shippedRules.weapons,
+    smokeTimes: presentationSettings.effects.smoke,
+    cookOff: presentationSettings.effects.cook_off,
   };
   await loadPresentation();
   await sink.bank.prepare(battleSounds(options));
@@ -593,7 +594,7 @@ async function renderShot(
  *  and far cutoff the sound scene measures them against. */
 export async function renderDistanceProbe(catalog: SoundCatalog = gameSounds) {
   const at = [0, 0, 1];
-  const cam = game.presentation.camera;
+  const cam = presentationSettings.camera;
   const far = cameraListener(
     {
       target: vec3.fromValues(at[0], at[1], 0),

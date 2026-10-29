@@ -1,4 +1,6 @@
 //! Transitional split-game-json control; remove with slice 16.
+//! Composed sources have no fixture dependency; the data-file split must
+//! leave their bytes untouched.
 //! cargo run -p renderer-core --example split_proof_shaders -- <output>/shaders
 use std::{fs, path::PathBuf};
 

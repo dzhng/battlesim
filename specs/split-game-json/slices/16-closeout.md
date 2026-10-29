@@ -8,7 +8,7 @@ record.
   and infantry sources, scene baselines and the city.
 - Delete 01's probe.
 - Audit for leftovers. None of these may remain:
-  - `game.json` anywhere;
+  - the retired combined fixture filename anywhere;
   - weapon-keyed presentation tables;
   - `extends` walks outside the catalog;
   - `"default"` look fallbacks;

@@ -1,10 +1,10 @@
+import { shippedRules } from "@web/shippedRules";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { REELS, type ReelWorkload } from "@web/battle/benchmark/reels";
 import type { FrameCount, PresentationLayer } from "@web/battle/benchmark/visualPresentation";
 import { listMaps } from "@web/maps/catalogue";
-import game from "@fixtures/game.json";
 import { filmCamera, validateCapture, type CaptureScene } from "../capture/capture";
 import { savedBattle } from "../savedMaps";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
@@ -307,7 +307,9 @@ function ReelBattle({
   onDone: (r: ReelResult) => void;
 }) {
   const veil = useRef<HTMLDivElement>(null);
-  const [run] = useState(() => createReelRun(scene, game.tick_hz, onDone, { plates, counts }));
+  const [run] = useState(() =>
+    createReelRun(scene, shippedRules.tick_hz, onDone, { plates, counts }),
+  );
   const session = useBattleSession({
     scenario,
     seed: scene.seed,

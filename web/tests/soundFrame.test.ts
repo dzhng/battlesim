@@ -6,9 +6,10 @@
 // scale; a standing clock silences transients and holds loops; reset and a
 // new battle clear everything; the side's own sounds stay heard at the
 // farthest zoom, coloured far.
+import { presentationSettings } from "@web/presentationSettings";
+import { audioMix } from "@web/audioMix";
 import { beforeAll, expect, test } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import game from "@fixtures/game.json";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
@@ -30,9 +31,9 @@ import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 
 const HZ = 30;
 const DT = 1 / HZ;
-const AUDIO = game.presentation.audio as unknown as AudioPresentation;
-const SMOKE = game.presentation.effects.smoke;
-const COOK_OFF = game.presentation.effects.cook_off;
+const AUDIO = audioMix as unknown as AudioPresentation;
+const SMOKE = presentationSettings.effects.smoke;
+const COOK_OFF = presentationSettings.effects.cook_off;
 /** When a cook-off's turret lands, seconds after its tick starts: thrown
  *  `rise_m` up, it falls back in √(8h/g). */
 const TURRET_LANDS_S = COOK_OFF.delay_s + Math.sqrt((8 * COOK_OFF.rise_m) / 9.81);
@@ -396,7 +397,7 @@ test("a known wreck burns, then smoulders quieter, then falls silent", () => {
 
 /** The camera at its farthest zoom, looking at `target` (the fixture's rig). */
 function farthestCamera(target: number[]) {
-  const cam = game.presentation.camera;
+  const cam = presentationSettings.camera;
   const pitch = cam.pitch_curve[cam.pitch_curve.length - 1][1];
   return { target: [target[0], target[1], 0], distance: cam.zoom_max, pitch, yaw: -1.57 };
 }

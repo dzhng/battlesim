@@ -5,7 +5,7 @@ import type { Replacement } from "../../fixture-publication/publication";
 export interface Snapshot {
   revision: string;
   catalog: SoundCatalog;
-  /** `game.json`'s weapon rows by name, each with the row it `extends`: a
+  /** `rules.json`'s weapon rows by name, each with the row it `extends`: a
    *  row without a firing choice of its own takes its nearest ancestor's. */
   weapons: Record<string, { extends?: string }>;
   /** The synthesized baseline shots (`presentation.audio.shots`). */

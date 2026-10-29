@@ -37,8 +37,8 @@ fn ground(map: &Value, biome: Biome) -> Ground {
         &sim::world::export::layout_json(&rules.catalog),
     )
     .unwrap();
-    let game: Value = serde_json::from_str(&read("fixtures/game.json")).unwrap();
-    let tuning: Tuning = serde_json::from_value(game["presentation"].clone()).unwrap();
+    let game: Value = serde_json::from_str(&read("fixtures/presentation.json")).unwrap();
+    let tuning: Tuning = serde_json::from_value(game.clone()).unwrap();
     Ground::new(source, biome, tuning).unwrap()
 }
 

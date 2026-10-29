@@ -28,7 +28,7 @@ fn root() -> PathBuf {
 fn presented() -> Presentation {
     let root = root();
     let game: Value =
-        serde_json::from_slice(&std::fs::read(root.join("fixtures/game.json")).unwrap()).unwrap();
+        serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
     let mut rules = sim::fixtures::test_game();
     sim::fixtures::patch_catalog(
         &mut rules,

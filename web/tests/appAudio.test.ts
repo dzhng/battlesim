@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
+import { presentationSettings } from "@web/presentationSettings";
+import { audioMix } from "@web/audioMix";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
-import game from "@fixtures/game.json";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import { soundSettings } from "@packages/battle-audio/src/settings";
@@ -173,8 +174,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
-const presentation = game.presentation.audio as unknown as AudioPresentation;
-const cookOff = game.presentation.effects.cook_off;
+const presentation = audioMix as unknown as AudioPresentation;
+const cookOff = presentationSettings.effects.cook_off;
 const empty = (tick: number) => ({
   effects: { tick, segments: [], blasts: [], smokes: [] },
   launches: [],

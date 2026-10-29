@@ -16,9 +16,9 @@ import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot, until, openMenu } from "./_lab.mjs";
 import { installResetRafFence, restartPresentedOpening } from "./_reset.mjs";
 import { freshGpuWindow, measureViews, measureTransitions, pauseView } from "./_viewCost.mjs";
-import { game } from "./_units.mjs";
+import { visuals } from "./_units.mjs";
 
-const CORPSE_CAP = game.presentation.pose.corpses.max;
+const CORPSE_CAP = visuals.pose.corpses.max;
 const LATE_CORPSES = 800;
 
 const SECONDS = Number(process.env.ENDURANCE_S ?? 60);

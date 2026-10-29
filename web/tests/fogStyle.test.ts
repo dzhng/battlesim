@@ -4,13 +4,13 @@
 // (`crates/presentation/src/fog.rs` tests the rules); the page hands it to
 // the fog mask passes as it is. The GPU half (seen pixels untouched, every
 // material path styled) runs in the `fog-look` scene.
+import { presentationSettings } from "@web/presentationSettings";
 import { beforeAll, expect, test } from "vitest";
 import { type FogPresentation } from "@packages/battle-renderer/src/fog";
 import { FOG_LOOK_WORDS, FogLookAt } from "@packages/battle-renderer/src/records.gen";
 import { loadPresentation, resolveFogLook } from "@web/battle/sim/presentation";
-import game from "@fixtures/game.json";
 
-const fixture = game.presentation.fog as unknown as FogPresentation;
+const fixture = presentationSettings.fog as unknown as FogPresentation;
 
 beforeAll(() => loadPresentation());
 

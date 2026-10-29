@@ -1,3 +1,4 @@
+import { shippedRules } from "@web/shippedRules";
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router";
@@ -6,7 +7,6 @@ import gameCatalog from "../../fixtures/catalog.json";
 import infantry from "../../fixtures/units/test/infantry.json";
 import soldiers from "../../fixtures/units/test/soldiers.json";
 import tanks from "../../fixtures/units/test/tanks.json";
-import game from "../../fixtures/game.json";
 import type { JsonObject, MechanicsSnapshot } from "../../apps/mechanics-editor/src/protocol";
 import { UNITS, WEAPONS } from "./catalog";
 
@@ -21,7 +21,7 @@ const snapshot: MechanicsSnapshot = {
     { path: "fixtures/units/test/infantry.json", value: infantry },
     { path: "fixtures/units/test/soldiers.json", value: soldiers },
     { path: "fixtures/units/test/tanks.json", value: tanks as unknown as JsonObject },
-    { path: "fixtures/game.json", value: game },
+    { path: "fixtures/rules.json", value: shippedRules },
   ],
 };
 const structuralSnapshot = (): MechanicsSnapshot => {
@@ -174,7 +174,7 @@ it("keeps an inherited spread editable after restoring it under a re-enabled lay
   weapons.parent = { ...weapons.grenade, targets: { ground: { ...ground, scatter_mrad: 20 } } };
   fixture.documents = [
     {
-      path: "fixtures/game.json",
+      path: "fixtures/rules.json",
       value: {
         weapons: {
           parent: weapons.parent,

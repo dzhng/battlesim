@@ -1,5 +1,5 @@
 //! The ground's and the grass's tuning: every number that sets their look
-//! and is not the biome's. The values are `fixtures/game.json`'s
+//! and is not the biome's. The values are `fixtures/rules.json`'s
 //! `presentation.terrain` and `presentation.grass`; the browser's shaders
 //! (`frame/terrainMaterial.ts`, `frame/grassPass.ts`) splice most into their
 //! WGSL as constants, and the tables read the few below. The water's and the

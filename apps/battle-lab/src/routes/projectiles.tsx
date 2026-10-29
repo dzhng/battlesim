@@ -1,3 +1,5 @@
+import { presentationSettings } from "@web/presentationSettings";
+import { shippedRules } from "@web/shippedRules";
 import { useEffect, useRef, useState } from "react";
 import { vec2, type Vec2, type Vec3 } from "math";
 import type { SessionCatalog } from "@web/battle/catalog/compose";
@@ -8,17 +10,16 @@ import { useBuiltScenario } from "../useBuiltScenario";
 import { STREET_CAMERA, STREET_SEED } from "../streetScenario";
 import { REVIEW_LANES, buildProjectileReview, reviewLanePositions } from "../projectileReview";
 import { TickStatus } from "../TickStatus";
-import game from "@fixtures/game.json";
 import { inheritRows } from "@packages/renderer-core/src/kindTable";
 
 /** Each weapon's tracer glow, its nearest styled ancestor's where it has
  *  none of its own (as the presentation resolves it). */
 const tracers = inheritRows(
-  game.presentation.effects.tracers as Record<
+  presentationSettings.effects.tracers as Record<
     string,
     { glow: { color: number[]; intensity: number } }
   >,
-  game.weapons,
+  shippedRules.weapons,
 );
 
 const _projectiles_xy: Vec2 = [0, 0];

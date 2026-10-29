@@ -53,7 +53,7 @@ export async function nodeCatalogSet(set: CatalogSetName, root = ROOT): Promise<
   }
   return composeCatalog(
     set,
-    JSON.parse(read(join(root, "fixtures/game.json"))),
+    JSON.parse(read(join(root, "fixtures/rules.json"))),
     gameView,
     added,
     resolve,

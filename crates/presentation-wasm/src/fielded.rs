@@ -13,7 +13,8 @@ use crate::error;
 
 #[wasm_bindgen]
 pub struct Fielding {
-    game: Value,
+    presentation: Value,
+    weapons: Value,
     rules: Value,
     catalog: Value,
     runtime: Value,
@@ -25,7 +26,8 @@ pub struct Fielding {
 impl Fielding {
     fn fielding(&self) -> fielded::Fielding<'_> {
         fielded::Fielding {
-            game: &self.game,
+            presentation: &self.presentation,
+            weapons: &self.weapons,
             rules: &self.rules,
             catalog: &self.catalog,
             runtime: &self.runtime,
@@ -44,11 +46,13 @@ impl Fielding {
     /// unit `catalog` (`Catalog::view`, JSON) under the battle's `rules`
     /// (its scenario's, JSON), each side fighting for the faction
     /// `factions` names (a JSON pair, blue then red; none: one look each),
-    /// with `game`'s presentation (`fixtures/game.json`) and the runtime
+    /// with visual settings (`fixtures/presentation.json`), authored weapon
+    /// inheritance (`weapons`), and the runtime
     /// catalog `runtime` (`catalog.json`).
     #[wasm_bindgen(constructor)]
     pub fn new(
-        game: &str,
+        presentation: &str,
+        weapons: &str,
         rules: &str,
         catalog: &str,
         runtime: &str,
@@ -59,7 +63,8 @@ impl Fielding {
             serde_json::from_str::<Value>(text).map_err(|e| error(format!("{what}: {e}")))
         };
         Ok(Self {
-            game: parse("game", game)?,
+            presentation: parse("presentation", presentation)?,
+            weapons: parse("weapons", weapons)?,
             rules: parse("rules", rules)?,
             catalog: parse("unit catalog", catalog)?,
             runtime: parse("runtime catalog", runtime)?,

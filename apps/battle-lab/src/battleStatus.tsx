@@ -1,14 +1,14 @@
 // The top bar of a battle: the clock, and a skirmish's scores and
 // objectives.
+import { shippedRules } from "@web/shippedRules";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
-import game from "@fixtures/game.json";
 import type { ObservationView, SkirmishView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
 
 /** A tick as the battle's clock reads it: minutes and seconds. */
 export function clock(tick: number) {
-  const s = Math.floor(tick / game.tick_hz);
+  const s = Math.floor(tick / shippedRules.tick_hz);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 

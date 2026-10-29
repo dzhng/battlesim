@@ -124,9 +124,12 @@ fn camel(snake: &str) -> String {
 }
 
 fn game_light() -> LightSettings {
-    let at = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/game.json");
+    let at = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../fixtures/presentation.json"
+    );
     let game: Value = serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap();
-    serde_json::from_value(game["presentation"]["light"].clone()).unwrap()
+    serde_json::from_value(game["light"].clone()).unwrap()
 }
 
 /// The sky, the shading and the haze share one sun, and a sun shadow keeps

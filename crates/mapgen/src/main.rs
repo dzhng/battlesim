@@ -15,7 +15,7 @@ const USAGE: &str = "usage:
 
 <catalogue.json> is a list of physical template descriptors; `catalogue` prints its
 canonical form, whose hash a request pins. <rules.json> is the existing battle rules
-(fixtures/game.json); <catalog.json> explicitly resolves its unit and prop catalog
+(fixtures/rules.json); <catalog.json> explicitly resolves its unit and prop catalog
 (fixtures/catalog.json). Together they supply generation's physical inputs. Street
 furniture is placed as those prop types, clear of
 the lane its widest hull drives. [output-directory] receives a saved map

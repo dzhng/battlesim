@@ -5,11 +5,11 @@
 // the reel has played, behind the veil, says so (`onEnd`). The stage it
 // draws is one element: the battle, any `children` laid over it, the cards
 // when on, and the veil on top.
+import { shippedRules } from "@web/shippedRules";
 import { useEffect, useRef, useState, type ReactNode, type Ref, type RefObject } from "react";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import game from "@fixtures/game.json";
 import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
 import type { graphicsProfiles } from "../graphicsSettings";
@@ -73,9 +73,9 @@ function sceneCamera(
   // The reel runs on the battle's clock, not the wall's: a battle running
   // behind real time (a slow worker, a stalled frame) keeps each cut on the
   // moment it was cut for.
-  const warmClock = Math.round(scene.warm_s * game.tick_hz) / game.tick_hz;
+  const warmClock = Math.round(scene.warm_s * shippedRules.tick_hz) / shippedRules.tick_hz;
   const scripted: ScriptedSim = {
-    warmTo: Math.round(scene.warm_s * game.tick_hz),
+    warmTo: Math.round(scene.warm_s * shippedRules.tick_hz),
     hold,
     onWarm: () => (warm = true),
     onTick: () => {},

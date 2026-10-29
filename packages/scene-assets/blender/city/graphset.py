@@ -987,9 +987,8 @@ class GraphSet:
         return out
 
     def check_bays(self, desc, b, meshes):
-        """Every declared fighting bay has a visible opening over the eye and muzzle heights
-        (README, "Rules a set keeps"), and no two openings on a wall overlap."""
-        with open(os.path.join(ROOT, "fixtures", "game.json")) as f:
+        """Authored infantry eye and muzzle heights set each bay's required opening."""
+        with open(os.path.join(ROOT, "fixtures", "rules.json")) as f:
             physics = json.load(f)["physics"]
         spans = self.opening_spans(desc, b, meshes)
         gaps = missing_openings(desc, spans, (physics["infantry_muzzle_m"], physics["infantry_eye_m"]))

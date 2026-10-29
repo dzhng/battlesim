@@ -15,7 +15,7 @@ import { loadMap } from "@web/maps/node";
 
 const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
 const catalog = read("../../../assets/catalog.json") as Catalog;
-const game = read("../../../fixtures/game.json");
+const game = read("../../../fixtures/rules.json");
 const same = (a: readonly number[], b: readonly number[]) =>
   a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) < 1e-9);
 

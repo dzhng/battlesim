@@ -247,15 +247,16 @@ impl Replay {
                 ));
             }
         }
-        let game: Value = read_json(&root.join("fixtures/game.json"))?;
-        let light: LightSettings = serde_json::from_value(game["presentation"]["light"].clone())
+        let game: Value = read_json(&root.join("fixtures/rules.json"))?;
+        let settings: Value = read_json(&root.join("fixtures/presentation.json"))?;
+        let light: LightSettings = serde_json::from_value(settings["light"].clone())
             .map_err(|e| format!("presentation.light: {e}"))?;
         // The battle's units, effects and clip tables, as a page fielding
         // the encounter's units installs them.
         let kinds = fielded::encounter_kinds(root, &map, encounter)?;
         let fielded = fielded::fielded(root, &game, &map, &kinds)?;
         let physics = &game["physics"];
-        let number = |v: &Value, what: &str| v.as_f64().ok_or(format!("game.json: no {what}"));
+        let number = |v: &Value, what: &str| v.as_f64().ok_or(format!("rules.json: no {what}"));
         let battle = BattleInput {
             units: fielded.units,
             effects: fielded.effects,
@@ -274,7 +275,7 @@ impl Replay {
             },
             blocked: [0.0; 4],
         };
-        let fog: FogPresentation = serde_json::from_value(game["presentation"]["fog"].clone())
+        let fog: FogPresentation = serde_json::from_value(settings["fog"].clone())
             .map_err(|e| format!("presentation.fog: {e}"))?;
         let fog_look = fog.selected()?.look()?;
         let mut presentation = Presentation::new(Some(&capture.layout), capture.tick_hz)?;

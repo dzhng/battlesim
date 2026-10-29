@@ -199,7 +199,7 @@ fn a_gun_scatters_wider_at_a_helicopter_than_along_the_ground() {
 /// can wear one down; a Wildcat, sharing its class, shrugs them off.
 #[test]
 fn rifles_can_hurt_a_little_bird_but_not_a_wildcat() {
-    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::rules()).unwrap();
     let rifle = rules.weapons.get("rifle").unwrap();
     let armor = |id: &str| match &rules.catalog.by_id(id).body {
         contract::catalog::Body::Hull(hull) => hull.armor,

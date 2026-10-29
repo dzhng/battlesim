@@ -7,8 +7,8 @@
 // sets the battle's seed. The browser scenes judge the battle view here; their
 // `remount()` probe mounts a fresh battle view (a new device, worker and
 // sound), so they can check that one releases the last.
+import { DEFAULT_BATTLE_SEED } from "@apps/battle-lab/src/lobby/defaults";
 import { useState } from "react";
-import game from "@fixtures/game.json";
 import { SavedEncounter } from "../savedMaps";
 import { BattleView } from "../BattleView";
 import { gameCamera } from "../gameCamera";
@@ -17,7 +17,7 @@ import { BattleClock } from "../battleStatus";
 /** The battle's seed: the fixture's, or `?seed=` for testing. */
 function urlSeed(): number {
   const seed = Number(new URLSearchParams(window.location.search).get("seed"));
-  return Number.isInteger(seed) && seed > 0 ? seed : game.seed;
+  return Number.isInteger(seed) && seed > 0 ? seed : DEFAULT_BATTLE_SEED;
 }
 
 export default function Street() {
