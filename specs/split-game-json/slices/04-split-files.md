@@ -82,3 +82,12 @@ reports the workbench's changed input receipts/revision. Battle rows and stored
 rules/config identities were not re-blessed. Developer snapshot revisions
 naturally change with their input files; the simulation source fingerprint
 changes as the standing gate permits. Strict section readers remain slice 05.
+
+**Review follow-ups (open; do after 05 and 07 land, since both lanes touch
+these files):** rename `sim::fixtures::test_game()` to `test_rules()` (about
+167 uses) and `_units.mjs`'s exported `game` to `rules`; delete the
+`gameAudio` alias in `apps/battle-lab/src/soundFeed.ts` for `audioMix`; repoint
+every comment and doc naming `presentation.audio` or `presentation.audio.*` to
+`fixtures/audio.json` (sound crate docs, presentation-wasm, sound-workbench
+protocol, `fixtures/README.md:205`, the audio README), and name `pose.gauge` as
+`presentation.json`'s.
