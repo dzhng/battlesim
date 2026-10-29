@@ -120,8 +120,13 @@ A unit type is **one catalog entry**, addressed by its string id (`"us_m1_abrams
 validation and inheritance. Families contain unit, soldier, role and upgrade
 records; ids are defined once across authored files. Behavior comes from body,
 mobility, sensors, mounts and capabilities rather than the type's name.
-Sight bands are authored on each resolved unit; radar emission is independent
-of reach ([sight and radar](../crates/sim/README.md#checks)).
+Each resolved physical unit requires its own positive `concealment`, which
+inheritance may supply; values above one represent more conspicuous bodies.
+Optional `sensors.spotting` defaults to the neutral one. `sensors.ground_m`,
+`sensors.low_air_m` and `sensors.high_air_m` author sight into each band
+independently; zero air reach means blind. `capabilities.radar_emitter` authors
+a signature independently of those ranges. The [sensing contract](../crates/sim/README.md#sensing) explains
+how these values interact with ground and movement.
 A unit's `capabilities.carriage.seats` (3, 8 or 16) makes it a carrier; nothing
 else does. The rules' `carriage` row sets the boarding timer and reach, and their
 `bail_out` rows, one per kind of host (building, ground, air), set how a garrison
@@ -265,7 +270,13 @@ A map's water is its `rivers`: each a line of points with the water's `width_m` 
 
 The [capture files](parity/capture/) are browser runs of the menu reel (`native-parity-capture`), re-recorded whole, never edited: a change to the publication layout means a new run. The paris-corner run is copied as it is, and gzipped for the native counts. The market-town window is seven samples of that battle from a fresh publisher, so its first sample is a full snapshot. The run gives its layout and its first tick's frame record. The samples come from replaying the battle natively (`game.json` with the capture catalog), and they match the run's own samples except for the fog revision counters.
 
-The generation corpus pins its [physical rules](parity/map-layout/physical-rules.json) as well as its requests. Changes to shipped unit vision can change the sight certificate and forest placement; they must not silently change the inputs behind a frozen output. Current-rule generation and preparation remain covered separately.
+The generation corpus pins its [physical rules](parity/map-layout/physical-rules.json)
+as well as its requests. That document is frozen and hand-edited, never
+regenerated from current game rules. A schema change needs a deliberate edit
+that preserves unrelated frozen values. Changes to shipped unit vision can
+change the sight certificate and forest placement; they must not silently
+change the inputs behind a frozen output. Current-rule generation and
+preparation remain covered separately.
 
 A record belongs here only if both sides read it, and it stores a hash of the output unless a reader needs the bytes. A snapshot of one implementation's own output, read by that implementation alone, is not a paired record: state the rule in a test instead.
 
@@ -278,7 +289,12 @@ The world places floor cover after all trunks with independent seeds, so changin
 floor density cannot shift any trunk or its published source range. Candidates
 that conflict with trees, roads, water, bodies or the forest boundary are omitted;
 per-hectare densities are placement ceilings, not guaranteed counts. The floor
-adds no concealment. Uncleared forest ground owns the binary concealment bonus; trunk crowns own sight-line attenuation.
+adds no concealment. Uncleared forest ground uses the single
+`forests.rule.concealment` multiplier for every unit; differences in how well
+bodies hide belong on the units, never an infantry/vehicle forest split. Trunk
+crowns separately own sight-line attenuation. The rules' required
+`sensors.moving_concealment` multiplier applies while a move order is in
+progress; it is at least one, so moving cannot improve concealment.
 
 ## Sound catalog
 

@@ -22,7 +22,11 @@ flown trajectories and actual hull outcomes rather than a damage-only probabilit
 [Spotting](spotting_report.rs) compares catalog groups through the sensing owner's
 concealment functions, without running a battle. Its matrix isolates identification
 range under stated sight and shelter assumptions; it is a tuning tool, not a
-record of line-of-sight or foliage outcomes on a map.
+record of line-of-sight or foliage outcomes on a map. [Concealment shots](concealment_shots.rs)
+complement it with real battle approaches, marking identification and published
+HIDDEN transitions. Equal authored eyes and isolated forest ground make the
+mechanism comparable across observers; the GIFs are diagnostic evidence, not a
+roster balance claim.
 
 Resource probes distinguish full-world construction, retained side knowledge,
 publication and route search. [Navigation resources](navigation_resources.rs) and

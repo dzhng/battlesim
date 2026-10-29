@@ -16,7 +16,7 @@ You are implementing this spec in its pull request. Start at the first unchecked
 - [x] [04 The concealment mechanism, neutral](slices/04-concealment-mechanism.md): done. The whole formula and HIDDEN are coded with neutral data (hulls 2.8, squads 1, forest 0.25, moving 1.0). Digest rows, map hashes and HIDDEN publications are identical.
 - [x] [05 Spotting report](slices/05-spotting-report.md): done. Run `cargo run -p sim --release --example spotting_report`. Browser parity passed once (15/15), which closes the neutral half.
 - [x] [06 Starting values](slices/06-starting-values.md): done. Data only. The Market Town reel, street fog vectors and layout identities were re-recorded, and the reel was judged and accepted (see choices).
-- [ ] [07 Workbench GIF and closeout](slices/07-gif-and-closeout.md): the scripted GIF, docs, one full run, then `close-spec`.
+- [ ] [07 Workbench GIF and closeout](slices/07-gif-and-closeout.md): the GIF (`cargo run -p sim --release --example concealment_shots`) and docs are done. Remaining: one full run, `review`, then `close-spec`.
 
 **Warning:** slices 01–05 must not change any battle, measured against the baseline slice 00 leaves. "Unchanged" means the digest rows inside each parity record. It doesn't mean the record files themselves, which embed rules and units and so change with every schema edit (see [proof](#proof-that-nothing-changed)).
 

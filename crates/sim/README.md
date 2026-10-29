@@ -39,6 +39,40 @@ claimed lean. An individual infantry mount may declare a bore offset; both its
 pivot and muzzle turn with the operator bearing. Known enemy threat assessment
 uses the observed center and declared offset, never a hidden operator position.
 
+## Sensing
+
+[Optical sensing](src/sensing.rs) identifies visibility samples through clear
+lines of sight and foliage. A sample's target concealment is **ground × unit ×
+moving**: ground takes the stronger of forest and garrison shelter, the unit
+supplies its own concealment even in the open, and an in-progress move applies
+the authored movement multiplier. Airborne units bypass all three factors.
+
+Spotting adjusts that product, capped at full directional sight. At or above
+one it multiplies the product, so good eyes can cancel concealment completely;
+below one it raises the capped product to the reciprocal power, deepening
+concealment without changing an unconcealed target. Geometry and foliage still
+limit identification. The published **HIDDEN** flag instead describes the
+target's situation: enough visibility samples must have both concealing ground
+and net target concealment below one. Known exposure to a visible enemy's eyes
+or an attacker also clears the publication's flag. A sniper can be hard to
+identify in the open without being HIDDEN; movement can cost a vehicle HIDDEN
+in forest.
+
+Sight into ground, low air and high air is authored independently on each unit.
+[Sensors](../contract/src/catalog/sensors.rs) owns the band lookup; zero air reach
+means blind. Radar emission is an independent signature read by receivers and
+anti-radiation weapons, with no sight override or body-based range table.
+
+Resolved rules must carry their physical values. Weapon partial penetration,
+per-layer range and scatter, aircraft altitude layer and afterburner
+multipliers, squad sensing fractions, formation rules and vehicle aim height
+come from authored data or inheritance. Readers neither copy a missing layer
+value from its weapon row nor supply a shared penetration or air-mobility
+fallback. [Admission](../contract/README.md) refuses incomplete resolved inputs;
+optional fields mean a neutral value, no capability or no restriction.
+
+## Battle rules
+
 Rules follow physical components, with the game's [first-principles policy](../../development.md#game-rules)
 explaining where deliberate cinematic exceptions belong.
 
@@ -155,11 +189,6 @@ read off the layer: rotors hover (`movement::air`); wings never stop, attack
 in passes, dogfight only another winged aircraft in their own layer, and arrive and leave by the
 back edge, since they can't land at the base (`air`). Loading refuses a pair
 no flight law flies yet.
-
-A unit authors its sight in each altitude band. `Sensors::reach_m`, read by
-`sight::of_layer`, owns the lookup; zero air reach is blind. Radar emission is
-an independent signature, so receivers and anti-radiation weapons read it
-without changing the emitter's sight.
 
 Where a mechanic depends on how big or how extreme a unit can be, the extreme
 is data: the rules' `hull_limits` bound every hull a battle may field, loading

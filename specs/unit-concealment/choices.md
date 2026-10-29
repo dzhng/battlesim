@@ -61,3 +61,18 @@ Decisions made where the spec was silent or wrong, with verdicts. Final consolid
   - The simulation parity records' stored digests (ticks 0, 1, 90, 599, 600, 1680 and 120) and the Paris Corner capture battle are unchanged. Their scenes never put a concealed unit inside an observer's reduced range. *Verdict: evidence.*
 - **I judged the reel and accepted it.** I compared Market Town shots 1–18 before and after, and Paris shots 1–6 (unchanged battle). Every followed unit is alive and framed at its shot's opening, and the followed tank dies at tick 1249 as before. The unprimed critique's framing findings (an empty field shot, a roof-dominated Paris shot, a blast filling a frame) appear identically before and after. Shot 15 now catches a firing tank's dust burst. *Verdict: accepted; no reel tuning needed.*
 - **A starting-value consequence to tune later:** a 500 m MBT with spotting 0.8 identifies a still sniper team in forest at about 37 m (`0.5 × 0.25 = 0.125`, raised to the power 1.25). The spotting report shows every such cell. *Verdict: recorded for the balance pass, not tuned here.*
+
+## Slice 07
+
+- **`concealment_shots` is its own example, and the canvas moved to `examples/common/canvas.rs`.** The rejected alternative was adding a scene to the movement scenario table: sensing transitions need their own checkpoints. `movement_shots` output is byte-identical after the move (366 files compared). *Verdict: sound; net −187 lines across the two examples.*
+- **The lanes author equal 600 m all-round eyes and zero crown attenuation**, so observers compare on the mechanism alone. Identification distances:
+
+  | Observer | Open | Forest edge |
+  |---|---:|---:|
+  | Rifle | 302.7 m | 82.7 m |
+  | Scouts | 602.7 m | 152.3 m |
+  | MBT | 252.5 m | 53.8 m |
+
+  The ordinary rifle target is identified at 602 m. A parked forest MBT is HIDDEN; driving, it loses HIDDEN at once. *Verdict: matches the system test's ordering.*
+- **The published HIDDEN can trail the GIF's direct identification check by one tick**, because it reads the battle's own sightings. The MBT forest lane first stopped on that tick and showed HIDDEN next to "identified". Each lane now runs on until the published readout clears, at most one tick here, and ends on that frame. *Verdict: corrected in review; not a mechanism bug.*
+- **The checkpoint wasn't opened in Preview.** The user asked on 2026-10-28 not to be asked to approve anything. I judged the frames myself and Codex ran an unprimed critique. The shots are in `throwaway/concealment-shots/`. *Verdict: per the user's standing instruction.*
