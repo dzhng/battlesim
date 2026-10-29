@@ -189,6 +189,81 @@ def _get_world_vertices(obj):
     return [mw @ v.co for v in me.vertices]
 
 
+def _get_edge_samples(obj, samples_per_edge=2):
+    """Sample points along mesh edges in world coordinates.
+    
+    For two low-poly cylinders touching at their edges, vertices may be
+    far from the other surface, but edge midpoints will be close. This
+    fixes false-positive floating-part reports on axles, hubs, springs.
+    """
+    bpy.context.view_layer.update()
+    me = obj.data
+    mw = obj.matrix_world
+    samples = []
+    
+    for edge in me.edges:
+        v1 = mw @ me.vertices[edge.vertices[0]].co
+        v2 = mw @ me.vertices[edge.vertices[1]].co
+        # Sample points along the edge (excluding endpoints which are vertices)
+        for i in range(1, samples_per_edge + 1):
+            t = i / (samples_per_edge + 1)
+            samples.append(v1.lerp(v2, t))
+    
+    return samples
+
+
+def _get_face_center_samples(obj):
+    """Get face centers in world coordinates.
+    
+    Face centers catch contact that edge samples miss on flat faces.
+    """
+    bpy.context.view_layer.update()
+    me = obj.data
+    mw = obj.matrix_world
+    samples = []
+    
+    for poly in me.polygons:
+        # Calculate face center from vertex positions
+        center = Vector((0, 0, 0))
+        for vi in poly.vertices:
+            center += me.vertices[vi].co
+        center /= len(poly.vertices)
+        samples.append(mw @ center)
+    
+    return samples
+
+
+def _get_mesh_samples(obj, max_samples=60):
+    """Get representative sample points from a mesh for distance checking.
+    
+    Combines vertices, edge samples, and face centers for robust detection
+    of edge-to-edge contact between low-poly meshes like cylinders.
+    
+    The sampling strategy:
+    - Take all vertices (primary geometry definition)
+    - Take edge midpoints (catches edge-to-edge contact)
+    - Take face centers (catches face-to-face contact)
+    Then sample evenly if too many points.
+    """
+    # Collect all sample types
+    verts = _get_world_vertices(obj)
+    edge_samples = _get_edge_samples(obj, samples_per_edge=1)  # Just midpoints
+    face_samples = _get_face_center_samples(obj)
+    
+    # Combine all samples
+    all_samples = verts + edge_samples + face_samples
+    
+    if not all_samples:
+        return []
+    
+    # Sample evenly if we have too many points
+    if len(all_samples) > max_samples:
+        step = len(all_samples) // max_samples
+        return [all_samples[i] for i in range(0, len(all_samples), step)][:max_samples]
+    
+    return all_samples
+
+
 def _build_bvh(obj):
     """Build a BVH tree for a mesh object in world space."""
     bpy.context.view_layer.update()
@@ -438,13 +513,11 @@ def check_floating_parts(result: LintResult, threshold=FLOATING_PART_THRESHOLD):
         lo, hi = _mesh_bounds(obj)
         if lo is None:
             continue
-        # Get sample vertices for distance checking
-        verts = _get_world_vertices(obj)
-        if not verts:
+        # Get mesh samples including vertices, edge midpoints, and face centers
+        # This catches edge-to-edge contact that vertex-only sampling misses
+        samples = _get_mesh_samples(obj, max_samples=60)
+        if not samples:
             continue
-        # Sample evenly distributed vertices
-        step = max(1, len(verts) // 20)
-        samples = [verts[i] for i in range(0, len(verts), step)]
         mesh_data.append((obj, lo, hi, samples))
 
     if len(mesh_data) < 2:
