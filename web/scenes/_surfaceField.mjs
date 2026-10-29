@@ -80,7 +80,9 @@ export async function surfaceFieldAgreement(ctx) {
           [0, 0, 1600, 1600],
         ],
       ];
-      const source = terrain.createTerrainSource(root, registry);
+      const source = (
+        await import(file("packages/battle-renderer/src/frame/terrainSource.ts"))
+      ).createTerrainSource(root, registry, "full");
       const queryLayout = tgpu.bindGroupLayout({
         points: { storage: (n) => d.arrayOf(d.vec4f, n), access: "readonly" },
         output: { storage: (n) => d.arrayOf(d.vec4f, n), access: "mutable" },

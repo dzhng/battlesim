@@ -111,7 +111,9 @@ export async function forestExportAgreement(ctx) {
         await import(file("packages/battle-renderer/src/terrain/terrainSurface.ts"))
       ).presentGround(world.terrain.input);
       reach = ground.ground_reach(2)[1];
-      const source = terrain.createTerrainSource(root, registry);
+      const source = (
+        await import(file("packages/battle-renderer/src/frame/terrainSource.ts"))
+      ).createTerrainSource(root, registry, "full");
       source.set(ground);
       const queryLayout = tgpu.bindGroupLayout({
         points: { storage: (n) => d.arrayOf(d.vec4f, n), access: "readonly" },
