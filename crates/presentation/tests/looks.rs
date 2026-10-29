@@ -42,7 +42,11 @@ fn fired_look(added: bool) {
     use contract::ids::Side;
     use presentation::{
         assets::Runtime,
-        effects::{frame::EffectFrame, publication::EffectFeed, tables::EffectPresentation},
+        effects::{
+            frame::{EffectBatch, EffectFrame},
+            publication::EffectFeed,
+            tables::EffectPresentation,
+        },
         fielded::Fielding,
     };
     use sim::{
@@ -97,6 +101,8 @@ fn fired_look(added: bool) {
         p.looks.name(id),
         battle.rules().weapons[expected].appearance
     );
+    let expected_cause = format!("flash:{}", p.looks.name(id));
+    let mut batch = EffectBatch::new(p.capacity);
     let mut frame = EffectFrame::new(f64::from(battle.rules().tick_hz), p);
     let mut publisher = Publisher::new();
     let mut reader = Reader::new(&sim::publication::layout_json(&battle)).unwrap();
@@ -115,6 +121,22 @@ fn fired_look(added: bool) {
             .iter()
             .any(|launch| &*launch.kind == id)
         {
+            frame.build(
+                observation.tick / f64::from(battle.rules().tick_hz),
+                &mut batch,
+                None,
+                &[],
+                &[],
+                None,
+            );
+            assert!(
+                batch
+                    .lights
+                    .causes
+                    .iter()
+                    .any(|cause| cause.as_ref() == expected_cause),
+                "the fired weapon's admitted look must reach the rendered flash"
+            );
             return;
         }
         battle.step();

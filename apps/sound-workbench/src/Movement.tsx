@@ -39,7 +39,7 @@ function driveLoops(effects: Record<string, string>, row: VehicleSound, drive: D
 
 /** How vehicles and soldiers sound on the move: each vehicle class driven at a
  *  chosen speed, and a squad's footsteps at a chosen pace. The levels and
- *  curves are read only here; they live in `presentation.audio`. */
+ *  curves are read only here; they live in `audio.json`. */
 export function Movement({ snapshot, draft, play, playing, mix, live, stop }: MovementProps) {
   const [drives, setDrives] = useState<Record<string, Drive>>(() =>
     Object.fromEntries(

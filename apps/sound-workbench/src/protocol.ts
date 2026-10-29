@@ -13,13 +13,13 @@ export interface Snapshot {
     }
   >;
   effects: AudioMix["effects"];
-  /** Each vehicle class's loops (`presentation.audio.vehicles`), read only here. */
+  /** Each vehicle class's loops (`audio.json.vehicles`), read only here. */
   vehicles: AudioMix["vehicles"];
-  /** A soldier's footstep and stride (`presentation.audio.footsteps`), read only here. */
+  /** A soldier's footstep and stride (`audio.json.footsteps`), read only here. */
   footsteps: AudioMix["footsteps"];
   /** A soldier's running pace (`presentation.pose.gait.run_mps`). */
   runMps: number;
-  /** Battle music's mood direction and ducking (`presentation.audio.music`), read only here. */
+  /** Battle music's mood direction and ducking (`audio.json.music`), read only here. */
   music: AudioMix["music"];
 }
 export interface Draft {

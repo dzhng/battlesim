@@ -213,13 +213,6 @@
   border-top: 1px solid var(--sw-line);
   padding: 14px 0 24px;
 }
-.sw-choices {
-  display: grid;
-  grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr) auto 95px;
-  gap: 9px;
-  align-items: end;
-  margin: 12px 0;
-}
 .sw-global {
   margin: 0 auto;
 }
@@ -309,12 +302,6 @@
   .sw-layout {
     grid-template-columns: 250px minmax(0, 1fr);
     gap: 18px;
-  }
-  .sw-choices {
-    grid-template-columns: minmax(130px, 1fr) auto;
-  }
-  .sw-choices > label:last-child {
-    max-width: 110px;
   }
 }
 @media (max-width: 620px) {

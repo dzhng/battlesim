@@ -19,5 +19,4 @@ cannot substitute for physical picking or clearance.
 
 [The depth contract](src/depthContract.ts) keeps projection, format, clear and
 comparison consistent for browser projection. GPU passes consume the shared
-renderer convention. [Presentation tables](src/kindTable.ts) share explicit fallback
-selection for kinds not given their own row; they are not a gameplay type registry.
+renderer convention.

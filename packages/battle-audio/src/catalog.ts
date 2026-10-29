@@ -104,11 +104,6 @@ export interface SoundRecipe {
   gain: number;
   loop: boolean;
 }
-export interface ShotChoice {
-  near: string;
-  far: string;
-  gain: number;
-}
 export interface SoundCatalog {
   sources: Record<string, SoundSource | GeneratedSource>;
   /** Selected external receipts kept out of the playable source bank. */

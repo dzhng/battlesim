@@ -294,6 +294,8 @@ export interface PropType {
 /** One resolved weapon row (`contract::weapons::WeaponDefinition`), as the
  *  shipped view carries it; the fields presentation reads are typed. */
 export interface WeaponRow {
+  /** The admitted presentation look, inherited by the contract resolver. */
+  appearance: string;
   name: string;
   description: string;
   icon: string;

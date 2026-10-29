@@ -103,16 +103,14 @@ export interface AudioMix {
   hold_s: number;
   /** A transient more than this late (a clock jump) is dropped, not played. */
   late_s: number;
-  /** Gunfire by round kind. */
-  /** Impacts by hit kind, and their gain by round kind. */
+  /** Material impact levels; the look supplies its round's loudness. */
   impacts: Record<string, OneShot>;
   ricochet: OneShot;
-  /** Blasts by round kind. */
   /** A hull cooking off: the boom of each fireball, and its turret's clang
-   *  as it strikes the deck, heard as a round of kind `as` striking `hit`
-   *  (the catalog's contact sound for it), at `gain`. */
+   *  as it strikes the deck, heard as the look `as` striking `hit`
+   *  (the look's contact recording), at `gain`. */
   cook_off: { blast: NearFar; landing: { hit: string; as: string; gain: number } };
-  /** A flying round's motor by round kind; a kind without a row has none. */
+  /** Shared replacements for implicit synthesized effects and loops. */
   effects: Record<string, string>;
   weapon_defaults: {
     blast: { near: string; far: string };

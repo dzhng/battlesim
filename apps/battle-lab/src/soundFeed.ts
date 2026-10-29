@@ -1,8 +1,5 @@
-// The battle's sound, fed as the visuals are: the presentation's last
-// publication and last frame, which the presentation module hears
-// (`presentation::sound`). Sound tables and levels come from the fixture's
-// `presentation.audio`; fires burn as long as the effects' smoke does, and a
-// derived weapon sounds as its nearest styled ancestor.
+// The battle's sound observes the same side publications as its visuals.
+// The page carries the mix, library, looks and battle weapon rows to Rust.
 import { presentationSettings } from "@web/presentationSettings";
 import { audioMix } from "@web/audioMix";
 import type { AppAudio } from "@packages/battle-audio/src/appAudio";
