@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+export { createElement } from "react";
+export { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { PageVisit } from "@apps/battle-lab/src/navigation";
 
