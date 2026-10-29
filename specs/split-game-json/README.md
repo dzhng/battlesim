@@ -1,6 +1,6 @@
 # One owner per game setting: splitting game.json
 
-**Status:** sliced, not started. **Updated:** 2026-10-29.
+**Status:** in progress: 01–03 done, 04 running. **Updated:** 2026-10-29.
 
 [`fixtures/game.json`](../../fixtures/game.json) mixes the battle's rules
 (about 1,180 numbers, hashed, overridable by encounters) with presentation
@@ -21,8 +21,11 @@ You are implementing this plan on PR #16 (dzhng/battlesim, branch
 slice you are on. Use
 [`implement-spec`](../../.agents/skills/implement-spec/SKILL.md).
 
-**Start at [slice 01](slices/01-proof-controls.md).** Slices 02 and 03 are
-spikes you can run alongside it.
+**Pick up at [slice 04](slices/04-split-files.md).** 01's "before" dumps are
+in `/Users/server/dev/battlesim/throwaway/split-game-json/before/` (regenerate
+with the commands in [01](slices/01-proof-controls.md)). Slice 12 waits on the
+user's answer to 02's question (a published `round` on `WeaponPose`); if
+unanswered when 12 is next, take that option and record why.
 
 Before you end a pass, tick what landed below, write what you learned into the
 slice file, and rewrite this prompt to say where the next pass starts.
@@ -38,9 +41,9 @@ Warnings:
 
 ### TODO
 
-- [ ] [01 Proof controls](slices/01-proof-controls.md)
-- [ ] [02 Spike: which round a hull fired](slices/02-hull-launch-spike.md)
-- [ ] [03 Spike: sound sources](slices/03-sound-sources.md)
+- [x] [01 Proof controls](slices/01-proof-controls.md)
+- [x] [02 Spike: which round a hull fired](slices/02-hull-launch-spike.md): no candidate works without a published value; the user is asked (see 12)
+- [x] [03 Spike: sound sources](slices/03-sound-sources.md)
 - [ ] [04 Three files, same shape](slices/04-split-files.md)
 - [ ] [05 Typed presentation readers](slices/05-typed-readers.md)
 - [ ] [06 One table of shader constants](slices/06-shader-constants.md)

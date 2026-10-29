@@ -43,3 +43,11 @@ presented.
 
 **Would change the plan:** if neither candidate works without a new field,
 say so in 12 and ask the user. A new published field reopens a decision.
+
+**Outcome (2026-10-29):** neither candidate conforms; evidence is in
+[12](12-firing-look.md). A moves every hull flash one tick late (a round's
+segment is published the tick after its shot). B keeps the tick and every
+digest, but nothing publishes a mount's round today (`WeaponPose` has no round
+field), so it needs one. The user was asked to choose: add `round: u8` to
+`WeaponPose` (recommended), take the one-tick delay, or leave hull looks
+following the mount's first weapon.
