@@ -115,10 +115,16 @@ def kat1_cab(v, x0, front, floor, top):
     box("front_bumper", (0.16, 2 * half_w + 0.10, 0.24), (front + 0.07, 0, floor - 0.05), m["dark"], h,
         bevel=0.015)
     VP.hatch("cab_roof_hatch", (x0 + 0.65, 0.40, top), m, h, radius=0.32)
-    box("dash", (0.35, 2 * half_w - 0.3, 0.20), (front - 0.45, 0, top - 1.05), m["black"], h, lods=NEAR)
+    seat_z = top - 1.05
+    seat_base_height = seat_z - floor - 0.25
+    box("dash", (0.35, 2 * half_w - 0.3, 0.20), (front - 0.45, 0, seat_z), m["black"], h, lods=NEAR)
+    box("dash_support", (0.06, 2 * half_w - 0.1, seat_z - floor - 0.05), (front - 0.45, 0, floor + (seat_z - floor) / 2),
+        m["black"], h, lods=NEAR)
     for side in (-1, 1):
-        box(f"seat_back_{side}", (0.12, 0.50, 0.60), (x0 + 0.45, side * 0.55, top - 1.05), m["black"], h,
+        box(f"seat_back_{side}", (0.12, 0.50, 0.60), (x0 + 0.45, side * 0.55, seat_z), m["black"], h,
             lods=NEAR)
+        box(f"seat_base_{side}", (0.40, 0.50, seat_base_height), (x0 + 0.35, side * 0.55, floor + seat_base_height / 2 + 0.05),
+            m["black"], h, lods=NEAR)
     whip = empty("dressing_antenna_cab", parent=h)
     VP.antenna("antenna_cab", (x0 + 0.20, -(half_w - 0.15), top), m, whip, height=2.2)
 
@@ -202,6 +208,8 @@ def launcher(v, deck):
             m["dark"], h, lods=MID)
         cyl(f"cable_reel_{s}", 0.22, 0.20, (PACK_FRONT + 0.40, side * 0.70, deck + 0.35), "Y", m["dark"], h,
             seg=16, lods=MID)
+        box(f"cable_reel_bracket_{s}", (0.10, 0.08, 0.30), (PACK_FRONT + 0.30, side * 0.60, deck + 0.20),
+            m["dark"], h, lods=FINE)
         for k, x in enumerate((PACK_REAR + 0.30, PACK_FRONT - 0.30)):
             box(f"lifting_eye_{s}_{k}", (0.10, 0.05, 0.12), (x, side * (CAN_W - 0.10),
                                                              PACK_FLOOR + 2 * CAN_H + 0.06), m["steel"], h,
