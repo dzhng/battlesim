@@ -1,7 +1,7 @@
 //! Puddles: standing water too small to carve (decision 29), look only. A
 //! puddle is a pure function of the biome's seed and its cell
-//! ([`PuddleGround::candidate`]), so wakes, grass and both clients agree on
-//! it whatever has been walked (decision 34). It lies where the biome's
+//! ([`PuddleGround::candidate`]), so wakes and both clients agree on it
+//! whatever has been walked (decision 34). It lies where the biome's
 //! chance for the surface under its centre allows, and takes that surface's
 //! look (decision 28): mirror on a metalled road or paving, muddy on a
 //! country road or a dirt track.
@@ -98,7 +98,7 @@ fn in_rut(
     };
     let [ax, ay, bx, by] = [r[0], r[1], r[2], r[3]].map(f64::from);
     let (dx, dy) = (bx - ax, by - ay);
-    let length = dx.hypot(dy).max(1e-9);
+    let length = libm::hypot(dx, dy).max(1e-9);
     let t = (((centre[0] - ax) * dx + (centre[1] - ay) * dy) / (length * length)).clamp(0.0, 1.0);
     let (on_x, on_y) = (ax + dx * t, ay + dy * t);
     let (nx, ny) = (-dy / length, dx / length);
@@ -172,8 +172,8 @@ impl PuddleGround<'_> {
         let rim = (0..8).map(|k| {
             let a = k as f64 * std::f64::consts::FRAC_PI_4;
             [
-                centre[0] + radius_m * a.cos(),
-                centre[1] + radius_m * a.sin(),
+                centre[0] + radius_m * libm::cos(a),
+                centre[1] + radius_m * libm::sin(a),
             ]
         });
         if std::iter::once(centre)
@@ -191,7 +191,7 @@ impl PuddleGround<'_> {
                 .looks
                 .iter()
                 .position(|l| l.name == on.look)
-                .unwrap_or(0),
+                .expect("validation names a look for every surface"),
         })
     }
 

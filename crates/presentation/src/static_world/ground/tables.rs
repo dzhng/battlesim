@@ -135,7 +135,7 @@ impl Ground {
         let t = &self.tuning.terrain.shore;
         let [a, b] = t.turns;
         vec4(p, [t.wet_whole, t.earth_whole, t.fine, t.fine_share]);
-        vec4(p, [a.cos(), a.sin(), b.cos(), b.sin()]);
+        vec4(p, [libm::cos(a), libm::sin(a), libm::cos(b), libm::sin(b)]);
         vec4(
             p,
             [

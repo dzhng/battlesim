@@ -55,6 +55,12 @@ native.
   every camera carries on its clock (`Camera.wind`, the sun's cascades
   included), so grass, water and trees move in it in every pass, and which
   the effects drift smoke and dust on.
+- [The wave field's clock](src/wave.rs): how many steps a frame runs the
+  renderer's height field over the water round the camera, at a fixed rate
+  on the presentation clock, when it starts over, and where it lies
+  (`Camera.waves`). [Wakes](src/effects/frame/wake.rs) are its splats: rings
+  and V-wakes where a unit the side sees wades, decided per tick from what
+  is published, never from how often frames are drawn.
 - [Scars](src/scars/): the side's learned ground, from its publications'
   patches, and the bounded GPU cache of its scars. A renderer uploads what it
   is handed (the directory's words, the pool's texels, `ScarParams`' words
@@ -81,7 +87,9 @@ native.
   separate from terrain draw selection and flow into viewport measurements.
 - [The static world](src/static_world/): the buildings resolved from their
   template art, and the ground from the map's exports under the biome: its
-  tables, its meshes (terrain, skirt, water, backdrop), the grass field's
+  tables, its meshes (terrain, skirt, water, backdrop), its standing water
+  (`StandingWater`, the one owner of where rivers, swamps and puddles hold
+  water, how deep, and which look each draws), the grass field's
   shapes, and its window and per-frame parameters for the last frame's
   camera, and the scenery; and the map's props fitted to their boxes from the
   installed art, less those the side knows replaced, with what it knows

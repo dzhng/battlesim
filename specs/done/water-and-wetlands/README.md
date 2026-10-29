@@ -229,16 +229,20 @@ stream's. At physical scale both are under a pixel at the close framing.
   order through the water. The world pass still resolves, because Metal skips
   resolving a tile the water's pass leaves empty.
 - **A water shader binds four groups.** Four is the WebGPU default. Whatever
-  the water reads of the frame (depth, the scene colour, the fog mask before
-  the water, the wave field) rides the fog layout (`fogTerm.ts`), and only
+  the water reads of the frame (depth, the scene colour, its guard, the wave
+  field) rides the fog layout (`fogTerm.ts`), and only
   `FogGroups.water` holds the real textures. Every group the world pass
   binds holds a 1×1 placeholder, because that pass writes the depth.
 - **One layer owns the paint.** The bed is unpainted under the water, and
   the water lays a mark over its composite once, so an order line never
   doubles or wobbles through refraction.
 - **Refraction never reaches across the fog.** A shifted sample is taken
-  only where the fog mask copy says it is seen at least as well as the
-  water's own pixel, and never from geometry in front of the surface.
+  only where the fog says it is seen at least as well as the water's own
+  pixel, and never from geometry in front of the surface. The blur keeps
+  the rule too: a guard beside the copy's mips holds the worst of each
+  texel's footprint, unseen and painted, so the bed is read at the pixel,
+  unblurred, wherever any pixel its blurred sample weighs is seen less or
+  marked.
 - **Water's light goes through the shared owner.** Its F0 of 0.02 is half
   metal on a black base in `standardPbr`'s terms (`WATER_METAL`,
   `frame/waterLight.ts`). There is no second lighting model.
@@ -302,8 +306,9 @@ stream's. At physical scale both are under a pixel at the close framing.
 
 - `worldPass.ts` (`encode`): pass order. `battleFrame.ts`: the frame's
   targets and quality.
-- `waterPass.ts`: the copies of `lit` and the fog mask, and the composite of
-  bed, body and reflection.
+- `waterPass.ts`: the copy of `lit`, and the composite of bed, body and
+  reflection. `waterUnder.ts`: the copy's mips and their guard, and what the
+  water reads of its bed.
 - `waterLook.ts`, `waterSurface.ts`, `waterNormals.ts` (`waterNormalsBake`),
   `waterUnder.ts` (refraction, `sceneColourMip`), `waterCaustics.ts`,
   `waterLight.ts`, `waveField.ts` (`wavePlan`, `waveStep`), `waveNormal.ts`.
@@ -561,11 +566,23 @@ These are the user's to decide. The native items are also on the
   open if a cinematic camera wants the far bank in the water.
 - **The frame scene's tick-label flake.** The river lab's "Tick N" HUD label
   differs by a pixel between runs.
-- **`ally-help` fails, and is left failing.** Swamp generation moved this
-  generated map's fifth objective. That widened the team planner's 8×8
-  strength grid, so the objective the scene defends sits 15 m inside a
-  cell's edge. The planner reads one cell, so enemies beside the objective
-  but across the edge read as zero. The fix, summing the cells an
-  objective's circle overlaps, changes skirmish AI decisions and every
-  skirmish digest. The scene's premise also relied on an incidental
-  sighting.
+- **`ally-help`'s premise.** Swamp generation moved this generated map's
+  fifth objective, which widened the team planner's 8×8 strength grid, and
+  the objective the scene defends came to sit 15 m inside a cell's edge.
+  The planner read one cell, so enemies beside it but across the edge read
+  as nothing. It now reads every cell the objective's square reaches
+  ([choices](choices.md)); skirmish digests moved with it. The scene still
+  fails, and no setup passes it honestly. Help reads only enemies the side
+  sees inside the objective's square; the defender usually dies on the
+  approach, or to shooters outside the square or out of sight; a lane is
+  gone with its last unit; and one squad holding the objective settles
+  under the trigger. The scene's own check also passes falsely, on an ally
+  retargeting the objective after the defender dies. Making it pass is a
+  rule decision: count attackers the side knows of and its lane's losses,
+  or keep a lane a while after its last unit.
+- **Duplication left for a cleanup:**
+  - the look rows' order (rivers, swamps, puddles) is written twice, by the
+    table (`tables.rs`) and by `StandingWater`'s row picks;
+  - two `Sway` types: grass's biome tuning and the trees' bend;
+  - the scenes' water helper (`web/scenes/_water.mjs`) reads the first
+    river's surface for every river.

@@ -1,6 +1,6 @@
-//! The standing water: where the exported rivers and swamps hold it, how deep
-//! it stands and which look it draws ([`StandingWater`], the one owner), and
-//! the water surface's cells over it.
+//! The standing water: where the exported rivers and swamps and the puddles
+//! hold it, how deep it stands and which look it draws ([`StandingWater`],
+//! the one owner), and the water surface's cells over it.
 use super::biome::{Biome, WaterLook};
 use super::puddles::{puddle_at, Puddle};
 use super::shapes::distance;
@@ -197,7 +197,8 @@ impl<'a> StandingWater<'a> {
 
     /// The standing water at `(x, y)`, if any: a river's where the point is
     /// within its water (the first river's where two meet), else a swamp's
-    /// inside its outline, where its surface stands over the ground.
+    /// inside its outline, where its surface stands over the ground, else a
+    /// puddle's.
     pub fn at(&self, x: f64, y: f64) -> Option<Wet> {
         let wet = |surface_z: f64, look| {
             let depth_m = surface_z - self.grid.height(x, y);
@@ -259,7 +260,8 @@ impl<'a> StandingWater<'a> {
     /// or a swamp's, whose depth is the ground's). A river's and a swamp's
     /// cells never overlap, so the blended surface is drawn once however the
     /// water bends; where two waters meet, the cell is the first one's
-    /// (rivers before swamps), its surface and its look.
+    /// (rivers before swamps), its surface and its look. A puddle is one cell
+    /// over its disc; no puddle lies in other water.
     pub fn cells(&self) -> Vec<f32> {
         let mut out = vec![];
         let mut laid = HashSet::new();

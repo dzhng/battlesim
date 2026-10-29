@@ -1764,6 +1764,29 @@ itself settled one.
   river did not move.
 - **Confidence:** high.
 
+### The blurred bed is guarded by a max-mip beside the copy's mips
+
+- **When:** after the closeout, from a Codex review.
+- **The choice:** the fog mask copy became the water's guard: its unseen
+  share and the paint's coverage, seeded in a pass, each mip the worst of
+  every texel the copy's mip tap weighs. The water reads the guard's
+  texels under its blurred tap, at both levels the sampler may pick, and
+  reads the bed at the pixel where any is seen less than its own or marked.
+  Checking a few pixels round the tap missed the footprint's far texels, so
+  a seen pixel's bed could carry an unseen pixel's unfogged colour.
+- **Confidence:** high: Codex found the footprint exact on both clients,
+  and the frame scene's water baselines did not move.
+
+### The team planner reads an objective over every cell its square reaches
+
+- **When:** after the closeout, at the user's word.
+- **The choice:** `InfluenceGrid::on` sums each cell the objective's square
+  reaches, weighted by the share of the square it holds, in place of the one
+  cell under its centre. An objective near a cell's edge no longer reads
+  the enemy beside it as nothing. Skirmish digests moved; the user does not
+  hold them.
+- **Confidence:** high.
+
 ## The closeout's measurements, for the record
 
 - **When:** the closeout.

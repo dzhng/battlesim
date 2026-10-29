@@ -267,7 +267,8 @@ impl Ground {
         field::field(&self.source, &self.forests, strokes, reach)
     }
 
-    /// The standing water of its rivers and swamps (`water::StandingWater`).
+    /// The standing water of its rivers, swamps and puddles
+    /// (`water::StandingWater`).
     pub fn standing_water(&self) -> water::StandingWater<'_> {
         let s = &self.source;
         water::StandingWater::new(&s.rivers, &s.swamps, &self.puddles, &s.grid, &self.biome)
