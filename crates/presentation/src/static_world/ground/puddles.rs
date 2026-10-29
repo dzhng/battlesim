@@ -1,9 +1,12 @@
 //! Puddles: standing water too small to carve (decision 29), look only. A
 //! puddle is a pure function of the biome's seed and its cell
-//! ([`candidate`]), so wakes, grass and both clients agree on it whatever
-//! has been walked (decision 34). It lies where the biome's chance for the
-//! surface under its centre allows, and takes that surface's look (decision
-//! 28): mirror on a metalled road or paving, muddy on a track or open ground.
+//! ([`PuddleGround::candidate`]), so wakes, grass and both clients agree on
+//! it whatever has been walked (decision 34). It lies where the biome's
+//! chance for the surface under its centre allows, and takes that surface's
+//! look (decision 28): mirror on a metalled road or paving, muddy on a
+//! country road or a dirt track.
+//! Open ground takes puddles only if the biome gives it a chance; summer's
+//! doesn't.
 use super::biome::{Biome, Puddles, AREA_KINDS};
 use super::forests::Forest;
 use super::shapes::{distance, stroke_inside, triangle_contains};

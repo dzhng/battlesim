@@ -1,7 +1,7 @@
 # Water and wetlands
 
-**Status:** shipped 2026-10-28, on `spec/water-and-wetlands` (PR #15 to
-`staging`). Rationale record. [`decisions.md`](decisions.md) holds the user's
+**Status:** built 2026-10-28 on `spec/water-and-wetlands`, in PR #15 to
+`staging` (open at close). Rationale record. [`decisions.md`](decisions.md) holds the user's
 givens (1–35) from the 2026-10-27 unknowns walk, and [`choices.md`](choices.md)
 holds the calls the build made where they were silent.
 [The unknowns map](visualizations/unknowns-map.html) is the walk's summary.
@@ -34,7 +34,7 @@ What shipped:
   moves. A round landing in water splashes. A height field around the
   camera's target spreads them.
 - **One wind.** Grass, water normals, smoke and dust drift, and tree sway all
-  move in one `Wind` record. Trees now sway.
+  move in one `Wind` record.
 - **A Low tier for water.** Low keeps the depth colour and drops refraction,
   caustics and wakes (decision 18).
 - **Native** runs and draws everything but wakes, which the
@@ -76,8 +76,9 @@ saturated green and teal, so each look carries its own three numbers.
 which unit is right for the job: trucks bog worse than tanks (decision 3).
 That earns three numbers in the rules. A puddle is too small to carve on a
 4 m grid (decision 22), and a tank column braking for one would make a
-viewer laugh. So a puddle is presentation's alone: scattered by the ground
-walk, absent from the map contract, and only splashing when crossed
+viewer laugh. So a puddle is presentation's alone: placed once per map, cell
+by cell, when the ground is built (`PuddleGround::puddles`), absent from the
+map contract, and only splashing when crossed
 (decisions 29 and 34).
 
 **A swamp is its own map list, not a `SurfaceKind`.** `SurfaceKind::of`
@@ -105,8 +106,10 @@ quality, so a pipeline only Low used would never be exported or checked.
 serves every tier. The targets allocate the copies only `full` reads, and on
 Low the fog's 1×1 placeholder stands in for them.
 
-**Water looks are uniforms, not shader text.** `presentation.terrain` used
-to be spliced into the shader. As uniforms, a look retunes live on the dev
+**Water looks are uniforms, not shader text.** Most of
+`presentation.terrain` is spliced into the shader as constants; the water's
+and the shore's numbers are uniforms instead (`TerrainParams.waterLooks`,
+`shoreTuning`). As uniforms, a look retunes live on the dev
 server with no shader rebuilt, the export stays one set, and native uploads
 Rust's tables as they are.
 
@@ -166,8 +169,10 @@ stream's. At physical scale both are under a pixel at the close framing.
   (`crates/sim/src/navigation/mobility.rs`) takes one `Footing`: road wins,
   else open speed times the slower of forest and swamp, once, then slope.
   `Surface::footing()`, `Cell::footing()` and a road arc's `footing()` build
-  it at all five read sites. `SlowGround` counts forest only, swamp only and
-  both, so an overlap is never counted twice. Every factor lies in (0, 1],
+  it at all four read sites (navigation, the journey, movement, the
+  soldier). The planner's estimate, `SlowGround`, reads the same factors: it
+  counts forest only, swamp only and both, so an overlap is never counted
+  twice. Every factor lies in (0, 1],
   checked when the rules load, so nothing stops dead in a swamp. Pinned by
   `crates/sim/tests/ground_speed.rs`.
 - **The planner and movement see the same swamp.** Each cell's planned cost
@@ -181,9 +186,13 @@ stream's. At physical scale both are under a pixel at the close framing.
 - **Generated swamps draw from their own random stream** (`swamps`), so
   rivers, woods and towns don't move. The menu reel's market-town map is
   pinned at `layout-16` as files and is not regenerated.
-- **Presentation never re-derives where water is.** `StandingWater` is built
-  from the simulation's export (river and swamp strides) and the puddle walk.
-  There is no second water lookup.
+- **One owner says where water stands, how deep and in which look.**
+  `StandingWater` is built from the simulation's export (river and swamp
+  strides) and the ground's puddles; the water's cells, the plots, posture,
+  wakes and splashes all ask it. One older lookup remains: the surface
+  field's `water` distance (`Field::water`, `ground/field.rs`), which knows
+  rivers only, shades the bank and keeps scenery clear of rivers (see
+  [Open](#open)).
 - **Variants are look only, and seeded per feature.** `water::look(seed,
   kind, feature, looks)` picks by the biome's seed, the kind and the
   feature's index, so no other feature moves it, and a look of no weight is
@@ -199,13 +208,14 @@ stream's. At physical scale both are under a pixel at the close framing.
   fall. Pinned by `crates/presentation/tests/wading.rs`.
 - **Wakes come only from what the side sees.** Enemies wade only while
   identified. Squads riding a carrier wade nowhere (`units::riding`, the one
-  test interpolation and the feed share). Only what stands below the water's
+  test interpolation and the effects publication share). Only what stands below the water's
   surface wades (`StandingWater::under`). A V needs water at least
   `wake.vee_depth_m` deep; a boot in a puddle only rings. Pinned by
   `effect_behaviour.rs` and `wake_sources.rs`.
 - **Wakes don't depend on frame rate.** Impulses are decided per tick, and
-  `WaveClock` runs `floor(clock · hz)` steps, capped, so any split into
-  frames runs the same steps (`crates/presentation/tests/wave_field.rs`).
+  `WaveClock` runs `floor(clock · hz)` steps, so any split into frames of at
+  most 0.2 s runs the same steps; a longer frame drops the excess, capped at
+  six (`crates/presentation/tests/wave_field.rs`).
 - **One side's waves never reach the other.** A load, a side switch or a
   reset opens a new epoch, and the renderer clears the field on a new epoch
   or an empty packet (`wavePlan`) (decision 24).
@@ -213,9 +223,10 @@ stream's. At physical scale both are under a pixel at the close framing.
   `rgba16float` render targets in fragment passes, so native's export schema
   is unchanged.
 - **Pass order:** the world (opaque, grass, backdrop, then glass) resolves
-  into `lit` and keeps its samples; `lit` is copied; the water draws over the
-  samples with depth read-only; then effects. `worldPass.ts` (`encode`)
-  alone owns the order. The world pass still resolves, because Metal skips
+  into `lit` and keeps its samples; the water's pass copies `lit`
+  (`waterPass.ts`) and draws over the samples with depth read-only; then the
+  effects (`battleFrame.ts`). `worldPass.ts` (`encode`) owns the world's
+  order through the water. The world pass still resolves, because Metal skips
   resolving a tile the water's pass leaves empty.
 - **A water shader binds four groups.** Four is the WebGPU default. Whatever
   the water reads of the frame (depth, the scene colour, the fog mask before
@@ -308,9 +319,10 @@ stream's. At physical scale both are under a pixel at the close framing.
 
 **Judging it**
 
-- `fixtures/maps/wetlands/`: a `capture` map with a river, a swamp, a dirt
-  track and a wood. Its `water` encounter stands a rifle squad and a tank at
-  the bank.
+- `fixtures/maps/wetlands/`: a `capture` map with a river and its bridge, a
+  swamp, a country road, a dirt track and a wood. Its `water` encounter
+  stands a rifle squad and a tank at the bank, and a second rifle squad in
+  the swamp, which the reel's swamp and wading shots frame.
 - `fixtures/captures/water.json`: the water reel, one scene of held shots.
   The scene names them in order (`SHOTS` in `web/scenes/water.mjs`): close
   (65 m), tactical (260 m), low (80 m at 0.2 rad), the swamp from above,
@@ -329,7 +341,8 @@ stream's. At physical scale both are under a pixel at the close framing.
   reel `REELS` names (`web/src/battle/benchmark/reels.ts`).
 - **Stills agree within a tolerance, not byte for byte.** The graphics test
   runs on the wall clock. Native replays the browser's own frame records, so
-  browser against native stays exact.
+  the two draw the same frames, and their water is judged within ΔE 3 of each
+  other (not checked when a look is pinned, nor on the puddle shot).
 - **The native check measures distance from the browser,** not "bluer than
   the bank". The green-grey and brown looks broke the first measure, and it
   was re-judged, not lowered.
@@ -411,7 +424,8 @@ stream's. At physical scale both are under a pixel at the close framing.
 
 ## Measured
 
-All whole-frame GPU time (`frame/gpuTiming.ts`), river lab, 1920×1080.
+The costs are whole-frame GPU time (`frame/gpuTiming.ts`) in the river lab at
+1920×1080; the swamp crossings are simulated time and distance.
 
 **Storing the world's samples** (decision 25), tactical framing, eight
 interleaved arms of 120 frames:
@@ -421,9 +435,12 @@ interleaved arms of 120 frames:
 | High | 6.525 ± 0.049 ms     | 6.539 ± 0.057 ms                 |
 | Low  | 8.18 ± 0.81 ms       | 8.05 ± 0.90 ms                   |
 
-Each technique was measured as a pair on High, on and off, because Low and
-High differ in render scale, grass and shadows. The normals, refraction, and
-refraction with caustics each measured within noise.
+The water's techniques were measured as a pair on High, on and off, because
+Low and High differ in render scale, grass and shadows: a flat normal against
+the baked map (High 9.21 ± 1.09 ms with the map against 9.29 ± 0.91 ms flat), refraction
+(9.17 ± 0.72 ms against 9.24 ± 0.84 ms), and refraction with caustics against
+depth colour alone (7.32 ± 0.24 ms against 7.47 ± 0.85 ms), each within
+noise. The wave field was not measured.
 
 **At closeout**, four runs of 120 frames:
 
@@ -451,23 +468,23 @@ its north-east end to (470, 70):
 | tank  | shortest | (470, 70) | 43.3 s, 226 m             | 39.7 s, 226 m | +9% time                  |
 | tank  | fastest  | (470, 70) | 40.3 s, 235 m, stays dry  | 39.7 s, 226 m | +2% time, +9 m round it   |
 
-Ordered straight through, the squad loses about a third of its time and the
-tank a little less. Asked for the quickest way, both mostly skirt the water
-and pay about half that. The factors are tuning, not requirements, and were
+Ordered straight through the swamp's middle, the squad loses about a third of
+its time and the tank a little less; past its end, a sixth and a tenth. Asked
+for the quickest way, both mostly skirt the water and pay well under that. The factors are tuning, not requirements, and were
 not retuned.
 
 ## Visual provenance
 
 The standard was decision 20: at our camera, next to RedGPU, ours reads as
 good. The stills are in [`assets/`](assets/), and
-[its README](assets/README.md) says how each was captured.
+[its README](assets/README.md) says where each came from.
 
 - **The release video's frames.** [RedGPU](https://github.com/redcamel/RedGPU)
   V4.4.0-Alpha (tag commit `95aaf9a9ecb3c5ccfcfc824ccad1a6489392cf68`, code
   under MIT) announced its lake in a
   [41 s video](https://x.com/redcamel15/status/2114606572165046472). Four
-  frames from it show the look at its best, from its own ground-level
-  camera:
+  frames from it show the look at its best, from the demo's own cameras,
+  overhead and near the water:
   - [`redgpu-depth-colour.jpg`](assets/redgpu-depth-colour.jpg): colour from
     shallow to deep, and the bed through it. It drove depth colour.
   - [`redgpu-overhead-shadows.jpg`](assets/redgpu-overhead-shadows.jpg): the
@@ -496,9 +513,12 @@ RedGPU's:
   deep channel is blank in a still, and the banks read as a canal lining.
 - **Tactical (260 m):** close. It reads as a matte, curved trench with no
   sheen.
-- **Wading (12 m):** close. The submerged grass gives depth. There are no
-  reflections of the soldiers, faint rings only, and a hard edge at the reed
-  bed.
+- **Wading (12 m), beside `redgpu-wading-shore.jpg`:** close. The submerged
+  grass gives depth. There are no reflections of the soldiers, faint rings
+  only, and a hard edge where the marsh meets the field (no reeds are built).
+
+The swamp from above (45 m), the puddle shot (22 m) and the trees' sway have no
+RedGPU counterpart; each was judged on its own by unprimed critiques.
 
 The final checkpoint in Preview drew no feedback.
 
@@ -532,7 +552,13 @@ These are the user's to decide. The native items are also on the
     is the term to watch in a big battle;
   - captures warm it by playing the reel, with no fixed warm-up;
   - native draws no wakes.
-- **SSR:** not built (decision 15).
+- **A second, older water lookup.** The surface field's `water` distance
+  (`Field::water`) knows rivers only: it shades the bank and keeps scenery
+  clear of rivers. Map generation keeps woods out of swamps, so nothing
+  stands in one today, but a map that put scenery in a swamp would not keep
+  it clear. Folding it into `StandingWater` would make it one owner.
+- **SSR:** rejected for this build (decision 15, [dead ends](#dead-ends));
+  open if a cinematic camera wants the far bank in the water.
 - **The frame scene's tick-label flake.** The river lab's "Tick N" HUD label
   differs by a pixel between runs.
 - **`ally-help` fails, and is left failing.** Swamp generation moved this

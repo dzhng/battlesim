@@ -217,7 +217,7 @@ pub struct Ground {
     pub tuning: Tuning,
     pub forests: Vec<Forest>,
     pub plots: Plots,
-    /// Its puddles (`puddles::puddles`).
+    /// Its puddles (`puddles::PuddleGround::puddles`).
     pub puddles: Vec<puddles::Puddle>,
     /// The paved strokes as drawn; `None` where they are the source's.
     pub drawn: Option<Vec<f32>>,

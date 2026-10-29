@@ -767,7 +767,7 @@ itself settled one.
   10.47 ± 0.64 ms, slower than High as slice 02 found, with other load on
   the machine.
 - **The gap:** the slice asked for Low against High.
-- **The reach:** slices 08 and 16 measure the same pair.
+- **The reach:** slice 08 measured the same pair; slice 16's wave field was not measured.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
@@ -1762,4 +1762,13 @@ itself settled one.
   scene's held clock, so they now bend. The still moved by a pixel at this
   tuning (2 px at an earlier one), the same on repeated runs; foundation and
   river did not move.
+- **Confidence:** high.
+
+## The closeout's measurements, for the record
+
+- **When:** the closeout.
+- **The choice:** the normals' cost pair (slice 06: High 9.21 ± 1.09 ms with the baked map against 9.29 ± 0.91 ms with a flat normal) and the caustics' (slice 08: refraction and caustics 7.32 ± 0.24 ms against depth colour alone 7.47 ± 0.85 ms), and the closeout benchmark the README's Measured section quotes, were recorded in the slices before they were folded into the README. All are whole-frame GPU time in the river lab at 1920×1080.
+- **The gap:** none.
+- **The reach:** the README's Measured section.
+- **Verdict:** recorded.
 - **Confidence:** high.

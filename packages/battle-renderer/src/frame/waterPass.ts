@@ -1,7 +1,8 @@
-// The water: its surface over the rivers' cells (the terrain material's
-// `waterSurface`), blended over the world and its glass, reading depth and
-// writing none, in a pass of its own. `worldPass.ts` draws it, in the order
-// `encode` gives.
+// The water: its surface over the standing water's cells (rivers, swamps and
+// puddles: `ground::water::StandingWater`), shaped by `waterSurface.ts`,
+// blended by its edge over the world and its glass, reading depth and writing
+// none, in a pass of its own. `worldPass.ts` draws it, in the order `encode`
+// gives.
 import { tgpu, d, std, type TgpuBindGroup, type TgpuCommandEncoder } from "typegpu";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
