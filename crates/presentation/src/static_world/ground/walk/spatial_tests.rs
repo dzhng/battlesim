@@ -156,7 +156,9 @@ fn felled_fixture(remote: usize) -> (Ground, SceneryWalk) {
             ..Source::default()
         },
         Biome::load(super::super::biome::tests::SUMMER, None).unwrap(),
-        serde_json::from_value(game.clone()).unwrap(),
+        crate::settings::PresentationSettings::from_value(&game)
+            .unwrap()
+            .tuning(),
     )
     .unwrap();
     ground.biome.trees.felled = super::tests::rules();

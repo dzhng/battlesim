@@ -22,8 +22,8 @@ use super::tables::Duck;
 use super::voices::{Request, Tier};
 use crate::seed::Mulberry32;
 
-/// `presentation.audio.music`.
-#[derive(Clone, Debug, Deserialize)]
+/// `audio.music`.
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct MusicRules {
     /// How far the music dips under a voice line.

@@ -1,5 +1,5 @@
 //! `presentation.effects`: every curve and size the effects are drawn by,
-//! read from the fixture and checked once ([`EffectPresentation::validate`]).
+//! read from the fixture and checked once ([`EffectPresentation::check`]).
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -19,7 +19,8 @@ pub(super) fn pick<'a, T>(table: &'a HashMap<String, T>, kind: &str) -> &'a T {
 }
 
 /// `presentation.effects`. Styles by round or hit kind, each with a `default`.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct EffectPresentation {
     /// Instances the effect pass holds; past it an effect is dropped.
     pub capacity: usize,
@@ -57,7 +58,8 @@ pub struct EffectPresentation {
 /// A light an effect casts: colour, irradiance at its centre and reach; a
 /// burning-out one fades as 1 − (age/duration)² over `duration_s`, and a
 /// flash's sits `forward_m` along the shot.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct CastStyle {
     pub color: Vec3,
     pub intensity: f64,
@@ -70,7 +72,8 @@ pub struct CastStyle {
 
 /// A round's light along its tail: a glow at least `min_px` wide, or a hot
 /// core over the tail's front `share`.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct TracerLight {
     pub color: Vec3,
     pub intensity: f64,
@@ -83,7 +86,8 @@ pub struct TracerLight {
 /// A round in flight: a glow along a tail `tail_s` of its flight long
 /// (within `tail_m`), and optionally a hot core, a dark body, a smoke trail
 /// and a light.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct TracerStyle {
     /// Chance to show a new round; its whole flight keeps the choice.
     pub chance: Option<f64>,
@@ -101,14 +105,16 @@ pub struct TracerStyle {
     pub cast: Option<CastStyle>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Body {
     pub color: Vec3,
     pub size_m: f64,
 }
 
 /// A soft sun-lit puff that rises, spreads and drifts downwind.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct PuffStyle {
     pub albedo: Vec3,
     pub opacity: f64,
@@ -120,7 +126,7 @@ pub struct PuffStyle {
 }
 
 /// A smoke trail: an unbroken ribbon at `ribbon` opacity, and a puff every `spacing_m`.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, serde::Serialize)]
 pub struct TrailStyle {
     #[serde(flatten)]
     pub puff: PuffStyle,
@@ -129,7 +135,7 @@ pub struct TrailStyle {
 }
 
 /// `count` puffs born over the first `over_s` seconds.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, serde::Serialize)]
 pub struct PuffBurst {
     #[serde(flatten)]
     pub puff: PuffStyle,
@@ -138,7 +144,7 @@ pub struct PuffBurst {
 }
 
 /// Dust off each track every `spacing_m`, thicker with speed.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, serde::Serialize)]
 pub struct DustStyle {
     #[serde(flatten)]
     pub puff: PuffStyle,
@@ -151,14 +157,15 @@ pub struct DustStyle {
 /// round a still or slow wader, `ring_hz` a second each, and at `vee_mps`
 /// or faster a V-wake, a push every `spacing_m` along its way, where the
 /// water stands `vee_depth_m` deep or more (shallower, a splash's rings).
-/// A soldier's push reaches `soldier_radius_m`, a hull's its half width.
-#[derive(Clone, Copy, Debug, Deserialize)]
+/// A soldier's push reaches `soldier_push_radius_m`, a hull's its half width.
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct WakeStyle {
     pub ring_hz: f64,
     pub vee_mps: f64,
     pub vee_depth_m: f64,
     pub spacing_m: f64,
-    pub soldier_radius_m: f64,
+    pub soldier_push_radius_m: f64,
     pub ring_strength: f64,
     pub vee_strength: f64,
 }
@@ -166,13 +173,14 @@ pub struct WakeStyle {
 /// The dust a heavy gun's shot raises at full strength (`FlashStyle::dust`):
 /// shaken off the whole hull as it jolts, and blown off the ground by the
 /// muzzle blast, out to `reach_m` ahead of the muzzle where it points.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ShotDustStyle {
     pub hull: PuffBurst,
     pub ground: GroundDust,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, serde::Serialize)]
 pub struct GroundDust {
     #[serde(flatten)]
     pub burst: PuffBurst,
@@ -180,14 +188,15 @@ pub struct GroundDust {
 }
 
 /// Smoke a damaged hull trails: a puff `rate_hz` a second where it is.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, serde::Serialize)]
 pub struct DamageSmokeStyle {
     #[serde(flatten)]
     pub puff: PuffStyle,
     pub rate_hz: f64,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct FlashStyle {
     pub color: Vec3,
     pub intensity: f64,
@@ -204,13 +213,15 @@ pub struct FlashStyle {
     pub dust: f64,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct RoundScale {
     pub size: f64,
     pub duration: f64,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ImpactStyle {
     pub color: Vec3,
     pub opacity: f64,
@@ -224,7 +235,8 @@ pub struct ImpactStyle {
     pub cast: Option<CastStyle>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SparkStyle {
     pub color: Vec3,
     pub intensity: f64,
@@ -237,7 +249,8 @@ pub struct SparkStyle {
 /// A burst: its fireball per metre of blast radius, and the one the
 /// style's numbers describe (`reference_size_m`); smaller ones burn, spark,
 /// throw and light less.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BlastStyle {
     pub size_per_radius: f64,
     pub reference_size_m: f64,
@@ -256,7 +269,8 @@ pub struct BlastStyle {
     pub cast: CastStyle,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct FlameStyle {
     pub tint: Vec3,
     pub emissive: f64,
@@ -271,7 +285,8 @@ pub struct FlameStyle {
 }
 
 /// A smoke source's look: it burns `burn_s`, smoulders `smoulder_s`, then is out.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SmokeSourceStyle {
     pub burn_s: f64,
     pub smoulder_s: f64,
@@ -283,7 +298,8 @@ pub struct SmokeSourceStyle {
 }
 
 /// A rotor as a shutter sees it: each blade smeared over the angle it swept.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct RotorBlurStyle {
     pub albedo: f64,
     /// The share of a frame the shutter stays open.
@@ -306,12 +322,17 @@ impl EffectPresentation {
     /// Reads and checks `presentation.effects`: every table has its
     /// `default`, every light reaches, every life is bounded.
     pub fn from_value(value: &Value) -> Result<Self, String> {
-        let p = Self::deserialize(value).map_err(|e| format!("presentation.effects: {e}"))?;
-        p.validate()?;
+        let p: Self = crate::settings::read(value, "presentation.effects")?;
+        p.check()?;
         Ok(p)
     }
 
-    fn validate(&self) -> Result<(), String> {
+    pub fn check(&self) -> Result<(), String> {
+        crate::settings::validate::numbers(
+            self,
+            "presentation.effects",
+            &[".forward_m", ".spin_turns", ".up_m"],
+        )?;
         ensure(self.capacity > 0, || "capacity must be positive".into())?;
         let defaults = [
             ("tracers", self.tracers.contains_key("default")),

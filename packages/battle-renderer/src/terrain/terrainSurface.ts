@@ -99,7 +99,11 @@ export function setGround(presentation: Presentation, input: GroundInput): void 
     layout,
     JSON.stringify(biome),
     family ?? undefined,
-    JSON.stringify(presentationSettings),
+    JSON.stringify({
+      terrain: presentationSettings.terrain,
+      grass: presentationSettings.grass,
+      fog_geometry: presentationSettings.fog_geometry,
+    }),
   );
 }
 

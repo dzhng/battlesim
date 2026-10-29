@@ -9,7 +9,7 @@ import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import { soundSettings } from "@packages/battle-audio/src/settings";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import { standInPresentationRecordings } from "./support/soundStandIns";
-import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+import type { AudioMix } from "@packages/battle-audio/src/audioMix";
 
 beforeAll(() => loadPresentation());
 
@@ -174,7 +174,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
-const presentation = audioMix as unknown as AudioPresentation;
+const presentation = audioMix as unknown as AudioMix;
 const cookOff = presentationSettings.effects.cook_off;
 const empty = (tick: number) => ({
   effects: { tick, segments: [], blasts: [], smokes: [] },

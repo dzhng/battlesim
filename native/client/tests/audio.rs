@@ -27,7 +27,8 @@ fn player(tune: impl Fn(&mut Value)) -> Audio {
         &read("presentation.json"),
         &mix,
         &read("sounds.json"),
-    );
+    )
+    .unwrap();
     let output = OutputSettings::Buffer(audio::SAMPLE_RATE);
     Audio::new(&setup, Path::new(RUNTIME), output).unwrap()
 }
@@ -241,7 +242,8 @@ fn scored(music: bool, shout: bool, voices: f64) -> (Vec<f32>, Audio) {
         &read("presentation.json"),
         &mix,
         &catalog,
-    );
+    )
+    .unwrap();
     let output = OutputSettings::Buffer(audio::SAMPLE_RATE);
     let mut a = Audio::new(&setup, Path::new(RUNTIME), output).unwrap();
     a.speakers(Speakers {

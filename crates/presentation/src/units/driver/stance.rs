@@ -9,7 +9,8 @@ use crate::static_world::ground::water::Wet;
 /// standing, kneel when pinned, and fall back onto their backs, and how
 /// high each posture (standing, kneeling, lying) holds a man's chest over
 /// the ground he stands on, metres.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct StanceFeel {
     pub fire_prone: f64,
     pub fire_stand: f64,

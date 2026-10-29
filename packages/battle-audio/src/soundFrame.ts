@@ -12,7 +12,7 @@ import {
   vehicle_loops,
   type Presentation,
 } from "@wasm/renderer_browser";
-import type { AudioPresentation, Bus, VehicleSound } from "./audioPresentation";
+import type { AudioMix, Bus, VehicleSound } from "./audioMix";
 import type { SoundCatalog } from "./catalog";
 import type { Chatter, ChatterUpdate } from "./voices/chatter";
 
@@ -193,7 +193,7 @@ export interface SoundStats {
 
 export interface SoundFrameOptions {
   tickHz: number;
-  presentation: AudioPresentation;
+  presentation: AudioMix;
   catalog: SoundCatalog;
   /** The game's weapon rows: a derived weapon sounds as its nearest styled ancestor. */
   weapons?: Record<string, object>;

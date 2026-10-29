@@ -1,5 +1,11 @@
 import audio from "../../fixtures/audio.json";
-import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+import sounds from "../../fixtures/sounds.json";
+import type { AudioMix } from "@packages/battle-audio/src/audioMix";
 
-/** The page's mix, admitted with the sound catalog by Rust's SoundFrame. */
-export const audioMix = audio as unknown as AudioPresentation;
+import { check_audio_mix } from "./wasm/renderer_browser/renderer_browser.js";
+import { loadPresentationModule } from "./presentationModule";
+await loadPresentationModule();
+check_audio_mix(JSON.stringify(audio), JSON.stringify(sounds));
+
+/** The page's mix; SoundFrame also admits its references against the library. */
+export const audioMix = audio as unknown as AudioMix;

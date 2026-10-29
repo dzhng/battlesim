@@ -1,4 +1,9 @@
 // @vitest-environment node
+import { check_presentation, check_audio_mix } from "@wasm/renderer_browser";
+import authoredPresentation from "@fixtures/presentation.json";
+import authoredAudio from "@fixtures/audio.json";
+import { standInPresentationRecordings } from "./support/soundStandIns";
+import type { AudioMix } from "@packages/battle-audio/src/audioMix";
 import { createServer, type Server } from "node:http";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import * as filesystem from "node:fs/promises";
@@ -66,6 +71,23 @@ async function fixture() {
     effects: {},
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
+  const presentation = structuredClone(authoredPresentation);
+  presentation.pose.gait.run_mps = 2.2;
+  const audio = {
+    ...authoredAudio,
+    shots: {
+      default: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 },
+      rifle: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 },
+    },
+    impacts: {
+      default: { sound: "impact_ground", gain: 0.2 },
+      ground: { sound: "impact_ground", gain: 0.2 },
+      hull: { sound: "impact_hull", gain: 0.4 },
+    },
+    vehicles: { default: authoredAudio.vehicles.default },
+    footsteps: { sound: "footstep", gain: 0.07, stride_m: 0.8, max_step_m: 2 },
+  } as unknown as AudioMix;
+  standInPresentationRecordings(baseline, audio);
   const text = JSON.stringify(baseline); // Preserve unformatted bytes on no-op.
   await writeFile(join(root, "fixtures/sounds.json"), text);
   await writeFile(
@@ -74,26 +96,17 @@ async function fixture() {
       weapons: { rifle: { speed_mps: 900 }, carbine: { extends: "rifle", speed_mps: 850 } },
     }),
   );
-  await writeFile(
-    join(root, "fixtures/presentation.json"),
-    JSON.stringify({ pose: { gait: { run_mps: 2.2 } } }),
+  await writeFile(join(root, "fixtures/presentation.json"), JSON.stringify(presentation));
+  await writeFile(join(root, "fixtures/audio.json"), JSON.stringify(audio));
+  const store = new SoundWorkbenchStore(
+    root,
+    validateSoundCatalog,
+    Object.keys(SOUNDS),
+    (presentation, audio, catalog) => {
+      check_presentation(presentation);
+      check_audio_mix(audio, JSON.stringify(catalog));
+    },
   );
-  await writeFile(
-    join(root, "fixtures/audio.json"),
-    JSON.stringify({
-      shots: {
-        default: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 },
-        rifle: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 },
-      },
-      impacts: {
-        ground: { sound: "impact_ground", gain: 0.2 },
-        hull: { sound: "impact_hull", gain: 0.4 },
-      },
-      vehicles: {},
-      footsteps: { sound: "footstep", gain: 0.07, stride_m: 0.8, max_step_m: 2 },
-    }),
-  );
-  const store = new SoundWorkbenchStore(root, validateSoundCatalog, Object.keys(SOUNDS));
   const middleware = soundWorkbenchMiddleware(store);
   const server = createServer(
     (req, res) =>
@@ -731,4 +744,17 @@ test("the Music tab regenerates one named battle track through the generation to
     const { jobs } = await (await fetch(`${origin}/__sound-workbench/music/jobs`)).json();
     expect(jobs.map((job: { status: string }) => job.status)).toEqual(["done", "done"]);
   });
+});
+
+test("snapshots refuse misspelled presentation and mix fields before editing", async () => {
+  for (const document of ["presentation", "audio"]) {
+    const { root, request } = await fixture();
+    const path = join(root, `fixtures/${document}.json`);
+    const value = JSON.parse(await readFile(path, "utf8"));
+    value.misspelled_field = 1;
+    await writeFile(path, JSON.stringify(value));
+    const refusal = await request("snapshot");
+    expect(refusal.status).toBe(400);
+    expect(refusal.body.error).toContain("misspelled_field");
+  }
 });

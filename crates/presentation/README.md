@@ -16,6 +16,15 @@ what it decides for, and every transcendental function is `libm`'s ([the
 simulation's rule](../sim/README.md#determinism-and-evidence)), so a dust puff,
 a tracer's chance or a placed tree falls the same in WebAssembly and native.
 
+[Settings admission](src/settings.rs) owns the presentation document's typed
+sections and path-bearing load errors for both clients. Unknown fields and
+invalid visual ranges fail before installation. Ground receives only its own
+tuning sections; UI colours derive from the HUD, and fog selection belongs to
+the Rust reader. The [sound library](src/sound/catalog.rs) admits source receipts,
+crops, recipes and routing; the [mix](src/sound/mix.rs) checks its references
+against that library before preparation. TypeScript carries these values and
+calls the same reader for workbench drafts.
+
 ## What it owns
 
 - [Records](src/records.rs): every record a renderer reads, defined once;

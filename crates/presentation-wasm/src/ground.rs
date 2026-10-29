@@ -114,8 +114,8 @@ impl Presentation {
         };
         let biome = Biome::load(biome, family.as_deref()).map_err(error)?;
         self.grass = Some(biome.grass.clone());
-        let tuning: Tuning =
-            serde_json::from_str(tuning).map_err(|e| error(format!("tuning: {e}")))?;
+        let value = serde_json::from_str(tuning).map_err(error)?;
+        let tuning = Tuning::from_value(&value).map_err(error)?;
         self.inner.set_ground(source, biome, tuning).map_err(error)
     }
 

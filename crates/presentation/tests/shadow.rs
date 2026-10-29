@@ -686,7 +686,9 @@ fn every_cascade_camera_runs_on_the_frames_clock_and_wind() {
     assert!(wind.gust_mps > 0.0 && wind.toward[1] > 0.0);
     let game: serde_json::Value =
         serde_json::from_str(&read("fixtures/presentation.json")).unwrap();
-    let tuning: Tuning = serde_json::from_value(game.clone()).unwrap();
+    let tuning: Tuning = presentation::settings::PresentationSettings::from_value(&game)
+        .unwrap()
+        .tuning();
     let mut presentation = Presentation::new(None, 30.).unwrap();
     presentation.set_ground(source, biome, tuning).unwrap();
     presentation.set_shadow(Some((game_light(), Arc::new(street()))));

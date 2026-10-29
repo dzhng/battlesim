@@ -64,8 +64,7 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
     let biome_text = std::fs::read_to_string(&biome_path)
         .map_err(|e| format!("{}: {e}", biome_path.display()))?;
     let biome = Biome::load(&biome_text, map_def.regional_family.as_deref())?;
-    let tuning: Tuning =
-        serde_json::from_value(presentation).map_err(|e| format!("presentation: {e}"))?;
+    let tuning = crate::settings::PresentationSettings::from_value(&presentation)?.tuning();
     let sensors =
         serde_json::from_value(serde_json::to_value(&rules.sensors).map_err(|e| e.to_string())?)
             .map_err(|e| format!("sensors: {e}"))?;
@@ -127,7 +126,9 @@ pub fn side_foliage(world: &World, learned: &crate::scars::LearnedGround) -> Vec
 /// and the fixture's stand-in tints and model tiers.
 pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<PropInput, String> {
     let runtime = Runtime::open(&root.join("assets/runtime"))?;
-    let presentation = json(&root.join("fixtures/presentation.json"))?;
+    let presentation = crate::settings::PresentationSettings::from_value(&json(
+        &root.join("fixtures/presentation.json"),
+    )?)?;
     let none = serde_json::Map::new();
     let entries = runtime.catalog["appearances"].as_object().unwrap_or(&none);
     let worn = |name: &str| wearing.contains(&name);
@@ -186,11 +187,9 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
         appearances,
         wrecks: serde_json::from_value(Value::Object(wrecks)).map_err(|e| e.to_string())?,
         stand_in,
-        stand_in_tints: serde_json::from_value(presentation["stand_ins"]["tints"].clone())
-            .map_err(|e| format!("presentation.stand_ins.tints: {e}"))?,
+        stand_in_tints: Some(presentation.stand_ins.tints),
         family: family.map(str::to_owned),
-        detail: serde_json::from_value(presentation["models"].clone())
-            .map_err(|e| format!("presentation.models: {e}"))?,
+        detail: presentation.models,
         dynamic: true,
     })
 }
@@ -232,10 +231,10 @@ pub fn placed_buildings(
         .collect();
     let (_, shells) = crate::fielded::building_remains(&rules(root, map)?.catalog.view());
     let shells: Vec<String> = shells.into_iter().collect();
-    let style: BuildingStyle = serde_json::from_value(
-        json(&root.join("fixtures/presentation.json"))?["buildings"].clone(),
-    )
-    .map_err(|e| format!("presentation.buildings: {e}"))?;
+    let style = crate::settings::PresentationSettings::from_value(&json(
+        &root.join("fixtures/presentation.json"),
+    )?)?
+    .buildings;
     let runtime = Runtime::open(&root.join("assets/runtime"))?;
     let hash = runtime.catalog["templates"]["library"]
         .as_str()

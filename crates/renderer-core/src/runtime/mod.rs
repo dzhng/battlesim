@@ -110,6 +110,7 @@ impl Runtime {
         mut config: RuntimeConfig,
         world: RuntimeWorld<'_, S>,
     ) -> Result<Self, String> {
+        config.light.check()?;
         config.size = crate::render_size(config.size);
         if let Some(paint) = config.paint {
             paint.validate()?;

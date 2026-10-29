@@ -8,7 +8,7 @@ import { presentationSettings } from "@web/presentationSettings";
 import { audioMix } from "@web/audioMix";
 import { beforeAll, expect, test } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+import type { AudioMix } from "@packages/battle-audio/src/audioMix";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import { SoundFrame, type VoiceSink } from "@packages/battle-audio/src/soundFrame";
 import { Chatter, type VoiceRequest } from "@packages/battle-audio/src/voices/chatter";
@@ -74,7 +74,7 @@ test("a battle's lines are heard from its sound frame's listener", () => {
   const frame = new SoundFrame(
     {
       tickHz: 30,
-      presentation: audioMix as unknown as AudioPresentation,
+      presentation: audioMix as unknown as AudioMix,
       catalog: gameSounds,
       smokeTimes: presentationSettings.effects.smoke,
       cookOff: presentationSettings.effects.cook_off,

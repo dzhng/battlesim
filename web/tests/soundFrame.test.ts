@@ -10,7 +10,7 @@ import { presentationSettings } from "@web/presentationSettings";
 import { audioMix } from "@web/audioMix";
 import { beforeAll, expect, test } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+import type { AudioMix } from "@packages/battle-audio/src/audioMix";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
@@ -21,17 +21,17 @@ import {
   type Listener,
   type SoundCue,
   type SoundMotion,
-  type VoiceParams,
-  type VoiceSink,
   type VoiceSpec,
   vehicleLoops,
 } from "@packages/battle-audio/src/soundFrame";
 import { synthesize } from "@packages/battle-audio/src/soundBank";
+import { FakeSink, testRecipe } from "./support/soundSink";
+import { standInPresentationRecordings } from "./support/soundStandIns";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 
 const HZ = 30;
 const DT = 1 / HZ;
-const AUDIO = audioMix as unknown as AudioPresentation;
+const AUDIO = audioMix as unknown as AudioMix;
 const SMOKE = presentationSettings.effects.smoke;
 const COOK_OFF = presentationSettings.effects.cook_off;
 /** When a cook-off's turret lands, seconds after its tick starts: thrown
@@ -50,45 +50,6 @@ const heard = ({ launches = [], ...effects }: Effects): HeardPublication => ({
 const LISTENER: Listener = { position: [0, -20, 20], forward: [0, 1, 0] };
 const STILL: SoundMotion = { vehicles: [], soldiers: [] };
 
-/** A sink that keeps what it was told, on a clock the test sets. */
-class FakeSink implements VoiceSink {
-  time = 0;
-  readonly voices = new Map<number, { spec: VoiceSpec; end: number }>();
-  readonly started: VoiceSpec[] = [];
-  now() {
-    return this.time;
-  }
-  duration() {
-    return 0.5;
-  }
-  start(id: number, spec: VoiceSpec) {
-    this.started.push(spec);
-    // A voice plays its length at rate 1 over its rate, as a player plays it.
-    this.voices.set(id, {
-      spec,
-      end: spec.loop ? Infinity : spec.at + this.duration() / spec.rate,
-    });
-  }
-  set(id: number, p: VoiceParams) {
-    const v = this.voices.get(id);
-    if (v) v.spec = { ...v.spec, ...p };
-  }
-  stop(id: number) {
-    this.voices.delete(id);
-  }
-  listen() {}
-  readonly ducks: { depth: number; glide: number; at: number }[] = [];
-  duck(depth: number, glide: number, at: number) {
-    this.ducks.push({ depth, glide, at });
-  }
-  /** Voices sounding now. */
-  live(loop?: boolean) {
-    return [...this.voices.values()].filter(
-      (v) => v.end > this.time && (loop === undefined || v.spec.loop === loop),
-    );
-  }
-}
-
 /** Every synthesized baseline as a recipe, as the shipped catalog holds them: a
  *  battle prepares, and so can play, only what Rust's list names. */
 const BASELINES: SoundCatalog["sounds"] = Object.fromEntries(
@@ -98,21 +59,23 @@ const BASELINES: SoundCatalog["sounds"] = Object.fromEntries(
   ]),
 );
 
-function setup(presentation: AudioPresentation = AUDIO) {
+function setup(presentation: AudioMix = AUDIO) {
   const sink = new FakeSink();
+  const catalog: SoundCatalog = {
+    sources: {},
+    clips: {},
+    sounds: { ...BASELINES },
+    defaults: {},
+    impacts: {},
+    effects: {},
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
+  };
+  standInPresentationRecordings(catalog, presentation);
   const frame = new SoundFrame(
     {
       tickHz: HZ,
       presentation,
-      catalog: {
-        sources: {},
-        clips: {},
-        sounds: BASELINES,
-        defaults: {},
-        impacts: {},
-        effects: {},
-        music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
-      },
+      catalog,
       smokeTimes: SMOKE,
       cookOff: COOK_OFF,
     },
@@ -124,6 +87,7 @@ function setup(presentation: AudioPresentation = AUDIO) {
 test("a battle prepares the baselines, what is assigned and what its presentation names, not the audition-only library", () => {
   const recipe = { label: "r", clips: [], synth: "rifle", synth_gain: 0.5, gain: 1, loop: false };
   const sounds: SoundCatalog["sounds"] = {
+    ...BASELINES,
     rifle: { ...recipe },
     hmg: { ...recipe, synth: "hmg" },
   };
@@ -141,6 +105,7 @@ test("a battle prepares the baselines, what is assigned and what its presentatio
     effects: { ricochet: "replacement" },
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
+  standInPresentationRecordings(catalog, AUDIO);
   const prepared = battleSounds({
     tickHz: HZ,
     presentation: { ...AUDIO, air_alarm: { ...AUDIO.air_alarm, sound: "alarm" } },
@@ -472,7 +437,12 @@ test("weapon row choices change reports without changing observed cadence or hid
   const catalog = {
     sources: {},
     clips: {},
-    sounds: {},
+    sounds: {
+      ...BASELINES,
+      ...Object.fromEntries(
+        ["crisp", "crisp_far", "heavy", "heavy_far"].map((name) => [name, testRecipe(name)]),
+      ),
+    },
     defaults: {
       carbine: { near: "crisp", far: "crisp_far", gain: 0.8 },
       battle_rifle: { near: "heavy", far: "heavy_far", gain: 1 },
@@ -482,6 +452,7 @@ test("weapon row choices change reports without changing observed cadence or hid
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   const sink = new FakeSink();
+  standInPresentationRecordings(catalog, AUDIO);
   const frame = new SoundFrame(
     { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog },
     sink,
@@ -532,12 +503,26 @@ function rifleman(kind: string, ticks: readonly number[]) {
 
 test("a burst recording sounds once per burst, its shots on the gun's launches", () => {
   const clip = (shots: number) => ({
+    label: "Test burst",
+    category: "report",
+    role: "shot",
+    source: "test",
+    source_rate: 1000,
+    source_frames: [0, shots * 10],
+    frames: shots * 10,
+    sample_rate: 1000,
+    sha256: "0".repeat(64),
+    url: "/audio/clips/three.wav",
+    loop: false,
+    processing: "controlled",
+    notes: "",
     burst: {
       shots: Array.from({ length: shots }, (_, k) => [k * 10, k * 10 + 10]),
       interval_s: 0.1,
     },
   });
   const recipe = (clip: string) => ({
+    label: clip,
     clips: [clip],
     synth: null,
     synth_gain: 0,
@@ -545,9 +530,25 @@ test("a burst recording sounds once per burst, its shots on the gun's launches",
     loop: false,
   });
   const catalog = {
-    sources: {},
+    sources: {
+      test: {
+        label: "Test burst",
+        author: "Test",
+        license: "CC0-1.0",
+        url: "https://example.invalid/burst",
+        path: "assets/third-party/audio/burst.wav",
+        sha256: "0".repeat(64),
+        notes: "Controlled recording",
+      },
+    },
     clips: { three: clip(3) },
-    sounds: { burst: recipe("three"), burst_far: recipe("three") },
+    sounds: {
+      ...BASELINES,
+      burst: recipe("three"),
+      burst_far: recipe("three"),
+      single: testRecipe("single"),
+      single_far: testRecipe("single_far"),
+    },
     defaults: {
       gunner: { near: "burst", far: "burst_far", gain: 1 },
       marksman: { near: "single", far: "single_far", gain: 1 },
@@ -558,6 +559,7 @@ test("a burst recording sounds once per burst, its shots on the gun's launches",
   } as unknown as SoundCatalog;
   const heard = (kind: string, ticks: number[]) => {
     const sink = new FakeSink();
+    standInPresentationRecordings(catalog, AUDIO);
     const frame = new SoundFrame(
       { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog },
       sink,
@@ -583,7 +585,19 @@ test("a hull's mounts keep their weapons' explicit recipes while implicit impact
   const catalog = {
     sources: {},
     clips: {},
-    sounds: {},
+    sounds: {
+      ...BASELINES,
+      ...Object.fromEntries(
+        [
+          "roof_report",
+          "roof_far",
+          "dirt_hit",
+          "recorded_cannon",
+          "recorded_rifle",
+          "hard_hit",
+        ].map((name) => [name, testRecipe(name)]),
+      ),
+    },
     defaults: {
       tank_ap: { near: "cannon", far: "cannon_far", gain: 1 },
       hmg: { near: "roof_report", far: "roof_far", gain: 1 },
@@ -593,6 +607,7 @@ test("a hull's mounts keep their weapons' explicit recipes while implicit impact
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   const sink = new FakeSink();
+  standInPresentationRecordings(catalog, AUDIO);
   const frame = new SoundFrame(
     { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog },
     sink,
@@ -647,7 +662,12 @@ test("a glancing round's ricochet follows its kind, heavier rounds louder", () =
   const catalog = {
     sources: {},
     clips: {},
-    sounds: {},
+    sounds: {
+      ...BASELINES,
+      ...Object.fromEntries(
+        ["shell_glance", "bullet_glance"].map((name) => [name, testRecipe(name)]),
+      ),
+    },
     defaults: {},
     impacts: { ricochet: { tank_ap: "shell_glance" } },
     effects: { ricochet: "bullet_glance" },
@@ -655,6 +675,7 @@ test("a glancing round's ricochet follows its kind, heavier rounds louder", () =
   } as unknown as SoundCatalog;
   const glance = (kind: string) => {
     const sink = new FakeSink();
+    standInPresentationRecordings(catalog, AUDIO);
     const frame = new SoundFrame(
       { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog },
       sink,

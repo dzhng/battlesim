@@ -397,8 +397,8 @@ async function tour(ctx) {
   ctx.check(
     "the battle opens at the fixture's default framing",
     opening.distance === CAMERA.default.distance &&
-      opening.target[0] === CAMERA.default.target[0] &&
-      opening.target[1] === CAMERA.default.target[1],
+      opening.target[0] === 170 &&
+      opening.target[1] === 800,
     JSON.stringify(opening),
   );
   await tourShot("default");
@@ -568,7 +568,7 @@ async function soldierTour(ctx) {
   const squads = o.own.filter((u) => u.members.length > 0);
   const soldiers = squads.reduce((n, u) => n + u.members.length, 0);
   // The squad nearest the opening framing's target.
-  const [tx, ty] = CAMERA.default.target;
+  const [tx, ty] = [170, 800];
   const squad = squads.reduce((a, b) =>
     Math.hypot(a.position[0] - tx, a.position[1] - ty) <=
     Math.hypot(b.position[0] - tx, b.position[1] - ty)

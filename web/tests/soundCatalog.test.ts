@@ -18,7 +18,7 @@ import {
   type SoundSource,
 } from "@packages/battle-audio/src/catalog";
 import { musicUrl } from "@packages/battle-audio/src/music/musicCatalog";
-import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+import type { AudioMix } from "@packages/battle-audio/src/audioMix";
 import { battleSounds } from "@packages/battle-audio/src/soundFrame";
 import { loadPresentation } from "@web/battle/sim/presentation";
 
@@ -99,7 +99,7 @@ test("a firing assignment cannot use a stored reload or a looping sound", () => 
     loop: false,
   };
   c.defaults.rifle = { near: "reload", far: "rifle", gain: 1 };
-  expect(() => validateSoundCatalog(c)).toThrow(/firing.*reload/i);
+  expect(() => validateSoundCatalog(c)).toThrow(/defaults\.rifle\.near: firing clips/);
   c.sounds.reload = {
     label: "Motor",
     clips: [],
@@ -213,7 +213,7 @@ test("air-war audio keeps downloaded rights-unassigned receipts beside placehold
   });
   const prepared = battleSounds({
     tickHz: 30,
-    presentation: audioMix as unknown as AudioPresentation,
+    presentation: audioMix as unknown as AudioMix,
     catalog: sounds,
     weapons: shippedRules.weapons,
     smokeTimes: presentationSettings.effects.smoke,
@@ -226,7 +226,7 @@ test("a provenance receipt without its download record is refused as an invalid 
   const c = structuredClone(shipped) as unknown as SoundCatalog;
   const [name, receipt] = Object.entries(c.provenance ?? {})[0];
   delete (receipt as Partial<typeof receipt>).download;
-  expect(() => validateSoundCatalog(c)).toThrow(`provenance ${name}: invalid source receipt`);
+  expect(() => validateSoundCatalog(c)).toThrow(`provenance.${name}: missing field`);
 });
 
 test("a generated sound effect is cut into clips like a recording; a generated music master is not", () => {
@@ -262,7 +262,7 @@ test("a generated sound effect is cut into clips like a recording; a generated m
   expect(validateSoundCatalog(c).clips.jet).toMatchObject({ source: "jet" });
   c.sources.score = generated("assets/source/audio/music/score.aaaaaaaa.mp3");
   c.clips.jet = clip("score");
-  expect(() => validateSoundCatalog(c)).toThrow(/clip jet/);
+  expect(() => validateSoundCatalog(c)).toThrow(/clips\.jet/);
 });
 
 test("air-war audio has workbench recipes for every authored air cue", () => {
@@ -325,11 +325,11 @@ test("a designed clip layers crops of attributed sources; each layer names a rea
   };
   expect(validateSoundCatalog(c)).toBe(c);
   (c.sources.whine as SoundSource).license = "Unknown";
-  expect(() => validateSoundCatalog(c)).toThrow(/whine: invalid provenance/);
+  expect(() => validateSoundCatalog(c)).toThrow(/sources\.whine: invalid source receipt/);
   (c.sources.whine as SoundSource).license = "CC-BY-NC-3.0";
   expect(validateSoundCatalog(c)).toBe(c);
   (c.clips.heavy as { layers: { source: string }[] }).layers[1].source = "missing";
-  expect(() => validateSoundCatalog(c)).toThrow(/clip heavy/);
+  expect(() => validateSoundCatalog(c)).toThrow(/clips\.heavy/);
 });
 
 test("a user-supplied recording retains an explicit reserved-rights receipt", () => {
@@ -361,10 +361,10 @@ test("music tracks name a real source and moods name real tracks; the section is
   c.music.moods.menu = ["bed"];
   expect(validateSoundCatalog(c)).toBe(c);
   c.music.moods.combat = ["missing"];
-  expect(() => validateSoundCatalog(c)).toThrow(/mood combat/);
+  expect(() => validateSoundCatalog(c)).toThrow(/moods\.combat/);
   c.music.moods.combat = [];
   c.music.tracks.bed.source = "missing";
-  expect(() => validateSoundCatalog(c)).toThrow(/music track bed/);
+  expect(() => validateSoundCatalog(c)).toThrow(/music\.tracks\.bed/);
   const { music: _, ...withoutMusic } = catalog();
   expect(() => validateSoundCatalog(withoutMusic)).toThrow(/music/);
 });
@@ -400,13 +400,13 @@ test("a generated track records how it was made; only a recording can be cropped
     source_rate: 44100,
     source_frames: [0, 4000],
   };
-  expect(() => validateSoundCatalog(c)).toThrow(/clip cut/);
+  expect(() => validateSoundCatalog(c)).toThrow(/clips\.cut/);
   delete c.clips.cut;
   c.sources.combat_1 = { ...c.sources.combat_1, path: "assets/third-party/audio/x.mp3" };
-  expect(() => validateSoundCatalog(c)).toThrow(/combat_1: invalid provenance/);
+  expect(() => validateSoundCatalog(c)).toThrow(/sources\.combat_1: invalid generated source/);
   c.sources.combat_1 = { ...c.sources.combat_1, path: "assets/source/audio/music/x.mp3" };
   delete (c.sources.combat_1 as { prompt?: string }).prompt;
-  expect(() => validateSoundCatalog(c)).toThrow(/combat_1: invalid provenance/);
+  expect(() => validateSoundCatalog(c)).toThrow(/sources\.combat_1: invalid generated source/);
 });
 
 test("every shipped music track is served at <track>.<sha8>.mp3 and the menu has a bed", () => {

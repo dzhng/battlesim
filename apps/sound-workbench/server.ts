@@ -6,7 +6,7 @@ import { FixturePublication } from "../fixture-publication/publication";
 import type { SoundCatalog } from "../../packages/battle-audio/src/catalog";
 import { GLANCE } from "../../packages/battle-audio/src/contacts";
 import { validateVoiceCatalog } from "../../packages/battle-audio/src/voices/voiceCatalog";
-import type { AudioPresentation } from "../../packages/battle-audio/src/audioPresentation";
+import type { AudioMix } from "../../packages/battle-audio/src/audioMix";
 import type { Draft, Review, Save, Snapshot } from "./src/protocol";
 import { WorkbenchError, equal, hash, jsonRoutes, object } from "./http";
 import { GenerationQueue, generateTool, musicWorkbenchMiddleware } from "./generation";
@@ -15,7 +15,7 @@ import { VoiceWorkbenchStore, voiceWorkbenchMiddleware } from "./voiceStore";
 interface Inputs {
   texts: string[];
   catalog: SoundCatalog;
-  audio: AudioPresentation;
+  audio: AudioMix;
   runMps: number;
   weapons: Snapshot["weapons"];
   media: [string, string][];
@@ -35,6 +35,11 @@ export class SoundWorkbenchStore {
     private readonly root: string,
     private readonly validateCatalog: (value: unknown) => SoundCatalog,
     private readonly baselines: readonly string[],
+    private readonly admitSettings: (
+      presentation: string,
+      audio: string,
+      catalog: SoundCatalog,
+    ) => void,
   ) {
     this.publication = new FixturePublication(
       root,
@@ -49,10 +54,16 @@ export class SoundWorkbenchStore {
         readFile(join(this.root, `fixtures/${name}.json`), "utf8"),
       ),
     );
-    const catalog = this.validateCatalog(JSON.parse(texts[0]));
+    let catalog: SoundCatalog;
+    try {
+      catalog = this.validateCatalog(JSON.parse(texts[0]));
+      this.admitSettings(texts[2], texts[3], catalog);
+    } catch (error) {
+      throw new WorkbenchError(error instanceof Error ? error.message : String(error));
+    }
     const rules = JSON.parse(texts[1]);
     const presentation = JSON.parse(texts[2]);
-    const audio = JSON.parse(texts[3]) as AudioPresentation;
+    const audio = JSON.parse(texts[3]) as AudioMix;
     const media: [string, string][] = [];
     for (const [id, clip] of Object.entries(catalog.clips)) {
       let bytes;
@@ -234,12 +245,17 @@ export function soundWorkbenchPlugin(root: string): Plugin {
           : (sounds ??= Promise.all([
               load("packages/battle-audio/src/catalog.ts"),
               load("packages/battle-audio/src/synthSounds.gen.ts"),
-            ]).then(([catalog, synth]) =>
+              load("web/src/wasm/renderer_browser/renderer_browser.js"),
+            ]).then(([catalog, synth, admission]) =>
               soundWorkbenchMiddleware(
                 new SoundWorkbenchStore(
                   root,
                   catalog.validateSoundCatalog,
                   Object.keys(synth.SOUNDS),
+                  (presentation, audio, library) => {
+                    admission.check_presentation(presentation);
+                    admission.check_audio_mix(audio, JSON.stringify(library));
+                  },
                 ),
               ),
             ));

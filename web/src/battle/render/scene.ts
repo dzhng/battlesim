@@ -167,7 +167,7 @@ export class BrowserScene {
       for (const asset of assets)
         renderer.load_bundle(asset.name, asset.bundle, asset.textureIds, asset.textureBytes);
       renderer.load_effect_atlas(await loadEffectAtlasLayers());
-      installSceneGeometry(renderer, presentation, options.world, settings.light);
+      installSceneGeometry(renderer, presentation, options.world);
       renderer.set_overlay_glow(options.overlayGlow.radius_px, options.overlayGlow.strength);
       presentation.installRenderer(renderer);
       const admittedWorld = presentation.world();

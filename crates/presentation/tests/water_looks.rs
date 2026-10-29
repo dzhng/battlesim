@@ -38,7 +38,9 @@ fn ground(map: &Value, biome: Biome) -> Ground {
     )
     .unwrap();
     let game: Value = serde_json::from_str(&read("fixtures/presentation.json")).unwrap();
-    let tuning: Tuning = serde_json::from_value(game.clone()).unwrap();
+    let tuning: Tuning = presentation::settings::PresentationSettings::from_value(&game)
+        .unwrap()
+        .tuning();
     Ground::new(source, biome, tuning).unwrap()
 }
 

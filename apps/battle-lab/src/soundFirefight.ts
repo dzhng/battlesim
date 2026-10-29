@@ -13,7 +13,7 @@ import { presentationSettings } from "@web/presentationSettings";
 import { shippedRules } from "@web/shippedRules";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { vec3 } from "math";
-import type { AudioPresentation, Bus } from "@packages/battle-audio/src/audioPresentation";
+import type { AudioMix, Bus } from "@packages/battle-audio/src/audioMix";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import {
   SoundFrame,
@@ -381,7 +381,7 @@ export async function offlineSound(
   const sampleRate = 48000;
   const ctx = new OfflineAudioContext(2, Math.round(seconds * sampleRate), sampleRate);
   const { buses } = gameAudio;
-  const presentation: AudioPresentation = solo
+  const presentation: AudioMix = solo
     ? {
         ...gameAudio,
         buses: {

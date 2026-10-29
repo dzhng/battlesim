@@ -1,4 +1,4 @@
-import type { AudioPresentation } from "../../../packages/battle-audio/src/audioPresentation";
+import type { AudioMix } from "../../../packages/battle-audio/src/audioMix";
 import type { SoundCatalog } from "../../../packages/battle-audio/src/catalog";
 import type { Replacement } from "../../fixture-publication/publication";
 
@@ -9,15 +9,15 @@ export interface Snapshot {
    *  row without a firing choice of its own takes its nearest ancestor's. */
   weapons: Record<string, { extends?: string }>;
   /** The synthesized baseline shots (`presentation.audio.shots`). */
-  firing: AudioPresentation["shots"];
+  firing: AudioMix["shots"];
   /** Each vehicle class's loops (`presentation.audio.vehicles`), read only here. */
-  vehicles: AudioPresentation["vehicles"];
+  vehicles: AudioMix["vehicles"];
   /** A soldier's footstep and stride (`presentation.audio.footsteps`), read only here. */
-  footsteps: AudioPresentation["footsteps"];
+  footsteps: AudioMix["footsteps"];
   /** A soldier's running pace (`presentation.pose.gait.run_mps`). */
   runMps: number;
   /** Battle music's mood direction and ducking (`presentation.audio.music`), read only here. */
-  music: AudioPresentation["music"];
+  music: AudioMix["music"];
   materials: string[];
 }
 export interface Draft {

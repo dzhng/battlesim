@@ -15,7 +15,6 @@ use std::fs;
 use std::path::Path;
 
 use presentation::fielded;
-use presentation::fog::FogPresentation;
 use presentation::light::LightSettings;
 use presentation::presentation::{FogSetup, Frame, Presentation, Ui};
 use presentation::records::FogLook;
@@ -146,6 +145,7 @@ pub struct Replay {
     pub map: String,
     pub records: Vec<Record>,
     pub light: LightSettings,
+    pub backdrop_reach_m: f64,
     /// The fixture's selected unseen look (`presentation.fog`).
     pub fog_look: FogLook,
     /// The browser's posed-model counts by plate (`modelCounts`).
@@ -248,9 +248,11 @@ impl Replay {
             }
         }
         let game: Value = read_json(&root.join("fixtures/rules.json"))?;
-        let settings: Value = read_json(&root.join("fixtures/presentation.json"))?;
-        let light: LightSettings = serde_json::from_value(settings["light"].clone())
-            .map_err(|e| format!("presentation.light: {e}"))?;
+        let settings =
+            presentation::settings::PresentationSettings::from_value(&read_json::<Value>(
+                &root.join("fixtures/presentation.json"),
+            )?)?;
+        let light = settings.light;
         // The battle's units, effects and clip tables, as a page fielding
         // the encounter's units installs them.
         let kinds = fielded::encounter_kinds(root, &map, encounter)?;
@@ -275,8 +277,7 @@ impl Replay {
             },
             blocked: [0.0; 4],
         };
-        let fog: FogPresentation = serde_json::from_value(settings["fog"].clone())
-            .map_err(|e| format!("presentation.fog: {e}"))?;
+        let fog = settings.fog;
         let fog_look = fog.selected()?.look()?;
         let mut presentation = Presentation::new(Some(&capture.layout), capture.tick_hz)?;
         // The ground, and its scenery placed from each kind's finest mesh.
@@ -324,6 +325,7 @@ impl Replay {
             map,
             records: capture.frames,
             light,
+            backdrop_reach_m: settings.ground.backdrop_reach_m,
             fog_look,
             model_counts: manifest.model_counts,
             effect_counts: manifest.effect_counts,

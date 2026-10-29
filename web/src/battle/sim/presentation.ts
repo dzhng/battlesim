@@ -3,7 +3,7 @@
 import type { ModelAsset } from "../render/modelAssets";
 import type { GrassClumpRow } from "@packages/battle-renderer/src/grass";
 import type { BattleAudio } from "@packages/battle-audio/src/battleAudio";
-import init, {
+import {
   Presentation,
   fog_look,
   light_records,
@@ -11,7 +11,6 @@ import init, {
   type PreparedAppearances,
 } from "@wasm/renderer_browser";
 import { LearnedGround, groundOf } from "./presentationGround";
-import wasmUrl from "@wasm/renderer_browser/renderer_browser_bg.wasm?url";
 import { Batch, BATCH_WORDS, NONE, frameViews } from "@packages/battle-renderer/src/records.gen";
 import {
   resolvedLight,
@@ -47,7 +46,8 @@ import type { WorldScenery } from "@packages/battle-renderer/src/scene";
 import { propArt, type KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
 import { NO_SCENERY_WALK, type SceneryWalkStats } from "@packages/battle-renderer/src/scenery/walk";
 import { TEMPLATE_STATES, type TemplateState } from "@packages/scene-assets/src/templateLibrary";
-import { countedFetch } from "../../downloads";
+import { loadPresentationModule, presentationMemory } from "../../presentationModule";
+export const loadPresentation = loadPresentationModule;
 import type { LabAsset } from "../render/modelAssets";
 import {
   labModelsJson,
@@ -60,33 +60,12 @@ import {
 
 import type { ObservationLayout, ObservationView } from "./observationView";
 
-let loaded: Promise<{ memory: WebAssembly.Memory }> | null = null;
-let memory: WebAssembly.Memory | null = null;
-
 /** Receiver traversal work, separate from terrain draw selection. */
 export interface ReceiverFitStats {
   bounds_visited: number;
   triangle_tests: number;
   clip_tests: number;
   reused: boolean;
-}
-
-/** Initialises the module once per realm; decoders need it first. */
-export function loadPresentation(): Promise<{ memory: WebAssembly.Memory }> {
-  // Vitest runs in Node, where Vite's asset URL cannot be fetched (module.ts).
-  loaded ??= (
-    typeof process !== "undefined" && process.versions?.node
-      ? import("node:fs/promises")
-          .then(({ readFile }) =>
-            readFile(`${import.meta.dirname}/../../wasm/renderer_browser/renderer_browser_bg.wasm`),
-          )
-          .then((bytes) => init({ module_or_path: bytes }))
-      : init({ module_or_path: countedFetch(wasmUrl) })
-  ).then((output) => {
-    memory = output.memory;
-    return output;
-  });
-  return loaded;
 }
 
 /** `presentation.light` resolved by the presentation crate
@@ -103,7 +82,8 @@ export async function resolveLight(settings: LightPresentation): Promise<Resolve
  *  upload as it is; throws naming a field out of range. Needs the module
  *  loaded, as it is once a frame is built (`resolveLight`). */
 export function resolveFogLook(style: FogStyle): Float32Array {
-  if (!memory) throw new Error("resolveFogLook: the presentation module is not loaded");
+  if (!presentationMemory())
+    throw new Error("resolveFogLook: the presentation module is not loaded");
   return fog_look(JSON.stringify(style));
 }
 /** The camera a frame is drawn for: the eye and what it looks at (m, sim), the screen's up,
@@ -152,7 +132,7 @@ export interface PresentedUi {
 
 export type PresentedFrame = ReturnType<typeof frameViews>;
 
-const buffer = () => memory!.buffer;
+const buffer = () => presentationMemory()!.buffer;
 
 /** One own eye fog sees from (`presentation::fog::sight::Eye`). */
 export interface FogEye {

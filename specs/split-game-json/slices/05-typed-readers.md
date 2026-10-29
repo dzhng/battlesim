@@ -65,3 +65,36 @@ if it embeds the deleted keys.
 
 **Would change this slice:** a "dead" number found to be read. Keep it as
 data and record why.
+
+
+## Done — 2026-10-29
+
+Typed all presentation sections in Rust, including the UI sections, and made
+native, browser and workbench loads share admission. The mix is `AudioMix`;
+the full sound library, metadata and routing are checked before preparation.
+The dead shader settings are deleted. Ground extent, lab framing, shared UI
+colours, fog selection and wake naming have their specified owners.
+
+Proof: `after-05/` matches all 77 applicable slice-01 SHA256 entries, including
+all 69 composed shaders; `cmp` matches each of the six native plates. No digest,
+replay, visual or audio output moved. Recorded vectors changed only in their
+retired/renamed input keys; their expected outputs are intact. The units fixture
+contains no affected input keys and needed no rewrite.
+
+Decisions: Rust also types the UI sections, rather than keeping parallel TS
+admission; recipe/assignment/track gain admits [0, 16], rather than the old
+ceiling of 2; backdrop reach is `ground.backdrop_reach_m`; the lab owns its
+opening target. Flat puff inputs have strict flat readers because nested serde
+flattening cannot enforce unknown-field rejection. Gauge classes follow the
+catalog's composed physical vocabulary, rather than today's roster list.
+Workbench settings admission uses its existing host-injection seam so Vite
+configuration loading does not import a browser asset URL.
+
+Regression tests were seen red before the fixes; disabling pose, sound-library
+and mix-reference admission falsifies their tests again. Presentation, native
+audio, focused web suites, typecheck, lint, clippy and the size ratchet passed.
+The broader web run's failures were incomplete sound fakes and unfetched LFS
+inputs; affected suites passed after correcting those inputs. Full-spec system
+and balance gates remain at 16. As an implementation child this pass did not
+spawn independent reviewers; the integrator owns that second opinion. Exact
+plate bytes establish this slice's visual invariance.

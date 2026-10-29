@@ -6,7 +6,7 @@
 // every track out (a crossfade is the two over the same span), and a duck
 // dips the bus.
 import { Score } from "@wasm/renderer_browser";
-import type { Duck } from "../audioPresentation";
+import type { Duck } from "../audioMix";
 import type { VoiceRequest } from "../voices/chatter";
 import type { Mood } from "./musicCatalog";
 

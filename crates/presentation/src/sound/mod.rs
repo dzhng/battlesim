@@ -13,3 +13,6 @@ pub mod voices;
 
 /// The contact a glancing round's ricochet is chosen under.
 pub const GLANCE: &str = "ricochet";
+
+pub mod catalog;
+mod mix;

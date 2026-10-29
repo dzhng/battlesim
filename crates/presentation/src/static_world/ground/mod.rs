@@ -160,10 +160,20 @@ impl Source {
 /// `presentation`'s blocks the ground reads (`tuning`), and fog of war's
 /// sight over it.
 #[derive(Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Tuning {
     pub terrain: tuning::TerrainTuning,
     pub grass: tuning::GrassTuning,
     pub fog_geometry: crate::fog::sight::Geometry,
+}
+
+impl Tuning {
+    pub fn from_value(value: &serde_json::Value) -> Result<Self, String> {
+        let tuning: Self = crate::settings::read(value, "ground tuning")?;
+        tuning.fog_geometry.check()?;
+        crate::settings::validate::ground(&tuning.terrain, &tuning.grass)?;
+        Ok(tuning)
+    }
 }
 
 /// What the ground of `world` is resolved from, the map's `extents` and its

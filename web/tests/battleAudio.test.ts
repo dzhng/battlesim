@@ -4,7 +4,7 @@ import { audioMix } from "@web/audioMix";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
-import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+import type { AudioMix } from "@packages/battle-audio/src/audioMix";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import { standInPresentationRecordings } from "./support/soundStandIns";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
@@ -153,13 +153,13 @@ function setupDecode(
     effects: {},
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
-  const presentation = audioMix as unknown as AudioPresentation;
+  const presentation = audioMix as unknown as AudioMix;
   standInPresentationRecordings(catalog, presentation);
   const app = new AppAudio({ presentation, catalog });
   const audio = app.createBattle(
     {
       tickHz: 30,
-      presentation: audioMix as unknown as AudioPresentation,
+      presentation: audioMix as unknown as AudioMix,
       smokeTimes: {},
       cookOff: COOK_OFF,
     },
@@ -235,7 +235,7 @@ test("a departed battle cannot admit late decoding and its replacement shares th
   const next = active.at(-1)!.createBattle(
     {
       tickHz: 30,
-      presentation: audioMix as unknown as AudioPresentation,
+      presentation: audioMix as unknown as AudioMix,
       smokeTimes: {},
       cookOff: COOK_OFF,
     },

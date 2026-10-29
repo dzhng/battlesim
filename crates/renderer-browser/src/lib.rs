@@ -90,7 +90,12 @@ impl Renderer {
         settings: String,
         high_canvas: Option<HtmlCanvasElement>,
     ) -> Result<js_sys::Promise, JsValue> {
-        let settings: Settings = serde_json::from_str(&settings).map_err(js_error)?;
+        let settings: Settings = presentation::settings::read(
+            &serde_json::from_str(&settings).map_err(js_error)?,
+            "renderer",
+        )
+        .map_err(js_error)?;
+        settings.light.check().map_err(js_error)?;
         if let Some(paint) = settings.paint {
             paint.validate().map_err(js_error)?;
         }

@@ -314,7 +314,7 @@ impl Run {
             &replay.terrain.0,
             &replay.terrain.1,
             &resolved.water_cells(),
-            light.backdrop.reach_m,
+            replay.backdrop_reach_m,
         ));
         let config = RuntimeConfig {
             size,
@@ -375,7 +375,7 @@ impl Run {
                     &read(&fixtures.join("presentation.json").to_string_lossy())?,
                     &read(&fixtures.join("audio.json").to_string_lossy())?,
                     &read(&fixtures.join("sounds.json").to_string_lossy())?,
-                );
+                )?;
                 let output = OutputSettings::Buffer(audio::SAMPLE_RATE);
                 Some(Audio::new(&setup, &runtime, output)?)
             }

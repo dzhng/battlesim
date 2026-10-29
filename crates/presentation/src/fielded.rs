@@ -14,6 +14,7 @@
 //! checked by it, so the one reader is also the one schema.
 use crate::appearance::{articulated, skinned};
 use crate::assets::{Container, BUNDLE};
+use crate::settings::PresentationSettings;
 use crate::sound::tables::inherit;
 use crate::units::drawn::ClipTables;
 use crate::world::{EffectsSection, UnitsSection};
@@ -76,9 +77,10 @@ impl Fielding<'_> {
     /// each drawn appearance's bundle, each fielded hull's wreck and every
     /// skeleton's clips.
     pub fn contents(&self) -> Result<Vec<String>, String> {
+        let presentation = PresentationSettings::from_value(self.presentation)?;
         let catalog = Catalog::new(self.catalog)?;
         let art = Art::new(self.runtime, &catalog, self.kinds, self.factions)?;
-        let (_, drawn) = unit_types(self.presentation, &catalog, &art, self.kinds, self.factions)?;
+        let (_, drawn) = unit_types(&presentation, &catalog, &art, self.kinds, self.factions)?;
         let mut contents = BTreeSet::new();
         for name in drawn.iter().chain(hull_wrecks(&catalog, &art).values()) {
             contents.insert(art.bundle(name)?.to_owned());
@@ -92,13 +94,14 @@ impl Fielding<'_> {
     /// The battle's sections, each content [`Fielding::contents`] names
     /// read by `read`.
     pub fn resolve(&self, read: &Read<'_>) -> Result<Sections, String> {
+        let presentation = PresentationSettings::from_value(self.presentation)?;
         let catalog = Catalog::new(self.catalog)?;
         let art = Art {
             read,
             ..Art::new(self.runtime, &catalog, self.kinds, self.factions)?
         };
         let (units, tables) = units(
-            self.presentation,
+            &presentation,
             self.rules,
             &catalog,
             &art,
@@ -106,7 +109,7 @@ impl Fielding<'_> {
             self.factions,
         )?;
         let effects = effects::section(
-            self.presentation,
+            &presentation,
             self.weapons,
             self.rules,
             &catalog,
@@ -373,13 +376,13 @@ impl<'a> Art<'a> {
 /// Each fielded type's facts and the appearance sets it draws from per
 /// side, and every appearance those sets name.
 fn unit_types(
-    presentation: &Value,
+    presentation: &PresentationSettings,
     catalog: &Catalog,
     art: &Art,
     kinds: &[String],
     factions: Option<[&str; 2]>,
 ) -> Result<(Map<String, Value>, BTreeSet<String>), String> {
-    let pose = &presentation["pose"];
+    let pose = &presentation.pose;
     let look = |side: usize, list: &mut dyn Iterator<Item = String>| -> Vec<String> {
         list.filter(|n| art.has(n))
             .map(|n| {
@@ -455,7 +458,7 @@ fn unit_types(
             .collect();
         let gauge = class
             .as_deref()
-            .and_then(|c| pose["gauge"][c].as_f64())
+            .and_then(|c| pose.gauge.get(c).copied())
             .unwrap_or(1.0);
         let mount_rows: Vec<Value> = mounts
             .iter()
@@ -492,7 +495,7 @@ fn unit_types(
 /// the appearance sets it draws from per side, and every one of those
 /// appearances' joints and clips, or rig.
 fn units(
-    presentation: &Value,
+    presentation: &PresentationSettings,
     rules: &Value,
     catalog: &Catalog,
     art: &Art,
@@ -536,10 +539,10 @@ fn units(
     }
     let sides = &art.runtime["sides"];
     let units = json!({
-        "pose": presentation["pose"],
-        "transit": presentation["transit"],
+        "pose": presentation.pose,
+        "transit": presentation.transit,
         "leanHold": number(rules, "cover", "lean_hold_s")?,
-        "detail": presentation["models"],
+        "detail": presentation.models,
         "tints": { "blue": sides["blue"], "red": sides["red"] },
         "types": types,
         "appearances": appearances,

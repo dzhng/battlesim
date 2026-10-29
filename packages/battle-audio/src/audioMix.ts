@@ -1,4 +1,4 @@
-// `presentation.audio`: every level, curve, budget and per-kind sound table
+// `audio.json`: every level, curve, budget and per-kind sound table
 // the battle's sound reads, keyed like `presentation.effects` (round kinds,
 // hit kinds, unit kinds, smoke kinds, cue categories), each table with a
 // `default` row so a new kind sounds like something until its row is added.
@@ -73,7 +73,7 @@ export interface Limiter {
   clip_db: number;
 }
 
-export interface AudioPresentation {
+export interface AudioMix {
   /** Bus levels, and the master's. */
   buses: Record<Bus | "master" | "music", number>;
   /** The master's limiter and clip, the last stage before the output. */

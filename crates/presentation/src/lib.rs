@@ -16,6 +16,7 @@ pub mod presentation;
 pub mod records;
 pub mod scars;
 pub mod seed;
+pub mod settings;
 pub mod shadow;
 pub mod sound;
 pub mod static_world;

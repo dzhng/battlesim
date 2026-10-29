@@ -7,18 +7,21 @@
 // words defined by the shared Rust record layouts.
 import { presentationSettings } from "@web/presentationSettings";
 import { expect, test } from "vitest";
-import {
-  validateLight,
-  type LightPresentation,
-} from "@packages/battle-renderer/src/light/sceneLight.ts";
+import { type LightPresentation } from "@packages/battle-renderer/src/light/sceneLight.ts";
 import { loadPresentation, resolveLight, ScenePresentation } from "@web/battle/sim/presentation";
 import {
+  SUN_CASCADES,
   CAMERA_WORDS,
   SUN_SHADOW_WORDS,
   CameraAt,
 } from "@packages/battle-renderer/src/records.gen.ts";
 
+import { light_records } from "@wasm/renderer_browser";
 await loadPresentation();
+const checkLight = (light: LightPresentation) => {
+  light_records(JSON.stringify(light));
+  return light;
+};
 
 const LIGHT = presentationSettings.light as unknown as LightPresentation;
 const withLight = (edit: (l: LightPresentation) => void): LightPresentation => {
@@ -28,15 +31,17 @@ const withLight = (edit: (l: LightPresentation) => void): LightPresentation => {
 };
 
 test("the street test map's light is valid, and a broken one is refused by name", () => {
-  expect(validateLight(LIGHT)).toBe(LIGHT);
-  expect(() => validateLight(withLight((l) => (l.exposure = Number.NaN)))).toThrow(/exposure/);
-  expect(() => validateLight(withLight((l) => (l.sun_elevation = -0.1)))).toThrow(/sun_elevation/);
-  expect(() => validateLight(withLight((l) => (l.grade.shadow_tint = [1, Infinity, 1])))).toThrow(
+  expect(checkLight(LIGHT)).toBe(LIGHT);
+  expect(() => checkLight(withLight((l) => (l.exposure = Number.NaN)))).toThrow(/exposure/);
+  expect(() => checkLight(withLight((l) => (l.sun_elevation = -0.1)))).toThrow(/sun_elevation/);
+  expect(() => checkLight(withLight((l) => (l.grade.shadow_tint = [1, Infinity, 1])))).toThrow(
     /grade\.shadow_tint/,
   );
-  expect(() => validateLight(withLight((l) => (l.cascades.count = 3)))).toThrow(/cascades\.count/);
-  expect(() => validateLight(withLight((l) => (l.shadow_floor = 0.8)))).toThrow(/shadow_floor/);
-  expect(() => validateLight(withLight((l) => (l.shadow_floor = -0.1)))).toThrow(/shadow_floor/);
+  expect(() => checkLight(withLight((l) => Object.assign(l.cascades, { count: 3 })))).toThrow(
+    /cascades\.count/,
+  );
+  expect(() => checkLight(withLight((l) => (l.shadow_floor = 0.8)))).toThrow(/shadow_floor/);
+  expect(() => checkLight(withLight((l) => (l.shadow_floor = -0.1)))).toThrow(/shadow_floor/);
 });
 
 test("the sky and the environment light share one sun", async () => {
@@ -73,7 +78,7 @@ test("a frame's cascades are the structs the renderer binds: a receiver block an
     const frame = presentation.frame(0, camera, ui, 0);
     expect(frame.sun_shadow.f32.byteLength).toBe(SUN_SHADOW_WORDS * 4);
     const active = frame.casters.count;
-    expect(active).toBe(LIGHT.cascades.count);
+    expect(active).toBe(SUN_CASCADES);
     const casters = frame.casters.f32;
     const receiver = frame.sun_shadow.f32;
     const size = CAMERA_WORDS;
@@ -98,7 +103,7 @@ test("a frame's cascades are the structs the renderer binds: a receiver block an
 
 test("a cloud field past full is refused by name", () => {
   expect(() =>
-    validateLight(
+    checkLight(
       withLight((l) => {
         l.sky.clouds.coverage = 1.5;
       }),
@@ -107,6 +112,6 @@ test("a cloud field past full is refused by name", () => {
 });
 
 test("the grade's switch is a boolean the validation accepts either way", () => {
-  expect(validateLight(withLight((l) => (l.grade.enabled = false)))).toBeTruthy();
-  expect(validateLight(withLight((l) => (l.grade.enabled = true)))).toBeTruthy();
+  expect(checkLight(withLight((l) => (l.grade.enabled = false)))).toBeTruthy();
+  expect(checkLight(withLight((l) => (l.grade.enabled = true)))).toBeTruthy();
 });

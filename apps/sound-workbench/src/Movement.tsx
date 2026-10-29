@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { resolveEffect, type SoundCatalog } from "../../../packages/battle-audio/src/catalog";
 import { vehicleLoops } from "../../../packages/battle-audio/src/soundFrame";
-import type { VehicleSound } from "../../../packages/battle-audio/src/audioPresentation";
+import type { VehicleSound } from "../../../packages/battle-audio/src/audioMix";
 import { loadPresentation } from "../../../web/src/battle/sim/presentation";
 import type { LiveLoop, LiveMix } from "./audition";
 import type { EditorProps } from "./editorProps";

@@ -1,10 +1,8 @@
+import { light_records } from "@wasm/renderer_browser";
 // The battle's light, from `fixtures/presentation.json`. Every
 // lab route draws under it, as every lab reuses the game's numbers.
 import { presentationSettings } from "@web/presentationSettings";
-import {
-  validateLight,
-  type LightPresentation,
-} from "@packages/battle-renderer/src/light/sceneLight";
+import { type LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 
 export const gameLight: LightPresentation = presentationSettings.light;
 
@@ -15,5 +13,7 @@ export function gameLightFor(search: string): LightPresentation {
   const params = new URLSearchParams(search);
   const sun = params.get("sun");
   if (sun === null || !Number.isFinite(Number(sun))) return gameLight;
-  return validateLight({ ...gameLight, sun_elevation: Number(sun) });
+  const light = { ...gameLight, sun_elevation: Number(sun) };
+  light_records(JSON.stringify(light));
+  return light;
 }

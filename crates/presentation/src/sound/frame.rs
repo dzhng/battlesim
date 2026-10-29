@@ -36,7 +36,7 @@
 //! level at the listener, so a louder new sound takes the quietest voice's
 //! place and a quieter one is dropped. A sound loud at the listener (a near
 //! cannon, a blast) dips the ambience bus, which recovers once the dip is
-//! reached ([`Command::Duck`], `presentation.audio.ambience`), so the bed
+//! reached ([`Command::Duck`], `audio.ambience`), so the bed
 //! makes room for it as a film mix does; distant fire never reaches it.
 //!
 //! The player only carries out the [`Command`]s: it starts, glides and
@@ -131,7 +131,7 @@ impl From<&SoundCue> for Cue {
 pub struct SoundVehicle {
     /// Unique across both sides (the effects' shooter key).
     pub key: f64,
-    /// Its `presentation.audio.vehicles` row.
+    /// Its `audio.vehicles` row.
     pub vehicle_class: String,
     pub position: Vec3,
     /// Metres the left and right running gear have rolled.
@@ -426,7 +426,7 @@ pub struct ShoutTake {
     pub duration: f64,
 }
 
-/// A battle's sound as a player builds it, JSON: `presentation.audio`, the
+/// A battle's sound as a player builds it, JSON: `audio.json`, the
 /// sound catalog, the game's weapon rows, the tick rate and
 /// `presentation.effects`' smoke and cook-off.
 #[derive(Deserialize)]

@@ -408,6 +408,9 @@ fn a_heavy_gun_s_shot_shakes_dust_off_its_whole_hull_and_blows_it_off_the_ground
         p["flashes"]["autocannon"]["dust"] = (1.0 / 3.0).into();
         p["flashes"]["hmg"]["dust"] = 0.0.into();
         let mut puff = p["dust"].clone();
+        for unused in ["spacing_m", "min_speed_mps", "full_speed_mps"] {
+            puff.as_object_mut().unwrap().remove(unused);
+        }
         for (k, v) in [
             ("rise_mps", json!(0)),
             ("spread_mps", json!(0)),

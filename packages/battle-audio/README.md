@@ -7,7 +7,10 @@ The [combat audio rationale](../../specs/done/combat-audio/README.md) records th
 constraints behind the library and workbench.
 
 The [sound catalog](../../fixtures/sounds.json) separates provenance, clean clips,
-reusable recipes and assignments. Each recording in a recipe is an alternative,
+reusable recipes and assignments. Its [Rust reader](../../crates/presentation/src/sound/catalog.rs)
+admits both player loads and workbench drafts, including source metadata and
+burst/loop compatibility. The mix's sound references are checked before a bank
+prepares voices. Each recording in a recipe is an alternative,
 not another shot. Optional synthesis supplies restrained body inside that same
 buffer, under each of its shots, so one cause still costs one voice.
 
@@ -161,7 +164,7 @@ Which lines play is decided in one place, in Rust
 ([`presentation::sound::voices`](../../crates/presentation/src/sound/voices.rs),
 bound by [the chatter](src/voices/chatter.ts)): answers before own shouts before a
 seen enemy's, nearest the listener first (a battle's is its sound frame's own), a
-few lines at once (`presentation.audio.voices`), a line dropped when it can't start
+few lines at once (`audio.voices`), a line dropped when it can't start
 soon, a unit never over itself, one answer per group. It picks the take with the
 client's own seeded randomness, never the simulation's, and gives start commands
 on the voices bus that the page only carries out. Its takes come from
@@ -225,7 +228,7 @@ play the same samples. The synthesized sounds' names are generated from Rust
 and prevents late admission.
 
 The bed keeps its level between shots and makes room under a loud one, as a
-film mix does: a sound at least `presentation.audio.ambience.duck_over` loud
+film mix does: a sound at least `audio.ambience.duck_over` loud
 at the listener (its level there, as the voice budget ranks it, never a list
 of weapons) dips the ambience bus by the bed's `duck`, which recovers once the
 dip is reached. Distant fire never reaches the threshold, so the bed does not
@@ -274,7 +277,7 @@ sets it to −26 LUFS. `--track` buys a track again.
 Which mood plays, which track comes next and when the music dips is decided in
 Rust, once for both clients ([`presentation::sound::music`](../../crates/presentation/src/sound/music.rs)),
 from the side's own barks and whether a voice line sounds. Its numbers live in
-`presentation.audio.music`. Each mood's tracks shuffle by the score's seed, every
+`audio.music`. Each mood's tracks shuffle by the score's seed, every
 track once a shuffle and never one back to back. Rust names a track by its
 catalog id and emits music commands with the rest: start a track fading in, stop
 every track fading out (a crossfade is the two over one span), and duck. In a

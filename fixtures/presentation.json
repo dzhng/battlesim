@@ -1,42 +1,8 @@
 {
   "terrain": {
-    "distant": { "fade_m": 600, "plot_pixels": [0.16666666666666666, 0.5] },
-    "mottle": {
-      "patch_hue": 0.6,
-      "fine_value": 0.45,
-      "fine_hue": 0.4,
-      "fine_fade": [0.25, 1],
-      "patch_cut": 0.58,
-      "patch_edge_m": 0.3,
-      "slope_step": 0.05,
-      "dry": [0.7, 0, -0.9]
-    },
-    "grain": {
-      "octave": 2.7,
-      "weights": [0.15, 0.25, 0.35, 0.25],
-      "fade": [0.3, 0.9],
-      "crisp": 2,
-      "turns": [0.55, 1.9, 2.9, 4.3],
-      "warp": 0.45
-    },
-    "rows": { "break_grains": 2, "mean": 0.3125, "fade": [0.15, 0.45] },
-    "wheeling": { "gauge_rows": 2, "least_pixel_m": 0.02 },
-    "verge": { "mottle": 0.18, "roughness": 0.95 },
-    "forest_verge": { "inset": 0.5, "patch_scale": 0.7, "feather": 0.1 },
-    "forest_floor": {
-      "moss": { "cut": [0.38, 0.72], "weights": [0.65, 0.35], "fine_scale": 2.1 },
-      "humus": { "cut": [0.42, 0.78], "weights": [0.6, 0.4], "scales": [1.3, 3.1] },
-      "roots": {
-        "runs": [0.55, 0.75],
-        "run_scale": 1.7,
-        "line": [0.015, 0.035],
-        "fade": [0.02, 0.08],
-        "mean": 0.02
-      }
-    },
-    "dapple": { "weights": [0.65, 0.35], "octave": 2.7, "edge": 0.06, "fade": [0.1, 0.5] },
-    "shading": { "max_slope": 0.84 },
-    "bank": { "ease_m": 0.75, "blend_m": 0.7, "blend_reach_m": 50 },
+    "distant": { "plot_pixels": [0.16666666666666666, 0.5] },
+    "forest_verge": { "feather": 0.1 },
+    "bank": { "ease_m": 0.75 },
     "shore": {
       "wet_whole": 0.4,
       "earth_whole": 0.65,
@@ -50,47 +16,8 @@
       "wet_roughness": 0.8,
       "bed_ease_m": 0.3
     },
-    "wander": { "push_scale": 0.61, "push": 1.4, "octaves": [2.03, 4.01], "weights": [0.5, 0.3, 0.2] },
-    "road_grain": {
-      "fade": [0.6, 1.2],
-      "octaves": [2.03, 4.01, 8.3],
-      "weights": [0.25, 0.35, 0.4, 0.5],
-      "stones": [0.7, 0.76]
-    },
-    "shoulder": {
-      "whole": 0.35,
-      "wander": 5,
-      "pixels": [0.03, 0.08],
-      "grain": 0.5,
-      "tuft_m": 1.1,
-      "tufts": [0.44, 0.52]
-    },
-    "strip": {
-      "wander": 3,
-      "wander_m": 2.5,
-      "edge_m": 0.3,
-      "pixels": [0.2, 0.4],
-      "cover": 0.6,
-      "grass": 0.75
-    },
-    "ruts": { "fade": [0.2, 0.4], "faint": 0.4, "break_m": 6, "break_cut": [0.4, 0.6] },
-    "surface": { "patch_cut": [0.52, 0.66], "join_drift_m": 2.5 },
-    "slabs": {
-      "joint_m": 0.03,
-      "joint_pixels": [0.7, 2.5],
-      "area_joint_m": 0.1,
-      "area_slab_pixels": [0.041666666666666664, 0.4],
-      "area_border_m": 2,
-      "area_edge_depth": 1.5
-    },
-    "curb": { "edge_m": 0.03, "pixels": [0.25, 0.6] },
     "marks": {
-      "edge_m": 0.03,
-      "pixels": [0.35, 0.85],
-      "crossing_cos": 0.8,
-      "clear_m": 0.3,
-      "wear_m": 1.3,
-      "wear_cut": [0.4, 0.6]
+      "clear_m": 0.3
     },
     "water": {
       "shore_fade_m": 0.25,
@@ -101,58 +28,13 @@
       "caustics": { "tile_m": 24, "strength": 1.2, "fade_per_m": 0.85, "sharpness": 5 }
     },
     "scars": {
-      "depth_cap": 1.6,
-      "rim_reach_cells": 1.5,
-      "slope_tap_cells": 0.75,
-      "detail_fade": [0.5, 2],
-      "lip": [0.3, 0.14],
-      "lip_wander_m": 0.45,
-      "ring": [0.035, 0.03],
-      "pock": [0.05, 0.09],
-      "pock_soot": 0.85,
-      "pock_edge": [0.013, 0.006],
-      "pock_edge_dark": 0.45,
-      "ash": {
-        "scale": 4.5,
-        "fine": 3.1,
-        "weights": [0.75, 0.25],
-        "edge": [0.97, 0.72],
-        "least": 0.45
-      },
-      "rut": [0.35, 0.2],
-      "grazing": 0.25
-    },
-    "scar_surface": {
-      "grain_scale": 1.7,
-      "fleck_scale": 6.3,
-      "trampled": [0.9, 1.1],
-      "tracks": [0.85, 1.1],
-      "ash": [0.6, 2.4],
-      "ash_weights": [0.6, 0.4],
-      "ash_drift_scale": 0.7,
-      "soil": [0.8, 1.15],
-      "cavity": 0.7
+      "depth_cap": 1.6
     }
   },
   "grass": {
-    "edge_m": 1.2,
-    "placement": { "jitter_m": 0.4, "headland_m": 0.3 },
-    "density": { "least_facing": 0.15 },
-    "stand": {
-      "bare_wear": 0.9,
-      "sparse_cut": [0.3, 0.55],
-      "edge_density": 0.5,
-      "edge_height": 0.35,
-      "grow_from": 0.7,
-      "least_height_m": 0.02,
-      "parched_cut": [0.55, 0.8]
-    },
-    "mix": { "drift_cut": [0.4, 0.65], "drift_gather": 3 },
-    "tier_jitter": [0.85, 1.15],
-    "laid": { "lean": 1.1, "sink": 0.6 },
-    "sway": { "gust_from": 0.2, "flutter_phase": 0.35, "flutter_across": 0.5 },
-    "blade": { "roughness": 0.9 }
+    "edge_m": 1.2
   },
+  "ground": { "backdrop_reach_m": 40000 },
   "camera": {
     "fov_y": 0.8,
     "near_m": 1,
@@ -177,10 +59,6 @@
     "zoom_speed": 0.0012,
     "orbit_speed": 2.5,
     "default": {
-      "target": [
-        170,
-        800
-      ],
       "distance": 65,
       "yaw": -1.57
     },
@@ -230,7 +108,6 @@
       "mist_color_strength": 0.25,
       "mist_opacity": 0.08
     },
-    "backdrop": { "reach_m": 40000 },
     "exposure": 1.7,
     "grade": {
       "enabled": true,
@@ -244,7 +121,6 @@
     },
     "bloom": { "strength": 0.3, "radius": 0.55, "threshold": 1.5, "smooth_width": 0.5 },
     "cascades": {
-      "count": 4,
       "map_size": 2048,
       "max_far_m": 2600,
       "split_lambda": 0.5,
@@ -338,7 +214,7 @@
     "glow": { "radius_px": 8, "overlay": 0.73, "ground": 0.4, "callouts": 1 },
     "paint": { "albedo": 0.15, "fog_keep": 0.35, "grass_glow": 0.8, "grass_falloff_m": 0.06, "saturation": 1.3 },
     "stroke": { "full_m_per_px": 0.051, "thin_m_per_px": 0.4, "thin_scale": 0.55, "min_px": 1.25, "min_m": 0.05 },
-    "xray": { "own": [0.62, 0.84, 1.0, 0.5], "ally": [0.725, 0.941, 1.0, 0.5], "selected_alpha": 0.62, "min_hidden_fragment_fraction": 0.2 },
+    "xray": { "own": [0.62, 0.84, 1.0, 0.5], "ally_alpha": 0.5, "selected_alpha": 0.62, "min_hidden_fragment_fraction": 0.2 },
     "orders": {
       "line_px": 5,
       "mark_px": 3.75,
@@ -370,7 +246,6 @@
       "tick_px": 26,
       "tick_line_px": 4,
       "end_px": 9,
-      "reach": [0.45, 0.86, 1.0, 1],
       "tick": [0.95, 0.98, 1.0, 1]
     }
   },
@@ -422,7 +297,6 @@
     "impostor_px": 10,
     "shadow_caster_px": 2
   },
-  "glass": { "turn": 0.5, "glint": 1 },
   "buildings": {
     "lod_px_per_m": [10, 4, 1.2],
     "chunk_m": 64,
@@ -665,7 +539,7 @@
       "landing_sparks": 14,
       "debris": { "hold_s": 20, "fade_s": 4 }
     },
-    "wake": { "ring_hz": 2, "vee_mps": 1, "vee_depth_m": 0.2, "spacing_m": 1.5, "soldier_radius_m": 0.15, "ring_strength": 0.5, "vee_strength": 1 },
+    "wake": { "ring_hz": 2, "vee_mps": 1, "vee_depth_m": 0.2, "spacing_m": 1.5, "soldier_push_radius_m": 0.15, "ring_strength": 0.5, "vee_strength": 1 },
     "dust": {
       "albedo": [0.74, 0.63, 0.48],
       "opacity": 0.4,

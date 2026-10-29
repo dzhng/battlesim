@@ -16,10 +16,10 @@ use std::sync::Arc;
 use presentation::presentation::{Ghost, Presentation as Inner, Ui};
 use presentation::records::{FrameHeader, WorldHeader};
 use presentation::sound::bank::{self, Bank, Core};
+use presentation::sound::catalog::{Cadence, Recipe};
 use presentation::sound::frame::{
     self, Command, Listener, Motion, Scripted, Sound, SoundSoldier, SoundVehicle,
 };
-use presentation::sound::tables::{Cadence, Recipe};
 use presentation::sound::voices::{self, Request};
 use presentation::sound::{music, synth};
 use presentation::static_world::buildings::PlacedBuildings;
@@ -364,8 +364,10 @@ pub fn model_tiers(view: &[f32], detail: &str, models: &[f64]) -> Result<Vec<i32
 /// for scenes with none, so this needs no `Presentation`.
 #[wasm_bindgen]
 pub fn light_records(light: &str) -> Result<Vec<f32>, JsError> {
-    let settings: presentation::light::LightSettings = serde_json::from_str(light)
-        .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
+    let settings = presentation::light::LightSettings::from_value(
+        &serde_json::from_str(light).map_err(error)?,
+    )
+    .map_err(error)?;
     Ok(settings.records().words())
 }
 
@@ -755,4 +757,48 @@ pub fn fog_look(style: &str) -> Result<Vec<f32>, JsError> {
     let style: presentation::fog::FogStyle =
         serde_json::from_str(style).map_err(|e| JsError::new(&format!("fog style: {e}")))?;
     Ok(style.look().map_err(error)?.words())
+}
+
+/// Admit all authored presentation sections and select the fog style once.
+#[wasm_bindgen]
+pub fn check_presentation(text: &str) -> Result<String, JsError> {
+    let value = serde_json::from_str(text).map_err(error)?;
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&value).map_err(error)?;
+    let [r, g, b] = settings.hud.accent;
+    serde_json::to_string(&serde_json::json!({
+        "fog_style": settings.fog.selected().map_err(error)?,
+        "ally_xray": settings.ally_xray(),
+        "ruler_reach": [r,g,b,1.0],
+    }))
+    .map_err(error)
+}
+
+/// Shared library admission, including workbench-only metadata and routing.
+#[wasm_bindgen]
+pub fn check_sound_catalog(text: &str) -> Result<(), JsError> {
+    presentation::sound::catalog::SoundCatalog::from_value(
+        &serde_json::from_str(text).map_err(error)?,
+    )
+    .map_err(error)?;
+    Ok(())
+}
+
+#[wasm_bindgen]
+pub fn check_audio_mix(text: &str, catalog: Option<String>) -> Result<(), JsError> {
+    let mix = serde_json::from_str(text).map_err(error)?;
+    match catalog {
+        Some(catalog) => {
+            presentation::sound::tables::SoundTables::from_parts(
+                mix,
+                serde_json::from_str(&catalog).map_err(error)?,
+                &serde_json::json!({}),
+            )
+            .map_err(error)?;
+        }
+        None => {
+            presentation::sound::tables::AudioMix::from_value(&mix).map_err(error)?;
+        }
+    }
+    Ok(())
 }

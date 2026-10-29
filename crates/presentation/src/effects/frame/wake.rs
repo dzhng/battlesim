@@ -30,7 +30,7 @@ pub(super) fn wake(
     dt: f64,
     gap: bool,
 ) {
-    let radius = u.half.map_or(style.soldier_radius_m, |h| h[1]);
+    let radius = u.half.map_or(style.soldier_push_radius_m, |h| h[1]);
     let dist = libm::hypot(d[0], d[1]);
     let moving = !gap && dist / dt >= style.vee_mps;
     let drags = |w: &Wading| moving && w.depth_m >= style.vee_depth_m;

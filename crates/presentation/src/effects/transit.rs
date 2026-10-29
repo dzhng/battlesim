@@ -11,7 +11,8 @@ use sim::publication::reader::AirTransit;
 use crate::world::Vec3;
 
 /// Presentation timing for an edge transit, in seconds.
-#[derive(Clone, Copy, Debug, Default, PartialEq, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct TransitFeel {
     pub inbound_s: f64,
     pub outbound_s: f64,

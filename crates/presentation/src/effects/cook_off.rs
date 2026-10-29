@@ -19,7 +19,8 @@ use crate::world::Vec3;
 pub const GRAVITY: f64 = 9.81;
 
 /// `presentation.effects.cook_off`.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct CookOffFeel {
     /// Seconds from the killing hit to the ammunition going.
     pub delay_s: f64,
@@ -48,7 +49,8 @@ pub struct CookOffFeel {
 /// A fireball out of the ring, `after_s` after the ammunition goes, `up_m`
 /// above the hull's top, of blast radius `radius_m`, with the share
 /// `sparks` of a blast's sparks.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Fireball {
     pub after_s: f64,
     pub up_m: f64,
@@ -57,7 +59,8 @@ pub struct Fireball {
 }
 
 /// The thrown debris: seconds it lies still from the blast, then sinking.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct DebrisFeel {
     pub hold_s: f64,
     pub fade_s: f64,

@@ -34,7 +34,8 @@ pub struct WorldInput {
 }
 
 /// `presentation.buildings`: how buildings are tiered, chunked and pooled.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BuildingStyle {
     /// Pixels a metre covers at a chunk's nearest point for tiers 0 to 2.
     pub lod_px_per_m: [f64; 3],
@@ -103,7 +104,8 @@ pub struct UnitsSection {
 }
 
 /// `presentation.models`: mesh tiers by projected height, and the card size.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Detail {
     pub lod_px: [f64; 3],
     pub impostor_px: f64,

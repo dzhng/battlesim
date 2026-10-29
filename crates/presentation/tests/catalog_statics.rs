@@ -268,7 +268,9 @@ fn prospective_scenery_uses_new_trunk_and_stump_geometry_before_atomic_commit() 
             ..Default::default()
         },
         biome,
-        serde_json::from_value(game.clone()).unwrap(),
+        presentation::settings::PresentationSettings::from_value(&game)
+            .unwrap()
+            .tuning(),
     )
     .unwrap();
     let mesh = |radius: f32, height: f32| {

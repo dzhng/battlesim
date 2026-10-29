@@ -48,9 +48,12 @@ fn ground_of(scenario: &ScenarioDefinition) -> Ground {
     let source = ground::source(&world, &scenario.map.extents(), &layout).unwrap();
     let summer = std::fs::read_to_string(root().join("fixtures/biomes/summer.json")).unwrap();
     let biome = Biome::load(&summer, None).unwrap();
-    let tuning: Tuning =
-        serde_json::from_slice(&std::fs::read(root().join("fixtures/presentation.json")).unwrap())
-            .unwrap();
+    let tuning: Tuning = presentation::settings::PresentationSettings::from_value(
+        &serde_json::from_slice(&std::fs::read(root().join("fixtures/presentation.json")).unwrap())
+            .unwrap(),
+    )
+    .unwrap()
+    .tuning();
     Ground::new(source, biome, tuning).unwrap()
 }
 

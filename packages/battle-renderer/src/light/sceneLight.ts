@@ -3,14 +3,7 @@
 // uniform records of the sky, the haze, the sun and post, which the renderer
 // uploads as they are. The battle has one light, and the fixture owns its
 // numbers.
-import {
-  AERIAL_WORDS,
-  BLOOM_WORDS,
-  GRADE_WORDS,
-  SKY_LIGHT_WORDS,
-  SUN_CASCADES,
-  SUN_WORDS,
-} from "../records.gen";
+import { AERIAL_WORDS, BLOOM_WORDS, GRADE_WORDS, SKY_LIGHT_WORDS, SUN_WORDS } from "../records.gen";
 
 export type Rgb = readonly [number, number, number];
 
@@ -70,8 +63,6 @@ export interface PostSettings {
 }
 
 export interface CascadeSettings {
-  /** The receiver layout's slot count; changing it is a shader-layout change. */
-  count: number;
   map_size: number;
   /** No sun shadow beyond this view depth. */
   max_far_m: number;
@@ -116,9 +107,6 @@ export interface LightPresentation extends PostSettings {
     clouds: CloudSettings;
   };
   haze: HazeSettings;
-  /** The land past the map edge reaches this far out. Its look is the
-   *  biome's (`fixtures/biomes/summer.json`). */
-  backdrop: { reach_m: number };
   cascades: CascadeSettings;
 }
 
@@ -162,55 +150,4 @@ export function resolvedLight(settings: LightPresentation, words: Float32Array):
   let at = 0;
   const [sky, aerial, sun, bloom, grade] = sizes.map((n) => words.slice(at, (at += n)));
   return { settings, sky, aerial, sun, bloom, grade };
-}
-
-/** Checks every number the GPU will see; throws naming the first bad field. */
-export function validateLight(light: LightPresentation): LightPresentation {
-  const bad = (path: string, why: string) => {
-    throw new Error(`presentation.light.${path}: ${why}`);
-  };
-  const walk = (value: unknown, path: string) => {
-    if (typeof value === "number") {
-      if (!Number.isFinite(value)) bad(path, "must be finite");
-    } else if (typeof value === "boolean") {
-      // A switch, such as `grade.enabled`.
-    } else if (Array.isArray(value)) value.forEach((v, i) => walk(v, `${path}[${i}]`));
-    else if (value && typeof value === "object")
-      for (const [k, v] of Object.entries(value)) walk(v, path ? `${path}.${k}` : k);
-    else bad(path, "must be a number or boolean");
-  };
-  walk(light, "");
-  const within = (path: string, v: number, lo: number, hi: number) => {
-    if (!(v >= lo && v <= hi)) bad(path, `must be within [${lo}, ${hi}], got ${v}`);
-  };
-  within("sun_elevation", light.sun_elevation, 0.05, Math.PI / 2);
-  within("sun_intensity", light.sun_intensity, 0, 100);
-  within("shadow_floor", light.shadow_floor, 0, 0.5);
-  within("sky.turbidity", light.sky.turbidity, 1, 12);
-  within("sky.radiance", light.sky.radiance, 0, 1000);
-  light.sky.fill.forEach((c, i) => within(`sky.fill[${i}]`, c, 0, 4));
-  if (light.sky.saturation !== undefined) within("sky.saturation", light.sky.saturation, 0, 3);
-  if (light.sky.tint !== undefined)
-    light.sky.tint.forEach((c, i) => within(`sky.tint[${i}]`, c, 0, 4));
-  if (light.sky.grade_mix !== undefined) within("sky.grade_mix", light.sky.grade_mix, 0, 1);
-  const clouds = light.sky.clouds;
-  within("sky.clouds.coverage", clouds.coverage, 0, 1);
-  within("sky.clouds.height_m", clouds.height_m, 100, 20000);
-  within("sky.clouds.scale_m", clouds.scale_m, 10, 1e5);
-  within("sky.clouds.softness", clouds.softness, 0.001, 0.5);
-  within("sky.clouds.opacity", clouds.opacity, 0, 1);
-  within("sky.clouds.radiance", clouds.radiance, 0, 100);
-  clouds.shade.forEach((c, i) => within(`sky.clouds.shade[${i}]`, c, 0, 4));
-  within("exposure", light.exposure, 0.01, 16);
-  within("backdrop.reach_m", light.backdrop.reach_m, 0, 1e6);
-  within("haze.overview_from_m", light.haze.overview_from_m, 1, 1e6);
-  const c = light.cascades;
-  if (c.count !== SUN_CASCADES) bad("cascades.count", `the receiver layout has ${SUN_CASCADES}`);
-  if (![512, 1024, 2048, 4096].includes(c.map_size))
-    bad("cascades.map_size", "must be 512, 1024, 2048 or 4096");
-  within("cascades.max_far_m", c.max_far_m, 10, 20000);
-  within("cascades.split_lambda", c.split_lambda, 0, 1);
-  within("cascades.softness_m", c.softness_m, 0, 10);
-  within("bloom.threshold", light.bloom.threshold, 0, 100);
-  return light;
 }

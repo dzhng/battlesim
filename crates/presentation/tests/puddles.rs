@@ -47,7 +47,9 @@ fn ground_of(map: Value, seed: u32) -> Ground {
     )
     .unwrap();
     let game: Value = serde_json::from_str(&read("fixtures/presentation.json")).unwrap();
-    let tuning: Tuning = serde_json::from_value(game.clone()).unwrap();
+    let tuning: Tuning = presentation::settings::PresentationSettings::from_value(&game)
+        .unwrap()
+        .tuning();
     let mut biome = Biome::load(&read("fixtures/biomes/summer.json"), None).unwrap();
     biome.seed = seed;
     Ground::new(source, biome, tuning).unwrap()

@@ -5,8 +5,8 @@ use super::*;
 
 /// `presentation.effects` with a row for every weapon of `weapons` that has
 /// none in the tables each weapon's round reads: its nearest ancestor's.
-fn weapon_effects(presentation: &Value, weapons: &Value) -> Result<Value, String> {
-    let mut effects = presentation["effects"].clone();
+fn weapon_effects(presentation: &PresentationSettings, weapons: &Value) -> Result<Value, String> {
+    let mut effects = serde_json::to_value(&presentation.effects).map_err(|e| e.to_string())?;
     let parents: BTreeMap<String, Option<String>> = weapons
         .as_object()
         .ok_or("rules.json has no weapons")?
@@ -31,7 +31,7 @@ fn weapon_effects(presentation: &Value, weapons: &Value) -> Result<Value, String
 /// known, and each installed hull's wreck: what a cook-off throws, how it is
 /// fitted and how hard the dead hull stops.
 pub(super) fn section(
-    presentation: &Value,
+    presentation: &PresentationSettings,
     weapons: &Value,
     rules: &Value,
     catalog: &Catalog,

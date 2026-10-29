@@ -14,7 +14,6 @@ use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 use std::sync::Arc;
 
 use contract::catalog::FlightModel;
-use serde::Deserialize;
 
 use super::delta_angle;
 use super::pose::{
@@ -96,82 +95,7 @@ pub struct FeedFrame {
     pub fallen: Arc<Vec<FeedFallen>>,
 }
 
-/// `presentation.pose`: how poses move between what the simulation
-/// publishes. Presentation feel, not rules.
-#[derive(Clone, Debug, Deserialize)]
-pub struct PoseFeel {
-    pub gait: Gait,
-    pub rest: Rest,
-    pub stance: StanceFeel,
-    pub lean: Lean,
-    pub mount: MountFeel,
-    /// How a shot kicks the hull on the ground that fires it; none: never.
-    pub hull_kick: Option<HullKick>,
-    /// How each of his own shots kicks a soldier; none: never.
-    pub soldier_kick: Option<SoldierKick>,
-    pub rotor: RotorFeel,
-    pub attitude: AttitudeFeel,
-    pub corpses: CorpseCap,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct Gait {
-    pub walk_mps: f64,
-    pub run_mps: f64,
-    pub crawl_mps: f64,
-    pub fade_s: f64,
-    pub facing_mps: f64,
-    pub turn_rad_s: f64,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct Rest {
-    pub turn_rad: f64,
-    pub tempo: [f64; 2],
-    pub watch_every: f64,
-    pub settle_s: [f64; 2],
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct Lean {
-    pub out_s: f64,
-    pub back_s: f64,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct MountFeel {
-    pub gun_elevation_rad_s: f64,
-    pub hmg_elevation_rad_s: f64,
-    pub recoil_m: f64,
-    pub recoil_return_s: f64,
-}
-
-/// A shot's recoil throws the hull back on its springs, away from where the
-/// round went, and it rocks back past rest and settles, never moving off its
-/// spot. `rounds` is each round kind's kick (a `default` row): at 1 the
-/// hull's roof swings back at most `rock_deg` about its base while it slides
-/// `slide_m` back; at 0 it never moves. Its springs ring at `hz`, damped by
-/// `damping` (a share of critical, in (0, 1)).
-#[derive(Clone, Debug, Deserialize)]
-pub struct HullKick {
-    pub rounds: HashMap<String, f64>,
-    pub rock_deg: f64,
-    pub slide_m: f64,
-    pub hz: f64,
-    pub damping: f64,
-}
-
-/// Each of his own shots snaps a soldier's upper body back about his waist
-/// ([`KICK_JOINT`](super::skin::KICK_JOINT)), his muzzle climbing
-/// `pitch_deg` and his shoulders thrown `back_m` back, and he recovers over
-/// `return_s`. `rounds` is each round kind's share of that (a `default` row).
-#[derive(Clone, Debug, Deserialize)]
-pub struct SoldierKick {
-    pub rounds: HashMap<String, f64>,
-    pub pitch_deg: f64,
-    pub back_m: f64,
-    pub return_s: f64,
-}
+use super::feel::*;
 
 /// A round kind's kick, or the table's `default` (none without one).
 fn kick_of(rounds: &HashMap<String, f64>, kind: &str) -> f64 {
@@ -180,44 +104,6 @@ fn kick_of(rounds: &HashMap<String, f64>, kind: &str) -> f64 {
         .or_else(|| rounds.get("default"))
         .copied()
         .unwrap_or(0.0)
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct RotorFeel {
-    pub tip_mps: f64,
-}
-
-/// How each flight model leans an aircraft.
-#[derive(Clone, Debug, Deserialize)]
-pub struct AttitudeFeel {
-    pub rotor: TiltFeel,
-    pub fixed_wing: TiltFeel,
-}
-
-impl AttitudeFeel {
-    /// The tilt of an aircraft that flies by `flight`.
-    pub fn flight(&self, flight: FlightModel) -> &TiltFeel {
-        match flight {
-            FlightModel::Rotor => &self.rotor,
-            FlightModel::FixedWing => &self.fixed_wing,
-        }
-    }
-}
-
-/// How far and how quickly an aircraft tilts: `gain` scales the angle its
-/// flight asks for, clamped to `max_deg` and eased over `smoothing_s`.
-#[derive(Clone, Debug, Deserialize)]
-pub struct TiltFeel {
-    pub gain: f64,
-    pub max_deg: f64,
-    pub smoothing_s: f64,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct CorpseCap {
-    pub max: usize,
-    pub fade_s: f64,
-    pub sink_m: f64,
 }
 
 /// Each posture's gait (`INFANTRY_MOVES`), and its clip for each way he
@@ -635,8 +521,7 @@ pub struct PoseDriver {
 impl PoseDriver {
     /// A driver for `units`' pose feel and lean hold.
     pub fn new(units: &UnitsSection) -> Result<Self, String> {
-        let feel =
-            PoseFeel::deserialize(&units.pose).map_err(|e| format!("presentation.pose: {e}"))?;
+        let feel = PoseFeel::from_value(&units.pose)?;
         Ok(Self {
             feel,
             lean_hold: units.lean_hold,
