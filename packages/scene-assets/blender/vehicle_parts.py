@@ -887,7 +887,8 @@ def cargo_bed(name, loc, size, mats, parent, stakes=5, tarp=None, rot=(0, 0, 0))
             x = -sx / 2 + 0.10 + (sx - 0.20) * k / max(1, stakes - 1)
             made += box(name=f"{name}_stake_{side}_{k}", size=(0.08, 0.04, sz), loc=(x, side * (sy / 2 + 0.01), sz / 2),
                         mat=mats["paint"], parent=parent, bevel=0.01, lods=MID)
-            made += box(name=f"{name}_hinge_{side}_{k}", size=(0.10, 0.03, 0.05), loc=(x + 0.2, side * (sy / 2 + 0.01),
+            hinge_x = min(x + 0.2, sx / 2 - 0.10)
+            made += box(name=f"{name}_hinge_{side}_{k}", size=(0.10, 0.03, 0.05), loc=(hinge_x, side * (sy / 2 + 0.01),
                                                                                      0.04),
                         mat=mats["steel"], parent=parent, lods=FINE)
     for end in (-1, 1):

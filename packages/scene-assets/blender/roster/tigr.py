@@ -142,7 +142,7 @@ def kord(v, station, pitch, pivot):
     for side in (-1, 1):
         box(f"shield_wing_{side}", (0.04, 0.26, 0.30), (0.36, side * 0.43, foot + 0.21), m["paint"], station,
             rot=(0, 0, side * 0.7), bevel=0.01, lods=MID)
-    box("pintle", (0.10, 0.10, 0.20), (0.20, 0, -0.12), m["dark"], station, lods=MID)
+    box("pintle", (0.10, 0.10, foot + 0.10), (0.20, 0, (foot + 0.03 - 0.05) / 2), m["dark"], station, lods=MID)
     reach = v.frame["mounts"][0]["muzzle_m"][0]
     box("kord_receiver", (0.55, 0.12, 0.15), (0.10, 0, 0), m["dark"], pitch, bevel=0.012)
     cyl("kord_barrel", 0.024, reach - 0.37, ((reach + 0.37) / 2, 0, 0), "X", m["steel"], pitch, seg=10)
