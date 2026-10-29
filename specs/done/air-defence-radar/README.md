@@ -9,16 +9,16 @@ would add another battery-coordination mechanic.
 
 ## What the shipped contract covers
 
-Radar is an authored capability on a unit. An emitting unit sees high
-air through its own radar reach and creates a radar signature that a radar
-receiver, such as a SEAD aircraft, can detect. The receiver gets an approximate
+Radar is an authored capability on a unit. `capabilities.radar_emitter` makes
+it a radar signature that a radar receiver, such as a SEAD aircraft, can
+detect; its high-air reach is its own authored `sensors.high_air_m`, which
+emitting does not change ([unit concealment](../unit-concealment/README.md)). The receiver gets an approximate
 bearing and range; it does not identify the emitter. Side knowledge remains the
 only route from a sighting to a legal shot.
 
 The current owners are:
 
-- `crates/contract/src/catalog.rs` for `RadarCapability` and
-  `RadarReceiver`;
+- `crates/contract/src/catalog.rs` for `radar_emitter` and `RadarReceiver`;
 - `crates/sim/src/knowledge.rs::update_radar` for radar contacts;
 - `crates/sim/src/sight.rs` and `crates/sim/src/weapons.rs` for layer sight and
   legal engagement;
