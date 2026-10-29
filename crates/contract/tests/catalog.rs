@@ -765,8 +765,8 @@ fn every_card_label_is_concise_and_separate_from_its_id() {
 }
 
 /// A vehicle's presentation class comes from its physics (how it moves, how
-/// heavy its hull is, whether it hauls supply), never its unit id, so a new
-/// vehicle sounds and articulates as its kind with no table edit. The view
+/// heavy its hull is, whether it hauls supply), never its unit id or role, so
+/// a new vehicle sounds and articulates as its kind with no table edit. The view
 /// carries it for every reader; a squad has none.
 #[test]
 fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
@@ -783,9 +783,11 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
         "turning_radius_m": 8, "reverse_fraction": 0.3 } });
     let mut recon = wheeled.clone();
     recon["roles"] = json!(["recon"]);
-    let mut truck = wheeled.clone();
-    truck["roles"] = json!(["logistics"]);
-    truck["capabilities"] = json!({ "deploy": { "seconds": 3 }, "supply": { "stock": 100 } });
+    let mut tagged = wheeled.clone();
+    tagged["roles"] = json!(["logistics"]);
+    let mut truck = recon.clone();
+    truck["capabilities"] =
+        json!({ "deploy": { "seconds": 3, "pack_seconds": 3 }, "supply": { "stock": 100 } });
     let mut heli = base_tank();
     heli["abstract"] = json!(false);
     heli["body"]["hull"]["weight_class"] = json!("light");
@@ -800,6 +802,7 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
         "tank": { "extends": "base" },
         "recon": recon,
         "truck": truck,
+        "tagged": tagged,
         "heli": heli,
         "fighter": fighter,
         "team": {
@@ -832,6 +835,7 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
         ("fighter", json!("high_air_light")),
         ("heli", json!("air_light")),
         ("recon", json!("wheeled_medium")),
+        ("tagged", json!("wheeled_medium")),
         ("tank", json!("tracked_heavy")),
         ("team", Value::Null),
         ("truck", json!("wheeled_medium_logistics")),
@@ -842,26 +846,6 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
         classes,
         want.iter().map(|(id, c)| (*id, c)).collect::<Vec<_>>()
     );
-}
-
-/// A vehicle is presented as a hauler (`_logistics`) because it carries
-/// supply, not because its card's role says so.
-#[test]
-fn a_supply_carrier_is_a_logistics_vehicle_whatever_its_role() {
-    let mut hauler = base_tank();
-    hauler["abstract"] = json!(false);
-    hauler["roles"] = json!(["mbt"]);
-    hauler["capabilities"] = json!({ "deploy": { "seconds": 3 }, "supply": { "stock": 100 } });
-    let mut tagged = base_tank();
-    tagged["abstract"] = json!(false);
-    tagged["roles"] = json!(["logistics"]);
-    let mut documents = units(json!({ "hauler": hauler, "tagged": tagged }));
-    documents[0]["roles"]["logistics"] =
-        json!({ "name": "Logistics", "description": "", "symbol": ["supply"] });
-    let catalog = resolve(&documents).unwrap();
-    let class = |id: &str| catalog.by_id(id).vehicle_class().unwrap();
-    assert_eq!(class("hauler"), "tracked_heavy_logistics");
-    assert_eq!(class("tagged"), "tracked_heavy");
 }
 
 /// Flares are dispensed from a vehicle or an airframe: a squad carrying

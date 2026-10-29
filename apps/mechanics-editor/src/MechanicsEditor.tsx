@@ -40,6 +40,7 @@ import {
   parseFieldValue,
   rawText,
   validateGameplayValue,
+  enabledValue,
   valueAt,
   type GameplayField,
 } from "./fields";
@@ -274,19 +275,11 @@ function ValueInput({
         value={isObject(value) ? "enabled" : ""}
         onChange={(event) => {
           editor.setText(key, undefined);
-          const saved =
+          const row =
             target.section === "weapons"
-              ? valueAt(
-                  resolvedEntries(editor.snapshot.catalog, target.section)[target.id],
-                  field.path,
-                )
+              ? resolvedEntries(editor.snapshot.catalog, target.section)[target.id]
               : undefined;
-          editor.change(
-            target,
-            field,
-            event.target.value ? (saved ?? field.initial ?? {}) : null,
-            entry,
-          );
+          editor.change(target, field, event.target.value ? enabledValue(field, row) : null, entry);
         }}
       >
         <option value="">None</option>

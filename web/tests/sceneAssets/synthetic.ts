@@ -82,7 +82,7 @@ export function syntheticUnits(tank: Partial<UnitType> = {}): UnitCatalog {
         ...tank,
       }),
       hullType("supply", "truck", [3, 1.4, 1.8], wheeled, "wheeled_heavy", {
-        capabilities: { deploy: { seconds: 1 } },
+        capabilities: { deploy: { seconds: 1, pack_seconds: 1 } },
       }),
       {
         ...hullType("rifle", "", [0, 0, 0], { foot: { offroad_kmh: 4, road_kmh: 4 } }, null),
@@ -404,7 +404,6 @@ export interface SoldierOptions {
   noNormals?: boolean;
   stretch?: boolean; // nonuniform node scale
   clips?: string[]; // animations to include
-  noLods?: boolean;
   animated?: boolean; // include animations at all (default true)
   tint?: number; // the side-tint mask weight of its material (extras.tint)
 }
@@ -433,8 +432,7 @@ export function soldierGlb(o: SoldierOptions = {}): Uint8Array {
   // Boxes per tier, 12 triangles each: 4, 3, 2, 1. The body is in every
   // tier, the rifle in the finest three, the pack in the finest two and the
   // pouch in the finest alone.
-  const lods = o.noLods ? [""] : LODS;
-  const rifle = tieredPart(g, "rifle", rifleMesh, 3, lods, [muzzle]);
+  const rifle = tieredPart(g, "rifle", rifleMesh, 3, LODS, [muzzle]);
   const hand = g.node({ name: "hand_r", t: [-0.2 * k, 0.2 * k, 0.1 * k], children: [leaf, rifle] });
   const extra = o.extraJoint ? g.node({ name: "pouch_joint", t: [0.1 * k, 0, 0] }) : -1;
   const spine = g.node({
@@ -464,7 +462,7 @@ export function soldierGlb(o: SoldierOptions = {}): Uint8Array {
     ];
   };
   const bodyNodes: number[] = [];
-  lods.forEach((suffix, tier) => {
+  LODS.forEach((suffix, tier) => {
     const extraAttrs: GltfJson = {};
     if (o.fiveWeights) {
       extraAttrs.JOINTS_1 = g.accessor(new Uint16Array(24 * 4), "VEC4");
@@ -473,14 +471,14 @@ export function soldierGlb(o: SoldierOptions = {}): Uint8Array {
     const mesh = g.box([-0.2, lift, -0.15], [0.2, top + lift, 0.15], influence, extraAttrs);
     if (o.noNormals) delete g.json.meshes[mesh].primitives[0].attributes.NORMAL;
     bodyNodes.push(g.node({ name: `body${suffix}`, mesh, skin }));
-    if (tier < 2 && !o.noLods) {
+    if (tier < 2) {
       const pack = g.box([-0.15, 1.0 + lift, -0.3], [0.15, 1.4 + lift, -0.15], () => [
         [slot(spine), 0, 0, 0],
         [1, 0, 0, 0],
       ]);
       bodyNodes.push(g.node({ name: `pack${suffix}`, mesh: pack, skin }));
     }
-    if (tier === 0 && !o.noLods) {
+    if (tier === 0) {
       const pouch = g.box([-0.1, 0.85 + lift, 0.15], [0.1, 1.0 + lift, 0.2], () => [
         [slot(pelvis), 0, 0, 0],
         [1, 0, 0, 0],
@@ -549,13 +547,13 @@ export const gBox = (b: GltfBuilder, min: Vec3, max: Vec3) => {
 };
 
 /** Mesh tier suffixes, finest first; `UNSUFFIXED` names a mesh no tier owns. */
-export const LODS = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"];
+const LODS = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"];
 const UNSUFFIXED = [""];
 
 /** One part drawn in its finest `tiers` tiers: a `<name>_LOD0` node with
  *  the coarser tiers' nodes (the same mesh) under it. With `UNSUFFIXED`
  *  suffixes, one node named `name`. */
-export function tieredPart(
+function tieredPart(
   b: GltfBuilder,
   name: string,
   mesh: number,

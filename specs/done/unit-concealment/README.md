@@ -62,7 +62,7 @@ HIDDEN    = more than squad_hidden_fraction of samples have ground < 1 and targe
   - `moving_concealment` is at least 1, so moving never improves concealment.
   - `building_range_multiplier` lies in (0, 1].
   - Unit `concealment` and `spotting` are finite and above 0, and both may exceed 1.
-- **The guard:** `crates/clippy.toml` disallows every f64 and f32 transcendental method. Clippy runs with `-D warnings`, so the guard covers every crate under `crates/`: `game-wasm`, `presentation-wasm` and `pipelines` on every target. `native/client` sits outside `crates/` and outside the guard. Contract, sim, mapgen and presentation set `disallowed_methods = "allow"` in their `Cargo.toml` and `#![deny(...)]` in `lib.rs`, so the guard holds on their library code (including `#[cfg(test)]`) but not on their native-only tests and examples.
+- **The guard:** `crates/clippy.toml` disallows every f64 and f32 transcendental method. Clippy runs with `-D warnings`, so the guard covers every crate under `crates/`: `game-wasm`, `presentation-wasm` and `pipelines` on every target. `native/client` sits outside `crates/` and outside the guard, deliberately: it is native-only, and its two transcendental calls convert audio gain, which no battle or digest reads. Contract, sim, mapgen and presentation set `disallowed_methods = "allow"` in their `Cargo.toml` and `#![deny(...)]` in `lib.rs`, so the guard holds on their library code (including `#[cfg(test)]`) but not on their native-only tests and examples.
 - **Tests test mechanics, not configuration.** The system test authors its own values. No test pins a roster value.
 
 ## Pointers into the code
@@ -146,11 +146,7 @@ Record files re-blessed only their embedded inputs. The neutral data was hulls 2
 ## Follow-ups (outside this spec)
 
 - **Balance.** With these values, a 500 m MBT with spotting 0.8 identifies a still forest sniper team at about 37 m. The spotting report shows every such cell.
-- **`capabilities.deploy.pack_seconds`** still copies `seconds` when omitted, which breaks the "values live on the unit" rule.
-- **Forest movement speed** keeps an infantry/vehicle split.
-- **The mechanics editor** seeds a new ground layer at 300 m, which admission refuses on a row whose flight bound is shorter.
-- **The TypeScript `UnitType`** doesn't declare `concealment` or `spotting`; only the mechanics editor touches them, by field path.
-- **`native/client`** is outside the libm guard (it sits outside `crates/`).
+- **Forest movement speed** keeps an infantry/vehicle split (`movement.forest_infantry_multiplier` 0.7, `forest_vehicle_multiplier` 0.4), keyed on whether the unit moves on foot.
 
 ## Visual provenance
 

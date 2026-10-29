@@ -180,11 +180,15 @@ export interface UnitType {
   cost: number;
   body: Body;
   mobility: Mobility;
+  /** Its own concealment, multiplying what its ground gives it. */
+  concealment: number;
   sensors: {
     ground_m: number;
     low_air_m: number;
     high_air_m: number;
     sight_shape: { front: number; side: number; rear: number };
+    /** Above 1 cancels a target's concealment, below 1 deepens it; omitted is 1. */
+    spotting?: number;
     on?: string;
   };
   mounts: MountRow[];
@@ -196,7 +200,7 @@ export interface UnitType {
   vehicle_class: string | null;
   capabilities: {
     carriage?: { seats: number };
-    deploy?: { seconds: number; pack_seconds?: number };
+    deploy?: { seconds: number; pack_seconds: number };
     supply?: { stock: number };
     active_protection?: {
       /** What the card's protection row reads, and its weapon icon. */

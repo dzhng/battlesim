@@ -31,6 +31,7 @@ export const hullType = (
     },
   },
   mobility,
+  concealment: 1,
   vehicle_class,
   sensors: {
     ground_m: 1,

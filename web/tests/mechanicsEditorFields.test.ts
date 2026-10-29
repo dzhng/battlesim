@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
+  enabledValue,
   gameplayField,
   displayFieldValue,
   parseFieldValue,
@@ -14,6 +15,14 @@ describe("mechanics human units", () => {
     expect(displayFieldValue(field, 15)).toBe("15");
     expect(parseFieldValue(field, "20", weapon)).toEqual({ value: 20 });
   });
+});
+
+it("enables a target layer at its saved values, else within the row's flight bound", () => {
+  const ground = gameplayField("weapons", ["targets", "ground"])!;
+  const saved = { range_m: 90, scatter_mrad: 3, classes: ["infantry"] };
+  expect(enabledValue(ground, { range_m: 120, targets: { ground: saved } })).toEqual(saved);
+  expect(enabledValue(ground, { range_m: 120, targets: {} })).toMatchObject({ range_m: 120 });
+  expect(enabledValue(ground, { range_m: 0, targets: {} })).toMatchObject({ range_m: 0 });
 });
 
 it("keeps invalid converted text from becoming an authored value", () => {

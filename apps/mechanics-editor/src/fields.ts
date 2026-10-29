@@ -208,7 +208,7 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       {
         kind: "object",
         optional: true,
-        initial: { seconds: 3, pack_seconds: null },
+        initial: { seconds: 3, pack_seconds: 3 },
       },
     ),
     field(
@@ -236,8 +236,8 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "capabilities.deploy.pack_seconds",
       "Packing time",
       "Service",
-      "Time to pack before moving. None uses setup time; packing and setup share reversible progress.",
-      { unit: "s", optional: true },
+      "Time to pack before moving. Packing and setup share reversible progress.",
+      { unit: "s" },
     ),
     field(
       "capabilities.supply",
@@ -480,7 +480,6 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
         classesLabel: "Ground targets",
         at: "on",
         classes: ["infantry", "vehicle"],
-        range_m: 300,
         scatter_mrad: 8,
       },
       {
@@ -489,7 +488,6 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
         classesLabel: "Low-air targets",
         at: "at",
         classes: ["air_rotor", "air_fixed_wing"],
-        range_m: 100,
         scatter_mrad: 40,
       },
       {
@@ -498,16 +496,15 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
         classesLabel: "High-air targets",
         at: "in",
         classes: ["air_rotor", "air_fixed_wing"],
-        range_m: 500,
         scatter_mrad: 8,
       },
-    ].flatMap(({ layer, label, classesLabel, at, classes, range_m, scatter_mrad }) => [
+    ].flatMap(({ layer, label, classesLabel, at, classes, scatter_mrad }) => [
       field(
         `targets.${layer}`,
         `Engages ${label}`,
         "Impact & suppression",
         "Its crew brings it to bear at this layer's own range and spread. Rows that extend another inherit it.",
-        { kind: "object", optional: true, initial: { classes, range_m, scatter_mrad } },
+        { kind: "object", optional: true, initial: { classes, scatter_mrad } },
       ),
       field(
         `targets.${layer}.classes`,
@@ -594,6 +591,17 @@ export function valueAt(value: Json | undefined, path: readonly string[]): Json 
         : undefined;
   }
   return cursor;
+}
+
+/** What enabling an object field writes: a weapon row's saved value, else the
+ *  field's initial one. A new target layer starts at the row's flight bound,
+ *  the one reach admission always accepts. */
+export function enabledValue(f: GameplayField, row: Json | undefined): Json {
+  const saved = valueAt(row, f.path);
+  if (saved !== undefined) return saved;
+  return f.path[0] === "targets" && isObject(f.initial)
+    ? { ...f.initial, range_m: valueAt(row, ["range_m"]) ?? 0 }
+    : (f.initial ?? {});
 }
 
 export const rawText = (value: Json | undefined) =>
