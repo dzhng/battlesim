@@ -84,6 +84,7 @@ impl PushClass {
 
 /// Which movers a body stops: navigation and collision read these, nothing else.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Blocks {
     pub infantry: bool,
     pub vehicle: bool,
@@ -754,12 +755,12 @@ impl HullLimits {
 #[serde(deny_unknown_fields)]
 struct UncheckedRules {
     // These sections belong to presentation and browser input, never simulation.
-    #[serde(rename = "presentation", default)]
+    #[serde(rename = "presentation")]
     _presentation: Option<serde::de::IgnoredAny>,
-    #[serde(rename = "controls", default)]
+    #[serde(rename = "controls")]
     _controls: Option<Controls>,
     // The battle lab's default; a battle supplies its own seed separately.
-    #[serde(rename = "seed", default)]
+    #[serde(rename = "seed")]
     _seed: Option<u64>,
     tick_hz: u32,
     commands: CommandRules,
@@ -1354,7 +1355,7 @@ pub struct AuthoredScript {
     pub source: String,
     #[serde(default = "default_script_side")]
     pub side: Side,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub player: Option<String>,
 }
 

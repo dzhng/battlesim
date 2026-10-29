@@ -26,6 +26,7 @@ disallowed-methods = [
     { path = "f64::cbrt", reason = "use libm::cbrt" },
     { path = "f32::exp", reason = "use libm::expf" },
     { path = "f32::ln", reason = "use libm::logf" },
+    { path = "f32::log", reason = "use libm" },
     { path = "f32::log2", reason = "use libm::log2f" },
     { path = "f32::powf", reason = "use libm::powf" },
     { path = "f32::sin", reason = "use libm::sinf" },
