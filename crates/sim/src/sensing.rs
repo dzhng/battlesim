@@ -157,7 +157,7 @@ pub fn effective(target: f64, spotting: f64) -> f64 {
     if spotting >= 1.0 {
         (target * spotting).min(1.0)
     } else {
-        libm::pow(target.min(1.0), 1.0 / spotting).min(1.0)
+        libm::pow(target.min(1.0), 1.0 / spotting)
     }
 }
 

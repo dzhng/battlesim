@@ -63,14 +63,6 @@ Sight into ground, low air and high air is authored independently on each unit.
 means blind. Radar emission is an independent signature read by receivers and
 anti-radiation weapons, with no sight override or body-based range table.
 
-Resolved rules must carry their physical values. Weapon partial penetration,
-per-layer range and scatter, aircraft altitude layer and afterburner
-multipliers, squad sensing fractions, formation rules and vehicle aim height
-come from authored data or inheritance. Readers neither copy a missing layer
-value from its weapon row nor supply a shared penetration or air-mobility
-fallback. [Admission](../contract/README.md) refuses incomplete resolved inputs;
-optional fields mean a neutral value, no capability or no restriction.
-
 ## Battle rules
 
 Rules follow physical components, with the game's [first-principles policy](../../development.md#game-rules)

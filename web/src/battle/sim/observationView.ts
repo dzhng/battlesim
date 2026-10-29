@@ -151,7 +151,7 @@ export interface OwnUnitView {
   /** How suppressed the squad is, by the rules' thresholds (the sim owns
    *  them; the hidden level is never published). Vehicles are "none". */
   suppression: SuppressionTier;
-  /** Enough forest or shelter concealment, with no visible enemy observer spotting it or known engagement. */
+  /** Enough samples on concealing ground with net concealment below 1, and no visible enemy observer spotting it or known engagement. */
   concealed: boolean;
   /** Setup progress for units that deploy in place; null for the rest. */
   deployment: DeploymentView | null;

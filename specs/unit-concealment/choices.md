@@ -76,3 +76,32 @@ Decisions made where the spec was silent or wrong, with verdicts. Final consolid
   The ordinary rifle target is identified at 602 m. A parked forest MBT is HIDDEN; driving, it loses HIDDEN at once. *Verdict: matches the system test's ordering.*
 - **The published HIDDEN can trail the GIF's direct identification check by one tick**, because it reads the battle's own sightings. The MBT forest lane first stopped on that tick and showed HIDDEN next to "identified". Each lane now runs on until the published readout clears, at most one tick here, and ends on that frame. *Verdict: corrected in review; not a mechanism bug.*
 - **The checkpoint wasn't opened in Preview.** The user asked on 2026-10-28 not to be asked to approve anything. I judged the frames myself and Codex ran an unprimed critique. The shots are in `throwaway/concealment-shots/`. *Verdict: per the user's standing instruction.*
+
+## Closeout
+
+- **Net code, against the spec's "net less code" firewall:**
+
+  | Area | Added | Deleted | Net |
+  |---|---:|---:|---:|
+  | Library (Rust and TS, no tests or examples) | 975 | 1,030 | −55 |
+  | Examples (spotting report, concealment shots, shared canvas) | 1,005 | 272 | +733 |
+  | Tests | 1,354 | 1,128 | +226 |
+  | Docs | 78 | 23 | +55 |
+  | Authored data (`game.json`, unit files) | 569 | 459 | +110 |
+
+  Overall code grew, through the two developer tools and the system test. The library shrank, and that is where the firewall's intent ("no added machinery") applies. *Verdict: accepted deviation. The tools are what the spec asked for, and authored config growth was allowed.*
+- **Review fixes:**
+  - The published HIDDEN flag's docs (`observation.rs`, `observationView.ts`) and `squad_hidden_fraction` now describe net concealment over every unit's samples.
+  - The sim README dropped a paragraph that restated, and loosened, the "values live on the unit" rule.
+  - `effective` lost a no-op clamp.
+  - `SensorRules::check` admits `building_range_multiplier` in (0, 1].
+  - The f32 libm list now matches the f64 one.
+
+  The reviewer also suggested opting `game-wasm`, `presentation-wasm` and `pipelines` into the guard. They are already guarded: the lint warns by default and clippy runs with `-D warnings`; the package-level allow exists only to free other crates' tests and examples. *Verdict: fixed.*
+- **The full run:** `bun run check` passed format, lint, wasm build and typecheck, 1,957 Rust tests and 1,306 web tests. Four web tests failed because LFS assets were missing from this checkout (third-party audio, disabled-card source models, the launcher skeleton); with those pulled, they pass. The balance sweep (`battle_sweep`, 10 seeds, 30 s) ran 114 battles to completion. Its 6 refusals are map generation's own: transit, sight certificate and settlement placement, none reading this spec's fields. *Verdict: green.*
+- **Follow-ups outside this spec:**
+  - `capabilities.deploy.pack_seconds` still copies `seconds` when omitted.
+  - Forest movement keeps an infantry/vehicle speed split.
+  - The editor seeds a new ground layer at 300 m, which a short-range row refuses.
+  - The TS `UnitType` doesn't declare `concealment` or `spotting` yet; nothing in TS reads them.
+  - Balance: an MBT identifies a still forest sniper team at about 37 m.

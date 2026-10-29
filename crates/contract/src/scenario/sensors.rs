@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 pub struct SensorRules {
     /// Minimum fraction of living soldiers one observer must see to identify a squad.
     pub squad_identification_fraction: f64,
-    /// Fraction of living soldiers that concealment must exceed for HIDDEN.
+    /// Fraction of a unit's visibility samples (living soldiers, or a hull's
+    /// two) that must be concealed for HIDDEN.
     pub squad_hidden_fraction: f64,
     /// A ground ray whose foliage depth (the sum of each crossed metre's
     /// `attenuation_per_m` below the canopy) reaches this is blocked
@@ -64,6 +65,9 @@ impl SensorRules {
         }
         if !self.foliage_full_block.is_finite() || self.foliage_full_block <= 0.0 {
             return Err("foliage_full_block must be finite and positive".into());
+        }
+        if !(self.building_range_multiplier > 0.0 && self.building_range_multiplier <= 1.0) {
+            return Err("building_range_multiplier must lie in (0, 1]".into());
         }
         if !self.moving_concealment.is_finite() || self.moving_concealment < 1.0 {
             return Err("moving_concealment must be finite and at least 1".into());

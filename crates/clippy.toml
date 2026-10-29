@@ -37,4 +37,12 @@ disallowed-methods = [
     { path = "f32::atan", reason = "use libm::atanf" },
     { path = "f32::atan2", reason = "use libm::atan2f" },
     { path = "f32::hypot", reason = "use libm::hypotf" },
+    { path = "f32::exp2", reason = "use libm::exp2f" },
+    { path = "f32::exp_m1", reason = "use libm::expm1f" },
+    { path = "f32::ln_1p", reason = "use libm::log1pf" },
+    { path = "f32::log10", reason = "use libm::log10f" },
+    { path = "f32::sinh", reason = "use libm::sinhf" },
+    { path = "f32::cosh", reason = "use libm::coshf" },
+    { path = "f32::tanh", reason = "use libm::tanhf" },
+    { path = "f32::cbrt", reason = "use libm::cbrtf" },
 ]
