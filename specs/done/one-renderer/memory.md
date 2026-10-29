@@ -205,7 +205,9 @@ SHA256 manifests. They are research evidence, not another runtime abstraction.
 - Shared before source `d9a08f88b7050fb238badf77fb297c019a50bed1` (the following
   `966bde248f0d5eff0e6b876f35f4bbaa07660516` changes docs only), artifact
   `startup-confirmation-final/wgpu-build`.
-- Fixed artifact `memory-lazy-preserved-build`; renderer WASM SHA256
+- Fixed source `e56cb964c45c98dffc123b36ea5a72825a42e11f` (commit-hook
+  formatting does not change the measured program); artifact
+  `memory-lazy-preserved-build`; renderer WASM SHA256
   `dcc7e500d286888d963d4fda34b4b28d2dd778552838977ef4b2f0ce5af9966a`.
 - Runtime catalog SHA256
   `d98c65c9341bd3c4d06990b80ae78af8d94de2a9393b7bb8c0c2a876e69075c7`.
@@ -259,7 +261,7 @@ regression. Crowded cyan labels in the replay town are a shared historical
 readability concern. Evidence and the receipt-checked critique live in
 `memory-visual/`. Independent code reviews find no remaining actionable defects.
 
-The measured fixes add 158 net production lines, mostly propagating the queue
+The measured fixes add 154 net production lines, mostly propagating the queue
 through existing constructors. They add no service, dependency, persistent
 schema, secondary rendering path or background cleanup mechanism. The only new
 cache is a weak content-identity index owned by the existing source library.
