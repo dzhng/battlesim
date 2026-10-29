@@ -1,7 +1,7 @@
 # One-renderer choices ledger
 
-Final review, accounting and archival remain open. Verdicts judge architectural
-choices; current verification and remaining closeout live in research.
+Consolidated against the completed implementation. Verdicts judge architectural
+choices; verification and measurement limits live in research.
 
 Review these first: memory measurements describe several different kinds of
 ownership; explicit native timestamp profiling changes pacing; shader composition
@@ -99,6 +99,32 @@ sizes; this decision governs the complete frame with post-processing.
 targets remain available to specialized offscreen work. **Verdict:** sound; the
 existing camera floor supplies a common valid production extent. **Confidence:**
 medium; arbitrary tiny full-frame output would require a different pyramid policy.
+
+### Admit the player's purchase roster and retain learned source kinds
+
+**When:** final browser source-lifetime and purchase-response repair, 2026-10-28.
+
+A tiny lab must not upload another battle's cached wrecks, while a player must
+still get an immediate ghost when selecting an unfielded reinforcement. One
+source closure includes the human's enabled purchase cards for its faction,
+initial fielded units, authored map wrecks and everything the observer has learned.
+It includes corpse, crash, remembered-contact, transit and wreck references even
+when their live units are absent. Learned kinds stay for this battle and observing
+side; a different observer or battle starts its own history. Other factions’ roster-only kinds enter on observed/pending demand, rather
+than uploading every faction roster before play. The same closure feeds canonical fielding and GPU admission.
+
+The page may retain downloaded art from earlier visits, but that cache is filtered
+before canonical prop selection. A loaded catalog entry does not by itself admit
+a mesh. Transport stays bounded per bundle. Review sheets also install their
+actual ground and catch up the current world before framing.
+
+**Gap:** catalog availability did not define admission scope, history retention
+or immediate purchase readiness. **Reach:** this retains a faction roster plus
+learned art for the battle's life, costing more memory than current-visible-only
+loading and avoiding repeated source retirement. It does not load every faction
+up front. **Verdict:** sound; complete scene demand determines residency, with
+purchase responsiveness preserved. **Confidence:** medium; growing content still
+needs measured admission budgets.
 
 ## Sound — high confidence
 
@@ -211,33 +237,6 @@ storage without changing what is drawn.
 meaning; memory/submission diagnostics inspect actual resources and draws rather
 than permanent migration counters. **Verdict:** sound; routing identity does not
 imply mesh ownership. **Confidence:** high.
-
-### Admit the player's purchase roster and retain learned source kinds
-
-**When:** final browser source-lifetime and purchase-response repair, 2026-10-28.
-
-A tiny lab must not upload another battle's cached wrecks, while a player must
-still get an immediate ghost when selecting an unfielded reinforcement. One
-source closure includes the human's enabled purchase cards for its faction,
-initial fielded units, authored map wrecks and everything the observer has learned.
-It includes corpse, crash, remembered-contact, transit and wreck references even
-when their live units are absent. Learned kinds stay for this battle and observing
-side; a different observer or battle starts its own history. Other factions arrive
-as ordinary observed/pending sources, rather than all factions being uploaded
-before play. The same closure feeds canonical fielding and GPU admission.
-
-The page may retain downloaded art from earlier visits, but that cache is filtered
-before canonical prop selection. A loaded catalog entry does not by itself admit
-a mesh. Transport stays bounded per bundle. Review sheets also install their
-actual ground and catch up the current world before framing.
-
-**Gap:** catalog availability did not define admission scope, history retention
-or immediate purchase readiness. **Reach:** this retains a faction roster plus
-learned art for the battle's life, costing more memory than current-visible-only
-loading and avoiding repeated source retirement. It does not load every faction
-up front. **Verdict:** sound; complete scene demand determines residency, with
-purchase responsiveness preserved. **Confidence:** medium; growing content still
-needs measured admission budgets.
 
 ### Match canonical fielding to one stable complete request
 

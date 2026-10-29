@@ -194,7 +194,7 @@ The tiny-target regression now uses the canonical presentation floor
 and green fix are retained in `throwaway/final-perf/tiny-target-observed-red-2.log`
 and `tiny-target-green.log`; this focused result is not full browser closeout.
 
-The final startup comparison uses the original TypeGPU source and current
+The earlier pre-source-repair startup comparison uses the original TypeGPU source and then-current
 shared-browser production builds, three fresh processes/backend/route in
 rotating order, cache disabled,1280×720. Every repeat succeeds without page errors.
 These are application-readiness observations over loopback, not actual display
@@ -228,20 +228,28 @@ counts: `throwaway/final-perf/startup-final/{results,summary,identity,wasm-artif
 The earlier candidate-only startup pilot is retained separately at
 `throwaway/final-perf/cold-startup/results.json` and does not replace this cohort.
 
-Current maintained production-source accounting is **+3420 code lines**
-(23,697 added / 20,277 deleted), excluding full-line comments and including
-authored WGSL plus the 64-line shader-composition index. Generated exports are
-separate (19,548 net code lines removed); tests/harness add 3249 net. Renamed paths must
-count both endpoints with `--no-renames`; deletion-only or destination-only totals
-misstate complexity. `throwaway/final-perf/complexity-summary.txt` and accounting
-JSON are snapshots pending reconciliation. Removed migration counters and final
-shader cleanup postdate the measured cohort and have no isolated timing result.
+Maintained production-source accounting against original control
+`5b52cabb57578d059eaa3a352bf2e38946742d4b` is **+3709 code lines**:
+24,151 added / 20,442 deleted. This counts changed physical nonblank lines,
+separates full-line comments, includes authored WGSL and its composition index,
+and excludes generated expansion. Both endpoints of renamed paths are counted
+with `--no-renames`; deletion-only or destination-only totals misstate complexity.
+Production comments: 1,901 added / 3,383 deleted. Tests/harness code: 7,008 added /
+3,260 deleted; their full-line comments: 98 added / 194 deleted. Generated code
+is separately 19,548 net lines removed. Config/data is separately +31 lines.
+These are reproducible line classifications, not parser SLOC or a complexity
+score. `throwaway/final-perf/complexity.json` retains per-file classifications;
+`tools/renderer-accounting.mjs` inventories current source and artifact surfaces.
 
-## Remaining closeout / handoff
+## Verification reconciliation
 
-Full Rust workspace passed in1881.29s. Web has valid results for195files /
-1288tests:193files passed in the full run, then two missing-LFS files pass a
-focused21-test rerun; this is reconciled coverage, not one all-green run.
+Full Rust workspace passed in 1881.29 s. The later complete web run executed
+195 files / 1296 tests: 1295 passed and one replay-setup import failed transiently.
+Its unchanged focused reproduction passes, as do independent original-URL,
+isolated-cache and shared-cache controls. Network diagnostics were added without
+claiming an unproven functional repair. Final source/interaction regressions add
+one test file and five tests; focused viewport/source/kit/regional/replay coverage
+passes. This is reconciled coverage, not one all-green full-suite run.
 The first full browser run attempted all48registered fixtures in1776.66s with
 27failed assertions. Do not repeat it unchanged.
 
@@ -344,9 +352,10 @@ pin repair is a separate commit. Ruler CPU staging and browser confirmation
 remembered-contact and actual right-click requirements. One covered waypoint
 reaches them; the old scout died before identifying anything.
 
-Source/artifact accounting, review resolution, final verdict and archival remain
-open. The performance/startup numbers above belong to their named frozen builds;
+The performance/startup numbers above belong to their named frozen builds;
 subsequent source/readiness repairs are not silently credited those exact results.
+The final confirmation below supersedes the older startup figures for the
+completed candidate.
 
 
 ### Final complete-generation and interaction repair
@@ -397,3 +406,70 @@ The earlier 28.28% renderer CPU reduction was measured on a fully loaded frozen
 replay before bundle-sharing and these source repairs. It cannot be attributed
 to a loading freeze, the later Arc change or a stabilized React dependency.
 The render span locates 83.1% of the saving but isolates no internal cause.
+
+
+### Clean final startup confirmation
+
+Candidate source: `d9a08f88b7050fb238badf77fb297c019a50bed1`, with the original
+TypeGPU production build frozen. Three fresh browser processes per backend/route,
+rotating order, 1280×720, network cache disabled. All twelve rows finish without
+page errors. This task finished compilation before the cohort, held the canonical
+GPU lock throughout, and retained the host process snapshot. System/background
+activity was not artificially disabled. This is loopback application readiness,
+not display presentation, external-network latency or filesystem/driver coldness.
+
+| Route | TypeGPU seconds, all repeats | Shared Rust seconds, all repeats | Mean TypeGPU/shared |
+| --- | --- | --- | --- |
+| Frame lab, low quality | 14.981 / 13.859 / 13.117 | 5.109 / 5.305 / 4.549 | 13.986 / 4.988 s |
+| Small generated US battle | 15.300 / 14.010 / 14.815 | 10.110 / 8.796 / 9.505 | 14.708 / 9.470 s |
+
+Completed response bodies before readiness are 617,155,511 / 618,572,081 B for
+the frame route, TypeGPU/shared. Battle is 667,436,044–674,662,924 / 425,107,014 B.
+These context-level request closures include workers and any background warming
+that finishes before readiness; they are not solely required renderer download.
+Loopback asset transfer is uncompressed.
+
+Main-realm renderer/presentation/audio WASM capacity in battle is
+1,891,762,176–1,893,007,360 B, versus 56,360,960–60,882,944 B for TypeGPU's
+presentation/audio module. Frame capacity is 57,606,144 versus 3,801,088 B.
+Both admit the additional unchanged game module (~9.57 MB battle / ~9.70 MB
+frame). TypeGPU also holds model/texture data in JavaScript; comparing these WASM
+capacities is not a total application-memory comparison. They exclude worker,
+managed-heap, external-array, allocator-live, process and driver residency.
+The separate long-battle transition's 3.59 GB high-water remains material.
+
+All rows, screenshots, timestamps and build identity are retained in
+`throwaway/final-perf/startup-confirmation-final/`. Earlier
+`startup-shared-bundles-final/` overlapped compilation during its first pair and
+remains development evidence; all rows are retained, not selectively averaged.
+Final artifact SHA256 and raw/gzip/Brotli sizes are in the confirmation's
+`artifacts.json`; the inventory tool provides the current ownership surfaces.
+
+
+Final standalone WASM artifact sizes (gzip level 9, default Brotli quality 11):
+
+| Artifact | Raw bytes | Gzip bytes | Brotli bytes |
+| --- | ---: | ---: | ---: |
+| Unchanged game module, both builds | 8,151,438 | 2,758,109 | 1,828,014 |
+| Original TypeGPU presentation/audio module | 3,439,054 | 1,177,157 | 796,893 |
+| Shared renderer/presentation/audio module | 5,030,966 | 1,716,754 | 1,125,194 |
+
+The final shared module SHA256 is
+`8fb6fa618b8ed5d77d4a5f604a3c4ddaea5ecb9b45861cb7a6aa918c5639abf8`;
+the original presentation module is
+`d1f93c80b684d43d863b1b812ef1d7a80745e1d75630939c5aaff6362990fbdd`.
+The identical game module is
+`2815673c48f8a7c0cce424833d5f8cce94947bdda47f7917c6ba10b61e911825`.
+These individual compressed sizes do not include JavaScript, textures or
+transport headers and do not replace the observed route request closure.
+
+The close-spec architecture audit found only a wording qualification: browser
+surface presentation supplies a final display-copy shader, while shared core
+owns production scene shaders/pipeline policy. The archive now says so. The
+independent evidence audit recomputed all CPU/GPU aggregates and checked startup,
+artifact identities, memory and visual controls. Its provenance finding is
+resolved by retaining the matched roster full views and representative air-hover
+full frames in the archive; copy SHA256 proofs confirm they are the cited controls.
+All archive/root-pointer links resolve. The layout-size checkpoint split changes
+no descriptors: nine complete visibility-layout expressions are unchanged after
+whitespace normalization, and all four pipeline ABI/entry tests pass.

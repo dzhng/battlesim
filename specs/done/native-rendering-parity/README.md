@@ -66,11 +66,9 @@ are working rules that review holds, with no check behind them.
 - **One owner per concept.** Records are declared once in
   `crates/presentation/src/records.rs` and generated into
   `packages/battle-renderer/src/records.gen.ts` (`records_are_current` fails on a
-  stale file). Shaders and pipeline settings exist once, in the browser's frame
-  code. `web/tests/shaderExport.test.ts` exports them to
-  `packages/battle-renderer/pipelines/`, a drift test fails when the export is
-  stale, and [`crates/pipelines`](../../../crates/pipelines/README.md) validates them
-  with naga. The publication reader lives beside its writer
+  stale file). The [shared renderer](../../../crates/renderer-core/README.md)
+  now owns shader composition and typed pipeline settings; its ABI reflection
+  validates assembled WGSL with naga. The publication reader lives beside its writer
   (`crates/sim/src/publication/reader.rs`, one `GROUP_LAYOUTS`). Runtime bundles
   have one Rust reader (`presentation::assets`), and a battle's world has one
   resolver (`presentation::fielded`). Tunings are data in `fixtures/game.json`
@@ -227,7 +225,7 @@ plate is paired with the frame records of its own run.
 | Fog of war's sight and look                                      | `presentation::fog` (`sight.rs`, `FogLook`)                                                              |
 | Sound and the score                                              | `presentation::sound` (`frame.rs`, `music.rs`)                                                           |
 | Publication reader                                               | `crates/sim/src/publication/reader.rs`, held by `crates/sim/tests/publication_reader.rs`                 |
-| Shader export and validation                                     | `packages/battle-renderer/pipelines/`, `web/tests/shaderExport.test.ts`, `crates/pipelines`              |
+| Shader composition and validation                                | `crates/renderer-core/src/shaders/`, `crates/renderer-core/tests/pipeline_abi.rs`                       |
 | Native client: passes, statics, models, audio                    | `native/client` (`frame.rs`, `statics.rs`, `models.rs`, `audio.rs`), its tests in `native/client/tests/` |
 | Capture run and control                                          | `web/scenes/native-parity-capture.mjs`, `apps/battle-lab/src/benchmark/reelRun.ts`                       |
 | Frame-rate comparison                                            | `web/src/battle/benchmark/frameComparison.ts`, `web/fps-compare.mjs`, native's `--bench`                 |
@@ -315,7 +313,7 @@ in [Native gaps](../../native-gaps/README.md).
 stops being duplicated. This was deferred until native was measured against
 TypeGPU. It now is: equal or better frame rates, a 5–7% longer GPU frame. TypeGPU
 stays the browser's stack until the user decides; the decision is held in
-[One renderer](../../one-renderer/README.md).
+[One renderer](../one-renderer/README.md).
 
 ## Visual provenance
 
