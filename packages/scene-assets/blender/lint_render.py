@@ -24,8 +24,13 @@ from catalog_frames import family_variants
 def families():
     for p in sorted((BL / "roster").glob("*.py")):
         if p.name.startswith("_"): continue
-        try: vs = family_variants(p.stem, repo=REPO)
-        except Exception: continue
+        fam = VL._get_family_name_from_script(p) or p.stem
+        try: vs = family_variants(fam, repo=REPO)
+        except Exception:
+            if fam != p.stem:
+                try: vs = family_variants(p.stem, repo=REPO)
+                except Exception: continue
+            else: continue
         sch = VL._extract_scheme_from_script(p)
         if not vs or sch is None: continue
         yield p.stem, vs, sch

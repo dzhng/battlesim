@@ -133,15 +133,6 @@
   "eastern_su_25_frogfoot_su_25sm3": [
     {
       "check": "floating_part",
-      "distance_m": 0.0316,
-      "message": "Part 'air_data_probe' is 3.2cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "air_data_probe"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
       "distance_m": 0.1272,
       "message": "Part 'tail_stab_L' is 12.7cm from nearest part (threshold: 2cm)",
       "parts": [
@@ -325,15 +316,6 @@
     }
   ],
   "europe_aw159_wildcat_ah1": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.3012,
-      "message": "Part 'antenna_belly' is 30.1cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "antenna_belly"
-      ],
-      "severity": "error"
-    },
     {
       "check": "floating_part",
       "distance_m": 0.0558,

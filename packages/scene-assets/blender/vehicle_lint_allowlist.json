@@ -66,10 +66,6 @@
       "reason": "Bore evacuator sleeve: same as fume extractor, clearance around barrel"
     },
     {
-      "part_pattern": "pistol_grip",
-      "reason": "Weapon pistol grip requires operator hand clearance"
-    },
-    {
       "part_pattern": "kornet_sight",
       "reason": "ATGM sight optics require clearance for elevation"
     },
