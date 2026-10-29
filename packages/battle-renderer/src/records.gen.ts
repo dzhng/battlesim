@@ -26,6 +26,32 @@ export const WHOLE_BOX_WORDS = 8;
 export const SUN_CASCADES = 4;
 /** The cast lights a frame's uniform holds (`effects/lights.rs`). */
 export const CAST_LIGHTS_MAX = 24;
+/** How a standing tree sways in the wind, which the scenery walk's bounds
+ *  reach by (`static_world/ground/sway.rs`), and its crown's heart as a share
+ *  of its height (`walk.rs`): the shader finds the tree's height from it. */
+export const SWAY = {
+  bend: 0.18,
+  lean: 0.15,
+  gust: 0.7,
+  swing: 0.35,
+  rate: 1.6,
+  fullGustMps: 6,
+  shiverM: 0.15,
+  shiverRate: 7,
+  heart: 0.62,
+} as const;
+/** The wave field's tuning (`wave.rs`): steps a second and the most a frame
+ *  runs, texels a side and metres a texel, RedGPU's wave speed and damping a
+ *  step, and how steeply its slope tilts the water's normal. */
+export const WAVE = {
+  hz: 30,
+  maxSteps: 6,
+  texels: 1024,
+  texelM: 0.125,
+  speed: 0.2,
+  damping: 0.08,
+  normal: 0.15,
+} as const;
 /** Each effect kind (`Counts.running`'s order) and instance shape
  *  (`Effect.misc.x`), as a capture's effect counts name them (`effects/frame.rs`). */
 export const EFFECT_KINDS = [
@@ -401,6 +427,29 @@ export const AerialAt = {
 } as const;
 export const AERIAL_WORDS = 28;
 
+/** The one wind, in the camera every shader binds (`Camera.wind`, `wind.rs`): grass, water and trees move in it on the camera's clock, and smoke and dust drift on it. */
+export const Wind = d
+  .struct({
+    /** Unit vector it blows toward, level (z 0). */
+    toward: d.vec3f,
+    /** How fast it carries smoke and dust (m/s). */
+    driftMps: d.f32,
+    /** How fast a gust front rolls downwind (m/s). */
+    gustMps: d.f32,
+    /** 1 / the gust fronts' spacing (per metre). */
+    gustPerM: d.f32,
+  })
+  .$name("Wind");
+/** Where `Wind`'s fields lie, in words. */
+export const WindAt = {
+  toward: 0,
+  drift_mps: 3,
+  gust_mps: 4,
+  gust_per_m: 5,
+  pad: 6,
+} as const;
+export const WIND_WORDS = 8;
+
 /** The sun and the shadow fill, as the environment uniform carries them after its view (`sunDirection` to `fill`). */
 export const Sun = {
   /** Unit vector toward the sun; w 0. (f32 × 4) */
@@ -534,7 +583,7 @@ export const FogLookAt = {
 } as const;
 export const FOG_LOOK_WORDS = 24;
 
-/** A camera as every world, shadow and overlay shader binds it: the frame's eye, or a sun cascade posed as its light. */
+/** A camera as every world, shadow and overlay shader binds it: the frame's eye, or a sun cascade posed as its light, with what animates the world it draws: the clock and the wind. */
 export const Camera = d
   .struct({
     /**  */
@@ -551,6 +600,10 @@ export const Camera = d
     height: d.f32,
     /** The animation clock (s). */
     time: d.f32,
+    /** The ground's wind (calm before a ground), its one record: grass, water and trees move in it, in every pass that draws them, shadows included. */
+    wind: d.arrayOf(Wind, 1),
+    /** The wave field (`wave::area`): its south-west corner and side (m), and how much of its waves show, 0 where none are drawn. */
+    waves: d.vec4f,
   })
   .$name("Camera");
 /** Where `Camera`'s fields lie, in words. */
@@ -563,8 +616,30 @@ export const CameraAt = {
   height: 37,
   time: 38,
   pad: 39,
+  wind: 40,
+  waves: 48,
 } as const;
-export const CAMERA_WORDS = 40;
+export const CAMERA_WORDS = 52;
+
+/** A wake impulse as the wave field splats it (`EffectFrame::waves`). */
+export const WaveSplat = d
+  .struct({
+    /** Where in the field (texels from its south-west corner), how wide (texels) and how hard. */
+    splat: d.vec4f,
+    /** Which of the frame's steps splats it, and its kind (0 rings, 1 a V-wake). */
+    step: d.f32,
+    /**  */
+    kind: d.f32,
+  })
+  .$name("WaveSplat");
+/** Where `WaveSplat`'s fields lie, in words. */
+export const WaveSplatAt = {
+  splat: 0,
+  step: 4,
+  kind: 5,
+  pad: 6,
+} as const;
+export const WAVE_SPLAT_WORDS = 8;
 
 /** One sun cascade as a shadow receiver reads it. An unfitted cascade is the identity over [1, 1]. */
 export const SunCascade = d

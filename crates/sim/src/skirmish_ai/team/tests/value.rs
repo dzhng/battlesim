@@ -178,3 +178,43 @@ fn help_comes_from_an_expensive_tank_not_from_squads_that_cannot_fight_the_threa
     let key = PartyKey::Help(PlayerIndex(0), request.objective.id.clone());
     assert_eq!(memory.parties[&key].units, vec![frame.own[0].id]);
 }
+
+#[test]
+fn an_enemy_on_an_objective_counts_wherever_the_grid_cells_fall() {
+    // Cells 100 m a side; the objective sits 5 m short of a cell's edge, and
+    // the enemy on it stands just across that edge.
+    let rules = team_rules();
+    let objective = ObjectiveSite {
+        id: "held".into(),
+        center: [195.0, 150.0],
+        radius_m: 30.0,
+        kind: contract::encounter::ObjectiveSiteKind::Field,
+        counterpart: None,
+    };
+    let mut frame = fielded(&rules, &[]);
+    frame.identified = vec![seen(&rules, "test_rifle", [210.0, 150.0], 1)];
+    let mut sites = sites();
+    sites.entries.iter_mut().for_each(|e| e.center = [0.0, 0.0]);
+    sites.objectives = vec![
+        objective.clone(),
+        ObjectiveSite {
+            center: [800.0, 800.0],
+            ..objective.clone()
+        },
+    ];
+    let grid = build_influence(
+        &rules,
+        &frame,
+        &sites,
+        None,
+        TeamTuning {
+            grid_resolution: 8,
+            ..TeamTuning::shipped()
+        },
+    );
+    assert!(
+        grid.on(&objective) < 0.0,
+        "the enemy standing on the objective weighs on it: {}",
+        grid.on(&objective)
+    );
+}

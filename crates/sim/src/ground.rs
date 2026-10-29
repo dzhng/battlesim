@@ -262,12 +262,13 @@ impl GroundLayer {
 
     /// A round of blast radius `blast_radius` bursts at `at`: it digs a crater
     /// if it bursts within the crater's radius of the ground, and scorches the
-    /// ground within the scorch radius likewise. Water takes no marks.
+    /// ground within the scorch radius likewise. Standing water, a river's
+    /// or a swamp's, takes no marks.
     pub fn burst(&mut self, world: &WorldGeometry, at: V3, blast_radius: f64, rules: &GroundRules) {
         let Some(ground) = world.ground_surface_at(at.x, at.y) else {
             return;
         };
-        if ground.kind == SurfaceKind::Water {
+        if ground.standing_water() {
             return;
         }
         let height = at.z - ground.z;
@@ -340,8 +341,8 @@ impl GroundLayer {
 
     /// A track or a soldier moved from `from` to `to`: entering a new cell
     /// adds one pass of wear there. Only ground it stands on takes the wear:
-    /// a bridge deck carries it over whatever lies below, and water takes no
-    /// marks.
+    /// a bridge deck carries it over whatever lies below, and standing water
+    /// takes no marks.
     pub fn wear(
         &mut self,
         world: &WorldGeometry,
@@ -365,7 +366,7 @@ impl GroundLayer {
         }
         let on_ground = world
             .surface_at(to.x, to.y)
-            .is_some_and(|s| !matches!(s.kind, SurfaceKind::Bridge | SurfaceKind::Water));
+            .is_some_and(|s| s.kind != SurfaceKind::Bridge && !s.standing_water());
         if !on_ground {
             return;
         }

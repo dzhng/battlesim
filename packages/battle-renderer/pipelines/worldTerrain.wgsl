@@ -1,3 +1,10 @@
+struct Wind {
+  toward: vec3f,
+  driftMps: f32,
+  gustMps: f32,
+  gustPerM: f32,
+}
+
 struct Camera {
   viewProj: mat4x4f,
   invViewProj: mat4x4f,
@@ -6,6 +13,8 @@ struct Camera {
   width: f32,
   height: f32,
   time: f32,
+  wind: array<Wind, 1>,
+  waves: vec4f,
 }
 
 @group(0) @binding(0) var<uniform> cam: Camera;
@@ -292,6 +301,26 @@ struct RoadLook {
   stones: vec4f,
 }
 
+struct ShoreTuning {
+  bands: vec4f,
+  turns: vec4f,
+  ground: vec4f,
+  fade: vec4f,
+}
+
+struct WaterLook {
+  channel: vec4f,
+  edge: vec4f,
+  surface: vec4f,
+  normals: vec4f,
+  drifts: vec4f,
+  fades: vec4f,
+  roughness: vec4f,
+  lobes: vec4f,
+  refraction: vec4f,
+  caustics: vec4f,
+}
+
 struct TerrainParams {
   region: vec4f,
   field: vec4f,
@@ -309,13 +338,12 @@ struct TerrainParams {
   forestDapple: vec4f,
   forestLine: vec4f,
   waterBed: vec4f,
-  water: vec4f,
-  waterEdge: vec4f,
-  waterLook: vec4f,
   shore: vec4f,
   shoreEarth: vec4f,
   shoreEdge: vec4f,
   distant: vec4f,
+  shoreTuning: ShoreTuning,
+  waterLooks: array<WaterLook, 8>,
   view: vec4u,
 }
 
@@ -704,10 +732,8 @@ fn forestFloor(xy: vec2f, footprint: f32, noise: f32) -> vec3f {
   return (floor_1 * (1f + ((*detail).y * noise)));
 }
 
-fn turned(xy: vec2f, turn: f32) -> vec2f {
-  let c = cos(turn);
-  let s = sin(turn);
-  return vec2f(((xy.x * c) + (xy.y * s)), ((xy.y * c) - (xy.x * s)));
+fn turned(xy: vec2f, turn: vec2f) -> vec2f {
+  return vec2f(((xy.x * turn.x) + (xy.y * turn.y)), ((xy.y * turn.x) - (xy.x * turn.y)));
 }
 
 fn groundShore(xy: vec2f, footprint: f32, water: f32) -> vec3f {
@@ -718,11 +744,12 @@ fn groundShore(xy: vec2f, footprint: f32, water: f32) -> vec3f {
   if ((out >= reach)) {
     return vec3f();
   }
-  let broad = valueNoise((turned(xy, 0.55f) * (*params_2).shoreEdge.y));
-  let scale = ((*params_2).shoreEdge.y * 3.1f);
-  let fine = mix(valueNoise(((turned(xy, 1.9f) * scale) + vec2f(41.70000076293945, 13.100000381469727))), 0.5f, smoothstep(0.3f, 1f, (footprint * scale)));
-  let line = (reach * (1f - ((*params_2).shoreEdge.x * mix(broad, fine, 0.4f))));
-  return vec3f((1f - smoothstep((wet * 0.4f), wet, out)), (1f - smoothstep(mix(wet, line, 0.65f), line, out)), (1f - smoothstep(wet, line, out)));
+  let t = (&(*params_2).shoreTuning);
+  let broad = valueNoise((turned(xy, (*t).turns.xy) * (*params_2).shoreEdge.y));
+  let scale = ((*params_2).shoreEdge.y * (*t).bands.z);
+  let fine = mix(valueNoise(((turned(xy, (*t).turns.zw) * scale) + vec2f(41.70000076293945, 13.100000381469727))), 0.5f, smoothstep((*t).fade.x, (*t).fade.y, (footprint * scale)));
+  let line = (reach * (1f - ((*params_2).shoreEdge.x * mix(broad, fine, (*t).bands.w))));
+  return vec3f((1f - smoothstep((wet * (*t).bands.x), wet, out)), (1f - smoothstep(mix(wet, line, (*t).bands.y), line, out)), (1f - smoothstep(wet, line, out)));
 }
 
 fn atLeast(colour: vec3f, least: f32) -> vec3f {
@@ -1029,16 +1056,16 @@ fn groundColour(xy: vec2f, footprint: f32, site: vec4f, paved: GroundPaved, wate
   }
   let shore = groundShore(xy, footprint, water);
   if ((shore.y > 0f)) {
-    let field = mix(dot((*params_2).verge.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)), (dot((*plot).colour.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)) * (1f - (0.5f * (*plot).rows.w))), smoothstep(0f, 10f, site.y));
+    let field = mix(dot((*params_2).verge.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)), (dot((*plot).colour.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)) * (1f - (0.5f * (*plot).rows.w))), smoothstep(0f, (*params_2).shoreTuning.ground.y, site.y));
     let least = (field * (*params_2).shoreEdge.z);
-    let earth = ((*params_2).shoreEarth.xyz * (1f + (0.6f * noise)));
+    let earth = ((*params_2).shoreEarth.xyz * (1f + ((*params_2).shoreTuning.ground.x * noise)));
     albedo = mix(albedo, atLeast(earth, least), shore.y);
-    roughness = mix(roughness, 0.92f, shore.y);
+    roughness = mix(roughness, (*params_2).shoreTuning.ground.z, shore.y);
     albedo = mix(albedo, atLeast((*params_2).shore.xyz, least), shore.x);
-    roughness = mix(roughness, 0.8f, shore.x);
+    roughness = mix(roughness, (*params_2).shoreTuning.ground.w, shore.x);
   }
   let paving = groundRoads(xy, footprint, paved, vec4f(albedo, roughness));
-  let bed = smoothstep(-(aa), max(aa, 0.3f), water);
+  let bed = smoothstep(-(aa), max(aa, (*params_2).shoreTuning.fade.z), water);
   albedo = mix(paving.xyz, (*params_2).waterBed.xyz, bed);
   return vec4f(max(albedo, vec3f()), paving.w);
 }
@@ -1695,6 +1722,21 @@ fn standardPbr(base: vec3f, emissive: vec3f, authoredRoughness: f32, geometryRou
   return max((directDiffuse+indirectDiffuse)+(directSpecular+indirectSpecular)+emissive,vec3f(0));
 }
 
+fn lightAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linear: sampler) -> vec3f {
+ return standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
+ }
+
+@group(3) @binding(3) var pmrem: texture_2d<f32>;
+
+@group(3) @binding(4) var dfg: texture_2d<f32>;
+
+@group(3) @binding(5) var linear: sampler;
+
+fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec3f {
+  let sun_1 = mix(data.settings.y, 1f, shadow);
+  return lightAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun_1, eye, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, pmrem, dfg, linear);
+}
+
 fn equirectUv(direction: vec3f) -> vec2f {
   return vec2f(atan2(direction.z, direction.x) * 1.5915494309189535e-1f + 0.5,
     asin(clamp(direction.y, -1.0, 1.0)) * 3.1830988618379069e-1f + 0.5);
@@ -1721,22 +1763,14 @@ fn applyAerial(surface: vec4f, position: vec3f, camera: vec3f, observer: vec3f, 
     return vec4f(surface.rgb*transmit+mistSkyLight*(vec3f(1)-transmit),surface.a);
   }
 
-fn shadeAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, observer: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, air: Aerial, sky: texture_2d<f32>, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linear: sampler) -> vec4f {
- let lit=standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
- return applyAerial(vec4f(lit,1),worldPosition,eye,observer,sunDirection,air,sky,linear);
- }
-
 @group(3) @binding(2) var sky: texture_2d<f32>;
 
-@group(3) @binding(3) var pmrem: texture_2d<f32>;
-
-@group(3) @binding(4) var dfg: texture_2d<f32>;
-
-@group(3) @binding(5) var linear: sampler;
+fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
+  return applyAerial(vec4f(colour, 1f), position, eye, data.observer.xyz, data.sunDirection.xyz, data.aerial, sky, linear);
+}
 
 fn shade(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec4f {
-  let sun_1 = mix(data.settings.y, 1f, shadow);
-  return shadeAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun_1, eye, data.observer.xyz, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, data.aerial, sky, pmrem, dfg, linear);
+  return air(surfaceLight(base, emissive, roughness, geomRoughness, metal, ao, normal, position, shadow, eye), position, eye);
 }
 
 fn paintGlow(paint: vec4f) -> vec3f {
@@ -1790,7 +1824,9 @@ struct terrainFragment_Input {
   let relief = groundRoadRelief(_arg_0.world.xy, footprint, paved);
   ground = normalize((ground - (vec3f(relief, 0f) * (ground.z * biome))));
   let shading = normalize(mix(ground, scarredNormal(ground, scar), biome));
-  let paint_1 = groundPaint(_arg_0.world);
+  let water = groundWater(_arg_0.world.xy, cell);
+  let dry = (1f - smoothstep((-(footprint) * 0.5f), (footprint * 0.5f), water));
+  let paint_1 = (groundPaint(_arg_0.world) * dry);
   let flecks = groundDapple(_arg_0.world.xy, footprint, cell);
   let sun_1 = max(sampleSunShadow(_arg_0.world, n, clip.xy), flecks);
   let lit = shade(paintedAlbedo(surface.xyz, paint_1), vec3f(), surface.w, 0f, 0f, 1f, shading, _arg_0.world, sun_1, (*eye));

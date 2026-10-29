@@ -21,4 +21,6 @@ pub mod sound;
 pub mod static_world;
 pub mod units;
 pub mod view;
+pub mod wave;
+pub mod wind;
 pub mod world;

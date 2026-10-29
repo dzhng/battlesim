@@ -13,9 +13,21 @@ export const OVERLAY_FORMAT = "rgba8unorm" as const;
 /** The fog mask: per-sample (unseen, seen, ground, alpha) coverage, resolved
  *  to fractions (`fogCoverage`). */
 export const FOG_MASK_FORMAT = "rgba8unorm" as const;
+/** The water's guard (\`fogMaskUnder\`): how unseen, and how much painted,
+ *  the world before the water is, each mip the worst of its footprint. */
+export const GUARD_FORMAT = "rg8unorm" as const;
 /** Distances to each side of the fog edge on the ground, over
  *  `FOG_DISTANCE_CAP_PX`. */
 export const FOG_DISTANCE_FORMAT = "rg8unorm" as const;
+
+/** How much of the water a graphics tier draws: `full` refracts the bed
+ *  (`waterUnder`); `depth` keeps its colour by depth alone (decision 18).
+ *  The water's shader reads it as `TerrainParams.view.z`, 1 for `depth`. */
+export type WaterDetail = "full" | "depth";
+/** The world's copy before the water and its mips, where the water
+ *  refracts: the bed blurs with the water it is seen through, by no more
+ *  than three levels. */
+export const SCENE_COLOUR_MIPS = 4;
 
 /** What every world colour-pass fragment writes: its lit colour and its fog
  *  mask sample (`fogCoverage`). */
@@ -35,9 +47,18 @@ export interface FrameTargets {
   /** The lit HDR world, multisampled; resolved into `lit`. */
   hdrMsaa: GPUTexture;
   lit: GPUTexture;
+  /** `lit` as the world pass left it, before the water: what the water shows
+   *  of the bed through it (`waterUnder.ts`), with its mips where the water
+   *  refracts (`WaterDetail`). */
+  sceneColour: GPUTexture;
   /** The fog mask beside it, multisampled; resolved into `fogMask`. */
   fogMaskMsaa: GPUTexture;
   fogMask: GPUTexture;
+  /** The water's guard, where it refracts: how unseen the ground is before
+   *  the water (\`fogMask\`'s unseen share) and how much the paint covers
+   *  it, each mip the worst of its footprint in the copy's mips. Null when
+   *  it does not refract. */
+  fogMaskUnder: GPUTexture | null;
   /** The fog mask pass's distances to the other side: along rows, then the
    *  Euclidean result. */
   fogDistanceRows: GPUTexture;
@@ -75,8 +96,10 @@ export function allocateFrameTargets(
   scope: GpuRegistry,
   width: number,
   height: number,
+  water: WaterDetail,
 ): FrameTargets {
   const size = [width, height];
+  const refracts = water === "full";
   const half = [Math.ceil(width / 2), Math.ceil(height / 2)];
   return {
     width,
@@ -92,7 +115,15 @@ export function allocateFrameTargets(
       label: "frame-lit",
       size,
       format: HDR_FORMAT,
-      usage: RENDER | SAMPLED,
+      usage: RENDER | SAMPLED | COPY_SRC,
+    }),
+    sceneColour: scope.texture({
+      label: "frame-scene-colour",
+      size,
+      format: HDR_FORMAT,
+      mipLevelCount: refracts ? SCENE_COLOUR_MIPS : 1,
+      // Each mip is drawn from the one before (`createSceneMips`).
+      usage: SAMPLED | COPY_DST | (refracts ? RENDER : 0),
     }),
     fogMaskMsaa: scope.texture({
       label: "frame-fog-mask-msaa",
@@ -107,6 +138,17 @@ export function allocateFrameTargets(
       format: FOG_MASK_FORMAT,
       usage: RENDER | SAMPLED,
     }),
+    fogMaskUnder: refracts
+      ? scope.texture({
+          label: "frame-fog-mask-under",
+          size,
+          format: GUARD_FORMAT,
+          mipLevelCount: SCENE_COLOUR_MIPS,
+          // Seeded from the fog mask and the paint, each mip from the one
+          // before (\`createSceneMips\`).
+          usage: SAMPLED | RENDER,
+        })
+      : null,
     fogDistanceRows: scope.texture({
       label: "frame-fog-distance-rows",
       size,

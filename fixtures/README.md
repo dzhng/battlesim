@@ -262,6 +262,16 @@ A map's water is its `rivers`: each a line of points with the water's `width_m` 
 
 [The river map](maps/river/) is the worked example. [The shared river contract](../crates/contract/src/river.rs) owns numeric admission and bridge constraints.
 
+## Swamps
+
+A map's standing shallow water is its `swamps`: each an outline polygon and the `depth_m` its bed lies under the water. The swamp carves its own dip. Inside the outline the ground lowers by up to `depth_m`, easing in over a few height samples from the edge, and the water stands level with the land it was cut from.
+
+- **Membership is one distance:** how far a point lies inside the outline. Every rule reads it, and the terrain is cut to it (`contract::swamp`).
+- **Wading is slow.** Off a road, a swamp's water multiplies a ground mover's speed by its movement kind's factor (`movement.swamp` in the game fixture). A road crosses a swamp uncut.
+- **A map is refused at load** when a swamp is a stroke, too steep at its edge for the map's slope cutoff, too small to carve on the grid, not on level land, or within an edge's width of a river, a building or a bridge and its approach.
+
+[The wetlands map](maps/wetlands/) is the worked example. [The shared swamp contract](../crates/contract/src/swamp.rs) owns its admission.
+
 ## Paired records
 
 [Paired records](parity/) hold an input and what the native build made of it, which a Rust test and a web test both read. The simulation and the map generator run natively and as WebAssembly, and the same request must give the same bytes in both, or a shared seed, a saved map or a replay means different things in different places; the page, which reads publications through the Rust reader compiled to WebAssembly, must also read exactly what the Rust encoder wrote. The shared record is how the two test suites agree without one invoking the other. The simulation pairs include firing and physical impacts: a movement-only match cannot catch drift in weapon cycles, flight or damage. State digests remain exact even when the packed Float32 observations agree; the authority uses the same pinned math implementation for combat angles, random spread, sampled aim and seeded soldier placement in native and WebAssembly builds. The publication pairs check construction before the first tick; float32 delivery can hide a different initial authoritative state. [Template fixtures](parity/templates/) also hold the labelled descriptors those tests are given, including the ones that must keep failing.

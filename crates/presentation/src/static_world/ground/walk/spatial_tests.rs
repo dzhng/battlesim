@@ -631,3 +631,51 @@ fn local_fall_filters_standing_records_and_restoring_knowledge_restores_prints()
         );
     }
 }
+
+/// A crown bends past where its tree stands: a tree whose rest box lies
+/// just outside a cascade, by less than the farthest the wind can carry it
+/// (`SWAY.reach`), still casts there, and one past that reach does not.
+#[test]
+fn a_standing_tree_casts_wherever_the_wind_can_carry_its_crown() {
+    use crate::static_world::ground::sway::SWAY;
+    let (height, radius) = (10., 2.);
+    let reach = SWAY.reach(height) as f32;
+    assert!(reach > 0.5, "the test needs a reach to probe: {reach}");
+    let sizes = [Size { height, radius }];
+    let view = View::new(&Camera {
+        eye: [0., -30., 10.],
+        target: [0., 100., 0.],
+        up: [0., 0., 1.],
+        fov_y: 0.3,
+        near: 1.,
+        size: [640, 480],
+    });
+    // The cascade covers x from -92 to 128, the edge of a 128 m chunk; each
+    // tree stands alone past it, its rest box its foot plus its radius.
+    let mut m = crate::shadow::IDENTITY;
+    m[0] = 1. / 110.;
+    m[5] = 1. / 110.;
+    m[10] = 1. / 100.;
+    m[12] = -18. / 110.;
+    let caster = crate::shadow::camera_record(&m, [0.; 3], 0.1, [64.; 2], 0.);
+    let casts = |x: f32| {
+        let placed = [x, 0., 0., 0., 1., 1., 0., 0.7, 0.8, 0.9];
+        let mut standing = Standing::new(&placed, &sizes, 1);
+        standing.pop.select(
+            &view,
+            Some(&CasterVolumes::new(&[caster])),
+            &[100., 30., 10.],
+        );
+        let mut cast = false;
+        standing.pop.each_list(&[0], &mut |l| {
+            cast |= l.pass == CAST_PASS && !l.records.is_empty();
+        });
+        cast
+    };
+    let edge = 128. + radius as f32;
+    assert!(casts(edge + 0.5 * reach), "a crown the wind carries in");
+    assert!(
+        !casts(edge + reach + 1.),
+        "a crown the wind cannot carry in"
+    );
+}

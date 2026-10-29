@@ -679,6 +679,7 @@ fn a_short_bridge_journey_keeps_distance_and_time_policies_distinct() {
         off_road_mps: 6.0,
         road_mps: 12.0,
         forest_multiplier: 0.4,
+        swamp_multiplier: 0.4,
         half_width_m: 1.8,
         class: MoverClass::Vehicle,
         push: PushClass::Heavy,

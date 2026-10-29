@@ -37,11 +37,13 @@ use felled::FelledSpatial;
 pub use felled::FelledTree;
 
 const LAST: usize = TIERS - 1;
+use super::sway::SWAY;
+
 const CHUNK_M: f64 = 128.0;
 /// A whole unfiltered chunk has an identity distinct from an instance.
 const WHOLE: u64 = 1 << 63;
 /// A crown's heart, where a whole tree probes fog, as a share of its height.
-const HEART: f64 = 0.62;
+pub const HEART: f64 = 0.62;
 /// The most cells of dressing drawn at once, and laid a walk.
 const DRESSING_SLOTS: usize = 128;
 const DRESSING_CELLS_PER_WALK: usize = 8;
@@ -165,6 +167,8 @@ impl Pop {
                 for &i in &cells[id] {
                     let (r, kind, h, reach) = instances[i];
                     let [x, y, z, r_, h_] = [r[0], r[1], r[2], reach, h].map(f64::from);
+                    // Its box takes in the farthest the wind can carry it.
+                    let (r_, h_) = (r_ + SWAY.reach(h_), h_ + SWAY.reach(h_));
                     for (k, v) in [x - r_, y - r_, z].into_iter().enumerate() {
                         bounds[k] = bounds[k].min(v);
                         bounds[k + 3] = bounds[k + 3].max(v);

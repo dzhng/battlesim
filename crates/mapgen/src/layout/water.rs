@@ -191,8 +191,19 @@ pub struct Crossing {
     pub downstream: f64,
 }
 
-/// The water as closed rings, a run of stretches each, bank to bank: what a
-/// line of open ground stops at, and what a picture fills.
+/// All of a plan's standing water as closed rings: its rivers' (`rings`)
+/// and its swamps' outlines. What a line of open ground stops at.
+pub fn standing(plan: &crate::MapPlan) -> Vec<Vec<Point>> {
+    let mut rings = rings(&plan.rivers);
+    rings.extend(plan.swamps.iter().filter_map(|swamp| match &swamp.shape {
+        contract::ground::GroundShape::Polygon { ring } => Some(ring.clone()),
+        contract::ground::GroundShape::Stroke { .. } => None,
+    }));
+    rings
+}
+
+/// The rivers' water as closed rings, a run of stretches each, bank to
+/// bank: what a picture fills.
 pub fn rings(rivers: &[River]) -> Vec<Vec<Point>> {
     // A ring is cut every few stretches, so a ray tests only those near it.
     let stretches = 24;

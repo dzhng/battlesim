@@ -261,6 +261,7 @@ impl NavBase {
                                 heaviest: NO_BODY,
                                 road_factor: s.road_factor,
                                 forest: s.forest,
+                                swamp: s.swamp,
                                 slope_deg: s.slope_deg,
                                 free: if s.traversable { ALL_FREE } else { 0 },
                                 open: if s.traversable {

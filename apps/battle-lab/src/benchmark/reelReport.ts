@@ -1,9 +1,10 @@
 import { BenchmarkRecording } from "@web/battle/benchmark/recording";
 import {
   MENU_REEL_WORKLOAD,
-  menuReelFingerprint,
-  menuReelWorkload,
-} from "@web/battle/benchmark/menuReel";
+  reelFingerprint,
+  reelWorkload,
+  type ReelWorkload,
+} from "@web/battle/benchmark/reels";
 import { APP_COMMIT } from "../buildIdentity";
 import type { BenchmarkOutcome } from "@web/battle/benchmark/report";
 import type { ReelResult } from "./reelRun";
@@ -19,27 +20,29 @@ import type {
 const reelMs = (scene: { reel: { shots: readonly { seconds: number }[] } }) =>
   scene.reel.shots.reduce((sum, shot) => sum + shot.seconds * 1000, 0);
 
-/** The report of a run that filmed `maps`' scenes (the whole reel by
- *  default) and drew `layers`; `plates` read control plates back, which
- *  costs those frames their timing. The report's workload is what ran, so a
+/** The report of a run of `reel` (the menu's by default) that filmed
+ *  `maps`' scenes (the whole reel by default) and drew `layers`; `plates`
+ *  read control plates back, which costs those frames their timing. The report's workload is what ran, so a
  *  run of some scenes never stands for the whole reel; each capture names
  *  its scene within the whole reel. */
 export function createReelReport(
   results: readonly ReelResult[],
   {
+    reel = MENU_REEL_WORKLOAD,
     maps,
     plates = false,
     layers = [],
     interruption,
   }: {
+    reel?: ReelWorkload;
     maps?: readonly string[];
     plates?: boolean;
     layers?: readonly PresentationLayer[];
     interruption?: BenchmarkOutcome;
   } = {},
 ) {
-  const workload = menuReelWorkload(maps);
-  const fingerprint = menuReelFingerprint(workload);
+  const workload = reelWorkload(reel, maps);
+  const fingerprint = reelFingerprint(workload);
   const { scenes } = workload;
   const durationMs = scenes.reduce((sum, s) => sum + reelMs(s), 0);
   const merged = new BenchmarkRecording(durationMs);
@@ -65,8 +68,8 @@ export function createReelReport(
   const presentationCaptures: PresentationCapture[] = results.map((r) => ({
     schema: "battle-presentation-capture",
     workload: {
-      id: MENU_REEL_WORKLOAD.id,
-      fingerprint: menuReelFingerprint(),
+      id: reel.id,
+      fingerprint: reelFingerprint(reel),
       scene: r.scene.map,
       map: r.scene.map,
       encounter: r.scene.encounter,

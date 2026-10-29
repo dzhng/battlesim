@@ -92,6 +92,22 @@ export const fogLayout = tgpu.bindGroupLayout({
    *  flag (`FogVisibility`). A texture, not a storage buffer: the terrain's
    *  fragment already binds the default eight storage buffers. */
   wholes: { texture: d.texture2d(d.u32), visibility: ["fragment", "compute"] },
+  /** What the water sees under it (`waterUnder.ts`): the world's depth, its
+   *  colour before the water (`FrameTargets.sceneColour`) and the sampler
+   *  that reads its mips, and its guard (`fogMaskUnder`: how unseen and
+   *  how painted the world before the water is, each mip the worst of its
+   *  footprint). Only the water's group holds them; the world pass
+   *  writes that depth, so the groups it binds hold placeholders, as the
+   *  water's does for the mask where it does not refract. Here because a
+   *  pipeline binds at most four groups, and the water already binds four. */
+  depth: { texture: d.textureDepthMultisampled2d(), visibility: ["fragment"] },
+  sceneColour: { texture: d.texture2d(d.f32), visibility: ["fragment"] },
+  sceneTaps: { sampler: "filtering", visibility: ["fragment"] },
+  seenUnder: { texture: d.texture2d(d.f32), visibility: ["fragment"] },
+  /** The wave field's latest heights (`waveField.ts`), which tilt the
+   *  water's normal (`waveNormal.ts`); a placeholder in every group but the
+   *  water's. */
+  waves: { texture: d.texture2d(d.f32), visibility: ["fragment"] },
 });
 
 /** A structure's whole fog reaches this far above its box's top (a pitched

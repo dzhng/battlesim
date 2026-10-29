@@ -2,6 +2,8 @@
 use serde_json::{json, Value};
 
 const PRESETS: &str = include_str!("../../src/layout/presets.rs");
+const DEFINITIONS: &str = include_str!("../../src/layout/presets/definitions.rs");
+const SWAMPS: &str = include_str!("../../src/layout/presets/swamps.rs");
 const COUNTRY: &str = include_str!("../../src/open_country/rules.rs");
 
 fn schema_help(schema: &str, owner: &str, key: &str) -> Option<String> {
@@ -122,6 +124,7 @@ fn help(document: &str, path: &[String], key: &str, group: &str) -> String {
             },
         ),
         "retries" => (PRESETS, "Retries"),
+        "swamps" => (SWAMPS, "Swamps"),
         "street_props" => (
             PRESETS,
             if parts.contains(&"yards") {
@@ -213,7 +216,13 @@ fn help(document: &str, path: &[String], key: &str, group: &str) -> String {
                 _ => "Rules",
             },
         ),
-        _ => (PRESETS, "PresetDefinitions"),
+        _ => (DEFINITIONS, "PresetDefinitions"),
+    };
+    // A swamp chance is keyed by map type; its doc is the table's.
+    let key = if head == "swamps" && parts.get(1) == Some(&"chance") {
+        "chance"
+    } else {
+        key
     };
     let described = schema_help(schema, owner, key)
         .filter(|text| !text.is_empty())
@@ -323,6 +332,7 @@ pub fn describe(presets: &str, defaults: &str) -> Vec<Value> {
                             | "bend_amplitude"
                     )
                     || (path.iter().any(|p| p == "siting"))
+                    || (head == "swamps" && path.get(1).is_some_and(|p| p == "chance"))
                     || (path.iter().any(|p| p == "fairness")
                         && matches!(semantic_key, "rel" | "abs"));
                 let unit = if weights {

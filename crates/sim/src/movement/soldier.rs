@@ -746,10 +746,8 @@ pub(super) fn step_squad(
             arrived &= s.spot.is_none_or(|p| (p - here.xy()).inside_radius(1e-9));
             continue;
         };
-        let speed = ctx.world.surface_at(here.x, here.y).map_or(0.0, |g| {
-            mobility.speed(g.road_factor, g.forest, g.slope_deg)
-        }) * suppressed
-            * pace;
+        let ground = ctx.world.surface_at(here.x, here.y);
+        let speed = ground.map_or(0.0, |g| mobility.speed(g.footing())) * suppressed * pace;
         let to = target - here.xy();
         let distance = to.length();
         let mut velocity = if distance > 1e-9 {

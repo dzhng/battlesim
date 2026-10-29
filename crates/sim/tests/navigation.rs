@@ -24,6 +24,7 @@ const TANK: Mobility = Mobility {
     off_road_mps: 6.0,
     road_mps: 12.0,
     forest_multiplier: 0.4,
+    swamp_multiplier: 0.4,
     half_width_m: 1.8,
     class: MoverClass::Vehicle,
     push: PushClass::Heavy,
@@ -33,6 +34,7 @@ const INFANTRY: Mobility = Mobility {
     off_road_mps: 3.0,
     road_mps: 3.9,
     forest_multiplier: 0.7,
+    swamp_multiplier: 0.7,
     half_width_m: 0.5,
     class: MoverClass::Infantry,
     push: PushClass::None,
@@ -429,21 +431,6 @@ fn goal_component_proofs_include_sampled_corner_crossings() {
     assert!(g.route_fits(from, &planned, &narrow));
     assert!(g.route_time(from, &planned, &narrow).is_finite());
     assert_eq!(planned.last(), Some(&goal));
-}
-
-#[test]
-fn speed_follows_surface_and_slope() {
-    assert_eq!(
-        TANK.speed(1.0, true, 0.0),
-        12.0,
-        "roads take precedence over forest"
-    );
-    assert!((TANK.speed(0.0, true, 0.0) - 2.4).abs() < 1e-12);
-    assert!((TANK.speed(0.0, false, 25.0) - 3.0).abs() < 1e-12);
-    assert!(
-        (TANK.speed(0.0, false, 34.0) - 6.0 * 0.35).abs() < 1e-12,
-        "floor near the cutoff"
-    );
 }
 
 #[test]

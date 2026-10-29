@@ -260,9 +260,15 @@ fn a_slow_surface_is_never_slower_than_open_ground() {
         foot.road_mps * dirt < foot.off_road_mps,
         "the case this test needs"
     );
-    assert_eq!(foot.speed(dirt, false, 0.0), foot.off_road_mps);
-    assert_eq!(foot.speed(1.0, false, 0.0), foot.road_mps);
-    assert_eq!(foot.speed(0.0, false, 0.0), foot.off_road_mps);
+    let road = |road_factor| sim::navigation::Footing {
+        road_factor,
+        forest: false,
+        swamp: false,
+        slope_deg: 0.0,
+    };
+    assert_eq!(foot.speed(road(dirt)), foot.off_road_mps);
+    assert_eq!(foot.speed(road(1.0)), foot.road_mps);
+    assert_eq!(foot.speed(road(0.0)), foot.off_road_mps);
 }
 
 /// The rules name every surface kind, with a factor a route's best-case

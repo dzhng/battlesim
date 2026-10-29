@@ -26,6 +26,7 @@ use contract::scenario::PushClass;
 
 use crate::math::{v2, Obb2, V2};
 use crate::world::{Prop, SurfaceKind, WorldGeometry};
+use sim::navigation::{Footing, Mobility};
 
 pub const NAV_CELL_M: f64 = 2.0;
 /// Sub-cells per cell side for infantry: 0.5 m.
@@ -35,60 +36,6 @@ const SUB_M: f64 = NAV_CELL_M / SUB as f64;
 const ALL_FREE: u16 = u16::MAX;
 /// Clearance is a distance transform capped here; wider footprints do not exist.
 const MAX_CLEARANCE_M: f64 = 16.0;
-
-/// How a unit class moves: its speeds on each surface and how wide it is.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Mobility {
-    pub off_road_mps: f64,
-    pub road_mps: f64,
-    pub forest_multiplier: f64,
-    /// Distance the footprint needs from any obstacle centre line.
-    pub half_width_m: f64,
-    /// Which props stop it.
-    pub class: MoverClass,
-    /// What it can shove aside (vehicles; infantry shoves nothing).
-    pub push: PushClass,
-    /// How a vehicle steers and reverses (Q29, Q30); `None` for infantry.
-    pub drive: Option<Drive>,
-}
-
-/// A vehicle's kinematics, from its body row (Q29, Q30). Planning never
-/// reads it: the follower owns the kinematics.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Drive {
-    /// Tracked vehicles pivot on the spot; wheeled ones never do.
-    pub tracked: bool,
-    pub turn_rad_s: f64,
-    /// A wheeled vehicle's tightest turn (0 for tracks).
-    pub radius_m: f64,
-    pub reverse_fraction: f64,
-    /// How every vehicle drives (`movement.drive`).
-    pub feel: contract::scenario::DriveRules,
-}
-
-impl Mobility {
-    /// Travel speed on a surface: roads take precedence over forest; slopes
-    /// slow continuously up to the shared cutoff.
-    pub fn speed(&self, road: bool, forest: bool, slope_deg: f64) -> f64 {
-        let base = if road {
-            self.road_mps
-        } else if forest {
-            self.off_road_mps * self.forest_multiplier
-        } else {
-            self.off_road_mps
-        };
-        base * slope_multiplier(slope_deg)
-    }
-
-    pub fn max_speed(&self) -> f64 {
-        self.road_mps.max(self.off_road_mps)
-    }
-}
-
-/// `max(0.35, 1 - slope/50)` below the cutoff (contracts.md).
-pub fn slope_multiplier(slope_deg: f64) -> f64 {
-    (1.0 - slope_deg / 50.0).max(0.35)
-}
 
 /// No known body that stops vehicles covers a cell.
 const NO_BODY: u8 = 0;
@@ -422,7 +369,15 @@ impl NavGrid {
         let c = &self.cells[cell];
         let base = match policy {
             RoutePolicy::Shortest => length,
-            RoutePolicy::Fastest => length / m.speed(c.road, c.forest, c.slope_deg),
+            RoutePolicy::Fastest => {
+                length
+                    / m.speed(Footing {
+                        road_factor: if c.road { 1.0 } else { 0.0 },
+                        forest: c.forest,
+                        swamp: false,
+                        slope_deg: c.slope_deg,
+                    })
+            }
         };
         match (m.class, c.heaviest) {
             (MoverClass::Vehicle, NO_BODY) | (MoverClass::Infantry, _) => base,

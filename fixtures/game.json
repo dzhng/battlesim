@@ -45,6 +45,11 @@
   "movement": {
     "forest_infantry_multiplier": 0.7,
     "forest_vehicle_multiplier": 0.4,
+    "swamp": {
+      "foot": 0.5,
+      "wheeled": 0.3,
+      "tracked": 0.55
+    },
     "turret_turn_deg_s": 60,
     "bearing_tolerance_deg": 2,
     "drive": {
@@ -1125,25 +1130,12 @@
         "wear_cut": [0.4, 0.6]
       },
       "water": {
-        "roughness": 0.14,
+        "shore_fade_m": 0.25,
+        "lobes": { "roughness": [0.15, 0.22, 0.32], "weights": [0.58, 0.34, 0.08] },
         "shadow": 0.55,
-        "ripple": {
-          "long_m": 3.2,
-          "short_m": 0.9,
-          "short_weight": 0.5,
-          "slope": 0.09,
-          "step_m": 0.25,
-          "fade_m": [0.15, 1.2]
-        },
-        "lanes": {
-          "m": 0.5,
-          "drift": 2.5,
-          "drift_m": 11,
-          "streak_m": 3.5,
-          "weights": [0.6, 0.4],
-          "lit": [0.55, 0.8],
-          "lit_mean": 0.1
-        }
+        "normals": { "tiles_m": [9, 31, 2.2], "drifts": [0.6, 0.3, 1.4], "strength": 0.35, "fade_m": [0.15, 1.2] },
+        "refraction": { "share": 2, "depth_m": 2.5, "most": 0.015, "blur_m": 1 },
+        "caustics": { "tile_m": 24, "strength": 1.2, "fade_per_m": 0.85, "sharpness": 5 }
       },
       "scars": {
         "depth_cap": 1.6,
@@ -1195,7 +1187,7 @@
       "mix": { "drift_cut": [0.4, 0.65], "drift_gather": 3 },
       "tier_jitter": [0.85, 1.15],
       "laid": { "lean": 1.1, "sink": 0.6 },
-      "wind": { "gust_from": 0.2, "flutter_phase": 0.35, "flutter_across": 0.5 },
+      "sway": { "gust_from": 0.2, "flutter_phase": 0.35, "flutter_across": 0.5 },
       "blade": { "roughness": 0.9 }
     },
     "audio": {
@@ -1266,6 +1258,7 @@
       "impacts": {
         "default": { "sound": "impact_ground", "gain": 0.45 },
         "ground": { "sound": "impact_ground", "gain": 0.55 },
+        "water": { "sound": "impact_ground", "gain": 0.55 },
         "hull": { "sound": "impact_hull", "gain": 0.85 },
         "prop": { "sound": "impact_prop", "gain": 0.50 },
         "metal_prop": { "sound": "impact_prop", "gain": 0.50 },
@@ -1901,7 +1894,7 @@
     "pose": {
       "gait": { "walk_mps": 0.25, "run_mps": 2.2, "crawl_mps": 1.4, "fade_s": 0.25, "facing_mps": 0.3, "turn_rad_s": 6 },
       "rest": { "turn_rad": 1.0, "tempo": [0.8, 1.25], "watch_every": 4, "settle_s": [4, 6] },
-      "stance": { "fire_prone": 0.3, "fire_stand": 0.2, "pinned_kneel": 0.25, "fall_back": 0.65 },
+      "stance": { "fire_prone": 0.3, "fire_stand": 0.2, "pinned_kneel": 0.25, "fall_back": 0.65, "chest_m": [1.35, 0.85, 0.3] },
       "lean": { "out_s": 0.25, "back_s": 0.4 },
       "mount": {
         "gun_elevation_rad_s": 0.6,
@@ -2025,6 +2018,8 @@
             "atgm": { "size": 5, "duration": 5 }
           }
         },
+        "water": { "color": [2.4, 2.5, 2.6], "opacity": 0.6, "size_m": 1.1, "duration_s": 0.8, "sparks": 0, "flash": 0,
+          "round_scale": { "grenade": { "size": 4, "duration": 3 }, "tank_ap": { "size": 4, "duration": 3 }, "tank_he": { "size": 4, "duration": 3 }, "atgm": { "size": 4, "duration": 3 } } },
         "hull": { "color": [2.2, 1.9, 1.45], "opacity": 0.5, "size_m": 0.45, "duration_s": 0.7, "sparks": 6, "flash": 25, "cast": { "color": [1.0, 0.72, 0.4], "intensity": 10, "radius_m": 4, "duration_s": 0.1 } },
         "prop": { "color": [2.2, 2.1, 1.9], "opacity": 0.55, "size_m": 0.5, "duration_s": 0.8, "sparks": 0, "flash": 0 },
         "metal_prop": { "color": [2.2, 2.1, 1.9], "opacity": 0.55, "size_m": 0.5, "duration_s": 0.8, "sparks": 4, "flash": 0 },
@@ -2090,6 +2085,7 @@
         "landing_sparks": 14,
         "debris": { "hold_s": 20, "fade_s": 4 }
       },
+      "wake": { "ring_hz": 2, "vee_mps": 1, "vee_depth_m": 0.2, "spacing_m": 1.5, "soldier_radius_m": 0.15, "ring_strength": 0.5, "vee_strength": 1 },
       "dust": {
         "albedo": [0.74, 0.63, 0.48],
         "opacity": 0.4,
@@ -2235,8 +2231,7 @@
         }
       },
       "smoke_budget": 4096,
-      "cast_wrap": 0.9,
-      "wind_mps": [0.6, 0.3]
+      "cast_wrap": 0.9
     }
   },
   "hull_limits": {

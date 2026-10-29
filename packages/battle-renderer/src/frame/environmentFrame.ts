@@ -3,9 +3,9 @@
 // (its LUT and background), the PMREM environment light, the sun and its
 // cascades, and hands every world material the same bind group, `shade` and
 // `sampleSunShadow`. Each frame, `prepare` poses the sky and takes the
-// cascades the presentation fitted to the camera and the map, and
-// `setCastLights` hands every material the effects' lights
-// (`light/castLights.ts`).
+// cascades the presentation fitted to the camera and the map,
+// and `setCastLights` hands every material the effects' lights
+// (`light/castLights.ts`). The wind is the camera's (`cameraWind`).
 import type { TgpuCommandEncoder, TgpuRenderPass } from "typegpu";
 import { createTypegpuEnvironment } from "../world/environment";
 import { createTypegpuSunShadow } from "../world/shadow";
@@ -35,6 +35,9 @@ export async function createEnvironmentFrame(
     /** The light as raw resources (uniform, PMREM) for raw passes. */
     raw: environment.raw,
     shade: environment.shade,
+    /** `shade` in two: a surface's light, then the air over a colour. */
+    surfaceLight: environment.surfaceLight,
+    air: environment.air,
     unlit: environment.unlit,
     sampleSunShadow: environment.sampleSunShadow,
     /** Pose the sky and the environment for the frame's `View` record, and

@@ -46,11 +46,13 @@ mod check;
 mod floor;
 mod foot;
 mod journey;
+mod mobility;
 mod pockets;
 mod regions;
 mod roads;
 mod route_checks;
 mod search;
+mod slow;
 mod terrain;
 pub use check::RouteCheck;
 mod update;
@@ -59,10 +61,12 @@ use base::Body;
 pub use base::NavBase;
 use cells::{cell_center, cell_of, sub_center, sub_of, Cell, Cells, ALL_FREE, NO_BODY, SUB, SUB_M};
 pub use journey::Journey;
+pub use mobility::{slope_multiplier, Drive, Footing, Mobility, Parking};
 pub use pockets::Pockets;
 use regions::Regions;
 pub use roads::RoadNet;
 pub use search::{Leg, Scratch, SearchWork};
+use slow::SlowGround;
 
 /// The whole route for `leg` at once, however much work it takes, and what
 /// its searches cost: what a battle's planner reaches in steps
@@ -109,71 +113,6 @@ const CELLS_PER_WORK: usize = 32;
 /// each lie where four clearance tiles meet that nobody has asked about
 /// yet. (Expanding a cell or reading a stretch of a segment crosses fewer.)
 pub const LARGEST_STEP: u64 = 9 * TILE_WORK;
-
-/// How a unit class moves: its speeds on each surface and how wide it is.
-/// A hull to park: half its length and half its width, and the facing it
-/// was ordered to keep, if it can turn on the spot to keep it. Without one
-/// it parks facing the way it drives in.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Parking {
-    pub half: V2,
-    pub facing: Option<f64>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Mobility {
-    pub off_road_mps: f64,
-    pub road_mps: f64,
-    pub forest_multiplier: f64,
-    /// Distance the footprint needs from any obstacle centre line.
-    pub half_width_m: f64,
-    /// Which props stop it.
-    pub class: MoverClass,
-    /// What it can shove aside (vehicles; infantry shoves nothing).
-    pub push: PushClass,
-    /// How a vehicle steers and reverses (Q29, Q30); `None` for infantry.
-    pub drive: Option<Drive>,
-}
-
-/// A vehicle's kinematics, from its body row (Q29, Q30). Planning never
-/// reads it: the follower owns the kinematics.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Drive {
-    /// Tracked vehicles pivot on the spot; wheeled ones never do.
-    pub tracked: bool,
-    pub turn_rad_s: f64,
-    /// A wheeled vehicle's tightest turn (0 for tracks).
-    pub radius_m: f64,
-    pub reverse_fraction: f64,
-    /// How every vehicle drives (`movement.drive`).
-    pub feel: contract::scenario::DriveRules,
-}
-
-impl Mobility {
-    /// Travel speed on a surface. A road (`road_factor` above 0, the surface
-    /// kind's share of road speed) takes precedence over forest and is never
-    /// slower than open ground; slopes slow continuously up to the shared
-    /// cutoff.
-    pub fn speed(&self, road_factor: f64, forest: bool, slope_deg: f64) -> f64 {
-        let base = if road_factor > 0.0 {
-            (self.road_mps * road_factor).max(self.off_road_mps)
-        } else if forest {
-            self.off_road_mps * self.forest_multiplier
-        } else {
-            self.off_road_mps
-        };
-        base * slope_multiplier(slope_deg)
-    }
-
-    pub fn max_speed(&self) -> f64 {
-        self.road_mps.max(self.off_road_mps)
-    }
-}
-
-/// `max(0.35, 1 - slope/50)` below the cutoff (contracts.md).
-pub fn slope_multiplier(slope_deg: f64) -> f64 {
-    (1.0 - slope_deg / 50.0).max(0.35)
-}
 
 /// Push classes, and so at most this many vehicle clearance fields.
 const PUSH_CLASSES: usize = PushClass::ALL.len();
@@ -233,71 +172,6 @@ pub struct NavGrid {
     relaid: u64,
     /// Planning work done on this grid since it was built.
     work: std::cell::Cell<u64>,
-}
-
-/// How slow the ground is, a tile at a time: what a search's estimate of the
-/// way still to go reads, so a wood or a hillside ahead is not taken for
-/// open ground. Counts, so the order cells are read in never shows.
-#[derive(Clone)]
-struct SlowGround {
-    tiles_x: usize,
-    /// Per tile, how many of its cells are forest off any road.
-    forest: Vec<u16>,
-    /// Per tile, how much longer its cells' slopes make a crossing than flat
-    /// ground would, summed over its cells in 1/1024ths.
-    steep: Vec<u32>,
-}
-
-impl SlowGround {
-    const TILE_M: f64 = TILE_SIDE as f64 * NAV_CELL_M;
-
-    fn new(cells: &Cells) -> Self {
-        let tiles_x = cells.nx.div_ceil(TILE_SIDE);
-        let tiles = tiles_x * cells.ny.div_ceil(TILE_SIDE);
-        let mut slow = SlowGround {
-            tiles_x,
-            forest: vec![0; tiles],
-            steep: vec![0; tiles],
-        };
-        for (at, cell) in cells.stored() {
-            let tile = (at / cells.nx / TILE_SIDE) * tiles_x + at % cells.nx / TILE_SIDE;
-            slow.forest[tile] += Self::forest(cell);
-            slow.steep[tile] += Self::steep(cell);
-        }
-        slow
-    }
-
-    fn forest(cell: &Cell) -> u16 {
-        u16::from(cell.forest && cell.road_factor == 0.0)
-    }
-
-    fn steep(cell: &Cell) -> u32 {
-        let longer = 1.0 / slope_multiplier(cell.slope_deg) - 1.0;
-        (longer * 1024.0).round() as u32
-    }
-
-    /// The cell at `at`, on a grid `nx` wide, is now `new` instead of `old`.
-    fn replace(&mut self, at: usize, nx: usize, old: &Cell, new: &Cell) {
-        let tile = (at / nx / TILE_SIDE) * self.tiles_x + at % nx / TILE_SIDE;
-        self.forest[tile] = self.forest[tile] - Self::forest(old) + Self::forest(new);
-        self.steep[tile] = self.steep[tile] - Self::steep(old) + Self::steep(new);
-    }
-
-    /// How many times longer than over open, flat ground the straight way
-    /// from `a` to `b` takes `m`, judged by the tiles it crosses.
-    fn stretch(&self, a: V2, b: V2, m: &Mobility) -> f64 {
-        let samples = (((b - a).length() / Self::TILE_M).ceil() as usize).clamp(1, 32);
-        let mut total = 0.0;
-        for k in 0..samples {
-            let p = a + (b - a) * ((k as f64 + 0.5) / samples as f64);
-            let at = |v: f64| (v / Self::TILE_M).floor().max(0.0) as usize;
-            let tile = (at(p.y) * self.tiles_x + at(p.x)).min(self.forest.len() - 1);
-            let forest = self.forest[tile] as f64 / TILE_SAMPLES as f64;
-            let steep = 1.0 + self.steep[tile] as f64 / (1024.0 * TILE_SAMPLES as f64);
-            total += steep * (1.0 - forest + forest / m.forest_multiplier);
-        }
-        total / samples as f64
-    }
 }
 
 /// Who a plan is for: the mover, and the footprints this one plan treats as
@@ -703,7 +577,7 @@ impl NavGrid {
     fn cell_cost(c: &Cell, m: &Mobility, policy: RoutePolicy, length: f64) -> f64 {
         let base = match policy {
             RoutePolicy::Shortest => length,
-            RoutePolicy::Fastest => length / m.speed(c.road_factor, c.forest, c.slope_deg),
+            RoutePolicy::Fastest => length / m.speed(c.footing()),
         };
         match (m.class, c.heaviest) {
             (MoverClass::Vehicle, NO_BODY) | (MoverClass::Infantry, _) => base,

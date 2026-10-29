@@ -74,10 +74,14 @@ pub fn open_share(
     Some(open as f64 / bearings as f64)
 }
 
-/// Whether `p` is open ground: dry, outside every settlement's outline and
-/// off forest ground (a wood, a copse or a tree line), with no body on it.
+/// Whether `p` is open ground: dry (no river or swamp water), outside every
+/// settlement's outline and off forest ground (a wood, a copse or a tree
+/// line), with no body on it.
 pub fn open_ground(world: &WorldGeometry, sites: &EncounterSites, p: V2) -> bool {
     world.traversable_at(p.x, p.y)
+        && world
+            .ground_surface_at(p.x, p.y)
+            .is_some_and(|s| !s.standing_water())
         && !world.forest_ground(p.x, p.y)
         && world.props_near(p, 1.0).is_empty()
         && !sites
@@ -228,6 +232,13 @@ pub fn admit_skirmish(
                 .any(|f| f.shape.contains(objective.center, objective.radius_m))
             {
                 return Err(format!("objective {} reaches forest ground", objective.id));
+            }
+            if q.map
+                .swamps
+                .iter()
+                .any(|s| s.inside(objective.center) > -objective.radius_m)
+            {
+                return Err(format!("objective {} reaches swamp water", objective.id));
             }
             let mut journeys = Vec::new();
             for &kind in &representatives {

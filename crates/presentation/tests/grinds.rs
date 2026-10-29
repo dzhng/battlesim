@@ -59,7 +59,7 @@ fn shove_through(body: &str) -> (f64, Vec<(Grind, f64)>) {
             .unwrap()
             .ground_footprint()
             .unwrap();
-        for g in feed.publication(&o, &f.units, &f.effects).grinds {
+        for g in feed.publication(&o, &f.units, &f.effects, None).grinds {
             let off = hull.distance(sim::math::v2(g.point[0], g.point[1]));
             grinds.push((g, off));
         }

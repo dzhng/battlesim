@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { MENU_REEL_WORKLOAD, menuReelFingerprint } from "../src/battle/benchmark/menuReel";
+import { MENU_REEL_WORKLOAD, reelFingerprint } from "../src/battle/benchmark/reels";
 
 test("graphics workload keeps the menu fixture's complete scene identities", () => {
   expect(MENU_REEL_WORKLOAD.id).toBe("menu-reel");
@@ -8,8 +8,8 @@ test("graphics workload keeps the menu fixture's complete scene identities", () 
 });
 
 test("graphics workload fingerprint is deterministic and changes with its identity", () => {
-  const first = menuReelFingerprint();
+  const first = reelFingerprint();
   expect(first).toMatch(/^[0-9a-f]{8}$/);
-  expect(menuReelFingerprint()).toBe(first);
+  expect(reelFingerprint()).toBe(first);
   expect(JSON.stringify(MENU_REEL_WORKLOAD)).toContain("market-town");
 });

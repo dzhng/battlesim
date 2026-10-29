@@ -134,7 +134,9 @@ fn the_skirt_hangs_below_the_lowest_ground_from_every_edge() {
 
 #[test]
 fn water_and_the_backdrop_are_flat_squares_facing_up() {
-    let water = mesh::water(&[10.0, 20.0, -1.5, 8.0, 18.0, 20.0, -1.5, 8.0]);
+    let water = mesh::water(&[
+        10.0, 20.0, -1.5, 8.0, 0.0, 0.0, 0.0, 0.0, 18.0, 20.0, -1.5, 8.0, 1.0, 0.0, 0.0, 0.0,
+    ]);
     assert_eq!(water.len(), 2 * 6 * VERTEX_FLOATS);
     let b = [0.0, 0.0, -2.0, 100.0, 50.0, 30.0];
     let backdrop = mesh::backdrop(&b, 1000.0);
