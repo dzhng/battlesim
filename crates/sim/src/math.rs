@@ -119,7 +119,7 @@ impl V3 {
     pub fn xy(self) -> V2 {
         v2(self.x, self.y)
     }
-    /// This velocity turned toward `toward` by at most `max_angle`.
+    /// This velocity turned toward `toward` by at most `max_angle`, keeping its speed.
     pub fn turned_toward(self, toward: V3, max_angle: f64) -> V3 {
         let speed = self.length();
         if speed == 0.0 || toward.length() < 1e-9 {

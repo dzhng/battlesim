@@ -12,8 +12,8 @@ mod bearing;
 mod cycle;
 mod muzzle;
 pub mod tick;
-pub use bearing::Arc;
 use bearing::{bearing_from, hull_fixed, point_mount, turned_mount};
+pub use bearing::{nose_on, nose_on_bearing, Arc};
 use cycle::Cycle;
 use muzzle::{infantry_offset, muzzle, placed_muzzle};
 
@@ -33,23 +33,6 @@ use contract::random::Rng;
 
 /// Vehicle hull bodies take ids above every soldier id.
 pub const VEHICLE_BODY_BASE: u32 = 1 << 24;
-
-/// Whether a jet's fixed nose gun bears on a point in its authored range,
-/// within `cone_rad` of its heading.
-pub fn nose_on(unit: &Unit, target: V3, range: f64, cone_rad: f64) -> bool {
-    let delta = target - unit.position;
-    range.is_finite()
-        && range >= 0.0
-        && delta.length() <= range
-        && nose_on_bearing(unit.yaw, libm::atan2(delta.y, delta.x), cone_rad)
-}
-
-/// Whether a winged aircraft heading along `yaw` has its nose on `bearing`,
-/// within `cone_rad` (`air.fixed_wing.nose_on_deg`): what its fixed gun
-/// needs to fire, and what an attack pass needs before its dive begins.
-pub fn nose_on_bearing(yaw: f64, bearing: f64, cone_rad: f64) -> bool {
-    wrap_angle(bearing - yaw).abs() <= cone_rad
-}
 
 /// A weapon row with its validated flight profile.
 pub struct Weapon {
@@ -433,7 +416,9 @@ impl Resolved {
         def.engages(self.layer, self.class)
     }
 
-    /// Worth firing at: a round by a row listing `missile` (W10), else [`effective`].
+    /// Whether `def` is worth firing at it: at a round, a row listing
+    /// `missile` in the round's layer (a round is no area, W10); otherwise
+    /// what [`effective`] says.
     fn worth(&self, def: &WeaponDefinition, rules: &Rules) -> bool {
         if self.class == Some(TargetClass::Missile) {
             self.fire(def).is_some()
