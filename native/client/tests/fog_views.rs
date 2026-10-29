@@ -81,7 +81,7 @@ fn close(actual: [f32; 4], expected: [f32; 4]) {
 #[test]
 fn fog_ground_and_class_views_use_resolved_mask_and_suppress_the_rim() {
     let gpu = gpu::open(&gpu::headless_instance(), None).expect("real GPU");
-    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).unwrap();
+    let pipelines = pipelines::build(&gpu.device).unwrap();
     let mut targets = Targets::new(&gpu.device, [8, 2]);
     let texture = |label, format| {
         gpu.device.create_texture(&TextureDescriptor {

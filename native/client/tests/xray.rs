@@ -10,6 +10,7 @@ use renderer_core::fog::Layer;
 use renderer_core::models::{Models, Surface};
 use renderer_core::xray::XrayResources;
 use renderer_core::{buffer, Targets};
+use std::sync::Arc;
 use wgpu::*;
 
 const WIDTH: u32 = 128;
@@ -35,7 +36,7 @@ fn mesh(positions: Vec<f32>, indices: Vec<u32>) -> Mesh {
 }
 
 impl BundleSource for Source {
-    fn bundle(&self, name: &str) -> Result<Bundle, String> {
+    fn bundle(&self, name: &str) -> Result<Arc<Bundle>, String> {
         let mesh = match name {
             "test_xray_unit" => mesh(
                 vec![-0.09, -0.25, 0.3, 0.09, -0.25, 0.3, 0.0, 0.25, 0.3],
@@ -55,7 +56,7 @@ impl BundleSource for Source {
             }
             _ => return Err(format!("unexpected test appearance {name}")),
         };
-        Ok(Bundle {
+        Ok(Arc::new(Bundle {
             shape: Shape::Static(vec![Node {
                 name: "body".into(),
                 tiers: vec![mesh],
@@ -74,7 +75,7 @@ impl BundleSource for Source {
                 interior: None,
             }],
             textures: Vec::new(),
-        })
+        }))
     }
 }
 
@@ -181,10 +182,9 @@ fn draw(
             }),
             ..Default::default()
         });
-        pipelines.bound("modelPrepass").set(
-            &mut pass,
-            &[("typegpuCameraLayout", camera), models.group()],
-        );
+        pipelines
+            .bound("modelPrepass")
+            .set(&mut pass, &[("cameraLayout", camera), models.group()]);
         models.draw_fogged(&mut pass, Surface::Solid, Layer::Faces);
     }
     let world_submissions = models.submissions.snapshot();
@@ -223,7 +223,7 @@ fn close(actual: [f32; 4], expected: [f32; 4], subject: &str) {
 #[test]
 fn xray_preserves_occlusion_gate_information_colors_and_frame_reset() {
     let gpu = gpu::open(&gpu::headless_instance(), None).expect("a real GPU");
-    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).expect("exported shaders");
+    let pipelines = pipelines::build(&gpu.device).expect("exported shaders");
     let targets = targets(&gpu.device);
     let names = "test_xray_unittest_xray_walls";
     let appearances = [
@@ -309,7 +309,7 @@ fn xray_preserves_occlusion_gate_information_colors_and_frame_reset() {
     );
     let camera = renderer_core::bind(
         &gpu.device,
-        pipelines.layout("typegpuCameraLayout"),
+        pipelines.layout("cameraLayout"),
         "test-camera",
         &[uniform.as_entire_binding()],
     );

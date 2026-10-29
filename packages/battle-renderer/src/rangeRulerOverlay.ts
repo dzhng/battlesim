@@ -5,7 +5,7 @@
 // where each reach ends short of the cursor. It is
 // paint on the ground like the orders, sized on screen (its strokes by the
 // one stroke rule, `strokeWidth.ts`), and rebuilt as
-// the pointer moves (`BattleFrame.setPointerMarks`). The labels are the HUD's
+// the pointer moves. The labels are the HUD's
 // (`web/src/battle/present/rangeRuler.ts` measures; the lab places them).
 import { groundRing, groundStrip, isRgba, MeshBuilder, type Mesh } from "./mesh";
 import type { Rgba } from "./mesh";

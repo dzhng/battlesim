@@ -1,23 +1,18 @@
-use super::{pipeline_export, Renderer};
+use super::Renderer;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 impl Renderer {
-    /// Diagnostics for the exact production pipeline export embedded in this
+    /// Diagnostics for the exact production pipeline catalog embedded in this
     /// browser artifact.
     #[wasm_bindgen]
     pub fn exported_pipeline_count() -> usize {
-        pipeline_export::COUNT
-    }
-
-    #[wasm_bindgen]
-    pub fn exported_pipeline_manifest() -> String {
-        pipeline_export::MANIFEST.to_owned()
+        renderer_core::pipelines::builtin_pipeline_count()
     }
 
     #[wasm_bindgen]
     pub fn exported_pipeline_source(name: String) -> Option<String> {
-        pipeline_export::source(&name).map(str::to_owned)
+        renderer_core::pipelines::builtin_source(&name).map(str::to_owned)
     }
 
     /// Validate the embedded export while proving the shared environment,

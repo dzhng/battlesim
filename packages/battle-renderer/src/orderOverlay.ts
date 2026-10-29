@@ -13,7 +13,7 @@
 // It is drawn as a holo-tactical projection: thin lines sized on screen
 // (`OrderStyle.line_px` at the camera's target, thinned as the camera pulls
 // out by the one stroke rule, `strokeWidth.ts`), no filled discs, all of it
-// paint on the ground (`frame/paintedMarks.ts`) but for an aircraft's drop
+// paint on the ground but for an aircraft's drop
 // line, which stands in the air in the overlay (D18), glowing past its colour's
 // full value by its role's `OrderStyle.glow`. Every ground unit's circle, under it or at
 // its destination, is one marker, "the unit plus its facing" (`unitMarker`):

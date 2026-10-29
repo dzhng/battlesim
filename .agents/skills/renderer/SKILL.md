@@ -1,14 +1,14 @@
 ---
 name: renderer
-description: Architecture rules for GPU rendering with TypeGPU/WebGPU. Use when adding or changing render passes, shaders, frame orchestration, GPU resources, culling, terrain, shadows, or visual performance work.
+description: Architecture rules for the shared native/browser GPU renderer. Use when adding or changing render passes, shaders, frame orchestration, GPU resources, culling, terrain, shadows, or visual performance work.
 ---
 
 # GPU renderer
 
-The renderer is TypeGPU over WebGPU. It draws plain frame inputs the
-application hands it and never reaches into simulation or app state. These are
-the flaws that sink a 3D experience; check a change against each before
-writing it.
+Use the shared Rust `wgpu` runtime for native and browser WASM. Keep platform
+shells to device/surface admission and transport. Draw canonical presentation
+inputs without querying simulation or app state. Check each change against
+these rules before writing it.
 
 - **Fixed-view cost never grows with world size.** For a fixed camera and
   render size, submitted geometry, shadow casters, and per-frame lists are

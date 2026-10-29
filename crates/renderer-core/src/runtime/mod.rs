@@ -67,15 +67,6 @@ pub struct PlayerGeometry<'a> {
     pub paint: PaintGeometry<'a>,
 }
 
-/// Actual preparation calls, independent of source record sizes or draw counts.
-#[derive(Clone, Copy, Debug, Default, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PreparationStats {
-    pub frame_preparations: u64,
-    pub model_preparations: u64,
-    pub effect_preparations: u64,
-}
-
 pub struct Runtime {
     frame_metadata: stats::FrameMetadata,
     pub pipelines: Arc<Pipelines>,
@@ -104,22 +95,22 @@ pub struct Runtime {
     refresh_knowledge: bool,
     prepared_frame: Option<u32>,
     pending_catalog_frame: Option<u32>,
-    preparation_stats: PreparationStats,
 }
 
 impl Runtime {
+    /// Construct from the shared built-in pipeline catalog. Platform shells
+    /// do not provide a second manifest or shader source loader.
     pub fn new<S: BundleSource>(
         device: &Device,
         queue: &Queue,
-        config: RuntimeConfig,
+        mut config: RuntimeConfig,
         world: RuntimeWorld<'_, S>,
-        pipeline_manifest: &str,
-        source: impl FnMut(&str, &str) -> Result<String, String>,
     ) -> Result<Self, String> {
+        config.size = crate::render_size(config.size);
         if let Some(paint) = config.paint {
             paint.validate()?;
         }
-        let pipelines = Arc::new(Pipelines::build(device, pipeline_manifest, source)?);
+        let pipelines = Arc::new(crate::pipelines::build_builtin(device)?);
         let targets = TargetOwner::new(device, config.size);
         let sky = Sky::new(device, queue, &pipelines, &config.light.sky());
         let cold = SunShadowFrame::cold(&config.light);
@@ -253,14 +244,9 @@ impl Runtime {
             refresh_knowledge: true,
             prepared_frame: None,
             pending_catalog_frame: None,
-            preparation_stats: PreparationStats::default(),
         };
         runtime.set_controls(queue, presentation, controls)?;
         Ok(runtime)
-    }
-
-    pub fn preparation_stats(&self) -> PreparationStats {
-        self.preparation_stats
     }
 
     /// GPU readback for authored cards never borrows canonical presentation.
@@ -334,7 +320,6 @@ impl Runtime {
             if let Some(xray) = &mut self.xray {
                 xray.prepare(device, &self.models);
             }
-            self.preparation_stats.model_preparations += 1;
         }
         let bounds = self.grass.as_ref().and_then(Grass::scar_bounds);
         self.ground
@@ -359,11 +344,9 @@ impl Runtime {
                     &[]
                 }),
             );
-            self.preparation_stats.effect_preparations += 1;
         }
         self.frame_metadata.update(presentation);
         self.prepared_frame = Some(index);
-        self.preparation_stats.frame_preparations += 1;
         self.refresh_statics = false;
         Ok(())
     }
@@ -456,6 +439,7 @@ impl Runtime {
         size: [u32; 2],
         presentation: &mut Presentation,
     ) -> bool {
+        let size = crate::render_size(size);
         if !self.targets.rebuild(device, size) {
             return false;
         }

@@ -1,3 +1,4 @@
+import type { ViewportFrame } from "./presentedFrame";
 // One side's live battle session: the static world and its meshes, the worker
 // authority, the player command path, the drawn units (interpolated; soldiers
 // and vehicles posed by the pose driver as models, each picked by the
@@ -13,7 +14,7 @@ import type { PreparedConnectionSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
 import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
+import type { AllocationCounts } from "@web/battle/render/sceneStats";
 import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import { knownStanding, type PropBox } from "@packages/battle-renderer/src/models/propAppearance";
 import { pickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
@@ -28,8 +29,7 @@ import {
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
-import { gameRuntime, mapAppearances, useMapAppearances } from "./gameAppearances";
-import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import { gameRuntime, useBattleAppearances, useBattleKinds } from "./gameAppearances";
 import { gameHud } from "@web/battle/present/hudTheme";
 import { gameOrderFlash, gameXray } from "./gameOverlay";
 import {
@@ -63,14 +63,7 @@ import type { RulerRules } from "@web/battle/present/rangeRuler";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observationView";
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { Player } from "@web/battle/prepare/protocol";
-import type {
-  LabBox,
-  LabPick,
-  ViewportFrame,
-  ViewportGpu,
-  ViewportPointer,
-  ViewportCursor,
-} from "./LabViewport";
+import type { LabBox, LabPick, ViewportGpu, ViewportPointer, ViewportCursor } from "./LabViewport";
 import {
   drawnUnits,
   pickedUnit,
@@ -86,9 +79,11 @@ import { createBattleAudio } from "./soundFeed";
 import { UnitResponses } from "./unitResponses";
 import { assignments as voiceAssignments } from "@fixtures/voices.json";
 import { factionVoices } from "@packages/battle-audio/src/voices/voiceCatalog";
-import { fieldedBattle, frameCounts, presentedCamera } from "./presentedFrame";
+import { frameCounts, presentedCamera } from "./presentedFrame";
+import { useBattleFielding } from "./useBattleFielding";
+import type { fieldedBattle } from "./presentedFrame";
 import { gameLight } from "./gameLight";
-import type { FogRequest, PresentedBattle, ScenePresentation } from "@web/battle/sim/presentation";
+import type { FogRequest, ScenePresentation } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
@@ -154,7 +149,6 @@ export interface ScenarioRules extends PanelRules, RulerRules {
   air: AirLayers;
 }
 
-// eslint-disable-next-line complexity -- debt: lifecycle, observation, input and presentation share 19 refs; split needs those refs grouped by concern first, so each concern can become its own hook.
 export function useBattleSession({
   scenario,
   seed,
@@ -205,6 +199,7 @@ export function useBattleSession({
   // changed with its client (a Restart) would have React's development build
   // log the old battle's tables into a measure detail (`feed.ts`).
   const presentationRef = useRef<ScenePresentation | null>(null);
+  const admittedPresentationRef = useRef<ScenePresentation | null>(null);
   const noteDecoded = useCallback(
     (o: ObservationView, digest: string) => {
       const presentation = presentationRef.current;
@@ -243,23 +238,16 @@ export function useBattleSession({
     responses.current =
       audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
   }, [audio, sim.client, units, faction, rules.tick_hz]);
-  // A battle may purchase or reveal any unit in the catalog after its opening
-  // scenario. Keep every unit appearance resident from map startup so the
-  // cursor preview never installs a new GPU generation during interaction.
   const { observation } = sim;
-  const requestedKindKey = useMemo(() => {
-    const kinds = new Set(fielded);
-    if (purchasing) kinds.add(purchasing);
-    for (const unit of observation?.own ?? []) kinds.add(unit.kind);
-    for (const unit of observation?.identified ?? []) kinds.add(unit.kind);
-    for (const pending of observation?.skirmish?.players.flatMap((player) => player.pending) ?? [])
-      kinds.add(pending.kind);
-    return [...kinds].sort().join("\0");
-  }, [fielded, observation, purchasing]);
-  const requestedKinds = useMemo(
-    () => (requestedKindKey ? requestedKindKey.split("\0") : []),
-    [requestedKindKey],
-  );
+  const requestedKinds = useBattleKinds({
+    scope: sim.client?.presentation,
+    side,
+    units,
+    fielded,
+    faction: skirmish && viewer ? faction : null,
+    observation,
+    purchasing,
+  });
   const factionsForArt = useMemo(
     () =>
       skirmish
@@ -277,7 +265,7 @@ export function useBattleSession({
   // A shout heard in the open is a bark in its kind's set for its side's
   // faction; an unseen enemy's is drawn from the enemy faction's sets. The
   // requested kinds still scope the simulation's descriptions and voices;
-  // the renderer's unit art is resident for the complete catalog.
+  // map art is scoped to this session, independently of the page's asset cache.
   // Outside a skirmish the factions are unknown, so shouts are silent.
   const enemy = skirmish ? sideFaction(side === "blue" ? "red" : "blue") : null;
   useEffect(() => {
@@ -388,14 +376,50 @@ export function useBattleSession({
   // The catalog, and the kits this map's buildings and stand-in boxes draw
   // from and its region's looks, fetched once the map is known: the loading
   // cover stays up for them.
-  const appearances = useMapAppearances(
-    drawnBuildings?.placed ?? null,
-    world?.exports.buildings.regionalFamily ?? null,
-    (world?.exports.props.length ?? 0) > 0 || (drawnBuildings?.placed.template.length ?? 0) > 0,
-    null,
-    factionsForArt,
-    sceneryForArt,
+  const completeArt = useBattleAppearances({
+    world,
+    buildings: mapBuildings,
+    units,
+    kinds: requestedKinds,
+    skirmish: skirmish !== undefined,
+    factions: factionsForArt,
+    scenery: sceneryForArt,
+  });
+  // A battle/observer/map owns one sequence of complete topology/art generations.
+  const blueFaction = sideFaction("blue");
+  const redFaction = sideFaction("red");
+  const presentation = sim.client?.presentation ?? null;
+  const fielding = useMemo<Parameters<typeof fieldedBattle>[0]>(
+    () => ({
+      rules: rulesText,
+      catalog: units.view,
+      kinds: requestedKinds,
+      factions: skirmish ? [blueFaction!, redFaction!] : undefined,
+      runtime: gameRuntime,
+      side,
+      tickHz: rules.tick_hz,
+      sun: { azimuth: gameLight.sun_azimuth, elevation: gameLight.sun_elevation },
+      soldier: rules.physics,
+      xray: gameXray,
+      blocked: PURCHASE_BLOCKED,
+    }),
+    [rulesText, units, requestedKinds, skirmish, blueFaction, redFaction, rules, side],
   );
+  const fieldingScope = useMemo(
+    () => ({ scenario, seed, side, presentation, world }),
+    [scenario, seed, side, presentation, world],
+  );
+  const admitted = useBattleFielding(fieldingScope, fielding, completeArt);
+  const {
+    battle: worldInput,
+    appearances,
+    models: modelAppearances,
+  } = admitted ?? {
+    battle: null,
+    appearances: null,
+    models: null,
+  };
+  admittedPresentationRef.current = admitted ? presentation : null;
   // The ground, and the art its scenery and grass draw from; its props and
   // what the side knows of them (rubble, wrecks, shoved bodies where it last
   // saw them) are the battle's presentation's to draw.
@@ -499,76 +523,8 @@ export function useBattleSession({
   const drawnEnemyAt = useRef(new Map<number, Readonly<Vec3>>());
   const readouts = useRef<ReadoutLayerHandle>(null);
   // The models layer installs only what the battle draws as models.
-  const modelAppearances = useMemo<InstalledAppearances | null>(
-    () =>
-      appearances && world && drawnBuildings
-        ? mapAppearances(
-            appearances,
-            world,
-            drawnBuildings.placed,
-            true,
-            skirmish !== undefined || world.exports.forests.length > 0,
-          )
-        : null,
-    [appearances, world, drawnBuildings, skirmish],
-  );
   const modelAppearancesFeed = useFeed(modelAppearances);
 
-  // Retain the current battle while its fielded catalog loads. Scenario and
-  // observer changes draw nothing until their own catalog is ready.
-  const blueFaction = sideFaction("blue");
-  const redFaction = sideFaction("red");
-  const presentation = sim.client?.presentation ?? null;
-  const artLoaded = appearances !== null;
-  const [fieldedFor, setFielded] = useState<{
-    scenario: string;
-    side: SideName;
-    battle: PresentedBattle;
-  } | null>(null);
-  const worldInput =
-    fieldedFor?.scenario === scenario && fieldedFor.side === side ? fieldedFor.battle : null;
-  const [fieldError, setFieldError] = useState<unknown>(null);
-  if (fieldError) throw fieldError;
-  useEffect(() => {
-    if (!artLoaded) return;
-    let live = true;
-    const facts = {
-      side,
-      tickHz: rules.tick_hz,
-      sun: { azimuth: gameLight.sun_azimuth, elevation: gameLight.sun_elevation },
-      soldier: rules.physics,
-      xray: gameXray,
-      blocked: PURCHASE_BLOCKED,
-    };
-    fieldedBattle({
-      rules: rulesText,
-      catalog: units.view,
-      kinds: requestedKinds,
-      factions: skirmish ? [blueFaction!, redFaction!] : undefined,
-      runtime: gameRuntime,
-      ...facts,
-    }).then(
-      (battle) => {
-        if (!live) return;
-        setFielded({ scenario, side, battle });
-      },
-      (error: unknown) => live && setFieldError(error),
-    );
-    return () => {
-      live = false;
-    };
-  }, [
-    artLoaded,
-    scenario,
-    rulesText,
-    units,
-    requestedKinds,
-    skirmish,
-    blueFaction,
-    redFaction,
-    rules,
-    side,
-  ]);
   // Each unit placed during preparation stands as a ghost where it will go,
   // turned as it was placed, until the battle starts.
   const placedGhostList = useMemo(
@@ -596,11 +552,8 @@ export function useBattleSession({
       presentation?.setBattle(worldInput);
       const time = observation && published ? presentation?.clock(now) : null;
       if (time == null || !published || !presentation || !worldInput) {
-        drawnObservation.current = null;
         return null;
       }
-      drawnClock.current = time;
-      drawnObservation.current = published;
       // The order just issued has not landed: its units still publish the old one.
       const pending = pendingAction.current;
       const ack = pending && control.acks.find(({ order }) => order === pending.order)?.ack;
@@ -653,12 +606,19 @@ export function useBattleSession({
         generation,
       );
       const { own, enemies } = drawnUnits(presented);
-      drawn.current = sideInstances(presented, own, enemies, published, units);
-      drawnAt.current = new Map([...own].map(([id, u]) => [id, u.position]));
-      drawnEnemyAt.current = new Map([...enemies].map(([id, u]) => [id, u.position]));
+      const candidate = sideInstances(presented, own, enemies, published, units);
+      const ownAt = new Map([...own].map(([id, u]) => [id, u.position]));
+      const enemyAt = new Map([...enemies].map(([id, u]) => [id, u.position]));
       const { models: counts, effects: effectCounts } = frameCounts(presented);
       return {
-        picks: drawn.current.picks,
+        submitted: () => {
+          drawn.current = candidate;
+          drawnAt.current = ownAt;
+          drawnEnemyAt.current = enemyAt;
+          drawnClock.current = time;
+          drawnObservation.current = published;
+        },
+        picks: candidate.picks,
         presented,
         counts,
         clock: time,
@@ -693,7 +653,7 @@ export function useBattleSession({
   const semanticPick = useCallback(
     (pick: LabPick): PointerPick | null => {
       if (!world) return null;
-      const pointer = pickToPointer(world, drawn.current, pick, observation?.contacts);
+      const pointer = pickToPointer(world, drawn.current, pick, drawnObservation.current?.contacts);
       const panel = readouts.current?.pick(pick.x, pick.y);
       return panel ? { ...pointer, ...panel } : pointer;
     },
@@ -984,7 +944,7 @@ export function useBattleSession({
     [onViewportReady],
   );
   const gpuAllocations = useCallback(
-    (): GpuAllocationCounts | null => gpu.current?.allocations() ?? null,
+    (): AllocationCounts | null => gpu.current?.allocations() ?? null,
     [],
   );
   const gpuFrame = useCallback(() => gpu.current?.frame().stats().gpu ?? null, []);
@@ -997,7 +957,12 @@ export function useBattleSession({
     presented: () =>
       drawnClock.current === null || drawnObservation.current === null
         ? null
-        : { tick: drawnObservation.current.tick, clock: drawnClock.current * rules.tick_hz },
+        : {
+            tick: drawnObservation.current.tick,
+            clock: drawnClock.current * rules.tick_hz,
+            side: drawnObservation.current.groundPatch.side,
+            epoch: drawnObservation.current.groundPatch.epoch,
+          },
     /** The static pieces the last drawn frame drew beside the posed units (a
      *  cook-off's moving wreck and its debris): each one's appearance, state
      *  and how far its motion lowers it, metres. */
@@ -1166,7 +1131,7 @@ export function useBattleSession({
      *  models layer installs, and the GPU's arrival. */
     viewport: {
       frame,
-      presentation: presentationRef,
+      presentation: admittedPresentationRef,
       appearances: modelAppearancesFeed,
       onReady,
     },

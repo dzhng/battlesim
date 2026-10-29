@@ -11,7 +11,7 @@ use std::path::Path;
 #[test]
 fn static_routing_placement_and_default_alias_share_geometry() {
     let gpu = gpu::open(&gpu::headless_instance(), None).expect("real GPU");
-    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).unwrap();
+    let pipelines = pipelines::build(&gpu.device).unwrap();
     let library = Library::open(Path::new(RUNTIME)).unwrap();
     let name = "crate_stack";
     let bundle = library.bundle(name).unwrap();
@@ -74,13 +74,11 @@ fn static_routing_placement_and_default_alias_share_geometry() {
         expected_vertices > 0,
         "the fixture must contain real geometry"
     );
-    assert_eq!(one.resident_vertices(), expected_vertices);
     assert_eq!(
         allocations(&routed),
         allocations(&one),
         "routing, placement and an empty-state alias must not allocate another mesh"
     );
-    assert_eq!(routed.resident_vertices(), expected_vertices);
     let instances = [Instance::default(); 4];
     let batches = (0..4)
         .map(|row| Batch {

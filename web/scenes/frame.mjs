@@ -1,3 +1,4 @@
+import { rendererLifecycle } from "./_rendererLifecycle.mjs";
 // Slice 01: honest 3D frame — camera/depth/picking/lifecycle on the real adapter.
 // The tank and truck are their appearances (models), the
 // crate and soldiers proxies; picking reads the simulation's boxes.
@@ -245,4 +246,5 @@ export async function run(ctx) {
     const capture = await match(name);
     ctx.check(`low graphics draws an opaque ${name} frame`, capture.length > 1000);
   }
+  await rendererLifecycle(ctx);
 }

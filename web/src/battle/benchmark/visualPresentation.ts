@@ -6,7 +6,7 @@
 // Plain Node runs the writer (the scene harness), so it imports nothing the
 // renderer owns. What the battle is (its units, effects, light and
 // buildings) a second client reads from the repository itself.
-import type { DrawnInstances } from "@packages/battle-renderer/src/scene";
+import type { DrawnInstances } from "@web/battle/render/sceneStats";
 import { decodePresentationCapture, finite, hasKeys, isRecord } from "./presentationCapture.ts";
 
 /** The presentation layers a frame can draw. */
@@ -118,7 +118,7 @@ export interface GrassCount {
 export const TIERS = 4;
 
 /** What a plate's frame drew of the buildings, the scenery and the props
- *  (`BattleFrame.drawnInstances`): per kit module the buildings' walk draws
+ *  (the shared renderer's drawn-instance snapshot): per kit module the buildings' walk draws
  *  and tier, `module · TIERS + tier`; per population, scenery appearance (the
  *  ground's `scenery_kinds`) and tier likewise; the stumps per appearance
  *  alone; the props per appearance, at each tier. */

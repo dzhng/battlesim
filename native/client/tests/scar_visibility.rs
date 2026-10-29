@@ -7,7 +7,7 @@ use wgpu::*;
 fn sample(gpu: &gpu::Gpu, scars: &Scars) -> [f32; 4] {
     let source = format!(
         "{}\n{}",
-        include_str!("../../../packages/battle-renderer/pipelines/worldTerrain.wgsl"),
+        renderer_core::pipelines::builtin_source("worldTerrain.wgsl").unwrap(),
         r#"
 @group(0) @binding(0) var<storage, read_write> capturedScars: array<vec4f>;
 @compute @workgroup_size(1) fn inspectScars() {

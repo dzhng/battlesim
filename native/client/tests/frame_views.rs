@@ -57,7 +57,7 @@ fn backdrop(encoder: &mut CommandEncoder, targets: &Targets, value: f64) {
 #[test]
 fn post_modes_and_paint_inspection_preserve_their_output_contracts() {
     let gpu = gpu::open(&gpu::headless_instance(), None).expect("real GPU");
-    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).unwrap();
+    let pipelines = pipelines::build(&gpu.device).unwrap();
     let mut targets = Targets::new(&gpu.device, SIZE);
     let texture = |label, size: [u32; 2], format| {
         gpu.device.create_texture(&TextureDescriptor {

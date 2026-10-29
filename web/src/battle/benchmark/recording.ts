@@ -7,7 +7,7 @@
 // Ported by technique from ~/dev/game/web/src/battle/benchmark/
 // benchmarkRecording.ts and benchmarkMetrics.ts.
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
-import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
+import type { AllocationCounts } from "@web/battle/render/sceneStats";
 
 export interface Summary {
   count: number;
@@ -97,7 +97,7 @@ export interface TickSample {
   bytes: number;
 }
 
-/** The battle frame's GPU frame time over its recent frames (`BattleFrame.stats().gpu`). */
+/** The battle frame's GPU frame time over its recent frames (the scene GPU timing snapshot). */
 export interface GpuWindow {
   frames: number;
   meanMs: number;
@@ -110,7 +110,7 @@ export interface StatsSample {
   phase: string;
   /** Null without `timestamp-query`, or before any frame resolved. */
   gpu: GpuWindow | null;
-  memory: GpuAllocationCounts;
+  memory: AllocationCounts;
   /** Main-thread JS heap where the browser reports it (Chromium), else null. */
   heapBytes: number | null;
 }

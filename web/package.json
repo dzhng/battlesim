@@ -8,9 +8,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
     "test": "vitest run",
-    "build:wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/game-wasm --target web --release --out-dir ../../web/src/wasm && bun run build:renderer-wasm && bun run build:shared-renderer-wasm",
-    "build:renderer-wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/renderer-wasm-spike --target web --release --out-dir ../../web/src/wasm/renderer_spike",
-    "build:shared-renderer-wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/renderer-browser --target web --release --out-dir ../../web/src/wasm/renderer_browser",
+    "build:wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/game-wasm --target web --release --out-dir ../../web/src/wasm && bun run build:renderer-browser",
     "scene": "node scene.mjs",
     "asset": "node asset.mjs",
     "capture": "node capture.mjs",
@@ -44,9 +42,7 @@
     "pixelmatch": "7.2.0",
     "playwright": "1.60.0",
     "pngjs": "7.0.0",
-    "typegpu": "0.12.5",
     "typescript": "6.0.3",
-    "unplugin-typegpu": "0.12.3",
     "vite": "8.0.16",
     "vitest": "4.1.9"
   }

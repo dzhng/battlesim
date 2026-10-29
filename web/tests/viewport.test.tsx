@@ -9,7 +9,11 @@ import type { WorldLayers } from "@packages/battle-renderer/src/scene";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { SceneOptions } from "@web/battle/render/scene";
 import type { ScenePresentation } from "@web/battle/sim/presentation";
-import type { GraphicsQualityProfile } from "@apps/battle-lab/src/graphicsSettings";
+import type { ViewportFrame } from "@apps/battle-lab/src/presentedFrame";
+import {
+  graphicsProfiles,
+  type GraphicsQualityProfile,
+} from "@apps/battle-lab/src/graphicsSettings";
 
 const gpu = vi.hoisted(() => ({
   resolve: null as null | ((overrides?: Record<string, unknown>) => void),
@@ -19,12 +23,12 @@ const gpu = vi.hoisted(() => ({
   refused: [] as unknown[],
 }));
 vi.mock("@apps/battle-lab/src/appResources", () => ({
+  gpuFailureMessage: String,
   appResources: {
     gpu: async () => gpu.device,
     refuse: (error: unknown) => gpu.refused.push(error),
   },
 }));
-vi.mock("@packages/renderer-core/src/device", () => ({ gpuFailureMessage: String }));
 vi.mock("@web/battle/sim/presentation", () => ({
   NO_PROP_STATS: {},
   ScenePresentation: class {
@@ -68,8 +72,10 @@ vi.mock("@web/battle/render/scene", () => ({
             presentation: options.presentation,
             world: () => options.world,
             worldCurrent: () => true,
+            current: () => true,
             appearances: () => options.appearances,
             flush: () => false,
+            inheritControls() {},
             staticGeneration: 0,
             setModels() {},
             setInstances() {},
@@ -77,9 +83,9 @@ vi.mock("@web/battle/render/scene", () => ({
             setPointerMarks() {},
             setFogStyle() {},
             resize() {},
-            render() {},
+            render: () => true,
             dispose() {},
-            setAppearances: async () => false,
+            updateSources: () => "current",
             stats: () => ({ memory: { buffers: 0, textures: 0 } }),
             settled: async () => false,
             ...overrides,
@@ -161,7 +167,7 @@ test("failed scene admission reports its error to the loading boundary", async (
   view.unmount();
 });
 
-test("appearance updates reach the live scene and unmount releases it without waiting", async () => {
+test("appearance updates reconcile on a frame and unmount releases the scene", async () => {
   const appearance = (generation: number): InstalledAppearances => ({
     generation,
     sides: { blue: [1, 1, 1], red: [1, 1, 1] },
@@ -172,32 +178,69 @@ test("appearance updates reach the live scene and unmount releases it without wa
   const first = appearance(1),
     latest = appearance(2);
   const appearances = new Feed<InstalledAppearances | null>(first);
-  const { view } = await mount({ appearances, models: [] });
+  const { view, advance } = await mount({ appearances, models: [] });
   await building();
-  let release!: () => void;
-  const installing = new Promise<void>((resolve) => {
-    release = resolve;
-  });
   let requested = first;
   const dispose = vi.fn();
-  const setModels = vi.fn();
   await act(async () =>
     gpu.resolve!({
       dispose,
-      setModels,
-      setAppearances(next: typeof first) {
+      updateSources(_world: WorldLayers, next: InstalledAppearances) {
         requested = next;
-        return installing;
+        return true;
       },
     }),
   );
-  setModels.mockClear();
   act(() => appearances.set(latest));
+  expect(requested).toBe(first);
+  await act(async () => advance(1));
   expect(requested).toBe(latest);
   view.unmount();
   expect(dispose).toHaveBeenCalledTimes(1);
-  await act(async () => release());
-  expect(setModels).not.toHaveBeenCalled();
+});
+
+test("a complete topology/art replacement bypasses asset-only admission on the old renderer", async () => {
+  const { ScenePresentation } = await import("@web/battle/sim/presentation");
+  const decoder = new ScenePresentation();
+  decoder.setBattle({ world: {}, tables: new Map() });
+  const art = (generation: number): InstalledAppearances => ({
+    generation,
+    sides: { blue: [1, 1, 1], red: [1, 1, 1] },
+    appearances: new Map(),
+    onRequest: new Map(),
+    skeletons: new Map(),
+  });
+  const first = art(1),
+    next = art(2);
+  const appearances = new Feed<InstalledAppearances | null>(first);
+  let replaced = false,
+    currentWorld = true;
+  const { view, advance } = await mount({
+    appearances,
+    presentation: new Feed<ScenePresentation | null>(decoder),
+    frame: () => {
+      if (replaced) currentWorld = false;
+      return null;
+    },
+  });
+  await building();
+  const install = vi.fn(() => "current");
+  await act(async () => gpu.resolve!({ updateSources: install, worldCurrent: () => currentWorld }));
+  await act(async () => advance(1));
+  install.mockClear();
+  act(() => {
+    appearances.set(next);
+    replaced = true;
+  });
+  expect(install).not.toHaveBeenCalled();
+  await act(async () => advance(2));
+  expect(install).not.toHaveBeenCalled();
+  expect(gpu.options.at(-1)?.appearances).toBe(next);
+  replaced = false;
+  currentWorld = true;
+  await act(async () => gpu.resolve!());
+  await act(async () => advance(3));
+  view.unmount();
 });
 
 test("a later viewport borrows the same page GPU and independently disposes its scene", async () => {
@@ -277,7 +320,7 @@ test("an external world reload admits once and skips the old GPU scene while awa
   const { advance, view } = await mount();
   await building();
   let current = true;
-  const oldRender = vi.fn(),
+  const oldRender = vi.fn(() => true),
     oldDispose = vi.fn();
   await act(async () =>
     gpu.resolve!({ worldCurrent: () => current, render: oldRender, dispose: oldDispose }),
@@ -293,12 +336,146 @@ test("an external world reload admits once and skips the old GPU scene while awa
   });
   expect(gpu.options).toHaveLength(2);
   expect(oldRender).not.toHaveBeenCalled();
-  const nextRender = vi.fn();
+  const nextRender = vi.fn(() => true);
   await act(async () => gpu.resolve!({ render: nextRender }));
   expect(oldDispose).toHaveBeenCalledTimes(1);
   act(() => advance(5));
   expect(nextRender).toHaveBeenCalledTimes(1);
   view.unmount();
+});
+
+test("a requested frame waits for the replacement to actually render", async () => {
+  const { advance, view } = await mount();
+  await building();
+  let current = true;
+  await act(async () => gpu.resolve!({ worldCurrent: () => current }));
+  act(() => advance(1));
+  current = false;
+  await act(async () => advance(2));
+  let complete = false;
+  const frame = window.__lab!.frame!().then(() => {
+    complete = true;
+  });
+  await act(async () => {
+    advance(3);
+    advance(4);
+  });
+  expect(complete).toBe(false);
+  await act(async () => gpu.resolve!());
+  await act(async () => advance(5));
+  await frame;
+  expect(complete).toBe(true);
+  view.unmount();
+});
+
+test("a skipped surface neither completes a frame nor publishes its observation", async () => {
+  const submitted = vi.fn();
+  const { advance, view } = await mount({ frame: () => ({ clock: 1, submitted }) });
+  await building();
+  let usable = false;
+  await act(async () => gpu.resolve!({ render: () => usable }));
+  let complete = false;
+  const frame = window.__lab!.frame!().then(() => {
+    complete = true;
+  });
+  await act(async () => {
+    advance(1);
+    advance(2);
+  });
+  expect(complete).toBe(false);
+  expect(submitted).not.toHaveBeenCalled();
+  usable = true;
+  await act(async () => advance(3));
+  await frame;
+  expect(submitted).toHaveBeenCalledTimes(1);
+  view.unmount();
+});
+
+test("skipped frames retain the submitted pick boxes and camera rays", async () => {
+  const box = (x: number) => ({
+    x,
+    y: 0,
+    z: 0,
+    yaw: 0,
+    center: [0, 0, 0] as const,
+    half: [1, 1, 1] as const,
+  });
+  let candidate: ViewportFrame = { picks: [box(1)] };
+  const { advance, view } = await mount({ frame: () => candidate });
+  await building();
+  let usable = true;
+  await act(async () => gpu.resolve!({ render: () => usable }));
+  const canvas = view.container.querySelector("canvas")!;
+  vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+    x: 0,
+    y: 0,
+    left: 0,
+    top: 0,
+    right: 800,
+    bottom: 600,
+    width: 800,
+    height: 600,
+    toJSON() {},
+  });
+  await act(async () => advance(1));
+  const initialRay = window.__lab!.rayAt!(400, 300);
+  expect(window.__lab!.instances!()).toEqual([box(1)]);
+
+  usable = false;
+  candidate = { picks: [box(2)] };
+  const camera = window.__lab!.camera!();
+  window.__lab!.setCamera!({
+    ...camera,
+    target: [camera.target[0] + 10, camera.target[1], camera.target[2]],
+  });
+  await act(async () => advance(2));
+  expect(window.__lab!.instances!()).toEqual([box(1)]);
+  expect(window.__lab!.rayAt!(400, 300)).toEqual(initialRay);
+
+  usable = true;
+  candidate = {}; // Omitted fields keep the staged value across a skipped draw.
+  await act(async () => advance(3));
+  expect(window.__lab!.instances!()).toEqual([box(2)]);
+  expect(window.__lab!.rayAt!(400, 300)).not.toEqual(initialRay);
+  view.unmount();
+});
+
+test("a requested frame waits for the active scene's desired art generation", async () => {
+  const ready = vi.fn();
+  const { advance, view } = await mount({ onReady: ready });
+  await building();
+  let current = true;
+  await act(async () => gpu.resolve!({ current: () => current }));
+  await act(async () => advance(1));
+  expect(ready).toHaveBeenCalledTimes(1);
+  current = false;
+  let complete = false;
+  const frame = window.__lab!.frame!().then(() => {
+    complete = true;
+  });
+  await act(async () => {
+    advance(2);
+    advance(3);
+  });
+  expect(complete).toBe(false);
+  current = true;
+  gpu.options[0].redraw();
+  await act(async () => advance(4));
+  await frame;
+  view.unmount();
+});
+
+test("departing during a quality rebuild does not refuse the page's shared GPU", async () => {
+  const { advance, view, props, Viewport } = await mount();
+  await building();
+  await act(async () => gpu.resolve!());
+  await act(async () => advance(1));
+  await act(async () => view.rerender(<Viewport {...props} quality={graphicsProfiles.low} />));
+  expect(gpu.options).toHaveLength(2);
+  await act(async () => gpu.resolve!());
+  view.unmount();
+  await act(async () => {});
+  expect(gpu.refused).toEqual([]);
 });
 
 test("a replaced session draws its new presentation without touching the retired observer", async () => {
@@ -310,7 +487,7 @@ test("a replaced session draws its new presentation without touching the retired
   const observer = new Feed<ScenePresentation | null>(before);
   const { advance, view } = await mount({ presentation: observer, frame: () => null });
   await building();
-  const oldRender = vi.fn(),
+  const oldRender = vi.fn(() => true),
     oldDispose = vi.fn();
   await act(async () => gpu.resolve!({ render: oldRender, dispose: oldDispose }));
   act(() => advance(1));
@@ -322,7 +499,7 @@ test("a replaced session draws its new presentation without touching the retired
   expect(oldRender).not.toHaveBeenCalled();
   expect(gpu.options).toHaveLength(2);
   expect(gpu.options[1].presentation).toBe(after);
-  const newRender = vi.fn();
+  const newRender = vi.fn(() => true);
   await act(async () => gpu.resolve!({ render: newRender }));
   act(() => advance(3));
   expect(newRender).toHaveBeenCalledTimes(1);
@@ -352,7 +529,7 @@ test("a preset changed during admission installs only the newest grass and shado
   } as unknown as WorldLayers);
   const { advance, view, props, Viewport } = await mount({ quality, world });
   await building();
-  const originalRender = vi.fn(),
+  const originalRender = vi.fn(() => true),
     originalDispose = vi.fn();
   await act(async () => gpu.resolve!({ render: originalRender, dispose: originalDispose }));
   act(() => advance(1));
@@ -363,7 +540,7 @@ test("a preset changed during admission installs only the newest grass and shado
   const latest = { ...pending, grassDensity: 0.9, shadowReach: 900, shadowMapSize: 2048 as const };
   act(() => view.rerender(<Viewport {...props} quality={latest} />));
   const staleDispose = vi.fn(),
-    staleRender = vi.fn();
+    staleRender = vi.fn(() => true);
   await act(async () => gpu.resolve!({ dispose: staleDispose, render: staleRender }));
   expect(staleDispose).toHaveBeenCalledTimes(1);
   expect(staleRender).not.toHaveBeenCalled();
@@ -371,7 +548,7 @@ test("a preset changed during admission installs only the newest grass and shado
   expect(gpu.options).toHaveLength(3);
   expect(gpu.options[2].settings.grassDensity).toBe(0.9);
   expect(gpu.options[2].settings.light.cascades).toMatchObject({ map_size: 2048, max_far_m: 900 });
-  const latestRender = vi.fn();
+  const latestRender = vi.fn(() => true);
   await act(async () => gpu.resolve!({ render: latestRender }));
   act(() => advance(2));
   expect(latestRender).toHaveBeenCalledTimes(1);
@@ -428,9 +605,9 @@ test("failed admission of a retired observer yields to the latest session", asyn
   expect(window.__lab?.error).toBeNull();
   expect(gpu.options).toHaveLength(2);
   expect(gpu.options[1].presentation).toBe(after);
-  const render = vi.fn();
+  const render = vi.fn(() => true);
   await act(async () => gpu.resolve!({ render }));
-  act(() => advance(1));
+  await act(async () => advance(1));
   expect(render).toHaveBeenCalledTimes(1);
   expect(window.__lab?.ready).toBe(true);
   view.unmount();
@@ -453,6 +630,68 @@ test("proxy instances changed during admission become the installed poses", asyn
     }),
   );
   expect(installed).toEqual(latest);
+  view.unmount();
+});
+
+test("changing route proxies after the first draw keeps the viewport live through departure", async () => {
+  const first = [
+    { kind: "infantry" as const, x: 1, y: 0, z: 0, yaw: 0, color: [1, 1, 1] as const },
+  ];
+  const { view, props, Viewport, advance } = await mount({ instances: first });
+  await building();
+  await act(async () => gpu.resolve!());
+  await act(async () => advance(1));
+  const latest = [{ ...first[0], x: 2 }];
+  act(() => view.rerender(<Viewport {...props} instances={latest} />));
+  await act(async () => advance(2));
+  expect(window.__lab!.instances!()[0].x).toBe(2);
+  view.unmount();
+  expect(window.__lab).toBeUndefined();
+});
+
+test("a pose-only update is framed before its draw completes", async () => {
+  const { ScenePresentation } = await import("@web/battle/sim/presentation");
+  let posed = 1,
+    framed = 0,
+    shown = 0;
+  const previousFrame = ScenePresentation.prototype.frame;
+  vi.spyOn(ScenePresentation.prototype, "frame").mockImplementation(function (
+    this: InstanceType<typeof ScenePresentation>,
+    ...args
+  ) {
+    framed = posed;
+    return previousFrame.apply(this, args);
+  });
+  const first = [
+    { kind: "infantry" as const, x: 1, y: 0, z: 0, yaw: 0, color: [1, 1, 1] as const },
+  ];
+  const { view, props, Viewport, advance } = await mount({ instances: first });
+  await building();
+  await act(async () =>
+    gpu.resolve!({
+      updateSources(
+        _world: WorldLayers,
+        _art: InstalledAppearances,
+        _models: unknown,
+        instances: typeof first,
+      ) {
+        if (posed === instances[0].x) return "current";
+        posed = instances[0].x;
+        return "reframe";
+      },
+      render() {
+        shown = framed;
+        return true;
+      },
+    }),
+  );
+  await act(async () => advance(1));
+  expect(shown).toBe(1);
+  act(() => view.rerender(<Viewport {...props} instances={[{ ...first[0], x: 2 }]} />));
+  const completed = window.__lab!.frame!();
+  await act(async () => advance(2));
+  await completed;
+  expect(shown).toBe(2);
   view.unmount();
 });
 

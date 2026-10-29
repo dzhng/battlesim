@@ -59,7 +59,15 @@ export async function presented(page, timeout = 30000) {
     () => {
       const tick = window.__lab.route.tick();
       const p = window.__lab.route.presented();
-      return !!p && p.tick === tick && p.clock >= tick - 1e-6;
+      const observation = window.__lab.route.observation();
+      if (!observation) return false;
+      const ground = observation.groundPatch;
+      return (
+        !!p &&
+        p.tick === tick &&
+        p.clock >= tick - 1e-6 &&
+        (!ground || (p.side === ground.side && p.epoch === ground.epoch))
+      );
     },
     undefined,
     { timeout, polling: 50 },

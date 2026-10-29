@@ -78,10 +78,25 @@ async function shot(ctx, page, file) {
 /** The frame as it stands, and the same frame with no model drawn. */
 async function paired(ctx, page, file) {
   const drawn = await shot(ctx, page, file);
-  await lab(page, () => window.__lab.suppressModels(true));
-  const bare = await shot(ctx, page, null);
-  await lab(page, () => window.__lab.suppressModels(false));
-  return { drawn, bare };
+  const surfaces = ["opaque", ...SURFACES];
+  await lab(
+    page,
+    async (surfaces) => {
+      for (const surface of surfaces) await window.__lab.suppressSurface(surface, true);
+    },
+    surfaces,
+  );
+  try {
+    return { drawn, bare: await shot(ctx, page, null) };
+  } finally {
+    await lab(
+      page,
+      async (surfaces) => {
+        for (const surface of surfaces) await window.__lab.suppressSurface(surface, false);
+      },
+      surfaces,
+    );
+  }
 }
 
 /** Cut the camera to a station as the rig places it, and wait for it to rest. */

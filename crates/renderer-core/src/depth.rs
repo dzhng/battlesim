@@ -37,7 +37,7 @@ impl DepthPrepass {
             }),
             ..Default::default()
         });
-        let camera = ("typegpuCameraLayout", &inputs.environment.camera);
+        let camera = ("cameraLayout", &inputs.environment.camera);
         inputs.ground.draw_depth(&mut pass, camera);
         inputs
             .scenery
@@ -71,7 +71,7 @@ impl DepthPrepass {
                 }),
                 ..Default::default()
             });
-            let camera = ("typegpuCameraLayout", &inputs.environment.camera);
+            let camera = ("cameraLayout", &inputs.environment.camera);
             for (pipeline, surface) in [
                 (&self.solid, Surface::Solid),
                 (&self.cutout, Surface::Cutout),

@@ -20,8 +20,8 @@ const SUN_AT: usize = 80;
 const CAST_LIGHTS_BYTES: usize = 16 + CAST_LIGHTS_MAX * size_of::<CastLight>();
 /// The sky lookup's width; the PMREM's levels follow from it (`pmrem.ts`).
 const SKY_LUT_WIDTH: u32 = 384;
-/// The split-sum table (`shaders/dfgLut.ts`): read from the browser's file.
-const DFG_LUT_TS: &str = include_str!("../../../packages/battle-renderer/src/shaders/dfgLut.ts");
+// Exact Three 0.185.1 RG16F split-sum table; MIT, see environment/LICENSE.three.
+const DFG_LUT: &[u8; 1024] = include_bytes!("environment/dfg.rg16f");
 const DFG_LUT_SIZE: u32 = 16;
 
 pub struct Environment {
@@ -230,21 +230,6 @@ fn pmrem(
     (atlas, max_mip)
 }
 
-/// The DFG table's half floats, from the browser's source.
-fn dfg_lut() -> Vec<u16> {
-    let words: Vec<u16> = DFG_LUT_TS
-        .split(|c: char| !c.is_ascii_alphanumeric())
-        .filter_map(|t| t.strip_prefix("0x"))
-        .filter_map(|h| u16::from_str_radix(h, 16).ok())
-        .collect();
-    assert_eq!(
-        words.len(),
-        (DFG_LUT_SIZE * DFG_LUT_SIZE * 2) as usize,
-        "dfgLut.ts"
-    );
-    words
-}
-
 impl Environment {
     /// The environment for the world's light, prefiltering the sky's lookup.
     pub fn new(
@@ -265,7 +250,7 @@ impl Environment {
         );
         let camera = bind(
             device,
-            pipelines.layout("typegpuCameraLayout"),
+            pipelines.layout("cameraLayout"),
             "camera",
             &[camera_buffer.as_entire_binding()],
         );
@@ -287,7 +272,7 @@ impl Environment {
         );
         queue.write_texture(
             dfg.as_image_copy(),
-            bytemuck::cast_slice(&dfg_lut()),
+            DFG_LUT,
             TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(DFG_LUT_SIZE * 4),
@@ -334,7 +319,7 @@ impl Environment {
     /// The frame-level groups by the layout each fills.
     pub fn groups(&self) -> [(&'static str, &BindGroup); 2] {
         [
-            ("typegpuCameraLayout", &self.camera),
+            ("cameraLayout", &self.camera),
             ("environment", &self.environment),
         ]
     }

@@ -289,7 +289,7 @@ impl FrameRenderer {
         inputs
             .shadow
             .encode_cascades(encoder, |cascade, camera, pass| {
-                let camera = ("typegpuCameraLayout", camera);
+                let camera = ("cameraLayout", camera);
                 inputs.ground.draw_casters(pass, camera, cascade);
                 for (pipeline, surface) in [
                     (&self.caster, Surface::Solid),

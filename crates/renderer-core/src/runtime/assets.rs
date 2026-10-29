@@ -52,7 +52,7 @@ impl Runtime {
                 .scenery_kinds();
             let finest = names
                 .iter()
-                .map(|name| crate::scenery::tier_mesh(name, &library.bundle(name)?, 0))
+                .map(|name| crate::scenery::tier_mesh(name, library.bundle(name)?.as_ref(), 0))
                 .collect::<Result<Vec<_>, String>>()?;
             let refs: Vec<_> = finest.iter().map(Vec::as_slice).collect();
             catalog.stage_scenery(presentation, &refs)?;

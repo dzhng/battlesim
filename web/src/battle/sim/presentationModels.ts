@@ -12,7 +12,7 @@ import {
   Appearance,
   worldViews,
 } from "@packages/battle-renderer/src/records.gen";
-import { STUMP } from "@packages/battle-renderer/src/frame/sceneryLayer";
+import { STUMP } from "@packages/battle-renderer/src/scenery/walk";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import type { Articulation } from "@packages/scene-assets/src/articulation";
 

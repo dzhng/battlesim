@@ -44,7 +44,7 @@ impl BakeRequest {
         }
         let spec = &input.spec;
         let pipeline = pipelines.bound("modelImpostor");
-        let camera_layout = pipelines.layout("typegpuCameraLayout");
+        let camera_layout = pipelines.layout("cameraLayout");
         let (center, radius) = camera::frame(input.bounds);
         let px = spec.cell * spec.supersample;
         let (width, height) = (spec.yaws * px, spec.pitches.len() as u32 * px);
@@ -144,10 +144,7 @@ impl BakeRequest {
                 pass.set_scissor_rect(x, y, px, px);
                 pipeline.set(
                     &mut pass,
-                    &[
-                        ("typegpuCameraLayout", camera),
-                        ("modelLayout", &input.models),
-                    ],
+                    &[("cameraLayout", camera), ("modelLayout", &input.models)],
                 );
                 pass.set_vertex_buffer(0, input.vertices.slice(..));
                 pass.set_vertex_buffer(1, instance.slice(..));

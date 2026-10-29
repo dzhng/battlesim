@@ -9,12 +9,12 @@
 import { useMemo, useState } from "react";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import { buildContactGlyphs, type ContactShape } from "@packages/battle-renderer/src/contactGlyph";
-import type { FogProbeInput } from "@packages/battle-renderer/src/frame/fogVisibility";
-import type { FogPresentation, FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
+import type { FogProbeInput } from "@packages/battle-renderer/src/fog";
+import type { FogPresentation, FogStyle } from "@packages/battle-renderer/src/fog";
 import { FOG_EDGE_REACH_PX } from "@packages/battle-renderer/src/records.gen";
 import { resolveFogLook, type FogEye, type FogRequest } from "@web/battle/sim/presentation";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import type { FrameView } from "@packages/battle-renderer/src/scene";
+import type { FrameView } from "@web/battle/render/sceneStats";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import game from "@fixtures/game.json";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";

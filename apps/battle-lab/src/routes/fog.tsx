@@ -5,8 +5,8 @@
 // the GPU sight shape against Rust's vectors, and turn one eye's bearing
 // without moving it.
 import { useEffect, useMemo, useState } from "react";
-import type { FogProbes } from "@packages/battle-renderer/src/frame/fogVisibility";
-import type { FrameView } from "@packages/battle-renderer/src/scene";
+import type { FogProbes } from "@packages/battle-renderer/src/fog";
+import type { FrameView } from "@web/battle/render/sceneStats";
 import { loadWasm } from "@web/battle/sim/module";
 import type { ObservationView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";

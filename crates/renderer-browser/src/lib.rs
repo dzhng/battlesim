@@ -12,9 +12,6 @@ use wasm_bindgen::prelude::*;
 use web_sys::HtmlCanvasElement;
 use wgpu::*;
 
-pub(crate) mod pipeline_export {
-    include!(concat!(env!("OUT_DIR"), "/pipeline_export.rs"));
-}
 mod appearance;
 mod asset;
 pub use appearance::{AppearanceDraft, PreparedAppearances};
@@ -22,24 +19,14 @@ mod diagnostics;
 mod export;
 mod geometry;
 mod gpu;
+mod ground_queries;
 pub use gpu::BrowserGpu;
 mod high_surface;
 mod queries;
 mod recovery;
 mod render;
-mod state;
 mod stats_api;
 mod world;
-use state::Stats;
-
-const DISPLAY_PIPELINES: &str = r#"{
-  "sizes":{"bloomLevels":0,"skyLut":[1,1],"effectSheet":1,"grassClump":1},
-  "layouts":{"sampled":[
-    {"binding":0,"texture":{"sampleType":"float","viewDimension":"2d","multisampled":false},"visibility":["fragment"]},
-    {"binding":1,"sampler":{"type":"filtering"},"visibility":["fragment"]}
-  ]},
-  "pipelines":[{"name":"composite","kind":"render","shader":"display.wgsl","layout":["sampled"],"vertex":{"entryPoint":"fullscreen","buffers":[]},"primitive":{"topology":"triangle-list"},"fragment":{"entryPoint":"composite","targets":[{"format":"bgra8unorm"}]}}]
-}"#;
 
 const DISPLAY_SHADER: &str = r#"
 struct V { @builtin(position) position: vec4<f32>, @location(0) uv: vec2<f32> };
@@ -86,9 +73,7 @@ pub struct Renderer {
     height: u32,
     format: TextureFormat,
     alpha_mode: CompositeAlphaMode,
-    previous_device_losses: u32,
-    stats: Stats,
-    asset_report: Option<String>,
+    frames: u32,
 }
 
 fn js_error(error: impl std::fmt::Display) -> JsValue {
@@ -133,7 +118,7 @@ impl Renderer {
 
     /// Rebuild targets while synchronously borrowing current knowledge.
     pub fn resize(&mut self, canvas: HtmlCanvasElement, presentation: &mut Presentation) {
-        let size = [canvas.width().max(1), canvas.height().max(1)];
+        let size = renderer_core::render_size([canvas.width(), canvas.height()]);
         if size != [self.width, self.height] {
             [self.width, self.height] = size;
             self.config.size = size;
@@ -146,14 +131,12 @@ impl Renderer {
                 );
             }
             self.rebind_display();
-            self.stats.resizes += 1;
         }
         self.configure_surface();
     }
 
     pub fn recover_surface(&mut self) {
         self.configure_surface();
-        self.stats.surface_recoveries += 1;
     }
 
     pub fn destroy_device_for_test(&self) {
@@ -181,8 +164,7 @@ impl Renderer {
             .copied()
             .find(|f| *f == TextureFormat::Bgra8Unorm)
             .ok_or_else(|| js_error("no surface format"))?;
-        let width = canvas.width().max(1);
-        let height = canvas.height().max(1);
+        let [width, height] = renderer_core::render_size([canvas.width(), canvas.height()]);
         surface.configure(
             device,
             &SurfaceConfiguration {
@@ -209,10 +191,9 @@ impl Renderer {
             })
             .transpose()?;
         let pipeline_errors = device.push_error_scope(ErrorFilter::Validation);
-        let display_pipelines = Pipelines::build(device, DISPLAY_PIPELINES, |_, _| {
-            Ok(DISPLAY_SHADER.to_owned())
-        })
-        .map_err(js_error)?;
+        let display_pipelines =
+            renderer_core::pipelines::build_display(device, DISPLAY_SHADER, format)
+                .map_err(js_error)?;
         if let Some(error) = pipeline_errors.pop().await {
             return Err(js_error(format!("display pipeline validation: {error:?}")));
         }
@@ -246,9 +227,7 @@ impl Renderer {
             height,
             format,
             alpha_mode: caps.alpha_modes[0],
-            previous_device_losses: 0,
-            stats: Stats::default(),
-            asset_report: None,
+            frames: 0,
         })
     }
 

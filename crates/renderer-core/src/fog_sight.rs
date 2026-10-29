@@ -107,8 +107,6 @@ pub struct FogSightResources {
     cull: Option<BindGroup>,
     whole: Option<BindGroup>,
     due: Due,
-    uploads: u64,
-    complete_tables: bool,
 }
 
 fn storage(device: &Device, label: &str, size: u64, usage: BufferUsages) -> Buffer {
@@ -228,8 +226,6 @@ impl FogSightResources {
             cull: None,
             whole: None,
             due: Due::default(),
-            uploads: 0,
-            complete_tables: false,
         };
         fog.bind(device);
         fog
@@ -367,22 +363,10 @@ impl FogSightResources {
     }
 
     fn upload_for(&mut self, device: &Device, queue: &Queue, up: &FogUpload, view: bool) {
-        self.uploads += 1;
-        self.complete_tables |= up.foliage.is_some() && up.occluders.is_some();
         self.due = Due::default();
         if self.upload_buffers(device, queue, up, view) {
             self.bind(device);
         }
-    }
-
-    /// Number of canonical records consumed by this GPU generation.
-    pub fn upload_count(&self) -> u64 {
-        self.uploads
-    }
-
-    /// Whether this GPU generation received both retained knowledge tables.
-    pub fn has_complete_tables(&self) -> bool {
-        self.complete_tables
     }
 
     /// Uploads `up`; true when a buffer a group binds was replaced.

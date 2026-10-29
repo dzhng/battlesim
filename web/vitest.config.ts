@@ -20,7 +20,6 @@ export default mergeConfig(
       // A test judges what happened, not how long this machine took: the
       // limit only catches a hang, and holds when every core is busy.
       testTimeout: 30_000,
-      server: { deps: { inline: [/node_modules\/typegpu\//] } },
     },
   }),
 );

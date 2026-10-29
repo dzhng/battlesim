@@ -4,7 +4,7 @@
 // What the sky, the haze, the sun, post and the cascades make of it is
 // resolved and tested in the presentation crate (`crates/presentation/tests/
 // light.rs` and `shadow.rs`); here, the page's binding hands the renderer the
-// words its TypeGPU structs read.
+// words defined by the shared Rust record layouts.
 import { expect, test } from "vitest";
 import game from "@fixtures/game.json";
 import {
@@ -12,9 +12,11 @@ import {
   type LightPresentation,
 } from "@packages/battle-renderer/src/light/sceneLight.ts";
 import { loadPresentation, resolveLight, ScenePresentation } from "@web/battle/sim/presentation";
-import { createTypegpuPost } from "@packages/battle-renderer/src/world/post.ts";
-import { Camera, SunShadow } from "@packages/battle-renderer/src/records.gen.ts";
-import { d } from "typegpu";
+import {
+  CAMERA_WORDS,
+  SUN_SHADOW_WORDS,
+  CameraAt,
+} from "@packages/battle-renderer/src/records.gen.ts";
 
 await loadPresentation();
 
@@ -69,40 +71,29 @@ test("a frame's cascades are the structs the renderer binds: a receiver block an
     );
     presentation.setShadow(LIGHT, slab);
     const frame = presentation.frame(0, camera, ui, 0);
-    expect(frame.sun_shadow.f32.byteLength).toBe(d.sizeOf(SunShadow));
+    expect(frame.sun_shadow.f32.byteLength).toBe(SUN_SHADOW_WORDS * 4);
     const active = frame.casters.count;
     expect(active).toBe(LIGHT.cascades.count);
     const casters = frame.casters.f32;
     const receiver = frame.sun_shadow.f32;
-    const size = d.sizeOf(Camera) / 4;
+    const size = CAMERA_WORDS;
     expect(casters).toHaveLength(active * size);
-    type CameraValue = d.Infer<typeof Camera>;
-    const at = (field: (c: CameraValue) => unknown) => d.memoryLayoutOf(Camera, field).offset / 4;
     for (let i = 0; i < active; i++) {
       const c = casters.subarray(i * size, (i + 1) * size);
       // A cascade's viewport is its map, square, and its light's near is a metre.
-      expect([c[at((x) => x.width)], c[at((x) => x.height)]]).toEqual([
+      expect([c[CameraAt.width], c[CameraAt.height]]).toEqual([
         LIGHT.cascades.map_size,
         LIGHT.cascades.map_size,
       ]);
-      expect(c[at((x) => x.znear)]).toBe(1);
+      expect(c[CameraAt.znear]).toBe(1);
       // The receiver's record holds the same light.
       const record = receiver.subarray(i * 24, i * 24 + 16);
-      const viewProj = at((x) => x.viewProj);
+      const viewProj = CameraAt.view_proj;
       expect([...c.subarray(viewProj, viewProj + 16)]).toEqual([...record]);
     }
   } finally {
     presentation.free();
   }
-});
-
-test("post encodes sRGB itself, so it refuses an sRGB canvas that would encode twice", async () => {
-  const device = null as unknown as GPUDevice;
-  const input = null as unknown as GPUTextureView;
-  const post = await resolveLight(LIGHT);
-  await expect(createTypegpuPost(device, input, 256, 256, "bgra8unorm-srgb", post)).rejects.toThrow(
-    /sRGB/,
-  );
 });
 
 test("a cloud field past full is refused by name", () => {

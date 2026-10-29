@@ -5,7 +5,7 @@
 // Every lab route draws with them; the presentation crate reads and checks
 // the rest of the sight lights' geometry itself.
 import game from "@fixtures/game.json";
-import type { FogShaders } from "@packages/battle-renderer/src/frame/fogVisibility";
+import type { FogShaders } from "@packages/battle-renderer/src/fog";
 import {
   validateContactGlyphStyle,
   type ContactGlyphStyle,
@@ -14,7 +14,7 @@ import {
   validateMapBorder,
   type MapBorderStyle,
 } from "@packages/battle-renderer/src/playAreaOverlay";
-import type { FogPresentation, FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
+import type { FogPresentation, FogStyle } from "@packages/battle-renderer/src/fog";
 import { gameHud } from "@web/battle/present/hudTheme";
 
 /** The numbers the sight lights' shader text takes (`fog_geometry`). */

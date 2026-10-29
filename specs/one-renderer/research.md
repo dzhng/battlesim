@@ -1,771 +1,399 @@
-# One-renderer auto-research record
+# One-renderer research record
 
-## Contract
+## Contract and evidence identity
 
-Objective: implement the one-renderer architecture and decide whether the
-shared Rust `wgpu` runtime can replace the browser TypeGPU renderer without
-breaking production visuals or lifecycle behavior.
+Replace the browser TypeGPU renderer with one Rust `wgpu` runtime shared with
+native. Presentation remains authoritative for poses, visibility and batches;
+publication layouts and battle digests must survive unchanged. Acceptance requires
+production visuals and lifecycle behavior, not a microbenchmark win. A small
+performance regression is acceptable for fewer owners and lower total complexity;
+fewer maintained source lines have not been established.
 
-Fixed comparison: the same frozen presentation frame, canvas size, adapter,
-render scale, and authored runtime assets. The browser TypeGPU renderer is the
-control; the browser and native shells call the shared Rust renderer candidate.
+Compare the same presentation history, assets, camera, viewport, adapter and
+quality. Queue drain and compositor turns are not GPU timestamps. Startup,
+encoding, GPU execution, owned payload, WASM capacity and source size answer
+different questions and must remain separate.
 
-Acceptance is architectural and behavioral, not a microbenchmark win. The
-candidate must preserve battle digests/publication contracts, match the
-production frame within the existing screenshot gates, and pass resize, rebuild,
-surface/device-loss recovery. Complexity is measured after deleting duplicate
-TypeGPU owners; a small performance regression is acceptable when the total
-renderer ownership and source complexity are lower.
+The fixed original TypeGPU source baseline is
+`5b52cabb57578d059eaa3a352bf2e38946742d4b`, preserved with isolated build output
+under `throwaway/final-perf/typegpu-baseline/identity.json`. Runtime media are
+shared read-only; the unchanged simulation artifact is reused. Current source
+also includes cleanup after the measured rendering cohort: its timings are not
+a fresh measurement of every final edit.
 
-Cheap evaluator: focused Rust/WASM checks, then the `one-renderer` browser
-scene with interleaved repeats and screenshot/accounting output. Full native
-parity and repository closeout run only after all production passes are wired.
-
-## Current task — production feature integration (2026-10-28)
-
-The committed incumbent is `a7c668458`. The current uncommitted pass migrates
-the production viewport and detached workbench sheets to the shared page GPU,
-actual presentation, and canvas/pixel APIs. Core appearance admission stages
-source, pose/placement facts and GPU owners together; bounded browser scheduling
-retains the committed catalog until the latest complete generation is ready.
-Shared diagnostics count actual issued ranges; model/effect/scar suppression keeps
-current knowledge. TypeGPU deletion and the final performance cohort remain open.
-
-Focused production results: foundation, geometry and river pass their existing
-approved-image gates; workbench C remains pixel-identical while A prepares
-and B supersedes it; the original deploy-change threshold passes once the sheet
-actually seeds and commits its requested geometry. CPU boundary checks pass
-(13 tests across page lifetime, admission, workbench source and proxies).
-Logs: `throwaway/production-frame-smoke-4.log`,
-`throwaway/production-workbench-race-1.log`,
-`throwaway/production-cpu-boundaries-8.log`.
-
-Rejected initial transport: loading the entire installed game catalog exhausted
-the WASM address space. Admission now transports canonical world source names,
-requested external models and enabled grass, including separately owned scenery
-sources. This changes startup scope, not per-frame rendering policy.
-
-Canonical world admission regression is fixed. The instrumented river probe
-installed/baked row 210 as a wreck, then presentation loaded it as `test_rifle`
-before drawing. The GPU still owned the old rows. The same class broke the menu
-battle and left unrelated fragments in the aircraft plane. The first proposed
-fix waited for an observed frame, which deadlocked because publications start
-only after GPU readiness. It was rejected. Admission now waits for staged battle
-topology, frames it on the CPU, then builds the GPU scene. External world reloads
-replace that scene before drawing. Worker startup order remains unchanged.
-
-The strengthened aircraft test failed with the F-16 source absent despite a
-nonempty plane, then passed with the authored source admitted and real geometry.
-Fresh unprimed visual review sees the complete aircraft and no apparent departures
-from the approved frame references. The aircraft world's strong hatching follows
-its intentionally unseen ground; unselected command icons remain disabled. Raw
-reference comparisons retain small raster differences (262/330/464 pixels for
-foundation/geometry/river respectively); the unchanged spatial screenshot gates
-report zero unmatched pixels. Do not describe this as byte identity. The full app journey subsequently passes, including resource-lifetime checks.
-Evidence: `throwaway/river-admission-probe-2.log`,
-`throwaway/production-world-admission-frame-green-3.log`,
-`throwaway/production-world-admission-green-2.log` (aircraft only; its frame run
-was invalidated by source-formatting HMR),
-`throwaway/production-high-air-red.log`, and
-`throwaway/production-frame-review/{raw-comparison.json,critique.md}`.
-
-The full app journey passes all checks in 111 seconds: actual generated forests,
-input and engagement acknowledgement, restart/history/replay digests, one GPU and
-audio owner, and zero retained buffer/texture wrappers on both returns to menu.
-The observer uses weak identities plus one explicit collection checkpoint after
-queue drain; it measures wrapper lifetime, not driver/process residency.
-Evidence: `throwaway/production-appflow-lifetime-3.log`.
-
-Shared model admission now stores immutable geometry once per resolved bundle
-state and corpse orientation, while routing/placement rows retain independent
-metadata. Owned GPU payload on the same generated skirmish falls from
-2,670,304,601 to 1,223,999,969 bytes (54.2%); textures stay unchanged. The full
-before/after image has zero changed pixels. Unique resident vertices are counted
-once at admission, so per-frame diagnostics do no cache traversal.
-Evidence: `throwaway/skirmish-geometry-shared.log`,
-`throwaway/skirmish-geometry-pixels.json`, `throwaway/model-memory-audit.md`.
-
-The 19-test viewport suite covers observer reset, newest quality/instance replay,
-retired appearance continuations and superseded creation rejection. Every new
-regression has a failing negative control; current-request failures remain
-terminal. Independent targeted review completed with three findings, all fixed.
-Evidence: `throwaway/review/admission-final-targeted/verdict.md` and
-`throwaway/viewport-lifecycle-{final-19,appearance-red,instances-red,rejection-red}.log`.
-
-Actual grass probes pass growth mixtures/exclusions, crop rows, retuning,
-brightness/dry patches and camera-stable kinds. Production fog passes oracle,
-visibility/edge/turret and cost checks. The garrison assertion first failed:
-zero facade eyes/one drawn eye versus nine published eyes. A scratch trace proved
-the viewport still presented tick 36 while the observer had tick 66. The check now
-uses the existing publication-presented wait before reading canonical fog eyes;
-the unchanged assertion passes with two facade eyes and nine drawn/published eyes.
-Evidence: `throwaway/production-grass-probes-artifact7.log`,
-`throwaway/production-fog-probe-artifact7.log`, `throwaway/fog-repro-4.log` and
-`throwaway/production-fog-probe-green.log`. This focused scratch run does not apply
-the general scene runner's oversized React measure guard; that harness diagnostic
-remains a separate closeout concern.
-
-The captured browser street now includes external articulated poses and a
-placement ghost alongside paint, pointer marks and selection. The source-pixel
-mean RGB difference is `0.0000014467592592592592` on the 0–255 scale. All eight
-inspector modes match their TypeGPU control: final/world have that same tiny
-difference; both overlay backgrounds, both masks, classes and paint match exactly.
-Leaving inspection restores both complete frames, and resize/device recovery
-preserves both browser canvas outputs in this run. Evidence:
-`throwaway/evidence/one-renderer/player-feature-review/capture/`.
-
-Actual authored MRT impostor baking matches TypeGPU albedo, normal and mask
-bytes, metadata and hash exactly. Native GPU regressions draw real relit cards,
-exercise a card-only high-air frame and prove missing submissions fail. Asset
-admission now explicitly separates synchronous presentation borrowing from async
-GPU preparation. Configurable review bakes and probes queue owned snapshots
-before returning their promises, so asynchronous completion retains no scene
-borrow. Evidence: `throwaway/one-renderer-impostor/` and focused GPU test logs.
-
-The native delta is isolated: exporting the actual TypeGPU pipeline removes
-the earlier Rust-only terrain `depthCompare: always` workaround in favor of
-reverse-Z `greater-equal`. With the same binary and WGSL, reverting only this
-descriptor restores all six old images byte for byte. The correct common rule
-changes eleven pixels / twenty-one RGB channels across 5,529,600 pixels, maximum
-delta 4/255; all remaining channels and counts are preserved. Current-current
-repeats and old/new camera words are bit-identical. Keep the shared depth rule
-as a named correction, recorded in choices; do not widen a screenshot threshold.
-Evidence: `throwaway/native-depth-control-result.json`.
-
-Browser readback now proves a queued frame snapshot remains byte-identical to
-the source while a different inspector view renders before the promise resolves.
-Restoring controls restores the complete source image. The browser executes the
-same real fog-shape shader and returns the required ordered samples. All default
-eleven-row controls still pass. New neutral image review finds no visible A/B
-difference; shared vehicle hatching, weak contact shadows and muted secondary
-paint remain existing visual concerns, with no migration-specific change.
-
-Independent integrated Codex review found three correctness gaps and completed
-successfully. All are resolved: recovered fog queries restore retained knowledge
-before consuming canonical uploads; skinned lab bodies/corpses publish their
-actual card capability; resolved paint clears independently before the MSAA pass
-because Metal may skip untouched tile resolves. The new recovery query failed
-with false visibility behind walls, then matched after the Runtime fix. The lab
-card regression failed on tier 3, then produced actual tier 4 while ghosts kept
-mesh tiers. Existing hidden-paint GPU clearing, all eight browser views, queued
-readback and full captured recovery remain green. Review and red/green evidence:
-`throwaway/review/player-core/`, `throwaway/fog-recovery-probe-{red-2,green}.log`
-and `throwaway/lab-cards-{red,green}.log`.
-
-These are feature correctness experiments, not a new performance cohort. The
-43.2% changing-frame CPU saving below predates this pass. The earlier separate-
-module CPU saving also predates module unification; neither isolates a causal
-contribution from module packaging or an individual rendering optimization.
-
-## Historical native owner replacement (2026-10-28)
-
-Incumbent: PR #16, based on `ab00ccef5`, with the current shared native model,
-static-batch and scenery extraction. The browser no longer has its own model
-vertex/material/state interpretation. The native client directly reexports the
-same owners. Replaced model probes, range decoders and nonindexed pass modules
-are deleted; the browser no longer depends on the native platform crate.
-
-The normal eleven-row scene passed with the shared native model owner. The
-focused captured pair now installs the same complete appearance generation and
-calls BattleFrame's separate static-frame upload as production does. The first
-captured runs omitted that call and scoped scenery to trees; their timing/image
-results are **invalid as matched production comparisons**. They exposed missing
-buildings and proxy parked cars in the control and were corrected, not promoted.
-
-The valid `plate-240` development run uses 151 appearance rows, 36 unique bundles,
-30,538,294 unique compressed asset bytes, 2,850,537 resident model vertices,
-227,838 scenery vertices, 232 prepared model runs and seven scenery runs. It
-renders ten effects and passes resize, surface recovery and real device recovery.
-Raw results and images: `throwaway/evidence/one-renderer/plate-240.png/`.
-
-| Browser target | Setup | CPU encode, 120 frames | Queue completion after encode |
-| --- | ---: | ---: | ---: |
-| TypeGPU BattleFrame | 810.1 ms | 50.3 ms | 386.8 ms |
-| Shared native Rust core in WASM | 706.9 ms | 12.1 ms | 558.6 ms |
-
-Three interleaved repeats; setup excludes forced recovery on the candidate, but
-fixture construction/cache order still affects startup. Queue completion now uses
-`onSubmittedWorkDone` in both paths, rather than a compositor animation frame.
-These are development diagnostics, **not a migration verdict**: sky is absent and
-lighting/fog/ground still differ. No GPU timestamp or complete shared memory
-accounting is established. The old synthetic `drawCalls += 5` telemetry is deleted.
-
-An independent Codex review found another shared-fixture defect: the browser
-control consumed the presentation's incremental fog upload before a fresh Rust
-renderer attached. A captured-scene assertion reproduced the missing full
-snapshot (red), then `resend_fog()` before the initial snapshot made it green.
-The corrected candidate restores the adjacent parked car and removes broad
-hatching from the street/sidewalk. The table above is this corrected run.
-
-Matched screenshot metrics still reject parity: grayscale MAE
-`48.86802`, pixelmatch ratio `0.79827`,
-parity distance `0.43178`. Sky remains absent, shaded buildings too
-dark, and fog/material treatment differs. Full-frame/cropped reports and fresh
-critique live under `throwaway/evidence/one-renderer/paris-240-review/fog-after/`.
-A green transport/lifecycle scene does not override this red visual gate.
-
-This extraction checkpoint deletes 1,185 net physical source lines (including
-comments, excluding docs), before TypeGPU removal. That is incremental deletion
-against `ab00ccef5`, not the final migration source budget. Asset admission,
-model/scenery/held-batch routing now each have one Rust owner; native and browser
-call those same owners. Remaining native shell rendering is still counted.
-
-The next experiment reused the actual native sky, environment, ground, grass,
-scars and fog owners, then replaced both callback frame adapters with one concrete
-`FrameRenderer`. **Keep:** the captured `plate-240` control/candidate RGB MAE is
-`0.000010049120099044128`, with zero grayscale/pixelmatch/edge distance in the
-full frame and the architecture, sky, tank and street crops. The native client
-also reproduces all six pre-extraction native plates byte for byte. A fresh
-unprimed critique found no candidate-specific regression; diagonal vehicle
-striping and weak tank grounding are visible in both controls and remain
-existing visual concerns. Evidence: `shared-frame-review/`,
-`native-shared-frame-diff/` under `throwaway/evidence/one-renderer/`.
-
-The detailed development protocol uses serial queue completion between frames,
-three rotated repeats and 120 actual GPU timestamp samples in every repeat.
-Both controls use the same marker-pass technique; instrumentation remains off
-in the default batched-throughput run. CPU includes each renderer's preparation
-and encoding, including the candidate's cross-WASM fog/scar transport. The
-normal eleven-row regression and captured lifecycle checks pass.
-
-| Browser target, frozen 640×360 street | CPU p50 across repeats | CPU p95 across repeats | GPU mean across repeats | GPU p95 across repeats |
-| --- | ---: | ---: | ---: | ---: |
-| TypeGPU BattleFrame | 0.390–0.410 ms | 0.445–0.610 ms | 3.635–3.653 ms | 3.804–3.829 ms |
-| Shared Rust runtime in WASM | 0.120–0.130 ms | 0.140–0.230 ms | 3.945–3.955 ms | 3.998–4.017 ms |
-
-Owned GPU payload is `408,256,869` bytes for TypeGPU and `372,836,805` bytes for
-the Rust candidate, including profiling allocations. Rust additionally reports
-`185,333,300` decoded asset payload bytes and `11,155,820` recovery snapshot bytes
-on the CPU. These are ownership/payload figures, not whole-process memory or
-driver residency; the TypeGPU control has no equivalent CPU heap measurement.
-Raw per-repeat/per-frame evidence is in `shared-frame-profile/samples.json`,
-with compact results in `shared-frame-timing-summary.json`.
-
-These timings support a roughly threefold CPU reduction and an approximately
-eight-percent GPU cost on this frame, not the final migration verdict. Browser
-paint/x-ray/high-air/diagnostic features remain unported. The candidate still
-needs canonical effect-atlas mip ownership and fog-look enable flags; startup
-includes fixture/cache-order effects and is not a cold-download comparison.
-Next: preserve these pixels while finishing the production feature seams, then
-expand to an effects-heavy plate and matched native/browser resolution. Final
-source accounting must include deletion of TypeGPU and the standalone graph.
-
-A transient browser startup failure also occurred: a fresh static data page
-failed before game code; after bounded GPU-disabled and Metal probes the default
-browser loaded again. Those attempts have no renderer timing interpretation.
-The first detailed timestamp run also timed out before any canvas reported a
-stage. Adding progress stages to the TypeGPU control produced a complete repeat;
-the timed-out attempt provides no timing result and remains an infrastructure/
-initialization uncertainty rather than an assigned renderer regression.
-
-## Next task — one browser module and complete runtime ownership
-
-The separate-module shared frame is the incumbent. The CPU reduction above was
-measured **before module unification** and is not evidence of a benefit caused
-by it. It compares the complete measured TypeGPU/Rust paths on a frozen frame;
-the savings have not been isolated to individual mechanisms.
-
-A bounded scratch experiment linked the existing presentation bindings as an
-rlib into the actual renderer. Both full class APIs, sound bindings and free
-functions can share one WASM module; Node exercises canonical frame/fog borrowing
-and exact camera records in that memory. Borrowing actual model slices into the
-renderer compiles/exports. An exports-only control confirms that no artificial
-probe exports are needed to retain the existing classes.
-
-| Optimized WASM bytes | Separate modules, summed | Unified exports-only |
-| --- | ---: | ---: |
-| Raw | 5,035,788 | 4,952,412 |
-| gzip level 9 | 1,631,450 | 1,567,702 |
-| Brotli quality 11 | 1,102,643 | 1,025,680 |
-
-Identical empty-world initialization/frame preparation retains `3,145,728` bytes
-of separate WASM memories versus `2,031,616` unified. Freeing the presentation
-does not shrink those memories. This is an empty-world Node control, not a
-full-battle GPU or process-memory claim. All builds use matching optimization,
-SIMD and wasm-opt settings, isolated scratch target/output, with no product
-source changes. Detailed commands, hashes and evidence boundaries are in
-`throwaway/unified-wasm-spike/REPORT.md`; the scratch build target was removed.
-
-**Keep for implementation:** one browser module and direct canonical borrowing
-can delete cross-memory frame/fog/scar protocol and recovery replay machinery.
-**Unproven:** actual unified GPU pixels, frame cost, full-workload memory and
-complete runtime ownership. Renderer allocations now also invalidate JavaScript
-presentation views when memory grows, so the integration must refresh them and
-keep every class on the same generated initializer.
-
-The next discriminating test is [slice 03](slices/03-runtime.md)'s real unified
-GPU path against the saved separate-module street, native plates and lifecycle
-incumbents. Share resource composition and preparation, including atlas mips
-and live fog-look flags, before deleting the extra bridges. A separate direct
-output-target trial may explain the remaining GPU cost; do not attribute that
-or any combined gain to packaging without an isolated comparison.
-
-The independent shared-frame review found an existing overlay-loss bug during
-device recreation. The harness now renders before loss, removes manual scene
-replay after recreation, and compares raw before/after pixels. The missing marks
-were reproduced red, retained overlay source geometry makes the check green,
-and an unprimed critique confirms continuity. Evidence: `recovery-pixels-red.log`,
-`recovery-pixels-confirmation.log`, and `recovery-review/` under the renderer
-evidence folder. One attempted green run overlapped lint-staged hiding the
-unstaged harness and is invalid; its workload lacks the new comparison field.
-
-## Unified runtime development results
-
-The actual browser integration now links presentation/audio/rendering in one
-artifact and calls the common Runtime for composition/preparation/rebuilding.
-Its first captured GPU run preserves the same browser street distance
-(`0.000010049120099044128` mean RGB, 0–255), exact recovery pixels and all six
-native incumbent plates byte for byte. New neutral critique finds no
-candidate-specific regression; both controls retain the previously reported
-vehicle hatching and weak tank grounding. Evidence: `unified-runtime-first/`,
-`unified-runtime-review/` and `unified-native-plates.json` under renderer evidence.
-
-The first held-frame trial exposed repeated full model uploads: the new Runtime
-prepared the same materialized publication on every draw, unlike the old frozen
-control which uploaded it once outside measurement. Its 223.5 ms CPU total over
-120 frames is retained as a rejected preparation policy, not a packaging cost.
-The runtime now reuses model/effect buffers until the canonical frame index
-changes or its static generation is invalidated. Fog/scar work still prepares
-every actual draw. Actual counters confirm one model/effect preparation across
-121 held-frame preparations after recovery. Changing-frame validation remains a
-separate gate; it must include every changed publication's preparation.
-
-Three rotated serial/timestamp repeats after held-frame reuse:
-
-| Frozen 640×360 street | CPU p50 range | CPU p95 range | GPU mean range |
-| --- | ---: | ---: | ---: |
-| TypeGPU in current cohort | 0.595–0.735 ms | 0.760–0.990 ms | 3.758–3.894 ms |
-| Unified shared Rust runtime | 0.275–0.300 ms | 0.330–0.400 ms | 4.069–4.150 ms |
-
-Both current CPU controls are slower than the saved separate-module cohort, so
-those historical absolute values cannot isolate the effect of packaging. The
-current pair supports a whole-path CPU saving and a modest GPU overhead on this
-held frame only. Raw repeats: `unified-runtime-profile/samples.json`.
-
-The integration also adopts canonical effect PNG decoding/mips and live typed
-fog settings, so it is a coupled runtime change, not an isolated module toggle.
-Decoded atlas payload moves into asset accounting; its full mip chain adds GPU
-storage compared with the old browser's base-only atlas. Owned memory excludes
-allocator/driver/canvas residency. The shared module's linear memory remains at
-its high-water size after payloads are freed; per-stage values are recorded in
-the raw workload rather than described as live retained payload.
-
-Changing-frame development confirmation now replays the exact same 120 captured
-frames and 60 authority publications in both browser backends. It includes
-publication decode, canonical framing and each backend's per-frame preparation
-in the measured loop. Current model/effect counters are 121 each including the
-warm frame, and final camera/view/shadow/caster words and presentation probe
-match exactly. Source 640×360 output differs in 13 channels, maximum 2, mean RGB
-`0.00002170138888888889` (mean RGBA `0.000016276041666666668`). Fresh visual
-critique found no candidate-specific difference.
-
-| Changing 120-frame street window | Per-repeat CPU mean | Per-repeat GPU mean |
-| --- | --- | --- |
-| TypeGPU | 1.1385 / 1.1570 / 1.2805 ms | 6.543 / 4.035 / 4.743 ms |
-| Shared Rust | 0.6808 / 0.6465 / 0.7052 ms | 6.736 / 6.646 / 4.376 ms |
-
-The CPU cohort mean is 1.1920 ms versus 0.6775 ms (43.2% lower for Rust). GPU values
-have substantial between-repeat drift and a per-repeat reversal; their cohort
-mean is not a stable GPU verdict. Evidence and complete raw samples:
-`changing-plate240-attempt3/`. Final dynamic-vs-frozen history is not byte-identical;
-those are different presentation histories and are not compared as equal outputs.
-
-Two earlier dynamic attempts are retained. Attempt1 saved the TypeGPU image
-after destroying its device, allowing a prior compositor frame and a misleading
-CSS image difference 2.42082. Attempt2 found raw post-destroy TypeGPU canvas pixels
-were black. Attempt3 retains each final native-size canvas before disposal,
-outside the measured loop. It preserves CSS captures as secondary evidence and
-proves the actual final source pixels. Neither failed capture is renderer parity
-or timing confirmation.
-
-## Hypothesis queue
-
-1. **Unified runtime (verified):** one browser module and direct canonical
-   preparation should remove transport/recovery owners while preserving held
-   and changing images. Held/recovery/changing/native checkpoint gates pass.
-   Module packaging alone has no isolated frame-time verdict.
-2. **Browser feature completion (active):** shared paint, x-ray, high-air, lab
-   models, quality and diagnostics must preserve every production consumer.
-   Core paint/x-ray/lab/inspector captures pass; actual impostor baking matches.
-   Production viewport, proxy/sheet admission, diagnostic bindings and final
-   quality controls remain open. Native depth-policy delta is isolated and named.
-3. **Final measured/deleted architecture:** compare both browser backends and
-   native at matching workload/resolution, then delete TypeGPU and the separate
-   spike graph. Source totals must count the resulting shared runtime and shells.
-4. **Direct output target (optional, separate experiment):** removing the extra
-   browser display-composite pass may reduce GPU overhead. No causal result yet;
-   preserve output formats and readback when testing it.
+The production frame cohort is frozen by
+`throwaway/final-perf/full-reel-final-1-identity.json`: HEAD
+`69a01c6e4bb3fb4b358efac564bc112561ad0f2f`, dirty-patch SHA-256
+`b48bc2dbc42c2c50b8afc1d26ad18b580f968b8c7792125015acf3e9895b4b35`, capture SHA-256
+`eb26cc15bac18ed9ccd7bbfe5036a5f889d62c45941712c96ecd5910148b9687`. That identity
+also records source/artifact hashes. Historical checkpoints include `ab00ccef5`
+(native extraction parent), `a7c668458` (production integration incumbent), and
+`c574cfd97` (canonical fog-input probe). These are distinct experiments, not a
+single-factor progression whose timing differences can be causally attributed.
 
 ## Parameter-effect map
 
-| Strategy | Current evidence | Effect | Status |
-| --- | --- | --- | --- |
-| Standalone Rust production-shaped graph | Incomplete production materials/shadows/fog/post | Useful transport probe, invalid migration comparison | Reject as final architecture |
-| Shared native resource/frame owners | Matched frozen browser street; all six native incumbent plates unchanged | Removes duplicated resource and pass policy | Keep |
-| One browser module + common Runtime | Actual GPU recovery/frozen/changing parity; Node memory/header/audio checks | Deletes canonical frame/world/fog/scar copies, bridge callbacks and recovery replay | Keep |
-| Reprepare every held model/effect stream | First unified frozen trial repeatedly uploaded large unchanged streams | Unnecessary CPU work, 223.5 ms over 120 held draws | Reject |
-| Reuse unchanged canonical model/effect frame | Actual counters 1 model / 1 effect across 121 held preparations; every changed frame prepared in dynamic cohort | Restores bounded held-frame upload work; fog/scar preparation stays live | Keep |
-| Canonical PNG decode/full atlas mips | Shared native/browser source; frozen/native images preserved | Removes browser decoding and atlas owner; adds mip storage versus old browser atlas | Keep |
-| Owned allocation visitor | Descriptor-based deduplicated GPU handles, transient diagnostic lifetime | Measures owned payload without keeping dropped resources alive | Keep; excludes allocator/driver residency |
-| Browser TypeGPU as permanent second renderer | Two runtime graphs | Retains duplicate policy and lifetime owners | Reject after production parity |
-| Canonical lab poses and ordinary model batches | Actual articulated/ghost browser capture and canonical frame regressions | Shares authored poses, batching, fog and model GPU ownership | Keep; viewport migration open |
-| Actual MRT impostor atlas/cards | Native vs TypeGPU bytes/hash exact; real card/tint/high-air GPU regressions | Replaces coarse-mesh substitution with production far-model behavior | Keep; final startup/memory measurements open |
-| Shared live inspector/quality controls | All eight captured browser views match; raw/mask/paint GPU negative controls | Keeps debug depth/color/post policy in the same renderer | Keep; remaining production wiring open |
+| Parameter or strategy | Observation and tradeoff | Verdict / scope |
+| --- | --- | --- |
+| TypeGPU authoring, exported WGSL/raw WebGPU, Rust BrowserWebGpu, Rust base + TypeGPU overlay canvas | Four 120-frame shared-shader controls matched with zero mean RGB difference. Establishes browser submission and separate-canvas composition; does not establish production performance or same-texture interop. | Backend feasibility proved; hybrid is not the final one-owner architecture. Evidence: `throwaway/one-renderer-spike/`. |
+| Independently built Rust production-shaped graph; permanent TypeGPU fallback | Transport/lifecycle checks passed despite missing sky, material, fog and shadow behavior. Keeping either would preserve duplicate policy. | Reject as migration architecture; delete both after shared production parity. |
+| Extract actual native resource owners and concrete shared `FrameRenderer` | Model/scenery admission alone still failed visual parity (MAE 48.86802, pixelmatch 0.79827). Reusing native sky/environment/ground/grass/scars/fog then matched street RGB MAE 0.00001004912 and all six native plates byte for byte. | Keep real shared owners; green bindings are insufficient evidence. `throwaway/evidence/one-renderer/{paris-240-review/fog-after,shared-frame-review,native-shared-frame-diff}/`. |
+| Separate presentation/render WASM versus one module + common Runtime | Matched optimized exports-only spike: raw 5,035,788→4,952,412 B; gzip-9 1,631,450→1,567,702 B; Brotli-11 1,102,643→1,025,680 B. Empty-world memory capacity 3,145,728→2,031,616 B. Actual unified GPU held/changing/recovery/native gates subsequently passed. | Keep to delete cross-memory frame/fog/scar copies, callbacks and replay owners. Spike sizes are not final artifacts or full-battle residency; no isolated packaging frame-time effect. `throwaway/unified-wasm-spike/REPORT.md`, renderer evidence `unified-runtime-*`. |
+| Reprepare held model/effect streams versus canonical frame-index/static-generation reuse | The pre-reuse implementation spent 223.5 ms total encoding over 120 held draws (three-repeat mean), not an isolated upload measurement. Reuse records one model/effect preparation across 121 held preparations; changing frames each prepare. Fog/scar work remains live. | Reject repeated held uploads; keep bounded reuse. `unified-runtime-{first,profile}/samples.json` under renderer evidence. |
+| Canonical PNG decode and complete effect-atlas mips | Shared pixels/native plates preserved; removes separate decode/atlas policy and adds mip storage versus old base-only browser atlas. Dummy one-layer atlas and malformed streak record visibly failed. | Keep real atlas and actual presentation effect stream; zero effect words at a sampled tick prove transport only. |
+| Entire installed catalog versus requested canonical source admission | Full catalog exhausted WASM address space. Requested world/model/grass/scenery admission fits. Waiting for observations deadlocked because publication starts after GPU readiness. | Reject whole-catalog admission and observation wait; stage topology, frame on CPU, then commit GPU scene atomically. |
+| Immutable geometry shared per resolved bundle/corpse orientation | Generated-skirmish owned GPU payload 2,670,304,601→1,223,999,969 B (54.2% lower), unchanged textures and zero changed image pixels. Routing/placement metadata stays independent; diagnostics count unique vertices once at admission. | Keep. `throwaway/{skirmish-geometry-shared.log,skirmish-geometry-pixels.json,model-memory-audit.md}`. |
+| Latest complete appearance generation and page GPU ownership | Catalog remains usable while replacements prepare; superseded work cannot commit or revive retired state. Current-request errors stay terminal. Detached sheets share production admission. | Keep; 19 viewport tests include red controls. `throwaway/viewport-lifecycle-{final-19,appearance-red,instances-red,rejection-red}.log`, `throwaway/review/admission-final-targeted/verdict.md`. |
+| Canonical model ABI, ranges, poses and actual impostors | Shared packer preserves the 48-byte authored vertex ABI; held/static ranges survive rebuild. Appearance/tier admission rejects unknown meshes. Articulated, skinned and ghost paths retain their actual capabilities. Authored MRT impostor albedo/normal/mask bytes, metadata and hash match TypeGPU exactly. | Keep; synthetic single-bundle transport never established heterogeneous production parity. `throwaway/one-renderer-impostor/`, player-feature review evidence. |
+| Shared inspector/quality/paint/readback controls | All eight views match; queued snapshot remains the original frame while another view renders. Metal can skip untouched tile resolves, requiring independent paint clearing before MSAA. | Keep owned snapshots and explicit clearing. `throwaway/evidence/one-renderer/player-feature-review/capture/`, `throwaway/review/player-core/`. |
+| Typed pipeline catalog + composed authored WGSL | Eliminates TypeGPU runtime/authoring, expanded exports, descriptor JSON parser, validation crate and spike. Token import aliases factor collisions without changing expressions/order. | Keep; all 64 assembled shaders equivalent **after whitespace normalization**, not claimed byte-identical. |
+| Owned allocation visitor and weak lifetime identities | Deduplicated handles measure payload without retaining resources. Teardown + queue drain + explicit collection leaves zero observed buffer/texture wrappers. | Keep diagnostics transient; this does not measure allocator, driver, process or canvas residency. |
+| Direct browser output target instead of display composite | Proposed as an independent way to investigate GPU overhead. | Unmeasured; no benefit attributed to it. Preserve output/readback contracts if revisited. |
 
-## Attempt ledger
+Paths abbreviated as “renderer evidence” above are under
+`throwaway/evidence/one-renderer/`.
 
-| Candidate | Parent | Result | Evidence |
-|---|---|---|---|
-| `a27ca5d27` shared targets/pipelines/depth/world/browser shell | native client before extraction | Compile and browser scene pass; parity incomplete | PR #16, one-renderer evidence |
-| `91102bb19` + `e29e253bf` shared indexed model owner/queue seam | `a27ca5d27` | Focused native/browser checks pass; browser still uses compatibility draw path | PR #16 |
-| `88155dc93` shared fog-mask resources/pass order | model-owner incumbent | Native adapter and renderer-core WASM/native checks pass; GPU work unchanged | PR #16 |
-| `df66c2cd3` shared effects and post resources | fog-mask incumbent | Renderer-core WASM/native checks pass; pass counts and attachments unchanged | PR #16 |
-| `dcd58d35d` shared target lifecycle owner | effects/post incumbent | Native/browser-safe checks pass; same allocation and pass count | PR #16 |
-| `5218451be` shared fog compute pipeline owner | lifecycle incumbent | Native/browser-safe checks pass; terrain→merge→whole/copy→cull order unchanged | PR #16 |
-| `417438f93` indexed model draw fix | shared model owner | Browser validation exposed an unbound index buffer; indexed draw now binds the full model and the eleven-row scene passes | PR #16 |
-| `e0f7edfc5` + `857aeda54` embedded production pipeline export | fog compute incumbent | Browser WASM embeds all 63 pipeline descriptors and WGSL sources; fixture frame remains control | PR #16 |
-| `1c5da75e8` browser export validation | embedded export | Browser-safe `Pipelines::build` validates the embedded production export; full resource graph is still separate | PR #16 |
-| `48e059aac` + current scene run | embedded export | Shared browser row now validates all 63 exported pipelines before rendering; full eleven-row scene passes | PR #16 |
-| `0da7aa468` shared model material bindings | model owner | Native palette/material/texture bind-group order now has one browser-safe owner; palette growth rebinds through it | PR #16 |
-| current browser material-owner run | shared model owner | Browser binds the exported `modelLayout` against array texture views and real fetched albedo data; scene records `sharedMaterials: true` | PR #16 |
-| current browser lifecycle run | target/surface/device owners | Browser rebuilds target-bound fog/post resources after resize, exercises one surface recovery, destroys the real device, and recreates the renderer with cached assets and presentation records; scene records generation 2, `surfaceRecoveries: 1`, `deviceLost: 1`, and `deviceRecoveries: 1` | PR #16 |
-| current browser shadow-owner run | shared shadow resources | Browser allocates the shared four-cascade depth-array/receiver/camera owner and the shared core now clears and draws uploaded ground caster geometry into every fitted cascade; the scene records `shadowPasses: 484` across the recovery-inclusive run. Presentation model caster routing is still zero for this flat fixture, and lit shadow sampling remains open | PR #16 |
-| current exported model-prepass run | shared model pipeline | Browser binds `typegpuCameraLayout` + shared `modelLayout` and executes the exported 48-byte `modelPrepass` over the fetched indexed mesh; scene records `sharedModelPrepass: true` | PR #16 |
-| current browser fog-compute owner run | shared fog pipeline owner | Browser allocates all four exported fog compute bindings in the shared owner; scene records `sharedFogCompute: true` | PR #16 |
-| current model-opaque contract run | shared model/environment/fog groups | Binding the complete exported `modelOpaque` contract with placeholder environment/fog data produced visibly invalid fixture output; the pass is retained as a diagnostic, not the shipped frame path | PR #16 |
-| `35c5f19fd` model-packing split | browser shell shape | Production vertex packing now has a named owner under the file-size ratchet without changing the draw contract | PR #16 |
-| `3c5415d81` lifecycle scene gate | browser shell | The real scene fails on missing surface-recovery telemetry; the later device-loss gate now covers full recreation | PR #16 |
-| current device-loss recovery | browser shell | `Device::destroy()` triggers the browser callback; `recover_device` rebuilds every GPU owner and replays the BGAT asset plus frozen camera/environment/fog/overlay records before the next frame | PR #16 |
-| current presentation-record bridge | shared shell | Browser uploads the frozen presentation camera (40 words), environment (16), fog (24), and overlay (4) through one API; camera is bound by the shared model prepass and the remaining records are staged for extracted production groups | PR #16 |
-| current overlay target owner | shared target lifecycle | Native and browser `TargetOwner` now allocate overlay depth, paint, resolved colour, and half-resolution glow attachments together on resize/rebuild; the browser shared owner now renders against world depth and composites its glow | PR #16 |
-| current environment/shadow browser owners | shared shell | Browser constructs the nine-resource environment bind group and uploads the frozen sun receiver plus cascade camera records; `CasterRouting` preserves per-cascade batch masks (the terrain-only fixture has zero admitted casters) | PR #16 |
-| current fog-look browser owner | shared fog-mask | The 24-word `FogLook` record is written into the shared fog-mask owner and its screen-space passes encode before post; fog sight uploads now dispatch terrain, merge, whole and cull stages | PR #16 |
-| current fog-sight browser owner | shared fog compute | Shared owner allocates params, eyes, foliage, occluders, maps, tiles, wholes, flags, all four compute bind groups, and the five native layer records; browser exposes packed upload validation and dispatches the four shared stages; full height-page and due-state parity remains open | PR #16 |
-| current frozen fog upload | presentation/browser boundary | `PresentedGround.prepare_fog` supplies the authoritative packed fog upload; the browser reinterprets those records byte-for-byte, uploads them twice across device recovery, and the scene requires `fogSightUploads: 2`; compute dispatch now runs from the uploaded counts | PR #16 |
-| current modelOpaque path | shared model/environment/fog groups | The browser now runs the exported `modelOpaque` path as part of every shared frame with rigid palette/material rows, real environment and fog groups, and correct 48-byte joint/weight packing. The remaining visual gap is bundle material classification and lighting assets | PR #16 |
-| current environment atlas probe | exported environment contract | Replacing 1×1 diagnostic sky/PMREM/DFG textures with the exported atlas dimensions and top-mip metadata removes the resource-shape mismatch, but a direct production `worldOpaque` draw is still visually invalid because authored sky bake, fog/terrain records, and native world inputs are not all present; keep the fixture world path until those inputs are extracted | PR #16 |
-| current shared sky-bake run | exported `bake` pipeline + presentation `SkyLight` | Browser now bakes the 40-word resolved sky record into the shared LUT and replays it after device loss; PMREM filtering, authored DFG, and full world receiver inputs remain open | PR #16 |
-| current shared PMREM run | exported `pmremBake`/`pmremFilter` pipelines | Browser builds the same 336×256 atlas and filters roughness levels after the sky bake; the scene remains green, with authored DFG and full receiver parity still open | PR #16 |
-| current authored DFG run | checked-in `dfgLut.ts` + shared environment texture | Browser uploads the native 16×16 half-float DFG table instead of a neutral placeholder; scene remains green, with full world/material input parity still open | PR #16 |
-| direct production world receiver recheck | completed sky/PMREM/DFG environment + exported `worldOpaque` | The receiver no longer has a placeholder resource shape, but the direct world image is still invalid because native terrain/material/fog publication inputs are absent; keep the fixture world path and extract those inputs before claiming receiver parity | PR #16 |
-| current non-flat height-page run | frozen fixture mesh + one 2×2 presentation page | Shared browser uploads an eight-word page payload, dispatches fog, and replays it after device loss; scene remains green, with full production terrain/material parity still open | PR #16 |
-| fog-before-world ordering probe | native pass order + exported `worldOpaque` | Moving shared fog dispatch before the production world draw does not make the direct fixture image valid; retain native ordering in the eventual extraction, but do not claim receiver parity until world/fog publication inputs are complete | PR #16 |
-| current shared-target presentation run | shared world target + browser composite | The shared row now stores the fixture world pass, runs shared fog/post/rim/overlay composition, and presents the shared display target through a fullscreen browser composite. This is a credible shared-target checkpoint, but not production BattleFrame parity: real caster batches, full model/world material passes and height-page fog parity remain incomplete | PR #16 |
-| current presentation terrain upload | shared world input boundary | The browser uploads the frozen presentation mesh (xyz/normal/rgba records) and the first 16 camera words into the shared Rust world owner. The mesh is rebuilt after device loss from a CPU snapshot, and the scene still passes the resize/surface/device recovery gates. The shared screenshot now contains the actual terrain mesh rather than the old fullscreen fixture; the composite UV orientation was corrected so ground is below the black sky, while production props/models still need parity work | PR #16 |
-| current presentation world upload | shared world input boundary | The same upload now concatenates the frozen terrain and static world-prop mesh. The shared screenshot shows the real ground plus the presentation props through the Rust target; clipping, sky treatment, shadows, units and overlays are still visibly incomplete | PR #16 |
-| current overlay upload | shared browser overlay boundary | The browser uploads the frozen opaque/translucent/painted overlay meshes into the shared production overlay owner. Rings, order lines and paint now render against world depth, blur into the shared halo target, and composite after the fog rim; production unit/model draws remain pending | PR #16 |
-| current model-instance upload | shared model input boundary | The browser now forwards the decoded authored instance stream into the shared vertex owner and replays it after device loss. The exported prepass and opaque model draw both run after device recovery; the remaining defect is material/lighting parity rather than transport or buffer lifetime | PR #16 |
-| current full environment upload | shared model shading boundary | The browser now packs the 64-word exported `Environment` record (observer, sun, fill and aerial fields) instead of writing only the 16-word sun suffix. This removed the underspecified lighting input; the subsequent visibility fix makes the model appear, while full bundle material parity remains open | PR #16 |
-| current model visibility fix | shared model lifecycle/vertex boundary | The authored vertex adapter packs a valid +Z snorm16 normal and the opaque model draw is part of the normal shared frame. The shared screenshot now shows the authored model after recovery; its material is still a neutral diagnostic row rather than the bundle's full material table, so texture/material parity remains open | PR #16 |
-| current bundle material upload | shared asset/material boundary | Browser asset loading now writes up to sixteen decoded BGAT material rows, propagates mesh draw material ids, and uploads decoded sRGB/linear bundle textures into shared 2D arrays with mip levels. The model remains visually stable; exact native material classification and all appearance tiers remain open | PR #16 |
-| current fog dispatch | shared visibility compute boundary | The browser now forwards `FogUpload.rebuild_dispatch` and whole-structure dispatch metadata, uploads the shared height-page header, then runs terrain, merge, whole and cull compute stages in the shared frame after the authoritative fog upload. The scene passes with no WebGPU validation errors; non-flat height-page/visibility image parity remains open | PR #16 |
-| current fog height upload | shared static ground boundary | Presentation WASM now exposes the packed `Grid::pages()` payload; the browser uploads it into the shared `fog-heights` storage owner, replays it after device recovery, and the scene records an eight-word non-flat fixture page. The transport and binding are real; full production page/material parity remains open | PR #16 |
-| current shared shadow caster pass | shared cascade pass boundary | `renderer-core::ShadowResources` now owns cascade attachment clearing, camera binding, and ground caster draw order; the browser shell supplies the exported `worldCaster` pipeline and packed ground vertices. Four cascades execute every frame without changing presentation routing; model caster batches and receiver sampling remain open | PR #16 |
-| current shared post/overlay composition | shared display target boundary | Browser post now receives the resolved bloom/grade records and presents `targets.display`; the shared overlay owner uses the exported translucent geometry pipeline against world depth, resolves the transparent overlay target, blurs its halo, composites it after the fog rim, and replays the records across resize/device rebuild. The scene remains green; exact BattleFrame pixels still differ because model/world material, receiver sampling, non-flat fog pages, and production framing are incomplete | PR #16 |
-| current accounting run | three-way harness | Shared browser WASM is 1,347,401 bytes plus 84,761 bytes generated JS; the shared row encodes 121 frames at 6.0 ms with a 0.9 ms compositor drain, includes 484 ground and model shadow passes, replays recovery, and uploads an eight-word non-flat page. Battle image distance remains 47.03 because model/world material, receiver sampling, and production framing are not yet matched | PR #16 |
+## Controls that narrowed visual failures
 
-## 2026-10-27 terrain and model-record pass
+Incomplete fixtures were development probes, not production comparisons. A
+captured run that omitted BattleFrame's separate static upload and loaded only
+tree scenery was invalid. Resolving simulation ids as appearance ids, a fixed
+one-megabyte instance buffer, truncated vertex attributes, flattened batch
+ranges and prematurely consumed incremental fog all produced genuine admission
+or transport defects. Canonical source resolution, growing owned buffers,
+shared packing/ranges and full fog resend corrected them. Environment/fog
+placeholders and neutral material rows were never accepted as production parity.
 
-The browser shell now has one shared `TerrainResources` owner for the native
-`terrainLayout` contract. `GroundTables` crosses the presentation WASM seam as
-params, nodes, plots, surfaces, surface index and scar-look words; the browser
-adds the native four-word frame-view suffix, binds the exported `worldTerrain`
-pipeline, and snapshots the upload for device recovery. A first run exposed a
-uniform-size mismatch because the suffix was omitted; appending it fixed the
-WebGPU validation error without changing shader work. This confirms the real
-terrain input seam, but the scar directory/pool textures are still diagnostic
-and the mesh is not yet selected by native terrain partition rules.
+The terrain-hole experiments retained negative and null results: disabling
+cascades, skipping fog-mask compose, moving fog before world, and depth bias 1
+did not fix the artifact; removing terrain depth removed terrain entirely.
+`depthCompare: always` restored the early probe but was only a workaround.
+Copying the native environment view matrix fixed an ABI error without changing
+the 47.034991 image distance. Bundle-row, vertex-colour, instance-stream,
+static-world-colour and shadow-floor probes were also null. Reusing the full
+native resource graph finally closed parity; those probes do not identify one
+causal lighting factor.
 
-The same pass exposes a recovery-safe model-record upload for palettes,
-instances and batches, and reports their word count. The frozen fixture sends
-24 model-record words, while material rows remain zero and the full production
-batch/material draw path is not yet selected. This is transport evidence, not
-material parity.
+The final common pipeline uses reverse-Z `greater-equal`. Reverting only this
+descriptor with the same native binary and WGSL restores all six old images
+byte for byte. Keeping the correct shared rule is a named correction: 11 pixels,
+21 RGB channels out of 5,529,600 pixels change, maximum 4/255; camera words and
+current-current repeats are bit-identical. No screenshot threshold was widened.
+Evidence: `throwaway/native-depth-control-result.json`.
 
-The rebuilt `one-renderer` scene passes all eleven rows with no WebGPU
-validation errors. The shared row reports 121 frames, 484 ground and model
-shadow passes, two resize rebuilds, one surface recovery, one device recovery,
-eight fog-height words, and 63 validated embedded pipelines. Its latest run
-was approximately `176.4 ms` setup, `6.4 ms` encode and `0.2 ms` queue-boundary
-drain for the 120 measured frames; setup includes asset loading and recovery,
-so it is not a native startup comparison. The production BattleFrame distance
-remains `47.03`, and fresh visual review still finds flat lighting, missing
-readable contact shadows, clipped overlays and weak model detail.
+Capturing a TypeGPU canvas after device destruction produced stale compositor
+pixels in changing attempt 1 and black source pixels in attempt 2. Only attempt
+3 retained each final native-size canvas before disposal. A recovery run that
+overlapped lint-staged hiding the new harness was likewise invalid. Browser
+startup failures before any game stage, including GPU-disabled/Metal probes,
+provide no renderer timing result. Those attempts remain failures of evidence,
+not favorable repeats or zero-cost samples.
 
-The focused checks remain green: formatter, workspace clippy, renderer-core
-check, renderer-browser WASM check, browser typecheck, shared-renderer WASM
-build, and the full one-renderer scene. `cargo test -p presentation` has 111
-unit tests passing; the known `ally_xray` integration prerequisite still points
-at a Git LFS runtime bundle and is not weakened.
+## Verified production browser tradeoff
 
-**Next experiment:** transport the authored material rows and static/model
-batch ranges from the presentation frame into the shared model owner, bind
-those records to the production model passes, and compare the same frozen
-BattleFrame against native and browser TypeGPU output. Keep the terrain
-directory/pool and receiver sampling as separate follow-up variables so a
-visual improvement can be attributed.
+Production BrowserScene admission; 1280×720; paced changing `paris-corner` replay;
+three interleaved backend repeats. Retain source records 60–2459 of 2461, with
+2400 CPU frames and 2400 GPU samples per backend/repeat (7200 each in aggregate).
+GPU windows contain 120 draws; queue drain/reset occurs outside CPU spans.
+Means weight every valid sample; window p95 remains per-window, not a pooled
+full-reel p95. Final output pixels and camera/shadow records match exactly.
 
-The fresh screenshot review of the current shared capture adds concrete visual
-regressions to that gate: high-frequency pale terrain noise overwhelms the
-lime ground and weakens prop/overlay contrast; the dark bars read as floating
-because contact shadows are absent; the right and lower slabs and the orange
-arc are clipped; and the map boundary falls into black at the frame edges.
-These findings reinforce that the current green harness is an input/lifecycle
-proof, not a visual acceptance result.
+| Metric | TypeGPU | Shared Rust | Whole-path change |
+| --- | ---: | ---: | ---: |
+| CPU mean | 1.575698 ms | 1.130157 ms | 28.28% lower |
+| GPU mean | 10.477891 ms | 10.697395 ms | 2.09% higher |
+| Render-call mean | 0.705688 ms | 0.335453 ms | 83.1% of total CPU reduction occurs in this span |
+| Advance/upload mean | 0.870010 ms | 0.794703 ms | Remaining measured CPU reduction |
+| GPU owned payload | 504,652,345 B | 482,749,361 B | Payload comparison for this replay |
 
-The model-record follow-up also corrected the native ABI at the shared
-boundary: `Instance` is 16 floats, `Batch` is 12 words, `Joint` is 12 floats,
-and each material is 20 floats. The shared browser path now keeps dynamic
-batch `first/count` ranges as separate draws and skips `NONE` static batches
-until a browser static holder exists. This removes the earlier half-stride and
-flattened-range errors. The current fixture still has no authored model runs
-from `ScenePresentation`, so the next model gate must supply a real dynamic
-frame or explicitly label a one-bundle fixture as transport-only.
+CPU savings occur in every repeat. TypeGPU/Rust per-repeat CPU means:
+1.642029/1.168856, 1.579083/1.149602, 1.505981/1.072012 ms. GPU means:
+10.711363/11.111207, 10.398391/10.508401, 10.323918/10.472577 ms.
+TypeGPU uploads during advance while Rust also prepares within render; span
+boundaries locate savings without isolating language, library or packaging.
+Rust additionally reports 193,721,908 B decoded bundle payload and 2160 B CPU
+snapshot payload; TypeGPU has no equivalent CPU-heap measurement.
+Evidence: `throwaway/final-perf/full-reel-final-1/{samples,summary,visual}.json`.
 
-The browser harness now uses a one-bundle frozen model fixture when the
-presentation frame has no dynamic model rows: it creates 16-float instances,
-12-word view batches, and one identity joint, then sends those through the
-same shared upload and range-selection path. This is explicitly a transport
-fixture, not a claim that `ScenePresentation` produced those rows. The latest
-shared row reports 68 model-record words, 312 terrain-param words, 18,928
-terrain-node words, 56,808 plot words, 432 surface-index words, and all
-lifecycle gates green. The next production gate remains a real `PresentedFrame`
-with appearance/tier drawable mapping and static-batch ownership.
+Frozen production plate 240 retains three repeats of 120 measured draws after
+60 warmups. CPU TypeGPU/Rust means are 0.402042/0.149042,
+0.477125/0.227000, 1.384458/1.216375 ms; GPU means are 8.871818/9.115237,
+9.090577/9.126200, 9.121775/9.167318 ms. Both CPU paths drift substantially;
+retain all repeats rather than promote a favorable first run. Single-repeat
+pilots (including effect-heavy plate 660) are development evidence.
+Raw data: `throwaway/final-perf/frozen240-final-1/samples.json`,
+`frozen240-pilot-1/`, `frozen-pilot-1/`, and `visual-critique.md` in final-perf.
 
-The accounting snapshot after this pass is `1,371,265` bytes for shared WASM,
-`88,332` bytes for generated JS, and `93,941` bytes for the one-renderer route
-chunk. The latest measured shared row is `186.1 / 6.6 / 0.1 ms` for setup,
-encode, and queue-boundary drain; these remain browser-compositor measurements,
-not GPU timestamps.
+Earlier serial 640×360 frozen controls showed CPU p50 0.390–0.410 versus
+0.120–0.130 ms and GPU means 3.635–3.653 versus 3.945–3.955 ms. Unified-runtime
+repeats had slower controls on both paths (CPU p50 0.595–0.735 versus
+0.275–0.300 ms). The earlier 120-frame changing cohort reduced CPU mean
+1.1920→0.6775 ms (43.2%), but GPU drift included a per-repeat reversal. These
+historical paired cohorts support their bounded whole-path results; differences
+between cohorts do not isolate module packaging or individual optimizations.
+Raw evidence: renderer evidence `shared-frame-profile/samples.json`,
+`unified-runtime-profile/samples.json`, `changing-plate240-attempt3/`.
 
-The static-batch follow-up now moves held-range lifetime into the shared model
-boundary. `BatchState` records dynamic ranges by key and resolves later
-`first == NONE` records from that state; the snapshot is restored before the
-browser replays model records after device loss. Renderer-core now has five
-focused tests, including a held-range recovery contract. This closes the static
-range lifecycle seam, while appearance/tier drawable mapping and a real
-production frame remain open.
+## Native profiling correction and limits
 
-The latest model slice adds an explicit `(appearance, tier)` drawable
-admission. The browser only accepts a batch for the loaded `test_tank` tier;
-unknown rows are dropped instead of drawing the first available mesh. This
-keeps the shared pass contract honest while the full appearance library is
-still pending. The one-renderer scene remains green with no WebGPU validation
-errors; this is still not a heterogeneous production-frame comparison.
+Apple M6, AC power, release, 1280×720, global GPU lock, one binary SHA-256
+`77b473a710a927cfd9a00d4c7369d366c57b091c61d75eb146c1bef0a9e6c5cc`.
+Metal previously resolved stale end stamps inside the frame command buffer;
+sparse historical GPU summaries (including the earlier 11.57 ms control) are
+not complete reel measurements. Resolving after render completion and rejecting
+incomplete aggregates gives 7200/7200 changing and 360/360 frozen positive,
+finite indexed samples.
 
-The browser material accounting now retains the authored BGAT rows loaded from
-the bundle instead of overwriting the count with the empty presentation-row
-fixture. The latest shared run reports 240 material words alongside 68 model
-record words, 121 frames, two resize rebuilds, one surface recovery and one
-device recovery. This proves authored material transport and lifetime; it does
-not yet prove that a real `PresentedFrame` selected those rows by appearance.
+| Native input | GPU repeat means | All-sample GPU mean | CPU repeat means |
+| --- | --- | ---: | --- |
+| Changing reel | 9.006299 / 8.990898 / 10.534978 ms | 9.510725 ms | 1.311635 / 1.255988 / 2.028345 ms |
+| Frozen plate 240 | 8.911300 / 8.593995 / 10.216316 ms | 9.240537 ms | 0.787957 / 0.359128 / 0.765125 ms |
 
-The latest accounting rerun keeps the same visual distances (`model_rust_vs_browser`
-`0.0492`, `battle_rust_vs_browser` `47.035`) and reports the shared row at
-`180.5 / 6.8 / 0.5 ms` setup, encode, and queue-boundary drain. These remain
-submission-boundary measurements, not GPU timestamps.
+The third repeat slows in both CPU and GPU and is retained; the cause is
+unisolated. Separate counter submission/wait changes profiling pacing: CPU spans
+exclude it; frame intervals include it. Native bypasses surface acquisition,
+copy and presentation, while browser includes canvas output. Native repeats ran
+after browser, not interleaved. Cross-platform or earlier sparse/native timing
+comparisons establish no renderer speedup or language/backend cause.
+Evidence: `throwaway/final-perf/native-*-corrected-{1,2,3}/`,
+`native-corrected-summary.json`, `native-corrected-window-analysis.json`.
 
-## 2026-10-27 captured Paris workload
+## Retained behavior, lifetime and accounting
 
-The shared browser row now has a second diagnostic input selected by
-`ONE_RENDERER_CAPTURE=1`. It reads the committed `paris-corner` capture, decodes
-every publication through the `plate-660.png` tick, resolves the capture unit
-catalog and the Paris map through the same browser WASM adapters, loads the
-map's city kits and biome scenery, and sends the resulting `ScenePresentation`
-frame through the shared Rust core. The one-shot run completed 120 measured
-frames plus the recovery frame with `791.7 ms` setup, `8.8 ms` CPU encode and
-`0.1 ms` queue-boundary drain. It carried 662,508 model words, 4,048 effect
-words, 240 material words, 37/41/41/41 caster batches and 484 shadow passes;
-the full record is saved in `throwaway/evidence/one-renderer-capture/result.json`.
+Production foundation/geometry/river retain their unchanged spatial gates;
+raw reference differences of 262/330/464 pixels are not byte identity. Workbench
+C remains exact while A prepares and B supersedes it. Missing F-16 source fails
+the strengthened aircraft test before authored admission passes. The complete
+app journey preserves forests, input/engagement acknowledgement, restart/history/
+replay digests, one GPU/audio owner and zero retained observed wrappers on both
+menu returns. Evidence: `throwaway/production-appflow-lifetime-3.log`,
+`production-high-air-red.log`, `production-world-admission-frame-green-3.log`,
+`production-frame-review/{raw-comparison.json,critique.md}`.
 
-This run found and fixed two real ownership defects: the adapter had been
-passing simulation unit ids as appearance requests, and the shared browser
-model instance buffer was a fixed one-megabyte probe allocation. The loader now
-resolves unit ids to their worn appearance set and the Rust shell grows its
-renderer-owned instance buffer before upload, preserving the same recovery
-snapshot contract.
+Queued readback, inspection return, resize, surface reconfiguration and actual
+device recreation preserve exact pixels through production admission; fog
+seen/unseen samples stay [1,0]. Recovery restores retained knowledge before
+canonical uploads; the prior wall-visibility error has a red control. Ghost
+alpha/depth/fog assertions stay unchanged. Evidence:
+`throwaway/final-perf/retained-browser-gates-3.log`,
+`retained-browser-gates/renderer-lifecycle.json`,
+`throwaway/fog-recovery-probe-{red-2,green}.log`, `throwaway/lab-cards-{red,green}.log`.
 
-The captured run is intentionally still open. The browser shell's asset bootstrap
-loads only the `test_tank` drawable into the shared model owner, so the capture
-frame's decoded appearance/material records are not yet all admitted to GPU
-drawables; the two reported model runs are therefore not a complete capture
-visual comparison. Attempting to drive the full capture through the existing
-BattleFrame control exceeds the scene's 60-second gate while installing the
-complete appearance generation. The next experiment is to stream every
-appearance/tier referenced by the capture into the shared drawable table, then
-rerun the browser-control versus shared-Rust screenshot and GPU comparison on
-the same plate. No substitute model or relaxed gate is acceptable.
+Terrain helpers pass 120,000 distance comparisons (worst absolute error
+0.00007218 m), cubic/linear exact-bit agreement and teardown lifetime checks;
+WebGPU errors remain empty. Grass mixture/exclusion/retuning/brightness/stability
+probes and fog visibility/cost probes pass. A stale presented tick caused the
+garrison probe failure; the existing presented-publication wait corrected the
+test without weakening its assertion. The full fog journey's unchanged cost
+guard passes after a separately committed HUD coherence fix. Evidence:
+`throwaway/ground-query-artifact8-material-all.log`,
+`production-grass-probes-artifact7.log`, `production-fog-probe-green.log`.
 
-The model geometry slice now packs all non-empty tiers from the loaded
-appearance into one vertex stream and routes each accepted batch to its tier's
-vertex range. The shared row reports 49,020 model vertices, 240 authored
-material words, and the same recovery gates. This closes the tier-range seam;
-multiple appearance bundles, articulated transforms, and real presentation
-batch selection remain open.
+The tiny-target regression now uses the canonical presentation floor
+`MIN_TARGET_PX = 64` through `renderer_core::render_size`. The observed failure
+and green fix are retained in `throwaway/final-perf/tiny-target-observed-red-2.log`
+and `tiny-target-green.log`; this focused result is not full browser closeout.
 
-The real-frame slice now closes that last transport-only model gap. The browser
-constructs a deterministic simulation battle, publishes one real observation,
-resolves its `fieldedBattle` bundle records and clip tables, and frames the
-result through `ScenePresentation`. The shared browser upload receives the
-actual batch, instance, palette and authored material arrays, plus the real
-terrain/fog/shadow records; the latest row reports 920 model-record words and
-240 material words and passes resize, surface recovery and device-loss replay.
-This is still an input/lifecycle gate: the ground remains the lab's frozen
-visual mesh, and the native renderer has
-not yet rendered the identical production frame for image comparison.
+The final startup comparison uses the original TypeGPU source and current
+shared-browser production builds, three fresh processes/backend/route in
+rotating order, cache disabled,1280×720. Every repeat succeeds without page errors.
+These are application-readiness observations over loopback, not actual display
+presentation, network latency or filesystem-cache coldness.
 
-Auto-research follow-up `c574cfd97` removed those explicit fixture eyes. The
-same publication now supplies the blue unit sight records through
-`ScenePresentation.setFog({ sensors })`; the complete eleven-row scene still
-passes with no WebGPU errors, `fogEyes: 2`, 920 model words and 240 material
-words. The candidate is kept because it removes a lab-only visibility input
-without changing the shared lifecycle/workload gates. Setup/encode/queue timing
-remained within run-to-run noise (candidate 364.9/6.9/1.2 ms versus the prior
-346.6/6.7/0.6 ms), so no performance claim is attached to this change.
+| Route | TypeGPU readiness seconds | Shared Rust readiness seconds | Mean TypeGPU/shared | Response body bytes before ready TypeGPU/shared |
+| --- | --- | --- | --- | --- |
+| Frame lab, low quality |15.937/14.095/14.253 |5.551/4.712/4.939 |14.762/5.068s |617,155,511/618,577,749 |
+| Small generated battle |15.788/14.174/15.583 |8.067/8.086/7.623 |15.182/7.925s |674,662,924–678,276,364/577,746,514 |
 
-The next visual probe fixed the browser asset adapter's vertex ABI. Its prior
-packer kept positions and colours but synthesized normals, malformed UV bytes,
-rigid weights and a zero tangent. It now preserves the bundle's normals, UVs,
-colours, joints, normalized weights, tangents and material ids in the same
-48-byte layout as `modelLayer.packVertices`; the before/after shared-frame PNGs
-are byte-different and the full scene remains green. The fresh visual review
-now sees textured authored vehicles, but still rejects the frame as production
-parity: the vehicles remain low-contrast, terrain marks alias heavily, the
-ground ends in black, and contact/cast shadows and gameplay anchors are absent.
-This keeps the ABI fix and makes those remaining defects explicit next work.
+Context-level completed request sizes include workers; only requests finished
+before readiness count. Backend-dependent startup duration changes how much
+background asset warming finishes, so this response closure is not solely
+required renderer downloads. Loopback transfer is uncompressed. Frame-page
+JavaScript bodies are831,457/654,928bytes; battle JavaScript898,067/666,992bytes.
+The unchanged game WASM is8,151,438rawbytes (2,760,967gzip;1,828,014Brotli).
+TypeGPU presentation versus unified renderer/presentation/audio WASM:
+3,439,054/5,037,821rawbytes;1,178,781/1,717,593gzip;796,893/1,126,591Brotli.
+These are artifact sizes, not live memory.
 
-The ABI packer is now `renderer_core::model_vertex::pack`, with the browser
-bundle reader reduced to a thin attribute adapter. A renderer-core unit test
-pins the 48-byte offsets and exact weight/tangent narrowing; the full WASM scene
-still passes unchanged. This removes one browser-only owner and leaves the
-native shell able to consume the same pack contract when its model upload is
-moved across the boundary.
+Main-realm unified battle WASM reaches1,952,055,296–1,952,579,584bytes capacity;
+TypeGPU's presentation WASM56,360,960–61,079,552bytes. Frame lab is78,381,056
+versus3,801,088bytes. Both also admit the page geometry/simulation module
+(~9.57MBbattle/~9.70MBframe). Managed JS heap observations and individual
+request rows remain in the raw data. None measures live Rust allocations,
+worker memory, total process residency or driver storage. The GPU payload
+sharing result above is a separate matched within-Rust experiment.
 
-The model prepass and opaque draw encoder now also live in
-`renderer_core::model_pass`; the browser shell only adapts assets and calls the
-shared pass functions. The six renderer-core tests, WASM check, clippy and full
-eleven-row scene remain green. This is a structural simplification with no
-separate performance claim; the visual review still gates terrain, lighting and
-shadow work.
+Raw results, summary, exact build SHA256 identities and compressed artifact
+counts: `throwaway/final-perf/startup-final/{results,summary,identity,wasm-artifacts}.json`.
+The earlier candidate-only startup pilot is retained separately at
+`throwaway/final-perf/cold-startup/results.json` and does not replace this cohort.
 
-Accounting after the move is 3,423 lines across the shared Rust core and 2,403
-in the browser shell, versus 3,173 and 2,541 before it. The combined total is
-slightly higher because the generic core seam and its validation are new, but
-the browser-only owner shrinks by 138 lines and the pass code is now available
-to the native shell. This is the intended direction; the final deletion audit
-must still remove the standalone spike and the remaining duplicate native
-adapters.
+Current maintained production-source accounting is **+3420 code lines**
+(23,697 added / 20,277 deleted), excluding full-line comments and including
+authored WGSL plus the 64-line shader-composition index. Generated exports are
+separate (19,548 net code lines removed); tests/harness add 3249 net. Renamed paths must
+count both endpoints with `--no-renames`; deletion-only or destination-only totals
+misstate complexity. `throwaway/final-perf/complexity-summary.txt` and accounting
+JSON are snapshots pending reconciliation. Removed migration counters and final
+shader cleanup postdate the measured cohort and have no isolated timing result.
 
-The real-publication visual probe now reuses the frozen lab's complete static
-props and overlay mesh while retaining the simulation publication's model,
-material and fog records. The shared row still passes all lifecycle gates and
-now reports eight fog-height words plus the authored overlay workload. This
-removes the previous sparse-scene confound; fresh review still finds terrain
-aliasing, weak contact shadows and a black map edge, which are genuine shared
-world/material parity defects rather than missing fixture inputs.
+## Remaining closeout / handoff
 
-Fresh review of the enriched frame confirms the remaining defects: repeated
-white terrain artifacts dominate the scan; the selected vehicle's silhouette is
-still a brown slab under a clearer cyan ring; the right vehicle is nearly lost
-under a detached red marker; barriers and vehicles lack readable contact
-shadows; the orange range arc is clipped; and the finite ground falls into a
-black void. These are now the active visual parity queue, not transport gaps.
+Full Rust workspace passed in1881.29s. Web has valid results for195files /
+1288tests:193files passed in the full run, then two missing-LFS files pass a
+focused21-test rerun; this is reconciled coverage, not one all-green run.
+The first full browser run attempted all48registered fixtures in1776.66s with
+27failed assertions. Do not repeat it unchanged.
 
-The shared render probe also removed the duplicate compatibility ground draw
-whenever production terrain tables are present, and initialized the no-scar
-directory/page textures explicitly. The duplicate draw was a real ownership
-bug: it put the same mesh through the fixture and production terrain passes at
-the same depth. The full scene remains green; the remaining dark terrain
-pattern persists, so terrain material/fog composition is still an open parity
-issue rather than being hidden by a second ground owner.
+Source/readiness repair development evidence (`throwaway/final-perf/`):
 
-An auto-research shadow probe disabled shared cascade encoding for one run. The
-terrain artifact was unchanged while the expected shadow-resource gate failed,
-so the artifact is not caused by the shadow map itself. The probe was restored
-immediately; the next active hypothesis is the shared terrain/fog material ABI
-or its synthetic ground table inputs.
+- `air-hover-oom-stack.log` identifies the original trap as allocation failure in
+  `wgpu` mapped-buffer initialization. Its probe sees1,048,740,232B decoded bundle
+  payload and unrelated game wrecks/city kits in a small scene. Later unsafe-alias
+  errors are secondary. Browser transport now scopes cached art before canonical
+  prop selection, following the native worn-art contract; selected units retain
+  their possible wrecks even with dynamic map props disabled. Source changes and
+  observer admission must match before a renderer is built.
+- `appearance-scope-red.log` and `viewport-completion-red.log` retain failing
+  controls. Fast focused tests currently cover cached source exclusion, wreck
+  closure and successful frame completion. `air-hover-admission-matched.log`
+  passes the complete scene, including the previously crashing roof transition.
+- `source-completion-browser.log`: weapons, fog, fog-look, facade and scenario all
+  pass. Garrison fog now uses the rendered side's actual eyes. The prior rim
+  failure captured a fully transparent canvas during asynchronous rebuild; actual
+  submission completion repairs the evidence without changing the fog shader or
+  any threshold. Facade's bare comparison hides material surfaces instead of
+  preserving its static panels via dynamic-model suppression.
+- `remaining-admission-scenes.log`: transport, garrison, supply, ground, cursor,
+  city-lineup and city-ruins pass after source/LFS repair. Ground and lineup were
+  expensive; preserve these valid results. `selected-sources-allies-readouts.log`
+  then passes allies/readouts. `ally-help-fine-sampling.log` passes the remaining
+  allied help predicate after CPU reproduction proved its old10-second samples
+  missed a1.4-second combat halt. Deadline,100m threshold and halted predicate
+  are unchanged. Readout selection now waits for real layout before the same
+  strict selected-above-all assertion. These unrelated harness repairs are
+  separate commits.
+- `readiness-source-review/verdict.md`: independent Codex review reproduces a
+  CPU-only cancellation defect. It is fixed: internal quality/world rebuilds
+  report through their own viewport lifetime; explicit rebuild callers still
+  receive rejection. `viewport-cancellation-red.log` and
+  `viewport-source-cancellation-green.log` retain proof. Current source/viewport/
+  kit/regional coverage is46tests (`battle-sources-final-tests.log`); typecheck
+  and scoped complexity checks pass. No new hook warnings remain.
+- `air-hover-reference-comparison/findings.md`: all five neutral critique concerns
+  also occur in original TypeGPU across47paired full frames/crops. All four
+  lost-contact crops and both ghost full frames are raw-identical. Unrecorded
+  animation clocks preclude a general exact-parity claim for rotors/muzzles.
 
-The shared frame-order pass moved native and browser encoding behind
-`renderer_core::frame::encode_frame`. The canonical order is sun shadow,
-depth, fog sight, world, effects, fog mask, overlays, post and fog rim. Native
-adapts its existing pass vector; browser adapts both the production and fixture
-resources. Surface acquire, display composite, overlay composite and present
-remain shell operations. The full eleven-row scene stays green after the
-change, including resize, surface recovery, device loss and 484 shadow passes.
-The browser effects slot is intentionally empty until the effect resource owner
-moves into the shared runtime, so this proves orchestration only and does not
-close production pass parity.
+### Final source lifetime and purchase responsiveness
 
-The next effects probe constructed the browser's shared `EffectsResources`
-owner, bound it to the production depth, camera, environment and PMREM records,
-rebuilt it after resize, and replayed it during device recovery. A dummy one
-layer atlas plus the frozen 16-word effect instance was deliberately rejected:
-the fresh screenshot showed black voids swallowing most of the terrain and
-units, so the atlas ABI is not proven by a bind-group that merely validates.
-The browser scene now keeps the owner present but uploads zero effect instances
-until the real flipbook fetch/decode path is wired. This preserves the clean
-frame boundary without accepting a visual regression.
+Current-only art scoping fixed allocation failure but initially regressed the
+first reinforcement preview: `roster-complete-current.log` retains the original
+250ms ghost timeout. The complete source closure now includes enabled purchases
+for the human's faction before play, initial units, explicitly referenced history
+(corpses, wrecks, crashes, remembered contacts and air transits), pending units
+and subsequently learned kinds. Learned kinds remain until this battle/observer
+ends. The page's cached union still does not decide GPU residency. CPU catalog
+inventory in `source-lifetime-review/` measures the unit bundles only: own-faction
+US502,956,748B, Europe611,459,656B, Eastern572,844,176B versus all-three
+1,530,645,548B; these omit textures/scenery/skeletons/kits and are not live memory.
+`roster-own-faction.log` restores the original preview gate and three unchanged
+approved pictures. Final registered confirmation is in
+`source-lifetime-browser-confirmation.log`.
 
-The terrain-hole probe used the current shared browser row as the fixed parent.
-Skipping fog-mask compose left the holes unchanged, so fog composition was
-discarded. Skipping production terrain depth removed all terrain, proving the
-color pass depends on that reverse-Z coverage. Adding depth bias `1` to either
-`worldPrepass` or `worldTerrain` also left the image unchanged. Changing only
-the exported `worldTerrain` color pass to `depthCompare: always` restored the
-full ground while models, static props, resize, surface recovery, device
-recovery and 484 shadow passes stayed green. Keep the shared pipeline change;
-the exact browser/native depth-value mismatch remains a lower-priority root
-cause investigation.
+A fielding request now has stable identity for all its actual inputs. Only that
+request's result can reach the viewport; a new appearance generation cannot
+meet an earlier requested-kind topology while asynchronous resolution runs.
+`battle-sources-history-red.log` proves lost source retention can fail; its
+repaired46-test focused cohort passes. This is lifecycle coherence, not an
+extension of the simulation's visibility.
 
-The first real-atlas trial used an invalid hand-written effect record: its
-shape word selected a streak, so the screenshot showed a detached white
-rectangle. The record was corrected to the presentation ABI for a flipbook
-(`a = position/radius`, `b = turn/frame/layer/softness`, `colour`, then
-`misc = shape/emissive/lit/pad`). The atlas and upload owner are kept. The
-browser row now removes that fixture record entirely and uploads the copied
-`ScenePresentation` frame effect stream, including after device recovery. The
-current deterministic battle publication produces zero effect words at its
-sampled tick, which is evidence that transport is no longer hiding a fake
-effect, not evidence of visual effect parity; a publication with a real launch
-or impact remains a required workload.
+### Roster effect-history control and intended picture change
 
-An environment-input A/B copied the native `View.view` matrix and observer
-words into the browser's 64-word environment record instead of the previous
-identity view. The shared scene stayed green and its production image distance
-remained `47.034991`, so this fixes an ABI mismatch without explaining the
-dark model/material result. A second A/B skipped fog-mask compose for one run;
-the shared image and distance were unchanged, so fog compose is not the source
-of that darkness. The fog probe was restored; model material/shadow lighting
-parity remains the active hypothesis.
+The failed full roster journey paused at tick12; old frozen first-shot controls
+paused at1and3. Entry-chevron pulse uses the presentation clock, so these were
+not matched visual states. The registered journey now pins an explicit paused
+tick60 before actions. Baseline thresholds stay unchanged.
 
-The browser workload now reports resolved model-run admission separately from
-uploaded vertex words. The real frozen frame resolves one admitted presentation
-model run (`presentationModelRuns: 1`) while the shared model prepass executes;
-the dark silhouettes therefore are not an empty-draw artifact. The bundle-row,
-vertex-colour, instance-stream, static-world-colour, shadow-floor, and
-fog-compose A/Bs all left the `47.034991` production image distance unchanged.
-The remaining visual defect is inside the shared model/world lighting ABI or its
-authored resource values, and is still open for the migration verdict.
+A separate exact-tick control isolates the remaining dust difference:
+`roster-fielding-control/` runs original TypeGPU, original TypeGPU with only its
+faction dependency stabilized, and current shared Rust. All finish at tick423
+with equal complete observations and settled clocks. The unchanged TypeGPU
+world reloads117times and loses its dust; stabilizing that tuple yields8loads
+and exactly the same16effect instance records as shared Rust (one world load).
+The stable TypeGPU/shared final images have0pixelmatch differences at0.1threshold
+but1132different raw channels, so this is not raw pixel identity. The observation
+and effect arrays are exact. This control changes neither rendering algorithms
+nor simulation outcomes. The earlier frozen production pair similarly had
+0versus16effects; differing frame rates alone do not explain mover dust.
 
-The native parity harness also completed a real `paris-corner` control capture
-after fetching the runtime LFS textures: six 1280×720 plates, 2,461 frames,
-1–28 vehicles/soldiers per plate, and 10–253 effect instances per plate. This
-is a usable native control workload for the final matched-frame comparison; it
-is not yet wired into the one-renderer browser row.
+Keeping presentation history is the intended repair. The order-picture reference
+changes deliberately to show its existing authored movement dust, rather than
+continuously resetting the observer to preserve an accidentally empty effect
+pool. Only that reference changes; the first three pictures remain identical.
+The user was shown matched full views. Fresh neutral inspection
+(`roster-fielding-control/visual-critique.md`, receipts check passes) found shared
+wedge/label/hatching concerns but no candidate-specific depth/missing-model defect.
+These established appearances are not redesigned during renderer migration.
 
-Native replay of that same committed capture produced six Rust plates and matched
-the browser control's counts on every plate. The fixed-image comparison is also
-near-identical: parity distances are `0.00478`, `0.00641`, `0.00144`, `0.00011`,
-`0.00166`, and `0.00007` (worst `plate-660`), with pixelmatch ratios at or below
-`0.00308`. This validates the native control and capture contract; it does not
-yet compare the extracted shared browser core, which still lacks the full
-appearance/world upload for this workload.
+Army's old digest pin was independently stale: original TypeGPU and frozen
+shared production both produce`fdd604ec48fc8b26` at tick90
+(`matched-digest.json`), caused by an earlier mount-digest schema addition. The
+pin repair is a separate commit. Ruler CPU staging and browser confirmation
+(`ruler-cpu/findings.md`, `ruler-covered-approach.log`) preserve sight-edge,
+remembered-contact and actual right-click requirements. One covered waypoint
+reaches them; the old scout died before identifying anything.
 
-The matched `paris-corner` performance controls are now recorded as well. The
-native release replay runs 2,400 post-warmup frames at 84.6 FPS, with CPU p50
-`1.13 ms`, CPU p95 `6.76 ms`, GPU mean `11.57 ms`, and GPU p95 `14.14 ms` on
-Apple M6 AC power. The browser production capture runs 2,341 post-warmup
-frames at a paced 60 FPS, with CPU p50 `3.24 ms`, CPU p95 `3.80 ms`, GPU mean
-`9.10 ms`, and GPU p95 `12.08 ms`. These are controls for the same native
-renderer workload; the shared browser Rust row still needs this workload before
-its performance tradeoff is final.
+Source/artifact accounting, review resolution, final verdict and archival remain
+open. The performance/startup numbers above belong to their named frozen builds;
+subsequent source/readiness repairs are not silently credited those exact results.
+
+
+### Final complete-generation and interaction repair
+
+A new enemy source originally withdrew the running presentation while its art
+loaded. `useBattleFielding` now retains one complete topology/map-art/model-art
+snapshot for the same battle and observer, retiring it on a scope change. The
+new delayed-resolution regression fails on the previous behavior and passes with
+retention, stale-result cancellation and art-only refresh identity preserved.
+Raw audio publications remain independent of visual admission.
+
+The first retained-generation browser attempt exposed overlapping admission:
+a feed listener decoded a complete asset draft, then canonical framing detected
+new topology and rebuilt another renderer from the same catalog. Serial tracing
+confirms capacity 1.98 → 3.77 GB, a second `load_bundle` sequence, then the 4 GiB
+WASM ceiling. It was not a concurrency-only failure or an overlay-size defect.
+Source/world/model/proxy reconciliation now has one frame-boundary owner; it
+chooses full rebuild for changed topology and an asset-only transaction otherwise.
+The old eager appearance/world listeners are removed. The regression was observed
+red before this correction. The matched serial ally-help journey now passes,
+with a retained capacity high-water of 3,590,717,440 B; this remains a substantial
+memory cost, not a claim of low live residency. Evidence:
+`ally-memory-{serial,traced,reconciled}/`, corresponding logs and
+`world-appearance-double-admission-{red,green}.log`.
+
+Submitted interaction state includes pick boxes, own/enemy positions, observation,
+clock and projection camera. Skipped surfaces leave it unchanged. Optional frame
+fields retain staged values across a skip. A pose-only external-model change
+requires reframing before submission; static review found the ordering issue,
+and a regression observed the old pose before the repair. A separate regression
+caught and fixed a React redraw effect accidentally returning a boolean cleanup.
+Evidence: `skipped-picking-red.log`, `viewport-pose-framing-{red,green}.log`
+(the green result is included in `viewport-final-review-fixes-green.log`),
+`viewport-effect-cleanup-{red,green}.log`, `viewport-reviewed-final-green.log`.
+
+The final independent focused review exited zero; its sole actionable finding
+was pose-only framing, corrected above. The final frame scene preserves all
+three approved images at zero differences and passes surface/device recovery.
+The registered roster/allies/ally-help runs pass; the street vehicle tour now
+checks the active catalog for reserved proxy assets rather than treating all
+canonical listed instances as proxies. Source and viewport focused web coverage,
+plus the replay-refusal regression, is green. The original full web run retained
+one transient dynamic-import failure; unchanged focused and independent cold/cache
+reproductions pass. Commit `1be68209e` adds failed-response/request diagnostics
+without inventing an unproven functional fix.
+
+The earlier 28.28% renderer CPU reduction was measured on a fully loaded frozen
+replay before bundle-sharing and these source repairs. It cannot be attributed
+to a loading freeze, the later Arc change or a stabilized React dependency.
+The render span locates 83.1% of the saving but isolates no internal cause.

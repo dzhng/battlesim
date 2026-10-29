@@ -41,7 +41,7 @@ import { contactPanel, enemyPanel, ownPanel, type Panel, type PanelRules } from 
 
 /** The element the high-air models' canvas lies in, between the two card
  *  planes: a battle view draws its high-air models there when the page has
- *  one (`BattleFrame.render`'s high target), and with the world otherwise. */
+ *  one (the shared renderer's high-air target), and with the world otherwise. */
 export const HIGH_PLANE_ATTR = "data-high-plane";
 
 /** A camera this close to the ground is watching the battle, not commanding

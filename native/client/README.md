@@ -36,19 +36,18 @@ to discard-based fragments while compiling pipelines. AMD's Windows driver
 crashes in `wgpu` when those depth-only sample-mask pipelines are created; the
 adaptation preserves the cutout test and leaves the browser export unchanged.
 
-- **Shaders and pipelines** are the browser's [export](../../crates/pipelines/README.md),
-  built from `pipelines.json` at start, with the sizes the passes allocate by
-  (the bloom's levels, the sky lookup, the effect sheets). The export is read
-  strictly: a setting the client does not know fails the build rather than
-  being dropped, and any pipeline the device refuses fails the start, listing
-  each one.
+- **Shaders and pipelines** come from the shared renderer-core catalog and its
+  semantic WGSL modules. Native and browser build the same descriptors and
+  sources; no filesystem manifest or browser export is loaded at startup. The
+  catalog owns the bloom levels, sky lookup, effect-sheet side and every
+  binding/target/depth state.
 - **The frame** is one ordered list of passes, encoded in order each drawn
   frame, as Bevy draws and as the browser's `battleFrame` does. It
   has no render graph. A pass reads the frame's `View` and the sized targets.
 - **Uniforms** are records the presentation crate resolves (the sky's light,
   the sun, the haze, the bloom, the grade, the view's sky rays). The client
-  uploads their bytes as they are, and `crates/pipelines` holds each record to
-  the struct its shader declares. A pass binds groups by the layout they fill,
+  uploads their bytes as they are, and renderer-core's ABI test holds each
+  record to the struct its shader declares. A pass binds groups by the layout they fill,
   never by number.
 - **Models** are the browser's appearance bundles from `assets/runtime` (Git
   LFS; pull the ones a scene needs), read through the presentation crate's
@@ -165,13 +164,26 @@ list, framing each one as a plate is framed, and writes no plates. Each frame
 records the same things as the browser's reel: its interval, its CPU time, and
 its GPU time from the first timestamp marker pass's start to the last one's
 end, as the browser takes it. The CPU time is split into
-framing, preparing, encoding and submitting; submitting includes acquiring
-the window's surface, copying the frame to it and presenting it. The report goes to
-`native-<scene>-<time>.json` in the browser file's shape. A window that isn't
-shown presents nothing and never blocks, so the bench keeps at most two frames
-on the GPU, as a swap chain would. Every frame is drawn, so the static batches
-are written only when they change. Run it on a release build, under the GPU
-lock.
+framing, preparing, encoding and submitting. Benchmark submission bypasses
+surface acquisition, the window copy and presentation; browser measurements
+include their shell's surface work. The report goes to `native-<scene>-<time>.json`
+in the browser file's shape. The benchmark keeps at most two frames on the GPU,
+as a swap chain would. Every changing frame is drawn, so static batches are
+written only when they change. Run a release build under the GPU lock.
+
+Metal can return stale end timestamps when counters resolve in the frame's own
+command buffer. The benchmark waits for that frame to complete, then resolves
+and reads its counters in a separate submission. These profiling waits affect
+frame intervals and FPS; the recorded CPU phases exclude them. Compare CPU and
+GPU cost per frame separately from this instrumented throughput. Raw GPU samples
+align with the CPU samples, and incomplete coverage suppresses the aggregate
+GPU time instead of averaging only successful readbacks.
+
+`--bench-freeze-index <record> --bench-frames <draws>` instead frames every record
+through the chosen zero-based index once, then redraws that held canonical input.
+The timed loop still prepares, encodes and submits; it performs no new framing.
+Reports omit the first sixty warmup draws and the final draw's incomplete frame
+interval. The report identifies both retained draw and source-record endpoints.
 
 ## Checks
 

@@ -296,7 +296,7 @@ impl Replay {
             .map_or_else(Vec::new, |g| g.scenery_kinds());
         let finest = kinds
             .iter()
-            .map(|name| tier_mesh(name, &library.bundle(name)?, 0))
+            .map(|name| tier_mesh(name, library.bundle(name)?.as_ref(), 0))
             .collect::<Result<Vec<_>, String>>()?;
         let finest: Vec<&[f32]> = finest.iter().map(Vec::as_slice).collect();
         presentation.place_scenery(&finest)?;

@@ -15,7 +15,6 @@ const SoundWorkbench = lazy(() => import("../../sound-workbench/src/SoundWorkben
 const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   capture: lazy(() => import("./routes/capture")),
   "graphics-test": lazy(() => import("./routes/graphicsTest")),
-  "one-renderer": lazy(() => import("./routes/oneRenderer")),
   cursor: lazy(() => import("./routes/cursor")),
   frame: lazy(() => import("./routes/frame")),
   "geometry-scaling": lazy(() => import("./routes/geometry")),

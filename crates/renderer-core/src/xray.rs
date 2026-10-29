@@ -180,7 +180,7 @@ impl XrayResources {
             self.count_pipeline.set(
                 &mut pass,
                 &[
-                    ("typegpuCameraLayout", camera),
+                    ("cameraLayout", camera),
                     models.group(),
                     ("xrayCountLayout", &self.count_group),
                 ],
@@ -208,7 +208,7 @@ impl XrayResources {
         self.draw_pipeline.set(
             &mut pass,
             &[
-                ("typegpuCameraLayout", camera),
+                ("cameraLayout", camera),
                 models.group(),
                 ("xrayReadLayout", &self.read_group),
             ],

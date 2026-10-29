@@ -2,17 +2,12 @@
 import { Renderer, type BrowserGpu } from "@wasm/renderer_browser";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { TextureChannel } from "@packages/scene-assets/src/schema";
-import type {
-  WorldLayers,
-  WorldMeshes,
-  SceneInstance,
-  FrameView,
-} from "@packages/battle-renderer/src/scene";
+import type { WorldLayers, WorldMeshes, SceneInstance } from "@packages/battle-renderer/src/scene";
 import type { ImpostorAtlas, ImpostorSpec } from "@packages/battle-renderer/src/models/impostor";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
-import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
-import type { OverlayGlowStyle } from "@packages/battle-renderer/src/frame/overlayPass";
-import type { PaintStyle } from "@packages/battle-renderer/src/frame/paintedMarks";
+import type { FogStyle } from "@packages/battle-renderer/src/fog";
+import type { OverlayGlowStyle } from "@packages/battle-renderer/src/overlayStyle";
+import type { PaintStyle } from "@packages/battle-renderer/src/paintStyle";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import type { ScenePresentation } from "../sim/presentation";
 import type { LabModel, ModelDetail } from "../sim/presentationModels";
@@ -21,9 +16,9 @@ import { proxyModels } from "./proxyModels";
 import { SceneAppearances } from "./sceneAppearances";
 import { loadEffectAtlasLayers } from "./effectAssets";
 import { installSceneGeometry } from "./sceneGeometry";
-import type { SceneStats, DrawnInstances } from "./sceneStats";
-import type { FogProbes } from "@packages/battle-renderer/src/frame/fogVisibility";
-import type { GrassProbes } from "@packages/battle-renderer/src/frame/grassPass";
+import type { SceneStats, DrawnInstances, FrameView } from "./sceneStats";
+import type { FogProbes } from "@packages/battle-renderer/src/fog";
+import type { GrassProbes } from "@packages/battle-renderer/src/grass";
 import type { SurfaceClass } from "@packages/battle-renderer/src/models/surfaceParts";
 
 const EMPTY_MESH = new Float32Array(0);
@@ -82,6 +77,7 @@ export class BrowserScene {
   private authored: ModelAsset[];
   private proxies: ReturnType<typeof proxyModels>;
   private models: readonly LabModel[];
+  private instances: readonly SceneInstance[];
   private desired: InstalledAppearances | null;
   private installed: InstalledAppearances | null;
   private activeWorld: WorldLayers;
@@ -89,6 +85,7 @@ export class BrowserScene {
   private admittedWorld: ReturnType<ScenePresentation["world"]>;
   private readonly hasGrass: boolean;
   private controls: SceneControls = {};
+  private overlayGlow: OverlayGlowStyle;
   private disposed = false;
   private readonly redraw: () => void;
   private grassRules: ReturnType<GrassProbes["rules"]>;
@@ -106,11 +103,13 @@ export class BrowserScene {
     admittedWorld: ReturnType<ScenePresentation["world"]>,
   ) {
     this.authored = authored;
+    this.overlayGlow = options.overlayGlow;
     this.redraw = options.redraw;
     const defaultGrass = options.world.terrain.biome.grass;
     this.grassRules = options.world.grass ? defaultGrass : null;
     this.proxies = proxies;
     this.models = options.models;
+    this.instances = options.instances;
     this.desired = this.installed = options.appearances;
     this.activeWorld = this.desiredWorld = options.world;
     this.admittedWorld = admittedWorld;
@@ -193,21 +192,53 @@ export class BrowserScene {
     return this.installed;
   }
 
-  async setAppearances(
+  /** Reconcile one complete desired input tuple after canonical framing.
+   * A topology replacement bypasses asset staging and rebuilds directly. */
+  updateSources(
+    world: WorldLayers,
     installed: InstalledAppearances | null,
-    models = this.models,
-  ): Promise<boolean> {
+    models: readonly LabModel[],
+    instances: readonly SceneInstance[],
+  ): "rebuild" | "reframe" | "current" {
+    const previous = this.desiredWorld;
+    if (
+      world.terrain.mesh !== previous.terrain.mesh ||
+      world.terrain.input !== previous.terrain.input ||
+      world.backdropTerrain !== previous.backdropTerrain ||
+      !!world.grass !== !!previous.grass
+    )
+      return "rebuild";
+    const artChanged =
+      installed !== this.desired ||
+      world.scenery !== previous.scenery ||
+      world.grass !== previous.grass;
+    const modelsChanged = models !== this.models;
+    const instancesChanged = instances !== this.instances;
+    let proxiesChanged = false;
+    if (instancesChanged || installed !== this.desired) {
+      const next = proxyModels(instances, installed?.appearances.keys());
+      proxiesChanged =
+        next.assets.length !== this.proxies.assets.length ||
+        next.assets.some((asset, i) => asset.name !== this.proxies.assets[i].name);
+      if (!proxiesChanged) next.assets = this.proxies.assets;
+      this.proxies = next;
+    }
     this.models = models;
-    if (installed === this.desired) return this.admission.settled().then(() => false);
+    this.instances = instances;
     this.desired = installed;
-    this.authored = assetsFor(
-      this.presentation,
-      installed,
-      models,
-      this.desiredWorld,
-      this.hasGrass,
-    );
-    return this.request();
+    this.desiredWorld = world;
+    const sourcesChanged =
+      artChanged ||
+      (modelsChanged &&
+        !sameNames(sourceNames(this.presentation, models, this.hasGrass), this.authored));
+    if (sourcesChanged)
+      this.authored = assetsFor(this.presentation, installed, models, world, this.hasGrass);
+    if (sourcesChanged || proxiesChanged) void this.request();
+    else if (modelsChanged || instancesChanged) {
+      this.admission.models(this.modelList());
+      return "reframe";
+    }
+    return "current";
   }
 
   setModels(models: readonly LabModel[]): void {
@@ -231,6 +262,7 @@ export class BrowserScene {
   }
 
   setInstances(instances: readonly SceneInstance[]): void {
+    this.instances = instances;
     const next = proxyModels(instances, this.desired?.appearances.keys());
     const same =
       next.assets.length === this.proxies.assets.length &&
@@ -257,25 +289,6 @@ export class BrowserScene {
     return changed || propsChanged;
   }
 
-  /** External world-face updates share asset admission's boundary. Different
-   * terrain inputs require explicit replacement of the whole scene. */
-  stageWorld(world: WorldLayers): boolean {
-    const previous = this.desiredWorld;
-    if (
-      world.terrain.mesh !== previous.terrain.mesh ||
-      world.terrain.input !== previous.terrain.input ||
-      world.backdropTerrain !== previous.backdropTerrain ||
-      !!world.grass !== !!previous.grass
-    )
-      return false;
-    this.desiredWorld = world;
-    if (world.scenery !== previous.scenery || world.grass !== previous.grass) {
-      this.authored = assetsFor(this.presentation, this.desired, this.models, world, this.hasGrass);
-      void this.request();
-    }
-    return true;
-  }
-
   world(): WorldLayers {
     return this.activeWorld;
   }
@@ -289,8 +302,19 @@ export class BrowserScene {
     return this.renderer.static_generation();
   }
 
-  render(): void {
-    if (!this.disposed) this.presentation.render(this.renderer);
+  render(): boolean {
+    return !this.disposed && this.presentation.render(this.renderer) !== null;
+  }
+
+  current(): boolean {
+    return (
+      this.worldCurrent() && this.admission.current() && this.activeWorld === this.desiredWorld
+    );
+  }
+
+  inheritControls(previous: BrowserScene): void {
+    this.setControls(previous.controls);
+    this.setOverlayGlow(previous.overlayGlow);
   }
 
   resize(): void {
@@ -345,6 +369,7 @@ export class BrowserScene {
   }
 
   setOverlayGlow(style: OverlayGlowStyle): void {
+    this.overlayGlow = style;
     this.renderer.set_overlay_glow(style.radius_px, style.strength);
   }
 

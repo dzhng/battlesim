@@ -6,6 +6,7 @@ use presentation::records::{
 use renderer_core::bundle::{Bundle, BundleSource, Coverage, Draw, Material, Mesh, Shape};
 use renderer_core::impostor::Spec;
 use renderer_core::models::Models;
+use std::sync::Arc;
 use wgpu::*;
 
 fn identity() -> Joint {
@@ -17,11 +18,11 @@ fn identity() -> Joint {
 }
 struct Source;
 impl BundleSource for Source {
-    fn bundle(&self, _: &str) -> Result<Bundle, String> {
+    fn bundle(&self, _: &str) -> Result<Arc<Bundle>, String> {
         let positions = vec![
             -0.35, -0.2, 0., 0.3, -0.2, 0., -0.1, 0.25, 0., -0.1, 0., 0.8,
         ];
-        Ok(Bundle {
+        Ok(Arc::new(Bundle {
             shape: Shape::Skinned(vec![Mesh {
                 positions,
                 normals: [0, 0, 32767, 0].repeat(4),
@@ -50,13 +51,13 @@ impl BundleSource for Source {
                 interior: None,
             }],
             textures: vec![],
-        })
+        }))
     }
 }
 struct RigidSource(bool);
 impl BundleSource for RigidSource {
-    fn bundle(&self, name: &str) -> Result<Bundle, String> {
-        let mut bundle = Source.bundle(name)?;
+    fn bundle(&self, name: &str) -> Result<Arc<Bundle>, String> {
+        let mut bundle = Arc::unwrap_or_clone(Source.bundle(name)?);
         let Shape::Skinned(tiers) = bundle.shape else {
             unreachable!()
         };
@@ -70,7 +71,7 @@ impl BundleSource for RigidSource {
         } else {
             Shape::Static(vec![node])
         };
-        Ok(bundle)
+        Ok(Arc::new(bundle))
     }
 }
 
@@ -159,7 +160,7 @@ pixels[id.x]=textureLoad(image,vec2i(i32(id.x%size.x),i32(id.x/size.x)),0);
 #[test]
 fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geometry() {
     let gpu = gpu::open(&gpu::headless_instance(), None).expect("a real GPU");
-    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).unwrap();
+    let pipelines = pipelines::build(&gpu.device).unwrap();
     let mut models = make_models(&gpu, &pipelines);
     let atlas = pollster::block_on(
         models

@@ -20,8 +20,8 @@ native.
 
 - [Records](src/records.rs): every record a renderer reads, defined once;
   `records_are_current` generates `packages/battle-renderer/src/records.gen.ts`,
-  with each struct record's TypeGPU schema, so the browser's uniform and
-  storage structs are Rust's.
+  with byte offsets and typed views for browser consumers. The renderer's
+  shader ABI check reflects WGSL against these canonical Rust layouts.
 - [The runtime assets](src/assets.rs): the one reader of the scene-assets
   container the template library and the bundles travel in, and (feature
   `files`) of the runtime directory: its catalog and each gzipped transport

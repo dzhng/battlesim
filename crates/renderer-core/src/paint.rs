@@ -109,7 +109,7 @@ impl PaintResources {
                 (&self.still, geometry.pointer),
             ] {
                 if let Some(mesh) = mesh {
-                    pipeline.set(&mut pass, &[("typegpuCameraLayout", camera)]);
+                    pipeline.set(&mut pass, &[("cameraLayout", camera)]);
                     mesh.draw(&mut pass);
                 }
             }

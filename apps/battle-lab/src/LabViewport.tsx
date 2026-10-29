@@ -12,19 +12,19 @@ import {
 } from "@web/battle/sim/presentation";
 import { useCursorAction, type CursorAction } from "@web/battle/present/gameCursor";
 import { useEffect, useRef, useState } from "react";
-import { gpuFailureMessage } from "@packages/renderer-core/src/device";
-import { appResources } from "./appResources";
+import { appResources, gpuFailureMessage } from "./appResources";
 import type { BrowserGpu } from "@wasm/renderer_browser";
 import { BrowserScene, pixelsPng } from "@web/battle/render/scene";
-import type { AllocationCounts, BrowserGpuInfo, SceneStats } from "@web/battle/render/sceneStats";
-import { vec3 } from "math";
+import type {
+  AllocationCounts,
+  BrowserGpuInfo,
+  SceneStats,
+  DrawnInstances,
+  FrameView,
+} from "@web/battle/render/sceneStats";
 import {
-  createGpuMat4,
-  createProjectedPoint,
   createWorldRay,
-  projectPoint,
   screenRay,
-  viewProjMatrix,
   type Camera3DParams,
   type WorldRay,
 } from "@packages/renderer-core/src/camera3d";
@@ -53,23 +53,18 @@ import { applyShadowQuality } from "@packages/renderer-core/src/lightQuality";
 import { gameFogStyle } from "./gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "./gameOverlay";
 import { gameBuildingStyle, gameModelDetail } from "./gameModels";
-import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
+import type { FogStyle } from "@packages/battle-renderer/src/fog";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
-import type {
-  DrawnInstances,
-  FrameView,
-  SceneInstance,
-  WorldLayers,
-  WorldMeshes,
-} from "@packages/battle-renderer/src/scene";
-import type { GroundMarks } from "@packages/battle-renderer/src/frame/scarTexture";
+import type { SceneInstance, WorldLayers, WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type {
   BuildingStyle,
   SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { SurfaceClass } from "@packages/battle-renderer/src/models/surfaceParts";
-import type { GrassClumpRow } from "@packages/battle-renderer/src/frame/grassPass";
+import type { GrassClumpRow } from "@packages/battle-renderer/src/grass";
 import { PassInspector } from "./PassInspector";
+import { ViewportFrames } from "./viewportFrames";
+import { viewportProjector } from "./viewportProjection";
 import type { FeedSource } from "./feed";
 import {
   emptyEffectCounts,
@@ -77,8 +72,9 @@ import {
   presentedCamera,
   type EffectCounts,
   type ModelCounts,
+  type ViewportFrame,
 } from "./presentedFrame";
-import { type FogRequest, type PresentedFrame } from "@web/battle/sim/presentation";
+import { type FogRequest } from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 import {
@@ -87,6 +83,7 @@ import {
   type GraphicsQualityProfile,
 } from "./graphicsSettings";
 
+const NO_MODELS: readonly ModelInstance[] = [];
 const NO_INSTANCES: readonly SceneInstance[] = [];
 /** A frame of a world no battle publishes into: no units, no selection. */
 const NO_UI: PresentedUi = { selected: [], xray: false, ghosts: [] };
@@ -199,29 +196,6 @@ interface LabViewportProps {
 /** The viewport owns the live projection and render resolution passed to pointer paint. */
 export type ViewportCursor = NonNullable<LabViewportProps["onCursor"]>;
 
-/** One animation frame's drawn units. Anything omitted keeps its last value. */
-export interface ViewportFrame {
-  /** Proxies to draw (lab markers). */
-  instances?: readonly SceneInstance[];
-  /** What a click can pick, as boxes (every drawn soldier and vehicle, by
-   *  the simulation's bodies); the drawn proxies when omitted. Picks report
-   *  an index into this list. */
-  picks?: readonly PickBox[];
-  /** The presentation's frame (`crates/presentation`): the units, corpses,
-   *  ghosts and effects it draws, and the static world's batches, read
-   *  before the next call into the module. */
-  presented?: PresentedFrame;
-  /** How many models of each kind the frame poses. */
-  counts?: ModelCounts;
-  /** The presentation clock, in seconds (the pose driver's and the wind's). */
-  clock?: number;
-  /** What the frame's effects hold, by kind and shape. */
-  effectCounts?: EffectCounts;
-  /** The observing side's learned ground (the presentation's `LearnedGround`), drawn
-   *  as scars; the frame uploads only what changed since it last looked. */
-  ground?: GroundMarks | null;
-}
-
 /** What a drawn frame drew, counted, for a second client to count against:
  *  the building modules, scenery and props, the models it posed and the
  *  combat effects. */
@@ -285,9 +259,6 @@ export interface ViewportGpu {
   frame: () => BrowserScene;
 }
 
-const _projector_world = vec3.create();
-const _projector_point = createProjectedPoint();
-
 /** Pixels a left press may travel and still count as a click. */
 const CLICK_SLOP_PX = 5;
 /** Screen-edge band that pans the camera like a held key. */
@@ -322,7 +293,7 @@ export function LabViewport({
   diagnostics,
   pilot,
   appearances,
-  models,
+  models = NO_MODELS,
   picks: fixedPicks,
   cameraConfig,
   quality,
@@ -355,11 +326,12 @@ export function LabViewport({
   const qualityRef = useRef(effectiveQuality);
   const qualityKey = effectiveQuality ? JSON.stringify(effectiveQuality) : "";
   const previousQualityKey = useRef(qualityKey);
+  const rebuildRef = useRef<() => void>(() => {});
   qualityRef.current = effectiveQuality;
   useEffect(() => {
     if (previousQualityKey.current === qualityKey) return;
     previousQualityKey.current = qualityKey;
-    void window.__lab?.rebuild?.();
+    rebuildRef.current();
   }, [qualityKey]);
   const appearancesRef = useRef(appearances?.current ?? null);
   const modelsRef = useRef(models);
@@ -413,18 +385,9 @@ export function LabViewport({
     if (window.__lab) window.__lab.route = diagnostics;
   }, [diagnostics]);
   useEffect(() => {
-    sceneRef.current?.setInstances(instances);
     redrawRef.current();
-  }, [instances]);
-  useEffect(
-    () =>
-      world.subscribe((next) => {
-        if (next && sceneRef.current && !sceneRef.current.stageWorld(next))
-          void window.__lab?.rebuild?.();
-        redrawRef.current();
-      }),
-    [world],
-  );
+  }, [instances, models]);
+  useEffect(() => world.subscribe(() => redrawRef.current()), [world]);
   const overlayRef = useRef(overlay);
   overlayRef.current = overlay;
   const pointerMarksRef = useRef(pointerMarks);
@@ -469,29 +432,13 @@ export function LabViewport({
     [overlay],
   );
   useEffect(() => {
-    const install = (next: InstalledAppearances | null) => {
+    const changed = (next: InstalledAppearances | null) => {
       appearancesRef.current = next;
-      const scene = sceneRef.current;
-      if (!scene) return;
-      void scene
-        .setAppearances(next, modelsRef.current ?? [])
-        .then(() => {
-          if (sceneRef.current !== scene) return;
-          if (modelsRef.current) scene.setModels(modelsRef.current);
-          redrawRef.current();
-        })
-        .catch((error: unknown) => {
-          if (sceneRef.current !== scene) return;
-          setError(gpuFailureMessage(error));
-        });
+      redrawRef.current();
     };
-    install(appearances?.current ?? null);
-    return appearances?.subscribe(install);
+    changed(appearances?.current ?? null);
+    return appearances?.subscribe(changed);
   }, [appearances]);
-  useEffect(() => {
-    if (models) sceneRef.current?.setModels(models);
-    redrawRef.current();
-  }, [models]);
 
   useEffect(() => {
     setReady(false);
@@ -608,6 +555,9 @@ export function LabViewport({
       width: canvas.width,
       height: canvas.height,
     });
+    let submittedView: ViewportCamera | null = null;
+    let submittedPicks: readonly PickBox[] = [];
+    const interactionView = () => submittedView ?? snapshot();
 
     (async () => {
       try {
@@ -681,8 +631,12 @@ export function LabViewport({
           boolean,
           boolean,
         ] = [null, undefined, true, true];
+        const frameRequests = new ViewportFrames(signal, () => {
+          dirty = true;
+        });
         const reportFailure = (error: unknown) => {
           if (signal.aborted) return;
+          frameRequests.fail(error);
           const message = gpuFailureMessage(error);
           handle.error = message;
           handle.ready = false;
@@ -702,7 +656,7 @@ export function LabViewport({
             };
             signal.addEventListener("abort", abort, { once: true });
           });
-        let rebuilding = false;
+        let rebuilding: Promise<void> | null = null;
         const readyPresentation = async (): Promise<ScenePresentation> => {
           while (!signal.aborted) {
             const decoder = scenePresentation();
@@ -774,7 +728,7 @@ export function LabViewport({
               detail: JSON.parse(gameModelDetail),
               overlayGlow: gameOverlayGlow,
               appearances: installed,
-              models: modelsRef.current ?? [],
+              models: modelsRef.current,
               instances: instancesRef.current,
               redraw: () => (dirty = true),
               failed: reportFailure,
@@ -791,7 +745,7 @@ export function LabViewport({
             next.dispose();
             return build();
           }
-          next.setModels(modelsRef.current ?? []);
+          next.setModels(modelsRef.current);
           next.setInstances(instancesRef.current);
           const meshes = overlayRef.current?.current;
           if (meshes) next.setOverlay(meshes);
@@ -800,6 +754,7 @@ export function LabViewport({
           return next;
         };
         let scene = await build();
+        let staged: ViewportFrame | null = null;
         if (signal.aborted) return;
         sceneRef.current = scene;
         const allocations = () => scene.stats().memory;
@@ -823,7 +778,11 @@ export function LabViewport({
           // Cleared first: a frame may ask to be drawn again (`requestRedraw`).
           dirty = false;
           placeHigh();
-          scene.render();
+          if (!scene.render()) {
+            dirty = true;
+            return false;
+          }
+          return true;
         };
         /** Whether the lab took the grass away (`suppressGrass`). */
         let grassSuppressed = false;
@@ -863,7 +822,7 @@ export function LabViewport({
             return;
           }
           if (scene.presentation !== scenePresentation()) {
-            void handle.rebuild?.();
+            void handle.rebuild?.().catch(reportFailure);
             raf = requestAnimationFrame(loop);
             return;
           }
@@ -950,14 +909,8 @@ export function LabViewport({
             return;
           }
           if (animated) {
+            staged = { ...staged, ...animated };
             if (animated.clock !== undefined) clock = animated.clock;
-            if (animated.instances) {
-              instancesRef.current = animated.instances;
-              scene.setInstances(animated.instances);
-            }
-            if (animated.picks) picksRef.current = animated.picks;
-            if (animated.counts) countsRef.current = animated.counts;
-            if (animated.effectCounts) effectCountsRef.current = animated.effectCounts;
             dirty = true;
           }
           try {
@@ -974,13 +927,53 @@ export function LabViewport({
             return;
           }
           if (!scene.worldCurrent()) {
-            void handle.rebuild?.();
+            void handle.rebuild?.().catch(reportFailure);
             raf = requestAnimationFrame(loop);
             return;
           }
-          const drawn = dirty;
+          let drawn = false;
           try {
-            if (drawn) draw();
+            const desiredWorld = worldRef.current.current;
+            const updated =
+              desiredWorld &&
+              scene.updateSources(
+                desiredWorld,
+                appearancesRef.current,
+                modelsRef.current,
+                staged?.instances ?? instancesRef.current,
+              );
+            if (updated === "rebuild") {
+              void handle.rebuild?.().catch(reportFailure);
+              raf = requestAnimationFrame(loop);
+              return;
+            }
+            if (updated === "reframe") {
+              const reframed = frameRef.current?.(now, snapshot(), scene.staticGeneration);
+              if (reframed) {
+                animated = reframed;
+                staged = { ...staged, ...reframed };
+              }
+              if (!reframed?.presented)
+                decoder.frame(
+                  clock,
+                  presentedCamera(snapshot()),
+                  { ...NO_UI, known: buildingsRef.current?.current?.known },
+                  scene.staticGeneration,
+                );
+            }
+            if (dirty && draw()) {
+              drawn = true;
+              if (staged?.instances) instancesRef.current = staged.instances;
+              if (staged?.picks) picksRef.current = staged.picks;
+              if (staged?.counts) countsRef.current = staged.counts;
+              if (staged?.effectCounts) effectCountsRef.current = staged.effectCounts;
+              submittedPicks =
+                picksRef.current ?? fixedPicksRef.current ?? instancesRef.current.map(proxyPickBox);
+              submittedView = snapshot();
+              staged?.submitted?.();
+              staged = null;
+              if (scene.current()) frameRequests.submitted();
+            }
           } catch (error) {
             reportFailure(error);
             return;
@@ -1007,8 +1000,10 @@ export function LabViewport({
           };
           const project = projector();
           const renderScale = canvas.height / Math.max(1, canvas.clientHeight);
-          onFrameRef.current?.(project, camera, pointerState, renderScale);
-          const action = onCursorRef.current?.(pointerState, camera, project, renderScale) ?? null;
+          const shownCamera = interactionView().camera3d;
+          onFrameRef.current?.(project, shownCamera, pointerState, renderScale);
+          const action =
+            onCursorRef.current?.(pointerState, shownCamera, project, renderScale) ?? null;
           // The app cursor always shows; the battle only chooses its action.
           const active = surface && !orbit && !pilot;
           setCursorAction((active && action) || "default");
@@ -1027,34 +1022,13 @@ export function LabViewport({
         raf = requestAnimationFrame(loop);
 
         /** Project anchors with one canvas-layout read per frame. */
-        const projector = (): Project => {
-          const viewProj = viewProjMatrix(createGpuMat4(), liveCamera(snapshot()));
-          const rect = canvas.getBoundingClientRect();
-          return (x, y, z) => {
-            vec3.set(_projector_world, x, y, z);
-            const { ndc, clipW } = projectPoint(_projector_point, viewProj, _projector_world);
-            if (clipW <= 0) return null;
-            return [
-              rect.left + (ndc[0] * 0.5 + 0.5) * rect.width,
-              rect.top + (0.5 - ndc[1] * 0.5) * rect.height,
-            ];
-          };
-        };
+        const projector = (): Project =>
+          viewportProjector(interactionView(), canvas.getBoundingClientRect());
 
         /** What a click can pick: the frame's picks, else the route's, else
          *  each drawn proxy by its own box. */
-        const picks = (): readonly PickBox[] =>
-          picksRef.current ?? fixedPicksRef.current ?? instancesRef.current.map(proxyPickBox);
-        const drawn = () =>
-          new Promise<void>((resolve) => {
-            dirty = true;
-            requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-          });
-        /** Redraw after asynchronous resize targets settle. */
-        const nextFrame = async () => {
-          await drawn();
-          if (await scene.settled()) await drawn();
-        };
+        const picks = (): readonly PickBox[] => submittedPicks;
+        const nextFrame = () => frameRequests.request();
 
         Object.assign(handle, {
           adapter: info,
@@ -1105,29 +1079,32 @@ export function LabViewport({
             see(0);
           },
           async rebuild() {
-            if (rebuilding) return;
-            rebuilding = true;
-            try {
-              const previous = scene;
-              const next = await build();
-              if (signal.aborted) return;
-              scene = next;
-              sceneRef.current = next;
-              previous.dispose();
-              setInspecting((shown) => (shown ? scene : shown));
-              dirty = true;
-            } catch (error) {
-              reportFailure(error);
-            } finally {
-              rebuilding = false;
-            }
-            if (!signal.aborted) await nextFrame();
+            rebuilding ??= (async () => {
+              try {
+                const previous = scene;
+                const next = await build();
+                if (signal.aborted) return;
+                next.inheritControls(scene);
+                scene = next;
+                sceneRef.current = next;
+                previous.dispose();
+                setInspecting((shown) => (shown ? scene : shown));
+                dirty = true;
+              } catch (error) {
+                reportFailure(error);
+                throw error;
+              } finally {
+                rebuilding = null;
+              }
+            })();
+            await rebuilding;
+            if (!signal.aborted && !handle.error) await nextFrame();
           },
           rayAt(cssX: number, cssY: number) {
             const rect = canvas.getBoundingClientRect();
             const ndcX = ((cssX - rect.left) / rect.width) * 2 - 1;
             const ndcY = 1 - ((cssY - rect.top) / rect.height) * 2;
-            return screenRay(createWorldRay(), liveCamera(snapshot()), ndcX, ndcY);
+            return screenRay(createWorldRay(), liveCamera(interactionView()), ndcX, ndcY);
           },
           pickAt(cssX: number, cssY: number) {
             return pickBox(handle.rayAt!(cssX, cssY), picks());
@@ -1212,6 +1189,10 @@ export function LabViewport({
             await nextFrame();
           },
         } satisfies Partial<LabHandle>);
+
+        rebuildRef.current = () => {
+          void handle.rebuild?.().catch(reportFailure);
+        };
 
         // Input: left click selects, left drag box-selects (or, as an action,
         // places at the press and faces toward the release), right click
@@ -1384,19 +1365,14 @@ export function LabViewport({
         window.addEventListener("wheel", onWheel, { passive: false, signal });
         canvas.addEventListener("contextmenu", (e) => e.preventDefault(), { signal });
         window.addEventListener("resize", onResize, { signal });
+        await nextFrame();
+        if (signal.aborted || handle.error) return;
         handle.ready = true;
         if (new URLSearchParams(window.location.search).has("inspect")) {
           setInspecting(scene);
         }
-        requestAnimationFrame(() => {
-          if (signal.aborted || handle.error) return;
-          setReady(true);
-          onReadyRef.current?.({
-            allocations,
-            gpu,
-            frame: () => scene,
-          });
-        });
+        setReady(true);
+        onReadyRef.current?.({ allocations, gpu, frame: () => scene });
       } catch (err) {
         if (signal.aborted) return;
         appResources.refuse(err);
@@ -1408,6 +1384,7 @@ export function LabViewport({
 
     return () => {
       lifetime.abort();
+      rebuildRef.current = () => {};
       cancelInputRef.current = null;
       cancelAnimationFrame(raf);
       keys.detach();

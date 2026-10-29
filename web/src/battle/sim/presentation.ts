@@ -1,10 +1,15 @@
 /** Browser binding of Rust presentation: side publications in, observations
  * and frame views out. Rust owns decoding, poses, effects and static walks. */
-import type { Renderer, PreparedAppearances } from "@wasm/renderer_browser";
 import type { ModelAsset } from "../render/modelAssets";
-import type { GrassClumpRow } from "@packages/battle-renderer/src/frame/grassClump";
+import type { GrassClumpRow } from "@packages/battle-renderer/src/grass";
 import type { BattleAudio } from "@packages/battle-audio/src/battleAudio";
-import init, { Presentation, fog_look, light_records } from "@wasm/renderer_browser";
+import init, {
+  Presentation,
+  fog_look,
+  light_records,
+  type Renderer,
+  type PreparedAppearances,
+} from "@wasm/renderer_browser";
 import { LearnedGround, groundOf, type SceneGround } from "./presentationGround";
 import wasmUrl from "@wasm/renderer_browser/renderer_browser_bg.wasm?url";
 import { Batch, BATCH_WORDS, NONE, frameViews } from "@packages/battle-renderer/src/records.gen";
@@ -13,12 +18,12 @@ import {
   type LightPresentation,
   type ResolvedLight,
 } from "@packages/battle-renderer/src/light/sceneLight";
-import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
+import type { FogStyle } from "@packages/battle-renderer/src/fog";
 import type { Articulation } from "@packages/scene-assets/src/articulation";
 import {
   emptyBuildingWalkStats,
   type BuildingWalkStats,
-} from "@packages/battle-renderer/src/models/buildingLayer";
+} from "@packages/battle-renderer/src/models/buildingWalk";
 import {
   artCovers,
   buildingArt,
@@ -32,13 +37,10 @@ import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { setGround, type GroundInput } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { tierMesh } from "@packages/battle-renderer/src/scenery/appearance";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import { occluderBoxes, type FogOccluder } from "@packages/battle-renderer/src/frame/fogVisibility";
+import { occluderBoxes, type FogOccluder } from "@packages/battle-renderer/src/fog";
 import type { WorldScenery } from "@packages/battle-renderer/src/scene";
 import { propArt, type KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
-import {
-  NO_SCENERY_WALK,
-  type SceneryWalkStats,
-} from "@packages/battle-renderer/src/frame/sceneryLayer";
+import { NO_SCENERY_WALK, type SceneryWalkStats } from "@packages/battle-renderer/src/scenery/walk";
 import { TEMPLATE_STATES, type TemplateState } from "@packages/scene-assets/src/templateLibrary";
 import { countedFetch } from "../../downloads";
 import type { LabAsset } from "../render/modelAssets";
@@ -720,12 +722,9 @@ export class ScenePresentation {
     return this.rust.clock(nowMs / 1000) ?? null;
   }
 
-  /** What to draw at presentation time `time` for `camera`, loading first
-   *  what was staged: views over the module's memory, valid until the next
-   *  call into it. `generation` is the renderer's, bumped whenever it holds
-   *  no static batches (a new GPU frame, a new world): a new one is written
-   *  every one. A building the side knows in a state its template lacks
-   *  throws by name. */
+  /** Loads staged inputs and frames at `time`. Views expire on the next module
+   *  call. A fresh renderer `generation` resends all static batches; a known
+   *  building state absent from its template throws by name. */
   frame(
     time: number,
     camera: PresentedCamera,
@@ -787,6 +786,17 @@ export class ScenePresentation {
     return renderer.grass_clumps(this.rust);
   }
 
+  /** Explicit material queries snapshot this observer's learned ground. */
+  queryGround(
+    renderer: Pick<Renderer, "ground_query">,
+    mode: string,
+    rows: Float32Array,
+    reference = new Uint8Array(0),
+    side = 0,
+  ): Promise<{ values: Float32Array; source: string }> {
+    return renderer.ground_query(this.rust, mode, rows, reference, side);
+  }
+
   /** Live controls apply to the same canonical scene and survive recovery. */
   setRendererControls(renderer: Pick<Renderer, "set_controls">, controls: object) {
     renderer.set_controls(this.rust, JSON.stringify(controls));
@@ -807,8 +817,10 @@ export class ScenePresentation {
 
   /** Rust acquires the output and prepares/draws from the canonical frame.
    * Recreate UI views afterward: renderer allocation can grow this memory. */
-  render(renderer: Pick<Renderer, "render_presentation">): PresentedFrame {
-    this.framePtr = renderer.render_presentation(this.rust);
+  render(renderer: Pick<Renderer, "render_presentation">): PresentedFrame | null {
+    const frame = renderer.render_presentation(this.rust);
+    if (frame === undefined) return null;
+    this.framePtr = frame;
     return this.lastFrame();
   }
 

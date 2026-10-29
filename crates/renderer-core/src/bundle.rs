@@ -4,18 +4,19 @@ use presentation::assets::{Container, View, BUNDLE};
 use serde::Deserialize;
 use serde_json::Value;
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 type Result<T> = std::result::Result<T, String>;
 
 /// Source of decoded bundles for appearance admission.
 pub trait BundleSource {
-    fn bundle(&self, name: &str) -> Result<Bundle>;
+    fn bundle(&self, name: &str) -> Result<Arc<Bundle>>;
 }
 
 /// Fetched bundles retained by a platform shell across renderer rebuilds.
 #[derive(Clone, Default)]
 pub struct Library {
-    bundles: BTreeMap<String, std::sync::Arc<Bundle>>,
+    bundles: BTreeMap<String, Arc<Bundle>>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -201,7 +202,7 @@ pub fn decode(name: &str, bundle_bytes: &[u8], textures: &[(&str, &[u8])]) -> Re
 
 impl Library {
     /// Retained immutable sources share payload ownership while a replacement
-    /// is staged. Admission still receives independently owned decoded bundles.
+    /// is staged and while admission reads them.
     pub fn replace_with(&mut self, replacements: Self) {
         self.bundles.extend(replacements.bundles);
     }
@@ -222,23 +223,21 @@ impl Library {
         bytes: &[u8],
         textures: &[(&str, &[u8])],
     ) -> Result<()> {
-        self.bundles.insert(
-            name.to_owned(),
-            std::sync::Arc::new(decode(name, bytes, textures)?),
-        );
+        self.bundles
+            .insert(name.to_owned(), Arc::new(decode(name, bytes, textures)?));
         Ok(())
     }
 
-    pub fn bundle(&self, name: &str) -> Result<Bundle> {
+    pub fn bundle(&self, name: &str) -> Result<Arc<Bundle>> {
         self.bundles
             .get(name)
-            .map(|bundle| (**bundle).clone())
+            .cloned()
             .ok_or_else(|| format!("bundle not loaded: {name}"))
     }
 }
 
 impl BundleSource for Library {
-    fn bundle(&self, name: &str) -> Result<Bundle> {
+    fn bundle(&self, name: &str) -> Result<Arc<Bundle>> {
         self.bundle(name)
     }
 }

@@ -7,7 +7,7 @@ The accounting command is deliberately independent of the browser scene so it
 can be rerun after a port:
 
 ```sh
-node tools/one-renderer-accounting.mjs --write
+node tools/renderer-accounting.mjs --write
 ```
 
 It writes `throwaway/evidence/one-renderer/accounting.json` (ignored scratch

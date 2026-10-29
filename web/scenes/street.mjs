@@ -1,25 +1,7 @@
 import { rulerTour } from "./_rulerTour.mjs";
 import { stageStreetMoves } from "./_streetStaging.mjs";
-// The battle view on the street test map (`/labs/street`). Blue plays through
-// the production controls; the clock, seed and pause/reset work.
-// The camera tour, from the opening framing out to the
-// strategic height and in to the ground, through the real wheel.
-// The tree-line tour, the forests drawn as trees, and
-// the scenery's GPU resources returned on rebuild.
-// The grass field at those framings (GRASS_COST=1 also
-// measures its GPU cost; run it alone, under the GPU lock).
-// Soldiers as posed models, by detail tier and as
-// impostor cards, never fogged and picked by the simulation's boxes. The
-// consequences scene owns the death-to-static-corpse lifecycle.
-// Vehicles and wrecks as their appearances, buildings as their templates' art:
-// every vehicle a posed model following its published weapon poses, the
-// street's houses on their boxes, and a tank firing (recoil).
-// Order markers and the Space overlay (a real
-// right-drag's facing, a reverse move's marker, Space held at the default and
-// ground cameras over the fog), and no enemy plan in the observation.
-// Combat effects in the firefight, a burst read at its
-// moment and after, from the effects' own frame and the pass inspector's
-// world view.
+// Production street controls, deterministic staging, rendered models and effects.
+// Optional GPU cost controls run alone under the GPU lock.
 import { battleCursor } from "./_cursorOrders.mjs";
 import { appJourney, armyJourney } from "./_appJourney.mjs";
 import {
@@ -704,18 +686,19 @@ async function vehicleTour(ctx) {
   let o = await obs(page);
   let posed = await lab(page, () => window.__lab.route.vehicles());
   const stats = await lab(page, () => window.__lab.stats());
+  const proxies = stats.models.installed.filter((name) => name.startsWith("__renderer_proxy__:"));
   const own = o.own.filter(isVehicle);
   const enemy = o.identified.filter(isVehicle);
   ctx.check(
     "every own and identified vehicle is drawn as its appearance, and nothing as a proxy",
     posed.length === own.length + enemy.length &&
       posed.every((v) => v.articulation && vehicleAppearances.has(v.appearance)) &&
-      stats.instances === 0,
+      proxies.length === 0,
     JSON.stringify({
       posed: posed.length,
       own: own.length,
       enemy: enemy.length,
-      proxies: stats.instances,
+      proxies,
     }),
   );
   // Each own tank's turret is on its cannon's published bearing, relative to the hull.

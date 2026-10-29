@@ -16,6 +16,7 @@ use renderer_core::post;
 use renderer_core::shadow::ShadowResources;
 use renderer_core::sky::Sky;
 use renderer_core::Targets;
+use std::sync::Arc;
 use wgpu::*;
 
 const SIZE: [u32; 2] = [128, 64];
@@ -24,8 +25,8 @@ const IDENTITY: [f32; 16] = [
 ];
 struct Source;
 impl BundleSource for Source {
-    fn bundle(&self, _: &str) -> Result<Bundle, String> {
-        Ok(Bundle {
+    fn bundle(&self, _: &str) -> Result<Arc<Bundle>, String> {
+        Ok(Arc::new(Bundle {
             shape: Shape::Static(vec![Node {
                 name: "body".into(),
                 tiers: vec![Mesh {
@@ -56,7 +57,7 @@ impl BundleSource for Source {
                 interior: None,
             }],
             textures: vec![],
-        })
+        }))
     }
 }
 fn read(
@@ -199,7 +200,7 @@ fn world_pixels(gpu: &gpu::Gpu, targets: &Targets, models: &Models) -> Vec<[u8; 
 #[test]
 fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
     let gpu = gpu::open(&gpu::headless_instance(), None).expect("real GPU");
-    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).unwrap();
+    let pipelines = pipelines::build(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, SIZE);
     let game: serde_json::Value =
         serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
@@ -302,7 +303,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         });
         pipelines.bound("modelPrepass").set(
             &mut pass,
-            &[("typegpuCameraLayout", &environment.camera), models.group()],
+            &[("cameraLayout", &environment.camera), models.group()],
         );
         models.draw(&mut pass, Surface::Solid);
     }
@@ -389,7 +390,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
 #[test]
 fn model_suppression_preserves_static_props_and_buildings() {
     let gpu = gpu::open(&gpu::headless_instance(), None).expect("real GPU");
-    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).unwrap();
+    let pipelines = pipelines::build(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, SIZE);
     let appearances = [
         Appearance {

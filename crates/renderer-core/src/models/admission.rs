@@ -35,7 +35,7 @@ impl Models {
         rest_palette: impl Fn(u32) -> Option<Vec<Joint>>,
     ) -> Result<Self, String> {
         let text = |at: u32, len: u32| &strings[at as usize..(at + len) as usize];
-        let mut bundles: HashMap<String, (Bundle, usize)> = HashMap::new();
+        let mut bundles: HashMap<String, (Arc<Bundle>, usize)> = HashMap::new();
         let mut materials: Vec<f32> = Vec::new();
         let mut layers = Layers::default();
         let mut rows = Vec::new();
@@ -225,14 +225,8 @@ impl Models {
         );
         let mut installed: Vec<_> = bundles.into_keys().collect();
         installed.sort();
-        let resident_vertices = geometry
-            .values()
-            .flat_map(|tiers| tiers.iter())
-            .map(|drawable| (drawable.vertices.size() / VERTEX_BYTES as u64) as u32)
-            .sum();
         Ok(Self {
             installed,
-            resident_vertices,
             row_names: appearances
                 .iter()
                 .map(|a| text(a.name, a.name_len).to_owned())

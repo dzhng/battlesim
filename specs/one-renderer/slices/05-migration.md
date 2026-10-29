@@ -1,6 +1,7 @@
 # Slice 05 — migration, deletion and final verdict
 
-**Status:** pending. Depends on runtime and browser feature parity (03–04).
+**Status:** implementing. Production browser comparison is complete; native
+profiling, final deletion coverage, startup/accounting and closeout remain.
 
 Use the actual production entrypoints to compare TypeGPU browser, shared Rust
 browser and shared Rust native with matched presentation, camera, viewport,

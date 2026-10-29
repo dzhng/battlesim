@@ -116,6 +116,13 @@ menu remains available. Document departure releases the page GPU; component
 refresh cleanup only detaches listeners so development refresh cannot destroy a
 still-live page's resources.
 
+Source loading retains the last complete topology and art generation for the
+same battle and observer. Downloads cannot withdraw the running battlefield;
+changing battle or observer retires its old generation. Audio continues receiving
+publications during visual admission. The viewport reconciles sources after
+canonical framing so a topology change takes one rebuild path. Picking,
+projection and drawn observation advance with successful submission.
+
 The viewport subscribes and updates [the renderer](../../packages/battle-renderer/README.md)
 through that boundary. Published cause and identity remain intact; feed interpolation
 cannot grant visibility or invent firing. [The scene runner](../../web/scene.mjs)

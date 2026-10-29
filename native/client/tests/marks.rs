@@ -97,7 +97,7 @@ fn camera(device: &Device, pipelines: &renderer_core::pipelines::Pipelines) -> B
     );
     renderer_core::bind(
         device,
-        pipelines.layout("typegpuCameraLayout"),
+        pipelines.layout("cameraLayout"),
         "test-camera",
         &[uniform.as_entire_binding()],
     )
@@ -105,7 +105,7 @@ fn camera(device: &Device, pipelines: &renderer_core::pipelines::Pipelines) -> B
 #[test]
 fn empty_display_geometry_preserves_and_resolves_existing_silhouettes() {
     let gpu = gpu::open(&gpu::headless_instance(), None).unwrap();
-    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).unwrap();
+    let pipelines = pipelines::build(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, [SIZE, SIZE]);
     let overlay = overlay::new(
         &gpu.device,
@@ -206,7 +206,7 @@ fn at(pixels: &[[f32; 4]], x: u32) -> [f32; 4] {
 #[test]
 fn opaque_overlay_writes_only_pregrass_depth_and_translucent_overlay_does_not() {
     let gpu = gpu::open(&gpu::headless_instance(), None).unwrap();
-    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).unwrap();
+    let pipelines = pipelines::build(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, [SIZE, SIZE]);
     let overlay = overlay::new(
         &gpu.device,
@@ -261,7 +261,7 @@ fn opaque_overlay_writes_only_pregrass_depth_and_translucent_overlay_does_not() 
 fn paint_preserves_still_marching_pointer_depth_and_clear_contracts() {
     use renderer_core::paint::{PaintGeometry, PaintResources};
     let gpu = gpu::open(&gpu::headless_instance(), None).unwrap();
-    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).unwrap();
+    let pipelines = pipelines::build(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, [SIZE, SIZE]);
     let paint = PaintResources::new(&pipelines);
     let instances = identity(&gpu.device);
@@ -305,7 +305,7 @@ fn paint_preserves_still_marching_pointer_depth_and_clear_contracts() {
         );
         let camera = renderer_core::bind(
             &gpu.device,
-            pipelines.layout("typegpuCameraLayout"),
+            pipelines.layout("cameraLayout"),
             "paint-camera",
             &[uniform.as_entire_binding()],
         );

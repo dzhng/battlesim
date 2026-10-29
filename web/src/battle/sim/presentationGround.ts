@@ -1,11 +1,7 @@
 /** Ground table and learned-scar bridges over the presentation WASM owner. */
 import type { Presentation } from "@wasm/renderer_browser";
 import type { PresentedGround } from "@packages/battle-renderer/src/terrain/terrainSurface";
-import type {
-  GroundMarks,
-  ScarRegion,
-  ScarUpload,
-} from "@packages/battle-renderer/src/frame/scarTexture";
+import type { GroundMarks, ScarRegion, ScarUpload } from "@packages/battle-renderer/src/scars";
 import type { GroundLayout } from "./observationView";
 
 export type SceneGround = PresentedGround &

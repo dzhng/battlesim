@@ -11,6 +11,7 @@ mod files {
     use super::{Bundle, BundleSource};
     use presentation::assets::Runtime;
     use std::path::Path;
+    use std::sync::Arc;
 
     /// Filesystem runtime catalog. Decoding belongs to the shared renderer.
     pub struct Library {
@@ -22,7 +23,7 @@ mod files {
             Runtime::open(dir).map(|runtime| Self { runtime })
         }
 
-        pub fn bundle(&self, name: &str) -> Result<Bundle, String> {
+        pub fn bundle(&self, name: &str) -> Result<Arc<Bundle>, String> {
             let hash = self.runtime.bundle_hash(name)?;
             let bytes = self.runtime.read(hash, "bundle.bin")?;
             let textures = self.runtime.catalog["textures"][hash]
@@ -38,12 +39,12 @@ mod files {
                 .iter()
                 .map(|(id, data)| (id.as_str(), data.as_slice()))
                 .collect::<Vec<_>>();
-            renderer_core::bundle::decode(name, &bytes, &refs)
+            renderer_core::bundle::decode(name, &bytes, &refs).map(Arc::new)
         }
     }
 
     impl BundleSource for Library {
-        fn bundle(&self, name: &str) -> Result<Bundle, String> {
+        fn bundle(&self, name: &str) -> Result<Arc<Bundle>, String> {
             self.bundle(name)
         }
     }

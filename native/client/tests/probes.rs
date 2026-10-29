@@ -5,7 +5,7 @@ use renderer_core::probes::FogProbes;
 #[test]
 fn fog_shape_probe_executes_the_shared_shader_and_preserves_request_order() {
     let gpu = gpu::open(&gpu::headless_instance(), None).unwrap();
-    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).unwrap();
+    let pipelines = pipelines::build(&gpu.device).unwrap();
     let probes = FogProbes::new(&pipelines);
     let rows = [
         [3.0, 2.0, 1.0, 0.0],
@@ -97,7 +97,7 @@ fn fog_point_probe_rebuilds_the_same_horizons_that_hide_a_wall_and_enforce_reach
     use presentation::fog::sight::{Eye, FogSight, Geometry, Occluder, Sensors, Shape, SightWorld};
     use renderer_core::{fog::Fog, probes::FogPoint, Targets};
     let gpu = gpu::open(&gpu::headless_instance(), None).unwrap();
-    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).unwrap();
+    let pipelines = pipelines::build(&gpu.device).unwrap();
     let game: serde_json::Value = serde_json::from_slice(
         &std::fs::read(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -378,7 +378,7 @@ fn grass_probes_decode_actual_tier_buffers_and_snapshot_counts_before_a_later_fr
     };
     use wgpu::*;
     let gpu = gpu::open(&gpu::headless_instance(), None).unwrap();
-    let pipelines = pipelines::build(&gpu.device, pipelines::DIR).unwrap();
+    let pipelines = pipelines::build(&gpu.device).unwrap();
     let heights = renderer_core::buffer(
         &gpu.device,
         "probe-flat-ground",

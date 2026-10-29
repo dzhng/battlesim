@@ -7,6 +7,7 @@ use crate::{bind, buffer};
 use wgpu::*;
 
 pub mod grass;
+pub mod terrain;
 
 #[derive(Clone, Copy, serde::Deserialize)]
 pub struct FogPoint {

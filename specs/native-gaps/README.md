@@ -1,7 +1,8 @@
 # Native gaps (placeholder)
 
-**Status:** placeholder. Nothing is sliced or implemented yet.
-**Updated:** 2026-10-15.
+**Status:** remaining platform gaps are unsliced. The shared renderer resolves
+shader-layout naming and actual impostor rendering.
+**Updated:** 2026-10-28.
 
 ## Next Agent Prompt
 
@@ -9,25 +10,24 @@ You are picking up the known limitations [native rendering parity](../done/nativ
 
 Each item is independent, so they slice one by one, roughly cheapest first:
 
-- [ ] Name the sky's two bind group layouts.
+- [x] Name the sky's two bind group layouts.
 - [ ] Judge water on a plate.
 - [ ] Load the shout pool in Rust, so unseen enemies' shouts play natively.
-- [ ] Draw far soldiers as impostor cards on native.
+- [x] Draw far soldiers as impostor cards on native.
 - [ ] Native ground marks, once native has a UI.
 - [ ] Native info cards and the high-air screen plane, once native has a UI.
 - [ ] Match the browser's music duck and reverb, if the difference is ever audible enough to matter.
 - [ ] Verify native on a second platform.
-- [ ] Revisit the 5–7% GPU frame gap if `wgpu` ships untracked resources.
 - [ ] Team skirmish on native: the lobby, the allied look in marks and cards, and the per-player report, once native has a UI.
 
 ## The gaps
 
 Where an item proposes a move into Rust, it follows the project's rule: Rust decides, renderers draw, one owner per concept.
 
-1. **The sky's layouts carry auto-generated names.** Two of the sky's bind group layouts in the shader export are named by TypeGPU automatically (`bake - Automatic Bind Group & Layout`, `background - …`), and `native/client/src/sky.rs` looks them up by those names. Name them in the browser's sky, regenerate the export, and update native in the same change.
+1. **Shader layouts have shared semantic names.** The [common typed catalog](../../crates/renderer-core/README.md) owns pipeline layouts for both platforms.
 2. **Water has never been judged on a plate.** Neither reel map has water. Native draws it through the browser's own shaders, so it should match by construction, but nobody has looked. Film a map with water in `native-parity-capture` and compare.
 3. **Unseen enemies' shouts are silent natively.** Rust already picks the take (`presentation::sound::frame`, `Sound::set_shouts`), but the pool of takes is loaded by the browser's `packages/battle-audio/src/voices/shoutPool.ts`, and native loads none. Move the pool's take list into Rust, so it has one owner and native plays the shouts.
-4. **Native draws far soldiers as meshes, not impostor cards.** At the card tier, native draws the body's coarsest mesh in its far pose. The counts and the picture match, but a battle with hundreds of distant soldiers costs more triangles. First export the browser's impostor bake (`packages/battle-renderer/src/models/impostor.ts`). No impostor-bake pipeline is exported today; `bake.wgsl` is the sky's lookup bake. Then bake the cards at load and draw the card tier as cards.
+4. **The shared renderer bakes and draws actual impostor cards.** Its [model/material path](../../crates/renderer-core/README.md) supplies both platforms. Further view-distance or card-cost optimization belongs to [distant impostors](../distant-impostors/README.md).
 5. **Native paints no ground marks.** The UI paints them, and a native replay has no UI. This waits until native gains one, which depends on the [one renderer](../one-renderer/README.md) decision and on native ever playing live.
 6. **Native draws no info cards.** Every unit's floating info card (name, weapons, state) and its leader line is browser DOM (`web/src/battle/present/readouts.tsx`, laid out by the pure `readoutLayout.ts`), so a native window shows none. The high-air screen plane depends on them. In the browser, high-air models draw in a second canvas between the ground and low-air cards and the high-air cards, so a jet always sits above the lower cards ([air-war flight](../done/air-war-flight/README.md), 2026-10-15). Native has no cards, so it draws high-air models in its one pass, in the presentation's `HIGH_PASS` batch. When native gains a UI, both move with it:
    - the cards draw in two planes, with the layout rules of `readoutLayout.ts`, best moved into Rust so both clients share one owner;
@@ -36,7 +36,7 @@ Where an item proposes a move into Rust, it follows the project's rule: Rust dec
    Like item 5, this waits on native having a UI.
 7. **Native's music duck and reverb differ.** Native glides the music duck linearly and uses `kira`'s reverb; the browser glides by a time constant and convolves with a synthesized impulse. These are player differences only, not decisions.
 8. **Only macOS with Metal is verified.** Windows isn't a requirement, and no native dependency rules it out. Verify on a second platform when one matters.
-9. **Native's GPU frame is 5–7% longer than the browser's.** This is accepted: `wgpu` keeps Metal's per-resource hazard tracking, so later passes wait for the world's shading. If `wgpu` ships untracked resources, enable them and re-run the interleaved timing pairs (slice 25 step 8 in git history, method in the archive).
+9. **Performance comparisons require a matched protocol.** Historical browser/native frame gaps are not a standing rendering-policy requirement. The [one-renderer research](../one-renderer/research.md) records complete-coverage cohorts, native profiling synchronization and platform surface costs.
 
 10. **Native has no team skirmish.** [Team skirmish](../done/team-skirmish/README.md) is desktop-browser only. Native replays browser parity captures of encounters, and fields each unit kind with one look (`fielded::fielded` passes `factions: None`). It can't replay a skirmish: that needs the battle's players, and each side's faction from them, passed to the shared fielding as the browser does through `presentation-wasm` (a side-keyed `[blue, red]` pair). Allies' models need nothing more, because they come from the same publication. Beyond replay, native lacks everything the browser draws as UI:
    - the order-of-battle lobby and its map preview (the lobby model under `apps/battle-lab/src/lobby/` is plain state, so a native lobby can reuse its rules);

@@ -4,6 +4,7 @@
 //! `native-client --run <parity run> --scene <map> (--out <dir> | --bench <dir>)
 //!   [--window offscreen|minimised|hidden|visible] [--pace <frames>]
 //!   [--sound <wav>]`
+//! A held benchmark adds `--bench-freeze-index <record> --bench-frames <draws>`.
 //!
 //! Every frame record is framed through the presentation crate; each one
 //! the browser wrote a plate of is drawn, presented and written to `--out`
@@ -13,9 +14,10 @@
 //! sound is heard through every record at the reel's own times and rendered
 //! to that file (never played aloud).
 //!
-//! With `--bench`, no plate is written: every frame record is framed, drawn
-//! and presented back to back, timed (`bench`), and the report is written to
-//! that directory as `native-<scene>-<time>.json` for `web/fps-compare.mjs`.
+//! With `--bench`, every frame record is framed and drawn back to back without
+//! window presentation. A frozen benchmark frames records through its chosen
+//! zero-based position once, then draws that held publication. The timing
+//! report goes to `native-<scene>-<time>.json` for `web/fps-compare.mjs`.
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -88,6 +90,8 @@ struct Args {
     out: Option<PathBuf>,
     /// Where a bench's report is written.
     bench: Option<PathBuf>,
+    /// One canonical record held across a fixed number of GPU draws.
+    frozen_bench: Option<(usize, usize)>,
     window: String,
     pace: usize,
     sound: Option<PathBuf>,
@@ -124,6 +128,7 @@ fn args() -> Result<Args, String> {
     let mut run = None;
     let (mut scene, mut out, mut window, mut pace) = (None, None, "offscreen".to_owned(), 120);
     let (mut sound, mut bench) = (None, None);
+    let (mut freeze_index, mut bench_frames) = (None, None);
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
         let mut value = || it.next().ok_or(format!("{flag} needs a value"));
@@ -135,6 +140,20 @@ fn args() -> Result<Args, String> {
             "--pace" => pace = value()?.parse().map_err(|e| format!("--pace: {e}"))?,
             "--sound" => sound = Some(PathBuf::from(value()?)),
             "--bench" => bench = Some(PathBuf::from(value()?)),
+            "--bench-freeze-index" => {
+                freeze_index = Some(
+                    value()?
+                        .parse::<usize>()
+                        .map_err(|e| format!("{flag}: {e}"))?,
+                );
+            }
+            "--bench-frames" => {
+                bench_frames = Some(
+                    value()?
+                        .parse::<usize>()
+                        .map_err(|e| format!("{flag}: {e}"))?,
+                );
+            }
             other => return Err(format!("unknown argument {other}")),
         }
     }
@@ -147,12 +166,22 @@ fn args() -> Result<Args, String> {
     if bench.is_some() && sound.is_some() {
         return Err("a bench renders no sound".into());
     }
+    if freeze_index.is_some() != bench_frames.is_some() {
+        return Err("--bench-freeze-index and --bench-frames must be supplied together".into());
+    }
+    if freeze_index.is_some() && bench.is_none() {
+        return Err("--bench-freeze-index and --bench-frames require --bench".into());
+    }
+    if let Some(frames) = bench_frames {
+        bench::reported_draws(frames).map_err(|e| format!("--bench-frames: {e}"))?;
+    }
     Ok(Args {
         scene: run
             .ok_or("--run is required")?
             .join(scene.ok_or("--scene is required")?),
         out,
         bench,
+        frozen_bench: freeze_index.zip(bench_frames),
         window,
         pace,
         sound,
@@ -207,6 +236,14 @@ impl Run {
         std::env::set_var("BATTLEGAME_ROOT", &root);
         let opened = Instant::now();
         let mut replay = Replay::open_with_root(&args.scene, &library, &root)?;
+        if let Some((index, _)) = args.frozen_bench {
+            if index >= replay.records.len() {
+                return Err(format!(
+                    "--bench-freeze-index {index}: capture has {} records",
+                    replay.records.len()
+                ));
+            }
+        }
         println!(
             "world: ground set, scenery placed and the battle loaded in {:.2} s",
             opened.elapsed().as_secs_f64()
@@ -263,13 +300,7 @@ impl Run {
         );
 
         let built = Instant::now();
-        let pipeline_dir = root.join("packages/battle-renderer/pipelines");
-        let manifest = std::fs::read_to_string(pipeline_dir.join("pipelines.json"))
-            .map_err(|e| e.to_string())?;
-        let metadata: serde_json::Value =
-            serde_json::from_str(&manifest).map_err(|e| e.to_string())?;
-        let sizes: renderer_core::pipelines::Sizes =
-            serde_json::from_value(metadata["sizes"].clone()).map_err(|e| e.to_string())?;
+        let sizes = renderer_core::pipelines::builtin_sizes();
         let effect_sheets = native_client::effects::load_sheets(
             &root.join("assets/third-party/effects"),
             sizes.effect_sheet,
@@ -305,12 +336,18 @@ impl Run {
                 geometry,
                 effect_sheets,
             },
-            &manifest,
-            |name, shader| {
-                native_client::pipelines::source(&pipeline_dir.to_string_lossy(), name, shader)
-            },
         )?;
         pollster::block_on(scene.prepare_assets(&gpu.device, &gpu.queue))?;
+        if let Some((index, _)) = args.frozen_bench {
+            for at in 0..=index {
+                let record = replay.records[at].clone();
+                replay.frame(&record, scene.static_generation(), |_| {})?;
+                if at < index {
+                    // Undrawn records cannot leave held batches in GPU buffers.
+                    scene.invalidate_statics();
+                }
+            }
+        }
         println!(
             "pipelines: {} built and world installed in {:.2} s on {}",
             scene.pipelines.names().count(),
@@ -407,25 +444,32 @@ impl Run {
         Ok(())
     }
 
-    /// Frames, draws and presents the next record, timed. False when done.
-    fn bench_step(&mut self) -> Result<bool, String> {
-        let Some(record) = self.replay.records.get(self.next).cloned() else {
+    /// Draws the next benchmark sample, advancing only changing publications.
+    fn bench_step(&mut self, args: &Args) -> Result<bool, String> {
+        let draws = args
+            .frozen_bench
+            .map_or(self.replay.records.len(), |(_, draws)| draws);
+        if self.next >= draws {
             return Ok(false);
-        };
+        }
+        let record = args
+            .frozen_bench
+            .is_none()
+            .then(|| self.replay.records[self.next].clone());
         self.next += 1;
         let bench = self.bench.as_mut().ok_or("not a bench")?;
         bench.start();
-        // Every frame is drawn: one generation, the static batches it names
-        // unchanged held from the frame before.
-        self.replay
-            .frame(&record, self.scene.static_generation(), |_| {})?;
+        if let Some(record) = record {
+            self.replay
+                .frame(&record, self.scene.static_generation(), |_| {})?;
+        }
         self.bench.as_mut().ok_or("not a bench")?.mark();
         self.prepare()?;
         let bench = self.bench.as_mut().ok_or("not a bench")?;
         bench.mark();
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
-        bench.begin(device, queue);
         let mut encoder = device.create_command_encoder(&Default::default());
+        bench.begin(&mut encoder);
         self.scene
             .encode(device, queue, &self.view, &mut encoder, Default::default());
         bench.end(&mut encoder);
@@ -458,7 +502,7 @@ impl Run {
     /// Frames records up to the next plate and draws it; then paces. False when done.
     fn step(&mut self, args: &Args) -> Result<bool, String> {
         if self.bench.is_some() {
-            return self.bench_step();
+            return self.bench_step(args);
         }
         let out = args.out.as_ref().ok_or("--out is required")?;
         while let Some(record) = self.replay.records.get(self.next).cloned() {
@@ -611,6 +655,10 @@ impl Run {
     /// Writes the bench's report beside the browser's, and prints its summary.
     fn bench_report(&mut self, args: &Args, dir: &std::path::Path) -> Result<(), String> {
         let frames = self.next.max(1) as f64;
+        let retained = bench::reported_draws(self.next)?;
+        let source = |draw: usize| args.frozen_bench.map_or(draw, |(index, _)| index);
+        let first = &self.replay.records[source(retained.start)];
+        let last = &self.replay.records[source(retained.end - 1)];
         let mean = |i: usize| (self.drew[i] / frames).round();
         let passes = FrameStage::ORDER.map(FrameStage::label);
         let p = &self.presents;
@@ -623,6 +671,19 @@ impl Run {
                 bench::IN_FLIGHT, args.window, p.shown, p.occluded
             ),
             "passes": passes,
+            "records": {
+                "mode": if args.frozen_bench.is_some() { "frozen" } else { "changing" },
+                "draws": self.next,
+                "initializedThrough": args.frozen_bench.map(|(index, _)| index),
+                "reportedDrawFirst": retained.start,
+                "reportedDrawLast": retained.end - 1,
+                "reportedSourceFirst": source(retained.start),
+                "reportedSourceLast": source(retained.end - 1),
+                "firstSimTime": first.sim_time,
+                "lastSimTime": last.sim_time,
+                "firstTick": first.tick,
+                "lastTick": last.tick,
+            },
             "meanDrawn": {
                 "soldiers": mean(0),
                 "vehicles": mean(1),

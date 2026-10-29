@@ -1,748 +1,447 @@
 # One-renderer choices ledger
 
-## Sound
+Final review, accounting and archival remain open. Verdicts judge architectural
+choices; current verification and remaining closeout live in research.
 
-### Share immutable geometry across catalog routing rows
+Review these first: memory measurements describe several different kinds of
+ownership; explicit native timestamp profiling changes pacing; shader composition
+keeps a small custom build step. All final decisions below are judged sound.
+Confidence ranks how certain the audit is that the user would choose the same
+tradeoff. Superseded transport spikes and temporary migration gates are omitted.
 
-**When:** production skirmish memory admission.
+## Sound — medium confidence
 
-Catalog rows distinguish placement, visibility, routing and corpse poses. Those
-facts do not require separate immutable vertex buffers when the resolved source
-state is the same. Admission shares tiers by source name, resolved state and
-corpse orientation within that material generation; each row keeps its own
-metadata. The sharing map exists only during construction, so there is no lasting
-cache invalidation policy. Resident geometry diagnostics are computed once at
-admission.
+### Measure owned payload and wrapper release separately
 
-**Gap:** the spec required one runtime but did not prescribe vertex ownership.
-**Reach:** native and browser share the same immutable GPU owner. **Verdict:**
-sound. **Confidence:** high; the real generated skirmish's owned payload falls
-54.2%, its image is pixel-identical, and focused tests retain placement/routing.
+**When:** shared-frame diagnostics and production viewport migration, 2026-10-28.
 
-### Only current scene admission failures end readiness
+After leaving a battle, two different questions matter: how many bytes its
+renderer owned, and whether its browser GPU objects remain reachable. The memory
+visitor temporarily deduplicates buffer/texture handles and counts allocation
+descriptors: buffer sizes and texture blocks across mips, layers and samples.
+These are **owned GPU payload bytes**, excluding driver, pipeline and surface
+storage. CPU snapshot payload counts retained external world/player geometry;
+CPU bundle payload counts decoded model assets and effect sheets. These CPU
+figures exclude presentation, selection caches and allocator overhead.
+WebAssembly linear memory is **capacity/high-water size**, not live payload;
+JavaScript managed heap and the separate simulation worker are separate domains.
 
-**When:** independent production lifecycle review.
+Release observation uses weak object identities, drains queued work on departure
+and explicitly collects browser garbage before inspecting old identities. A
+strong registry would itself keep dropped Rust resources alive. Collection is a
+verification operation, never gameplay. Wrapper disappearance establishes neither
+driver reclamation nor process-memory reduction.
 
-A complete scene candidate captures observer, world, source and quality inputs.
-The same current-input predicate rejects both superseded results and superseded
-failures. Newest proxy instances and model poses are replayed before installation.
-Late appearance callbacks also verify scene identity before touching presentation.
-The single candidate/latest desired ownership remains bounded; unchanged current
-failures still reach the existing terminal boundary.
+**Gap:** the plan required memory/lifetime evidence without defining these
+measurement domains. **Reach:** future GPU owners must join the visitor; future
+reports must preserve these definitions. **Verdict:** sound; measurement must not
+change the lifetime it observes. **Confidence:** medium; these are useful bounded
+facts, not a complete memory census.
 
-**Gap:** successful supersession was specified but rejected obsolete work was not.
-**Reach:** viewport lifetime and reset/quality transitions. **Verdict:** sound.
-**Confidence:** high; 19 viewport tests pass and each reviewed defect has a failing
-negative control.
+### Pay the counter-resolution wait only in explicit native profiling
 
-### Observe browser resource release through weak identities
+**When:** final native timestamp collection, 2026-10-28.
 
-**When:** production viewport migration.
+When a native benchmark submits a frame, Metal can expose a stale end timestamp
+if counters are resolved too early. The explicit profiler now waits for that
+render submission, submits counter resolution separately, then reads its result.
+Ordinary rendering does not acquire this profiling wait. CPU preparation and
+encoding spans end before it; measured frame intervals include its pacing cost.
+Reports retain indexed raw samples and coverage and omit GPU aggregates if a
+required sample is missing. Resolving immediately and averaging only successful
+samples would produce a more flattering but incomplete number.
 
-After leaving a battle, the lifetime check must know whether its GPU objects
-remain reachable. Rust's browser backend releases ordinary buffer and texture
-references without calling their JavaScript `destroy` methods. Keeping those
-objects in the old strong-reference tracker would itself keep the battle alive.
-The journey now observes weak references, drains queued work at departure, and
-performs one explicit browser collection before inspecting old identities. It
-also verifies that the observer sees real live resources before departure.
+**Gap:** the protocol assumed same-submission counter resolution was reliable.
+**Reach:** these profiled intervals cannot establish ordinary renderer FPS or a
+speedup against old instrumentation; platform surface costs also remain distinct.
+**Verdict:** sound; complete counters justify explicit measurement overhead.
+**Confidence:** medium; the instrumentation changes the workload's pacing.
 
-**Gap:** the old destruction-based observer could not measure Rust ownership.
-**Reach:** browser release checks judge wrapper reachability; driver reclamation
-and process memory require separate measurements. The collection happens only
-in verification, never in gameplay. **Verdict:** sound. **Confidence:** medium;
-this follows the backend's actual lifetime semantics while retaining a falsifiable
-release check.
+### Compose maintained WGSL with whole-identifier aliases
 
-### Admit complete appearance generations without rebuilding the observer
+**When:** final shader ownership cleanup, 2026-10-28.
 
-**When:** production catalog and workbench migration.
+When terrain and models need the same lighting calculation but their uniforms
+have different names, they select one authored WGSL block, the GPU shader source
+language, with identifier aliases such as `params=terrainParams`. The build step
+substitutes complete identifier tokens once and joins ordered named blocks;
+binding declarations remain explicit. Copying the calculation into each pipeline
+would create independently editable algorithms. Expanded pipeline files exist
+only in Cargo output. Typed Rust declarations own actual pipeline state, and
+diagnostics serialize those same depth states; shader layout reflection reads
+the canonical presentation record metadata.
 
-When a workbench model changes while its new cards bake, the current model keeps
-drawing and receiving pose updates. One candidate prepares source facts and GPU
-resources; newer intent replaces the desired request rather than starting another
-candidate. At a frame boundary, only the desired complete candidate may replace
-the active catalog, using the latest requested pose. The presentation's retained
-battle history and learned world remain the authority throughout.
+**Gap:** one shader owner was required, but its authoring/composition format was
+open. **Reach:** future shader work maintains the block library and composition
+index together. Both count as maintained source. Generated-export deletion is
+separate: maintained authoring and generated expansion are counted separately in research;
+no maintained-line reduction is established. **Verdict:**
+sound; a small composition owner
+avoids repeated algorithms and a second authoring toolchain. **Confidence:** medium;
+the custom index is still machinery future contributors must understand.
 
-**Gap:** latest-generation behavior did not prescribe concurrency or the scope of
-replacement. **Reach:** asset changes replace asset owners; topology changes use
-whole-scene admission. No presentation borrow survives asynchronous preparation.
-**Verdict:** sound. **Confidence:** high; this bounds work and gives canonical
-facts, retained sources and GPU art one commit boundary.
+### Use one 64px minimum for full-frame rendering and its camera
 
-### Keep required-GPU failures in the existing application error boundary
+**When:** final review of tiny viewport handling, 2026-10-28.
 
-**When:** production workbench admission.
+If a hidden or shrinking viewport requests 1×1 pixels, a full production frame
+still creates a bloom pyramid of progressively smaller images. Unclamped sizes
+can create a zero-sized bloom texture. The canonical presentation records now own
+`MIN_TARGET_PX = 64`, generated into TypeScript. Browser camera construction uses
+it, and `renderer_core::render_size` applies the same floor to runtime creation,
+resize and browser surface configuration. A 1×100 request therefore renders with
+a 64×100 camera and targets. Separate constants could let the camera and render
+attachments disagree. Raw offscreen `Targets` allocation still permits smaller
+sizes; this decision governs the complete frame with post-processing.
 
-An invalid dropped model remains a workbench validation result, so the current
-model can remain visible. If required GPU preparation itself fails, the existing
-application failure boundary reports the error and unmounts the viewport. The
-transaction still leaves the old generation unchanged until teardown; it does
-not silently retry or pretend the requested generation was installed.
+**Gap:** the plan did not choose a minimum extent for the production pyramid.
+**Reach:** full-frame consumers must use the shared size contract; smaller raw
+targets remain available to specialized offscreen work. **Verdict:** sound; the
+existing camera floor supplies a common valid production extent. **Confidence:**
+medium; arbitrary tiny full-frame output would require a different pyramid policy.
 
-**Gap:** transactional retention alone did not specify the application's response
-to a current required-resource failure. **Reach:** recoverable source validation
-and terminal renderer failures retain their existing separate product meanings.
-**Verdict:** sound. **Confidence:** high; this preserves the application's failure
-policy without inventing a second recovery mode.
+## Sound — high confidence
 
-### Use canonical ground and latest-world admission in review sheets
+### Link browser presentation, rendering and audio into one WASM module
 
-**When:** production sheet migration.
+**When:** unified browser runtime integration, 2026-10-28.
 
-A low-angle review sheet can see past its display floor onto the surrounding
-terrain. Its canonical scene now supplies the actual ground material tables;
-the original sheet omitted them and showed a dark band. A grass model loading
-during asynchronous viewport startup can also change the world containing its
-scale figure. Admission catches up that world before publishing the scene;
-the original viewport could drop it and lose the figure and its shadow.
+When drawing a battle, Rust rendering synchronously borrows the actual Rust
+presentation, the owner of what this side can currently see. Browser audio uses
+the same initialized binding identity. Copying a frame through JavaScript into
+a second WebAssembly memory would require another schema, decoder and recovery
+snapshot. The simulation remains in its own worker; DOM, input and fetched bytes
+remain browser responsibilities. An allocating rendering or audio call can grow
+the shared page memory and detach an earlier JavaScript typed view, so callers
+reacquire publication views after such calls and rendering republishes its header.
 
-**Gap:** preserving review behavior did not require retaining accidental missing
-inputs. **Reach:** tools use the same complete canonical world as gameplay rather
-than renderer-specific zero/default ground or stale startup snapshots.
-**Verdict:** sound. **Confidence:** high; these are named visual corrections to
-ownership omissions, rather than exceptions in the shared renderer.
+**Gap:** the plan inherited separate modules without settling their final
+packaging. **Reach:** new page bindings must share the initializer and respect
+the short view lifetime. **Verdict:** sound; canonical borrowing removes boundary
+owners. **Confidence:** high. Packaging alone establishes no causal CPU saving.
 
-### Admit only sources named by the canonical scene and external requests
+### Keep one GPU device for the page and platform loading outside the core
 
-**When:** production source transport.
+**When:** production viewport and workbench migration, 2026-10-28.
 
-The installed game catalog can include models a scene cannot draw. Transporting
-all of it into a viewport exhausted the browser module's address space. The
-browser instead transports source names from the canonical scene, requested
-external models and enabled grass. Separately owned scenery sources participate
-in the same transport. Catalog lookup data remains available to future requests.
+Opening a detached workbench canvas uses the page's existing `BrowserGpu`, the
+owner of the adapter, device and queue. Each renderer owns its canvas and scene;
+closing one drops those resources without disposing the page device. Page
+departure explicitly disposes it. Giving every canvas its own device would add
+independent lifetimes and prevent this common ownership. Native still reads
+files and the browser fetches bytes; the shared renderer receives source assets
+and external geometry and never opens files or touches the DOM. JavaScript gets
+owned diagnostics/readbacks rather than raw GPU handles.
 
-**Gap:** fetched catalog availability did not define GPU admission scope.
-**Reach:** loading another model or world can change the admitted generation;
-keeping a catalog entry does not allocate its meshes automatically.
-**Verdict:** sound. **Confidence:** high; actual scene contracts select resources
-without another GPU cache or platform-specific rendering policy.
-
-### Shared shadow resources own cascade attachment and ground-caster order
-
-The browser had allocated four shadow layers and their camera records but did
-not draw anything into them. The shared shadow owner now clears each fitted
-cascade, binds its camera, and draws the shell-supplied packed ground caster
-geometry. The native and browser shells can therefore use one cascade order and
-depth policy; only the geometry source and platform resource setup remain at the
-boundary. The alternative would have kept a browser-only shadow loop beside the
-native pass.
-
-**Gap:** the spec required one shadow owner but did not say whether attachment
-clearing belonged to the owner or the shell. **Reach:** model/scenery caster
-routing and receiver sampling must extend this same pass boundary. **Verdict:**
-sound; the scene records four cascades per frame and the shared owner contains
-the order. **Confidence:** high.
-
-### Shared core owns post and overlay composition order
-
-The browser used to copy the lit HDR target to the canvas and draw a diagnostic
-overlay directly on the surface. That bypassed the production tone map, fog rim,
-depth-tested overlay target, and halo blur. The shared core now owns the same
-target sequence as the production frame: post writes the display target, the
-rim overlays it, then overlay geometry resolves into its transparent target and
-the halo/composite pass draws over the surface. The alternative would have kept
-another browser-only compositor that could drift from native.
-
-**Gap:** the spec required one pass owner but did not prescribe where the
-surface composite should happen. **Reach:** native and browser must use this
-ordering as later caster, model, and fog parity work lands. **Verdict:** sound;
-the browser scene passes and the shared target owner is reused. **Confidence:**
-high.
-
-### Shared Rust owns attachment policy and pass ordering (fog-mask pass)
-
-When the native client created the fog distance, compose, and rim passes, it
-also decided which textures were cleared, resolved, or loaded. The shared core
-now owns those choices, while native supplies only the presentation look bytes
-and the browser shell can use the same resource owner. The alternative would
-be two implementations that can silently disagree about which image is shown.
-
-**Gap:** the original extraction plan named the owner but did not prescribe the
-fog-mask API. **Reach:** future fog, post, and browser integration must reuse
-this target/pass contract. **Verdict:** sound; the GPU work and order are
-unchanged. **Confidence:** high.
-
-### Keep filesystem and DOM asset loading outside the renderer core
-
-Native reads effect sheets and runtime bundles from disk; browser fetches them.
-The renderer core receives device-ready resources and records instead of
-opening files or touching the DOM. This keeps one renderer while allowing two
-platform shells. **Gap:** the spec allowed shell asset policy without naming
-the exact handoff. **Reach:** effects and post extraction follow the same seam.
-**Verdict:** sound. **Confidence:** high.
-
-## Needs-user (provisional calls)
-
-### Keep TypeGPU as a control until matched production parity
-
-The implementation preserves the TypeGPU renderer while Rust gains production
-passes, so screenshots and timings have a trustworthy control. The provisional
-call is to delete it only after the shared Rust path owns every required pass
-and lifecycle gate; this is reversible until that deletion commit.
-
-**Gap:** the user delegated the migration decision but not the exact deletion
-checkpoint. **Reach:** determines when browser source files and the dependency
-can be removed. **Verdict:** needs-user, provisionally keep until parity.
-**Confidence:** medium.
-
-## Sound
-
-### Rebuild target-bound shared resources together on resize
-
-When the browser changes from 640×360 to 320×180, the target textures change.
-The fog-mask and post bind groups point at those textures, so keeping the old
-groups would submit work against stale attachments. The browser now swaps the
-target owner and rebuilds those shared groups in the same operation. The
-alternative would be a target swap with hidden old-resource ownership.
-
-**Gap:** the spec required resize recovery but did not say which dependent
-resources must be rebuilt atomically. **Reach:** every future size-dependent
-pass must join this rebuild boundary. **Verdict:** sound. **Confidence:** high.
-
-### Keep device-loss recreation as an explicit remaining gate
-
-The browser shell can reconfigure an outdated or lost surface, and the scene
-now exercises that call. A true device loss invalidates the device and every
-GPU resource; the current shell reports the condition but does not recreate the
-device and all owners. We keep that as an open gate rather than claiming the
-surface recovery proves device recovery. **Gap:** the existing spike had no
-device-loss injection contract. **Reach:** blocks final TypeGPU deletion until
-the shell can rebuild the device/resource set or the product explicitly owns a
-browser reload policy. **Verdict:** sound to leave open. **Confidence:** high.
-
-### Shared shadow routing preserves each admitted model instance range
-
-The presentation record does not merely say that a cascade has some casters;
-each model batch names the first instance, the number of instances, and the
-cascades that admitted that run. The shared Rust shadow owner now keeps those
-ranges and issues one draw for each admitted run inside the cascade's render
-pass. A model that was culled from a cascade therefore cannot cast there just
-because another model did. The alternative would have kept only per-cascade
-counts and drawn the whole browser instance buffer, which would make a valid
-looking fixture lie about culling and would diverge from native's `Run` list.
-
-**Gap:** the spec required presentation-owned caster routing but did not say
-whether the browser proof could collapse it to counts. **Reach:** native and
-browser must use the same `first/count/cascade_mask` contract before shadow
-receiver sampling can be judged against matched pixels. **Verdict:** sound;
-the shared scene now reports model-caster passes after the range-aware draw
-path, and malformed or empty ranges are rejected at the boundary. **Confidence:**
-high.
-
-### Shared renderer boundaries use named input contracts
-
-The first version of the range-aware change passed nine positional numbers for
-the packed batch layout and eight more for the model draw. That made a swapped
-offset or resource easy to compile and hard to review. The shared core now
-receives a named `CasterBatchLayout` and a named `ModelCaster` input bundle.
-The alternative would be a shorter call site with more positional ambiguity;
-the new shape makes the browser shell's platform adaptation visible while
-keeping the pass implementation in one owner.
-
-**Gap:** the spec required a platform-independent boundary but did not prescribe
-how to keep a packed-record API auditable. **Reach:** every later extracted pass
-should use the same named-contract rule instead of growing argument lists.
-**Verdict:** sound; clippy's argument-count gate passes without suppression.
+**Gap:** the plan allowed platform shells without fixing device scope or the
+asset handoff. **Reach:** future tool canvases share page admission; new asset
+sources remain platform adapters. **Verdict:** sound; each lifetime has one owner.
 **Confidence:** high.
 
-### Fog fragment groups start with the native layer contract
+### Finish synchronous borrowing before asynchronous GPU work
 
-The fog compute owner allocates five fragment bind groups. A zero-filled layer
-record looks harmless, but the shader uses those four words to decide whether a
-surface is ground, painted, or always visible. Native initializes the groups to
-the five fixed layer records; the shared owner now does the same at allocation,
-before the first presentation upload. The alternative would have left the
-browser's production pipeline with an all-zero fog policy and made its output
-depend on a later upload that only carries sight data.
+**When:** unified runtime and production appearance/query integration, 2026-10-28.
 
-**Gap:** the extraction plan named the buffers but did not say which owner
-initializes the static layer policy. **Reach:** every shared world/model pass
-can bind the same layer indices during startup, resize, and device recovery.
-**Verdict:** sound; the records match native's fixed layer table and do not add
-per-frame work. **Confidence:** high.
+A model card bake or pixel query may finish after the user resizes, replaces art
+or leaves the scene. Its synchronous setup captures owned GPU resources and
+snapshot metadata, then returns a promise with no live presentation or renderer
+borrow. For a pixel read, dimensions and bytes belong to the submitted image even
+if a later resize changes the canvas. Holding a borrow until mapping finishes
+would lock the live observer; looking up resources afterward could silently read
+the replacement scene.
 
-### Production environment textures use the exported atlas dimensions
+**Gap:** shared synchronous preparation did not settle asynchronous lifetimes.
+**Reach:** future bakes, visibility probes and readbacks must own their pending
+work and release live borrows before awaiting. **Verdict:** sound; pending work
+cannot follow a later frame accidentally. **Confidence:** high.
 
-The production lighting shaders sample the sky lookup, PMREM atlas, and DFG
-table using dimensions and a top-mip value chosen by native. A browser 1×1
-placeholder satisfies WebGPU's type checker but feeds those coordinate formulas
-the wrong space. The browser shell now allocates the exported atlas dimensions
-and writes neutral half-float texels, and the frame bridge supplies the matching
-top-mip metadata. This is a valid resource contract, not a claim that neutral
-texels reproduce authored sky lighting.
+### Commit only the newest complete appearance generation
 
-**Gap:** the spec allowed shell-owned asset loading without spelling out the
-minimum texture contract. **Reach:** model/world parity can now replace the
-neutral texels with a baked sky/PMREM/DFG set without changing bind groups or
-shader layouts. **Verdict:** sound as a prerequisite; the authored bake and
-production world receiver remain open. **Confidence:** high.
+**When:** production catalog and workbench migration, 2026-10-28.
 
-### The browser bakes the sky from the shared presentation record
+While edited model A is baking, the committed model keeps drawing and receiving
+pose updates. If edits B and C arrive, desired intent becomes C while at most one
+candidate is preparing. When A finishes, it is discarded; C prepares next. At a
+frame boundary, a complete candidate commits only if its device, runtime,
+canonical world and desired request still match. The commit moves canonical art
+facts, GPU assets and retained recovery sources together, reapplies current
+controls and the latest poses/proxies, and requires a fresh canonical frame.
+Committing each partial result could show A's geometry with C's facts or restore
+old art after device recreation.
 
-The native client turns the resolved `SkyLight` record into a sky lookup with
-the exported `bake` pipeline before lighting samples it. The browser shell now
-does the same on startup and after device recovery: it uploads the 40-word sky
-record, renders the exported fullscreen bake into the shared LUT, and keeps the
-same environment bind group. The alternative would have kept a neutral texture
-forever and made a production receiver comparison meaningless even though the
-resource dimensions were correct.
+**Gap:** latest-generation behavior did not prescribe concurrency or commit scope.
+**Reach:** asset changes replace asset owners while retained observation/history
+stays live; topology changes use whole-scene admission. **Verdict:** sound;
+bounded preparation and one commit preserve matching ownership. **Confidence:** high.
 
-**Gap:** the spec named shell-owned asset loading but did not say whether the
-sky bake was a shared pass or a precomputed file. **Reach:** later PMREM and
-world/model parity work receives authored sky radiance without changing the
-browser/native resource boundary. **Verdict:** sound; the scene remains green
-and the bake survives the recovery replay, while PMREM filtering and full world
-inputs remain open. **Confidence:** high.
+### Ignore obsolete successes and failures; terminate on current GPU failure
 
-### PMREM filtering stays in the shared browser environment owner
+**When:** production admission lifetime review, 2026-10-28.
 
-Native renders the baked sky into a cube atlas and filters successive roughness
-levels with the exported `pmremBake` and `pmremFilter` pipelines. The browser
-environment owner now performs that same atlas construction after its sky bake,
-using the same face geometry, viewport layout, and top-mip convention. The
-alternative would have left rough surfaces sampling a neutral placeholder even
-after the sky itself became authored.
+Suppose a viewport starts loading one world, then the user changes world or
+quality before it finishes. Completion checks the captured presentation, source,
+world and quality identities: `obsolete → dispose/ignore; current → install or
+report failure`. The same check applies when preparation rejects. Late appearance
+callbacks also check the current scene before touching presentation. Otherwise
+an old failure could unmount the new scene or an old success could mutate it.
+Invalid dropped art remains source validation with the current model visible;
+a current required-GPU failure reaches the existing terminal application boundary
+and manual Reload policy. Supersession does not create automatic GPU retries.
 
-**Gap:** the spec did not say whether PMREM was an asset file or a GPU startup
-pass. **Reach:** model/world receivers share one environment atlas contract and
-can later receive authored DFG data without another browser-only lighting path.
-**Verdict:** sound; the one-renderer scene still passes all rows and lifecycle
-gates, while authored DFG and production world input parity remain open.
+**Gap:** successful replacement was specified, but obsolete rejection and current
+required-resource failure policy were not. **Reach:** reset, quality, departure
+and future asynchronous admission follow the same identity rule. **Verdict:**
+sound; stale work has no authority over current readiness. **Confidence:** high.
+
+### Share immutable geometry while keeping routing rows distinct
+
+**When:** production skirmish memory admission, 2026-10-28.
+
+Two catalog rows can place the same authored model differently without needing
+two copies of its vertices. Admission shares immutable GPU mesh tiers, the
+authored levels of geometric detail, when source and resolved state/pose agree.
+Rows retain placement, visibility, material routing and corpse metadata; different
+corpse orientations remain distinct. A construction-local sharing map disappears
+after admission, so later edits install a new generation rather than invalidate
+a persistent cache. Allocating vertices for every routing row would multiply art
+storage without changing what is drawn.
+
+**Gap:** the plan chose a shared runtime, not immutable vertex ownership.
+**Reach:** future row variants may share geometry while preserving their own
+meaning; memory/submission diagnostics inspect actual resources and draws rather
+than permanent migration counters. **Verdict:** sound; routing identity does not
+imply mesh ownership. **Confidence:** high.
+
+### Admit the player's purchase roster and retain learned source kinds
+
+**When:** final browser source-lifetime and purchase-response repair, 2026-10-28.
+
+A tiny lab must not upload another battle's cached wrecks, while a player must
+still get an immediate ghost when selecting an unfielded reinforcement. One
+source closure includes the human's enabled purchase cards for its faction,
+initial fielded units, authored map wrecks and everything the observer has learned.
+It includes corpse, crash, remembered-contact, transit and wreck references even
+when their live units are absent. Learned kinds stay for this battle and observing
+side; a different observer or battle starts its own history. Other factions arrive
+as ordinary observed/pending sources, rather than all factions being uploaded
+before play. The same closure feeds canonical fielding and GPU admission.
+
+The page may retain downloaded art from earlier visits, but that cache is filtered
+before canonical prop selection. A loaded catalog entry does not by itself admit
+a mesh. Transport stays bounded per bundle. Review sheets also install their
+actual ground and catch up the current world before framing.
+
+**Gap:** catalog availability did not define admission scope, history retention
+or immediate purchase readiness. **Reach:** this retains a faction roster plus
+learned art for the battle's life, costing more memory than current-visible-only
+loading and avoiding repeated source retirement. It does not load every faction
+up front. **Verdict:** sound; complete scene demand determines residency, with
+purchase responsiveness preserved. **Confidence:** medium; growing content still
+needs measured admission budgets.
+
+### Match canonical fielding to one stable complete request
+
+**When:** final browser source/topology admission, 2026-10-28.
+
+Canonical fielding resolves unit descriptions and animation inputs asynchronously.
+A stable request object names its actual rules, catalog, kinds, factions and side.
+New topology, map art and model art enter together only after that exact request
+and its source closure are complete. While a replacement loads, the last complete
+matching battle/observer generation keeps drawing; changing battle or observer
+retires it immediately. Source reconciliation happens at the frame boundary,
+after canonical framing, so a changed world rebuilds once instead of also
+preparing an obsolete asset-only generation. Otherwise new art can meet old canonical rows, or a newly allocated
+React dependency can continuously reload the observer and erase its effects.
+The raw presentation still receives publications for audio while visual admission
+waits; gating that raw reference would drop real sound evidence.
+
+**Gap:** the plan required coherent source generations without choosing how the
+session correlated asynchronous fielding results. **Reach:** future fielding
+inputs belong in the request identity; source updates preserve history when the
+request is unchanged. The roster order picture intentionally retains authored
+dust that the original browser's repeated reloads erased. **Verdict:** sound;
+readiness names actual completed inputs. **Confidence:** high.
+
+### Complete frame requests only after current successful submission
+
+**When:** final browser readiness and evidence repair, 2026-10-28.
+
+Two animation callbacks do not prove a canvas drew: a scene can still be rebuilding,
+waiting for art, or have no acquired surface. Rendering returns whether submission
+actually succeeded. Viewport-owned waiters complete only after that draw uses the
+current world and complete asset generation; initial readiness follows the same
+rule. Drawn observation, clock, pick boxes, unit positions and projection camera commit
+with submission. Pose-only updates reframe before their draw completes. Errors
+and departure reject waiting explicit callers; obsolete internal rebuild failures
+cannot refuse page-lifetime resources. Replacement inherits current controls.
+
+**Gap:** frame completion and asynchronous refusal semantics were unspecified.
+**Reach:** capture and diagnostic callers can trust completion without queue-drain
+waits; visual submission still does not prove the display compositor presented it.
+**Verdict:** sound; completion reports the operation it names. **Confidence:** high.
+
+### Let canonical records select model ranges, materials and fog classes
+
+**When:** canonical model/scenery extraction and production frame integration,
+2026-10-28.
+
+When a frame names an appearance, detail tier, instance range and shadow cascade,
+the common model owner draws exactly that run. Held static markers refer to
+shared static owners; they are not frame-local offsets. A run cannot silently
+fall back to the first loaded mesh, and terrain faces do not send props through
+terrain materials. The runtime reads the real Rust presentation record types for
+models, effects, terrain and optional fog/scar updates. Absence preserves an old
+optional table; an explicit empty table clears it. Fog resources initialize the
+canonical surface-layer policy before the first upload. Flattening these records
+to counts or local decoders would lose culling, routing or update meaning.
+
+**Gap:** extraction left packed input interpretation and admission enforcement
+open. **Reach:** future material/tier/static/caster work extends these named
+shared contracts and the canonical ABI, the record layout consumers agree on.
+**Verdict:** sound; presentation decides the run and rendering preserves it.
 **Confidence:** high.
 
-### The shared browser environment uses the authored DFG LUT
+### Keep attachment and frame order in the common runtime
 
-The production BRDF lighting shader reads a 16×16 split-sum DFG table. The
-browser shell previously filled that table with a neutral half-float value,
-which was valid GPU data but not the game's light. It now parses the checked-in
-`dfgLut.ts` words into the same texture format native uploads. The alternative
-would have left every roughness/metalness comparison in the browser on a
-diagnostic approximation.
+**When:** shadow, fog, post and production-frame extraction, 2026-10-28.
 
-**Gap:** the spec named the environment bind group but did not name the DFG
-asset's source of truth. **Reach:** shared model/world pixels now use the same
-authored BRDF lookup on both platforms; the remaining gap is full world and
-material input parity. **Verdict:** sound; the browser scene remains green.
+For a drawn frame, the shared runtime clears and fills the fitted shadow
+cascades, builds physical depth, computes sight, draws materials/effects, composes
+fog and completes post-processing and information overlays into its display
+texture. It owns attachment clear/load/resolve choices, named resource inputs
+and overlay/halo composition. Shells acquire and present output and may request
+readback. Giving the browser its own shadow loop, fog attachments or final
+compositor would allow different images despite shared shader text.
+
+**Gap:** the plan required shared passes but did not settle attachment ownership
+and the final composition boundary. **Reach:** a new pass joins one common frame
+and resource owner instead of a platform's parallel graph. **Verdict:** sound;
+one owner controls the complete image. **Confidence:** high.
+
+### Rebuild all target-dependent bindings together on resize
+
+**When:** shared browser resize and runtime integration, 2026-10-28.
+
+When a viewport changes size, old textures cannot stay hidden inside bind groups,
+the GPU records connecting shader inputs to resources. The shared runtime
+replaces targets and rebuilds post, fog-mask, overlay, depth-dependent fog,
+x-ray, high-air and effect bindings before the next draw, then asks presentation
+to resend size-dependent fog work. Replacing textures alone would keep old
+attachments reachable and let later passes read a different-sized frame.
+
+**Gap:** required resize support did not specify the dependent-resource boundary.
+**Reach:** every new size-dependent pass must participate in this common rebuild.
+**Verdict:** sound; attachments and their consumers change together.
 **Confidence:** high.
 
-### The height-page gate uses a non-flat page, while the mesh stays frozen
+### Recover current knowledge and held lists from presentation
 
-The old fixture's height payload was a three-word header with no present pages,
-so uploading it proved only that an empty map could cross the boundary. The
-fixture now keeps its authored render mesh and camera but gives presentation a
-single 2×2 page with four distinct height samples. The shared browser row
-uploads eight words, dispatches the same fog stages, and replays that page after
-device recovery. The alternative would have changed the visible mesh to make a
-transport check look like terrain parity, coupling two independent contracts.
+**When:** shared-frame recovery and unified runtime integration, 2026-10-28.
 
-**Gap:** the spec required non-flat height-page parity but did not prescribe a
-fixture that isolated page transport from mesh generation. **Reach:** future
-production terrain work can replace this page with real map pages without
-changing the renderer boundary. **Verdict:** sound; the scene remains green
-and reports the non-flat payload through recovery. **Confidence:** high.
+A recreated device has no fog textures, scar cache or held static GPU buffers.
+The recovery path retains decoded assets and external geometry, creates ordinary
+runtime owners on the new device, and asks live presentation to resend current
+fog/scar knowledge and materialize its held static lists into the current frame.
+It preserves that frame's motion, selection, effects and time, then publishes
+fresh static generation data for subsequent frames. Replaying the latest small
+upload cannot restore complete knowledge; rebuilding the whole UI frame might
+choose another moment. The header is republished after materialization because
+the record arrays can move.
 
-### Terrain material tables cross one explicit shared owner
+**Gap:** recovery was required without choosing retained CPU representation or
+knowledge reconstruction. **Reach:** decoded art/geometry retention costs belong
+in memory accounting. A device-recreation caller supplies a fresh page GPU and
+prepares assets; production's terminal failure/manual Reload policy remains the
+policy above. **Verdict:** sound; recovery uses the current authority rather than
+a second renderer or stale frame mirror. **Confidence:** high.
 
-The browser now receives the same resolved terrain tables that native uploads:
-params, plot nodes, plot records, surface records, surface index and scar look.
-`renderer-core::TerrainResources` owns the `terrainLayout` bind-group order,
-while the browser shell owns only the WASM conversion and recovery snapshot.
-The native frame-view suffix is appended at that boundary because the native
-owner adds it before binding the uniform. This keeps one ABI and avoids a
-browser-only terrain-material layout.
+### Reuse model/effect streams for the same canonical frame
 
-**Gap:** the first attempt omitted the suffix and WebGPU rejected the uniform
-as too small. **Reach:** the table seam is now valid, but scar directory/pool
-textures and native terrain partition selection still need real inputs before
-the pixels are a parity result. **Verdict:** keep this owner and contract;
-finish the missing resources in the production parity pass. **Confidence:**
-high.
+**When:** held-frame preparation integration, 2026-10-28.
 
-### Model frame records are uploaded before full batch/material selection
+When the browser redraws a paused frame, model and effect buffers already match
+that frame and can be reused. A different frame index, static generation or
+relevant control invalidation prepares them again; a newly installed world has
+no reusable state. Fog and scars still prepare every draw because incremental
+work must be consumed and completed rebuilds must not be replayed. Uploading
+everything on every held draw repeats work; JavaScript hashes or dirty flags
+would add another description of change beside presentation's own identity.
 
-The browser shell accepts presentation palettes, instances and batch words in
-one recovery-safe upload and reports their size. This establishes the record
-transport without inventing a second model schema. The current fixture sends
-the frozen records but leaves material rows empty and still draws the fetched
-asset through the existing shared model path.
+**Gap:** shared native preparation did not specify repeated drawing of a held
+browser frame. **Reach:** future stream reuse must follow canonical identity and
+the owner's invalidation rule. **Verdict:** sound; unchanged records permit
+reuse without a second change protocol. **Confidence:** high. No whole-path
+performance saving is attributed to this decision alone.
 
-**Gap:** wiring the bytes into the complete production material and batch
-selection path is still required. **Reach:** the upload and recovery contract
-can remain unchanged while native material classification and static batches
-are added. **Verdict:** retain as an input seam, not as evidence of visual
-parity. **Confidence:** medium.
+### Keep physical depth on the production camera and terrain path
 
-### Dynamic model batches keep their native ranges
+**When:** production depth integration and obsolete-workaround removal,
+2026-10-28.
 
-Presentation `Instance` records are 16 floats and `Batch` records are 12 words.
-The shared browser upload now validates those strides, preserves the complete
-instance stream, and turns dynamic `VIEW_PASS` batches into explicit draw ranges
-for the shared prepass and opaque pass. Batches with `first == NONE` are held
-static batches; the browser skips them until it has a static holder keyed by
-`Batch.key`, matching native's `Statics` owner rather than pretending their
-range is frame-local.
+When real terrain draws color, it compares against a prepass built from the same
+production camera and geometry. The common reverse-Z convention stores closer
+surfaces with greater depth, so terrain color uses `greater-equal`. The early
+spike's `always` comparison hid incomplete input/depth plumbing; retaining it
+would bypass the now-complete physical contract. Shadows likewise use the
+presentation light's authored cascade resolution instead of the spike's tiny
+diagnostic maps. Typed pipeline states also supply the reported depth facts.
 
-**Gap:** the current fixture has no authored model runs from `ScenePresentation`
-and still loads one test-tank drawable, so this proves range handling rather
-than heterogeneous appearance selection. **Reach:** an appearance/tier
-drawable table and static holder are still required for full production parity.
-**Verdict:** keep the native record strides and explicit run contract; do not
-flatten batches into a synthetic instance stream. **Confidence:** high.
+**Gap:** migration did not say whether preservation included temporary depth and
+shadow approximations after production inputs were complete. **Reach:** later
+depth-sensitive layers and quality tiers start from the common physical contract;
+quality changes must be deliberate. **Verdict:** sound; remove obsolete exceptions
+when their missing inputs have a real owner. **Confidence:** high.
 
-### The empty lab frame uses an explicit one-bundle transport fixture
+### Query production material functions with owned diagnostic inputs
 
-The frozen lab presentation has no dynamic unit rows because it does not load
-a battle publication. The harness therefore creates a small record stream from
-the already loaded `test_tank` asset: 16-float instances, 12-word view batches,
-and an identity joint. These records exercise the same upload, validation,
-recovery, and per-range draw code as a real frame, while the report labels the
-fixture as transport evidence. We keep this separate from the eventual
-production gate instead of pretending that hand-authored rows came from the
-simulation.
+**When:** production material-harness migration, 2026-10-28.
 
-**Gap:** it does not prove appearance/tier lookup, static batch holding, or
-multi-bundle material routing. **Reach:** the next real-frame fixture must come
-from `ScenePresentation` with those records populated. **Verdict:** useful and
-honest as a bounded seam test; insufficient for parity. **Confidence:** high.
+When a diagnostic asks for terrain distance, roughness or filtering results, it
+appends query entrypoints to the actual composed terrain shader and uses the
+installed runtime's material layout. It builds temporary canonical material
+inputs and queues an owned result snapshot. If the query consumes scar uploads,
+presentation is told to resend them so the live scene still receives its current
+knowledge. A separately authored diagnostic shader could keep agreeing with
+itself while the game's material behavior changed.
 
-### Batch decoding belongs in the shared model core
+**Gap:** replacing JavaScript GPU tests left the diagnostic access contract open.
+**Reach:** future material diagnostics exercise production algorithms without
+exporting GPU handles or locking the live observer during mapping. **Verdict:**
+sound; the question reaches the shader the game draws. **Confidence:** high.
 
-The browser previously decoded packed `Batch` words locally. The shared model
-core now owns the 12-word decoder and returns named appearance, tier, pass,
-range, and static-held fields. Browser code only filters the dynamic view runs
-it can currently draw. The decoder rejects partial records and explicitly
-recognizes `first == NONE`; this keeps the static-cache gap visible rather than
-turning it into an accidental instance read.
+### Bake authored environment light and keep lookup/sheet data neutral
 
-**Gap:** static batches still need a browser holder and appearance/tier rows
-still need drawable buffers. **Reach:** native and browser now agree on the
-packed batch contract before that mapping is added. **Verdict:** keep the
-decoder in `renderer-core`; do not duplicate record parsing in either shell.
+**When:** environment parity and final shared-data cleanup, 2026-10-28.
+
+When a scene installs its light, the shared owner bakes the sky from presentation's
+light record and prefilters it into the reflection atlas used at different
+roughnesses. It uploads the same authored split-sum lighting lookup on both
+targets. Neutral placeholder texels would satisfy GPU types but change rough
+surface lighting. The immutable lookup now lives as binary data, and effect
+sheet ordering lives in a common JSON manifest; native reads neither value by
+parsing TypeScript source. Both targets decode the same effect sheets, and the
+common renderer keeps the third-party attribution beside the adapted algorithms.
+
+**Gap:** the plan did not choose precomputed files versus startup GPU bakes, or
+the permanent owner for data previously embedded in browser source. **Reach:**
+future environment and effect changes update shared data and algorithms rather
+than a platform-language parser or approximation. **Verdict:** sound; resource
+dimensions, authored light and asset order have one platform-independent owner.
 **Confidence:** high.
 
-### Static batch ranges survive frame rebuilds through the shared batch state
 
-Native treats `Batch.first == NONE` as a held static range. The shared model
-core now keeps those ranges by `Batch.key`, reuses them when a later frame
-publishes the held marker, and snapshots the state with the presentation upload
-so device recovery rebuilds the same draw ranges. Dynamic batches still use
-their frame-local `first/count` records and the full instance stream remains
-available to the shadow owner.
+### Share decoded bundle ownership through admission
 
-**Gap:** the browser still needs an appearance/tier drawable table for
-heterogeneous static rows; the holder only solves range lifetime. **Reach:**
-this removes one lifecycle divergence without adding a second renderer graph.
-**Verdict:** keep the holder in the shared model boundary and add drawable
-mapping next. **Confidence:** high.
+**When:** final browser memory repair, 2026-10-28.
 
-### Model runs require an explicit appearance/tier drawable admission
+When GPU admission reads a model, it receives an immutable shared handle to the
+already decoded bundle. The source library owns that payload, and consumers may
+retain the handle while preparing a replacement. Reading a source must not make
+a fresh copy of all mesh and texture arrays. The same contract applies to native
+filesystem sources and fetched browser sources.
 
-The browser shell now keeps a shell-owned `(appearance, tier)` admission table
-when it loads a bundle. Shared model runs are filtered through that table before
-they reach the prepass and opaque draws, so a batch cannot silently use the
-currently loaded geometry for a different appearance or tier. The one-bundle
-fixture admits `test_tank` tier 1; expanding to heterogeneous production rows
-still requires loading their bundles and adding their vertex ranges.
-
-**Gap:** the current table is deliberately one appearance/tier and does not
-yet replace the native world's complete appearance library. **Reach:** the
-contract makes that expansion an asset-loading concern at the shell boundary,
-while the shared pass remains unchanged. **Verdict:** keep the admission check;
-do not fall back to the first loaded drawable. **Confidence:** high.
-
-### Authored tiers share one packed vertex stream with explicit ranges
-
-The browser now packs every non-empty tier of the loaded appearance into one
-48-byte vertex stream and records its `(appearance, tier) -> vertex range`
-mapping. Model runs carry both the instance range and the selected vertex
-range into the shared prepass and opaque draws. This preserves the native tier
-contract while keeping geometry allocation shell-owned.
-
-**Gap:** the current loader still installs one appearance and does not combine
-multiple bundles or articulated node transforms. **Reach:** adding more
-appearance bundles extends the table and texture/material rows without a new
-pass graph. **Verdict:** keep the packed-range contract; the next real-frame
-slice should populate it from the complete appearance library. **Confidence:**
-high.
-
-### Production depth must consume the production terrain and camera
-
-The first shared production frame reused the small fixture depth adapter. Its
-camera and 28-byte fixture model were unrelated to the 40-byte presentation
-terrain stream, so the real terrain color pass compared against stale depth and
-rendered repeated black holes. The shared browser shell now switches to the
-exported `worldPrepass` pipeline with the production camera and terrain stream,
-then runs the shared authored-model prepass before fog and world color. The
-fixture depth path remains only for the bounded controls.
-
-**Gap:** native still needs to call the same extracted production depth owner
-when the full runtime moves out of its shell. **Reach:** depth convention and
-ordering are now explicit for the browser production row instead of being
-hidden in the fixture adapter. **Verdict:** keep separate fixture and
-production adapters behind one shared frame order; never use fixture depth for
-production inputs. **Confidence:** high; the black terrain artifact vanished
-when the production depth gate was restored.
-
-### Shared browser shadow targets use the authored cascade resolution
-
-The browser shell initially allocated 64px cascade maps as a cheap resource
-probe. That made the shared receiver produce visible terrain tiling even after
-the depth fix. The presentation light's authored cascades are 2048px, so the
-shared shadow owner now allocates the same resolution. The one-renderer row
-still reports 484 terrain/model shadow passes and passes resize/device recovery;
-setup rose from roughly 350ms to 416ms on this browser run and encode from
-roughly 5.5ms to 7.1ms. The extra depth resource is roughly 64MiB for four
-`depth32float` layers, which is the cost of matching the production contract.
-
-**Gap:** native/browser matched GPU timestamps and complete caster/material
-parity remain open. **Reach:** keep the authored map size as a shell input when
-the native and browser shells converge; do not silently retain a diagnostic
-64px target in production. **Verdict:** keep 2048px for the parity gate and
-measure a deliberate quality tier separately. **Confidence:** high; the
-tile-shaped terrain artifact disappeared at the authored resolution.
-
-### Static world faces stay out of the terrain material path
-
-The browser production adapter initially concatenated terrain triangles and
-static props into one vertex stream and drew them all through `worldTerrain`.
-That made props consume terrain tables, terrain fog classification and terrain
-lighting, which showed up as weak grounding and incorrect face shading. The
-adapter now uploads terrain and static world meshes separately: terrain uses
-`worldTerrain`, while props use `worldPrepass`/`worldOpaque` with the ordinary
-environment and face fog group. Shadow geometry is recombined into one caster
-buffer so the color ownership split does not double the shadow-pass cost.
-
-**Gap:** the browser fixture still does not carry the complete production
-appearance/scenery library, and the native shell has not yet called this exact
-shared frame entry point. **Reach:** static faces now have one clear material
-owner and the shared frame can add scenery without teaching terrain about
-props. **Verdict:** keep the split; never concatenate heterogeneous world
-layers before material selection. **Confidence:** high; the one-renderer scene
-remains green and shadow passes return to 484 after the split.
-
-### Native and browser enter one canonical frame order
-
-The shared core now owns `FrameStage::ORDER` and `encode_frame`. Native adapts
-its existing pass objects through the nine stages, while the browser adapts its
-production and fixture resources through the same entry point. Surface acquire,
-the browser display composite, overlay composite and present remain shell work;
-the browser's surface-only fog rim is encoded during the final shared stage so
-the composite cannot clear it afterward.
-
-**Gap:** the browser now decodes both authored flipbook layers and uploads one
-real effect instance, but the full publication effect feed and native/browser
-matched effect workload remain open. Native preparation still owns a separate
-presentation/resource path. The native adapter also maps the current fixed pass
-list by name, so adding a new native pass requires adding its shared stage.
-**Reach:** this is the smallest seam that proves one frame orchestrator without
-inventing a second graph. **Verdict:** keep the shared stage order and effects
-owner, finish publication effect transport and prepare/upload extraction before
-deleting TypeGPU. **Confidence:** high; the full scene stays green with atlas
-data, 16 uploaded effect words, resize/device recovery and no terrain-hole
-regression.
-
-### Terrain color pass must not reject its own prepass coverage
-
-The browser production terrain stream and the shared reverse-Z prepass use the
-same camera and vertex buffer, but `worldTerrain`'s `greater-equal` color depth
-test still left large missing terrain regions. Auto-research probes ruled out
-the fog-mask compose and shadow caster owner: disabling fog compose preserved
-the holes, while skipping terrain depth removed the entire ground. A matched
-pipeline A/B with `worldTerrain.depthCompare = always` restored the full terrain
-without changing the later model/prop draws, which still depth-test against the
-prepass.
-
-**Verdict:** keep the exported terrain color pass depth comparison at `always`
-with depth writes disabled. The terrain is the first opaque world color layer;
-models and static props are drawn afterward and retain depth ownership. **Gap:**
-the underlying browser/native depth-value mismatch still deserves a later root
-cause audit before adding more depth-tested terrain layers. **Confidence:** high;
-the full scene remains green and the matched screenshot removes the black
-terrain holes.
-
-### Effect records use the presentation ABI
-
-The browser now loads the authored fire and dust flipbooks into the shared
-two-layer atlas and recovers those layers with the device. The first visual
-trial used a hand-written record whose `misc.x` selected a streak; it produced
-a detached white rectangle. The corrected record follows the presentation
-`Effect` layout and selects a flipbook, yielding a coherent small fireball while
-all lifecycle gates remain green.
-
-**Verdict:** keep the real atlas path and treat effect records as a shared ABI,
-not ad-hoc browser fixture data. **Gap:** the browser still needs the real
-publication effect stream and a matched native/browser effect workload before
-this owner is production-complete. **Confidence:** high.
-
-### Retain decoded assets and held instance records for device recreation
-
-**When:** 2026-10-28 native model/scenery extraction.
-
-When the browser loses its GPU device, every GPU object must be recreated. The
-browser now keeps the already decoded appearance library behind `Arc`, Rust's
-shared ownership pointer, rather than storing another set of compressed bundle
-payloads and parsing them again. Static batches keep their CPU instance records
-beside their GPU buffers. Recovery builds the ordinary shared owners and turns
-any “unchanged batch” references into explicit records before restoring the
-last frame. It does not maintain a second recovery renderer.
-
-**Gap:** the spec required recovery but did not choose which CPU representation
-to retain. **Reach:** this favors a simple, ordinary reconstruction path and
-avoids repeated parsing; it retains decoded art and static instance memory for
-the lifetime of the renderer. Final memory accounting must include that cost.
-**Verdict:** sound. **Confidence:** medium; the lifetime contract is proven,
-while the final memory/performance comparison remains open.
-
-### Share canonical presentation records across the Rust runtime boundary
-
-**When:** 2026-10-28 native model/scenery extraction.
-
-Native can hand a presentation frame directly to the renderer. Browser
-presentation and rendering occupy separate WASM memories, so the browser copies
-the same appearance, joint, instance and batch layouts, plus the string table
-and authored rest palettes. The core now depends on the presentation crate's
-record types instead of keeping another decoder with hand-maintained offsets.
-That removes the probe's parallel range/state interpretation. Both platforms
-use the same native model and scenery admission rules.
-
-**Gap:** the spec specified shared records but not the crate dependency or the
-separate-memory copy representation. **Reach:** changes to the presentation ABI
-now compile against the real shared types; the JS bridge only transports their
-bytes. Earlier one-bundle fallback, packed nonindexed tier and probe BatchState
-choices are superseded by this actual owner. **Verdict:** sound.
-**Confidence:** high; native replay/count/pose tests and browser lifecycle checks
-exercise the same implementation.
-
-### Canonical object transport preserves optional fog and scar updates
-
-**When:** 2026-10-28 shared production frame.
-
-When a browser frame has no new occluder table, the renderer must keep the old
-table; when it sends an empty table, the renderer must clear it. Presentation
-now serializes its actual Rust fog/scar records through `serde-wasm-bindgen`,
-and rendering deserializes those same types in its separate WASM memory. This
-preserves optional values and pass metadata without a second JavaScript schema
-or a long positional argument list.
-
-**Gap:** the spec left cross-memory transport open. **Reach:** adds one boundary
-dependency and object serialization each drawn frame. The measured candidate
-CPU cost includes this transport; future optimization can change transport while
-retaining the canonical records. **Verdict:** sound. **Confidence:** medium;
-the simple contract is valuable, but dynamic crowded-frame transport remains to
-be measured beyond the frozen capture.
-
-### Recover current knowledge from presentation instead of replaying old deltas
-
-**When:** 2026-10-28 shared production frame.
-
-When a GPU device is recreated after the camera or the side's knowledge changed,
-its fog textures and scar cache are empty. Replaying the latest small update, or
-the first frame's complete update, cannot restore current state. The platform
-bridge asks the live presentation to resend fog and scars, then prepares them
-before the first recovered draw. Static art and the last explicit model frame
-still rebuild from the retained CPU data.
-
-**Gap:** recovery was required without a chosen knowledge-cache strategy.
-**Reach:** the platform must prepare current knowledge after recreation; it does
-not keep a parallel CPU mirror of GPU visibility maps. **Verdict:** sound.
-**Confidence:** high; presentation already owns the complete current knowledge
-and exposes the resend operations used by native startup.
-
-### Count owned GPU payloads without extending resource lifetimes
-
-**When:** 2026-10-28 shared production frame.
-
-When taking a memory snapshot, the diagnostic visits the resources each renderer
-owner holds, deduplicates shared handles, and reads their actual allocation
-descriptors. It releases those diagnostic handles immediately. Keeping every
-Rust-created WebGPU object in JavaScript's existing strong-reference registry
-would prevent garbage collection after Rust dropped it, changing the lifetime
-being measured.
-
-**Gap:** memory comparison needed an implementation that works across Rust and
-JavaScript ownership. **Reach:** reports live owned payload bytes and retained
-CPU recovery data, while excluding allocator, driver and canvas storage. Each
-new owner must expose its allocations to the diagnostic visitor. **Verdict:**
-sound. **Confidence:** high; this makes measurement passive and its limits
-explicit instead of calling payload accounting whole-process memory.
-
-### Export browser presentation and rendering from one WASM module
-
-**When:** 2026-10-28 packaging experiment and runtime plan.
-
-When drawing a battle, the browser currently asks one Rust module for a frame,
-copies it into JavaScript and hands it to another Rust module. Both modules
-already understand the same Rust presentation types. The target now links the
-bindings into the renderer's browser entrypoint, so drawing can synchronously
-borrow the actual presentation and use native's preparation path directly.
-Simulation remains in its worker; input, DOM and fetched bytes remain browser
-responsibilities. A new permanent umbrella package adds no useful owner.
-
-**Gap:** the original plan did not settle browser module packaging and inherited
-the separate modules. **Reach:** deletes copy schemas, per-frame upload calls
-and stale recovery records after GPU parity. It also changes view lifetime: a
-renderer allocation can enlarge the shared byte buffer and detach a JavaScript
-view of presentation data, so callers must reacquire views afterward. Audio
-and rendering must use the same initialized class identity and keep the
-presentation handle private. **Verdict:** sound. **Confidence:** high; the
-packaging and direct-borrow experiment passes and simplifies ownership. Actual
-unified GPU behavior/performance remains an implementation gate, not a claimed
-result of the packaging experiment.
-
-### Rebuild held static lists without reframing the battle
-
-**When:** 2026-10-28 unified Runtime integration.
-
-A device can disappear while a selected unit is moving and the current frame
-only names static lists that its old renderer already held. Recovery asks
-presentation to materialize those current lists into the same frame. It keeps
-the moving units, selection, picks, effects and time exactly as they were,
-then makes the next ordinary frame publish a complete new renderer generation.
-Calling the whole frame builder again would need to reconstruct the UI inputs
-and could silently select a different moment.
-
-**Gap:** canonical ownership settled the source of recovery data, but not how to
-refresh a held frame without repeating presentation. **Reach:** presentation
-owns this narrow operation; platform shells no longer retain copies of static
-records for recovery. Header publication follows materialization because its
-arrays can move. **Verdict:** sound. **Confidence:** high; current population
-records remain authoritative without replaying dynamic decisions.
-
-### Reuse GPU streams only while the canonical frame is unchanged
-
-**When:** 2026-10-28 held-frame preparation experiment.
-
-When the browser redraws the same held battle frame, it keeps model and effect
-buffers already prepared for that frame. A new canonical frame or renderer
-static generation uploads them again. Fog and scars still prepare every draw,
-because replaying their last incremental work could repeat rebuilds or miss
-completed work. A newly installed world always starts with an empty cache.
-
-**Gap:** sharing native preparation did not specify how repeated draws of one
-unchanged frame should behave; the native replay normally advances each time.
-**Reach:** frame identity, rather than hashes or a second JavaScript dirty
-protocol, controls reuse in the common Runtime. **Verdict:** sound.
-**Confidence:** high; it removes unnecessary work while preserving every actual
-changed frame's preparation. The first always-upload policy is rejected.
-
-### Remove the terrain depth workaround when exporting the common pipeline
-
-**When:** 2026-10-28 player-feature integration.
-
-The early browser Rust spike forced terrain color depth comparison to `always`
-to work around an incomplete depth/input path. The actual TypeGPU pipeline uses
-reverse-Z `greater-equal`. Exporting its real metadata restores that shared rule.
-
-**Gap:** preservation could mean retaining the workaround or adopting the
-common physical depth contract after full input parity. **Reach:** terrain color
-now respects the same prepass as the browser control. With the same native
-binary and WGSL, changing only this descriptor back to `always` restores all six
-old images byte for byte; camera calculations are bit-identical. The normal rule
-changes eleven pixels / twenty-one RGB channels across six 1280×720 plates,
-maximum channel delta 4/255, with all other channels and model counts preserved.
-**Verdict:** sound; remove the obsolete workaround. **Confidence:** high; the
-one-factor control proves the source of the complete delta. Evidence:
-`throwaway/native-depth-control-result.json`.
+**Gap:** the plan specified source lifetime without settling returned ownership.
+**Reach:** bundle readers return `Arc<Bundle>`; intentional mutable fixtures copy
+only when they change a bundle. This reduces duplicate payload without adding a
+cache or a parallel asset registry. **Verdict:** sound; immutable data has one
+payload owner rather than a new copy per admission read. **Confidence:** high.

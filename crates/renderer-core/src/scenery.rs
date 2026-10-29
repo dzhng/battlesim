@@ -229,36 +229,8 @@ impl Scenery {
         }
     }
 
-    /// Resident authored tiers and presentation-generated stump meshes.
-    pub fn resident_vertices(&self) -> u32 {
-        self.tiers
-            .iter()
-            .flatten()
-            .chain(
-                self.rows
-                    .iter()
-                    .flatten()
-                    .filter_map(|row| row.stump.as_ref()),
-            )
-            .map(|(_, vertices)| *vertices)
-            .sum()
-    }
-
-    pub fn run_count(&self) -> u32 {
-        self.runs.len() as u32
-    }
-
     pub fn set_trees_shown(&mut self, shown: bool) {
         self.trees_shown = shown;
-    }
-
-    pub fn caster_run_counts(&self) -> [u32; 4] {
-        std::array::from_fn(|cascade| {
-            self.runs
-                .iter()
-                .filter(|run| run.draws_in(CAST_PASS, Some(cascade)))
-                .count() as u32
-        })
     }
 
     /// A felled tree is two records an instance.

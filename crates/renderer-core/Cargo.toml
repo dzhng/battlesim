@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 png = "0.17"
 presentation = { path = "../presentation" }
-wgpu = { version = "30.0.1", default-features = false, features = ["webgpu", "wgsl"] }
+wgpu = { version = "30.0.1", default-features = false, features = ["webgpu", "wgsl", "serde"] }
 bytemuck = { version = "1.25", features = ["derive"] }
 
 serde = { version = "1", features = ["derive"] }
@@ -16,3 +16,6 @@ pollster = "0.4"
 sha2 = "0.10"
 ryu-js = "1"
 libm = "0.2"
+
+[dev-dependencies]
+naga = { version = "30.0.1", default-features = false, features = ["wgsl-in"] }

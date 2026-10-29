@@ -3,7 +3,10 @@ use super::*;
 
 #[wasm_bindgen]
 impl Renderer {
-    pub fn render_presentation(&mut self, presentation: &mut Presentation) -> Result<u32, JsValue> {
+    pub fn render_presentation(
+        &mut self,
+        presentation: &mut Presentation,
+    ) -> Result<Option<u32>, JsValue> {
         let surface = acquire(&self.surface)?;
         let high = self
             .high_surface
@@ -16,7 +19,7 @@ impl Renderer {
             if let Some(runtime) = &mut self.runtime {
                 runtime.invalidate_statics();
             }
-            return Ok(presentation.refresh_frame_header());
+            return Ok(None);
         }
         let surface = surface.expect("acquired world output");
         let high = high.flatten();
@@ -33,7 +36,6 @@ impl Renderer {
         runtime
             .prepare(&self.gpu.device, &self.gpu.queue, presentation.core_mut())
             .map_err(js_error)?;
-        self.update_stats(presentation.core());
         if resized {
             self.rebind_display();
         }
@@ -84,9 +86,8 @@ impl Renderer {
         if let Some(high) = high {
             self.gpu.queue.present(high);
         }
-        self.stats.shared_passes += 1;
-        self.stats.frames += 1;
-        Ok(presentation.refresh_frame_header())
+        self.frames += 1;
+        Ok(Some(presentation.refresh_frame_header()))
     }
 
     /// Match WebGPU's queue completion boundary in the browser control.

@@ -11,7 +11,7 @@ import {
 import {
   GLOW_MAX_RADIUS_PX,
   validateOverlayGlow,
-} from "../../packages/battle-renderer/src/frame/overlayPass";
+} from "../../packages/battle-renderer/src/overlayStyle";
 import game from "../../fixtures/game.json";
 
 test("the HUD theme becomes channel triples every rule can give its own alpha", () => {

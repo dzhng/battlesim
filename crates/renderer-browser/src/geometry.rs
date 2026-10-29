@@ -64,17 +64,6 @@ impl PlayerMeshes {
         }
     }
 
-    pub(super) fn vertex_counts(&self) -> [usize; 5] {
-        [
-            &self.opaque,
-            &self.translucent,
-            &self.paint,
-            &self.marching,
-            &self.pointer,
-        ]
-        .map(|mesh| mesh.vertices.len() / 10)
-    }
-
     pub(super) fn recreate(&self, device: &Device) -> Self {
         let copy = |mesh: &Mesh| Mesh::new(device, mesh.vertices.clone());
         Self {

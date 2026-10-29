@@ -1,17 +1,11 @@
 // @vitest-environment node
 // The workbench's CPU seams: a dropped file judged as the CLI judges it and
-// installed through the one loader; the impostor atlas's framing and filter.
+// installed through the one loader.
 import { expect, test } from "vitest";
 import { previewRuntime } from "@packages/scene-assets/src/bake.ts";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
 import { validateLoose } from "@packages/scene-assets/src/loose.ts";
-import { farPoseBounds } from "@packages/scene-assets/src/pose.ts";
 import type { SkinnedBundle } from "@packages/scene-assets/src/schema.ts";
-import {
-  boxFilter,
-  impostorViews,
-  IMPOSTOR_SPEC,
-} from "@packages/battle-renderer/src/models/impostor.ts";
 import {
   AUTHORITY,
   SOLDIER_CLIPS,
@@ -63,41 +57,6 @@ test("a dropped skinned body brings its own clips, installed under their id", as
   );
   const installed = await new AppearanceLibrary(memoryFetch(files, "mem:/")).load("mem:/");
   expect(installed.skeletons.get("adhoc")!.clips.length).toBe(SOLDIER_CLIPS.length);
-});
-
-test("impostor cells frame the far pose's sphere the same from every side", async () => {
-  const result = await validateLoose("man.glb", soldierGlb(), empty, context);
-  const body = result.appearance!.preview as SkinnedBundle;
-  const bounds = farPoseBounds(body, result.clips!.preview!);
-  // The far pose (idle) stands: its bounds are a standing man's, not every clip's.
-  expect(bounds.max[2] - bounds.min[2]).toBeCloseTo(1.7, 1);
-  const reach = (b: typeof bounds) => Math.max(b.max[0] - b.min[0], b.max[1] - b.min[1]);
-  expect(reach(body.bounds)).toBeGreaterThan(reach(bounds) + 0.5); // the fall lies long
-  const frame = impostorViews(IMPOSTOR_SPEC, bounds);
-  expect(frame.views).toHaveLength(IMPOSTOR_SPEC.yaws * IMPOSTOR_SPEC.pitches.length);
-  const corners = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => [
-    k & 1 ? bounds.max[0] : bounds.min[0],
-    k & 2 ? bounds.max[1] : bounds.min[1],
-    k & 4 ? bounds.max[2] : bounds.min[2],
-    1,
-  ]);
-  for (const view of frame.views)
-    for (const c of corners) {
-      const m = view.viewProj;
-      const x = m[0] * c[0] + m[4] * c[1] + m[8] * c[2] + m[12];
-      const y = m[1] * c[0] + m[5] * c[1] + m[9] * c[2] + m[13];
-      const z = m[2] * c[0] + m[6] * c[1] + m[10] * c[2] + m[14];
-      expect(Math.abs(x)).toBeLessThanOrEqual(1 + 1e-6);
-      expect(Math.abs(y)).toBeLessThanOrEqual(1 + 1e-6);
-      expect(z).toBeGreaterThanOrEqual(-1e-6);
-      expect(z).toBeLessThanOrEqual(1 + 1e-6);
-    }
-});
-
-test("the atlas filter weights colour by coverage, so edges never darken", () => {
-  // Two texels: opaque red and fully transparent black.
-  const source = Uint8Array.from([255, 0, 0, 255, 0, 0, 0, 0, 255, 0, 0, 255, 0, 0, 0, 0]);
-  expect(Array.from(boxFilter(source, 2, 2, 2))).toEqual([255, 0, 0, 128]);
 });
 
 test("a dropped kit preview uses the same gzip transport and installs its actual module geometry", async () => {

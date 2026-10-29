@@ -8,19 +8,17 @@ struct Failure {
     sender: Option<oneshot::Sender<Option<String>>>,
     message: Option<String>,
     disposed: bool,
-    losses: u32,
 }
 
 struct FailureState(Mutex<Failure>);
 
 impl FailureState {
-    fn report(&self, message: String, lost: bool) {
+    fn report(&self, message: String) {
         let sender = {
             let mut state = self.0.lock().expect("GPU failure lock");
             if state.disposed {
                 return;
             }
-            state.losses += u32::from(lost);
             if state.message.is_some() {
                 return;
             }
@@ -62,10 +60,6 @@ impl GpuInner {
             Some(message) => Err(js_error(message)),
             None => Ok(()),
         }
-    }
-
-    pub(super) fn losses(&self) -> u32 {
-        self.failure.0.lock().expect("GPU failure lock").losses
     }
 }
 
@@ -113,15 +107,14 @@ impl BrowserGpu {
             sender: Some(sender),
             message: None,
             disposed: false,
-            losses: 0,
         })));
         let errors = state.clone();
         device.on_uncaptured_error(Arc::new(move |error| {
-            errors.report(format!("WebGPU error: {error}"), false);
+            errors.report(format!("WebGPU error: {error}"));
         }));
         let losses = state.clone();
         device.set_device_lost_callback(move |reason, message| {
-            losses.report(format!("WebGPU device lost ({reason:?}): {message}"), true);
+            losses.report(format!("WebGPU device lost ({reason:?}): {message}"));
         });
         let failure = wasm_bindgen_futures::future_to_promise(async move {
             Ok(receiver

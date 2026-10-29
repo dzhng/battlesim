@@ -72,3 +72,9 @@ export class AppResources {
 }
 
 export const appResources = new AppResources();
+
+/** Required rendering failures carry the browser admission remedy. */
+export function gpuFailureMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return `${message} Enable WebGPU or use a browser/GPU combination that exposes navigator.gpu.`;
+}

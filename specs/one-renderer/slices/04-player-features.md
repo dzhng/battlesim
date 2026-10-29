@@ -1,6 +1,7 @@
 # Slice 04 — production browser feature parity
 
-**Status:** production integration implemented; reviewed checkpoint pending.
+**Status:** complete. Production checkpoint `69a01c6e4` is reviewed and pushed;
+retained diagnostic gates also pass after TypeGPU deletion.
 Shared paint/x-ray, high-air, canonical lab/proxy models, impostors, inspector
 modes, queries, production viewport and sheets use the common runtime.
 
@@ -57,22 +58,26 @@ its shared fog-shape probe returns the required ordered GPU samples.
 
 Raw evidence and the remaining native numerical investigation live in
 [research](../research.md). The normal application now receives canvas/pixel APIs from the shared Rust
-runtime. TypeGPU remains only as a temporary comparison/tooling owner pending
-slice 05 deletion.
+runtime. The TypeGPU control is frozen as scratch evidence; its runtime and dependency
+are deleted by slice 05.
 
-## Remaining gates
+## Acceptance evidence
 
-- Replace production viewport and offscreen sheet GPU-handle interfaces with
-  canvas/pixel APIs; preserve loading, failures, recovery and latest-generation
-  appearance replacement.
-- Admit box/marker proxies through ordinary model assets/batches; preserve
-  infantry's pick-only behavior. Exercise the real workbench/facade consumers.
-- Exercise nonempty browser high-air composition, configured review bakes,
-  live material/quality toggles, real fog/grass probes and exact submitted counts.
-- Complete quality rebuilding, including shadow size and grass density, and
-  preserve controls across rebuilds.
-- Preserve the named terrain depth-policy correction: the complete tiny native
-  delta is isolated to removing the obsolete `always` depth workaround.
-- Commit/push the reviewed core checkpoint, then continue production consumer
-  migration. Independent review's fog recovery, lab cards and paint clear
-  findings are fixed; regression evidence is in research.
+Production viewport and offscreen sheets use canvas/pixel APIs and one page GPU.
+Latest-generation appearance, proxy and facade/workbench consumers pass the
+production checkpoint. Nonempty high-air, impostors, quality rebuilding,
+material controls, exact submitted counts and grass/fog probes are implemented.
+The named terrain depth-policy correction remains unchanged.
+
+Deletion retains the former ownership controls through ordinary BrowserScene:
+queued snapshots preserve their submitted image while a different view renders;
+resize, surface reconfiguration and actual device recreation preserve pixels;
+recovered fog queries retain both seen and unseen points. Ghost alpha, depth and
+fog rules pass for skinned, articulated and static authored models. All four
+terrain material helpers preserve distance and bit-exact filter gates, and
+release every observed buffer/texture wrapper after explicit collection.
+
+The full fog journey also passes its unchanged performance.measure guard after
+live observation props move through the existing stable feed boundary. Detailed
+raw evidence and instrumentation limits remain in research; repository-wide
+closeout belongs to slice 05.

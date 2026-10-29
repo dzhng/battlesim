@@ -52,4 +52,4 @@ are labeled rather than passed off as lossless live weapon recordings.
 Outside this folder, the wordmark's face `web/src/fonts/barlow-condensed-500-latin.woff2`
 is Barlow Condensed Medium's Latin subset as Google Fonts serves it
 (<https://fonts.google.com/specimen/Barlow+Condensed>), under the SIL Open Font
-License 1.1; its licence is `OFL.txt` beside it. The PBR, PMREM, DFG lookup and AgX shader code in `packages/battle-renderer/src/shaders/` is derived from three.js (MIT); its licence is `LICENSE.three` beside it.
+License 1.1; its licence is `OFL.txt` beside it. The shared renderer’s PBR, PMREM, DFG lookup and AgX algorithms derive from three.js (MIT); its [licence](../crates/renderer-core/LICENSE.three) stays with the [common shader owner](../crates/renderer-core/src/shaders/README.md).

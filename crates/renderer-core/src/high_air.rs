@@ -105,7 +105,7 @@ impl HighAir {
                 }),
                 ..Default::default()
             });
-            let camera = ("typegpuCameraLayout", &environment.camera);
+            let camera = ("cameraLayout", &environment.camera);
             for (pipeline, surface) in [
                 (&self.solid, Surface::Solid),
                 (&self.cutout, Surface::Cutout),

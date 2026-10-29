@@ -13,7 +13,7 @@ import type summer from "@fixtures/biomes/summer.json";
 import type { Mesh, Rgba } from "../mesh";
 import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
 import type { TerrainGrid } from "./terrainGrid";
-import type { FogSource } from "../frame/fogVisibility";
+import type { FogSource } from "../fog";
 
 /** A biome file (`fixtures/biomes/`), as the page reads it: Rust admits it
  *  (`ground::biome`) and resolves the ground from it; the page reads the grass

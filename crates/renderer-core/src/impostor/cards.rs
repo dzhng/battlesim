@@ -195,9 +195,6 @@ impl Cards {
     pub fn layers(&self) -> u32 {
         self.albedo.texture().depth_or_array_layers()
     }
-    pub fn run_count(&self) -> u32 {
-        self.runs.len() as u32
-    }
     pub fn has_pass(&self, pass: u32) -> bool {
         self.runs
             .iter()

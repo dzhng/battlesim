@@ -3,7 +3,7 @@
 // The biome's growth, the props' margins, the packed shapes and each frame's
 // window and parameters are the ground's (`crates/presentation`'s
 // `ground::grass`); where clumps stand, how many and how tall is decided per
-// frame on the GPU (`frame/grassPass.ts`); nothing here is per clump.
+// frame by the shared Rust renderer; nothing here is per clump.
 //
 // The field is a technique rewrite of ~/dev/game's
 // grassField.ts and battleGrassResidency.ts, after the Ghost of Tsushima

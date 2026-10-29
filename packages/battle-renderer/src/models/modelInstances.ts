@@ -17,7 +17,7 @@ import {
 } from "@packages/scene-assets/src/articulation";
 import { poseWorlds, worldTransforms } from "@packages/scene-assets/src/pose";
 import { isRgba, type Rgba } from "../mesh";
-import { INSTANCE_WORDS, JOINT_WORDS } from "../records.gen";
+import { JOINT_WORDS } from "../records.gen";
 
 /** A body or vehicle posed by its joint palette: one `Joint` (3×4 rows,
  *  `records.gen.ts`) per joint or node. */
@@ -139,52 +139,4 @@ export function posedPalette(
     };
   }
   return { kind: "static", state: bundle.states[0].name };
-}
-
-/** The authored resting model: shared by placement previews and far-model bakes. */
-export function restingModelPose(
-  bundle: Exclude<Bundle, SkeletonClips>,
-  skeleton: SkeletonClips | null,
-): ModelPose {
-  return posedPalette(bundle, skeleton);
-}
-
-/** A column-major model matrix into palette joint `at`, as its 3×4 rows. */
-export function writeJoint(into: Float32Array, at: number, m: ArrayLike<number>) {
-  const o = at * JOINT_WORDS;
-  for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) into[o + r * 4 + c] = m[c * 4 + r];
-}
-const NO_XRAY = [0, 0, 0, 0] as const;
-/** An x-ray colour's rgb as one integer under 2^24, which f32 holds exactly
- *  (the vertex stage unpacks it). */
-export function packXray(c: readonly number[]): number {
-  const byte = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 255);
-  return byte(c[0]) * 65536 + byte(c[1]) * 256 + byte(c[2]);
-}
-/** A model drawn without a side keeps its authored colours. */
-const NO_TINT = [1, 1, 1] as const;
-const UNIT_SCALE = [1, 1, 1] as const;
-export function writeRecord(
-  into: Float32Array,
-  at: number,
-  inst: ModelInstance,
-  base: number,
-  scrollL: number,
-  scrollR: number,
-  layer: number,
-) {
-  const r = at * INSTANCE_WORDS;
-  into[r] = inst.x;
-  into[r + 1] = inst.y;
-  into[r + 2] = inst.z;
-  into[r + 3] = inst.yaw;
-  into[r + 4] = base;
-  into[r + 5] = scrollL - Math.floor(scrollL);
-  into[r + 6] = scrollR - Math.floor(scrollR);
-  const presentation = inst.ghost ?? inst.xray ?? NO_XRAY;
-  into[r + 7] = packXray(presentation);
-  into.set(inst.tint ?? NO_TINT, r + 8);
-  into[r + 11] = layer < 0 && inst.highlight ? -2 : layer;
-  into.set(inst.scale ?? UNIT_SCALE, r + 12);
-  into[r + 15] = presentation[3];
 }

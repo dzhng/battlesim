@@ -11,7 +11,7 @@ impl Renderer {
         bundle: &[u8],
         texture_ids: js_sys::Array,
         textures: js_sys::Array,
-    ) -> Result<String, JsValue> {
+    ) -> Result<(), JsValue> {
         let payloads = texture_payloads(texture_ids, textures)?;
         let refs = payloads
             .iter()
@@ -20,14 +20,7 @@ impl Renderer {
         Arc::make_mut(&mut self.model_library)
             .insert_bundle(&name, bundle, &refs)
             .map_err(js_error)?;
-        let report = format!(
-            "{{\"name\":{}}}",
-            js_sys::JSON::stringify(&JsValue::from_str(&name))?
-                .as_string()
-                .unwrap_or_default()
-        );
-        self.asset_report = Some(report.clone());
-        Ok(report)
+        Ok(())
     }
 }
 

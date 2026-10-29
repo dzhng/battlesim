@@ -409,7 +409,7 @@ export async function run(ctx) {
  *  is drawn, at the barrel's tip where the round leaves. */
 async function apache(ctx, page, css, surface) {
   await lab(page, (v) => window.__lab.route.variant(v), "apache");
-  await page.waitForFunction(() => window.__lab.route?.reset);
+  await page.waitForFunction(() => window.__lab?.route?.reset);
   await lab(page, () => window.__lab.route.reset());
   await page.waitForFunction(() => window.__lab.route?.tick() > 0);
   await lab(page, () => window.__lab.route.pause());
@@ -669,8 +669,8 @@ async function begin(page, variant, until = "identified") {
   await lab(page, () => window.__lab.route.reset());
   await page.waitForFunction(
     (until) => {
-      const o = window.__lab.route?.observation();
-      if (!(window.__lab.route?.tick() > 3 && o)) return false;
+      const o = window.__lab?.route?.observation();
+      if (!(window.__lab?.route?.tick() > 3 && o)) return false;
       return until === "aloft"
         ? o.contacts.some((c) => c.aloft)
         : o.identified.some((u) => u.kind === "test_heli");

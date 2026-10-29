@@ -3,10 +3,7 @@
 // light, and the buildings' tiers, chunks and pool. Every view that draws models (the
 // battle, the labs, the workbench) draws with them.
 import game from "@fixtures/game.json";
-import {
-  validateGlass,
-  type GlassStyle,
-} from "@packages/battle-renderer/src/models/surfaceFragments";
+import { validateGlass, type GlassStyle } from "@packages/battle-renderer/src/models/glass";
 import {
   validateBuildingStyle,
   type BuildingStyle,

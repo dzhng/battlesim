@@ -1,6 +1,21 @@
 //! Opt-in GPU timestamps and snapshots of renderer-owned memory.
 use super::*;
 
+#[wasm_bindgen(inline_js = "export function report_panic(message) {
+  setTimeout(() => { throw new Error(message); });
+}")]
+extern "C" {
+    fn report_panic(message: &str);
+}
+
+/// Report the original panic before its trap leaves exported handles borrowed.
+#[wasm_bindgen(start)]
+pub fn report_panics() {
+    std::panic::set_hook(Box::new(|info| {
+        report_panic(&format!("presentation/renderer panic: {info}"));
+    }));
+}
+
 #[wasm_bindgen]
 impl Renderer {
     /// Enable the same whole-frame timestamp markers as the browser control.

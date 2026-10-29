@@ -59,7 +59,7 @@ impl Sky {
 
         let bake = device.create_bind_group(&BindGroupDescriptor {
             label: Some("sky-bake"),
-            layout: pipelines.layout("bake - Automatic Bind Group & Layout"),
+            layout: pipelines.layout("skyBakeLayout"),
             entries: &[BindGroupEntry {
                 binding: 0,
                 resource: light.as_entire_binding(),
@@ -88,7 +88,7 @@ impl Sky {
 
         let group = device.create_bind_group(&BindGroupDescriptor {
             label: Some("sky-background"),
-            layout: pipelines.layout("background - Automatic Bind Group & Layout"),
+            layout: pipelines.layout("skyBackgroundLayout"),
             entries: &[
                 BindGroupEntry {
                     binding: 0,

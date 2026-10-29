@@ -1,12 +1,11 @@
-//! The model layer (`models/modelLayer.ts`): the units, corpses, ghosts and
-//! moving wreck pieces a `Frame` lists, drawn from the browser's appearance
-//! bundles through the browser's model pipelines.
+//! Units, corpses, ghosts and moving wreck pieces from canonical frame records,
+//! drawn from authored appearance bundles through the shared model pipelines.
 //!
 //! At load, `World.appearances` rows share their authored mesh tiers on the GPU,
-//! packed into the browser's 48-byte vertex (`packVertices`) with each mesh's
-//! indices ordered by surface class (`surfaceParts.ts`): a posed body and an
+//! packed into the shared vertex format (`geometry::pack_vertices`) with each
+//! mesh's indices ordered by surface class: a posed body and an
 //! articulated hull skin by the frame's palettes; a corpse is its body posed
-//! once as it lies (`posedMesh`, by the presentation crate's palette for the
+//! once as it lies (`geometry::posed_mesh`, by presentation's palette for the
 //! row); a static state is rigid. Each frame the palettes and the units'
 //! instances are written whole; the static world's batches are held between
 //! frames (`statics.rs`). Each batch is one run of instances over one row's
@@ -361,7 +360,6 @@ fn drawable(
 
 pub struct Models {
     installed: Vec<String>,
-    resident_vertices: u32,
     row_names: Vec<String>,
     pub submissions: crate::submitted::Submissions,
     rows: Vec<Option<Row>>,
@@ -556,28 +554,6 @@ impl Models {
     /// its own from them.
     pub fn statics(&self) -> &Statics {
         &self.statics
-    }
-
-    /// Resident authored mesh geometry; cards carry only their atlas images.
-    pub fn resident_vertices(&self) -> u32 {
-        self.resident_vertices
-    }
-
-    pub fn material_words(&self) -> u32 {
-        (self.materials.size() / 4) as u32
-    }
-
-    pub fn run_count(&self) -> u32 {
-        self.runs.len() as u32 + self.cards.as_ref().map_or(0, Cards::run_count)
-    }
-
-    pub fn caster_run_counts(&self) -> [u32; 4] {
-        std::array::from_fn(|cascade| {
-            self.runs
-                .iter()
-                .filter(|run| run.caster_for(cascade).is_some())
-                .count() as u32
-        })
     }
 
     /// What the last prepared frame draws.

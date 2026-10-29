@@ -10,6 +10,11 @@
 use std::ops::{Deref, DerefMut};
 use wgpu::*;
 
+/// Full-frame targets and platform surfaces share the camera's minimum extent.
+pub fn render_size(size: [u32; 2]) -> [u32; 2] {
+    size.map(|value| value.max(presentation::records::MIN_TARGET_PX))
+}
+
 pub mod bundle;
 pub mod depth;
 pub mod effects;
@@ -27,6 +32,7 @@ pub mod model_material;
 pub mod models;
 pub mod overlay;
 pub mod paint;
+mod pipeline_registry;
 pub mod pipelines;
 pub mod post;
 pub mod probes;

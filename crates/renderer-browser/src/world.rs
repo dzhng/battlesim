@@ -51,11 +51,7 @@ impl Renderer {
             .collect();
         let refs: Vec<_> = bytes.iter().map(Vec::as_slice).collect();
         // The authored atlas side is exported with the production pipeline sizes.
-        let manifest: serde_json::Value =
-            serde_json::from_str(pipeline_export::MANIFEST).map_err(js_error)?;
-        let side = manifest["sizes"]["effectSheet"]
-            .as_u64()
-            .ok_or_else(|| js_error("missing effect sheet size"))? as u32;
+        let side = renderer_core::pipelines::builtin_sizes().effect_sheet as u32;
         self.effect_sheets = Some(Arc::new(
             EffectSheets::decode(side, &refs).map_err(js_error)?,
         ));
@@ -81,19 +77,9 @@ impl Renderer {
                     .clone()
                     .ok_or_else(|| js_error("load effect sheets first"))?,
             },
-            pipeline_export::MANIFEST,
-            |_, shader| {
-                pipeline_export::source(shader)
-                    .map(str::to_owned)
-                    .ok_or_else(|| format!("missing shader {shader}"))
-            },
         )
         .map_err(js_error)?;
         runtime.set_overlay_glow(&self.gpu.queue, self.overlay_glow);
-        self.stats.fog_sight_uploads += self
-            .runtime
-            .as_ref()
-            .map_or(0, |r| r.fog.upload_count() as u32);
         self.runtime = Some(runtime);
         self.rebind_display();
         presentation.refresh_frame_header();

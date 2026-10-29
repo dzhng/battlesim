@@ -25,6 +25,12 @@ export async function run(ctx) {
   // keep journey pictures focused on the player's view.
   await page.addStyleTag({ content: ".frame-rate { display: none !important; }" });
   await page.evaluate(() => window.__lab.route.pause());
+  // Pin GPU animation phase as well as simulation state before the journey.
+  const captureTick = 60;
+  const arrivedTick = (await obs(page)).tick;
+  if (arrivedTick > captureTick)
+    throw new Error(`roster capture started late at tick ${arrivedTick}`);
+  await advance(page, captureTick - arrivedTick);
   await presented(page);
   const initial = await obs(page);
   check(

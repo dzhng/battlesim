@@ -15,8 +15,7 @@ for browser fetches. The held static batch buffers also belong to this core, so
 a frame that names an unchanged batch has the same meaning on either target.
 Appearance rows route instances rather than own copies of their meshes. Rows
 that select the same authored state/pose share immutable GPU tiers within one
-asset generation; corpse poses remain distinct. Admission computes resident
-geometry totals once from those owners.
+asset generation; corpse poses remain distinct.
 Scenery also shares authored tier admission and held-batch routing. The runtime
 reads the ground's kind order and stump meshes from presentation, preserving its
 authority over placement.
@@ -67,11 +66,22 @@ against that same world-only depth, then leaves silhouettes for
 Opaque display marks write a copy of physical depth taken before grass;
 translucent marks only read it. Their information colors compose after post.
 
-Pipeline construction accepts exported metadata plus a source provider, so the
-native shell reads files while the browser shell supplies fetched strings.
-Directional shadow resources own their depth array, receiver and cascade camera
-bindings. Cascade membership remains the presentation's decision; the shared
-frame preserves it for ground, indexed models and scenery.
+Pipeline construction uses the typed catalog and [composed WGSL](src/shaders/README.md)
+owned by this crate. Native and browser call the same descriptor and
+source owner; no shell reads a manifest or supplies shader text. The catalog
+uses the actual `wgpu` binding, vertex, target, depth and multisample types.
+The ABI test reflects every WGSL record against `presentation::records::LAYOUTS`
+for member offsets and spans. Directional shadow resources own their depth
+array, receiver and cascade camera bindings. Cascade membership remains the
+presentation's decision; the shared frame preserves it for ground, indexed
+models and scenery.
+
+The environment lookup data and adapted material algorithms retain their
+[three.js MIT attribution](LICENSE.three).
+
+The [source/artifact inventory](../../tools/renderer-accounting.mjs) separates
+maintained shader source from expanded/generated payload. Actual route transfer
+cost requires browser request evidence rather than adding every emitted chunk.
 
 Fog sight also has one GPU owner. The presentation's canonical
 [`FogUpload`](../presentation/src/fog/upload.rs) describes one drawn frame;

@@ -7,12 +7,9 @@ import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
 import {
   validateOverlayGlow,
   type OverlayGlowStyle,
-} from "@packages/battle-renderer/src/frame/overlayPass";
+} from "@packages/battle-renderer/src/overlayStyle";
 import { validateOrderStyle, type OrderStyle } from "@packages/battle-renderer/src/orderOverlay";
-import {
-  validatePaintStyle,
-  type PaintStyle,
-} from "@packages/battle-renderer/src/frame/paintedMarks";
+import { validatePaintStyle, type PaintStyle } from "@packages/battle-renderer/src/paintStyle";
 import { validateSupplyStyle, type SupplyStyle } from "@packages/battle-renderer/src/supplyOverlay";
 import type { Rgba } from "@packages/battle-renderer/src/mesh";
 import {

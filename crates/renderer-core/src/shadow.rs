@@ -81,7 +81,7 @@ impl ShadowResources {
             .map(|camera| {
                 bind(
                     device,
-                    pipelines.layout("typegpuCameraLayout"),
+                    pipelines.layout("cameraLayout"),
                     "sun-caster",
                     &[camera.as_entire_binding()],
                 )
