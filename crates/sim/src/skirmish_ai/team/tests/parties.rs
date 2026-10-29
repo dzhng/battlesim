@@ -549,7 +549,7 @@ fn a_group_readies_without_its_air_defence_at_the_backline() {
 fn a_carrier_and_its_passengers_go_to_a_party_together() {
     let rules = team_rules();
     let players = blue_ai(1);
-    // Nearest the open centre, though not on it: a tank, then a carrier
+    // Nearest the open centre, 150 m short of it: a tank, then a carrier
     // with a rifle squad aboard. The claim has room for two; the main
     // group's tanks stand back in the west lane.
     let mut units = tanks(4, [100.0, 100.0], 0);
@@ -560,7 +560,7 @@ fn a_carrier_and_its_passengers_go_to_a_party_together() {
     ]);
     let mut memory = TeamMemory::default();
     let mut frame = frame(&rules, &units, [None, None, Some(Side::Red)]);
-    let (carrier, squad) = (frame.own[5].id, frame.own[6].id);
+    let (tank, carrier, squad) = (frame.own[4].id, frame.own[5].id, frame.own[6].id);
     frame.own[6].hold = Some(contract::observation::HoldState {
         host: contract::observation::HostRef::Carrier { id: carrier.0 },
         phase: contract::observation::HoldPhase::Inside,
@@ -569,6 +569,17 @@ fn a_carrier_and_its_passengers_go_to_a_party_together() {
     let plan = step(&rules, &mut frame, &players, &mut memory, tuning());
     let claim = party(&plan, PartyKind::Claim, "centre").expect("the centre is claimed");
     assert!(claim.units.len() <= tuning().claim_party_size, "{claim:?}");
+    // The tank takes one place; the carrier and its squad need two, so a
+    // tank from the main group takes the other.
+    assert!(
+        claim.units.contains(&tank),
+        "the nearest goes first: {claim:?}"
+    );
+    assert_eq!(
+        claim.units.len(),
+        2,
+        "the pair left room for another: {claim:?}"
+    );
     for party in &plan.parties {
         assert_eq!(
             party.units.contains(&carrier),
