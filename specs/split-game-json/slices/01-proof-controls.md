@@ -45,3 +45,19 @@ deterministic. The focused oracles stay green unflagged:
 
 **Would change this slice:** the probe being non-deterministic. Fix the
 source of the non-determinism; don't add a tolerance.
+
+**Done (proof probe):** regenerate the unrounded battle dumps and composed
+shaders from the repository root:
+
+```sh
+cargo run --profile test -p presentation --example split_proof -- /Users/server/dev/battlesim/throwaway/split-game-json/before
+cargo run -p renderer-core --example split_proof_shaders -- /Users/server/dev/battlesim/throwaway/split-game-json/before/shaders
+```
+
+Two runs matched all 77 files byte for byte (`before/SHA256SUMS` and
+`repeat/SHA256SUMS` in shared scratch). Coverage includes all 49 rows, soldier
+poses, an encounter-added derived weapon, and both BMP-3 main-mount weapons.
+The focused oracles above and the sound scene passed; `firefight.wav` and six
+native plates are in shared `before/`. Native wrote all plates but exited with
+a pre-existing backdrop count mismatch at plate 1118 (737 versus 628), recorded
+in `before/native/capture.log`; no production code or baselines were changed.
