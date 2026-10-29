@@ -112,7 +112,7 @@ impl Rules {
             ("suppression", self.suppression.check()),
             ("navigation", self.navigation.check()),
             ("sensors", self.sensors.check()),
-            ("forests", self.forests.check(&self.catalog)),
+            ("forests", self.forests.check()),
             ("formation", self.formation.check()),
             ("commands", self.commands.check()),
             ("carriage", self.carriage.check()),

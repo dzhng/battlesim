@@ -304,18 +304,11 @@ preparation remain covered separately.
 A record belongs here only if both sides read it, and it stores a hash of the output unless a reader needs the bytes. A snapshot of one implementation's own output, read by that implementation alone, is not a paired record: state the rule in a test instead.
 
 
-## Forest floor cover
+## Forest ground
 
-The one `forests.rule` controls sparse log and boulder candidate density and
-physical size. The forest's catalog references select their body properties.
-The world places floor cover after all trunks with independent seeds, so changing
-floor density cannot shift any trunk or its published source range. Candidates
-that conflict with trees, roads, water, bodies or the forest boundary are omitted;
-per-hectare densities are placement ceilings, not guaranteed counts. The floor
-adds no concealment. Uncleared forest ground uses the single
-`forests.rule.concealment` multiplier for every unit; differences in how well
-bodies hide belong on the units, never an infantry/vehicle forest split. Trunk
-crowns separately own sight-line attenuation. The rules' required
+Uncleared forest ground uses the single `forests.rule.concealment` multiplier
+for every unit; differences in how well bodies hide belong on the units.
+Trunk crowns separately own sight-line attenuation. The required
 `sensors.moving_concealment` multiplier applies while a move order is in
 progress; it is at least one, so moving cannot improve concealment.
 

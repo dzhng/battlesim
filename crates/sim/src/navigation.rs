@@ -43,7 +43,6 @@ pub mod air;
 mod base;
 mod cells;
 mod check;
-mod floor;
 mod foot;
 mod journey;
 mod mobility;

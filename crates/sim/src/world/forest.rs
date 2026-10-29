@@ -164,13 +164,6 @@ impl ForestState {
     }
 }
 
-pub(super) struct FloorBody<'a> {
-    pub kind: &'a str,
-    pub density: f64,
-    pub half: [f64; 3],
-    pub salt: u64,
-}
-
 impl WorldGeometry {
     /// Where `forest`'s trunks stand (Q16): a grid at the rule's spacing,
     /// each trunk jittered off its cell's centre, none near a road or
@@ -180,84 +173,6 @@ impl WorldGeometry {
             .into_iter()
             .map(|[x, y]| v2(x, y))
             .collect()
-    }
-
-    /// Independent jittered lattices place sparse floor bodies in gaps. A
-    /// rejected candidate stays rejected: no retries, and no trunks move.
-    pub(super) fn place_forest_bodies(
-        &mut self,
-        index: usize,
-        forest: &Forest,
-        placement: FloorBody<'_>,
-        nav: &mut crate::navigation::NavGrid,
-        movers: &[crate::navigation::Mobility],
-    ) {
-        let FloorBody {
-            kind,
-            density,
-            half,
-            salt,
-        } = placement;
-        let step = (10_000.0 / density).sqrt();
-        let [x0, y0, max_x, max_y] = forest.shape.limits();
-        assert!(
-            [x0, y0, max_x, max_y]
-                .iter()
-                .all(|v| (v + step).is_finite() && v + step > *v),
-            "forest floor lattice spacing must advance at every bound"
-        );
-        let radius = libm::hypot(half[0], half[1]);
-        let clearance = self.forest.rule.trunk_clearance_m;
-        let mut rng =
-            contract::random::Rng::new(contract::forest::forest_seed(index, forest) ^ salt);
-        let mut y = y0 + step / 2.0;
-        while y <= max_y {
-            let mut x = x0 + step / 2.0;
-            while x <= max_x {
-                let p = v2(
-                    x + (rng.unit() * 2.0 - 1.0) * self.forest.rule.trunk_jitter * step,
-                    y + (rng.unit() * 2.0 - 1.0) * self.forest.rule.trunk_jitter * step,
-                );
-                let yaw = rng.unit() * std::f64::consts::TAU;
-                let inside = match &forest.shape {
-                    contract::ground::GroundShape::Polygon { ring } => {
-                        forest.shape.contains([p.x, p.y], 0.0)
-                            && contract::ground::edges(ring).all(|(a, b)| {
-                                contract::ground::segment_distance(*a, *b, [p.x, p.y]) >= radius
-                            })
-                    }
-                    contract::ground::GroundShape::Stroke { .. } => {
-                        forest.shape.contains([p.x, p.y], -radius)
-                    }
-                };
-                let clear = inside
-                    && p.x >= radius
-                    && p.y >= radius
-                    && p.x + radius <= self.field.width()
-                    && p.y + radius <= self.field.depth()
-                    && !self.surfaces.road_near(p, radius + clearance)
-                    && !self.surfaces.water_near(p, radius + clearance)
-                    && self
-                        .props_near(p, radius + clearance)
-                        .iter()
-                        .all(|q| q.footprint().distance(p) >= radius + clearance);
-                if clear {
-                    let def = contract::map::PropDefinition {
-                        kind: kind.into(),
-                        center: [p.x, p.y],
-                        yaw,
-                        half_extents: half,
-                        base_z: None,
-                        wreck_of: None,
-                    };
-                    if nav.admit_floor_body(self, self.placed_prop(&def), movers) {
-                        self.add_prop(&def);
-                    }
-                }
-                x += step;
-            }
-            y += step;
-        }
     }
 
     /// Record a forest's reach once its trunks stand.

@@ -190,19 +190,3 @@ test("the street test map's authored props and their remains have accepted bindi
       placed.push(t.destroyed.into.prop);
   }
 });
-
-test("the street test map enables generated floor blockers only with accepted drawing", () => {
-  for (const [kindField, densityField] of [
-    ["log", "logs_per_ha"],
-    ["boulder", "boulders_per_ha"],
-  ]) {
-    if (game.forests.rule[densityField] <= 0) continue;
-    const kind = game.forests[kindField];
-    const t = units.view.props[kind];
-    expect(t.appearance.status, `${kind}: active generated cover must draw`).toBeUndefined();
-    expect(
-      propEntries.some(([, e]) => e.scenery === t.appearance.drawn_by),
-      kind,
-    ).toBe(true);
-  }
-});

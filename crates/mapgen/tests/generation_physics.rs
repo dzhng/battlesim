@@ -48,15 +48,14 @@ fn physical_rules_are_explicit_generation_inputs_and_identity() {
 }
 
 #[test]
-fn physical_generation_refuses_a_floor_the_world_cannot_build() {
+fn physical_generation_refuses_invalid_forest_concealment() {
     let mut rules = sim::fixtures::test_game();
-    // A resolved input still needs the same physical floor contract as a
-    // battle; silently admitting this density would make world construction fail.
-    rules["forests"]["rule"]["logs_per_ha"] = serde_json::json!(101.0);
+    // Generation and the battle share the forest concealment contract.
+    rules["forests"]["rule"]["concealment"] = serde_json::json!(2.0);
     assert!(
         contract::generation_physics::GenerationPhysics::from_rules_json(&rules.to_string())
             .is_err(),
-        "generation admitted a forest floor the battle refuses"
+        "generation admitted forest concealment the battle refuses"
     );
 }
 
