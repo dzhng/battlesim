@@ -96,6 +96,8 @@ def cab(v):
         box(f"door_window_{s}", (0.68, 0.03, 0.46), (1.55, y, 2.28), m["glass"], hull, lods=MID)
         box(f"door_handle_{s}", (0.14, 0.04, 0.04), (1.20, y + side * 0.02, 1.80), m["steel"], hull, lods=FINE)
         box(f"step_{s}", (0.30, 0.20, 0.04), (1.40, side * 1.05, 0.62), m["steel"], hull, lods=MID)
+        # Step bracket connecting step to chassis rail
+        box(f"step_bracket_{s}", (0.08, 0.60, 0.08), (1.40, side * 0.75, 0.80), m["dark"], hull, lods=MID)
         mirror = empty(f"dressing_mirror_{s}", parent=hull)
         box(f"mirror_arm_{s}", (0.04, 0.22, 0.04), (CAB_FRONT, side * 1.16, 2.20), m["black"], mirror, lods=NEAR)
         box(f"mirror_{s}", (0.05, 0.14, 0.30), (CAB_FRONT, side * 1.27, 2.15), m["black"], mirror, bevel=0.012,
@@ -103,6 +105,8 @@ def cab(v):
     for side in (-1, 1):
         box(f"windscreen_{side}", (0.03, 0.88, 0.50), (CAB_FRONT - 0.04, side * 0.48, 2.28), m["glass"], hull,
             rot=(0, -0.12, 0), lods=MID)
+        # Seat cushion and back
+        box(f"seat_cushion_{side}", (0.45, 0.45, 0.12), (1.18, side * 0.50, 1.06), m["black"], hull, lods=NEAR)
         box(f"seat_back_{side}", (0.12, 0.45, 0.55), (1.05, side * 0.50, 1.70), m["black"], hull, lods=NEAR)
     box("dash", (0.35, 1.90, 0.20), (1.95, 0, 1.75), m["black"], hull, lods=NEAR)
     cyl("cab_marker", 0.04, 0.05, (CAB_FRONT - 0.30, 0.0, ROOF + 0.02), "Z", m["tail"], hull, seg=10, lods=FINE)
