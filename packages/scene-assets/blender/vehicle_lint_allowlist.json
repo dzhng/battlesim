@@ -1,281 +1,89 @@
 {
-  "_comment": "Allowlist of intentional geometry gaps. Parts matching these patterns are not flagged as floating.",
+  "_comment": "Allowlist of intentional geometry gaps. Only truly hidden interior parts, articulating components needing clearance, and thin structural elements that can't practically show contact belong here.",
   "patterns": [
     {
-      "part_pattern": "wheel_*_sprocket_hub",
-      "reason": "Sprocket hub caps protrude 2.5cm beyond wheel body by design for track guide"
-    },
-    {
-      "part_pattern": "wheel_*_idler_hub",
-      "reason": "Idler hub caps protrude 2.5cm beyond wheel body by design for track guide"
-    },
-    {
       "part_pattern": "dash*",
-      "reason": "Dashboard is interior cab component, not structurally attached to hull exterior"
+      "reason": "Interior cab dashboard, not visible from gameplay camera"
     },
     {
       "part_pattern": "seat_back_*",
-      "reason": "Crew seat backs in open cabs are interior furniture, not hull structure"
+      "reason": "Interior crew seat, not visible from gameplay camera"
     },
     {
       "part_pattern": "seat_base_*",
-      "reason": "Crew seat bases in open cabs are interior furniture, not hull structure"
-    },
-    {
-      "part_pattern": "nav_light_*",
-      "reason": "Navigation lights on aircraft mounted on thin stalks/fairings"
+      "reason": "Interior crew seat, not visible from gameplay camera"
     },
     {
       "part_pattern": "gear_*_door",
-      "reason": "Landing gear bay doors need clearance for articulation"
-    },
-    {
-      "part_pattern": "pintle",
-      "reason": "Pintle weapon mounts need clearance for traverse"
-    },
-    {
-      "part_pattern": "probe_*",
-      "reason": "Refueling probes and sensors on thin stalks"
-    },
-    {
-      "part_pattern": "fume_extractor",
-      "reason": "Gun barrel fume extractors are thin sleeves with clearance"
-    },
-    {
-      "part_pattern": "door_handle_*",
-      "reason": "Door handles must stand proud of door surface for grip"
-    },
-    {
-      "part_pattern": "*_handle_*",
-      "reason": "Handles require standoff from surface for grip"
-    },
-    {
-      "part_pattern": "afganit_*",
-      "reason": "Afganit APS sensors are thin tubes with intentional standoff"
-    },
-    {
-      "part_pattern": "grab_rail_*",
-      "reason": "Grab rails mounted on brackets with clearance for hand grip"
-    },
-    {
-      "part_pattern": "mast*",
-      "reason": "Helicopter rotor mast and sensor masts on thin stalks"
-    },
-    {
-      "part_pattern": "*_stab_*",
-      "reason": "Tail stabilizers mounted with structural clearance"
-    },
-    {
-      "part_pattern": "*light*guard*",
-      "reason": "Light guards have clearance around lamp for protection"
-    },
-    {
-      "part_pattern": "hinge*",
-      "reason": "Door and hatch hinges need articulation clearance"
-    },
-    {
-      "part_pattern": "*_hinge_*",
-      "reason": "Door and hatch hinges need articulation clearance"
-    },
-    {
-      "part_pattern": "rear_door",
-      "reason": "Rear doors/ramps need articulation clearance"
-    },
-    {
-      "part_pattern": "mg_shield",
-      "reason": "Machine gun shields mounted with traverse clearance"
-    },
-    {
-      "part_pattern": "*_grip_*",
-      "reason": "Weapon grips need standoff for operator hand grip"
-    },
-    {
-      "part_pattern": "shield",
-      "reason": "Protective shields mounted with clearance for articulation"
-    },
-    {
-      "part_pattern": "gun_yoke_*",
-      "reason": "Gun yokes and mounts need clearance for elevation/traverse"
-    },
-    {
-      "part_pattern": "gun_mount*",
-      "reason": "Gun mounts need clearance for elevation/traverse"
-    },
-    {
-      "part_pattern": "gun_barrel*",
-      "reason": "Gun barrels may have clearance in mantlet for elevation"
-    },
-    {
-      "part_pattern": "*_gun",
-      "reason": "Remote weapon station guns have traverse clearance"
-    },
-    {
-      "part_pattern": "mantlet",
-      "reason": "Gun mantlets have clearance for elevation range"
-    },
-    {
-      "part_pattern": "cable_reel*",
-      "reason": "Cable reels mounted on brackets with clearance"
-    },
-    {
-      "part_pattern": "*_mg_port*",
-      "reason": "Machine gun ports have clearance for traverse"
-    },
-    {
-      "part_pattern": "*_sight*",
-      "reason": "Optical sights on sensor masts with clearance"
-    },
-    {
-      "part_pattern": "*_bolt_*",
-      "reason": "ERA and applique armor bolts stand proud of panel surface"
-    },
-    {
-      "part_pattern": "fender_*",
-      "reason": "Fenders mounted on brackets with clearance for suspension travel"
+      "reason": "Landing gear bay doors require articulation clearance"
     },
     {
       "part_pattern": "gear_nose_*",
-      "reason": "Landing gear nose components have articulation clearance"
+      "reason": "Landing gear nose strut requires articulation clearance"
     },
     {
       "part_pattern": "gear_*_brace",
-      "reason": "Landing gear braces need articulation clearance"
+      "reason": "Landing gear braces require articulation clearance"
     },
     {
-      "part_pattern": "gear_*_light",
-      "reason": "Landing gear lights mounted on extended brackets"
+      "part_pattern": "pintle",
+      "reason": "Pintle weapon mounts require 360-degree traverse clearance"
     },
     {
-      "part_pattern": "roof_eye*",
-      "reason": "Roof lifting eyes protrude for crane access"
-    },
-    {
-      "part_pattern": "barrel_root",
-      "reason": "Gun barrel root has clearance in mantlet for elevation"
-    },
-    {
-      "part_pattern": "coax_barrel",
-      "reason": "Coaxial machine gun barrel has traverse clearance"
-    },
-    {
-      "part_pattern": "door_window*",
-      "reason": "Door windows may be recessed or have frame gaps"
-    },
-    {
-      "part_pattern": "station_*",
-      "reason": "Remote weapon station components have traverse/elevation clearance"
-    },
-    {
-      "part_pattern": "protector_*",
-      "reason": "Protector RCWS components have articulation clearance"
-    },
-    {
-      "part_pattern": "*_ammo",
-      "reason": "Ammunition boxes on weapon stations have access clearance"
-    },
-    {
-      "part_pattern": "*_cradle*",
-      "reason": "Weapon cradles have traverse clearance"
-    },
-    {
-      "part_pattern": "warning_sensor*",
-      "reason": "LWR/RWR sensor heads on thin mounts"
-    },
-    {
-      "part_pattern": "antenna_spine*",
-      "reason": "Antenna spine fairings on thin airframe mounts"
-    },
-    {
-      "part_pattern": "rear_underrun*",
-      "reason": "Rear underrun bars mounted with clearance"
-    },
-    {
-      "part_pattern": "*_sleeve",
-      "reason": "Gun sleeves have elevation clearance in mantlet"
-    },
-    {
-      "part_pattern": "plate",
-      "reason": "Armor plates may have intentional standoff"
+      "part_pattern": "rear_door",
+      "reason": "Rear ramps/doors require articulation clearance for opening"
     },
     {
       "part_pattern": "clamshell_seam*",
-      "reason": "Clamshell door seams have articulation clearance"
+      "reason": "Clamshell door seams require articulation clearance"
     },
     {
-      "part_pattern": "*_step",
-      "reason": "Access steps mounted on brackets"
+      "part_pattern": "gun_yoke_*",
+      "reason": "Gun yokes require elevation/traverse articulation clearance"
     },
     {
-      "part_pattern": "*_bumper",
-      "reason": "Bumpers mounted with shock absorption clearance"
+      "part_pattern": "mantlet",
+      "reason": "Gun mantlets require elevation clearance in turret"
     },
     {
-      "part_pattern": "intake_stack",
-      "reason": "Air intake stacks on thin mounts"
+      "part_pattern": "barrel_root",
+      "reason": "Gun barrel root requires elevation clearance in mantlet"
     },
     {
-      "part_pattern": "*_exhaust*",
-      "reason": "Exhaust components have heat/clearance margins"
+      "part_pattern": "*_sleeve",
+      "reason": "Gun sleeves require elevation clearance in mantlet"
+    },
+    {
+      "part_pattern": "*_mg_port*",
+      "reason": "Machine gun ports require traverse clearance for firing"
+    },
+    {
+      "part_pattern": "station_bearing",
+      "reason": "RCWS bearing ring requires rotation clearance"
+    },
+    {
+      "part_pattern": "*_grip_*",
+      "reason": "Weapon grips require operator hand clearance"
+    },
+    {
+      "part_pattern": "probe_*",
+      "reason": "Refueling probes: thin structural geometry"
+    },
+    {
+      "part_pattern": "antenna_spine*",
+      "reason": "Aircraft antenna spine fairings: thin structural geometry"
+    },
+    {
+      "part_pattern": "*_stab_*",
+      "reason": "Aircraft tail stabilizers: thin structural attachment"
+    },
+    {
+      "part_pattern": "door_window*",
+      "reason": "Door windows recessed in frames by design"
     },
     {
       "part_pattern": "*_door_glass*",
-      "reason": "Door glass panels recessed in frames"
-    },
-    {
-      "part_pattern": "minigun_*",
-      "reason": "External miniguns on pylons have traverse clearance"
-    },
-    {
-      "part_pattern": "bore_evacuator",
-      "reason": "Bore evacuator sleeve has clearance around barrel"
-    },
-    {
-      "part_pattern": "m2_ammo*",
-      "reason": "M2 ammo boxes have access clearance"
-    },
-    {
-      "part_pattern": "*_deck",
-      "reason": "Deck plates may have structural clearance"
-    },
-    {
-      "part_pattern": "*_bracket*",
-      "reason": "Mounting brackets have structural clearance"
-    },
-    {
-      "part_pattern": "*_strut*",
-      "reason": "Structural struts mounted with clearance"
-    },
-    {
-      "part_pattern": "muzzle_reference",
-      "reason": "Muzzle reference sensor on thin mount"
-    },
-    {
-      "part_pattern": "*_window",
-      "reason": "Windows/optics may be recessed or on mounts"
-    },
-    {
-      "part_pattern": "antenna_roof",
-      "reason": "Roof antennas on thin mounts"
-    },
-    {
-      "part_pattern": "battery_box",
-      "reason": "Battery boxes mounted with ventilation clearance"
-    },
-    {
-      "part_pattern": "exhaust_guard",
-      "reason": "Exhaust guards mounted with heat clearance"
-    },
-    {
-      "part_pattern": "chassis_rail_*",
-      "reason": "Chassis rails at 2.5cm are within structural tolerance"
-    },
-    {
-      "part_pattern": "rear_step_*",
-      "reason": "Rear steps mounted with small gaps for access"
-    },
-    {
-      "part_pattern": "front_plate",
-      "reason": "Front armor plate may have intentional standoff"
+      "reason": "Door glass panels recessed in frames by design"
     }
   ]
 }
