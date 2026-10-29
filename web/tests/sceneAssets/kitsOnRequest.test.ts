@@ -105,7 +105,7 @@ test.each([false, true])(
     const layout = {
       ...WORLD.layout,
       propKinds: ["wreck"],
-      propAppearance: { wreck: { drawn_by: "wreck" } },
+      propAppearance: { wreck: { drawn_by: "wreck", stand_in_tint: [0.5, 0.5, 0.5] } },
       unitKinds: ["used", "unused"],
       unitAppearance: { used: "used", unused: "unused" },
     };

@@ -115,7 +115,7 @@ test("a map of one family fetches its family's looks and no other family's", asy
   await loadPresentation();
   const layout = JSON.stringify({
     propKinds: ["crate"],
-    propAppearance: { crate: { drawn_by: "crate" } },
+    propAppearance: { crate: { drawn_by: "crate", stand_in_tint: [0.5, 0.5, 0.5] } },
     blockingPropKinds: {},
     unitKinds: [],
     unitAppearance: {},

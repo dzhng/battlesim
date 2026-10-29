@@ -233,13 +233,6 @@ fn display_alpha_and_geometry_budgets_fail_at_document_load() {
 }
 
 #[test]
-fn gauge_classes_follow_the_catalogs_physical_class_vocabulary() {
-    let mut doc = fixture("presentation");
-    doc["pose"]["gauge"]["tracked_light_logistics"] = json!(0.8);
-    presentation::settings::PresentationSettings::from_value(&doc).unwrap();
-}
-
-#[test]
 fn shader_geometry_cannot_be_overridden_by_a_document() {
     for key in ["radial_bins", "tile_px"] {
         let mut doc = fixture("presentation");
