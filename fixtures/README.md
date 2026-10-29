@@ -7,8 +7,11 @@ the input code; the lobby owns the default battle seed. [Units](units/), [props]
 own component catalogs and terrain palettes; [catalog resolution](../crates/contract/src/catalog.rs)
 produces the browser's resolved [catalog](catalog.json).
 
-[Rules admission](../crates/contract/src/scenario.rs) refuses unknown sections
-and fields, including in encounter overrides. Application settings have separate owners and do not enter resolved battle rules.
+[The rules contract](../crates/contract/src/scenario.rs) refuses unknown sections,
+fields and invalid section ranges, including in encounter overrides.
+[Simulation admission](../crates/sim/src/admission.rs) checks external rules before
+a world or battle is built. Application settings have separate owners and do not
+enter resolved battle rules.
 
 [Map presets](map-presets.json) and the generator's [physical template library](prototype-building-templates.json)
 feed [mapgen](../crates/mapgen/README.md). Its templates are derived from accepted

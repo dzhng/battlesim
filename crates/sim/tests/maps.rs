@@ -327,6 +327,14 @@ fn an_override_is_held_to_the_shipped_rules_checks_naming_its_encounter_and_fiel
     let catalogue = scratch.catalogue();
     for (overrides, field) in [
         (
+            serde_json::json!({"weapons": {"test_bad_flight": {"extends": "rifle", "name": "Bad Flight", "lifetime_s": 1e6}}}),
+            "weapons.test_bad_flight.lifetime_s",
+        ),
+        (
+            serde_json::json!({"infantry_movement": {"wander_period_s": 0}}),
+            "infantry_movement.wander_period_s",
+        ),
+        (
             serde_json::json!({ "weapons": { "tank_ap": { "reload_s": -1 } } }),
             "weapons.tank_ap: reload_s",
         ),

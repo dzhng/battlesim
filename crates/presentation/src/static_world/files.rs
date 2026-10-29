@@ -95,7 +95,9 @@ pub fn rules(root: &Path, map: &str) -> Result<contract::scenario::Rules, String
     };
     let mut fixture = sim::fixtures::rules();
     fixture["catalog"] = Value::Array(sim::fixtures::catalog_documents(set));
-    serde_json::from_value(fixture).map_err(|e| format!("rules: {e}"))
+    let rules = serde_json::from_value(fixture).map_err(|e| format!("rules: {e}"))?;
+    sim::admit(&rules).map_err(|e| e.to_string())?;
+    Ok(rules)
 }
 
 /// The simulation's world a saved map's ground was built by.

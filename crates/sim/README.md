@@ -65,6 +65,12 @@ anti-radiation weapons, with no sight override or body-based range table.
 
 ## Battle rules
 
+[Admission](src/admission.rs) refuses external rules before a world or battle is
+built. It combines the contract's section checks with flight and supply checks,
+returning a `RulesError` whose path is relative to the rules document. Fixture,
+encounter, upload, generation and client loaders share this boundary; constructors
+retain debug invariants for already-admitted inputs.
+
 Rules follow physical components, with the game's [first-principles policy](../../development.md#game-rules)
 explaining where deliberate cinematic exceptions belong.
 

@@ -74,7 +74,7 @@ impl PreparedWorld {
 
     /// Admit a self-contained download without consulting fixtures or a map generator.
     pub fn from_bundle(bundle_json: &str) -> Result<PreparedWorld, JsError> {
-        let bundle = contract::bundle::ScenarioBundle::from_json(bundle_json).map_err(js_error)?;
+        let bundle = admit_bundle(bundle_json).map_err(js_error)?;
         let scenario: ScenarioDefinition =
             serde_json::from_str(&bundle.scenario_json().map_err(js_error)?).map_err(js_error)?;
         Self::build(scenario.map, scenario.rules)
@@ -116,6 +116,7 @@ fn identity_digest<T: serde::Serialize>(value: &T) -> Result<u64, JsError> {
 
 impl PreparedWorld {
     pub(crate) fn build(map: MapDefinition, rules: Rules) -> Result<Self, JsError> {
+        sim::admit(&rules).map_err(js_error)?;
         let map_digest = identity_digest(&map)?;
         let rules_digest = identity_digest(&rules)?;
         let prepared = sim::encounter::PreparedMap::new(&map, &rules);
@@ -130,6 +131,7 @@ impl PreparedWorld {
 
     fn scenario(&self, scenario_json: &str) -> Result<ScenarioDefinition, JsError> {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
+        sim::admit(&setup.rules).map_err(js_error)?;
         if identity_digest(&setup.map)? != self.map_digest
             || identity_digest(&setup.rules)? != self.rules_digest
         {

@@ -60,41 +60,6 @@ pub fn fragment_exposure(rules: &Rules, shelter: f64) -> f64 {
     )
 }
 
-/// Armour rules the simulation can honour: probabilities in [0, 1], a
-/// deflected round keeps some speed and no more penetration than it had, and
-/// partial damage starts short of the full armour.
-pub fn validate(rules: &Rules) {
-    let r = &rules.ricochet;
-    for hull in rules
-        .catalog
-        .indices()
-        .filter_map(|t| rules.catalog.get(t).hull())
-    {
-        let c = hull.armor.ricochet;
-        for p in [c.front, c.side, c.rear, c.roof] {
-            assert!(
-                (0.0..=1.0).contains(&p),
-                "ricochet chance {p} outside [0, 1]"
-            );
-        }
-    }
-    assert!(
-        r.speed_kept > 0.0 && r.speed_kept <= 1.0,
-        "ricochet speed_kept {}",
-        r.speed_kept
-    );
-    assert!(
-        (0.0..=1.0).contains(&r.penetration_kept),
-        "ricochet penetration_kept {}",
-        r.penetration_kept
-    );
-    assert!(
-        (0.0..90.0).contains(&r.scatter_deg),
-        "ricochet scatter_deg {}",
-        r.scatter_deg
-    );
-}
-
 /// The face a hit meets, judged just off the struck surface at the hull's
 /// pose when struck.
 pub fn struck_face(half: V3, pose: Pose, point: V3, normal: V3) -> Face {

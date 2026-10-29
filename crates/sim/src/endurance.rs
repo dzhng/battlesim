@@ -127,6 +127,7 @@ fn scenario_in_arena(
 ) -> Result<ScenarioDefinition, String> {
     let [left, bottom, width] = arena;
     let rules: Rules = serde_json::from_value(fixture.clone()).map_err(|e| e.to_string())?;
+    crate::admit(&rules).map_err(|e| e.to_string())?;
     // Separate streams, so the late state's remains never move the waves.
     let mut rng = Rng::new(seed);
     let mut remains = Rng::new(seed ^ 0x005e_ed0f_4e3a_1175);

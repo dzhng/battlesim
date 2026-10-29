@@ -8,6 +8,8 @@ use crate::observation::SuppressionTier;
 use serde::{Deserialize, Serialize};
 
 mod admission;
+mod ranges;
+pub use admission::RulesError;
 use admission::UncheckedRules;
 
 pub use crate::maps::{MapIdentity, MapSource, ResolvedMap};
@@ -361,8 +363,7 @@ pub struct ServiceRules {
     pub stock_per_flare: u32,
 }
 
-/// The game's rules (`fixtures/rules.json` with its catalog). Loading
-/// them checks what crosses sections: every mount names a weapon row.
+/// Battle rules, checked across sections on deserialization.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(try_from = "UncheckedRules")]
 pub struct Rules {

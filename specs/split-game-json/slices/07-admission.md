@@ -22,7 +22,7 @@ arrive from outside. No path reaches a panic.
   - `bail_out`: a negative `hp_lost` heals;
   - garrison, pushing, launch, and the pace caps;
 - a guided missile's lifetime covers its range;
-- `helicopter_crash` is present.
+- `helicopter_crash` is present when the catalog can field an aircraft hull.
 
 **Callers:**
 - `fixtures::admit`;
@@ -65,3 +65,32 @@ here and ask; don't add a second admission owner.
 
 The burst-cadence check is not here: the simulation never sees recordings. It
 lands at fielding in [15](15-content.md).
+
+**Done (2026-10-29):** `sim::admit` is the external rules boundary. Contract
+section checks return a shared `RulesError` (relative path and message); simulation
+adds weapon flight, supply, and forest-placement admission. Fixture, encounter,
+upload, WASM world/battle, generation, and native rules readers use it. The
+constructor-only range validators are deleted; constructors retain invariants.
+
+Proof: all 77 unrounded probe/shader files and all six native plates are
+byte-identical to slice 01's controls in shared scratch (`after-07/`); native draw
+counts also match every browser plate. No stored record, rules identity, battle
+digest, or presentation output changed. Only `engine_build` may move. Contract,
+focused native/WASM admission and encounter tests, generation-physics tests,
+clippy, typecheck, lint/format, and the size ratchet pass. The broader sim run
+passed 1,151 tests; its two assertions for superseded panic/error wording were
+updated to admission refusals and passed in focused reruns. Full repository
+closeout remains at 16.
+
+Decisions:
+- **User clarification:** require `helicopter_crash` only when the catalog can
+  field an aircraft hull. Ground-only rules do not need an aircraft crash row;
+  stored-record rewrites remain in 09.
+- Keep `admit`'s `Result<(), RulesError>` seam. `Arsenal` builds its flight
+  configuration from admitted rules rather than threading a cached configuration
+  through every caller.
+- Keep pure section checks and their error type in contract so deserialization
+  and simulation reuse one owner; do not duplicate the ranges in each loader.
+- Check guided lifetime against the existing motor-distance calculation (or
+  constant-speed distance without a motor), rather than adding another flight
+  formula.

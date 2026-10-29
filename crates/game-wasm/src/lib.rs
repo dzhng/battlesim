@@ -17,6 +17,9 @@ use sim::publication::{self, Publisher};
 use sim::world::WorldGeometry;
 use wasm_bindgen::prelude::*;
 
+mod admission;
+use admission::admit_bundle;
+pub use admission::{author_scenario_bundle, canonical_scenario_bundle, check_scenario_bundle};
 mod prepared_world;
 pub use prepared_world::PreparedWorld;
 mod skirmish;
@@ -67,44 +70,6 @@ pub fn check_scenario_player_contract(scenario_json: &str) -> String {
     }
 }
 
-/// Validate a downloaded ScenarioBundle without consulting repository
-/// fixtures. The bundle module owns canonical bytes, identities, topology,
-/// and embedded asset admission.
-#[wasm_bindgen]
-pub fn check_scenario_bundle(bundle_json: &str) -> String {
-    match contract::bundle::ScenarioBundle::from_json(bundle_json) {
-        Ok(bundle) => serde_json::json!({
-            "status": "ok",
-            "identity": bundle.identity().expect("validated bundle identity"),
-        })
-        .to_string(),
-        Err(contract::bundle::BundleError::Invalid(diagnostics)) => {
-            serde_json::json!({ "status": "error", "diagnostics": diagnostics }).to_string()
-        }
-    }
-}
-
-/// Canonicalize a builder draft after deriving its map and rules identities.
-/// This is intentionally separate from upload admission: saved files must
-/// already carry the identities they claim.
-#[wasm_bindgen]
-pub fn author_scenario_bundle(bundle_json: &str) -> Result<String, JsError> {
-    contract::bundle::ScenarioBundle::from_authoring_json(bundle_json)
-        .map_err(js_error)?
-        .to_json()
-        .map_err(js_error)
-}
-
-/// Return the canonical bytes of a validated ScenarioBundle.
-#[wasm_bindgen]
-pub fn canonical_scenario_bundle(bundle_json: &str) -> Result<String, JsError> {
-    let bundle = contract::bundle::ScenarioBundle::from_json(bundle_json)
-        .map_err(|error| js_error(error.to_string()))?;
-    bundle
-        .to_json()
-        .map_err(|error| js_error(error.to_string()))
-}
-
 /// Run one authored script through the same deterministic contract host used
 /// by scenario battles. The observation JSON is the caller's side-scoped frame.
 #[wasm_bindgen]
@@ -134,7 +99,7 @@ pub fn scenario_bundle_controllers(
     bundle_json: &str,
     active_human: Option<String>,
 ) -> Result<String, JsError> {
-    let bundle = contract::bundle::ScenarioBundle::from_json(bundle_json).map_err(js_error)?;
+    let bundle = admit_bundle(bundle_json).map_err(js_error)?;
     serde_json::to_string(
         &bundle
             .effective_controllers(active_human.as_deref())
@@ -149,7 +114,7 @@ pub fn scenario_bundle_controllers(
 /// owner used by ordinary play.
 #[wasm_bindgen]
 pub fn scenario_bundle_details(bundle_json: &str) -> Result<String, JsError> {
-    let bundle = contract::bundle::ScenarioBundle::from_json(bundle_json).map_err(js_error)?;
+    let bundle = admit_bundle(bundle_json).map_err(js_error)?;
     let identity = bundle.identity().map_err(js_error)?;
     let scenario_json = bundle.scenario_json().map_err(js_error)?;
     let map = bundle.scenario.map.clone();
@@ -318,6 +283,7 @@ impl FlightLab {
     ) -> Result<FlightLab, JsError> {
         let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
         let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
+        sim::admit(&rules).map_err(js_error)?;
         let config = FlightConfig::new(&rules.physics.flight, rules.tick_hz)
             .map_err(|e| JsError::new(&format!("{e:?}")))?;
         Ok(FlightLab {
@@ -624,6 +590,7 @@ pub fn encounter_scenario(
         serde_json::from_str(encounter_json).map_err(js_error)?;
     let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
     let setup = encounter.on(map, rules).map_err(js_error)?;
+    sim::admit(&setup.rules).map_err(js_error)?;
     serde_json::to_string(&setup).map_err(js_error)
 }
 
@@ -698,6 +665,7 @@ impl BattleHandle {
     #[wasm_bindgen(constructor)]
     pub fn new(scenario_json: &str, seed: f64) -> Result<BattleHandle, JsError> {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
+        sim::admit(&setup.rules).map_err(js_error)?;
         Ok(BattleHandle {
             battle: Battle::new(&setup, seed as u64),
             publisher: Publisher::new(),
@@ -715,6 +683,7 @@ impl BattleHandle {
     /// A battle that re-applies a recorded replay and refuses live commands.
     pub fn from_replay(scenario_json: &str, replay_json: &str) -> Result<BattleHandle, JsError> {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
+        sim::admit(&setup.rules).map_err(js_error)?;
         let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
         let battle =
             Battle::from_replay(&setup, &replay).map_err(|e| JsError::new(&e.to_string()))?;

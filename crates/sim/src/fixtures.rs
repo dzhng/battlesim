@@ -201,8 +201,7 @@ pub fn admit(mut game: Value, documents: Vec<Value>) -> Result<Value, String> {
     game["catalog"] = Value::Array(documents);
     let rules: contract::scenario::Rules =
         serde_json::from_value(game).map_err(|e| e.to_string())?;
-    crate::weapons::check_rules(&rules)?;
-    crate::supply::validate(&rules)?;
+    crate::admit(&rules).map_err(|e| e.to_string())?;
     let mut view = rules.catalog.view();
     view["weapons"] = serde_json::to_value(rules.weapons).map_err(|e| e.to_string())?;
     Ok(view)

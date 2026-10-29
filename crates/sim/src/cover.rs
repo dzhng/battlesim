@@ -265,47 +265,6 @@ pub fn spread(tier: Option<Tier>, rules: &CoverRules) -> f64 {
     tier.map_or(1.0, |t| rules.tiers.spread(t))
 }
 
-/// Cover rules the simulation can honour: every tier widens the spread,
-/// heavier tiers no less. (That a wreck keeps its live vehicle's tier, Q24,
-/// is the catalog's check.)
-pub fn validate(rules: &Rules) {
-    let c = &rules.cover;
-    let t = &c.tiers;
-    assert!(
-        1.0 <= t.light && t.light <= t.medium && t.medium <= t.heavy,
-        "cover.tiers must widen, heavier no less: {} {} {}",
-        t.light,
-        t.medium,
-        t.heavy
-    );
-    for (name, v) in [
-        ("reach_m", c.reach_m),
-        ("search_m", c.search_m),
-        ("step_out_m", c.step_out_m),
-        ("reresolve_s", c.reresolve_s),
-        ("vehicle_moved_m", c.vehicle_moved_m),
-        ("lean_burst_s", c.lean_burst_s),
-        ("lean_tuck_s", c.lean_tuck_s),
-        ("crater_min_fill", c.crater_min_fill),
-        ("lean_hold_s", c.lean_hold_s),
-        ("lean_max_m", c.lean_max_m),
-        ("lean_apart_m", c.lean_apart_m),
-    ] {
-        assert!(v > 0.0, "cover.{name} must be positive");
-    }
-    for (name, v) in [
-        ("lean_clear_m", c.lean_clear_m),
-        ("standoff_m", c.standoff_m),
-        ("search_slack_m", c.search_slack_m),
-    ] {
-        assert!(v >= 0.0, "cover.{name} must not be negative");
-    }
-    assert!(
-        (-1.0..=0.0).contains(&c.away_cos),
-        "cover.away_cos must be in [-1, 0]: a face that hides must look away"
-    );
-}
-
 /// The centres of the cells within `radius` of `centre` where a side has
 /// seen a crater deep enough to be cover.
 pub fn craters(ground: &KnownGround, rules: &Rules, centre: V2, radius: f64) -> Vec<V2> {

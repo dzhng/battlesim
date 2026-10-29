@@ -200,7 +200,7 @@ decide the question:
   every check `Battle::from_prepared` asserts today, `admit_world`'s rules
   checks, and the missing ranges (`infantry_movement`, `bail_out`, garrison,
   pushing, launch, the cover and ground gaps, a guided missile's lifetime
-  covering its range, the pace caps, `helicopter_crash` present). The burst
+  covering its range, the pace caps, `helicopter_crash` present when the catalog can field an aircraft hull). The burst
   cadence check needs recordings, so it runs at fielding instead. Every
   place rules arrive from outside calls it and refuses with the error:
   `fixtures::admit`, encounter overrides (`sim::maps`, wasm

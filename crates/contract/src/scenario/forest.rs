@@ -105,3 +105,30 @@ impl ForestRules {
         Ok(())
     }
 }
+
+impl ForestRules {
+    /// Every prop the forest may place must be an ordinary world body.
+    pub fn check_placement(
+        &self,
+        catalog: &crate::catalog::Catalog,
+    ) -> Result<(), super::RulesError> {
+        let mut kinds = vec![("tree", Some(self.tree.as_str()))];
+        if self.rule.logs_per_ha > 0.0 {
+            kinds.push(("log", self.log.as_deref()));
+        }
+        if self.rule.boulders_per_ha > 0.0 {
+            kinds.push(("boulder", self.boulder.as_deref()));
+        }
+        for (field, kind) in kinds {
+            let checked = kind
+                .ok_or_else(|| "no prop type is named".to_owned())
+                .and_then(|id| {
+                    catalog
+                        .props()
+                        .check_placement_of(id, crate::catalog::PropPlacement::Ordinary)
+                });
+            checked.map_err(|e| super::RulesError::new(format!("forests.{field}"), e))?;
+        }
+        Ok(())
+    }
+}

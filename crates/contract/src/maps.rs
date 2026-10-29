@@ -310,13 +310,9 @@ pub fn admit_world(map: &MapDefinition, rules: &crate::scenario::Rules) -> Vec<R
     .into_iter()
     .map(|error| (format!("map.{}", error.field), Err(error.message.into())))
     .collect();
-    let ground = rules.ground.cell_m;
-    checks.push((
-        "rules.ground.cell_m".into(),
-        (ground.is_finite() && ground > 0.0)
-            .then_some(())
-            .ok_or_else(|| "ground cells must be finite positive metres".into()),
-    ));
+    if let Err(error) = rules.check() {
+        checks.push((format!("rules.{}", error.path), Err(error.message)));
+    }
     checks.push((
         "map.forests".into(),
         (map.forests.len() <= 1 << 24)
@@ -337,21 +333,8 @@ pub fn admit_world(map: &MapDefinition, rules: &crate::scenario::Rules) -> Vec<R
         ));
     }
     if !map.forests.is_empty() {
-        let forests = &rules.forests;
-        checks.push((
-            "rules.forests.tree".into(),
-            place(Some(&forests.tree), PropPlacement::Ordinary),
-        ));
-        for (field, kind, density) in [
-            ("log", &forests.log, forests.rule.logs_per_ha),
-            ("boulder", &forests.boulder, forests.rule.boulders_per_ha),
-        ] {
-            if density > 0.0 {
-                checks.push((
-                    format!("rules.forests.{field}"),
-                    place(kind.as_deref(), PropPlacement::Ordinary),
-                ));
-            }
+        if let Err(error) = rules.forests.check_placement(&rules.catalog) {
+            checks.push((format!("rules.{}", error.path), Err(error.message)));
         }
     }
     for (i, building) in map.buildings.iter().enumerate() {

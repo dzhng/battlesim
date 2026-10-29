@@ -41,7 +41,7 @@ use crate::flight::{
     self, Body, BodyId, FlightEvent, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use crate::garrison;
-use crate::ground::{self, GroundLayer, KnownGround, Wear};
+use crate::ground::{GroundLayer, KnownGround, Wear};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
 use crate::math::{body_distance, v2, v3, Obb2, Rotation, V2, V3};
@@ -629,16 +629,11 @@ impl Battle {
             .validate_player_contract()
             .expect("admitted scenario has a valid player contract");
         let rules = setup.rules.clone();
-        assert!(
-            rules.physics.vehicle_aim_height_fraction > 0.0
-                && rules.physics.vehicle_aim_height_fraction <= 1.0,
-            "physics.vehicle_aim_height_fraction must be in (0, 1]"
+        debug_assert!(rules.check().is_ok(), "rule sections were admitted");
+        debug_assert!(
+            supply::validate(&rules).is_ok(),
+            "supply rules were admitted"
         );
-        units::validate(&rules);
-        damage::validate(&rules);
-        ground::validate(&rules);
-        crate::cover::validate(&rules);
-        flight::validate_guided(&rules.guided);
         let crate::encounter::PreparedMap {
             world,
             roads,
@@ -646,10 +641,9 @@ impl Battle {
             ..
         } = prepared;
         let arsenal = Arsenal::new(&rules);
-        supply::validate(&rules).expect("fixture supply rules are valid");
         // An uploaded scenario was refused before this with these same errors.
         let unknown = setup.unknown_catalog_references();
-        assert!(
+        debug_assert!(
             unknown.is_empty(),
             "scenario names kinds its rules lack: {unknown:?}"
         );

@@ -36,45 +36,9 @@ pub(super) struct UncheckedRules {
 }
 
 impl TryFrom<UncheckedRules> for Rules {
-    type Error = crate::catalog::CatalogError;
+    type Error = RulesError;
     fn try_from(r: UncheckedRules) -> Result<Self, Self::Error> {
-        r.catalog.check_weapons(&r.weapons)?;
-        r.hull_limits.check(&r.catalog)?;
-        r.air_speed_limits_kmh.check(&r.catalog)?;
-        for (id, checked) in [
-            ("suppression", r.suppression.check()),
-            ("navigation", r.navigation.check()),
-            ("movement", r.movement.speed_factors.check()),
-            ("sensors", r.sensors.check()),
-            ("forests", r.forests.check(&r.catalog)),
-            ("formation", r.formation.check()),
-            ("commands", r.commands.check()),
-            ("carriage", r.carriage.check()),
-            ("air", r.air.check()),
-            ("shouts", r.shouts.check()),
-        ] {
-            checked.map_err(|error| crate::catalog::CatalogError::Invalid {
-                section: "rules",
-                id: id.into(),
-                error,
-            })?;
-        }
-        // Every host a passenger can be thrown out of has its row, so a
-        // bail-out never finds one missing mid-battle.
-        for (host, name) in [
-            (BailOutHost::Building, "building"),
-            (BailOutHost::Ground, "ground"),
-            (BailOutHost::Air, "air"),
-        ] {
-            if !r.bail_out.contains_key(&host) {
-                return Err(crate::catalog::CatalogError::Invalid {
-                    section: "rules",
-                    id: "bail_out".into(),
-                    error: format!("no row for {name} hosts"),
-                });
-            }
-        }
-        Ok(Rules {
+        let rules = Rules {
             tick_hz: r.tick_hz,
             commands: r.commands,
             movement: r.movement,
@@ -102,6 +66,83 @@ impl TryFrom<UncheckedRules> for Rules {
             air_speed_limits_kmh: r.air_speed_limits_kmh,
             air: r.air,
             shouts: r.shouts,
-        })
+        };
+        rules.check()?;
+        Ok(rules)
+    }
+}
+
+/// A refused rule, located relative to the battle rules document.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RulesError {
+    pub path: String,
+    pub message: String,
+}
+
+impl RulesError {
+    pub fn new(path: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            path: path.into(),
+            message: message.into(),
+        }
+    }
+}
+
+impl std::fmt::Display for RulesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.path, self.message)
+    }
+}
+
+impl std::error::Error for RulesError {}
+
+impl Rules {
+    /// Contract-owned section and cross-section checks, also used by simulation admission.
+    pub fn check(&self) -> Result<(), RulesError> {
+        self.infantry_movement.check()?;
+        self.cover.check()?;
+        self.ground.check()?;
+        self.movement.check()?;
+        self.ricochet.check()?;
+        self.guided.check()?;
+        self.physics.check()?;
+        self.garrison.check()?;
+        self.pushing.check()?;
+        self.launch.check()?;
+        self.catalog
+            .check_weapons(&self.weapons)
+            .map_err(|e| RulesError::new("catalog", e.to_string()))?;
+        self.hull_limits
+            .check(&self.catalog)
+            .map_err(|e| RulesError::new("hull_limits", e.to_string()))?;
+        self.air_speed_limits_kmh
+            .check(&self.catalog)
+            .map_err(|e| RulesError::new("air_speed_limits_kmh", e.to_string()))?;
+        for (id, checked) in [
+            ("suppression", self.suppression.check()),
+            ("navigation", self.navigation.check()),
+            ("sensors", self.sensors.check()),
+            ("forests", self.forests.check(&self.catalog)),
+            ("formation", self.formation.check()),
+            ("commands", self.commands.check()),
+            ("carriage", self.carriage.check()),
+            ("air", self.air.check()),
+            ("shouts", self.shouts.check()),
+        ] {
+            checked.map_err(|error| RulesError::new(id, error))?;
+        }
+        // Every host a passenger can be thrown out of has its row, so a
+        // bail-out never finds one missing mid-battle.
+        for (host, name) in [
+            (BailOutHost::Building, "building"),
+            (BailOutHost::Ground, "ground"),
+            (BailOutHost::Air, "air"),
+        ] {
+            self.bail_out
+                .get(&host)
+                .ok_or_else(|| RulesError::new(format!("bail_out.{name}"), "missing host row"))?
+                .check(name)?;
+        }
+        Ok(())
     }
 }
