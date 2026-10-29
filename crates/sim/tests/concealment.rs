@@ -29,7 +29,6 @@ fn setup(observer: &str, target: &str, forest: bool, moving: bool) -> ScenarioDe
     }
     rules["sensors"]["moving_concealment"] = json!(1.5);
     rules["sensors"]["building_range_multiplier"] = json!(0.4);
-    rules["buildings"]["cover_strength"] = json!(1);
     rules["forests"]["rule"]["concealment"] = json!(0.25);
     rules["forests"]["rule"]["attenuation_per_m"] = json!(0);
     serde_json::from_value(json!({
@@ -207,7 +206,7 @@ fn garrisoned(concealment: f64) -> Battle {
         }
     }
     assert!(garrison.unit(UnitId(1)).unwrap().garrisoned());
-    assert!(sim::garrison::shelter(garrison.unit(UnitId(1)).unwrap(), garrison.rules()) > 0.0);
+    assert!(sim::garrison::shelter(garrison.unit(UnitId(1)).unwrap()) > 0.0);
     assert!(garrison.observe(Side::Red).own[0].concealed);
     let mut replay = Battle::from_replay(&sheltered, &garrison.replay()).unwrap();
     for (digest, frame) in frames {

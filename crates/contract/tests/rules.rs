@@ -136,3 +136,15 @@ fn a_derived_weapon_range_survives_resolution_and_encounter_overrides() {
     let again: Rules = serde_json::from_value(serde_json::to_value(&changed).unwrap()).unwrap();
     assert_eq!(again.weapons["test_gun"].ballistics.range_m, 400.0);
 }
+
+#[test]
+fn a_building_cannot_admit_more_than_the_supported_soldier_capacity() {
+    let mut raw = game();
+    raw["buildings"]["capacity_soldiers"] = json!(32);
+    serde_json::from_value::<Rules>(raw.clone()).expect("the supported capacity loads");
+    raw["buildings"]["capacity_soldiers"] = json!(33);
+    let error = serde_json::from_value::<Rules>(raw)
+        .expect_err("a building above the supported capacity is refused")
+        .to_string();
+    assert!(error.contains("buildings.capacity_soldiers"), "{error}");
+}

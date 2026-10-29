@@ -1537,7 +1537,7 @@ fn fire(
     // building's slots (Q22); a soldier aimed at in the open by his cover
     // body's tier (Q20), vehicles near him among them. Vehicles get none.
     let shelter = match target {
-        Target::Unit(u) => crate::garrison::shelter(&units[u.0 as usize], ctx.rules),
+        Target::Unit(u) => crate::garrison::shelter(&units[u.0 as usize]),
         _ => 0.0,
     };
     let hulls = if shelter == 0.0 && !seen.is_empty() {

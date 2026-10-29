@@ -147,7 +147,7 @@ fn seat_plan(
             }
         }
     }
-    let capacity = (rules.buildings.capacity_soldiers as usize).min(32);
+    let capacity = rules.buildings.capacity_soldiers as usize;
     let longest = groups.iter().map(Vec::len).max().unwrap_or(0);
     let mut counts = [0usize; 4];
     let available = &groups;
@@ -603,9 +603,9 @@ pub fn facade_eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
 
 /// Building cover strength a unit has from where it is observed: its
 /// perimeter slots while garrisoned, otherwise none.
-pub fn shelter(unit: &Unit, rules: &Rules) -> f64 {
+pub fn shelter(unit: &Unit) -> f64 {
     if unit.garrisoned() {
-        rules.buildings.cover_strength
+        1.0
     } else {
         0.0
     }

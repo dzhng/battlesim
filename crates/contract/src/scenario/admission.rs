@@ -95,6 +95,12 @@ impl std::error::Error for RulesError {}
 impl Rules {
     /// Contract-owned section and cross-section checks, also used by simulation admission.
     pub fn check(&self) -> Result<(), RulesError> {
+        if self.buildings.capacity_soldiers > 32 {
+            return Err(RulesError::new(
+                "buildings.capacity_soldiers",
+                "must not exceed 32",
+            ));
+        }
         self.infantry_movement.check()?;
         self.cover.check()?;
         self.ground.check()?;

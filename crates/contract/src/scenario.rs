@@ -400,16 +400,13 @@ pub struct Rules {
 #[serde(deny_unknown_fields)]
 pub struct ShoutRules {
     pub cooldown_s: f64,
-    pub talk_s: std::collections::BTreeMap<crate::observation::ShoutTrigger, f64>,
+    pub talk_s: f64,
 }
 
 impl ShoutRules {
     fn check(&self) -> Result<(), String> {
-        for trigger in crate::observation::ShoutTrigger::ALL {
-            if !self.talk_s.get(&trigger).is_some_and(|s| *s > 0.0) {
-                let name = serde_json::to_value(trigger).unwrap_or_default();
-                return Err(format!("shouts: talk_s needs a positive time for {name}"));
-            }
+        if !self.talk_s.is_finite() || self.talk_s <= 0.0 {
+            return Err("shouts: talk_s must be finite and positive".into());
         }
         if self.cooldown_s > 0.0 {
             Ok(())
@@ -622,15 +619,12 @@ pub struct PushingRules {
     pub relearn_m: f64,
 }
 
-/// Buildings as fighting positions (L08–L10): soldier capacity and the
-/// cover strength occupants get. Their integrity and ruin are the body
-/// table's `building` row (34c).
+/// Buildings as fighting positions (L08–L10): supported soldier capacity.
+/// Their integrity and ruin are the body table's `building` row (34c).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BuildingRules {
     pub capacity_soldiers: u32,
-    /// Building cover strength in [0, 1] (contracts: building strength).
-    pub cover_strength: f64,
 }
 
 /// Entering, leaving and escaping buildings (the fixture's `garrison` section).

@@ -2,8 +2,7 @@
   "tick_hz": 30,
   "commands": { "orders_per_s": 30 },
   "buildings": {
-    "capacity_soldiers": 32,
-    "cover_strength": 1
+    "capacity_soldiers": 32
   },
   "infantry_movement": {
     "path_clearance_m": 0.5,
@@ -197,7 +196,6 @@
       "round_cost": 20,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 900, "scatter_mrad": 0.5 } },
       "interceptable": true,
-      "decoyable": true,
       "name": "ATGM",
       "description": "A wire-guided anti-tank missile, steered onto its target.",
       "icon": "atgm",
@@ -625,7 +623,6 @@
       "structural_damage": 20,
       "seeker": "radar",
       "seeker_fov_deg": 90,
-      "decoyable": true,
       "anti_radiation": true
     },
     "igla_s": {
@@ -961,25 +958,7 @@
   },
   "shouts": {
     "cooldown_s": 8,
-    "talk_s": {
-      "b1_contact_infantry": 2.5,
-      "b2_contact_vehicle": 2.5,
-      "b3_contact_air": 2.5,
-      "b4_opens_fire": 2.5,
-      "b5_under_fire": 2.5,
-      "b6_suppressed": 2.5,
-      "b7_pinned": 2.5,
-      "b8_hit": 2.5,
-      "b9_man_down": 2.5,
-      "b10_badly_damaged": 2.5,
-      "b11_kill": 2.5,
-      "b12_reloading": 2.5,
-      "b13_out_of_ammo": 2.5,
-      "b14_missile_away": 2.5,
-      "b15_incoming_missile": 2.5,
-      "b16_destroyed": 2.5,
-      "b17_friendly_destroyed_nearby": 2.5
-    }
+    "talk_s": 2.5
   },
   "air": {"low_air": {"cruise_agl_m": 30}, "high_air": {"cruise_agl_m": 250, "floor_agl_m": 100}, "rotor": {"clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "acceleration_s": 4.5, "settle_share": 0.05, "settle_max_m": 4}, "fixed_wing": {"strafe_ceiling_m": 130, "bomb_ceiling_m": 200, "dogfight_band_agl_m": [150, 350], "dogfight_break_m": 1200, "afterburner_ramp_s": 2, "afterburner_scatter_multiplier": 1.8, "edge_margin_m": 300, "nose_on_deg": 2}, "separation_m": 14}
 }
