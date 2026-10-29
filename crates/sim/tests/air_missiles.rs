@@ -348,7 +348,7 @@ fn covered_tank_battle(
 ) -> Battle {
     let mut rules = sim::fixtures::test_game();
     rules["weapons"]["test_agm"] = json!({
-        "name": "Test AGM", "description": "A test row.", "icon": "atgm",
+        "name": "Test AGM", "description": "A test row.", "icon": "atgm", "appearance": "air_ground_missile",
         "interceptable": true, "stationary": false, "guidance": "on_the_move",
         "range_m": 1500, "min_range_m": 5, "speed_mps": 50, "accel_mps2": 140,
         "top_speed_mps": 300, "aim_s": 0.1, "reload_s": 4, "ammo": 1,
@@ -358,7 +358,7 @@ fn covered_tank_battle(
         "targets": { "ground": { "classes": ["vehicle"], "range_m": 1500, "scatter_mrad": 0.5 } }
     });
     rules["weapons"]["test_interceptor"] = json!({
-        "name": "Test SAM", "description": "A test row.", "icon": "aa_missile",
+        "name": "Test SAM", "description": "A test row.", "icon": "aa_missile", "appearance": "sam",
         "stationary": true, "guidance": "stationary", "range_m": 1500, "min_range_m": 50,
         "speed_mps": 100, "accel_mps2": 95, "top_speed_mps": 290,
         "aim_s": 0.5, "reload_s": 4, "ammo": 6, "penetration": 300, "partial_from": 0.08,

@@ -181,7 +181,8 @@
       "near_miss_suppression": 0.025,
       "suppression_radius_m": 3,
       "blast_radius_m": 0,
-      "structural_damage": 0.25
+      "structural_damage": 0.25,
+      "appearance": "rifle"
     },
     "grenade": {
       "targets": {
@@ -211,7 +212,8 @@
       "suppression_radius_m": 8,
       "blast_radius_m": 6,
       "structural_damage": 10,
-      "round_cost": 2
+      "round_cost": 2,
+      "appearance": "grenade"
     },
     "tank_ap": {
       "targets": {
@@ -241,7 +243,8 @@
       "blast_radius_m": 0,
       "structural_damage": 10,
       "armor_piercing": true,
-      "round_cost": 5
+      "round_cost": 5,
+      "appearance": "tank_sabot"
     },
     "tank_he": {
       "targets": {
@@ -270,7 +273,8 @@
       "suppression_radius_m": 15,
       "blast_radius_m": 12,
       "structural_damage": 100,
-      "round_cost": 5
+      "round_cost": 5,
+      "appearance": "tank_he"
     },
     "hmg": {
       "targets": {
@@ -315,7 +319,8 @@
       "near_miss_suppression": 0.04,
       "suppression_radius_m": 4,
       "blast_radius_m": 0,
-      "structural_damage": 4
+      "structural_damage": 4,
+      "appearance": "heavy_machine_gun"
     },
     "atgm": {
       "targets": {
@@ -349,7 +354,8 @@
       "suppression_radius_m": 10,
       "blast_radius_m": 4,
       "structural_damage": 100,
-      "round_cost": 20
+      "round_cost": 20,
+      "appearance": "atgm"
     }
   },
   "suppression": {

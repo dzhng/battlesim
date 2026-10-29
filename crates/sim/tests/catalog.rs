@@ -651,21 +651,11 @@ fn a_mount_naming_no_weapon_row_fails_at_load() {
 fn only_a_winged_aircraft_carries_a_bomb() {
     let load = |id: &str| {
         let mut fixture = common::game();
-        fixture["weapons"]["test_bomb"] = json!({
-            "name": "Test Bomb", "description": "A test row.", "icon": "bomb",
-            "delivery": "unpowered", "stationary": false, "gravity_scale": 2,
-            "aim_s": 0.1, "reload_s": 3, "ammo": 2, "penetration": 10,
-            "partial_from": 0.08, "damage": 50,
-            "near_miss_suppression": 0, "suppression_radius_m": 0,
-            "blast_radius_m": 5, "structural_damage": 10,
-            "targets": { "ground": { "classes": ["vehicle"], "range_m": 0, "scatter_mrad": 1 } }
-        });
-        fixture["weapons"]["test_bomb"]["round_cost"] = json!(1);
         fixtures::patch_catalog(
             &mut fixture,
             "units",
             id,
-            json!({ "mounts": [{ "id": "rack", "name": "Rack", "weapons": ["test_bomb"],
+            json!({ "mounts": [{ "id": "rack", "name": "Rack", "weapons": ["air_bomb"],
                 "turret": false, "pivot_m": [0, 0, 1], "muzzle_m": [1, 0, 0] }] }),
         );
         serde_json::from_value::<Rules>(fixture).map(|_| ())
@@ -674,7 +664,7 @@ fn only_a_winged_aircraft_carries_a_bomb() {
     for id in ["test_heli", "test_tank"] {
         let e = load(id).unwrap_err().to_string();
         assert!(
-            e.contains(&format!("units.{id}")) && e.contains("test_bomb"),
+            e.contains(&format!("units.{id}")) && e.contains("air_bomb"),
             "{id}: {e}"
         );
     }

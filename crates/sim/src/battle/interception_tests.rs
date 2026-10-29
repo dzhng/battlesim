@@ -292,7 +292,7 @@ fn test_interceptor(mut targets: serde_json::Value) -> serde_json::Value {
         fire.entry("scatter_mrad").or_insert(serde_json::json!(16));
     }
     serde_json::json!({
-        "name": "Test AA", "description": "A test row.", "icon": "autocannon",
+        "name": "Test AA", "description": "A test row.", "icon": "autocannon", "appearance": "aa_cannon",
         "stationary": false, "speed_mps": 600, "gravity_scale": 0.5,
         "aim_s": 0.5, "reload_s": 3.5, "ammo": 40, "penetration": 65, "partial_from": 0.08,
         "damage": 100, "near_miss_suppression": 0.1,
@@ -414,7 +414,7 @@ fn a_gun_shoots_down_rounds_fired_from_the_layers_that_list_missile() {
 /// or homing on its own with a radar seeker.
 fn test_guided_interceptor(seeker: bool) -> serde_json::Value {
     let mut row = serde_json::json!({
-        "name": "Test SAM", "description": "A test row.", "icon": "aa_missile",
+        "name": "Test SAM", "description": "A test row.", "icon": "aa_missile", "appearance": "sam",
         "stationary": true, "range_m": 1500, "min_range_m": 50,
         "speed_mps": 100, "accel_mps2": 95, "top_speed_mps": 290,
         "aim_s": 0.5, "reload_s": 4, "ammo": 6, "penetration": 300, "partial_from": 0.08,
