@@ -48,3 +48,16 @@ Decisions made where the spec was silent or wrong, with verdicts. Final consolid
 - **Only groups with a squad get a garrisoned row**, because only squads garrison. Codex's first cut gave hull groups one too. *Verdict: corrected in review.*
 - **Ground-blind observers stay in.** Fast jets author 1 m of ground sight, so they form their own column. *Verdict: sound; it is the real data.*
 - **Browser parity ran once and closed the neutral half:** `exactNumbers`, `skirmishObjectives`, `skirmishPurchases` and `mapLayout` passed 15/15 after a fresh wasm build, with no re-blessing. *Verdict: evidence.*
+
+## Slice 06
+
+- **The values match the README table on all 159 physical units:** 129 hulls (10 at 1.8, 34 at 2.4, 85 at 2.8) and 30 squads (22 at 1, 6 at 0.8, 2 at 0.5). A throwaway script wrote literal values and changed nothing on a second run. *Verdict: evidence.*
+- **The test and capture scouts (`test_recon`, and `capture_us_recon` through it) are scouts at 0.8**, like the roster scouts. *Verdict: sound; one rule for every scout.*
+- **Frozen skirmish inputs got only the changed scalar fields.** Replacing their whole rulesets would have lost unrelated frozen values. *Verdict: sound.*
+- **What moved:**
+  - The Market Town menu reel's battle differs from tick 1; its first logged event moves at tick 1907.
+  - The street fog publications move from tick 62.
+  - Seven generated maps change identity hashes (their physical rules embed the catalog).
+  - The simulation parity records' stored digests (ticks 0, 1, 90, 599, 600, 1680 and 120) and the Paris Corner capture battle are unchanged. Their scenes never put a concealed unit inside an observer's reduced range. *Verdict: evidence.*
+- **I judged the reel and accepted it.** I compared Market Town shots 1–18 before and after, and Paris shots 1–6 (unchanged battle). Every followed unit is alive and framed at its shot's opening, and the followed tank dies at tick 1249 as before. The unprimed critique's framing findings (an empty field shot, a roof-dominated Paris shot, a blast filling a frame) appear identically before and after. Shot 15 now catches a firing tank's dust burst. *Verdict: accepted; no reel tuning needed.*
+- **A starting-value consequence to tune later:** a 500 m MBT with spotting 0.8 identifies a still sniper team in forest at about 37 m (`0.5 × 0.25 = 0.125`, raised to the power 1.25). The spotting report shows every such cell. *Verdict: recorded for the balance pass, not tuned here.*

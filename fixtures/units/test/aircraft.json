@@ -76,6 +76,7 @@
       "name": "Transport Heli",
       "description": "A utility helicopter with sixteen passenger seats.",
       "capabilities": { "carriage": { "seats": 16 } },
+      "concealment": 2.8,
       "roster": null
     }
   }

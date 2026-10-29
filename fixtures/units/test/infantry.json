@@ -28,6 +28,7 @@
       "roles": ["recon"],
       "cost": 80,
       "body": { "squad": { "slots": ["test_scout", "test_scout", "test_scout", "test_scout"] } },
+      "concealment": 0.8,
       "sensors": { "ground_m": 650, "low_air_m": 650, "spotting": 2 }
     },
     "test_at": {

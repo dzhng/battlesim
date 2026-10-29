@@ -188,6 +188,7 @@
           }
         }
       ],
+      "concealment": 2.8,
       "appearance": "europe_aw101_merlin_hc4"
     },
     "europe_aw159_wildcat_ah1": {
@@ -242,10 +243,11 @@
           }
         }
       ],
+      "concealment": 2.8,
       "appearance": "europe_aw159_wildcat_ah1"
     },
     "europe_boxer_apc": {
-                          "concealment": 2.8,
+                          "concealment": 2.4,
       "name": "Boxer APC",
       "description": "APC; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -755,6 +757,7 @@
           }
         }
       ],
+      "concealment": 2.8,
       "appearance": "europe_ch_47_chinook_hc6"
     },
     "europe_challenger_challenger_2_tes": {
@@ -902,13 +905,14 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "sensors": {
         "ground_m": 600,
         "low_air_m": 600
       }
     },
     "europe_cv90120_light_tank": {
-                                   "concealment": 2.8,
+                                   "concealment": 2.4,
       "name": "CV90120",
       "description": "Light tank",
       "faction": "europe",
@@ -1007,7 +1011,7 @@
       }
     },
     "europe_cv90_cv9040c": {
-                             "concealment": 2.8,
+                             "concealment": 2.4,
       "name": "CV9040C",
       "description": "CV9040C; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -1092,7 +1096,7 @@
       }
     },
     "europe_cv90_mk_iv": {
-                           "concealment": 2.8,
+                           "concealment": 2.4,
       "name": "CV90 Mk IV",
       "description": "Mk IV; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -1177,7 +1181,7 @@
       }
     },
     "europe_ebrc_jaguar_armed_reconnaissance_vehicle": {
-                                                         "concealment": 2.8,
+                                                         "concealment": 2.4,
       "name": "Jaguar",
       "description": "Armed reconnaissance vehicle",
       "faction": "europe",
@@ -1340,6 +1344,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "europe_ec665_tiger_had"
     },
     "europe_ec665_tiger_uht": {
@@ -1408,6 +1413,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "europe_ec665_tiger_uht"
     },
     "europe_eurofighter_typhoon_tranche_3": {
@@ -1472,10 +1478,11 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "europe_eurofighter_typhoon_tranche_3"
     },
     "europe_fennek_reconnaissance_vehicle": {
-                                              "concealment": 2.8,
+                                              "concealment": 1.8,
       "name": "Fennek",
       "description": "Reconnaissance vehicle",
       "faction": "europe",
@@ -1722,6 +1729,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "europe_jas_39_gripen_e"
     },
     "europe_kamikaze_drone_anti_armor": {
@@ -1881,7 +1889,7 @@
       }
     },
     "europe_leclerc_xlr": {
-                            "concealment": 2.8,
+                            "concealment": 2.4,
       "name": "Leclerc XLR",
       "description": "XLR",
       "faction": "europe",
@@ -2223,6 +2231,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "sensors": {
         "ground_m": 600,
         "low_air_m": 600
@@ -2326,7 +2335,7 @@
       }
     },
     "europe_mars_ii_multiple_launch_rocket_system": {
-                                                      "concealment": 2.8,
+                                                      "concealment": 2.4,
       "name": "MARS II",
       "description": "Multiple-launch rocket system",
       "faction": "europe",
@@ -2471,10 +2480,11 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "europe_mirage_2000_2000d_rmv"
     },
     "europe_nasams_nasams_3": {
-                                "concealment": 2.8,
+                                "concealment": 2.4,
       "name": "NASAMS 3",
       "description": "NASAMS 3",
       "faction": "europe",
@@ -2631,6 +2641,7 @@
           }
         }
       ],
+      "concealment": 2.8,
       "appearance": "europe_nh90_tth"
     },
     "europe_puma_level_c": {
@@ -2901,6 +2912,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "europe_rafale_c_f4"
     },
     "europe_recon_patrol_light_patrol": {
@@ -3040,6 +3052,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "europe_tornado_ecr"
     },
     "europe_tornado_ids": {
@@ -3104,6 +3117,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "europe_tornado_ids"
     },
     "europe_vbci_infantry_fighting_vehicle": {
@@ -3193,7 +3207,7 @@
       }
     },
     "europe_vbl_machine_gun_scout": {
-                                      "concealment": 2.8,
+                                      "concealment": 1.8,
       "name": "VBL",
       "description": "Machine-gun scout",
       "capabilities": { "carriage": { "seats": 3 } },

@@ -61,7 +61,7 @@
     }
   },
   "sensors": {
-    "moving_concealment": 1.0,
+    "moving_concealment": 1.5,
     "squad_identification_fraction": 0.2,
     "squad_hidden_fraction": 0.8,
     "contact_radius_factor": 3,

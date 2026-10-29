@@ -56,7 +56,8 @@
     "building_range_multiplier": 0.2,
     "hearing_shot_m": 2000,
     "sound_bucket_s": 0.5,
-    "fog_target_height_m": 1
+    "fog_target_height_m": 1,
+    "moving_concealment": 1.5
   },
   "catalog": [
     {
@@ -1824,7 +1825,7 @@
               "side": 1
             }
           },
-          "concealment": 2.8,
+          "concealment": 1.8,
           "sound": {
             "loudness_m": 500,
             "profile": "vehicle"
@@ -1867,7 +1868,7 @@
               "side": 1
             }
           },
-          "concealment": 1,
+          "concealment": 0.8,
           "sound": {
             "loudness_m": 200,
             "profile": "infantry"
@@ -1983,7 +1984,7 @@
               "side": 0.5
             }
           },
-          "concealment": 2.8,
+          "concealment": 2.4,
           "sound": {
             "loudness_m": 650,
             "profile": "vehicle"
@@ -2090,7 +2091,7 @@
               "side": 0.5
             }
           },
-          "concealment": 2.8,
+          "concealment": 2.4,
           "sound": {
             "loudness_m": 650,
             "profile": "vehicle"

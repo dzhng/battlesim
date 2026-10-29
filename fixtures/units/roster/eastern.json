@@ -260,7 +260,7 @@
       }
     },
     "eastern_bm_21_grad_bm_21_rocket_artillery": {
-                                                   "concealment": 2.8,
+                                                   "concealment": 2.4,
       "name": "BM-21 Grad",
       "description": "BM-21 rocket artillery",
       "faction": "eastern",
@@ -345,7 +345,7 @@
       }
     },
     "eastern_bmp_ifv_family_bmp_2m_berezhok": {
-                                                "concealment": 2.8,
+                                                "concealment": 2.4,
       "name": "BMP-2M Berezhok",
       "description": "BMP-2M Berezhok; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -449,7 +449,7 @@
       }
     },
     "eastern_bmp_ifv_family_bmp_3": {
-                                      "concealment": 2.8,
+                                      "concealment": 2.4,
       "name": "BMP-3",
       "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; direct optical guidance only, no top attack or fire-and-forget",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -554,7 +554,7 @@
       }
     },
     "eastern_brm_brm_3k": {
-                            "concealment": 2.8,
+                            "concealment": 2.4,
       "name": "BRM-3K",
       "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
       "capabilities": { "carriage": { "seats": 3 } },
@@ -633,7 +633,7 @@
       }
     },
     "eastern_btr_btr_82a": {
-                             "concealment": 2.8,
+                             "concealment": 2.4,
       "name": "BTR-82A",
       "description": "BTR-82A; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -863,6 +863,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_j_10_vigorous_dragon_j_10c"
     },
     "eastern_j_20_mighty_dragon_stealth_fighter": {
@@ -909,6 +910,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_j_20_mighty_dragon_stealth_fighter"
     },
     "eastern_ka_52_alligator_ka_52m": {
@@ -977,6 +979,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_ka_52_alligator_ka_52m"
     },
     "eastern_kamikaze_drone_anti_armor": {
@@ -1129,6 +1132,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_mi_24_mi_35_hind_mi_35m"
     },
     "eastern_mi_28_havoc_mi_28nm": {
@@ -1197,6 +1201,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_mi_28_havoc_mi_28nm"
     },
     "eastern_mi_8_hip_mi_8amtsh": {
@@ -1274,6 +1279,7 @@
           }
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_mi_8_hip_mi_8amtsh"
     },
     "eastern_mig_29_fulcrum_mig_29smt": {
@@ -1356,6 +1362,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_mig_29_fulcrum_mig_29smt"
     },
     "eastern_mig_31_foxhound_mig_31bm": {
@@ -1420,6 +1427,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_mig_31_foxhound_mig_31bm"
     },
     "eastern_orlan_10_reconnaissance_drone": {
@@ -1804,6 +1812,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_su_25_frogfoot_su_25sm3"
     },
     "eastern_su_57_felon_stealth_multirole_fighter": {
@@ -1886,6 +1895,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_su_57_felon_stealth_multirole_fighter"
     },
     "eastern_sukhoi_flanker_family_su_27sm3": {
@@ -1950,6 +1960,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_sukhoi_flanker_family_su_27sm3"
     },
     "eastern_sukhoi_flanker_family_su_30sm2": {
@@ -2019,6 +2030,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_sukhoi_flanker_family_su_30sm2"
     },
     "eastern_sukhoi_flanker_family_su_34": {
@@ -2101,6 +2113,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_sukhoi_flanker_family_su_34"
     },
     "eastern_sukhoi_flanker_family_su_35s": {
@@ -2165,6 +2178,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_sukhoi_flanker_family_su_35s"
     },
     "eastern_t_14_armata_main_battle_tank": {
@@ -2364,7 +2378,7 @@
       }
     },
     "eastern_t_72_t_72b3_2016": {
-                                  "concealment": 2.8,
+                                  "concealment": 2.4,
       "name": "T-72B3",
       "description": "T-72B3 (2016)",
       "faction": "eastern",
@@ -2468,7 +2482,7 @@
       }
     },
     "eastern_t_80_t_80bvm": {
-                              "concealment": 2.8,
+                              "concealment": 2.4,
       "name": "T-80BVM",
       "description": "T-80BVM",
       "faction": "eastern",
@@ -2572,7 +2586,7 @@
       }
     },
     "eastern_t_90_t_90m_proryv": {
-                                   "concealment": 2.8,
+                                   "concealment": 2.4,
       "name": "T-90M",
       "description": "T-90M Proryv",
       "faction": "eastern",
@@ -2676,7 +2690,7 @@
       }
     },
     "eastern_tigr_tigr_m": {
-                             "concealment": 2.8,
+                             "concealment": 1.8,
       "name": "Tigr-M",
       "description": "Tigr-M",
       "capabilities": { "carriage": { "seats": 3 } },
@@ -2762,7 +2776,7 @@
       }
     },
     "eastern_type_15_ztq_15_light_tank": {
-                                           "concealment": 2.8,
+                                           "concealment": 2.4,
       "name": "ZTQ-15",
       "description": "ZTQ-15 light tank",
       "faction": "eastern",
@@ -2965,7 +2979,7 @@
       }
     },
     "eastern_ural_4320_general_resupply": {
-                                            "concealment": 2.8,
+                                            "concealment": 2.4,
       "name": "Ural-4320",
       "description": "General resupply",
       "faction": "eastern",
@@ -3096,6 +3110,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_z_10_attack_helicopter"
     },
     "eastern_z_20_utility_transport": {
@@ -3173,6 +3188,7 @@
           }
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_z_20_utility_transport"
     },
     "eastern_zbl_08_wheeled_ifv": {

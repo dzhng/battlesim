@@ -85,6 +85,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "ah_64e_guardian"
     },
     "assault_squad": {
@@ -202,6 +203,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "f_16c_block_50"
     },
     "f_35a": {
@@ -285,6 +287,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "f_35a"
     },
     "fgm_148_javelin_team": {

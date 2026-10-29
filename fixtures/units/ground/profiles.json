@@ -13,7 +13,7 @@
         },
         "spotting": 2
       },
-      "concealment": 1,
+      "concealment": 0.8,
       "sound": {
         "profile": "infantry",
         "loudness_m": 200
@@ -38,7 +38,7 @@
         },
         "spotting": 2
       },
-      "concealment": 1,
+      "concealment": 0.8,
       "sound": {
         "profile": "infantry",
         "loudness_m": 200
@@ -56,13 +56,14 @@
         "ground_m": 800,
         "low_air_m": 800,
         "high_air_m": 600,
+        "spotting": 2,
         "sight_shape": {
           "front": 1,
           "side": 1,
           "rear": 1
         }
       },
-      "concealment": 1,
+      "concealment": 0.5,
       "sound": {
         "profile": "infantry",
         "loudness_m": 200
@@ -423,6 +424,7 @@
         "ground_m": 450,
         "low_air_m": 450,
         "high_air_m": 0,
+        "spotting": 0.8,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -440,6 +442,7 @@
         "ground_m": 500,
         "low_air_m": 500,
         "high_air_m": 0,
+        "spotting": 0.8,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -457,6 +460,7 @@
         "ground_m": 550,
         "low_air_m": 550,
         "high_air_m": 0,
+        "spotting": 0.8,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -474,6 +478,7 @@
         "ground_m": 500,
         "low_air_m": 500,
         "high_air_m": 0,
+        "spotting": 0.8,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -491,6 +496,7 @@
         "ground_m": 600,
         "low_air_m": 600,
         "high_air_m": 0,
+        "spotting": 0.8,
         "sight_shape": {
           "front": 1,
           "side": 0.5,

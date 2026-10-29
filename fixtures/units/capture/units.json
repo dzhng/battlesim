@@ -4,12 +4,14 @@
       "extends": "test_tank",
       "name": "M1A2 Abrams",
       "description": "The menu reel's blue tank: the test tank, hull and all, in an Abrams's look. Menu footage only.",
+      "concealment": 2.4,
       "appearance": "us_m1_abrams_sep_v2"
     },
     "capture_eastern_tank": {
       "extends": "test_tank",
       "name": "T-72B3",
       "description": "The menu reel's red tank: the test tank in a T-72B3's look, whose hull it already fits. Menu footage only.",
+      "concealment": 2.4,
       "appearance": "eastern_t_72_t_72b3_2016"
     },
     "capture_us_jeep": {
@@ -17,6 +19,7 @@
       "name": "HMMWV",
       "description": "The menu reel's blue jeep: the test jeep in an HMMWV's look, armoured past what a rifle can chip so the approved reel plays as filmed. Menu footage only.",
       "body": { "hull": { "armor": { "front": 9, "side": 9, "rear": 9, "roof": 9 } } },
+      "concealment": 1.8,
       "appearance": "us_m1151_hmmwv_hmg"
     },
     "capture_rifle": {
