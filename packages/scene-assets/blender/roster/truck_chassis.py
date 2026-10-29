@@ -63,9 +63,12 @@ def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_
             box(f"axle_{s}_{k}", (0.20, axle_width, 0.16), (x, side * axle_center, wheel_r), m["dark"], h,
                 lods=MID)
             box(f"spring_{s}_{k}", (0.9, 0.10, 0.10), (x, side * 0.50, rail_z - 0.22), m["dark"], h, lods=NEAR)
-            # A fender over each wheel.
+            # A fender over each wheel, with brackets to the frame.
+            fender_z = wheel_r * 2 + 0.10
             box(f"fender_{s}_{k}", (wheel_r * 2.3, wheel_w + 0.12, 0.04),
-                (x, side * track, wheel_r * 2 + 0.10), m["paint"], h, bevel=0.01, lods=MID)
+                (x, side * track, fender_z), m["paint"], h, bevel=0.01, lods=MID)
+            box(f"fender_bracket_{s}_{k}", (0.08, 0.04, fender_z - rail_z - 0.15),
+                (x, side * (track - wheel_w / 2 - 0.02), (rail_z + fender_z) / 2), m["dark"], h, lods=FINE)
         VP.mudflap(f"mudflap_{s}", (axles[-1] - wheel_r - 0.15, side * track, wheel_r + 0.55), (wheel_w + 0.05, 0.5),
                    m, h)
         VP.light_with_guard(f"tail_light_{s}", (-half + 0.05, side * (track - 0.05), rail_z + 0.05), 0.05,
@@ -205,9 +208,13 @@ def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1, soft=False):
         cyl(f"roof_marker_{k}", 0.03, 0.04, (front - rake - 0.06, -0.35 + k * 0.35, height + 0.02), "Z", m["tail"], h,
             seg=8, lods=FINE)
     box("dash", (0.35, half_w * 1.7, 0.20), (front - 0.55, 0, waist - 0.05), m["black"], h, lods=NEAR)
+    box("dash_support", (0.06, half_w * 1.4, waist - floor - 0.25), (front - 0.55, 0, (floor + waist - 0.25) / 2),
+        m["black"], h, lods=NEAR)
     for side in (-1, 1):
         box(f"seat_back_{side}", (0.12, 0.50, 0.60), (x0 + 0.45, side * 0.50, waist - 0.05), m["black"], h,
             lods=NEAR)
+        box(f"seat_base_{side}", (0.40, 0.50, waist - floor - 0.35), (x0 + 0.35, side * 0.50, (floor + waist - 0.35) / 2),
+            m["black"], h, lods=NEAR)
 
 
 def cab_fittings(v, x0, front, height, half_w, floor, wheel_r):
