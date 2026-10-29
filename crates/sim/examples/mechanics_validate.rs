@@ -134,7 +134,7 @@ mod tests {
             .unwrap()
             .iter()
             .filter(|(id, row)| *id == "rifle" || row["extends"] == "rifle")
-            .map(|(id, _)| format!("row {id}"))
+            .map(|(id, _)| id.clone())
             .collect();
         let error = sim::fixtures::admit(
             game,
@@ -142,7 +142,7 @@ mod tests {
         )
         .expect_err("finite ammunition needs a supply price");
         assert!(
-            error.contains("service.round_costs") && finite.iter().any(|row| error.contains(row)),
+            error.contains("round_cost") && finite.iter().any(|row| error.contains(row)),
             "{error}"
         );
     }

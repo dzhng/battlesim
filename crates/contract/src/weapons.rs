@@ -48,6 +48,9 @@ pub struct WeaponDefinition {
     #[serde(default)]
     pub magazine: Option<Magazine>,
     pub ammo: AmmoCapacity,
+    /// Supply stock consumed to restore one finite round. Children inherit it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub round_cost: Option<u32>,
     pub penetration: f64,
     /// How gently its damage fades as its penetration falls short of the
     /// armour: the share of the armour it must reach to do any damage.

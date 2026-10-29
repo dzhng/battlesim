@@ -105,7 +105,7 @@ fn rounds_refill_to_capacity_at_their_price_and_rate() {
         2,
     );
     let full = stock(&b);
-    let cost = service()["round_costs"]["atgm"].as_u64().unwrap() as u32;
+    let cost = crate::common::rules().weapons["atgm"].round_cost.unwrap();
     let period = (30.0 / service()["ammo_rounds_per_s"].as_f64().unwrap()) as u64;
     run(&mut b, deploy_ticks() + period + 2);
     assert_eq!(
@@ -323,7 +323,7 @@ fn incoming_fire_does_not_stop_service() {
 #[test]
 fn shared_stock_is_paid_whole_in_unit_order_and_never_regrows() {
     // Stock for one ATGM round (20) only; two AT teams both need one.
-    let cost = service()["round_costs"]["atgm"].as_u64().unwrap() as u32;
+    let cost = crate::common::rules().weapons["atgm"].round_cost.unwrap();
     let mut b = battle(
         json!([
             truck(Some(cost + 3)),

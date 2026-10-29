@@ -368,8 +368,8 @@ fn covered_tank_battle(
         "targets": { intercepts_in: { "classes": ["missile"], "range_m": 1500, "scatter_mrad": 0.5 } }
     });
     rules["air"]["fixed_wing"]["edge_margin_m"] = json!(300.0);
-    rules["service"]["round_costs"]["test_agm"] = json!(1);
-    rules["service"]["round_costs"]["test_interceptor"] = json!(1);
+    rules["weapons"]["test_agm"]["round_cost"] = json!(1);
+    rules["weapons"]["test_interceptor"]["round_cost"] = json!(1);
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",

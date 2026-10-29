@@ -348,9 +348,6 @@ pub struct SightShape {
 pub struct ServiceRules {
     /// Recipients within this distance of a deployed supply vehicle are served.
     pub radius_m: f64,
-    /// Stock per restored round, by weapon row. Every finite row is priced
-    /// (checked when a battle is set up), so no round is given away (L05).
-    pub round_costs: std::collections::BTreeMap<String, u32>,
     pub ammo_rounds_per_s: f64,
     pub vehicle_hp_per_s: f64,
     pub stock_per_hp: u32,

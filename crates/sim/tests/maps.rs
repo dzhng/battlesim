@@ -268,10 +268,8 @@ fn an_encounters_overrides_retune_its_own_battle_and_no_other() {
         "overrides": {
             "weapons": {
                 "tank_ap": { "reload_s": reload_s },
-                "test_scenario_gun": { "extends": "tank_ap", "name": "Scenario Gun" }
+                "test_scenario_gun": { "round_cost": 5, "extends": "tank_ap", "name": "Scenario Gun" }
             },
-            // A finite row is priced for resupply, as a shipped one is.
-            "service": { "round_costs": { "test_scenario_gun": 5 } },
             "units": {
                 "test_scenario_tank": {
                     "extends": "test_tank",

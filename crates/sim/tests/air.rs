@@ -382,8 +382,8 @@ fn an_air_defence_gun_engages_air_within_its_rows_reach_at_each_layer() {
         }
     });
     json_ground_reach(&mut rules["weapons"]["test_aa_gun"], high_reach);
-    rules["service"]["round_costs"]["test_aa_gun"] =
-        rules["service"]["round_costs"]["aa_ballistic"].clone();
+    rules["weapons"]["test_aa_gun"]["round_cost"] =
+        rules["weapons"]["aa_ballistic"]["round_cost"].clone();
     fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -461,8 +461,8 @@ fn a_jet_draws_fire_only_from_a_row_listing_fixed_wing_aircraft() {
             "targets": { "high_air": { "range_m": reach, "scatter_mrad": 6, "classes": classes } }
         });
         json_ground_reach(&mut rules["weapons"]["test_aa_gun"], reach);
-        rules["service"]["round_costs"]["test_aa_gun"] =
-            rules["service"]["round_costs"]["aa_ballistic"].clone();
+        rules["weapons"]["test_aa_gun"]["round_cost"] =
+            rules["weapons"]["aa_ballistic"]["round_cost"].clone();
         fixtures::patch_catalog(
             &mut rules,
             "units",

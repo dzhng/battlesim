@@ -102,7 +102,10 @@ fn need(unit: &Unit, room: bool, arsenal: &Arsenal, rules: &Rules) -> Option<Nee
 fn price(need: Need, arsenal: &Arsenal, rules: &Rules) -> u32 {
     let s = &rules.service;
     match need {
-        Need::Round(_, _, row) => s.round_costs[&arsenal.weapons[row].id],
+        Need::Round(_, _, row) => arsenal.weapons[row]
+            .def
+            .round_cost
+            .expect("finite ammunition is priced at admission"),
         Need::Protection {
             stock_per_charge, ..
         } => stock_per_charge,
@@ -115,11 +118,9 @@ fn price(need: Need, arsenal: &Arsenal, rules: &Rules) -> u32 {
 /// Every finite round must have a price, or a truck could give it away (L05).
 pub(crate) fn validate(rules: &Rules) -> Result<(), crate::RulesError> {
     for (id, weapon) in &rules.weapons {
-        if matches!(weapon.ammo, AmmoCapacity::Rounds(_))
-            && !rules.service.round_costs.contains_key(id)
-        {
+        if matches!(weapon.ammo, AmmoCapacity::Rounds(_)) && weapon.round_cost.is_none() {
             return Err(crate::RulesError::new(
-                format!("service.round_costs.{id}"),
+                format!("weapons.{id}.round_cost"),
                 "missing price for finite weapon row",
             ));
         }

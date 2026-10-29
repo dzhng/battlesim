@@ -1846,7 +1846,7 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
         "targets": { "ground": { "range_m": 650, "scatter_mrad": 26 } },
         "requires_clear_launch_path": true,
     });
-    rules["service"]["round_costs"]["test_launcher"] = json!(1);
+    rules["weapons"]["test_launcher"]["round_cost"] = json!(1);
     fixtures::patch_catalog(
         &mut rules,
         "units",

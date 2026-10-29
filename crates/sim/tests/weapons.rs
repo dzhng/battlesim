@@ -840,7 +840,7 @@ fn a_default_gun_with_a_finite_supply_keeps_it_for_what_it_can_hurt() {
     // The same squad and tank as above, but the rifles carry a counted supply.
     let mut rules = rules();
     rules["weapons"]["test_counted_rifle"] = json!({ "extends": "rifle", "ammo": 200 });
-    rules["service"]["round_costs"]["test_counted_rifle"] = json!(1);
+    rules["weapons"]["test_counted_rifle"]["round_cost"] = json!(1);
     sim::fixtures::patch_catalog(
         &mut rules,
         "soldiers",
@@ -2948,7 +2948,7 @@ fn orders_preserve_partial_magazines_and_finite_ammo_counts_actual_rounds() {
         });
         def.reload_s = 1.0;
         def.ammo = contract::weapons::AmmoCapacity::Rounds(5);
-        setup.rules.service.round_costs.insert(weapon.into(), 1);
+        def.round_cost = Some(1);
         let mut b = Battle::new(&setup, 5);
         let attack = || Order::Attack {
             units: vec![UnitId(0)],
@@ -3080,7 +3080,7 @@ fn an_idle_gun_tops_up_its_partial_magazine_without_spending_ammunition() {
     gun.reload_s = 2.0;
     gun.aim_s = 0.1;
     gun.ammo = contract::weapons::AmmoCapacity::Rounds(12);
-    setup.rules.service.round_costs.insert("hmg".into(), 1);
+    gun.round_cost = Some(1);
     let mut b = Battle::new(&setup, 5);
     let mut commander = Commander::new();
     let attack = || Order::Attack {

@@ -354,7 +354,7 @@ fn with_m1_family() -> Value {
         "extends": "tank_ap", "name": "M829", "description": "Test only.", "icon": "ap_shell",
         "penetration": 240
     });
-    fixture["service"]["round_costs"]["m829"] = json!(6);
+    fixture["weapons"]["m829"]["round_cost"] = json!(6);
     fixture
 }
 
@@ -660,7 +660,7 @@ fn only_a_winged_aircraft_carries_a_bomb() {
             "blast_radius_m": 5, "structural_damage": 10,
             "targets": { "ground": { "classes": ["vehicle"], "range_m": 0, "scatter_mrad": 1 } }
         });
-        fixture["service"]["round_costs"]["test_bomb"] = json!(1);
+        fixture["weapons"]["test_bomb"]["round_cost"] = json!(1);
         fixtures::patch_catalog(
             &mut fixture,
             "units",

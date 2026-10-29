@@ -44,7 +44,7 @@ fn carried_interceptor_and_round(
 ) -> (Battle, ProjectileId) {
     let mut rules = crate::fixtures::test_game();
     rules["weapons"]["test_interceptor"] = row;
-    rules["service"]["round_costs"]["test_interceptor"] = serde_json::json!(1);
+    rules["weapons"]["test_interceptor"]["round_cost"] = serde_json::json!(1);
     crate::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -122,7 +122,7 @@ fn interceptor_on_a_helicopter() -> Battle {
     }));
     row["targets"]["low_air"]["range_m"] = serde_json::json!(800);
     rules["weapons"]["test_interceptor"] = row;
-    rules["service"]["round_costs"]["test_interceptor"] = serde_json::json!(1);
+    rules["weapons"]["test_interceptor"]["round_cost"] = serde_json::json!(1);
     crate::fixtures::patch_catalog(
         &mut rules,
         "units",

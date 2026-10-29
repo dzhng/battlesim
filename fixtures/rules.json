@@ -111,6 +111,7 @@
       "structural_damage": 0.25
     },
     "grenade": {
+      "round_cost": 2,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 150, "scatter_mrad": 30 } },
       "name": "Grenade",
       "description": "Rifle grenades lobbed at troops behind cover.",
@@ -131,6 +132,7 @@
       "structural_damage": 10
     },
     "tank_ap": {
+      "round_cost": 5,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 800, "scatter_mrad": 3.43 } },
       "name": "AP Shell",
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
@@ -151,6 +153,7 @@
       "armor_piercing": true
     },
     "tank_he": {
+      "round_cost": 5,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 800, "scatter_mrad": 3.43 } },
       "name": "HE Shell",
       "description": "High-explosive shell for troops, cover and buildings.",
@@ -191,6 +194,7 @@
       "structural_damage": 4
     },
     "atgm": {
+      "round_cost": 20,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 900, "scatter_mrad": 0.5 } },
       "interceptable": true,
       "decoyable": true,
@@ -223,6 +227,7 @@
       "targets": { "low_air": { "scatter_mrad": 50 }, "ground": { "classes": ["infantry", "vehicle"], "range_m": 240, "scatter_mrad": 10 } }
     },
     "lmg": {
+      "round_cost": 1,
       "extends": "rifle",
       "name": "LMG",
       "description": "A light machine gun: long belts of fire that keep heads down.",
@@ -240,6 +245,7 @@
       "structural_damage": 1
     },
     "marksman_rifle": {
+      "round_cost": 1,
       "extends": "rifle",
       "name": "Marksman Rifle",
       "description": "A designated marksman's scoped rifle: aimed single shots past rifle range.",
@@ -254,6 +260,7 @@
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 450, "scatter_mrad": 8 } }
     },
     "heavy_sniper": {
+      "round_cost": 2,
       "extends": "rifle",
       "name": "Heavy Sniper",
       "description": "A .50-calibre rifle: few, heavy, long shots.",
@@ -268,6 +275,7 @@
       "targets": { "low_air": { "range_m": 150, "scatter_mrad": 48 }, "ground": { "classes": ["infantry", "vehicle"], "range_m": 700, "scatter_mrad": 8 } }
     },
     "autocannon": {
+      "round_cost": 1,
       "extends": "hmg",
       "name": "Autocannon",
       "description": "A slow-firing cannon whose small bursting shells tear up troops, cover and light armour.",
@@ -366,6 +374,7 @@
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 800, "scatter_mrad": 0.5 } }
     },
     "stinger": {
+      "round_cost": 30,
       "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 1500, "scatter_mrad": 0.5 } },
       "interceptable": false,
       "decoyable": true,
@@ -393,6 +402,7 @@
       "structural_damage": 20
     },
     "aa_ballistic": {
+      "round_cost": 1,
       "proximity_fuse_m": 5,
       "extends": "hmg",
       "name": "Short AA gun",
@@ -413,6 +423,7 @@
       "magazine": { "rounds": 30, "shot_interval_s": 0.3, "burst": { "rounds": 3, "aim_max_s": 1 } }
     },
     "aa_medium": {
+      "round_cost": 30,
       "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 2600, "scatter_mrad": 0.5 }, "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 2600, "scatter_mrad": 0.5 } },
       "interceptable": false,
       "name": "Medium SAM",
@@ -442,6 +453,7 @@
       "decoyable": true
     },
     "aa_long": {
+      "round_cost": 45,
       "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 5200, "scatter_mrad": 0.5 } },
       "interceptable": false,
       "name": "Long SAM",
@@ -506,6 +518,7 @@
       "default": true
     },
     "air_missile": {
+      "round_cost": 25,
       "fires_on_its_own": true,
       "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 3000, "scatter_mrad": 0.5 }, "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 3000, "scatter_mrad": 0.5 } },
       "interceptable": false,
@@ -536,6 +549,7 @@
       "decoyable": true
     },
     "air_bomb": {
+      "round_cost": 25,
       "delivery": "unpowered",
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 0, "scatter_mrad": 4 } },
       "name": "Iron bomb",
@@ -555,6 +569,7 @@
       "structural_damage": 80
     },
     "air_bomb_cluster": {
+      "round_cost": 25,
       "delivery": "unpowered",
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 0, "scatter_mrad": 28 } },
       "name": "Cluster bombs",
@@ -583,6 +598,7 @@
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 2000, "scatter_mrad": 0.5 } }
     },
     "sead_missile": {
+      "round_cost": 40,
       "fires_on_its_own": true,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 6500, "scatter_mrad": 0.5 } },
       "interceptable": true,
@@ -646,6 +662,7 @@
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 1200, "scatter_mrad": 0.5 } }
     },
     "rocket_pod": {
+      "round_cost": 2,
       "extends": "tank_he",
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 900, "scatter_mrad": 12 } },
       "name": "Rocket Pod",
@@ -682,6 +699,7 @@
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 650, "scatter_mrad": 4 } }
     },
     "rpg_at_light": {
+      "round_cost": 10,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 300, "scatter_mrad": 8 } },
       "interceptable": true,
       "extends": "grenade",
@@ -697,6 +715,7 @@
       "gravity_scale": 1.7651
     },
     "rpg_at_heavy": {
+      "round_cost": 10,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 400, "scatter_mrad": 8 } },
       "interceptable": true,
       "extends": "grenade",
@@ -712,6 +731,7 @@
       "gravity_scale": 1.7651
     },
     "rpg_general": {
+      "round_cost": 10,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 280, "scatter_mrad": 10 } },
       "extends": "grenade",
       "name": "RPG HE",
@@ -727,6 +747,7 @@
       "gravity_scale": 1.7651
     },
     "artillery_howitzer": {
+      "round_cost": 12,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2500, "scatter_mrad": 18 } },
       "name": "Howitzer",
       "description": "Indirect-fire howitzer shell for long-range support.",
@@ -750,6 +771,7 @@
       "trajectory": "indirect"
     },
     "artillery_mortar": {
+      "round_cost": 8,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 1800, "scatter_mrad": 26 } },
       "name": "Mortar",
       "description": "High-angle mortar bomb for close indirect support.",
@@ -773,6 +795,7 @@
       "trajectory": "indirect"
     },
     "artillery_rocket_light": {
+      "round_cost": 10,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2200, "scatter_mrad": 24 } },
       "name": "Rocket salvo",
       "description": "Unguided rocket salvo for deep area fire.",
@@ -797,6 +820,7 @@
       "trajectory": "indirect"
     },
     "artillery_rocket_heavy": {
+      "round_cost": 16,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2500, "scatter_mrad": 22 } },
       "name": "Heavy rocket salvo",
       "description": "Heavy rocket salvo for deep area fire.",
@@ -821,6 +845,7 @@
       "trajectory": "indirect"
     },
     "artillery_strike_missile": {
+      "round_cost": 24,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2500, "scatter_mrad": 14 } },
       "name": "Strike missile",
       "description": "Long-range unguided strike missile for deep area fire.",
@@ -888,53 +913,6 @@
   },
   "service": {
     "radius_m": 80,
-    "round_costs": {
-      "grenade": 2,
-      "tank_ap": 5,
-      "tank_he": 5,
-      "atgm": 20,
-      "heli_atgm": 20,
-      "air_ground_missile": 20,
-      "rocket_pod": 2,
-      "marksman_rifle": 1,
-      "heavy_sniper": 2,
-      "lmg": 1,
-      "stinger": 30,
-      "igla_s": 30,
-      "fn_6": 30,
-      "autocannon": 1,
-      "aa_ballistic": 1,
-      "aa_medium": 30,
-      "aa_long": 45,
-      "patriot_pac3": 45,
-      "pantsir_missile": 30,
-      "air_gun": 1,
-      "air_missile": 25,
-      "air_bomb": 25,
-      "air_bomb_cluster": 25,
-      "sead_missile": 40,
-      "ground_tank_ap": 5,
-      "ground_tank_he": 5,
-      "advanced_tank_ap": 5,
-      "advanced_tank_he": 5,
-      "light_tank_ap": 5,
-      "light_tank_he": 5,
-      "tow": 20,
-      "kornet": 20,
-      "spike": 20,
-      "javelin": 20,
-      "akeron_mp": 20,
-      "bastion": 20,
-      "ifv_he": 5,
-      "rpg_general": 10,
-      "rpg_at_light": 10,
-      "artillery_howitzer": 12,
-      "artillery_mortar": 8,
-      "artillery_rocket_light": 10,
-      "artillery_rocket_heavy": 16,
-      "artillery_strike_missile": 24,
-      "rpg_at_heavy": 10
-    },
     "ammo_rounds_per_s": 1,
     "vehicle_hp_per_s": 2,
     "stock_per_hp": 1,
