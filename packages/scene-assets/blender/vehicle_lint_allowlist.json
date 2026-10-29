@@ -104,6 +104,18 @@
     {
       "part_pattern": "wheel_*_idler_hub",
       "reason": "Idler hub: center touches wheel body, tips protrude 2.5cm for track guide"
+    },
+    {
+      "part_pattern": "*_bolt_*",
+      "reason": "ERA and applique armor bolts: mounting hardware stands proud of panel surface"
+    },
+    {
+      "part_pattern": "fume_extractor",
+      "reason": "Gun barrel fume extractor: sleeve has clearance around barrel by design"
+    },
+    {
+      "part_pattern": "bore_evacuator",
+      "reason": "Bore evacuator sleeve: same as fume extractor, clearance around barrel"
     }
   ]
 }
