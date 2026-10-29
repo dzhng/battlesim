@@ -38,6 +38,8 @@ const CATEGORIES: [(BuildingCategory, &str, &str); 6] = [
 ];
 const PLAIN: &str = "#efe9d3";
 const FIELD: &str = "#dfe3b4";
+/// Shallow standing water: paler than a river's.
+const SWAMP: &str = "#9cc3c0";
 const FOREST: &str = "#6f9e63";
 const APPROACH: &str = "#3f8fd0";
 const WATER: &str = "#2b6cb0";
@@ -281,6 +283,17 @@ fn render(
                     width_m.max(unit * 0.25)
                 );
             }
+        }
+    }
+    // A swamp is its outline, paler than a river and edged in its colour.
+    for swamp in &plan.swamps {
+        if let GroundShape::Polygon { ring } = &swamp.shape {
+            let _ = write!(
+                out,
+                r##"<path data-layer="swamps" data-rule-group="swamps" data-feature-id="swamps" d="{}" fill="{SWAMP}" stroke="{WATER}" stroke-width="{}"/>"##,
+                path(ring, true),
+                unit * 0.15
+            );
         }
     }
     for ring in crate::layout::water::rings(&plan.rivers) {
@@ -574,6 +587,7 @@ fn render(
         .into_iter()
         .chain(detail.then_some((PAVING, 1.0, "paving")))
         .chain(water.into_iter().filter(|_| !plan.rivers.is_empty()))
+        .chain((!plan.swamps.is_empty()).then_some((SWAMP, 1.0, "swamp")))
     {
         block(&mut out, x, 0.0, fill, opacity);
         label(&mut out, &mut x, 0.0, text, fill);

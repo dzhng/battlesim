@@ -12,7 +12,6 @@ use sim::flight::{FlightEvent, ProjectileId};
 
 use crate::common::{self, Commander};
 
-// Range controls isolate weapon control and timing from live balance tuning.
 const RANGES: [(&str, f64); 6] = [
     ("rifle", 600.0),
     ("grenade", 450.0),
@@ -24,7 +23,7 @@ const RANGES: [(&str, f64); 6] = [
 fn rules() -> Value {
     let mut rules = common::scenario_rules();
     for (id, range) in RANGES {
-        rules["weapons"][id]["range_m"] = json!(range);
+        common::json_ground_reach(&mut rules["weapons"][id], range);
     }
     rules
 }
@@ -36,7 +35,7 @@ fn scenario_with(
 ) -> contract::scenario::ScenarioDefinition {
     let mut setup = common::scenario_with(map, units, events, scripts);
     for (id, range) in RANGES {
-        setup.rules.weapons.get_mut(id).unwrap().ballistics.range_m = range;
+        common::ground_reach(setup.rules.weapons.get_mut(id).unwrap(), range);
     }
     setup
 }
@@ -172,7 +171,7 @@ fn switching_to_a_rifle_pauses_reload_and_resuming_a_useful_launcher_finishes_it
     launcher.aim_s = 0.2;
     launcher.reload_s = 10.0;
     launcher.damage = 1.0e6;
-    launcher.ballistics.range_m = 500.0;
+    common::ground_reach(launcher, 500.0);
     let mut b = Battle::new(&setup, 5);
     let mut switched = false;
     for _ in 0..300 {
@@ -655,7 +654,7 @@ fn expensive_launcher_without_return_fire_reach_loses_threat_priority() {
         sim::fixtures::patch_catalog(&mut authored, "units", "test_tank", json!({"cost":100}));
         sim::fixtures::patch_catalog(&mut authored, "units", "test_at", json!({"cost":1000}));
         authored["weapons"]["atgm"]["min_range_m"] = json!(minimum);
-        authored["weapons"]["atgm"]["range_m"] = json!(maximum);
+        common::json_ground_reach(&mut authored["weapons"]["atgm"], maximum);
         setup.rules = serde_json::from_value(authored).unwrap();
         let mut b = Battle::new(&setup, 5);
         run(&mut b, 3);
@@ -907,7 +906,7 @@ fn an_area_then_a_tank() -> Battle {
     ) = (16.0, 0.09);
     // Its damage cuts off short of the tank's armour: the tank is what it
     // cannot hurt.
-    grenade.partial_from = Some(0.6);
+    grenade.partial_from = 0.6;
     Battle::new(&setup, 5)
 }
 
@@ -2228,17 +2227,18 @@ fn a_remembered_tank_type_does_not_authorize_ap_against_its_firing_area() {
 
 #[test]
 fn area_fire_at_a_contact_comes_down_within_its_area() {
-    // A blue tank 500 m from a red squad it cannot see (its sight is 350 m).
-    // The squad fires once, leaving blue a firing report; the tank is ordered
-    // onto it. With launch spread off, each round passes a standing
+    // A tank follows a remembered firing report into a squad-sized area. With launch spread off, each round passes a standing
     // soldier's middle exactly at its sampled aim point: every one inside the
     // squad-sized area, spread across it rather than piled at its centre.
-    // This probe owns contact sampling, independently of the cinematic miss tail.
     let mut rules = rules();
     rules["physics"]["miss_fall_max_s"] = json!(0.0);
     rules["physics"]["min_spread_at_max_range_m"] = json!(0.0);
     for row in rules["weapons"].as_object_mut().unwrap().values_mut() {
-        row["scatter_mrad"] = json!(0.0);
+        if let Some(targets) = row.get_mut("targets").and_then(Value::as_object_mut) {
+            for fire in targets.values_mut() {
+                fire["scatter_mrad"] = json!(0.0);
+            }
+        }
     }
     let map: Value = serde_json::from_str(&map(json!([]))).unwrap();
     let setup = serde_json::from_value(json!({
@@ -3293,8 +3293,7 @@ fn an_enemy_entering_range_cancels_a_top_up_but_not_an_empty_reload() {
     });
     gun.reload_s = 10.0;
     gun.aim_s = 0.1;
-    gun.ballistics.range_m = 300.0;
-    gun.ballistics.scatter_mrad = 8.0;
+    common::ground_reach_spread(gun, 300.0, 8.0);
     gun.near_miss_suppression = 0.0;
     let mut b = Battle::new(&setup, 5);
     let mut commander = Commander::new();
@@ -3475,12 +3474,11 @@ fn a_gun_takes_the_target_it_hurts_most_before_the_costlier_one() {
 
 #[test]
 fn a_round_with_a_gentle_falloff_still_shakes_armour_twice_its_penetration() {
-    // The AP round (40 damage) at half the test tank's front (140) gets
-    // nothing through by the rules' 0.6. Its own `partial_from` of 0.2 puts
-    // half the armour 3/8 of the way to piercing: 15 a hit.
+    // At half the test tank's front, default 0.6 gives no AP damage; 0.2
+    // puts half the armour 3/8 of the way to piercing: 15 a hit.
     let hits = hits_on_a_tank_front(|ap| {
         ap.penetration = 70.0;
-        ap.partial_from = Some(0.2);
+        ap.partial_from = 0.2;
     });
     let lost: Vec<f64> = hits.iter().map(|h| h.0).collect();
     assert!(!lost.is_empty(), "no hit landed");
@@ -3528,7 +3526,7 @@ fn a_row_that_fires_on_its_own_ignores_the_engagement_policy() {
 #[test]
 fn a_mount_whose_target_drives_out_of_reach_turns_to_one_in_reach() {
     let mut rules = sim::fixtures::test_game();
-    rules["weapons"]["hmg"]["range_m"] = json!(400);
+    common::json_ground_reach(&mut rules["weapons"]["hmg"], 400.0);
     // The tanks answer its fire; it outlasts them here.
     sim::fixtures::patch_catalog(
         &mut rules,
@@ -3574,9 +3572,9 @@ fn a_mount_whose_target_drives_out_of_reach_turns_to_one_in_reach() {
 fn test_a_target_met_past_reach_is_passed_over_for_one_in_reach() {
     let mut game = rules();
     let hmg = &mut game["weapons"]["hmg"];
-    hmg["range_m"] = json!(300.0);
+    common::json_ground_reach(hmg, 300.0);
     hmg["speed_mps"] = json!(50.0);
-    hmg["scatter_mrad"] = json!(10.0);
+    hmg["targets"]["ground"]["scatter_mrad"] = json!(10.0);
     let setup = serde_json::from_value(json!({
         "map": serde_json::from_str::<Value>(&map(json!([]))).unwrap(),
         "rules": game,

@@ -61,6 +61,7 @@
           "rear": 0.5
         }
       },
+      "concealment": 2.8,
       "sound": {
         "profile": "vehicle",
         "loudness_m": 1400
@@ -72,7 +73,7 @@
         },
         "air": {
           "fuel_capacity_s": 180,
-          "afterburner": {},
+          "afterburner": { "speed_factor": 1.5, "fuel_factor": 2 },
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,

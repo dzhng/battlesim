@@ -42,7 +42,7 @@ export async function groundFilterExact(ctx) {
       const [
         { tgpu, d },
         { GpuRegistry },
-        terrain,
+        ,
         scars,
         surface,
         { ScenePresentation },
@@ -50,7 +50,7 @@ export async function groundFilterExact(ctx) {
       ] = await Promise.all([
         import(gpuUrl),
         import(file("packages/battle-renderer/src/frame/registry.ts")),
-        import(terrainPath),
+        import(terrainPath), // the terrain material: loaded, never read
         import(file("packages/battle-renderer/src/frame/groundScars.ts")),
         import(file("packages/battle-renderer/src/terrain/terrainSurface.ts")),
         import(file("web/src/battle/sim/presentation.ts")),
@@ -73,7 +73,9 @@ export async function groundFilterExact(ctx) {
       // The terrain draws the ground the presentation resolved.
       const ground = surface.presentGround(world.terrain.input);
       try {
-        const source = terrain.createTerrainSource(root, registry);
+        const source = (
+          await import(file("packages/battle-renderer/src/frame/terrainSource.ts"))
+        ).createTerrainSource(root, registry, "full");
         source.set(ground);
         const runs = [];
         for (let y = 0; y < 38; y++)

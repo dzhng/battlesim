@@ -5,6 +5,9 @@ use crate::command::{Engagement, RoutePolicy, TargetRef};
 use crate::ids::{Tick, UnitId};
 use serde::{Deserialize, Serialize};
 
+mod sound;
+pub use sound::{Intensity, Shout, ShoutSpeaker, ShoutTrigger, SoundBand, SoundCategory, SoundCue};
+
 /// A side-scoped handle for an identified enemy. It is not the enemy's unit
 /// id, and it is retired when identification lapses past its grace.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -134,103 +137,6 @@ pub struct ApproximateContact {
     pub range_m: Option<f64>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SoundCategory {
-    Infantry,
-    Vehicle,
-    Shot,
-    /// An unseen enemy shouted: never which bark, voice or unit.
-    Shout,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SoundBand {
-    Near,
-    Far,
-}
-
-/// A friendly listener heard an unseen enemy: broad character, one of eight
-/// directions and a near/far band. Never a position; never a visual contact.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct SoundCue {
-    pub listener: UnitId,
-    pub category: SoundCategory,
-    /// 0 = east, counter-clockwise in 45° steps.
-    pub sector: u8,
-    pub band: SoundBand,
-    /// The source was moving (engine working, footsteps) rather than idle.
-    pub moving: bool,
-}
-
-/// A bark emitted by the simulation. The client chooses and plays a take.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ShoutTrigger {
-    B1ContactInfantry,
-    B2ContactVehicle,
-    B3ContactAir,
-    B4OpensFire,
-    B5UnderFire,
-    B6Suppressed,
-    B7Pinned,
-    B8Hit,
-    B9ManDown,
-    B10BadlyDamaged,
-    B11Kill,
-    B12Reloading,
-    B13OutOfAmmo,
-    B14MissileAway,
-    B15IncomingMissile,
-    B16Destroyed,
-    B17FriendlyDestroyedNearby,
-}
-
-impl ShoutTrigger {
-    pub const ALL: [ShoutTrigger; 17] = [
-        ShoutTrigger::B1ContactInfantry,
-        ShoutTrigger::B2ContactVehicle,
-        ShoutTrigger::B3ContactAir,
-        ShoutTrigger::B4OpensFire,
-        ShoutTrigger::B5UnderFire,
-        ShoutTrigger::B6Suppressed,
-        ShoutTrigger::B7Pinned,
-        ShoutTrigger::B8Hit,
-        ShoutTrigger::B9ManDown,
-        ShoutTrigger::B10BadlyDamaged,
-        ShoutTrigger::B11Kill,
-        ShoutTrigger::B12Reloading,
-        ShoutTrigger::B13OutOfAmmo,
-        ShoutTrigger::B14MissileAway,
-        ShoutTrigger::B15IncomingMissile,
-        ShoutTrigger::B16Destroyed,
-        ShoutTrigger::B17FriendlyDestroyedNearby,
-    ];
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Intensity {
-    Steady,
-    Stressed,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum ShoutSpeaker {
-    Own(UnitId),
-    Seen(ObservedTargetId),
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Shout {
-    pub speaker: ShoutSpeaker,
-    pub kind: TypeIndex,
-    pub position: [f64; 3],
-    pub trigger: ShoutTrigger,
-    pub intensity: Intensity,
-}
-
 /// A solid obstacle added after the battle began that this side knows about.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct KnownProp {
@@ -268,6 +174,14 @@ pub struct PropDisplayPose {
     pub center: [f64; 2],
     pub yaw: f64,
     pub base_z: f64,
+}
+
+/// Where a hull grinds a metal body it shoves this tick: halfway up the
+/// lower of the two, with the pusher's horizontal travel.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Grind {
+    pub point: [f64; 3],
+    pub heading: [f64; 2],
 }
 
 /// Which ground this side can currently see: row-major cells of `cell_m`,
@@ -412,9 +326,12 @@ pub enum SegmentHit {
     Ground,
     /// A vehicle hull.
     Hull,
-    /// A building, wall, wreck or other prop.
+    /// A building, wall, hedge or other prop that is not metal.
     Prop,
     Soldier,
+    /// A prop whose body is metal (`PropBody.metal`): a car, wreck, lamp
+    /// post or railing.
+    MetalProp,
 }
 
 /// A stretch of a round's flight this side may draw this tick.
@@ -623,8 +540,9 @@ pub struct OwnUnit {
     /// The squad's suppression tier (P14), from its hidden level by the
     /// rules' thresholds: the one state the sim's penalties and the UI read.
     pub suppression: SuppressionTier,
-    /// Forest or shelter concealment covers enough of this living unit,
-    /// and neither a visible enemy observer nor a known attacker reveals it.
+    /// Enough of its visibility samples stand on concealing ground with net
+    /// concealment below 1, and no visible enemy observer or known attacker
+    /// reveals it.
     pub concealed: bool,
     /// A supply vehicle's remaining stock.
     pub stock: Option<u32>,
@@ -786,6 +704,9 @@ pub struct ObservationFrame {
     /// The bodies shoved this tick that this side sees, where they stand.
     #[serde(default)]
     pub prop_display_poses: Vec<PropDisplayPose>,
+    /// Where hulls grind the metal bodies shoved this tick that this side sees.
+    #[serde(default)]
+    pub grinds: Vec<Grind>,
     /// Round flight this side may draw this tick (own rounds whole, enemy
     /// rounds only over ground it sees).
     pub projectiles: Vec<VisibleSegment>,

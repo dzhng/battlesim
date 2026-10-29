@@ -39,7 +39,7 @@ use native_client::post::Post;
 use native_client::scenery::Scenery;
 use native_client::shadow::{ShadowPass, SunShadow};
 use native_client::sky::Sky;
-use native_client::world::{DepthPrepass, Ghosts, WorldColour};
+use native_client::world::{DepthPrepass, Ghosts, Water, WorldColour};
 use presentation::assets::RUNTIME;
 use presentation::records::View;
 use presentation::shadow::SunShadowFrame;
@@ -287,7 +287,7 @@ impl Run {
             built.elapsed().as_secs_f64(),
             gpu.adapter.get_info().name
         );
-        let targets = Targets::new(&gpu.device, size);
+        let targets = Targets::new(&gpu.device, size, &pipelines.sizes);
         let light = &replay.light;
         let sky = Sky::new(&gpu.device, &gpu.queue, &pipelines, &light.sky());
         let post = Post::new(
@@ -303,18 +303,17 @@ impl Run {
             light.cascades.map_size,
             &SunShadowFrame::cold(light),
         );
+        let presentation = replay.presentation();
+        let resolved = presentation.ground().ok_or("the replay set no ground")?;
         let environment = Environment::new(
             &gpu.device,
             &gpu.queue,
             &pipelines,
             &sky.lut,
-            &light.sun(),
-            &light.aerial(),
+            light,
             &shadow,
         );
         let installed = Instant::now();
-        let presentation = replay.presentation();
-        let resolved = presentation.ground().ok_or("the replay set no ground")?;
         let (positions, indices) = &replay.terrain;
         let ground = Ground::new(
             &gpu.device,
@@ -350,6 +349,7 @@ impl Run {
         let fog = Fog::new(&gpu.device, &pipelines, &targets, &ground.heights);
         replay.presentation_mut().resend_fog();
         let (fog_mask, fog_rim) = fog_mask(&gpu.device, &pipelines, &targets, &replay.fog_look);
+        let water = Water::new(&gpu.device, &pipelines, &targets, fog.paint());
         if let Some(dir) = args.out.as_ref().or(args.bench.as_ref()) {
             std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
         }
@@ -392,6 +392,7 @@ impl Run {
                     Box::new(DepthPrepass::new(&pipelines)),
                     Box::new(FogSight),
                     Box::new(WorldColour::new(&pipelines, sky)),
+                    Box::new(water),
                     Box::new(EffectPass),
                     Box::new(fog_mask),
                     Box::new(Ghosts::new(&pipelines)),

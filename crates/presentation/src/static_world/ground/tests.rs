@@ -18,7 +18,9 @@ const ROAD: [f32; 7] = [0.0, 50.0, 200.0, 50.0, 3.0, 1.0, 3.0];
 const LONE: [f32; 2] = [160.0, 160.0];
 const ROCK: [f32; 2] = [60.0, 70.0];
 /// A river along y = 185, 4 m wide, and a court of paving at the far corner.
-const RIVER: [f32; 11] = [0.0, 185.0, 200.0, 185.0, 2.0, 2.0, 0.5, 0.5, 1.0, 1.0, -1.0];
+const RIVER: [f32; 12] = [
+    0.0, 185.0, 200.0, 185.0, 2.0, 2.0, 0.5, 0.5, 1.0, 1.0, -1.0, 0.0,
+];
 const COURT: [f32; 4] = [170.0, 100.0, 190.0, 120.0];
 
 fn prop(id: u32, kind: f32, [x, y]: [f32; 2], half: f32) -> [f32; PROP] {
@@ -93,6 +95,7 @@ fn world() -> Source {
             .collect(),
         rivers: RIVER.to_vec(),
         river_runs: RIVER[..4].to_vec(),
+        swamps: vec![],
         forests: vec![WOOD[0], WOOD[1], WOOD[2], WOOD[3], 0.0],
         forest_rect_ids: vec![0],
         forest_metadata: vec![0.0, CANOPY, 0.0, 1.0, CANOPY, 1.0],

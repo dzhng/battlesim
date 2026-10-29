@@ -71,3 +71,20 @@ pub(super) fn point_mount(
 pub(super) fn hull_fixed(unit: &Unit, spec: &MountSpec) -> bool {
     unit.is_vehicle() && !spec.turret && spec.on.is_none()
 }
+
+/// Whether a jet's fixed nose gun bears on a point in its authored range,
+/// within `cone_rad` of its heading.
+pub fn nose_on(unit: &Unit, target: V3, range: f64, cone_rad: f64) -> bool {
+    let delta = target - unit.position;
+    range.is_finite()
+        && range >= 0.0
+        && delta.length() <= range
+        && nose_on_bearing(unit.yaw, libm::atan2(delta.y, delta.x), cone_rad)
+}
+
+/// Whether a winged aircraft heading along `yaw` has its nose on `bearing`,
+/// within `cone_rad` (`air.fixed_wing.nose_on_deg`): what its fixed gun
+/// needs to fire, and what an attack pass needs before its dive begins.
+pub fn nose_on_bearing(yaw: f64, bearing: f64, cone_rad: f64) -> bool {
+    wrap_angle(bearing - yaw).abs() <= cone_rad
+}

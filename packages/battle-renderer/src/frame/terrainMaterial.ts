@@ -32,12 +32,10 @@
 // feathered road-edge ideas; not its baked distance texture or rock layers.
 import { tgpu, d, std } from "typegpu";
 import { pcgHash } from "../shaders/pcgHash";
-import type { PresentedGround } from "../terrain/terrainSurface";
 import {
   CUT_A,
   CUT_B,
   SURFACE_CELL_WORDS,
-  SURFACE_FLOATS,
   SURFACE_KIND_SHIFT,
   SURFACE_LEVEL_WORDS,
   SURFACE_NEW_SHAPE,
@@ -55,204 +53,8 @@ import {
   CLASS_STEPS_PER_M,
 } from "../terrain/groundClasses";
 import game from "@fixtures/game.json";
-import type { GpuRegistry, GpuSlot } from "./registry";
-import {
-  createScarTexture,
-  type ScarRegion,
-  type ScarStats,
-  type GroundMarks,
-} from "./scarTexture";
-import { SCAR_PARAMS_WORDS } from "../records.gen";
+import { MAX_PLOT_DEPTH, ROAD_KINDS, terrainLayout } from "./terrainLayout";
 const tuning = game.presentation.terrain;
-
-/** The paved kinds a map can hold, a row of the look table each, in the
- *  simulation's tag order (`ground::biome::AREA_KINDS`). */
-const ROAD_KINDS = 4;
-/** The deepest the plot split goes (`ground::plots::MAX_DEPTH`). */
-const MAX_PLOT_DEPTH = 64;
-/** How one paved kind is drawn (`biome.roads`). */
-const RoadLook = d.struct({
-  /** The surface: linear rgb, roughness. */
-  core: d.vec4f,
-  /** What its patches wear toward (linear rgb, at the surface's luminance),
-   *  and how far a patch goes to it. */
-  worn: d.vec4f,
-  /** Edge feather metres, 1 / patch size, grain strength, 1 / grain size. */
-  shape: d.vec4f,
-  /** How far this kind's road is carried onto a road drawn over it, metres;
-   *  then unused; its walk's width in metres (0 for none) and the row that
-   *  draws the walk. */
-  join: d.vec4f,
-  /** The worn ground beside it: linear rgb, and its width in metres. */
-  shoulder: d.vec4f,
-  /** The shoulder's outer edge: the share of its width it wanders in by,
-   *  1 / the wander's size; then the share of the field's grass that still
-   *  grows where the ground is most worn, and how far the ground goes to the
-   *  shoulder's colour there. */
-  edge: d.vec4f,
-  /** Its ruts: two distances from a stroke's centreline (0 for none), a
-   *  rut's width, the steepest slope of a rut's side (rise over run). */
-  ruts: d.vec4f,
-  /** How far a rut darkens the surface at its middle; a centre strip's half
-   *  width, and the widest stroke (as a half width) that has one; then 1
-   *  where the kind is a carriageway (paving is not). */
-  track: d.vec4f,
-  /** Its walk's slabs: 1 / a slab's length along the road (0 for none), how
-   *  far a joint darkens the surface; then its curb's face: its width, and
-   *  its slope (rise over run). */
-  slabs: d.vec4f,
-  /** Its curb's stones: linear rgb, and their width in metres (0 for none). */
-  curb: d.vec4f,
-  /** Its painted lines: the paint (linear rgb) and how much of the surface
-   *  it hides where it is whole. */
-  paint: d.vec4f,
-  /** The centre line's half width in metres (0 for no markings), a dash's
-   *  length, a dash and its gap together, and the share of its cover the
-   *  paint loses where it is worn. */
-  marks: d.vec4f,
-  /** A crossing's bars: a bar's width, its length along the road, how far
-   *  from the crossing road's edge it starts and how far it keeps from its
-   *  own road's edge. */
-  crossing: d.vec4f,
-  /** Its kerbstones: 1 / a stone's length along the road, and how far the
-   *  joint between two darkens them; then its slabs where it is laid as an
-   *  area: 1 / a slab's side (0 for none), how far a joint darkens it. */
-  stones: d.vec4f,
-});
-
-export const TerrainParams = d.struct({
-  /** The plot region: minX, minY, maxX, maxY. */
-  region: d.vec4f,
-  /** The surface field's grid (`terrain/surfaceField.ts`): its low corner,
-   *  1 / the finest cell's side, the widest pixel the finest level serves. */
-  field: d.vec4f,
-  /** The finest level's cells across and up, and the levels. */
-  fieldGrid: d.vec4u,
-  /** Edge warp metres, 1 / warp scale, 1 / the mottle's scale, then unused. */
-  shape: d.vec4f,
-  /** Linear rgb, verge half width. */
-  verge: d.vec4f,
-  /** Verge feather, the pixel footprints (metres) over which plots give way
-   *  to the distant colour, then unused. */
-  feathers: d.vec4f,
-  /** Each paved kind's look, by its tag. */
-  roads: d.arrayOf(RoadLook, ROAD_KINDS),
-  /** The rows' tags in the order they are painted, the lowest layer first. */
-  roadOrder: d.vec4u,
-  /** The forest floor's leaf litter, moss and humus (linear rgb); with the
-   *  moss and the humus, how far each takes the litter over. */
-  forestLitter: d.vec4f,
-  forestMoss: d.vec4f,
-  forestHumus: d.vec4f,
-  /** 1 / patch scale, mottle, roughness, root contrast. */
-  forestDetail: d.vec4f,
-  /** Verge width, verge warp, 1 / verge warp scale, 1 / root spacing. */
-  forestVerge: d.vec4f,
-  /** 1 / fleck size, fleck share, the sun a fleck lets through, unused. */
-  forestDapple: d.vec4f,
-  /** A tree line's band: the length it narrows to a point over before each
-   *  end of its strip, how far its edge wanders, then unused. */
-  forestLine: d.vec4f,
-  /** The water bed's colour (linear rgb), and how far past a bank's top a
-   *  ground triangle can carry its tilt, in metres: a triangle's diagonal. */
-  waterBed: d.vec4f,
-  /** The water surface's colour (linear rgb) out in the channel, and its opacity there. */
-  water: d.vec4f,
-  /** The surface's colour (linear rgb) at its edge, and its opacity there. */
-  waterEdge: d.vec4f,
-  /** 1 / the shallows' width in metres, the streaks' light, then unused. */
-  waterLook: d.vec4f,
-  /** The wet bank's silt (linear rgb) and its width in metres. */
-  shore: d.vec4f,
-  /** The bare earth behind it (linear rgb) and how far from the water it ends. */
-  shoreEarth: d.vec4f,
-  /** How far in the earth's line wanders (a share of its reach), 1 / the
-   *  wander's scale, the bands' lift over the ground's luminance, and the
-   *  share of a bank's slope its shading shows. */
-  shoreEdge: d.vec4f,
-  distant: d.vec4f,
-  /** 1 draws the ground's classes (`groundClasses`) in place of its lit
-   *  colour: the "ground-classes" frame view. Then 1 draws the roads plain
-   *  (`setRoadWear`). Then unused. */
-  view: d.vec4u,
-});
-/** The scar texture's grid and the biome's scar look (`biome.scars`). */
-export const ScarParams = d.struct({
-  /** 1 / the grid's width and depth in metres, the cell's side, 1 when there
-   *  is ground to draw (else 0). */
-  grid: d.vec4f,
-  /** Grid axes, sparse directory mask and reserved word. */
-  pages: d.vec4u,
-  /** Half-open world region for a bounded scar draw; zero span disables clipping. */
-  clip: d.vec4f,
-  /** Cache bounds in tile coordinates; misses inside use the exact common word. */
-  cacheBounds: d.vec4u,
-  defaultWord: d.vec4u,
-  /** 255 / each channel's `full`: a texel's channel over its full mark. */
-  full: d.vec4f,
-  /** Linear rgb and strength per channel. */
-  crater: d.vec4f,
-  /** The soil thrown onto a crater's rim: linear rgb, strength. */
-  ejecta: d.vec4f,
-  scorch: d.vec4f,
-  tracks: d.vec4f,
-  trampled: d.vec4f,
-  /** Crater relief metres, rim; 0, 0. */
-  relief: d.vec4f,
-  /** Grass: thin, tracks' share of it, flatten; 0. */
-  grass: d.vec4f,
-});
-export const PlotNode = d.struct({ line: d.vec4f, children: d.vec4i });
-export const PlotRecord = d.struct({
-  /** Linear rgb, roughness. */
-  colour: d.vec4f,
-  /** Across the rows (unit), row period metres, row contrast. */
-  rows: d.vec4f,
-  /** Dry patches' strength, the plot's kind (an index into the biome's
-   *  plots), how far the rows break along their length. */
-  detail: d.vec4f,
-  /** 1 / the grain's size, its contrast, 1 / its stretch along the rows. */
-  grain: d.vec4f,
-  /** 1 / a dry patch's length along the rows and 1 / its width across them;
-   *  then unused. */
-  dry: d.vec4f,
-  /** Wheelings: one pair every this many rows, half a wheeling's width in
-   *  metres, how far it darkens. */
-  tram: d.vec4f,
-});
-export const SurfaceRecord = d.struct({ ends: d.vec4f, detail: d.vec4f });
-
-export const terrainLayout = tgpu.bindGroupLayout({
-  params: { uniform: TerrainParams, visibility: ["fragment", "compute"] },
-  nodes: {
-    storage: (n: number) => d.arrayOf(PlotNode, n),
-    access: "readonly",
-    visibility: ["fragment", "compute"],
-  },
-  plots: {
-    storage: (n: number) => d.arrayOf(PlotRecord, n),
-    access: "readonly",
-    visibility: ["fragment", "compute"],
-  },
-  /** The surface field's records: every paved, forest and water primitive. */
-  surfaces: {
-    storage: (n: number) => d.arrayOf(SurfaceRecord, n),
-    access: "readonly",
-    visibility: ["fragment", "compute"],
-  },
-  /** The surface field's index: per level and cell, which records to read. */
-  surfaceIndex: {
-    storage: (n: number) => d.arrayOf(d.u32, n),
-    access: "readonly",
-    visibility: ["fragment", "compute"],
-  },
-  scarParams: { uniform: ScarParams, visibility: ["fragment", "compute"] },
-  /** The side's learned ground (`scarTexture.ts`): crater, scorch, tracks,
-   *  trampled per cell. */
-  scarPages: { texture: d.texture2d(d.u32), visibility: ["fragment", "compute"] },
-  scars: { texture: d.texture2dArray(d.f32), visibility: ["fragment", "compute"] },
-});
-
 /** Rec. 709's weights: a linear colour's luminance is its dot with them. */
 const LUMA_WEIGHTS = [0.2126, 0.7152, 0.0722] as const;
 const LUMA = d.vec3f(...LUMA_WEIGHTS);
@@ -260,8 +62,6 @@ const [dryR, dryG, dryB] = tuning.mottle.dry;
 const MOTTLE_DRY = d.vec3f(dryR, dryG, dryB);
 /** A number as WGSL float text: a whole number keeps its `.0`. */
 export const wgslFloat = (n: number) => (Number.isInteger(n) ? n.toFixed(1) : `${n}`);
-const NODE_WORDS = 8;
-const PLOT_WORDS = 24;
 
 /** Value noise on a unit lattice, in [0, 1]: an integer hash per lattice
  *  corner (no sin-hash, which loses precision kilometres out), smoothly
@@ -920,15 +720,13 @@ export const groundBank = tgpu
 }`)
   .$uses({ terrainLayout });
 
-/** `xy` on a lattice turned `turn` radians from the map's axes. */
+/** `xy` on a lattice turned from the map's axes by (cos, sin) `turn`. */
 const turned = tgpu.fn(
-  [d.vec2f, d.f32],
+  [d.vec2f, d.vec2f],
   d.vec2f,
 )((xy, turn) => {
   "use gpu";
-  const c = std.cos(turn);
-  const s = std.sin(turn);
-  return d.vec2f(xy.x * c + xy.y * s, xy.y * c - xy.x * s);
+  return d.vec2f(xy.x * turn.x + xy.y * turn.y, xy.y * turn.x - xy.x * turn.y);
 });
 
 /** The shore's bands `water` metres inside the water's edge (`groundWater`:
@@ -953,17 +751,18 @@ export const groundShore = tgpu.fn(
   if (out >= reach) {
     return d.vec3f(0);
   }
-  const broad = valueNoise(std.mul(turned(xy, tuning.shore.turns[0]), params.shoreEdge.y));
-  const scale = params.shoreEdge.y * tuning.shore.fine;
+  const t = params.shoreTuning;
+  const broad = valueNoise(std.mul(turned(xy, t.turns.xy), params.shoreEdge.y));
+  const scale = params.shoreEdge.y * t.bands.z;
   const fine = std.mix(
-    valueNoise(std.add(std.mul(turned(xy, tuning.shore.turns[1]), scale), d.vec2f(41.7, 13.1))),
+    valueNoise(std.add(std.mul(turned(xy, t.turns.zw), scale), d.vec2f(41.7, 13.1))),
     0.5,
-    std.smoothstep(tuning.shore.fine_fade[0], tuning.shore.fine_fade[1], footprint * scale),
+    std.smoothstep(t.fade.x, t.fade.y, footprint * scale),
   );
-  const line = reach * (1 - params.shoreEdge.x * std.mix(broad, fine, tuning.shore.fine_share));
+  const line = reach * (1 - params.shoreEdge.x * std.mix(broad, fine, t.bands.w));
   return d.vec3f(
-    1 - std.smoothstep(wet * tuning.shore.wet_whole, wet, out),
-    1 - std.smoothstep(std.mix(wet, line, tuning.shore.earth_whole), line, out),
+    1 - std.smoothstep(wet * t.bands.x, wet, out),
+    1 - std.smoothstep(std.mix(wet, line, t.bands.y), line, out),
     1 - std.smoothstep(wet, line, out),
   );
 });
@@ -1489,21 +1288,21 @@ export const groundColour = tgpu.fn(
     const field = std.mix(
       std.dot(params.verge.xyz, LUMA),
       std.dot(plot.colour.xyz, LUMA) * (1 - 0.5 * plot.rows.w),
-      std.smoothstep(0, tuning.shore.field_ease_m, site.y),
+      std.smoothstep(0, params.shoreTuning.ground.y, site.y),
     );
     const least = field * params.shoreEdge.z;
-    const earth = std.mul(params.shoreEarth.xyz, 1 + tuning.shore.earth_mottle * noise);
+    const earth = std.mul(params.shoreEarth.xyz, 1 + params.shoreTuning.ground.x * noise);
     albedo = std.mix(albedo, atLeast(earth, least), shore.y);
-    roughness = std.mix(roughness, tuning.shore.earth_roughness, shore.y);
+    roughness = std.mix(roughness, params.shoreTuning.ground.z, shore.y);
     albedo = std.mix(albedo, atLeast(params.shore.xyz, least), shore.x);
-    roughness = std.mix(roughness, tuning.shore.wet_roughness, shore.x);
+    roughness = std.mix(roughness, params.shoreTuning.ground.w, shore.x);
   }
 
   // The roads, over all but water.
   const paving = groundRoads(xy, footprint, paved, d.vec4f(albedo, roughness));
 
   // The water bed, under the simulation's rivers (water wins over road).
-  const bed = std.smoothstep(-aa, std.max(aa, tuning.shore.bed_ease_m), water);
+  const bed = std.smoothstep(-aa, std.max(aa, params.shoreTuning.fade.z), water);
   albedo = std.mix(paving.xyz, params.waterBed.xyz, bed);
   return d.vec4f(std.max(albedo, d.vec3f(0)), paving.w);
 });
@@ -1553,230 +1352,3 @@ export const groundClasses = tgpu.fn(
   const packed = (forest << CLASS_FOREST_SHIFT) | (kind << CLASS_KIND_SHIFT) | hash;
   return d.vec3f(classDistance(site.z), classDistance(water), d.f32(packed) / 255);
 });
-
-// The water surface's look (presentation, not rules; the biome's `water`
-// row): clear at its edge, where the bed shows through, taking on the
-// channel's colour and opacity over the shallows; smooth enough that sky and
-// sun reflect in it, broken by two octaves of ripples. The surface ends on the
-// simulation's water edge, feathered over a pixel: the ground meets the
-// surface there, so nothing hides it and nothing steps. Its numbers are
-// `presentation.terrain.water`, which the world pass reads too.
-
-/** Ripple height at `xy`: two octaves of value noise, in about [0, 1.5]. */
-const rippleHeight = tgpu.fn(
-  [d.vec2f],
-  d.f32,
-)((xy) => {
-  "use gpu";
-  return (
-    valueNoise(std.mul(xy, 1 / tuning.water.ripple.long_m)) +
-    tuning.water.ripple.short_weight *
-      valueNoise(std.add(std.mul(xy, 1 / tuning.water.ripple.short_m), d.vec2f(17.3, 5.1)))
-  );
-});
-
-/** The water surface at `xy`: linear colour and opacity (clear at the shore,
- *  murky out in the channel, `groundWater` giving how far in it lies), none
- *  outside the water's edge. Streaks of light lie on it in lanes along the
- *  stream: a reflection shows the ripples only where the sun or the sky's
- *  bright edge happens to lie behind the water, and without the streaks a
- *  reach seen from above is a flat band. A pixel wider than a ripple takes
- *  their mean, so the water keeps its value as the camera pulls out.
- *  `footprint` is the metres one pixel spans. */
-export const waterSurface = tgpu.fn(
-  [d.vec2f, d.f32],
-  d.vec4f,
-)((xy, footprint) => {
-  "use gpu";
-  const params = terrainLayout.$.params;
-  const water = groundWater(xy, groundCell(xy, footprint));
-  const deep = 1 - std.exp(-std.max(water, 0) * params.waterLook.x);
-  const shown =
-    1 - std.smoothstep(tuning.water.ripple.fade_m[0], tuning.water.ripple.fade_m[1], footprint);
-  const drift = tuning.water.lanes.drift * valueNoise(std.mul(xy, 1 / tuning.water.lanes.drift_m));
-  const lane = valueNoise(d.vec2f(water / tuning.water.lanes.m + drift, 3.7));
-  const streak = valueNoise(
-    std.add(std.mul(xy, 1 / tuning.water.lanes.streak_m), d.vec2f(63.1, 29.3)),
-  );
-  const lit = std.smoothstep(
-    tuning.water.lanes.lit[0],
-    tuning.water.lanes.lit[1],
-    tuning.water.lanes.weights[0] * lane + tuning.water.lanes.weights[1] * streak,
-  );
-  const colour = std.mul(
-    std.mix(params.waterEdge.xyz, params.water.xyz, deep),
-    1 + params.waterLook.y * std.mix(tuning.water.lanes.lit_mean, lit, shown),
-  );
-  const edge = std.smoothstep(-footprint * 0.5, footprint * 0.5, water);
-  return d.vec4f(colour, std.mix(params.waterEdge.w, params.water.w, deep) * edge);
-});
-
-/** The water's normal at `xy`: small ripples, fading out where a pixel spans
- *  more than a ripple (`footprint` metres), so far water lies flat and calm. */
-export const waterNormal = tgpu.fn(
-  [d.vec2f, d.f32],
-  d.vec3f,
-)((xy, footprint) => {
-  "use gpu";
-  const ex = d.vec2f(tuning.water.ripple.step_m, 0);
-  const ey = d.vec2f(0, tuning.water.ripple.step_m);
-  const dx = rippleHeight(std.add(xy, ex)) - rippleHeight(std.sub(xy, ex));
-  const dy = rippleHeight(std.add(xy, ey)) - rippleHeight(std.sub(xy, ey));
-  const k =
-    (tuning.water.ripple.slope / (2 * tuning.water.ripple.step_m)) *
-    (1 - std.smoothstep(tuning.water.ripple.fade_m[0], tuning.water.ripple.fade_m[1], footprint));
-  return std.normalize(d.vec3f(-dx * k, -dy * k, 1));
-});
-
-type Root = ReturnType<typeof tgpu.initFromDevice>;
-
-const EMPTY_SCAR_REGIONS: readonly ScarRegion[] = [];
-const NO_SCARS: Omit<ScarStats, "textureBytes" | "directoryBytes"> = {
-  cols: 0,
-  rows: 0,
-  cellM: 1,
-  uploads: 0,
-  fullUploads: 0,
-  lastBytes: 0,
-  totalBytes: 0,
-  pages: 0,
-  directoryEntries: 1,
-  poolWords: 0,
-  defaultWord: 0,
-  cacheBounds: [0, 0, 0, 0],
-};
-
-/** The terrain's GPU tables, rebuilt whole when the world is set. */
-export function createTerrainSource(root: Root, registry: GpuRegistry) {
-  const params = registry.own(root.createBuffer(TerrainParams).$usage("uniform"));
-  // Each table holds at least one record: a storage binding cannot be empty.
-  const nodeBuffer = (n: number) =>
-    root.createBuffer(d.arrayOf(PlotNode, Math.max(1, n))).$usage("storage");
-  const plotBuffer = (n: number) =>
-    root.createBuffer(d.arrayOf(PlotRecord, Math.max(1, n))).$usage("storage");
-  const surfaceBuffer = (n: number) =>
-    root.createBuffer(d.arrayOf(SurfaceRecord, Math.max(1, n))).$usage("storage");
-  const indexBuffer = (n: number) =>
-    root.createBuffer(d.arrayOf(d.u32, Math.max(1, n))).$usage("storage");
-  const nodes: GpuSlot<ReturnType<typeof nodeBuffer>> = registry.slot();
-  const plots: GpuSlot<ReturnType<typeof plotBuffer>> = registry.slot();
-  const surfaces: GpuSlot<ReturnType<typeof surfaceBuffer>> = registry.slot();
-  const surfaceIndex: GpuSlot<ReturnType<typeof indexBuffer>> = registry.slot();
-  const scarParams = registry.own(root.createBuffer(ScarParams).$usage("uniform"));
-  // The scar params as one record: the presentation's words for the grid and
-  // cache, then the biome's look (`ground::tables`).
-  const scarWords = new Uint32Array(d.sizeOf(ScarParams) / 4);
-  new Float32Array(scarWords.buffer).fill(1, SCAR_PARAMS_WORDS, SCAR_PARAMS_WORDS + 4);
-  /** The learned ground the scars were last uploaded from. */
-  let marks: GroundMarks | null = null;
-  const groupOf = () =>
-    root.createBindGroup(terrainLayout, {
-      params,
-      nodes: nodes.current!,
-      plots: plots.current!,
-      surfaces: surfaces.current!,
-      surfaceIndex: surfaceIndex.current!,
-      scarParams,
-      scars: scars.texture.createView({ dimension: "2d-array" }),
-      scarPages: scars.directory.createView(),
-    });
-  const scars = createScarTexture(registry);
-  /** `TerrainParams` as `set` last packed it, its last `vec4u` the frame's view. */
-  let look: Uint32Array | null = null;
-  let classView = false;
-  let roadWear = true;
-  /** The ground `set` last drew, and whether its plots carry their texture. */
-  let ground: PresentedGround | null = null;
-  let textured = true;
-  const writeParams = () => {
-    if (!look) return;
-    look.set([classView ? 1 : 0, roadWear ? 0 : 1, 0, 0], look.length - 4);
-    params.write(look.buffer as ArrayBuffer);
-  };
-
-  const source = {
-    /** Draw the ground's classes in place of its lit colour, or not. */
-    setClassView(on: boolean) {
-      if (on === classView) return;
-      classView = on;
-      writeParams();
-    },
-    /** Draw the roads worn (their patches and grain, their shoulders), or
-     *  plain: each kind's flat colour to its edge. True when it changed. */
-    setRoadWear(on: boolean): boolean {
-      if (on === roadWear) return false;
-      roadWear = on;
-      writeParams();
-      return true;
-    },
-    /** Draw the plots' own texture (grain, broken rows, wheelings), or their
-     *  plain rows alone: a paired cost measure, and a check that the texture
-     *  leaves a plot's mean colour be. True when it changed, so what grows on
-     *  the ground must regrow. */
-    setFieldTexture(on: boolean): boolean {
-      if (on === textured) return false;
-      textured = on;
-      if (ground) plots.current!.write(ground.ground_plots(textured).buffer as ArrayBuffer);
-      return true;
-    },
-    group: null as unknown as ReturnType<typeof groupOf>,
-    /** Follow the side's learned ground (null: none); true when the scars
-     *  changed, so what grows on them must regrow. */
-    setGround(next: GroundMarks | null): boolean {
-      if (next === marks) return next?.changed() ?? false;
-      marks = next;
-      next?.resend();
-      next?.changed();
-      // No ground draws no scars: the grid is off.
-      if (!next) scarParams.write(scarWords.fill(0, 0, SCAR_PARAMS_WORDS).buffer as ArrayBuffer);
-      return true;
-    },
-    scarStats: (): ScarStats => ({
-      ...(marks?.stats() ?? NO_SCARS),
-      ...scars.bytes(),
-    }),
-    /** Upload what the presentation says the scars over `region` (none:
-     *  the view) need, clipped to it when `clipped`. */
-    prepareScars(region?: ScarRegion, clipped = false) {
-      if (!marks) return;
-      const upload = marks.prepare(region, clipped);
-      if (scars.upload(upload)) source.group = groupOf();
-      scarWords.set(upload.params);
-      scarParams.write(scarWords.buffer as ArrayBuffer);
-    },
-    scarRegions(): readonly ScarRegion[] {
-      return marks?.regions() ?? EMPTY_SCAR_REGIONS;
-    },
-    /** The ground the scene's presentation resolved; none uploads empty
-     *  tables until it has. */
-    set(next: PresentedGround | null) {
-      ground = next;
-      const tables = next?.ground_terrain();
-      const upload = (words: Uint32Array | Float32Array) => words.buffer as ArrayBuffer;
-      const none = new Uint32Array(PLOT_WORDS);
-      const [nodeWords, plotWords] = [
-        tables?.nodes() ?? none,
-        next?.ground_plots(textured) ?? none,
-      ];
-      const [records, index] = [
-        tables?.surfaces() ?? new Float32Array(SURFACE_FLOATS),
-        tables?.surface_index() ?? none,
-      ];
-      nodes.set(nodeBuffer(nodeWords.length / NODE_WORDS)).write(upload(nodeWords));
-      plots.set(plotBuffer(plotWords.length / PLOT_WORDS)).write(upload(plotWords));
-      surfaces.set(surfaceBuffer(records.length / SURFACE_FLOATS)).write(upload(records));
-      surfaceIndex.set(indexBuffer(index.length)).write(upload(index));
-      look = new Uint32Array(d.sizeOf(TerrainParams) / 4);
-      if (tables) {
-        look.set(tables.params());
-        scarWords.set(tables.scars(), SCAR_PARAMS_WORDS);
-        tables.free();
-      }
-      writeParams();
-      scarParams.write(scarWords.buffer as ArrayBuffer);
-      source.group = groupOf();
-    },
-  };
-  return source;
-}
-export type TerrainSource = ReturnType<typeof createTerrainSource>;

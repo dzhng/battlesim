@@ -18,8 +18,7 @@ struct GrassParams {
   clear: vec4f,
   counts: vec4u,
   ground: vec4f,
-  wind: vec4f,
-  gusts: vec4f,
+  sway: vec4f,
   growth: array<vec4f, 16>,
   patches: array<vec4f, 16>,
   mixes: array<vec4f, 64>,
@@ -54,6 +53,13 @@ struct GrassShapeVertex {
 
 @group(1) @binding(3) var<storage, read> shapes: array<GrassShapeVertex>;
 
+struct Wind {
+  toward: vec3f,
+  driftMps: f32,
+  gustMps: f32,
+  gustPerM: f32,
+}
+
 struct Camera {
   viewProj: mat4x4f,
   invViewProj: mat4x4f,
@@ -62,9 +68,13 @@ struct Camera {
   width: f32,
   height: f32,
   time: f32,
+  wind: array<Wind, 1>,
+  waves: vec4f,
 }
 
 @group(0) @binding(0) var<uniform> cam: Camera;
+
+fn cameraWind() -> Wind { return cam.wind[0]; }
 
 fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
   let P = &params;
@@ -88,11 +98,12 @@ fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
   let side = vec3f(sd.x * cs - sd.y * sn, sd.x * sn + sd.y * cs, sd.z);
   // The one wind: a steady lean, gust fronts rolling downwind, a flutter.
   let t = cam.time;
-  let dir = (*P).wind.xy;
+  let wind = cameraWind();
+  let dir = wind.toward.xy;
   let along = dot(c.root.xy, dir);
-  let front = sin(6.2831853 * (along - t * (*P).gusts.y) * (*P).gusts.x);
+  let front = sin(6.2831853 * (along - t * wind.gustMps) * wind.gustPerM);
   let gust = smoothstep(0.2, 1.0, front);
-  let flutter = (*P).gusts.z * sin((*P).gusts.w * t + s.side.w * 6.2831853 + along * 0.35);
+  let flutter = (*P).sway.z * sin((*P).sway.w * t + s.side.w * 6.2831853 + along * 0.35);
   let bend = s.spine.w * s.spine.w;
   let packed = unpack4x8unorm(c.colour);
   // Laid over by tracks or trampling: the clump sinks and its blades lean
@@ -100,7 +111,7 @@ fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
   // wind less (its shape's own response).
   let flat = 1.0 - packed.w;
   let answer = s.tint.w * (1.0 - flat);
-  let lean = ((*P).wind.z + (*P).wind.w * gust + flutter) * answer;
+  let lean = ((*P).sway.x + (*P).sway.y * gust + flutter) * answer;
   let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * 0.5 * answer;
   let laid = vec2f(cs, sn) * flat * 1.1;
   var world = c.root + vec3f(spine.xy, spine.z * (1.0 - flat * 0.6)) + side + vec3f((push + laid) * c.height * bend, 0.0);
@@ -658,6 +669,21 @@ fn standardPbr(base: vec3f, emissive: vec3f, authoredRoughness: f32, geometryRou
   return max((directDiffuse+indirectDiffuse)+(directSpecular+indirectSpecular)+emissive,vec3f(0));
 }
 
+fn lightAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linear: sampler) -> vec3f {
+ return standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
+ }
+
+@group(3) @binding(3) var pmrem: texture_2d<f32>;
+
+@group(3) @binding(4) var dfg: texture_2d<f32>;
+
+@group(3) @binding(5) var linear: sampler;
+
+fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec3f {
+  let sun_1 = mix(data.settings.y, 1f, shadow);
+  return lightAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun_1, eye, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, pmrem, dfg, linear);
+}
+
 fn equirectUv(direction: vec3f) -> vec2f {
   return vec2f(atan2(direction.z, direction.x) * 1.5915494309189535e-1f + 0.5,
     asin(clamp(direction.y, -1.0, 1.0)) * 3.1830988618379069e-1f + 0.5);
@@ -684,22 +710,14 @@ fn applyAerial(surface: vec4f, position: vec3f, camera: vec3f, observer: vec3f, 
     return vec4f(surface.rgb*transmit+mistSkyLight*(vec3f(1)-transmit),surface.a);
   }
 
-fn shadeAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, observer: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, air: Aerial, sky: texture_2d<f32>, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linear: sampler) -> vec4f {
- let lit=standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
- return applyAerial(vec4f(lit,1),worldPosition,eye,observer,sunDirection,air,sky,linear);
- }
-
 @group(3) @binding(2) var sky: texture_2d<f32>;
 
-@group(3) @binding(3) var pmrem: texture_2d<f32>;
-
-@group(3) @binding(4) var dfg: texture_2d<f32>;
-
-@group(3) @binding(5) var linear: sampler;
+fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
+  return applyAerial(vec4f(colour, 1f), position, eye, data.observer.xyz, data.sunDirection.xyz, data.aerial, sky, linear);
+}
 
 fn shade(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec4f {
-  let sun_1 = mix(data.settings.y, 1f, shadow);
-  return shadeAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun_1, eye, data.observer.xyz, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, data.aerial, sky, pmrem, dfg, linear);
+  return air(surfaceLight(base, emissive, roughness, geomRoughness, metal, ao, normal, position, shadow, eye), position, eye);
 }
 
 struct GroundPaintStyle {

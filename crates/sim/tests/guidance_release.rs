@@ -27,7 +27,7 @@ fn a_screen_breaks_guidance_even_while_the_scout_keeps_the_target_identified() {
             "test_at",
             json!({ "sensors": { "ground_m": 100 } }),
         );
-        r["weapons"]["atgm"]["range_m"] = json!(900);
+        common::json_ground_reach(&mut r["weapons"]["atgm"], 900.0);
         for w in r["weapons"].as_object_mut().unwrap().values_mut() {
             w["damage"] = json!(0);
         }

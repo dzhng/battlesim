@@ -6,8 +6,7 @@
     "rule": {
       "trunk_spacing_m": 9,
       "trunk_jitter": 0.3,
-      "concealment_infantry": 0.25,
-      "concealment_vehicle": 0.7,
+      "concealment": 0.25,
       "attenuation_per_m": 0.011,
       "canopy_radius_m": 6.5,
       "canopy_height_m": 12,
@@ -44,7 +43,6 @@
     "infantry_aim_m": 1,
     "vehicle_aim_height_fraction": 0.75,
     "infantry_center_m": 0.9,
-    "blast_falloff": "linear conditional damage; quadratic hit probability; cover scales probability only",
     "moving_scatter_multiplier": 1.4142135623730951,
     "friendly_prefire_margin_m": 1
   },
@@ -58,7 +56,8 @@
     "building_range_multiplier": 0.2,
     "hearing_shot_m": 2000,
     "sound_bucket_s": 0.5,
-    "fog_target_height_m": 1
+    "fog_target_height_m": 1,
+    "moving_concealment": 1.5
   },
   "catalog": [
     {
@@ -1733,12 +1732,15 @@
           ],
           "sensors": {
             "ground_m": 600,
+            "low_air_m": 600,
+            "high_air_m": 600,
             "sight_shape": {
               "front": 1,
               "rear": 1,
               "side": 1
             }
           },
+          "concealment": 1,
           "sound": {
             "loudness_m": 200,
             "profile": "infantry"
@@ -1780,7 +1782,7 @@
           "mobility": {
             "wheeled": {
               "offroad_kmh": 32,
-              "reverse_fraction": 0.4,
+              "reverse_speed_factor": 0.4,
               "road_kmh": 110,
               "turn_deg_s": 60,
               "turning_radius_m": 6
@@ -1815,12 +1817,15 @@
           ],
           "sensors": {
             "ground_m": 450,
+            "low_air_m": 450,
+            "high_air_m": 300,
             "sight_shape": {
               "front": 1,
               "rear": 1,
               "side": 1
             }
           },
+          "concealment": 1.8,
           "sound": {
             "loudness_m": 500,
             "profile": "vehicle"
@@ -1853,14 +1858,17 @@
             "recon"
           ],
           "sensors": {
-            "concealed_range_multiplier": 2,
+            "spotting": 2,
             "ground_m": 650,
+            "low_air_m": 650,
+            "high_air_m": 600,
             "sight_shape": {
               "front": 1,
               "rear": 1,
               "side": 1
             }
           },
+          "concealment": 0.8,
           "sound": {
             "loudness_m": 200,
             "profile": "infantry"
@@ -1898,12 +1906,15 @@
           ],
           "sensors": {
             "ground_m": 600,
+            "low_air_m": 600,
+            "high_air_m": 600,
             "sight_shape": {
               "front": 1,
               "rear": 1,
               "side": 1
             }
           },
+          "concealment": 1,
           "sound": {
             "loudness_m": 200,
             "profile": "infantry"
@@ -1953,7 +1964,7 @@
           "mobility": {
             "wheeled": {
               "offroad_kmh": 25,
-              "reverse_fraction": 0.35,
+              "reverse_speed_factor": 0.35,
               "road_kmh": 76,
               "turn_deg_s": 40,
               "turning_radius_m": 6
@@ -1965,12 +1976,15 @@
           ],
           "sensors": {
             "ground_m": 300,
+            "low_air_m": 300,
+            "high_air_m": 300,
             "sight_shape": {
               "front": 1,
               "rear": 0.3,
               "side": 0.5
             }
           },
+          "concealment": 2.4,
           "sound": {
             "loudness_m": 650,
             "profile": "vehicle"
@@ -2012,7 +2026,7 @@
           "mobility": {
             "tracked": {
               "offroad_kmh": 22,
-              "reverse_fraction": 0.4,
+              "reverse_speed_factor": 0.4,
               "road_kmh": 43,
               "turn_deg_s": 45
             }
@@ -2068,6 +2082,8 @@
           ],
           "sensors": {
             "ground_m": 350,
+            "low_air_m": 350,
+            "high_air_m": 300,
             "on": "cannon",
             "sight_shape": {
               "front": 1,
@@ -2075,6 +2091,7 @@
               "side": 0.5
             }
           },
+          "concealment": 2.4,
           "sound": {
             "loudness_m": 650,
             "profile": "vehicle"

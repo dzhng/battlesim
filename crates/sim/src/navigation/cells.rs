@@ -30,9 +30,11 @@ pub(super) struct Cell {
     /// The heaviest known body stopping vehicles over the cell: its weight
     /// class's rank, or [`NO_BODY`].
     pub heaviest: u8,
-    /// `Surface::road_factor`: 0 off any road.
-    pub road_factor: f64,
+    /// `Surface::paved`: `None` off any paving.
+    pub paved: Option<contract::map::SurfaceKind>,
     pub forest: bool,
+    /// `Surface::swamp`.
+    pub swamp: bool,
     pub slope_deg: f64,
     /// Infantry's free sub-cells, bit `row * 4 + column` from the cell's
     /// south-west corner.
@@ -68,8 +70,9 @@ impl Cells {
                 ground: traversable,
                 infantry: traversable,
                 heaviest: NO_BODY,
-                road_factor: 0.0,
+                paved: None,
                 forest: false,
+                swamp: false,
                 slope_deg: 0.0,
                 free: if traversable { ALL_FREE } else { 0 },
                 open: if traversable { open as u8 } else { 0 },
@@ -169,6 +172,19 @@ impl IndexMut<usize> for Cells {
             })));
         }
         &mut Arc::make_mut(self.pages[page].as_mut().expect("the page is stored"))[local]
+    }
+}
+
+impl Cell {
+    /// What a mover's speed reads of it: `Surface::footing` as it was read.
+    pub fn footing(&self) -> super::Footing {
+        super::Footing {
+            paved: [self.paved, None],
+            forest: self.forest,
+            swamp: self.swamp,
+            slope_deg: self.slope_deg,
+            crater_fill: 0.0,
+        }
     }
 }
 

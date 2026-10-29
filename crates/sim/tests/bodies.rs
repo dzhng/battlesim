@@ -328,6 +328,143 @@ fn a_shove_is_published_each_tick_to_the_sides_that_see_it() {
     }
 }
 
+/// A tank shoving a parked car out of a row holds its heading (Q13): the car
+/// it is pressed against moves with it, so it never re-plans round the car
+/// and swings from side to side. It drives at the row on a slant, through
+/// one car's flank, to a goal past it.
+#[test]
+fn a_tank_shoving_a_car_holds_its_heading() {
+    let mut b = Battle::new(&car_row(), 1);
+    let car = 2;
+    let parked = b.world().prop(car).unwrap().center;
+    let mut yaws = Vec::new();
+    for _ in 0..30 * b.rules().tick_hz as u64 {
+        b.step();
+        let shoved = (b.world().prop(car).unwrap().center - parked).length() > 0.1;
+        let tank = b.unit(UnitId(0)).unwrap();
+        if shoved && tank.state != MoveState::Idle {
+            yaws.push(tank.yaw.to_degrees());
+        }
+    }
+    let tank = b.unit(UnitId(0)).unwrap();
+    assert!(
+        (tank.position.xy() - v2(27.0, 38.0)).length() < 0.5,
+        "the tank reaches its goal: {:?}",
+        tank.position.xy()
+    );
+    assert!(
+        yaws.len() > 30,
+        "it shoves the car for a while: {} ticks",
+        yaws.len()
+    );
+    let (lo, hi) = yaws
+        .iter()
+        .fold((f64::MAX, f64::MIN), |(lo, hi), y| (lo.min(*y), hi.max(*y)));
+    assert!(
+        hi - lo < 2.0,
+        "its heading swings {lo:.1}..{hi:.1} degrees while it shoves"
+    );
+}
+
+/// A tank driving at a row of parked cars on a slant, through one car's flank
+/// (prop 2), to a goal past it.
+fn car_row() -> ScenarioDefinition {
+    car_row_to([27.0, 38.0], json!([]))
+}
+
+fn car_row_to(goal: [f64; 2], events: Value) -> ScenarioDefinition {
+    let cars: Vec<Value> = [15.0, 20.0, 25.0, 30.0, 35.0]
+        .map(|x| json!({ "kind": "parked_car", "center": [x, 30.0], "yaw": 0, "half_extents": [2.1, 0.9, 0.75] }))
+        .to_vec();
+    let map = json!({
+        "size": [60, 70], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": cars,
+    })
+    .to_string();
+    common::scenario_with(
+        &map,
+        json!([vehicle("blue", "test_tank", [22.0, 5.0])]),
+        events,
+        json!([drive("blue", 0, goal)]),
+    )
+}
+
+/// A body that turns up on a pusher's way while it shoves another is still
+/// weighed against a detour (Q13): a car left across the road beyond the row
+/// while the tank is pressed against the one it shoves, the tank drives
+/// round it, never through where it was left.
+#[test]
+fn a_tank_shoving_a_car_still_goes_round_one_left_in_its_way() {
+    let at = v2(28.5, 50.0);
+    let left = json!([{ "tick": 180, "add_prop":
+        { "kind": "parked_car", "center": [at.x, at.y], "yaw": 0, "half_extents": [2.1, 0.9, 0.75] } }]);
+    let mut b = Battle::new(&car_row_to([30.0, 62.0], left), 1);
+    let parked = b.world().prop(2).unwrap().center;
+    let mut shoving_when_left = false;
+    let mut box_left = None;
+    let mut nearest = f64::INFINITY;
+    for _ in 0..40 * b.rules().tick_hz as u64 {
+        b.step();
+        let tank = b.unit(UnitId(0)).unwrap().position.xy();
+        if box_left.is_none() {
+            box_left = b
+                .world()
+                .props()
+                .find(|p| p.center == at)
+                .map(|p| p.footprint());
+            if box_left.is_some() {
+                let shoved = b.world().prop(2).unwrap();
+                shoving_when_left =
+                    shoved.center != parked && shoved.footprint().distance(tank) < 4.0;
+            }
+        }
+        if let Some(left) = box_left {
+            nearest = nearest.min(left.distance(tank));
+        }
+    }
+    assert!(
+        shoving_when_left,
+        "the car is left while the tank shoves the first"
+    );
+    assert!(
+        nearest > 0.0,
+        "the tank drives round the car left in its way, never through where it stood"
+    );
+    let tank = b.unit(UnitId(0)).unwrap();
+    assert!(
+        (tank.position.xy() - v2(30.0, 62.0)).length() < 0.5,
+        "the tank reaches its goal: {:?}",
+        tank.position.xy()
+    );
+}
+
+/// A hull grinds the car it shoves where they meet: on the car's side facing
+/// the hull, never its far side, halfway up the lower of the two.
+#[test]
+fn a_hull_grinds_the_car_it_shoves_where_they_meet() {
+    let mut b = Battle::new(&car_row(), 1);
+    let hull_half = b.unit(UnitId(0)).unwrap().hull.unwrap().z;
+    let flank = b.world().prop(2).unwrap().base_z + hull_half.min(0.75);
+    let mut grinds = 0;
+    for _ in 0..30 * b.rules().tick_hz as u64 {
+        b.step();
+        let hull = b.unit(UnitId(0)).unwrap().ground_footprint().unwrap();
+        for c in &b.observe(Side::Blue).grinds {
+            let [x, y, z] = c.point;
+            assert!(
+                hull.distance(v2(x, y)) < 0.25,
+                "the grind {:.1} m from the hull",
+                hull.distance(v2(x, y))
+            );
+            assert!(
+                (z - flank).abs() < 1e-9,
+                "the grind at {z:.2} m, not {flank:.2}"
+            );
+            grinds += 1;
+        }
+    }
+    assert!(grinds > 30, "the hull grinds the car for {grinds} ticks");
+}
+
 /// Q28: a test-only smoke prop type: blocks nobody, stops no rounds, gives
 /// no cover, occludes, and lasts 10 s. Each column acts alone.
 fn smoke(units: Value, scripts: Value) -> ScenarioDefinition {

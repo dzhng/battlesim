@@ -26,3 +26,12 @@ path = "tests/main.rs"
 [[example]]
 name = "cover_report"
 test = true
+
+# Its admission tests run with the workspace suite.
+[[example]]
+name = "mechanics_validate"
+test = true
+
+# Native-only tests and examples may use std math; the library denies it (crates/clippy.toml).
+[lints.clippy]
+disallowed_methods = "allow"

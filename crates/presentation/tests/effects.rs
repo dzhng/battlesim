@@ -1,8 +1,10 @@
 //! The effects draw what is recorded for the same causes: every instance's
 //! sixteen floats and every cast light at fixed clocks after a few
-//! publications that exercise every kind of effect, and a fixture run's
-//! plate's effect counts replayed from its capture, its units and effects
-//! resolved from the repository as native resolves them.
+//! publications that exercise every kind of effect, in the recorded biome's
+//! wind, and a fixture run's plate's effect counts replayed from its capture,
+//! its units and effects resolved from the repository as native resolves
+//! them. `BLESS_PARITY=1` re-records the instances, and only the instances:
+//! the lights and counts must still hold.
 use std::path::PathBuf;
 
 use presentation::effects::frame::{
@@ -13,6 +15,7 @@ use presentation::effects::publication::{EffectFeed, EffectPublication};
 use presentation::effects::tables::EffectPresentation;
 use presentation::effects::{DrawnRotor, MuzzleSource};
 use presentation::fielded::{self, Fielded};
+use presentation::wind::WindSettings;
 use presentation::world::Vec3;
 use serde_json::Value;
 use sim::publication::reader::Reader;
@@ -62,15 +65,18 @@ impl MuzzleSource for Muzzles {
 
 #[test]
 fn effects_match_the_recorded_vectors() {
-    let v = kicked("effect-vectors.json");
+    let mut v = kicked("effect-vectors.json");
+    let bless = std::env::var("BLESS_PARITY").as_deref() == Ok("1");
     let p = EffectPresentation::from_value(&v["presentation"]).expect("presentation");
     let mut batch = EffectBatch::new(p.capacity);
     let mut frame = EffectFrame::new(v["tickHz"].as_f64().unwrap(), p);
+    let wind = serde_json::from_value::<WindSettings>(v["wind"].clone()).expect("wind");
     let publications: Vec<EffectPublication> =
         serde_json::from_value(v["publications"].clone()).expect("publications");
     let mut muzzles = Muzzles(serde_json::from_value(v["muzzles"].clone()).expect("muzzles"));
     let rotor: DrawnRotor = serde_json::from_value(v["rotor"].clone()).expect("rotor");
     let mut noted = 0;
+    let mut blessed = vec![];
     for want in v["frames"].as_array().unwrap() {
         let clock = want["clock"].as_f64().unwrap();
         while noted < want["noted"].as_u64().unwrap() as usize {
@@ -83,8 +89,16 @@ fn effects_match_the_recorded_vectors() {
             Some(&mut muzzles),
             std::slice::from_ref(&rotor),
             &[],
+            Some(&wind),
         );
-        let instances: Vec<f64> = serde_json::from_value(want["instances"].clone()).unwrap();
+        let mut instances: Vec<f64> = serde_json::from_value(want["instances"].clone()).unwrap();
+        if bless {
+            instances = batch.data[..batch.count * EFFECT_FLOATS]
+                .iter()
+                .map(|&x| round(x))
+                .collect();
+            blessed.push(instances.clone());
+        }
         assert_eq!(
             batch.count,
             instances.len() / EFFECT_FLOATS,
@@ -125,6 +139,14 @@ fn effects_match_the_recorded_vectors() {
             "at {clock} s"
         );
     }
+    if bless {
+        for (want, instances) in v["frames"].as_array_mut().unwrap().iter_mut().zip(blessed) {
+            want["instances"] = instances.into();
+        }
+        let at =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/effect-vectors.json");
+        std::fs::write(at, serde_json::to_string(&v).unwrap()).unwrap();
+    }
 }
 
 #[test]
@@ -157,13 +179,14 @@ fn a_fixture_runs_plate_counts_are_the_pages_replay_of_its_capture() {
                 .decode(&words)
                 .expect("decodes")
                 .expect("an observation");
-            frame.note(&feed.publication(&o, &units, &effects));
+            frame.note(&feed.publication(&o, &units, &effects, None));
         }
         let Some(plate) = f["plate"].as_str() else {
             continue;
         };
         let clock = f["simTime"].as_f64().unwrap();
-        frame.build(clock, &mut batch, None, &[], &[]);
+        // Counts don't move with where smoke drifts.
+        frame.build(clock, &mut batch, None, &[], &[], None);
         counts.push((plate.to_owned(), frame.counts(clock, &batch)));
     }
     let want = manifest["effectCounts"].as_array().unwrap();

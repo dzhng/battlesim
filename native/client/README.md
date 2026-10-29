@@ -58,6 +58,11 @@ adaptation preserves the cutout test and leaves the browser export unchanged.
   them and draws the terrain into the depth prepass, the cascades and the lit
   world. The grass grows on the GPU over the window the crate fits to each
   view, through the exported build, finish and indirect draw.
+- **The water** is the browser's shader over the presentation's water mesh
+  and looks, drawn `full` (`WaterDetail`): after the world, refracting a
+  mipped copy of it and the fog before it. Native draws no wakes; what is
+  left to port is the [water native](../../specs/water-native/README.md)
+  list.
 - **The scenery** (trees, the tree lines' shrubs, the scenery past the map,
   the forest floor's dressing, felled trees and their stumps) is the frame's
   static batches. The replay places it from each kind's finest mesh

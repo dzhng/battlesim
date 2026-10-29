@@ -57,7 +57,6 @@ import type { Biome, PresentedGround, TerrainSurface } from "../terrain/terrainS
 type GrassRules = Biome["grass"];
 import {
   GRASS_GROWTH_ROWS,
-  GRASS_MAX_KINDS,
   GRASS_MIX_MAX,
   grassShapes,
   type GrassAppearances,
@@ -85,10 +84,10 @@ import {
   groundVerge,
   groundWheeling,
   groundWater,
-  terrainLayout,
-  type TerrainSource,
   valueNoise,
 } from "./terrainMaterial";
+import { terrainLayout } from "./terrainLayout";
+import type { TerrainSource } from "./terrainSource";
 import { groundScars, scarredSurface } from "./groundScars";
 import { triangleRuleHeight } from "./triangleRule";
 import { terrainSample, type TerrainHeights } from "./terrainHeights";
@@ -97,111 +96,12 @@ import type { CameraGroup } from "./geometry";
 import { FRAME_MSAA, WORLD_OUT, worldTargets } from "./targets";
 import type { GpuRegistry, GpuSlot } from "./registry";
 import { Clump, GRASS_CLUMP_BYTES, clumpRows, type GrassClumpRow } from "./grassClump";
+import { grassVertex } from "./grassVertex";
+import { ARGS_WORDS, GrassParams, grassBuildLayout, grassDrawLayout } from "./grassLayouts";
 export type { GrassClumpRow } from "./grassClump";
 const tuning = game.presentation.grass;
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
-
-/** The field's numbers, kilobytes of them: a shader reads them through a
- *  pointer (`let P = &….params`). A `let` of the struct itself is copied whole
- *  by every invocation: per blade vertex, that cost 8 to 12 ms a frame. */
-export const GrassParams = d
-  .struct({
-    /** The view's side planes: inward normal, offset. */
-    planes: d.arrayOf(d.vec4f, 4),
-    /** The eye, and metres one pixel spans per metre of distance. */
-    eye: d.vec4f,
-    /** Tile (0, 0)'s corner, the tile's side, the tallest clump. */
-    window: d.vec4f,
-    /** Tiles across and up; the near and far tiers' capacities. */
-    grid: d.vec4u,
-    /** Pixels per clump, the most clumps a square metre, the fade's footprints. */
-    density: d.vec4f,
-    /** Near tier's height in pixels, a blade's least width in pixels, the
-     *  footprints a clump's own shading softens across. */
-    tiers: d.vec4f,
-    /** How far that shading softens, how far a blade's own facing lights it,
-     *  each clump's brightness variation, 0. */
-    shading: d.vec4f,
-    /** The bare margin round a forest or water, the farthest a clump moves
-     *  to its row; 0, 0. (A prop's margin widens its footprint in the prop
-     *  table: `Ground::grass_props`.) */
-    clear: d.vec4f,
-    /** The height grid's size, 0, 0. */
-    counts: d.vec4u,
-    /** The height grid's spacing, then 0. */
-    ground: d.vec4f,
-    /** Wind heading (unit), steady lean, gust lean. */
-    wind: d.vec4f,
-    /** 1 / gust spacing, gust speed, flutter, flutter radians a second. */
-    gusts: d.vec4f,
-    /** Per plot kind (the verge last): density, height scale, grasses mixed,
-     *  how closely it keeps to the plot's rows. */
-    growth: d.arrayOf(d.vec4f, GRASS_GROWTH_ROWS),
-    /** Per plot kind, its patches: lowest and tallest height scale, how far
-     *  the sparse ones thin, how far the dry ones dry. */
-    patches: d.arrayOf(d.vec4f, GRASS_GROWTH_ROWS),
-    /** Per plot kind, its grasses: kind, share, drift, dryness. */
-    mixes: d.arrayOf(d.vec4f, GRASS_GROWTH_ROWS * GRASS_MIX_MAX),
-    /** 1 / the patches' length scales: height, thinning, drying, drift. */
-    patchScales: d.vec4f,
-    /** 1 / the tussocks' length scale, how far drying lightens; 0, 0. */
-    grain: d.vec4f,
-    /** Per kind: height, blades, a blade's root width, 0. */
-    kinds: d.arrayOf(d.vec4f, GRASS_MAX_KINDS),
-    /** Per kind: the near and far tiers' first shape vertex. */
-    bases: d.arrayOf(d.vec4u, GRASS_MAX_KINDS),
-  })
-  .$name("GrassParams");
-
-export const ShapeVertex = d
-  .struct({ spine: d.vec4f, side: d.vec4f, normal: d.vec4f, tint: d.vec4f })
-  .$name("GrassShapeVertex");
-
-/** Two indexed-indirect draws' arguments (5 words each), then each tier's
- *  raw count before clamping to capacity. */
-const ARGS_WORDS = 12;
-
-export const grassBuildLayout = tgpu.bindGroupLayout({
-  params: { uniform: GrassParams, visibility: ["compute"] },
-  heights: {
-    storage: (n: number) => d.arrayOf(d.u32, n),
-    access: "readonly",
-    visibility: ["compute"],
-  },
-  /** The prop footprints, bucketed by grid cell (`Ground::grass_props`). */
-  props: {
-    storage: (n: number) => d.arrayOf(d.vec4f, n),
-    access: "readonly",
-    visibility: ["compute"],
-  },
-  clumps: {
-    storage: (n: number) => d.arrayOf(Clump, n),
-    access: "mutable",
-    visibility: ["compute"],
-  },
-  args: {
-    storage: d.arrayOf(d.atomic(d.u32), ARGS_WORDS),
-    access: "mutable",
-    visibility: ["compute"],
-  },
-});
-
-export const grassDrawLayout = tgpu.bindGroupLayout({
-  params: { uniform: GrassParams, visibility: ["vertex"] },
-  /** Tier, its first clump, vertices per blade, 0. */
-  tier: { uniform: d.vec4u, visibility: ["vertex"] },
-  clumps: {
-    storage: (n: number) => d.arrayOf(Clump, n),
-    access: "readonly",
-    visibility: ["vertex"],
-  },
-  shapes: {
-    storage: (n: number) => d.arrayOf(ShapeVertex, n),
-    access: "readonly",
-    visibility: ["vertex"],
-  },
-});
 
 const BUILD_WORKGROUP = 64;
 /** R2's generator: the plastic number's reciprocals. */
@@ -507,109 +407,6 @@ const finishFn = tgpu
   }
 }`)
   .$uses({ grassBuildLayout });
-
-const GrassVertex = d
-  .struct({
-    clip: d.vec4f,
-    world: d.vec3f,
-    root: d.vec3f,
-    normal: d.vec3f,
-    albedo: d.vec3f,
-    /** How far the fragment is lit as the ground under it, not as a blade. */
-    ground: d.f32,
-  })
-  .$name("GrassVertex");
-
-/** One blade vertex of clump `iid` of the bound tier: placed, scaled, turned,
- *  and bent in the wind by the square of its height fraction. */
-const grassVertexOf = tgpu
-  .fn(
-    [d.u32, d.u32],
-    GrassVertex,
-  )(/* wgsl */ `(vid: u32, iid: u32) -> GrassVertex {
-  let P = &grassDrawLayout.$.params;
-  let tier = grassDrawLayout.$.tier;
-  let c = grassDrawLayout.$.clumps[tier.y + iid];
-  let row = (*P).kinds[c.kind];
-  var out: GrassVertex;
-  if (vid / tier.z >= u32(row.y)) {
-    // A blade this kind does not have: outside the depth range, clipped.
-    out.clip = vec4f(0.0, 0.0, 2.0, 1.0);
-    return out;
-  }
-  let base = select((*P).bases[c.kind].y, (*P).bases[c.kind].x, tier.x == 0u);
-  let s = grassDrawLayout.$.shapes[base + vid];
-  let scale = c.height / max(row.x, 1e-4);
-  let sn = c.yawSin;
-  let cs = c.yawCos;
-  let sp = s.spine.xyz * scale;
-  let sd = s.side.xyz * scale * c.width;
-  let spine = vec3f(sp.x * cs - sp.y * sn, sp.x * sn + sp.y * cs, sp.z);
-  let side = vec3f(sd.x * cs - sd.y * sn, sd.x * sn + sd.y * cs, sd.z);
-  // The one wind: a steady lean, gust fronts rolling downwind, a flutter.
-  let t = typegpuCameraLayout.$.cam.time;
-  let dir = (*P).wind.xy;
-  let along = dot(c.root.xy, dir);
-  let front = sin(6.2831853 * (along - t * (*P).gusts.y) * (*P).gusts.x);
-  let gust = smoothstep(${tuning.wind.gust_from}, 1.0, front);
-  let flutter = (*P).gusts.z * sin((*P).gusts.w * t + s.side.w * 6.2831853 + along * ${tuning.wind.flutter_phase});
-  let bend = s.spine.w * s.spine.w;
-  let packed = unpack4x8unorm(c.colour);
-  // Laid over by tracks or trampling: the clump sinks and its blades lean
-  // out its own way, still in the wind but less. A stiff kind answers the
-  // wind less (its shape's own response).
-  let flat = 1.0 - packed.w;
-  let answer = s.tint.w * (1.0 - flat);
-  let lean = ((*P).wind.z + (*P).wind.w * gust + flutter) * answer;
-  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * ${tuning.wind.flutter_across} * answer;
-  let laid = vec2f(cs, sn) * flat * ${tuning.laid.lean};
-  var world = c.root + vec3f(spine.xy, spine.z * (1.0 - flat * ${tuning.laid.sink})) + side + vec3f((push + laid) * c.height * bend, 0.0);
-  world.z -= 0.5 * dot(push, push) * c.height * bend;
-  let n = s.normal.xyz;
-  let colour = packed.xyz;
-  out.clip = typegpuCameraLayout.$.cam.viewProj * vec4f(world, 1.0);
-  // Blades cross each other: where two meet at (nearly) one depth the winner
-  // is left to the hardware and changes frame to frame. A per-blade nudge of
-  // up to a two-thousandth of the depth (5 cm at 100 m, a few millimetres
-  // near the eye) separates every such pair the same way each frame.
-  let tie = ((bitcast<u32>(c.root.x) * 2654435761u) ^ (bitcast<u32>(c.root.y) * 2246822519u)) + (vid / tier.z) * 374761393u;
-  out.clip.z *= 1.0 + 1e-3 * (f32(tie >> 8u) / 16777216.0 - 0.5);
-  out.world = world;
-  out.root = c.root;
-  out.normal = vec3f(n.x * cs - n.y * sn, n.x * sn + n.y * cs, n.z);
-  // A clump a few pixels tall shows its tops, not its roots: drawn with them,
-  // its dark roots and gaps read as speckle, so its tint and its lighting
-  // give way to the ground's.
-  let footprint = (*P).eye.w * distance(typegpuCameraLayout.$.cam.eye, c.root);
-  let plain = (*P).shading.x * smoothstep((*P).tiers.z, (*P).tiers.w, footprint);
-  out.albedo = colour * colour * mix(s.tint.xyz, vec3f(1.0), plain);
-  out.ground = mix(1.0 - (*P).shading.y, 1.0, plain);
-  return out;
-}`)
-  .$uses({ grassDrawLayout, typegpuCameraLayout, GrassVertex });
-
-const grassVertex = tgpu.vertexFn({
-  in: { vid: d.builtin.vertexIndex, iid: d.builtin.instanceIndex },
-  out: {
-    clip: d.builtin.position,
-    world: d.vec3f,
-    root: d.vec3f,
-    normal: d.vec3f,
-    albedo: d.vec3f,
-    ground: d.f32,
-  },
-})((v) => {
-  "use gpu";
-  const g = grassVertexOf(v.vid, v.iid);
-  return {
-    clip: g.clip,
-    world: g.world,
-    root: g.root,
-    normal: g.normal,
-    albedo: g.albedo,
-    ground: g.ground,
-  };
-});
 
 export interface GrassStats {
   /** Whether grass is drawn: the terrain grows it and its kinds are installed. */

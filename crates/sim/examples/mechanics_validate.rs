@@ -46,22 +46,55 @@ mod tests {
     }
 
     #[test]
-    fn rejects_launch_profiles_tighter_than_the_games_accuracy_ceiling() {
-        // A row nothing extends, so the error names it and no other.
-        let mut game = game();
-        game["weapons"]["heavy_sniper"]["scatter_mrad"] = json!(0);
-        let error = sim::fixtures::admit(
-            game,
-            sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game),
-        )
-        .err()
-        .expect("invalid spread must fail");
-        assert!(
-            error.contains("weapons.heavy_sniper")
-                && error.contains("Landing spread must be at least")
-                && error.contains("entered 0 m"),
-            "{error}"
-        );
+    fn unknown_rules_keys_are_refused() {
+        let documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
+        sim::fixtures::admit(game(), documents.clone()).expect("the shipped game.json loads");
+        for path in [
+            "/sensors",
+            "",
+            "/physics",
+            "/guided",
+            "/cover/tiers",
+            "/controls",
+        ] {
+            let mut game = game();
+            game.pointer_mut(path).unwrap()["stale_rules_key"] = json!({});
+            let error = sim::fixtures::admit(game, documents.clone())
+                .err()
+                .unwrap_or_else(|| panic!("unknown rules key at {path} loaded"));
+            assert!(
+                error.contains("unknown field `stale_rules_key`"),
+                "{path}: {error}"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_each_layer_tighter_than_the_games_accuracy_ceiling() {
+        let documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
+        for (layer, named, class) in [
+            ("ground", "Ground", "infantry"),
+            ("low_air", "LowAir", "air_rotor"),
+            ("high_air", "HighAir", "air_fixed_wing"),
+        ] {
+            let mut game = game();
+            game["physics"]["min_spread_at_max_range_m"] = json!(2);
+            game["weapons"]["ceiling_test"] = json!({
+                "extends": "rifle", "range_m": 500,
+                "targets": { layer: { "classes": [class], "range_m": 500, "scatter_mrad": 4 } }
+            });
+            sim::fixtures::admit(game.clone(), documents.clone())
+                .expect("spread at the ceiling loads");
+            game["weapons"]["ceiling_test"]["targets"][layer]["scatter_mrad"] = json!(3);
+            let error = sim::fixtures::admit(game, documents.clone())
+                .expect_err("spread below the ceiling must fail");
+            assert!(
+                error.contains(&format!("weapons.ceiling_test.{named}"))
+                    && error.contains("Landing spread must be at least 2 m")
+                    && error.contains("entered 1.5 m"),
+                "{error}"
+            );
+        }
     }
     #[test]
     fn rejects_more_weapon_rows_than_the_publication_can_carry() {
@@ -73,8 +106,7 @@ mod tests {
             game,
             sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game),
         )
-        .err()
-        .expect("too many weapon rows must fail");
+        .expect_err("too many weapon rows must fail");
         assert!(
             error.contains("weapons") && error.contains("publication"),
             "{error}"
@@ -90,9 +122,8 @@ mod tests {
             .find(|doc| doc["units"].get("test_tank").is_some())
             .unwrap();
         doc["units"]["test_tank"]["mounts"][0]["weapons"] = json!(["tank_ap", "tank_he", "rifle"]);
-        let error = sim::fixtures::admit(game, documents)
-            .err()
-            .expect("too many ammunition kinds must fail");
+        let error =
+            sim::fixtures::admit(game, documents).expect_err("too many ammunition kinds must fail");
         assert!(
             error.contains("units.test_tank") && error.contains("publication"),
             "{error}"
@@ -116,8 +147,7 @@ mod tests {
             game,
             sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game),
         )
-        .err()
-        .expect("finite ammunition needs a supply price");
+        .expect_err("finite ammunition needs a supply price");
         assert!(
             error.contains("service.round_costs") && finite.iter().any(|row| error.contains(row)),
             "{error}"
@@ -155,8 +185,7 @@ mod tests {
     fn the_cli_rejects_duplicate_keys_before_they_can_be_lost() {
         let error =
             validate(r#"{"game":{"weapons":{"rifle":{"damage":1,"damage":2}}},"catalog":[]}"#)
-                .err()
-                .expect("duplicate keys must fail");
+                .expect_err("duplicate keys must fail");
         assert!(
             error.contains("damage") && error.contains("twice"),
             "{error}"
@@ -171,9 +200,7 @@ mod tests {
             .find(|doc| doc["units"].get("test_tank").is_some())
             .unwrap();
         doc["units"]["test_tank"]["mounts"][0]["weapons"] = json!(["missing_weapon"]);
-        let error = sim::fixtures::admit(game(), documents)
-            .err()
-            .expect("unknown weapons must fail");
+        let error = sim::fixtures::admit(game(), documents).expect_err("unknown weapons must fail");
         assert!(
             error.contains("test_tank") && error.contains("missing_weapon"),
             "{error}"

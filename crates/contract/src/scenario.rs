@@ -3,6 +3,7 @@
 //! events, scripts, an opponent) may be left out.
 use crate::ids::{Side, Tick};
 use crate::map::{MapDefinition, PropDefinition};
+use crate::movement::MovementRules;
 use crate::observation::SuppressionTier;
 use serde::{Deserialize, Serialize};
 
@@ -84,6 +85,7 @@ impl PushClass {
 
 /// Which movers a body stops: navigation and collision read these, nothing else.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Blocks {
     pub infantry: bool,
     pub vehicle: bool,
@@ -98,143 +100,8 @@ impl Blocks {
     }
 }
 
-/// One surface kind's row. A mover on the surface travels at its road speed
-/// times `speed_factor`, never slower than on open ground: 1 is a full road,
-/// 0 no road at all.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct SurfaceRule {
-    pub speed_factor: f64,
-}
-
-/// Every kind has a row, and no row is faster than a road: route planning's
-/// best-case estimate is the unit's road speed.
-fn surface_table<'de, D: serde::Deserializer<'de>>(
-    d: D,
-) -> Result<std::collections::BTreeMap<crate::map::SurfaceKind, SurfaceRule>, D::Error> {
-    use serde::de::Error;
-    let table = std::collections::BTreeMap::<crate::map::SurfaceKind, SurfaceRule>::deserialize(d)?;
-    for kind in crate::map::SurfaceKind::ALL {
-        let row = table
-            .get(&kind)
-            .ok_or_else(|| D::Error::custom(format!("surfaces has no row for {kind:?}")))?;
-        if !(0.0..=1.0).contains(&row.speed_factor) {
-            return Err(D::Error::custom(format!(
-                "surfaces.{kind:?}.speed_factor must be within 0..=1"
-            )));
-        }
-    }
-    Ok(table)
-}
-
-/// The fixture's `forests` section: one rule every forest plays by (Q-G8b),
-/// so a forest's art can never imply a different sight or movement rule.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ForestRules {
-    /// The prop type a forest's trees are (a `props` catalog entry).
-    pub tree: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub log: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub boulder: Option<String>,
-    pub rule: ForestRule,
-}
-
-/// How every forest's trunks stand and how much it hides (Q16, Q21).
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ForestRule {
-    /// Trunk grid spacing; each trunk starts at its cell's centre, the
-    /// first `spacing / 2` inside the shape's minimum corner.
-    pub trunk_spacing_m: f64,
-    /// Each trunk moves up to this fraction of the spacing off its cell's
-    /// centre, on each axis (seeded by the forest, so every reader agrees).
-    pub trunk_jitter: f64,
-    /// Detection-range multiplier for a target on uncleared forest ground, by class.
-    pub concealment_infantry: f64,
-    pub concealment_vehicle: f64,
-    /// Foliage depth per metre a sight line crosses below the canopy.
-    pub attenuation_per_m: f64,
-    /// A trunk's crown: it attenuates sight through fog cells whose centres lie this near.
-    pub canopy_radius_m: f64,
-    pub canopy_height_m: f64,
-    pub trunk_radius_m: f64,
-    pub trunk_height_m: f64,
-    /// Trunks are omitted within this distance of roads and props.
-    pub trunk_clearance_m: f64,
-    /// Zero when absent: frozen maps retain their original body-free floor.
-    #[serde(default)]
-    pub logs_per_ha: f64,
-    #[serde(default)]
-    pub boulders_per_ha: f64,
-    #[serde(default)]
-    pub log_half_extents_m: [f64; 3],
-    #[serde(default)]
-    pub boulder_half_extents_m: [f64; 3],
-}
-
-impl ForestRules {
-    /// Physical floor bodies must be ordinary catalog props the world can stand.
-    pub fn check(&self, catalog: &crate::catalog::Catalog) -> Result<(), String> {
-        for (name, kind, density, half) in [
-            (
-                "log",
-                &self.log,
-                self.rule.logs_per_ha,
-                self.rule.log_half_extents_m,
-            ),
-            (
-                "boulder",
-                &self.boulder,
-                self.rule.boulders_per_ha,
-                self.rule.boulder_half_extents_m,
-            ),
-        ] {
-            // One candidate per 100 square metres at most: a body floor,
-            // not another dense vegetation population at map scale.
-            if !density.is_finite() || !(0.0..=100.0).contains(&density) {
-                return Err(format!(
-                    "{name} density must be finite and in [0, 100] per hectare"
-                ));
-            }
-            if density == 0.0 {
-                continue;
-            }
-            if !(10_000.0 / density).sqrt().is_finite() {
-                return Err(format!("{name} spacing must be finite"));
-            }
-            if half.iter().any(|v| !v.is_finite() || *v <= 0.0) {
-                return Err(format!("{name} half extents must be finite and positive"));
-            }
-            let Some(kind) = kind.as_ref().and_then(|id| catalog.props().index(id)) else {
-                return Err(format!(
-                    "{name} needs a catalog prop type when its density is positive"
-                ));
-            };
-            catalog
-                .props()
-                .check_placement(kind, crate::catalog::PropPlacement::Ordinary)
-                .map_err(|error| format!("{name} floor body: {error}"))?;
-            let body = catalog.props().get(kind).body;
-            if body.topples || body.conceals != 0.0 {
-                return Err(format!(
-                    "{name} floor body cannot topple or conceal foliage"
-                ));
-            }
-        }
-        Ok(())
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct MovementRules {
-    pub forest_infantry_multiplier: f64,
-    pub forest_vehicle_multiplier: f64,
-    pub turret_turn_deg_s: f64,
-    pub bearing_tolerance_deg: f64,
-    pub drive: DriveRules,
-}
+mod forest;
+pub use forest::{ForestRule, ForestRules};
 
 /// How routes are planned. A unit holds where it is while its route is
 /// worked out, a share of each tick's allowance at a time. A long ordered
@@ -305,41 +172,13 @@ impl NavigationRules {
     }
 }
 
-/// How every vehicle drives its route (Q29, Q30), whatever its own speeds
-/// and turning.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub struct DriveRules {
-    /// Seconds to accelerate from rest to the vehicle's full road speed.
-    pub acceleration_s: f64,
-    /// Seconds to brake from full road speed to rest.
-    pub braking_s: f64,
-    /// Seconds a destroyed vehicle takes to come to rest from full road
-    /// speed: its tracks or wheels lock, so it stops harder than it brakes.
-    pub wreck_stop_s: f64,
-    /// Tracks turn in place beyond this heading error.
-    pub turn_in_place_deg: f64,
-    /// A wheeled vehicle reaches a waypoint it passes abeam within this.
-    pub abeam_m: f64,
-    /// Headings further off than this count as abeam or behind.
-    pub abeam_deg: f64,
-    /// A reversing leg of a three-point turn drives at least this far.
-    pub min_leg_m: f64,
-    /// The waypoint must lie this far outside the turning circle to end a leg.
-    pub circle_margin_m: f64,
-    /// Beyond this heading error a wheeled turn counts as progress rather
-    /// than a stall while it swings away from the waypoint.
-    pub turning_deg: f64,
-    /// Maximum speed fraction during a manoeuvre; the turning radius and
-    /// yaw rate can impose a lower limit.
-    pub turn_slow: f64,
-}
-
 /// How a squad's soldiers spread out where a move ends (D1, Q7): each move
 /// draws a fresh seeded arrangement, never a formation. And how each soldier
 /// walks there on his own (Q6, Q10, Q23): his lane beside the squad's
 /// corridor, his wander and pace, his personal space, his own route for the
 /// final stretch, and how he yields to vehicles.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct InfantryMovementRules {
     /// The half width a squad's route keeps clear of solids, and its soldiers
     /// placed out of a building keep from its walls: a squad threads gaps a
@@ -382,6 +221,7 @@ pub struct InfantryMovementRules {
 /// the fit authority) and round flight (the fixture's `physics` section).
 /// A vehicle's body is its type's hull.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BodyRules {
     pub soldier_radius_m: f64,
     pub soldier_height_m: f64,
@@ -390,7 +230,6 @@ pub struct BodyRules {
     /// Where rounds aim on a soldier, above his feet.
     pub infantry_aim_m: f64,
     /// Nominal aim height as a fraction of a vehicle body's full height.
-    #[serde(default = "middle_aim")]
     pub vehicle_aim_height_fraction: f64,
     /// A soldier's middle, above his feet: where blast and near misses
     /// reach him.
@@ -401,10 +240,6 @@ pub struct BodyRules {
     pub friendly_prefire_margin_m: f64,
     #[serde(flatten)]
     pub flight: crate::ballistics::FlightRules,
-}
-
-fn middle_aim() -> f64 {
-    0.5
 }
 
 /// What a launcher needing a clear launch path (a weapon row's
@@ -450,19 +285,9 @@ impl FaceChances {
     }
 }
 
-/// How armour meets a round that falls short of piercing it (the fixture's
-/// `penetration` section).
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct PenetrationRules {
-    /// The share of a face's armour a round's penetration must reach to do
-    /// any damage there. From there up to the full armour its damage rises
-    /// in proportion; at or past the armour it does all of it.
-    pub partial_from: f64,
-}
-
 /// How a round glancing off a hull flies on (the fixture's `ricochet` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RicochetRules {
     /// Share of the arriving speed the deflected round keeps.
     pub speed_kept: f64,
@@ -498,103 +323,8 @@ impl Armor {
     }
 }
 
-/// Optical sensing and concealment (the fixture's `sensors` section).
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SensorRules {
-    /// Minimum fraction of living soldiers one observer must see to identify a squad.
-    #[serde(default = "squad_identification_fraction")]
-    pub squad_identification_fraction: f64,
-    /// Fraction of living soldiers that concealment must exceed for HIDDEN.
-    #[serde(default = "squad_hidden_fraction")]
-    pub squad_hidden_fraction: f64,
-    /// A ground ray whose foliage depth (the sum of each crossed metre's
-    /// `attenuation_per_m` below the canopy) reaches this is blocked
-    /// outright; below it, reach is `range · exp(−depth)`.
-    pub foliage_full_block: f64,
-    /// Detection-range multiplier for infantry garrisoned in a building at
-    /// full building strength (the strongest concealment source wins).
-    pub building_range_multiplier: f64,
-    /// Seconds an acquisition survives lost identification (V12).
-    pub acquisition_grace_s: f64,
-    /// A contact's area is this many times the footprint radius of the unit
-    /// that caused it (its catalog type's: a hull's half-diagonal, or half a
-    /// full squad's spread plus a soldier's body). So the area's size tells
-    /// a vehicle's from a squad's, never which unit it is or where exactly.
-    pub contact_radius_factor: f64,
-    pub contact_lifetime_s: f64,
-    /// Units carry their own loudness (their type's `sound`); shots carry
-    /// this far.
-    pub hearing_shot_m: f64,
-    pub sound_bucket_s: f64,
-    /// Height above ground tested for ground visibility.
-    pub fog_target_height_m: f64,
-    /// A line of sight squeezing between bodies that hide what lies behind
-    /// them, one either side, needs at least this much room on its two sides
-    /// together: no one is seen through the crack between two houses, nor the
-    /// sliver between a near one and a far one (`WorldGeometry::squeezed`).
-    pub min_sight_gap_m: f64,
-    /// How far a unit with neither an emitting radar nor its own high-air
-    /// reach sees the high-air band, by its body and flight (D48).
-    pub unaided_high_air_m: UnaidedHighAirSight,
-    /// How coarsely a radar receiver reports what it finds.
-    pub radar_report: RadarReport,
-}
-
-/// A radar receiver's report of an emitter: its bearing and range rounded
-/// to these steps, and an area at least this wide around it.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct RadarReport {
-    pub bearing_step_deg: f64,
-    pub range_step_m: f64,
-    pub min_radius_m: f64,
-}
-
-/// High-air sight without radar, by body and flight: soldiers on foot look
-/// up and see a jet a fair way off, and so does an aircraft's crew; a ground
-/// vehicle's crew, looking out through vision blocks and sights, sees it only
-/// nearly overhead. A unit that authors its own `sensors.high_air_m` (a jet,
-/// an optical AA gun, a closed-up tank's 0) overrides it
-/// ([`crate::catalog::UnitType::high_air_sight_m`]).
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct UnaidedHighAirSight {
-    /// A squad's soldiers.
-    pub on_foot: f64,
-    /// An airborne hull's crew.
-    pub aircraft: f64,
-    /// Any other hull's crew.
-    pub ground_vehicle: f64,
-}
-
-impl SensorRules {
-    fn check(&self) -> Result<(), String> {
-        let u = self.unaided_high_air_m;
-        if [u.on_foot, u.aircraft, u.ground_vehicle]
-            .iter()
-            .any(|m| !m.is_finite() || *m < 0.0)
-        {
-            return Err("unaided_high_air_m: every row must be finite and not negative".into());
-        }
-        let r = self.radar_report;
-        if [r.bearing_step_deg, r.range_step_m, r.min_radius_m]
-            .iter()
-            .any(|m| !(m.is_finite() && *m > 0.0))
-        {
-            return Err(
-                "radar_report: every step and the radius must be finite and positive".into(),
-            );
-        }
-        Ok(())
-    }
-}
-
-fn squad_identification_fraction() -> f64 {
-    0.2
-}
-fn squad_hidden_fraction() -> f64 {
-    0.8
-}
+mod sensors;
+pub use sensors::{RadarReport, SensorRules};
 
 /// How far a unit sees by direction, as multipliers of its ground range:
 /// dead ahead, abeam and astern. `sim::sight` owns how it eases between them.
@@ -609,6 +339,7 @@ pub struct SightShape {
 /// How a deployed supplier serves (the fixture's `service` section); its
 /// stock and deploy time are its type's capabilities.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ServiceRules {
     /// Recipients within this distance of a deployed supply vehicle are served.
     pub radius_m: f64,
@@ -627,6 +358,16 @@ pub struct ServiceRules {
     pub stock_per_flare: u32,
 }
 
+/// Browser input controls carried alongside the simulation rules. The browser
+/// owns their behavior (`reverseZone.ts`); the shared loader admits the
+/// authored shape so it cannot be mistaken for an arbitrary rules section.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Controls {
+    pub reverse_zone_length_m: f64,
+    pub reverse_zone_margin_m: f64,
+}
+
 /// The game's rules (`fixtures/game.json` with its catalog). Loading
 /// them checks what crosses sections: every mount names a weapon row.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -643,15 +384,12 @@ pub struct Rules {
     /// `fixtures/props/`).
     pub catalog: crate::catalog::Catalog,
     pub pushing: PushingRules,
-    pub penetration: PenetrationRules,
     pub ricochet: RicochetRules,
     pub guided: crate::ballistics::GuidedRules,
     pub launch: LaunchRules,
     pub sensors: SensorRules,
     /// The one forest rule (Q16, Q-G8b).
     pub forests: ForestRules,
-    /// How fast each surface kind is (Q-G4): one row per kind.
-    pub surfaces: std::collections::BTreeMap<crate::map::SurfaceKind, SurfaceRule>,
     /// The weapon rows, `extends` resolved (`weapons::resolve_weapons`).
     pub weapons: crate::weapons::WeaponRules,
     pub service: ServiceRules,
@@ -944,25 +682,30 @@ impl HullLimits {
 
 /// [`Rules`] as read, before the checks across its sections.
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct UncheckedRules {
+    // These sections belong to presentation and browser input, never simulation.
+    #[serde(rename = "presentation")]
+    _presentation: Option<serde::de::IgnoredAny>,
+    #[serde(rename = "controls")]
+    _controls: Option<Controls>,
+    // The battle lab's default; a battle supplies its own seed separately.
+    #[serde(rename = "seed")]
+    _seed: Option<u64>,
     tick_hz: u32,
     commands: CommandRules,
     movement: MovementRules,
     navigation: NavigationRules,
-    #[serde(default)]
     formation: FormationRules,
     infantry_movement: InfantryMovementRules,
     physics: BodyRules,
     catalog: crate::catalog::Catalog,
     pushing: PushingRules,
-    penetration: PenetrationRules,
     ricochet: RicochetRules,
     guided: crate::ballistics::GuidedRules,
     launch: LaunchRules,
     sensors: SensorRules,
     forests: ForestRules,
-    #[serde(deserialize_with = "surface_table")]
-    surfaces: std::collections::BTreeMap<crate::map::SurfaceKind, SurfaceRule>,
     #[serde(deserialize_with = "crate::weapons::resolve_weapons")]
     weapons: crate::weapons::WeaponRules,
     service: ServiceRules,
@@ -988,6 +731,7 @@ impl TryFrom<UncheckedRules> for Rules {
         for (id, checked) in [
             ("suppression", r.suppression.check()),
             ("navigation", r.navigation.check()),
+            ("movement", r.movement.speed_factors.check()),
             ("sensors", r.sensors.check()),
             ("forests", r.forests.check(&r.catalog)),
             ("formation", r.formation.check()),
@@ -1027,13 +771,11 @@ impl TryFrom<UncheckedRules> for Rules {
             physics: r.physics,
             catalog: r.catalog,
             pushing: r.pushing,
-            penetration: r.penetration,
             ricochet: r.ricochet,
             guided: r.guided,
             launch: r.launch,
             sensors: r.sensors,
             forests: r.forests,
-            surfaces: r.surfaces,
             weapons: r.weapons,
             service: r.service,
             suppression: r.suppression,
@@ -1102,6 +844,7 @@ impl Rules {
 /// tournament player's effective rate is about 5 a second), so a flood from
 /// a script or a stuck input cannot buy the battle unbounded work.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CommandRules {
     /// Orders a side may give in a second, and in one burst; one past it is
     /// dropped without a word.
@@ -1119,6 +862,7 @@ impl CommandRules {
 
 /// Joint group placement; radius grows with footprint demand and obstructions.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FormationRules {
     pub min_radius_m: f64,
     pub spacing_m: f64,
@@ -1128,19 +872,6 @@ pub struct FormationRules {
     /// gets its intended-point check, even when this allowance is exhausted.
     pub candidate_checks: u32,
     pub max_expansions: u32,
-}
-
-impl Default for FormationRules {
-    fn default() -> Self {
-        Self {
-            min_radius_m: 40.0,
-            spacing_m: 1.0,
-            fill_ratio: 0.6,
-            growth_factor: 1.5,
-            candidate_checks: 32768,
-            max_expansions: 8,
-        }
-    }
 }
 
 impl FormationRules {
@@ -1166,6 +897,7 @@ impl FormationRules {
 /// along the contact, turns it when struck off-centre, and is slowed by the
 /// ratio of the two classes.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PushingRules {
     /// Degrees a struck body turns per metre it is shoved, when struck at
     /// the end of its long side (scaled down toward its middle).
@@ -1179,6 +911,7 @@ pub struct PushingRules {
 /// cover strength occupants get. Their integrity and ruin are the body
 /// table's `building` row (34c).
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BuildingRules {
     pub capacity_soldiers: u32,
     /// Building cover strength in [0, 1] (contracts: building strength).
@@ -1351,6 +1084,7 @@ pub enum CoverTier {
 
 /// Incoming spread multiplier per cover tier (Q5: cover works through scatter only).
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CoverTiers {
     pub light: f64,
     pub medium: f64,
@@ -1374,6 +1108,7 @@ impl CoverTiers {
 /// A garrison keeps its building shelter instead (Q22, the named exception):
 /// wider spread and fewer damaging fragments, never less damage per hit.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CoverRules {
     pub tiers: CoverTiers,
     // Which bodies cover, and how well, is a prop type's `cover_tier`
@@ -1433,6 +1168,7 @@ pub struct CoverRules {
 /// infantry (`CoverRules::crater`) and slow vehicles slightly, and cosmetic scorch, track wear and
 /// trampling. Channels are bytes in [0, 255] that accumulate and saturate.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GroundRules {
     /// Cell edge length.
     pub cell_m: f64,
@@ -1449,8 +1185,6 @@ pub struct GroundRules {
     /// A vehicle knocking through trees clears this much beyond its hull on
     /// either side (Q16).
     pub lane_margin_m: f64,
-    /// Vehicle speed multiplier over a full crater, in (0, 1].
-    pub crater_vehicle_mult: f64,
     /// A weapon's scorch radius as a fraction of its blast radius.
     pub scorch_radius_fraction: f64,
     /// Scorch a burst adds at its centre, falling linearly to the rim.
@@ -1547,7 +1281,7 @@ pub struct AuthoredScript {
     pub source: String,
     #[serde(default = "default_script_side")]
     pub side: Side,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub player: Option<String>,
 }
 
@@ -1739,6 +1473,7 @@ pub struct Opponent {
 /// Hold the zone uncontested for `hold_s` to succeed; lose every combat unit
 /// to fail; after `max_assessment_s` the result is inconclusive (play on).
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct EncounterRules {
     /// The side that must take the zone.
     pub attacker: Side,

@@ -27,7 +27,7 @@ use super::field::{Field, FOOTPRINT_M};
 use super::forests::Kind;
 use super::shapes::{centroid, polygon_contains};
 use super::{chunks, Ground, FOREST_STROKE, FOREST_TRIANGLE, PROP};
-use crate::seed::Mulberry32;
+use crate::seed::{stream, weighted, Mulberry32};
 use std::collections::{HashMap, HashSet};
 use std::f64::consts::PI;
 
@@ -59,28 +59,9 @@ pub struct Size {
     pub radius: f64,
 }
 
-/// A seeded stream per purpose, so one population's count never shifts another's.
-fn stream(seed: u32, salt: i64) -> Mulberry32 {
-    Mulberry32::new(seed ^ ((salt + 1) as u32).wrapping_mul(crate::seed::GOLDEN))
-}
-
 /// One number for cell `(i, j)` of a grid over the map.
 fn cell_key(i: i64, j: i64) -> i64 {
     (j + 0x8000) * 0x10000 + (i + 0x8000)
-}
-
-/// One of `weights`' indices by weight.
-fn weighted(rng: &mut Mulberry32, weights: impl Iterator<Item = f64> + Clone) -> usize {
-    let mut r = rng.float(0.0, weights.clone().fold(0.0, |a, w| a + w));
-    let mut last = 0;
-    for (i, w) in weights.enumerate() {
-        r -= w;
-        if r < 0.0 {
-            return i;
-        }
-        last = i;
-    }
-    last
 }
 
 fn push(out: &mut Vec<f32>, at: [f64; 7], tint: [f64; 3], rng: &mut Mulberry32, jitter: f64) {

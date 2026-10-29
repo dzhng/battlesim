@@ -1,4 +1,5 @@
-//! Seeded layout: where a map's settlements, river, roads and forests go. The
+//! Seeded layout: where a map's settlements, river, roads, forests and
+//! swamps go. The
 //! output is an ordinary `MapPlan` for the parcel pass and the compiler; the
 //! presets are data.
 mod crossings;
@@ -10,6 +11,7 @@ mod rivers;
 pub(crate) mod rng;
 mod roads;
 mod sites;
+mod swamps;
 mod towns;
 pub(crate) mod water;
 
@@ -21,10 +23,11 @@ pub use measure::{approaches, bearing_step};
 pub use presets::*;
 
 use crate::{Diagnostic, DiagnosticCode, MapPlan};
+use contract::ground::GroundShape;
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-19";
+pub const GENERATOR_VERSION: &str = "layout-20";
 
 pub use contract::generation::{GenerationRequest, MapSize, MapType};
 
@@ -181,6 +184,18 @@ pub fn generate_layout(
         [context.extent; 2],
         &blocks,
     );
+    let swamps = swamps::place(
+        &context,
+        &swamps::Clear {
+            towns: &towns,
+            reserved: &placed.reserved,
+            water: &water,
+            bridges: &bridges,
+            roads: &surfaces,
+            woods: &forests,
+            skirmish: skirmish.as_ref(),
+        },
+    );
     let settlements = placed
         .sites
         .iter()
@@ -201,6 +216,7 @@ pub fn generate_layout(
         forests,
         rivers,
         bridges,
+        swamps,
         settlements,
         approaches: Vec::new(),
         lots: Vec::new(),
@@ -258,6 +274,19 @@ fn verify(context: &Context, plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
             ),
         );
     }
+    let [top, bottom] = plan.swamps.iter().fold([0.0, 0.0], |[top, bottom], swamp| {
+        let GroundShape::Polygon { ring } = &swamp.shape else {
+            return [top, bottom];
+        };
+        let above = geometry::area_above(ring, context.extent / 2.0);
+        [top + above, bottom + geometry::area(ring) - above]
+    });
+    let playable = context.extent * context.extent;
+    check(
+        presets.swamps.fairness.allows(top, bottom, playable),
+        "fairness.swamp",
+        format!("swamp area is {top:.0} m² in the top half and {bottom:.0} m² in the bottom"),
+    );
     check(
         metrics.main_approach_top && metrics.main_approach_bottom,
         "approach",

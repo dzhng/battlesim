@@ -9,8 +9,7 @@ struct GrassParams {
   clear: vec4f,
   counts: vec4u,
   ground: vec4f,
-  wind: vec4f,
-  gusts: vec4f,
+  sway: vec4f,
   growth: array<vec4f, 16>,
   patches: array<vec4f, 16>,
   mixes: array<vec4f, 64>,
@@ -108,6 +107,26 @@ struct RoadLook {
   stones: vec4f,
 }
 
+struct ShoreTuning {
+  bands: vec4f,
+  turns: vec4f,
+  ground: vec4f,
+  fade: vec4f,
+}
+
+struct WaterLook {
+  channel: vec4f,
+  edge: vec4f,
+  surface: vec4f,
+  normals: vec4f,
+  drifts: vec4f,
+  fades: vec4f,
+  roughness: vec4f,
+  lobes: vec4f,
+  refraction: vec4f,
+  caustics: vec4f,
+}
+
 struct TerrainParams {
   region: vec4f,
   field: vec4f,
@@ -125,13 +144,12 @@ struct TerrainParams {
   forestDapple: vec4f,
   forestLine: vec4f,
   waterBed: vec4f,
-  water: vec4f,
-  waterEdge: vec4f,
-  waterLook: vec4f,
   shore: vec4f,
   shoreEarth: vec4f,
   shoreEdge: vec4f,
   distant: vec4f,
+  shoreTuning: ShoreTuning,
+  waterLooks: array<WaterLook, 8>,
   view: vec4u,
 }
 
@@ -348,10 +366,8 @@ fn groundLineBand(xy: vec2f, cell: vec4u, forest: f32) -> vec2f {
   return vec2f(1f, (line.y + (((valueNoise(at) - 0.5f) * 2f) * (*params_2).forestLine.y)));
 }
 
-fn turned(xy: vec2f, turn: f32) -> vec2f {
-  let c = cos(turn);
-  let s = sin(turn);
-  return vec2f(((xy.x * c) + (xy.y * s)), ((xy.y * c) - (xy.x * s)));
+fn turned(xy: vec2f, turn: vec2f) -> vec2f {
+  return vec2f(((xy.x * turn.x) + (xy.y * turn.y)), ((xy.y * turn.x) - (xy.x * turn.y)));
 }
 
 fn groundShore(xy: vec2f, footprint: f32, water: f32) -> vec3f {
@@ -362,11 +378,12 @@ fn groundShore(xy: vec2f, footprint: f32, water: f32) -> vec3f {
   if ((out >= reach)) {
     return vec3f();
   }
-  let broad = valueNoise((turned(xy, 0.55f) * (*params_2).shoreEdge.y));
-  let scale = ((*params_2).shoreEdge.y * 3.1f);
-  let fine = mix(valueNoise(((turned(xy, 1.9f) * scale) + vec2f(41.70000076293945, 13.100000381469727))), 0.5f, smoothstep(0.3f, 1f, (footprint * scale)));
-  let line = (reach * (1f - ((*params_2).shoreEdge.x * mix(broad, fine, 0.4f))));
-  return vec3f((1f - smoothstep((wet * 0.4f), wet, out)), (1f - smoothstep(mix(wet, line, 0.65f), line, out)), (1f - smoothstep(wet, line, out)));
+  let t = (&(*params_2).shoreTuning);
+  let broad = valueNoise((turned(xy, (*t).turns.xy) * (*params_2).shoreEdge.y));
+  let scale = ((*params_2).shoreEdge.y * (*t).bands.z);
+  let fine = mix(valueNoise(((turned(xy, (*t).turns.zw) * scale) + vec2f(41.70000076293945, 13.100000381469727))), 0.5f, smoothstep((*t).fade.x, (*t).fade.y, (footprint * scale)));
+  let line = (reach * (1f - ((*params_2).shoreEdge.x * mix(broad, fine, (*t).bands.w))));
+  return vec3f((1f - smoothstep((wet * (*t).bands.x), wet, out)), (1f - smoothstep(mix(wet, line, (*t).bands.y), line, out)), (1f - smoothstep(wet, line, out)));
 }
 
 fn wanderNoise(at: vec2f) -> f32 {
@@ -1113,16 +1130,16 @@ fn groundColour(xy: vec2f, footprint: f32, site: vec4f, paved: GroundPaved, wate
   }
   let shore = groundShore(xy, footprint, water);
   if ((shore.y > 0f)) {
-    let field = mix(dot((*params_2).verge.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)), (dot((*plot).colour.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)) * (1f - (0.5f * (*plot).rows.w))), smoothstep(0f, 10f, site.y));
+    let field = mix(dot((*params_2).verge.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)), (dot((*plot).colour.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)) * (1f - (0.5f * (*plot).rows.w))), smoothstep(0f, (*params_2).shoreTuning.ground.y, site.y));
     let least = (field * (*params_2).shoreEdge.z);
-    let earth = ((*params_2).shoreEarth.xyz * (1f + (0.6f * noise)));
+    let earth = ((*params_2).shoreEarth.xyz * (1f + ((*params_2).shoreTuning.ground.x * noise)));
     albedo = mix(albedo, atLeast(earth, least), shore.y);
-    roughness = mix(roughness, 0.92f, shore.y);
+    roughness = mix(roughness, (*params_2).shoreTuning.ground.z, shore.y);
     albedo = mix(albedo, atLeast((*params_2).shore.xyz, least), shore.x);
-    roughness = mix(roughness, 0.8f, shore.x);
+    roughness = mix(roughness, (*params_2).shoreTuning.ground.w, shore.x);
   }
   let paving = groundRoads(xy, footprint, paved, vec4f(albedo, roughness));
-  let bed = smoothstep(-(aa), max(aa, 0.3f), water);
+  let bed = smoothstep(-(aa), max(aa, (*params_2).shoreTuning.fade.z), water);
   albedo = mix(paving.xyz, (*params_2).waterBed.xyz, bed);
   return vec4f(max(albedo, vec3f()), paving.w);
 }

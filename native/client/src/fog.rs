@@ -14,7 +14,7 @@ use presentation::records::{
 };
 use wgpu::*;
 
-use crate::frame::{Inputs, Pass, Targets};
+use crate::frame::{Inputs, Pass, Targets, DEPTH_FORMAT, HDR_FORMAT, MSAA};
 use crate::gpu::{bind, buffer};
 use crate::pipelines::{BoundCompute, Pipelines};
 
@@ -110,6 +110,15 @@ pub struct Fog {
     paint: TextureView,
     heights: Buffer,
     depth: TextureView,
+    scene_colour: TextureView,
+    seen_under: TextureView,
+    scene_taps: Sampler,
+    /// What the groups the world pass binds hold for what lies under the
+    /// water (`fogLayout.depth`, `sceneColour`, `seenUnder`): only the
+    /// water's group holds the real ones, since the world pass writes that
+    /// depth.
+    no_depth: TextureView,
+    no_scene: TextureView,
     eyes: Grown,
     foliage: Grown,
     occluders: Grown,
@@ -129,8 +138,8 @@ pub struct Fog {
     build_layout: BindGroupLayout,
     cull_layout: BindGroupLayout,
     whole_layout: BindGroupLayout,
-    /// The five fragment groups, by `Layer`; then the build's, the cull's
-    /// and the structures pass's.
+    /// The five fragment groups, by `Layer`, then the water's; then the
+    /// build's, the cull's and the structures pass's.
     groups: Vec<BindGroup>,
     build: Option<BindGroup>,
     cull: Option<BindGroup>,
@@ -165,6 +174,11 @@ fn wholes_texture(device: &Device, rows: u32) -> Texture {
 }
 
 impl Fog {
+    /// The ground paint the fog's groups bind (`fogLayout.paint`).
+    pub fn paint(&self) -> &TextureView {
+        &self.paint
+    }
+
     /// Fog over the ground's height pages `heights`, culled over `targets`'
     /// depth; drawn clear until the presentation hands it sight.
     pub fn new(
@@ -202,6 +216,31 @@ impl Fog {
                 view_formats: &[],
             })
             .create_view(&Default::default());
+        let placeholder = |label, format, samples, usage| {
+            device
+                .create_texture(&TextureDescriptor {
+                    label: Some(label),
+                    size: Extent3d {
+                        width: 1,
+                        height: 1,
+                        depth_or_array_layers: 1,
+                    },
+                    mip_level_count: 1,
+                    sample_count: samples,
+                    dimension: TextureDimension::D2,
+                    format,
+                    usage: TextureUsages::TEXTURE_BINDING | usage,
+                    view_formats: &[],
+                })
+                .create_view(&Default::default())
+        };
+        let no_depth = placeholder(
+            "fog-no-depth",
+            DEPTH_FORMAT,
+            MSAA,
+            TextureUsages::RENDER_ATTACHMENT,
+        );
+        let no_scene = placeholder("fog-no-scene", HDR_FORMAT, 1, TextureUsages::empty());
         let copy = BufferUsages::COPY_SRC | BufferUsages::COPY_DST;
         let mut fog = Self {
             params,
@@ -210,6 +249,16 @@ impl Fog {
             paint,
             heights: heights.clone(),
             depth: targets.depth.clone(),
+            scene_colour: targets.scene_colour.clone(),
+            seen_under: targets.fog_mask_under.clone(),
+            scene_taps: device.create_sampler(&SamplerDescriptor {
+                label: Some("fog-scene-taps"),
+                mag_filter: FilterMode::Linear,
+                min_filter: FilterMode::Linear,
+                ..Default::default()
+            }),
+            no_depth,
+            no_scene,
             eyes: Grown::new(
                 device,
                 "fog-eyes",
@@ -253,27 +302,38 @@ impl Fog {
     /// Every group again, over the buffers as they are now.
     fn bind(&mut self, device: &Device) {
         let wholes = self.wholes.create_view(&Default::default());
+        let fragment = |layer: &Buffer, [depth, scene, seen]: [&TextureView; 3]| {
+            bind(
+                device,
+                &self.fog_layout,
+                "fog",
+                &[
+                    self.params.as_entire_binding(),
+                    layer.as_entire_binding(),
+                    self.eyes.buffer.as_entire_binding(),
+                    self.maps.as_entire_binding(),
+                    self.lists.as_entire_binding(),
+                    self.counts.as_entire_binding(),
+                    self.paint_style.as_entire_binding(),
+                    BindingResource::TextureView(&self.paint),
+                    BindingResource::TextureView(&wholes),
+                    BindingResource::TextureView(depth),
+                    BindingResource::TextureView(scene),
+                    BindingResource::Sampler(&self.scene_taps),
+                    BindingResource::TextureView(seen),
+                    // The wave field: native draws no wakes (water-native).
+                    BindingResource::TextureView(&self.no_scene),
+                ],
+            )
+        };
+        let under = [&self.depth, &self.scene_colour, &self.seen_under];
+        let water = fragment(&self.layers[Layer::PaintedFaces as usize], under);
+        let none = [&self.no_depth, &self.no_scene, &self.no_scene];
         self.groups = self
             .layers
             .iter()
-            .map(|layer| {
-                bind(
-                    device,
-                    &self.fog_layout,
-                    "fog",
-                    &[
-                        self.params.as_entire_binding(),
-                        layer.as_entire_binding(),
-                        self.eyes.buffer.as_entire_binding(),
-                        self.maps.as_entire_binding(),
-                        self.lists.as_entire_binding(),
-                        self.counts.as_entire_binding(),
-                        self.paint_style.as_entire_binding(),
-                        BindingResource::TextureView(&self.paint),
-                        BindingResource::TextureView(&wholes),
-                    ],
-                )
-            })
+            .map(|layer| fragment(layer, none))
+            .chain([water])
             .collect();
         self.build = Some(bind(
             device,
@@ -318,6 +378,12 @@ impl Fog {
     /// The fragment group a surface of `layer` binds.
     pub fn group(&self, layer: Layer) -> (&'static str, &BindGroup) {
         ("fogLayout", &self.groups[layer as usize])
+    }
+
+    /// The water's fragment group: the painted faces', with what lies under
+    /// the water (the world's depth and its colour before the water).
+    pub fn water_group(&self) -> (&'static str, &BindGroup) {
+        ("fogLayout", &self.groups[LAYERS.len()])
     }
 
     /// Takes this frame's fog from `presentation`, for the frame's `camera`

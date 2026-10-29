@@ -13,7 +13,7 @@ const RECIPES: &str = include_str!("../../../fixtures/encounters.json");
 fn request(kind: &str, seed: u64) -> String {
     serde_json::json!({
         "generator_version": mapgen::layout::GENERATOR_VERSION,
-        "preset_revision": "layout-presets-19",
+        "preset_revision": mapgen::layout::PresetDefinitions::from_json(PRESETS).unwrap().revision,
         "seed": seed.to_string(),
         "template_catalog_hash": "9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7",
         "type": kind,

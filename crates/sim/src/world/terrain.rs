@@ -471,7 +471,7 @@ fn relief_bounds(map: &MapDefinition) -> Vec<([f64; 4], f64)> {
                     height_m,
                     side_degrees,
                 } => {
-                    let slope = side_degrees.to_radians().tan();
+                    let slope = libm::tan(side_degrees.to_radians());
                     let rect = if slope > 0.0 {
                         grow(rect, height_m.max(0.0) / slope)
                     } else {

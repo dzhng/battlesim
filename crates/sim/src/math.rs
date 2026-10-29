@@ -119,6 +119,32 @@ impl V3 {
     pub fn xy(self) -> V2 {
         v2(self.x, self.y)
     }
+    /// This velocity turned toward `toward` by at most `max_angle`, keeping its speed.
+    pub fn turned_toward(self, toward: V3, max_angle: f64) -> V3 {
+        let speed = self.length();
+        if speed == 0.0 || toward.length() < 1e-9 {
+            return self;
+        }
+        let (a, b) = (self * (1.0 / speed), toward.normalized());
+        let angle = libm::acos(a.dot(b).clamp(-1.0, 1.0));
+        if angle <= max_angle {
+            return b * speed;
+        }
+        // Rotate `a` toward `b` in their common plane by `max_angle`.
+        let perp = b - a * a.dot(b);
+        let perp = if perp.length() > 1e-12 {
+            perp.normalized()
+        } else {
+            // Opposite directions: any perpendicular, preferring the horizontal.
+            let side = a.cross(v3(0.0, 0.0, 1.0));
+            if side.length() > 1e-9 {
+                side.normalized()
+            } else {
+                v3(1.0, 0.0, 0.0)
+            }
+        };
+        (a * libm::cos(max_angle) + perp * libm::sin(max_angle)) * speed
+    }
 }
 
 /// An angle wrapped into [-π, π).
@@ -162,6 +188,12 @@ impl Obb2 {
     /// World point → the rectangle's frame (origin at its centre).
     pub fn to_local(&self, p: V2) -> V2 {
         (p - self.center).rotated(-self.yaw)
+    }
+
+    /// Its four corners, front-left first, counter-clockwise.
+    pub fn corners(&self) -> [V2; 4] {
+        [(1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0)]
+            .map(|(x, y)| self.center + v2(self.half.x * x, self.half.y * y).rotated(self.yaw))
     }
 
     /// Distance from `p` to the rectangle (0 inside).

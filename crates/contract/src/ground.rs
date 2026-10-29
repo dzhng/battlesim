@@ -319,6 +319,24 @@ pub fn stretch_contains(
     let aside = (cross(a, b, p).abs() / length - half).max(0.0);
     libm::hypot(aside, past) <= margin
 }
+/// How far `p` lies outside the stretch `a`–`b` of a stroke `half` wide
+/// either side, zero on it: the distance [`stretch_contains`] holds within
+/// its margin, measured to the capsule's side or a cut end's square face.
+pub fn stretch_distance(a: [f64; 2], b: [f64; 2], cuts: u8, half: f64, p: [f64; 2]) -> f64 {
+    let ab = [b[0] - a[0], b[1] - a[1]];
+    let length = libm::hypot(ab[0], ab[1]);
+    let behind = -((p[0] - a[0]) * ab[0] + (p[1] - a[1]) * ab[1]);
+    let ahead = (p[0] - b[0]) * ab[0] + (p[1] - b[1]) * ab[1];
+    let past = if cuts & CUT_A != 0 && behind > 0.0 {
+        behind / length
+    } else if cuts & CUT_B != 0 && ahead > 0.0 {
+        ahead / length
+    } else {
+        return (segment_distance(a, b, p) - half).max(0.0);
+    };
+    let aside = (cross(a, b, p).abs() / length - half).max(0.0);
+    libm::hypot(aside, past)
+}
 fn on_segment(a: [f64; 2], b: [f64; 2], p: [f64; 2]) -> bool {
     (0..2).all(|k| p[k] >= a[k].min(b[k]) && p[k] <= a[k].max(b[k]))
 }

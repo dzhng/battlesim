@@ -33,11 +33,14 @@ import {
 import {
   CONVERSION_CAPTIONS,
   displayFieldValue,
+  fieldValue,
   entryFields,
   gameplayField,
   isObject,
   parseFieldValue,
+  rawText,
   validateGameplayValue,
+  enabledValue,
   valueAt,
   type GameplayField,
 } from "./fields";
@@ -74,15 +77,6 @@ const emptyDraft = (snapshot: MechanicsSnapshot): MechanicsDraft => ({
   revision: snapshot.revision,
   changes: [],
 });
-const rawText = (value: Json | undefined) =>
-  value === undefined || value === null
-    ? ""
-    : Array.isArray(value)
-      ? value.join(", ")
-      : typeof value === "object"
-        ? JSON.stringify(value, null, 2)
-        : String(value);
-
 function ChangeSummary({
   change,
   preview,
@@ -97,10 +91,11 @@ function ChangeSummary({
   const after = resolvedEntries(preview.catalog, change.section)[id];
   const beforeValue = valueAt(before, change.path);
   const afterValue = valueAt(after, change.path);
-  const formatted = (value: Json | undefined, entry: JsonObject) => {
+  const formatted = (value: Json | undefined) => {
+    value = fieldValue(field, value);
     if (value === undefined) return "Unset";
     if (value === null) return "Disabled";
-    const text = field ? displayFieldValue(field, value, entry) : rawText(value);
+    const text = field ? displayFieldValue(field, value) : rawText(value);
     return `${text}${field?.unit ? ` ${field.unit}` : ""}`;
   };
   return (
@@ -113,7 +108,7 @@ function ChangeSummary({
       </div>
       <div className="me-change-values">
         <strong>
-          {formatted(beforeValue, before)} → {formatted(afterValue, after)}
+          {formatted(beforeValue)} → {formatted(afterValue)}
         </strong>
         {field?.conversion && (
           <small>
@@ -223,10 +218,10 @@ function ValueInput({
 }) {
   const editor = useEditor();
   const key = `${changeKey(target, field.path)}:${raw ? "raw" : "human"}`;
-  const original = valueAt(entry, field.path);
+  const original = fieldValue(field, valueAt(entry, field.path));
   const value = field.kind === "mounts" ? mountValue(target, original) : original;
   const buffer = editor.texts[key];
-  const text = buffer?.text ?? (raw ? rawText(value) : displayFieldValue(field, value, entry));
+  const text = buffer?.text ?? (raw ? rawText(value) : displayFieldValue(field, value));
   const id = `me-${encodeURIComponent(key)}-${encodeURIComponent(label)}`;
   const emitText = (text: string) => {
     const parsed = raw
@@ -280,7 +275,11 @@ function ValueInput({
         value={isObject(value) ? "enabled" : ""}
         onChange={(event) => {
           editor.setText(key, undefined);
-          editor.change(target, field, event.target.value ? (field.initial ?? {}) : null, entry);
+          const row =
+            target.section === "weapons"
+              ? resolvedEntries(editor.snapshot.catalog, target.section)[target.id]
+              : undefined;
+          editor.change(target, field, event.target.value ? enabledValue(field, row) : null, entry);
         }}
       >
         <option value="">None</option>
@@ -685,16 +684,10 @@ export default function MechanicsEditor() {
     setTexts((current) =>
       Object.fromEntries(
         Object.entries(current).filter(
-          ([key, edit]) =>
+          ([key]) =>
             !(textIsWithin(key, target, field.path) && key !== textKey) &&
             ![...removedSoldiers].some((id) =>
               textIsWithin(key, { section: "soldiers", id, unit: target.id }, []),
-            ) &&
-            !(
-              target.section === "weapons" &&
-              field.path[0] === "range_m" &&
-              !edit.error &&
-              key.startsWith(`${changeKey(target, ["scatter_mrad"])}:`)
             ),
         ),
       ),
@@ -716,21 +709,10 @@ export default function MechanicsEditor() {
             }),
           change: (target, field, value, entry, textKey) => {
             if (validateGameplayValue(target.section, field.path, value)) return;
-            applyDraft(
-              editDraft(draft, target, field.path, value, entry),
-              target,
-              field,
-              entry,
-              textKey,
-            );
+            applyDraft(editDraft(draft, target, field.path, value), target, field, entry, textKey);
           },
           restore: (target, field, entry) =>
-            applyDraft(
-              resetDraft(draft, target, field.path, entry, snapshot),
-              target,
-              field,
-              entry,
-            ),
+            applyDraft(resetDraft(draft, target, field.path, snapshot), target, field, entry),
         }
       : null;
   return (

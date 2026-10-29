@@ -309,10 +309,7 @@ impl SideKnowledge {
                 u.on_field()
                     && u.side != side
                     && !self.identifies(u.id, tick)
-                    && u.unit_type(rules)
-                        .capabilities
-                        .radar
-                        .is_some_and(|radar| radar.emits)
+                    && u.unit_type(rules).capabilities.radar_emitter
             })
             .map(|u| u.id)
             .collect();

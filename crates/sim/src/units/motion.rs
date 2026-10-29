@@ -52,10 +52,13 @@ pub fn motion(t: &UnitType, rules: &Rules) -> Motion {
 pub fn ground_mobility(t: &UnitType, rules: &Rules) -> Option<Mobility> {
     let m = &rules.movement;
     let (off_road_mps, road_mps) = t.mobility.speeds_mps();
+    let locomotion = t.mobility.locomotion()?;
+    let speed_factors = *m.speed_factors.of(locomotion);
     let vehicle = |drive| Mobility {
         off_road_mps,
         road_mps,
-        forest_multiplier: m.forest_vehicle_multiplier,
+        locomotion,
+        speed_factors,
         half_width_m: t.hull().expect("a vehicle has a hull").half_extents_m[1],
         class: MoverClass::Vehicle,
         push: t.hull().expect("a vehicle has a hull").push_class,
@@ -66,7 +69,8 @@ pub fn ground_mobility(t: &UnitType, rules: &Rules) -> Option<Mobility> {
         Moves::Foot { .. } => Mobility {
             off_road_mps,
             road_mps,
-            forest_multiplier: m.forest_infantry_multiplier,
+            locomotion,
+            speed_factors,
             half_width_m: rules.infantry_movement.path_clearance_m,
             class: MoverClass::Infantry,
             push: contract::scenario::PushClass::None,
@@ -74,34 +78,35 @@ pub fn ground_mobility(t: &UnitType, rules: &Rules) -> Option<Mobility> {
         },
         Moves::Tracked {
             turn_deg_s,
-            reverse_fraction,
+            reverse_speed_factor,
             ..
         } => vehicle(crate::navigation::Drive {
             tracked: true,
             turn_rad_s: turn_deg_s.to_radians(),
             radius_m: 0.0,
-            reverse_fraction,
+            reverse_speed_factor,
             feel: m.drive,
         }),
         Moves::Wheeled {
             turn_deg_s,
             turning_radius_m,
-            reverse_fraction,
+            reverse_speed_factor,
             ..
         } => vehicle(crate::navigation::Drive {
             tracked: false,
             turn_rad_s: turn_deg_s.to_radians(),
             radius_m: turning_radius_m,
-            reverse_fraction,
+            reverse_speed_factor,
             feel: m.drive,
         }),
     })
 }
 
-/// Driving rules the vehicle motion model divides and eases by. (Each unit
-/// type's own numbers are the catalog's checks, at load.)
-pub fn validate_drive(rules: &Rules) {
-    let d = &rules.movement.drive;
+/// Driving rules the motion model eases by. (Each unit type's own numbers
+/// and the speed factors are checked at load.)
+pub fn validate(rules: &Rules) {
+    let m = &rules.movement;
+    let d = &m.drive;
     assert!(
         d.acceleration_s.is_finite()
             && d.acceleration_s > 0.0
@@ -124,7 +129,7 @@ pub fn validate_drive(rules: &Rules) {
         "movement.drive.min_leg_m and circle_margin_m must not be negative"
     );
     assert!(
-        d.turn_slow > 0.0 && d.turn_slow <= 1.0,
-        "movement.drive.turn_slow must be in (0, 1]: a turning vehicle never stops"
+        d.turn_speed_factor > 0.0 && d.turn_speed_factor <= 1.0,
+        "movement.drive.turn_speed_factor must be in (0, 1]: a turning vehicle never stops"
     );
 }

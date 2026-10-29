@@ -70,7 +70,7 @@ pub enum FlightConfigError {
     /// `top_attack` belongs on a guided row, with a positive loft and a dive
     /// between level and vertical.
     TopAttack(&'static str),
-    /// An unguided row more accurate at its range than
+    /// An unguided layer more accurate at its reach than
     /// `physics.min_spread_at_max_range_m` allows.
     TighterThanCeiling {
         spread_m: f64,
@@ -178,14 +178,9 @@ impl FlightConfig {
         self.subsegments
     }
 
-    /// A weapon row's launch profile; its lifetime is bounded, and an
-    /// unguided row's spread at its range is no tighter than the rules'
-    /// ceiling on accuracy.
+    /// A weapon row's launch profile; its lifetime is bounded.
     pub fn profile(&self, weapon: &WeaponBallistics) -> Result<LaunchProfile, FlightConfigError> {
         let lifetime_s = weapon.lifetime_s.unwrap_or(self.max_unguided_lifetime_s);
-        if !(weapon.scatter_mrad >= 0.0 && weapon.scatter_mrad.is_finite()) {
-            return Err(FlightConfigError::NotPositive("scatter_mrad"));
-        }
         for (name, v) in [
             ("speed_mps", weapon.speed_mps),
             ("range_m", weapon.range_m),
@@ -248,21 +243,9 @@ impl FlightConfig {
             }
             Some(t) => Some(Loft {
                 height_m: t.loft_m,
-                slope: t.dive_deg.to_radians().tan(),
+                slope: libm::tan(t.dive_deg.to_radians()),
             }),
         };
-        let spread_m = weapon.scatter_mrad * 1e-3 * weapon.range_m;
-        if weapon.delivery == Delivery::Powered
-            && weapon.speed_mps > 0.0
-            && weapon.range_m > 0.0
-            && weapon.turn_deg_s.is_none()
-            && spread_m < self.min_spread_at_max_range_m
-        {
-            return Err(FlightConfigError::TighterThanCeiling {
-                spread_m,
-                min_m: self.min_spread_at_max_range_m,
-            });
-        }
         // A heavier share of gravity bends each chord more: it must still
         // keep within the chord error at the declared chords per tick.
         let accel = self.gravity.length() * weapon.gravity_scale;
@@ -278,12 +261,33 @@ impl FlightConfig {
             gravity_scale: weapon.gravity_scale,
             lifetime_s,
             trajectory: weapon.trajectory,
-            scatter_mrad: weapon.scatter_mrad,
             suppression_radius_m: weapon.suppression_radius_m,
             turn_rad_s: weapon.turn_deg_s.map(f64::to_radians),
             motor,
             loft,
         })
+    }
+
+    /// One target layer's spread at its reach, held to the accuracy ceiling.
+    pub fn check_layer(
+        &self,
+        weapon: &WeaponBallistics,
+        range_m: f64,
+        scatter_mrad: f64,
+    ) -> Result<(), FlightConfigError> {
+        let spread_m = scatter_mrad * 1e-3 * range_m;
+        if weapon.delivery == Delivery::Powered
+            && weapon.speed_mps > 0.0
+            && range_m > 0.0
+            && weapon.turn_deg_s.is_none()
+            && spread_m < self.min_spread_at_max_range_m
+        {
+            return Err(FlightConfigError::TighterThanCeiling {
+                spread_m,
+                min_m: self.min_spread_at_max_range_m,
+            });
+        }
+        Ok(())
     }
 }
 
@@ -295,8 +299,6 @@ pub struct LaunchProfile {
     pub gravity_scale: f64,
     pub lifetime_s: f64,
     pub trajectory: Trajectory,
-    /// One-axis angular standard deviation of launch spread, milliradians.
-    pub scatter_mrad: f64,
     pub suppression_radius_m: f64,
     /// Guided rounds' turn limit; `None` flies ballistically.
     pub turn_rad_s: Option<f64>,
@@ -1092,11 +1094,9 @@ impl Flight<'_> {
     fn acceleration(&self, p: &mut Projectile, span: f64) -> V3 {
         let gravity = match p.guidance {
             Some(g) => {
-                p.velocity = steer(
-                    p.velocity,
-                    g.aim(p.position) - p.position,
-                    g.turn_rad_s * span,
-                );
+                p.velocity = p
+                    .velocity
+                    .turned_toward(g.aim(p.position) - p.position, g.turn_rad_s * span);
                 V3::default()
             }
             None => self.config.gravity * p.gravity_scale,
@@ -1512,31 +1512,4 @@ pub fn lead(from: V3, from_velocity: V3, at: V3, velocity: V3) -> V3 {
     } else {
         at
     }
-}
-
-/// `velocity` turned toward `toward` by at most `max_angle`, keeping its speed.
-pub fn steer(velocity: V3, toward: V3, max_angle: f64) -> V3 {
-    let speed = velocity.length();
-    if speed == 0.0 || toward.length() < 1e-9 {
-        return velocity;
-    }
-    let (a, b) = (velocity * (1.0 / speed), toward.normalized());
-    let angle = a.dot(b).clamp(-1.0, 1.0).acos();
-    if angle <= max_angle {
-        return b * speed;
-    }
-    // Rotate `a` toward `b` in their common plane by `max_angle`.
-    let perp = b - a * a.dot(b);
-    let perp = if perp.length() > 1e-12 {
-        perp.normalized()
-    } else {
-        // Opposite directions: any perpendicular, preferring the horizontal.
-        let side = a.cross(v3(0.0, 0.0, 1.0));
-        if side.length() > 1e-9 {
-            side.normalized()
-        } else {
-            v3(1.0, 0.0, 0.0)
-        }
-    };
-    (a * libm::cos(max_angle) + perp * libm::sin(max_angle)) * speed
 }

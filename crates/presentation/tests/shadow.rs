@@ -14,8 +14,8 @@ use serde_json::Value;
 #[test]
 fn a_shadow_lies_on_the_ground_with_offset_proportional_to_actual_height() {
     let fall = [2.0, -1.0];
-    let low = presentation::presentation::aircraft_shadow([12.0, 34.0, 17.5], 7.5, fall);
-    let high = presentation::presentation::aircraft_shadow([12.0, 34.0, 27.5], 7.5, fall);
+    let low = presentation::shadow::aircraft_shadow([12.0, 34.0, 17.5], 7.5, fall);
+    let high = presentation::shadow::aircraft_shadow([12.0, 34.0, 27.5], 7.5, fall);
     assert_eq!(low, [32.0, 24.0, 7.5]);
     assert_eq!(high, [52.0, 14.0, 7.5]);
 }
@@ -529,12 +529,15 @@ fn production_shadow_hold_reuses_fit_and_camera_changes_refit() {
         let work = p.shadow_stats();
         assert!(!work.reused);
         assert!(work.bounds_visited > 0 && work.triangle_tests > 0 && work.clip_tests > 0);
+        // The same fit, its casters on the new frame's clock.
+        let mut held = expected.clone();
+        held.casters.iter_mut().for_each(|c| c.time = 1.);
         assert_eq!(
             p.frame(1., &camera, &Ui::default(), 0)
                 .unwrap()
                 .shadow
                 .as_ref(),
-            Some(&expected)
+            Some(&held)
         );
         let hold = p.shadow_stats();
         assert!(hold.reused);
@@ -650,5 +653,51 @@ fn receiver_work_stays_local_as_remote_triangle_population_grows() {
             (0, 0, 0)
         );
         println!("remote tiles={count}: fit={work:?}, hold={hold:?}");
+    }
+}
+
+/// Whatever moves in the wind casts as it is drawn: the frame's camera
+/// carries the ground's wind, and every cascade's camera runs on the
+/// frame's clock and in that wind, though the fit is reused.
+#[test]
+fn every_cascade_camera_runs_on_the_frames_clock_and_wind() {
+    use presentation::presentation::{Presentation, Ui};
+    use presentation::static_world::ground::{self, biome::Biome, Tuning};
+    use std::sync::Arc;
+    let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+    let read = |path: &str| std::fs::read_to_string(format!("{root}/{path}")).unwrap();
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+    let map = sim::maps::Catalogue::shipped()
+        .load("wetlands")
+        .unwrap()
+        .definition;
+    let world = sim::world::WorldGeometry::new(&map, &rules);
+    let layout = sim::world::export::layout_json(&rules.catalog);
+    let source = ground::source(&world, &map.extents(), &layout).unwrap();
+    let mut biome = Biome::load(&read("fixtures/biomes/summer.json"), None).unwrap();
+    // A wind of the test's own, blowing somewhere and gusting.
+    biome.wind.heading_deg = 120.0;
+    biome.wind.gust_mps = 7.5;
+    let wind = biome.wind.record();
+    assert!(wind.gust_mps > 0.0 && wind.toward[1] > 0.0);
+    let game: serde_json::Value = serde_json::from_str(&read("fixtures/game.json")).unwrap();
+    let tuning: Tuning = serde_json::from_value(game["presentation"].clone()).unwrap();
+    let mut presentation = Presentation::new(None, 30.).unwrap();
+    presentation.set_ground(source, biome, tuning).unwrap();
+    presentation.set_shadow(Some((game_light(), Arc::new(street()))));
+    let camera = orbit([240., 180., 0.], 260., 0.85, -1.57);
+    for time in [0.0, 3.5, 7.25] {
+        let frame = presentation
+            .frame(time, &camera, &Ui::default(), 0)
+            .unwrap();
+        assert_eq!(frame.camera.time, time as f32);
+        assert_eq!(bits(&frame.camera.wind), bits(&[wind]), "the ground's wind");
+        let shadow = frame.shadow.as_ref().unwrap();
+        assert!(!shadow.casters.is_empty());
+        for caster in &shadow.casters {
+            assert_eq!(caster.time, frame.camera.time, "at {time} s");
+            assert_eq!(bits(&caster.wind), bits(&[wind]), "at {time} s");
+        }
     }
 }

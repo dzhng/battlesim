@@ -1,3 +1,4 @@
+use crate::common;
 use crate::common::air_field::wing_limits;
 use crate::common::Seat;
 use contract::command::{CommandEnvelope, Order, TargetRef};
@@ -566,7 +567,7 @@ fn a_bomb_leaves_the_jet_and_falls_onto_the_aim() {
         &["air_bomb"],
         1,
         |rules| {
-            rules["weapons"]["air_bomb"]["scatter_mrad"] = json!(0.0);
+            rules["weapons"]["air_bomb"]["targets"]["ground"]["scatter_mrad"] = json!(0.0);
             rules["weapons"]["air_bomb"]["blast_radius_m"] = json!(blast_m);
         },
         &[],
@@ -682,8 +683,7 @@ fn a_missile_pass_fires_the_gun_when_nose_on() {
 #[test]
 fn a_vehicle_only_missile_leaves_a_ground_point_to_the_gun() {
     let mut rules = run_rules(&["air_gun", "air_ground_missile"]);
-    rules["weapons"]["air_ground_missile"]["targets"] =
-        json!({ "ground": { "classes": ["vehicle"] } });
+    common::json_ground_reach(&mut rules["weapons"]["air_ground_missile"], 2000.0);
     let mut battle = run_field(
         rules,
         json!([{ "side": "blue", "kind": "test_jet", "position": RUN_START, "yaw": 0.0 }]),
@@ -711,8 +711,7 @@ fn a_vehicle_only_missile_leaves_a_ground_point_to_the_gun() {
 #[test]
 fn a_vehicle_missile_fires_on_its_own_at_a_tank_beside_an_ordered_ground_point() {
     let mut rules = run_rules(&["air_gun", "air_ground_missile"]);
-    rules["weapons"]["air_ground_missile"]["targets"] =
-        json!({ "ground": { "classes": ["vehicle"] } });
+    common::json_ground_reach(&mut rules["weapons"]["air_ground_missile"], 2000.0);
     let mut battle = run_field(
         rules,
         json!([
@@ -748,8 +747,7 @@ fn a_vehicle_missile_fires_on_its_own_at_a_tank_beside_an_ordered_ground_point()
 #[test]
 fn a_vehicle_only_missile_leaves_a_ground_point_to_the_bombs() {
     let mut rules = run_rules(&["air_gun", "air_ground_missile", "air_bomb"]);
-    rules["weapons"]["air_ground_missile"]["targets"] =
-        json!({ "ground": { "classes": ["vehicle"] } });
+    common::json_ground_reach(&mut rules["weapons"]["air_ground_missile"], 2000.0);
     let mut battle = run_field(
         rules,
         json!([{ "side": "blue", "kind": "test_jet", "position": RUN_START, "yaw": 0.0 }]),
@@ -1024,8 +1022,7 @@ fn attack_move_leaves_an_enemy_no_row_engages() {
             "turret": false, "pivot_m": [0, 0, 1.2], "muzzle_m": [4, 0, 0]
         }] }),
     );
-    rules["weapons"]["air_ground_missile"]["targets"] =
-        json!({ "ground": { "classes": ["vehicle"], "range_m": OFF_LEG_M * 5.0 } });
+    common::json_ground_reach(&mut rules["weapons"]["air_ground_missile"], OFF_LEG_M * 5.0);
     let setup = serde_json::from_value(json!({
         "map": { "size": [5000, 3000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules,
@@ -1395,7 +1392,7 @@ fn run_rules(weapons: &[&str]) -> serde_json::Value {
     rules["weapons"]["air_bomb"]["aim_s"] = json!(0.1);
     // Rearming between runs is not these tests' subject.
     rules["weapons"]["air_bomb"]["reload_s"] = json!(1.0);
-    rules["weapons"]["air_gun"]["range_m"] = json!(RUN_GUN_RANGE_M);
+    common::json_ground_reach(&mut rules["weapons"]["air_gun"], RUN_GUN_RANGE_M);
     // Mounts merge by id: the first takes the place of the jet's own gun.
     let mounts: Vec<_> = weapons
         .iter()

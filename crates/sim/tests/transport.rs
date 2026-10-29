@@ -1,4 +1,4 @@
-//! Passenger carriage behavior through the public battle authority.
+use crate::common;
 use crate::common::Seat;
 use contract::command::{
     CommandEnvelope, Engagement, MoveDirection, Order, OrderError, RoutePolicy,
@@ -32,7 +32,6 @@ fn command(seq: u64, order: Order) -> CommandEnvelope {
     }
 }
 
-/// A command from the side's one player in the transport skirmish.
 fn side_command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     CommandEnvelope {
         side,
@@ -50,7 +49,6 @@ fn side_command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     }
 }
 
-/// Where a shot-down transport helicopter was hit, and where it came down.
 struct HeliCrash {
     battle: Battle,
     hit: Option<sim::math::V3>,
@@ -66,9 +64,15 @@ fn transport_heli_crash(seed: u64, leaves_map: bool) -> HeliCrash {
         json!({ "body": { "hull": { "hp": 1.0 } } }),
     );
     if leaves_map {
-        rules["weapons"]["autocannon"]["range_m"] = json!(50.0);
+        common::json_ground_reach(&mut rules["weapons"]["autocannon"], 50.0);
         rules["weapons"]["autocannon"]["targets"]["low_air"]["range_m"] = json!(50.0);
-        rules["weapons"]["autocannon"]["scatter_mrad"] = json!(100.0);
+        for fire in rules["weapons"]["autocannon"]["targets"]
+            .as_object_mut()
+            .unwrap()
+            .values_mut()
+        {
+            fire["scatter_mrad"] = json!(100.0);
+        }
     }
     let start = [100.0, 200.0];
     let goal = if leaves_map {

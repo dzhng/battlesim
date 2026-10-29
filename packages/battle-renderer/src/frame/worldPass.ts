@@ -23,36 +23,14 @@ import {
   WORLD_VARYING,
   ProxyInstances,
 } from "./geometry";
-import {
-  fogCoverage,
-  fogIsGround,
-  fogTerm,
-  groundPaint,
-  paintedAlbedo,
-  paintedSeen,
-  paintGlow,
-} from "./fogTerm";
+import { fogCoverage, fogIsGround, fogTerm } from "./fogTerm";
+import { createGroundFragments, ROUGHNESS, srgbToLinear } from "./groundFragments";
 import { createGrassPass } from "./grassPass";
+import { createWater } from "./waterPass";
+import { createGhostPass } from "./ghostPass";
 import { createTerrainHeights } from "./terrainHeights";
 import { createFogVisibility, type FogShaders, type FogTiles } from "./fogVisibility";
-import {
-  createTerrainSource,
-  groundCell,
-  groundClasses,
-  groundClassView,
-  groundColour,
-  groundDapple,
-  GroundPaved,
-  groundPaved,
-  groundRoadRelief,
-  groundSite,
-  groundBank,
-  groundWater,
-  waterNormal,
-  waterSurface,
-} from "./terrainMaterial";
-import { groundScarsSeen, scarredNormal, scarredSurface, scarRegionContains } from "./groundScars";
-import game from "@fixtures/game.json";
+import { createTerrainSource } from "./terrainSource";
 import { createSceneryLayer, type SceneryWalkStats } from "./sceneryLayer";
 import type { PresentedGround } from "../terrain/terrainSurface";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
@@ -67,7 +45,6 @@ import {
 } from "../models/modelLayer";
 import {
   createGlassFragment,
-  createGhostFragment,
   createRoomFragment,
   modelCutoutCaster,
   modelCutoutDepth,
@@ -90,25 +67,14 @@ import {
   WORLD_OUT,
   worldTargets,
   type FrameTargets,
+  type WaterDetail,
 } from "./targets";
 import type { GpuRegistry } from "./registry";
-const terrainTuning = game.presentation.terrain;
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
-/** Our vertex colours are sRGB display values; lighting wants linear albedo. */
-const srgbToLinear = tgpu.fn(
-  [d.vec3f],
-  d.vec3f,
-)((c) => {
-  "use gpu";
-  return std.pow(std.max(c, d.vec3f(0)), d.vec3f(2.2));
-});
-
 /** Selection glow added to a highlighted proxy. */
 const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
-/** A rough dielectric: the flat box world has no material maps yet. */
-const ROUGHNESS = 0.85;
 
 export async function createWorldPass(
   root: Root,
@@ -119,7 +85,8 @@ export async function createWorldPass(
   paintStyle: PaintStyle,
   xrayMinHiddenFragmentFraction: number,
   glass: GlassStyle,
-  grassDensity = 1,
+  grassDensity: number,
+  detail: WaterDetail,
 ) {
   const worldFragment = tgpu.fragmentFn({
     in: {
@@ -147,140 +114,7 @@ export async function createWorldPass(
       fog: fogCoverage(seen, v.color.w),
     };
   });
-  const varyings = {
-    clip: d.builtin.position,
-    world: WORLD_VARYING,
-    normal: d.vec3f,
-    color: d.vec4f,
-    highlight: d.f32,
-  };
-  /** The biome's ground, under the vertex tint (its alpha the tint's weight).
-   *  `cell` is the point's `groundCell`, `paved` its `groundPaved`. */
-  const groundAlbedo = tgpu.fn(
-    [d.vec3f, d.vec4f, d.vec4u, GroundPaved],
-    d.vec4f,
-  )((world, tint, cell, paved) => {
-    "use gpu";
-    const footprint = std.length(std.fwidth(world.xy));
-    const xy = world.xy;
-    const site = groundSite(xy, cell, paved);
-    const surface = groundColour(xy, footprint, site, paved, groundWater(xy, cell));
-    const albedo = std.mix(surface.xyz, srgbToLinear(tint.xyz), tint.w);
-    return d.vec4f(albedo, std.mix(surface.w, ROUGHNESS, tint.w));
-  });
-  /** What the class view's ground writes beside its bytes: seen ground,
-   *  whether or not the frame has fog (the fog mask pass keeps only pixels
-   *  that are wholly this). */
-  const CLASS_GROUND = d.vec4f(0, 1, 1, 1);
-  /** The terrain: FogTerm's ground. */
-  const terrainFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
-    "use gpu";
-    if (!scarRegionContains(v.world.xy)) std.discard();
-    const eye = typegpuCameraLayout.$.cam.eye;
-    const n = std.normalize(v.normal);
-    const seen = fogTerm(v.world, n, v.clip.xy, fogIsGround());
-    const footprint = std.length(std.fwidth(v.world.xy));
-    // One lookup of the surface field serves the ground and its dapple.
-    const cell = groundCell(v.world.xy, footprint);
-    const paved = groundPaved(v.world.xy, cell);
-    if (groundClassView()) {
-      const xy = v.world.xy;
-      const site = groundSite(xy, cell, paved);
-      const classes = groundClasses(xy, footprint, site, groundWater(xy, cell));
-      return { color: d.vec4f(classes, 1), fog: d.vec4f(CLASS_GROUND) };
-    }
-    const plain = groundAlbedo(v.world, v.color, cell, paved);
-    // The side's learned scars, on the biome's ground (not under a tint).
-    const biome = 1 - v.color.w;
-    const scar = groundScarsSeen(v.world, eye, footprint);
-    const surface = std.mix(plain, scarredSurface(plain, scar), biome);
-    // A river's bank is lit as the cross-section it was cut to and its bed
-    // flat, not as the grid's triangles (`groundBank`).
-    const bank = groundBank(v.world.xy, cell, footprint);
-    let ground = d.vec3f(n);
-    if (bank.z > 0) {
-      ground = std.normalize(std.mix(n, std.normalize(d.vec3f(-bank.x, -bank.y, 1)), bank.z));
-    }
-    // A road's ruts and its curb tilt it too: their sides catch the sun.
-    const relief = groundRoadRelief(v.world.xy, footprint, paved);
-    ground = std.normalize(std.sub(ground, std.mul(d.vec3f(relief, 0), ground.z * biome)));
-    const shading = std.normalize(std.mix(ground, scarredNormal(ground, scar), biome));
-    // The ground paint on it (its layer is painted).
-    const paint = groundPaint(v.world);
-    // Sun flecks through the crowns lift the canopy's whole shadow.
-    const flecks = groundDapple(v.world.xy, footprint, cell);
-    const sun = std.max(environment.sampleSunShadow(v.world, n, v.clip.xy), flecks);
-    const lit = environment.shade(
-      paintedAlbedo(surface.xyz, paint),
-      d.vec3f(0),
-      surface.w,
-      0,
-      0,
-      1,
-      shading,
-      v.world,
-      sun,
-      eye,
-    );
-    return {
-      color: d.vec4f(std.add(lit.xyz, paintGlow(paint)), 1),
-      fog: fogCoverage(paintedSeen(seen, paint), 1),
-    };
-  });
-  /** The backdrop: the same ground, light and fog, never shadowed. */
-  const backdropFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
-    "use gpu";
-    const eye = typegpuCameraLayout.$.cam.eye;
-    const cell = groundCell(v.world.xy, std.length(std.fwidth(v.world.xy)));
-    // Past the map's edge there is no class to read: not ground, to that view.
-    if (groundClassView()) {
-      return { color: d.vec4f(0, 0, 0, 1), fog: d.vec4f(0, 0, 0, 1) };
-    }
-    const surface = groundAlbedo(v.world, v.color, cell, groundPaved(v.world.xy, cell));
-    const up = std.normalize(v.normal);
-    const paint = groundPaint(v.world);
-    const albedo = paintedAlbedo(surface.xyz, paint);
-    const lit = environment.shade(albedo, d.vec3f(0), surface.w, 0, 0, 1, up, v.world, 1, eye);
-    // The rendered margin outside the playable rectangle is permanently fogged.
-    const seen = fogTerm(v.world, up, v.clip.xy, fogIsGround());
-    return {
-      color: d.vec4f(std.add(lit.xyz, paintGlow(paint)), 1),
-      fog: fogCoverage(paintedSeen(seen, paint), 1),
-    };
-  });
-
-  /** The water surface (the terrain material's `waterSurface`): ripples that
-   *  break the sky's and sun's reflection, the bed through it at the shore.
-   *  It takes the ground paint as the ground does (its layer is painted): a
-   *  mark over the water shows on it, not drowned under it. */
-  const waterFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
-    "use gpu";
-    const eye = typegpuCameraLayout.$.cam.eye;
-    const footprint = std.length(std.fwidth(v.world.xy));
-    const surface = waterSurface(v.world.xy, footprint);
-    const n = waterNormal(v.world.xy, footprint);
-    const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
-    const paint = groundPaint(v.world);
-    const lit = environment.shade(
-      paintedAlbedo(surface.xyz, paint),
-      d.vec3f(0),
-      terrainTuning.water.roughness,
-      0,
-      0,
-      1,
-      n,
-      v.world,
-      sun,
-      eye,
-    );
-    const shaded = std.add(
-      std.mul(lit.xyz, std.mix(terrainTuning.water.shadow, 1, sun)),
-      paintGlow(paint),
-    );
-    const seen = paintedSeen(fogTerm(v.world, n, v.clip.xy, fogIsGround()), paint);
-    const alpha = std.max(surface.w, paint.w);
-    return { color: d.vec4f(shaded, alpha), fog: fogCoverage(seen, alpha) };
-  });
+  const ground = createGroundFragments(environment);
 
   const base = {
     attribs: meshAttribs,
@@ -310,24 +144,11 @@ export async function createWorldPass(
       multisample: { count: FRAME_MSAA },
     })
     .$name("worldOpaque");
-  const water = root
-    .createRenderPipeline({
-      ...base,
-      fragment: waterFragment,
-      // The fog mask blends as the colour does: water over unseen ground is as
-      // unseen as its alpha lets the ground through.
-      targets: worldTargets({
-        color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
-        alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
-      }),
-      depthStencil: battleWorldDepth("read"),
-      multisample: { count: FRAME_MSAA },
-    })
-    .$name("worldWater");
+  const water = createWater(root, environment);
   const terrainPipeline = root
     .createRenderPipeline({
       ...base,
-      fragment: terrainFragment,
+      fragment: ground.terrain,
       targets: worldTargets(),
       depthStencil: battleWorldDepth("prepassed"),
       multisample: { count: FRAME_MSAA },
@@ -336,7 +157,7 @@ export async function createWorldPass(
   const backdropPipeline = root
     .createRenderPipeline({
       ...base,
-      fragment: backdropFragment,
+      fragment: ground.backdrop,
       targets: worldTargets(),
       depthStencil: battleWorldDepth("prepassed"),
       multisample: { count: FRAME_MSAA },
@@ -396,10 +217,9 @@ export async function createWorldPass(
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
-  // A blended surface (glass) is drawn after everything opaque, over it by
-  // its coverage, as the water is: it reads depth and writes none, is in no
-  // prepass and casts no shadow. Unlike the water it leaves the fog mask
-  // alone: a pane is not the thing seen or unseen, what stands behind it is.
+  // Glass is drawn after everything opaque, over it by its coverage: it
+  // reads depth and writes none, is in no prepass and casts no shadow. It
+  // leaves the fog mask alone: a pane is not the thing seen or unseen.
   const modelBlended = root.createRenderPipeline({
     ...modelBase,
     fragment: createGlassFragment(environment, glass),
@@ -416,19 +236,7 @@ export async function createWorldPass(
     depthStencil: battleWorldDepth("read"),
     multisample: { count: FRAME_MSAA },
   });
-  const modelGhost = root.createRenderPipeline({
-    ...modelBase,
-    fragment: createGhostFragment(environment),
-    targets: {
-      format: HDR_FORMAT,
-      blend: {
-        color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
-        alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
-      },
-    },
-    depthStencil: battleWorldDepth("read"),
-    multisample: { count: FRAME_MSAA },
-  });
+  const ghosts = createGhostPass(root, environment, models);
   // The x-ray: a unit's fragments behind the world's depth (without the
   // units), over the transparent overlay target. Max blending, so a hidden
   // arm behind a hidden torso never doubles the silhouette's alpha. The
@@ -498,7 +306,7 @@ export async function createWorldPass(
       prepass,
       caster,
       opaque,
-      water,
+      ...water.pipelines,
       terrainPipeline,
       backdropPipeline,
       modelPrepass,
@@ -509,7 +317,7 @@ export async function createWorldPass(
       modelCutout,
       modelRooms,
       modelBlended,
-      modelGhost,
+      ghosts.pipeline,
       modelXray,
       modelXrayCount,
       modelCards,
@@ -535,7 +343,7 @@ export async function createWorldPass(
   const terrainHeights = createTerrainHeights(registry);
   const fog = await createFogVisibility(root, registry, fogGeometry, terrainHeights);
   const scenery = await createSceneryLayer(root, registry, environment);
-  const terrain = createTerrainSource(root, registry);
+  const terrain = createTerrainSource(root, registry, detail);
   const grass = await createGrassPass(
     root,
     registry,
@@ -837,7 +645,7 @@ export async function createWorldPass(
         targets.height,
       ]);
     },
-    /** Lit world and blended water, with their fog coverage alongside. */
+    /** Lit world and glass, then the water, with their fog coverage alongside. */
     encode(
       encoder: TgpuCommandEncoder,
       raw: GPUCommandEncoder,
@@ -886,13 +694,13 @@ export async function createWorldPass(
             view: colorView,
             resolveTarget: litView,
             loadOp: "load",
-            storeOp: "discard",
+            storeOp: "store",
           },
           {
             view: targets.fogMaskMsaa.createView(),
             resolveTarget: targets.fogMask.createView(),
             loadOp: first ? "clear" : "load",
-            storeOp: "discard",
+            storeOp: "store",
             clearValue: [0, 0, 0, 0],
           },
         ],
@@ -983,16 +791,6 @@ export async function createWorldPass(
           .with(terrain.group),
         submitted.color.backdrop,
       );
-      if (!classView)
-        world.water.draw(
-          water
-            .with(pass)
-            .with(cameraGroup)
-            .with(environment.group)
-            .with(fogGroups.paintedFaces)
-            .with(terrain.group),
-          submitted.color.water,
-        );
       // Glass last, over everything: in the order the layer packs it, not by
       // depth (two panes of one glass blend nearly the same either way round).
       if (!classView) {
@@ -1013,6 +811,14 @@ export async function createWorldPass(
         );
       }
       pass.end();
+      if (!classView)
+        water.encode(
+          encoder,
+          targets,
+          world.water,
+          [cameraGroup, fogGroups.water, terrain.group],
+          submitted.color.water,
+        );
       return { encoder, raw };
     },
     /** The high-air models on their own plane (`ModelLayer.setHighApart`):
@@ -1105,26 +911,7 @@ export async function createWorldPass(
         );
       pass.end();
     },
-    /** Placement meshes over the fog-treated world, without changing its mask or depth. */
-    encodeGhosts(encoder: TgpuCommandEncoder, targets: FrameTargets, cameraGroup: CameraGroup) {
-      if (!models.hasGhostMeshes) return;
-      const pass = encoder.beginRenderPass({
-        label: "placement-ghosts",
-        colorAttachments: [
-          {
-            view: targets.hdrMsaa.createView(),
-            resolveTarget: targets.hdr.createView(),
-            loadOp: "load",
-            storeOp: "discard",
-          },
-        ],
-        depthStencilAttachment: { view: targets.depth.createView(), depthReadOnly: true },
-      });
-      models.drawGhosts(
-        modelGhost.with(pass).with(cameraGroup).with(environment.group) as unknown as Bound,
-      );
-      pass.end();
-    },
+    encodeGhosts: ghosts.encode,
     stats() {
       return {
         submitted: submitted.snapshot(),

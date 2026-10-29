@@ -5,7 +5,8 @@
       "faction": "generic",
       "family": "infantry",
       "mobility": { "foot": { "offroad_kmh": 11, "road_kmh": 14 } },
-      "sensors": { "ground_m": 600, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
+      "sensors": { "ground_m": 600, "low_air_m": 600, "high_air_m": 600, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
+      "concealment": 1,
       "sound": { "profile": "infantry", "loudness_m": 200 }
     },
     "test_rifle": {
@@ -27,7 +28,8 @@
       "roles": ["recon"],
       "cost": 80,
       "body": { "squad": { "slots": ["test_scout", "test_scout", "test_scout", "test_scout"] } },
-      "sensors": { "ground_m": 650, "concealed_range_multiplier": 2 }
+      "concealment": 0.8,
+      "sensors": { "ground_m": 650, "low_air_m": 650, "spotting": 2 }
     },
     "test_at": {
       "extends": "test_squad",

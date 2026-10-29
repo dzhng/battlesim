@@ -21,11 +21,30 @@ use world::WorldGeometry;
 #[allow(dead_code)]
 mod dense;
 
+/// The dense reference planner's own speed rules: forest and swamp at 0.4,
+/// full roads, and speed gone by 50° of slope but never below 0.35.
+const SPEED_FACTORS: contract::movement::SpeedFactors = contract::movement::SpeedFactors {
+    surfaces: contract::movement::SurfaceSpeedFactors {
+        road: 1.0,
+        country_road: 1.0,
+        dirt_track: 1.0,
+        paving: 0.0,
+    },
+    forest: 0.4,
+    swamp: 0.4,
+    crater: 1.0,
+    slope: contract::movement::SlopeSpeed {
+        zero_speed_deg: 50.0,
+        min_speed_factor: 0.35,
+    },
+};
+
 fn mobility(class: MoverClass, push: PushClass) -> Mobility {
     Mobility {
         off_road_mps: 6.0,
         road_mps: 12.0,
-        forest_multiplier: 0.4,
+        locomotion: contract::movement::Locomotion::Tracked,
+        speed_factors: SPEED_FACTORS,
         half_width_m: if class == MoverClass::Infantry {
             0.5
         } else {
@@ -36,18 +55,6 @@ fn mobility(class: MoverClass, push: PushClass) -> Mobility {
         drive: None,
     }
 }
-fn old_mobility(m: &Mobility) -> dense::Mobility {
-    dense::Mobility {
-        off_road_mps: m.off_road_mps,
-        road_mps: m.road_mps,
-        forest_multiplier: m.forest_multiplier,
-        half_width_m: m.half_width_m,
-        class: m.class,
-        push: m.push,
-        drive: None,
-    }
-}
-
 /// One map: the planner's grid and roads beside the dense grid.
 struct Pair {
     new: NavGrid,
@@ -138,7 +145,6 @@ impl Report {
         policy: RoutePolicy,
         avoid: &[Obb2],
     ) {
-        let om = old_mobility(m);
         let leg = Leg {
             from,
             goal: to,
@@ -147,7 +153,7 @@ impl Report {
             avoid,
         };
         let (new, _) = sim::navigation::plan(&pair.new, &pair.roads, leg, &self.rules);
-        let old = pair.old.plan_avoiding(from, to, &om, policy, avoid);
+        let old = pair.old.plan_avoiding(from, to, m, policy, avoid);
         self.cases += 1;
         let what = format!("{from:?} to {to:?} {m:?} {policy:?}");
         match (new, old) {
@@ -161,12 +167,12 @@ impl Report {
                 // (A leg that starts where its mover does not fit has no
                 // route that fits from there, by either planner.)
                 assert!(
-                    pair.old.route_fits(from, &new, &om) || !pair.old.route_fits(from, &old, &om),
+                    pair.old.route_fits(from, &new, m) || !pair.old.route_fits(from, &old, m),
                     "the route fits the dense grid: {what}"
                 );
                 let cost = |route: &[V2]| match policy {
                     RoutePolicy::Shortest => length(from, route),
-                    RoutePolicy::Fastest => pair.old.route_time(from, route, &om),
+                    RoutePolicy::Fastest => pair.old.route_time(from, route, m),
                 };
                 let (ours, theirs) = (cost(&new), cost(&old));
                 if theirs > 0.0 && ours.is_finite() {
@@ -217,7 +223,6 @@ fn main() {
         for class in [MoverClass::Infantry, MoverClass::Vehicle] {
             for push in PushClass::ALL {
                 let m = mobility(class, push);
-                let om = old_mobility(&m);
                 for x in [2.0, 2.25, 15.0, 31.5, 61.0] {
                     for y in [2.0, 16.25, 23.0, 45.0] {
                         let from = v2(x, y);
@@ -225,7 +230,7 @@ fn main() {
                         // off the middle of its cell; it never finds room
                         // the dense grid does not.
                         assert!(
-                            !pair.new.fits_at(from, &m) || pair.old.fits_at(from, &om),
+                            !pair.new.fits_at(from, &m) || pair.old.fits_at(from, &m),
                             "fit {extra} {m:?} {from:?}"
                         );
                         for to in [v2(3.0, 3.0), v2(59.25, 13.0), v2(60.0, 44.0)] {

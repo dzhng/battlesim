@@ -50,12 +50,8 @@ pub struct WeaponDefinition {
     pub ammo: AmmoCapacity,
     pub penetration: f64,
     /// How gently its damage fades as its penetration falls short of the
-    /// armour: the share of the armour it must reach to do any damage. A row
-    /// with a blast authors its own (its blast and fragments shake a hull far
-    /// beyond what it can pierce); one without may leave it to the rules'
-    /// `penetration.partial_from`, where a kinetic round cuts off.
-    #[serde(default)]
-    pub partial_from: Option<f64>,
+    /// armour: the share of the armour it must reach to do any damage.
+    pub partial_from: f64,
     pub damage: f64,
     pub near_miss_suppression: f64,
     pub blast_radius_m: f64,
@@ -118,19 +114,17 @@ pub enum SeekerSupport {
     Optical,
 }
 
-/// How a weapon fires at one altitude layer. Each value it leaves out is
-/// the row's own. Only what changes with the target's height lives here:
-/// the gun, its magazine and its round are the same whatever it aims at.
+/// How a weapon fires at one altitude layer. Reach and spread are explicit;
+/// only what changes with the target's height lives here: the gun, its
+/// magazine and its round are the same whatever it aims at.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LayerFire {
     /// Its reach at this layer; never past the row's `range_m`, whose flight
-    /// the rules admitted.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub range_m: Option<f64>,
+    /// the rules admitted. An unpowered bomb authors zero.
+    pub range_m: f64,
     /// Its spread at this layer, milliradians.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub scatter_mrad: Option<f64>,
+    pub scatter_mrad: f64,
     /// The kinds of target it engages at this layer: `infantry` and
     /// `vehicle` on the ground, `air_rotor` and `air_fixed_wing` in the air,
     /// and `missile` in any layer, an interceptable round fired from it.
@@ -179,8 +173,8 @@ impl WeaponDefinition {
     /// bear there. The one place `targets` is read.
     pub fn against(&self, layer: crate::catalog::AltitudeLayer) -> Option<Fire> {
         self.targets.get(&layer).map(|fire| Fire {
-            range_m: fire.range_m.unwrap_or(self.ballistics.range_m),
-            scatter_mrad: fire.scatter_mrad.unwrap_or(self.ballistics.scatter_mrad),
+            range_m: fire.range_m,
+            scatter_mrad: fire.scatter_mrad,
         })
     }
 
@@ -414,12 +408,7 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                             "a row listing `missile` authors the proximity_fuse_m that destroys a round",
                         ));
                     }
-                    if def.blast_radius_m > 0.0 && def.partial_from.is_none() {
-                        return Err(serde::de::Error::custom(
-                            "a row with a blast authors its own partial_from",
-                        ));
-                    }
-                    if def.partial_from.is_some_and(|p| !(0.0..1.0).contains(&p)) {
+                    if !(0.0..1.0).contains(&def.partial_from) {
                         return Err(serde::de::Error::custom("partial_from must lie in [0, 1)"));
                     }
                     if !unpowered && def.min_range_m > def.ballistics.range_m {
@@ -442,21 +431,19 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                                 )));
                             }
                         }
-                        if unpowered && fire.range_m.is_some() {
+                        if unpowered && fire.range_m != 0.0 {
                             return Err(serde::de::Error::custom(format!(
-                                "targets.{layer}.range_m: an unpowered row has no reach to author"
+                                "targets.{layer}.range_m must be zero for an unpowered row"
                             )));
                         }
                         if !unpowered
-                            && fire.range_m.is_some_and(|r| {
-                                !(r > 0.0 && r <= def.ballistics.range_m)
-                            })
+                            && !(fire.range_m > 0.0 && fire.range_m <= def.ballistics.range_m)
                         {
                             return Err(serde::de::Error::custom(format!(
                                 "targets.{layer}.range_m must be positive and not exceed range_m"
                             )));
                         }
-                        if fire.scatter_mrad.is_some_and(|s| !(s.is_finite() && s >= 0.0)) {
+                        if !fire.scatter_mrad.is_finite() || fire.scatter_mrad < 0.0 {
                             return Err(serde::de::Error::custom(format!(
                                 "targets.{layer}.scatter_mrad must be finite and nonnegative"
                             )));

@@ -844,8 +844,7 @@ fn a_holding_squad_rearranges_against_a_new_enemy_on_nearly_the_same_bearing() {
         ]),
         &[(450, 2, [112.0, 160.0])],
     );
-    let rifle = &mut setup.rules.weapons.get_mut("rifle").unwrap().ballistics;
-    (rifle.range_m, rifle.scatter_mrad) = (90.0, 60.0);
+    common::ground_reach_spread(setup.rules.weapons.get_mut("rifle").unwrap(), 90.0, 60.0);
     let mut b = Battle::new(&setup, 1);
     let hz = b.rules().tick_hz as u64;
     for _ in 0..10 * hz {
@@ -922,8 +921,7 @@ fn a_holding_squad_rearranges_as_the_same_enemy_walks_into_and_out_of_its_reach(
         ]),
         &[(300, 1, [100.0, 170.0]), (1500, 1, [100.0, 230.0])],
     );
-    let rifle = &mut setup.rules.weapons.get_mut("rifle").unwrap().ballistics;
-    (rifle.range_m, rifle.scatter_mrad) = (reach, 60.0);
+    common::ground_reach_spread(setup.rules.weapons.get_mut("rifle").unwrap(), reach, 60.0);
     let mut b = Battle::new(&setup, 1);
     let hz = b.rules().tick_hz as u64;
     for _ in 0..10 * hz {
@@ -967,8 +965,7 @@ fn an_unreachable_enemy_does_not_amplify_holding_work() {
             ]),
             &[],
         );
-        let rifle = &mut setup.rules.weapons.get_mut("rifle").unwrap().ballistics;
-        (rifle.range_m, rifle.scatter_mrad) = (90.0, 60.0);
+        common::ground_reach_spread(setup.rules.weapons.get_mut("rifle").unwrap(), 90.0, 60.0);
         let mut b = Battle::new(&setup, 1);
         let mut peak = 0;
         for _ in 0..60 {

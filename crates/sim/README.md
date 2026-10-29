@@ -11,7 +11,9 @@ and units belong to [contract](../contract/README.md), with WebAssembly exposed 
 Battle state belongs in [the digest](src/digest.rs). Equal digests mean equal
 battles; replays must reproduce outcomes as well as presentation evidence. Seeded
 choices use explicit integer widths before converting to platform-sized indices,
-so native and WebAssembly make the same decisions. An
+so native and WebAssembly make the same decisions. Every transcendental function
+under `crates/` is `libm`'s, never the standard library's, for the same reason;
+[the clippy configuration](../clippy.toml) refuses the others in library code. An
 optimization that changes a digest has changed behavior, even if a picture looks
 the same. Seeded randomness and iteration order are part of that contract. A body
 still where the map authored it is held by one digest of the authored props, taken
@@ -36,6 +38,32 @@ contain; the renderer and audio engine do not grant visibility or reveal identit
 claimed lean. An individual infantry mount may declare a bore offset; both its
 pivot and muzzle turn with the operator bearing. Known enemy threat assessment
 uses the observed center and declared offset, never a hidden operator position.
+
+## Sensing
+
+[Optical sensing](src/sensing.rs) identifies visibility samples through clear
+lines of sight and foliage. A sample's target concealment is **ground × unit ×
+moving**: ground takes the stronger of forest and garrison shelter, the unit
+supplies its own concealment even in the open, and an in-progress move applies
+the authored movement multiplier. Airborne units bypass all three factors.
+
+Spotting adjusts that product, capped at full directional sight. At or above
+one it multiplies the product, so good eyes can cancel concealment completely;
+below one it raises the capped product to the reciprocal power, deepening
+concealment without changing an unconcealed target. Geometry and foliage still
+limit identification. The published **HIDDEN** flag instead describes the
+target's situation: enough visibility samples must have both concealing ground
+and net target concealment below one. Known exposure to a visible enemy's eyes
+or an attacker also clears the publication's flag. A sniper can be hard to
+identify in the open without being HIDDEN; movement can cost a vehicle HIDDEN
+in forest.
+
+Sight into ground, low air and high air is authored independently on each unit.
+[Sensors](../contract/src/catalog/sensors.rs) owns the band lookup; zero air reach
+means blind. Radar emission is an independent signature read by receivers and
+anti-radiation weapons, with no sight override or body-based range table.
+
+## Battle rules
 
 Rules follow physical components, with the game's [first-principles policy](../../development.md#game-rules)
 explaining where deliberate cinematic exceptions belong.
@@ -153,13 +181,6 @@ read off the layer: rotors hover (`movement::air`); wings never stop, attack
 in passes, dogfight only another winged aircraft in their own layer, and arrive and leave by the
 back edge, since they can't land at the base (`air`). Loading refuses a pair
 no flight law flies yet.
-
-How far a unit sees into high air (`UnitType::high_air_sight_m`, read by
-`sight::of_layer`) is an emitting radar's reach; else its own
-`sensors.high_air_m`, where 0 is blind (a closed-up tank); else what it sees
-unaided, by body and flight, from the rules' `sensors.unaided_high_air_m`:
-soldiers on foot and aircrew look up, a ground vehicle's crew sees a jet only
-nearly overhead. It never falls back to ground sight. Low air still does.
 
 Where a mechanic depends on how big or how extreme a unit can be, the extreme
 is data: the rules' `hull_limits` bound every hull a battle may field, loading
