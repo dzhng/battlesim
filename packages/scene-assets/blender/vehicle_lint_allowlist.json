@@ -160,6 +160,122 @@
     {
       "part_pattern": "door_window*",
       "reason": "Door windows may be recessed or have frame gaps"
+    },
+    {
+      "part_pattern": "station_*",
+      "reason": "Remote weapon station components have traverse/elevation clearance"
+    },
+    {
+      "part_pattern": "protector_*",
+      "reason": "Protector RCWS components have articulation clearance"
+    },
+    {
+      "part_pattern": "*_ammo",
+      "reason": "Ammunition boxes on weapon stations have access clearance"
+    },
+    {
+      "part_pattern": "*_cradle*",
+      "reason": "Weapon cradles have traverse clearance"
+    },
+    {
+      "part_pattern": "warning_sensor*",
+      "reason": "LWR/RWR sensor heads on thin mounts"
+    },
+    {
+      "part_pattern": "antenna_spine*",
+      "reason": "Antenna spine fairings on thin airframe mounts"
+    },
+    {
+      "part_pattern": "rear_underrun*",
+      "reason": "Rear underrun bars mounted with clearance"
+    },
+    {
+      "part_pattern": "*_sleeve",
+      "reason": "Gun sleeves have elevation clearance in mantlet"
+    },
+    {
+      "part_pattern": "plate",
+      "reason": "Armor plates may have intentional standoff"
+    },
+    {
+      "part_pattern": "clamshell_seam*",
+      "reason": "Clamshell door seams have articulation clearance"
+    },
+    {
+      "part_pattern": "*_step",
+      "reason": "Access steps mounted on brackets"
+    },
+    {
+      "part_pattern": "*_bumper",
+      "reason": "Bumpers mounted with shock absorption clearance"
+    },
+    {
+      "part_pattern": "intake_stack",
+      "reason": "Air intake stacks on thin mounts"
+    },
+    {
+      "part_pattern": "*_exhaust*",
+      "reason": "Exhaust components have heat/clearance margins"
+    },
+    {
+      "part_pattern": "*_door_glass*",
+      "reason": "Door glass panels recessed in frames"
+    },
+    {
+      "part_pattern": "minigun_*",
+      "reason": "External miniguns on pylons have traverse clearance"
+    },
+    {
+      "part_pattern": "bore_evacuator",
+      "reason": "Bore evacuator sleeve has clearance around barrel"
+    },
+    {
+      "part_pattern": "m2_ammo*",
+      "reason": "M2 ammo boxes have access clearance"
+    },
+    {
+      "part_pattern": "*_deck",
+      "reason": "Deck plates may have structural clearance"
+    },
+    {
+      "part_pattern": "*_bracket*",
+      "reason": "Mounting brackets have structural clearance"
+    },
+    {
+      "part_pattern": "*_strut*",
+      "reason": "Structural struts mounted with clearance"
+    },
+    {
+      "part_pattern": "muzzle_reference",
+      "reason": "Muzzle reference sensor on thin mount"
+    },
+    {
+      "part_pattern": "*_window",
+      "reason": "Windows/optics may be recessed or on mounts"
+    },
+    {
+      "part_pattern": "antenna_roof",
+      "reason": "Roof antennas on thin mounts"
+    },
+    {
+      "part_pattern": "battery_box",
+      "reason": "Battery boxes mounted with ventilation clearance"
+    },
+    {
+      "part_pattern": "exhaust_guard",
+      "reason": "Exhaust guards mounted with heat clearance"
+    },
+    {
+      "part_pattern": "chassis_rail_*",
+      "reason": "Chassis rails at 2.5cm are within structural tolerance"
+    },
+    {
+      "part_pattern": "rear_step_*",
+      "reason": "Rear steps mounted with small gaps for access"
+    },
+    {
+      "part_pattern": "front_plate",
+      "reason": "Front armor plate may have intentional standoff"
     }
   ]
 }
