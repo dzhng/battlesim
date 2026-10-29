@@ -1,2 +1,10 @@
 {
+  "_comment": "Allowlist for intentional geometry gaps. Each entry explains why the gap is acceptable.",
+  "_categories": {
+    "wheel_hub": "Hub caps and center discs stand proud of wheel rim by design",
+    "pylon_sway": "Weapon sway braces need clearance from pylon body",
+    "suspension_clearance": "Suspension arms and springs need movement clearance",
+    "door_handle": "Handles stand off from door surface to allow grip",
+    "gear_clearance": "Landing gear components need articulation clearance"
+  }
 }
