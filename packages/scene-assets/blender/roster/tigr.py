@@ -111,8 +111,10 @@ def body(v):
             VP.weld_line(f"door_seam_{s}_{k}", [(front, y, SILL + 0.15), (front, y, ROOF - 0.12),
                                                 (rear, y, ROOF - 0.12), (rear, y, SILL + 0.15)], m, hull,
                          radius=0.012)
-            box(f"door_handle_{s}_{k}", (0.14, 0.04, 0.05), (rear + 0.15, y + side * 0.02, 1.25), m["steel"], hull,
+            box(f"door_handle_{s}_{k}", (0.14, 0.04, 0.05), (rear + 0.15, y, 1.25), m["steel"], hull,
                 lods=FINE)
+            box(f"door_handle_mount_{s}_{k}", (0.05, 0.05, 0.10), (rear + 0.15, y - side * 0.02, 1.25),
+                m["steel"], hull, lods=FINE)
         mirror = empty(f"dressing_mirror_{s}", parent=hull)
         box(f"mirror_arm_{s}", (0.04, 0.20, 0.03), (1.20, side * 1.12, 1.55), m["dark"], mirror, lods=NEAR)
         box(f"mirror_{s}", (0.05, 0.12, 0.26), (1.20, side * 1.18, 1.62), m["black"], mirror, bevel=0.01, lods=MID)
@@ -128,7 +130,10 @@ def body(v):
     spare = empty("dressing_spare_wheel", parent=hull)
     cyl("spare_tyre", WHEEL_R * 0.97, 0.30, (-half - 0.14, 0.35, 1.10), "X", m["rubber"], spare, seg=28)
     cyl("spare_rim", 0.26, 0.06, (-half - 0.26, 0.35, 1.10), "X", m["dark"], spare, seg=18, lods=MID)
-    box("rear_bumper", (0.12, 1.90, 0.14), (-half + 0.04, 0, 0.55), m["black"], hull, bevel=0.012)
+    box("rear_bumper", (0.12, 1.90, 0.14), (-half + 0.08, 0, 0.55), m["black"], hull, bevel=0.012)
+    for side in (-1, 1):
+        box(f"rear_bumper_bracket_{side}", (0.12, 0.08, 0.18), (-half + 0.14, side * 0.80, SILL + 0.12),
+            m["black"], hull, lods=FINE)
 
 
 def kord(v, station, pitch, pivot):

@@ -739,6 +739,8 @@ def browning_m2(parent, reach, mats, receiver_x=0.06, grips=False, prefix="m2"):
     made += cyl(name=f"{prefix}_flash_hider", r=0.034, r2=0.026, depth=0.08, loc=(reach - 0.04, 0, 0), axis="X",
                 mat=mats["steel"], parent=parent, seg=10, lods=NEAR)
     if grips:
+        made += box(name=f"{prefix}_grip_yoke", size=(0.10, 0.16, 0.04),
+                    loc=(receiver_x - 0.26, 0, -0.04), mat=mats["dark"], parent=parent, lods=NEAR)
         for side in (-1, 1):
             made += cyl(name=f"{prefix}_grip_{side}", r=0.018, depth=0.12, loc=(receiver_x - 0.30, side * 0.07, -0.02),
                         mat=mats["black"], parent=parent, seg=8, lods=NEAR)

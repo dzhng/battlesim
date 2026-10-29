@@ -62,7 +62,9 @@ def build(variant, v):
         box(f"exhaust_{k}", (0.6, 0.22, 0.3), (-1.2, side * 0.86, 2.4), m["nozzle"], hull, rot=(0, 0, side * 0.6),
             lods=MID)
         A.store(f"atgm_{k}", "missile", (1.1, side * 2.0, 1.32), 1.7, 0.1, m, hull)
-    cyl("mast", 0.15, 0.9, (0.3, 0, 3.05), "Z", m["dark"], hull, seg=12)
+    A.body("mast_fairing", [(1.1, 0.0, 2.3, 2.3), (0.7, 0.35, 2.1, 2.65, 2.35), (-0.4, 0.35, 2.1, 2.6, 2.35),
+                            (-0.8, 0.0, 2.4, 2.4)], m["paint"], hull, seg=14)
+    cyl("mast", 0.15, 0.75, (0.3, 0, 3.12), "Z", m["dark"], hull, seg=12)
     A.rotor("main", (0.3, 0, 3.55), 6.5, 5, 0.46, m, hull, hub=0.38, mast=0.0, droop=0.025, phase=0.4)
     A.rotor("tail", (-6.65, -0.24, 3.0), 1.4, 4, 0.24, m, hull, hub=0.13, mast=0.0, droop=0.0,
             rot=(math.pi / 2, 0, 0), thick=0.12)

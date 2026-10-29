@@ -106,8 +106,9 @@ def cab(v):
             rot=(0, -rake, 0), lods=MID)
         # Seat: base on floor, back attached to base
         box(f"seat_base_{side}", (0.50, 0.50, 0.45), (3.65, side * 0.55, CAB_FLOOR + 0.23), m["dark"], hull, lods=NEAR)
-        box(f"seat_back_{side}", (0.12, 0.50, 0.60), (3.48, side * 0.55, 1.90), m["black"], hull, lods=NEAR)
+        box(f"seat_back_{side}", (0.12, 0.50, 0.60), (3.48, side * 0.55, 1.65), m["black"], hull, lods=NEAR)
     box("dash", (0.40, 2.00, 0.22), (4.40, 0, 1.92), m["black"], hull, lods=NEAR)
+    box("dash_support", (0.06, 1.90, 0.55), (4.40, 0, 1.62), m["black"], hull, lods=NEAR)
     for k in range(5):
         cyl(f"roof_marker_{k}", 0.03, 0.04, (NOSE - 0.72, -0.80 + k * 0.40, ROOF + 0.02), "Z", m["tail"], hull, seg=8,
             lods=FINE)

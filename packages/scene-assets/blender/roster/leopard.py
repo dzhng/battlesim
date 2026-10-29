@@ -213,9 +213,6 @@ def wedge(v, turret, side, s, a8):
         p = [(x, side * y) for x, y in pts]
         rings.append((z, p if side > 0 else p[::-1]))
     loft(f"wedge_{s}", rings, mat=m["paint"], parent=turret, bevel=0.045)
-    for k, (x, y) in enumerate(((1.95, 0.80), (1.55, 1.10), (1.40, 0.70))):
-        cyl(f"wedge_bolt_{s}_{k}", 0.028, 0.03, (x, side * y, 0.34 + 0.20), "Z", m["steel"], turret, seg=6,
-            lods=FINE)
     if a8:
         # The demonstrator's flat plate on the wedge's upper face.
         box(f"wedge_plate_{s}", (0.60, 0.42, 0.03), (1.30, side * 1.00, 0.62), m["paint"], turret, bevel=0.012,

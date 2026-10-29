@@ -298,12 +298,14 @@ def lettering(name, text, height, centre, normal, up, mats, parent, onto, colour
 
 def nav_lights(mats, parent, left, right, tail=None, r=0.05):
     """The navigation lights: red on the left (`left`), green on the right,
-    white at the tail."""
+    white at the tail. Each light has a small base to seat it on the skin."""
     for nm, loc, mat in (("left", left, "nav_red"), ("right", right, "nav_green"), ("tail", tail, "lamp")):
         if loc is not None:
             body(f"nav_light_{nm}", [(loc[0] + r, 0.0, loc[2], loc[2]), (loc[0], r, loc[2] - r * 0.8, loc[2] + r * 0.8),
                                      (loc[0] - r * 1.4, 0.0, loc[2], loc[2])], mats[mat], parent, seg=8,
                  loc=(0, loc[1], 0), lods=NEAR, steps=(1, 1, 1, 1))
+            box(f"nav_light_{nm}_base", (r * 2, r * 2.5, r * 0.8), (loc[0] - r * 0.3, loc[1], loc[2]),
+                mats["dark"], parent, lods=FINE)
 
 
 def line(name, a, b, mat, parent, width=0.025, height=0.012, lods=NEAR):
@@ -684,8 +686,11 @@ def gear(name, x, y, top, radius, width, mats, parent, wheels=1, spread=None, ta
         box(f"gear_{name}_bogie", (tandem + 0.1, 0.1, 0.1), (0, 0, -drop), mats["gear"], node, lods=MID)
     if door:
         side = 1 if y >= 0 else -1
-        box(f"gear_{name}_door", (door[0], 0.025, door[1]), (0, side * (width / 2 + 0.12), -door[1] / 2),
+        door_y = side * (width / 2 + 0.12)
+        box(f"gear_{name}_door", (door[0], 0.025, door[1]), (0, door_y, -door[1] / 2),
             mats["paint"], node, bevel=0.01, lods=MID)
+        box(f"gear_{name}_door_hinge", (door[0] * 0.8, 0.04, 0.05), (0, door_y - side * 0.02, -0.02),
+            mats["dark"], node, lods=FINE)
     return node
 
 
