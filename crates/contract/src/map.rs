@@ -108,6 +108,9 @@ pub struct MapDefinition<B = BuildingDefinition> {
     pub bridges: Vec<Bridge>,
     #[serde(default)]
     pub forests: Vec<Forest>,
+    /// Standing shallow water, each in the dip it carves.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub swamps: Vec<crate::swamp::Swamp>,
     #[serde(default)]
     pub props: Vec<AuthoredPropDefinition>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -168,6 +171,7 @@ impl<B> MapDefinition<B> {
             surfaces: self.surfaces,
             bridges: self.bridges,
             forests: self.forests,
+            swamps: self.swamps,
             props: self.props,
             buildings,
             template_catalog_hash: self.template_catalog_hash,
@@ -220,7 +224,7 @@ impl Relief {
             } => {
                 let dx = (rect[0] - x).max(x - (rect[0] + rect[2])).max(0.0);
                 let dy = (rect[1] - y).max(y - (rect[1] + rect[3])).max(0.0);
-                (height_m - libm::hypot(dx, dy) * side_degrees.to_radians().tan()).max(0.0)
+                (height_m - libm::hypot(dx, dy) * libm::tan(side_degrees.to_radians())).max(0.0)
             }
         }
     }
@@ -233,8 +237,8 @@ pub struct SurfaceArea {
     pub shape: GroundShape,
 }
 
-/// What a paved or worn surface is. Its speed is a row of the rules'
-/// `surfaces` table; where kinds overlap, the earlier one here wins. The
+/// What a paved or worn surface is. Its speed is a factor of each
+/// locomotion's in the rules' `movement.speed_factors`; where kinds overlap, the earlier one here wins. The
 /// carriageways come first; `Paving` is hard ground that is no way through
 /// (a yard, a court, a building's apron).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

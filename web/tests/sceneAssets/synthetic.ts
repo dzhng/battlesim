@@ -8,6 +8,7 @@ import { encodeGlb, type GltfJson } from "@packages/scene-assets/src/glb.ts";
 import { quat, type Mat4, type Quat, type Vec3 } from "math";
 import { inverse, mul, trsMatrix } from "@packages/scene-assets/src/trs.ts";
 import { readBundle } from "@packages/scene-assets/src/gzip.ts";
+import { hullType } from "./unitType.ts";
 import type {
   AppearanceEntry,
   Authority,
@@ -49,60 +50,14 @@ export const tankMounts = (reach = 3): MountRow[] => [
 /** The rigs the synthetic tank model draws its mounts with. */
 export const TANK_DRAWS: MountDraws = { cannon: "gun", HMG: "hmg" };
 
-const armor = { front: 1, side: 1, rear: 1, roof: 1 };
-/** A hull type, drawn by appearance `appearance`, with the vehicle class
- *  the catalog's view would give its physics (heavy hull). */
-const hullType = (
-  id: string,
-  appearance: string,
-  half: Vec3,
-  mobility: UnitType["mobility"],
-  vehicle_class: string | null,
-  rest: Partial<UnitType> = {},
-): UnitType => ({
-  id,
-  name: id,
-  description: "",
-  faction: "test",
-  family: "vehicles",
-  roles: ["test"],
-  cost: 1,
-  body: {
-    hull: {
-      half_extents_m: half,
-      eye_m: 2,
-      hp: 1,
-      armor: { ...armor, ricochet: armor },
-      weight_class: "heavy",
-      push_class: "heavy",
-      wreck: "heavy_wreck",
-    },
-  },
-  mobility,
-  vehicle_class,
-  sensors: { ground_m: 1, sight_shape: { front: 1, side: 1, rear: 1 } },
-  mounts: [],
-  capabilities: {},
-  sound: { profile: "vehicle", loudness_m: 1 },
-  appearance,
-  ...rest,
-});
-
 /** The synthetic unit catalog the test art is fitted to: a tank (drawn by
  *  "tank"), a supply truck ("truck") and a rifle squad of riflemen
  *  ("rifleman"), and a part `era` whose hardware is `era_*` nodes. `tank`
  *  overrides the tank type's fields. */
 export function syntheticUnits(tank: Partial<UnitType> = {}): UnitCatalog {
-  const tracked = { tracked: { offroad_kmh: 1, road_kmh: 1, turn_deg_s: 1, reverse_fraction: 1 } };
-  const wheeled = {
-    wheeled: {
-      offroad_kmh: 1,
-      road_kmh: 1,
-      turn_deg_s: 1,
-      turning_radius_m: 1,
-      reverse_fraction: 1,
-    },
-  };
+  const drive = { offroad_kmh: 1, road_kmh: 1, turn_deg_s: 1, reverse_speed_factor: 1 };
+  const tracked = { tracked: drive };
+  const wheeled = { wheeled: { ...drive, turning_radius_m: 1 } };
   return new UnitCatalog({
     documents: [],
     cards: [],
@@ -120,7 +75,7 @@ export function syntheticUnits(tank: Partial<UnitType> = {}): UnitCatalog {
         ...tank,
       }),
       hullType("supply", "truck", [3, 1.4, 1.8], wheeled, "wheeled_heavy", {
-        capabilities: { deploy: { seconds: 1 } },
+        capabilities: { deploy: { seconds: 1, pack_seconds: 1 } },
       }),
       {
         ...hullType("rifle", "", [0, 0, 0], { foot: { offroad_kmh: 4, road_kmh: 4 } }, null),
@@ -442,7 +397,6 @@ export interface SoldierOptions {
   noNormals?: boolean;
   stretch?: boolean; // nonuniform node scale
   clips?: string[]; // animations to include
-  noLods?: boolean;
   animated?: boolean; // include animations at all (default true)
   tint?: number; // the side-tint mask weight of its material (extras.tint)
 }
@@ -471,8 +425,7 @@ export function soldierGlb(o: SoldierOptions = {}): Uint8Array {
   // Boxes per tier, 12 triangles each: 4, 3, 2, 1. The body is in every
   // tier, the rifle in the finest three, the pack in the finest two and the
   // pouch in the finest alone.
-  const lods = o.noLods ? [""] : LODS;
-  const rifle = tieredPart(g, "rifle", rifleMesh, 3, lods, [muzzle]);
+  const rifle = tieredPart(g, "rifle", rifleMesh, 3, LODS, [muzzle]);
   const hand = g.node({ name: "hand_r", t: [-0.2 * k, 0.2 * k, 0.1 * k], children: [leaf, rifle] });
   const extra = o.extraJoint ? g.node({ name: "pouch_joint", t: [0.1 * k, 0, 0] }) : -1;
   const spine = g.node({
@@ -502,7 +455,7 @@ export function soldierGlb(o: SoldierOptions = {}): Uint8Array {
     ];
   };
   const bodyNodes: number[] = [];
-  lods.forEach((suffix, tier) => {
+  LODS.forEach((suffix, tier) => {
     const extraAttrs: GltfJson = {};
     if (o.fiveWeights) {
       extraAttrs.JOINTS_1 = g.accessor(new Uint16Array(24 * 4), "VEC4");
@@ -511,14 +464,14 @@ export function soldierGlb(o: SoldierOptions = {}): Uint8Array {
     const mesh = g.box([-0.2, lift, -0.15], [0.2, top + lift, 0.15], influence, extraAttrs);
     if (o.noNormals) delete g.json.meshes[mesh].primitives[0].attributes.NORMAL;
     bodyNodes.push(g.node({ name: `body${suffix}`, mesh, skin }));
-    if (tier < 2 && !o.noLods) {
+    if (tier < 2) {
       const pack = g.box([-0.15, 1.0 + lift, -0.3], [0.15, 1.4 + lift, -0.15], () => [
         [slot(spine), 0, 0, 0],
         [1, 0, 0, 0],
       ]);
       bodyNodes.push(g.node({ name: `pack${suffix}`, mesh: pack, skin }));
     }
-    if (tier === 0 && !o.noLods) {
+    if (tier === 0) {
       const pouch = g.box([-0.1, 0.85 + lift, 0.15], [0.1, 1.0 + lift, 0.2], () => [
         [slot(pelvis), 0, 0, 0],
         [1, 0, 0, 0],
@@ -587,13 +540,13 @@ export const gBox = (b: GltfBuilder, min: Vec3, max: Vec3) => {
 };
 
 /** Mesh tier suffixes, finest first; `UNSUFFIXED` names a mesh no tier owns. */
-export const LODS = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"];
+const LODS = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"];
 const UNSUFFIXED = [""];
 
 /** One part drawn in its finest `tiers` tiers: a `<name>_LOD0` node with
  *  the coarser tiers' nodes (the same mesh) under it. With `UNSUFFIXED`
  *  suffixes, one node named `name`. */
-export function tieredPart(
+function tieredPart(
   b: GltfBuilder,
   name: string,
   mesh: number,

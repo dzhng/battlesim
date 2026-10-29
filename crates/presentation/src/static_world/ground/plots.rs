@@ -7,8 +7,10 @@
 //! edge, where the verge grows, as sharp up close as from afar.
 use super::biome::{Biome, FieldRules, PLOT_HUE_JITTER};
 use super::shapes::{centroid, segments_cross, signed_area};
+use super::water::StandingWater;
 use super::{chunks, is_road, Source, RUN, SURFACE_BOUNDARY, SURFACE_STROKE, SURFACE_TRIANGLE};
 use crate::seed::Mulberry32;
+use sim::world::export::SWAMP_STRIDE as SWAMP;
 use std::collections::HashMap;
 use std::f64::consts::PI;
 
@@ -166,6 +168,8 @@ struct Split<'a> {
     rules: &'a FieldRules,
     biome: &'a Biome,
     source: &'a Source,
+    /// Where the ground stands flooded, so no crop is drilled there.
+    water: StandingWater<'a>,
     rng: Mulberry32,
     /// The guides fields are cut along, `ax, ay, bx, by` each, and which
     /// of them are the rivers'.
@@ -241,8 +245,14 @@ impl Split<'_> {
     }
 
     /// The ground round a building is the settlement's own, and the land
-    /// round that its surround, where no crop is drilled.
+    /// round that its surround, where no crop is drilled; a swamp floods the
+    /// ground its look names.
     fn pick_kind(&mut self, centre: [f64; 2]) -> usize {
+        if let Some(ground) = self.water.flooded(centre[0], centre[1]) {
+            if let Some(p) = self.biome.plots.iter().position(|p| p.name == ground) {
+                return p;
+            }
+        }
         if self.near_building(centre, libm::pow(self.rules.yard_m, 2.0), true) {
             return self.out.settlement;
         }
@@ -425,8 +435,17 @@ pub fn plots(s: &Source, strip_runs: &[f32], biome: &Biome) -> Result<Plots, Str
     let [mx0, my0, mx1, my1] = s.map;
     let e = rules.extent_m;
     let region = s.rendered.unwrap_or([mx0 - e, my0 - e, mx1 + e, my1 + e]);
-    // The guides: the roads' runs, the rivers', the roads' boundary, the strips.
+    // The guides: the roads' runs, the standing water's (the rivers' runs,
+    // the swamps' outlines), the roads' boundary, the strips.
+    let swamp_edges = s
+        .swamps
+        .as_chunks::<SWAMP>()
+        .0
+        .iter()
+        .flat_map(|e| e[..RUN].to_vec());
     let mut roads: Vec<f32> = [&s.surface_runs[..], &s.river_runs[..]].concat();
+    roads.extend(swamp_edges);
+    let waters = (roads.len() - s.surface_runs.len()) / RUN;
     for b in chunks::<SURFACE_BOUNDARY>(&s.surface_boundaries)
         .iter()
         .filter(|b| is_road(b[4]))
@@ -441,7 +460,7 @@ pub fn plots(s: &Source, strip_runs: &[f32], biome: &Biome) -> Result<Plots, Str
             .position(|p| p.name == name)
             .ok_or(format!("no plot kind {name}"))
     };
-    let rivers = s.surface_runs.len() / RUN..(s.surface_runs.len() + s.river_runs.len()) / RUN;
+    let rivers = s.surface_runs.len() / RUN..s.surface_runs.len() / RUN + waters;
     let out = Plots {
         region,
         nodes: vec![],
@@ -457,6 +476,7 @@ pub fn plots(s: &Source, strip_runs: &[f32], biome: &Biome) -> Result<Plots, Str
         rules,
         biome,
         source: s,
+        water: StandingWater::new(&s.rivers, &s.swamps, &[], &s.grid, biome),
         rng,
         roads,
         rivers,
@@ -620,6 +640,7 @@ mod tests {
     fn a_rivers_authored_run_guides_field_boundaries_as_a_roads_does() {
         let river = split(&Source {
             river_runs: vec![0.0, 50.0, 100.0, 50.0],
+            swamps: vec![],
             ..empty()
         });
         assert_ne!(at(&river, 50.0, 30.0).0, at(&river, 50.0, 70.0).0);

@@ -1625,8 +1625,8 @@ mod tests {
         ] {
             // A road comes east to (400, 400); a shorter track leaves it
             // there, turning `turn` degrees to the left. Nothing crosses
-            // either: there is nowhere for the road to narrow unseen.
-            let leaving = [turn.to_radians().cos(), turn.to_radians().sin()];
+            // either, so the road can't narrow unseen.
+            let leaving = [libm::cos(turn.to_radians()), libm::sin(turn.to_radians())];
             let far = round_cm(add([400.0, 400.0], scale(leaving, 150.0)));
             let closed = close(
                 &policy(),
@@ -1773,8 +1773,8 @@ mod tests {
         // The outside of the bend is round: track for its half width out
         // from the point, away from both arms, and nothing a metre farther.
         let outward = [
-            -(15.0_f64.to_radians().cos()),
-            -(15.0_f64.to_radians().sin()),
+            -libm::cos(15f64.to_radians()),
+            -libm::sin(15f64.to_radians()),
         ];
         let outside = |reach: f64| add([400.0, 400.0], scale(outward, reach));
         assert!(closed[0].shape.contains(outside(1.9), 0.0));

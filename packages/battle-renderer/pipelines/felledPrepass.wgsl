@@ -11,6 +11,13 @@ fn placedNormal(normal: vec3f, shape: vec4f, yaw: f32) -> vec3f {
   return normalize(vec3f(((nx * c) - (ny * s)), ((nx * s) + (ny * c)), (normal.z / shape.z)));
 }
 
+struct Wind {
+  toward: vec3f,
+  driftMps: f32,
+  gustMps: f32,
+  gustPerM: f32,
+}
+
 struct Camera {
   viewProj: mat4x4f,
   invViewProj: mat4x4f,
@@ -19,6 +26,8 @@ struct Camera {
   width: f32,
   height: f32,
   time: f32,
+  wind: array<Wind, 1>,
+  waves: vec4f,
 }
 
 @group(0) @binding(0) var<uniform> cam: Camera;

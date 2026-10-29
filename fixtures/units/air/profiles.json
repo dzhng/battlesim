@@ -27,17 +27,20 @@
           "cruise_kmh": 180,
           "turn_deg_s": 100,
           "climb_mps": 9,
-          "flight": "rotor"
+          "layer": "low_air", "flight": "rotor"
         }
       },
       "sensors": {
         "ground_m": 700,
+        "low_air_m": 700,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 0.6,
           "rear": 0.3
         }
       },
+      "concealment": 2.8,
       "sound": {
         "profile": "vehicle",
         "loudness_m": 800
@@ -76,17 +79,20 @@
           "cruise_kmh": 220,
           "turn_deg_s": 70,
           "climb_mps": 7,
-          "flight": "rotor"
+          "layer": "low_air", "flight": "rotor"
         }
       },
       "sensors": {
         "ground_m": 700,
+        "low_air_m": 700,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 0.6,
           "rear": 0.3
         }
       },
+      "concealment": 2.8,
       "sound": {
         "profile": "vehicle",
         "loudness_m": 900
@@ -125,17 +131,20 @@
           "cruise_kmh": 230,
           "turn_deg_s": 50,
           "climb_mps": 6,
-          "flight": "rotor"
+          "layer": "low_air", "flight": "rotor"
         }
       },
       "sensors": {
         "ground_m": 700,
+        "low_air_m": 700,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 0.6,
           "rear": 0.3
         }
       },
+      "concealment": 2.8,
       "sound": {
         "profile": "vehicle",
         "loudness_m": 1000
@@ -174,17 +183,20 @@
           "cruise_kmh": 240,
           "turn_deg_s": 80,
           "climb_mps": 8,
-          "flight": "rotor"
+          "layer": "low_air", "flight": "rotor"
         }
       },
       "sensors": {
         "ground_m": 900,
+        "low_air_m": 900,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 0.6,
           "rear": 0.3
         }
       },
+      "concealment": 2.8,
       "sound": {
         "profile": "vehicle",
         "loudness_m": 900
@@ -223,17 +235,20 @@
           "cruise_kmh": 220,
           "turn_deg_s": 70,
           "climb_mps": 7,
-          "flight": "rotor"
+          "layer": "low_air", "flight": "rotor"
         }
       },
       "sensors": {
         "ground_m": 850,
+        "low_air_m": 850,
+        "high_air_m": 600,
         "sight_shape": {
           "front": 1,
           "side": 0.6,
           "rear": 0.3
         }
       },
+      "concealment": 2.8,
       "sound": {
         "profile": "vehicle",
         "loudness_m": 900

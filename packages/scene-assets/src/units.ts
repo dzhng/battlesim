@@ -35,7 +35,7 @@ export type Mobility =
         offroad_kmh: number;
         road_kmh: number;
         turn_deg_s: number;
-        reverse_fraction: number;
+        reverse_speed_factor: number;
       };
     }
   | {
@@ -44,7 +44,7 @@ export type Mobility =
         road_kmh: number;
         turn_deg_s: number;
         turning_radius_m: number;
-        reverse_fraction: number;
+        reverse_speed_factor: number;
       };
     }
   | {
@@ -71,30 +71,6 @@ export const airborne = (type: Pick<UnitType, "mobility">): boolean => "air" in 
  *  beneath it. */
 export const highAir = (type: Pick<UnitType, "mobility">): boolean =>
   "air" in type.mobility && type.mobility.air.layer === "high_air";
-
-/** What a type without radar or its own high-air sight sees of the
- *  high-air layer, by body and flight: the rules' `sensors.unaided_high_air_m`. */
-export interface UnaidedHighAirSight {
-  on_foot: number;
-  aircraft: number;
-  ground_vehicle: number;
-}
-
-/** How far a type sees the high-air layer: an emitting radar's reach, else
- *  its own high-air sight (0 is blind), else what it sees unaided (the
- *  simulation's `UnitType::high_air_sight_m`). */
-export const highAirSight = (
-  type: Pick<UnitType, "sensors" | "capabilities" | "body" | "mobility">,
-  unaided: UnaidedHighAirSight,
-): number =>
-  type.capabilities.radar?.emits
-    ? type.capabilities.radar.detection_m
-    : (type.sensors.high_air_m ??
-      ("squad" in type.body
-        ? unaided.on_foot
-        : airborne(type)
-          ? unaided.aircraft
-          : unaided.ground_vehicle));
 
 /** A type's altitude layer, as the simulation names it. */
 export const layerOf = (type: Pick<UnitType, "mobility">): "ground" | "low_air" | "high_air" =>
@@ -129,8 +105,7 @@ export function airRole(
 }
 
 /** How far a type's weapons reach into each air layer, metres: the farthest
- *  of its rows' `targets.<layer>.range_m`, a row's own `range_m` where the
- *  layer doesn't say (`WeaponDefinition::against`), and 0 where none reaches. */
+ *  of its rows' explicit `targets.<layer>.range_m`, and 0 where none reaches. */
 export function airReach(
   type: Pick<UnitType, "mounts">,
   weapons: Record<string, WeaponRow>,
@@ -139,7 +114,7 @@ export function airReach(
   for (const w of type.mounts.flatMap((m) => m.weapons).map((id) => weapons[id]))
     for (const layer of ["low_air", "high_air"] as const) {
       const fire = w?.targets?.[layer];
-      if (fire) reach[layer] = Math.max(reach[layer], fire.range_m ?? w.range_m);
+      if (fire) reach[layer] = Math.max(reach[layer], fire.range_m);
     }
   return reach;
 }
@@ -205,11 +180,15 @@ export interface UnitType {
   cost: number;
   body: Body;
   mobility: Mobility;
+  /** Its own concealment, multiplying what its ground gives it. */
+  concealment: number;
   sensors: {
     ground_m: number;
-    low_air_m?: number;
-    high_air_m?: number;
+    low_air_m: number;
+    high_air_m: number;
     sight_shape: { front: number; side: number; rear: number };
+    /** Above 1 cancels a target's concealment, below 1 deepens it; omitted is 1. */
+    spotting?: number;
     on?: string;
   };
   mounts: MountRow[];
@@ -221,7 +200,7 @@ export interface UnitType {
   vehicle_class: string | null;
   capabilities: {
     carriage?: { seats: number };
-    deploy?: { seconds: number; pack_seconds?: number };
+    deploy?: { seconds: number; pack_seconds: number };
     supply?: { stock: number };
     active_protection?: {
       /** What the card's protection row reads, and its weapon icon. */
@@ -235,10 +214,10 @@ export interface UnitType {
     };
     air?: {
       fuel_capacity_s: number;
-      afterburner?: { speed_multiplier: number; fuel_multiplier: number };
+      afterburner?: { speed_factor: number; fuel_factor: number };
     };
     flares?: { capacity: number; reload_s: number };
-    radar?: { emits: boolean; detection_m: number };
+    radar_emitter?: boolean;
     /** It finds enemy radars that emit, within `range_m`. */
     radar_receiver?: { range_m: number };
   };
@@ -323,8 +302,10 @@ export interface WeaponRow {
   reload_s: number;
   ammo: number | "unlimited";
   penetration: number;
-  /** The layers it engages and how far at each; absent, the ground only. */
-  targets?: Partial<Record<"ground" | "low_air" | "high_air", { range_m?: number }>>;
+  /** Each layer it engages owns its range and launch spread. */
+  targets?: Partial<
+    Record<"ground" | "low_air" | "high_air", { range_m: number; scatter_mrad: number }>
+  >;
   [field: string]: unknown;
 }
 

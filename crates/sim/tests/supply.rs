@@ -14,13 +14,7 @@ fn battle(units: Value, seed: u64) -> Battle {
             .to_string();
     let mut setup = common::scenario_with(&map, units, json!([]), json!([]));
     // Service tests exercise a sustained fight, independently of range tuning.
-    setup
-        .rules
-        .weapons
-        .get_mut("rifle")
-        .unwrap()
-        .ballistics
-        .range_m = 450.0;
+    common::ground_reach(setup.rules.weapons.get_mut("rifle").unwrap(), 450.0);
     Battle::new(&setup, seed)
 }
 
@@ -302,13 +296,7 @@ fn incoming_fire_does_not_stop_service() {
     for seed in 1..=8 {
         let mut setup = common::scenario_with(&map, units.clone(), json!([]), json!([]));
         // Incoming fire is the control input; weapon balance is not under test.
-        setup
-            .rules
-            .weapons
-            .get_mut("tank_he")
-            .unwrap()
-            .ballistics
-            .range_m = 1500.0;
+        common::ground_reach(setup.rules.weapons.get_mut("tank_he").unwrap(), 1500.0);
         let mut b = Battle::new(&setup, seed);
         run(&mut b, deploy_ticks());
         let (mut under_fire, mut served_under_fire) = (false, false);

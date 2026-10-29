@@ -29,6 +29,8 @@ pub struct Sizes {
     pub effect_sheet: u32,
     /// A grass clump's stride in the clump buffer, in bytes.
     pub grass_clump: u64,
+    /// The levels of the world's copy the water refracts (`world::Water`).
+    pub scene_colour_mips: u32,
 }
 
 #[derive(Deserialize)]

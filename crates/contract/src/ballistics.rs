@@ -22,12 +22,12 @@ pub struct FlightRules {
     pub max_subsegments_per_tick: u32,
     /// Lifetime of an unguided round, and the bound on any authored one.
     pub max_unguided_lifetime_s: f64,
-    /// The accuracy ceiling: no unguided weapon's spread at its own
-    /// `range_m` (`scatter_mrad` × range, the one-axis standard deviation of
+    /// The accuracy ceiling: no powered, unguided layer's spread at its own
+    /// `range_m` (`scatter_mrad` × range × 1e-3, the one-axis standard deviation of
     /// where its rounds land about the aim point) is tighter than this, in
     /// metres. A long gun is no sniper at its limit, and every gun grows
     /// deadlier as the distance shrinks (Hollywood realism: close in for
-    /// the kill). A row may be less accurate; a guided row steers out its
+    /// the kill). A layer may be less accurate; a guided row steers out its
     /// spread and is exempt.
     pub min_spread_at_max_range_m: f64,
 }
@@ -35,6 +35,7 @@ pub struct FlightRules {
 /// What a guided missile does once its launcher stops supporting it (the
 /// fixture's `guided` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GuidedRules {
     /// A released missile flies straight on for this long, then goes to
     /// ground: its commanded point becomes where it would be after this many
@@ -76,9 +77,8 @@ pub struct WeaponBallistics {
     /// An unpowered air bomb omits this and resolves to zero.
     #[serde(default)]
     pub speed_mps: f64,
-    /// Farthest the weapon is fired; its spread there is held to at least
-    /// `physics.min_spread_at_max_range_m`. An unpowered air bomb omits this
-    /// and resolves to zero.
+    /// The flight bound no target layer's range may exceed. An unpowered
+    /// air bomb omits this and resolves to zero.
     #[serde(default)]
     pub range_m: f64,
     /// A rocket motor: the round speeds up along its heading at this rate
@@ -96,8 +96,6 @@ pub struct WeaponBallistics {
     /// drop over the same distance) in its own time.
     #[serde(default = "full_gravity")]
     pub gravity_scale: f64,
-    /// One-axis angular standard deviation of launch spread, milliradians.
-    pub scatter_mrad: f64,
     /// Path distance within which a passing round reports a near miss.
     pub suppression_radius_m: f64,
     /// Authored lifetime; unguided rounds without one use the physics bound.

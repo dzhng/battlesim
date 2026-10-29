@@ -42,24 +42,8 @@ export function editDraft(
   target: EditTarget,
   path: string[],
   value: Json,
-  entry: JsonObject,
 ): MechanicsDraft {
-  let next = replaceChange(draft, { ...target, path, value });
-  if (
-    target.section === "weapons" &&
-    samePath(path, ["range_m"]) &&
-    typeof value === "number" &&
-    value > 0 &&
-    typeof entry.range_m === "number" &&
-    typeof entry.scatter_mrad === "number"
-  ) {
-    next = replaceChange(next, {
-      ...target,
-      path: ["scatter_mrad"],
-      value: (entry.scatter_mrad * entry.range_m) / value,
-    });
-  }
-  return next;
+  return replaceChange(draft, { ...target, path, value });
 }
 
 export function restoreDraft(
@@ -70,34 +54,20 @@ export function restoreDraft(
   return replaceChange(draft, { ...target, path, restore: true });
 }
 
-/** Restoring or undoing range obeys the same landing-spread contract as editing it. */
+/** Restore or undo one authored field. */
 export function resetDraft(
   draft: MechanicsDraft,
   target: EditTarget,
   path: string[],
-  entry: JsonObject,
   snapshot: EditableSources,
 ): MechanicsDraft {
   const origin = fieldOrigin(snapshot, target, path);
   const restore = origin.canRestore || origin.inherited;
-  const original = resolvedEntries(snapshot.catalog, target.section)[target.id];
-  const value = restore ? origin.parentValue : valueAt(original, path);
-  let next = draft;
-  if (target.section === "weapons" && samePath(path, ["range_m"]) && typeof value === "number") {
-    next = editDraft(next, target, path, value, entry);
-    if (draftEntry(original, next, target).scatter_mrad === original.scatter_mrad)
-      next = {
-        ...next,
-        changes: next.changes.filter(
-          (c) => !sameTarget(c, target) || !samePath(c.path, ["scatter_mrad"]),
-        ),
-      };
-  }
   return restore
-    ? restoreDraft(next, target, path)
+    ? restoreDraft(draft, target, path)
     : {
-        ...next,
-        changes: next.changes.filter((c) => !sameTarget(c, target) || !prefix(path, c.path)),
+        ...draft,
+        changes: draft.changes.filter((c) => !sameTarget(c, target) || !prefix(path, c.path)),
       };
 }
 

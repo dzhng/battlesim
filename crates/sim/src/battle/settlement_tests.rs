@@ -6,6 +6,7 @@ use serde_json::json;
 #[test]
 fn hostile_collapse_uses_first_destructive_source_and_original_receipt() {
     let mut rules = crate::fixtures::with_map("sensors");
+    let map = rules.as_object_mut().unwrap().remove("map").unwrap();
     for kind in ["test_tank", "test_rifle"] {
         crate::fixtures::patch_catalog(
             &mut rules,
@@ -17,7 +18,7 @@ fn hostile_collapse_uses_first_destructive_source_and_original_receipt() {
     crate::fixtures::patch_catalog(&mut rules, "units", "test_rifle", json!({"cost":900}));
     rules["bail_out"]["building"]["death"] = json!(1.0);
     let setup: ScenarioDefinition = serde_json::from_value(json!({
-        "map":rules["map"],"rules":rules,"units":[
+        "map":map,"rules":rules,"units":[
             {"side":"blue","kind":"test_tank","position":[50,50]},
             {"side":"red","kind":"test_rifle","position":[700,550]}
         ]

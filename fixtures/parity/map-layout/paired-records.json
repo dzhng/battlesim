@@ -3,120 +3,120 @@
     {
       "name": "open medium",
       "command": "generate",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "adc9c3081c434abc9769173cbd83e6153ac5e0e38af7463dc31ca5bd1f1f6041",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "native_sha256": "c20af1d29b126e73ad4aa3e3332d05439296c2cb6fa305255aeb84aaa99058ee",
       "exit_code": 0
     },
     {
       "name": "mixed large, seed above the JavaScript integer range",
       "command": "generate",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"18446744073709551615\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"large\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"18446744073709551615\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"large\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "native_sha256": "139030a4b9ff873ebe845bbbff6687ab30c19ed79f2e1dee268db86281cf838d",
       "exit_code": 0
     },
     {
       "name": "metro xl",
       "command": "generate",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"7\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"xl\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"7\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"xl\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "native_sha256": "3a1ee6450aaaae1010fd68434a66d634d3c8ec684bbef6d17aa118ad18f3c863",
       "exit_code": 0
     },
     {
       "name": "metro medium compiled into a map",
       "command": "generate-map",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "c598beb650ecbf225e07bd2d51c0ec681d578915d14d14a473f0ca1cec3c4982",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "native_sha256": "7eb67e71b2c960ffcda3a4ca6ce76f1063b515ba8f4b667036d811e47c20a1be",
       "exit_code": 0
     },
     {
       "name": "mixed xl compiled into a map",
       "command": "generate-map",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"5\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"xl\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "a27228da2cfbec415419ae3345ee753de0f9fb8b4cbbb95adb88657d7532c854",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"5\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"xl\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "native_sha256": "2eed8d4fb7d1d34490520c2f4a716061b1779c4735e942fa84bed245c4a3832d",
       "exit_code": 0
     },
     {
       "name": "stale preset revision",
       "command": "generate",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-18\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "bf91cb97fbdde9b568714e8af735d5dfd99b080618712bec6c1d9eff44700d17",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "native_sha256": "2700bd412e4f74b5561fab44e9e3c13bf766b0b6af0af30a5434d1ceb651c05a",
       "exit_code": 1
     },
     {
       "name": "a catalogue the request does not pin",
       "command": "generate",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"1\",\"template_catalog_hash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "native_sha256": "116f6a1a98f7c215e95f84004320c0ac1d7ee4a52a13a1748478ae5a08b5862c",
       "exit_code": 1
     },
     {
       "name": "over the ground point allowance",
       "command": "generate-map",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"xl\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":100}}",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"xl\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":100}}",
       "native_sha256": "a4896f57aba9b0bef1c73bc97f4eab33d0285c75a82f13cea6b8c330354f3886",
       "exit_code": 1
     },
     {
       "name": "streets over the ground point allowance",
       "command": "generate",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"xl\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":6000}}",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"xl\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":6000}}",
       "native_sha256": "a4896f57aba9b0bef1c73bc97f4eab33d0285c75a82f13cea6b8c330354f3886",
       "exit_code": 1
     },
     {
       "name": "over the authored part allowance",
       "command": "generate-map",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":100,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":100,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "native_sha256": "bd72160429094d8041f4bdb40532c5c3ecb1b25c784767123dd143e7ef29f39a",
       "exit_code": 1
     },
     {
       "name": "seed written as a number",
       "command": "generate",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":1,\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":1,\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "native_sha256": "de1ec7672596ebcdbcd4690068c9a6ef52fb99f922ab8aab644c79e2f5fdd4eb",
       "exit_code": 1
     },
     {
       "name": "open medium with a river and its bridges (seed 3: the first after the plain record's with a river)",
       "command": "generate",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "native_sha256": "7c17e325cc3fd27db9fce7853b4bf366df0f746ad8fef5ca9b085cbda7efce95",
       "exit_code": 0
     },
     {
       "name": "mixed medium with a river, compiled into a map",
       "command": "generate-map",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "cab99bc0d4cfd3670dde833d4944210f669be589f9bc3ac0d697252475d7f059",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "native_sha256": "b75c539347b4f6cffd8d207c39fa1de04e5e91619eb3520fccf01927683f52d7",
       "exit_code": 0
     },
     {
       "name": "metro medium seed 10",
       "command": "generate-map",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"10\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "e80f623593893021db258d4c47d5ee0e52511a7e5d8330d0149756000003acc4",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"10\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "native_sha256": "0851c9e52973a14c672ad0c46efbcd782ee957c03ff99b06fefc45a6ad4fc814",
       "exit_code": 0
     },
     {
       "name": "open small compiled into a map",
       "command": "generate-map",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "7250cbce216023ed3ab65b33b0783eaa4130641a2bcc875220f1b0ee8edb6307",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "native_sha256": "8b14579fe0caee102c57ed9aadc5e238efc9cfe43cd8d6d513c53692925fe6db",
       "exit_code": 0
     },
     {
       "name": "mixed small compiled into a map",
       "command": "generate-map",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "bbb11d383fc1bb9ead8bef277c6dfc7d9e47a640472e2d76d46bcacc999f04d8",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "native_sha256": "951409d2cc1805aa3558f7ba85f9bccdf3b6c0a0d2fd094ae00cc7e47a8ab0ef",
       "exit_code": 0
     },
     {
       "name": "metro small compiled into a map",
       "command": "generate-map",
-      "request_json": "{\"generator_version\":\"layout-19\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "8d74bdc245ce3a4d51af32cf7a4542bd5f301127349973fd1101e5b478034aca",
+      "request_json": "{\"generator_version\":\"layout-20\",\"preset_revision\":\"layout-presets-20\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "native_sha256": "653bd8fc22f5325c4b94bd2ac56670281a5d2d785ed7690b8dbefa6ca42dd998",
       "exit_code": 0
     }
   ]

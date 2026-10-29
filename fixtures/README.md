@@ -5,6 +5,10 @@ own battle and presentation numbers. [Units](units/), [props](props/) and [biome
 own component catalogs and terrain palettes; [catalog resolution](../crates/contract/src/catalog.rs)
 produces the browser's resolved [catalog](catalog.json).
 
+[Rules admission](../crates/contract/src/scenario.rs) refuses unknown sections
+and fields, including in encounter overrides. Application settings carried
+alongside the rules have explicit owners and do not enter resolved battle rules.
+
 [Map presets](map-presets.json) and the generator's [physical template library](prototype-building-templates.json)
 feed [mapgen](../crates/mapgen/README.md). Its templates are derived from accepted
 [city sets](../packages/scene-assets/README.md#city-buildings), and it is the one
@@ -116,10 +120,13 @@ A unit type is **one catalog entry**, addressed by its string id (`"us_m1_abrams
 validation and inheritance. Families contain unit, soldier, role and upgrade
 records; ids are defined once across authored files. Behavior comes from body,
 mobility, sensors, mounts and capabilities rather than the type's name.
-A unit's `sensors.high_air_m` is optional: absent, it sees high air unaided,
-by `game.json`'s `sensors.unaided_high_air_m` for its body and flight; an
-authored 0 is blind to high air; a unit whose radar emits sees it by the
-radar and never authors one.
+Each resolved physical unit requires its own positive `concealment`, which
+inheritance may supply; values above one represent more conspicuous bodies.
+Optional `sensors.spotting` defaults to the neutral one. `sensors.ground_m`,
+`sensors.low_air_m` and `sensors.high_air_m` author sight into each band
+independently; zero air reach means blind. `capabilities.radar_emitter` authors
+a signature independently of those ranges. The [sensing contract](../crates/sim/README.md#sensing) explains
+how these values interact with ground and movement.
 A unit's `capabilities.carriage.seats` (3, 8 or 16) makes it a carrier; nothing
 else does. The rules' `carriage` row sets the boarding timer and reach, and their
 `bail_out` rows, one per kind of host (building, ground, air), set how a garrison
@@ -133,7 +140,7 @@ to search for a place to stand.
   - a unit's `parts` gather along the chain, the parent's first;
   - anything else is replaced, a list of strings (`roles`, `slots`) whole.
   - What a variant can't do: drop a key or a mount (by id) it inherits. A type that loses a mount extends a common parent instead.
-- **Parts are upgrades:** `"parts": ["trophy_aps"]` merges each part's `patch` into the type after inheritance, by the same rules, so a part may add any capability: the Trophy adds active protection, and a radar or a flare pod would add `radar`, `radar_receiver` or `flares` the same way. A part that needs a capability the simulation doesn't build yet is refused at load, because the type no longer parses. A part names the model nodes that show its hardware (`nodes`), and the type's model must draw them.
+- **Parts are upgrades:** `"parts": ["trophy_aps"]` merges each part's `patch` into the type after inheritance, by the same rules, so a part may add any capability: the Trophy adds active protection, and a radar or a flare pod would add `radar_emitter`, `radar_receiver` or `flares` the same way. A part that needs a capability the simulation doesn't build yet is refused at load, because the type no longer parses. A part names the model nodes that show its hardware (`nodes`), and the type's model must draw them.
 
 Resolution happens once through the contract owner. Invalid inheritance,
 references, physical mounts or numbers fail at load with an entry-specific error.
@@ -160,7 +167,7 @@ A weapon row's `ammo` is total carried rounds, including loaded magazines; `"unl
 
 The nominal vehicle aim height comes from its body, with a fixture-owned fraction allowing fire into both the upper body and hull. Direct-fire scatter stays at or below that aim point. A round that survives to its aim plane falls under stronger downward gravity, chosen at launch to reach even the lowest ground within the authored fall-time limit. Its horizontal flight and its position and velocity at the join stay intact. Both legs use ordinary swept collision: intervening bodies still decide the first impact. A ricochet cancels that fall and keeps its deflected direction under ordinary gravity; its remaining lifetime is capped from the first bounce, without restarting on later bounces. Guided fire keeps its own guidance, and indirect fire keeps its ballistic arc.
 
-Tracer frequency and shape belong to presentation. A round's sampled visibility persists across its observed flight; it does not flicker with each publication. Small-arms traces use a fixed screen-width line, while muzzle flashes, ricochet sparks and impact puffs still show their own published causes. Only a tracer round throws sparks, a hot flash and its light off what it hits, so they answer a round the viewer saw fly; every hit still raises its surface's dust, and a ricochet always sparks. Hiding a tracer never hides its physical impact or changes the shot.
+Tracer frequency and shape belong to presentation. A round's sampled visibility persists across its observed flight; it does not flicker with each publication. Small-arms traces use a fixed screen-width line, while muzzle flashes, ricochet sparks and impact puffs still show their own published causes. Only a tracer round throws sparks, a hot flash and its light off what it hits, so they answer a round the viewer saw fly; every hit still raises its surface's dust, and a ricochet always sparks. Sparks fly only off metal: a hull, or a prop whose body is `metal`, which the simulation publishes as its own hit kind (`metal_prop`); a round into a wall, a hedge or sandbags raises dust and nothing else. Hiding a tracer never hides its physical impact or changes the shot. A hull grinding a metal body it shoves (its body's `metal`) throws sparks where they meet, `grind_sparks_per_s` a second at the size a ricochet's are; the simulation publishes only the grinds, so a wooden fence, a crate or sandbags throw none.
 
 Impact puffs keep the material of the surface they strike, with per-round size and lifetime overrides inside that surface's style. Heavy rounds can leave larger, longer-lived dirt clouds without extending armour flashes or explosion smoke; the effect owner's lifetime bound includes those overrides. A burst's fireball grows with its blast radius times its round's `blast_scale`; a burst smaller than the blast style's reference also throws fewer, smaller sparks and puffs and lights less ground, so a cannon's small shell flashes and kicks up dirt rather than drawing a shell's explosion. The ground keeps the same proportion: a burst below `ground.mark_reference_blast_m` adds scorch in proportion to its share of that radius and crater depth by the square of it, a dark pock rather than a shell's crater and black scar.
 
@@ -170,9 +177,16 @@ A replacement soldier brings a fresh default gun; a transferable special weapon 
 
 A guided row's `top_attack` changes only the path its supported missile flies: it shoots up at `dive_deg` to `loft_m` above the commanded point, holds that height, then dives once that point lies `dive_deg` below its horizon, so geometry, not a rule, puts the hit on the roof. Guidance, release and active protection are unchanged; a released missile flies straight at its fixed point. The dive must fit the row's turn rate: a slow-turning missile overshoots a steep pitch-over, so a top-attack row turns far faster than a direct one ([traces](../specs/done/ground-admission/assets/top-attack/)).
 
-A round's damage to a hull is the share its `penetration` gets through the face it meets: all of it at or past the armour, none short of `penetration.partial_from` of it, and in proportion between, so a round that nearly gets through still shakes the hull. A weapon row may fade more gently with its own `partial_from`, and a row with a blast must author one: its blast and fragments shake a hull far beyond what it pierces, so an explosive round barely chips even the heaviest tank's front, where a kinetic round left to the rules cuts off. Whether it glances off is only how it flies on; a glancing round still does its share, and each ricochet cuts its penetration for the next face it meets. A weapon engages a hull when any of its damage gets through the weakest face, and prefers the target whose facing armour lets most of it through. Penetration is the one lever for how much a weapon hurts armour: there is no separate blast-through-armour share.
+A round's damage to a hull is the share its `penetration` gets through the face it meets: all of it at or past the armour, none short of the weapon row's `partial_from`, and in proportion between, so a round that nearly gets through still shakes the hull. Whether it glances off is only how it flies on; a glancing round still does its share, and each ricochet cuts its penetration for the next face it meets. A weapon engages a hull when any of its damage gets through the weakest face, and prefers the target whose facing armour lets most of it through. Penetration is the one lever for how much a weapon hurts armour: there is no separate blast-through-armour share.
 
-Every weapon row states the height bands its crew can bring it to bear on, `targets`, each with how it fires there: `"ground"`, and `"low_air"` for guns that swing up at helicopters (rifles, machine guns, autocannons). A band's `range_m` and `scatter_mrad` replace the row's at that band, and what it leaves out is the row's own. Each band also names the target classes it is fired at there, `classes`: `infantry` and `vehicle` on the ground, `air_rotor` and `air_fixed_wing` in the air, which a unit is by its body and its `mobility.air.flight`, never by its name, and `missile` in any band: an `interceptable` round fired from that band, which the row shoots down at that band's range and spread (a guided row homes on it as on an aircraft). A dedicated anti-tank row lists `vehicle` alone, so it is never fired at soldiers or at an area: area fire is for a row that engages infantry, and never armour-piercing. A ground point or an area is no unit, so no class bars it. A band with no classes, an unknown one, or one never found at that height is refused at load, as is any field a weapon row does not have. A gun fires through what its rounds can break; a row with `requires_clear_launch_path` (the artillery and the long-range SAM) instead holds, showing a blocked trajectory, while the ground, a body that stops rounds or tree crowns stands in its round's first `launch.clearance_m` from the muzzle. The skirmish AI drives a unit of its own that stays held (by any weapon's `BlockedTrajectory`) to other ground, after a wait and over a distance its own tuning in `skirmish-ai.json` sets. Only the launcher's end is judged: a high arc clears a low wall, and a target in a wood or past a hill is fair. A ground gun reaches a helicopter from much closer and with a much wider spread than along the ground, so a helicopter outranges it and is hard to hit, but falls to a few hits. A band never reaches past the row's `range_m`, whose flight the rules admitted; the gun, its magazine and its round are the same at every band. A tank gun, a grenade, a rocket pod or a ground missile reaches the ground only. A row that `extends` another inherits its bands, key by key. Flight never reads it: a stray round still strikes a helicopter in its way. A gun fixed in a hull (a vehicle mount that is no turret and rides none) bears where the body faces, so it fires only once the body has turned onto its target: an aircraft turns its airframe to aim while it flies on, idle tracks pivot, and wheels hold fire. A turret the hull carries may state an `arc` (`centre_deg` off the hull's heading, counter-clockwise, and `width_deg`): a door gun's door. It swings only inside it, the way that stays inside, and fires only on what it bears on; when its target lies outside, the body turns the arc's middle onto it, unless a gun with the same weapons already bears on it (a helicopter with a gun in each door turns for neither). A turret that has held no enemy in sight for a while turns back to its hull's front; ground it was ordered onto, or a round it is tracking, keeps it busy without one. `helicopter_crash` is the burst of a downed airframe meeting the ground: no gun fires it, and its structural damage fells the trees beneath.
+Each target layer owns its launch spread, `scatter_mrad`: a one-axis angular
+standard deviation, independent of miss distance and blast radius. Admission
+requires every powered, unguided layer's spread at its own range
+(`scatter_mrad × range_m × 1e-3`) to meet
+`physics.min_spread_at_max_range_m`; guided rounds steer out their initial spread,
+and unpowered bombs are exempt.
+
+Every weapon row states the height bands its crew can bring it to bear on, `targets`, each with how it fires there: `"ground"`, and `"low_air"` for guns that swing up at helicopters (rifles, machine guns, autocannons). A band's `range_m` and `scatter_mrad` are explicit in the resolved row, and a row that `extends` another inherits those values unless it authors a layer override. Each band also names the target classes it is fired at there, `classes`: `infantry` and `vehicle` on the ground, `air_rotor` and `air_fixed_wing` in the air, which a unit is by its body and its `mobility.air.flight`, never by its name, and `missile` in any band: an `interceptable` round fired from that band, which the row shoots down at that band's range and spread (a guided row homes on it as on an aircraft). A dedicated anti-tank row lists `vehicle` alone, so it is never fired at soldiers or at an area: area fire is for a row that engages infantry, and never armour-piercing. A ground point or an area is no unit, so no class bars it. A band with no classes, an unknown one, or one never found at that height is refused at load, as is any field a weapon row does not have. A gun fires through what its rounds can break; a row with `requires_clear_launch_path` (the artillery and the long-range SAM) instead holds, showing a blocked trajectory, while the ground, a body that stops rounds or tree crowns stands in its round's first `launch.clearance_m` from the muzzle. The skirmish AI drives a unit of its own that stays held (by any weapon's `BlockedTrajectory`) to other ground, after a wait and over a distance its own tuning in `skirmish-ai.json` sets. Only the launcher's end is judged: a high arc clears a low wall, and a target in a wood or past a hill is fair. A ground gun reaches a helicopter from much closer and with a much wider spread than along the ground, so a helicopter outranges it and is hard to hit, but falls to a few hits. A band never reaches past the row's `range_m`, whose flight the rules admitted; the gun, its magazine and its round are the same at every band. A tank gun, a grenade, a rocket pod or a ground missile reaches the ground only. Flight never reads it: a stray round still strikes a helicopter in its way. A gun fixed in a hull (a vehicle mount that is no turret and rides none) bears where the body faces, so it fires only once the body has turned onto its target: an aircraft turns its airframe to aim while it flies on, idle tracks pivot, and wheels hold fire. A turret the hull carries may state an `arc` (`centre_deg` off the hull's heading, counter-clockwise, and `width_deg`): a door gun's door. It swings only inside it, the way that stays inside, and fires only on what it bears on; when its target lies outside, the body turns the arc's middle onto it, unless a gun with the same weapons already bears on it (a helicopter with a gun in each door turns for neither). A turret that has held no enemy in sight for a while turns back to its hull's front; ground it was ordered onto, or a round it is tracking, keeps it busy without one. `helicopter_crash` is the burst of a downed airframe meeting the ground: no gun fires it, and its structural damage fells the trees beneath.
 
 ## Adding a unit type (a tank variant, a vehicle, an infantry type)
 
@@ -211,14 +225,20 @@ and forest trees because their geometry has different owners.
 
 Add one entry. A mechanic comes from the body's columns, so a new obstacle needs no code: dragon's teeth are small heavy bodies that block vehicles, and a squad takes cover behind each one.
 
-- **Never branch on a prop's id.** If code asks "is this a building?" or "is this a tree?", the answer belongs in a column (`garrison`, `topples`) or in the appearance binding (`drawn_by`).
+- **Never branch on a prop's id.** If code asks "is this a building?", "is this a tree?" or "is this metal?", the answer belongs in a column (`garrison`, `topples`, `metal`) or in the appearance binding (`drawn_by`).
 - **A wreck's physics is a shared row; its look is its unit's.** A hull's `wreck` names a physics row extending `wreck` (the vehicle's weight class and cover tier, which a wreck keeps and the load checks, `hp`, and a destroyed state that chains into a lighter wreck or goes). Every wreck also names the unit type it was (`wreck_of`, on the published prop), so it is drawn as that unit's own wreck art. A map that places a wreck names its unit too: a prop drawn by `wreck` without one, or any other prop with one, is refused.
 - **Every type needs something that draws it:** a scenery kind in `packages/scene-assets` with a catalog appearance authored to a box the simulation places (the catalog footprint test holds every drawn kind to one), `forest` for a tree, or `building` for a part of a building, whose template the art library dresses. The renderer reads the binding from the world layout; it lists no prop types.
 - Then add it to the map or scenario that exercises it, and run the checks for what you changed (see [`AGENTS.md`](../AGENTS.md)).
 
 ## Surface speeds
 
-Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (validated against its off-road speed and the catalog's limits). An aircraft (`"air"`) states one `cruise_kmh` instead, with its turn and climb rates, the `layer` it flies in (`low_air` when unnamed) and its `flight` model, always authored: `rotor` or `fixed_wing`. A pair no flight law flies yet is refused at load. `game.json`'s `air` section holds each air layer's heights (`low_air`, `high_air`) and each flight model's rules (`rotor`, `fixed_wing`). `game.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, and `paving`, hard ground that is no way through: a yard, a court). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
+Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (validated against its off-road speed and the catalog's limits). An aircraft (`"air"`) states one `cruise_kmh` instead, with its turn and climb rates, the `layer` it flies in and its `flight` model, always authored: `rotor` or `fixed_wing`. A pair no flight law flies yet is refused at load. `game.json`'s `air` section holds each air layer's heights (`low_air`, `high_air`) and each flight model's rules (`rotor`, `fixed_wing`). Everything else that changes a mover's speed is a **speed factor**, a share of its own speed at most 1, named `*speed_factor` wherever it lives:
+
+- **The ground** is `game.json`'s `movement.speed_factors`, one row per locomotion, keyed by the unit's `mobility` kind (`foot`, `wheeled`, `tracked`), because how a unit moves, not how big it is, decides how terrain slows it. Each row holds `surfaces`, one factor of road speed per surface kind a map may pave (`road`, `country_road`, `dirt_track`, and `paving`, hard ground that is no way through: a yard, a court), never below off-road speed, with 0 for no road at all; `forest` and `swamp`, of off-road speed off any road (where both lie, the slower applies once); `crater`, over a full crater, a shallower one slowing in proportion; and `slope`, speed falling in proportion to the slope to nothing at `zero_speed_deg` but never below `min_speed_factor` (the map's `slope_cutoff_deg` decides what is too steep to climb). A new surface kind is a new field in every row plus its variant in `contract::map::SurfaceKind`.
+- **Driving** is a vehicle's own `reverse_speed_factor` and the rules' `movement.drive.turn_speed_factor`, the most a manoeuvre keeps.
+- **An afterburner** is a jet's `capabilities.air.afterburner` `speed_factor`, above 1, paid for by its `fuel_factor`.
+
+Suppression is the one exception: its tiers slow infantry by a `move_penalty` taken from full speed, read alongside their reload penalty.
 
 A paved area's authored kind also selects its appearance. A map names a rural road `country_road` and a town street `road`; the renderer does not infer a different kind from the other surfaces present. The biome owns a country road's local appearance through built ground.
 
@@ -248,6 +268,16 @@ A map's water is its `rivers`: each a line of points with the water's `width_m` 
 
 [The river map](maps/river/) is the worked example. [The shared river contract](../crates/contract/src/river.rs) owns numeric admission and bridge constraints.
 
+## Swamps
+
+A map's standing shallow water is its `swamps`: each an outline polygon and the `depth_m` its bed lies under the water. The swamp carves its own dip. Inside the outline the ground lowers by up to `depth_m`, easing in over a few height samples from the edge, and the water stands level with the land it was cut from.
+
+- **Membership is one distance:** how far a point lies inside the outline. Every rule reads it, and the terrain is cut to it (`contract::swamp`).
+- **Wading is slow.** Off a road, a swamp's water scales a ground mover's speed by its locomotion's `swamp` speed factor (`movement.speed_factors`, under [Surface speeds](#surface-speeds)), however deep. A road crosses a swamp uncut.
+- **A map is refused at load** when a swamp is a stroke, too steep at its edge for the map's slope cutoff, too small to carve on the grid, not on level land, or within an edge's width of a river, a building or a bridge and its approach.
+
+[The wetlands map](maps/wetlands/) is the worked example. [The shared swamp contract](../crates/contract/src/swamp.rs) owns its admission.
+
 ## Paired records
 
 [Paired records](parity/) hold an input and what the native build made of it, which a Rust test and a web test both read. The simulation and the map generator run natively and as WebAssembly, and the same request must give the same bytes in both, or a shared seed, a saved map or a replay means different things in different places; the page, which reads publications through the Rust reader compiled to WebAssembly, must also read exactly what the Rust encoder wrote. The shared record is how the two test suites agree without one invoking the other. The simulation pairs include firing and physical impacts: a movement-only match cannot catch drift in weapon cycles, flight or damage. State digests remain exact even when the packed Float32 observations agree; the authority uses the same pinned math implementation for combat angles, random spread, sampled aim and seeded soldier placement in native and WebAssembly builds. The publication pairs check construction before the first tick; float32 delivery can hide a different initial authoritative state. [Template fixtures](parity/templates/) also hold the labelled descriptors those tests are given, including the ones that must keep failing.
@@ -256,7 +286,13 @@ A map's water is its `rivers`: each a line of points with the water's `width_m` 
 
 The [capture files](parity/capture/) are browser runs of the menu reel (`native-parity-capture`), re-recorded whole, never edited: a change to the publication layout means a new run. The paris-corner run is copied as it is, and gzipped for the native counts. The market-town window is seven samples of that battle from a fresh publisher, so its first sample is a full snapshot. The run gives its layout and its first tick's frame record. The samples come from replaying the battle natively (`game.json` with the capture catalog), and they match the run's own samples except for the fog revision counters.
 
-The generation corpus pins its [physical rules](parity/map-layout/physical-rules.json) as well as its requests. Changes to shipped unit vision can change the sight certificate and forest placement; they must not silently change the inputs behind a frozen output. Current-rule generation and preparation remain covered separately.
+The generation corpus pins its [physical rules](parity/map-layout/physical-rules.json)
+as well as its requests. That document is frozen and hand-edited, never
+regenerated from current game rules. A schema change needs a deliberate edit
+that preserves unrelated frozen values. Changes to shipped unit vision can
+change the sight certificate and forest placement; they must not silently
+change the inputs behind a frozen output. Current-rule generation and
+preparation remain covered separately.
 
 A record belongs here only if both sides read it, and it stores a hash of the output unless a reader needs the bytes. A snapshot of one implementation's own output, read by that implementation alone, is not a paired record: state the rule in a test instead.
 
@@ -269,7 +305,12 @@ The world places floor cover after all trunks with independent seeds, so changin
 floor density cannot shift any trunk or its published source range. Candidates
 that conflict with trees, roads, water, bodies or the forest boundary are omitted;
 per-hectare densities are placement ceilings, not guaranteed counts. The floor
-adds no concealment. Uncleared forest ground owns the binary concealment bonus; trunk crowns own sight-line attenuation.
+adds no concealment. Uncleared forest ground uses the single
+`forests.rule.concealment` multiplier for every unit; differences in how well
+bodies hide belong on the units, never an infantry/vehicle forest split. Trunk
+crowns separately own sight-line attenuation. The rules' required
+`sensors.moving_concealment` multiplier applies while a move order is in
+progress; it is at least one, so moving cannot improve concealment.
 
 ## Sound catalog
 

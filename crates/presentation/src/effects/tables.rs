@@ -34,9 +34,12 @@ pub struct EffectPresentation {
     pub blast_scale: HashMap<String, f64>,
     pub sparks: SparkStyle,
     pub ricochet_sparks: f64,
+    /// Sparks a second a hull grinding a metal body throws.
+    pub grind_sparks_per_s: f64,
     pub blast: BlastStyle,
     pub cook_off: CookOffFeel,
     pub dust: DustStyle,
+    pub wake: WakeStyle,
     /// The dust a heavy gun's shot raises; none where absent.
     pub shot_dust: Option<ShotDustStyle>,
     pub damage_smoke: DamageSmokeStyle,
@@ -47,8 +50,6 @@ pub struct EffectPresentation {
     pub smoke: HashMap<String, Arc<SmokeSourceStyle>>,
     /// Instances every smoke source together may hold; past it each thins alike.
     pub smoke_budget: f64,
-    /// The wind carrying smoke and dust, m/s (east, north).
-    pub wind_mps: [f64; 2],
     /// How far round a surface a cast light reaches past facing it, 0..1.
     pub cast_wrap: f64,
 }
@@ -144,6 +145,22 @@ pub struct DustStyle {
     pub spacing_m: f64,
     pub min_speed_mps: f64,
     pub full_speed_mps: f64,
+}
+
+/// How a unit the side sees wading in standing water pushes on it: rings
+/// round a still or slow wader, `ring_hz` a second each, and at `vee_mps`
+/// or faster a V-wake, a push every `spacing_m` along its way, where the
+/// water stands `vee_depth_m` deep or more (shallower, a splash's rings).
+/// A soldier's push reaches `soldier_radius_m`, a hull's its half width.
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct WakeStyle {
+    pub ring_hz: f64,
+    pub vee_mps: f64,
+    pub vee_depth_m: f64,
+    pub spacing_m: f64,
+    pub soldier_radius_m: f64,
+    pub ring_strength: f64,
+    pub vee_strength: f64,
 }
 
 /// The dust a heavy gun's shot raises at full strength (`FlashStyle::dust`):

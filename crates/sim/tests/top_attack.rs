@@ -288,7 +288,7 @@ fn the_loft_is_part_of_the_digest_only_when_present() {
             &config,
             &p,
             &aim,
-            p.scatter_mrad,
+            0.5,
             &mut Rng::new(3),
             None,
             |_| false,

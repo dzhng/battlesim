@@ -10,6 +10,13 @@ fn moved(j: Joint, p: vec4f) -> vec4f {
   return vec4f(dot(j.x, p), dot(j.y, p), dot(j.z, p), p.w);
 }
 
+struct Wind {
+  toward: vec3f,
+  driftMps: f32,
+  gustMps: f32,
+  gustPerM: f32,
+}
+
 struct Camera {
   viewProj: mat4x4f,
   invViewProj: mat4x4f,
@@ -18,6 +25,8 @@ struct Camera {
   width: f32,
   height: f32,
   time: f32,
+  wind: array<Wind, 1>,
+  waves: vec4f,
 }
 
 @group(0) @binding(0) var<uniform> cam: Camera;
@@ -463,6 +472,21 @@ fn standardPbr(base: vec3f, emissive: vec3f, authoredRoughness: f32, geometryRou
   return max((directDiffuse+indirectDiffuse)+(directSpecular+indirectSpecular)+emissive,vec3f(0));
 }
 
+fn lightAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linear: sampler) -> vec3f {
+ return standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
+ }
+
+@group(3) @binding(3) var pmrem: texture_2d<f32>;
+
+@group(3) @binding(4) var dfg: texture_2d<f32>;
+
+@group(3) @binding(5) var linear: sampler;
+
+fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec3f {
+  let sun_1 = mix(data.settings.y, 1f, shadow);
+  return lightAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun_1, eye, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, pmrem, dfg, linear);
+}
+
 fn equirectUv(direction: vec3f) -> vec2f {
   return vec2f(atan2(direction.z, direction.x) * 1.5915494309189535e-1f + 0.5,
     asin(clamp(direction.y, -1.0, 1.0)) * 3.1830988618379069e-1f + 0.5);
@@ -489,22 +513,14 @@ fn applyAerial(surface: vec4f, position: vec3f, camera: vec3f, observer: vec3f, 
     return vec4f(surface.rgb*transmit+mistSkyLight*(vec3f(1)-transmit),surface.a);
   }
 
-fn shadeAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, observer: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, air: Aerial, sky: texture_2d<f32>, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linear: sampler) -> vec4f {
- let lit=standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
- return applyAerial(vec4f(lit,1),worldPosition,eye,observer,sunDirection,air,sky,linear);
- }
-
 @group(3) @binding(2) var sky: texture_2d<f32>;
 
-@group(3) @binding(3) var pmrem: texture_2d<f32>;
-
-@group(3) @binding(4) var dfg: texture_2d<f32>;
-
-@group(3) @binding(5) var linear: sampler;
+fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
+  return applyAerial(vec4f(colour, 1f), position, eye, data.observer.xyz, data.sunDirection.xyz, data.aerial, sky, linear);
+}
 
 fn shade(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec4f {
-  let sun_1 = mix(data.settings.y, 1f, shadow);
-  return shadeAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun_1, eye, data.observer.xyz, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, data.aerial, sky, pmrem, dfg, linear);
+  return air(surfaceLight(base, emissive, roughness, geomRoughness, metal, ao, normal, position, shadow, eye), position, eye);
 }
 
 fn fogIsGround() -> bool {

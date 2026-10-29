@@ -6,9 +6,41 @@
       192
     ],
     "effectSheet": 1024,
-    "grassClump": 48
+    "grassClump": 48,
+    "sceneColourMips": 4
   },
   "layouts": {
+    "waveLayout": [
+      {
+        "binding": 0,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 1,
+        "buffer": {
+          "type": "uniform"
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 2,
+        "buffer": {
+          "type": "read-only-storage"
+        },
+        "visibility": [
+          "fragment"
+        ]
+      }
+    ],
     "bake - Automatic Bind Group & Layout": [
       {
         "binding": 0,
@@ -329,6 +361,59 @@
           "fragment",
           "compute"
         ]
+      },
+      {
+        "binding": 9,
+        "texture": {
+          "sampleType": "depth",
+          "viewDimension": "2d",
+          "multisampled": true
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 10,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 11,
+        "sampler": {
+          "type": "filtering"
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 12,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 13,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
       }
     ],
     "terrainLayout": [
@@ -414,6 +499,85 @@
         "visibility": [
           "fragment",
           "compute"
+        ]
+      },
+      {
+        "binding": 8,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 9,
+        "sampler": {
+          "type": "filtering"
+        },
+        "visibility": [
+          "fragment"
+        ]
+      }
+    ],
+    "sceneMipLayout": [
+      {
+        "binding": 0,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 1,
+        "sampler": {
+          "type": "filtering"
+        },
+        "visibility": [
+          "fragment"
+        ]
+      }
+    ],
+    "guardSeedLayout": [
+      {
+        "binding": 0,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 1,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      }
+    ],
+    "guardMipLayout": [
+      {
+        "binding": 0,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
         ]
       }
     ],
@@ -1330,6 +1494,24 @@
   },
   "pipelines": [
     {
+      "name": "waveStep",
+      "kind": "render",
+      "shader": "waveStep.wgsl",
+      "layout": [
+        "waveLayout"
+      ],
+      "vertex": {
+        "buffers": []
+      },
+      "fragment": {
+        "targets": [
+          {
+            "format": "rgba16float"
+          }
+        ]
+      }
+    },
+    {
       "name": "bake",
       "kind": "render",
       "shader": "bake.wgsl",
@@ -1647,8 +1829,8 @@
       "layout": [
         "typegpuCameraLayout",
         "terrainLayout",
-        "environment",
-        "fogLayout"
+        "fogLayout",
+        "environment"
       ],
       "vertex": {
         "buffers": [
@@ -1732,6 +1914,60 @@
       },
       "multisample": {
         "count": 4
+      }
+    },
+    {
+      "name": "sceneColourMip",
+      "kind": "render",
+      "shader": "sceneColourMip.wgsl",
+      "layout": [
+        "sceneMipLayout"
+      ],
+      "vertex": {
+        "buffers": []
+      },
+      "fragment": {
+        "targets": [
+          {
+            "format": "rgba16float"
+          }
+        ]
+      }
+    },
+    {
+      "name": "waterGuardSeed",
+      "kind": "render",
+      "shader": "waterGuardSeed.wgsl",
+      "layout": [
+        "guardSeedLayout"
+      ],
+      "vertex": {
+        "buffers": []
+      },
+      "fragment": {
+        "targets": [
+          {
+            "format": "rg8unorm"
+          }
+        ]
+      }
+    },
+    {
+      "name": "waterGuardMip",
+      "kind": "render",
+      "shader": "waterGuardMip.wgsl",
+      "layout": [
+        "guardMipLayout"
+      ],
+      "vertex": {
+        "buffers": []
+      },
+      "fragment": {
+        "targets": [
+          {
+            "format": "rg8unorm"
+          }
+        ]
       }
     },
     {
@@ -3848,6 +4084,22 @@
       },
       "multisample": {
         "count": 4
+      }
+    },
+    {
+      "name": "waterNormalsBake",
+      "kind": "render",
+      "shader": "waterNormalsBake.wgsl",
+      "layout": [],
+      "vertex": {
+        "buffers": []
+      },
+      "fragment": {
+        "targets": [
+          {
+            "format": "rgba16float"
+          }
+        ]
       }
     },
     {

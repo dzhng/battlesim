@@ -1,0 +1,7 @@
+{
+  "units": [
+    {"side": "blue", "kind": "capture_rifle", "position": [248, 193], "yaw": 1.571},
+    {"side": "blue", "kind": "capture_us_tank", "position": [276, 186], "yaw": 1.571},
+    {"side": "blue", "kind": "capture_rifle", "position": [396, 70], "yaw": 0.4}
+  ]
+}

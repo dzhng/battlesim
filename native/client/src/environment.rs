@@ -2,11 +2,11 @@
 //! and `world/environment.ts`): the camera and the environment light (the
 //! world's `Sun` and `Aerial` records, the cast lights, the sky lookup, its
 //! PMREM and the DFG table). Each frame the camera, the environment's view
-//! and the cast lights the presentation chose are written. The sun's
-//! cascades are the shadow layer's (`shadow.rs`); fog's groups are fog's
-//! (`fog.rs`).
+//! and the cast lights the presentation chose are written. The sun's cascades are the shadow layer's (`shadow.rs`); fog's
+//! groups are fog's (`fog.rs`).
 use presentation::effects::lights::CAST_LIGHTS_MAX;
-use presentation::records::{Aerial, Camera as CameraRecord, CastLight, Sun, View};
+use presentation::light::LightSettings;
+use presentation::records::{Camera as CameraRecord, CastLight, View};
 use wgpu::*;
 
 use crate::frame::HDR_FORMAT;
@@ -33,7 +33,7 @@ pub struct Environment {
     pub data: Buffer,
     pub pmrem: TextureView,
     pub cast_lights: Buffer,
-    /// The environment uniform's light part, set once.
+    /// The environment uniform's light, set once.
     image: Vec<f32>,
 }
 
@@ -244,14 +244,14 @@ fn dfg_lut() -> Vec<u16> {
 }
 
 impl Environment {
-    /// The environment for the world's light, prefiltering the sky's lookup.
+    /// The environment for the world's light, prefiltering the sky's
+    /// lookup. The wind rides in the camera (`Camera.wind`).
     pub fn new(
         device: &Device,
         queue: &Queue,
         pipelines: &Pipelines,
         sky_lut: &TextureView,
-        sun: &Sun,
-        aerial: &Aerial,
+        light: &LightSettings,
         shadow: &SunShadow,
     ) -> Self {
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
@@ -270,9 +270,9 @@ impl Environment {
 
         let (pmrem, top_mip) = pmrem(device, queue, pipelines, sky_lut);
         let mut image = vec![0.0f32; SUN_AT / 4];
-        image.extend_from_slice(bytemuck::cast_slice(bytemuck::bytes_of(sun)));
+        image.extend_from_slice(bytemuck::cast_slice(bytemuck::bytes_of(&light.sun())));
         image[SUN_AT / 4 + 8] = top_mip as f32;
-        image.extend_from_slice(bytemuck::cast_slice(bytemuck::bytes_of(aerial)));
+        image.extend_from_slice(bytemuck::cast_slice(bytemuck::bytes_of(&light.aerial())));
         let data = buffer(device, "environment", uniform, bytemuck::cast_slice(&image));
         let cast_lights = buffer(device, "cast-lights", uniform, &[0; CAST_LIGHTS_BYTES]);
         let pmrem = pmrem.create_view(&Default::default());

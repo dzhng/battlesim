@@ -1,0 +1,45 @@
+{
+  "scenes": [
+    {
+      "map": "wetlands",
+      "encounter": "water",
+      "seed": 1,
+      "warm_s": 2,
+      "reel": {
+        "fade_s": 0,
+        "shots": [
+          {
+            "seconds": 4,
+            "from": { "target": [252, 200], "distance": 65, "yaw": -1.22, "pitch": 0.85 },
+            "to": { "target": [252, 200], "distance": 65, "yaw": -1.22, "pitch": 0.85 }
+          },
+          {
+            "seconds": 4,
+            "from": { "target": [250, 215], "distance": 260, "yaw": -1.571, "pitch": 0.95 },
+            "to": { "target": [250, 215], "distance": 260, "yaw": -1.571, "pitch": 0.95 }
+          },
+          {
+            "seconds": 4,
+            "from": { "target": [320, 208], "distance": 80, "yaw": 3.0, "pitch": 0.2 },
+            "to": { "target": [320, 208], "distance": 80, "yaw": 3.0, "pitch": 0.2 }
+          },
+          {
+            "seconds": 4,
+            "from": { "target": [396, 70], "distance": 45, "yaw": -1.22, "pitch": 0.75 },
+            "to": { "target": [396, 70], "distance": 45, "yaw": -1.22, "pitch": 0.75 }
+          },
+          {
+            "seconds": 4,
+            "from": { "target": [396, 70], "distance": 12, "yaw": -1.22, "pitch": 0.35 },
+            "to": { "target": [396, 70], "distance": 12, "yaw": -1.22, "pitch": 0.35 }
+          },
+          {
+            "seconds": 4,
+            "from": { "target": [381, 138], "distance": 22, "yaw": -1.4, "pitch": 0.55 },
+            "to": { "target": [381, 138], "distance": 22, "yaw": -1.4, "pitch": 0.55 }
+          }
+        ]
+      }
+    }
+  ]
+}

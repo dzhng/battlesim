@@ -1,7 +1,5 @@
 {
-  "status": "provisional-tuning; runtime owner (moved from the spec in slice 01)",
   "seed": 20260925,
-  "units": "metres-seconds-radians",
   "tick_hz": 30,
   "commands": { "orders_per_s": 30 },
   "buildings": {
@@ -45,8 +43,11 @@
     "stop_short_detour_ratio": 5
   },
   "movement": {
-    "forest_infantry_multiplier": 0.7,
-    "forest_vehicle_multiplier": 0.4,
+    "speed_factors": {
+      "foot": { "surfaces": { "road": 1, "country_road": 1, "dirt_track": 0.75, "paving": 0 }, "forest": 0.7, "swamp": 0.5, "crater": 1, "slope": { "zero_speed_deg": 50, "min_speed_factor": 0.35 } },
+      "wheeled": { "surfaces": { "road": 1, "country_road": 1, "dirt_track": 0.75, "paving": 0 }, "forest": 0.4, "swamp": 0.3, "crater": 0.85, "slope": { "zero_speed_deg": 50, "min_speed_factor": 0.35 } },
+      "tracked": { "surfaces": { "road": 1, "country_road": 1, "dirt_track": 0.75, "paving": 0 }, "forest": 0.4, "swamp": 0.55, "crater": 0.85, "slope": { "zero_speed_deg": 50, "min_speed_factor": 0.35 } }
+    },
     "turret_turn_deg_s": 60,
     "bearing_tolerance_deg": 2,
     "drive": {
@@ -59,10 +60,11 @@
       "min_leg_m": 1,
       "circle_margin_m": 0.5,
       "turning_deg": 20,
-      "turn_slow": 0.5
+      "turn_speed_factor": 0.5
     }
   },
   "sensors": {
+    "moving_concealment": 1.5,
     "squad_identification_fraction": 0.2,
     "squad_hidden_fraction": 0.8,
     "contact_radius_factor": 3,
@@ -74,11 +76,7 @@
     "sound_bucket_s": 0.5,
     "fog_target_height_m": 1.0,
     "min_sight_gap_m": 0.5,
-    "unaided_high_air_m": { "on_foot": 600, "aircraft": 600, "ground_vehicle": 300 },
     "radar_report": { "bearing_step_deg": 5, "range_step_m": 100, "min_radius_m": 50 }
-  },
-  "penetration": {
-    "partial_from": 0.6
   },
   "ricochet": {
     "speed_kept": 0.6,
@@ -93,7 +91,7 @@
   "launch": { "clearance_m": 30 },
   "weapons": {
     "rifle": {
-      "targets": { "ground": { "classes": ["infantry", "vehicle"] }, "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 100, "scatter_mrad": 40 } },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 300, "scatter_mrad": 8 }, "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 100, "scatter_mrad": 40 } },
       "name": "Rifle",
       "description": "The standard rifle every soldier carries.",
       "icon": "rifle",
@@ -107,15 +105,15 @@
       "magazine": { "rounds": 30, "shot_interval_s": 0.1, "burst": { "rounds": 3, "aim_max_s": 1 } },
       "ammo": "unlimited",
       "penetration": 5,
+      "partial_from": 0.6,
       "damage": 35,
-      "scatter_mrad": 8,
       "near_miss_suppression": 0.025,
       "suppression_radius_m": 3,
       "blast_radius_m": 0,
       "structural_damage": 0.25
     },
     "grenade": {
-      "targets": { "ground": { "classes": ["infantry", "vehicle"] } },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 150, "scatter_mrad": 30 } },
       "name": "Grenade",
       "description": "Rifle grenades lobbed at troops behind cover.",
       "icon": "grenade",
@@ -130,14 +128,13 @@
       "penetration": 20,
       "partial_from": 0.08,
       "damage": 20,
-      "scatter_mrad": 30,
       "near_miss_suppression": 0.15,
       "suppression_radius_m": 8,
       "blast_radius_m": 6,
       "structural_damage": 10
     },
     "tank_ap": {
-      "targets": { "ground": { "classes": ["infantry", "vehicle"] } },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 800, "scatter_mrad": 3.43 } },
       "name": "AP Shell",
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
       "icon": "ap_shell",
@@ -149,8 +146,8 @@
       "reload_s": 3.5,
       "ammo": 20,
       "penetration": 180,
+      "partial_from": 0.6,
       "damage": 40,
-      "scatter_mrad": 3.43,
       "near_miss_suppression": 0.2,
       "suppression_radius_m": 8,
       "blast_radius_m": 0,
@@ -158,7 +155,7 @@
       "armor_piercing": true
     },
     "tank_he": {
-      "targets": { "ground": { "classes": ["infantry", "vehicle"] } },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 800, "scatter_mrad": 3.43 } },
       "name": "HE Shell",
       "description": "High-explosive shell for troops, cover and buildings.",
       "icon": "he_shell",
@@ -172,14 +169,13 @@
       "penetration": 30,
       "partial_from": 0.08,
       "damage": 80,
-      "scatter_mrad": 3.43,
       "near_miss_suppression": 0.4,
       "suppression_radius_m": 15,
       "blast_radius_m": 12,
       "structural_damage": 100
     },
     "hmg": {
-      "targets": { "ground": { "classes": ["infantry", "vehicle"] }, "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 200, "scatter_mrad": 24 } },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 400, "scatter_mrad": 6 }, "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 200, "scatter_mrad": 24 } },
       "name": "HMG",
       "description": "A heavy machine gun for troops and light vehicles.",
       "icon": "hmg",
@@ -193,15 +189,15 @@
       "magazine": { "rounds": 50, "shot_interval_s": 0.1, "burst": { "rounds": 3, "aim_max_s": 1 } },
       "ammo": "unlimited",
       "penetration": 20,
+      "partial_from": 0.6,
       "damage": 20,
-      "scatter_mrad": 6,
       "near_miss_suppression": 0.04,
       "suppression_radius_m": 4,
       "blast_radius_m": 0,
       "structural_damage": 4
     },
     "atgm": {
-      "targets": { "ground": { "classes": ["vehicle"] } },
+      "targets": { "ground": { "classes": ["vehicle"], "range_m": 900, "scatter_mrad": 0.5 } },
       "interceptable": true,
       "decoyable": true,
       "name": "ATGM",
@@ -219,7 +215,6 @@
       "penetration": 300,
       "partial_from": 0.08,
       "damage": 45,
-      "scatter_mrad": 0.5,
       "turn_deg_s": 60,
       "guidance": "stationary",
       "lifetime_s": 12,
@@ -233,8 +228,7 @@
       "name": "Carbine",
       "description": "A short rifle for close quarters: handier, less accurate at range.",
       "range_m": 240,
-      "scatter_mrad": 10,
-      "targets": { "low_air": { "scatter_mrad": 50 } }
+      "targets": { "low_air": { "scatter_mrad": 50 }, "ground": { "classes": ["infantry", "vehicle"], "range_m": 240, "scatter_mrad": 10 } }
     },
     "lmg": {
       "extends": "rifle",
@@ -245,16 +239,11 @@
       "range_m": 400,
       "damage": 30,
       "penetration": 8,
-      "scatter_mrad": 9,
-      "targets": { "low_air": { "range_m": 150, "scatter_mrad": 32 } },
+      "targets": { "low_air": { "range_m": 150, "scatter_mrad": 32 }, "ground": { "classes": ["infantry", "vehicle"], "range_m": 400, "scatter_mrad": 9 } },
       "ammo": 600,
       "reload_s": 3.5,
       "aim_s": 1,
-      "magazine": {
-        "rounds": 100,
-        "shot_interval_s": 0.08,
-        "burst": { "rounds": 6, "aim_max_s": 1 }
-      },
+      "magazine": { "rounds": 100, "shot_interval_s": 0.08, "burst": { "rounds": 6, "aim_max_s": 1 } },
       "near_miss_suppression": 0.05,
       "suppression_radius_m": 4,
       "structural_damage": 1
@@ -271,11 +260,8 @@
       "ammo": 120,
       "reload_s": 3,
       "aim_s": 2,
-      "magazine": {
-        "rounds": 20,
-        "shot_interval_s": 0.5,
-        "burst": null
-      }
+      "magazine": { "rounds": 20, "shot_interval_s": 0.5, "burst": null },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 450, "scatter_mrad": 8 } }
     },
     "heavy_sniper": {
       "extends": "rifle",
@@ -290,7 +276,7 @@
       "reload_s": 2.5,
       "aim_s": 2,
       "magazine": null,
-      "targets": { "low_air": { "range_m": 150, "scatter_mrad": 48 } }
+      "targets": { "low_air": { "range_m": 150, "scatter_mrad": 48 }, "ground": { "classes": ["infantry", "vehicle"], "range_m": 700, "scatter_mrad": 8 } }
     },
     "autocannon": {
       "extends": "hmg",
@@ -298,7 +284,7 @@
       "description": "A slow-firing cannon whose small bursting shells tear up troops, cover and light armour.",
       "icon": "autocannon",
       "range_m": 650,
-      "targets": { "low_air": { "range_m": 350, "scatter_mrad": 18 } },
+      "targets": { "low_air": { "range_m": 350, "scatter_mrad": 18 }, "ground": { "classes": ["infantry", "vehicle"], "range_m": 650, "scatter_mrad": 6 } },
       "speed_mps": 600,
       "gravity_scale": 0.5,
       "damage": 100,
@@ -310,53 +296,52 @@
       "structural_damage": 8,
       "ammo": 240,
       "reload_s": 3.5,
-      "magazine": {
-        "rounds": 30,
-        "shot_interval_s": 0.3,
-        "burst": {
-          "rounds": 3,
-          "aim_max_s": 1
-        }
-      }
+      "magazine": { "rounds": 30, "shot_interval_s": 0.3, "burst": { "rounds": 3, "aim_max_s": 1 } }
     },
     "ground_tank_ap": {
       "extends": "tank_ap",
       "name": "AP Shell",
       "range_m": 850,
       "damage": 45,
-      "penetration": 250
+      "penetration": 250,
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 850, "scatter_mrad": 3.43 } }
     },
     "ground_tank_he": {
       "extends": "tank_he",
       "name": "HE Shell",
       "range_m": 850,
-      "damage": 80
+      "damage": 80,
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 850, "scatter_mrad": 3.43 } }
     },
     "advanced_tank_ap": {
       "extends": "tank_ap",
       "name": "AP Shell",
       "range_m": 900,
       "damage": 50,
-      "penetration": 300
+      "penetration": 300,
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 900, "scatter_mrad": 3.43 } }
     },
     "advanced_tank_he": {
       "extends": "tank_he",
       "name": "HE Shell",
       "range_m": 900,
-      "damage": 80
+      "damage": 80,
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 900, "scatter_mrad": 3.43 } }
     },
     "light_tank_ap": {
       "extends": "tank_ap",
       "name": "AP Shell",
       "range_m": 750,
       "damage": 40,
-      "penetration": 170
+      "penetration": 170,
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 750, "scatter_mrad": 3.43 } }
     },
     "light_tank_he": {
       "extends": "tank_he",
       "name": "HE Shell",
       "range_m": 750,
-      "damage": 65
+      "damage": 65,
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 750, "scatter_mrad": 3.43 } }
     },
     "tow": {
       "interceptable": true,
@@ -373,7 +358,8 @@
       "damage": 55,
       "penetration": 320,
       "ammo": 4,
-      "reload_s": 4.5
+      "reload_s": 4.5,
+      "targets": { "ground": { "classes": ["vehicle"], "range_m": 950, "scatter_mrad": 0.5 } }
     },
     "spike": {
       "interceptable": true,
@@ -384,7 +370,8 @@
       "damage": 55,
       "penetration": 320,
       "ammo": 4,
-      "reload_s": 4.5
+      "reload_s": 4.5,
+      "targets": { "ground": { "classes": ["vehicle"], "range_m": 900, "scatter_mrad": 0.5 } }
     },
     "javelin": {
       "interceptable": true,
@@ -396,10 +383,11 @@
       "damage": 55,
       "penetration": 200,
       "turn_deg_s": 360,
-      "top_attack": { "loft_m": 60, "dive_deg": 40 }
+      "top_attack": { "loft_m": 60, "dive_deg": 40 },
+      "targets": { "ground": { "classes": ["vehicle"], "range_m": 800, "scatter_mrad": 0.5 } }
     },
     "stinger": {
-      "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing"] } },
+      "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 1500, "scatter_mrad": 0.5 } },
       "interceptable": false,
       "decoyable": true,
       "name": "Stinger",
@@ -417,7 +405,6 @@
       "penetration": 40,
       "partial_from": 0.08,
       "damage": 260,
-      "scatter_mrad": 0.5,
       "turn_deg_s": 180,
       "guidance": "stationary",
       "lifetime_s": 6,
@@ -427,290 +414,233 @@
       "proximity_fuse_m": 3,
       "structural_damage": 20
     },
-        "aa_ballistic": {
-            "proximity_fuse_m": 5,
-            "extends": "hmg",
-            "name": "Short AA gun",
-            "description": "Ballistic short-range air defence.",
-            "icon": "autocannon",
-            "range_m": 1500,
-            "targets": {
-                "ground": {},
-                "low_air": {
-                    "classes": ["air_rotor", "air_fixed_wing", "missile"],
-                    "range_m": 350,
-                    "scatter_mrad": 28
-                },
-                "high_air": {
-                    "classes": ["air_rotor", "air_fixed_wing", "missile"],
-                    "range_m": 1500,
-                    "scatter_mrad": 42
-                }
-            },
-            "speed_mps": 600,
-            "gravity_scale": 0.5,
-            "damage": 100,
-            "penetration": 65,
-            "partial_from": 0.08,
-            "near_miss_suppression": 0.1,
-            "suppression_radius_m": 6,
-            "blast_radius_m": 2,
-            "structural_damage": 8,
-            "ammo": 300,
-            "reload_s": 3.5,
-            "magazine": {
-                "rounds": 30,
-                "shot_interval_s": 0.3,
-                "burst": {
-                    "rounds": 3,
-                    "aim_max_s": 1
-                }
-            }
-        },
-        "aa_medium": {
-            "targets": {
-                "low_air": { "classes": ["air_rotor", "air_fixed_wing"] },
-                "high_air": { "classes": ["air_rotor", "air_fixed_wing"] }
-            },
-            "interceptable": false,
-            "name": "Medium SAM",
-            "description": "Medium-range surface-to-air missile.",
-            "icon": "aa_missile",
-            "stationary": true,
-            "range_m": 2600,
-            "min_range_m": 50,
-            "speed_mps": 100,
-            "accel_mps2": 95,
-            "top_speed_mps": 290,
-            "aim_s": 2,
-            "reload_s": 4,
-            "ammo": 8,
-            "penetration": 40,
-            "partial_from": 0.08,
-            "damage": 120,
-            "scatter_mrad": 0.5,
-            "turn_deg_s": 180,
-            "guidance": "on_the_move",
-            "lifetime_s": 10,
-            "near_miss_suppression": 0,
-            "suppression_radius_m": 0,
-            "blast_radius_m": 3,
-            "proximity_fuse_m": 3,
-            "structural_damage": 20,
-            "seeker": "radar",
-            "seeker_fov_deg": 120,
-            "decoyable": true
-        },
-        "aa_long": {
-            "targets": {
-                "high_air": { "classes": ["air_rotor", "air_fixed_wing"] }
-            },
-            "interceptable": false,
-            "name": "Long SAM",
-            "description": "Long-range aircraft-only missile.",
-            "icon": "aa_missile",
-            "stationary": true,
-            "requires_clear_launch_path": true,
-            "range_m": 5200,
-            "min_range_m": 50,
-            "speed_mps": 100,
-            "accel_mps2": 95,
-            "top_speed_mps": 290,
-            "aim_s": 2,
-            "reload_s": 9,
-            "ammo": 6,
-            "penetration": 40,
-            "partial_from": 0.08,
-            "damage": 260,
-            "scatter_mrad": 0.5,
-            "turn_deg_s": 180,
-            "guidance": "stationary",
-            "lifetime_s": 19,
-            "near_miss_suppression": 0,
-            "suppression_radius_m": 0,
-            "blast_radius_m": 3,
-            "proximity_fuse_m": 3,
-            "structural_damage": 20,
-            "seeker": "radar",
-            "seeker_fov_deg": 100,
-            "decoyable": true
-        },
-        "patriot_pac3": {
-            "proximity_fuse_m": 5,
-            "extends": "aa_long",
-            "name": "PAC-3 MSE",
-            "description": "Long-range missile that also shoots down missiles fired from aircraft.",
-            "targets": {
-                "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] }
-            }
-        },
-        "pantsir_missile": {
-            "proximity_fuse_m": 5,
-            "extends": "aa_medium",
-            "name": "57E6",
-            "description": "Medium-range missile that also shoots down missiles fired from aircraft.",
-            "targets": {
-                "low_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] },
-                "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] }
-            }
-        },
-        "air_gun": {
-            "extends": "hmg",
-            "name": "Aircraft cannon",
-            "description": "Unlimited aircraft gun.",
-            "icon": "autocannon",
-            "range_m": 900,
-            "targets": {
-                "ground": {},
-                "low_air": {
-                    "range_m": 700,
-                    "scatter_mrad": 24
-                },
-                "high_air": {
-                    "classes": ["air_rotor", "air_fixed_wing"],
-                    "range_m": 900,
-                    "scatter_mrad": 20
-                }
-            },
-            "speed_mps": 600,
-            "gravity_scale": 0.5,
-            "damage": 100,
-            "penetration": 65,
-            "partial_from": 0.08,
-            "near_miss_suppression": 0.1,
-            "suppression_radius_m": 6,
-            "blast_radius_m": 2,
-            "structural_damage": 8,
-            "ammo": "unlimited",
-            "reload_s": 3.5,
-            "magazine": {
-                "rounds": 30,
-                "shot_interval_s": 0.3,
-                "burst": {
-                    "rounds": 3,
-                    "aim_max_s": 1
-                }
-            },
-            "default": true
-        },
-        "air_missile": {
-            "fires_on_its_own": true,
-            "targets": {
-                "low_air": { "classes": ["air_rotor", "air_fixed_wing"] },
-                "high_air": { "classes": ["air_rotor", "air_fixed_wing"] }
-            },
-            "interceptable": false,
-            "name": "Air missile",
-            "description": "Fire-and-forget air-to-air missile.",
-            "icon": "aa_missile",
-            "stationary": false,
-            "range_m": 3000,
-            "min_range_m": 50,
-            "speed_mps": 100,
-            "accel_mps2": 95,
-            "top_speed_mps": 290,
-            "aim_s": 2,
-            "reload_s": 4,
-            "ammo": 4,
-            "penetration": 40,
-            "partial_from": 0.08,
-            "damage": 150,
-            "scatter_mrad": 0.5,
-            "turn_deg_s": 180,
-            "guidance": "on_the_move",
-            "lifetime_s": 11,
-            "near_miss_suppression": 0,
-            "suppression_radius_m": 0,
-            "blast_radius_m": 3,
-            "proximity_fuse_m": 3,
-            "structural_damage": 20,
-            "seeker": "infrared",
-            "seeker_fov_deg": 70,
-            "decoyable": true
-        },
-        "air_bomb": {
-            "delivery": "unpowered",
-            "targets": { "ground": { "classes": ["infantry", "vehicle"] } },
-            "name": "Iron bomb",
-            "description": "Unguided iron bomb with a heavy single blast.",
-            "icon": "bomb",
-            "stationary": false,
-            "gravity_scale": 4.5,
-            "aim_s": 1.2,
-            "reload_s": 3,
-            "ammo": 4,
-            "penetration": 40,
-            "partial_from": 0.08,
-            "damage": 140,
-            "scatter_mrad": 4,
-            "near_miss_suppression": 0.3,
-            "suppression_radius_m": 18,
-            "blast_radius_m": 14,
-            "structural_damage": 80
-        },
-        "air_bomb_cluster": {
-            "delivery": "unpowered",
-            "targets": { "ground": { "classes": ["infantry", "vehicle"] } },
-            "name": "Cluster bombs",
-            "description": "Wide-spread cluster bomb salvo for area attacks.",
-            "icon": "bomb",
-            "stationary": false,
-            "gravity_scale": 4.5,
-            "aim_s": 1.2,
-            "reload_s": 4.5,
-            "ammo": 3,
-            "penetration": 20,
-            "partial_from": 0.08,
-            "damage": 70,
-            "scatter_mrad": 28,
-            "near_miss_suppression": 0.45,
-            "suppression_radius_m": 24,
-            "blast_radius_m": 9,
-            "structural_damage": 35,
-            "magazine": { "rounds": 4, "shot_interval_s": 0.08 }
-        },
-        "air_ground_missile": {
-            "extends": "heli_atgm",
-            "name": "Air ground missile",
-            "description": "A fast guided anti-armour missile for ground attack.",
-            "range_m": 2000,
-            "top_speed_mps": 400,
-            "ammo": 4
-        },
-        "sead_missile": {
-            "fires_on_its_own": true,
-            "targets": {
-                "ground": { "classes": ["vehicle"] }
-            },
-            "interceptable": true,
-            "name": "SEAD missile",
-            "description": "Long-range anti-radiation missile.",
-            "icon": "aa_missile",
-            "stationary": false,
-            "range_m": 6500,
-            "min_range_m": 50,
-            "speed_mps": 100,
-            "accel_mps2": 400,
-            "top_speed_mps": 600,
-            "aim_s": 2,
-            "reload_s": 4,
-            "ammo": 4,
-            "penetration": 180,
-            "partial_from": 0.08,
-            "damage": 130,
-            "scatter_mrad": 0.5,
-            "turn_deg_s": 180,
-            "guidance": "on_the_move",
-            "lifetime_s": 12,
-            "near_miss_suppression": 0,
-            "suppression_radius_m": 0,
-            "blast_radius_m": 3,
-            "structural_damage": 20,
-            "seeker": "radar",
-            "seeker_fov_deg": 90,
-            "decoyable": true,
-            "anti_radiation": true
-        },
+    "aa_ballistic": {
+      "proximity_fuse_m": 5,
+      "extends": "hmg",
+      "name": "Short AA gun",
+      "description": "Ballistic short-range air defence.",
+      "icon": "autocannon",
+      "range_m": 1500,
+      "targets": { "ground": { "range_m": 1500 }, "low_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"], "range_m": 350, "scatter_mrad": 28 }, "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"], "range_m": 1500, "scatter_mrad": 42 } },
+      "speed_mps": 600,
+      "gravity_scale": 0.5,
+      "damage": 100,
+      "penetration": 65,
+      "partial_from": 0.08,
+      "near_miss_suppression": 0.1,
+      "suppression_radius_m": 6,
+      "blast_radius_m": 2,
+      "structural_damage": 8,
+      "ammo": 300,
+      "reload_s": 3.5,
+      "magazine": { "rounds": 30, "shot_interval_s": 0.3, "burst": { "rounds": 3, "aim_max_s": 1 } }
+    },
+    "aa_medium": {
+      "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 2600, "scatter_mrad": 0.5 }, "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 2600, "scatter_mrad": 0.5 } },
+      "interceptable": false,
+      "name": "Medium SAM",
+      "description": "Medium-range surface-to-air missile.",
+      "icon": "aa_missile",
+      "stationary": true,
+      "range_m": 2600,
+      "min_range_m": 50,
+      "speed_mps": 100,
+      "accel_mps2": 95,
+      "top_speed_mps": 290,
+      "aim_s": 2,
+      "reload_s": 4,
+      "ammo": 8,
+      "penetration": 40,
+      "partial_from": 0.08,
+      "damage": 120,
+      "turn_deg_s": 180,
+      "guidance": "on_the_move",
+      "lifetime_s": 10,
+      "near_miss_suppression": 0,
+      "suppression_radius_m": 0,
+      "blast_radius_m": 3,
+      "proximity_fuse_m": 3,
+      "structural_damage": 20,
+      "seeker": "radar",
+      "seeker_fov_deg": 120,
+      "decoyable": true
+    },
+    "aa_long": {
+      "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 5200, "scatter_mrad": 0.5 } },
+      "interceptable": false,
+      "name": "Long SAM",
+      "description": "Long-range aircraft-only missile.",
+      "icon": "aa_missile",
+      "stationary": true,
+      "requires_clear_launch_path": true,
+      "range_m": 5200,
+      "min_range_m": 50,
+      "speed_mps": 100,
+      "accel_mps2": 95,
+      "top_speed_mps": 290,
+      "aim_s": 2,
+      "reload_s": 9,
+      "ammo": 6,
+      "penetration": 40,
+      "partial_from": 0.08,
+      "damage": 260,
+      "turn_deg_s": 180,
+      "guidance": "stationary",
+      "lifetime_s": 19,
+      "near_miss_suppression": 0,
+      "suppression_radius_m": 0,
+      "blast_radius_m": 3,
+      "proximity_fuse_m": 3,
+      "structural_damage": 20,
+      "seeker": "radar",
+      "seeker_fov_deg": 100,
+      "decoyable": true
+    },
+    "patriot_pac3": {
+      "proximity_fuse_m": 5,
+      "extends": "aa_long",
+      "name": "PAC-3 MSE",
+      "description": "Long-range missile that also shoots down missiles fired from aircraft.",
+      "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] } }
+    },
+    "pantsir_missile": {
+      "proximity_fuse_m": 5,
+      "extends": "aa_medium",
+      "name": "57E6",
+      "description": "Medium-range missile that also shoots down missiles fired from aircraft.",
+      "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] }, "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] } }
+    },
+    "air_gun": {
+      "extends": "hmg",
+      "name": "Aircraft cannon",
+      "description": "Unlimited aircraft gun.",
+      "icon": "autocannon",
+      "range_m": 900,
+      "targets": { "ground": { "range_m": 900 }, "low_air": { "range_m": 700, "scatter_mrad": 24 }, "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 900, "scatter_mrad": 20 } },
+      "speed_mps": 600,
+      "gravity_scale": 0.5,
+      "damage": 100,
+      "penetration": 65,
+      "partial_from": 0.08,
+      "near_miss_suppression": 0.1,
+      "suppression_radius_m": 6,
+      "blast_radius_m": 2,
+      "structural_damage": 8,
+      "ammo": "unlimited",
+      "reload_s": 3.5,
+      "magazine": { "rounds": 30, "shot_interval_s": 0.3, "burst": { "rounds": 3, "aim_max_s": 1 } },
+      "default": true
+    },
+    "air_missile": {
+      "fires_on_its_own": true,
+      "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 3000, "scatter_mrad": 0.5 }, "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 3000, "scatter_mrad": 0.5 } },
+      "interceptable": false,
+      "name": "Air missile",
+      "description": "Fire-and-forget air-to-air missile.",
+      "icon": "aa_missile",
+      "stationary": false,
+      "range_m": 3000,
+      "min_range_m": 50,
+      "speed_mps": 100,
+      "accel_mps2": 95,
+      "top_speed_mps": 290,
+      "aim_s": 2,
+      "reload_s": 4,
+      "ammo": 4,
+      "penetration": 40,
+      "partial_from": 0.08,
+      "damage": 150,
+      "turn_deg_s": 180,
+      "guidance": "on_the_move",
+      "lifetime_s": 11,
+      "near_miss_suppression": 0,
+      "suppression_radius_m": 0,
+      "blast_radius_m": 3,
+      "proximity_fuse_m": 3,
+      "structural_damage": 20,
+      "seeker": "infrared",
+      "seeker_fov_deg": 70,
+      "decoyable": true
+    },
+    "air_bomb": {
+      "delivery": "unpowered",
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 0, "scatter_mrad": 4 } },
+      "name": "Iron bomb",
+      "description": "Unguided iron bomb with a heavy single blast.",
+      "icon": "bomb",
+      "stationary": false,
+      "gravity_scale": 4.5,
+      "aim_s": 1.2,
+      "reload_s": 3,
+      "ammo": 4,
+      "penetration": 40,
+      "partial_from": 0.08,
+      "damage": 140,
+      "near_miss_suppression": 0.3,
+      "suppression_radius_m": 18,
+      "blast_radius_m": 14,
+      "structural_damage": 80
+    },
+    "air_bomb_cluster": {
+      "delivery": "unpowered",
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 0, "scatter_mrad": 28 } },
+      "name": "Cluster bombs",
+      "description": "Wide-spread cluster bomb salvo for area attacks.",
+      "icon": "bomb",
+      "stationary": false,
+      "gravity_scale": 4.5,
+      "aim_s": 1.2,
+      "reload_s": 4.5,
+      "ammo": 3,
+      "penetration": 20,
+      "partial_from": 0.08,
+      "damage": 70,
+      "near_miss_suppression": 0.45,
+      "suppression_radius_m": 24,
+      "blast_radius_m": 9,
+      "structural_damage": 35,
+      "magazine": { "rounds": 4, "shot_interval_s": 0.08 }
+    },
+    "air_ground_missile": {
+      "extends": "heli_atgm",
+      "name": "Air ground missile",
+      "description": "A fast guided anti-armour missile for ground attack.",
+      "range_m": 2000,
+      "top_speed_mps": 400,
+      "ammo": 4,
+      "targets": { "ground": { "classes": ["vehicle"], "range_m": 2000, "scatter_mrad": 0.5 } }
+    },
+    "sead_missile": {
+      "fires_on_its_own": true,
+      "targets": { "ground": { "classes": ["vehicle"], "range_m": 6500, "scatter_mrad": 0.5 } },
+      "interceptable": true,
+      "name": "SEAD missile",
+      "description": "Long-range anti-radiation missile.",
+      "icon": "aa_missile",
+      "stationary": false,
+      "range_m": 6500,
+      "min_range_m": 50,
+      "speed_mps": 100,
+      "accel_mps2": 400,
+      "top_speed_mps": 600,
+      "aim_s": 2,
+      "reload_s": 4,
+      "ammo": 4,
+      "penetration": 180,
+      "partial_from": 0.08,
+      "damage": 130,
+      "turn_deg_s": 180,
+      "guidance": "on_the_move",
+      "lifetime_s": 12,
+      "near_miss_suppression": 0,
+      "suppression_radius_m": 0,
+      "blast_radius_m": 3,
+      "structural_damage": 20,
+      "seeker": "radar",
+      "seeker_fov_deg": 90,
+      "decoyable": true,
+      "anti_radiation": true
+    },
     "igla_s": {
       "extends": "stinger",
       "name": "Igla-S"
@@ -722,7 +652,8 @@
     "akeron_mp": {
       "extends": "javelin",
       "name": "Akeron MP",
-      "range_m": 900
+      "range_m": 900,
+      "targets": { "ground": { "classes": ["vehicle"], "range_m": 900, "scatter_mrad": 0.5 } }
     },
     "bastion": {
       "interceptable": true,
@@ -733,7 +664,8 @@
       "damage": 55,
       "penetration": 320,
       "ammo": 4,
-      "reload_s": 4.5
+      "reload_s": 4.5,
+      "targets": { "ground": { "classes": ["vehicle"], "range_m": 650, "scatter_mrad": 0.5 } }
     },
     "heli_atgm": {
       "extends": "atgm",
@@ -742,19 +674,19 @@
       "stationary": false,
       "guidance": "on_the_move",
       "range_m": 1200,
-      "ammo": 8
+      "ammo": 8,
+      "targets": { "ground": { "classes": ["vehicle"], "range_m": 1200, "scatter_mrad": 0.5 } }
     },
     "rocket_pod": {
       "extends": "tank_he",
-      "targets": { "ground": {} },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 900, "scatter_mrad": 12 } },
       "name": "Rocket Pod",
       "description": "Unguided rockets in salvos, for troops, light vehicles and cover.",
       "icon": "rockets",
       "interceptable": false,
       "range_m": 900,
       "speed_mps": 450,
-      "gravity_scale": 1.0,
-      "scatter_mrad": 12,
+      "gravity_scale": 1,
       "aim_s": 1.5,
       "reload_s": 4.5,
       "magazine": { "rounds": 8, "shot_interval_s": 0.12 },
@@ -781,10 +713,10 @@
       "damage": 65,
       "penetration": 25,
       "ammo": 20,
-      "scatter_mrad": 4
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 650, "scatter_mrad": 4 } }
     },
     "rpg_at_light": {
-      "targets": { "ground": { "classes": ["vehicle"] } },
+      "targets": { "ground": { "classes": ["vehicle"], "range_m": 300, "scatter_mrad": 8 } },
       "interceptable": true,
       "extends": "grenade",
       "name": "RPG-7",
@@ -797,11 +729,10 @@
       "reload_s": 4,
       "aim_s": 2,
       "speed_mps": 400,
-      "gravity_scale": 1.7651,
-      "scatter_mrad": 8
+      "gravity_scale": 1.7651
     },
     "rpg_at_heavy": {
-      "targets": { "ground": { "classes": ["vehicle"] } },
+      "targets": { "ground": { "classes": ["vehicle"], "range_m": 400, "scatter_mrad": 8 } },
       "interceptable": true,
       "extends": "grenade",
       "name": "RPG-29",
@@ -814,11 +745,10 @@
       "reload_s": 4,
       "aim_s": 2,
       "speed_mps": 400,
-      "gravity_scale": 1.7651,
-      "scatter_mrad": 8
+      "gravity_scale": 1.7651
     },
     "rpg_general": {
-      "targets": { "ground": { "classes": ["infantry", "vehicle"] } },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 280, "scatter_mrad": 10 } },
       "extends": "grenade",
       "name": "RPG HE",
       "icon": "rpg",
@@ -831,13 +761,10 @@
       "reload_s": 4,
       "aim_s": 2,
       "speed_mps": 400,
-      "gravity_scale": 1.7651,
-      "scatter_mrad": 10
+      "gravity_scale": 1.7651
     },
     "artillery_howitzer": {
-      "targets": {
-        "ground": { "classes": ["infantry", "vehicle"] }
-      },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2500, "scatter_mrad": 18 } },
       "name": "Howitzer",
       "description": "Indirect-fire howitzer shell for long-range support.",
       "icon": "howitzer",
@@ -846,7 +773,7 @@
       "range_m": 2500,
       "min_range_m": 350,
       "speed_mps": 160,
-      "gravity_scale": 1.0,
+      "gravity_scale": 1,
       "lifetime_s": 35,
       "aim_s": 2.5,
       "reload_s": 7,
@@ -854,7 +781,6 @@
       "penetration": 45,
       "partial_from": 0.08,
       "damage": 120,
-      "scatter_mrad": 18,
       "suppression_radius_m": 18,
       "near_miss_suppression": 0.65,
       "blast_radius_m": 18,
@@ -862,9 +788,7 @@
       "trajectory": "indirect"
     },
     "artillery_mortar": {
-      "targets": {
-        "ground": { "classes": ["infantry", "vehicle"] }
-      },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 1800, "scatter_mrad": 26 } },
       "name": "Mortar",
       "description": "High-angle mortar bomb for close indirect support.",
       "icon": "mortar",
@@ -873,7 +797,7 @@
       "range_m": 1800,
       "min_range_m": 180,
       "speed_mps": 145,
-      "gravity_scale": 1.0,
+      "gravity_scale": 1,
       "lifetime_s": 35,
       "aim_s": 3,
       "reload_s": 5,
@@ -881,7 +805,6 @@
       "penetration": 25,
       "partial_from": 0.08,
       "damage": 90,
-      "scatter_mrad": 26,
       "suppression_radius_m": 16,
       "near_miss_suppression": 0.55,
       "blast_radius_m": 15,
@@ -889,9 +812,7 @@
       "trajectory": "indirect"
     },
     "artillery_rocket_light": {
-      "targets": {
-        "ground": { "classes": ["infantry", "vehicle"] }
-      },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2200, "scatter_mrad": 24 } },
       "name": "Rocket salvo",
       "description": "Unguided rocket salvo for deep area fire.",
       "icon": "rockets",
@@ -900,19 +821,15 @@
       "range_m": 2200,
       "min_range_m": 500,
       "speed_mps": 160,
-      "gravity_scale": 1.0,
+      "gravity_scale": 1,
       "lifetime_s": 35,
       "aim_s": 2.5,
       "reload_s": 9,
-      "magazine": {
-        "rounds": 6,
-        "shot_interval_s": 0.35
-      },
+      "magazine": { "rounds": 6, "shot_interval_s": 0.35 },
       "ammo": 18,
       "penetration": 30,
       "partial_from": 0.08,
       "damage": 100,
-      "scatter_mrad": 24,
       "suppression_radius_m": 20,
       "near_miss_suppression": 0.7,
       "blast_radius_m": 20,
@@ -920,9 +837,7 @@
       "trajectory": "indirect"
     },
     "artillery_rocket_heavy": {
-      "targets": {
-        "ground": { "classes": ["infantry", "vehicle"] }
-      },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2500, "scatter_mrad": 22 } },
       "name": "Heavy rocket salvo",
       "description": "Heavy rocket salvo for deep area fire.",
       "icon": "rockets",
@@ -931,19 +846,15 @@
       "range_m": 2500,
       "min_range_m": 700,
       "speed_mps": 160,
-      "gravity_scale": 1.0,
+      "gravity_scale": 1,
       "lifetime_s": 35,
       "aim_s": 3,
       "reload_s": 12,
-      "magazine": {
-        "rounds": 4,
-        "shot_interval_s": 0.45
-      },
+      "magazine": { "rounds": 4, "shot_interval_s": 0.45 },
       "ammo": 12,
       "penetration": 45,
       "partial_from": 0.08,
       "damage": 150,
-      "scatter_mrad": 22,
       "suppression_radius_m": 24,
       "near_miss_suppression": 0.8,
       "blast_radius_m": 24,
@@ -951,9 +862,7 @@
       "trajectory": "indirect"
     },
     "artillery_strike_missile": {
-      "targets": {
-        "ground": { "classes": ["infantry", "vehicle"] }
-      },
+      "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2500, "scatter_mrad": 14 } },
       "name": "Strike missile",
       "description": "Long-range unguided strike missile for deep area fire.",
       "icon": "rockets",
@@ -962,7 +871,7 @@
       "range_m": 2500,
       "min_range_m": 900,
       "speed_mps": 160,
-      "gravity_scale": 1.0,
+      "gravity_scale": 1,
       "lifetime_s": 35,
       "aim_s": 3,
       "reload_s": 15,
@@ -970,7 +879,6 @@
       "penetration": 80,
       "partial_from": 0.08,
       "damage": 220,
-      "scatter_mrad": 14,
       "suppression_radius_m": 26,
       "near_miss_suppression": 0.9,
       "blast_radius_m": 28,
@@ -1014,7 +922,6 @@
     "crater_full_depth": 160,
     "track_gauge": 0.75,
     "lane_margin_m": 0.5,
-    "crater_vehicle_mult": 0.85,
     "scorch_radius_fraction": 0.4,
     "scorch_per_burst": 120,
     "mark_reference_blast_m": 4,
@@ -1108,23 +1015,16 @@
     "infantry_aim_m": 1.0,
     "vehicle_aim_height_fraction": 0.75,
     "infantry_center_m": 0.9,
-    "blast_falloff": "linear conditional damage; quadratic hit probability; cover scales probability only",
     "moving_scatter_multiplier": 1.4142135623730951,
     "friendly_prefire_margin_m": 1.0
   },
   "pushing": { "turn_deg_per_m": 8, "relearn_m": 1 },
   "controls": { "reverse_zone_length_m": 30, "reverse_zone_margin_m": 2 },
-  "surfaces": {
-    "road": { "speed_factor": 1 },
-    "country_road": { "speed_factor": 1 },
-    "dirt_track": { "speed_factor": 0.75 },
-    "paving": { "speed_factor": 0 }
-  },
   "forests": {
     "tree": "trunk",
     "log": "log",
     "boulder": "boulder",
-    "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.25, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2, "logs_per_ha": 0, "boulders_per_ha": 0, "log_half_extents_m": [2.2, 0.35, 0.35], "boulder_half_extents_m": [1, 0.8, 0.75] }
+    "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment": 0.25, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2, "logs_per_ha": 0, "boulders_per_ha": 0, "log_half_extents_m": [2.2, 0.35, 0.35], "boulder_half_extents_m": [1, 0.8, 0.75] }
   },
   "presentation": {
     "terrain": {
@@ -1221,25 +1121,12 @@
         "wear_cut": [0.4, 0.6]
       },
       "water": {
-        "roughness": 0.14,
+        "shore_fade_m": 0.25,
+        "lobes": { "roughness": [0.15, 0.22, 0.32], "weights": [0.58, 0.34, 0.08] },
         "shadow": 0.55,
-        "ripple": {
-          "long_m": 3.2,
-          "short_m": 0.9,
-          "short_weight": 0.5,
-          "slope": 0.09,
-          "step_m": 0.25,
-          "fade_m": [0.15, 1.2]
-        },
-        "lanes": {
-          "m": 0.5,
-          "drift": 2.5,
-          "drift_m": 11,
-          "streak_m": 3.5,
-          "weights": [0.6, 0.4],
-          "lit": [0.55, 0.8],
-          "lit_mean": 0.1
-        }
+        "normals": { "tiles_m": [9, 31, 2.2], "drifts": [0.6, 0.3, 1.4], "strength": 0.35, "fade_m": [0.15, 1.2] },
+        "refraction": { "share": 2, "depth_m": 2.5, "most": 0.015, "blur_m": 1 },
+        "caustics": { "tile_m": 24, "strength": 1.2, "fade_per_m": 0.85, "sharpness": 5 }
       },
       "scars": {
         "depth_cap": 1.6,
@@ -1291,7 +1178,7 @@
       "mix": { "drift_cut": [0.4, 0.65], "drift_gather": 3 },
       "tier_jitter": [0.85, 1.15],
       "laid": { "lean": 1.1, "sink": 0.6 },
-      "wind": { "gust_from": 0.2, "flutter_phase": 0.35, "flutter_across": 0.5 },
+      "sway": { "gust_from": 0.2, "flutter_phase": 0.35, "flutter_across": 0.5 },
       "blade": { "roughness": 0.9 }
     },
     "audio": {
@@ -1362,8 +1249,10 @@
       "impacts": {
         "default": { "sound": "impact_ground", "gain": 0.45 },
         "ground": { "sound": "impact_ground", "gain": 0.55 },
+        "water": { "sound": "impact_ground", "gain": 0.55 },
         "hull": { "sound": "impact_hull", "gain": 0.85 },
         "prop": { "sound": "impact_prop", "gain": 0.50 },
+        "metal_prop": { "sound": "impact_prop", "gain": 0.50 },
         "soldier": { "sound": "impact_soldier", "gain": 0.25 }
       },
       "impact_scale": {
@@ -1996,7 +1885,7 @@
     "pose": {
       "gait": { "walk_mps": 0.25, "run_mps": 2.2, "crawl_mps": 1.4, "fade_s": 0.25, "facing_mps": 0.3, "turn_rad_s": 6 },
       "rest": { "turn_rad": 1.0, "tempo": [0.8, 1.25], "watch_every": 4, "settle_s": [4, 6] },
-      "stance": { "fire_prone": 0.3, "fire_stand": 0.2, "pinned_kneel": 0.25, "fall_back": 0.65 },
+      "stance": { "fire_prone": 0.3, "fire_stand": 0.2, "pinned_kneel": 0.25, "fall_back": 0.65, "chest_m": [1.35, 0.85, 0.3] },
       "lean": { "out_s": 0.25, "back_s": 0.4 },
       "mount": {
         "gun_elevation_rad_s": 0.6,
@@ -2120,14 +2009,18 @@
             "atgm": { "size": 5, "duration": 5 }
           }
         },
+        "water": { "color": [2.4, 2.5, 2.6], "opacity": 0.6, "size_m": 1.1, "duration_s": 0.8, "sparks": 0, "flash": 0,
+          "round_scale": { "grenade": { "size": 4, "duration": 3 }, "tank_ap": { "size": 4, "duration": 3 }, "tank_he": { "size": 4, "duration": 3 }, "atgm": { "size": 4, "duration": 3 } } },
         "hull": { "color": [2.2, 1.9, 1.45], "opacity": 0.5, "size_m": 0.45, "duration_s": 0.7, "sparks": 6, "flash": 25, "cast": { "color": [1.0, 0.72, 0.4], "intensity": 10, "radius_m": 4, "duration_s": 0.1 } },
-        "prop": { "color": [2.2, 2.1, 1.9], "opacity": 0.55, "size_m": 0.5, "duration_s": 0.8, "sparks": 2, "flash": 0 },
+        "prop": { "color": [2.2, 2.1, 1.9], "opacity": 0.55, "size_m": 0.5, "duration_s": 0.8, "sparks": 0, "flash": 0 },
+        "metal_prop": { "color": [2.2, 2.1, 1.9], "opacity": 0.55, "size_m": 0.5, "duration_s": 0.8, "sparks": 4, "flash": 0 },
         "soldier": { "color": [1.6, 1.3, 1.1], "opacity": 0.7, "size_m": 0.5, "duration_s": 0.6, "sparks": 0, "flash": 0 }
       },
       "impact_scale": { "default": 1, "rifle": 1, "hmg": 1.4, "autocannon": 1.8, "grenade": 2.5, "tank_ap": 3, "tank_he": 3.5, "atgm": 3 },
       "blast_scale": { "default": 1, "autocannon": 0.35 },
       "sparks": { "color": [1.0, 0.72, 0.4], "intensity": 30, "speed_mps": 8, "duration_s": 0.3, "length_m": 0.35, "width_m": 0.03 },
       "ricochet_sparks": 10,
+      "grind_sparks_per_s": 60,
       "blast": {
         "size_per_radius": 0.9,
         "reference_size_m": 3,
@@ -2183,6 +2076,7 @@
         "landing_sparks": 14,
         "debris": { "hold_s": 20, "fade_s": 4 }
       },
+      "wake": { "ring_hz": 2, "vee_mps": 1, "vee_depth_m": 0.2, "spacing_m": 1.5, "soldier_radius_m": 0.15, "ring_strength": 0.5, "vee_strength": 1 },
       "dust": {
         "albedo": [0.74, 0.63, 0.48],
         "opacity": 0.4,
@@ -2328,8 +2222,7 @@
         }
       },
       "smoke_budget": 4096,
-      "cast_wrap": 0.9,
-      "wind_mps": [0.6, 0.3]
+      "cast_wrap": 0.9
     }
   },
   "hull_limits": {

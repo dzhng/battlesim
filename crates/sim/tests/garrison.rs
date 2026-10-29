@@ -589,7 +589,7 @@ fn under_fire(extra_props: Value, events: Value, seed: u64) -> (Battle, Commande
     setup.rules.buildings.capacity_soldiers = 16;
     // The occupants' grenades cut off short of the tank's armour: the tank
     // shells them for the whole run.
-    setup.rules.weapons.get_mut("grenade").unwrap().partial_from = Some(0.6);
+    setup.rules.weapons.get_mut("grenade").unwrap().partial_from = 0.6;
     let mut rows = serde_json::to_value(&setup.rules).unwrap();
     sim::fixtures::patch_catalog(
         &mut rows,
@@ -1690,13 +1690,10 @@ fn an_unusable_launcher_does_not_keep_its_operator_at_a_useless_window() {
             json!([]),
         );
         setup.rules.buildings.capacity_soldiers = 12;
-        setup
-            .rules
-            .weapons
-            .get_mut("atgm")
-            .unwrap()
-            .ballistics
-            .range_m = if return_fire { 900.0 } else { 120.0 };
+        common::ground_reach(
+            setup.rules.weapons.get_mut("atgm").unwrap(),
+            if return_fire { 900.0 } else { 120.0 },
+        );
         let rifle_suppression = setup.rules.weapons["rifle"].near_miss_suppression;
         for weapon in setup.rules.weapons.values_mut() {
             weapon.damage = 0.0;

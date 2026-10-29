@@ -50,8 +50,14 @@ fn every_frames_camera_is_the_browsers() {
         let f = presentation
             .frame(time, &camera, &Ui::default(), 0)
             .unwrap();
+        // The camera's own math; the wind it carries is the ground's.
+        let math = std::mem::offset_of!(presentation::records::Camera, wind) / 4;
         let uniform: &[f32] = bytemuck::cast_slice(std::slice::from_ref(&f.camera));
-        assert_eq!(bits(uniform), words(&case["camera"]), "case {k} camera");
+        assert_eq!(
+            bits(&uniform[..math]),
+            words(&case["camera"]),
+            "case {k} camera"
+        );
         assert_eq!(bits(&f.view.view), words(&case["view"]), "case {k} view");
         let rays = [f.view.sky_origin, f.view.sky_dx, f.view.sky_dy].concat();
         assert_eq!(bits(&rays), words(&case["rays"]), "case {k} rays");

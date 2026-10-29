@@ -1,3 +1,10 @@
+struct Wind {
+  toward: vec3f,
+  driftMps: f32,
+  gustMps: f32,
+  gustPerM: f32,
+}
+
 struct Camera {
   viewProj: mat4x4f,
   invViewProj: mat4x4f,
@@ -6,6 +13,8 @@ struct Camera {
   width: f32,
   height: f32,
   time: f32,
+  wind: array<Wind, 1>,
+  waves: vec4f,
 }
 
 @group(0) @binding(0) var<uniform> cam: Camera;
@@ -44,6 +53,26 @@ struct RoadLook {
   stones: vec4f,
 }
 
+struct ShoreTuning {
+  bands: vec4f,
+  turns: vec4f,
+  ground: vec4f,
+  fade: vec4f,
+}
+
+struct WaterLook {
+  channel: vec4f,
+  edge: vec4f,
+  surface: vec4f,
+  normals: vec4f,
+  drifts: vec4f,
+  fades: vec4f,
+  roughness: vec4f,
+  lobes: vec4f,
+  refraction: vec4f,
+  caustics: vec4f,
+}
+
 struct TerrainParams {
   region: vec4f,
   field: vec4f,
@@ -61,96 +90,79 @@ struct TerrainParams {
   forestDapple: vec4f,
   forestLine: vec4f,
   waterBed: vec4f,
-  water: vec4f,
-  waterEdge: vec4f,
-  waterLook: vec4f,
   shore: vec4f,
   shoreEarth: vec4f,
   shoreEdge: vec4f,
   distant: vec4f,
+  shoreTuning: ShoreTuning,
+  waterLooks: array<WaterLook, 8>,
   view: vec4u,
 }
 
-@group(1) @binding(0) var<uniform> params_1: TerrainParams;
+@group(1) @binding(0) var<uniform> params: TerrainParams;
 
-@group(1) @binding(4) var<storage, read> surfaceIndex: array<u32>;
+fn cameraWind() -> Wind { return cam.wind[0]; }
 
-fn groundCell(xy: vec2f, footprint: f32) -> vec4u {
- let P=params_1;
- var level=0u;var widest=P.field.w;
- while(footprint>widest&&level+1u<P.fieldGrid.z){widest*=2.0;level++;}
- let shift=surfaceIndex[level*2u+1u];
- let finest=clamp(vec2i(floor((xy-P.field.xy)*P.field.z)),vec2i(0),vec2i(P.fieldGrid.xy)-1);
- let cell=vec2u(finest)>>vec2u(shift);
- let cols=((P.fieldGrid.x-1u)>>shift)+1u;
- let at=surfaceIndex[level*2u]+(cell.y*cols+cell.x)*3u;
- return vec4u(surfaceIndex[at],surfaceIndex[at+1u],surfaceIndex[at+2u],surfaceIndex[at+3u]);
+fn waterCarried() -> vec2f {
+  let wind = cameraWind();
+  return (wind.toward.xy * (cam.time * wind.driftMps));
 }
 
-struct SurfaceRecord {
-  ends: vec4f,
-  detail: vec4f,
+@group(1) @binding(8) var waterNormals: texture_2d<f32>;
+
+@group(1) @binding(9) var waterTiles: sampler;
+
+fn waterLayer(xy: vec2f, scale: f32, turn: vec2f, wind: vec2f, strength: f32, footprint: f32) -> vec3f {
+  let held = (1f - smoothstep(1.5f, 6f, ((footprint * scale) * 256f)));
+  let at = (xy - wind);
+  let uv = (vec2f(((at.x * turn.x) + (at.y * turn.y)), ((at.y * turn.x) - (at.x * turn.y))) * scale);
+  let slope = textureSampleLevel(waterNormals, waterTiles, uv, 0).xy;
+  let along = vec2f(((slope.x * turn.x) - (slope.y * turn.y)), ((slope.x * turn.y) + (slope.y * turn.x)));
+  return normalize(vec3f((along * (-(strength) * held)), 1f));
 }
 
-@group(1) @binding(3) var<storage, read> surfaces: array<SurfaceRecord>;
-
-fn groundWater(xy: vec2f, cell: vec4u) -> f32 {
- var bed=-1e9;
- for(var i=cell.z;i<cell.w;i++){
-  let stretch=surfaces[surfaceIndex[i]&536870911u];
-  let a=stretch.ends.xy;let ab=stretch.ends.zw-a;let len2=dot(ab,ab);
-  var t=0.0;if(len2>0.0){t=clamp(dot(xy-a,ab)/len2,0.0,1.0);}
-  let half=stretch.detail.x+(stretch.detail.y-stretch.detail.x)*t;
-  bed=max(bed,half-length(xy-(a+ab*t)));
- }
- return bed;
+fn blendRnm(base: vec3f, detail: vec3f) -> vec3f {
+  let t = (base + vec3f(0, 0, 1));
+  let u = (detail * vec3f(-1, -1, 1));
+  return normalize(((t * (dot(t, u) / t.z)) - u));
 }
 
-fn pcgHash(v: u32) -> u32 {
-  let s = v * 747796405u + 2891336453u;
-  let w = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u;
-  return (w >> 22u) ^ w;
+fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
+  let w = (&params.waterLooks[look]);
+  let carried = waterCarried();
+  let primary = waterLayer(xy, (*w).normals.x, vec2f(1, 0), (carried * (*w).drifts.x), (*w).normals.w, footprint);
+  let macro_1 = waterLayer(xy, (*w).normals.y, vec2f(0.824999988079071, 0.5649999976158142), (carried * (*w).drifts.y), (*w).normals.w, footprint);
+  let detail = waterLayer(xy, (*w).normals.z, vec2f(0.45399999618530273, -0.890999972820282), (carried * (*w).drifts.z), (*w).normals.w, footprint);
+  let n = blendRnm(blendRnm(macro_1, primary), detail);
+  let shown = (1f - smoothstep((*w).fades.y, (*w).fades.z, footprint));
+  return normalize(mix(vec3f(0, 0, 1), n, shown));
 }
 
-fn valueNoise(p: vec2f) -> f32 {
-  let cell = floor(p);
-  let f = p - cell;
-  let u = f * f * (3.0 - 2.0 * f);
-  let ix = bitcast<u32>(i32(cell.x));
-  let iy = bitcast<u32>(i32(cell.y));
-  var h = array<f32, 4>();
-  for (var k = 0u; k < 4u; k++) {
-    let s = pcgHash(((ix + (k & 1u)) * 1597334677u) ^ ((iy + (k >> 1u)) * 3812015801u));
-    h[k] = f32(s) * (1.0 / 4294967295.0);
+@group(2) @binding(13) var waves: texture_2d<f32>;
+
+@group(2) @binding(11) var sceneTaps: sampler;
+
+fn waveHeight(uv: vec2f) -> f32 {
+  return textureSampleLevel(waves, sceneTaps, uv, 0).x;
+}
+
+fn waveNormal(xy: vec2f, n: vec3f) -> vec3f {
+  let area = (&cam.waves);
+  let low = f32((params.view.z == 1u));
+  let shown = ((*area).w * (1f - low));
+  let uv = ((xy - (*area).xy) / (*area).z);
+  let inside = min(uv, (vec2f(1) - uv));
+  if (((shown <= 0f) || (min(inside.x, inside.y) <= 0f))) {
+    return n;
   }
-  return mix(mix(h[0], h[1], u.x), mix(h[2], h[3], u.x), u.y);
-}
-
-fn waterSurface(xy: vec2f, footprint: f32) -> vec4f {
-  let params = (&params_1);
-  let water = groundWater(xy, groundCell(xy, footprint));
-  let deep = (1f - exp((-(max(water, 0f)) * (*params).waterLook.x)));
-  let shown = (1f - smoothstep(0.15f, 1.2f, footprint));
-  let drift = (2.5f * valueNoise((xy * 0.09090909090909091f)));
-  let lane = valueNoise(vec2f(((water / 0.5f) + drift), 3.7f));
-  let streak = valueNoise(((xy * 0.2857142857142857f) + vec2f(63.099998474121094, 29.299999237060547)));
-  let lit = smoothstep(0.55f, 0.8f, ((0.6f * lane) + (0.4f * streak)));
-  let colour = (mix((*params).waterEdge.xyz, (*params).water.xyz, deep) * (1f + ((*params).waterLook.y * mix(0.1f, lit, shown))));
-  let edge = smoothstep((-(footprint) * 0.5f), (footprint * 0.5f), water);
-  return vec4f(colour, (mix((*params).waterEdge.w, (*params).water.w, deep) * edge));
-}
-
-fn rippleHeight(xy: vec2f) -> f32 {
-  return (valueNoise((xy * 0.3125f)) + (0.5f * valueNoise(((xy * 1.1111111111111112f) + vec2f(17.299999237060547, 5.099999904632568)))));
-}
-
-fn waterNormal(xy: vec2f, footprint: f32) -> vec3f {
-  let ex = vec2f(0.25, 0);
-  let ey = vec2f(0, 0.25);
-  let dx = (rippleHeight((xy + ex)) - rippleHeight((xy - ex)));
-  let dy = (rippleHeight((xy + ey)) - rippleHeight((xy - ey)));
-  let k = (0.18f * (1f - smoothstep(0.15f, 1.2f, footprint)));
-  return normalize(vec3f((-(dx) * k), (-(dy) * k), 1f));
+  const texel = 9.765625e-4;
+  let dx = (waveHeight((uv + vec2f(texel, 0f))) - waveHeight((uv - vec2f(texel, 0f))));
+  let dy = (waveHeight((uv + vec2f(0f, texel))) - waveHeight((uv - vec2f(0f, texel))));
+  let edge = smoothstep(0f, 0.08f, min(inside.x, inside.y));
+  let ripple = (vec2f(dx, dy) * ((2.4f * shown) * edge));
+  let flatten = (saturate((length(ripple) * 1.8f)) * 0.72f);
+  let calmed = normalize(mix(n, vec3f(0, 0, 1), flatten));
+  return blendRnm(calmed, normalize(vec3f((ripple * -1f), 1f)));
 }
 
 struct Aerial {
@@ -279,13 +291,13 @@ fn inheritedSunShadow(environment: Environment, sunShadow: SunShadow, sunDepth: 
   return shade;
 }
 
-@group(2) @binding(0) var<uniform> data: Environment;
+@group(3) @binding(0) var<uniform> data: Environment;
 
-@group(2) @binding(6) var<uniform> sun: SunShadow;
+@group(3) @binding(6) var<uniform> sun: SunShadow;
 
-@group(2) @binding(7) var sunDepth: texture_depth_2d_array;
+@group(3) @binding(7) var sunDepth: texture_depth_2d_array;
 
-@group(2) @binding(8) var sunCompare: sampler_comparison;
+@group(3) @binding(8) var sunCompare: sampler_comparison;
 
 fn sampleSunShadow(world: vec3f, normal: vec3f, pixel: vec2f) -> f32 {
   return inheritedSunShadow(data, sun, sunDepth, sunCompare, world, normal, pixel);
@@ -298,9 +310,9 @@ struct FogLayer {
   pad: u32,
 }
 
-@group(3) @binding(1) var<uniform> layer: FogLayer;
+@group(2) @binding(1) var<uniform> layer: FogLayer;
 
-@group(3) @binding(7) var paint: texture_2d<f32>;
+@group(2) @binding(7) var paint: texture_2d<f32>;
 
 fn groundPaint(ground: vec3f) -> vec4f {
   if (layer.painted == 0u) { return vec4f(0.0); }
@@ -314,29 +326,128 @@ fn groundPaint(ground: vec3f) -> vec4f {
   return vec4f(p.xyz * 2, p.w);
 }
 
-struct GroundPaintStyle {
-  albedo: f32,
-  emissive: f32,
-  fogKeep: f32,
-  grassGlow: f32,
-  grassFalloff: f32,
-  saturation: f32,
-  pad1: f32,
-  pad2: f32,
+fn ndcAt(at: vec2i) -> vec2f {
+    let cam = cam;
+    let centre = vec2f(at) + 0.5;
+    return vec2f(centre.x / cam.width * 2.0 - 1.0, 1.0 - centre.y / cam.height * 2.0);
+  }
+
+@group(2) @binding(9) var depth: texture_depth_multisampled_2d;
+
+fn bedDistance(at: vec2i, world: vec3f) -> f32 {
+    let cam = cam;
+    let ndc = ndcAt(at);
+    var far = 0.0;
+    for (var s = 0; s < 4; s++) {
+      let p = cam.invViewProj * vec4f(ndc, textureLoad(depth, at, s), 1.0);
+      far += min(length(p.xyz / p.w - world), 50.0);
+    }
+    return far / 4.0;
+  }
+
+fn waterDepth(clip: vec4f, world: vec3f) -> f32 {
+  return bedDistance(vec2i(clip.xy), world);
 }
 
-@group(3) @binding(6) var<uniform> paintStyle: GroundPaintStyle;
+@group(2) @binding(10) var sceneColour: texture_2d<f32>;
 
-fn paintColour(paint: vec4f) -> vec3f {
-  let c = pow(max(paint.xyz / max(paint.w, 1e-4), vec3f(0.0)), vec3f(2.2));
-  let grey = dot(c, vec3f(0.2126, 0.7152, 0.0722));
-  return max(mix(vec3f(grey), c, paintStyle.saturation), vec3f(0.0));
+@group(2) @binding(12) var seenUnder: texture_2d<f32>;
+
+fn tapped(u: vec2f, size: vec2f) -> vec4i {
+    let last = size - 1.0;
+    let first = clamp(floor(u - 1.0 / 256.0), vec2f(0.0), last);
+    let end = clamp(floor(u + 1.0 / 256.0) + 1.0, vec2f(0.0), last);
+    return vec4i(vec2i(first), vec2i(end));
+  }
+
+fn waterUnder(clip: vec4f, world: vec3f, n: vec3f, straight: f32, look: u32) -> vec4f {
+    let here = vec2i(clip.xy);
+    if (params.view.z == 1u) {
+      return vec4f(textureLoad(sceneColour, here, 0).rgb, straight);
+    }
+    let r = params.waterLooks[look].refraction;
+    let cam = cam;
+    let screen = vec2f(cam.width, cam.height);
+    let shift = vec3f(n.xy * (min(straight, r.y) * r.x), 0.0);
+    let a = cam.viewProj * vec4f(world, 1.0);
+    let b = cam.viewProj * vec4f(world + shift, 1.0);
+    var px = (b.xy / b.w - a.xy / a.w) * vec2f(0.5, -0.5) * screen;
+    px *= min(1.0, r.z * cam.height / max(length(px), 1e-6));
+    let to = vec2i(clamp(clip.xy + px, vec2f(0.0), screen - 1.0));
+    let ahead = cam.invViewProj * vec4f(ndcAt(to), textureLoad(depth, to, 0), 1.0);
+    let behind = length(ahead.xyz / ahead.w - cam.eye) - length(world - cam.eye);
+    let unseen = textureLoad(seenUnder, to, 0).x
+      - textureLoad(seenUnder, here, 0).x;
+    let keep = smoothstep(0.0, 0.15, behind) * (1.0 - smoothstep(0.0, 0.5, unseen));
+    let at = clip.xy + px * keep;
+    let far = bedDistance(vec2i(at), world);
+    let level = min(far / r.w, f32(textureNumLevels(sceneColour) - 1));
+    // The blurred tap averages its footprint's unfogged colours, and a
+    // swamp's bed keeps its paint. Where any of that footprint is seen less
+    // than the water's own pixel, or is marked, the bed is read at the
+    // pixel, unshifted and unblurred: nothing unseen shows through, and the
+    // bed's mark lies under the surface's, so it shows once. The guard's
+    // level holds the worst of each texel's footprint (`guardMip`), so its
+    // texels under the tap, at either level the sampler may pick, say it
+    // exactly.
+    let mine = textureLoad(seenUnder, here, 0).x;
+    var worst = vec2f(0.0, textureLoad(paint, here, 0).a);
+    for (var m = u32(floor(level)); m <= u32(ceil(level)); m++) {
+      let size = vec2f(textureDimensions(seenUnder, m));
+      let taps = tapped(at / screen * size - 0.5, size);
+      for (var y = taps.y; y <= taps.w; y++) {
+        for (var x = taps.x; x <= taps.z; x++) {
+          worst = max(worst, textureLoad(seenUnder, vec2i(x, y), m).xy);
+        }
+      }
+    }
+    if (worst.x > mine || worst.y > 0.0) {
+      return vec4f(textureLoad(sceneColour, here, 0).rgb, straight);
+    }
+    let colour = textureSampleLevel(sceneColour, sceneTaps, at / screen, level);
+    return vec4f(colour.rgb, far);
+  }
+
+fn environmentSun() -> vec3f { return data.sunDirection.xyz; }
+
+fn slopeAt(uv: vec2f) -> vec2f {
+  return textureSampleLevel(waterNormals, waterTiles, uv, 0).xy;
 }
 
-fn paintedAlbedo(albedo: vec3f, paint: vec4f) -> vec3f {
-  if (paint.w <= 0.0) { return albedo; }
-  let colour = min(paintColour(paint), vec3f(1.0));
-  return mix(albedo, colour * paintStyle.albedo, paint.w);
+fn crest(apart: f32, width: f32) -> f32 {
+  let blur = (0.5f * fwidth(apart));
+  let c = ((1f - smoothstep(0f, (width + blur), abs(apart))) * (width / (width + blur)));
+  return (c * c);
+}
+
+fn crests(a: vec2f, b: vec2f, sharpness: f32) -> f32 {
+  let one = crest(((((a.x + a.y) - b.x) + b.y) * sharpness), 0.85f);
+  let two = crest(((((a.x - a.y) - b.x) - b.y) * sharpness), 0.85f);
+  return ((one + two) * 0.9f);
+}
+
+fn waterCaustics(world: vec3f, far: f32, footprint: f32, look: u32) -> f32 {
+  if ((params.view.z == 1u)) {
+    return 0f;
+  }
+  let w = (&params.waterLooks[look]);
+  let c = (&(*w).caustics);
+  let view = normalize((cam.eye - world));
+  let bed = (world - (view * far));
+  let depth_1 = max((world.z - bed.z), 0f);
+  let up = abs(normalize(cross(dpdx(bed), dpdy(bed))).z);
+  let level = smoothstep(0.3f, 0.7f, up);
+  let sun_1 = environmentSun();
+  let through = (bed.xy + (sun_1.xy * ((0.75f * depth_1) / max(sun_1.z, 0.3f))));
+  let carried = waterCarried();
+  let uv1 = ((through - (carried * (*w).drifts.x)) * (*c).x);
+  let uv2 = ((through - (carried * (*w).drifts.z)) * ((*c).x * 1.8f));
+  let s1 = slopeAt((uv1 + (slopeAt(uv2) * 0.18f)));
+  let s2 = slopeAt((uv2 + (slopeAt(uv1) * 0.18f)));
+  let fade = (exp((-(depth_1) * (*c).z)) * smoothstep(0.01f, 0.08f, depth_1));
+  let held = (1f - smoothstep(0.25f, 0.5f, (((footprint * (*c).x) * 1.8f) * 12.36931687685298f)));
+  let high = clamp((sun_1.z * 1.5f), 0.35f, 1f);
+  return (((((crests(s1, s2, (*c).w) * (*c).y) * fade) * level) * held) * high);
 }
 
 struct CastLight {
@@ -349,7 +460,7 @@ struct CastLights {
   lights: array<CastLight, 24>,
 }
 
-@group(2) @binding(1) var<uniform> lights: CastLights;
+@group(3) @binding(1) var<uniform> lights: CastLights;
 
 fn castLight(base: vec3f, normal: vec3f, position: vec3f) -> vec3f {
   let count = u32(lights.header.x);
@@ -472,6 +583,63 @@ fn standardPbr(base: vec3f, emissive: vec3f, authoredRoughness: f32, geometryRou
   return max((directDiffuse+indirectDiffuse)+(directSpecular+indirectSpecular)+emissive,vec3f(0));
 }
 
+fn lightAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linear: sampler) -> vec3f {
+ return standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
+ }
+
+@group(3) @binding(3) var pmrem: texture_2d<f32>;
+
+@group(3) @binding(4) var dfg: texture_2d<f32>;
+
+@group(3) @binding(5) var linear: sampler;
+
+fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec3f {
+  let sun_1 = mix(data.settings.y, 1f, shadow);
+  return lightAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun_1, eye, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, pmrem, dfg, linear);
+}
+
+fn lobe(roughness: f32, n: vec3f, world: vec3f, sun_1: f32, eye: vec3f) -> vec3f {
+  return surfaceLight(vec3f(), vec3f(), roughness, 0f, 0.5f, 1f, n, world, sun_1, eye);
+}
+
+fn waterReflection(n: vec3f, world: vec3f, sun_1: f32, eye: vec3f, look: u32) -> vec3f {
+  let w = (&params.waterLooks[look]);
+  let sharp = (lobe((*w).roughness.x, n, world, sun_1, eye) * (*w).lobes.x);
+  let sheen = (lobe((*w).roughness.y, n, world, sun_1, eye) * (*w).lobes.y);
+  let broad = (lobe((*w).roughness.z, n, world, sun_1, eye) * (*w).lobes.z);
+  return ((sharp + sheen) + broad);
+}
+
+struct GroundPaintStyle {
+  albedo: f32,
+  emissive: f32,
+  fogKeep: f32,
+  grassGlow: f32,
+  grassFalloff: f32,
+  saturation: f32,
+  pad1: f32,
+  pad2: f32,
+}
+
+@group(2) @binding(6) var<uniform> paintStyle: GroundPaintStyle;
+
+fn paintColour(paint: vec4f) -> vec3f {
+  let c = pow(max(paint.xyz / max(paint.w, 1e-4), vec3f(0.0)), vec3f(2.2));
+  let grey = dot(c, vec3f(0.2126, 0.7152, 0.0722));
+  return max(mix(vec3f(grey), c, paintStyle.saturation), vec3f(0.0));
+}
+
+fn paintedAlbedo(albedo: vec3f, paint: vec4f) -> vec3f {
+  if (paint.w <= 0.0) { return albedo; }
+  let colour = min(paintColour(paint), vec3f(1.0));
+  return mix(albedo, colour * paintStyle.albedo, paint.w);
+}
+
+fn waterTransmission(n: vec3f, view: vec3f) -> f32 {
+  let edgeOn = (1f - clamp(dot(n, view), 0f, 1f));
+  return (1f - (0.02f + (0.98f * pow(edgeOn, 5f))));
+}
+
 fn equirectUv(direction: vec3f) -> vec2f {
   return vec2f(atan2(direction.z, direction.x) * 1.5915494309189535e-1f + 0.5,
     asin(clamp(direction.y, -1.0, 1.0)) * 3.1830988618379069e-1f + 0.5);
@@ -498,23 +666,16 @@ fn applyAerial(surface: vec4f, position: vec3f, camera: vec3f, observer: vec3f, 
     return vec4f(surface.rgb*transmit+mistSkyLight*(vec3f(1)-transmit),surface.a);
   }
 
-fn shadeAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, observer: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, air: Aerial, sky: texture_2d<f32>, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linear: sampler) -> vec4f {
- let lit=standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
- return applyAerial(vec4f(lit,1),worldPosition,eye,observer,sunDirection,air,sky,linear);
- }
+@group(3) @binding(2) var sky: texture_2d<f32>;
 
-@group(2) @binding(2) var sky: texture_2d<f32>;
-
-@group(2) @binding(3) var pmrem: texture_2d<f32>;
-
-@group(2) @binding(4) var dfg: texture_2d<f32>;
-
-@group(2) @binding(5) var linear: sampler;
-
-fn shade(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec4f {
-  let sun_1 = mix(data.settings.y, 1f, shadow);
-  return shadeAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun_1, eye, data.observer.xyz, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, data.aerial, sky, pmrem, dfg, linear);
+fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
+  return applyAerial(vec4f(colour, 1f), position, eye, data.observer.xyz, data.sunDirection.xyz, data.aerial, sky, linear);
 }
+
+fn atPixel(clip: vec4f) -> vec3f {
+    let p = cam.invViewProj * vec4f(ndcAt(vec2i(clip.xy)), clip.z, 1.0);
+    return p.xyz / p.w;
+  }
 
 fn paintGlow(paint: vec4f) -> vec3f {
   if (paint.w <= 0.0) { return vec3f(0.0); }
@@ -567,16 +728,16 @@ struct FogParams {
   wholeFlagsBase: u32,
 }
 
-@group(3) @binding(0) var<uniform> params: FogParams;
+@group(2) @binding(0) var<uniform> params_1: FogParams;
 
-@group(3) @binding(8) var wholes: texture_2d<u32>;
+@group(2) @binding(8) var wholes: texture_2d<u32>;
 
 fn fogWholeWord(i: u32) -> u32 {
   return textureLoad(wholes, vec2u(i % 256u, i / 256u), 0).x;
 }
 
 fn fogWholeSeen(p: vec3f) -> bool {
-  let P = params;
+  let P = params_1;
   if (P.wholeCount == 0u) { return false; }
   let c = (p.xy - P.wholeOrigin) / P.wholeCellM;
   if (c.x < 0.0 || c.y < 0.0 || c.x >= f32(P.wholeNx) || c.y >= f32(P.wholeNy)) { return false; }
@@ -602,11 +763,11 @@ fn fogWholeSeen(p: vec3f) -> bool {
   return false;
 }
 
-@group(3) @binding(5) var<storage, read> counts: array<u32>;
+@group(2) @binding(5) var<storage, read> counts: array<u32>;
 
 fn fogProbePoint(world: vec3f, normal: vec3f, ground: bool) -> vec3f {
-  if (ground) { return world + vec3f(0.0, 0.0, params.targetHeightM); }
-  return world + normal * params.faceProbeM;
+  if (ground) { return world + vec3f(0.0, 0.0, params_1.targetHeightM); }
+  return world + normal * params_1.faceProbeM;
 }
 
 struct FogEye {
@@ -620,7 +781,7 @@ struct FogEye {
   slot: u32,
 }
 
-@group(3) @binding(2) var<storage, read> eyes: array<FogEye>;
+@group(2) @binding(2) var<storage, read> eyes: array<FogEye>;
 
 fn fogShape(front: f32, side: f32, rear: f32, off: f32) -> f32 {
   let c = cos(off);
@@ -637,11 +798,11 @@ fn fogUnpack(w: u32) -> vec3f {
   return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * 0.005);
 }
 
-@group(3) @binding(3) var<storage, read> maps: array<u32>;
+@group(2) @binding(3) var<storage, read> maps: array<u32>;
 
 fn fogSeenBy(ei: u32, p: vec3f, n: vec3f) -> bool {
   let e = eyes[ei];
-  let P = params;
+  let P = params_1;
   if (p.x < P.playable.x || p.y < P.playable.y ||
       p.x > P.playable.x + P.playable.z || p.y > P.playable.y + P.playable.w) {
     // The visual margin is outside the simulation. Keep it permanently unseen
@@ -707,7 +868,7 @@ fn fogSeenSurface(ei: u32, world: vec3f, normal: vec3f, ground: bool) -> bool {
   let n = select(normal, vec3f(0.0), ground);
   if (fogSeenBy(ei, p, n)) { return true; }
   let e = eyes[ei];
-  let P = params;
+  let P = params_1;
   if (ground || P.roofReachM <= 0.0 || normal.z < 0.7 || world.z <= e.position.z) {
     return false;
   }
@@ -721,10 +882,10 @@ fn fogSeenSurface(ei: u32, world: vec3f, normal: vec3f, ground: bool) -> bool {
   return fogSeenBy(ei, q, vec3f(0.0));
 }
 
-@group(3) @binding(4) var<storage, read> lists: array<u32>;
+@group(2) @binding(4) var<storage, read> lists: array<u32>;
 
 fn fogTerm(world: vec3f, normal: vec3f, pixel: vec2f, isGround: bool) -> f32 {
-  let P = params;
+  let P = params_1;
   if (P.enabled == 0u || layer.seen == 1u) { return 1.0; }
   if (fogWholeSeen(world)) { return 1.0; }
   let tile = u32(pixel.x) / P.tilePx + (u32(pixel.y) / P.tilePx) * P.tilesX;
@@ -742,7 +903,7 @@ fn paintedSeen(seen: f32, paint: vec4f) -> f32 {
 }
 
 fn fogCoverage(seen: f32, alpha: f32) -> vec4f {
-  if (params.enabled == 0u || layer.seen == 1u) {
+  if (params_1.enabled == 0u || layer.seen == 1u) {
     return vec4f(0.0, 0.0, 0.0, alpha);
   }
   return vec4f(1.0 - seen, seen, f32(layer.ground), alpha);
@@ -763,13 +924,41 @@ struct waterFragment_Input {
 @fragment fn waterFragment(_arg_0: waterFragment_Input, @builtin(position) clip: vec4f) -> waterFragment_Output {
   let eye = (&cam.eye);
   let footprint = length(fwidth(_arg_0.world.xy));
-  let surface = waterSurface(_arg_0.world.xy, footprint);
-  let n = waterNormal(_arg_0.world.xy, footprint);
+  let look = u32(round(_arg_0.color.x));
+  let w = (&params.waterLooks[look]);
+  let still = select(waterNormal(_arg_0.world.xy, footprint, look), vec3f(0, 0, 1), (_arg_0.color.w > 0f));
+  let n = waveNormal(_arg_0.world.xy, still);
   let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
   let paint_1 = groundPaint(_arg_0.world);
-  let lit = shade(paintedAlbedo(surface.xyz, paint_1), vec3f(), 0.14f, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
-  let shaded = ((lit.xyz * mix(0.55f, 1f, sun_1)) + paintGlow(paint_1));
+  let puddle = (_arg_0.color.w > 0f);
+  let middle = (length((_arg_0.world.xy - _arg_0.color.yz)) / max(_arg_0.color.w, 1e-4f));
+  let up = max(normalize(((*eye) - _arg_0.world)).z, 0.2f);
+  let shaped = (((*w).fades.w * max((1f - (middle * middle)), 0f)) / up);
+  let depth_1 = select(waterDepth(clip, _arg_0.world), shaped, puddle);
+  let bed = waterUnder(clip, _arg_0.world, n, depth_1, look);
+  let through = exp(((*w).surface.xyz * -(select(bed.w, depth_1, puddle))));
+  let lit = (bed.xyz * (1f + (waterCaustics(_arg_0.world, depth_1, footprint, look) * sun_1)));
+  let body = mix((*w).edge.xyz, (*w).channel.xyz, (1f - dot(through, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023))));
+  let reflected = waterReflection(n, _arg_0.world, sun_1, (*eye), look);
+  let dry = surfaceLight(vec3f(), vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
+  let own = (surfaceLight(body, vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye)) - dry);
+  let mark = surfaceLight(paintedAlbedo(body, (paint_1 / max(paint_1.w, 1e-4f))), vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
+  let water = ((own * (vec3f(1) - through)) + reflected);
+  let seenUp = (through * waterTransmission(n, normalize(((*eye) - _arg_0.world))));
+  let shadowed = mix((*w).surface.w, 1f, sun_1);
+  let surfaceInAir = air((water * shadowed), _arg_0.world, (*eye)).xyz;
+  let bedAir = (air(vec3f(), _arg_0.world, (*eye)).xyz * seenUp);
+  let wet = ((surfaceInAir - bedAir) + (lit * seenUp));
+  let facing = max(0.35f, dot(n, normalize(((*eye) - _arg_0.world))));
+  let pixel = length(fwidth(atPixel(clip).xy));
+  let fade = max((*w).fades.x, ((pixel * 3f) / facing));
+  let rim = ((1f - middle) * _arg_0.color.w);
+  let ring = max((_arg_0.color.w / 6f), (pixel * 1.5f));
+  let fill = select((depth_1 / fade), (rim / ring), puddle);
+  let edge = smoothstep(0f, 1f, clamp(fill, 0f, 1f));
+  let marked = (air((mark * shadowed), _arg_0.world, (*eye)).xyz * paint_1.w);
+  let cover = (paint_1.w + (edge * (1f - paint_1.w)));
+  let colour = (((marked + paintGlow(paint_1)) + (wet * (edge * (1f - paint_1.w)))) / max(cover, 1e-4f));
   let seen = paintedSeen(fogTerm(_arg_0.world, n, clip.xy, fogIsGround()), paint_1);
-  let alpha = max(surface.w, paint_1.w);
-  return waterFragment_Output(vec4f(shaded, alpha), fogCoverage(seen, alpha));
+  return waterFragment_Output(vec4f(colour, cover), fogCoverage(seen, cover));
 }

@@ -5,7 +5,7 @@ import { join, relative, resolve as resolvePath } from "node:path";
 import { FixturePublication, mechanicsSourcePaths } from "../fixture-publication/publication";
 import type { Plugin } from "vite";
 import { isGameDocument } from "../../web/src/battle/catalog/compose";
-import { gameplayField, validateGameplayValue, valueAt } from "./src/fields";
+import { fieldValue, gameplayField, isObject, validateGameplayValue, valueAt } from "./src/fields";
 import {
   MECHANICS_API,
   targetKey,
@@ -70,7 +70,7 @@ function entry(catalog: JsonObject, section: string, id: string): JsonObject {
   return object(records[id]);
 }
 
-/** Every edit takes effect in the resolved `catalog`: the selected unit
+/** Every final edit takes effect in the resolved `catalog`: the selected unit
  *  still carries each edited soldier kind (by its local variant id in
  *  `soldierIds`), and no inheritance or upgrade overrides the new value. */
 function checkIntent(
@@ -78,7 +78,7 @@ function checkIntent(
   changes: readonly MechanicsChange[],
   soldierIds: Record<string, string>,
 ): void {
-  for (const change of changes) {
+  for (const [index, change] of changes.entries()) {
     if (change.restore) continue;
     const id = soldierIds[targetKey(change)] ?? change.id;
     if (
@@ -90,7 +90,25 @@ function checkIntent(
       throw new MechanicsError(
         "The selected unit no longer carries the edited soldier kind. Update its slots or remove the soldier edit.",
       );
-    if (!matchesIntent(valueAt(entry(catalog, change.section, id), change.path), change.value!))
+    const expected = structuredClone(change.value!);
+    // A later child edit supplies that field's final intent, including a restore.
+    // Keep checking every other part of the parent replacement.
+    for (const later of changes.slice(index + 1)) {
+      if (
+        targetKey(later) !== targetKey(change) ||
+        later.path.length <= change.path.length ||
+        !change.path.every((key, i) => later.path[i] === key)
+      )
+        continue;
+      const parent = valueAt({ value: expected }, [
+        "value",
+        ...later.path.slice(change.path.length, -1),
+      ]);
+      if (isObject(parent)) delete parent[later.path.at(-1)!];
+    }
+    const actual = valueAt(entry(catalog, change.section, id), change.path);
+    const field = gameplayField(change.section, change.path);
+    if (!matchesIntent(fieldValue(field, actual), expected))
       throw new MechanicsError(
         "Inheritance or an upgrade part overrides this field. The requested value would not take effect.",
       );

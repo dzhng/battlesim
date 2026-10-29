@@ -156,8 +156,10 @@ fn craters_slow_a_moving_vehicle_slightly_and_never_its_plan() {
         slowed > clean,
         "craters slow the crossing: {slowed} vs {clean}"
     );
-    // Slightly: never slower than the full-crater multiplier over the field.
-    let mult = num("ground", "crater_vehicle_mult");
+    // Slightly: never slower than the full-crater speed factor over the field.
+    let mult = common::game()["movement"]["speed_factors"]["tracked"]["crater"]
+        .as_f64()
+        .unwrap();
     assert!(
         (slowed as f64) <= clean as f64 / mult + 2.0,
         "{slowed} vs {clean} at ×{mult}"
@@ -424,4 +426,54 @@ fn craters_enter_the_digest_and_replay_to_it() {
         replay.step();
         assert_eq!(replay.digest(), d);
     }
+}
+
+/// A flat field crossed north to south by a river at x = 300, bridged at
+/// y = 100 by a deck that ends 6 m past each bank.
+fn bridged() -> String {
+    json!({
+        "size": [600, 200], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [],
+        "rivers": [{ "surface_z": -1.5, "points": [
+            { "xy": [300, 0], "width_m": 24, "depth_m": 2 },
+            { "xy": [300, 200], "width_m": 24, "depth_m": 2 }
+        ] }],
+        "bridges": [{ "deck": "bridge_deck", "center": [300, 100], "half_extents": [18, 5],
+            "yaw": 0, "deck_z": 0.1, "thickness_m": 0.8 }]
+    })
+    .to_string()
+}
+
+#[test]
+fn a_tank_on_a_bridge_deck_leaves_no_tracks_on_the_ground_under_it() {
+    let mut b = Battle::new(
+        &common::scenario_with(
+            &bridged(),
+            json!([{ "side": "blue", "kind": "test_tank", "position": [200, 100] }]),
+            json!([]),
+            json!([drive(0, [400.0, 100.0])]),
+        ),
+        1,
+    );
+    for _ in 0..60 * 30 {
+        b.step();
+        if b.unit(UnitId(0)).unwrap().position.x >= 395.0 {
+            break;
+        }
+    }
+    assert!(
+        b.unit(UnitId(0)).unwrap().position.x >= 395.0,
+        "the tank crossed the bridge"
+    );
+    // Its approach over dry ground keeps its tracks; under the deck lie the
+    // river and its banks, which no track ever touched.
+    let tracked = |inside: fn(f64) -> bool| {
+        b.ground()
+            .cells()
+            .any(|(x, y, c)| inside(x) && (y - 100.0).abs() <= 5.0 && c.tracks > 0)
+    };
+    assert!(tracked(|x| x < 282.0), "tracks on the approach");
+    assert!(
+        !tracked(|x| (282.0..318.0).contains(&x)),
+        "tracks under the deck"
+    );
 }

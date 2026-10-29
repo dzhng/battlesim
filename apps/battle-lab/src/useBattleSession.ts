@@ -9,14 +9,12 @@ import { admitScenario, presentationRules } from "@web/battle/catalog/sets";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { ContactPresentation } from "@web/battle/present/contactPresentation";
 import { gameContactStyle } from "./gameFog";
-import type { PreparedConnectionSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
 import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
-import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import { knownStanding, type PropBox } from "@packages/battle-renderer/src/models/propAppearance";
-import { pickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
+import { pickBox } from "@packages/battle-renderer/src/picking";
 import {
   FRAME_FLOATS,
   type SceneBuildings,
@@ -27,7 +25,7 @@ import {
   buildingPartProps,
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
-import { gameBiome } from "./gameBiome";
+import { useWorldLayers } from "./useWorldLayers";
 import { gameRuntime, mapAppearances, useMapAppearances } from "./gameAppearances";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { gameHud } from "@web/battle/present/hudTheme";
@@ -58,8 +56,6 @@ import {
   samePointerIntent,
   previewContextIdentity,
 } from "./pointerPaint";
-import type { PanelRules } from "@web/battle/present/panelRows";
-import type { RulerRules } from "@web/battle/present/rangeRuler";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observationView";
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { Player } from "@web/battle/prepare/protocol";
@@ -80,7 +76,8 @@ import {
 } from "./sideInstances";
 import { commandedEconomy, commandingPlayer, takesOrders } from "./commandingPlayer";
 import { allyOwners, controlled, playerIndex } from "@web/battle/input/controlled";
-import { useSimSession, type ScriptedSim } from "./useSimSession";
+import { useSimSession } from "./useSimSession";
+import type { BattleSessionOptions, ScenarioRules } from "./battleSessionOptions";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio } from "./soundFeed";
 import { UnitResponses } from "./unitResponses";
@@ -103,7 +100,6 @@ import {
   aircraftOrderReadouts,
   orderedGhost,
   ownSoldiers,
-  type AirLayers,
   type UnitGhost,
 } from "./unitGhosts";
 import { byReference, pendingGhosts } from "./pendingGhosts";
@@ -111,48 +107,6 @@ import { byReference, pendingGhosts } from "./pendingGhosts";
 const PURCHASE_BLOCKED = [...gameHud.bad, gameXray.selected[3]] as const;
 /** Ground heights the page remembers before starting afresh. */
 const SURFACE_HEIGHTS_MAX = 1 << 20;
-
-export interface BattleSessionOptions {
-  /** The scenario JSON the authority runs. */
-  scenario: string;
-  seed: number;
-  prepared?: PreparedConnectionSession;
-  /** Called for every decoded frame, before its credit returns. */
-  onDecoded?: (o: ObservationView, digest: string) => void;
-  /** A recorded battle to replay: input is off. */
-  replay?: string;
-  /** Blue is played by a script (the benchmark): input is off. */
-  scripted?: ScriptedSim;
-  /** Whose units and identified enemies are drawn (a lab's diagnostic side switch). */
-  side?: SideName;
-  /** Player issuing orders in a player-owned scenario; null when the session
-   *  seats no human (`commandingPlayer.ts`). */
-  player?: string | null;
-  /** Play the battle's sound (heard from the last frame's camera). */
-  sound?: boolean;
-  /** Menus and loading covers suspend command input without losing selection. */
-  inputEnabled?: boolean;
-  /** Own units hidden by the world are drawn through it (the player's x-ray);
-   *  off, the picture shows only what the camera sees. */
-  xray?: boolean;
-  /** Uploaded resolved sandbox bundles may narrow art to their fielded map. */
-  scenarioArt?: boolean;
-}
-
-/** The rule values the scenario runs under (only what views read). Its
- *  units are its session catalog's: the scenario's rules carry that
- *  catalog's documents. */
-export interface ScenarioRules extends PanelRules, RulerRules {
-  tick_hz: number;
-  weapons: PanelRules["weapons"] & RulerRules["weapons"];
-  physics: SoldierBody & RulerRules["physics"];
-  service: { radius_m: number };
-  /** The sensor numbers fog of war shares with the simulation (the
-   *  presentation reads them: `presentation::fog::sight::Sensors`). */
-  sensors: object;
-  /** Each air layer's cruise height. */
-  air: AirLayers;
-}
 
 // eslint-disable-next-line complexity -- debt: lifecycle, observation, input and presentation share 19 refs; split needs those refs grouped by concern first, so each concern can become its own hook.
 export function useBattleSession({
@@ -399,20 +353,7 @@ export function useBattleSession({
   // The ground, and the art its scenery and grass draw from; its props and
   // what the side knows of them (rubble, wrecks, shoved bodies where it last
   // saw them) are the battle's presentation's to draw.
-  const meshes = useMemo(
-    () =>
-      world &&
-      appearances &&
-      buildWorldLayers(
-        world.exports,
-        world.layout,
-        gameBiome,
-        "surface",
-        appearances,
-        sceneryForArt !== null,
-      ),
-    [world, appearances, sceneryForArt],
-  );
+  const meshes = useWorldLayers(world, appearances, sceneryForArt);
   const knownProps = observation?.knownProps;
   const knownKey = useMemo(() => JSON.stringify(knownProps ?? []), [knownProps]);
   // What the side knows of the map's buildings, apart from everything else

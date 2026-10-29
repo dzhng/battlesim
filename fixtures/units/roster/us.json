@@ -62,9 +62,11 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed"
     },
     "us_acv_acv_p": {
+      "concealment": 2.8,
       "name": "ACV-P",
       "description": "ACV-P; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -114,7 +116,7 @@
           "offroad_kmh": 28,
           "road_kmh": 80,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -215,6 +217,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "us_ah_1z_viper_attack_helicopter"
     },
     "us_ah_6_mh_6_little_bird_ah_6m": {
@@ -295,6 +298,7 @@
           ]
         }
       ],
+      "concealment": 2.4,
       "appearance": "us_ah_6_mh_6_little_bird_ah_6m"
     },
     "us_ah_6_mh_6_little_bird_mh_6m": {
@@ -384,6 +388,7 @@
           }
         }
       ],
+      "concealment": 2.4,
       "appearance": "us_ah_6_mh_6_little_bird_mh_6m"
     },
     "us_army_scouts_light_patrol": {
@@ -517,6 +522,7 @@
           }
         }
       ],
+      "concealment": 2.8,
       "appearance": "us_ch_47_chinook_ch_47f"
     },
     "us_ea_18g_growler_electronic_warfare_aircraft": {
@@ -586,6 +592,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "us_ea_18g_growler_electronic_warfare_aircraft"
     },
     "us_f_15_eagle_f_15e_strike_eagle": {
@@ -668,6 +675,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "us_f_15_eagle_f_15e_strike_eagle"
     },
     "us_f_15_eagle_f_15ex_eagle_ii": {
@@ -732,6 +740,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "us_f_15_eagle_f_15ex_eagle_ii"
     },
     "us_f_22_raptor_f_22a": {
@@ -796,6 +805,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "us_f_22_raptor_f_22a"
     },
     "us_f_35_lightning_ii_f_35b": {
@@ -878,6 +888,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "us_f_35_lightning_ii_f_35b"
     },
     "us_f_a_18_super_hornet_f_a_18e": {
@@ -960,6 +971,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "us_f_a_18_super_hornet_f_a_18e"
     },
     "us_force_recon_recon_patrol": {
@@ -1043,6 +1055,7 @@
       }
     },
     "us_lav_lav_25a2": {
+      "concealment": 2.4,
       "name": "LAV-25A2",
       "description": "LAV-25A2; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -1092,7 +1105,7 @@
           "offroad_kmh": 28,
           "road_kmh": 75,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -1128,6 +1141,7 @@
       }
     },
     "us_lav_lav_at": {
+      "concealment": 1.8,
       "name": "LAV-AT",
       "description": "LAV-AT; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
@@ -1176,7 +1190,7 @@
           "offroad_kmh": 30,
           "road_kmh": 85,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -1212,6 +1226,7 @@
       }
     },
     "us_m109_paladin_m109a7": {
+      "concealment": 2.8,
       "name": "M109A7 Paladin",
       "description": "M109A7",
       "faction": "us",
@@ -1260,7 +1275,7 @@
           "offroad_kmh": 24,
           "road_kmh": 58,
           "turn_deg_s": 28,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       },
       "mounts": [
@@ -1286,6 +1301,7 @@
       "appearance": "us_m109_paladin_m109a7",
       "sensors": {
         "ground_m": 500,
+        "low_air_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1294,6 +1310,7 @@
       }
     },
     "us_m10_booker": {
+      "concealment": 2.8,
       "name": "M10 Booker",
       "description": "Light tank",
       "faction": "us",
@@ -1342,7 +1359,7 @@
           "offroad_kmh": 30,
           "road_kmh": 64,
           "turn_deg_s": 50,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -1392,6 +1409,7 @@
       }
     },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
+      "concealment": 2.4,
       "name": "Stryker RV",
       "description": "Reconnaissance vehicle",
       "capabilities": { "carriage": { "seats": 3 } },
@@ -1441,7 +1459,7 @@
           "offroad_kmh": 32,
           "road_kmh": 90,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -1473,11 +1491,12 @@
           "side": 1,
           "rear": 1
         },
-        "concealed_range_multiplier": 1.5,
+        "spotting": 1.5,
         "on": "HMG"
       }
     },
     "us_m1129_stryker_mortar_120_mm_mortar_carrier": {
+      "concealment": 2.4,
       "name": "Stryker Mortar",
       "description": "120 mm mortar carrier",
       "faction": "us",
@@ -1526,7 +1545,7 @@
           "offroad_kmh": 26,
           "road_kmh": 82,
           "turn_deg_s": 34,
-          "reverse_fraction": 0.3,
+          "reverse_speed_factor": 0.3,
           "turning_radius_m": 8
         }
       },
@@ -1553,6 +1572,7 @@
       "appearance": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
       "sensors": {
         "ground_m": 500,
+        "low_air_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1561,6 +1581,7 @@
       }
     },
     "us_m1151_hmmwv_hmg": {
+      "concealment": 1.8,
       "name": "M1151 HMMWV",
       "description": "HMG",
       "capabilities": { "carriage": { "seats": 3 } },
@@ -1610,7 +1631,7 @@
           "offroad_kmh": 32,
           "road_kmh": 100,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -1646,6 +1667,7 @@
       }
     },
     "us_m142_himars_gmlrs": {
+      "concealment": 2.4,
       "name": "HIMARS GMLRS",
       "description": "GMLRS",
       "faction": "us",
@@ -1694,7 +1716,7 @@
           "offroad_kmh": 26,
           "road_kmh": 82,
           "turn_deg_s": 34,
-          "reverse_fraction": 0.3,
+          "reverse_speed_factor": 0.3,
           "turning_radius_m": 8
         }
       },
@@ -1721,6 +1743,7 @@
       "appearance": "us_m142_himars_gmlrs",
       "sensors": {
         "ground_m": 450,
+        "low_air_m": 450,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1729,6 +1752,7 @@
       }
     },
     "us_m142_himars_prsm": {
+      "concealment": 2.4,
       "name": "HIMARS PrSM",
       "description": "PrSM",
       "faction": "us",
@@ -1777,7 +1801,7 @@
           "offroad_kmh": 26,
           "road_kmh": 82,
           "turn_deg_s": 34,
-          "reverse_fraction": 0.3,
+          "reverse_speed_factor": 0.3,
           "turning_radius_m": 8
         }
       },
@@ -1804,6 +1828,7 @@
       "appearance": "us_m142_himars_prsm",
       "sensors": {
         "ground_m": 450,
+        "low_air_m": 450,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1812,6 +1837,7 @@
       }
     },
     "us_m1_abrams_sep_v2": {
+      "concealment": 2.8,
       "name": "M1A2 SEP v2",
       "description": "SEP v2",
       "faction": "us",
@@ -1860,7 +1886,7 @@
           "offroad_kmh": 27,
           "road_kmh": 60,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -1946,6 +1972,7 @@
           "eye_m": 2.294
         }
       },
+      "concealment": 2.8,
       "mounts": [
         {
           "id": "cannon",
@@ -2059,8 +2086,10 @@
           "on": "cannon"
         }
       ],
+      "concealment": 2.8,
       "sensors": {
-        "ground_m": 600
+        "ground_m": 600,
+        "low_air_m": 600
       }
     },
     "us_m1e3_abrams": {
@@ -2087,6 +2116,7 @@
           "offroad_kmh": 30
         }
       },
+      "concealment": 2.8,
       "mounts": [
         {
           "id": "HMG",
@@ -2104,6 +2134,7 @@
       ]
     },
     "us_m270_mlrs_m270a2": {
+      "concealment": 2.4,
       "name": "M270A2 MLRS",
       "description": "M270A2",
       "faction": "us",
@@ -2152,7 +2183,7 @@
           "offroad_kmh": 24,
           "road_kmh": 58,
           "turn_deg_s": 28,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       },
       "mounts": [
@@ -2178,6 +2209,7 @@
       "appearance": "us_m270_mlrs_m270a2",
       "sensors": {
         "ground_m": 450,
+        "low_air_m": 450,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -2186,6 +2218,7 @@
       }
     },
     "us_m2_bradley_ifv_m2a4": {
+      "concealment": 2.8,
       "name": "M2A4 Bradley",
       "description": "M2A4; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -2235,7 +2268,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -2289,6 +2322,7 @@
       }
     },
     "us_m3_bradley_cfv_m3a3": {
+      "concealment": 2.8,
       "name": "M3A3 Bradley",
       "description": "M3A3; direct optical guidance only, no top attack or fire-and-forget",
       "capabilities": { "carriage": { "seats": 3 } },
@@ -2338,7 +2372,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -2388,11 +2422,12 @@
           "side": 1,
           "rear": 1
         },
-        "concealed_range_multiplier": 1.5,
+        "spotting": 1.5,
         "on": "autocannon"
       }
     },
     "us_m977_hemtt_general_resupply": {
+      "concealment": 2.8,
       "name": "M977 HEMTT",
       "description": "General resupply",
       "faction": "us",
@@ -2441,7 +2476,7 @@
           "offroad_kmh": 25,
           "road_kmh": 80,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -2617,6 +2652,7 @@
       }
     },
     "us_stryker_m1126_icv": {
+      "concealment": 2.4,
       "name": "Stryker ICV",
       "description": "M1126 ICV; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -2666,7 +2702,7 @@
           "offroad_kmh": 30,
           "road_kmh": 90,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -2702,6 +2738,7 @@
       }
     },
     "us_stryker_m1134_atgm": {
+      "concealment": 2.4,
       "name": "Stryker ATGM",
       "description": "M1134 ATGM; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
@@ -2750,7 +2787,7 @@
           "offroad_kmh": 30,
           "road_kmh": 85,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -2786,6 +2823,7 @@
       }
     },
     "us_stryker_m1296_dragoon": {
+      "concealment": 2.4,
       "name": "Stryker Dragoon",
       "description": "M1296 Dragoon; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -2835,7 +2873,7 @@
           "offroad_kmh": 30,
           "road_kmh": 85,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -2871,6 +2909,7 @@
       }
     },
     "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": {
+      "concealment": 2.8,
       "name": "Stryker M-SHORAD",
       "description": "Gun-and-missile air-defense vehicle",
       "faction": "us",
@@ -2920,7 +2959,7 @@
           "road_kmh": 80,
           "turn_deg_s": 35,
           "turning_radius_m": 8,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       },
       "sensors": {
@@ -3024,6 +3063,7 @@
           }
         }
       ],
+      "concealment": 2.8,
       "appearance": "us_uh_1y_venom_utility_transport"
     },
     "us_uh_60_black_hawk_uh_60m": {
@@ -3101,9 +3141,11 @@
           }
         }
       ],
+      "concealment": 2.8,
       "appearance": "us_uh_60_black_hawk_uh_60m"
     },
     "us_patriot_long": {
+      "concealment": 2.8,
       "name": "Patriot PAC-3",
       "description": "Patriot PAC-3 long-range air defence.",
       "faction": "us",
@@ -3122,13 +3164,11 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 1800
+        "low_air_m": 1800,
+        "high_air_m": 7000
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 7000
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {
@@ -3183,11 +3223,12 @@
           "road_kmh": 80,
           "turn_deg_s": 35,
           "turning_radius_m": 8,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       }
     },
     "us_nasams_medium": {
+      "concealment": 2.4,
       "name": "NASAMS 3",
       "description": "NASAMS 3 long-range air defence.",
       "faction": "us",
@@ -3206,13 +3247,11 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 3200
+        "low_air_m": 3200,
+        "high_air_m": 3200
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 3200
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {
@@ -3267,7 +3306,7 @@
           "road_kmh": 80,
           "turn_deg_s": 35,
           "turning_radius_m": 8,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       }
     }

@@ -72,11 +72,12 @@ it("shows exact units by default and preserves an inline edit while filtering", 
   );
 });
 
-it("links editable landing spread and angular scatter and keeps range edits in battlefield units", async () => {
+it("edits each layer range and spread independently", async () => {
   const fixture = structuredClone(snapshot);
-  const weapons = fixture.catalog.weapons as Record<string, Record<string, number>>;
-  weapons.grenade.range_m = 300;
-  weapons.grenade.scatter_mrad = 15;
+  const weapons = fixture.catalog.weapons as Record<string, JsonObject>;
+  weapons.grenade.targets = {
+    ground: { classes: ["infantry", "vehicle"], range_m: 300, scatter_mrad: 15 },
+  };
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => respond(fixture)),
@@ -84,24 +85,125 @@ it("links editable landing spread and angular scatter and keeps range edits in b
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
   fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
-  const spread = screen.getByLabelText(
-    "grenade Landing spread at maximum range",
-  ) as HTMLInputElement;
-  const raw = screen.getByLabelText(
-    "grenade Landing spread at maximum range — Angular scatter · milliradians",
-  ) as HTMLInputElement;
-  expect(spread.value).toBe("4.5");
-  fireEvent.change(screen.getByLabelText("grenade Maximum engagement range"), {
-    target: { value: "150" },
-  });
-  expect(spread.value).toBe("4.5");
-  expect(raw.value).toBe("30");
-  fireEvent.change(raw, { target: { value: "20" } });
-  expect(spread.value).toBe("3");
-  fireEvent.change(spread, { target: { value: "6" } });
-  expect(raw.value).toBe("40");
-  fireEvent.change(spread, { target: { value: "6." } });
-  expect(spread.value).toBe("6.");
+  const range = screen.getByLabelText("grenade Range on ground") as HTMLInputElement;
+  const spread = screen.getByLabelText("grenade Spread on ground") as HTMLInputElement;
+  expect(range.value).toBe("300");
+  expect(spread.value).toBe("15");
+  fireEvent.change(range, { target: { value: "150" } });
+  expect(spread.value).toBe("15");
+  fireEvent.change(spread, { target: { value: "20" } });
+  expect(range.value).toBe("150");
+  fireEvent.click(range.closest(".me-field")!.querySelector("button")!);
+  expect(range.value).toBe("300");
+  expect(spread.value).toBe("20");
+  fireEvent.click(spread.closest(".me-field")!.querySelector("button")!);
+  expect(range.value).toBe("300");
+  expect(spread.value).toBe("15");
+});
+
+it("edits a high-air-only weapon's layer range and spread", async () => {
+  const fixture = structuredClone(snapshot);
+  const weapons = fixture.catalog.weapons as Record<string, JsonObject>;
+  weapons.grenade.targets = {
+    high_air: { classes: ["air_fixed_wing"], range_m: 800, scatter_mrad: 6 },
+  };
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => respond(fixture)),
+  );
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
+  fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
+  const range = screen.getByLabelText("grenade Range in high air") as HTMLInputElement;
+  const spread = screen.getByLabelText("grenade Spread in high air") as HTMLInputElement;
+  expect(range.value).toBe("800");
+  expect(spread.value).toBe("6");
+  fireEvent.change(range, { target: { value: "700" } });
+  fireEvent.change(spread, { target: { value: "8" } });
+  expect(range.value).toBe("700");
+  expect(spread.value).toBe("8");
+});
+
+it.each([150, 0])("re-enables a ground layer with its admitted range %i", async (reach) => {
+  const fixture = structuredClone(snapshot);
+  const weapons = fixture.catalog.weapons as Record<string, JsonObject>;
+  weapons.grenade.targets = {
+    ground: { classes: ["infantry", "vehicle"], range_m: reach, scatter_mrad: 30 },
+  };
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => respond(fixture)),
+  );
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
+  fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
+  const enabled = screen.getByLabelText("grenade Engages ground");
+  fireEvent.change(enabled, { target: { value: "" } });
+  expect(screen.queryByLabelText("grenade Range on ground")).toBeNull();
+  fireEvent.change(enabled, { target: { value: "enabled" } });
+  expect((screen.getByLabelText("grenade Range on ground") as HTMLInputElement).value).toBe(
+    String(reach),
+  );
+  expect((screen.getByLabelText("grenade Spread on ground") as HTMLInputElement).value).toBe("30");
+});
+
+it("undoes a child edit after re-enabling its layer without losing sibling edits", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => respond(snapshot)),
+  );
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
+  fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
+  const enabled = screen.getByLabelText("grenade Engages ground");
+  fireEvent.change(enabled, { target: { value: "" } });
+  fireEvent.change(enabled, { target: { value: "enabled" } });
+  const range = screen.getByLabelText("grenade Range on ground") as HTMLInputElement;
+  const before = range.value;
+  fireEvent.change(range, { target: { value: "135" } });
+  fireEvent.change(screen.getByLabelText("grenade Spread on ground"), { target: { value: "32" } });
+  fireEvent.click(within(range.closest(".me-field")!).getByRole("button", { name: "Undo edit" }));
+  expect(range.value).toBe(before);
+  expect((screen.getByLabelText("grenade Spread on ground") as HTMLInputElement).value).toBe("32");
+});
+
+it("keeps an inherited spread editable after restoring it under a re-enabled layer", async () => {
+  const fixture = structuredClone(snapshot);
+  const weapons = fixture.catalog.weapons as Record<string, JsonObject>;
+  const ground = (weapons.grenade.targets as JsonObject).ground as JsonObject;
+  weapons.parent = { ...weapons.grenade, targets: { ground: { ...ground, scatter_mrad: 20 } } };
+  fixture.documents = [
+    {
+      path: "fixtures/game.json",
+      value: {
+        weapons: {
+          parent: weapons.parent,
+          grenade: {
+            extends: "parent",
+            targets: { ground: { scatter_mrad: ground.scatter_mrad } },
+          },
+        },
+      },
+    },
+  ];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => respond(fixture)),
+  );
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
+  fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
+  const enabled = screen.getByLabelText("grenade Engages ground");
+  fireEvent.change(enabled, { target: { value: "" } });
+  fireEvent.change(enabled, { target: { value: "enabled" } });
+  const spread = screen.getByLabelText("grenade Spread on ground");
+  fireEvent.click(
+    within(spread.closest(".me-field")!).getByRole("button", { name: "Restore inherited value" }),
+  );
+  const restored = screen.getByLabelText("grenade Spread on ground") as HTMLInputElement;
+  expect(restored.value).toBe("20");
+  fireEvent.change(restored, { target: { value: "24" } });
+  expect(restored.value).toBe("24");
 });
 
 it("retains invalid text through filtering and refuses preview until it is corrected", async () => {
@@ -211,78 +313,6 @@ it("keeps a conflicted draft until explicit discard and reload", async () => {
       "100",
     ),
   );
-});
-
-it("undoing a range edit preserves landing spread and clears the coupled draft", async () => {
-  const fixture = structuredClone(snapshot);
-  const weapons = fixture.catalog.weapons as Record<string, Record<string, number>>;
-  weapons.grenade.range_m = 150;
-  weapons.grenade.scatter_mrad = 30;
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async () => respond(fixture)),
-  );
-  render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
-  fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
-  const range = screen.getByLabelText("grenade Maximum engagement range");
-  fireEvent.change(range, { target: { value: "300" } });
-  fireEvent.click(range.closest(".me-field")!.querySelector("button")!);
-  expect((range as HTMLInputElement).value).toBe("150");
-  expect(
-    (screen.getByLabelText("grenade Landing spread at maximum range") as HTMLInputElement).value,
-  ).toBe("4.5");
-  expect(
-    (
-      screen.getByLabelText(
-        "grenade Landing spread at maximum range — Angular scatter · milliradians",
-      ) as HTMLInputElement
-    ).value,
-  ).toBe("30");
-  expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
-    true,
-  );
-});
-
-it("restoring inherited range keeps the currently edited landing spread", async () => {
-  const fixture = structuredClone(snapshot);
-  const weapons = fixture.catalog.weapons as Record<string, Record<string, number>>;
-  weapons.grenade.range_m = 150;
-  weapons.grenade.scatter_mrad = 30;
-  fixture.documents = [
-    {
-      path: "game.json",
-      value: {
-        weapons: {
-          parent: { range_m: 300 },
-          grenade: { extends: "parent", range_m: 150, scatter_mrad: 30 },
-        },
-      },
-    },
-  ];
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async () => respond(fixture)),
-  );
-  render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
-  fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
-  fireEvent.change(screen.getByLabelText("grenade Landing spread at maximum range"), {
-    target: { value: "6" },
-  });
-  const range = screen.getByLabelText("grenade Maximum engagement range");
-  fireEvent.click(range.closest(".me-field")!.querySelector("button")!);
-  expect((range as HTMLInputElement).value).toBe("300");
-  expect(
-    (screen.getByLabelText("grenade Landing spread at maximum range") as HTMLInputElement).value,
-  ).toBe("6");
-  expect(
-    (
-      screen.getByLabelText(
-        "grenade Landing spread at maximum range — Angular scatter · milliradians",
-      ) as HTMLInputElement
-    ).value,
-  ).toBe("20");
 });
 
 it("discarding an optional parent clears its unfinished child text without clearing other edits", async () => {
@@ -419,65 +449,6 @@ it("restoring an inherited optional object clears unfinished child text", async 
   );
 });
 
-it("previews old and new battlefield values with their raw units across coupled edits and restoration", async () => {
-  const fixture = structuredClone(snapshot);
-  const weapons = fixture.catalog.weapons as Record<string, JsonObject>;
-  weapons.grenade.range_m = 150;
-  weapons.grenade.scatter_mrad = 30;
-  fixture.documents = [
-    {
-      path: "game.json",
-      value: {
-        weapons: {
-          parent: { range_m: 300 },
-          grenade: { extends: "parent", range_m: 150, scatter_mrad: 30 },
-        },
-      },
-    },
-  ];
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (url: string) =>
-      url.endsWith("/preview")
-        ? respond({
-            revision: fixture.revision,
-            catalog: {
-              ...fixture.catalog,
-              weapons: {
-                ...weapons,
-                grenade: { ...weapons.grenade, range_m: 300, scatter_mrad: 20 },
-              },
-            },
-            affectedUnits: ["test_rifle"],
-            warnings: [],
-            files: [],
-          })
-        : respond(fixture),
-    ),
-  );
-  render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
-  fireEvent.change(screen.getByLabelText("grenade Landing spread at maximum range"), {
-    target: { value: "6" },
-  });
-  const range = screen.getByLabelText("grenade Maximum engagement range");
-  fireEvent.click(range.closest(".me-field")!.querySelector("button")!);
-  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
-  await screen.findByRole("heading", { name: "Preview authored changes" });
-  const summary = within(screen.getByRole("region", { name: "Save preview" }));
-  const spreadSummary = summary
-    .getAllByRole("listitem")
-    .find((item) => item.textContent?.includes("Landing spread at maximum range"))!;
-  expect(spreadSummary.textContent).toContain("4.5 m → 6 m");
-  expect(spreadSummary.textContent).toContain("30 → 20");
-  expect(spreadSummary.textContent).toContain("Angular scatter · milliradians");
-  const rangeSummary = summary
-    .getAllByRole("listitem")
-    .find((item) => item.textContent?.includes("Maximum engagement range"))!;
-  expect(rangeSummary.textContent).toContain("150 m → 300 m");
-  expect(rangeSummary.textContent).toContain("Restore inheritance");
-});
-
 it("returns to the last connected gameplay edit after native rejection without guessing the failed field", async () => {
   vi.stubGlobal(
     "fetch",
@@ -497,7 +468,7 @@ it("returns to the last connected gameplay edit after native rejection without g
   try {
     render(<MechanicsEditor />, { wrapper: MemoryRouter });
     fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
-    const spread = screen.getByLabelText("grenade Landing spread at maximum range");
+    const spread = screen.getByLabelText("grenade Spread on ground");
     fireEvent.change(spread, { target: { value: "1" } });
     fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
     await screen.findByText("ScatterTooTight: rejected flight settings");
@@ -692,4 +663,44 @@ it("returning from authoring uses the app menu without replacing the document", 
   fireEvent.click(await screen.findByRole("link", { name: "← Developer menu" }));
   expect(screen.getByText("Retained app menu")).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "Mechanics" })).toBeNull();
+});
+
+it("shows the neutral spotting value in preview and after saving a cleared input", async () => {
+  const fixture = structuredClone(snapshot);
+  const accepted = structuredClone(fixture.catalog);
+  const rows = (accepted.documents as JsonObject[])[0].units as Record<string, JsonObject>;
+  delete (rows.test_recon.sensors as JsonObject).spotting;
+  const unit = (accepted.units as JsonObject[]).find((u) => u.id === "test_recon")!;
+  delete (unit.sensors as JsonObject).spotting;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.endsWith("/preview"))
+        return respond({
+          revision: fixture.revision,
+          catalog: accepted,
+          soldierIds: {},
+          affectedUnits: ["test_recon"],
+          warnings: [],
+          files: [],
+        });
+      if (url.endsWith("/save"))
+        return respond({ ...fixture, revision: "saved", catalog: accepted });
+      return respond(fixture);
+    }),
+  );
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
+  fireEvent.change(await screen.findByRole("searchbox"), { target: { value: "test_recon" } });
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Recon Team" }));
+  const input = screen.getByLabelText("test_recon Spotting");
+  expect((input as HTMLInputElement).value).toBe("2");
+  fireEvent.change(input, { target: { value: "" } });
+  fireEvent.blur(input);
+  expect((input as HTMLInputElement).value).toBe("1");
+  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+  const preview = await screen.findByRole("region", { name: "Save preview" });
+  expect(within(preview).getByText("2 → 1")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Save authored JSON" }));
+  await waitFor(() => expect(screen.queryByRole("region", { name: "Save preview" })).toBeNull());
+  expect((screen.getByLabelText("test_recon Spotting") as HTMLInputElement).value).toBe("1");
 });

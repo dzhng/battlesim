@@ -21,7 +21,7 @@ a smaller playable rectangle cannot stand in for the complete rendered workload.
 
 ## Layout generation (`layout`)
 
-[Layout](src/layout/) places settlements, rivers, roads, bridges and forests.
+[Layout](src/layout/) places settlements, rivers, roads, bridges, forests and swamps.
 [Presets](../../fixtures/map-presets.json) own construction choices and finite-work
 policy; [preset validation](src/layout/presets.rs) protects the physical and numeric
 constraints. The size profile owns its central settlement class and surrounding settlement
@@ -54,6 +54,9 @@ Water is a hard layout feature. Roads remain on their bank except at admitted
 [bridge crossings](src/layout/crossings.rs), and water stops an advertised open
 approach. Rivers and terrain use the shared [river contract](../contract/src/river.rs),
 so generator legality cannot differ from world admission.
+Swamps come last, from their own stream, in pairs of one size across the
+halves, beside the river where there is one; the [swamp contract](../contract/src/swamp.rs)
+admits them, and the compiler refuses a seed whose swamp it would not.
 
 Settlements, lots and measured approaches are plan evidence, not extra runtime
 geometry. Their [encounter sites](../contract/src/encounter.rs) accompany the compiled

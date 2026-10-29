@@ -149,8 +149,10 @@ test("world passes bound water and skirt/debug draws to camera and independent c
     gamePaint,
     gameXrayMinHiddenFragmentFraction,
     gameGlass,
+    1,
+    "full",
   );
-  const targets = allocateFrameTargets(registry, 64, 64);
+  const targets = allocateFrameTargets(registry, 64, 64, "full");
   const cameraGroup = root.createBindGroup(typegpuCameraLayout, {
     cam: registry.own(root.createBuffer(Camera).$usage("uniform")),
   });

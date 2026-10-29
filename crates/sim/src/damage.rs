@@ -93,11 +93,6 @@ pub fn validate(rules: &Rules) {
         "ricochet scatter_deg {}",
         r.scatter_deg
     );
-    let from = rules.penetration.partial_from;
-    assert!(
-        (0.0..1.0).contains(&from),
-        "penetration partial_from {from}"
-    );
 }
 
 /// The face a hit meets, judged just off the struck surface at the hull's
@@ -114,16 +109,15 @@ fn reach(penetration: f64, bounces: u8, rules: &RicochetRules) -> f64 {
 
 /// The one penetration rule: the share of a round's damage that gets
 /// through `armor`, its penetration cut by `penetration_kept` per ricochet
-/// so far. Nothing short of its `partial_from` of the armour (the rules',
-/// unless the weapon fades more gently), all of it at or past the armour,
-/// and in proportion between: a round that nearly gets through still shakes
-/// the hull, glancing off or not.
+/// so far. Nothing short of its own `partial_from` of the armour, all of it
+/// at or past the armour, and in proportion between: a round that nearly
+/// gets through still shakes the hull, glancing off or not.
 pub fn pierce_share(def: &WeaponDefinition, bounces: u8, rules: &Rules, armor: f64) -> f64 {
     let reach = reach(def.penetration, bounces, &rules.ricochet);
     if reach >= armor {
         return 1.0;
     }
-    let from = def.partial_from.unwrap_or(rules.penetration.partial_from);
+    let from = def.partial_from;
     ((reach / armor - from) / (1.0 - from)).max(0.0)
 }
 

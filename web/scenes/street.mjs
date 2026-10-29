@@ -54,7 +54,7 @@ import {
 
 const CAMERA = game.presentation.camera;
 const roadStrokes = streetMap.surfaces
-  .filter((s) => game.surfaces[s.kind]?.speed_factor > 0 && s.shape.kind === "stroke")
+  .filter((s) => s.shape.kind === "stroke" && s.kind !== "paving") // carriageways
   .map((s) => s.shape);
 /** Every mark, paint or overlay, lies on the ground itself (the ground and
  *  its blades read the paint at their own point): checks read the marks at

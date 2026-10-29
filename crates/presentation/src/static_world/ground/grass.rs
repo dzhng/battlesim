@@ -146,8 +146,7 @@ impl Ground {
             ];
         }
         let grid = &self.source.grid;
-        let (w, s) = (&rules.wind, &rules.patch_m);
-        let heading = w.heading_deg * std::f64::consts::PI / 180.0;
+        let (w, s) = (&rules.sway, &rules.patch_m);
         let mut out = vec![0; 5 * 4];
         vec4(&mut out, [0.0, 0.0, 0.0, tallest]);
         out.extend([0, 0, rules.capacity[0], rules.capacity[1]]);
@@ -178,13 +177,9 @@ impl Ground {
         vec4(&mut out, [grid.spacing, 0.0, 0.0, 0.0]);
         vec4(
             &mut out,
-            [libm::cos(heading), libm::sin(heading), w.lean, w.gust],
-        );
-        vec4(
-            &mut out,
             [
-                1.0 / w.gust_m,
-                w.gust_mps,
+                w.lean,
+                w.gust,
                 w.flutter,
                 w.flutter_hz * 2.0 * std::f64::consts::PI,
             ],

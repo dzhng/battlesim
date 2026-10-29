@@ -168,7 +168,7 @@ impl ScarCache {
         let mut cache = ScarCache {
             capacity,
             reserved,
-            width: 1 << (capacity as f64).sqrt().log2().ceil() as u32,
+            width: 1 << libm::log2((capacity as f64).sqrt()).ceil() as u32,
             cols,
             rows,
             cell_m,

@@ -77,16 +77,9 @@ pub fn of(unit: &Unit, rules: &Rules) -> Sight {
 /// vision.
 pub fn of_layer(unit: &Unit, rules: &Rules, layer: AltitudeLayer) -> Sight {
     let sensors = &unit.unit_type(rules).sensors;
-    let range = match layer {
-        AltitudeLayer::Ground => sensors.ground_m,
-        AltitudeLayer::LowAir => sensors.low_air_m.unwrap_or(sensors.ground_m),
-        AltitudeLayer::HighAir => unit
-            .unit_type(rules)
-            .high_air_sight_m(&rules.sensors.unaided_high_air_m),
-    };
     Sight {
         forward: unit.sight_forward,
         shape: sensors.sight_shape,
-        range,
+        range: sensors.reach_m(layer),
     }
 }

@@ -26,12 +26,25 @@ const SAME_M: f64 = 0.5;
 pub struct Arc {
     pub ends: [u32; 2],
     pub length: f64,
-    /// The surface kind's share of a mover's road speed.
-    pub factor: f64,
+    /// Its surface kinds: one, or the two of the roads it joins.
+    pub paved: [contract::map::SurfaceKind; 2],
     /// Half the road's width.
     pub half_width: f64,
     /// Its road runs over a physical bridge deck.
     pub bridge: bool,
+}
+
+impl Arc {
+    /// What a mover's speed reads of its road: flat, paved by its kinds.
+    pub fn footing(&self) -> super::Footing {
+        super::Footing {
+            paved: self.paved.map(Some),
+            forest: false,
+            swamp: false,
+            slope_deg: 0.0,
+            crater_fill: 0.0,
+        }
+    }
 }
 
 /// A point of an arc near a place off the road.
@@ -66,7 +79,7 @@ struct Piece {
     along: f64,
     ends: [V2; 2],
     half_width: f64,
-    factor: f64,
+    kind: contract::map::SurfaceKind,
     /// Where it is cut, as shares of its length, and the node at each cut.
     cuts: Vec<(f64, u32)>,
 }
@@ -77,7 +90,7 @@ impl RoadNet {
     pub fn build(world: &WorldGeometry) -> Self {
         let mut nodes: Vec<V2> = Vec::new();
         let mut pieces: Vec<Piece> = Vec::new();
-        for (stroke, (samples, width, factor)) in world.road_strokes().enumerate() {
+        for (stroke, (samples, width, kind)) in world.road_strokes().enumerate() {
             let line = thin(samples);
             let first = nodes.len() as u32;
             nodes.extend(&line);
@@ -88,7 +101,7 @@ impl RoadNet {
                     along,
                     ends: [run[0], run[1]],
                     half_width: width / 2.0,
-                    factor,
+                    kind,
                     cuts: vec![(0.0, first + k as u32), (1.0, first + k as u32 + 1)],
                 });
                 along += (run[1] - run[0]).length();
@@ -108,7 +121,7 @@ impl RoadNet {
             if gap > a.half_width + b.half_width {
                 continue;
             }
-            let (factor, half_width) = (a.factor.min(b.factor), a.half_width.min(b.half_width));
+            let (paved, half_width) = ([a.kind, b.kind], a.half_width.min(b.half_width));
             let at = cut(&mut pieces[i], s, &mut nodes, None);
             let shared = (gap <= SAME_M).then_some(at);
             let to = cut(&mut pieces[j], t, &mut nodes, shared);
@@ -116,7 +129,7 @@ impl RoadNet {
                 links.push(Arc {
                     ends: [at, to],
                     length: gap,
-                    factor,
+                    paved,
                     half_width,
                     bridge: false,
                 });
@@ -133,7 +146,7 @@ impl RoadNet {
                     arcs.push(Arc {
                         ends: [run[0].1, run[1].1],
                         length: (run[1].0 - run[0].0) * length,
-                        factor: piece.factor,
+                        paved: [piece.kind; 2],
                         half_width: piece.half_width,
                         bridge: false,
                     });

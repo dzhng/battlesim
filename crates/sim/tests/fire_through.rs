@@ -202,7 +202,7 @@ fn a_gun_without_structural_damage_holds_fire_behind_sandbags() {
     let mut rules = common::game();
     rules["weapons"]["rifle"]["structural_damage"] = json!(0);
     // Keep range outside this trajectory-blocking experiment.
-    rules["weapons"]["rifle"]["range_m"] = json!(450);
+    common::json_ground_reach(&mut rules["weapons"]["rifle"], 450.0);
     let mut b = battle_with(
         rules,
         map(

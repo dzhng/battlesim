@@ -1,6 +1,7 @@
 {
   "units": {
     "eastern_2s19_msta_s_2s19m2": {
+      "concealment": 2.8,
       "name": "2S19M2 Msta-S",
       "description": "2S19M2",
       "faction": "eastern",
@@ -49,7 +50,7 @@
           "offroad_kmh": 24,
           "road_kmh": 58,
           "turn_deg_s": 28,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       },
       "mounts": [
@@ -75,6 +76,7 @@
       "appearance": "eastern_2s19_msta_s_2s19m2",
       "sensors": {
         "ground_m": 500,
+        "low_air_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -83,6 +85,7 @@
       }
     },
     "eastern_9k515_tornado_s_heavy_rocket_artillery": {
+      "concealment": 2.8,
       "name": "Tornado-S",
       "description": "Heavy rocket artillery",
       "faction": "eastern",
@@ -131,7 +134,7 @@
           "offroad_kmh": 26,
           "road_kmh": 82,
           "turn_deg_s": 34,
-          "reverse_fraction": 0.3,
+          "reverse_speed_factor": 0.3,
           "turning_radius_m": 8
         }
       },
@@ -158,6 +161,7 @@
       "appearance": "eastern_9k515_tornado_s_heavy_rocket_artillery",
       "sensors": {
         "ground_m": 400,
+        "low_air_m": 400,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -256,6 +260,7 @@
       }
     },
     "eastern_bm_21_grad_bm_21_rocket_artillery": {
+      "concealment": 2.4,
       "name": "BM-21 Grad",
       "description": "BM-21 rocket artillery",
       "faction": "eastern",
@@ -304,7 +309,7 @@
           "offroad_kmh": 26,
           "road_kmh": 82,
           "turn_deg_s": 34,
-          "reverse_fraction": 0.3,
+          "reverse_speed_factor": 0.3,
           "turning_radius_m": 8
         }
       },
@@ -331,6 +336,7 @@
       "appearance": "eastern_bm_21_grad_bm_21_rocket_artillery",
       "sensors": {
         "ground_m": 400,
+        "low_air_m": 400,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -339,6 +345,7 @@
       }
     },
     "eastern_bmp_ifv_family_bmp_2m_berezhok": {
+      "concealment": 2.4,
       "name": "BMP-2M Berezhok",
       "description": "BMP-2M Berezhok; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -388,7 +395,7 @@
           "offroad_kmh": 28,
           "road_kmh": 75,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -442,6 +449,7 @@
       }
     },
     "eastern_bmp_ifv_family_bmp_3": {
+      "concealment": 2.4,
       "name": "BMP-3",
       "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; direct optical guidance only, no top attack or fire-and-forget",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -491,7 +499,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -546,6 +554,7 @@
       }
     },
     "eastern_brm_brm_3k": {
+      "concealment": 2.4,
       "name": "BRM-3K",
       "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
       "capabilities": { "carriage": { "seats": 3 } },
@@ -595,7 +604,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -624,6 +633,7 @@
       }
     },
     "eastern_btr_btr_82a": {
+      "concealment": 2.4,
       "name": "BTR-82A",
       "description": "BTR-82A; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -673,7 +683,7 @@
           "offroad_kmh": 28,
           "road_kmh": 75,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -709,6 +719,7 @@
       }
     },
     "eastern_buk_buk_m3_medium_range_air_defense": {
+      "concealment": 2.8,
       "name": "Buk-M3",
       "description": "Buk-M3 medium-range air defense",
       "faction": "eastern",
@@ -758,17 +769,15 @@
           "road_kmh": 80,
           "turn_deg_s": 35,
           "turning_radius_m": 8,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       },
       "sensors": {
-        "low_air_m": 3200
+        "low_air_m": 3200,
+        "high_air_m": 3200
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 3200
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {
@@ -854,6 +863,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_j_10_vigorous_dragon_j_10c"
     },
     "eastern_j_20_mighty_dragon_stealth_fighter": {
@@ -900,6 +910,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_j_20_mighty_dragon_stealth_fighter"
     },
     "eastern_ka_52_alligator_ka_52m": {
@@ -968,6 +979,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_ka_52_alligator_ka_52m"
     },
     "eastern_kamikaze_drone_anti_armor": {
@@ -1120,6 +1132,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_mi_24_mi_35_hind_mi_35m"
     },
     "eastern_mi_28_havoc_mi_28nm": {
@@ -1188,6 +1201,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_mi_28_havoc_mi_28nm"
     },
     "eastern_mi_8_hip_mi_8amtsh": {
@@ -1265,6 +1279,7 @@
           }
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_mi_8_hip_mi_8amtsh"
     },
     "eastern_mig_29_fulcrum_mig_29smt": {
@@ -1347,6 +1362,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_mig_29_fulcrum_mig_29smt"
     },
     "eastern_mig_31_foxhound_mig_31bm": {
@@ -1411,6 +1427,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_mig_31_foxhound_mig_31bm"
     },
     "eastern_orlan_10_reconnaissance_drone": {
@@ -1435,6 +1452,7 @@
       }
     },
     "eastern_pantsir_pantsir_sm": {
+      "concealment": 2.8,
       "name": "Pantsir-SM",
       "description": "Pantsir-SM",
       "faction": "eastern",
@@ -1484,17 +1502,15 @@
           "road_kmh": 80,
           "turn_deg_s": 35,
           "turning_radius_m": 8,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       },
       "sensors": {
-        "low_air_m": 3200
+        "low_air_m": 3200,
+        "high_air_m": 3200
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 3200
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {
@@ -1519,6 +1535,7 @@
       "appearance": "eastern_pantsir_pantsir_sm"
     },
     "eastern_plz_05_chinese_tracked_155_mm_howitzer": {
+      "concealment": 2.8,
       "name": "PLZ-05",
       "description": "Chinese tracked 155 mm howitzer",
       "faction": "eastern",
@@ -1567,7 +1584,7 @@
           "offroad_kmh": 24,
           "road_kmh": 58,
           "turn_deg_s": 28,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       },
       "mounts": [
@@ -1593,6 +1610,7 @@
       "appearance": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
       "sensors": {
         "ground_m": 500,
+        "low_air_m": 500,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -1794,6 +1812,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_su_25_frogfoot_su_25sm3"
     },
     "eastern_su_57_felon_stealth_multirole_fighter": {
@@ -1876,6 +1895,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_su_57_felon_stealth_multirole_fighter"
     },
     "eastern_sukhoi_flanker_family_su_27sm3": {
@@ -1940,6 +1960,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_sukhoi_flanker_family_su_27sm3"
     },
     "eastern_sukhoi_flanker_family_su_30sm2": {
@@ -2009,6 +2030,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_sukhoi_flanker_family_su_30sm2"
     },
     "eastern_sukhoi_flanker_family_su_34": {
@@ -2091,6 +2113,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_sukhoi_flanker_family_su_34"
     },
     "eastern_sukhoi_flanker_family_su_35s": {
@@ -2155,9 +2178,11 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_sukhoi_flanker_family_su_35s"
     },
     "eastern_t_14_armata_main_battle_tank": {
+      "concealment": 2.8,
       "name": "T-14 Armata",
       "description": "Main battle tank",
       "faction": "eastern",
@@ -2206,7 +2231,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -2255,6 +2280,7 @@
       }
     },
     "eastern_t_15_armata_heavy_ifv": {
+      "concealment": 2.8,
       "name": "T-15 Armata",
       "description": "Heavy IFV; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -2304,7 +2330,7 @@
           "offroad_kmh": 25,
           "road_kmh": 60,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -2352,6 +2378,7 @@
       }
     },
     "eastern_t_72_t_72b3_2016": {
+      "concealment": 2.4,
       "name": "T-72B3",
       "description": "T-72B3 (2016)",
       "faction": "eastern",
@@ -2400,7 +2427,7 @@
           "offroad_kmh": 24,
           "road_kmh": 55,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -2455,6 +2482,7 @@
       }
     },
     "eastern_t_80_t_80bvm": {
+      "concealment": 2.4,
       "name": "T-80BVM",
       "description": "T-80BVM",
       "faction": "eastern",
@@ -2503,7 +2531,7 @@
           "offroad_kmh": 27,
           "road_kmh": 60,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -2558,6 +2586,7 @@
       }
     },
     "eastern_t_90_t_90m_proryv": {
+      "concealment": 2.4,
       "name": "T-90M",
       "description": "T-90M Proryv",
       "faction": "eastern",
@@ -2606,7 +2635,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -2661,6 +2690,7 @@
       }
     },
     "eastern_tigr_tigr_m": {
+      "concealment": 1.8,
       "name": "Tigr-M",
       "description": "Tigr-M",
       "capabilities": { "carriage": { "seats": 3 } },
@@ -2710,7 +2740,7 @@
           "offroad_kmh": 32,
           "road_kmh": 100,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -2746,6 +2776,7 @@
       }
     },
     "eastern_type_15_ztq_15_light_tank": {
+      "concealment": 2.4,
       "name": "ZTQ-15",
       "description": "ZTQ-15 light tank",
       "faction": "eastern",
@@ -2794,7 +2825,7 @@
           "offroad_kmh": 30,
           "road_kmh": 70,
           "turn_deg_s": 50,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -2844,6 +2875,7 @@
       }
     },
     "eastern_type_99_ztz_99a": {
+      "concealment": 2.8,
       "name": "ZTZ-99A",
       "description": "ZTZ-99A",
       "faction": "eastern",
@@ -2892,7 +2924,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -2947,6 +2979,7 @@
       }
     },
     "eastern_ural_4320_general_resupply": {
+      "concealment": 2.4,
       "name": "Ural-4320",
       "description": "General resupply",
       "faction": "eastern",
@@ -2995,7 +3028,7 @@
           "offroad_kmh": 25,
           "road_kmh": 80,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -3077,6 +3110,7 @@
           ]
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_z_10_attack_helicopter"
     },
     "eastern_z_20_utility_transport": {
@@ -3154,9 +3188,11 @@
           }
         }
       ],
+      "concealment": 2.8,
       "appearance": "eastern_z_20_utility_transport"
     },
     "eastern_zbl_08_wheeled_ifv": {
+      "concealment": 2.8,
       "name": "ZBL-08",
       "description": "Wheeled IFV; infantry carrier",
       "capabilities": { "carriage": { "seats": 8 } },
@@ -3206,7 +3242,7 @@
           "offroad_kmh": 30,
           "road_kmh": 85,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -3242,6 +3278,7 @@
       }
     },
     "eastern_s300_long": {
+      "concealment": 2.8,
       "name": "S-300PMU2 Favorit",
       "description": "S-300PMU2 Favorit long-range air defence.",
       "faction": "eastern",
@@ -3260,13 +3297,11 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 1800
+        "low_air_m": 1800,
+        "high_air_m": 7000
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 7000
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {
@@ -3321,11 +3356,12 @@
           "road_kmh": 80,
           "turn_deg_s": 35,
           "turning_radius_m": 8,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       }
     },
     "eastern_s350_long": {
+      "concealment": 2.8,
       "name": "S-350",
       "description": "S-350 long-range air defence.",
       "faction": "eastern",
@@ -3344,13 +3380,11 @@
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
-        "low_air_m": 1800
+        "low_air_m": 1800,
+        "high_air_m": 7000
       },
       "capabilities": {
-        "radar": {
-          "emits": true,
-          "detection_m": 7000
-        }
+        "radar_emitter": true
       },
       "mounts": [
         {
@@ -3405,7 +3439,7 @@
           "road_kmh": 80,
           "turn_deg_s": 35,
           "turning_radius_m": 8,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       }
     },

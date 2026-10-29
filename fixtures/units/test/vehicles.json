@@ -25,10 +25,11 @@
         }
       },
       "mobility": {
-        "wheeled": { "offroad_kmh": 25, "road_kmh": 76, "turn_deg_s": 40, "turning_radius_m": 6, "reverse_fraction": 0.35 }
+        "wheeled": { "offroad_kmh": 25, "road_kmh": 76, "turn_deg_s": 40, "turning_radius_m": 6, "reverse_speed_factor": 0.35 }
       },
-      "sensors": { "ground_m": 300, "sight_shape": { "front": 1.0, "side": 0.5, "rear": 0.3 } },
+      "sensors": { "ground_m": 300, "low_air_m": 300, "high_air_m": 300, "sight_shape": { "front": 1.0, "side": 0.5, "rear": 0.3 } },
       "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 }, "supply": { "stock": 250 } },
+      "concealment": 2.4,
       "sound": { "profile": "vehicle", "loudness_m": 650 },
       "appearance": "test_supply_truck"
     },
@@ -57,12 +58,13 @@
         }
       },
       "mobility": {
-        "wheeled": { "offroad_kmh": 32, "road_kmh": 110, "turn_deg_s": 60, "turning_radius_m": 6, "reverse_fraction": 0.4 }
+        "wheeled": { "offroad_kmh": 32, "road_kmh": 110, "turn_deg_s": 60, "turning_radius_m": 6, "reverse_speed_factor": 0.4 }
       },
-      "sensors": { "ground_m": 450, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
+      "sensors": { "ground_m": 450, "low_air_m": 450, "high_air_m": 300, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
       "mounts": [
         { "id": "HMG", "name": "HMG", "weapons": ["hmg"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }
       ],
+      "concealment": 1.8,
       "sound": { "profile": "vehicle", "loudness_m": 500 },
       "appearance": "test_jeep"
     },
@@ -70,7 +72,8 @@
       "extends": "test_jeep",
       "name": "Gun Jeep",
       "description": "The test jeep with an autocannon on its pedestal in place of the HMG, and sights that see out to its range: the autocannon's round in labs and scenes, on a hull the tests already know.",
-      "sensors": { "ground_m": 700 },
+      "sensors": { "ground_m": 700, "low_air_m": 700 },
+      "concealment": 1.8,
       "mounts": [{ "id": "HMG", "name": "Autocannon", "weapons": ["autocannon"] }]
     },
     "test_apc": {
@@ -78,6 +81,7 @@
       "name": "Test APC",
       "description": "An enclosed test carrier with eight seats.",
       "capabilities": { "carriage": { "seats": 8 } },
+      "concealment": 1.8,
       "roster": null
     },
     "test_scout_car": {
@@ -85,6 +89,7 @@
       "name": "Test Scout Car",
       "description": "A light test carrier with three seats.",
       "capabilities": { "carriage": { "seats": 3 } },
+      "concealment": 1.8,
       "roster": null
     }
   }

@@ -5,8 +5,10 @@
 //   into the overlay target, the units; copied for the overlays) → fog
 //   (moved eyes' horizon maps,
 //   then the per-tile eye lists from that depth) → sky + HDR world (4× MSAA,
-//   rgba16float, with FogTerm's mask beside it) → combat effects (into the
-//   resolved world and its mask) → fog mask pass (distances,
+//   rgba16float, with FogTerm's mask beside it, glass last; samples kept) →
+//   water (over those samples, resolved into the world and its mask) →
+//   combat effects (into the resolved world and its mask) → fog mask pass
+//   (distances,
 //   then the unseen look, before post) → post (bloom, grade, AgX, into the
 //   canvas) → fog rim (display space) → overlays (display space, against the
 //   world's depth) → composite → the high-air plane (its models alone, lit
@@ -27,8 +29,9 @@ import type { LightPresentation, ResolvedLight } from "../light/sceneLight";
 import type { FogShaders } from "./fogVisibility";
 import { createEnvironmentFrame } from "./environmentFrame";
 import { GpuRegistry } from "./registry";
-import { allocateFrameTargets, SizedTargets } from "./targets";
+import { allocateFrameTargets, SizedTargets, type WaterDetail } from "./targets";
 import { createWorldPass } from "./worldPass";
+import { createWaveField } from "./waveField";
 import { createFogMaskPass, type FogMaskViewKind } from "./fogMaskPass";
 import { createOverlayPass, type OverlayGlowStyle } from "./overlayPass";
 import type { PaintStyle } from "./paintedMarks";
@@ -53,6 +56,7 @@ export interface BattleFrameOptions {
     grassDensity: number;
     shadowMapSize: 512 | 1024 | 2048;
     shadowReach: number;
+    waterDetail: WaterDetail;
   };
   /** `presentation.light`: sun, sky, haze, grade, bloom and cascades. */
   light: ResolvedLight;
@@ -124,6 +128,12 @@ export async function createBattleFrame(
     const camera = registry.own(root.createBuffer(Camera).$usage("uniform"));
     const cameraGroup = root.createBindGroup(typegpuCameraLayout, { cam: camera });
     const quality = options.quality;
+    const water = quality?.waterDetail ?? "full";
+    const waveField = createWaveField(root, registry);
+    await waveField.pipeline.initAsync();
+    /** The wave field's steps the last frame handed over, not yet run. */
+    let waves: Float32Array | null = null;
+    let wavesTaken: Float32Array | undefined;
     const effectiveLight = {
       ...options.light,
       settings: cascadeLight(options.light.settings, quality),
@@ -141,6 +151,7 @@ export async function createBattleFrame(
       options.xrayMinHiddenFragmentFraction,
       options.glass,
       quality?.grassDensity ?? 1,
+      water,
     );
     const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogLook);
     const impostors = createImpostorBaker(root, registry, models, environment);
@@ -149,7 +160,7 @@ export async function createBattleFrame(
     const cameraBuffer = root.unwrap(camera);
     const timer = createFrameTimer(device, registry);
     const targets = new SizedTargets(registry, async (scope, width, height) => {
-      const t = allocateFrameTargets(scope, width, height);
+      const t = allocateFrameTargets(scope, width, height, water);
       const post = await createTypegpuPost(
         device,
         t.hdr.createView(),
@@ -159,7 +170,14 @@ export async function createBattleFrame(
         effectiveLight,
       );
       scope.adopt(post.dispose);
-      const fog = world.fogTiles(scope, t.depth, t.paint);
+      const fog = world.fogTiles(
+        scope,
+        t.depth,
+        t.paint,
+        t.sceneColour,
+        t.fogMaskUnder,
+        waveField.view,
+      );
       return {
         ...t,
         post,
@@ -233,6 +251,9 @@ export async function createBattleFrame(
           world.encodeShadows(encoder);
           world.encodeDepth(encoder, raw, t, cameraGroup);
           world.encodeFog(raw, t.fog, cameraRecord, width, height);
+          // The water keeps its depth colour alone on Low: no wakes.
+          if (waves && water === "full") waveField.encode(encoder, waves);
+          waves = null;
           ({ encoder, raw } = world.encode(encoder, raw, t, cameraGroup));
           const classes = view === "ground-classes";
           if (!classes) effects.encode(raw, t, t.effectGroup);
@@ -286,7 +307,8 @@ export async function createBattleFrame(
           return world.setStaticFrame(frame, stats.scenery) || buildings;
         },
         setPresentedGround(ground) {
-          if (!disposed) world.setPresentedGround(ground);
+          if (disposed) return;
+          world.setPresentedGround(ground);
         },
         setGround(next) {
           return !disposed && world.setGround(next);
@@ -296,6 +318,8 @@ export async function createBattleFrame(
           // Copied: the views last only until the next call into the module.
           viewRecord.set(frame.view.f32);
           cameraRecord.set(frame.camera.f32);
+          // Each frame's wave steps run once, however often it is handed over.
+          if (frame.waves && frame.waves !== wavesTaken) waves = wavesTaken = frame.waves;
           if (frame.sun_shadow.count) {
             sunShadow = Float32Array.from(frame.sun_shadow.f32);
             casters = Float32Array.from(frame.casters.f32);

@@ -111,3 +111,53 @@ fn a_side_switched_back_to_smokes_at_once_over_what_it_saw_destroyed() {
         assert_eq!(sources, want, "{name} smokes over what it saw destroyed");
     }
 }
+
+/// The wave field's epoch after a frame at `time`; none without a battle.
+fn wave_epoch(p: &mut Presentation, time: f64) -> Option<u32> {
+    let camera = presentation::view::Camera {
+        eye: [200.0, 140.0, 80.0],
+        target: [200.0, 200.0, 0.0],
+        up: [0.0, 0.0, 1.0],
+        fov_y: 0.8,
+        near: 0.5,
+        size: [1280, 720],
+    };
+    p.frame(time, &camera, &presentation::presentation::Ui::default(), 0)
+        .unwrap();
+    p.waves().map(|w| w.step.epoch)
+}
+
+/// The wave field starts over the moment the side switches, before the new
+/// side's world loads: no wave the old side saw made lingers for the new.
+#[test]
+fn a_side_switch_starts_the_wave_field_over_before_the_new_side_loads() {
+    let root = root();
+    let game: Value =
+        serde_json::from_slice(&std::fs::read(root.join("fixtures/game.json")).unwrap()).unwrap();
+    let rules = presentation::static_world::files::rules(&root, MAP).unwrap();
+    let scenario = sim::maps::scenario(MAP, ENCOUNTER, rules).unwrap();
+    let mut battle = Battle::new(&scenario, SEED);
+    battle.step();
+    let mut publisher = Publisher::new();
+    let mut p = Presentation::new(
+        Some(&publication::layout_json(&battle)),
+        battle.rules().tick_hz as f64,
+    )
+    .unwrap();
+    p.load_world(world(&root, &game, Side::Blue), Default::default(), None)
+        .unwrap();
+    p.push_publication(&words(publisher.publish(&battle, Side::Blue).unwrap()), 0.0)
+        .unwrap();
+    let blue = wave_epoch(&mut p, 1.0).expect("a battle's field");
+    assert_eq!(
+        wave_epoch(&mut p, 1.1),
+        Some(blue),
+        "it holds while blue watches"
+    );
+    p.invalidate(Some("red")).unwrap();
+    let switched = wave_epoch(&mut p, 1.2);
+    assert!(
+        switched.is_some_and(|e| e != blue),
+        "{switched:?} after blue's {blue}"
+    );
+}

@@ -18,6 +18,7 @@ use presentation::presentation::Presentation;
 use crate::gpu::{bind, buffer};
 use crate::pipelines::{Bound, Pipelines};
 use crate::scars::Scars;
+use crate::water_normals::WaterNormals;
 
 /// `TerrainParams`' last `vec4u`, the frame's view: the lit ground (not its
 /// classes), the roads worn.
@@ -92,6 +93,7 @@ fn terrain_group(
     layout: &BindGroupLayout,
     tables: &[Buffer; 5],
     scars: &Scars,
+    water: &WaterNormals,
 ) -> BindGroup {
     let [params, nodes, plots, surfaces, index] = tables;
     bind(
@@ -107,6 +109,8 @@ fn terrain_group(
             scars.params.as_entire_binding(),
             BindingResource::TextureView(&scars.directory_view()),
             BindingResource::TextureView(&scars.pool_view()),
+            BindingResource::TextureView(&water.view),
+            BindingResource::Sampler(&water.sampler),
         ],
     )
 }
@@ -125,6 +129,7 @@ pub struct Ground {
     /// The terrain's tables: params, plot nodes, plots, surfaces and their index.
     tables: [Buffer; 5],
     pub scars: Scars,
+    water_normals: WaterNormals,
     /// The height pages fog and grass read (`Grid::pages`).
     pub heights: Buffer,
     /// The box the map's ground and what stands on it fill (`mapBox`).
@@ -186,7 +191,8 @@ impl Ground {
         let scars = Scars::new(device, queue, &tables.scars);
         let tables = [params, nodes, plots, surfaces, index];
         let layout = pipelines.layout("terrainLayout").clone();
-        let group = terrain_group(device, &layout, &tables, &scars);
+        let water_normals = WaterNormals::new(device, queue, pipelines);
+        let group = terrain_group(device, &layout, &tables, &scars, &water_normals);
         let heights = buffer(
             device,
             "terrain-heights",
@@ -207,6 +213,7 @@ impl Ground {
             layout,
             tables,
             scars,
+            water_normals,
             heights,
             map_box,
             terrain,
@@ -250,7 +257,13 @@ impl Ground {
             .scars
             .prepare(device, presentation, grass, self.map_box.as_ref(), size)
         {
-            self.group = terrain_group(device, &self.layout, &self.tables, &self.scars);
+            self.group = terrain_group(
+                device,
+                &self.layout,
+                &self.tables,
+                &self.scars,
+                &self.water_normals,
+            );
         }
     }
 
@@ -298,7 +311,7 @@ impl Ground {
     }
 
     /// The water's surface over the rivers' cells: blended over everything
-    /// opaque, reading depth and writing none.
+    /// opaque and glass (`world::Water`), reading depth and writing none.
     pub fn draw_water(&self, pass: &mut RenderPass, groups: &[(&str, &BindGroup)]) {
         let mut all = groups.to_vec();
         all.push(self.layout_group());
