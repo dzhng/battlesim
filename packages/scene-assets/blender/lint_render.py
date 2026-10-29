@@ -1,6 +1,15 @@
-"""Uncommitted verification renderer for PR #22. Run via the asset CLI from a worktree.
-args: --jobs=<json file> --out=<dir> [--scan-allowlist=<json out>]
-jobs: [{"vid":..., "part":..., "tag":...}]"""
+"""Render close-up views of lint-flagged parts for visual verification.
+
+Run via the asset CLI:
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/lint_render.py -- --jobs=<json> --out=<dir>
+
+Job format: [{"vid": "variant_id", "part": "part_name", "tag": "output_tag"}]
+Each job renders a game view and a close-up, highlighting the flagged part in red
+and its nearest neighbor in blue.
+
+Scan allowlist patterns against the roster:
+    bun run --cwd web asset -- blender ... --scan=<json out> --out=<dir>
+"""
 import sys, os, json, math, fnmatch
 from pathlib import Path
 REPO = Path.cwd().parent
