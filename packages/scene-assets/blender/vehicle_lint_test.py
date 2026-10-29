@@ -247,7 +247,10 @@ class TestDressingExclusion(unittest.TestCase):
         # Antenna on dressing node - far from hull
         dressing = make_empty("dressing_antenna", (0, 0, 0))
         dressing.parent = self.hull
-        make_box("antenna_whip_LOD0", (0.02, 0.02, 2), (0, 0, 3), dressing)
+        antenna = make_box("antenna_whip_LOD0", (0.02, 0.02, 2), (0, 0, 3), dressing)
+        
+        # Update scene to apply parent relationships
+        bpy.context.view_layer.update()
         
         result = LintResult(vehicle_id="test")
         check_floating_parts(result)

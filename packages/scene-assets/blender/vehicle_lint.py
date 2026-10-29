@@ -27,6 +27,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 REPO = Path(__file__).resolve().parents[3]
 BASELINE_PATH = REPO / "packages/scene-assets/blender/vehicle_lint_baseline.json"
 
+# Flags to suppress lint and export during roster scans (when modules are imported)
+_SUPPRESS_EXPORT_LINT = False
+_SUPPRESS_EXPORT = False
+
 # Tolerances (metres)
 INTERPENETRATION_TOLERANCE = 0.005  # 5mm: allow intended contact points
 FLOATING_PART_THRESHOLD = 0.02  # 2cm: parts must be within 2cm of another part
@@ -279,6 +283,9 @@ def check_floating_parts(result: LintResult, threshold=FLOATING_PART_THRESHOLD):
         centre = (lo + hi) / 2
         mesh_data.append((obj, lo, hi, centre))
 
+    if len(mesh_data) < 2:
+        return
+
     # Check each mesh to see if it's near at least one other mesh
     for i, (obj1, lo1, hi1, c1) in enumerate(mesh_data):
         min_dist = float('inf')
@@ -454,14 +461,54 @@ def _get_family_variants(family_name):
         return []
 
 
+def _extract_scheme_from_script(script_path):
+    """Extract the scheme(s) from a roster script by parsing its run() call."""
+    import ast
+    try:
+        source = script_path.read_text()
+        tree = ast.parse(source)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                func = node.func
+                # Look for run(...) or run_disabled(...) calls
+                if isinstance(func, ast.Name) and func.id in ("run", "run_disabled"):
+                    if len(node.args) >= 2:
+                        scheme_arg = node.args[1]
+                        if isinstance(scheme_arg, ast.Constant):
+                            return scheme_arg.value
+                        elif isinstance(scheme_arg, ast.Dict):
+                            # scheme is a dict per variant
+                            result = {}
+                            for k, v in zip(scheme_arg.keys, scheme_arg.values):
+                                if isinstance(k, ast.Constant) and isinstance(v, ast.Constant):
+                                    result[k.value] = v.value
+                            return result
+    except Exception:
+        pass
+    return None
+
+
 def run_roster_lint(update_baseline=False):
     """Run lint over all roster vehicles."""
+    global _SUPPRESS_EXPORT_LINT
+    import sys
+    
+    # Suppress lint and export during roster scan BEFORE any imports that might trigger roster modules.
+    # We need to set this on both __main__ and vehicle_lint modules since the script
+    # runs as __main__ but _run_lint imports vehicle_lint.
+    _SUPPRESS_EXPORT_LINT = True
+    _SUPPRESS_EXPORT = True
+    if 'vehicle_lint' not in sys.modules:
+        # Register this module under vehicle_lint name so other modules see the same flags
+        sys.modules['vehicle_lint'] = sys.modules['__main__']
+    
     from parts import reset
     from catalog_frames import family_variants
     
     all_results = {}
     baseline = load_baseline() if not update_baseline else {}
     new_baseline = {} if update_baseline else None
+    failed_builds = []
     
     families = list(_roster_families())
     print(f"Scanning {len(families)} roster families...", flush=True)
@@ -475,6 +522,12 @@ def run_roster_lint(update_baseline=False):
             continue
         
         if not variants:
+            continue
+        
+        # Extract scheme from the script
+        scheme = _extract_scheme_from_script(family_path)
+        if scheme is None:
+            print(f"  {family_name}: skipped (could not extract scheme)")
             continue
             
         # Import and run the family's build
@@ -493,11 +546,10 @@ def run_roster_lint(update_baseline=False):
             vid = variant["id"]
             try:
                 reset()
-                scheme = getattr(spec, "SCHEME", None) or "olive_drab"
-                if hasattr(spec, "SCHEMES"):
-                    scheme = spec.SCHEMES.get(vid, scheme)
-                mats = materials(scheme)
-                v = Vehicle(variant, mats, scheme)
+                # Get scheme for this variant
+                own_scheme = scheme[vid] if isinstance(scheme, dict) else scheme
+                mats = materials(own_scheme)
+                v = Vehicle(variant, mats, own_scheme)
                 build_fn(variant, v)
                 
                 result = lint_current_scene(vid)
@@ -515,6 +567,7 @@ def run_roster_lint(update_baseline=False):
                     print(format_issues(new_issues.issues))
                     
             except Exception as e:
+                failed_builds.append((vid, str(e)))
                 print(f"  {vid}: build failed: {e}")
     
     if update_baseline:
@@ -523,6 +576,9 @@ def run_roster_lint(update_baseline=False):
         print(f"Total vehicles with issues: {len(new_baseline)}")
         total_issues = sum(len(v) for v in new_baseline.values())
         print(f"Total baseline issues: {total_issues}")
+    
+    if failed_builds:
+        print(f"\nFailed to build {len(failed_builds)} variant(s)")
     
     return all_results
 

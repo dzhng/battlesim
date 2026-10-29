@@ -53,12 +53,14 @@ RIG_NODES = {"gun": ("turret", "gun", "muzzle"), "hmg": ("hmg", "hmg_gun", "hmg_
 
 def _run_lint(vehicle_id):
     """Run geometry lint checks on the current scene; fail on new issues."""
-    from vehicle_lint import lint_and_report, format_issues
-    all_issues, new_issues = lint_and_report(vehicle_id)
+    import vehicle_lint
+    if getattr(vehicle_lint, '_SUPPRESS_EXPORT_LINT', False):
+        return
+    all_issues, new_issues = vehicle_lint.lint_and_report(vehicle_id)
     if all_issues.issues:
         print(f"LINT {vehicle_id}: {len(all_issues.issues)} issue(s), {len(new_issues.issues)} new", flush=True)
     if new_issues.issues:
-        print(format_issues(new_issues.issues), flush=True)
+        print(vehicle_lint.format_issues(new_issues.issues), flush=True)
         raise SystemExit(f"{vehicle_id}: lint found {len(new_issues.issues)} new issue(s); "
                          "fix them or run `vehicle_lint.py --update-baseline` to accept them")
 
@@ -149,6 +151,14 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
     live or with `--wreck`; returns the receipt rows, or None for a partial run.
     `scheme` is one scheme or a scheme per variant id; `looks` are `materials`
     keywords (a family's fittings, canvas or chip)."""
+    # Check if export is suppressed (during roster lint scanning)
+    try:
+        import vehicle_lint
+        if getattr(vehicle_lint, '_SUPPRESS_EXPORT', False):
+            return None
+    except ImportError:
+        pass
+    
     args = script_args()
     selected = next((a.split("=", 1)[1] for a in args if a.startswith("--variant=")), None)
     wrecking = WRECK_ARG in args

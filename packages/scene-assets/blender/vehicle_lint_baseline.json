@@ -1,2 +1,833 @@
 {
+  "eastern_s300_long": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0795,
+      "message": "Part 'fender_L_3' is 7.9cm from any other part (threshold: 2cm)",
+      "parts": [
+        "fender_L_3"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0795,
+      "message": "Part 'fender_R_2' is 7.9cm from any other part (threshold: 2cm)",
+      "parts": [
+        "fender_R_2"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0795,
+      "message": "Part 'fender_R_3' is 7.9cm from any other part (threshold: 2cm)",
+      "parts": [
+        "fender_R_3"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_L_0' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_L_0"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_L_1' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_L_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_L_2' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_L_2"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_L_3' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_L_3"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_R_0' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_R_0"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_R_1' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_R_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_R_2' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_R_2"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_R_3' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_R_3"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_s350_long": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.023,
+      "message": "Part 'door_handle_L' is 2.3cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_handle_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.023,
+      "message": "Part 'door_handle_R' is 2.3cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_handle_R"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0795,
+      "message": "Part 'fender_L_2' is 8.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "fender_L_2"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0795,
+      "message": "Part 'fender_L_3' is 8.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "fender_L_3"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0795,
+      "message": "Part 'fender_R_2' is 8.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "fender_R_2"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0795,
+      "message": "Part 'fender_R_3' is 8.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "fender_R_3"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.035,
+      "message": "Part 'grab_rail_L' is 3.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "grab_rail_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.035,
+      "message": "Part 'grab_rail_R' is 3.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "grab_rail_R"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_L_0' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_L_0"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_L_1' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_L_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_L_2' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_L_2"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_L_3' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_L_3"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_R_0' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_R_0"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_R_1' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_R_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_R_2' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_R_2"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'spring_R_3' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "spring_R_3"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_t_72_t_72b3_2016": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.08,
+      "message": "Part 'fume_extractor' is 8.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "fume_extractor"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_t_90_t_90m_proryv": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.08,
+      "message": "Part 'fume_extractor' is 8.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "fume_extractor"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_type_15_ztq_15_light_tank": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.05,
+      "message": "Part 'fume_extractor' is 5.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "fume_extractor"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_type_99_ztz_99a": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.05,
+      "message": "Part 'fume_extractor' is 5.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "fume_extractor"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_ural_4320_general_resupply": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.05,
+      "message": "Part 'cargo_body_hinge_-1_4' is 5.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "cargo_body_hinge_-1_4"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.05,
+      "message": "Part 'cargo_body_hinge_1_4' is 5.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "cargo_body_hinge_1_4"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.03,
+      "message": "Part 'intake_stack' is 3.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "intake_stack"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.28,
+      "message": "Part 'step_L' is 28.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "step_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.25,
+      "message": "Part 'step_R' is 25.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "step_R"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_zbl_08_wheeled_ifv": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0796,
+      "message": "Part 'grab_rail_L' is 8.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "grab_rail_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0796,
+      "message": "Part 'grab_rail_R' is 8.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "grab_rail_R"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_caesar_88": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.04,
+      "message": "Part 'door_handle_L_1' is 4.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_handle_L_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.04,
+      "message": "Part 'door_handle_L' is 4.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_handle_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.04,
+      "message": "Part 'door_handle_R_1' is 4.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_handle_R_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.04,
+      "message": "Part 'door_handle_R' is 4.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_handle_R"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.025,
+      "message": "Part 'door_hinge_L_1' is 2.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_hinge_L_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.025,
+      "message": "Part 'door_hinge_R_1' is 2.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_hinge_R_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.035,
+      "message": "Part 'grab_rail_L_1' is 3.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "grab_rail_L_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.035,
+      "message": "Part 'grab_rail_R_1' is 3.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "grab_rail_R_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0213,
+      "message": "Part 'rear_step_L_0' is 2.1cm from any other part (threshold: 2cm)",
+      "parts": [
+        "rear_step_L_0"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0213,
+      "message": "Part 'rear_step_R_0' is 2.1cm from any other part (threshold: 2cm)",
+      "parts": [
+        "rear_step_R_0"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_fennek_reconnaissance_vehicle": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.025,
+      "message": "Part 'station_ammo' is 2.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "station_ammo"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_iris_t_medium": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.05,
+      "message": "Part 'battery_box' is 5.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "battery_box"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0227,
+      "message": "Part 'plate' is 2.3cm from any other part (threshold: 2cm)",
+      "parts": [
+        "plate"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.095,
+      "message": "Part 'rear_underrun' is 9.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "rear_underrun"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_kf51_panther_prototype_main_battle_tank": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'warning_sensor_L_0' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "warning_sensor_L_0"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'warning_sensor_L_1' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "warning_sensor_L_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'warning_sensor_R_0' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "warning_sensor_R_0"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.02,
+      "message": "Part 'warning_sensor_R_1' is 2.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "warning_sensor_R_1"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_man_hx_general_resupply": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.05,
+      "message": "Part 'cargo_body_hinge_-1_5' is 5.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "cargo_body_hinge_-1_5"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.05,
+      "message": "Part 'cargo_body_hinge_1_5' is 5.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "cargo_body_hinge_1_5"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0227,
+      "message": "Part 'plate' is 2.3cm from any other part (threshold: 2cm)",
+      "parts": [
+        "plate"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.095,
+      "message": "Part 'rear_underrun' is 9.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "rear_underrun"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_rafale_c_f4": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0675,
+      "message": "Part 'gear_main_L_door' is 6.7cm from any other part (threshold: 2cm)",
+      "parts": [
+        "gear_main_L_door"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0675,
+      "message": "Part 'gear_main_R_door' is 6.7cm from any other part (threshold: 2cm)",
+      "parts": [
+        "gear_main_R_door"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0345,
+      "message": "Part 'gear_nose_light' is 3.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "gear_nose_light"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_tornado_ecr": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.1075,
+      "message": "Part 'gear_main_L_door' is 10.7cm from any other part (threshold: 2cm)",
+      "parts": [
+        "gear_main_L_door"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.1075,
+      "message": "Part 'gear_main_R_door' is 10.7cm from any other part (threshold: 2cm)",
+      "parts": [
+        "gear_main_R_door"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0346,
+      "message": "Part 'gear_nose_light' is 3.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "gear_nose_light"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_tornado_ids": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.1075,
+      "message": "Part 'gear_main_L_door' is 10.7cm from any other part (threshold: 2cm)",
+      "parts": [
+        "gear_main_L_door"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.1075,
+      "message": "Part 'gear_main_R_door' is 10.7cm from any other part (threshold: 2cm)",
+      "parts": [
+        "gear_main_R_door"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0346,
+      "message": "Part 'gear_nose_light' is 3.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "gear_nose_light"
+      ],
+      "severity": "error"
+    }
+  ],
+  "us_acv_acv_p": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.03,
+      "message": "Part 'station_ammo' is 3.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "station_ammo"
+      ],
+      "severity": "error"
+    }
+  ],
+  "us_ah_6_mh_6_little_bird_ah_6m": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.03,
+      "message": "Part 'minigun_L' is 3.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "minigun_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.03,
+      "message": "Part 'minigun_R' is 3.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "minigun_R"
+      ],
+      "severity": "error"
+    }
+  ],
+  "us_ah_6_mh_6_little_bird_mh_6m": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.022,
+      "message": "Part 'door_m2_grip_-1' is 2.2cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_m2_grip_-1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.022,
+      "message": "Part 'door_m2_grip_1' is 2.2cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_m2_grip_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.022,
+      "message": "Part 'door_right_m2_grip_-1' is 2.2cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_right_m2_grip_-1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.022,
+      "message": "Part 'door_right_m2_grip_1' is 2.2cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_right_m2_grip_1"
+      ],
+      "severity": "error"
+    }
+  ],
+  "us_m1127_stryker_rv_reconnaissance_vehicle": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.025,
+      "message": "Part 'protector_ammo' is 2.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "protector_ammo"
+      ],
+      "severity": "error"
+    }
+  ],
+  "us_m977_hemtt_general_resupply": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.05,
+      "message": "Part 'cargo_bed_hinge_-1_6' is 5.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "cargo_bed_hinge_-1_6"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.05,
+      "message": "Part 'cargo_bed_hinge_1_6' is 5.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "cargo_bed_hinge_1_6"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.03,
+      "message": "Part 'step_L_1' is 3.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "step_L_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.03,
+      "message": "Part 'step_R_1' is 3.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "step_R_1"
+      ],
+      "severity": "error"
+    }
+  ],
+  "us_patriot_long": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.03,
+      "message": "Part 'cable_reel_R' is 3.0cm from any other part (threshold: 2cm)",
+      "parts": [
+        "cable_reel_R"
+      ],
+      "severity": "error"
+    }
+  ],
+  "us_stryker_m1126_icv": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.025,
+      "message": "Part 'protector_ammo' is 2.5cm from any other part (threshold: 2cm)",
+      "parts": [
+        "protector_ammo"
+      ],
+      "severity": "error"
+    }
+  ],
+  "us_uh_1y_venom_utility_transport": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.022,
+      "message": "Part 'door_m2_grip_-1' is 2.2cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_m2_grip_-1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.022,
+      "message": "Part 'door_m2_grip_1' is 2.2cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_m2_grip_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.022,
+      "message": "Part 'door_right_m2_grip_-1' is 2.2cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_right_m2_grip_-1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.022,
+      "message": "Part 'door_right_m2_grip_1' is 2.2cm from any other part (threshold: 2cm)",
+      "parts": [
+        "door_right_m2_grip_1"
+      ],
+      "severity": "error"
+    }
+  ]
 }
