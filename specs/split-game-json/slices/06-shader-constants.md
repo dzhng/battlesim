@@ -89,3 +89,18 @@ The browser gate exposed an existing fog-scene side-switch race. Commit
 `f71398f83` fixes that harness separately: complete pending mask draws, publish
 the paused authority's new side, then await its presented frame. The original
 scene failed before the fix; the full scene now passes. No check was weakened.
+
+**Review follow-ups (open; for the shared fix pass):**
+- Fog probe dispatch divides by a literal 64 (`renderer-core/src/probes.rs:85`)
+  while `passes_fog.wgsl:391` uses `FOG_BUILD_WORKGROUP`. Pass the workgroup
+  size into the dispatch helper.
+- `SunShadow.cascades` hard-codes four (`presentation/src/records.rs:434`). Use
+  `[SunCascade; shadow::CASCADES]`.
+- Grass height variation is authored three times: `passes_models.wgsl:156`,
+  `ground/grass.rs:41` and `scene-assets/src/grass.ts:38`. Give it Rust owners
+  and export it through the table.
+- Grass table capacities are literal WGSL array lengths
+  (`fog_masks.wgsl:40`), beside `grass.rs:13` and `grassField.ts:19`. Export
+  them through the table, and delete the unused TS `GRASS_MAX_KINDS`.
+- `models_geometry.wgsl:134`'s comment names a nonexistent
+  `slabs.areaBorderM`; it should be `GROUND_AREA_BORDER_M`.
