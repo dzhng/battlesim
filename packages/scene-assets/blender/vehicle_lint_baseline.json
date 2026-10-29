@@ -17,15 +17,6 @@
         "gun_yoke_R"
       ],
       "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1425,
-      "message": "Part 'nav_light_tail' is 14.3cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "nav_light_tail"
-      ],
-      "severity": "error"
     }
   ],
   "eastern_bmp_ifv_family_bmp_2m_berezhok": [
@@ -64,26 +55,6 @@
       "message": "Part 'bow_mg_port_R' is 2.7cm from nearest part (threshold: 2cm)",
       "parts": [
         "bow_mg_port_R"
-      ],
-      "severity": "error"
-    }
-  ],
-  "eastern_brm_brm_3k": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.0249,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
       ],
       "severity": "error"
     }
@@ -167,96 +138,6 @@
     }
   ],
   "eastern_s300_long": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.1,
-      "message": "Part 'axle_L_0' is 10.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1,
-      "message": "Part 'axle_L_1' is 10.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1,
-      "message": "Part 'axle_L_2' is 10.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1,
-      "message": "Part 'axle_L_3' is 10.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1,
-      "message": "Part 'axle_R_0' is 10.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1,
-      "message": "Part 'axle_R_1' is 10.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1,
-      "message": "Part 'axle_R_2' is 10.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1,
-      "message": "Part 'axle_R_3' is 10.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1353,
-      "message": "Part 'dash_-1' is 13.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "dash_-1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1353,
-      "message": "Part 'dash_1' is 13.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "dash_1"
-      ],
-      "severity": "error"
-    },
     {
       "check": "floating_part",
       "distance_m": 0.0308,
@@ -386,24 +267,6 @@
     {
       "check": "floating_part",
       "distance_m": 0.02,
-      "message": "Part 'seat_back_-1' is 2.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_-1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.02,
-      "message": "Part 'seat_back_1' is 2.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.02,
       "message": "Part 'spring_L_0' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "spring_L_0"
@@ -475,87 +338,6 @@
     }
   ],
   "eastern_s350_long": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.075,
-      "message": "Part 'axle_L_0' is 7.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.075,
-      "message": "Part 'axle_L_1' is 7.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.075,
-      "message": "Part 'axle_L_2' is 7.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.075,
-      "message": "Part 'axle_L_3' is 7.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.075,
-      "message": "Part 'axle_R_0' is 7.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.075,
-      "message": "Part 'axle_R_1' is 7.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.075,
-      "message": "Part 'axle_R_2' is 7.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.075,
-      "message": "Part 'axle_R_3' is 7.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1657,
-      "message": "Part 'dash' is 16.6cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "dash"
-      ],
-      "severity": "error"
-    },
     {
       "check": "floating_part",
       "distance_m": 0.04,
@@ -661,24 +443,6 @@
       "message": "Part 'grab_rail_R' is 3.5cm from nearest part (threshold: 2cm)",
       "parts": [
         "grab_rail_R"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.3635,
-      "message": "Part 'seat_back_-1' is 36.3cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_-1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.3635,
-      "message": "Part 'seat_back_1' is 36.3cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_1"
       ],
       "severity": "error"
     },
@@ -1131,69 +895,15 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'fume_extractor' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "fume_extractor"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
       "distance_m": 0.05,
       "message": "Part 'mg_shield' is 5.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "mg_shield"
       ],
       "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
-      ],
-      "severity": "error"
     }
   ],
   "eastern_t_80_t_80bvm": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'fume_extractor' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "fume_extractor"
-      ],
-      "severity": "error"
-    },
     {
       "check": "floating_part",
       "distance_m": 0.0443,
@@ -1202,54 +912,9 @@
         "mg_shield"
       ],
       "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
-      ],
-      "severity": "error"
     }
   ],
   "eastern_t_90_t_90m_proryv": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'fume_extractor' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "fume_extractor"
-      ],
-      "severity": "error"
-    },
     {
       "check": "floating_part",
       "distance_m": 0.0203,
@@ -1265,42 +930,6 @@
       "message": "Part 'side_era_R_1_0_bolt_1_0' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "side_era_R_1_0_bolt_1_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
       ],
       "severity": "error"
     }
@@ -1335,15 +964,6 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.15,
-      "message": "Part 'pintle' is 15.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "pintle"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
       "distance_m": 0.0326,
       "message": "Part 'rear_bumper' is 3.3cm from nearest part (threshold: 2cm)",
       "parts": [
@@ -1352,105 +972,13 @@
       "severity": "error"
     }
   ],
-  "eastern_type_15_ztq_15_light_tank": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.05,
-      "message": "Part 'fume_extractor' is 5.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "fume_extractor"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
-      ],
-      "severity": "error"
-    }
-  ],
   "eastern_type_99_ztz_99a": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.05,
-      "message": "Part 'fume_extractor' is 5.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "fume_extractor"
-      ],
-      "severity": "error"
-    },
     {
       "check": "floating_part",
       "distance_m": 0.05,
       "message": "Part 'mg_shield' is 5.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "mg_shield"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
       ],
       "severity": "error"
     }
@@ -1480,24 +1008,6 @@
       "message": "Part 'intake_stack' is 3.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "intake_stack"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.03,
-      "message": "Part 'seat_back_-1' is 3.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_-1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.03,
-      "message": "Part 'seat_back_1' is 3.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_1"
       ],
       "severity": "error"
     }
@@ -1565,8 +1075,8 @@
   "europe_caesar_88": [
     {
       "check": "floating_part",
-      "distance_m": 0.035,
-      "message": "Part 'axle_L_0' is 3.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_L_0' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_L_0"
       ],
@@ -1574,8 +1084,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.035,
-      "message": "Part 'axle_L_1' is 3.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_L_1' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_L_1"
       ],
@@ -1583,8 +1093,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.035,
-      "message": "Part 'axle_L_2' is 3.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_L_2' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_L_2"
       ],
@@ -1592,8 +1102,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.035,
-      "message": "Part 'axle_L_3' is 3.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_L_3' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_L_3"
       ],
@@ -1601,8 +1111,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.035,
-      "message": "Part 'axle_R_0' is 3.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_R_0' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_R_0"
       ],
@@ -1610,8 +1120,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.035,
-      "message": "Part 'axle_R_1' is 3.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_R_1' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_R_1"
       ],
@@ -1619,8 +1129,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.035,
-      "message": "Part 'axle_R_2' is 3.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_R_2' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_R_2"
       ],
@@ -1628,19 +1138,10 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.035,
-      "message": "Part 'axle_R_3' is 3.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_R_3' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_R_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1514,
-      "message": "Part 'dash' is 15.1cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "dash"
       ],
       "severity": "error"
     },
@@ -1731,24 +1232,6 @@
       "message": "Part 'rear_step_R_0' is 2.1cm from nearest part (threshold: 2cm)",
       "parts": [
         "rear_step_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.366,
-      "message": "Part 'seat_back_-1' is 36.6cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_-1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.366,
-      "message": "Part 'seat_back_1' is 36.6cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_1"
       ],
       "severity": "error"
     }
@@ -1850,17 +1333,6 @@
       "message": "Part 'suspension_arm_R_3' is 2.7cm from nearest part (threshold: 2cm)",
       "parts": [
         "suspension_arm_R_3"
-      ],
-      "severity": "error"
-    }
-  ],
-  "europe_challenger_challenger_2_tes": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.06,
-      "message": "Part 'fume_extractor' is 6.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "fume_extractor"
       ],
       "severity": "error"
     }
@@ -2022,15 +1494,6 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.0797,
-      "message": "Part 'dash' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "dash"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
       "distance_m": 0.02,
       "message": "Part 'jack_bracket_L_0' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
@@ -2062,24 +1525,6 @@
       "message": "Part 'rear_underrun' is 9.5cm from nearest part (threshold: 2cm)",
       "parts": [
         "rear_underrun"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.43,
-      "message": "Part 'seat_back_-1' is 43.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_-1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.43,
-      "message": "Part 'seat_back_1' is 43.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_1"
       ],
       "severity": "error"
     }
@@ -2118,80 +1563,6 @@
       "message": "Part 'warning_sensor_R_1' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "warning_sensor_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
-      ],
-      "severity": "error"
-    }
-  ],
-  "europe_leclerc_xlr": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
       ],
       "severity": "error"
     }
@@ -2241,42 +1612,6 @@
         "wedge_bolt_R_2"
       ],
       "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
-      ],
-      "severity": "error"
     }
   ],
   "europe_leopard_2_2a7v": [
@@ -2324,42 +1659,6 @@
         "wedge_bolt_R_2"
       ],
       "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
-      ],
-      "severity": "error"
     }
   ],
   "europe_leopard_2_2a8": [
@@ -2396,42 +1695,6 @@
       "message": "Part 'wedge_bolt_R_2' is 6.3cm from nearest part (threshold: 2cm)",
       "parts": [
         "wedge_bolt_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
       ],
       "severity": "error"
     }
@@ -2475,15 +1738,6 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.0797,
-      "message": "Part 'dash' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "dash"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
       "distance_m": 0.0277,
       "message": "Part 'plate' is 2.8cm from nearest part (threshold: 2cm)",
       "parts": [
@@ -2497,24 +1751,6 @@
       "message": "Part 'rear_underrun' is 9.5cm from nearest part (threshold: 2cm)",
       "parts": [
         "rear_underrun"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.42,
-      "message": "Part 'seat_back_-1' is 42.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_-1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.42,
-      "message": "Part 'seat_back_1' is 42.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_1"
       ],
       "severity": "error"
     }
@@ -2531,28 +1767,10 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.0675,
-      "message": "Part 'gear_main_L_door' is 6.7cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "gear_main_L_door"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
       "distance_m": 0.0207,
       "message": "Part 'gear_main_R_brace' is 2.1cm from nearest part (threshold: 2cm)",
       "parts": [
         "gear_main_R_brace"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0874,
-      "message": "Part 'gear_main_R_door' is 8.7cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "gear_main_R_door"
       ],
       "severity": "error"
     },
@@ -2596,24 +1814,6 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.1075,
-      "message": "Part 'gear_main_L_door' is 10.7cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "gear_main_L_door"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1075,
-      "message": "Part 'gear_main_R_door' is 10.7cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "gear_main_R_door"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
       "distance_m": 0.0244,
       "message": "Part 'gear_nose_brace' is 2.4cm from nearest part (threshold: 2cm)",
       "parts": [
@@ -2627,15 +1827,6 @@
       "message": "Part 'gear_nose_light' is 3.5cm from nearest part (threshold: 2cm)",
       "parts": [
         "gear_nose_light"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0742,
-      "message": "Part 'probe_fairing' is 7.4cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "probe_fairing"
       ],
       "severity": "error"
     }
@@ -2652,24 +1843,6 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.1075,
-      "message": "Part 'gear_main_L_door' is 10.7cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "gear_main_L_door"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1075,
-      "message": "Part 'gear_main_R_door' is 10.7cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "gear_main_R_door"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
       "distance_m": 0.0244,
       "message": "Part 'gear_nose_brace' is 2.4cm from nearest part (threshold: 2cm)",
       "parts": [
@@ -2683,15 +1856,6 @@
       "message": "Part 'gear_nose_light' is 3.5cm from nearest part (threshold: 2cm)",
       "parts": [
         "gear_nose_light"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0742,
-      "message": "Part 'probe_fairing' is 7.4cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "probe_fairing"
       ],
       "severity": "error"
     }
@@ -3003,78 +2167,6 @@
         "rear_door_glass_R"
       ],
       "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_L_0' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_L_1' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_L_2' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_L_3' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_R_0' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_R_1' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_R_2' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_R_3' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_3"
-      ],
-      "severity": "error"
     }
   ],
   "us_lav_lav_at": [
@@ -3102,78 +2194,6 @@
       "message": "Part 'rear_door_glass_R' is 2.2cm from nearest part (threshold: 2cm)",
       "parts": [
         "rear_door_glass_R"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_L_0' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_L_1' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_L_2' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_L_3' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_R_0' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_R_1' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_R_2' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.08,
-      "message": "Part 'spring_R_3' is 8.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_3"
       ],
       "severity": "error"
     }
@@ -3223,42 +2243,6 @@
         "skirt_bolt_R_0_2_74"
       ],
       "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
-      ],
-      "severity": "error"
     }
   ],
   "us_m1127_stryker_rv_reconnaissance_vehicle": [
@@ -3268,150 +2252,6 @@
       "message": "Part 'protector_ammo' is 3.5cm from nearest part (threshold: 2cm)",
       "parts": [
         "protector_ammo"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_3"
       ],
       "severity": "error"
     }
@@ -3445,158 +2285,6 @@
       "severity": "error"
     }
   ],
-  "us_m1_abrams_sep_v2": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
-      ],
-      "severity": "error"
-    }
-  ],
-  "us_m1_abrams_sep_v2_trophy": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
-      ],
-      "severity": "error"
-    }
-  ],
-  "us_m1_abrams_sep_v3_trophy": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
-      ],
-      "severity": "error"
-    }
-  ],
-  "us_m1e3_abrams": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_L_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_L_sprocket_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_idler_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_idler_hub"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'wheel_R_sprocket_hub' is 2.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "wheel_R_sprocket_hub"
-      ],
-      "severity": "error"
-    }
-  ],
   "us_m2_bradley_ifv_m2a4": [
     {
       "check": "floating_part",
@@ -3622,78 +2310,6 @@
   "us_m977_hemtt_general_resupply": [
     {
       "check": "floating_part",
-      "distance_m": 0.045,
-      "message": "Part 'axle_L_0' is 4.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.045,
-      "message": "Part 'axle_L_1' is 4.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.045,
-      "message": "Part 'axle_L_2' is 4.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.045,
-      "message": "Part 'axle_L_3' is 4.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_L_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.045,
-      "message": "Part 'axle_R_0' is 4.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.045,
-      "message": "Part 'axle_R_1' is 4.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.045,
-      "message": "Part 'axle_R_2' is 4.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.045,
-      "message": "Part 'axle_R_3' is 4.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "axle_R_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
       "distance_m": 0.051,
       "message": "Part 'cargo_bed_hinge_-1_6' is 5.1cm from nearest part (threshold: 2cm)",
       "parts": [
@@ -3707,15 +2323,6 @@
       "message": "Part 'cargo_bed_hinge_1_6' is 5.1cm from nearest part (threshold: 2cm)",
       "parts": [
         "cargo_bed_hinge_1_6"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.1633,
-      "message": "Part 'dash' is 16.3cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "dash"
       ],
       "severity": "error"
     },
@@ -3741,8 +2348,8 @@
   "us_patriot_long": [
     {
       "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_L_0' is 2.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_L_0' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_L_0"
       ],
@@ -3750,8 +2357,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_L_1' is 2.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_L_1' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_L_1"
       ],
@@ -3759,8 +2366,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_L_2' is 2.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_L_2' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_L_2"
       ],
@@ -3768,8 +2375,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_L_3' is 2.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_L_3' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_L_3"
       ],
@@ -3777,8 +2384,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_R_0' is 2.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_R_0' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_R_0"
       ],
@@ -3786,8 +2393,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_R_1' is 2.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_R_1' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_R_1"
       ],
@@ -3795,8 +2402,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_R_2' is 2.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_R_2' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_R_2"
       ],
@@ -3804,8 +2411,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.025,
-      "message": "Part 'axle_R_3' is 2.5cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.02,
+      "message": "Part 'axle_R_3' is 2.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "axle_R_3"
       ],
@@ -3817,15 +2424,6 @@
       "message": "Part 'cable_reel_R' is 8.5cm from nearest part (threshold: 2cm)",
       "parts": [
         "cable_reel_R"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.15,
-      "message": "Part 'dash' is 15.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "dash"
       ],
       "severity": "error"
     },
@@ -3846,24 +2444,6 @@
         "headlight_R_guard_0"
       ],
       "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.22,
-      "message": "Part 'seat_back_-1' is 22.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_-1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.22,
-      "message": "Part 'seat_back_1' is 22.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_1"
-      ],
-      "severity": "error"
     }
   ],
   "us_stryker_m1126_icv": [
@@ -3873,442 +2453,6 @@
       "message": "Part 'protector_ammo' is 3.5cm from nearest part (threshold: 2cm)",
       "parts": [
         "protector_ammo"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_3"
-      ],
-      "severity": "error"
-    }
-  ],
-  "us_stryker_m1134_atgm": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_3"
-      ],
-      "severity": "error"
-    }
-  ],
-  "us_stryker_m1296_dragoon": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_L_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_L_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'spring_R_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "spring_R_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_L_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_L_3"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_0' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_0"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_1' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_2' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_2"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0349,
-      "message": "Part 'suspension_arm_R_3' is 3.5cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "suspension_arm_R_3"
       ],
       "severity": "error"
     }
