@@ -1,6 +1,6 @@
 # RedGPU reference stills
 
-The targets later slices judge our water against
+The targets the build judged our water against
 ([decision 20](../decisions.md#scope-and-acceptance)). Nothing here is ours,
 and none of it ships.
 
@@ -10,7 +10,7 @@ and none of it ships.
 - **`redgpu-<demo>-<framing>`:** the live demos on GitHub Pages
   (`redcamel.github.io/RedGPU/examples/3d/water/lake/<demo>/`), filmed on
   2026-10-27 at our water reel's three framings
-  ([`fixtures/captures/water.json`](../../../fixtures/captures/water.json)):
+  ([`fixtures/captures/water.json`](../../../../fixtures/captures/water.json)):
   close (65 m at 0.85 rad), tactical (260 m at 0.95 rad) and low (80 m at
   0.2 rad). `landscape` is `lakeWithLandscape` (a 300 m lake on a 400 m
   wooded landscape, by daylight), centred on the deep water nearest its

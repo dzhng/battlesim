@@ -1,4 +1,4 @@
-// The water scene (specs/water-and-wetlands): the water reel
+// The water scene (specs/done/water-and-wetlands): the water reel
 // (`fixtures/captures/water.json`) on the wetlands capture map, filmed by the
 // graphics test with control plates and replayed by the native client from
 // the same run: the river at three framings, then a squad standing in the
@@ -7,7 +7,7 @@
 // must show it as the browser does. The
 // plates go to the evidence
 // in one sheet beside RedGPU's frozen stills
-// (`specs/water-and-wetlands/assets/`), for the side-by-side read; the look
+// (`specs/done/water-and-wetlands/assets/`), for the side-by-side read; the look
 // is judged there by eye, not here. Run it under the GPU lock.
 import { execFile } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
@@ -107,7 +107,7 @@ export async function run(ctx) {
       `ΔE ${off.toFixed(1)} from the browser's over the water`,
     );
   }
-  const stills = new URL("specs/water-and-wetlands/assets/", ROOT);
+  const stills = new URL("specs/done/water-and-wetlands/assets/", ROOT);
   for (const file of (await readdir(stills)).filter((f) => f.startsWith("redgpu-")).sort())
     cells.push({ caption: `RedGPU · ${file}`, png: await readFile(new URL(file, stills)) });
   await writeSheet(ctx, "water.png", {

@@ -1,5 +1,5 @@
 //! A swamp: standing shallow water in a dip it carves itself (decisions 1,
-//! 21, 22 and 30 of `specs/water-and-wetlands`).
+//! 21, 22 and 30 of `specs/done/water-and-wetlands`).
 //!
 //! Its outline is a polygon. Inside it the ground lowers by up to `depth_m`,
 //! easing in over [`EDGE_CELLS`] height samples from the outline, and the

@@ -1,9 +1,16 @@
 # Choices
 
-Decisions made during implementation where the spec was silent, each with a
-verdict. [`decisions.md`](decisions.md) holds the user's givens; this file holds
-what the build decided on their behalf. Banked entries are settled for later
-passes.
+Decisions made during implementation where the spec was silent or wrong
+against the code. [`decisions.md`](decisions.md) holds the user's givens; this
+file holds what the build decided on their behalf. The
+[README](README.md) is the rationale record.
+
+Entries are grouped by the slice that made them, in slice order. Each names
+when it was made and the choice, with its reason. Where known, it also names
+the gap (what the plan left open or got wrong), the reach (what it touches
+later), a verdict and a confidence. The sim lane (slices 10 to 12) and slice
+17 recorded no verdicts; their entries carry a verdict only where the entry
+itself settled one.
 
 ## Slice 00: the water scene
 
@@ -121,6 +128,135 @@ passes.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
+## Slice 01: one wind
+
+### The record holds no clock: grass keeps the camera's
+
+- **When:** slice 01.
+- **The choice:** the contract listed "the clock" among the `Wind` record's
+  fields. Grass already sways on the camera uniform's `time`, which every
+  stage binds, and smoke runs on the presentation clock on the CPU. A second
+  copy of the time in the environment uniform would be written every frame
+  and could disagree with the camera's. So the record is static per ground:
+  heading (`toward`, a level unit vector), `drift_mps`, `gust_mps` and
+  `gust_per_m`, 32 bytes, appended to `Environment` after the haze.
+- **The gap:** the spec named the clock without saying whose.
+- **The reach:** a later wind that changes over the battle (a gusting
+  heading, a storm) writes the record per frame with the view; nothing else
+  moves.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The biome's `wind` block sits at its top level; grass keeps a `sway` block
+
+- **When:** slice 01.
+- **The choice:** the block is `wind: { heading_deg, drift_mps, gust_m,
+  gust_mps }` at the biome's top level, beside `scars`, because no single
+  layer owns it. Grass's response moved from `grass.wind` to `grass.sway`
+  (`lean`, `gust`, `flutter`, `flutter_hz`), and the shader's response
+  tuning in `game.json` (`presentation.grass.wind`: where a gust starts, the
+  flutter's phase and its sideways share) was renamed `sway` with it, so
+  `wind` names only the one wind. `wind.rs` owns the block's range checks.
+- **The gap:** delegated to the implementer.
+- **The reach:** a second biome writes its own `wind` block; a biome without
+  one is refused.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The drift keeps its old speed and turns to the grass's heading
+
+- **When:** slice 01.
+- **The choice:** the old smoke wind was `[0.6, 0.3]` m/s: 0.67 m/s toward
+  26.6°. The new block drifts at `drift_mps: 0.67` toward the grass's 35°,
+  so smoke turns 8.4° and keeps its speed (decision 26). Gusts keep 45 m
+  spacing at 5 m/s, which is a different quantity from the drift.
+- **The gap:** decision 26 fixed the heading but not the drift's speed.
+- **The reach:** retuning the drift is one number in the biome.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Without a ground the air is calm
+
+- **When:** slice 01.
+- **The choice:** the wind is the ground's, so a presentation without a
+  presented ground draws smoke and dust rising straight up, and the
+  environment's wind words are zero. Before, every presentation drifted on
+  the effects' fixed wind. The effects take the biome's block as an option
+  (`EffectFrame::build`) and read the record's f32 direction, the one the
+  shaders read.
+- **The gap:** the spec didn't say what a groundless frame does.
+- **The reach:** labs and tests that draw effects with no ground see no
+  drift. Native always has a ground.
+- **Verdict:** sound.
+- **Confidence:** medium. A lab that judges smoke with no ground would see
+  it change.
+
+### The browser uploads the wind where the presented ground arrives
+
+- **When:** slice 01.
+- **The choice:** `battleFrame.ts`'s `setPresentedGround` hands the ground's
+  `Wind` record (`ground_wind`) to the environment frame (`setWind`), beside
+  handing the ground to the world pass. The world pass's `setGround` fan-out
+  was the other candidate, but it doesn't own the environment, and
+  `worldPass.ts` is over the size budget. Native passes the record to
+  `Environment::new` once, with the light, after it resolves the ground.
+- **The gap:** the spec said "the way the light records are uploaded", and
+  the light is fixed at startup while the ground arrives later.
+- **The reach:** the wind follows the presented ground even before the
+  world's layers arrive; until then nothing draws grass.
+- **Verdict:** sound.
+- **Confidence:** high.
+- **Superseded in slice 17:** the wind rides in the camera; `ground_wind`,
+  `setWind` and native's argument are gone ([slice 17](#the-wind-moved-from-the-environment-uniform-into-the-camera-record)).
+
+### Grass's environment and fog groups swapped slots
+
+- **When:** slice 01.
+- **The choice:** the grass vertex stage now reads the environment
+  (`environmentWind()`), so TypeGPU orders the grass pipelines' groups
+  camera, grass, environment, fog instead of camera, grass, fog,
+  environment. Both clients bind by layout, so neither needed a change.
+- **The gap:** the spec said no bind group gains an entry, which holds; it
+  didn't foresee the reordering.
+- **The reach:** none outside the export.
+- **Verdict:** sound.
+- **Confidence:** high.
+- **Superseded in slice 17:** grass reads `cameraWind()` and its groups
+  are camera, grass, fog, environment again.
+
+### The effect vectors gained a bless path and a `wind` input
+
+- **When:** slice 01.
+- **The choice:** `tests/effects.rs` had no way to re-record its vectors.
+  `BLESS_PARITY=1` now rewrites each frame's instances, and only those, as
+  `poses.rs` and `fog_sight.rs` do; lights and counts must still hold. The
+  vectors' inputs gained the biome's `wind` block in place of the effects'
+  `wind_mps`. The grass vectors moved only their input block (`wind` to
+  `sway`); their recorded words are unchanged. `exact-numbers.json` moved
+  only by the renamed and deleted keys; its digests are unchanged.
+- **The gap:** the spec asked for a re-record with no path to record by.
+- **The reach:** any later change that moves smoke re-records with one
+  command.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Two over-budget files made room by moving a concept to its owner
+
+- **When:** slice 01.
+- **The choice:** the size ratchet refuses any growth in a file over budget,
+  measured against the commit before. A prior split that leaves the file
+  over budget doesn't help. `effects/frame.rs` was split under budget in its
+  own commit: drawing to `frame/draw.rs` and the pool's spawning to
+  `frame/pool.rs`. `presentation.rs` is far over budget (72 KB), so the wind
+  commit itself moves `aircraft_shadow`, the sun-thrown shadow's position,
+  to its owner `shadow.rs`, and the file shrinks. `biome.rs` shrinks
+  because the wind's checks moved to `wind.rs`.
+- **The gap:** the ratchet's rule against the spec's touch list.
+- **The reach:** the next change to `presentation.rs` faces the same wall;
+  it needs a real split.
+- **Verdict:** sound, but the next change pays.
+- **Confidence:** high.
+
 ## Slice 02: the water pass
 
 ### The water stays multisampled, in its own pass after glass
@@ -129,7 +265,7 @@ passes.
 - **The choice:** decision 25 kept single-sampled water unless the probe
   found storing the world's samples cheap. It did: whole-frame GPU time with
   the samples kept was within run-to-run noise of single-sampled water, on
-  High and Low (the slice's table). So the world pass now stores its samples,
+  High and Low ([README](README.md#measured)). So the world pass now stores its samples,
   and the water draws over them in a pass of its own, with depth attached
   read-only. The single-sampled build also worked on both clients, but its
   waterline stepped where the bank crosses the water.
@@ -348,8 +484,8 @@ passes.
   feather, by the same distance as the water's alpha. The water draws the
   mark over its composite whole, at any depth: the bed's light under it
   shows only where no mark lies. A selected squad's ring at the river's
-  edge crosses onto the water as one line (evidence in the slice).
-- **The gap:** the README's sharp edge said one layer must own the paint,
+  edge crosses onto the water as one line (a throwaway probe in the river lab).
+- **The gap:** the spec's sharp edges said one layer must own the paint,
   not which.
 - **The reach:** refraction (slice 07) displaces only the bed term, so
   marks stay put.
@@ -375,134 +511,6 @@ passes.
   because native draws the river's own look.
 - **Verdict:** sound.
 - **Confidence:** high.
-## Slice 01: one wind
-
-### The record holds no clock: grass keeps the camera's
-
-- **When:** slice 01.
-- **The choice:** the contract listed "the clock" among the `Wind` record's
-  fields. Grass already sways on the camera uniform's `time`, which every
-  stage binds, and smoke runs on the presentation clock on the CPU. A second
-  copy of the time in the environment uniform would be written every frame
-  and could disagree with the camera's. So the record is static per ground:
-  heading (`toward`, a level unit vector), `drift_mps`, `gust_mps` and
-  `gust_per_m`, 32 bytes, appended to `Environment` after the haze.
-- **The gap:** the spec named the clock without saying whose.
-- **The reach:** a later wind that changes over the battle (a gusting
-  heading, a storm) writes the record per frame with the view; nothing else
-  moves.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### The biome's `wind` block sits at its top level; grass keeps a `sway` block
-
-- **When:** slice 01.
-- **The choice:** the block is `wind: { heading_deg, drift_mps, gust_m,
-  gust_mps }` at the biome's top level, beside `scars`, because no single
-  layer owns it. Grass's response moved from `grass.wind` to `grass.sway`
-  (`lean`, `gust`, `flutter`, `flutter_hz`), and the shader's response
-  tuning in `game.json` (`presentation.grass.wind`: where a gust starts, the
-  flutter's phase and its sideways share) was renamed `sway` with it, so
-  `wind` names only the one wind. `wind.rs` owns the block's range checks.
-- **The gap:** delegated to the implementer.
-- **The reach:** a second biome writes its own `wind` block; a biome without
-  one is refused.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### The drift keeps its old speed and turns to the grass's heading
-
-- **When:** slice 01.
-- **The choice:** the old smoke wind was `[0.6, 0.3]` m/s: 0.67 m/s toward
-  26.6°. The new block drifts at `drift_mps: 0.67` toward the grass's 35°,
-  so smoke turns 8.4° and keeps its speed (decision 26). Gusts keep 45 m
-  spacing at 5 m/s, which is a different quantity from the drift.
-- **The gap:** decision 26 fixed the heading but not the drift's speed.
-- **The reach:** retuning the drift is one number in the biome.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### Without a ground the air is calm
-
-- **When:** slice 01.
-- **The choice:** the wind is the ground's, so a presentation without a
-  presented ground draws smoke and dust rising straight up, and the
-  environment's wind words are zero. Before, every presentation drifted on
-  the effects' fixed wind. The effects take the biome's block as an option
-  (`EffectFrame::build`) and read the record's f32 direction, the one the
-  shaders read.
-- **The gap:** the spec didn't say what a groundless frame does.
-- **The reach:** labs and tests that draw effects with no ground see no
-  drift. Native always has a ground.
-- **Verdict:** sound.
-- **Confidence:** medium. A lab that judges smoke with no ground would see
-  it change.
-
-### The browser uploads the wind where the presented ground arrives
-
-- **When:** slice 01.
-- **The choice:** `battleFrame.ts`'s `setPresentedGround` hands the ground's
-  `Wind` record (`ground_wind`) to the environment frame (`setWind`), beside
-  handing the ground to the world pass. The world pass's `setGround` fan-out
-  was the other candidate, but it doesn't own the environment, and
-  `worldPass.ts` is over the size budget. Native passes the record to
-  `Environment::new` once, with the light, after it resolves the ground.
-- **The gap:** the spec said "the way the light records are uploaded", and
-  the light is fixed at startup while the ground arrives later.
-- **The reach:** the wind follows the presented ground even before the
-  world's layers arrive; until then nothing draws grass.
-- **Verdict:** sound.
-- **Confidence:** high.
-- **Superseded in slice 17:** the wind rides in the camera; `ground_wind`,
-  `setWind` and native's argument are gone ([slice 17, choice 1](#slice-17-tree-sway)).
-
-### Grass's environment and fog groups swapped slots
-
-- **When:** slice 01.
-- **The choice:** the grass vertex stage now reads the environment
-  (`environmentWind()`), so TypeGPU orders the grass pipelines' groups
-  camera, grass, environment, fog instead of camera, grass, fog,
-  environment. Both clients bind by layout, so neither needed a change.
-- **The gap:** the spec said no bind group gains an entry, which holds; it
-  didn't foresee the reordering.
-- **The reach:** none outside the export.
-- **Verdict:** sound.
-- **Confidence:** high.
-- **Superseded in slice 17:** grass reads `cameraWind()` and its groups
-  are camera, grass, fog, environment again.
-
-### The effect vectors gained a bless path and a `wind` input
-
-- **When:** slice 01.
-- **The choice:** `tests/effects.rs` had no way to re-record its vectors.
-  `BLESS_PARITY=1` now rewrites each frame's instances, and only those, as
-  `poses.rs` and `fog_sight.rs` do; lights and counts must still hold. The
-  vectors' inputs gained the biome's `wind` block in place of the effects'
-  `wind_mps`. The grass vectors moved only their input block (`wind` to
-  `sway`); their recorded words are unchanged. `exact-numbers.json` moved
-  only by the renamed and deleted keys; its digests are unchanged.
-- **The gap:** the spec asked for a re-record with no path to record by.
-- **The reach:** any later change that moves smoke re-records with one
-  command.
-- **Verdict:** sound.
-- **Confidence:** high.
-
-### Two over-budget files made room by moving a concept to its owner
-
-- **When:** slice 01.
-- **The choice:** the size ratchet refuses any growth in a file over budget,
-  measured against the commit before. A prior split that leaves the file
-  over budget doesn't help. `effects/frame.rs` was split under budget in its
-  own commit: drawing to `frame/draw.rs` and the pool's spawning to
-  `frame/pool.rs`. `presentation.rs` is far over budget (72 KB), so the wind
-  commit itself moves `aircraft_shadow`, the sun-thrown shadow's position,
-  to its owner `shadow.rs`, and the file shrinks. `biome.rs` shrinks
-  because the wind's checks moved to `wind.rs`.
-- **The gap:** the ratchet's rule against the spec's touch list.
-- **The reach:** the next change to `presentation.rs` faces the same wall;
-  it needs a real split.
-- **Verdict:** sound, but the next change pays.
-- **Confidence:** high.
 
 ## Slice 05: the soft shore
 
@@ -519,11 +527,11 @@ passes.
   bands" for deletion. Deleting them would run grass to the water's edge
   with no bank, and the river scene's check of those bands, which the
   slice didn't expect to fail, still says what the player should see.
-- **The gap:** the contract's deletion list mixed the water's edge with the
-  ground's.
   A mark is its own layer over the faded water, covering by
   `p + edge·(1 − p)`, so a ring crossing the bank keeps one strength (Codex
   caught it dimming in the shallows, where the bed is unpainted).
+- **The gap:** the contract's deletion list mixed the water's edge with the
+  ground's.
 - **The reach:** swamps and puddles (slices 13, 14) take their edge from
   this fade, whatever their shape. The ground still paints and colours by
   the simulation's analytic distance, so the two can sit up to a triangle
@@ -566,190 +574,6 @@ passes.
 - **The reach:** none.
 - **Verdict:** sound.
 - **Confidence:** medium.
-Decisions the implementing agent made where the plan was silent or wrong
-against the code. Each says what was chosen, why, and how sure the agent is.
-[`decisions.md`](decisions.md) still holds the user's givens.
-
-## Slice 10: swamp terrain
-
-1. **A swamp's outline is a polygon.** Admission refuses a stroke. *Why:* a
-   swamp is an area, and a polygon gives an exact distance in from its edge,
-   which the cut, the membership and presentation all read. A stroke's
-   square-cut ends would need their own distance rule. *Confidence:* high.
-2. **The water stands at one level per swamp, and the land under it must be
-   level.** The level is the land's height at the outline's first point.
-   Admission refuses a swamp where any height sample it cuts, or a triangle
-   it moves, stands at another height. *Why:* decision 1 puts the water flat
-   at the old ground level, which only exists when the land is level; one
-   level makes the water a plane, as a river's is, for `water_hit` and for
-   drawing. Generated maps have no relief, so mapgen loses nothing.
-   *Confidence:* high.
-3. **The edge eases in over three height samples (12 m on a 4 m grid) by a
-   smoothstep.** Admission refuses a depth whose steepest grade (1.5 × depth
-   over the edge's width) exceeds `steepest_grade`. *Why:* decision 21; the
-   smoothstep has no kink at either end, so no triangle is steeper than the
-   curve's middle. *Confidence:* high for the shape, medium for the width,
-   which slice 13 may want wider on screen.
-4. **A road ends the cut a triangle clear of its side, and eases in from
-   there as from the outline.** The cut is the smoothstep of the lesser of
-   the distance in from the outline and the distance from the nearest road
-   less one cell diagonal. *Why:* a cut sample lowers every triangle it is a
-   corner of, so a cut that started at the road's edge would tilt the road's
-   own sides; easing in keeps the causeway's sides as gentle as the outline's.
-   Road distance is the exact distance to a stroke's stretches, square ends
-   included (`contract::ground::stretch_distance`). *Confidence:* high.
-5. **A road across a swamp is dry ground.** `Surface.swamp` and
-   `water_hit` exclude road surfaces: the causeway takes marks and rounds
-   land on it. *Why:* decision 4 makes the road a causeway; standing water
-   would otherwise cover it at its own height. *Confidence:* high.
-6. **Minimum size: some height sample lies (1.5 − √½) cells inside the
-   outline.** *Why:* any swamp holding a disc three cells across has such a
-   sample wherever the grid falls on it (decision 22), and a sliver much
-   narrower does not. *Confidence:* medium; the threshold is a loose
-   tripwire, not a target.
-7. **River gap: no height sample within an edge's width and one more sample
-   of the outline is river water or river-cut bank.** *Why:* a swamp's rim
-   then stands on the land's own height on every side, and the carve's two
-   owners never meet. *Confidence:* medium on the exact width.
-8. **Buildings and bridge approaches: no height sample the swamp cuts lies
-   within a cell diagonal of a building part's footprint, or of a bridge deck
-   lengthened by an edge's width at each end.** *Why:* no triangle under them
-   is then cut, so their absolute `base_z` and the deck's ramp stay true.
-   *Confidence:* high.
-9. **Overlapping swamps are allowed;** the deeper cut wins at each point.
-   *Why:* level land makes their water the same height, so nothing needs
-   refusing. *Confidence:* medium.
-10. **The export is one stride per outline edge:** `ax, ay, bx, by, swamp,
-    surfaceZ, depth` (`SWAMP_STRIDE`, `swampFields` in the layout). *Why:*
-    presentation rebuilds each outline and its membership from it, and
-    `swamp` is the index slice 03's variant pick seeds from. *Confidence:*
-    high.
-11. **`NavGrid::swamp_at` is a public query on what the planner reads.**
-    Today only the seam test calls it; slice 11's cost reads `Cell.swamp`
-    directly. *Why:* the slice's seam test compares the planner's cell with
-    movement's surface, and navigation keeps its cells private. Delete it in
-    slice 11 if the planning tests there make it redundant. *Confidence:*
-    medium.
-12. **Decision 21's sight test is run on the ground sight sweep, not on
-    identification.** With water at the land's level stopping sight
-    (decision 32), a line between two points above the water never passes
-    under the rim, so the dip cannot hide a target that stands above its
-    water, and one whose points lie under the water is hidden from everyone.
-    The terrain-only sweep (the fog) does show the mechanic: on a 3 m test
-    dip, a far observer on flat ground loses the dip's floor and a near or
-    high one sees it. *Why:* decisions 21 and 32 cannot both hold for unit
-    identification; 32 is the slice contract's one water rule. *Confidence:*
-    high on the geometry. Whether a deep swamp should hide units from far
-    observers at all is the user's call.
-13. **The rays (`raycast`, `sight_clear`, `water_hit`) moved to
-    `world/rays.rs`, and mapgen's plan types to `mapgen/src/plan.rs`,** each
-    in its own commit with no behaviour change. *Why:* both files were over
-    the size budget and slice 10 had to touch them. *Confidence:* high.
-
-## Slice 11: swamp slowdown
-
-1. **First shipped factors: foot 0.5, wheeled 0.3, tracked 0.55**
-   (`movement.swamp` in `fixtures/game.json`). *Why:* wading thigh-deep
-   halves a soldier's pace, trucks bog worst, tanks churn through a little
-   faster than a soldier wades. They are tuning, not requirements; the
-   paired battle report is still owed (see below). *Confidence:* low, by
-   design.
-2. **`Footing { road_factor, forest, swamp, slope_deg }` lives beside
-   `Mobility` and is built by `Surface::footing()`, `Cell::footing()` and a
-   road `Arc::footing()`.** *Why:* each owner of a piece of ground says what
-   a mover's speed reads of it; the five read sites shrank rather than grew,
-   which the size budget on `soldier.rs`, `journey.rs` and `navigation.rs`
-   needed. *Confidence:* high.
-3. **Off a road the speed is open speed × min(forest factor, swamp
-   factor),** each 1 where its ground is absent. *Why:* decision 4's "the
-   slower applies"; for ground with neither it is bit-identical to the old
-   arithmetic, so only the rules hash moves digests. *Confidence:* high.
-4. **`SlowGround` keeps three counts per tile off any road: forest only,
-   swamp only, both,** and the estimate weighs "both" by the slower factor.
-   The expression keeps the old one's order, so a map with no swamp
-   estimates bit for bit as before. *Confidence:* high.
-5. **`NavGrid::swamp_at` is deleted.** The planning seam test now compares
-   each cell's planned cost with movement's speed at its middle
-   (`ground_speed::planning_costs_each_cell_at_the_speed_movement_takes_there`),
-   which is the claim the query stood in for. *Confidence:* high.
-6. **`MovementRules` and `SwampRules` refuse unknown keys; `DriveRules`
-   does not yet.** *Why:* the slice named `MovementRules`; the drive row is
-   unchanged here. *Confidence:* medium.
-7. **The dense reference planner in `examples/navigation_quality` reads
-   `sim::navigation::Mobility` and its `speed`;** its road cells are road
-   factor 1 and never swamp. *Why:* the slice deletes its private copy.
-   *Confidence:* high.
-8. **Ground-speed tests live in `tests/ground_speed.rs`,** with the old
-   `speed_follows_surface_and_slope` folded in as a slope test. *Why:*
-   `tests/navigation.rs` was over the size budget, and speed over ground is
-   one concept. *Confidence:* high.
-9. **The owed evidence is a paired crossing, not a full battle report:**
-   the `wetlands` water encounter's squad and tank each moved across the
-   swamp alone, with the shipped factors and with every factor at 1.0
-   (slice 11's Evidence holds the table). *Why:* the encounter has no
-   opposing force, so a battle report would measure nothing but this; the
-   crossing isolates the one variable. Recorded, not retuned.
-   *Confidence:* high on the numbers; the factors themselves stay tuning.
-
-## Slice 12: swamps in map generation
-
-1. **Swamps come in pairs: one in each half, of one drawn size.** *Why:*
-   the halves then hold the same wet ground by construction; `verify`
-   still measures the split against `swamps.fairness` and refuses a plan
-   outside it, as it does woods. *Confidence:* high.
-2. **Each map type's chance is `swamps.chance.<type>` in the presets' own
-   swamp section, not a `swamp_chance` field beside `river_chance`.**
-   *Why:* `layout/presets.rs`, which holds the type rows, is over the size
-   budget and may not grow; the swamp section owns every swamp number.
-   Shipped chances: open 0.45, mixed 0.35, metro 0.2. *Confidence:* high
-   on the place, low on the values (tuning).
-3. **Placement:** after towns, woods and the skirmish reservation, before
-   `verify`, from the `swamps` stream. A swamp lies wholly inside its half
-   and the map, keeps `settlement_gap_m` from every settlement outline (both
-   rings' vertices) and every skirmish objective (its whole radius) and
-   entry, keeps `road_gap_m` from every road's edge and `wood_gap_m` from
-   every wood, keeps off every reserved corridor, keeps `bridge_gap_m` from
-   a deck lengthened by its approach (a circle test), keeps `swamp_gap_m`
-   from other swamps, and with a river lies between `river_gap_m` and
-   `river_reach_m` of the water with its long axis along the river's course
-   there. *Why:* the first unprimed critique of a six-seed sheet found roads
-   running through swamps, swamps notched into woods, one crowding a
-   village, and round ponds unrelated to the river; generated swamps now
-   keep off all of those (hand-made maps may still lay a causeway across
-   one). The second critique found no placement error. *Confidence:* medium
-   on the gaps and sizes (tuning).
-4. **Later passes keep off swamps through what they already keep off:** the
-   open country counts a swamp with the woods it never furnishes
-   (`open_country/country.rs`), and the ground-sight coverage counts its
-   depth in the lowest ground. Parcels and street furniture stand in
-   settlements, which swamps keep clear of. *Why:* no new owner, and
-   `open_country/mod.rs` is over the size budget. *Confidence:* medium:
-   street furniture along a rural road across a swamp could stand in its
-   water; none of the corpus seeds did.
-5. **The compiler runs `contract::swamp::validate` on the lowered map** and
-   refuses with `InvalidSwamp`, so a placement rule that misses a building
-   or a bridge approach is a named seed refusal, not a world assertion.
-6. **Preset validation refuses a swamp the terrain cannot carve:** a depth
-   past `contract::swamp::deepest_m` (now the contract's one rule), a
-   narrowest drawn swamp under four height samples across, and a river gap
-   inside a river's cut bank plus the swamp's edge. *Confidence:* high.
-7. **Versions:** generator `layout-20`, presets `layout-presets-20`. Plans
-   and maps without swamps serialize as before (`swamps` is skipped when
-   empty). *Confidence:* high.
-8. **The deck clearance is belt and braces:** with the shipped river gap no
-   swamp reaches a bridge approach, so its test is the compiled map's
-   admission, not the placement rule alone.
-9. **Splits for the size ratchet:** the presets document
-   (`layout/presets/definitions.rs`) and the open country's clearance
-   reading (`open_country/country.rs`) moved out in their own commits.
-10. **Left for tuning and slice 13:** the second critique still read the
-    swamps as neat ponds of one family, small at 6 km, and noted the
-    riverside ones never meet the river. The gap is the contract's (a
-    swamp may not stand on a river's cut bank); size and variety are preset
-    numbers; the crisp outline is the plan picture's symbol, and the look on
-    the battlefield is slice 13's.
-9. **No paired battle report on the `wetlands` map yet.** That map comes
-   from slice 00 in the other lane; run the report once it is merged.
 
 ## Slice 06: wind-driven normals
 
@@ -828,56 +652,6 @@ against the code. Each says what was chosen, why, and how sure the agent is.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
-## Slice 17: tree sway
-
-1. **The wind moved from the `Environment` uniform into the `Camera`
-   record (`Camera.wind`, one `Wind` in a one-record array).** *Why:* a sun
-   cascade's caster binds only its camera, and could not bind the
-   environment (it holds the very depth array the caster draws into); the
-   camera is the one uniform every vertex stage binds and already carries
-   the clock. The environment's wind, `setWind`, `ground_wind` and native's
-   wind argument are deleted, so the wind still has one owner. This revises
-   slice 01's upload contract. *Confidence:* high.
-2. **Every cascade camera now runs on the frame's clock and wind**
-   (`presentation/cameras.rs`); the fit is still reused, only those two
-   fields are refreshed each frame. Before, casters ran at time 0.
-   *Confidence:* high.
-3. **`sway(foot, point, up, height, leaf)`** (`frame/sway.ts`) is the one
-   function; the standing-tree vertex stage (prepass, forest and backdrop
-   colour) passes the vertex's leaf flag, the new `casterVertex` passes 0,
-   so shadows bend with the trunk and do not shiver. The tree's height is
-   the crown's heart (`shape.w`) over the walk's `HEART`, the inverse of
-   how the walk wrote it. Felled trees and forest-floor dressing do not
-   sway. *Confidence:* high.
-4. **Tuning (look only), owned by Rust (`static_world/ground/sway.rs`) and
-   generated into `SWAY` for the shader.** At strength 1 (gust speed 6 m/s
-   or more) the top bends `0.18 × height × (0.15 lean + 0.7 × gust front +
-   0.35 × swing × (1 + front)/2)`: under a passing gust front a crown leans
-   up to about 18% of its height and swings harder; between fronts it
-   holds a small lean and a slow swing (1.6 rad/s, with RedGPU's overtone).
-   Leaves shiver up to 0.15 m at 7 rad/s, more under a front. Strength
-   follows the wind's gust speed, so a calm biome stands still. Raised from
-   10% after the coordinator asked for a strong gust to bend a crown
-   visibly at the 80 m low shot. The last unprimed critique still found the
-   forced full gust hard to tell from the summer breeze in that shot. There
-   the summer wind (35°) blows almost along the camera's axis, so crowns
-   bend toward the lens, and the tree models already lean at rest. From
-   above (tactical) the shift reads, and nothing shears, detaches or
-   stretches. I stopped at this round rather than push the amplitude into
-   rubber. *Confidence:* low, by design.
-5. **Splits for the size ratchet:** the side's fog out of `presentation.rs`,
-   and the scenery's vertex stages out of `sceneryLayer.ts`, each in its own
-   commit.
-6. **The walk's chunk bounds take in the sway's reach** (`Sway::reach`,
-   from the same numbers the shader uses): the top's largest bend plus the
-   leaves' shiver, added to the chunk's radius and height. A tree's whole
-   bent crown can leave its rest box, so a rest-box cull dropped crowns and
-   shadows at the view's and cascades' edges. *Confidence:* high.
-7. **The frame scene's `geometry` baseline is re-blessed.** The geometry
-   lab's trees stand in the summer wind at the scene's held clock, so they
-   now bend. The still moved by a pixel at this tuning (2 px at an earlier
-   one), the same on repeated runs; foundation and river did not move.
-   *Confidence:* high.
 ## Slice 07: refraction, and the Low tier
 
 ### The bed shifts in metres along the slope, then is projected
@@ -1120,11 +894,11 @@ against the code. Each says what was chosen, why, and how sure the agent is.
   `streak` are gone (slice 06 left the call here). Every unprimed critique
   since slice 04 read them as brushed metal or motion blur, and with them
   off the close shot reads calmer and more like water. The tactical river
-  loses the faint lines that broke its band, which the checkpoint below
-  weighs. The look record's freed words now hold the lobes (`roughness`,
+  loses the faint lines that broke its band, which slice 09's checkpoint
+  weighed. The look record's freed words now hold the lobes (`roughness`,
   `lobes`) and the fades (`fades`); its size is unchanged.
-- **The gap:** none; slice 06 deferred it here. Slice 03's done record
-  still lists `streak` as a look field, as it shipped then.
+- **The gap:** none; slice 06 deferred it here. Slice 03's entries
+  still name `streak` as a look field, as it shipped then.
 - **The reach:** none.
 - **Verdict:** sound.
 - **Confidence:** medium.
@@ -1150,11 +924,348 @@ against the code. Each says what was chosen, why, and how sure the agent is.
   the low cinematic angle only; from the tactical height, where play
   happens, a reflected bank is a few percent of a dark band. It would need
   the world's colour and depth at full resolution in the water's pass, and
-  a ray march per pixel. It doesn't earn that now; the README records it.
+  a ray march per pixel. It doesn't earn that now; the [README](README.md#dead-ends) records it.
 - **The gap:** decision 15 asked for the call.
 - **The reach:** a later cinematic pass could add it for the menu reel.
 - **Verdict:** sound.
 - **Confidence:** medium.
+
+## Slice 10: swamp terrain
+
+### A swamp's outline is a polygon
+
+- **When:** slice 10.
+- **The choice:** admission refuses a stroke. A swamp is an area, and a
+  polygon gives an exact distance in from its edge, which the cut, the
+  membership and presentation all read. A stroke's square-cut ends would
+  need their own distance rule.
+- **The gap:** delegated (the swamp shape's representation, within
+  `GroundShape`).
+- **Confidence:** high.
+
+### The water stands at one level per swamp, and the land under it must be level
+
+- **When:** slice 10.
+- **The choice:** the level is the land's height at the outline's first
+  point. Admission refuses a swamp where any height sample it cuts, or a
+  triangle it moves, stands at another height. Decision 1 puts the water
+  flat at the old ground level, which only exists when the land is level;
+  one level makes the water a plane, as a river's is, for `water_hit` and
+  for drawing. Generated maps have no relief, so mapgen loses nothing.
+- **Confidence:** high.
+
+### The edge eases in over three height samples by a smoothstep
+
+- **When:** slice 10.
+- **The choice:** the edge spans three height samples (12 m on a 4 m grid).
+  Admission refuses a depth whose steepest grade (1.5 × depth over the
+  edge's width) exceeds `steepest_grade`. This is decision 21; the
+  smoothstep has no kink at either end, so no triangle is steeper than the
+  curve's middle.
+- **The gap:** delegated (the edge falloff curve).
+- **The reach:** slice 13 may want the edge wider on screen.
+- **Confidence:** high for the shape, medium for the width.
+
+### A road ends the cut a triangle clear of its side, and eases in from there
+
+- **When:** slice 10.
+- **The choice:** the cut is the smoothstep of the lesser of the distance in
+  from the outline and the distance from the nearest road less one cell
+  diagonal, eased in as from the outline. A cut sample lowers every triangle
+  it is a corner of, so a cut that started at the road's edge would tilt the
+  road's own sides; easing in keeps the causeway's sides as gentle as the
+  outline's. Road distance is the exact distance to a stroke's stretches,
+  square ends included (`contract::ground::stretch_distance`).
+- **Confidence:** high.
+
+### A road across a swamp is dry ground
+
+- **When:** slice 10.
+- **The choice:** `Surface.swamp` and `water_hit` exclude road surfaces: the
+  causeway takes marks, and rounds land on it. Decision 4 makes the road a
+  causeway; standing water would otherwise cover it at its own height.
+- **Confidence:** high.
+
+### Minimum size: some height sample lies (1.5 − √½) cells inside the outline
+
+- **When:** slice 10.
+- **The choice:** any swamp holding a disc three cells across has such a
+  sample wherever the grid falls on it (decision 22), and a sliver much
+  narrower does not.
+- **The gap:** delegated (the minimum size).
+- **Verdict:** the threshold is a loose tripwire, not a target.
+- **Confidence:** medium.
+
+### River gap: no sample within an edge's width and one more of the outline is river water or bank
+
+- **When:** slice 10.
+- **The choice:** no height sample within an edge's width and one more
+  sample of the outline is river water or river-cut bank. A swamp's rim then
+  stands on the land's own height on every side, and the carve's two owners
+  never meet.
+- **The gap:** delegated (the exact gap from river edges).
+- **Confidence:** medium on the exact width.
+
+### Buildings and bridge approaches keep a cell diagonal from any cut sample
+
+- **When:** slice 10.
+- **The choice:** no height sample the swamp cuts lies within a cell
+  diagonal of a building part's footprint, or of a bridge deck lengthened by
+  an edge's width at each end. No triangle under them is then cut, so their
+  absolute `base_z` and the deck's ramp stay true.
+- **Confidence:** high.
+
+### Overlapping swamps are allowed; the deeper cut wins at each point
+
+- **When:** slice 10.
+- **The choice:** level land makes their water the same height, so nothing
+  needs refusing.
+- **Confidence:** medium.
+
+### The export is one stride per outline edge
+
+- **When:** slice 10.
+- **The choice:** `ax, ay, bx, by, swamp, surfaceZ, depth` (`SWAMP_STRIDE`,
+  `swampFields` in the layout). Presentation rebuilds each outline and its
+  membership from it, and `swamp` is the index slice 03's variant pick seeds
+  from.
+- **Confidence:** high.
+
+### `NavGrid::swamp_at` is a public query on what the planner reads
+
+- **When:** slice 10.
+- **The choice:** only the seam test called it; slice 11's cost reads
+  `Cell.swamp` directly. The slice's seam test compares the planner's cell
+  with movement's surface, and navigation keeps its cells private.
+- **The reach:** delete it in slice 11 if the planning tests there make it
+  redundant.
+- **Verdict:** superseded in slice 11, which deleted it
+  ([`NavGrid::swamp_at` is deleted](#navgridswamp_at-is-deleted)).
+- **Confidence:** medium.
+
+### Decision 21's sight test runs on the ground sight sweep, not on identification
+
+- **When:** slice 10.
+- **The choice:** with water at the land's level stopping sight (decision
+  32), a line between two points above the water never passes under the
+  rim. So the dip cannot hide a target that stands above its water, and one
+  whose points lie under the water is hidden from everyone. The
+  terrain-only sweep (the fog) does show the mechanic: on a 3 m test dip, a
+  far observer on flat ground loses the dip's floor, and a near or high one
+  sees it. Decisions 21 and 32 cannot both hold for unit identification; 32
+  is the slice contract's one water rule.
+- **The reach:** whether a deep swamp should hide units from far observers
+  at all is the user's call.
+- **Confidence:** high on the geometry.
+
+### The rays and mapgen's plan types moved to their own files first
+
+- **When:** slice 10.
+- **The choice:** the rays (`raycast`, `sight_clear`, `water_hit`) moved to
+  `world/rays.rs`, and mapgen's plan types to `mapgen/src/plan.rs`, each in
+  its own commit with no behaviour change. Both files were over the size
+  budget, and slice 10 had to touch them.
+- **Confidence:** high.
+
+## Slice 11: swamp slowdown
+
+### First shipped factors: foot 0.5, wheeled 0.3, tracked 0.55
+
+- **When:** slice 11.
+- **The choice:** `movement.swamp` in `fixtures/game.json`. Wading
+  thigh-deep halves a soldier's pace, trucks bog worst, and tanks churn
+  through a little faster than a soldier wades.
+- **The gap:** delegated (the first shipped values).
+- **Verdict:** tuning, not requirements. The paired crossing below measured
+  them.
+- **Confidence:** low, by design.
+
+### One `Footing` value, built by each owner of a piece of ground
+
+- **When:** slice 11.
+- **The choice:** `Footing { road_factor, forest, swamp, slope_deg }` lives
+  beside `Mobility` and is built by `Surface::footing()`, `Cell::footing()`
+  and a road `Arc::footing()`. Each owner of a piece of ground says what a
+  mover's speed reads of it. The five read sites shrank rather than grew,
+  which the size budget on `soldier.rs`, `journey.rs` and `navigation.rs`
+  needed.
+- **The gap:** delegated (`Footing`'s exact shape).
+- **Confidence:** high.
+
+### Off a road the speed is open speed × min(forest factor, swamp factor)
+
+- **When:** slice 11.
+- **The choice:** each factor is 1 where its ground is absent. This is
+  decision 4's "the slower applies". For ground with neither it is
+  bit-identical to the old arithmetic, so only the rules hash moves digests.
+- **Confidence:** high.
+
+### `SlowGround` keeps three counts per tile: forest only, swamp only, both
+
+- **When:** slice 11.
+- **The choice:** off any road, and the estimate weighs "both" by the slower
+  factor. The expression keeps the old one's order, so a map with no swamp
+  estimates bit for bit as before.
+- **Confidence:** high.
+
+### `NavGrid::swamp_at` is deleted
+
+- **When:** slice 11.
+- **The choice:** the planning seam test now compares each cell's planned
+  cost with movement's speed at its middle
+  (`ground_speed::planning_costs_each_cell_at_the_speed_movement_takes_there`),
+  which is the claim the query stood in for.
+- **Confidence:** high.
+
+### `MovementRules` and `SwampRules` refuse unknown keys; `DriveRules` does not yet
+
+- **When:** slice 11.
+- **The choice:** the slice named `MovementRules`; the drive row is
+  unchanged here.
+- **Confidence:** medium.
+
+### The dense reference planner reads `sim::navigation::Mobility`
+
+- **When:** slice 11.
+- **The choice:** the dense reference planner in
+  `examples/navigation_quality` reads `sim::navigation::Mobility` and its
+  `speed`; its road cells are road factor 1 and never swamp. The slice
+  deletes its private copy.
+- **Confidence:** high.
+
+### Ground-speed tests live in `tests/ground_speed.rs`
+
+- **When:** slice 11.
+- **The choice:** the old `speed_follows_surface_and_slope` is folded in as
+  a slope test. `tests/navigation.rs` was over the size budget, and speed
+  over ground is one concept.
+- **Confidence:** high.
+
+### The owed evidence is a paired crossing, not a full battle report
+
+- **When:** slice 11.
+- **The choice:** the `wetlands` water encounter's squad and tank each moved
+  across the swamp alone, with the shipped factors and with every factor at
+  1.0 (the table is in the [README](README.md#measured)). The encounter has
+  no opposing force, so a battle report would measure nothing but this; the
+  crossing isolates the one variable. Recorded, not retuned.
+- **The gap:** the slice asked for a paired battle report on the
+  `wetlands` map.
+- **Confidence:** high on the numbers; the factors themselves stay tuning.
+
+## Slice 12: swamps in map generation
+
+### Swamps come in pairs: one in each half, of one drawn size
+
+- **When:** slice 12.
+- **The choice:** the halves then hold the same wet ground by construction.
+  `verify` still measures the split against `swamps.fairness` and refuses a
+  plan outside it, as it does woods.
+- **Confidence:** high.
+
+### Each map type's chance is `swamps.chance.<type>` in the presets' swamp section
+
+- **When:** slice 12.
+- **The choice:** not a `swamp_chance` field beside `river_chance`.
+  `layout/presets.rs`, which holds the type rows, is over the size budget and
+  may not grow; the swamp section owns every swamp number. Shipped chances:
+  open 0.45, mixed 0.35, metro 0.2.
+- **The gap:** the slice asked for a `swamp_chance` like `river_chance`, and
+  delegated the chance per preset.
+- **Confidence:** high on the place, low on the values (tuning).
+
+### Placement: after towns, woods and the skirmish reservation, clear of everything a swamp would spoil
+
+- **When:** slice 12.
+- **The choice:** placement runs before `verify`, from the `swamps` stream.
+  A swamp:
+  - lies wholly inside its half and the map;
+  - keeps `settlement_gap_m` from every settlement outline (both rings'
+    vertices) and every skirmish objective (its whole radius) and entry;
+  - keeps `road_gap_m` from every road's edge and `wood_gap_m` from every
+    wood;
+  - keeps off every reserved corridor;
+  - keeps `bridge_gap_m` from a deck lengthened by its approach (a circle
+    test);
+  - keeps `swamp_gap_m` from other swamps;
+  - with a river, lies between `river_gap_m` and `river_reach_m` of the
+    water, with its long axis along the river's course there.
+
+  The first unprimed critique of a six-seed sheet found roads running
+  through swamps, swamps notched into woods, one crowding a village, and
+  round ponds unrelated to the river. Generated swamps now keep off all of
+  those (hand-made maps may still lay a causeway across one). The second
+  critique found no placement error.
+- **The gap:** delegated (the placement algorithm, and how big swamps can
+  be).
+- **Confidence:** medium on the gaps and sizes (tuning).
+
+### Later passes keep off swamps through what they already keep off
+
+- **When:** slice 12.
+- **The choice:** the open country counts a swamp with the woods it never
+  furnishes (`open_country/country.rs`), and the ground-sight coverage
+  counts its depth in the lowest ground. Parcels and street furniture stand
+  in settlements, which swamps keep clear of. No new owner, and
+  `open_country/mod.rs` is over the size budget.
+- **The reach:** street furniture along a rural road across a swamp could
+  stand in its water; none of the corpus seeds did.
+- **Confidence:** medium.
+
+### The compiler runs `contract::swamp::validate` on the lowered map
+
+- **When:** slice 12.
+- **The choice:** it refuses with `InvalidSwamp`, so a placement rule that
+  misses a building or a bridge approach is a named seed refusal, not a
+  world assertion.
+
+### Preset validation refuses a swamp the terrain cannot carve
+
+- **When:** slice 12.
+- **The choice:** it refuses a depth past `contract::swamp::deepest_m` (now
+  the contract's one rule), a narrowest drawn swamp under four height
+  samples across, and a river gap inside a river's cut bank plus the swamp's
+  edge.
+- **Confidence:** high.
+
+### Versions: generator `layout-20`, presets `layout-presets-20`
+
+- **When:** slice 12.
+- **The choice:** plans and maps without swamps serialize as before
+  (`swamps` is skipped when empty).
+- **Confidence:** high.
+
+### The deck clearance is belt and braces
+
+- **When:** slice 12.
+- **The choice:** with the shipped river gap no swamp reaches a bridge
+  approach, so its test is the compiled map's admission, not the placement
+  rule alone.
+
+### Splits for the size ratchet
+
+- **When:** slice 12.
+- **The choice:** the presets document (`layout/presets/definitions.rs`)
+  and the open country's clearance reading (`open_country/country.rs`) moved
+  out in their own commits.
+
+### Left for tuning and slice 13: neat ponds of one family
+
+- **When:** slice 12.
+- **The choice:** the second critique still read the swamps as neat ponds of
+  one family, small at 6 km, and noted the riverside ones never meet the
+  river. The gap is the contract's (a swamp may not stand on a river's cut
+  bank); size and variety are preset numbers; the crisp outline is the plan
+  picture's symbol, and the look on the battlefield is slice 13's.
+- **Verdict:** open, for tuning.
+
+### No paired battle report on the `wetlands` map yet
+
+- **When:** slice 12.
+- **The choice:** that map came from slice 00 in the other lane; run the
+  report once it is merged.
+- **Verdict:** superseded by slice 11's paired crossing
+  ([The owed evidence is a paired crossing](#the-owed-evidence-is-a-paired-crossing-not-a-full-battle-report)).
 
 ## Slice 13: swamps drawn as water
 
@@ -1200,9 +1311,10 @@ against the code. Each says what was chosen, why, and how sure the agent is.
   tall, past the grass owner's 0.9 m cap ("half a soldier", measured from
   the ground). The physical fix is to measure a grass's height from the
   water's surface where it stands in water, plus a reed grass kind. That
-  is the grass owner's change, recorded open in the README for slice 18.
+  is the grass owner's change, recorded open for slice 18.
 - **The gap:** the contract asked for reeds from the grass owner.
-- **The reach:** slice 18, or a follow-up.
+- **The reach:** slice 18, or a follow-up. Still open at close
+  ([README](README.md#open)).
 - **Verdict:** unfinished.
 - **Confidence:** high that it is open.
 
@@ -1231,83 +1343,6 @@ against the code. Each says what was chosen, why, and how sure the agent is.
 - **The reach:** none.
 - **Verdict:** sound, but the margin is thin.
 - **Confidence:** medium.
-
-## Slice 14: puddles
-
-### One puddle a cell, from the seed and the cell alone
-
-- **When:** slice 14.
-- **The choice:** `ground::puddles::candidate(…, i, j)` draws a cell's
-  puddle (14 m cells) from a key of the biome's seed and the cell: a
-  centre, a radius (0.7 to 2.2 m), a roll against the chance of the
-  surface under the centre. `Ground::new` walks every cell once into
-  `Ground.puddles`; a test asks each cell alone, in reverse, and gets the
-  walk's puddle. A puddle on a rutted kind moves into the nearer wheel rut
-  (its kind's `ruts.offsets_m`) and is no wider than the rut, since rain
-  stands in the ruts: an unprimed critique of the first shot found them on
-  the grass strip between.
-- **The gap:** decision 34 named the purity; the cell size and the rut
-  rule were mine.
-- **The reach:** slice 15's wakes ask `StandingWater`, which holds the
-  puddles.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Puddles lie only on the paved kinds; the track's centre strip grows through
-
-- **When:** slice 14.
-- **The choice:** the contract wanted puddles on tracks and fields, with
-  the grass and dressing reading the same function. Puddles here lie only
-  on the paved kinds (`puddles.on` names road, paving, country road and
-  dirt track), where no plot grass or dressing grows, so neither needs a
-  puddle test. Putting them in the surface field's water list would have
-  done it for grass, but the shore's bands (a few metres of wet bank and
-  earth, sized for rivers) would ring every puddle in mud, asphalt too.
-  The dirt track's own centre-strip grass still stands where a puddle
-  reaches it; the rut rule keeps most puddles off the strip.
-- **The gap:** a deviation from the contract: no puddles in fields, and no
-  grass test.
-- **The reach:** field puddles need the grass owner to read puddles (a
-  water list the shore ignores): slice 18, or a follow-up.
-- **Verdict:** a deliberate narrowing, recorded.
-- **Confidence:** medium.
-
-### A puddle's depth and edge are its shape's, carried by its cell
-
-- **When:** slice 14.
-- **The choice:** a puddle carves nothing, so the depth buffer has none.
-  Each puddle is one water cell over its disc whose vertex colour carries
-  its look, centre and radius (`[look, cx, cy, r]`; rivers and swamps carry
-  a zero radius). The one water material reads that: its depth is
-  `depth_m · (1 − (r/R)²)` along the view, it fades in over its rim (a sixth
-  of its radius, or a pixel and a half) rather than over a few pixels of
-  depth, which never filled in at 6 cm, and its water is still (an
-  unrippled normal). The look row carries the depth (`fades.w`). The water
-  cell record grew from 5 floats to 8; the recorded browser mesh vectors
-  were re-encoded.
-- **The gap:** the contract asked for a per-cell input to the one
-  material; this is it.
-- **The reach:** none.
-- **Verdict:** sound.
-- **Confidence:** medium.
-
-### Puddles read as wet mud, not yet as reflective water
-
-- **When:** slice 14.
-- **The choice:** an unprimed critique read the first puddles as dark
-  mounds, stains or cow pats, with no sky in them. Darker mud made them
-  read as holes; the last tuning (muddy `[0.11, 0.095, 0.07]`–`[0.15, 0.13,
-  0.095]`, extinction 10–12 a metre, mirror near black) reads as wet mud
-  patches in the rut. What's missing is sheen: at the reel's sun the sky
-  they reflect is a pale haze close to the track's colour, and at water's
-  F0 from above it barely shows. Mirror puddles on asphalt were not filmed:
-  the wetlands map has no metalled road.
-- **The gap:** delegated (density, size, shape).
-- **The reach:** slice 18 judges it beside a wet-road reference, with a
-  darker wet rim and a stronger sky sheen as the candidates.
-- **Verdict:** unfinished.
-- **Confidence:** low.
-## Slice 13: swamps drawn as water (the posture rule)
 
 ### A posture is taken only where it holds the chest above the water
 
@@ -1351,6 +1386,84 @@ against the code. Each says what was chosen, why, and how sure the agent is.
   natively. A bounds check per stretch would cut it if it ever shows.
 - **Verdict:** sound.
 - **Confidence:** high.
+
+## Slice 14: puddles
+
+### One puddle a cell, from the seed and the cell alone
+
+- **When:** slice 14.
+- **The choice:** `ground::puddles::candidate(…, i, j)` draws a cell's
+  puddle (14 m cells) from a key of the biome's seed and the cell: a
+  centre, a radius (0.7 to 2.2 m), a roll against the chance of the
+  surface under the centre. `Ground::new` walks every cell once into
+  `Ground.puddles`; a test asks each cell alone, in reverse, and gets the
+  walk's puddle. A puddle on a rutted kind moves into the nearer wheel rut
+  (its kind's `ruts.offsets_m`) and is no wider than the rut, since rain
+  stands in the ruts: an unprimed critique of the first shot found them on
+  the grass strip between.
+- **The gap:** decision 34 named the purity; the cell size and the rut
+  rule were mine.
+- **The reach:** slice 15's wakes ask `StandingWater`, which holds the
+  puddles.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Puddles lie only on the paved kinds; the track's centre strip grows through
+
+- **When:** slice 14.
+- **The choice:** the contract wanted puddles on tracks and fields, with
+  the grass and dressing reading the same function. Puddles here lie only
+  on the paved kinds (`puddles.on` names road, paving, country road and
+  dirt track), where no plot grass or dressing grows, so neither needs a
+  puddle test. Putting them in the surface field's water list would have
+  done it for grass, but the shore's bands (a few metres of wet bank and
+  earth, sized for rivers) would ring every puddle in mud, asphalt too.
+  The dirt track's own centre-strip grass still stands where a puddle
+  reaches it; the rut rule keeps most puddles off the strip.
+- **The gap:** a deviation from the contract: no puddles in fields, and no
+  grass test.
+- **The reach:** field puddles need the grass owner to read puddles (a
+  water list the shore ignores): slice 18, or a follow-up. Still open at
+  close ([README](README.md#open)).
+- **Verdict:** a deliberate narrowing, recorded.
+- **Confidence:** medium.
+
+### A puddle's depth and edge are its shape's, carried by its cell
+
+- **When:** slice 14.
+- **The choice:** a puddle carves nothing, so the depth buffer has none.
+  Each puddle is one water cell over its disc whose vertex colour carries
+  its look, centre and radius (`[look, cx, cy, r]`; rivers and swamps carry
+  a zero radius). The one water material reads that: its depth is
+  `depth_m · (1 − (r/R)²)` along the view, it fades in over its rim (a sixth
+  of its radius, or a pixel and a half) rather than over a few pixels of
+  depth, which never filled in at 6 cm, and its water is still (an
+  unrippled normal). The look row carries the depth (`fades.w`). The water
+  cell record grew from 5 floats to 8; the recorded browser mesh vectors
+  were re-encoded.
+- **The gap:** the contract asked for a per-cell input to the one
+  material; this is it.
+- **The reach:** none.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Puddles read as wet mud, not yet as reflective water
+
+- **When:** slice 14.
+- **The choice:** an unprimed critique read the first puddles as dark
+  mounds, stains or cow pats, with no sky in them. Darker mud made them
+  read as holes; the last tuning (muddy `[0.11, 0.095, 0.07]`–`[0.15, 0.13,
+  0.095]`, extinction 10–12 a metre, mirror near black) reads as wet mud
+  patches in the rut. What's missing is sheen: at the reel's sun the sky
+  they reflect is a pale haze close to the track's colour, and at water's
+  F0 from above it barely shows. Mirror puddles on asphalt were not filmed:
+  the wetlands map has no metalled road.
+- **The gap:** delegated (density, size, shape).
+- **The reach:** slice 18 judges it beside a wet-road reference, with a
+  darker wet rim and a stronger sky sheen as the candidates. Still open at
+  close ([README](README.md#open)).
+- **Verdict:** unfinished.
+- **Confidence:** low.
 
 ## Slice 15: wake sources
 
@@ -1555,15 +1668,98 @@ against the code. Each says what was chosen, why, and how sure the agent is.
 - **The choice:** the capture tool plays the reel frame by frame at fixed
   reel times, so the field runs the same steps each time and its shots
   repeat. No separate warm-up count was added. Native draws no wakes (see
-  `specs/water-native`). The water scene's native check compares the mean
+  [water native](../../water-native/README.md)). The water scene's native check compares the mean
   water colour, which the final wakes move by ΔE 0.1 on the wading shot.
 - **The gap:** the slice asked for a fixed warm-up from a reset.
 - **The reach:** a capture that jumps straight to a plate would need one.
 - **Verdict:** sound for the reel's captures.
 - **Confidence:** medium.
 
-### Size splits
+### Splits for the size ratchet
 
-The wasm crate's scar upload moved to `presentation-wasm/src/scars.rs`, and
-the page's probe types to `web/src/battle/sim/presentationProbe.ts`, to make
-room.
+- **When:** slice 16.
+- **The choice:** the wasm crate's scar upload moved to
+  `presentation-wasm/src/scars.rs`, and the page's probe types to
+  `web/src/battle/sim/presentationProbe.ts`, to make room.
+
+## Slice 17: tree sway
+
+### The wind moved from the `Environment` uniform into the `Camera` record
+
+- **When:** slice 17.
+- **The choice:** `Camera.wind`, one `Wind` in a one-record array. A sun
+  cascade's caster binds only its camera, and could not bind the
+  environment (it holds the very depth array the caster draws into); the
+  camera is the one uniform every vertex stage binds and already carries the
+  clock. The environment's wind, `setWind`, `ground_wind` and native's wind
+  argument are deleted, so the wind still has one owner.
+- **The gap:** slice 01's upload contract put the record in the environment.
+  This revises it.
+- **Confidence:** high.
+
+### Every cascade camera runs on the frame's clock and wind
+
+- **When:** slice 17.
+- **The choice:** in `presentation/cameras.rs`. The fit is still reused;
+  only those two fields are refreshed each frame. Before, casters ran at
+  time 0.
+- **Confidence:** high.
+
+### One `sway` function; casters bend the trunk only
+
+- **When:** slice 17.
+- **The choice:** `sway(foot, point, up, height, leaf)` (`frame/sway.ts`) is
+  the one function. The standing-tree vertex stage (prepass, forest and
+  backdrop colour) passes the vertex's leaf flag; the new `casterVertex`
+  passes 0, so shadows bend with the trunk and do not shiver. The tree's
+  height is the crown's heart (`shape.w`) over the walk's `HEART`, the
+  inverse of how the walk wrote it. Felled trees and forest-floor dressing
+  do not sway.
+- **Confidence:** high.
+
+### Sway tuning is look only, owned by Rust and generated into `SWAY`
+
+- **When:** slice 17.
+- **The choice:** `static_world/ground/sway.rs` owns it. At strength 1 (gust
+  speed 6 m/s or more) the top bends `0.18 × height × (0.15 lean + 0.7 ×
+  gust front + 0.35 × swing × (1 + front)/2)`: under a passing gust front a
+  crown leans up to about 18% of its height and swings harder; between
+  fronts it holds a small lean and a slow swing (1.6 rad/s, with RedGPU's
+  overtone). Leaves shiver up to 0.15 m at 7 rad/s, more under a front.
+  Strength follows the wind's gust speed, so a calm biome stands still.
+  Raised from 10% after the coordinator asked for a strong gust to bend a
+  crown visibly at the 80 m low shot. The last unprimed critique still found
+  the forced full gust hard to tell from the summer breeze in that shot.
+  There the summer wind (35°) blows almost along the camera's axis, so
+  crowns bend toward the lens, and the tree models already lean at rest.
+  From above (tactical) the shift reads, and nothing shears, detaches or
+  stretches. I stopped at this round rather than push the amplitude into
+  rubber.
+- **The gap:** delegated (amplitude, phase and the height weighting).
+- **The reach:** still open at close ([README](README.md#open)).
+- **Confidence:** low, by design.
+
+### Splits for the size ratchet
+
+- **When:** slice 17.
+- **The choice:** the side's fog moved out of `presentation.rs`, and the
+  scenery's vertex stages out of `sceneryLayer.ts`, each in its own commit.
+
+### The walk's chunk bounds take in the sway's reach
+
+- **When:** slice 17.
+- **The choice:** `Sway::reach`, from the same numbers the shader uses: the
+  top's largest bend plus the leaves' shiver, added to the chunk's radius
+  and height. A tree's whole bent crown can leave its rest box, so a
+  rest-box cull dropped crowns and shadows at the view's and cascades'
+  edges.
+- **Confidence:** high.
+
+### The frame scene's `geometry` baseline is re-blessed
+
+- **When:** slice 17.
+- **The choice:** the geometry lab's trees stand in the summer wind at the
+  scene's held clock, so they now bend. The still moved by a pixel at this
+  tuning (2 px at an earlier one), the same on repeated runs; foundation and
+  river did not move.
+- **Confidence:** high.

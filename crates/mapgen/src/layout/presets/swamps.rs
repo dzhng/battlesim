@@ -1,5 +1,5 @@
 //! Where swamps form: how often, how big, how deep, and what they keep
-//! clear of (decisions 5, 21, 22 and 30 of `specs/water-and-wetlands`).
+//! clear of (decisions 5, 21, 22 and 30 of `specs/done/water-and-wetlands`).
 use super::super::{outline_ok, refusal, OutlineShape, Range, Tolerance};
 use crate::layout::MapType;
 use crate::Diagnostic;

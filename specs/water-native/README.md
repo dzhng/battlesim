@@ -1,7 +1,7 @@
 # Water on native (placeholder)
 
 **Status:** placeholder. It collects the native-client work from
-[water and wetlands](../water-and-wetlands/README.md) that is too complicated to
+[water and wetlands](../done/water-and-wetlands/README.md) that is too complicated to
 port in the same step as the browser. One gap is listed: slice 16's wakes
 (see [Gaps](#gaps)).
 **Updated:** 2026-10-28.
@@ -10,8 +10,8 @@ port in the same step as the browser. One gap is listed: slice 16's wakes
 
 You are keeping a running list for the native client
 ([`native/client`](../../native/client/README.md)) while
-[water and wetlands](../water-and-wetlands/README.md) is implemented. That spec's
-[decision 19](../water-and-wetlands/decisions.md#scope-and-acceptance) is the
+[water and wetlands](../done/water-and-wetlands/README.md) is implemented. That spec's
+[decision 19](../done/water-and-wetlands/decisions.md#scope-and-acceptance) is the
 contract:
 
 - native must always start and draw water at least as well as before;

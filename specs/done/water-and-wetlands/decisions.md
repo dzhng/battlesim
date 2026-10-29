@@ -116,7 +116,7 @@ feature adds no fording.
     allows.** The browser leads each step. Every step leaves native starting and
     drawing water at least as well as before, and ports what it reasonably can
     in the same step. Whatever turns out too complicated goes to the
-    [water native follow-up](../water-native/README.md), which is updated
+    [water native follow-up](../../water-native/README.md), which is updated
     during implementation. *Revised:* the user replaced "browser first; native
     catches up step by step", saying not to spend too long on native.
 20. **Done is a side-by-side read:** at our camera, next to RedGPU, ours reads as
@@ -126,7 +126,8 @@ feature adds no fording.
 
 The sweep of unknown unknowns (2026-10-27) covered the simulation and map
 generation, the renderer and native, and presentation. The findings that need
-no taste call are under [sharp edges](README.md#sharp-edges). These are the
+no taste call are folded into the README's
+[principles and invariants](README.md#principles-and-invariants). These are the
 ones decided from the confirmed preferences or by the user.
 
 21. *agent* **Swamps have wide, soft edges.** The edge spans several 4 m height
