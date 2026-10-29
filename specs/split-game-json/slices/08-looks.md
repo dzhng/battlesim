@@ -5,6 +5,7 @@ instead of weapon-keyed tables. **Nothing seen or heard changes**, today's
 bugs included.
 
 **Seam:**
+
 - **Contract weapon row:** `appearance: String`. The catalog's ordinary
   `extends` merge inherits it. Weapons don't use `abstract`.
 - **Data:** `presentation.json` `weapon_looks.<look>`:
@@ -30,6 +31,7 @@ bugs included.
   `kick_of` (`units/driver.rs:177`), the sound tables (`sound/tables.rs`
   `shot`/`contact`), `presentedFrame.ts`, `soundFeed.ts` and
   `shippedSounds.ts` all read through it.
+
 - **Deleted:**
   - every weapon-keyed presentation table;
   - `sound::tables::inherit` and every `extends` walk in presentation and
@@ -53,6 +55,7 @@ bugs included.
 street-watch`, re-keyed), and a battle that looks and sounds the same.
 
 **Verify:**
+
 - Write first:
   - a derived weapon fired through a battle presents its look;
   - an encounter-added weapon that `extends` `tank_ap` presents `tank_ap`'s
@@ -69,12 +72,14 @@ street-watch`, re-keyed), and a battle that looks and sounds the same.
   unprimed as the last check.
 
 **Moves:**
+
 - `rules_hash` and every replay's config digest (the new `appearance`
   field);
 - `catalog.json` text.
 
 Battle digests don't move. One script, `throwaway/split-proof/rewrite-looks.mjs`,
 migrates:
+
 - the skirmish records;
 - `exact-numbers.json`;
 - the `effect-vectors.json` and `paris-corner-units.json` inputs;
@@ -87,14 +92,14 @@ each again unflagged.
 Serialize its record rewrite with [09](09-rules-cleanups.md).
 
 **Delegated:**
+
 - the transient look names;
 - internal module layout;
-
 
 **Would change this slice:** a weapon whose current output no look can
 reproduce. Name it here and stop.
 
-## Done — implementation checkpoint
+## Done — explicit looks
 
 The ordinary contract resolver inherits `appearance`; 37 transient looks preserve
 all former table combinations, including exact-id kicks and renamed-RPG bugs.
@@ -112,7 +117,7 @@ The integrator's rerunnable stored-input migration is
 `/Users/server/dev/battlesim/throwaway/split-game-json/scripts/rewrite-looks.mjs`.
 It takes an optional checkout root, rewrites only inputs, and is idempotent.
 Record migration/re-blessing is kept in the last commit so it can be discarded
-and rerun after 09. Final cause-name, visual and verification receipts follow.
+and rerun after 09. The cause-name, visual and verification receipts follow.
 
 ### Named delta: light-cause vocabulary
 
@@ -123,3 +128,62 @@ the corresponding recorded vector light-cause metadata); all
 numeric effect/light bits, sounds, poses, publications and battle digests stay
 identical. The light-review scene follows the new vocabulary. This change is
 its own commit so the metadata delta is reviewable apart from the data move.
+
+### Final proof and checks
+
+- Before the named cause rename: all 77 oracle files identical. After it:
+  76 identical; `effects.jsonl` differs only in the declared cause strings
+  (728 of 127,306 rows). Substituting the names leaves every remaining byte
+  identical. Sound, poses, events, publications, shaders and battle digests
+  never move. All six native plates remain byte-identical; the screenshot
+  comparison reports zero pixel difference on each.
+- Full presentation suite passed; contract weapon tests and focused simulation
+  map/objective/purchase/exact-number checks passed. The affected web audio,
+  workbench, projectile and stored-record parity suites passed, as did
+  typecheck, ESLint, Oxlint, formatting, the size ratchet and the commit hook's
+  workspace/all-target Clippy run. Repository-wide closeout waits for 16.
+- `UPDATE_SOUND_VECTORS`, `BLESS_PARITY`, and `UPDATE_RECORDS` ran, followed by
+  their unflagged checks. Stored battle rows/digests and sound commands are
+  unchanged; the only recorded output delta is light-cause metadata in its
+  named commit. The migration script's second run writes nothing.
+- The GPU-locked look-sheet run captured every one of the 37 looks, with
+  launch, flight, impact, blast where applicable, and smoke aftermath.
+  Evidence: `throwaway/evidence/rounds/slice-08-final/`. Every look uses
+  the labeled controlled HE lane so all stages have consistent visible
+  context. The lane changes only appearance and explicitly represents style,
+  not each weapon's physics. The development mechanics snapshot is the input;
+  each launch checks its rendered cause at the posed review muzzle. Launch
+  captures precede flight by one tick, matching the hull publication contract.
+  Contact views leave room around the blast, and aftermath cameras fit the
+  full reviewed flight. Eight aftermath views were recaptured at the same
+  elapsed time after their own strikes; the grenade sample's absolute tick
+  differs by one. Probabilistic tracer looks wait for a visible flight sample
+  without changing their chance. Tall sheets are captured in viewport tiles
+  and stitched, avoiding Chromium's repeated full-page compositor sections.
+  The sheet explains its style carrier; contact frames fit whole and aftermath
+  pairs a contextual overview with a strip around the reviewed flight.
+- No historical tracer-sheet capture was present in this checkout or the
+  supplied baseline directory. That specific sheet comparison is unavailable;
+  the six frozen native plates and full-precision oracle provide the before/
+  after comparison. The new sheet is the reference for 11, 13 and 15.
+
+### Visual review boundary
+
+The fresh reviews inspected the complete gallery and enlarged features. The
+capture pass corrected mislabeled fallback styles, missed short launch flashes,
+invisible probabilistic samples, clipped aftermath endpoints and repeated tall
+sheet sections. Receipts and reports live in `throwaway/slice08/`.
+
+Default views supply unit context; detail launch views deliberately crop hulls
+around the muzzle. The preserved appearance still has faint small-style flashes
+at the default camera, saturated blast cores and broad missile streaks. Those
+are readability findings for the later content pass, not approval of their
+current artistic quality. This slice preserves them under its exact-output
+contract. The sheet is a style baseline, not an occlusion or motion proof; the
+frozen battle plates and unrounded probe prove this migration's parity.
+
+The final unprimed review (`throwaway/slice08/coverage-critique.md`) passes
+evidence coverage and disclosure, while rating visual quality mixed for the
+preserved readability findings above. Its receipt check passes. The full gallery,
+all enlarged crops and relevant native frames were inspected. Preview was shown
+for the non-blocking checkpoint and closed afterward.

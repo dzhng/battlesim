@@ -1,6 +1,6 @@
 # One owner per game setting
 
-**Status:** in progress: 01–07 and 09 done; 08 running. **Updated:** 2026-10-29.
+**Status:** in progress: 01–09 done. **Updated:** 2026-10-29.
 
 [`fixtures/rules.json`](../../fixtures/rules.json) owns battle rules,
 [`fixtures/presentation.json`](../../fixtures/presentation.json) owns visual settings,
@@ -21,11 +21,11 @@ You are implementing this plan on PR #16 (dzhng/battlesim, branch
 slice you are on. Use
 [`implement-spec`](../../.agents/skills/implement-spec/SKILL.md).
 
-**Pick up at [08](slices/08-looks.md)** (looks lane, running): integrate it
-by dropping its record-rewrite commit and rerunning its script on 09's stored
-records, which hold frozen values to preserve. Then 10. Open review follow-ups
-are listed at the end of [04](slices/04-split-files.md),
-[05](slices/05-typed-readers.md) and [07](slices/07-admission.md). Keep the
+**Pick up at the shared review-fix pass, then [10](slices/10-battle-rules.md).**
+The open review follow-ups are listed at the end of
+[04](slices/04-split-files.md), [05](slices/05-typed-readers.md),
+[06](slices/06-shader-constants.md), [07](slices/07-admission.md) and
+[09](slices/09-rules-cleanups.md). Keep the
 independent lanes on separate checkouts. 01's
 "before" dumps are in `/Users/server/dev/battlesim/throwaway/split-game-json/before/`
 (regenerate with the commands in [01](slices/01-proof-controls.md); 04 left
@@ -37,6 +37,7 @@ Before you end a pass, tick what landed below, write what you learned into the
 slice file, and rewrite this prompt to say where the next pass starts.
 
 Warnings:
+
 - Other sessions merge and delete checkouts; never share `target/` with
   another checkout, and hold the GPU lock
   (`lockf -k /Users/server/dev/battlesim/throwaway/gpu.lock`) for captures.
@@ -54,7 +55,7 @@ Warnings:
 - [x] [05 Typed presentation readers](slices/05-typed-readers.md)
 - [x] [06 One table of shader constants](slices/06-shader-constants.md)
 - [x] [07 One admission owner](slices/07-admission.md)
-- [ ] [08 Looks that reproduce today](slices/08-looks.md) (moves `rules_hash`)
+- [x] [08 Looks that reproduce today](slices/08-looks.md) (moves `rules_hash`)
 - [x] [09 Rules cleanups](slices/09-rules-cleanups.md) (moves `rules_hash`, `config_hash`)
 - [ ] [10 Presentation reads the battle's rules](slices/10-battle-rules.md)
 - [ ] [11 Named fixes: kick, impact size, RPG level](slices/11-named-fixes.md)
@@ -92,22 +93,23 @@ Warnings:
 
 ## Invariants: one owner per concept
 
-| Concept | Owner | Deleted when it lands |
-|---|---|---|
-| Battle rules data | `fixtures/rules.json`, parsed only as contract `Rules` | mixed fixture; `UncheckedRules`' skip list |
-| Presentation data | `fixtures/presentation.json`, one typed struct per section with `deny_unknown_fields` (05) | every `game["presentation"][..]` read by hand |
-| The mix | `fixtures/audio.json` (`AudioMix`) | `presentation.audio`; `sounds.json`'s `effects` role map |
-| The sound library | `fixtures/sounds.json`, checked by Rust `SoundCatalog` (05) | the TS-only checks in `packages/battle-audio`; per-weapon `defaults` and impacts (08) |
-| What a weapon looks and sounds like | its `appearance`, naming `presentation.json` `weapon_looks.<look>`, read through one `presentation::looks` owner (08) | every weapon-keyed table, every `extends` walk in presentation and audio, `kick_of`'s exact-id match, `"default"` fallbacks |
-| Refusing bad rules | `sim::admit(&Rules) -> Result<(), RulesError>`, called at every entry (07) | `fixtures::admit`'s own sequence, `Arsenal::new`'s `.expect`, range asserts as the only check |
-| Refusing a bad look | the per-battle look reader at fielding: unknown look, parts physics needs, recordings exist, burst cadence (08, 10, 15) | |
-| Catalog limits | `contract::HullLimits::SHIPPED` and the air-speed equivalent (09) | `hull_limits`, `air_speed_limits_kmh` in rules |
-| Helicopter routing margin | a constant in `sim/navigation/air.rs`, 10 m (09) | `routing_margin(rules)` |
-| Numbers shared by CPU and GPU | one Rust table feeding the WGSL prelude and `records/typescript.rs` (06) | duplicated literals; the fog uniform's `tile_px`/`radial_bins` |
-| Numbers only the GPU reads | named constants in the WGSL (06) | the 162 terrain, 23 grass and 2 glass fixture numbers (05) |
-| Rules presentation sees | the battle's resolved `Rules`, parsed through `resolve_weapons` (10) | `presentationRules`; native `fielded()` reading the raw file |
+| Concept                             | Owner                                                                                                                   | Deleted when it lands                                                                                                       |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Battle rules data                   | `fixtures/rules.json`, parsed only as contract `Rules`                                                                  | mixed fixture; `UncheckedRules`' skip list                                                                                  |
+| Presentation data                   | `fixtures/presentation.json`, one typed struct per section with `deny_unknown_fields` (05)                              | every `game["presentation"][..]` read by hand                                                                               |
+| The mix                             | `fixtures/audio.json` (`AudioMix`)                                                                                      | `presentation.audio`; `sounds.json`'s `effects` role map                                                                    |
+| The sound library                   | `fixtures/sounds.json`, checked by Rust `SoundCatalog` (05)                                                             | the TS-only checks in `packages/battle-audio`; per-weapon `defaults` and impacts (08)                                       |
+| What a weapon looks and sounds like | its `appearance`, naming `presentation.json` `weapon_looks.<look>`, read through one `presentation::looks` owner (08)   | every weapon-keyed table, every `extends` walk in presentation and audio, `kick_of`'s exact-id match, `"default"` fallbacks |
+| Refusing bad rules                  | `sim::admit(&Rules) -> Result<(), RulesError>`, called at every entry (07)                                              | `fixtures::admit`'s own sequence, `Arsenal::new`'s `.expect`, range asserts as the only check                               |
+| Refusing a bad look                 | the per-battle look reader at fielding: unknown look, parts physics needs, recordings exist, burst cadence (08, 10, 15) |                                                                                                                             |
+| Catalog limits                      | `contract::HullLimits::SHIPPED` and the air-speed equivalent (09)                                                       | `hull_limits`, `air_speed_limits_kmh` in rules                                                                              |
+| Helicopter routing margin           | a constant in `sim/navigation/air.rs`, 10 m (09)                                                                        | `routing_margin(rules)`                                                                                                     |
+| Numbers shared by CPU and GPU       | one Rust table feeding the WGSL prelude and `records/typescript.rs` (06)                                                | duplicated literals; the fog uniform's `tile_px`/`radial_bins`                                                              |
+| Numbers only the GPU reads          | named constants in the WGSL (06)                                                                                        | the 162 terrain, 23 grass and 2 glass fixture numbers (05)                                                                  |
+| Rules presentation sees             | the battle's resolved `Rules`, parsed through `resolve_weapons` (10)                                                    | `presentationRules`; native `fielded()` reading the raw file                                                                |
 
 Transitional seams, each with the slice that removes it:
+
 - the transient looks of 08 (as many as reproduce today exactly, about 37),
   removed by 13;
 - the proof probe of 01, removed by 16.
@@ -154,6 +156,7 @@ presentation code walks `extends`, keys a table by weapon id, or falls back to
   - `fog/sight.rs`
 
   Move code out before adding to any of them.
+
 - **Run everything once**, at 16.
 
 ## Corrections to the map

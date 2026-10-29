@@ -21,3 +21,16 @@
   The mix owns each part's default recording, and the look reader fills absent
   recording overrides once at setup. Firing and every level remain explicit.
   Rejected resolving fallback weapon rows during playback.
+
+- **Sound, medium confidence — use one controlled battle lane for the sheet.**
+  Each look is assigned to the review lab's HE round and the mount's first
+  ammunition row, because hull flashes still follow that first row until 12.
+  The capture overrides the development mechanics snapshot, which startup
+  installs over imported fixtures; the ordinary simulation, publication,
+  fielding and rendering paths produce every shot. Each launch must offer a
+  cast light with the requested look at the actual review muzzle. Captures
+  trigger on the mount counter, before the first projectile segment, so short
+  flashes remain visible. Labels identify the controlled lane: these are
+  style samples, not each weapon's trajectory or blast radius. Rejected
+  blanks for unfielded looks, visibility-dependent street shots, and
+  presentation-only production hooks.

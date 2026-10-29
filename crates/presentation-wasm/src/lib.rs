@@ -385,8 +385,8 @@ fn commands(c: &[Command]) -> String {
 
 #[wasm_bindgen]
 impl SoundFrame {
-    /// From its setup JSON: `presentation.audio`, the sound catalog, the
-    /// game's weapon rows, the tick rate and `presentation.effects`' smoke
+    /// From its setup JSON: `audio.json`, the sound catalog, the
+    /// battle's weapon rows, the tick rate and `presentation.effects`' smoke
     /// and cook-off.
     #[wasm_bindgen(constructor)]
     pub fn new(setup: &str) -> Result<SoundFrame, JsError> {
@@ -520,7 +520,7 @@ pub struct Chatter {
 
 #[wasm_bindgen]
 impl Chatter {
-    /// By `rules` (`presentation.audio.voices`, JSON), takes chosen by `seed`.
+    /// By `rules` (`audio.json.voices`, JSON), takes chosen by `seed`.
     #[wasm_bindgen(constructor)]
     pub fn new(rules: &str, seed: f64) -> Result<Chatter, JsError> {
         let rules: voices::ChatterRules = serde_json::from_str(rules)
@@ -591,7 +591,7 @@ pub struct Score {
 
 #[wasm_bindgen]
 impl Score {
-    /// By `rules` (`presentation.audio.music`, JSON) over `moods` (the sound
+    /// By `rules` (`audio.json.music`, JSON) over `moods` (the sound
     /// catalog's `music.moods`, JSON; its battle moods), shuffled by `seed`.
     #[wasm_bindgen(constructor)]
     pub fn new(rules: &str, moods: &str, seed: u32) -> Result<Score, JsError> {

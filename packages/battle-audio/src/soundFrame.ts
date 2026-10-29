@@ -195,7 +195,7 @@ export interface SoundFrameOptions {
   tickHz: number;
   presentation: AudioMix;
   catalog: SoundCatalog;
-  /** The game's weapon rows: a derived weapon sounds as its nearest styled ancestor. */
+  /** The battle's weapon rows, whose appearances name admitted looks. */
   weapons: Record<string, object>;
   looks: object;
   /** How long each smoke kind burns and smoulders (`presentation.effects.smoke`). */

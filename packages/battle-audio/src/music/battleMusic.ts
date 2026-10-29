@@ -10,7 +10,7 @@ import type { Duck } from "../audioMix";
 import type { VoiceRequest } from "../voices/chatter";
 import type { Mood } from "./musicCatalog";
 
-/** `presentation.audio.music`: read by Rust, typed here for the workbench. */
+/** `audio.json.music`: read by Rust, typed here for the workbench. */
 export interface BattleMusicRules {
   /** How far the music dips under a voice line, and how fast it dips and recovers. */
   duck: Duck;

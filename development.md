@@ -23,7 +23,7 @@ Subsystem READMEs own commands and contracts for their code.
 | [Native client](native/client/README.md)                  | The `wgpu` client over the shared presentation frames and renderer pipelines.                        |
 | [Mechanics editor](apps/mechanics-editor/README.md)       | Developer tool: edits resolved rules and unit families.                                              |
 | [Map workbench](apps/map-workbench/README.md)             | Developer tool: tunes generation on a live top-down plan.                                            |
-| [Sound workbench](apps/sound-workbench/README.md)         | Developer tool: auditions the sound library and edits recipes and assignments.                       |
+| [Sound workbench](apps/sound-workbench/README.md)         | Developer tool: auditions looks and movement, and edits library recipes.                       |
 | [Fixture publication](apps/fixture-publication/README.md) | Reviewed fixture saves from the developer tools, and interrupted-write recovery.                     |
 | [Capture tool](apps/battle-lab/src/capture/README.md)     | Developer tool: films saved encounters into MP4s from a JSON capture file; the menu backdrop is one. |
 
