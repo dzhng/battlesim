@@ -24,14 +24,17 @@ slice you are on. Use
 **Pick up at the shared review-fix pass, then [10](slices/10-battle-rules.md).**
 The open review follow-ups are listed at the end of
 [04](slices/04-split-files.md), [05](slices/05-typed-readers.md),
-[06](slices/06-shader-constants.md), [07](slices/07-admission.md) and
-[09](slices/09-rules-cleanups.md). Keep the
-independent lanes on separate checkouts. 01's
-"before" dumps are in `/Users/server/dev/battlesim/throwaway/split-game-json/before/`
-(regenerate with the commands in [01](slices/01-proof-controls.md); 04 left
-them byte-identical). Slice 12 waits on the user's answer to 02's question (a
-published `round` on `WeaponPose`); if unanswered when 12 is next, take that
-option and record why.
+[06](slices/06-shader-constants.md), [07](slices/07-admission.md),
+[08](slices/08-looks.md) and [09](slices/09-rules-cleanups.md).
+
+Proof baseline: slice 01's dumps in
+`/Users/server/dev/battlesim/throwaway/split-game-json/before/` (native plates
+re-captured from the re-recorded paris-corner run). Since 08, compare against
+`after-08-merged/` (its `SHA256SUMS`): it differs from `before/` only by 08's
+named light-cause renames in `effects.jsonl`. Composed shaders changed in 06 by
+design; `after-08-merged/` holds the current ones. Slice 12 waits on the
+user's answer to 02's question (a published `round` on `WeaponPose`); if
+unanswered when 12 is next, take that option and record why.
 
 Before you end a pass, tick what landed below, write what you learned into the
 slice file, and rewrite this prompt to say where the next pass starts.
