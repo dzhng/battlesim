@@ -18,6 +18,10 @@
       "reason": "Crew seat backs in open cabs are interior furniture, not hull structure"
     },
     {
+      "part_pattern": "seat_base_*",
+      "reason": "Crew seat bases in open cabs are interior furniture, not hull structure"
+    },
+    {
       "part_pattern": "nav_light_*",
       "reason": "Navigation lights on aircraft mounted on thin stalks/fairings"
     },
@@ -36,6 +40,126 @@
     {
       "part_pattern": "fume_extractor",
       "reason": "Gun barrel fume extractors are thin sleeves with clearance"
+    },
+    {
+      "part_pattern": "door_handle_*",
+      "reason": "Door handles must stand proud of door surface for grip"
+    },
+    {
+      "part_pattern": "*_handle_*",
+      "reason": "Handles require standoff from surface for grip"
+    },
+    {
+      "part_pattern": "afganit_*",
+      "reason": "Afganit APS sensors are thin tubes with intentional standoff"
+    },
+    {
+      "part_pattern": "grab_rail_*",
+      "reason": "Grab rails mounted on brackets with clearance for hand grip"
+    },
+    {
+      "part_pattern": "mast*",
+      "reason": "Helicopter rotor mast and sensor masts on thin stalks"
+    },
+    {
+      "part_pattern": "*_stab_*",
+      "reason": "Tail stabilizers mounted with structural clearance"
+    },
+    {
+      "part_pattern": "*light*guard*",
+      "reason": "Light guards have clearance around lamp for protection"
+    },
+    {
+      "part_pattern": "hinge*",
+      "reason": "Door and hatch hinges need articulation clearance"
+    },
+    {
+      "part_pattern": "*_hinge_*",
+      "reason": "Door and hatch hinges need articulation clearance"
+    },
+    {
+      "part_pattern": "rear_door",
+      "reason": "Rear doors/ramps need articulation clearance"
+    },
+    {
+      "part_pattern": "mg_shield",
+      "reason": "Machine gun shields mounted with traverse clearance"
+    },
+    {
+      "part_pattern": "*_grip_*",
+      "reason": "Weapon grips need standoff for operator hand grip"
+    },
+    {
+      "part_pattern": "shield",
+      "reason": "Protective shields mounted with clearance for articulation"
+    },
+    {
+      "part_pattern": "gun_yoke_*",
+      "reason": "Gun yokes and mounts need clearance for elevation/traverse"
+    },
+    {
+      "part_pattern": "gun_mount*",
+      "reason": "Gun mounts need clearance for elevation/traverse"
+    },
+    {
+      "part_pattern": "gun_barrel*",
+      "reason": "Gun barrels may have clearance in mantlet for elevation"
+    },
+    {
+      "part_pattern": "*_gun",
+      "reason": "Remote weapon station guns have traverse clearance"
+    },
+    {
+      "part_pattern": "mantlet",
+      "reason": "Gun mantlets have clearance for elevation range"
+    },
+    {
+      "part_pattern": "cable_reel*",
+      "reason": "Cable reels mounted on brackets with clearance"
+    },
+    {
+      "part_pattern": "*_mg_port*",
+      "reason": "Machine gun ports have clearance for traverse"
+    },
+    {
+      "part_pattern": "*_sight*",
+      "reason": "Optical sights on sensor masts with clearance"
+    },
+    {
+      "part_pattern": "*_bolt_*",
+      "reason": "ERA and applique armor bolts stand proud of panel surface"
+    },
+    {
+      "part_pattern": "fender_*",
+      "reason": "Fenders mounted on brackets with clearance for suspension travel"
+    },
+    {
+      "part_pattern": "gear_nose_*",
+      "reason": "Landing gear nose components have articulation clearance"
+    },
+    {
+      "part_pattern": "gear_*_brace",
+      "reason": "Landing gear braces need articulation clearance"
+    },
+    {
+      "part_pattern": "gear_*_light",
+      "reason": "Landing gear lights mounted on extended brackets"
+    },
+    {
+      "part_pattern": "roof_eye*",
+      "reason": "Roof lifting eyes protrude for crane access"
+    },
+    {
+      "part_pattern": "barrel_root",
+      "reason": "Gun barrel root has clearance in mantlet for elevation"
+    },
+    {
+      "part_pattern": "coax_barrel",
+      "reason": "Coaxial machine gun barrel has traverse clearance"
+    },
+    {
+      "part_pattern": "door_window*",
+      "reason": "Door windows may be recessed or have frame gaps"
     }
   ]
 }
