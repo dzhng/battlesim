@@ -81,6 +81,28 @@ fn distanceRows(pixel: vec2f) -> vec4f {
 }
 
 // @block terrain_material_fieldTexture
+const GROUND_ROWS_FADE_FROM = 0.15;
+const GROUND_ROWS_FADE_TO = 0.45;
+const GROUND_ROWS_BREAK_GRAINS = 2.0;
+const GROUND_GRAIN_FADE_FROM = 0.3;
+const GROUND_GRAIN_FADE_TO = 0.9;
+const GROUND_ROWS_MEAN = 0.3125;
+const GROUND_GRAIN_BASE_DIVISOR = 7.290000000000001;
+const GROUND_GRAIN_WEIGHT_0 = 0.15;
+const GROUND_GRAIN_WEIGHT_1 = 0.25;
+const GROUND_GRAIN_WEIGHT_2 = 0.35;
+const GROUND_GRAIN_WEIGHT_3 = 0.25;
+const GROUND_GRAIN_TURN_0_COS = 0.8525245220595057;
+const GROUND_GRAIN_TURN_0_SIN = 0.5226872289306592;
+const GROUND_GRAIN_TURN_1_COS_ABS = 0.32328956686350335;
+const GROUND_GRAIN_TURN_1_SIN = 0.9463000876874145;
+const GROUND_GRAIN_TURN_2_COS_ABS = 0.9709581651495905;
+const GROUND_GRAIN_TURN_2_SIN = 0.23924932921398243;
+const GROUND_GRAIN_TURN_3_COS_ABS = 0.40079917207997545;
+const GROUND_GRAIN_TURN_3_SIN_ABS = 0.9161659367494549;
+const GROUND_GRAIN_CRISP_SPAN = 4.0;
+const GROUND_GRAIN_WARP = 0.45;
+const GROUND_GRAIN_OCTAVE = 2.7;
 fn fieldTexture(xy: vec2f, footprint: f32, plot: i32) -> f32 {
   let rows = plots[plot].rows;
   let grain = plots[plot].grain;
@@ -90,11 +112,11 @@ fn fieldTexture(xy: vec2f, footprint: f32, plot: i32) -> f32 {
   var value = 1.0;
   if (rows.z > 0.0) {
     let phase = v / rows.z;
-    let shown = 1.0 - smoothstep(0.15, 0.45, footprint / rows.z);
+    let shown = 1.0 - smoothstep(GROUND_ROWS_FADE_FROM, GROUND_ROWS_FADE_TO, footprint / rows.z);
     let stripe = 0.5 + 0.5 * cos(phase * 6.2831853);
     var furrow = stripe * stripe * stripe;
-    let along = grain.x * grain.z / 2.0;
-    let seen = shown * (1.0 - smoothstep(0.3, 0.9, footprint * along));
+    let along = grain.x * grain.z / GROUND_ROWS_BREAK_GRAINS;
+    let seen = shown * (1.0 - smoothstep(GROUND_GRAIN_FADE_FROM, GROUND_GRAIN_FADE_TO, footprint * along));
     if (breaks > 0.0 && seen > 0.0) {
       // Each furrow has its own noise along its length; two meet on the bed
       // between them, where neither darkens anything, so nothing steps.
@@ -102,25 +124,25 @@ fn fieldTexture(xy: vec2f, footprint: f32, plot: i32) -> f32 {
       furrow *= 1.0 + breaks * (gap * 2.0 - 1.0) * seen;
     }
     let bare = plots[plot].tram.z * groundWheeling(xy, footprint, plot);
-    value = (1.0 - rows.w * (0.5 + (furrow - 0.3125) * shown)) * (1.0 - bare);
+    value = (1.0 - rows.w * (0.5 + (furrow - GROUND_ROWS_MEAN) * shown)) * (1.0 - bare);
   }
   if (grain.y > 0.0) {
-    var size = grain.x / 7.290000000000001;
+    var size = grain.x / GROUND_GRAIN_BASE_DIVISOR;
     var sum = 0.0;
     var push = vec2f(0.0);
-    var weights = array<f32, 4>(0.15, 0.25, 0.35, 0.25);
-    var turns = array<vec2f, 4>(vec2f(0.8525245220595057, 0.5226872289306592), vec2f(-0.32328956686350335, 0.9463000876874145), vec2f(-0.9709581651495905, 0.23924932921398243), vec2f(-0.40079917207997545, -0.9161659367494549));
+    var weights = array<f32, 4>(GROUND_GRAIN_WEIGHT_0, GROUND_GRAIN_WEIGHT_1, GROUND_GRAIN_WEIGHT_2, GROUND_GRAIN_WEIGHT_3);
+    var turns = array<vec2f, 4>(vec2f(GROUND_GRAIN_TURN_0_COS, GROUND_GRAIN_TURN_0_SIN), vec2f(-GROUND_GRAIN_TURN_1_COS_ABS, GROUND_GRAIN_TURN_1_SIN), vec2f(-GROUND_GRAIN_TURN_2_COS_ABS, GROUND_GRAIN_TURN_2_SIN), vec2f(-GROUND_GRAIN_TURN_3_COS_ABS, -GROUND_GRAIN_TURN_3_SIN_ABS));
     for (var i = 0u; i < 4u; i++) {
-      let shown = 1.0 - smoothstep(0.3, 0.9, footprint * size);
+      let shown = 1.0 - smoothstep(GROUND_GRAIN_FADE_FROM, GROUND_GRAIN_FADE_TO, footprint * size);
       if (shown > 0.0) {
         let turn = turns[i];
         let p = vec2f(u * grain.z, v) * size;
         let seed = vec2f(f32(i) * 17.31 + 3.7, f32(plot % 64) * 1.37);
         let n = valueNoise(vec2f(dot(p, turn), dot(p, vec2f(-turn.y, turn.x))) + seed + push);
-        sum += weights[i] * shown * clamp((n - 0.5) * 4.0, -1.0, 1.0);
-        push = vec2f(cos(n * 6.2831853), sin(n * 6.2831853)) * 0.45;
+        sum += weights[i] * shown * clamp((n - 0.5) * GROUND_GRAIN_CRISP_SPAN, -1.0, 1.0);
+        push = vec2f(cos(n * 6.2831853), sin(n * 6.2831853)) * GROUND_GRAIN_WARP;
       }
-      size *= 2.7;
+      size *= GROUND_GRAIN_OCTAVE;
     }
     value *= 1.0 + grain.y * sum;
   }
@@ -181,13 +203,19 @@ fn groundRoadRelief(xy: vec2f, footprint: f32, paved: GroundPaved) -> vec2f {
 }
 
 // @block terrain_material_groundRuts_alternate
+const GROUND_RUTS_FADE_FROM = 0.2;
+const GROUND_RUTS_FADE_TO = 0.4;
+const GROUND_RUTS_FAINT = 0.4;
+const GROUND_RUTS_BREAK_FROM = 0.4;
+const GROUND_RUTS_BREAK_TO = 0.6;
+const GROUND_RUTS_BREAK_PER_M = 0.16666666666666666;
 fn groundRuts(xy: vec2f, footprint: f32, paved: GroundPaved) -> vec3f {
  let kind=roadLane(paved);
  if(kind<0||params.view.y==1u){return vec3f(0.0);}
  let look=params.roads[kind];
  let width=look.ruts.z;
  if(width<=0.0){return vec3f(0.0);}
- let shown=1.0-smoothstep(0.2,0.4,footprint/width);
+ let shown=1.0-smoothstep(GROUND_RUTS_FADE_FROM,GROUND_RUTS_FADE_TO,footprint/width);
  if(shown<=0.0){return vec3f(0.0);}
  let half=paved.lane.w;
  var depth=0.0;var rise=0.0;var ruts=0.0;
@@ -199,7 +227,7 @@ fn groundRuts(xy: vec2f, footprint: f32, paved: GroundPaved) -> vec3f {
   if(abs(u)<1.0){let b=1.0-u*u;depth=b*b;rise=4.0*u*b;}
  }
  if(ruts==0.0){return vec3f(0.0);}
- let faint=mix(0.4,1.0,smoothstep(0.4,0.6,wanderNoise(xy*0.16666666666666666+vec2f(13.9,57.3))))*shown;
+ let faint=mix(GROUND_RUTS_FAINT,1.0,smoothstep(GROUND_RUTS_BREAK_FROM,GROUND_RUTS_BREAK_TO,wanderNoise(xy*GROUND_RUTS_BREAK_PER_M+vec2f(13.9,57.3))))*shown;
  let mean=ruts*width*0.5333333333333333/(2.0*half);
  return vec3f(paved.lane.xy*(look.ruts.w*rise*0.6495193556767991*faint),look.track.x*(mean-depth)*faint);
 }
@@ -222,6 +250,14 @@ fn groundShore(xy: vec2f, footprint: f32, water: f32) -> vec3f {
 }
 
 // @block terrain_material_groundShoulder_alternate
+const GROUND_SHOULDER_WANDER = 5;
+const GROUND_SHOULDER_TUFT_FROM = 0.44;
+const GROUND_SHOULDER_TUFT_TO = 0.52;
+const GROUND_SHOULDER_TUFT_PER_M = 0.9090909090909091;
+const GROUND_SHOULDER_WHOLE = 0.35;
+const GROUND_SHOULDER_PIXELS_FROM = 0.03;
+const GROUND_SHOULDER_PIXELS_TO = 0.08;
+const GROUND_STRIP_GRASS = 0.75;
 fn groundShoulder(xy: vec2f, footprint: f32, paved: GroundPaved) -> vec2f {
  var worn=vec2f(0.0);
  let plain=params.view.y==1u;
@@ -231,15 +267,15 @@ fn groundShoulder(xy: vec2f, footprint: f32, paved: GroundPaved) -> vec2f {
   let out=-paved.drawn[k];
   if(out<=0.0){worn=vec2f(1.0,f32(k));continue;}
   if(plain||out>=width){continue;}
-  let wander=saturate((wanderNoise(xy*look.edge.y+vec2f(27.3,88.1))-0.5)*5+0.5);
+  let wander=saturate((wanderNoise(xy*look.edge.y+vec2f(27.3,88.1))-0.5)*GROUND_SHOULDER_WANDER+0.5);
   let reach=width*(1.0-look.edge.x*wander);
   let across=saturate(out/reach);
-  let tufts=1.0-across*(1.0-smoothstep(0.44,0.52,wanderNoise(xy*0.9090909090909091+vec2f(5.9,63.1))));
-  let wear=(1.0-smoothstep(0.35,1.0,out/reach))*tufts*(1.0-smoothstep(0.03,0.08,footprint/width));
+  let tufts=1.0-across*(1.0-smoothstep(GROUND_SHOULDER_TUFT_FROM,GROUND_SHOULDER_TUFT_TO,wanderNoise(xy*GROUND_SHOULDER_TUFT_PER_M+vec2f(5.9,63.1))));
+  let wear=(1.0-smoothstep(GROUND_SHOULDER_WHOLE,1.0,out/reach))*tufts*(1.0-smoothstep(GROUND_SHOULDER_PIXELS_FROM,GROUND_SHOULDER_PIXELS_TO,footprint/width));
   if(wear>worn.x){worn=vec2f(wear,f32(k));}
  }
  let strip=groundStrip(xy,footprint,paved);
- if(strip>0.0){worn=vec2f(1.0-strip*0.75,f32(roadLane(paved)));}
+ if(strip>0.0){worn=vec2f(1.0-strip*GROUND_STRIP_GRASS,f32(roadLane(paved)));}
  return worn;
 }
 
@@ -250,21 +286,29 @@ fn groundSide(m: vec4f) -> vec2f {
 }
 
 // @block terrain_material_groundStrip_alternate
+const GROUND_STRIP_WANDER_PER_M = 0.4;
+const GROUND_STRIP_WANDER = 3;
+const GROUND_STRIP_EDGE_M = 0.3;
+const GROUND_STRIP_PIXELS_FROM = 0.2;
+const GROUND_STRIP_PIXELS_TO = 0.4;
 fn groundStrip(xy: vec2f, footprint: f32, paved: GroundPaved) -> f32 {
  let kind=roadLane(paved);
  if(kind<0||params.view.y==1u){return 0.0;}
  let look=params.roads[kind];
  let half=look.track.y;
  if(half<=0.0||paved.lane.w>look.track.z){return 0.0;}
- let reach=half*(1.0+(wanderNoise(xy*0.4+vec2f(41.3,9.7))-0.5)*3);
- let soft=max(footprint,0.3);
- let shown=1.0-smoothstep(0.2,0.4,footprint/(2.0*half));
+ let reach=half*(1.0+(wanderNoise(xy*GROUND_STRIP_WANDER_PER_M+vec2f(41.3,9.7))-0.5)*GROUND_STRIP_WANDER);
+ let soft=max(footprint,GROUND_STRIP_EDGE_M);
+ let shown=1.0-smoothstep(GROUND_STRIP_PIXELS_FROM,GROUND_STRIP_PIXELS_TO,footprint/(2.0*half));
  return (1.0-smoothstep(reach-soft,reach+soft,paved.lane.z))*shown;
 }
 
 // @block terrain_material_groundTint
+const GROUND_DRY_RED = 0.699999988079071;
+const GROUND_DRY_GREEN = 0;
+const GROUND_DRY_BLUE_ABS = 0.8999999761581421;
 fn groundTint(albedo: vec3f, dry: f32) -> vec3f {
-  let tinted = (albedo * (vec3f(1) + (vec3f(0.699999988079071, 0, -0.8999999761581421) * dry)));
+  let tinted = (albedo * (vec3f(1) + (vec3f(GROUND_DRY_RED, GROUND_DRY_GREEN, -GROUND_DRY_BLUE_ABS) * dry)));
   return (tinted * (dot(albedo, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)) / max(dot(tinted, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)), 1e-5f)));
 }
 
@@ -276,6 +320,8 @@ fn groundVerge(site: vec4f, footprint: f32) -> f32 {
 }
 
 // @block terrain_material_groundWheeling
+const GROUND_WHEELING_GAUGE_ROWS = 2.0;
+const GROUND_WHEELING_LEAST_PIXEL_M = 0.02;
 fn groundWheeling(xy: vec2f, footprint: f32, plot: i32) -> f32 {
   let rows = plots[plot].rows;
   let tram = plots[plot].tram;
@@ -283,13 +329,22 @@ fn groundWheeling(xy: vec2f, footprint: f32, plot: i32) -> f32 {
   let phase = dot(xy, rows.xy) / rows.z;
   let furrow = round(phase);
   let nth = furrow - tram.x * floor(furrow / tram.x);
-  if (nth != 0.0 && nth != 2.0) { return 0.0; }
+  if (nth != 0.0 && nth != GROUND_WHEELING_GAUGE_ROWS) { return 0.0; }
   let off = abs(phase - furrow) * rows.z;
-  let pixel = max(footprint, 0.02);
+  let pixel = max(footprint, GROUND_WHEELING_LEAST_PIXEL_M);
   return clamp((tram.y - off) / pixel + 0.5, 0.0, 1.0) * min(1.0, 2.0 * tram.y / pixel);
 }
 
 // @block terrain_material_mottle_alternate
+const GROUND_MOTTLE_SLOPE_TAP = 0.05000000074505806;
+const GROUND_MOTTLE_SLOPE_STEP = 0.05f;
+const GROUND_MOTTLE_PATCH_CUT = 0.58f;
+const GROUND_MOTTLE_PATCH_EDGE_M = 0.3f;
+const GROUND_MOTTLE_FINE_FADE_FROM = 0.25f;
+const GROUND_MOTTLE_FINE_FADE_TO = 1f;
+const GROUND_MOTTLE_FINE_VALUE = 0.45f;
+const GROUND_MOTTLE_PATCH_HUE = 0.6f;
+const GROUND_MOTTLE_FINE_HUE = 0.4f;
 fn mottle(xy: vec2f, footprint: f32, across: vec2f, plot: f32, reach: vec2f) -> vec2f {
   let shape = (&params.shape);
   let along = vec2f(-(across.y), across.x);
@@ -297,13 +352,13 @@ fn mottle(xy: vec2f, footprint: f32, across: vec2f, plot: f32, reach: vec2f) -> 
   let seed = vec2f((fract((plot * 0.6180339f)) * 997f), (fract((plot * 0.7548776f)) * 991f));
   let at = (lane + seed);
   let streak = valueNoise(at);
-  let slope = vec2f((((valueNoise((at + vec2f(0.05000000074505806, 0))) - streak) / 0.05f) * reach.x), (((valueNoise((at + vec2f(0, 0.05000000074505806))) - streak) / 0.05f) * reach.y));
-  let inside = ((streak - 0.58f) / max(length(slope), 1e-4f));
-  let edge = (max(footprint, 0.3f) * 0.5f);
+  let slope = vec2f((((valueNoise((at + vec2f(GROUND_MOTTLE_SLOPE_TAP, 0))) - streak) / GROUND_MOTTLE_SLOPE_STEP) * reach.x), (((valueNoise((at + vec2f(0, GROUND_MOTTLE_SLOPE_TAP))) - streak) / GROUND_MOTTLE_SLOPE_STEP) * reach.y));
+  let inside = ((streak - GROUND_MOTTLE_PATCH_CUT) / max(length(slope), 1e-4f));
+  let edge = (max(footprint, GROUND_MOTTLE_PATCH_EDGE_M) * 0.5f);
   let parched = smoothstep(-(edge), edge, inside);
   let fine = (valueNoise(((xy * (*shape).z) + vec2f(37.099998474121094, 11.300000190734863))) - 0.5f);
-  let fineShown = (1f - smoothstep(0.25f, 1f, (footprint * (*shape).z)));
-  return vec2f(((fine * 0.45f) * fineShown), ((parched * 0.6f) + ((max(fine, 0f) * 0.4f) * fineShown)));
+  let fineShown = (1f - smoothstep(GROUND_MOTTLE_FINE_FADE_FROM, GROUND_MOTTLE_FINE_FADE_TO, (footprint * (*shape).z)));
+  return vec2f(((fine * GROUND_MOTTLE_FINE_VALUE) * fineShown), ((parched * GROUND_MOTTLE_PATCH_HUE) + ((max(fine, 0f) * GROUND_MOTTLE_FINE_HUE) * fineShown)));
 }
 
 // @block terrain_material_nodes

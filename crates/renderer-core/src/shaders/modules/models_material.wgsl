@@ -83,6 +83,9 @@ fn groundAlbedo(world: vec3f, tint: vec4f, cell: vec4u, paved: GroundPaved) -> v
 }
 
 // @block models_material_groundBank
+const GROUND_BANK_BLEND_REACH_M = 50;
+const GROUND_BANK_BLEND_M = 0.7;
+const GROUND_BANK_MAX_SLOPE = 0.84;
 fn groundBank(xy: vec2f, cell: vec4u, footprint: f32) -> vec3f {
  var sum=vec4f(0.0);
  for(var i=cell.z;i<cell.w;i++){
@@ -96,11 +99,11 @@ fn groundBank(xy: vec2f, cell: vec4u, footprint: f32) -> vec3f {
   let grade=stretch.detail.z+(stretch.detail.w-stretch.detail.z)*t;
   let heights=surfaces[at+1u].ends.xy;
   let run=(heights.x+(heights.y-heights.x)*t)/max(grade,1e-4);
-  let ease=max(footprint,0.75);
+  let ease=max(footprint,GROUND_BANK_EASE_M);
   let sloped=(1.0-smoothstep(run-ease,run+ease,-inside))*(1.0-smoothstep(0.0,ease,inside));
   let top=run+params_1.waterBed.w;
-  let weight=exp(clamp(inside,-50,50)/0.7);
-  let shown=min(grade*params_1.shoreEdge.w,0.84);
+  let weight=exp(clamp(inside,-GROUND_BANK_BLEND_REACH_M,GROUND_BANK_BLEND_REACH_M)/GROUND_BANK_BLEND_M);
+  let shown=min(grade*params_1.shoreEdge.w,GROUND_BANK_MAX_SLOPE);
   sum+=vec4f(away/max(off,1e-4)*shown*sloped,1.0-smoothstep(top,top+2.0*ease,-inside),1.0)*weight;
  }
  if(sum.w<=0.0){return vec3f(0.0);}
@@ -121,6 +124,9 @@ fn groundCell(xy: vec2f, footprint: f32) -> vec4u {
 }
 
 // @block models_material_groundCurb_alternate
+const GROUND_CURB_PIXELS_FROM = 0.25;
+const GROUND_CURB_PIXELS_TO = 0.6;
+const GROUND_CURB_EDGE_M = 0.03;
 fn groundCurb(footprint: f32, paved: GroundPaved) -> vec3f {
  if(paved.run.w<0.0||params.view.y==1u){return vec3f(0.0);}
  let own=u32(paved.run.w);
@@ -129,9 +135,9 @@ fn groundCurb(footprint: f32, paved: GroundPaved) -> vec3f {
  if(width<=0.0){return vec3f(0.0);}
  let inside=paved.drawn[own];
  if(inside<-2.0*width||inside>2.0*look.slabs.z){return vec3f(0.0);}
- let shown=1.0-smoothstep(0.25,0.6,footprint/width);
+ let shown=1.0-smoothstep(GROUND_CURB_PIXELS_FROM,GROUND_CURB_PIXELS_TO,footprint/width);
  if(shown<=0.0){return vec3f(0.0);}
- let soft=max(footprint,0.03)*0.5;
+ let soft=max(footprint,GROUND_CURB_EDGE_M)*0.5;
  // Another carriageway's surface over the edge leaves no curb there.
  var open=1.0;
  for(var k=0u;k<4u;k++){
@@ -163,6 +169,10 @@ fn groundForest(xy: vec2f, cell: vec4u) -> f32 {
 }
 
 // @block models_material_groundMarks_alternate
+const GROUND_MARKS_PIXELS_FROM = 0.35;
+const GROUND_MARKS_PIXELS_TO = 0.85;
+const GROUND_MARKS_CROSSING_COS = 0.8;
+const GROUND_MARKS_EDGE_M = 0.03;
 fn groundMarks(xy: vec2f, footprint: f32, paved: GroundPaved) -> f32 {
  let kind=roadLane(paved);
  if(kind<0||params.view.y==1u){return 0.0;}
@@ -170,7 +180,7 @@ fn groundMarks(xy: vec2f, footprint: f32, paved: GroundPaved) -> f32 {
  let line=look.marks.x;
  if(line<=0.0){return 0.0;}
  let bars=look.crossing;
- let shown=vec2f(1.0)-smoothstep(vec2f(0.35),vec2f(0.85),footprint/vec2f(2.0*line,bars.x));
+ let shown=vec2f(1.0)-smoothstep(vec2f(GROUND_MARKS_PIXELS_FROM),vec2f(GROUND_MARKS_PIXELS_TO),footprint/vec2f(2.0*line,bars.x));
  if(shown.x<=0.0&&shown.y<=0.0){return 0.0;}
  let far=bars.z+bars.y;
  // How far along this stroke the point is from its dash's middle.
@@ -185,7 +195,7 @@ fn groundMarks(xy: vec2f, footprint: f32, paved: GroundPaved) -> f32 {
   let seg=surfaces[entry&536870911u];
   if(params.roads[u32(seg.detail.y)].track.w<=0.0){continue;}
   let a=seg.ends.xy;let ab=seg.ends.zw-a;let len=max(length(ab),1e-6);
-  if(abs(dot(ab,paved.run.xy))>0.8*len){continue;}
+  if(abs(dot(ab,paved.run.xy))>GROUND_MARKS_CROSSING_COS*len){continue;}
   let free=dot(xy-a,ab)/len;
   let away=xy-(a+ab*(clamp(free,0.0,len)/len));let off=length(away);
   let inside=strokeCutInside(xy,seg.ends,seg.detail,seg.detail.x-off);
@@ -203,10 +213,10 @@ fn groundMarks(xy: vec2f, footprint: f32, paved: GroundPaved) -> f32 {
   let ends=((cuts&1u)!=0u&&free<room)||((cuts&2u)!=0u&&len-free<room);
   if(!ends&&free>=0.0&&free<=len){cross=max(cross,inside);}
  }
- let soft=max(footprint,0.03)*0.5;
+ let soft=max(footprint,GROUND_MARKS_EDGE_M)*0.5;
  let centre=(1.0-smoothstep(line-soft,line+soft,paved.lane.z))
   *(1.0-smoothstep(look.marks.y*0.5-soft,look.marks.y*0.5+soft,abs(dash)))
-  *(1.0-step(-far-0.3,near));
+  *(1.0-step(-far-GROUND_MARKS_CLEAR_M,near));
  let zone=smoothstep(-far-soft,-far+soft,cross)*(1.0-smoothstep(-bars.z-soft,-bars.z+soft,cross));
  let across=abs(fract(paved.lane.z/(2.0*bars.x))-0.5)*2.0*bars.x;
  let bar=1.0-smoothstep(bars.x*0.5-soft,bars.x*0.5+soft,across);
@@ -451,25 +461,39 @@ fn roomPick(anchor: vec3f) -> u32 {
   }
 
 // @block models_material_scarredSurface
+const GROUND_SCAR_SURFACE_GRAIN_SCALE = 1.7;
+const GROUND_SCAR_SURFACE_FLECK_SCALE = 6.3;
+const GROUND_SCAR_SURFACE_TRAMPLED_FROM = 0.9;
+const GROUND_SCAR_SURFACE_TRAMPLED_TO = 1.1;
+const GROUND_SCAR_SURFACE_TRACKS_FROM = 0.85;
+const GROUND_SCAR_SURFACE_TRACKS_TO = 1.1;
+const GROUND_SCAR_SURFACE_ASH_FROM = 0.6;
+const GROUND_SCAR_SURFACE_ASH_TO = 2.4;
+const GROUND_SCAR_SURFACE_ASH_BROAD_WEIGHT = 0.6;
+const GROUND_SCAR_SURFACE_ASH_DRIFT_SCALE = 0.7;
+const GROUND_SCAR_SURFACE_ASH_FINE_WEIGHT = 0.4;
+const GROUND_SCAR_SURFACE_SOIL_FROM = 0.8;
+const GROUND_SCAR_SURFACE_SOIL_TO = 1.15;
+const GROUND_SCAR_SURFACE_CAVITY = 0.7;
 fn scarredSurface(surface: vec4f, scar: ScarSample) -> vec4f {
   let P = scarParams;
   let w = scar.weights;
   let xy = scar.at.xy;
   var albedo = surface.xyz;
   var roughness = surface.w;
-  let grain = valueNoise(xy * 1.7);
-  let fleck = valueNoise(xy * 6.3 + vec2f(2.2, 9.1));
-  albedo = mix(albedo, P.trampled.xyz * mix(0.9, 1.1, grain), w.w * P.trampled.w);
-  albedo = mix(albedo, P.tracks.xyz * mix(0.85, 1.1, grain), w.z * P.tracks.w);
+  let grain = valueNoise(xy * GROUND_SCAR_SURFACE_GRAIN_SCALE);
+  let fleck = valueNoise(xy * GROUND_SCAR_SURFACE_FLECK_SCALE + vec2f(2.2, 9.1));
+  albedo = mix(albedo, P.trampled.xyz * mix(GROUND_SCAR_SURFACE_TRAMPLED_FROM, GROUND_SCAR_SURFACE_TRAMPLED_TO, grain), w.w * P.trampled.w);
+  albedo = mix(albedo, P.tracks.xyz * mix(GROUND_SCAR_SURFACE_TRACKS_FROM, GROUND_SCAR_SURFACE_TRACKS_TO, grain), w.z * P.tracks.w);
   // Soot is uneven: ash grey and char black in flecks and drifts.
-  let ash = mix(0.6, 2.4, fleck * 0.6 + valueNoise(xy * 0.7 + vec2f(4.4, 0.3)) * 0.4);
+  let ash = mix(GROUND_SCAR_SURFACE_ASH_FROM, GROUND_SCAR_SURFACE_ASH_TO, fleck * GROUND_SCAR_SURFACE_ASH_BROAD_WEIGHT + valueNoise(xy * GROUND_SCAR_SURFACE_ASH_DRIFT_SCALE + vec2f(4.4, 0.3)) * GROUND_SCAR_SURFACE_ASH_FINE_WEIGHT);
   albedo = mix(albedo, P.scorch.xyz * ash, w.y * P.scorch.w);
   let ring = scar.relief.z * P.ejecta.w;
-  albedo = mix(albedo, P.ejecta.xyz * mix(0.8, 1.15, fleck), ring);
+  albedo = mix(albedo, P.ejecta.xyz * mix(GROUND_SCAR_SURFACE_SOIL_FROM, GROUND_SCAR_SURFACE_SOIL_TO, fleck), ring);
   let bowl = w.x * P.crater.w;
   // The deeper, the darker: the floor sees less sky than the lip.
-  let cavity = mix(1.0, 0.7, saturate(scar.relief.w));
-  albedo = mix(albedo, P.crater.xyz * mix(0.8, 1.15, fleck) * cavity, bowl);
+  let cavity = mix(1.0, GROUND_SCAR_SURFACE_CAVITY, saturate(scar.relief.w));
+  albedo = mix(albedo, P.crater.xyz * mix(GROUND_SCAR_SURFACE_SOIL_FROM, GROUND_SCAR_SURFACE_SOIL_TO, fleck) * cavity, bowl);
   // Churned soil and ash are fully rough: a tilted wall never catches sky.
   roughness = mix(roughness, 1.0, max(w.y * P.scorch.w, max(bowl, ring)));
   return vec4f(albedo, roughness);

@@ -1,8 +1,6 @@
 {
   "terrain": {
     "distant": { "plot_pixels": [0.16666666666666666, 0.5] },
-    "forest_verge": { "feather": 0.1 },
-    "bank": { "ease_m": 0.75 },
     "shore": {
       "wet_whole": 0.4,
       "earth_whole": 0.65,
@@ -16,9 +14,6 @@
       "wet_roughness": 0.8,
       "bed_ease_m": 0.3
     },
-    "marks": {
-      "clear_m": 0.3
-    },
     "water": {
       "shore_fade_m": 0.25,
       "lobes": { "roughness": [0.15, 0.22, 0.32], "weights": [0.58, 0.34, 0.08] },
@@ -26,13 +21,7 @@
       "normals": { "tiles_m": [9, 31, 2.2], "drifts": [0.6, 0.3, 1.4], "strength": 0.35, "fade_m": [0.15, 1.2] },
       "refraction": { "share": 2, "depth_m": 2.5, "most": 0.015, "blur_m": 1 },
       "caustics": { "tile_m": 24, "strength": 1.2, "fade_per_m": 0.85, "sharpness": 5 }
-    },
-    "scars": {
-      "depth_cap": 1.6
     }
-  },
-  "grass": {
-    "edge_m": 1.2
   },
   "ground": { "backdrop_reach_m": 40000 },
   "camera": {
@@ -133,11 +122,9 @@
   "fog_geometry": {
     "azimuth_bins": 4096,
     "terrain_azimuth_bins": 512,
-    "radial_bins": 64,
     "first_bin_m": 1,
     "terrain_step_m": [0.5, 4],
     "terrain_step_fraction": 0.01,
-    "tile_px": 16,
     "tile_eyes_max": 128,
     "face_probe_m": 0.1,
     "roof_reach_m": 40,

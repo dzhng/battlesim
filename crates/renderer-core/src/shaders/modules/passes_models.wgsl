@@ -1,6 +1,23 @@
 // WGSL owner: passes_models.
 
 // @block passes_models_buildFn
+const GRASS_PLACEMENT_JITTER_M = 0.4;
+const GRASS_PLACEMENT_JITTER_SPAN_M = 0.8;
+const GRASS_STAND_BARE_WEAR = 0.9;
+const GRASS_PLACEMENT_HEADLAND_M = 0.3;
+const GRASS_STAND_SPARSE_FROM = 0.3;
+const GRASS_STAND_SPARSE_TO = 0.55;
+const GRASS_STAND_EDGE_DENSITY = 0.5;
+const GRASS_STAND_GROW_FROM = 0.7;
+const GRASS_MIX_DRIFT_FROM = 0.4;
+const GRASS_STAND_DRIFT_TO = 0.65;
+const GRASS_MIX_DRIFT_GATHER = 3;
+const GRASS_STAND_EDGE_HEIGHT = 0.35;
+const GRASS_STAND_LEAST_HEIGHT_M = 0.02;
+const GRASS_STAND_TIER_JITTER_FROM = 0.85;
+const GRASS_STAND_TIER_JITTER_TO = 1.15;
+const GRASS_STAND_PARCHED_FROM = 0.55;
+const GRASS_STAND_PARCHED_TO = 0.8;
 @compute @workgroup_size(64) fn buildFn(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32) {
   let P = &params;
   if (wg.x >= (*P).grid.x || wg.y >= (*P).grid.y) { return; }
@@ -20,8 +37,8 @@
   }
   zlo -= 1.0;
   zhi += 1.0 + (*P).window.w;
-  let lo2 = lo - vec2f(0.4 + (*P).clear.y);
-  let hi2 = hi + vec2f(0.4 + (*P).clear.y);
+  let lo2 = lo - vec2f(GRASS_PLACEMENT_JITTER_M + (*P).clear.y);
+  let hi2 = hi + vec2f(GRASS_PLACEMENT_JITTER_M + (*P).clear.y);
   for (var i = 0u; i < 4u; i++) {
     let pl = (*P).planes[i];
     let pv = vec3f(select(lo2.x, hi2.x, pl.x >= 0.0), select(lo2.y, hi2.y, pl.y >= 0.0), select(zlo, zhi, pl.z >= 0.0));
@@ -39,7 +56,7 @@
     // The sequence's point, jittered by a fixed amount so a sparse field
     // shows no lattice; both depend on the tile and j alone.
     let h = grassHash(bitcast<u32>(cell.x) ^ (j * 2654435761u), bitcast<u32>(cell.y) + j);
-    let jitter = (vec2f(fract(h.z * 7.13), fract(h.x * 5.31)) - 0.5) * 0.8;
+    let jitter = (vec2f(fract(h.z * 7.13), fract(h.x * 5.31)) - 0.5) * GRASS_PLACEMENT_JITTER_SPAN_M;
     let fell = lo + T * fract(offset + f32(j + 1u) * vec2f(0.7548776662466927, 0.5698402909980532)) + jitter;
     let fellZ = grassGround(fell);
     let dist = max(distance(eye, vec3f(fell, fellZ)), 0.5);
@@ -61,7 +78,7 @@
     // band under it, and the field's own right up to that.
     var wood = max(site.w, forestVergeInside(fell, site.w));
     var line = vec2f(0.0, -1e9);
-    if (wood > -((*P).clear.x + 1.2)) {
+    if (wood > -((*P).clear.x + GROUND_GRASS_EDGE_M)) {
       line = groundLineBand(fell, cell, site.w);
       if (line.x > 0.5) { wood = -1e9; }
     }
@@ -73,8 +90,8 @@
     let worn = groundShoulder(fell, footprint, paved);
     // Bare on a road's own surface and at the foot of its shoulder, but for
     // a track's centre strip.
-    if (worn.x > 0.9) { continue; }
-    let edge = smoothstep(0.0, 1.2, min(margin, abs(site.z))) * (1.0 - worn.x);
+    if (worn.x > GRASS_STAND_BARE_WEAR) { continue; }
+    let edge = smoothstep(0.0, GROUND_GRASS_EDGE_M, min(margin, abs(site.z))) * (1.0 - worn.x);
     var grows = min(u32(plots[i32(site.x)].detail.y), 14u);
     if (groundVerge(site, footprint) > 0.5 || line.y > 0.0) { grows = 15u; }
     let g = (*P).growth[grows];
@@ -87,7 +104,7 @@
     if (g.w > 0.0 && plot.rows.z > 0.0) {
       let across = dot(fell, plot.rows.xy) / plot.rows.z;
       let toRow = (floor(across) + 0.5 - across) * plot.rows.z * g.w;
-      let room = max(0.0, min(site.y - params_1.verge.w, margin) - 0.3);
+      let room = max(0.0, min(site.y - params_1.verge.w, margin) - GRASS_PLACEMENT_HEADLAND_M);
       p = fell + plot.rows.xy * clamp(toRow, -room, room);
     }
     // A wheeling stays bare.
@@ -98,13 +115,13 @@
     let S = scarParams.grass;
     let bare = max(max(scar.weights.x, scar.weights.y), scar.weights.z * S.y) * S.x;
     // Sparse patches: the stand thins there and nowhere thickens.
-    let sparse = 1.0 - smoothstep(0.3, 0.55, valueNoise(p * (*P).patchScales.y + vec2f(41.7, 13.1)));
-    let keep = rho * g.x * (1.0 - stand.z * sparse) * mix(0.5, 1.0, edge) * (1.0 - bare) * (1.0 - shore) * groundShoulderGrass(worn);
+    let sparse = 1.0 - smoothstep(GRASS_STAND_SPARSE_FROM, GRASS_STAND_SPARSE_TO, valueNoise(p * (*P).patchScales.y + vec2f(41.7, 13.1)));
+    let keep = rho * g.x * (1.0 - stand.z * sparse) * mix(GRASS_STAND_EDGE_DENSITY, 1.0, edge) * (1.0 - bare) * (1.0 - shore) * groundShoulderGrass(worn);
     if (rank >= keep) { continue; }
     if (grassUnderProp(p)) { continue; }
     // A clump nearing its rank's threshold is small: it grows as the
     // density passes it, and shrinks away as the fade takes it.
-    let grow = 1.0 - smoothstep(0.7 * keep, keep, rank);
+    let grow = 1.0 - smoothstep(GRASS_STAND_GROW_FROM * keep, keep, rank);
     let fade = 1.0 - smoothstep((*P).density.z, (*P).density.w, footprint);
     // Which of the row's grasses this clump is: its hash against their
     // shares, a drifting grass weighted up inside its drifts and down to
@@ -116,8 +133,8 @@
       let entry = (*P).mixes[grows * 4u + i];
       var share = entry.y;
       if (entry.z > 0.0) {
-        let drift = smoothstep(0.4, 0.65, valueNoise(p * (*P).patchScales.w + vec2f(f32(i) * 17.3 + 3.1, f32(grows) * 7.9)));
-        share *= mix(1.0, 3 * drift, entry.z);
+        let drift = smoothstep(GRASS_MIX_DRIFT_FROM, GRASS_STAND_DRIFT_TO, valueNoise(p * (*P).patchScales.w + vec2f(f32(i) * 17.3 + 3.1, f32(grows) * 7.9)));
+        share *= mix(1.0, GRASS_MIX_DRIFT_GATHER * drift, entry.z);
       }
       shares[i] = share;
       total += share;
@@ -136,8 +153,8 @@
     let row = (*P).kinds[kind];
     // Patches a few metres across stand taller or lower, as uneven grass does.
     let tall = valueNoise(p * (*P).patchScales.x);
-    let height = row.x * g.y * grow * fade * mix(0.8, 1.2, h.x) * mix(stand.x, stand.y, tall) * mix(0.35, 1.0, edge);
-    if (height < 0.02) { continue; }
+    let height = row.x * g.y * grow * fade * mix(0.8, 1.2, h.x) * mix(stand.x, stand.y, tall) * mix(GRASS_STAND_EDGE_HEIGHT, 1.0, edge);
+    if (height < GRASS_STAND_LEAST_HEIGHT_M) { continue; }
     let centre = root + vec3f(0.0, 0.0, height * 0.5);
     let radius = height * 0.8 + 0.4;
     var shown = true;
@@ -147,11 +164,11 @@
     }
     if (!shown) { continue; }
     var tier = 1u;
-    if (height / footprint > (*P).tiers.x * mix(0.85, 1.15, h.y)) { tier = 0u; }
+    if (height / footprint > (*P).tiers.x * mix(GRASS_STAND_TIER_JITTER_FROM, GRASS_STAND_TIER_JITTER_TO, h.y)) { tier = 0u; }
     let width = max(1.0, (*P).tiers.y * footprint / max(row.z, 1e-4));
     // Dry patches, and a grass drier than its neighbours: toward straw at
     // the ground's own luminance, so no patch is darker than its field.
-    let parched = smoothstep(0.55, 0.8, valueNoise(p * (*P).patchScales.z + vec2f(9.3, 77.1)));
+    let parched = smoothstep(GRASS_STAND_PARCHED_FROM, GRASS_STAND_PARCHED_TO, valueNoise(p * (*P).patchScales.z + vec2f(9.3, 77.1)));
     // What sets a clump apart from the ground under it (how dry it is, its
     // grain) goes with the clump as the fade takes it, so the field's far
     // edge meets the painted ground with the ground's own colour.
@@ -224,6 +241,8 @@
 }
 
 // @block passes_models_item_alternate
+const GLASS_TURN = 0.5f;
+const GLASS_GLINT = 1f;
 @fragment fn item(_arg_0: _Input, @builtin(position) clip: vec4f) -> item_1 {
   let eye = (&cam.eye);
   let view = normalize(((*eye) - _arg_0.world));
@@ -234,8 +253,8 @@
   let surface_1 = modelSurface(_arg_0.color, _arg_0.material, _arg_0.track, _arg_0.uv, n, _arg_0.tangent);
   let albedo_1 = (surface_1.albedo * mix(vec3f(1), _arg_0.tint, surface_1.tint));
   let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
-  let shaded = shade(albedo_1, vec3f(), surface_1.roughness, 0f, surface_1.metallic, surface_1.occlusion, normalize((surface_1.normal + (view * 0.5f))), _arg_0.world, sun_1, (*eye));
-  let ceiling = (unlit(vec3f(1), _arg_0.world, (*eye)).xyz * 1f);
+  let shaded = shade(albedo_1, vec3f(), surface_1.roughness, 0f, surface_1.metallic, surface_1.occlusion, normalize((surface_1.normal + (view * GLASS_TURN))), _arg_0.world, sun_1, (*eye));
+  let ceiling = (unlit(vec3f(1), _arg_0.world, (*eye)).xyz * GLASS_GLINT);
   return item_1(vec4f((min(shaded.xyz, ceiling) + highlightGlow(_arg_0.highlight)), coverageValue(_arg_0.material, _arg_0.uv)), vec4f());
 }
 

@@ -34,6 +34,31 @@ fn groundCubic(uv: vec2f) -> GroundCubic {
 }
 
 // @block terrain_scars_groundScars
+const GROUND_SCARS_RIM_REACH_CELLS = 1.5;
+const GROUND_SCARS_SLOPE_TAP_CELLS = 0.75;
+const GROUND_SCARS_DETAIL_FADE_FROM = 0.5;
+const GROUND_SCARS_DETAIL_FADE_TO = 2.0;
+const GROUND_SCARS_LIP_WANDER_PER_M = 2.2222222222222223;
+const GROUND_SCARS_LIP_DEPTH = 0.3;
+const GROUND_SCARS_LIP_GRAIN = 0.14;
+const GROUND_SCARS_RING_DEPTH = 0.035;
+const GROUND_SCARS_RING_GRAIN = 0.03;
+const GROUND_SCARS_POCK_FROM = 0.05;
+const GROUND_SCARS_POCK_TO = 0.09;
+const GROUND_SCARS_POCK_EDGE_DEPTH = 0.013;
+const GROUND_SCARS_POCK_EDGE_GRAIN = 0.006;
+const GROUND_SCARS_POCK_EDGE_DARK = 0.45;
+const GROUND_SCARS_POCK_EDGE_RANGE = 0.55;
+const GROUND_SCARS_POCK_SOOT = 0.85;
+const GROUND_SCARS_ASH_SCALE = 4.5;
+const GROUND_SCARS_ASH_BROAD_WEIGHT = 0.75;
+const GROUND_SCARS_ASH_FINE_SCALE = 13.950000000000001;
+const GROUND_SCARS_ASH_FINE_WEIGHT = 0.25;
+const GROUND_SCARS_ASH_EDGE_FROM = 0.97;
+const GROUND_SCARS_ASH_EDGE_TO = 0.72;
+const GROUND_SCARS_ASH_LEAST = 0.45;
+const GROUND_SCARS_RUT_DEPTH = 0.35;
+const GROUND_SCARS_RUT_GRAIN = 0.2;
 fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
   var out: ScarSample;
   out.at = vec4f(xy, 0.0, 0.0);
@@ -54,8 +79,8 @@ fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
   // Twelve bilinear taps through one call, as a shader compiler inlines each
   // call: the rim's four diagonals (a, b, c, e), the cubic's four, then
   // either side of `uv` along x and y for the slopes (xp, xm, yp, ym).
-  let r = 1.5;
-  let h = 0.75;
+  let r = GROUND_SCARS_RIM_REACH_CELLS;
+  let h = GROUND_SCARS_SLOPE_TAP_CELLS;
   let cubic = groundCubic(uv);
   var taps = array<vec4f, 12>();
   for (var t = 0u; t < 12u; t++) {
@@ -88,10 +113,10 @@ fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
   let xm = taps[9];
   let yp = taps[10];
   let ym = taps[11];
-  let detail = 1.0 - smoothstep(0.5, 2.0, footprint / cell);
+  let detail = 1.0 - smoothstep(GROUND_SCARS_DETAIL_FADE_FROM, GROUND_SCARS_DETAIL_FADE_TO, footprint / cell);
   let k = P.full;
-  let depth = min(s.x * k.x, 1.6);
-  let wide = min((a.x + b.x + c.x + e.x) * 0.25 * k.x, 1.6);
+  let depth = min(s.x * k.x, GROUND_SCAR_DEPTH_CAP);
+  let wide = min((a.x + b.x + c.x + e.x) * 0.25 * k.x, GROUND_SCAR_DEPTH_CAP);
   // Slopes per metre of the crater field, from the taps either side.
   let bowlSlope = vec2f(xp.x - xm.x, yp.x - ym.x) * k.x / (2.0 * h * cell);
   let wideSlope = vec2f((b.x + e.x) - (a.x + c.x), (c.x + e.x) - (a.x + b.x)) * 0.5 * k.x / (2.0 * r * cell);
@@ -99,29 +124,29 @@ fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
   let onRim = select(0.0, 1.0, wide > depth);
   let slope = (P.relief.y * onRim * (wideSlope - bowlSlope) - bowlSlope) * P.relief.x * detail;
   // Iso-lines, each crossing within a pixel.
-  let grain = valueNoise(xy * 2.2222222222222223 + vec2f(5.7, 2.1)) - 0.5;
+  let grain = valueNoise(xy * GROUND_SCARS_LIP_WANDER_PER_M + vec2f(5.7, 2.1)) - 0.5;
   let pixelDepth = length(bowlSlope) * footprint;
-  let bowl = crossing(depth, 0.3 + 0.14 * grain, pixelDepth);
-  let skirt = crossing(depth, 0.035 + 0.03 * grain, pixelDepth) * (1.0 - bowl);
+  let bowl = crossing(depth, GROUND_SCARS_LIP_DEPTH + GROUND_SCARS_LIP_GRAIN * grain, pixelDepth);
+  let skirt = crossing(depth, GROUND_SCARS_RING_DEPTH + GROUND_SCARS_RING_GRAIN * grain, pixelDepth) * (1.0 - bowl);
   // The deepest crater within the taps: a lone pock's skirt is scorched
   // earth, a real crater's is its thrown soil.
   let peak = max(max(max(s.x, xp.x), max(xm.x, yp.x)), max(ym.x, near.x)) * k.x;
-  let soil = smoothstep(0.05, 0.09, peak);
+  let soil = smoothstep(GROUND_SCARS_POCK_FROM, GROUND_SCARS_POCK_TO, peak);
   let ring = skirt * soil;
-  let scorched = crossing(depth, 0.013 + 0.006 * grain, pixelDepth) * (1.0 - bowl);
+  let scorched = crossing(depth, GROUND_SCARS_POCK_EDGE_DEPTH + GROUND_SCARS_POCK_EDGE_GRAIN * grain, pixelDepth) * (1.0 - bowl);
   // Darkest at its heart, browner toward its edge, as a burn is.
-  let heart = 0.45 + 0.55 * smoothstep(0.013, 0.035, depth);
-  let pock = scorched * (1.0 - soil) * 0.85 * heart;
+  let heart = GROUND_SCARS_POCK_EDGE_DARK + GROUND_SCARS_POCK_EDGE_RANGE * smoothstep(GROUND_SCARS_POCK_EDGE_DEPTH, GROUND_SCARS_RING_DEPTH, depth);
+  let pock = scorched * (1.0 - soil) * GROUND_SCARS_POCK_SOOT * heart;
   // Soot: ash in flecks over the scorch, thickest near the burst, never a
   // solid sheet: a flecked dark is one thing no shadow here is.
   let burnt = saturate(s.y * k.y);
-  let fleckAt = valueNoise(xy * 4.5 + vec2f(8.1, 3.3)) * 0.75 + valueNoise(xy * 13.950000000000001) * 0.25;
-  let ash = crossing(fleckAt, mix(0.97, 0.72, burnt), footprint * 4.5) * step(0.45, burnt);
+  let fleckAt = valueNoise(xy * GROUND_SCARS_ASH_SCALE + vec2f(8.1, 3.3)) * GROUND_SCARS_ASH_BROAD_WEIGHT + valueNoise(xy * GROUND_SCARS_ASH_FINE_SCALE) * GROUND_SCARS_ASH_FINE_WEIGHT;
+  let ash = crossing(fleckAt, mix(GROUND_SCARS_ASH_EDGE_FROM, GROUND_SCARS_ASH_EDGE_TO, burnt), footprint * GROUND_SCARS_ASH_SCALE) * step(GROUND_SCARS_ASH_LEAST, burnt);
   let soot = max(ash * (1.0 - bowl) * (1.0 - ring), pock);
   let wear = 1.0 - (1.0 - saturate(s.zw * k.zw)) * (1.0 - saturate(s.zw * k.zw));
   // Ruts have edges: tracks cross their iso-line within a pixel, ragged.
   let trackSlope = vec2f(xp.z - xm.z, yp.z - ym.z) * k.z / (2.0 * h * cell);
-  let rut = crossing(wear.x, 0.35 + 0.2 * grain, length(trackSlope) * footprint);
+  let rut = crossing(wear.x, GROUND_SCARS_RUT_DEPTH + GROUND_SCARS_RUT_GRAIN * grain, length(trackSlope) * footprint);
   out.weights = vec4f(bowl, soot, rut * wear.x, wear.y);
   out.relief = vec4f(slope, ring, depth);
   return out;
@@ -242,11 +267,12 @@ fn scarWord(word: u32) -> vec4f {
 }
 
 // @block terrain_scars_scarredNormal
+const GROUND_SCAR_NORMAL_MAX_SLOPE = 0.84;
 fn scarredNormal(n: vec3f, scar: ScarSample) -> vec3f {
   // At most 40° of tilt: steeper walls turn to the blue sky and read as haze.
   let slope = scar.relief.xy;
   let steep = length(slope);
-  let capped = slope * min(1.0, 0.84 / max(steep, 1e-6));
+  let capped = slope * min(1.0, GROUND_SCAR_NORMAL_MAX_SLOPE / max(steep, 1e-6));
   return normalize(n - vec3f(capped, 0.0) * n.z);
 }
 

@@ -246,3 +246,67 @@ fn gauge_classes_follow_the_catalogs_physical_class_vocabulary() {
     doc["pose"]["gauge"]["tracked_light_logistics"] = json!(0.8);
     presentation::settings::PresentationSettings::from_value(&doc).unwrap();
 }
+
+#[test]
+fn shader_geometry_cannot_be_overridden_by_a_document() {
+    for key in ["radial_bins", "tile_px"] {
+        let mut doc = fixture("presentation");
+        doc["fog_geometry"][key] = json!(8);
+        let error = presentation::settings::PresentationSettings::from_value(&doc)
+            .err()
+            .expect("shader geometry is fixed by the CPU/GPU contract");
+        assert!(
+            error.contains("fog_geometry") && error.contains(key),
+            "{error}"
+        );
+    }
+}
+
+#[test]
+fn shared_ground_numbers_cannot_be_overridden_by_a_document() {
+    for (section, key) in [
+        ("forest_verge", "feather"),
+        ("bank", "ease_m"),
+        ("marks", "clear_m"),
+        ("scars", "depth_cap"),
+    ] {
+        let mut doc = fixture("presentation");
+        doc["terrain"][section] = json!({key: 0.5});
+        let error = presentation::settings::PresentationSettings::from_value(&doc)
+            .err()
+            .expect("ground/shader constants have no fixture owner");
+        assert!(
+            error.contains("terrain") && error.contains(section),
+            "{error}"
+        );
+    }
+    let mut doc = fixture("presentation");
+    doc["grass"] = json!({"edge_m": 0.5});
+    assert!(
+        presentation::settings::PresentationSettings::from_value(&doc)
+            .err()
+            .unwrap()
+            .contains("grass")
+    );
+}
+
+#[test]
+fn fog_tiles_cover_partial_screen_edges_and_reuse_their_camera_layout() {
+    use presentation::fog::sight::{FogSight, TILE_PX};
+    use presentation::records::Camera;
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&fixture("presentation")).unwrap();
+    let mut sight = FogSight::new(settings.fog_geometry).unwrap();
+    let width = TILE_PX * 3 + 1;
+    let height = TILE_PX * 2 - 1;
+    let upload = sight
+        .prepare(Some(&Camera::default()), width, height, 0)
+        .unwrap();
+    for (tiles, pixels) in [(upload.tiles[0], width), (upload.tiles[1], height)] {
+        assert!(tiles * TILE_PX >= pixels, "the last partial tile is drawn");
+        assert!((tiles - 1) * TILE_PX < pixels, "no empty tile is submitted");
+    }
+    let probes = sight.prepare(None, 0, 0, 1).unwrap();
+    assert_eq!(probes.params.tiles_x, upload.tiles[0]);
+    assert_eq!(probes.params.probe_count, 1);
+}

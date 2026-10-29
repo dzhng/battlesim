@@ -32,6 +32,7 @@
 }
 
 // @block passes_fog_fragment
+const GRASS_BLADE_ROUGHNESS = 0.9f;
 @fragment fn fragment(_arg_0: fragment_Input, @builtin(position) clip: vec4f) -> fragment_Output {
   let eye = (&cam.eye);
   let up = vec3f(0, 0, 1);
@@ -44,7 +45,7 @@
   let sun_1 = sampleSunShadow(_arg_0.world, up, clip.xy);
   let under = groundPaint(vec3f(_arg_0.world.x, _arg_0.world.y, _arg_0.root.z));
   let here = groundPaintAtPixel(clip.xy);
-  let lit = shade(_arg_0.albedo, vec3f(), 0.9f, 0f, 0f, 1f, shading, _arg_0.world, sun_1, (*eye));
+  let lit = shade(_arg_0.albedo, vec3f(), GRASS_BLADE_ROUGHNESS, 0f, 0f, 1f, shading, _arg_0.world, sun_1, (*eye));
   return fragment_Output(vec4f((lit.xyz + max(grassPaintGlow(under, (_arg_0.world.z - _arg_0.root.z)), grassPaintGlow(here, 0f))), 1f), fogCoverage(seen, 1f));
 }
 
@@ -185,11 +186,11 @@
 }
 
 // @block passes_fog_item_extended
-@compute @workgroup_size(64) fn item(@builtin(global_invocation_id) gid: vec3u) {
+@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn item(@builtin(global_invocation_id) gid: vec3u) {
   let P = params;
   let AZ = P.azimuthBins;
   let AZT = P.terrainAzimuthBins;
-  let R = P.radialBins;
+  let R = FOG_RADIAL_BINS;
   let r = gid.x / AZ;
   let ai = gid.x % AZ;
   if (r >= P.rebuildCount) { return; }
@@ -203,8 +204,8 @@
   let gap = P.minSightGapM;
   var left = vec3f(1e9, 0.0, 0.0);
   var right = vec3f(1e9, 0.0, 0.0);
-  var pm: array<f32, 64>;
-  var pt: array<f32, 64>;
+  var pm: array<f32, FOG_RADIAL_BINS>;
+  var pt: array<f32, FOG_RADIAL_BINS>;
   for (var k = 0u; k < R; k++) { pm[k] = -1e4; pt[k] = 0.0; }
   let sectors = rebuild[r * 3u + 2u];
   let sector = min(u32((f32(ai) + 0.5) / f32(AZ) * f32(sectors)), sectors - 1u);
@@ -328,7 +329,7 @@
 }
 
 // @block passes_fog_item_primary
-@compute @workgroup_size(16, 16) fn item(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32, @builtin(global_invocation_id) gid: vec3u) {
+@compute @workgroup_size(FOG_TILE_PX, FOG_TILE_PX) fn item(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32, @builtin(global_invocation_id) gid: vec3u) {
   let P = params;
   if (li == 0u) {
     atomicStore(&cullLo[0], 2147483647);
@@ -360,7 +361,7 @@
   let lo = vec2f(f32(atomicLoad(&cullLo[0])), f32(atomicLoad(&cullLo[1]))) * 0.25;
   let hi = vec2f(f32(atomicLoad(&cullHi[0])), f32(atomicLoad(&cullHi[1]))) * 0.25;
   let tile = wg.x + wg.y * P.tilesX;
-  for (var e = li; e < P.eyeCount; e += 256u) {
+  for (var e = li; e < P.eyeCount; e += FOG_TILE_PX * FOG_TILE_PX) {
     let eye = eyes[e];
     let near = clamp(eye.position.xy, lo, hi);
     if (distance(near, eye.position.xy) <= eye.reach) {
@@ -387,7 +388,7 @@
 }
 
 // @block passes_fog_probeFn
-@compute @workgroup_size(64) fn probeFn(@builtin(global_invocation_id) gid: vec3u) {
+@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn probeFn(@builtin(global_invocation_id) gid: vec3u) {
   let P = params;
   if (gid.x >= P.probeCount) { return; }
   let q = points[gid.x];
@@ -399,7 +400,7 @@
 }
 
 // @block passes_fog_shapeFn
-@compute @workgroup_size(64) fn shapeFn(@builtin(global_invocation_id) gid: vec3u) {
+@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn shapeFn(@builtin(global_invocation_id) gid: vec3u) {
   if (gid.x >= arrayLength(&rows)) { return; }
   let r = rows[gid.x];
   out[gid.x] = fogShape(r.x, r.y, r.z, r.w);
@@ -444,10 +445,10 @@
 }
 
 // @block passes_fog_terrainMarch
-@compute @workgroup_size(64) fn terrainMarch(@builtin(global_invocation_id) gid: vec3u) {
+@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn terrainMarch(@builtin(global_invocation_id) gid: vec3u) {
   let P = params;
   let AZT = P.terrainAzimuthBins;
-  let R = P.radialBins;
+  let R = FOG_RADIAL_BINS;
   let r = gid.x / AZT;
   let ai = gid.x % AZT;
   if (r >= P.rebuildCount) { return; }
@@ -541,7 +542,7 @@
 }
 
 // @block passes_fog_wholeFn
-@compute @workgroup_size(64) fn wholeFn(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32) {
+@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn wholeFn(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32) {
   let W = whole;
   let item = wg.x + wg.y * 65535u;
   if (item >= u32(W.y)) { return; }
@@ -564,7 +565,7 @@
   let total = 2u * wallsX + 2u * wallsY + cx * cy;
   let inset = min(vec2f(0.2), b.half * 0.5);
   let reach = length(b.half);
-  for (var s = li; s < total; s += 64u) {
+  for (var s = li; s < total; s += FOG_BUILD_WORKGROUP) {
     if (atomicLoad(&wholeFound) != 0u) { break; }
     // Along a side: t ranges [0, 1] over n samples, kept off the corners by the inset.
     var local = vec2f(0.0);

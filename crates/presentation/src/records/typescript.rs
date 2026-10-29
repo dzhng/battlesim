@@ -42,22 +42,19 @@ pub fn typescript() -> String {
          export const FOG_EDGE_REACH_PX = {};\n",
         crate::fog::FOG_EDGE_REACH_PX
     ));
-    {
-        use crate::fog::sight::{FOLIAGE_STEP, WHOLE_BOX_WORDS, WHOLE_TEXTURE_WIDTH};
-        out.push_str(&format!(
-            "/** Fog's foliage depth steps, the `wholes` texture's row and a structure box's words (`fog/sight.rs`). */\n\
-             export const FOLIAGE_STEP = {FOLIAGE_STEP};\n\
-             export const WHOLE_TEXTURE_WIDTH = {WHOLE_TEXTURE_WIDTH};\n\
-             export const WHOLE_BOX_WORDS = {WHOLE_BOX_WORDS};\n",
-        ));
+    out.push_str("/** Shared CPU/GPU constants (`shader_constants.rs`). */\n");
+    for (name, value) in crate::shader_constants::CONSTANTS {
+        use crate::shader_constants::Scalar;
+        let value = match value {
+            Scalar::F32(value) => format!("{value:?}"),
+            Scalar::U32(value) => value.to_string(),
+        };
+        out.push_str(&format!("export const {name} = {value};\n"));
     }
     out.push_str(&format!(
-        "/** The sun's cascade slots `SunShadow` holds (`shadow.rs`). */\n\
-         export const SUN_CASCADES = {};\n\
-         /** The cast lights a frame's uniform holds (`effects/lights.rs`). */\n\
-         export const CAST_LIGHTS_MAX = {};\n",
-        crate::shadow::CASCADES,
-        crate::effects::lights::CAST_LIGHTS_MAX
+        "/** Words per whole-fog structure box (`fog/sight.rs`). */\n\
+         export const WHOLE_BOX_WORDS = {};\n",
+        crate::fog::sight::WHOLE_BOX_WORDS
     ));
     {
         use crate::effects::frame::{EFFECT_KINDS, SHAPE_NAMES};

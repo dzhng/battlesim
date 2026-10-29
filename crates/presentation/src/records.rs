@@ -447,8 +447,6 @@ records! {
         translucent_lift_m: f32,
         azimuth_bins: u32,
         terrain_azimuth_bins: u32,
-        radial_bins: u32,
-        tile_px: u32,
         tiles_x: u32,
         tile_eyes_max: u32,
         eye_count: u32,
@@ -467,7 +465,8 @@ records! {
         foliage_cell_m: f32,
         foliage_full_block: f32,
         min_sight_gap_m: f32,
-        pad0: f32,
+        /// WGSL aligns the following vec4 to 16 bytes.
+        pad0: [f32; 3],
         /// The playable rectangle as the map's extents give it; outside it
         /// is fogged.
         playable: [f32; 4],

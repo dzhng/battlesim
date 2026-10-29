@@ -10,6 +10,14 @@ use std::f64::consts::SQRT_2;
 /// The most levels the material's surface field may build: the widest is
 /// far past any map.
 const LEVELS: usize = 32;
+/// Grass thins past a bare margin over this distance, metres.
+pub const GRASS_EDGE_M: f64 = 1.2;
+/// The forest floor's soft edge as a share of its verge.
+pub const FOREST_VERGE_FEATHER: f64 = 0.1;
+pub const BANK_EASE_M: f64 = 0.75;
+pub const MARKS_CLEAR_M: f64 = 0.3;
+/// The deepest sampled scar, before biome relief is applied.
+pub const SCAR_DEPTH_CAP: f64 = 1.6;
 const LUMA: [f64; 3] = [0.2126, 0.7152, 0.0722];
 /// Words a `WaterLook` row: eight vec4s.
 const WATER_LOOK_WORDS: usize = 40;
@@ -60,22 +68,22 @@ impl Ground {
     /// shore's bands, the water's pixel-wide edge, the grass's margin and the
     /// bank's shading out to `bank_m` from the water.
     pub fn reach(&self, footprint: f64, bank_m: f64) -> [f64; 3] {
-        let (b, t) = (&self.biome, &self.tuning.terrain);
+        let b = &self.biome;
         let floor = &b.forest_floor;
-        let grass = b.grass.clear_m.area + self.tuning.grass.edge_m;
+        let grass = b.grass.clear_m.area + GRASS_EDGE_M;
         let most =
             |f: &dyn Fn(&Road) -> f64| b.roads.values().map(f).fold(f64::NEG_INFINITY, f64::max);
         let marks = most(&|r| {
             r.markings.as_ref().map_or(0.0, |m| {
-                m.crossing.gap_m + m.crossing.length_m + t.marks.clear_m + m.dash_m[0]
+                m.crossing.gap_m + m.crossing.length_m + MARKS_CLEAR_M + m.dash_m[0]
             })
         });
         let walk = most(&|r| r.walk.as_ref().map_or(0.0, |w| w.width_m));
         let paved = most(&|r| r.shoulder.width_m)
             .max(marks.max(walk + most(&|r| r.feather_m).max(footprint) / 2.0));
-        let forest_m = floor.verge_m * t.forest_verge.feather;
+        let forest_m = floor.verge_m * FOREST_VERGE_FEATHER;
         let forest = floor.verge_m + floor.verge_warp_m + footprint.max(forest_m).max(grass);
-        let bank = bank_m + 2.0 * footprint.max(t.bank.ease_m);
+        let bank = bank_m + 2.0 * footprint.max(BANK_EASE_M);
         let water = b.shore.mud_m.max(footprint / 2.0).max(bank.max(grass));
         [paved, forest, water]
     }
@@ -125,7 +133,7 @@ impl Ground {
     /// relief its uniform holds, both ways. A region's scars load this far past it.
     pub fn scar_reach_m(&self) -> f64 {
         let relief = self.biome.scars.crater.relief_m as f32 as f64;
-        2.0 * self.tuning.terrain.scars.depth_cap * relief
+        2.0 * SCAR_DEPTH_CAP * relief
     }
 
     /// Every terrain table but the scars' grid, from `field` (`terrain_field`).

@@ -41,7 +41,11 @@ const LIMB: f64 = 65536.0;
 
 /// Foliage depth is stored per bin in steps of this, in 8 bits.
 pub const FOLIAGE_STEP: f64 = 0.005;
-pub const FOLIAGE_MAX: f64 = 255.0 * FOLIAGE_STEP;
+pub const FOLIAGE_QUANTA: u32 = 255;
+pub const FOLIAGE_MAX: f64 = FOLIAGE_QUANTA as f64 * FOLIAGE_STEP;
+/// The cull tile extent and log-spaced samples per sight ray.
+pub const TILE_PX: u32 = 16;
+pub const RADIAL_BINS: u32 = 64;
 /// Words a row of the `wholes` texture holds.
 pub const WHOLE_TEXTURE_WIDTH: usize = 256;
 /// Words per structure box in the `wholes` texture: centre x, y; cos and
@@ -51,9 +55,9 @@ pub const WHOLE_BOX_WORDS: usize = 8;
 const WHOLE_CELL_M: f64 = 8.0;
 const WHOLE_GRID_MAX: f64 = 512.0;
 /// The angular sectors a rebuilt eye's occluders are listed by.
-const HORIZON_SECTORS: usize = 64;
+pub const HORIZON_SECTORS: usize = 64;
 /// The build compute's workgroup, and the most workgroups a dispatch takes.
-const BUILD_WORKGROUP: usize = 64;
+pub const BUILD_WORKGROUP: usize = 64;
 const MAX_WORKGROUPS: usize = 65535;
 
 /// `presentation.fog_geometry`: the sight lights' resolution and budgets.
@@ -64,14 +68,10 @@ pub struct Geometry {
     pub azimuth_bins: u32,
     /// Rays per eye of the coarse terrain march.
     pub terrain_azimuth_bins: u32,
-    /// Log-spaced radial bins per ray, from `first_bin_m` to the eye's reach.
-    pub radial_bins: u32,
     pub first_bin_m: f64,
     /// The terrain march's step: `fraction` of the distance, within `[min, max]` m.
     pub terrain_step_m: [f64; 2],
     pub terrain_step_fraction: f64,
-    /// Screen tile of the per-tile eye lists, pixels a side.
-    pub tile_px: u32,
     /// Eyes a tile's list holds; more are dropped.
     pub tile_eyes_max: u32,
     /// A face probes this far outside itself, along its normal.
@@ -96,14 +96,8 @@ impl Geometry {
         };
         whole(self.azimuth_bins, "azimuth_bins", 8)?;
         whole(self.terrain_azimuth_bins, "terrain_azimuth_bins", 8)?;
-        whole(self.radial_bins, "radial_bins", 2)?;
-        whole(self.tile_px, "tile_px", 1)?;
         whole(self.tile_eyes_max, "tile_eyes_max", 1)?;
         whole(self.rebuild_eyes_per_frame, "rebuild_eyes_per_frame", 1)?;
-        // One cull workgroup per tile: WebGPU guarantees 256 invocations.
-        if self.tile_px * self.tile_px > 256 {
-            return Err("fog_geometry.tile_px must be ≤ 16".into());
-        }
         if !(self.first_bin_m > 0.0 && self.face_probe_m > 0.0 && self.terrain_step_fraction > 0.0)
         {
             return Err(
@@ -1109,14 +1103,14 @@ impl FogSight {
         probes: u32,
     ) -> Result<FogUpload, String> {
         let g = &self.geometry;
-        let bins = self.capacity * g.radial_bins;
+        let bins = self.capacity * RADIAL_BINS;
         let mut up = FogUpload {
             map_words: [bins * g.azimuth_bins, bins * g.terrain_azimuth_bins],
             ..FogUpload::default()
         };
         if camera.is_some() {
-            self.tiles_x = width.div_ceil(g.tile_px);
-            up.tiles = [self.tiles_x, height.div_ceil(g.tile_px), g.tile_eyes_max];
+            self.tiles_x = width.div_ceil(TILE_PX);
+            up.tiles = [self.tiles_x, height.div_ceil(TILE_PX), g.tile_eyes_max];
         }
         let active = self.active();
         up.active = active;
@@ -1250,8 +1244,6 @@ impl FogSight {
             translucent_lift_m: self.translucent_lift_m as f32,
             azimuth_bins: g.azimuth_bins,
             terrain_azimuth_bins: g.terrain_azimuth_bins,
-            radial_bins: g.radial_bins,
-            tile_px: g.tile_px,
             tiles_x: self.tiles_x,
             tile_eyes_max: g.tile_eyes_max,
             eye_count: self.order.len() as u32,
@@ -1267,7 +1259,7 @@ impl FogSight {
             foliage_cell_m: if foliage { f[2] } else { 1.0 },
             foliage_full_block: world.map_or(1.0, |w| w.sensors.foliage_full_block) as f32,
             min_sight_gap_m: world.map_or(0.0, |w| w.sensors.min_sight_gap_m) as f32,
-            pad0: 0.0,
+            pad0: [0.0; 3],
             playable: world.map_or([0.0; 4], |w| w.playable.map(|v| v as f32)),
             height_spacing: world.map_or(1.0, |w| w.spacing) as f32,
             face_probe_m: g.face_probe_m as f32,
@@ -1292,7 +1284,7 @@ impl FogSight {
     /// What the fog holds, for the lab's readout.
     pub fn stats(&self) -> FogStats {
         let g = &self.geometry;
-        let r = g.radial_bins as u64;
+        let r = RADIAL_BINS as u64;
         FogStats {
             enabled: self.active(),
             eyes: self.order.len(),
@@ -1375,11 +1367,9 @@ mod tests {
         Geometry {
             azimuth_bins: 8,
             terrain_azimuth_bins: 8,
-            radial_bins: 2,
             first_bin_m: 1.0,
             terrain_step_m: [1.0, 5.0],
             terrain_step_fraction: 0.1,
-            tile_px: 1,
             tile_eyes_max: 8,
             face_probe_m: 0.1,
             roof_reach_m: 0.0,
@@ -1679,14 +1669,13 @@ mod tests {
     #[test]
     fn a_full_block_past_eight_bits_of_foliage_is_refused() {
         let mut w = world(vec![], vec![]);
-        w.sensors.foliage_full_block = 2.0;
+        w.sensors.foliage_full_block = FOLIAGE_MAX;
         let mut fog = FogSight::new(geometry()).unwrap();
+        fog.set_world(w.clone(), vec![]).unwrap();
+        w.sensors.foliage_full_block *= 2.0;
         assert!(fog
             .set_world(w, vec![])
             .unwrap_err()
             .contains("foliage_full_block"));
-        let mut g = geometry();
-        g.tile_px = 17;
-        assert!(FogSight::new(g).err().unwrap().contains("tile_px"));
     }
 }

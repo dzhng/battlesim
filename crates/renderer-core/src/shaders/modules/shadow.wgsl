@@ -9,7 +9,7 @@ struct SunCascade {
 
 // @block shadow_SunShadow
 struct SunShadow {
-  cascades: array<SunCascade, 4>,
+  cascades: array<SunCascade, SHADOW_CASCADES>,
   control: vec4f,
 }
 

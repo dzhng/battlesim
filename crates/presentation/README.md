@@ -31,6 +31,9 @@ calls the same reader for workbench drafts.
   `records_are_current` generates `packages/battle-renderer/src/records.gen.ts`,
   with byte offsets and typed views for browser consumers. The renderer's
   shader ABI check reflects WGSL against these canonical Rust layouts.
+  [Shader constants](src/shader_constants.rs) names shared CPU/GPU values
+  from their concept owners for both the WGSL prelude and TypeScript; fixed
+  allocation geometry cannot become an independent fixture setting.
 - [The runtime assets](src/assets.rs): the one reader of the scene-assets
   container the template library and the bundles travel in, and (feature
   `files`) of the runtime directory: its catalog and each gzipped transport

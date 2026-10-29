@@ -176,15 +176,26 @@ fn rawShader(uv: vec2f) -> vec4f {
 }
 
 // @block shared_math_roadGrain
+const GROUND_ROAD_GRAIN_FADE_FROM = 0.6;
+const GROUND_ROAD_GRAIN_FADE_TO = 1.2;
+const GROUND_ROAD_GRAIN_OCTAVE_1 = 2.03;
+const GROUND_ROAD_GRAIN_OCTAVE_2 = 4.01;
+const GROUND_ROAD_GRAIN_OCTAVE_3 = 8.3;
+const GROUND_ROAD_GRAIN_WEIGHT_0 = 0.25;
+const GROUND_ROAD_GRAIN_WEIGHT_1 = 0.35;
+const GROUND_ROAD_GRAIN_WEIGHT_2 = 0.4;
+const GROUND_ROAD_GRAIN_STONE_FROM = 0.7;
+const GROUND_ROAD_GRAIN_STONE_TO = 0.76;
+const GROUND_ROAD_GRAIN_WEIGHT_3 = 0.5;
 fn roadGrain(p: vec2f, pixel: f32) -> f32 {
- let shown=vec4f(1.0)-smoothstep(vec4f(0.6),vec4f(1.2),pixel*vec4f(1.0,2.03,4.01,8.3));
+ let shown=vec4f(1.0)-smoothstep(vec4f(GROUND_ROAD_GRAIN_FADE_FROM),vec4f(GROUND_ROAD_GRAIN_FADE_TO),pixel*vec4f(1.0,GROUND_ROAD_GRAIN_OCTAVE_1,GROUND_ROAD_GRAIN_OCTAVE_2,GROUND_ROAD_GRAIN_OCTAVE_3));
  var grain=0.0;
- if(shown.x>0.0){grain+=(valueNoise(vec2f(0.87*p.x-0.5*p.y,0.5*p.x+0.87*p.y))-0.5)*0.25*shown.x;}
- if(shown.y>0.0){grain+=(valueNoise(vec2f(0.6*p.x+0.8*p.y,-0.8*p.x+0.6*p.y)*2.03+vec2f(19.1,7.7))-0.5)*0.35*shown.y;}
- if(shown.z>0.0){grain+=(valueNoise(vec2f(0.96*p.x-0.28*p.y,0.28*p.x+0.96*p.y)*4.01+vec2f(3.3,41.9))-0.5)*0.4*shown.z;}
+ if(shown.x>0.0){grain+=(valueNoise(vec2f(0.87*p.x-0.5*p.y,0.5*p.x+0.87*p.y))-0.5)*GROUND_ROAD_GRAIN_WEIGHT_0*shown.x;}
+ if(shown.y>0.0){grain+=(valueNoise(vec2f(0.6*p.x+0.8*p.y,-0.8*p.x+0.6*p.y)*GROUND_ROAD_GRAIN_OCTAVE_1+vec2f(19.1,7.7))-0.5)*GROUND_ROAD_GRAIN_WEIGHT_1*shown.y;}
+ if(shown.z>0.0){grain+=(valueNoise(vec2f(0.96*p.x-0.28*p.y,0.28*p.x+0.96*p.y)*GROUND_ROAD_GRAIN_OCTAVE_2+vec2f(3.3,41.9))-0.5)*GROUND_ROAD_GRAIN_WEIGHT_2*shown.z;}
  if(shown.w>0.0){
-  let stone=valueNoise(p*8.3+vec2f(71.9,13.7));
-  grain+=(smoothstep(0.7,0.76,stone)-smoothstep(0.7,0.76,1.0-stone))*0.5*shown.w;
+  let stone=valueNoise(p*GROUND_ROAD_GRAIN_OCTAVE_3+vec2f(71.9,13.7));
+  grain+=(smoothstep(GROUND_ROAD_GRAIN_STONE_FROM,GROUND_ROAD_GRAIN_STONE_TO,stone)-smoothstep(GROUND_ROAD_GRAIN_STONE_FROM,GROUND_ROAD_GRAIN_STONE_TO,1.0-stone))*GROUND_ROAD_GRAIN_WEIGHT_3*shown.w;
  }
  return grain;
 }
@@ -236,13 +247,20 @@ fn valueNoise3(p: vec3f) -> f32 {
 }
 
 // @block shared_math_wanderNoise
+const GROUND_WANDER_PUSH_SCALE = 0.61;
+const GROUND_WANDER_PUSH = 1.4;
+const GROUND_WANDER_OCTAVE_1 = 2.03;
+const GROUND_WANDER_OCTAVE_2 = 4.01;
+const GROUND_WANDER_WEIGHT_0 = 0.5;
+const GROUND_WANDER_WEIGHT_1 = 0.3;
+const GROUND_WANDER_WEIGHT_2 = 0.2;
 fn wanderNoise(at: vec2f) -> f32 {
- let push=vec2f(valueNoise(at*0.61+vec2f(11.3,47.1)),valueNoise(at*0.61+vec2f(83.9,5.7)))-0.5;
- let p=at+push*1.4;
+ let push=vec2f(valueNoise(at*GROUND_WANDER_PUSH_SCALE+vec2f(11.3,47.1)),valueNoise(at*GROUND_WANDER_PUSH_SCALE+vec2f(83.9,5.7)))-0.5;
+ let p=at+push*GROUND_WANDER_PUSH;
  let a=valueNoise(vec2f(0.87*p.x-0.5*p.y,0.5*p.x+0.87*p.y));
- let b=valueNoise(vec2f(0.6*p.x+0.8*p.y,-0.8*p.x+0.6*p.y)*2.03+vec2f(19.1,7.7));
- let c=valueNoise(vec2f(0.96*p.x-0.28*p.y,0.28*p.x+0.96*p.y)*4.01+vec2f(3.3,41.9));
- return a*0.5+b*0.3+c*0.2;
+ let b=valueNoise(vec2f(0.6*p.x+0.8*p.y,-0.8*p.x+0.6*p.y)*GROUND_WANDER_OCTAVE_1+vec2f(19.1,7.7));
+ let c=valueNoise(vec2f(0.96*p.x-0.28*p.y,0.28*p.x+0.96*p.y)*GROUND_WANDER_OCTAVE_2+vec2f(3.3,41.9));
+ return a*GROUND_WANDER_WEIGHT_0+b*GROUND_WANDER_WEIGHT_1+c*GROUND_WANDER_WEIGHT_2;
 }
 
 // @block shared_math_cubeDirection

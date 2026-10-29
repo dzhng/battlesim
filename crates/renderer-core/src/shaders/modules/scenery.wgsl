@@ -71,27 +71,46 @@ struct felledVertex_Output {
 
 // @block scenery_forestFloorWeight_alternate
 fn forestFloorWeight(xy: vec2f, forest: f32, footprint: f32) -> f32 {
-  let feather = max(footprint, (params.forestVerge.x * 0.1f));
+  let feather = max(footprint, (params.forestVerge.x * GROUND_FOREST_VERGE_FEATHER));
   return smoothstep(-(feather), feather, forestVergeInside(xy, forest));
 }
 
 // @block scenery_forestFloor_alternate
+const GROUND_FOREST_FLOOR_MOSS_FROM = 0.38f;
+const GROUND_FOREST_FLOOR_MOSS_TO = 0.72f;
+const GROUND_FOREST_FLOOR_MOSS_BROAD_WEIGHT = 0.65f;
+const GROUND_FOREST_FLOOR_MOSS_FINE_SCALE = 2.1f;
+const GROUND_FOREST_FLOOR_MOSS_FINE_WEIGHT = 0.35f;
+const GROUND_FOREST_FLOOR_HUMUS_FROM = 0.42f;
+const GROUND_FOREST_FLOOR_HUMUS_TO = 0.78f;
+const GROUND_FOREST_FLOOR_HUMUS_BROAD_SCALE = 1.3f;
+const GROUND_FOREST_FLOOR_HUMUS_BROAD_WEIGHT = 0.6f;
+const GROUND_FOREST_FLOOR_HUMUS_FINE_SCALE = 3.1f;
+const GROUND_FOREST_FLOOR_HUMUS_FINE_WEIGHT = 0.4f;
+const GROUND_FOREST_FLOOR_ROOT_RUN_FROM = 0.55f;
+const GROUND_FOREST_FLOOR_ROOT_RUN_TO = 0.75f;
+const GROUND_FOREST_FLOOR_ROOT_RUN_SCALE = 1.7f;
+const GROUND_FOREST_FLOOR_ROOT_FADE_FROM = 0.02f;
+const GROUND_FOREST_FLOOR_ROOT_FADE_TO = 0.08f;
+const GROUND_FOREST_FLOOR_ROOT_LINE_FROM = 0.015f;
+const GROUND_FOREST_FLOOR_ROOT_LINE_TO = 0.035f;
+const GROUND_FOREST_FLOOR_ROOT_MEAN = 0.02f;
 fn forestFloor(xy: vec2f, footprint: f32, noise: f32) -> vec3f {
   let params_1 = (&params);
   let detail = (&(*params_1).forestDetail);
   let at = (xy * (*detail).x);
   let turned = vec2f(((at.x * 0.8f) - (at.y * 0.6f)), ((at.x * 0.6f) + (at.y * 0.8f)));
   let across = vec2f(((at.x * 0.28f) + (at.y * 0.96f)), ((at.y * 0.28f) - (at.x * 0.96f)));
-  let moss = smoothstep(0.38f, 0.72f, ((valueNoise((turned + vec2f(13.300000190734863, 7.699999809265137))) * 0.65f) + (valueNoise(((across * 2.1f) + vec2f(4.099999904632568, 9.199999809265137))) * 0.35f)));
-  let humus = smoothstep(0.42f, 0.78f, ((valueNoise(((across * 1.3f) + vec2f(2.9000000953674316, 41.099998474121094))) * 0.6f) + (valueNoise(((turned * 3.1f) + vec2f(17.299999237060547, 5.900000095367432))) * 0.4f)));
+  let moss = smoothstep(GROUND_FOREST_FLOOR_MOSS_FROM, GROUND_FOREST_FLOOR_MOSS_TO, ((valueNoise((turned + vec2f(13.300000190734863, 7.699999809265137))) * GROUND_FOREST_FLOOR_MOSS_BROAD_WEIGHT) + (valueNoise(((across * GROUND_FOREST_FLOOR_MOSS_FINE_SCALE) + vec2f(4.099999904632568, 9.199999809265137))) * GROUND_FOREST_FLOOR_MOSS_FINE_WEIGHT)));
+  let humus = smoothstep(GROUND_FOREST_FLOOR_HUMUS_FROM, GROUND_FOREST_FLOOR_HUMUS_TO, ((valueNoise(((across * GROUND_FOREST_FLOOR_HUMUS_BROAD_SCALE) + vec2f(2.9000000953674316, 41.099998474121094))) * GROUND_FOREST_FLOOR_HUMUS_BROAD_WEIGHT) + (valueNoise(((turned * GROUND_FOREST_FLOOR_HUMUS_FINE_SCALE) + vec2f(17.299999237060547, 5.900000095367432))) * GROUND_FOREST_FLOOR_HUMUS_FINE_WEIGHT)));
   var floor_1 = mix((*params_1).forestLitter.xyz, (*params_1).forestMoss.xyz, (moss * (*params_1).forestMoss.w));
   floor_1 = mix(floor_1, (*params_1).forestHumus.xyz, (humus * (*params_1).forestHumus.w));
   let rootsAt = (xy * (*params_1).forestVerge.w);
   let ridge = abs((valueNoise((rootsAt + vec2f(29.100000381469727, 3.299999952316284))) - 0.5f));
-  let runs = smoothstep(0.55f, 0.75f, valueNoise(((rootsAt * 1.7f) + vec2f(8.300000190734863, 17.899999618530273))));
-  let shown = (1f - smoothstep(0.02f, 0.08f, (footprint * (*params_1).forestVerge.w)));
-  let line = ((1f - smoothstep(0.015f, 0.035f, ridge)) * runs);
-  let root = ((line * shown) + (0.02f * (1f - shown)));
+  let runs = smoothstep(GROUND_FOREST_FLOOR_ROOT_RUN_FROM, GROUND_FOREST_FLOOR_ROOT_RUN_TO, valueNoise(((rootsAt * GROUND_FOREST_FLOOR_ROOT_RUN_SCALE) + vec2f(8.300000190734863, 17.899999618530273))));
+  let shown = (1f - smoothstep(GROUND_FOREST_FLOOR_ROOT_FADE_FROM, GROUND_FOREST_FLOOR_ROOT_FADE_TO, (footprint * (*params_1).forestVerge.w)));
+  let line = ((1f - smoothstep(GROUND_FOREST_FLOOR_ROOT_LINE_FROM, GROUND_FOREST_FLOOR_ROOT_LINE_TO, ridge)) * runs);
+  let root = ((line * shown) + (GROUND_FOREST_FLOOR_ROOT_MEAN * (1f - shown)));
   floor_1 = (floor_1 * (1f - ((*detail).w * root)));
   return (floor_1 * (1f + ((*detail).y * noise)));
 }
@@ -106,11 +125,13 @@ struct forestFragment_Input {
 }
 
 // @block scenery_forestVergeInside_alternate
+const GROUND_FOREST_VERGE_PATCH_SCALE = 0.7f;
+const GROUND_FOREST_VERGE_INSET = 0.5f;
 fn forestVergeInside(xy: vec2f, forest: f32) -> f32 {
   let verge = (&params.forestVerge);
   let wander = ((valueNoise(((xy * (*verge).z) + vec2f(71.30000305175781, 23.899999618530273))) - 0.5f) * 2f);
-  let patches = (valueNoise(((xy * 0.7f) + vec2f(5.099999904632568, 91.69999694824219))) - 0.5f);
-  return (((forest + ((*verge).x * 0.5f)) + (wander * (*verge).y)) + (patches * (*verge).x));
+  let patches = (valueNoise(((xy * GROUND_FOREST_VERGE_PATCH_SCALE) + vec2f(5.099999904632568, 91.69999694824219))) - 0.5f);
+  return (((forest + ((*verge).x * GROUND_FOREST_VERGE_INSET)) + (wander * (*verge).y)) + (patches * (*verge).x));
 }
 
 // @block scenery_groundClasses
@@ -133,6 +154,9 @@ fn groundClasses(xy: vec2f, footprint: f32, site: vec4f, water: f32) -> vec3f {
 }
 
 // @block scenery_groundColour_alternate
+const GROUND_COLOUR_VERGE_MOTTLE = 0.18f;
+const GROUND_COLOUR_VERGE_ROUGHNESS = 0.95f;
+const GROUND_COLOUR_DISTANT_FADE_M = 600f;
 fn groundColour(xy: vec2f, footprint: f32, site: vec4f, paved: GroundPaved, water: f32) -> vec4f {
   let params_1 = (&params);
   let aa = (footprint * 0.5f);
@@ -142,11 +166,11 @@ fn groundColour(xy: vec2f, footprint: f32, site: vec4f, paved: GroundPaved, wate
   var albedo = groundTint(((*plot).colour.xyz * fieldTexture(xy, footprint, i32(site.x))), ((*plot).detail.x * variation.y));
   var roughness = (*plot).colour.w;
   let verge = groundVerge(site, footprint);
-  let vergeColour = ((*params_1).verge.xyz * (1f + (0.18f * noise)));
+  let vergeColour = ((*params_1).verge.xyz * (1f + (GROUND_COLOUR_VERGE_MOTTLE * noise)));
   albedo = mix(albedo, vergeColour, verge);
-  roughness = mix(roughness, 0.95f, verge);
+  roughness = mix(roughness, GROUND_COLOUR_VERGE_ROUGHNESS, verge);
   let inRegion = rectInside(xy, (*params_1).region);
-  let distant = max((1f - smoothstep(0f, 600f, inRegion)), smoothstep((*params_1).feathers.y, (*params_1).feathers.z, footprint));
+  let distant = max((1f - smoothstep(0f, GROUND_COLOUR_DISTANT_FADE_M, inRegion)), smoothstep((*params_1).feathers.y, (*params_1).feathers.z, footprint));
   albedo = mix(albedo, (*params_1).distant.xyz, distant);
   let floor_1 = groundFloor(xy, footprint, site.w);
   if ((floor_1.x > 0f)) {
@@ -155,7 +179,7 @@ fn groundColour(xy: vec2f, footprint: f32, site: vec4f, paved: GroundPaved, wate
   }
   if ((floor_1.y > 0f)) {
     albedo = mix(albedo, vergeColour, floor_1.y);
-    roughness = mix(roughness, 0.95f, floor_1.y);
+    roughness = mix(roughness, GROUND_COLOUR_VERGE_ROUGHNESS, floor_1.y);
   }
   let shore = groundShore(xy, footprint, water);
   if ((shore.y > 0f)) {
@@ -174,6 +198,12 @@ fn groundColour(xy: vec2f, footprint: f32, site: vec4f, paved: GroundPaved, wate
 }
 
 // @block scenery_groundDapple
+const GROUND_DAPPLE_BROAD_WEIGHT = 0.65f;
+const GROUND_DAPPLE_OCTAVE = 2.7f;
+const GROUND_DAPPLE_FINE_WEIGHT = 0.35f;
+const GROUND_DAPPLE_EDGE = 0.06f;
+const GROUND_DAPPLE_FADE_FROM = 0.1f;
+const GROUND_DAPPLE_FADE_TO = 0.5f;
 fn groundDapple(xy: vec2f, footprint: f32, cell: vec4u) -> f32 {
   let params_2 = (&params_1);
   let forest = groundForest(xy, cell);
@@ -182,10 +212,10 @@ fn groundDapple(xy: vec2f, footprint: f32, cell: vec4u) -> f32 {
   }
   let dapple = (&(*params_2).forestDapple);
   let at = (xy * (*dapple).x);
-  let n = ((valueNoise(at) * 0.65f) + (valueNoise(((at * 2.7f) + vec2f(3.700000047683716, 8.100000381469727))) * 0.35f));
+  let n = ((valueNoise(at) * GROUND_DAPPLE_BROAD_WEIGHT) + (valueNoise(((at * GROUND_DAPPLE_OCTAVE) + vec2f(3.700000047683716, 8.100000381469727))) * GROUND_DAPPLE_FINE_WEIGHT));
   let cut = (1f - (*dapple).y);
-  let fleck = smoothstep((cut - 0.06f), (cut + 0.06f), n);
-  let shown = (1f - smoothstep(0.1f, 0.5f, (footprint * (*dapple).x)));
+  let fleck = smoothstep((cut - GROUND_DAPPLE_EDGE), (cut + GROUND_DAPPLE_EDGE), n);
+  let shown = (1f - smoothstep(GROUND_DAPPLE_FADE_FROM, GROUND_DAPPLE_FADE_TO, (footprint * (*dapple).x)));
   let flecks = mix((*dapple).y, fleck, shown);
   return ((flecks * (*dapple).z) * forestFloorWeight(xy, forest, footprint));
 }
@@ -197,7 +227,7 @@ fn groundFloor(xy: vec2f, footprint: f32, forest: f32) -> vec2f {
   if (((wood > 0f) || (forest > (-((*params_1).forestVerge.x) - (*params_1).forestVerge.y)))) {
     let band = groundLineBand(xy, groundCell(xy, footprint), forest);
     if ((band.x > 0.5f)) {
-      let feather = max(footprint, ((*params_1).forestVerge.x * 0.1f));
+      let feather = max(footprint, ((*params_1).forestVerge.x * GROUND_FOREST_VERGE_FEATHER));
       return vec2f(0f, smoothstep(-(feather), feather, band.y));
     }
   }

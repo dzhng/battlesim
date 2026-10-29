@@ -10,7 +10,7 @@ import { expect, test } from "vitest";
 import { type LightPresentation } from "@packages/battle-renderer/src/light/sceneLight.ts";
 import { loadPresentation, resolveLight, ScenePresentation } from "@web/battle/sim/presentation";
 import {
-  SUN_CASCADES,
+  SHADOW_CASCADES,
   CAMERA_WORDS,
   SUN_SHADOW_WORDS,
   CameraAt,
@@ -78,7 +78,7 @@ test("a frame's cascades are the structs the renderer binds: a receiver block an
     const frame = presentation.frame(0, camera, ui, 0);
     expect(frame.sun_shadow.f32.byteLength).toBe(SUN_SHADOW_WORDS * 4);
     const active = frame.casters.count;
-    expect(active).toBe(SUN_CASCADES);
+    expect(active).toBe(SHADOW_CASCADES);
     const casters = frame.casters.f32;
     const receiver = frame.sun_shadow.f32;
     const size = CAMERA_WORDS;

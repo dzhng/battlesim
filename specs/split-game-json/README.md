@@ -1,6 +1,6 @@
 # One owner per game setting
 
-**Status:** in progress: 01–05 and 07 done; 09 running. **Updated:** 2026-10-29.
+**Status:** in progress: 01–07 done; 09 running. **Updated:** 2026-10-29.
 
 [`fixtures/rules.json`](../../fixtures/rules.json) owns battle rules,
 [`fixtures/presentation.json`](../../fixtures/presentation.json) owns visual settings,
@@ -21,10 +21,10 @@ You are implementing this plan on PR #16 (dzhng/battlesim, branch
 slice you are on. Use
 [`implement-spec`](../../.agents/skills/implement-spec/SKILL.md).
 
-**Pick up at [06](slices/06-shader-constants.md)** (shader lane) and
-[08](slices/08-looks.md) (looks lane); [09](slices/09-rules-cleanups.md) is
-running and owns the next stored-record rewrite, so 08's record rewrite lands
-after it. Open review follow-ups are listed at the end of
+**Pick up at [08](slices/08-looks.md)** (looks lane);
+[09](slices/09-rules-cleanups.md) is running and owns the next stored-record
+rewrite, so 08's record rewrite lands after it. The shader lane through
+[06](slices/06-shader-constants.md) is complete. Open review follow-ups are listed at the end of
 [04](slices/04-split-files.md) and [07](slices/07-admission.md). Keep the
 independent lanes on separate checkouts. 01's
 "before" dumps are in `/Users/server/dev/battlesim/throwaway/split-game-json/before/`
@@ -52,7 +52,7 @@ Warnings:
 - [x] [03 Spike: sound sources](slices/03-sound-sources.md)
 - [x] [04 Three files, same shape](slices/04-split-files.md)
 - [x] [05 Typed presentation readers](slices/05-typed-readers.md)
-- [ ] [06 One table of shader constants](slices/06-shader-constants.md)
+- [x] [06 One table of shader constants](slices/06-shader-constants.md)
 - [x] [07 One admission owner](slices/07-admission.md)
 - [ ] [08 Looks that reproduce today](slices/08-looks.md) (moves `rules_hash`)
 - [ ] [09 Rules cleanups](slices/09-rules-cleanups.md) (moves `rules_hash`, `config_hash`)

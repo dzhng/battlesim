@@ -50,3 +50,42 @@ moves.
 
 **Would change this slice:** a substitute-back diff that isn't empty, or a
 moved plate. Find the literal; never re-bless.
+
+
+## Done — 2026-10-29
+
+One typed `shader_constants` table exports the concept owners to the WGSL
+prelude and generated TypeScript. Shared ground numbers and fixed fog geometry
+are no longer fixture fields. GPU-only tuning has local WGSL names, retaining
+the original literal spelling and inferred type.
+
+Proof: `after-06/` matches all eight applicable non-shader slice-01 dumps and
+all six native PNG plates byte for byte. Its substitute-back tool reports zero
+differences across all 69 composed shaders, restoring only the two declared
+retired fog fields for source comparison. No battle hash, digest, replay,
+pose, effect or sound command moved. All 1,970 fog vector changes are uniform
+hashes: the guarded migration reconstructs every old uniform hash and refuses
+any other upload, dispatch or statistics change. Evidence and the one-shot
+migration are in `/Users/server/dev/battlesim/throwaway/split-game-json/after-06/`.
+
+Decisions: the table uses `Scalar::F32(f64)` to preserve each CPU owner's
+precision until WGSL admission, rather than narrowing the Rust owner. GPU-only
+constants retain abstract types where the original literal was abstract,
+rather than adding f32 rounding. Fog's existing horizon-sector header stays
+intact, rather than changing an unrelated upload ABI. The fog uniform retains
+its required vec4 alignment through explicit padding; its two retired fields
+are absent, rather than compatibility slots.
+
+The integer prelude compiled and the full browser `fog` scene passed under the
+GPU lock. `pipeline_abi`, native `pipelines`, presentation's library tests and
+focused settings/fog/ground/grass/light/shadow suites, five web suites,
+records regeneration followed by an unflagged check, typecheck, lint, workspace
+clippy and the size ratchet passed. Admission and partial-tile regressions were
+falsified and restored green. Full-spec checks remain at 16. Review covered
+ownership, the diff and its docs; this implementation child did not delegate
+independent visual review. Native plate bytes establish visual invariance.
+
+The browser gate exposed an existing fog-scene side-switch race. Commit
+`f71398f83` fixes that harness separately: complete pending mask draws, publish
+the paused authority's new side, then await its presented frame. The original
+scene failed before the fix; the full scene now passes. No check was weakened.

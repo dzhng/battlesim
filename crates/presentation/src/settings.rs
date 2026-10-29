@@ -8,10 +8,7 @@ use crate::{
     effects::{tables::EffectPresentation, transit::TransitFeel},
     fog::{sight::Geometry, FogPresentation},
     light::LightSettings,
-    static_world::ground::{
-        tuning::{GrassTuning, TerrainTuning},
-        Tuning,
-    },
+    static_world::ground::{tuning::TerrainTuning, Tuning},
     units::feel::PoseFeel,
     world::{BuildingStyle, Detail},
 };
@@ -47,7 +44,6 @@ pub struct StandIns {
 #[serde(deny_unknown_fields)]
 pub struct PresentationSettings {
     pub terrain: TerrainTuning,
-    pub grass: GrassTuning,
     pub ground: Ground,
     pub camera: Camera,
     pub light: LightSettings,
@@ -80,7 +76,6 @@ impl PresentationSettings {
     pub fn tuning(&self) -> Tuning {
         Tuning {
             terrain: self.terrain.clone(),
-            grass: self.grass.clone(),
             fog_geometry: self.fog_geometry.clone(),
         }
     }

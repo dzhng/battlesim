@@ -1,4 +1,4 @@
-//! Live ground settings: CPU table inputs and water/shore uniforms.
+//! Authored ground settings: distant-plot sampling and water/shore uniforms.
 //! Shader-only tuning lives in WGSL; this reader refuses unused keys.
 use serde::Deserialize;
 
@@ -7,10 +7,6 @@ use serde::Deserialize;
 #[serde(deny_unknown_fields)]
 pub struct TerrainTuning {
     pub distant: Distant,
-    pub forest_verge: ForestVerge,
-    pub bank: Bank,
-    pub marks: Marks,
-    pub scars: Scars,
     pub water: WaterTuning,
     pub shore: ShoreTuning,
 }
@@ -94,39 +90,6 @@ pub struct ShoreTuning {
 
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct Scars {
-    pub depth_cap: f64,
-}
-
-#[derive(Clone, Debug, Deserialize, serde::Serialize)]
-#[serde(deny_unknown_fields)]
 pub struct Distant {
     pub plot_pixels: [f64; 2],
-}
-
-#[derive(Clone, Debug, Deserialize, serde::Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct ForestVerge {
-    pub feather: f64,
-}
-
-#[derive(Clone, Debug, Deserialize, serde::Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Bank {
-    pub ease_m: f64,
-}
-
-#[derive(Clone, Debug, Deserialize, serde::Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Marks {
-    pub clear_m: f64,
-}
-
-/// What the tables read of `presentation.grass`: grass thins and lowers
-/// over `edge_m` past a road's or a wood's margin, which the ground's
-/// surface field reads out to.
-#[derive(Clone, Debug, Deserialize, serde::Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct GrassTuning {
-    pub edge_m: f64,
 }

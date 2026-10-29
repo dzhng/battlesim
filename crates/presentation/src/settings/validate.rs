@@ -53,7 +53,7 @@ pub(crate) fn numbers(value: &impl Serialize, path: &str, signed: &[&str]) -> Re
 }
 
 pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
-    ground(&s.terrain, &s.grass)?;
+    ground(&s.terrain)?;
     numbers(&s.camera, "presentation.camera", &[".yaw"])?;
     numbers(&s.overlay, "presentation.overlay", &[])?;
     numbers(&s.hud, "presentation.hud", &[])?;
@@ -234,14 +234,9 @@ pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
 
 pub(crate) fn ground(
     terrain: &crate::static_world::ground::tuning::TerrainTuning,
-    grass: &crate::static_world::ground::tuning::GrassTuning,
 ) -> Result<(), String> {
     numbers(terrain, "presentation.terrain", &[])?;
-    numbers(grass, "presentation.grass", &[])?;
     let positive = |p: &str, v| range(&format!("presentation.{p}"), v, f64::MIN_POSITIVE, f64::MAX);
-    positive("grass.edge_m", grass.edge_m)?;
-    positive("terrain.bank.ease_m", terrain.bank.ease_m)?;
-    positive("terrain.scars.depth_cap", terrain.scars.depth_cap)?;
     positive("terrain.water.shore_fade_m", terrain.water.shore_fade_m)?;
     positive(
         "terrain.water.caustics.tile_m",

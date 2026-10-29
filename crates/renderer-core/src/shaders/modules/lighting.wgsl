@@ -29,7 +29,7 @@ struct CastLight {
 // @block lighting_CastLights
 struct CastLights {
   header: vec4f,
-  lights: array<CastLight, 24>,
+  lights: array<CastLight, LIGHT_CAST_LIGHTS_MAX>,
 }
 
 // @block lighting_Environment

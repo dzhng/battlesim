@@ -101,7 +101,6 @@ export function setGround(presentation: Presentation, input: GroundInput): void 
     family ?? undefined,
     JSON.stringify({
       terrain: presentationSettings.terrain,
-      grass: presentationSettings.grass,
       fog_geometry: presentationSettings.fog_geometry,
     }),
   );

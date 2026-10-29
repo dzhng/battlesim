@@ -117,7 +117,7 @@ fn fogSeenBy(ei: u32, p: vec3f, n: vec3f) -> bool {
   let range = e.range * fogShape(e.front, e.side, e.rear, theta - e.forward);
   if (dist > range) { return false; }
   let AZ = P.azimuthBins;
-  let R = P.radialBins;
+  let R = FOG_RADIAL_BINS;
   let lnr = log(e.reach / P.firstBinM);
   let k = min(u32(ceil(log(dist / P.firstBinM) / lnr * f32(R - 1u))), R - 1u);
   let lo = fogBinEdge(i32(k) - 1, P.firstBinM, lnr, R);
@@ -190,6 +190,11 @@ fn fogShape(front: f32, side: f32, rear: f32, off: f32) -> f32 {
 }
 
 // @block fog_masks_grassVertexOf
+const GRASS_BLADE_GUST_FROM = 0.2;
+const GRASS_BLADE_FLUTTER_PHASE = 0.35;
+const GRASS_BLADE_FLUTTER_ACROSS = 0.5;
+const GRASS_BLADE_LAID_LEAN = 1.1;
+const GRASS_BLADE_LAID_SINK = 0.6;
 fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
   let P = &params;
   let tier = tier;
@@ -216,8 +221,8 @@ fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
   let dir = wind.toward.xy;
   let along = dot(c.root.xy, dir);
   let front = sin(6.2831853 * (along - t * wind.gustMps) * wind.gustPerM);
-  let gust = smoothstep(0.2, 1.0, front);
-  let flutter = (*P).sway.z * sin((*P).sway.w * t + s.side.w * 6.2831853 + along * 0.35);
+  let gust = smoothstep(GRASS_BLADE_GUST_FROM, 1.0, front);
+  let flutter = (*P).sway.z * sin((*P).sway.w * t + s.side.w * 6.2831853 + along * GRASS_BLADE_FLUTTER_PHASE);
   let bend = s.spine.w * s.spine.w;
   let packed = unpack4x8unorm(c.colour);
   // Laid over by tracks or trampling: the clump sinks and its blades lean
@@ -226,9 +231,9 @@ fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
   let flat = 1.0 - packed.w;
   let answer = s.tint.w * (1.0 - flat);
   let lean = ((*P).sway.x + (*P).sway.y * gust + flutter) * answer;
-  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * 0.5 * answer;
-  let laid = vec2f(cs, sn) * flat * 1.1;
-  var world = c.root + vec3f(spine.xy, spine.z * (1.0 - flat * 0.6)) + side + vec3f((push + laid) * c.height * bend, 0.0);
+  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * GRASS_BLADE_FLUTTER_ACROSS * answer;
+  let laid = vec2f(cs, sn) * flat * GRASS_BLADE_LAID_LEAN;
+  var world = c.root + vec3f(spine.xy, spine.z * (1.0 - flat * GRASS_BLADE_LAID_SINK)) + side + vec3f((push + laid) * c.height * bend, 0.0);
   world.z -= 0.5 * dot(push, push) * c.height * bend;
   let n = s.normal.xyz;
   let colour = packed.xyz;

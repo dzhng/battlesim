@@ -18,14 +18,36 @@ export const FOG_GROUND = 2;
 export const FOG_PAINTED_FACES = 3;
 /** The widest fog rim or soft edge a style may ask for, device pixels (`fog.rs`). */
 export const FOG_EDGE_REACH_PX = 8;
-/** Fog's foliage depth steps, the `wholes` texture's row and a structure box's words (`fog/sight.rs`). */
-export const FOLIAGE_STEP = 0.005;
-export const WHOLE_TEXTURE_WIDTH = 256;
+/** Shared CPU/GPU constants (`shader_constants.rs`). */
+export const SWAY_BEND = 0.18;
+export const SWAY_LEAN = 0.15;
+export const SWAY_GUST = 0.7;
+export const SWAY_SWING = 0.35;
+export const SWAY_RATE = 1.6;
+export const SWAY_FULL_GUST_MPS = 6.0;
+export const SWAY_SHIVER_M = 0.15;
+export const SWAY_SHIVER_RATE = 7.0;
+export const SWAY_HEART = 0.62;
+export const WAVE_TEXELS = 1024.0;
+export const WAVE_SPEED = 0.2;
+export const WAVE_DAMPING = 0.08;
+export const WAVE_NORMAL = 0.15;
+export const GROUND_GRASS_EDGE_M = 1.2;
+export const GROUND_FOREST_VERGE_FEATHER = 0.1;
+export const GROUND_BANK_EASE_M = 0.75;
+export const GROUND_MARKS_CLEAR_M = 0.3;
+export const GROUND_SCAR_DEPTH_CAP = 1.6;
+export const FOG_TILE_PX = 16;
+export const FOG_RADIAL_BINS = 64;
+export const SHADOW_CASCADES = 4;
+export const LIGHT_CAST_LIGHTS_MAX = 24;
+export const FOG_FOLIAGE_QUANTA = 255;
+export const FOG_WHOLE_TEXTURE_WIDTH = 256;
+export const FOG_HORIZON_SECTORS = 64;
+export const FOG_BUILD_WORKGROUP = 64;
+export const FOG_FOLIAGE_STEP = 0.005;
+/** Words per whole-fog structure box (`fog/sight.rs`). */
 export const WHOLE_BOX_WORDS = 8;
-/** The sun's cascade slots `SunShadow` holds (`shadow.rs`). */
-export const SUN_CASCADES = 4;
-/** The cast lights a frame's uniform holds (`effects/lights.rs`). */
-export const CAST_LIGHTS_MAX = 24;
 /** Each effect kind (`Counts.running`'s order) and instance shape
  *  (`Effect.misc.x`), as a capture's effect counts name them (`effects/frame.rs`). */
 export const EFFECT_KINDS = [
@@ -402,24 +424,22 @@ export const FogParamsAt = {
   translucent_lift_m: 19,
   azimuth_bins: 20,
   terrain_azimuth_bins: 21,
-  radial_bins: 22,
-  tile_px: 23,
-  tiles_x: 24,
-  tile_eyes_max: 25,
-  eye_count: 26,
-  foliage_nx: 27,
-  foliage_ny: 28,
-  height_nx: 29,
-  height_ny: 30,
-  rebuild_count: 31,
-  enabled: 32,
-  probe_count: 33,
-  first_bin_m: 34,
-  target_height_m: 35,
-  foliage_cell_m: 36,
-  foliage_full_block: 37,
-  min_sight_gap_m: 38,
-  pad0: 39,
+  tiles_x: 22,
+  tile_eyes_max: 23,
+  eye_count: 24,
+  foliage_nx: 25,
+  foliage_ny: 26,
+  height_nx: 27,
+  height_ny: 28,
+  rebuild_count: 29,
+  enabled: 30,
+  probe_count: 31,
+  first_bin_m: 32,
+  target_height_m: 33,
+  foliage_cell_m: 34,
+  foliage_full_block: 35,
+  min_sight_gap_m: 36,
+  pad0: 37,
   playable: 40,
   height_spacing: 44,
   face_probe_m: 45,

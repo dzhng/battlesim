@@ -36,8 +36,6 @@ struct FogParams {
   translucentLiftM: f32,
   azimuthBins: u32,
   terrainAzimuthBins: u32,
-  radialBins: u32,
-  tilePx: u32,
   tilesX: u32,
   tileEyesMax: u32,
   eyeCount: u32,
@@ -214,7 +212,7 @@ fn fogLook(lit: vec3f, pixel: vec2f, s: FogLook) -> vec3f {
 // @block fog_sight_fogPack
 fn fogPack(horizon: f32, jump: f32, foliage: f32) -> u32 {
   let h = pack2x16float(vec2f(clamp(horizon, -6e4, 6e4), 0.0)) & 0xffffu;
-  return h | (u32(round(clamp(jump, 0.0, 1.0) * 255.0)) << 16u) | (min(u32(round(foliage / 0.005)), 255u) << 24u);
+  return h | (u32(round(clamp(jump, 0.0, 1.0) * 255.0)) << 16u) | (min(u32(round(foliage / FOG_FOLIAGE_STEP)), FOG_FOLIAGE_QUANTA) << 24u);
 }
 
 // @block fog_sight_fogProbePoint_alternate
@@ -240,7 +238,7 @@ fn fogTerm(world: vec3f, normal: vec3f, pixel: vec2f, isGround: bool) -> f32 {
   let P = params_1;
   if (P.enabled == 0u || layer.seen == 1u) { return 1.0; }
   if (fogWholeSeen(world)) { return 1.0; }
-  let tile = u32(pixel.x) / P.tilePx + (u32(pixel.y) / P.tilePx) * P.tilesX;
+  let tile = u32(pixel.x) / FOG_TILE_PX + (u32(pixel.y) / FOG_TILE_PX) * P.tilesX;
   let count = min(counts[tile], P.tileEyesMax);
   for (var s = 0u; s < count; s++) {
     if (fogSeenSurface(lists[tile * P.tileEyesMax + s], world, normal, isGround)) {
@@ -252,12 +250,12 @@ fn fogTerm(world: vec3f, normal: vec3f, pixel: vec2f, isGround: bool) -> f32 {
 
 // @block fog_sight_fogUnpack
 fn fogUnpack(w: u32) -> vec3f {
-  return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * 0.005);
+  return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * FOG_FOLIAGE_STEP);
 }
 
 // @block fog_sight_fogUnpackBuild
 fn fogUnpackBuild(w: u32) -> vec3f {
-  return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * 0.005);
+  return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * FOG_FOLIAGE_STEP);
 }
 
 // @block fog_sight_fogWholeSeen_alternate
@@ -290,7 +288,7 @@ fn fogWholeSeen(p: vec3f) -> bool {
 
 // @block fog_sight_fogWholeWord
 fn fogWholeWord(i: u32) -> u32 {
-  return textureLoad(wholes, vec2u(i % 256u, i / 256u), 0).x;
+  return textureLoad(wholes, vec2u(i % FOG_WHOLE_TEXTURE_WIDTH, i / FOG_WHOLE_TEXTURE_WIDTH), 0).x;
 }
 
 // @block fog_sight_forestFragment_Output
@@ -306,25 +304,27 @@ struct fragment_Output {
 }
 
 // @block fog_sight_grassDensity
+const GRASS_DENSITY_LEAST_FACING = 0.15;
 fn grassDensity(dist: f32, drop: f32) -> f32 {
   let P = &params;
-  let facing = clamp(drop / dist, 0.15, 1.0);
+  let facing = clamp(drop / dist, GRASS_DENSITY_LEAST_FACING, 1.0);
   let footprint = (*P).eye.w * dist;
   return min((*P).density.y, facing / ((*P).density.x * footprint * footprint));
 }
 
 // @block fog_sight_groundScarsSeen
+const GROUND_SCARS_SEEN_GRAZING = 0.25;
 fn groundScarsSeen(world: vec3f, eye: vec3f, footprint: f32) -> ScarSample {
   // One call in the loop, as a shader compiler inlines each call.
   let view = normalize(eye - world);
-  let run = -view.xy / max(view.z, 0.25);
+  let run = -view.xy / max(view.z, GROUND_SCARS_SEEN_GRAZING);
   let deep = scarParams.relief.x;
   var scar: ScarSample;
   var at = world.xy;
   for (var i = 0; i < 3; i++) {
     scar = groundScars(at, footprint);
     if (i == 0 && scar.relief.w <= 0.0) { break; }
-    at = world.xy + run * min(scar.relief.w, 1.6) * deep * 0.5;
+    at = world.xy + run * min(scar.relief.w, GROUND_SCAR_DEPTH_CAP) * deep * 0.5;
   }
   return scar;
 }

@@ -412,26 +412,13 @@ include!(concat!(env!("OUT_DIR"), "/pipeline_export.rs"));
 /// presentation's look numbers they read by name, so a shader and the
 /// presentation code that bounds or clocks the same motion cannot disagree.
 pub fn builtin_source(name: &str) -> Option<String> {
-    use presentation::static_world::ground::{sway::SWAY, walk::HEART};
-    use presentation::wave::WAVE;
-    let constants = [
-        ("SWAY_BEND", SWAY.bend),
-        ("SWAY_LEAN", SWAY.lean),
-        ("SWAY_GUST", SWAY.gust),
-        ("SWAY_SWING", SWAY.swing),
-        ("SWAY_RATE", SWAY.rate),
-        ("SWAY_FULL_GUST_MPS", SWAY.full_gust_mps),
-        ("SWAY_SHIVER_M", SWAY.shiver_m),
-        ("SWAY_SHIVER_RATE", SWAY.shiver_rate),
-        ("SWAY_HEART", HEART),
-        ("WAVE_TEXELS", f64::from(WAVE.texels)),
-        ("WAVE_SPEED", WAVE.speed),
-        ("WAVE_DAMPING", WAVE.damping),
-        ("WAVE_NORMAL", WAVE.normal),
-    ];
-    let mut source: String = constants
+    use presentation::shader_constants::{Scalar, CONSTANTS};
+    let mut source: String = CONSTANTS
         .iter()
-        .map(|(name, value)| format!("const {name}: f32 = {value:?};\n"))
+        .map(|(name, value)| match value {
+            Scalar::F32(value) => format!("const {name}: f32 = {value:?};\n"),
+            Scalar::U32(value) => format!("const {name}: u32 = {value}u;\n"),
+        })
         .collect();
     source.push_str(assembled_source(name)?);
     Some(source)
