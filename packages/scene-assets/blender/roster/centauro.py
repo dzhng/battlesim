@@ -62,7 +62,7 @@ def hull(v):
         for k, x in enumerate(WHEEL_X):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, dark, h,
                           rim_radius=0.34, hub_bolts=10, ctis=True)
-            box(f"suspension_arm_{s}_{k}", (0.26, 0.38, 0.12), (x, side * (WHEEL_Y - 0.36), WHEEL_R), m["dark"], h,
+            box(f"suspension_arm_{s}_{k}", (0.26, 0.44, 0.12), (x, side * (WHEEL_Y - 0.30), WHEEL_R), m["dark"], h,
                 lods=NEAR)
         VP.mudflap(f"mudflap_{s}", (-half + 0.35, side * WHEEL_Y, SKIRT - 0.02), (0.40, 0.55), m, h)
         # Lights and tow points; jerrycans hung on the rear plate, the deck

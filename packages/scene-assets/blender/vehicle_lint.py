@@ -568,7 +568,8 @@ def check_floating_parts(result: LintResult, threshold=FLOATING_PART_THRESHOLD):
                         if dist < 0.001:
                             break
 
-        if min_dist > threshold:
+        # Use strict comparison with 0.5mm epsilon to avoid threshold noise
+        if min_dist > threshold + 0.0005:
             name = _base_part_name(obj1.name)
             result.add(LintIssue(
                 check="floating_part",

@@ -60,7 +60,7 @@ def build(variant, v):
         for k, x in enumerate(WHEEL_X):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.33, ctis=True, hub_bolts=10)
-            box(f"suspension_arm_{s}_{k}", (0.20, 0.36, 0.12), (x, side * (WHEEL_Y - 0.34), WHEEL_R), m["dark"],
+            box(f"suspension_arm_{s}_{k}", (0.20, 0.44, 0.12), (x, side * (WHEEL_Y - 0.28), WHEEL_R), m["dark"],
                 hull, lods=NEAR)
             cyl(f"strut_{s}_{k}", 0.07, 0.55, (x + 0.30, side * 1.05, WHEEL_R + 0.35), "Z", m["dark"], hull, seg=10,
                 lods=FINE)
