@@ -3118,8 +3118,8 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.09,
-      "message": "Part 'seat_back_-1' is 9.0cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.03,
+      "message": "Part 'seat_back_-1' is 3.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "seat_back_-1"
       ],
@@ -3127,28 +3127,10 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.09,
-      "message": "Part 'seat_back_1' is 9.0cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.03,
+      "message": "Part 'seat_back_1' is 3.0cm from nearest part (threshold: 2cm)",
       "parts": [
         "seat_back_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.28,
-      "message": "Part 'step_L' is 28.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "step_L"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.25,
-      "message": "Part 'step_R' is 25.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "step_R"
       ],
       "severity": "error"
     }
@@ -7227,24 +7209,6 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.28,
-      "message": "Part 'seat_back_-1' is 28.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_-1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.28,
-      "message": "Part 'seat_back_1' is 28.0cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "seat_back_1"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
       "distance_m": 0.03,
       "message": "Part 'spare_carrier' is 3.0cm from nearest part (threshold: 2cm)",
       "parts": [
@@ -7263,10 +7227,19 @@
     },
     {
       "check": "floating_part",
-      "distance_m": 0.03,
-      "message": "Part 'step_L_0' is 3.0cm from nearest part (threshold: 2cm)",
+      "distance_m": 0.1246,
+      "message": "Part 'step_bracket_h_L' is 12.5cm from nearest part (threshold: 2cm)",
       "parts": [
-        "step_L_0"
+        "step_bracket_h_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.1246,
+      "message": "Part 'step_bracket_h_R' is 12.5cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "step_bracket_h_R"
       ],
       "severity": "error"
     },
