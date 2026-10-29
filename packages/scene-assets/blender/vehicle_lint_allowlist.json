@@ -84,6 +84,26 @@
     {
       "part_pattern": "*_door_glass*",
       "reason": "Door glass panels recessed in frames by design"
+    },
+    {
+      "part_pattern": "*_ammo",
+      "reason": "Ammo boxes on weapon stations need clearance for reloading access"
+    },
+    {
+      "part_pattern": "coax_barrel",
+      "reason": "Coaxial MG barrel requires traverse clearance parallel to main gun"
+    },
+    {
+      "part_pattern": "muzzle_reference",
+      "reason": "Muzzle reference sensor: thin structural geometry on barrel tip"
+    },
+    {
+      "part_pattern": "wheel_*_sprocket_hub",
+      "reason": "Sprocket hub: center touches wheel body, tips protrude 2.5cm for track guide"
+    },
+    {
+      "part_pattern": "wheel_*_idler_hub",
+      "reason": "Idler hub: center touches wheel body, tips protrude 2.5cm for track guide"
     }
   ]
 }

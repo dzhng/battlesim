@@ -89,9 +89,13 @@ def cab(v):
         for k, z in enumerate((0.55, 0.85)):
             box(f"step_{s}_{k}", (0.30, 0.22, 0.04), (2.78, side * (width / 2 - 0.08), z + 0.20), m["steel"], hull,
                 lods=MID)
-        # Step bracket: vertical from step to under cab, horizontal to engine block
-        box(f"step_bracket_v_{s}", (0.06, 0.06, 0.56), (2.78, side * (width / 2 - 0.10), 1.03), m["dark"], hull, lods=MID)
-        box(f"step_bracket_h_{s}", (0.06, 0.52, 0.06), (2.78, side * 0.35, CAB_FLOOR - 0.03), m["dark"], hull, lods=MID)
+        # Step bracket: vertical from step to under cab, horizontal connecting vertical to engine block
+        vert_y = side * (width / 2 - 0.10)
+        box(f"step_bracket_v_{s}", (0.06, 0.06, 0.56), (2.78, vert_y, 1.03), m["dark"], hull, lods=MID)
+        inner_y = side * 0.35
+        horiz_span = abs(vert_y - inner_y) + 0.06
+        horiz_center = (vert_y + inner_y) / 2
+        box(f"step_bracket_h_{s}", (0.06, horiz_span, 0.06), (2.78, horiz_center, CAB_FLOOR - 0.03), m["dark"], hull, lods=MID)
         mirror = empty(f"dressing_mirror_{s}", parent=hull)
         box(f"mirror_frame_{s}", (0.04, 0.04, 0.60), (4.45, side * 1.32, 2.30), m["black"], mirror, lods=NEAR)
         box(f"mirror_{s}", (0.05, 0.18, 0.40), (4.45, side * 1.34, 2.35), m["black"], mirror, bevel=0.01, lods=MID)
