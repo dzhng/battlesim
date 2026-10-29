@@ -89,11 +89,9 @@ pub struct WeaponBallistics {
     /// The speed its motor holds once reached; given with `accel_mps2`.
     #[serde(default)]
     pub top_speed_mps: Option<f64>,
-    /// The share of the world's gravity an unguided round falls under
-    /// (default 1). Hollywood realism: a gun round flies at a speed chosen
-    /// for the screen, not the real round's, and falls under
-    /// (speed / real speed)², so it flies the real round's line (the same
-    /// drop over the same distance) in its own time.
+    /// The share of world gravity an unguided round falls under (default 1).
+    /// An authored arc for the screen: nearly flat for a sabot, a lob for a
+    /// grenade, independent of the round's real muzzle speed.
     #[serde(default = "full_gravity")]
     pub gravity_scale: f64,
     /// Path distance within which a passing round reports a near miss.

@@ -15,8 +15,7 @@ use serde::Deserialize;
 use crate::seed::Mulberry32;
 use crate::world::Vec3;
 
-/// Gravity, m/s²: the thrown turret falls under it, and every spark.
-pub const GRAVITY: f64 = 9.81;
+use crate::GRAVITY;
 
 /// `presentation.effects.cook_off`.
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]

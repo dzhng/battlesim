@@ -35,7 +35,6 @@ use std::sync::Arc;
 
 use super::batch::{v4, DUST, DUST_FRAMES, FIRE, FIRE_FRAMES, ROTOR};
 pub use super::batch::{EffectBatch, EFFECT_FLOATS, SHAPE_NAMES};
-use super::cook_off::GRAVITY;
 use super::high_air_shadow::GroundShadow;
 use super::launches::{Launch, LaunchTracker};
 use super::publication::{CookOff, EffectPublication, Segment, Shooter};
@@ -49,6 +48,7 @@ use crate::seed::{Key, Mulberry32, GOLDEN};
 use crate::wave::WaveClock;
 use crate::wind::WindSettings;
 use crate::world::Vec3;
+use crate::GRAVITY;
 
 mod draw;
 mod pool;

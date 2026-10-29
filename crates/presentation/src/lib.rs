@@ -28,3 +28,6 @@ pub mod wind;
 pub mod world;
 
 pub(crate) mod appearance;
+
+/// Gravity for debris arcs and vehicle attitude in presentation.
+pub(crate) const GRAVITY: f64 = 9.81;

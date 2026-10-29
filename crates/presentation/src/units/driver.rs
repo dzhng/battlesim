@@ -27,8 +27,7 @@ mod stance;
 pub use stance::StanceFeel;
 use stance::{fall_of, lies_after, stance_manner, Posture, Stance};
 
-/// The cook-offs' gravity: what an aircraft's lift tilts against.
-const GRAVITY: f64 = 9.81;
+use crate::GRAVITY;
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedSoldier {
