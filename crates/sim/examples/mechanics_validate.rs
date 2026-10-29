@@ -65,10 +65,10 @@ mod tests {
     #[test]
     fn rejects_each_layer_tighter_than_the_games_accuracy_ceiling() {
         let documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
-        for (layer, named, class) in [
-            ("ground", "Ground", "infantry"),
-            ("low_air", "LowAir", "air_rotor"),
-            ("high_air", "HighAir", "air_fixed_wing"),
+        for (layer, class) in [
+            ("ground", "infantry"),
+            ("low_air", "air_rotor"),
+            ("high_air", "air_fixed_wing"),
         ] {
             let mut game = game();
             game["physics"]["min_spread_at_max_range_m"] = json!(2);
@@ -82,8 +82,9 @@ mod tests {
             let error = sim::fixtures::admit(game, documents.clone())
                 .expect_err("spread below the ceiling must fail");
             assert!(
-                error.contains(&format!("weapons.ceiling_test.{named}"))
-                    && error.contains("Landing spread must be at least 2 m")
+                error.contains(&format!(
+                    "weapons.ceiling_test.targets.{layer}.scatter_mrad"
+                )) && error.contains("Landing spread must be at least 2 m")
                     && error.contains("entered 1.5 m"),
                 "{error}"
             );
