@@ -104,4 +104,3 @@
 @vertex fn vertex(_arg_0: VertexIn) -> VertexOut {
   return VertexOut(vec4f(_arg_0.position, 1f), _arg_0.uv, _arg_0.face);
 }
-

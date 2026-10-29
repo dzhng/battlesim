@@ -62,13 +62,6 @@ export type FogSource = Pick<
   "prepare_fog" | "resend_fog" | "rebuild_fog" | "fog_stats" | "fog_occluders" | "pages"
 >;
 
-/** The pipelines' text constants (`presentation.fog_geometry`): the cull's
- *  screen tile and the merge's radial bins. */
-export interface FogShaders {
-  tile_px: number;
-  radial_bins: number;
-}
-
 /** A structure that takes fog whole, as the lab reads it back. */
 export interface FogOccluder {
   x: number;

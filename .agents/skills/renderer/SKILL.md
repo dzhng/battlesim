@@ -25,8 +25,8 @@ these rules before writing it.
 - **Shared contracts change together.** Depth and lighting are engine-wide:
   every pass reads the same convention and every material the same shading
   path. A per-pass exception is a future visual bug.
-- **No GPU resource without a lifetime owner.** Everything is allocated
-  through the registry, rebuilds swap in whole, and repeated
+- **No GPU resource without a lifetime owner.** Scene and resource owners
+  retain their allocations, rebuilds swap in whole, and repeated
   resize/rebuild/reset returns to baseline.
 - **Pixels prove correctness, not counters.** An optimization is accepted
   only with an interleaved A/B on the real GPU and an image that shows the

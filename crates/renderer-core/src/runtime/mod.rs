@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use presentation::light::LightSettings;
 use presentation::presentation::Presentation;
-use presentation::records::{Camera, FogLook, View};
+use presentation::records::{FogLook, View};
 use presentation::shadow::SunShadowFrame;
 use wgpu::*;
 
@@ -34,7 +34,7 @@ use crate::shadow::ShadowResources;
 use crate::sky::Sky;
 use crate::terrain::TerrainUpload;
 use crate::xray::XrayResources;
-use crate::TargetOwner;
+use crate::Targets;
 
 static NEXT_GENERATION: AtomicU32 = AtomicU32::new(1);
 
@@ -70,7 +70,7 @@ pub struct PlayerGeometry<'a> {
 pub struct Runtime {
     frame_metadata: stats::FrameMetadata,
     pub pipelines: Arc<Pipelines>,
-    pub targets: TargetOwner,
+    pub targets: Targets,
     pub environment: Environment,
     pub shadow: ShadowResources,
     pub ground: Ground,
@@ -111,7 +111,7 @@ impl Runtime {
             paint.validate()?;
         }
         let pipelines = Arc::new(crate::pipelines::build_builtin(device)?);
-        let targets = TargetOwner::new(device, config.size);
+        let targets = Targets::new(device, config.size);
         let sky = Sky::new(device, queue, &pipelines, &config.light.sky());
         let cold = SunShadowFrame::cold(&config.light);
         let shadow = ShadowResources::new(
@@ -120,7 +120,6 @@ impl Runtime {
             &pipelines,
             config.light.cascades.map_size,
             bytemuck::bytes_of(&cold.receiver),
-            size_of::<Camera>(),
         );
         let environment = Environment::new(
             device,

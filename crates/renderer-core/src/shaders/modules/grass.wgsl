@@ -180,4 +180,3 @@ fn leafClumps(p: vec3f, n: vec3f, fade: f32) -> vec4f {
 
 // @block grass_shapes
 @group(1) @binding(3) var<storage, read> shapes: array<GrassShapeVertex>;
-

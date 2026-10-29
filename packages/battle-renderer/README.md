@@ -27,7 +27,7 @@ keeps authored dimensions in CSS space and its readability floor in actual rende
 pixels, so lowering resolution cannot erase an information mark.
 
 [Styles](src/overlayStyle.ts) validate fixture-owned appearance at admission.
-[Fog](src/fog.ts), [grass](src/grass.ts) and [scar](src/scars.ts) contracts describe
+[Fog](src/fog.ts) and [grass](src/grass.ts) contracts describe
 canonical inputs and explicit diagnostic snapshots; they own no device or
 resources. Actual GPU behavior is checked through the shared renderer's native
 tests and the [browser scenes](../../web/README.md#checks-and-evidence), with a

@@ -623,13 +623,11 @@ export function useBattleSession({
         counts,
         clock: time,
         effectCounts,
-        ground: sim.ground.current,
       };
     },
     [
       observation,
       sim.latest,
-      sim.ground,
       presentation,
       worldInput,
       units,

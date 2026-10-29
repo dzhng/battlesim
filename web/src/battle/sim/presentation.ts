@@ -10,7 +10,7 @@ import init, {
   type Renderer,
   type PreparedAppearances,
 } from "@wasm/renderer_browser";
-import { LearnedGround, groundOf, type SceneGround } from "./presentationGround";
+import { LearnedGround, groundOf } from "./presentationGround";
 import wasmUrl from "@wasm/renderer_browser/renderer_browser_bg.wasm?url";
 import { Batch, BATCH_WORDS, NONE, frameViews } from "@packages/battle-renderer/src/records.gen";
 import {
@@ -35,7 +35,11 @@ import {
   type SceneBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import { setGround, type GroundInput } from "@packages/battle-renderer/src/terrain/terrainSurface";
+import {
+  setGround,
+  type GroundInput,
+  type PresentedGround,
+} from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { tierMesh } from "@packages/battle-renderer/src/scenery/appearance";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import { occluderBoxes, type FogOccluder } from "@packages/battle-renderer/src/fog";
@@ -264,7 +268,7 @@ export class ScenePresentation {
   /** The installed art the ground's props were placed from. */
   private proppedBy: InstalledAppearances | null = null;
   /** The ground the page reads tables from, new with each ground set. */
-  private presented: SceneGround | null = null;
+  private presented: PresentedGround | null = null;
   /** The fog asked for, the one set, and the foliage handed over. */
   private fogStaged: FogRequest | null = null;
   private fogSet: FogRequest | null | undefined = undefined;
@@ -491,7 +495,7 @@ export class ScenePresentation {
 
   /** The ground the scene's presentation resolved, for the terrain, the
    *  grass and the water; null before one is set. */
-  presentedGround(): SceneGround | null {
+  presentedGround(): PresentedGround | null {
     return this.presented;
   }
 

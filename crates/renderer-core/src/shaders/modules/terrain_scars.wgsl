@@ -252,4 +252,3 @@ fn scarredNormal(n: vec3f, scar: ScarSample) -> vec3f {
 
 // @block terrain_scars_scars
 @group(1) @binding(7) var scars: texture_2d_array<f32>;
-

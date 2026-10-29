@@ -132,4 +132,3 @@ fn highpassAlgorithm(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler,
   let c = textureSample(source,linearSampler,uv);
   return mix(vec4f(0),c,smoothstep(bloom.threshold,bloom.knee,dot(c.rgb,vec3f(0.2126,0.7152,0.0722))));
 }
-

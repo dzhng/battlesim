@@ -193,4 +193,3 @@ fn groundLineBand(xy: vec2f, cell: vec4u, forest: f32) -> vec2f {
   let at = ((xy * (*params_1).forestVerge.z) + vec2f(71.30000305175781, 23.899999618530273));
   return vec2f(1f, (line.y + (((valueNoise(at) - 0.5f) * 2f) * (*params_1).forestLine.y)));
 }
-

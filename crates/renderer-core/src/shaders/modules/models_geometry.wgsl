@@ -218,4 +218,3 @@ fn walkJoint(footprint: f32, paved: GroundPaved) -> f32 {
  if(beyond<=0.0||beyond>=road.join.z){return 0.0;}
  return strokeJoint(paved.run.z,road.slabs.x,footprint,0.03)*road.slabs.y;
 }
-

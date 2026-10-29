@@ -165,5 +165,5 @@ The [geometry scaling control](src/benchmark/geometryScaling.ts) appends distant
 terrain to one admitted export without recompiling the local patch. It uses the
 production viewport and measurement pilot; material domains and static identities
 stay local while the full mesh reaches receiver fitting. Its registered scene is
-an explicit measurement tool. The [performance measurement plan](../../specs/performance/slices/measurement.md)
-records its scope and outstanding acceptance gates.
+an explicit measurement tool. The [performance rationale](../../specs/done/performance/README.md)
+records its scope and measurement limits.

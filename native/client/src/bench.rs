@@ -129,9 +129,8 @@ impl FrameTimer {
                     store: StoreOp::Store,
                 },
             })],
-            // The frame opens where the first marker's vertex stage starts
-            // and closes where the last marker's fragment stage ends, as
-            // `gpuTiming.ts` takes them: fragment work runs in order.
+            // Match the shared frame timer's start/end marker stages;
+            // fragment work runs in order.
             timestamp_writes: Some(RenderPassTimestampWrites {
                 query_set: &self.slots[frame % self.slots.len()].queries,
                 beginning_of_pass_write_index: (index == 0).then_some(0),

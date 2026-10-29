@@ -214,7 +214,6 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         &pipelines,
         16,
         bytemuck::bytes_of(&cold.receiver),
-        size_of::<Camera>(),
     );
     let sky = Sky::new(&gpu.device, &gpu.queue, &pipelines, &light.sky());
     let mut environment = Environment::new(

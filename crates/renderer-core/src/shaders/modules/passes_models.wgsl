@@ -315,4 +315,3 @@
 @fragment fn modelXrayFragment(_arg_0: modelXrayFragment_Input) -> @location(0) vec4f {
   return drawCoverage(_arg_0.instance, _arg_0.xray);
 }
-

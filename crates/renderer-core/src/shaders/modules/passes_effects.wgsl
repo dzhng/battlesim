@@ -54,4 +54,3 @@
 @vertex fn paintVertex(@location(0) position: vec3f, @location(2) color: vec4f) -> paintVertex_Output {
   return paintVertex_Output(clipOf(position), vec3f(), color);
 }
-

@@ -429,4 +429,3 @@ fn waterNormal(xy: vec2f, footprint: f32) -> vec3f {
   let k = (0.18f * (1f - smoothstep(0.15f, 1.2f, footprint)));
   return normalize(vec3f((-(dx) * k), (-(dy) * k), 1f));
 }
-

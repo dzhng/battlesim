@@ -20,6 +20,3 @@ js-sys = "0.3"
 futures-channel = "0.3"
 web-sys = { version = "0.3", features = ["HtmlCanvasElement", "console"] }
 bytemuck = "1.25"
-
-[build-dependencies]
-serde_json.workspace = true

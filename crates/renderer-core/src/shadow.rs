@@ -1,25 +1,16 @@
 //! Shared directional-shadow resource ownership.
 //!
-//! The native and browser shells fit cascades in the presentation layer and
-//! draw different caster resources, but the GPU resource contract is one:
+//! Presentation fits cascades and the shared frame draws their caster resources:
 //! one depth-array layer per cascade, one receiver uniform, one camera buffer
-//! per cascade, and a greater-equal comparison sampler. Keeping this owner in
-//! `renderer-core` prevents the native shell from becoming a second resource
-//! implementation while letting each shell adapt its presentation records and
-//! provide the concrete caster buffers.
+//! per cascade, and a greater-equal comparison sampler. Every target consumes
+//! the same canonical camera and receiver records.
 
 use wgpu::*;
 
 use crate::pipelines::Pipelines;
 use crate::{bind, buffer};
 
-pub const CASCADES: usize = 4;
-/// `presentation::records::Camera`'s packed size.  The core intentionally
-/// keeps the record boundary byte based so it stays independent of the
-/// presentation crate, while shells can use the generated record constants.
-pub const CAMERA_BYTES: usize = 160;
-/// `presentation::records::SunShadow`'s packed size.
-pub const RECEIVER_BYTES: usize = 400;
+pub use presentation::shadow::CASCADES;
 
 pub struct ShadowResources {
     layers: Vec<TextureView>,
@@ -34,15 +25,13 @@ pub struct ShadowResources {
 
 impl ShadowResources {
     /// Allocate the shared shadow target and receiver/caster bindings.
-    /// `receiver_bytes` and `camera_bytes` are presentation record bytes; the
-    /// core deliberately does not depend on the presentation crate.
+    /// Camera storage follows the canonical presentation record layout.
     pub fn new(
         device: &Device,
         queue: &Queue,
         pipelines: &Pipelines,
         map_size: u32,
         receiver_bytes: &[u8],
-        camera_bytes: usize,
     ) -> Self {
         let texture = device.create_texture(&TextureDescriptor {
             label: Some("sun-depth"),
@@ -75,7 +64,15 @@ impl ShadowResources {
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
         let receiver = buffer(device, queue, "sun-shadow", uniform, receiver_bytes);
         let cameras: Vec<Buffer> = (0..CASCADES)
-            .map(|_| buffer(device, queue, "sun-caster", uniform, &vec![0; camera_bytes]))
+            .map(|_| {
+                buffer(
+                    device,
+                    queue,
+                    "sun-caster",
+                    uniform,
+                    &[0; size_of::<presentation::records::Camera>()],
+                )
+            })
             .collect();
         let groups = cameras
             .iter()

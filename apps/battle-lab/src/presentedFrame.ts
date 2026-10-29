@@ -24,7 +24,6 @@ import { eyePosition } from "@packages/renderer-core/src/camera3d";
 import { vec3 } from "math";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import type { PickBox } from "@packages/battle-renderer/src/picking";
-import type { GroundMarks } from "@packages/battle-renderer/src/scars";
 import type { SideName } from "@web/battle/sim/protocol";
 
 /** What a frame poses, by kind: living and dying soldiers, ground
@@ -193,7 +192,4 @@ export interface ViewportFrame {
   clock?: number;
   /** What the frame's effects hold, by kind and shape. */
   effectCounts?: EffectCounts;
-  /** The observing side's learned ground (the presentation's `LearnedGround`), drawn
-   *  as scars; the frame uploads only what changed since it last looked. */
-  ground?: GroundMarks | null;
 }

@@ -115,4 +115,3 @@ fn shadowVisibility(depth: texture_depth_2d_array, compare: sampler_comparison, 
 
 // @block shadow_sun_primary
 @group(2) @binding(6) var<uniform> sun: SunShadow;
-

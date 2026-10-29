@@ -254,4 +254,3 @@ fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
 
 // @block fog_masks_view
 @group(0) @binding(1) var<uniform> view: FogMaskView;
-

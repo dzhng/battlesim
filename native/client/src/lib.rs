@@ -1,5 +1,4 @@
-//! The native client: the browser's own shaders and passes on `wgpu`, drawing
-//! what the presentation crate's `Frame` lists.
+//! Desktop services around the shared `wgpu` runtime and canonical presentation.
 #[cfg(not(target_arch = "wasm32"))]
 pub mod audio;
 #[cfg(not(target_arch = "wasm32"))]
@@ -12,6 +11,5 @@ pub mod counts;
 pub mod effects;
 pub mod gpu;
 pub mod pipelines;
-pub mod readback;
 
 pub use renderer_core::{environment, fog, grass, ground, models, scars, scenery, sky, statics};

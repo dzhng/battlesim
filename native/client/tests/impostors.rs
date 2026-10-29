@@ -293,7 +293,6 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
         &pipelines,
         16,
         bytemuck::bytes_of(&cold.receiver),
-        size_of::<Camera>(),
     );
     let sky = renderer_core::sky::Sky::new(&gpu.device, &gpu.queue, &pipelines, &light.sky());
     let mut environment = renderer_core::environment::Environment::new(

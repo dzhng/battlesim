@@ -1,15 +1,12 @@
-/** Ground table and learned-scar bridges over the presentation WASM owner. */
+/** Ground tables and learned-ground observations over the presentation owner. */
 import type { Presentation } from "@wasm/renderer_browser";
 import type { PresentedGround } from "@packages/battle-renderer/src/terrain/terrainSurface";
-import type { GroundMarks, ScarRegion, ScarUpload } from "@packages/battle-renderer/src/scars";
+import type { ScarStats } from "../render/sceneStats";
 import type { GroundLayout } from "./observationView";
-
-export type SceneGround = PresentedGround &
-  Pick<Presentation, "scars_changed" | "scar_regions" | "prepare_scars" | "resend_scars">;
 
 /** The ground `rust` holds, as the renderer reads its tables: a new object
  *  for each ground set, so a renderer knows to read them again. */
-export function groundOf(rust: Presentation): SceneGround {
+export function groundOf(rust: Presentation): PresentedGround {
   return {
     prepare_fog: (camera, width, height, probes) => rust.prepare_fog(camera, width, height, probes),
     resend_fog: () => rust.resend_fog(),
@@ -26,22 +23,16 @@ export function groundOf(rust: Presentation): SceneGround {
     grass_frame_params: (words, window) => rust.grass_frame_params(words, window),
     grass_props: () => rust.grass_props(),
     retune_grass: (rules) => rust.retune_grass(rules),
-    scars_changed: () => rust.scars_changed(),
-    scar_regions: () => rust.scar_regions(),
-    prepare_scars: (region, clipped) => rust.prepare_scars(region, clipped),
-    resend_scars: () => rust.resend_scars(),
   };
 }
 
 /** The side's learned ground as the presentation keeps it
  *  (`crates/presentation/src/scars`): what its publications taught it, cell
- *  by cell, and its scars as the renderer uploads them. */
-export class LearnedGround implements GroundMarks {
+ *  by cell. GPU scar preparation stays inside the shared renderer. */
+export class LearnedGround {
   readonly cellM: number;
   readonly cols: number;
   readonly rows: number;
-  private regionsFlat: Float64Array | null = null;
-  private regionList: ScarRegion[] = [];
 
   constructor(
     private readonly rust: Presentation,
@@ -77,36 +68,7 @@ export class LearnedGround implements GroundMarks {
     return this.rust.ground_marked();
   }
 
-  changed(): boolean {
-    return this.rust.scars_changed();
-  }
-  regions(): readonly ScarRegion[] {
-    const flat = this.rust.scar_regions();
-    if (this.regionsFlat?.length !== flat.length) {
-      this.regionsFlat = flat;
-      this.regionList = [];
-      for (let k = 0; k < flat.length; k += 4)
-        this.regionList.push([flat[k], flat[k + 1], flat[k + 2], flat[k + 3]]);
-    }
-    return this.regionList;
-  }
-  prepare(region?: ScarRegion, clipped = false): ScarUpload {
-    const upload = this.rust.prepare_scars(region && Float64Array.from(region), clipped);
-    const words = upload.directory(),
-      size = upload.directory_size();
-    const out: ScarUpload = {
-      directory: words ? { words, width: size[0], height: size[1] } : null,
-      writes: upload.writes(),
-      texels: upload.texels(),
-      params: upload.params(),
-    };
-    upload.free();
-    return out;
-  }
-  resend() {
-    this.rust.resend_scars();
-  }
   stats() {
-    return JSON.parse(this.rust.scar_stats()) as ReturnType<GroundMarks["stats"]>;
+    return JSON.parse(this.rust.scar_stats()) as Omit<ScarStats, "textureBytes" | "directoryBytes">;
   }
 }

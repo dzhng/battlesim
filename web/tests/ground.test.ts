@@ -104,7 +104,6 @@ test(
     // Observing the other side forgets what was learned until its snapshot.
     decoder.invalidate("red");
     expect(view.markedCells().length).toBe(0);
-    expect(view.changed()).toBe(true);
     battle.resync_observation();
     decoder.decode(publication(battle, "red"));
     expect(view.side).toBe("red");

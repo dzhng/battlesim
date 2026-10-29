@@ -498,4 +498,3 @@ fn waterSurface(xy: vec2f, footprint: f32) -> vec4f {
   let edge = smoothstep((-(footprint) * 0.5f), (footprint * 0.5f), water);
   return vec4f(colour, (mix((*params).waterEdge.w, (*params).water.w, deep) * edge));
 }
-

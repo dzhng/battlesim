@@ -297,4 +297,3 @@ fn cubeUv(d: vec3f, face: f32) -> vec2f {
   else{p=vec2f(d.x,d.y)/abs(d.z);}
   return 0.5*(p+vec2f(1));
 }
-

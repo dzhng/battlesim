@@ -199,30 +199,6 @@ impl Presentation {
         Ok(())
     }
 
-    /// Whether the scars changed since the last call: what grows on them
-    /// grows again.
-    pub fn scars_changed(&mut self) -> bool {
-        self.inner.scars_changed()
-    }
-
-    /// The regions the terrain draws one by one, four metres each (x0, y0,
-    /// x1, y1); none when the marks draw at once.
-    pub fn scar_regions(&self) -> Vec<f64> {
-        self.inner.scar_regions().concat()
-    }
-
-    /// What to upload before drawing the scars over `region` (four metres;
-    /// none: the view), clipped to it when `clipped`.
-    pub fn prepare_scars(&mut self, region: Option<Vec<f64>>, clipped: bool) -> ScarUpload {
-        let region = region.map(|r| [r[0], r[1], r[2], r[3]]);
-        ScarUpload(self.inner.prepare_scars(region, clipped))
-    }
-
-    /// The renderer holds no scars: the next upload writes them all.
-    pub fn resend_scars(&mut self) {
-        self.inner.resend_scars();
-    }
-
     /// The scar cache's `ScarStats`, as JSON.
     pub fn scar_stats(&self) -> String {
         serde_json::to_string(&self.inner.scar_stats()).unwrap()
@@ -358,57 +334,6 @@ impl Presentation {
 #[wasm_bindgen]
 pub fn launches(publications: &str) -> Result<String, JsError> {
     Inner::launches_json(publications).map_err(error)
-}
-
-/// What a renderer uploads before drawing the scars
-/// (`presentation::scars::ScarUpload`).
-#[wasm_bindgen]
-pub struct ScarUpload(presentation::scars::ScarUpload);
-
-#[wasm_bindgen]
-impl ScarUpload {
-    /// The directory's words (two a `rg32uint` texel) when it changed.
-    pub fn directory(&self) -> Option<Vec<u32>> {
-        self.0.directory.as_ref().map(|(words, _)| words.clone())
-    }
-    /// The directory texture's width and height, when it changed.
-    pub fn directory_size(&self) -> Vec<u32> {
-        self.0
-            .directory
-            .as_ref()
-            .map_or_else(Vec::new, |(_, s)| s.to_vec())
-    }
-    /// Pool writes, (offset, texels) pairs, each within one row.
-    pub fn writes(&self) -> Vec<u32> {
-        self.0.writes.concat()
-    }
-    /// The writes' texels in order, four bytes each.
-    pub fn texels(&self) -> Vec<u8> {
-        self.0.texels.clone()
-    }
-    /// `ScarParams`' words before the look.
-    pub fn params(&self) -> Vec<u32> {
-        self.0.params.to_vec()
-    }
-}
-
-/// The scar pool's first texels: the normalization table, written once.
-#[wasm_bindgen]
-pub fn scar_normalization() -> Vec<u8> {
-    presentation::scars::normalization()
-}
-
-/// The tier a batch casts with (`Batch.caster`), for a lab's own models,
-/// which reach the renderer without a frame: `view::batch_caster`.
-#[wasm_bindgen]
-pub fn batch_caster(tier: u32, pass: u32) -> u32 {
-    presentation::view::batch_caster(tier, pass)
-}
-
-/// The fog group a lab's own model binds (`Batch.fog`): `view::model_fog`.
-#[wasm_bindgen]
-pub fn model_fog(lies: bool, state: bool, ground: bool) -> u32 {
-    presentation::view::model_fog(lies, state, ground)
 }
 
 /// The tier each of a lab's own models draws at (`view::model_detail`:

@@ -588,4 +588,3 @@
   let seen = fogTerm(_arg_0.world, n, clip.xy, fogIsGround());
   return worldFragment_Output(vec4f((lit.xyz + glow), _arg_0.color.w), fogCoverage(seen, _arg_0.color.w));
 }
-

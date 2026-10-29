@@ -187,4 +187,3 @@ fn paintedAlbedo(albedo: vec3f, paint: vec4f) -> vec3f {
   let colour = min(paintColour(paint), vec3f(1.0));
   return mix(albedo, colour * paintStyle.albedo, paint.w);
 }
-

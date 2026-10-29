@@ -487,4 +487,3 @@ struct worldFragment_Output {
   @location(0) color: vec4f,
   @location(1) fog: vec4f,
 }
-

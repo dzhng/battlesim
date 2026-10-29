@@ -46,4 +46,3 @@
   let g = grassVertexOf(vid, iid);
   return grassVertex_Output(g.clip, g.world, g.root, g.normal, g.albedo, g.ground);
 }
-

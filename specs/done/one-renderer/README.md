@@ -98,17 +98,12 @@ and effect-sheet ordering also have platform-independent owners.
 
 ## Tradeoffs and limits of the evidence
 
-The frozen matched browser changing-reel cohort uses three interleaved repeats
-at 1280×720, retaining 2,400 CPU and GPU samples per repeat. TypeGPU/shared Rust
-CPU means are 1.575698/1.130157 ms: **28.28% lower** for the shared path. GPU means
-are 10.477891/10.697395 ms: **2.09% higher**. Final pixels and camera/shadow records
-match exactly. These are whole-path results; they do not isolate language,
-module packaging, shader factoring or an individual optimization.
-
+The measured benefit is fewer independent rendering-policy owners and lower
+browser CPU cost, with a small GPU-cost increase in the frozen matched cohort.
 The ownership reduction does **not** establish a source-line reduction. Authored
-WGSL counts as maintained source; deleted generated expansion is separate. Both
-endpoints of renamed paths must be counted. [Research](research.md) owns the
-final baseline-relative accounting and its method; the
+WGSL counts as maintained source; deleted generated expansion is separate, and
+both endpoints of renamed paths count. [Research](research.md) owns the exact
+cohorts, artifact identities, baseline-relative accounting and verification limits; the
 [inventory tool](../../../tools/renderer-accounting.mjs) reports current owner and
 artifact sizes. The architectural benefit is fewer independent policy and
 lifetime owners, with additional Rust, bindings and verification code to maintain.
@@ -122,12 +117,9 @@ route transfer and whole-process residency are different measurements. Strong
 diagnostic handle registries would themselves prolong Rust-created WebGPU
 lifetimes; memory visitors retain handles only during the snapshot.
 
-Cold-start comparisons use fresh browser processes in rotating backend order,
-with cache disabled and no overlapping compilation from this task. They measure
-application readiness over loopback, not actual display presentation or external
-network latency. The final source generation, artifact identities, all repeats
-and limitations live in [research](research.md). Startup and long-battle peak
-memory are separate measurements. [Whole-browser memory](memory.md) compares
+Startup measures application readiness over loopback, not actual display
+presentation or external network latency. Startup and long-battle peak memory
+are separate measurements. [Whole-browser memory](memory.md) compares
 the browser, GPU process, pages and workers before/after the port and subsequent
 memory fixes. Its process totals are the primary memory result; comparing only
 the old presentation WASM with the shared renderer WASM misses the old path's

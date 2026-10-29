@@ -576,8 +576,17 @@ impl Run {
             let mut encoder = device.create_command_encoder(&Default::default());
             self.scene
                 .encode(device, queue, &self.view, &mut encoder, Default::default());
-            let rgba =
-                native_client::readback::read_display(device, queue, &self.scene.targets, encoder);
+            let read = renderer_core::readback::RgbaReadback::encode(
+                device,
+                &mut encoder,
+                &self.scene.targets.display_texture,
+            )?;
+            queue.submit([encoder.finish()]);
+            let mut rgba = pollster::block_on(read.read(device))?;
+            // Native plates are opaque exports, independent of stored display alpha.
+            for pixel in rgba.as_chunks_mut::<4>().0 {
+                pixel[3] = 255;
+            }
             output::write_png(&out.join(&plate), self.scene.targets.size, &rgba)?;
             self.plates += 1;
             let encoder = device.create_command_encoder(&Default::default());

@@ -1,13 +1,7 @@
-//! GPU resources shared by the native and browser renderer shells.
-//!
-//! This crate deliberately stops at the device-facing boundary. It owns the
-//! target formats, resize allocation and small resource helpers used by every
-//! pass and consumes the shared presentation records. Surface creation,
-//! adapter policy, runtime files and audio stay in the platform shells. It has
-//! no filesystem or windowing dependencies and therefore checks for
-//! `wasm32-unknown-unknown`.
+//! Shared GPU resources, preparation and complete frame encoding over canonical
+//! presentation. Platform shells own surfaces, adapter policy, asset transport
+//! and audio; the renderer has no filesystem or windowing dependencies.
 
-use std::ops::{Deref, DerefMut};
 use wgpu::*;
 
 /// Full-frame targets and platform surfaces share the camera's minimum extent.
@@ -48,33 +42,6 @@ pub mod terrain;
 pub mod timing;
 pub mod world;
 pub mod xray;
-
-/// Encode an ordered pass list with one shared debug-group boundary.
-///
-/// The closure carries the platform shell's concrete pass/input types; this
-/// function owns the ordering instrumentation without importing those types.
-pub fn encode_passes<'a, I, F>(encoder: &mut CommandEncoder, names: I, mut encode: F)
-where
-    I: IntoIterator<Item = &'a str>,
-    F: FnMut(usize, &mut CommandEncoder),
-{
-    for (index, name) in names.into_iter().enumerate() {
-        encoder.push_debug_group(name);
-        encode(index, encoder);
-        encoder.pop_debug_group();
-    }
-}
-
-/// Encode one pass inside the shared debug-group boundary.
-pub fn encode_grouped(
-    encoder: &mut CommandEncoder,
-    name: &'static str,
-    encode: impl FnOnce(&mut CommandEncoder),
-) {
-    encoder.push_debug_group(name);
-    encode(encoder);
-    encoder.pop_debug_group();
-}
 
 /// The lit world before post.
 pub const HDR_FORMAT: TextureFormat = TextureFormat::Rgba16Float;
@@ -213,56 +180,16 @@ impl Targets {
     }
 }
 
-/// Owns the size-dependent target set and its rebuild generation.
-///
-/// A shell keeps this owner alongside its surface. Rebuilding swaps the whole
-/// set before the next frame, so old views cannot leak into a resized pass;
-/// the generation gives static/resource adapters one shared invalidation
-/// signal without importing a window or presentation type into this crate.
-pub struct TargetOwner {
-    targets: Targets,
-    generation: u64,
-}
-
-impl TargetOwner {
-    pub fn new(device: &Device, size: [u32; 2]) -> Self {
-        Self {
-            targets: Targets::new(device, size),
-            generation: 0,
-        }
-    }
-
+impl Targets {
     /// Rebuild the complete target set when the pixel size changes. Returns
     /// whether a swap occurred; callers should invalidate size-bound groups
     /// only on `true`.
     pub fn rebuild(&mut self, device: &Device, size: [u32; 2]) -> bool {
-        if self.targets.size == size {
+        if self.size == size {
             return false;
         }
-        self.targets = Targets::new(device, size);
-        self.generation = self.generation.wrapping_add(1);
+        *self = Self::new(device, size);
         true
-    }
-
-    pub fn generation(&self) -> u64 {
-        self.generation
-    }
-
-    pub fn as_targets(&self) -> &Targets {
-        &self.targets
-    }
-}
-
-impl Deref for TargetOwner {
-    type Target = Targets;
-    fn deref(&self) -> &Self::Target {
-        &self.targets
-    }
-}
-
-impl DerefMut for TargetOwner {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.targets
     }
 }
 

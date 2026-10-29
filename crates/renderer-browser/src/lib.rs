@@ -16,7 +16,6 @@ mod appearance;
 mod asset;
 pub use appearance::{AppearanceDraft, PreparedAppearances};
 mod diagnostics;
-mod export;
 mod geometry;
 mod gpu;
 mod ground_queries;

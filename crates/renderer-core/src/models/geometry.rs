@@ -4,7 +4,7 @@ use presentation::records::Joint;
 
 pub const VERTEX_BYTES: usize = 48;
 
-/// A mesh's vertices in the 48-byte layout (`packVertices`): `rigid` binds
+/// A mesh's vertices in the shared 48-byte shader layout: `rigid` binds
 /// every vertex wholly to one palette joint, else the mesh's own skin;
 /// `track` is 1 or 2 for a track's links (their scroll), else 0.
 pub fn pack_vertices(mesh: &Mesh, material_base: usize, rigid: Option<u8>, track: u16) -> Vec<u8> {
@@ -54,7 +54,7 @@ pub fn pack_vertices(mesh: &Mesh, material_base: usize, rigid: Option<u8>, track
 }
 
 /// `mesh` skinned once by `palette` (bind to model) into a rigid mesh
-/// (`posedMesh`): positions, normals and tangents posed, the skin dropped.
+/// with positions, normals and tangents posed and the skin dropped.
 pub fn posed_mesh(mesh: &Mesh, palette: &[Joint]) -> Mesh {
     let mut posed = mesh.clone();
     posed.joints = None;

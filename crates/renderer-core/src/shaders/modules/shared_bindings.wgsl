@@ -479,4 +479,3 @@ fn roughnessMip(r: f32) -> f32 {
   if(r>=0.21){return (0.305-r)/0.095+3.0;}
   return -2.0*log2(1.16*r);
 }
-

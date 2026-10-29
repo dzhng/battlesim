@@ -102,4 +102,3 @@ fn samplePmrem(env: texture_2d<f32>, linear: sampler, d: vec3f, r: f32, maxMip: 
   if(f==0){return a;}
   return mix(a,cubeSample(env,linear,d,floor(mip)+1.0,maxMip),f);
 }
-

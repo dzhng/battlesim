@@ -159,4 +159,3 @@ struct worldFragment_Input {
   @location(2) color: vec4f,
   @location(3) highlight: f32,
 }
-
