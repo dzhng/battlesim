@@ -27,8 +27,8 @@ const OUT = new URL(`../../throwaway/evidence/light/${LABEL}/`, import.meta.url)
 const VIEWPORT = { width: 1920, height: 1080 };
 /** Each shot: its name and the cast light that marks it. */
 const SHOTS = [
-  ["tank", (c) => c === "flash:tank_ap" || c === "flash:tank_he"],
-  ["hmg", (c) => c === "flash:hmg"],
+  ["tank", (c) => c === "flash:tank_sabot" || c === "flash:tank_he"],
+  ["hmg", (c) => c === "flash:heavy_machine_gun"],
   ["rifle", (c) => c === "flash:rifle"],
   ["grenade", (c) => c === "flash:grenade"],
   ["atgm-launch", (c) => c === "flash:atgm"],

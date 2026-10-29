@@ -50,7 +50,7 @@ impl Pool {
             t0,
             t0,
         );
-        e.cause = format!("round:{}", s.kind).into();
+        e.cause = format!("round:{}", p.looks.name(&s.kind)).into();
         let mut total = 0.0;
         for (i, q) in s.path.iter().enumerate() {
             if i > 0 {
@@ -135,7 +135,7 @@ impl Pool {
             soldier: l.soldier,
         };
         let e = self.push(look, t0, t0 + last);
-        e.cause = format!("flash:{}", l.kind).into();
+        e.cause = format!("flash:{}", p.looks.name(&l.kind)).into();
         e.p = l.at;
         e.n = l.dir;
         e.rotation = rng.sample() * PI * 2.0;

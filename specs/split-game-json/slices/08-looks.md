@@ -113,3 +113,13 @@ The integrator's rerunnable stored-input migration is
 It takes an optional checkout root, rewrites only inputs, and is idempotent.
 Record migration/re-blessing is kept in the last commit so it can be discarded
 and rerun after 09. Final cause-name, visual and verification receipts follow.
+
+### Named delta: light-cause vocabulary
+
+`flash:<weapon>` and `round:<weapon>` become `flash:<look>` and `round:<look>`.
+The cause is diagnostic metadata: no random key or renderer input reads it.
+The only allowed oracle difference is those strings in `effects.jsonl` (and
+the corresponding recorded vector light-cause metadata); all
+numeric effect/light bits, sounds, poses, publications and battle digests stay
+identical. The light-review scene follows the new vocabulary. This change is
+its own commit so the metadata delta is reviewable apart from the data move.
