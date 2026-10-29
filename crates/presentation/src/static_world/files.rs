@@ -123,7 +123,7 @@ pub fn side_foliage(world: &World, learned: &crate::scars::LearnedGround) -> Vec
 /// of no region, and of the wrecks only the worn vehicles' own) or the map's
 /// family fetches, each read for its first state's bounds; each worn
 /// vehicle's wreck; the stand-in kit's box where the catalog has its module;
-/// and the fixture's stand-in tints and model tiers.
+/// and the fixture's model tiers. Prop bindings in the layout own stand-in tints.
 pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<PropInput, String> {
     let runtime = Runtime::open(&root.join("assets/runtime"))?;
     let presentation = crate::settings::PresentationSettings::from_value(&json(
@@ -187,7 +187,6 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
         appearances,
         wrecks: serde_json::from_value(Value::Object(wrecks)).map_err(|e| e.to_string())?,
         stand_in,
-        stand_in_tints: Some(presentation.stand_ins.tints),
         family: family.map(str::to_owned),
         detail: presentation.models,
         dynamic: true,

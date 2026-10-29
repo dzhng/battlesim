@@ -14,7 +14,6 @@ use crate::{
 };
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::Value;
-use std::collections::BTreeMap;
 
 /// Deserialize without losing the path to a bad nested key or value.
 pub fn read<T: DeserializeOwned>(value: &Value, path: &str) -> Result<T, String> {
@@ -30,12 +29,6 @@ pub fn read<T: DeserializeOwned>(value: &Value, path: &str) -> Result<T, String>
             e.inner()
         )
     })
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct StandIns {
-    pub tints: BTreeMap<String, [f64; 3]>,
 }
 
 /// The whole `fixtures/presentation.json`. No battle rules or mix settings
@@ -55,7 +48,6 @@ pub struct PresentationSettings {
     pub contacts: Contacts,
     pub models: Detail,
     pub buildings: BuildingStyle,
-    pub stand_ins: StandIns,
     pub pose: PoseFeel,
     pub transit: TransitFeel,
     pub effects: EffectPresentation,

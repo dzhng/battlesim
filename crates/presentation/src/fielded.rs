@@ -77,10 +77,9 @@ impl Fielding<'_> {
     /// each drawn appearance's bundle, each fielded hull's wreck and every
     /// skeleton's clips.
     pub fn contents(&self) -> Result<Vec<String>, String> {
-        let presentation = PresentationSettings::from_value(self.presentation)?;
         let catalog = Catalog::new(self.catalog)?;
         let art = Art::new(self.runtime, &catalog, self.kinds, self.factions)?;
-        let (_, drawn) = unit_types(&presentation, &catalog, &art, self.kinds, self.factions)?;
+        let (_, drawn) = unit_types(&catalog, &art, self.kinds, self.factions)?;
         let mut contents = BTreeSet::new();
         for name in drawn.iter().chain(hull_wrecks(&catalog, &art).values()) {
             contents.insert(art.bundle(name)?.to_owned());
@@ -373,16 +372,24 @@ impl<'a> Art<'a> {
     }
 }
 
+/// Running-gear gauge belongs to every ground appearance, including faction looks.
+fn track_gauge(art: &Art, name: &str) -> Result<f64, String> {
+    art.entry(name)["track_gauge"]
+        .as_f64()
+        .filter(|v| v.is_finite() && *v > 0.0)
+        .ok_or(format!(
+            "appearance {name}: track_gauge must be finite and positive"
+        ))
+}
+
 /// Each fielded type's facts and the appearance sets it draws from per
 /// side, and every appearance those sets name.
 fn unit_types(
-    presentation: &PresentationSettings,
     catalog: &Catalog,
     art: &Art,
     kinds: &[String],
     factions: Option<[&str; 2]>,
 ) -> Result<(Map<String, Value>, BTreeSet<String>), String> {
-    let pose = &presentation.pose;
     let look = |side: usize, list: &mut dyn Iterator<Item = String>| -> Vec<String> {
         list.filter(|n| art.has(n))
             .map(|n| {
@@ -399,6 +406,18 @@ fn unit_types(
     for kind in kinds.iter().collect::<BTreeSet<_>>() {
         let t = catalog.get(kind)?;
         let hull = catalog.hull(kind)?;
+        let ground = matches!(
+            mobility(t)?,
+            Mobility::Tracked { .. } | Mobility::Wheeled { .. }
+        );
+        let gauge = if ground {
+            let name = t["appearance"]
+                .as_str()
+                .ok_or(format!("{kind}: no hull appearance"))?;
+            track_gauge(art, name)?
+        } else {
+            1.0
+        };
         // Its vehicle class, as the catalog derives it from its physics.
         let class = t["vehicle_class"].as_str().map(str::to_owned);
         let mounts: &[Value] = t["mounts"].as_array().map_or(&[], Vec::as_slice);
@@ -413,6 +432,11 @@ fn unit_types(
                 ),
                 None => vec![],
             };
+            if ground {
+                for name in &hull_look {
+                    track_gauge(art, name)?;
+                }
+            }
             let slots = catalog
                 .slots(kind)?
                 .iter()
@@ -456,10 +480,6 @@ fn unit_types(
                 }
             })
             .collect();
-        let gauge = class
-            .as_deref()
-            .and_then(|c| pose.gauge.get(c).copied())
-            .unwrap_or(1.0);
         let mount_rows: Vec<Value> = mounts
             .iter()
             .map(|m| {
@@ -502,7 +522,7 @@ fn units(
     kinds: &[String],
     factions: Option<[&str; 2]>,
 ) -> Result<(Value, ClipTables), String> {
-    let (types, drawn) = unit_types(presentation, catalog, art, kinds, factions)?;
+    let (types, drawn) = unit_types(catalog, art, kinds, factions)?;
     let mut appearances = Map::new();
     let mut tables = ClipTables::new();
     let mut table_of: Vec<(Vec<f32>, String)> = Vec::new();

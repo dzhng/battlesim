@@ -24,7 +24,7 @@ fn asset() -> Asset {
 #[test]
 fn same_name_props_refit_new_footprints_and_paint_using_knowledge_current_at_commit() {
     let mut p = Presentation::new(None, 30.0).unwrap();
-    let layout=json!({"propKinds":["crate"],"propAppearance":{"crate":{"drawn_by":"crate"}},"blockingPropKinds":{"wheeled":["crate"]},"unitKinds":[],"unitAppearance":{}}).to_string();
+    let layout=json!({"propKinds":["crate"],"propAppearance":{"crate":{"drawn_by":"crate","stand_in_tint":[0.5,0.5,0.5]}},"blockingPropKinds":{"wheeled":["crate"]},"unitKinds":[],"unitAppearance":{}}).to_string();
     let mut record = vec![0.0; sim::world::export::PROP_STRIDE];
     record[0] = 1.0;
     record[6..9].copy_from_slice(&[2.0, 1.0, 1.0]);
@@ -46,7 +46,6 @@ fn same_name_props_refit_new_footprints_and_paint_using_knowledge_current_at_com
             }],
             wrecks: Default::default(),
             stand_in: None,
-            stand_in_tints: None,
             family: None,
             detail: detail(),
             dynamic: true,

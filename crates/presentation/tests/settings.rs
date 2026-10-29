@@ -122,7 +122,7 @@ fn nested_misspellings_including_flat_puffs_are_refused() {
 }
 
 #[test]
-fn pose_denominators_gauge_and_light_ranges_are_admitted_before_use() {
+fn pose_denominators_and_light_ranges_are_admitted_before_use() {
     for pointer in [
         "/pose/gait/fade_s",
         "/pose/corpses/fade_s",
@@ -137,14 +137,6 @@ fn pose_denominators_gauge_and_light_ranges_are_admitted_before_use() {
         "light.sky.clouds.coverage",
     );
     reject_presentation("/light/exposure", json!(-1), "light.exposure");
-    let mut bad = fixture("presentation");
-    bad["pose"]["gauge"]["trackde_heavy"] = json!(0.8);
-    assert!(
-        presentation::settings::PresentationSettings::from_value(&bad)
-            .err()
-            .unwrap()
-            .contains("pose.gauge.trackde_heavy")
-    );
 }
 
 #[test]

@@ -9,7 +9,6 @@ use std::collections::HashMap;
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct PoseFeel {
-    pub gauge: HashMap<String, f64>,
     pub gait: Gait,
     pub rest: Rest,
     pub stance: StanceFeel,
@@ -173,29 +172,6 @@ impl PoseFeel {
         }
         if self.stance.fire_prone + self.stance.fire_stand > 1.0 {
             return Err("presentation.pose.stance: firing shares must sum to at most 1".into());
-        }
-        for (class, v) in &self.gauge {
-            // The vocabulary is UnitType::vehicle_class's physical spelling,
-            // including classes the current roster happens not to field.
-            let body = class.strip_suffix("_logistics").unwrap_or(class);
-            let known = body.rsplit_once('_').is_some_and(|(mover, weight)| {
-                matches!(mover, "tracked" | "wheeled" | "air" | "high_air")
-                    && serde_json::from_value::<contract::scenario::WeightClass>(serde_json::json!(
-                        weight
-                    ))
-                    .is_ok()
-            });
-            if !known {
-                return Err(format!(
-                    "presentation.pose.gauge.{class}: unknown vehicle class"
-                ));
-            }
-            range(
-                &format!("presentation.pose.gauge.{class}"),
-                *v,
-                f64::MIN_POSITIVE,
-                1.0,
-            )?;
         }
         if let Some(k) = &self.hull_kick {
             range(

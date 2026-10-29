@@ -284,6 +284,7 @@ export interface PropType {
       };
   appearance: {
     drawn_by: string;
+    stand_in_tint: Vec3;
     status?: "systems_only";
     modular?: boolean;
     map_only?: boolean;

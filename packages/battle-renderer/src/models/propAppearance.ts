@@ -87,7 +87,7 @@ export function knownStanding(
  *  installed static appearance with a footprint (its scenery kind, region,
  *  footprint, paints and its first state's bounds), each vehicle appearance's
  *  own wreck, the stand-in kit's bounds where it is installed with its module,
- *  the stand-ins' tints, the map's regional family and the models' tiers. */
+ *  the map's regional family and the models' tiers. */
 export function propArt(
   installed: InstalledAppearances,
   family: string | null,
@@ -116,7 +116,6 @@ export function propArt(
     appearances,
     wrecks,
     stand_in: standIn,
-    stand_in_tints: presentationSettings.stand_ins.tints,
     family,
     detail: presentationSettings.models,
     dynamic,

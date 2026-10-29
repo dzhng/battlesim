@@ -3,27 +3,27 @@
     "garden_shed": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "medium", "hp": 60, "cover_tier": "light"},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "garden_shed", "map_only": true}
+      "appearance": {"stand_in_tint": [0.5, 0.38, 0.26], "drawn_by": "garden_shed", "map_only": true}
     },
     "hedge": {
       "body": {"blocks": {"infantry": false, "vehicle": false}, "stops_rounds": false, "occludes": true, "weight_class": "light", "hp": 40},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "hedge", "modular": true, "map_only": true}
+      "appearance": {"stand_in_tint": [0.2, 0.36, 0.16], "drawn_by": "hedge", "modular": true, "map_only": true}
     },
     "garden_fence": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "light", "hp": 25, "cover_tier": "light"},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "garden_fence", "modular": true, "map_only": true}
+      "appearance": {"stand_in_tint": [0.6, 0.48, 0.34], "drawn_by": "garden_fence", "modular": true, "map_only": true}
     },
     "washing_line": {
       "body": {"blocks": {"infantry": false, "vehicle": false}, "stops_rounds": false, "occludes": true, "weight_class": "light", "hp": 10, "metal": true},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "washing_line", "map_only": true}
+      "appearance": {"stand_in_tint": [0.9, 0.9, 0.86], "drawn_by": "washing_line", "map_only": true}
     },
     "garden_table": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 30, "cover_tier": "light"},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "garden_table", "map_only": true}
+      "appearance": {"stand_in_tint": [0.8, 0.78, 0.72], "drawn_by": "garden_table", "map_only": true}
     }
   }
 }

@@ -60,7 +60,6 @@ pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
     numbers(&s.contacts, "presentation.contacts", &[".hatch_angle_deg"])?;
     numbers(&s.models, "presentation.models", &[])?;
     numbers(&s.buildings, "presentation.buildings", &[])?;
-    numbers(&s.stand_ins.tints, "presentation.stand_ins.tints", &[])?;
     numbers(&s.transit, "presentation.transit", &[])?;
     range(
         "presentation.ground.backdrop_reach_m",

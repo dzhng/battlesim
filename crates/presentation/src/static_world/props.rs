@@ -78,6 +78,7 @@ const SHADOW_FOOTPRINT_MARGIN: f64 = 2.0;
 #[derive(Clone, Debug, Deserialize)]
 struct Binding {
     drawn_by: String,
+    stand_in_tint: [f64; 3],
     #[serde(default)]
     modular: bool,
     #[serde(default)]
@@ -121,8 +122,7 @@ pub struct Art {
 
 /// What the props are drawn from: the installed appearances a prop may be
 /// drawn as, each vehicle appearance's own wreck, the stand-in kit's first
-/// state's bounds when it is installed with its module, the stand-ins' tints by kind (sRGB,
-/// with a `default`; `presentation.stand_ins`), the map's regional family,
+/// state's bounds when it is installed with its module, the map's regional family,
 /// and the models' tier thresholds (`presentation.models`).
 #[derive(Clone, Debug, Deserialize)]
 pub struct PropInput {
@@ -131,8 +131,6 @@ pub struct PropInput {
     pub wrecks: BTreeMap<String, String>,
     #[serde(default)]
     pub stand_in: Option<Corners>,
-    #[serde(default)]
-    pub stand_in_tints: Option<BTreeMap<String, [f64; 3]>>,
     #[serde(default)]
     pub family: Option<String>,
     pub detail: Detail,
@@ -168,7 +166,7 @@ pub struct PropArt {
     wrecks: HashMap<String, usize>,
     /// The kinds whose body stops no mover class: surfaces movers stand on.
     walked_on: HashSet<String>,
-    stand_in: Option<(Bounds, HashMap<String, [f32; 3]>)>,
+    stand_in: Option<Bounds>,
     detail: Detail,
     dynamic: bool,
 }
@@ -219,19 +217,16 @@ pub struct Model {
 }
 
 impl PropArt {
-    /// The fit of `input`'s art under `layout`; a stand-in tint must be an
-    /// sRGB colour, and the tints must give a `default`.
+    /// The fit of `input`'s art under `layout`, whose prop bindings own colour.
     pub fn new(layout: PropLayout, input: PropInput) -> Result<Self, String> {
-        if let Some(tints) = &input.stand_in_tints {
-            if !tints.contains_key("default") {
-                return Err("presentation.stand_ins.tints needs a default".into());
-            }
-            if let Some((kind, _)) = tints
+        for (kind, binding) in &layout.prop_appearance {
+            if binding
+                .stand_in_tint
                 .iter()
-                .find(|(_, c)| c.iter().any(|v| !(0.0..=1.0).contains(v)))
+                .any(|v| !(0.0..=1.0).contains(v))
             {
                 return Err(format!(
-                    "presentation.stand_ins.tints: {kind} must be [r, g, b] in [0, 1]"
+                    "prop {kind}: appearance.stand_in_tint must be [r, g, b] in [0, 1]"
                 ));
             }
         }
@@ -240,7 +235,6 @@ impl PropArt {
             appearances,
             wrecks: unit_wrecks,
             stand_in,
-            stand_in_tints,
             family,
             detail,
             dynamic,
@@ -252,10 +246,7 @@ impl PropArt {
             .filter(|k| !blocking.contains(k))
             .cloned()
             .collect();
-        let stand_in = stand_in.zip(stand_in_tints).map(|(corners, tints)| {
-            let tints = tints.into_iter().map(|(k, c)| (k, linear(c))).collect();
-            (corners.bounds(), tints)
-        });
+        let stand_in = stand_in.map(|corners| corners.bounds());
         let mut art = PropArt {
             source,
             candidates: Vec::new(),
@@ -404,13 +395,9 @@ impl PropArt {
     /// kind with no art, none for a kind neither draws.
     pub fn fit(&self, b: &PropBox, authored: Option<f64>, looks: &mut Looks, out: &mut Vec<Model>) {
         let Some(c) = self.choose(b) else {
-            if let (true, Some((size, tints))) = (self.stands_in(&b.kind), &self.stand_in) {
+            if let (true, Some(size)) = (self.stands_in(&b.kind), &self.stand_in) {
                 let [hx, hy, hz] = b.half;
-                let tint = tints
-                    .get(&b.kind)
-                    .or_else(|| tints.get("default"))
-                    .copied()
-                    .unwrap_or([1.0; 3]);
+                let tint = linear(self.layout.prop_appearance[&b.kind].stand_in_tint);
                 let look = looks.intern(STAND_IN_KIT, STAND_IN_MODULE, DRAWS_PROP);
                 let scale = [2.0 * hx, 2.0 * hy, 2.0 * hz];
                 out.push(placed(look, b, 0.0, scale, 0.0, tint, *size));

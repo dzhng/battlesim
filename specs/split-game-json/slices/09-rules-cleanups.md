@@ -94,3 +94,37 @@ Then re-bless with `BLESS_PARITY` and `UPDATE_RECORDS`, and rerun unflagged.
 
 **Would change this slice:** any battle digest moving. Stop and find the
 cause; it is a bug in the move.
+
+## Done — 2026-10-29
+
+All seven changes landed without a battle-outcome change. The final slice-01
+probe matches all 77 manifest files byte for byte, including all 69 composed
+shaders. All six native plates are byte-identical, and native/browser population
+counts pass. The two-seed balance sample retains both battle digests; helicopter
+routing, menu-reel event logs, poses, sound and effects remain unchanged.
+
+The prerequisite admission regression was fixed first by completing the frozen
+generation rules, preserving their physical values and output identities. Full
+rules admission remains the one entry contract; a second physical-only admission
+reader would duplicate it. Frozen rule shapes were migrated in place with
+`/Users/server/dev/battlesim/throwaway/split-game-json/scripts/rewrite-rules-shape.mjs`;
+only the named catalog/parity/record owners were re-blessed, then checked
+unflagged. Seven successful generation cases move their config-dependent output
+hashes; the other ten corpus cases stay unchanged.
+
+Decisions: `contract::limits` owns explicit hull and air-speed bounds; resolved
+weapons keep their computed range, and encounter patches strip computed ranges
+before re-resolution. Per the user's decision, every ground-hull appearance owns
+`track_gauge` in the source asset catalog and its runtime catalog, with missing
+gauges refused (including faction looks); model binaries were not rebaked.
+Stand-in colours are required prop appearance data, including explicit former
+default colours.
+
+Correction: the two saved generated maps retain their historical layout-16/presets-18 `config_hash` pins; these are provenance, and no reader compares them against current rules.
+
+Focused contract, simulation, map-generation, browser, presentation and shader
+ABI checks pass, as do the Wasm build, typecheck, formatting, lint, clippy and
+source-size ratchet. The broader simulation run completed its stress test and
+found seven stale fixture/reader assertions; all seven were corrected and rerun
+successfully in focused suites. The full repository run remains slice 16's gate.
+An unrelated stale admission CLI error-path assertion was corrected separately.

@@ -3,8 +3,7 @@
 // physics (`contract::catalog::UnitType::vehicle_class`, carried by the view
 // as `vehicle_class`; its derivation is tested there), never its unit id.
 // The classes' rows are here: each ground class any catalog fields has its
-// own engine sound and track gauge, and each weight of airframe its rotor.
-import { presentationSettings } from "@web/presentationSettings";
+// own engine sound, and each weight of airframe its rotor.
 import { expect, test } from "vitest";
 import { gameAudio } from "@apps/battle-lab/src/soundFeed";
 import { nodeCatalogSet } from "@web/battle/catalog/node";
@@ -16,8 +15,7 @@ test("the view carries each type's class: a vehicle's from its physics, none for
   expect(of("test_rifle")).toBeNull();
 });
 
-test("every ground vehicle class the game fields has its own engine sound and track gauge", async () => {
-  const gauges = presentationSettings.pose.gauge as Record<string, number>;
+test("every ground vehicle class the game fields has its own engine sound", async () => {
   const classes = new Set<string>();
   for (const set of ["game", "capture", "test"] as const)
     for (const unit of (await nodeCatalogSet(set)).units.view.units)
@@ -26,7 +24,6 @@ test("every ground vehicle class the game fields has its own engine sound and tr
   expect(classes.size).toBeGreaterThan(0);
   for (const cls of classes) {
     expect(gameAudio.vehicles[cls], cls).toBeDefined();
-    expect(gauges[cls], cls).toBeDefined();
   }
 });
 
