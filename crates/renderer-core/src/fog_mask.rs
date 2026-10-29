@@ -55,18 +55,21 @@ fn screen(
 /// Build screen bindings once; the current canonical look decides which draw.
 pub fn fog_mask(
     device: &Device,
+    queue: &Queue,
     pipelines: &Pipelines,
     targets: &Targets,
     record: &FogLook,
 ) -> FogMaskResources {
     let look = crate::buffer(
         device,
+        queue,
         "fog-look",
         BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         bytemuck::bytes_of(record),
     );
     let view = crate::buffer(
         device,
+        queue,
         "fog-mask-view",
         BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         &[0; VIEW_BYTES],

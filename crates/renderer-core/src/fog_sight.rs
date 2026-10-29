@@ -37,11 +37,17 @@ struct Grown {
 
 impl Grown {
     /// Starts at `record` bytes: a storage binding holds at least one.
-    fn new(device: &Device, label: &'static str, usage: BufferUsages, record: usize) -> Self {
+    fn new(
+        device: &Device,
+        queue: &Queue,
+        label: &'static str,
+        usage: BufferUsages,
+        record: usize,
+    ) -> Self {
         let usage = usage | BufferUsages::COPY_DST;
         Self {
             label,
-            buffer: buffer(device, label, usage, &vec![0; record.max(16)]),
+            buffer: buffer(device, queue, label, usage, &vec![0; record.max(16)]),
             usage,
         }
     }
@@ -138,19 +144,21 @@ fn wholes_texture(device: &Device, rows: u32) -> Texture {
 impl FogSightResources {
     /// An initially clear sight owner. Install ground heights before uploading
     /// active sight, or use `with_heights` to share the ground's own buffer.
-    pub fn new(device: &Device, pipelines: &Pipelines, depth: &TextureView) -> Self {
+    pub fn new(device: &Device, queue: &Queue, pipelines: &Pipelines, depth: &TextureView) -> Self {
         let heights = buffer(
             device,
+            queue,
             "fog-heights",
             BufferUsages::STORAGE | BufferUsages::COPY_DST,
             &[0; 16],
         );
-        Self::with_heights(device, pipelines, depth, &heights)
+        Self::with_heights(device, queue, pipelines, depth, &heights)
     }
 
     /// Sight over the ground's height pages, culled against the shared depth.
     pub fn with_heights(
         device: &Device,
+        queue: &Queue,
         pipelines: &Pipelines,
         depth: &TextureView,
         heights: &Buffer,
@@ -158,16 +166,17 @@ impl FogSightResources {
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
         let params = buffer(
             device,
+            queue,
             "fog-params",
             uniform,
             bytemuck::bytes_of(&FogParams::default()),
         );
         let layers = LAYERS
             .iter()
-            .map(|l| buffer(device, "fog-layer", uniform, bytemuck::cast_slice(l)))
+            .map(|l| buffer(device, queue, "fog-layer", uniform, bytemuck::cast_slice(l)))
             .collect();
         // Scenes without player marks keep an empty paint until one is bound.
-        let paint_style = buffer(device, "fog-paint-style", uniform, &[0; 32]);
+        let paint_style = buffer(device, queue, "fog-paint-style", uniform, &[0; 32]);
         let paint = device
             .create_texture(&TextureDescriptor {
                 label: Some("fog-paint"),
@@ -194,25 +203,27 @@ impl FogSightResources {
             depth: depth.clone(),
             eyes: Grown::new(
                 device,
+                queue,
                 "fog-eyes",
                 BufferUsages::STORAGE,
                 size_of::<FogEye>(),
             ),
-            foliage: Grown::new(device, "fog-foliage", BufferUsages::STORAGE, 16),
+            foliage: Grown::new(device, queue, "fog-foliage", BufferUsages::STORAGE, 16),
             occluders: Grown::new(
                 device,
+                queue,
                 "fog-occluders",
                 BufferUsages::STORAGE,
                 size_of::<FogBox>(),
             ),
-            rebuild: Grown::new(device, "fog-rebuild", BufferUsages::STORAGE, 16),
-            items: Grown::new(device, "fog-whole-items", BufferUsages::STORAGE, 16),
+            rebuild: Grown::new(device, queue, "fog-rebuild", BufferUsages::STORAGE, 16),
+            items: Grown::new(device, queue, "fog-whole-items", BufferUsages::STORAGE, 16),
             maps: storage(device, "fog-maps", 16, BufferUsages::empty()),
             terrain_maps: storage(device, "fog-terrain-maps", 16, BufferUsages::empty()),
             map_words: [0, 0],
             wholes: wholes_texture(device, 1),
             flags: storage(device, "fog-whole-flags", 1024, copy),
-            whole_uniform: buffer(device, "fog-whole", uniform, &[0; 16]),
+            whole_uniform: buffer(device, queue, "fog-whole", uniform, &[0; 16]),
             lists: storage(device, "fog-tile-lists", 16, BufferUsages::empty()),
             counts: storage(device, "fog-tile-counts", 16, copy),
             tiles: [0; 3],

@@ -52,6 +52,7 @@ fn bind(device: &Device, layout: &BindGroupLayout, resources: &[BindingResource<
 
 pub fn new(
     device: &Device,
+    queue: &Queue,
     pipelines: &Pipelines,
     targets: &Targets,
     glow: &[u8],
@@ -59,6 +60,7 @@ pub fn new(
 ) -> OverlayResources {
     let glow = crate::buffer(
         device,
+        queue,
         "overlay-glow",
         BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         glow,
@@ -103,6 +105,7 @@ pub fn new(
     // Paint inspection reads the stored mark itself, with no halo or lighting.
     let no_glow = crate::buffer(
         device,
+        queue,
         "paint-no-glow",
         BufferUsages::UNIFORM,
         bytemuck::cast_slice(&[1.0f32, 0.0, 0.0, 0.0]),

@@ -31,12 +31,15 @@ export function modelAsset(
   bundle: Exclude<Bundle, SkeletonClips>,
   textures = new Map<string, Uint8Array>(),
 ): ModelAsset {
-  const split = splitTextures(bundle);
   return {
     name,
-    bundle: split.content,
-    textureIds: split.textures.map((texture) => texture.id),
-    textureBytes: split.textures.map((texture) => {
+    // Parsed art is the durable browser source; encoded transport is borrowed
+    // by admission, rather than retained beside both parsed and Rust copies.
+    get bundle() {
+      return splitTextures(bundle).content;
+    },
+    textureIds: bundle.textures.map((texture) => texture.id),
+    textureBytes: bundle.textures.map((texture) => {
       let bytes = textures.get(texture.id);
       if (!bytes) {
         bytes = encodeTexture(texture);
@@ -69,8 +72,7 @@ export function modelAssetsOf(
         skeletons.set(bundle.skeleton, skeleton);
       }
     }
-    return {
-      ...modelAsset(name, bundle, textures),
+    return Object.assign(modelAsset(name, bundle, textures), {
       skeleton,
       placement: entry && {
         footprint: entry.footprint,
@@ -79,6 +81,6 @@ export function modelAssetsOf(
         paints: entry.paints,
         wreck: entry.wreck,
       },
-    };
+    });
   });
 }

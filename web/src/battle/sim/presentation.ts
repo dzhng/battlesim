@@ -392,7 +392,7 @@ export class ScenePresentation {
 
   /** Prepare a complete source/GPU generation while the active catalog stays live. */
   prepareRendererAppearances(
-    renderer: Pick<Renderer, "prepare_appearances">,
+    renderer: Pick<Renderer, "appearance_draft" | "prepare_appearances">,
     assets: readonly ModelAsset[],
     detail: ModelDetail,
   ): Promise<PreparedAppearances> {

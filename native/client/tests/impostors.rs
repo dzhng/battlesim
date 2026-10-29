@@ -289,6 +289,7 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
     let cold = presentation::shadow::SunShadowFrame::cold(&light);
     let shadow = renderer_core::shadow::ShadowResources::new(
         &gpu.device,
+        &gpu.queue,
         &pipelines,
         16,
         bytemuck::bytes_of(&cold.receiver),
@@ -320,7 +321,7 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
             ..Default::default()
         },
     );
-    let fog = renderer_core::fog::Fog::new(&gpu.device, &pipelines, &targets.depth);
+    let fog = renderer_core::fog::Fog::new(&gpu.device, &gpu.queue, &pipelines, &targets.depth);
     let render = |models: &Models, high: bool| {
         let mut encoder = gpu.device.create_command_encoder(&Default::default());
         {

@@ -16,6 +16,11 @@ a frame that names an unchanged batch has the same meaning on either target.
 Appearance rows route instances rather than own copies of their meshes. Rows
 that select the same authored state/pose share immutable GPU tiers within one
 asset generation; corpse poses remain distinct.
+Decoded bundles also share immutable texture payloads by content identity.
+The library's weak texture index cannot retain retired art. A new source draft
+shares that index without copying canonical bundle ownership, so a late draft
+cannot restore unrelated stale sources. Initial buffer data is queued through
+the common upload owner, avoiding mapped-at-creation transfer copies in browsers.
 Scenery also shares authored tier admission and held-batch routing. The runtime
 reads the ground's kind order and stump meshes from presentation, preserving its
 authority over placement.

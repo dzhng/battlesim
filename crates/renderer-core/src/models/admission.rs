@@ -65,6 +65,7 @@ impl Models {
             let single = |mesh: &Mesh, rigid| {
                 drawable(
                     device,
+                    queue,
                     &label,
                     bundle,
                     &[(mesh, pack_vertices(mesh, *base, rigid, 0))],
@@ -139,7 +140,7 @@ impl Models {
                                             )
                                         })
                                         .collect();
-                                    drawable(device, &label, bundle, &meshes)
+                                    drawable(device, queue, &label, bundle, &meshes)
                                 })
                                 .collect()
                         })
@@ -187,8 +188,9 @@ impl Models {
             materials.resize(MATERIAL_ROWS * 4, 0.0);
         }
         let authored_materials = materials.clone();
-        let materials = upload(
+        let materials = crate::buffer(
             device,
+            queue,
             "model-materials",
             BufferUsages::STORAGE | BufferUsages::COPY_DST,
             bytemuck::cast_slice(&materials),

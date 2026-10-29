@@ -1,11 +1,6 @@
 /** Canonical appearance catalog records and external model pose requests. */
 import type { ModelInstance, ModelPose } from "@packages/battle-renderer/src/models/modelInstances";
-import {
-  AppearanceDraft,
-  type Presentation,
-  type Renderer,
-  type PreparedAppearances,
-} from "@wasm/renderer_browser";
+import { type Presentation, type Renderer, type PreparedAppearances } from "@wasm/renderer_browser";
 import type { ModelAsset } from "../render/modelAssets";
 import {
   APPEARANCE_WORDS,
@@ -82,12 +77,12 @@ export function readAppearanceRows(
 
 /** Transport complete appearance facts without changing the active catalog. */
 export function prepareAppearances(
-  renderer: Pick<Renderer, "prepare_appearances">,
+  renderer: Pick<Renderer, "appearance_draft" | "prepare_appearances">,
   presentation: Presentation,
   assets: readonly ModelAsset[],
   detail: ModelDetail,
 ): Promise<PreparedAppearances> {
-  const draft = new AppearanceDraft(JSON.stringify(detail));
+  const draft = renderer.appearance_draft(JSON.stringify(detail));
   try {
     for (const asset of assets) {
       if (asset.placement) draft.set_placement(asset.name, JSON.stringify(asset.placement));

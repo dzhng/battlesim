@@ -10,14 +10,20 @@ pub(super) struct Mesh {
 }
 
 impl Mesh {
-    fn new(device: &Device, vertices: Vec<f32>) -> Self {
+    fn new(device: &Device, queue: &Queue, vertices: Vec<f32>) -> Self {
         let bytes = if vertices.is_empty() {
             &[0; 40]
         } else {
             bytemuck::cast_slice(&vertices)
         };
         Self {
-            buffer: renderer_core::buffer(device, "player-geometry", BufferUsages::VERTEX, bytes),
+            buffer: renderer_core::buffer(
+                device,
+                queue,
+                "player-geometry",
+                BufferUsages::VERTEX,
+                bytes,
+            ),
             vertices,
         }
     }
@@ -40,13 +46,13 @@ pub(super) struct PlayerMeshes {
 }
 
 impl PlayerMeshes {
-    pub(super) fn new(device: &Device) -> Self {
+    pub(super) fn new(device: &Device, queue: &Queue) -> Self {
         Self {
-            opaque: Mesh::new(device, Vec::new()),
-            translucent: Mesh::new(device, Vec::new()),
-            paint: Mesh::new(device, Vec::new()),
-            marching: Mesh::new(device, Vec::new()),
-            pointer: Mesh::new(device, Vec::new()),
+            opaque: Mesh::new(device, queue, Vec::new()),
+            translucent: Mesh::new(device, queue, Vec::new()),
+            paint: Mesh::new(device, queue, Vec::new()),
+            marching: Mesh::new(device, queue, Vec::new()),
+            pointer: Mesh::new(device, queue, Vec::new()),
         }
     }
 
@@ -64,8 +70,8 @@ impl PlayerMeshes {
         }
     }
 
-    pub(super) fn recreate(&self, device: &Device) -> Self {
-        let copy = |mesh: &Mesh| Mesh::new(device, mesh.vertices.clone());
+    pub(super) fn recreate(&self, device: &Device, queue: &Queue) -> Self {
+        let copy = |mesh: &Mesh| Mesh::new(device, queue, mesh.vertices.clone());
         Self {
             opaque: copy(&self.opaque),
             translucent: copy(&self.translucent),
@@ -112,16 +118,18 @@ impl Renderer {
         marching: &[f32],
     ) -> Result<(), JsValue> {
         validate(&[opaque, translucent, paint, marching])?;
-        self.player_meshes.opaque = Mesh::new(&self.gpu.device, opaque.to_vec());
-        self.player_meshes.translucent = Mesh::new(&self.gpu.device, translucent.to_vec());
-        self.player_meshes.paint = Mesh::new(&self.gpu.device, paint.to_vec());
-        self.player_meshes.marching = Mesh::new(&self.gpu.device, marching.to_vec());
+        self.player_meshes.opaque = Mesh::new(&self.gpu.device, &self.gpu.queue, opaque.to_vec());
+        self.player_meshes.translucent =
+            Mesh::new(&self.gpu.device, &self.gpu.queue, translucent.to_vec());
+        self.player_meshes.paint = Mesh::new(&self.gpu.device, &self.gpu.queue, paint.to_vec());
+        self.player_meshes.marching =
+            Mesh::new(&self.gpu.device, &self.gpu.queue, marching.to_vec());
         Ok(())
     }
 
     pub fn set_pointer_marks(&mut self, pointer: &[f32]) -> Result<(), JsValue> {
         validate(&[pointer])?;
-        self.player_meshes.pointer = Mesh::new(&self.gpu.device, pointer.to_vec());
+        self.player_meshes.pointer = Mesh::new(&self.gpu.device, &self.gpu.queue, pointer.to_vec());
         Ok(())
     }
 }

@@ -171,13 +171,13 @@ pub struct Drawn {
 /// albedo (sRGB), and surface (normal and ORM, linear).
 #[derive(Default)]
 struct Layers {
-    albedo: Vec<Texture>,
-    surface: Vec<Texture>,
+    albedo: Vec<Arc<Texture>>,
+    surface: Vec<Arc<Texture>>,
     at: HashMap<String, usize>,
 }
 
 impl Layers {
-    fn layer(&mut self, t: Option<&Texture>) -> f32 {
+    fn layer(&mut self, t: Option<&Arc<Texture>>) -> f32 {
         let Some(t) = t else { return -1.0 };
         let next = if t.srgb {
             self.albedo.len()
@@ -204,7 +204,7 @@ fn texture_array(
     queue: &Queue,
     label: &str,
     format: TextureFormat,
-    textures: &[Texture],
+    textures: &[Arc<Texture>],
 ) -> TextureView {
     let size = textures.iter().map(|t| t.size).max().unwrap_or(1);
     let levels = size.ilog2() + 1;
@@ -331,13 +331,10 @@ fn order_surfaces(meshes: &[&Mesh], class: &dyn Fn(usize) -> usize) -> (Vec<u32>
     (indices, parts)
 }
 
-fn upload(device: &Device, label: &str, usage: BufferUsages, bytes: &[u8]) -> Buffer {
-    crate::buffer(device, label, usage, bytes)
-}
-
 /// One tier's drawable from `meshes` and their packed vertices.
 fn drawable(
     device: &Device,
+    queue: &Queue,
     label: &str,
     bundle: &Bundle,
     meshes: &[(&Mesh, Vec<u8>)],
@@ -346,9 +343,10 @@ fn drawable(
     let (indices, parts) = order_surfaces(&list, &|m| class_of(&bundle.materials[m]));
     let vertices: Vec<u8> = meshes.iter().flat_map(|(_, v)| v.iter().copied()).collect();
     Drawable {
-        vertices: upload(device, label, BufferUsages::VERTEX, &vertices),
-        indices: upload(
+        vertices: crate::buffer(device, queue, label, BufferUsages::VERTEX, &vertices),
+        indices: crate::buffer(
             device,
+            queue,
             label,
             BufferUsages::INDEX,
             bytemuck::cast_slice(&indices),

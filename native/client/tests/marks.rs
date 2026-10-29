@@ -79,7 +79,11 @@ fn close(actual: [f32; 4], expected: [f32; 4]) {
         "expected {expected:?}, got {actual:?}"
     );
 }
-fn camera(device: &Device, pipelines: &renderer_core::pipelines::Pipelines) -> BindGroup {
+fn camera(
+    device: &Device,
+    queue: &Queue,
+    pipelines: &renderer_core::pipelines::Pipelines,
+) -> BindGroup {
     let record = presentation::records::Camera {
         view_proj: [
             1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
@@ -91,6 +95,7 @@ fn camera(device: &Device, pipelines: &renderer_core::pipelines::Pipelines) -> B
     };
     let uniform = buffer(
         device,
+        queue,
         "test-camera",
         BufferUsages::UNIFORM,
         bytemuck::bytes_of(&record),
@@ -109,12 +114,13 @@ fn empty_display_geometry_preserves_and_resolves_existing_silhouettes() {
     let targets = Targets::new(&gpu.device, [SIZE, SIZE]);
     let overlay = overlay::new(
         &gpu.device,
+        &gpu.queue,
         &pipelines,
         &targets,
         bytemuck::cast_slice(&[1f32, 0.4, 0., 0.]),
         false,
     );
-    let camera = camera(&gpu.device, &pipelines);
+    let camera = camera(&gpu.device, &gpu.queue, &pipelines);
     let mut encoder = gpu.device.create_command_encoder(&Default::default());
     {
         let _pass = encoder.begin_render_pass(&RenderPassDescriptor {
@@ -170,17 +176,19 @@ fn quad(left: f32, right: f32, z: f32, normal: [f32; 3], color: [f32; 4]) -> Vec
     }
     vertices
 }
-fn mesh(device: &Device, words: &[f32]) -> Buffer {
+fn mesh(device: &Device, queue: &Queue, words: &[f32]) -> Buffer {
     buffer(
         device,
+        queue,
         "test-marks",
         BufferUsages::VERTEX,
         bytemuck::cast_slice(words),
     )
 }
-fn identity(device: &Device) -> Buffer {
+fn identity(device: &Device, queue: &Queue) -> Buffer {
     buffer(
         device,
+        queue,
         "test-identity",
         BufferUsages::VERTEX,
         bytemuck::cast_slice(&[0f32, 0., 0., 0., 1., 1., 1., 0.]),
@@ -210,21 +218,23 @@ fn opaque_overlay_writes_only_pregrass_depth_and_translucent_overlay_does_not() 
     let targets = Targets::new(&gpu.device, [SIZE, SIZE]);
     let overlay = overlay::new(
         &gpu.device,
+        &gpu.queue,
         &pipelines,
         &targets,
         bytemuck::cast_slice(&[1f32, 0.4, 0., 0.]),
         false,
     );
-    let camera = camera(&gpu.device, &pipelines);
-    let instances = identity(&gpu.device);
+    let camera = camera(&gpu.device, &gpu.queue, &pipelines);
+    let instances = identity(&gpu.device, &gpu.queue);
     let opaque = mesh(
         &gpu.device,
+        &gpu.queue,
         &quad(-0.9, -0.1, 0.7, [0., 0., 1.], [1., 1., 0., 1.]),
     );
     let mut words = quad(-0.9, -0.1, 0.5, [0., 0., 1.], [0., 1., 1., 1.]);
     words.extend(quad(0.1, 0.9, 0.7, [0., 0., 1.], [1., 0., 0., 1.]));
     words.extend(quad(0.1, 0.9, 0.5, [0., 0., 1.], [0., 0., 1., 1.]));
-    let translucent = mesh(&gpu.device, &words);
+    let translucent = mesh(&gpu.device, &gpu.queue, &words);
     let draw = |vertices, vertex_count| overlay::MeshDraw {
         vertices,
         instances: &instances,
@@ -264,18 +274,20 @@ fn paint_preserves_still_marching_pointer_depth_and_clear_contracts() {
     let pipelines = pipelines::build(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, [SIZE, SIZE]);
     let paint = PaintResources::new(&pipelines);
-    let instances = identity(&gpu.device);
+    let instances = identity(&gpu.device, &gpu.queue);
     let still = mesh(
         &gpu.device,
+        &gpu.queue,
         &quad(-0.9, -0.5, 3., [0.; 3], [1., 0., 0., 1.]),
     );
     let marching = mesh(
         &gpu.device,
+        &gpu.queue,
         &quad(-0.3, 0.1, 3., [0., 1., 1.], [0., 1., 1., 1.]),
     );
     let mut pointer = quad(0.3, 0.7, 3., [0.; 3], [0., 1., 0., 0.5]);
     pointer.extend(quad(0.75, 0.95, 0., [0.; 3], [1., 0., 0., 1.]));
-    let pointer = mesh(&gpu.device, &pointer);
+    let pointer = mesh(&gpu.device, &gpu.queue, &pointer);
     let draw = |vertices, vertex_count| overlay::MeshDraw {
         vertices,
         instances: &instances,
@@ -299,6 +311,7 @@ fn paint_preserves_still_marching_pointer_depth_and_clear_contracts() {
         };
         let uniform = buffer(
             &gpu.device,
+            &gpu.queue,
             "paint-camera",
             BufferUsages::UNIFORM,
             bytemuck::bytes_of(&record),

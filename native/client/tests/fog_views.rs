@@ -140,7 +140,7 @@ fn fog_ground_and_class_views_use_resolved_mask_and_suppress_the_rim() {
         reach_px: 4.,
         ..Default::default()
     };
-    let mut fog = fog_mask::fog_mask(&gpu.device, &pipelines, &targets, &look);
+    let mut fog = fog_mask::fog_mask(&gpu.device, &gpu.queue, &pipelines, &targets, &look);
     for (view, expected) in [
         (
             FogMaskView::Fog,

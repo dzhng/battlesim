@@ -17,16 +17,6 @@ pub struct AppearanceDraft {
 
 #[wasm_bindgen]
 impl AppearanceDraft {
-    #[wasm_bindgen(constructor)]
-    pub fn new(detail: &str) -> Result<AppearanceDraft, JsValue> {
-        Ok(Self {
-            library: Library::default(),
-            facts: BTreeMap::new(),
-            placements: BTreeMap::new(),
-            detail: serde_json::from_str(detail).map_err(js_error)?,
-        })
-    }
-
     /// Placement metadata accompanies mesh bytes in the authored catalog.
     pub fn set_placement(&mut self, name: String, json: &str) -> Result<(), JsValue> {
         self.placements
@@ -66,6 +56,17 @@ pub struct PreparedAppearances {
 
 #[wasm_bindgen]
 impl Renderer {
+    /// Share immutable source textures with the active generation while a new
+    /// catalog is decoded. The draft cannot change live bundle ownership.
+    pub fn appearance_draft(&self, detail: &str) -> Result<AppearanceDraft, JsValue> {
+        Ok(AppearanceDraft {
+            library: self.model_library.empty_generation(),
+            facts: BTreeMap::new(),
+            placements: BTreeMap::new(),
+            detail: serde_json::from_str(detail).map_err(js_error)?,
+        })
+    }
+
     /// Creates a future with owned resources synchronously. Browser frames,
     /// controls, resize and disposal may proceed while real atlas reads await.
     #[wasm_bindgen(unchecked_return_type = "Promise<PreparedAppearances>")]

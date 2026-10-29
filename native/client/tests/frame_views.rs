@@ -107,6 +107,7 @@ fn post_modes_and_paint_inspection_preserve_their_output_contracts() {
     };
     let post = post::new(
         &gpu.device,
+        &gpu.queue,
         &pipelines,
         &targets,
         bytemuck::bytes_of(&bloom),
@@ -163,6 +164,7 @@ fn post_modes_and_paint_inspection_preserve_their_output_contracts() {
     targets.overlay_glow = halo.create_view(&Default::default());
     let overlay = overlay::new(
         &gpu.device,
+        &gpu.queue,
         &pipelines,
         &targets,
         bytemuck::cast_slice(&[4.0f32, 4., 0., 0.]),

@@ -116,6 +116,7 @@ impl Runtime {
         let cold = SunShadowFrame::cold(&config.light);
         let shadow = ShadowResources::new(
             device,
+            queue,
             &pipelines,
             config.light.cascades.map_size,
             bytemuck::bytes_of(&cold.receiver),
@@ -158,6 +159,7 @@ impl Runtime {
         );
         let grass = assets::grass(
             device,
+            queue,
             &pipelines,
             world.assets,
             presentation.catalog(),
@@ -172,7 +174,13 @@ impl Runtime {
             presentation.catalog(),
         )?;
         models.set_high_apart(config.separate_high_air);
-        let scenery = Scenery::new(device, &pipelines, world.assets, presentation.catalog())?;
+        let scenery = Scenery::new(
+            device,
+            queue,
+            &pipelines,
+            world.assets,
+            presentation.catalog(),
+        )?;
         let effects = EffectsResources::new(
             device,
             queue,
@@ -181,14 +189,15 @@ impl Runtime {
             &environment,
             world.effect_sheets,
         );
-        let mut fog = Fog::with_heights(device, &pipelines, &targets.depth, &ground.heights);
+        let mut fog = Fog::with_heights(device, queue, &pipelines, &targets.depth, &ground.heights);
         let paint = config.paint.map(|style| {
             fog.set_paint(device, queue, &targets.paint, &style);
             PaintResources::new(&pipelines)
         });
-        let fog_mask = fog_mask::fog_mask(device, &pipelines, &targets, &config.fog_look);
+        let fog_mask = fog_mask::fog_mask(device, queue, &pipelines, &targets, &config.fog_look);
         let post = post::new(
             device,
+            queue,
             &pipelines,
             &targets,
             bytemuck::bytes_of(&config.light.bloom()),
@@ -197,6 +206,7 @@ impl Runtime {
         let overlay_glow = [0.0; 4];
         let overlays = overlay::new(
             device,
+            queue,
             &pipelines,
             &targets,
             bytemuck::cast_slice(&overlay_glow),
@@ -204,7 +214,7 @@ impl Runtime {
         );
         let xray = config
             .xray_min_hidden_fraction
-            .map(|fraction| XrayResources::new(device, &pipelines, &targets, fraction))
+            .map(|fraction| XrayResources::new(device, queue, &pipelines, &targets, fraction))
             .transpose()?;
         let high_air = config
             .separate_high_air
@@ -446,6 +456,7 @@ impl Runtime {
         self.config.size = size;
         self.post = post::new(
             device,
+            queue,
             &self.pipelines,
             &self.targets,
             bytemuck::bytes_of(&self.config.light.bloom()),
@@ -453,6 +464,7 @@ impl Runtime {
         );
         self.fog_mask = fog_mask::fog_mask(
             device,
+            queue,
             &self.pipelines,
             &self.targets,
             &self.config.fog_look,
@@ -468,6 +480,7 @@ impl Runtime {
         );
         self.overlays = overlay::new(
             device,
+            queue,
             &self.pipelines,
             &self.targets,
             bytemuck::cast_slice(&self.overlay_glow),

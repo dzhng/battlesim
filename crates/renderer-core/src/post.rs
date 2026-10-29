@@ -54,6 +54,7 @@ fn texture(device: &Device, label: &str, size: [u32; 2]) -> TextureView {
 
 pub fn new(
     device: &Device,
+    queue: &Queue,
     pipelines: &Pipelines,
     targets: &Targets,
     bloom_bytes: &[u8],
@@ -68,6 +69,7 @@ pub fn new(
     let uniform = |label, bytes: &[u8]| {
         crate::buffer(
             device,
+            queue,
             label,
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             bytes,

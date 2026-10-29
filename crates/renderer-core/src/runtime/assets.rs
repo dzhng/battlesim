@@ -59,9 +59,10 @@ impl Runtime {
         }
         let view = catalog.view(presentation)?;
         let models = Models::new(device, queue, &self.pipelines, library, view)?;
-        let scenery = Scenery::new(device, &self.pipelines, library, view)?;
+        let scenery = Scenery::new(device, queue, &self.pipelines, library, view)?;
         let grass = grass(
             device,
+            queue,
             &self.pipelines,
             library,
             view,
@@ -114,6 +115,7 @@ impl Runtime {
 
 pub(super) fn grass(
     device: &Device,
+    queue: &Queue,
     pipelines: &Pipelines,
     library: &impl BundleSource,
     catalog: CatalogView<'_>,
@@ -134,6 +136,7 @@ pub(super) fn grass(
     )?;
     Ok(Some(Grass::from_data(
         device,
+        queue,
         pipelines,
         heights,
         GrassData {

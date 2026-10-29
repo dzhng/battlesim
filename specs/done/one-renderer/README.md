@@ -127,9 +127,11 @@ with cache disabled and no overlapping compilation from this task. They measure
 application readiness over loopback, not actual display presentation or external
 network latency. The final source generation, artifact identities, all repeats
 and limitations live in [research](research.md). Startup and long-battle peak
-memory are separate measurements. The shared browser retains decoded model data
-in WASM; its linear-memory capacity is substantially higher than the previous
-browser's presentation-only module.
+memory are separate measurements. [Whole-browser memory](memory.md) compares
+the browser, GPU process, pages and workers before/after the port and subsequent
+memory fixes. Its process totals are the primary memory result; comparing only
+the old presentation WASM with the shared renderer WASM misses the old path's
+JavaScript art and GPU allocations.
 
 ## Pitfalls worth retaining
 

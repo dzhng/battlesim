@@ -153,6 +153,7 @@ impl Renderer {
     ) -> Result<Renderer, JsValue> {
         gpu.ensure_live()?;
         let device = &gpu.device;
+        let queue = &gpu.queue;
         let surface = gpu
             .instance
             .create_surface(SurfaceTarget::Canvas(canvas.clone()))
@@ -199,9 +200,10 @@ impl Renderer {
         }
         gpu.ensure_live()?;
         let display_sampler = device.create_sampler(&SamplerDescriptor::default());
-        let player_meshes = geometry::PlayerMeshes::new(device);
+        let player_meshes = geometry::PlayerMeshes::new(device, queue);
         let overlay_instances = renderer_core::buffer(
             device,
+            queue,
             "overlay-instance",
             BufferUsages::VERTEX,
             bytemuck::cast_slice(&[0.0f32, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0]),

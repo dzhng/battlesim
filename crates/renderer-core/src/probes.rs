@@ -149,6 +149,7 @@ impl FogProbes {
             .collect();
         let input = buffer(
             device,
+            queue,
             "fog-probe-points",
             BufferUsages::STORAGE,
             bytemuck::cast_slice(&records),
@@ -193,6 +194,7 @@ impl FogProbes {
         check_storage(device, "fog-shape-rows", rows.len() as u64 * 16)?;
         let input = buffer(
             device,
+            queue,
             "fog-shape-rows",
             BufferUsages::STORAGE,
             bytemuck::cast_slice(rows),

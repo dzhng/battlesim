@@ -3,8 +3,8 @@
 use presentation::assets::{Container, View, BUNDLE};
 use serde::Deserialize;
 use serde_json::Value;
-use std::collections::BTreeMap;
-use std::sync::Arc;
+use std::collections::{BTreeMap, HashSet};
+use std::sync::{Arc, Weak};
 
 type Result<T> = std::result::Result<T, String>;
 
@@ -17,6 +17,7 @@ pub trait BundleSource {
 #[derive(Clone, Default)]
 pub struct Library {
     bundles: BTreeMap<String, Arc<Bundle>>,
+    textures: BTreeMap<String, Weak<Texture>>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -105,7 +106,7 @@ pub enum Shape {
 pub struct Bundle {
     pub shape: Shape,
     pub materials: Vec<Material>,
-    pub textures: Vec<Texture>,
+    pub textures: Vec<Arc<Texture>>,
 }
 
 /// A bundle's typed arrays, read from its content's `{"$view": i}`s.
@@ -172,6 +173,17 @@ fn nodes(views: &Views, list: &Value) -> Result<Vec<Node>> {
 /// Decode a bundle and its ordered texture payloads once, through the same
 /// reader for native runtime files and browser fetches.
 pub fn decode(name: &str, bundle_bytes: &[u8], textures: &[(&str, &[u8])]) -> Result<Bundle> {
+    decode_with(name, bundle_bytes, textures, |id, bytes| {
+        texture_bytes(id, bytes).map(Arc::new)
+    })
+}
+
+fn decode_with(
+    name: &str,
+    bundle_bytes: &[u8],
+    textures: &[(&str, &[u8])],
+    mut texture: impl FnMut(&str, &[u8]) -> Result<Arc<Texture>>,
+) -> Result<Bundle> {
     let what = format!("bundle {name}");
     let views = Views::parse(bundle_bytes, BUNDLE, &what)?;
     let c = &views.content;
@@ -186,7 +198,7 @@ pub fn decode(name: &str, bundle_bytes: &[u8], textures: &[(&str, &[u8])]) -> Re
         serde_json::from_value(c["materials"].clone()).map_err(|e| fail(e.to_string()))?;
     let textures = textures
         .iter()
-        .map(|(id, bytes)| texture_bytes(id, bytes))
+        .map(|(id, bytes)| texture(id, bytes))
         .collect::<Result<Vec<_>>>()?;
     for m in &materials {
         if m.textures.values().any(|&t| t >= textures.len()) {
@@ -201,14 +213,26 @@ pub fn decode(name: &str, bundle_bytes: &[u8], textures: &[(&str, &[u8])]) -> Re
 }
 
 impl Library {
+    /// A source draft shares immutable texture payloads without carrying stale
+    /// bundle replacements over a catalog committed while the draft is filled.
+    pub fn empty_generation(&self) -> Self {
+        Self {
+            bundles: BTreeMap::new(),
+            textures: self.textures.clone(),
+        }
+    }
+
     /// Retained immutable sources share payload ownership while a replacement
     /// is staged and while admission reads them.
     pub fn replace_with(&mut self, replacements: Self) {
         self.bundles.extend(replacements.bundles);
+        self.textures.extend(replacements.textures);
     }
 
     pub fn retain(&mut self, mut keep: impl FnMut(&str) -> bool) {
         self.bundles.retain(|name, _| keep(name));
+        self.textures
+            .retain(|_, texture| texture.strong_count() > 0);
     }
 
     pub fn from_bundle(name: &str, bytes: &[u8], textures: &[(&str, &[u8])]) -> Result<Self> {
@@ -223,8 +247,16 @@ impl Library {
         bytes: &[u8],
         textures: &[(&str, &[u8])],
     ) -> Result<()> {
-        self.bundles
-            .insert(name.to_owned(), Arc::new(decode(name, bytes, textures)?));
+        let cache = &mut self.textures;
+        let bundle = decode_with(name, bytes, textures, |id, bytes| {
+            if let Some(texture) = cache.get(id).and_then(Weak::upgrade) {
+                return Ok(texture);
+            }
+            let texture = Arc::new(texture_bytes(id, bytes)?);
+            cache.insert(id.to_owned(), Arc::downgrade(&texture));
+            Ok(texture)
+        })?;
+        self.bundles.insert(name.to_owned(), Arc::new(bundle));
         Ok(())
     }
 
@@ -288,6 +320,7 @@ impl Library {
     /// Decoded mesh and texture array payloads retained for device recreation.
     /// Excludes allocator, container and string metadata overhead.
     pub fn payload_bytes(&self) -> usize {
+        let mut textures = HashSet::new();
         fn mesh_bytes(mesh: &Mesh) -> usize {
             size_of_val(mesh.positions.as_slice())
                 + size_of_val(mesh.normals.as_slice())
@@ -323,6 +356,7 @@ impl Library {
                     + bundle
                         .textures
                         .iter()
+                        .filter(|texture| textures.insert(Arc::as_ptr(texture)))
                         .flat_map(|texture| texture.levels.iter())
                         .map(|level| level.len())
                         .sum::<usize>()

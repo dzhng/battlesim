@@ -267,18 +267,22 @@ impl DerefMut for TargetOwner {
 }
 
 /// A buffer holding `bytes` from the start.
-pub fn buffer(device: &Device, label: &str, usage: BufferUsages, bytes: &[u8]) -> Buffer {
+pub fn buffer(
+    device: &Device,
+    queue: &Queue,
+    label: &str,
+    usage: BufferUsages,
+    bytes: &[u8],
+) -> Buffer {
     let buffer = device.create_buffer(&BufferDescriptor {
         label: Some(label),
         size: bytes.len() as u64,
-        usage,
-        mapped_at_creation: true,
+        usage: usage | BufferUsages::COPY_DST,
+        mapped_at_creation: false,
     });
-    buffer
-        .get_mapped_range_mut(..)
-        .expect("mapped at creation")
-        .copy_from_slice(bytes);
-    buffer.unmap();
+    if !bytes.is_empty() {
+        queue.write_buffer(&buffer, 0, bytes);
+    }
     buffer
 }
 

@@ -303,6 +303,7 @@ fn xray_preserves_occlusion_gate_information_colors_and_frame_reset() {
     };
     let uniform = buffer(
         &gpu.device,
+        &gpu.queue,
         "test-camera",
         BufferUsages::UNIFORM,
         bytemuck::bytes_of(&camera),
@@ -313,7 +314,7 @@ fn xray_preserves_occlusion_gate_information_colors_and_frame_reset() {
         "test-camera",
         &[uniform.as_entire_binding()],
     );
-    let mut xray = XrayResources::new(&gpu.device, &pipelines, &targets, 0.75).unwrap();
+    let mut xray = XrayResources::new(&gpu.device, &gpu.queue, &pipelines, &targets, 0.75).unwrap();
     xray.prepare(&gpu.device, &models);
     let pixels = draw(&gpu, &pipelines, &targets, &models, &xray, &camera);
     close(

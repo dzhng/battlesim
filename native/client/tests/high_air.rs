@@ -210,6 +210,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
     let cold = SunShadowFrame::cold(&light);
     let shadow = ShadowResources::new(
         &gpu.device,
+        &gpu.queue,
         &pipelines,
         16,
         bytemuck::bytes_of(&cold.receiver),
@@ -240,9 +241,10 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
             ..Default::default()
         },
     );
-    let fog = Fog::new(&gpu.device, &pipelines, &targets.depth);
+    let fog = Fog::new(&gpu.device, &gpu.queue, &pipelines, &targets.depth);
     let post = post::new(
         &gpu.device,
+        &gpu.queue,
         &pipelines,
         &targets,
         bytemuck::bytes_of(&light.bloom()),

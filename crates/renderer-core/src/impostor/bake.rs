@@ -87,6 +87,7 @@ impl BakeRequest {
                 let camera = camera::camera(center, radius, yaw, pitch);
                 let uniform = crate::buffer(
                     device,
+                    queue,
                     "impostor-camera",
                     BufferUsages::UNIFORM,
                     bytemuck::bytes_of(&camera),
@@ -106,6 +107,7 @@ impl BakeRequest {
         };
         let instance = crate::buffer(
             device,
+            queue,
             "impostor-model",
             BufferUsages::VERTEX,
             bytemuck::bytes_of(&instance),

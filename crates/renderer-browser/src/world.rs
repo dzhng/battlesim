@@ -14,7 +14,7 @@ impl Renderer {
             .as_mut()
             .ok_or_else(|| js_error("install presentation before replacing world props"))?;
         self.geometry = None;
-        runtime.set_world_props(&self.gpu.device, words);
+        runtime.set_world_props(&self.gpu.device, &self.gpu.queue, words);
         self.geometry = Some(runtime.geometry());
         Ok(())
     }

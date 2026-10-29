@@ -14,8 +14,8 @@ pub struct WorldGeometry {
 
 impl super::Runtime {
     /// Keep recovery bytes and the drawn geometry under the same lifetime.
-    pub fn set_world_props(&mut self, device: &wgpu::Device, words: Vec<f32>) {
-        self.ground.set_skirt(device, &words);
+    pub fn set_world_props(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, words: Vec<f32>) {
+        self.ground.set_skirt(device, queue, &words);
         std::sync::Arc::make_mut(&mut self.geometry).skirt = words;
     }
 }

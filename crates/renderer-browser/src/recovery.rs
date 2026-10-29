@@ -22,7 +22,9 @@ impl Renderer {
         replacement.geometry = self.geometry.clone();
         replacement.effect_sheets = self.effect_sheets.clone();
         replacement.overlay_glow = self.overlay_glow;
-        replacement.player_meshes = self.player_meshes.recreate(&replacement.gpu.device);
+        replacement.player_meshes = self
+            .player_meshes
+            .recreate(&replacement.gpu.device, &replacement.gpu.queue);
         *self = replacement;
         Ok(())
     }

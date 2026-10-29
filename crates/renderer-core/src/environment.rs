@@ -143,6 +143,7 @@ fn pmrem(
         .map(|lod| {
             buffer(
                 device,
+                queue,
                 "pmrem-planes",
                 BufferUsages::VERTEX,
                 bytemuck::cast_slice(&pmrem_planes(size(lod))),
@@ -190,6 +191,7 @@ fn pmrem(
     let filter = |source: &TextureView, params: [f32; 4]| {
         let params = buffer(
             device,
+            queue,
             "pmrem-params",
             BufferUsages::UNIFORM,
             bytemuck::cast_slice(&params),
@@ -244,6 +246,7 @@ impl Environment {
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
         let camera_buffer = buffer(
             device,
+            queue,
             "camera",
             uniform,
             bytemuck::bytes_of(&CameraRecord::default()),
@@ -260,8 +263,20 @@ impl Environment {
         image.extend_from_slice(bytemuck::cast_slice(bytemuck::bytes_of(sun)));
         image[SUN_AT / 4 + 8] = top_mip as f32;
         image.extend_from_slice(bytemuck::cast_slice(bytemuck::bytes_of(aerial)));
-        let data = buffer(device, "environment", uniform, bytemuck::cast_slice(&image));
-        let cast_lights = buffer(device, "cast-lights", uniform, &[0; CAST_LIGHTS_BYTES]);
+        let data = buffer(
+            device,
+            queue,
+            "environment",
+            uniform,
+            bytemuck::cast_slice(&image),
+        );
+        let cast_lights = buffer(
+            device,
+            queue,
+            "cast-lights",
+            uniform,
+            &[0; CAST_LIGHTS_BYTES],
+        );
         let pmrem = pmrem.create_view(&Default::default());
         let dfg = texture(
             device,

@@ -32,11 +32,12 @@ struct Mesh {
 }
 
 impl Mesh {
-    fn new(device: &Device, label: &str, words: &[f32]) -> Self {
+    fn new(device: &Device, queue: &Queue, label: &str, words: &[f32]) -> Self {
         Self {
             buffer: (!words.is_empty()).then(|| {
                 buffer(
                     device,
+                    queue,
                     label,
                     BufferUsages::VERTEX,
                     bytemuck::cast_slice(words),
@@ -49,9 +50,9 @@ impl Mesh {
         }
     }
 
-    fn partitioned(device: &Device, label: &str, words: &[f32]) -> Self {
+    fn partitioned(device: &Device, queue: &Queue, label: &str, words: &[f32]) -> Self {
         let partition = std::sync::Arc::new(TerrainPartition::new(words, CELL_M));
-        let mut mesh = Self::new(device, label, partition.vertices());
+        let mut mesh = Self::new(device, queue, label, partition.vertices());
         mesh.partition = Some(partition);
         mesh.view.clear();
         mesh
@@ -131,8 +132,8 @@ pub struct Ground {
 impl Ground {
     /// Replace external world-face geometry without rebuilding terrain tables,
     /// targets or appearance resources. Selection is prepared on the next draw.
-    pub fn set_skirt(&mut self, device: &Device, words: &[f32]) {
-        self.skirt = Mesh::partitioned(device, "skirt", words);
+    pub fn set_skirt(&mut self, device: &Device, queue: &Queue, words: &[f32]) {
+        self.skirt = Mesh::partitioned(device, queue, "skirt", words);
     }
 
     pub fn from_data(
@@ -144,6 +145,7 @@ impl Ground {
         let material = TerrainResources::from_upload(device, queue, pipelines, data.material);
         let heights = buffer(
             device,
+            queue,
             "terrain-heights",
             BufferUsages::STORAGE,
             bytemuck::cast_slice(data.heights),
@@ -151,10 +153,10 @@ impl Ground {
         let map_box = map_box(data.terrain);
         // Coarse spatial batches avoid one draw per terrain cell while allowing
         // the camera and each shadow cascade to exclude distant ground.
-        let terrain = Mesh::partitioned(device, "terrain", data.terrain);
+        let terrain = Mesh::partitioned(device, queue, "terrain", data.terrain);
         let terrain_partition = terrain.partition.as_ref().unwrap().clone();
-        let skirt = Mesh::partitioned(device, "skirt", data.skirt);
-        let water = Mesh::partitioned(device, "water", data.water);
+        let skirt = Mesh::partitioned(device, queue, "skirt", data.skirt);
+        let water = Mesh::partitioned(device, queue, "water", data.water);
         Self {
             submissions: Default::default(),
             material,
@@ -163,10 +165,11 @@ impl Ground {
             terrain,
             terrain_partition,
             skirt,
-            backdrop: Mesh::new(device, "backdrop", data.backdrop),
+            backdrop: Mesh::new(device, queue, "backdrop", data.backdrop),
             water,
             identity: buffer(
                 device,
+                queue,
                 "identity",
                 BufferUsages::VERTEX,
                 bytemuck::cast_slice(&IDENTITY),

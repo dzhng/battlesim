@@ -117,6 +117,7 @@ impl Models {
             .ok_or("impostor appearance has no finest mesh")?;
         let identity = crate::buffer(
             device,
+            queue,
             "impostor-palette",
             BufferUsages::STORAGE,
             bytemuck::cast_slice(&rest.palette),

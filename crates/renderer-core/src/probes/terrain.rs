@@ -119,6 +119,7 @@ impl TerrainProbe {
         let output = storage(device, "terrain-query-output", bytes)?;
         let input = crate::buffer(
             device,
+            queue,
             "terrain-query-input",
             BufferUsages::STORAGE,
             bytemuck::cast_slice(rows),

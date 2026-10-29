@@ -83,6 +83,7 @@ fn display_readback_removes_row_padding_swizzles_bgra_and_keeps_the_encoded_fram
     );
     let source = renderer_core::buffer(
         &gpu.device,
+        &gpu.queue,
         "probe-bounds",
         BufferUsages::COPY_SRC,
         &[0; 16],
@@ -150,7 +151,7 @@ fn fog_point_probe_rebuilds_the_same_horizons_that_hide_a_wall_and_enforce_reach
     sight.set_sight(&[], Some(&[])).unwrap();
     sight.clear_sight();
     let targets = Targets::new(&gpu.device, [32, 32]);
-    let mut fog = Fog::new(&gpu.device, &pipelines, &targets.depth);
+    let mut fog = Fog::new(&gpu.device, &gpu.queue, &pipelines, &targets.depth);
     let probes = FogProbes::new(&pipelines);
     let points: [[f32; 3]; 5] = [
         [40.0, 32.0, 0.0],
@@ -381,12 +382,14 @@ fn grass_probes_decode_actual_tier_buffers_and_snapshot_counts_before_a_later_fr
     let pipelines = pipelines::build(&gpu.device).unwrap();
     let heights = renderer_core::buffer(
         &gpu.device,
+        &gpu.queue,
         "probe-flat-ground",
         BufferUsages::STORAGE,
         &[0; 16],
     );
     let mut grass = Grass::from_data(
         &gpu.device,
+        &gpu.queue,
         &pipelines,
         &heights,
         GrassData {

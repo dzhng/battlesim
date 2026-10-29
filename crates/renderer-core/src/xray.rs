@@ -62,6 +62,7 @@ fn groups(
 impl XrayResources {
     pub fn new(
         device: &Device,
+        queue: &Queue,
         pipelines: &Pipelines,
         targets: &Targets,
         minimum_hidden_fraction: f32,
@@ -78,6 +79,7 @@ impl XrayResources {
         // rejected by some production WebGPU adapters.
         let minimum = crate::buffer(
             device,
+            queue,
             "xray-minimum",
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             bytemuck::cast_slice(&[minimum_hidden_fraction, 0.0, 0.0, 0.0]),

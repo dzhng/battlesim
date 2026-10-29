@@ -1,5 +1,9 @@
 # One-renderer research record
 
+[Whole-browser memory](memory.md) owns the later before/after process totals,
+memory reductions and measurement limits. The WASM-only figures below describe
+their frozen historical builds, not current total application memory.
+
 ## Contract and evidence identity
 
 Replace the browser TypeGPU renderer with one Rust `wgpu` runtime shared with

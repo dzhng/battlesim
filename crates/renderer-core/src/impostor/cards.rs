@@ -99,6 +99,7 @@ impl Cards {
         }
         let frames = crate::buffer(
             device,
+            queue,
             "card-frames",
             BufferUsages::STORAGE,
             bytemuck::cast_slice(&frames),
@@ -129,6 +130,7 @@ impl Cards {
         );
         let instances = crate::buffer(
             device,
+            queue,
             "card-instances",
             BufferUsages::VERTEX | BufferUsages::COPY_DST,
             &[0; 256],

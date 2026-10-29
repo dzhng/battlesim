@@ -120,6 +120,7 @@ impl Scenery {
     /// `library`'s bundles; a stump is the presentation's mesh.
     pub fn new(
         device: &Device,
+        queue: &Queue,
         pipelines: &Pipelines,
         library: &impl BundleSource,
         catalog: CatalogView<'_>,
@@ -130,6 +131,7 @@ impl Scenery {
             .map_or_else(Vec::new, |g| g.scenery_kinds());
         Self::from_world(
             device,
+            queue,
             pipelines,
             library,
             &world.appearances,
@@ -145,6 +147,7 @@ impl Scenery {
     #[allow(clippy::too_many_arguments)]
     pub fn from_world<'a>(
         device: &Device,
+        queue: &Queue,
         pipelines: &Pipelines,
         library: &impl BundleSource,
         appearances: &[presentation::records::Appearance],
@@ -156,7 +159,10 @@ impl Scenery {
         let upload = |name: &str, mesh: &[f32]| -> Mesh {
             let bytes = bytemuck::cast_slice(mesh);
             let vertices = (mesh.len() / VERTEX_FLOATS) as u32;
-            (buffer(device, name, BufferUsages::VERTEX, bytes), vertices)
+            (
+                buffer(device, queue, name, BufferUsages::VERTEX, bytes),
+                vertices,
+            )
         };
         let mut tiers: Vec<Vec<Mesh>> = kinds.iter().map(|_| Vec::new()).collect();
         let mut rows = Vec::with_capacity(appearances.len());

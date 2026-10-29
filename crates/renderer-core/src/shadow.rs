@@ -38,6 +38,7 @@ impl ShadowResources {
     /// core deliberately does not depend on the presentation crate.
     pub fn new(
         device: &Device,
+        queue: &Queue,
         pipelines: &Pipelines,
         map_size: u32,
         receiver_bytes: &[u8],
@@ -72,9 +73,9 @@ impl ShadowResources {
             ..Default::default()
         });
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
-        let receiver = buffer(device, "sun-shadow", uniform, receiver_bytes);
+        let receiver = buffer(device, queue, "sun-shadow", uniform, receiver_bytes);
         let cameras: Vec<Buffer> = (0..CASCADES)
-            .map(|_| buffer(device, "sun-caster", uniform, &vec![0; camera_bytes]))
+            .map(|_| buffer(device, queue, "sun-caster", uniform, &vec![0; camera_bytes]))
             .collect();
         let groups = cameras
             .iter()

@@ -6,10 +6,17 @@ use crate::scars::Scars;
 use crate::{bind, buffer};
 use presentation::static_world::ground::Ground;
 
-fn table(device: &Device, label: &str, usage: BufferUsages, bytes: &[u8], record: usize) -> Buffer {
+fn table(
+    device: &Device,
+    queue: &Queue,
+    label: &str,
+    usage: BufferUsages,
+    bytes: &[u8],
+    record: usize,
+) -> Buffer {
     let mut data = bytes.to_vec();
     data.resize(data.len().max(record), 0);
-    buffer(device, label, usage, &data)
+    buffer(device, queue, label, usage, &data)
 }
 
 /// The presentation-owned table bytes consumed by `terrainLayout`.
@@ -36,7 +43,7 @@ pub struct TerrainResources {
     field_texture: bool,
 }
 
-fn tables(device: &Device, upload: TerrainUpload<'_>) -> [Buffer; 5] {
+fn tables(device: &Device, queue: &Queue, upload: TerrainUpload<'_>) -> [Buffer; 5] {
     let storage = BufferUsages::STORAGE;
     // The canonical table excludes the renderer's final view vec4u.
     let mut params = upload.params.to_vec();
@@ -44,21 +51,37 @@ fn tables(device: &Device, upload: TerrainUpload<'_>) -> [Buffer; 5] {
     [
         table(
             device,
+            queue,
             "terrain-params",
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             &params,
             16,
         ),
-        table(device, "terrain-nodes", storage, upload.nodes, 32),
+        table(device, queue, "terrain-nodes", storage, upload.nodes, 32),
         table(
             device,
+            queue,
             "terrain-plots",
             storage | BufferUsages::COPY_DST,
             upload.plots,
             96,
         ),
-        table(device, "terrain-surfaces", storage, upload.surfaces, 32),
-        table(device, "terrain-index", storage, upload.surface_index, 4),
+        table(
+            device,
+            queue,
+            "terrain-surfaces",
+            storage,
+            upload.surfaces,
+            32,
+        ),
+        table(
+            device,
+            queue,
+            "terrain-index",
+            storage,
+            upload.surface_index,
+            4,
+        ),
     ]
 }
 
@@ -69,7 +92,7 @@ impl TerrainResources {
         pipelines: &Pipelines,
         upload: TerrainUpload<'_>,
     ) -> Self {
-        let tables = tables(device, upload);
+        let tables = tables(device, queue, upload);
         let scars = Scars::new(device, queue, bytemuck::cast_slice(upload.scars));
         let layout = pipelines.layout("terrainLayout").clone();
         let group = Self::bind(device, &layout, &tables, &scars);

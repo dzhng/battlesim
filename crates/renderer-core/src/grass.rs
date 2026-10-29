@@ -88,6 +88,7 @@ pub struct Grass {
 impl Grass {
     pub fn from_data(
         device: &Device,
+        queue: &Queue,
         pipelines: &Pipelines,
         heights: &Buffer,
         data: GrassData<'_>,
@@ -97,12 +98,14 @@ impl Grass {
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
         let params = buffer(
             device,
+            queue,
             "grass-params",
             uniform,
             bytemuck::cast_slice(&words),
         );
         let props = buffer(
             device,
+            queue,
             "grass-props",
             storage,
             bytemuck::cast_slice(data.props),
@@ -116,6 +119,7 @@ impl Grass {
         });
         let shapes = buffer(
             device,
+            queue,
             "grass-shapes",
             storage,
             bytemuck::cast_slice(data.shapes),
@@ -151,6 +155,7 @@ impl Grass {
             indices.push((
                 buffer(
                     device,
+                    queue,
                     "grass-indices",
                     BufferUsages::INDEX,
                     bytemuck::cast_slice(&strip),
@@ -161,6 +166,7 @@ impl Grass {
             let tier = [t as u32, first, field::blade_vertices(segments), 0];
             let tier = buffer(
                 device,
+                queue,
                 "grass-tier",
                 BufferUsages::UNIFORM,
                 bytemuck::cast_slice(&tier),

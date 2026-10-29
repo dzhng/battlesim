@@ -3,6 +3,13 @@
 Consolidated against the completed implementation. Verdicts judge architectural
 choices; verification and measurement limits live in research.
 
+The later [memory evidence](memory.md) records a related lifetime decision:
+immutable texels share content identity across bundles and replacement drafts,
+while drafts carry only requested source changes. The index holds weak
+references so it cannot become an independent retention owner. Parsed browser
+art remains the rebuild source; serialized geometry exists only during admission.
+This spends repeat serialization work to remove a permanent duplicate payload.
+
 Review these first: memory measurements describe several different kinds of
 ownership; explicit native timestamp profiling changes pacing; shader composition
 keeps a small custom build step. All final decisions below are judged sound.

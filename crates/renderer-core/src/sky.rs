@@ -20,9 +20,10 @@ pub struct Sky {
     pub lut: TextureView,
 }
 
-fn uniform(device: &Device, label: &str, bytes: &[u8]) -> Buffer {
+fn uniform(device: &Device, queue: &Queue, label: &str, bytes: &[u8]) -> Buffer {
     buffer(
         device,
+        queue,
         label,
         BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         bytes,
@@ -48,8 +49,8 @@ impl Sky {
             view_formats: &[],
         });
         let lut_view = lut.create_view(&Default::default());
-        let light = uniform(device, "sky-light", bytemuck::bytes_of(light));
-        let rays = uniform(device, "sky-rays", &[0; RAYS_BYTES]);
+        let light = uniform(device, queue, "sky-light", bytemuck::bytes_of(light));
+        let rays = uniform(device, queue, "sky-rays", &[0; RAYS_BYTES]);
         let sampler = device.create_sampler(&SamplerDescriptor {
             label: Some("sky"),
             mag_filter: FilterMode::Linear,
