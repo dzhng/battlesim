@@ -312,10 +312,20 @@ Trunk crowns separately own sight-line attenuation. The required
 `sensors.moving_concealment` multiplier applies while a move order is in
 progress; it is at least one, so moving cannot improve concealment.
 
+## Weapon looks
+
+Every weapon's `appearance` names one entry in [presentation](presentation.json).
+[The look reader](../crates/presentation/src/looks.rs) resolves the battle's rows
+through the contract's ordinary inheritance, then supplies sight, kick and sound
+from that one look. Firing recordings and sound levels are explicit; other sound
+parts may use [the mix's](audio.json) default recording. Unknown looks fail at
+fielding, and unused looks fail the shipped-fixture check. Changing which look a
+weapon names changes battle identity; tuning that look does not.
+
 ## Sound catalog
 
 [The sound catalog](sounds.json) owns source receipts, exact clip crops, reusable
-recipes and exact unit/mount assignments. A stored recording may remain unused;
+recipes. A stored recording may remain unused;
 a reload clip does not create a reload event. [Battle audio](../packages/battle-audio/README.md)
 owns preparation and source loudness, while [the sound workbench](../apps/sound-workbench/README.md)
 owns audition and reviewed edits. Gameplay ranges, cadence and hearing remain with

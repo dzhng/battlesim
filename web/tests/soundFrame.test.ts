@@ -1,3 +1,5 @@
+import { testWeaponLooks } from "./support/weaponLooks";
+import { shippedRules } from "@web/shippedRules";
 // @vitest-environment node
 // The battle's sound at its seam: publications, drawn motion and
 // a presentation clock in, voices on a sink out. Only what the side's
@@ -22,16 +24,29 @@ import {
   type SoundCue,
   type SoundMotion,
   type VoiceSpec,
-  vehicleLoops,
 } from "@packages/battle-audio/src/soundFrame";
-import { synthesize } from "@packages/battle-audio/src/soundBank";
 import { FakeSink, testRecipe } from "./support/soundSink";
 import { standInPresentationRecordings } from "./support/soundStandIns";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 
 const HZ = 30;
 const DT = 1 / HZ;
-const AUDIO = audioMix as unknown as AudioMix;
+const AUDIO: AudioMix = {
+  ...audioMix,
+  effects: {},
+  weapon_defaults: {
+    blast: { near: "explosion", far: "explosion_far" },
+    motor: "motor",
+    impacts: {
+      ...Object.fromEntries(Object.entries(audioMix.impacts).map(([hit, row]) => [hit, row.sound])),
+      ricochet: "ricochet",
+    },
+  },
+};
+const documents = testWeaponLooks();
+const shot = (kind: keyof typeof shippedRules.weapons) =>
+  documents.looks.weapon_looks[shippedRules.weapons[kind].appearance].sound;
+
 const SMOKE = presentationSettings.effects.smoke;
 const COOK_OFF = presentationSettings.effects.cook_off;
 /** When a cook-off's turret lands, seconds after its tick starts: thrown
@@ -65,15 +80,13 @@ function setup(presentation: AudioMix = AUDIO) {
     sources: {},
     clips: {},
     sounds: { ...BASELINES },
-    defaults: {},
-    impacts: {},
-    effects: {},
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   standInPresentationRecordings(catalog, presentation);
   const frame = new SoundFrame(
     {
       tickHz: HZ,
+      ...documents,
       presentation,
       catalog,
       smokeTimes: SMOKE,
@@ -93,28 +106,30 @@ test("a battle prepares the baselines, what is assigned and what its presentatio
   };
   for (const name of ["near", "far", "fallback", "hit", "glance", "replacement", "alarm", "unused"])
     sounds[name] = { ...recipe };
+  const documents = testWeaponLooks(
+    {
+      rifle: { near: "near", far: "far", gain: 1 },
+    },
+    { hull: { rifle: "hit" }, ricochet: { tank_ap: "glance" } },
+  );
+  const selectedMix = { ...AUDIO, effects: { ricochet: "replacement" } };
   const catalog: SoundCatalog = {
     sources: {},
     clips: {},
     sounds,
-    defaults: {
-      rifle: { near: "near", far: "far", gain: 1 },
-      default: { near: "fallback", far: "fallback", gain: 1 },
-    },
-    impacts: { hull: { rifle: "hit" }, ricochet: { tank_ap: "glance" } },
-    effects: { ricochet: "replacement" },
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   standInPresentationRecordings(catalog, AUDIO);
   const prepared = battleSounds({
     tickHz: HZ,
-    presentation: { ...AUDIO, air_alarm: { ...AUDIO.air_alarm, sound: "alarm" } },
+    ...documents,
+    presentation: { ...selectedMix, air_alarm: { ...AUDIO.air_alarm, sound: "alarm" } },
     catalog,
     smokeTimes: SMOKE,
     cookOff: COOK_OFF,
   });
-  expect(prepared).toEqual(expect.arrayContaining(["rifle", "hmg", "near", "far", "fallback"]));
-  expect(prepared).toEqual(expect.arrayContaining(["hit", "glance", "replacement"]));
+  expect(prepared).toEqual(expect.arrayContaining(["rifle", "hmg", "near", "far"]));
+  expect(prepared).toEqual(expect.arrayContaining(["hit", "glance"]));
   // A cue the presentation names directly is prepared like an assigned one.
   expect(prepared).toContain("alarm");
   expect(prepared).not.toContain("unused");
@@ -381,27 +396,27 @@ function heardFrom(listener: Listener, at: number[]) {
 
 test("the side's own shot at the farthest zoom sounds at the floor at least, and far away", () => {
   const at = [200, 300, 1];
-  const shot = AUDIO.shots.rifle;
+  const report = shot("rifle").shot;
   const listener = cameraListener(
     farthestCamera(at) as unknown as Parameters<typeof cameraListener>[0],
     AUDIO.listener_eye_share,
   );
-  const far = heardFrom(listener, at).filter((v) => v.sound === shot.far);
+  const far = heardFrom(listener, at).filter((v) => v.sound === report.far);
   const close = heardFrom({ position: [at[0], at[1] - 5, 6], forward: [0, 1, 0] }, at).filter(
-    (v) => v.sound === shot.near,
+    (v) => v.sound === report.near,
   );
   expect(far.length).toBeGreaterThan(0);
   expect(close.length).toBeGreaterThan(0);
   for (const v of far) {
     // Never quieter than the floor's share of the shot's gain.
-    expect(v.gain).toBeGreaterThanOrEqual(AUDIO.distance.floor * shot.gain - 1e-9);
+    expect(v.gain).toBeGreaterThanOrEqual(AUDIO.distance.floor * report.gain - 1e-9);
     // Coloured far: low-passed well below the near air, a reverb tail, a softened onset.
     expect(v.lowpass).toBeLessThan(AUDIO.air.near_hz / 4);
     expect(v.wet).toBeGreaterThan(0);
     expect(v.attack).toBeGreaterThan(0);
   }
   for (const v of close) {
-    expect(v.gain).toBeCloseTo(shot.gain, 6);
+    expect(v.gain).toBeCloseTo(report.gain, 6);
     expect(v.wet).toBeLessThan(far[0].wet / 10);
     expect(v.lowpass).toBeGreaterThan(far[0].lowpass * 4);
   }
@@ -413,7 +428,7 @@ test("a shot loud at the listener dips the ambience, which recovers once dipped;
   // a rifle never (its whole gain is below it).
   const { sink, frame } = setup({
     ...AUDIO,
-    ambience: { ...AUDIO.ambience, duck, duck_over: AUDIO.shots.rifle.gain * 2 },
+    ambience: { ...AUDIO.ambience, duck, duck_over: shot("rifle").shot.gain * 2 },
   });
   const at = [LISTENER.position[0], LISTENER.position[1] + 5, 1];
   const fire = (kind: string) => (tick: number) => ({
@@ -434,6 +449,14 @@ test("a shot loud at the listener dips the ambience, which recovers once dipped;
 });
 
 test("weapon row choices change reports without changing observed cadence or hidden cues", () => {
+  const documents = testWeaponLooks(
+    {
+      carbine: { near: "crisp", far: "crisp_far", gain: 0.8 },
+      battle_rifle: { near: "heavy", far: "heavy_far", gain: 1 },
+    },
+    {},
+  );
+  const selectedMix = { ...AUDIO, effects: {} };
   const catalog = {
     sources: {},
     clips: {},
@@ -443,18 +466,19 @@ test("weapon row choices change reports without changing observed cadence or hid
         ["crisp", "crisp_far", "heavy", "heavy_far"].map((name) => [name, testRecipe(name)]),
       ),
     },
-    defaults: {
-      carbine: { near: "crisp", far: "crisp_far", gain: 0.8 },
-      battle_rifle: { near: "heavy", far: "heavy_far", gain: 1 },
-    },
-    impacts: {},
-    effects: {},
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   const sink = new FakeSink();
   standInPresentationRecordings(catalog, AUDIO);
   const frame = new SoundFrame(
-    { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog },
+    {
+      tickHz: HZ,
+      ...documents,
+      presentation: selectedMix,
+      smokeTimes: SMOKE,
+      cookOff: COOK_OFF,
+      catalog,
+    },
     sink,
   );
   const shooters = [
@@ -529,6 +553,14 @@ test("a burst recording sounds once per burst, its shots on the gun's launches",
     gain: 1,
     loop: false,
   });
+  const documents = testWeaponLooks(
+    {
+      gunner: { near: "burst", far: "burst_far", gain: 1 },
+      marksman: { near: "single", far: "single_far", gain: 1 },
+    },
+    {},
+  );
+  const selectedMix = { ...AUDIO, effects: {} };
   const catalog = {
     sources: {
       test: {
@@ -549,19 +581,20 @@ test("a burst recording sounds once per burst, its shots on the gun's launches",
       single: testRecipe("single"),
       single_far: testRecipe("single_far"),
     },
-    defaults: {
-      gunner: { near: "burst", far: "burst_far", gain: 1 },
-      marksman: { near: "single", far: "single_far", gain: 1 },
-    },
-    impacts: {},
-    effects: {},
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   } as unknown as SoundCatalog;
   const heard = (kind: string, ticks: number[]) => {
     const sink = new FakeSink();
     standInPresentationRecordings(catalog, AUDIO);
     const frame = new SoundFrame(
-      { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog },
+      {
+        tickHz: HZ,
+        ...documents,
+        presentation: selectedMix,
+        smokeTimes: SMOKE,
+        cookOff: COOK_OFF,
+        catalog,
+      },
       sink,
     );
     run(frame, sink, 1, 70, rifleman(kind, ticks));
@@ -582,6 +615,17 @@ test("a burst recording sounds once per burst, its shots on the gun's launches",
 });
 
 test("a hull's mounts keep their weapons' explicit recipes while implicit impacts follow shared replacements", () => {
+  const documents = testWeaponLooks(
+    {
+      tank_ap: { near: "cannon", far: "cannon_far", gain: 1 },
+      hmg: { near: "roof_report", far: "roof_far", gain: 1 },
+    },
+    { ground: { hmg: "dirt_hit" }, hull: { rifle: "hard_hit" } },
+  );
+  const selectedMix = {
+    ...AUDIO,
+    effects: { cannon: "recorded_cannon", rifle: "recorded_rifle", impact_hull: "hard_hit" },
+  };
   const catalog = {
     sources: {},
     clips: {},
@@ -598,18 +642,19 @@ test("a hull's mounts keep their weapons' explicit recipes while implicit impact
         ].map((name) => [name, testRecipe(name)]),
       ),
     },
-    defaults: {
-      tank_ap: { near: "cannon", far: "cannon_far", gain: 1 },
-      hmg: { near: "roof_report", far: "roof_far", gain: 1 },
-    },
-    impacts: { ground: { hmg: "dirt_hit" } },
-    effects: { cannon: "recorded_cannon", rifle: "recorded_rifle", impact_hull: "hard_hit" },
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   const sink = new FakeSink();
   standInPresentationRecordings(catalog, AUDIO);
   const frame = new SoundFrame(
-    { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog },
+    {
+      tickHz: HZ,
+      ...documents,
+      presentation: selectedMix,
+      smokeTimes: SMOKE,
+      cookOff: COOK_OFF,
+      catalog,
+    },
     sink,
   );
   // A hull's mounts fire on the tick their counters rise: the second it is seen.
@@ -659,6 +704,15 @@ test("a hull's mounts keep their weapons' explicit recipes while implicit impact
 });
 
 test("a glancing round's ricochet follows its kind, heavier rounds louder", () => {
+  const documents = testWeaponLooks({}, { ricochet: { tank_ap: "shell_glance" } });
+  const selectedMix = {
+    ...AUDIO,
+    weapon_defaults: {
+      ...AUDIO.weapon_defaults,
+      impacts: { ...AUDIO.weapon_defaults.impacts, ricochet: "bullet_glance" },
+    },
+    effects: {},
+  };
   const catalog = {
     sources: {},
     clips: {},
@@ -668,16 +722,20 @@ test("a glancing round's ricochet follows its kind, heavier rounds louder", () =
         ["shell_glance", "bullet_glance"].map((name) => [name, testRecipe(name)]),
       ),
     },
-    defaults: {},
-    impacts: { ricochet: { tank_ap: "shell_glance" } },
-    effects: { ricochet: "bullet_glance" },
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   } as unknown as SoundCatalog;
   const glance = (kind: string) => {
     const sink = new FakeSink();
     standInPresentationRecordings(catalog, AUDIO);
     const frame = new SoundFrame(
-      { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog },
+      {
+        tickHz: HZ,
+        ...documents,
+        presentation: selectedMix,
+        smokeTimes: SMOKE,
+        cookOff: COOK_OFF,
+        catalog,
+      },
       sink,
     );
     run(frame, sink, 1, 3, (tick) => ({
@@ -710,7 +768,7 @@ test("a glancing round's ricochet follows its kind, heavier rounds louder", () =
   expect(bullet.map((v) => v.sound)).toEqual(["bullet_glance"]);
   // Both glance at the same place: only the round's weight sets the level.
   expect(shell[0].gain / bullet[0].gain).toBeCloseTo(
-    AUDIO.impact_scale.tank_ap / (AUDIO.impact_scale.rifle ?? AUDIO.impact_scale.default),
+    shot("tank_ap").impact_scale / shot("rifle").impact_scale,
   );
 });
 
@@ -721,7 +779,9 @@ test("a missile striking armour sounds the strike and its explosion; tank rounds
     const frame = new SoundFrame(
       {
         tickHz: HZ,
-        presentation: AUDIO,
+        ...documents,
+        presentation: audioMix,
+        looks: presentationSettings,
         smokeTimes: SMOKE,
         cookOff: COOK_OFF,
         catalog: gameSounds,
@@ -758,7 +818,7 @@ test("a missile striking armour sounds the strike and its explosion; tank rounds
   expect(shell.sound).toBe("armour-shell-hit");
   expect(bullet.sound).toBe("armour-rifle-hit");
   expect(shell.gain / bullet.gain).toBeCloseTo(
-    AUDIO.impact_scale.tank_ap / AUDIO.impact_scale.rifle,
+    shot("tank_ap").impact_scale / shot("rifle").impact_scale,
   );
   expect(shell.gain).toBeGreaterThan(bullet.gain);
 });
@@ -795,7 +855,15 @@ test("a cook-off booms as its ammunition goes and clangs where its turret lands"
 test("the turret's landing clang is the catalog's tank shell striking armour", () => {
   const sink = new FakeSink();
   const frame = new SoundFrame(
-    { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog: gameSounds },
+    {
+      tickHz: HZ,
+      ...documents,
+      presentation: audioMix,
+      looks: presentationSettings,
+      smokeTimes: SMOKE,
+      cookOff: COOK_OFF,
+      catalog: gameSounds,
+    },
     sink,
   );
   const ticks = Math.ceil((TURRET_LANDS_S + 0.5) * HZ) + 2;
@@ -807,7 +875,7 @@ test("the turret's landing clang is the catalog's tank shell striking armour", (
     cookOffs: tick === 2 ? [{ center: [0, 10, 0], height: 2.4, landing: [1, 10, 2] }] : [],
   }));
   const last = sink.started.filter((v) => !v.loop).at(-1)!;
-  expect(last.sound).toBe(gameSounds.impacts.hull.tank_ap);
+  expect(last.sound).toBe(presentationSettings.weapon_looks.tank_sabot.sound.impacts.hull);
 });
 
 test("a hovering helicopter keeps sounding its rotor, never a ground vehicle's engine or running gear", () => {
@@ -833,33 +901,4 @@ test("a hovering helicopter keeps sounding its rotor, never a ground vehicle's e
       expect(v.spec.gain).toBeGreaterThan(0);
     }
   }
-});
-
-test("a reversing vehicle beeps at a steady rate and level, whatever its speed", () => {
-  const row = AUDIO.vehicles.tracked_heavy;
-  const beeper = (load: number) =>
-    vehicleLoops(row, load, 0, true).find((l) => l.slot === "reverse");
-  // An electronic back-up alarm: creeping or backing fast, the same beep.
-  expect(beeper(0.1)).toEqual(beeper(1));
-  expect(beeper(1)!.rate).toBe(1);
-  // Standing still, or driving forward, it is silent.
-  expect(beeper(0)).toBeUndefined();
-  expect(vehicleLoops(row, 1, 0, false).some((l) => l.slot === "reverse")).toBe(false);
-});
-
-test("the reverse sound beeps: tone, then silence, each period", () => {
-  const sampleRate = 48000;
-  const sound = synthesize(AUDIO.vehicles.default.reverse!, sampleRate);
-  const x = sound.channels[0];
-  expect(sound.loop).toBe(true);
-  // 10 ms levels: a beep's level is near the peak, the gap between beeps silent.
-  const n = sampleRate / 100;
-  const levels = Array.from({ length: Math.floor(x.length / n) }, (_, i) =>
-    Math.sqrt(x.subarray(i * n, (i + 1) * n).reduce((sum, v) => sum + v * v, 0) / n),
-  );
-  const top = Math.max(...levels);
-  const on = levels.filter((l) => l > top / 2).length / levels.length;
-  const off = levels.filter((l) => l < top / 100).length / levels.length;
-  expect(on).toBeGreaterThan(0.3);
-  expect(off).toBeGreaterThan(0.3);
 });

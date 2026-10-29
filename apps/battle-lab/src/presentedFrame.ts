@@ -4,7 +4,6 @@
 // per battle (`load_world`'s battle), which Rust resolves from the files the
 // page reads.
 import { presentationSettings } from "@web/presentationSettings";
-import { shippedRules } from "@web/shippedRules";
 import {
   Counts,
   EFFECT_KINDS,
@@ -129,7 +128,7 @@ export async function fieldedBattle(input: {
   if (!catalog) throw new Error("a battle was fielded before the runtime catalog was loaded");
   const fielding = new Fielding(
     JSON.stringify(presentationSettings),
-    JSON.stringify(shippedRules.weapons),
+    JSON.stringify(JSON.parse(input.rules).weapons),
     input.rules,
     JSON.stringify(input.catalog),
     JSON.stringify(catalog),

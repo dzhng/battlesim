@@ -31,6 +31,8 @@ pub struct WeaponDefinition {
     pub description: String,
     /// Its generated icon, `assets/icons/weapons/<icon>.svg`.
     pub icon: String,
+    /// The presentation look; inherited like every other catalog field.
+    pub appearance: String,
     #[serde(flatten)]
     pub ballistics: WeaponBallistics,
     /// Closest muzzle-to-aim-point distance at which the crew fires.

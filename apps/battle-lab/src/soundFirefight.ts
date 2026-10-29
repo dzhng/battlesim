@@ -400,6 +400,7 @@ export async function offlineSound(
     presentation,
     catalog,
     weapons: shippedRules.weapons,
+    looks: presentationSettings,
     smokeTimes: presentationSettings.effects.smoke,
     cookOff: presentationSettings.effects.cook_off,
   };

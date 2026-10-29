@@ -93,3 +93,23 @@ Serialize its record rewrite with [09](09-rules-cleanups.md).
 
 **Would change this slice:** a weapon whose current output no look can
 reproduce. Name it here and stop.
+
+## Done — implementation checkpoint
+
+The ordinary contract resolver inherits `appearance`; 37 transient looks preserve
+all former table combinations, including exact-id kicks and renamed-RPG bugs.
+Presentation, poses and sound consume one `looks` owner. Library assignments and
+presentation/audio `extends` walks are removed. The browser carries its battle's
+weapon rows unchanged; assignment authoring is read only until 14.
+
+Before light-cause renaming, all 77 oracle files (the probe and composed shaders)
+and all six native plates are byte-identical. The derived/encounter battle tests,
+unused-look refusal and invalid-surface refusal exercise the new boundary. The
+cadence exception and remaining implementation choices live in
+[`decisions.md`](../decisions.md).
+
+The integrator's rerunnable stored-input migration is
+`/Users/server/dev/battlesim/throwaway/split-game-json/scripts/rewrite-looks.mjs`.
+It takes an optional checkout root, rewrites only inputs, and is idempotent.
+Record migration/re-blessing is kept in the last commit so it can be discarded
+and rerun after 09. Final cause-name, visual and verification receipts follow.

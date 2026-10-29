@@ -14,10 +14,7 @@ impl AudioMix {
         numbers(self, "audio", &[".threshold_db", ".clip_db"])?;
         self.voices.check()?;
         for (name, has) in [
-            ("shots", self.shots.contains_key("default")),
             ("impacts", self.impacts.contains_key("default")),
-            ("impact_scale", self.impact_scale.contains_key("default")),
-            ("blasts", self.blasts.contains_key("default")),
             ("vehicles", self.vehicles.contains_key("default")),
             ("fires", self.fires.contains_key("default")),
         ] {
@@ -106,15 +103,35 @@ impl AudioMix {
                 }
             }
         }
-        for (table, rows) in [("shots", &self.shots), ("blasts", &self.blasts)] {
-            for (kind, r) in rows {
-                sound(&r.near, &format!("{table}.{kind}.near"))?;
-                sound(&r.far, &format!("{table}.{kind}.far"))?;
+        for (kind, r) in &self.impacts {
+            sound(&r.sound, &format!("impacts.{kind}.sound"))?;
+        }
+        sound(
+            &self.weapon_defaults.blast.near,
+            "weapon_defaults.blast.near",
+        )?;
+        sound(&self.weapon_defaults.blast.far, "weapon_defaults.blast.far")?;
+        sound(&self.weapon_defaults.motor, "weapon_defaults.motor")?;
+        for hit in self
+            .impacts
+            .keys()
+            .map(String::as_str)
+            .chain([super::GLANCE])
+        {
+            if !self.weapon_defaults.impacts.contains_key(hit) {
+                return Err(format!(
+                    "audio.weapon_defaults.impacts.{hit}: missing recording"
+                ));
             }
         }
-        for (table, rows) in [("impacts", &self.impacts), ("motors", &self.motors)] {
-            for (kind, r) in rows {
-                sound(&r.sound, &format!("{table}.{kind}.sound"))?;
+        for (hit, name) in &self.weapon_defaults.impacts {
+            sound(name, &format!("weapon_defaults.impacts.{hit}"))?;
+        }
+        for (slot, name) in &self.effects {
+            let expected = super::synth::loops(slot)
+                .ok_or(format!("audio.effects.{slot}: unknown synth slot"))?;
+            if c.sound(name, slot)?.looping != expected {
+                return Err(format!("audio.effects.{slot}: effect loop mismatch"));
             }
         }
         for (kind, r) in &self.fires {

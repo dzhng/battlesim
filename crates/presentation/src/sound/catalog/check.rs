@@ -229,49 +229,6 @@ impl SoundCatalog {
                 )?;
             }
         }
-        for (kind, c) in &self.defaults {
-            let at = format!("defaults.{kind}");
-            level(&format!("{at}.gain"), c.gain)?;
-            for (slot, name) in [("near", &c.near), ("far", &c.far)] {
-                let r = self.sound(name, &format!("{at}.{slot}"))?;
-                require(
-                    !r.looping,
-                    &format!("{at}.{slot}"),
-                    "firing cannot use a loop",
-                )?;
-                for clip in &r.clips {
-                    require(
-                        matches!(self.clips[clip].role.as_str(), "shot" | "launch"),
-                        &format!("{at}.{slot}"),
-                        "firing clips must be shots or launches",
-                    )?;
-                }
-            }
-            require(
-                self.cadence(&c.near) == self.cadence(&c.far),
-                &at,
-                "near and far play different bursts",
-            )?;
-        }
-        for (hit, row) in &self.impacts {
-            for (kind, name) in row {
-                let at = format!("impacts.{hit}.{kind}");
-                require(
-                    !self.sound(name, &at)?.looping,
-                    &at,
-                    "impact cannot use a loop",
-                )?;
-            }
-        }
-        for (slot, name) in &self.effects {
-            let at = format!("effects.{slot}");
-            let expected = synth::loops(slot).ok_or(format!("sounds.{at}: unknown synth slot"))?;
-            require(
-                self.sound(name, &at)?.looping == expected,
-                &at,
-                "effect loop mismatch",
-            )?;
-        }
         for (name, t) in &self.music.tracks {
             let at = format!("music.tracks.{name}");
             require(
@@ -295,6 +252,29 @@ impl SoundCatalog {
             }
         }
         Ok(())
+    }
+    pub(crate) fn check_shot(
+        &self,
+        c: &crate::sound::tables::NearFar,
+        at: &str,
+    ) -> Result<(), String> {
+        range(&format!("{at}.gain"), c.gain, 0.0, 16.0)?;
+        for (slot, name) in [("near", &c.near), ("far", &c.far)] {
+            let r = self.sound(name, &format!("{at}.{slot}"))?;
+            require(!r.looping, at, "firing cannot use a loop")?;
+            for clip in &r.clips {
+                require(
+                    matches!(self.clips[clip].role.as_str(), "shot" | "launch"),
+                    at,
+                    "firing clips must be shots or launches",
+                )?;
+            }
+        }
+        require(
+            self.cadence(&c.near) == self.cadence(&c.far),
+            at,
+            "near and far play different bursts",
+        )
     }
     fn crop(&self, at: &str, source: &str, rate: u32, [lo, hi]: [u64; 2]) -> Result<(), String> {
         require(

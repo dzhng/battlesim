@@ -42,9 +42,6 @@ function fixture() {
         },
       ]),
     ),
-    defaults: {},
-    impacts: {},
-    effects: {},
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   catalog.sources.test = {
@@ -74,19 +71,16 @@ function fixture() {
   const snapshot: Snapshot = {
     revision: "saved",
     catalog,
-    // A carbine derives from the rifle; a cannon has no firing row at all.
-    weapons: { rifle: {}, carbine: { extends: "rifle" }, cannon: {} },
-    firing: {
-      default: { near: "hmg", far: "hmg_far", gain: 0.5, far_m: 300 },
-      rifle: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 },
+    looks: {
+      rifle: { sound: { shot: { near: "rifle", far: "rifle_far", gain: 0.35 }, impacts: {} } },
     },
+    effects: {},
     vehicles: {
       default: VEHICLE,
       tracked_heavy: { ...VEHICLE, engine: "engine_diesel", turret: "turret" },
     },
     footsteps: { sound: "footstep", gain: 0.07, stride_m: 0.8, max_step_m: 2 },
     runMps: 2,
-    materials: ["ground", "hull"],
     music: {
       duck: { depth: 0.35, attack_s: 0.05, release_s: 0.8 },
       combat_window_s: 20,
@@ -191,43 +185,17 @@ test("unused clips include stored recipes that no battle assignment selects", as
   expect(screen.getByRole("button", { name: "Unused reload" })).toBeTruthy();
 });
 
-test("the global editor displays the effective shared fallback for an unassigned firing kind", async () => {
-  const f = fixture();
-  f.snapshot.catalog.defaults.default = { near: "hmg", far: "hmg", gain: 0.8 };
-  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
-  expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("hmg");
-  expect((screen.getByLabelText("rifle gain") as HTMLInputElement).value).toBe("0.8");
-});
-
-test("implicit firing fallbacks display effect replacements and retain them when editing gain", async () => {
-  const f = fixture();
-  f.snapshot.catalog.effects.rifle = "hmg";
-  f.snapshot.catalog.effects.rifle_far = "hmg_far";
-  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
-  expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("hmg");
-  expect((screen.getByLabelText("rifle far") as HTMLSelectElement).value).toBe("hmg_far");
-  fireEvent.change(screen.getByLabelText("rifle gain"), { target: { value: "0.8" } });
-  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
-  await screen.findByRole("button", { name: "Save reviewed JSON" });
-  expect(vi.mocked(f.api.preview).mock.calls[0][0].catalog.defaults.rifle).toEqual({
-    near: "hmg",
-    far: "hmg_far",
-    gain: 0.8,
-  });
-});
-
 test("preview shows the changed sound setting without searching full source JSON", async () => {
   const f = fixture();
   render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
-  fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "hmg" } });
+  fireEvent.click(await screen.findByRole("button", { name: "Synth · rifle" }));
+  fireEvent.click(screen.getByRole("button", { name: "Clone recipe" }));
+  fireEvent.change(screen.getByLabelText("Recipe label"), { target: { value: "Edited recipe" } });
   fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
   await screen.findByRole("button", { name: "Save reviewed JSON" });
   const changes = screen.getByRole("region", { name: "Changed sound settings" });
-  expect(changes.textContent).toContain("defaults.rifle.near");
-  expect(changes.textContent).toContain("hmg");
+  expect(changes.textContent).toContain("sounds.custom_rifle.label");
+  expect(changes.textContent).toContain("Edited recipe");
 });
 
 test("cloning a filtered baseline shows the new selected recipe in the library", async () => {
@@ -242,38 +210,9 @@ test("cloning a filtered baseline shows the new selected recipe in the library",
   ).toBe("true");
 });
 
-test("a derived weapon row fires its ancestor's choice until given its own, then restores to it", async () => {
-  const f = fixture();
-  f.snapshot.catalog.defaults.rifle = { near: "rifle", far: "rifle_far", gain: 1 };
-  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
-  expect(screen.getByText("inherited from rifle")).toBeTruthy();
-  fireEvent.change(screen.getByLabelText("carbine near"), { target: { value: "hmg" } });
-  // The ancestor keeps its own choice.
-  expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("rifle");
-  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
-  await screen.findByRole("button", { name: "Save reviewed JSON" });
-  const draft = vi.mocked(f.api.preview).mock.calls[0][0];
-  expect(draft.catalog.defaults.carbine.near).toBe("hmg");
-  expect(draft.catalog.defaults.rifle.near).toBe("rifle");
-  f.publish(draft.catalog);
-  fireEvent.click(screen.getByRole("button", { name: "Save reviewed JSON" }));
-  await screen.findByText("Saved. Reload or open a battle page to use this generation.");
-  expect(f.api.save).toHaveBeenCalledWith({ candidateId: "reviewed", revision: "saved" });
-  fireEvent.click(screen.getByRole("button", { name: "Restore carbine firing fallback" }));
-  expect((screen.getByLabelText("carbine near") as HTMLSelectElement).value).toBe("rifle");
-});
-
-test("a weapon row with no styled ancestor fires the default row's baseline", async () => {
-  const f = fixture();
-  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
-  expect((screen.getByLabelText("cannon near") as HTMLSelectElement).value).toBe("hmg");
-});
-
 test("a vehicle class auditions the loops the battle plays for it, replacements included", async () => {
   const f = fixture();
-  f.snapshot.catalog.effects.engine_diesel = "engine_small";
+  f.snapshot.effects.engine_diesel = "engine_small";
   render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Movement" }));
   fireEvent.click(screen.getByRole("button", { name: "Play tracked_heavy engine" }));
@@ -286,7 +225,7 @@ test("a vehicle class auditions the loops the battle plays for it, replacements 
 
 test("driving a vehicle class mixes its loops as the battle does at that speed", async () => {
   const f = fixture();
-  f.snapshot.catalog.effects.engine_diesel = "engine_small";
+  f.snapshot.effects.engine_diesel = "engine_small";
   render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Movement" }));
   fireEvent.change(screen.getByLabelText("tracked_heavy speed"), { target: { value: "12" } });
@@ -303,61 +242,6 @@ test("driving a vehicle class mixes its loops as the battle does at that speed",
   expect(vi.mocked(f.mix.loops).mock.lastCall![0].map((l) => [l.sound, l.rate])).toEqual([
     ["engine_small", 0.8],
   ]);
-});
-
-test("the footstep is chosen among footstep recordings and walks with the choice", async () => {
-  const f = fixture();
-  f.snapshot.catalog.clips.step = {
-    ...f.snapshot.catalog.clips.reload,
-    label: "Boot on dirt",
-    category: "footstep",
-    role: "other",
-  };
-  f.snapshot.catalog.sounds.boots = {
-    label: "Boots on dirt",
-    clips: ["step"],
-    synth: null,
-    synth_gain: 0,
-    gain: 1,
-    loop: false,
-  };
-  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Movement" }));
-  const choice = screen.getByLabelText("Footstep sound") as HTMLSelectElement;
-  // Only footstep recordings are offered, beside the original synthesis.
-  expect([...choice.options].map((o) => o.text)).toEqual(["Original synthesis", "Boots on dirt"]);
-  fireEvent.change(choice, { target: { value: "boots" } });
-  fireEvent.click(screen.getByRole("button", { name: "Play footsteps" }));
-  await waitFor(() => expect(f.mix.hit).toHaveBeenCalled());
-  expect(vi.mocked(f.audition.live).mock.lastCall![1]).toEqual(["boots"]);
-  expect(vi.mocked(f.mix.hit).mock.calls[0][0]).toBe("boots");
-});
-
-test("a running-gear recording replaces the loop every class drives on", async () => {
-  const f = fixture();
-  f.snapshot.catalog.clips.clatter = {
-    ...f.snapshot.catalog.clips.reload,
-    label: "Track clatter",
-    category: "wheels",
-    role: "loop",
-    loop: true,
-  };
-  f.snapshot.catalog.sounds.treads = {
-    label: "Recorded treads",
-    clips: ["clatter"],
-    synth: null,
-    synth_gain: 0,
-    gain: 1,
-    loop: true,
-  };
-  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Movement" }));
-  fireEvent.change(screen.getByLabelText("Running gear · wheels sound"), {
-    target: { value: "treads" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Drive tracked_heavy" }));
-  await waitFor(() => expect(f.mix.loops).toHaveBeenCalled());
-  expect(vi.mocked(f.mix.loops).mock.lastCall![0].map((l) => l.sound)).toContain("treads");
 });
 
 test("footsteps fall once a stride at the chosen pace", async () => {
@@ -380,13 +264,14 @@ test("an edit after preview invalidates review, and a stale-save error retains t
     throw new Error("Outside edit; reload sources");
   });
   render(<SoundWorkbench api={api} audition={audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
-  fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "hmg" } });
+  fireEvent.click(await screen.findByRole("button", { name: "Synth · rifle" }));
+  fireEvent.click(screen.getByRole("button", { name: "Clone recipe" }));
+  fireEvent.change(screen.getByLabelText("Recipe label"), { target: { value: "Edited recipe" } });
   fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
   fireEvent.click(await screen.findByRole("button", { name: "Save reviewed JSON" }));
   await screen.findByText("Outside edit; reload sources");
-  expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("hmg");
-  fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "cannon" } });
+  expect((screen.getByLabelText("Recipe label") as HTMLInputElement).value).toBe("Edited recipe");
+  fireEvent.change(screen.getByLabelText("Recipe label"), { target: { value: "Next recipe" } });
   expect(screen.queryByRole("button", { name: "Save reviewed JSON" })).toBeNull();
 });
 
@@ -418,20 +303,3 @@ test.each(["Stop", "selection", "unmount"])(
     expect(screen.queryByText("Audition · Synth · rifle")).toBeNull();
   },
 );
-
-test("global firing, material impacts and matching loop slots publish the chosen recipes", async () => {
-  const { api, audition } = fixture();
-  render(<SoundWorkbench api={api} audition={audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
-  fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "hmg" } });
-  fireEvent.change(screen.getByLabelText("ground rifle impact"), {
-    target: { value: "impact_hull" },
-  });
-  fireEvent.change(screen.getByLabelText("motor effect"), { target: { value: "engine_diesel" } });
-  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
-  await screen.findByRole("button", { name: "Save reviewed JSON" });
-  const catalog = vi.mocked(api.preview).mock.calls[0][0].catalog;
-  expect(catalog.defaults.rifle.near).toBe("hmg");
-  expect(catalog.impacts.ground.rifle).toBe("impact_hull");
-  expect(catalog.effects.motor).toBe("engine_diesel");
-});

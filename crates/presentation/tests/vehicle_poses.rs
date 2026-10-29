@@ -270,7 +270,7 @@ fn an_aircraft_s_rotors_turn_and_blur_while_nothing_it_has_rolls() {
 /// kicks fully, an HMG's not at all.
 fn kicking_units() -> UnitsSection {
     units_with(|v| {
-        v["pose"]["hull_kick"] = json!({"rounds": {"default": 0, "tank_ap": 1},
+        v["pose"]["hull_kick"] = json!({
             "rock_deg": 4, "slide_m": 0.2, "hz": 2, "damping": 0.3});
     })
 }

@@ -1,4 +1,3 @@
-import type { NearFar } from "./audioMix";
 import { type MusicCatalog } from "./music/musicCatalog";
 import { check_sound_catalog } from "../../../web/src/wasm/renderer_browser/renderer_browser.js";
 import { loadPresentationModule } from "../../../web/src/presentationModule";
@@ -116,11 +115,6 @@ export interface SoundCatalog {
   provenance?: Record<string, SourceProvenance>;
   clips: Record<string, SoundClip>;
   sounds: Record<string, SoundRecipe>;
-  /** Firing choices by weapon row; `default` for a row without one. */
-  defaults: Record<string, ShotChoice>;
-  impacts: Record<string, Record<string, string>>;
-  /** Replacements for baseline effect/loop slots; baseline recipes remain selectable. */
-  effects: Record<string, string>;
   music: MusicCatalog;
 }
 export const isGenerated = (source: SoundSource | GeneratedSource): source is GeneratedSource =>
@@ -152,18 +146,4 @@ export const clipCadence = (clip: SoundClip | undefined): Cadence =>
  *  reports and synthesis. A recipe's alternatives agree. */
 export function firingCadence(catalog: SoundCatalog, sound: string): Cadence {
   return clipCadence(catalog.clips[catalog.sounds[sound]?.clips[0]]);
-}
-
-/** Only implicit baseline slots follow shared replacements; explicit choices keep their recipe. */
-export function resolveEffect(catalog: SoundCatalog, baseline: string): string {
-  return catalog.effects[baseline] ?? baseline;
-}
-/** How a round of weapon row `kind` fires: its chosen recording, else the
- *  `default` choice, else the synthesized `base` (with effect replacements). */
-export function resolveShot(catalog: SoundCatalog, base: NearFar, kind: string): NearFar {
-  const choice = catalog.defaults[kind] ?? catalog.defaults.default;
-  if (choice) return { ...base, near: choice.near, far: choice.far, gain: base.gain * choice.gain };
-  const near = resolveEffect(catalog, base.near);
-  const far = resolveEffect(catalog, base.far);
-  return near === base.near && far === base.far ? base : { ...base, near, far };
 }

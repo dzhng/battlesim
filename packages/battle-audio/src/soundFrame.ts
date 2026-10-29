@@ -196,7 +196,8 @@ export interface SoundFrameOptions {
   presentation: AudioMix;
   catalog: SoundCatalog;
   /** The game's weapon rows: a derived weapon sounds as its nearest styled ancestor. */
-  weapons?: Record<string, object>;
+  weapons: Record<string, object>;
+  looks: object;
   /** How long each smoke kind burns and smoulders (`presentation.effects.smoke`). */
   smokeTimes: Record<string, { burn_s: number; smoulder_s: number }>;
   /** When a cook-off's fireballs go and its turret lands (`presentation.effects.cook_off`). */
@@ -238,7 +239,8 @@ const rustFrame = (o: SoundFrameOptions) =>
     JSON.stringify({
       audio: o.presentation,
       catalog: o.catalog,
-      weapons: o.weapons ?? {},
+      weapons: o.weapons,
+      presentation: o.looks,
       tick_hz: o.tickHz,
       effects: { smoke: o.smokeTimes, cook_off: o.cookOff },
     }),

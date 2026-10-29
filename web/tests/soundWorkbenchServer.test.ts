@@ -66,19 +66,12 @@ async function fixture() {
         { label: `Synth · ${id}`, clips: [], synth: id, synth_gain: 1, gain: 1, loop: sound.loop },
       ]),
     ),
-    defaults: {},
-    impacts: {},
-    effects: {},
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   const presentation = structuredClone(authoredPresentation);
   presentation.pose.gait.run_mps = 2.2;
   const audio = {
     ...authoredAudio,
-    shots: {
-      default: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 },
-      rifle: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 },
-    },
     impacts: {
       default: { sound: "impact_ground", gain: 0.2 },
       ground: { sound: "impact_ground", gain: 0.2 },
@@ -136,24 +129,21 @@ async function fixture() {
   return { root, text, store, request };
 }
 
-test("HTTP preview is read-only; a reviewed save gives a derived weapon row its own choice", async () => {
+test("HTTP preview is read-only; a reviewed save publishes a library recipe", async () => {
   const { root, text, request } = await fixture();
   const initial = (await request("snapshot")).body;
-  // The snapshot carries each row's lineage, not the rest of its row.
-  expect(initial.weapons).toEqual({ rifle: {}, carbine: { extends: "rifle" } });
   const catalog: SoundCatalog = structuredClone(initial.catalog);
-  catalog.defaults.carbine = { near: "hmg", far: "hmg_far", gain: 0.7 };
+  catalog.sounds.custom = { ...catalog.sounds.hmg, label: "Custom recipe" };
   const preview = await request("preview", { revision: initial.revision, catalog });
   expect(preview.status).toBe(200);
   expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(text);
-  expect(preview.body.files[0].after).toContain('"carbine"');
+  expect(preview.body.files[0].after).toContain('"custom"');
   expect(
     (await request("save", { candidateId: preview.body.candidateId, revision: initial.revision }))
       .status,
   ).toBe(200);
   const saved = (await request("snapshot")).body;
-  expect(saved.catalog.defaults.carbine.near).toBe("hmg");
-  expect(saved.catalog.defaults.rifle).toBeUndefined();
+  expect(saved.catalog.sounds.custom.label).toBe("Custom recipe");
   expect(
     (await request("save", { candidateId: preview.body.candidateId, revision: initial.revision }))
       .status,
@@ -170,7 +160,7 @@ test("no-op preview/save preserves source bytes and stale reviewed saves preserv
   await request("save", { candidateId: noop.candidateId, revision: snapshot.revision });
   expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(text);
   const catalog = structuredClone(snapshot.catalog);
-  catalog.defaults.rifle = { near: "hmg", far: "hmg_far", gain: 1 };
+  catalog.sounds.custom = { ...catalog.sounds.hmg, label: "Custom recipe" };
   const review = (await request("preview", { revision: snapshot.revision, catalog })).body;
   const outside = `${text}\n`;
   await writeFile(join(root, "fixtures/sounds.json"), outside);
@@ -192,7 +182,7 @@ test("HTTP refuses invalid identity, malformed clips, changed baselines and clie
       });
     },
     (c: SoundCatalog) => {
-      c.defaults.unknown = { near: "rifle", far: "rifle_far", gain: 1 };
+      Object.assign(c, { defaults: { unknown: { near: "rifle", far: "rifle_far", gain: 1 } } });
     },
     (c: SoundCatalog) => {
       c.sounds.rifle.gain = 0.2;
@@ -201,7 +191,7 @@ test("HTTP refuses invalid identity, malformed clips, changed baselines and clie
       c.clips.unknown = {} as never;
     },
     (c: SoundCatalog) => {
-      c.impacts.unknown = { rifle: "impact_ground" };
+      Object.assign(c, { impacts: { unknown: { rifle: "impact_ground" } } });
     },
   ]) {
     const catalog = structuredClone(snapshot.catalog);
@@ -249,7 +239,7 @@ test("outside changes during publication survive its rollback", async () => {
   const { root, request, text } = await fixture();
   const initial = (await request("snapshot")).body;
   const catalog = structuredClone(initial.catalog);
-  catalog.defaults.rifle = { near: "hmg", far: "hmg_far", gain: 1 };
+  catalog.sounds.custom = { ...catalog.sounds.hmg, label: "Custom recipe" };
   const review = (await request("preview", { revision: initial.revision, catalog })).body;
   const rename = (await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises"))
     .rename;
@@ -318,12 +308,12 @@ test("unused clean media is admitted, firing rejects reloads, and changed clip b
   const initial = (await request("snapshot")).body;
   expect(initial.catalog.clips.reload.label).toBe("Unused reload");
   const invalid = structuredClone(initial.catalog);
-  invalid.defaults.rifle = { near: "reload", far: "reload", gain: 1 };
+  invalid.defaults = { rifle: { near: "reload", far: "reload", gain: 1 } };
   expect((await request("preview", { revision: initial.revision, catalog: invalid })).status).toBe(
     400,
   );
   const catalog = structuredClone(initial.catalog);
-  catalog.effects.ricochet = "reload";
+  catalog.sounds.custom = { ...catalog.sounds.reload, label: "Custom reload" };
   const review = (await request("preview", { revision: initial.revision, catalog })).body;
   await writeFile(
     join(root, "assets/runtime/audio/clips/reload.wav"),

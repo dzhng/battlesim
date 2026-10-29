@@ -426,24 +426,6 @@ pub struct ShoutTake {
     pub duration: f64,
 }
 
-/// A battle's sound as a player builds it, JSON: `audio.json`, the
-/// sound catalog, the game's weapon rows, the tick rate and
-/// `presentation.effects`' smoke and cook-off.
-#[derive(Deserialize)]
-struct Setup {
-    audio: serde_json::Value,
-    catalog: serde_json::Value,
-    weapons: serde_json::Value,
-    tick_hz: f64,
-    effects: Timings,
-}
-
-#[derive(Deserialize)]
-struct Timings {
-    smoke: HashMap<String, SmokeTimes>,
-    cook_off: CookOffFeel,
-}
-
 /// A publication as a script or a capture gives it (the browser's
 /// `SoundPublication`): what the effects read, the launches by where they
 /// leave, and the side's hearing cues.
@@ -651,21 +633,6 @@ pub fn distance_gain(tables: &SoundTables, d: f64) -> f64 {
 }
 
 impl Sound {
-    /// A battle's sound from its setup JSON (`Setup`).
-    pub fn from_json(json: &str) -> Result<Self, String> {
-        let setup: Setup = serde_json::from_str(json).map_err(|e| format!("sound: {e}"))?;
-        let tables = SoundTables::from_parts(setup.audio, setup.catalog, &setup.weapons)?;
-        setup.effects.cook_off.validate()?;
-        Ok(Self::new(
-            Arc::new(tables),
-            Timing {
-                tick_hz: setup.tick_hz,
-                smoke: setup.effects.smoke,
-                cook_off: setup.effects.cook_off,
-            },
-        ))
-    }
-
     pub fn new(tables: Arc<SoundTables>, timing: Timing) -> Self {
         let dt = 1.0 / timing.tick_hz;
         Self {
@@ -917,10 +884,8 @@ impl Sound {
                 for r in &s.ricochets {
                     let at = t0 + (self.dt * cum[r.point]) / total.max(1e-6);
                     let pt = s.path[r.point];
-                    let sound = tables
-                        .contact(super::GLANCE, &s.kind, &p.ricochet.sound)
-                        .to_owned();
-                    let gain = p.ricochet.gain * pick(&p.impact_scale, &s.kind);
+                    let sound = tables.contact(super::GLANCE, &s.kind).to_owned();
+                    let gain = p.ricochet.gain * tables.looks.get(&s.kind).sound.impact_scale;
                     let key = Key::new().nums(&pt);
                     self.queue(at, sound, None, 0.0, Bus::Effects, gain, pt, key, key);
                 }
@@ -928,8 +893,8 @@ impl Sound {
             let end = *s.path.last().expect("two points");
             if &*s.hit != "none" {
                 let hit = pick(&p.impacts, &s.hit);
-                let scale = pick(&p.impact_scale, &s.kind);
-                let sound = tables.contact(&s.hit, &s.kind, &hit.sound).to_owned();
+                let scale = tables.looks.get(&s.kind).sound.impact_scale;
+                let sound = tables.contact(&s.hit, &s.kind).to_owned();
                 let key = Key::new().nums(&end);
                 self.queue(
                     t1,
@@ -942,7 +907,7 @@ impl Sound {
                     key,
                     key,
                 );
-            } else if p.motors.contains_key(&*s.kind) {
+            } else if tables.looks.get(&s.kind).sound.motor.is_some() {
                 // A flying round with a motor: one loop along its chain of
                 // stretches, keyed by where its latest stretch ends; a stretch
                 // starting where one ended continues it, and its loop follows.
@@ -963,7 +928,7 @@ impl Sound {
         }
         self.motors = motors;
         for b in &fx.blasts {
-            let s = pick(&p.blasts, &b.kind);
+            let s = &tables.looks.get(&b.kind).sound.blast;
             let key = Key::new().nums(&b.point);
             self.queue(
                 t1,
@@ -1009,8 +974,7 @@ impl Sound {
                 );
             }
             if let Some(at) = c.landing {
-                let baseline = &pick(&p.impacts, &landing.hit).sound;
-                let sound = tables.contact(&landing.hit, &landing.round, baseline);
+                let sound = tables.landing(&landing.hit, &landing.round);
                 let key = Key::new().text("cook_off_landing").nums(&at);
                 self.queue(
                     t0 + turret_lands_s,
@@ -1534,7 +1498,13 @@ impl Sound {
         for (key, m) in &self.motors.0 {
             let u = clamp01((clock - m.t0) / self.dt);
             let at = [0, 1, 2].map(|i| m.from[i] + u * (m.to[i] - m.from[i]));
-            let row = &p.motors[&*m.kind];
+            let row = tables
+                .looks
+                .get(&m.kind)
+                .sound
+                .motor
+                .as_ref()
+                .expect("motor was admitted");
             wants.push(LoopWant {
                 key: LoopKey::Motor(*key),
                 sound: row.sound.clone(),

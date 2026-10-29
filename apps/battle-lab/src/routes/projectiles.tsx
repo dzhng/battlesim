@@ -10,17 +10,15 @@ import { useBuiltScenario } from "../useBuiltScenario";
 import { STREET_CAMERA, STREET_SEED } from "../streetScenario";
 import { REVIEW_LANES, buildProjectileReview, reviewLanePositions } from "../projectileReview";
 import { TickStatus } from "../TickStatus";
-import { inheritRows } from "@packages/renderer-core/src/kindTable";
+import { weapon_looks } from "@wasm/renderer_browser";
 
-/** Each weapon's tracer glow, its nearest styled ancestor's where it has
- *  none of its own (as the presentation resolves it). */
-const tracers = inheritRows(
-  presentationSettings.effects.tracers as Record<
-    string,
-    { glow: { color: number[]; intensity: number } }
-  >,
-  shippedRules.weapons,
-);
+// Tooling reads the same Rust-resolved looks as the frame.
+const resolved = JSON.parse(
+  weapon_looks(JSON.stringify(presentationSettings), JSON.stringify(shippedRules.weapons)),
+) as {
+  weapons: Record<string, string>;
+  looks: Record<string, { tracer: { glow: { color: number[]; intensity: number } } }>;
+};
 
 const _projectiles_xy: Vec2 = [0, 0];
 function near(position: Vec3, at: Vec2) {
@@ -48,7 +46,7 @@ function Review({ scenario }: { scenario: string }) {
         show: (index: number) => showLane(weapons, index),
         lanes: () =>
           REVIEW_LANES.map((lane, index) => {
-            const glow = tracers[lane.weapon].glow;
+            const glow = resolved.looks[resolved.weapons[lane.weapon]].tracer.glow;
             return {
               ...lane,
               ...reviewLanePositions(weapons, index),

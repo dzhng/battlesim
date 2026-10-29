@@ -7,7 +7,7 @@ The [combat audio rationale](../../specs/done/combat-audio/README.md) records th
 constraints behind the library and workbench.
 
 The [sound catalog](../../fixtures/sounds.json) separates provenance, clean clips,
-reusable recipes and assignments. Its [Rust reader](../../crates/presentation/src/sound/catalog.rs)
+reusable recipes. Its [Rust reader](../../crates/presentation/src/sound/catalog.rs)
 admits both player loads and workbench drafts, including source metadata and
 burst/loop compatibility. The mix's sound references are checked before a bank
 prepares voices. Each recording in a recipe is an alternative,
@@ -25,10 +25,8 @@ grenades and launchers keep single reports.
 
 A round's contact sound follows the round as well as the surface: a hit by
 its material, a glance by its ricochet, so a shell strikes and deflects off
-armour with weight a rifle round lacks. A derived round without its own
-choice takes its nearest ancestor's, as for firing; otherwise it falls back to
-the contact's default, then the shared slot. Heavier rounds sound louder by their
-impact scale.
+armour with weight a rifle round lacks. Its weapon look carries contact overrides and loudness; absent recording overrides
+use the mix's default for that part.
 
 A battle prepares only what it can play: the synthesized baselines and every
 assigned or replacing recipe. The rest of the library is stored for audition
@@ -45,11 +43,12 @@ volume adjustments. Silence stays silent.
 Mixed loops repeat each layer at its own period and crossfade the resulting seam;
 a shorter layer never creates a silent gap in the longer loop.
 
-Firing choices are keyed by weapon row, never by unit. The audio catalog does not
-resolve inheritance: the battle lab gives a derived row without a choice of its own
-its nearest ancestor's (`inheritRows`, as for every weapon-keyed presentation table),
-else the `default` row's. A hull's launch is heard as its mount's first weapon row,
-not its currently selected ammunition. Vehicle loops are keyed by vehicle class
+Weapon rows name one appearance, inherited by the contract's catalog resolver.
+[The look reader](../../crates/presentation/src/looks.rs) is the authority for
+both clients: firing has an explicit recording, while other parts may use the
+mix's defaults. Changing look values never changes battle rules or outcomes.
+A hull's launch currently follows its mount's first weapon row.
+Vehicle loops are keyed by vehicle class
 (the catalog view's `vehicle_class`, which `contract::catalog::UnitType::vehicle_class`
 derives from mobility, hull weight and the logistics role).
 

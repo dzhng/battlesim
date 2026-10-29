@@ -225,7 +225,7 @@ fn test_rows(targets: Value) -> Value {
         fire.entry("scatter_mrad").or_insert(json!(5));
     }
     json!({ "test_gun": {
-        "name": "Test Gun", "description": "A test row.", "icon": "rifle",
+        "name": "Test Gun", "description": "A test row.", "icon": "rifle", "appearance": "rifle",
         "stationary": false, "speed_mps": 800,
         "aim_s": 1, "reload_s": 2, "ammo": "unlimited",
         "penetration": 5, "partial_from": 0.6, "damage": 10,

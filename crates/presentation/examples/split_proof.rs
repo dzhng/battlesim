@@ -105,6 +105,7 @@ fn run(case: cases::Case, runtime: &Runtime, out: &Path, dumps: &mut Dumps) -> V
     // Same command-only setup and deterministic durations as sound.rs;
     // no audio device or recording decoder is part of this control.
     let mut sound = Sound::from_json(&json!({
+        "presentation": serde_json::from_str::<Value>(include_str!("../../../fixtures/presentation.json")).unwrap(),
         "audio": serde_json::from_str::<Value>(include_str!("../../../fixtures/audio.json")).unwrap(),
         "catalog": serde_json::from_slice::<Value>(&fs::read(sim::fixtures::dir().join("sounds.json")).unwrap()).unwrap(),
         "weapons": case.game["weapons"], "tick_hz": tick_hz,

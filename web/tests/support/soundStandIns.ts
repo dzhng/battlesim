@@ -1,3 +1,5 @@
+import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
+import { presentationSettings } from "@web/presentationSettings";
 import type { AudioMix } from "@packages/battle-audio/src/audioMix";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 
@@ -17,12 +19,21 @@ export function standInPresentationRecordings(catalog: SoundCatalog, presentatio
     ]),
   ]);
   for (const row of Object.values(presentation.fires)) loops.add(row.sound);
-  for (const row of Object.values(presentation.motors)) loops.add(row.sound);
+  for (const look of Object.values(presentationSettings.weapon_looks))
+    if (look.sound.motor) loops.add(presentation.weapon_defaults.motor);
+  for (const [slot, name] of Object.entries(presentation.effects))
+    if (SOUNDS[slot]?.loop) loops.add(name);
   const plays = new Set<string>([
     ...[...loops].filter((name): name is string => typeof name === "string"),
-    ...[presentation.shots, presentation.blasts].flatMap((rows) =>
-      Object.values(rows).flatMap((row) => [row.near, row.far]),
-    ),
+    ...Object.values(presentationSettings.weapon_looks).flatMap(({ sound }) => [
+      sound.shot.near,
+      sound.shot.far,
+      ...Object.values(sound.impacts),
+    ]),
+    presentation.weapon_defaults.blast.near,
+    presentation.weapon_defaults.blast.far,
+    ...Object.values(presentation.weapon_defaults.impacts),
+    ...Object.values(presentation.effects),
     ...Object.values(presentation.impacts).map((row) => row.sound),
     ...[
       presentation.air_alarm,

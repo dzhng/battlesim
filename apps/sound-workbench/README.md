@@ -21,13 +21,13 @@ Recipe and assignment gains remain the authoring controls for intentional level 
 Audition centers mono material in stereo and uses a memoryless safety ceiling;
 safe brief attacks are not attenuated by a newly created compressor's startup.
 
-Firing choices name a weapon row from `rules.json`. A row without its own choice
-shows and plays its nearest ancestor's, else the default row's; restoring a row's
-own choice exposes that fallback, including its effect replacement. Movement is
+Weapon assignments belong to presentation's looks and are read only in this
+library editor. The assignment tab auditions each look's explicit report.
+Movement is
 auditioned as the battle plays it: each vehicle class drives at a chosen speed, turret
 traverse and reverse, its loops mixed by the battle's own law, and a squad's footsteps
 fall once a stride at a chosen pace. Its levels and curves belong to the game's
-presentation and are read only here. A slot is replaced everywhere through its effect;
+presentation and are read only here. The audio mix owns shared effect replacements;
 Movement offers the footstep and each running gear the recipes made only of clips whose
 category names that slot. Near and far may select different
 recordings or recipes sharing the same core; the battle applies distance attenuation,

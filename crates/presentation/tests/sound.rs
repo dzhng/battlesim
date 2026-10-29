@@ -30,6 +30,7 @@ fn sound() -> Sound {
     let fx = &presentation["effects"];
     let setup = json!({
         "audio": fixture("audio.json"),
+        "presentation": presentation,
         "catalog": fixture("sounds.json"),
         "weapons": game["weapons"],
         "tick_hz": game["tick_hz"],

@@ -1,11 +1,6 @@
-//! What the battle's sound reads: `audio.json` (every level, curve,
-//! budget and per-kind sound table, each table with a `default` row) and the
-//! sound catalog (`fixtures/sounds.json`: the recipes, the clips' burst
-//! cadences, the firing and contact choices and the effect replacements),
-//! with each weapon row heard as its nearest styled ancestor where it has no
-//! row of its own. Sound names are recipes; a synthesized baseline is a
-//! recipe of the same name as its synth sound.
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+//! The audio mix and library admitted with the battle's weapon looks.
+//! Sound names are recipes; synthesis is a recipe of the same name as its slot.
+use std::collections::{BTreeSet, HashMap};
 
 use serde::Deserialize;
 use serde_json::Value;
@@ -28,7 +23,9 @@ pub enum Bus {
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct NearFar {
+    #[serde(default)]
     pub near: String,
+    #[serde(default)]
     pub far: String,
     pub gain: f64,
     pub far_m: f64,
@@ -37,6 +34,7 @@ pub struct NearFar {
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct OneShot {
+    #[serde(default)]
     pub sound: String,
     pub gain: f64,
 }
@@ -228,14 +226,11 @@ pub struct AudioMix {
     pub hold_s: f64,
     /// A transient more than this late (a clock jump) is dropped.
     pub late_s: f64,
-    pub shots: HashMap<String, NearFar>,
     pub impacts: HashMap<String, OneShot>,
-    pub impact_scale: HashMap<String, f64>,
     pub ricochet: OneShot,
-    pub blasts: HashMap<String, NearFar>,
     pub cook_off: CookOffSound,
-    /// A flying round's motor by kind; a kind without a row has none.
-    pub motors: HashMap<String, OneShot>,
+    pub weapon_defaults: WeaponDefaults,
+    pub effects: HashMap<String, String>,
     pub vehicles: HashMap<String, VehicleSound>,
     pub footsteps: Footsteps,
     pub fires: HashMap<String, FireSound>,
@@ -263,27 +258,19 @@ pub fn pick<'a, T>(table: &'a HashMap<String, T>, key: &str) -> &'a T {
         .expect("tables are checked for a default")
 }
 
-/// `table` with a row for every weapon of `weapons` that has none: its
-/// nearest ancestor's (`extends`), so a derived weapon sounds as its parent.
-pub(crate) fn inherit<T: Clone>(
-    table: &mut HashMap<String, T>,
-    weapons: &BTreeMap<String, Option<String>>,
-) {
-    let mut added = Vec::new();
-    for kind in weapons.keys() {
-        if table.contains_key(kind) {
-            continue;
-        }
-        let mut at = Some(kind.as_str());
-        let mut seen = BTreeSet::new();
-        while let Some(a) = at.filter(|a| !table.contains_key(*a) && seen.insert(*a)) {
-            at = weapons.get(a).and_then(|p| p.as_deref());
-        }
-        if let Some(row) = at.and_then(|a| table.get(a)) {
-            added.push((kind.clone(), row.clone()));
-        }
-    }
-    table.extend(added);
+/// Default recordings for the parts a look may override. Firing has no default.
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct WeaponDefaults {
+    pub blast: BlastRecording,
+    pub motor: String,
+    pub impacts: std::collections::BTreeMap<String, String>,
+}
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct BlastRecording {
+    pub near: String,
+    pub far: String,
 }
 
 /// Everything the battle's sound reads.
@@ -291,33 +278,27 @@ pub(crate) fn inherit<T: Clone>(
 pub struct SoundTables {
     pub audio: AudioMix,
     pub catalog: SoundCatalog,
+    pub looks: crate::looks::WeaponLooks,
 }
 
 impl SoundTables {
-    /// From `audio.json`, the sound catalog and the game's weapon
-    /// rows (for `extends`); errs on a table without its `default`, an
-    /// unknown sound, or a budget that leaves no transients.
-    pub fn from_parts(audio: Value, catalog: Value, weapons: &Value) -> Result<Self, String> {
+    /// Admit the documents and resolve the battle's weapon appearances once.
+    pub fn from_parts(
+        audio: Value,
+        catalog: Value,
+        presentation: &Value,
+        weapons: &Value,
+    ) -> Result<Self, String> {
         let audio = AudioMix::from_value(&audio)?;
         let catalog = SoundCatalog::from_value(&catalog)?;
-        let weapons: BTreeMap<String, Option<String>> = weapons
-            .as_object()
-            .ok_or("weapons: expected an object")?
-            .iter()
-            .map(|(k, w)| (k.clone(), w["extends"].as_str().map(str::to_owned)))
-            .collect();
-        let (mut audio, mut catalog) = (audio, catalog);
-        inherit(&mut audio.shots, &weapons);
-        inherit(&mut audio.impact_scale, &weapons);
-        inherit(&mut audio.blasts, &weapons);
-        inherit(&mut audio.motors, &weapons);
-        inherit(&mut catalog.defaults, &weapons);
-        for row in catalog.impacts.values_mut() {
-            inherit(row, &weapons);
-        }
-        let tables = Self { audio, catalog };
-        tables.audio.check_sounds(&tables.catalog)?;
-        Ok(tables)
+        audio.check_sounds(&catalog)?;
+        let looks = crate::looks::WeaponLooks::from_value(presentation, weapons)?
+            .with_sounds(&audio, &catalog)?;
+        Ok(Self {
+            audio,
+            catalog,
+            looks,
+        })
     }
 
     /// Every recipe a battle can play: the catalog's synthesized baselines,
@@ -332,13 +313,18 @@ impl SoundTables {
             .map(String::as_str)
             .filter(|n| synth::exists(n))
             .collect();
-        for choice in c.defaults.values() {
-            names.extend([choice.near.as_str(), choice.far.as_str()]);
+        for look in self.looks.looks.values() {
+            let s = &look.sound;
+            names.extend([
+                s.shot.near.as_str(),
+                s.shot.far.as_str(),
+                s.blast.near.as_str(),
+                s.blast.far.as_str(),
+            ]);
+            names.extend(s.motor.as_ref().map(|m| m.sound.as_str()));
+            names.extend(s.impacts.values().map(String::as_str));
         }
-        for row in c.impacts.values() {
-            names.extend(row.values().map(String::as_str));
-        }
-        names.extend(c.effects.values().map(String::as_str));
+        names.extend(self.audio.effects.values().map(String::as_str));
         names.extend(self.audio.vehicles.values().map(|row| row.engine.as_str()));
         names.extend(
             self.audio
@@ -367,42 +353,24 @@ impl SoundTables {
 
     /// An implicit baseline slot's sound: its replacement, else itself.
     pub fn effect<'a>(&'a self, baseline: &'a str) -> &'a str {
-        self.catalog
+        self.audio
             .effects
             .get(baseline)
             .map_or(baseline, String::as_str)
     }
 
-    /// How a round of weapon row `kind` fires: its chosen recording, else the
-    /// `default` choice, else the synthesized `base` (with replacements).
+    /// The admitted firing recording and levels, without a fallback.
     pub fn shot(&self, kind: &str) -> NearFar {
-        let base = pick(&self.audio.shots, kind);
-        let choice = self
-            .catalog
-            .defaults
-            .get(kind)
-            .or_else(|| self.catalog.defaults.get("default"));
-        match choice {
-            Some(c) => NearFar {
-                near: c.near.clone(),
-                far: c.far.clone(),
-                gain: base.gain * c.gain,
-                far_m: base.far_m,
-            },
-            None => NearFar {
-                near: self.effect(&base.near).to_owned(),
-                far: self.effect(&base.far).to_owned(),
-                ..base.clone()
-            },
-        }
+        self.looks.get(kind).sound.shot.clone()
     }
 
-    /// A round's sound on a contact (a hit material, or a glance): the
-    /// round's choice, the contact's default, or the baseline's replacement.
-    pub fn contact<'a>(&'a self, contact: &str, kind: &str, baseline: &'a str) -> &'a str {
-        let row = self.catalog.impacts.get(contact);
-        row.and_then(|r| r.get(kind).or_else(|| r.get("default")))
-            .map_or_else(|| self.effect(baseline), String::as_str)
+    /// A round's exact recording on the observed contact material.
+    pub fn contact<'a>(&'a self, contact: &str, kind: &str) -> &'a str {
+        &self.looks.get(kind).sound.impacts[contact]
+    }
+
+    pub fn landing(&self, contact: &str, look: &str) -> &str {
+        &self.looks.looks[look].sound.impacts[contact]
     }
 
     /// A firing sound's cadence: its first recording's burst, or one round.

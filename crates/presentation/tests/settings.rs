@@ -20,7 +20,8 @@ fn shipped_documents_load_through_client_readers() {
     presentation::sound::tables::SoundTables::from_parts(
         fixture("audio"),
         fixture("sounds"),
-        &json!({}),
+        &fixture("presentation"),
+        &fixture("rules")["weapons"],
     )
     .unwrap();
 }
@@ -59,7 +60,8 @@ fn misspellings_in_every_document_section_name_their_path() {
         let error = presentation::sound::tables::SoundTables::from_parts(
             bad,
             fixture("sounds"),
-            &json!({}),
+            &fixture("presentation"),
+            &fixture("rules")["weapons"],
         )
         .unwrap_err();
         assert!(
@@ -71,9 +73,13 @@ fn misspellings_in_every_document_section_name_their_path() {
     for section in doc.as_object().unwrap().keys() {
         let mut bad = doc.clone();
         bad[section]["misspelled_field"] = json!(false);
-        let error =
-            presentation::sound::tables::SoundTables::from_parts(fixture("audio"), bad, &json!({}))
-                .unwrap_err();
+        let error = presentation::sound::tables::SoundTables::from_parts(
+            fixture("audio"),
+            bad,
+            &fixture("presentation"),
+            &fixture("rules")["weapons"],
+        )
+        .unwrap_err();
         assert!(
             error.contains(&format!("sounds.{section}")) && error.contains("misspelled_field"),
             "{error}"
@@ -107,7 +113,6 @@ fn nested_misspellings_including_flat_puffs_are_refused() {
         "/sources/airwar-aa-launch",
         "/clips/airwar-aa-launch-recording",
         "/sounds/airwar-aa-launch",
-        "/defaults/default",
         "/provenance/airwar-aa-launch",
         "/music/moods",
     ] {
@@ -144,14 +149,15 @@ fn unknown_mix_sounds_are_refused_before_preparation() {
     for pointer in [
         "/vehicles/default/engine",
         "/ambience/sound",
-        "/blasts/default/near",
+        "/weapon_defaults/blast/near",
     ] {
         let mut doc = fixture("audio");
         *doc.pointer_mut(pointer).unwrap() = json!("unknown-sound");
         let error = presentation::sound::tables::SoundTables::from_parts(
             doc,
             fixture("sounds"),
-            &json!({}),
+            &fixture("presentation"),
+            &fixture("rules")["weapons"],
         )
         .unwrap_err();
         assert!(
@@ -162,8 +168,17 @@ fn unknown_mix_sounds_are_refused_before_preparation() {
 }
 
 #[test]
-fn library_refuses_bad_firing_roles_loops_cadence_and_effect_slots() {
+fn looks_refuse_bad_firing_roles_loops_cadence_and_effect_slots() {
     let base = fixture("sounds");
+    let look_doc = fixture("presentation");
+    let admit = |library: Value, presentation: Value, audio: Value| {
+        presentation::sound::tables::SoundTables::from_parts(
+            audio,
+            library,
+            &presentation,
+            &fixture("rules")["weapons"],
+        )
+    };
     let mut bad = base.clone();
     let near = "airwar-aa-launch";
     let clip = bad["sounds"][near]["clips"][0]
@@ -171,20 +186,22 @@ fn library_refuses_bad_firing_roles_loops_cadence_and_effect_slots() {
         .unwrap()
         .to_string();
     bad["clips"][&clip]["role"] = json!("impact");
-    assert!(presentation::sound::catalog::SoundCatalog::from_value(&bad)
+    assert!(admit(bad, look_doc.clone(), fixture("audio"))
         .unwrap_err()
         .contains("firing clips"));
-    let mut bad = base.clone();
-    bad["defaults"]["default"]["near"] = json!("engine_diesel");
-    assert!(presentation::sound::catalog::SoundCatalog::from_value(&bad)
+    let bad = base.clone();
+    let mut looks = look_doc.clone();
+    looks["weapon_looks"]["rifle"]["sound"]["shot"]["near"] = json!("engine_diesel");
+    assert!(admit(bad, looks, fixture("audio"))
         .unwrap_err()
         .contains("firing cannot use a loop"));
-    let mut bad = base.clone();
-    bad["effects"]["not-a-synth-slot"] = json!("rifle");
-    assert!(presentation::sound::catalog::SoundCatalog::from_value(&bad)
+    let bad = base.clone();
+    let mut mix = fixture("audio");
+    mix["effects"]["not-a-synth-slot"] = json!("rifle");
+    assert!(admit(bad, look_doc.clone(), mix)
         .unwrap_err()
         .contains("effects.not-a-synth-slot"));
-    let mut bad = base.clone();
+    let bad = base.clone();
     // The near burst is a catalog-selected burst; its far partner must cover
     // those same rounds even when the recording differs.
     let burst_sound = bad["sounds"]
@@ -201,14 +218,15 @@ fn library_refuses_bad_firing_roles_loops_cadence_and_effect_slots() {
         .unwrap()
         .0
         .clone();
-    bad["defaults"]["default"]["near"] = json!(burst_sound);
-    bad["defaults"]["default"]["far"] = json!("rifle");
-    assert!(presentation::sound::catalog::SoundCatalog::from_value(&bad)
+    let mut looks = look_doc.clone();
+    looks["weapon_looks"]["rifle"]["sound"]["shot"]["near"] = json!(burst_sound);
+    looks["weapon_looks"]["rifle"]["sound"]["shot"]["far"] = json!("rifle");
+    assert!(admit(bad, looks, fixture("audio"))
         .unwrap_err()
         .contains("near and far play different bursts"));
     let mut folded = base;
     folded["sounds"]["rifle"]["gain"] = json!(3.0);
-    folded["defaults"]["default"]["gain"] = json!(3.0);
+
     presentation::sound::catalog::SoundCatalog::from_value(&folded).unwrap();
 }
 

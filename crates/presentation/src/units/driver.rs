@@ -96,15 +96,6 @@ pub struct FeedFrame {
 
 use super::feel::*;
 
-/// A round kind's kick, or the table's `default` (none without one).
-fn kick_of(rounds: &HashMap<String, f64>, kind: &str) -> f64 {
-    rounds
-        .get(kind)
-        .or_else(|| rounds.get("default"))
-        .copied()
-        .unwrap_or(0.0)
-}
-
 /// Each posture's gait (`INFANTRY_MOVES`), and its clip for each way he
 /// goes relative to his facing (`INFANTRY_WAYS`: ahead, left, back, right).
 const GAITS: [&str; 3] = ["walk_aim", "crouch", "crawl"];
@@ -269,7 +260,7 @@ fn kick_hull(
     for (i, m) in unit.mounts.iter().enumerate() {
         let fired = m.shots - shots.get(i).copied().unwrap_or(m.shots);
         let kick = match ty.mounts.get(i) {
-            Some(row) if fired > 0.0 => fired * kick_of(&feel.rounds, &row.weapon),
+            Some(row) if fired > 0.0 => fired * row.kick.hull,
             _ => 0.0,
         };
         if kick <= 0.0 {
@@ -714,8 +705,7 @@ impl PoseDriver {
                 (Some(kick), Some(m)) => {
                     let round = units.types.get(&*unit.kind).and_then(|t| t.mounts.get(m));
                     let left = round.map_or(0.0, |r| {
-                        kick_of(&kick.rounds, &r.weapon)
-                            * kick_left(time - state.fired_at, kick.return_s)
+                        r.kick.soldier * kick_left(time - state.fired_at, kick.return_s)
                     });
                     Kick {
                         pitch: kick.pitch_deg * PI / 180.0 * left,

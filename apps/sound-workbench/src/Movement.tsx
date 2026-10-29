@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { resolveEffect, type SoundCatalog } from "../../../packages/battle-audio/src/catalog";
 import { vehicleLoops } from "../../../packages/battle-audio/src/soundFrame";
 import type { VehicleSound } from "../../../packages/battle-audio/src/audioMix";
 import { loadPresentation } from "../../../web/src/battle/sim/presentation";
@@ -28,58 +27,20 @@ interface Drive {
 
 /** The loops `row` sounds when driven so, as the battle mixes them, with
  *  replaced slots resolved. */
-function driveLoops(catalog: SoundCatalog, row: VehicleSound, drive: Drive): LiveLoop[] {
+function driveLoops(effects: Record<string, string>, row: VehicleSound, drive: Drive): LiveLoop[] {
   const load = Math.min(1, drive.speed / row.full_speed_mps);
   return vehicleLoops(row, load, drive.traverse ? 1 : 0, drive.reverse).map((l) => ({
     key: l.slot,
-    sound: resolveEffect(catalog, l.sound),
+    sound: effects[l.sound] ?? l.sound,
     gain: l.gain,
     rate: l.rate,
   }));
 }
 
-/** The recipe replacing an effect `slot` everywhere, among the recipes made
- *  only of recordings whose category is that slot; none keeps the original
- *  synthesis. */
-function SlotChoice({
-  draft,
-  edit,
-  slot,
-  label,
-}: Pick<EditorProps, "draft" | "edit"> & { slot: string; label: string }) {
-  const candidates = Object.entries(draft.sounds).filter(
-    ([, sound]) =>
-      sound.clips.length && sound.clips.every((c) => draft.clips[c]?.category === slot),
-  );
-  if (!candidates.length) return null;
-  return (
-    <label>
-      {label}
-      <select
-        aria-label={`${label} sound`}
-        value={draft.effects[slot] ?? ""}
-        onChange={(e) =>
-          edit((c) => {
-            if (e.target.value) c.effects[slot] = e.target.value;
-            else delete c.effects[slot];
-          })
-        }
-      >
-        <option value="">Original synthesis</option>
-        {candidates.map(([id, sound]) => (
-          <option key={id} value={id}>
-            {sound.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 /** How vehicles and soldiers sound on the move: each vehicle class driven at a
  *  chosen speed, and a squad's footsteps at a chosen pace. The levels and
  *  curves are read only here; they live in `presentation.audio`. */
-export function Movement({ snapshot, draft, edit, play, playing, mix, live, stop }: MovementProps) {
+export function Movement({ snapshot, draft, play, playing, mix, live, stop }: MovementProps) {
   const [drives, setDrives] = useState<Record<string, Drive>>(() =>
     Object.fromEntries(
       Object.entries(snapshot.vehicles).map(([cls, row]) => [
@@ -93,10 +54,7 @@ export function Movement({ snapshot, draft, edit, play, playing, mix, live, stop
   const steps = useRef({ soldiers, pace });
   steps.current = { soldiers, pace };
   const f = snapshot.footsteps;
-  const footstep = resolveEffect(draft, f.sound);
-  const runningGear = [
-    ...new Set(Object.values(snapshot.vehicles).flatMap((row) => row.running ?? [])),
-  ];
+  const footstep = snapshot.effects[f.sound] ?? f.sound;
 
   const drive = async (cls: string) => {
     const key = `drive:${cls}`;
@@ -104,15 +62,16 @@ export function Movement({ snapshot, draft, edit, play, playing, mix, live, stop
     const row = snapshot.vehicles[cls];
     const sounds = [row.engine, row.running, row.turret, row.reverse]
       .filter((s): s is string => !!s)
-      .map((s) => resolveEffect(draft, s));
+      .map((s) => snapshot.effects[s] ?? s);
     // The battle's loop rule is the presentation module's.
     const [audition] = await Promise.all([live(key, sounds), loadPresentation()]);
-    audition?.loops(driveLoops(draft, row, drives[cls]));
+    audition?.loops(driveLoops(snapshot.effects, row, drives[cls]));
   };
   const setDrive = (cls: string, change: Partial<Drive>) => {
     const next = { ...drives[cls], ...change };
     setDrives({ ...drives, [cls]: next });
-    if (playing === `drive:${cls}`) mix?.loops(driveLoops(draft, snapshot.vehicles[cls], next));
+    if (playing === `drive:${cls}`)
+      mix?.loops(driveLoops(snapshot.effects, snapshot.vehicles[cls], next));
   };
 
   // A squad walking: each soldier steps once a stride, out of step with the rest.
@@ -146,7 +105,6 @@ export function Movement({ snapshot, draft, edit, play, playing, mix, live, stop
         {snapshot.runMps} m/s. The choice replaces the footstep for every soldier.
       </p>
       <div className="sw-assignment">
-        <SlotChoice draft={draft} edit={edit} slot={f.sound} label="Footstep" />
         <div className="sw-drive">
           <label className="sw-slider">
             <span>
@@ -188,15 +146,6 @@ export function Movement({ snapshot, draft, edit, play, playing, mix, live, stop
         their levels live in the game&apos;s presentation; a running-gear choice replaces that loop
         for every class, and other loops are replaced under Defaults &amp; effects.
       </p>
-      {runningGear.map((slot) => (
-        <SlotChoice
-          key={slot}
-          draft={draft}
-          edit={edit}
-          slot={slot}
-          label={`Running gear · ${slot}`}
-        />
-      ))}
       {Object.entries(snapshot.vehicles).map(([cls, row]) => {
         const d = drives[cls];
         const driving = playing === `drive:${cls}`;
@@ -255,7 +204,7 @@ export function Movement({ snapshot, draft, edit, play, playing, mix, live, stop
               ] as const
             ).map(([slot, baseline]) => {
               if (!baseline) return null;
-              const sound = resolveEffect(draft, baseline);
+              const sound = snapshot.effects[baseline] ?? baseline;
               return (
                 <div className="sw-effect-row" key={slot}>
                   <span>

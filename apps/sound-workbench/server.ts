@@ -4,7 +4,6 @@ import { join, resolve } from "node:path";
 import type { Plugin } from "vite";
 import { FixturePublication } from "../fixture-publication/publication";
 import type { SoundCatalog } from "../../packages/battle-audio/src/catalog";
-import { GLANCE } from "../../packages/battle-audio/src/contacts";
 import { validateVoiceCatalog } from "../../packages/battle-audio/src/voices/voiceCatalog";
 import type { AudioMix } from "../../packages/battle-audio/src/audioMix";
 import type { Draft, Review, Save, Snapshot } from "./src/protocol";
@@ -16,8 +15,8 @@ interface Inputs {
   texts: string[];
   catalog: SoundCatalog;
   audio: AudioMix;
+  looks: Snapshot["looks"];
   runMps: number;
-  weapons: Snapshot["weapons"];
   media: [string, string][];
   revision: string;
 }
@@ -61,7 +60,6 @@ export class SoundWorkbenchStore {
     } catch (error) {
       throw new WorkbenchError(error instanceof Error ? error.message : String(error));
     }
-    const rules = JSON.parse(texts[1]);
     const presentation = JSON.parse(texts[2]);
     const audio = JSON.parse(texts[3]) as AudioMix;
     const media: [string, string][] = [];
@@ -81,14 +79,8 @@ export class SoundWorkbenchStore {
       texts,
       catalog,
       audio,
+      looks: presentation.weapon_looks,
       runMps: presentation.pose.gait.run_mps,
-      // Each row's lineage only: what it inherits a firing choice from.
-      weapons: Object.fromEntries(
-        Object.entries(rules.weapons as Record<string, { extends?: string }>).map(([kind, row]) => [
-          kind,
-          row.extends ? { extends: row.extends } : {},
-        ]),
-      ),
       media,
       revision: hash(JSON.stringify([texts, media])),
     };
@@ -98,14 +90,12 @@ export class SoundWorkbenchStore {
     return {
       revision: input.revision,
       catalog: input.catalog,
-      weapons: input.weapons,
-      firing: input.audio.shots,
+      looks: input.looks,
+      effects: input.audio.effects,
       vehicles: input.audio.vehicles,
       footsteps: input.audio.footsteps,
       runMps: input.runMps,
       music: input.audio.music,
-      // A glance is a contact too: each round may choose its ricochet.
-      materials: [...Object.keys(input.audio.impacts), GLANCE],
     };
   }
 
@@ -114,7 +104,7 @@ export class SoundWorkbenchStore {
   }
 
   private validate(candidate: unknown, input: Inputs): SoundCatalog {
-    object(candidate, ["sources", "clips", "sounds", "defaults", "impacts", "effects", "music"]);
+    object(candidate, ["sources", "clips", "sounds", "music"]);
     let catalog;
     try {
       catalog = this.validateCatalog(candidate);
@@ -131,16 +121,6 @@ export class SoundWorkbenchStore {
     for (const name of this.baselines)
       if (!equal(catalog.sounds[name], input.catalog.sounds[name]))
         throw new WorkbenchError(`Baseline ${name} is immutable; clone it to a new recipe`);
-    for (const kind of Object.keys(catalog.defaults))
-      if (kind !== "default" && !Object.hasOwn(input.weapons, kind))
-        throw new WorkbenchError(`Unknown weapon row ${kind}`);
-    for (const [material, rounds] of Object.entries(catalog.impacts)) {
-      if (!Object.hasOwn(input.audio.impacts, material))
-        throw new WorkbenchError(`Unknown impact material ${material}`);
-      for (const round of Object.keys(rounds))
-        if (round !== "default" && !Object.hasOwn(input.weapons, round))
-          throw new WorkbenchError(`Unknown impact round ${round}`);
-    }
     return catalog;
   }
 

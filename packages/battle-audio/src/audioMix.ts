@@ -1,8 +1,5 @@
-// `audio.json`: every level, curve, budget and per-kind sound table
-// the battle's sound reads, keyed like `presentation.effects` (round kinds,
-// hit kinds, unit kinds, smoke kinds, cue categories), each table with a
-// `default` row so a new kind sounds like something until its row is added.
-// Sound names are the synthesised bank's (`synthSounds.gen.ts` `SOUNDS`).
+// The shared mix, material levels and default recordings. Per-weapon
+// sight, kick and sound live together in presentation's weapon looks.
 import type { BattleMusicRules } from "./music/battleMusic";
 import type { ChatterRules } from "./voices/chatter";
 
@@ -107,19 +104,21 @@ export interface AudioMix {
   /** A transient more than this late (a clock jump) is dropped, not played. */
   late_s: number;
   /** Gunfire by round kind. */
-  shots: Record<string, NearFar>;
   /** Impacts by hit kind, and their gain by round kind. */
   impacts: Record<string, OneShot>;
-  impact_scale: Record<string, number>;
   ricochet: OneShot;
   /** Blasts by round kind. */
-  blasts: Record<string, NearFar>;
   /** A hull cooking off: the boom of each fireball, and its turret's clang
    *  as it strikes the deck, heard as a round of kind `as` striking `hit`
    *  (the catalog's contact sound for it), at `gain`. */
   cook_off: { blast: NearFar; landing: { hit: string; as: string; gain: number } };
   /** A flying round's motor by round kind; a kind without a row has none. */
-  motors: Record<string, OneShot>;
+  effects: Record<string, string>;
+  weapon_defaults: {
+    blast: { near: string; far: string };
+    motor: string;
+    impacts: Record<string, string>;
+  };
   vehicles: Record<string, VehicleSound>;
   footsteps: OneShot & { stride_m: number; max_step_m: number };
   /** Fire loops by smoke-source kind. */

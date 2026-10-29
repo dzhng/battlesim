@@ -40,7 +40,7 @@ calls the same reader for workbench drafts.
   file. The native client reads its models through it.
 - [What a battle fields](src/fielded.rs): `load_world`'s units, effects and
   clip tables for the units a battle fields, resolved from presentation
-  settings, authored weapon inheritance, the battle's rules and their catalog,
+  settings, weapon appearances resolved by the contract, the battle's rules and their catalog,
   and the runtime bundles,
   as a page wearing those units installs them, for both clients. It names
   the runtime contents it reads; the caller reads them (native from the
@@ -168,8 +168,8 @@ than life: a heavy gun throws its hull back on its springs, away from where the
 round went, to rock past rest and settle without moving off its spot, and shakes
 dust off the whole hull and off the ground ahead of the muzzle; each of a
 soldier's own shots snaps his upper body back about his waist, his muzzle
-climbing. How hard each round kicks is its row in `presentation.pose`
-(`hull_kick`, `soldier_kick`) and its flash's `dust`. The whole-model motion
+climbing. How hard each round kicks is its weapon look's `kick` and its flash's `dust`;
+`presentation.pose` owns the shared spring and recovery curves. The whole-model motion
 carries the drawn muzzle. A flying aircraft's rotor is drawn by the effects from the
 same drawn pose, as a film camera's shutter sees it: each blade smeared over the
 angle it turned while the shutter was open, so a fast rotor blurs at any frame

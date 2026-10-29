@@ -12,9 +12,6 @@ pub struct SoundCatalog {
     pub provenance: HashMap<String, Provenance>,
     pub clips: HashMap<String, Clip>,
     pub sounds: BTreeMap<String, Recipe>,
-    pub defaults: HashMap<String, ShotChoice>,
-    pub impacts: HashMap<String, HashMap<String, String>>,
-    pub effects: HashMap<String, String>,
     pub music: MusicCatalog,
 }
 
@@ -113,14 +110,6 @@ pub struct Recipe {
     pub gain: f64,
     #[serde(rename = "loop")]
     pub looping: bool,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ShotChoice {
-    pub near: String,
-    pub far: String,
-    pub gain: f64,
 }
 
 #[derive(Clone, Debug, Deserialize)]

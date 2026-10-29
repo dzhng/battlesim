@@ -1,3 +1,21 @@
+const pendingLooks = {
+  ...presentationSettings,
+  weapon_looks: {
+    ...presentationSettings.weapon_looks,
+    rifle: {
+      ...presentationSettings.weapon_looks.rifle,
+      sound: {
+        ...presentationSettings.weapon_looks.rifle.sound,
+        shot: {
+          ...presentationSettings.weapon_looks.rifle.sound.shot,
+          near: "pending",
+          far: "pending",
+        },
+      },
+    },
+  },
+};
+import { shippedRules } from "@web/shippedRules";
 // @vitest-environment jsdom
 import { presentationSettings } from "@web/presentationSettings";
 import { audioMix } from "@web/audioMix";
@@ -147,10 +165,6 @@ function setupDecode(
         loop: false,
       },
     },
-    // A battle prepares only what it can play: the controlled recording fires.
-    defaults: { default: { near: "pending", far: "pending", gain: 1 } },
-    impacts: {},
-    effects: {},
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
   const presentation = audioMix as unknown as AudioMix;
@@ -159,6 +173,8 @@ function setupDecode(
   const audio = app.createBattle(
     {
       tickHz: 30,
+      weapons: shippedRules.weapons,
+      looks: pendingLooks,
       presentation: audioMix as unknown as AudioMix,
       smokeTimes: {},
       cookOff: COOK_OFF,
@@ -235,6 +251,8 @@ test("a departed battle cannot admit late decoding and its replacement shares th
   const next = active.at(-1)!.createBattle(
     {
       tickHz: 30,
+      weapons: shippedRules.weapons,
+      looks: pendingLooks,
       presentation: audioMix as unknown as AudioMix,
       smokeTimes: {},
       cookOff: COOK_OFF,

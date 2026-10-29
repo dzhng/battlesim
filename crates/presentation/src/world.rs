@@ -151,6 +151,7 @@ pub struct Hull {
 #[serde(rename_all = "camelCase")]
 pub struct TypeMount {
     pub weapon: String,
+    pub kick: crate::looks::Kick,
     pub on: Option<usize>,
     pub active_pose: Option<PoseRef>,
 }

@@ -6,6 +6,7 @@ import type { EditorProps } from "./editorProps";
 export type Selection = { kind: "clip" | "sound"; id: string };
 export function Library({
   draft,
+  snapshot,
   edit,
   play,
   search,
@@ -13,7 +14,7 @@ export function Library({
   selected,
   select,
   clone,
-}: Omit<EditorProps, "snapshot"> & {
+}: EditorProps & {
   search: string;
   setSearch(value: string): void;
   selected: Selection | null;
@@ -27,9 +28,9 @@ export function Library({
   }, [selected, filter]);
   const matches = (text: string) => text.toLowerCase().includes(search.toLowerCase());
   const assigned = new Set([
-    ...Object.values(draft.defaults).flatMap((choice) => [choice.near, choice.far]),
-    ...Object.values(draft.impacts).flatMap((rounds) => Object.values(rounds)),
-    ...Object.values(draft.effects),
+    ...Object.values(snapshot.looks).flatMap(({ sound }) => [sound.shot.near, sound.shot.far]),
+    ...Object.values(snapshot.looks).flatMap(({ sound }) => Object.values(sound.impacts)),
+    ...Object.values(snapshot.effects),
   ]);
   const usedClips = new Set([...assigned].flatMap((name) => draft.sounds[name].clips));
   return (

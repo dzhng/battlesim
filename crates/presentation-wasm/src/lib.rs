@@ -789,16 +789,27 @@ pub fn check_audio_mix(text: &str, catalog: Option<String>) -> Result<(), JsErro
     let mix = serde_json::from_str(text).map_err(error)?;
     match catalog {
         Some(catalog) => {
-            presentation::sound::tables::SoundTables::from_parts(
-                mix,
-                serde_json::from_str(&catalog).map_err(error)?,
-                &serde_json::json!({}),
+            let audio = presentation::sound::tables::AudioMix::from_value(&mix).map_err(error)?;
+            let catalog = presentation::sound::catalog::SoundCatalog::from_value(
+                &serde_json::from_str(&catalog).map_err(error)?,
             )
             .map_err(error)?;
+            audio.check_sounds(&catalog).map_err(error)?;
         }
         None => {
             presentation::sound::tables::AudioMix::from_value(&mix).map_err(error)?;
         }
     }
     Ok(())
+}
+
+/// Resolved weapon appearances for tooling; inheritance belongs to contract.
+#[wasm_bindgen]
+pub fn weapon_looks(presentation: &str, weapons: &str) -> Result<String, JsError> {
+    let looks = presentation::looks::WeaponLooks::from_value(
+        &serde_json::from_str(presentation).map_err(error)?,
+        &serde_json::from_str(weapons).map_err(error)?,
+    )
+    .map_err(error)?;
+    serde_json::to_string(&looks).map_err(error)
 }

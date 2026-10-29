@@ -18,7 +18,7 @@ pub(super) fn pick<'a, T>(table: &'a HashMap<String, T>, kind: &str) -> &'a T {
     table.get(kind).unwrap_or_else(|| &table["default"])
 }
 
-/// `presentation.effects`. Styles by round or hit kind, each with a `default`.
+/// Shared effect tuning and the battle's admitted weapon looks.
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct EffectPresentation {
@@ -26,13 +26,10 @@ pub struct EffectPresentation {
     pub capacity: usize,
     /// The narrowest a streak or smallest a sprite draws, pixels.
     pub min_px: f64,
-    pub tracers: HashMap<String, Arc<TracerStyle>>,
-    pub flashes: HashMap<String, Arc<FlashStyle>>,
+    #[serde(default, skip_serializing_if = "crate::looks::WeaponLooks::is_empty")]
+    pub looks: crate::looks::WeaponLooks,
     pub impacts: HashMap<String, Arc<ImpactStyle>>,
-    /// An impact puff's size by round kind.
-    pub impact_scale: HashMap<String, f64>,
-    /// A burst's fireball by round kind, over its blast radius's.
-    pub blast_scale: HashMap<String, f64>,
+
     pub sparks: SparkStyle,
     pub ricochet_sparks: f64,
     /// Sparks a second a hull grinding a metal body throws.
@@ -227,8 +224,6 @@ pub struct ImpactStyle {
     pub opacity: f64,
     pub size_m: f64,
     pub duration_s: f64,
-    #[serde(default)]
-    pub round_scale: HashMap<String, RoundScale>,
     /// Sparks a tracer round throws off the surface, and its flash (0: none).
     pub sparks: f64,
     pub flash: f64,
@@ -319,8 +314,8 @@ fn ensure(ok: bool, why: impl FnOnce() -> String) -> Result<(), String> {
 }
 
 impl EffectPresentation {
-    /// Reads and checks `presentation.effects`: every table has its
-    /// `default`, every light reaches, every life is bounded.
+    /// Read effect tuning: every material table is complete, every light reaches,
+    /// and every life is bounded.
     pub fn from_value(value: &Value) -> Result<Self, String> {
         let p: Self = crate::settings::read(value, "presentation.effects")?;
         p.check()?;
@@ -334,24 +329,9 @@ impl EffectPresentation {
             &[".forward_m", ".spin_turns", ".up_m"],
         )?;
         ensure(self.capacity > 0, || "capacity must be positive".into())?;
-        let defaults = [
-            ("tracers", self.tracers.contains_key("default")),
-            ("flashes", self.flashes.contains_key("default")),
-            ("impacts", self.impacts.contains_key("default")),
-            ("impact_scale", self.impact_scale.contains_key("default")),
-            ("blast_scale", self.blast_scale.contains_key("default")),
-        ];
-        for (table, has) in defaults {
-            ensure(has, || format!("{table} needs a default"))?;
-        }
-        for (kind, &scale) in &self.blast_scale {
-            ensure(scale.is_finite() && scale > 0.0, || {
-                format!("blast_scale.{kind} must be finite and positive")
-            })?;
-        }
-        for (kind, t) in &self.tracers {
-            t.validate(kind)?;
-        }
+        ensure(self.impacts.contains_key("default"), || {
+            "impacts needs a default".into()
+        })?;
         ensure((0.0..=1.0).contains(&self.cast_wrap), || {
             "cast_wrap must be in [0, 1]".into()
         })?;
@@ -364,10 +344,12 @@ impl EffectPresentation {
             ),
             None => Ok(()),
         };
-        for (k, t) in &self.tracers {
+        for (k, look) in &self.looks.looks {
+            let t = &look.tracer;
             cast(format!("tracers.{k}"), &t.cast, false)?;
         }
-        for (k, f) in &self.flashes {
+        for (k, look) in &self.looks.looks {
+            let f = &look.flash;
             cast(format!("flashes.{k}"), &f.cast, true)?;
         }
         for (k, s) in &self.smoke {
@@ -381,12 +363,15 @@ impl EffectPresentation {
             ensure(lit <= i.duration_s, || {
                 format!("impacts.{hit}.cast outlives its impact")
             })?;
-            for (kind, s) in &i.round_scale {
+            for (kind, look) in &self.looks.looks {
+                let Some(s) = look.impact.surfaces.get(hit) else {
+                    continue;
+                };
                 let ok = s.size.is_finite() && s.size > 0.0 && s.duration.is_finite();
                 ensure(
                     ok && s.duration > 0.0 && lit <= i.duration_s * s.duration,
                     || {
-                        format!("impacts.{hit}.round_scale.{kind} must be positive and outlast its light")
+                        format!("weapon_looks.{kind}.impact.surfaces.{hit} must be positive and outlast its light")
                     },
                 )?;
             }
@@ -399,7 +384,8 @@ impl EffectPresentation {
             "blast.cast outlives its blast".into()
         })?;
         self.cook_off.validate()?;
-        for (k, f) in &self.flashes {
+        for (k, look) in &self.looks.looks {
+            let f = &look.flash;
             ensure(f.dust.is_finite() && f.dust >= 0.0, || {
                 format!("flashes.{k}.dust must be ≥ 0")
             })?;
@@ -457,14 +443,17 @@ impl EffectPresentation {
             longest = longest.max(c.delay_s + f.after_s + fire);
         }
         longest = longest.max(c.impact_after() + burst(&b.plume));
-        for f in self.flashes.values() {
+        for look in self.looks.looks.values() {
+            let f = &look.flash;
             let lit = f.cast.map_or(0.0, |c| c.duration_s);
             longest = longest.max(f.duration_s).max(f.fireball_s).max(lit);
         }
-        for i in self.impacts.values() {
+        for (hit, i) in &self.impacts {
             longest = longest.max(i.duration_s);
-            for s in i.round_scale.values() {
-                longest = longest.max(i.duration_s * s.duration);
+            for look in self.looks.looks.values() {
+                if let Some(s) = look.impact.surfaces.get(hit) {
+                    longest = longest.max(i.duration_s * s.duration);
+                }
             }
         }
         for s in self.smoke.values() {
@@ -473,7 +462,8 @@ impl EffectPresentation {
                 .max(s.smoke.life_s)
                 .max(s.smoulder.life_s);
         }
-        for t in self.tracers.values() {
+        for look in self.looks.looks.values() {
+            let t = &look.tracer;
             if let Some(s) = &t.smoke {
                 longest = longest.max(s.puff.life_s);
             }
@@ -483,7 +473,7 @@ impl EffectPresentation {
 }
 
 impl TracerStyle {
-    fn validate(&self, kind: &str) -> Result<(), String> {
+    pub(crate) fn validate(&self, kind: &str) -> Result<(), String> {
         let at = |why: &str| format!("tracers.{kind}.{why}");
         let within = |v: Option<f64>, ok: fn(f64) -> bool| v.is_none_or(|v| v.is_finite() && ok(v));
         ensure(within(self.chance, |c| (0.0..=1.0).contains(&c)), || {

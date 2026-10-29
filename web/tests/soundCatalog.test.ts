@@ -7,11 +7,9 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { beforeAll, expect, test } from "vitest";
-import units from "@fixtures/catalog.json";
 import shipped from "@fixtures/sounds.json";
 import {
   firingCadence,
-  resolveShot,
   validateSoundCatalog,
   type SoundCatalog,
   type SoundClip,
@@ -31,84 +29,12 @@ const catalog = (): SoundCatalog => ({
     rifle: { label: "Synth rifle", clips: [], synth: "rifle", synth_gain: 1, gain: 1, loop: false },
     hmg: { label: "Synth HMG", clips: [], synth: "hmg", synth_gain: 1, gain: 1, loop: false },
   },
-  defaults: {},
-  impacts: {},
-  effects: {},
   music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
-});
-
-test("a weapon row's own firing choice wins over the global default", () => {
-  const c = catalog();
-  c.defaults.default = { near: "rifle", far: "rifle", gain: 0.7 };
-  c.defaults.hmg = { near: "hmg", far: "hmg", gain: 0.8 };
-  const base = { near: "rifle", far: "rifle", gain: 0.5, far_m: 350 };
-  expect(resolveShot(c, base, "hmg")).toEqual({ near: "hmg", far: "hmg", gain: 0.4, far_m: 350 });
-  expect(validateSoundCatalog(c)).toBe(c);
 });
 
 test("a catalog with a section the game no longer reads is refused, not ignored", () => {
   const c = { ...catalog(), units: { jeep: { HMG: { near: "hmg", far: "hmg", gain: 1 } } } };
   expect(() => validateSoundCatalog(c)).toThrow(/units/);
-});
-
-test("an unassigned weapon follows the editable global default before the synth baseline", () => {
-  const c = catalog();
-  const base = { near: "hmg", far: "hmg", gain: 0.5, far_m: 350 };
-  expect(resolveShot(c, base, "new-kind")).toEqual(base);
-  c.defaults.default = { near: "rifle", far: "rifle", gain: 0.6 };
-  expect(resolveShot(c, base, "new-kind")).toEqual({
-    near: "rifle",
-    far: "rifle",
-    gain: 0.3,
-    far_m: 350,
-  });
-});
-
-test("a firing assignment cannot use a stored reload or a looping sound", () => {
-  const c = catalog();
-  c.sources.test = {
-    label: "Test source",
-    author: "Test",
-    license: "CC0-1.0",
-    url: "https://example.com/audio",
-    path: "assets/third-party/audio/test.wav",
-    sha256: "a".repeat(64),
-    notes: "",
-  };
-  c.clips.reload = {
-    label: "Reload",
-    category: "reload",
-    role: "reload",
-    source: "test",
-    source_rate: 48000,
-    source_frames: [0, 4800],
-    processing: "trim",
-    url: "/audio/clips/reload.wav",
-    sha256: "b".repeat(64),
-    sample_rate: 48000,
-    frames: 4800,
-    loop: false,
-    notes: "",
-  };
-  c.sounds.reload = {
-    label: "Reload",
-    clips: ["reload"],
-    synth: null,
-    synth_gain: 0,
-    gain: 1,
-    loop: false,
-  };
-  c.defaults.rifle = { near: "reload", far: "rifle", gain: 1 };
-  expect(() => validateSoundCatalog(c)).toThrow(/defaults\.rifle\.near: firing clips/);
-  c.sounds.reload = {
-    label: "Motor",
-    clips: [],
-    synth: "motor",
-    synth_gain: 1,
-    gain: 1,
-    loop: true,
-  };
-  expect(() => validateSoundCatalog(c)).toThrow(/firing.*loop/i);
 });
 
 test("a firing sound's alternatives and near/far pair cover the same rounds", () => {
@@ -154,14 +80,10 @@ test("a firing sound's alternatives and near/far pair cover the same rounds", ()
   });
   c.sounds.burst = recipe(["three", "alt"]);
   c.sounds.single = recipe(["one"]);
-  c.defaults.rifle = { near: "burst", far: "burst", gain: 1 };
   expect(validateSoundCatalog(c)).toBe(c);
   expect(firingCadence(c, "burst")).toEqual({ shots: 3, interval_s: 0.1 });
   expect(firingCadence(c, "single").shots).toBe(1);
 
-  c.defaults.rifle.far = "single";
-  expect(() => validateSoundCatalog(c)).toThrow(/near and far/);
-  c.defaults.rifle.far = "burst";
   c.sounds.burst.clips = ["three", "one"];
   expect(() => validateSoundCatalog(c)).toThrow(/different bursts/);
   c.sounds.burst.clips = ["three"];
@@ -169,24 +91,13 @@ test("a firing sound's alternatives and near/far pair cover the same rounds", ()
   expect(() => validateSoundCatalog(c)).toThrow(/invalid burst/);
 });
 
-test("every shipped burst recording fires at its gun's cadence and divides its bursts", () => {
+test("every shipped look's near and far recordings cover the same firing burst", () => {
   const sounds = validateSoundCatalog(structuredClone(shipped));
-  const weapons = units.weapons as Record<
-    string,
-    { magazine: { shot_interval_s: number; burst: { rounds: number } | null } | null }
-  >;
-  let bursts = 0;
-  for (const [kind, choice] of Object.entries(sounds.defaults)) {
-    // `default` names no weapon: it is the fallback for a kind without a row.
-    if (kind === "default") continue;
-    const burst = firingCadence(sounds, choice.near);
-    if (burst.shots === 1) continue;
-    bursts++;
-    const magazine = weapons[kind]?.magazine;
-    expect(magazine?.shot_interval_s, `${choice.near} on ${kind}`).toBe(burst.interval_s);
-    expect((magazine?.burst?.rounds ?? 1) % burst.shots, `${choice.near} on ${kind}`).toBe(0);
+  for (const [name, look] of Object.entries(presentationSettings.weapon_looks)) {
+    expect(firingCadence(sounds, look.sound.shot.near), name).toEqual(
+      firingCadence(sounds, look.sound.shot.far),
+    );
   }
-  expect(bursts).toBeGreaterThan(0);
 });
 
 test("air-war audio keeps downloaded rights-unassigned receipts beside placeholders", () => {
@@ -216,6 +127,7 @@ test("air-war audio keeps downloaded rights-unassigned receipts beside placehold
     presentation: audioMix as unknown as AudioMix,
     catalog: sounds,
     weapons: shippedRules.weapons,
+    looks: presentationSettings,
     smokeTimes: presentationSettings.effects.smoke,
     cookOff: presentationSettings.effects.cook_off,
   });
@@ -285,7 +197,13 @@ test("air-war audio has workbench recipes for every authored air cue", () => {
     "air_missile",
     "sead_missile",
   ]) {
-    expect(sounds.defaults[kind]?.near, kind).toBe("airwar-aa-launch");
+    expect(
+      presentationSettings.weapon_looks[
+        shippedRules.weapons[kind as keyof typeof shippedRules.weapons]
+          .appearance as keyof typeof presentationSettings.weapon_looks
+      ].sound.shot.near,
+      kind,
+    ).toBe("airwar-aa-launch");
   }
 });
 

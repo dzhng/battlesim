@@ -15,7 +15,6 @@
 use crate::appearance::{articulated, skinned};
 use crate::assets::{Container, BUNDLE};
 use crate::settings::PresentationSettings;
-use crate::sound::tables::inherit;
 use crate::units::drawn::ClipTables;
 use crate::world::{EffectsSection, UnitsSection};
 use contract::catalog::Mobility;
@@ -99,7 +98,7 @@ impl Fielding<'_> {
             read,
             ..Art::new(self.runtime, &catalog, self.kinds, self.factions)?
         };
-        let (units, tables) = units(
+        let (mut units, tables) = units(
             &presentation,
             self.rules,
             &catalog,
@@ -107,9 +106,18 @@ impl Fielding<'_> {
             self.kinds,
             self.factions,
         )?;
+        let looks =
+            crate::looks::WeaponLooks::new(presentation.weapon_looks.clone(), self.weapons)?;
+        for unit in units["types"].as_object_mut().unwrap().values_mut() {
+            for mount in unit["mounts"].as_array_mut().unwrap() {
+                let weapon = mount["weapon"].as_str().ok_or("mount without a weapon")?;
+                mount["kick"] =
+                    serde_json::to_value(looks.get(weapon).kick).map_err(|e| e.to_string())?;
+            }
+        }
         let effects = effects::section(
             &presentation,
-            self.weapons,
+            &looks,
             self.rules,
             &catalog,
             &art,
@@ -488,7 +496,7 @@ fn unit_types(
                     .position(|r| !m["on"].is_null() && r["id"] == m["on"]);
                 let pose = &m["operator_appearance"]["active_pose"];
                 json!({
-                    "weapon": m["weapons"][0].as_str().unwrap_or("default"),
+                    "weapon": m["weapons"][0],
                     "on": on,
                     "activePose": if pose.is_object() { pose.clone() } else { Value::Null },
                 })

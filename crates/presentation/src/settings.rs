@@ -14,6 +14,7 @@ use crate::{
 };
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::Value;
+use std::collections::BTreeMap;
 
 /// Deserialize without losing the path to a bad nested key or value.
 pub fn read<T: DeserializeOwned>(value: &Value, path: &str) -> Result<T, String> {
@@ -51,6 +52,7 @@ pub struct PresentationSettings {
     pub pose: PoseFeel,
     pub transit: TransitFeel,
     pub effects: EffectPresentation,
+    pub weapon_looks: BTreeMap<String, std::sync::Arc<crate::looks::WeaponLook>>,
 }
 
 impl PresentationSettings {
@@ -61,6 +63,9 @@ impl PresentationSettings {
         settings.fog_geometry.check()?;
         settings.pose.check()?;
         settings.effects.check()?;
+        for (name, look) in &settings.weapon_looks {
+            look.check(name)?;
+        }
         validate::presentation(&settings)?;
         Ok(settings)
     }

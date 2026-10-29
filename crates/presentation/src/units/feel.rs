@@ -2,7 +2,6 @@
 use super::driver::StanceFeel;
 use contract::catalog::FlightModel;
 use serde::Deserialize;
-use std::collections::HashMap;
 
 /// `presentation.pose`: how poses move between what the simulation
 /// publishes. Presentation feel, not rules.
@@ -61,14 +60,13 @@ pub struct MountFeel {
 
 /// A shot's recoil throws the hull back on its springs, away from where the
 /// round went, and it rocks back past rest and settles, never moving off its
-/// spot. `rounds` is each round kind's kick (a `default` row): at 1 the
+/// spot. At a look's hull kick of 1 the
 /// hull's roof swings back at most `rock_deg` about its base while it slides
 /// `slide_m` back; at 0 it never moves. Its springs ring at `hz`, damped by
 /// `damping` (a share of critical, in (0, 1)).
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct HullKick {
-    pub rounds: HashMap<String, f64>,
     pub rock_deg: f64,
     pub slide_m: f64,
     pub hz: f64,
@@ -78,11 +76,10 @@ pub struct HullKick {
 /// Each of his own shots snaps a soldier's upper body back about his waist
 /// ([`KICK_JOINT`](super::skin::KICK_JOINT)), his muzzle climbing
 /// `pitch_deg` and his shoulders thrown `back_m` back, and he recovers over
-/// `return_s`. `rounds` is each round kind's share of that (a `default` row).
+/// `return_s`. The weapon look supplies its share of that motion.
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct SoldierKick {
-    pub rounds: HashMap<String, f64>,
     pub pitch_deg: f64,
     pub back_m: f64,
     pub return_s: f64,

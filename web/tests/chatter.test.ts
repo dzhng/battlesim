@@ -1,3 +1,4 @@
+import { shippedRules } from "@web/shippedRules";
 // @vitest-environment node
 // Voice lines at the seam to Rust, where their rules live
 // (`crates/presentation/tests/voices.rs` holds them to the vectors the
@@ -74,6 +75,8 @@ test("a battle's lines are heard from its sound frame's listener", () => {
   const frame = new SoundFrame(
     {
       tickHz: 30,
+      weapons: shippedRules.weapons,
+      looks: presentationSettings,
       presentation: audioMix as unknown as AudioMix,
       catalog: gameSounds,
       smokeTimes: presentationSettings.effects.smoke,

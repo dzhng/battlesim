@@ -5,11 +5,14 @@ import type { Replacement } from "../../fixture-publication/publication";
 export interface Snapshot {
   revision: string;
   catalog: SoundCatalog;
-  /** `rules.json`'s weapon rows by name, each with the row it `extends`: a
-   *  row without a firing choice of its own takes its nearest ancestor's. */
-  weapons: Record<string, { extends?: string }>;
-  /** The synthesized baseline shots (`presentation.audio.shots`). */
-  firing: AudioMix["shots"];
+  /** Weapon presentation, read only until look-document publication is available. */
+  looks: Record<
+    string,
+    {
+      sound: { shot: { near: string; far: string; gain: number }; impacts: Record<string, string> };
+    }
+  >;
+  effects: AudioMix["effects"];
   /** Each vehicle class's loops (`presentation.audio.vehicles`), read only here. */
   vehicles: AudioMix["vehicles"];
   /** A soldier's footstep and stride (`presentation.audio.footsteps`), read only here. */
@@ -18,7 +21,6 @@ export interface Snapshot {
   runMps: number;
   /** Battle music's mood direction and ducking (`presentation.audio.music`), read only here. */
   music: AudioMix["music"];
-  materials: string[];
 }
 export interface Draft {
   revision: string;

@@ -89,6 +89,7 @@
   "launch": { "clearance_m": 30 },
   "weapons": {
     "rifle": {
+      "appearance": "rifle",
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 300, "scatter_mrad": 8 }, "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 100, "scatter_mrad": 40 } },
       "name": "Rifle",
       "description": "The standard rifle every soldier carries.",
@@ -110,6 +111,7 @@
       "structural_damage": 0.25
     },
     "grenade": {
+      "appearance": "grenade",
       "round_cost": 2,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 150, "scatter_mrad": 30 } },
       "name": "Grenade",
@@ -131,6 +133,7 @@
       "structural_damage": 10
     },
     "tank_ap": {
+      "appearance": "tank_sabot",
       "round_cost": 5,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 800, "scatter_mrad": 3.43 } },
       "name": "AP Shell",
@@ -152,6 +155,7 @@
       "armor_piercing": true
     },
     "tank_he": {
+      "appearance": "tank_he",
       "round_cost": 5,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 800, "scatter_mrad": 3.43 } },
       "name": "HE Shell",
@@ -172,6 +176,7 @@
       "structural_damage": 100
     },
     "hmg": {
+      "appearance": "heavy_machine_gun",
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 400, "scatter_mrad": 6 }, "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 200, "scatter_mrad": 24 } },
       "name": "HMG",
       "description": "A heavy machine gun for troops and light vehicles.",
@@ -193,6 +198,7 @@
       "structural_damage": 4
     },
     "atgm": {
+      "appearance": "atgm",
       "round_cost": 20,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 900, "scatter_mrad": 0.5 } },
       "interceptable": true,
@@ -219,12 +225,14 @@
       "structural_damage": 100
     },
     "carbine": {
+      "appearance": "carbine",
       "extends": "rifle",
       "name": "Carbine",
       "description": "A short rifle for close quarters: handier, less accurate at range.",
       "targets": { "low_air": { "scatter_mrad": 50 }, "ground": { "classes": ["infantry", "vehicle"], "range_m": 240, "scatter_mrad": 10 } }
     },
     "lmg": {
+      "appearance": "light_machine_gun",
       "round_cost": 1,
       "extends": "rifle",
       "name": "LMG",
@@ -243,6 +251,7 @@
       "structural_damage": 1
     },
     "marksman_rifle": {
+      "appearance": "marksman_rifle",
       "round_cost": 1,
       "extends": "rifle",
       "name": "Marksman Rifle",
@@ -258,6 +267,7 @@
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 450, "scatter_mrad": 8 } }
     },
     "heavy_sniper": {
+      "appearance": "heavy_sniper",
       "round_cost": 2,
       "extends": "rifle",
       "name": "Heavy Sniper",
@@ -273,6 +283,7 @@
       "targets": { "low_air": { "range_m": 150, "scatter_mrad": 48 }, "ground": { "classes": ["infantry", "vehicle"], "range_m": 700, "scatter_mrad": 8 } }
     },
     "autocannon": {
+      "appearance": "ifv_cannon",
       "round_cost": 1,
       "extends": "hmg",
       "name": "Autocannon",
@@ -293,6 +304,7 @@
       "magazine": { "rounds": 30, "shot_interval_s": 0.3, "burst": { "rounds": 3, "aim_max_s": 1 } }
     },
     "ground_tank_ap": {
+      "appearance": "ground_sabot_no_kick",
       "extends": "tank_ap",
       "name": "AP Shell",
       "damage": 45,
@@ -300,12 +312,14 @@
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 850, "scatter_mrad": 3.43 } }
     },
     "ground_tank_he": {
+      "appearance": "ground_he_no_kick",
       "extends": "tank_he",
       "name": "HE Shell",
       "damage": 80,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 850, "scatter_mrad": 3.43 } }
     },
     "advanced_tank_ap": {
+      "appearance": "advanced_sabot_no_kick",
       "extends": "tank_ap",
       "name": "AP Shell",
       "damage": 50,
@@ -313,12 +327,14 @@
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 900, "scatter_mrad": 3.43 } }
     },
     "advanced_tank_he": {
+      "appearance": "advanced_he_no_kick",
       "extends": "tank_he",
       "name": "HE Shell",
       "damage": 80,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 900, "scatter_mrad": 3.43 } }
     },
     "light_tank_ap": {
+      "appearance": "light_sabot_no_kick",
       "extends": "tank_ap",
       "name": "AP Shell",
       "damage": 40,
@@ -326,18 +342,21 @@
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 750, "scatter_mrad": 3.43 } }
     },
     "light_tank_he": {
+      "appearance": "light_he_no_kick",
       "extends": "tank_he",
       "name": "HE Shell",
       "damage": 65,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 750, "scatter_mrad": 3.43 } }
     },
     "tow": {
+      "appearance": "atgm_wire_no_kick",
       "interceptable": true,
       "extends": "atgm",
       "name": "TOW 2A",
       "description": "Optically supported direct anti-tank missile; launcher line of sight is required."
     },
     "kornet": {
+      "appearance": "atgm_heavy_no_kick",
       "interceptable": true,
       "extends": "atgm",
       "name": "Kornet",
@@ -349,6 +368,7 @@
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 950, "scatter_mrad": 0.5 } }
     },
     "spike": {
+      "appearance": "atgm_heavy_no_kick",
       "interceptable": true,
       "extends": "atgm",
       "name": "Spike",
@@ -360,6 +380,7 @@
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 900, "scatter_mrad": 0.5 } }
     },
     "javelin": {
+      "appearance": "atgm_top_attack_no_kick",
       "interceptable": true,
       "extends": "atgm",
       "name": "Javelin",
@@ -372,6 +393,7 @@
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 800, "scatter_mrad": 0.5 } }
     },
     "stinger": {
+      "appearance": "manpads",
       "round_cost": 30,
       "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 1500, "scatter_mrad": 0.5 } },
       "interceptable": false,
@@ -400,6 +422,7 @@
       "structural_damage": 20
     },
     "aa_ballistic": {
+      "appearance": "aa_cannon",
       "round_cost": 1,
       "proximity_fuse_m": 5,
       "extends": "hmg",
@@ -421,6 +444,7 @@
       "magazine": { "rounds": 30, "shot_interval_s": 0.3, "burst": { "rounds": 3, "aim_max_s": 1 } }
     },
     "aa_medium": {
+      "appearance": "sam",
       "round_cost": 30,
       "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 2600, "scatter_mrad": 0.5 }, "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 2600, "scatter_mrad": 0.5 } },
       "interceptable": false,
@@ -451,6 +475,7 @@
       "decoyable": true
     },
     "aa_long": {
+      "appearance": "sam_long",
       "round_cost": 45,
       "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 5200, "scatter_mrad": 0.5 } },
       "interceptable": false,
@@ -482,6 +507,7 @@
       "decoyable": true
     },
     "patriot_pac3": {
+      "appearance": "sam_long",
       "proximity_fuse_m": 5,
       "extends": "aa_long",
       "name": "PAC-3 MSE",
@@ -489,6 +515,7 @@
       "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] } }
     },
     "pantsir_missile": {
+      "appearance": "sam",
       "proximity_fuse_m": 5,
       "extends": "aa_medium",
       "name": "57E6",
@@ -496,6 +523,7 @@
       "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] }, "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] } }
     },
     "air_gun": {
+      "appearance": "aa_cannon",
       "extends": "hmg",
       "name": "Aircraft cannon",
       "description": "Unlimited aircraft gun.",
@@ -516,6 +544,7 @@
       "default": true
     },
     "air_missile": {
+      "appearance": "sam",
       "round_cost": 25,
       "fires_on_its_own": true,
       "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 3000, "scatter_mrad": 0.5 }, "high_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 3000, "scatter_mrad": 0.5 } },
@@ -547,6 +576,7 @@
       "decoyable": true
     },
     "air_bomb": {
+      "appearance": "air_bomb",
       "round_cost": 25,
       "delivery": "unpowered",
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 0, "scatter_mrad": 4 } },
@@ -567,6 +597,7 @@
       "structural_damage": 80
     },
     "air_bomb_cluster": {
+      "appearance": "air_bomb_cluster",
       "round_cost": 25,
       "delivery": "unpowered",
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 0, "scatter_mrad": 28 } },
@@ -588,6 +619,7 @@
       "magazine": { "rounds": 4, "shot_interval_s": 0.08 }
     },
     "air_ground_missile": {
+      "appearance": "air_ground_missile",
       "extends": "heli_atgm",
       "name": "Air ground missile",
       "description": "A fast guided anti-armour missile for ground attack.",
@@ -596,6 +628,7 @@
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 2000, "scatter_mrad": 0.5 } }
     },
     "sead_missile": {
+      "appearance": "sam_long",
       "round_cost": 40,
       "fires_on_its_own": true,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 6500, "scatter_mrad": 0.5 } },
@@ -626,19 +659,23 @@
       "anti_radiation": true
     },
     "igla_s": {
+      "appearance": "manpads_no_kick",
       "extends": "stinger",
       "name": "Igla-S"
     },
     "fn_6": {
+      "appearance": "manpads_no_kick",
       "extends": "stinger",
       "name": "FN-6"
     },
     "akeron_mp": {
+      "appearance": "atgm_top_attack_no_kick",
       "extends": "javelin",
       "name": "Akeron MP",
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 900, "scatter_mrad": 0.5 } }
     },
     "bastion": {
+      "appearance": "atgm_wire_no_kick",
       "interceptable": true,
       "extends": "atgm",
       "name": "Bastion",
@@ -650,6 +687,7 @@
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 650, "scatter_mrad": 0.5 } }
     },
     "heli_atgm": {
+      "appearance": "air_atgm",
       "extends": "atgm",
       "name": "Air ATGM",
       "description": "A helicopter's anti-tank missile: fired and steered on the move.",
@@ -659,6 +697,7 @@
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 1200, "scatter_mrad": 0.5 } }
     },
     "rocket_pod": {
+      "appearance": "rocket_pod_old_tank_flash",
       "round_cost": 2,
       "extends": "tank_he",
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 900, "scatter_mrad": 12 } },
@@ -678,6 +717,7 @@
       "structural_damage": 80
     },
     "helicopter_crash": {
+      "appearance": "helicopter_crash",
       "extends": "tank_he",
       "name": "Crash",
       "description": "A downed airframe striking the ground: no gun fires it. It fells the trees beneath and hurts what lies there, less than a shell.",
@@ -688,6 +728,7 @@
       "structural_damage": 300
     },
     "ifv_he": {
+      "appearance": "ifv_he_no_kick",
       "extends": "tank_he",
       "name": "HE Shell",
       "damage": 65,
@@ -696,6 +737,7 @@
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 650, "scatter_mrad": 4 } }
     },
     "rpg_at_light": {
+      "appearance": "rpg_old_levels_no_kick",
       "round_cost": 10,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 300, "scatter_mrad": 8 } },
       "interceptable": true,
@@ -712,6 +754,7 @@
       "gravity_scale": 1.7651
     },
     "rpg_at_heavy": {
+      "appearance": "rpg_old_levels_no_kick",
       "round_cost": 10,
       "targets": { "ground": { "classes": ["vehicle"], "range_m": 400, "scatter_mrad": 8 } },
       "interceptable": true,
@@ -728,6 +771,7 @@
       "gravity_scale": 1.7651
     },
     "rpg_general": {
+      "appearance": "rpg_old_levels_no_kick",
       "round_cost": 10,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 280, "scatter_mrad": 10 } },
       "extends": "grenade",
@@ -744,6 +788,7 @@
       "gravity_scale": 1.7651
     },
     "artillery_howitzer": {
+      "appearance": "artillery_howitzer",
       "round_cost": 12,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2500, "scatter_mrad": 18 } },
       "name": "Howitzer",
@@ -768,6 +813,7 @@
       "trajectory": "indirect"
     },
     "artillery_mortar": {
+      "appearance": "artillery_mortar",
       "round_cost": 8,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 1800, "scatter_mrad": 26 } },
       "name": "Mortar",
@@ -792,6 +838,7 @@
       "trajectory": "indirect"
     },
     "artillery_rocket_light": {
+      "appearance": "artillery_rocket_light",
       "round_cost": 10,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2200, "scatter_mrad": 24 } },
       "name": "Rocket salvo",
@@ -817,6 +864,7 @@
       "trajectory": "indirect"
     },
     "artillery_rocket_heavy": {
+      "appearance": "artillery_rocket_heavy",
       "round_cost": 16,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2500, "scatter_mrad": 22 } },
       "name": "Heavy rocket salvo",
@@ -842,6 +890,7 @@
       "trajectory": "indirect"
     },
     "artillery_strike_missile": {
+      "appearance": "artillery_howitzer",
       "round_cost": 24,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2500, "scatter_mrad": 14 } },
       "name": "Strike missile",

@@ -12,6 +12,7 @@ pub mod effects;
 pub mod fielded;
 pub mod fog;
 pub mod light;
+pub mod looks;
 pub mod presentation;
 pub mod records;
 pub mod scars;

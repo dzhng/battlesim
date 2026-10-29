@@ -16,3 +16,5 @@ pub const GLANCE: &str = "ricochet";
 
 pub mod catalog;
 mod mix;
+
+mod setup;

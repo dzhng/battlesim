@@ -191,6 +191,7 @@ pub fn setup(
     let fx = settings.effects;
     Ok(json!({
         "audio": audio,
+        "presentation": presentation,
         "catalog": catalog,
         "weapons": rules["weapons"],
         "tick_hz": rules["tick_hz"],

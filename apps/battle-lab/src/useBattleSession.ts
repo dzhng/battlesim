@@ -139,10 +139,12 @@ export function useBattleSession({
     };
   }, [scenario, catalog]);
   const world = useStaticWorld(map, rules);
-  // Sound reads the same publications as the effects, plus the side's hearing cues.
   const audio = useMemo(
-    () => (sound ? createBattleAudio(rules.tick_hz, appAudio, seed) : null),
-    [sound, rules.tick_hz, appAudio, seed],
+    () =>
+      sound
+        ? createBattleAudio(rules.tick_hz, appAudio, seed, JSON.parse(rulesText).weapons)
+        : null,
+    [sound, rules.tick_hz, appAudio, seed, rulesText],
   );
   useEffect(() => () => audio?.dispose(), [audio]);
   // The units' answers to their owner (R1–R12), one battle's at a time.

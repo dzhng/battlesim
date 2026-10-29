@@ -192,17 +192,16 @@ impl EffectFeed {
                 members: members.to_vec(),
                 mounts: poses
                     .iter()
-                    .map(|p| {
+                    .filter_map(|p| {
                         let m = p.mount as usize;
-                        Mount {
+                        let row = unit?.mounts.get(m)?;
+                        Some(Mount {
                             bearing: p.bearing,
                             elevation: p.elevation,
                             shots: p.shots.unwrap_or(f64::NAN),
-                            kind: unit
-                                .and_then(|u| u.mounts.get(m))
-                                .map_or_else(|| "default".into(), |r| r.weapon.as_str().into()),
+                            kind: row.weapon.as_str().into(),
                             muzzle: ty.and_then(|t| t.muzzles.get(m).copied().flatten()),
-                        }
+                        })
                     })
                     .collect(),
                 wading: vec![],

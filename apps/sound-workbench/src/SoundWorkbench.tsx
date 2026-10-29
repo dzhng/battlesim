@@ -278,6 +278,7 @@ export function SoundWorkbench({
           <fieldset className="sw-editable" disabled={busy}>
             {tab === "library" && (
               <Library
+                snapshot={snapshot}
                 draft={draft}
                 edit={edit}
                 play={play}

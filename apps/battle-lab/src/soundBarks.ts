@@ -172,7 +172,7 @@ export async function sampleReady(packs: boolean): Promise<ReadySample> {
   const app = new AppAudio({ presentation: gameAudio, catalog: gameSounds });
   try {
     const started = performance.now();
-    const sound = (battle = createBattleAudio(HZ, app, 0));
+    const sound = (battle = createBattleAudio(HZ, app, 0, shippedRules.weapons));
     sound.speakers({ own: { [KIND]: SET }, enemy: {} });
     sound.loadVoices([SET]);
     while (sound.stats()?.loading !== false) {
