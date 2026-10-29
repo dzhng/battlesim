@@ -313,7 +313,7 @@ pub fn plan<'a>(
                 .is_some_and(|old| old.lane == lane && old.main_objective.id == objective.id)
         });
         tuning.distance_weight * distance(entry.center, objective.center)
-            - tuning.influence_weight * influence.at(objective.center)
+            - tuning.influence_weight * influence.on(objective)
             - if open.contains(&objective.id) {
                 tuning.open_objective_bonus
             } else {

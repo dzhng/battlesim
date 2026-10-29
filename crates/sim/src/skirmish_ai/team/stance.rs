@@ -35,7 +35,7 @@ pub(super) fn update_stance(
             memory
                 .influence
                 .as_ref()
-                .map_or(0.0, |grid| grid.at(plan.main_objective.center))
+                .map_or(0.0, |grid| grid.on(&plan.main_objective))
         })
         .collect();
     memory.outgunned = plans

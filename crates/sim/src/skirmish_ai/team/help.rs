@@ -127,7 +127,7 @@ fn surplus(
             memory
                 .influence
                 .as_ref()
-                .map_or(1.0, |grid| (-grid.at(objective.center)).max(1.0))
+                .map_or(1.0, |grid| (-grid.on(objective)).max(1.0))
         });
     force(measure, frame, helper)
         - need * tuning.help_force_margin
@@ -158,7 +158,7 @@ pub(super) fn update_help(
         let current = memory
             .influence
             .as_ref()
-            .map_or(0.0, |grid| grid.at(objective.center));
+            .map_or(0.0, |grid| grid.on(objective));
         let previous = memory.previous_influence.get(&objective.id).copied();
         let trend = previous.map_or(0.0, |old| current - old);
         // An outgunned lane asks however steady its reading; one only
@@ -285,7 +285,7 @@ pub(super) fn update_help(
         .retain(|id, _| sites.iter().any(|(_, _, objective, _)| objective.id == *id));
     let influence = memory.influence.clone();
     for (_, _, objective, _) in &sites {
-        if let Some(current) = influence.as_ref().map(|grid| grid.at(objective.center)) {
+        if let Some(current) = influence.as_ref().map(|grid| grid.on(objective)) {
             memory
                 .previous_influence
                 .insert(objective.id.clone(), current);

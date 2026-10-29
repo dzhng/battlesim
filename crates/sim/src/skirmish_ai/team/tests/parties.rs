@@ -549,14 +549,14 @@ fn a_group_readies_without_its_air_defence_at_the_backline() {
 fn a_carrier_and_its_passengers_go_to_a_party_together() {
     let rules = team_rules();
     let players = blue_ai(1);
-    // Nearest the open centre: a tank, then a carrier with a rifle squad
-    // aboard. The claim has room for two; the main group's tanks stand back
-    // in the west lane.
+    // Nearest the open centre, though not on it: a tank, then a carrier
+    // with a rifle squad aboard. The claim has room for two; the main
+    // group's tanks stand back in the west lane.
     let mut units = tanks(4, [100.0, 100.0], 0);
     units.extend([
-        ("test_tank", [300.0, 450.0], 0),
-        ("test_apc", [300.0, 440.0], 0),
-        ("test_rifle", [300.0, 440.0], 0),
+        ("test_tank", [300.0, 360.0], 0),
+        ("test_apc", [300.0, 350.0], 0),
+        ("test_rifle", [300.0, 350.0], 0),
     ]);
     let mut memory = TeamMemory::default();
     let mut frame = frame(&rules, &units, [None, None, Some(Side::Red)]);

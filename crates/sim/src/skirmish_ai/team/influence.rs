@@ -92,13 +92,51 @@ fn add_strength(
 }
 
 impl InfluenceGrid {
+    /// The grid's cell holding `point`, as column and row.
+    fn cell(&self, point: [f64; 2]) -> [usize; 2] {
+        std::array::from_fn(|axis| {
+            (((point[axis] - self.min[axis]) / (self.max[axis] - self.min[axis]))
+                * self.resolution as f64)
+                .floor()
+                .clamp(0.0, self.resolution as f64 - 1.0) as usize
+        })
+    }
+
+    /// The strength in the cell holding `point`.
     pub fn at(&self, point: [f64; 2]) -> f64 {
-        let x = (((point[0] - self.min[0]) / (self.max[0] - self.min[0])) * self.resolution as f64)
-            .floor()
-            .clamp(0.0, self.resolution as f64 - 1.0) as usize;
-        let y = (((point[1] - self.min[1]) / (self.max[1] - self.min[1])) * self.resolution as f64)
-            .floor()
-            .clamp(0.0, self.resolution as f64 - 1.0) as usize;
+        let [x, y] = self.cell(point);
         self.values[y * self.resolution + x]
+    }
+
+    /// The strength on `objective`: each cell its square (the circle's
+    /// bounds) reaches, weighted by the share of the square it holds. An
+    /// objective wholly inside a cell reads that cell; one near a cell's
+    /// edge reads the cells either side in proportion, so what stands on it
+    /// counts wherever the edges fall.
+    pub fn on(&self, objective: &ObjectiveSite) -> f64 {
+        let (c, r) = (objective.center, objective.radius_m.max(1e-6));
+        let [x0, y0] = self.cell([c[0] - r, c[1] - r]);
+        let [x1, y1] = self.cell([c[0] + r, c[1] + r]);
+        // The share of the square's span along `axis` that cell `k` holds.
+        let share = |axis: usize, k: usize| {
+            let side = (self.max[axis] - self.min[axis]) / self.resolution as f64;
+            let (lo, hi) = (
+                self.min[axis] + side * k as f64,
+                self.min[axis] + side * (k + 1) as f64,
+            );
+            let (lo, hi) = (
+                if k == 0 { f64::NEG_INFINITY } else { lo },
+                if k + 1 == self.resolution {
+                    f64::INFINITY
+                } else {
+                    hi
+                },
+            );
+            ((c[axis] + r).min(hi) - (c[axis] - r).max(lo)).max(0.0) / (2.0 * r)
+        };
+        (y0..=y1)
+            .flat_map(|y| (x0..=x1).map(move |x| (x, y)))
+            .map(|(x, y)| self.values[y * self.resolution + x] * share(0, x) * share(1, y))
+            .sum()
     }
 }
