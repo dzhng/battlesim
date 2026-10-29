@@ -23,7 +23,7 @@ const RANGES: [(&str, f64); 6] = [
 fn rules() -> Value {
     let mut rules = common::scenario_rules();
     for (id, range) in RANGES {
-        common::json_ground_weapon(&mut rules["weapons"][id], range);
+        common::json_ground_reach(&mut rules["weapons"][id], range);
     }
     rules
 }
@@ -35,7 +35,7 @@ fn scenario_with(
 ) -> contract::scenario::ScenarioDefinition {
     let mut setup = common::scenario_with(map, units, events, scripts);
     for (id, range) in RANGES {
-        common::ground_weapon(setup.rules.weapons.get_mut(id).unwrap(), range);
+        common::ground_reach(setup.rules.weapons.get_mut(id).unwrap(), range);
     }
     setup
 }
@@ -171,7 +171,7 @@ fn switching_to_a_rifle_pauses_reload_and_resuming_a_useful_launcher_finishes_it
     launcher.aim_s = 0.2;
     launcher.reload_s = 10.0;
     launcher.damage = 1.0e6;
-    common::ground_weapon(launcher, 500.0);
+    common::ground_reach(launcher, 500.0);
     let mut b = Battle::new(&setup, 5);
     let mut switched = false;
     for _ in 0..300 {
@@ -654,7 +654,7 @@ fn expensive_launcher_without_return_fire_reach_loses_threat_priority() {
         sim::fixtures::patch_catalog(&mut authored, "units", "test_tank", json!({"cost":100}));
         sim::fixtures::patch_catalog(&mut authored, "units", "test_at", json!({"cost":1000}));
         authored["weapons"]["atgm"]["min_range_m"] = json!(minimum);
-        common::json_ground_weapon(&mut authored["weapons"]["atgm"], maximum);
+        common::json_ground_reach(&mut authored["weapons"]["atgm"], maximum);
         setup.rules = serde_json::from_value(authored).unwrap();
         let mut b = Battle::new(&setup, 5);
         run(&mut b, 3);
@@ -3293,7 +3293,7 @@ fn an_enemy_entering_range_cancels_a_top_up_but_not_an_empty_reload() {
     });
     gun.reload_s = 10.0;
     gun.aim_s = 0.1;
-    common::ground_weapon_spread(gun, 300.0, 8.0);
+    common::ground_reach_spread(gun, 300.0, 8.0);
     gun.near_miss_suppression = 0.0;
     let mut b = Battle::new(&setup, 5);
     let mut commander = Commander::new();
@@ -3526,7 +3526,7 @@ fn a_row_that_fires_on_its_own_ignores_the_engagement_policy() {
 #[test]
 fn a_mount_whose_target_drives_out_of_reach_turns_to_one_in_reach() {
     let mut rules = sim::fixtures::test_game();
-    common::json_ground_weapon(&mut rules["weapons"]["hmg"], 400.0);
+    common::json_ground_reach(&mut rules["weapons"]["hmg"], 400.0);
     // The tanks answer its fire; it outlasts them here.
     sim::fixtures::patch_catalog(
         &mut rules,
@@ -3572,7 +3572,7 @@ fn a_mount_whose_target_drives_out_of_reach_turns_to_one_in_reach() {
 fn test_a_target_met_past_reach_is_passed_over_for_one_in_reach() {
     let mut game = rules();
     let hmg = &mut game["weapons"]["hmg"];
-    common::json_ground_weapon(hmg, 300.0);
+    common::json_ground_reach(hmg, 300.0);
     hmg["speed_mps"] = json!(50.0);
     hmg["targets"]["ground"]["scatter_mrad"] = json!(10.0);
     let setup = serde_json::from_value(json!({

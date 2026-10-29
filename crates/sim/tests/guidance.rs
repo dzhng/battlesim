@@ -6,7 +6,6 @@ use contract::ids::{Side, UnitId};
 use contract::observation::{ActionReason, GuidedMissile, OwnUnit};
 use serde_json::{json, Value};
 use sim::battle::Battle;
-use sim::flight::steer;
 use sim::math::v3;
 
 use crate::common::{self as c, Commander};
@@ -122,7 +121,7 @@ fn identical_launchers_can_hold_different_targets_from_their_own_muzzles() {
             seed,
             |r| {
                 paired(r);
-                c::json_ground_weapon(&mut r["weapons"]["atgm"], range);
+                c::json_ground_reach(&mut r["weapons"]["atgm"], range);
             },
         );
         until_launch(&mut b);
@@ -490,7 +489,7 @@ fn shared_identification_supports_a_missile_beyond_the_launchers_sensor_range() 
                 "test_at",
                 json!({ "sensors": { "ground_m": 100 } }),
             );
-            c::json_ground_weapon(&mut r["weapons"]["atgm"], 900.0);
+            c::json_ground_reach(&mut r["weapons"]["atgm"], 900.0);
             for w in r["weapons"].as_object_mut().unwrap().values_mut() {
                 w["damage"] = json!(0);
             }
@@ -541,11 +540,11 @@ fn shared_spotting_cannot_launch_through_an_obstruction() {
 fn steering_is_bounded_by_the_turn_rate() {
     let v = v3(180.0, 0.0, 0.0);
     let max = 60f64.to_radians() / 30.0;
-    let turned = steer(v, v3(0.0, 1.0, 0.0), max);
+    let turned = v.turned_toward(v3(0.0, 1.0, 0.0), max);
     let angle = (turned.dot(v) / (turned.length() * v.length())).acos();
     assert!((angle - max).abs() < 1e-9 && (turned.length() - 180.0).abs() < 1e-9);
     // Within the limit it points straight at the goal.
-    let small = steer(v, v3(1.0, 0.001, 0.0), max);
+    let small = v.turned_toward(v3(1.0, 0.001, 0.0), max);
     assert!((small.y / small.x - 0.001).abs() < 1e-9);
 }
 
@@ -563,7 +562,7 @@ fn a_guided_missile_ends_at_its_lifetime() {
         3,
         |r| {
             r["weapons"]["atgm"]["lifetime_s"] = json!(4.0);
-            c::json_ground_weapon(&mut r["weapons"]["atgm"], 1400.0);
+            c::json_ground_reach(&mut r["weapons"]["atgm"], 1400.0);
             r["weapons"]["atgm"]["speed_mps"] = json!(150.0);
         },
     );

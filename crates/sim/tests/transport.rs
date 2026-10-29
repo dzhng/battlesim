@@ -64,7 +64,7 @@ fn transport_heli_crash(seed: u64, leaves_map: bool) -> HeliCrash {
         json!({ "body": { "hull": { "hp": 1.0 } } }),
     );
     if leaves_map {
-        common::json_ground_weapon(&mut rules["weapons"]["autocannon"], 50.0);
+        common::json_ground_reach(&mut rules["weapons"]["autocannon"], 50.0);
         rules["weapons"]["autocannon"]["targets"]["low_air"]["range_m"] = json!(50.0);
         for fire in rules["weapons"]["autocannon"]["targets"]
             .as_object_mut()

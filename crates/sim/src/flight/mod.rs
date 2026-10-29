@@ -1094,11 +1094,9 @@ impl Flight<'_> {
     fn acceleration(&self, p: &mut Projectile, span: f64) -> V3 {
         let gravity = match p.guidance {
             Some(g) => {
-                p.velocity = steer(
-                    p.velocity,
-                    g.aim(p.position) - p.position,
-                    g.turn_rad_s * span,
-                );
+                p.velocity = p
+                    .velocity
+                    .turned_toward(g.aim(p.position) - p.position, g.turn_rad_s * span);
                 V3::default()
             }
             None => self.config.gravity * p.gravity_scale,
@@ -1514,31 +1512,4 @@ pub fn lead(from: V3, from_velocity: V3, at: V3, velocity: V3) -> V3 {
     } else {
         at
     }
-}
-
-/// `velocity` turned toward `toward` by at most `max_angle`.
-pub fn steer(velocity: V3, toward: V3, max_angle: f64) -> V3 {
-    let speed = velocity.length();
-    if speed == 0.0 || toward.length() < 1e-9 {
-        return velocity;
-    }
-    let (a, b) = (velocity * (1.0 / speed), toward.normalized());
-    let angle = libm::acos(a.dot(b).clamp(-1.0, 1.0));
-    if angle <= max_angle {
-        return b * speed;
-    }
-    // Rotate `a` toward `b` in their common plane by `max_angle`.
-    let perp = b - a * a.dot(b);
-    let perp = if perp.length() > 1e-12 {
-        perp.normalized()
-    } else {
-        // Opposite directions: any perpendicular, preferring the horizontal.
-        let side = a.cross(v3(0.0, 0.0, 1.0));
-        if side.length() > 1e-9 {
-            side.normalized()
-        } else {
-            v3(1.0, 0.0, 0.0)
-        }
-    };
-    (a * libm::cos(max_angle) + perp * libm::sin(max_angle)) * speed
 }

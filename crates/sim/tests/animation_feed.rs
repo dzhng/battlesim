@@ -53,11 +53,11 @@ fn shot_counters_and_elevation_move_only_when_a_round_leaves() {
         json!([]),
     );
     // Pose publication is independent of the live balance range.
-    common::ground_weapon(setup.rules.weapons.get_mut("rifle").unwrap(), 450.0);
+    common::ground_reach(setup.rules.weapons.get_mut("rifle").unwrap(), 450.0);
     let grenade = &mut setup.rules.weapons.get_mut("grenade").unwrap().ballistics;
     grenade.speed_mps = 100.0;
     grenade.gravity_scale = 0.09;
-    common::ground_weapon_spread(setup.rules.weapons.get_mut("grenade").unwrap(), 450.0, 30.0);
+    common::ground_reach_spread(setup.rules.weapons.get_mut("grenade").unwrap(), 450.0, 30.0);
     let mut b = Battle::new(&setup, 4);
     let mut seen: BTreeSet<ProjectileId> = BTreeSet::new();
     let mut before: BTreeMap<(u32, usize), (f64, f64, u32)> = BTreeMap::new();

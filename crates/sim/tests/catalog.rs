@@ -686,7 +686,7 @@ fn only_a_winged_aircraft_carries_a_bomb() {
 }
 
 fn grenade_firing_profile(fixture: &mut Value) {
-    common::json_ground_weapon(&mut fixture["weapons"]["grenade"], 450.0);
+    common::json_ground_reach(&mut fixture["weapons"]["grenade"], 450.0);
     fixture["weapons"]["grenade"]["speed_mps"] = json!(100);
     fixture["weapons"]["grenade"]["gravity_scale"] = json!(0.09);
     fixture["weapons"]["grenade"]["targets"]["ground"]["scatter_mrad"] = json!(30);

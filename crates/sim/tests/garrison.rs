@@ -1690,7 +1690,7 @@ fn an_unusable_launcher_does_not_keep_its_operator_at_a_useless_window() {
             json!([]),
         );
         setup.rules.buildings.capacity_soldiers = 12;
-        common::ground_weapon(
+        common::ground_reach(
             setup.rules.weapons.get_mut("atgm").unwrap(),
             if return_fire { 900.0 } else { 120.0 },
         );

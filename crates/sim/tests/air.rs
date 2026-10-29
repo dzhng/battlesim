@@ -2,7 +2,7 @@
 //! soldiers neither step out of it nor lean on it, forest ground does not hide
 //! it, and it is admitted against its own hull limits.
 
-use crate::common::{json_ground_weapon as ground_row, Seat};
+use crate::common::{json_ground_reach, Seat};
 use contract::catalog::AltitudeLayer;
 use contract::command::{
     CommandEnvelope, MoveDirection, Order, OrderError, RoutePolicy, TargetRef,
@@ -405,7 +405,7 @@ fn an_air_defence_gun_engages_air_within_its_rows_reach_at_each_layer() {
             "high_air": { "range_m": high_reach }
         }
     });
-    ground_row(&mut rules["weapons"]["test_aa_gun"], high_reach);
+    json_ground_reach(&mut rules["weapons"]["test_aa_gun"], high_reach);
     rules["service"]["round_costs"]["test_aa_gun"] =
         rules["service"]["round_costs"]["aa_ballistic"].clone();
     sim::fixtures::patch_catalog(
@@ -484,7 +484,7 @@ fn a_jet_draws_fire_only_from_a_row_listing_fixed_wing_aircraft() {
             "range_m": reach,
             "targets": { "high_air": { "range_m": reach, "scatter_mrad": 6, "classes": classes } }
         });
-        ground_row(&mut rules["weapons"]["test_aa_gun"], reach);
+        json_ground_reach(&mut rules["weapons"]["test_aa_gun"], reach);
         rules["service"]["round_costs"]["test_aa_gun"] =
             rules["service"]["round_costs"]["aa_ballistic"].clone();
         sim::fixtures::patch_catalog(

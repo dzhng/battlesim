@@ -100,7 +100,7 @@ pub fn weapon(name: &str) -> WeaponBallistics {
 }
 
 /// Sets a row's flight bound and its ground reach together.
-pub fn ground_weapon(def: &mut contract::weapons::WeaponDefinition, range_m: f64) {
+pub fn ground_reach(def: &mut contract::weapons::WeaponDefinition, range_m: f64) {
     def.ballistics.range_m = range_m;
     def.targets
         .get_mut(&contract::catalog::AltitudeLayer::Ground)
@@ -115,17 +115,17 @@ pub fn ground_spread(def: &mut contract::weapons::WeaponDefinition, scatter_mrad
         .scatter_mrad = scatter_mrad;
 }
 
-pub fn ground_weapon_spread(
+pub fn ground_reach_spread(
     def: &mut contract::weapons::WeaponDefinition,
     range_m: f64,
     scatter_mrad: f64,
 ) {
-    ground_weapon(def, range_m);
+    ground_reach(def, range_m);
     ground_spread(def, scatter_mrad);
 }
 
-/// [`ground_weapon`] on an authored JSON row.
-pub fn json_ground_weapon(row: &mut Value, range_m: f64) {
+/// [`ground_reach`] on an authored JSON row.
+pub fn json_ground_reach(row: &mut Value, range_m: f64) {
     row["range_m"] = serde_json::json!(range_m);
     row["targets"]["ground"]["range_m"] = serde_json::json!(range_m);
 }
