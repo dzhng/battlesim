@@ -123,6 +123,8 @@ def skirts(v):
             for j in range(3):
                 bx = min(xs) + (max(xs) - min(xs)) * (j + 0.5) / 3
                 for z in (SKIRT_TOP - 0.06, SKIRT_FOOT + 0.08):
+                    if k == 0 and z < 1.0 and j == 2:
+                        continue
                     cyl(f"skirt_bolt_{s}_{k}_{j}_{int(z * 100)}", 0.022, 0.02, (bx, face + side * 0.006, z), "Y",
                         m["steel"], h, seg=6, lods=FINE)
         stencil(f"skirt_mark_{s}", "M10", 0.22, (2.45, face + side * 0.003, 1.02),

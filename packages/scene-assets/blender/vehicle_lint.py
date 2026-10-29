@@ -906,26 +906,156 @@ def _get_family_variants(family_name):
         return []
 
 
+def _ast_to_value(node, var_context=None):
+    """Convert an AST node to a Python value (for constants, tuples, dicts).
+    
+    var_context is a dict of variable_name -> value for resolving variable references.
+    """
+    import ast
+    if var_context is None:
+        var_context = {}
+    
+    if isinstance(node, ast.Constant):
+        return node.value
+    elif isinstance(node, ast.Tuple):
+        return tuple(_ast_to_value(e, var_context) for e in node.elts)
+    elif isinstance(node, ast.List):
+        return [_ast_to_value(e, var_context) for e in node.elts]
+    elif isinstance(node, ast.Dict):
+        result = {}
+        for k, v in zip(node.keys, node.values):
+            key = _ast_to_value(k, var_context)
+            val = _ast_to_value(v, var_context)
+            if key is not None:
+                result[key] = val
+        return result
+    elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "dict":
+        # Handle dict(key=value, ...) syntax
+        result = {}
+        for kw in node.keywords:
+            if kw.arg is not None:
+                result[kw.arg] = _ast_to_value(kw.value, var_context)
+        return result
+    elif isinstance(node, ast.Name):
+        # Variable reference - try to resolve from context
+        if node.id in var_context:
+            return var_context[node.id]
+        return None
+    return None
+
+
 def _extract_scheme_from_script(script_path):
-    """Extract the scheme(s) from a roster script by parsing its run() call."""
+    """Extract the scheme(s) from a roster script by parsing its run() call.
+    
+    Handles several patterns:
+    - String constant: run("family", "scheme", ...)
+    - Dict literal: run("family", {"card": "scheme"}, ...)
+    - Variable reference: run("family", SCHEME, ...) where SCHEME is defined earlier
+    - Dict comprehension: run("family", {c: s for c, s in X.items()}, ...)
+    """
     import ast
     try:
         source = script_path.read_text()
         tree = ast.parse(source)
+        
+        # First pass: collect simple variable assignments (strings and tuples)
+        # These are needed to resolve variable references in dict keys
+        # e.g., F, HC6 = "us_ch_47...", "europe_ch_47..."
+        simple_vars = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign):
+                # Handle tuple unpacking: F, HC6 = "val1", "val2"
+                if isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
+                    for t, v in zip(node.targets[0].elts, node.value.elts):
+                        if isinstance(t, ast.Name) and isinstance(v, ast.Constant):
+                            simple_vars[t.id] = v.value
+                # Handle simple assignment: F = "value"
+                elif len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                    if isinstance(node.value, ast.Constant):
+                        simple_vars[node.targets[0].id] = node.value.value
+        
+        # Second pass: collect dict assignments, now with variable context for resolving keys
+        var_defs = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        val = _ast_to_value(node.value, simple_vars)
+                        if val is not None:
+                            var_defs[target.id] = val
+        
+        # Second pass: find run() or run_disabled() call
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):
                 func = node.func
                 if isinstance(func, ast.Name) and func.id in ("run", "run_disabled"):
                     if len(node.args) >= 2:
                         scheme_arg = node.args[1]
+                        
+                        # Case 1: String constant
                         if isinstance(scheme_arg, ast.Constant):
                             return scheme_arg.value
+                        
+                        # Case 2: Dict literal
                         elif isinstance(scheme_arg, ast.Dict):
-                            result = {}
-                            for k, v in zip(scheme_arg.keys, scheme_arg.values):
-                                if isinstance(k, ast.Constant) and isinstance(v, ast.Constant):
-                                    result[k.value] = v.value
-                            return result
+                            result = _ast_to_value(scheme_arg)
+                            if result:
+                                return result
+                        
+                        # Case 3: Variable reference (SCHEME, CARDS, etc.)
+                        elif isinstance(scheme_arg, ast.Name):
+                            if scheme_arg.id in var_defs:
+                                return var_defs[scheme_arg.id]
+                        
+                        # Case 4: Dict comprehension like {c: s for c, (_, s) in CARDS.items()}
+                        # or {card: s["scheme"] for card, s in SPECS.items()}
+                        elif isinstance(scheme_arg, ast.DictComp):
+                            # Try to evaluate by looking up the source dict
+                            if scheme_arg.generators and isinstance(scheme_arg.generators[0].iter, ast.Call):
+                                call = scheme_arg.generators[0].iter
+                                if isinstance(call.func, ast.Attribute) and call.func.attr == "items":
+                                    if isinstance(call.func.value, ast.Name):
+                                        source_var = call.func.value.id
+                                        if source_var in var_defs and isinstance(var_defs[source_var], dict):
+                                            source_dict = var_defs[source_var]
+                                            value_node = scheme_arg.value
+                                            
+                                            # Analyze the comprehension to determine how to extract the scheme
+                                            # Pattern: {c: scheme for c, (_, scheme) in CARDS.items()}
+                                            # Pattern: {c: s["scheme"] for c, s in SPECS.items()}
+                                            # Pattern: {c: scheme for c, (_, scheme, _) in CARDS.items()}
+                                            result = {}
+                                            
+                                            # Check if value_node is a Subscript (like s["scheme"])
+                                            if isinstance(value_node, ast.Subscript):
+                                                # s["scheme"] pattern
+                                                for k, v in source_dict.items():
+                                                    if isinstance(v, dict) and "scheme" in v:
+                                                        result[k] = v["scheme"]
+                                            elif isinstance(value_node, ast.Name):
+                                                # Direct variable from tuple unpacking
+                                                # Need to figure out which index the scheme is at
+                                                target = scheme_arg.generators[0].target
+                                                if isinstance(target, ast.Tuple):
+                                                    # Find which element is the scheme variable
+                                                    for idx, elt in enumerate(target.elts):
+                                                        if isinstance(elt, ast.Name) and elt.id == value_node.id:
+                                                            # Found: scheme is at index idx of the outer tuple
+                                                            for k, v in source_dict.items():
+                                                                if isinstance(v, tuple) and len(v) > idx:
+                                                                    result[k] = v[idx]
+                                                            break
+                                                        elif isinstance(elt, ast.Tuple):
+                                                            # Nested tuple: (key, (_, scheme)) or (key, (_, scheme, _))
+                                                            for sub_idx, sub_elt in enumerate(elt.elts):
+                                                                if isinstance(sub_elt, ast.Name) and sub_elt.id == value_node.id:
+                                                                    for k, v in source_dict.items():
+                                                                        if isinstance(v, tuple) and len(v) > sub_idx:
+                                                                            result[k] = v[sub_idx]
+                                                                    break
+                                            
+                                            if result:
+                                                return result
     except Exception:
         pass
     return None

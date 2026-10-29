@@ -224,7 +224,7 @@ def turret_fittings(v, rear, front, half_w, deck, top, gun_z, start, bore_r):
                 lods=FINE)
         box(f"door_hinge_{sd}", (0.06, 0.06, 0.16), (rear - 0.05, side * 0.50, deck + 0.55), m["steel"], h, lods=FINE)
         for k in range(3):
-            box(f"rear_rung_{sd}_{k}", (0.04, 0.30, 0.03), (rear - 0.06, side * (half_w - 0.35),
+            box(f"rear_rung_{sd}_{k}", (0.04, 0.30, 0.03), (rear + 0.02, side * (half_w - 0.35),
                                                             deck + 0.30 + k * 0.30), m["steel"], h, lods=FINE)
     box("door_handle", (0.05, 0.16, 0.04), (rear - 0.06, -0.30, deck + 0.70), m["steel"], h, lods=FINE)
 

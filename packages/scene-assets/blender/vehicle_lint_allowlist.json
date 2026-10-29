@@ -1,9 +1,9 @@
 {
-  "_comment": "Allowlist of intentional geometry gaps. Only truly hidden interior parts, articulating components needing clearance, and thin structural elements that can't practically show contact belong here.",
+  "_comment": "Allowlist of intentional geometry gaps. ONLY for: cab interiors, parts buried inside other geometry, articulating components requiring clearance, and genuinely thin structural elements on aircraft.",
   "patterns": [
     {
       "part_pattern": "gear_nose_*",
-      "reason": "Landing gear nose strut requires articulation clearance"
+      "reason": "Landing gear nose strut requires articulation clearance for steering"
     },
     {
       "part_pattern": "gear_*_brace",
@@ -34,14 +34,6 @@
       "reason": "Machine gun ports require traverse clearance for firing"
     },
     {
-      "part_pattern": "antenna_spine*",
-      "reason": "Aircraft antenna spine fairings: thin structural geometry"
-    },
-    {
-      "part_pattern": "*_stab_*",
-      "reason": "Aircraft tail stabilizers: thin structural attachment"
-    },
-    {
       "part_pattern": "door_window*",
       "reason": "Door windows recessed in frames by design"
     },
@@ -58,24 +50,12 @@
       "reason": "Coaxial MG barrel requires traverse clearance parallel to main gun"
     },
     {
-      "part_pattern": "muzzle_reference",
-      "reason": "Muzzle reference sensor: thin structural geometry on barrel tip"
-    },
-    {
       "part_pattern": "wheel_*_sprocket_hub",
-      "reason": "Sprocket hub: center touches wheel body, tips protrude 2.5cm for track guide"
+      "reason": "Sprocket hub: center touches wheel body, tips protrude for track guide"
     },
     {
       "part_pattern": "wheel_*_idler_hub",
-      "reason": "Idler hub: center touches wheel body, tips protrude 2.5cm for track guide"
-    },
-    {
-      "part_pattern": "era_bolt_*",
-      "reason": "ERA bolt heads stand proud of ERA panel surface"
-    },
-    {
-      "part_pattern": "cheek_era_bolt_*",
-      "reason": "Turret cheek ERA bolts stand proud of panel surface"
+      "reason": "Idler hub: center touches wheel body, tips protrude for track guide"
     },
     {
       "part_pattern": "fume_extractor",
@@ -90,60 +70,8 @@
       "reason": "Weapon pistol grip requires operator hand clearance"
     },
     {
-      "part_pattern": "headlight_*_guard_*",
-      "reason": "Headlight guard stands proud of housing to protect lens"
-    },
-    {
-      "part_pattern": "power_exhaust_guard",
-      "reason": "Exhaust heat guard stands above pipe for heat dissipation"
-    },
-    {
-      "part_pattern": "mg_shield",
-      "reason": "MG shield is small armor plate on pintle mount, thin attachment"
-    },
-    {
       "part_pattern": "kornet_sight",
       "reason": "ATGM sight optics require clearance for elevation"
-    },
-    {
-      "part_pattern": "tail_fin_*",
-      "reason": "Vertical fins: thin structural attachment to fuselage"
-    },
-    {
-      "part_pattern": "antiglare",
-      "reason": "Cockpit antiglare panel: thin strip ahead of canopy"
-    },
-    {
-      "part_pattern": "shield",
-      "reason": "Gunner shield: small armor plate on weapon station"
-    },
-    {
-      "part_pattern": "rws_gun",
-      "reason": "RWS gun barrel requires traverse clearance in mount"
-    },
-    {
-      "part_pattern": "marking_insignia_*",
-      "reason": "Painted insignia markings pressed onto skin, slight float by design"
-    },
-    {
-      "part_pattern": "probe_fairing",
-      "reason": "Refueling probe fairing: thin structural attachment"
-    },
-    {
-      "part_pattern": "door_hinge_*",
-      "reason": "Door hinges require articulation clearance for opening"
-    },
-    {
-      "part_pattern": "mast",
-      "reason": "Helicopter mast: thin structural element connecting rotor to fuselage"
-    },
-    {
-      "part_pattern": "mast_radar",
-      "reason": "Mast-mounted radar: thin structural attachment"
-    },
-    {
-      "part_pattern": "das_window_*",
-      "reason": "DAS sensor window: flush-mounted aperture in stealth airframe"
     },
     {
       "part_pattern": "station_cradle_*",
@@ -158,20 +86,8 @@
       "reason": "Gun bay door requires articulation clearance"
     },
     {
-      "part_pattern": "rear_step_*",
-      "reason": "Rear steps: small structural attachment to chassis"
-    },
-    {
-      "part_pattern": "fuselage_dsi",
-      "reason": "DSI inlet: complex geometry with thin attachment"
-    },
-    {
       "part_pattern": "refuel_door",
       "reason": "Refueling door requires articulation clearance"
-    },
-    {
-      "part_pattern": "antenna_roof",
-      "reason": "Roof antenna: thin structural attachment"
     },
     {
       "part_pattern": "gun_mount",
@@ -186,36 +102,20 @@
       "reason": "Ammo can on weapon station needs clearance for access"
     },
     {
-      "part_pattern": "front_plate",
-      "reason": "Front armor plate: bolted panel with slight standoff"
-    },
-    {
-      "part_pattern": "rear_deck",
-      "reason": "Rear deck plate: bolted panel"
-    },
-    {
-      "part_pattern": "air_data_probe",
-      "reason": "Air data probe: thin structural element"
-    },
-    {
-      "part_pattern": "dash*",
+      "part_pattern": "dash",
       "reason": "Dashboard interior part: hidden inside cab, visible through glass"
     },
     {
-      "part_pattern": "minigun_*",
-      "reason": "Helicopter-mounted miniguns: weapon pod attachment"
+      "part_pattern": "dash_*",
+      "reason": "Dashboard interior parts: hidden inside cab"
     },
     {
-      "part_pattern": "wing_fence_*",
-      "reason": "Wing fence: thin structural element on wing surface"
+      "part_pattern": "door_hinge_*",
+      "reason": "Door hinges require articulation clearance for opening"
     },
     {
-      "part_pattern": "osf_window",
-      "reason": "OSF sensor window: flush-mounted aperture"
-    },
-    {
-      "part_pattern": "skirt_bolt_*",
-      "reason": "Skirt armor mounting bolts on tracked vehicles"
+      "part_pattern": "rws_gun",
+      "reason": "RWS gun barrel requires traverse clearance in mount"
     }
   ]
 }

@@ -95,7 +95,7 @@ def build(variant, v):
                                    lods=MID))
     box("probe_door", (0.8, 0.12, 0.03), (6.6, -0.46, 2.72), m["dark"], hull, rot=(0.5, 0, 0), lods=NEAR)
     box("antiglare", (0.9, 0.5, 0.03), (6.5, 0, 2.94), m["dark"], hull, rot=(0, 0.1, 0), lods=MID)
-    A.blade_antenna("antenna_spine", (-1.0, 0, 2.95), 0.24, m, hull)
+    A.blade_antenna("antenna_spine", (-1.0, 0, 2.93), 0.24, m, hull)
     A.blade_antenna("antenna_belly", (0.4, 0, 1.38), 0.2, m, hull, down=True)
     # The arrestor hook under the tail.
     box("arrestor_hook", (1.6, 0.08, 0.08), (-6.8, 0, 1.5), m["steel"], hull, rot=(0, 0.12, 0), lods=MID)

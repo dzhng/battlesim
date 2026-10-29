@@ -63,8 +63,8 @@ def build(variant, v):
     A.mirrored(lambda side, k: box(f"wing_tip_rail_{k}", (2.0, 0.07, 0.08), (-4.0, side * 4.1, WING_Z - 0.02),
                                    m["dark"], hull))
     box("antiglare", (0.8, 0.5, 0.03), (5.75, 0, 2.24), m["dark"], hull, rot=(0, 0.16, 0), lods=MID)
-    box("probe_fairing", (1.0, 0.1, 0.1), (4.3, -0.52, 2.28), m["paint"], hull, bevel=0.03, lods=MID)
-    A.blade_antenna("antenna_spine", (-1.0, 0, 2.62), 0.2, m, hull)
+    box("probe_fairing", (1.0, 0.1, 0.1), (4.3, -0.49, 2.28), m["paint"], hull, bevel=0.03, lods=MID)
+    A.blade_antenna("antenna_spine", (-1.0, 0, 2.58), 0.2, m, hull)
     # The Flygvapnet's roundel on the intakes and wings, the 270 of the photo on the fin.
     A.markings(v, [
         ("insignia", dict(kind="se", centre=(3.4, 1.2, 1.7), normal=(0, 1, 0), up=(0, 0, 1), size=0.2,

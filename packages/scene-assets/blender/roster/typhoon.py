@@ -71,7 +71,7 @@ def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
     box("intake_splitter", (0.5, 0.04, 0.62), (3.2, 0, 1.68), m["paint"], hull, lods=MID)
-    box("antiglare", (1.1, 0.55, 0.03), (6.0, 0, 3.08), m["dark"], hull, rot=(0, 0.12, 0), lods=MID)
+    box("antiglare", (1.1, 0.55, 0.03), (6.0, 0, 3.03), m["dark"], hull, rot=(0, 0.12, 0), lods=MID)
     box("probe_fairing", (1.2, 0.12, 0.12), (5.0, -0.56, 3.0), m["paint"], hull, bevel=0.03, lods=MID)
     A.blade_antenna("antenna_spine", (-1.2, 0, 3.0), 0.22, m, hull)
     A.markings(v, MARKINGS)

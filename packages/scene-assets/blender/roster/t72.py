@@ -236,7 +236,7 @@ def cupola_mg(v, hmg, hmg_gun, remote=False):
     else:
         cyl("mg_post", 0.04, lift + 0.10, (0.15, 0, (lift + 0.10) / 2 - 0.10), "Z", m["steel"], hmg, seg=10)
         box("mg_cradle", (0.24, 0.12, 0.10), (0.12, 0, lift - 0.07), m["dark"], hmg, lods=MID)
-        box("mg_shield", (0.04, 0.34, 0.24), (0.42, 0, -0.04), m["paint"], hmg_gun, bevel=0.01, lods=MID)
+        box("mg_shield", (0.04, 0.34, 0.24), (0.34, 0, -0.04), m["paint"], hmg_gun, bevel=0.01, lods=MID)
     VP.kord(hmg_gun, muzzle[0], m)
 
 
@@ -263,12 +263,12 @@ def relikt_fan(v, turret, side, s, blocks=5, radius=1.28, z=0.50):
     for k in range(blocks):
         a = side * (0.30 + k * 0.24)
         x, y = 0.05 + radius * math.cos(a), radius * math.sin(a)
-        box(f"cheek_era_{s}_{k}", (0.60, 0.25, 0.20), (x, y, z), m["paint"], turret, bevel=0.035,
-            rot=(0, 0.55, a))
+        era_list = box(f"cheek_era_{s}_{k}", (0.60, 0.25, 0.20), (x, y, z), m["paint"], turret, bevel=0.035,
+                       rot=(0, 0.55, a))
+        era = era_list[0] if era_list else turret
         for j in range(2):
-            cyl(f"cheek_era_bolt_{s}_{k}_{j}", 0.018, 0.02, (x + 0.18 * math.cos(a), y + 0.18 * math.sin(a),
-                                                             z + 0.06 - j * 0.12), "Z", m["steel"], turret, seg=6,
-                lods=FINE)
+            cyl(f"cheek_era_bolt_{s}_{k}_{j}", 0.018, 0.02, (0.18, 0.128, 0.06 - j * 0.12), "Y",
+                m["steel"], era, seg=6, lods=FINE)
 
 
 def side_modules(v, turret, side, s, count=5, start=1.20, radius=1.36):
