@@ -293,8 +293,9 @@ A map's standing shallow water is its `swamps`: each an outline polygon and the 
 The [capture files](parity/capture/) are browser runs of the menu reel (`native-parity-capture`), re-recorded whole, never edited: a change to the publication layout means a new run. The paris-corner run is copied as it is, and gzipped for the native counts. The market-town window is seven samples of that battle from a fresh publisher, so its first sample is a full snapshot. The run gives its layout and its first tick's frame record. The samples come from replaying the battle natively (`rules.json` with the capture catalog), and they match the run's own samples except for the fog revision counters.
 
 The generation corpus pins its [physical rules](parity/map-layout/physical-rules.json)
-as well as its requests. That document is frozen and hand-edited, never
-regenerated from current game rules. A schema change needs a deliberate edit
+as well as its requests. The record supplies complete battle rules for admission;
+only the generator's physical fields enter generation identity. That document is
+frozen and hand-edited, never regenerated from current game rules. A schema change needs a deliberate edit
 that preserves unrelated frozen values. Changes to shipped unit vision can
 change the sight certificate and forest placement; they must not silently
 change the inputs behind a frozen output. Current-rule generation and

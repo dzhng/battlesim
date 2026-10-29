@@ -1,4 +1,496 @@
 {
+  "tick_hz": 30,
+  "commands": {
+    "orders_per_s": 30
+  },
+  "buildings": {
+    "capacity_soldiers": 32,
+    "cover_strength": 1
+  },
+  "infantry_movement": {
+    "path_clearance_m": 0.5,
+    "spread_m": 12,
+    "spread_squad_size": 8,
+    "spacing_m": 2,
+    "personal_space_m": 0.8,
+    "steer_ahead_m": 3,
+    "lane_lookahead_m": 8,
+    "lane_shift_mps": 1.5,
+    "wander_m": 0.7,
+    "wander_period_s": 9,
+    "pace_variation": 0.12,
+    "stagger_s": 0.8,
+    "final_leg_m": 12,
+    "window_m": 40,
+    "yield_horizon_s": 2,
+    "yield_margin_m": 1
+  },
+  "formation": {
+    "min_radius_m": 40,
+    "spacing_m": 1,
+    "fill_ratio": 0.6,
+    "growth_factor": 1.5,
+    "candidate_checks": 32768,
+    "max_expansions": 8
+  },
+  "navigation": {
+    "move_validation_work": 375000,
+    "move_rehearsal_m": 60,
+    "work_per_tick": 4000,
+    "search_cells_base": 20000,
+    "search_cells_per_m": 200,
+    "road_leg_m": 2000,
+    "road_access_m": 1000,
+    "stop_short_detour_ratio": 5
+  },
+  "movement": {
+    "speed_factors": {
+      "foot": {
+        "surfaces": {
+          "road": 1,
+          "country_road": 1,
+          "dirt_track": 0.75,
+          "paving": 0
+        },
+        "forest": 0.7,
+        "swamp": 0.5,
+        "crater": 1,
+        "slope": {
+          "zero_speed_deg": 50,
+          "min_speed_factor": 0.35
+        }
+      },
+      "wheeled": {
+        "surfaces": {
+          "road": 1,
+          "country_road": 1,
+          "dirt_track": 0.75,
+          "paving": 0
+        },
+        "forest": 0.4,
+        "swamp": 0.3,
+        "crater": 0.85,
+        "slope": {
+          "zero_speed_deg": 50,
+          "min_speed_factor": 0.35
+        }
+      },
+      "tracked": {
+        "surfaces": {
+          "road": 1,
+          "country_road": 1,
+          "dirt_track": 0.75,
+          "paving": 0
+        },
+        "forest": 0.4,
+        "swamp": 0.55,
+        "crater": 0.85,
+        "slope": {
+          "zero_speed_deg": 50,
+          "min_speed_factor": 0.35
+        }
+      }
+    },
+    "turret_turn_deg_s": 60,
+    "bearing_tolerance_deg": 2,
+    "drive": {
+      "acceleration_s": 4.5,
+      "braking_s": 1.5,
+      "wreck_stop_s": 0.6,
+      "turn_in_place_deg": 60,
+      "abeam_m": 1.5,
+      "abeam_deg": 60,
+      "min_leg_m": 1,
+      "circle_margin_m": 0.5,
+      "turning_deg": 20,
+      "turn_speed_factor": 0.5
+    }
+  },
+  "sensors": {
+    "squad_identification_fraction": 0.2,
+    "squad_hidden_fraction": 0.8,
+    "contact_radius_factor": 3,
+    "contact_lifetime_s": 30,
+    "acquisition_grace_s": 1.5,
+    "foliage_full_block": 1,
+    "building_range_multiplier": 0.2,
+    "hearing_shot_m": 2000,
+    "sound_bucket_s": 0.5,
+    "fog_target_height_m": 1,
+    "moving_concealment": 1.5,
+    "min_sight_gap_m": 0.5,
+    "radar_report": {
+      "bearing_step_deg": 5,
+      "range_step_m": 100,
+      "min_radius_m": 50
+    }
+  },
+  "ricochet": {
+    "speed_kept": 0.6,
+    "scatter_deg": 12,
+    "penetration_kept": 0.5,
+    "max_bounces": 2
+  },
+  "guided": {
+    "release_coast_s": 0.5,
+    "flare_meet_m": 1
+  },
+  "launch": {
+    "clearance_m": 30
+  },
+  "weapons": {
+    "rifle": {
+      "targets": {
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ],
+          "range_m": 300,
+          "scatter_mrad": 8
+        },
+        "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 100,
+          "scatter_mrad": 40
+        }
+      },
+      "name": "Rifle",
+      "description": "The standard rifle every soldier carries.",
+      "icon": "rifle",
+      "default": true,
+      "stationary": false,
+      "range_m": 300,
+      "speed_mps": 800,
+      "gravity_scale": 0.09,
+      "aim_s": 0.8,
+      "reload_s": 0,
+      "magazine": {
+        "rounds": 30,
+        "shot_interval_s": 0.1,
+        "burst": {
+          "rounds": 3,
+          "aim_max_s": 1
+        }
+      },
+      "ammo": "unlimited",
+      "penetration": 5,
+      "partial_from": 0.6,
+      "damage": 35,
+      "near_miss_suppression": 0.025,
+      "suppression_radius_m": 3,
+      "blast_radius_m": 0,
+      "structural_damage": 0.25
+    },
+    "grenade": {
+      "targets": {
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ],
+          "range_m": 150,
+          "scatter_mrad": 30
+        }
+      },
+      "name": "Grenade",
+      "description": "Rifle grenades lobbed at troops behind cover.",
+      "icon": "grenade",
+      "stationary": false,
+      "range_m": 150,
+      "min_range_m": 5,
+      "speed_mps": 100,
+      "gravity_scale": 5.35103,
+      "aim_s": 1.5,
+      "reload_s": 5,
+      "ammo": 8,
+      "penetration": 20,
+      "partial_from": 0.08,
+      "damage": 20,
+      "near_miss_suppression": 0.15,
+      "suppression_radius_m": 8,
+      "blast_radius_m": 6,
+      "structural_damage": 10
+    },
+    "tank_ap": {
+      "targets": {
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ],
+          "range_m": 800,
+          "scatter_mrad": 3.43
+        }
+      },
+      "name": "AP Shell",
+      "description": "Armour-piercing sabot: the tank gun's answer to armour.",
+      "icon": "ap_shell",
+      "stationary": false,
+      "range_m": 800,
+      "speed_mps": 400,
+      "gravity_scale": 1.7651,
+      "aim_s": 2,
+      "reload_s": 3.5,
+      "ammo": 20,
+      "penetration": 180,
+      "partial_from": 0.6,
+      "damage": 40,
+      "near_miss_suppression": 0.2,
+      "suppression_radius_m": 8,
+      "blast_radius_m": 0,
+      "structural_damage": 10,
+      "armor_piercing": true
+    },
+    "tank_he": {
+      "targets": {
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ],
+          "range_m": 800,
+          "scatter_mrad": 3.43
+        }
+      },
+      "name": "HE Shell",
+      "description": "High-explosive shell for troops, cover and buildings.",
+      "icon": "he_shell",
+      "stationary": false,
+      "range_m": 800,
+      "speed_mps": 400,
+      "gravity_scale": 1.7651,
+      "aim_s": 2,
+      "reload_s": 3.5,
+      "ammo": 15,
+      "penetration": 30,
+      "partial_from": 0.08,
+      "damage": 80,
+      "near_miss_suppression": 0.4,
+      "suppression_radius_m": 15,
+      "blast_radius_m": 12,
+      "structural_damage": 100
+    },
+    "hmg": {
+      "targets": {
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ],
+          "range_m": 400,
+          "scatter_mrad": 6
+        },
+        "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
+          "range_m": 200,
+          "scatter_mrad": 24
+        }
+      },
+      "name": "HMG",
+      "description": "A heavy machine gun for troops and light vehicles.",
+      "icon": "hmg",
+      "default": true,
+      "stationary": false,
+      "range_m": 400,
+      "speed_mps": 800,
+      "gravity_scale": 0.09,
+      "aim_s": 1,
+      "reload_s": 5,
+      "magazine": {
+        "rounds": 50,
+        "shot_interval_s": 0.1,
+        "burst": {
+          "rounds": 3,
+          "aim_max_s": 1
+        }
+      },
+      "ammo": "unlimited",
+      "penetration": 20,
+      "partial_from": 0.6,
+      "damage": 20,
+      "near_miss_suppression": 0.04,
+      "suppression_radius_m": 4,
+      "blast_radius_m": 0,
+      "structural_damage": 4
+    },
+    "atgm": {
+      "targets": {
+        "ground": {
+          "classes": [
+            "vehicle"
+          ],
+          "range_m": 900,
+          "scatter_mrad": 0.5
+        }
+      },
+      "interceptable": true,
+      "decoyable": true,
+      "name": "ATGM",
+      "description": "A wire-guided anti-tank missile, steered onto its target.",
+      "icon": "atgm",
+      "stationary": true,
+      "range_m": 900,
+      "min_range_m": 5,
+      "speed_mps": 50,
+      "accel_mps2": 140,
+      "top_speed_mps": 200,
+      "aim_s": 3,
+      "reload_s": 4,
+      "ammo": 4,
+      "penetration": 300,
+      "partial_from": 0.08,
+      "damage": 45,
+      "turn_deg_s": 60,
+      "guidance": "stationary",
+      "lifetime_s": 12,
+      "near_miss_suppression": 0.3,
+      "suppression_radius_m": 10,
+      "blast_radius_m": 4,
+      "structural_damage": 100
+    }
+  },
+  "suppression": {
+    "recovery_delay_s": 3,
+    "decay_per_s": 0.12,
+    "suppressed": {
+      "level": 0.3,
+      "move_penalty": 0.35,
+      "reload_cycle_penalty": 0.35,
+      "scatter_multiplier": 1.5
+    },
+    "pinned": {
+      "level": 0.85,
+      "move_penalty": 0.7,
+      "reload_cycle_penalty": 0.75,
+      "scatter_multiplier": 2.5
+    }
+  },
+  "cover": {
+    "tiers": {
+      "light": 1.15,
+      "medium": 1.4,
+      "heavy": 1.8
+    },
+    "crater": "light",
+    "crater_min_fill": 0.5,
+    "reach_m": 1.5,
+    "search_m": 8,
+    "step_out_m": 4,
+    "step_out_retry_m": 4,
+    "reresolve_s": 1,
+    "swing_deg": 45,
+    "vehicle_moved_m": 2,
+    "lean_burst_s": 3,
+    "lean_tuck_s": 2,
+    "lean_hold_s": 1.5,
+    "lean_max_m": 1.5,
+    "lean_clear_m": 0.1,
+    "lean_apart_m": 0.8,
+    "standoff_m": 0.2,
+    "away_cos": -0.35,
+    "search_slack_m": 2,
+    "building_spread_multiplier": 3,
+    "building_fragment_probability_multiplier": 0.35
+  },
+  "ground": {
+    "cell_m": 1,
+    "crater_radius_fraction": 0.15,
+    "crater_depth_per_m": 90,
+    "crater_full_depth": 160,
+    "track_gauge": 0.75,
+    "lane_margin_m": 0.5,
+    "scorch_radius_fraction": 0.4,
+    "scorch_per_burst": 120,
+    "mark_reference_blast_m": 4,
+    "tracks_per_pass": 24,
+    "trampled_per_pass": 6
+  },
+  "service": {
+    "radius_m": 80,
+    "round_costs": {
+      "grenade": 2,
+      "tank_ap": 5,
+      "tank_he": 5,
+      "atgm": 20
+    },
+    "ammo_rounds_per_s": 1,
+    "vehicle_hp_per_s": 2,
+    "stock_per_hp": 1,
+    "soldier_replacement_s": 5,
+    "stock_per_soldier": 15,
+    "flare_service_s": 2,
+    "stock_per_flare": 2
+  },
+  "carriage": {
+    "board_s": 1,
+    "reach_m": 3,
+    "unload_search_m": 5
+  },
+  "garrison": {
+    "enter_exit_s": 2,
+    "entry_distance_m": 4,
+    "slot_standoff_m": 0.45,
+    "slot_facing_min_deg": 6,
+    "window_swap_s": 1,
+    "window_hold_s": 4
+  },
+  "bail_out": {
+    "building": {
+      "death": 0.25,
+      "hp_lost": [
+        20,
+        40
+      ],
+      "search_m": 8
+    },
+    "ground": {
+      "death": 0.1,
+      "hp_lost": [
+        10,
+        30
+      ],
+      "search_m": 5
+    },
+    "air": {
+      "squad_loss": 0.5,
+      "death": 0.25,
+      "hp_lost": [
+        30,
+        60
+      ],
+      "search_m": 5
+    }
+  },
+  "physics": {
+    "gravity_mps2": 9.81,
+    "miss_fall_max_s": 1.5,
+    "ricochet_lifetime_s": 1.5,
+    "miss_gravity_multiplier": 20,
+    "curve_chord_error_m": 0.02,
+    "max_subsegments_per_tick": 32,
+    "soldier_radius_m": 0.3,
+    "soldier_height_m": 1.7,
+    "max_unguided_lifetime_s": 30,
+    "min_spread_at_max_range_m": 2.4,
+    "infantry_eye_m": 1.6,
+    "infantry_muzzle_m": 1.4,
+    "infantry_aim_m": 1,
+    "vehicle_aim_height_fraction": 0.75,
+    "infantry_center_m": 0.9,
+    "moving_scatter_multiplier": 1.4142135623730951,
+    "friendly_prefire_margin_m": 1
+  },
+  "pushing": {
+    "turn_deg_per_m": 8,
+    "relearn_m": 1
+  },
   "forests": {
     "tree": "trunk",
     "log": "log",
@@ -27,37 +519,81 @@
       ]
     }
   },
-  "physics": {
-    "gravity_mps2": 9.81,
-    "miss_fall_max_s": 1.5,
-    "ricochet_lifetime_s": 1.5,
-    "miss_gravity_multiplier": 20,
-    "curve_chord_error_m": 0.02,
-    "max_subsegments_per_tick": 32,
-    "soldier_radius_m": 0.3,
-    "soldier_height_m": 1.7,
-    "max_unguided_lifetime_s": 30,
-    "min_spread_at_max_range_m": 2.4,
-    "infantry_eye_m": 1.6,
-    "infantry_muzzle_m": 1.4,
-    "infantry_aim_m": 1,
-    "vehicle_aim_height_fraction": 0.75,
-    "infantry_center_m": 0.9,
-    "moving_scatter_multiplier": 1.4142135623730951,
-    "friendly_prefire_margin_m": 1
+  "hull_limits": {
+    "tracked": {
+      "half_width_m": 2.1,
+      "half_length_m": 4.8
+    },
+    "wheeled": {
+      "half_width_m": 1.6,
+      "half_length_m": 6.2,
+      "turning_radius_m": 8
+    },
+    "rotor": {
+      "half_width_m": 3.7,
+      "half_length_m": 10
+    },
+    "fixed_wing": {
+      "half_width_m": 8.8,
+      "half_length_m": 11.7
+    }
   },
-  "sensors": {
-    "squad_identification_fraction": 0.2,
-    "squad_hidden_fraction": 0.8,
-    "contact_radius_factor": 3,
-    "contact_lifetime_s": 30,
-    "acquisition_grace_s": 1.5,
-    "foliage_full_block": 1,
-    "building_range_multiplier": 0.2,
-    "hearing_shot_m": 2000,
-    "sound_bucket_s": 0.5,
-    "fog_target_height_m": 1,
-    "moving_concealment": 1.5
+  "air_speed_limits_kmh": {
+    "rotor": 320,
+    "fixed_wing": 1000
+  },
+  "shouts": {
+    "cooldown_s": 8,
+    "talk_s": {
+      "b1_contact_infantry": 2.5,
+      "b2_contact_vehicle": 2.5,
+      "b3_contact_air": 2.5,
+      "b4_opens_fire": 2.5,
+      "b5_under_fire": 2.5,
+      "b6_suppressed": 2.5,
+      "b7_pinned": 2.5,
+      "b8_hit": 2.5,
+      "b9_man_down": 2.5,
+      "b10_badly_damaged": 2.5,
+      "b11_kill": 2.5,
+      "b12_reloading": 2.5,
+      "b13_out_of_ammo": 2.5,
+      "b14_missile_away": 2.5,
+      "b15_incoming_missile": 2.5,
+      "b16_destroyed": 2.5,
+      "b17_friendly_destroyed_nearby": 2.5
+    }
+  },
+  "air": {
+    "low_air": {
+      "cruise_agl_m": 30
+    },
+    "high_air": {
+      "cruise_agl_m": 250,
+      "floor_agl_m": 100
+    },
+    "rotor": {
+      "clearance_m": 10,
+      "ceiling_agl_m": 40,
+      "obstacle_m": 30,
+      "acceleration_s": 4.5,
+      "settle_share": 0.05,
+      "settle_max_m": 4
+    },
+    "fixed_wing": {
+      "strafe_ceiling_m": 130,
+      "bomb_ceiling_m": 200,
+      "dogfight_band_agl_m": [
+        150,
+        350
+      ],
+      "dogfight_break_m": 1200,
+      "afterburner_ramp_s": 2,
+      "afterburner_scatter_multiplier": 1.8,
+      "edge_margin_m": 300,
+      "nose_on_deg": 2
+    },
+    "separation_m": 14
   },
   "catalog": [
     {
@@ -70,12 +606,12 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": false,
               "vehicle": false
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": null,
             "garrison": false,
             "hp": null,
@@ -93,15 +629,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": null,
             "garrison": false,
-            "hp": 60.0,
+            "hp": 60,
             "lifetime_s": null,
             "occludes": false,
             "stops_rounds": false,
@@ -140,15 +676,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": "light",
             "garrison": false,
-            "hp": 20.0,
+            "hp": 20,
             "lifetime_s": null,
             "occludes": false,
             "stops_rounds": false,
@@ -164,15 +700,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": "light",
             "garrison": false,
-            "hp": 80.0,
+            "hp": 80,
             "lifetime_s": null,
             "occludes": true,
             "stops_rounds": false,
@@ -359,15 +895,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": null,
             "garrison": false,
-            "hp": 25.0,
+            "hp": 25,
             "lifetime_s": null,
             "occludes": false,
             "stops_rounds": false,
@@ -384,15 +920,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": "medium",
             "garrison": false,
-            "hp": 250.0,
+            "hp": 250,
             "lifetime_s": null,
             "occludes": true,
             "stops_rounds": true,
@@ -435,15 +971,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": "medium",
             "garrison": false,
-            "hp": 180.0,
+            "hp": 180,
             "lifetime_s": null,
             "occludes": false,
             "stops_rounds": true,
@@ -482,15 +1018,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": "heavy",
             "garrison": false,
-            "hp": 400.0,
+            "hp": 400,
             "lifetime_s": null,
             "occludes": true,
             "stops_rounds": true,
@@ -512,15 +1048,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": "light",
             "garrison": false,
-            "hp": 25.0,
+            "hp": 25,
             "lifetime_s": null,
             "occludes": true,
             "stops_rounds": false,
@@ -536,15 +1072,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": "light",
             "garrison": false,
-            "hp": 60.0,
+            "hp": 60,
             "lifetime_s": null,
             "occludes": true,
             "stops_rounds": false,
@@ -560,15 +1096,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": "light",
             "garrison": false,
-            "hp": 30.0,
+            "hp": 30,
             "lifetime_s": null,
             "occludes": false,
             "stops_rounds": false,
@@ -635,15 +1171,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": false,
               "vehicle": false
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": null,
             "garrison": false,
-            "hp": 40.0,
+            "hp": 40,
             "lifetime_s": null,
             "occludes": true,
             "stops_rounds": false,
@@ -707,15 +1243,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": null,
             "garrison": false,
-            "hp": 30.0,
+            "hp": 30,
             "lifetime_s": null,
             "occludes": false,
             "stops_rounds": false,
@@ -755,15 +1291,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": "light",
             "garrison": false,
-            "hp": 80.0,
+            "hp": 80,
             "lifetime_s": null,
             "occludes": true,
             "stops_rounds": false,
@@ -802,15 +1338,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": false,
               "vehicle": false
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": null,
             "garrison": false,
-            "hp": 10.0,
+            "hp": 10,
             "lifetime_s": null,
             "occludes": true,
             "stops_rounds": false,
@@ -898,15 +1434,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": null,
             "garrison": false,
-            "hp": 60.0,
+            "hp": 60,
             "lifetime_s": null,
             "occludes": false,
             "stops_rounds": false,
@@ -973,12 +1509,12 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": false,
               "vehicle": false
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": null,
             "garrison": false,
             "hp": null,
@@ -996,15 +1532,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": "medium",
             "garrison": false,
-            "hp": 250.0,
+            "hp": 250,
             "lifetime_s": null,
             "occludes": false,
             "stops_rounds": true,
@@ -1043,15 +1579,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": null,
             "garrison": false,
-            "hp": 80.0,
+            "hp": 80,
             "lifetime_s": null,
             "occludes": false,
             "stops_rounds": false,
@@ -1068,15 +1604,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": true,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": "light",
             "garrison": false,
-            "hp": 150.0,
+            "hp": 150,
             "lifetime_s": null,
             "occludes": false,
             "stops_rounds": false,
@@ -1306,15 +1842,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": false,
               "vehicle": true
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": null,
             "garrison": false,
-            "hp": 30.0,
+            "hp": 30,
             "lifetime_s": null,
             "occludes": false,
             "stops_rounds": false,
@@ -1447,15 +1983,15 @@
             "status": "systems_only"
           },
           "body": {
-            "armor": 1.0,
+            "armor": 1,
             "blocks": {
               "infantry": false,
               "vehicle": false
             },
-            "conceals": 0.0,
+            "conceals": 0,
             "cover_tier": null,
             "garrison": false,
-            "hp": 10.0,
+            "hp": 10,
             "lifetime_s": null,
             "occludes": true,
             "stops_rounds": false,
