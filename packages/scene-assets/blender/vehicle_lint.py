@@ -95,9 +95,23 @@ class LintIssue:
             distance_m=d.get("distance_m"),
         )
 
-    def matches_baseline(self, other):
-        """Check if this issue matches a baseline entry (same check, parts)."""
-        return self.check == other.check and set(self.parts) == set(other.parts)
+    def matches_baseline(self, other, distance_tolerance=0.005):
+        """Check if this issue matches a baseline entry.
+        
+        Matches if check and parts are the same, AND the distance hasn't grown
+        more than distance_tolerance (5mm default) past the baseline value.
+        A part whose gap grows past its baselined value fails.
+        """
+        if self.check != other.check or set(self.parts) != set(other.parts):
+            return False
+        # If baseline has no distance, match by name only (legacy)
+        if other.distance_m is None:
+            return True
+        # If current has no distance, match (can't compare)
+        if self.distance_m is None:
+            return True
+        # Fail if gap has grown more than tolerance past baseline
+        return self.distance_m <= other.distance_m + distance_tolerance
 
 
 @dataclass
@@ -917,8 +931,33 @@ def _extract_scheme_from_script(script_path):
     return None
 
 
+def _get_family_name_from_script(script_path):
+    """Extract the family name from a roster script's run() call.
+    
+    Some scripts (sp_howitzers, rocket_artillery, etc.) use a family name
+    different from the script name.
+    """
+    import ast
+    try:
+        source = script_path.read_text()
+        tree = ast.parse(source)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                fn = node.func
+                if isinstance(fn, ast.Name) and fn.id == "run" and node.args:
+                    first_arg = node.args[0]
+                    if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
+                        return first_arg.value
+        return None
+    except Exception:
+        return None
+
+
 def run_roster_lint(update_baseline=False):
-    """Run lint over all roster vehicles."""
+    """Run lint over all roster vehicles.
+    
+    Returns (all_results dict, total_new_issues count).
+    """
     global _SUPPRESS_EXPORT_LINT, _SUPPRESS_EXPORT
     import sys
     
@@ -935,33 +974,48 @@ def run_roster_lint(update_baseline=False):
     allowlist = load_allowlist()
     new_baseline = {} if update_baseline else None
     failed_builds = []
+    total_new_issues = 0
+    variants_linted = 0
     
     families = list(_roster_families())
     print(f"Scanning {len(families)} roster families...", flush=True)
     
     for family_path in families:
-        family_name = family_path.stem
+        script_name = family_path.stem
+        
+        # Try to get family name from run() call, fallback to script name
+        family_name = _get_family_name_from_script(family_path) or script_name
+        
         try:
             variants = family_variants(family_name, repo=REPO)
-        except Exception as e:
-            print(f"  {family_name}: skipped (no variants: {e})")
-            continue
+        except Exception:
+            # Also try script name if family name didn't work
+            if family_name != script_name:
+                try:
+                    variants = family_variants(script_name, repo=REPO)
+                    family_name = script_name
+                except Exception as e:
+                    print(f"  {script_name}: skipped (no variants for {family_name} or {script_name})")
+                    continue
+            else:
+                print(f"  {script_name}: skipped (no variants)")
+                continue
         
         if not variants:
             continue
         
         scheme = _extract_scheme_from_script(family_path)
         if scheme is None:
-            print(f"  {family_name}: skipped (could not extract scheme)")
+            print(f"  {script_name}: skipped (could not extract scheme)")
             continue
             
         try:
-            spec = __import__(f"roster.{family_name}", fromlist=["build"])
+            spec = __import__(f"roster.{script_name}", fromlist=["build"])
             build_fn = getattr(spec, "build", None)
             if build_fn is None:
                 continue
         except Exception as e:
-            print(f"  {family_name}: import failed: {e}")
+            print(f"  {script_name}: import failed: {e}")
             continue
         
         from vehicle_export import Vehicle, materials
@@ -977,6 +1031,7 @@ def run_roster_lint(update_baseline=False):
                 
                 result = lint_current_scene(vid)
                 all_results[vid] = result
+                variants_linted += 1
                 
                 if update_baseline and result.issues:
                     # Only baseline issues not in allowlist
@@ -989,7 +1044,8 @@ def run_roster_lint(update_baseline=False):
                 status = "PASS" if new_issues.passed else "FAIL"
                 n_total = len(result.issues)
                 n_new = len(new_issues.issues)
-                print(f"  {vid}: {status} ({n_new} new, {n_total} total)")
+                total_new_issues += n_new
+                print(f"LINT {vid}: {n_total} issue(s), {n_new} new")
                 if new_issues.issues:
                     print(format_issues(new_issues.issues))
                     
@@ -997,17 +1053,24 @@ def run_roster_lint(update_baseline=False):
                 failed_builds.append((vid, str(e)))
                 print(f"  {vid}: build failed: {e}")
     
+    print(f"\n=== Roster lint summary ===")
+    print(f"Variants linted: {variants_linted}")
+    print(f"New issues: {total_new_issues}")
+    
     if update_baseline:
         save_baseline(new_baseline)
-        print(f"\nUpdated baseline: {BASELINE_PATH}")
+        print(f"Updated baseline: {BASELINE_PATH}")
         print(f"Total vehicles with issues: {len(new_baseline)}")
         total_issues = sum(len(v) for v in new_baseline.values())
         print(f"Total baseline issues: {total_issues}")
+    else:
+        baseline_size = sum(len(v) for v in baseline.values())
+        print(f"Baseline size: {baseline_size}")
     
     if failed_builds:
-        print(f"\nFailed to build {len(failed_builds)} variant(s)")
+        print(f"Failed to build {len(failed_builds)} variant(s)")
     
-    return all_results
+    return all_results, total_new_issues
 
 
 # --------------------------------------------------------------------- CLI
@@ -1018,9 +1081,15 @@ def main():
     args = script_args()
     
     if "--roster" in args:
-        run_roster_lint()
+        _, new_issues = run_roster_lint()
+        if new_issues > 0:
+            print(f"\nFAIL: {new_issues} new issue(s)")
+            sys.exit(1)
+        print("\nPASS: no new issues")
+        sys.exit(0)
     elif "--update-baseline" in args:
         run_roster_lint(update_baseline=True)
+        sys.exit(0)
     elif any(a.startswith("--variant=") for a in args):
         vid = next(a.split("=", 1)[1] for a in args if a.startswith("--variant="))
         from catalog_frames import roster_variant

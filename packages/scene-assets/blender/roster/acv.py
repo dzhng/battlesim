@@ -60,9 +60,13 @@ def build(variant, v):
         for k, x in enumerate(WHEEL_X):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.33, ctis=True, hub_bolts=10)
-            box(f"suspension_arm_{s}_{k}", (0.20, 0.44, 0.12), (x, side * (WHEEL_Y - 0.28), WHEEL_R), m["dark"],
+            arm_y = side * (WHEEL_Y - 0.44)  # Center arm to span hull (Y~0.95) to wheel (Y=1.09)
+            arm_z = WHEEL_R + 0.02  # Slightly above wheel center
+            box(f"suspension_arm_{s}_{k}", (0.20, 0.50, 0.12), (x, arm_y, arm_z), m["dark"],
                 hull, lods=NEAR)
-            cyl(f"strut_{s}_{k}", 0.07, 0.55, (x + 0.30, side * 1.05, WHEEL_R + 0.35), "Z", m["dark"], hull, seg=10,
+            strut_bottom = arm_z + 0.06  # Connect to arm top
+            strut_len = SHELF - strut_bottom - 0.05  # Reach to hull shelf
+            cyl(f"strut_{s}_{k}", 0.07, strut_len, (x + 0.10, arm_y, strut_bottom + strut_len/2), "Z", m["dark"], hull, seg=10,
                 lods=FINE)
     fittings(v)
     station, pitch, _, pivot = rig(v.frame, v.root)["HMG"]

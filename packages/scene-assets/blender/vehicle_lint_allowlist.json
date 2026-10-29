@@ -2,32 +2,12 @@
   "_comment": "Allowlist of intentional geometry gaps. Only truly hidden interior parts, articulating components needing clearance, and thin structural elements that can't practically show contact belong here.",
   "patterns": [
     {
-      "part_pattern": "dash*",
-      "reason": "Interior cab dashboard, not visible from gameplay camera"
-    },
-    {
-      "part_pattern": "seat_back_*",
-      "reason": "Interior crew seat, not visible from gameplay camera"
-    },
-    {
-      "part_pattern": "seat_base_*",
-      "reason": "Interior crew seat, not visible from gameplay camera"
-    },
-    {
-      "part_pattern": "gear_*_door",
-      "reason": "Landing gear bay doors require articulation clearance"
-    },
-    {
       "part_pattern": "gear_nose_*",
       "reason": "Landing gear nose strut requires articulation clearance"
     },
     {
       "part_pattern": "gear_*_brace",
       "reason": "Landing gear braces require articulation clearance"
-    },
-    {
-      "part_pattern": "pintle",
-      "reason": "Pintle weapon mounts require 360-degree traverse clearance"
     },
     {
       "part_pattern": "rear_door",
@@ -42,10 +22,6 @@
       "reason": "Gun yokes require elevation/traverse articulation clearance"
     },
     {
-      "part_pattern": "mantlet",
-      "reason": "Gun mantlets require elevation clearance in turret"
-    },
-    {
       "part_pattern": "barrel_root",
       "reason": "Gun barrel root requires elevation clearance in mantlet"
     },
@@ -56,18 +32,6 @@
     {
       "part_pattern": "*_mg_port*",
       "reason": "Machine gun ports require traverse clearance for firing"
-    },
-    {
-      "part_pattern": "station_bearing",
-      "reason": "RCWS bearing ring requires rotation clearance"
-    },
-    {
-      "part_pattern": "*_grip_*",
-      "reason": "Weapon grips require operator hand clearance"
-    },
-    {
-      "part_pattern": "probe_*",
-      "reason": "Refueling probes: thin structural geometry"
     },
     {
       "part_pattern": "antenna_spine*",
@@ -106,8 +70,12 @@
       "reason": "Idler hub: center touches wheel body, tips protrude 2.5cm for track guide"
     },
     {
-      "part_pattern": "*_bolt_*",
-      "reason": "ERA and applique armor bolts: mounting hardware stands proud of panel surface"
+      "part_pattern": "era_bolt_*",
+      "reason": "ERA bolt heads stand proud of ERA panel surface"
+    },
+    {
+      "part_pattern": "cheek_era_bolt_*",
+      "reason": "Turret cheek ERA bolts stand proud of panel surface"
     },
     {
       "part_pattern": "fume_extractor",
@@ -116,6 +84,10 @@
     {
       "part_pattern": "bore_evacuator",
       "reason": "Bore evacuator sleeve: same as fume extractor, clearance around barrel"
+    },
+    {
+      "part_pattern": "pistol_grip",
+      "reason": "Weapon pistol grip requires operator hand clearance"
     }
   ]
 }
