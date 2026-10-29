@@ -220,33 +220,33 @@ fn sway(foot: vec3f, point: vec3f, up: f32, height: f32, leaf: f32) -> vec3f {
   let wind = cameraWind();
   let t = cam.time;
   let dir = wind.toward.xy;
-  let strength = clamp(wind.gustMps / 6, 0.0, 1.0);
+  let strength = clamp(wind.gustMps / SWAY_FULL_GUST_MPS, 0.0, 1.0);
   let along = dot(foot.xy, dir);
   let front = sin(6.2831853 * (along - t * wind.gustMps) * wind.gustPerM);
   let gust = smoothstep(0.2, 1.0, front);
   let seed = pcgHash(bitcast<u32>(floor(foot.x * 4.0)) ^ (bitcast<u32>(floor(foot.y * 4.0)) * 2654435761u));
   let phase = f32(seed >> 8u) * (6.2831853 / 16777216.0);
-  let swing = sin(t * 1.6 + phase) + 0.25 * sin(1.5 * t * 1.6 + 1.8 * phase);
+  let swing = sin(t * SWAY_RATE + phase) + 0.25 * sin(1.5 * t * SWAY_RATE + 1.8 * phase);
   let h = clamp(up, 0.0, 1.0);
   let reach = h * h * h;
-  let carried = 0.15 + 0.7 * gust + 0.35 * swing * 0.5 * (1.0 + gust);
-  let bend = height * 0.18 * strength * carried * reach;
+  let carried = SWAY_LEAN + SWAY_GUST * gust + SWAY_SWING * swing * 0.5 * (1.0 + gust);
+  let bend = height * SWAY_BEND * strength * carried * reach;
   // Bent, the point keeps its distance from the foot: it drops a little.
   var offset = vec3f(dir * bend, -0.5 * bend * bend / max(height * h, 1.0));
   let q = point - foot;
   let shiver = vec3f(
-    sin(t * 7 + q.x * 2.1 + q.y * 0.7 + phase),
-    sin(t * 7 * 1.3 + q.y * 1.9 + q.z * 0.8 + phase),
-    sin(t * 7 * 0.9 + q.z * 2.3 + q.x * 0.6 + phase),
+    sin(t * SWAY_SHIVER_RATE + q.x * 2.1 + q.y * 0.7 + phase),
+    sin(t * SWAY_SHIVER_RATE * 1.3 + q.y * 1.9 + q.z * 0.8 + phase),
+    sin(t * SWAY_SHIVER_RATE * 0.9 + q.z * 2.3 + q.x * 0.6 + phase),
   );
-  offset += shiver * (0.15 * strength * 0.5 * (1.0 + gust) * leaf * h);
+  offset += shiver * (SWAY_SHIVER_M * strength * 0.5 * (1.0 + gust) * leaf * h);
   return offset;
 }
 
 // @block scenery_standing
 fn standing(local: vec3f, pose: vec4f, shape: vec4f, leaf: f32) -> vec3f {
   let at = placedPoint(local, pose);
-  let height = max((shape.w / 0.62f), 1f);
+  let height = max((shape.w / SWAY_HEART), 1f);
   return (at + sway(pose.xyz, at, (local.z / height), height, leaf));
 }
 

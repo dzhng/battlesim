@@ -12,6 +12,10 @@ whole identifier tokens once, so aliases can rename colliding locals without
 changing expressions, operation order or unrelated names. Binding declarations
 remain explicit; aliases do not select a different algorithm.
 
+A built-in shader's source is its composed modules after the presentation's
+look numbers the WGSL reads by name (`SWAY_*`, `WAVE_*`), so a shader and the
+Rust that bounds or clocks the same motion read one owner.
+
 Keep modules grouped by the rule they own. Add a helper to that owner and name
 its dependency in the composition index, rather than copying it into another
 material or maintaining an expanded pipeline file. The core's reflection tests

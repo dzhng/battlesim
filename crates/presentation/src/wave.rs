@@ -4,7 +4,8 @@
 //! V-wakes spread alike at any frame rate. [`WaveClock`] says how many steps
 //! a frame runs, when the field starts over (a new epoch) and how far it
 //! moved; [`area`] where it lies, in the camera every shader binds
-//! (`Camera.waves`). Its numbers ([`WAVE`]) are generated for the shaders.
+//! (`Camera.waves`). The shaders read its numbers ([`WAVE`]) by name
+//! (`WAVE_*`, prepended to every built-in shader).
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::view::Camera;

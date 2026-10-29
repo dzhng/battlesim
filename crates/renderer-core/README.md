@@ -97,6 +97,16 @@ horizon rebuild does not run again. Device recreation asks the presentation to
 resend its tables and rebuild its eye maps; the latest delta alone cannot
 restore GPU-computed visibility.
 
+[The water](src/water.rs) draws in its own pass after the world, whose passes
+keep their samples for it. It copies the lit world as the world left it,
+reduces that copy into mips and a guard (how unseen and how painted each pixel
+under the water is), and refracts and blurs its bed only where the guard says
+nothing unseen or marked would show through; `WaterDetail::Depth`, the lowest
+tier, reads the copy at its own pixel and builds neither. Its wakes are a
+height field stepped from `Presentation::waves`, taken once per drawn frame
+because taking it advances the field's clock. A step takes a bounded number of
+splats, so a big battle's wakes cost the same however frames batch the steps.
+
 GPU profiling is opt-in. Whole-frame timestamp markers bracket the actual
 ordered frame, including any regional scar submissions, and bounded asynchronous
 readbacks skip saturated frames instead of waiting for the GPU. Resetting the

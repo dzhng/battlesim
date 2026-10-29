@@ -3,7 +3,7 @@ use naga::{front::wgsl, TypeInner};
 use presentation::records::{camel, Binding, Sun, View, LAYOUTS};
 
 fn module(shader: &str) -> naga::Module {
-    wgsl::parse_str(renderer_core::pipelines::builtin_source(shader).unwrap())
+    wgsl::parse_str(&renderer_core::pipelines::builtin_source(shader).unwrap())
         .unwrap_or_else(|error| panic!("{shader}: {error}"))
 }
 
@@ -57,7 +57,7 @@ fn builtin_shaders_match_presentation_record_layouts() {
         for shader in renderer_core::pipelines::builtin_shaders() {
             let source = renderer_core::pipelines::builtin_source(shader).unwrap();
             let module =
-                wgsl::parse_str(source).unwrap_or_else(|error| panic!("{shader}: {error}"));
+                wgsl::parse_str(&source).unwrap_or_else(|error| panic!("{shader}: {error}"));
             let Some((_, ty)) = module
                 .types
                 .iter()

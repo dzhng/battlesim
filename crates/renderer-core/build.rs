@@ -72,8 +72,7 @@ fn main() {
         "pub const BUILTIN_SHADERS: &[&str] = &{:?};\n\n",
         shaders
     ));
-    generated
-        .push_str("pub fn builtin_source(name: &str) -> Option<&'static str> { match name {\n");
+    generated.push_str("fn assembled_source(name: &str) -> Option<&'static str> { match name {\n");
     for line in source_text.lines() {
         let Some((shader, ids)) = line.split_once('|') else {
             continue;

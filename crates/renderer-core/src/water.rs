@@ -3,8 +3,8 @@
 //! water (`Targets::scene_colour`), builds that copy's mips and the guard
 //! that says how seen and how painted each pixel under the water is, then
 //! draws the water over the world's samples, reading depth and writing none.
-//! Glass behind the water draws under it: the cost of keeping glass in the
-//! world pass.
+//! Water behind a pane draws over it: the cost of keeping glass in the world
+//! pass.
 use presentation::effects::frame::WaveFrame;
 use presentation::records::WaveSplat;
 use presentation::wave::WAVE;

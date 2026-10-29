@@ -157,7 +157,7 @@ export function buildTerrainSurface(
     props: overlay === "surface",
   };
   // The traversal overlay shows the blocked flag alone; a water tint would
-  // muddy it. The water's look is its surface's (`frame/waterSurface.ts`).
+  // muddy it. The water's look is its own shader's (`renderer-core` `water.rs`).
   const surface = overlay === "surface";
   return { mesh, input, biome, grid: surface ? exports.terrain : null, water: surface };
 }

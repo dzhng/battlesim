@@ -163,8 +163,8 @@ fn waveStep(pos: vec2f) -> vec4f {
     if (run.still == 1u) { return was; }
     let laplacian = ((h[1] + h[3] + h[5] + h[7]) * 0.5 + (h[0] + h[2] + h[6] + h[8]) * 0.25
       - 3.0 * h[4]) * 0.333333;
-    var next = (2.0 - 0.08) * h[4] - (1.0 - 0.08) * was.g
-      + 4.0 * 0.2 * 0.2 * laplacian;
+    var next = (2.0 - WAVE_DAMPING) * h[4] - (1.0 - WAVE_DAMPING) * was.g
+      + 4.0 * WAVE_SPEED * WAVE_SPEED * laplacian;
     var push = 0.0;
     for (var k = 0u; k < run.splats; k++) {
       let s = splats[k];
@@ -235,11 +235,11 @@ fn waveNormal(xy: vec2f, n: vec3f) -> vec3f {
   if (((shown <= 0f) || (min(inside.x, inside.y) <= 0f))) {
     return n;
   }
-  const texel = 9.765625e-4;
+  const texel = 1.0 / WAVE_TEXELS;
   let dx = (waveHeight((uv + vec2f(texel, 0f))) - waveHeight((uv - vec2f(texel, 0f))));
   let dy = (waveHeight((uv + vec2f(0f, texel))) - waveHeight((uv - vec2f(0f, texel))));
   let edge = smoothstep(0f, 0.08f, min(inside.x, inside.y));
-  let ripple = (vec2f(dx, dy) * ((2.4f * shown) * edge));
+  let ripple = (vec2f(dx, dy) * (((16.0 * WAVE_NORMAL) * shown) * edge));
   let flatten = (saturate((length(ripple) * 1.8f)) * 0.72f);
   let calmed = normalize(mix(n, vec3f(0, 0, 1), flatten));
   return blendRnm(calmed, normalize(vec3f((ripple * -1f), 1f)));
