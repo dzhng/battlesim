@@ -288,13 +288,6 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       { unit: "m" },
     ),
     field(
-      "range_m",
-      "Flight range bound",
-      "Flight & accuracy",
-      "Every target layer's range must stay within this flight bound.",
-      { unit: "m" },
-    ),
-    field(
       "speed_mps",
       "Launch speed",
       "Flight & accuracy",

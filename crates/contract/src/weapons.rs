@@ -120,8 +120,8 @@ pub enum SeekerSupport {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LayerFire {
-    /// Its reach at this layer; never past the row's `range_m`, whose flight
-    /// the rules admitted. An unpowered bomb authors zero.
+    /// Its reach at this layer; the largest layer range bounds the flight.
+    /// An unpowered bomb authors zero.
     pub range_m: f64,
     /// Its spread at this layer, milliradians.
     pub scatter_mrad: f64,
@@ -348,7 +348,12 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
         .into_iter()
         .map(|(id, row)| {
             serde_json::from_value::<WeaponDefinition>(row.clone())
-                .and_then(|def| {
+                .and_then(|mut def| {
+                    let range = def.targets.values().map(|fire| fire.range_m).fold(0.0_f64, f64::max);
+                    if row.get("range_m").is_some() && def.ballistics.range_m != range {
+                        return Err(serde::de::Error::custom("range_m must equal the largest target layer range"));
+                    }
+                    def.ballistics.range_m = range;
                     // Flattened ballistics keep serde from refusing unknown
                     // fields itself. A key the loaded row holds is a field;
                     // one it does not (skipped at its default, or null) is a

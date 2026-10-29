@@ -389,7 +389,7 @@ fn high_air_ground_attack_uses_bombs_then_strafing_after_the_store_is_empty() {
 #[test]
 fn sead_missile_has_motor_lifetime_to_reach_its_authored_long_range() {
     let row = &sim::fixtures::test_game()["weapons"]["sead_missile"];
-    let range = row["range_m"].as_f64().unwrap();
+    let range = crate::common::weapon("sead_missile").range_m;
     let launch_speed = row["speed_mps"].as_f64().unwrap();
     let top_speed = row["top_speed_mps"].as_f64().unwrap();
     let acceleration = row["accel_mps2"].as_f64().unwrap();
@@ -408,7 +408,7 @@ fn sead_missile_has_motor_lifetime_to_reach_its_authored_long_range() {
 #[test]
 fn long_sam_motor_lifetime_reaches_its_authored_range() {
     let row = &sim::fixtures::test_game()["weapons"]["aa_long"];
-    let range = row["range_m"].as_f64().unwrap();
+    let range = crate::common::weapon("aa_long").range_m;
     let launch_speed = row["speed_mps"].as_f64().unwrap();
     let top_speed = row["top_speed_mps"].as_f64().unwrap();
     let acceleration = row["accel_mps2"].as_f64().unwrap();

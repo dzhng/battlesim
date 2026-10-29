@@ -1476,7 +1476,6 @@ fn artillery_frame() -> (Rules, ObservationFrame, EntrySite) {
     );
     authored["weapons"]["hmg"]["trajectory"] = json!("indirect");
     authored["weapons"]["hmg"]["min_range_m"] = json!(50);
-    authored["weapons"]["hmg"]["range_m"] = json!(500);
     authored["weapons"]["hmg"]["targets"]["ground"]["range_m"] = json!(500);
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},

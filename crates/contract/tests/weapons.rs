@@ -45,7 +45,7 @@ fn weapon_values_reject_invalid_scalar_settings() {
 fn minimum_range_cannot_exceed_maximum_range() {
     let mut game: Value =
         serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
-    game["weapons"]["grenade"]["range_m"] = json!(10.0);
+    game["weapons"]["grenade"]["targets"]["ground"]["range_m"] = json!(10.0);
     game["weapons"]["grenade"]["min_range_m"] = json!(11.0);
     let error = contract::weapons::resolve_weapons(game["weapons"].clone())
         .unwrap_err()
@@ -65,7 +65,7 @@ fn an_unpowered_row_with_range_is_refused() {
         .unwrap_err()
         .to_string();
     assert!(
-        error.contains("weapons.air_bomb") && error.contains("unpowered"),
+        error.contains("weapons.air_bomb") && error.contains("range_m"),
         "{error}"
     );
 }
@@ -118,13 +118,11 @@ fn a_weapon_row_needs_a_short_label_and_an_icon_id() {
     }
 }
 
-/// A height band's fire profile may only shorten the row's reach: the flight
-/// rules admit a row's range, speed and lifetime together, so a longer reach
-/// at one band would fly rounds the row was never checked for.
+/// Each layer authors valid reach and scatter; the flight envelope follows
+/// the longest layer. Other firing values belong to the weapon.
 #[test]
-fn a_height_band_cannot_reach_past_the_row() {
+fn a_height_band_requires_valid_range_and_scatter() {
     for (band, named) in [
-        (json!({ "range_m": 701.0 }), "targets.low_air.range_m"),
         (json!({ "range_m": -1.0 }), "targets.low_air.range_m"),
         (
             json!({ "scatter_mrad": -1.0 }),
@@ -228,7 +226,7 @@ fn test_rows(targets: Value) -> Value {
     }
     json!({ "test_gun": {
         "name": "Test Gun", "description": "A test row.", "icon": "rifle",
-        "stationary": false, "range_m": 300, "speed_mps": 800,
+        "stationary": false, "speed_mps": 800,
         "aim_s": 1, "reload_s": 2, "ammo": "unlimited",
         "penetration": 5, "partial_from": 0.6, "damage": 10,
         "near_miss_suppression": 0, "suppression_radius_m": 0, "blast_radius_m": 0,
@@ -394,7 +392,7 @@ fn resolved_weapons_require_explicit_damage_and_layer_values() {
         }))
     };
     let mut inherited = base();
-    inherited["child"] = json!({ "extends": "test_gun", "range_m": 400 });
+    inherited["child"] = json!({ "extends": "test_gun" });
     let resolved = contract::weapons::resolve_weapons(inherited).unwrap();
     assert_eq!(
         resolved["child"]
@@ -436,4 +434,22 @@ fn resolved_weapons_require_explicit_damage_and_layer_values() {
             "{error}"
         );
     }
+}
+
+/// A serialized resolved row may carry its computed reach, but authors cannot
+/// give it a second reach that disagrees with its target layers.
+#[test]
+fn an_authored_range_must_match_the_largest_target_layer() {
+    let mut rows = test_rows(json!({
+        "ground": { "classes": ["vehicle"], "range_m": 300 },
+        "low_air": { "classes": ["air_rotor"], "range_m": 150 }
+    }));
+    rows["test_gun"]["range_m"] = json!(301);
+    let error = contract::weapons::resolve_weapons(rows)
+        .expect_err("a second, disagreeing reach must be refused")
+        .to_string();
+    assert!(
+        error.contains("weapons.test_gun") && error.contains("range_m"),
+        "{error}"
+    );
 }

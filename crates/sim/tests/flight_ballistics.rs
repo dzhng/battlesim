@@ -809,7 +809,7 @@ fn every_shipped_artillery_row_reaches_its_declared_range_on_the_high_arc() {
         "artillery_rocket_heavy",
         "artillery_strike_missile",
     ] {
-        let row: WeaponBallistics = serde_json::from_value(raw["weapons"][name].clone()).unwrap();
+        let row = crate::common::weapon(name);
         let profile = config.profile(&row).unwrap();
         let world = flat([row.range_m + 400.0, 400.0], "");
         let aim = Aim {

@@ -107,3 +107,32 @@ fn unsafe_section_ranges_are_refused_by_the_rules_reader() {
         assert!(error.contains(path), "{path}: {error}");
     }
 }
+
+#[test]
+fn a_derived_weapon_range_survives_resolution_and_encounter_overrides() {
+    let mut raw = game();
+    raw["weapons"] = json!({ "test_gun": {
+        "name": "Test Gun", "description": "A test row.", "icon": "rifle",
+        "stationary": false, "speed_mps": 800,
+        "aim_s": 1, "reload_s": 2, "ammo": "unlimited",
+        "penetration": 5, "partial_from": 0.6, "damage": 10,
+        "near_miss_suppression": 0, "suppression_radius_m": 0, "blast_radius_m": 0,
+        "targets": {
+            "ground": { "classes": ["vehicle"], "range_m": 300, "scatter_mrad": 5 },
+            "low_air": { "classes": ["air_rotor"], "range_m": 150, "scatter_mrad": 8 }
+        }
+    }});
+    let rules: Rules = serde_json::from_value(raw).expect("layers supply the reach");
+    assert_eq!(rules.weapons["test_gun"].ballistics.range_m, 300.0);
+    let resolved = serde_json::to_value(&rules).unwrap();
+    assert_eq!(resolved["weapons"]["test_gun"]["range_m"], 300.0);
+    let round_trip: Rules = serde_json::from_value(resolved.clone()).unwrap();
+    assert_eq!(serde_json::to_value(round_trip).unwrap(), resolved);
+    let overrides = json!({ "weapons": { "test_gun": { "targets": {
+        "low_air": { "range_m": 400 }
+    }}}});
+    let changed = rules.overridden(overrides.as_object().unwrap()).unwrap();
+    assert_eq!(changed.weapons["test_gun"].ballistics.range_m, 400.0);
+    let again: Rules = serde_json::from_value(serde_json::to_value(&changed).unwrap()).unwrap();
+    assert_eq!(again.weapons["test_gun"].ballistics.range_m, 400.0);
+}

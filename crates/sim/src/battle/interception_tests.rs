@@ -120,7 +120,6 @@ fn interceptor_on_a_helicopter() -> Battle {
     let mut row = test_interceptor(serde_json::json!({
         "low_air": { "classes": ["air_rotor", "missile"] }
     }));
-    row["range_m"] = serde_json::json!(800);
     row["targets"]["low_air"]["range_m"] = serde_json::json!(800);
     rules["weapons"]["test_interceptor"] = row;
     rules["service"]["round_costs"]["test_interceptor"] = serde_json::json!(1);
@@ -294,7 +293,7 @@ fn test_interceptor(mut targets: serde_json::Value) -> serde_json::Value {
     }
     serde_json::json!({
         "name": "Test AA", "description": "A test row.", "icon": "autocannon",
-        "stationary": false, "range_m": 1500, "speed_mps": 600, "gravity_scale": 0.5,
+        "stationary": false, "speed_mps": 600, "gravity_scale": 0.5,
         "aim_s": 0.5, "reload_s": 3.5, "ammo": 40, "penetration": 65, "partial_from": 0.08,
         "damage": 100, "near_miss_suppression": 0.1,
         "suppression_radius_m": 6, "blast_radius_m": 2, "proximity_fuse_m": 5,

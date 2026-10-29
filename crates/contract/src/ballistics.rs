@@ -77,8 +77,8 @@ pub struct WeaponBallistics {
     /// An unpowered air bomb omits this and resolves to zero.
     #[serde(default)]
     pub speed_mps: f64,
-    /// The flight bound no target layer's range may exceed. An unpowered
-    /// air bomb omits this and resolves to zero.
+    /// The flight bound, derived from a weapon's largest target-layer range.
+    /// Standalone flight probes may supply it directly; an unpowered bomb has zero.
     #[serde(default)]
     pub range_m: f64,
     /// A rocket motor: the round speeds up along its heading at this rate
