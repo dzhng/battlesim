@@ -9,12 +9,13 @@ use presentation::static_world::ground::grass::{
 };
 use serde_json::Value;
 
+const VECTORS: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/fixtures/grass-vectors.json"
+);
+
 fn vectors() -> Value {
-    let at = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/tests/fixtures/grass-vectors.json"
-    );
-    serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap()
+    serde_json::from_str(&std::fs::read_to_string(VECTORS).unwrap()).unwrap()
 }
 
 fn words(hex: &Value) -> Vec<u32> {
@@ -64,9 +65,11 @@ fn kind<'a>(name: &'a str, tiers: &'a [Tier], top: f64) -> KindMesh<'a> {
     }
 }
 
+/// Run with `UPDATE_GRASS_VECTORS=1 cargo test -p presentation --test grass_field`
+/// to rerecord the packed shapes after an intentional packing change.
 #[test]
 fn the_installed_kinds_pack_as_recorded() {
-    let v = vectors();
+    let mut v = vectors();
     let names: Vec<String> = list(&v["kinds"], |k| k["name"].as_str().unwrap().into());
     let meshes: Vec<Vec<Tier>> = list(&v["kinds"], tiers);
     let tops: Vec<f64> = list(&v["kinds"], |k| k["top"].as_f64().unwrap());
@@ -75,16 +78,14 @@ fn the_installed_kinds_pack_as_recorded() {
         .collect();
     let packed = pack_shapes(&kinds).unwrap();
     let shapes: Vec<u32> = packed.shapes.iter().map(|f| f.to_bits()).collect();
-    let update = std::env::var("UPDATE_GRASS_VECTORS").is_ok();
-    if update {
-        let shapes_hex: String = shapes.iter()
+    if std::env::var_os("UPDATE_GRASS_VECTORS").is_some() {
+        let hex: String = shapes
+            .iter()
             .flat_map(|w| w.to_le_bytes())
-            .map(|b| format!("{:02x}", b))
+            .map(|b| format!("{b:02x}"))
             .collect();
-        let mut fixture: serde_json::Value = v.clone();
-        fixture["shapes"] = shapes_hex.into();
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/grass-vectors.json");
-        std::fs::write(path, serde_json::to_string(&fixture).unwrap()).unwrap();
+        v["shapes"] = hex.into();
+        std::fs::write(VECTORS, serde_json::to_string(&v).unwrap()).unwrap();
         panic!("fixture updated; rerun without UPDATE_GRASS_VECTORS");
     }
     assert_eq!(shapes, words(&v["shapes"]));

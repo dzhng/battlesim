@@ -378,8 +378,8 @@ pub fn strip_indices(blades: u32, segments: u32) -> Vec<u16> {
 
 /// Packs `kinds` (in `Ground::grass_kinds` order) for the field: each field
 /// tier's vertices as spine and side, each vertex's tint its colour against
-/// the clump's mean colour (which the ground it grows on replaces). Refused
-/// by name where a tier is not its kind's blade strips.
+/// the tier's tip-weighted mean colour (which the ground it grows on
+/// replaces). Refused by name where a tier is not its kind's blade strips.
 pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
     let per = FIELD_SEGMENTS.map(|s| blade_vertices(s) as usize);
     let linear = |c: u8| libm::pow(f64::from(c) / 255.0, 2.2);
@@ -415,10 +415,8 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
                     format!("grass: {} LOD{lod} is not {blades} blade strips", kind.name)
                 })?;
             let p = |v: usize, c: usize| f64::from(mesh.positions[v * 3 + c]);
-            // Normalize by a height-weighted mean so the visible average matches
-            // the far tier's ground color, while preserving bright tips and color
-            // variation. Tips (height ~1) can exceed 1.0 up to a soft cap; stems
-            // (height ~0) have a floor so they don't go too dark or grey.
+            // The camera mostly sees tips, so weighting the mean toward them
+            // makes the near field average to the ground colour it stands on.
             let target: [f64; 3] = std::array::from_fn(|c| {
                 let mut sum = 0.0;
                 let mut weight_sum = 0.0;
@@ -448,8 +446,8 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
                     };
                     shapes[o + 8 + c] = (f64::from(mesh.normals[v * 4 + c]) / 32767.0) as f32;
                     let raw = linear(mesh.colors[v * 4 + c]) / target[c];
-                    // Soft cap: tips can brighten up to ~1.3, stems have a low
-                    // floor so dark gaps remain while keeping mean luminance.
+                    // Bright tips ease toward 1.3 rather than clip; the floor
+                    // leaves dark gaps between stems but no black tips.
                     let floor = 0.3 + 0.5 * h;
                     let cap = 1.0 + 0.3 * (1.0 - libm::exp(-2.5 * (raw - 1.0).max(0.0)));
                     let tint = raw.max(floor).min(cap);
