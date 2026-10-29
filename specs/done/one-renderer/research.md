@@ -477,3 +477,66 @@ full frames in the archive; copy SHA256 proofs confirm they are the cited contro
 All archive/root-pointer links resolve. The layout-size checkpoint split changes
 no descriptors: nine complete visibility-layout expressions are unchanged after
 whitespace normalization, and all four pipeline ABI/entry tests pass.
+
+## Cumulative PR review
+
+The cumulative review covers the original TypeGPU control through the full
+shared renderer port and the subsequent memory fixes. Independent scopes audit
+core/native, browser/presentation, and tests/build/deployment, in addition to a
+separate cumulative Codex diff review. Their detailed coverage and dismissed
+suspicions remain in `throwaway/final-perf/pr16-review/`.
+
+The structural cleanup removes the second native display readback implementation
+in favor of the shared bounded snapshot owner, preserving opaque native exports.
+It removes abandoned JavaScript scar-upload interfaces and their WASM wrappers,
+unused browser glass/fog-shader values, old spike pipeline-export diagnostics,
+unconsumed target-generation/debug-group scaffolding and unused dependencies.
+Canonical shadow camera sizing and cascade count come from presentation. The
+remaining fog/grass query bindings have real diagnostic or configuration users;
+the production renderer still consumes Rust records directly.
+
+All obsolete doc links to deleted owners are repaired, and native documentation
+now describes the completed boundary rather than an incremental port. Exact
+benchmark numbers have one canonical home in research; the architecture README
+states the principles and points to the measurements. Trailing blank lines are
+removed from shader modules with all 485 canonical composition blocks unchanged.
+
+The code review finds no confirmed gameplay, shader, lifecycle, packaging or
+build regression. After cleanup, the full web suite passes 196 files / 1,301
+tests. Strict workspace Clippy, all-target workspace checking, rebuilt combined browser WASM, TypeScript,
+five shared memory/ABI tests, eleven native GPU tests and the registered browser
+frame lifecycle/device-recovery scene pass. Six native capture plates retain the
+existing raster variation (21 differing RGBA channels, maximum delta four across
+all plates). A fresh unprimed reference comparison finds no material browser
+visual regression. The earlier full Rust workspace run remains valid except for
+the focused renderer paths rechecked here; this review does not claim a new full
+Rust suite run.
+
+The final web run initially exposed intermittent replay setup and navigation
+worker tracking failures. Browser harnesses now own separate Vite optimizer
+caches. GPU-less storage setup uses an isolated origin page with Vite's React
+preamble; the navigation check waits for the lobby preview to release its worker.
+The importer uses resolved React imports rather than a hardcoded optimizer path,
+and the asset-serving build owns its temporary entry. The four cold-cache browser
+cases pass together, with assertions and time limits retained. A focused review
+also fixes temporary-cache cleanup on Vite startup/close failure. Presentation's
+lab-probe contract moves to its own type module to keep the browser binding within
+the existing file-size budget, retaining its public type export.
+
+The diagnostic test audit does identify narrower surviving coverage for
+asynchronous timestamp reset/saturation, exact terrain/water/scenery issued-work
+counts, Windows shader compile-cost shape, and mixed-weight vertex quantization.
+No runtime defect is demonstrated by these gaps. Future changes to those owners
+should pin those contracts in Rust, rather than recreating deleted TypeGPU mocks.
+
+The remaining memory overlap across complete asset generations is an explicit
+architectural cost, not hidden by the cleanup. Memory, CPU and GPU measurements
+continue to belong to their frozen artifacts; no new performance effect is
+attributed to this review.
+
+Cumulative source accounting after this review adds 24,126 and deletes 20,512
+noncomment production lines, a net increase of 3,614. This uses the same physical
+line classification and original TypeGPU baseline as the frozen accounting;
+tests, configuration, docs and generated expansions remain separate. The
+review's ownership cleanup reduces that increase without turning the port into
+a source-line saving.
