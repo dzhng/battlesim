@@ -232,6 +232,29 @@ pub fn tank_shape() -> Shape {
 }
 
 /// The shipped rules, catalog resolved.
+/// Speed factors a route test fixes for itself, apart from game tuning:
+/// full roads, dirt tracks at 0.75, no road on paving, forest and swamp at
+/// `forest` and `swamp`, craters at 0.85, and speed gone by 50° of slope but
+/// never below 0.35.
+pub const fn speed_factors(forest: f64, swamp: f64) -> contract::movement::SpeedFactors {
+    use contract::movement::{SlopeSpeed, SpeedFactors, SurfaceSpeedFactors};
+    SpeedFactors {
+        surfaces: SurfaceSpeedFactors {
+            road: 1.0,
+            country_road: 1.0,
+            dirt_track: 0.75,
+            paving: 0.0,
+        },
+        forest,
+        swamp,
+        crater: 0.85,
+        slope: SlopeSpeed {
+            zero_speed_deg: 50.0,
+            min_speed_factor: 0.35,
+        },
+    }
+}
+
 pub fn rules() -> contract::scenario::Rules {
     serde_json::from_value(game()).unwrap()
 }

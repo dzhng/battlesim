@@ -73,7 +73,7 @@
         },
         "air": {
           "fuel_capacity_s": 180,
-          "afterburner": { "speed_multiplier": 1.5, "fuel_multiplier": 2 },
+          "afterburner": { "speed_factor": 1.5, "fuel_factor": 2 },
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,

@@ -372,10 +372,11 @@ impl NavGrid {
             RoutePolicy::Fastest => {
                 length
                     / m.speed(Footing {
-                        road_factor: if c.road { 1.0 } else { 0.0 },
+                        paved: [c.road.then_some(contract::map::SurfaceKind::Road), None],
                         forest: c.forest,
                         swamp: false,
                         slope_deg: c.slope_deg,
+                        crater_fill: 0.0,
                     })
             }
         };

@@ -21,12 +21,30 @@ use world::WorldGeometry;
 #[allow(dead_code)]
 mod dense;
 
+/// The dense reference planner's own speed rules: forest and swamp at 0.4,
+/// full roads, and speed gone by 50° of slope but never below 0.35.
+const SPEED_FACTORS: contract::movement::SpeedFactors = contract::movement::SpeedFactors {
+    surfaces: contract::movement::SurfaceSpeedFactors {
+        road: 1.0,
+        country_road: 1.0,
+        dirt_track: 1.0,
+        paving: 0.0,
+    },
+    forest: 0.4,
+    swamp: 0.4,
+    crater: 1.0,
+    slope: contract::movement::SlopeSpeed {
+        zero_speed_deg: 50.0,
+        min_speed_factor: 0.35,
+    },
+};
+
 fn mobility(class: MoverClass, push: PushClass) -> Mobility {
     Mobility {
         off_road_mps: 6.0,
         road_mps: 12.0,
-        forest_multiplier: 0.4,
-        swamp_multiplier: 0.4,
+        locomotion: contract::movement::Locomotion::Tracked,
+        speed_factors: SPEED_FACTORS,
         half_width_m: if class == MoverClass::Infantry {
             0.5
         } else {

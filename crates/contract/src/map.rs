@@ -237,8 +237,8 @@ pub struct SurfaceArea {
     pub shape: GroundShape,
 }
 
-/// What a paved or worn surface is. Its speed is a row of the rules'
-/// `surfaces` table; where kinds overlap, the earlier one here wins. The
+/// What a paved or worn surface is. Its speed is a factor of each
+/// locomotion's in the rules' `movement.speed_factors`; where kinds overlap, the earlier one here wins. The
 /// carriageways come first; `Paving` is hard ground that is no way through
 /// (a yard, a court, a building's apron).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

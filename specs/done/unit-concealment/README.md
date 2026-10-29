@@ -146,7 +146,8 @@ Record files re-blessed only their embedded inputs. The neutral data was hulls 2
 ## Follow-ups (outside this spec)
 
 - **Balance.** With these values, a 500 m MBT with spotting 0.8 identifies a still forest sniper team at about 37 m. The spotting report shows every such cell.
-- **Forest movement speed** keeps an infantry/vehicle split (`movement.forest_infantry_multiplier` 0.7, `forest_vehicle_multiplier` 0.4), keyed on whether the unit moves on foot.
+- **Suppression's `move_penalty`** is the one movement slowdown left outside `movement.speed_factors`' naming: it is subtracted from full speed, and turning the pinned tier's 0.7 into a factor of 0.3 would move digests by one unit in the last place.
+- **Map generation's `roads.dirt_track_speed_factor` preset** copies the dirt-track factor to time journeys while laying a map out; it doesn't read the game rules.
 
 ## Visual provenance
 

@@ -191,7 +191,7 @@ fn a_replay_refuses_a_different_scenario_or_config() {
         Some(ReplayError::ScenarioMismatch)
     );
     let mut faster = setup.clone();
-    faster.rules.movement.forest_vehicle_multiplier += 0.1;
+    faster.rules.movement.speed_factors.tracked.forest += 0.1;
     assert_eq!(
         Battle::from_replay(&faster, &record).err(),
         Some(ReplayError::ConfigMismatch)
@@ -268,17 +268,6 @@ fn an_infinite_fog_cell_is_refused_by_name() {
 fn a_zero_ground_cell_is_refused_by_name() {
     let mut setup = scenario();
     setup.rules.ground.cell_m = 0.0;
-    Battle::new(&setup, 1);
-}
-
-/// A forest no mover can cross at all would freeze a unit inside it and
-/// divide the route planner's estimate by zero, so a zero forest
-/// multiplier is refused by name.
-#[test]
-#[should_panic(expected = "movement.forest_vehicle_multiplier must be in (0, 1]")]
-fn a_zero_forest_multiplier_is_refused_by_name() {
-    let mut setup = scenario();
-    setup.rules.movement.forest_vehicle_multiplier = 0.0;
     Battle::new(&setup, 1);
 }
 

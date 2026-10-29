@@ -11,6 +11,7 @@ use crate::math::{v2, v3, V2};
 use crate::sight::Sight;
 use crate::world::WorldGeometry;
 use contract::encounter::EncounterSites;
+use contract::movement::Locomotion;
 use contract::scenario::Rules;
 
 /// The unit type whose sight is the standard infantry sight: the test rifle
@@ -379,7 +380,14 @@ pub fn admit_skirmish(
             let Some(second) = q.world.ground_surface_at(b.center[0], b.center[1]) else {
                 continue;
             };
-            if first.kind != second.kind || first.road_factor != second.road_factor {
+            // Paired objectives stand on ground every locomotion crosses alike.
+            let pace = |s: &crate::world::Surface| {
+                Locomotion::ALL.map(|l| {
+                    s.paved
+                        .map_or(0.0, |k| q.world.speed_factors().of(l).surfaces.of(k))
+                })
+            };
+            if first.kind != second.kind || pace(&first) != pace(&second) {
                 continue;
             }
             let mut score: f64 = 0.0;

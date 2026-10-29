@@ -28,6 +28,7 @@ use changes::{span, Change};
 pub(crate) mod air;
 mod certify;
 mod changes;
+mod crowd;
 pub(crate) mod drive;
 mod final_leg;
 mod push;
@@ -897,10 +898,8 @@ fn step_vehicle(
     let unit = &units[i];
     let target = unit.route.as_ref().unwrap()[0];
     let here = unit.position.xy();
-    let surface = ctx.world.surface_at(here.x, here.y);
-    let speed = surface.map_or(0.0, |s| unit.ground().speed(s.footing()));
-    // Craters under the hull slow it slightly; never to a stop (Q8).
-    let speed = speed * ctx.ground.vehicle_speed(here.x, here.y, &ctx.rules.ground);
+    let footing = ctx.ground.footing(ctx.world, here, &ctx.rules.ground);
+    let speed = footing.map_or(0.0, |g| unit.ground().speed(g));
     let before_manoeuvre = unit.manoeuvre;
     let mut motion = drive::steer(ctx.world, &mut units[i], target, speed, dt, traffic);
     let unit = &units[i];

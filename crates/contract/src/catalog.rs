@@ -28,6 +28,8 @@ use crate::observation::SoundCategory;
 use crate::scenario::{Armor, Blocks, CoverTier, PushClass, WeightClass};
 use crate::weapons::MountDefinition;
 
+mod mobility;
+pub use mobility::{Arrival, FlightModel, Mobility, MAX_SPEED_KMH};
 mod sensors;
 pub use sensors::Sensors;
 
@@ -182,9 +184,6 @@ pub struct Hull {
     pub wreck: String,
 }
 
-/// No ground mover's top speed may exceed this (light wheeled vehicles do 110).
-pub const MAX_SPEED_KMH: f64 = 130.0;
-
 /// The height band a unit occupies, which decides what can engage it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -195,136 +194,6 @@ pub enum AltitudeLayer {
     /// The one layer that bends physics: its heights are lowered from a
     /// real jet's for play, and nothing in it sees the ground.
     HighAir,
-}
-
-/// How an airframe flies, apart from the layer it flies in: on rotors,
-/// which hover, or on wings, which never stop and attack in passes.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum FlightModel {
-    Rotor,
-    FixedWing,
-}
-
-impl FlightModel {
-    /// Its name as authored (the serde name): the key the rules' per-flight
-    /// tables use.
-    pub fn name(self) -> &'static str {
-        match self {
-            FlightModel::Rotor => "rotor",
-            FlightModel::FixedWing => "fixed_wing",
-        }
-    }
-}
-
-/// How a unit moves (Q29, Q30). A ground mover has its own two top speeds,
-/// in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road. A
-/// surface kind's `speed_factor` scales the road speed, never below the
-/// off-road one (`Rules::surfaces`). An aircraft ignores the ground and
-/// cruises at one speed, at the heights the rules' `air` section sets.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case", deny_unknown_fields)]
-pub enum Mobility {
-    Foot {
-        offroad_kmh: f64,
-        road_kmh: f64,
-    },
-    /// Tracks pivot on the spot.
-    Tracked {
-        offroad_kmh: f64,
-        road_kmh: f64,
-        turn_deg_s: f64,
-        /// Reverse speed as a fraction of forward.
-        reverse_fraction: f64,
-    },
-    /// Wheels hold a minimum turning radius and never pivot.
-    Wheeled {
-        offroad_kmh: f64,
-        road_kmh: f64,
-        turn_deg_s: f64,
-        turning_radius_m: f64,
-        reverse_fraction: f64,
-    },
-    /// Flies in an authored air layer, by its authored flight model.
-    Air {
-        cruise_kmh: f64,
-        turn_deg_s: f64,
-        /// How fast it climbs or sinks toward its target height.
-        climb_mps: f64,
-        /// The altitude layer this aircraft occupies.
-        layer: AltitudeLayer,
-        /// How it flies: always authored, never read off the layer.
-        flight: FlightModel,
-        /// How long a bought one takes to reach the map (D38); it appears at
-        /// its back edge at once when absent.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        arrival: Option<Arrival>,
-        /// Its own cruise height over the ground, overriding its layer's
-        /// (D40). Read through `AirRules::cruise_agl_m`, never directly.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        cruise_agl_m: Option<f64>,
-    },
-}
-
-/// A bought aircraft's wait off the map (D38): seconds, drawn from the
-/// battle's seed between `delay_s[0]` and `delay_s[1]`.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Arrival {
-    pub delay_s: [f64; 2],
-}
-
-impl Mobility {
-    pub fn layer(&self) -> AltitudeLayer {
-        match self {
-            Mobility::Air { layer, .. } => *layer,
-            _ => AltitudeLayer::Ground,
-        }
-    }
-
-    /// A bought aircraft's wait off the map; None for a ground mover and
-    /// for an aircraft that appears at once.
-    pub fn arrival(&self) -> Option<Arrival> {
-        match self {
-            Mobility::Air { arrival, .. } => *arrival,
-            _ => None,
-        }
-    }
-
-    /// How an aircraft flies; None for a ground mover.
-    pub fn flight(&self) -> Option<FlightModel> {
-        match self {
-            Mobility::Air { flight, .. } => Some(*flight),
-            _ => None,
-        }
-    }
-
-    /// `(offroad_kmh, road_kmh)`; an aircraft's cruise is both.
-    pub fn speeds_kmh(&self) -> (f64, f64) {
-        match *self {
-            Mobility::Foot {
-                offroad_kmh,
-                road_kmh,
-            }
-            | Mobility::Tracked {
-                offroad_kmh,
-                road_kmh,
-                ..
-            }
-            | Mobility::Wheeled {
-                offroad_kmh,
-                road_kmh,
-                ..
-            } => (offroad_kmh, road_kmh),
-            Mobility::Air { cruise_kmh, .. } => (cruise_kmh, cruise_kmh),
-        }
-    }
-
-    /// `(off-road, road)` top speeds in metres per second.
-    pub fn speeds_mps(&self) -> (f64, f64) {
-        let (offroad, road) = self.speeds_kmh();
-        (offroad / 3.6, road / 3.6)
-    }
 }
 
 /// Optional abilities, present only on the types that have them.
@@ -386,8 +255,8 @@ pub struct FlareCapability {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AfterburnerCapability {
-    pub speed_multiplier: f64,
-    pub fuel_multiplier: f64,
+    pub speed_factor: f64,
+    pub fuel_factor: f64,
 }
 
 /// Health/ammunition/fuel shares of an aircraft's withdrawal refund.
@@ -1509,10 +1378,10 @@ fn check(
                     "capabilities.air.afterburner needs fixed-wing flight: no rotor flight law flies it",
                 );
             }
-            if !(afterburner.speed_multiplier > 1.0
-                && afterburner.fuel_multiplier > 1.0
-                && afterburner.speed_multiplier.is_finite()
-                && afterburner.fuel_multiplier.is_finite())
+            if !(afterburner.speed_factor > 1.0
+                && afterburner.fuel_factor > 1.0
+                && afterburner.speed_factor.is_finite()
+                && afterburner.fuel_factor.is_finite())
             {
                 return rule(
                     "capabilities.air.afterburner multipliers must be finite and greater than one",
@@ -1606,18 +1475,18 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         Mobility::Foot { .. } | Mobility::Air { .. } => None,
         Mobility::Tracked {
             turn_deg_s,
-            reverse_fraction,
+            reverse_speed_factor,
             ..
         }
         | Mobility::Wheeled {
             turn_deg_s,
-            reverse_fraction,
+            reverse_speed_factor,
             ..
         } => {
             if !positive(turn_deg_s) {
                 Some("mobility: turn_deg_s must be positive")
-            } else if !(reverse_fraction > 0.0 && reverse_fraction <= 1.0) {
-                Some("mobility.reverse_fraction must lie in (0, 1]")
+            } else if !(reverse_speed_factor > 0.0 && reverse_speed_factor <= 1.0) {
+                Some("mobility.reverse_speed_factor must lie in (0, 1]")
             } else {
                 None
             }

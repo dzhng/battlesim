@@ -123,7 +123,7 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
               { unit: "°/s" },
             ),
             field(
-              `mobility.${mode}.reverse_fraction`,
+              `mobility.${mode}.reverse_speed_factor`,
               "Reverse speed",
               "Movement",
               "Reverse top speed as a percentage of the forward speed.",

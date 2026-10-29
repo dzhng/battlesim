@@ -259,7 +259,7 @@ impl NavBase {
                                 ground: s.traversable,
                                 infantry: s.traversable,
                                 heaviest: NO_BODY,
-                                road_factor: s.road_factor,
+                                paved: s.paved,
                                 forest: s.forest,
                                 swamp: s.swamp,
                                 slope_deg: s.slope_deg,
@@ -356,7 +356,7 @@ impl NavBase {
         settle(&mut cells, &laid);
         NavBase {
             terrain,
-            slow: SlowGround::new(&cells),
+            slow: SlowGround::new(&cells, *world.speed_factors()),
             cells,
             shores,
             bodies,

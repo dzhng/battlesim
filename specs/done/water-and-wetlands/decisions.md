@@ -37,7 +37,10 @@ Only **swamps** are terrain. Puddles are look only (decision 29).
    units are unaffected. *Why:* trucks bogging down worse than tanks is the film
    picture, and it makes choosing the unit for a swamp part of the game.
    Forest's existing two-way split (`forest_infantry_multiplier`,
-   `forest_vehicle_multiplier`) is unchanged. *Revised:* this was six numbers
+   `forest_vehicle_multiplier`) is unchanged. *Superseded on 2026-10-29 by
+   [unit concealment](../unit-concealment/README.md):* every ground factor,
+   the swamp's and forest's included, is a speed factor per locomotion in
+   `movement.speed_factors`. *Revised:* this was six numbers
    while puddles were terrain.
 4. **A road always keeps road speed, and roads are never carved.** A road
    across a swamp is a causeway. Where a swamp and a forest overlap, the slower

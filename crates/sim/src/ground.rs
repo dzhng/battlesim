@@ -27,6 +27,7 @@ use contract::scenario::{GroundRules, Rules};
 
 use crate::digest::Digest;
 use crate::math::{v2, V2, V3};
+use crate::navigation::Footing;
 use crate::world::{SurfaceKind, WorldGeometry};
 
 mod known;
@@ -106,10 +107,6 @@ pub fn validate(rules: &Rules) {
     assert!(
         g.crater_full_depth > 0.0 && g.crater_full_depth <= u8::MAX as f64,
         "ground.crater_full_depth must be in (0, 255]"
-    );
-    assert!(
-        g.crater_vehicle_mult > 0.0 && g.crater_vehicle_mult <= 1.0,
-        "ground.crater_vehicle_mult must be in (0, 1]: craters are never impassable"
     );
     assert!(
         (0.0..=1.0).contains(&g.track_gauge),
@@ -251,13 +248,18 @@ impl GroundLayer {
     }
 
     /// How full the crater at (x, y) is, in [0, 1].
-    pub fn crater_fill(&self, x: f64, y: f64, rules: &GroundRules) -> f64 {
-        (self.cell(x, y).crater as f64 / rules.crater_full_depth).min(1.0)
+    /// What a mover's speed reads of the ground at `at`: the world's surface
+    /// and the craters dug there.
+    pub fn footing(&self, world: &WorldGeometry, at: V2, rules: &GroundRules) -> Option<Footing> {
+        let crater_fill = self.crater_fill(at.x, at.y, rules);
+        Some(Footing {
+            crater_fill,
+            ..world.surface_at(at.x, at.y)?.footing()
+        })
     }
 
-    /// Speed multiplier for a vehicle whose centre is over (x, y).
-    pub fn vehicle_speed(&self, x: f64, y: f64, rules: &GroundRules) -> f64 {
-        1.0 - (1.0 - rules.crater_vehicle_mult) * self.crater_fill(x, y, rules)
+    pub fn crater_fill(&self, x: f64, y: f64, rules: &GroundRules) -> f64 {
+        (self.cell(x, y).crater as f64 / rules.crater_full_depth).min(1.0)
     }
 
     /// A round of blast radius `blast_radius` bursts at `at`: it digs a crater

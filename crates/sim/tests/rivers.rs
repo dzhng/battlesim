@@ -147,7 +147,7 @@ fn every_dry_point_of_the_river_lab_can_be_stood_on() {
                 );
                 steepest = steepest.max(s.slope_deg);
             } else {
-                assert!(!s.traversable && s.road_factor == 0.0 && !s.forest);
+                assert!(!s.traversable && s.paved.is_none() && !s.forest);
             }
             x += 1.1;
         }
@@ -284,7 +284,7 @@ fn water_is_neither_forest_nor_road_and_no_trunk_stands_in_it() {
     // under the deck is still water, and no road.
     let under = w.ground_surface_at(60.0, 240.0).unwrap();
     assert_eq!(under.kind, SurfaceKind::Water);
-    assert_eq!(under.road_factor, 0.0);
+    assert_eq!(under.paved, None);
     assert_eq!(w.surface_at(60.0, 240.0).unwrap().kind, SurfaceKind::Bridge);
     assert_eq!(w.surface_at(60.0, 200.0).unwrap().kind, SurfaceKind::Road);
 }

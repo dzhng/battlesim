@@ -121,7 +121,7 @@ fn a_swamps_water_is_its_outline_off_the_road() {
             let inside = outline.inside([c.x, c.y]) >= 0.0;
             assert_eq!(
                 surface.swamp,
-                inside && surface.road_factor == 0.0,
+                inside && !surface.paved.is_some_and(|kind| kind.is_road()),
                 "at {c:?}"
             );
             wet += surface.swamp as usize;
@@ -145,7 +145,7 @@ fn a_road_across_a_swamp_is_never_carved() {
         for y in [146.0, 148.3, 150.0, 151.9, 154.0] {
             let s = w.surface_at(x, y).unwrap();
             assert_eq!(s.z, 0.0, "the road is cut at ({x}, {y})");
-            assert!(s.road_factor > 0.0 && !s.swamp && !s.standing_water());
+            assert!(s.paved.is_some_and(|kind| kind.is_road()) && !s.swamp && !s.standing_water());
         }
         // Off the road, inside the outline: the swamp's water.
         if (100.0..=200.0).contains(&x) {

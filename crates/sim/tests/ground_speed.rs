@@ -7,18 +7,23 @@
 //! never the shipped numbers.
 use contract::command::RoutePolicy;
 use contract::ids::UnitId;
-use contract::movement::SwampRules;
 use contract::scenario::Rules;
 use serde_json::json;
 use sim::battle::Battle;
 use sim::math::{v2, V2};
-use sim::navigation::{slope_multiplier, Footing, Leg, Mobility, NavBase, NavGrid, Plan, RoadNet};
+use sim::navigation::{Footing, Leg, Mobility, NavBase, NavGrid, Plan, RoadNet};
 use sim::world::WorldGeometry;
 use std::sync::Arc;
 
 use crate::common;
 
-const SWAMP: SwampRules = SwampRules {
+/// The test's swamp factors, by locomotion.
+struct Swamp {
+    foot: f64,
+    wheeled: f64,
+    tracked: f64,
+}
+const SWAMP: Swamp = Swamp {
     foot: 0.5,
     wheeled: 0.2,
     tracked: 0.8,
@@ -27,11 +32,23 @@ const SWAMP: SwampRules = SwampRules {
 /// than a wheeled one's, so an overlap is judged both ways round.
 const FOREST: f64 = 0.6;
 
+/// The test's swamp factors in `rules`, and with `forest` its forest's too.
+fn slow_ground(rules: &mut Rules, forest: bool) {
+    let s = &mut rules.movement.speed_factors;
+    for (f, swamp) in [&mut s.foot, &mut s.wheeled, &mut s.tracked]
+        .into_iter()
+        .zip([SWAMP.foot, SWAMP.wheeled, SWAMP.tracked])
+    {
+        f.swamp = swamp;
+        if forest {
+            f.forest = FOREST;
+        }
+    }
+}
+
 fn rules() -> Rules {
     let mut rules = common::rules();
-    rules.movement.swamp = SWAMP;
-    rules.movement.forest_infantry_multiplier = FOREST;
-    rules.movement.forest_vehicle_multiplier = FOREST;
+    slow_ground(&mut rules, true);
     // One trunk to a wood, so a planned line through it stays open.
     rules.forests.rule.trunk_spacing_m = 500.0;
     rules.forests.rule.logs_per_ha = 0.0;
@@ -154,7 +171,7 @@ fn depth_never_shapes_speed() {
             rim.swamp && rim.z > middle.z && rim.slope_deg > 0.0,
             "edge at {x}"
         );
-        let flat = speed(&w, &m, x, 100.0) / slope_multiplier(rim.slope_deg);
+        let flat = speed(&w, &m, x, 100.0) / m.speed_factors.slope.factor(rim.slope_deg);
         assert!(close(flat, speed(&w, &m, 125.0, 100.0)), "at {x}");
     }
 }
@@ -194,7 +211,7 @@ fn crossing(kind: &str, from: f64, to: f64) -> f64 {
         json!([{ "tick": 1, "side": "blue",
             "order": { "kind": "move", "units": [0], "gesture": 1, "goal": [580, 120], "route": "shortest" } }]),
     );
-    setup.rules.movement.swamp = SWAMP;
+    slow_ground(&mut setup.rules, false);
     let mut b = Battle::new(&setup, 1);
     let dt = 1.0 / common::tick_hz() as f64;
     let (mut start, mut ticks) = (None, 0u32);
@@ -245,7 +262,7 @@ fn aircraft_ignore_swamps() {
             json!([{ "tick": 1, "side": "blue",
                 "order": { "kind": "move", "units": [0], "gesture": 1, "goal": [580, 120], "route": "shortest" } }]),
         );
-        setup.rules.movement.swamp = SWAMP;
+        slow_ground(&mut setup.rules, false);
         let mut b = Battle::new(&setup, 1);
         (0..40 * common::tick_hz())
             .map(|_| {
@@ -298,25 +315,23 @@ fn the_planner_goes_round_a_swamp_when_dry_ground_is_faster() {
     assert!(
         !wades(&m),
         "a wheeled hull at {} goes round",
-        m.swamp_multiplier
+        m.speed_factors.swamp
     );
-    m.swamp_multiplier = 0.95;
+    m.speed_factors.swamp = 0.95;
     assert!(wades(&m), "at 0.95 it wades straight across");
 }
 
 /// A swamp no mover can cross would freeze a unit in it and divide the
 /// planner's estimate by zero, so a zero factor is refused by name.
 #[test]
-#[should_panic(expected = "movement.swamp.wheeled must be in (0, 1]")]
 fn a_zero_swamp_factor_is_refused_when_the_rules_load() {
-    let mut setup = common::scenario_with(
-        r#"{"size":[200,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
-        json!([]),
-        json!([]),
-        json!([]),
+    let mut game = common::game();
+    game["movement"]["speed_factors"]["wheeled"]["swamp"] = json!(0.0);
+    let refused = serde_json::from_value::<Rules>(game).unwrap_err();
+    assert!(
+        refused.to_string().contains("speed_factors.wheeled.swamp"),
+        "{refused}"
     );
-    setup.rules.movement.swamp.wheeled = 0.0;
-    Battle::new(&setup, 1);
 }
 
 /// An unknown movement key is refused, not silently ignored.
@@ -333,10 +348,11 @@ fn the_movement_rules_refuse_an_unknown_key() {
 fn slopes_slow_a_mover_to_a_floor() {
     let m = mobility("test_tank", &rules());
     let flat = |slope_deg| Footing {
-        road_factor: 0.0,
+        paved: [None, None],
         forest: false,
         swamp: false,
         slope_deg,
+        crater_fill: 0.0,
     };
     assert_eq!(m.speed(flat(0.0)), m.off_road_mps);
     assert!(close(m.speed(flat(25.0)), m.off_road_mps * 0.5));

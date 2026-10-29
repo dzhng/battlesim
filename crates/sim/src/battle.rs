@@ -482,7 +482,7 @@ impl Battle {
             };
             let speed = flight.cruise_mps
                 * if air_state.afterburner {
-                    capability.afterburner.map_or(1.0, |a| a.speed_multiplier)
+                    capability.afterburner.map_or(1.0, |a| a.speed_factor)
                 } else {
                     1.0
                 };

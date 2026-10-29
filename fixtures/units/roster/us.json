@@ -116,7 +116,7 @@
           "offroad_kmh": 28,
           "road_kmh": 80,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -1105,7 +1105,7 @@
           "offroad_kmh": 28,
           "road_kmh": 75,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -1190,7 +1190,7 @@
           "offroad_kmh": 30,
           "road_kmh": 85,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -1275,7 +1275,7 @@
           "offroad_kmh": 24,
           "road_kmh": 58,
           "turn_deg_s": 28,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       },
       "mounts": [
@@ -1359,7 +1359,7 @@
           "offroad_kmh": 30,
           "road_kmh": 64,
           "turn_deg_s": 50,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -1459,7 +1459,7 @@
           "offroad_kmh": 32,
           "road_kmh": 90,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -1545,7 +1545,7 @@
           "offroad_kmh": 26,
           "road_kmh": 82,
           "turn_deg_s": 34,
-          "reverse_fraction": 0.3,
+          "reverse_speed_factor": 0.3,
           "turning_radius_m": 8
         }
       },
@@ -1631,7 +1631,7 @@
           "offroad_kmh": 32,
           "road_kmh": 100,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -1716,7 +1716,7 @@
           "offroad_kmh": 26,
           "road_kmh": 82,
           "turn_deg_s": 34,
-          "reverse_fraction": 0.3,
+          "reverse_speed_factor": 0.3,
           "turning_radius_m": 8
         }
       },
@@ -1801,7 +1801,7 @@
           "offroad_kmh": 26,
           "road_kmh": 82,
           "turn_deg_s": 34,
-          "reverse_fraction": 0.3,
+          "reverse_speed_factor": 0.3,
           "turning_radius_m": 8
         }
       },
@@ -1886,7 +1886,7 @@
           "offroad_kmh": 27,
           "road_kmh": 60,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -2183,7 +2183,7 @@
           "offroad_kmh": 24,
           "road_kmh": 58,
           "turn_deg_s": 28,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       },
       "mounts": [
@@ -2268,7 +2268,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -2372,7 +2372,7 @@
           "offroad_kmh": 28,
           "road_kmh": 65,
           "turn_deg_s": 45,
-          "reverse_fraction": 0.4
+          "reverse_speed_factor": 0.4
         }
       },
       "mounts": [
@@ -2476,7 +2476,7 @@
           "offroad_kmh": 25,
           "road_kmh": 80,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -2702,7 +2702,7 @@
           "offroad_kmh": 30,
           "road_kmh": 90,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -2787,7 +2787,7 @@
           "offroad_kmh": 30,
           "road_kmh": 85,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -2873,7 +2873,7 @@
           "offroad_kmh": 30,
           "road_kmh": 85,
           "turn_deg_s": 40,
-          "reverse_fraction": 0.35,
+          "reverse_speed_factor": 0.35,
           "turning_radius_m": 6
         }
       },
@@ -2959,7 +2959,7 @@
           "road_kmh": 80,
           "turn_deg_s": 35,
           "turning_radius_m": 8,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       },
       "sensors": {
@@ -3223,7 +3223,7 @@
           "road_kmh": 80,
           "turn_deg_s": 35,
           "turning_radius_m": 8,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       }
     },
@@ -3306,7 +3306,7 @@
           "road_kmh": 80,
           "turn_deg_s": 35,
           "turning_radius_m": 8,
-          "reverse_fraction": 0.3
+          "reverse_speed_factor": 0.3
         }
       }
     }

@@ -29,6 +29,7 @@ These decisions were made where the plan was silent or wrong. The [README](READM
   - Revisit if tuning by landing metres is missed.
 - **`capabilities.deploy.pack_seconds` is required too.** It was the one remaining copy (packing fell back to setup time); every deploying unit already authored it, so digests didn't move.
 - **The editor seeds a newly enabled layer at the row's flight bound**, the one reach admission always accepts (zero on an unpowered row), instead of a fixed 300/100/500 m.
+- **Every movement slowdown became a speed factor, set per locomotion.** Asked after the close (2026-10-29): `movement.speed_factors.{foot,wheeled,tracked}` holds each kind of ground's factor (`surfaces`, `forest`, `swamp`, `crater`, `slope`), replacing the rules' `surfaces` table, the forest infantry/vehicle multipliers, staging's `movement.swamp`, `ground.crater_vehicle_mult` and the hard-coded slope formula; `reverse_fraction`, `turn_slow` and the afterburner multipliers were renamed `*_factor` to match. Every value was copied, so no digest moved. The user chose per-locomotion road surfaces too, which makes the route planner's per-cell and per-road data carry surface kinds instead of a factor.
 - **Tests that set a weapon's reach go through `crates/sim/tests/common` helpers.** One sets the flight bound and the ground reach together, so oversized test files don't grow.
 - **The fallback deletions landed as one commit, not one per fallback.** They share files, fixtures and re-blessing.
 

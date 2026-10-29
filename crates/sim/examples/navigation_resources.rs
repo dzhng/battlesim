@@ -70,8 +70,8 @@ fn main() {
             let m = Mobility {
                 off_road_mps: 6.0,
                 road_mps: 12.0,
-                forest_multiplier: 0.4,
-                swamp_multiplier: 0.4,
+                locomotion: contract::movement::Locomotion::Tracked,
+                speed_factors: rules.movement.speed_factors.tracked,
                 half_width_m: if class == MoverClass::Infantry {
                     0.5
                 } else {

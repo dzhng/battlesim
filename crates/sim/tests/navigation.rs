@@ -1,6 +1,8 @@
 //! Route planning contracts on small crafted maps.
+use crate::common;
 use contract::command::RoutePolicy;
 use contract::map::{MapDefinition, MoverClass, PropDefinition};
+use contract::movement::Locomotion;
 use contract::scenario::PushClass;
 use sim::math::{v2, V2};
 use sim::navigation::{BlockReason, Leg, Mobility, NavBase, NavGrid, Plan, RoadNet};
@@ -23,8 +25,8 @@ fn route_length(from: V2, route: &[V2]) -> f64 {
 const TANK: Mobility = Mobility {
     off_road_mps: 6.0,
     road_mps: 12.0,
-    forest_multiplier: 0.4,
-    swamp_multiplier: 0.4,
+    locomotion: Locomotion::Tracked,
+    speed_factors: common::speed_factors(0.4, 0.4),
     half_width_m: 1.8,
     class: MoverClass::Vehicle,
     push: PushClass::Heavy,
@@ -33,8 +35,8 @@ const TANK: Mobility = Mobility {
 const INFANTRY: Mobility = Mobility {
     off_road_mps: 3.0,
     road_mps: 3.9,
-    forest_multiplier: 0.7,
-    swamp_multiplier: 0.7,
+    locomotion: Locomotion::Foot,
+    speed_factors: common::speed_factors(0.7, 0.7),
     half_width_m: 0.5,
     class: MoverClass::Infantry,
     push: PushClass::None,
@@ -42,7 +44,7 @@ const INFANTRY: Mobility = Mobility {
 };
 
 fn world(extra: &str) -> WorldGeometry {
-    world_with_rules(extra, &crate::common::rules())
+    world_with_rules(extra, &common::rules())
 }
 
 fn world_with_rules(extra: &str, rules: &contract::scenario::Rules) -> WorldGeometry {
@@ -88,7 +90,7 @@ impl Known {
             policy,
             avoid: &[],
         };
-        let rules = crate::common::rules().navigation;
+        let rules = common::rules().navigation;
         let (plan, work) = sim::navigation::plan(&self.grid, &self.roads, leg, &rules);
         (plan, work.cells)
     }
@@ -102,17 +104,11 @@ fn grid(w: &WorldGeometry) -> Known {
 /// Fixed road admission and costs make failure/recovery tracers independent
 /// of later game-data tuning; the map has only 20,000 cells to exhaust.
 fn road_fixture(extra: &str) -> (Known, contract::scenario::NavigationRules) {
-    let mut rules = crate::common::rules();
-    rules
-        .surfaces
-        .get_mut(&contract::map::SurfaceKind::Road)
-        .unwrap()
-        .speed_factor = 1.0;
-    rules
-        .surfaces
-        .get_mut(&contract::map::SurfaceKind::DirtTrack)
-        .unwrap()
-        .speed_factor = 0.75;
+    let mut rules = common::rules();
+    let s = &mut rules.movement.speed_factors;
+    for factors in [&mut s.foot, &mut s.wheeled, &mut s.tracked] {
+        factors.surfaces = common::speed_factors(0.4, 0.4).surfaces;
+    }
     rules.navigation.search_cells_base = 20_000;
     rules.navigation.search_cells_per_m = 200;
     rules.navigation.road_access_m = 256.0;
@@ -537,7 +533,7 @@ fn a_line_of_wrecks_stops_squads_and_tanks_alike() {
 /// them (Q25).
 #[test]
 fn the_body_table_decides_who_is_stopped_and_what_hides() {
-    let t = |id: &str| crate::common::props().by_id(id).body;
+    let t = |id: &str| common::props().by_id(id).body;
     for class in MoverClass::ALL {
         assert!(t("building").blocks.class(class));
         assert!(!t("bridge_deck").blocks.class(class));
@@ -697,7 +693,7 @@ fn a_bridge_search_bounds_work_without_changing_the_crossing() {
 #[test]
 fn a_meandering_river_is_crossed_by_its_bridge_by_squads_and_tanks() {
     let map: MapDefinition = sim::maps::load("river").unwrap().definition;
-    let w = WorldGeometry::new(&map, &crate::common::rules());
+    let w = WorldGeometry::new(&map, &common::rules());
     let river = &w.rivers()[0];
     for m in [&TANK, &INFANTRY] {
         for (from, to) in [
@@ -731,7 +727,7 @@ fn a_nonfinite_cost_keeps_the_original_grid_winner() {
         "size":[64,48],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35
     }))
     .unwrap();
-    let w = WorldGeometry::new(&map, &crate::common::rules());
+    let w = WorldGeometry::new(&map, &common::rules());
     let m = Mobility {
         off_road_mps: f64::NAN,
         road_mps: f64::NAN,
@@ -1032,7 +1028,7 @@ fn vehicle_placement_keeps_its_footprint_on_traversable_ground() {
 /// however it lies across the grid's cells: a hull goes wherever it fits.
 #[test]
 fn a_hull_at_the_width_limit_fits_a_way_a_little_wider_than_itself() {
-    let limits = crate::common::rules().hull_limits;
+    let limits = common::rules().hull_limits;
     for half_width_m in [limits.tracked.half_width_m, limits.wheeled.half_width_m] {
         let hull = Mobility {
             half_width_m,

@@ -232,7 +232,13 @@ Add one entry. A mechanic comes from the body's columns, so a new obstacle needs
 
 ## Surface speeds
 
-Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (validated against its off-road speed and the catalog's limits). An aircraft (`"air"`) states one `cruise_kmh` instead, with its turn and climb rates, the `layer` it flies in and its `flight` model, always authored: `rotor` or `fixed_wing`. A pair no flight law flies yet is refused at load. `game.json`'s `air` section holds each air layer's heights (`low_air`, `high_air`) and each flight model's rules (`rotor`, `fixed_wing`). `game.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, and `paving`, hard ground that is no way through: a yard, a court). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
+Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (validated against its off-road speed and the catalog's limits). An aircraft (`"air"`) states one `cruise_kmh` instead, with its turn and climb rates, the `layer` it flies in and its `flight` model, always authored: `rotor` or `fixed_wing`. A pair no flight law flies yet is refused at load. `game.json`'s `air` section holds each air layer's heights (`low_air`, `high_air`) and each flight model's rules (`rotor`, `fixed_wing`). Everything else that changes a mover's speed is a **speed factor**, a share of its own speed at most 1, named `*speed_factor` wherever it lives:
+
+- **The ground** is `game.json`'s `movement.speed_factors`, one row per locomotion, keyed by the unit's `mobility` kind (`foot`, `wheeled`, `tracked`), because how a unit moves, not how big it is, decides how terrain slows it. Each row holds `surfaces`, one factor of road speed per surface kind a map may pave (`road`, `country_road`, `dirt_track`, and `paving`, hard ground that is no way through: a yard, a court), never below off-road speed, with 0 for no road at all; `forest` and `swamp`, of off-road speed off any road (where both lie, the slower applies once); `crater`, over a full crater, a shallower one slowing in proportion; and `slope`, speed falling in proportion to the slope to nothing at `zero_speed_deg` but never below `min_speed_factor` (the map's `slope_cutoff_deg` decides what is too steep to climb). A new surface kind is a new field in every row plus its variant in `contract::map::SurfaceKind`.
+- **Driving** is a vehicle's own `reverse_speed_factor` and the rules' `movement.drive.turn_speed_factor`, the most a manoeuvre keeps.
+- **An afterburner** is a jet's `capabilities.air.afterburner` `speed_factor`, above 1, paid for by its `fuel_factor`.
+
+Suppression is the one exception: its tiers slow infantry by a `move_penalty` taken from full speed, read alongside their reload penalty.
 
 A paved area's authored kind also selects its appearance. A map names a rural road `country_road` and a town street `road`; the renderer does not infer a different kind from the other surfaces present. The biome owns a country road's local appearance through built ground.
 
@@ -267,7 +273,7 @@ A map's water is its `rivers`: each a line of points with the water's `width_m` 
 A map's standing shallow water is its `swamps`: each an outline polygon and the `depth_m` its bed lies under the water. The swamp carves its own dip. Inside the outline the ground lowers by up to `depth_m`, easing in over a few height samples from the edge, and the water stands level with the land it was cut from.
 
 - **Membership is one distance:** how far a point lies inside the outline. Every rule reads it, and the terrain is cut to it (`contract::swamp`).
-- **Wading is slow.** Off a road, a swamp's water multiplies a ground mover's speed by its movement kind's factor (`movement.swamp` in the game fixture). A road crosses a swamp uncut.
+- **Wading is slow.** Off a road, a swamp's water scales a ground mover's speed by its locomotion's `swamp` speed factor (`movement.speed_factors`, under [Surface speeds](#surface-speeds)), however deep. A road crosses a swamp uncut.
 - **A map is refused at load** when a swamp is a stroke, too steep at its edge for the map's slope cutoff, too small to carve on the grid, not on level land, or within an edge's width of a river, a building or a bridge and its approach.
 
 [The wetlands map](maps/wetlands/) is the worked example. [The shared swamp contract](../crates/contract/src/swamp.rs) owns its admission.

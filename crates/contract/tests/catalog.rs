@@ -440,7 +440,7 @@ fn a_variant_adds_parts_and_swaps_a_component_variant() {
         "m1": { "extends": "base", "parts": ["era"] },
         "m1a2": { "extends": "m1", "parts": ["aps"],
             "mobility": { "wheeled": { "offroad_kmh": 32, "road_kmh": 72, "turn_deg_s": 40,
-                                       "turning_radius_m": 8, "reverse_fraction": 0.3 } } },
+                                       "turning_radius_m": 8, "reverse_speed_factor": 0.3 } } },
     }));
     docs.push(parts);
     let catalog = resolve(&docs).unwrap();
@@ -474,11 +474,10 @@ fn a_key_repeated_in_one_document_is_refused() {
 #[test]
 fn a_mover_states_two_top_speeds_within_the_cap() {
     let load = |offroad: f64, road: f64| {
-        let mut tank = base_tank();
-        tank.as_object_mut().unwrap().remove("abstract");
-        tank["mobility"] = json!({ "tracked": { "offroad_kmh": offroad, "road_kmh": road,
-            "turn_deg_s": 45, "reverse_fraction": 0.4 } });
-        resolve(&units(json!({ "t": tank })))
+        let speeds = json!({ "tracked": { "offroad_kmh": offroad, "road_kmh": road } });
+        resolve(&units(
+            json!({ "base": base_tank(), "t": { "extends": "base", "mobility": speeds } }),
+        ))
     };
     assert!(load(22.0, 43.0).is_ok());
     assert!(load(32.0, 130.0).is_ok());
@@ -780,7 +779,7 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
     wheeled["body"]["hull"]["wreck"] = json!("medium_wreck");
     wheeled["mobility"] = json!({ "wheeled": {
         "offroad_kmh": 30, "road_kmh": 60, "turn_deg_s": 30,
-        "turning_radius_m": 8, "reverse_fraction": 0.3 } });
+        "turning_radius_m": 8, "reverse_speed_factor": 0.3 } });
     let mut recon = wheeled.clone();
     recon["roles"] = json!(["recon"]);
     let mut tagged = wheeled.clone();

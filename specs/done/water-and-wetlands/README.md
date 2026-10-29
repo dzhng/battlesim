@@ -262,8 +262,9 @@ stream's. At physical scale both are under a pixel at the close framing.
 
 - `crates/contract/src/swamp.rs`: `Swamp`, its admission (`validate`,
   `deepest_m`, `EDGE_CELLS`).
-- `crates/contract/src/movement.rs`: `MovementRules` and `SwampRules`
-  (`movement.swamp` in `fixtures/game.json`).
+- `crates/contract/src/movement.rs`: `MovementRules` and each locomotion's
+  `SpeedFactors::swamp` (`movement.speed_factors` in `fixtures/game.json`;
+  `SwampRules` was folded in by [unit concealment](../unit-concealment/README.md)).
 - `crates/sim/src/world/carve.rs`: the dip, beside river and bridge carving.
 - `crates/sim/src/world/surfaces.rs` (`SurfaceIndex`), `world/mod.rs`
   (`Surface`), `world/rays.rs` (`water_hit`), `world/export.rs`

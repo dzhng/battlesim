@@ -1782,7 +1782,7 @@
           "mobility": {
             "wheeled": {
               "offroad_kmh": 32,
-              "reverse_fraction": 0.4,
+              "reverse_speed_factor": 0.4,
               "road_kmh": 110,
               "turn_deg_s": 60,
               "turning_radius_m": 6
@@ -1964,7 +1964,7 @@
           "mobility": {
             "wheeled": {
               "offroad_kmh": 25,
-              "reverse_fraction": 0.35,
+              "reverse_speed_factor": 0.35,
               "road_kmh": 76,
               "turn_deg_s": 40,
               "turning_radius_m": 6
@@ -2026,7 +2026,7 @@
           "mobility": {
             "tracked": {
               "offroad_kmh": 22,
-              "reverse_fraction": 0.4,
+              "reverse_speed_factor": 0.4,
               "road_kmh": 43,
               "turn_deg_s": 45
             }

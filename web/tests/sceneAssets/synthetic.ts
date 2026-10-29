@@ -55,16 +55,9 @@ export const TANK_DRAWS: MountDraws = { cannon: "gun", HMG: "hmg" };
  *  ("rifleman"), and a part `era` whose hardware is `era_*` nodes. `tank`
  *  overrides the tank type's fields. */
 export function syntheticUnits(tank: Partial<UnitType> = {}): UnitCatalog {
-  const tracked = { tracked: { offroad_kmh: 1, road_kmh: 1, turn_deg_s: 1, reverse_fraction: 1 } };
-  const wheeled = {
-    wheeled: {
-      offroad_kmh: 1,
-      road_kmh: 1,
-      turn_deg_s: 1,
-      turning_radius_m: 1,
-      reverse_fraction: 1,
-    },
-  };
+  const drive = { offroad_kmh: 1, road_kmh: 1, turn_deg_s: 1, reverse_speed_factor: 1 };
+  const tracked = { tracked: drive };
+  const wheeled = { wheeled: { ...drive, turning_radius_m: 1 } };
   return new UnitCatalog({
     documents: [],
     cards: [],

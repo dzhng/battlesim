@@ -8,10 +8,10 @@
 //! ([`super::final_leg`]). He keeps a soft personal space from everyone, never
 //! overlaps another soldier, and steps aside from a vehicle about to run him
 //! down; one that reaches him shoves him aside unhurt.
-use std::collections::HashMap;
-
 use contract::map::MoverClass;
 
+pub use super::crowd::Crowd;
+use super::crowd::CROWD_BUCKET_M;
 use super::final_leg::final_leg;
 use super::{MovementContext, SideGeometry, ENCOUNTER_RANGE_M};
 use crate::math::{v2, Obb2, V2, V3};
@@ -249,97 +249,6 @@ impl Threat {
             left(d.normalized())
         };
         Some(q + out * (reach + 0.3))
-    }
-}
-
-/// Every standing soldier on the field, for personal space: positions kept
-/// current as each soldier steps, found through 2 m buckets of where each
-/// stood at the start of the tick (no one moves further in a tick).
-pub struct Crowd {
-    /// First entry of each unit's soldiers.
-    base: Vec<usize>,
-    /// Traffic visits only living squads; footprint radii are refreshed whenever
-    /// movement or a hull shove changes their soldiers or settled centre.
-    standing: Vec<usize>,
-    radii: Vec<f64>,
-    at: Vec<Option<V2>>,
-    buckets: HashMap<(i32, i32), Vec<u32>>,
-}
-
-const CROWD_BUCKET_M: f64 = 2.0;
-
-fn bucket(p: V2) -> (i32, i32) {
-    (
-        (p.x / CROWD_BUCKET_M).floor() as i32,
-        (p.y / CROWD_BUCKET_M).floor() as i32,
-    )
-}
-
-impl Crowd {
-    pub fn gather(units: &[Unit], radius: f64) -> Self {
-        let mut base = Vec::with_capacity(units.len());
-        let mut at = Vec::new();
-        let mut standing_units = Vec::new();
-        let mut radii = vec![0.0; units.len()];
-        let mut buckets: HashMap<(i32, i32), Vec<u32>> = HashMap::new();
-        for (i, u) in units.iter().enumerate() {
-            base.push(at.len());
-            let standing = !u.is_vehicle() && !u.garrisoned();
-            if standing && u.on_field() {
-                standing_units.push(i);
-                radii[i] = u.footprint_radius(radius);
-            }
-            for s in &u.members {
-                let p = (standing && s.alive()).then(|| s.position.xy());
-                if let Some(p) = p {
-                    buckets.entry(bucket(p)).or_default().push(at.len() as u32);
-                }
-                at.push(p);
-            }
-        }
-        Crowd {
-            base,
-            standing: standing_units,
-            radii,
-            at,
-            buckets,
-        }
-    }
-
-    pub(super) fn refresh_radius(&mut self, unit: &Unit, radius: f64) {
-        self.radii[unit.id.0 as usize] = unit.footprint_radius(radius);
-    }
-
-    fn id(&self, unit: usize, member: usize) -> usize {
-        self.base[unit] + member
-    }
-
-    fn set(&mut self, id: usize, p: V2) {
-        if let Some(slot) = self.at.get_mut(id) {
-            if slot.is_some() {
-                *slot = Some(p);
-            }
-        }
-    }
-
-    /// Other standing soldiers within `radius` of `p`.
-    fn near(&self, id: usize, p: V2, radius: f64, mut each: impl FnMut(V2)) {
-        let (bi, bj) = bucket(p);
-        for j in bj - 1..=bj + 1 {
-            for i in bi - 1..=bi + 1 {
-                for &k in self.buckets.get(&(i, j)).into_iter().flatten() {
-                    let k = k as usize;
-                    if k == id {
-                        continue;
-                    }
-                    if let Some(q) = self.at[k] {
-                        if (q - p).inside_radius(radius) {
-                            each(q);
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -746,8 +655,8 @@ pub(super) fn step_squad(
             arrived &= s.spot.is_none_or(|p| (p - here.xy()).inside_radius(1e-9));
             continue;
         };
-        let ground = ctx.world.surface_at(here.x, here.y);
-        let speed = ground.map_or(0.0, |g| mobility.speed(g.footing())) * suppressed * pace;
+        let ground = ctx.ground.footing(ctx.world, here.xy(), &ctx.rules.ground);
+        let speed = ground.map_or(0.0, |g| mobility.speed(g)) * suppressed * pace;
         let to = target - here.xy();
         let distance = to.length();
         let mut velocity = if distance > 1e-9 {

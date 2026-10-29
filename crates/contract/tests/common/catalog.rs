@@ -20,7 +20,7 @@ pub fn base_tank() -> Value {
                 "ricochet": { "front": 0.5, "side": 0.3, "rear": 0.2, "roof": 0.6 } },
             "weight_class": "heavy", "push_class": "heavy", "wreck": "heavy_wreck"
         } },
-        "mobility": { "tracked": { "offroad_kmh": 22, "road_kmh": 43, "turn_deg_s": 45, "reverse_fraction": 0.4 } },
+        "mobility": { "tracked": { "offroad_kmh": 22, "road_kmh": 43, "turn_deg_s": 45, "reverse_speed_factor": 0.4 } },
         "sensors": { "ground_m": 350, "low_air_m": 350, "high_air_m": 300, "sight_shape": { "front": 1, "side": 0.5, "rear": 0.3 }, "on": "cannon" },
         "mounts": [
             { "id": "cannon", "name": "Main Gun", "weapons": ["ap", "he"], "turret": true, "pivot_m": [0, 0, 1.45], "muzzle_m": [5.9, 0, 0.55] },

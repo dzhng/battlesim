@@ -156,8 +156,10 @@ fn craters_slow_a_moving_vehicle_slightly_and_never_its_plan() {
         slowed > clean,
         "craters slow the crossing: {slowed} vs {clean}"
     );
-    // Slightly: never slower than the full-crater multiplier over the field.
-    let mult = num("ground", "crater_vehicle_mult");
+    // Slightly: never slower than the full-crater speed factor over the field.
+    let mult = common::game()["movement"]["speed_factors"]["tracked"]["crater"]
+        .as_f64()
+        .unwrap();
     assert!(
         (slowed as f64) <= clean as f64 / mult + 2.0,
         "{slowed} vs {clean} at ×{mult}"

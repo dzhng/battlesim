@@ -35,7 +35,7 @@ export type Mobility =
         offroad_kmh: number;
         road_kmh: number;
         turn_deg_s: number;
-        reverse_fraction: number;
+        reverse_speed_factor: number;
       };
     }
   | {
@@ -44,7 +44,7 @@ export type Mobility =
         road_kmh: number;
         turn_deg_s: number;
         turning_radius_m: number;
-        reverse_fraction: number;
+        reverse_speed_factor: number;
       };
     }
   | {
@@ -214,7 +214,7 @@ export interface UnitType {
     };
     air?: {
       fuel_capacity_s: number;
-      afterburner?: { speed_multiplier: number; fuel_multiplier: number };
+      afterburner?: { speed_factor: number; fuel_factor: number };
     };
     flares?: { capacity: number; reload_s: number };
     radar_emitter?: boolean;

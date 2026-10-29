@@ -61,7 +61,7 @@ use base::Body;
 pub use base::NavBase;
 use cells::{cell_center, cell_of, sub_center, sub_of, Cell, Cells, ALL_FREE, NO_BODY, SUB, SUB_M};
 pub use journey::Journey;
-pub use mobility::{slope_multiplier, Drive, Footing, Mobility, Parking};
+pub use mobility::{Drive, Footing, Mobility, Parking};
 pub use pockets::Pockets;
 use regions::Regions;
 pub use roads::RoadNet;

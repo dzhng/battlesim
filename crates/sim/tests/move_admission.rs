@@ -5,6 +5,8 @@ use contract::scenario::ScenarioDefinition;
 use serde_json::json;
 use sim::battle::Battle;
 
+use crate::common;
+
 fn boxed() -> Battle {
     let setup: ScenarioDefinition = serde_json::from_value(json!({
         "map": {"size": [100, 80], "fog_cell_m": 8, "height_grid_m": 4,
@@ -13,7 +15,7 @@ fn boxed() -> Battle {
                 {"kind": "wall", "center": [50, 45], "yaw": 0, "half_extents": [30, 0.5, 2]},
                 {"kind": "wall", "center": [34, 41], "yaw": 0, "half_extents": [0.5, 3.5, 2]}
             ]},
-        "rules": crate::common::scenario_rules(),
+        "rules": common::scenario_rules(),
         "units": [
             {"side": "blue", "kind": "test_jeep", "position": [40, 41], "yaw": 0},
             {"side": "blue", "kind": "test_supply", "position": [47, 41], "yaw": 0}
@@ -36,7 +38,7 @@ fn move_to(units: &[u32], goal: [f64; 2]) -> Order {
 
 #[test]
 fn hidden_enemy_hulls_do_not_change_preview_or_future_battle_state() {
-    let setup = crate::common::scenario(
+    let setup = common::scenario(
         r#"{"size":[800,120],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[]}"#,
         json!([{"side":"blue","kind":"test_jeep","position":[30,61],"yaw":0}]),
         json!([]),
@@ -100,7 +102,7 @@ fn hidden_enemy_hulls_do_not_change_preview_or_future_battle_state() {
 
 #[test]
 fn an_accepted_queued_destination_runs_after_its_pending_waypoint() {
-    let setup = crate::common::scenario(
+    let setup = common::scenario(
         r#"{"size":[160,120],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[]}"#,
         json!([{"side":"blue","kind":"test_jeep","position":[25,61],"yaw":0}]),
         json!([]),
@@ -200,7 +202,7 @@ fn the_same_boxed_vehicle_can_depart_with_its_blocker_in_a_group() {
 
 #[test]
 fn a_move_through_more_trees_is_valid_after_clearing_a_forest_lane() {
-    let setup = crate::common::scenario(
+    let setup = common::scenario(
         &json!({"size":[400,80],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
         "forests":[
             {"shape":{"kind":"polygon","ring":[[70,0],[130,0],[130,80],[70,80]]}},
@@ -363,8 +365,7 @@ fn opposing_groups_keep_their_markers_when_traffic_requires_a_detour() {
 /// `assault` at the south edge and no defender: nothing fights, so a move
 /// is refused or fails only for the ground's reasons.
 fn market_town_column() -> ScenarioDefinition {
-    let mut assault =
-        sim::maps::scenario("market-town-test", "assault", crate::common::rules()).unwrap();
+    let mut assault = sim::maps::scenario("market-town-test", "assault", common::rules()).unwrap();
     assault.units.retain(|u| u.side == Side::Blue);
     ScenarioDefinition {
         scripts: Vec::new(),
@@ -449,7 +450,7 @@ fn strip(extra: &str, more_units: serde_json::Value) -> Battle {
     let map = format!(
         r#"{{"size":[3000,240],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#
     );
-    Battle::new(&crate::common::scenario(&map, json!(units), json!([])), 1)
+    Battle::new(&common::scenario(&map, json!(units), json!([])), 1)
 }
 
 fn placed(battle: &mut Battle, units: &[u32], goal: [f64; 2]) -> Vec<bool> {
@@ -539,7 +540,7 @@ fn a_far_destination_walled_in_on_every_side_sends_a_squad_and_parks_a_vehicle_o
 
 #[test]
 fn four_infantry_squads_and_a_supply_truck_can_move_across_open_ground() {
-    let setup = crate::common::scenario(
+    let setup = common::scenario(
         &json!({"size":[1600,400], "fog_cell_m":8, "height_grid_m":4,
             "slope_cutoff_deg":35, "props":[]})
         .to_string(),
@@ -588,7 +589,7 @@ fn four_infantry_squads_and_a_supply_truck_can_move_across_open_ground() {
 
 #[test]
 fn a_mixed_infantry_group_can_take_a_fast_road_move_and_upgrade_its_normal_move() {
-    let setup = crate::common::scenario(
+    let setup = common::scenario(
         &json!({"size":[1600,400], "fog_cell_m":8, "height_grid_m":4,
         "slope_cutoff_deg":35, "surfaces":[
             {"kind":"road", "shape":{"kind":"stroke", "points":[[20,350],[1580,350]], "width_m":8}}
@@ -692,10 +693,7 @@ fn parked_court(units: serde_json::Value) -> Battle {
     }
     let map = json!({"size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4,
         "slope_cutoff_deg": 35, "props": props});
-    Battle::new(
-        &crate::common::scenario(&map.to_string(), units, json!([])),
-        1,
-    )
+    Battle::new(&common::scenario(&map.to_string(), units, json!([])), 1)
 }
 
 /// Every vehicle-stopping body under `unit`'s hull parked at `at`, facing the way
@@ -772,10 +770,7 @@ fn walled_lawn(gate_m: f64, units: serde_json::Value) -> Battle {
     }
     let map = json!({"size": [160, 140], "fog_cell_m": 8, "height_grid_m": 4,
         "slope_cutoff_deg": 35, "props": props});
-    Battle::new(
-        &crate::common::scenario(&map.to_string(), units, json!([])),
-        1,
-    )
+    Battle::new(&common::scenario(&map.to_string(), units, json!([])), 1)
 }
 
 /// The moment: a tank is sent into the middle of a lawn walled all round,
@@ -974,7 +969,7 @@ fn a_truck_gives_up_on_a_lane_its_shove_cannot_clear() {
         let map = json!({"size":[1200,240], "fog_cell_m":8, "height_grid_m":4,
             "slope_cutoff_deg":35, "props":props});
         Battle::new(
-            &crate::common::scenario(
+            &common::scenario(
                 &map.to_string(),
                 json!([{"side":"blue", "kind":"test_supply", "position":[100,120], "yaw":0}]),
                 json!([]),
@@ -1013,7 +1008,7 @@ fn a_truck_gives_up_on_a_lane_its_shove_cannot_clear() {
 #[test]
 fn a_truck_gives_up_on_a_corner_too_tight_to_turn() {
     use contract::observation::MoveState;
-    let mut setup = crate::common::scenario(
+    let mut setup = common::scenario(
         &json!({"size":[1000,500], "fog_cell_m":8, "height_grid_m":1,
         "slope_cutoff_deg":35, "relief":[
                 {"kind":"mesa", "rect":[0,24,490,476], "height_m":100, "side_degrees":89},
@@ -1023,7 +1018,7 @@ fn a_truck_gives_up_on_a_corner_too_tight_to_turn() {
         json!([{"side":"blue", "kind":"test_supply", "position":[100,12], "yaw":0}]),
         json!([]),
     );
-    let mut rules = crate::common::scenario_rules();
+    let mut rules = common::scenario_rules();
     // Its hull is past what the game admits.
     sim::fixtures::lift_hull_limits(&mut rules);
     sim::fixtures::patch_catalog(
@@ -1032,7 +1027,7 @@ fn a_truck_gives_up_on_a_corner_too_tight_to_turn() {
         "test_supply",
         json!({
             "mobility":{"wheeled":{"offroad_kmh":25, "road_kmh":76,
-                "turn_deg_s":40, "turning_radius_m":50, "reverse_fraction":0.35}}
+                "turn_deg_s":40, "turning_radius_m":50, "reverse_speed_factor":0.35}}
         }),
     );
     setup.rules = serde_json::from_value(rules).unwrap();
@@ -1092,7 +1087,7 @@ fn a_vehicle_boxed_by_a_parked_one_never_drives_through_it() {
 /// through one of them.
 #[test]
 fn a_squad_ringed_in_by_standing_soldiers_never_walks_through_them() {
-    let mut rules = crate::common::scenario_rules();
+    let mut rules = common::scenario_rules();
     rules["physics"]["soldier_radius_m"] = json!(0.3);
     sim::fixtures::patch_catalog(
         &mut rules,

@@ -43,12 +43,10 @@
     "stop_short_detour_ratio": 5
   },
   "movement": {
-    "forest_infantry_multiplier": 0.7,
-    "forest_vehicle_multiplier": 0.4,
-    "swamp": {
-      "foot": 0.5,
-      "wheeled": 0.3,
-      "tracked": 0.55
+    "speed_factors": {
+      "foot": { "surfaces": { "road": 1, "country_road": 1, "dirt_track": 0.75, "paving": 0 }, "forest": 0.7, "swamp": 0.5, "crater": 1, "slope": { "zero_speed_deg": 50, "min_speed_factor": 0.35 } },
+      "wheeled": { "surfaces": { "road": 1, "country_road": 1, "dirt_track": 0.75, "paving": 0 }, "forest": 0.4, "swamp": 0.3, "crater": 0.85, "slope": { "zero_speed_deg": 50, "min_speed_factor": 0.35 } },
+      "tracked": { "surfaces": { "road": 1, "country_road": 1, "dirt_track": 0.75, "paving": 0 }, "forest": 0.4, "swamp": 0.55, "crater": 0.85, "slope": { "zero_speed_deg": 50, "min_speed_factor": 0.35 } }
     },
     "turret_turn_deg_s": 60,
     "bearing_tolerance_deg": 2,
@@ -62,7 +60,7 @@
       "min_leg_m": 1,
       "circle_margin_m": 0.5,
       "turning_deg": 20,
-      "turn_slow": 0.5
+      "turn_speed_factor": 0.5
     }
   },
   "sensors": {
@@ -924,7 +922,6 @@
     "crater_full_depth": 160,
     "track_gauge": 0.75,
     "lane_margin_m": 0.5,
-    "crater_vehicle_mult": 0.85,
     "scorch_radius_fraction": 0.4,
     "scorch_per_burst": 120,
     "mark_reference_blast_m": 4,
@@ -1023,12 +1020,6 @@
   },
   "pushing": { "turn_deg_per_m": 8, "relearn_m": 1 },
   "controls": { "reverse_zone_length_m": 30, "reverse_zone_margin_m": 2 },
-  "surfaces": {
-    "road": { "speed_factor": 1 },
-    "country_road": { "speed_factor": 1 },
-    "dirt_track": { "speed_factor": 0.75 },
-    "paving": { "speed_factor": 0 }
-  },
   "forests": {
     "tree": "trunk",
     "log": "log",

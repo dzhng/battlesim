@@ -325,7 +325,7 @@ fn high_air_ground_attack_uses_bombs_then_strafing_after_the_store_is_empty() {
             "sensors": { "ground_m": 1200.0 },
             "capabilities": { "air": {
                 "fuel_capacity_s": 180.0,
-                "afterburner": { "speed_multiplier": 1.5, "fuel_multiplier": 2.0 },
+                "afterburner": { "speed_factor": 1.5, "fuel_factor": 2.0 },
                 "refund": { "health": 0.34, "ammunition": 0.33, "fuel": 0.33 }
             }},
             "mounts": [

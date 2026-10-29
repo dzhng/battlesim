@@ -468,8 +468,8 @@ impl NavGrid {
             let vehicle = Mobility {
                 off_road_mps: 6.0,
                 road_mps: 12.0,
-                forest_multiplier: 0.4,
-                swamp_multiplier: 0.4,
+                locomotion: contract::movement::Locomotion::Tracked,
+                speed_factors: kept.slow.speed_factors.tracked,
                 half_width_m: 1.8,
                 class: MoverClass::Vehicle,
                 push,

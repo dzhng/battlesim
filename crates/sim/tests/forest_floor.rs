@@ -156,8 +156,11 @@ fn sparse_floor_cover_keeps_all_open_forest_cells_reachable() {
             let m = Mobility {
                 off_road_mps: 3.0,
                 road_mps: 3.0,
-                forest_multiplier: 0.5,
-                swamp_multiplier: 0.5,
+                locomotion: match class {
+                    MoverClass::Infantry => contract::movement::Locomotion::Foot,
+                    MoverClass::Vehicle => contract::movement::Locomotion::Tracked,
+                },
+                speed_factors: common::speed_factors(0.5, 0.5),
                 half_width_m,
                 class,
                 push,

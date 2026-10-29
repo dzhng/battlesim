@@ -39,7 +39,7 @@ pub enum SurfaceKind {
 
 impl SurfaceKind {
     /// Every carriageway is a road here; its kind only sets its speed
-    /// (`Surface::road_factor`).
+    /// (`Surface::paved`).
     pub fn of(kind: contract::map::SurfaceKind) -> Self {
         if kind.is_road() {
             SurfaceKind::Road
@@ -55,9 +55,9 @@ pub struct Surface {
     pub normal: V3,
     pub slope_deg: f64,
     pub kind: SurfaceKind,
-    /// The surface kind's `speed_factor` on a road's share of road speed
-    /// (the rules' `surfaces` table): 0 where the ground is no road.
-    pub road_factor: f64,
+    /// The paving under it, whose kind each locomotion's speed factors
+    /// scale its road speed by; `None` off any paving and on water.
+    pub paved: Option<contract::map::SurfaceKind>,
     /// Forest ground, not cleared (Q16): forest speed applies.
     pub forest: bool,
     /// A swamp's water: inside a swamp's outline and on no road.
@@ -71,10 +71,11 @@ impl Surface {
     /// What a mover's speed reads of it.
     pub fn footing(&self) -> crate::navigation::Footing {
         crate::navigation::Footing {
-            road_factor: self.road_factor,
+            paved: [self.paved, None],
             forest: self.forest,
             swamp: self.swamp,
             slope_deg: self.slope_deg,
+            crater_fill: 0.0,
         }
     }
 
@@ -93,8 +94,8 @@ pub struct WorldGeometry {
     slope_cutoff_deg: f64,
     /// The paving and the rivers: what the ground is at a point.
     surfaces: Arc<surfaces::SurfaceIndex>,
-    /// Each surface kind's speed factor, by `contract::map::SurfaceKind` order.
-    surface_factors: [f64; contract::map::SurfaceKind::ALL.len()],
+    /// How each kind of ground scales each locomotion's speed.
+    speed_factors: contract::movement::SpeedFactorTable,
     bridges: Vec<Bridge>,
     /// Authoritative authored shapes; generated trunks and cleared ground are runtime state.
     forests: Vec<Forest>,
@@ -145,7 +146,7 @@ impl WorldGeometry {
             relief: self.relief.clone(),
             slope_cutoff_deg: self.slope_cutoff_deg,
             surfaces: Arc::clone(&self.surfaces),
-            surface_factors: self.surface_factors,
+            speed_factors: self.speed_factors,
             bridges: self.bridges.clone(),
             forests: self.forests.clone(),
             forest: self.forest.clone(),
@@ -194,8 +195,7 @@ impl WorldGeometry {
             relief: map.relief.clone(),
             slope_cutoff_deg: map.slope_cutoff_deg,
             surfaces,
-            surface_factors: contract::map::SurfaceKind::ALL
-                .map(|kind| rules.surfaces[&kind].speed_factor),
+            speed_factors: rules.movement.speed_factors,
             bridges: map.bridges.clone(),
             forests: map.forests.clone(),
             forest: forest::ForestState::new(
@@ -344,9 +344,16 @@ impl WorldGeometry {
         world
     }
 
+    /// How each kind of ground scales each locomotion's speed.
+    pub fn speed_factors(&self) -> &contract::movement::SpeedFactorTable {
+        &self.speed_factors
+    }
+
     /// Every road authored as a stroke: its centreline's samples, its width
-    /// and its kind's share of road speed.
-    pub fn road_strokes(&self) -> impl Iterator<Item = (&[[f64; 2]], f64, f64)> {
+    /// and its kind.
+    pub fn road_strokes(
+        &self,
+    ) -> impl Iterator<Item = (&[[f64; 2]], f64, contract::map::SurfaceKind)> {
         self.surfaces.areas().iter().filter_map(|area| {
             let contract::ground::GroundShape::Stroke {
                 centerline,
@@ -355,13 +362,9 @@ impl WorldGeometry {
             else {
                 return None;
             };
-            area.kind.is_road().then(|| {
-                (
-                    centerline.samples(),
-                    *width_m,
-                    self.surface_factors[area.kind as usize],
-                )
-            })
+            area.kind
+                .is_road()
+                .then(|| (centerline.samples(), *width_m, area.kind))
         })
     }
 
@@ -510,7 +513,7 @@ impl WorldGeometry {
                 normal: v3(0.0, 0.0, 1.0),
                 slope_deg: 0.0,
                 kind: SurfaceKind::Bridge,
-                road_factor: 1.0,
+                paved: Some(contract::map::SurfaceKind::Road),
                 forest: ground.forest,
                 swamp: false,
                 traversable: true,
@@ -542,16 +545,13 @@ impl WorldGeometry {
         } else {
             paved.map_or(SurfaceKind::Ground, SurfaceKind::of)
         };
-        let road_factor = match (kind, paved) {
-            (SurfaceKind::Water, _) | (_, None) => 0.0,
-            (_, Some(paved)) => self.surface_factors[paved as usize],
-        };
+        let paved = paved.filter(|_| kind != SurfaceKind::Water);
         Some(Surface {
             z,
             normal,
             slope_deg,
             kind,
-            road_factor,
+            paved,
             // Water is neither road nor forest, whatever is authored over it.
             forest: kind != SurfaceKind::Water && self.forest_ground(x, y),
             swamp: self.surfaces.swamp_water_at(p),

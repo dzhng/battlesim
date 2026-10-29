@@ -104,11 +104,13 @@ fn reverse_speed_is_the_fraction_of_forward() {
         let reverse = pace(kind, std::f64::consts::PI, "reverse");
         let fraction = match mobility(kind) {
             contract::catalog::Mobility::Tracked {
-                reverse_fraction, ..
+                reverse_speed_factor,
+                ..
             }
             | contract::catalog::Mobility::Wheeled {
-                reverse_fraction, ..
-            } => reverse_fraction,
+                reverse_speed_factor,
+                ..
+            } => reverse_speed_factor,
             contract::catalog::Mobility::Foot { .. } | contract::catalog::Mobility::Air { .. } => {
                 panic!("{kind} is not a ground vehicle")
             }
@@ -219,8 +221,8 @@ fn cruise(kind: &str, surface: Option<&str>) -> f64 {
 #[test]
 fn each_road_kind_carries_its_own_speed() {
     let rules: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
-    let factor = |kind| rules.surfaces[&kind].speed_factor;
     for kind in ["test_jeep", "test_tank"] {
+        let mobility = sim::units::ground_mobility(rules.catalog.by_id(kind), &rules).unwrap();
         let (open, road) = (cruise(kind, None), cruise(kind, Some("road")));
         assert!(
             road > open * 1.5,
@@ -232,7 +234,8 @@ fn each_road_kind_carries_its_own_speed() {
             "{kind}: country road {country} vs {road}"
         );
         let dirt = cruise(kind, Some("dirt_track"));
-        let expected = road * factor(contract::map::SurfaceKind::DirtTrack);
+        let expected =
+            road * mobility.road_factor([Some(contract::map::SurfaceKind::DirtTrack), None]);
         assert!(
             (dirt - expected).abs() < 1e-6,
             "{kind}: dirt {dirt} vs {expected}"
@@ -255,42 +258,49 @@ fn each_road_kind_carries_its_own_speed() {
 fn a_slow_surface_is_never_slower_than_open_ground() {
     let rules: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
     let foot = sim::units::ground_mobility(rules.catalog.by_id("test_rifle"), &rules).unwrap();
-    let dirt = rules.surfaces[&contract::map::SurfaceKind::DirtTrack].speed_factor;
+    let dirt = foot.road_factor([Some(contract::map::SurfaceKind::DirtTrack), None]);
     assert!(
         foot.road_mps * dirt < foot.off_road_mps,
         "the case this test needs"
     );
-    let road = |road_factor| sim::navigation::Footing {
-        road_factor,
+    let road = |kind| sim::navigation::Footing {
+        paved: [Some(kind), None],
         forest: false,
         swamp: false,
         slope_deg: 0.0,
+        crater_fill: 0.0,
     };
-    assert_eq!(foot.speed(road(dirt)), foot.off_road_mps);
-    assert_eq!(foot.speed(road(1.0)), foot.road_mps);
-    assert_eq!(foot.speed(road(0.0)), foot.off_road_mps);
+    use contract::map::SurfaceKind;
+    assert_eq!(foot.speed(road(SurfaceKind::DirtTrack)), foot.off_road_mps);
+    assert_eq!(foot.speed(road(SurfaceKind::Road)), foot.road_mps);
+    assert_eq!(foot.speed(road(SurfaceKind::Paving)), foot.off_road_mps);
 }
 
-/// The rules name every surface kind, with a factor a route's best-case
-/// estimate can trust (never faster than the unit's road speed).
+/// Every locomotion names every surface kind, with factors a route's
+/// best-case estimate can trust (never faster than the unit's road speed),
+/// and no forest stops a mover dead (it would freeze a unit inside one and
+/// divide that estimate by zero): the rules are refused at load, by name.
 #[test]
-fn the_surface_table_must_cover_every_kind_within_bounds() {
+fn every_speed_factor_is_refused_at_load_outside_its_bounds() {
     let load = |edit: &dyn Fn(&mut Value)| {
         let mut raw = rules();
-        edit(&mut raw);
-        serde_json::from_value::<contract::scenario::Rules>(raw)
+        edit(&mut raw["movement"]["speed_factors"]["wheeled"]);
+        serde_json::from_value::<contract::scenario::Rules>(raw).map_err(|e| e.to_string())
     };
     assert!(load(&|_| {}).is_ok());
-    assert!(load(&|r| {
-        r["surfaces"].as_object_mut().unwrap().remove("dirt_track");
+    assert!(load(&|w| {
+        w["surfaces"].as_object_mut().unwrap().remove("dirt_track");
     })
     .is_err());
     for bad in [-0.1, 1.1] {
+        let error = load(&|w| w["surfaces"]["dirt_track"] = json!(bad)).unwrap_err();
         assert!(
-            load(&|r| r["surfaces"]["dirt_track"]["speed_factor"] = json!(bad)).is_err(),
-            "{bad}"
+            error.contains("speed_factors.wheeled.surfaces.DirtTrack"),
+            "{bad}: {error}"
         );
     }
+    let error = load(&|w| w["forest"] = json!(0.0)).unwrap_err();
+    assert!(error.contains("speed_factors.wheeled.forest"), "{error}");
 }
 
 /// The moment: a truck has nosed half into a gap in a row of parked cars,
