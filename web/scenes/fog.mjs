@@ -358,6 +358,35 @@ async function measureCost(ctx) {
   await page.close();
 }
 
+/** Side changes replace the viewport while its catalog loads. A following
+ *  probe or tick advance needs the new side's presented frame. */
+async function showSide(page, side) {
+  await lab(
+    page,
+    async (next) => {
+      // Finish pending mask draws before the old viewport departs.
+      await window.__lab.frame();
+      const route = window.__lab.route;
+      route.setSide(next);
+      // The paused authority publishes the new side on its next tick.
+      await route.advance(1);
+    },
+    side,
+  );
+  await page.waitForFunction(
+    (next) =>
+      document.querySelector("[data-testid=error]") ||
+      (window.__lab?.ready && window.__lab.route?.presented()?.side === next),
+    side,
+    { timeout: 30000 },
+  );
+  if (await page.getByTestId("error").isVisible()) {
+    const details = page.getByRole("button", { name: "Details", exact: true });
+    if (await details.isVisible()) await details.click();
+    throw new Error(`side change failed: ${await page.getByTestId("error").textContent()}`);
+  }
+}
+
 export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   await ctx.openLab(page);
@@ -434,7 +463,7 @@ export async function run(ctx) {
 
   // Red's rifle squads garrison the street's buildings: one eye per facade
   // they hold, each seeing out of its own facade.
-  await lab(page, () => window.__lab.route.setSide("red"));
+  await showSide(page, "red");
   const garrisoned = await until(
     page,
     (f) => f.own.some((u) => u.hold?.phase === "inside" && u.sight.eyes.length > 1),
@@ -502,7 +531,7 @@ export async function run(ctx) {
     await snapshot(ctx, page, "red-garrison-mask-1920x1080.png");
     await lab(page, () => window.__lab.route.showMask(false));
   }
-  await lab(page, () => window.__lab.route.setSide("blue"));
+  await showSide(page, "blue");
 
   const stats = await lab(page, () => window.__lab.stats().fog);
   const tiles = await lab(page, async () => {
