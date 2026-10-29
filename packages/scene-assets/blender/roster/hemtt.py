@@ -46,7 +46,12 @@ def build(variant, v):
         for k, x in enumerate(AXLES):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.32, tread="bar", hub_bolts=10)
-            box(f"axle_{s}_{k}", (0.18, 0.55, 0.18), (x, side * 0.55, WHEEL_R), m["dark"], hull, lods=NEAR)
+            # Axle extends from frame rail (0.45 - 0.07 inner) to wheel hub (inside tyre)
+            axle_inner = 0.38
+            axle_outer = WHEEL_Y - WHEEL_W / 2 + 0.02
+            axle_width = axle_outer - axle_inner
+            box(f"axle_{s}_{k}", (0.18, axle_width, 0.18), (x, side * (axle_inner + axle_outer) / 2, WHEEL_R),
+                m["dark"], hull, lods=NEAR)
         box(f"chassis_rail_{s}", (9.80, 0.14, 0.26), (-0.20, side * 0.45, RAIL_Z), m["dark"], hull, bevel=0.01,
             lods=MID)
         VP.mudflap(f"mudflap_{s}", (-4.65, side * WHEEL_Y, BED_FLOOR - 0.15), (0.42, 0.55), m, hull)

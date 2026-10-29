@@ -55,7 +55,12 @@ def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_
                           rim_radius=wheel_r * 0.55, ctis=True)
         box(f"frame_rail_{s}", (v.length - 0.6, 0.12, 0.30), (-0.2, side * 0.50, rail_z), m["dark"], h, bevel=0.01)
         for k, x in enumerate(axles):
-            box(f"axle_{s}_{k}", (0.20, track - 0.45, 0.16), (x, side * (track / 2 + 0.05), wheel_r), m["dark"], h,
+            # Axle extends from frame rail to wheel hub (inside the tyre)
+            axle_inner = 0.50 - 0.10  # frame rail inner edge
+            axle_outer = track - wheel_w / 2 + 0.02  # just past wheel inner edge
+            axle_width = axle_outer - axle_inner
+            axle_center = (axle_inner + axle_outer) / 2
+            box(f"axle_{s}_{k}", (0.20, axle_width, 0.16), (x, side * axle_center, wheel_r), m["dark"], h,
                 lods=MID)
             box(f"spring_{s}_{k}", (0.9, 0.10, 0.10), (x, side * 0.50, rail_z - 0.22), m["dark"], h, lods=NEAR)
             # A fender over each wheel.

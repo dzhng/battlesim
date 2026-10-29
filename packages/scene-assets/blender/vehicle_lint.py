@@ -801,16 +801,50 @@ def filter_by_baseline(result: LintResult, baseline: dict[str, list[dict]]) -> L
     return filtered
 
 
-def filter_by_allowlist(result: LintResult, allowlist: dict[str, list[dict]]) -> LintResult:
-    """Filter out issues that are in the allowlist (intentional gaps)."""
-    allowed = allowlist.get(result.vehicle_id, [])
-    allowed_issues = [LintIssue.from_dict(d) for d in allowed]
+def _matches_pattern(part_name: str, pattern: str) -> bool:
+    """Check if a part name matches an allowlist pattern.
+    
+    Supports glob-style patterns with * wildcards:
+    - "wheel_*_sprocket_hub" matches "wheel_L_sprocket_hub", "wheel_R_sprocket_hub"
+    - "dash*" matches "dash", "dash_-1", "dash_1"
+    """
+    import fnmatch
+    return fnmatch.fnmatch(part_name.lower(), pattern.lower())
+
+
+def filter_by_allowlist(result: LintResult, allowlist: dict) -> LintResult:
+    """Filter out issues that are in the allowlist (intentional gaps).
+    
+    The allowlist supports two formats:
+    1. Per-vehicle exact matches: {"vehicle_id": [{"check": ..., "parts": [...]}]}
+    2. Global pattern matches: {"patterns": [{"part_pattern": "...", "reason": "..."}]}
+    """
+    # Collect patterns from allowlist
+    patterns = []
+    if "patterns" in allowlist:
+        patterns = [p["part_pattern"] for p in allowlist["patterns"] if "part_pattern" in p]
+    
+    # Per-vehicle exact matches
+    vehicle_allowed = allowlist.get(result.vehicle_id, [])
+    vehicle_issues = [LintIssue.from_dict(d) for d in vehicle_allowed if isinstance(d, dict) and "check" in d]
     
     filtered = LintResult(vehicle_id=result.vehicle_id)
     for issue in result.issues:
-        is_allowed = any(issue.matches_baseline(a) for a in allowed_issues)
-        if not is_allowed:
+        # Check exact vehicle-specific allowlist
+        is_exact_match = any(issue.matches_baseline(a) for a in vehicle_issues)
+        if is_exact_match:
+            continue
+        
+        # Check pattern matches on part names
+        is_pattern_match = False
+        for part in issue.parts:
+            if any(_matches_pattern(part, pattern) for pattern in patterns):
+                is_pattern_match = True
+                break
+        
+        if not is_pattern_match:
             filtered.add(issue)
+    
     return filtered
 
 

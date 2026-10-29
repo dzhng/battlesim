@@ -1,10 +1,41 @@
 {
-  "_comment": "Allowlist for intentional geometry gaps. Each entry explains why the gap is acceptable.",
-  "_categories": {
-    "wheel_hub": "Hub caps and center discs stand proud of wheel rim by design",
-    "pylon_sway": "Weapon sway braces need clearance from pylon body",
-    "suspension_clearance": "Suspension arms and springs need movement clearance",
-    "door_handle": "Handles stand off from door surface to allow grip",
-    "gear_clearance": "Landing gear components need articulation clearance"
-  }
+  "_comment": "Allowlist of intentional geometry gaps. Parts matching these patterns are not flagged as floating.",
+  "patterns": [
+    {
+      "part_pattern": "wheel_*_sprocket_hub",
+      "reason": "Sprocket hub caps protrude 2.5cm beyond wheel body by design for track guide"
+    },
+    {
+      "part_pattern": "wheel_*_idler_hub",
+      "reason": "Idler hub caps protrude 2.5cm beyond wheel body by design for track guide"
+    },
+    {
+      "part_pattern": "dash*",
+      "reason": "Dashboard is interior cab component, not structurally attached to hull exterior"
+    },
+    {
+      "part_pattern": "seat_back_*",
+      "reason": "Crew seat backs in open cabs are interior furniture, not hull structure"
+    },
+    {
+      "part_pattern": "nav_light_*",
+      "reason": "Navigation lights on aircraft mounted on thin stalks/fairings"
+    },
+    {
+      "part_pattern": "gear_*_door",
+      "reason": "Landing gear bay doors need clearance for articulation"
+    },
+    {
+      "part_pattern": "pintle",
+      "reason": "Pintle weapon mounts need clearance for traverse"
+    },
+    {
+      "part_pattern": "probe_*",
+      "reason": "Refueling probes and sensors on thin stalks"
+    },
+    {
+      "part_pattern": "fume_extractor",
+      "reason": "Gun barrel fume extractors are thin sleeves with clearance"
+    }
+  ]
 }
