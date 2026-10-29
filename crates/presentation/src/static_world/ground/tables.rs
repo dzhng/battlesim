@@ -1,8 +1,7 @@
 //! The ground's GPU tables as the words both renderers upload: the height
-//! pages, the plot split's nodes and plots, the terrain material's
-//! parameters and the scars' look. Each record is the terrain material's
-//! `d.struct` (`frame/terrainMaterial.ts`) word for word: every field a
-//! `vec4`, f32 unless named.
+//! pages, the plot split's nodes and plots, the terrain material's parameters
+//! and the scars' look. Each record is the terrain material's WGSL struct
+//! word for word: every field a `vec4`, f32 unless named.
 use super::biome::{linear, Road, AREA_KINDS, WATER_LOOKS_MAX};
 use super::field::{Field, FOOTPRINT_M};
 use super::{is_road, Ground, RIVER};

@@ -1,10 +1,9 @@
-//! The side's learned scars on the GPU (`frame/scarTexture.ts`): the pool
-//! texture, the directory over it and `ScarParams`, written with what the
-//! presentation crate's scar cache hands over (`Presentation::prepare_scars`).
-//! The uploads are taken once per drawn frame, in the order the browser
-//! makes them: for the grass's window when it regrows, then for the whole
-//! view, or for each region in turn when the marks don't fit at once. The
-//! world pass applies each at the submission it belongs to.
+//! The side's learned scars on the GPU: the pool texture, the directory over
+//! it and `ScarParams`, written with what the presentation crate's scar cache
+//! hands over (`Presentation::prepare_scars`). The uploads are taken once per
+//! drawn frame, in this order: for the grass's window when it regrows, then
+//! for the whole view, or for each region in turn when the marks don't fit at
+//! once. The world pass applies each at the submission it belongs to.
 use presentation::presentation::Presentation;
 use presentation::scars::{self, ScarUpload, PARAMS_WORDS, POOL_HEIGHT, POOL_WIDTH};
 use wgpu::*;

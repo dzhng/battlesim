@@ -1,11 +1,10 @@
 //! The grass field on the CPU: the biome's growth resolved against the grass
 //! appearances, the grass kinds' blade meshes packed for the GPU
-//! ([`pack_shapes`]), the pass's parameters (`GrassParams` in
-//! `frame/grassPass.ts`, word for word) with each frame's fields
-//! ([`frame_params`]), the window of world tiles a frame grows grass over
-//! ([`window`]) and the props' footprints where no grass grows. Where clumps
-//! stand, how many and how tall is decided per frame on the GPU; nothing
-//! here is per clump.
+//! ([`pack_shapes`]), the pass's parameters (`GrassParams`, word for word as
+//! the grass shaders declare it) with each frame's fields ([`frame_params`]),
+//! the window of world tiles a frame grows grass over ([`window`]) and the
+//! props' footprints where no grass grows. Where clumps stand, how many and
+//! how tall is decided per frame on the GPU; nothing here is per clump.
 use super::biome::{GrassRules, GRASS_MIX_MAX, VERGE_GROWTH};
 use super::tables::{vec4, word};
 use super::{Ground, PROP};

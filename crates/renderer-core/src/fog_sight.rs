@@ -1,12 +1,11 @@
-//! Fog of war's sight (`frame/fogVisibility.ts`): what the presentation
-//! decides each frame (`Presentation::prepare_fog`) uploaded as it is, then
-//! the browser's exported compute over it, after the depth prepass and
-//! before the lit world: the rebuilt eyes' horizon maps (`fogTerrain`,
-//! `fogMerge`), the structures that take fog whole (`fogWhole`), and the
-//! per-tile eye lists over the prepass's depth (`fogCull`). Every fogged
-//! material binds one of the five fragment groups, by what it is
-//! (`Layer`): the ground paint lies on the painted layers, and units are
-//! never fogged.
+//! Fog of war's sight: what the presentation decides each frame
+//! (`Presentation::prepare_fog`) uploaded as it is, then the shared compute
+//! over it, after the depth prepass and before the lit world: the rebuilt
+//! eyes' horizon maps (`fogTerrain`, `fogMerge`), the structures that take
+//! fog whole (`fogWhole`), and the per-tile eye lists over the prepass's
+//! depth (`fogCull`). Every fogged material binds one of the five fragment
+//! groups, by what it is (`Layer`): the ground paint lies on the painted
+//! layers, and units are never fogged.
 use presentation::fog::sight::WHOLE_TEXTURE_WIDTH;
 pub use presentation::fog::upload::FogUpload;
 use presentation::presentation::Presentation;

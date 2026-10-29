@@ -1,8 +1,8 @@
-//! The grass (`frame/grassPass.ts`): grown on the GPU over the window of
-//! world tiles the presentation crate fits to the view, whenever the view
-//! moves, then drawn as two tiers of clumps by indexed indirect draws. The
-//! tables are the ground's (`Ground::grass_params`, `grass_props`) and the
-//! blade shapes packed from the grass appearances' bundles by the same crate.
+//! The grass: grown on the GPU over the window of world tiles the
+//! presentation crate fits to the view, whenever the view moves, then drawn
+//! as two tiers of clumps by indexed indirect draws. The tables are the
+//! ground's (`Ground::grass_params`, `grass_props`) and the blade shapes
+//! packed from the grass appearances' bundles by the same crate.
 use presentation::presentation::Presentation;
 use wgpu::*;
 

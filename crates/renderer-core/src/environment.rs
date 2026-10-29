@@ -1,10 +1,9 @@
-//! The frame-level bind groups every lit pass takes (`frame/environmentFrame.ts`
-//! and `world/environment.ts`): the camera and the environment light (the
-//! world's `Sun` and `Aerial` records, the cast lights, the sky lookup, its
-//! PMREM and the DFG table). Each frame the camera, the environment's view
-//! and the cast lights the presentation chose are written. The sun's
-//! cascades are the shadow layer's (`shadow.rs`); fog's groups are fog's
-//! (`fog.rs`).
+//! The frame-level bind groups every lit pass takes: the camera and the
+//! environment light (the world's `Sun` and `Aerial` records, the cast
+//! lights, the sky lookup, its PMREM and the DFG table). Each frame the
+//! camera, the environment's view and the cast lights the presentation chose
+//! are written. The sun's cascades are the shadow layer's (`shadow.rs`);
+//! fog's groups are fog's (`fog_sight.rs`).
 use presentation::effects::lights::CAST_LIGHTS_MAX;
 use presentation::records::{Aerial, Camera as CameraRecord, CastLight, Sun, View};
 use wgpu::*;

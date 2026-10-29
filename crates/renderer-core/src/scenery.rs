@@ -1,9 +1,8 @@
-//! The scenery (`frame/sceneryLayer.ts`): the trees, the tree lines'
-//! shrubs, the scenery past the map, the forest floor's dressing, felled
-//! trees and their stumps, as the frame's static batches list them. The walk
-//! is the presentation crate's; this holds each scenery row's meshes and
-//! draws its batches through the browser's scenery pipelines, routed by
-//! `Appearance.draws` as the browser routes them:
+//! The scenery: the trees, the tree lines' shrubs, the scenery past the map,
+//! the forest floor's dressing, felled trees and their stumps, as the frame's
+//! static batches list them. The walk is the presentation crate's; this holds
+//! each scenery row's meshes and draws its batches through the scenery
+//! pipelines, routed by `Appearance.draws`:
 //!
 //! - the forest and the tree lines' shrubs, and the stumps, shadowed and
 //!   fogged whole (`forestColour`); the scenery past the map, never shadowed
