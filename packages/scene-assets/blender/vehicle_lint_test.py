@@ -145,8 +145,12 @@ class TestFloatingParts(unittest.TestCase):
     def test_nearby_parts_pass(self):
         """Parts within threshold distance should pass."""
         make_box("hull_body_LOD0", (2, 1, 0.5), (0, 0, 0.75), self.hull)
-        # Just within threshold
-        make_box("stowage_LOD0", (0.3, 0.3, 0.2), (0, 0, 1.0 + FLOATING_PART_THRESHOLD * 0.5), self.hull)
+        # Hull top is at Z=1.0 (0.75 + 0.25). Place stowage so its bottom is just
+        # above hull top, within threshold. Stowage height is 0.2, center-to-edge is 0.1.
+        # For a gap of threshold/2 = 1cm, stowage center should be at 1.0 + 0.01 + 0.1 = 1.11
+        gap = FLOATING_PART_THRESHOLD * 0.5  # 1cm gap
+        stowage_half_height = 0.1
+        make_box("stowage_LOD0", (0.3, 0.3, 0.2), (0, 0, 1.0 + gap + stowage_half_height), self.hull)
         
         result = LintResult(vehicle_id="test")
         check_floating_parts(result)
