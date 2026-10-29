@@ -292,7 +292,7 @@ fn cancellation_at_gpu_clip_boundary_keeps_the_triangle() {
 fn remote_water_and_boundary_growth_preserves_local_triangle_bytes_and_bounded_queries() {
     use presentation::static_world::ground::partition::CELL_M;
     let boundary = |x| mesh::skirt(&[x, 0., 0., x + 4., 0., 0., x + 4., 4., 0., x, 4., 0.]);
-    let water = |x| mesh::water(&[x, 0., 0., 4.]);
+    let water = |x| mesh::water(&[x, 0., 0., 4., 0., 0., 0., 0.]);
     let matrices = [
         camera([2., -4., 10.], [2., 0., 0.]),
         camera([1026., -4., 10.], [1026., 0., 0.]),

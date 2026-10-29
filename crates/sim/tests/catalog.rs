@@ -660,10 +660,10 @@ fn only_a_winged_aircraft_carries_a_bomb() {
             "name": "Test Bomb", "description": "A test row.", "icon": "bomb",
             "delivery": "unpowered", "stationary": false, "gravity_scale": 2,
             "aim_s": 0.1, "reload_s": 3, "ammo": 2, "penetration": 10,
-            "partial_from": 0.08, "damage": 50, "scatter_mrad": 1,
+            "partial_from": 0.08, "damage": 50,
             "near_miss_suppression": 0, "suppression_radius_m": 0,
             "blast_radius_m": 5, "structural_damage": 10,
-            "targets": { "ground": { "classes": ["vehicle"] } }
+            "targets": { "ground": { "classes": ["vehicle"], "range_m": 0, "scatter_mrad": 1 } }
         });
         fixture["service"]["round_costs"]["test_bomb"] = json!(1);
         sim::fixtures::patch_catalog(
@@ -685,12 +685,11 @@ fn only_a_winged_aircraft_carries_a_bomb() {
     }
 }
 
-/// Firing mechanics use fixed reach rather than the live grenade balance.
 fn grenade_firing_profile(fixture: &mut Value) {
-    fixture["weapons"]["grenade"]["range_m"] = json!(450);
+    common::json_ground_reach(&mut fixture["weapons"]["grenade"], 450.0);
     fixture["weapons"]["grenade"]["speed_mps"] = json!(100);
     fixture["weapons"]["grenade"]["gravity_scale"] = json!(0.09);
-    fixture["weapons"]["grenade"]["scatter_mrad"] = json!(30);
+    fixture["weapons"]["grenade"]["targets"]["ground"]["scatter_mrad"] = json!(30);
 }
 
 /// A soldier's weapon falls with him, unless it is `special`: then the next

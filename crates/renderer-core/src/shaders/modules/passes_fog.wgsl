@@ -434,7 +434,9 @@
   let relief = groundRoadRelief(_arg_0.world.xy, footprint, paved);
   ground = normalize((ground - (vec3f(relief, 0f) * (ground.z * biome))));
   let shading = normalize(mix(ground, scarredNormal(ground, scar), biome));
-  let paint_1 = groundPaint(_arg_0.world);
+  let water = groundWater(_arg_0.world.xy, cell);
+  let dry = (1f - smoothstep((-(footprint) * 0.5f), (footprint * 0.5f), water));
+  let paint_1 = (groundPaint(_arg_0.world) * dry);
   let flecks = groundDapple(_arg_0.world.xy, footprint, cell);
   let sun_1 = max(sampleSunShadow(_arg_0.world, n, clip.xy), flecks);
   let lit = shade(paintedAlbedo(surface.xyz, paint_1), vec3f(), surface.w, 0f, 0f, 1f, shading, _arg_0.world, sun_1, (*eye));
@@ -499,15 +501,43 @@
 @fragment fn waterFragment(_arg_0: waterFragment_Input, @builtin(position) clip: vec4f) -> waterFragment_Output {
   let eye = (&cam.eye);
   let footprint = length(fwidth(_arg_0.world.xy));
-  let surface = waterSurface(_arg_0.world.xy, footprint);
-  let n = waterNormal(_arg_0.world.xy, footprint);
+  let look = u32(round(_arg_0.color.x));
+  let w = (&params.waterLooks[look]);
+  let still = select(waterNormal(_arg_0.world.xy, footprint, look), vec3f(0, 0, 1), (_arg_0.color.w > 0f));
+  let n = waveNormal(_arg_0.world.xy, still);
   let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
   let paint_1 = groundPaint(_arg_0.world);
-  let lit = shade(paintedAlbedo(surface.xyz, paint_1), vec3f(), 0.14f, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
-  let shaded = ((lit.xyz * mix(0.55f, 1f, sun_1)) + paintGlow(paint_1));
+  let puddle = (_arg_0.color.w > 0f);
+  let middle = (length((_arg_0.world.xy - _arg_0.color.yz)) / max(_arg_0.color.w, 1e-4f));
+  let up = max(normalize(((*eye) - _arg_0.world)).z, 0.2f);
+  let shaped = (((*w).fades.w * max((1f - (middle * middle)), 0f)) / up);
+  let depth_1 = select(waterDepth(clip, _arg_0.world), shaped, puddle);
+  let bed = waterUnder(clip, _arg_0.world, n, depth_1, look);
+  let through = exp(((*w).surface.xyz * -(select(bed.w, depth_1, puddle))));
+  let lit = (bed.xyz * (1f + (waterCaustics(_arg_0.world, depth_1, footprint, look) * sun_1)));
+  let body = mix((*w).edge.xyz, (*w).channel.xyz, (1f - dot(through, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023))));
+  let reflected = waterReflection(n, _arg_0.world, sun_1, (*eye), look);
+  let dry = surfaceLight(vec3f(), vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
+  let own = (surfaceLight(body, vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye)) - dry);
+  let mark = surfaceLight(paintedAlbedo(body, (paint_1 / max(paint_1.w, 1e-4f))), vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
+  let water = ((own * (vec3f(1) - through)) + reflected);
+  let seenUp = (through * waterTransmission(n, normalize(((*eye) - _arg_0.world))));
+  let shadowed = mix((*w).surface.w, 1f, sun_1);
+  let surfaceInAir = air((water * shadowed), _arg_0.world, (*eye)).xyz;
+  let bedAir = (air(vec3f(), _arg_0.world, (*eye)).xyz * seenUp);
+  let wet = ((surfaceInAir - bedAir) + (lit * seenUp));
+  let facing = max(0.35f, dot(n, normalize(((*eye) - _arg_0.world))));
+  let pixel = length(fwidth(atPixel(clip).xy));
+  let fade = max((*w).fades.x, ((pixel * 3f) / facing));
+  let rim = ((1f - middle) * _arg_0.color.w);
+  let ring = max((_arg_0.color.w / 6f), (pixel * 1.5f));
+  let fill = select((depth_1 / fade), (rim / ring), puddle);
+  let edge = smoothstep(0f, 1f, clamp(fill, 0f, 1f));
+  let marked = (air((mark * shadowed), _arg_0.world, (*eye)).xyz * paint_1.w);
+  let cover = (paint_1.w + (edge * (1f - paint_1.w)));
+  let colour = (((marked + paintGlow(paint_1)) + (wet * (edge * (1f - paint_1.w)))) / max(cover, 1e-4f));
   let seen = paintedSeen(fogTerm(_arg_0.world, n, clip.xy, fogIsGround()), paint_1);
-  let alpha = max(surface.w, paint_1.w);
-  return waterFragment_Output(vec4f(shaded, alpha), fogCoverage(seen, alpha));
+  return waterFragment_Output(vec4f(colour, cover), fogCoverage(seen, cover));
 }
 
 // @block passes_fog_wholeFn

@@ -21,7 +21,12 @@ use super::pose::{
     Articulation, ClipBlend, CorpsePose, FadingCorpse, Kick, PoseFrame, SoldierPose, VehiclePose,
 };
 use crate::seed::{side_key, Mulberry32};
+use crate::static_world::ground::{water::StandingWater, Ground};
 use crate::world::{Appearance, Clip, UnitType, UnitsSection, Vec3};
+
+mod stance;
+pub use stance::StanceFeel;
+use stance::{fall_of, lies_after, stance_manner, Posture, Stance};
 
 /// The cook-offs' gravity: what an aircraft's lift tilts against.
 const GRAVITY: f64 = 9.81;
@@ -97,7 +102,7 @@ pub struct FeedFrame {
 pub struct PoseFeel {
     pub gait: Gait,
     pub rest: Rest,
-    pub stance: StanceShares,
+    pub stance: StanceFeel,
     pub lean: Lean,
     pub mount: MountFeel,
     /// How a shot kicks the hull on the ground that fires it; none: never.
@@ -125,14 +130,6 @@ pub struct Rest {
     pub tempo: [f64; 2],
     pub watch_every: f64,
     pub settle_s: [f64; 2],
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct StanceShares {
-    pub fire_prone: f64,
-    pub fire_stand: f64,
-    pub pinned_kneel: f64,
-    pub fall_back: f64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -223,13 +220,6 @@ pub struct CorpseCap {
     pub sink_m: f64,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum Posture {
-    Stand,
-    Kneel,
-    Prone,
-}
-
 /// Each posture's gait (`INFANTRY_MOVES`), and its clip for each way he
 /// goes relative to his facing (`INFANTRY_WAYS`: ahead, left, back, right).
 const GAITS: [&str; 3] = ["walk_aim", "crouch", "crawl"];
@@ -244,10 +234,6 @@ const WAY_NAMES: [&str; 4] = ["f", "l", "b", "r"];
 /// How far past the halfway bearing between two ways he keeps the way he is
 /// going, so a diagonal does not flicker between two clips, radians.
 const WAY_HOLD_RAD: f64 = 0.2;
-/// The fall a soldier plays dying in each posture (`INFANTRY_DEATHS`), and
-/// standing, back onto his back.
-const DEATHS: [&str; 3] = ["death", "death_kneel", "death_prone"];
-const FALL_BACK: &str = "death_back";
 
 /// The way (an index of `WAY_BEARINGS`) he goes at bearing `rel` from his
 /// facing: the nearest, unless `current` is already a way of `gait` and
@@ -276,11 +262,6 @@ fn gait_of_clip(clip: &str) -> Option<&str> {
     GAITS.contains(&gait).then_some(gait)
 }
 
-/// The corpse (an `INFANTRY_CORPSES` index: face down, face up) a fall ends in.
-fn lies_after(fall: &str) -> usize {
-    usize::from(fall == FALL_BACK)
-}
-
 /// Where a soldier starts a looping clip: his own offset (the golden ratio
 /// over his id), so a squad never moves in lockstep.
 pub fn loop_start(soldier: f64) -> f64 {
@@ -296,48 +277,6 @@ fn rest_manner(soldier: f64, rest: &Rest) -> (f64, f64, bool) {
     let turn = (state.sample() * 2.0 - 1.0) * rest.turn_rad;
     let tempo = rest.tempo[0] + state.sample() * (rest.tempo[1] - rest.tempo[0]);
     (turn, tempo, soldier % rest.watch_every == 2.0)
-}
-
-/// How a soldier holds himself under fire, his own for life (from his id).
-#[derive(Clone, Copy, Debug)]
-struct Stance {
-    firing: Posture,
-    pinned: Posture,
-    falls_back: bool,
-}
-
-/// One place along a low-discrepancy sequence decides both postures, so
-/// neighbouring ids spread across the stances and the men who fire lying
-/// down are the ones who stay flat when pinned.
-fn stance_manner(soldier: f64, s: &StanceShares) -> Stance {
-    let u = (soldier * 0.414_213_562_373_095_15) % 1.0;
-    let firing = if u < s.fire_prone {
-        Posture::Prone
-    } else if u >= 1.0 - s.fire_stand {
-        Posture::Stand
-    } else {
-        Posture::Kneel
-    };
-    let pinned = if u >= 1.0 - s.pinned_kneel {
-        Posture::Kneel
-    } else {
-        Posture::Prone
-    };
-    // A second sequence, so how he falls does not follow how he stands.
-    let falls_back = (soldier * 0.754_877_666_246_692_7) % 1.0 < s.fall_back;
-    Stance {
-        firing,
-        pinned,
-        falls_back,
-    }
-}
-
-fn fall_of(posture: Posture, stance: Stance) -> &'static str {
-    if posture == Posture::Stand && stance.falls_back {
-        FALL_BACK
-    } else {
-        DEATHS[posture as usize]
-    }
 }
 
 /// The clip `name` as soldier `pose`'s appearance has it (resolved as the
@@ -730,8 +669,14 @@ impl PoseDriver {
         self.out.fading.clear();
     }
 
-    /// Advance to `frame` and pose everything in it.
-    pub fn update(&mut self, frame: &FeedFrame, units: &UnitsSection) -> &PoseFrame {
+    /// Advance to `frame` and pose everything in it, on `ground`.
+    pub fn update(
+        &mut self,
+        frame: &FeedFrame,
+        units: &UnitsSection,
+        ground: Option<&Ground>,
+    ) -> &PoseFrame {
+        let water = ground.map(Ground::standing_water);
         // Time running backwards is a new battle (a reset or a reloaded replay).
         if self.time.is_some_and(|t| frame.time < t) {
             self.reset();
@@ -745,7 +690,7 @@ impl PoseDriver {
         for unit in &frame.units {
             match units.types.get(&*unit.kind) {
                 Some(ty) if ty.hull.is_some() => self.vehicle(unit, ty, frame.time, dt, generation),
-                _ => self.squad(unit, units, frame.time, dt, generation),
+                _ => self.squad(unit, units, water.as_ref(), frame.time, dt, generation),
             }
         }
         let mut relisted = false;
@@ -778,6 +723,7 @@ impl PoseDriver {
         &mut self,
         unit: &FeedUnit,
         units: &UnitsSection,
+        water: Option<&StandingWater>,
         time: f64,
         dt: f64,
         generation: u64,
@@ -895,23 +841,12 @@ impl PoseDriver {
                 _ => Kick::default(),
             };
 
-            // Out on his lean he kneels to fire, pinned or not; otherwise,
-            // under fire or firing, each man takes his own stance. Lying down
-            // he can only crawl so fast: quicker, he goes crouched.
-            let held = if soldier.lean.is_some() {
-                Posture::Kneel
-            } else if unit.pinned {
-                state.stance.pinned
-            } else if firing {
-                state.stance.firing
-            } else {
-                Posture::Stand
-            };
-            let posture = if held == Posture::Prone && speed >= gait.crawl_mps {
-                Posture::Kneel
-            } else {
-                held
-            };
+            let wet = || water?.under(soldier.position);
+            let lean = soldier.lean.is_some();
+            let fast = speed >= gait.crawl_mps;
+            let posture = state
+                .stance
+                .posture(lean, unit.pinned, firing, fast, wet, &feel.stance);
             state.posture = posture;
             let running = speed >= gait.run_mps;
             // Down or shooting, he keeps his weapon toward the threat whichever

@@ -46,6 +46,8 @@ export interface SceneSettings {
   grassDensity?: number;
   paint?: PaintStyle;
   xrayMinHiddenFraction?: number;
+  /** Refracted water, or its depth colour alone (the lowest tier). */
+  waterDetail?: "full" | "depth";
 }
 
 export interface PixelSnapshot {

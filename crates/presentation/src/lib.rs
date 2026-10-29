@@ -1,3 +1,4 @@
+#![deny(clippy::disallowed_methods)]
 //! The per-frame presentation both clients share: one side's publications
 //! in, a [`Frame`] of flat records out. It interpolates between ticks,
 //! poses every soldier and vehicle (joint palettes included),
@@ -20,6 +21,8 @@ pub mod sound;
 pub mod static_world;
 pub mod units;
 pub mod view;
+pub mod wave;
+pub mod wind;
 pub mod world;
 
 pub(crate) mod appearance;

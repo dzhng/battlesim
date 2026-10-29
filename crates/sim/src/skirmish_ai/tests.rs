@@ -858,7 +858,7 @@ fn nearest_air_target_uses_body_distance_in_three_dimensions() {
         json!({ "mounts": [{ "id": "AA", "name": "AA", "weapons": ["aa_long"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }] }),
     );
     authored["weapons"]["aa_long"]["targets"]["low_air"] =
-        json!({ "classes": ["air_rotor", "air_fixed_wing"] });
+        json!({ "classes": ["air_rotor", "air_fixed_wing"], "range_m": 5200, "scatter_mrad": 0.5 });
     let rules: Rules = serde_json::from_value(authored.clone()).unwrap();
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
@@ -1476,6 +1476,7 @@ fn artillery_frame() -> (Rules, ObservationFrame, EntrySite) {
     authored["weapons"]["hmg"]["trajectory"] = json!("indirect");
     authored["weapons"]["hmg"]["min_range_m"] = json!(50);
     authored["weapons"]["hmg"]["range_m"] = json!(500);
+    authored["weapons"]["hmg"]["targets"]["ground"]["range_m"] = json!(500);
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
         "rules":authored,"units":[{"side":"red","kind":"test_jeep","position":[100,100]}],
@@ -1837,13 +1838,12 @@ fn a_jet_keeps_its_target_while_the_side_still_sees_it() {
 /// a ground point is no target to close on, so nothing else moves it.
 /// After its tuning's `relocate_after_s` of that, the AI orders it about
 /// `relocate_m` off, clear of the wall, and from there it fires. The
-/// policy reads the battle's own frames and its orders go through the
-/// ordinary admission, as the skirmish host plays it.
 #[test]
 fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
     let mut rules = deck();
     rules["weapons"]["test_launcher"] = json!({
         "extends": "artillery_mortar", "speed_mps": 80, "range_m": 650,
+        "targets": { "ground": { "range_m": 650, "scatter_mrad": 26 } },
         "requires_clear_launch_path": true,
     });
     rules["service"]["round_costs"]["test_launcher"] = json!(1);
@@ -1924,9 +1924,6 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
     );
 }
 
-/// What the AI counts as able to fight an aircraft is what its weapons
-/// engage, by the aircraft's class: a gun whose low-air layer lists only
-/// `missile` shoots down rounds there, never a helicopter.
 #[test]
 fn a_row_that_shoots_down_missiles_alone_is_no_defence_against_aircraft() {
     let defends = |classes: Value| {

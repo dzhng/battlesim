@@ -3,8 +3,8 @@ use presentation::static_world::ground::mesh;
 
 #[test]
 fn mesh_ranges_route_camera_and_cascades_without_full_mesh_fallback() {
-    let local = mesh::water(&[0., 0., 0.5, 0.25]);
-    let remote = mesh::water(&[1024., 0., 0.5, 0.25]);
+    let local = mesh::water(&[0., 0., 0.5, 0.25, 0., 0., 0., 0.]);
+    let remote = mesh::water(&[1024., 0., 0.5, 0.25, 0., 0., 0., 0.]);
     let words = [remote.clone(), local.clone()].concat();
     let partition = std::sync::Arc::new(TerrainPartition::new(&words, CELL_M));
     // Only the GPU allocation is omitted: prepare and ranges are the methods

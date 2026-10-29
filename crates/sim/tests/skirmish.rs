@@ -983,7 +983,6 @@ fn against_an_opponent_with(extra: serde_json::Value) -> contract::scenario::Sce
     setup
 }
 
-/// The basic opponent whose deck also holds a helicopter.
 fn against_an_opponent_with_a_helicopter() -> contract::scenario::ScenarioDefinition {
     against_an_opponent_with(json!({ "units": { "red_test_heli": {
         "extends": "test_heli",
@@ -997,7 +996,7 @@ fn against_an_opponent_with_artillery() -> contract::scenario::ScenarioDefinitio
     let mut rules = deck();
     rules["weapons"]["hmg"]["trajectory"] = json!("indirect");
     rules["weapons"]["hmg"]["min_range_m"] = json!(50.0);
-    rules["weapons"]["hmg"]["range_m"] = json!(500.0);
+    common::json_ground_reach(&mut rules["weapons"]["hmg"], 500.0);
     rules["catalog"].as_array_mut().unwrap().push(json!({ "units": { "red_test_jeep": {
         "extends": "test_jeep",
         "roles": ["artillery"],

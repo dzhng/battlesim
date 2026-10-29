@@ -77,11 +77,7 @@ import {
 import { type FogRequest } from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
-import {
-  graphicsProfiles,
-  sceneMinimumProfile,
-  type GraphicsQualityProfile,
-} from "./graphicsSettings";
+import { testQualityProfile, type GraphicsQualityProfile } from "./graphicsSettings";
 
 const NO_MODELS: readonly ModelInstance[] = [];
 const NO_INSTANCES: readonly SceneInstance[] = [];
@@ -308,21 +304,7 @@ export function LabViewport({
   }, [inputEnabled]);
   const pilotRef = useRef(pilot);
   const cameraConfigRef = useRef(cameraConfig);
-  // Verification can request a test-only renderer without adding a player-facing
-  // setting. Production builds ignore the query; the runner chooses minimum or
-  // player low for picture scenes.
-  const requestedTestQuality = new URLSearchParams(window.location.search).get("test-quality");
-  const testQuality =
-    import.meta.env.DEV &&
-    (requestedTestQuality === "minimum" ||
-      requestedTestQuality === "low" ||
-      requestedTestQuality === "medium" ||
-      requestedTestQuality === "high")
-      ? requestedTestQuality === "minimum"
-        ? sceneMinimumProfile
-        : graphicsProfiles[requestedTestQuality]
-      : undefined;
-  const effectiveQuality = quality ?? testQuality;
+  const effectiveQuality = quality ?? testQualityProfile(window.location.search);
   const qualityRef = useRef(effectiveQuality);
   const qualityKey = effectiveQuality ? JSON.stringify(effectiveQuality) : "";
   const previousQualityKey = useRef(qualityKey);
@@ -724,6 +706,7 @@ export function LabViewport({
                 grassDensity: world.grass ? (quality?.grassDensity ?? 1) : undefined,
                 paint: gamePaint,
                 xrayMinHiddenFraction: gameXrayMinHiddenFragmentFraction,
+                waterDetail: quality?.waterDetail,
               },
               detail: JSON.parse(gameModelDetail),
               overlayGlow: gameOverlayGlow,

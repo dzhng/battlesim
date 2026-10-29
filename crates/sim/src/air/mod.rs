@@ -40,7 +40,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         .air
         .as_ref()
         .and_then(|a| a.afterburner)
-        .map_or((1.0, 1.0), |a| (a.speed_multiplier, a.fuel_multiplier));
+        .map_or((1.0, 1.0), |a| (a.speed_factor, a.fuel_factor));
     let burner_mult = boost.0;
     let fuel_mult = if afterburner { boost.1 } else { 1.0 };
     let cruise = flight.cruise_mps;

@@ -86,6 +86,25 @@ pub(super) fn sight() -> LayoutSpec {
                     multisampled: false,
                 },
             ),
+            // What lies under the water: the world's depth, its colour before
+            // the water with its sampler, the guard, and the wave field.
+            entry(
+                9,
+                ShaderStages::FRAGMENT,
+                BindingType::Texture {
+                    sample_type: TextureSampleType::Depth,
+                    view_dimension: TextureViewDimension::D2,
+                    multisampled: true,
+                },
+            ),
+            entry(10, ShaderStages::FRAGMENT, float_texture()),
+            entry(
+                11,
+                ShaderStages::FRAGMENT,
+                BindingType::Sampler(SamplerBindingType::Filtering),
+            ),
+            entry(12, ShaderStages::FRAGMENT, float_texture()),
+            entry(13, ShaderStages::FRAGMENT, float_texture()),
         ],
     )
 }

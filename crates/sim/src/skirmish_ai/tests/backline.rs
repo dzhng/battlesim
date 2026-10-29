@@ -125,7 +125,7 @@ fn air_defence_holds_behind_its_group_and_beside_its_artillery() {
         );
         let post = goal(&order_for(&frame, &orders, 0));
         assert!(
-            (post[0] - 620.0).hypot(post[1] - 120.0) < 1.0,
+            libm::hypot(post[0] - 620.0, post[1] - 120.0) < 1.0,
             "push={force_advance}: beside the artillery at [620, 120]: {post:?}"
         );
     }

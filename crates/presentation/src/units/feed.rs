@@ -109,7 +109,7 @@ impl ObservationFeed {
                 }
                 let gap = self.last_tick >= 0.0 && o.tick != self.last_tick + 1.0;
                 self.last_tick = o.tick;
-                let publication = self.effects.publication(o, units, effects);
+                let publication = self.effects.publication(o, units, effects, None);
                 for l in self.launches.note(&publication, gap, None) {
                     let Some(soldier) = l.soldier else { continue };
                     let counts = self.shots.entry(soldier.to_bits()).or_default();

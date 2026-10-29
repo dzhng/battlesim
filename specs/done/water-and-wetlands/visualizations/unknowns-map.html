@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Water and wetlands: the unknowns map</title>
+<style>
+:root{--fg:var(--foreground,#dde3e5);--mu:var(--muted-foreground,#8c9a9f);--bd:var(--border,#2c3539);--cd:var(--card,#151b1e);--ac:var(--info,#5fb8d8);--ok:var(--success,#6fc27f);--wn:var(--warning,#d8b25f);--dg:var(--destructive,#e07a6a);--cb:var(--code-background,#0c1012)}
+*{box-sizing:border-box}body{margin:0;color:var(--fg);font:14px/1.5 var(--font-sans,system-ui,sans-serif)}
+h2{font-size:15px;margin:26px 0 8px;color:var(--ac)}h2 small{color:var(--mu);font-weight:400}
+.quad{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 8px}
+.q{border:1px solid var(--bd);border-radius:var(--radius,6px);padding:12px;background:var(--cd)}
+.q b{display:block;font-size:13px;margin-bottom:2px}.q span{color:var(--mu);font-size:12px}
+ul{margin:4px 0;padding-left:18px}li{margin:2px 0}
+code{font:12px var(--font-mono,ui-monospace,monospace);background:var(--cb);padding:0 4px;border-radius:3px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}td,th{border-top:1px solid var(--bd);padding:5px 6px;vertical-align:top;text-align:left}
+th{color:var(--mu);font-weight:500}td:first-child{color:var(--mu);width:28px}
+.who{font-size:11px;border-radius:3px;padding:0 5px;white-space:nowrap}
+.u{color:var(--ok);border:1px solid var(--ok)}.a{color:var(--wn);border:1px solid var(--wn)}.r{color:var(--ac);border:1px solid var(--ac)}.o{color:var(--dg);border:1px solid var(--dg)}
+details{border:1px solid var(--bd);border-radius:var(--radius,6px);padding:8px 12px;margin:6px 0;background:var(--cd)}
+summary{cursor:pointer;font-weight:600}
+.card{border-left:3px solid var(--bd);padding:4px 10px;margin:8px 0}.card.dec{border-color:var(--ok)}.card.sharp{border-color:var(--wn)}.card.open{border-color:var(--dg)}
+.card p{margin:2px 0;font-size:12.5px}.card .k{color:var(--mu)}
+textarea{width:100%;min-height:230px;background:var(--cb);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:10px;font:12px/1.5 var(--font-mono,ui-monospace,monospace)}
+button{margin-top:6px;background:var(--primary,#5fb8d8);color:var(--primary-foreground,#04161c);border:0;padding:7px 14px;border-radius:5px;font-weight:600;cursor:pointer}
+.note{color:var(--mu);font-size:12px}
+</style></head><body>
+
+<div class="quad">
+ <div class="q"><b>Known knowns</b><span>What the code and earlier decisions already settle</span></div>
+ <div class="q"><b>Known unknowns</b><span>31 decisions: 18 yours, 13 answered by the agent, plus 1 the code settled</span></div>
+ <div class="q"><b>Unknown knowns</b><span>Taste and context drawn out of you</span></div>
+ <div class="q"><b>Unknown unknowns</b><span>18 trap cards from three sweeps, including 2 bugs outside the feature</span></div>
+</div>
+<p class="note">The source of truth is <code>specs/done/water-and-wetlands/</code> (PR #15): <code>decisions.md</code> and the README's principles and invariants. This page summarises them.</p>
+
+<h2>1 · Known knowns</h2>
+<ul>
+ <li><b>Rivers block every ground unit.</b> There is no fording; bridges are the only crossing (<code>crates/sim/src/world/mod.rs</code> <code>ground_surface_at</code>).</li>
+ <li><b>Speed is one formula:</b> <code>Mobility::speed</code>, built from road, forest and slope, with craters applied after (<code>navigation.rs</code>). The route planner costs slow ground per tile in <code>SlowGround</code>.</li>
+ <li><b>Water is shaded in the main world pass</b> with read-only depth and no copy of the scene colour. Its transparency comes from distance to the river's edge (<code>worldPass.ts</code>, <code>terrainMaterial.ts</code>).</li>
+ <li><b>Native runs the browser's exported shaders</b> and reads the export strictly (<code>crates/pipelines</code>, <code>native/client</code>).</li>
+ <li><b>There are two winds:</b> grass at 35° and smoke at about 27°. Trees don't sway.</li>
+ <li><b>Dust is emitted only for hulls the side can see</b> (<code>effects/frame.rs</code> <code>note_movers</code>), which is the model for wakes.</li>
+ <li><b>Sight is a ray over the terrain</b> from the eye (1.6 m for infantry, the hull's <code>eye_m</code> for vehicles) to a point 1 m up, or to the target's body (<code>visibility.rs</code>, <code>sensing.rs</code>). No swamp logic is needed.</li>
+ <li><b>We are not adopting RedGPU.</b> We port its MIT-licensed techniques, pinned to tag <code>95aaf9a</code>.</li>
+</ul>
+
+<h2>2 · Known unknowns <small>the decision ledger</small></h2>
+<p class="note">Labels: <span class="who u">you</span> <span class="who a">agent for you</span> <span class="who r">code</span>. When the agent answered, these confirmed preferences guided it: easy to balance; a filmic difference earns a number when it changes the right unit for the job; real-looking land; emergent behaviour over hard-coded rules; otherwise the recommendation; several picks mean variants. You opted in, except for concealment.</p>
+<details open><summary>Terrain and rule (1–8, 21–23, 29–30)</summary><table>
+<tr><td>1</td><td>Swamps carve their own shallow dip, through the existing river carving (<code>carve.rs</code>).</td><td><span class="who u">you</span></td></tr>
+<tr><td>2</td><td>Speed comes from being in a swamp, not from its depth; the whole area slows by the same factor.</td><td><span class="who u">you</span></td></tr>
+<tr><td>3</td><td>One factor per drive (foot, wheeled, tracked): three numbers. Trucks bog down worse than tanks.</td><td><span class="who u">you</span></td></tr>
+<tr><td>4</td><td>Roads always keep road speed and are never carved. Where a swamp and a forest overlap, the slower factor applies.</td><td><span class="who u">you</span></td></tr>
+<tr><td>5</td><td>Swamps sit in flat ground near rivers, with a chance per map type, and stay clear of towns and bridge approaches.</td><td><span class="who u">you</span></td></tr>
+<tr><td>6</td><td>No concealment rule. The dip hides only what the ordinary sight rules say, which is marginal at the chosen depth.</td><td><span class="who u">you</span></td></tr>
+<tr><td>7</td><td>Swamps take no track marks. <span class="note">Preference: one rule for water.</span></td><td><span class="who a">agent</span></td></tr>
+<tr><td>8</td><td>A hull in water raises no dust and makes a wake instead. <span class="note">Preference: the filmic picture.</span></td><td><span class="who a">agent</span></td></tr>
+<tr><td>21</td><td>Swamps have wide, soft edges, checked when the map loads, so the slope penalty doesn't add to the swamp's. The sight test runs on a dedicated test dip. <span class="note">Preference: easy to balance.</span></td><td><span class="who a">agent</span></td></tr>
+<tr><td>22</td><td>A swamp is at least about three height cells (12 m) across. <span class="note">Why: the 4 m grid can't carve smaller, and speed is sampled at a hull's centre.</span></td><td><span class="who a">agent</span></td></tr>
+<tr><td>23</td><td>Rounds burst at the surface and make a splash; no craters. <span class="note">Preference: one rule for water.</span></td><td><span class="who a">agent</span></td></tr>
+<tr><td>29</td><td>Puddles are look only. The ground walk scatters them, so they change no digest, and they still make splashes.</td><td><span class="who u">you</span></td></tr>
+<tr><td>30</td><td>Swamp depth is about 0.6 m, chosen so units look right standing in it (water to the thighs).</td><td><span class="who u">you</span></td></tr>
+</table></details>
+<details><summary>Look (9–16, 24–28)</summary><table>
+<tr><td>9</td><td>Rivers come in two looks: temperate green-grey and murky lowland. No turquoise.</td><td><span class="who u">you</span></td></tr>
+<tr><td>10</td><td>Swamps come in two looks: flooded meadow and low reed marsh, with knee-high reeds.</td><td><span class="who u">you</span></td></tr>
+<tr><td>11</td><td>Puddles come in two looks: muddy and mirror.</td><td><span class="who u">you</span></td></tr>
+<tr><td>12</td><td>Variants are chosen per area by weights in the biome data, and only change the look.</td><td><span class="who u">you</span></td></tr>
+<tr><td>13</td><td>Wakes make rings, plus a V-wake once the unit moves, chosen by speed.</td><td><span class="who u">you</span></td></tr>
+<tr><td>14</td><td>The wake area follows the camera at tactical size and fades out at far zoom. <span class="note">Size set by a cost probe.</span></td><td><span class="who a">agent</span></td></tr>
+<tr><td>15</td><td>No screen-space reflections in the first version; reconsidered on the low-angle shots.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>16</td><td>Normal maps are generated in a shader at load. <span class="note">Why: RedGPU's maps carry no licence.</span></td><td><span class="who a">agent</span></td></tr>
+<tr><td>24</td><td>A wake can outlive sight for a few seconds; the waves clear on a side switch or reload.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>25</td><td>Water is drawn single-sampled after the resolve, unless the cost probe favours keeping MSAA. Glass moves after water.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>26</td><td>The shared wind keeps the grass's 35° heading; smoke turns about 8° to match.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>27</td><td>Variants are seeded from the biome seed plus each river's or swamp's identity.</td><td><span class="who a">agent</span></td></tr>
+<tr><td>28</td><td>Mirror puddles go on roads and paving; muddy puddles go on country roads, dirt tracks and fields.</td><td><span class="who a">agent</span></td></tr>
+</table></details>
+<details><summary>Scope and acceptance (17–20, 31)</summary><table>
+<tr><td>17</td><td>Water must look its best at close (~65 m), tactical (~260 m) and low angles.</td><td><span class="who u">you</span></td></tr>
+<tr><td>18</td><td>The Low setting drops refraction, caustics and wakes, and keeps the depth colour.</td><td><span class="who u">you</span></td></tr>
+<tr><td>19</td><td>Native always runs and gets as close to parity as each step allows; what's too hard goes to <code>specs/water-native</code>.</td><td><span class="who u">you</span></td></tr>
+<tr><td>20</td><td>Done means that side by side with RedGPU, at our camera, ours reads as good.</td><td><span class="who u">you</span></td></tr>
+<tr><td>31</td><td>A dedicated water capture scene (river plus swamp) holds the target shots. The menu reel is untouched.</td><td><span class="who u">you</span></td></tr>
+<tr><td>·</td><td>Rivers stay impassable, and no fording is added.</td><td><span class="who r">code</span></td></tr>
+</table></details>
+
+<h2>3 · Unknown knowns <small>what got drawn out</small></h2>
+<ul>
+ <li><b>"Same quality as RedGPU" means their techniques in our palette.</b> You picked temperate and murky water and rejected the tropical look. That reshaped decision 9.</li>
+ <li><b>Several picks mean variants on the map.</b> That became the variant rule (12, 27, 28).</li>
+ <li><b>You like emergent sight from terrain, and you rank how swamps look above balancing them.</b> That revised decisions 6 and 21, and gave 30.</li>
+ <li><b>Simplify where gameplay doesn't need it.</b> Puddles became look only (29), and the speed numbers dropped from six to three.</li>
+ <li><b>Native must keep running,</b> and parity is best-effort, with a follow-up spec for the overflow. That revised decision 19.</li>
+ <li><b>Who it's for:</b> play at close and tactical zoom, plus low cinematic angles (17). Far zoom only has to not look wrong.</li>
+</ul>
+
+<h2>4 · Unknown unknowns <small>trap cards, worst first</small></h2>
+<p class="note">Green: decided. Amber: a sharp edge the slice must handle. Red: open.</p>
+<div class="card dec"><b>Native refuses the whole export on any value it doesn't know.</b><p><span class="k">Evidence:</span> <code>native/client/src/pipelines.rs</code> uses <code>deny_unknown_fields</code>. Its tests build pipelines but never draw.</p><p><span class="k">Changes:</span> each step teaches native the new values, and a native draw check runs every step (decision 19).</p></div>
+<div class="card sharp"><b>The world pass discards its MSAA samples, and there's no depth resolve.</b><p><span class="k">Evidence:</span> <code>worldPass.ts</code> uses <code>storeOp: "discard"</code> (commit <code>54bc94c03</code>), and <code>lit</code> has no <code>COPY_SRC</code> usage.</p><p><span class="k">Changes:</span> slice 02 adds the copy seam. Resolve into <code>lit</code>, because Metal skips empty tiles and a new target would keep stale pixels.</p></div>
+<div class="card sharp"><b>Pass order is constrained.</b><p>The order must be opaque → copy → water → glass → effects. Glass currently draws after water and writes no depth.</p></div>
+<div class="card sharp"><b>Refraction samples colour before fog is applied.</b><p>This shows a seam at the fog edge. Copy the fog mask along with the colour.</p></div>
+<div class="card sharp"><b>Ground marks would show twice under water,</b> once on the bed and once on the water. One layer must own the paint.</div>
+<div class="card sharp"><b>The Low tier must be a uniform.</b><p>The export never varies quality, and the look data is spliced into the shader text, so it must move to uniforms.</p></div>
+<div class="card sharp"><b>The river scene's checks will fail.</b><p>A shore taken from depth follows the 4 m triangles. Re-judge those checks rather than loosening them.</p></div>
+<div class="card sharp"><b>The dip can silently not exist.</b><p><span class="k">Evidence:</span> <code>Carve</code> does nothing on a map with no river, and navigation only reads registered regions.</p></div>
+<div class="card sharp"><b>Swamps must not become a <code>SurfaceKind</code>.</b><p>They need their own map list, plus a field on the sim's <code>Surface</code> and on the navigation <code>Cell</code>.</p></div>
+<div class="card sharp"><b>There are five speed read sites.</b><p>Use one combined <code>SlowGround</code> channel per mover. <code>dense.rs</code> has its own copy of <code>speed()</code>.</p></div>
+<div class="card sharp"><b>Admission reads the land before carving.</b><p>New rules must keep swamps off buildings and bridge approaches, with a gap from river edges.</p></div>
+<div class="card sharp"><b>Every hash and fixture moves.</b><p>Use <code>skip_serializing_if</code> on the new map field, re-record the parity fixtures, bump the mapgen versions, and draw swamps from their own random stream.</p></div>
+<div class="card dec"><b>Rider wakes.</b><p>A squad inside an APC stands at the APC's position, so it would leave rings. Skip units that are being carried.</p></div>
+<div class="card sharp"><b>The wake decision can't see feet or water yet.</b><p>Add member positions and a water lookup to the mover record. Decide wakes per tick, not from the frame-rate-dependent gait.</p></div>
+<div class="card dec"><b>The wave state lives outside presentation's resets.</b><p>Presentation publishes the step count and a reset counter, and the waves clear on a side switch (decision 24). Captures warm up for a fixed number of steps.</p></div>
+<div class="card sharp"><b>Unifying the wind re-records test data.</b><p>It changes <code>grass-vectors</code>, <code>effect-vectors</code> and <code>exact-numbers.json</code> (compared as text).</p></div>
+<div class="card dec"><b>The reel has no water, so the tier check never pays for it.</b><p>The capture scene now holds the targets (decision 31). The tier check stays blind until a reel shot shows water.</p></div>
+<div class="card open"><b>Bugs found outside this feature.</b><p>Track wear is written under bridge decks, and the forest multipliers are unvalidated (a 0 divides by zero). Each needs its own commit. <span class="k">Unblocks on:</span> your go-ahead.</p></div>
+
+<h2>Confirm before coding</h2>
+<ul>
+ <li>The cost probe for single-sample water against keeping MSAA (decision 25).</li>
+ <li>The cost probe for the size of the wake area (decision 14).</li>
+ <li>The three swamp speed factors: a balance pass with battle reports, not tuned in the same pass.</li>
+ <li>The swamp depth and edge width, judged on screen with soldiers standing in the water (decision 30).</li>
+</ul>
+
+<h2>Plan</h2>
+<p class="note">Superseded: the walk's draft plan has been sliced. The build is closed; its record is <code>specs/done/water-and-wetlands/README.md</code>.</p>
+
+<h2>Next message <small>paste to start</small></h2>
+<textarea id="p">Run implement-spec on specs/water-and-wetlands on branch spec/water-and-wetlands (PR #15 to staging). Start at slice 00 (the water scene and the frozen RedGPU reference), and run slice 10 (swamp terrain) in parallel. decisions.md is a list of givens. Keep specs/water-native updated as native gaps appear, and push to the branch as you go.</textarea>
+<button onclick="navigator.clipboard.writeText(document.getElementById('p').value);this.textContent='Copied'">Copy</button>
+</body></html>

@@ -19,6 +19,7 @@ use crate::post::{PostMode, PostResources};
 use crate::scenery::Scenery;
 use crate::shadow::ShadowResources;
 use crate::sky::Sky;
+use crate::water::{WaterDetail, WaterPass, WaveField};
 use crate::world::WorldColour;
 use crate::xray::XrayResources;
 use crate::Targets;
@@ -62,6 +63,7 @@ pub enum FrameStage {
     Depth,
     FogSight,
     World,
+    Water,
     Effects,
     FogMask,
     Overlays,
@@ -70,11 +72,12 @@ pub enum FrameStage {
 }
 
 impl FrameStage {
-    pub const ORDER: [Self; 9] = [
+    pub const ORDER: [Self; 10] = [
         Self::SunShadow,
         Self::Depth,
         Self::FogSight,
         Self::World,
+        Self::Water,
         Self::Effects,
         Self::FogMask,
         Self::Overlays,
@@ -87,6 +90,7 @@ impl FrameStage {
             Self::Depth => "depth-prepass",
             Self::FogSight => "fog-sight",
             Self::World => "world",
+            Self::Water => "water",
             Self::Effects => "effects",
             Self::FogMask => "fog-mask",
             Self::Overlays => "overlays",
@@ -119,6 +123,9 @@ pub struct FrameInputs<'a> {
     pub effects: &'a EffectsResources,
     pub fog: &'a Fog,
     pub fog_mask: &'a FogMaskResources,
+    pub water: &'a WaterPass,
+    pub water_detail: WaterDetail,
+    pub waves: &'a WaveField,
     pub post: &'a PostResources,
     pub overlays: &'a OverlayResources,
     pub overlay_geometry: Geometry<'a>,
@@ -199,6 +206,13 @@ impl FrameRenderer {
                 }
                 FrameStage::FogSight => inputs.fog.encode(encoder),
                 FrameStage::World => self.world.encode(inputs, encoder),
+                FrameStage::Water => {
+                    inputs.waves.encode(encoder);
+                    if inputs.frame_view != FrameView::GroundClasses {
+                        let refracted = inputs.water_detail == WaterDetail::Full;
+                        inputs.water.encode(inputs, encoder, refracted);
+                    }
+                }
                 FrameStage::Effects => {
                     if inputs.frame_view != FrameView::GroundClasses {
                         inputs.effects.encode(encoder, inputs.targets);

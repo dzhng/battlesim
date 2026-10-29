@@ -11,6 +11,7 @@ use crate::math::{v2, v3, V2};
 use crate::sight::Sight;
 use crate::world::WorldGeometry;
 use contract::encounter::EncounterSites;
+use contract::movement::Locomotion;
 use contract::scenario::Rules;
 
 /// The unit type whose sight is the standard infantry sight: the test rifle
@@ -48,7 +49,7 @@ pub fn open_share(
     let mut open = 0;
     for index in 0..bearings {
         let angle = index as f64 / bearings as f64 * std::f64::consts::TAU;
-        let (dx, dy) = (angle.cos(), angle.sin());
+        let (dx, dy) = (libm::cos(angle), libm::sin(angle));
         // To full range, or to just inside the map's edge.
         let mut reach = sight.range_at(angle) - 0.01;
         for (from, along, limit) in [(at.x, dx, width), (at.y, dy, depth)] {
@@ -74,10 +75,14 @@ pub fn open_share(
     Some(open as f64 / bearings as f64)
 }
 
-/// Whether `p` is open ground: dry, outside every settlement's outline and
-/// off forest ground (a wood, a copse or a tree line), with no body on it.
+/// Whether `p` is open ground: dry (no river or swamp water), outside every
+/// settlement's outline and off forest ground (a wood, a copse or a tree
+/// line), with no body on it.
 pub fn open_ground(world: &WorldGeometry, sites: &EncounterSites, p: V2) -> bool {
     world.traversable_at(p.x, p.y)
+        && world
+            .ground_surface_at(p.x, p.y)
+            .is_some_and(|s| !s.standing_water())
         && !world.forest_ground(p.x, p.y)
         && world.props_near(p, 1.0).is_empty()
         && !sites
@@ -229,6 +234,13 @@ pub fn admit_skirmish(
             {
                 return Err(format!("objective {} reaches forest ground", objective.id));
             }
+            if q.map
+                .swamps
+                .iter()
+                .any(|s| s.inside(objective.center) > -objective.radius_m)
+            {
+                return Err(format!("objective {} reaches swamp water", objective.id));
+            }
             let mut journeys = Vec::new();
             for &kind in &representatives {
                 let mobility = ground(rules.catalog.get(kind), rules);
@@ -368,7 +380,14 @@ pub fn admit_skirmish(
             let Some(second) = q.world.ground_surface_at(b.center[0], b.center[1]) else {
                 continue;
             };
-            if first.kind != second.kind || first.road_factor != second.road_factor {
+            // Paired objectives stand on ground every locomotion crosses alike.
+            let pace = |s: &crate::world::Surface| {
+                Locomotion::ALL.map(|l| {
+                    s.paved
+                        .map_or(0.0, |k| q.world.speed_factors().of(l).surfaces.of(k))
+                })
+            };
+            if first.kind != second.kind || pace(&first) != pace(&second) {
                 continue;
             }
             let mut score: f64 = 0.0;

@@ -324,6 +324,7 @@ impl Run {
             xray_min_hidden_fraction: None,
             paint: None,
             separate_high_air: false,
+            water_detail: Default::default(),
             controls: Default::default(),
         };
         let mut scene = Runtime::new(

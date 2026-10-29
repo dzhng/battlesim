@@ -1,4 +1,4 @@
-/** Diagnostic observation contract for labs inspecting canonical presentation. */
+// The last frame as the labs' scenes probe it (`Presentation::probe_json`).
 import type { Articulation } from "@packages/scene-assets/src/articulation";
 
 type P3 = [number, number, number];

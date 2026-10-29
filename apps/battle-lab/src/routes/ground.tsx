@@ -312,7 +312,8 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
           last seen. Stronger marks are more opaque; a cell shows its first shown channel.
           <br />
           Craters: {game.cover.crater} cover for infantry once {game.cover.crater_min_fill * 100}%
-          full · vehicles ×{game.ground.crater_vehicle_mult} over a full crater. Scorch, tracks and
+          full · tracks ×{game.movement.speed_factors.tracked.crater}, wheels ×
+          {game.movement.speed_factors.wheeled.crater} over a full crater. Scorch, tracks and
           trampling change nothing.
         </div>
         {extra?.(observation)}

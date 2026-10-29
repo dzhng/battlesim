@@ -1,15 +1,18 @@
 //! A side's observation as the effects read it (`EffectPublication`): its
-//! visible flight and blasts, the shot counters and hulls of every unit the
-//! side sees (own units and identified enemies, apart by side key), the
+//! visible flight and blasts (a round landing in standing water splashes),
+//! the shot counters and hulls of every unit the side sees (own units and
+//! identified enemies, apart by side key) and where each wades, the
 //! downed airframes still falling (which smoke), and every wreck and part of
 //! a destroyed building it knows (which smoke, each with its kind's look).
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use sim::publication::reader::{Observation, WeaponPose};
+use sim::publication::reader::{Observation, Projectile, WeaponPose};
 
 use crate::seed::side_key;
+use crate::static_world::ground::water::StandingWater;
+use crate::units::riding;
 use crate::world::{EffectsSection, MountMuzzle, UnitsSection, Vec3};
 
 /// A visible stretch of one round's flight this tick.
@@ -21,7 +24,8 @@ pub struct Segment {
     pub kind: Arc<str>,
     /// The soldier who fired it, or None for a vehicle's gun.
     pub shooter: Option<f64>,
-    /// What it struck at the path's end: none, ground, hull, prop or soldier.
+    /// What it struck at the path's end: none, ground, water, hull, prop,
+    /// soldier or metal_prop.
     pub hit: Arc<str>,
     pub normal: Option<Vec3>,
 }
@@ -66,6 +70,17 @@ pub struct Shooter {
     pub yaw: f64,
     pub members: Vec<Option<f64>>,
     pub mounts: Vec<Mount>,
+    /// Where it stands in water: its hull's centre, or each soldier in it.
+    #[serde(default)]
+    pub wading: Vec<Wading>,
+}
+
+/// A hull's centre or a soldier standing in water, on its surface, and how
+/// deep the water stands there.
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct Wading {
+    pub at: Vec3,
+    pub depth_m: f64,
 }
 
 /// Something the side knows smokes: a wreck today.
@@ -103,6 +118,16 @@ pub struct EffectPublication {
     /// Own aircraft flare releases observed since the previous publication.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub flare_deploys: Vec<Vec3>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub grinds: Vec<Grind>,
+}
+
+/// Where a hull grinds a metal body it shoves this tick, and the way it
+/// drives.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Grind {
+    pub point: Vec3,
+    pub heading: [f64; 2],
 }
 
 /// Reads observations into effect publications for one side.
@@ -128,6 +153,7 @@ impl EffectFeed {
         o: &Observation,
         units: &UnitsSection,
         effects: &EffectsSection,
+        water: Option<&StandingWater>,
     ) -> EffectPublication {
         let own_even = true;
         let mut flare_deploys = Vec::new();
@@ -179,11 +205,12 @@ impl EffectFeed {
                         }
                     })
                     .collect(),
+                wading: vec![],
             }
         };
         let mut shooters = Vec::with_capacity(o.own.len() + o.identified.len() + o.crashes.len());
         for u in &o.own {
-            shooters.push(shooter(
+            let mut s = shooter(
                 side_key(u.id, own_even),
                 &u.kind,
                 u.position,
@@ -191,10 +218,14 @@ impl EffectFeed {
                 &u.member_ids,
                 &u.weapon_poses,
                 u.smoking,
-            ));
+            );
+            if !riding(u) {
+                s.wading = wading(water, &s, &u.members);
+            }
+            shooters.push(s);
         }
         for e in &o.identified {
-            shooters.push(shooter(
+            let mut s = shooter(
                 side_key(e.id, !own_even),
                 &e.kind,
                 e.position,
@@ -202,7 +233,9 @@ impl EffectFeed {
                 &e.member_ids,
                 &e.weapon_poses,
                 e.smoking,
-            ));
+            );
+            s.wading = wading(water, &s, &e.members);
+            shooters.push(s);
         }
         // A downed airframe smokes all the way down, keyed as it was alive.
         for c in &o.crashes {
@@ -254,7 +287,7 @@ impl EffectFeed {
                         .collect(),
                     kind: p.kind.clone(),
                     shooter: p.shooter_member,
-                    hit: p.hit.clone(),
+                    hit: splashed(water, p),
                     normal: p.impact_normal,
                 })
                 .collect(),
@@ -271,11 +304,56 @@ impl EffectFeed {
             smokes,
             cook_offs: Vec::new(),
             flare_deploys,
+            grinds: o
+                .grinds
+                .iter()
+                .map(|g| Grind {
+                    point: g.point,
+                    heading: g.heading,
+                })
+                .collect(),
         }
     }
 
     /// Whether the presented side is blue (own ids even, the enemy's odd).
     pub fn blue(&self) -> bool {
         self.blue
+    }
+}
+
+/// Where `s` stands in `water`: a hull on the ground at its centre, else
+/// each of its soldiers (`members`) in it (`StandingWater::under`: below
+/// its surface, so not on a deck over it), on the water's surface.
+fn wading(water: Option<&StandingWater>, s: &Shooter, members: &[Vec3]) -> Vec<Wading> {
+    let Some(water) = water.filter(|_| !s.airborne) else {
+        return vec![];
+    };
+    let centre = [s.position];
+    let points = if s.half.is_some() {
+        &centre[..]
+    } else {
+        members
+    };
+    points
+        .iter()
+        .filter_map(|&[x, y, z]| {
+            let wet = water.under([x, y, z])?;
+            Some(Wading {
+                at: [x, y, wet.surface_z],
+                depth_m: wet.depth_m,
+            })
+        })
+        .collect()
+}
+
+/// What round `p` struck: water where it lands on the ground in `water`
+/// (the simulation stops it on the surface, as on ground, so it is looked
+/// for just under where it stopped; a round on a deck over the water is
+/// dry), so it splashes.
+fn splashed(water: Option<&StandingWater>, p: &Projectile) -> Arc<str> {
+    let wet = |[x, y, z]: Vec3| water.is_some_and(|w| w.under([x, y, z - 0.05]).is_some());
+    match p.path.last() {
+        Some(&end) if &*p.hit == "ground" && wet(end) => "water".into(),
+        _ => p.hit.clone(),
     }
 }

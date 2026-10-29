@@ -25,15 +25,16 @@
         }
       },
       "mobility": { "air": { "cruise_kmh": 650, "turn_deg_s": 72, "climb_mps": 30, "layer": "high_air", "flight": "fixed_wing", "arrival": { "delay_s": [15, 30] } } },
-      "sensors": { "ground_m": 700, "high_air_m": 700, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
+      "sensors": { "ground_m": 700, "low_air_m": 700, "high_air_m": 700, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
       "capabilities": { "air": {
         "fuel_capacity_s": 180,
-        "afterburner": { "speed_multiplier": 1.5, "fuel_multiplier": 2.0 },
+        "afterburner": { "speed_factor": 1.5, "fuel_factor": 2.0 },
         "refund": { "health": 0.4, "ammunition": 0.3, "fuel": 0.3 }
       } },
       "mounts": [
         { "id": "gun", "name": "Forward Cannon", "weapons": ["air_gun"], "turret": false, "pivot_m": [0, 0, 1.8], "muzzle_m": [7, 0, 0] }
       ],
+      "concealment": 2.8,
       "sound": { "profile": "vehicle", "loudness_m": 900 },
       "appearance": "test_jet"
     },
@@ -61,11 +62,12 @@
           "wreck": "light_wreck"
         }
       },
-      "mobility": { "air": { "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6, "flight": "rotor" } },
-      "sensors": { "ground_m": 700, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
+      "mobility": { "air": { "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6, "layer": "low_air", "flight": "rotor" } },
+      "sensors": { "ground_m": 700, "low_air_m": 700, "high_air_m": 600, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
       "mounts": [
         { "id": "HMG", "name": "Door HMG", "weapons": ["hmg"], "turret": true, "pivot_m": [1.6, 1.12, 1.25], "muzzle_m": [1.2, 0, 0] }
       ],
+      "concealment": 2.8,
       "sound": { "profile": "vehicle", "loudness_m": 900 },
       "appearance": "test_heli"
     },
@@ -74,6 +76,7 @@
       "name": "Transport Heli",
       "description": "A utility helicopter with sixteen passenger seats.",
       "capabilities": { "carriage": { "seats": 16 } },
+      "concealment": 2.8,
       "roster": null
     }
   }

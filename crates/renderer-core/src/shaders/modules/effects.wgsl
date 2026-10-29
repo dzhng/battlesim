@@ -175,9 +175,6 @@ struct paintVertex_Output {
   @location(1) color: vec4f,
 }
 
-// @block effects_paint_alternate
-@group(3) @binding(7) var paint: texture_2d<f32>;
-
 // @block effects_paint_primary
 @group(2) @binding(7) var paint: texture_2d<f32>;
 

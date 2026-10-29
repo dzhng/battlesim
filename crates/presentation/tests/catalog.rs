@@ -279,8 +279,8 @@ fn battle_compatibility_requires_only_retained_clips_and_blends() {
         }],
         ..Default::default()
     };
-    driver.update(&feed(0.0, 0.0), &units);
-    driver.update(&feed(0.1, 0.4), &units);
+    driver.update(&feed(0.0, 0.0), &units, None);
+    driver.update(&feed(0.1, 0.4), &units, None);
     let pose = &driver.poses().soldiers[0];
     let current = pose.clip.to_string();
     let previous = pose

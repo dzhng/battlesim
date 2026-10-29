@@ -45,7 +45,7 @@ const groundOf = (of: Biome) =>
   presentGround(bareTerrain(new Float32Array(0), [0, 0, 64, 64], 4, of).input);
 
 /** Where `GrassParams`' growth rows and mixes start, in floats. */
-const GROWTH = 60;
+const GROWTH = 56;
 /** Floats a packed clump vertex (`ground::grass::SHAPE_FLOATS`); its tint
  *  from 12, its wind's weight at 15. */
 const SHAPE_FLOATS = 16;

@@ -33,6 +33,7 @@ use crate::scenery::Scenery;
 use crate::shadow::ShadowResources;
 use crate::sky::Sky;
 use crate::terrain::TerrainUpload;
+use crate::water::{WaterDetail, WaterPass, WaveField};
 use crate::xray::XrayResources;
 use crate::Targets;
 
@@ -48,6 +49,7 @@ pub struct RuntimeConfig {
     pub xray_min_hidden_fraction: Option<f32>,
     pub paint: Option<crate::paint::Paint>,
     pub separate_high_air: bool,
+    pub water_detail: WaterDetail,
     pub controls: Controls,
 }
 
@@ -83,6 +85,8 @@ pub struct Runtime {
     pub frame: FrameRenderer,
     pub post: PostResources,
     pub fog_mask: FogMaskResources,
+    pub water: WaterPass,
+    pub waves: WaveField,
     pub overlays: OverlayResources,
     pub xray: Option<XrayResources>,
     pub paint: Option<PaintResources>,
@@ -188,11 +192,14 @@ impl Runtime {
             &environment,
             world.effect_sheets,
         );
-        let mut fog = Fog::with_heights(device, queue, &pipelines, &targets.depth, &ground.heights);
+        let mut fog = Fog::with_heights(device, queue, &pipelines, &targets, &ground.heights);
         let paint = config.paint.map(|style| {
             fog.set_paint(device, queue, &targets.paint, &style);
             PaintResources::new(&pipelines)
         });
+        let waves = WaveField::new(device, &pipelines);
+        fog.set_waves(device, waves.view());
+        let water = WaterPass::new(device, &pipelines, &targets, fog.paint());
         let fog_mask = fog_mask::fog_mask(device, queue, &pipelines, &targets, &config.fog_look);
         let post = post::new(
             device,
@@ -241,6 +248,8 @@ impl Runtime {
             frame,
             post,
             fog_mask,
+            water,
+            waves,
             overlays,
             xray,
             paint,
@@ -254,6 +263,10 @@ impl Runtime {
             prepared_frame: None,
             pending_catalog_frame: None,
         };
+        runtime
+            .ground
+            .material
+            .set_water_detail(queue, runtime.config.water_detail);
         runtime.set_controls(queue, presentation, controls)?;
         Ok(runtime)
     }
@@ -334,6 +347,7 @@ impl Runtime {
         self.ground
             .prepare_scars(device, presentation, bounds, self.targets.size);
         self.fog.prepare(device, queue, presentation, &camera)?;
+        self.waves.prepare(queue, presentation.waves().as_ref());
         if changed {
             self.environment.set_cast_lights(
                 queue,
@@ -416,6 +430,9 @@ impl Runtime {
                 effects: &self.effects,
                 fog: &self.fog,
                 fog_mask: &self.fog_mask,
+                water: &self.water,
+                water_detail: self.config.water_detail,
+                waves: &self.waves,
                 post: &self.post,
                 overlays: &self.overlays,
                 overlay_geometry: geometry.overlay,
@@ -485,11 +502,12 @@ impl Runtime {
             bytemuck::cast_slice(&self.overlay_glow),
             true,
         );
-        self.fog.rebind_depth(device, &self.targets.depth);
+        self.fog.rebind_targets(device, &self.targets);
         if let Some(style) = self.config.paint {
             self.fog
                 .set_paint(device, queue, &self.targets.paint, &style);
         }
+        self.water = WaterPass::new(device, &self.pipelines, &self.targets, self.fog.paint());
         if let Some(xray) = &mut self.xray {
             xray.rebind_depth(device, &self.targets);
             xray.set_coverage_enabled(queue, self.config.controls.xray_coverage);
@@ -523,6 +541,7 @@ impl Runtime {
         self.sky.record_memory(memory);
         self.post.record_memory(memory);
         self.fog_mask.record_memory(memory);
+        self.waves.record_memory(memory);
         self.overlays.record_memory(memory);
         if let Some(xray) = &self.xray {
             xray.record_memory(memory);

@@ -1,5 +1,6 @@
 //! The production world policy: scar-page submissions, grass growth,
-//! sky, fogged materials, scenery, water and glass in one shared owner.
+//! sky, fogged materials, scenery and glass in one shared owner. Its passes
+//! resolve and keep their samples for the water after them.
 use crate::fog::Layer;
 use crate::frame::{FrameInputs, FrameView};
 use crate::models::Surface;
@@ -18,13 +19,7 @@ fn begin_world_pass<'a>(
     targets: &'a Targets,
     label: &'static str,
     first: bool,
-    kept: bool,
 ) -> RenderPass<'a> {
-    let store = if kept {
-        StoreOp::Store
-    } else {
-        StoreOp::Discard
-    };
     encoder.begin_render_pass(&RenderPassDescriptor {
         label: Some(label),
         color_attachments: &[
@@ -34,7 +29,7 @@ fn begin_world_pass<'a>(
                 resolve_target: Some(&targets.lit),
                 ops: Operations {
                     load: LoadOp::Load,
-                    store,
+                    store: StoreOp::Store,
                 },
             }),
             Some(RenderPassColorAttachment {
@@ -47,7 +42,7 @@ fn begin_world_pass<'a>(
                     } else {
                         LoadOp::Load
                     },
-                    store,
+                    store: StoreOp::Store,
                 },
             }),
         ],
@@ -117,13 +112,8 @@ impl WorldColour {
             for (index, (rect, upload)) in scars.region_uploads().iter().enumerate() {
                 scars.apply(queue, upload);
                 let mut region = inputs.device.create_command_encoder(&Default::default());
-                let mut pass = begin_world_pass(
-                    &mut region,
-                    inputs.targets,
-                    "ground-region",
-                    index == 0,
-                    true,
-                );
+                let mut pass =
+                    begin_world_pass(&mut region, inputs.targets, "ground-region", index == 0);
                 let [x, y, w, h] = *rect;
                 pass.set_scissor_rect(x, y, w, h);
                 ground.draw_terrain(&mut pass, &groups(inputs, Layer::PaintedGround));
@@ -134,7 +124,7 @@ impl WorldColour {
             scars.apply(queue, upload);
         }
         let drew = !scars.region_uploads().is_empty();
-        let mut pass = begin_world_pass(encoder, inputs.targets, "world", !drew, false);
+        let mut pass = begin_world_pass(encoder, inputs.targets, "world", !drew);
         if !regional {
             ground.draw_terrain(&mut pass, &groups(inputs, Layer::PaintedGround));
         }
@@ -170,7 +160,6 @@ impl WorldColour {
         }
         ground.draw_backdrop(&mut pass, &groups(inputs, Layer::PaintedGround));
         if inputs.frame_view != FrameView::GroundClasses {
-            ground.draw_water(&mut pass, &groups(inputs, Layer::PaintedFaces));
             let mut groups = inputs.environment.groups().to_vec();
             groups.push(inputs.models.group());
             self.glass.set(&mut pass, &groups);

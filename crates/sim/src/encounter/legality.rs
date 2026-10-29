@@ -73,17 +73,12 @@ fn hull_gap(a: &Obb2, b: &Obb2) -> f64 {
         return 0.0;
     }
     let from = |x: &Obb2, y: &Obb2| {
-        corners(x)
+        x.corners()
             .into_iter()
             .map(|c| y.distance(c))
             .fold(f64::INFINITY, f64::min)
     };
     from(a, b).min(from(b, a))
-}
-
-pub fn corners(o: &Obb2) -> [V2; 4] {
-    [(1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0)]
-        .map(|(x, y)| o.center + v2(o.half.x * x, o.half.y * y).rotated(o.yaw))
 }
 
 /// Exact distance (a square root, the same on every target).
@@ -140,7 +135,7 @@ pub fn stands_on(
     let inside = |p: V2| p.x >= 0.0 && p.y >= 0.0 && p.x <= world.width() && p.y <= world.depth();
     match footprint(t, rules, at, yaw) {
         Footprint::Hull(hull) => {
-            let c = corners(&hull);
+            let c = hull.corners();
             let mut points = vec![at];
             for k in 0..4 {
                 points.push(c[k]);

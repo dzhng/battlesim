@@ -96,7 +96,7 @@
 // @block passes_shared_placedVertex
 @vertex fn placedVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) pose: vec4f, @location(4) shape: vec4f, @location(5) tint: vec4f) -> placedVertex_Output {
   let local = vec3f((position.x * shape.x), (position.y * shape.y), (position.z * shape.z));
-  let world = placedPoint(local, pose);
+  let world = standing(local, pose, shape, f32(select(0i, 1i, (color.w > 0.5f))));
   return placedVertex_Output((cam.viewProj * vec4f(world, 1f)), world, placedNormal(normal, shape, pose.w), vec4f((color.xyz * tint.xyz), color.w), vec3f((local.x + tint.w), local.y, local.z), vec3f(pose.x, pose.y, (pose.z + shape.w)));
 }
 

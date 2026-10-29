@@ -48,6 +48,7 @@ struct Settings {
     grass_density: Option<f64>,
     paint: Option<renderer_core::paint::Paint>,
     xray_min_hidden_fraction: Option<f32>,
+    water_detail: Option<renderer_core::water::WaterDetail>,
     controls: Option<renderer_core::runtime::Controls>,
 }
 
@@ -107,6 +108,7 @@ impl Renderer {
                     paint: settings.paint,
                     xray_min_hidden_fraction: settings.xray_min_hidden_fraction,
                     separate_high_air: high_canvas.is_some(),
+                    water_detail: settings.water_detail.unwrap_or_default(),
                     controls: settings.controls.unwrap_or_default(),
                 },
             )

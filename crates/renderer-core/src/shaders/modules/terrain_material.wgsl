@@ -213,11 +213,12 @@ fn groundShore(xy: vec2f, footprint: f32, water: f32) -> vec3f {
   if ((out >= reach)) {
     return vec3f();
   }
-  let broad = valueNoise((turned(xy, 0.55f) * (*params_1).shoreEdge.y));
-  let scale = ((*params_1).shoreEdge.y * 3.1f);
-  let fine = mix(valueNoise(((turned(xy, 1.9f) * scale) + vec2f(41.70000076293945, 13.100000381469727))), 0.5f, smoothstep(0.3f, 1f, (footprint * scale)));
-  let line = (reach * (1f - ((*params_1).shoreEdge.x * mix(broad, fine, 0.4f))));
-  return vec3f((1f - smoothstep((wet * 0.4f), wet, out)), (1f - smoothstep(mix(wet, line, 0.65f), line, out)), (1f - smoothstep(wet, line, out)));
+  let t = (&(*params_1).shoreTuning);
+  let broad = valueNoise((turned(xy, (*t).turns.xy) * (*params_1).shoreEdge.y));
+  let scale = ((*params_1).shoreEdge.y * (*t).bands.z);
+  let fine = mix(valueNoise(((turned(xy, (*t).turns.zw) * scale) + vec2f(41.70000076293945, 13.100000381469727))), 0.5f, smoothstep((*t).fade.x, (*t).fade.y, (footprint * scale)));
+  let line = (reach * (1f - ((*params_1).shoreEdge.x * mix(broad, fine, (*t).bands.w))));
+  return vec3f((1f - smoothstep((wet * (*t).bands.x), wet, out)), (1f - smoothstep(mix(wet, line, (*t).bands.y), line, out)), (1f - smoothstep(wet, line, out)));
 }
 
 // @block terrain_material_groundShoulder_alternate
@@ -307,9 +308,6 @@ fn mottle(xy: vec2f, footprint: f32, across: vec2f, plot: f32, reach: vec2f) -> 
 
 // @block terrain_material_nodes
 @group(1) @binding(1) var<storage, read> nodes: array<PlotNode>;
-
-// @block terrain_material_paintStyle_alternate
-@group(3) @binding(6) var<uniform> paintStyle: GroundPaintStyle;
 
 // @block terrain_material_paintStyle_primary
 @group(2) @binding(6) var<uniform> paintStyle: GroundPaintStyle;
@@ -421,11 +419,13 @@ struct waterFragment_Input {
 }
 
 // @block terrain_material_waterNormal
-fn waterNormal(xy: vec2f, footprint: f32) -> vec3f {
-  let ex = vec2f(0.25, 0);
-  let ey = vec2f(0, 0.25);
-  let dx = (rippleHeight((xy + ex)) - rippleHeight((xy - ex)));
-  let dy = (rippleHeight((xy + ey)) - rippleHeight((xy - ey)));
-  let k = (0.18f * (1f - smoothstep(0.15f, 1.2f, footprint)));
-  return normalize(vec3f((-(dx) * k), (-(dy) * k), 1f));
+fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
+  let w = (&params.waterLooks[look]);
+  let carried = waterCarried();
+  let primary = waterLayer(xy, (*w).normals.x, vec2f(1, 0), (carried * (*w).drifts.x), (*w).normals.w, footprint);
+  let macro_1 = waterLayer(xy, (*w).normals.y, vec2f(0.824999988079071, 0.5649999976158142), (carried * (*w).drifts.y), (*w).normals.w, footprint);
+  let detail = waterLayer(xy, (*w).normals.z, vec2f(0.45399999618530273, -0.890999972820282), (carried * (*w).drifts.z), (*w).normals.w, footprint);
+  let n = blendRnm(blendRnm(macro_1, primary), detail);
+  let shown = (1f - smoothstep((*w).fades.y, (*w).fades.z, footprint));
+  return normalize(mix(vec3f(0, 0, 1), n, shown));
 }

@@ -175,11 +175,6 @@ fn rawShader(uv: vec2f) -> vec4f {
   return vec4f(texel.xyz, 1f);
 }
 
-// @block shared_math_rippleHeight
-fn rippleHeight(xy: vec2f) -> f32 {
-  return (valueNoise((xy * 0.3125f)) + (0.5f * valueNoise(((xy * 1.1111111111111112f) + vec2f(17.299999237060547, 5.099999904632568)))));
-}
-
 // @block shared_math_roadGrain
 fn roadGrain(p: vec2f, pixel: f32) -> f32 {
  let shown=vec4f(1.0)-smoothstep(vec4f(0.6),vec4f(1.2),pixel*vec4f(1.0,2.03,4.01,8.3));

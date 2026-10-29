@@ -27,7 +27,7 @@ use crate::records::{
     Joint, Pick, View as ViewRecord, GHOST_PASS, HIGH_PASS, NONE, VIEW_PASS,
 };
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
-use crate::shadow::{ReceiverStats, ShadowFit, SunShadowFrame};
+use crate::shadow::{aircraft_shadow, ReceiverStats, ShadowFit, SunShadowFrame};
 use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
 use crate::static_world::batches::StaticBatches;
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
@@ -53,6 +53,14 @@ use crate::view::{batch_caster, model_detail, model_fog, Camera, View, CULLED, I
 use crate::world::{
     bounds_size, Appearance, BattleInput, Bounds, Trs, UnitsSection, Vec3, WorldInput,
 };
+
+mod cameras;
+mod picks;
+mod probe;
+mod side_fog;
+mod taken;
+use side_fog::Fog;
+pub use side_fog::FogSetup;
 
 /// Publications kept for the effects while the world loads: two minutes at 30 Hz.
 const PENDING_MAX: usize = 3600;
@@ -213,46 +221,6 @@ pub struct Presentation {
     fog: Option<Fog>,
 }
 
-/// Where an aircraft's shadow lies: thrown along the sun (`shadow_fall`, per
-/// metre of height) from its actual height above the ground under it.
-pub fn aircraft_shadow(position: [f64; 3], ground_z: f64, shadow_fall: [f64; 2]) -> [f64; 3] {
-    let height = position[2] - ground_z;
-    [
-        position[0] + shadow_fall[0] * height,
-        position[1] + shadow_fall[1] * height,
-        ground_z,
-    ]
-}
-
-/// What a scene asks of fog of war (`Presentation::set_fog`).
-#[derive(Clone, Debug, Default, Deserialize)]
-pub struct FogSetup {
-    /// The rules' sensor numbers sight shares with the simulation.
-    pub sensors: Option<Sensors>,
-    /// The side's foliage (the simulation's export less what it has seen
-    /// cleared); none keeps the last, at first the ground's.
-    #[serde(skip)]
-    pub foliage: Option<Vec<f32>>,
-    /// A lab's stand-in for the publication's eyes.
-    pub eyes: Option<Vec<Eye>>,
-    /// Only these own units' eyes (a lab looking through one unit).
-    pub units: Option<Vec<f64>>,
-}
-
-/// The side's sight over the ground, and what it was last set from.
-struct Fog {
-    sight: FogSight,
-    sensors: Sensors,
-    eyes: Option<Vec<Eye>>,
-    units: Option<Vec<f64>>,
-    shown: bool,
-    /// The sight changed since the last frame (a new stand-in, fog shown).
-    dirty: bool,
-    /// The publication the eyes were last taken from, and the known props.
-    from: Option<Arc<Observation>>,
-    known_from: Option<Shared<KnownProp>>,
-}
-
 /// The layout's ground grid, learned blank.
 fn ground_of(layout: &str) -> Result<LearnedGround, String> {
     let layout: serde_json::Value = serde_json::from_str(layout).map_err(|e| e.to_string())?;
@@ -347,7 +315,7 @@ impl Presentation {
         }
         self.pending.clear();
         if let Some(loaded) = &mut self.loaded {
-            loaded.transits.clear();
+            loaded.forget();
         }
         Ok(())
     }
@@ -365,7 +333,7 @@ impl Presentation {
         self.interpolator.push(observation.clone(), arrived_s);
         self.latest = Some(observation.clone());
         match &mut self.loaded {
-            Some(loaded) => loaded.note(&observation),
+            Some(loaded) => loaded.note(&observation, self.ground.as_ref()),
             None => {
                 // Older than any effect lives: a battle's appearances load in seconds.
                 if self.pending.len() == PENDING_MAX {
@@ -564,11 +532,11 @@ impl Presentation {
         // what it saw destroyed) is drawn without waiting for the next.
         if self.pending.is_empty() {
             if let Some(o) = &self.latest {
-                loaded.note(o);
+                loaded.note(o, self.ground.as_ref());
             }
         }
         for o in self.pending.drain(..) {
-            loaded.note(&o);
+            loaded.note(&o, self.ground.as_ref());
         }
         self.loaded = Some(loaded);
         self.register_lab_rows();
@@ -761,114 +729,6 @@ impl Presentation {
         loaded
             .drawn
             .muzzle(crate::seed::side_key(unit, true), mount, None)
-    }
-
-    /// The last frame as the labs' scenes probe it, JSON: the effects'
-    /// state, instances and offered lights, the soldiers and vehicles as
-    /// posed, the corpses lying, and a cook-off's pieces.
-    pub fn probe_json(&self) -> String {
-        let Some(l) = &self.loaded else {
-            return "null".into();
-        };
-        let poses = l.driver.poses();
-        let units = &l.units;
-        let (mut locals, mut worlds) = (Vec::new(), Vec::new());
-        let name = |kind: &str,
-                    side: &str,
-                    id: f64,
-                    slot: usize,
-                    op: Option<usize>,
-                    active: Option<usize>| {
-            units
-                .resolve(kind, side, id, slot, op, active)
-                .unwrap_or("")
-                .to_owned()
-        };
-        let stats = l.effects.stats();
-        let lights = &l.batch.lights;
-        let looks = &l.input.effects.wreck_looks;
-        let pieces: Vec<_> = l
-            .pieces
-            .iter()
-            .filter_map(|p| {
-                let state = p.state?;
-                let _ = looks;
-                Some(serde_json::json!({
-                    "appearance": &*p.appearance,
-                    "state": state,
-                    "sunk": -p.motion.map_or(0.0, |m| m[14]),
-                }))
-            })
-            .collect();
-        serde_json::json!({
-            "effects": {
-                "live": stats.live,
-                "instances": stats.instances,
-                "dropped": stats.dropped,
-                "sources": stats.sources,
-                "tick": stats.tick,
-            },
-            "effectInstances": l.batch.data[..l.batch.count * EFFECT_FLOATS]
-                .chunks(EFFECT_FLOATS)
-                .map(|d| serde_json::json!({
-                    "shape": d[12],
-                    "at": [d[0], d[1], d[2]],
-                    "to": [d[4], d[5], d[6]],
-                    "rgb": [d[8], d[9], d[10]],
-                    "size": d[3],
-                    "rays": d[6],
-                }))
-                .collect::<Vec<_>>(),
-            "castLights": (0..lights.count)
-                .map(|i| {
-                    let r = &lights.data[i * 8..i * 8 + 8];
-                    serde_json::json!({
-                        "at": [r[0], r[1], r[2]],
-                        "radius": r[3],
-                        "rgb": [r[4], r[5], r[6]],
-                        "cause": &*lights.causes[i],
-                    })
-                })
-                .collect::<Vec<_>>(),
-            "lying": poses.corpses.iter().map(|c| c.soldier).collect::<Vec<_>>(),
-            "cookOffPieces": pieces,
-            "soldiers": poses.soldiers.iter().map(|s| serde_json::json!({
-                "appearance": name(&s.kind, &s.side, s.soldier, s.slot, s.operator_mount, s.active_mount),
-                "position": s.position,
-                "yaw": s.facing,
-                "clip": &*s.clip,
-                "phase": s.phase,
-                // His weapon's muzzle where his body draws it, crossfaded and kicked.
-                "muzzle": s.active_mount.and_then(|m| {
-                    crate::units::drawn::soldier_muzzle(units, &l.tables, s, m, &mut worlds)
-                }),
-            })).collect::<Vec<_>>(),
-            "vehicles": poses.vehicles.iter().map(|v| {
-                let a = v.articulation;
-                serde_json::json!({
-                    "appearance": name(&v.kind, &v.side, v.unit, 0, None, None),
-                    "position": v.position,
-                    "yaw": v.yaw,
-                    "tint": units.tints.get(&*v.side),
-                    "articulation": {
-                        "turret_yaw": a.turret_yaw, "gun_pitch": a.gun_pitch, "recoil": a.recoil,
-                        "hmg_yaw": a.hmg_yaw, "hmg_pitch": a.hmg_pitch, "travel_l": a.travel_l,
-                        "travel_r": a.travel_r, "deploy": a.deploy, "rotor": a.rotor,
-                        "rotor_blur": a.rotor_blur,
-                    },
-                    // Each mount's muzzle where the hull draws it, rocked and articulated.
-                    "muzzles": (0..units.types.get(&*v.kind).map_or(0, |t| t.roles.len()))
-                        .filter_map(|m| {
-                            let (name, at) = crate::units::drawn::vehicle_muzzle(
-                                units, v, m, &mut locals, &mut worlds,
-                            )?;
-                            Some(serde_json::json!({ "name": name, "at": at }))
-                        })
-                        .collect::<Vec<_>>(),
-                })
-            }).collect::<Vec<_>>(),
-        })
-        .to_string()
     }
 
     /// The map's ground, resolved from `source` under `biome` (its region's
@@ -1070,153 +930,6 @@ impl Presentation {
         }
     }
 
-    /// Draws the side's fog of war over the ground (none: everything seen):
-    /// its sight from its own units' eyes at each publication, cut by the
-    /// ground, the side's foliage and the occluders it knows. A lab may
-    /// stand eyes in for the publication's, or look through some units'.
-    pub fn set_fog(&mut self, setup: Option<FogSetup>) -> Result<(), String> {
-        let Some(setup) = setup else {
-            if let Some(fog) = &mut self.fog {
-                fog.shown = false;
-            }
-            return Ok(());
-        };
-        let ground = self
-            .ground
-            .as_ref()
-            .ok_or("fog of war is cut by a ground: set_ground first")?;
-        let sensors = match (setup.sensors, &self.fog) {
-            (Some(s), _) => s,
-            (None, Some(fog)) => fog.sensors,
-            (None, None) => return Err("fog: no sensor rules".into()),
-        };
-        let fresh = self.fog.as_ref().is_none_or(|f| {
-            let a = f.sensors;
-            (
-                a.fog_target_height_m,
-                a.foliage_full_block,
-                a.min_sight_gap_m,
-            ) != (
-                sensors.fog_target_height_m,
-                sensors.foliage_full_block,
-                sensors.min_sight_gap_m,
-            )
-        });
-        if fresh {
-            let mut sight = FogSight::new(ground.tuning.fog_geometry.clone())?;
-            sight.set_world(
-                SightWorld::of(&ground.source, sensors),
-                ground.source.foliage.clone(),
-            )?;
-            self.fog = Some(Fog {
-                sight,
-                sensors,
-                eyes: None,
-                units: None,
-                shown: true,
-                dirty: true,
-                from: None,
-                known_from: None,
-            });
-        }
-        let fog = self.fog.as_mut().unwrap();
-        if let Some(foliage) = setup.foliage {
-            fog.sight.set_foliage(foliage);
-        }
-        fog.dirty |= !fog.shown || fog.eyes != setup.eyes || fog.units != setup.units;
-        fog.eyes = setup.eyes;
-        fog.units = setup.units;
-        fog.shown = true;
-        Ok(())
-    }
-
-    /// One drawn frame's fog for `camera` (none: a probe's) over a
-    /// `width`×`height` target, with `probes` points to probe; none without
-    /// fog. The renderer uploads it as it is and runs its passes.
-    pub fn prepare_fog(
-        &mut self,
-        camera: Option<&crate::records::Camera>,
-        width: u32,
-        height: u32,
-        probes: u32,
-    ) -> Result<Option<FogUpload>, String> {
-        let Some(fog) = &mut self.fog else {
-            return Ok(None);
-        };
-        let latest = self.latest.clone();
-        // The side sees from its stand-in eyes, else its latest publication's.
-        let sighted = fog.shown && (fog.eyes.is_some() || latest.is_some());
-        let new = match (&fog.from, &latest) {
-            (Some(a), Some(b)) => !Arc::ptr_eq(a, b),
-            (None, None) => false,
-            _ => true,
-        };
-        if !sighted {
-            fog.sight.clear_sight();
-        } else if fog.dirty || new {
-            // Only a new publication or stand-in changes the sight: the
-            // eyes and what the side knows are taken then, not each frame.
-            let eyes = match (&fog.eyes, &latest) {
-                (Some(eyes), _) => eyes.clone(),
-                (None, Some(o)) => Eye::of_units(
-                    o.own
-                        .iter()
-                        .filter(|u| fog.units.as_ref().is_none_or(|ids| ids.contains(&u.id)))
-                        .map(|u| (u.id, &u.sight)),
-                ),
-                (None, None) => unreachable!("sighted"),
-            };
-            let group = latest.as_ref().map(|o| o.known_props.clone());
-            let changed = match (&group, &fog.known_from) {
-                (Some(a), Some(b)) => !Arc::ptr_eq(a, b),
-                (None, None) => false,
-                _ => true,
-            };
-            let known: Vec<KnownBox> = match (&group, changed) {
-                (Some(g), true) => g.iter().map(KnownBox::published).collect(),
-                _ => Vec::new(),
-            };
-            fog.sight
-                .set_sight(&eyes, changed.then_some(known.as_slice()))?;
-            fog.known_from = group;
-            fog.from = latest;
-            fog.dirty = false;
-        }
-        fog.sight.prepare(camera, width, height, probes).map(Some)
-    }
-
-    /// The renderer holds no fog (a new one): the next upload sends it all.
-    pub fn resend_fog(&mut self) {
-        if let Some(fog) = &mut self.fog {
-            fog.sight.resend();
-        }
-    }
-
-    /// Every eye's map rebuilds on the next frame (a cost probe).
-    pub fn rebuild_fog(&mut self) {
-        if let Some(fog) = &mut self.fog {
-            fog.sight.invalidate();
-        }
-    }
-
-    /// What the fog holds; none without fog.
-    pub fn fog_stats(&self) -> Option<FogStats> {
-        self.fog.as_ref().map(|f| f.sight.stats())
-    }
-
-    /// The eyes the fog sees from, as the last frame took them.
-    pub fn fog_eyes(&self) -> Vec<Eye> {
-        self.fog.as_ref().map_or_else(Vec::new, |f| f.sight.eyes())
-    }
-
-    /// The occluders the side's fog knows, in the order of the structures'
-    /// seen flags.
-    pub fn fog_occluders(&self) -> Vec<Occluder> {
-        self.fog
-            .as_ref()
-            .map_or_else(Vec::new, |f| f.sight.occluders())
-    }
-
     /// What to draw at presentation time `time` for `camera`, for a renderer
     /// at `generation`: a number it bumps whenever it holds no static batches
     /// (a new GPU frame, a new world, a jump), so a new one is written every
@@ -1246,8 +959,7 @@ impl Presentation {
         f.light_wrap = 0.0;
         let view = View::new(camera);
         f.view = view.record(camera);
-        f.camera = view.camera(camera, time);
-        f.shadow = self.shadow.as_mut().map(|fit| fit.frame(camera));
+        cameras::cameras(f, &view, &mut self.shadow, &self.ground, camera, time);
         self.follow_felled(time);
         self.follow_cleared();
         // A wreck the cook-off draws moving is left out of the props until
@@ -1277,7 +989,6 @@ impl Presentation {
             .write(&mut populations, camera, &view, generation, f);
         self.models.clear();
         if let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), sample) {
-            let f = &mut self.frame;
             f.tick = sample.observation.tick as u32;
             loaded.frame(
                 sample,
@@ -1298,26 +1009,6 @@ impl Presentation {
 }
 
 impl Loaded {
-    /// One publication noted for effects (and sound), with the hulls the
-    /// side watched brew up.
-    fn note(&mut self, o: &Observation) {
-        self.transits.note(
-            &o.air_transits,
-            o.tick,
-            self.input.tick_hz,
-            &self.input.units.transit,
-        );
-        let mut publication =
-            self.effect_feed
-                .publication(o, &self.input.units, &self.input.effects);
-        let effects = &self.input.effects;
-        publication.cook_offs =
-            self.cook_offs
-                .note(o, &self.input.units, effects, &effects.wreck_looks);
-        let launches = self.effects.note(&publication);
-        self.sound = Some((publication, launches));
-    }
-
     #[allow(clippy::too_many_arguments)]
     fn frame(
         &mut self,
@@ -1353,7 +1044,7 @@ impl Loaded {
             ..
         } = self;
         let time = sample.time;
-        let poses = driver.update(feed.frame(sample, units, &input.effects), units);
+        let poses = driver.update(feed.frame(sample, units, &input.effects), units, ground);
         drawn.update(poses);
         let rotors = drawn.rotors();
         let side: &str = &input.side;
@@ -1385,7 +1076,8 @@ impl Loaded {
                     Some(high_air_ground_shadow(at, yaw, *plan, height, &style))
                 }),
         );
-        effects.build(time, batch, Some(drawn), &rotors, shadows);
+        let wind = ground.map(|g| &g.biome.wind);
+        effects.build(time, batch, Some(drawn), &rotors, shadows, wind);
         let counts = effects.counts(time, batch);
         f.light_wrap = batch.lights.wrap as f32;
         lights.pack(&batch.lights, view);
@@ -1767,7 +1459,7 @@ impl Loaded {
             ));
         }
         f.counts.culled = culled;
-        picks(sample, units, input, f);
+        picks::picks(sample, units, input, f);
         emitters(o, poses, side, units, f);
     }
 }
@@ -1877,60 +1569,6 @@ fn pose_vehicle(
     let first = palettes.len() as u32;
     palettes.extend(worlds.iter().map(|w| joint(&skin::affine(w))));
     (first, track_scroll(rig, articulation))
-}
-
-/// The boxes of every drawn soldier and vehicle, for the UI's hit tests:
-/// a hull's box, else each soldier's (`bodyBox`), and each unit's drawn
-/// position as a box of no size.
-fn picks(sample: &FrameSample, units: &UnitsSection, input: &BattleInput, f: &mut Frame) {
-    let o = &sample.observation;
-    let kinds = o
-        .own
-        .iter()
-        .map(|u| (u.id, &u.kind, 1))
-        .chain(o.identified.iter().map(|e| (e.id, &e.kind, 2)));
-    let poses = sample.own.iter().chain(&sample.identified);
-    let by_id: HashMap<(u64, u32), &Arc<str>> = kinds
-        .map(|(id, kind, flag)| ((id.to_bits(), flag), kind))
-        .collect();
-    let soldier = input.soldier;
-    for (pose, flag) in sample
-        .own
-        .iter()
-        .map(|p| (p, 1))
-        .chain(sample.identified.iter().map(|p| (p, 2)))
-    {
-        let _ = &poses;
-        let Some(kind) = by_id.get(&(pose.id.to_bits(), flag)) else {
-            continue;
-        };
-        let aloft = units.types.get(&***kind).is_some_and(|t| t.airborne);
-        let flags = flag | if aloft { 4 } else { 0 };
-        let pick = |member: u32, at: Vec3, half: Vec3| Pick {
-            unit: pose.id as u32,
-            member,
-            flags,
-            pad: 0,
-            centre: [
-                at[0] as f32,
-                at[1] as f32,
-                (at[2] + half[2]) as f32,
-                pose.yaw as f32,
-            ],
-            half: [half[0] as f32, half[1] as f32, half[2] as f32, 0.0],
-        };
-        match input.effects.types.get(&***kind).and_then(|t| t.half) {
-            Some(hull) => f.picks.push(pick(NONE, pose.position, hull)),
-            None => {
-                f.picks.push(pick(NONE, pose.position, [0.0; 3]));
-                let half = [soldier.radius_m, soldier.radius_m, soldier.height_m / 2.0];
-                for (at, id) in pose.members.iter().zip(&pose.member_ids) {
-                    f.picks
-                        .push(pick(id.map_or(NONE, |id| id as u32), *at, half));
-                }
-            }
-        }
-    }
 }
 
 /// What audio hears move this frame: each drawn vehicle's tracks and

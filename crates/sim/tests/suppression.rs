@@ -334,6 +334,7 @@ fn suppression_widens_actual_launch_directions_at_each_tier() {
             ]));
             // Pin reach so only the suppression tier changes launch scatter.
             setup.rules.weapons.get_mut("rifle").unwrap().ballistics.range_m = 450.0;
+            setup.rules.weapons.get_mut("rifle").unwrap().targets.get_mut(&contract::catalog::AltitudeLayer::Ground).unwrap().range_m = 450.0;
             let mut b = Battle::new(&setup, seed);
             common::order(&mut b, Side::Blue, 1, Order::Attack { units: vec![UnitId(0)],
                 target: TargetRef::Ground { point: [400.0, 300.0, 0.0] } });

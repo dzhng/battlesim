@@ -465,10 +465,8 @@ fn triangleRuleHeight(h00: f32, h10: f32, h01: f32, h11: f32, u: f32, v: f32) ->
 }
 
 // @block shared_bindings_turned
-fn turned(xy: vec2f, turn: f32) -> vec2f {
-  let c = cos(turn);
-  let s = sin(turn);
-  return vec2f(((xy.x * c) + (xy.y * s)), ((xy.y * c) - (xy.x * s)));
+fn turned(xy: vec2f, turn: vec2f) -> vec2f {
+  return vec2f(((xy.x * turn.x) + (xy.y * turn.y)), ((xy.y * turn.x) - (xy.x * turn.y)));
 }
 
 // @block shared_bindings_roughnessMip

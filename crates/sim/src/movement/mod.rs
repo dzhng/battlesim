@@ -23,9 +23,12 @@ use crate::navigation::{NavBase, NavGrid, Plan, RoadNet};
 use crate::route_planner::{Request, RoutePlanner};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, PropIndex, WorldGeometry, PROP_BUCKET_M};
+use changes::{span, Change};
 
 pub(crate) mod air;
 mod certify;
+mod changes;
+mod crowd;
 pub(crate) mod drive;
 mod final_leg;
 mod push;
@@ -58,8 +61,6 @@ const KNOT_M: f64 = 40.0;
 const TRAFFIC_MARGIN_M: f64 = 0.4;
 /// A unit learns of an obstacle within this distance of its footprint.
 const ENCOUNTER_RANGE_M: f64 = 2.0;
-/// A side remembers where its latest this many planning changes were.
-const CHANGE_LOG: usize = 1024;
 
 /// Where a side last saw a body stand (L1).
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -67,28 +68,6 @@ pub struct Seen {
     pub center: V2,
     pub yaw: f64,
     pub base_z: f64,
-}
-
-/// One planning change (a body learned, moved or gone), as the circle round
-/// every place the side planned it at before and after.
-#[derive(Clone, Copy, Debug, PartialEq)]
-struct Change {
-    revision: u64,
-    at: V2,
-    radius: f64,
-}
-
-/// The circle round `prop`'s footprint wherever `seen` (if anywhere) and
-/// where it stands now.
-fn span(prop: &Prop, seen: Option<V2>) -> (V2, f64) {
-    let r = prop.footprint_radius();
-    match seen {
-        Some(was) => (
-            (was + prop.center) * 0.5,
-            (prop.center - was).length() * 0.5 + r,
-        ),
-        None => (prop.center, r),
-    }
 }
 
 /// What one side may plan with: the authored map plus the dynamic obstacles
@@ -214,67 +193,7 @@ impl SideGeometry {
         }
         let was = self.seen.insert(prop.id, now).map(|w| w.center);
         self.stale.insert(prop.id);
-        self.changed(span(prop, was));
-    }
-
-    /// Bump the revision for a change round `(at, radius)`.
-    fn changed(&mut self, (at, radius): (V2, f64)) {
-        self.revision += 1;
-        self.changes.push_back(Change {
-            revision: self.revision,
-            at,
-            radius,
-        });
-        if self.changes.len() > CHANGE_LOG {
-            self.changes.pop_front();
-        }
-    }
-
-    /// Whether any change after revision `since` came within `reach` of
-    /// `at`: always, once the log no longer reaches back that far.
-    pub fn changed_near(&self, since: u64, at: V2, reach: f64) -> bool {
-        if since >= self.revision {
-            return false;
-        }
-        if self.changes.front().is_none_or(|c| c.revision > since + 1) {
-            return true;
-        }
-        self.changes
-            .iter()
-            .rev()
-            .take_while(|c| c.revision > since)
-            .any(|c| (c.at - at).within_radius(reach + c.radius))
-    }
-
-    /// Whether any change after revision `since` came within `reach` of
-    /// the way from `from` along `route`: always, once the log no longer
-    /// reaches back that far.
-    pub fn changed_along(&self, since: u64, from: V2, route: &[V2], reach: f64) -> bool {
-        if since >= self.revision {
-            return false;
-        }
-        if self.changes.front().is_none_or(|c| c.revision > since + 1) {
-            return true;
-        }
-        self.changes
-            .iter()
-            .rev()
-            .take_while(|c| c.revision > since)
-            .any(|c| {
-                let mut a = from;
-                route.iter().any(|&b| {
-                    let ab = b - a;
-                    let len2 = ab.dot(ab);
-                    let t = if len2 > 0.0 {
-                        ((c.at - a).dot(ab) / len2).clamp(0.0, 1.0)
-                    } else {
-                        0.0
-                    };
-                    let near = (a + ab * t - c.at).within_radius(reach + c.radius);
-                    a = b;
-                    near
-                })
-            })
+        self.changed(prop.id, span(prop, was));
     }
 
     /// `prop` is about to be shoved: an authored body the side has not seen
@@ -316,7 +235,7 @@ impl SideGeometry {
             self.standing_index.remove(&gone);
             let was = self.seen.remove(&prop).map(|s| s.center);
             self.stale.insert(prop);
-            self.changed(span(&gone, was));
+            self.changed(prop, span(&gone, was));
         }
     }
 
@@ -324,7 +243,7 @@ impl SideGeometry {
     pub fn forget(&mut self, prop: &Prop) {
         let was = self.seen.remove(&prop.id).map(|s| s.center);
         self.stale.insert(prop.id);
-        self.changed(span(prop, was));
+        self.changed(prop.id, span(prop, was));
     }
 
     /// Whether this side plans with `prop`: authored with the map, remains
@@ -433,7 +352,7 @@ impl SideGeometry {
         }
         d.u64(self.changes.len() as u64);
         for c in &self.changes {
-            d.u64(c.revision).f64(c.at.x).f64(c.at.y).f64(c.radius);
+            c.digest(d);
         }
     }
 }
@@ -616,7 +535,7 @@ fn request_route(
             // a pusher's route that now shoves one, so A* weighs the shove
             // against a detour (Q13): one it can still steer round, beyond
             // its nose and, on wheels, its turning radius. Nearer, it is
-            // pushed through.
+            // pushed through; only bodies new to the route are weighed again.
             let swerve = unit.hull.map_or(0.0, |h| h.x)
                 + unit
                     .ground()
@@ -632,9 +551,11 @@ fn request_route(
                         ROUTE_RECHECK_REACH_M,
                     )
                     && {
+                        let weighs =
+                            side.reweighs(unit.planned_revision, push::pressed(ctx.world, unit));
                         let grid = side.grid(ctx.world, ctx.authored);
                         !grid.route_fits(from, route, unit.ground())
-                            || grid.route_pushes(from, route, unit.ground(), swerve)
+                            || grid.route_pushes_where(from, route, unit.ground(), swerve, &weighs)
                     })
         }
     };
@@ -977,12 +898,8 @@ fn step_vehicle(
     let unit = &units[i];
     let target = unit.route.as_ref().unwrap()[0];
     let here = unit.position.xy();
-    let surface = ctx.world.surface_at(here.x, here.y);
-    let speed = surface.map_or(0.0, |s| {
-        unit.ground().speed(s.road_factor, s.forest, s.slope_deg)
-    });
-    // Craters under the hull slow it slightly; never to a stop (Q8).
-    let speed = speed * ctx.ground.vehicle_speed(here.x, here.y, &ctx.rules.ground);
+    let footing = ctx.ground.footing(ctx.world, here, &ctx.rules.ground);
+    let speed = footing.map_or(0.0, |g| unit.ground().speed(g));
     let before_manoeuvre = unit.manoeuvre;
     let mut motion = drive::steer(ctx.world, &mut units[i], target, speed, dt, traffic);
     let unit = &units[i];
@@ -1084,18 +1001,15 @@ fn step_vehicle(
         }
     }
     let turn = ctx.rules.pushing.turn_deg_per_m.to_radians();
+    let pusher = push::Pusher {
+        unit: i,
+        hull: hull_at(next, motion.yaw),
+        heading: motion.heading,
+    };
     let mut shoved = Vec::new();
     let mut solid = met.solid.is_some();
     for prop in &met.shoved {
-        match push::shove(
-            ctx.world,
-            units,
-            i,
-            &hull_at(next, motion.yaw),
-            motion.heading,
-            prop,
-            turn,
-        ) {
+        match push::shove(ctx.world, units, pusher, prop, turn) {
             Some(s) => shoved.push(s),
             None => solid = true,
         }

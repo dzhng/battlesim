@@ -10,10 +10,12 @@ use contract::weapons::{AmmoCapacity, Fire, TargetClass, WeaponDefinition};
 
 mod bearing;
 mod cycle;
+mod muzzle;
 pub mod tick;
-pub use bearing::Arc;
 use bearing::{bearing_from, hull_fixed, point_mount, turned_mount};
+pub use bearing::{nose_on, nose_on_bearing, Arc};
 use cycle::Cycle;
+use muzzle::{infantry_offset, muzzle, placed_muzzle};
 
 use crate::damage;
 use crate::deployment;
@@ -31,23 +33,6 @@ use contract::random::Rng;
 
 /// Vehicle hull bodies take ids above every soldier id.
 pub const VEHICLE_BODY_BASE: u32 = 1 << 24;
-
-/// Whether a jet's fixed nose gun bears on a point in its authored range,
-/// within `cone_rad` of its heading.
-pub fn nose_on(unit: &Unit, target: V3, range: f64, cone_rad: f64) -> bool {
-    let delta = target - unit.position;
-    range.is_finite()
-        && range >= 0.0
-        && delta.length() <= range
-        && nose_on_bearing(unit.yaw, libm::atan2(delta.y, delta.x), cone_rad)
-}
-
-/// Whether a winged aircraft heading along `yaw` has its nose on `bearing`,
-/// within `cone_rad` (`air.fixed_wing.nose_on_deg`): what its fixed gun
-/// needs to fire, and what an attack pass needs before its dive begins.
-pub fn nose_on_bearing(yaw: f64, bearing: f64, cone_rad: f64) -> bool {
-    wrap_angle(bearing - yaw).abs() <= cone_rad
-}
 
 /// A weapon row with its validated flight profile.
 pub struct Weapon {
@@ -94,7 +79,7 @@ pub struct Arsenal {
     pub config: FlightConfig,
 }
 
-/// Admit launch profiles and the weapon table before constructing battle resources.
+/// Admit every row's flight and the weapon table.
 pub fn check_rules(rules: &Rules) -> Result<FlightConfig, String> {
     let config = FlightConfig::new(&rules.physics.flight, rules.tick_hz)
         .map_err(|e| format!("physics: {e}"))?;
@@ -102,6 +87,11 @@ pub fn check_rules(rules: &Rules) -> Result<FlightConfig, String> {
         config
             .profile(&weapon.ballistics)
             .map_err(|e| format!("weapons.{id}: {e}"))?;
+        for (layer, fire) in &weapon.targets {
+            config
+                .check_layer(&weapon.ballistics, fire.range_m, fire.scatter_mrad)
+                .map_err(|e| format!("weapons.{id}.{layer:?}: {e}"))?;
+        }
     }
     if rules.weapons.len() > crate::publication::MAX_WEAPON_ROWS {
         return Err(format!(
@@ -421,9 +411,7 @@ struct Resolved {
 }
 
 impl Resolved {
-    /// How `def` fires at this target, or `None` when it does not engage
-    /// it: its layer is not one the row lists, or the row's classes there
-    /// leave the target out.
+    /// How `def` fires here; `None` when its layer or classes leave it out.
     fn fire(&self, def: &WeaponDefinition) -> Option<Fire> {
         def.engages(self.layer, self.class)
     }
@@ -550,11 +538,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 armor: Some(unit.armor(ctx.rules).copied()),
                 layer: unit.layer(),
                 class: Some(unit.unit_type(ctx.rules).target_class()),
-                emits: unit
-                    .unit_type(ctx.rules)
-                    .capabilities
-                    .radar
-                    .is_some_and(|radar| radar.emits),
+                emits: unit.unit_type(ctx.rules).capabilities.radar_emitter,
             })
         }
         Target::Contact(c) => {
@@ -674,52 +658,6 @@ fn resolve_for(
         },
         _ => r,
     })
-}
-
-/// Where a mount's muzzle sits for a unit at `position` heading `yaw`: its
-/// carrier's `ring` turns with the hull, its pivot round that ring with the
-/// carrier's bearing `carried`, and its muzzle round the pivot with its own
-/// `bearing`.
-fn placed_muzzle(
-    position: V3,
-    yaw: f64,
-    spec: &MountSpec,
-    muzzle: V3,
-    carried: f64,
-    bearing: f64,
-) -> V3 {
-    let turn = |p: V3, by: f64| v2(p.x, p.y).rotated(by).with_z(p.z);
-    position + turn(spec.ring, yaw) + turn(spec.pivot - spec.ring, carried) + turn(muzzle, bearing)
-}
-
-fn infantry_offset(spec: &MountSpec, rules: &Rules, bearing: f64) -> V3 {
-    match spec.muzzle {
-        Some(muzzle) => placed_muzzle(v3(0.0, 0.0, 0.0), bearing, spec, muzzle, bearing, bearing),
-        None => v3(0.0, 0.0, rules.physics.infantry_muzzle_m),
-    }
-}
-
-/// Where a mount's rounds leave when it points along `bearing`: each mount
-/// fires from its own muzzle. Its pivot swings with its carrier round the
-/// carrier's ring (the turret it sits on, round that turret's pivot at its
-/// bearing, or the hull, round its middle), and its muzzle turns with its
-/// own bearing about the pivot. An infantry offset turns with its
-/// operator and starts at his position. A hand weapon fires at the
-/// infantry muzzle height: a single one from its operator where he stands
-/// (his lean is [`fire_from`]'s), a squad weapon's volley judged first from
-/// the squad's middle (each soldier then fires from his own).
-fn muzzle(unit: &Unit, mount: &Mount, spec: &MountSpec, rules: &Rules, bearing: f64) -> V3 {
-    if unit.hull.is_none() {
-        let at = operator(unit, mount)
-            .filter(|_| !spec.squad)
-            .map_or(unit.position, |k| unit.members[k].position);
-        return at + infantry_offset(spec, rules, bearing);
-    }
-    let muzzle = spec
-        .muzzle
-        .expect("hull mounts have a muzzle (catalog admission)");
-    let carried = spec.on.map_or(unit.yaw, |c| unit.mounts[c].bearing);
-    placed_muzzle(unit.position, unit.yaw, spec, muzzle, carried, bearing)
 }
 
 /// P11: withhold when a friendly vehicle will be on the predicted path as the

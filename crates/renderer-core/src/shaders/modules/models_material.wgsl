@@ -483,18 +483,3 @@ fn scarredSurface(surface: vec4f, scar: ScarSample) -> vec4f {
 
 // @block models_material_surfaces
 @group(1) @binding(3) var<storage, read> surfaces: array<SurfaceRecord>;
-
-// @block models_material_waterSurface
-fn waterSurface(xy: vec2f, footprint: f32) -> vec4f {
-  let params = (&params_1);
-  let water = groundWater(xy, groundCell(xy, footprint));
-  let deep = (1f - exp((-(max(water, 0f)) * (*params).waterLook.x)));
-  let shown = (1f - smoothstep(0.15f, 1.2f, footprint));
-  let drift = (2.5f * valueNoise((xy * 0.09090909090909091f)));
-  let lane = valueNoise(vec2f(((water / 0.5f) + drift), 3.7f));
-  let streak = valueNoise(((xy * 0.2857142857142857f) + vec2f(63.099998474121094, 29.299999237060547)));
-  let lit = smoothstep(0.55f, 0.8f, ((0.6f * lane) + (0.4f * streak)));
-  let colour = (mix((*params).waterEdge.xyz, (*params).water.xyz, deep) * (1f + ((*params).waterLook.y * mix(0.1f, lit, shown))));
-  let edge = smoothstep((-(footprint) * 0.5f), (footprint * 0.5f), water);
-  return vec4f(colour, (mix((*params).waterEdge.w, (*params).water.w, deep) * edge));
-}

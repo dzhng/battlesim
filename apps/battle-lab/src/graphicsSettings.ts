@@ -25,6 +25,8 @@ export interface GraphicsQualityProfile {
   understorey: boolean;
   shadowMapSize: 512 | 1024 | 2048;
   shadowReach: number;
+  /** Low keeps the water's depth colour alone (no refraction). */
+  waterDetail: "full" | "depth";
   bloom: true;
   castLights: true;
   authoredSunSky: true;
@@ -53,6 +55,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     understorey: false,
     shadowMapSize: 1024,
     shadowReach: 900,
+    waterDetail: "depth",
     bloom: true,
     castLights: true,
     authoredSunSky: true,
@@ -68,6 +71,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     understorey: true,
     shadowMapSize: 1024,
     shadowReach: 1600,
+    waterDetail: "full",
     bloom: true,
     castLights: true,
     authoredSunSky: true,
@@ -83,6 +87,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     understorey: true,
     shadowMapSize: 2048,
     shadowReach: 2600,
+    waterDetail: "full",
     bloom: true,
     castLights: true,
     authoredSunSky: true,
@@ -101,6 +106,7 @@ export const sceneMinimumProfile: GraphicsQualityProfile = {
   understorey: false,
   shadowMapSize: 512,
   shadowReach: 450,
+  waterDetail: "depth",
   bloom: true,
   castLights: true,
   authoredSunSky: true,
@@ -156,6 +162,18 @@ function load(): GraphicsSettings {
 
 let current = load();
 const listeners = new Set<() => void>();
+
+/** The profile a verification run asks for (`?test-quality=`), without a
+ *  player-facing setting. Production builds ignore the query; the runner
+ *  chooses minimum or player low for picture scenes. */
+export function testQualityProfile(search: string): GraphicsQualityProfile | undefined {
+  if (!import.meta.env.DEV) return undefined;
+  const requested = new URLSearchParams(search).get("test-quality");
+  if (requested === "minimum") return sceneMinimumProfile;
+  return requested === "low" || requested === "medium" || requested === "high"
+    ? graphicsProfiles[requested]
+    : undefined;
+}
 
 export function resolveEffectiveTier(
   mode: GraphicsMode,

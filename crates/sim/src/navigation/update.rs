@@ -58,6 +58,15 @@ impl BodyCheck {
         }
     }
     pub(super) fn advance(&mut self, grid: &NavGrid, paid: bool) -> Option<bool> {
+        self.advance_counting(grid, paid, &|_| true)
+    }
+    /// [`advance`](Self::advance), passing over the bodies `counts` refuses.
+    pub(super) fn advance_counting(
+        &mut self,
+        grid: &NavGrid,
+        paid: bool,
+        counts: &dyn Fn(PropId) -> bool,
+    ) -> Option<bool> {
         if self.bucket == self.buckets.len() {
             return Some(true);
         }
@@ -76,7 +85,7 @@ impl BodyCheck {
                 {
                     Some(id) => {
                         self.index += 1;
-                        grid.laid[id].as_ref()
+                        grid.laid[id].as_ref().filter(|_| counts(*id))
                     }
                     None => {
                         self.bucket += 1;
@@ -89,7 +98,7 @@ impl BodyCheck {
                 match grid.base.bodies_in(bucket).nth(self.index) {
                     Some((id, body)) => {
                         self.index += 1;
-                        (!grid.laid.contains_key(id)).then_some(body)
+                        (!grid.laid.contains_key(id) && counts(*id)).then_some(body)
                     }
                     None => {
                         self.own = true;
@@ -260,9 +269,20 @@ impl NavGrid {
         width: f64,
         push: contract::scenario::PushClass,
     ) -> bool {
+        self.bodies_clear_counting(point, width, push, &|_| true)
+    }
+
+    /// [`bodies_clear`](Self::bodies_clear) of the bodies `counts` keeps.
+    pub(super) fn bodies_clear_counting(
+        &self,
+        point: V2,
+        width: f64,
+        push: contract::scenario::PushClass,
+        counts: &dyn Fn(PropId) -> bool,
+    ) -> bool {
         let mut check = BodyCheck::new(self, point, width, push);
         loop {
-            if let Some(clear) = check.advance(self, false) {
+            if let Some(clear) = check.advance_counting(self, false, counts) {
                 return clear;
             }
         }
@@ -432,7 +452,10 @@ impl NavGrid {
             );
         }
         assert_eq!(kept.stopping, fresh.stopping, "{step}: stopping ranks");
-        assert_eq!(kept.slow.forest, fresh.slow.forest, "{step}: forest tiles");
+        assert_eq!(
+            kept.slow.ground, fresh.slow.ground,
+            "{step}: forest and swamp tiles"
+        );
         assert_eq!(kept.slow.steep, fresh.slow.steep, "{step}: steep tiles");
         for bucket in 0..Regions::buckets(&kept.base.regions) {
             assert!(
@@ -445,7 +468,8 @@ impl NavGrid {
             let vehicle = Mobility {
                 off_road_mps: 6.0,
                 road_mps: 12.0,
-                forest_multiplier: 0.4,
+                locomotion: contract::movement::Locomotion::Tracked,
+                speed_factors: kept.slow.speed_factors.tracked,
                 half_width_m: 1.8,
                 class: MoverClass::Vehicle,
                 push,

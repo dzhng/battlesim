@@ -20,6 +20,7 @@ assets/third-party/** filter=lfs diff=lfs merge=lfs -text
 assets/runtime/audio/** filter=lfs diff=lfs merge=lfs -text
 
 # Ledgers are appended to by every lane: keep both sides of concurrent appends.
+specs/**/decisions.md merge=union
 specs/**/choices.md merge=union
 
 # Third-party code bundled with a skill.

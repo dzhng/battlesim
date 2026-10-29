@@ -11,6 +11,7 @@ use contract::scenario::Rules;
 use sim::ground::{GroundLayer, KnownGround, Wear};
 use sim::math::v2;
 use sim::publication::{self, FogPatch, GroundHeader};
+use sim::world::WorldGeometry;
 #[path = "common/instructions.rs"]
 mod instructions;
 use std::sync::atomic::Ordering;
@@ -55,8 +56,9 @@ fn main() {
             "instruction tracer uses the fixed safe 1 km input"
         );
     }
-    let fixture = sim::fixtures::with_map("ground");
-    let fog_cell_m = fixture["map"]["fog_cell_m"].as_f64().unwrap();
+    let mut fixture = sim::fixtures::with_map("ground");
+    let map = fixture.as_object_mut().unwrap().remove("map").unwrap();
+    let fog_cell_m = map["fog_cell_m"].as_f64().unwrap();
     let rules: Rules = serde_json::from_value(fixture).unwrap();
     assert_eq!(rules.ground.cell_m, 1.0);
     let mut truth = stage("truth_empty", || {
@@ -156,10 +158,24 @@ fn main() {
         &out[out.len() - payload..],
         &credit_a[credit_a.len() - payload..]
     );
+    // Wear marks only ground a mover stands on: a flat world of the same
+    // extent, built outside the measured stages, answers that.
+    let map = serde_json::from_value(serde_json::json!({
+        "size": [extent, extent], "fog_cell_m": fog_cell_m, "height_grid_m": 4,
+        "slope_cutoff_deg": 35, "props": []
+    }))
+    .unwrap();
+    let world = WorldGeometry::new(&map, &rules);
     let mut first_wear = rules.ground.clone();
     first_wear.trampled_per_pass = 23.0;
     stage("one_visible_edit", || {
-        truth.wear(v2(1.5, 0.5), v2(0.5, 0.5), Wear::Trampled, &first_wear);
+        truth.wear(
+            &world,
+            v2(1.5, 0.5),
+            v2(0.5, 0.5),
+            Wear::Trampled,
+            &first_wear,
+        );
         truth.seal();
     });
     stage("learn_one_edit_full_visibility", || {
@@ -172,6 +188,7 @@ fn main() {
     wear.trampled_per_pass = 73.0;
     stage("hidden_corner_churn", || {
         truth.wear(
+            &world,
             v2(extent as f64 - 1.5, extent as f64 - 0.5),
             v2(extent as f64 - 0.5, extent as f64 - 0.5),
             Wear::Trampled,

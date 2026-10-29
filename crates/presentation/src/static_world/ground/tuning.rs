@@ -1,9 +1,10 @@
 //! The ground's and the grass's tuning: every number that sets their look
 //! and is not the biome's. The values are `fixtures/game.json`'s
 //! `presentation.terrain` and `presentation.grass`; the browser's shaders
-//! (`frame/terrainMaterial.ts`, `frame/grassPass.ts`, the world pass's water)
-//! splice them into their WGSL as constants, and the tables read the few
-//! below. What stays in a shader is its formula: maths, Rec. 709's weights,
+//! (`frame/terrainMaterial.ts`, `frame/grassPass.ts`) splice most into their
+//! WGSL as constants, and the tables read the few below. The water's and the
+//! shore's are uniforms instead (`TerrainParams.waterLooks`, `shoreTuning`),
+//! so they retune without rebuilding a shader. What stays in a shader is its formula: maths, Rec. 709's weights,
 //! hash multipliers, decorrelating offsets, a lattice's fixed turns.
 //!
 //! **`presentation.terrain`**, by the formula that reads it (shares are of
@@ -79,12 +80,14 @@
 //!   stroke crosses a road where their directions' cosine is under
 //!   `crossing_cos`; a dash keeps `clear_m` from a crossing's bars; paint
 //!   wears in patches `wear_m` across where their noise crosses `wear_cut`.
-//! - `water`: its roughness; the share of its light it keeps in shadow; two
-//!   octaves of ripples (`long_m`, `short_m` at `short_weight`) tilting the
-//!   normal by `slope` read `step_m` either way, gone over `fade_m` pixels;
-//!   its light in lanes `m` wide holding their distance from the bank,
-//!   drifting `drift` lanes over `drift_m`, broken into streaks `streak_m`
-//!   long, lit where lane and streak (`weights`) pass `lit`, about `lit_mean`.
+//! - `water`: it fades in from its edge over `shore_fade_m` of depth (or a
+//!   few pixels, if wider); its reflection in three `lobes` of rising
+//!   `roughness`, each `weights` of the light; the share of its light it
+//!   keeps in shadow; its baked normal map (`normals`) on three layers of
+//!   `tiles_m`, each drifting at its share (`drifts`) of the wind's drift,
+//!   leaning by `strength`, gone over `fade_m` pixels; the bed seen through
+//!   it shifted and blurred (`refraction`), and lit by the light its waves
+//!   focus (`caustics`).
 //! - `scars` (depths in full craters): read no deeper than `depth_cap`; the
 //!   rim `rim_reach_cells` out, slopes from taps `slope_tap_cells` either
 //!   side; relief fading over `detail_fade` cells; the bowl's lip at `lip`
@@ -111,8 +114,8 @@
 //! patches past `parched_cut`; `mix`: drifts past `drift_cut`, a grass wholly
 //! of its drifts `drift_gather` times its share in one; `tier_jitter` scales
 //! the near tier's threshold per clump; a laid clump leans `laid.lean` of its
-//! height and sinks `laid.sink`; the wind leans from where its wave passes
-//! `wind.gust_from`, its flutter turning `flutter_phase` radians a metre
+//! height and sinks `laid.sink`; grass sways from where the wind's wave passes
+//! `sway.gust_from`, its flutter turning `flutter_phase` radians a metre
 //! downwind and `flutter_across` of that across; a blade's roughness.
 use serde::Deserialize;
 
@@ -124,6 +127,79 @@ pub struct TerrainTuning {
     pub bank: Bank,
     pub marks: Marks,
     pub scars: Scars,
+    pub water: WaterTuning,
+    pub shore: ShoreTuning,
+}
+
+/// The water's surface, as every look draws it (`WaterLook`'s shared part).
+#[derive(Clone, Deserialize)]
+pub struct WaterTuning {
+    pub shore_fade_m: f64,
+    pub lobes: Lobes,
+    pub shadow: f64,
+    pub normals: Normals,
+    pub refraction: Refraction,
+    pub caustics: Caustics,
+}
+
+/// The sun's and the sky's reflection off the water (`waterPass`): three
+/// lobes of rising roughness, each weighted by its share of the light.
+#[derive(Clone, Deserialize)]
+pub struct Lobes {
+    pub roughness: [f64; 3],
+    pub weights: [f64; 3],
+}
+
+/// The light the waves focus on the bed (`waterCaustics`): their pattern's
+/// tile, their strength, the share of their light lost a metre down, and
+/// how sharp their crests are.
+#[derive(Clone, Deserialize)]
+pub struct Caustics {
+    pub tile_m: f64,
+    pub strength: f64,
+    pub fade_per_m: f64,
+    pub sharpness: f64,
+}
+
+/// How the bed shows displaced through the surface's slope (`waterUnder`):
+/// its shift as a share of the depth it is seen through, over at most
+/// `depth_m`, never past `most` of the screen's height; the metres of water
+/// per mip it blurs by.
+#[derive(Clone, Deserialize)]
+pub struct Refraction {
+    pub share: f64,
+    pub depth_m: f64,
+    pub most: f64,
+    pub blur_m: f64,
+}
+
+/// The baked normal map's three layers (`waterNormal`): their tiles in
+/// metres (primary, macro, detail), each's share of the wind's drift, how
+/// far the map's slope leans the normal, and the pixel footprints the
+/// ripples fade over.
+#[derive(Clone, Deserialize)]
+pub struct Normals {
+    pub tiles_m: [f64; 3],
+    pub drifts: [f64; 3],
+    pub strength: f64,
+    pub fade_m: [f64; 2],
+}
+
+/// The bank's bands (`groundShore`) and its ground (`ShoreTuning` in
+/// `TerrainParams`).
+#[derive(Clone, Deserialize)]
+pub struct ShoreTuning {
+    pub wet_whole: f64,
+    pub earth_whole: f64,
+    pub fine: f64,
+    pub fine_share: f64,
+    pub turns: [f64; 2],
+    pub fine_fade: [f64; 2],
+    pub earth_mottle: f64,
+    pub field_ease_m: f64,
+    pub earth_roughness: f64,
+    pub wet_roughness: f64,
+    pub bed_ease_m: f64,
 }
 
 #[derive(Clone, Deserialize)]

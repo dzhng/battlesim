@@ -151,7 +151,7 @@ fn fog_point_probe_rebuilds_the_same_horizons_that_hide_a_wall_and_enforce_reach
     sight.set_sight(&[], Some(&[])).unwrap();
     sight.clear_sight();
     let targets = Targets::new(&gpu.device, [32, 32]);
-    let mut fog = Fog::new(&gpu.device, &gpu.queue, &pipelines, &targets.depth);
+    let mut fog = Fog::new(&gpu.device, &gpu.queue, &pipelines, &targets);
     let probes = FogProbes::new(&pipelines);
     let points: [[f32; 3]; 5] = [
         [40.0, 32.0, 0.0],

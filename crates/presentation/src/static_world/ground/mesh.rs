@@ -18,7 +18,6 @@ const BLOCKED: Rgba = [0.78, 0.3, 0.26, 1.0];
 /// The skirt's earth, and how far it reaches below the lowest ground (m).
 const SKIRT: Rgba = [0.33, 0.3, 0.26, 1.0];
 const SKIRT_DEPTH_M: f64 = 6.0;
-const WHITE: Rgba = [1.0; 4];
 
 /// The simulation's own ground triangles (its exported vertices, in its
 /// exported index order), flat-shaded, never resampled. Untinted; with
@@ -103,11 +102,20 @@ pub fn skirt(positions: &[f32]) -> Vec<f32> {
 }
 
 /// The water's surface: each cell (`Ground::water_cells`: its south-west
-/// corner, surface height and side) a flat square.
+/// corner, surface height, side, look, and a puddle's centre and radius) a
+/// flat square. The water takes no tint, so its vertex colour carries the
+/// cell instead: red is its row of `TerrainParams.waterLooks`, then a
+/// puddle's centre and radius (zero radius for water as deep as its ground).
 pub fn water(cells: &[f32]) -> Vec<f32> {
+    let (cells, rest) = cells.as_chunks::<{ super::water::CELL_FLOATS }>();
+    assert!(
+        rest.is_empty(),
+        "water cells are {} floats each",
+        super::water::CELL_FLOATS
+    );
     let mut out = vec![];
-    for c in cells.as_chunks::<4>().0 {
-        let [x, y, z, side] = [c[0], c[1], c[2], c[3]].map(f64::from);
+    for c in cells {
+        let [x, y, z, side, look, cx, cy, radius] = c.map(f64::from);
         quad(
             &mut out,
             [
@@ -116,7 +124,7 @@ pub fn water(cells: &[f32]) -> Vec<f32> {
                 [x + side, y + side, z],
                 [x, y + side, z],
             ],
-            WHITE,
+            [look, cx, cy, radius],
         );
     }
     out

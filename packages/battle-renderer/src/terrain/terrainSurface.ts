@@ -31,8 +31,8 @@ export interface GroundInput {
 }
 
 /** The ground a scene's presentation resolved: the calls the terrain
- *  material, the grass and the water read its tables through, and fog of
- *  war's sight over it. */
+ *  material, the grass and the water read its tables through, and
+ *  fog of war's sight over it. */
 export type PresentedGround = Pick<
   Presentation,
   | "ground_terrain"
@@ -88,6 +88,7 @@ export function setGround(presentation: Presentation, input: GroundInput): void 
     e.surfaceBoundaries ?? none,
     e.rivers ?? none,
     e.riverRuns ?? none,
+    e.swamps ?? none,
     e.forests ?? none,
     e.forestRectIds ?? ids,
     e.forestMetadata ?? none,
@@ -156,7 +157,7 @@ export function buildTerrainSurface(
     props: overlay === "surface",
   };
   // The traversal overlay shows the blocked flag alone; a water tint would
-  // muddy it. The water's look is the terrain material's (`waterSurface`).
+  // muddy it. The water's look is its surface's (`frame/waterSurface.ts`).
   const surface = overlay === "surface";
   return { mesh, input, biome, grid: surface ? exports.terrain : null, water: surface };
 }

@@ -1,5 +1,27 @@
 // WGSL owner: scenery.
 
+// @block scenery_ShoreTuning
+struct ShoreTuning {
+  bands: vec4f,
+  turns: vec4f,
+  ground: vec4f,
+  fade: vec4f,
+}
+
+// @block scenery_WaterLook
+struct WaterLook {
+  channel: vec4f,
+  edge: vec4f,
+  surface: vec4f,
+  normals: vec4f,
+  drifts: vec4f,
+  fades: vec4f,
+  roughness: vec4f,
+  lobes: vec4f,
+  refraction: vec4f,
+  caustics: vec4f,
+}
+
 // @block scenery_TerrainParams
 struct TerrainParams {
   region: vec4f,
@@ -18,13 +40,12 @@ struct TerrainParams {
   forestDapple: vec4f,
   forestLine: vec4f,
   waterBed: vec4f,
-  water: vec4f,
-  waterEdge: vec4f,
-  waterLook: vec4f,
   shore: vec4f,
   shoreEarth: vec4f,
   shoreEdge: vec4f,
   distant: vec4f,
+  shoreTuning: ShoreTuning,
+  waterLooks: array<WaterLook, 8>,
   view: vec4u,
 }
 
@@ -138,16 +159,16 @@ fn groundColour(xy: vec2f, footprint: f32, site: vec4f, paved: GroundPaved, wate
   }
   let shore = groundShore(xy, footprint, water);
   if ((shore.y > 0f)) {
-    let field = mix(dot((*params_1).verge.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)), (dot((*plot).colour.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)) * (1f - (0.5f * (*plot).rows.w))), smoothstep(0f, 10f, site.y));
+    let field = mix(dot((*params_1).verge.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)), (dot((*plot).colour.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)) * (1f - (0.5f * (*plot).rows.w))), smoothstep(0f, (*params_1).shoreTuning.ground.y, site.y));
     let least = (field * (*params_1).shoreEdge.z);
-    let earth = ((*params_1).shoreEarth.xyz * (1f + (0.6f * noise)));
+    let earth = ((*params_1).shoreEarth.xyz * (1f + ((*params_1).shoreTuning.ground.x * noise)));
     albedo = mix(albedo, atLeast(earth, least), shore.y);
-    roughness = mix(roughness, 0.92f, shore.y);
+    roughness = mix(roughness, (*params_1).shoreTuning.ground.z, shore.y);
     albedo = mix(albedo, atLeast((*params_1).shore.xyz, least), shore.x);
-    roughness = mix(roughness, 0.8f, shore.x);
+    roughness = mix(roughness, (*params_1).shoreTuning.ground.w, shore.x);
   }
   let paving = groundRoads(xy, footprint, paved, vec4f(albedo, roughness));
-  let bed = smoothstep(-(aa), max(aa, 0.3f), water);
+  let bed = smoothstep(-(aa), max(aa, (*params_1).shoreTuning.fade.z), water);
   albedo = mix(paving.xyz, (*params_1).waterBed.xyz, bed);
   return vec4f(max(albedo, vec3f()), paving.w);
 }
@@ -192,4 +213,56 @@ fn groundLineBand(xy: vec2f, cell: vec4u, forest: f32) -> vec2f {
   }
   let at = ((xy * (*params_1).forestVerge.z) + vec2f(71.30000305175781, 23.899999618530273));
   return vec2f(1f, (line.y + (((valueNoise(at) - 0.5f) * 2f) * (*params_1).forestLine.y)));
+}
+
+// @block scenery_sway
+fn sway(foot: vec3f, point: vec3f, up: f32, height: f32, leaf: f32) -> vec3f {
+  let wind = cameraWind();
+  let t = cam.time;
+  let dir = wind.toward.xy;
+  let strength = clamp(wind.gustMps / 6, 0.0, 1.0);
+  let along = dot(foot.xy, dir);
+  let front = sin(6.2831853 * (along - t * wind.gustMps) * wind.gustPerM);
+  let gust = smoothstep(0.2, 1.0, front);
+  let seed = pcgHash(bitcast<u32>(floor(foot.x * 4.0)) ^ (bitcast<u32>(floor(foot.y * 4.0)) * 2654435761u));
+  let phase = f32(seed >> 8u) * (6.2831853 / 16777216.0);
+  let swing = sin(t * 1.6 + phase) + 0.25 * sin(1.5 * t * 1.6 + 1.8 * phase);
+  let h = clamp(up, 0.0, 1.0);
+  let reach = h * h * h;
+  let carried = 0.15 + 0.7 * gust + 0.35 * swing * 0.5 * (1.0 + gust);
+  let bend = height * 0.18 * strength * carried * reach;
+  // Bent, the point keeps its distance from the foot: it drops a little.
+  var offset = vec3f(dir * bend, -0.5 * bend * bend / max(height * h, 1.0));
+  let q = point - foot;
+  let shiver = vec3f(
+    sin(t * 7 + q.x * 2.1 + q.y * 0.7 + phase),
+    sin(t * 7 * 1.3 + q.y * 1.9 + q.z * 0.8 + phase),
+    sin(t * 7 * 0.9 + q.z * 2.3 + q.x * 0.6 + phase),
+  );
+  offset += shiver * (0.15 * strength * 0.5 * (1.0 + gust) * leaf * h);
+  return offset;
+}
+
+// @block scenery_standing
+fn standing(local: vec3f, pose: vec4f, shape: vec4f, leaf: f32) -> vec3f {
+  let at = placedPoint(local, pose);
+  let height = max((shape.w / 0.62f), 1f);
+  return (at + sway(pose.xyz, at, (local.z / height), height, leaf));
+}
+
+// @block scenery_casterVertex_Output
+struct casterVertex_Output {
+  @invariant @builtin(position) clip: vec4f,
+  @location(0) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) local: vec3f,
+  @location(4) heart: vec3f,
+}
+
+// @block scenery_casterVertex
+@vertex fn casterVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) pose: vec4f, @location(4) shape: vec4f, @location(5) tint: vec4f) -> casterVertex_Output {
+  let local = vec3f((position.x * shape.x), (position.y * shape.y), (position.z * shape.z));
+  let world = standing(local, pose, shape, 0f);
+  return casterVertex_Output((cam.viewProj * vec4f(world, 1f)), world, placedNormal(normal, shape, pose.w), vec4f((color.xyz * tint.xyz), color.w), local, vec3f(pose.x, pose.y, (pose.z + shape.w)));
 }

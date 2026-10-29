@@ -11,7 +11,7 @@ You are picking up the known limitations [native rendering parity](../done/nativ
 Each item is independent, so they slice one by one, roughly cheapest first:
 
 - [x] Name the sky's two bind group layouts.
-- [ ] Judge water on a plate.
+- [ ] Judge water on a plate. Moved to the [water native follow-up](../water-native/README.md).
 - [ ] Load the shout pool in Rust, so unseen enemies' shouts play natively.
 - [x] Draw far soldiers as impostor cards on native.
 - [ ] Native ground marks, once native has a UI.

@@ -51,7 +51,7 @@ export interface ObservationLayout {
   limbBits: number;
   /** This battle's round kinds (weapon rows, in name order). */
   roundKinds: string[];
-  /** What a round struck: none, ground, hull, prop or soldier. */
+  /** What a round struck: none, ground, hull, prop, soldier or metal_prop. */
   hitKinds: string[];
   unitKinds: string[];
   moveStates: string[];
@@ -151,7 +151,7 @@ export interface OwnUnitView {
   /** How suppressed the squad is, by the rules' thresholds (the sim owns
    *  them; the hidden level is never published). Vehicles are "none". */
   suppression: SuppressionTier;
-  /** Enough forest or shelter concealment, with no visible enemy observer spotting it or known engagement. */
+  /** Enough samples on concealing ground with net concealment below 1, and no visible enemy observer spotting it or known engagement. */
   concealed: boolean;
   /** Setup progress for units that deploy in place; null for the rest. */
   deployment: DeploymentView | null;
@@ -378,7 +378,7 @@ export interface ProjectileView {
   kind: string;
   /** The soldier who fired it, or null for a vehicle's gun. */
   shooterMember: number | null;
-  /** What the round struck at the path's end this tick: none, ground, hull, prop or soldier. */
+  /** What the round struck at the path's end this tick: none, ground, hull, prop, soldier or metal_prop. */
   hit: string;
   /** Outward surface normal at the impact, or null without one. */
   impactNormal: Point3 | null;
@@ -614,6 +614,12 @@ export interface ObservationView {
     revision: number;
     full: boolean;
   };
+  /** The bodies shoved this tick that this side sees, where they stand
+   *  (ahead of `knownProps`, which re-learns a shoved body only now and then). */
+  propDisplayPoses: { propId: number; center: Point2; yaw: number; baseZ: number }[];
+  /** Where hulls grind the metal bodies shoved this tick that this side sees:
+   *  halfway up the lower of hull and body, with the pusher's travel. */
+  grinds: { point: Point3; heading: Point2 }[];
 }
 
 export interface AirTransitView {

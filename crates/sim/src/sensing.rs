@@ -2,7 +2,7 @@
 //! Rays run from the observer's eye to the target's visibility samples (a
 //! vehicle's hull centre and top, each living soldier). Solid geometry blocks;
 //! foliage attenuates reach continuously and blocks outright past a full run;
-//! forest ground conceals a target by class, independently of tree crowns.
+//! forest ground composes with authored unit concealment, independently of tree crowns.
 use contract::catalog::AltitudeLayer;
 use contract::ids::{Side, UnitId};
 use contract::scenario::{Rules, SensorRules};
@@ -102,7 +102,7 @@ pub fn foliage_reach(range: f64, depth: f64, s: &SensorRules) -> Option<f64> {
     } else if depth == 0.0 {
         Some(range)
     } else {
-        Some(range * (-depth).exp())
+        Some(range * libm::exp(-depth))
     }
 }
 
@@ -149,8 +149,17 @@ pub fn side_sees_round(
 }
 
 /// A visibility sample: the member it belongs to (none for a hull), where
-/// it is, and the concealment its ground and building give it.
+/// it is, and its net target concealment.
 type Sample = (Option<usize>, V3, f64);
+
+/// Observer-adjusted concealment, never extending full sight.
+pub fn effective(target: f64, spotting: f64) -> f64 {
+    if spotting >= 1.0 {
+        (target * spotting).min(1.0)
+    } else {
+        libm::pow(target.min(1.0), 1.0 / spotting)
+    }
+}
 
 /// Visibility samples of a unit, with the member index they belong to.
 fn samples(unit: &Unit) -> Vec<(Option<usize>, V3)> {
@@ -174,44 +183,49 @@ fn samples(unit: &Unit) -> Vec<(Option<usize>, V3)> {
     }
 }
 
-/// Detection multiplier for a target sample: the strongest concealment of
-/// its forest ground and, for a garrisoned squad, its building. An aircraft
-/// flies above both.
-fn target_concealment(world: &WorldGeometry, target: &Unit, at: V3, rules: &Rules) -> f64 {
-    if target.airborne() {
-        return 1.0;
-    }
-    let s = &rules.sensors;
-    let shelter = crate::garrison::shelter(target, rules);
-    world
-        .forest_concealment(target.hull.is_none(), at.x, at.y)
-        .min(1.0 + (s.building_range_multiplier - 1.0) * shelter)
+/// The strongest concealment of forest ground and garrison shelter.
+pub fn ground(forest: f64, shelter: f64, s: &SensorRules) -> f64 {
+    forest.min(1.0 + (s.building_range_multiplier - 1.0) * shelter)
 }
 
-/// Whether enough of the living unit benefits from concealment to qualify for HIDDEN.
-pub fn concealed(world: &WorldGeometry, target: &Unit, rules: &Rules) -> bool {
-    if target.hull.is_some() {
-        target_concealment(world, target, target.position, rules) < 1.0
-    } else {
-        let mut living = 0;
-        let mut hidden = 0;
-        for at in target.member_positions() {
-            living += 1;
-            hidden += usize::from(target_concealment(world, target, at, rules) < 1.0);
-        }
-        living > 0 && hidden as f64 > living as f64 * rules.sensors.squad_hidden_fraction
-    }
+/// Target concealment in evaluation order: unit × ground, then movement.
+pub fn target(unit: f64, ground: f64, moving: bool, s: &SensorRules) -> f64 {
+    (unit * ground) * if moving { s.moving_concealment } else { 1.0 }
 }
 
-/// Sensor rules the geometry relies on (the fog sweep stops a ray once its
-/// reach has shrunk behind it).
-pub fn validate(s: &SensorRules) {
-    assert!(s.squad_identification_fraction > 0.0 && s.squad_identification_fraction <= 1.0);
-    assert!((0.0..1.0).contains(&s.squad_hidden_fraction));
-    assert!(
-        s.foliage_full_block > 0.0,
-        "sensors.foliage_full_block must be positive"
+/// The ground and net concealment of one sample. Aircraft fly above both.
+fn sample(world: &WorldGeometry, u: &Unit, at: V3, rules: &Rules) -> (f64, f64) {
+    if u.airborne() {
+        return (1.0, 1.0);
+    }
+    let ground = ground(
+        world.forest_concealment(at.x, at.y),
+        crate::garrison::shelter(u, rules),
+        &rules.sensors,
     );
+    (
+        ground,
+        target(
+            u.unit_type(rules).concealment,
+            ground,
+            u.moving(),
+            &rules.sensors,
+        ),
+    )
+}
+
+/// Whether enough samples have both ground and net concealment for HIDDEN.
+pub fn concealed(world: &WorldGeometry, target: &Unit, rules: &Rules) -> bool {
+    let samples = samples(target);
+    let hidden = samples
+        .iter()
+        .filter(|(_, at)| {
+            let (ground, target) = sample(world, target, *at, rules);
+            ground < 1.0 && target < 1.0
+        })
+        .count();
+    !samples.is_empty()
+        && hidden as f64 > samples.len() as f64 * rules.sensors.squad_hidden_fraction
 }
 
 /// Every sighting by `side`'s units for which `due` holds, in observer then
@@ -234,7 +248,7 @@ pub fn evaluate(
         .map(|u| {
             let samples = samples(u)
                 .into_iter()
-                .map(|(member, at)| (member, at, target_concealment(world, u, at, rules)))
+                .map(|(member, at)| (member, at, sample(world, u, at, rules).1))
                 .collect();
             (u, u.footprint_radius(body), samples)
         })
@@ -248,8 +262,7 @@ pub fn evaluate(
         // authoritative here.
         let sees_ground = sees_ground(observer);
         let from = eyes(observer, rules);
-        let concealed_range_multiplier =
-            observer.unit_type(rules).sensors.concealed_range_multiplier;
+        let spotting = observer.unit_type(rules).sensors.spotting;
         let observer_radius = observer.footprint_radius(body);
         for (target, target_radius, samples) in &targets {
             let (target, target_radius) = (*target, *target_radius);
@@ -263,7 +276,7 @@ pub fn evaluate(
             let to = target.position - observer.position;
             let distance = to.xy().length();
             let arc = if distance > spread {
-                (spread / distance).asin()
+                libm::asin(spread / distance)
             } else {
                 std::f64::consts::PI
             };
@@ -272,8 +285,8 @@ pub fn evaluate(
             }
             let mut seen = Vec::new();
             let mut any = false;
-            for &(member, at, sheltered) in samples {
-                let concealment = (sheltered * concealed_range_multiplier).min(1.0);
+            for &(member, at, target_concealment) in samples {
+                let concealment = effective(target_concealment, spotting);
                 if from
                     .iter()
                     .any(|&eye| sees_point(world, eye, at, &sight, concealment, s))
@@ -296,4 +309,27 @@ pub fn evaluate(
         }
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::effective;
+
+    #[test]
+    fn spotting_cancels_or_deepens_concealment_within_full_sight() {
+        assert_eq!(effective(0.5, 3.0), 1.0, "good spotting caps at full sight");
+        assert_eq!(
+            effective(2.8, 0.8),
+            1.0,
+            "poor spotting also caps at full sight"
+        );
+        assert_eq!(
+            effective(1.0, 0.8),
+            1.0,
+            "unconcealed targets stay unchanged"
+        );
+        assert!(effective(0.5, 0.8) < effective(0.5, 1.0));
+        assert!(effective(0.5, 2.0) > effective(0.5, 1.0));
+        assert_eq!(effective(0.25, 0.5), 0.0625, "poor spotting uses a power");
+    }
 }

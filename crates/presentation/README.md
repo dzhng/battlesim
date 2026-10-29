@@ -12,9 +12,9 @@ never touches the simulation, so tuning it never moves a digest or a replay.
 `frame()` is a pure function of the world it loaded, the publications pushed and
 the frames asked for: no wall clock, no unseeded randomness. Every seed is
 Mulberry32 over a [`Key`](src/seed.rs) hashed from the numbers and names of
-what it decides for, and every transcendental function is `libm`'s, so a dust
-puff, a tracer's chance or a placed tree falls the same in WebAssembly and
-native.
+what it decides for, and every transcendental function is `libm`'s ([the
+simulation's rule](../sim/README.md#determinism-and-evidence)), so a dust puff,
+a tracer's chance or a placed tree falls the same in WebAssembly and native.
 
 ## What it owns
 
@@ -52,7 +52,9 @@ native.
   and where each drawn model's muzzles and rotors are.
 - [Effects](src/effects/): the effect publication, launches (the one derivation
   the flashes, the firing soldiers and the gunfire sounds read), the effect frame,
-  the cast lights it chooses for the view, and cook-offs.
+  the cast lights it chooses for the view, cook-offs, and the sparks a hull
+  throws where it grinds a metal body it shoves (the simulation publishes
+  where they meet).
 - [The view](src/view.rs): what the camera means for culling and detail, the one
   tier rule every drawn model takes and the tier it casts with, and the
   frame's `View` record (with the sky's corner rays) and camera uniform,
@@ -61,6 +63,16 @@ native.
   policies before becoming canonical frame records.
 - [The light](src/light.rs): the fixture's light resolved into the sky's,
   bloom's and grade's uniform records, as the browser's sky model resolves it.
+- [The wind](src/wind.rs): the biome's one wind as the `Wind` record, which
+  every camera carries on its clock (`Camera.wind`, the sun's cascades
+  included), so grass, water and trees move in it in every pass, and which
+  the effects drift smoke and dust on.
+- [The wave field's clock](src/wave.rs): how many steps a frame runs the
+  renderer's height field over the water round the camera, at a fixed rate
+  on the presentation clock, when it starts over, and where it lies
+  (`Camera.waves`). [Wakes](src/effects/frame/wake.rs) are its splats: rings
+  and V-wakes where a unit the side sees wades, decided per tick from what
+  is published, never from how often frames are drawn.
 - [Scars](src/scars/): the side's learned ground, from its publications'
   patches, and the bounded GPU cache of its scars. A renderer uploads what it
   is handed (the directory's words, the pool's texels, `ScarParams`' words
@@ -87,7 +99,9 @@ native.
   separate from terrain draw selection and flow into viewport measurements.
 - [The static world](src/static_world/): the buildings resolved from their
   template art, and the ground from the map's exports under the biome: its
-  tables, its meshes (terrain, skirt, water, backdrop), the grass field's
+  tables, its meshes (terrain, skirt, water, backdrop), its standing water
+  (`StandingWater`, the one owner of where rivers, swamps and puddles hold
+  water, how deep, and which look each draws), the grass field's
   shapes, and its window and per-frame parameters for the last frame's
   camera, and the scenery; and the map's props fitted to their boxes from the
   installed art, less those the side knows replaced, with what it knows

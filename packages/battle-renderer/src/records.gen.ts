@@ -277,6 +277,17 @@ export const AerialAt = {
 } as const;
 export const AERIAL_WORDS = 28;
 
+/** The one wind, in the camera every shader binds (`Camera.wind`, `wind.rs`): grass, water and trees move in it on the camera's clock, and smoke and dust drift on it. */
+/** Where `Wind`'s fields lie, in words. */
+export const WindAt = {
+  toward: 0,
+  drift_mps: 3,
+  gust_mps: 4,
+  gust_per_m: 5,
+  pad: 6,
+} as const;
+export const WIND_WORDS = 8;
+
 /** The sun and the shadow fill, as the environment uniform carries them after its view (`sunDirection` to `fill`). */
 export const Sun = {
   /** Unit vector toward the sun; w 0. (f32 × 4) */
@@ -340,7 +351,7 @@ export const FogLookAt = {
 } as const;
 export const FOG_LOOK_WORDS = 24;
 
-/** A camera as every world, shadow and overlay shader binds it: the frame's eye, or a sun cascade posed as its light. */
+/** A camera as every world, shadow and overlay shader binds it: the frame's eye, or a sun cascade posed as its light, with what animates the world it draws: the clock and the wind. */
 /** Where `Camera`'s fields lie, in words. */
 export const CameraAt = {
   view_proj: 0,
@@ -351,8 +362,20 @@ export const CameraAt = {
   height: 37,
   time: 38,
   pad: 39,
+  wind: 40,
+  waves: 48,
 } as const;
-export const CAMERA_WORDS = 40;
+export const CAMERA_WORDS = 52;
+
+/** A wake impulse as the wave field splats it (`EffectFrame::waves`). */
+/** Where `WaveSplat`'s fields lie, in words. */
+export const WaveSplatAt = {
+  splat: 0,
+  step: 4,
+  kind: 5,
+  pad: 6,
+} as const;
+export const WAVE_SPLAT_WORDS = 8;
 
 /** One sun cascade as a shadow receiver reads it. An unfitted cascade is the identity over [1, 1]. */
 /** Where `SunCascade`'s fields lie, in words. */

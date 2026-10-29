@@ -52,7 +52,7 @@ pub fn initial(t: &UnitType, rules: &Rules) -> Option<Deployment> {
     let timings = t.capabilities.deploy?;
     let ticks = |seconds: f64| ((seconds * rules.tick_hz as f64).round() as u32).max(1);
     let deploy = ticks(timings.seconds);
-    let pack = ticks(timings.pack_seconds.unwrap_or(timings.seconds));
+    let pack = ticks(timings.pack_seconds);
     let (mut a, mut b) = (deploy, pack);
     while b != 0 {
         (a, b) = (b, a % b);

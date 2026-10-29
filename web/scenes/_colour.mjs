@@ -16,15 +16,21 @@ export const rec709 = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 export const luminance = ([r, g, b]) =>
   0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 
-/** CIELAB a* and b* of a linear colour: its hue and chroma, apart from how
- *  light it is. Two colours differ in hue by their distance in this plane. */
-export function chroma([r, g, b]) {
+/** CIELAB L*, a* and b* of a linear colour. Two colours differ in hue by
+ *  their distance in the a*b* plane, apart from how light they are. */
+export function lab([r, g, b]) {
   const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
   const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.9505),
     y = f(0.2126 * r + 0.7152 * g + 0.0722 * b),
     z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.089);
-  return [500 * (x - y), 200 * (y - z)];
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
 }
+
+/** CIELAB a* and b* of a linear colour: its hue and chroma. */
+export const chroma = (rgb) => lab(rgb).slice(1);
+
+/** How far apart two linear colours look: CIE76's distance in CIELAB. */
+export const deltaE = (p, q) => Math.hypot(...lab(p).map((v, k) => v - lab(q)[k]));
 
 /** The mean displayed colour and luminance of `png` over `pixels`. */
 export function meanColour(png, pixels) {

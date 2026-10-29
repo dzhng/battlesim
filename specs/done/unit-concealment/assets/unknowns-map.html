@@ -1,0 +1,64 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Unit concealment: unknowns map</title><style>
+:root{--fg:var(--foreground,#e6e6e6);--mut:var(--muted-foreground,#9a9a9a);--bd:var(--border,#333);--card:var(--card,#161616);--acc:var(--chart-1,#4a7fd6);--ok:var(--success,#3fa66b);--warn:var(--warning,#d9a23a);--r:var(--radius,8px)}
+body{font-family:var(--font-sans,system-ui,sans-serif);color:var(--fg);font-size:13px;line-height:1.45}
+.grid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
+section{border:1px solid var(--bd);border-radius:var(--r);padding:16px;background:var(--card)}
+h2{margin:0 0 2px;font-size:14px}h2 small{font-weight:400;color:var(--mut);font-size:11.5px;margin-left:6px}
+p.sub{margin:0 0 10px;color:var(--mut);font-size:12px}
+ul{margin:0;padding-left:18px}li{margin:3px 0}
+code{font-family:var(--font-mono,ui-monospace,monospace);font-size:11.5px}
+table{border-collapse:collapse;width:100%;font-size:12px}
+td{border-top:1px solid var(--bd);padding:5px 4px;vertical-align:top}
+td.q{white-space:nowrap;font-weight:600;color:var(--mut);width:34px}
+.tag{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:9px;border:1px solid var(--bd);color:var(--mut);margin-left:4px;white-space:nowrap}
+.tag.u{border-color:var(--acc);color:var(--acc)}.tag.t{border-color:var(--ok);color:var(--ok)}.tag.s{border-color:var(--warn);color:var(--warn)}
+.formula{font-family:var(--font-mono,ui-monospace,monospace);font-size:11.5px;background:var(--code-background,#0e0e0e);border-radius:6px;padding:10px;white-space:pre;overflow-x:auto;margin:8px 0 0}
+</style></head><body>
+<div class="formula">target    = concealment × min(forest 0.25, building) × (state == Moving ? 1.5 : 1)
+effective = spotting ≥ 1 ? min(1, target × spotting) : min(1, target)^(1/spotting)
+identified within sight × effective (line of sight and foliage unchanged)</div>
+<div class="grid" style="margin-top:14px">
+<section><h2>1 · Known knowns <small>the settled ground</small></h2><p class="sub">From <code>origin/staging</code>.</p><ul>
+<li>Optical identification: <code>sees_point</code> reaches <code>sight × concealment</code>, plus foliage (<code>crates/sim/src/sensing.rs</code>).</li>
+<li>Ground concealment today: forest by class (0.25 infantry, 0.7 vehicle), garrisoned 0.2 × shelter, aircraft 1 (<code>target_concealment</code>).</li>
+<li>Spotting today: <code>concealed_range_multiplier</code> 2.0 for scouts, 1.5 for recon vehicles, validation ≥ 1 (<code>catalog.rs</code>).</li>
+<li>No unit-level concealment exists. HIDDEN reads ground only (<code>battle.rs</code>, <code>panelRows.ts</code>).</li>
+<li>Radar is a separate channel (<code>knowledge.rs</code>). The fog sweep never reads concealment, and the formula has no second copy.</li>
+<li>The menu reel uses its own capture units, built on the test units.</li>
+</ul></section>
+<section><h2>2 · Known unknowns <small>decision ledger</small></h2><p class="sub">Closed by the user <span class="tag u">user</span> or by the code <span class="tag t">territory</span>. You declined delegation, so nothing was decided on your behalf. Nothing is open.</p><table>
+<tr><td class="q">Q1</td><td>Spotting above 1 cancels both terrain and unit concealment, capped at 1. Below 1 it deepens concealment by a power and never affects an unconcealed target.<span class="tag u">user</span></td></tr>
+<tr><td class="q">Q2</td><td>A unit's own concealment counts in the open.<span class="tag u">user</span></td></tr>
+<tr><td class="q">Q3</td><td>Visual spotting only: no aircraft or radar stealth.<span class="tag u">user</span></td></tr>
+<tr><td class="q">Q4</td><td>HIDDEN = ground &lt; 1 and net concealment (including moving) &lt; 1.<span class="tag u">user</span></td></tr>
+<tr><td class="q">Q5</td><td>Top-level <code>concealment</code> beside <code>sound</code>. Rename to <code>sensors.spotting</code>. One forest value; unit values may exceed 1.<span class="tag u">user</span></td></tr>
+<tr><td class="q">Q6</td><td>Infantry 1, 0.8, 0.5. Hulls by box volume 1.8, 2.4, 2.8. Snipers spot 2, MBTs spot 0.8.<span class="tag u">user</span></td></tr>
+<tr><td class="q">Q7</td><td>Low and high air required on every unit; the fallback table is deleted.<span class="tag u">user</span></td></tr>
+<tr><td class="q">Q8</td><td><code>capabilities.radar_emitter: true</code>; <code>detection_m</code> moves into <code>high_air_m</code>.<span class="tag u">user</span></td></tr>
+<tr><td class="q">Q9</td><td><code>concealment</code> required in the resolved type, so inheritance provides 1 where it applies. This replaced "omitted means 1", and also fixes the default-1 hull trap (L2).<span class="tag u">user</span> <code>spotting</code> stays optional, because 1 is its neutral value ("none or off" rule, R).<span class="tag u">user</span></td></tr>
+<tr><td class="q">P1</td><td>Firing reveals only the contact patch. Verified: the patch can be fired on and can kill.<span class="tag t">territory</span><span class="tag u">user</span></td></tr>
+<tr><td class="q">P2</td><td>Moving = <code>state == Moving</code> (an order in progress) gives ×1.5, set in the rules.<span class="tag u">user</span></td></tr>
+<tr><td class="q">R</td><td>Leaving a field out may only mean "none" or "off". Four fallbacks outside sensing become authored data (slice 0b): weapon <code>partial_from</code>, per-layer range and scatter, air layer, and the afterburner multipliers.<span class="tag u">user</span></td></tr>
+<tr><td class="q">Doc</td><td>"Values live on the unit, not in code" added to <code>development.md</code>.<span class="tag u">user</span></td></tr>
+</table></section>
+<section><h2>3 · Unknown knowns <small>what was extracted</small></h2><ul>
+<li><b>Config over business logic.</b> Per-unit data beats fallback tables and class splits, and bulk edits belong in profiles or scripts. This reshaped Q5 (a single forest value), Q7, Q8 and Q9.</li>
+<li><b>This spec is mechanisms, not balance.</b> Balance will be tuned constantly, which is why the spotting report exists (rows and columns grouped by identical numbers).</li>
+<li><b>Hollywood realism.</b> Snipers survive by range, not invisibility. Moving is loud only when the whole unit is moving.</li>
+<li><b>Autonomy.</b> Ask questions up front. The builder finishes everything and judges digests, the reel and the GIF itself.</li>
+<li><b>Tuning surface.</b> The mechanics editor gains <code>concealment</code> and <code>spotting</code>.</li>
+<li><b>Proof.</b> One large system test plus a scripted workbench GIF (a sniper team in a field and at a forest edge, against rifles, scouts and an MBT).</li>
+<li><b>Emergent and wanted:</b> an MBT driving through forest loses HIDDEN.</li>
+</ul></section>
+<section><h2>4 · Unknown unknowns <small>landmines</small></h2><table>
+<tr><td class="q">L1</td><td>The rules structs accept unknown keys, so deleted keys would linger without error. Fix: <code>deny_unknown_fields</code>, in its own commit first.<span class="tag u">decided</span></td></tr>
+<tr><td class="q">L2</td><td>A hull defaulting to 1 would be very hidden in forest. Fix: required, with inheritance (Q9).<span class="tag u">decided</span></td></tr>
+<tr><td class="q">E1</td><td>The ×1.5 multiplies the whole product and only the final value is capped; otherwise a moving tank hides better.<span class="tag s">sharp edge</span></td></tr>
+<tr><td class="q">E2</td><td>Both spotting branches are capped at 1; without it, a 2.8 hull against a 0.8 spotter comes out at 3.6× range.<span class="tag s">sharp edge</span></td></tr>
+<tr><td class="q">E3</td><td>Required low air: about 25 test patches set only <code>ground_m</code>.<span class="tag s">sharp edge</span></td></tr>
+<tr><td class="q">E4</td><td>The radar rename touches receivers, anti-radiation, the TS mirror (optional types), the battle lab, and 9 roster entries.<span class="tag s">sharp edge</span></td></tr>
+<tr><td class="q">E5</td><td>The frozen <code>physical-rules.json</code> is edited by hand.<span class="tag s">sharp edge</span></td></tr>
+<tr><td class="q">E6</td><td>Slice 1 must leave every digest identical (2.8 × 0.25 == 0.7). Slice 2 re-records parity and the reel.<span class="tag s">sharp edge</span></td></tr>
+</table></section>
+</div></body></html>

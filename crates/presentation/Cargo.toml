@@ -25,3 +25,7 @@ flate2 = { version = "1", optional = true }
 presentation = { path = ".", features = ["files"] }
 # The ground's meshes are tested on saved maps as the simulation builds them.
 contract = { path = "../contract" }
+
+# Native-only tests and examples may use std math; the library denies it (crates/clippy.toml).
+[lints.clippy]
+disallowed_methods = "allow"

@@ -1,4 +1,5 @@
 mod visibility;
+mod water;
 use super::*;
 pub fn all() -> Vec<LayoutSpec> {
     vec![
@@ -263,6 +264,13 @@ pub fn all() -> Vec<LayoutSpec> {
                         view_dimension: TextureViewDimension::D2Array,
                         multisampled: false,
                     },
+                ),
+                // The water's baked normal map and the sampler that tiles it.
+                entry(8, ShaderStages::FRAGMENT, float_texture()),
+                entry(
+                    9,
+                    ShaderStages::FRAGMENT,
+                    BindingType::Sampler(SamplerBindingType::Filtering),
                 ),
             ],
         ),
@@ -794,6 +802,9 @@ pub fn all() -> Vec<LayoutSpec> {
             ],
         ),
     ]
+    .into_iter()
+    .chain(water::all())
+    .collect()
 }
 pub fn layout(name: &'static str, entries: Vec<BindGroupLayoutEntry>) -> LayoutSpec {
     LayoutSpec { name, entries }
@@ -804,5 +815,14 @@ pub fn entry(binding: u32, visibility: ShaderStages, ty: BindingType) -> BindGro
         visibility,
         ty,
         count: None,
+    }
+}
+
+/// A filterable float 2D texture.
+pub fn float_texture() -> BindingType {
+    BindingType::Texture {
+        sample_type: TextureSampleType::Float { filterable: true },
+        view_dimension: TextureViewDimension::D2,
+        multisampled: false,
     }
 }

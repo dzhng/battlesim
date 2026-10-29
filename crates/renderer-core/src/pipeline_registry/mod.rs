@@ -6,6 +6,8 @@ pub struct Sizes {
     pub sky_lut: [u32; 2],
     pub effect_sheet: u32,
     pub grass_clump: u64,
+    /// The levels of the world's copy the water refracts and blurs.
+    pub scene_colour_mips: u32,
 }
 pub struct LayoutSpec {
     pub name: &'static str,
@@ -220,5 +222,6 @@ pub fn sizes() -> Sizes {
         sky_lut: [384, 192],
         effect_sheet: 1024,
         grass_clump: 48,
+        scene_colour_mips: 4,
     }
 }

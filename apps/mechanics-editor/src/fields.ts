@@ -1,120 +1,12 @@
 import type { Json, JsonObject, Section } from "./protocol";
 
-export type FieldKind =
-  | "number"
-  | "boolean"
-  | "enum"
-  | "reference"
-  | "strings"
-  | "vector"
-  | "ammo"
-  | "object"
-  | "mounts";
-export type Conversion = "percent" | "cadence" | "dimensions" | "spread";
-export const CONVERSION_CAPTIONS: Record<Conversion, string> = {
-  spread: "Angular scatter · milliradians",
-  percent: "Stored fraction · 1 = 100%",
-  cadence: "Shot interval · seconds",
-  dimensions: "Half dimensions · metres",
-};
-export interface GameplayField {
-  path: string[];
-  label: string;
-  group: string;
-  explanation: string;
-  kind: FieldKind;
-  unit?: string;
-  conversion?: Conversion;
-  choices?: readonly string[];
-  references?: "weapons" | "soldiers" | "props" | "roles" | "parts" | "mounts";
-  optional?: boolean;
-  integer?: boolean;
-  min?: number;
-  max?: number;
-  initial?: Json;
-}
+import { field, type GameplayField, type ParsedField } from "./fieldSchema";
+import { mounts } from "./mountFields";
+export { CONVERSION_CAPTIONS } from "./fieldSchema";
+export type { Conversion, FieldKind, GameplayField, ParsedField } from "./fieldSchema";
 
-const field = (
-  path: string,
-  label: string,
-  group: string,
-  explanation: string,
-  extra: Partial<GameplayField> = {},
-): GameplayField => ({
-  path: path.split("."),
-  label,
-  group,
-  explanation,
-  kind: "number",
-  min: 0,
-  ...extra,
-});
 const faces = ["front", "side", "rear", "roof"];
 const weights = ["light", "medium", "heavy", "immovable"];
-const mounts = (soldier: boolean): GameplayField[] => [
-  field(
-    "mounts",
-    "Weapon mounts",
-    "Weapons",
-    "Physical weapons, each an id and the label its card shows. Adding a mount gives it its own firing cycle and ammunition. Inherited mounts cannot be removed; extend a common parent to omit one.",
-    { kind: "mounts" },
-  ),
-  field(
-    "mounts.*.weapons",
-    "Ammunition / weapon rows",
-    "Weapons",
-    "Shared weapon rows available to this physical mount. Changing the assignment changes this unit; changing a linked weapon row affects all its users.",
-    { kind: "strings", references: "weapons" },
-  ),
-  ...(soldier
-    ? [
-        field(
-          "mounts.*.squad",
-          "Default squad gun",
-          "Weapons",
-          "Each living carrier fires independently; these guns share the squad targeting and ammunition readout.",
-          { kind: "boolean" },
-        ),
-        field(
-          "mounts.*.special",
-          "Transferable special weapon",
-          "Weapons",
-          "A surviving soldier can recover this weapon and its remaining rounds when its original carrier falls.",
-          { kind: "boolean" },
-        ),
-      ]
-    : [
-        field(
-          "mounts.*.turret",
-          "Traversing mount",
-          "Weapons",
-          "Turns toward its target at the turret rate and fires only within the permitted bearing tolerance.",
-          { kind: "boolean" },
-        ),
-        field(
-          "mounts.*.on",
-          "Carrier mount",
-          "Weapons",
-          "An earlier turret mount that carries this weapon. None means attached to the hull.",
-          { kind: "reference", references: "mounts", optional: true },
-        ),
-        field(
-          "mounts.*.pivot_m",
-          "Pivot position",
-          "Weapons",
-          "Forward, left and up coordinates in the carrier frame where this mount rotates. Geometry affects flight origins and must agree with the model.",
-          { kind: "vector", unit: "m", min: undefined },
-        ),
-        field(
-          "mounts.*.muzzle_m",
-          "Muzzle offset",
-          "Weapons",
-          "Forward, left and up from the pivot, rotated with the mount. None is a hand weapon muzzle. Model-fit checks still apply.",
-          { kind: "vector", unit: "m", min: undefined, optional: true },
-        ),
-      ]),
-];
-
 const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
   units: [
     field(
@@ -231,7 +123,7 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
               { unit: "°/s" },
             ),
             field(
-              `mobility.${mode}.reverse_fraction`,
+              `mobility.${mode}.reverse_speed_factor`,
               "Reverse speed",
               "Movement",
               "Reverse top speed as a percentage of the forward speed.",
@@ -272,6 +164,20 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       { unit: "m/s" },
     ),
     field(
+      "concealment",
+      "Concealment",
+      "Reconnaissance",
+      "Intrinsic visual concealment, multiplied by ground cover and movement. Below 1 hides better; above 1 is easier to spot. HIDDEN also requires concealing ground.",
+      { min: Number.MIN_VALUE },
+    ),
+    field(
+      "sensors.spotting",
+      "Spotting",
+      "Reconnaissance",
+      "Above 1 cancels target concealment; below 1 deepens it. Never extends full sight. Omitted means 1.",
+      { optional: true, initial: 1, min: Number.MIN_VALUE },
+    ),
+    field(
       "sensors.ground_m",
       "Ground sight range",
       "Reconnaissance",
@@ -302,7 +208,7 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       {
         kind: "object",
         optional: true,
-        initial: { seconds: 3, pack_seconds: null },
+        initial: { seconds: 3, pack_seconds: 3 },
       },
     ),
     field(
@@ -330,8 +236,8 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "capabilities.deploy.pack_seconds",
       "Packing time",
       "Service",
-      "Time to pack before moving. None uses setup time; packing and setup share reversible progress.",
-      { unit: "s", optional: true },
+      "Time to pack before moving. Packing and setup share reversible progress.",
+      { unit: "s" },
     ),
     field(
       "capabilities.supply",
@@ -383,23 +289,16 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
     ),
     field(
       "range_m",
-      "Maximum engagement range",
+      "Flight range bound",
       "Flight & accuracy",
-      "Farthest distance this weapon fires. Changing range keeps the current landing spread in metres and recalculates angular scatter.",
+      "Every target layer's range must stay within this flight bound.",
       { unit: "m" },
-    ),
-    field(
-      "scatter_mrad",
-      "Landing spread at maximum range",
-      "Flight & accuracy",
-      "Baseline one-axis launch spread in metres at maximum engagement range: angular scatter × range ÷ 1000. This is not a maximum miss distance or blast radius; rounds can land farther away. Movement, suppression and cover modify observed spread. Guided missiles steer out their initial spread.",
-      { conversion: "spread", unit: "m" },
     ),
     field(
       "speed_mps",
       "Launch speed",
       "Flight & accuracy",
-      "Speed as the round leaves its muzzle or rail. Flight timing and gravity determine its trajectory.",
+      "Speed as the round leaves its muzzle or rail.",
       { unit: "m/s" },
     ),
     field(
@@ -564,8 +463,8 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "partial_from",
       "Damage falloff start",
       "Impact & suppression",
-      "Share of a face's protection this round's penetration must reach to do any damage; from there its damage rises to full at the protection. None uses the battle rules' value. HE fades gently, chipping armour far beyond what it pierces.",
-      { conversion: "percent", unit: "%", max: 0.99, optional: true },
+      "Required fraction of face protection where damage begins.",
+      { conversion: "percent", unit: "%", max: 0.99 },
     ),
     field(
       "damage",
@@ -574,48 +473,61 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "Health damage when a round hits an eligible target; armour and blast rules determine what is applied.",
       { unit: "HP" },
     ),
-    field(
-      "targets.ground",
-      "Engages ground",
-      "Impact & suppression",
-      "Its crew brings it to bear on ground targets, at its own range and spread. Rows that extend another inherit it.",
-      { kind: "object", optional: true, initial: { classes: ["infantry", "vehicle"] } },
-    ),
-    field(
-      "targets.ground.classes",
-      "Ground targets",
-      "Impact & suppression",
-      "What it is fired at on the ground: infantry, vehicle, or both. A dedicated anti-tank weapon lists vehicle alone, and is never spent on an area. Missile shoots down rounds fired from the ground.",
-      { kind: "strings", choices: ["infantry", "vehicle", "missile"] },
-    ),
-    field(
-      "targets.low_air",
-      "Engages helicopters",
-      "Impact & suppression",
-      "Its crew swings it up at helicopters. A ground gun reaches them from much closer and with a much wider spread than along the ground. Rows that extend another inherit it.",
-      { kind: "object", optional: true, initial: { classes: ["air_rotor", "air_fixed_wing"] } },
-    ),
-    field(
-      "targets.low_air.classes",
-      "Low-air targets",
-      "Impact & suppression",
-      "Which aircraft it is fired at in low air, by how they fly: air_rotor, air_fixed_wing, or both. Missile shoots down rounds fired from low air.",
-      { kind: "strings", choices: ["air_rotor", "air_fixed_wing", "missile"] },
-    ),
-    field(
-      "targets.low_air.range_m",
-      "Range at helicopters",
-      "Impact & suppression",
-      "Farthest it fires at a helicopter; never past its maximum engagement range. None uses that range.",
-      { unit: "m", optional: true },
-    ),
-    field(
-      "targets.low_air.scatter_mrad",
-      "Spread at helicopters",
-      "Impact & suppression",
-      "One-axis angular launch spread at a helicopter, in milliradians. None uses its own spread.",
-      { unit: "mrad", optional: true },
-    ),
+    ...[
+      {
+        layer: "ground",
+        label: "ground",
+        classesLabel: "Ground targets",
+        at: "on",
+        classes: ["infantry", "vehicle"],
+        scatter_mrad: 8,
+      },
+      {
+        layer: "low_air",
+        label: "helicopters",
+        classesLabel: "Low-air targets",
+        at: "at",
+        classes: ["air_rotor", "air_fixed_wing"],
+        scatter_mrad: 40,
+      },
+      {
+        layer: "high_air",
+        label: "high air",
+        classesLabel: "High-air targets",
+        at: "in",
+        classes: ["air_rotor", "air_fixed_wing"],
+        scatter_mrad: 8,
+      },
+    ].flatMap(({ layer, label, classesLabel, at, classes, scatter_mrad }) => [
+      field(
+        `targets.${layer}`,
+        `Engages ${label}`,
+        "Impact & suppression",
+        "Its crew brings it to bear at this layer's own range and spread. Rows that extend another inherit it.",
+        { kind: "object", optional: true, initial: { classes, scatter_mrad } },
+      ),
+      field(
+        `targets.${layer}.classes`,
+        classesLabel,
+        "Impact & suppression",
+        "The target classes it engages here. Missile shoots down rounds fired from this layer; ground area fire requires infantry.",
+        { kind: "strings", choices: [...classes, "missile"] },
+      ),
+      field(
+        `targets.${layer}.range_m`,
+        `Range ${at} ${label}`,
+        "Impact & suppression",
+        "Farthest it fires at this layer, within the row's flight range bound.",
+        { unit: "m" },
+      ),
+      field(
+        `targets.${layer}.scatter_mrad`,
+        `Spread ${at} ${label}`,
+        "Impact & suppression",
+        "One-axis launch spread at this layer; it is not a miss distance or blast radius. Movement, suppression and cover widen it; guided missiles steer it out.",
+        { unit: "mrad" },
+      ),
+    ]),
     field(
       "armor_piercing",
       "Armour-piercing targeting",
@@ -681,12 +593,35 @@ export function valueAt(value: Json | undefined, path: readonly string[]): Json 
   return cursor;
 }
 
+/** What enabling an object field writes: a weapon row's saved value, else the
+ *  field's initial one. A new target layer starts at the row's flight bound,
+ *  the one reach admission always accepts. */
+export function enabledValue(f: GameplayField, row: Json | undefined): Json {
+  const saved = valueAt(row, f.path);
+  if (saved !== undefined) return saved;
+  return f.path[0] === "targets" && isObject(f.initial)
+    ? { ...f.initial, range_m: valueAt(row, ["range_m"]) ?? 0 }
+    : (f.initial ?? {});
+}
+
+export const rawText = (value: Json | undefined) =>
+  value === undefined || value === null
+    ? ""
+    : Array.isArray(value)
+      ? value.join(", ")
+      : typeof value === "object"
+        ? JSON.stringify(value, null, 2)
+        : String(value);
+
 const numericText = (n: number) => Number(n.toPrecision(14)).toString();
-export function displayFieldValue(
-  f: GameplayField,
-  value: Json | undefined,
-  entry: JsonObject,
-): string {
+
+/** Native catalogs omit neutral numeric values; every editor reader agrees on them. */
+export function fieldValue(f: GameplayField | null, value: Json | undefined): Json | undefined {
+  return value === undefined && f?.kind === "number" ? f.initial : value;
+}
+
+export function displayFieldValue(f: GameplayField, value: Json | undefined): string {
+  value = fieldValue(f, value);
   if (value === undefined || value === null) return "";
   if (f.kind === "vector" && Array.isArray(value))
     return value
@@ -697,15 +632,8 @@ export function displayFieldValue(
   if (f.kind === "strings" && Array.isArray(value)) return value.join(", ");
   if (typeof value !== "number")
     return typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
-  const range = typeof entry.range_m === "number" ? entry.range_m : 0;
   const display =
-    f.conversion === "spread"
-      ? (value * range) / 1000
-      : f.conversion === "cadence"
-        ? 60 / value
-        : f.conversion === "percent"
-          ? value * 100
-          : value;
+    f.conversion === "cadence" ? 60 / value : f.conversion === "percent" ? value * 100 : value;
   return numericText(display);
 }
 
@@ -793,19 +721,17 @@ function validateNumbers(f: GameplayField, value: Json): string | undefined {
   return undefined;
 }
 
-export type ParsedField = { value: Json; error?: never } | { error: string; value?: never };
 export function parseFieldValue(f: GameplayField, text: string, entry: JsonObject): ParsedField {
   const trimmed = text.trim();
   if (!trimmed)
     return f.kind === "strings"
       ? { value: [] }
       : f.optional
-        ? { value: null }
+        ? { value: f.kind === "number" ? (f.initial ?? null) : null }
         : { error: "A value is required." };
   const current = valueAt(entry, f.path);
   // Preserve the original bits when a rounded human display is submitted unchanged.
-  if (current !== undefined && trimmed === displayFieldValue(f, current, entry))
-    return { value: current };
+  if (current !== undefined && trimmed === displayFieldValue(f, current)) return { value: current };
   let value: Json;
   if (f.kind === "boolean")
     value = trimmed === "true" ? true : trimmed === "false" ? false : trimmed;
@@ -832,17 +758,8 @@ export function parseFieldValue(f: GameplayField, text: string, entry: JsonObjec
     value = parts.map((v) => Number(v.trim()) / (f.conversion === "dimensions" ? 2 : 1));
   } else {
     const number = Number(trimmed);
-    const range = entry.range_m;
-    if (f.conversion === "spread" && (typeof range !== "number" || range <= 0))
-      return { error: "Set a positive engagement range first." };
     value =
-      f.conversion === "spread"
-        ? (number * 1000) / Number(range)
-        : f.conversion === "cadence"
-          ? 60 / number
-          : f.conversion === "percent"
-            ? number / 100
-            : number;
+      f.conversion === "cadence" ? 60 / number : f.conversion === "percent" ? number / 100 : number;
   }
   // The section is only needed for allowlisting; callers already have this descriptor.
   const section = (Object.keys(GAMEPLAY_FIELDS) as Section[]).find(

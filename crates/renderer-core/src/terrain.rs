@@ -3,6 +3,7 @@ use wgpu::*;
 
 use crate::pipelines::Pipelines;
 use crate::scars::Scars;
+use crate::water::{WaterDetail, WaterNormals};
 use crate::{bind, buffer};
 use presentation::static_world::ground::Ground;
 
@@ -32,15 +33,18 @@ pub struct TerrainUpload<'a> {
     pub scars: &'a [u8],
 }
 
-/// One owner for terrain tables, scar textures and their shared binding order.
+/// One owner for terrain tables, scar textures, the water's normal map and
+/// their shared binding order.
 pub struct TerrainResources {
     group: BindGroup,
     layout: BindGroupLayout,
     tables: [Buffer; 5],
     pub scars: Scars,
+    water_normals: WaterNormals,
     class_view: bool,
     road_wear: bool,
     field_texture: bool,
+    water_detail: WaterDetail,
 }
 
 fn tables(device: &Device, queue: &Queue, upload: TerrainUpload<'_>) -> [Buffer; 5] {
@@ -95,15 +99,18 @@ impl TerrainResources {
         let tables = tables(device, queue, upload);
         let scars = Scars::new(device, queue, bytemuck::cast_slice(upload.scars));
         let layout = pipelines.layout("terrainLayout").clone();
-        let group = Self::bind(device, &layout, &tables, &scars);
+        let water_normals = WaterNormals::new(device, queue, pipelines);
+        let group = Self::bind(device, &layout, &tables, &scars, &water_normals);
         Self {
             group,
             layout,
             tables,
             scars,
+            water_normals,
             class_view: false,
             road_wear: true,
             field_texture: true,
+            water_detail: WaterDetail::Full,
         }
     }
 
@@ -112,6 +119,7 @@ impl TerrainResources {
         layout: &BindGroupLayout,
         tables: &[Buffer; 5],
         scars: &Scars,
+        water: &WaterNormals,
     ) -> BindGroup {
         let [params, nodes, plots, surfaces, index] = tables;
         bind(
@@ -127,13 +135,21 @@ impl TerrainResources {
                 scars.params.as_entire_binding(),
                 BindingResource::TextureView(&scars.directory_view()),
                 BindingResource::TextureView(&scars.pool_view()),
+                BindingResource::TextureView(&water.view),
+                BindingResource::Sampler(&water.sampler),
             ],
         )
     }
 
     /// A scar directory resize replaces its texture and invalidates this group.
     pub fn rebind_scars(&mut self, device: &Device) {
-        self.group = Self::bind(device, &self.layout, &self.tables, &self.scars);
+        self.group = Self::bind(
+            device,
+            &self.layout,
+            &self.tables,
+            &self.scars,
+            &self.water_normals,
+        );
     }
 
     pub fn bind_group(&self) -> &BindGroup {
@@ -141,7 +157,12 @@ impl TerrainResources {
     }
 
     fn write_view(&self, queue: &Queue) {
-        let words = [u32::from(self.class_view), u32::from(!self.road_wear), 0, 0];
+        let words = [
+            u32::from(self.class_view),
+            u32::from(!self.road_wear),
+            u32::from(self.water_detail == WaterDetail::Depth),
+            0,
+        ];
         queue.write_buffer(
             &self.tables[0],
             self.tables[0].size() - 16,
@@ -156,6 +177,12 @@ impl TerrainResources {
         self.class_view = on;
         self.write_view(queue);
         true
+    }
+
+    /// The water reads its bed refracted, or straight below at its pixel.
+    pub fn set_water_detail(&mut self, queue: &Queue, detail: WaterDetail) {
+        self.water_detail = detail;
+        self.write_view(queue);
     }
 
     /// Disabling wear draws each road's flat colour to its authored edge.
@@ -197,5 +224,6 @@ impl TerrainResources {
             memory.buffer(table);
         }
         self.scars.record_memory(memory);
+        self.water_normals.record_memory(memory);
     }
 }

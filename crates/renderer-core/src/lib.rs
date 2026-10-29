@@ -40,6 +40,7 @@ pub mod statics;
 pub mod submitted;
 pub mod terrain;
 pub mod timing;
+pub mod water;
 pub mod world;
 pub mod xray;
 
@@ -57,6 +58,8 @@ pub const FOG_MASK_FORMAT: TextureFormat = TextureFormat::Rgba8Unorm;
 pub const FOG_DISTANCE_FORMAT: TextureFormat = TextureFormat::Rg8Unorm;
 /// Display-space overlay colour, including ground paint and glow.
 pub const OVERLAY_FORMAT: TextureFormat = TextureFormat::Rgba8Unorm;
+/// The water's guard: how unseen and how painted what lies under it is.
+pub const GUARD_FORMAT: TextureFormat = TextureFormat::Rg8Unorm;
 
 /// The frame's size-dependent targets.
 ///
@@ -69,6 +72,11 @@ pub struct Targets {
     pub hdr_msaa: TextureView,
     /// The lit world, with effects drawn over it.
     pub lit: TextureView,
+    pub lit_texture: Texture,
+    /// `lit` as the world pass left it, before the water, with its mips:
+    /// what the water shows of its bed, refracted and blurred.
+    pub scene_colour: TextureView,
+    pub scene_colour_texture: Texture,
     /// The world with fog applied: post's input.
     pub hdr: TextureView,
     /// The world's depth, multisampled; effects read it.
@@ -76,6 +84,11 @@ pub struct Targets {
     /// The fog mask, multisampled and resolved into `fog_mask`.
     pub fog_mask_msaa: TextureView,
     pub fog_mask: TextureView,
+    /// The water's guard: how unseen the ground is before the water (the
+    /// fog mask's unseen share) and how much paint covers it, each mip the
+    /// worst of its footprint in `scene_colour`'s mips.
+    pub fog_mask_under: TextureView,
+    pub fog_mask_under_texture: Texture,
     /// Distances to the other side of the fog edge.
     pub fog_distance_rows: TextureView,
     pub fog_distance: TextureView,
@@ -97,7 +110,7 @@ pub struct Targets {
 impl Targets {
     /// Allocate the shared target set for a render size.
     pub fn new(device: &Device, size: [u32; 2]) -> Self {
-        let texture = |label, format, samples, usage| {
+        let mipped = |label, format, samples, usage, mips| {
             device.create_texture(&TextureDescriptor {
                 label: Some(label),
                 size: Extent3d {
@@ -105,7 +118,7 @@ impl Targets {
                     height: size[1],
                     depth_or_array_layers: 1,
                 },
-                mip_level_count: 1,
+                mip_level_count: mips,
                 sample_count: samples,
                 dimension: TextureDimension::D2,
                 format,
@@ -113,6 +126,7 @@ impl Targets {
                 view_formats: &[],
             })
         };
+        let texture = |label, format, samples, usage| mipped(label, format, samples, usage, 1);
         let view = |t: Texture| t.create_view(&Default::default());
         let render = TextureUsages::RENDER_ATTACHMENT;
         let sampled = render | TextureUsages::TEXTURE_BINDING;
@@ -134,6 +148,19 @@ impl Targets {
                 view_formats: &[],
             })
         };
+        // Never more levels than the smallest side halves to.
+        let mips = pipelines::builtin_sizes()
+            .scene_colour_mips
+            .min(32 - size[0].min(size[1]).leading_zeros());
+        let lit_texture = texture("lit", HDR_FORMAT, 1, sampled | TextureUsages::COPY_SRC);
+        let scene_colour_texture = mipped(
+            "scene-colour",
+            HDR_FORMAT,
+            1,
+            sampled | TextureUsages::COPY_DST,
+            mips,
+        );
+        let fog_mask_under_texture = mipped("fog-mask-under", GUARD_FORMAT, 1, sampled, mips);
         let display_texture = texture(
             "display",
             DISPLAY_FORMAT,
@@ -143,7 +170,10 @@ impl Targets {
         Self {
             size,
             hdr_msaa: view(texture("hdr-msaa", HDR_FORMAT, MSAA, render)),
-            lit: view(texture("lit", HDR_FORMAT, 1, sampled)),
+            lit: lit_texture.create_view(&Default::default()),
+            lit_texture,
+            scene_colour: scene_colour_texture.create_view(&Default::default()),
+            scene_colour_texture,
             hdr: view(texture("hdr", HDR_FORMAT, 1, sampled)),
             depth: view(texture(
                 "depth",
@@ -153,6 +183,8 @@ impl Targets {
             )),
             fog_mask_msaa: view(texture("fog-mask-msaa", FOG_MASK_FORMAT, MSAA, render)),
             fog_mask: view(texture("fog-mask", FOG_MASK_FORMAT, 1, sampled)),
+            fog_mask_under: fog_mask_under_texture.create_view(&Default::default()),
+            fog_mask_under_texture,
             fog_distance_rows: view(texture(
                 "fog-distance-rows",
                 FOG_DISTANCE_FORMAT,
@@ -244,6 +276,8 @@ impl Targets {
             &self.depth,
             &self.fog_mask_msaa,
             &self.fog_mask,
+            &self.scene_colour,
+            &self.fog_mask_under,
             &self.fog_distance_rows,
             &self.fog_distance,
             &self.overlay_depth,

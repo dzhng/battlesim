@@ -472,7 +472,10 @@ function startRun(
     } else {
       target = ground(shot.aim.ground, 0);
     }
-    const scatter = spread ? (shot.weapon as { scatter_mrad: number }).scatter_mrad : 0;
+    const scatter = spread
+      ? ((shot.weapon as { targets: { ground?: { scatter_mrad: number } } }).targets.ground
+          ?.scatter_mrad ?? 0)
+      : 0;
     const result = JSON.parse(
       lab.fire(
         JSON.stringify(shot.weapon),

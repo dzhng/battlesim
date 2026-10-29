@@ -1,59 +1,11 @@
 //! The catalog's resolution: inheritance, parts, prop types, and the named
 //! errors a broken catalog fails with.
 use contract::catalog::{resolve, Body, CatalogError, Mobility};
-use contract::scenario::UnaidedHighAirSight;
 use serde_json::{json, Value};
 
-fn roles() -> Value {
-    json!({ "roles": {
-        "mbt": { "name": "Main battle tank", "description": "", "symbol": ["armour"] },
-        "infantry": { "name": "Infantry", "description": "", "symbol": ["infantry"] },
-    } })
-}
-
-/// A complete tracked tank entry, abstract so leaves extend it.
-fn base_tank() -> Value {
-    json!({
-        "abstract": true,
-        "name": "Tank", "description": "", "faction": "test", "family": "tanks",
-        "roles": ["mbt"], "cost": 200,
-        "body": { "hull": {
-            "half_extents_m": [3.5, 1.8, 1.2], "eye_m": 2.3, "hp": 100,
-            "armor": { "front": 140, "side": 100, "rear": 60, "roof": 40,
-                "ricochet": { "front": 0.5, "side": 0.3, "rear": 0.2, "roof": 0.6 } },
-            "weight_class": "heavy", "push_class": "heavy", "wreck": "heavy_wreck"
-        } },
-        "mobility": { "tracked": { "offroad_kmh": 22, "road_kmh": 43, "turn_deg_s": 45, "reverse_fraction": 0.4 } },
-        "sensors": { "ground_m": 350, "sight_shape": { "front": 1, "side": 0.5, "rear": 0.3 }, "on": "cannon" },
-        "mounts": [
-            { "id": "cannon", "name": "Main Gun", "weapons": ["ap", "he"], "turret": true, "pivot_m": [0, 0, 1.45], "muzzle_m": [5.9, 0, 0.55] },
-            { "id": "HMG", "name": "HMG", "weapons": ["hmg"], "turret": true, "on": "cannon", "pivot_m": [-0.25, -0.58, 2.35], "muzzle_m": [1.4, 0, 0.3] }
-        ],
-        "sound": { "profile": "vehicle", "loudness_m": 650 },
-        "appearance": "tank"
-    })
-}
-
-/// The prop types the test units leave behind: a tank's wreck that burns
-/// down to a lighter one.
-fn wrecks() -> Value {
-    json!({ "props": {
-        "wreck": { "abstract": true, "wreck": true,
-            "body": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true,
-                "occludes": false, "armor": 0.5 },
-            "appearance": { "drawn_by": "wreck" } },
-        "light_wreck": { "extends": "wreck",
-            "body": { "weight_class": "light", "cover_tier": "light", "hp": 150 },
-            "destroyed": "removed" },
-        "heavy_wreck": { "extends": "wreck",
-            "body": { "weight_class": "heavy", "cover_tier": "heavy", "hp": 400 },
-            "destroyed": { "into": { "prop": "light_wreck", "height_m": 1.2 } } },
-    } })
-}
-
-fn units(entries: Value) -> Vec<Value> {
-    vec![roles(), wrecks(), json!({ "units": entries })]
-}
+#[path = "common/catalog.rs"]
+mod inputs;
+use inputs::{base_tank, roles, rotor_air, units};
 
 #[test]
 fn planned_aircraft_is_a_visible_card_but_not_a_physical_type() {
@@ -82,113 +34,6 @@ fn planned_aircraft_is_a_visible_card_but_not_a_physical_type() {
 }
 
 #[test]
-fn air_mobility_names_its_layer_and_its_flight_model() {
-    use contract::catalog::{AltitudeLayer, FlightModel};
-    let mut rotor = base_tank();
-    rotor["abstract"] = json!(false);
-    rotor["mobility"] = json!({
-        "air": { "cruise_kmh": 180, "turn_deg_s": 30, "climb_mps": 8, "flight": "rotor" }
-    });
-    let mut wing = rotor.clone();
-    wing["mobility"]["air"]["layer"] = json!("high_air");
-    wing["mobility"]["air"]["flight"] = json!("fixed_wing");
-    let catalog = resolve(&units(json!({ "rotor": rotor, "wing": wing }))).unwrap();
-    let mobility = |id| catalog.by_id(id).mobility;
-    assert_eq!(mobility("rotor").layer(), AltitudeLayer::LowAir);
-    assert_eq!(mobility("rotor").flight(), Some(FlightModel::Rotor));
-    assert_eq!(mobility("wing").layer(), AltitudeLayer::HighAir);
-    assert_eq!(mobility("wing").flight(), Some(FlightModel::FixedWing));
-
-    // The flight model is authored, never derived from the layer.
-    let mut unnamed = rotor.clone();
-    unnamed["mobility"]["air"]
-        .as_object_mut()
-        .unwrap()
-        .remove("flight");
-    let error = resolve(&units(json!({ "unnamed": unnamed })))
-        .unwrap_err()
-        .to_string();
-    assert!(error.contains("flight"), "{error}");
-
-    // A pair no flight law flies yet is refused, naming what is missing.
-    let mut blimp = rotor.clone();
-    blimp["mobility"]["air"]["layer"] = json!("high_air");
-    let error = resolve(&units(json!({ "blimp": blimp })))
-        .unwrap_err()
-        .to_string();
-    assert!(
-        error.contains("blimp") && error.contains("rotor") && error.contains("high air"),
-        "{error}"
-    );
-    let mut drone = wing.clone();
-    drone["mobility"]["air"]["layer"] = json!("low_air");
-    let error = resolve(&units(json!({ "drone": drone })))
-        .unwrap_err()
-        .to_string();
-    assert!(
-        error.contains("drone") && error.contains("fixed-wing") && error.contains("low air"),
-        "{error}"
-    );
-}
-
-#[test]
-fn aircraft_capability_carries_air_ranges_afterburner_and_refund() {
-    let mut aircraft = base_tank();
-    aircraft["abstract"] = json!(false);
-    aircraft["mobility"] = json!({
-        "air": { "cruise_kmh": 280, "turn_deg_s": 60, "climb_mps": 12, "layer": "high_air", "flight": "fixed_wing" }
-    });
-    aircraft["sensors"] = json!({
-        "ground_m": 500, "low_air_m": 1500, "high_air_m": 3000,
-        "sight_shape": { "front": 1, "side": 0.8, "rear": 0.5 }
-    });
-    aircraft["capabilities"] = json!({
-        "flares": { "capacity": 6, "reload_s": 18 },
-        "air": {
-            "fuel_capacity_s": 180,
-            "afterburner": {},
-            "refund": { "health": 0.5, "ammunition": 0.3, "fuel": 0.2 }
-        }
-    });
-    let catalog = resolve(&units(json!({ "aircraft": aircraft }))).unwrap();
-    let t = catalog.by_id("aircraft");
-    assert_eq!(t.sensors.high_air_m, Some(3000.0));
-    assert_eq!(
-        t.capabilities
-            .air
-            .as_ref()
-            .unwrap()
-            .afterburner
-            .unwrap()
-            .speed_multiplier,
-        1.5
-    );
-}
-
-/// The afterburner is a jet's: no rotor flight law flies it, so a rotor
-/// row carrying one is refused, naming the rule.
-#[test]
-fn an_afterburner_needs_fixed_wing_flight() {
-    let mut rotor = base_tank();
-    rotor["abstract"] = json!(false);
-    rotor["mobility"] = json!({
-        "air": { "cruise_kmh": 180, "turn_deg_s": 30, "climb_mps": 8, "flight": "rotor" }
-    });
-    rotor["capabilities"] = json!({ "air": {
-        "fuel_capacity_s": 180,
-        "afterburner": {},
-        "refund": { "health": 0.5, "ammunition": 0.3, "fuel": 0.2 }
-    }});
-    let error = resolve(&units(json!({ "rotor": rotor })))
-        .unwrap_err()
-        .to_string();
-    assert!(
-        error.contains("afterburner") && error.contains("fixed-wing"),
-        "{error}"
-    );
-}
-
-#[test]
 fn aircraft_refund_weights_must_sum_to_one() {
     let mut aircraft = base_tank();
     aircraft["abstract"] = json!(false);
@@ -206,17 +51,14 @@ fn aircraft_refund_weights_must_sum_to_one() {
 }
 
 #[test]
-fn concealed_detection_bonus_cannot_reduce_ordinary_sight() {
-    for multiplier in [0.5, 0.0, -1.0] {
+fn spotting_must_be_positive() {
+    for multiplier in [0.0, -1.0] {
         let mut base = base_tank();
-        base["sensors"]["concealed_range_multiplier"] = json!(multiplier);
+        base["sensors"]["spotting"] = json!(multiplier);
         let error = resolve(&units(json!({ "base": base, "t": { "extends": "base" } })))
             .unwrap_err()
             .to_string();
-        assert!(
-            error.contains("sensors.concealed_range_multiplier"),
-            "{error}"
-        );
+        assert!(error.contains("sensors.spotting"), "{error}");
     }
 }
 
@@ -286,8 +128,8 @@ fn a_squad_carries_its_soldiers_mounts_by_slot() {
         "roles": ["infantry"], "cost": 100,
         "body": { "squad": { "slots": ["rifleman", "gunner", "rifleman"] } },
         "mobility": { "foot": { "offroad_kmh": 11, "road_kmh": 14 } },
-        "sensors": { "ground_m": 600, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
-        "sound": { "profile": "infantry", "loudness_m": 200 }
+        "sensors": { "ground_m": 600, "low_air_m": 600, "high_air_m": 600, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
+        "concealment": 1, "sound": { "profile": "infantry", "loudness_m": 200 }
     } }));
     docs.push(soldiers);
     let catalog = resolve(&docs).unwrap();
@@ -306,6 +148,18 @@ fn a_squad_carries_its_soldiers_mounts_by_slot() {
 
 fn error(entries: Value) -> CatalogError {
     resolve(&units(entries)).unwrap_err()
+}
+
+#[test]
+fn a_physical_unit_resolving_without_concealment_is_refused() {
+    let mut base = base_tank();
+    base.as_object_mut().unwrap().remove("concealment");
+    let error = error(json!({ "base": base, "t": { "extends": "base" } }));
+    assert!(
+        matches!(&error, CatalogError::Invalid { id, error, .. }
+        if id == "t" && error.contains("concealment")),
+        "{error}"
+    );
 }
 
 #[test]
@@ -586,7 +440,7 @@ fn a_variant_adds_parts_and_swaps_a_component_variant() {
         "m1": { "extends": "base", "parts": ["era"] },
         "m1a2": { "extends": "m1", "parts": ["aps"],
             "mobility": { "wheeled": { "offroad_kmh": 32, "road_kmh": 72, "turn_deg_s": 40,
-                                       "turning_radius_m": 8, "reverse_fraction": 0.3 } } },
+                                       "turning_radius_m": 8, "reverse_speed_factor": 0.3 } } },
     }));
     docs.push(parts);
     let catalog = resolve(&docs).unwrap();
@@ -620,11 +474,10 @@ fn a_key_repeated_in_one_document_is_refused() {
 #[test]
 fn a_mover_states_two_top_speeds_within_the_cap() {
     let load = |offroad: f64, road: f64| {
-        let mut tank = base_tank();
-        tank.as_object_mut().unwrap().remove("abstract");
-        tank["mobility"] = json!({ "tracked": { "offroad_kmh": offroad, "road_kmh": road,
-            "turn_deg_s": 45, "reverse_fraction": 0.4 } });
-        resolve(&units(json!({ "t": tank })))
+        let speeds = json!({ "tracked": { "offroad_kmh": offroad, "road_kmh": road } });
+        resolve(&units(
+            json!({ "base": base_tank(), "t": { "extends": "base", "mobility": speeds } }),
+        ))
     };
     assert!(load(22.0, 43.0).is_ok());
     assert!(load(32.0, 130.0).is_ok());
@@ -911,8 +764,8 @@ fn every_card_label_is_concise_and_separate_from_its_id() {
 }
 
 /// A vehicle's presentation class comes from its physics (how it moves, how
-/// heavy its hull is, whether it hauls supply), never its unit id, so a new
-/// vehicle sounds and articulates as its kind with no table edit. The view
+/// heavy its hull is, whether it hauls supply), never its unit id or role, so
+/// a new vehicle sounds and articulates as its kind with no table edit. The view
 /// carries it for every reader; a squad has none.
 #[test]
 fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
@@ -926,17 +779,19 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
     wheeled["body"]["hull"]["wreck"] = json!("medium_wreck");
     wheeled["mobility"] = json!({ "wheeled": {
         "offroad_kmh": 30, "road_kmh": 60, "turn_deg_s": 30,
-        "turning_radius_m": 8, "reverse_fraction": 0.3 } });
+        "turning_radius_m": 8, "reverse_speed_factor": 0.3 } });
     let mut recon = wheeled.clone();
     recon["roles"] = json!(["recon"]);
-    let mut truck = wheeled.clone();
-    truck["roles"] = json!(["logistics"]);
-    truck["capabilities"] = json!({ "deploy": { "seconds": 3 }, "supply": { "stock": 100 } });
+    let mut tagged = wheeled.clone();
+    tagged["roles"] = json!(["logistics"]);
+    let mut truck = recon.clone();
+    truck["capabilities"] =
+        json!({ "deploy": { "seconds": 3, "pack_seconds": 3 }, "supply": { "stock": 100 } });
     let mut heli = base_tank();
     heli["abstract"] = json!(false);
     heli["body"]["hull"]["weight_class"] = json!("light");
     heli["body"]["hull"]["wreck"] = json!("light_wreck");
-    heli["mobility"] = json!({ "air": { "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6, "flight": "rotor" } });
+    heli["mobility"] = rotor_air(220, 90, 6);
     let mut fighter = heli.clone();
     fighter["mobility"]["air"]["cruise_kmh"] = json!(300);
     fighter["mobility"]["air"]["layer"] = json!("high_air");
@@ -946,6 +801,7 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
         "tank": { "extends": "base" },
         "recon": recon,
         "truck": truck,
+        "tagged": tagged,
         "heli": heli,
         "fighter": fighter,
         "team": {
@@ -953,8 +809,8 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
             "roles": ["infantry"], "cost": 100,
             "body": { "squad": { "slots": ["rifleman"] } },
             "mobility": { "foot": { "offroad_kmh": 11, "road_kmh": 14 } },
-            "sensors": { "ground_m": 600, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
-            "sound": { "profile": "infantry", "loudness_m": 200 }
+            "sensors": { "ground_m": 600, "low_air_m": 600, "high_air_m": 600, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
+            "concealment": 1, "sound": { "profile": "infantry", "loudness_m": 200 }
         }
     }));
     docs.push(roles);
@@ -978,6 +834,7 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
         ("fighter", json!("high_air_light")),
         ("heli", json!("air_light")),
         ("recon", json!("wheeled_medium")),
+        ("tagged", json!("wheeled_medium")),
         ("tank", json!("tracked_heavy")),
         ("team", Value::Null),
         ("truck", json!("wheeled_medium_logistics")),
@@ -988,113 +845,6 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
         classes,
         want.iter().map(|(id, c)| (*id, c)).collect::<Vec<_>>()
     );
-}
-
-#[test]
-fn an_emitting_radar_is_the_units_high_air_sight() {
-    let unaided = UnaidedHighAirSight {
-        on_foot: 600.0,
-        aircraft: 500.0,
-        ground_vehicle: 300.0,
-    };
-    let mut site = base_tank();
-    site["abstract"] = json!(false);
-    site["capabilities"] = json!({ "radar": { "emits": true, "detection_m": 3200 } });
-    let mut silent = site.clone();
-    silent["capabilities"]["radar"] = json!({ "emits": false, "detection_m": 0 });
-    silent["sensors"]["high_air_m"] = json!(900);
-    let catalog = resolve(&units(json!({ "site": site.clone(), "silent": silent }))).unwrap();
-    assert_eq!(
-        catalog.by_id("site").high_air_sight_m(&unaided),
-        3200.0,
-        "the radar's reach"
-    );
-    assert_eq!(
-        catalog.by_id("silent").high_air_sight_m(&unaided),
-        900.0,
-        "its own optics"
-    );
-
-    // One owner: an emitter never also authors a high-air sensor reach.
-    site["sensors"]["high_air_m"] = json!(900);
-    let error = resolve(&units(json!({ "site": site })))
-        .unwrap_err()
-        .to_string();
-    assert!(error.contains("high_air_m"), "{error}");
-}
-
-#[test]
-fn without_radar_or_its_own_sight_a_unit_sees_high_air_by_its_body() {
-    // Soldiers on foot and aircrew look up; a ground vehicle's crew sees
-    // little overhead. A unit that authors its own reach keeps it, and an
-    // authored 0 is blind.
-    let unaided = UnaidedHighAirSight {
-        on_foot: 600.0,
-        aircraft: 500.0,
-        ground_vehicle: 300.0,
-    };
-    let mut hull = base_tank();
-    hull["abstract"] = json!(false);
-    let mut closed_up = hull.clone();
-    closed_up["sensors"]["high_air_m"] = json!(0);
-    let mut lookout = hull.clone();
-    lookout["sensors"]["high_air_m"] = json!(1200);
-    let squad = json!({
-        "name": "Team", "description": "", "faction": "test", "family": "infantry",
-        "roles": ["infantry"], "cost": 100,
-        "body": { "squad": { "slots": ["rifleman"] } },
-        "mobility": { "foot": { "offroad_kmh": 11, "road_kmh": 14 } },
-        "sensors": { "ground_m": 650, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
-        "sound": { "profile": "infantry", "loudness_m": 200 }
-    });
-    let mut rotor = hull.clone();
-    rotor["mobility"] = json!({ "air": {
-        "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6, "flight": "rotor"
-    } });
-    rotor["sensors"].as_object_mut().unwrap().remove("on");
-    let mut docs = units(json!({
-        "hull": hull, "closed_up": closed_up, "lookout": lookout, "squad": squad,
-        "rotor": rotor,
-    }));
-    docs.push(json!({ "soldiers": {
-        "rifleman": { "name": "Rifleman", "description": "", "hp": 100, "appearance": ["r"],
-            "mounts": [{ "id": "rifles", "name": "Rifle", "weapons": ["rifle"], "squad": true }] },
-    } }));
-    let catalog = resolve(&docs).unwrap();
-    let sight = |id: &str| catalog.by_id(id).high_air_sight_m(&unaided);
-    assert_eq!(
-        sight("squad"),
-        600.0,
-        "a squad on foot, not its ground sight"
-    );
-    assert_eq!(sight("hull"), 300.0, "a ground crew, not its ground sight");
-    assert_eq!(sight("rotor"), 500.0, "an aircraft's crew");
-    assert_eq!(
-        sight("closed_up"),
-        0.0,
-        "an authored 0 is blind to high air"
-    );
-    assert_eq!(sight("lookout"), 1200.0, "an authored reach is kept");
-}
-
-/// A vehicle is presented as a hauler (`_logistics`) because it carries
-/// supply, not because its card's role says so.
-#[test]
-fn a_supply_carrier_is_a_logistics_vehicle_whatever_its_role() {
-    let mut hauler = base_tank();
-    hauler["abstract"] = json!(false);
-    hauler["roles"] = json!(["mbt"]);
-    hauler["capabilities"] = json!({ "deploy": { "seconds": 3 }, "supply": { "stock": 100 } });
-    let mut tagged = base_tank();
-    tagged["abstract"] = json!(false);
-    tagged["roles"] = json!(["logistics"]);
-    let mut documents = units(json!({ "hauler": hauler, "tagged": tagged }));
-    documents[0]["roles"]["logistics"] =
-        json!({ "name": "Logistics", "description": "", "symbol": ["supply"] });
-    let catalog = resolve(&documents).unwrap();
-    let class = |id: &str| catalog.by_id(id).vehicle_class().unwrap();
-    assert_eq!(class("hauler"), "tracked_heavy_logistics");
-    assert_eq!(class("tagged"), "tracked_heavy");
 }
 
 /// Flares are dispensed from a vehicle or an airframe: a squad carrying
@@ -1110,8 +860,8 @@ fn flares_need_a_hull() {
         "roles": ["infantry"], "cost": 100,
         "body": { "squad": { "slots": ["rifleman"] } },
         "mobility": { "foot": { "offroad_kmh": 11, "road_kmh": 14 } },
-        "sensors": { "ground_m": 600, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
-        "sound": { "profile": "infantry", "loudness_m": 200 },
+        "sensors": { "ground_m": 600, "low_air_m": 600, "high_air_m": 600, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
+        "concealment": 1, "sound": { "profile": "infantry", "loudness_m": 200 },
         "capabilities": { "flares": { "capacity": 2, "reload_s": 3 } }
     } }));
     docs.push(soldiers);

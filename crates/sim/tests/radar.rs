@@ -25,7 +25,7 @@ fn receiver_rules(receiver_m: f64, jeep_weapon: &str) -> serde_json::Value {
         &mut rules,
         "units",
         "test_tank",
-        json!({ "capabilities": { "radar": { "emits": true, "detection_m": 1200.0 } } }),
+        json!({ "capabilities": { "radar_emitter": true } }),
     );
     sim::fixtures::patch_catalog(
         &mut rules,
@@ -122,7 +122,7 @@ fn a_receiver_finds_an_airborne_emitter_and_a_ground_only_anti_radiation_row_hol
         &mut rules,
         "units",
         "test_heli",
-        json!({ "capabilities": { "radar": { "emits": true, "detection_m": 1200.0 } } }),
+        json!({ "capabilities": { "radar_emitter": true } }),
     );
     let mut b = battle_of(
         &rules,
@@ -210,7 +210,7 @@ fn at_an_unseen_tank(rules: &serde_json::Value, radar: bool) -> (u32, Vec<Contac
         &mut rules,
         "units",
         "test_tank",
-        json!({ "capabilities": { "radar": { "emits": radar, "detection_m": if radar { 1200.0 } else { 0.0 } } } }),
+        json!({ "capabilities": { "radar_emitter": radar } }),
     );
     let mut units = vec![
         json!({ "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0 }),
@@ -284,7 +284,7 @@ fn a_tank_fires_at_an_identified_emitting_radar() {
         &mut rules,
         "units",
         "test_jeep",
-        json!({ "capabilities": { "radar": { "emits": true, "detection_m": 1200.0 } } }),
+        json!({ "capabilities": { "radar_emitter": true } }),
     );
     let mut b = battle_of(
         &rules,
@@ -325,7 +325,7 @@ fn high_air_ground_attack_uses_bombs_then_strafing_after_the_store_is_empty() {
             "sensors": { "ground_m": 1200.0 },
             "capabilities": { "air": {
                 "fuel_capacity_s": 180.0,
-                "afterburner": {},
+                "afterburner": { "speed_factor": 1.5, "fuel_factor": 2.0 },
                 "refund": { "health": 0.34, "ammunition": 0.33, "fuel": 0.33 }
             }},
             "mounts": [
@@ -444,7 +444,7 @@ fn every_radar_contact_reaches_the_reader_with_its_bearing_and_range() {
         "units",
         "test_jeep",
         json!({ "capabilities": {
-            "radar": { "emits": true, "detection_m": 1200.0 }
+            "radar_emitter": true
         }}),
     );
     // Emitters north-east, south-east, south-west and north-west of it.
@@ -508,7 +508,7 @@ fn sead_rules(reach_m: f64, jeep_emits: bool) -> serde_json::Value {
         "units",
         "test_jeep",
         json!({ "capabilities": {
-            "radar": { "emits": jeep_emits, "detection_m": if jeep_emits { reach_m } else { 0.0 } }
+            "radar_emitter": jeep_emits
         }}),
     );
     rules
@@ -540,110 +540,59 @@ fn a_sead_jet_finds_an_emitting_radar_but_not_a_silent_one() {
     assert_eq!(radar_contacts(false), 0, "a silent one is not");
 }
 
+/// Band reaches are independent, including on an emitter; zero air sight is blind.
 #[test]
-fn an_emitting_radar_sees_high_air_to_its_detection_range() {
-    // Emitting is the cost of a radar; its reach is the payoff: a jet half
-    // its reach out is seen, one past it is not.
-    let reach = 1000.0;
-    let mut rules = sim::fixtures::test_game();
-    sim::fixtures::patch_catalog(
-        &mut rules,
-        "units",
-        "test_jeep",
-        json!({ "capabilities": {
-            "radar": { "emits": true, "detection_m": reach }
-        }}),
-    );
-    let seen = |across_m: f64| {
+fn each_bands_sight_is_the_units_own_and_zero_is_blind() {
+    let seen = |target: &str, band: &str, reach: f64, across: f64, emits: bool| {
+        let mut rules = sim::fixtures::test_game();
+        let mut sensors = json!({
+            "ground_m": 200, "low_air_m": 600, "high_air_m": 1000,
+            "sight_shape": { "front": 1, "side": 1, "rear": 1 }
+        });
+        sensors[band] = json!(reach);
+        sim::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "test_jeep",
+            json!({
+                "sensors": sensors, "capabilities": { "radar_emitter": emits }
+            }),
+        );
         let setup = serde_json::from_value(json!({
-            "map": { "size": [3.0 * reach, reach], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-            "rules": rules.clone(),
+            "map": { "size": [2000, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": rules,
             "units": [
-                { "side": "blue", "kind": "test_jeep", "position": [0.5 * reach, 0.5 * reach], "yaw": 0.0 },
-                { "side": "red", "kind": "test_jet", "position": [0.5 * reach + across_m, 0.5 * reach],
+                { "side": "blue", "kind": "test_jeep", "position": [100, 200], "engagement": "return_fire_only" },
+                { "side": "red", "kind": target, "position": [100.0 + across, 200],
                   "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" }
             ],
             "events": [], "scripts": []
-        }))
-        .unwrap();
-        let mut b = Battle::new(&setup, 1);
-        b.step();
-        b.step();
-        !b.observe(Side::Blue).identified.is_empty()
+        })).unwrap();
+        let mut battle = Battle::new(&setup, 1);
+        battle.step();
+        battle.step();
+        !battle.observe(Side::Blue).identified.is_empty()
     };
-    assert!(
-        seen(0.5 * reach),
-        "a jet half the radar's reach out is seen"
-    );
-    assert!(!seen(1.5 * reach), "one past its reach is not");
-}
-
-/// Whether `spotter` of the test rules, with `unaided` as the rules' high-air
-/// sight without radar and `patch` applied to it, identifies the test jet
-/// cruising in high air `across_m` away across the ground. The spotter faces
-/// the jet, which flies abeam, so it stays about that far off.
-fn spots_jet(
-    spotter: &str,
-    patch: serde_json::Value,
-    unaided: serde_json::Value,
-    across_m: f64,
-) -> bool {
-    let mut rules = sim::fixtures::test_game();
-    rules["sensors"]["unaided_high_air_m"] = unaided;
-    sim::fixtures::patch_catalog(&mut rules, "units", spotter, patch);
-    let size = 2.0 * across_m + 400.0;
-    let setup = serde_json::from_value(json!({
-        "map": { "size": [size, 400.0], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-        "rules": rules,
-        "units": [
-            { "side": "blue", "kind": spotter, "position": [200, 200], "yaw": 0.0,
-              "engagement": "return_fire_only" },
-            { "side": "red", "kind": "test_jet", "position": [200.0 + across_m, 200.0],
-              "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" }
-        ],
-        "events": [], "scripts": []
-    }))
-    .unwrap();
-    let mut b = Battle::new(&setup, 1);
-    b.step();
-    b.step();
-    !b.observe(Side::Blue).identified.is_empty()
-}
-
-#[test]
-fn without_radar_a_unit_sees_a_cruising_jet_as_far_as_its_body_looks_up() {
-    // Soldiers on foot, an aircraft's crew and a ground vehicle's crew each
-    // see high air as far as the rules' unaided row for them says (slant
-    // range to a jet at cruise height): within half that reach across the
-    // ground, never past one and a half times it. A unit authoring 0 is
-    // blind even directly beneath the jet.
-    let unaided = json!({ "on_foot": 900.0, "aircraft": 800.0, "ground_vehicle": 700.0 });
-    let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
-    let cruise = rules.air.high_air.cruise_agl_m;
-    for (spotter, reach) in [
-        ("test_rifle", 900.0),
-        ("test_heli", 800.0),
-        ("test_supply", 700.0),
-    ] {
-        assert!(
-            (0.25 * reach * reach + cruise * cruise).sqrt() < reach,
-            "half of {reach} m across is inside the slant reach to {cruise} m up"
-        );
-        assert!(
-            spots_jet(spotter, json!({}), unaided.clone(), 0.5 * reach),
-            "{spotter} sees it {} m off",
-            0.5 * reach
-        );
-        assert!(
-            !spots_jet(spotter, json!({}), unaided.clone(), 1.5 * reach),
-            "{spotter} does not see it {} m off",
-            1.5 * reach
-        );
+    for emits in [false, true] {
+        for (target, band, reach) in [
+            ("test_jeep", "ground_m", 200.0),
+            ("test_heli", "low_air_m", 600.0),
+            ("test_jet", "high_air_m", 1000.0),
+        ] {
+            assert!(
+                seen(target, band, reach, 0.5 * reach, emits),
+                "inside {band}, emits={emits}"
+            );
+            assert!(
+                !seen(target, band, reach, 1.5 * reach, emits),
+                "outside {band}, emits={emits}"
+            );
+            if band != "ground_m" {
+                assert!(
+                    !seen(target, band, 0.0, 10.0, emits),
+                    "blind to {band}, emits={emits}"
+                );
+            }
+        }
     }
-    let blind = json!({ "sensors": { "high_air_m": 0.0 } });
-    assert!(
-        !spots_jet("test_tank", blind, unaided, 0.0),
-        "a unit authoring 0 never sees it, even directly beneath"
-    );
 }

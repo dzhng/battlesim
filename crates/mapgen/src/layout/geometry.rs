@@ -436,3 +436,69 @@ pub fn segment_bounds(a: Point, b: Point, margin: f64) -> [f64; 4] {
         a[1].max(b[1]) + margin,
     ]
 }
+
+/// The least ground between `ring` and the segment `ab`: zero where they
+/// meet or the segment starts inside.
+pub fn segment_ring_gap(ring: &[Point], a: Point, b: Point) -> f64 {
+    let edges = || contract::ground::edges(ring);
+    if contract::ground::polygon_contains(ring, a)
+        || edges().any(|(c, d)| segment_crossing(a, b, *c, *d).is_some())
+    {
+        return 0.0;
+    }
+    edges()
+        .map(|(c, d)| {
+            segment_distance(a, b, *c)
+                .min(segment_distance(a, b, *d))
+                .min(segment_distance(*c, *d, a))
+                .min(segment_distance(*c, *d, b))
+        })
+        .fold(f64::INFINITY, f64::min)
+}
+
+/// The least ground between two rings: zero where their edges cross or one
+/// lies inside the other.
+pub fn ring_gap(a: &[Point], b: &[Point]) -> f64 {
+    if contract::ground::polygon_contains(a, b[0]) {
+        return 0.0;
+    }
+    contract::ground::edges(a)
+        .map(|(p, q)| segment_ring_gap(b, *p, *q))
+        .fold(f64::INFINITY, f64::min)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ring_gap;
+
+    fn rect(x0: f64, y0: f64, x1: f64, y1: f64) -> Vec<[f64; 2]> {
+        vec![[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+    }
+
+    /// Two long thin rings crossing like a plus sign have every vertex far
+    /// from the other ring, and still overlap.
+    #[test]
+    fn crossing_rings_have_no_gap_however_far_their_corners() {
+        let across = rect(-100.0, -5.0, 100.0, 5.0);
+        let down = rect(-5.0, -100.0, 5.0, 100.0);
+        assert_eq!(ring_gap(&across, &down), 0.0);
+        assert_eq!(ring_gap(&down, &across), 0.0);
+    }
+
+    /// A ring inside another has no ground between them, from either side.
+    #[test]
+    fn a_ring_inside_another_has_no_gap() {
+        let outer = rect(0.0, 0.0, 100.0, 100.0);
+        let inner = rect(40.0, 40.0, 60.0, 60.0);
+        assert_eq!(ring_gap(&outer, &inner), 0.0);
+        assert_eq!(ring_gap(&inner, &outer), 0.0);
+    }
+
+    /// Apart, the gap is the nearest approach of their edges.
+    #[test]
+    fn separate_rings_are_as_far_apart_as_their_nearest_edges() {
+        let left = rect(0.0, 0.0, 10.0, 10.0);
+        let right = rect(30.0, -50.0, 40.0, 60.0);
+        assert_eq!(ring_gap(&left, &right), 20.0);
+    }
+}

@@ -82,7 +82,7 @@ fn dir(angle: f64) -> V2 {
 
 fn speed_in(drive: &Drive, gear: f64, speed: f64) -> f64 {
     if gear < 0.0 {
-        speed * drive.reverse_fraction
+        speed * drive.reverse_speed_factor
     } else {
         speed
     }
@@ -110,7 +110,7 @@ fn turn_speed(drive: &Drive, full: f64, angle: f64) -> f64 {
             full * libm::cos(angle)
         }
     } else {
-        let corner = (full * drive.feel.turn_slow).min(drive.radius_m * drive.turn_rad_s);
+        let corner = (full * drive.feel.turn_speed_factor).min(drive.radius_m * drive.turn_rad_s);
         let lock = (angle / drive.feel.turning_deg.to_radians()).min(1.0);
         corner + (full - corner) * libm::cos(lock * std::f64::consts::FRAC_PI_2)
     }

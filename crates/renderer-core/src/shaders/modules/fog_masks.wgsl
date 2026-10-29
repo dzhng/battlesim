@@ -36,8 +36,7 @@ struct GrassParams {
   clear: vec4f,
   counts: vec4u,
   ground: vec4f,
-  wind: vec4f,
-  gusts: vec4f,
+  sway: vec4f,
   growth: array<vec4f, 16>,
   patches: array<vec4f, 16>,
   mixes: array<vec4f, 64>,
@@ -213,11 +212,12 @@ fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
   let side = vec3f(sd.x * cs - sd.y * sn, sd.x * sn + sd.y * cs, sd.z);
   // The one wind: a steady lean, gust fronts rolling downwind, a flutter.
   let t = cam.time;
-  let dir = (*P).wind.xy;
+  let wind = cameraWind();
+  let dir = wind.toward.xy;
   let along = dot(c.root.xy, dir);
-  let front = sin(6.2831853 * (along - t * (*P).gusts.y) * (*P).gusts.x);
+  let front = sin(6.2831853 * (along - t * wind.gustMps) * wind.gustPerM);
   let gust = smoothstep(0.2, 1.0, front);
-  let flutter = (*P).gusts.z * sin((*P).gusts.w * t + s.side.w * 6.2831853 + along * 0.35);
+  let flutter = (*P).sway.z * sin((*P).sway.w * t + s.side.w * 6.2831853 + along * 0.35);
   let bend = s.spine.w * s.spine.w;
   let packed = unpack4x8unorm(c.colour);
   // Laid over by tracks or trampling: the clump sinks and its blades lean
@@ -225,7 +225,7 @@ fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
   // wind less (its shape's own response).
   let flat = 1.0 - packed.w;
   let answer = s.tint.w * (1.0 - flat);
-  let lean = ((*P).wind.z + (*P).wind.w * gust + flutter) * answer;
+  let lean = ((*P).sway.x + (*P).sway.y * gust + flutter) * answer;
   let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * 0.5 * answer;
   let laid = vec2f(cs, sn) * flat * 1.1;
   var world = c.root + vec3f(spine.xy, spine.z * (1.0 - flat * 0.6)) + side + vec3f((push + laid) * c.height * bend, 0.0);

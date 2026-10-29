@@ -522,6 +522,7 @@ test("a preset changed during admission installs only the newest grass and shado
     castLights: true,
     authoredSunSky: true,
     effectMood: "full",
+    waterDetail: "full",
   };
   const world = new Feed({
     terrain: { input: {}, mesh: new Float32Array(0) },
@@ -571,6 +572,7 @@ test("a superseded admission rejection retries the newest request", async () => 
     castLights: true,
     authoredSunSky: true,
     effectMood: "full" as const,
+    waterDetail: "full" as const,
   };
   const { advance, view, props, Viewport } = await mount({ quality });
   await building();

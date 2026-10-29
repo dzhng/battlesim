@@ -1,16 +1,5 @@
 // WGSL owner: fog_sight.
 
-// @block fog_sight_Camera
-struct Camera {
-  viewProj: mat4x4f,
-  invViewProj: mat4x4f,
-  eye: vec3f,
-  znear: f32,
-  width: f32,
-  height: f32,
-  time: f32,
-}
-
 // @block fog_sight_FogBox
 struct FogBox {
   center: vec2f,
@@ -395,16 +384,9 @@ fn paintedSeen(seen: f32, paint: vec4f) -> f32 {
 // @block fog_sight_points
 @group(1) @binding(0) var<storage, read> points: array<FogProbe>;
 
-// @block fog_sight_shadeAlgorithm
-fn shadeAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, observer: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, air: Aerial, sky: texture_2d<f32>, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linear: sampler) -> vec4f {
- let lit=standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
- return applyAerial(vec4f(lit,1),worldPosition,eye,observer,sunDirection,air,sky,linear);
- }
-
 // @block fog_sight_shade_lit
 fn shade_1(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec4f {
-  let sun_1 = mix(data.settings.y, 1f, shadow);
-  return shadeAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun_1, eye, data.observer.xyz, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, data.aerial, sky, pmrem, dfg, linear);
+  return air(surfaceLight(base, emissive, roughness, geomRoughness, metal, ao, normal, position, shadow, eye), position, eye);
 }
 
 // @block fog_sight_smokeLight
@@ -487,3 +469,27 @@ struct worldFragment_Output {
   @location(0) color: vec4f,
   @location(1) fog: vec4f,
 }
+
+// @block fog_sight_Camera
+struct Camera {
+  viewProj: mat4x4f,
+  invViewProj: mat4x4f,
+  eye: vec3f,
+  znear: f32,
+  width: f32,
+  height: f32,
+  time: f32,
+  wind: array<Wind, 1>,
+  waves: vec4f,
+}
+
+// @block fog_sight_Wind
+struct Wind {
+  toward: vec3f,
+  driftMps: f32,
+  gustMps: f32,
+  gustPerM: f32,
+}
+
+// @block fog_sight_cameraWind
+fn cameraWind() -> Wind { return cam.wind[0]; }

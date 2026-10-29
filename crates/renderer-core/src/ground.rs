@@ -318,7 +318,7 @@ impl Ground {
     }
 
     /// The water's surface over the rivers' cells: blended over everything
-    /// opaque, reading depth and writing none.
+    /// opaque and glass (`world::Water`), reading depth and writing none.
     pub fn draw_water(&self, pass: &mut RenderPass, groups: &[(&str, &BindGroup)]) {
         let mut all = groups.to_vec();
         all.push(self.layout_group());

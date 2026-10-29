@@ -240,7 +240,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
             ..Default::default()
         },
     );
-    let fog = Fog::new(&gpu.device, &gpu.queue, &pipelines, &targets.depth);
+    let fog = Fog::new(&gpu.device, &gpu.queue, &pipelines, &targets);
     let post = post::new(
         &gpu.device,
         &gpu.queue,

@@ -12,6 +12,17 @@ use crate::records::{Camera as CameraRecord, SunCascade, SunShadow};
 use crate::static_world::ground::partition::TerrainPartition;
 use crate::view::{look_at, perspective_reverse_z, Camera};
 
+/// Where an aircraft's shadow lies: thrown along the sun (`shadow_fall`, per
+/// metre of height) from its actual height above the ground under it.
+pub fn aircraft_shadow(position: [f64; 3], ground_z: f64, shadow_fall: [f64; 2]) -> [f64; 3] {
+    let height = position[2] - ground_z;
+    [
+        position[0] + shadow_fall[0] * height,
+        position[1] + shadow_fall[1] * height,
+        ground_z,
+    ]
+}
+
 /// Executed receiver work in the latest frame, never the cached fit's old cost.
 #[derive(Clone, Copy, Debug, Default, serde::Serialize)]
 pub struct ReceiverStats {
@@ -266,6 +277,8 @@ pub fn camera_record(
         height: size[1],
         time,
         pad: 0.0,
+        wind: [Default::default()],
+        waves: [0.0; 4],
     }
 }
 

@@ -25,10 +25,19 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::observation::SoundCategory;
-use crate::scenario::{
-    Armor, Blocks, CoverTier, PushClass, SightShape, UnaidedHighAirSight, WeightClass,
-};
+use crate::scenario::{Armor, Blocks, CoverTier, PushClass, WeightClass};
 use crate::weapons::MountDefinition;
+
+mod mobility;
+pub use mobility::{Arrival, FlightModel, Mobility, MAX_SPEED_KMH};
+mod sensors;
+pub use sensors::Sensors;
+
+mod props;
+pub use props::{
+    BuildingRemains, Destroyed, HpScale, PropAppearance, PropAppearanceStatus, PropBody,
+    PropCatalog, PropKind, PropPlacement, PropType,
+};
 
 /// A unit type's place in the catalog: its rank among the ids in sorted order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -135,6 +144,8 @@ pub struct UnitType {
     #[serde(default)]
     pub capabilities: Capabilities,
     pub sound: Sound,
+    /// Intrinsic visual concealment, multiplied by ground and movement.
+    pub concealment: f64,
     /// A hull's model (an asset catalog appearance). A squad draws its
     /// soldiers' own appearance sets.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -173,9 +184,6 @@ pub struct Hull {
     pub wreck: String,
 }
 
-/// No ground mover's top speed may exceed this (light wheeled vehicles do 110).
-pub const MAX_SPEED_KMH: f64 = 130.0;
-
 /// The height band a unit occupies, which decides what can engage it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -186,179 +194,6 @@ pub enum AltitudeLayer {
     /// The one layer that bends physics: its heights are lowered from a
     /// real jet's for play, and nothing in it sees the ground.
     HighAir,
-}
-
-/// How an airframe flies, apart from the layer it flies in: on rotors,
-/// which hover, or on wings, which never stop and attack in passes.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum FlightModel {
-    Rotor,
-    FixedWing,
-}
-
-impl FlightModel {
-    /// Its name as authored (the serde name): the key the rules' per-flight
-    /// tables use.
-    pub fn name(self) -> &'static str {
-        match self {
-            FlightModel::Rotor => "rotor",
-            FlightModel::FixedWing => "fixed_wing",
-        }
-    }
-}
-
-/// How a unit moves (Q29, Q30). A ground mover has its own two top speeds,
-/// in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road. A
-/// surface kind's `speed_factor` scales the road speed, never below the
-/// off-road one (`Rules::surfaces`). An aircraft ignores the ground and
-/// cruises at one speed, at the heights the rules' `air` section sets.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case", deny_unknown_fields)]
-pub enum Mobility {
-    Foot {
-        offroad_kmh: f64,
-        road_kmh: f64,
-    },
-    /// Tracks pivot on the spot.
-    Tracked {
-        offroad_kmh: f64,
-        road_kmh: f64,
-        turn_deg_s: f64,
-        /// Reverse speed as a fraction of forward.
-        reverse_fraction: f64,
-    },
-    /// Wheels hold a minimum turning radius and never pivot.
-    Wheeled {
-        offroad_kmh: f64,
-        road_kmh: f64,
-        turn_deg_s: f64,
-        turning_radius_m: f64,
-        reverse_fraction: f64,
-    },
-    /// Flies in an authored air layer, by its authored flight model.
-    Air {
-        cruise_kmh: f64,
-        turn_deg_s: f64,
-        /// How fast it climbs or sinks toward its target height.
-        climb_mps: f64,
-        /// The altitude layer this aircraft occupies; LowAir when unnamed.
-        #[serde(default = "default_air_layer")]
-        layer: AltitudeLayer,
-        /// How it flies: always authored, never read off the layer.
-        flight: FlightModel,
-        /// How long a bought one takes to reach the map (D38); it appears at
-        /// its back edge at once when absent.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        arrival: Option<Arrival>,
-        /// Its own cruise height over the ground, overriding its layer's
-        /// (D40). Read through `AirRules::cruise_agl_m`, never directly.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        cruise_agl_m: Option<f64>,
-    },
-}
-
-/// A bought aircraft's wait off the map (D38): seconds, drawn from the
-/// battle's seed between `delay_s[0]` and `delay_s[1]`.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Arrival {
-    pub delay_s: [f64; 2],
-}
-
-impl Mobility {
-    pub fn layer(&self) -> AltitudeLayer {
-        match self {
-            Mobility::Air { layer, .. } => *layer,
-            _ => AltitudeLayer::Ground,
-        }
-    }
-
-    /// A bought aircraft's wait off the map; None for a ground mover and
-    /// for an aircraft that appears at once.
-    pub fn arrival(&self) -> Option<Arrival> {
-        match self {
-            Mobility::Air { arrival, .. } => *arrival,
-            _ => None,
-        }
-    }
-
-    /// How an aircraft flies; None for a ground mover.
-    pub fn flight(&self) -> Option<FlightModel> {
-        match self {
-            Mobility::Air { flight, .. } => Some(*flight),
-            _ => None,
-        }
-    }
-
-    /// `(offroad_kmh, road_kmh)`; an aircraft's cruise is both.
-    pub fn speeds_kmh(&self) -> (f64, f64) {
-        match *self {
-            Mobility::Foot {
-                offroad_kmh,
-                road_kmh,
-            }
-            | Mobility::Tracked {
-                offroad_kmh,
-                road_kmh,
-                ..
-            }
-            | Mobility::Wheeled {
-                offroad_kmh,
-                road_kmh,
-                ..
-            } => (offroad_kmh, road_kmh),
-            Mobility::Air { cruise_kmh, .. } => (cruise_kmh, cruise_kmh),
-        }
-    }
-
-    /// `(off-road, road)` top speeds in metres per second.
-    pub fn speeds_mps(&self) -> (f64, f64) {
-        let (offroad, road) = self.speeds_kmh();
-        (offroad / 3.6, road / 3.6)
-    }
-}
-
-fn default_air_layer() -> AltitudeLayer {
-    AltitudeLayer::LowAir
-}
-
-/// A unit's one sight.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Sensors {
-    /// Ground range in the open, before shape.
-    pub ground_m: f64,
-    /// Its own reach into the low-air band; absent, it sees low air as far
-    /// as it sees the ground (`ground_m`), and an authored 0 is blind to it.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub low_air_m: Option<f64>,
-    /// Its own reach into the high-air band; absent, it sees high air
-    /// unaided, by its body (the rules' `sensors.unaided_high_air_m`), and
-    /// an authored 0 is blind to it. A unit whose radar emits never authors
-    /// it: the radar's reach is its high-air sight
-    /// ([`UnitType::high_air_sight_m`]).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub high_air_m: Option<f64>,
-    /// Reach by direction as multipliers of `ground_m`; 1/1/1 sees evenly.
-    pub sight_shape: SightShape,
-    /// Bonus to concealed-target detection reach (at least 1), capped at ordinary sight reach.
-    #[serde(
-        default = "ordinary_concealed_detection",
-        skip_serializing_if = "is_ordinary_concealed_detection"
-    )]
-    pub concealed_range_multiplier: f64,
-    /// The turret mount the optics turn with; absent, they look along the hull.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub on: Option<String>,
-}
-
-fn ordinary_concealed_detection() -> f64 {
-    1.0
-}
-
-fn is_ordinary_concealed_detection(value: &f64) -> bool {
-    *value == 1.0
 }
 
 /// Optional abilities, present only on the types that have them.
@@ -381,9 +216,9 @@ pub struct Capabilities {
     /// (`AirCapability`); needs air mobility.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub air: Option<AirCapability>,
-    /// Radar emission/detection is separate from optical sensors.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub radar: Option<RadarCapability>,
+    /// Emits a radar signature, independently of sight reach.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub radar_emitter: bool,
     /// Decoys ejected against an incoming decoyable seeker, a charge each.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flares: Option<FlareCapability>,
@@ -408,16 +243,6 @@ pub struct RadarReceiver {
     pub range_m: f64,
 }
 
-/// A radar's authored emission and detection contract.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct RadarCapability {
-    #[serde(default)]
-    pub emits: bool,
-    #[serde(default)]
-    pub detection_m: f64,
-}
-
 /// Finite flare stores and their reload interval.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -426,23 +251,12 @@ pub struct FlareCapability {
     pub reload_s: f64,
 }
 
-/// The explicit afterburner tradeoff. Defaults are the initial 50% speed and
-/// 2x fuel tuning, but remain authored for later aircraft variants.
+/// The explicit afterburner tradeoff. Both multipliers are authored.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AfterburnerCapability {
-    #[serde(default = "afterburner_speed_multiplier")]
-    pub speed_multiplier: f64,
-    #[serde(default = "afterburner_fuel_multiplier")]
-    pub fuel_multiplier: f64,
-}
-
-fn afterburner_speed_multiplier() -> f64 {
-    1.5
-}
-
-fn afterburner_fuel_multiplier() -> f64 {
-    2.0
+    pub speed_factor: f64,
+    pub fuel_factor: f64,
 }
 
 /// Health/ammunition/fuel shares of an aircraft's withdrawal refund.
@@ -484,9 +298,9 @@ pub struct ActiveProtection {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Deploy {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub pack_seconds: Option<f64>,
-    /// Full setup duration. Packing uses this unless `pack_seconds` is authored.
+    /// Time to pack up before moving.
+    pub pack_seconds: f64,
+    /// Full setup duration.
     pub seconds: f64,
 }
 
@@ -543,241 +357,6 @@ pub struct Part {
     pub nodes: Vec<String>,
     /// Merged into the type, like an `extends` child.
     pub patch: Value,
-}
-
-/// A prop type's place in the catalog: its rank among the prop ids.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct PropKind(pub u16);
-
-/// One prop type (Q19, Q28): what a body of it blocks, stops, hides and
-/// weighs, what it becomes when destroyed, and what draws it. The rules read
-/// its body's columns, never its id; a new obstacle is a new entry.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct PropType {
-    /// It is what a unit leaves when destroyed: each placement names the
-    /// unit type it was (`wreck_of`), and only a wreck's does.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub wreck: bool,
-    pub body: PropBody,
-    /// What a destroyed body becomes; with `body.hp`, and only with it.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub destroyed: Option<Destroyed>,
-    pub appearance: PropAppearance,
-}
-
-/// A prop type's body row. Each column is independent and has its own
-/// readers: `blocks` navigation and collision; `stops_rounds` flight;
-/// `occludes` the fog sweep, sensing and the renderer's sight-light
-/// occluders; `weight_class` pushing; `cover_tier` cover. A row that blocks
-/// nobody, stops no rounds and gives no cover but occludes for a
-/// `lifetime_s` is a smoke screen.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct PropBody {
-    pub blocks: Blocks,
-    pub stops_rounds: bool,
-    /// Hides what lies behind it from sight (Q25: only big static bodies).
-    pub occludes: bool,
-    pub weight_class: WeightClass,
-    /// The cover it gives infantry (Q4, Q24): from behind a body that blocks
-    /// infantry, or from inside a ground body (rubble) that does not.
-    #[serde(default)]
-    pub cover_tier: Option<CoverTier>,
-    /// A transient body: it goes this long after it appears.
-    #[serde(default)]
-    pub lifetime_s: Option<f64>,
-    /// How much of a fog cell one such body conceals, in [0, 1) (Q21): a
-    /// cell's foliage is `1 − Π(1 − conceals)` over the concealing bodies
-    /// whose canopy covers it.
-    #[serde(default)]
-    pub conceals: f64,
-    /// Integrity (Q17, 34c): the structural damage it takes to destroy one
-    /// such body; with `building_floor_bands` this is the coefficient per
-    /// square metre and floor band. None: ordinary fire never destroys it.
-    #[serde(default)]
-    pub hp: Option<f64>,
-    #[serde(default, skip_serializing_if = "HpScale::is_fixed")]
-    pub hp_scale: HpScale,
-    /// The share of a direct round's structural damage it takes (blast is
-    /// not scaled); 1 when absent.
-    #[serde(default = "one")]
-    pub armor: f64,
-    /// It falls rather than slides (Q16): a vehicle that can shove it knocks
-    /// it down, and a vehicle that can knock it down clears a lane of the
-    /// forest ground it stood on. A tree.
-    #[serde(default)]
-    pub topples: bool,
-    /// A squad can garrison it: a fighting position its soldiers hold from
-    /// inside (Q22, the named garrison mechanic).
-    #[serde(default)]
-    pub garrison: bool,
-}
-
-/// A fixed integrity value, or a coefficient per square metre and usable floor band.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum HpScale {
-    #[default]
-    Fixed,
-    BuildingFloorBands,
-}
-impl HpScale {
-    fn is_fixed(&self) -> bool {
-        *self == Self::Fixed
-    }
-}
-
-fn one() -> f64 {
-    1.0
-}
-
-/// A destroyed body's state (Q17): gone, gone and its ground cleared (a
-/// tree: open ground, like a lane a tank knocks through), or another prop
-/// type on the same plan at `height_m` (a building's ruin, sandbags'
-/// rubble, a lighter wreck).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case", deny_unknown_fields)]
-pub enum Destroyed {
-    Removed,
-    Cleared,
-    Into {
-        prop: String,
-        height_m: f64,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        building: Option<BuildingRemains>,
-    },
-}
-
-/// A building's data-driven collapse height and tall terminal shell.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct BuildingRemains {
-    pub height_fraction: f64,
-    pub max_height_m: f64,
-    pub collapse_max_floors: usize,
-    pub gutted_prop: String,
-}
-
-/// What draws a prop type (presentation reads it; the rules never do).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct PropAppearance {
-    /// Physical catalog entry whose fitted art is still awaiting acceptance.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub status: Option<PropAppearanceStatus>,
-    /// What draws it: the asset catalog's scenery kind whose appearances are
-    /// fitted to its box, `building` for a part its building draws from its
-    /// template's art, `forest` for the trees a forest draws itself.
-    pub drawn_by: String,
-    /// Drawn by repeating one module along the box's long side (a wall, a
-    /// fence), not stretched.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub modular: bool,
-    /// Only a map places one: a battle never leaves or drops one, so only the
-    /// appearances a map uses are loaded.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub map_only: bool,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PropAppearanceStatus {
-    SystemsOnly,
-}
-
-/// The physical owner that will place a prop and its later destruction states.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum PropPlacement {
-    Ordinary,
-    Aggregate,
-}
-
-/// The prop types, in id order: [`PropKind`] is a rank.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PropCatalog {
-    ids: Vec<String>,
-    types: Vec<PropType>,
-}
-
-impl PropCatalog {
-    /// Validate every state against its placement owner. Catalog resolution
-    /// already proves the chain acyclic and each gutted alternative terminal.
-    pub fn check_placement(&self, kind: PropKind, placement: PropPlacement) -> Result<(), String> {
-        let check = |kind| {
-            let body = self.get(kind).body;
-            match placement {
-                PropPlacement::Ordinary
-                    if body.garrison || body.hp_scale == HpScale::BuildingFloorBands =>
-                {
-                    Err(format!("prop {:?} requires a placed aggregate for garrison or building-scaled integrity", self.id(kind)))
-                }
-                PropPlacement::Aggregate
-                    if body.weight_class != crate::scenario::WeightClass::Immovable =>
-                {
-                    Err(format!("aggregate state {:?} requires an immovable body until composite motion exists", self.id(kind)))
-                }
-                _ => Ok(()),
-            }
-        };
-        let mut kind = kind;
-        loop {
-            check(kind)?;
-            let Some(Destroyed::Into { prop, building, .. }) = &self.get(kind).destroyed else {
-                return Ok(());
-            };
-            if let Some(policy) = building {
-                check(self.kind(&policy.gutted_prop))?;
-            }
-            kind = self.kind(prop);
-        }
-    }
-
-    /// [`Self::check_placement`] for the prop type named `id`, which may name
-    /// no type this catalog holds.
-    pub fn check_placement_of(&self, id: &str, placement: PropPlacement) -> Result<(), String> {
-        let kind = self
-            .index(id)
-            .ok_or_else(|| format!("unknown prop type {id:?}"))?;
-        self.check_placement(kind, placement)
-    }
-
-    /// Every prop type's index, in id order.
-    pub fn kinds(&self) -> impl Iterator<Item = PropKind> {
-        (0..self.types.len() as u16).map(PropKind)
-    }
-
-    pub fn index(&self, id: &str) -> Option<PropKind> {
-        self.ids
-            .binary_search_by(|k| k.as_str().cmp(id))
-            .ok()
-            .map(|i| PropKind(i as u16))
-    }
-
-    /// The prop type named `id`, which a caller holds from this catalog.
-    pub fn kind(&self, id: &str) -> PropKind {
-        self.index(id)
-            .unwrap_or_else(|| panic!("no prop type {id:?}"))
-    }
-
-    pub fn id(&self, k: PropKind) -> &str {
-        &self.ids[k.0 as usize]
-    }
-
-    /// The ids in index order: the publications' prop type table.
-    pub fn ids(&self) -> &[String] {
-        &self.ids
-    }
-
-    pub fn get(&self, k: PropKind) -> &PropType {
-        &self.types[k.0 as usize]
-    }
-
-    /// The prop type named `id`, which a caller holds from this catalog.
-    pub fn by_id(&self, id: &str) -> &PropType {
-        self.get(self.kind(id))
-    }
 }
 
 /// A mount as a unit carries it: its row, and for a squad the slots whose
@@ -966,23 +545,6 @@ impl Catalog {
 }
 
 impl UnitType {
-    /// How far the unit sees the high-air band: an emitting radar's reach,
-    /// since emitting is what a radar costs and seeing far is what it buys;
-    /// else its own authored high-air sight; else what it sees unaided
-    /// (D48): soldiers on foot and aircrew look up, while a ground vehicle's
-    /// crew sees little overhead.
-    pub fn high_air_sight_m(&self, unaided: &UnaidedHighAirSight) -> f64 {
-        match (self.capabilities.radar, self.sensors.high_air_m) {
-            (Some(radar), _) if radar.emits => radar.detection_m,
-            (_, Some(authored)) => authored,
-            _ => match (&self.body, &self.mobility) {
-                (Body::Squad { .. }, _) => unaided.on_foot,
-                (Body::Hull(_), Mobility::Air { .. }) => unaided.aircraft,
-                (Body::Hull(_), _) => unaided.ground_vehicle,
-            },
-        }
-    }
-
     /// What it is to a weapon choosing its targets: an aircraft by how it
     /// flies, else a hull on the ground, else soldiers.
     pub fn target_class(&self) -> crate::weapons::TargetClass {
@@ -1816,10 +1378,10 @@ fn check(
                     "capabilities.air.afterburner needs fixed-wing flight: no rotor flight law flies it",
                 );
             }
-            if !(afterburner.speed_multiplier > 1.0
-                && afterburner.fuel_multiplier > 1.0
-                && afterburner.speed_multiplier.is_finite()
-                && afterburner.fuel_multiplier.is_finite())
+            if !(afterburner.speed_factor > 1.0
+                && afterburner.fuel_factor > 1.0
+                && afterburner.speed_factor.is_finite()
+                && afterburner.fuel_factor.is_finite())
             {
                 return rule(
                     "capabilities.air.afterburner multipliers must be finite and greater than one",
@@ -1850,19 +1412,6 @@ fn check(
         .is_some_and(|receiver| !positive(receiver.range_m))
     {
         return rule("capabilities.radar_receiver range_m must be positive");
-    }
-    if let Some(radar) = t.capabilities.radar {
-        if radar.emits && !positive(radar.detection_m) {
-            return rule("capabilities.radar detection_m must be positive when it emits");
-        }
-        if radar.emits && t.sensors.high_air_m.is_some() {
-            return rule(
-                "sensors.high_air_m: a unit whose radar emits sees high air by its radar's detection_m; drop the sensor reach",
-            );
-        }
-        if !at_least_zero(radar.detection_m) {
-            return rule("capabilities.radar detection_m must be finite and nonnegative");
-        }
     }
     ranges(t).map_or(Ok(()), rule)
 }
@@ -1926,18 +1475,18 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         Mobility::Foot { .. } | Mobility::Air { .. } => None,
         Mobility::Tracked {
             turn_deg_s,
-            reverse_fraction,
+            reverse_speed_factor,
             ..
         }
         | Mobility::Wheeled {
             turn_deg_s,
-            reverse_fraction,
+            reverse_speed_factor,
             ..
         } => {
             if !positive(turn_deg_s) {
                 Some("mobility: turn_deg_s must be positive")
-            } else if !(reverse_fraction > 0.0 && reverse_fraction <= 1.0) {
-                Some("mobility.reverse_fraction must lie in (0, 1]")
+            } else if !(reverse_speed_factor > 0.0 && reverse_speed_factor <= 1.0) {
+                Some("mobility.reverse_speed_factor must lie in (0, 1]")
             } else {
                 None
             }
@@ -1955,15 +1504,13 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         (!at_least_zero(t.sound.loudness_m)).then_some("sound.loudness_m must not be negative")
     })
     .or_else(|| (!positive(t.sensors.ground_m)).then_some("sensors.ground_m must be positive"))
+    .or_else(|| (!positive(t.concealment)).then_some("concealment must be finite and positive"))
     .or_else(|| {
-        (!(t.sensors.concealed_range_multiplier.is_finite()
-            && t.sensors.concealed_range_multiplier >= 1.0))
-            .then_some("sensors.concealed_range_multiplier must be finite and at least 1")
+        (!positive(t.sensors.spotting)).then_some("sensors.spotting must be finite and positive")
     })
     .or_else(|| {
         (![t.sensors.low_air_m, t.sensors.high_air_m]
             .into_iter()
-            .flatten()
             .all(at_least_zero))
         .then_some("sensors air ranges must be finite and nonnegative")
     })
@@ -1974,9 +1521,7 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
     .or_else(|| {
         t.capabilities
             .deploy
-            .is_some_and(|d| {
-                !at_least_zero(d.seconds) || d.pack_seconds.is_some_and(|s| !at_least_zero(s))
-            })
+            .is_some_and(|d| !at_least_zero(d.seconds) || !at_least_zero(d.pack_seconds))
             .then_some("capabilities.deploy durations must not be negative")
     })
 }

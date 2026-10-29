@@ -10,7 +10,7 @@ Leaving preparation closes its worker. Once ready, timing starts after the decla
 
 ## The graphics test and its capture
 
-The graphics test (`/graphics-test`) plays the menu reel and times it. It is also the control a second client draws against, so it records what it drew rather than what it meant to draw. A run of some scenes (`?scenes=`) reports the workload of those scenes, never the whole reel's.
+The graphics test (`/graphics-test`) plays the menu reel and times it. It is also the control a second client draws against, so it records what it drew rather than what it meant to draw. A run of some scenes (`?scenes=`) reports the workload of those scenes, never the whole reel's. `?capture=` films another reel the test knows ([`reels.ts`](reels.ts)), such as the water scene's.
 
 Each scene writes two files, each with one strict reader that refuses a stale shape rather than migrating it:
 
@@ -19,7 +19,7 @@ Each scene writes two files, each with one strict reader that refuses a stale sh
 
   The static world travels not at all: the ground's and grass's tables, the scenery and the buildings are resolved in Rust from the saved map, the biome and the template art ([the ground](../../../../crates/presentation/src/static_world/ground/mod.rs), [the buildings](../../../../crates/presentation/src/static_world/buildings.rs)), the same for every client. Which buildings have fallen, which trees are felled and which ground is cleared stay per frame: a second client derives them from the publications. Each plate also counts what its frame drew, from the layers themselves: building modules per kit module and tier, scenery per population, appearance and tier, and the props its side knows (wrecks, shoved bodies, rubble) per appearance and tier.
 
-`?plates=1` reads each shot's middle frame back in the task that drew it (the viewport's `FramePlate`): the canvas without the page's HUD or fade veil, the grass it grew, and the same frame drawn again offscreen lit without its grass. That picture is named after the plate by rule (`presentationCapture.ts`), and the canvas and the next frame are untouched. Only a plated run may copy from the canvas, so other frames pay nothing; a plated run is not a timing measure. The [`native-parity-capture` scene](../../../scenes/native-parity-capture.mjs) runs it unattended and writes each scene's files to `throwaway/native-parity/`.
+`?plates=1` reads each shot's middle frame back in the task that drew it (the viewport's `FramePlate`): the canvas without the page's HUD or fade veil, the grass it grew, and the same frame drawn again offscreen lit without its grass. That picture is named after the plate by rule (`presentationCapture.ts`), and the canvas and the next frame are untouched. Only a plated run may copy from the canvas, so other frames pay nothing; a plated run is not a timing measure. The [parity run](../../../scenes/_parityRun.mjs) runs it unattended and writes each scene's files to `throwaway/native-parity/`, for the [`native-parity-capture`](../../../scenes/native-parity-capture.mjs) tool and the [`water`](../../../scenes/water.mjs) scene, which also replays its run on the native client.
 
 ## The frame-rate comparison
 

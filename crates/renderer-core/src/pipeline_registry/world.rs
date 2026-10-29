@@ -114,7 +114,7 @@ pub fn all() -> Vec<PipelineSpec> {
         render(
             "worldWater",
             "worldWater.wgsl",
-            vec!["cameraLayout", "terrainLayout", "environment", "fogLayout"],
+            vec!["cameraLayout", "terrainLayout", "fogLayout", "environment"],
             Some(vertex(
                 None,
                 vec![

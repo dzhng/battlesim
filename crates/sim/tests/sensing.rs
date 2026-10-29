@@ -146,50 +146,6 @@ fn ground_range_bounds_identification_by_observer_class() {
 }
 
 #[test]
-fn recon_spots_concealed_infantry_at_twice_the_range_without_extending_open_sight() {
-    let identifies_at = |kind: &str, distance: f64, forest: bool| {
-        let mut fixture = common::game();
-        // Equal optics isolate the concealment advantage from ordinary range tuning.
-        sim::fixtures::patch_catalog(
-            &mut fixture,
-            "units",
-            "test_recon",
-            json!({ "sensors": { "ground_m": 600 } }),
-        );
-        fixture["forests"]["rule"]["concealment_infantry"] = json!(0.25);
-        fixture["forests"]["rule"]["attenuation_per_m"] = json!(0);
-        let scenario = serde_json::from_value(json!({
-            "map": { "size": [1200, 120], "fog_cell_m": 8, "height_grid_m": 4,
-                "slope_cutoff_deg": 35,
-                "forests": if forest { json!([{ "shape": { "kind": "polygon",
-                    "ring": [[790,0],[810,0],[810,120],[790,120]] } }]) } else { json!([]) } },
-            "rules": fixture,
-            "units": [
-                { "side": "blue", "kind": kind, "position": [800.0 - distance, 60] },
-                { "side": "red", "kind": "test_rifle", "position": [800, 60] }
-            ], "events": [], "scripts": []
-        }))
-        .unwrap();
-        !Battle::new(&scenario, 1)
-            .observe(Side::Blue)
-            .identified
-            .is_empty()
-    };
-    assert!(identifies_at("test_rifle", 140.0, true));
-    assert!(!identifies_at("test_rifle", 160.0, true));
-    assert!(
-        identifies_at("test_recon", 290.0, true),
-        "scouts spot through concealment at twice the ordinary reach"
-    );
-    assert!(!identifies_at("test_recon", 310.0, true));
-    assert!(identifies_at("test_recon", 590.0, false));
-    assert!(
-        !identifies_at("test_recon", 610.0, false),
-        "the concealment bonus cannot extend open-ground sight"
-    );
-}
-
-#[test]
 fn recon_open_sight_ends_at_650_metres() {
     for (kind, distance, seen) in [
         ("test_rifle", 590, true),
@@ -585,15 +541,15 @@ fn squad_identification_requires_twenty_percent_of_living_members() {
 fn forest_concealment_is_binary_even_between_tree_crowns() {
     let mut rules = common::rules();
     rules.forests.rule.canopy_radius_m = 0.1;
-    rules.forests.rule.concealment_infantry = 0.25;
+    rules.forests.rule.concealment = 0.25;
     let map = serde_json::from_value(json!({
         "size": [200, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
         "forests": [{"shape": {"kind": "polygon", "ring": [[80,0],[180,0],[180,120],[80,120]]}}]
     }))
     .unwrap();
     let world = sim::world::WorldGeometry::new(&map, &rules);
-    assert_eq!(world.forest_concealment(true, 81.0, 60.0), 0.25);
-    assert_eq!(world.forest_concealment(true, 79.0, 60.0), 1.0);
+    assert_eq!(world.forest_concealment(81.0, 60.0), 0.25);
+    assert_eq!(world.forest_concealment(79.0, 60.0), 1.0);
     let sight = sim::sight::Sight {
         forward: 0.0,
         range: 350.0,
@@ -610,7 +566,7 @@ fn forest_concealment_is_binary_even_between_tree_crowns() {
             sim::math::v3(81.0 - distance, 60.0, 1.0),
             target,
             &sight,
-            world.forest_concealment(true, target.x, target.y),
+            world.forest_concealment(target.x, target.y),
             &rules.sensors,
         )
     };
