@@ -57,11 +57,11 @@ Fog and scar work prepare for every drawn frame because their incremental
 work must be consumed rather than replayed.
 
 [World geometry](src/runtime/world.rs) constructs submitted layers for both
-shells from physical triangles and optional traversal inputs. Prebuilt lab
-terrain shares its skirt, backdrop and water construction. Browser CPU terrain
-meshes remain available for shadow receiver fitting and picking; they do not
-assemble the submitted world. Water cells come from canonical ground while the
-browser borrows presentation synchronously.
+shells through shared skirt, backdrop and water builders. Native supplies physical
+triangles; the browser supplies the same Rust-generated terrain mesh it uses for
+picking and shadow fitting, plus explicit boundary positions and extra faces.
+Water cells come from canonical ground while the browser borrows presentation
+synchronously; empty cells omit water.
 
 [`FrameRenderer`](src/frame.rs) encodes a complete production frame over the
 shared scene owners. Its concrete inputs carry GPU resources and canonical
@@ -135,22 +135,28 @@ height field stepped from `Presentation::waves`, taken once per drawn frame
 because taking it advances the field's clock. A step takes a bounded number of
 splats, so a big battle's wakes cost the same however frames batch the steps.
 
+### GPU timing
+
 GPU profiling is opt-in and owned by [`FrameTimer`](src/timing.rs). Whole-frame
 render-pass timestamp markers bracket the actual ordered frame, including any
 regional scar submissions. Stage counters measure elapsed time between marker
 passes while GPU stages can overlap; GPU traces provide the busy/idle breakdown.
-`Resolve::InFrame` copies counters in the marked encoder, so browser frames
-share a query pair and resolve buffer without waiting. `Resolve::AfterCompletion`
-retains per-slot queries to avoid overwriting counters awaiting resolve. Native's
-explicit ticket wait drains the frame, submits the counter copy, then waits for
-readback, avoiding stale Metal stage counters. Both modes share the resolve
-buffer because each resolve and copy executes together on the queue.
 
-Bounded asynchronous readbacks skip saturated frames. Results retain the caller's
-frame identity even when they complete out of order. Resetting the rolling window
-excludes every frame begun before the reset, while its pending result still
-belongs to the original caller. Invalid counters or failed maps remain missing
-measurements rather than zero-duration frames.
+The browser uses `Resolve::InFrame`: resolve in the marked encoder and publish
+rolling statistics asynchronously, without waiting. Chromium/Metal comparisons
+found no missing duration with this path. Native uses `Resolve::AfterCompletion`
+because its Metal backend can return stale counters when resolving in-frame.
+Its explicit ticket wait drains the render, resolves in a separate submission,
+then waits for readback. These profiling waits affect throughput; compare timed
+CPU phases and GPU duration separately from instrumented frame intervals.
+
+Callers size the bounded readback pool for their pacing; saturation skips a
+measurement. Each native ticket owns its duration independently of completion
+order. Resetting rolling statistics excludes every frame begun before the reset
+without cancelling its pending result. Invalid counters or failed maps remain
+missing measurements rather than zero-duration frames.
+
+### Inspection and diagnostics
 
 [Explicit probes](src/probes.rs) inspect actual GPU sight, indirect arguments
 and grass clumps. They queue bounded snapshot copies before mapping, so later
@@ -205,6 +211,6 @@ before running the suite. Serialize GPU work with other renderer checks:
 
 ```sh
 git lfs checkout assets/runtime
-CARGO_INCREMENTAL=0 lockf -k /Users/server/dev/battlesim/throwaway/gpu.lock cargo test -p renderer-core
+CARGO_INCREMENTAL=0 lockf -k <main checkout>/throwaway/gpu.lock cargo test -p renderer-core
 cargo check -p renderer-core --target wasm32-unknown-unknown
 ```

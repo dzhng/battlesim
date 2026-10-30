@@ -43,18 +43,12 @@ differs between the clients.
   publications) back to back on a release build, and writes the same raw
   frames: interval, CPU time and GPU time from two timestamp markers. On
   macOS a `wgpu` window that isn't visible presents nothing and runs
-  unpaced. The bench holds at most two render submissions in flight; explicit
-  timestamp profiling also waits before resolving completed counters. Its
+  unpaced. The bench bounds render submissions in flight. Its
   [timing contract](../../../../native/client/README.md#timing-a-scene) explains
   why these instrumented intervals are separate from CPU/GPU phase times.
-- **The same GPU span.** Both clients use the shared [GPU timing owner](../../../../crates/renderer-core/src/timing.rs).
-  Its render-pass stage markers bound the same encoded work. The browser
-  resolves in-frame; native resolves after completion because its Metal backend
-  can otherwise return stale counters. The browser's Chromium/Metal comparison
-  found no missing GPU duration from resolving in-frame (the
-  [timing decision](../../../../specs/renderer-cleanup/choices.md#12--frame-timing)
-  records the evidence). Resetting a measurement excludes frames begun before
-  that reset, even when their readbacks complete later.
+- **The same GPU span.** Both clients follow the shared renderer's
+  [GPU timing contract](../../../../crates/renderer-core/README.md#gpu-timing),
+  including resolve policy, missing measurements and reset boundaries.
 - **Pacing and surfaces.** The browser runs headless but still draws to its
   canvas surface; native benchmarks bypass acquisition, window copy and
   presentation. In the historical TypeGPU control, Chromium's
