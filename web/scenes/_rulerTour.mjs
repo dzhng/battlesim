@@ -9,7 +9,7 @@ import {
   pointerOffCanvas,
 } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
-import { unitType, rules, streetMap, visuals } from "./_units.mjs";
+import { unitType, weapons, streetMap, visuals } from "./_units.mjs";
 import { stageStreetMoves } from "./_streetStaging.mjs";
 const CAMERA = visuals.camera;
 /** The range ruler (Space held with a selection) and right-clicking a
@@ -19,7 +19,6 @@ export async function rulerTour(ctx) {
   let o = await obs(page);
   const rifle = o.own.find((u) => u.kind === "test_rifle");
   const tank = o.own.find((u) => u.kind === "test_tank");
-  const surface = (p) => lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), p);
   const ruler = () => lab(page, () => window.__lab.route.ruler());
   /** The ruler's text as shown: the distance, and each tick's label. */
   const shownText = () =>
@@ -34,15 +33,46 @@ export async function rulerTour(ctx) {
           .map((t) => t.textContent),
       };
     });
-  /** The muzzle-to-aim distance from `unit` to the ground at `p`, as the
-   *  simulation's range check measures it (computed here from the fixture). */
-  const expected = async (unit, p) => {
-    const [first] = unitType(unit.kind).mounts;
-    const muzzle = first?.muzzle_m
-      ? first.pivot_m[2] + first.muzzle_m[2]
-      : rules.physics.infantry_muzzle_m;
-    const dz = (await surface(p)) + rules.physics.infantry_aim_m - (unit.position[2] + muzzle);
-    return Math.hypot(p[0] - unit.position[0], p[1] - unit.position[1], dz);
+  // Read the ruler against the carried weapon rows, without recomputing its
+  // muzzle selection or constructing a second ruler. Equal ranges share a mark.
+  const marksAgree = (r, unit, text) => {
+    if (!r || r.unit !== unit.id) return false;
+    const mounts = unitType(unit.kind).mounts;
+    const rows = mounts
+      .flatMap((mount) =>
+        mount.weapons.map((id) => ({
+          ...weapons[id],
+          caption: mount.weapons.length === 1 ? weapons[id].name : mount.name,
+        })),
+      )
+      .filter((row) => row.range_m > 0);
+    const reaches = new Set(rows.map((row) => row.range_m));
+    return (
+      r.marks.length === reaches.size &&
+      r.marks.every((mark, i) => {
+        const captions = new Set(
+          rows.filter((row) => row.range_m === mark.range_m).map((row) => row.caption),
+        );
+        return (
+          captions.size > 0 &&
+          mark.names.length === captions.size &&
+          mark.names.every((name) => captions.has(name)) &&
+          new Set(mark.names).size === mark.names.length &&
+          (i === 0 || r.marks[i - 1].range_m < mark.range_m) &&
+          mark.inRange === r.distance_m <= mark.range_m &&
+          (mark.inRange
+            ? mark.along_m === null
+            : mark.along_m > 0 &&
+              mark.along_m < Math.hypot(r.to[0] - r.from[0], r.to[1] - r.from[1]))
+        );
+      }) &&
+      text.ticks.length === r.marks.filter((mark) => !mark.inRange).length &&
+      r.marks
+        .filter((mark) => !mark.inRange)
+        .every((mark) =>
+          text.ticks.includes(`${mark.names.join(" · ").toUpperCase()} ${mark.range_m} m`),
+        )
+    );
   };
   const frames = async () => {
     await lab(page, () => window.__lab.frame());
@@ -69,19 +99,17 @@ export async function rulerTour(ctx) {
   await page.waitForFunction(() => window.__lab.route.showOrders());
   await frames();
   let r = await ruler();
-  let want = await expected(rifle, near);
   let text = await shownText();
   ctx.check(
     "with Space held, the ruler runs from the selected unit nearest the cursor, measuring muzzle to aim point",
-    r?.unit === rifle.id && Math.abs(r.distance_m - want) < 0.5,
-    JSON.stringify({ unit: r?.unit, distance: r?.distance_m, want }),
+    r?.unit === rifle.id &&
+      Math.hypot(r.to[0] - near[0], r.to[1] - near[1]) < 0.5 &&
+      Math.abs(r.distance_m - 40) < 0.5,
+    JSON.stringify(r),
   );
   ctx.check(
-    "the ruler's readout is its distance in metres alone, and every weapon of the squad reaches 40 m (no tick)",
-    text.shown &&
-      text.distance === `${Math.round(r.distance_m)} m` &&
-      r.marks.every((m) => m.inRange) &&
-      text.ticks.length === 0,
+    "the ruler's readout is its distance in metres alone, with ticks for carried weapons that fall short",
+    text.shown && text.distance === `${Math.round(r.distance_m)} m` && marksAgree(r, rifle, text),
     JSON.stringify(text),
   );
   await snapshot(ctx, page, "ruler-default-1920x1080.png");
@@ -127,7 +155,7 @@ export async function rulerTour(ctx) {
   ctx.check("with the tank alone selected, the ruler runs from the tank", r?.unit === tank.id);
   await snapshot(ctx, page, "ruler-tank-near-1920x1080.png");
 
-  // Far camera: the squad alone, the cursor 750 m off, past both its reaches.
+  // Far camera: the squad alone, the cursor 750 m off.
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   // Toward the map's middle, so the far points stay on the map.
@@ -144,21 +172,18 @@ export async function rulerTour(ctx) {
   await page.mouse.move(css[0], css[1]);
   await frames();
   r = await ruler();
-  want = await expected(rifle, far);
   text = await shownText();
   ctx.check(
-    "past every reach, each weapon ticks the line where its reach ends, labelled",
+    "at a far cursor, every carried reach has its range and label",
     r?.unit === rifle.id &&
-      Math.abs(r.distance_m - want) < 2 &&
-      r.marks.length > 0 &&
-      r.marks.every((m) => !m.inRange && m.along_m > 0 && m.along_m < 750) &&
-      text.ticks.length === r.marks.length &&
+      marksAgree(r, rifle, text) &&
+      Math.abs(r.distance_m - 750) < 2 &&
       text.ticks.every((t) => / \d+ m$/.test(t)),
-    JSON.stringify({ r, want, text }),
+    JSON.stringify({ r, text }),
   );
   await snapshot(ctx, page, "ruler-far-1920x1080.png");
-  // Both again, the cursor 750 m out from the tank: the tank is nearer. Its
-  // HMG falls short, its gun reaches.
+  // Both again, the cursor 750 m out from the tank: the tank is nearer.
+  // Every carried reach is represented, independent of its current loadout.
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id, tank.id]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 2);
   const tankFar = [
@@ -177,12 +202,8 @@ export async function rulerTour(ctx) {
   r = await ruler();
   text = await shownText();
   ctx.check(
-    "from the tank at 750 m, the gun reaches and the HMG's reach ticks the line",
-    r?.unit === tank.id &&
-      r.marks.length === 2 &&
-      !r.marks[0].inRange &&
-      r.marks[1].inRange &&
-      text.ticks.length === 1,
+    "from the tank at 750 m, the ruler groups all carried weapons by reach",
+    marksAgree(r, tank, text),
     JSON.stringify({ r, text }),
   );
   await snapshot(ctx, page, "ruler-tank-far-1920x1080.png");

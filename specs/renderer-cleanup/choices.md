@@ -585,3 +585,11 @@ finding that the base build did not render grass the same way twice.
   original race still passes through the File input or automation API;
   internal UI/geometry refactors no longer require coordinated mocks.
   **Verdict: sound.**
+
+- **Choice:** the ruler scene checks a one-to-one relation between positive
+  carried weapon ranges and sorted marks, with deduplicated captions and DOM
+  ticks for out-of-range marks. Near/far distance checks bound the measured
+  span instead of recomputing the first mount's muzzle. **Gap:** the slice
+  did not define the replacement oracle. **Reach:** adding, removing or
+  reordering weapons and retuning their ranges does not invalidate the mark
+  checks. **Verdict: sound.**
