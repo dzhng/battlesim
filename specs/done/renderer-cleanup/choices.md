@@ -819,3 +819,8 @@ Ranked least confident first.
   - Composer error messages name the shader and both files.
 - **Docs:** 2 stale statements corrected: the shaders README rationale, and
   "native draws no wakes" in the water-and-wetlands README.
+
+- **Closeout (integrator):** the grass indirect-argument array length
+  (`GRASS_ARGS_WORDS`, now owned beside the other grass GPU constants in
+  presentation) and the scar tile side (`SCAR_TILE`, re-exported from the scar
+  page) join the shader constant prelude, found by the closing audit. Sound.

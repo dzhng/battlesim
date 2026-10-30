@@ -18,7 +18,8 @@ shader reads through a uniform or storage binding is a `records!` record: in
 [`presentation::records`](../../../crates/presentation/src/records.rs) when
 presentation writes it, in [`renderer_core::records`](../../../crates/renderer-core/src/records.rs)
 when only the renderer does. Packers fill the typed record and cast it with
-`bytemuck`; they don't write words at offsets. `tests/pipeline_abi.rs` checks
+`bytemuck`; a partial toggle writes at an `offset_of!` taken from the record,
+never at a hand-kept offset. `tests/pipeline_abi.rs` checks
 each record's member names, offsets, spans, nested records and array counts
 against every built-in shader, and `every_buffer_struct_has_a_checked_layout`
 fails when a shader reads a struct that is not a record. The only exemptions
@@ -29,7 +30,8 @@ fails when a shader reads a struct that is not a record. The only exemptions
 prepended to every built-in shader. Two concepts that share a value keep two
 names (the scar `KEY_MASK` and the ground field's `RECORD_MASK` are both
 `536870911`). Raising `WAVE.max_steps` therefore resizes the shader's splat
-array with it.
+array with it. The fixed index arithmetic of the indirect-draw arguments (five
+words a draw) is the WebGPU format, not a tunable length.
 
 **The generated TypeScript records are a chosen subset.** `records/typescript.rs`
 exports explicit lists of what the page reads, not the whole schema, so adding a
@@ -45,7 +47,8 @@ shader text at runtime: the Windows cutout workaround is authored as
 
 **Grass draws in the same order every time.** Grass placement counts each
 tile's survivors, prefixes their ranges, then writes every clump to its slot
-(`grassCount`, `grassFinish`, `grassBuild` in
+(entry points `grassCount`, `grassFinish`, `grassBuild` in
+`shaders/modules/passes_grass.wgsl`, dispatched in that order by
 [`grass.rs`](../../../crates/renderer-core/src/grass.rs)). Draw order and
 which clumps a full tier keeps no longer depend on GPU scheduling, so a parity
 run renders byte for byte. This is what makes the plate proof possible at all.
@@ -53,19 +56,21 @@ run renders byte for byte. This is what makes the plate proof possible at all.
 **Scene admission is Rust's.** Both shells place scenery through
 `renderer_core::scenery::place_scenery`, build world geometry through
 `WorldGeometry::from_triangles` / `from_mesh`, and read each model node's track
-side from presentation (`Rig::track_side`). TypeScript passes inputs and
-rebuilds none of them. TypeScript keeps one track rule, `articulationRig`, for
-the model build's validator, which must reject a malformed file before Rust
-sees it.
+side from presentation (`Rig::track_side`); TypeScript passes inputs and
+rebuilds none of them. TypeScript keeps one copy of the track rule,
+`articulationRig` (`packages/scene-assets/src/articulation.ts`): the model
+build's validator needs it to reject a malformed file before Rust sees it, and
+the lab and bake posers use the same rig.
 
 **GPU frame timing has one owner.** [`timing.rs`](../../../crates/renderer-core/src/timing.rs)
-`FrameTimer` resolves `InFrame` for the browser and `AfterCompletion` for
-native's bench (Metal can return stale end timestamps in-frame). The browser
+`FrameTimer` resolves `Resolve::InFrame` for the browser and
+`Resolve::AfterCompletion` for native's bench (Metal can return stale end timestamps in-frame). The browser
 stays in-frame because it measured the same in both modes.
 
 **The renderer's tests live in renderer-core.** `cargo test -p renderer-core`
-runs its GPU suites with one device helper (`tests/support`); native keeps only
-tests of native behaviour (replay, capture, audio, bench).
+runs its GPU suites with one device helper (`tests/support`). Native keeps the
+tests that need its replay, filesystem library or effect loader, plus capture,
+audio and bench.
 
 ## How it was proved
 
@@ -114,10 +119,13 @@ carries the mover's heading, and the shader draws V-wake splats as two
 trailing arms ([after](assets/v-wake-after.png)). The arms are a little regular
 and sharp, and their contact with wading legs is weak.
 
-This is a picture change, so it is the user's call. The commit
-`feat(water): shape directional V-wake impulses` is self-contained and is not
-to reach `staging` until the user signs off. Dropping it leaves the splat's
-`kind` unread, and deleting it is then owed.
+This is a picture change, so it is the user's call, and it does not reach
+`staging` until the user signs off. Its code is one commit,
+`feat(water): shape directional V-wake impulses`. Dropping it removes the
+heading, the V shaping and `tests/water_wake.rs` (revert its `crates/` and
+`Cargo` changes; its old ledger lines lived in the pre-close plan), and then the
+splat's `kind` is unread and should be deleted. Update this section and the
+ledger's N1 either way.
 
 ## Pointers
 
