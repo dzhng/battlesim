@@ -65,7 +65,7 @@ fn a_free_destination_across_an_unbridged_river_is_not_validated() {
     use contract::command::MoveDirection;
     use contract::ids::Side;
     use sim::battle::Battle;
-    let setup = crate::common::scenario(
+    let mut setup = crate::common::scenario(
         &serde_json::json!({
             "size": [300, 200], "fog_cell_m": 8, "height_grid_m": 4,
             "slope_cutoff_deg": 35,
@@ -78,6 +78,9 @@ fn a_free_destination_across_an_unbridged_river_is_not_validated() {
         serde_json::json!([{ "side": "blue", "kind": "test_jeep", "position": [30, 100], "yaw": 0 }]),
         serde_json::json!([]),
     );
+    // Keep every formation candidate on the far bank: this tests reachability,
+    // independently of how far placement may search for a nearby alternative.
+    setup.rules.formation.max_expansions = 0;
     let mut b = Battle::new(&setup, 1);
     let destinations = b
         .preview_move(

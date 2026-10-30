@@ -510,15 +510,16 @@ fn a_group_keeps_its_arrangement_and_each_unit_its_own_speed() {
 
 #[test]
 fn an_unreachable_destination_is_rejected_without_live_route_searches() {
-    let mut b = Battle::new(
-        &scenario(
-            serde_json::json!([{ "side": "blue", "kind": "test_rifle", "position": [300, 150] }]),
-            serde_json::json!([]),
-        ),
-        1,
+    let mut setup = common::scenario(
+        r#"{"size":[400,300],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+            "relief":[{"kind":"mesa","rect":[200,0,200,120],"height_m":10,"side_degrees":45}]}"#,
+        serde_json::json!([{ "side": "blue", "kind": "test_rifle", "position": [300, 150] }]),
+        serde_json::json!([]),
     );
-    // The 45° plateau top is flat but walled by slopes past the cutoff. (A
-    // vehicle would park at its foot instead: it is a squad that is refused.)
+    // Every candidate stays on the flat plateau, behind impassable slopes.
+    // A reachable fallback outside it would test formation placement instead.
+    setup.rules.formation.max_expansions = 0;
+    let mut b = Battle::new(&setup, 1);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
         player: None,
