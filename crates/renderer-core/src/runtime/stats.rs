@@ -80,7 +80,6 @@ impl Runtime {
             &mut models,
             json!({
                 "paletteMatrices": facts.palette_matrices,
-                "culled": facts.culled_bodies,
                 "culledBodies": facts.culled_bodies,
             }),
         );

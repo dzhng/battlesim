@@ -408,12 +408,6 @@ impl FogSightResources {
         self.bind(device);
     }
 
-    /// Bind the ground owner's height pages when a world is installed.
-    pub fn rebind_heights(&mut self, device: &Device, heights: &Buffer) {
-        self.heights = heights.clone();
-        self.bind(device);
-    }
-
     /// The fragment group a surface of `layer` binds.
     pub fn group(&self, layer: Layer) -> (&'static str, &BindGroup) {
         ("fogLayout", &self.groups[layer as usize])

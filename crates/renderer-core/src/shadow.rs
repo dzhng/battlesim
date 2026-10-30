@@ -111,12 +111,6 @@ impl ShadowResources {
         self.active = cameras.len().min(CASCADES);
     }
 
-    pub fn layers(&self) -> &[TextureView] {
-        &self.layers
-    }
-    pub fn groups(&self) -> &[BindGroup] {
-        &self.groups
-    }
     pub fn active(&self) -> usize {
         self.active
     }
@@ -127,7 +121,7 @@ impl ShadowResources {
         &self,
         encoder: &mut CommandEncoder,
         mut draw: impl FnMut(usize, &BindGroup, &mut RenderPass<'_>),
-    ) -> u32 {
+    ) {
         for (cascade, layer) in self.layers.iter().take(self.active).enumerate() {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("sun-cascade"),
@@ -144,7 +138,6 @@ impl ShadowResources {
             });
             draw(cascade, &self.groups[cascade], &mut pass);
         }
-        self.active as u32
     }
 }
 

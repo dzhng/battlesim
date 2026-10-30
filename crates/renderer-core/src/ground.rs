@@ -15,7 +15,6 @@ use presentation::presentation::Presentation;
 
 use crate::buffer;
 use crate::pipelines::{Bound, Pipelines};
-use crate::scars::ScarFrame;
 use crate::terrain::{TerrainResources, TerrainUpload};
 
 /// The identity instance: no offset, unit scale, no tint.
@@ -230,13 +229,6 @@ impl Ground {
             .scars
             .prepare(device, presentation, grass, self.map_box.as_ref(), size)
         {
-            self.material.rebind_scars(device);
-        }
-    }
-
-    /// Stage scar uploads already resolved by presentation.
-    pub fn prepare_scar_uploads(&mut self, device: &Device, frame: ScarFrame) {
-        if self.material.scars.prepare_uploads(device, frame) {
             self.material.rebind_scars(device);
         }
     }

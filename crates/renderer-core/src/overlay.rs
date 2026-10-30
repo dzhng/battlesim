@@ -39,8 +39,8 @@ pub struct OverlayResources {
     glow: Buffer,
     opaque: RenderPipeline,
     translucent: RenderPipeline,
-    rows: Option<Screen>,
-    columns: Option<Screen>,
+    rows: Screen,
+    columns: Screen,
     composite: Screen,
     paint: Screen,
     no_glow: Buffer,
@@ -56,7 +56,6 @@ pub fn new(
     pipelines: &Pipelines,
     targets: &Targets,
     glow: &[u8],
-    halo: bool,
 ) -> OverlayResources {
     let glow = crate::buffer(
         device,
@@ -68,7 +67,7 @@ pub fn new(
     let opaque = pipelines.render("overlayOpaque").clone();
     let translucent = pipelines.render("overlayTranslucent").clone();
     let glow_binding = glow.as_entire_binding();
-    let rows = halo.then(|| Screen {
+    let rows = Screen {
         pipeline: pipelines.render("glowRows").clone(),
         group: bind(
             device,
@@ -78,8 +77,8 @@ pub fn new(
                 BindingResource::TextureView(&targets.overlay),
             ],
         ),
-    });
-    let columns = halo.then(|| Screen {
+    };
+    let columns = Screen {
         pipeline: pipelines.render("glowColumns").clone(),
         group: bind(
             device,
@@ -89,7 +88,7 @@ pub fn new(
                 BindingResource::TextureView(&targets.overlay_glow_rows),
             ],
         ),
-    });
+    };
     let composite = Screen {
         pipeline: pipelines.render("overlayComposite").clone(),
         group: bind(
@@ -226,20 +225,18 @@ impl OverlayResources {
         targets: &Targets,
         output: &TextureView,
     ) {
-        if let (Some(rows), Some(columns)) = (&self.rows, &self.columns) {
-            Self::screen(
-                encoder,
-                rows,
-                &targets.overlay_glow_rows,
-                LoadOp::Clear(Color::TRANSPARENT),
-            );
-            Self::screen(
-                encoder,
-                columns,
-                &targets.overlay_glow,
-                LoadOp::Clear(Color::TRANSPARENT),
-            );
-        }
+        Self::screen(
+            encoder,
+            &self.rows,
+            &targets.overlay_glow_rows,
+            LoadOp::Clear(Color::TRANSPARENT),
+        );
+        Self::screen(
+            encoder,
+            &self.columns,
+            &targets.overlay_glow,
+            LoadOp::Clear(Color::TRANSPARENT),
+        );
         Self::screen(encoder, &self.composite, output, LoadOp::Load);
     }
 

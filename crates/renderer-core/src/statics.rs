@@ -6,7 +6,6 @@
 //! Models and scenery draw these same held buffers on both targets.
 use std::collections::{HashMap, HashSet};
 
-use presentation::presentation::{Frame, Presentation};
 use presentation::records::{Instance, NONE};
 use wgpu::*;
 
@@ -35,10 +34,6 @@ pub struct Statics {
 }
 
 impl Statics {
-    pub fn new(presentation: &Presentation) -> Self {
-        Self::from_rows(&presentation.world().appearances)
-    }
-
     pub fn from_rows(rows: &[presentation::records::Appearance]) -> Self {
         Self {
             placed: rows.iter().map(|a| a.placed != 0).collect(),
@@ -51,10 +46,6 @@ impl Statics {
     /// names unchanged, and drops those it no longer lists. A batch named
     /// unchanged that is not held is refused: the frame's batches were
     /// written for a renderer that took the frames between.
-    pub fn prepare(&mut self, device: &Device, queue: &Queue, frame: &Frame) -> Result<(), String> {
-        self.prepare_records(device, queue, &frame.instances, &frame.batches)
-    }
-
     pub fn prepare_records(
         &mut self,
         device: &Device,

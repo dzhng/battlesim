@@ -217,7 +217,6 @@ impl Runtime {
             &pipelines,
             &targets,
             bytemuck::cast_slice(&overlay_glow),
-            true,
         );
         let xray = config
             .xray_min_hidden_fraction
@@ -511,7 +510,6 @@ impl Runtime {
             &self.pipelines,
             &self.targets,
             bytemuck::cast_slice(&self.overlay_glow),
-            true,
         );
         self.fog.rebind_targets(device, &self.targets);
         if let Some(style) = self.config.paint {

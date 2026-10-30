@@ -168,7 +168,6 @@ fn post_modes_and_paint_inspection_preserve_their_output_contracts() {
         &pipelines,
         &targets,
         bytemuck::cast_slice(&[4.0f32, 4., 0., 0.]),
-        true,
     );
     for (background, expected) in [(0., [0u8, 26, 102, 255]), (1., [127u8, 153, 229, 255])] {
         let mut encoder = gpu.device.create_command_encoder(&Default::default());

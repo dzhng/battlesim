@@ -75,7 +75,6 @@ export interface ModelStats {
   tiers: number[];
   bodyTiers: number[];
   cards: number;
-  culled: number;
   culledBodies: number;
   corpses: number;
   atlasLayers: number;
