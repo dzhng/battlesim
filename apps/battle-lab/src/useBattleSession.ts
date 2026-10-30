@@ -1,3 +1,4 @@
+import { useViewportGpu } from "./useViewportGpu";
 import { resolve_catalog, resolve_rules } from "@wasm/game_wasm";
 import type { ViewportFrame } from "./presentedFrame";
 // One side's live battle session: the static world and its meshes, the worker
@@ -14,7 +15,6 @@ import { gameContactStyle } from "./gameFog";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
 import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import type { AllocationCounts } from "@web/battle/render/sceneStats";
 import { knownStanding, type PropBox } from "@packages/battle-renderer/src/models/propAppearance";
 import { pickBox } from "@packages/battle-renderer/src/picking";
 import {
@@ -60,7 +60,7 @@ import {
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observationView";
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { Player } from "@web/battle/prepare/protocol";
-import type { LabBox, LabPick, ViewportGpu, ViewportPointer, ViewportCursor } from "./LabViewport";
+import type { LabBox, LabPick, ViewportPointer, ViewportCursor } from "./LabViewport";
 import {
   drawnUnits,
   pickedUnit,
@@ -875,20 +875,7 @@ export function useBattleSession({
     [control],
   );
 
-  const gpu = useRef<ViewportGpu | null>(null);
-  const { onViewportReady } = sim;
-  const onReady = useCallback(
-    (viewport: ViewportGpu) => {
-      gpu.current = viewport;
-      onViewportReady();
-    },
-    [onViewportReady],
-  );
-  const gpuAllocations = useCallback(
-    (): AllocationCounts | null => gpu.current?.allocations() ?? null,
-    [],
-  );
-  const gpuFrame = useCallback(() => gpu.current?.frame().stats().gpu ?? null, []);
+  const { onReady, gpuAllocations, gpuFrame } = useViewportGpu(sim.onViewportReady);
 
   const probes = {
     tick: () => sim.latest.current?.tick ?? 0,
