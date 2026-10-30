@@ -42,8 +42,9 @@ pub(super) fn wake(
                 xy: [w.at[0] - d[0] * back, w.at[1] - d[1] * back],
                 radius,
                 strength: style.vee_strength,
-                kind: WakeKind::Vee,
-                heading: [d[0] / dist, d[1] / dist],
+                kind: WakeKind::Vee {
+                    heading: [d[0] / dist, d[1] / dist],
+                },
                 at: t0 + dt * ahead / dist,
             }));
             ahead += style.spacing_m;
@@ -66,7 +67,6 @@ pub(super) fn wake(
                 radius,
                 strength: style.ring_strength * (0.8 + 0.4 * rng.sample()),
                 kind: WakeKind::Rings,
-                heading: [0.0; 2],
                 at: k / style.ring_hz,
             });
         }
@@ -103,16 +103,22 @@ impl EffectFrame {
             .iter()
             .filter_map(|w| {
                 let k = (w.at * WAVE.hz).floor() as i64;
-                (first..to).contains(&k).then(|| WaveSplat {
-                    splat: [
-                        (w.xy[0] / WAVE.texel_m - ox) as f32,
-                        (w.xy[1] / WAVE.texel_m - oy) as f32,
-                        (w.radius / WAVE.texel_m) as f32,
-                        w.strength as f32,
-                    ],
-                    step: (k - first) as f32,
-                    kind: f32::from(u8::from(w.kind == WakeKind::Vee)),
-                    heading: w.heading.map(|v| v as f32),
+                (first..to).contains(&k).then(|| {
+                    let (kind, heading) = match w.kind {
+                        WakeKind::Rings => (0.0, [0.0; 2]),
+                        WakeKind::Vee { heading } => (1.0, heading.map(|v| v as f32)),
+                    };
+                    WaveSplat {
+                        splat: [
+                            (w.xy[0] / WAVE.texel_m - ox) as f32,
+                            (w.xy[1] / WAVE.texel_m - oy) as f32,
+                            (w.radius / WAVE.texel_m) as f32,
+                            w.strength as f32,
+                        ],
+                        step: (k - first) as f32,
+                        kind,
+                        heading,
+                    }
                 })
             })
             .collect();

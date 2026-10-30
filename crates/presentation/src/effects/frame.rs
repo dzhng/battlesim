@@ -286,10 +286,13 @@ struct Mover {
 
 /// How a wake impulse spreads: rings round a still or slow wader, a V
 /// behind a moving one.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum WakeKind {
     Rings,
-    Vee,
+    /// Unit direction of travel.
+    Vee {
+        heading: [f64; 2],
+    },
 }
 
 /// A push on the water's surface: where, how wide (metres) and hard, its
@@ -300,8 +303,6 @@ pub struct WakeImpulse {
     pub radius: f64,
     pub strength: f64,
     pub kind: WakeKind,
-    /// Unit direction of travel; rings have no direction.
-    pub heading: [f64; 2],
     pub at: f64,
 }
 
