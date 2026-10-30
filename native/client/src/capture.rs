@@ -21,13 +21,13 @@ use presentation::records::FogLook;
 use presentation::static_world::files;
 use presentation::view::Camera;
 use presentation::world::{BattleInput, SoldierBody, WorldInput, Xray};
+use renderer_core::scenery::place_scenery;
 use serde::de::IgnoredAny;
 use serde::Deserialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use crate::bundle::Library;
-use crate::scenery::place_scenery;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

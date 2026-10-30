@@ -3,11 +3,12 @@
 //! Reads the fixture run's world and the rifleman's bundle (Git LFS).
 use std::path::Path;
 
-use native_client::bundle::{Library, Shape};
+use native_client::bundle::Library;
 use native_client::capture::Replay;
-use native_client::models::posed_mesh;
 use presentation::assets::RUNTIME;
 use presentation::records::NONE;
+use renderer_core::bundle::Shape;
+use renderer_core::models::posed_mesh;
 
 const RUN: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),

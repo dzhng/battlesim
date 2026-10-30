@@ -12,8 +12,6 @@ pub fn instance(display: Box<dyn wgpu::wgt::WgpuHasDisplayHandle>) -> Instance {
     Instance::new(InstanceDescriptor::new_with_display_handle(display))
 }
 
-pub use renderer_core::{bind, buffer};
-
 pub fn headless_instance() -> Instance {
     Instance::new(InstanceDescriptor::new_without_display_handle())
 }

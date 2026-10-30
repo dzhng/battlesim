@@ -673,3 +673,11 @@ finding that the base build did not render grass the same way twice.
   lint that native's folder did not inherit. **Reach:** the input, expected
   albedo bytes and every assertion stay unchanged; a scratch probe compared
   both calculations and got identical `[148, 202, 243]` bytes. **Verdict: sound.**
+
+- **Choice:** remove the unused `gpu::{bind, buffer}` re-export alongside the
+  named library, bundle and pipeline shims. Bundle's filesystem `Library` and
+  native's surface/headless GPU admission remain production shell services;
+  their consumers import shared renderer types directly. **Gap:** the slice
+  named three shim sites, while inspection found this fourth unused export.
+  **Reach:** no renderer-core re-export remains in native. **Verdict: sound** —
+  the consumer search found no dependency on the extra forwarding names.
