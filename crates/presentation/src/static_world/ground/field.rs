@@ -6,8 +6,8 @@
 //! serves pixels twice as wide as the one below, with cells that grow with
 //! them; the ladder ends at one cell that lists everything, or on a dense map
 //! at the last level within the list budget, which then reads no farther than
-//! its reach. `terrain/surfaceField.ts` and the terrain material read it and
-//! own the layout's constants.
+//! its reach. This module owns the field layout; the shared terrain shader
+//! consumes its records and index.
 use super::forests::{Forest, Kind};
 use super::shapes::{closest, convex_overlap, distance, stroke_inside, triangle_contains};
 use super::water::stretch_inside;

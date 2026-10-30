@@ -15,11 +15,11 @@ use crate::{bind, buffer};
 
 /// `Environment`'s members before the `Sun` record: the view and the observer.
 const SUN_AT: usize = 80;
-/// `CastLights`: a header (count, wrap) and up to 24 lights.
+/// `CastLights`: a header (count, wrap) followed by bounded light records.
 const CAST_LIGHTS_BYTES: usize = 16 + CAST_LIGHTS_MAX * size_of::<CastLight>();
-/// The sky lookup's width; the PMREM's levels follow from it (`pmrem.ts`).
+/// The sky lookup's width; the PMREM's levels follow from it.
 const SKY_LUT_WIDTH: u32 = 384;
-// Exact Three 0.185.1 RG16F split-sum table; MIT, see environment/LICENSE.three.
+// Exact Three 0.185.1 RG16F split-sum table; MIT, see LICENSE.three at the crate root.
 const DFG_LUT: &[u8; 1024] = include_bytes!("environment/dfg.rg16f");
 const DFG_LUT_SIZE: u32 = 16;
 
@@ -62,7 +62,7 @@ fn texture(
 }
 
 /// The six cube faces of one PMREM level's square `size` in the atlas, as
-/// two triangles each (`pmremPlanes`): position, uv and face.
+/// two triangles each: position, uv and face.
 fn pmrem_planes(size: u32) -> Vec<f32> {
     let border = 1.0 / (size as f32 - 2.0);
     let uv = [
@@ -113,7 +113,7 @@ fn pmrem_planes(size: u32) -> Vec<f32> {
     data
 }
 
-/// The sky lookup prefiltered for roughness into a cube atlas (`pmrem.ts`):
+/// The sky lookup prefiltered for roughness into a cube atlas:
 /// the atlas and its top mip.
 fn pmrem(
     device: &Device,
@@ -352,7 +352,7 @@ impl Environment {
     }
 
     /// The frame's cast lights as the presentation chose them for the view,
-    /// each reaching `wrap` round a surface past facing it (`setCastLights`).
+    /// each reaching `wrap` round a surface past facing it.
     pub fn set_cast_lights(&self, queue: &Queue, lights: &[CastLight], wrap: f32) {
         let lights = &lights[..lights.len().min(CAST_LIGHTS_MAX)];
         self.cast_count.set(lights.len());

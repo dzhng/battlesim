@@ -31,7 +31,7 @@ fn texture(device: &Device, label: &str, size: [u32; 2], format: TextureFormat) 
 }
 
 /// Camera and presentation records used to choose scar submissions. Keeping
-/// scissor selection here gives native and copied-WASM inputs the same policy.
+/// scissor selection here gives both targets the same policy.
 pub struct ScarView<'a> {
     pub grass: Option<ScarUpload>,
     pub regions: &'a [[f64; 4]],
@@ -211,7 +211,7 @@ impl Scars {
         )
     }
 
-    /// Stage copied presentation uploads from a separate platform memory.
+    /// Stage uploads resolved by the canonical presentation.
     /// Returns whether the directory grew and its bind group must be rebuilt.
     pub fn prepare_uploads(&mut self, device: &Device, frame: ScarFrame) -> bool {
         self.grass = frame.grass;

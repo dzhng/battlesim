@@ -26,7 +26,7 @@
   terrainResults[gid.x] = vec4f(site.z, actual.w, interior.w, site.w);
 }
 
-// Frozen b538ecd hardware reference; independent of the production filter.
+// Independent cubic-filter reference; keep separate from the production filter.
 fn originalTerrainCubic(uv: vec2f) -> vec4f {
   let size=vec2f(textureDimensions(terrainReference));let p=uv*size-0.5;let i=floor(p);let f=p-i;
   let f2=f*f;let f3=f2*f;let w0=(1.0-3.0*f+3.0*f2-f3)/6.0;let w1=(4.0-6.0*f2+3.0*f3)/6.0;let w2=(1.0+3.0*f+3.0*f2-3.0*f3)/6.0;let w3=f3/6.0;

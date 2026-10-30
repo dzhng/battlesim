@@ -61,7 +61,7 @@ pub enum Coverage {
 pub struct Material {
     pub name: String,
     /// As authored (`f64`): the scenery multiplies it into its vertices
-    /// before narrowing, as the browser does.
+    /// before narrowing to GPU precision.
     pub base_color: [f64; 4],
     pub metallic: f32,
     pub roughness: f32,

@@ -2,9 +2,8 @@
 //! renderer's half of `StaticBatches`. Each batch the frame lists of a
 //! placed row (a building's module, a prop, the scenery) is held by its key
 //! in a buffer of its own, a power of two of records, rewritten only when
-//! the frame writes it and dropped when the frame stops listing it, as the
-//! browser's model and scenery layers hold theirs. The models and the
-//! scenery draw them from here.
+//! the frame writes it and dropped when the frame stops listing it.
+//! Models and scenery draw these same held buffers on both targets.
 use std::collections::{HashMap, HashSet};
 
 use presentation::presentation::{Frame, Presentation};

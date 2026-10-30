@@ -1,6 +1,6 @@
 // The ground-classes frame view's encoding (`FrameView` "ground-classes"):
 // what the terrain material says the ground under a pixel is, as three bytes.
-// The material writes it (`terrainMaterial.ts` `groundClasses`); the ground
+// The shared terrain shader writes it (`groundClasses`); the ground
 // rig reads it back (`web/scenes/_groundStations.mjs` `classAt`). Black is "not
 // ground". The first byte is the distance outside the nearest paved edge and
 // the second outside the water's edge, negative inside: exact as far as the

@@ -57,7 +57,7 @@ export interface ModelInstance {
   /** Heading of the model's +X, radians counter-clockwise from world +X. */
   yaw: number;
   /** Per-axis scale in the model's own frame, applied before `yaw`: a static
-   *  prop fitted to its placed box (`propAppearance.ts`). None is 1. */
+   *  prop fitted by `presentation::static_world::props`. None is 1. */
   scale?: readonly [number, number, number];
   pose: ModelPose;
   /** The side's tint on tint-masked surfaces; none keeps the authored colours. */

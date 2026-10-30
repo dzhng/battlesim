@@ -157,7 +157,7 @@ impl Models {
                 }
                 Shape::Static(states) => {
                     // A piece the bundle lacks (a wreck with no turret to
-                    // throw) is a row nothing draws, as in the browser.
+                    // throw) is a row nothing draws.
                     let found = states
                         .iter()
                         .find(|s| s.name == state)

@@ -1,6 +1,6 @@
 //! Shared bloom and tone-map resource ownership.
 //!
-//! The platform shell supplies the serialized bloom/grade uniforms. This
+//! The runtime supplies canonical bloom/grade uniform bytes. This
 //! module owns the intermediate targets, bind groups and ordered fullscreen
 //! passes, so native and browser use one post-processing implementation.
 use wgpu::*;

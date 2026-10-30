@@ -1,7 +1,7 @@
 //! Shared model material bind-group ownership.
 //!
-//! Shells decode and upload material rows, palette storage, and texture
-//! arrays. This owner keeps the exported `modelLayout` binding order and
+//! Model admission uploads material rows, palette storage, and texture
+//! arrays. This owner keeps the shared `modelLayout` binding order and
 //! rebuilds the group when a growable palette buffer is replaced.
 
 use wgpu::*;

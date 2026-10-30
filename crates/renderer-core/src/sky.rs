@@ -1,4 +1,4 @@
-//! The sky (`world/sky.ts`): the clear-sky lookup baked once from the
+//! The sky: the clear-sky lookup baked once from the
 //! world's light, then each frame the shown sky along the view's rays, with
 //! its sun disc and clouds, into the multisampled HDR target, resolved.
 use presentation::records::{SkyLight, View};
@@ -120,8 +120,7 @@ impl Sky {
 }
 
 impl Sky {
-    /// The shown sky along the view's rays: the world pass's background,
-    /// its own pass before the world draws over it (`encodeBackground`).
+    /// Upload the view's canonical corner rays for the sky background.
     pub fn prepare(&self, queue: &Queue, view: &View) {
         let rays: &[f32] = &[view.sky_origin, view.sky_dx, view.sky_dy].concat();
         queue.write_buffer(&self.rays, 0, bytemuck::cast_slice(rays));

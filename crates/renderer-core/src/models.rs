@@ -167,7 +167,7 @@ pub struct Drawn {
     pub triangles: u64,
 }
 
-/// The installed textures, one layer each in two arrays (`TextureLayers`):
+/// The installed textures, one layer each in two arrays:
 /// albedo (sRGB), and surface (normal and ORM, linear).
 #[derive(Default)]
 struct Layers {
@@ -197,7 +197,7 @@ impl Layers {
     }
 }
 
-/// One array texture holding `textures` with every level (`uploadTextureArray`):
+/// One array texture holding `textures` with every level:
 /// the edge is the largest's, a smaller one upsampled into the finer levels.
 fn texture_array(
     device: &Device,
@@ -272,7 +272,7 @@ fn texture_array(
     })
 }
 
-/// A material's rows (`materialRow`).
+/// A material's packed shader rows.
 fn material_rows(m: &Material, layer: &mut dyn FnMut(&str) -> f32) -> [f32; MATERIAL_ROWS * 4] {
     let normal = layer("normal");
     let cutoff = match m.coverage {
@@ -306,7 +306,7 @@ fn material_rows(m: &Material, layer: &mut dyn FnMut(&str) -> f32) -> [f32; MATE
 }
 
 /// `meshes`' indices merged (each mesh's vertices after the last's) and
-/// ordered by surface class (`orderSurfaces`).
+/// ordered by surface class.
 fn order_surfaces(meshes: &[&Mesh], class: &dyn Fn(usize) -> usize) -> (Vec<u32>, [Part; 4]) {
     let mut indices = Vec::new();
     let mut parts = [Part::default(); 4];
@@ -728,7 +728,7 @@ impl Models {
         );
     }
 
-    /// One surface class of every caster into a cascade (`drawCasters`).
+    /// One surface class of every caster into a cascade.
     pub fn draw_casters(&self, pass: &mut RenderPass, surface: Surface, cascade: usize) {
         self.each_run(
             pass,

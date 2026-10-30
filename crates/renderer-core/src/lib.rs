@@ -46,7 +46,7 @@ pub mod xray;
 
 /// The lit world before post.
 pub const HDR_FORMAT: TextureFormat = TextureFormat::Rgba16Float;
-/// What post writes: the browser's canvas format.
+/// The display output format written by post.
 pub const DISPLAY_FORMAT: TextureFormat = TextureFormat::Bgra8Unorm;
 /// The sample count shared by the renderable targets.
 pub const MSAA: u32 = 4;
@@ -63,7 +63,7 @@ pub const GUARD_FORMAT: TextureFormat = TextureFormat::Rg8Unorm;
 
 /// The frame's size-dependent targets.
 ///
-/// Both platform shells construct this exact set. Passes may add a surface
+/// The shared runtime constructs this set. Passes may add a surface
 /// view at the shell boundary, but they do not choose formats or silently
 /// allocate a second target set.
 pub struct Targets {

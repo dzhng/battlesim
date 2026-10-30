@@ -2,8 +2,8 @@ use super::*;
 
 #[wasm_bindgen]
 impl Renderer {
-    /// Recreate the device asynchronously. The next synchronous render borrows
-    /// current presentation to rebuild resources and refresh canonical knowledge.
+    /// Admit a replacement on the supplied device. `install_presentation` rebuilds
+    /// its runtime; `prepare_assets` must complete before drawing.
     pub async fn recover_device(
         &mut self,
         gpu: &BrowserGpu,

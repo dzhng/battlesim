@@ -9,7 +9,7 @@ use crate::Targets;
 
 const VIEW_BYTES: usize = 16;
 
-/// The exported compose shader's views over actual resolved mask samples.
+/// The shared compose shader's views over actual resolved mask samples.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[repr(u32)]
 pub enum FogMaskView {
@@ -27,9 +27,7 @@ struct Screen {
 
 pub struct FogMaskResources {
     /// The presentation `FogLook` uniform consumed by every screen-space fog
-    /// bind group. The shell updates this buffer at the presentation boundary;
-    /// keeping it here makes fog look data a shared renderer resource instead
-    /// of a shell-only staging record.
+    /// bind group. The runtime updates it from canonical presentation.
     look: Buffer,
     record: FogLook,
     view: Buffer,

@@ -1,6 +1,6 @@
 // The stand-in kit: one unit box, which a prop kind with no art of its own is
 // drawn as, stretched to the prop's box and tinted by its kind
-// (`battle-renderer` `models/propAppearance.ts`). It is a kit in the catalog
+// (`crates/presentation/src/static_world/props.rs`). It is a kit in the catalog
 // like any other, fetched when a map asks for it, and no template set places
 // it: a building is never a stand-in.
 //

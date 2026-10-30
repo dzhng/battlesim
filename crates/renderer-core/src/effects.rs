@@ -253,8 +253,7 @@ impl EffectsResources {
         self.count
     }
 
-    /// Draw effects over lit colour and the fog mask, preserving the native
-    /// and browser pass attachment contract.
+    /// Draw effects over lit colour and the fog mask using shared attachments.
     pub fn encode(&self, encoder: &mut CommandEncoder, targets: &Targets) {
         if self.count == 0 {
             return;

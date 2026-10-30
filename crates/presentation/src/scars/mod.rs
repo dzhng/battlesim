@@ -2,8 +2,8 @@
 //! [`LearnedGround`] keeps what the side's publications taught it, cell by
 //! cell, and [`ScarCache`] turns it into what a renderer uploads as it is:
 //! the directory's words, the pool's texels and `ScarParams`' words before
-//! the biome's look. The shader reads them (`terrainMaterial.ts`'s
-//! `scarEntry`, `scarCell`); a renderer derives nothing.
+//! the biome's look. The shared `terrain_scars.wgsl` shader reads them
+//! (`scarEntry`, `scarCell`); a renderer derives nothing.
 //!
 //! A tile the directory lists is either one word (every cell alike) or a
 //! page in the pool: its runs (exclusive end, word pairs) or, past 128 runs,

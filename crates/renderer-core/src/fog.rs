@@ -63,8 +63,8 @@ impl FogComputeOwner {
         }
     }
 
-    /// Encode one fog compute dispatch with the exported pipeline and stable
-    /// pass label. The shell supplies the stage's bind groups.
+    /// Encode one fog compute dispatch with the shared pipeline and stable
+    /// pass label. The fog owner supplies the stage's bind groups.
     pub fn dispatch(
         &self,
         encoder: &mut CommandEncoder,

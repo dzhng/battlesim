@@ -78,7 +78,7 @@ impl Presentation {
     }
 
     /// The authored rest pose for an appearance row, in the same packed
-    /// Joint layout used by the native model owner for corpses and far meshes.
+    /// Joint layout used by the shared model owner for corpses and rest poses.
     pub fn rest_palette(&self, row: u32) -> Option<Vec<f32>> {
         self.inner
             .rest_palette(row)

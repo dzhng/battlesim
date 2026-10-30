@@ -1,6 +1,5 @@
-//! The ground (`worldPass.ts`'s terrain, skirt and backdrop, and
-//! `terrainMaterial.ts`'s `createTerrainSource`): the presentation's ground
-//! (`Presentation::ground`), its tables and meshes uploaded once, drawn into
+//! The presentation's ground (`Presentation::ground`): its terrain, skirt,
+//! backdrop, tables and meshes uploaded once, drawn into
 //! the depth prepass, the sun's cascades and the lit world. The terrain's
 //! group (`terrainLayout`) is the grass build's too, and holds the side's
 //! scars (`scars.rs`).
@@ -19,10 +18,10 @@ use crate::pipelines::{Bound, Pipelines};
 use crate::scars::ScarFrame;
 use crate::terrain::{TerrainResources, TerrainUpload};
 
-/// The identity instance (`identityInstance`): no offset, unit scale, no tint.
+/// The identity instance: no offset, unit scale, no tint.
 const IDENTITY: [f32; 8] = [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0];
 
-/// A mesh of world vertices (`mesh.ts`).
+/// A mesh of world vertices.
 struct Mesh {
     buffer: Option<Buffer>,
     partition: Option<std::sync::Arc<TerrainPartition>>,
@@ -235,7 +234,7 @@ impl Ground {
         }
     }
 
-    /// Stage presentation-resolved scar updates without borrowing a native presentation.
+    /// Stage scar uploads already resolved by presentation.
     pub fn prepare_scar_uploads(&mut self, device: &Device, frame: ScarFrame) {
         if self.material.scars.prepare_uploads(device, frame) {
             self.material.rebind_scars(device);
@@ -318,7 +317,7 @@ impl Ground {
     }
 
     /// The water's surface over the rivers' cells: blended over everything
-    /// opaque and glass (`world::Water`), reading depth and writing none.
+    /// opaque and glass, reading depth and writing none.
     pub fn draw_water(&self, pass: &mut RenderPass, groups: &[(&str, &BindGroup)]) {
         let mut all = groups.to_vec();
         all.push(self.layout_group());

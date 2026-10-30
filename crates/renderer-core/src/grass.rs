@@ -234,8 +234,8 @@ impl Grass {
         );
     }
 
-    /// Retain the native view-change gate while accepting copied presentation
-    /// records. `write_params` supplies the presentation-owned frame fields
+    /// Gate regrowth by the canonical view and detail scale.
+    /// `write_params` supplies the presentation-owned frame fields
     /// only when a regrow is needed.
     pub fn prepare_records(
         &mut self,
