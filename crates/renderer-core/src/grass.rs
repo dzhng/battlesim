@@ -90,6 +90,15 @@ pub struct Grass {
     regrow: bool,
 }
 
+fn build_group(device: &Device, layout: &BindGroupLayout, buffers: [&Buffer; 6]) -> BindGroup {
+    bind(
+        device,
+        layout,
+        "grass-build",
+        &buffers.map(Buffer::as_entire_binding),
+    )
+}
+
 impl Grass {
     pub fn from_data(
         device: &Device,
@@ -140,22 +149,14 @@ impl Grass {
         });
         let ranges = device.create_buffer(&BufferDescriptor {
             label: Some("grass-ranges"),
-            size: u64::from(field::TILE_RANGES) * 8,
+            size: u64::from(field::TILE_RANGES) * size_of::<[u32; 2]>() as u64,
             usage: storage,
             mapped_at_creation: false,
         });
-        let build_group = bind(
+        let build_group = build_group(
             device,
             pipelines.layout("grassBuildLayout"),
-            "grass-build",
-            &[
-                params.as_entire_binding(),
-                heights.as_entire_binding(),
-                props.as_entire_binding(),
-                clumps.as_entire_binding(),
-                args.as_entire_binding(),
-                ranges.as_entire_binding(),
-            ],
+            [&params, heights, &props, &clumps, &args, &ranges],
         );
         let mut indices = Vec::new();
         let mut draw_groups = Vec::new();
@@ -282,7 +283,7 @@ impl Grass {
         let bytes = u64::from(window.tiles_x)
             * u64::from(window.tiles_y)
             * u64::from(field::TILE_RANGES)
-            * 8;
+            * size_of::<[u32; 2]>() as u64;
         if self.ranges.size() < bytes {
             self.ranges = device.create_buffer(&BufferDescriptor {
                 label: Some("grass-ranges"),
@@ -290,17 +291,16 @@ impl Grass {
                 usage: BufferUsages::STORAGE,
                 mapped_at_creation: false,
             });
-            self.build_group = bind(
+            self.build_group = build_group(
                 device,
                 &self.build_layout,
-                "grass-build",
-                &[
-                    self.params.as_entire_binding(),
-                    self.heights.as_entire_binding(),
-                    self.props.as_entire_binding(),
-                    self.clumps.as_entire_binding(),
-                    self.args.as_entire_binding(),
-                    self.ranges.as_entire_binding(),
+                [
+                    &self.params,
+                    &self.heights,
+                    &self.props,
+                    &self.clumps,
+                    &self.args,
+                    &self.ranges,
                 ],
             );
         }
