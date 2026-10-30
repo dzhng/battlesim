@@ -58,58 +58,16 @@ pub(crate) fn cover(
                     (low[0] + cell).min(plan.size[0]),
                     (low[1] + cell).min(plan.size[1]),
                 ];
-                let at = scale(add(low, high), 0.5);
-                let covered = coverage.covered(low, high);
-                coverage.check().map_err(fail)?;
-                if covered {
-                    continue;
-                }
-                // Every fallback location is finite, and successful placement
-                // still has to earn coverage through actual shared tree geometry.
-                let mut found = false;
-                for main_only in [false, true] {
-                    country.main_only = main_only;
-                    for offset in &offsets {
-                        let p = add(at, *offset);
-                        // Search feature centres in the same inward cone as
-                        // the witness. This is a conservative proposal filter;
-                        // actual patches must still earn the full certificate.
-                        if !coverage.admits(p, low, high) {
-                            coverage.check().map_err(fail)?;
-                            continue;
-                        }
-                        for kind in &presets.open_country.sight.fill {
-                            if country
-                                .try_feature(
-                                    *kind,
-                                    p,
-                                    &mut rng,
-                                    &mut coverage,
-                                    map.forests.len(),
-                                    Some((low, high)),
-                                )
-                                .map_err(|message| {
-                                    fail(format!(
-                                        "{message} while covering clipped cell [{x},{y}] at {at:?}"
-                                    ))
-                                })?
-                            {
-                                found = true;
-                                break;
-                            }
-                        }
-                        if found {
-                            break;
-                        }
-                        coverage.check().map_err(fail)?;
-                    }
-                    if found {
-                        break;
-                    }
-                }
-                if !found {
-                    return Err(fail(format!("no physically certified sight feature covers clipped cell [{x},{y}] at {at:?}")));
-                }
+                fill_cell(
+                    &mut country,
+                    &mut coverage,
+                    &mut rng,
+                    &offsets,
+                    (map.forests.len(), map.fog_cell_m),
+                    low,
+                    high,
+                )
+                .map_err(|message| fail(format!("{message} in clipped cell [{x},{y}]")))?;
             }
         }
         // Whole-cell furnishing can need more features in one half. Earn
@@ -178,4 +136,56 @@ pub(crate) fn cover(
         ));
     }
     Ok(plan)
+}
+
+/// A coarse location rectangle can straddle two different physical witnesses.
+/// Partition only when it cannot be certified whole; every child still earns
+/// the same continuous certificate. The fog-cell floor and shared work budget
+/// bound the search, including all failed proposals.
+fn fill_cell(
+    country: &mut Country<'_>,
+    coverage: &mut coverage::Coverage<'_>,
+    rng: &mut Stream,
+    offsets: &[Point],
+    bounds: (usize, f64),
+    low: Point,
+    high: Point,
+) -> Result<(), String> {
+    let (forest_start, smallest) = bounds;
+    let covered = coverage.covered(low, high);
+    coverage.check()?;
+    if covered {
+        return Ok(());
+    }
+    let at = scale(add(low, high), 0.5);
+    for main_only in [false, true] {
+        country.main_only = main_only;
+        for offset in offsets {
+            let p = add(at, *offset);
+            if !coverage.admits(p, low, high) {
+                coverage.check()?;
+                continue;
+            }
+            for kind in &country.presets.open_country.sight.fill {
+                if country.try_feature(*kind, p, rng, coverage, forest_start, Some((low, high)))? {
+                    return Ok(());
+                }
+            }
+            coverage.check()?;
+        }
+    }
+    if (high[0] - low[0]).min(high[1] - low[1]) <= smallest {
+        return Err(format!(
+            "no physically certified sight feature covers rectangle {low:?}..{high:?}"
+        ));
+    }
+    for (a, b) in [
+        (low, at),
+        ([at[0], low[1]], [high[0], at[1]]),
+        ([low[0], at[1]], [at[0], high[1]]),
+        (at, high),
+    ] {
+        fill_cell(country, coverage, rng, offsets, bounds, a, b)?;
+    }
+    Ok(())
 }
