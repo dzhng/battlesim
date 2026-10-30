@@ -17,7 +17,7 @@
 }
 
 // @block passes_fog_backdropFragment_foliage
-@fragment fn backdropFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
+@fragment fn backdropFragment(input: FoliageFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let seen = fogTerm(input.heart, vec3f(), clip.xy, false);
   return ColorFog(vec4f(surface(input.world, input.normal, input.color, input.local, 1f), 1f), fogCoverage(seen, 1f));
 }
@@ -619,15 +619,6 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   let seen = fogTerm(input.world, n, clip.xy, fogIsGround());
   return ColorFog(vec4f((lit.xyz + glow), input.color.w), fogCoverage(seen, input.color.w));
 }
-// @block passes_fog_FoliageFragmentInput
-struct FoliageFragmentInput {
-  @location(0) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) color: vec4f,
-  @location(3) local: vec3f,
-  @location(4) heart: vec3f,
-}
-
 // @block passes_fog_CardFragmentInput
 struct CardFragmentInput {
   @location(0) world: vec3f,
@@ -637,15 +628,6 @@ struct CardFragmentInput {
   @location(4) @interpolate(flat) scale: vec3f,
   @location(5) tint: vec3f,
   @location(6) anchor: vec3f,
-}
-
-// @block passes_fog_BackdropFragmentInput
-struct MeshFragmentInput {
-  @location(0) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) color: vec4f,
-  @location(3) local: vec3f,
-  @location(4) heart: vec3f,
 }
 
 // @block passes_fog_GrassFragmentInput

@@ -166,3 +166,12 @@ struct FoliageVertexOutput {
   @location(3) local: vec3f,
   @location(4) heart: vec3f,
 }
+
+// @block passes_shared_FoliageFragmentInput
+struct FoliageFragmentInput {
+  @location(0) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) local: vec3f,
+  @location(4) heart: vec3f,
+}
