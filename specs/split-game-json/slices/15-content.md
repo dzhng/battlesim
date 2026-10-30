@@ -201,3 +201,5 @@ visual limitations remain outside this pass.
 **Sound done — `aa_gun` (2026-10-29):** Item 3: three distinct Bofors reports relayed at 0, 300 and 600 ms, documented as the prescribed fallback. Evidence: shared `evidence-15-sound/aa/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
 
 **Sound done — `light_machine_gun` (2026-10-29):** Cadence gate follow-up: the inherited 100 ms rifle recording also mismatched this weapon. Existing reports are relayed at its unchanged 80 ms cadence; no rule changes. Evidence: shared `evidence-15-sound/lmg/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
+
+**Sound done — `rocket_artillery` (2026-10-29):** Item 1: a short M270 ignition/exhaust crop plays per rocket; recorded as a designed fallback, not a natural salvo. Evidence: shared `evidence-15-sound/rocket-artillery/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).

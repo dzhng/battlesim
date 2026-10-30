@@ -4992,6 +4992,24 @@
         ],
         "interval_s": 0.08
       }
+    },
+    "rocket-artillery-launch": {
+      "label": "Ground rocket \u00b7 M270 ignition crop",
+      "category": "weapon",
+      "role": "launch",
+      "processing": "launch",
+      "url": "/audio/clips/rocket-artillery-launch.wav",
+      "sha256": "e7288ed91e9310915425283477376e0f9475f233c9698f4d1469537796430a3f",
+      "sample_rate": 48000,
+      "frames": 30384,
+      "loop": false,
+      "notes": "Designed fallback: short ignition/exhaust from the accepted 03 M270 strike-missile source, one report per observed rocket. Not a natural MLRS salvo recording.",
+      "source": "strike-missile-live-fire",
+      "source_rate": 48000,
+      "source_frames": [
+        454416,
+        484800
+      ]
     }
   },
   "sounds": {
@@ -6441,6 +6459,16 @@
       "synth": "rifle",
       "synth_gain": 0.07,
       "gain": 1.3175,
+      "loop": false
+    },
+    "rocket-artillery-combat": {
+      "label": "Rocket artillery \u00b7 ignition fallback",
+      "clips": [
+        "rocket-artillery-launch"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
       "loop": false
     }
   },
