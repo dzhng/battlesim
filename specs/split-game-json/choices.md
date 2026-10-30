@@ -20,6 +20,7 @@ Each group lists the least confident first.
    redone.
 2. The mortar's own sound rests on a measurement nobody has listened to (N1).
 3. Five firing sounds are constructed stand-ins nobody has listened to (N2).
+4. In real battles your AI ally almost never answers a call for help (N4).
 
 ---
 
@@ -93,6 +94,30 @@ Each group lists the least confident first.
   `weapon_looks.tank_sabot.kick.hull` in `presentation.json`. That's a data
   edit; no hash moves.
 - **Confidence:** medium.
+
+### N4. In real battles, your AI ally almost never answers a call for help
+
+- **When:** found while fixing the `ally-help` scene, after slice 16.
+- **The finding:**
+  - **How help works:** the team planner, the AI's shared strategy for allied
+    players, raises a help request when an objective a human holds is under
+    pressure. An ally with spare force answers by sending a detachment.
+  - **What was found:** across your squad's objective in the old seed-1
+    battle, other objectives, and three other generated maps, no request was
+    ever raised for a human. The planner's influence map, its picture of
+    where enemy strength is, doesn't extend an enemy's weapon reach onto
+    nearby objectives. An enemy firing at your squad from range therefore
+    doesn't count as pressure on the objective.
+  - **Today:** the mechanic works when pressure registers (S5), but players
+    will rarely see it.
+- **The gap:** outside this spec. Nothing here changed the planner.
+- **The reach:** team battles with AI allies feel like the ally ignores you.
+- **Verdict:** needs you (an AI design change). **Provisional:** leave the
+  planner as is. **Next, if you want it:** make pressure count enemy units
+  whose weapon reach covers the objective, not only those standing on it.
+  Use `tweak-mechanics`, and add a test on a real generated map.
+- **Confidence:** medium that you'd want it fixed; it was left alone because
+  it's outside this spec.
 
 ---
 
@@ -230,18 +255,32 @@ Each group lists the least confident first.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
-### S5. The `ally-help` scene now flies its squad to the objective
+### S5. The `ally-help` scene became a controlled lab battle
 
-- **When:** slice 16 (`7d86175e6`).
+- **When:** slice 16 (`7d86175e6`), then `40c3f8eff`.
 - **The choice:** the browser scene proves that an AI ally sends part of its
-  force to help you. It had sent your lone squad about 1 km on foot, and the
-  squad died before holding anything. Now the scene buys an affordable
-  troop helicopter, chosen by capacity, flies the squad in, unloads it and
-  sends the helicopter home. The four-minute help deadline and the
-  "a detachment, not the whole force" check are unchanged.
-- **The gap:** the scene's staging could never reach the state it tests.
-- **The reach:** test-only. The scene still fails in the integrated branch
-  for another reason, the ally never answering; that is being investigated.
+  force, not all of it, toward your objective when you're under pressure.
+  - **First:** it ran a real 2v2 generated battle (seed 1) and sent your lone
+    squad about 1 km on foot, and the squad died before holding anything.
+  - **Slice 16:** flew the squad in by helicopter. It passed once, but
+    tracing showed the "helper" it counted was an allied helicopter chasing
+    something unrelated. No help request was ever raised.
+  - **Today:** the scene runs `/labs/ally-help`, a flat 2400 × 1600 m map with
+    test units:
+    - enemy tanks with very durable hulls sit visibly near your objective,
+      so the pressure lasts while help travels;
+    - your ally's reserves start far away;
+    - everything enters through normal purchases, and the real team planner
+      and AI decide.
+
+    It holds the opening at tick 1 so every run starts identically. The
+    help request is raised at tick 150 and answered, and the ally sends
+    1 of 7 units. The send-some, keep-the-rest and advance-or-fight checks
+    are unchanged; checks that the pressure is visible and the objective
+    still held were added.
+- **The gap:** no real map reliably produced the state the scene tests (N4).
+- **The reach:** test-only. It proves the help mechanic works when pressure
+  is registered, not that real battles register it.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
@@ -431,6 +470,22 @@ Each group lists the least confident first.
 - **The reach:** a few vehicle starts route slightly differently. The proof
   digests didn't move.
 - **Verdict:** sound.
+- **Confidence:** high.
+
+### S19. Squads take cover where they're dropped off, not where they were picked up
+
+- **When:** `9bf00b5cf`, found while fixing the `ally-help` scene.
+- **The choice:**
+  - **Before:** a squad that boarded an APC or helicopter kept its old cover
+    anchor, the spot it returns to when it settles into cover. After the
+    ride, it walked back toward its pickup point.
+  - **Now:** unloading resets the anchor to the landing spot and asks the
+    squad to find cover there.
+- **The reach:** battles where squads unload now play differently from that
+  point on. The 63,653-line baseline digest stream is byte-identical,
+  because none of its battles unload anyone. A simulation test covers APC and
+  helicopter unloads and replay equality.
+- **Verdict:** sound: a bug fix, in its own commit.
 - **Confidence:** high.
 
 ### Delegated discretion (one line each)
