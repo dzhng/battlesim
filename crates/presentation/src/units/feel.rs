@@ -3,7 +3,7 @@ use super::driver::StanceFeel;
 use contract::catalog::FlightModel;
 use serde::Deserialize;
 
-/// `presentation.pose`: how poses move between what the simulation
+/// `fixtures/presentation.json`'s `pose`: how poses move between what the simulation
 /// publishes. Presentation feel, not rules.
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]

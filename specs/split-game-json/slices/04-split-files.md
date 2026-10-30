@@ -83,11 +83,10 @@ rules/config identities were not re-blessed. Developer snapshot revisions
 naturally change with their input files; the simulation source fingerprint
 changes as the standing gate permits. Strict section readers remain slice 05.
 
-**Review follow-ups (open; do after 05 and 07 land, since both lanes touch
-these files):** rename `sim::fixtures::test_game()` to `test_rules()` (about
-167 uses) and `_units.mjs`'s exported `game` to `rules`; delete the
-`gameAudio` alias in `apps/battle-lab/src/soundFeed.ts` for `audioMix`; repoint
-every comment and doc naming `presentation.audio` or `presentation.audio.*` to
-`fixtures/audio.json` (sound crate docs, presentation-wasm, sound-workbench
-protocol, `fixtures/README.md:205`, the audio README), and name `pose.gauge` as
-`presentation.json`'s.
+**Review follow-ups (closed):**
+
+- `sim::fixtures::test_game` is now `test_rules` throughout readers, tests and current docs (c70c0acd3).
+- `web/scenes/_units.mjs` exports `rules`; all imported bindings and consumers use it (c70c0acd3).
+- `soundFeed.ts` no longer exports `gameAudio`; consumers import `audioMix` from its owner (c70c0acd3).
+- Current sound docs and binding errors name `fixtures/audio.json`; the pose settings are identified as `fixtures/presentation.json` (this closeout).
+- `pose.gauge` was removed by 09: ground models own `track_gauge` in the asset catalog, documented in `fixtures/README.md` (confirmed).

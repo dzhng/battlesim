@@ -95,21 +95,11 @@ Decisions:
   constant-speed distance without a motor), rather than adding another flight
   formula.
 
-**Review follow-ups (open; fix pass after 09 lands, since 09 rewrites the forest
-and mapgen rules readers):**
-- The mapgen reader regression (`layout_cli`, `skirmish` tests failing since
-  07) is being fixed as 09's first commit.
-- `forests.trunk_spacing_m: 0` passes admission and reaches the assert at
-  `contract/src/forest.rs:53`. Refuse non-finite or non-positive spacing in the
-  forest section check, and cover it through the wasm world and battle entries.
-- Native loaders that build a world without `sim::admit`: the map workbench's
-  `Sight` (`mapgen/examples/common/workbench.rs:300`), the tournament's `Saved`
-  (`skirmish_tournament/inputs.rs:87`), `sim/examples/city_report.rs:76` and
-  `encounter_report.rs:94`.
-- The cover check leaves both building multipliers unchecked
-  (`scenario/ranges.rs:44`): require a finite building spread of at least 1,
-  and a fragment probability multiplier in [0, 1].
-- `ForestRules::check_placement` repeats `ForestRules::check`. Keep one forest
-  check (09 deletes the log and boulder parts).
-- `admit_world` (`contract/src/maps.rs:313`) re-runs every rules section
-  check. Keep it to map geometry and map/catalog relationships.
+**Review follow-ups (closed):**
+
+- Mapgen resolves through `sim::admit` before extracting generation inputs; the earlier reader regression was fixed by 09 (confirmed).
+- `ForestRules::check` rejects non-finite/non-positive trunk spacing; Rust admission and WASM world/battle entry tests cover refusal (0308b96ee).
+- The workbench shared checker, tournament inputs, city report and encounter report call `sim::admit` before constructing worlds (8911f21f7).
+- `CoverRules::check` admits finite building spread >= 1 and fragment probability in [0, 1], with refusal tests (0308b96ee).
+- `ForestRules::check_placement` now checks only catalog placement; 09 already removed the repeated numeric check (confirmed).
+- `admit_world` checks map geometry and map/catalog relationships without repeating `Rules::check` (8fa8d29dd).

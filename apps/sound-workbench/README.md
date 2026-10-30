@@ -25,8 +25,8 @@ Weapon assignments belong to presentation's looks and are read only in this
 library editor. The assignment tab auditions each look's explicit report.
 Movement is auditioned as the battle plays it: each vehicle class drives at a chosen speed, turret
 traverse and reverse, its loops mixed by the battle's own law, and a squad's footsteps
-fall once a stride at a chosen pace. Its levels and curves belong to the game's
-presentation and are read only here. The audio mix owns shared effect replacements;
+fall once a stride at a chosen pace. Its levels and curves belong to [the audio mix](../../fixtures/audio.json)
+and are read only here. The audio mix owns shared effect replacements;
 Near and far may select different
 recordings or recipes sharing the same core; the battle applies distance attenuation,
 filtering, attack and reverb during playback. Workbench auditions play the recipe

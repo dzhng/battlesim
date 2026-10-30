@@ -90,17 +90,10 @@ The browser gate exposed an existing fog-scene side-switch race. Commit
 the paused authority's new side, then await its presented frame. The original
 scene failed before the fix; the full scene now passes. No check was weakened.
 
-**Review follow-ups (open; for the shared fix pass):**
-- Fog probe dispatch divides by a literal 64 (`renderer-core/src/probes.rs:85`)
-  while `passes_fog.wgsl:391` uses `FOG_BUILD_WORKGROUP`. Pass the workgroup
-  size into the dispatch helper.
-- `SunShadow.cascades` hard-codes four (`presentation/src/records.rs:434`). Use
-  `[SunCascade; shadow::CASCADES]`.
-- Grass height variation is authored three times: `passes_models.wgsl:156`,
-  `ground/grass.rs:41` and `scene-assets/src/grass.ts:38`. Give it Rust owners
-  and export it through the table.
-- Grass table capacities are literal WGSL array lengths
-  (`fog_masks.wgsl:40`), beside `grass.rs:13` and `grassField.ts:19`. Export
-  them through the table, and delete the unused TS `GRASS_MAX_KINDS`.
-- `models_geometry.wgsl:134`'s comment names a nonexistent
-  `slabs.areaBorderM`; it should be `GROUND_AREA_BORDER_M`.
+**Review follow-ups (closed):**
+
+- `probes::workgroups` takes the workgroup size; fog callers pass `sight::BUILD_WORKGROUP`, and the independent terrain query passes its own size (8fa8d29dd).
+- `SunShadow.cascades` uses `crate::shadow::CASCADES` (8fa8d29dd).
+- Grass height variation is owned by `ground::grass::HEIGHT_VARIATION` and exported through `shader_constants` to WGSL and TS authoring (8fa8d29dd).
+- Grass growth/mix/kind capacities come from the Rust owners through the constant table; WGSL uses them and the unused TS exports are removed (8fa8d29dd).
+- `models_geometry.wgsl` names `GROUND_AREA_BORDER_M` in its comment (8fa8d29dd).

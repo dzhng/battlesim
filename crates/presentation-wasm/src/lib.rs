@@ -523,8 +523,8 @@ impl Chatter {
     /// By `rules` (`audio.json.voices`, JSON), takes chosen by `seed`.
     #[wasm_bindgen(constructor)]
     pub fn new(rules: &str, seed: f64) -> Result<Chatter, JsError> {
-        let rules: voices::ChatterRules = serde_json::from_str(rules)
-            .map_err(|e| JsError::new(&format!("presentation.audio.voices: {e}")))?;
+        let rules: voices::ChatterRules =
+            serde_json::from_str(rules).map_err(|e| JsError::new(&format!("audio.voices: {e}")))?;
         rules.check().map_err(error)?;
         Ok(Chatter {
             inner: voices::Chatter::new(rules, seed),
@@ -595,8 +595,8 @@ impl Score {
     /// catalog's `music.moods`, JSON; its battle moods), shuffled by `seed`.
     #[wasm_bindgen(constructor)]
     pub fn new(rules: &str, moods: &str, seed: u32) -> Result<Score, JsError> {
-        let rules = serde_json::from_str(rules)
-            .map_err(|e| JsError::new(&format!("presentation.audio.music: {e}")))?;
+        let rules =
+            serde_json::from_str(rules).map_err(|e| JsError::new(&format!("audio.music: {e}")))?;
         let moods =
             serde_json::from_str(moods).map_err(|e| JsError::new(&format!("music.moods: {e}")))?;
         Ok(Score {

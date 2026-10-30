@@ -68,26 +68,18 @@ crash row refuses it by name, including when it is a later ammunition choice.
 The presentation crate, native replay/count/audio tests, focused web tests,
 rebuilt wasm, typecheck, lint, clippy and the staged size ratchet passed.
 
-Decisions: retain `catalog.json`'s weapon publication for tools, while sessions
-read their weapon rows exclusively from admitted rules. Look parts may be absent
-when unused (the crash needs only a blast); fired rounds retain explicit tracer,
-impact and kick data instead of acquiring defaults. Native replay refuses a
-capture clock that disagrees with its encounter. Spatial sound calculations were
-extracted without changing behavior to leave the oversized sound frame smaller.
+Decisions: see the [slice 10 ledger](../decisions.md#slice-10).
 
 Review: shape, diff and docs reviewed; a before/after native plate was inspected
 and opened together in Preview. An unprimed screenshot critique remains for the
 integrator: this implementation-subagent brief prohibits starting child agents.
 Whole-repository closeout remains slice 16.
 
-**Review follow-ups (open; for the shared fix pass):**
-- `useCaptions` (`BattleView.tsx:137`) reads the parent catalog. Pass
-  `session.units` and `session.rules.tick_hz` in.
-- Warm-up ticks and reel timing use `shippedRules.tick_hz`
-  (`capture/ScenePlayer.tsx:76`, `routes/graphicsTest.tsx:311`). Take them
-  from the resolved scenario rules.
-- Projectile diagnostics resolve looks from the raw shipped weapons
-  (`routes/projectiles.tsx:17,37`). Use `session.rules.weapons`.
-- Rename `GameRules` (`compose.ts:57`) to `ResolvedRules`.
-- `fielded.rs:194`'s doc names a removed `map` argument.
-- The decisions paragraph above repeats `decisions.md`. Link to it instead.
+**Review follow-ups (closed):**
+
+- `useCaptions` takes `session.units` and `session.rules.tick_hz` from `BattleView` (8fa8d29dd).
+- Capture warm-up and graphics-test reel timing read the resolved scenario tick rate (8fa8d29dd).
+- Projectile diagnostics and controls read `session.rules.weapons`, including look resolution (8fa8d29dd).
+- `GameRules` is now `ResolvedRules` throughout its consumers (c70c0acd3).
+- `fielded`'s doc describes the supplied rules/catalog and runtime art, with no removed map argument (this closeout).
+- The slice's decisions paragraph links to the decisions ledger (this closeout).

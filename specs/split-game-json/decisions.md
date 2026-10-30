@@ -17,10 +17,7 @@
 - **Sound, high confidence — cook-off fireballs take their own scale.**
   They pass the former default scale directly to the blast constructor, rather
   than inventing a weapon or an otherwise unused look for `cook_off`.
-- **Sound, high confidence — admit defaults before checking look overrides.**
-  The mix owns each part's default recording, and the look reader fills absent
-  recording overrides once at setup. Firing and every level remain explicit.
-  Rejected resolving fallback weapon rows during playback.
+- **Default recordings:** follow the [look sound contract](map.md#known-unknowns-the-decision-ledger) for mix defaults, explicit firing and per-look levels.
 
 - **Sound, medium confidence — use one controlled battle lane for the sheet.**
   Each look is assigned to the review lab's HE round and the mount's first

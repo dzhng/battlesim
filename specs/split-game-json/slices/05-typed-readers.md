@@ -99,19 +99,10 @@ and balance gates remain at 16. As an implementation child this pass did not
 spawn independent reviewers; the integrator owns that second opinion. Exact
 plate bytes establish this slice's visual invariance.
 
-**Review follow-ups (open; fix pass after 08 lands, since 08 rewrites the
-effects and sound tables):**
-- Dust and wake `spacing_m` of 0 is admitted (`effects/tables.rs:331`), and
-  the loops at `effects/frame.rs:510` and `frame/wake.rs:39` can then never
-  advance. Require it strictly positive.
-- Mist endpoints `[100, 100]` pass (`light/check.rs:78`) and reach an
-  equal-edge `smoothstep`. Require them strictly increasing as `f32`.
-- `rest.settle_s[1] = 0` passes (`units/feel.rs:144`) and is divided by at
-  `driver.rs:746`. Require it positive.
-- UI admission still has two owners. Rust accepts callout glow up to 8;
-  `hudTheme.ts:54` refuses values above 4, and the overlay validators are
-  still in TS. Move the full constraints into Rust and drop the TS fixture
-  validation.
-- Firing choices check only that the sound exists (`sound/mix.rs:109`), not
-  its role, looping or cadence. Moot once 08 moves firing into looks; make
-  sure 08's look check covers it.
+**Review follow-ups (closed):**
+
+- Dust and wake spacing must be positive in `EffectPresentation::check`, with document refusal coverage in `tests/settings.rs` (0308b96ee).
+- Mist endpoints must increase after conversion to `f32` in `light/check.rs`; equal and collapsed-edge intervals are refused in `tests/settings.rs` (0308b96ee).
+- `PoseFeel::check` requires positive `rest.settle_s[1]`, with a document refusal test (0308b96ee).
+- Rust admits the complete HUD/overlay constraints, including callout glow up to 4; the TS fixture validators and their tests are removed (0308b96ee, 8fa8d29dd).
+- Firing roles, loops and near/far burst cadence are checked by `WeaponLooks::check_sounds` / `SoundCatalog::check_shot`, covered by `tests/settings.rs` (confirmed already handled by 08/10).

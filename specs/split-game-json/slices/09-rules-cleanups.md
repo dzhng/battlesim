@@ -129,14 +129,8 @@ found seven stale fixture/reader assertions; all seven were corrected and rerun
 successfully in focused suites. The full repository run remains slice 16's gate.
 An unrelated stale admission CLI error-path assertion was corrected separately.
 
-**Review follow-ups (open; for the shared fix pass):**
-- Faction appearances' gauges are checked (`fielded.rs:437`) but dropped;
-  `halfTrack` always takes the base appearance's gauge (`fielded.rs:413`).
-  Carry the chosen appearance's gauge into each side's pose input, and test two
-  factions with different gauges.
-- The ATGM overrides in `market-town/encounters/menu.json:378` and
-  `street/encounters/attack.json:27` still author a top-level `range_m`. Remove
-  them.
-- `fixtures/README.md` (around lines 172 and 195) doesn't say that the target
-  layers decide a weapon's resolved `range_m`, or that a weapon row with
-  finite ammunition needs an inherited `round_cost`.
+**Review follow-ups (closed):**
+
+- Each side's fielded draw input carries its chosen appearance's `halfTrack`; `PoseDriver` uses it, and a two-faction turning test proves the gauges stay distinct (8fa8d29dd).
+- The two ATGM encounter overrides no longer author top-level `range_m` (8fa8d29dd).
+- `fixtures/README.md` explains derived target-layer range and inherited `round_cost` for finite ammunition (this closeout).

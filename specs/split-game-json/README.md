@@ -21,17 +21,15 @@ You are implementing this plan on PR #16 (dzhng/battlesim, branch
 slice you are on. Use
 [`implement-spec`](../../.agents/skills/implement-spec/SKILL.md).
 
-**Pick up at [12](slices/12-firing-look.md).** Slice 11 fixes recoil, tank
-ground impacts and the shared RPG level in three named commits. Its per-fix
-probe reports and before/after evidence are in the shared proof directory
-(`after-11-1/` through `after-11-3/`, and `evidence-11/`). No battle digest or
-rules hash moves. Independent visual and listening critique remains an
-integration check; the implementation delegate only checked framing/nonblank
-captures. Slice 13 must split the heavy RPG's louder blast, as recorded there.
-The open review follow-ups are listed at the end of
+**Pick up at [12](slices/12-firing-look.md)** (running; mechanism decided on the
+user's behalf: a published `round` on `WeaponPose`), then
+[13](slices/13-fold-looks.md). Slice 11's evidence is in `evidence-11/` and its
+checkpoint is resolved in its slice file; slice 13 must split the heavy RPG's
+louder blast, as recorded there. The shared review follow-ups are closed at the end of
 [04](slices/04-split-files.md), [05](slices/05-typed-readers.md),
 [06](slices/06-shader-constants.md), [07](slices/07-admission.md),
-[08](slices/08-looks.md) and [09](slices/09-rules-cleanups.md).
+[08](slices/08-looks.md), [09](slices/09-rules-cleanups.md) and
+[10](slices/10-battle-rules.md).
 
 Proof baseline: slice 01's dumps in
 `/Users/server/dev/battlesim/throwaway/split-game-json/before/` (native plates

@@ -191,9 +191,8 @@ mod files {
         Ok(kinds.into_iter().collect())
     }
 
-    /// What a battle on saved map `map` fielding `kinds` draws its units and
-    /// effects from: its supplied rules, its catalog the map's category's,
-    /// its art read from the runtime directory.
+    /// What a battle fielding `kinds` draws from: its supplied rules and
+    /// resolved catalog, with art read from the runtime directory.
     pub fn fielded(
         root: &Path,
         rules: &contract::scenario::Rules,
