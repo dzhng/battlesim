@@ -46,10 +46,10 @@ struct ScarParams {
   grass: vec4f,
 }
 
-// @block grass_clumps_alternate
+// @block grass_clumps_grassDrawLayout
 @group(1) @binding(2) var<storage, read> clumps: array<GrassClump>;
 
-// @block grass_clumps_primary
+// @block grass_clumps_grassBuildLayout
 @group(0) @binding(3) var<storage, read_write> clumps: array<GrassClump>;
 
 // @block grass_grassGround
@@ -172,11 +172,8 @@ fn leafClumps(p: vec3f, n: vec3f, fade: f32) -> vec4f {
   return vec4f(bent, shade);
 }
 
-// @block grass_params_alternate
-@group(1) @binding(0) var<uniform> params: GrassParams;
-
 // @block grass_params_primary
-@group(0) @binding(0) var<uniform> params: GrassParams;
+@group(GROUP) @binding(0) var<uniform> params: GrassParams;
 
 // @block grass_shapes
 @group(1) @binding(3) var<storage, read> shapes: array<GrassShapeVertex>;

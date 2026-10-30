@@ -218,6 +218,8 @@ impl PipelineSpec {
 }
 mod layouts;
 mod pipelines;
+#[cfg(test)]
+mod tests;
 pub use layouts::all as layouts;
 pub use pipelines::all as pipelines;
 pub fn sizes() -> Sizes {

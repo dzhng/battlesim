@@ -146,20 +146,11 @@ fn clipOf(position: vec3f) -> vec4f {
   return (cam.viewProj * vec4f(drawn, 1f));
 }
 
-// @block fog_sight_eyes_alternate
+// @block fog_sight_eyes_buildLayout
 @group(0) @binding(1) var<storage, read> eyes: array<FogEye>;
 
-// @block fog_sight_eyes_extended
-@group(0) @binding(2) var<storage, read> eyes: array<FogEye>;
-
-// @block fog_sight_eyes_layered
-@group(3) @binding(2) var<storage, read> eyes: array<FogEye>;
-
-// @block fog_sight_eyes_masked
-@group(2) @binding(2) var<storage, read> eyes: array<FogEye>;
-
 // @block fog_sight_eyes_primary
-@group(1) @binding(2) var<storage, read> eyes: array<FogEye>;
+@group(GROUP) @binding(2) var<storage, read> eyes: array<FogEye>;
 
 // @block fog_sight_fogBinEdge
 fn fogBinEdge(k: i32, first: f32, lnr: f32, bins: u32) -> f32 {
@@ -338,11 +329,8 @@ struct item_1 {
 // @block fog_sight_layer_uniform
 @group(2) @binding(1) var<uniform> layer_1: FogLayer;
 
-// @block fog_sight_layer_alternate
-@group(3) @binding(1) var<uniform> layer: FogLayer;
-
 // @block fog_sight_layer_primary
-@group(1) @binding(1) var<uniform> layer: FogLayer;
+@group(GROUP) @binding(1) var<uniform> layer: FogLayer;
 
 // @block fog_sight_lit_Output
 struct lit_Output {
@@ -372,14 +360,8 @@ fn paintedSeen(seen: f32, paint: vec4f) -> f32 {
 // @block fog_sight_params_uniform
 @group(2) @binding(0) var<uniform> params_1: FogParams;
 
-// @block fog_sight_params_extended
-@group(3) @binding(0) var<uniform> params: FogParams;
-
-// @block fog_sight_params_masked
-@group(0) @binding(0) var<uniform> params: FogParams;
-
 // @block fog_sight_params_primary
-@group(1) @binding(0) var<uniform> params: FogParams;
+@group(GROUP) @binding(0) var<uniform> params: FogParams;
 
 // @block fog_sight_points
 @group(1) @binding(0) var<storage, read> points: array<FogProbe>;
@@ -455,14 +437,8 @@ struct waterFragment_Output {
 // @block fog_sight_wholeFound
 var<workgroup> wholeFound: atomic<u32>;
 
-// @block fog_sight_wholes_alternate
-@group(2) @binding(8) var wholes: texture_2d<u32>;
-
-// @block fog_sight_wholes_extended
-@group(3) @binding(8) var wholes: texture_2d<u32>;
-
 // @block fog_sight_wholes_primary
-@group(1) @binding(8) var wholes: texture_2d<u32>;
+@group(GROUP) @binding(8) var wholes: texture_2d<u32>;
 
 // @block fog_sight_worldFragment_Output
 struct worldFragment_Output {

@@ -105,3 +105,65 @@ Decisions made where the spec was silent, per slice, with verdicts
   authorized this prerequisite's small visual change so structural slices can
   subsequently use exact plate comparisons. It changes no simulation inputs,
   mechanics, growth parameters, geometry, colours or tier capacities.
+
+## 05 · Composition grammar
+
+- **When:** slice 05. **Choice:** `GROUP` means a whole identifier. For
+  example, a fog compute block uses `FOG_BUILD_WORKGROUP` to set how many GPU
+  threads run together. It still composes without `@N`; a binding written
+  `@group(GROUP)` requires the group number. A substring check would reject
+  that existing compute block even though it has no group placeholder.
+  **Gap:** the slice did not define what "containing GROUP" means for longer
+  identifiers. **Reach:** future constants may contain those letters without
+  opting into group substitution. **Verdict: sound** — it follows WGSL's
+  identifier boundaries and preserves all existing shaders. **Confidence: high.**
+
+- **When:** slice 05. **Choice:** the group number parses as a Rust `u32`,
+  an unsigned 32-bit integer. A reference such as `block@2[from=to]` keeps
+  aliases after the group suffix. Aliases still replace original identifier
+  tokens once, then the build substitutes the literal `@group(GROUP)`
+  attribute; replacement names never feed a second alias.
+  **Gap:** the numeric domain and interaction with identifier aliases were
+  unspecified. **Reach:** malformed or overflowing group numbers fail during
+  composition; actual device group limits remain pipeline admission's job.
+  **Verdict: sound** — matches the registry's group-index type without adding
+  device policy to the source composer. **Confidence: high.**
+
+- **When:** slice 05. **Choice:** the binding test requires every shader
+  global to find a compatible entry, while permitting unused entries in the
+  pipeline's layouts. For example, a depth-only model shader can use only the
+  palette from the model layout; it need not declare that layout's material
+  textures. Buffer kinds distinguish uniforms, read-only storage and writable
+  storage. Textures distinguish scalar kind, dimension, array shape and
+  multisampling; samplers distinguish comparison from ordinary sampling.
+  **Gap:** "presence and kind" did not specify unused layout entries or the
+  level of type comparison. **Reach:** adding a shader resource without its
+  matching layout fails the CPU test, without making shared layouts unusable
+  for smaller shaders. **Verdict: sound** — checks the shader-to-registry
+  contract rather than demanding identical resource sets. **Confidence: high.**
+
+- **When:** slice 05. **Choice:** filtering support stays outside reflection.
+  WGSL's `sampler` and `texture_2d<f32>` declarations cannot say whether the
+  actual sampler filters or a texture format supports filtering. The test
+  therefore accepts both ordinary sampler layout modes and both float texture
+  filtering modes, while still rejecting a comparison sampler or integer
+  texture in their place. Unsupported resource categories fail the matcher.
+  **Gap:** the requested kind check did not distinguish shader-declared facts
+  from device/resource facts. **Reach:** future storage textures or binding
+  arrays must extend the matcher explicitly; real GPU checks continue to own
+  filtering compatibility. **Verdict: sound** — avoids claiming information
+  WGSL reflection cannot supply. **Confidence: high.**
+
+- **When:** slice 05. **Choice:** group-only sets retain their existing
+  `_primary` block when available (the sampler set keeps `_alternate`). The
+  genuinely different binding variants take a layout name that uses them;
+  another layout may reuse that declaration when its binding agrees. For
+  example, `fog_sight_eyes_buildLayout` also serves `cullLayout`, whose eyes
+  buffer has the same binding and access mode. Identifier-only differences,
+  including the mangled fog uniform names, stay for slice 07. Three aliases
+  whose source token was already absent are removed so the new refusal passes.
+  **Gap:** the slice delegated layout names and did not name the surviving
+  blocks or address existing dead aliases. **Reach:** this slice changes no
+  WGSL identifier or assembled byte and creates no duplicate declaration to
+  accommodate overlapping layouts. **Verdict: sound** — confines naming to the
+  requested binding consolidation. **Confidence: high.**

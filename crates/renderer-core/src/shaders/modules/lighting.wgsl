@@ -101,14 +101,8 @@ fn castLight(base: vec3f, normal_1: vec3f, position: vec3f) -> vec3f {
 // @block lighting_casts
 @group(0) @binding(6) var<uniform> casts: CastLights;
 
-// @block lighting_data_alternate
-@group(3) @binding(0) var<uniform> data: Environment;
-
-// @block lighting_data_extended
-@group(1) @binding(0) var<uniform> data: Environment;
-
 // @block lighting_data_primary
-@group(2) @binding(0) var<uniform> data: Environment;
+@group(GROUP) @binding(0) var<uniform> data: Environment;
 
 // @block lighting_disc
 fn disc(dir: vec3f) -> vec3f {
@@ -120,14 +114,8 @@ fn disc(dir: vec3f) -> vec3f {
 // @block lighting_light
 @group(0) @binding(4) var<uniform> light: Environment;
 
-// @block lighting_lights_alternate
-@group(3) @binding(1) var<uniform> lights: CastLights;
-
-// @block lighting_lights_extended
-@group(1) @binding(1) var<uniform> lights: CastLights;
-
 // @block lighting_lights_primary
-@group(2) @binding(1) var<uniform> lights: CastLights;
+@group(GROUP) @binding(1) var<uniform> lights: CastLights;
 
 // @block lighting_meshVertex_Output
 struct meshVertex_Output {
@@ -138,23 +126,11 @@ struct meshVertex_Output {
   @location(3) highlight: f32,
 }
 
-// @block lighting_sunCompare_alternate
-@group(1) @binding(8) var sunCompare: sampler_comparison;
-
-// @block lighting_sunCompare_extended
-@group(3) @binding(8) var sunCompare: sampler_comparison;
-
 // @block lighting_sunCompare_primary
-@group(2) @binding(8) var sunCompare: sampler_comparison;
-
-// @block lighting_sunDepth_alternate
-@group(3) @binding(7) var sunDepth: texture_depth_2d_array;
-
-// @block lighting_sunDepth_extended
-@group(1) @binding(7) var sunDepth: texture_depth_2d_array;
+@group(GROUP) @binding(8) var sunCompare: sampler_comparison;
 
 // @block lighting_sunDepth_primary
-@group(2) @binding(7) var sunDepth: texture_depth_2d_array;
+@group(GROUP) @binding(7) var sunDepth: texture_depth_2d_array;
 
 // @block lighting_worldFragment_Input
 struct worldFragment_Input {

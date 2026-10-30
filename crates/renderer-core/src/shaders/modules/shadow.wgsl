@@ -107,11 +107,5 @@ fn shadowVisibility(depth: texture_depth_2d_array, compare: sampler_comparison, 
   return shadowPcf(depth,compare,layer,uv,z,pixel,settings.z);
 }
 
-// @block shadow_sun_alternate
-@group(3) @binding(6) var<uniform> sun: SunShadow;
-
-// @block shadow_sun_extended
-@group(1) @binding(6) var<uniform> sun: SunShadow;
-
 // @block shadow_sun_primary
-@group(2) @binding(6) var<uniform> sun: SunShadow;
+@group(GROUP) @binding(6) var<uniform> sun: SunShadow;

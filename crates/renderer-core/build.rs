@@ -1,10 +1,15 @@
-use std::{collections::BTreeMap, env, fs, path::PathBuf};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    env, fs,
+    path::PathBuf,
+};
 
-fn replace_identifiers(source: &str, aliases: &[(String, String)]) -> String {
+fn replace_identifiers(source: &str, aliases: &[(String, String)], context: &str) -> String {
     let bytes = source.as_bytes();
     let mut out = String::with_capacity(source.len());
     let mut at = 0;
     let mut copied = 0;
+    let mut tokens = BTreeSet::new();
     while at < bytes.len() {
         if !(bytes[at].is_ascii_alphabetic() || bytes[at] == b'_') {
             at += 1;
@@ -16,6 +21,7 @@ fn replace_identifiers(source: &str, aliases: &[(String, String)]) -> String {
             at += 1;
         }
         let token = &source[start..at];
+        tokens.insert(token);
         out.push_str(&source[copied..start]);
         if let Some((_, replacement)) = aliases.iter().find(|(name, _)| name == token) {
             out.push_str(replacement);
@@ -25,7 +31,18 @@ fn replace_identifiers(source: &str, aliases: &[(String, String)]) -> String {
         copied = at;
     }
     out.push_str(&source[copied..]);
+    for (from, to) in aliases {
+        assert!(
+            tokens.contains(from.as_str()),
+            "{context}: dead WGSL alias {from}={to}"
+        );
+    }
     out
+}
+
+fn insert_block(blocks: &mut BTreeMap<String, String>, id: String, body: &str) {
+    assert!(!blocks.contains_key(&id), "duplicate WGSL block {id}");
+    blocks.insert(id, body.trim_end().to_owned());
 }
 
 fn main() {
@@ -47,7 +64,7 @@ fn main() {
         for line in text.lines() {
             if let Some(id) = line.strip_prefix("// @block ") {
                 if let Some(old) = current.replace(id.trim().to_owned()) {
-                    blocks.insert(old, body.trim_end().to_owned());
+                    insert_block(&mut blocks, old, &body);
                     body.clear();
                 }
             } else if current.is_some() {
@@ -56,7 +73,7 @@ fn main() {
             }
         }
         if let Some(id) = current {
-            blocks.insert(id, body.trim_end().to_owned());
+            insert_block(&mut blocks, id, &body);
         }
     }
 
@@ -75,6 +92,7 @@ fn main() {
         shaders
     ));
     generated.push_str("fn assembled_source(name: &str) -> Option<&'static str> { match name {\n");
+    let mut referenced = BTreeSet::new();
     for line in source_text.lines() {
         let Some((shader, ids)) = line.split_once('|') else {
             continue;
@@ -96,15 +114,44 @@ fn main() {
                     (from.to_owned(), to.to_owned())
                 })
                 .collect();
+            let (id, group) = id.split_once('@').map_or((id, None), |(id, group)| {
+                let group = group
+                    .parse::<u32>()
+                    .unwrap_or_else(|_| panic!("{shader}: bad WGSL group {group} for {id}"));
+                (id, Some(group))
+            });
             let body = blocks
                 .get(id)
                 .unwrap_or_else(|| panic!("missing WGSL block {id}"));
-            source.push_str(&replace_identifiers(body, &aliases));
+            referenced.insert(id);
+            let context = format!("{shader}: block {id}");
+            let has_group = body
+                .split(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+                .any(|token| token == "GROUP");
+            assert!(
+                !has_group || group.is_some(),
+                "{context} contains GROUP and requires @N"
+            );
+            assert!(
+                has_group || group.is_none(),
+                "{context} has no GROUP but was given @N"
+            );
+            let mut body = replace_identifiers(body, &aliases, &context);
+            if let Some(group) = group {
+                body = body.replace("@group(GROUP)", &format!("@group({group})"));
+            }
+            source.push_str(&body);
             source.push_str("\n\n");
         }
         let path = out_dir.join(format!("assembled-{shader}"));
         fs::write(&path, source).unwrap();
         generated.push_str(&format!("{shader:?} => Some(include_str!({:?})),\n", path));
+    }
+    for id in blocks.keys() {
+        assert!(
+            referenced.contains(id.as_str()),
+            "unreferenced WGSL block {id}"
+        );
     }
     generated.push_str("_ => None, } }\n");
     fs::write(out_dir.join("pipeline_export.rs"), generated).unwrap();

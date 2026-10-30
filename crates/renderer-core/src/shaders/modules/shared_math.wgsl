@@ -92,10 +92,10 @@ fn crossing(x: f32, edge: f32, width: f32) -> f32 {
   return smoothstep(edge - w, edge + w, x);
 }
 
-// @block shared_math_depth_alternate
+// @block shared_math_depth_xrayCountLayout
 @group(2) @binding(1) var depth: texture_depth_multisampled_2d;
 
-// @block shared_math_depth_primary
+// @block shared_math_depth_cullLayout
 @group(0) @binding(2) var depth: texture_depth_multisampled_2d;
 
 // @block shared_math_fbm
@@ -128,26 +128,23 @@ fn hash(i: vec2i) -> f32 {
   return f32(h & 0xffffffu) / 16777216.0;
 }
 
-// @block shared_math_linearSampler_alternate
+// @block shared_math_linearSampler_effects
 @group(0) @binding(3) var linearSampler: sampler;
 
-// @block shared_math_linearSampler_primary
+// @block shared_math_linearSampler_blurLayout
 @group(0) @binding(0) var linearSampler: sampler;
 
 // @block shared_math_linear_sampler
 @group(2) @binding(5) var linear_2: sampler;
 
 // @block shared_math_linear_alternate
-@group(3) @binding(5) var linear: sampler;
+@group(GROUP) @binding(5) var linear: sampler;
 
-// @block shared_math_linear_extended
+// @block shared_math_linear_sampled
 @group(0) @binding(1) var linear: sampler;
 
-// @block shared_math_linear_layered
+// @block shared_math_linear_cardLayout
 @group(1) @binding(2) var linear: sampler;
-
-// @block shared_math_linear_masked
-@group(1) @binding(5) var linear: sampler;
 
 // @block shared_math_noise
 fn noise(p: vec2f) -> f32 {

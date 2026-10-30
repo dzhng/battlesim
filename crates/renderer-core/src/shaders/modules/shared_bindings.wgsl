@@ -67,10 +67,10 @@ struct _Input {
   @location(6) anchor: vec3f,
 }
 
-// @block shared_bindings_albedo_alternate
+// @block shared_bindings_albedo_cardLayout
 @group(1) @binding(0) var albedo: texture_2d_array<f32>;
 
-// @block shared_bindings_albedo_primary
+// @block shared_bindings_albedo_modelLayout
 @group(1) @binding(2) var albedo: texture_2d_array<f32>;
 
 // @block shared_bindings_args
@@ -113,22 +113,16 @@ fn classDistance(inside: f32) -> f32 {
   return (clamp(round((128f - (inside * 8f))), 1f, 255f) / 255f);
 }
 
-// @block shared_bindings_counts_alternate
-@group(2) @binding(5) var<storage, read> counts: array<u32>;
-
-// @block shared_bindings_counts_extended
+// @block shared_bindings_counts_xrayReadLayout
 @group(2) @binding(0) var<storage, read> counts: array<vec2u>;
 
-// @block shared_bindings_counts_layered
-@group(3) @binding(5) var<storage, read> counts: array<u32>;
-
-// @block shared_bindings_counts_masked
+// @block shared_bindings_counts_xrayCountLayout
 @group(2) @binding(0) var<storage, read_write> counts: array<Count>;
 
 // @block shared_bindings_counts_primary
-@group(1) @binding(5) var<storage, read> counts: array<u32>;
+@group(GROUP) @binding(5) var<storage, read> counts: array<u32>;
 
-// @block shared_bindings_counts_variant
+// @block shared_bindings_counts_cullLayout
 @group(0) @binding(4) var<storage, read_write> counts: array<atomic<u32>>;
 
 // @block shared_bindings_cullHi
@@ -140,14 +134,8 @@ var<workgroup> cullHit: atomic<u32>;
 // @block shared_bindings_cullLo
 var<workgroup> cullLo: array<atomic<i32>, 2>;
 
-// @block shared_bindings_dfg_alternate
-@group(3) @binding(4) var dfg: texture_2d<f32>;
-
-// @block shared_bindings_dfg_extended
-@group(1) @binding(4) var dfg: texture_2d<f32>;
-
 // @block shared_bindings_dfg_primary
-@group(2) @binding(4) var dfg: texture_2d<f32>;
+@group(GROUP) @binding(4) var dfg: texture_2d<f32>;
 
 // @block shared_bindings_direction
 fn direction(uv: vec2f) -> vec3f {
@@ -209,10 +197,10 @@ struct fullScreenTriangle_Output {
 // @block shared_bindings_halo
 @group(0) @binding(2) var halo: texture_2d<f32>;
 
-// @block shared_bindings_heights_alternate
+// @block shared_bindings_heights_grassBuildLayout
 @group(0) @binding(1) var<storage, read> heights: array<u32>;
 
-// @block shared_bindings_heights_primary
+// @block shared_bindings_heights_buildLayout
 @group(0) @binding(2) var<storage, read> heights: array<u32>;
 
 // @block shared_bindings_items
@@ -233,17 +221,11 @@ struct fullScreenTriangle_Output {
 // @block shared_bindings_level4
 @group(0) @binding(5) var level4: texture_2d<f32>;
 
-// @block shared_bindings_lists_alternate
-@group(3) @binding(4) var<storage, read> lists: array<u32>;
-
-// @block shared_bindings_lists_extended
+// @block shared_bindings_lists_cullLayout
 @group(0) @binding(3) var<storage, read_write> lists: array<u32>;
 
-// @block shared_bindings_lists_masked
-@group(2) @binding(4) var<storage, read> lists: array<u32>;
-
 // @block shared_bindings_lists_primary
-@group(1) @binding(4) var<storage, read> lists: array<u32>;
+@group(GROUP) @binding(4) var<storage, read> lists: array<u32>;
 
 // @block shared_bindings_lit
 @group(0) @binding(2) var lit: texture_2d<f32>;
@@ -251,25 +233,16 @@ struct fullScreenTriangle_Output {
 // @block shared_bindings_lutView
 @group(0) @binding(1) var lutView: texture_2d<f32>;
 
-// @block shared_bindings_maps_alternate
+// @block shared_bindings_maps_buildLayout
 @group(0) @binding(7) var<storage, read_write> maps: array<u32>;
 
-// @block shared_bindings_maps_extended
-@group(3) @binding(3) var<storage, read> maps: array<u32>;
-
-// @block shared_bindings_maps_layered
-@group(0) @binding(3) var<storage, read> maps: array<u32>;
-
-// @block shared_bindings_maps_masked
-@group(2) @binding(3) var<storage, read> maps: array<u32>;
-
 // @block shared_bindings_maps_primary
-@group(1) @binding(3) var<storage, read> maps: array<u32>;
+@group(GROUP) @binding(3) var<storage, read> maps: array<u32>;
 
-// @block shared_bindings_mask_alternate
+// @block shared_bindings_mask_composeLayout
 @group(0) @binding(3) var mask: texture_2d<f32>;
 
-// @block shared_bindings_mask_primary
+// @block shared_bindings_mask_rowsLayout
 @group(0) @binding(1) var mask: texture_2d<f32>;
 
 // @block shared_bindings_minimum
@@ -278,10 +251,10 @@ struct fullScreenTriangle_Output {
 // @block shared_bindings_normal
 @group(1) @binding(1) var normal: texture_2d_array<f32>;
 
-// @block shared_bindings_out_alternate
+// @block shared_bindings_out_shapeLayout
 @group(0) @binding(1) var<storage, read_write> out: array<f32>;
 
-// @block shared_bindings_out_primary
+// @block shared_bindings_out_probeLayout
 @group(1) @binding(1) var<storage, read_write> out: array<u32>;
 
 // @block shared_bindings_outputSrgb
@@ -413,22 +386,22 @@ fn rimAt(pixel: vec2f) -> vec4f {
   return vec4f(s.rimColor, s.rimAlpha * cover * seen);
 }
 
-// @block shared_bindings_rows_alternate
+// @block shared_bindings_rows_glowColumnsLayout
 @group(0) @binding(1) var rows: texture_2d<f32>;
 
-// @block shared_bindings_rows_extended
+// @block shared_bindings_rows_shapeLayout
 @group(0) @binding(0) var<storage, read> rows: array<vec4f>;
 
-// @block shared_bindings_rows_primary
+// @block shared_bindings_rows_columnsLayout
 @group(0) @binding(2) var rows: texture_2d<f32>;
 
 // @block shared_bindings_scene
 @group(0) @binding(1) var scene: texture_2d<f32>;
 
-// @block shared_bindings_source_alternate
+// @block shared_bindings_source_sampled
 @group(0) @binding(0) var source: texture_2d<f32>;
 
-// @block shared_bindings_source_primary
+// @block shared_bindings_source_blurLayout
 @group(0) @binding(1) var source: texture_2d<f32>;
 
 // @block shared_bindings_srgbToLinear

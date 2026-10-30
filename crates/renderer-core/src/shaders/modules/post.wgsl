@@ -35,13 +35,13 @@ fn agx(color: vec3f, exposure: f32) -> vec3f {
   return clamp(toSrgb*pow(max(vec3f(0),outset*contrast),vec3f(2.2)),vec3f(0),vec3f(1));
 }
 
-// @block post_bloom_alternate
+// @block post_bloom_highpassLayout
 @group(0) @binding(2) var<uniform> bloom: Bloom;
 
-// @block post_bloom_extended
+// @block post_bloom_finalLayout
 @group(0) @binding(2) var bloom: texture_2d<f32>;
 
-// @block post_bloom_primary
+// @block post_bloom_compositeLayout
 @group(0) @binding(6) var<uniform> bloom: Bloom;
 
 // @block post_compositeAlgorithm

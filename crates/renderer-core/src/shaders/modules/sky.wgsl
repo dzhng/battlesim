@@ -3,26 +3,14 @@
 // @block sky_light
 @group(0) @binding(0) var<uniform> light: SkyLight;
 
-// @block sky_pmrem_alternate
-@group(1) @binding(3) var pmrem: texture_2d<f32>;
-
-// @block sky_pmrem_extended
-@group(3) @binding(3) var pmrem: texture_2d<f32>;
-
-// @block sky_pmrem_masked
+// @block sky_pmrem_effects
 @group(0) @binding(5) var pmrem: texture_2d<f32>;
 
 // @block sky_pmrem_primary
-@group(2) @binding(3) var pmrem: texture_2d<f32>;
-
-// @block sky_sky_alternate
-@group(1) @binding(2) var sky: texture_2d<f32>;
-
-// @block sky_sky_extended
-@group(3) @binding(2) var sky: texture_2d<f32>;
+@group(GROUP) @binding(3) var pmrem: texture_2d<f32>;
 
 // @block sky_sky_primary
-@group(2) @binding(2) var sky: texture_2d<f32>;
+@group(GROUP) @binding(2) var sky: texture_2d<f32>;
 
 // @block sky_spriteLight
 fn spriteLight() -> SpriteLight {
