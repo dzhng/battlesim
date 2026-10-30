@@ -613,7 +613,7 @@ export function LabViewport({
             staticStyle,
             staticSun,
           );
-          decoder.setGround(world.terrain.input, world.scenery);
+          decoder.setGround(world.terrain.input, world.scenery !== null);
           decoder.setShadow(shadowLight, world.terrain.mesh);
           decoder.setFog(fogSuppressed.current ? null : (fogRef.current?.current ?? null));
           let first = frameRef.current?.(performance.now(), snapshot(), 0);
@@ -801,7 +801,7 @@ export function LabViewport({
                 staticSun,
               );
               const layers = scene.world();
-              decoder.setGround(layers?.terrain.input ?? null, layers?.scenery ?? null);
+              decoder.setGround(layers.terrain.input, layers.scenery !== null);
               decoder.setShadow(shadowLight!, terrain);
               decoder.setFog(fogSuppressed.current ? null : (fogRef.current?.current ?? null));
               const quality = qualityRef.current;

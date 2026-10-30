@@ -37,7 +37,7 @@ import {
   type PresentedGround,
 } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { occluderBoxes, type FogOccluder } from "@packages/battle-renderer/src/fog";
-import type { WorldLayers, WorldScenery } from "@packages/battle-renderer/src/scene";
+import type { WorldLayers } from "@packages/battle-renderer/src/scene";
 import { propArt, type KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
 import { NO_SCENERY_WALK, type SceneryWalkStats } from "@packages/battle-renderer/src/scenery/walk";
 import { TEMPLATE_STATES, type TemplateState } from "@packages/scene-assets/src/templateLibrary";
@@ -428,9 +428,9 @@ export class ScenePresentation {
 
   /** Stage ground and whether it requests scenery. Rust admits scenery after
    *  its bundles decode during renderer installation. */
-  setGround(ground: GroundInput | null, scenery: WorldScenery | null) {
+  setGround(ground: GroundInput | null, scenery: boolean) {
     if (ground !== this.staged) [this.staged, this.stale] = [ground, true];
-    this.scenery = scenery !== null;
+    this.scenery = scenery;
   }
 
   /** The side's fog of war over the ground, or none; taken once the

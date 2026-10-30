@@ -190,7 +190,7 @@ export class SheetRenderer {
       const world = benchWorld(null);
       const canvas = document.createElement("canvas");
       canvas.width = canvas.height = TILE;
-      presentation.setGround(world.terrain.input, world.scenery);
+      presentation.setGround(world.terrain.input, world.scenery !== null);
       presentation.setShadow(gameLight, world.terrain.mesh);
       presentation.frame(
         0,

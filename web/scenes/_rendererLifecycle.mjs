@@ -48,7 +48,7 @@ export async function rendererLifecycle(ctx) {
         height: 256,
       });
       const ui = { selected: [], xray: false, ghosts: [] };
-      sight.setGround(world.terrain.input, null);
+      sight.setGround(world.terrain.input, false);
       sight.setShadow(light.gameLight, world.terrain.mesh);
       sight.setFog({
         sensors: game.default.sensors,

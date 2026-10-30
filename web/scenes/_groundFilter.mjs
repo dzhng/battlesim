@@ -88,7 +88,7 @@ export async function groundFilterExact(ctx) {
             runs: Float32Array.from(runs.flat()),
           }),
         );
-        decoder.setGround(world.terrain.input, null);
+        decoder.setGround(world.terrain.input, false);
         decoder.frame(
           0,
           {

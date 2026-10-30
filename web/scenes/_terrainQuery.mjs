@@ -41,7 +41,7 @@ export async function openTerrainQuery(ctx) {
     const presentation = new ScenePresentation();
     const terrain = surface.bareTerrain(new Float32Array(0), [0, 0, 32, 32], 4, biome.default);
     const light = applyShadowQuality(gameLight, sceneMinimumProfile);
-    presentation.setGround(terrain.input, null);
+    presentation.setGround(terrain.input, false);
     presentation.setBuildings(null, null, gameBuildingStyle, {
       azimuth: light.sun_azimuth,
       elevation: light.sun_elevation,
