@@ -57,8 +57,9 @@ fn importanceGGX(xi: vec2f, r: f32) -> vec3f {
 
 // @block sky_bakeShade
 fn bakeShade(uv: vec2f, face: f32) -> vec4f {
-  return bakeAlgorithm(uv, face, source, environmentSampler);
-}
+
+      return textureSampleLevel(source,environmentSampler,equirectUv(normalize(cubeDirection(uv,face))),0);
+    }
 
 // @block sky_dfg
 @group(GROUP) @binding(4) var dfg: texture_2d<f32>;
@@ -78,8 +79,8 @@ fn equirectUv(direction: vec3f) -> vec2f {
 
 // @block sky_filterShade
 fn filterShade(uv: vec2f, face: f32) -> vec4f {
-  return filterAlgorithm(uv, face, source, environmentSampler, params);
-}
+      return vec4f(convolve(source,environmentSampler,normalize(cubeDirection(uv,face)),params.x,params.y,params.z),1);
+    }
 
 // @block sky_lutView
 @group(0) @binding(1) var lutView: texture_2d<f32>;
@@ -95,11 +96,6 @@ fn roughnessMip(r: f32) -> f32 {
   if(r>=0.21){return (0.305-r)/0.095+3.0;}
   return -2.0*log2(1.16*r);
 }
-
-// @block sky_bakeAlgorithm
-fn bakeAlgorithm(uv: vec2f, face: f32, source: texture_2d<f32>, linearSampler: sampler) -> vec4f {
-      return textureSampleLevel(source,linearSampler,equirectUv(normalize(cubeDirection(uv,face))),0);
-    }
 
 // @block sky_convolve
 fn convolve(env: texture_2d<f32>, linearSampler: sampler, n: vec3f, r: f32, mip: f32, maxMip: f32) -> vec3f {
@@ -119,11 +115,6 @@ fn convolve(env: texture_2d<f32>, linearSampler: sampler, n: vec3f, r: f32, mip:
   if(weight>0.0){color/=weight;}
   return color;
 }
-
-// @block sky_filterAlgorithm
-fn filterAlgorithm(uv: vec2f, face: f32, source: texture_2d<f32>, linearSampler: sampler, params: vec4f) -> vec4f {
-      return vec4f(convolve(source,linearSampler,normalize(cubeDirection(uv,face)),params.x,params.y,params.z),1);
-    }
 
 // @block sky_environmentSampler
 @group(GROUP) @binding(5) var environmentSampler: sampler;

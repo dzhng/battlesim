@@ -474,6 +474,13 @@ finding that the base build did not render grass the same way twice.
   pixel, reproducibly; without it all 54 plates are byte-identical. The loop
   index replaces literal cascade indices, which lets the compiler fold
   differently. Per map unknown 1, the original expression stays. *Sound.*
+- **When:** whole-spec review. **Choice:** fold the six display forwarding
+  wrappers, environment bake/filter wrappers and unlit/PBR adapters into their
+  sole callers. Resource arguments now read their declared globals; computed
+  value arguments remain evaluated locals. **Reach:** structural shader change,
+  isolated for the orchestrator's byte-identical plate gate. Naga and reflected
+  layouts pass; plate acceptance remains pending. **Verdict: provisional.**
+
 ## 11 · Track side
 
 - **When:** slice 11. **Choice:** `TrackSide` is a left/right enum and
