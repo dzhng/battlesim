@@ -327,10 +327,12 @@ export async function roundsTour(ctx) {
   await page.close();
   // Every look uses the same review lane so changing street visibility or
   // a missing weapon cannot leave a stage hidden in fog or foliage.
-  // Only appearance changes: every look gets the same controlled flash,
-  // flight, contact and blast causes, through the real battle/publication path.
+  // Each carrier takes the look's firing cadence from a resolved weapon;
+  // flight, contact and blast keep the controlled HE lane's physics.
   const sources = {};
   for (const kind of KINDS) {
+    const source = Object.values(weapons).find((w) => w.appearance === kind);
+    if (!source) throw new Error(`review look ${kind} has no resolved weapon`);
     const review = {
       ...ctx,
       newPage: async (options) => {
@@ -341,7 +343,8 @@ export async function roundsTour(ctx) {
           const snapshot = await response.json();
           const rules = snapshot.documents.find((d) => d.path === "fixtures/rules.json").value;
           // Development startup installs the authored rules document.
-          for (const id of ["tank_ap", "tank_he"]) rules.weapons[id].appearance = kind;
+          for (const id of ["tank_ap", "tank_he"])
+            Object.assign(rules.weapons[id], { appearance: kind, magazine: source.magazine });
           await route.fulfill({ response, json: snapshot });
         });
         return p;

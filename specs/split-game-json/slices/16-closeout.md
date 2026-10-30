@@ -62,3 +62,6 @@ Slice 16 remains unticked in the README; no archive or push was performed.
   browser constraints already existed in Rust, including integral building
   residency; refusal coverage now lives at document admission. Browser readers
   trust admitted values and retain their geometry and control behavior tests.
+- Look-sheet review carriers take their magazine from a resolved weapon naming
+  the sampled look, so recorded bursts meet the same fielding contract as a
+  battle while the controlled HE trajectory and authored looks stay intact.
