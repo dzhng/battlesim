@@ -187,3 +187,24 @@ evidence coverage and disclosure, while rating visual quality mixed for the
 preserved readability findings above. Its receipt check passes. The full gallery,
 all enlarged crops and relevant native frames were inspected. Preview was shown
 for the non-blocking checkpoint and closed afterward.
+
+**Review follow-ups (open; for the shared fix pass):**
+- An unknown `audio.cook_off.landing.as` passes admission and panics when a
+  turret lands (`sound/tables.rs:373`). Validate the landing look and its
+  contact surface in `SoundTables::from_parts`.
+- Look admission doesn't require the parts physics needs: an accelerating ATGM
+  with `sound.motor: null` is accepted (`looks.rs:96`). This is slice 10's
+  fielding check; make sure it covers motor, blast and shot.
+- `impact.surfaces` accepts misspelled keys such as `hulll` (`looks.rs:49`).
+  Validate them against the impact-material vocabulary.
+- `impacts.*.sound` and `ricochet.sound` are still required and validated,
+  but playback takes recordings only from looks (`sound/tables.rs:229`).
+  Remove them from Rust, TS and the fixtures; keep the gains.
+- The sound workbench saves a candidate that battle startup would refuse
+  (`apps/sound-workbench/server.ts:106`). Admit candidates against the looks,
+  the mix and the weapon rows before preview and save.
+- `decisions.md:20` repeats `map.md:132`. Link to it instead.
+- `fixtures/README.md:210` still says "nearest styled ancestor". Say that
+  inheritance supplies `appearance`.
+- `apps/sound-workbench/README.md:28` attributes movement levels to
+  presentation; they belong to `audio.json`.
