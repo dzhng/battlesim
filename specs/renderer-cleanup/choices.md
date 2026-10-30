@@ -568,3 +568,11 @@ finding that the base build did not render grass the same way twice.
   slice 13 moves them. **Verdict: sound** — controls overlap and startup state
   while preserving delayed readback, slot retention, reuse and reset coverage.
   **Confidence: high.**
+
+## 14 · Brittle tests
+
+- **Choice:** proxy colour checks supply white primitive art at the asset-data
+  boundary and compare known linear RGB output with decimal precision, rather
+  than reproducing gamma arithmetic and float rounding. **Gap:** the slice did
+  not choose the input seam or output tolerance. **Reach:** art retuning does
+  not invalidate the conversion proof. **Verdict: sound.**

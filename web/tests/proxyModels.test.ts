@@ -1,15 +1,33 @@
 // @vitest-environment node
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { joinTextures } from "@packages/scene-assets/src/codec";
 import { PROXY_MESHES } from "@packages/battle-renderer/src/proxies";
 import { proxyModels } from "../src/battle/render/proxyModels";
 
+// Control the authored mesh colour at the asset boundary: this checks colour
+// conversion independently of any later change to primitive art.
+vi.mock("@packages/battle-renderer/src/proxies", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@packages/battle-renderer/src/proxies")>();
+  const white = (source: Float32Array) => {
+    const mesh = source.slice();
+    for (let v = 0; v < mesh.length; v += 10) mesh.fill(1, v + 6, v + 9);
+    return mesh;
+  };
+  return {
+    ...original,
+    PROXY_MESHES: {
+      box: white(original.PROXY_MESHES.box),
+      marker: white(original.PROXY_MESHES.marker),
+    },
+  };
+});
+
 test("proxy admission preserves drawn shapes, pre-gamma color, transforms and pick-only infantry", () => {
   const generated = proxyModels([
     { kind: "infantry", x: 9, y: 8, z: 7, yaw: 1, color: [1, 1, 1] },
-    { kind: "box", x: 2, y: 3, z: 4, yaw: 0.7, color: [0.17, 0.34, 0.91] },
-    { kind: "box", x: -2, y: -3, z: 0, yaw: 0, color: [0.17, 0.34, 0.91] },
+    { kind: "box", x: 2, y: 3, z: 4, yaw: 0.7, color: [0.5, 0.25, 0.75] },
+    { kind: "box", x: -2, y: -3, z: 0, yaw: 0, color: [0.5, 0.25, 0.75] },
     { kind: "marker", x: 5, y: 6, z: 0, yaw: -0.3, color: [1, 1, 1] },
   ]);
   expect(generated.assets).toHaveLength(2);
@@ -23,9 +41,9 @@ test("proxy admission preserves drawn shapes, pre-gamma color, transforms and pi
     tier: 0,
   });
   expect(generated.models[0].appearance).toBe(generated.models[1].appearance);
-  for (const [row, kind, tint] of [
-    [0, "box", [0.17, 0.34, 0.91]],
-    [1, "marker", [1, 1, 1]],
+  for (const [row, kind, color] of [
+    [0, "box", [0.217638, 0.047366, 0.531049, 1]],
+    [1, "marker", [1, 1, 1, 1]],
   ] as const) {
     const asset = generated.assets[row];
     const bundle = joinTextures(asset.bundle, []);
@@ -39,17 +57,11 @@ test("proxy admission preserves drawn shapes, pre-gamma color, transforms and pi
       );
       expect(Array.from(mesh.colors.subarray(v * 4, v * 4 + 4))).toEqual([255, 255, 255, 255]);
     }
-    expect(bundle.materials[0].base_color).toEqual([
-      ...tint.map((c, channel) =>
-        Math.fround(
-          Math.pow(
-            Math.max(0, Math.fround(source[6 + channel] * Math.fround(c))),
-            Math.fround(2.2),
-          ),
-        ),
-      ),
-      1,
-    ]);
+    // Known linear colours for the controlled input, rather than a second
+    // implementation of the conversion (including its float rounding).
+    bundle.materials[0].base_color.forEach((channel, i) =>
+      expect(channel).toBeCloseTo(color[i], 5),
+    );
     expect(bundle.materials[0]).toMatchObject({
       roughness: Math.fround(0.85),
       metallic: 0,
