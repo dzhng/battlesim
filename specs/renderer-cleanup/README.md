@@ -29,7 +29,7 @@ Warnings:
 
 TODO:
 - [x] [01](slices/01-windows-cutout.md) Windows cutout as its own WGSL variant
-- [ ] [02](slices/02-record-schema.md) Record schema: nested records, i32, TS export list
+- [x] [02](slices/02-record-schema.md) Record schema: nested records, i32, TS export list
 - [ ] [03](slices/03-ground-records.md) Ground records: terrain, grass, scars, masks
 - [ ] [04](slices/04-renderer-records.md) Renderer records, lengths and the reverse check
 - [ ] [05](slices/05-composition-grammar.md) Composition grammar and one block per binding
