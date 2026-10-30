@@ -36,6 +36,109 @@ fn reject_presentation(pointer: &str, value: Value, path: &str) {
 }
 
 #[test]
+fn movement_effect_spacing_must_advance_at_load() {
+    for effect in ["dust", "wake"] {
+        reject_presentation(
+            &format!("/effects/{effect}/spacing_m"),
+            json!(0),
+            &format!("effects.{effect}.spacing_m"),
+        );
+    }
+}
+
+#[test]
+fn mist_edges_remain_strictly_increasing_on_the_gpu() {
+    for field in ["mist_height_m", "mist_distance_m"] {
+        for edges in [[100.0, 100.0], [100.0, 100.000001]] {
+            reject_presentation(
+                &format!("/light/haze/{field}"),
+                json!(edges),
+                &format!("light.haze.{field}"),
+            );
+        }
+    }
+}
+
+#[test]
+fn rest_settle_denominator_must_be_positive() {
+    reject_presentation(
+        "/pose/rest/settle_s",
+        json!([0, 0]),
+        "pose.rest.settle_s[1]",
+    );
+}
+
+#[test]
+fn callout_glow_is_refused_at_document_admission() {
+    reject_presentation(
+        "/overlay/glow/callouts",
+        json!(4.1),
+        "overlay.glow.callouts",
+    );
+}
+
+#[test]
+fn overlay_constraints_are_owned_by_document_admission() {
+    for (pointer, value) in [
+        ("/overlay/paint/albedo", 0.0),
+        ("/overlay/paint/fog_keep", 1.1),
+        ("/overlay/paint/grass_glow", 8.1),
+        ("/overlay/paint/grass_falloff_m", 4.1),
+        ("/overlay/paint/saturation", 3.1),
+        ("/overlay/orders/line_px", 0.0),
+        ("/overlay/orders/mark_px", 0.0),
+        ("/overlay/orders/soldier_mark_px", 0.0),
+        ("/overlay/orders/soldier_line_px", 0.0),
+        ("/overlay/orders/cover_pip_m", 0.0),
+        ("/overlay/orders/queued_alpha", 0.0),
+        ("/overlay/orders/current_alpha", 0.0),
+        ("/overlay/orders/march/amplitude", 1.1),
+        ("/overlay/orders/area_draw_scale", 0.0),
+        ("/overlay/orders/glow/order", 2.1),
+        ("/overlay/orders/glow/selected", 0.0),
+        ("/overlay/orders/cover_glow", 0.9),
+        ("/overlay/orders/vehicle_marker_margin_m", 0.0),
+        ("/overlay/orders/building_marker_margin_m", 0.0),
+        ("/overlay/orders/drop_line_px", 0.0),
+        ("/overlay/orders/drop_line_spacing", 1.0),
+        ("/overlay/orders/drop_line_alpha", 0.0),
+        ("/overlay/orders/drop_line_reach", 0.0),
+        ("/overlay/orders/drop_line_hold", 1.0),
+        ("/overlay/ruler/line_px", 0.0),
+        ("/overlay/ruler/tick_px", 0.0),
+        ("/overlay/ruler/tick_line_px", 0.0),
+        ("/overlay/ruler/end_px", 0.0),
+        ("/overlay/xray/own/3", 0.0),
+        ("/overlay/xray/selected_alpha", 0.0),
+        ("/overlay/xray/ally_alpha", 0.0),
+    ] {
+        reject_presentation(
+            pointer,
+            json!(value),
+            &pointer[1..].replace('/', ".").replace("own.3", "own[3]"),
+        );
+    }
+}
+
+#[test]
+fn cook_off_landing_requires_an_existing_look_and_surface() {
+    for (key, value, path) in [
+        ("as", "unknown-look", "cook_off.landing.as"),
+        ("hit", "hulll", "cook_off.landing.hit"),
+    ] {
+        let mut audio = fixture("audio");
+        audio["cook_off"]["landing"][key] = json!(value);
+        let result = presentation::sound::tables::SoundTables::from_parts(
+            audio,
+            fixture("sounds"),
+            &fixture("presentation"),
+            &fixture("rules")["weapons"],
+        );
+        assert!(result.expect_err("landing must be admitted").contains(path));
+    }
+}
+
+#[test]
 fn misspellings_in_every_document_section_name_their_path() {
     let doc = fixture("presentation");
     for section in doc.as_object().unwrap().keys() {

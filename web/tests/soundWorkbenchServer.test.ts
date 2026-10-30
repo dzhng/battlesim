@@ -1,7 +1,8 @@
 // @vitest-environment node
-import { check_presentation, check_audio_mix } from "@wasm/renderer_browser";
+import { check_presentation, check_battle_sounds } from "@wasm/renderer_browser";
 import authoredPresentation from "@fixtures/presentation.json";
 import authoredAudio from "@fixtures/audio.json";
+import authoredRules from "@fixtures/rules.json";
 import { standInPresentationRecordings } from "./support/soundStandIns";
 import type { AudioMix } from "@packages/battle-audio/src/audioMix";
 import { createServer, type Server } from "node:http";
@@ -86,7 +87,7 @@ async function fixture() {
   await writeFile(
     join(root, "fixtures/rules.json"),
     JSON.stringify({
-      weapons: { rifle: { speed_mps: 900 }, carbine: { extends: "rifle", speed_mps: 850 } },
+      weapons: authoredRules.weapons,
     }),
   );
   await writeFile(join(root, "fixtures/presentation.json"), JSON.stringify(presentation));
@@ -95,9 +96,9 @@ async function fixture() {
     root,
     validateSoundCatalog,
     Object.keys(SOUNDS),
-    (presentation, audio, catalog) => {
+    (presentation, audio, catalog, weapons) => {
       check_presentation(presentation);
-      check_audio_mix(audio, JSON.stringify(catalog));
+      check_battle_sounds(presentation, audio, JSON.stringify(catalog), weapons);
     },
   );
   const middleware = soundWorkbenchMiddleware(store);
@@ -748,3 +749,19 @@ test("snapshots refuse misspelled presentation and mix fields before editing", a
     expect(refusal.body.error).toContain("misspelled_field");
   }
 });
+
+test.each(["missing", "loop"])(
+  "preview refuses a %s firing recipe used by a look",
+  async (fault) => {
+    const { root, text, request } = await fixture();
+    const initial = (await request("snapshot")).body;
+    const catalog = structuredClone(initial.catalog);
+    const shot = authoredPresentation.weapon_looks.tank_sabot.sound.shot.near;
+    if (fault === "missing") delete catalog.sounds[shot];
+    else catalog.sounds[shot] = { ...catalog.sounds.rotor };
+    const result = await request("preview", { revision: initial.revision, catalog });
+    expect(result.status).toBe(400);
+    expect(result.body.error).toContain("weapon_looks");
+    expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(text);
+  },
+);

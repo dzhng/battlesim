@@ -36,6 +36,9 @@ pub struct ForestRule {
 
 impl ForestRules {
     pub fn check(&self) -> Result<(), String> {
+        if !self.rule.trunk_spacing_m.is_finite() || self.rule.trunk_spacing_m <= 0.0 {
+            return Err("rule.trunk_spacing_m must be finite and positive".into());
+        }
         if !self.rule.concealment.is_finite()
             || self.rule.concealment <= 0.0
             || self.rule.concealment > 1.0

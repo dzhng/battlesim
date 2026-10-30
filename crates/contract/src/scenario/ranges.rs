@@ -69,6 +69,17 @@ impl CoverRules {
         if !(-1.0..=0.0).contains(&self.away_cos) {
             return Err(RulesError::new("cover.away_cos", "must lie in [-1, 0]"));
         }
+        if !self.building_spread_multiplier.is_finite() || self.building_spread_multiplier < 1.0 {
+            return Err(RulesError::new(
+                "cover.building_spread_multiplier",
+                "must be finite and at least 1",
+            ));
+        }
+        share(
+            "cover.building_fragment_probability_multiplier",
+            self.building_fragment_probability_multiplier,
+            true,
+        )?;
         let mut previous = 1.0;
         for (name, value) in [
             ("light", self.tiers.light),

@@ -200,6 +200,18 @@ fn a_look_cannot_silently_assign_a_recording_to_a_misspelled_surface() {
 }
 
 #[test]
+fn a_look_cannot_scale_a_misspelled_impact_material() {
+    let mut presentation = fixture("presentation");
+    presentation["weapon_looks"]["rifle"]["impact"]["surfaces"]["hulll"] =
+        json!({"size": 1, "duration": 1});
+    let result =
+        presentation::looks::WeaponLooks::from_value(&presentation, &fixture("rules")["weapons"]);
+    assert!(result
+        .expect_err("misspelled impact material")
+        .contains("impact.surfaces.hulll"));
+}
+
+#[test]
 fn fielding_names_the_weapon_when_its_look_lacks_a_required_part() {
     for (weapon, part) in [
         ("atgm", "motor"),

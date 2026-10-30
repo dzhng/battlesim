@@ -54,6 +54,7 @@ pub(crate) fn numbers(value: &impl Serialize, path: &str, signed: &[&str]) -> Re
 
 pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
     ground(&s.terrain)?;
+    s.overlay.check()?;
     numbers(&s.camera, "presentation.camera", &[".yaw"])?;
     numbers(&s.overlay, "presentation.overlay", &[])?;
     numbers(&s.hud, "presentation.hud", &[])?;
@@ -187,10 +188,15 @@ pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
     for (key, v) in [
         ("overlay", overlay.glow.overlay),
         ("ground", overlay.glow.ground),
-        ("callouts", overlay.glow.callouts),
     ] {
         range(&format!("presentation.overlay.glow.{key}"), v, 0.0, 8.0)?;
     }
+    range(
+        "presentation.overlay.glow.callouts",
+        overlay.glow.callouts,
+        0.0,
+        4.0,
+    )?;
     let stroke = &overlay.stroke;
     positive("overlay.stroke.full_m_per_px", stroke.full_m_per_px)?;
     if stroke.thin_m_per_px <= stroke.full_m_per_px {

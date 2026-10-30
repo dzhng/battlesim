@@ -294,6 +294,17 @@ impl SoundTables {
         audio.check_sounds(&catalog)?;
         let looks = crate::looks::WeaponLooks::from_value(presentation, weapons)?
             .with_sounds(&audio, &catalog)?;
+        let landing = &audio.cook_off.landing;
+        let look = looks
+            .looks
+            .get(&landing.round)
+            .ok_or_else(|| format!("audio.cook_off.landing.as: unknown look {}", landing.round))?;
+        if !look.sound.impacts.contains_key(&landing.hit) {
+            return Err(format!(
+                "audio.cook_off.landing.hit: unknown surface {}",
+                landing.hit
+            ));
+        }
         Ok(Self {
             audio,
             catalog,

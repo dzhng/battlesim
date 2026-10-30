@@ -75,7 +75,12 @@ impl LightSettings {
             ("mist_height_m", h.mist_height_m),
             ("mist_distance_m", h.mist_distance_m),
         ] {
-            within(&format!("haze.{p}[1]"), hi, lo + f64::EPSILON, 1e6)?;
+            within(&format!("haze.{p}[1]"), hi, lo, 1e6)?;
+            if lo as f32 >= hi as f32 {
+                return Err(format!(
+                    "presentation.light.haze.{p}: edges must increase as f32"
+                ));
+            }
         }
         let c = &self.cascades;
         if ![512, 1024, 2048, 4096].contains(&c.map_size) {

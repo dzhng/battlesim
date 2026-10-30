@@ -59,6 +59,13 @@ impl WeaponLook {
             tracer.validate(name)?;
         }
         if let Some(impact) = &self.impact {
+            for surface in impact.surfaces.keys() {
+                if !crate::effects::tables::IMPACT_MATERIALS.contains(&surface.as_str()) {
+                    return Err(format!(
+                        "{path}.impact.surfaces.{surface}: unknown impact material"
+                    ));
+                }
+            }
             crate::settings::validate::range(
                 &format!("{path}.impact.scale"),
                 impact.scale,

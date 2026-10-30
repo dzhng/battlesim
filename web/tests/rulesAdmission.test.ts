@@ -111,3 +111,19 @@ test.each(invalid)("$path is refused before any WASM handle is returned", ({ pat
   expect(result.status).toBe("error");
   expect(result.diagnostics[0].message).toContain(path);
 });
+
+test.each([0, -1])("forest spacing %s is refused by world and battle entries", (spacing) => {
+  const bad = structuredClone(scenario);
+  bad.rules.forests.rule.trunk_spacing_m = spacing;
+  const map = JSON.stringify(bad.map);
+  const rules = JSON.stringify(bad.rules);
+  const setup = JSON.stringify(bad);
+  for (const create of [
+    () => new wasm.Battle(setup, 1),
+    () => wasm.Battle.from_replay(setup, "{}"),
+    () => new wasm.PreparedWorld(map, rules),
+    () => wasm.PreparedWorld.from_scenario(setup),
+    () => new wasm.WorldView(map, rules),
+  ])
+    expect(create).toThrow("trunk_spacing_m");
+});

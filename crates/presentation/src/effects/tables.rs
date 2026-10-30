@@ -10,6 +10,17 @@ use super::cook_off::CookOffFeel;
 use super::high_air_shadow::HighAirShadowStyle;
 use crate::world::Vec3;
 
+/// Contact materials an observed round can present, plus the shared default.
+pub const IMPACT_MATERIALS: &[&str] = &[
+    "default",
+    "ground",
+    "water",
+    "hull",
+    "prop",
+    "soldier",
+    "metal_prop",
+];
+
 /// A tracer on a very short stretch lives at most this past its tick, s.
 pub(super) const TRACER_TAIL_MAX_S: f64 = 1.0;
 
@@ -329,6 +340,11 @@ impl EffectPresentation {
             &[".forward_m", ".spin_turns", ".up_m"],
         )?;
         ensure(self.capacity > 0, || "capacity must be positive".into())?;
+        for (name, spacing) in [("dust", self.dust.spacing_m), ("wake", self.wake.spacing_m)] {
+            ensure(spacing > 0.0, || {
+                format!("{name}.spacing_m must be positive")
+            })?;
+        }
         ensure(self.impacts.contains_key("default"), || {
             "impacts needs a default".into()
         })?;

@@ -230,3 +230,119 @@ pub struct MapBorder {
 pub struct Ground {
     pub backdrop_reach_m: f64,
 }
+
+impl Overlay {
+    pub(super) fn check(&self) -> Result<(), String> {
+        use super::validate::range;
+        let bounded =
+            |key: &str, value, lo, hi| range(&format!("presentation.overlay.{key}"), value, lo, hi);
+        let positive = |key: &str, value| bounded(key, value, f64::MIN_POSITIVE, f64::MAX);
+        for (key, value, lo, hi) in [
+            ("paint.albedo", self.paint.albedo, f64::MIN_POSITIVE, 1.0),
+            ("paint.fog_keep", self.paint.fog_keep, 0.0, 1.0),
+            ("paint.grass_glow", self.paint.grass_glow, 0.0, 8.0),
+            (
+                "paint.grass_falloff_m",
+                self.paint.grass_falloff_m,
+                f64::MIN_POSITIVE,
+                4.0,
+            ),
+            ("paint.saturation", self.paint.saturation, 0.0, 3.0),
+            (
+                "orders.queued_alpha",
+                self.orders.queued_alpha,
+                f64::MIN_POSITIVE,
+                1.0,
+            ),
+            (
+                "orders.current_alpha",
+                self.orders.current_alpha,
+                f64::MIN_POSITIVE,
+                1.0,
+            ),
+            (
+                "orders.march.amplitude",
+                self.orders.march.amplitude,
+                0.0,
+                1.0,
+            ),
+            (
+                "orders.area_draw_scale",
+                self.orders.area_draw_scale,
+                f64::MIN_POSITIVE,
+                1.0,
+            ),
+            (
+                "orders.glow.order",
+                self.orders.glow.order,
+                f64::MIN_POSITIVE,
+                2.0,
+            ),
+            (
+                "orders.glow.selected",
+                self.orders.glow.selected,
+                f64::MIN_POSITIVE,
+                2.0,
+            ),
+            ("orders.cover_glow", self.orders.cover_glow, 1.0, 2.0),
+            (
+                "orders.drop_line_alpha",
+                self.orders.drop_line_alpha,
+                f64::MIN_POSITIVE,
+                1.0,
+            ),
+            (
+                "orders.drop_line_reach",
+                self.orders.drop_line_reach,
+                f64::MIN_POSITIVE,
+                1.0,
+            ),
+            ("xray.own[3]", self.xray.own[3], f64::MIN_POSITIVE, 1.0),
+            (
+                "xray.selected_alpha",
+                self.xray.selected_alpha,
+                f64::MIN_POSITIVE,
+                1.0,
+            ),
+            (
+                "xray.ally_alpha",
+                self.xray.ally_alpha,
+                f64::MIN_POSITIVE,
+                1.0,
+            ),
+        ] {
+            bounded(key, value, lo, hi)?;
+        }
+        for (key, value) in [
+            ("orders.line_px", self.orders.line_px),
+            ("orders.mark_px", self.orders.mark_px),
+            ("orders.soldier_mark_px", self.orders.soldier_mark_px),
+            ("orders.soldier_line_px", self.orders.soldier_line_px),
+            ("orders.cover_pip_m", self.orders.cover_pip_m),
+            (
+                "orders.vehicle_marker_margin_m",
+                self.orders.vehicle_marker_margin_m,
+            ),
+            (
+                "orders.building_marker_margin_m",
+                self.orders.building_marker_margin_m,
+            ),
+            ("orders.drop_line_px", self.orders.drop_line_px),
+            ("ruler.line_px", self.ruler.line_px),
+            ("ruler.tick_px", self.ruler.tick_px),
+            ("ruler.tick_line_px", self.ruler.tick_line_px),
+            ("ruler.end_px", self.ruler.end_px),
+        ] {
+            positive(key, value)?;
+        }
+        if self.orders.drop_line_spacing <= 1.0 {
+            return Err("presentation.overlay.orders.drop_line_spacing: must exceed 1".into());
+        }
+        if self.orders.drop_line_hold >= self.orders.drop_line_reach {
+            return Err(
+                "presentation.overlay.orders.drop_line_hold: must be below drop_line_reach".into(),
+            );
+        }
+        Ok(())
+    }
+}

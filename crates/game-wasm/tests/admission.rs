@@ -107,3 +107,34 @@ fn ground_only_rules_do_not_require_an_aircraft_crash_row() {
     let rules = serde_json::from_value(fixture["scenario"]["rules"].clone()).unwrap();
     sim::admit(&rules).expect("a ground-only catalog has nothing that can crash");
 }
+
+#[test]
+fn forest_lattice_spacing_is_refused_before_world_construction() {
+    for spacing in [0.0, -1.0, f64::NAN, f64::INFINITY] {
+        let mut rules = scenario().rules;
+        rules.forests.rule.trunk_spacing_m = spacing;
+        let error = sim::admit(&rules).expect_err("forest spacing must advance");
+        assert!(error.to_string().contains("trunk_spacing_m"), "{error}");
+    }
+}
+
+#[test]
+fn building_cover_requires_wider_spread_and_a_fragment_probability() {
+    for (spread, fragments, path) in [
+        (0.9, 0.5, "cover.building_spread_multiplier"),
+        (f64::INFINITY, 0.5, "cover.building_spread_multiplier"),
+        (1.0, -0.1, "cover.building_fragment_probability_multiplier"),
+        (1.0, 1.1, "cover.building_fragment_probability_multiplier"),
+        (
+            1.0,
+            f64::NAN,
+            "cover.building_fragment_probability_multiplier",
+        ),
+    ] {
+        let mut rules = scenario().rules;
+        rules.cover.building_spread_multiplier = spread;
+        rules.cover.building_fragment_probability_multiplier = fragments;
+        let error = sim::admit(&rules).expect_err("invalid building cover");
+        assert_eq!(error.path, path);
+    }
+}

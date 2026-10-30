@@ -139,6 +139,7 @@ impl PoseFeel {
         numbers(self, "presentation.pose", &[])?;
         for (name, v) in [
             ("gait.fade_s", self.gait.fade_s),
+            ("rest.settle_s[1]", self.rest.settle_s[1]),
             ("lean.out_s", self.lean.out_s),
             ("lean.back_s", self.lean.back_s),
             ("mount.recoil_return_s", self.mount.recoil_return_s),
