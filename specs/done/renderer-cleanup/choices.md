@@ -12,19 +12,21 @@ offset-write ground packers, identifier aliases in the composition grammar,
 async timing pump, the cascade loop, `WATER_BROWSER_ONLY`, the twice-triangulated
 terrain, `BUILTIN_SHADER_COUNT` and the `passes_shared` home for foliage stage IO.
 
-**Review these first:** (1) N1, the V-wake picture; (2) S1, TypeScript
-keeping its own copy of the track rule; (3) S0, the tree-line grass check made
-relative after PR #19's tint retune.
+**Review these first:** (1) S1, TypeScript keeping its own copy of the track
+rule; (2) S2, the grass order fix's small picture change accepted without the
+user; (3) S0, the tree-line grass check made relative after PR #19's tint
+retune.
 
-Counts: 1 needs-user, 0 unsound, 31 sound, plus compressed naming discretion.
+Counts: 0 needs-user, 0 unsound, 32 sound (the V-wakes, S00, signed off by the
+user), plus compressed naming discretion.
 
 ---
 
-## Needs-user
+## Sound
 
-### N1. V-wakes: impulses carry a heading and the water shader draws two trailing arms
+### S00. V-wakes: impulses carry a heading and the water shader draws two trailing arms
 
-- **When:** slice 15, commit `feat(water): shape directional V-wake impulses`, the last code commit before the closeout. Implementer designed it. The integrator kept it isolated and droppable.
+- **When:** slice 15, commit `feat(water): shape directional V-wake impulses`; implementer designed it, the integrator kept it isolated until the user's sign-off. Implementer designed it. The integrator kept it isolated and droppable.
 - **The choice:** Picture a rifle squad wading fast through deep wetland water.
   Each tick, presentation drops *wake impulses* along the squad's path. An
   impulse is a small push into the *wave field*, a texture the GPU steps forward
@@ -61,19 +63,12 @@ Counts: 1 needs-user, 0 unsound, 31 sound, plus compressed naming discretion.
 - **The reach:** `WaveSplat.heading` and the V branch of `waveStep` become what
   later water work builds on. Native's shorter wave history
   (`specs/water-native`) will show these arms truncated.
-- **Verdict:** needs-user: what the player sees is the user's call.
-  - **Provisional call:** the commit stays last on the branch and does not reach
-    `staging` until the user signs off on the before and after crops
-    (`assets/v-wake-before.png` vs `assets/v-wake-after.png`).
-  - **To reverse:** drop the V-wake commit (`feat(water): shape directional V-wake impulses`). It carries the shader, the heading field
-    and both regression checks. The README correction `130c826d6` stands on its
-    own. Dropping it leaves `kind` unread again, so the slice's other branch is
-    then owed: delete `kind`.
-- **Confidence:** low that the user accepts this exact look as is.
+- **Verdict:** sound: the look is the user's call, and the user signed off on
+  the after crops (`assets/v-wake-before.png` vs `assets/v-wake-after.png`) on
+  2026-10-30. The open concerns above stand as known, accepted limits.
+- **Confidence:** high (signed off).
 
 ---
-
-## Sound
 
 ### S0. The tree-line grass check compares the verge against a control, not a fixed share
 

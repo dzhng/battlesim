@@ -1,7 +1,6 @@
 # Renderer cleanup
 
-**Status:** done, 2026-10-30. One picture change, the V-wakes, waits on the
-user's sign-off (see [V-wakes](#v-wakes)).
+**Status:** done, 2026-10-30.
 
 The shared Rust renderer ([`crates/renderer-core`](../../../crates/renderer-core/README.md),
 closed spec [`one-renderer`](../one-renderer/README.md)) shipped with
@@ -28,8 +27,8 @@ fails when a shader reads a struct that is not a record. The only exemptions
 **Every fixed length and mask in WGSL comes from its Rust owner.**
 [`shader_constants`](../../../crates/presentation/src/shader_constants.rs) is
 prepended to every built-in shader. Two concepts that share a value keep two
-names (the scar `KEY_MASK` and the ground field's `RECORD_MASK` are both
-`536870911`). Raising `WAVE.max_steps` therefore resizes the shader's splat
+names (the scar `KEY_MASK` and the ground field's `RECORD_MASK` share a
+value). Raising `WAVE.max_steps` therefore resizes the shader's splat
 array with it. The fixed index arithmetic of the indirect-draw arguments (five
 words a draw) is the WebGPU format, not a tunable length.
 
@@ -40,8 +39,8 @@ GPU record adds nothing to the browser.
 **Shader text has one authored body per algorithm, in its concept's module.**
 [`shaders/README.md`](../../../crates/renderer-core/src/shaders/README.md) owns
 the composition grammar (`shader|block,block@N`, where `@N` supplies a shared
-binding's group) and the concept-to-module map. The build refuses duplicate
-block ids, blocks no pipeline uses, and malformed index lines. Nothing rewrites
+binding's group), what the build refuses, and the concept-to-module map.
+Nothing rewrites
 shader text at runtime: the Windows cutout workaround is authored as
 `…Discard` shaders, picked with `cfg!(windows)` in the model registry.
 
@@ -116,16 +115,10 @@ The water spec promised "rings, plus a V-wake once the unit moves"
 already dropped a trail of V-wake splats, but the shader drew every splat as a
 ring and no V showed ([before](assets/v-wake-before.png)). The wave splat now
 carries the mover's heading, and the shader draws V-wake splats as two
-trailing arms ([after](assets/v-wake-after.png)). The arms are a little regular
-and sharp, and their contact with wading legs is weak.
-
-This is a picture change, so it is the user's call, and it does not reach
-`staging` until the user signs off. Its code is one commit,
-`feat(water): shape directional V-wake impulses`. Dropping it removes the
-heading, the V shaping and `tests/water_wake.rs` (revert its `crates/` and
-`Cargo` changes; its old ledger lines lived in the pre-close plan), and then the
-splat's `kind` is unread and should be deleted. Update this section and the
-ledger's N1 either way.
+trailing arms ([after](assets/v-wake-after.png)); ring splats are unchanged.
+The user signed off on the after shot. `tests/water_wake.rs` pins the
+behaviour on the production wave-step pipeline: energy behind the travel,
+both arms present, rings symmetric.
 
 ## Pointers
 
