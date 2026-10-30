@@ -50,7 +50,10 @@ tile's survivors, prefixes their ranges, then writes every clump to its slot
 `shaders/modules/passes_grass.wgsl`, dispatched in that order by
 [`grass.rs`](../../../crates/renderer-core/src/grass.rs)). Draw order and
 which clumps a full tier keeps no longer depend on GPU scheduling, so a parity
-run renders byte for byte. This is what makes the plate proof possible at all.
+run renders byte for byte. The count and prefix passes bind only what they read, so
+every pipeline stays within WebGPU's default per-stage limits (eight storage
+buffers); a CPU-only registry test fails any pipeline that would exceed them,
+because the device requests only what the adapter reports. This is what makes the plate proof possible at all.
 
 **Scene admission is Rust's.** Both shells place scenery through
 `renderer_core::scenery::place_scenery`, build world geometry through

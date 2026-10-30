@@ -56,8 +56,7 @@ user), plus compressed naming discretion.
   - **Open concerns.** The final critique still flags arms that sit apart from
     the legs and ridges that look too regular and sharp. Stills don't show
     motion or vehicle wakes. The arms are wider than a real boat wake (about
-    19.5° per side). The tuning numbers are bare literals in `water.wgsl`, while
-    the shaders README asks for named constants beside the function.
+    19.5° per side). The tuning numbers are named constants beside the wave step.
 - **The gap:** the slice delegated the shape. The map makes the picture the
   user's.
 - **The reach:** `WaveSplat.heading` and the V branch of `waveStep` become what
@@ -820,3 +819,18 @@ Ranked least confident first.
   (`GRASS_ARGS_WORDS`, now owned beside the other grass GPU constants in
   presentation) and the scar tile side (`SCAR_TILE`, re-exported from the scar
   page) join the shader constant prelude, found by the closing audit. Sound.
+
+- **Closeout, after the Codex review (integrator):** the grass determinism fix
+  had added a storage buffer to the grass build, so one compute stage bound
+  nine storage buffers; WebGPU guarantees eight, and the device requests only
+  what the adapter reports, so an eight-buffer adapter would fail to start the
+  renderer even with grass off. The count and prefix passes now bind only what
+  they read (eight and two), and a CPU-only registry test checks every
+  pipeline's per-stage counts against WebGPU's defaults. Found by an
+  independent review, not by any GPU here (this machine reports higher limits).
+  Sound.
+- **Closeout (implementer, from the final review):** the wake heading lives on
+  `WakeKind::Vee { heading }` (rings carry none; the GPU record keeps zeros);
+  the grass indirect-argument sizes and the raw-count offset derive from the
+  tier count and are exported to the shader; the Windows cutout pairs are one
+  list the registry and its test share. Sound.
