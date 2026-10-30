@@ -1,5 +1,9 @@
 //! Real GPU contracts for paint and postprocessed information marks.
-use native_client::{gpu, pipelines};
+#[path = "support/readback.rs"]
+mod readback;
+mod support;
+
+use renderer_core::pipelines;
 use renderer_core::{buffer, overlay, Targets};
 use wgpu::*;
 
@@ -60,16 +64,6 @@ fn read(device: &Device, encoder: &mut CommandEncoder, texture: &TextureView) ->
     encoder.copy_buffer_to_buffer(&output, 0, &readback, 0, size);
     readback
 }
-fn finish(gpu: &gpu::Gpu, encoder: CommandEncoder, readback: Buffer) -> Vec<[f32; 4]> {
-    gpu.queue.submit([encoder.finish()]);
-    readback.map_async(MapMode::Read, .., |r| r.unwrap());
-    gpu.device.poll(PollType::wait_indefinitely()).unwrap();
-    let mapped = readback.get_mapped_range(..).unwrap();
-    let out = bytemuck::cast_slice(&mapped).to_vec();
-    drop(mapped);
-    readback.unmap();
-    out
-}
 fn close(actual: [f32; 4], expected: [f32; 4]) {
     assert!(
         actual
@@ -109,8 +103,8 @@ fn camera(
 }
 #[test]
 fn empty_display_geometry_preserves_and_resolves_existing_silhouettes() {
-    let gpu = gpu::open(&gpu::headless_instance(), None).unwrap();
-    let pipelines = pipelines::build(&gpu.device).unwrap();
+    let gpu = support::gpu().unwrap();
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, [SIZE, SIZE]);
     let overlay = overlay::new(
         &gpu.device,
@@ -159,7 +153,7 @@ fn empty_display_geometry_preserves_and_resolves_existing_silhouettes() {
         overlay::Geometry::default(),
     );
     let readback = read(&gpu.device, &mut encoder, &targets.overlay);
-    let pixels = finish(&gpu, encoder, readback);
+    let pixels = readback::pixels(&gpu.device, &gpu.queue, encoder, &readback);
     close(pixels[(SIZE * SIZE / 2) as usize], [0.1, 0.2, 0.3, 0.5]);
 }
 
@@ -216,8 +210,8 @@ fn at(pixels: &[[f32; 4]], x: u32) -> [f32; 4] {
 
 #[test]
 fn opaque_overlay_writes_only_pregrass_depth_and_translucent_overlay_does_not() {
-    let gpu = gpu::open(&gpu::headless_instance(), None).unwrap();
-    let pipelines = pipelines::build(&gpu.device).unwrap();
+    let gpu = support::gpu().unwrap();
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, [SIZE, SIZE]);
     let overlay = overlay::new(
         &gpu.device,
@@ -260,7 +254,7 @@ fn opaque_overlay_writes_only_pregrass_depth_and_translucent_overlay_does_not() 
         },
     );
     let readback = read(&gpu.device, &mut encoder, &targets.overlay);
-    let pixels = finish(&gpu, encoder, readback);
+    let pixels = readback::pixels(&gpu.device, &gpu.queue, encoder, &readback);
     let left = at(&pixels, 16);
     assert!(
         left[0] > 0.5 && left[1] > 0.5 && left[2] == 0.,
@@ -276,8 +270,8 @@ fn opaque_overlay_writes_only_pregrass_depth_and_translucent_overlay_does_not() 
 #[test]
 fn paint_preserves_still_marching_pointer_depth_and_clear_contracts() {
     use renderer_core::paint::{PaintGeometry, PaintResources};
-    let gpu = gpu::open(&gpu::headless_instance(), None).unwrap();
-    let pipelines = pipelines::build(&gpu.device).unwrap();
+    let gpu = support::gpu().unwrap();
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, [SIZE, SIZE]);
     let paint = PaintResources::new(&pipelines);
     let instances = identity(&gpu.device, &gpu.queue);
@@ -332,7 +326,7 @@ fn paint_preserves_still_marching_pointer_depth_and_clear_contracts() {
         clear_depth(&mut encoder, &targets.depth, 0.3);
         paint.encode(&mut encoder, &targets, &camera, geometry, shown);
         let readback = read(&gpu.device, &mut encoder, &targets.paint);
-        finish(&gpu, encoder, readback)
+        readback::pixels(&gpu.device, &gpu.queue, encoder, &readback)
     };
     let pixels = render(0., true);
     close(at(&pixels, 9), [0.5, 0., 0., 1.]);

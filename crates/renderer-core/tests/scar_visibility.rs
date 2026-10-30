@@ -1,10 +1,10 @@
 //! Suppressing material marks preserves the latest canonical GPU upload.
-use native_client::gpu;
+mod support;
 use presentation::scars::ScarUpload;
 use renderer_core::scars::Scars;
 use wgpu::*;
 
-fn sample(gpu: &gpu::Gpu, scars: &Scars) -> [f32; 4] {
+fn sample(gpu: &support::Gpu, scars: &Scars) -> [f32; 4] {
     let source = format!(
         "{}\n{}",
         renderer_core::pipelines::builtin_source("worldTerrain.wgsl").unwrap(),
@@ -119,7 +119,7 @@ fn upload(word: u32) -> ScarUpload {
 
 #[test]
 fn hiding_marks_keeps_new_knowledge_and_restores_the_material() {
-    let gpu = gpu::open(&gpu::headless_instance(), None).expect("real GPU");
+    let gpu = support::gpu().expect("real GPU");
     let mut scars = Scars::new(&gpu.device, &gpu.queue, &[1f32.to_bits(); 32]);
     scars.apply(&gpu.queue, &upload(u32::MAX));
     let before = sample(&gpu, &scars);

@@ -185,12 +185,26 @@ only while taking a snapshot so diagnostics cannot prolong resource lifetimes.
 The [browser binding lifetime contract](../presentation-wasm/README.md) owns
 memory-view validity at the WebAssembly boundary.
 
-```sh
-cargo check -p renderer-core --target wasm32-unknown-unknown
-```
-
 Grass regrowth assigns draw ranges before emitting clumps. Tile order, then lane
 and candidate order within each tile, determines both equal-depth winners and
 which clumps fit a full tier. GPU scheduling must never choose either. The
 renderer retains scratch ranges sized to the view's tile window; a held view
 reuses its clumps without counting or emitting them again.
+
+## Checks
+
+The [integration tests](tests/) own shared renderer behaviour, including GPU
+pipeline construction, rendered pixels, readback and timing. They use headless
+admission with the production device policy. Native backend features and the
+blocking executor are test dependencies; production WASM keeps its browser-only
+backend selection. Tests that need desktop replay, filesystem adapters or audio
+belong to the [native shell](../../native/client/README.md#checks).
+
+Asset-backed tests read the prepared runtime, so materialize its Git LFS files
+before running the suite. Serialize GPU work with other renderer checks:
+
+```sh
+git lfs checkout assets/runtime
+CARGO_INCREMENTAL=0 lockf -k /Users/server/dev/battlesim/throwaway/gpu.lock cargo test -p renderer-core
+cargo check -p renderer-core --target wasm32-unknown-unknown
+```

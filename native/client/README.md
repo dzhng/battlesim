@@ -101,10 +101,10 @@ interval. The report identifies both retained draw and source-record endpoints.
 
 ## Checks
 
-[Pipeline checks](tests/pipelines.rs) build every built-in pipeline of the shared
-catalog on this machine's device. Most newer rendering checks under [tests/](tests/)
-are synthetic GPU tests of `renderer-core`, including material, fog, overlay and
-high-air contracts. They exercise the shared runtime rather than native replay.
+The [shared renderer's checks](../../crates/renderer-core/README.md#checks) own
+pipeline construction and synthetic GPU behaviour. Native's [tests](tests/)
+exercise desktop admission, filesystem loading, replay and audio; renderer
+integration checks stay here when they require those native services.
 [Benchmark CLI checks](tests/bench_cli.rs) reject invalid requests before window or
 GPU admission; [runtime generation checks](tests/runtime_generation.rs) verify held
 static reconstruction without reframing the battle.

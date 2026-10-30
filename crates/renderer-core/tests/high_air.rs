@@ -1,6 +1,7 @@
 //! Separate high air preserves model lighting, premultiplied coverage and its
 //! own depth while the single-output client still draws it with the world.
-use native_client::{gpu, pipelines};
+mod support;
+
 use presentation::light::LightSettings;
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, View, FOG_UNITS, HIGH_PASS, NONE,
@@ -12,6 +13,7 @@ use renderer_core::environment::Environment;
 use renderer_core::fog::Fog;
 use renderer_core::high_air::HighAir;
 use renderer_core::models::{Models, Surface};
+use renderer_core::pipelines;
 use renderer_core::post;
 use renderer_core::shadow::ShadowResources;
 use renderer_core::sky::Sky;
@@ -99,7 +101,7 @@ fn read(
     output.unmap();
     pixels
 }
-fn prepare(models: &mut Models, gpu: &gpu::Gpu, high: bool) {
+fn prepare(models: &mut Models, gpu: &support::Gpu, high: bool) {
     let joint = Joint {
         x: [1., 0., 0., 0.],
         y: [0., 1., 0., 0.],
@@ -132,7 +134,7 @@ fn prepare(models: &mut Models, gpu: &gpu::Gpu, high: bool) {
 }
 
 /// A flat output isolates batch routing from the lighting asserted below.
-fn world_pixels(gpu: &gpu::Gpu, targets: &Targets, models: &Models) -> Vec<[u8; 4]> {
+fn world_pixels(gpu: &support::Gpu, targets: &Targets, models: &Models) -> Vec<[u8; 4]> {
     let shader = gpu.device.create_shader_module(ShaderModuleDescriptor {
         label: Some("world-routing"),
         source: ShaderSource::Wgsl(r#"
@@ -199,8 +201,8 @@ fn world_pixels(gpu: &gpu::Gpu, targets: &Targets, models: &Models) -> Vec<[u8; 
 
 #[test]
 fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
-    let gpu = gpu::open(&gpu::headless_instance(), None).expect("real GPU");
-    let pipelines = pipelines::build(&gpu.device).unwrap();
+    let gpu = support::gpu().expect("real GPU");
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, SIZE);
     let game: serde_json::Value =
         serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
@@ -390,8 +392,8 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
 
 #[test]
 fn model_suppression_preserves_static_props_and_buildings() {
-    let gpu = gpu::open(&gpu::headless_instance(), None).expect("real GPU");
-    let pipelines = pipelines::build(&gpu.device).unwrap();
+    let gpu = support::gpu().expect("real GPU");
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, SIZE);
     let appearances = [
         Appearance {

@@ -1,6 +1,7 @@
 //! GPU occlusion regression over actual authored-model packing and exported
 //! x-ray shaders. Run under the repository GPU lock.
-use native_client::{gpu, pipelines};
+mod support;
+
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, FOG_FACES, FOG_UNITS, NONE,
     VIEW_PASS,
@@ -8,6 +9,7 @@ use presentation::records::{
 use renderer_core::bundle::{Bundle, BundleSource, Coverage, Draw, Material, Mesh, Node, Shape};
 use renderer_core::fog::Layer;
 use renderer_core::models::{Models, Surface};
+use renderer_core::pipelines;
 use renderer_core::xray::XrayResources;
 use renderer_core::{buffer, Targets};
 use std::sync::Arc;
@@ -161,7 +163,7 @@ fn read_overlay(device: &Device, encoder: &mut CommandEncoder, overlay: &Texture
 }
 
 fn draw(
-    gpu: &gpu::Gpu,
+    gpu: &support::Gpu,
     pipelines: &renderer_core::pipelines::Pipelines,
     targets: &Targets,
     models: &Models,
@@ -222,8 +224,8 @@ fn close(actual: [f32; 4], expected: [f32; 4], subject: &str) {
 
 #[test]
 fn xray_preserves_occlusion_gate_information_colors_and_frame_reset() {
-    let gpu = gpu::open(&gpu::headless_instance(), None).expect("a real GPU");
-    let pipelines = pipelines::build(&gpu.device).expect("exported shaders");
+    let gpu = support::gpu().expect("a real GPU");
+    let pipelines = pipelines::build_builtin(&gpu.device).expect("exported shaders");
     let targets = targets(&gpu.device);
     let names = "test_xray_unittest_xray_walls";
     let appearances = [

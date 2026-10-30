@@ -644,3 +644,32 @@ finding that the base build did not render grass the same way twice.
   **Reach:** core GPU tests need no native shell dependency; production WASM
   keeps its existing backend feature selection. **Verdict: sound** — the
   pipeline probe runs through core's built-in constructor.
+
+- **Choice:** move the grass determinism and shared frame-timer tests with the
+  named renderer suites. Keep replay-backed model/scenery/prop and runtime
+  integration tests in native: their fixtures require native's `Replay`,
+  filesystem `Library`, or effect-sheet loader. **Gap:** the slice's original
+  roster predates the grass and timer tests and leaves ownership to inspection.
+  **Reach:** renderer behaviour runs without the native crate; shell integration
+  keeps its real services. **Verdict: sound.**
+
+- **Choice:** share typed submit/map/poll/copy/unmap readback among the four
+  tests using the same protocol. Keep texture sampling, multisample resolve,
+  row-padding removal and scalar scar sampling with their test fixtures.
+  **Gap:** the slice delegated readback sharing. **Reach:** one test helper
+  owns the repeated buffer protocol without generalizing unlike sampling paths.
+  **Verdict: sound.**
+
+- **Choice:** the geometry-sharing fixture reads its bundle and every texture
+  referenced by that bundle's runtime catalog entry into core's byte library.
+  **Gap:** the suggested grass fixture uses texture-free bundles, while the
+  geometry fixture has textured materials. **Reach:** the test keeps the same
+  authored asset, material admission and geometry assertions without depending
+  on native's filesystem library. **Verdict: sound** — omitting the textures
+  reproduced the decoder's missing-texture refusal before restoring full input.
+
+- **Choice:** use `libm::pow` for the impostor test's gamma oracle after moving
+  it under the crates' transcendental-method lint. **Gap:** the move exposes a
+  lint that native's folder did not inherit. **Reach:** the input, expected
+  albedo bytes and every assertion stay unchanged; a scratch probe compared
+  both calculations and got identical `[148, 202, 243]` bytes. **Verdict: sound.**

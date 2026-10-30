@@ -1,5 +1,5 @@
 //! Grass regrowth and capacity selection through the production GPU pipeline.
-use native_client::gpu;
+mod support;
 use std::path::Path;
 
 #[test]
@@ -12,7 +12,7 @@ fn grass_regrowth_preserves_draw_order_and_selects_a_stable_prefix_when_full() {
     use renderer_core::probes::grass::{queue_clumps, queue_counts};
     use renderer_core::terrain::{TerrainResources, TerrainUpload};
 
-    let gpu = gpu::open(&gpu::headless_instance(), None).expect("a real GPU");
+    let gpu = support::gpu().expect("a real GPU");
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let mut biome = Biome::load(
         &std::fs::read_to_string(root.join("fixtures/biomes/summer.json")).unwrap(),
@@ -70,7 +70,7 @@ fn grass_regrowth_preserves_draw_order_and_selects_a_stable_prefix_when_full() {
     let params = ground
         .grass_params(&facts, &LIMITS, &Quality { density: 1.0 })
         .unwrap();
-    let pipelines = native_client::pipelines::build(&gpu.device).unwrap();
+    let pipelines = renderer_core::pipelines::build_builtin(&gpu.device).unwrap();
     let tables = ground.terrain_tables(ground.terrain_field().unwrap());
     let terrain = TerrainResources::from_upload(
         &gpu.device,

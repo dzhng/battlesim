@@ -17,7 +17,7 @@ Subsystem READMEs own commands and contracts for their code.
 | [Browser render inputs](packages/battle-renderer/README.md) | Plain scene contracts, external geometry and material inputs.                                   |
 | [Scene assets](packages/scene-assets/README.md)           | Appearance contracts, validation, baking, loading, and Blender authoring.                            |
 | [Battle audio](packages/battle-audio/README.md)           | Recorded and synthetic sound preparation, calibration, and playback.                                 |
-| [Shared render runtime](crates/renderer-core/README.md) | Rust GPU composition, canonical preparation, resource lifetime and frame encoding across native and browser. |
+| [Shared render runtime](crates/renderer-core/README.md) | Rust GPU composition, canonical preparation, resource lifetime, frame encoding and shared renderer tests across native and browser. |
 | [Fixtures](fixtures/README.md)                            | Authored rules, unit/prop catalogs, generator presets, saved maps, and sound assignments.            |
 | [Assets](assets/README.md)                                | Source media, prepared runtime files, review sheets, and third-party provenance.                     |
 | [Native client](native/client/README.md)                  | The desktop shell over the shared render runtime.                        |

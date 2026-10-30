@@ -1,13 +1,15 @@
 //! Continuous water-bed blur samples the actual fog owner's scene sampler.
-use native_client::{gpu, pipelines};
+mod support;
+
+use renderer_core::pipelines;
 use renderer_core::{fog::Fog, Targets, HDR_FORMAT};
 use wgpu::*;
 
 #[test]
 fn water_scene_colour_interpolates_fractional_mip_levels() {
-    let gpu = gpu::open(&gpu::headless_instance(), None).expect("a real GPU");
+    let gpu = support::gpu().expect("a real GPU");
     let device = &gpu.device;
-    let pipelines = pipelines::build(device).unwrap();
+    let pipelines = pipelines::build_builtin(device).unwrap();
     let mut targets = Targets::new(device, [64, 1]);
     let scene = device.create_texture(&TextureDescriptor {
         label: Some("controlled-water-bed"),

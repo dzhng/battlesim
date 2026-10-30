@@ -1,5 +1,5 @@
 //! Shared timing must preserve frame ownership while GPU completions are pending.
-use native_client::gpu;
+mod support;
 use renderer_core::timing::{FrameTimer, Resolve};
 
 #[test]
@@ -7,7 +7,7 @@ fn frame_results_survive_delayed_completion_and_reset_in_both_resolve_modes() {
     for mode in [Resolve::InFrame, Resolve::AfterCompletion] {
         // Native InFrame counters are known to be stale on Metal. Keep its
         // device state independent of the AfterCompletion measurement control.
-        let gpu = gpu::open(&gpu::headless_instance(), None).unwrap();
+        let gpu = support::gpu().unwrap();
         let (slow, fast, target) = fragment_workload(&gpu.device);
         let mut timer = FrameTimer::new(&gpu.device, &gpu.queue, mode).expect("timestamp support");
         let mut pending = Vec::new();
