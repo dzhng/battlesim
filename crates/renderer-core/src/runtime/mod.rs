@@ -458,7 +458,13 @@ impl Runtime {
     }
 
     pub fn set_overlay_glow(&mut self, queue: &Queue, glow: [f32; 4]) {
-        self.overlay_glow = bytemuck::cast(glow);
+        let [radius_px, sigma_px, strength, pad] = glow;
+        self.overlay_glow = crate::records::OverlayGlow {
+            radius_px,
+            sigma_px,
+            strength,
+            pad,
+        };
         self.overlays.write_glow(queue, &self.overlay_glow);
     }
 
