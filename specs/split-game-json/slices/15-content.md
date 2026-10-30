@@ -197,3 +197,5 @@ visual limitations remain outside this pass.
 **Sound done — `marksman_rifle` (2026-10-29):** Item 3: one M110 report per launch; no authored burst is invented. Evidence: shared `evidence-15-sound/marksman/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
 
 **Sound done — `heavy_sniper` (2026-10-29):** Item 3: one Barrett report per launch; reload time is not treated as burst cadence. Evidence: shared `evidence-15-sound/sniper/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
+
+**Sound done — `aa_gun` (2026-10-29):** Item 3: three distinct Bofors reports relayed at 0, 300 and 600 ms, documented as the prescribed fallback. Evidence: shared `evidence-15-sound/aa/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).

@@ -632,7 +632,7 @@
       "impact": {"scale": 1.4, "surfaces": {}},
       "blast": 1,
       "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "hmg-combat", "far": "hmg-combat-distant", "gain": 0.7, "far_m": 500}, "blast": {"gain": 0.6, "far_m": 420}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-bullet-hit"}, "impact_scale": 2.8}
+      "sound": {"shot": {"near": "aa-combat", "far": "aa-combat", "gain": 0.7, "far_m": 500}, "blast": {"gain": 0.6, "far_m": 420}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-bullet-hit"}, "impact_scale": 2.8}
     },
     "manpads": {
       "tracer": {"tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}},

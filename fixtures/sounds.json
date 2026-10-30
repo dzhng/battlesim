@@ -734,6 +734,15 @@
       "path": "assets/third-party/audio/heavy-sniper-UFB7-bvVKs8.webm",
       "sha256": "4b31b3ac770988995d918325cabe29037b2b1829f9b5a1ff4d728a67c60afedb",
       "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29."
+    },
+    "bofors-live-fire": {
+      "label": "Bofors E/L 70 Shoot",
+      "author": "IrishGunner",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=Zj4xZlU-1wM",
+      "path": "assets/third-party/audio/aa-gun-Zj4xZlU-1wM.webm",
+      "sha256": "12c64328874fdef786f117a102753095d60035069a9499dec32efe2a1b45577a",
+      "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29."
     }
   },
   "clips": {
@@ -4808,6 +4817,41 @@
         441504,
         480000
       ]
+    },
+    "aa-burst": {
+      "label": "Bofors \u00b7 three relayed reports at 300 ms",
+      "category": "weapon",
+      "role": "shot",
+      "processing": "heavy-report",
+      "url": "/audio/clips/aa-burst.wav",
+      "sha256": "8e185eca9f32398992647e90614cc34700f39c07e30ebd3f793509c358532561",
+      "sample_rate": 48000,
+      "frames": 40560,
+      "loop": false,
+      "notes": "03 relay fallback: three distinct Bofors reports cut before the next attack, faded, placed at 0, 0.300, 0.600 s. Original 201/219 ms cadence fails the gate; this is constructed timing.",
+      "source": "bofors-live-fire",
+      "source_rate": 48000,
+      "source_frames": [
+        943200,
+        976800
+      ],
+      "burst": {
+        "shots": [
+          [
+            944880,
+            954000
+          ],
+          [
+            954576,
+            964320
+          ],
+          [
+            965040,
+            976800
+          ]
+        ],
+        "interval_s": 0.3
+      }
     }
   },
   "sounds": {
@@ -6222,6 +6266,16 @@
       "synth_gain": 0,
       "gain": 1,
       "loop": false
+    },
+    "aa-combat": {
+      "label": "AA gun \u00b7 300 ms relay fallback",
+      "clips": [
+        "aa-burst"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
     }
   },
   "provenance": {
@@ -6367,6 +6421,25 @@
         "status": "downloaded-unassigned"
       },
       "notes": "03 last single report, aligned before the 9.202 s onset. No burst: magazine is null; reload_s is not a shot interval. Research download receipt retained at its pre-admission status; sources and weapon looks record acceptance."
+    },
+    "aa-burst": {
+      "label": "Bofors E/L 70 Shoot",
+      "author": "IrishGunner",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=Zj4xZlU-1wM",
+      "sha256": "12c64328874fdef786f117a102753095d60035069a9499dec32efe2a1b45577a",
+      "path": "assets/third-party/audio/aa-gun-Zj4xZlU-1wM.webm",
+      "source_frames": [
+        943200,
+        976800
+      ],
+      "processing": "heavy-report; mono decode, source-frame crop, adaptive end fade, 48 kHz PCM16 peak 0.72; see clip for any relay.",
+      "download": {
+        "tool": "yt-dlp",
+        "version": "2026.08.19",
+        "status": "downloaded-unassigned"
+      },
+      "notes": "03 relay fallback: three distinct Bofors reports cut before the next attack, faded, placed at 0, 0.300, 0.600 s. Original 201/219 ms cadence fails the gate; this is constructed timing. Research download receipt retained at its pre-admission status; sources and weapon looks record acceptance."
     }
   },
   "music": {
