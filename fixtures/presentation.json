@@ -619,10 +619,10 @@
       "sound": {"shot": {"near": "autocannon-combat", "far": "autocannon-combat-distant", "gain": 0.6, "far_m": 450}, "blast": {"gain": 0.55, "far_m": 400}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-bullet-hit"}, "impact_scale": 2.5}
     },
     "ifv_cannon": {
-      "tracer": {"zoom_boost": 2, "tail_s": 0.009, "tail_m": [3, 10], "glow": {"color": [1.0, 0.36, 0.08], "intensity": 2.5, "width_m": 0.75, "min_px": 6}, "core": {"color": [1.0, 0.6, 0.3], "intensity": 8, "width_m": 0.2, "min_px": 2.5, "share": 0.35}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14}},
-      "flash": {"color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 24, "radius_m": 11, "duration_s": 0.16, "forward_m": 0.5}, "dust": 1},
-      "impact": {"scale": 3.5, "surfaces": {"ground": {"size": 5, "duration": 5}}},
-      "blast": 1,
+      "tracer": {"zoom_boost": 2, "tail_s": 0.005, "tail_m": [1, 5], "glow": {"color": [1.0, 0.36, 0.08], "intensity": 1.5, "width_m": 0.3, "min_px": 3}, "core": {"color": [1.0, 0.6, 0.3], "intensity": 5, "width_m": 0.08, "min_px": 1.5, "share": 0.35}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 5, "radius_m": 7}},
+      "flash": {"color": [1.0, 0.72, 0.4], "intensity": 32, "size_m": 1.1, "tongue_m": 2.2, "duration_s": 0.06, "fireball_m": 3.5, "fireball_s": 0.16, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 12, "radius_m": 7, "duration_s": 0.16, "forward_m": 0.5}, "dust": 0.5},
+      "impact": {"scale": 2, "surfaces": {"ground": {"size": 3, "duration": 3}}},
+      "blast": 0.6,
       "kick": {"hull": 1, "soldier": 1},
       "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 1.2, "far_m": 600}, "blast": {"gain": 1.6, "far_m": 600}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 3.5}
     },

@@ -61,3 +61,31 @@ and the menu reel.
 
 **Would change this slice:** the user rejecting a recording. Pick the next
 candidate from 03's ledger.
+
+## Visual item 6 — IFV cannon
+
+**Done:** the `ifv_cannon` visual identity has a shorter, narrower tracer,
+less launch glare and dust, and a smaller explosive contact than the tank HE
+values it inherited. Its launch-camera radius is retained so the corrected
+sampler keeps its framing. Sound, kick and all appearance assignments stay
+unchanged. Only that look's effect-vector inputs are refreshed; the recorded
+vector outputs remain identical and the owning tests pass unflagged.
+
+Evidence is in shared `evidence-15-visual/6/`: `before/ifv_cannon.png` and
+`after/ifv_cannon.png` are the complete scoped row; `capture/` keeps the native
+samples, `comparison/` the pixel/edge reports, and `critique.md` the unprimed
+verdict. The critic accepts the compact cannon, retaining the nearly white
+contact core as an observation under the excluded global bloom/exposure work.
+The historical IFV flash/tracer values equal the unchanged tank HE's; the
+critic did not independently compare a tank HE plate.
+
+The flight/contact samples match the corrected reference's timing and camera.
+The launch centers on a slightly different reported muzzle position, so its
+pixel distance is diagnostic; attachment and size are judged against the
+visible barrel in the native shot. Contact/blast stills use the same instant
+and do not prove later development. The non-blocking Preview checkpoint elapsed without feedback; the scoped
+change proceeds on the comparison and unprimed critique, and Preview is closed.
+
+The exact probe changes only the IFV and mixed BMP-3 effect cases. Digests,
+events, poses, sounds and hull publications/layouts match `after-13/` byte for
+byte. The per-item probe and its delta report retain the proof.
