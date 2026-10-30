@@ -9,11 +9,11 @@ import {
   groundUnder,
   isOpen,
   openStations,
-  pairedCost,
   shoot,
   stationFrame,
   streetExport,
 } from "./_groundStations.mjs";
+import { pairedCost } from "./_pairedCost.mjs";
 import { chroma, linear, meanColour, warmth } from "./_colour.mjs";
 import { aim, lab } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";

@@ -12,7 +12,8 @@
 import { writeFile } from "node:fs/promises";
 import { lab } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
-import { classAt, openStations, pairedCost, shoot } from "./_groundStations.mjs";
+import { classAt, openStations, shoot } from "./_groundStations.mjs";
+import { pairedCost } from "./_pairedCost.mjs";
 
 /** Where the floor is judged: inside the street's west wood and at its
  *  edge, at a log and a boulder where the forest rule lays any, the river

@@ -8,7 +8,8 @@
 import { median, rec709 } from "./_colour.mjs";
 import { lab } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
-import { BIOME, classAt, openStations, pairedCost, shoot } from "./_groundStations.mjs";
+import { BIOME, classAt, openStations, shoot } from "./_groundStations.mjs";
+import { pairedCost } from "./_pairedCost.mjs";
 
 const MAP = "street";
 /** A plot's interior is judged in blocks this many pixels a side: about a

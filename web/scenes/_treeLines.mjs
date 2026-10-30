@@ -15,10 +15,10 @@ import {
   classAt,
   groundUnder,
   openStations,
-  pairedCost,
   shoot,
   stationReport,
 } from "./_groundStations.mjs";
+import { pairedCost } from "./_pairedCost.mjs";
 
 const MAP = "generated";
 const STATION = "tree-line-65";
