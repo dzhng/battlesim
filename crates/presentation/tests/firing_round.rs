@@ -131,3 +131,52 @@ fn second_round_with_a_fog_clipped_first_stretch() {
 fn second_round_with_an_immediate_impact() {
     second_round("impact");
 }
+
+/// A soldier's round flies a tick after his counter rises; by then his mount
+/// may name the next row he fired.
+#[test]
+fn a_soldier_s_round_launches_as_the_row_he_fired_after_he_switches_rows() {
+    let publication = |tick: f64, shots: f64, kind: &str, segments: Value| {
+        serde_json::from_value::<presentation::effects::publication::EffectPublication>(json!({
+            "tick": tick, "segments": segments, "blasts": [], "smokes": [],
+            "shooters": [{"key": 1, "position": [0, 0, 0], "half": null, "yaw": 0,
+                "members": [7],
+                "mounts": [{"bearing": 0, "elevation": 0, "shots": shots, "kind": kind, "muzzle": null}]}]
+        }))
+        .unwrap()
+    };
+    let flight = |kind: &str, y: f64| {
+        json!([{"path": [[0, y, 1], [5, y, 1]], "ricochets": [], "kind": kind,
+            "shooter": 7, "hit": "none", "normal": null}])
+    };
+    let mut tracker = presentation::effects::launches::LaunchTracker::default();
+    assert!(tracker
+        .note(&publication(1.0, 0.0, "grenade", json!([])), false, None)
+        .is_empty());
+    assert!(tracker
+        .note(&publication(2.0, 1.0, "grenade", json!([])), false, None)
+        .is_empty());
+    let kinds = |launches: Vec<presentation::effects::launches::Launch>| {
+        launches
+            .into_iter()
+            .map(|l| (l.kind.to_string(), l.soldier))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(
+        kinds(tracker.note(
+            &publication(3.0, 2.0, "rifle", flight("grenade", 0.0)),
+            false,
+            None
+        )),
+        [("grenade".to_string(), Some(7.0))],
+        "the grenade launches although his mount now names the rifle"
+    );
+    assert_eq!(
+        kinds(tracker.note(
+            &publication(4.0, 2.0, "rifle", flight("rifle", 3.0)),
+            false,
+            None
+        )),
+        [("rifle".to_string(), Some(7.0))]
+    );
+}
