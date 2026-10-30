@@ -481,6 +481,13 @@ finding that the base build did not render grass the same way twice.
   isolated for the orchestrator's byte-identical plate gate. Naga and reflected
   layouts pass; plate acceptance remains pending. **Verdict: provisional.**
 
+- **When:** whole-spec review. **Choice:** each blur radius supplies one constant
+  weight array and length; one loop samples the selected kernel. Literal weight
+  spellings, f32 element types, tap order and accumulation stay intact. **Reach:**
+  structural shader change in its own commit; drop it if any plate changes.
+  Naga and reflected layouts pass; pixel acceptance is pending. **Verdict:
+  provisional.**
+
 ## 11 · Track side
 
 - **When:** slice 11. **Choice:** `TrackSide` is a left/right enum and
