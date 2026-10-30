@@ -16,8 +16,17 @@ to run the slices: Codex
 (gpt-6.1-sol, high) implements each slice, the orchestrator reviews and
 integrates by cherry-pick, and pushes each verified slice to the open PR.
 
-**Pick up at [slice 01](slices/01-windows-cutout.md).** Slices 01–03 can run in
-parallel; everything after runs in order.
+**Status (2026-10-30):** 01 and 02 landed; 03 and 04 in progress.
+
+**Blocker on the plate proof:** the base build doesn't render grass the same
+way twice. Paris-corner (little grass) reproduces byte for byte; market-town
+and wetlands differ in scattered grass pixels (0.01–0.24%, up to 41 levels),
+and the varying pixels take more than two values, so no tolerance or
+"matches one of the base renders" test separates noise from change. The likely
+cause is the grass build's atomic slot append and its tier cap
+(`passes_models.wgsl` `atomicAdd(&args[…])`, `if (slot >= cap)`). A fix that
+makes grass deterministic lands first, in its own commit; until then, slices
+whose proof is an empty assembled-shader diff proceed, and plate proofs wait.
 
 Warnings:
 - Every slice before 15 must leave every plate byte-identical. A byte
