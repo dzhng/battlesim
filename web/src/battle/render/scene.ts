@@ -8,11 +8,11 @@ import type { LightPresentation } from "@packages/battle-renderer/src/light/scen
 import type { FogStyle } from "@packages/battle-renderer/src/fog";
 import type { OverlayGlowStyle } from "@packages/battle-renderer/src/overlayStyle";
 import type { PaintStyle } from "@packages/battle-renderer/src/paintStyle";
-import type { Mesh } from "@packages/battle-renderer/src/mesh";
+import { EMPTY_MESH, type Mesh } from "@packages/battle-renderer/src/mesh";
 import type { ScenePresentation } from "../sim/presentation";
 import type { LabModel, ModelDetail } from "../sim/presentationModels";
 import { modelAssetsOf, type ModelAsset } from "./modelAssets";
-import { proxyModels } from "./proxyModels";
+import { isProxyAppearance, proxyModels } from "./proxyModels";
 import { SceneAppearances } from "./sceneAppearances";
 import { loadEffectAtlasLayers } from "./effectAssets";
 import { installSceneGeometry } from "./sceneGeometry";
@@ -20,8 +20,6 @@ import type { SceneStats, DrawnInstances, FrameView } from "./sceneStats";
 import type { FogProbes } from "@packages/battle-renderer/src/fog";
 import type { GrassProbes } from "@packages/battle-renderer/src/grass";
 import type { SurfaceClass } from "@packages/battle-renderer/src/models/surfaceParts";
-
-const EMPTY_MESH = new Float32Array(0);
 
 export interface SceneControls {
   view?: FrameView;
@@ -125,11 +123,24 @@ export class BrowserScene {
       { assets, models: this.modelList() },
     );
     this.fogProbes = {
-      probe: (points) => presentation.probeFog(renderer, points),
-      probeShape: (rows) => renderer.fog_shape(rows),
-      tileCounts: () => renderer.fog_tile_counts(),
-      rebuildAll: () => presentation.presentedGround()?.rebuild_fog(),
+      probe: (points) => {
+        this.assertLive("fog.probe");
+        return presentation.probeFog(renderer, points);
+      },
+      probeShape: (rows) => {
+        this.assertLive("fog.probeShape");
+        return renderer.fog_shape(rows);
+      },
+      tileCounts: () => {
+        this.assertLive("fog.tileCounts");
+        return renderer.fog_tile_counts();
+      },
+      rebuildAll: () => {
+        this.assertLive("fog.rebuildAll");
+        presentation.presentedGround()?.rebuild_fog();
+      },
       wholes: async () => {
+        this.assertLive("fog.wholes");
         const boxes = presentation.fogOccluders();
         return { boxes, seen: await renderer.fog_whole_flags(boxes.length) };
       },
@@ -137,13 +148,23 @@ export class BrowserScene {
     this.grassProbes = {
       suppress: (on) => this.setControls({ grass: !on }),
       retune: (rules) => {
+        this.assertLive("grass.retune");
         presentation.presentedGround()?.retune_grass(rules ? JSON.stringify(rules) : undefined);
         this.grassRules = rules ?? defaultGrass;
         void this.request();
       },
-      rules: () => this.grassRules,
-      counts: () => renderer.grass_counts(),
-      clumps: () => presentation.grassClumps(renderer),
+      rules: () => {
+        this.assertLive("grass.rules");
+        return this.grassRules;
+      },
+      counts: () => {
+        this.assertLive("grass.counts");
+        return renderer.grass_counts();
+      },
+      clumps: () => {
+        this.assertLive("grass.clumps");
+        return presentation.grassClumps(renderer);
+      },
     };
   }
 
@@ -191,6 +212,7 @@ export class BrowserScene {
 
   /** Authored static placement reads only the committed appearance generation. */
   appearances(): InstalledAppearances | null {
+    this.assertLive("appearances");
     return this.installed;
   }
 
@@ -293,15 +315,18 @@ export class BrowserScene {
   }
 
   world(): WorldLayers {
+    this.assertLive("world");
     return this.activeWorld;
   }
 
   /** An external canonical reload requires complete GPU re-admission. */
   worldCurrent(): boolean {
+    this.assertLive("worldCurrent");
     return this.presentation.world() === this.admittedWorld;
   }
 
   get staticGeneration(): number {
+    this.assertLive("staticGeneration");
     return this.renderer.static_generation();
   }
 
@@ -310,6 +335,7 @@ export class BrowserScene {
   }
 
   current(): boolean {
+    this.assertLive("current");
     return (
       this.worldCurrent() && this.admission.current() && this.activeWorld === this.desiredWorld
     );
@@ -377,28 +403,36 @@ export class BrowserScene {
   }
 
   readPixels(): Promise<PixelSnapshot> {
+    this.assertLive("readPixels");
     return this.renderer.read_rgba(false);
   }
 
   bakeImpostor(name: string, spec?: ImpostorSpec): Promise<ImpostorAtlas> {
+    this.assertLive("bakeImpostor");
     const row = this.presentation.appearanceRows().findIndex((row) => row.name === name);
     if (row < 0) return Promise.reject(new Error(`appearance ${name} is not committed`));
     return this.renderer.bake_impostor(row, JSON.stringify(spec ?? null));
   }
 
   settled(): Promise<boolean> {
+    this.assertLive("settled");
     return this.admission.settled();
   }
   resetGpuTiming(): void {
     this.renderer.reset_gpu_timing();
   }
   drain(): Promise<void> {
+    this.assertLive("drain");
     return this.renderer.drain();
   }
   stats(): SceneStats {
-    return JSON.parse(this.renderer.frame_stats()) as SceneStats;
+    this.assertLive("stats");
+    const stats = JSON.parse(this.renderer.frame_stats()) as SceneStats;
+    stats.models.proxyAppearances = stats.models.installed.filter(isProxyAppearance).length;
+    return stats;
   }
   drawnInstances(): DrawnInstances {
+    this.assertLive("drawnInstances");
     return JSON.parse(this.renderer.drawn_instances()) as DrawnInstances;
   }
 
@@ -407,6 +441,10 @@ export class BrowserScene {
     this.disposed = true;
     this.admission.dispose();
     this.renderer.free();
+  }
+
+  private assertLive(operation: string): void {
+    if (this.disposed) throw new Error(`BrowserSceneDisposed: ${operation}`);
   }
 
   private modelList(): readonly LabModel[] {

@@ -8,6 +8,11 @@ import { modelAsset, type ModelAsset } from "./modelAssets";
 
 const PREFIX = "__renderer_proxy__:";
 
+/** Whether an admitted appearance is a generated primitive. */
+export function isProxyAppearance(name: string): boolean {
+  return name.startsWith(PREFIX);
+}
+
 function proxyBundle(kind: DrawnProxyKind, tint: readonly number[]): ArticulatedBundle {
   const source = PROXY_MESHES[kind];
   const count = source.length / 10;

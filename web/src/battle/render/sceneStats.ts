@@ -65,6 +65,8 @@ export interface BrowserGpuInfo {
 }
 export interface ModelStats {
   installed: string[];
+  /** Installed generated primitives, classified by the browser asset owner. */
+  proxyAppearances: number;
   appearances: number;
   /** Prepared non-building mesh population, before surface/pass filtering. */
   instances: number;

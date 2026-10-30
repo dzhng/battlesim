@@ -666,14 +666,14 @@ async function vehicleTour(ctx) {
   let o = await obs(page);
   let posed = await lab(page, () => window.__lab.route.vehicles());
   const stats = await lab(page, () => window.__lab.stats());
-  const proxies = stats.models.installed.filter((name) => name.startsWith("__renderer_proxy__:"));
+  const proxies = stats.models.proxyAppearances;
   const own = o.own.filter(isVehicle);
   const enemy = o.identified.filter(isVehicle);
   ctx.check(
     "every own and identified vehicle is drawn as its appearance, and nothing as a proxy",
     posed.length === own.length + enemy.length &&
       posed.every((v) => v.articulation && vehicleAppearances.has(v.appearance)) &&
-      proxies.length === 0,
+      proxies === 0,
     JSON.stringify({
       posed: posed.length,
       own: own.length,
