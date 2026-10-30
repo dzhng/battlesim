@@ -396,7 +396,7 @@ var<workgroup> laneCounts: array<vec2u, GRASS_BUILD_LANES>;
 // @block passes_models_blendedFragment
 const GLASS_TURN = 0.5f;
 const GLASS_GLINT = 1f;
-@fragment fn item(input: ModelFragmentInput, @builtin(position) clip: vec4f) -> ModelColorFog {
+@fragment fn item(input: ModelFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let eye = (&cam.eye);
   let view = normalize(((*eye) - input.world));
   var n = normalize(input.normal);
@@ -408,7 +408,7 @@ const GLASS_GLINT = 1f;
   let sunlight = sampleSunShadow(input.world, n, clip.xy);
   let shaded = shade(baseColor, vec3f(), materialSample.roughness, 0f, materialSample.metallic, materialSample.occlusion, normalize((materialSample.normal + (view * GLASS_TURN))), input.world, sunlight, (*eye));
   let ceiling = (unlit(vec3f(1), input.world, (*eye)).xyz * GLASS_GLINT);
-  return ModelColorFog(vec4f((min(shaded.xyz, ceiling) + highlightGlow(input.highlight)), coverageValue(input.material, input.uv)), vec4f());
+  return ColorFog(vec4f((min(shaded.xyz, ceiling) + highlightGlow(input.highlight)), coverageValue(input.material, input.uv)), vec4f());
 }
 
 // @block passes_models_ghostFragment

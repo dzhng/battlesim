@@ -189,14 +189,8 @@ struct FogProbe {
   pad: u32,
 }
 
-// @block fog_SpriteColorFog
-struct SpriteColorFog {
-  @location(0) color: vec4f,
-  @location(1) fog: vec4f,
-};
-
-// @block fog_BackdropColorFog
-struct BackdropColorFog {
+// @block fog_ColorFog
+struct ColorFog {
   @location(0) color: vec4f,
   @location(1) fog: vec4f,
 }
@@ -294,35 +288,11 @@ fn fogWholeWord(i: u32) -> u32 {
   return textureLoad(wholes, vec2u(i % FOG_WHOLE_TEXTURE_WIDTH, i / FOG_WHOLE_TEXTURE_WIDTH), 0).x;
 }
 
-// @block fog_FoliageColorFog
-struct FoliageColorFog {
-  @location(0) color: vec4f,
-  @location(1) fog: vec4f,
-}
-
-// @block fog_GrassColorFog
-struct GrassColorFog {
-  @location(0) color: vec4f,
-  @location(1) fog: vec4f,
-}
-
-// @block fog_ModelColorFog
-struct ModelColorFog {
-  @location(0) color: vec4f,
-  @location(1) fog: vec4f,
-}
-
 // @block fog_layer_fixedGroup
 @group(2) @binding(1) var<uniform> layer: FogLayer;
 
 // @block fog_layer_grouped
 @group(GROUP) @binding(1) var<uniform> layer: FogLayer;
-
-// @block fog_LitModelColorFog
-struct LitModelColorFog {
-  @location(0) color: vec4f,
-  @location(1) fog: vec4f,
-}
 
 // @block fog_modelSeen
 fn modelSeen(world: vec3f, normal: vec3f, anchor: vec3f, pixel: vec2f) -> f32 {
@@ -344,18 +314,6 @@ fn modelSeen(world: vec3f, normal: vec3f, anchor: vec3f, pixel: vec2f) -> f32 {
 // @block fog_points
 @group(1) @binding(0) var<storage, read> points: array<FogProbe>;
 
-// @block fog_TerrainColorFog
-struct TerrainColorFog {
-  @location(0) color: vec4f,
-  @location(1) fog: vec4f,
-}
-
-// @block fog_WaterColorFog
-struct WaterColorFog {
-  @location(0) color: vec4f,
-  @location(1) fog: vec4f,
-}
-
 // @block fog_whole
 @group(0) @binding(1) var<uniform> whole: vec4f;
 
@@ -364,12 +322,6 @@ var<workgroup> wholeFound: atomic<u32>;
 
 // @block fog_wholes
 @group(GROUP) @binding(8) var wholes: texture_2d<u32>;
-
-// @block fog_WorldColorFog
-struct WorldColorFog {
-  @location(0) color: vec4f,
-  @location(1) fog: vec4f,
-}
 
 // @block fog_counts_fogLayout
 @group(GROUP) @binding(5) var<storage, read> counts: array<u32>;

@@ -9,11 +9,11 @@ struct WorldFragmentInput {
 }
 
 // @block passes_fog_backdropFragment_ground
-@fragment fn backdropFragment(input: BackdropFragmentInput, @builtin(position) clip: vec4f) -> BackdropColorFog {
+@fragment fn backdropFragment(input: BackdropFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let eye = (&cam.eye);
   let cell = groundCell(input.world.xy, length(fwidth(input.world.xy)));
   if (groundClassView()) {
-    return BackdropColorFog(vec4f(0, 0, 0, 1), vec4f(0, 0, 0, 1));
+    return ColorFog(vec4f(0, 0, 0, 1), vec4f(0, 0, 0, 1));
   }
   let surface = groundAlbedo(input.world, input.color, cell, groundPaved(input.world.xy, cell));
   let up = normalize(input.normal);
@@ -21,27 +21,27 @@ struct WorldFragmentInput {
   let albedo = paintedAlbedo(surface.xyz, paintSample);
   let lit = shade(albedo, vec3f(), surface.w, 0f, 0f, 1f, up, input.world, 1f, (*eye));
   let seen = fogTerm(input.world, up, clip.xy, fogIsGround());
-  return BackdropColorFog(vec4f((lit.xyz + paintGlow(paintSample)), 1f), fogCoverage(paintedSeen(seen, paintSample), 1f));
+  return ColorFog(vec4f((lit.xyz + paintGlow(paintSample)), 1f), fogCoverage(paintedSeen(seen, paintSample), 1f));
 }
 
 // @block passes_fog_backdropFragment_foliage
-@fragment fn backdropFragment(input: BackdropFragmentInput, @builtin(position) clip: vec4f) -> BackdropColorFog {
+@fragment fn backdropFragment(input: BackdropFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let seen = fogTerm(input.heart, vec3f(), clip.xy, false);
-  return BackdropColorFog(vec4f(surface(input.world, input.normal, input.color, input.local, 1f), 1f), fogCoverage(seen, 1f));
+  return ColorFog(vec4f(surface(input.world, input.normal, input.color, input.local, 1f), 1f), fogCoverage(seen, 1f));
 }
 
 // @block passes_fog_forestFragment
-@fragment fn forestFragment(input: FoliageFragmentInput, @builtin(position) clip: vec4f) -> FoliageColorFog {
+@fragment fn forestFragment(input: FoliageFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let n = normalize(input.normal);
   let seen = fogTerm(input.heart, vec3f(), clip.xy, false);
   let sunlight = sampleSunShadow(input.world, n, clip.xy);
   let lit = surface(input.world, input.normal, input.color, input.local, sunlight);
-  return FoliageColorFog(vec4f(lit, 1f), fogCoverage(seen, 1f));
+  return ColorFog(vec4f(lit, 1f), fogCoverage(seen, 1f));
 }
 
 // @block passes_fog_fragment
 const GRASS_BLADE_ROUGHNESS = 0.9f;
-@fragment fn fragment(input: GrassFragmentInput, @builtin(position) clip: vec4f) -> GrassColorFog {
+@fragment fn fragment(input: GrassFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let eye = (&cam.eye);
   let up = vec3f(0, 0, 1);
   let seen = fogTerm(vec3f(input.world.x, input.world.y, input.root.z), up, clip.xy, fogIsGround());
@@ -54,11 +54,11 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   let under = groundPaint(vec3f(input.world.x, input.world.y, input.root.z));
   let here = groundPaintAtPixel(clip.xy);
   let lit = shade(input.albedo, vec3f(), GRASS_BLADE_ROUGHNESS, 0f, 0f, 1f, shading, input.world, sunlight, (*eye));
-  return GrassColorFog(vec4f((lit.xyz + max(grassPaintGlow(under, (input.world.z - input.root.z)), grassPaintGlow(here, 0f))), 1f), fogCoverage(seen, 1f));
+  return ColorFog(vec4f((lit.xyz + max(grassPaintGlow(under, (input.world.z - input.root.z)), grassPaintGlow(here, 0f))), 1f), fogCoverage(seen, 1f));
 }
 
 // @block passes_fog_fs
-@fragment fn fs(f: SpriteVertexOutput) -> SpriteColorFog {
+@fragment fn fs(f: SpriteVertexOutput) -> ColorFog {
   // Derivatives first, in uniform control flow.
   let tuv = clamp(vec2f(f.uv.x, -f.uv.y) * 0.5 + 0.5, vec2f(0.004), vec2f(0.996));
   let gx = dpdx(tuv);
@@ -166,14 +166,14 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   }
   // A shadow is ground: it leaves the fog mask as it is.
   let strength = select(clamp(alpha + max(rgb.r, max(rgb.g, rgb.b)) * 0.25, 0.0, 1.0), 0.0, shape == 4u);
-  var out: SpriteColorFog;
+  var out: ColorFog;
   out.color = vec4f(rgb, alpha);
   out.fog = vec4f(0.0, 0.0, 0.0, strength);
   return out;
 }
 
 // @block passes_fog_modelRooms
-@fragment fn item(input: ModelFragmentInput, @builtin(position) clip: vec4f) -> ModelColorFog {
+@fragment fn item(input: ModelFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let row = (input.material * 5u);
   let layer = materials[(row + 2u)].x;
   let cellTexels = (f32(textureDimensions(albedo).x) / 4f);
@@ -190,7 +190,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
     n = -(n);
   }
   let seen = modelSeen(input.world, n, input.anchor, clip.xy);
-  return ModelColorFog(vec4f((unlit(colour, input.world, (*eye)).xyz + highlightGlow(input.highlight)), 1f), fogCoverage(seen, 1f));
+  return ColorFog(vec4f((unlit(colour, input.world, (*eye)).xyz + highlightGlow(input.highlight)), 1f), fogCoverage(seen, 1f));
 }
 
 // @block passes_fog_mergeHorizons
@@ -311,7 +311,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
 }
 
 // @block passes_fog_modelCards
-@fragment fn item(input: CardFragmentInput, @builtin(position) clip: vec4f) -> ModelColorFog {
+@fragment fn item(input: CardFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let baseColor = textureSample(albedo, materialSampler, input.uv, input.layer);
   let packed = textureSample(normal, materialSampler, input.uv, input.layer);
   if ((baseColor.w < 0.5f)) {
@@ -328,7 +328,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   let sunlight = sampleSunShadow(input.world, n, clip.xy);
   let shaded = shade(tinted, vec3f(), 0.85f, 0f, 0f, 1f, n, input.world, sunlight, (*eye));
   let seen = modelSeen(input.world, n, input.anchor, clip.xy);
-  return ModelColorFog(vec4f(shaded.xyz, 1f), fogCoverage(seen, 1f));
+  return ColorFog(vec4f(shaded.xyz, 1f), fogCoverage(seen, 1f));
 }
 
 // @block passes_fog_composeMask
@@ -380,7 +380,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
 }
 
 // @block passes_fog_lit
-@fragment fn lit(input: LitModelFragmentInput, @builtin(position) clip: vec4f) -> LitModelColorFog {
+@fragment fn lit(input: LitModelFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let eye = (&cam.eye);
   var n = normalize(input.normal);
   if ((dot(n, ((*eye) - input.world)) < 0f)) {
@@ -392,7 +392,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   let sunlight = sampleSunShadow(input.world, n, clip.xy);
   let shaded = shade(paintedAlbedo(baseColor, paintSample), vec3f(), materialSample.roughness, 0f, materialSample.metallic, materialSample.occlusion, materialSample.normal, input.world, sunlight, (*eye));
   let seen = paintedSeen(modelSeen(input.world, n, input.anchor, clip.xy), paintSample);
-  return LitModelColorFog(vec4f(((shaded.xyz + paintGlow(paintSample)) + highlightGlow(input.highlight)), 1f), fogCoverage(seen, 1f));
+  return ColorFog(vec4f(((shaded.xyz + paintGlow(paintSample)) + highlightGlow(input.highlight)), 1f), fogCoverage(seen, 1f));
 }
 
 // @block passes_fog_probeFn
@@ -415,7 +415,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
 }
 
 // @block passes_fog_terrainFragment
-@fragment fn terrainFragment(input: TerrainFragmentInput, @builtin(position) clip: vec4f) -> TerrainColorFog {
+@fragment fn terrainFragment(input: TerrainFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   if (!(scarRegionContains(input.world.xy))) {
     discard;;
   }
@@ -429,7 +429,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
     let xy = input.world.xy;
     let site = groundSite(xy, cell, paved);
     let classes = groundClasses(xy, footprint, site, groundWater(xy, cell));
-    return TerrainColorFog(vec4f(classes, 1f), vec4f(0, 1, 1, 1));
+    return ColorFog(vec4f(classes, 1f), vec4f(0, 1, 1, 1));
   }
   let plain = groundAlbedo(input.world, input.color, cell, paved);
   let biome = (1f - input.color.w);
@@ -449,7 +449,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   let flecks = groundDapple(input.world.xy, footprint, cell);
   let sunlight = max(sampleSunShadow(input.world, n, clip.xy), flecks);
   let lit = shade(paintedAlbedo(surface.xyz, paintSample), vec3f(), surface.w, 0f, 0f, 1f, shading, input.world, sunlight, (*eye));
-  return TerrainColorFog(vec4f((lit.xyz + paintGlow(paintSample)), 1f), fogCoverage(paintedSeen(seen, paintSample), 1f));
+  return ColorFog(vec4f((lit.xyz + paintGlow(paintSample)), 1f), fogCoverage(paintedSeen(seen, paintSample), 1f));
 }
 
 // @block passes_fog_terrainMarch
@@ -507,7 +507,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
 }
 
 // @block passes_fog_waterFragment
-@fragment fn waterFragment(input: WaterFragmentInput, @builtin(position) clip: vec4f) -> WaterColorFog {
+@fragment fn waterFragment(input: WaterFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let eye = (&cam.eye);
   let footprint = length(fwidth(input.world.xy));
   let look = u32(round(input.color.x));
@@ -546,7 +546,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   let cover = (paintSample.w + (edge * (1f - paintSample.w)));
   let colour = (((marked + paintGlow(paintSample)) + (wet * (edge * (1f - paintSample.w)))) / max(cover, 1e-4f));
   let seen = paintedSeen(fogTerm(input.world, n, clip.xy, fogIsGround()), paintSample);
-  return WaterColorFog(vec4f(colour, cover), fogCoverage(seen, cover));
+  return ColorFog(vec4f(colour, cover), fogCoverage(seen, cover));
 }
 
 // @block passes_fog_wholeFn
@@ -614,7 +614,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
 }
 
 // @block passes_fog_worldFragment
-@fragment fn worldFragment(input: WorldFragmentInput, @builtin(position) clip: vec4f) -> WorldColorFog {
+@fragment fn worldFragment(input: WorldFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let eye = (&cam.eye);
   var n = normalize(input.normal);
   if ((dot(n, ((*eye) - input.world)) < 0f)) {
@@ -625,7 +625,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   let lit = shade(albedo, vec3f(), 0.85f, 0f, 0f, 1f, n, input.world, sunlight, (*eye));
   let glow = highlightGlow(input.highlight);
   let seen = fogTerm(input.world, n, clip.xy, fogIsGround());
-  return WorldColorFog(vec4f((lit.xyz + glow), input.color.w), fogCoverage(seen, input.color.w));
+  return ColorFog(vec4f((lit.xyz + glow), input.color.w), fogCoverage(seen, input.color.w));
 }
 // @block passes_fog_FoliageFragmentInput
 struct FoliageFragmentInput {
