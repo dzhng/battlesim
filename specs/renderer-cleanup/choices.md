@@ -373,3 +373,11 @@ finding that the base build did not render grass the same way twice.
   `fog` owns decoding; no compatibility wrapper or composition alias remains.
   **Verdict: sound** — the assembled builder changes only identifier tokens;
   Naga validation and record reflection pass. **Confidence: high.**
+
+- **When:** slice 08 height lookup. **Choice:** name the shared integer-grid
+  lookup `heightSample` in `ground_surface`; fog and grass retain their own
+  coordinate adapters. **Gap:** the slice delegated the merged name. **Reach:**
+  the paged height decoder still reads through `readWord`; bindings and all
+  interpolation expressions are unchanged. **Verdict: sound** — only function
+  identifiers change in assembled shaders; Naga and reflection pass.
+  **Confidence: high.**

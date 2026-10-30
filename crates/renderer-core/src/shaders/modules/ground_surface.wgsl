@@ -12,12 +12,12 @@ fn fogHeight(q: vec2f) -> f32 {
   let u = fx - f32(i);
   let v = fy - f32(j);
   return triangleRuleHeight(
-    fogSample(i, j), fogSample(i + 1u, j),
-    fogSample(i, j + 1u), fogSample(i + 1u, j + 1u), u, v);
+    heightSample(i, j), heightSample(i + 1u, j),
+    heightSample(i, j + 1u), heightSample(i + 1u, j + 1u), u, v);
 }
 
-// @block ground_surface_fogSample
-fn fogSample(i: u32, j: u32) -> f32 {
+// @block ground_surface_heightSample
+fn heightSample(i: u32, j: u32) -> f32 {
     let size = readWord(0u);
     let cols = readWord(1u);
     let count = readWord(2u);
@@ -38,22 +38,10 @@ fn grassGround(q: vec2f) -> f32 {
   let i = min(u32(fx), nx - 2u);
   let j = min(u32(fy), ny - 2u);
   return triangleRuleHeight(
-    grassSample(i, j), grassSample(i + 1u, j),
-    grassSample(i, j + 1u), grassSample(i + 1u, j + 1u),
+    heightSample(i, j), heightSample(i + 1u, j),
+    heightSample(i, j + 1u), heightSample(i + 1u, j + 1u),
     fx - f32(i), fy - f32(j));
 }
-
-// @block ground_surface_grassSample
-fn grassSample(i: u32, j: u32) -> f32 {
-    let size = readWord(0u);
-    let cols = readWord(1u);
-    let count = readWord(2u);
-    if (count == 0u) { return 0.0; }
-    let page = readWord(3u + (j / size) * cols + i / size);
-    if (page == 0u) { return 0.0; }
-    let at = 3u + count + (page - 1u) * size * size + (j % size) * size + i % size;
-    return bitcast<f32>(readWord(at));
-  }
 
 // @block ground_surface_groundSite
 fn groundSite(xy: vec2f, cell: vec4u, paved: GroundPaved) -> vec4f {
