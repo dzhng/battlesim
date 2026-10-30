@@ -306,7 +306,9 @@ impl SoundTables {
             .looks
             .get(&landing.round)
             .ok_or_else(|| format!("audio.cook_off.landing.as: unknown look {}", landing.round))?;
-        if !look.sound.impacts.contains_key(&landing.hit) {
+        if !crate::effects::tables::IMPACT_MATERIALS.contains(&landing.hit.as_str())
+            || !look.sound.impacts.contains_key(&landing.hit)
+        {
             return Err(format!(
                 "audio.cook_off.landing.hit: unknown surface {}",
                 landing.hit

@@ -139,6 +139,22 @@ fn cook_off_landing_requires_an_existing_look_and_surface() {
 }
 
 #[test]
+fn a_default_recording_cannot_invent_a_landing_material() {
+    let mut audio = fixture("audio");
+    audio["cook_off"]["landing"]["hit"] = json!("hulll");
+    audio["weapon_defaults"]["impacts"]["hulll"] = json!("impact_hull");
+    let result = presentation::sound::tables::SoundTables::from_parts(
+        audio,
+        fixture("sounds"),
+        &fixture("presentation"),
+        &fixture("rules")["weapons"],
+    );
+    assert!(result
+        .expect_err("unknown landing material")
+        .contains("cook_off.landing.hit"));
+}
+
+#[test]
 fn misspellings_in_every_document_section_name_their_path() {
     let doc = fixture("presentation");
     for section in doc.as_object().unwrap().keys() {
