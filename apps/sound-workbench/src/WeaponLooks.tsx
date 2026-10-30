@@ -162,7 +162,7 @@ export function WeaponLooks({
         )}
         {Object.entries(impacts).map(([hit, id]) => (
           <div className="sw-effect-row" key={hit}>
-            {recipe(`${hit} impact`, id, (value) =>
+            {recipe(`${hit.replaceAll("_", " ")} impact`, id, (value) =>
               update((s) => {
                 s.impacts[hit] = value;
               }),
@@ -178,7 +178,7 @@ export function WeaponLooks({
                 )
               }
             >
-              Play {hit} impact
+              Play {hit.replaceAll("_", " ")} impact
             </button>
           </div>
         ))}
