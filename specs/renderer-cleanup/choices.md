@@ -419,3 +419,11 @@ finding that the base build did not render grass the same way twice.
   number, resource name and type stays unchanged; other layouts retain their
   own declarations. **Verdict: sound** — assembled shaders are byte-identical;
   Naga validation and record reflection pass. **Confidence: high.**
+
+- **When:** slice 08 Windows discard cleanup. **Choice:** the depth discard
+  pipeline omits unused `pixelNoise` and `coveredSamples`; the caster discard
+  pipeline retains `pixelNoise`, which its stochastic cutoff still calls.
+  **Gap:** slice 01 deferred unused-helper deletion; the current bodies settle
+  which helpers are actually unused. **Reach:** sample-mask variants and all
+  discard entry points remain intact. **Verdict: sound** — only unused depth
+  discard definitions disappear; Naga and reflection pass. **Confidence: high.**
