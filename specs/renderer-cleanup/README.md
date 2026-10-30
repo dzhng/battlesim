@@ -16,9 +16,10 @@ to run the slices: Codex
 (gpt-6.1-sol, high) implements each slice, the orchestrator reviews and
 integrates by cherry-pick, and pushes each verified slice to the open PR.
 
-**Status (2026-10-30):** 01–11 and the grass determinism fix landed and are
-proven (54/54 plates byte-identical to the grass-fixed build). 12 and 14
-landed; 13 is implemented and verified; 15 remains in progress.
+**Status (2026-10-30):** all fifteen slices landed. Slices 01–14 are proven
+(54/54 plates byte-identical to the grass-fixed build). Slice 15 shapes
+V-wakes: a picture change awaiting the user's sign-off, kept as the last,
+droppable commit. Whole-spec review fixes are in progress; then the closeout.
 
 The base build did not render grass the same way twice (atomic clump order);
 the fix (`fix(renderer): emit grass clumps in deterministic ranges`, see
@@ -49,7 +50,7 @@ TODO:
 - [x] [12](slices/12-frame-timing.md) GPU frame timing: one owner
 - [x] [13](slices/13-move-tests.md) renderer-core's tests in renderer-core
 - [x] [14](slices/14-brittle-tests.md) Tests and scenes assert behaviour
-- [ ] [15](slices/15-v-wakes.md) V-wakes read on screen, or `kind` goes
+- [x] [15](slices/15-v-wakes.md) V-wakes read on screen, or `kind` goes
 - [ ] Closeout: full `check` and `verify` once, net line count, `close-spec`
 
 Before you end a pass, tick what landed, move the pickup point, and record any

@@ -812,3 +812,12 @@ finding that the base build did not render grass the same way twice.
   the legs and overly regular, sharp ridges. Those are unresolved visual
   concerns for sign-off; stills do not prove motion quality or vehicle
   wakes. The native plates remain unrendered by this pass.
+
+- **Integrator: no `WATER_BROWSER_ONLY` switch.** The implementer added an
+  environment flag that skips the water scene's native replay check, for
+  faster iteration. Dropped: it is an opaque switch that lets the scene pass
+  without one of its checks, and the native replay is cheap once built.
+  *Sound.*
+- **Sign-off pending.** The V-wake picture change (`feat(water): shape
+  directional V-wake impulses`) is the last commit and droppable alone; it does
+  not reach `staging` until the user signs off on the before/after crops.
