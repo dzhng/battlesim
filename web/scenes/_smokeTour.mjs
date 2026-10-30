@@ -1,3 +1,4 @@
+import { installWorkerStartFence } from "./_workerStart.mjs";
 // Smoke and dust over the production street battle, paused and running.
 import { lab, obs, advance, until, snapshot, openBattle, aim } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
@@ -19,7 +20,11 @@ function changedIn(a, b, [x0, y0, x1, y1]) {
  *  holds the smoke and reset clears it. `SMOKE_GIF=1` also writes the
  *  frames of a burning wreck and of a tank's dust, tick by tick. */
 export async function smokeTour(ctx) {
-  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
+  const page = await openBattle(ctx, {
+    viewport: { width: 1920, height: 1080 },
+    tick: 30,
+    initScript: installWorkerStartFence,
+  });
   await lab(page, () => {
     const o = window.__lab.route.observation();
     window.__lab.route.command({
@@ -140,14 +145,10 @@ export async function smokeTour(ctx) {
   ctx.check("playing, the smoke moves on", rose > 200, JSON.stringify({ rose }));
 
   // Reset: a new battle, no smoke left from the old one.
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await lab(page, () => window.__lab.route.reset());
-  await page.waitForFunction(
-    () => window.__lab.route.tick() > 3 && window.__lab.route.tick() < 60,
-    undefined,
-    {
-      timeout: 30000,
-    },
-  );
+  await page.waitForFunction(() => window.__lab?.ready && window.__lab.route?.tick() === 0);
+  await advance(page, 4);
   await lab(page, () => window.__lab.frame());
   const cleared = await lab(page, () => ({
     effects: window.__lab.route.effects(),

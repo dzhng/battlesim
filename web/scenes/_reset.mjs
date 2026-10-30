@@ -24,7 +24,7 @@ export async function restartPresentedOpening(page, targetTick) {
   const priorTick = await lab(page, () => window.__lab.route.tick());
   // Pause at the real worker boundary before the new authority can tick.
   // Renderer admission can finish after its clock has already started.
-  await page.evaluate(() => window.__resetRafFence.pauseNextStart());
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await restart(page);
   await page.waitForFunction((prior) => window.__lab?.route?.tick() < prior, priorTick, {
     timeout: 60000,
@@ -67,15 +67,6 @@ export async function restartPresentedOpening(page, targetTick) {
 
 // Control only reset presentation. Real-time arms keep native clocks and RAF timestamps.
 export function installResetRafFence() {
-  let pauseNextStart = false;
-  const post = Worker.prototype.postMessage;
-  Worker.prototype.postMessage = function (message, ...args) {
-    if (pauseNextStart && message.type === "start") {
-      pauseNextStart = false;
-      post.call(this, { type: "pause" });
-    }
-    return post.call(this, message, ...args);
-  };
   const request = window.requestAnimationFrame.bind(window);
   const cancel = window.cancelAnimationFrame.bind(window);
   const callbacks = new Map();
@@ -102,9 +93,6 @@ export function installResetRafFence() {
     callbacks.delete(id);
   };
   window.__resetRafFence = {
-    pauseNextStart() {
-      pauseNextStart = true;
-    },
     hold() {
       held = true;
       for (const entry of callbacks.values()) {

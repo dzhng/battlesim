@@ -13,9 +13,9 @@ export async function lab(page, fn, arg) {
   );
   const deadline = Date.now() + 30000;
   for (;;) {
-    await page.waitForFunction(() => window.__lab?.ready, undefined, {
-      timeout: Math.max(1, deadline - Date.now()),
-    });
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw Error("lab did not remain ready for a probe");
+    await page.waitForFunction(() => window.__lab?.ready, undefined, { timeout: remaining });
     // A remount can clear the handle between two Playwright calls. Check and
     // invoke in one browser task; retry only when the action never ran.
     const result = await page.evaluate(invoke, arg);
@@ -232,10 +232,11 @@ export async function snapshot(ctx, page, file) {
  *  catalog loads after the battle starts). */
 export async function openBattle(
   ctx,
-  { viewport, url, tick, timeout, grass = false, allowErrors } = {},
+  { viewport, url, tick, timeout, grass = false, allowErrors, initScript } = {},
 ) {
   timeout ??= ctx.readinessTimeout;
   const page = await ctx.newPage({ viewport, allowErrors });
+  if (initScript) await page.addInitScript(initScript);
   await ctx.openLab(page, url, timeout);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout });
   if (grass)

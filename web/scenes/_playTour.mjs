@@ -1,3 +1,4 @@
+import { installWorkerStartFence } from "./_workerStart.mjs";
 // Player commands, the pause menu and captions on the street battle.
 import {
   lab,
@@ -33,7 +34,7 @@ async function checkNoGlyphIcons(ctx, page, where) {
 }
 
 export async function playTour(ctx) {
-  const page = await openBattle(ctx);
+  const page = await openBattle(ctx, { initScript: installWorkerStartFence });
   await shot(ctx, page, "start-1280x800");
   const opened = await pauseMenuText(page);
   ctx.check("the pause menu shows no seed", !/seed|\d{3,}/i.test(opened), opened);
@@ -82,6 +83,7 @@ export async function playTour(ctx) {
   await lab(page, () =>
     window.__lab.setCamera({ ...window.__lab.camera(), target: [360, 800, 0], distance: 600 }),
   );
+  await lab(page, () => window.__lab.frame());
   const spot = await lab(page, () => window.__lab.projectToCss(420, 800, 0));
   await page.mouse.click(spot[0], spot[1], { button: "right" });
   await page.waitForFunction(() => window.__lab.route.acks().length > 0, undefined, {
@@ -228,6 +230,7 @@ export async function playTour(ctx) {
   );
 
   // Restart restarts the clock with an empty command log.
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await restart(page);
   await page.waitForFunction(() => {
     const route = window.__lab?.route;

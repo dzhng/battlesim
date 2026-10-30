@@ -1,3 +1,4 @@
+import { installWorkerStartFence } from "./_workerStart.mjs";
 import {
   advance,
   obs,
@@ -23,6 +24,7 @@ const MUSIC = JSON.parse(
 export async function appJourney(ctx) {
   const page = await ctx.newPage();
   const cdp = await page.context().newCDPSession(page);
+  await page.addInitScript(installWorkerStartFence);
   await page.addInitScript(() => {
     // wgpu drops WebGPU handles without calling destroy(). Strong observer keys
     // would retain every departed scene; only weak identities belong here.
@@ -111,14 +113,19 @@ export async function appJourney(ctx) {
   await openMenuPage(page, "Skirmish");
   await page.getByTestId("menu-map-open").click();
   await page.getByTestId("menu-size-small").click();
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await page.getByTestId("menu-deploy").click();
   await backdropClosed;
 
   const ready = async () => {
-    await page.waitForFunction(() => window.__lab?.ready && window.__lab.route?.tick() > 3, null, {
+    await page.waitForFunction(() => window.__lab?.ready && window.__lab.route, null, {
       timeout: 120000,
     });
     await page.evaluate(() => window.__lab.route.pause());
+    // The pause reply follows every publication already in flight. Only then
+    // is the tick used to compute our exact advance stable.
+    await page.waitForFunction(() => window.__lab?.route?.status().status === "paused");
+    if ((await page.evaluate(() => window.__lab.route.tick())) === 0) await advance(page, 1);
   };
   // One deliberate collection per lifecycle checkpoint. The new backdrop has
   // drawn, and prior queue work has completed; a surviving old wrapper fails.
@@ -137,7 +144,11 @@ export async function appJourney(ctx) {
   const seedAddress = page.url();
   await advance(page, 90 - (await obs(page)).tick);
   await presented(page);
-  const digest = await page.evaluate(() => window.__lab.route.digest());
+  const openingBattle = await page.evaluate(() => ({
+    tick: window.__lab.route.tick(),
+    digest: window.__lab.route.digest(),
+  }));
+  const digest = openingBattle.digest;
   await snapshot(ctx, page, "app-journey-play.png");
   const observed = await page.evaluate(() => ({
     created: window.__appJourney.allocations.created(),
@@ -258,15 +269,24 @@ export async function appJourney(ctx) {
   const old = page.workers().find((worker) => worker.url().includes("/prepare/worker.ts"));
   const closed = old.waitForEvent("close");
   await openMenu(page);
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await page.getByRole("button", { name: "Restart", exact: true }).click();
   await closed;
   await ready();
   await advance(page, 90 - (await obs(page)).tick);
   await presented(page);
+  const restarted = await page.evaluate(() => ({
+    tick: window.__lab.route.tick(),
+    digest: window.__lab.route.digest(),
+  }));
+  await ctx.writeEvidence("app-journey-restart.json", { opening: openingBattle, restarted });
   ctx.check(
     "restart creates a fresh authority with the same exact battle",
     !page.workers().includes(old) &&
-      (await page.evaluate(() => window.__lab.route.digest())) === digest,
+      openingBattle.tick === 90 &&
+      restarted.tick === 90 &&
+      restarted.digest === digest,
+    JSON.stringify({ opening: openingBattle, restarted }),
   );
 
   await openMenu(page);
@@ -282,6 +302,7 @@ export async function appJourney(ctx) {
     departedAllocations.buffers === 0 && departedAllocations.textures === 0,
     JSON.stringify(departedAllocations),
   );
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await page.goBack();
   await ready();
   await advance(page, 90 - (await obs(page)).tick);
@@ -292,9 +313,11 @@ export async function appJourney(ctx) {
   );
   await page.goForward();
   await menuShown(page);
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await page.goBack();
   await ready();
   await openMenu(page);
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await page.getByRole("link", { name: "Watch saved replay", exact: true }).click();
   await ready();
   await advance(page, 90 - (await obs(page)).tick);
