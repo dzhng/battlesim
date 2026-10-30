@@ -81,6 +81,7 @@ The core's reflection tests validate assembled WGSL against canonical
 presentation layouts, while real GPU
 scenes judge its output and lifetime. The pipeline registry's unit test also
 checks that every bound global has a matching group, binding and resource kind
-in that pipeline's layouts. Layouts may expose entries a particular shader
+in that pipeline's layouts, including both sample-mask and Windows discard
+cutout variants on every host. Layouts may expose entries a particular shader
 doesn't use. WGSL distinguishes comparison samplers and texture scalar kinds,
 dimensions and multisampling; filtering support remains a layout/device choice.
