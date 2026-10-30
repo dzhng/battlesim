@@ -124,10 +124,7 @@ fn filterAlgorithm(uv: vec2f, face: f32, source: texture_2d<f32>, linearSampler:
       return vec4f(convolve(source,linearSampler,normalize(cubeDirection(uv,face)),params.x,params.y,params.z),1);
     }
 
-// @block sky_environmentSampler_fixedGroup
-@group(2) @binding(5) var environmentSampler: sampler;
-
-// @block sky_environmentSampler_grouped
+// @block sky_environmentSampler
 @group(GROUP) @binding(5) var environmentSampler: sampler;
 
 // @block sky_environmentSampler_sampled

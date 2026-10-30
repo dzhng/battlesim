@@ -411,3 +411,11 @@ finding that the base build did not render grass the same way twice.
   unchanged; other layouts retain their own declarations. **Verdict: sound** —
   assembled shaders are byte-identical; Naga validation and record reflection
   pass. **Confidence: high.**
+
+- **When:** slice 08 environment sampler. **Choice:** one
+  `sky_environmentSampler` binding block takes the group through the existing
+  composition grammar. **Gap:** the additional-copy scan found a fixed-group
+  declaration beside the same grouped declaration. **Reach:** every binding
+  number, resource name and type stays unchanged; other layouts retain their
+  own declarations. **Verdict: sound** — assembled shaders are byte-identical;
+  Naga validation and record reflection pass. **Confidence: high.**
