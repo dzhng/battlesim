@@ -1,3 +1,4 @@
+import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
 // An AI ally answers your lane under pressure (team skirmish).
 // You and one AI ally against two AI: you send a lone squad to the
 // objective nearest the enemy and hold it. As the enemy closes in, your
@@ -51,25 +52,130 @@ export async function run(ctx) {
   await page.mouse.click(at[0], at[1]);
   await advance(page, 1);
   await page.mouse.click(40, 300, { button: "right" });
+  // Get the foot squad to its hold before the opposing armies close it off.
+  // Pick an affordable troop helicopter by capacity, independently of roster IDs.
+  const { units: catalog } = await nodeCatalogSet("game");
+  const wallet = (await obs(page)).skirmish.players[YOU];
+  const squadKind = wallet.pending[0].kind;
+  const seats = catalog.slots(squadKind).length;
+  const carrierType = catalog.cards
+    .filter(
+      (card) =>
+        !card.disabled_reason && card.roster.factions.includes("us") && card.cost <= wallet.credits,
+    )
+    .map((card) => catalog.type(card.id))
+    .filter((type) => type.mobility.air && type.capabilities.carriage?.seats >= seats)
+    .sort((a, b) => a.cost - b.cost || a.id.localeCompare(b.id))[0];
+  if (!carrierType) throw Error("no affordable troop helicopter fits the bought squad");
+  await lab(page, (order) => window.__lab.route.command(order), {
+    kind: "confirm_purchase",
+    variant: carrierType.id,
+    destination: entry.map(
+      (v, i) => v + ((objective.center[i] - v) * 30) / hypot(entry, objective.center),
+    ),
+  });
+  await advance(page, 1);
+  ctx.check(
+    "a carrier is reserved to deliver the squad",
+    (await obs(page)).skirmish.players[YOU].pending.some((p) => p.kind === carrierType.id),
+  );
   await page.getByRole("button", { name: "START BATTLE", exact: true }).click();
 
-  // Your squad on the field, then sent to hold the far objective.
-  let o = await until(page, (o) => o.own.some((u) => u.owner === YOU), 150 * 30, 150);
+  // Clear the road entry with the first squad so its carrier can physically
+  // enter behind it, then gather the pair nearby for boarding.
+  let o = await until(
+    page,
+    (o) => o.own.some((u) => u.owner === YOU && u.kind === squadKind),
+    150 * 30,
+    150,
+  );
   ctx.check("your squad is on the field", !!o);
   if (!o) return;
-  const yours = o.own.filter((u) => u.owner === YOU).map((u) => u.id);
+  const rifle = o.own.find((u) => u.owner === YOU && u.kind === squadKind);
   await lab(page, (order) => window.__lab.route.command(order), {
-    kind: "attack_move",
-    units: yours,
+    kind: "move",
+    units: [rifle.id],
+    gesture: 199,
+    route: "shortest",
+    goal: entry.map(
+      (v, i) => v + ((objective.center[i] - v) * 80) / hypot(entry, objective.center),
+    ),
+  });
+  o = await until(
+    page,
+    (o) => o.own.some((u) => u.owner === YOU && u.kind === carrierType.id),
+    150 * 30,
+    30,
+  );
+  ctx.check(
+    "your carrier is on the field",
+    !!o,
+    JSON.stringify((await obs(page)).skirmish.players[YOU]),
+  );
+  if (!o) return;
+  const squad = o.own.find((u) => u.owner === YOU && u.kind === squadKind);
+  const carrier = o.own.find((u) => u.owner === YOU && u.kind === carrierType.id);
+  await lab(page, (order) => window.__lab.route.command(order), {
+    kind: "board",
+    units: [squad.id],
+    carrier: carrier.id,
     gesture: 200,
+  });
+  const aboard = await until(
+    page,
+    (o) => o.own.find((u) => u.id === squad.id)?.hold?.phase === "inside",
+    150 * 30,
+    30,
+  );
+  ctx.check("the squad boards its carrier", !!aboard);
+  if (!aboard) return;
+  await lab(page, (order) => window.__lab.route.command(order), {
+    kind: "unload",
+    units: [carrier.id],
     goal: objective.center,
+    route: "fastest",
+    gesture: 201,
+  });
+  const approach = [];
+  const arrived = await until(
+    page,
+    (o) => {
+      const unit = o.own.find((u) => u.id === squad.id);
+      return !!unit && !unit.hold && hypot(xy(unit), objective.center) <= objective.radiusM;
+    },
+    10 * 60 * 30,
+    150,
+    (o) =>
+      approach.push({
+        tick: o.tick,
+        units: o.own
+          .filter((u) => u.owner === YOU)
+          .map((u) => ({ id: u.id, at: xy(u), goal: u.goal, state: u.state, hold: u.hold })),
+        phase: o.skirmish.phase,
+      }),
+  );
+  await ctx.writeEvidence("approach.json", approach);
+  ctx.check(
+    "your squad reaches the objective it will hold",
+    !!arrived,
+    JSON.stringify(approach.at(-1)),
+  );
+  if (!arrived) return;
+  await lab(page, (order) => window.__lab.route.command(order), {
+    kind: "move",
+    units: [carrier.id],
+    goal: entry,
+    route: "fastest",
+    gesture: 202,
   });
 
   // Under pressure your ally answers: some of its units head for your
   // objective while others keep their own goals.
   o = await until(page, (o) => heading(o, objective).length > 0, 4 * 60 * 30, 300);
-  const helpers = o ? heading(o, objective) : [];
-  const allyUnits = o ? o.own.filter((u) => u.owner === ALLY) : [];
+  const latest = o ?? (await obs(page));
+  const helpers = heading(latest, objective);
+  const allyUnits = latest.own.filter((u) => u.owner === ALLY);
+  await ctx.writeEvidence("support-state.json", { objective, observation: latest });
   ctx.check(
     "your ally sends units toward your objective",
     helpers.length > 0,
