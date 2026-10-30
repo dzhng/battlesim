@@ -161,8 +161,13 @@ fn each_factions_gauge_drives_its_own_track_travel() {
             None,
         );
     }
-    for pose in &driver.poses().vehicles {
-        let gauge = if &*pose.side == "blue" { 0.5 } else { 0.9 };
+    for (side, gauge) in [("blue", 0.5), ("red", 0.9)] {
+        let pose = driver
+            .poses()
+            .vehicles
+            .iter()
+            .find(|pose| &*pose.side == side)
+            .expect("both factions must present a vehicle");
         let travelled = pose.articulation.travel_r - pose.articulation.travel_l;
         assert!(
             (travelled - half_width * gauge).abs() < 1e-12,
