@@ -75,3 +75,5 @@ share a column. Captures and the final critique were refreshed after those fixes
 the initial evidence remains in `evidence-14/attempt-1/`.
 
 Next: [15 Content pass](15-content.md). No sound values were retuned here.
+
+**Review:** a read-only review of the save destinations, protections, no-op saves, leftover fallback code and tests found nothing.
