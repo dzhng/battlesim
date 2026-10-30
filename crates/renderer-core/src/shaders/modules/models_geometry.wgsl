@@ -83,5 +83,5 @@ struct Count {
 // @block models_geometry_depth_xrayCountLayout
 @group(2) @binding(1) var depth: texture_depth_multisampled_2d;
 
-// @block models_geometry_linear_cardLayout
-@group(1) @binding(2) var linear: sampler;
+// @block models_geometry_materialSampler
+@group(1) @binding(2) var materialSampler: sampler;

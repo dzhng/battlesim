@@ -19,9 +19,9 @@ fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
   let w = (&terrainParams.waterLooks[look]);
   let carried = waterCarried();
   let primary = waterLayer(xy, (*w).normals.x, vec2f(1, 0), (carried * (*w).drifts.x), (*w).normals.w, footprint);
-  let macro_1 = waterLayer(xy, (*w).normals.y, vec2f(0.824999988079071, 0.5649999976158142), (carried * (*w).drifts.y), (*w).normals.w, footprint);
+  let macroNormal = waterLayer(xy, (*w).normals.y, vec2f(0.824999988079071, 0.5649999976158142), (carried * (*w).drifts.y), (*w).normals.w, footprint);
   let detail = waterLayer(xy, (*w).normals.z, vec2f(0.45399999618530273, -0.890999972820282), (carried * (*w).drifts.z), (*w).normals.w, footprint);
-  let n = blendRnm(blendRnm(macro_1, primary), detail);
+  let n = blendRnm(blendRnm(macroNormal, primary), detail);
   let shown = (1f - smoothstep((*w).fades.y, (*w).fades.z, footprint));
   return normalize(mix(vec3f(0, 0, 1), n, shown));
 }
@@ -351,33 +351,33 @@ fn waterCaustics(world: vec3f, far: f32, footprint: f32, look: u32) -> f32 {
   let c = (&(*w).caustics);
   let view = normalize((cam.eye - world));
   let bed = (world - (view * far));
-  let depth_1 = max((world.z - bed.z), 0f);
+  let bedDepthM = max((world.z - bed.z), 0f);
   let up = abs(normalize(cross(dpdx(bed), dpdy(bed))).z);
   let level = smoothstep(0.3f, 0.7f, up);
-  let sun_1 = environmentSun();
-  let through = (bed.xy + (sun_1.xy * ((0.75f * depth_1) / max(sun_1.z, 0.3f))));
+  let sunDirection = environmentSun();
+  let through = (bed.xy + (sunDirection.xy * ((0.75f * bedDepthM) / max(sunDirection.z, 0.3f))));
   let carried = waterCarried();
   let uv1 = ((through - (carried * (*w).drifts.x)) * (*c).x);
   let uv2 = ((through - (carried * (*w).drifts.z)) * ((*c).x * 1.8f));
   let s1 = slopeAt((uv1 + (slopeAt(uv2) * 0.18f)));
   let s2 = slopeAt((uv2 + (slopeAt(uv1) * 0.18f)));
-  let fade = (exp((-(depth_1) * (*c).z)) * smoothstep(0.01f, 0.08f, depth_1));
+  let fade = (exp((-(bedDepthM) * (*c).z)) * smoothstep(0.01f, 0.08f, bedDepthM));
   let held = (1f - smoothstep(0.25f, 0.5f, (((footprint * (*c).x) * 1.8f) * 12.36931687685298f)));
-  let high = clamp((sun_1.z * 1.5f), 0.35f, 1f);
+  let high = clamp((sunDirection.z * 1.5f), 0.35f, 1f);
   return (((((crests(s1, s2, (*c).w) * (*c).y) * fade) * level) * held) * high);
 }
 
 // @block water_lobe
-fn lobe(roughness: f32, n: vec3f, world: vec3f, sun_1: f32, eye: vec3f) -> vec3f {
-  return surfaceLight(vec3f(), vec3f(), roughness, 0f, 0.5f, 1f, n, world, sun_1, eye);
+fn lobe(roughness: f32, n: vec3f, world: vec3f, sunlight: f32, eye: vec3f) -> vec3f {
+  return surfaceLight(vec3f(), vec3f(), roughness, 0f, 0.5f, 1f, n, world, sunlight, eye);
 }
 
 // @block water_waterReflection
-fn waterReflection(n: vec3f, world: vec3f, sun_1: f32, eye: vec3f, look: u32) -> vec3f {
+fn waterReflection(n: vec3f, world: vec3f, sunlight: f32, eye: vec3f, look: u32) -> vec3f {
   let w = (&terrainParams.waterLooks[look]);
-  let sharp = (lobe((*w).roughness.x, n, world, sun_1, eye) * (*w).lobes.x);
-  let sheen = (lobe((*w).roughness.y, n, world, sun_1, eye) * (*w).lobes.y);
-  let broad = (lobe((*w).roughness.z, n, world, sun_1, eye) * (*w).lobes.z);
+  let sharp = (lobe((*w).roughness.x, n, world, sunlight, eye) * (*w).lobes.x);
+  let sheen = (lobe((*w).roughness.y, n, world, sunlight, eye) * (*w).lobes.y);
+  let broad = (lobe((*w).roughness.z, n, world, sunlight, eye) * (*w).lobes.z);
   return ((sharp + sheen) + broad);
 }
 

@@ -57,10 +57,10 @@ fn importanceGGX(xi: vec2f, r: f32) -> vec3f {
 
 // @block sky_bakeShade
 fn bakeShade(uv: vec2f, face: f32) -> vec4f {
-  return bakeAlgorithm(uv, face, source, linear);
+  return bakeAlgorithm(uv, face, source, environmentSampler);
 }
 
-// @block sky_dfg_primary
+// @block sky_dfg
 @group(GROUP) @binding(4) var dfg: texture_2d<f32>;
 
 // @block sky_direction
@@ -78,7 +78,7 @@ fn equirectUv(direction: vec3f) -> vec2f {
 
 // @block sky_filterShade
 fn filterShade(uv: vec2f, face: f32) -> vec4f {
-  return filterAlgorithm(uv, face, source, linear, params);
+  return filterAlgorithm(uv, face, source, environmentSampler, params);
 }
 
 // @block sky_lutView
@@ -96,13 +96,13 @@ fn roughnessMip(r: f32) -> f32 {
   return -2.0*log2(1.16*r);
 }
 // @block sky_bakeAlgorithm
-fn bakeAlgorithm(uv: vec2f, face: f32, source: texture_2d<f32>, linear: sampler) -> vec4f {
-      return textureSampleLevel(source,linear,equirectUv(normalize(cubeDirection(uv,face))),0);
+fn bakeAlgorithm(uv: vec2f, face: f32, source: texture_2d<f32>, linearSampler: sampler) -> vec4f {
+      return textureSampleLevel(source,linearSampler,equirectUv(normalize(cubeDirection(uv,face))),0);
     }
 
 // @block sky_convolve
-fn convolve(env: texture_2d<f32>, linear: sampler, n: vec3f, r: f32, mip: f32, maxMip: f32) -> vec3f {
-  if(r<0.001){return cubeSample(env,linear,n,mip,maxMip);}
+fn convolve(env: texture_2d<f32>, linearSampler: sampler, n: vec3f, r: f32, mip: f32, maxMip: f32) -> vec3f {
+  if(r<0.001){return cubeSample(env,linearSampler,n,mip,maxMip);}
   let up=select(vec3f(1,0,0),vec3f(0,0,1),abs(n.z)<0.999);
   let tangent=normalize(cross(up,n));
   let bitangent=cross(n,tangent);
@@ -113,28 +113,28 @@ fn convolve(env: texture_2d<f32>, linear: sampler, n: vec3f, r: f32, mip: f32, m
     let h=normalize(tangent*ht.x+bitangent*ht.y+n*ht.z);
     let l=normalize(h*(dot(n,h)*2.0)-n);
     let nl=max(dot(n,l),0.0);
-    if(nl>0.0){color+=cubeSample(env,linear,l,mip,maxMip)*nl;weight+=nl;}
+    if(nl>0.0){color+=cubeSample(env,linearSampler,l,mip,maxMip)*nl;weight+=nl;}
   }
   if(weight>0.0){color/=weight;}
   return color;
 }
 
 // @block sky_filterAlgorithm
-fn filterAlgorithm(uv: vec2f, face: f32, source: texture_2d<f32>, linear: sampler, params: vec4f) -> vec4f {
-      return vec4f(convolve(source,linear,normalize(cubeDirection(uv,face)),params.x,params.y,params.z),1);
+fn filterAlgorithm(uv: vec2f, face: f32, source: texture_2d<f32>, linearSampler: sampler, params: vec4f) -> vec4f {
+      return vec4f(convolve(source,linearSampler,normalize(cubeDirection(uv,face)),params.x,params.y,params.z),1);
     }
 
-// @block sky_linear_sampler
-@group(2) @binding(5) var linear_2: sampler;
+// @block sky_environmentSampler_fixedGroup
+@group(2) @binding(5) var environmentSampler: sampler;
 
-// @block sky_linear_alternate
-@group(GROUP) @binding(5) var linear: sampler;
+// @block sky_environmentSampler_grouped
+@group(GROUP) @binding(5) var environmentSampler: sampler;
 
-// @block sky_linear_sampled
-@group(0) @binding(1) var linear: sampler;
+// @block sky_environmentSampler_sampled
+@group(0) @binding(1) var environmentSampler: sampler;
 
-// @block sky_scene_sampler
-@group(0) @binding(2) var sampler_1: sampler;
+// @block sky_sceneSampler
+@group(0) @binding(2) var sceneSampler: sampler;
 
 // @block sky_cubeDirection
 fn cubeDirection(uv:vec2f,face:f32)->vec3f {
@@ -159,7 +159,7 @@ fn cubeFace(d: vec3f) -> f32 {
 }
 
 // @block sky_cubeSample
-fn cubeSample(env: texture_2d<f32>, linear: sampler, d: vec3f, mip: f32, maxMip: f32) -> vec3f {
+fn cubeSample(env: texture_2d<f32>, linearSampler: sampler, d: vec3f, mip: f32, maxMip: f32) -> vec3f {
   var face=cubeFace(d);
   let filterIndex=max(4.0-mip,0.0);
   let size=exp2(max(mip,4.0));
@@ -169,7 +169,7 @@ fn cubeSample(env: texture_2d<f32>, linear: sampler, d: vec3f, mip: f32, maxMip:
   uv.x+=filterIndex*48.0;
   uv.y+=4.0*(exp2(maxMip)-size);
   uv/=vec2f(textureDimensions(env));
-  return textureSampleGrad(env,linear,uv,vec2f(0),vec2f(0)).rgb;
+  return textureSampleGrad(env,linearSampler,uv,vec2f(0),vec2f(0)).rgb;
 }
 
 // @block sky_cubeUv
@@ -189,19 +189,19 @@ fn cubeUv(d: vec3f, face: f32) -> vec2f {
 // @block sky_pmrem_effects
 @group(0) @binding(5) var pmrem: texture_2d<f32>;
 
-// @block sky_pmrem_primary
+// @block sky_pmrem
 @group(GROUP) @binding(3) var pmrem: texture_2d<f32>;
 
-// @block sky_sky_primary
+// @block sky_sky
 @group(GROUP) @binding(2) var sky: texture_2d<f32>;
 
 // @block sky_samplePmrem
-fn samplePmrem(env: texture_2d<f32>, linear: sampler, d: vec3f, r: f32, maxMip: f32) -> vec3f {
+fn samplePmrem(env: texture_2d<f32>, linearSampler: sampler, d: vec3f, r: f32, maxMip: f32) -> vec3f {
   let mip=clamp(roughnessMip(r),-2.0,maxMip);
   let f=fract(mip);
-  let a=cubeSample(env,linear,d,floor(mip),maxMip);
+  let a=cubeSample(env,linearSampler,d,floor(mip),maxMip);
   if(f==0){return a;}
-  return mix(a,cubeSample(env,linear,d,floor(mip)+1.0,maxMip),f);
+  return mix(a,cubeSample(env,linearSampler,d,floor(mip)+1.0,maxMip),f);
 }
 // @block sky_SkyLight
 struct SkyLight {
@@ -301,5 +301,5 @@ fn sample(ray: vec3f) -> vec3f {
     // the backdrop land dissolves into it rather than into a khaki band.
     let shown = normalize(vec3f(dir.xy, max(dir.z, 0.004)));
     // Clouds pass in front of the sun's disc; the LUT stays clear-sky.
-    return clouds(dir, textureSampleLevel(lutView, sampler_1, equirectUv(shown), 0.0).rgb + disc(dir));
+    return clouds(dir, textureSampleLevel(lutView, sceneSampler, equirectUv(shown), 0.0).rgb + disc(dir));
   }

@@ -32,75 +32,75 @@ struct MeshVertexOutput {
   }
 }
 
-// @block passes_shared_fragment_alternate
-@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
-  return rawShader(_arg_0.uv);
+// @block passes_shared_fragment_raw
+@fragment fn fragment(input: ScreenFragmentInput) -> @location(0) vec4f {
+  return rawShader(input.uv);
 }
 
-// @block passes_shared_fragment_extended
-@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
-  return compositeShader(_arg_0.uv);
+// @block passes_shared_fragment_bloomComposite
+@fragment fn fragment(input: ScreenFragmentInput) -> @location(0) vec4f {
+  return compositeShader(input.uv);
 }
 
-// @block passes_shared_fragment_fallback
-@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
-  return directShader(_arg_0.uv);
+// @block passes_shared_fragment_direct
+@fragment fn fragment(input: ScreenFragmentInput) -> @location(0) vec4f {
+  return directShader(input.uv);
 }
 
-// @block passes_shared_fragment_layered
-@fragment fn fragment(_arg_0: FragmentIn) -> @location(0) vec4f {
-  return filterShade(_arg_0.uv, _arg_0.face);
+// @block passes_shared_fragment_environmentFilter
+@fragment fn fragment(input: EnvironmentFragmentInput) -> @location(0) vec4f {
+  return filterShade(input.uv, input.face);
 }
 
-// @block passes_shared_fragment_masked
-@fragment fn fragment(_arg_0: FragmentIn) -> @location(0) vec4f {
-  return bakeShade(_arg_0.uv, _arg_0.face);
+// @block passes_shared_fragment_environmentBake
+@fragment fn fragment(input: EnvironmentFragmentInput) -> @location(0) vec4f {
+  return bakeShade(input.uv, input.face);
 }
 
-// @block passes_shared_fragment_primary
-@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
-  return finalShader(_arg_0.uv);
+// @block passes_shared_fragment_final
+@fragment fn fragment(input: ScreenFragmentInput) -> @location(0) vec4f {
+  return finalShader(input.uv);
 }
 
-// @block passes_shared_fragment_quaternary
-@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
-  return highpass(_arg_0.uv);
+// @block passes_shared_fragment_highpass
+@fragment fn fragment(input: ScreenFragmentInput) -> @location(0) vec4f {
+  return highpass(input.uv);
 }
 
-// @block passes_shared_fragment_special
-@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
-  return highPlaneShader(_arg_0.uv);
+// @block passes_shared_fragment_highPlane
+@fragment fn fragment(input: ScreenFragmentInput) -> @location(0) vec4f {
+  return highPlaneShader(input.uv);
 }
 
-// @block passes_shared_fragment_tertiary
-@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
-  return bakeColor(_arg_0.uv);
+// @block passes_shared_fragment_skyBake
+@fragment fn fragment(input: ScreenFragmentInput) -> @location(0) vec4f {
+  return bakeColor(input.uv);
 }
 
-// @block passes_shared_fragment_variant
-@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
-  return shader(_arg_0.uv);
+// @block passes_shared_fragment_blur
+@fragment fn fragment(input: ScreenFragmentInput) -> @location(0) vec4f {
+  return blurShader(input.uv);
 }
 
 // @block passes_shared_fullScreenTriangle
-@vertex fn fullScreenTriangle(@builtin(vertex_index) vertexIndex: u32) -> fullScreenTriangle_Output {
+@vertex fn fullScreenTriangle(@builtin(vertex_index) vertexIndex: u32) -> FullScreenVertexOutput {
   const pos = array<vec2f, 3>(vec2f(-1, -1), vec2f(3, -1), vec2f(-1, 3));
   const uv = array<vec2f, 3>(vec2f(0, 1), vec2f(2, 1), vec2f(0, -1));
 
-  return fullScreenTriangle_Output(vec4f(pos[vertexIndex], 0, 1), uv[vertexIndex]);
+  return FullScreenVertexOutput(vec4f(pos[vertexIndex], 0, 1), uv[vertexIndex]);
 }
 
-// @block passes_shared_item_alternate
+// @block passes_shared_fogRim
 @fragment fn item(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   return rimAt(pos.xy);
 }
 
-// @block passes_shared_item_extended
+// @block passes_shared_fogDistanceColumns
 @fragment fn item(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   return distanceColumns(pos.xy);
 }
 
-// @block passes_shared_item_primary
+// @block passes_shared_fogDistanceRows
 @fragment fn item(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   return distanceRows(pos.xy);
 }
@@ -111,8 +111,8 @@ struct MeshVertexOutput {
   let s = sin(placement.w);
   let local = position;
   let world = vec3f((((local.x * c) - (local.y * s)) + placement.x), (((local.x * s) + (local.y * c)) + placement.y), (local.z + placement.z));
-  let normal_1 = vec3f(((normal.x * c) - (normal.y * s)), ((normal.x * s) + (normal.y * c)), normal.z);
-  return MeshVertexOutput((cam.viewProj * vec4f(world, 1f)), world, normal_1, vec4f((color.xyz * tint.xyz), color.w), tint.w);
+  let worldNormal = vec3f(((normal.x * c) - (normal.y * s)), ((normal.x * s) + (normal.y * c)), normal.z);
+  return MeshVertexOutput((cam.viewProj * vec4f(world, 1f)), world, worldNormal, vec4f((color.xyz * tint.xyz), color.w), tint.w);
 }
 
 // @block passes_shared_placedVertex
@@ -123,36 +123,36 @@ struct MeshVertexOutput {
 }
 
 // @block passes_shared_vertex
-@vertex fn vertex(_arg_0: VertexIn) -> VertexOut {
-  return VertexOut(vec4f(_arg_0.position, 1f), _arg_0.uv, _arg_0.face);
+@vertex fn vertex(input: EnvironmentVertexInput) -> EnvironmentVertexOutput {
+  return EnvironmentVertexOutput(vec4f(input.position, 1f), input.uv, input.face);
 }
-// @block passes_shared_FragmentIn
-struct FragmentIn {
+// @block passes_shared_EnvironmentFragmentInput
+struct EnvironmentFragmentInput {
   @location(0) uv: vec2f,
   @location(1) face: f32,
 }
 
-// @block passes_shared_VertexIn
-struct VertexIn {
+// @block passes_shared_EnvironmentVertexInput
+struct EnvironmentVertexInput {
   @location(0) position: vec3f,
   @location(1) uv: vec2f,
   @location(2) face: f32,
 }
 
-// @block passes_shared_VertexOut
-struct VertexOut {
+// @block passes_shared_EnvironmentVertexOutput
+struct EnvironmentVertexOutput {
   @builtin(position) position: vec4f,
   @location(0) uv: vec2f,
   @location(1) face: f32,
 }
 
-// @block passes_shared_fragment_Input
-struct fragment_Input {
+// @block passes_shared_ScreenFragmentInput
+struct ScreenFragmentInput {
   @location(0) uv: vec2f,
 }
 
-// @block passes_shared_fullScreenTriangle_Output
-struct fullScreenTriangle_Output {
+// @block passes_shared_FullScreenVertexOutput
+struct FullScreenVertexOutput {
   @builtin(position) pos: vec4f,
   @location(0) uv: vec2f,
 }

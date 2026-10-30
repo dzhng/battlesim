@@ -7,17 +7,17 @@ fn shade(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal
 
 // @block lighting_unlit
 fn unlit(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
-  return unlitAlgorithm(colour, position, eye, data.observer.xyz, data.sun.direction.xyz, data.sun.radiance.xyz, data.sun.fill.xyz, data.sun.settings.y, data.sun.settings.x, data.aerial, sky, pmrem, linear);
+  return unlitAlgorithm(colour, position, eye, data.observer.xyz, data.sun.direction.xyz, data.sun.radiance.xyz, data.sun.fill.xyz, data.sun.settings.y, data.sun.settings.x, data.aerial, sky, pmrem, environmentSampler);
 }
 
 // @block lighting_unlitAlgorithm
-fn unlitAlgorithm(colour: vec3f, worldPosition: vec3f, eye: vec3f, observer: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, shadowFloor: f32, maxMip: f32, air: Aerial, sky: texture_2d<f32>, pmrem: texture_2d<f32>, linear: sampler) -> vec4f {
+fn unlitAlgorithm(colour: vec3f, worldPosition: vec3f, eye: vec3f, observer: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, shadowFloor: f32, maxMip: f32, air: Aerial, sky: texture_2d<f32>, pmrem: texture_2d<f32>, linearSampler: sampler) -> vec4f {
     // What a white matte surface facing the sky returns in sun shadow: the
     // sky's light and the shadow floor's share of the sun's, as shade and
     // standardPbr's diffuse terms have them.
-    let skyLight=samplePmrem(pmrem,linear,vec3f(0.0,0.0,1.0),1.0,maxMip)*environmentIntensity;
+    let skyLight=samplePmrem(pmrem,linearSampler,vec3f(0.0,0.0,1.0),1.0,maxMip)*environmentIntensity;
     let white=sunRadiance*max(sunDirection.z,0.0)*shadowFloor*0.3183098861837907+skyLight;
-    return applyAerial(vec4f(colour*white,1),worldPosition,eye,observer,sunDirection,air,sky,linear);
+    return applyAerial(vec4f(colour*white,1),worldPosition,eye,observer,sunDirection,air,sky,linearSampler);
   }
 
 // @block lighting_Aerial
@@ -83,11 +83,11 @@ fn castAt(p: vec3f) -> vec3f {
   return sum * 0.31830988;
 }
 
-// @block lighting_castLight_alternate
-fn castLight(base: vec3f, normal_1: vec3f, position: vec3f) -> vec3f {
+// @block lighting_castLight
+fn castLight(base: vec3f, surfaceNormal: vec3f, position: vec3f) -> vec3f {
   let count = u32(lights.header.x);
   let wrap = lights.header.y;
-  let n = normalize(normal_1);
+  let n = normalize(surfaceNormal);
   var sum = vec3f();
   for (var i = 0u; (i < count); i++) {
     let toward = (lights.lights[i].position.xyz - position);
@@ -101,39 +101,39 @@ fn castLight(base: vec3f, normal_1: vec3f, position: vec3f) -> vec3f {
     }
   }
   let grey = dot(base, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B));
-  let albedo_1 = max(mix(base, vec3f(grey), 0.35f), vec3f(0.10000000149011612));
-  return (albedo_1 * (sum * 0.3183098861837907f));
+  let diffuseAlbedo = max(mix(base, vec3f(grey), 0.35f), vec3f(0.10000000149011612));
+  return (diffuseAlbedo * (sum * 0.3183098861837907f));
 }
 
 // @block lighting_casts
 @group(0) @binding(6) var<uniform> casts: CastLights;
 
-// @block lighting_data_primary
+// @block lighting_data
 @group(GROUP) @binding(0) var<uniform> data: Environment;
 
 // @block lighting_light
 @group(0) @binding(4) var<uniform> light: Environment;
 
-// @block lighting_lights_primary
+// @block lighting_lights
 @group(GROUP) @binding(1) var<uniform> lights: CastLights;
 
 // @block lighting_lightAlgorithm
-fn lightAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linear: sampler) -> vec3f {
- return standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linear,maxMip,dfg,linear);
+fn lightAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linearSampler: sampler) -> vec3f {
+ return standardPbr(base,emissive,roughness,geomRoughness,metal,ao,normalize(normalWorld),normalize(eye-worldPosition),sunDirection,sunRadiance,shadow,environmentIntensity,pmrem,linearSampler,maxMip,dfg,linearSampler);
  }
 
 // @block lighting_surfaceLight
 fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec3f {
   let sunlight = mix(data.sun.settings.y, 1f, shadow);
-  return lightAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sunlight, eye, data.sun.direction.xyz, data.sun.radiance.xyz, data.sun.fill.xyz, data.sun.settings.x, pmrem, dfg, linear);
+  return lightAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sunlight, eye, data.sun.direction.xyz, data.sun.radiance.xyz, data.sun.fill.xyz, data.sun.settings.x, pmrem, dfg, environmentSampler);
 }
 
 // @block lighting_air
 fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
-  return applyAerial(vec4f(colour, 1f), position, eye, data.observer.xyz, data.sun.direction.xyz, data.aerial, sky, linear);
+  return applyAerial(vec4f(colour, 1f), position, eye, data.observer.xyz, data.sun.direction.xyz, data.aerial, sky, environmentSampler);
 }
 // @block lighting_applyAerial
-fn applyAerial(surface: vec4f, position: vec3f, camera: vec3f, observer: vec3f, sun: vec3f, air: Aerial, lut: texture_2d<f32>, linear: sampler) -> vec4f {
+fn applyAerial(surface: vec4f, position: vec3f, camera: vec3f, observer: vec3f, sun: vec3f, air: Aerial, lut: texture_2d<f32>, linearSampler: sampler) -> vec4f {
     let reach=position-observer;
     let distM=length(reach)/max(1.0,distance(camera,observer)/air.overviewFromM);
     let distKm=max(distM/1000.0-air.clearRadiusKm,0.0);
@@ -143,9 +143,9 @@ fn applyAerial(surface: vec4f, position: vec3f, camera: vec3f, observer: vec3f, 
     let mistWeight=heightMist*farMist;
     let transmit=exp(-(air.extinction*distKm+vec3f(rangeDepth)+vec3f(mistWeight*air.mistOpacity)));
     let view=normalize(position-camera);
-    let viewSky=textureSample(lut,linear,equirectUv(normalize(vec3f(view.xy,max(view.z,4.0000000000000001e-3f))))).rgb;
+    let viewSky=textureSample(lut,linearSampler,equirectUv(normalize(vec3f(view.xy,max(view.z,4.0000000000000001e-3f))))).rgb;
     let horizonView=normalize(vec3f(view.x,view.y,4.0000000000000001e-3f));
-    let horizonSky=textureSample(lut,linear,equirectUv(horizonView)).rgb;
+    let horizonSky=textureSample(lut,linearSampler,equirectUv(horizonView)).rgb;
     let below=smoothstep(air.horizonFade.x,0.0,view.z);
     let above=1.0-smoothstep(0.0,air.horizonFade.y,view.z);
     let sunMie=pow(clamp(dot(view,sun),0.0,1.0),air.sunPower)*air.sunStrength;
@@ -155,7 +155,7 @@ fn applyAerial(surface: vec4f, position: vec3f, camera: vec3f, observer: vec3f, 
   }
 
 // @block lighting_standardPbr
-fn standardPbr(base: vec3f, emissive: vec3f, authoredRoughness: f32, geometryRoughness: f32, metal: f32, ao: f32, n: vec3f, v: vec3f, l: vec3f, sunRadiance: vec3f, shadow: f32, environmentIntensity: vec3f, pmrem: texture_2d<f32>, linear: sampler, maxMip: f32, dfg: texture_2d<f32>, dfgSampler: sampler) -> vec3f {
+fn standardPbr(base: vec3f, emissive: vec3f, authoredRoughness: f32, geometryRoughness: f32, metal: f32, ao: f32, n: vec3f, v: vec3f, l: vec3f, sunRadiance: vec3f, shadow: f32, environmentIntensity: vec3f, pmrem: texture_2d<f32>, linearSampler: sampler, maxMip: f32, dfg: texture_2d<f32>, dfgSampler: sampler) -> vec3f {
   let roughness=min(max(authoredRoughness,0.0525)+geometryRoughness,1.0);
   let nl=clamp(dot(n,l),0.0,1.0);
   let nv=clamp(dot(n,v),0.0,1.0);
@@ -196,8 +196,8 @@ fn standardPbr(base: vec3f, emissive: vec3f, authoredRoughness: f32, geometryRou
   let multiScatter=mix(dielectricMs,metallicMs,metal);
   let diffuse=diffuseContribution*(vec3f(1)-(dielectricSs+dielectricMs));
   let reflected=normalize(mix(reflect(-v,n),n,roughness*roughness*roughness*roughness));
-  let radiance=samplePmrem(pmrem,linear,vec3f(reflected.x,-reflected.y,reflected.z),roughness,maxMip)*environmentIntensity;
-  let iblIrradiance=samplePmrem(pmrem,linear,vec3f(n.x,-n.y,n.z),1.0,maxMip)*3.141592653589793*environmentIntensity;
+  let radiance=samplePmrem(pmrem,linearSampler,vec3f(reflected.x,-reflected.y,reflected.z),roughness,maxMip)*environmentIntensity;
+  let iblIrradiance=samplePmrem(pmrem,linearSampler,vec3f(n.x,-n.y,n.z),1.0,maxMip)*3.141592653589793*environmentIntensity;
   let cosineIrradiance=iblIrradiance*0.3183098861837907;
   let aoSpecular=clamp(ao-(1.0-pow(nv+ao,exp2(-(1.0+16.0*roughness)))),0.0,1.0);
   let indirectSpecular=(radiance*singleScatter+multiScatter*cosineIrradiance)*aoSpecular;

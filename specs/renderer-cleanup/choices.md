@@ -308,3 +308,25 @@ finding that the base build did not render grass the same way twice.
   with the resource owner; ground alias chains and camera/function mangling
   aliases disappear. **Verdict: sound** — one binding vocabulary per domain,
   without new adapters or changes to arithmetic. **Confidence: high.**
+
+- **When:** slice 07 remaining domains. **Choice:** environment, material and
+  scene samplers have distinct resource names. Duplicate declarations that
+  differ by group substitution are named `grouped` or `fixedGroup`; declarations
+  with different binding layouts retain an actual caller's layout name.
+  Lighting normals and diffuse albedo are named locally, without composition
+  aliases. **Gap:** the slice delegated shared-resource vocabulary and names
+  for copies awaiting slice 08. **Reach:** every existing caller binds the
+  same authored names, so no identifier aliases remain. **Verdict: sound** —
+  removes name repair without merging resources or inventing layouts.
+  **Confidence: high.**
+
+- **When:** slice 07 remaining domains. **Choice:** Gaussian blur blocks name
+  their actual radius (5, 9, 13, 17 and 21 texels), and shared stage blocks
+  name the operation they call. Water separates macro normals, bed depth,
+  sun direction and sunlight; display, sprite and effect IO names identify
+  their stage family. Numeric octave/weight constants retain their semantic
+  indices. **Gap:** the slice delegated variant vocabulary and the distinction
+  between mangling and meaningful numeric indices. **Reach:** all extraction
+  suffixes and compiler names disappear while kernels, literals, record
+  members, entry points and discard behavior remain unchanged. **Verdict:
+  sound. Confidence: high.**

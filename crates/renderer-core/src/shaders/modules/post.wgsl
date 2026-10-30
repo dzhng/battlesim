@@ -164,59 +164,59 @@ fn outputSrgb(linear: vec3f) -> vec3f {
 // @block post_source_blurLayout
 @group(0) @binding(1) var source: texture_2d<f32>;
 
-// @block post_step_uniform
-@group(0) @binding(2) var<uniform> step_1: vec2f;
+// @block post_blurStep
+@group(0) @binding(2) var<uniform> blurStep: vec2f;
 
-// @block post_algorithm_alternate
-fn algorithm(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler, step: vec2f) -> vec4f {
+// @block post_gaussianBlur_radius21
+fn blurAlgorithm(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler, sampleStep: vec2f) -> vec4f {
     let weights = array<f32,22>(0.0544009090909091,0.05389745955754261,0.05241489372361353,0.050034020247207635,0.0468813777814855,0.043118099390876144,0.03892630025024841,0.0344945849088966,0.030004265132440738,0.025617653185595862,0.021469402862030917,0.01766138936290091,0.014261133355105735,0.011303358265657105,0.008793974889708197,0.006715637191174865,0.005034003418001028,0.0037039410220253534,0.0026750930659104446,0.0018964351865657352,0.001319657984652459,0.0009013823526604976);
     var color = textureSample(source,linearSampler,uv).rgb*weights[0];
     for(var i = 1; i < 22; i++) {
-      let offset = step*f32(i);
+      let offset = sampleStep*f32(i);
       color += (textureSample(source,linearSampler,uv+offset).rgb+textureSample(source,linearSampler,uv-offset).rgb)*weights[i];
     }
     return vec4f(color,1);
   }
 
-// @block post_algorithm_extended
-fn algorithm(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler, step: vec2f) -> vec4f {
+// @block post_gaussianBlur_radius13
+fn blurAlgorithm(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler, sampleStep: vec2f) -> vec4f {
     let weights = array<f32,14>(0.08548714285714286,0.08354678756262175,0.07798599458785281,0.06952826326819299,0.05920577275680463,0.048153142304813504,0.03740615924103117,0.027753611855987157,0.019667710568697906,0.013312082894952657,0.008605896616157115,0.0053137870025046,0.0031337912693315652,0.001765199910796836);
     var color = textureSample(source,linearSampler,uv).rgb*weights[0];
     for(var i = 1; i < 14; i++) {
-      let offset = step*f32(i);
+      let offset = sampleStep*f32(i);
       color += (textureSample(source,linearSampler,uv+offset).rgb+textureSample(source,linearSampler,uv-offset).rgb)*weights[i];
     }
     return vec4f(color,1);
   }
 
-// @block post_algorithm_layered
-fn algorithm(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler, step: vec2f) -> vec4f {
+// @block post_gaussianBlur_radius17
+fn blurAlgorithm(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler, sampleStep: vec2f) -> vec4f {
     let weights = array<f32,18>(0.06649000000000001,0.06557291119230299,0.06289684508761083,0.058677219052849755,0.05324102991993857,0.04698504399475956,0.040328223564293,0.03366625515093221,0.027334856195822894,0.021586142554656674,0.016579428361602425,0.012385123131260133,0.008998442982402379,0.006358734236915492,0.004370289867713112,0.0029213667166203597,0.0018993201471647547,0.001201009762281257);
     var color = textureSample(source,linearSampler,uv).rgb*weights[0];
     for(var i = 1; i < 18; i++) {
-      let offset = step*f32(i);
+      let offset = sampleStep*f32(i);
       color += (textureSample(source,linearSampler,uv+offset).rgb+textureSample(source,linearSampler,uv-offset).rgb)*weights[i];
     }
     return vec4f(color,1);
   }
 
-// @block post_algorithm_masked
-fn algorithm(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler, step: vec2f) -> vec4f {
+// @block post_gaussianBlur_radius9
+fn blurAlgorithm(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler, sampleStep: vec2f) -> vec4f {
     let weights = array<f32,10>(0.119682,0.11441569062074908,0.09996680944212386,0.07982511867716392,0.05825548349780134,0.03885505659838202,0.023684912103725177,0.013195003369491407,0.006718320685514796,0.0031262625741366435);
     var color = textureSample(source,linearSampler,uv).rgb*weights[0];
     for(var i = 1; i < 10; i++) {
-      let offset = step*f32(i);
+      let offset = sampleStep*f32(i);
       color += (textureSample(source,linearSampler,uv+offset).rgb+textureSample(source,linearSampler,uv-offset).rgb)*weights[i];
     }
     return vec4f(color,1);
   }
 
-// @block post_algorithm_primary
-fn algorithm(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler, step: vec2f) -> vec4f {
+// @block post_gaussianBlur_radius5
+fn blurAlgorithm(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler, sampleStep: vec2f) -> vec4f {
     let weights = array<f32,6>(0.19947,0.17603165715854927,0.12098467069287899,0.06475842766397003,0.026995328947207138,0.008764100149861079);
     var color = textureSample(source,linearSampler,uv).rgb*weights[0];
     for(var i = 1; i < 6; i++) {
-      let offset = step*f32(i);
+      let offset = sampleStep*f32(i);
       color += (textureSample(source,linearSampler,uv+offset).rgb+textureSample(source,linearSampler,uv-offset).rgb)*weights[i];
     }
     return vec4f(color,1);
@@ -232,6 +232,6 @@ fn rawShader(uv: vec2f) -> vec4f {
 }
 
 // @block post_shader
-fn shader(uv: vec2f) -> vec4f {
-  return algorithm(uv, source, linearSampler, step_1);
+fn blurShader(uv: vec2f) -> vec4f {
+  return blurAlgorithm(uv, source, linearSampler, blurStep);
 }

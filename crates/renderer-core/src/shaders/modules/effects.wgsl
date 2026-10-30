@@ -89,7 +89,7 @@ fn paintGlow(paint: vec4f) -> vec3f {
   return paintColour(paint) * paintStyle.emissive * paint.w;
 }
 
-// @block effects_paint_primary
+// @block effects_paint
 @group(2) @binding(7) var paint: texture_2d<f32>;
 
 // @block effects_paintedAlbedo
@@ -133,7 +133,7 @@ fn paintedSeen(seen: f32, paint: vec4f) -> f32 {
  *  toward the eye, strongest looking into it (Henyey-Greenstein, relative to
  *  isotropic): backlit dust and smoke glow rather than going dark. Plus the
  *  sky's light, more from above. */
-fn smokeLight(f: Out, o: vec2f) -> vec3f {
+fn smokeLight(f: SpriteVertexOutput, o: vec2f) -> vec3f {
   let n = normalize(vec3f(o, sqrt(max(0.0, 1.0 - dot(o, o))) + 0.3));
   let wrap = clamp((dot(n, f.sun) + 0.3) / 1.3, 0.0, 1.0);
   let g = 0.4;
@@ -248,5 +248,5 @@ fn groundPaintAtPixel(pixel: vec2f) -> vec4f {
   return vec4f(p.xyz * 2, p.w);
 }
 
-// @block effects_paintStyle_primary
+// @block effects_paintStyle
 @group(2) @binding(6) var<uniform> paintStyle: GroundPaintStyle;

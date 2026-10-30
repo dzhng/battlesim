@@ -1,7 +1,7 @@
 // WGSL owner: passes_terrain.
 
-// @block passes_terrain_Out
-struct Out {
+// @block passes_terrain_SpriteVertexOutput
+struct SpriteVertexOutput {
   @builtin(position) pos: vec4f,
   @location(0) uv: vec2f,
   @location(1) color: vec4f,
@@ -24,19 +24,19 @@ struct Out {
 };
 
 // @block passes_terrain_fragment
-@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
-  return backgroundColor(_arg_0.uv);
+@fragment fn fragment(input: ScreenFragmentInput) -> @location(0) vec4f {
+  return backgroundColor(input.uv);
 }
 
 // @block passes_terrain_vs
-@vertex fn vs(v: In) -> Out {
+@vertex fn vs(v: SpriteVertexInput) -> SpriteVertexOutput {
   var corners = array<vec2f, 6>(
     vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0),
     vec2f(-1.0, -1.0), vec2f(1.0, 1.0), vec2f(-1.0, 1.0));
   let c = corners[v.vi];
   let half = vec2f(cam.width, cam.height) * 0.5;
   let s = projScale();
-  var out: Out;
+  var out: SpriteVertexOutput;
   out.uv = c;
   out.color = v.color;
   out.misc = v.misc;
@@ -190,8 +190,8 @@ struct Out {
   }
   return out;
 }
-// @block passes_terrain_In
-struct In {
+// @block passes_terrain_SpriteVertexInput
+struct SpriteVertexInput {
   @builtin(vertex_index) vi: u32,
   @location(0) a: vec4f,
   @location(1) b: vec4f,
@@ -215,8 +215,8 @@ struct In {
 }
 
 // @block passes_terrain_waterNormalsBake_fragment
-@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
-  return waterNormalsSlope(fract(_arg_0.uv));
+@fragment fn fragment(input: ScreenFragmentInput) -> @location(0) vec4f {
+  return waterNormalsSlope(fract(input.uv));
 }
 
 // @block passes_terrain_waveStep_fragment

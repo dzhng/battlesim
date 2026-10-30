@@ -17,11 +17,11 @@ struct WorldFragmentInput {
   }
   let surface = groundAlbedo(input.world, input.color, cell, groundPaved(input.world.xy, cell));
   let up = normalize(input.normal);
-  let paint_1 = groundPaint(input.world);
-  let albedo = paintedAlbedo(surface.xyz, paint_1);
+  let paintSample = groundPaint(input.world);
+  let albedo = paintedAlbedo(surface.xyz, paintSample);
   let lit = shade(albedo, vec3f(), surface.w, 0f, 0f, 1f, up, input.world, 1f, (*eye));
   let seen = fogTerm(input.world, up, clip.xy, fogIsGround());
-  return BackdropColorFog(vec4f((lit.xyz + paintGlow(paint_1)), 1f), fogCoverage(paintedSeen(seen, paint_1), 1f));
+  return BackdropColorFog(vec4f((lit.xyz + paintGlow(paintSample)), 1f), fogCoverage(paintedSeen(seen, paintSample), 1f));
 }
 
 // @block passes_fog_backdropFragment_foliage
@@ -34,8 +34,8 @@ struct WorldFragmentInput {
 @fragment fn forestFragment(input: FoliageFragmentInput, @builtin(position) clip: vec4f) -> FoliageColorFog {
   let n = normalize(input.normal);
   let seen = fogTerm(input.heart, vec3f(), clip.xy, false);
-  let sun_1 = sampleSunShadow(input.world, n, clip.xy);
-  let lit = surface(input.world, input.normal, input.color, input.local, sun_1);
+  let sunlight = sampleSunShadow(input.world, n, clip.xy);
+  let lit = surface(input.world, input.normal, input.color, input.local, sunlight);
   return FoliageColorFog(vec4f(lit, 1f), fogCoverage(seen, 1f));
 }
 
@@ -50,15 +50,15 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
     n = -(n);
   }
   let shading = normalize(mix(n, up, input.ground));
-  let sun_1 = sampleSunShadow(input.world, up, clip.xy);
+  let sunlight = sampleSunShadow(input.world, up, clip.xy);
   let under = groundPaint(vec3f(input.world.x, input.world.y, input.root.z));
   let here = groundPaintAtPixel(clip.xy);
-  let lit = shade(input.albedo, vec3f(), GRASS_BLADE_ROUGHNESS, 0f, 0f, 1f, shading, input.world, sun_1, (*eye));
+  let lit = shade(input.albedo, vec3f(), GRASS_BLADE_ROUGHNESS, 0f, 0f, 1f, shading, input.world, sunlight, (*eye));
   return GrassColorFog(vec4f((lit.xyz + max(grassPaintGlow(under, (input.world.z - input.root.z)), grassPaintGlow(here, 0f))), 1f), fogCoverage(seen, 1f));
 }
 
 // @block passes_fog_fs
-@fragment fn fs(f: Out) -> Frag {
+@fragment fn fs(f: SpriteVertexOutput) -> SpriteColorFog {
   // Derivatives first, in uniform control flow.
   let tuv = clamp(vec2f(f.uv.x, -f.uv.y) * 0.5 + 0.5, vec2f(0.004), vec2f(0.996));
   let gx = dpdx(tuv);
@@ -166,7 +166,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   }
   // A shadow is ground: it leaves the fog mask as it is.
   let strength = select(clamp(alpha + max(rgb.r, max(rgb.g, rgb.b)) * 0.25, 0.0, 1.0), 0.0, shape == 4u);
-  var out: Frag;
+  var out: SpriteColorFog;
   out.color = vec4f(rgb, alpha);
   out.fog = vec4f(0.0, 0.0, 0.0, strength);
   return out;
@@ -312,8 +312,8 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
 
 // @block passes_fog_modelCards
 @fragment fn item(input: CardFragmentInput, @builtin(position) clip: vec4f) -> ModelColorFog {
-  let baseColor = textureSample(albedo, linear, input.uv, input.layer);
-  let packed = textureSample(normal, linear, input.uv, input.layer);
+  let baseColor = textureSample(albedo, materialSampler, input.uv, input.layer);
+  let packed = textureSample(normal, materialSampler, input.uv, input.layer);
   if ((baseColor.w < 0.5f)) {
     discard;;
   }
@@ -445,11 +445,11 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   let shading = normalize(mix(ground, scarredNormal(ground, scar), biome));
   let water = groundWater(input.world.xy, cell);
   let dry = (1f - smoothstep((-(footprint) * 0.5f), (footprint * 0.5f), water));
-  let paint_1 = (groundPaint(input.world) * dry);
+  let paintSample = (groundPaint(input.world) * dry);
   let flecks = groundDapple(input.world.xy, footprint, cell);
-  let sun_1 = max(sampleSunShadow(input.world, n, clip.xy), flecks);
-  let lit = shade(paintedAlbedo(surface.xyz, paint_1), vec3f(), surface.w, 0f, 0f, 1f, shading, input.world, sun_1, (*eye));
-  return TerrainColorFog(vec4f((lit.xyz + paintGlow(paint_1)), 1f), fogCoverage(paintedSeen(seen, paint_1), 1f));
+  let sunlight = max(sampleSunShadow(input.world, n, clip.xy), flecks);
+  let lit = shade(paintedAlbedo(surface.xyz, paintSample), vec3f(), surface.w, 0f, 0f, 1f, shading, input.world, sunlight, (*eye));
+  return TerrainColorFog(vec4f((lit.xyz + paintGlow(paintSample)), 1f), fogCoverage(paintedSeen(seen, paintSample), 1f));
 }
 
 // @block passes_fog_terrainMarch
@@ -514,24 +514,24 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   let w = (&terrainParams.waterLooks[look]);
   let still = select(waterNormal(input.world.xy, footprint, look), vec3f(0, 0, 1), (input.color.w > 0f));
   let n = waveNormal(input.world.xy, still);
-  let sun_1 = sampleSunShadow(input.world, n, clip.xy);
-  let paint_1 = groundPaint(input.world);
+  let sunlight = sampleSunShadow(input.world, n, clip.xy);
+  let paintSample = groundPaint(input.world);
   let puddle = (input.color.w > 0f);
   let middle = (length((input.world.xy - input.color.yz)) / max(input.color.w, 1e-4f));
   let up = max(normalize(((*eye) - input.world)).z, 0.2f);
   let shaped = (((*w).fades.w * max((1f - (middle * middle)), 0f)) / up);
-  let depth_1 = select(waterDepth(clip, input.world), shaped, puddle);
-  let bed = waterUnder(clip, input.world, n, depth_1, look);
-  let through = exp(((*w).surface.xyz * -(select(bed.w, depth_1, puddle))));
-  let lit = (bed.xyz * (1f + (waterCaustics(input.world, depth_1, footprint, look) * sun_1)));
+  let waterDepthM = select(waterDepth(clip, input.world), shaped, puddle);
+  let bed = waterUnder(clip, input.world, n, waterDepthM, look);
+  let through = exp(((*w).surface.xyz * -(select(bed.w, waterDepthM, puddle))));
+  let lit = (bed.xyz * (1f + (waterCaustics(input.world, waterDepthM, footprint, look) * sunlight)));
   let body = mix((*w).edge.xyz, (*w).channel.xyz, (1f - dot(through, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B))));
-  let reflected = waterReflection(n, input.world, sun_1, (*eye), look);
-  let dry = surfaceLight(vec3f(), vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, input.world, sun_1, (*eye));
-  let own = (surfaceLight(body, vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, input.world, sun_1, (*eye)) - dry);
-  let mark = surfaceLight(paintedAlbedo(body, (paint_1 / max(paint_1.w, 1e-4f))), vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, input.world, sun_1, (*eye));
+  let reflected = waterReflection(n, input.world, sunlight, (*eye), look);
+  let dry = surfaceLight(vec3f(), vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, input.world, sunlight, (*eye));
+  let own = (surfaceLight(body, vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, input.world, sunlight, (*eye)) - dry);
+  let mark = surfaceLight(paintedAlbedo(body, (paintSample / max(paintSample.w, 1e-4f))), vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, input.world, sunlight, (*eye));
   let water = ((own * (vec3f(1) - through)) + reflected);
   let seenUp = (through * waterTransmission(n, normalize(((*eye) - input.world))));
-  let shadowed = mix((*w).surface.w, 1f, sun_1);
+  let shadowed = mix((*w).surface.w, 1f, sunlight);
   let surfaceInAir = air((water * shadowed), input.world, (*eye)).xyz;
   let bedAir = (air(vec3f(), input.world, (*eye)).xyz * seenUp);
   let wet = ((surfaceInAir - bedAir) + (lit * seenUp));
@@ -540,12 +540,12 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   let fade = max((*w).fades.x, ((pixel * 3f) / facing));
   let rim = ((1f - middle) * input.color.w);
   let ring = max((input.color.w / 6f), (pixel * 1.5f));
-  let fill = select((depth_1 / fade), (rim / ring), puddle);
+  let fill = select((waterDepthM / fade), (rim / ring), puddle);
   let edge = smoothstep(0f, 1f, clamp(fill, 0f, 1f));
-  let marked = (air((mark * shadowed), input.world, (*eye)).xyz * paint_1.w);
-  let cover = (paint_1.w + (edge * (1f - paint_1.w)));
-  let colour = (((marked + paintGlow(paint_1)) + (wet * (edge * (1f - paint_1.w)))) / max(cover, 1e-4f));
-  let seen = paintedSeen(fogTerm(input.world, n, clip.xy, fogIsGround()), paint_1);
+  let marked = (air((mark * shadowed), input.world, (*eye)).xyz * paintSample.w);
+  let cover = (paintSample.w + (edge * (1f - paintSample.w)));
+  let colour = (((marked + paintGlow(paintSample)) + (wet * (edge * (1f - paintSample.w)))) / max(cover, 1e-4f));
+  let seen = paintedSeen(fogTerm(input.world, n, clip.xy, fogIsGround()), paintSample);
   return WaterColorFog(vec4f(colour, cover), fogCoverage(seen, cover));
 }
 
@@ -621,8 +621,8 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
     n = -(n);
   }
   let albedo = srgbToLinear(input.color.xyz);
-  let sun_1 = sampleSunShadow(input.world, n, clip.xy);
-  let lit = shade(albedo, vec3f(), 0.85f, 0f, 0f, 1f, n, input.world, sun_1, (*eye));
+  let sunlight = sampleSunShadow(input.world, n, clip.xy);
+  let lit = shade(albedo, vec3f(), 0.85f, 0f, 0f, 1f, n, input.world, sunlight, (*eye));
   let glow = highlightGlow(input.highlight);
   let seen = fogTerm(input.world, n, clip.xy, fogIsGround());
   return WorldColorFog(vec4f((lit.xyz + glow), input.color.w), fogCoverage(seen, input.color.w));

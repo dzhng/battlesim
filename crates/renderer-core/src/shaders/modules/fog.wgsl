@@ -189,8 +189,8 @@ struct FogProbe {
   pad: u32,
 }
 
-// @block fog_Frag
-struct Frag {
+// @block fog_SpriteColorFog
+struct SpriteColorFog {
   @location(0) color: vec4f,
   @location(1) fog: vec4f,
 };
@@ -207,7 +207,7 @@ struct BackdropColorFog {
 // @block fog_eyes_buildLayout
 @group(0) @binding(1) var<storage, read> eyes: array<FogEye>;
 
-// @block fog_eyes_worldLayout
+// @block fog_eyes_fogLayout
 @group(GROUP) @binding(2) var<storage, read> eyes: array<FogEye>;
 
 // @block fog_fogBinEdge
@@ -317,10 +317,10 @@ struct ModelColorFog {
   @location(1) fog: vec4f,
 }
 
-// @block fog_layer_modelLayout
+// @block fog_layer_fixedGroup
 @group(2) @binding(1) var<uniform> layer: FogLayer;
 
-// @block fog_layer_worldLayout
+// @block fog_layer_grouped
 @group(GROUP) @binding(1) var<uniform> layer: FogLayer;
 
 // @block fog_LitModelColorFog
@@ -340,10 +340,10 @@ fn modelSeen(world: vec3f, normal: vec3f, anchor: vec3f, pixel: vec2f) -> f32 {
 // @block fog_occluders
 @group(0) @binding(4) var<storage, read> occluders: array<FogBox>;
 
-// @block fog_params_modelLayout
+// @block fog_params_fixedGroup
 @group(2) @binding(0) var<uniform> fogParams: FogParams;
 
-// @block fog_params_worldLayout
+// @block fog_params_grouped
 @group(GROUP) @binding(0) var<uniform> fogParams: FogParams;
 
 // @block fog_points
@@ -376,7 +376,7 @@ struct WorldColorFog {
   @location(1) fog: vec4f,
 }
 
-// @block fog_counts_worldLayout
+// @block fog_counts_fogLayout
 @group(GROUP) @binding(5) var<storage, read> counts: array<u32>;
 
 // @block fog_counts_cullLayout
@@ -403,7 +403,7 @@ var<workgroup> cullLo: array<atomic<i32>, 2>;
 // @block fog_lists_cullLayout
 @group(0) @binding(3) var<storage, read_write> lists: array<u32>;
 
-// @block fog_lists_worldLayout
+// @block fog_lists_fogLayout
 @group(GROUP) @binding(4) var<storage, read> lists: array<u32>;
 
 // @block fog_maps_buildLayout
