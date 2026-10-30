@@ -329,10 +329,8 @@ export async function roundsTour(ctx) {
           const response = await route.fetch();
           const snapshot = await response.json();
           const rules = snapshot.documents.find((d) => d.path === "fixtures/rules.json").value;
-          // Development startup installs this generation over imported fixtures.
-          // Hull flashes still follow the first ammunition row until slice 12.
-          for (const rows of [rules.weapons, snapshot.rules.weapons])
-            for (const id of ["tank_ap", "tank_he"]) rows[id].appearance = kind;
+          // Development startup installs the authored rules document.
+          for (const id of ["tank_ap", "tank_he"]) rules.weapons[id].appearance = kind;
           await route.fulfill({ response, json: snapshot });
         });
         return p;
