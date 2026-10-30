@@ -8,13 +8,15 @@ use serde::Deserialize;
 use std::{collections::HashMap, sync::Arc};
 /// A battle's sound as a player builds it, JSON: `audio.json`, the
 /// sound catalog, the game's weapon rows, the presentation document and the
-/// tick rate. Smoke and cook-off timings come from `presentation.effects`.
+/// tick rate, with the resolved unit catalog's mounts. Smoke and cook-off
+/// timings come from `presentation.effects`.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Setup {
     audio: serde_json::Value,
     catalog: serde_json::Value,
     weapons: serde_json::Value,
+    unit_catalog: serde_json::Value,
     presentation: serde_json::Value,
     tick_hz: f64,
 }
@@ -35,6 +37,7 @@ impl Sound {
             &setup.presentation,
             &setup.weapons,
         )?;
+        tables.looks.check_mounts(&setup.unit_catalog)?;
         let effects: Timings =
             crate::settings::read(&setup.presentation["effects"], "presentation.effects")?;
         effects.cook_off.validate()?;

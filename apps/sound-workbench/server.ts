@@ -39,6 +39,7 @@ export class SoundWorkbenchStore {
       audio: string,
       catalog: SoundCatalog,
       weapons: string,
+      unitCatalog: string,
     ) => void,
   ) {
     this.publication = new FixturePublication(
@@ -50,14 +51,20 @@ export class SoundWorkbenchStore {
 
   private async inputs(): Promise<Inputs> {
     const texts = await Promise.all(
-      ["sounds", "rules", "presentation", "audio"].map((name) =>
+      ["sounds", "rules", "presentation", "audio", "catalog"].map((name) =>
         readFile(join(this.root, `fixtures/${name}.json`), "utf8"),
       ),
     );
     let catalog: SoundCatalog;
     try {
       catalog = this.validateCatalog(JSON.parse(texts[0]));
-      this.admitSettings(texts[2], texts[3], catalog, JSON.stringify(JSON.parse(texts[1]).weapons));
+      this.admitSettings(
+        texts[2],
+        texts[3],
+        catalog,
+        JSON.stringify(JSON.parse(texts[1]).weapons),
+        texts[4],
+      );
     } catch (error) {
       throw new WorkbenchError(error instanceof Error ? error.message : String(error));
     }
@@ -117,6 +124,7 @@ export class SoundWorkbenchStore {
         input.texts[3],
         catalog,
         JSON.stringify(JSON.parse(input.texts[1]).weapons),
+        input.texts[4],
       );
     } catch (error) {
       throw new WorkbenchError(error instanceof Error ? error.message : String(error));
@@ -260,13 +268,14 @@ export function soundWorkbenchPlugin(root: string): Plugin {
                   root,
                   catalog.validateSoundCatalog,
                   Object.keys(synth.SOUNDS),
-                  (presentation, audio, library, weapons) => {
+                  (presentation, audio, library, weapons, unitCatalog) => {
                     admission.check_presentation(presentation);
                     admission.check_battle_sounds(
                       presentation,
                       audio,
                       JSON.stringify(library),
                       weapons,
+                      unitCatalog,
                     );
                   },
                 ),

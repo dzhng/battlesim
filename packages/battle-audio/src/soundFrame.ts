@@ -198,6 +198,8 @@ export interface SoundFrameOptions {
   /** The battle's weapon rows, whose appearances name admitted looks. */
   weapons: Record<string, object>;
   looks: object;
+  /** The resolved unit and soldier mounts admitted with these weapon rows. */
+  unitCatalog: object;
 }
 
 type Command =
@@ -236,6 +238,7 @@ const rustFrame = (o: SoundFrameOptions) =>
       audio: o.presentation,
       catalog: o.catalog,
       weapons: o.weapons,
+      unit_catalog: o.unitCatalog,
       presentation: o.looks,
       tick_hz: o.tickHz,
     }),

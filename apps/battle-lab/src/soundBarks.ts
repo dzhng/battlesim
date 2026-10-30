@@ -9,6 +9,7 @@
 //
 // It also samples what loading voice packs costs a battle: how long a fresh
 // battle's sounds take to be ready, with packs served and without.
+import { catalogSet } from "@web/battle/catalog/sets";
 import { audioMix } from "@web/audioMix";
 import { shippedRules } from "@web/shippedRules";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
@@ -172,7 +173,7 @@ export async function sampleReady(packs: boolean): Promise<ReadySample> {
   const app = new AppAudio({ presentation: audioMix, catalog: gameSounds });
   try {
     const started = performance.now();
-    const sound = (battle = createBattleAudio(HZ, app, 0, shippedRules.weapons));
+    const sound = (battle = createBattleAudio(app, 0, await catalogSet("test")));
     sound.speakers({ own: { [KIND]: SET }, enemy: {} });
     sound.loadVoices([SET]);
     while (sound.stats()?.loading !== false) {

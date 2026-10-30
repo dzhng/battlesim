@@ -9,8 +9,36 @@ fn setup() -> Value {
         "catalog": fixture(include_str!("../../../fixtures/sounds.json")),
         "weapons": fixture(include_str!("../../../fixtures/rules.json"))["weapons"],
         "presentation": fixture(include_str!("../../../fixtures/presentation.json")),
+        "unit_catalog": {"units": [], "soldiers": {}},
         "tick_hz": 30
     })
+}
+
+#[test]
+fn sound_refuses_a_mounted_blast_only_weapon_by_name() {
+    let mut setup = setup();
+    setup["weapons"]["ambient_blast"] = json!({
+        "extends": "tank_he", "name": "Ambient blast", "appearance": "blast_only"
+    });
+    let look = &setup["presentation"]["weapon_looks"]["tank_he"];
+    setup["presentation"]["weapon_looks"]["blast_only"] = json!({
+        "blast": look["blast"], "sound": {"blast": look["sound"]["blast"]}
+    });
+    // The same row is valid until a unit or soldier mounts it.
+    Sound::from_json(&setup.to_string()).unwrap();
+    for catalog in [
+        json!({"units": [{"mounts": [{"weapons": ["tank_ap", "ambient_blast"]}]}]}),
+        json!({"units": [], "soldiers": {"gunner": {"mounts": [{"weapons": ["ambient_blast"]}]}}}),
+    ] {
+        setup["unit_catalog"] = catalog;
+        let error = Sound::from_json(&setup.to_string())
+            .err()
+            .expect("a mounted blast-only look cannot fire");
+        assert!(
+            error.contains("weapons.ambient_blast.appearance: missing firing tracer"),
+            "{error}"
+        );
+    }
 }
 
 #[test]

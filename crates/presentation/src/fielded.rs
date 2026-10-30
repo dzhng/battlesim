@@ -97,28 +97,7 @@ impl Fielding<'_> {
             presentation.weapon_looks.clone(),
             &self.rules["weapons"],
         )?;
-        for row in self.catalog["units"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .chain(
-                self.catalog["soldiers"]
-                    .as_object()
-                    .into_iter()
-                    .flat_map(|s| s.values()),
-            )
-        {
-            for mount in row["mounts"].as_array().into_iter().flatten() {
-                for weapon in mount["weapons"]
-                    .as_array()
-                    .into_iter()
-                    .flatten()
-                    .filter_map(Value::as_str)
-                {
-                    looks.get(weapon).check_firing(weapon)?;
-                }
-            }
-        }
+        looks.check_mounts(self.catalog)?;
         let art = Art {
             read,
             ..Art::new(self.runtime, &catalog, self.kinds, self.factions)?

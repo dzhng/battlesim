@@ -279,6 +279,31 @@ fn fielding_names_the_weapon_when_its_look_lacks_a_required_part() {
 }
 
 #[test]
+fn an_unmounted_weapon_may_have_only_blast_parts_whatever_its_name() {
+    let mut rules = sim::fixtures::test_rules();
+    rules["weapons"]["environment_blast"] = json!({
+        "extends": "tank_he", "name": "Ambient blast", "appearance": "blast_only"
+    });
+    let mut settings = fixture("presentation");
+    let original = &settings["weapon_looks"]["tank_he"];
+    settings["weapon_looks"]["blast_only"] = json!({
+        "blast": original["blast"], "sound": {"blast": original["sound"]["blast"]}
+    });
+    let rules: contract::scenario::Rules = serde_json::from_value(rules).unwrap();
+    let catalog = rules.catalog.view();
+    presentation::fielded::Fielding {
+        presentation: &settings,
+        rules: &serde_json::to_value(rules).unwrap(),
+        catalog: &catalog,
+        runtime: &json!({}),
+        kinds: &[],
+        factions: None,
+    }
+    .resolve(&|_| panic!("no units need assets"))
+    .unwrap();
+}
+
+#[test]
 fn a_crash_look_needs_no_firing_parts() {
     let mut settings = fixture("presentation");
     let original = settings["weapon_looks"]["helicopter_crash"].clone();

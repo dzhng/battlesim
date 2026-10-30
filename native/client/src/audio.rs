@@ -180,7 +180,7 @@ pub struct Audio {
 
 /// The game's sound setup, as the browser builds it (`soundFeed.ts`):
 /// `audio.json`, the sound catalog, the weapon rows, the tick rate,
-/// and the presentation document.
+/// the presentation document and the resolved unit catalog.
 pub fn setup(
     rules: &contract::scenario::Rules,
     presentation: &Value,
@@ -193,6 +193,7 @@ pub fn setup(
         "presentation": presentation,
         "catalog": catalog,
         "weapons": rules.weapons,
+        "unit_catalog": rules.catalog.view(),
         "tick_hz": rules.tick_hz,
     })
     .to_string())

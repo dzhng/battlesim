@@ -20,6 +20,69 @@ fn fixture(root: &Path, name: &str) -> Value {
 }
 
 #[test]
+fn native_fielding_and_sound_require_firing_parts_from_mounts() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let base: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
+    let mut settings = fixture(&root, "presentation");
+    let look = &settings["weapon_looks"]["tank_he"];
+    settings["weapon_looks"]["blast_only"] = json!({
+        "blast": look["blast"], "sound": {"blast": look["sound"]["blast"]}
+    });
+    let scratch = std::env::temp_dir().join(format!("native-firing-parts-{}", std::process::id()));
+    std::fs::create_dir_all(scratch.join("fixtures")).unwrap();
+    std::fs::create_dir_all(scratch.join("assets/runtime")).unwrap();
+    std::fs::write(
+        scratch.join("fixtures/presentation.json"),
+        settings.to_string(),
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("assets/runtime/catalog.json"),
+        json!({"sides": {"blue": [0, 0, 1], "red": [1, 0, 0]}}).to_string(),
+    )
+    .unwrap();
+    let mut results = Vec::new();
+    for weapons in [
+        json!([]),
+        json!(["ambient_blast"]),
+        json!(["tank_ap", "ambient_blast"]),
+    ] {
+        let rules = base.clone().overridden(json!({
+            "weapons": {"ambient_blast": {"extends": "tank_he", "name": "Ambient blast", "appearance": "blast_only"}},
+            "units": {"test_tank": {"mounts": [{"id": "cannon", "weapons": weapons}]}}
+        }).as_object().unwrap()).unwrap();
+        let visual = fielded::fielded(&scratch, &rules, &[]).err();
+        let setup = audio::setup(
+            &rules,
+            &settings,
+            &fixture(&root, "audio"),
+            &fixture(&root, "sounds"),
+        )
+        .unwrap();
+        let sound = Sound::from_json(&setup).err();
+        results.push((visual, sound));
+    }
+    std::fs::remove_dir_all(scratch).unwrap();
+    let (visual, sound) = &results[0];
+    assert!(
+        visual.is_none() && sound.is_none(),
+        "unmounted: {visual:?}, {sound:?}"
+    );
+    for (visual, sound) in &results[1..] {
+        for result in [visual, sound] {
+            let error = result
+                .as_ref()
+                .expect("mounted blast-only weapon was admitted");
+            assert!(
+                error.contains("weapons.ambient_blast.appearance: missing firing tracer"),
+                "{error}"
+            );
+        }
+    }
+}
+
+#[test]
 fn consecutive_battles_present_their_encounters_rules() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let base = presentation::static_world::files::rules(&root, "air").unwrap();

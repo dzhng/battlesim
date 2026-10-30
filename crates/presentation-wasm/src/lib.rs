@@ -803,21 +803,26 @@ pub fn check_audio_mix(text: &str, catalog: Option<String>) -> Result<(), JsErro
     Ok(())
 }
 
-/// Admit library drafts against the same mix, looks and resolved weapon rows as a battle.
+/// Admit library drafts against a battle's mix, looks, weapon rows and catalog mounts.
 #[wasm_bindgen]
 pub fn check_battle_sounds(
     presentation: &str,
     audio: &str,
     catalog: &str,
     weapons: &str,
+    unit_catalog: &str,
 ) -> Result<(), JsError> {
-    presentation::sound::tables::SoundTables::from_parts(
+    let tables = presentation::sound::tables::SoundTables::from_parts(
         serde_json::from_str(audio).map_err(error)?,
         serde_json::from_str(catalog).map_err(error)?,
         &serde_json::from_str(presentation).map_err(error)?,
         &serde_json::from_str(weapons).map_err(error)?,
     )
     .map_err(error)?;
+    tables
+        .looks
+        .check_mounts(&serde_json::from_str(unit_catalog).map_err(error)?)
+        .map_err(error)?;
     Ok(())
 }
 

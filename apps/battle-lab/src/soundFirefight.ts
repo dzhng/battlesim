@@ -1,3 +1,4 @@
+import { catalogSet } from "@web/battle/catalog/sets";
 import { audioMix } from "@web/audioMix";
 // A scripted firefight for the sound lab: eight seconds of publications,
 // drawn motion and hearing cues, as a battle would feed them, rendered
@@ -401,6 +402,7 @@ export async function offlineSound(
     presentation,
     catalog,
     weapons: shippedRules.weapons,
+    unitCatalog: (await catalogSet("test")).units.view,
     looks: presentationSettings,
   };
   await loadPresentation();

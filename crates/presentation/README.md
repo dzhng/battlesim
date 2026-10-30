@@ -149,6 +149,12 @@ calls the same reader for workbench drafts.
   the commands recorded over the sound lab's firefight, and `tests/voices.rs`
   to the lines recorded scripts start and drop.
 
+Weapon appearance admission follows use: [the look reader](src/looks.rs) checks
+blast and motor needs from each row's physics, while fielding and sound admission
+require firing parts for every weapon a catalog unit or soldier mounts.
+Unmounted rows may describe only a blast. Sound setup carries the resolved
+unit catalog so it enforces the same rule before preparing voices.
+
 ## How a battle looks
 
 Soldier poses follow actual published soldiers rather than formation slots. A

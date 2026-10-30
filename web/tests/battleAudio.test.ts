@@ -172,6 +172,7 @@ function setupDecode(
     {
       tickHz: 30,
       weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
       looks: pendingLooks,
       presentation: audioMix as unknown as AudioMix,
     },
@@ -248,6 +249,7 @@ test("a departed battle cannot admit late decoding and its replacement shares th
     {
       tickHz: 30,
       weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
       looks: pendingLooks,
       presentation: audioMix as unknown as AudioMix,
     },

@@ -276,6 +276,7 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
     {
       tickHz: 30,
       weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
       looks: presentationSettings,
       presentation,
     },
@@ -299,6 +300,7 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
     {
       tickHz: 30,
       weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
       looks: presentationSettings,
       presentation,
     },
@@ -324,6 +326,7 @@ test("changing master volume preserves battle evidence, while mute and unmute di
     {
       tickHz: 30,
       weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
       looks: presentationSettings,
       presentation,
     },
@@ -359,6 +362,7 @@ test("a blocked early attempt resumes on menu input and the bed lasts until batt
     {
       tickHz: 30,
       weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
       looks: presentationSettings,
       presentation,
     },
@@ -403,6 +407,7 @@ test("repeated battle visits return every audio connection to the menu baseline"
       {
         tickHz: 30,
         weapons: shippedRules.weapons,
+        unitCatalog: { units: [], soldiers: {} },
         looks: presentationSettings,
         presentation,
       },
@@ -464,6 +469,7 @@ test("resuming a browser-suspended context starts battle sound from fresh eviden
     {
       tickHz: 30,
       weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
       looks: presentationSettings,
       presentation,
     },
@@ -523,6 +529,7 @@ test("a battle's score shuffles by the battle's own seed", async () => {
       {
         tickHz: 30,
         weapons: shippedRules.weapons,
+        unitCatalog: { units: [], soldiers: {} },
         looks: presentationSettings,
         presentation,
       },

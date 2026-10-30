@@ -1,3 +1,5 @@
+import { audioMix } from "@web/audioMix";
+import { shippedRules } from "@web/shippedRules";
 import { gunzipSync } from "node:zlib";
 // @vitest-environment node
 import { readFileSync } from "node:fs";
@@ -8,14 +10,59 @@ import { composeScenarioCatalog } from "@web/battle/catalog/compose";
 import { resolveCatalogSet } from "@web/battle/catalog/sets";
 import { presentationSettings } from "@web/presentationSettings";
 import { createBattleAudio } from "@apps/battle-lab/src/soundFeed";
-import { Fielding, Presentation } from "@wasm/renderer_browser";
-import { SoundFrame } from "@packages/battle-audio/src/soundFrame";
+import { Fielding, Presentation, weapon_looks } from "@wasm/renderer_browser";
+import {
+  SoundFrame,
+  battleSounds,
+  type SoundFrameOptions,
+} from "@packages/battle-audio/src/soundFrame";
 import type { AppAudio } from "@packages/battle-audio/src/appAudio";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import { FakeSink } from "./support/soundSink";
 import { ghostAloft } from "@apps/battle-lab/src/unitGhosts";
 
 const runtime = new URL("../../assets/runtime/", import.meta.url);
+
+test("wasm fielding admits an unmounted blast-only row and refuses mounted copies by name", async () => {
+  await loadPresentation();
+  const original = presentationSettings.weapon_looks.tank_he;
+  const settings = JSON.stringify({
+    ...presentationSettings,
+    weapon_looks: {
+      ...presentationSettings.weapon_looks,
+      blast_only: { blast: original.blast, sound: { blast: original.sound.blast } },
+    },
+  });
+  const { rules } = await resolveCatalogSet("test");
+  const weapons = {
+    ...rules.weapons,
+    ambient_blast: { extends: "tank_he", name: "Ambient blast", appearance: "blast_only" },
+  };
+  expect(JSON.parse(weapon_looks(settings, JSON.stringify(weapons))).weapons.ambient_blast).toBe(
+    "blast_only",
+  );
+  for (const [catalog, mounted] of [
+    [{ units: [], soldiers: {} }, false],
+    [{ units: [{ id: "gunner", mounts: [{ weapons: ["tank_ap", "ambient_blast"] }] }] }, true],
+    [{ units: [], soldiers: { gunner: { mounts: [{ weapons: ["ambient_blast"] }] } } }, true],
+  ] as const) {
+    const fielding = new Fielding(
+      settings,
+      JSON.stringify({ ...rules, weapons }),
+      JSON.stringify(catalog),
+      "{}",
+      "[]",
+    );
+    try {
+      const resolve = () => fielding.resolve(new Uint8Array(), new Uint32Array());
+      if (mounted)
+        expect(resolve).toThrow("weapons.ambient_blast.appearance: missing firing tracer");
+      else expect(resolve).not.toThrow();
+    } finally {
+      fielding.free();
+    }
+  }
+});
 
 test("consecutive wasm battles field and sound their own resolved encounter rules", async () => {
   const wasm = await loadWasm();
@@ -136,7 +183,7 @@ test("consecutive wasm battles field and sound their own resolved encounter rule
           sun_elevation: 1,
         }),
       );
-      createBattleAudio(hz, app, 7, session.weapons);
+      createBattleAudio(app, 7, session);
       const active = frames.at(-1)!;
       sound = active.frame;
       const expected = presentationSettings.weapon_looks[look].sound.shot.near;
@@ -169,5 +216,37 @@ test("consecutive wasm battles field and sound their own resolved encounter rule
       presentation.free();
       battle.free();
     }
+  }
+});
+
+test("battle sound admits unmounted blast-only rows and refuses them by name when mounted", async () => {
+  await loadPresentation();
+  const original = presentationSettings.weapon_looks.tank_he;
+  const options: SoundFrameOptions = {
+    tickHz: 30,
+    presentation: audioMix,
+    catalog: gameSounds,
+    looks: {
+      ...presentationSettings,
+      weapon_looks: {
+        ...presentationSettings.weapon_looks,
+        blast_only: { blast: original.blast, sound: { blast: original.sound.blast } },
+      },
+    },
+    weapons: {
+      ...shippedRules.weapons,
+      ambient_blast: { extends: "tank_he", name: "Ambient blast", appearance: "blast_only" },
+    },
+    unitCatalog: { units: [], soldiers: {} },
+  };
+  expect(() => battleSounds(options)).not.toThrow();
+  for (const catalog of [
+    { units: [{ mounts: [{ weapons: ["tank_ap", "ambient_blast"] }] }] },
+    { units: [], soldiers: { gunner: { mounts: [{ weapons: ["ambient_blast"] }] } } },
+  ]) {
+    options.unitCatalog = catalog;
+    expect(() => battleSounds(options)).toThrow(
+      "weapons.ambient_blast.appearance: missing firing tracer",
+    );
   }
 });

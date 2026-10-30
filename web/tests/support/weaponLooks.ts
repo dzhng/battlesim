@@ -44,5 +44,9 @@ export function testWeaponLooks(
     // A shipped row is already complete; replacing only its appearance avoids self inheritance.
     if (row) weapons[kind] = { ...row, appearance: name };
   }
-  return { looks: { ...presentationSettings, weapon_looks: library }, weapons };
+  return {
+    looks: { ...presentationSettings, weapon_looks: library },
+    weapons,
+    unitCatalog: { units: [], soldiers: {} },
+  };
 }

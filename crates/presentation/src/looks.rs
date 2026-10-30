@@ -117,7 +117,7 @@ impl WeaponLook {
         Ok(())
     }
 
-    pub(crate) fn check_firing(&self, weapon: &str) -> Result<(), String> {
+    fn check_firing(&self, weapon: &str) -> Result<(), String> {
         for (part, missing) in [
             ("tracer", self.tracer.is_none()),
             (
@@ -162,9 +162,6 @@ impl WeaponLooks {
             let look = looks.get(&row.appearance).ok_or_else(|| {
                 format!("weapons.{id}.appearance: unknown look {}", row.appearance)
             })?;
-            if id != "helicopter_crash" {
-                look.check_firing(&id)?;
-            }
             let required = [
                 (
                     "blast",
@@ -203,6 +200,36 @@ impl WeaponLooks {
     }
     pub fn get(&self, weapon: &str) -> &WeaponLook {
         &self.looks[self.name(weapon)]
+    }
+
+    /// Every ammunition kind a catalog unit or soldier mounts must support firing.
+    pub fn check_mounts(&self, catalog: &Value) -> Result<(), String> {
+        for row in catalog["units"]
+            .as_array()
+            .ok_or("unit catalog: no units")?
+            .iter()
+            .chain(
+                catalog["soldiers"]
+                    .as_object()
+                    .into_iter()
+                    .flat_map(|s| s.values()),
+            )
+        {
+            for mount in row["mounts"].as_array().into_iter().flatten() {
+                for weapon in mount["weapons"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Value::as_str)
+                {
+                    let name = self.weapons.get(weapon).ok_or_else(|| {
+                        format!("weapons.{weapon}: mounted weapon has no appearance")
+                    })?;
+                    self.looks[name].check_firing(weapon)?;
+                }
+            }
+        }
+        Ok(())
     }
 
     pub fn with_sounds(

@@ -76,6 +76,7 @@ test("a battle's lines are heard from its sound frame's listener", () => {
     {
       tickHz: 30,
       weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
       looks: presentationSettings,
       presentation: audioMix as unknown as AudioMix,
       catalog: gameSounds,

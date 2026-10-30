@@ -142,8 +142,8 @@ export function useBattleSession({
   }, [scenario, sourceCatalog.set]);
   const world = useStaticWorld(map, rules);
   const audio = useMemo(
-    () => (sound ? createBattleAudio(rules.tick_hz, appAudio, seed, rules.weapons) : null),
-    [sound, rules, appAudio, seed],
+    () => (sound ? createBattleAudio(appAudio, seed, catalog) : null),
+    [sound, catalog, appAudio, seed],
   );
   useEffect(() => () => audio?.dispose(), [audio]);
   // The units' answers to their owner (R1–R12), one battle's at a time.

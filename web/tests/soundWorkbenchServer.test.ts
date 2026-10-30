@@ -77,13 +77,14 @@ async function fixture() {
   );
   await writeFile(join(root, "fixtures/presentation.json"), JSON.stringify(presentation));
   await writeFile(join(root, "fixtures/audio.json"), JSON.stringify(audio));
+  await writeFile(join(root, "fixtures/catalog.json"), JSON.stringify({ units: [], soldiers: {} }));
   const store = new SoundWorkbenchStore(
     root,
     validateSoundCatalog,
     Object.keys(SOUNDS),
-    (presentation, audio, catalog, weapons) => {
+    (presentation, audio, catalog, weapons, unitCatalog) => {
       check_presentation(presentation);
-      check_battle_sounds(presentation, audio, JSON.stringify(catalog), weapons);
+      check_battle_sounds(presentation, audio, JSON.stringify(catalog), weapons, unitCatalog);
     },
   );
   const middleware = soundWorkbenchMiddleware(store);
@@ -124,6 +125,35 @@ function draftOf(snapshot: Snapshot, catalog = snapshot.catalog) {
     ),
   };
 }
+
+test("workbench admission requires firing parts only for mounted weapons, by name", async () => {
+  const { root, request } = await fixture();
+  const settings = structuredClone(authoredPresentation);
+  const original = settings.weapon_looks.tank_he;
+  Object.assign(settings.weapon_looks, {
+    blast_only: { blast: original.blast, sound: { blast: original.sound.blast } },
+  });
+  await writeFile(join(root, "fixtures/presentation.json"), JSON.stringify(settings));
+  await writeFile(
+    join(root, "fixtures/rules.json"),
+    JSON.stringify({
+      weapons: {
+        ...authoredRules.weapons,
+        ambient_blast: { extends: "tank_he", name: "Ambient blast", appearance: "blast_only" },
+      },
+    }),
+  );
+  expect((await request("snapshot")).status).toBe(200);
+  for (const catalog of [
+    { units: [{ mounts: [{ weapons: ["tank_ap", "ambient_blast"] }] }] },
+    { units: [], soldiers: { gunner: { mounts: [{ weapons: ["ambient_blast"] }] } } },
+  ]) {
+    await writeFile(join(root, "fixtures/catalog.json"), JSON.stringify(catalog));
+    const refused = await request("snapshot");
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toContain("weapons.ambient_blast.appearance: missing firing tracer");
+  }
+});
 
 test("HTTP preview is read-only; a reviewed save publishes a library recipe", async () => {
   const { root, text, request } = await fixture();
@@ -203,7 +233,7 @@ test("a no-op save preserves every fixture byte", async () => {
   expect(await fixtureBytes(root)).toEqual(before);
 });
 
-test.each(["sounds", "rules", "presentation", "audio"])(
+test.each(["sounds", "rules", "presentation", "audio", "catalog"])(
   "a reviewed look save preserves an outside edit to %s",
   async (document) => {
     const { root, request } = await fixture();

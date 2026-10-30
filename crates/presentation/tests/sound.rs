@@ -38,6 +38,7 @@ fn sound_with(edit: impl FnOnce(&mut Value)) -> Sound {
         "presentation": presentation,
         "catalog": fixture("sounds.json"),
         "weapons": game["weapons"],
+        "unit_catalog": {"units": [], "soldiers": {}},
         "tick_hz": game["tick_hz"],
     });
     Sound::from_json(&setup.to_string()).unwrap()
