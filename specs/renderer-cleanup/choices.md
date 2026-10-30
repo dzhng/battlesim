@@ -41,9 +41,12 @@ Decisions made where the spec was silent, per slice, with verdicts
   paved table bound `ROAD_LOOKS_MAX` in `tables`, derived from
   `AREA_KINDS.len()`. *Sound:*
   the encoders and their shader readers share the owners.
-- **Use one `write_vec4` helper with byte offsets** for the ground parameter
-  packers; retain the append helper for variable-length tables. *Sound:* the
-  original f64-to-f32 conversion stays unchanged while the records own placement.
+- **Fill typed ground records and cast their bytes with bytemuck.** The `f4`
+  helper rounds only after f64 arithmetic; integer fields stay integer. Grass
+  frame updates mutate the typed record. Append packing remains only for
+  variable-length tables; offsets delimit partial record publications and the
+  GPU's scar-enable write. *Sound:* field placement has one owner, without a
+  parallel offset-based writer.
 - **The road loops and out-of-range sentinel also use `ROAD_LOOKS_MAX`**,
   covering five count uses beyond the array declaration. *Sound:* they read the
   same bounded table.

@@ -3,7 +3,6 @@
 //! renderer uploads to follow it.
 use crate::records::ScarParams;
 use std::collections::BTreeSet;
-use std::mem::offset_of;
 
 use serde::Serialize;
 
@@ -281,26 +280,27 @@ impl ScarCache {
             }
         };
         let clip = region.filter(|_| clipped).unwrap_or([0.0; 4]);
-        let f = |v: f32| v.to_bits();
-        let at = offset_of!(ScarParams, grid) / 4;
-        upload.params[at..at + 4].copy_from_slice(&[
-            f(inverse(self.cols)),
-            f(inverse(self.rows)),
-            f(self.cell_m as f32),
-            f(on as u32 as f32),
-        ]);
-        let at = offset_of!(ScarParams, pages) / 4;
-        upload.params[at..at + 4].copy_from_slice(&[
-            self.cols as u32,
-            self.rows as u32,
-            self.entries as u32 - 1,
-            self.width,
-        ]);
-        let at = offset_of!(ScarParams, clip) / 4;
-        upload.params[at..at + 4].copy_from_slice(&clip.map(|v| f(v as f32)));
-        let at = offset_of!(ScarParams, cache_bounds) / 4;
-        upload.params[at..at + 4].copy_from_slice(&self.cache_bounds);
-        upload.params[offset_of!(ScarParams, default_word) / 4] = self.default_word;
+        let params = ScarParams {
+            grid: [
+                inverse(self.cols),
+                inverse(self.rows),
+                self.cell_m as f32,
+                on as u32 as f32,
+            ],
+            pages: [
+                self.cols as u32,
+                self.rows as u32,
+                self.entries as u32 - 1,
+                self.width,
+            ],
+            clip: clip.map(|v| v as f32),
+            cache_bounds: self.cache_bounds,
+            default_word: [self.default_word, 0, 0, 0],
+            ..ScarParams::default()
+        };
+        upload.params.copy_from_slice(
+            &bytemuck::cast_slice::<_, u32>(bytemuck::bytes_of(&params))[..PARAMS_WORDS],
+        );
         upload
     }
 

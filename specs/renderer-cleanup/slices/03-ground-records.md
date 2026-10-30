@@ -7,14 +7,16 @@ words by hand, and every ground length and mask in WGSL is a named constant.
 
 - Records in `presentation::records`:
   - `TerrainParams { roads: [RoadLook; ROAD_LOOKS_MAX], shore_tuning: ShoreTuning, water_looks: [WaterLook; WATER_LOOKS_MAX] }`
-    (packed today in `static_world/ground/tables.rs`; `ROAD_LOOKS_MAX` is
-    `AREA_KINDS.len()`, `biome.rs:603`; `WATER_LOOKS_MAX`, `biome/water.rs:26`);
-  - `GrassParams` (`ground/grass.rs:90-170`, `:530-580`);
-  - `ScarParams` (`renderer-core/src/scars.rs:14` `WORDS = 52`; the flag word,
-    `grid.w`, at `:128` and `:306-308`).
-- Packers keep writing words but derive sizes and offsets from the layout
-  (`size / 4`, field offsets), so uploads stay byte-identical by construction.
-  `ground/tests.rs:384-397` uses the layout's offsets instead of `24 + tag * 56`.
+    (filled in `static_world/ground/tables.rs`; the bounds come from the road
+    kinds and water biome);
+  - `GrassParams` (`ground/grass.rs`), including typed per-frame updates;
+  - `ScarParams` (presentation's scar cache and `renderer-core/src/scars.rs`;
+    `grid.w` is the enable flag).
+- Packers fill the typed records, then cast them with bytemuck to the uploaded
+  words. Float arithmetic stays f64 until the final f32 conversion; integer
+  fields stay u32. Offsets only delimit partial record publications or GPU
+  writes; variable-length tables retain append packing. Ground tests read the
+  layout's offsets instead of maintaining their own record strides.
 - `shader_constants` exports `WATER_LOOKS_MAX`, `ROAD_LOOKS_MAX`,
   `SCAR_KEY_MASK` (`scars/mod.rs:27`) and `GROUND_RECORD_MASK`
   (`ground/field.rs:28-29`): two concepts, two names (map unknown 4). The WGSL

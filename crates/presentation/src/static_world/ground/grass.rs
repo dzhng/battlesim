@@ -6,10 +6,9 @@
 //! props' footprints where no grass grows. Where clumps stand, how many and
 //! how tall is decided per frame on the GPU; nothing here is per clump.
 use super::biome::{GrassRules, GRASS_MIX_MAX, VERGE_GROWTH};
-use super::tables::{word, write_vec4};
+use super::tables::{f4, word};
 use super::{Ground, PROP};
 use crate::records::GrassParams;
-use std::mem::offset_of;
 
 /// Plot kinds the growth table holds; the last row is the verge.
 pub const GROWTH_ROWS: usize = 16;
@@ -149,98 +148,49 @@ impl Ground {
         }
         let grid = &self.source.grid;
         let (w, s) = (&rules.sway, &rules.patch_m);
-        let mut out = vec![0; GrassParams::LAYOUT.size / 4];
-        write_vec4(
-            &mut out,
-            offset_of!(GrassParams, window),
-            [0.0, 0.0, 0.0, tallest],
-        );
-        let at = offset_of!(GrassParams, grid) / 4;
-        out[at..at + 4].copy_from_slice(&[0, 0, rules.capacity[0], rules.capacity[1]]);
-        write_vec4(
-            &mut out,
-            offset_of!(GrassParams, density),
-            [
+        let params = GrassParams {
+            window: f4([0.0, 0.0, 0.0, tallest]),
+            grid: [0, 0, rules.capacity[0], rules.capacity[1]],
+            density: f4([
                 rules.pixels_per_clump,
                 rules.max_clumps_m2 * quality.density,
                 rules.fade_m_per_px[0],
                 rules.fade_m_per_px[1],
-            ],
-        );
-        write_vec4(
-            &mut out,
-            offset_of!(GrassParams, tiers),
-            [
+            ]),
+            tiers: f4([
                 rules.near_tier_px,
                 rules.min_blade_px,
                 rules.soften_m_per_px[0],
                 rules.soften_m_per_px[1],
-            ],
-        );
-        write_vec4(
-            &mut out,
-            offset_of!(GrassParams, shading),
-            [rules.soften, rules.blade_facing, rules.clump_value, 0.0],
-        );
-        write_vec4(
-            &mut out,
-            offset_of!(GrassParams, clear),
-            [rules.clear_m.area, row_reach, 0.0, 0.0],
-        );
-        let at = offset_of!(GrassParams, counts) / 4;
-        out[at..at + 4].copy_from_slice(&[grid.nx as u32, grid.ny as u32, 0, 0]);
-        write_vec4(
-            &mut out,
-            offset_of!(GrassParams, ground),
-            [grid.spacing, 0.0, 0.0, 0.0],
-        );
-        write_vec4(
-            &mut out,
-            offset_of!(GrassParams, sway),
-            [
+            ]),
+            shading: f4([rules.soften, rules.blade_facing, rules.clump_value, 0.0]),
+            clear: f4([rules.clear_m.area, row_reach, 0.0, 0.0]),
+            counts: [grid.nx as u32, grid.ny as u32, 0, 0],
+            ground: f4([grid.spacing, 0.0, 0.0, 0.0]),
+            sway: f4([
                 w.lean,
                 w.gust,
                 w.flutter,
                 w.flutter_hz * 2.0 * std::f64::consts::PI,
-            ],
-        );
-        for (offset, rows) in [
-            (offset_of!(GrassParams, growth), growth.as_slice()),
-            (offset_of!(GrassParams, patches), patches.as_slice()),
-            (offset_of!(GrassParams, mixes), mixes.as_slice()),
-        ] {
-            for (i, &v) in rows.iter().enumerate() {
-                write_vec4(&mut out, offset + i * 16, v);
-            }
-        }
-        write_vec4(
-            &mut out,
-            offset_of!(GrassParams, patch_scales),
-            [1.0 / s.height, 1.0 / s.thin, 1.0 / s.dry, 1.0 / s.drift],
-        );
-        write_vec4(
-            &mut out,
-            offset_of!(GrassParams, grain),
-            [1.0 / s.grain, rules.dry_lift, 0.0, 0.0],
-        );
-        for k in 0..MAX_KINDS {
-            write_vec4(
-                &mut out,
-                offset_of!(GrassParams, kinds) + k * 16,
+            ]),
+            growth: growth.map(f4),
+            patches: patches.map(f4),
+            mixes: mixes.map(f4),
+            patch_scales: f4([1.0 / s.height, 1.0 / s.thin, 1.0 / s.dry, 1.0 / s.drift]),
+            grain: f4([1.0 / s.grain, rules.dry_lift, 0.0, 0.0]),
+            kinds: std::array::from_fn(|k| {
+                f4(facts
+                    .get(k)
+                    .map_or([0.0; 4], |f| [f.top, f.blades, f.root_width, 0.0]))
+            }),
+            bases: std::array::from_fn(|k| {
                 facts
                     .get(k)
-                    .map_or([0.0; 4], |f| [f.top, f.blades, f.root_width, 0.0]),
-            );
-        }
-        for k in 0..MAX_KINDS {
-            let at = offset_of!(GrassParams, bases) / 4 + k * 4;
-            out[at..at + 4].copy_from_slice(
-                &facts
-                    .get(k)
-                    .map_or([0; 4], |f| [f.bases[0], f.bases[1], 0, 0]),
-            );
-        }
-        Ok(out)
+                    .map_or([0; 4], |f| [f.bases[0], f.bases[1], 0, 0])
+            }),
+            ..GrassParams::default()
+        };
+        Ok(bytemuck::cast_slice(bytemuck::bytes_of(&params)).to_vec())
     }
 
     /// The window of tiles a camera at `eye` grows grass over, by the
@@ -560,7 +510,7 @@ pub fn window(eye: [f64; 3], lowest: f64, metres_per_px: f64, rules: &GrassRules
     }
 }
 
-/// Writes a frame's fields into `GrassParams`' words (as
+/// Writes a frame's fields into a complete `GrassParams` record's words (as
 /// [`Ground::grass_params`] laid them): the view's four side planes from its
 /// view-projection (inward normal, offset; near and far are left out, the
 /// reach bounds the field), the eye and `metres_per_px`, the window's corner
@@ -603,19 +553,9 @@ pub fn frame_params(
         plane(r1, 1.0),
         plane(r1, -1.0),
     ];
-    for (i, pl) in planes.iter().enumerate() {
-        for (k, &v) in pl.iter().enumerate() {
-            words[offset_of!(GrassParams, planes) / 4 + i * 4 + k] = word(v);
-        }
-    }
-    write_vec4(
-        words,
-        offset_of!(GrassParams, eye),
-        [eye[0], eye[1], eye[2], metres_per_px],
-    );
-    let at = offset_of!(GrassParams, window) / 4;
-    words[at..at + 3].copy_from_slice(&[window.x0, window.y0, TILE_M].map(word));
-    let at = offset_of!(GrassParams, grid) / 4;
-    words[at] = window.tiles_x;
-    words[at + 1] = window.tiles_y;
+    let params: &mut GrassParams = bytemuck::from_bytes_mut(bytemuck::cast_slice_mut(words));
+    params.planes = planes.map(f4);
+    params.eye = f4([eye[0], eye[1], eye[2], metres_per_px]);
+    params.window[..3].copy_from_slice(&[window.x0 as f32, window.y0 as f32, TILE_M as f32]);
+    params.grid[..2].copy_from_slice(&[window.tiles_x, window.tiles_y]);
 }

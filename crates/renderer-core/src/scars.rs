@@ -12,8 +12,6 @@ use wgpu::*;
 
 use crate::buffer;
 
-/// `ScarParams`: the cache's words, then the biome's look (`full` on).
-const WORDS: usize = ScarParams::LAYOUT.size / 4;
 /// The cache enable flag in `ScarParams.grid.w`, stored as f32 bits.
 const ACTIVE_WORD: usize = offset_of!(ScarParams, grid) / 4 + 3;
 
@@ -55,12 +53,12 @@ pub struct ScarFrame {
 
 pub struct Scars {
     shown: bool,
-    active: std::cell::Cell<u32>,
+    active: std::cell::Cell<f32>,
     pool: Texture,
     directory: Texture,
     pub params: Buffer,
-    /// `ScarParams` as last written: the look stays, the cache's words change.
-    words: [u32; WORDS],
+    /// The biome look retained while each upload supplies the cache prefix.
+    record: ScarParams,
     /// This frame's uploads: for the grass's window, then the view's.
     grass: Option<ScarUpload>,
     view: Option<ScarUpload>,
@@ -97,7 +95,8 @@ impl Scars {
                 depth_or_array_layers: 1,
             },
         );
-        let mut words = [0u32; WORDS];
+        let mut record = ScarParams::default();
+        let words: &mut [u32] = bytemuck::cast_slice_mut(std::slice::from_mut(&mut record));
         words[PARAMS_WORDS..PARAMS_WORDS + look.len()].copy_from_slice(look);
         let usage = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
         Self {
@@ -115,9 +114,9 @@ impl Scars {
                 queue,
                 "scar-params",
                 usage,
-                bytemuck::cast_slice(&words),
+                bytemuck::bytes_of(&record),
             ),
-            words,
+            record,
             grass: None,
             view: None,
             regions: Vec::new(),
@@ -128,7 +127,7 @@ impl Scars {
     /// Hide material/grass marks while keeping canonical uploads and textures live.
     pub fn set_shown(&mut self, queue: &Queue, shown: bool) {
         self.shown = shown;
-        let active = if shown { self.active.get() } else { 0 };
+        let active = if shown { self.active.get() } else { 0.0 };
         queue.write_buffer(
             &self.params,
             (ACTIVE_WORD * 4) as u64,
@@ -309,13 +308,14 @@ impl Scars {
                 },
             );
         }
-        let mut words = self.words;
+        let mut record = self.record;
+        let words: &mut [u32] = bytemuck::cast_slice_mut(std::slice::from_mut(&mut record));
         words[..PARAMS_WORDS].copy_from_slice(&upload.params);
-        self.active.set(words[ACTIVE_WORD]);
+        self.active.set(record.grid[3]);
         if !self.shown {
-            words[ACTIVE_WORD] = 0;
+            record.grid[3] = 0.0;
         }
-        queue.write_buffer(&self.params, 0, bytemuck::cast_slice(&words));
+        queue.write_buffer(&self.params, 0, bytemuck::bytes_of(&record));
     }
 }
 
