@@ -294,9 +294,8 @@ impl Runtime {
         self.generation
     }
 
-    /// Skipping a prepared publication means the next drawn frame cannot rely
-    /// on the previous generation's held batch writes.
-    pub fn invalidate_statics(&mut self) {
+    /// Replaced asset owners hold none of the previous generation's batches.
+    fn invalidate_statics(&mut self) {
         self.generation = NEXT_GENERATION.fetch_add(1, Ordering::Relaxed);
         self.refresh_statics = true;
     }
@@ -313,7 +312,14 @@ impl Runtime {
             return Err("publish a fresh canonical frame after appearance commit".into());
         }
         self.pending_catalog_frame = None;
-        if self.refresh_statics {
+        // Held lists describe the preceding publication, which a shell may not
+        // have drawn. Recover from canonical populations without reframing.
+        let index = presentation.last_frame().index;
+        if self.refresh_statics
+            || self
+                .prepared_frame
+                .is_none_or(|last| index.wrapping_sub(last) > 1)
+        {
             presentation.resend_static_frame(self.generation);
         }
         self.restore_knowledge(presentation);

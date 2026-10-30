@@ -13,6 +13,8 @@ static states, articulated nodes, corpse poses or material surface classes. The
 native filesystem library is a source adapter to the same bundle decoder used
 for browser fetches. The held static batch buffers also belong to this core, so
 a frame that names an unchanged batch has the same meaning on either target.
+Preparation detects skipped publications and materializes current canonical
+populations before reusing held buffers; shells need no skipped-frame protocol.
 Appearance rows route instances rather than own copies of their meshes. Rows
 that select the same authored state/pose share immutable GPU tiers within one
 asset generation; corpse poses remain distinct.

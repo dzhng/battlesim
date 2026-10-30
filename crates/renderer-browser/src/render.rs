@@ -16,9 +16,6 @@ impl Renderer {
         let unavailable = surface.is_none() || high.as_ref().is_some_and(Option::is_none);
         if unavailable {
             self.recover_surface();
-            if let Some(runtime) = &mut self.runtime {
-                runtime.invalidate_statics();
-            }
             return Ok(None);
         }
         let surface = surface.expect("acquired world output");

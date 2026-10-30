@@ -343,10 +343,6 @@ impl Run {
             for at in 0..=index {
                 let record = replay.records[at].clone();
                 replay.frame(&record, scene.static_generation(), |_| {})?;
-                if at < index {
-                    // Undrawn records cannot leave held batches in GPU buffers.
-                    scene.invalidate_statics();
-                }
             }
         }
         println!(
@@ -519,10 +515,6 @@ impl Run {
                         audio.note(p, now);
                     }
                 })?;
-            if record.plate.is_none() {
-                // The passes took none of it: the next frame writes them all.
-                self.scene.invalidate_statics();
-            }
             if let Some(audio) = self.sound.as_mut() {
                 audio.hear(self.replay.presentation(), now, now);
             }
