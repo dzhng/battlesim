@@ -11,6 +11,7 @@ import {
 import { decode, pixel } from "./_png.mjs";
 import { unitType, streetMap, visuals } from "./_units.mjs";
 import { stageStreetMoves } from "./_streetStaging.mjs";
+
 const CAMERA = visuals.camera;
 /** The range ruler (Space held with a selection) and right-clicking a
  *  contact's area to attack it. */
@@ -37,6 +38,7 @@ export async function rulerTour(ctx) {
   // grouping, captions and muzzle-to-aim arithmetic.
   const marksAgree = (r, unit, text) =>
     r?.unit === unit.id &&
+    r.marks.length > 0 &&
     r.marks.every(
       (mark, i) =>
         (i === 0 || r.marks[i - 1].range_m < mark.range_m) &&
@@ -155,13 +157,13 @@ export async function rulerTour(ctx) {
     "at a far cursor, sorted reaches agree with their ticks and distance",
     r?.unit === rifle.id &&
       marksAgree(r, rifle, text) &&
+      text.ticks.length > 0 &&
       Math.abs(r.distance_m - 750) < 2 &&
       text.ticks.every((t) => / \d+ m$/.test(t)),
     JSON.stringify({ r, text }),
   );
   await snapshot(ctx, page, "ruler-far-1920x1080.png");
   // Both again, the cursor 750 m out from the tank: the tank is nearer.
-  // Every carried reach is represented, independent of its current loadout.
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id, tank.id]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 2);
   const tankFar = [
@@ -181,7 +183,7 @@ export async function rulerTour(ctx) {
   text = await shownText();
   ctx.check(
     "from the tank at 750 m, the ruler keeps sorted unique reaches and matching ticks",
-    marksAgree(r, tank, text),
+    marksAgree(r, tank, text) && text.ticks.length > 0,
     JSON.stringify({ r, text }),
   );
   await snapshot(ctx, page, "ruler-tank-far-1920x1080.png");
