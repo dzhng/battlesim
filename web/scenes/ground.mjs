@@ -419,18 +419,25 @@ async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
   if (!exclusive || !offset) return;
   const at = [exclusive.x + 0.5, exclusive.y + 0.5];
   const blank = [at[0] + offset[0], at[1] + offset[1]];
-  await lab(page, () => window.__lab.suppressGrass(true));
-  await lab(page, () => window.__lab.suppressFog(true));
-  // A view switch can publish a new burst; its light is separate from its sprite.
-  await lab(page, () => window.__lab.suppressModels(true));
-  await lab(page, () => window.__lab.suppressEffects(true));
-  await lab(page, () => window.__lab.suppressCastLights(true));
-  await lab(page, () => window.__lab.route.show([]));
-  await cameraAt(page, { target: at, distance: 30, pitch: 1.3 });
+  // Side changes replace the viewport. Reapply the same picture controls to
+  // each new instance so only learned ground changes between these captures.
+  const frameScars = async () => {
+    await lab(page, () => window.__lab.suppressGrass(true));
+    await lab(page, () => window.__lab.suppressFog(true));
+    // A view switch can publish a new burst; its light is separate from its sprite.
+    await lab(page, () => window.__lab.suppressModels(true));
+    await lab(page, () => window.__lab.suppressEffects(true));
+    await lab(page, () => window.__lab.suppressCastLights(true));
+    await lab(page, () => window.__lab.route.show([]));
+    await cameraAt(page, { target: at, distance: 30, pitch: 1.3 });
+    await lab(page, () => window.__lab.frame());
+  };
+  await frameScars();
   const [pc, pb] = [await groundCss(page, at), await groundCss(page, blank)];
   const redShot = decode(await snapshot(ctx, page, "scars-sides-red-1920x1080.png"));
   await lab(page, () => window.__lab.route.observeAs("blue"));
   await advance(page, 1);
+  await frameScars();
   const blueShot = decode(await snapshot(ctx, page, "scars-sides-blue-1920x1080.png"));
   // Within a few pixels of each point: the crater's bowl and rim against grass
   // is a colour change, and the bare ground is the same in both views.
