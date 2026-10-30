@@ -12,22 +12,6 @@ struct CardVertexOutput {
   @location(6) anchor: vec3f,
 }
 
-// @block passes_models_ImpostorFragmentInput
-struct ImpostorFragmentInput {
-  @location(0) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) tangent: vec4f,
-  @location(3) color: vec4f,
-  @location(4) uv: vec2f,
-  @location(5) @interpolate(flat) material: u32,
-  @location(6) track: f32,
-  @location(7) tint: vec3f,
-  @location(8) @interpolate(flat) highlight: f32,
-  @location(9) @interpolate(flat) anchor: vec3f,
-  @location(10) @interpolate(flat) xray: vec4f,
-  @location(11) @interpolate(flat) instance: u32,
-}
-
 // @block passes_models_ImpostorBuffers
 struct ImpostorBuffers {
   @location(0) albedo: vec4f,
@@ -68,22 +52,6 @@ struct ModelFragmentInput {
   @location(11) @interpolate(flat) instance: u32,
 }
 
-// @block passes_models_LitModelFragmentInput
-struct LitModelFragmentInput {
-  @location(0) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) tangent: vec4f,
-  @location(3) color: vec4f,
-  @location(4) uv: vec2f,
-  @location(5) @interpolate(flat) material: u32,
-  @location(6) track: f32,
-  @location(7) tint: vec3f,
-  @location(8) @interpolate(flat) highlight: f32,
-  @location(9) @interpolate(flat) anchor: vec3f,
-  @location(10) @interpolate(flat) xray: vec4f,
-  @location(11) @interpolate(flat) instance: u32,
-}
-
 // @block passes_models_CutoutCasterInput
 struct CutoutCasterInput {
   @location(4) uv: vec2f,
@@ -94,38 +62,6 @@ struct CutoutCasterInput {
 struct CutoutDepthInput {
   @location(4) uv: vec2f,
   @location(5) @interpolate(flat) material: u32,
-}
-
-// @block passes_models_XrayCountFragmentInput
-struct XrayCountFragmentInput {
-  @location(0) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) tangent: vec4f,
-  @location(3) color: vec4f,
-  @location(4) uv: vec2f,
-  @location(5) @interpolate(flat) material: u32,
-  @location(6) track: f32,
-  @location(7) tint: vec3f,
-  @location(8) @interpolate(flat) highlight: f32,
-  @location(9) @interpolate(flat) anchor: vec3f,
-  @location(10) @interpolate(flat) xray: vec4f,
-  @location(11) @interpolate(flat) instance: u32,
-}
-
-// @block passes_models_XrayFragmentInput
-struct XrayFragmentInput {
-  @location(0) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) tangent: vec4f,
-  @location(3) color: vec4f,
-  @location(4) uv: vec2f,
-  @location(5) @interpolate(flat) material: u32,
-  @location(6) track: f32,
-  @location(7) tint: vec3f,
-  @location(8) @interpolate(flat) highlight: f32,
-  @location(9) @interpolate(flat) anchor: vec3f,
-  @location(10) @interpolate(flat) xray: vec4f,
-  @location(11) @interpolate(flat) instance: u32,
 }
 
 // @block passes_models_buildFn
@@ -387,7 +323,7 @@ var<workgroup> laneCounts: array<vec2u, GRASS_BUILD_LANES>;
 }
 
 // @block passes_models_impostor
-@fragment fn impostor(input: ImpostorFragmentInput) -> ImpostorBuffers {
+@fragment fn impostor(input: ModelFragmentInput) -> ImpostorBuffers {
   let materialSample = modelSurface(input.color, input.material, input.track, input.uv, normalize(input.normal), input.tangent);
   let baseColor = (materialSample.albedo * materialSample.occlusion);
   return ImpostorBuffers(vec4f(pow(max(baseColor, vec3f()), vec3f(0.4545454680919647)), 1f), vec4f(((materialSample.normal * 0.5f) + vec3f(0.5)), 1f), vec4f(materialSample.tint, 0f, 0f, 1f));
@@ -490,11 +426,11 @@ const GLASS_GLINT = 1f;
 }
 
 // @block passes_models_modelXrayCountFragment
-@fragment fn modelXrayCountFragment(input: XrayCountFragmentInput, @builtin(position) clip: vec4f) -> @location(0) vec4f {
+@fragment fn modelXrayCountFragment(input: ModelFragmentInput, @builtin(position) clip: vec4f) -> @location(0) vec4f {
   return countCoverage(clip, input.instance, input.xray);
 }
 
 // @block passes_models_modelXrayFragment
-@fragment fn modelXrayFragment(input: XrayFragmentInput) -> @location(0) vec4f {
+@fragment fn modelXrayFragment(input: ModelFragmentInput) -> @location(0) vec4f {
   return drawCoverage(input.instance, input.xray);
 }

@@ -372,7 +372,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
 }
 
 // @block passes_fog_lit
-@fragment fn lit(input: LitModelFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
+@fragment fn lit(input: ModelFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let eye = (&cam.eye);
   var n = normalize(input.normal);
   if ((dot(n, ((*eye) - input.world)) < 0f)) {
