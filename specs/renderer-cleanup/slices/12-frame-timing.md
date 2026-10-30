@@ -16,8 +16,8 @@ rolling statistics and native's per-frame bench, and the bench's copy goes.
 ## Seam
 
 - `FrameTimer::new(device, queue, Resolve::InFrame | Resolve::AfterCompletion)`,
-  with per-slot query sets in both modes. The bench keeps its pacing, waits,
-  coverage rule and report; it calls the core timer in `AfterCompletion` mode.
+  sharing queries for `InFrame` and retaining per-slot queries for
+  `AfterCompletion`. The bench keeps its pacing, waits, coverage rule and report; it calls the core timer in `AfterCompletion` mode.
 - Delete `bench.rs:44-179`.
 - **Check the browser** (map unknown 6): run `graphics-fps` against a known
   workload in both modes. If the in-frame numbers are stale on Metal, the browser
@@ -30,6 +30,7 @@ rolling statistics and native's per-frame bench, and the bench's copy goes.
 - `native/client/tests/bench_cli.rs`; one `--bench` run whose numbers match base
   within noise; the browser check above. No plates: timing draws nothing.
 
-**Delegated:** the result API and completion plumbing; a non-blocking
-`AfterCompletion` if it doesn't deadlock.
+**Delegated:** the result API and completion plumbing. `AfterCompletion` is an
+explicit blocking ticket wait; browser measurements in `choices.md` justify
+retaining its non-blocking `InFrame` path.
 **Stays green:** browser responsiveness, bench warm-up and coverage rules.

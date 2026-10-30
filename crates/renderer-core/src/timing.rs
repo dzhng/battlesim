@@ -31,12 +31,6 @@ pub struct FrameTime {
     pub ms: Option<f64>,
 }
 
-#[derive(Clone, Copy)]
-struct Measurement {
-    frame: usize,
-    generation: u64,
-}
-
 #[derive(Default)]
 struct Samples {
     generation: u64,
@@ -44,31 +38,39 @@ struct Samples {
 }
 
 impl Samples {
-    fn begin(&self, frame: usize) -> Measurement {
-        Measurement {
-            frame,
-            generation: self.generation,
-        }
-    }
-
-    fn complete(&mut self, measurement: Measurement, ms: Option<f64>) -> FrameTime {
-        if measurement.generation == self.generation {
-            if let Some(ms) = ms {
-                self.times.push_back(ms);
-                if self.times.len() > WINDOW {
-                    self.times.pop_front();
-                }
-            }
-        }
-        FrameTime {
-            frame: measurement.frame,
-            ms,
-        }
-    }
-
     fn reset(&mut self) {
         self.generation += 1;
         self.times.clear();
+    }
+}
+
+#[derive(Clone)]
+struct Measurement {
+    generation: u64,
+    samples: Arc<Mutex<Samples>>,
+    result: Arc<Mutex<FrameTime>>,
+}
+
+impl Measurement {
+    fn new(samples: &Arc<Mutex<Samples>>, frame: usize) -> Self {
+        Self {
+            generation: samples.lock().expect("GPU timing samples").generation,
+            samples: samples.clone(),
+            result: Arc::new(Mutex::new(FrameTime { frame, ms: None })),
+        }
+    }
+
+    fn complete(&self, ms: Option<f64>) {
+        let mut samples = self.samples.lock().expect("GPU timing samples");
+        if self.generation == samples.generation {
+            if let Some(ms) = ms {
+                samples.times.push_back(ms);
+                if samples.times.len() > WINDOW {
+                    samples.times.pop_front();
+                }
+            }
+        }
+        self.result.lock().expect("GPU timing result").ms = ms;
     }
 }
 
@@ -86,13 +88,7 @@ impl Slot {
         encoder.copy_buffer_to_buffer(&self.resolve, 0, &self.readback, 0, 16);
     }
 
-    fn map(
-        &self,
-        measurement: Measurement,
-        period: f64,
-        samples: Arc<Mutex<Samples>>,
-        completion: Arc<Mutex<Completion>>,
-    ) {
+    fn map(&self, measurement: Measurement, period: f64) {
         let slot = self.clone();
         self.readback.map_async(MapMode::Read, .., move |result| {
             let ms = if result.is_ok() {
@@ -109,65 +105,26 @@ impl Slot {
             } else {
                 None
             };
-            let sample = samples
-                .lock()
-                .expect("GPU timing samples")
-                .complete(measurement, ms);
-            completion.lock().expect("GPU timing completion").sample = Some(sample);
+            measurement.complete(ms);
             slot.busy.store(false, Ordering::Release);
         });
     }
 }
 
-#[derive(Default)]
-struct Completion {
-    resolve: Option<SubmissionIndex>,
-    sample: Option<FrameTime>,
-}
-
 /// The result belongs to the frame passed to begin, independent of completion
-/// order and later resets. Dropping this handle does not cancel rolling stats.
-#[derive(Clone)]
+/// order and later resets. InFrame updates rolling stats even if this is dropped;
+/// AfterCompletion must be consumed with wait to resolve and release its slot.
 pub struct PendingFrame {
     render: SubmissionIndex,
-    ready: Arc<AtomicBool>,
-    completion: Arc<Mutex<Completion>>,
+    mode: Resolve,
     slot: Slot,
     measurement: Measurement,
     period: f64,
-    samples: Arc<Mutex<Samples>>,
     device: Device,
     queue: Queue,
 }
 
 impl PendingFrame {
-    // Queue completion callbacks require Send even on WebGPU, whose device
-    // handles are thread-local. The callback only signals; a later frame (or
-    // native's explicit wait) submits telemetry without holding a live borrow.
-    fn resolve(&self) -> bool {
-        if !self.ready.load(Ordering::Acquire) {
-            return false;
-        }
-        let mut completion = self.completion.lock().expect("GPU timing completion");
-        if completion.resolve.is_none() {
-            let mut encoder = self
-                .device
-                .create_command_encoder(&CommandEncoderDescriptor {
-                    label: Some("frame-timer-resolve"),
-                });
-            self.slot.resolve(&mut encoder);
-            completion.resolve = Some(self.queue.submit([encoder.finish()]));
-            drop(completion);
-            self.slot.map(
-                self.measurement,
-                self.period,
-                self.samples.clone(),
-                self.completion.clone(),
-            );
-        }
-        true
-    }
-
     /// Native's explicit profiling wait: first the render, then its telemetry
     /// submission. Browser callers drop the handle and never poll or wait.
     pub fn wait(self) -> Result<FrameTime, String> {
@@ -180,21 +137,14 @@ impl PendingFrame {
                 .map_err(|e| e.to_string())
         };
         wait(self.render.clone())?;
-        self.resolve();
-        let resolve = self
-            .completion
-            .lock()
-            .expect("GPU timing completion")
-            .resolve
-            .clone();
-        if let Some(index) = resolve {
+        if self.mode == Resolve::AfterCompletion {
+            let mut encoder = self.device.create_command_encoder(&Default::default());
+            self.slot.resolve(&mut encoder);
+            let index = self.queue.submit([encoder.finish()]);
+            self.slot.map(self.measurement.clone(), self.period);
             wait(index)?;
         }
-        self.completion
-            .lock()
-            .expect("GPU timing completion")
-            .sample
-            .ok_or_else(|| "GPU timing readback did not complete".into())
+        Ok(*self.measurement.result.lock().expect("GPU timing result"))
     }
 }
 
@@ -207,7 +157,6 @@ pub struct FrameTimer {
     mode: Resolve,
     marker: TextureView,
     pending: Option<(usize, Measurement)>,
-    resolving: Vec<PendingFrame>,
     period: f64,
     samples: Arc<Mutex<Samples>>,
 }
@@ -225,17 +174,24 @@ impl FrameTimer {
                 mapped_at_creation: false,
             })
         };
+        let queries = || {
+            device.create_query_set(&QuerySetDescriptor {
+                label: Some("frame-timer"),
+                ty: QueryType::Timestamp,
+                count: 2,
+            })
+        };
+        // InFrame copies its counters before the next frame can overwrite them.
+        // AfterCompletion retains each frame's queries until its ticket waits.
+        let shared_queries = (mode == Resolve::InFrame).then(queries);
+        let resolve = buffer(
+            "frame-timer-resolve",
+            BufferUsages::QUERY_RESOLVE | BufferUsages::COPY_SRC,
+        );
         let slots = (0..READBACKS)
             .map(|_| Slot {
-                queries: device.create_query_set(&QuerySetDescriptor {
-                    label: Some("frame-timer"),
-                    ty: QueryType::Timestamp,
-                    count: 2,
-                }),
-                resolve: buffer(
-                    "frame-timer-resolve",
-                    BufferUsages::QUERY_RESOLVE | BufferUsages::COPY_SRC,
-                ),
+                queries: shared_queries.clone().unwrap_or_else(queries),
+                resolve: resolve.clone(),
                 readback: buffer(
                     "frame-timer-readback",
                     BufferUsages::MAP_READ | BufferUsages::COPY_DST,
@@ -246,11 +202,7 @@ impl FrameTimer {
         let marker = device
             .create_texture(&TextureDescriptor {
                 label: Some("frame-timer-marker"),
-                size: Extent3d {
-                    width: 1,
-                    height: 1,
-                    depth_or_array_layers: 1,
-                },
+                size: Extent3d::default(),
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: TextureDimension::D2,
@@ -266,7 +218,6 @@ impl FrameTimer {
             mode,
             marker,
             pending: None,
-            resolving: Vec::new(),
             period: f64::from(queue.get_timestamp_period()),
             samples: Arc::default(),
         })
@@ -275,27 +226,11 @@ impl FrameTimer {
     /// Reserve a slot and capture the frame identity/reset window. Pair every
     /// begin with end and submitted; saturation skips the measurement only.
     pub fn begin(&mut self, encoder: &mut CommandEncoder, frame: usize) {
-        self.resolving.retain(|pending| {
-            pending
-                .completion
-                .lock()
-                .expect("GPU timing completion")
-                .resolve
-                .is_none()
-        });
         self.pending = self
             .slots
             .iter()
             .position(|slot| !slot.busy.swap(true, Ordering::AcqRel))
-            .map(|slot| {
-                (
-                    slot,
-                    self.samples
-                        .lock()
-                        .expect("GPU timing samples")
-                        .begin(frame),
-                )
-            });
+            .map(|slot| (slot, Measurement::new(&self.samples, frame)));
         if self.pending.is_some() {
             self.mark(encoder, 0);
         }
@@ -303,11 +238,7 @@ impl FrameTimer {
 
     fn mark(&self, encoder: &mut CommandEncoder, index: u32) {
         encoder.begin_render_pass(&RenderPassDescriptor {
-            label: Some(if index == 0 {
-                "frame-begin"
-            } else {
-                "frame-end"
-            }),
+            label: Some(["frame-begin", "frame-end"][index as usize]),
             color_attachments: &[Some(RenderPassColorAttachment {
                 view: &self.marker,
                 depth_slice: None,
@@ -318,7 +249,7 @@ impl FrameTimer {
                 },
             })],
             timestamp_writes: Some(RenderPassTimestampWrites {
-                query_set: &self.slots[self.pending.expect("timed frame").0].queries,
+                query_set: &self.slots[self.pending.as_ref().expect("timed frame").0].queries,
                 beginning_of_pass_write_index: (index == 0).then_some(0),
                 end_of_pass_write_index: (index == 1).then_some(1),
             }),
@@ -327,53 +258,32 @@ impl FrameTimer {
     }
 
     pub fn end(&self, encoder: &mut CommandEncoder) {
-        let Some((index, _)) = self.pending else {
+        let Some((index, _)) = &self.pending else {
             return;
         };
         self.mark(encoder, 1);
         if self.mode == Resolve::InFrame {
-            self.slots[index].resolve(encoder);
+            self.slots[*index].resolve(encoder);
         }
     }
 
-    /// Call immediately after submitting the marked frame. In AfterCompletion
-    /// mode, advance with resolve_completed or wait on the returned ticket.
-    /// Slots stay reserved until their asynchronous map completes.
+    /// After submission, InFrame maps without waiting; AfterCompletion requires
+    /// waiting on its ticket. The slot stays reserved until mapping completes.
     pub fn submitted(&mut self, render: SubmissionIndex) -> Option<PendingFrame> {
         let (index, measurement) = self.pending.take()?;
         let result = PendingFrame {
             render,
-            ready: Arc::default(),
-            completion: Arc::default(),
+            mode: self.mode,
             slot: self.slots[index].clone(),
             measurement,
             period: self.period,
-            samples: self.samples.clone(),
             device: self.device.clone(),
             queue: self.queue.clone(),
         };
-        match self.mode {
-            Resolve::InFrame => result.slot.map(
-                measurement,
-                self.period,
-                self.samples.clone(),
-                result.completion.clone(),
-            ),
-            Resolve::AfterCompletion => {
-                let ready = result.ready.clone();
-                self.queue
-                    .on_submitted_work_done(move || ready.store(true, Ordering::Release));
-                self.resolving.push(result.clone());
-            }
+        if self.mode == Resolve::InFrame {
+            result.slot.map(result.measurement.clone(), self.period);
         }
         Some(result)
-    }
-
-    /// Submit any post-completion resolves whose render has finished, without
-    /// waiting. Browser frame loops call this; native resolves in its wait so
-    /// telemetry submissions stay outside the timed CPU phases.
-    pub fn resolve_completed(&mut self) {
-        self.resolving.retain(|pending| !pending.resolve());
     }
 
     pub fn reset(&mut self) {
@@ -393,9 +303,7 @@ impl FrameTimer {
                 .unwrap_or(0.0),
         }
     }
-}
 
-impl FrameTimer {
     pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
         for slot in &self.slots {
             memory.buffer(&slot.resolve);
@@ -411,21 +319,21 @@ mod tests {
 
     #[test]
     fn delayed_samples_keep_their_frame_and_reset_window() {
-        let mut samples = Samples::default();
-        let first = samples.begin(17);
-        let delayed = samples.begin(18);
-        let newest = samples.begin(19);
+        let gpu_samples = Arc::default();
+        let first = Measurement::new(&gpu_samples, 17);
+        let delayed = Measurement::new(&gpu_samples, 18);
+        let newest = Measurement::new(&gpu_samples, 19);
         // Completion order need not be frame order.
-        let result = samples.complete(newest, Some(3.0));
-        assert_eq!((result.frame, result.ms), (19, Some(3.0)));
-        let result = samples.complete(first, Some(1.0));
-        assert_eq!((result.frame, result.ms), (17, Some(1.0)));
-        samples.reset();
-        let current = samples.begin(20);
-        let result = samples.complete(current, Some(4.0));
-        assert_eq!((result.frame, result.ms), (20, Some(4.0)));
-        let result = samples.complete(delayed, Some(2.0));
-        assert_eq!((result.frame, result.ms), (18, Some(2.0)));
-        assert_eq!(samples.times.iter().copied().collect::<Vec<_>>(), [4.0]);
+        newest.complete(Some(3.0));
+        first.complete(Some(1.0));
+        assert_eq!(first.result.lock().unwrap().frame, 17);
+        assert_eq!(newest.result.lock().unwrap().ms, Some(3.0));
+        gpu_samples.lock().unwrap().reset();
+        let current = Measurement::new(&gpu_samples, 20);
+        current.complete(Some(4.0));
+        delayed.complete(Some(2.0));
+        assert_eq!(delayed.result.lock().unwrap().frame, 18);
+        assert_eq!(current.result.lock().unwrap().frame, 20);
+        assert_eq!(gpu_samples.lock().unwrap().times, [4.0]);
     }
 }

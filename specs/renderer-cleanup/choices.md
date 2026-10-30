@@ -504,7 +504,7 @@ finding that the base build did not render grass the same way twice.
 ## 12 · Frame timing
 
 - **When:** slice 12. **Choice:** `begin` takes the caller's frame index;
-  `submitted` returns an optional owned `PendingFrame`, whose explicit native
+  `submitted` returns an optional owned, single-use `PendingFrame`, whose native
   wait returns that frame's identity and optional milliseconds. Invalid counters
   and failed maps remain missing samples. Reset invalidates old rolling-window
   membership without relabelling or cancelling an already issued frame result.
@@ -519,21 +519,33 @@ finding that the base build did not render grass the same way twice.
   exercises both modes with delayed reads and reset between encoding/submission.
   **Confidence: high.**
 
-- **When:** slice 12. **Choice:** queue-completion callbacks only set an atomic
-  readiness flag. Browser frame work calls `resolve_completed` without waiting;
-  native resolves through its explicit ticket wait, outside timed CPU phases.
-  Each reserved slot owns queries, resolve buffer and readback until mapping
-  completes. If the GPU finishes frame 18 between browser draws, its callback
-  sets the flag; the next draw submits its counter copy and a later map frees
-  the slot. It never waits inside the page's drawing call. **Gap:** the slice
-  delegated non-blocking completion handling;
-  wgpu's completion callback requires `Send` even though WebGPU device handles
-  are thread-local. **Reach:** no browser-specific dependency, unsafe handle
-  transfer or blocking poll enters the core's asynchronous path. Native keeps
-  its render wait followed by its own telemetry-submission wait and its
-  two-render pacing. **Verdict: sound** — native GPU tests cover the non-blocking
-  resolve pump independently of the ticket wait; the WebGPU build validates the
-  callback boundary. **Confidence: high.**
+- **When:** slice 12 review. **Choice:** support only the completion paths
+  callers use. Native's `AfterCompletion` ticket waits for rendering, submits
+  the resolve/copy, then waits for mapping and returns that frame's sample,
+  outside timed CPU phases. Browser `InFrame` maps immediately after submission
+  without waiting; its callback records the sample and releases the slot.
+  There is no queue-completion readiness flag, deferred resolve list or
+  later-frame pump. **Gap:** the slice delegated a non-blocking
+  `AfterCompletion`, but the browser measurements below justify keeping
+  `InFrame` and native always explicitly waits. **Reach:** native preserves its
+  two-render pacing and coverage rule; browser keeps saturation drops, rolling
+  stats and generation reset. Dropping an `InFrame` ticket leaves its callback
+  active; an `AfterCompletion` ticket must be consumed with `wait` to resolve
+  and release its slot. **Verdict: sound** — the retained GPU regression checks
+  delayed attribution/reset in both modes and `InFrame` statistics before any
+  ticket wait. **Confidence: high.**
+
+- **When:** slice 12 review. **Choice:** share the query pair for `InFrame`,
+  whose marked encoder copies its counters before another frame can overwrite
+  them. Retain per-slot query sets only for native's delayed `AfterCompletion`
+  resolves. Both modes share one resolve buffer: each resolve and readback copy
+  executes together on the queue, so later resolves cannot overwrite an earlier
+  readback. **Gap:** the initial seam reserved a query set and resolve buffer
+  per slot in both modes. **Reach:** outstanding native queries remain isolated;
+  browser resource ownership follows its in-frame copy contract.
+  **Verdict: sound** — delayed heavy/light workloads check native query isolation
+  and reused-slot durations, while both modes keep independent readbacks until
+  mapping completes. **Confidence: high.**
 
 - **When:** slice 12. **Choice:** retain `InFrame` for the browser. A stale end
   counter could omit a frame's actual GPU work; delaying resolve until completion
@@ -553,10 +565,10 @@ finding that the base build did not render grass the same way twice.
   scale and tail of the exact-input native calibration. **Confidence: high.**
 
 - **When:** slice 12. **Choice:** prove GPU attribution with heavy and light
-  fragment workloads, draining render submissions while deferring every counter
-  resolve/readback until after subsequent frames and reset. If a later frame
-  overwrites an earlier query pair, the heavy frame comes back with the light
-  frame's duration; deliberately sharing all query sets fails that assertion.
+  fragment workloads, draining render submissions while deferring native counter
+  resolves and ticket reads until after subsequent frames and reset. If a later
+  frame overwrites an earlier native query pair, the heavy frame comes back with the
+  light frame's duration; sharing native query sets fails that assertion.
   A later light frame also checks that reusing the old heavy frame's slot does
   not retain its duration. **Gap:** the slice required attribution coverage
   without prescribing a GPU fixture. **Reach:** independently created devices

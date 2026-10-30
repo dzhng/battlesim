@@ -26,9 +26,9 @@ fn frame_results_survive_delayed_completion_and_reset_in_both_resolve_modes() {
             }
             let submission = gpu.queue.submit([encoder.finish()]);
             pending.push((frame, timer.submitted(submission.clone()).unwrap()));
-            // Drain rendering while deferring every resolve/map. Overlapping
-            // GPU stages otherwise make workload cost an ambiguous control;
-            // all three query sets must still retain their own frame's values.
+            // Drain rendering so overlapping GPU stages cannot blur the cost
+            // difference. AfterCompletion must retain each frame's queries
+            // until its later ticket read; InFrame has already copied them.
             gpu.device
                 .poll(wgpu::PollType::Wait {
                     submission_index: Some(submission),
@@ -66,25 +66,22 @@ fn frame_results_survive_delayed_completion_and_reset_in_both_resolve_modes() {
         timer.end(&mut encoder);
         let submission = gpu.queue.submit([encoder.finish()]);
         let pending = timer.submitted(submission.clone()).unwrap();
-        gpu.device
-            .poll(wgpu::PollType::Wait {
-                submission_index: Some(submission),
-                timeout: None,
-            })
-            .unwrap();
-        // Exercise the browser's non-blocking resolve pump before reading the
-        // native ticket; wait alone must not hide a broken browser path.
-        timer.resolve_completed();
-        gpu.device
-            .poll(wgpu::PollType::Wait {
-                submission_index: None,
-                timeout: None,
-            })
-            .unwrap();
-        if mode == Resolve::AfterCompletion {
-            assert_eq!(timer.stats().frames, 1);
+        if mode == Resolve::InFrame {
+            // Browser callers discard the ticket. Poll only to drive the native
+            // test device; InFrame must publish stats without a ticket wait.
+            gpu.device
+                .poll(wgpu::PollType::Wait {
+                    submission_index: Some(submission),
+                    timeout: None,
+                })
+                .unwrap();
         }
+        let before_wait = timer.stats();
         let sample = pending.wait().unwrap();
+        if mode == Resolve::InFrame {
+            assert_eq!(before_wait.frames, usize::from(sample.ms.is_some()));
+            assert_eq!(before_wait.mean_ms, sample.ms.unwrap_or(0.0));
+        }
         assert_eq!(sample.frame, 20, "{mode:?}");
         if mode == Resolve::AfterCompletion {
             assert!(

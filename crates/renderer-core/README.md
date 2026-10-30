@@ -139,12 +139,12 @@ GPU profiling is opt-in and owned by [`FrameTimer`](src/timing.rs). Whole-frame
 render-pass timestamp markers bracket the actual ordered frame, including any
 regional scar submissions. Stage counters measure elapsed time between marker
 passes while GPU stages can overlap; GPU traces provide the busy/idle breakdown.
-Each occupied readback owns its query set until mapping completes, so a later frame cannot overwrite counters awaiting resolve.
-`Resolve::InFrame` resolves in the marked encoder; `Resolve::AfterCompletion`
-resolves in a separate submission after queue completion, avoiding stale Metal
-stage counters. Queue callbacks only signal readiness; later frame work submits
-ready resolves without blocking the browser. Native can explicitly wait for a
-frame and its telemetry submission.
+`Resolve::InFrame` copies counters in the marked encoder, so browser frames
+share a query pair and resolve buffer without waiting. `Resolve::AfterCompletion`
+retains per-slot queries to avoid overwriting counters awaiting resolve. Native's
+explicit ticket wait drains the frame, submits the counter copy, then waits for
+readback, avoiding stale Metal stage counters. Both modes share the resolve
+buffer because each resolve and copy executes together on the queue.
 
 Bounded asynchronous readbacks skip saturated frames. Results retain the caller's
 frame identity even when they complete out of order. Resetting the rolling window
