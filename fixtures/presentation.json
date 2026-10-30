@@ -656,7 +656,7 @@
       "impact": {"scale": 1, "surfaces": {}},
       "blast": 1,
       "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 0.27386127875258304, "far_m": 290.0}, "blast": {"gain": 2.3916521486202797, "far_m": 925.0}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 5.47722557505166}
+      "sound": {"shot": {"near": "bomb-release-combat", "far": "bomb-release-combat", "gain": 0.27386127875258304, "far_m": 290.0}, "blast": {"gain": 2.3916521486202797, "far_m": 925.0}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 5.47722557505166}
     },
     "artillery": {
       "tracer": {"tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}},

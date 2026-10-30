@@ -189,3 +189,5 @@ visual limitations remain outside this pass.
 **Sound done — `mortar` (2026-10-29):** Item 2: the user-confirmed distinct 82 mm launch replaces the howitzer placeholder; source impact excluded. Evidence: shared `evidence-15-sound/mortar/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
 
 **Sound done — `strike_missile` (2026-10-29):** Item 1: one aligned M270/ATACMS launch with sustained exhaust replaces the rifle burst. Evidence: shared `evidence-15-sound/strike/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
+
+**Sound done — `bomb` (2026-10-29):** Item 1: the prescribed restrained handling/air fallback replaces the rifle burst; no explosion at release. Evidence: shared `evidence-15-sound/bomb/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).

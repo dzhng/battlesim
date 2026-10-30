@@ -4678,6 +4678,44 @@
         454416,
         624000
       ]
+    },
+    "bomb-release": {
+      "label": "Bomb \u00b7 mechanical release and falling air fallback",
+      "category": "weapon",
+      "role": "launch",
+      "processing": "handling",
+      "url": "/audio/clips/bomb-release.wav",
+      "sha256": "02821cebc4312c3c13bd5f25ed719a3834e9eac8ef4fc4681a0b3c677d316326",
+      "sample_rate": 48000,
+      "frames": 11531,
+      "loop": false,
+      "notes": "03 designed fallback: short reload-13 ejector plus filtered non-impact end of ricochet-1, unpowered and without explosion at release.",
+      "layers": [
+        {
+          "source": "qubodup-gunfire",
+          "source_rate": 48000,
+          "source_frames": [
+            1326480,
+            1333680
+          ],
+          "at_s": 0,
+          "gain": 0.5,
+          "semitones": 0,
+          "lowpass_hz": 3800
+        },
+        {
+          "source": "ricochet-design",
+          "source_rate": 44100,
+          "source_frames": [
+            13000,
+            21609
+          ],
+          "at_s": 0.045,
+          "gain": 0.12,
+          "semitones": 0,
+          "lowpass_hz": 2200
+        }
+      ]
     }
   },
   "sounds": {
@@ -6051,6 +6089,16 @@
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
+      "loop": false
+    },
+    "bomb-release-combat": {
+      "label": "Bomb \u00b7 restrained release fallback",
+      "clips": [
+        "bomb-release"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.25,
       "loop": false
     }
   },
