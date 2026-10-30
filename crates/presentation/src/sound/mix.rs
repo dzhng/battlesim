@@ -22,6 +22,15 @@ impl AudioMix {
                 return Err(format!("audio.{name}: needs a default"));
             }
         }
+        for hit in self.weapon_defaults.impacts.keys() {
+            if !crate::effects::tables::IMPACT_MATERIALS.contains(&hit.as_str())
+                && hit != super::GLANCE
+            {
+                return Err(format!(
+                    "audio.weapon_defaults.impacts.{hit}: unknown impact material"
+                ));
+            }
+        }
         let positive = |p: &str, v| range(&format!("audio.{p}"), v, f64::MIN_POSITIVE, f64::MAX);
         for (p, v) in [
             ("cues.shout.lowpass_hz", self.cues.shout.lowpass_hz),

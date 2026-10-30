@@ -150,8 +150,8 @@ fn a_default_recording_cannot_invent_a_landing_material() {
         &fixture("rules")["weapons"],
     );
     assert!(result
-        .expect_err("unknown landing material")
-        .contains("cook_off.landing.hit"));
+        .expect_err("an invented default material is refused before landing resolution")
+        .contains("weapon_defaults.impacts.hulll"));
 }
 
 #[test]
