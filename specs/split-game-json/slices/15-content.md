@@ -4,19 +4,23 @@
 always fits the weapon, and burst recordings match each weapon's rate of fire.
 
 Each item below is its own sub-slice: one variable, one verdict, one commit.
-None moves a hash. The looks already exist from [13](13-fold-looks.md), so
-only their values change.
+Look-value edits move no hash. The directed artillery split in
+[the decisions ledger](../decisions.md#slice-15) is the exception: one
+appearance-assignment commit separates mortar and rocket artillery, moving
+rules and replay configuration identities once while preserving battle digests.
 
 **Sound** (sources from [03](03-sound-sources.md)):
-1. firing recordings for `artillery`, `bomb` (release), the rocket salvo for
-   `rocket_pod`, and the strike missile's look. Today they fall back to the
-   rifle shot or the tank cannon;
+1. firing identities for `artillery`, `rocket_artillery`, `bomb` (release),
+   individual `rocket_pod` launches and the strike missile's look, replacing
+   the rifle-shot or tank-cannon placeholders;
 2. mortar, if a mortar weapon uses the artillery look and the user can hear
    the difference;
-3. burst recordings at cadence: the marksman rifle, the heavy sniper and
-   `aa_gun`;
+3. single recorded reports for the marksman rifle and heavy sniper, whose
+   resolved rows have no burst group; a three-report recording at cadence
+   for `aa_gun`;
 4. **the cadence check:** at fielding, a look whose burst recording doesn't
-   match its weapon's rate of fire is refused (`sound/frame.rs:846-866`).
+   match its weapon's rate of fire is refused by
+   [`SoundTables`](../../../crates/presentation/src/sound/tables.rs).
    Write it first; it fails on today's data, and passes once item 3 lands;
 5. round the folded levels [13](13-fold-looks.md) wrote as raw medians
    (`3.0983866769659336`, far `825.0`) to the precision the file authors.
@@ -213,3 +217,45 @@ checks pass, as does the owning sound suite. Evidence: shared
 `evidence-15-sound/4-cadence/`. This refusal changes no valid playback output.
 
 **Sound done — `rifle` (2026-10-29):** Item 5: amplitude levels round to two decimals and switch distances to integer metres. The maximum amplitude move is 0.58 dB (rifle); the ledger and paired firefight retain the listening evidence. Evidence: shared `evidence-15-sound/5-levels/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
+
+## Sound verification and handoff
+
+The standard firefight does not fire the new artillery, bomb, pod, AA or
+precision-rifle sounds. Each content checkpoint therefore also includes paired
+launch auditions composed and calibrated through the production SoundBank.
+Every content scene passes. Source receipts pin the original download, decoded
+frame crop and processing; all new clips rebuild byte-for-byte through the
+existing asset tool. Measured relayed attacks stay within 1 ms of AA's spacing
+and 2 ms of the LMG's. The LMG correction is required by the general cadence gate,
+not a new firing rule. The rebuilt Wasm admission surface refuses the original
+shipped data at AA's mismatched cadence and accepts the corrected documents.
+
+The exact probe in shared `after-15-sound/` preserves slice 13's battle digests,
+events, poses, hull publications and hull layout byte-for-byte. Every numeric
+effect field and bit matches; only the new artillery appearance names move
+light-cause labels. The sound projection verifies every remaining command after
+excluding the named firing replacements, their voice ids and consequential
+ducking; all remaining gain changes match the rounding ledger. Coverage changes
+only in sound-command counts from corrected AA and LMG burst coverage. The
+recording commits leave the standard lab's output unchanged; level rounding also
+changes its voice-budget ranking and consequent command ordering.
+
+Both recording/level listening checkpoints elapsed without further feedback;
+QuickTime was closed. Mortar has the user's explicit audible verdict. Agent-side
+timbre listening remains unverified, and the Apache recording is not admitted.
+The gate-only firefight uses the same unrounded look snapshot in both arms; it
+changes by at most one PCM16 step in WebAudio rounding. Its controlled capture
+and listening checkpoint are recorded with item 4.
+
+The closeout shape/diff/docs review keeps one admission owner, no playback or
+simulation changes, no visual retunes, and no new authoring schema. Full web
+verification found one obsolete test that pinned the research ledger to three
+receipts. It now checks the receipt contract on a fake catalog; its focused
+suite passes. Shared `evidence-15-sound/report.md` links the paired WAVs, receipts,
+ledgers, exact validation, checks and commit list. The visual half remains with
+its implementing agent; 15 stays unchecked in the README for integration.
+
+The full workspace Rust run, Wasm build, typecheck, lint/clippy, formatting and
+size ratchet pass. The full web run passed every other suite; the corrected
+receipt suite passes on focused rerun. Shared closeout logs record the results;
+the documentation-only handoff edit does not invalidate those checks.
