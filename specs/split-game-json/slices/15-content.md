@@ -212,6 +212,40 @@ The exact probe and value/vector scope audits pass. Shape, diff and docs review
 retain the existing owner with no added mechanism. The resumed pass's required
 workspace and web checks are recorded with item 11's closeout below.
 
+## Visual item 11 — closed, no change
+
+**Done:** the variable under review is muzzle-flash attachment, scoped to the
+`tank_he` and `tank_sabot` rows where the earlier reports saw a detached
+fireball. It does not reproduce on the corrected sampler: native default,
+close and muzzle-detail stills show fire overlapping both barrel tips, as does
+the corrected historical reference. The fresh unprimed critique accepts their
+attachment. No visual value, code, or vector changes for this item.
+
+Shared `evidence-15-visual/11/` holds `before/` and `after/` rows for both
+looks, full `capture/`, native `details/` muzzle crops, comparison metrics,
+capture records and `critique.md`. The sabot launch retains the reference
+camera record, tick, head and direction exactly; other samples have startup
+or later-shot drift and are diagnostic rather than parity evidence. The
+still frames do not establish attachment throughout an animation. The critic's
+strong saturation and rounded flash-lobe observations remain distinct from the
+unreproduced origin complaint; global exposure is outside this pass.
+
+The non-blocking Preview checkpoint elapsed without feedback. The no-change
+verdict proceeds on the corrected captures, comparison and fresh critique;
+Preview is closed before continuing.
+
+## Resumed visual pass verification
+
+Shared `evidence-15-visual/checks-summary-2.json` and `logs-2/` hold the required
+workspace Rust run and each final check receipt. The final presentation crate
+and scoped effect vectors pass; vector outputs are unchanged. Wasm, typecheck,
+Clippy, JavaScript lint, formatting and staged size checks pass. The full web
+suite had one replay-refusal failure during concurrent build load; that owning
+file passes unflagged in isolation without code changes. Required LFS media were
+materialized before reruns. No rules, sound, renderer code or global settings
+change. Both item-specific fresh critiques pass receipt validation, and both
+non-blocking Preview checkpoints are closed.
+
 ## Visual pass verification and review
 
 The workspace Rust suite completes successfully. The final presentation crate
