@@ -30,7 +30,12 @@ license, processing), as the catalog already does.
 6. `ifv_cannon`: distinct from the tank's HE (flash, tracer, impact);
 7. `rocket_pod`: a rocket's motor, smoke trail and salvo impact, not a tank
    cannon's;
-8. `rpg`: distinct from the grenade.
+8. `rpg`: distinct from the grenade;
+9. `tank_sabot` versus `tank_he`: kinetic contact without an explosive fireball
+   versus an HE explosion;
+10. `atgm`: reduce the launch bloom, glowing flight rod and separated trail puffs;
+11. reproduce the reported detached muzzle fireball on the corrected sheet
+    before changing it; leave unchanged if it does not reproduce.
 
 **Run / see / hear:** the look sheet (flash, tracer, impact and blast per
 look), `firefight.wav`, workbench auditions ([14](14-sound-workbench.md)),
@@ -143,3 +148,51 @@ The final probe is shared `after-15-visual/`. Digests, events, poses, sound and
 hull publications/layouts remain byte-identical to `after-13/`. Effect changes
 are confined to IFV, rocket-pod, light/general RPG and mixed BMP-3 cases. The
 probe's delta report lists every changed case.
+
+
+## Visual item 9 — stopped at the data boundary
+
+**Not done; values unchanged.** The implementation brief requires stopping and
+reporting when a value cannot express the fix. The corrected look sheet puts
+every look on a controlled HE carrier, so its sabot row receives an explosion
+cause even though real AP rounds do not. The exact probe's AP cases publish no
+blasts while their HE counterparts do; the receipt is shared
+`evidence-15-visual/9/real-round-causes.json`. This is a capture/style-contract
+limit, not evidence that real sabot rounds explode.
+
+A look's `blast` is only a positive scale: [look admission](../../../crates/presentation/src/looks.rs)
+refuses zero, [effect construction](../../../crates/presentation/src/effects/frame/pool.rs)
+scales the shared fireball, dirt and smoke together, and
+[blast drawing](../../../crates/presentation/src/effects/frame/draw.rs) always
+emits the shared fire sprite. No allowed per-look field selects a kinetic
+blast or disables its fireball independently. An arbitrarily tiny positive
+scale would disguise the limitation rather than author the requested absence.
+Changing a capture cause or extending that contract needs code, which this
+brief explicitly excludes. No schema, renderer, sampler, rule or sound change
+is made, and no candidate or visual acceptance is claimed for this item.
+
+## Visual items 10 and 11 — not reached after the required stop
+
+**Not done; values unchanged.** ATGM tuning and the detached-flash reproduction
+remain outstanding because item 9 requires the implementation delegate to
+stop. The existing slice-13 report found no confidently detached flash; that
+historical finding is not a fresh reproduction or a fix in this pass. These
+items must resume in order after the item-9 boundary is settled. Slice 15
+remains unticked in the plan README.
+
+## Visual pass verification and review
+
+The workspace Rust suite completes successfully. The final presentation crate
+run passes after all visual edits. Wasm, typecheck, Clippy, ESLint, formatting
+and commit size ratchets pass; Oxlint passes with existing warnings. Full web
+Vitest runs once; its icon and audio-provenance failures were LFS pointers,
+resolved by materializing those source dependencies and rerunning the affected
+files unflagged. No code or requirement was changed for setup failures. Shared
+`evidence-15-visual/checks-summary.json` and `logs/` hold the receipts.
+
+Shape, diff and docs review retain one settings owner and introduce no code,
+abstraction or interface. Only the three named visual looks and corresponding
+vector inputs change; every sound block is byte-identical in both files.
+Owning-slice links resolve. The final probe and all three unprimed verdicts
+stand; global bloom/exposure, small-arms contrast over wheat and the stated
+visual limitations remain outside this pass.
