@@ -142,9 +142,9 @@ export function Movement({ snapshot, draft, play, playing, mix, live, stop }: Mo
       <h2>Vehicles</h2>
       <p>
         A vehicle sounds as its class: how it moves, its hull&apos;s weight and whether it hauls
-        supply. Drive plays its loops mixed as the battle mixes them at that speed. Classes and
-        their levels live in the game&apos;s presentation; a running-gear choice replaces that loop
-        for every class, and other loops are replaced under Defaults &amp; effects.
+        supply. Drive plays its loops mixed as the battle mixes them at that speed. Classes, their
+        loops and levels live in the game&apos;s audio mix (<code>audio.json</code>) and are read
+        only here.
       </p>
       {Object.entries(snapshot.vehicles).map(([cls, row]) => {
         const d = drives[cls];

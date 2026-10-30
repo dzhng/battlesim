@@ -26,7 +26,9 @@ belongs to the lit, shadowed, fogged world. [Stroke sizing](src/strokeWidth.ts)
 keeps authored dimensions in CSS space and its readability floor in actual render
 pixels, so lowering resolution cannot erase an information mark.
 
-[Styles](src/overlayStyle.ts) validate fixture-owned appearance at admission.
+[Styles](src/overlayStyle.ts) type fixture-owned appearance; the
+[presentation settings](../../crates/presentation/src/settings/validate.rs)
+admit it.
 [Fog](src/fog.ts) and [grass](src/grass.ts) contracts describe
 canonical inputs and explicit diagnostic snapshots; they own no device or
 resources. Actual GPU behavior is checked through the shared renderer's native
