@@ -211,3 +211,5 @@ match its shot interval within 5 ms. Single reports remain valid. The regression
 was written and observed red before enforcement; count and tolerance boundary
 checks pass, as does the owning sound suite. Evidence: shared
 `evidence-15-sound/4-cadence/`. This refusal changes no valid playback output.
+
+**Sound done — `rifle` (2026-10-29):** Item 5: amplitude levels round to two decimals and switch distances to integer metres. The maximum amplitude move is 0.58 dB (rifle); the ledger and paired firefight retain the listening evidence. Evidence: shared `evidence-15-sound/5-levels/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
