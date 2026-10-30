@@ -779,3 +779,28 @@ fn k_weighting_reads_the_bs1770_reference() {
         assert!((l + 3.01).abs() < 0.05, "{rate}: {l}");
     }
 }
+
+#[test]
+fn an_rpg_launch_is_heard_above_a_thrown_grenade() {
+    let launch_gain = |kind: &str| {
+        let mut s = ready();
+        let (effects, launches) = shot(1.0, 3.0, [20.0, 0.0, 0.0], kind);
+        s.note(
+            &Heard {
+                effects: &effects,
+                launches: &launches,
+                audible: Vec::new(),
+                shouts: Vec::new(),
+            },
+            0.0,
+        );
+        let commands = s.update(1.0 / 30.0, 0.0, 0.0, &Motion::default(), HERE);
+        let voices = starts(commands);
+        assert!(!voices.is_empty(), "the launch must be audible");
+        voices.iter().map(|voice| voice.gain).sum::<f64>()
+    };
+    assert!(
+        launch_gain("rpg_at_light") > launch_gain("grenade"),
+        "an RPG must play its own louder launch, rather than the grenade's fallback level"
+    );
+}

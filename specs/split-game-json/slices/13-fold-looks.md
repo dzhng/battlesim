@@ -54,3 +54,16 @@ loudest member's level, or the median; say which and why).
 
 **Would change this slice:** a fold the user can hear as wrong. Split it into
 its own look.
+
+## Input from 11 — heavy RPG split
+
+Slice 11 deliberately keeps one RPG look and restores the light RPG's levels
+for all three weapons, preserving `rules_hash`. The user chose this interim
+level rather than moving appearance assignments in 11.
+
+`rpg_at_heavy`'s stranded authored values are shot gain **0.55**, far
+**400 m**; blast gain **0.8**, far **450 m** (its contact loudness multiplier
+was **3.5**). Against the shared light row, the heavy blast is about **3.25 dB**
+louder, exceeding this slice's 2 dB fold threshold. Give the heavy RPG its
+own look here and restore those levels; the shot difference alone is about
+1.74 dB. The light/general RPGs may retain the light row.

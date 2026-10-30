@@ -112,3 +112,93 @@ digests. This is a coverage limit, not evidence of a visible change;
 `after-11-2/delta-report.txt` names it explicitly. A separate controlled ground
 capture supplies visual review evidence. Native capture is queued under the
 shared GPU lock; review remains with the integrator.
+
+## Named delta 3 — shared RPG level (declared before changing values)
+
+`rpg_at_light`, `rpg_at_heavy` and `rpg_general` keep their existing shared
+look. Per the user's decision, that look takes the stranded light RPG row's
+levels: shot gain 0.45 / far 350 m, blast gain 0.55 / far 350 m, contact
+loudness multiplier 2.5. Recordings and visual parts do not change. These
+values come from the stranded `rpg_light` rows in the last mixed fixture;
+the `b4410901c` rename predates those authored sound rows.
+
+Only those three weapons' sound-command rows may change beyond fix 2.
+Effects, poses, events, hull publications/layouts, rules and all battle
+digests stay identical. The committed sound vectors do not fire RPGs, so
+their output and the standard sound-lab firefight are expected to remain
+unchanged. Separate RPG shot/blast/contact WAVs make the named audible
+delta reviewable. Re-bless the corresponding sound inputs, run the focused
+sound/effect re-blesses, and rerun unflagged.
+
+The heavy RPG's original shot/blast gains (0.55 / 0.8) and far distances
+(400 / 450 m) are deferred to 13, which may split appearance assignments.
+The user explicitly chose no `rules_hash` change here.
+
+### Receipt 3
+
+The RPG launch regression first failed because it played at the grenade's
+level, then passed after the data edit. Against fix 2 the exact probe changes
+two sound rows each for `rpg_at_light`, `rpg_at_heavy` and `rpg_general`,
+six rows total. Every other stream is identical, and all battle digests still
+match `after-08-merged/` byte for byte. Reports for each fix are beside its
+`after-11-<n>/` dump in the shared proof directory.
+
+Separate before/after RPG WAVs use the same recordings, listener, clock and
+offline audio graph. Measured RMS changes are +11.480626 dB (launch),
++5.264828 dB (blast), and +1.938201 dB (ground contact). Their level ledger is
+`evidence-11/rpg-level-ledger.txt`. The standard firefight has no RPG event;
+its before/after peak is identical and 55 of 768,000 PCM samples differ by
+one 16-bit least-significant bit (RMS difference 0.000000083 dB).
+
+**Heavy RPG interim difference:** this slice deliberately uses the shared
+light row, so `rpg_at_heavy` remains 1.743 dB quieter on launch and 3.255 dB
+quieter on blast than its stranded authored levels (contacts 2.923 dB
+quieter). Far distances remain 350/350 m here instead of 400/450 m. The
+user-authorized heavy look split and the original values are recorded as an
+input in [13](13-fold-looks.md). This preserves `rules_hash` in 11.
+
+## Done — three presentation data fixes
+
+Each cause is isolated in its own commit. No weapon changes its appearance
+reference; `rules.json` and all battle digest streams are byte-identical.
+The shared dump digest SHA-256 remains
+`2ee49f6b869abe7bd7841615026c6a4149753b9f06073b9d33bed78c8a7938c1`.
+The heavy RPG's intentional interim level difference is documented above and
+assigned to 13.
+
+The three regressions were observed failing on the old data, then passing.
+Final `cargo test -p presentation -p sim --no-fail-fast` passes 1,640 tests
+across 46 targets. Rebuilt Wasm passes the 54 selected sound/projectile/capture
+web tests; a further 62 audio/workbench/visual-publication tests pass. Typecheck,
+ESLint, Oxlint, workspace/all-target Clippy, formatting and the size ratchet
+pass. The sound scene passes before and after. Missing LFS assets were
+materialized locally; no source, baseline or requirement was changed to fix
+those setup failures. Review of shape, diff and documentation found no new
+production abstraction, dependency or runtime API.
+
+Evidence lives under
+`/Users/server/dev/battlesim/throwaway/split-game-json/evidence-11/`:
+`before/` and `after/` contain native plates, tank clips, ground-impact
+captures, `firefight.wav`, and isolated RPG WAVs; the root holds exact delta,
+identity and level reports. Native captures ran under the shared GPU lock and
+all six frozen plates remain byte-identical. The look sheet recaptures the
+seven hull-visible changed looks with baseline cameras, and explicitly reuses
+the other thirty whose hull-visible inputs did not change. The capture-scope
+receipt names every reuse. The baseline is complete for all 37 looks.
+
+The implementation brief reserves screenshot critique and listening acceptance
+for the integrator. Only framing/nonblank evidence is checked here; no artistic
+acceptance, Preview checkpoint or child-agent critique is claimed. The probe's
+missing tank-ground case is covered by the controlled ground-contact regression
+and real ground-attack captures. All scratch evidence and scripts remain ignored.
+
+Capture receipt: the tank clips each hold 91 frames at matching ticks/camera
+(launch tick 108). The seven changed-look captures pass the scene, and 56
+before/after detail pairs have comparison artifacts. The full sheet uses a
+wide viewport to retain all four comparison columns. The ground pair hits the
+same point at tick 185; its supplementary isolated version disables the HE
+carrier's blast radius in both arms, explicitly disclosed in `capture.json`,
+to expose the contact puff. It changes no shipped rule. An AP capture attempt
+was discarded because it selected an enemy shell and could not supply a
+matching own ground hit. `evidence-11/capture-receipt.txt` identifies the
+reviewable captures and their controls.

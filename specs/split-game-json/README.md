@@ -1,6 +1,6 @@
 # One owner per game setting
 
-**Status:** in progress: 01–10 done. **Updated:** 2026-10-29.
+**Status:** in progress: 01–11 done. **Updated:** 2026-10-29.
 
 [`fixtures/rules.json`](../../fixtures/rules.json) owns battle rules,
 [`fixtures/presentation.json`](../../fixtures/presentation.json) owns visual settings,
@@ -21,10 +21,13 @@ You are implementing this plan on PR #16 (dzhng/battlesim, branch
 slice you are on. Use
 [`implement-spec`](../../.agents/skills/implement-spec/SKILL.md).
 
-**Pick up at [11](slices/11-named-fixes.md).** Slice 10 now routes both
-clients through the battle's resolved rules; its probe and native plates are
-unchanged. The independent screenshot critique remains an integration check
-(the implementation delegate was instructed not to start child agents).
+**Pick up at [12](slices/12-firing-look.md).** Slice 11 fixes recoil, tank
+ground impacts and the shared RPG level in three named commits. Its per-fix
+probe reports and before/after evidence are in the shared proof directory
+(`after-11-1/` through `after-11-3/`, and `evidence-11/`). No battle digest or
+rules hash moves. Independent visual and listening critique remains an
+integration check; the implementation delegate only checked framing/nonblank
+captures. Slice 13 must split the heavy RPG's louder blast, as recorded there.
 The open review follow-ups are listed at the end of
 [04](slices/04-split-files.md), [05](slices/05-typed-readers.md),
 [06](slices/06-shader-constants.md), [07](slices/07-admission.md),
@@ -64,7 +67,7 @@ Warnings:
 - [x] [08 Looks that reproduce today](slices/08-looks.md) (moves `rules_hash`)
 - [x] [09 Rules cleanups](slices/09-rules-cleanups.md) (moves `rules_hash`, `config_hash`)
 - [x] [10 Presentation reads the battle's rules](slices/10-battle-rules.md)
-- [ ] [11 Named fixes: kick, impact size, RPG level](slices/11-named-fixes.md)
+- [x] [11 Named fixes: kick, impact size, RPG level](slices/11-named-fixes.md)
 - [ ] [12 The firing look follows the round](slices/12-firing-look.md)
 - [ ] [13 Fold to the final looks](slices/13-fold-looks.md) (moves `rules_hash`)
 - [ ] [14 Sound workbench keyed by look](slices/14-sound-workbench.md)
