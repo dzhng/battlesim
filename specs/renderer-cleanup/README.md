@@ -16,9 +16,9 @@ to run the slices: Codex
 (gpt-6.1-sol, high) implements each slice, the orchestrator reviews and
 integrates by cherry-pick, and pushes each verified slice to the open PR.
 
-**Status (2026-10-30):** 01–05 and the grass determinism fix landed. Slice 06
-is implemented with byte-identical assembled shaders. Pick up at
-[slice 07](slices/07-names.md); 06–08 are shader-only and run in order.
+**Status (2026-10-30):** 01–07, 09 and the grass determinism fix landed and
+are proven (54/54 plates byte-identical to the grass-fixed build). 08, 10 and
+12 are in progress; then 11, 13, 14, 15.
 
 The base build did not render grass the same way twice (atomic clump order);
 the fix (`fix(renderer): emit grass clumps in deterministic ranges`, see
@@ -41,9 +41,9 @@ TODO:
 - [x] [04](slices/04-renderer-records.md) Renderer records, lengths and the reverse check (with 04b: the remaining packed layouts)
 - [x] [05](slices/05-composition-grammar.md) Composition grammar and one block per binding
 - [x] [06](slices/06-concept-moves.md) Move each struct and function to its concept's module
-- [ ] [07](slices/07-names.md) Names: no suffixes, no mangling, no dead aliases
+- [x] [07](slices/07-names.md) Names: no suffixes, no mangling, no dead aliases
 - [ ] [08](slices/08-collapse-copies.md) Collapse copies and loop the cascades
-- [ ] [09](slices/09-scenery-tier-mesh.md) Scenery tier mesh: one Rust owner
+- [x] [09](slices/09-scenery-tier-mesh.md) Scenery tier mesh: one Rust owner
 - [ ] [10](slices/10-world-geometry.md) World geometry: one Rust constructor
 - [ ] [11](slices/11-track-side.md) Track side: decided once, in presentation
 - [ ] [12](slices/12-frame-timing.md) GPU frame timing: one owner
