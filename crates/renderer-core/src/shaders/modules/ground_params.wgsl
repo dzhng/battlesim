@@ -53,5 +53,5 @@ struct TerrainParams {
   view: vec4u,
 }
 
-// @block ground_params_params
-@group(1) @binding(0) var<uniform> params: TerrainParams;
+// @block ground_params_terrainParams
+@group(1) @binding(0) var<uniform> terrainParams: TerrainParams;

@@ -151,7 +151,7 @@ const GRASS_STAND_PARCHED_TO = 0.8;
 // selection. A lane keeps its candidates in sequence order.
 fn growTile(wg: vec3u, li: u32, emit: bool, first: vec2u) -> vec2u {
   var found = vec2u(0u);
-  let P = &params;
+  let P = &grassParams;
   if (wg.x >= (*P).grid.x || wg.y >= (*P).grid.y) { return found; }
   let T = (*P).window.z;
   let lo = (*P).window.xy + vec2f(f32(wg.x), f32(wg.y)) * T;
@@ -236,7 +236,7 @@ fn growTile(wg: vec3u, li: u32, emit: bool, first: vec2u) -> vec2u {
     if (g.w > 0.0 && plot.rows.z > 0.0) {
       let across = dot(fell, plot.rows.xy) / plot.rows.z;
       let toRow = (floor(across) + 0.5 - across) * plot.rows.z * g.w;
-      let room = max(0.0, min(site.y - params_1.verge.w, margin) - GRASS_PLACEMENT_HEADLAND_M);
+      let room = max(0.0, min(site.y - terrainParams.verge.w, margin) - GRASS_PLACEMENT_HEADLAND_M);
       p = fell + plot.rows.xy * clamp(toRow, -room, room);
     }
     // A wheeling stays bare.
@@ -331,7 +331,7 @@ var<workgroup> laneCounts: array<vec2u, GRASS_BUILD_LANES>;
   let found = growTile(wg, li, false, vec2u(0u));
   laneCounts[li] = found;
   workgroupBarrier();
-  let tile = (wg.y * params.grid.x + wg.x) * GRASS_TILE_RANGES;
+  let tile = (wg.y * grassParams.grid.x + wg.x) * GRASS_TILE_RANGES;
   // Lane offsets and the tile total, ready for the cross-tile prefix pass.
   var first = vec2u(0u);
   for (var i = 0u; i < li; i++) { first += laneCounts[i]; }
@@ -340,7 +340,7 @@ var<workgroup> laneCounts: array<vec2u, GRASS_BUILD_LANES>;
 }
 
 @compute @workgroup_size(GRASS_BUILD_LANES) fn buildFn(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32) {
-  let tile = (wg.y * params.grid.x + wg.x) * GRASS_TILE_RANGES;
+  let tile = (wg.y * grassParams.grid.x + wg.x) * GRASS_TILE_RANGES;
   let found = growTile(wg, li, true, ranges[tile] + ranges[tile + 1u + li]);
 }
 

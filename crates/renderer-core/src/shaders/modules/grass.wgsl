@@ -29,7 +29,7 @@ const GRASS_BLADE_FLUTTER_ACROSS = 0.5;
 const GRASS_BLADE_LAID_LEAN = 1.1;
 const GRASS_BLADE_LAID_SINK = 0.6;
 fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
-  let P = &params;
+  let P = &grassParams;
   let tier = tier;
   let c = clumps[tier.y + iid];
   let row = (*P).kinds[c.kind];
@@ -91,7 +91,7 @@ fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
 // @block grass_grassDensity
 const GRASS_DENSITY_LEAST_FACING = 0.15;
 fn grassDensity(dist: f32, drop: f32) -> f32 {
-  let P = &params;
+  let P = &grassParams;
   let facing = clamp(drop / dist, GRASS_DENSITY_LEAST_FACING, 1.0);
   let footprint = (*P).eye.w * dist;
   return min((*P).density.y, facing / ((*P).density.x * footprint * footprint));
@@ -163,8 +163,8 @@ fn grassUnderProp(p: vec2f) -> bool {
   return false;
 }
 
-// @block grass_params_primary
-@group(GROUP) @binding(0) var<uniform> params: GrassParams;
+// @block grass_params
+@group(GROUP) @binding(0) var<uniform> grassParams: GrassParams;
 
 // @block grass_shapes
 @group(1) @binding(3) var<storage, read> shapes: array<GrassShapeVertex>;

@@ -1,19 +1,19 @@
 // WGSL owner: scenery.
 
-// @block scenery_surface_alternate
-fn surface(world: vec3f, normal: vec3f, color: vec4f, local: vec3f, sun_1: f32) -> vec3f {
-  let eye = (&cam_1.eye);
+// @block scenery_surface
+fn surface(world: vec3f, normal: vec3f, color: vec4f, local: vec3f, sunlight: f32) -> vec3f {
+  let eye = (&cam.eye);
   var n = normalize(normal);
-  var shade = 1f;
+  var clumpShade = 1f;
   var roughness = 0.8999999761581421f;
   let fade = (1f - smoothstep(0.08f, 0.45f, length(fwidth(world))));
   if (((color.w > 0.5f) && (fade > 0f))) {
     let clumps = leafClumps(local, n, fade);
     n = clumps.xyz;
-    shade = clumps.w;
+    clumpShade = clumps.w;
     roughness = 0.85f;
   }
-  let lit = shade_1((color.xyz * shade), vec3f(), roughness, 0f, 0f, 1f, n, world, sun_1, (*eye));
+  let lit = shade((color.xyz * clumpShade), vec3f(), roughness, 0f, 0f, 1f, n, world, sunlight, (*eye));
   return lit.xyz;
 }
 

@@ -297,3 +297,14 @@ finding that the base build did not render grass the same way twice.
   share a name. **Verdict: sound** — checks binding identity as well as token
   identity, with Naga and record reflection independently checking the result.
   **Confidence: high.**
+
+- **When:** slice 07 ground, grass and scenery. **Choice:** ground and grass
+  bind `terrainParams` and `grassParams`; a local ground-record pointer is
+  `terrain`. Forest litter color, floor weights and moss lookup positions have
+  distinct names. Scenery keeps `cam` as its camera binding, uses `viewCamera`
+  for its local borrow, and distinguishes clump shading from the `shade`
+  function. **Gap:** the slice delegated how to separate domain parameters
+  and local lookups. **Reach:** consumers in water and grass placement change
+  with the resource owner; ground alias chains and camera/function mangling
+  aliases disappear. **Verdict: sound** — one binding vocabulary per domain,
+  without new adapters or changes to arithmetic. **Confidence: high.**

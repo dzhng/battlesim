@@ -8,8 +8,8 @@ struct BackdropFragmentInput {
   @location(3) highlight: f32,
 }
 
-// @block passes_shared_meshVertex_Output
-struct meshVertex_Output {
+// @block passes_shared_MeshVertexOutput
+struct MeshVertexOutput {
   @invariant @builtin(position) clip: vec4f,
   @location(0) @interpolate(perspective, centroid) world: vec3f,
   @location(1) normal: vec3f,
@@ -20,7 +20,7 @@ struct meshVertex_Output {
 // @block passes_shared_finishFn
 @compute @workgroup_size(1) fn finishFn() {
   var total = vec2u(0u);
-  for (var tile = 0u; tile < params.grid.x * params.grid.y; tile++) {
+  for (var tile = 0u; tile < grassParams.grid.x * grassParams.grid.y; tile++) {
     let at = tile * GRASS_TILE_RANGES;
     let count = ranges[at];
     ranges[at] = total;
@@ -28,7 +28,7 @@ struct meshVertex_Output {
   }
   for (var t = 0u; t < 2u; t++) {
     atomicStore(&args[10u + t], total[t]);
-    atomicStore(&args[t * 5u + 1u], min(total[t], select(params.grid.w, params.grid.z, t == 0u)));
+    atomicStore(&args[t * 5u + 1u], min(total[t], select(grassParams.grid.w, grassParams.grid.z, t == 0u)));
   }
 }
 
@@ -106,20 +106,20 @@ struct meshVertex_Output {
 }
 
 // @block passes_shared_meshVertex
-@vertex fn meshVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) placement: vec4f, @location(4) tint: vec4f) -> meshVertex_Output {
+@vertex fn meshVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) placement: vec4f, @location(4) tint: vec4f) -> MeshVertexOutput {
   let c = cos(placement.w);
   let s = sin(placement.w);
   let local = position;
   let world = vec3f((((local.x * c) - (local.y * s)) + placement.x), (((local.x * s) + (local.y * c)) + placement.y), (local.z + placement.z));
   let normal_1 = vec3f(((normal.x * c) - (normal.y * s)), ((normal.x * s) + (normal.y * c)), normal.z);
-  return meshVertex_Output((cam.viewProj * vec4f(world, 1f)), world, normal_1, vec4f((color.xyz * tint.xyz), color.w), tint.w);
+  return MeshVertexOutput((cam.viewProj * vec4f(world, 1f)), world, normal_1, vec4f((color.xyz * tint.xyz), color.w), tint.w);
 }
 
 // @block passes_shared_placedVertex
-@vertex fn placedVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) pose: vec4f, @location(4) shape: vec4f, @location(5) tint: vec4f) -> placedVertex_Output {
+@vertex fn placedVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) pose: vec4f, @location(4) shape: vec4f, @location(5) tint: vec4f) -> FoliageVertexOutput {
   let local = vec3f((position.x * shape.x), (position.y * shape.y), (position.z * shape.z));
   let world = standing(local, pose, shape, f32(select(0i, 1i, (color.w > 0.5f))));
-  return placedVertex_Output((cam.viewProj * vec4f(world, 1f)), world, placedNormal(normal, shape, pose.w), vec4f((color.xyz * tint.xyz), color.w), vec3f((local.x + tint.w), local.y, local.z), vec3f(pose.x, pose.y, (pose.z + shape.w)));
+  return FoliageVertexOutput((cam.viewProj * vec4f(world, 1f)), world, placedNormal(normal, shape, pose.w), vec4f((color.xyz * tint.xyz), color.w), vec3f((local.x + tint.w), local.y, local.z), vec3f(pose.x, pose.y, (pose.z + shape.w)));
 }
 
 // @block passes_shared_vertex
@@ -157,8 +157,8 @@ struct fullScreenTriangle_Output {
   @location(0) uv: vec2f,
 }
 
-// @block passes_shared_placedVertex_Output
-struct placedVertex_Output {
+// @block passes_shared_FoliageVertexOutput
+struct FoliageVertexOutput {
   @invariant @builtin(position) clip: vec4f,
   @location(0) world: vec3f,
   @location(1) normal: vec3f,

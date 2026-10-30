@@ -30,7 +30,7 @@ fn fogSample(i: u32, j: u32) -> f32 {
 
 // @block ground_surface_grassGround
 fn grassGround(q: vec2f) -> f32 {
-  let P = &params;
+  let P = &grassParams;
   let nx = (*P).counts.x;
   let ny = (*P).counts.y;
   let fx = clamp(q.x / (*P).ground.x, 0.0, f32(nx - 1u));
@@ -55,15 +55,15 @@ fn grassSample(i: u32, j: u32) -> f32 {
     return bitcast<f32>(readWord(at));
   }
 
-// @block ground_surface_groundSite_alternate
+// @block ground_surface_groundSite
 fn groundSite(xy: vec2f, cell: vec4u, paved: GroundPaved) -> vec4f {
-  let params_1 = (&params);
-  let warp = vec2f((valueNoise((xy * (*params_1).shape.y)) - 0.5f), (valueNoise(((xy * (*params_1).shape.y) + vec2f(19.700000762939453, 5.300000190734863))) - 0.5f));
-  let q = (xy + (warp * ((*params_1).shape.x * 2f)));
-  var edge = rectInside(q, (*params_1).region);
+  let terrain = (&terrainParams);
+  let warp = vec2f((valueNoise((xy * (*terrain).shape.y)) - 0.5f), (valueNoise(((xy * (*terrain).shape.y) + vec2f(19.700000762939453, 5.300000190734863))) - 0.5f));
+  let q = (xy + (warp * ((*terrain).shape.x * 2f)));
+  var edge = rectInside(q, (*terrain).region);
   var node = 0i;
   var leaf = 0i;
-  for (var step_1 = 0; (step_1 < 64i); step_1++) {
+  for (var nodeStep = 0; (nodeStep < 64i); nodeStep++) {
     let n = (&nodes[node]);
     let s = (dot((*n).line.xy, q) - (*n).line.z);
     edge = min(edge, abs(s));
@@ -86,9 +86,9 @@ struct SurfaceRecord {
   detail: vec4f,
 }
 
-// @block ground_surface_groundCell_alternate
+// @block ground_surface_groundCell
 fn groundCell(xy: vec2f, footprint: f32) -> vec4u {
- let P=params;
+ let P=terrainParams;
  var level=0u;var widest=P.field.w;
  while(footprint>widest&&level+1u<P.fieldGrid.z){widest*=2.0;level++;}
  let shift=surfaceIndex[level*2u+1u];
@@ -118,7 +118,7 @@ fn groundForest(xy: vec2f, cell: vec4u) -> f32 {
  return max(forest,max(distance,select(-nearest,nearest,inside)));
 }
 
-// @block ground_surface_groundPaved_alternate
+// @block ground_surface_groundPaved
 fn groundPaved(xy: vec2f, cell: vec4u) -> GroundPaved {
  var paved=vec4f(-1e9);var member=ROAD_LOOKS_MAX;var nearest=1e9;var edge=0u;
  var lane=vec4f(0.0);var run=vec4f(0.0,0.0,0.0,-1.0);var deepest=-1e9;var bearing=-1.0;
@@ -132,7 +132,7 @@ fn groundPaved(xy: vec2f, cell: vec4u) -> GroundPaved {
    let away=xy-(a+ab*t);let off=length(away);let own=u32(seg.detail.y);
    let inside=strokeCutInside(xy,seg.ends,seg.detail,seg.detail.x-off);
    paved[own]=max(paved[own],inside);
-   let walk=params.roads[own].join.zw;
+   let walk=terrainParams.roads[own].join.zw;
    if(walk.x>0.0){paved[u32(walk.y)]=max(paved[u32(walk.y)],inside+walk.x);}
    if(inside>deepest){
     deepest=inside;lane=vec4f(away/max(off,1e-5),off,seg.detail.x);
@@ -159,10 +159,10 @@ fn groundPaved(xy: vec2f, cell: vec4u) -> GroundPaved {
  return GroundPaved(paved,lane,run,rule,cell.xy,bearing);
 }
 
-// @block ground_surface_groundTreeLine_alternate
+// @block ground_surface_groundTreeLine
 fn groundTreeLine(xy: vec2f, cell: vec4u) -> vec2f {
  var inside=-1e9;var band=-1e9;
- let taper=params.forestLine.x;
+ let taper=terrainParams.forestLine.x;
  for(var i=cell.y;i<cell.z;i++){
   let entry=surfaceIndex[i];
   if((entry>>GROUND_KIND_SHIFT)!=1u){continue;}

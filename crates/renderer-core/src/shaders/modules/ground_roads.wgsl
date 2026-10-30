@@ -7,7 +7,7 @@ fn areaJoint(along: f32, perMetre: f32, footprint: f32, width: f32) -> f32 {
  return (1.0-smoothstep(drawn*0.5-footprint*0.5,drawn*0.5+footprint*0.5,to))*(width/drawn);
 }
 
-// @block ground_roads_groundRoads_alternate
+// @block ground_roads_groundRoads
 const GROUND_SHOULDER_GRAIN = 0.5;
 const GROUND_SURFACE_JOIN_DRIFT_PER_M = 0.4;
 const GROUND_ROADS_PATCH_FROM = 0.52;
@@ -25,10 +25,10 @@ const GROUND_ROADS_MARKS_WEAR_PER_M = 0.7692307692307692;
 const GROUND_ROADS_SLAB_JOINT_M = 0.03;
 fn groundRoads(xy: vec2f, footprint: f32, paved: GroundPaved, under: vec4f) -> vec4f {
  var surface=under;
- let plain=params.view.y==1u;
+ let plain=terrainParams.view.y==1u;
  let worn=groundShoulder(xy,footprint,paved);
  if(worn.x>0.0){
-  let look=params.roads[u32(worn.y)];
+  let look=terrainParams.roads[u32(worn.y)];
   let luma=vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B);
   let lift=max(1.0,dot(under.xyz,luma)/max(dot(look.shoulder.xyz,luma),1e-5));
   let grain=roadGrain(xy*look.shape.w,footprint*look.shape.w)*GROUND_SHOULDER_GRAIN;
@@ -39,8 +39,8 @@ fn groundRoads(xy: vec2f, footprint: f32, paved: GroundPaved, under: vec4f) -> v
  // one's own carry, by how much of the ground it covers.
  var carried=0.0;
  for(var n=0u;n<4u;n++){
-  let k=params.roadOrder[n];
-  let look=params.roads[k];
+  let k=terrainParams.roadOrder[n];
+  let look=terrainParams.roads[k];
   var feather=max(look.shape.x,footprint)*0.5;
   var inside=paved.drawn[k];
   if(carried>0.0){
@@ -60,7 +60,7 @@ fn groundRoads(xy: vec2f, footprint: f32, paved: GroundPaved, under: vec4f) -> v
    if(i32(k)==lane){
     core*=1.0+groundRuts(xy,footprint,paved).z;
     let strip=groundStrip(xy,footprint,paved)*GROUND_STRIP_COVER;
-    core=mix(core,params.verge.xyz*(1.0+look.shape.z*grain*GROUND_STRIP_GRAIN),strip);
+    core=mix(core,terrainParams.verge.xyz*(1.0+look.shape.z*grain*GROUND_STRIP_GRAIN),strip);
    }
    else if(lane<0){
     // Beside a street, its walk and the walk's slabs; past the walk, an
@@ -69,7 +69,7 @@ fn groundRoads(xy: vec2f, footprint: f32, paved: GroundPaved, under: vec4f) -> v
     // has none), so the walk or the road reads as its own strip.
     var out=1e9;
     if(paved.run.w>=0.0){
-     let street=params.roads[u32(paved.run.w)];
+     let street=terrainParams.roads[u32(paved.run.w)];
      out=paved.lane.z-paved.lane.w-street.join.z;
      if(out<0.0&&u32(street.join.w)==k){core*=1.0-walkJoint(footprint,paved);}
     }
@@ -97,14 +97,14 @@ fn groundRoads(xy: vec2f, footprint: f32, paved: GroundPaved, under: vec4f) -> v
  }
  let paint=groundMarks(xy,footprint,paved);
  if(paint>0.0){
-  let look=params.roads[u32(paved.run.w)];
+  let look=terrainParams.roads[u32(paved.run.w)];
   let worn=1.0-look.marks.w*smoothstep(GROUND_MARKS_WEAR_FROM,GROUND_MARKS_WEAR_TO,wanderNoise(xy*GROUND_ROADS_MARKS_WEAR_PER_M+vec2f(33.7,71.1)));
   let grain=roadGrain(xy*look.shape.w,footprint*look.shape.w);
   surface=mix(surface,vec4f(look.paint.xyz*(1.0+look.shape.z*grain),look.core.w),paint*look.paint.w*worn);
  }
  let stones=groundCurb(footprint,paved).z;
  if(stones>0.0){
-  let look=params.roads[u32(paved.run.w)];
+  let look=terrainParams.roads[u32(paved.run.w)];
   let grain=roadGrain(xy*look.shape.w,footprint*look.shape.w);
   let joint=strokeJoint(paved.run.z,look.stones.x,footprint,GROUND_ROADS_SLAB_JOINT_M)*look.stones.y;
   surface=mix(surface,vec4f(look.curb.xyz*(1.0+look.shape.z*grain)*(1.0-joint),look.core.w),stones);
@@ -122,23 +122,23 @@ fn strokeJoint(along: f32, perMetre: f32, footprint: f32, width: f32) -> f32 {
  return (1.0-smoothstep(width*0.5,width*0.5+footprint,to))*shown;
 }
 
-// @block ground_roads_walkJoint_alternate
+// @block ground_roads_walkJoint
 const GROUND_WALK_SLAB_JOINT_M = 0.03;
 fn walkJoint(footprint: f32, paved: GroundPaved) -> f32 {
- if(paved.run.w<0.0||params.view.y==1u){return 0.0;}
- let road=params.roads[u32(paved.run.w)];
+ if(paved.run.w<0.0||terrainParams.view.y==1u){return 0.0;}
+ let road=terrainParams.roads[u32(paved.run.w)];
  let beyond=paved.lane.z-paved.lane.w;
  if(beyond<=0.0||beyond>=road.join.z){return 0.0;}
  return strokeJoint(paved.run.z,road.slabs.x,footprint,GROUND_WALK_SLAB_JOINT_M)*road.slabs.y;
 }
-// @block ground_roads_groundCurb_alternate
+// @block ground_roads_groundCurb
 const GROUND_CURB_PIXELS_FROM = 0.25;
 const GROUND_CURB_PIXELS_TO = 0.6;
 const GROUND_CURB_EDGE_M = 0.03;
 fn groundCurb(footprint: f32, paved: GroundPaved) -> vec3f {
- if(paved.run.w<0.0||params.view.y==1u){return vec3f(0.0);}
+ if(paved.run.w<0.0||terrainParams.view.y==1u){return vec3f(0.0);}
  let own=u32(paved.run.w);
- let look=params.roads[own];
+ let look=terrainParams.roads[own];
  let width=look.curb.w;
  if(width<=0.0){return vec3f(0.0);}
  let inside=paved.drawn[own];
@@ -149,7 +149,7 @@ fn groundCurb(footprint: f32, paved: GroundPaved) -> vec3f {
  // Another carriageway's surface over the edge leaves no curb there.
  var open=1.0;
  for(var k=0u;k<ROAD_LOOKS_MAX;k++){
-  if(k!=own&&params.roads[k].track.w>0.0){open*=1.0-smoothstep(-soft,soft,paved.drawn[k]);}
+  if(k!=own&&terrainParams.roads[k].track.w>0.0){open*=1.0-smoothstep(-soft,soft,paved.drawn[k]);}
  }
  let edge=smoothstep(-soft,soft,inside);
  let stones=smoothstep(-width-soft,-width+soft,inside)*(1.0-edge);
@@ -157,15 +157,15 @@ fn groundCurb(footprint: f32, paved: GroundPaved) -> vec3f {
  return vec3f(paved.lane.xy*(look.slabs.w*face),stones)*(open*shown);
 }
 
-// @block ground_roads_groundMarks_alternate
+// @block ground_roads_groundMarks
 const GROUND_MARKS_PIXELS_FROM = 0.35;
 const GROUND_MARKS_PIXELS_TO = 0.85;
 const GROUND_MARKS_CROSSING_COS = 0.8;
 const GROUND_MARKS_EDGE_M = 0.03;
 fn groundMarks(xy: vec2f, footprint: f32, paved: GroundPaved) -> f32 {
  let kind=roadLane(paved);
- if(kind<0||params.view.y==1u){return 0.0;}
- let look=params.roads[kind];
+ if(kind<0||terrainParams.view.y==1u){return 0.0;}
+ let look=terrainParams.roads[kind];
  let line=look.marks.x;
  if(line<=0.0){return 0.0;}
  let bars=look.crossing;
@@ -182,7 +182,7 @@ fn groundMarks(xy: vec2f, footprint: f32, paved: GroundPaved) -> f32 {
   let entry=surfaceIndex[i];
   if((entry>>GROUND_KIND_SHIFT)!=1u){continue;}
   let seg=surfaces[entry&GROUND_RECORD_MASK];
-  if(params.roads[u32(seg.detail.y)].track.w<=0.0){continue;}
+  if(terrainParams.roads[u32(seg.detail.y)].track.w<=0.0){continue;}
   let a=seg.ends.xy;let ab=seg.ends.zw-a;let len=max(length(ab),1e-6);
   if(abs(dot(ab,paved.run.xy))>GROUND_MARKS_CROSSING_COS*len){continue;}
   let free=dot(xy-a,ab)/len;
@@ -260,7 +260,7 @@ fn groundRoadRelief(xy: vec2f, footprint: f32, paved: GroundPaved) -> vec2f {
   return (groundRuts(xy, footprint, paved).xy + groundCurb(footprint, paved).xy);
 }
 
-// @block ground_roads_groundRuts_alternate
+// @block ground_roads_groundRuts
 const GROUND_RUTS_FADE_FROM = 0.2;
 const GROUND_RUTS_FADE_TO = 0.4;
 const GROUND_RUTS_FAINT = 0.4;
@@ -269,8 +269,8 @@ const GROUND_RUTS_BREAK_TO = 0.6;
 const GROUND_RUTS_BREAK_PER_M = 0.16666666666666666;
 fn groundRuts(xy: vec2f, footprint: f32, paved: GroundPaved) -> vec3f {
  let kind=roadLane(paved);
- if(kind<0||params.view.y==1u){return vec3f(0.0);}
- let look=params.roads[kind];
+ if(kind<0||terrainParams.view.y==1u){return vec3f(0.0);}
+ let look=terrainParams.roads[kind];
  let width=look.ruts.z;
  if(width<=0.0){return vec3f(0.0);}
  let shown=1.0-smoothstep(GROUND_RUTS_FADE_FROM,GROUND_RUTS_FADE_TO,footprint/width);
@@ -290,7 +290,7 @@ fn groundRuts(xy: vec2f, footprint: f32, paved: GroundPaved) -> vec3f {
  return vec3f(paved.lane.xy*(look.ruts.w*rise*0.6495193556767991*faint),look.track.x*(mean-depth)*faint);
 }
 
-// @block ground_roads_groundShoulder_alternate
+// @block ground_roads_groundShoulder
 const GROUND_SHOULDER_WANDER = 5;
 const GROUND_SHOULDER_TUFT_FROM = 0.44;
 const GROUND_SHOULDER_TUFT_TO = 0.52;
@@ -301,9 +301,9 @@ const GROUND_SHOULDER_PIXELS_TO = 0.08;
 const GROUND_STRIP_GRASS = 0.75;
 fn groundShoulder(xy: vec2f, footprint: f32, paved: GroundPaved) -> vec2f {
  var worn=vec2f(0.0);
- let plain=params.view.y==1u;
+ let plain=terrainParams.view.y==1u;
  for(var k=0u;k<ROAD_LOOKS_MAX;k++){
-  let look=params.roads[k];
+  let look=terrainParams.roads[k];
   let width=look.shoulder.w;
   let out=-paved.drawn[k];
   if(out<=0.0){worn=vec2f(1.0,f32(k));continue;}
@@ -320,7 +320,7 @@ fn groundShoulder(xy: vec2f, footprint: f32, paved: GroundPaved) -> vec2f {
  return worn;
 }
 
-// @block ground_roads_groundStrip_alternate
+// @block ground_roads_groundStrip
 const GROUND_STRIP_WANDER_PER_M = 0.4;
 const GROUND_STRIP_WANDER = 3;
 const GROUND_STRIP_EDGE_M = 0.3;
@@ -328,8 +328,8 @@ const GROUND_STRIP_PIXELS_FROM = 0.2;
 const GROUND_STRIP_PIXELS_TO = 0.4;
 fn groundStrip(xy: vec2f, footprint: f32, paved: GroundPaved) -> f32 {
  let kind=roadLane(paved);
- if(kind<0||params.view.y==1u){return 0.0;}
- let look=params.roads[kind];
+ if(kind<0||terrainParams.view.y==1u){return 0.0;}
+ let look=terrainParams.roads[kind];
  let half=look.track.y;
  if(half<=0.0||paved.lane.w>look.track.z){return 0.0;}
  let reach=half*(1.0+(wanderNoise(xy*GROUND_STRIP_WANDER_PER_M+vec2f(41.3,9.7))-0.5)*GROUND_STRIP_WANDER);
@@ -338,13 +338,13 @@ fn groundStrip(xy: vec2f, footprint: f32, paved: GroundPaved) -> f32 {
  return (1.0-smoothstep(reach-soft,reach+soft,paved.lane.z))*shown;
 }
 
-// @block ground_roads_roadLane_alternate
+// @block ground_roads_roadLane
 fn roadLane(paved: GroundPaved) -> i32 {
  if(paved.run.w<0.0){return -1;}
  let own=u32(paved.run.w);
  if(paved.drawn[own]<=0.0){return -1;}
  for(var n=ROAD_LOOKS_MAX;n>0u;n--){
-  let k=params.roadOrder[n-1u];
+  let k=terrainParams.roadOrder[n-1u];
   if(k==own){break;}
   if(paved.drawn[k]>0.0){return -1;}
  }

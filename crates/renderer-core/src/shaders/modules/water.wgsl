@@ -16,7 +16,7 @@ struct WaterLook {
 
 // @block water_waterNormal
 fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
-  let w = (&params.waterLooks[look]);
+  let w = (&terrainParams.waterLooks[look]);
   let carried = waterCarried();
   let primary = waterLayer(xy, (*w).normals.x, vec2f(1, 0), (carried * (*w).drifts.x), (*w).normals.w, footprint);
   let macro_1 = waterLayer(xy, (*w).normals.y, vec2f(0.824999988079071, 0.5649999976158142), (carried * (*w).drifts.y), (*w).normals.w, footprint);
@@ -231,7 +231,7 @@ fn waveHeight(uv: vec2f) -> f32 {
 // @block water_waveNormal
 fn waveNormal(xy: vec2f, n: vec3f) -> vec3f {
   let area = (&cam.waves);
-  let low = f32((params.view.z == 1u));
+  let low = f32((terrainParams.view.z == 1u));
   let shown = ((*area).w * (1f - low));
   let uv = ((xy - (*area).xy) / (*area).z);
   let inside = min(uv, (vec2f(1) - uv));
@@ -277,10 +277,10 @@ fn waterDepth(clip: vec4f, world: vec3f) -> f32 {
 // @block water_waterUnder
 fn waterUnder(clip: vec4f, world: vec3f, n: vec3f, straight: f32, look: u32) -> vec4f {
     let here = vec2i(clip.xy);
-    if (params.view.z == 1u) {
+    if (terrainParams.view.z == 1u) {
       return vec4f(textureLoad(sceneColour, here, 0).rgb, straight);
     }
-    let r = params.waterLooks[look].refraction;
+    let r = terrainParams.waterLooks[look].refraction;
     let cam = cam;
     let screen = vec2f(cam.width, cam.height);
     let shift = vec3f(n.xy * (min(straight, r.y) * r.x), 0.0);
@@ -344,10 +344,10 @@ fn crests(a: vec2f, b: vec2f, sharpness: f32) -> f32 {
 
 // @block water_waterCaustics
 fn waterCaustics(world: vec3f, far: f32, footprint: f32, look: u32) -> f32 {
-  if ((params.view.z == 1u)) {
+  if ((terrainParams.view.z == 1u)) {
     return 0f;
   }
-  let w = (&params.waterLooks[look]);
+  let w = (&terrainParams.waterLooks[look]);
   let c = (&(*w).caustics);
   let view = normalize((cam.eye - world));
   let bed = (world - (view * far));
@@ -374,7 +374,7 @@ fn lobe(roughness: f32, n: vec3f, world: vec3f, sun_1: f32, eye: vec3f) -> vec3f
 
 // @block water_waterReflection
 fn waterReflection(n: vec3f, world: vec3f, sun_1: f32, eye: vec3f, look: u32) -> vec3f {
-  let w = (&params.waterLooks[look]);
+  let w = (&terrainParams.waterLooks[look]);
   let sharp = (lobe((*w).roughness.x, n, world, sun_1, eye) * (*w).lobes.x);
   let sheen = (lobe((*w).roughness.y, n, world, sun_1, eye) * (*w).lobes.y);
   let broad = (lobe((*w).roughness.z, n, world, sun_1, eye) * (*w).lobes.z);

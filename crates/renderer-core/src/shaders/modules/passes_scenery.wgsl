@@ -1,7 +1,7 @@
 // WGSL owner: passes_scenery.
 
-// @block passes_scenery_grassVertex_Output
-struct grassVertex_Output {
+// @block passes_scenery_GrassVertexOutput
+struct GrassVertexOutput {
   @builtin(position) clip: vec4f,
   @location(0) world: vec3f,
   @location(1) root: vec3f,
@@ -11,19 +11,19 @@ struct grassVertex_Output {
 }
 
 // @block passes_scenery_dressingVertex
-@vertex fn dressingVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) pose: vec4f, @location(4) shape: vec4f, @location(5) tint: vec4f) -> dressingVertex_Output {
-  let cam = (&cam_1);
-  let row = vec3f(((*cam).viewProj * vec4f(1, 0, 0, 0)).y, ((*cam).viewProj * vec4f(0, 1, 0, 0)).y, ((*cam).viewProj * vec4f(0, 0, 1, 0)).y);
-  let pixelsPerMetre = ((0.5f * (*cam).height) * length(row));
-  let size = ((tint.w * pixelsPerMetre) / max(distance(pose.xyz, (*cam).eye), 1e-3f));
+@vertex fn dressingVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) pose: vec4f, @location(4) shape: vec4f, @location(5) tint: vec4f) -> DressingVertexOutput {
+  let viewCamera = (&cam);
+  let row = vec3f(((*viewCamera).viewProj * vec4f(1, 0, 0, 0)).y, ((*viewCamera).viewProj * vec4f(0, 1, 0, 0)).y, ((*viewCamera).viewProj * vec4f(0, 0, 1, 0)).y);
+  let pixelsPerMetre = ((0.5f * (*viewCamera).height) * length(row));
+  let size = ((tint.w * pixelsPerMetre) / max(distance(pose.xyz, (*viewCamera).eye), 1e-3f));
   let grow = smoothstep(0.5f, 1f, size);
   let local = vec3f(((position.x * shape.x) * grow), ((position.y * shape.y) * grow), ((position.z * shape.z) * grow));
   let world = placedPoint(local, pose);
-  return dressingVertex_Output(((*cam).viewProj * vec4f(world, 1f)), world, placedNormal(normal, shape, pose.w), vec4f((color.xyz * tint.xyz), color.w), local, vec3f(pose.x, pose.y, (pose.z + (shape.w * grow))));
+  return DressingVertexOutput(((*viewCamera).viewProj * vec4f(world, 1f)), world, placedNormal(normal, shape, pose.w), vec4f((color.xyz * tint.xyz), color.w), local, vec3f(pose.x, pose.y, (pose.z + (shape.w * grow))));
 }
 
 // @block passes_scenery_felledVertex
-@vertex fn felledVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) pose: vec4f, @location(4) shape: vec4f, @location(5) tint: vec4f, @location(6) fall: vec4f, @location(7) rest: vec4f, @location(8) lie: vec4f) -> felledVertex_Output {
+@vertex fn felledVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) pose: vec4f, @location(4) shape: vec4f, @location(5) tint: vec4f, @location(6) fall: vec4f, @location(7) rest: vec4f, @location(8) lie: vec4f) -> FelledVertexOutput {
   let local = vec3f((position.x * shape.x), (position.y * shape.y), (position.z * shape.z));
   let yc = cos(pose.w);
   let ys = sin(pose.w);
@@ -48,16 +48,16 @@ struct grassVertex_Output {
   let pressUp = select(1f, rest.x, (abs(a) > core));
   let nFlat = ((t * ((na * c) + (n.z * s))) + (nAcross * (1f / pressAcross)));
   let heart = (shape.w - hinge);
-  return felledVertex_Output((cam.viewProj * vec4f(world, 1f)), world, normalize(vec3f(nFlat.x, nFlat.y, (((n.z * c) - (na * s)) / pressUp))), vec4f((color.xyz * tint.xyz), color.w), vec3f((local.x + tint.w), local.y, local.z), vec3f((pose.x + (t.x * ((heart * s) + ((2f * trunk) * landed)))), (pose.y + (t.y * ((heart * s) + ((2f * trunk) * landed)))), (((pose.z + (trunk * landed)) + (hinge * (1f - landed))) + (heart * c))));
+  return FelledVertexOutput((cam.viewProj * vec4f(world, 1f)), world, normalize(vec3f(nFlat.x, nFlat.y, (((n.z * c) - (na * s)) / pressUp))), vec4f((color.xyz * tint.xyz), color.w), vec3f((local.x + tint.w), local.y, local.z), vec3f((pose.x + (t.x * ((heart * s) + ((2f * trunk) * landed)))), (pose.y + (t.y * ((heart * s) + ((2f * trunk) * landed)))), (((pose.z + (trunk * landed)) + (hinge * (1f - landed))) + (heart * c))));
 }
 
 // @block passes_scenery_grassVertex
-@vertex fn grassVertex(@builtin(vertex_index) vid: u32, @builtin(instance_index) iid: u32) -> grassVertex_Output {
+@vertex fn grassVertex(@builtin(vertex_index) vid: u32, @builtin(instance_index) iid: u32) -> GrassVertexOutput {
   let g = grassVertexOf(vid, iid);
-  return grassVertex_Output(g.clip, g.world, g.root, g.normal, g.albedo, g.ground);
+  return GrassVertexOutput(g.clip, g.world, g.root, g.normal, g.albedo, g.ground);
 }
-// @block passes_scenery_dressingVertex_Output
-struct dressingVertex_Output {
+// @block passes_scenery_DressingVertexOutput
+struct DressingVertexOutput {
   @invariant @builtin(position) clip: vec4f,
   @location(0) world: vec3f,
   @location(1) normal: vec3f,
@@ -66,8 +66,8 @@ struct dressingVertex_Output {
   @location(4) heart: vec3f,
 }
 
-// @block passes_scenery_felledVertex_Output
-struct felledVertex_Output {
+// @block passes_scenery_FelledVertexOutput
+struct FelledVertexOutput {
   @invariant @builtin(position) clip: vec4f,
   @location(0) world: vec3f,
   @location(1) normal: vec3f,
@@ -76,8 +76,8 @@ struct felledVertex_Output {
   @location(4) heart: vec3f,
 }
 
-// @block passes_scenery_casterVertex_Output
-struct casterVertex_Output {
+// @block passes_scenery_SceneryCasterVertexOutput
+struct SceneryCasterVertexOutput {
   @invariant @builtin(position) clip: vec4f,
   @location(0) world: vec3f,
   @location(1) normal: vec3f,
@@ -87,8 +87,8 @@ struct casterVertex_Output {
 }
 
 // @block passes_scenery_casterVertex
-@vertex fn casterVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) pose: vec4f, @location(4) shape: vec4f, @location(5) tint: vec4f) -> casterVertex_Output {
+@vertex fn casterVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) pose: vec4f, @location(4) shape: vec4f, @location(5) tint: vec4f) -> SceneryCasterVertexOutput {
   let local = vec3f((position.x * shape.x), (position.y * shape.y), (position.z * shape.z));
   let world = standing(local, pose, shape, 0f);
-  return casterVertex_Output((cam.viewProj * vec4f(world, 1f)), world, placedNormal(normal, shape, pose.w), vec4f((color.xyz * tint.xyz), color.w), local, vec3f(pose.x, pose.y, (pose.z + shape.w)));
+  return SceneryCasterVertexOutput((cam.viewProj * vec4f(world, 1f)), world, placedNormal(normal, shape, pose.w), vec4f((color.xyz * tint.xyz), color.w), local, vec3f(pose.x, pose.y, (pose.z + shape.w)));
 }
