@@ -279,10 +279,7 @@ impl Presentation {
 
     pub(super) fn lab_rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
         let r = self.world.appearances.get(row as usize)?;
-        let name = self
-            .world
-            .strings
-            .get(r.name as usize..(r.name + r.name_len) as usize)?;
+        let name = self.world.name(r);
         let asset = self.lab.assets.get(name)?;
         super::catalog::asset_rest_palette(asset, r.lies)
     }
@@ -416,10 +413,7 @@ impl Presentation {
     fn battle_rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
         let loaded = self.loaded.as_ref()?;
         let r = self.world.appearances.get(row as usize)?;
-        let name = self
-            .world
-            .strings
-            .get(r.name as usize..(r.name + r.name_len) as usize)?;
+        let name = self.world.name(r);
         let Some(Appearance::Skinned {
             joints,
             clips,

@@ -66,8 +66,9 @@ calls the same reader for workbench drafts.
   as it lies, a body in its far pose, which a renderer poses its mesh by once),
   and where each drawn model's muzzles and rotors are. Track classification
   belongs to presentation's pitch-qualified rig facts: renderer admission reads
-  each node's side from the catalog, and live tooling reads the same facts through
-  WebAssembly. Source validation still rejects malformed tracks before admission.
+  each node's side from the catalog. The source validator and workbench poser
+  share the TypeScript bake rule; source validation rejects malformed tracks
+  before admission.
 - [Effects](src/effects/): the effect publication, launches (the one derivation
   the flashes, the firing soldiers and the gunfire sounds read), the effect frame,
   the cast lights it chooses for the view, cook-offs, and the sparks a hull

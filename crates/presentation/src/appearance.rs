@@ -331,14 +331,14 @@ pub(crate) fn tracks(nodes: &[Value]) -> Vec<crate::world::Track> {
         .enumerate()
         .filter_map(|(node, value)| {
             let pitch = extra(value, "link_pitch_m").filter(|&p| p > 0.0)?;
-            let left = match value["name"].as_str()? {
-                "track_L" => true,
-                "track_R" => false,
+            let side = match value["name"].as_str()? {
+                "track_L" => crate::world::TrackSide::Left,
+                "track_R" => crate::world::TrackSide::Right,
                 _ => return None,
             };
             Some(crate::world::Track {
                 node,
-                left,
+                side,
                 link_pitch: pitch,
             })
         })

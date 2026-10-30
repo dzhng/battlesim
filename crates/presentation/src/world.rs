@@ -297,21 +297,32 @@ pub struct Wheel {
 }
 
 /// Which running-gear travel scrolls a pitch-qualified model node.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, serde::Serialize)]
+#[serde(from = "bool", into = "bool")]
 pub enum TrackSide {
     Left,
     Right,
 }
 
+impl From<bool> for TrackSide {
+    fn from(left: bool) -> Self {
+        if left {
+            Self::Left
+        } else {
+            Self::Right
+        }
+    }
+}
+
+impl From<TrackSide> for bool {
+    fn from(side: TrackSide) -> Self {
+        side == TrackSide::Left
+    }
+}
+
 impl Rig {
     pub fn track_side(&self, node: usize) -> Option<TrackSide> {
-        self.tracks.iter().find(|t| t.node == node).map(|t| {
-            if t.left {
-                TrackSide::Left
-            } else {
-                TrackSide::Right
-            }
-        })
+        self.tracks.iter().find(|t| t.node == node).map(|t| t.side)
     }
 }
 
@@ -319,7 +330,8 @@ impl Rig {
 #[serde(rename_all = "camelCase")]
 pub struct Track {
     pub node: usize,
-    pub left: bool,
+    #[serde(rename = "left")]
+    pub side: TrackSide,
     pub link_pitch: f64,
 }
 

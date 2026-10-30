@@ -10,7 +10,7 @@
 //!   so every rotor's tips run at one speed;
 //! - deploying parts move and turn over their own window of progress.
 use super::pose::Articulation;
-use crate::world::{Node, Quat, Rig, Trs, Vec3};
+use crate::world::{Node, Quat, Rig, TrackSide, Trs, Vec3};
 
 /// `a · b` (`quat.multiply`).
 pub(crate) fn quat_mul(a: Quat, b: Quat) -> Quat {
@@ -145,10 +145,14 @@ pub fn articulate(out: &mut [Trs], nodes: &[Node], rig: &Rig, input: &Articulati
 
 /// Each track's link offset, in links, for the material's scroll: `[left, right]`.
 pub fn track_scroll(rig: &Rig, input: &Articulation) -> [f64; 2] {
-    let of = |left: bool| {
-        rig.tracks.iter().find(|t| t.left == left).map_or(0.0, |t| {
-            (if left { input.travel_l } else { input.travel_r }) / t.link_pitch
-        })
+    let of = |side, travel| {
+        rig.tracks
+            .iter()
+            .find(|t| t.side == side)
+            .map_or(0.0, |t| travel / t.link_pitch)
     };
-    [of(true), of(false)]
+    [
+        of(TrackSide::Left, input.travel_l),
+        of(TrackSide::Right, input.travel_r),
+    ]
 }

@@ -23,6 +23,11 @@ pub struct World {
 }
 
 impl World {
+    /// The catalog name of an appearance row in this world's UTF-8 arena.
+    pub fn name(&self, row: &Row) -> &str {
+        &self.strings[row.name as usize..(row.name + row.name_len) as usize]
+    }
+
     pub(super) fn row(
         &mut self,
         name: &str,
@@ -139,7 +144,33 @@ impl CatalogDraft {
     }
 }
 
+enum CatalogAppearance<'a> {
+    Asset(&'a Asset),
+    Battle(&'a Appearance),
+}
+
 impl<'a> CatalogView<'a> {
+    fn appearance(&self, row: u32) -> Option<CatalogAppearance<'a>> {
+        let world = self.world();
+        let name = world.name(world.appearances.get(row as usize)?);
+        if let Some(asset) = self.draft.and_then(|d| d.assets.get(name)) {
+            return Some(CatalogAppearance::Asset(asset));
+        }
+        if let Some(appearance) = self
+            .presentation
+            .loaded
+            .as_ref()
+            .and_then(|loaded| loaded.units.appearances.get(name))
+        {
+            return Some(CatalogAppearance::Battle(appearance));
+        }
+        self.presentation
+            .lab
+            .assets
+            .get(name)
+            .map(CatalogAppearance::Asset)
+    }
+
     pub fn world(&self) -> &'a World {
         self.draft.map_or(&self.presentation.world, |d| &d.world)
     }
@@ -147,35 +178,19 @@ impl<'a> CatalogView<'a> {
         self.presentation.ground()
     }
     pub fn rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
-        let world = self.world();
-        let r = world.appearances.get(row as usize)?;
-        let name = &world.strings[r.name as usize..(r.name + r.name_len) as usize];
-        if let Some(asset) = self.draft.and_then(|d| d.assets.get(name)) {
-            return asset_rest_palette(asset, r.lies);
+        match self.appearance(row)? {
+            CatalogAppearance::Asset(asset) => {
+                asset_rest_palette(asset, self.world().appearances[row as usize].lies)
+            }
+            CatalogAppearance::Battle(_) => self.presentation.rest_palette(self.active_row(row)?),
         }
-        self.presentation.rest_palette(self.active_row(row)?)
     }
     /// A node's canonical running-gear side, including prospective catalogs.
     pub fn track_side(&self, row: u32, node: usize) -> Option<crate::world::TrackSide> {
-        let world = self.world();
-        let r = world.appearances.get(row as usize)?;
-        let name = &world.strings[r.name as usize..(r.name + r.name_len) as usize];
-        let appearance = if let Some(asset) = self
-            .draft
-            .and_then(|d| d.assets.get(name))
-            .or_else(|| self.presentation.lab.assets.get(name))
-        {
-            let Asset::Animated { appearance, .. } = asset else {
-                return None;
-            };
-            appearance.as_ref()
-        } else {
-            self.presentation
-                .loaded
-                .as_ref()?
-                .units
-                .appearances
-                .get(name)?
+        let appearance = match self.appearance(row)? {
+            CatalogAppearance::Asset(Asset::Animated { appearance, .. }) => appearance.as_ref(),
+            CatalogAppearance::Asset(Asset::Static(_)) => return None,
+            CatalogAppearance::Battle(appearance) => appearance,
         };
         let Appearance::Articulated { rig, .. } = appearance else {
             return None;
@@ -191,7 +206,7 @@ impl<'a> CatalogView<'a> {
     fn active_row(&self, row: u32) -> Option<u32> {
         let w = self.world();
         let r = w.appearances.get(row as usize)?;
-        let name = &w.strings[r.name as usize..(r.name + r.name_len) as usize];
+        let name = w.name(r);
         let state = &w.strings[r.state as usize..(r.state + r.state_len) as usize];
         self.presentation
             .world
@@ -251,7 +266,7 @@ impl Presentation {
         let mut world = World::default();
         for r in self.world.appearances.iter().take(rows) {
             let text = |at: u32, len: u32| &self.world.strings[at as usize..(at + len) as usize];
-            let name = text(r.name, r.name_len);
+            let name = self.world.name(r);
             // Static rows retain their indices. Dynamic battle rows are rebuilt
             // from the new facts, so retired corpse poses cannot leak through.
             if r.placed == 0
