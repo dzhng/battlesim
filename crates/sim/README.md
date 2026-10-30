@@ -133,7 +133,8 @@ Native fixture and map adapters load the same [authored inputs](../../fixtures/R
 that browser preparation admits. [Encounter planning](src/encounter/) asks ordinary
 placement rules where its roster can stand; it does not invent a second movement model.
 [Map analysis](src/map_analysis.rs) shares sampled sight calculations with generation
-tools, without making the production generator depend on the simulation. Skirmish
+tools. The generator depends on the simulation only to admit the rules it generates
+under ([mapgen](../mapgen/README.md)). Skirmish
 admission returns selected sites together with route evidence. Native and browser
 preparation carry those selected coordinates into gameplay; measurements of an
 alternative are never permission to use the original unmeasured site.
