@@ -82,6 +82,21 @@ export async function run(ctx) {
   const page = await ctx.newPage({ viewport: VIEWPORT });
   await ctx.openLab(page);
 
+  const rejection = await wb(page, async () => {
+    try {
+      await window.__workbench.drop("broken.glb", new Uint8Array([0]));
+      return null;
+    } catch (error) {
+      return error.message;
+    }
+  });
+  const shownError = await page.locator(".lab-rejected").textContent();
+  ctx.check(
+    "a failed source rejects the automation request and displays its error",
+    !!rejection && shownError === rejection,
+    JSON.stringify({ rejection, shownError }),
+  );
+
   // ---- a bad GLB: specific findings, and still rendered for judging.
   const started = Date.now();
   // The spike's stub gun (3 m) against the fixture's realistic muzzle.

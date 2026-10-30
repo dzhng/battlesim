@@ -576,3 +576,12 @@ finding that the base build did not render grass the same way twice.
   than reproducing gamma arithmetic and float rounding. **Gap:** the slice did
   not choose the input seam or output tolerance. **Reach:** art retuning does
   not invalidate the conversion proof. **Verdict: sound.**
+
+- **Choice:** workbench race tests retain the real route and fake its source
+  loading and GPU viewport boundaries only. The real catalog provider, stage,
+  pose and sheet code stay loaded. The scene additionally checks a corrupt
+  GLB's rejected automation request and displayed error through the real
+  loader. **Gap:** the slice delegated the test boundary. **Reach:** every
+  original race still passes through the File input or automation API;
+  internal UI/geometry refactors no longer require coordinated mocks.
+  **Verdict: sound.**
