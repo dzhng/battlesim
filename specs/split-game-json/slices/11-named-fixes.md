@@ -202,3 +202,21 @@ to expose the contact puff. It changes no shipped rule. An AP capture attempt
 was discarded because it selected an enemy shell and could not supply a
 matching own ground hit. `evidence-11/capture-receipt.txt` identifies the
 reviewable captures and their controls.
+
+**Checkpoint resolution (2026-10-29, integrator; non-blocking, decided on the
+evidence):** accepted.
+- **Ground impacts:** an unprimed critique of `evidence-11/` found the impact
+  dust now lasts and reads at 1.4 s, and is a little larger. Nothing broken.
+- **Tank recoil:** it restores the intended value, but at the evidence
+  camera (18 m) the hull rock is under a pixel (0.2–0.8 px, rocking back and
+  forth over frames 15–24), so a viewer can't see it. If it should read on
+  screen, raising the tank look's `kick.hull` is a data edit and moves no
+  hash. It's flagged to the user, not changed here.
+- **The standard firefight WAV** differs by one 16-bit step in 55 samples,
+  though it has no RPG event. That's within rounding, and the Rust command
+  oracle is byte-identical.
+- **Seen in both versions, out of scope:** the muzzle fireball sits about
+  30 px ahead of the barrel for several frames; the tank's lighting jumps
+  across frames 13–15; a heavy round into dirt reads as an orange fireball
+  with no thrown soil. These are candidates for the content pass
+  ([15](15-content.md)).
