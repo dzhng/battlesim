@@ -121,3 +121,11 @@ evidence):** accepted.
   - AP and HE can't be told apart;
   - the muzzle fireball sits 40–60 px ahead of the barrel tip (also seen in
     11).
+
+**Review follow-ups (closed):**
+
+- A squad's round flies a publication after its counter rises, by when the
+  mount may name the next row it fired. Matching against the current row
+  dropped that launch's flash, sound and recoil; the owed shots now carry the
+  row they fired (d00f5935e). The probe corpus never switches rows mid-debt,
+  so it is unchanged.

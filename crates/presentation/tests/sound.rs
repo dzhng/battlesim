@@ -25,8 +25,14 @@ fn fixture(name: &str) -> Value {
 
 /// The game's sound, as a player sets it up.
 fn sound() -> Sound {
+    sound_with(|_| {})
+}
+
+/// The shipped sound, with `edit` applied to presentation.json first.
+fn sound_with(edit: impl FnOnce(&mut Value)) -> Sound {
     let game = fixture("rules.json");
-    let presentation = fixture("presentation.json");
+    let mut presentation = fixture("presentation.json");
+    edit(&mut presentation);
     let fx = &presentation["effects"];
     let setup = json!({
         "audio": fixture("audio.json"),
@@ -293,7 +299,11 @@ fn starts(commands: &[Command]) -> Vec<&Voice> {
 }
 
 fn ready() -> Sound {
-    let mut s = sound();
+    readied(sound())
+}
+
+/// `s` with every battle sound two seconds long.
+fn readied(mut s: Sound) -> Sound {
     let durations = s
         .tables()
         .battle_sounds()
@@ -781,9 +791,17 @@ fn k_weighting_reads_the_bs1770_reference() {
 }
 
 #[test]
-fn an_rpg_launch_is_heard_above_a_thrown_grenade() {
-    let launch_gain = |kind: &str| {
-        let mut s = ready();
+fn each_launch_plays_at_its_own_look_s_level() {
+    // Two looks on the same recording and switch distance, so only their
+    // authored levels differ.
+    let launch_gain = |kind: &str, rpg: f64, grenade: f64| {
+        let mut s = readied(sound_with(|p| {
+            for (look, gain) in [("rpg", rpg), ("grenade", grenade)] {
+                let shot = &mut p["weapon_looks"][look]["sound"]["shot"];
+                shot["gain"] = json!(gain);
+                shot["far_m"] = json!(350);
+            }
+        }));
         let (effects, launches) = shot(1.0, 3.0, [20.0, 0.0, 0.0], kind);
         s.note(
             &Heard {
@@ -794,13 +812,19 @@ fn an_rpg_launch_is_heard_above_a_thrown_grenade() {
             },
             0.0,
         );
-        let commands = s.update(1.0 / 30.0, 0.0, 0.0, &Motion::default(), HERE);
-        let voices = starts(commands);
-        assert!(!voices.is_empty(), "the launch must be audible");
+        let voices = starts(s.update(1.0 / 30.0, 0.0, 0.0, &Motion::default(), HERE));
+        assert!(!voices.is_empty(), "{kind}: the launch must be audible");
         voices.iter().map(|voice| voice.gain).sum::<f64>()
     };
-    assert!(
-        launch_gain("rpg_at_light") > launch_gain("grenade"),
-        "an RPG must play its own louder launch, rather than the grenade's fallback level"
-    );
+    let launch_gains = |rpg: f64, grenade: f64| {
+        launch_gain("rpg_at_light", rpg, grenade) / launch_gain("grenade", rpg, grenade)
+    };
+    for (rpg, grenade) in [(0.8, 0.2), (0.2, 0.8)] {
+        let ratio = launch_gains(rpg, grenade);
+        assert!(
+            (ratio - rpg / grenade).abs() < 1e-6 * ratio,
+            "the RPG and the grenade play their own looks' levels: {ratio} against {}",
+            rpg / grenade
+        );
+    }
 }

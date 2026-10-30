@@ -220,3 +220,11 @@ evidence):** accepted.
   across frames 13–15; a heavy round into dirt reads as an orange fireball
   with no thrown soil. These are candidates for the content pass
   ([15](15-content.md)).
+
+**Review follow-ups (closed):**
+
+- The tank-impact regression pinned the shipped ×5 lifetime; it now authors
+  its own look's ground size and lifetime and judges against them.
+- The RPG loudness regression pinned the shipped RPG-over-grenade ordering;
+  it now authors both looks' levels, swaps them, and requires each launch to
+  follow its own look.

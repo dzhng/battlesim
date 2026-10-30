@@ -579,12 +579,17 @@ fn wakes_do_not_depend_on_frame_rate() {
 }
 
 #[test]
-fn a_derived_tank_ground_impact_keeps_the_base_rounds_size_and_lifetime() {
+fn every_weapon_naming_a_look_lands_with_that_look_s_ground_size_and_lifetime() {
     let impact = |kind: &str| {
-        // Control the material, so only the round's appearance varies.
+        // Control the material and the look, so only the weapon id varies.
         let p = presentation_with(|p| {
             p["impacts"]["ground"]["size_m"] = json!(2.0);
             p["impacts"]["ground"]["duration_s"] = json!(0.4);
+            p["looks"]["looks"]["shell"] = p["looks"]["looks"]["tank_sabot"].clone();
+            p["looks"]["looks"]["shell"]["impact"]["surfaces"] =
+                json!({"ground": {"size": 1.5, "duration": 3}});
+            p["looks"]["weapons"]["tank_ap"] = json!("shell");
+            p["looks"]["weapons"]["light_tank_ap"] = json!("shell");
         });
         let mut f = EffectFrame::new(HZ, p);
         f.note(&publ(
@@ -598,20 +603,17 @@ fn a_derived_tank_ground_impact_keeps_the_base_rounds_size_and_lifetime() {
     };
     let mut base = impact("tank_ap");
     let mut derived = impact("light_tank_ap");
-    // Compare the rendered puff early and well past the unscaled lifetime.
-    // Neither its dimensions nor its survival may depend on the weapon id.
-    for age in [0.1, 0.6, 1.5] {
+    // Past the material's own 0.4 s, inside the look's 3x: both still draw,
+    // the same size. Neither may depend on the weapon id.
+    for age in [0.1, 0.6, 1.0] {
         let want = drawn(&mut base, DT + age);
         let got = drawn(&mut derived, DT + age);
-        assert!(
-            !layer(&want, 1.0).is_empty(),
-            "the tank impact must still be visible"
-        );
         let want = layer(&want, 1.0);
         let got = layer(&got, 1.0);
+        assert!(!want.is_empty(), "the look's impact expired at age {age}");
         assert!(!got.is_empty(), "the derived impact expired at age {age}");
         assert_eq!(got[0][3], want[0][3], "rendered puff size at age {age}");
     }
-    assert!(layer(&drawn(&mut base, DT + 2.1), 1.0).is_empty());
-    assert!(layer(&drawn(&mut derived, DT + 2.1), 1.0).is_empty());
+    assert!(layer(&drawn(&mut base, DT + 1.3), 1.0).is_empty());
+    assert!(layer(&drawn(&mut derived, DT + 1.3), 1.0).is_empty());
 }
