@@ -83,7 +83,7 @@ updated to admission refusals and passed in focused reruns. Full repository
 closeout remains at 16.
 
 Decisions:
-- **User clarification:** require `helicopter_crash` only when the catalog can
+- **Integrator's decision (the user was not asked):** require `helicopter_crash` only when the catalog can
   field an aircraft hull. Ground-only rules do not need an aircraft crash row;
   stored-record rewrites remain in 09.
 - Keep `admit`'s `Result<(), RulesError>` seam. `Arsenal` builds its flight

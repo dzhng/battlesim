@@ -230,4 +230,5 @@ corrections win over [`map.md`](map.md):
 - [`map.md`](map.md): the decision map (what the code says, every decision and
   why, the landmines).
 - [`audit.md`](audit.md): the audit's findings with file and line.
+- [`choices.md`](choices.md): the choices made on your behalf, with verdicts.
 - [`slices/`](slices/): one file per slice.
