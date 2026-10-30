@@ -17,6 +17,9 @@ export function useViewportGpu(onViewportReady: () => void) {
     [],
   );
   const gpuFrame = useCallback(() => gpu.current?.frame().stats().gpu ?? null, []);
+  const onDispose = useCallback(() => {
+    gpu.current = null;
+  }, []);
 
-  return { onReady, gpuAllocations, gpuFrame };
+  return { onReady, onDispose, gpuAllocations, gpuFrame };
 }

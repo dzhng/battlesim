@@ -1,7 +1,7 @@
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import { sampleTour, type BenchmarkTour, type TourKeyframe } from "@web/battle/benchmark/camera";
 import { BenchmarkRecording } from "@web/battle/benchmark/recording";
-import type { ViewportPilot } from "../LabViewport";
+import type { ViewportPilot } from "../viewportRender";
 
 type Attachment = Parameters<NonNullable<ViewportPilot["attach"]>>[0];
 type DrawnFrame = Parameters<NonNullable<ViewportPilot["frame"]>>[0];

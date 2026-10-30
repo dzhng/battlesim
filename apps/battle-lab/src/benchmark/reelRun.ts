@@ -13,7 +13,7 @@ import {
 import { liveCamera } from "@packages/renderer-core/src/viewportCamera";
 import { plateShot, sampleReel, type CaptureScene } from "../capture/capture";
 import type { ScriptedSim } from "../useSimSession";
-import type { FramePlate, ViewportPilot } from "../LabViewport";
+import type { FramePlate, ViewportPilot } from "../viewportRender";
 import {
   plateFile,
   type PresentationFrame,

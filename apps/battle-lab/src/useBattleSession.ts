@@ -875,7 +875,7 @@ export function useBattleSession({
     [control],
   );
 
-  const { onReady, gpuAllocations, gpuFrame } = useViewportGpu(sim.onViewportReady);
+  const { onReady, onDispose, gpuAllocations, gpuFrame } = useViewportGpu(sim.onViewportReady);
 
   const probes = {
     tick: () => sim.latest.current?.tick ?? 0,
@@ -1053,15 +1053,13 @@ export function useBattleSession({
   return {
     world,
     meshes,
-    /** What every battle view hands its viewport (`LabViewport`): each
-     *  animation frame's drawn units and presentation clock, the battle's
-     *  presentation (which draws the buildings too), the appearances its
-     *  models layer installs, and the GPU's arrival. */
+    /** The admitted frame inputs and viewport GPU lifetime. */
     viewport: {
       frame,
       presentation: admittedPresentationRef,
       appearances: modelAppearancesFeed,
       onReady,
+      onDispose,
     },
     /** What the side knows stands, for a viewport that draws it: the map's
      *  buildings, and what the camera keeps clear of. */

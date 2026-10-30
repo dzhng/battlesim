@@ -70,3 +70,10 @@ export interface ViewportGpu {
   /** The live scene (it is replaced by `rebuild`). */
   frame: () => BrowserScene;
 }
+
+/** A one-shot ask from the page: put the orbit target on a ground point,
+ *  keeping the current angle and zoom. `token` changes for every new ask. */
+export interface CameraFocusRequest {
+  token: number;
+  target: readonly [number, number];
+}

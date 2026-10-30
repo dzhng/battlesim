@@ -39,7 +39,8 @@ import {
 import { seenDestroyed } from "../destroyedBuildings";
 import { buildingRemains } from "@packages/scene-assets/src/authority";
 import { useFeed } from "../feed";
-import { LabViewport, type ViewportPilot } from "../LabViewport";
+import { LabViewport } from "../LabViewport";
+import type { ViewportPilot } from "../viewportRender";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import { useMapBuildings, useStaticWorld } from "../useStaticWorld";
 import { useMapAppearances } from "../gameAppearances";

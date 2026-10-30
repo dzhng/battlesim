@@ -1,5 +1,11 @@
-import type { FrameCounts, FramePlate, ViewportGpu, ViewportPilot } from "./viewportRender";
-export type { FrameCounts, FramePlate, ViewportGpu, ViewportPilot } from "./viewportRender";
+export type { ViewportGpu } from "./viewportRender";
+import type {
+  CameraFocusRequest,
+  FrameCounts,
+  FramePlate,
+  ViewportGpu,
+  ViewportPilot,
+} from "./viewportRender";
 import type { ViewportPointer, LabPick, LabBox } from "./viewportInput";
 export type { ViewportPointer, LabPick, LabBox } from "./viewportInput";
 import type { ClearanceReading, LabHandle } from "./labDiagnostics";
@@ -78,13 +84,6 @@ const NO_INSTANCES: readonly SceneInstance[] = [];
 /** A frame of a world no battle publishes into: no units, no selection. */
 const NO_UI: PresentedUi = { selected: [], xray: false, ghosts: [] };
 
-/** A one-shot ask from the page: put the orbit target on a ground point,
- *  keeping the current angle and zoom. `token` changes for every new ask. */
-export interface CameraFocusRequest {
-  token: number;
-  target: readonly [number, number];
-}
-
 interface LabViewportProps {
   /** Resolved graphics profile; omitted keeps the authored High profile. */
   quality?: GraphicsQualityProfile;
@@ -153,6 +152,8 @@ interface LabViewportProps {
   /** The first frame is on screen (the loading cover can lift), with the
    *  device's live GPU allocation counts. */
   onReady?: (gpu: ViewportGpu) => void;
+  /** Release borrowed GPU callbacks before the viewport frees its renderer. */
+  onDispose?: () => void;
   /** Called every animation frame with the live world → page projection and
    *  camera, for DOM readouts anchored to world points and panned sound, and
    *  a shared pointer snapshot: position, camera ray (null over UI), and the
@@ -217,6 +218,7 @@ export function LabViewport({
   frame,
   onFrame,
   onReady,
+  onDispose,
   diagnostics,
   pilot,
   appearances,
@@ -285,6 +287,8 @@ export function LabViewport({
   onPickRef.current = onPick;
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
+  const onDisposeRef = useRef(onDispose);
+  onDisposeRef.current = onDispose;
   const diagnosticsRef = useRef(diagnostics);
   diagnosticsRef.current = diagnostics;
   const initialCameraRef = useRef(initialCamera);
@@ -1297,6 +1301,7 @@ export function LabViewport({
     })();
 
     return () => {
+      onDisposeRef.current?.();
       lifetime.abort();
       rebuildRef.current = () => {};
       cancelInputRef.current = null;

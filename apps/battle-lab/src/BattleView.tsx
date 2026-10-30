@@ -33,7 +33,7 @@ import { MenuButton, PauseMenu, usePauseMenu } from "./PauseMenu";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 import { commandedEconomy } from "./commandingPlayer";
 import type { ScriptedSim } from "./useSimSession";
-import type { ViewportPilot } from "./LabViewport";
+import type { ViewportPilot } from "./viewportRender";
 import { useFeed } from "./feed";
 import { useSyncExternalStore } from "react";
 import {

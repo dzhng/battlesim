@@ -24,7 +24,8 @@ import { useFeed } from "../feed";
 import { useGameAppearances } from "../gameAppearances";
 import { gameCamera } from "../gameCamera";
 import { gameLight } from "../gameLight";
-import { LabViewport, type ViewportPilot } from "../LabViewport";
+import { LabViewport } from "../LabViewport";
+import type { ViewportPilot } from "../viewportRender";
 import { benchGround, flatTerrain } from "../workbench/benchWorld";
 
 const KIT = "city_kit_facade_lab";
