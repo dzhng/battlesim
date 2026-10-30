@@ -44,7 +44,7 @@ impl Renderer {
                 label: Some("battle-frame"),
             });
         if let Some(timer) = &mut self.gpu_timer {
-            timer.begin(&mut encoder, self.frames as usize);
+            timer.begin(&mut encoder);
         }
         runtime.encode(
             &self.gpu.device,

@@ -5,30 +5,37 @@ use renderer_core::timing::{FrameTimer, Resolve};
 #[test]
 fn frame_results_survive_delayed_completion_and_reset_in_both_resolve_modes() {
     for mode in [Resolve::InFrame, Resolve::AfterCompletion] {
-        // Native InFrame counters are known to be stale on Metal. Keep its
-        // device state independent of the AfterCompletion measurement control.
+        // Native InFrame counters can be stale on Metal. Isolate its device
+        // from the AfterCompletion duration control.
         let gpu = support::gpu().unwrap();
         let (slow, fast, target) = fragment_workload(&gpu.device);
-        let mut timer = FrameTimer::new(&gpu.device, &gpu.queue, mode).expect("timestamp support");
+        let mut timer =
+            FrameTimer::new(&gpu.device, &gpu.queue, mode, 3).expect("timestamp support");
         let mut pending = Vec::new();
-        for frame in [17, 18, 19] {
+        for frame in 0..3 {
             let mut encoder = gpu.device.create_command_encoder(&Default::default());
-            timer.begin(&mut encoder, frame);
+            timer.begin(&mut encoder);
             draw(
                 &mut encoder,
-                if frame == 17 { &slow } else { &fast },
+                if frame == 0 { &slow } else { &fast },
                 &target,
             );
             timer.end(&mut encoder);
-            if frame == 19 {
-                // Even a reset between encoding and submission excludes this frame.
+            if frame == 2 {
+                // Reset between encoding and submission excludes this frame too.
                 timer.reset();
             }
             let submission = gpu.queue.submit([encoder.finish()]);
-            pending.push((frame, timer.submitted(submission.clone()).unwrap()));
-            // Drain rendering so overlapping GPU stages cannot blur the cost
-            // difference. AfterCompletion must retain each frame's queries
-            // until its later ticket read; InFrame has already copied them.
+            let ticket = timer.submitted(submission.clone());
+            if mode == Resolve::InFrame {
+                assert!(
+                    ticket.is_none(),
+                    "browser timing completes without a ticket"
+                );
+            } else {
+                pending.push(ticket.unwrap());
+            }
+            // Drain rendering to isolate workload cost, deferring native resolve.
             gpu.device
                 .poll(wgpu::PollType::Wait {
                     submission_index: Some(submission),
@@ -36,24 +43,20 @@ fn frame_results_survive_delayed_completion_and_reset_in_both_resolve_modes() {
                 })
                 .unwrap();
         }
-        // Read results later, in reverse order, rather than consuming a latest value.
-        let (mut long, mut short) = (None, None);
-        for (frame, pending) in pending.into_iter().rev() {
-            let sample = pending.wait().unwrap();
-            assert_eq!(sample.frame, frame, "{mode:?}");
-            match frame {
-                17 => long = sample.ms,
-                19 => short = sample.ms,
-                _ => {}
-            }
-        }
-        if mode == Resolve::AfterCompletion {
-            let (long, short) = (long.unwrap(), short.unwrap());
+        // Read later and in reverse order. Only native promises valid counters
+        // on this backend; distinct durations prove attribution without frame IDs.
+        let long = if mode == Resolve::AfterCompletion {
+            let short = pending.pop().unwrap().wait().unwrap().unwrap();
+            pending.pop().unwrap().wait().unwrap();
+            let long = pending.pop().unwrap().wait().unwrap().unwrap();
             assert!(
                 long > short * 10.0,
                 "distinct GPU workloads were misattributed: {long} vs {short} ms"
             );
-        }
+            Some(long)
+        } else {
+            None
+        };
         assert_eq!(
             timer.stats().frames,
             0,
@@ -61,36 +64,32 @@ fn frame_results_survive_delayed_completion_and_reset_in_both_resolve_modes() {
         );
 
         let mut encoder = gpu.device.create_command_encoder(&Default::default());
-        timer.begin(&mut encoder, 20);
+        timer.begin(&mut encoder);
         draw(&mut encoder, &fast, &target);
         timer.end(&mut encoder);
         let submission = gpu.queue.submit([encoder.finish()]);
-        let pending = timer.submitted(submission.clone()).unwrap();
+        let ticket = timer.submitted(submission.clone());
         if mode == Resolve::InFrame {
-            // Browser callers discard the ticket. Poll only to drive the native
-            // test device; InFrame must publish stats without a ticket wait.
+            assert!(ticket.is_none());
+            // Drive callbacks on the test device; production browser never polls.
             gpu.device
                 .poll(wgpu::PollType::Wait {
                     submission_index: Some(submission),
                     timeout: None,
                 })
                 .unwrap();
-        }
-        let before_wait = timer.stats();
-        let sample = pending.wait().unwrap();
-        if mode == Resolve::InFrame {
-            assert_eq!(before_wait.frames, usize::from(sample.ms.is_some()));
-            assert_eq!(before_wait.mean_ms, sample.ms.unwrap_or(0.0));
-        }
-        assert_eq!(sample.frame, 20, "{mode:?}");
-        if mode == Resolve::AfterCompletion {
+            let stats = timer.stats();
+            assert!(stats.frames <= 1);
+            assert_eq!(stats.frames == 1, stats.mean_ms > 0.0);
+        } else {
+            let ms = ticket.unwrap().wait().unwrap().unwrap();
             assert!(
-                sample.ms.unwrap() < long.unwrap() / 10.0,
+                ms < long.unwrap() / 10.0,
                 "a reused slot retained its old frame's duration"
             );
+            assert_eq!(timer.stats().frames, 1);
+            assert_eq!(timer.stats().mean_ms, ms);
         }
-        assert_eq!(timer.stats().frames, usize::from(sample.ms.is_some()));
-        assert_eq!(timer.stats().mean_ms, sample.ms.unwrap_or(0.0));
     }
 }
 

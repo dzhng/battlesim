@@ -504,37 +504,25 @@ finding that the base build did not render grass the same way twice.
 
 ## 12 · Frame timing
 
-- **When:** slice 12. **Choice:** `begin` takes the caller's frame index;
-  `submitted` returns an optional owned, single-use `PendingFrame`, whose native
-  wait returns that frame's identity and optional milliseconds. Invalid counters
-  and failed maps remain missing samples. Reset invalidates old rolling-window
-  membership without relabelling or cancelling an already issued frame result.
-  For example, frame 17's readback may finish after frame 19 and after a reset: its ticket
-  still returns frame 17, while the reset window receives neither old frame.
-  Reading a single latest-value field instead could file frame 19's time in
-  frame 17's row. **Gap:** the slice delegated the result API and reset/completion plumbing.
-  **Reach:** native fills the original report row; browser may discard tickets
-  and consume the same bounded rolling window. **Verdict: sound** — delayed or
-  reordered completions cannot become the current frame's sample. Synthetic
-  attribution/reset regressions were each falsified, and the public GPU path
-  exercises both modes with delayed reads and reset between encoding/submission.
-  **Confidence: high.**
+- **When:** slice 12, revised after whole-spec review. **Choice:** `begin`
+  captures the reset generation, without a caller frame index. Only
+  `AfterCompletion` returns an owned, single-use `PendingFrame`; `wait` returns
+  optional milliseconds. Native retains its report-row index alongside the
+  ticket. `InFrame` maps after submission and publishes rolling stats directly.
+  **Gap:** the initial API round-tripped frame identity and built browser tickets
+  that production immediately dropped. **Reach:** invalid counters and failed
+  maps remain missing samples; reset excludes old samples without cancelling
+  their ticket results. Delayed heavy/light duration checks prove attribution,
+  and `stats()` proves reset membership. **Verdict: sound** — only production
+  completion paths remain. **Confidence: high.**
 
-- **When:** slice 12 review. **Choice:** support only the completion paths
-  callers use. Native's `AfterCompletion` ticket waits for rendering, submits
-  the resolve/copy, then waits for mapping and returns that frame's sample,
-  outside timed CPU phases. Browser `InFrame` maps immediately after submission
-  without waiting; its callback records the sample and releases the slot.
-  There is no queue-completion readiness flag, deferred resolve list or
-  later-frame pump. **Gap:** the slice delegated a non-blocking
-  `AfterCompletion`, but the browser measurements below justify keeping
-  `InFrame` and native always explicitly waits. **Reach:** native preserves its
-  two-render pacing and coverage rule; browser keeps saturation drops, rolling
-  stats and generation reset. Dropping an `InFrame` ticket leaves its callback
-  active; an `AfterCompletion` ticket must be consumed with `wait` to resolve
-  and release its slot. **Verdict: sound** — the retained GPU regression checks
-  delayed attribution/reset in both modes and `InFrame` statistics before any
-  ticket wait. **Confidence: high.**
+- **When:** whole-spec review of slice 12. **Choice:** callers size the bounded
+  readback pool explicitly. Native uses `IN_FLIGHT + 1` because it reserves the
+  next frame's slot before retiring the oldest submission; the browser retains
+  its three-slot asynchronous window. **Gap:** the old hidden pool size silently
+  had to exceed native's in-flight limit. **Reach:** pacing and saturation rules
+  stay unchanged while full native coverage no longer depends on two unrelated
+  constants agreeing. **Verdict: sound. Confidence: high.**
 
 - **When:** slice 12 review. **Choice:** share the query pair for `InFrame`,
   whose marked encoder copies its counters before another frame can overwrite
@@ -573,7 +561,7 @@ finding that the base build did not render grass the same way twice.
   A later light frame also checks that reusing the old heavy frame's slot does
   not retain its duration. **Gap:** the slice required attribution coverage
   without prescribing a GPU fixture. **Reach:** independently created devices
-  isolate the two modes; native's known-stale `InFrame` path checks identity and
+  isolate the two modes; native's known-stale `InFrame` path checks asynchronous statistics and
   reset bookkeeping, while `AfterCompletion` also checks workload durations.
   GPU stages can overlap, so concurrent workload cost is not a reliable control
   for a timestamp span; production pacing is untouched. The fixture reuses

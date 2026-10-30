@@ -59,7 +59,7 @@ pub struct Bench {
 impl Bench {
     pub fn new(device: &Device, queue: &Queue) -> Self {
         Self {
-            timer: FrameTimer::new(device, queue, Resolve::AfterCompletion),
+            timer: FrameTimer::new(device, queue, Resolve::AfterCompletion, IN_FLIGHT + 1),
             in_flight: VecDeque::new(),
             samples: Vec::new(),
             frame: 0,
@@ -88,7 +88,7 @@ impl Bench {
     /// Opens the frame in its first encoder, including any regional submissions.
     pub fn begin(&mut self, encoder: &mut CommandEncoder) {
         let Some(timer) = &mut self.timer else { return };
-        timer.begin(encoder, self.frame);
+        timer.begin(encoder);
     }
 
     /// Closes the frame's GPU time at the end of `encoder`.
@@ -135,7 +135,7 @@ impl Bench {
             let sample = pending
                 .wait()
                 .map_err(|e| format!("timing frame {frame}: {e}"))?;
-            self.samples[sample.frame].gpu_ms = sample.ms;
+            self.samples[frame].gpu_ms = sample;
         } else {
             device
                 .poll(PollType::Wait {

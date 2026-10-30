@@ -28,6 +28,7 @@ impl Renderer {
                 &self.gpu.device,
                 &self.gpu.queue,
                 renderer_core::timing::Resolve::InFrame,
+                3,
             );
         }
         self.gpu_timer.is_some()
