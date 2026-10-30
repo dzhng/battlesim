@@ -2,10 +2,12 @@
 //! pages, the plot split's nodes and plots, the terrain material's parameters
 //! and the scars' look. Each record is the terrain material's WGSL struct
 //! word for word: every field a `vec4`, f32 unless named.
-use super::biome::{linear, Road, AREA_KINDS, WATER_LOOKS_MAX};
+use super::biome::{linear, Road, AREA_KINDS};
 use super::field::{Field, FOOTPRINT_M};
 use super::{is_road, Ground, RIVER};
+use crate::records::{RoadLook, ScarParams, ShoreTuning, TerrainParams, WaterLook};
 use std::f64::consts::SQRT_2;
+use std::mem::offset_of;
 
 /// The most levels the material's surface field may build: the widest is
 /// far past any map.
@@ -19,8 +21,10 @@ pub const MARKS_CLEAR_M: f64 = 0.3;
 /// The deepest sampled scar, before biome relief is applied.
 pub const SCAR_DEPTH_CAP: f64 = 1.6;
 use crate::color::luminance;
-/// Words a `WaterLook` row: eight vec4s.
-const WATER_LOOK_WORDS: usize = 40;
+/// The terrain material's paved look slots, in the map's kind order.
+pub const ROAD_LOOKS_MAX: usize = AREA_KINDS.len();
+/// Words a `WaterLook` row: ten vec4s.
+const WATER_LOOK_WORDS: usize = WaterLook::LAYOUT.size / 4;
 
 /// `v` as the f32 a `Float32Array` holds, in its word.
 pub fn word(v: f64) -> u32 {
@@ -30,6 +34,11 @@ pub fn word(v: f64) -> u32 {
 /// Appends a `vec4f`.
 pub fn vec4(out: &mut Vec<u32>, v: [f64; 4]) {
     out.extend(v.map(word));
+}
+
+/// Writes a `vec4f` at a record layout's byte offset.
+pub fn write_vec4(out: &mut [u32], offset: usize, v: [f64; 4]) {
+    out[offset / 4..offset / 4 + 4].copy_from_slice(&v.map(word));
 }
 
 fn rgb(c: [f64; 3], w: f64) -> [f64; 4] {
@@ -134,13 +143,22 @@ impl Ground {
 
     /// Every terrain table but the scars' grid, from `field` (`terrain_field`).
     /// `TerrainParams.shoreTuning`: the bank's bands and ground, four vec4s.
-    fn shore_tuning(&self, p: &mut Vec<u32>) {
+    fn shore_tuning(&self, p: &mut [u32]) {
         let t = &self.tuning.terrain.shore;
         let [a, b] = t.turns;
-        vec4(p, [t.wet_whole, t.earth_whole, t.fine, t.fine_share]);
-        vec4(p, [libm::cos(a), libm::sin(a), libm::cos(b), libm::sin(b)]);
-        vec4(
+        write_vec4(
             p,
+            offset_of!(ShoreTuning, bands),
+            [t.wet_whole, t.earth_whole, t.fine, t.fine_share],
+        );
+        write_vec4(
+            p,
+            offset_of!(ShoreTuning, turns),
+            [libm::cos(a), libm::sin(a), libm::cos(b), libm::sin(b)],
+        );
+        write_vec4(
+            p,
+            offset_of!(ShoreTuning, ground),
             [
                 t.earth_mottle,
                 t.field_ease_m,
@@ -148,14 +166,18 @@ impl Ground {
                 t.wet_roughness,
             ],
         );
-        vec4(p, [t.fine_fade[0], t.fine_fade[1], t.bed_ease_m, 0.0]);
+        write_vec4(
+            p,
+            offset_of!(ShoreTuning, fade),
+            [t.fine_fade[0], t.fine_fade[1], t.bed_ease_m, 0.0],
+        );
     }
 
     /// `TerrainParams.waterLooks`: every water look the biome holds, then
     /// zeros to `WATER_LOOKS_MAX` rows, ten vec4s a row. A row is its
     /// look's own (`biome.water`) over the shared surface
     /// (`presentation.terrain.water`).
-    fn water_looks(&self, p: &mut Vec<u32>) {
+    fn water_looks(&self, p: &mut [u32]) {
         let (b, w) = (&self.biome, &self.tuning.terrain.water);
         let (r, lobes) = (&w.normals, &w.lobes);
         // A puddle's row fades its water in over the first third of its
@@ -171,32 +193,60 @@ impl Ground {
             .iter()
             .chain(&b.water.swamps)
             .map(|l| (l, 0.0));
-        for (look, puddle_m) in deep.chain(puddles) {
+        for (tag, (look, puddle_m)) in deep.chain(puddles).enumerate() {
+            let p = &mut p[tag * WATER_LOOK_WORDS..(tag + 1) * WATER_LOOK_WORDS];
             let colours = b.palette(&look.palette);
-            vec4(p, rgb(linear(colours[0]), 0.0));
-            vec4(p, rgb(linear(colours[1]), 0.0));
-            vec4(p, rgb(look.extinction_per_m, w.shadow));
+            write_vec4(
+                p,
+                offset_of!(WaterLook, channel),
+                rgb(linear(colours[0]), 0.0),
+            );
+            write_vec4(p, offset_of!(WaterLook, edge), rgb(linear(colours[1]), 0.0));
+            write_vec4(
+                p,
+                offset_of!(WaterLook, surface),
+                rgb(look.extinction_per_m, w.shadow),
+            );
             let [primary, macro_m, detail] = r.tiles_m;
-            vec4(p, [1.0 / primary, 1.0 / macro_m, 1.0 / detail, r.strength]);
-            vec4(p, [r.drifts[0], r.drifts[1], r.drifts[2], 0.0]);
+            write_vec4(
+                p,
+                offset_of!(WaterLook, normals),
+                [1.0 / primary, 1.0 / macro_m, 1.0 / detail, r.strength],
+            );
+            write_vec4(
+                p,
+                offset_of!(WaterLook, drifts),
+                [r.drifts[0], r.drifts[1], r.drifts[2], 0.0],
+            );
             let shore = if puddle_m > 0.0 {
                 puddle_m / 3.0
             } else {
                 w.shore_fade_m
             };
-            vec4(p, [shore, r.fade_m[0], r.fade_m[1], puddle_m]);
-            vec4(p, rgb(lobes.roughness, 0.0));
-            vec4(p, rgb(lobes.weights, 0.0));
+            write_vec4(
+                p,
+                offset_of!(WaterLook, fades),
+                [shore, r.fade_m[0], r.fade_m[1], puddle_m],
+            );
+            write_vec4(
+                p,
+                offset_of!(WaterLook, roughness),
+                rgb(lobes.roughness, 0.0),
+            );
+            write_vec4(p, offset_of!(WaterLook, lobes), rgb(lobes.weights, 0.0));
             let f = &w.refraction;
-            vec4(p, [f.share, f.depth_m, f.most, f.blur_m]);
+            write_vec4(
+                p,
+                offset_of!(WaterLook, refraction),
+                [f.share, f.depth_m, f.most, f.blur_m],
+            );
             let c = &w.caustics;
-            vec4(p, [1.0 / c.tile_m, c.strength, c.fade_per_m, c.sharpness]);
+            write_vec4(
+                p,
+                offset_of!(WaterLook, caustics),
+                [1.0 / c.tile_m, c.strength, c.fade_per_m, c.sharpness],
+            );
         }
-        let w = &b.water;
-        let looks =
-            w.rivers.len() + w.swamps.len() + w.puddles.as_ref().map_or(0, |q| q.looks.len());
-        let rows = WATER_LOOKS_MAX - looks;
-        p.extend(std::iter::repeat_n(0, rows * WATER_LOOK_WORDS));
     }
 
     pub fn terrain_tables(&self, field: Field) -> TerrainTables {
@@ -217,12 +267,18 @@ impl Ground {
         let one = |key: &str| linear(b.palette(key)[0]);
         let rules = &b.field_rules;
         let [ox, oy, cell, cols, rows, levels, _] = field.grid;
-        let mut p = vec![];
-        vec4(&mut p, self.plots.region);
-        vec4(&mut p, [ox, oy, 1.0 / cell, FOOTPRINT_M]);
-        p.extend([cols as u32, rows as u32, levels as u32, 0]);
-        vec4(
+        let mut p = vec![0; offset_of!(TerrainParams, view) / 4];
+        write_vec4(&mut p, offset_of!(TerrainParams, region), self.plots.region);
+        write_vec4(
             &mut p,
+            offset_of!(TerrainParams, field),
+            [ox, oy, 1.0 / cell, FOOTPRINT_M],
+        );
+        let grid = offset_of!(TerrainParams, field_grid) / 4;
+        p[grid..grid + 4].copy_from_slice(&[cols as u32, rows as u32, levels as u32, 0]);
+        write_vec4(
+            &mut p,
+            offset_of!(TerrainParams, shape),
             [
                 rules.edge_warp_m,
                 1.0 / rules.edge_warp_scale_m,
@@ -230,10 +286,15 @@ impl Ground {
                 0.0,
             ],
         );
-        vec4(&mut p, rgb(one(&b.verge.palette), b.verge.width_m / 2.0));
-        let pixels = self.tuning.terrain.distant.plot_pixels;
-        vec4(
+        write_vec4(
             &mut p,
+            offset_of!(TerrainParams, verge),
+            rgb(one(&b.verge.palette), b.verge.width_m / 2.0),
+        );
+        let pixels = self.tuning.terrain.distant.plot_pixels;
+        write_vec4(
+            &mut p,
+            offset_of!(TerrainParams, feathers),
             [
                 b.verge.feather_m,
                 rules.size_m[0] * pixels[0],
@@ -242,7 +303,12 @@ impl Ground {
             ],
         );
         for (tag, kind) in AREA_KINDS.iter().enumerate() {
-            self.road_look(&mut p, b.road(kind), tag);
+            let at = offset_of!(TerrainParams, roads) / 4 + tag * RoadLook::LAYOUT.size / 4;
+            self.road_look(
+                &mut p[at..at + RoadLook::LAYOUT.size / 4],
+                b.road(kind),
+                tag,
+            );
         }
         let layer = |tag: usize| {
             b.road(AREA_KINDS[tag])
@@ -251,15 +317,35 @@ impl Ground {
         };
         let mut order: Vec<usize> = (0..AREA_KINDS.len()).collect();
         order.sort_by(|&x, &y| layer(x).total_cmp(&layer(y)).then(y.cmp(&x)));
-        p.extend(order.iter().map(|&t| t as u32));
+        let at = offset_of!(TerrainParams, road_order) / 4;
+        for (i, &tag) in order.iter().enumerate() {
+            p[at + i] = tag as u32;
+        }
         let f = &b.forest_floor;
         let [litter, moss, humus] = [0, 1, 2].map(|i| linear(b.palette(&f.palette)[i]));
-        vec4(&mut p, rgb(litter, 0.0));
-        vec4(&mut p, rgb(moss, f.moss));
-        vec4(&mut p, rgb(humus, f.humus));
-        vec4(&mut p, [1.0 / f.patch_m, f.mottle, f.roughness, f.roots]);
-        vec4(
+        write_vec4(
             &mut p,
+            offset_of!(TerrainParams, forest_litter),
+            rgb(litter, 0.0),
+        );
+        write_vec4(
+            &mut p,
+            offset_of!(TerrainParams, forest_moss),
+            rgb(moss, f.moss),
+        );
+        write_vec4(
+            &mut p,
+            offset_of!(TerrainParams, forest_humus),
+            rgb(humus, f.humus),
+        );
+        write_vec4(
+            &mut p,
+            offset_of!(TerrainParams, forest_detail),
+            [1.0 / f.patch_m, f.mottle, f.roughness, f.roots],
+        );
+        write_vec4(
+            &mut p,
+            offset_of!(TerrainParams, forest_verge),
             [
                 f.verge_m,
                 f.verge_warp_m,
@@ -267,17 +353,35 @@ impl Ground {
                 1.0 / f.roots_m,
             ],
         );
-        vec4(
+        write_vec4(
             &mut p,
+            offset_of!(TerrainParams, forest_dapple),
             [1.0 / f.dapple.size_m, f.dapple.share, f.dapple.sun, 0.0],
         );
-        vec4(&mut p, [f.tree_line.taper_m, f.tree_line.warp_m, 0.0, 0.0]);
-        vec4(&mut p, rgb(one("water_bed"), s.grid.spacing * SQRT_2));
-        let (shore, bank) = (&b.shore, b.palette(&b.shore.palette));
-        vec4(&mut p, rgb(linear(bank[0]), shore.wet_m));
-        vec4(&mut p, rgb(linear(bank[1]), shore.mud_m));
-        vec4(
+        write_vec4(
             &mut p,
+            offset_of!(TerrainParams, forest_line),
+            [f.tree_line.taper_m, f.tree_line.warp_m, 0.0, 0.0],
+        );
+        write_vec4(
+            &mut p,
+            offset_of!(TerrainParams, water_bed),
+            rgb(one("water_bed"), s.grid.spacing * SQRT_2),
+        );
+        let (shore, bank) = (&b.shore, b.palette(&b.shore.palette));
+        write_vec4(
+            &mut p,
+            offset_of!(TerrainParams, shore),
+            rgb(linear(bank[0]), shore.wet_m),
+        );
+        write_vec4(
+            &mut p,
+            offset_of!(TerrainParams, shore_earth),
+            rgb(linear(bank[1]), shore.mud_m),
+        );
+        write_vec4(
+            &mut p,
+            offset_of!(TerrainParams, shore_edge),
             [
                 shore.wander,
                 1.0 / shore.wander_scale_m,
@@ -285,26 +389,53 @@ impl Ground {
                 shore.relief,
             ],
         );
-        vec4(&mut p, rgb(one("distant"), 0.0));
-        self.shore_tuning(&mut p);
-        self.water_looks(&mut p);
+        write_vec4(
+            &mut p,
+            offset_of!(TerrainParams, distant),
+            rgb(one("distant"), 0.0),
+        );
+        let shore = offset_of!(TerrainParams, shore_tuning) / 4;
+        self.shore_tuning(&mut p[shore..shore + ShoreTuning::LAYOUT.size / 4]);
+        let water = offset_of!(TerrainParams, water_looks) / 4;
+        self.water_looks(&mut p[water..]);
         let sc = &b.scars;
-        let mut scars = vec![];
-        vec4(
+        let look = offset_of!(ScarParams, full);
+        let mut scars = vec![0; (ScarParams::LAYOUT.size - look) / 4];
+        write_vec4(
             &mut scars,
+            offset_of!(ScarParams, full) - look,
             [&sc.crater.mark, &sc.scorch, &sc.tracks, &sc.trampled].map(|m| 255.0 / m.full),
         );
-        let mark = |out: &mut Vec<u32>, palette: &str, strength: f64| {
-            vec4(out, rgb(one(palette), strength))
+        let mark = |out: &mut [u32], offset, palette: &str, strength: f64| {
+            write_vec4(out, offset - look, rgb(one(palette), strength))
         };
-        mark(&mut scars, &sc.crater.mark.palette, sc.crater.mark.strength);
-        mark(&mut scars, &sc.crater.ejecta_palette, sc.crater.ejecta);
-        for m in [&sc.scorch, &sc.tracks, &sc.trampled] {
-            mark(&mut scars, &m.palette, m.strength);
-        }
-        vec4(&mut scars, [sc.crater.relief_m, sc.crater.rim, 0.0, 0.0]);
-        vec4(
+        mark(
             &mut scars,
+            offset_of!(ScarParams, crater),
+            &sc.crater.mark.palette,
+            sc.crater.mark.strength,
+        );
+        mark(
+            &mut scars,
+            offset_of!(ScarParams, ejecta),
+            &sc.crater.ejecta_palette,
+            sc.crater.ejecta,
+        );
+        for (offset, m) in [
+            (offset_of!(ScarParams, scorch), &sc.scorch),
+            (offset_of!(ScarParams, tracks), &sc.tracks),
+            (offset_of!(ScarParams, trampled), &sc.trampled),
+        ] {
+            mark(&mut scars, offset, &m.palette, m.strength);
+        }
+        write_vec4(
+            &mut scars,
+            offset_of!(ScarParams, relief) - look,
+            [sc.crater.relief_m, sc.crater.rim, 0.0, 0.0],
+        );
+        write_vec4(
+            &mut scars,
+            offset_of!(ScarParams, grass) - look,
             [sc.grass.thin, sc.grass.tracks_thin, sc.grass.flatten, 0.0],
         );
         TerrainTables {
@@ -322,7 +453,7 @@ impl Ground {
     /// The look table's row for the paved kind tagged `tag`, drawn as
     /// `road`. Its patches' colour is held to the surface's luminance: a
     /// patch is a change of hue alone.
-    fn road_look(&self, out: &mut Vec<u32>, road: &Road, tag: usize) {
+    fn road_look(&self, out: &mut [u32], road: &Road, tag: usize) {
         let palettes = &self.biome.palettes;
         let first = |key: &str| linear(palettes[key][0]);
         let (core, worn) = (first(&road.palette), linear(palettes[&road.palette][1]));
@@ -332,9 +463,10 @@ impl Ground {
         });
         let walk = |f: fn(&super::biome::Walk) -> f64| road.walk.as_ref().map_or(0.0, f);
         let (s, r) = (&road.shoulder, &road.ruts);
-        vec4(out, rgb(core, road.roughness));
-        vec4(
+        write_vec4(out, offset_of!(RoadLook, core), rgb(core, road.roughness));
+        write_vec4(
             out,
+            offset_of!(RoadLook, worn),
             [
                 worn[0] * level,
                 worn[1] * level,
@@ -342,8 +474,9 @@ impl Ground {
                 road.mottle,
             ],
         );
-        vec4(
+        write_vec4(
             out,
+            offset_of!(RoadLook, shape),
             [
                 road.feather_m,
                 1.0 / road.patch_m,
@@ -351,18 +484,32 @@ impl Ground {
                 1.0 / road.grain_m,
             ],
         );
-        vec4(
+        write_vec4(
             out,
+            offset_of!(RoadLook, join),
             [road.join_m, 0.0, walk(|w| w.width_m), walk_row as f64],
         );
-        vec4(out, rgb(first(&s.palette), s.width_m));
-        vec4(out, [s.jitter, 1.0 / s.jitter_m, s.grass, s.cover]);
+        write_vec4(
+            out,
+            offset_of!(RoadLook, shoulder),
+            rgb(first(&s.palette), s.width_m),
+        );
+        write_vec4(
+            out,
+            offset_of!(RoadLook, edge),
+            [s.jitter, 1.0 / s.jitter_m, s.grass, s.cover],
+        );
         let rut = |i: usize| r.offsets_m.get(i).copied().unwrap_or(0.0);
-        vec4(out, [rut(0), rut(1), r.width_m, tan_deg(r.tilt_deg)]);
+        write_vec4(
+            out,
+            offset_of!(RoadLook, ruts),
+            [rut(0), rut(1), r.width_m, tan_deg(r.tilt_deg)],
+        );
         let strip = &road.centre_strip;
         let carriageway = if is_road(tag as f32) { 1.0 } else { 0.0 };
-        vec4(
+        write_vec4(
             out,
+            offset_of!(RoadLook, track),
             [
                 r.tint,
                 strip.half_width_m,
@@ -372,8 +519,9 @@ impl Ground {
         );
         let curb = road.curb.as_ref();
         let slab = walk(|w| if w.slab_m != 0.0 { 1.0 / w.slab_m } else { 0.0 });
-        vec4(
+        write_vec4(
             out,
+            offset_of!(RoadLook, slabs),
             [
                 slab,
                 walk(|w| w.joint),
@@ -381,17 +529,20 @@ impl Ground {
                 curb.map_or(0.0, |c| tan_deg(c.tilt_deg)),
             ],
         );
-        vec4(
+        write_vec4(
             out,
+            offset_of!(RoadLook, curb),
             curb.map_or([0.0; 4], |c| rgb(first(&c.palette), c.width_m)),
         );
         let marks = road.markings.as_ref();
-        vec4(
+        write_vec4(
             out,
+            offset_of!(RoadLook, paint),
             marks.map_or([0.0; 4], |m| rgb(first(&m.palette), m.cover)),
         );
-        vec4(
+        write_vec4(
             out,
+            offset_of!(RoadLook, marks),
             marks.map_or([0.0, 0.0, 1.0, 0.0], |m| {
                 [
                     m.line_m / 2.0,
@@ -401,16 +552,18 @@ impl Ground {
                 ]
             }),
         );
-        vec4(
+        write_vec4(
             out,
+            offset_of!(RoadLook, crossing),
             marks.map_or([1.0, 0.0, 0.0, 0.0], |m| {
                 let c = &m.crossing;
                 [c.bar_m, c.length_m, c.gap_m, c.inset_m]
             }),
         );
         let slabs = road.slabs.as_ref();
-        vec4(
+        write_vec4(
             out,
+            offset_of!(RoadLook, stones),
             [
                 curb.map_or(0.0, |c| 1.0 / c.stone_m),
                 curb.map_or(0.0, |c| c.joint),

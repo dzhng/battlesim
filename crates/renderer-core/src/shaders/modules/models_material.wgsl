@@ -89,7 +89,7 @@ const GROUND_BANK_MAX_SLOPE = 0.84;
 fn groundBank(xy: vec2f, cell: vec4u, footprint: f32) -> vec3f {
  var sum=vec4f(0.0);
  for(var i=cell.z;i<cell.w;i++){
-  let at=surfaceIndex[i]&536870911u;
+  let at=surfaceIndex[i]&GROUND_RECORD_MASK;
   let stretch=surfaces[at];
   let a=stretch.ends.xy;let ab=stretch.ends.zw-a;let len2=dot(ab,ab);
   var t=0.0;if(len2>0.0){t=clamp(dot(xy-a,ab)/len2,0.0,1.0);}
@@ -140,7 +140,7 @@ fn groundCurb(footprint: f32, paved: GroundPaved) -> vec3f {
  let soft=max(footprint,GROUND_CURB_EDGE_M)*0.5;
  // Another carriageway's surface over the edge leaves no curb there.
  var open=1.0;
- for(var k=0u;k<4u;k++){
+ for(var k=0u;k<ROAD_LOOKS_MAX;k++){
   if(k!=own&&params.roads[k].track.w>0.0){open*=1.0-smoothstep(-soft,soft,paved.drawn[k]);}
  }
  let edge=smoothstep(-soft,soft,inside);
@@ -154,9 +154,9 @@ fn groundForest(xy: vec2f, cell: vec4u) -> f32 {
  var forest=-1e9;var distance=-1e9;var nearest=1e9;var inside=false;
  for(var i=cell.y;i<cell.z;i++){
   let entry=surfaceIndex[i];
-  let record=surfaces[entry&536870911u];
-  let kind=entry>>30u;
-  if((entry&536870912u)!=0u){
+  let record=surfaces[entry&GROUND_RECORD_MASK];
+  let kind=entry>>GROUND_KIND_SHIFT;
+  if((entry&GROUND_NEW_SHAPE)!=0u){
    forest=max(forest,max(distance,select(-nearest,nearest,inside)));
    distance=-1e9;nearest=1e9;inside=false;
   }
@@ -191,8 +191,8 @@ fn groundMarks(xy: vec2f, footprint: f32, paved: GroundPaved) -> f32 {
  var near=-1e9;var cross=-1e9;
  for(var i=paved.list.x;i<paved.list.y;i++){
   let entry=surfaceIndex[i];
-  if((entry>>30u)!=1u){continue;}
-  let seg=surfaces[entry&536870911u];
+  if((entry>>GROUND_KIND_SHIFT)!=1u){continue;}
+  let seg=surfaces[entry&GROUND_RECORD_MASK];
   if(params.roads[u32(seg.detail.y)].track.w<=0.0){continue;}
   let a=seg.ends.xy;let ab=seg.ends.zw-a;let len=max(length(ab),1e-6);
   if(abs(dot(ab,paved.run.xy))>GROUND_MARKS_CROSSING_COS*len){continue;}
@@ -226,12 +226,12 @@ fn groundMarks(xy: vec2f, footprint: f32, paved: GroundPaved) -> f32 {
 
 // @block models_material_groundPaved_alternate
 fn groundPaved(xy: vec2f, cell: vec4u) -> GroundPaved {
- var paved=vec4f(-1e9);var member=4u;var nearest=1e9;var edge=0u;
+ var paved=vec4f(-1e9);var member=ROAD_LOOKS_MAX;var nearest=1e9;var edge=0u;
  var lane=vec4f(0.0);var run=vec4f(0.0,0.0,0.0,-1.0);var deepest=-1e9;var bearing=-1.0;
  for(var i=cell.x;i<cell.y;i++){
   let entry=surfaceIndex[i];
-  let seg=surfaces[entry&536870911u];
-  let kind=entry>>30u;
+  let seg=surfaces[entry&GROUND_RECORD_MASK];
+  let kind=entry>>GROUND_KIND_SHIFT;
   if(kind==1u){
    let a=seg.ends.xy;let ab=seg.ends.zw-a;
    let t=clamp(dot(xy-a,ab)/max(dot(ab,ab),1e-6),0.0,1.0);
@@ -256,7 +256,7 @@ fn groundPaved(xy: vec2f, cell: vec4u) -> GroundPaved {
   }
  }
  var rule=deepest;
- if(member<4u){
+ if(member<ROAD_LOOKS_MAX){
   paved[member]=max(paved[member],nearest);rule=max(rule,nearest);
  }
  else if(nearest<1e9){
@@ -271,8 +271,8 @@ fn groundTreeLine(xy: vec2f, cell: vec4u) -> vec2f {
  let taper=params.forestLine.x;
  for(var i=cell.y;i<cell.z;i++){
   let entry=surfaceIndex[i];
-  if((entry>>30u)!=1u){continue;}
-  let record=surfaces[entry&536870911u];
+  if((entry>>GROUND_KIND_SHIFT)!=1u){continue;}
+  let record=surfaces[entry&GROUND_RECORD_MASK];
   let here=strokeCutInside(xy,record.ends,record.detail,record.detail.x-polygonEdgeDistance(xy,record.ends.xy,record.ends.zw));
   inside=max(inside,here);
   let cuts=u32(record.detail.z);
@@ -292,7 +292,7 @@ fn groundTreeLine(xy: vec2f, cell: vec4u) -> vec2f {
 fn groundWater(xy: vec2f, cell: vec4u) -> f32 {
  var bed=-1e9;
  for(var i=cell.z;i<cell.w;i++){
-  let stretch=surfaces[surfaceIndex[i]&536870911u];
+  let stretch=surfaces[surfaceIndex[i]&GROUND_RECORD_MASK];
   let a=stretch.ends.xy;let ab=stretch.ends.zw-a;let len2=dot(ab,ab);
   var t=0.0;if(len2>0.0){t=clamp(dot(xy-a,ab)/len2,0.0,1.0);}
   let half=stretch.detail.x+(stretch.detail.y-stretch.detail.x)*t;

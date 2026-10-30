@@ -2,19 +2,6 @@ use naga::ShaderStage;
 use naga::{front::wgsl, TypeInner};
 use presentation::records::{camel, Binding, Layout, Sun, View, LAYOUTS};
 
-mod schema {
-    use presentation::records::Wind;
-
-    presentation::records! {
-        Struct Nested {
-            wind: Wind,
-            winds: [Wind; 2],
-            shift: i32,
-            pad: [u32; 3],
-        }
-    }
-}
-
 fn assert_layout(
     module: &naga::Module,
     handle: naga::Handle<naga::Type>,
@@ -60,21 +47,6 @@ fn assert_layout(
             assert_layout(module, nested, record, &path);
         }
     }
-}
-
-#[test]
-fn exported_schema_matches_nested_and_signed_shader_fields() {
-    let module = wgsl::parse_str(
-        "struct Wind { toward: vec3<f32>, driftMps: f32, gustMps: f32, gustPerM: f32 };\n\
-         struct Nested { wind: Wind, winds: array<Wind, 2>, shift: i32 };",
-    )
-    .unwrap();
-    let (handle, _) = module
-        .types
-        .iter()
-        .find(|(_, ty)| ty.name.as_deref() == Some("Nested"))
-        .unwrap();
-    assert_layout(&module, handle, &schema::LAYOUTS[0], "Nested");
 }
 
 fn module(shader: &str) -> naga::Module {

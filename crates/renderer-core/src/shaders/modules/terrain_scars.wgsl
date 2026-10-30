@@ -154,9 +154,9 @@ fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
 
 // @block terrain_scars_scarCell
 fn scarCell(c: vec2u, e: vec2u) -> vec4f {
- if(e.x==0u){return vec4f(0.0);}if((e.x&2147483648u)!=0u){return scarWord(e.y);}
+ if(e.x==0u){return vec4f(0.0);}if((e.x&SCAR_UNIFORM)!=0u){return scarWord(e.y);}
  let local=(c.y%16u)*16u+c.x%16u;
- if((e.x&536870912u)!=0u){return scarPoolWord(e.y+local);}
+ if((e.x&SCAR_DENSE)!=0u){return scarPoolWord(e.y+local);}
  let offset=e.y>>8u;var lo=0u;var hi=e.y&255u;
  while(lo<hi){let mid=(lo+hi)/2u;let bytes=vec4u(round(scarPoolWord(offset+mid*2u)*255.0));let end=bytes.x+bytes.y*256u;if(end<=local){lo=mid+1u;}else{hi=mid;}}
  return scarPoolWord(offset+lo*2u+1u);
@@ -170,8 +170,8 @@ fn scarEntry(tile: vec2u) -> vec2u {
  var at=((key*0x9e3779b1u)^(key>>16u))&P.pages.z;
  loop {let dim=textureDimensions(scarPages);let e=textureLoad(scarPages,vec2i(i32(at%dim.x),i32(at/dim.x)),0).xy;
   if(e.x==0u){break;}
-  if((e.x&536870911u)==key+1u){return e;}at=(at+1u)&P.pages.z;}
- return vec2u(2147483648u,P.defaultWord.x);
+  if((e.x&SCAR_KEY_MASK)==key+1u){return e;}at=(at+1u)&P.pages.z;}
+ return vec2u(SCAR_UNIFORM,P.defaultWord.x);
 }
 
 // @block terrain_scars_scarFilterAxis
@@ -206,7 +206,7 @@ fn scarLinear(uv: vec2f, tiles: ScarTiles) -> vec4f {
  for(var k=0u;k<4u;k++){
   let c=vec2u(clamp(cell+vec2i(i32(k&1u),i32(k>>1u)),vec2i(0),vec2i(P.pages.xy)-1));let e=scarTileEntry(tiles,c/16u);
   // The cell's own tile, one word throughout, with all four corners in it.
-  if(k==0u&&(e.x==0u||(e.x&2147483648u)!=0u)&&all(c%16u<vec2u(15u))){return scarWord(e.y);}
+  if(k==0u&&(e.x==0u||(e.x&SCAR_UNIFORM)!=0u)&&all(c%16u<vec2u(15u))){return scarWord(e.y);}
   q[k]=vec4u(round(scarCell(c,e)*255.0));
  }
  let w=scarFilterQuanta(q[0],q[1],q[2],q[3],f);
@@ -257,7 +257,7 @@ fn scarTiles(lo: vec2u, hi: vec2u) -> ScarTiles {
 // @block terrain_scars_scarTilesBlank
 fn scarTilesBlank(t: ScarTiles) -> bool {
  let x=vec4u(t.e00.x,t.e10.x,t.e01.x,t.e11.x);let y=vec4u(t.e00.y,t.e10.y,t.e01.y,t.e11.y);
- let single=(x&vec4u(2147483648u))!=vec4u(0u);
+ let single=(x&vec4u(SCAR_UNIFORM))!=vec4u(0u);
  return all((x==vec4u(0u))|(single&(y==vec4u(0u))));
 }
 

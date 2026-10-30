@@ -381,8 +381,11 @@ fn each_paved_kind_draws_by_its_own_row_or_the_default_and_paints_by_its_layer()
     b["roads"]["paving"]["layer"] = 9.into();
     let g = ground_with(Biome::load(&b.to_string(), None).unwrap());
     let params = g.terrain_tables(g.terrain_field().unwrap()).params;
-    // `TerrainParams`: 6 vec4s, then 14 a paved kind, then the paint order.
-    let row = |tag: usize| &params[24 + tag * 56..24 + (tag + 1) * 56];
+    use crate::records::{RoadLook, TerrainParams};
+    use std::mem::offset_of;
+    let roads = offset_of!(TerrainParams, roads) / 4;
+    let stride = RoadLook::LAYOUT.size / 4;
+    let row = |tag: usize| &params[roads + tag * stride..roads + (tag + 1) * stride];
     let core = |road: &super::biome::Road| {
         linear(g.biome.palette(&road.palette)[0]).map(|c| (c as f32).to_bits())
     };
@@ -394,7 +397,8 @@ fn each_paved_kind_draws_by_its_own_row_or_the_default_and_paints_by_its_layer()
     assert_eq!(row(3)[..3], core(g.biome.road("paving")));
     // The dirt track's default row lays it by its tag (2); the road's own row
     // at 2.5, over it; the country road by its tag (3); paving's at 9, on top.
-    assert_eq!(params[24 + 4 * 56..24 + 4 * 56 + 4], [2, 0, 1, 3]);
+    let order = offset_of!(TerrainParams, road_order) / 4;
+    assert_eq!(params[order..order + 4], [2, 0, 1, 3]);
 }
 
 #[test]

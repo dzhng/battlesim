@@ -261,7 +261,7 @@ const GROUND_STRIP_GRASS = 0.75;
 fn groundShoulder(xy: vec2f, footprint: f32, paved: GroundPaved) -> vec2f {
  var worn=vec2f(0.0);
  let plain=params.view.y==1u;
- for(var k=0u;k<4u;k++){
+ for(var k=0u;k<ROAD_LOOKS_MAX;k++){
   let look=params.roads[k];
   let width=look.shoulder.w;
   let out=-paved.drawn[k];
@@ -435,7 +435,7 @@ fn roadLane(paved: GroundPaved) -> i32 {
  if(paved.run.w<0.0){return -1;}
  let own=u32(paved.run.w);
  if(paved.drawn[own]<=0.0){return -1;}
- for(var n=4u;n>0u;n--){
+ for(var n=ROAD_LOOKS_MAX;n>0u;n--){
   let k=params.roadOrder[n-1u];
   if(k==own){break;}
   if(paved.drawn[k]>0.0){return -1;}

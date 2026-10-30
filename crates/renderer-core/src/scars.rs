@@ -5,13 +5,17 @@
 //! for the whole view, or for each region in turn when the marks don't fit at
 //! once. The world pass applies each at the submission it belongs to.
 use presentation::presentation::Presentation;
+use presentation::records::ScarParams;
 use presentation::scars::{self, ScarUpload, PARAMS_WORDS, POOL_HEIGHT, POOL_WIDTH};
+use std::mem::offset_of;
 use wgpu::*;
 
 use crate::buffer;
 
 /// `ScarParams`: the cache's words, then the biome's look (`full` on).
-const WORDS: usize = 52;
+const WORDS: usize = ScarParams::LAYOUT.size / 4;
+/// The cache enable flag in `ScarParams.grid.w`, stored as f32 bits.
+const ACTIVE_WORD: usize = offset_of!(ScarParams, grid) / 4 + 3;
 
 fn texture(device: &Device, label: &str, size: [u32; 2], format: TextureFormat) -> Texture {
     device.create_texture(&TextureDescriptor {
@@ -125,7 +129,11 @@ impl Scars {
     pub fn set_shown(&mut self, queue: &Queue, shown: bool) {
         self.shown = shown;
         let active = if shown { self.active.get() } else { 0 };
-        queue.write_buffer(&self.params, 3 * 4, bytemuck::bytes_of(&active));
+        queue.write_buffer(
+            &self.params,
+            (ACTIVE_WORD * 4) as u64,
+            bytemuck::bytes_of(&active),
+        );
     }
 
     pub fn directory_view(&self) -> TextureView {
@@ -303,9 +311,9 @@ impl Scars {
         }
         let mut words = self.words;
         words[..PARAMS_WORDS].copy_from_slice(&upload.params);
-        self.active.set(words[3]);
+        self.active.set(words[ACTIVE_WORD]);
         if !self.shown {
-            words[3] = 0;
+            words[ACTIVE_WORD] = 0;
         }
         queue.write_buffer(&self.params, 0, bytemuck::cast_slice(&words));
     }

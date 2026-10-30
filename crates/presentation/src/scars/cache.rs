@@ -1,7 +1,9 @@
 //! The bounded GPU cache of the learned ground's scars: which tiles the
 //! directory lists, where each varying page lies in the pool, and what a
 //! renderer uploads to follow it.
+use crate::records::ScarParams;
 use std::collections::BTreeSet;
+use std::mem::offset_of;
 
 use serde::Serialize;
 
@@ -280,28 +282,25 @@ impl ScarCache {
         };
         let clip = region.filter(|_| clipped).unwrap_or([0.0; 4]);
         let f = |v: f32| v.to_bits();
-        upload.params = [
+        let at = offset_of!(ScarParams, grid) / 4;
+        upload.params[at..at + 4].copy_from_slice(&[
             f(inverse(self.cols)),
             f(inverse(self.rows)),
             f(self.cell_m as f32),
             f(on as u32 as f32),
+        ]);
+        let at = offset_of!(ScarParams, pages) / 4;
+        upload.params[at..at + 4].copy_from_slice(&[
             self.cols as u32,
             self.rows as u32,
             self.entries as u32 - 1,
             self.width,
-            f(clip[0] as f32),
-            f(clip[1] as f32),
-            f(clip[2] as f32),
-            f(clip[3] as f32),
-            self.cache_bounds[0],
-            self.cache_bounds[1],
-            self.cache_bounds[2],
-            self.cache_bounds[3],
-            self.default_word,
-            0,
-            0,
-            0,
-        ];
+        ]);
+        let at = offset_of!(ScarParams, clip) / 4;
+        upload.params[at..at + 4].copy_from_slice(&clip.map(|v| f(v as f32)));
+        let at = offset_of!(ScarParams, cache_bounds) / 4;
+        upload.params[at..at + 4].copy_from_slice(&self.cache_bounds);
+        upload.params[offset_of!(ScarParams, default_word) / 4] = self.default_word;
         upload
     }
 

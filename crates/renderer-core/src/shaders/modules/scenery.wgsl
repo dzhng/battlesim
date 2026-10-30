@@ -30,7 +30,7 @@ struct TerrainParams {
   shape: vec4f,
   verge: vec4f,
   feathers: vec4f,
-  roads: array<RoadLook, 4>,
+  roads: array<RoadLook, ROAD_LOOKS_MAX>,
   roadOrder: vec4u,
   forestLitter: vec4f,
   forestMoss: vec4f,
@@ -45,7 +45,7 @@ struct TerrainParams {
   shoreEdge: vec4f,
   distant: vec4f,
   shoreTuning: ShoreTuning,
-  waterLooks: array<WaterLook, 8>,
+  waterLooks: array<WaterLook, WATER_LOOKS_MAX>,
   view: vec4u,
 }
 

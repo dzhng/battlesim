@@ -5,6 +5,7 @@ use crate::pipelines::Pipelines;
 use crate::scars::Scars;
 use crate::water::{WaterDetail, WaterNormals};
 use crate::{bind, buffer};
+use presentation::records::TerrainParams;
 use presentation::static_world::ground::Ground;
 
 fn table(
@@ -51,7 +52,7 @@ fn tables(device: &Device, queue: &Queue, upload: TerrainUpload<'_>) -> [Buffer;
     let storage = BufferUsages::STORAGE;
     // The canonical table excludes the renderer's final view vec4u.
     let mut params = upload.params.to_vec();
-    params.extend_from_slice(bytemuck::cast_slice(&[0u32; 4]));
+    params.resize(TerrainParams::LAYOUT.size, 0);
     [
         table(
             device,
@@ -165,7 +166,7 @@ impl TerrainResources {
         ];
         queue.write_buffer(
             &self.tables[0],
-            self.tables[0].size() - 16,
+            std::mem::offset_of!(TerrainParams, view) as u64,
             bytemuck::cast_slice(&words),
         );
     }

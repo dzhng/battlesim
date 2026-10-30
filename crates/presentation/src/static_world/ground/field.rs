@@ -25,8 +25,10 @@ const EDGE: u32 = 3;
 const PAVED: usize = 0;
 const FOREST: usize = 1;
 const WATER: usize = 2;
-const NEW_SHAPE: u32 = 1 << 29;
-const RECORD_MASK: u32 = NEW_SHAPE - 1;
+pub const NEW_SHAPE: u32 = 1 << 29;
+pub const RECORD_MASK: u32 = NEW_SHAPE - 1;
+/// Bits below the primitive kind in a field index entry.
+pub const KIND_SHIFT: u32 = 30;
 const CELL_WORDS: usize = 3;
 /// The finest cells' side and widest pixel, in metres: the play camera looking
 /// down sees at most about 2.5 m a pixel, so only ground seen edge-on climbs.
@@ -295,7 +297,7 @@ pub fn field(
         }
         index[header + cursors.len()] = cursor as u32;
         visit(level, &mut |slot, record| {
-            index[cursors[slot] as usize] = (meta[record].0 << 30) | record as u32;
+            index[cursors[slot] as usize] = (meta[record].0 << KIND_SHIFT) | record as u32;
             cursors[slot] += 1;
         });
         // A cell's forest list runs shape by shape: mark each later shape's start.
@@ -361,7 +363,11 @@ impl Field {
         let c = self.cell(x, y, footprint);
         self.index[c[rule]..c[rule + 1]].iter().map(|&e| {
             let at = (e & RECORD_MASK) as usize * FLOATS;
-            (e >> 30, e & NEW_SHAPE != 0, &self.records[at..at + FLOATS])
+            (
+                e >> KIND_SHIFT,
+                e & NEW_SHAPE != 0,
+                &self.records[at..at + FLOATS],
+            )
         })
     }
 

@@ -42,6 +42,26 @@ pub const CONSTANTS: &[(&str, Scalar)] = &[
     ("GRASS_GROWTH_ROWS", U32(grass::GROWTH_ROWS as u32)),
     ("GRASS_MIX_MAX", U32(GRASS_MIX_MAX as u32)),
     ("GRASS_MAX_KINDS", U32(grass::MAX_KINDS as u32)),
+    (
+        "WATER_LOOKS_MAX",
+        U32(crate::static_world::ground::biome::WATER_LOOKS_MAX as u32),
+    ),
+    ("ROAD_LOOKS_MAX", U32(tables::ROAD_LOOKS_MAX as u32)),
+    ("SCAR_KEY_MASK", U32(crate::scars::KEY_MASK)),
+    ("SCAR_UNIFORM", U32(crate::scars::UNIFORM)),
+    ("SCAR_DENSE", U32(crate::scars::DENSE)),
+    (
+        "GROUND_RECORD_MASK",
+        U32(crate::static_world::ground::field::RECORD_MASK),
+    ),
+    (
+        "GROUND_NEW_SHAPE",
+        U32(crate::static_world::ground::field::NEW_SHAPE),
+    ),
+    (
+        "GROUND_KIND_SHIFT",
+        U32(crate::static_world::ground::field::KIND_SHIFT),
+    ),
     ("GROUND_GRASS_EDGE_M", F32(tables::GRASS_EDGE_M)),
     (
         "GROUND_FOREST_VERGE_FEATHER",

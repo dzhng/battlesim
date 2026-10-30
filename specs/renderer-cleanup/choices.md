@@ -31,3 +31,23 @@ Decisions made where the spec was silent, per slice, with verdicts
 - **A test-only record (`Nested`) exercises the exported macro, `i32` and both
   nesting forms against inline WGSL.** *Provisional:* it tests the checker, not
   the shaders; delete it once slices 03–04 give real records those shapes.
+
+## 03 · Ground records
+
+- **Keep the WGSL member names**, with snake-case Rust fields, so the assembled
+  shaders change only where integer literals become constant names. *Sound.*
+- **Name the ground field's primitive shift `KIND_SHIFT` beside its masks** and
+  use it in CPU encoding/decoding and the `GROUND_KIND_SHIFT` export. Name the
+  paved table bound `ROAD_LOOKS_MAX` in `tables`, derived from
+  `AREA_KINDS.len()`. *Sound:*
+  the encoders and their shader readers share the owners.
+- **Use one `write_vec4` helper with byte offsets** for the ground parameter
+  packers; retain the append helper for variable-length tables. *Sound:* the
+  original f64-to-f32 conversion stays unchanged while the records own placement.
+- **The road loops and out-of-range sentinel also use `ROAD_LOOKS_MAX`**,
+  covering five count uses beyond the array declaration. *Sound:* they read the
+  same bounded table.
+- **Prove upload identity with scratch binary captures**, including grass frame
+  updates and a combined scar cache/look record, rather than committing a fixture
+  that pins the summer biome's tuning. *Sound:* existing presentation vectors
+  and real shader reflection remain the durable checks.

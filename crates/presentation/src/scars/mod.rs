@@ -38,7 +38,7 @@ pub const NORMALIZATION_WORDS: u32 = 4096;
 pub const REGION_CELLS: usize = 1024;
 /// `ScarParams`' words before the look: grid, pages, clip, cache bounds,
 /// default word.
-pub const PARAMS_WORDS: usize = 20;
+pub const PARAMS_WORDS: usize = std::mem::offset_of!(crate::records::ScarParams, full) / 4;
 /// A grid axis past this many cells loses Q8 positions in the shader's f32.
 pub const MAX_AXIS: usize = (1 << 24) / 256;
 

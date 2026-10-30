@@ -35,6 +35,112 @@ pub use bytemuck;
 pub use layout::{Binding, Field, FieldLayout, Layout};
 
 crate::records! {
+    /// One paved kind's material look.
+    Struct RoadLook {
+        core: [f32; 4],
+        worn: [f32; 4],
+        shape: [f32; 4],
+        join: [f32; 4],
+        shoulder: [f32; 4],
+        edge: [f32; 4],
+        ruts: [f32; 4],
+        track: [f32; 4],
+        slabs: [f32; 4],
+        curb: [f32; 4],
+        paint: [f32; 4],
+        marks: [f32; 4],
+        crossing: [f32; 4],
+        stones: [f32; 4],
+    }
+
+    /// Shared shore bands and ground shading.
+    Struct ShoreTuning {
+        bands: [f32; 4],
+        turns: [f32; 4],
+        ground: [f32; 4],
+        fade: [f32; 4],
+    }
+
+    /// One water look, ten vec4s.
+    Struct WaterLook {
+        channel: [f32; 4],
+        edge: [f32; 4],
+        surface: [f32; 4],
+        normals: [f32; 4],
+        drifts: [f32; 4],
+        fades: [f32; 4],
+        roughness: [f32; 4],
+        lobes: [f32; 4],
+        refraction: [f32; 4],
+        caustics: [f32; 4],
+    }
+
+    /// Terrain material tables, followed by the frame's view settings.
+    Struct TerrainParams {
+        region: [f32; 4],
+        field: [f32; 4],
+        field_grid: [u32; 4],
+        shape: [f32; 4],
+        verge: [f32; 4],
+        feathers: [f32; 4],
+        roads: [RoadLook; crate::static_world::ground::tables::ROAD_LOOKS_MAX],
+        road_order: [u32; 4],
+        forest_litter: [f32; 4],
+        forest_moss: [f32; 4],
+        forest_humus: [f32; 4],
+        forest_detail: [f32; 4],
+        forest_verge: [f32; 4],
+        forest_dapple: [f32; 4],
+        forest_line: [f32; 4],
+        water_bed: [f32; 4],
+        shore: [f32; 4],
+        shore_earth: [f32; 4],
+        shore_edge: [f32; 4],
+        distant: [f32; 4],
+        shore_tuning: ShoreTuning,
+        water_looks: [WaterLook; crate::static_world::ground::biome::WATER_LOOKS_MAX],
+        view: [u32; 4],
+    }
+
+    /// Grass growth, appearances and the frame's window.
+    Struct GrassParams {
+        planes: [[f32; 4]; 4],
+        eye: [f32; 4],
+        window: [f32; 4],
+        grid: [u32; 4],
+        density: [f32; 4],
+        tiers: [f32; 4],
+        shading: [f32; 4],
+        clear: [f32; 4],
+        counts: [u32; 4],
+        ground: [f32; 4],
+        sway: [f32; 4],
+        growth: [[f32; 4]; crate::static_world::ground::grass::GROWTH_ROWS],
+        patches: [[f32; 4]; crate::static_world::ground::grass::GROWTH_ROWS],
+        mixes: [[f32; 4]; crate::static_world::ground::grass::GROWTH_ROWS * crate::static_world::ground::biome::GRASS_MIX_MAX],
+        patch_scales: [f32; 4],
+        grain: [f32; 4],
+        kinds: [[f32; 4]; crate::static_world::ground::grass::MAX_KINDS],
+        bases: [[u32; 4]; crate::static_world::ground::grass::MAX_KINDS],
+    }
+
+    /// The scar cache prefix followed by the biome's look.
+    Struct ScarParams {
+        grid: [f32; 4],
+        pages: [u32; 4],
+        clip: [f32; 4],
+        cache_bounds: [u32; 4],
+        default_word: [u32; 4],
+        full: [f32; 4],
+        crater: [f32; 4],
+        ejecta: [f32; 4],
+        scorch: [f32; 4],
+        tracks: [f32; 4],
+        trampled: [f32; 4],
+        relief: [f32; 4],
+        grass: [f32; 4],
+    }
+
     /// Where a frame's sets lie, as pointers into the module's memory and
     /// record counts (the WASM binding fills them; native reads the
     /// `Frame` directly).
