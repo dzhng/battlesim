@@ -9,7 +9,7 @@ import {
   pointerOffCanvas,
 } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
-import { unitType, weapons, streetMap, visuals } from "./_units.mjs";
+import { unitType, streetMap, visuals } from "./_units.mjs";
 import { stageStreetMoves } from "./_streetStaging.mjs";
 const CAMERA = visuals.camera;
 /** The range ruler (Space held with a selection) and right-clicking a
@@ -33,47 +33,25 @@ export async function rulerTour(ctx) {
           .map((t) => t.textContent),
       };
     });
-  // Read the ruler against the carried weapon rows, without recomputing its
-  // muzzle selection or constructing a second ruler. Equal ranges share a mark.
-  const marksAgree = (r, unit, text) => {
-    if (!r || r.unit !== unit.id) return false;
-    const mounts = unitType(unit.kind).mounts;
-    const rows = mounts
-      .flatMap((mount) =>
-        mount.weapons.map((id) => ({
-          ...weapons[id],
-          caption: mount.weapons.length === 1 ? weapons[id].name : mount.name,
-        })),
-      )
-      .filter((row) => row.range_m > 0);
-    const reaches = new Set(rows.map((row) => row.range_m));
-    return (
-      r.marks.length === reaches.size &&
-      r.marks.every((mark, i) => {
-        const captions = new Set(
-          rows.filter((row) => row.range_m === mark.range_m).map((row) => row.caption),
-        );
-        return (
-          captions.size > 0 &&
-          mark.names.length === captions.size &&
-          mark.names.every((name) => captions.has(name)) &&
-          new Set(mark.names).size === mark.names.length &&
-          (i === 0 || r.marks[i - 1].range_m < mark.range_m) &&
-          mark.inRange === r.distance_m <= mark.range_m &&
-          (mark.inRange
-            ? mark.along_m === null
-            : mark.along_m > 0 &&
-              mark.along_m < Math.hypot(r.to[0] - r.from[0], r.to[1] - r.from[1]))
-        );
-      }) &&
-      text.ticks.length === r.marks.filter((mark) => !mark.inRange).length &&
-      r.marks
-        .filter((mark) => !mark.inRange)
-        .every((mark) =>
-          text.ticks.includes(`${mark.names.join(" · ").toUpperCase()} ${mark.range_m} m`),
-        )
-    );
-  };
+  // The scene checks the published ruler and its DOM. Fake-unit tests own
+  // grouping, captions and muzzle-to-aim arithmetic.
+  const marksAgree = (r, unit, text) =>
+    r?.unit === unit.id &&
+    r.marks.every(
+      (mark, i) =>
+        (i === 0 || r.marks[i - 1].range_m < mark.range_m) &&
+        mark.inRange === r.distance_m <= mark.range_m &&
+        (mark.inRange
+          ? mark.along_m === null
+          : mark.along_m > 0 &&
+            mark.along_m < Math.hypot(r.to[0] - r.from[0], r.to[1] - r.from[1])),
+    ) &&
+    text.ticks.length === r.marks.filter((mark) => !mark.inRange).length &&
+    r.marks
+      .filter((mark) => !mark.inRange)
+      .every((mark) =>
+        text.ticks.includes(`${mark.names.join(" · ").toUpperCase()} ${mark.range_m} m`),
+      );
   const frames = async () => {
     await lab(page, () => window.__lab.frame());
     await lab(page, () => window.__lab.frame());
@@ -101,7 +79,7 @@ export async function rulerTour(ctx) {
   let r = await ruler();
   let text = await shownText();
   ctx.check(
-    "with Space held, the ruler runs from the selected unit nearest the cursor, measuring muzzle to aim point",
+    "with Space held, the ruler runs from the selected unit nearest the cursor, ending at the ground cursor",
     r?.unit === rifle.id &&
       Math.hypot(r.to[0] - near[0], r.to[1] - near[1]) < 0.5 &&
       Math.abs(r.distance_m - 40) < 0.5,
@@ -174,7 +152,7 @@ export async function rulerTour(ctx) {
   r = await ruler();
   text = await shownText();
   ctx.check(
-    "at a far cursor, every carried reach has its range and label",
+    "at a far cursor, sorted reaches agree with their ticks and distance",
     r?.unit === rifle.id &&
       marksAgree(r, rifle, text) &&
       Math.abs(r.distance_m - 750) < 2 &&
@@ -202,7 +180,7 @@ export async function rulerTour(ctx) {
   r = await ruler();
   text = await shownText();
   ctx.check(
-    "from the tank at 750 m, the ruler groups all carried weapons by reach",
+    "from the tank at 750 m, the ruler keeps sorted unique reaches and matching ticks",
     marksAgree(r, tank, text),
     JSON.stringify({ r, text }),
   );

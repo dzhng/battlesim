@@ -291,7 +291,7 @@ export async function appJourney(ctx) {
   const owners = await page.evaluate((allocations) => {
     const p = window.__appJourney;
     return {
-      devices: window.__gpuResources.devices,
+      requestedDevices: window.__gpuResources.requestedDevices,
       contexts: p.contexts.length,
       running: p.contexts[0].state,
       // The track id is the served file's name before its content hash.
@@ -310,7 +310,7 @@ export async function appJourney(ctx) {
   const menuStarts = owners.music.filter(({ track }) => track === menuTrack);
   ctx.check(
     "complete player journey retains one GPU/audio bank and releases battle allocations",
-    owners.devices === 1 &&
+    owners.requestedDevices === 1 &&
       owners.contexts === 1 &&
       owners.running === "running" &&
       owners.music[0]?.track === menuTrack &&

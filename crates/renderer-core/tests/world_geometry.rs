@@ -15,12 +15,28 @@ fn traversal_carries_tint_and_extra_faces_while_surface_stays_bare() {
     let surface = WorldGeometry::from_triangles(&positions, &indices, &cells, 80.0, None, &[]);
     let traversal =
         WorldGeometry::from_triangles(&positions, &indices, &[], 80.0, Some((&surfaces, 8)), &face);
-    // The first triangle is open; the second uses the caller's blocked bit.
-    for vertex in traversal.terrain[..30].as_chunks::<10>().0 {
-        assert_eq!(&vertex[6..], &[0.52, 0.56, 0.5, 1.0]);
-    }
-    for vertex in traversal.terrain[30..].as_chunks::<10>().0 {
-        assert_eq!(&vertex[6..], &[0.78, 0.3, 0.26, 1.0]);
+    // Traversal colours distinguish the flags, independently of palette tuning.
+    let flipped = WorldGeometry::from_triangles(
+        &positions,
+        &indices,
+        &[],
+        80.0,
+        Some((&[0, 8, 2, 0], 8)),
+        &[],
+    );
+    let open = &traversal.terrain[6..10];
+    let blocked = &traversal.terrain[36..40];
+    assert_ne!(open, blocked);
+    for (triangle, tint) in flipped
+        .terrain
+        .as_chunks::<30>()
+        .0
+        .iter()
+        .zip([blocked, open])
+    {
+        for vertex in triangle.as_chunks::<10>().0 {
+            assert_eq!(&vertex[6..], tint);
+        }
     }
     assert_eq!(
         &traversal.skirt_and_props[surface.skirt_and_props.len()..],

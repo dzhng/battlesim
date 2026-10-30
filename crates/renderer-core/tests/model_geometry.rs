@@ -1,37 +1,22 @@
 //! Appearance routing and placement share the authored GPU mesh allocation.
+#[path = "support/mod.rs"]
+mod gpu_support;
+#[path = "support/runtime_library.rs"]
 mod support;
 
-use presentation::assets::{Runtime, RUNTIME};
 use presentation::records::{Appearance, Batch, Instance, NONE, VIEW_PASS};
 use presentation::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
-use renderer_core::bundle::{Library, Shape};
+use renderer_core::bundle::Shape;
 use renderer_core::memory::ResourceMemory;
 use renderer_core::models::Models;
 use renderer_core::pipelines;
-use std::path::Path;
 
 #[test]
 fn static_routing_placement_and_default_alias_share_geometry() {
-    let gpu = support::gpu().expect("real GPU");
+    let gpu = gpu_support::gpu().expect("real GPU");
     let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
-    let runtime = Runtime::open(Path::new(RUNTIME)).unwrap();
     let name = "crate_stack";
-    let hash = runtime.bundle_hash(name).unwrap();
-    let bytes = runtime.read(hash, "bundle.bin").unwrap();
-    let textures = runtime.catalog["textures"][hash]
-        .as_array()
-        .map_or(&[][..], Vec::as_slice)
-        .iter()
-        .map(|id| {
-            let id = id.as_str().unwrap();
-            (id, runtime.read(id, "texture.bin").unwrap())
-        })
-        .collect::<Vec<_>>();
-    let refs = textures
-        .iter()
-        .map(|(id, bytes)| (*id, bytes.as_slice()))
-        .collect::<Vec<_>>();
-    let library = Library::from_bundle(name, &bytes, &refs).unwrap();
+    let library = support::runtime_library(&[name]).unwrap();
     let bundle = library.bundle(name).unwrap();
     let Shape::Static(states) = &bundle.shape else {
         panic!("the fixture is a static model");

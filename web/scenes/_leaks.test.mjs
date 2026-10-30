@@ -39,7 +39,7 @@ test("one observer counts live GPU allocations across devices and before a depar
   const mark = gpu.created();
   const second = await adapter.requestDevice();
   const next = second.createTexture();
-  expect(gpu.devices).toBe(2);
+  expect(gpu.requestedDevices).toBe(2);
   expect((await pageResources(page)).devices).toBe(2);
   expect(gpu.counts()).toEqual({ buffers: 1, textures: 2 });
   expect(gpu.counts(mark)).toEqual({ buffers: 1, textures: 1 });

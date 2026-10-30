@@ -16,7 +16,7 @@ export async function trackPageResources(page) {
     const queues = [];
     let created = 0;
     const gpu = {
-      devices: 0,
+      requestedDevices: 0,
       validation: [],
       created: () => created,
       counts(before = Infinity) {
@@ -47,7 +47,7 @@ export async function trackPageResources(page) {
       GPUAdapter.prototype.requestDevice = async function (...args) {
         const device = await requestDevice.apply(this, args);
         live.devices++;
-        gpu.devices++;
+        gpu.requestedDevices++;
         queues.push(device.queue);
         device.addEventListener("uncapturederror", (event) =>
           gpu.validation.push(event.error.message),

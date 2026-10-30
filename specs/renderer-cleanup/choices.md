@@ -587,18 +587,20 @@ finding that the base build did not render grass the same way twice.
   internal UI/geometry refactors no longer require coordinated mocks.
   **Verdict: sound.**
 
-- **Choice:** the ruler scene checks a one-to-one relation between positive
-  carried weapon ranges and sorted marks, with deduplicated captions and DOM
-  ticks for out-of-range marks. Near/far distance checks bound the measured
-  span instead of recomputing the first mount's muzzle. **Gap:** the slice
-  did not define the replacement oracle. **Reach:** adding, removing or
-  reordering weapons and retuning their ranges does not invalidate the mark
-  checks. **Verdict: sound.**
+- **Choice (revised after whole-spec review):** fake-unit ruler tests own
+  equal-range grouping, single-row versus multi-row captions, deduplication,
+  nonpositive reach and 3D muzzle-to-aim distance. Synthetic physics and raised
+  cursors distinguish height errors from a ground-distance approximation.
+  The scene checks sorted unique reaches, distance/`along_m` consistency and
+  matching DOM ticks. **Gap:** the scene previously re-derived grouping from
+  loadouts and near-flat distance checks could not detect a 2D calculation.
+  **Reach:** retuning content cannot break the oracle. **Verdict: sound** —
+  ten deliberate production mutations failed the added assertions.
 
 - **Choice:** `_leaks.mjs` publishes one `__gpuResources` observer: weak buffer
   and texture identities, `counts(before)` filtered by a monotonic `created()`
   mark, all-device queue draining, validation messages, and total devices
-  requested. `__resources` retains live page-owner counts. Installation is
+  requested as `requestedDevices`. `__resources` retains live page-owner counts. Installation is
   idempotent; explicit destroy and collected handles both disappear from
   allocation counts. **Gap:** the slice delegated the observer API.
   **Reach:** app journeys can distinguish departed allocations from the new
@@ -649,8 +651,9 @@ finding that the base build did not render grass the same way twice.
   owns the repeated buffer protocol without generalizing unlike sampling paths.
   **Verdict: sound.**
 
-- **Choice:** the geometry-sharing fixture reads its bundle and every texture
-  referenced by that bundle's runtime catalog entry into core's byte library.
+- **Choice (revised after whole-spec review):** `support::runtime_library`
+  loads bundles and their catalog-referenced textures into core's byte library
+  for both model-geometry and grass checks.
   **Gap:** the suggested grass fixture uses texture-free bundles, while the
   geometry fixture has textured materials. **Reach:** the test keeps the same
   authored asset, material admission and geometry assertions without depending
