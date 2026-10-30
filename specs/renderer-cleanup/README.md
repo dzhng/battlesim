@@ -23,7 +23,8 @@ order.
 The base build did not render grass the same way twice (atomic clump order);
 the fix (`fix(renderer): emit grass clumps in deterministic ranges`, see
 `choices.md`) makes every plate reproduce byte for byte. **Plate proofs compare
-against the grass-fixed build**, not the original base.
+against the grass-fixed build**, not the original base. Slices 02–05 and 04b:
+54/54 plates byte-identical to it.
 
 Warnings:
 - Every slice before 15 must leave every plate byte-identical. A byte
@@ -36,8 +37,8 @@ Warnings:
 TODO:
 - [x] [01](slices/01-windows-cutout.md) Windows cutout as its own WGSL variant
 - [x] [02](slices/02-record-schema.md) Record schema: nested records, i32, TS export list
-- [ ] [03](slices/03-ground-records.md) Ground records: terrain, grass, scars, masks (landed; plates pending)
-- [ ] [04](slices/04-renderer-records.md) Renderer records, lengths and the reverse check (landed, including remaining packed layouts; plates pending)
+- [x] [03](slices/03-ground-records.md) Ground records: terrain, grass, scars, masks
+- [x] [04](slices/04-renderer-records.md) Renderer records, lengths and the reverse check (with 04b: the remaining packed layouts)
 - [x] [05](slices/05-composition-grammar.md) Composition grammar and one block per binding
 - [ ] [06](slices/06-concept-moves.md) Move each struct and function to its concept's module
 - [ ] [07](slices/07-names.md) Names: no suffixes, no mangling, no dead aliases
