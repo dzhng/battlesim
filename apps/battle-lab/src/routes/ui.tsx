@@ -1,5 +1,5 @@
 import { shippedRules } from "@web/shippedRules";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { useLabLoading } from "../LabLoading";
 // The UI gallery: every piece of the battle's interface that the panel
 // workbench (`panels.tsx`) and cursor lab do not already draw, each in fixed

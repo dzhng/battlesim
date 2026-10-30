@@ -10,7 +10,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { useUnitFocus } from "../useUnitFocus";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 

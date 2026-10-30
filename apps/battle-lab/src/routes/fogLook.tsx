@@ -26,7 +26,7 @@ import { useBattleSession } from "../useBattleSession";
 import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
 import { gameContactStyle, gameFogPresentation } from "../gameFog";
 import { gameLight } from "../gameLight";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { TickStatus } from "../TickStatus";
 
 /** A 16:00 summer sun: lower than the fixture's, so shadows run long beside
@@ -188,7 +188,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
     showWorld: (on: boolean) => show(on ? "world" : "final"),
     /** White where a pixel is mostly ground (terrain and grass), black elsewhere. */
     showGround: (on: boolean) => show(on ? "ground-mask" : "final"),
-    /** Fog at surface points, with the roof rule (see fogTerm.ts). */
+    /** Fog at surface points, including the shared roof visibility rule. */
     probe: (points: FogProbeInput[]) => window.__lab!.fog!().probe(points),
     /** The structures that take fog whole, and which the last frame flagged seen. */
     wholes: async () => {

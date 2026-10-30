@@ -8,7 +8,7 @@ import { orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useBattleSession } from "../useBattleSession";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 
 // A wall drops across the main road at tick 150: units only learn of it by

@@ -20,7 +20,7 @@ import { light_records } from "@wasm/renderer_browser";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import type { WorldLayers } from "@packages/battle-renderer/src/scene";
 import { CameraController, type CameraPose } from "@packages/renderer-core/src/cameraController";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { useGameAppearances } from "../gameAppearances";
 import { gameCamera } from "../gameCamera";
 import { gameLight } from "../gameLight";

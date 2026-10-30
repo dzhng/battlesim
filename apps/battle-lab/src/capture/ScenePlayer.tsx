@@ -9,7 +9,7 @@ import { useEffect, useRef, useState, type ReactNode, type Ref, type RefObject }
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 import type { graphicsProfiles } from "../graphicsSettings";
 import { LabViewport } from "../LabViewport";

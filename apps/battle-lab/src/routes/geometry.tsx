@@ -16,7 +16,7 @@ import { LabViewport, type LabPick } from "../LabViewport";
 import { useStandingBuildings, useStaticWorld, type WorldView } from "../useStaticWorld";
 import { gameBiome } from "../gameBiome";
 import { useMapAppearances } from "../gameAppearances";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 import { useGeometryScaling } from "../benchmark/geometryScaling";
 

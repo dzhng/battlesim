@@ -16,7 +16,7 @@ import { LabViewport } from "../LabViewport";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import { gameBiome } from "../gameBiome";
 import { useGameAppearances } from "../gameAppearances";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 
 // The patch's ground is resolved by the presentation module.

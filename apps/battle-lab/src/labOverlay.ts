@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { ViewportPointer } from "./LabViewport";
 import type { useBattleSession } from "./useBattleSession";
-import { useFeed } from "./feed";
+import { useFeed } from "@web/feed";
 import { buildBattleOverlay } from "./battleOverlay";
 import { gameStroke } from "./gameOverlay";
 import { useContactFacing } from "./contactFacing";

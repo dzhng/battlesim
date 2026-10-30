@@ -97,7 +97,7 @@ installs previews through the same appearance loader used by battles.
 
 ## Observation feeds
 
-[Stable feeds](src/feed.ts) carry large, changing presentation data to the
+[Stable feeds](../../web/src/feed.ts) carry large, changing presentation data to the
 viewport and army HUD without making it a new React prop tree on every publication. React's
 development instrumentation traverses changed typed-array props, so an apparently
 ordinary prop update can retain enormous diagnostic payloads. Keep live geometry,

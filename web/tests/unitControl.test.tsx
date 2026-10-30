@@ -1,4 +1,4 @@
-import { Feed } from "@apps/battle-lab/src/feed";
+import { Feed } from "@web/feed";
 // The player's pointer input at the input seam: `useUnitControl.onPointer`
 // with a pick, and the orders it sends to a recording client.
 import { act, fireEvent, render, renderHook } from "@testing-library/react";

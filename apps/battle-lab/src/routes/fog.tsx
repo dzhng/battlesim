@@ -14,7 +14,7 @@ import type { FogEye, FogRequest } from "@web/battle/sim/presentation";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { TickStatus } from "../TickStatus";
 
 /** Every 8 m fog cell's centre on the ground, and the simulation's bit there. */

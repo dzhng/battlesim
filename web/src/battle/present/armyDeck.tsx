@@ -8,7 +8,7 @@ import { InfoPanel } from "./infoPanel";
 import { ownPanel, unitStrength, type PanelRules } from "./panelRows";
 import { unitName } from "./readouts";
 import { CommandBar, type ArmyCommandState } from "./commandBar";
-import { useFeedValue, type FeedSource } from "@apps/battle-lab/src/feed";
+import { useFeedValue, type FeedSource } from "@web/feed";
 
 /** Own observations populate the army row; selection remains the input owner's,
  *  and a plain click on an already selected card asks the page to centre on it. */

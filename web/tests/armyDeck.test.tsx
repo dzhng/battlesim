@@ -1,6 +1,6 @@
 import { shippedRules } from "@web/shippedRules";
 import { act, cleanup, fireEvent, render as renderView } from "@testing-library/react";
-import { Feed, useFeed } from "@apps/battle-lab/src/feed";
+import { Feed, useFeed } from "@web/feed";
 import { WithTestCatalog } from "./catalog";
 import { TEST_CATALOG } from "./catalog";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";

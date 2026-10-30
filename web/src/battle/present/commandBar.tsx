@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { useSessionCatalog } from "../catalog/context";
 import type { OwnUnitView } from "../sim/observationView";
 import type { useUnitControl } from "../input/useUnitControl";
-import { useFeedValue, type FeedSource } from "@apps/battle-lab/src/feed";
+import { useFeedValue, type FeedSource } from "@web/feed";
 import type { CommandMode } from "../input/pointerIntent";
 import { CommandBindings } from "../input/commandBindings";
 import { reach, type ReachCommand } from "../input/commandReach";

@@ -38,7 +38,7 @@ import {
 } from "../cameraLab";
 import { seenDestroyed } from "../destroyedBuildings";
 import { buildingRemains } from "@packages/scene-assets/src/authority";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { LabViewport } from "../LabViewport";
 import type { ViewportPilot } from "../viewportRender";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";

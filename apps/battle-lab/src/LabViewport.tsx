@@ -65,7 +65,7 @@ import type { SurfaceClass } from "@packages/battle-renderer/src/models/surfaceP
 import { PassInspector } from "./PassInspector";
 import { ViewportFrames } from "./viewportFrames";
 import { viewportProjector } from "./viewportProjection";
-import type { FeedSource } from "./feed";
+import type { FeedSource } from "@web/feed";
 import {
   emptyEffectCounts,
   emptyModelCounts,
@@ -90,7 +90,7 @@ interface LabViewportProps {
   fixture: string;
   /** A loading cover or menu owns player input while false. */
   inputEnabled?: boolean;
-  /** The static world, fed like the overlay (`useFeed`); drawn once it is set. */
+  /** Canonical world inputs, published through the stable feed. */
   world: FeedSource<WorldLayers | null>;
   /** The map's buildings, fed like the overlay; omitted or null draws none.
    *  They are drawn by the scene's one presentation: the battle's

@@ -8,7 +8,7 @@ import { filmCamera, validateCapture, type CaptureScene } from "../capture/captu
 import { savedBattle } from "../savedMaps";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import { useBattleSession } from "../useBattleSession";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 import { LabViewport } from "../LabViewport";
 import { useLabLoading } from "../LabLoading";

@@ -11,7 +11,7 @@ import { orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useBattleSession } from "../useBattleSession";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameBiome } from "../gameBiome";
 import { gameCamera } from "../gameCamera";
 

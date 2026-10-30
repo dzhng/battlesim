@@ -20,7 +20,7 @@ import type { ResolvedRules, SessionCatalog } from "@web/battle/catalog/compose"
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { gameBiome } from "../gameBiome";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 
 // Flight reproduction bench. Scripted bodies move at constant velocity (one

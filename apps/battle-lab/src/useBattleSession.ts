@@ -1,13 +1,8 @@
 import { useViewportGpu } from "./useViewportGpu";
 import { resolve_catalog, resolve_rules } from "@wasm/game_wasm";
 import type { ViewportFrame } from "./presentedFrame";
-// One side's live battle session: the static world and its meshes, the worker
-// authority, the player command path, the drawn units (interpolated; soldiers
-// and vehicles posed by the pose driver as models, each picked by the
-// simulation's box for its body), the buildings it knows stand or fell, the
-// pick and box-select adapters over what is drawn, and the
-// base lab probes. The battle view and every lab that plays a battle
-// share it; routes add only what they show.
+// One side's session owns the authority, commands and canonical presentation.
+// Picking and readouts observe its drawn state; routes add their own probes.
 import { admitScenario, composeScenarioCatalog } from "@web/battle/catalog/sets";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { ContactPresentation } from "@web/battle/present/contactPresentation";
@@ -84,7 +79,7 @@ import { gameLight } from "./gameLight";
 import type { FogRequest, ScenePresentation } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { useAppAudio } from "./AppAudio";
-import { useFeed } from "./feed";
+import { useFeed } from "@web/feed";
 import type { Vec3 } from "math";
 import {
   GHOST_BLOCKED,

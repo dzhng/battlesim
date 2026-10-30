@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import type { LabViewport } from "@apps/battle-lab/src/LabViewport";
-import { Feed } from "@apps/battle-lab/src/feed";
+import { Feed } from "@web/feed";
 import { gameCamera } from "@apps/battle-lab/src/gameCamera";
 import type { LoadingTasks } from "@apps/battle-lab/src/LabLoading";
 import type { WorldLayers } from "@packages/battle-renderer/src/scene";

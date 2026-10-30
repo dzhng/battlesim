@@ -20,7 +20,7 @@ import { useBattleSession } from "../useBattleSession";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { durableSoldiers } from "../scenarios";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 

@@ -1,4 +1,4 @@
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { useLabLoading } from "../LabLoading";
 // The panel workbench: every info panel the battle can draw (the specimens
 // in `panelSpecimens.ts`), through the battle's own `InfoPanel`, on a plain

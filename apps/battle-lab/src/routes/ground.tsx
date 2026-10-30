@@ -22,7 +22,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { gameCamera } from "../gameCamera";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 
 // The ground layer, as each side learns it. The lab field is the ground
 // map's saved encounter (`fixtures/maps/ground/encounters/ground.json`): two

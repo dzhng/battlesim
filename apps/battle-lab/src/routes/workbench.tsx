@@ -56,7 +56,7 @@ import {
   viewCamera,
   type WorkbenchView,
 } from "../workbench/views";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import {
   useModelSource,
   validationOptions,
@@ -125,7 +125,7 @@ function initialPose(model: LoadedModel | null): BenchPose | null {
 
 // eslint-disable-next-line complexity -- debt: model, camera and render controls share one component; split the control panels into subcomponents once their state is grouped (a reducer or one hook per panel).
 export default function Workbench() {
-  // The test set: test units' art is judged here as roster art is.
+  // Test and roster art share the same review path.
   const session = useSessionCatalog();
   const { units } = session;
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
