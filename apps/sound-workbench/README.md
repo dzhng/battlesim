@@ -21,8 +21,14 @@ Recipe and assignment gains remain the authoring controls for intentional level 
 Audition centers mono material in stereo and uses a memoryless safety ceiling;
 safe brief attacks are not attenuated by a newly created compressor's startup.
 
-Weapon assignments belong to presentation's looks and are read only in this
-library editor. The assignment tab auditions each look's explicit report.
+A weapon look's sound belongs to `presentation.json`: the Weapon looks tab
+selects a look, auditions its shot, blast, motor and material impacts, and edits
+only `weapon_looks.<look>.sound`. Looks have no inheritance or delete-to-fallback
+control. Shared recording choices and material levels still come from the audio
+mix; auditioning a shared recording does not copy it into the look. Choosing
+which look a weapon uses belongs to the mechanics editor and rules document.
+Library recipes save to `sounds.json`; mix settings belong to `audio.json` and
+are read only here.
 Movement is auditioned as the battle plays it: each vehicle class drives at a chosen speed, turret
 traverse and reverse, its loops mixed by the battle's own law, and a squad's footsteps
 fall once a stride at a chosen pace. Its levels and curves belong to [the audio mix](../../fixtures/audio.json)
@@ -30,8 +36,7 @@ and are read only here. The audio mix owns shared effect replacements;
 Near and far may select different
 recordings or recipes sharing the same core; the battle applies distance attenuation,
 filtering, attack and reverb during playback. Workbench auditions play the recipe
-without battlefield distance processing. A cannon's launch is heard as its mount's first weapon row across its ammunition
-types; the observed launch contract does not identify the selected cannon round.
+without battlefield distance processing. A cannon's launch follows the round its mount fired.
 Impact choices may distinguish the published round and material; the ricochet row
 chooses each round's glance the same way. Stored reloads and
 mechanical actions remain useful auditions without inventing battle events.
@@ -42,8 +47,8 @@ server-held candidate through [shared fixture publication](../fixture-publicatio
 which owns stale-save rejection, byte-preserving no-ops and outside-edit preservation.
 An error keeps the draft available; discard and reload is explicit.
 
-Saving changes the repository sound document under the shared accepted-generation
-contract. Sound catalog hot reload is suppressed so it cannot replace a running
+Saving publishes only the reviewed library and look documents under the shared accepted-generation
+contract. Their hot reload is suppressed so it cannot replace a running
 battle's choices; reload or open a page to capture the latest saved generation. The development-only HTTP boundary accepts local same-origin writes, logical documents and reviewed candidate
 identities; the browser cannot choose publication paths.
 

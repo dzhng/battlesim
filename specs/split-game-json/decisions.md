@@ -68,3 +68,20 @@
   each mount's presentation rows copies of its first row, reproducing the old
   flash/kick choice. It is disclosed as reconstructed evidence; independent
   visual acceptance stays with the integrator. No production debug hook remains.
+
+
+## Slice 14
+
+- **Sound, high confidence — review sound blocks, never whole looks.** A draft
+  carries one sound block for every existing look alongside its library draft.
+  The server patches those blocks into the captured presentation document; the
+  browser cannot submit visual changes, rename a look or choose a path. The plan
+  fixed the save destination but left the wire shape open. This keeps the same
+  reviewed candidate and rollback owner when library and look edits save together.
+- **Sound, high confidence — shared recordings stay shared when a level saves.**
+  A blast or motor without a local recording auditions the mix's shared choice;
+  impacts use the mix's material levels and the look's impact scale. Changing
+  only a gain preserves the omitted recording fields. The plan requested these
+  auditions without specifying how to expose the mix defaults, and copying the
+  displayed choices into the look would silently create new content overrides.
+  Mix controls remain read only, matching the existing tool's scope.

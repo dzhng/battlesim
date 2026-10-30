@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, expect, test, vi } from "vitest";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import { SoundWorkbench } from "../../apps/sound-workbench/src/SoundWorkbench";
-import type { WorkbenchAPI, Snapshot } from "../../apps/sound-workbench/src/protocol";
+import type { WorkbenchAPI, Snapshot, Draft } from "../../apps/sound-workbench/src/protocol";
 import type { Auditioner, LiveMix } from "../../apps/sound-workbench/src/audition";
 
 afterEach(cleanup);
@@ -72,9 +72,31 @@ function fixture() {
     revision: "saved",
     catalog,
     looks: {
-      rifle: { sound: { shot: { near: "rifle", far: "rifle_far", gain: 0.35 }, impacts: {} } },
+      rifle: {
+        sound: {
+          shot: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 200 },
+          motor: null,
+          impacts: {},
+        },
+      },
+      test_missile: {
+        sound: {
+          shot: { near: "launch", far: "rifle_far", gain: 0.4, far_m: 100 },
+          blast: { gain: 0.6, far_m: 300 },
+          motor: { gain: 0.2 },
+          impacts: { hull: "impact_hull" },
+          impact_scale: 0.5,
+        },
+      },
     },
     effects: {},
+    weaponDefaults: {
+      blast: { near: "explosion", far: "explosion_far" },
+      motor: "motor",
+      impacts: { ground: "impact_ground", hull: "impact_hull" },
+    },
+    impacts: { ground: { gain: 0.2 }, hull: { gain: 0.4 } },
+    ricochet: { gain: 0.3 },
     vehicles: {
       default: VEHICLE,
       tracked_heavy: { ...VEHICLE, engine: "engine_diesel", turret: "turret" },
@@ -90,20 +112,30 @@ function fixture() {
     },
   };
   let saved = snapshot;
+  let reviewed = snapshot;
   const api: WorkbenchAPI = {
     snapshot: async () => saved,
-    preview: vi.fn(async (draft) => ({
-      candidateId: "reviewed",
-      revision: draft.revision,
-      files: [
-        {
-          path: "fixtures/sounds.json",
-          before: JSON.stringify(saved.catalog),
-          after: JSON.stringify(draft.catalog),
-        },
-      ],
-    })),
-    save: vi.fn(async () => saved),
+    preview: vi.fn(async (draft: Draft) => {
+      reviewed = {
+        ...saved,
+        catalog: draft.catalog,
+        looks: Object.fromEntries(
+          Object.entries(draft.lookSounds).map(([name, sound]) => [name, { sound }]),
+        ),
+      };
+      return {
+        candidateId: "reviewed",
+        revision: draft.revision,
+        files: [
+          {
+            path: "fixtures/sounds.json",
+            before: JSON.stringify(saved.catalog),
+            after: JSON.stringify(draft.catalog),
+          },
+        ],
+      };
+    }),
+    save: vi.fn(async () => (saved = { ...reviewed, revision: "new" })),
   };
   const mix: LiveMix = { loops: vi.fn(), hit: vi.fn() };
   const audition: Auditioner = {
@@ -183,6 +215,11 @@ test("unused clips include stored recipes that no battle assignment selects", as
   await screen.findByRole("button", { name: "Unused reload" });
   fireEvent.change(screen.getByLabelText("Library filter"), { target: { value: "unused" } });
   expect(screen.getByRole("button", { name: "Unused reload" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Weapon looks" }));
+  fireEvent.change(screen.getByLabelText("hull impact"), { target: { value: "handling" } });
+  fireEvent.click(screen.getByRole("button", { name: "Library & recipes" }));
+  fireEvent.change(screen.getByLabelText("Library filter"), { target: { value: "unused" } });
+  expect(screen.queryByRole("button", { name: "Unused reload" })).toBeNull();
 });
 
 test("preview shows the changed sound setting without searching full source JSON", async () => {
@@ -258,20 +295,20 @@ test("footsteps fall once a stride at the chosen pace", async () => {
   expect(delays[1] - delays[0]).toBeCloseTo(0.4);
 });
 
-test("an edit after preview invalidates review, and a stale-save error retains the draft", async () => {
+test("a stale look save retains its draft and another edit invalidates the review", async () => {
   const { api, audition } = fixture();
   api.save = vi.fn(async () => {
     throw new Error("Outside edit; reload sources");
   });
   render(<SoundWorkbench api={api} audition={audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Synth · rifle" }));
-  fireEvent.click(screen.getByRole("button", { name: "Clone recipe" }));
-  fireEvent.change(screen.getByLabelText("Recipe label"), { target: { value: "Edited recipe" } });
+  fireEvent.click(await screen.findByRole("button", { name: "Weapon looks" }));
+  await screen.findByLabelText("Shot gain");
+  fireEvent.change(screen.getByLabelText("Shot gain"), { target: { value: "0.3" } });
   fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
   fireEvent.click(await screen.findByRole("button", { name: "Save reviewed JSON" }));
   await screen.findByText("Outside edit; reload sources");
-  expect((screen.getByLabelText("Recipe label") as HTMLInputElement).value).toBe("Edited recipe");
-  fireEvent.change(screen.getByLabelText("Recipe label"), { target: { value: "Next recipe" } });
+  expect((screen.getByLabelText("Shot gain") as HTMLInputElement).value).toBe("0.3");
+  fireEvent.change(screen.getByLabelText("Shot gain"), { target: { value: "0.2" } });
   expect(screen.queryByRole("button", { name: "Save reviewed JSON" })).toBeNull();
 });
 
@@ -303,3 +340,41 @@ test.each(["Stop", "selection", "unmount"])(
     expect(screen.queryByText("Audition · Synth · rifle")).toBeNull();
   },
 );
+
+test("a selected look auditions every sound part, saves its level and reopens", async () => {
+  const f = fixture();
+  const view = render(<SoundWorkbench api={f.api} audition={f.audition} />, {
+    wrapper: MemoryRouter,
+  });
+  fireEvent.click(await screen.findByRole("button", { name: "Weapon looks" }));
+  fireEvent.change(await screen.findByLabelText("Weapon look"), {
+    target: { value: "test_missile" },
+  });
+  expect(f.audition.play).not.toHaveBeenCalled();
+  for (const [label, sound, gain] of [
+    ["Play shot near", "launch", 0.4],
+    ["Play shot far", "rifle_far", 0.4],
+    ["Play blast near", "explosion", 0.6],
+    ["Play blast far", "explosion_far", 0.6],
+    ["Play motor", "motor", 0.2],
+    ["Play hull impact", "impact_hull", 0.2],
+    ["Play ground impact", "impact_ground", 0.1],
+  ] as const) {
+    fireEvent.click(screen.getByRole("button", { name: label }));
+    await waitFor(() =>
+      expect(vi.mocked(f.audition.play).mock.lastCall?.slice(1)).toEqual(["sound", sound, 0, gain]),
+    );
+  }
+  fireEvent.change(screen.getByLabelText("Shot gain"), { target: { value: "0.27" } });
+  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Save reviewed JSON" }));
+  await screen.findByText("Saved. Reload or open a battle page to use this generation.");
+  view.unmount();
+  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
+  fireEvent.click(await screen.findByRole("button", { name: "Weapon looks" }));
+  fireEvent.change(await screen.findByLabelText("Weapon look"), {
+    target: { value: "test_missile" },
+  });
+  expect((screen.getByLabelText("Shot gain") as HTMLInputElement).value).toBe("0.27");
+  expect(screen.queryByRole("button", { name: /fallback/i })).toBeNull();
+});

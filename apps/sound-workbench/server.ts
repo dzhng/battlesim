@@ -24,7 +24,7 @@ interface Candidate {
   review: Review;
   inputs: Inputs;
   catalog: SoundCatalog;
-  after: string;
+  after: string[];
 }
 
 export class SoundWorkbenchStore {
@@ -92,6 +92,9 @@ export class SoundWorkbenchStore {
       revision: input.revision,
       catalog: input.catalog,
       looks: input.looks,
+      weaponDefaults: input.audio.weapon_defaults,
+      impacts: input.audio.impacts,
+      ricochet: input.audio.ricochet,
       effects: input.audio.effects,
       vehicles: input.audio.vehicles,
       footsteps: input.audio.footsteps,
@@ -104,13 +107,13 @@ export class SoundWorkbenchStore {
     return this.publication.capture(async () => this.snapshotOf(await this.inputs()));
   }
 
-  private validate(candidate: unknown, input: Inputs): SoundCatalog {
+  private validate(candidate: unknown, input: Inputs, presentation: string): SoundCatalog {
     object(candidate, ["sources", "clips", "sounds", "provenance", "music"]);
     let catalog;
     try {
       catalog = this.validateCatalog(candidate);
       this.admitSettings(
-        input.texts[2],
+        presentation,
         input.texts[3],
         catalog,
         JSON.stringify(JSON.parse(input.texts[1]).weapons),
@@ -134,21 +137,29 @@ export class SoundWorkbenchStore {
 
   preview(value: Draft): Promise<Review> {
     return this.publication.capture(async () => {
-      const draft = object(value, ["revision", "catalog"]);
+      const draft = object(value, ["revision", "catalog", "lookSounds"]);
       const input = await this.inputs();
       if (draft.revision !== input.revision)
         throw new WorkbenchError("Sources changed; reload before reviewing this draft", 409);
-      const catalog = structuredClone(this.validate(draft.catalog, input));
-      const after = equal(catalog, input.catalog)
-        ? input.texts[0]
-        : `${JSON.stringify(catalog, null, 2)}\n`;
+      const sounds = object(draft.lookSounds, Object.keys(input.looks));
+      if (!equal(Object.keys(sounds).sort(), Object.keys(input.looks).sort()))
+        throw new WorkbenchError("Keep every existing look; only its sound is editable");
+      const presentation = JSON.parse(input.texts[2]);
+      for (const [name, sound] of Object.entries(sounds))
+        presentation.weapon_looks[name].sound = sound;
+      const after = [...input.texts];
+      if (!equal(presentation, JSON.parse(input.texts[2])))
+        after[2] = `${JSON.stringify(presentation, null, 2)}\n`;
+      const catalog = structuredClone(this.validate(draft.catalog, input, after[2]));
+      if (!equal(catalog, input.catalog)) after[0] = `${JSON.stringify(catalog, null, 2)}\n`;
       const review: Review = {
         candidateId: randomUUID(),
         revision: input.revision,
-        files:
-          after === input.texts[0]
+        files: ["sounds", "rules", "presentation", "audio"].flatMap((name, index) =>
+          after[index] === input.texts[index]
             ? []
-            : [{ path: "fixtures/sounds.json", before: input.texts[0], after }],
+            : [{ path: `fixtures/${name}.json`, before: input.texts[index], after: after[index] }],
+        ),
       };
       if (this.candidates.size >= 8) this.candidates.delete(this.candidates.keys().next().value!);
       this.candidates.set(review.candidateId, { review, inputs: input, catalog, after });
@@ -163,19 +174,21 @@ export class SoundWorkbenchStore {
       throw new WorkbenchError("Review expired; preview the draft again", 409);
     const verify = async (phase: "before" | "after") => {
       const current = await this.inputs();
-      const expected = [...candidate.inputs.texts];
-      if (phase === "after") expected[0] = candidate.after;
+      const expected = phase === "after" ? candidate.after : candidate.inputs.texts;
       if (!equal(current.texts, expected) || !equal(current.media, candidate.inputs.media))
         throw new WorkbenchError("Sources changed after review; outside edits were preserved", 409);
-      this.validate(candidate.catalog, { ...current, catalog: candidate.inputs.catalog });
+      this.validate(
+        candidate.catalog,
+        { ...current, catalog: candidate.inputs.catalog },
+        candidate.after[2],
+      );
     };
     // A repeated reviewed save succeeds only when every captured input is still its exact published generation.
     const already = await this.publication.capture(async () => {
       const current = await this.inputs();
       return (
-        candidate.after !== candidate.inputs.texts[0] &&
-        current.texts[0] === candidate.after &&
-        equal(current.texts.slice(1), candidate.inputs.texts.slice(1)) &&
+        candidate.review.files.length > 0 &&
+        equal(current.texts, candidate.after) &&
         equal(current.media, candidate.inputs.media)
       );
     });
@@ -198,6 +211,8 @@ export function soundWorkbenchMiddleware(store: SoundWorkbenchStore) {
 /** Repository documents the workbench saves; a save never hot-replaces a running battle's. */
 const SAVED_DOCUMENTS = [
   "fixtures/sounds.json",
+  "fixtures/presentation.json",
+  "fixtures/audio.json",
   "fixtures/voices.json",
   "fixtures/voices.lock.json",
 ];

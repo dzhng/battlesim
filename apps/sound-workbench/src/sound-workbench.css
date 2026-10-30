@@ -851,3 +851,11 @@
   width: 4px;
   height: 12px;
 }
+
+.sw-look-recording {
+  flex: 2;
+  min-width: 200px;
+}
+.sw-look-recording button {
+  margin-top: 8px;
+}

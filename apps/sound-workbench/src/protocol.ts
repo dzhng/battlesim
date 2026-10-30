@@ -1,17 +1,22 @@
-import type { AudioMix } from "../../../packages/battle-audio/src/audioMix";
+import type { NearFar, OneShot, AudioMix } from "../../../packages/battle-audio/src/audioMix";
 import type { SoundCatalog } from "../../../packages/battle-audio/src/catalog";
 import type { Replacement } from "../../fixture-publication/publication";
 
+/** Authored sound controls; omitted recordings use the mix's shared choices. */
+export interface LookSound {
+  shot?: NearFar;
+  blast?: Pick<NearFar, "gain" | "far_m"> & Partial<Pick<NearFar, "near" | "far">>;
+  motor: (Pick<OneShot, "gain"> & Partial<Pick<OneShot, "sound">>) | null;
+  impacts: Record<string, string>;
+  impact_scale?: number;
+}
 export interface Snapshot {
   revision: string;
   catalog: SoundCatalog;
-  /** Weapon presentation, read only until look-document publication is available. */
-  looks: Record<
-    string,
-    {
-      sound: { shot: { near: string; far: string; gain: number }; impacts: Record<string, string> };
-    }
-  >;
+  looks: Record<string, { sound: LookSound }>;
+  weaponDefaults: AudioMix["weapon_defaults"];
+  impacts: AudioMix["impacts"];
+  ricochet: AudioMix["ricochet"];
   effects: AudioMix["effects"];
   /** Each vehicle class's loops (`audio.json.vehicles`), read only here. */
   vehicles: AudioMix["vehicles"];
@@ -25,6 +30,7 @@ export interface Snapshot {
 export interface Draft {
   revision: string;
   catalog: SoundCatalog;
+  lookSounds: Record<string, LookSound>;
 }
 export interface Review {
   candidateId: string;

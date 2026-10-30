@@ -108,7 +108,7 @@ export class FixturePublication {
       editor === "maps"
         ? ["fixtures/map-presets.json", "fixtures/generated-battle.json"]
         : editor === "sounds"
-          ? ["fixtures/sounds.json"]
+          ? ["fixtures/sounds.json", "fixtures/presentation.json"]
           : editor === "voices"
             ? ["fixtures/voices.json"]
             : [...(await mechanicsSourcePaths(this.root)), "fixtures/catalog.json"],

@@ -18,6 +18,7 @@ import {
   type SoundCatalog,
   type SoundSource,
 } from "@packages/battle-audio/src/catalog";
+import type { Snapshot } from "../../apps/sound-workbench/src/protocol";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 
 vi.mock("node:fs/promises", async (importOriginal) => ({
@@ -114,12 +115,23 @@ async function fixture() {
   return { root, text, store, request };
 }
 
+function draftOf(snapshot: Snapshot, catalog = snapshot.catalog) {
+  return {
+    revision: snapshot.revision,
+    catalog,
+    lookSounds: Object.fromEntries(
+      Object.entries(snapshot.looks).map(([name, look]) => [name, structuredClone(look.sound)]),
+    ),
+  };
+}
+
 test("HTTP preview is read-only; a reviewed save publishes a library recipe", async () => {
   const { root, text, request } = await fixture();
   const initial = (await request("snapshot")).body;
+  const before = await fixtureBytes(root);
   const catalog: SoundCatalog = structuredClone(initial.catalog);
   catalog.sounds.custom = { ...catalog.sounds.hmg, label: "Custom recipe" };
-  const preview = await request("preview", { revision: initial.revision, catalog });
+  const preview = await request("preview", draftOf(initial, catalog));
   expect(preview.status).toBe(200);
   expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(text);
   expect(preview.body.files[0].after).toContain('"custom"');
@@ -129,31 +141,114 @@ test("HTTP preview is read-only; a reviewed save publishes a library recipe", as
   ).toBe(200);
   const saved = (await request("snapshot")).body;
   expect(saved.catalog.sounds.custom.label).toBe("Custom recipe");
+  expect((await fixtureBytes(root)).slice(1)).toEqual(before.slice(1));
   expect(
     (await request("save", { candidateId: preview.body.candidateId, revision: initial.revision }))
       .status,
   ).toBe(200);
 });
 
-test("no-op preview/save preserves source bytes and stale reviewed saves preserve outside edits", async () => {
-  const { root, text, request } = await fixture();
+async function fixtureBytes(root: string) {
+  return Promise.all(
+    ["sounds", "rules", "presentation", "audio"].map((name) =>
+      readFile(join(root, `fixtures/${name}.json`), "utf8"),
+    ),
+  );
+}
+
+test("a reviewed look sound save changes only its presentation sound block and reopens", async () => {
+  const { root, request } = await fixture();
+  const before = await fixtureBytes(root);
+  const initial = (await request("snapshot")).body;
+  const lookSounds = Object.fromEntries(
+    Object.entries(initial.looks).map(([name, look]) => [
+      name,
+      structuredClone((look as { sound: unknown }).sound),
+    ]),
+  ) as Record<string, { shot: { gain: number } }>;
+  lookSounds.rifle.shot.gain = 0.25;
+  const preview = await request("preview", {
+    revision: initial.revision,
+    catalog: initial.catalog,
+    lookSounds,
+  });
+  expect(preview.status).toBe(200);
+  expect(preview.body.files.map((file: { path: string }) => file.path)).toEqual([
+    "fixtures/presentation.json",
+  ]);
+  expect(await fixtureBytes(root)).toEqual(before);
+  const save = { candidateId: preview.body.candidateId, revision: initial.revision };
+  expect((await request("save", save)).status).toBe(200);
+  const after = await fixtureBytes(root);
+  expect([after[0], after[1], after[3]]).toEqual([before[0], before[1], before[3]]);
+  const expected = JSON.parse(before[2]);
+  expected.weapon_looks.rifle.sound.shot.gain = 0.25;
+  expect(JSON.parse(after[2])).toEqual(expected);
+  expect((await request("snapshot")).body.looks.rifle.sound.shot.gain).toBe(0.25);
+  expect((await request("save", save)).status).toBe(200);
+  expect(await fixtureBytes(root)).toEqual(after);
+});
+
+test("a no-op save preserves every fixture byte", async () => {
+  const { root, request } = await fixture();
   const snapshot = (await request("snapshot")).body;
-  const noop = (
-    await request("preview", { revision: snapshot.revision, catalog: snapshot.catalog })
-  ).body;
-  expect(noop.files).toEqual([]);
-  await request("save", { candidateId: noop.candidateId, revision: snapshot.revision });
-  expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(text);
-  const catalog = structuredClone(snapshot.catalog);
-  catalog.sounds.custom = { ...catalog.sounds.hmg, label: "Custom recipe" };
-  const review = (await request("preview", { revision: snapshot.revision, catalog })).body;
-  const outside = `${text}\n`;
-  await writeFile(join(root, "fixtures/sounds.json"), outside);
+  const before = await fixtureBytes(root);
+  const noop = await request("preview", draftOf(snapshot));
+  expect(noop.status).toBe(200);
+  expect(noop.body.files).toEqual([]);
   expect(
-    (await request("save", { candidateId: review.candidateId, revision: snapshot.revision }))
+    (await request("save", { candidateId: noop.body.candidateId, revision: snapshot.revision }))
       .status,
-  ).toBe(409);
-  expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(outside);
+  ).toBe(200);
+  expect(await fixtureBytes(root)).toEqual(before);
+});
+
+test.each(["sounds", "rules", "presentation", "audio"])(
+  "a reviewed look save preserves an outside edit to %s",
+  async (document) => {
+    const { root, request } = await fixture();
+    const snapshot = (await request("snapshot")).body;
+    const draft = draftOf(snapshot);
+    draft.lookSounds.rifle.shot!.gain = 0.25;
+    const review = (await request("preview", draft)).body;
+    const path = join(root, `fixtures/${document}.json`);
+    const outside = `${await readFile(path, "utf8")}\n`;
+    await writeFile(path, outside);
+    const before = await fixtureBytes(root);
+    expect(
+      (await request("save", { candidateId: review.candidateId, revision: snapshot.revision }))
+        .status,
+    ).toBe(409);
+    expect(await fixtureBytes(root)).toEqual(before);
+  },
+);
+
+test("look drafts refuse missing, unknown and invalid looks without changing sources", async () => {
+  const { root, request } = await fixture();
+  const snapshot = (await request("snapshot")).body;
+  const before = await fixtureBytes(root);
+  for (const mutate of [
+    (draft: ReturnType<typeof draftOf>) => {
+      delete draft.lookSounds.rifle;
+    },
+    (draft: ReturnType<typeof draftOf>) => {
+      draft.lookSounds.unknown = draft.lookSounds.rifle;
+    },
+    (draft: ReturnType<typeof draftOf>) => {
+      draft.lookSounds.rifle.shot!.near = "missing_recipe";
+    },
+    (draft: ReturnType<typeof draftOf>) => {
+      draft.lookSounds.rifle.shot!.gain = -1;
+    },
+    (draft: ReturnType<typeof draftOf>) => {
+      Object.assign(draft.lookSounds.rifle, { extends: "tank_sabot" });
+    },
+  ]) {
+    const draft = draftOf(snapshot);
+    mutate(draft);
+    expect((await request("preview", draft)).status).toBe(400);
+    expect(await fixtureBytes(root)).toEqual(before);
+  }
 });
 
 test("HTTP refuses invalid identity, malformed clips, changed baselines and client paths", async () => {
@@ -181,13 +276,12 @@ test("HTTP refuses invalid identity, malformed clips, changed baselines and clie
   ]) {
     const catalog = structuredClone(snapshot.catalog);
     mutate(catalog);
-    expect((await request("preview", { revision: snapshot.revision, catalog })).status).toBe(400);
+    expect((await request("preview", draftOf(snapshot, catalog))).status).toBe(400);
   }
   expect(
     (
       await request("preview", {
-        revision: snapshot.revision,
-        catalog: snapshot.catalog,
+        ...draftOf(snapshot),
         path: "fixtures/rules.json",
       })
     ).status,
@@ -220,28 +314,38 @@ test("snapshot recovers an interrupted sound publication before exposing sources
   expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(text);
 });
 
-test("outside changes during publication survive its rollback", async () => {
-  const { root, request, text } = await fixture();
-  const initial = (await request("snapshot")).body;
-  const catalog = structuredClone(initial.catalog);
-  catalog.sounds.custom = { ...catalog.sounds.hmg, label: "Custom recipe" };
-  const review = (await request("preview", { revision: initial.revision, catalog })).body;
-  const rename = (await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises"))
-    .rename;
-  const outside = `${text}\n\n`;
-  let changed = false;
-  vi.mocked(filesystem.rename).mockImplementation(async (from, to) => {
-    await rename(from, to);
-    if (!changed && String(to) === join(root, "fixtures/sounds.json")) {
-      changed = true;
-      await writeFile(join(root, "fixtures/sounds.json"), outside);
-    }
-  });
-  expect(
-    (await request("save", { candidateId: review.candidateId, revision: initial.revision })).status,
-  ).toBe(409);
-  expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(outside);
-});
+test.each(["sounds", "presentation"])(
+  "outside changes to %s during publication survive rollback",
+  async (document) => {
+    const { root, request } = await fixture();
+    const initial = (await request("snapshot")).body;
+    const catalog = structuredClone(initial.catalog);
+    catalog.sounds.custom = { ...catalog.sounds.hmg, label: "Custom recipe" };
+    const draft = draftOf(initial, catalog);
+    draft.lookSounds.rifle.shot!.gain = 0.25;
+    const review = (await request("preview", draft)).body;
+    const before = await fixtureBytes(root);
+    const path = join(root, `fixtures/${document}.json`);
+    const rename = (await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises"))
+      .rename;
+    const outside = `${await readFile(path, "utf8")}\n\n`;
+    let changed = false;
+    vi.mocked(filesystem.rename).mockImplementation(async (from, to) => {
+      await rename(from, to);
+      if (!changed && String(to) === path) {
+        changed = true;
+        await writeFile(path, outside);
+      }
+    });
+    expect(
+      (await request("save", { candidateId: review.candidateId, revision: initial.revision }))
+        .status,
+    ).toBe(409);
+    const expected = [...before];
+    expected[["sounds", "rules", "presentation", "audio"].indexOf(document)] = outside;
+    expect(await fixtureBytes(root)).toEqual(expected);
+  },
+);
 
 async function installRecording(root: string) {
   const document = JSON.parse(
@@ -292,14 +396,14 @@ test("unused clean media is admitted, firing rejects reloads, and changed clip b
   const source = await installRecording(root);
   const initial = (await request("snapshot")).body;
   expect(initial.catalog.clips.reload.label).toBe("Unused reload");
-  const invalid = structuredClone(initial.catalog);
-  invalid.defaults = { rifle: { near: "reload", far: "reload", gain: 1 } };
-  expect((await request("preview", { revision: initial.revision, catalog: invalid })).status).toBe(
-    400,
-  );
+  const invalid = draftOf(initial);
+  invalid.lookSounds.rifle.shot!.near = "reload";
+  const refusedShot = await request("preview", invalid);
+  expect(refusedShot.status).toBe(400);
+  expect(refusedShot.body.error).toContain("weapon_looks.rifle");
   const catalog = structuredClone(initial.catalog);
   catalog.sounds.custom = { ...catalog.sounds.reload, label: "Custom reload" };
-  const review = (await request("preview", { revision: initial.revision, catalog })).body;
+  const review = (await request("preview", draftOf(initial, catalog))).body;
   await writeFile(
     join(root, "assets/runtime/audio/clips/reload.wav"),
     Buffer.from("outside media edit"),
@@ -324,7 +428,7 @@ test.each(["source", "clip"])(
     else catalog.clips.reload.label = "Edited reload";
     // The request must reach the immutable-provenance guard, not generic schema validation.
     expect(() => validateSoundCatalog(catalog)).not.toThrow();
-    const result = await request("preview", { revision: initial.revision, catalog });
+    const result = await request("preview", draftOf(initial, catalog));
     expect(result.status).toBe(400);
     expect(result.body.error).toBe("Source and clip metadata are immutable in this editor");
     expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(source);
@@ -353,14 +457,14 @@ test.each(["missing", "loop"])(
     const shot = authoredPresentation.weapon_looks.tank_sabot.sound.shot.near;
     if (fault === "missing") delete catalog.sounds[shot];
     else catalog.sounds[shot] = { ...catalog.sounds.rotor };
-    const result = await request("preview", { revision: initial.revision, catalog });
+    const result = await request("preview", draftOf(initial, catalog));
     expect(result.status).toBe(400);
     expect(result.body.error).toContain("weapon_looks");
     expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(text);
   },
 );
 
-test("a library with external provenance saves while its receipts stay immutable", async () => {
+test("a library with external provenance can save a look while its receipts stay immutable", async () => {
   const { root, request } = await fixture();
   const path = join(root, "fixtures/sounds.json");
   const catalog = JSON.parse(await readFile(path, "utf8")) as SoundCatalog;
@@ -379,17 +483,18 @@ test("a library with external provenance saves while its receipts stay immutable
   };
   await writeFile(path, JSON.stringify(catalog));
   const snapshot = (await request("snapshot")).body;
-  const before = await readFile(path, "utf8");
-  const draft = { revision: snapshot.revision, catalog: snapshot.catalog };
+  const before = await fixtureBytes(root);
+  const draft = draftOf(snapshot);
+  draft.lookSounds.rifle.shot!.gain = 0.25;
   const review = await request("preview", draft);
   expect(review.status).toBe(200);
   expect(
     (await request("save", { candidateId: review.body.candidateId, revision: snapshot.revision }))
       .status,
   ).toBe(200);
-  expect(await readFile(path, "utf8")).toBe(before);
+  expect((await fixtureBytes(root))[0]).toBe(before[0]);
   const saved = (await request("snapshot")).body;
-  const invalid = { revision: saved.revision, catalog: saved.catalog };
+  const invalid = draftOf(saved);
   invalid.catalog = structuredClone(invalid.catalog);
   invalid.catalog.provenance!.unused.notes = "Changed receipt";
   const refused = await request("preview", invalid);

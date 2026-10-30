@@ -31,3 +31,41 @@ looks.
 
 **Would change this slice:** the user wanting to change which look a weapon
 names from the workbench. That's a `rules.json` edit, so ask first.
+
+
+## Done — 2026-10-29
+
+The Weapon looks tab selects a final look, auditions shot near/far, blast near/far,
+motor and material contacts, and saves only its authored sound block in
+`presentation.json`. Library drafts still save to `sounds.json`; mix views remain
+read only and their shared choices remain in `audio.json`. There is no look
+inheritance walk or delete-to-fallback control. Rules and look assignments are
+untouched. Combined library/look saves use the existing reviewed candidate and
+publication journal; outside edits and interrupted writes retain their protection.
+
+Validation: tests were written first and observed red. The focused workbench and
+music suites pass (43 tests). The complete web run plus affected-suite retries
+passes every discovered suite; missing LFS art, launcher source and effect sheets
+were fetched by their required paths. WASM build, typecheck, lint and the staged
+size ratchet pass; lint retains existing warnings outside this slice. No Rust crate
+changed. The exact proof matches `after-13-merged/` for all eight artifacts,
+including sound, effects, poses, hull publication and battle digests. No fixture
+values, rules hashes or replay configuration identities move. Unchanged renderer
+and fixture inputs reuse slice 13's native-plate verification.
+
+Shared evidence: `/Users/server/dev/battlesim/throwaway/split-game-json/evidence-14/`.
+`picked-look.png` and `saved-reopened.png` show the real route. The browser proof
+plays every sound part, saves a level, reopens it, checks the intended document
+and key, checks no-op bytes and restores the original fixture bytes. The historical
+comparison, enlarged crops, visual review and final unprimed critique are kept
+there. Preview shows the selected and reopened captures together for the
+non-blocking visual checkpoint; acceptance follows their readable controls and
+isolated-save proof. The critique report records the independent verdict.
+
+Two pre-existing real-route defects were fixed in a separate commit: the SSR
+validator instance needed initialization, and preview refused the library's
+external provenance receipts. Receipts now remain immutable like source metadata.
+Voice/music server tests were moved into their own file before expanding sound
+publication coverage, keeping both files within the source-size budget.
+
+Next: [15 Content pass](15-content.md). No sound values were retuned here.

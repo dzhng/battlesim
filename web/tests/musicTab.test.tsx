@@ -42,6 +42,7 @@ function fixture() {
     revision: "sounds-1",
     catalog,
     looks: {},
+    weaponDefaults: { blast: {}, impacts: {} },
     effects: {},
     vehicles: {},
     footsteps: {},
