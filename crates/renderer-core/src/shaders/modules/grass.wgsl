@@ -1,5 +1,102 @@
 // WGSL owner: grass.
 
+// @block grass_GrassParams
+struct GrassParams {
+  planes: array<vec4f, 4>,
+  eye: vec4f,
+  window: vec4f,
+  grid: vec4u,
+  density: vec4f,
+  tiers: vec4f,
+  shading: vec4f,
+  clear: vec4f,
+  counts: vec4u,
+  ground: vec4f,
+  sway: vec4f,
+  growth: array<vec4f, GRASS_GROWTH_ROWS>,
+  patches: array<vec4f, GRASS_GROWTH_ROWS>,
+  mixes: array<vec4f, GRASS_GROWTH_ROWS * GRASS_MIX_MAX>,
+  patchScales: vec4f,
+  grain: vec4f,
+  kinds: array<vec4f, GRASS_MAX_KINDS>,
+  bases: array<vec4u, GRASS_MAX_KINDS>,
+}
+
+// @block grass_grassVertexOf
+const GRASS_BLADE_GUST_FROM = 0.2;
+const GRASS_BLADE_FLUTTER_PHASE = 0.35;
+const GRASS_BLADE_FLUTTER_ACROSS = 0.5;
+const GRASS_BLADE_LAID_LEAN = 1.1;
+const GRASS_BLADE_LAID_SINK = 0.6;
+fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
+  let P = &params;
+  let tier = tier;
+  let c = clumps[tier.y + iid];
+  let row = (*P).kinds[c.kind];
+  var out: GrassVertex;
+  if (vid / tier.z >= u32(row.y)) {
+    // A blade this kind does not have: outside the depth range, clipped.
+    out.clip = vec4f(0.0, 0.0, 2.0, 1.0);
+    return out;
+  }
+  let base = select((*P).bases[c.kind].y, (*P).bases[c.kind].x, tier.x == 0u);
+  let s = shapes[base + vid];
+  let scale = c.height / max(row.x, 1e-4);
+  let sn = c.yawSin;
+  let cs = c.yawCos;
+  let sp = s.spine.xyz * scale;
+  let sd = s.side.xyz * scale * c.width;
+  let spine = vec3f(sp.x * cs - sp.y * sn, sp.x * sn + sp.y * cs, sp.z);
+  let side = vec3f(sd.x * cs - sd.y * sn, sd.x * sn + sd.y * cs, sd.z);
+  // The one wind: a steady lean, gust fronts rolling downwind, a flutter.
+  let t = cam.time;
+  let wind = cameraWind();
+  let dir = wind.toward.xy;
+  let along = dot(c.root.xy, dir);
+  let front = sin(6.2831853 * (along - t * wind.gustMps) * wind.gustPerM);
+  let gust = smoothstep(GRASS_BLADE_GUST_FROM, 1.0, front);
+  let flutter = (*P).sway.z * sin((*P).sway.w * t + s.side.w * 6.2831853 + along * GRASS_BLADE_FLUTTER_PHASE);
+  let bend = s.spine.w * s.spine.w;
+  let packed = unpack4x8unorm(c.colour);
+  // Laid over by tracks or trampling: the clump sinks and its blades lean
+  // out its own way, still in the wind but less. A stiff kind answers the
+  // wind less (its shape's own response).
+  let flat = 1.0 - packed.w;
+  let answer = s.tint.w * (1.0 - flat);
+  let lean = ((*P).sway.x + (*P).sway.y * gust + flutter) * answer;
+  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * GRASS_BLADE_FLUTTER_ACROSS * answer;
+  let laid = vec2f(cs, sn) * flat * GRASS_BLADE_LAID_LEAN;
+  var world = c.root + vec3f(spine.xy, spine.z * (1.0 - flat * GRASS_BLADE_LAID_SINK)) + side + vec3f((push + laid) * c.height * bend, 0.0);
+  world.z -= 0.5 * dot(push, push) * c.height * bend;
+  let n = s.normal.xyz;
+  let colour = packed.xyz;
+  out.clip = cam.viewProj * vec4f(world, 1.0);
+  // A small, stable per-blade depth nudge reduces nearly coplanar crossings.
+  // Equal stored depths still rely on the clumps' deterministic draw order.
+  let tie = ((bitcast<u32>(c.root.x) * 2654435761u) ^ (bitcast<u32>(c.root.y) * 2246822519u)) + (vid / tier.z) * 374761393u;
+  out.clip.z *= 1.0 + 1e-3 * (f32(tie >> 8u) / 16777216.0 - 0.5);
+  out.world = world;
+  out.root = c.root;
+  out.normal = vec3f(n.x * cs - n.y * sn, n.x * sn + n.y * cs, n.z);
+  // A clump a few pixels tall shows its tops, not its roots: drawn with them,
+  // its dark roots and gaps read as speckle, so its tint and its lighting
+  // give way to the ground's.
+  let footprint = (*P).eye.w * distance(cam.eye, c.root);
+  let plain = (*P).shading.x * smoothstep((*P).tiers.z, (*P).tiers.w, footprint);
+  out.albedo = colour * colour * mix(s.tint.xyz, vec3f(1.0), plain);
+  out.ground = mix(1.0 - (*P).shading.y, 1.0, plain);
+  return out;
+}
+
+// @block grass_grassDensity
+const GRASS_DENSITY_LEAST_FACING = 0.15;
+fn grassDensity(dist: f32, drop: f32) -> f32 {
+  let P = &params;
+  let facing = clamp(drop / dist, GRASS_DENSITY_LEAST_FACING, 1.0);
+  let footprint = (*P).eye.w * dist;
+  return min((*P).density.y, facing / ((*P).density.x * footprint * footprint));
+}
+
 // @block grass_GrassClump
 struct GrassClump {
   root: vec3f,
@@ -29,43 +126,11 @@ struct GrassVertex {
   ground: f32,
 }
 
-// @block grass_ScarParams
-struct ScarParams {
-  grid: vec4f,
-  pages: vec4u,
-  clip: vec4f,
-  cacheBounds: vec4u,
-  defaultWord: vec4u,
-  full: vec4f,
-  crater: vec4f,
-  ejecta: vec4f,
-  scorch: vec4f,
-  tracks: vec4f,
-  trampled: vec4f,
-  relief: vec4f,
-  grass: vec4f,
-}
-
 // @block grass_clumps_grassDrawLayout
 @group(1) @binding(2) var<storage, read> clumps: array<GrassClump>;
 
 // @block grass_clumps_grassBuildLayout
 @group(0) @binding(3) var<storage, read_write> clumps: array<GrassClump>;
-
-// @block grass_grassGround
-fn grassGround(q: vec2f) -> f32 {
-  let P = &params;
-  let nx = (*P).counts.x;
-  let ny = (*P).counts.y;
-  let fx = clamp(q.x / (*P).ground.x, 0.0, f32(nx - 1u));
-  let fy = clamp(q.y / (*P).ground.x, 0.0, f32(ny - 1u));
-  let i = min(u32(fx), nx - 2u);
-  let j = min(u32(fy), ny - 2u);
-  return triangleRuleHeight(
-    grassSample(i, j), grassSample(i + 1u, j),
-    grassSample(i, j + 1u), grassSample(i + 1u, j + 1u),
-    fx - f32(i), fy - f32(j));
-}
 
 // @block grass_grassHash
 fn grassHash(a: u32, b: u32) -> vec3f {
@@ -77,26 +142,6 @@ fn grassHash(a: u32, b: u32) -> vec3f {
   }
   return out;
 }
-
-// @block grass_grassPaintGlow
-fn grassPaintGlow(paint: vec4f, height: f32) -> vec3f {
-  if (paint.w <= 0.0) { return vec3f(0.0); }
-  let s = paintStyle;
-  let colour = paintColour(paint);
-  return colour * s.grassGlow * paint.w * exp(-max(height, 0.0) / max(s.grassFalloffM, 1e-3));
-}
-
-// @block grass_grassSample
-fn grassSample(i: u32, j: u32) -> f32 {
-    let size = readWord(0u);
-    let cols = readWord(1u);
-    let count = readWord(2u);
-    if (count == 0u) { return 0.0; }
-    let page = readWord(3u + (j / size) * cols + i / size);
-    if (page == 0u) { return 0.0; }
-    let at = 3u + count + (page - 1u) * size * size + (j % size) * size + i % size;
-    return bitcast<f32>(readWord(at));
-  }
 
 // @block grass_grassUnderProp
 fn grassUnderProp(p: vec2f) -> bool {
@@ -118,60 +163,6 @@ fn grassUnderProp(p: vec2f) -> bool {
   return false;
 }
 
-// @block grass_grassVertex_Output
-struct grassVertex_Output {
-  @builtin(position) clip: vec4f,
-  @location(0) world: vec3f,
-  @location(1) root: vec3f,
-  @location(2) normal: vec3f,
-  @location(3) albedo: vec3f,
-  @location(4) ground: f32,
-}
-
-// @block grass_groundShoulderGrass
-fn groundShoulderGrass(worn: vec2f) -> f32 {
- return mix(1.0,params_1.roads[u32(worn.y)].edge.z,worn.x);
-}
-
-// @block grass_groundSite_alternate
-fn groundSite(xy: vec2f, cell: vec4u, paved: GroundPaved) -> vec4f {
-  let params_1 = (&params);
-  let warp = vec2f((valueNoise((xy * (*params_1).shape.y)) - 0.5f), (valueNoise(((xy * (*params_1).shape.y) + vec2f(19.700000762939453, 5.300000190734863))) - 0.5f));
-  let q = (xy + (warp * ((*params_1).shape.x * 2f)));
-  var edge = rectInside(q, (*params_1).region);
-  var node = 0i;
-  var leaf = 0i;
-  for (var step_1 = 0; (step_1 < 64i); step_1++) {
-    let n = (&nodes[node]);
-    let s = (dot((*n).line.xy, q) - (*n).line.z);
-    edge = min(edge, abs(s));
-    var child = (*n).children.y;
-    if ((s >= 0f)) {
-      child = (*n).children.x;
-    }
-    if ((child < 0i)) {
-      leaf = (-1i - child);
-      break;
-    }
-    node = child;
-  }
-  return vec4f(f32(leaf), edge, paved.rule, groundForest(xy, cell));
-}
-
-// @block grass_leafClumps
-fn leafClumps(p: vec3f, n: vec3f, fade: f32) -> vec4f {
-  let q = p * 2.1;
-  let bend = vec3f(
-    valueNoise3(q),
-    valueNoise3(q + vec3f(17.3, 5.1, 9.7)),
-    valueNoise3(q + vec3f(3.7, 29.3, 13.1)),
-  ) - vec3f(0.5);
-  let bent = normalize(n + bend * (0.7 * fade));
-  let gap = valueNoise3(p * 3.4 + vec3f(7.0, 1.0, 3.0));
-  let shade = mix(1.0, 0.72 + 0.4 * gap, fade);
-  return vec4f(bent, shade);
-}
-
 // @block grass_params_primary
 @group(GROUP) @binding(0) var<uniform> params: GrassParams;
 
@@ -180,3 +171,8 @@ fn leafClumps(p: vec3f, n: vec3f, fade: f32) -> vec4f {
 
 // @block grass_ranges
 @group(0) @binding(5) var<storage, read_write> ranges: array<vec2u>;
+// @block grass_args
+@group(0) @binding(4) var<storage, read_write> args: array<atomic<u32>, 12>;
+
+// @block grass_props
+@group(0) @binding(2) var<storage, read> props: array<vec4f>;

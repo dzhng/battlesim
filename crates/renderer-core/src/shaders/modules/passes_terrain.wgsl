@@ -1,5 +1,28 @@
 // WGSL owner: passes_terrain.
 
+// @block passes_terrain_Out
+struct Out {
+  @builtin(position) pos: vec4f,
+  @location(0) uv: vec2f,
+  @location(1) color: vec4f,
+  @location(2) @interpolate(flat) misc: vec4f,
+  @location(3) @interpolate(flat) extra: vec4f,
+  @location(4) along: f32,
+  @location(5) viewDepth: f32,
+  /** A lit sprite's sun in its own frame (right, up, toward the eye), and
+   *  the sky's light on its top and on its side. */
+  @location(6) @interpolate(flat) sun: vec3f,
+  @location(8) @interpolate(flat) skyTop: vec3f,
+  @location(9) @interpolate(flat) skySide: vec3f,
+  /** Where on the sprite, screen-aligned, -1..1. */
+  @location(7) offset: vec2f,
+  /** A lit sprite's cast light (castAt), along a ribbon from end to end. */
+  @location(10) castLit: vec3f,
+  /** A ground shadow's view ray (from the eye to its quad), in the shadow's
+   *  own frame: along its nose, across it, and up from its ground. */
+  @location(11) ray: vec3f,
+};
+
 // @block passes_terrain_fragment
 @fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
   return backgroundColor(_arg_0.uv);
@@ -166,4 +189,37 @@
     out.castLit = castAt(v.a.xyz);
   }
   return out;
+}
+// @block passes_terrain_In
+struct In {
+  @builtin(vertex_index) vi: u32,
+  @location(0) a: vec4f,
+  @location(1) b: vec4f,
+  @location(2) color: vec4f,
+  @location(3) misc: vec4f,
+};
+
+// @block passes_terrain_sceneColourMip_fragment
+@fragment fn fragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+  return sceneMip(pos.xy);
+}
+
+// @block passes_terrain_waterGuardMip_fragment
+@fragment fn fragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+  return guardMip(pos.xy);
+}
+
+// @block passes_terrain_waterGuardSeed_fragment
+@fragment fn fragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+  return guardSeed(pos.xy);
+}
+
+// @block passes_terrain_waterNormalsBake_fragment
+@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
+  return waterNormalsSlope(fract(_arg_0.uv));
+}
+
+// @block passes_terrain_waveStep_fragment
+@fragment fn fragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+  return waveStep(pos.xy);
 }

@@ -1,5 +1,30 @@
 // WGSL owner: water.
 
+// @block water_WaterLook
+struct WaterLook {
+  channel: vec4f,
+  edge: vec4f,
+  surface: vec4f,
+  normals: vec4f,
+  drifts: vec4f,
+  fades: vec4f,
+  roughness: vec4f,
+  lobes: vec4f,
+  refraction: vec4f,
+  caustics: vec4f,
+}
+
+// @block water_waterNormal
+fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
+  let w = (&params.waterLooks[look]);
+  let carried = waterCarried();
+  let primary = waterLayer(xy, (*w).normals.x, vec2f(1, 0), (carried * (*w).drifts.x), (*w).normals.w, footprint);
+  let macro_1 = waterLayer(xy, (*w).normals.y, vec2f(0.824999988079071, 0.5649999976158142), (carried * (*w).drifts.y), (*w).normals.w, footprint);
+  let detail = waterLayer(xy, (*w).normals.z, vec2f(0.45399999618530273, -0.890999972820282), (carried * (*w).drifts.z), (*w).normals.w, footprint);
+  let n = blendRnm(blendRnm(macro_1, primary), detail);
+  let shown = (1f - smoothstep((*w).fades.y, (*w).fades.z, footprint));
+  return normalize(mix(vec3f(0, 0, 1), n, shown));
+}
 // @block water_sceneColourMip_taps
 @group(0) @binding(1) var taps: sampler;
 
@@ -8,11 +33,6 @@ fn sceneMip(pos: vec2f) -> vec4f {
     let size = max(vec2u(1u), textureDimensions(source) / 2u);
     return textureSampleLevel(source, taps, pos / vec2f(size), 0.0);
   }
-
-// @block water_sceneColourMip_fragment
-@fragment fn fragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-  return sceneMip(pos.xy);
-}
 
 // @block water_tapped
 fn tapped(u: vec2f, size: vec2f) -> vec4i {
@@ -36,11 +56,6 @@ fn guardMip(pos: vec2f) -> vec4f {
     return vec4f(worst, 0.0, 0.0);
   }
 
-// @block water_waterGuardMip_fragment
-@fragment fn fragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-  return guardMip(pos.xy);
-}
-
 // @block water_waterGuardSeed_mask
 @group(0) @binding(0) var mask: texture_2d<f32>;
 
@@ -53,11 +68,6 @@ fn guardSeed(pos: vec2f) -> vec4f {
     let unseen = textureLoad(mask, p, 0).x;
     return vec4f(unseen, textureLoad(paint, p, 0).a, 0.0, 0.0);
   }
-
-// @block water_waterGuardSeed_fragment
-@fragment fn fragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-  return guardSeed(pos.xy);
-}
 
 // @block water_waterNormalsSlope
 fn waterNormalsSlope(uv: vec2f) -> vec4f {
@@ -111,11 +121,6 @@ fn waterNormalsSlope(uv: vec2f) -> vec4f {
   { let c = cos(6.283185307179586*(3.0*uv.x + -12.0*uv.y) + 1.3495151066466433);
     slope += vec2f(3.0, -12.0) * (0.002378312198083263 * c); }
   return vec4f(slope, 0.0, 1.0);
-}
-
-// @block water_waterNormalsBake_fragment
-@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
-  return waterNormalsSlope(fract(_arg_0.uv));
 }
 
 // @block water_waveStep_was
@@ -183,11 +188,6 @@ fn waveStep(pos: vec2f) -> vec4f {
     return vec4f(next, h[4], 0.0, 0.0);
   }
 
-// @block water_waveStep_fragment
-@fragment fn fragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-  return waveStep(pos.xy);
-}
-
 // @block water_waterCarried
 fn waterCarried() -> vec2f {
   let wind = cameraWind();
@@ -247,13 +247,6 @@ fn waveNormal(xy: vec2f, n: vec3f) -> vec3f {
   let calmed = normalize(mix(n, vec3f(0, 0, 1), flatten));
   return blendRnm(calmed, normalize(vec3f((ripple * -1f), 1f)));
 }
-
-// @block water_ndcAt
-fn ndcAt(at: vec2i) -> vec2f {
-    let cam = cam;
-    let centre = vec2f(at) + 0.5;
-    return vec2f(centre.x / cam.width * 2.0 - 1.0, 1.0 - centre.y / cam.height * 2.0);
-  }
 
 // @block water_worldWater_depth
 @group(2) @binding(9) var depth: texture_depth_multisampled_2d;
@@ -329,9 +322,6 @@ fn waterUnder(clip: vec4f, world: vec3f, n: vec3f, straight: f32, look: u32) -> 
     let colour = textureSampleLevel(sceneColour, sceneTaps, at / screen, level);
     return vec4f(colour.rgb, far);
   }
-
-// @block water_environmentSun
-fn environmentSun() -> vec3f { return data.sun.direction.xyz; }
 
 // @block water_slopeAt
 fn slopeAt(uv: vec2f) -> vec2f {

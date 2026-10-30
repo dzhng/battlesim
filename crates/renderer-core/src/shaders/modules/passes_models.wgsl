@@ -1,5 +1,133 @@
 // WGSL owner: passes_models.
 
+// @block passes_models_cardVertex_Output
+struct cardVertex_Output {
+  @builtin(position) clip: vec4f,
+  @location(0) world: vec3f,
+  @location(1) uv: vec2f,
+  @location(2) @interpolate(flat) layer: u32,
+  @location(3) @interpolate(flat) yaw: f32,
+  @location(4) @interpolate(flat) scale: vec3f,
+  @location(5) tint: vec3f,
+  @location(6) anchor: vec3f,
+}
+
+// @block passes_models_impostor_Input
+struct impostor_Input {
+  @location(0) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) tangent: vec4f,
+  @location(3) color: vec4f,
+  @location(4) uv: vec2f,
+  @location(5) @interpolate(flat) material: u32,
+  @location(6) track: f32,
+  @location(7) tint: vec3f,
+  @location(8) @interpolate(flat) highlight: f32,
+  @location(9) @interpolate(flat) anchor: vec3f,
+  @location(10) @interpolate(flat) xray: vec4f,
+  @location(11) @interpolate(flat) instance: u32,
+}
+
+// @block passes_models_impostor_Output
+struct impostor_Output {
+  @location(0) albedo: vec4f,
+  @location(1) normal: vec4f,
+  @location(2) mask: vec4f,
+}
+
+// @block passes_models_modelVertex_Output
+struct modelVertex_Output {
+  @invariant @builtin(position) clip: vec4f,
+  @location(0) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) tangent: vec4f,
+  @location(3) color: vec4f,
+  @location(4) uv: vec2f,
+  @location(5) @interpolate(flat) material: u32,
+  @location(6) track: f32,
+  @location(7) tint: vec3f,
+  @location(8) @interpolate(flat) highlight: f32,
+  @location(9) @interpolate(flat) anchor: vec3f,
+  @location(10) @interpolate(flat) xray: vec4f,
+  @location(11) @interpolate(flat) instance: u32,
+}
+
+// @block passes_models__Input
+struct _Input {
+  @location(0) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) tangent: vec4f,
+  @location(3) color: vec4f,
+  @location(4) uv: vec2f,
+  @location(5) @interpolate(flat) material: u32,
+  @location(6) track: f32,
+  @location(7) tint: vec3f,
+  @location(8) @interpolate(flat) highlight: f32,
+  @location(9) @interpolate(flat) anchor: vec3f,
+  @location(10) @interpolate(flat) xray: vec4f,
+  @location(11) @interpolate(flat) instance: u32,
+}
+
+// @block passes_models_lit_Input
+struct lit_Input {
+  @location(0) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) tangent: vec4f,
+  @location(3) color: vec4f,
+  @location(4) uv: vec2f,
+  @location(5) @interpolate(flat) material: u32,
+  @location(6) track: f32,
+  @location(7) tint: vec3f,
+  @location(8) @interpolate(flat) highlight: f32,
+  @location(9) @interpolate(flat) anchor: vec3f,
+  @location(10) @interpolate(flat) xray: vec4f,
+  @location(11) @interpolate(flat) instance: u32,
+}
+
+// @block passes_models_modelCutoutCaster_Input
+struct modelCutoutCaster_Input {
+  @location(4) uv: vec2f,
+  @location(5) @interpolate(flat) material: u32,
+}
+
+// @block passes_models_modelCutoutDepth_Input
+struct modelCutoutDepth_Input {
+  @location(4) uv: vec2f,
+  @location(5) @interpolate(flat) material: u32,
+}
+
+// @block passes_models_modelXrayCountFragment_Input
+struct modelXrayCountFragment_Input {
+  @location(0) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) tangent: vec4f,
+  @location(3) color: vec4f,
+  @location(4) uv: vec2f,
+  @location(5) @interpolate(flat) material: u32,
+  @location(6) track: f32,
+  @location(7) tint: vec3f,
+  @location(8) @interpolate(flat) highlight: f32,
+  @location(9) @interpolate(flat) anchor: vec3f,
+  @location(10) @interpolate(flat) xray: vec4f,
+  @location(11) @interpolate(flat) instance: u32,
+}
+
+// @block passes_models_modelXrayFragment_Input
+struct modelXrayFragment_Input {
+  @location(0) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) tangent: vec4f,
+  @location(3) color: vec4f,
+  @location(4) uv: vec2f,
+  @location(5) @interpolate(flat) material: u32,
+  @location(6) track: f32,
+  @location(7) tint: vec3f,
+  @location(8) @interpolate(flat) highlight: f32,
+  @location(9) @interpolate(flat) anchor: vec3f,
+  @location(10) @interpolate(flat) xray: vec4f,
+  @location(11) @interpolate(flat) instance: u32,
+}
+
 // @block passes_models_buildFn
 const GRASS_PLACEMENT_JITTER_M = 0.4;
 const GRASS_PLACEMENT_JITTER_SPAN_M = 0.8;

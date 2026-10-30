@@ -1,5 +1,11 @@
 // WGSL owner: shadow.
 
+// @block shadow_sunCompare_primary
+@group(GROUP) @binding(8) var sunCompare: sampler_comparison;
+
+// @block shadow_sunDepth_primary
+@group(GROUP) @binding(7) var sunDepth: texture_depth_2d_array;
+
 // @block shadow_SunCascade
 struct SunCascade {
   matrix: mat4x4f,

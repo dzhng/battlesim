@@ -1,5 +1,42 @@
 // WGSL owner: passes_effects.
 
+// @block passes_effects_overlayFragment_Input
+struct overlayFragment_Input {
+  @location(0) @interpolate(perspective, centroid) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) highlight: f32,
+}
+
+// @block passes_effects_overlayVertex_Output
+struct overlayVertex_Output {
+  @builtin(position) clip: vec4f,
+  @location(0) @interpolate(perspective, centroid) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) highlight: f32,
+}
+
+// @block passes_effects_paintFragment_Input
+struct paintFragment_Input {
+  @location(0) march: vec3f,
+  @location(1) color: vec4f,
+}
+
+// @block passes_effects_paintMarchVertex_Output
+struct paintMarchVertex_Output {
+  @builtin(position) clip: vec4f,
+  @location(0) march: vec3f,
+  @location(1) color: vec4f,
+}
+
+// @block passes_effects_paintVertex_Output
+struct paintVertex_Output {
+  @builtin(position) clip: vec4f,
+  @location(0) march: vec3f,
+  @location(1) color: vec4f,
+}
+
 // @block passes_effects_item_alternate
 @fragment fn item(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   return compositeOverlay(pos.xy);

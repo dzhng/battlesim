@@ -1,5 +1,13 @@
 // WGSL owner: passes_fog.
 
+// @block passes_fog_worldFragment_Input
+struct worldFragment_Input {
+  @location(0) @interpolate(perspective, centroid) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) highlight: f32,
+}
+
 // @block passes_fog_backdropFragment_alternate
 @fragment fn backdropFragment(_arg_0: backdropFragment_Input, @builtin(position) clip: vec4f) -> backdropFragment_Output {
   let eye = (&cam.eye);
@@ -618,4 +626,57 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   let glow = highlightGlow(_arg_0.highlight);
   let seen = fogTerm(_arg_0.world, n, clip.xy, fogIsGround());
   return worldFragment_Output(vec4f((lit.xyz + glow), _arg_0.color.w), fogCoverage(seen, _arg_0.color.w));
+}
+// @block passes_fog_forestFragment_Input
+struct forestFragment_Input {
+  @location(0) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) local: vec3f,
+  @location(4) heart: vec3f,
+}
+
+// @block passes_fog__Input
+struct _Input {
+  @location(0) world: vec3f,
+  @location(1) uv: vec2f,
+  @location(2) @interpolate(flat) layer: u32,
+  @location(3) @interpolate(flat) yaw: f32,
+  @location(4) @interpolate(flat) scale: vec3f,
+  @location(5) tint: vec3f,
+  @location(6) anchor: vec3f,
+}
+
+// @block passes_fog_backdropFragment_Input
+struct backdropFragment_Input {
+  @location(0) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) local: vec3f,
+  @location(4) heart: vec3f,
+}
+
+// @block passes_fog_fragment_Input
+struct fragment_Input {
+  @location(0) world: vec3f,
+  @location(1) root: vec3f,
+  @location(2) normal: vec3f,
+  @location(3) albedo: vec3f,
+  @location(4) ground: f32,
+}
+
+// @block passes_fog_terrainFragment_Input
+struct terrainFragment_Input {
+  @location(0) @interpolate(perspective, centroid) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) highlight: f32,
+}
+
+// @block passes_fog_waterFragment_Input
+struct waterFragment_Input {
+  @location(0) @interpolate(perspective, centroid) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) highlight: f32,
 }

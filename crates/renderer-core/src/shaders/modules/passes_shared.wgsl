@@ -1,5 +1,22 @@
 // WGSL owner: passes_shared.
 
+// @block passes_shared_backdropFragment_Input
+struct backdropFragment_Input {
+  @location(0) @interpolate(perspective, centroid) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) highlight: f32,
+}
+
+// @block passes_shared_meshVertex_Output
+struct meshVertex_Output {
+  @invariant @builtin(position) clip: vec4f,
+  @location(0) @interpolate(perspective, centroid) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) highlight: f32,
+}
+
 // @block passes_shared_finishFn
 @compute @workgroup_size(1) fn finishFn() {
   var total = vec2u(0u);
@@ -108,4 +125,44 @@
 // @block passes_shared_vertex
 @vertex fn vertex(_arg_0: VertexIn) -> VertexOut {
   return VertexOut(vec4f(_arg_0.position, 1f), _arg_0.uv, _arg_0.face);
+}
+// @block passes_shared_FragmentIn
+struct FragmentIn {
+  @location(0) uv: vec2f,
+  @location(1) face: f32,
+}
+
+// @block passes_shared_VertexIn
+struct VertexIn {
+  @location(0) position: vec3f,
+  @location(1) uv: vec2f,
+  @location(2) face: f32,
+}
+
+// @block passes_shared_VertexOut
+struct VertexOut {
+  @builtin(position) position: vec4f,
+  @location(0) uv: vec2f,
+  @location(1) face: f32,
+}
+
+// @block passes_shared_fragment_Input
+struct fragment_Input {
+  @location(0) uv: vec2f,
+}
+
+// @block passes_shared_fullScreenTriangle_Output
+struct fullScreenTriangle_Output {
+  @builtin(position) pos: vec4f,
+  @location(0) uv: vec2f,
+}
+
+// @block passes_shared_placedVertex_Output
+struct placedVertex_Output {
+  @invariant @builtin(position) clip: vec4f,
+  @location(0) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) local: vec3f,
+  @location(4) heart: vec3f,
 }

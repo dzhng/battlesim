@@ -191,3 +191,65 @@ finding that the base build did not render grass the same way twice.
   Scratch captures compare actual ground/blade packer output and the extracted
   fog-query packing expression before and after; no tuning-pinning fixture or
   redundant layout test is added.
+
+## 06 · Concept moves
+
+- **When:** slice 06. **Choice:** split road surfacing into `ground_roads`,
+  including paving, shoulders, ruts, markings, slab joints and their grain and
+  wandering variation. Field color, forest floor, verges and banks stay in
+  `ground_material`. **Gap:** the target table permitted further concept splits
+  without choosing one. **Reach:** the combined ground-material owner would be
+  35,244 bytes, exceeding the 32,000-byte source budget; both resulting concepts
+  fit without exemptions. **Verdict: sound** — separates road appearance from
+  field/forest appearance without splitting any block. **Confidence: high.**
+
+- **When:** slice 06. **Choice:** `ground_surface` owns height lookup adapters
+  for both fog and grass, surface-field decoding and paved-field queries,
+  plot-tree queries, class-distance encoding, and cubic sampling. Ground-class
+  visualization and the grass shoulder response stay in `ground_material`;
+  scar material changes stay in `scars`. **Gap:** the table did not distinguish
+  lookup helpers from appearance rules at each boundary. **Reach:** lookup code
+  follows the data it reads, while material decisions follow the appearance
+  they produce. **Verdict: sound** — consumers compose the existing blocks
+  without new copies or adapters. **Confidence: high.**
+
+- **When:** slice 06. **Choice:** sky generation, lookup coordinates, environment
+  filtering and roughness-to-mip policy belong to `sky`; shared PBR and aerial
+  shading belong to `lighting`. The environment sun accessor belongs to
+  `lighting`, screen-to-world reconstruction to `camera`, foliage surface
+  shading to `scenery`, and sprite light records and calculations to `effects`.
+  Paint sampling, visibility treatment and grass paint glow also belong to
+  `effects`; fog display treatment belongs to `fog_masks`. **Gap:** several
+  helpers crossed the listed concepts. **Reach:** each stays with the rule or
+  resource it serves, rather than the pass that first used it. **Verdict:
+  sound** — separates world lighting, lookups and their material consumers.
+  **Confidence: high.**
+
+- **When:** slice 06. **Choice:** retain `models_geometry` for articulation,
+  card transforms and x-ray coverage, and `models_material` for authored model
+  sampling, coverage and rooms. Fog owns visibility culling scratch; grass owns
+  placement arguments and prop-exclusion resources. **Gap:** the table omitted
+  model-only concepts and did not place every scratch binding. **Reach:** these
+  existing concept owners survive after unrelated ground and stage IO blocks
+  leave them. **Verdict: sound** — avoids putting model rules in an unrelated
+  target module or inventing a generic binding owner. **Confidence: high.**
+
+- **When:** slice 06. **Choice:** preserve the existing `passes_*` entry-point
+  families and move their stage IO into those families. Reusable full-screen
+  and mesh IO stays in `passes_shared`; all color/fog output copies stay in
+  `fog`. Water-processing fragments and the scenery caster vertex move into
+  existing pass modules. **Gap:** the table did not place reusable IO or entry
+  points authored outside pass modules. **Reach:** no stage identifier, block
+  suffix or composition order changes; duplicate bodies remain for slice 08.
+  **Verdict: sound** — keeps stage contracts distinct from algorithm records.
+  **Confidence: high.**
+
+- **When:** slice 06. **Choice:** bindings used by several concepts have one
+  resource/algorithm owner: sampled color inputs live in `post`, environment
+  and material lookup samplers in `sky`, and model-card resources in
+  `models_geometry`. Resource-free general functions live in `math`; domain
+  constants and policy stay with their concepts. **Gap:** the table did not
+  assign generic texture/sampler declarations or every pure domain helper.
+  **Reach:** composition reuses each existing declaration without a new
+  shared-binding module or merged variants. **Verdict: sound** — makes ownership
+  explicit while preserving every assembled byte. **Confidence: high.**
