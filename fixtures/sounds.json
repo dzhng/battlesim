@@ -725,6 +725,15 @@
       "path": "assets/third-party/audio/marksman-Jkt3S5WpJN8.m4a",
       "sha256": "634bffb3b5643783bf7f032f442dedf3ea418313c242918d28d5bff5fd76e73a",
       "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29."
+    },
+    "heavy-sniper-live-fire": {
+      "label": "BARRETT 50 CAL RAPID FIRE",
+      "author": "K / @kenny2887",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=UFB7-bvVKs8",
+      "path": "assets/third-party/audio/heavy-sniper-UFB7-bvVKs8.webm",
+      "sha256": "4b31b3ac770988995d918325cabe29037b2b1829f9b5a1ff4d728a67c60afedb",
+      "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29."
     }
   },
   "clips": {
@@ -4781,6 +4790,24 @@
         162288,
         202860
       ]
+    },
+    "heavy-sniper-launch": {
+      "label": "Barrett \u00b7 single report",
+      "category": "weapon",
+      "role": "shot",
+      "processing": "heavy-report",
+      "url": "/audio/clips/heavy-sniper-launch.wav",
+      "sha256": "c675a6e7e5c2fa8c36a9bea2e6d0ed932b4a8d2f508bf869123972f3867e7110",
+      "sample_rate": 48000,
+      "frames": 38496,
+      "loop": false,
+      "notes": "03 last single report, aligned before the 9.202 s onset. No burst: magazine is null; reload_s is not a shot interval.",
+      "source": "heavy-sniper-live-fire",
+      "source_rate": 48000,
+      "source_frames": [
+        441504,
+        480000
+      ]
     }
   },
   "sounds": {
@@ -6185,6 +6212,16 @@
       "synth_gain": 0,
       "gain": 1,
       "loop": false
+    },
+    "heavy-sniper-combat": {
+      "label": "Heavy sniper \u00b7 single recorded report",
+      "clips": [
+        "heavy-sniper-launch"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
     }
   },
   "provenance": {
@@ -6311,6 +6348,25 @@
         "status": "downloaded-unassigned"
       },
       "notes": "03 single crop aligned before the 3.682 s onset. No burst: magazine.burst is null. Research download receipt retained at its pre-admission status; sources and weapon looks record acceptance."
+    },
+    "heavy-sniper-launch": {
+      "label": "BARRETT 50 CAL RAPID FIRE",
+      "author": "K / @kenny2887",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=UFB7-bvVKs8",
+      "sha256": "4b31b3ac770988995d918325cabe29037b2b1829f9b5a1ff4d728a67c60afedb",
+      "path": "assets/third-party/audio/heavy-sniper-UFB7-bvVKs8.webm",
+      "source_frames": [
+        441504,
+        480000
+      ],
+      "processing": "heavy-report; mono decode, source-frame crop, adaptive end fade, 48 kHz PCM16 peak 0.72; see clip for any relay.",
+      "download": {
+        "tool": "yt-dlp",
+        "version": "2026.08.19",
+        "status": "downloaded-unassigned"
+      },
+      "notes": "03 last single report, aligned before the 9.202 s onset. No burst: magazine is null; reload_s is not a shot interval. Research download receipt retained at its pre-admission status; sources and weapon looks record acceptance."
     }
   },
   "music": {

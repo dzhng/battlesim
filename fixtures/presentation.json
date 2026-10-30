@@ -608,7 +608,7 @@
       "impact": {"scale": 1, "surfaces": {}},
       "blast": 1,
       "kick": {"hull": 0, "soldier": 1.8},
-      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 0.25, "far_m": 350}, "blast": {"gain": 0.35, "far_m": 400}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-rifle-hit"}, "impact_scale": 1.5}
+      "sound": {"shot": {"near": "heavy-sniper-combat", "far": "heavy-sniper-combat", "gain": 0.25, "far_m": 350}, "blast": {"gain": 0.35, "far_m": 400}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-rifle-hit"}, "impact_scale": 1.5}
     },
     "autocannon": {
       "tracer": {"zoom_boost": 1.5, "tail_s": 0.006, "tail_m": [3, 5], "glow": {"color": [1.0, 0.42, 0.1], "intensity": 4, "width_m": 0.35, "min_px": 3}, "core": {"color": [1.0, 0.8, 0.5], "intensity": 12, "width_m": 0.1, "min_px": 1.5, "share": 0.5}},
