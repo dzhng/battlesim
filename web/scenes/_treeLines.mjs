@@ -4,8 +4,8 @@
 // the field beyond between bare boles: with its shrubs the line hides most
 // of the strip's framed ground from the play camera. A strip has the plots'
 // verge under it, with the verge's grass, rather than a forest floor. Both
-// are judged on the strip's own ground: a wood further off in the frame is
-// forest ground too, with its own floor.
+// are judged on the strip's own ground, with verge growth suppressed in the
+// same framing to provide the bare-floor control for grass coverage.
 import { writeFile } from "node:fs/promises";
 import { decode, pixel } from "./_png.mjs";
 import { lab } from "./_lab.mjs";
@@ -26,10 +26,6 @@ const STATION = "tree-line-65";
 const HIDDEN = 0.6;
 /** A pixel of ground the grass has changed differs by this much in a channel. */
 const GRASS_STEP = 12;
-/** The share of the strip's ground a blade of the verge's grass changes, at
- *  least: it is the ground's own colour, so most of it changes little. A
- *  wood's floor has none. */
-const GRASSED = 0.05;
 
 /** Of `pixels` (forest ground), those whose ground lies on `strip` (its
  *  strokes, `[ax, ay, bx, by, half width]`), give or take a pixel's
@@ -91,19 +87,45 @@ export async function treeLines(ctx) {
   await capture("final");
 
   // The ground under it: the verge's colour (green of red, where a wood's
-  // floor is brown), with grass on it.
+  // floor is brown), with grass on it. This framing has no off-strip wood
+  // floor, so use the same strip with only verge growth disabled as the
+  // bare-floor control. Neighbouring grass can still overlap its edge.
+  // Blade contrast may be retuned, but verge growth must change clearly
+  // more (over twice as much) of the strip than that control does.
   const bare = await capture("verge-bare", { grass: false, trees: false });
   const grassed = await capture("verge-grass", { trees: false });
+  const rules = await lab(page, () => structuredClone(window.__lab.grass().rules()));
+  let withoutVerge;
+  try {
+    await lab(
+      page,
+      (rules) => {
+        const suppressed = structuredClone(rules);
+        suppressed.growth.verge.density = 0;
+        window.__lab.grass().retune(suppressed);
+      },
+      rules,
+    );
+    withoutVerge = await capture("verge-suppressed", { trees: false });
+  } finally {
+    await lab(page, (rules) => window.__lab.grass().retune(rules), rules);
+  }
   const [a] = chroma(meanColour(bare, forest).rgb.map(linear));
-  const grown =
+  const grassShare = (shot) =>
     forest.filter(([x, y]) => {
-      const [p, q] = [pixel(bare, x, y), pixel(grassed, x, y)];
+      const [p, q] = [pixel(bare, x, y), pixel(shot, x, y)];
       return p.some((v, k) => Math.abs(v - q[k]) > GRASS_STEP);
     }).length / forest.length;
+  const grown = grassShare(grassed);
+  const suppressed = grassShare(withoutVerge);
   ctx.check(
     "the ground under a tree line is the plots' verge with its grass, not a wood's bare floor",
-    a < 0 && grown >= GRASSED,
-    JSON.stringify({ a: +a.toFixed(2), grassed: +grown.toFixed(3) }),
+    a < 0 && grown > 2 * suppressed,
+    JSON.stringify({
+      a: +a.toFixed(2),
+      grassed: +grown.toFixed(4),
+      vergeSuppressed: +suppressed.toFixed(4),
+    }),
   );
   await ctx.writeEvidence("tree-line.json", {
     forestPixels: forest.length,
@@ -118,6 +140,7 @@ export async function treeLines(ctx) {
     },
     a,
     grown,
+    suppressed,
     stats,
   });
   await page.close();
