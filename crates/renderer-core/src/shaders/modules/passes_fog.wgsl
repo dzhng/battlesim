@@ -1,15 +1,7 @@
 // WGSL owner: passes_fog.
 
-// @block passes_fog_WorldFragmentInput
-struct WorldFragmentInput {
-  @location(0) @interpolate(perspective, centroid) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) color: vec4f,
-  @location(3) highlight: f32,
-}
-
 // @block passes_fog_backdropFragment_ground
-@fragment fn backdropFragment(input: BackdropFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
+@fragment fn backdropFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let eye = (&cam.eye);
   let cell = groundCell(input.world.xy, length(fwidth(input.world.xy)));
   if (groundClassView()) {
@@ -25,7 +17,7 @@ struct WorldFragmentInput {
 }
 
 // @block passes_fog_backdropFragment_foliage
-@fragment fn backdropFragment(input: BackdropFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
+@fragment fn backdropFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let seen = fogTerm(input.heart, vec3f(), clip.xy, false);
   return ColorFog(vec4f(surface(input.world, input.normal, input.color, input.local, 1f), 1f), fogCoverage(seen, 1f));
 }
@@ -415,7 +407,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
 }
 
 // @block passes_fog_terrainFragment
-@fragment fn terrainFragment(input: TerrainFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
+@fragment fn terrainFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   if (!(scarRegionContains(input.world.xy))) {
     discard;;
   }
@@ -507,7 +499,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
 }
 
 // @block passes_fog_waterFragment
-@fragment fn waterFragment(input: WaterFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
+@fragment fn waterFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let eye = (&cam.eye);
   let footprint = length(fwidth(input.world.xy));
   let look = u32(round(input.color.x));
@@ -614,7 +606,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
 }
 
 // @block passes_fog_worldFragment
-@fragment fn worldFragment(input: WorldFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
+@fragment fn worldFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let eye = (&cam.eye);
   var n = normalize(input.normal);
   if ((dot(n, ((*eye) - input.world)) < 0f)) {
@@ -648,7 +640,7 @@ struct CardFragmentInput {
 }
 
 // @block passes_fog_BackdropFragmentInput
-struct BackdropFragmentInput {
+struct MeshFragmentInput {
   @location(0) world: vec3f,
   @location(1) normal: vec3f,
   @location(2) color: vec4f,
@@ -663,20 +655,4 @@ struct GrassFragmentInput {
   @location(2) normal: vec3f,
   @location(3) albedo: vec3f,
   @location(4) ground: f32,
-}
-
-// @block passes_fog_TerrainFragmentInput
-struct TerrainFragmentInput {
-  @location(0) @interpolate(perspective, centroid) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) color: vec4f,
-  @location(3) highlight: f32,
-}
-
-// @block passes_fog_WaterFragmentInput
-struct WaterFragmentInput {
-  @location(0) @interpolate(perspective, centroid) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) color: vec4f,
-  @location(3) highlight: f32,
 }

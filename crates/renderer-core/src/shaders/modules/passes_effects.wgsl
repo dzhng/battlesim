@@ -1,13 +1,5 @@
 // WGSL owner: passes_effects.
 
-// @block passes_effects_OverlayFragmentInput
-struct OverlayFragmentInput {
-  @location(0) @interpolate(perspective, centroid) world: vec3f,
-  @location(1) normal: vec3f,
-  @location(2) color: vec4f,
-  @location(3) highlight: f32,
-}
-
 // @block passes_effects_OverlayVertexOutput
 struct OverlayVertexOutput {
   @builtin(position) clip: vec4f,
@@ -53,7 +45,7 @@ struct PaintVertexOutput {
 }
 
 // @block passes_effects_overlayFragment
-@fragment fn overlayFragment(input: OverlayFragmentInput) -> @location(0) vec4f {
+@fragment fn overlayFragment(input: MeshFragmentInput) -> @location(0) vec4f {
   let toEye = (cam.eye - input.world);
   var n = normalize(input.normal);
   if ((dot(n, toEye) < 0f)) {

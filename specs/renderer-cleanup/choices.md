@@ -383,3 +383,5 @@ finding that the base build did not render grass the same way twice.
   **Confidence: high.**
 
 - **When:** slice 08 color-fog. **Choice:** The shared world-material output is `ColorFog` in `fog`. The merged name was delegated. All nine consumers keep the same color/fog locations and types; the optional trailing struct semicolon has no effect on WGSL. **Gap:** the slice did not enumerate this contract or its merged vocabulary. **Verdict: sound** — assembled stage types differ only by their names; Naga validation and record reflection pass. **Confidence: high.**
+
+- **When:** slice 08 mesh-input. **Choice:** Identical overlay, world, terrain, water and ground-backdrop fragment inputs use `MeshFragmentInput` in `passes_shared`, beside the shared mesh vertex output. The additional-copy scan found this cross-family contract; centroid interpolation and every stage field remain intact. **Gap:** the slice did not enumerate this contract or its merged vocabulary. **Verdict: sound** — assembled stage types differ only by their names; Naga validation and record reflection pass. **Confidence: high.**

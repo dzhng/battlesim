@@ -72,10 +72,11 @@ that domain's policy; `math` holds only functions without bound resources.
 | Reused stages | `passes_shared` | Full-screen and shared mesh entry points and their reusable stage IO. |
 | Terrain and sprite stages | `passes_terrain` | Sprite, background and water-processing entry points and their stage IO. |
 
-Stage IO follows its entry-point family; reusable mesh and full-screen IO stays
-in `passes_shared`. The color/fog output records belong to `fog`, since they
-define the visibility contract shared by world materials. Algorithm records
-without stage attributes stay with their concepts.
+Stage IO follows its entry-point family; reusable stage IO stays in
+`passes_shared`. Identical contracts share a struct, preserving every field
+name, location and interpolation attribute. The color/fog output belongs to
+`fog`, since it defines the visibility contract shared by world materials.
+Algorithm records without stage attributes stay with their concepts.
 
 ## Validation
 
