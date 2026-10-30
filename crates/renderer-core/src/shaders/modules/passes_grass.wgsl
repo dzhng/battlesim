@@ -37,8 +37,8 @@ struct GrassFragmentInput {
     total += count;
   }
   for (var t = 0u; t < 2u; t++) {
-    atomicStore(&args[10u + t], total[t]);
-    atomicStore(&args[t * 5u + 1u], min(total[t], select(grassParams.grid.w, grassParams.grid.z, t == 0u)));
+    args[10u + t] = total[t];
+    args[t * 5u + 1u] = min(total[t], select(grassParams.grid.w, grassParams.grid.z, t == 0u));
   }
 }
 
@@ -75,5 +75,5 @@ var<workgroup> laneCounts: array<vec2u, GRASS_BUILD_LANES>;
 
 @compute @workgroup_size(GRASS_BUILD_LANES) fn grassBuild(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32) {
   let tile = (wg.y * grassParams.grid.x + wg.x) * GRASS_TILE_RANGES;
-  let found = growTile(wg, li, true, ranges[tile] + ranges[tile + 1u + li]);
+  _ = growTile(wg, li, true, ranges[tile] + ranges[tile + 1u + li]);
 }

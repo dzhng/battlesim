@@ -493,6 +493,17 @@ finding that the base build did not render grass the same way twice.
   expression-to-constant substitution is isolated as structural pending plates.
   Naga and ABI reflection pass. **Verdict: provisional.**
 
+- **When:** whole-spec review. **Choice:** grass indirect arguments are plain
+  u32 words: only the one-invocation prefix stage writes them, the count/build
+  stages never access them, and Rust's indirect draws/readback retain the same
+  12-word byte layout. The emit call discards its unused return explicitly.
+  Remove the unused argument binding from grass build and cube direction from
+  sprites. **Reach:** structural shader cleanup, isolated pending plates.
+  Per-pipeline unused-declaration rejection is deferred: lexical name counting
+  cannot reliably distinguish entry points, members and scoped references; a
+  semantic reachability pass would add a WGSL parser to the build dependencies.
+  The existing all-pipeline dead-block check stays. **Verdict: provisional.**
+
 ## 11 · Track side
 
 - **When:** slice 11. **Choice:** `TrackSide` is a left/right enum and

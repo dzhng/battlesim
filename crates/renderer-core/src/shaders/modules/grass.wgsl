@@ -173,7 +173,7 @@ fn grassUnderProp(p: vec2f) -> bool {
 @group(0) @binding(5) var<storage, read_write> ranges: array<vec2u>;
 
 // @block grass_args
-@group(0) @binding(4) var<storage, read_write> args: array<atomic<u32>, 12>;
+@group(0) @binding(4) var<storage, read_write> args: array<u32, 12>;
 
 // @block grass_props
 @group(0) @binding(2) var<storage, read> props: array<vec4f>;
