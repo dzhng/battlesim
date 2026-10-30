@@ -17,5 +17,7 @@ ryu-js = "1"
 libm = "0.2"
 
 [dev-dependencies]
+wgpu = "30.0.1"
+pollster = "0.4"
 presentation = { path = "../presentation", features = ["files"] }
 naga = { version = "30.0.1", default-features = false, features = ["wgsl-in"] }

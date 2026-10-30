@@ -634,3 +634,13 @@ finding that the base build did not render grass the same way twice.
   workbench setup is exercised without a new production or test-only API;
   the harness retains only loader, GPU, sheet and camera publication entry
   points. **Verdict: sound.**
+
+## 13 · Move tests
+
+- **Choice:** headless test admission lives in `renderer-core/tests/support`,
+  uses the shared device descriptor and native's adapter options, and retains
+  only the device and queue. Native backend features and `pollster` are
+  dev-dependencies. **Gap:** the slice delegated helper names and scope.
+  **Reach:** core GPU tests need no native shell dependency; production WASM
+  keeps its existing backend feature selection. **Verdict: sound** — the
+  pipeline probe runs through core's built-in constructor.

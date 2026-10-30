@@ -1867,6 +1867,7 @@ dependencies = [
  "libm",
  "naga",
  "png",
+ "pollster",
  "presentation",
  "ryu-js",
  "serde",
