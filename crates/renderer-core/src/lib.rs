@@ -9,6 +9,18 @@ pub fn render_size(size: [u32; 2]) -> [u32; 2] {
     size.map(|value| value.max(presentation::records::MIN_TARGET_PX))
 }
 
+/// Shared feature and limit policy for desktop and browser GPU admission.
+pub fn device_descriptor(adapter: &Adapter) -> DeviceDescriptor<'static> {
+    DeviceDescriptor {
+        label: Some("battle"),
+        required_features: adapter.features() & Features::TIMESTAMP_QUERY,
+        required_limits: adapter.limits(),
+        experimental_features: ExperimentalFeatures::disabled(),
+        memory_hints: MemoryHints::Performance,
+        trace: Trace::Off,
+    }
+}
+
 pub mod bundle;
 pub mod depth;
 pub mod effects;

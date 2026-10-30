@@ -2,7 +2,7 @@
 
 This crate owns the Rust `wgpu` renderer code shared by the native desktop and
 [browser WASM shells](../renderer-browser/README.md). It has no `winit`, filesystem, audio, DOM or replay
-dependencies. Platform shells provide the surface, adapter/device policy,
+dependencies. Platform shells provide surface and adapter admission,
 runtime asset bytes and external geometry; the core synchronously borrows the
 canonical presentation and owns resource composition, preparation, rebuilding
 and frame encoding.

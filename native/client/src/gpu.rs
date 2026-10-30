@@ -1,7 +1,4 @@
-//! The device: Metal on macOS (whatever `wgpu` prefers elsewhere), with the
-//! adapter's own limits, since the browser's tables need more than
-//! `Limits::default()`'s 128 MiB storage bindings, and the two features the
-//! browser asks for where the adapter has them.
+//! Desktop adapter admission around the shared renderer's device policy.
 use wgpu::*;
 
 pub struct Gpu {
@@ -29,16 +26,9 @@ pub fn open(instance: &Instance, surface: Option<&Surface>) -> Result<Gpu, Strin
         apply_limit_buckets: false,
     }))
     .map_err(|e| format!("no adapter: {e}"))?;
-    let wanted = Features::TIMESTAMP_QUERY | Features::INDIRECT_FIRST_INSTANCE;
-    let (device, queue) = pollster::block_on(adapter.request_device(&DeviceDescriptor {
-        label: Some("battle"),
-        required_features: adapter.features() & wanted,
-        required_limits: adapter.limits(),
-        experimental_features: ExperimentalFeatures::disabled(),
-        memory_hints: MemoryHints::Performance,
-        trace: Trace::Off,
-    }))
-    .map_err(|e| format!("no device: {e}"))?;
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&renderer_core::device_descriptor(&adapter)))
+            .map_err(|e| format!("no device: {e}"))?;
     Ok(Gpu {
         adapter,
         device,

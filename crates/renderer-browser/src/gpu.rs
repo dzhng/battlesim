@@ -92,14 +92,7 @@ impl BrowserGpu {
                 ))
             })?;
         let (device, queue) = adapter
-            .request_device(&DeviceDescriptor {
-                label: Some("shared-renderer-browser"),
-                required_features: adapter.features() & Features::TIMESTAMP_QUERY,
-                required_limits: adapter.limits(),
-                experimental_features: ExperimentalFeatures::disabled(),
-                memory_hints: MemoryHints::Performance,
-                trace: Trace::Off,
-            })
+            .request_device(&renderer_core::device_descriptor(&adapter))
             .await
             .map_err(|error| js_error(format!("WebGPU device admission failed: {error}")))?;
         let (sender, receiver) = oneshot::channel();
