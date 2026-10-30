@@ -16,7 +16,9 @@ to run the slices: Codex
 (gpt-6.1-sol, high) implements each slice, the orchestrator reviews and
 integrates by cherry-pick, and pushes each verified slice to the open PR.
 
-**Status (2026-10-30):** 01 and 02 landed; 03 and 04 in progress.
+**Status (2026-10-30):** 01 and 02 landed. 03 and 04 landed with CPU proofs
+(byte-identical uploads, explained assembled-shader diffs); their plate proofs
+wait on the blocker below.
 
 **Blocker on the plate proof:** the base build doesn't render grass the same
 way twice. Paris-corner (little grass) reproduces byte for byte; market-town
@@ -39,8 +41,8 @@ Warnings:
 TODO:
 - [x] [01](slices/01-windows-cutout.md) Windows cutout as its own WGSL variant
 - [x] [02](slices/02-record-schema.md) Record schema: nested records, i32, TS export list
-- [ ] [03](slices/03-ground-records.md) Ground records: terrain, grass, scars, masks
-- [ ] [04](slices/04-renderer-records.md) Renderer records, lengths and the reverse check
+- [ ] [03](slices/03-ground-records.md) Ground records: terrain, grass, scars, masks (landed; packers being reworked to fill typed records)
+- [ ] [04](slices/04-renderer-records.md) Renderer records, lengths and the reverse check (landed; left: reflect `PlotNode`, `PlotRecord`, `SurfaceRecord`, `GrassShapeVertex`, `FogProbe`)
 - [ ] [05](slices/05-composition-grammar.md) Composition grammar and one block per binding
 - [ ] [06](slices/06-concept-moves.md) Move each struct and function to its concept's module
 - [ ] [07](slices/07-names.md) Names: no suffixes, no mangling, no dead aliases

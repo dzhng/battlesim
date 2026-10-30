@@ -71,10 +71,17 @@ Decisions made where the spec was silent, per slice, with verdicts
   explicit WGSL padding for `WaveRun` without inventing semantic fields.
 - **The reverse check descends through arrays and nested structs.** Its short
   exception list names existing diagnostic, GPU-generated and ground-packed
-  formats and their owners. The six slice-03 types are temporarily exempted
-  with reason “slice 03 reflects it”; drop those entries at integration.
+  formats and their owners. (The six slice-03 types it exempted temporarily
+  were dropped at integration; slice 03 reflects them.)
+- **Integrator: the exception list still exempts hand-packed layouts**
+  (`PlotNode`, `PlotRecord`, `SurfaceRecord`, `GrassShapeVertex`, `FogProbe`).
+  *Unsound against definition of done 3* (every buffer layout a shader reads is
+  checked): they are CPU-packed, so a follow-up reflects them as records.
+  `Count`, `GrassClump` (GPU-written) and `FogMaskView` (one word) stay
+  exempt. *Sound.*
 - **The local light visibility variable is `sunlight`.** Composition aliases
   rename that local instead of the `sun` record member, because aliases replace
   every whole identifier token, including member accesses.
-- **The synthetic nested-schema test is removed.** Real `Environment`,
+- **The synthetic nested-schema test is removed** (resolving slice 02's
+  provisional entry). Real `Environment`,
   `CastLights`, `Sun`, `Rays` and signed `WaveRun` fields exercise those paths.
