@@ -16,9 +16,9 @@ to run the slices: Codex
 (gpt-6.1-sol, high) implements each slice, the orchestrator reviews and
 integrates by cherry-pick, and pushes each verified slice to the open PR.
 
-**Status (2026-10-30):** 01–09, 11 and the grass determinism fix landed and
-are proven (54/54 plates byte-identical to the grass-fixed build). 10 and 12
-are in progress; then 13, 14, 15.
+**Status (2026-10-30):** 01–11 and the grass determinism fix landed and are
+proven (54/54 plates byte-identical to the grass-fixed build). 12 and 14 are in
+progress; then 13, 15.
 
 The base build did not render grass the same way twice (atomic clump order);
 the fix (`fix(renderer): emit grass clumps in deterministic ranges`, see
@@ -44,7 +44,7 @@ TODO:
 - [x] [07](slices/07-names.md) Names: no suffixes, no mangling, no dead aliases
 - [x] [08](slices/08-collapse-copies.md) Collapse copies and loop the cascades
 - [x] [09](slices/09-scenery-tier-mesh.md) Scenery tier mesh: one Rust owner
-- [ ] [10](slices/10-world-geometry.md) World geometry: one Rust constructor
+- [x] [10](slices/10-world-geometry.md) World geometry: one Rust constructor
 - [x] [11](slices/11-track-side.md) Track side: decided once, in presentation
 - [ ] [12](slices/12-frame-timing.md) GPU frame timing: one owner
 - [ ] [13](slices/13-move-tests.md) renderer-core's tests in renderer-core
