@@ -1,7 +1,6 @@
 //! Appearance routing and placement share the authored GPU mesh allocation.
-#[path = "support/mod.rs"]
-mod gpu_support;
 #[path = "support/runtime_library.rs"]
+mod runtime_library;
 mod support;
 
 use presentation::records::{Appearance, Batch, Instance, NONE, VIEW_PASS};
@@ -13,10 +12,10 @@ use renderer_core::pipelines;
 
 #[test]
 fn static_routing_placement_and_default_alias_share_geometry() {
-    let gpu = gpu_support::gpu().expect("real GPU");
+    let gpu = support::gpu().expect("real GPU");
     let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
     let name = "crate_stack";
-    let library = support::runtime_library(&[name]).unwrap();
+    let library = runtime_library::runtime_library(&[name]).unwrap();
     let bundle = library.bundle(name).unwrap();
     let Shape::Static(states) = &bundle.shape else {
         panic!("the fixture is a static model");

@@ -1,6 +1,6 @@
 //! The renderer packs the actual admitted grass bundles, including far tiers.
 #[path = "support/runtime_library.rs"]
-mod support;
+mod runtime_library;
 use presentation::static_world::files;
 use presentation::static_world::ground::{
     grass::{Quality, LIMITS},
@@ -24,7 +24,7 @@ fn every_summer_growth_row_fits_the_height_cap_with_its_catalog_kinds() {
         error.contains(&names[0]),
         "missing art refuses by name: {error}"
     );
-    let library = support::runtime_library(&names).unwrap();
+    let library = runtime_library::runtime_library(&names).unwrap();
     let packed = renderer_core::grass::pack_shapes(&library, &names).unwrap();
     let params = ground
         .grass_params(&packed.facts, &LIMITS, &Quality { density: 1.0 })
