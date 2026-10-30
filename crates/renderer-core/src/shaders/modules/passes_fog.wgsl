@@ -295,8 +295,8 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   let base = (e.slot * AZ + ai) * R;
   var hk = -1e4;
   for (var k = 0u; k < R; k++) {
-    let c0 = fogUnpackBuild(terrain[tb + j0 * R + k]);
-    let c1 = fogUnpackBuild(terrain[tb + j1 * R + k]);
+    let c0 = fogUnpack(terrain[tb + j0 * R + k]);
+    let c1 = fogUnpack(terrain[tb + j1 * R + k]);
     var f = select(c0.y, c1.y, fa > 0.5);
     var v = max(hk, mix(c0.x, c1.x, fa));
     if (pm[k] > v) {

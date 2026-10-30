@@ -364,3 +364,12 @@ finding that the base build did not render grass the same way twice.
   asset loader validates required states; Rust tier admission names a missing
   summer state before placement. **Verdict: sound** — state selection has one
   runtime owner. **Confidence: high.**
+
+## 08 · Collapse copies
+
+- **When:** slice 08 fog unpack. **Choice:** all horizon readers call
+  `fogUnpack`, including the horizon builder. **Gap:** slice 07 retained
+  separate build/read names for the same packed format. **Reach:** one body in
+  `fog` owns decoding; no compatibility wrapper or composition alias remains.
+  **Verdict: sound** — the assembled builder changes only identifier tokens;
+  Naga validation and record reflection pass. **Confidence: high.**

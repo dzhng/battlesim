@@ -261,11 +261,6 @@ fn fogUnpack(w: u32) -> vec3f {
   return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * FOG_FOLIAGE_STEP);
 }
 
-// @block fog_fogUnpackBuild
-fn fogUnpackBuild(w: u32) -> vec3f {
-  return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * FOG_FOLIAGE_STEP);
-}
-
 // @block fog_fogWholeSeen
 fn fogWholeSeen(p: vec3f) -> bool {
   let P = fogParams;
