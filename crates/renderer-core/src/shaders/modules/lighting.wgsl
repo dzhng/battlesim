@@ -103,7 +103,7 @@ fn castLight(base: vec3f, surfaceNormal: vec3f, position: vec3f) -> vec3f {
       sum = (sum + (castLights.lights[i].color.xyz * (falloff * wrapped)));
     }
   }
-  let grey = dot(base, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B));
+  let grey = dot(base, LUMA);
   let diffuseAlbedo = max(mix(base, vec3f(grey), 0.35f), vec3f(0.10000000149011612));
   return (diffuseAlbedo * (sum * 0.3183098861837907f));
 }

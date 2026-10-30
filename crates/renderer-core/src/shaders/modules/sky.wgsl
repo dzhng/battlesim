@@ -276,7 +276,7 @@ fn radiance(dirIn: vec3f) -> vec3f {
   }
   let aureole = smoothstep(-1.2000000000000000e-1f, 7.6000000000000001e-1f, cosTheta) * skyLight.aureole;
   let clearSkyRaw = radiance * skyLight.radiance + skyLight.sunTransmittance * aureole;
-  let clearSky = mix(vec3f(dot(clearSkyRaw, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B))), clearSkyRaw, skyLight.skySaturation) * skyLight.skyTint;
+  let clearSky = mix(vec3f(dot(clearSkyRaw, LUMA)), clearSkyRaw, skyLight.skySaturation) * skyLight.skyTint;
   let overcastGradient = 1.05 - max(dirIn.z, 0.0) * 0.22;
   let overcastSky = vec3f(1.0400000000000000e+0f, 1.0800000000000001e+0f, 1.1399999999999999e+0f) * overcastGradient * skyLight.overcastScale;
   let result = mix(clearSky, overcastSky, skyLight.overcast);

@@ -5,7 +5,7 @@ const LUMA = vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B);
 
 // @block math_atLeast
 fn atLeast(colour: vec3f, least: f32) -> vec3f {
-  let luminance = dot(colour, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B));
+  let luminance = dot(colour, LUMA);
   return (colour * max(1f, (least / max(luminance, 1e-5f))));
 }
 

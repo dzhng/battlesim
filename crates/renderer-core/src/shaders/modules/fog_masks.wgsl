@@ -58,9 +58,10 @@ fn composeFog(pixel: vec2f) -> vec4f {
 
 // @block fog_masks_view
 @group(0) @binding(1) var<uniform> view: FogMaskView;
+
 // @block fog_masks_fogLook
 fn fogLook(lit: vec3f, pixel: vec2f, s: FogLook) -> vec3f {
-  let lum = dot(lit, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B));
+  let lum = dot(lit, LUMA);
   let kept = mix(vec3f(lum), lit, s.saturation);
   let c = mix(kept, lum * s.tint, s.cool) * s.dim;
   // Distance to the nearest line, in pixels, across the lines' direction.

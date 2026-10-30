@@ -148,7 +148,7 @@ fn groundColour(xy: vec2f, footprint: f32, site: vec4f, paved: GroundPaved, wate
   }
   let shore = groundShore(xy, footprint, water);
   if ((shore.y > 0f)) {
-    let field = mix(dot((*terrain).verge.xyz, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B)), (dot((*plot).colour.xyz, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B)) * (1f - (0.5f * (*plot).rows.w))), smoothstep(0f, (*terrain).shoreTuning.ground.y, site.y));
+    let field = mix(dot((*terrain).verge.xyz, LUMA), (dot((*plot).colour.xyz, LUMA) * (1f - (0.5f * (*plot).rows.w))), smoothstep(0f, (*terrain).shoreTuning.ground.y, site.y));
     let least = (field * (*terrain).shoreEdge.z);
     let earth = ((*terrain).shoreEarth.xyz * (1f + ((*terrain).shoreTuning.ground.x * noise)));
     albedo = mix(albedo, atLeast(earth, least), shore.y);
@@ -307,7 +307,7 @@ const GROUND_DRY_GREEN = 0;
 const GROUND_DRY_BLUE_ABS = 0.8999999761581421;
 fn groundTint(albedo: vec3f, dry: f32) -> vec3f {
   let tinted = (albedo * (vec3f(1) + (vec3f(GROUND_DRY_RED, GROUND_DRY_GREEN, -GROUND_DRY_BLUE_ABS) * dry)));
-  return (tinted * (dot(albedo, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B)) / max(dot(tinted, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B)), 1e-5f)));
+  return (tinted * (dot(albedo, LUMA) / max(dot(tinted, LUMA), 1e-5f)));
 }
 
 // @block ground_material_groundVerge

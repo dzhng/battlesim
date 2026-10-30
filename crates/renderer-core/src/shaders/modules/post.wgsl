@@ -107,7 +107,7 @@ fn highPlaneShader(uv: vec2f) -> vec4f {
 // @block post_highpass
 fn highpass(uv: vec2f) -> vec4f {
   let c = textureSample(source,linearSampler,uv);
-  return mix(vec4f(0),c,smoothstep(bloom.threshold,bloom.knee,dot(c.rgb,vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B))));
+  return mix(vec4f(0),c,smoothstep(bloom.threshold,bloom.knee,dot(c.rgb,LUMA)));
 }
 
 // @block post_level0

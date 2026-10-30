@@ -488,6 +488,11 @@ finding that the base build did not render grass the same way twice.
   Naga and reflected layouts pass; pixel acceptance is pending. **Verdict:
   provisional.**
 
+- **When:** whole-spec review. **Choice:** all inline RGB luminance vectors
+  consume `math`'s existing f32 `LUMA` constant. **Reach:** one coefficient owner;
+  expression-to-constant substitution is isolated as structural pending plates.
+  Naga and ABI reflection pass. **Verdict: provisional.**
+
 ## 11 · Track side
 
 - **When:** slice 11. **Choice:** `TrackSide` is a left/right enum and

@@ -18,7 +18,7 @@
   let bed = waterUnder(clip, input.world, n, waterDepthM, look);
   let through = exp(((*w).surface.xyz * -(select(bed.w, waterDepthM, puddle))));
   let lit = (bed.xyz * (1f + (waterCaustics(input.world, waterDepthM, footprint, look) * sunlight)));
-  let body = mix((*w).edge.xyz, (*w).channel.xyz, (1f - dot(through, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B))));
+  let body = mix((*w).edge.xyz, (*w).channel.xyz, (1f - dot(through, LUMA)));
   let reflected = waterReflection(n, input.world, sunlight, (*eye), look);
   let dry = surfaceLight(vec3f(), vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, input.world, sunlight, (*eye));
   let own = (surfaceLight(body, vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, input.world, sunlight, (*eye)) - dry);

@@ -79,7 +79,7 @@ fn highlightGlow(highlight: f32) -> vec3f {
 // @block effects_paintColour
 fn paintColour(paint: vec4f) -> vec3f {
   let c = pow(max(paint.xyz / max(paint.w, 1e-4), vec3f(0.0)), vec3f(2.2));
-  let grey = dot(c, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B));
+  let grey = dot(c, LUMA);
   return max(mix(vec3f(grey), c, paintStyle.saturation), vec3f(0.0));
 }
 

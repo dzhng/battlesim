@@ -29,7 +29,7 @@ fn groundRoads(xy: vec2f, footprint: f32, paved: GroundPaved, under: vec4f) -> v
  let worn=groundShoulder(xy,footprint,paved);
  if(worn.x>0.0){
   let look=terrainParams.roads[u32(worn.y)];
-  let luma=vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B);
+  let luma=LUMA;
   let lift=max(1.0,dot(under.xyz,luma)/max(dot(look.shoulder.xyz,luma),1e-5));
   let grain=roadGrain(xy*look.shape.w,footprint*look.shape.w)*GROUND_SHOULDER_GRAIN;
   surface=mix(under,vec4f(look.shoulder.xyz*lift*(1.0+look.shape.z*grain),look.core.w),worn.x*look.edge.w);
@@ -131,6 +131,7 @@ fn walkJoint(footprint: f32, paved: GroundPaved) -> f32 {
  if(beyond<=0.0||beyond>=road.join.z){return 0.0;}
  return strokeJoint(paved.run.z,road.slabs.x,footprint,GROUND_WALK_SLAB_JOINT_M)*road.slabs.y;
 }
+
 // @block ground_roads_groundCurb
 const GROUND_CURB_PIXELS_FROM = 0.25;
 const GROUND_CURB_PIXELS_TO = 0.6;
