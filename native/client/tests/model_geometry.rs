@@ -54,6 +54,7 @@ fn static_routing_placement_and_default_alias_share_geometry() {
             rows,
             &strings,
             |_| None,
+            |_, _| None,
         )
         .unwrap()
     };

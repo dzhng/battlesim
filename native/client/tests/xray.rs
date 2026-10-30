@@ -247,6 +247,7 @@ fn xray_preserves_occlusion_gate_information_colors_and_frame_reset() {
         &appearances,
         names,
         |_| None,
+        |_, _| None,
     )
     .unwrap();
     let identity = Joint {

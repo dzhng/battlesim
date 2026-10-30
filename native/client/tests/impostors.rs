@@ -113,6 +113,7 @@ fn diagnostic_texture_controls_do_not_change_authored_impostor_bakes() {
         }],
         "body",
         |_| Some(vec![identity()]),
+        |_, _| None,
     )
     .unwrap();
     let bake = || {
@@ -149,6 +150,7 @@ fn make_models(gpu: &gpu::Gpu, pipelines: &renderer_core::pipelines::Pipelines) 
         }],
         "body",
         |_| Some(vec![identity()]),
+        |_, _| None,
     )
     .unwrap()
 }
@@ -264,6 +266,7 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
             }],
             "body",
             |_| Some(vec![identity()]),
+            |_, _| None,
         )
         .unwrap();
         let snapshot = rigid

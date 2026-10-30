@@ -155,6 +155,33 @@ impl<'a> CatalogView<'a> {
         }
         self.presentation.rest_palette(self.active_row(row)?)
     }
+    /// A node's canonical running-gear side, including prospective catalogs.
+    pub fn track_side(&self, row: u32, node: usize) -> Option<crate::world::TrackSide> {
+        let world = self.world();
+        let r = world.appearances.get(row as usize)?;
+        let name = &world.strings[r.name as usize..(r.name + r.name_len) as usize];
+        let appearance = if let Some(asset) = self
+            .draft
+            .and_then(|d| d.assets.get(name))
+            .or_else(|| self.presentation.lab.assets.get(name))
+        {
+            let Asset::Animated { appearance, .. } = asset else {
+                return None;
+            };
+            appearance.as_ref()
+        } else {
+            self.presentation
+                .loaded
+                .as_ref()?
+                .units
+                .appearances
+                .get(name)?
+        };
+        let Appearance::Articulated { rig, .. } = appearance else {
+            return None;
+        };
+        rig.track_side(node)
+    }
     pub fn stump_mesh(&self, row: u32) -> Option<&'a [f32]> {
         if let Some(draft) = self.draft.filter(|d| d.statics.needs_scenery()) {
             return draft.statics.stump_mesh(row);

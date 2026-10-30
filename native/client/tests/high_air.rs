@@ -261,6 +261,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         &appearances,
         "body",
         |_| None,
+        |_, _| None,
     )
     .unwrap();
     models.set_high_apart(true);
@@ -420,6 +421,7 @@ fn model_suppression_preserves_static_props_and_buildings() {
         &appearances,
         "body",
         |_| None,
+        |_, _| None,
     )
     .unwrap();
     let instances: Vec<_> = [-0.5, 0., 0.5]

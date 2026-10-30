@@ -434,3 +434,31 @@ finding that the base build did not render grass the same way twice.
   pixel, reproducibly; without it all 54 plates are byte-identical. The loop
   index replaces literal cascade indices, which lets the compiler fold
   differently. Per map unknown 1, the original expression stays. *Sound.*
+## 11 · Track side
+
+- **When:** slice 11. **Choice:** `TrackSide` is a left/right enum and
+  `Rig::track_side` derives the per-node answer from admitted tracks rather
+  than storing another node flag. `CatalogView::track_side` reads prospective
+  assets before live assets; raw `Models::from_world` callers supply the same
+  fact by row and node. **Gap:** the slice delegated accessor/type names and
+  the raw-world seam. **Reach:** both platform shells and staged replacements
+  use presentation's pitch-qualified rig; synthetic renderer fixtures explicitly
+  supply no tracks. **Verdict: sound. Confidence: high.**
+
+- **Integrator: TypeScript keeps one track rule, `articulationRig`, for the
+  bake gate and the workbench poser.** The implementer bridged the poser to
+  Rust through a JSON wasm call with a per-bundle cache, behind an optional
+  parameter on `articulationRig`. That added transport and a mode switch while
+  the TS rule stayed for the bake validator, which must reject files before Rust
+  sees them, so it removed no copy. Dropped; this revises map unknown 9 (also
+  the integrator's call). Rust now has one owner (presentation's rig), read by
+  renderer admission; TS has one (the bake rule), which the validator keeps
+  consistent with Rust by rejecting pitchless tracks. *Sound.*
+
+- **When:** slice 11. **Choice:** the failing-first regression exercises the
+  CPU admission output actually uploaded as model vertices, without a GPU.
+  **Gap:** the slice prescribed the malformed-node case but not the test seam.
+  **Reach:** missing, zero and negative pitch, non-track names, both valid sides
+  and prospective rig replacement are checked on packed scroll selectors.
+  Native plate identity remains the orchestrator's verification gate.
+  **Verdict: sound. Confidence: high.**

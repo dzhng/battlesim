@@ -141,3 +141,98 @@ fn hiding_a_surface_removes_it_from_solid_depth_and_colour_together() {
     assert!(drawn(parts[ROOM], Some(ROOM)).is_empty());
     assert_eq!(drawn(solid, Some(OPAQUE)), vec![[3, 4, 5]]);
 }
+
+#[test]
+fn admission_does_not_scroll_pitchless_track_nodes() {
+    use crate::bundle::{decode, Shape};
+    use presentation::presentation::{lab::Asset, Presentation};
+    use presentation::world::Detail;
+    use serde_json::json;
+
+    let mesh = json!({
+        "positions": {"$view": 0}, "normals": {"$view": 1},
+        "uvs": {"$view": 2}, "colors": {"$view": 3},
+        "indices": {"$view": 4}, "draws": []
+    });
+    let nodes: Vec<_> = [
+        ("track_L", json!({})),
+        ("track_R", json!({"link_pitch_m": 0})),
+        ("track_L", json!({"link_pitch_m": -0.2})),
+        ("hull", json!({"link_pitch_m": 0.2})),
+        ("track_L", json!({"link_pitch_m": 0.2})),
+        ("track_R", json!({"link_pitch_m": 0.2})),
+    ]
+    .into_iter()
+    .map(|(name, extras)| {
+        json!({
+            "name": name, "parent": -1,
+            "bind": {"t": [0,0,0], "r": [0,0,0,1], "s": [1,1,1]},
+            "extras": extras, "tiers": [mesh]
+        })
+    })
+    .collect();
+    let header = serde_json::to_vec(&json!({
+        "content": {"kind": "articulated", "nodes": nodes, "materials": []},
+        "views": [["f32",0,3],["i16",12,4],["f32",20,2],["u8",28,4],["u32",32,0]]
+    }))
+    .unwrap();
+    let mut bytes = Vec::new();
+    for word in [0x5441_4742u32, 4, header.len() as u32, 32] {
+        bytes.extend(word.to_le_bytes());
+    }
+    bytes.extend(header);
+    bytes.extend([0; 32]);
+    let mut p = Presentation::new(None, 30.0).unwrap();
+    p.install_lab_assets(
+        [("tracks".into(), Asset::from_bundle(&bytes, None).unwrap())].into(),
+        Detail {
+            lod_px: [80.0, 40.0, 20.0],
+            impostor_px: 4.0,
+            shadow_caster_px: 0.0,
+        },
+    );
+    let bundle = decode("tracks", &bytes, &[]).unwrap();
+    let Shape::Articulated(nodes) = &bundle.shape else {
+        panic!("articulated fixture")
+    };
+    let meshes = admission::articulated_meshes(nodes, 0, 0, |node| p.catalog().track_side(0, node));
+    let tracks: Vec<_> = meshes
+        .iter()
+        .map(|(_, vertices)| u16::from_le_bytes(vertices[46..48].try_into().unwrap()))
+        .collect();
+    assert_eq!(
+        tracks,
+        [0, 0, 0, 0, 1, 2],
+        "only pitch-qualified track nodes scroll"
+    );
+    // A staged replacement must supply its own rig before it becomes active.
+    let mut candidate = Asset::from_bundle(&bytes, None).unwrap();
+    let Asset::Animated { appearance, .. } = &mut candidate else {
+        unreachable!()
+    };
+    let presentation::world::Appearance::Articulated { rig, .. } = appearance.as_mut() else {
+        unreachable!()
+    };
+    rig.tracks.clear();
+    let draft = p
+        .stage_catalog(
+            [("tracks".into(), candidate)].into(),
+            Detail {
+                lod_px: [80.0, 40.0, 20.0],
+                impostor_px: 4.0,
+                shadow_caster_px: 0.0,
+            },
+            Default::default(),
+        )
+        .unwrap();
+    let catalog = draft.view(&p).unwrap();
+    for (_, vertices) in
+        admission::articulated_meshes(nodes, 0, 0, |node| catalog.track_side(0, node))
+    {
+        assert_eq!(&vertices[46..48], &[0, 0]);
+    }
+    assert_eq!(
+        p.catalog().track_side(0, 4),
+        Some(presentation::world::TrackSide::Left)
+    );
+}
