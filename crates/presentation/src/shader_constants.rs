@@ -32,6 +32,10 @@ pub const CONSTANTS: &[(&str, Scalar)] = &[
     ("SWAY_SHIVER_M", F32(SWAY.shiver_m)),
     ("SWAY_SHIVER_RATE", F32(SWAY.shiver_rate)),
     ("SWAY_HEART", F32(HEART)),
+    (
+        "WAVE_SPLATS_MAX",
+        U32((crate::wave::STEP_SPLATS * WAVE.max_steps as usize) as u32),
+    ),
     ("WAVE_TEXELS", F32(WAVE.texels as f64)),
     ("WAVE_SPEED", F32(WAVE.speed)),
     ("WAVE_DAMPING", F32(WAVE.damping)),

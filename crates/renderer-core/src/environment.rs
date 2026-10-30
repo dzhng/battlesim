@@ -9,22 +9,17 @@ use presentation::records::{Aerial, Camera as CameraRecord, CastLight, Sun, View
 use wgpu::*;
 
 use crate::pipelines::Pipelines;
+use crate::records::{CastLights, Environment as EnvironmentRecord};
 use crate::shadow::ShadowResources;
 use crate::HDR_FORMAT;
 use crate::{bind, buffer};
 
-/// `Environment`'s members before the `Sun` record: the view and the observer.
-const SUN_AT: usize = 80;
-/// `CastLights`: a header (count, wrap) followed by bounded light records.
-const CAST_LIGHTS_BYTES: usize = 16 + CAST_LIGHTS_MAX * size_of::<CastLight>();
-/// The sky lookup's width; the PMREM's levels follow from it.
-const SKY_LUT_WIDTH: u32 = 384;
 // Exact Three 0.185.1 RG16F split-sum table; MIT, see LICENSE.three at the crate root.
 const DFG_LUT: &[u8; 1024] = include_bytes!("environment/dfg.rg16f");
 const DFG_LUT_SIZE: u32 = 16;
 
 pub struct Environment {
-    cast_count: std::cell::Cell<usize>,
+    cast_image: CastLights,
     pub camera: BindGroup,
     pub environment: BindGroup,
     /// The camera uniform, the environment uniform, its PMREM and the cast
@@ -34,7 +29,7 @@ pub struct Environment {
     pub pmrem: TextureView,
     pub cast_lights: Buffer,
     /// The environment uniform's light part, set once.
-    image: Vec<f32>,
+    image: EnvironmentRecord,
     dfg: Texture,
 }
 
@@ -121,7 +116,7 @@ fn pmrem(
     pipelines: &Pipelines,
     lut: &TextureView,
 ) -> (Texture, u32) {
-    let max_mip = (SKY_LUT_WIDTH / 4).ilog2();
+    let max_mip = (crate::pipeline_registry::sizes().sky_lut[0] / 4).ilog2();
     let cube = 1u32 << max_mip;
     let (width, height) = (3 * cube.max(112), 4 * cube);
     let count = max_mip - 4 + 1 + 6;
@@ -258,23 +253,26 @@ impl Environment {
         );
 
         let (pmrem, top_mip) = pmrem(device, queue, pipelines, sky_lut);
-        let mut image = vec![0.0f32; SUN_AT / 4];
-        image.extend_from_slice(bytemuck::cast_slice(bytemuck::bytes_of(sun)));
-        image[SUN_AT / 4 + 8] = top_mip as f32;
-        image.extend_from_slice(bytemuck::cast_slice(bytemuck::bytes_of(aerial)));
+        let mut image = EnvironmentRecord {
+            sun: *sun,
+            aerial: *aerial,
+            ..Default::default()
+        };
+        image.sun.settings[0] = top_mip as f32;
         let data = buffer(
             device,
             queue,
             "environment",
             uniform,
-            bytemuck::cast_slice(&image),
+            bytemuck::bytes_of(&image),
         );
+        let cast_image = CastLights::default();
         let cast_lights = buffer(
             device,
             queue,
             "cast-lights",
             uniform,
-            &[0; CAST_LIGHTS_BYTES],
+            bytemuck::bytes_of(&cast_image),
         );
         let pmrem = pmrem.create_view(&Default::default());
         let dfg = texture(
@@ -318,7 +316,7 @@ impl Environment {
         );
 
         Self {
-            cast_count: Default::default(),
+            cast_image,
             camera,
             environment,
             camera_buffer,
@@ -342,25 +340,22 @@ impl Environment {
     /// haze's distances measured from what the camera looks at.
     pub fn prepare(&mut self, queue: &Queue, view: &View, camera: &CameraRecord) {
         queue.write_buffer(&self.camera_buffer, 0, bytemuck::bytes_of(camera));
-        self.image[..16].copy_from_slice(&view.view);
-        self.image[16..19].copy_from_slice(&view.target[..3]);
-        queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&self.image));
+        self.image.world_to_view = view.view;
+        self.image.observer[..3].copy_from_slice(&view.target[..3]);
+        queue.write_buffer(&self.data, 0, bytemuck::bytes_of(&self.image));
     }
 
     pub fn cast_light_count(&self) -> usize {
-        self.cast_count.get()
+        self.cast_image.header[0] as usize
     }
 
     /// The frame's cast lights as the presentation chose them for the view,
     /// each reaching `wrap` round a surface past facing it.
-    pub fn set_cast_lights(&self, queue: &Queue, lights: &[CastLight], wrap: f32) {
+    pub fn set_cast_lights(&mut self, queue: &Queue, lights: &[CastLight], wrap: f32) {
         let lights = &lights[..lights.len().min(CAST_LIGHTS_MAX)];
-        self.cast_count.set(lights.len());
-        let header = [lights.len() as f32, wrap, 0.0, 0.0];
-        queue.write_buffer(&self.cast_lights, 0, bytemuck::cast_slice(&header));
-        if !lights.is_empty() {
-            queue.write_buffer(&self.cast_lights, 16, bytemuck::cast_slice(lights));
-        }
+        self.cast_image.header = [lights.len() as f32, wrap, 0.0, 0.0];
+        self.cast_image.lights[..lights.len()].copy_from_slice(lights);
+        queue.write_buffer(&self.cast_lights, 0, bytemuck::bytes_of(&self.cast_image));
     }
 }
 

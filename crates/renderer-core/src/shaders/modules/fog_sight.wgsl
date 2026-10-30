@@ -90,7 +90,7 @@ struct GroundPaintStyle {
   emissive: f32,
   fogKeep: f32,
   grassGlow: f32,
-  grassFalloff: f32,
+  grassFalloffM: f32,
   saturation: f32,
   pad1: f32,
   pad2: f32,
@@ -402,7 +402,7 @@ fn smokeLight(f: Out, o: vec2f) -> vec3f {
   let g = 0.4;
   let forward = (1.0 - g * g) / pow(1.0 + g * g + 2.0 * g * f.sun.z, 1.5);
   let sky = mix(f.skySide, f.skyTop, clamp(n.y * 0.5 + 0.5, 0.0, 1.0));
-  return light.sunRadiance.rgb * ((0.6 * wrap + 0.4 * forward) / PI) + sky + f.castLit;
+  return light.sun.radiance.rgb * ((0.6 * wrap + 0.4 * forward) / PI) + sky + f.castLit;
 }
 
 // @block fog_sight_surface_alternate
@@ -430,7 +430,7 @@ struct terrainFragment_Output {
 
 // @block fog_sight_unlit
 fn unlit(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
-  return unlitAlgorithm(colour, position, eye, data.observer.xyz, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.y, data.settings.x, data.aerial, sky, pmrem, linear);
+  return unlitAlgorithm(colour, position, eye, data.observer.xyz, data.sun.direction.xyz, data.sun.radiance.xyz, data.sun.fill.xyz, data.sun.settings.y, data.sun.settings.x, data.aerial, sky, pmrem, linear);
 }
 
 // @block fog_sight_unlitAlgorithm

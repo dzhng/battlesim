@@ -1,6 +1,6 @@
 use naga::ShaderStage;
 use naga::{front::wgsl, TypeInner};
-use presentation::records::{camel, Binding, Layout, Sun, View, LAYOUTS};
+use presentation::records::{camel, Binding, Layout, LAYOUTS};
 
 fn assert_layout(
     module: &naga::Module,
@@ -19,6 +19,10 @@ fn assert_layout(
     let expected: Vec<_> = fields
         .iter()
         .map(|field| (camel(field.name), field.offset as u32))
+        .collect();
+    let members: Vec<_> = members
+        .iter()
+        .filter(|member| !member.name.as_deref().unwrap().starts_with("pad"))
         .collect();
     let actual: Vec<_> = members
         .iter()
@@ -74,30 +78,11 @@ fn members(shader: &str, name: &str) -> (Vec<(String, u32)>, u32) {
     )
 }
 
-fn fields(layout: &presentation::records::Layout, prefix: &str) -> Vec<(String, u32)> {
-    let base = layout
-        .fields
-        .iter()
-        .find(|field| field.name.starts_with(prefix))
-        .unwrap()
-        .offset;
-    layout
-        .fields
-        .iter()
-        .filter(|field| field.name.starts_with(prefix) && !field.name.starts_with("pad"))
-        .map(|field| {
-            (
-                camel(&field.name[prefix.len()..]),
-                (field.offset - base) as u32,
-            )
-        })
-        .collect()
-}
-
 #[test]
-fn builtin_shaders_match_presentation_record_layouts() {
+fn builtin_shaders_match_record_layouts() {
     for layout in LAYOUTS
         .iter()
+        .chain(renderer_core::records::LAYOUTS)
         .filter(|layout| layout.binding == Binding::Struct)
     {
         let mut found = false;
@@ -122,29 +107,6 @@ fn builtin_shaders_match_presentation_record_layouts() {
         }
         assert!(found, "no built-in shader declares {}", layout.name);
     }
-}
-
-#[test]
-fn sky_rays_and_environment_light_keep_nested_uniform_offsets() {
-    let (rays, span) = members("background.wgsl", "Rays");
-    assert_eq!(fields(&View::LAYOUT, "sky_"), rays);
-    assert_eq!(span, 48);
-
-    let (environment, _) = members("worldOpaque.wgsl", "Environment");
-    let at = |name: &str| {
-        environment
-            .iter()
-            .find(|(field, _)| field == name)
-            .unwrap()
-            .1
-    };
-    let base = at("sunDirection");
-    let expected = ["sunDirection", "sunRadiance", "settings", "fill"]
-        .into_iter()
-        .map(|name| (name.to_owned(), at(name) - base))
-        .collect::<Vec<_>>();
-    assert_eq!(fields(&Sun::LAYOUT, ""), expected);
-    assert_eq!(at("aerial") - base, Sun::LAYOUT.size as u32);
 }
 
 #[test]
@@ -183,3 +145,69 @@ fn every_builtin_shader_naga_validates_and_has_declared_entries() {
         }
     }
 }
+
+#[test]
+fn every_buffer_struct_has_a_checked_layout() {
+    fn visit(
+        module: &naga::Module,
+        ty: naga::Handle<naga::Type>,
+        names: &mut std::collections::BTreeSet<String>,
+    ) {
+        match &module.types[ty].inner {
+            TypeInner::Array { base, .. } => visit(module, *base, names),
+            TypeInner::Struct { members, .. } => {
+                names.insert(
+                    module.types[ty]
+                        .name
+                        .clone()
+                        .expect("buffer struct has a name"),
+                );
+                for member in members {
+                    visit(module, member.ty, names);
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut unchecked = std::collections::BTreeSet::new();
+    for shader in renderer_core::pipelines::builtin_shaders() {
+        let module = module(shader);
+        let mut names = std::collections::BTreeSet::new();
+        for (_, global) in module.global_variables.iter() {
+            if matches!(
+                global.space,
+                naga::AddressSpace::Uniform | naga::AddressSpace::Storage { .. }
+            ) {
+                visit(&module, global.ty, &mut names);
+            }
+        }
+        for name in names {
+            let reflected = LAYOUTS
+                .iter()
+                .chain(renderer_core::records::LAYOUTS)
+                .any(|layout| layout.binding == Binding::Struct && layout.name == name);
+            let allowed = BUFFER_LAYOUT_EXCEPTIONS
+                .iter()
+                .any(|(allowed, _)| *allowed == name);
+            if !reflected && !allowed {
+                unchecked.insert(name);
+            }
+        }
+    }
+    assert!(
+        unchecked.is_empty(),
+        "buffer structs without checked layouts: {unchecked:?}"
+    );
+}
+
+// These formats have owners outside the reflected frame-upload records.
+const BUFFER_LAYOUT_EXCEPTIONS: &[(&str, &str)] = &[
+    ("Count", "GPU atomic counters, cleared and read as words by probes::grass"),
+    ("GrassClump", "GPU-generated storage record; grass_stride_matches_the_builtin_shader_sources checks its allocation stride"),
+    ("FogMaskView", "single u32 diagnostic enum, uploaded as a word by fog_mask"),
+    ("FogProbe", "diagnostic query format packed by probes::PointRecord, outside frame uploads"),
+    ("GrassShapeVertex", "blade geometry packed by presentation::static_world::ground::grass::pack_shapes"),
+    ("PlotNode", "ground plot BVH packed by presentation::static_world::ground::tables"),
+    ("PlotRecord", "ground plot material table packed by presentation::static_world::ground::tables"),
+    ("SurfaceRecord", "ground surface segments packed by presentation::static_world::ground::field"),
+];

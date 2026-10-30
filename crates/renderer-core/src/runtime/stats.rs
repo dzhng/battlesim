@@ -145,7 +145,7 @@ impl Runtime {
                 "reachPx": if look.has_edge() && mask == crate::fog_mask::FogMaskView::None {look.reach_px} else {0.},
                 "maskView": match mask {crate::fog_mask::FogMaskView::None => "none", crate::fog_mask::FogMaskView::Fog => "fog", crate::fog_mask::FogMaskView::Ground => "ground", crate::fog_mask::FogMaskView::Classes => "classes"},
             },
-            "overlay": {"glowRadiusPx": self.overlay_glow[0], "glowStrength": self.overlay_glow[2]},
+            "overlay": {"glowRadiusPx": self.overlay_glow.radius_px, "glowStrength": self.overlay_glow.strength},
             "scenery": self.scenery.diagnostics(facts.scenery_walk.unwrap_or_default(), facts.scenery_pending, facts.scenery_falling),
             "grass": grass, "scars": scars,
             "effects": {"instances": self.effects.count(), "capacity": self.effects.capacity(), "lights": self.environment.cast_light_count()},

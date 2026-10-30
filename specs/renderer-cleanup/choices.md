@@ -51,3 +51,30 @@ Decisions made where the spec was silent, per slice, with verdicts
   updates and a combined scar cache/look record, rather than committing a fixture
   that pins the summer biome's tuning. *Sound:* existing presentation vectors
   and real shader reflection remain the durable checks.
+
+## 04 · Renderer records
+
+- **Renderer-only uploads live in `renderer_core::records`; `Sun` and `Rays`
+  stay in presentation.** The writer owns its schema. `View.rays` and
+  `Environment.sun` nest those records without changing bytes. Cast lights retain
+  a typed CPU image so smaller updates preserve the previous unused suffix;
+  uploads cast the whole record, and diagnostics read its count.
+- **`Sun` uses `direction` and `radiance` inside the nested record.** Its
+  golden fixture keys follow the names; the numeric fixture values do not change.
+- **Authored `Paint` remains a strict configuration type.** Its `record()`
+  packs `GroundPaintStyle` with zero padding; the shader field is
+  `grassFalloffM`, matching the authored metre-valued field.
+- **The runtime stores typed `OverlayGlow`, admitting the shell's four floats
+  at its boundary.** Overlay construction and updates accept that record.
+- **Padding is excluded from member-name comparison on both sides**, while
+  spans and the offsets of every non-padding field remain checked. This admits
+  explicit WGSL padding for `WaveRun` without inventing semantic fields.
+- **The reverse check descends through arrays and nested structs.** Its short
+  exception list names existing diagnostic, GPU-generated and ground-packed
+  formats and their owners. The six slice-03 types are temporarily exempted
+  with reason “slice 03 reflects it”; drop those entries at integration.
+- **The local light visibility variable is `sunlight`.** Composition aliases
+  rename that local instead of the `sun` record member, because aliases replace
+  every whole identifier token, including member accesses.
+- **The synthetic nested-schema test is removed.** Real `Environment`,
+  `CastLights`, `Sun`, `Rays` and signed `WaveRun` fields exercise those paths.

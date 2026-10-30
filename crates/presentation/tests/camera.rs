@@ -59,7 +59,7 @@ fn every_frames_camera_is_the_browsers() {
             "case {k} camera"
         );
         assert_eq!(bits(&f.view.view), words(&case["view"]), "case {k} view");
-        let rays = [f.view.sky_origin, f.view.sky_dx, f.view.sky_dy].concat();
+        let rays = [f.view.rays.origin, f.view.rays.dx, f.view.rays.dy].concat();
         assert_eq!(bits(&rays), words(&case["rays"]), "case {k} rays");
     }
     assert_eq!(cases.len(), 144);

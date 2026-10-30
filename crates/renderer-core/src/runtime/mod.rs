@@ -93,7 +93,7 @@ pub struct Runtime {
     pub high_air: Option<crate::high_air::HighAir>,
     config: RuntimeConfig,
     geometry: Arc<WorldGeometry>,
-    overlay_glow: [f32; 4],
+    overlay_glow: crate::records::OverlayGlow,
     generation: u32,
     refresh_statics: bool,
     refresh_knowledge: bool,
@@ -210,14 +210,8 @@ impl Runtime {
             bytemuck::bytes_of(&config.light.bloom()),
             bytemuck::bytes_of(&config.light.grade()),
         );
-        let overlay_glow = [0.0; 4];
-        let overlays = overlay::new(
-            device,
-            queue,
-            &pipelines,
-            &targets,
-            bytemuck::cast_slice(&overlay_glow),
-        );
+        let overlay_glow = crate::records::OverlayGlow::default();
+        let overlays = overlay::new(device, queue, &pipelines, &targets, &overlay_glow);
         let xray = config
             .xray_min_hidden_fraction
             .map(|fraction| XrayResources::new(device, queue, &pipelines, &targets, fraction))
@@ -464,8 +458,8 @@ impl Runtime {
     }
 
     pub fn set_overlay_glow(&mut self, queue: &Queue, glow: [f32; 4]) {
-        self.overlays.write_glow(queue, bytemuck::cast_slice(&glow));
-        self.overlay_glow = glow;
+        self.overlay_glow = bytemuck::cast(glow);
+        self.overlays.write_glow(queue, &self.overlay_glow);
     }
 
     pub fn resize(
@@ -502,7 +496,7 @@ impl Runtime {
             queue,
             &self.pipelines,
             &self.targets,
-            bytemuck::cast_slice(&self.overlay_glow),
+            &self.overlay_glow,
         );
         self.fog.rebind_targets(device, &self.targets);
         if let Some(style) = self.config.paint {

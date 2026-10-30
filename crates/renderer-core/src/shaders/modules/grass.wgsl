@@ -83,7 +83,7 @@ fn grassPaintGlow(paint: vec4f, height: f32) -> vec3f {
   if (paint.w <= 0.0) { return vec3f(0.0); }
   let s = paintStyle;
   let colour = paintColour(paint);
-  return colour * s.grassGlow * paint.w * exp(-max(height, 0.0) / max(s.grassFalloff, 1e-3));
+  return colour * s.grassGlow * paint.w * exp(-max(height, 0.0) / max(s.grassFalloffM, 1e-3));
 }
 
 // @block grass_grassSample

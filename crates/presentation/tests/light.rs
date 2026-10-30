@@ -87,7 +87,7 @@ fn the_sky_looks_where_the_camera_looks() {
     };
     let v = View::new(&camera).record(&camera);
     let at = |x: f32, y: f32| -> [f32; 3] {
-        std::array::from_fn(|i| v.sky_origin[i] + v.sky_dx[i] * x + v.sky_dy[i] * y)
+        std::array::from_fn(|i| v.rays.origin[i] + v.rays.dx[i] * x + v.rays.dy[i] * y)
     };
     let unit = |d: [f32; 3]| {
         let l = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt();
@@ -140,7 +140,7 @@ fn one_sun_lights_the_sky_and_the_ground() {
     let r = light.records();
     let toward = light.sun_direction().map(|v| v as f32);
     assert_eq!(r.sky.sun_direction, toward);
-    assert_eq!(r.sun.sun_direction[..3], toward);
+    assert_eq!(r.sun.direction[..3], toward);
     assert!((toward.iter().map(|v| v * v).sum::<f32>() - 1.0).abs() < 1e-6);
     assert!(
         light.shadow_floor > 0.0,
@@ -163,7 +163,7 @@ fn every_sun_and_sky_gives_finite_non_negative_light() {
             assert!(r.words().iter().all(|v| v.is_finite()), "{at}");
             let light_terms = r
                 .sun
-                .sun_radiance
+                .radiance
                 .iter()
                 .chain(&r.sun.fill)
                 .chain(&r.aerial.extinction);
@@ -188,7 +188,7 @@ fn sky_and_environment_share_one_unit_sun() {
     for case in vectors().as_object().unwrap().values() {
         let light: LightSettings = serde_json::from_value(case["light"].clone()).unwrap();
         let records = light.records();
-        assert_eq!(records.sky.sun_direction, records.sun.sun_direction[..3]);
+        assert_eq!(records.sky.sun_direction, records.sun.direction[..3]);
         let sun = records.sky.sun_direction;
         let length = sun.iter().map(|c| c * c).sum::<f32>().sqrt();
         assert!((length - 1.0).abs() < 1e-6);

@@ -127,6 +127,9 @@ struct WaveRun {
   step: u32,
   splats: u32,
   still: u32,
+  pad0: u32,
+  pad1: u32,
+  pad2: u32,
 }
 
 // @block water_waveStep_run
@@ -140,7 +143,7 @@ struct WaveSplat {
 }
 
 // @block water_waveStep_splats
-@group(0) @binding(2) var<storage, read> splats: array<WaveSplat, 1536>;
+@group(0) @binding(2) var<storage, read> splats: array<WaveSplat, WAVE_SPLATS_MAX>;
 
 // @block water_waveStep
 fn waveStep(pos: vec2f) -> vec4f {
@@ -328,7 +331,7 @@ fn waterUnder(clip: vec4f, world: vec3f, n: vec3f, straight: f32, look: u32) -> 
   }
 
 // @block water_environmentSun
-fn environmentSun() -> vec3f { return data.sunDirection.xyz; }
+fn environmentSun() -> vec3f { return data.sun.direction.xyz; }
 
 // @block water_slopeAt
 fn slopeAt(uv: vec2f) -> vec2f {

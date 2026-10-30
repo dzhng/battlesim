@@ -257,8 +257,8 @@ impl LightSettings {
         let [r, g, b] = colour.map(|c| c * self.sun_intensity);
         let fill = self.sky.fill;
         Sun {
-            sun_direction: f32s([sun[0], sun[1], sun[2], 0.0]),
-            sun_radiance: f32s([r, g, b, 0.0]),
+            direction: f32s([sun[0], sun[1], sun[2], 0.0]),
+            radiance: f32s([r, g, b, 0.0]),
             settings: [0.0, self.shadow_floor as f32, 0.0, 0.0],
             fill: f32s([fill[0], fill[1], fill[2], 0.0]),
         }

@@ -33,13 +33,17 @@ struct CastLights {
 }
 
 // @block lighting_Environment
+struct Sun {
+  direction: vec4f,
+  radiance: vec4f,
+  settings: vec4f,
+  fill: vec4f,
+}
+
 struct Environment {
   worldToView: mat4x4f,
   observer: vec4f,
-  sunDirection: vec4f,
-  sunRadiance: vec4f,
-  settings: vec4f,
-  fill: vec4f,
+  sun: Sun,
   aerial: Aerial,
 }
 
@@ -167,11 +171,11 @@ fn lightAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f
 
 // @block lighting_surfaceLight
 fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec3f {
-  let sun = mix(data.settings.y, 1f, shadow);
-  return lightAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sun, eye, data.sunDirection.xyz, data.sunRadiance.xyz, data.fill.xyz, data.settings.x, pmrem, dfg, linear);
+  let sunlight = mix(data.sun.settings.y, 1f, shadow);
+  return lightAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sunlight, eye, data.sun.direction.xyz, data.sun.radiance.xyz, data.sun.fill.xyz, data.sun.settings.x, pmrem, dfg, linear);
 }
 
 // @block lighting_air
 fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
-  return applyAerial(vec4f(colour, 1f), position, eye, data.observer.xyz, data.sunDirection.xyz, data.aerial, sky, linear);
+  return applyAerial(vec4f(colour, 1f), position, eye, data.observer.xyz, data.sun.direction.xyz, data.aerial, sky, linear);
 }

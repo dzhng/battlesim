@@ -318,9 +318,13 @@ crate::records! {
         size: [f32; 4],
         /// The unit ray through the top-left corner, and its change across
         /// the width and down the height (the sky's `Rays`: w unused).
-        sky_origin: [f32; 4],
-        sky_dx: [f32; 4],
-        sky_dy: [f32; 4],
+        rays: Rays,
+    }
+
+    Struct Rays {
+        origin: [f32; 4],
+        dx: [f32; 4],
+        dy: [f32; 4],
     }
 
     /// The sky's light for the battle: what the sky lookup bakes and the
@@ -417,14 +421,13 @@ crate::records! {
         pad: [f32; 2],
     }
 
-    /// The sun and the shadow fill, as the environment uniform carries them
-    /// after its view (`sunDirection` to `fill`).
-    Plain Sun {
+    /// The sun and shadow fill nested in the environment uniform.
+    Struct Sun {
         /// Unit vector toward the sun; w 0.
-        sun_direction: [f32; 4],
+        direction: [f32; 4],
         /// The sun's colour (its transmittance, greyed by overcast) times its
         /// intensity, linear rgb; w 0.
-        sun_radiance: [f32; 4],
+        radiance: [f32; 4],
         /// x the renderer's environment map's top mip (0 here); y the share
         /// of the sun a sun-shadowed surface keeps.
         settings: [f32; 4],

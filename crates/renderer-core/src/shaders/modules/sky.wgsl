@@ -31,15 +31,15 @@ fn spriteLight() -> SpriteLight {
   let right = normalize(vec3f(m[0].x, m[1].x, m[2].x));
   let up = normalize(vec3f(m[0].y, m[1].y, m[2].y));
   let toward = cross(right, up);
-  let sun = light.sunDirection.xyz;
+  let sun = light.sun.direction.xyz;
   var l: SpriteLight;
   l.sun = vec3f(dot(sun, right), dot(sun, up), dot(sun, toward));
   // The PMREM wants y flipped.
-  let maxMip = light.settings.x;
+  let maxMip = light.sun.settings.x;
   let side = normalize(vec3f(toward.x, toward.y, 0.0) + vec3f(0.0, 0.0, 1e-3));
-  l.skyTop = samplePmrem(pmrem, linearSampler, vec3f(0.0, 0.0, 1.0), 1.0, maxMip) * light.fill.xyz;
+  l.skyTop = samplePmrem(pmrem, linearSampler, vec3f(0.0, 0.0, 1.0), 1.0, maxMip) * light.sun.fill.xyz;
   l.skySide = samplePmrem(pmrem, linearSampler, vec3f(side.x, -side.y, side.z), 1.0, maxMip)
-    * light.fill.xyz;
+    * light.sun.fill.xyz;
   return l;
 }
 

@@ -13,18 +13,44 @@ use presentation::records::{Camera as CameraRecord, FogBox, FogEye, FogParams};
 use wgpu::*;
 
 use crate::pipelines::Pipelines;
+use crate::records::{FogLayer, GroundPaintStyle};
 use crate::{bind, buffer, Targets, DEPTH_FORMAT, HDR_FORMAT, MSAA};
 
 const WORD: u64 = 4;
 
 use crate::fog::Layer;
 
-const LAYERS: [[u32; 4]; 5] = [
-    [1, 0, 1, 0],
-    [0, 0, 1, 0],
-    [1, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 1, 0, 0],
+const LAYERS: [FogLayer; 5] = [
+    FogLayer {
+        ground: 1,
+        seen: 0,
+        painted: 1,
+        pad: 0,
+    },
+    FogLayer {
+        ground: 0,
+        seen: 0,
+        painted: 1,
+        pad: 0,
+    },
+    FogLayer {
+        ground: 1,
+        seen: 0,
+        painted: 0,
+        pad: 0,
+    },
+    FogLayer {
+        ground: 0,
+        seen: 0,
+        painted: 0,
+        pad: 0,
+    },
+    FogLayer {
+        ground: 0,
+        seen: 1,
+        painted: 0,
+        pad: 0,
+    },
 ];
 
 /// A storage buffer that grows (by doubling) to hold what it is handed.
@@ -183,10 +209,16 @@ impl FogSightResources {
         );
         let layers = LAYERS
             .iter()
-            .map(|l| buffer(device, queue, "fog-layer", uniform, bytemuck::cast_slice(l)))
+            .map(|l| buffer(device, queue, "fog-layer", uniform, bytemuck::bytes_of(l)))
             .collect();
         // Scenes without player marks keep an empty paint until one is bound.
-        let paint_style = buffer(device, queue, "fog-paint-style", uniform, &[0; 32]);
+        let paint_style = buffer(
+            device,
+            queue,
+            "fog-paint-style",
+            uniform,
+            bytemuck::bytes_of(&GroundPaintStyle::default()),
+        );
         let paint = device
             .create_texture(&TextureDescriptor {
                 label: Some("fog-paint"),
@@ -403,7 +435,7 @@ impl FogSightResources {
         texture: &TextureView,
         style: &crate::paint::Paint,
     ) {
-        queue.write_buffer(&self.paint_style, 0, bytemuck::bytes_of(style));
+        queue.write_buffer(&self.paint_style, 0, bytemuck::bytes_of(&style.record()));
         self.paint = texture.clone();
         self.bind(device);
     }

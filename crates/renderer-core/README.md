@@ -79,10 +79,12 @@ owned by this crate. Native and browser call the same descriptor and
 source owner; no shell reads a manifest or supplies shader text. The catalog
 uses the actual `wgpu` binding, vertex, target, depth and multisample types.
 The ABI test reflects WGSL structs named by the struct-bound entries in
-`presentation::records::LAYOUTS`, checking member offsets, spans and fixed array
-counts recursively through nested records wherever those structs appear in
-built-in shaders. Directional shadow resources own their depth array, receiver
-and cascade camera bindings. Cascade membership remains the
+`presentation::records::LAYOUTS` and the [renderer-owned records](src/records.rs),
+checking member offsets, spans and fixed array counts recursively through nested
+records wherever those structs appear in built-in shaders. A reverse check walks
+every buffer binding, including nested record types; exceptions name their
+format owner and reason in the ABI test. Directional shadow resources own their
+depth array, receiver and cascade camera bindings. Cascade membership remains the
 presentation's decision; the shared frame preserves it for ground, indexed
 models and scenery.
 

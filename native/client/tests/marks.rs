@@ -117,7 +117,11 @@ fn empty_display_geometry_preserves_and_resolves_existing_silhouettes() {
         &gpu.queue,
         &pipelines,
         &targets,
-        bytemuck::cast_slice(&[1f32, 0.4, 0., 0.]),
+        &renderer_core::records::OverlayGlow {
+            radius_px: 1.0,
+            sigma_px: 0.4,
+            ..Default::default()
+        },
     );
     let camera = camera(&gpu.device, &gpu.queue, &pipelines);
     let mut encoder = gpu.device.create_command_encoder(&Default::default());
@@ -220,7 +224,11 @@ fn opaque_overlay_writes_only_pregrass_depth_and_translucent_overlay_does_not() 
         &gpu.queue,
         &pipelines,
         &targets,
-        bytemuck::cast_slice(&[1f32, 0.4, 0., 0.]),
+        &renderer_core::records::OverlayGlow {
+            radius_px: 1.0,
+            sigma_px: 0.4,
+            ..Default::default()
+        },
     );
     let camera = camera(&gpu.device, &gpu.queue, &pipelines);
     let instances = identity(&gpu.device, &gpu.queue);

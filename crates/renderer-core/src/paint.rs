@@ -1,6 +1,5 @@
 //! Ground marks rasterized against world-only depth, then sampled by painted
 //! world materials. The exported shaders own pull, pulse and color-range rules.
-use bytemuck::{Pod, Zeroable};
 use serde::Deserialize;
 use wgpu::*;
 
@@ -8,10 +7,8 @@ use crate::overlay::MeshDraw;
 use crate::pipelines::{Bound, Pipelines};
 use crate::Targets;
 
-/// Exact `GroundPaintStyle` shader uniform; configuration names remain those
-/// of the authored paint style, and alignment words are never app inputs.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Deserialize, Pod, Zeroable)]
+/// Authored paint style, admitted before packing the GPU uniform.
+#[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Paint {
     pub albedo: f32,
@@ -20,11 +17,21 @@ pub struct Paint {
     pub grass_glow: f32,
     pub grass_falloff_m: f32,
     pub saturation: f32,
-    #[serde(skip)]
-    pub pads: [f32; 2],
 }
 
 impl Paint {
+    pub fn record(&self) -> crate::records::GroundPaintStyle {
+        crate::records::GroundPaintStyle {
+            albedo: self.albedo,
+            emissive: self.emissive,
+            fog_keep: self.fog_keep,
+            grass_glow: self.grass_glow,
+            grass_falloff_m: self.grass_falloff_m,
+            saturation: self.saturation,
+            ..Default::default()
+        }
+    }
+
     pub fn validate(&self) -> Result<(), String> {
         if !(self.albedo > 0.0 && self.albedo <= 1.0)
             || !(self.emissive >= 0.0 && self.emissive <= 8.0)
