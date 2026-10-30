@@ -24,8 +24,11 @@ impl Renderer {
         if !enabled {
             self.gpu_timer = None;
         } else if self.gpu_timer.is_none() {
-            self.gpu_timer =
-                renderer_core::timing::FrameTimer::new(&self.gpu.device, &self.gpu.queue);
+            self.gpu_timer = renderer_core::timing::FrameTimer::new(
+                &self.gpu.device,
+                &self.gpu.queue,
+                renderer_core::timing::Resolve::InFrame,
+            );
         }
         self.gpu_timer.is_some()
     }

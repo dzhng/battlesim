@@ -135,10 +135,22 @@ height field stepped from `Presentation::waves`, taken once per drawn frame
 because taking it advances the field's clock. A step takes a bounded number of
 splats, so a big battle's wakes cost the same however frames batch the steps.
 
-GPU profiling is opt-in. Whole-frame timestamp markers bracket the actual
-ordered frame, including any regional scar submissions, and bounded asynchronous
-readbacks skip saturated frames instead of waiting for the GPU. Resetting the
-measurement window excludes pending samples from the old window.
+GPU profiling is opt-in and owned by [`FrameTimer`](src/timing.rs). Whole-frame
+render-pass timestamp markers bracket the actual ordered frame, including any
+regional scar submissions. Stage counters measure elapsed time between marker
+passes while GPU stages can overlap; GPU traces provide the busy/idle breakdown.
+Each occupied readback owns its query set until mapping completes, so a later frame cannot overwrite counters awaiting resolve.
+`Resolve::InFrame` resolves in the marked encoder; `Resolve::AfterCompletion`
+resolves in a separate submission after queue completion, avoiding stale Metal
+stage counters. Queue callbacks only signal readiness; later frame work submits
+ready resolves without blocking the browser. Native can explicitly wait for a
+frame and its telemetry submission.
+
+Bounded asynchronous readbacks skip saturated frames. Results retain the caller's
+frame identity even when they complete out of order. Resetting the rolling window
+excludes every frame begun before the reset, while its pending result still
+belongs to the original caller. Invalid counters or failed maps remain missing
+measurements rather than zero-duration frames.
 
 [Explicit probes](src/probes.rs) inspect actual GPU sight, indirect arguments
 and grass clumps. They queue bounded snapshot copies before mapping, so later

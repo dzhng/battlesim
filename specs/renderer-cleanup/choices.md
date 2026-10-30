@@ -501,3 +501,70 @@ finding that the base build did not render grass the same way twice.
   constructor. Both are Rust code, so the concept has one owner; the cost is one
   extra triangulation per map load, not per frame. *Sound; watch it* if map
   load time matters, and pass the early mesh to the prebuilt entry then.
+## 12 · Frame timing
+
+- **When:** slice 12. **Choice:** `begin` takes the caller's frame index;
+  `submitted` returns an optional owned `PendingFrame`, whose explicit native
+  wait returns that frame's identity and optional milliseconds. Invalid counters
+  and failed maps remain missing samples. Reset invalidates old rolling-window
+  membership without relabelling or cancelling an already issued frame result.
+  For example, frame 17's readback may finish after frame 19 and after a reset: its ticket
+  still returns frame 17, while the reset window receives neither old frame.
+  Reading a single latest-value field instead could file frame 19's time in
+  frame 17's row. **Gap:** the slice delegated the result API and reset/completion plumbing.
+  **Reach:** native fills the original report row; browser may discard tickets
+  and consume the same bounded rolling window. **Verdict: sound** — delayed or
+  reordered completions cannot become the current frame's sample. Synthetic
+  attribution/reset regressions were each falsified, and the public GPU path
+  exercises both modes with delayed reads and reset between encoding/submission.
+  **Confidence: high.**
+
+- **When:** slice 12. **Choice:** queue-completion callbacks only set an atomic
+  readiness flag. Browser frame work calls `resolve_completed` without waiting;
+  native resolves through its explicit ticket wait, outside timed CPU phases.
+  Each reserved slot owns queries, resolve buffer and readback until mapping
+  completes. If the GPU finishes frame 18 between browser draws, its callback
+  sets the flag; the next draw submits its counter copy and a later map frees
+  the slot. It never waits inside the page's drawing call. **Gap:** the slice
+  delegated non-blocking completion handling;
+  wgpu's completion callback requires `Send` even though WebGPU device handles
+  are thread-local. **Reach:** no browser-specific dependency, unsafe handle
+  transfer or blocking poll enters the core's asynchronous path. Native keeps
+  its render wait followed by its own telemetry-submission wait and its
+  two-render pacing. **Verdict: sound** — native GPU tests cover the non-blocking
+  resolve pump independently of the ticket wait; the WebGPU build validates the
+  callback boundary. **Confidence: high.**
+
+- **When:** slice 12. **Choice:** retain `InFrame` for the browser. A stale end
+  counter could omit a frame's actual GPU work; delaying resolve until completion
+  would recover that missing time. On Apple M6/Metal, Chromium 148 production,
+  AC power, high quality and 1280×720, three Paris reel runs per mode gave GPU
+  means of 9.640–9.913 ms (`InFrame`, median 9.858) and 9.508–9.974 ms
+  (`AfterCompletion`, median 9.899); median reported p95s were 12.385 and
+  12.399 ms. All six recordings ran at 60.002 FPS and passed the FPS-counter and
+  no-GPU-contention checks. Native replay of the exact first browser capture
+  from each mode measured 9.321/9.328 ms means and 12.476/12.459 ms p95s, with
+  all 2,400 reportable frames measured in each. **Gap:** map unknown 6 left the
+  browser's Metal counter validity open. **Reach:** the browser keeps one
+  default; the temporary compiled-mode switch and capture-export hook stay in
+  scratch. These measurements cover this Chromium/Metal path, not Safari or
+  another adapter. **Verdict: sound** — completion resolve recovers no missing
+  GPU duration, its spread overlaps in-frame timing, and both agree with the
+  scale and tail of the exact-input native calibration. **Confidence: high.**
+
+- **When:** slice 12. **Choice:** prove GPU attribution with heavy and light
+  fragment workloads, draining render submissions while deferring every counter
+  resolve/readback until after subsequent frames and reset. If a later frame
+  overwrites an earlier query pair, the heavy frame comes back with the light
+  frame's duration; deliberately sharing all query sets fails that assertion.
+  A later light frame also checks that reusing the old heavy frame's slot does
+  not retain its duration. **Gap:** the slice required attribution coverage
+  without prescribing a GPU fixture. **Reach:** independently created devices
+  isolate the two modes; native's known-stale `InFrame` path checks identity and
+  reset bookkeeping, while `AfterCompletion` also checks workload durations.
+  GPU stages can overlap, so concurrent workload cost is not a reliable control
+  for a timestamp span; production pacing is untouched. The fixture reuses
+  native's existing GPU admission, and belongs with the renderer GPU tests when
+  slice 13 moves them. **Verdict: sound** — controls overlap and startup state
+  while preserving delayed readback, slot retention, reuse and reset coverage.
+  **Confidence: high.**

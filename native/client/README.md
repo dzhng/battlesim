@@ -84,8 +84,10 @@ as a swap chain would. Every changing frame is drawn, so static batches are
 written only when they change. Run a release build under the GPU lock.
 
 Metal can return stale end timestamps when counters resolve in the frame's own
-command buffer. The benchmark waits for that frame to complete, then resolves
-and reads its counters in a separate submission. These profiling waits affect
+command buffer. The benchmark uses the shared
+[`FrameTimer`](../../crates/renderer-core/src/timing.rs) in `AfterCompletion` mode:
+it waits for that frame to complete, then resolves and reads its counters in a
+separate submission. These profiling waits affect
 frame intervals and FPS; the recorded CPU phases exclude them. Compare CPU and
 GPU cost per frame separately from this instrumented throughput. Raw GPU samples
 align with the CPU samples, and incomplete coverage suppresses the aggregate

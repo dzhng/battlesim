@@ -48,8 +48,13 @@ differs between the clients.
   [timing contract](../../../../native/client/README.md#timing-a-scene) explains
   why these instrumented intervals are separate from CPU/GPU phase times.
 - **The same GPU span.** Both clients use the shared [GPU timing owner](../../../../crates/renderer-core/src/timing.rs).
-  Its markers bound the same encoded work; resetting a measurement excludes
-  frames begun before that reset, even when their readbacks complete later.
+  Its render-pass stage markers bound the same encoded work. The browser
+  resolves in-frame; native resolves after completion because its Metal backend
+  can otherwise return stale counters. The browser's Chromium/Metal comparison
+  found no missing GPU duration from resolving in-frame (the
+  [timing decision](../../../../specs/renderer-cleanup/choices.md#12--frame-timing)
+  records the evidence). Resetting a measurement excludes frames begun before
+  that reset, even when their readbacks complete later.
 - **Pacing and surfaces.** The browser runs headless but still draws to its
   canvas surface; native benchmarks bypass acquisition, window copy and
   presentation. In the historical TypeGPU control, Chromium's
