@@ -48,7 +48,8 @@ Weapon rows name one appearance, inherited by the contract's catalog resolver.
 [The look reader](../../crates/presentation/src/looks.rs) is the authority for
 both clients: firing has an explicit recording, while other parts may use the
 mix's defaults. Changing look values never changes battle rules or outcomes.
-A hull's launch currently follows its mount's first weapon row.
+A hull's launch follows the mount's last-fired weapon row (the published
+`WeaponPose.round`), so a mount carrying several weapons plays the one it fired.
 Vehicle loops are keyed by vehicle class
 (the catalog view's `vehicle_class`, which `contract::catalog::UnitType::vehicle_class`
 derives from mobility, hull weight and the logistics role).
