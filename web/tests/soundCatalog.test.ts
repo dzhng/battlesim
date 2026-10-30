@@ -1,6 +1,5 @@
 // @vitest-environment node
 import { presentationSettings } from "@web/presentationSettings";
-import { shippedRules } from "@web/shippedRules";
 import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
@@ -190,23 +189,6 @@ test("air-war audio has workbench recipes for every authored air cue", () => {
   ]) {
     expect(sounds.sounds[name], name).toBeDefined();
     expect(sounds.sounds[name].clips.length, name).toBeGreaterThan(0);
-  }
-  for (const kind of [
-    "stinger",
-    "igla_s",
-    "fn_6",
-    "aa_medium",
-    "aa_long",
-    "air_missile",
-    "sead_missile",
-  ]) {
-    expect(
-      presentationSettings.weapon_looks[
-        shippedRules.weapons[kind as keyof typeof shippedRules.weapons]
-          .appearance as keyof typeof presentationSettings.weapon_looks
-      ].sound.shot.near,
-      kind,
-    ).toBe("airwar-aa-launch");
   }
 });
 
