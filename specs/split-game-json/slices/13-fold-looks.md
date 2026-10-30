@@ -58,8 +58,8 @@ its own look.
 ## Input from 11 — heavy RPG split
 
 Slice 11 deliberately keeps one RPG look and restores the light RPG's levels
-for all three weapons, preserving `rules_hash`. The user chose this interim
-level rather than moving appearance assignments in 11.
+for all three weapons, preserving `rules_hash`. The integrator chose this interim
+level rather than moving appearance assignments in 11; the user was not asked.
 
 `rpg_at_heavy`'s stranded authored values are shot gain **0.55**, far
 **400 m**; blast gain **0.8**, far **450 m** (its contact loudness multiplier

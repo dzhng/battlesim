@@ -116,7 +116,7 @@ shared GPU lock; review remains with the integrator.
 ## Named delta 3 — shared RPG level (declared before changing values)
 
 `rpg_at_light`, `rpg_at_heavy` and `rpg_general` keep their existing shared
-look. Per the user's decision, that look takes the stranded light RPG row's
+look. By the integrator's decision (the user was not asked), that look takes the stranded light RPG row's
 levels: shot gain 0.45 / far 350 m, blast gain 0.55 / far 350 m, contact
 loudness multiplier 2.5. Recordings and visual parts do not change. These
 values come from the stranded `rpg_light` rows in the last mixed fixture;
@@ -132,7 +132,7 @@ sound/effect re-blesses, and rerun unflagged.
 
 The heavy RPG's original shot/blast gains (0.55 / 0.8) and far distances
 (400 / 450 m) are deferred to 13, which may split appearance assignments.
-The user explicitly chose no `rules_hash` change here.
+The integrator chose no `rules_hash` change here; appearance moves belong to 13.
 
 ### Receipt 3
 

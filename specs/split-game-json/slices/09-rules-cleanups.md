@@ -114,7 +114,7 @@ hashes; the other ten corpus cases stay unchanged.
 
 Decisions: `contract::limits` owns explicit hull and air-speed bounds; resolved
 weapons keep their computed range, and encounter patches strip computed ranges
-before re-resolution. Per the user's decision, every ground-hull appearance owns
+before re-resolution. By the integrator's decision (the user was not asked), every ground-hull appearance owns
 `track_gauge` in the source asset catalog and its runtime catalog, with missing
 gauges refused (including faction looks); model binaries were not rebaked.
 Stand-in colours are required prop appearance data, including explicit former
