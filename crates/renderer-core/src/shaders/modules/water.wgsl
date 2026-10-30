@@ -152,6 +152,17 @@ struct WaveSplat {
 // @block water_splats_waveLayout
 @group(0) @binding(2) var<storage, read> splats: array<WaveSplat, WAVE_SPLATS_MAX>;
 
+// @block water_waveTuning
+const WAVE_VEE_WIDTH_SCALE = 0.5;
+const WAVE_VEE_MIN_WIDTH = 1.4;
+const WAVE_VEE_TRAIL_SCALE = 6.0;
+const WAVE_VEE_MIN_TRAIL = 16.0;
+const WAVE_VEE_ARM_SLOPE = 0.5;
+const WAVE_VEE_PROFILE_STEEPNESS = 2.0;
+const WAVE_VEE_FADE_IN = 2.0;
+const WAVE_VEE_FADE_OUT = 0.6;
+const WAVE_VEE_STRENGTH = 0.25;
+
 // @block water_waveStep
 fn waveStep(pos: vec2f) -> vec4f {
     let size = vec2i(textureDimensions(was));
@@ -183,15 +194,15 @@ fn waveStep(pos: vec2f) -> vec4f {
       if (s.kind == 1.0) {
         let back = -dot(offset, s.heading);
         let across = dot(offset, vec2f(-s.heading.y, s.heading.x));
-        let width = max(s.splat.z * 0.5, 1.4);
-        let length = max(s.splat.z * 6.0, 16.0);
-        let arms = (vec2f(across) + back * vec2f(-0.5, 0.5)) / width;
+        let width = max(s.splat.z * WAVE_VEE_WIDTH_SCALE, WAVE_VEE_MIN_WIDTH);
+        let trail = max(s.splat.z * WAVE_VEE_TRAIL_SCALE, WAVE_VEE_MIN_TRAIL);
+        let arms = (vec2f(across) + back * vec2f(-WAVE_VEE_ARM_SLOPE, WAVE_VEE_ARM_SLOPE)) / width;
         let d2 = arms * arms;
-        let profile = (vec2f(1.0) - 2.0 * d2) * exp(-d2);
-        let fade = smoothstep(0.0, 2.0, back) * (1.0 - smoothstep(length * 0.6, length, back));
+        let profile = (vec2f(1.0) - WAVE_VEE_PROFILE_STEEPNESS * d2) * exp(-d2);
+        let fade = smoothstep(0.0, WAVE_VEE_FADE_IN, back) * (1.0 - smoothstep(trail * WAVE_VEE_FADE_OUT, trail, back));
         // Each arm has a dip beside its crest: repeated pushes do not
         // build a mound. The heading keeps both arms behind their source.
-        push += s.splat.w * (profile.x + profile.y) * fade * 0.25;
+        push += s.splat.w * (profile.x + profile.y) * fade * WAVE_VEE_STRENGTH;
       } else {
         // A ring, not a mound: a dip with a rim, which sums to nothing.
         let d2 = dot(offset, offset) / max(s.splat.z * s.splat.z, 0.25);
