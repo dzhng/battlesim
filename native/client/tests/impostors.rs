@@ -75,6 +75,67 @@ impl BundleSource for RigidSource {
     }
 }
 
+struct TexturedSource;
+impl BundleSource for TexturedSource {
+    fn bundle(&self, name: &str) -> Result<Arc<Bundle>, String> {
+        let mut bundle = Arc::unwrap_or_clone(Source.bundle(name)?);
+        bundle.materials[0].textures.insert("albedo".into(), 0);
+        bundle
+            .textures
+            .push(Arc::new(renderer_core::bundle::Texture {
+                id: "pattern".into(),
+                srgb: true,
+                size: 2,
+                levels: vec![
+                    vec![
+                        255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255,
+                    ],
+                    vec![128, 128, 128, 255],
+                ],
+            }));
+        Ok(Arc::new(bundle))
+    }
+}
+
+#[test]
+fn diagnostic_texture_controls_do_not_change_authored_impostor_bakes() {
+    let gpu = gpu::open(&gpu::headless_instance(), None).expect("a real GPU");
+    let pipelines = pipelines::build(&gpu.device).unwrap();
+    let models = Models::from_world(
+        &gpu.device,
+        &gpu.queue,
+        &pipelines,
+        &TexturedSource,
+        &[Appearance {
+            name_len: 4,
+            lies: NONE,
+            ..Default::default()
+        }],
+        "body",
+        |_| Some(vec![identity()]),
+    )
+    .unwrap();
+    let bake = || {
+        pollster::block_on(
+            models
+                .impostor_request(&gpu.device, &gpu.queue, &pipelines, 0, &Spec::runtime())
+                .unwrap()
+                .read(),
+        )
+        .unwrap()
+    };
+    let authored = bake();
+    models.set_texture_channels(&gpu.queue, [false; 3]);
+    let suppressed = bake();
+    assert!(
+        authored.albedo == suppressed.albedo,
+        "diagnostics must not be baked into the authored atlas"
+    );
+    assert_eq!(authored.hash, suppressed.hash);
+    models.set_texture_channels(&gpu.queue, [true; 3]);
+    assert_eq!(authored.hash, bake().hash);
+}
+
 fn make_models(gpu: &gpu::Gpu, pipelines: &renderer_core::pipelines::Pipelines) -> Models {
     Models::from_world(
         &gpu.device,

@@ -122,11 +122,18 @@ impl Models {
             BufferUsages::STORAGE,
             bytemuck::cast_slice(&rest.palette),
         );
+        let materials = crate::buffer(
+            device,
+            queue,
+            "impostor-authored-materials",
+            BufferUsages::STORAGE,
+            bytemuck::cast_slice(&self.authored_materials),
+        );
         let models = crate::model_material::ModelMaterialBindings::new(
             device,
             &self.layout,
             &identity,
-            &self.materials,
+            &materials,
             &self.albedo,
             &self.surface,
             &self.sampler,
