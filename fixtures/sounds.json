@@ -698,6 +698,15 @@
       "path": "assets/third-party/audio/artillery-KX6OPMngT2g.webm",
       "sha256": "a0b27c1361c8a461d1e1d8c3d0e8efee955795b76b0b27c1463d5aa55de73318",
       "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29."
+    },
+    "mortar-live-fire": {
+      "label": "82 mm mortar firing and impact",
+      "author": "Civ Div",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=pujCGZMn_o4",
+      "path": "assets/third-party/audio/mortar-pujCGZMn_o4.webm",
+      "sha256": "63a4379ff1646f02d2649e8c41f9634e58a1a4b7a251aea9a3391392b9d04ce6",
+      "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29."
     }
   },
   "clips": {
@@ -4624,6 +4633,24 @@
         484800,
         523200
       ]
+    },
+    "mortar-launch": {
+      "label": "82 mm mortar launch",
+      "category": "weapon",
+      "role": "shot",
+      "processing": "heavy-report",
+      "url": "/audio/clips/mortar-launch.wav",
+      "sha256": "01ac2209a54002e81508d3a02d4259b6a63414fc4338ef2f34f0d868f7a39707",
+      "sample_rate": 48000,
+      "frames": 49632,
+      "loop": false,
+      "notes": "03 launch crop, aligned to the 2.169 s onset; the impact at about 31 s is excluded. User confirmed the bass-heavy mortar differs audibly from the howitzer.",
+      "source": "mortar-live-fire",
+      "source_rate": 48000,
+      "source_frames": [
+        103968,
+        153600
+      ]
     }
   },
   "sounds": {
@@ -5978,6 +6005,16 @@
       "synth_gain": 0,
       "gain": 1,
       "loop": false
+    },
+    "mortar-combat": {
+      "label": "Mortar \u00b7 recorded launch",
+      "clips": [
+        "mortar-launch"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
     }
   },
   "provenance": {
@@ -6047,6 +6084,25 @@
         "status": "downloaded-unassigned"
       },
       "notes": "03 selected 10.02\u201310.90 s; remove 80 ms of pre-attack bed to align the 10.104 s crack with the observed launch. No target impact. Research download receipt retained at its pre-admission status; sources and weapon looks record acceptance."
+    },
+    "mortar-launch": {
+      "label": "82 mm mortar firing and impact",
+      "author": "Civ Div",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=pujCGZMn_o4",
+      "sha256": "63a4379ff1646f02d2649e8c41f9634e58a1a4b7a251aea9a3391392b9d04ce6",
+      "path": "assets/third-party/audio/mortar-pujCGZMn_o4.webm",
+      "source_frames": [
+        103968,
+        153600
+      ],
+      "processing": "heavy-report; mono decode, source-frame crop, adaptive end fade, 48 kHz PCM16 peak 0.72; see clip for any relay.",
+      "download": {
+        "tool": "yt-dlp",
+        "version": "2026.08.19",
+        "status": "downloaded-unassigned"
+      },
+      "notes": "03 launch crop, aligned to the 2.169 s onset; the impact at about 31 s is excluded. User confirmed the bass-heavy mortar differs audibly from the howitzer. Research download receipt retained at its pre-admission status; sources and weapon looks record acceptance."
     }
   },
   "music": {

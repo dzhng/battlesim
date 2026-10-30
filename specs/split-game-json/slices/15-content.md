@@ -185,3 +185,5 @@ stand; global bloom/exposure, small-arms contrast over wheat and the stated
 visual limitations remain outside this pass.
 
 **Sound done — `artillery` (2026-10-29):** Item 1: a recorded M777 muzzle report replaces the rifle burst. Its aligned crop excludes the target impact. Evidence: shared `evidence-15-sound/artillery/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
+
+**Sound done — `mortar` (2026-10-29):** Item 2: the user-confirmed distinct 82 mm launch replaces the howitzer placeholder; source impact excluded. Evidence: shared `evidence-15-sound/mortar/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
