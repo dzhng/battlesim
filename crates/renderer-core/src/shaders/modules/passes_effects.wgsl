@@ -365,7 +365,7 @@ struct PaintVertexOutput {
 @vertex fn overlayVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) placement: vec4f, @location(4) tint: vec4f) -> OverlayVertexOutput {
   let c = cos(placement.w);
   let s = sin(placement.w);
-  let world = vec3f((((position.x * c) - (position.y * s)) + placement.x), (((position.x * s) + (position.y * c)) + placement.y), (position.z + placement.z));
+  let world = placedPoint(position, placement);
   let clip = (cam.viewProj * vec4f(world, 1f));
   return OverlayVertexOutput(vec4f(clip.x, clip.y, (clip.z * 1.003f), clip.w), world, vec3f(((normal.x * c) - (normal.y * s)), ((normal.x * s) + (normal.y * c)), normal.z), vec4f((color.xyz * tint.xyz), color.w), tint.w);
 }

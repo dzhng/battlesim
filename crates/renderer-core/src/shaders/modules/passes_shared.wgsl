@@ -30,7 +30,7 @@ struct MeshVertexOutput {
   let c = cos(placement.w);
   let s = sin(placement.w);
   let local = position;
-  let world = vec3f((((local.x * c) - (local.y * s)) + placement.x), (((local.x * s) + (local.y * c)) + placement.y), (local.z + placement.z));
+  let world = placedPoint(local, placement);
   let worldNormal = vec3f(((normal.x * c) - (normal.y * s)), ((normal.x * s) + (normal.y * c)), normal.z);
   return MeshVertexOutput((cam.viewProj * vec4f(world, 1f)), world, worldNormal, vec4f((color.xyz * tint.xyz), color.w), tint.w);
 }

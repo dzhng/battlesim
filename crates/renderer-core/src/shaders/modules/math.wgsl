@@ -1,5 +1,12 @@
 // WGSL owner: math.
 
+// @block math_placedPoint
+fn placedPoint(local: vec3f, pose: vec4f) -> vec3f {
+  let c = cos(pose.w);
+  let s = sin(pose.w);
+  return vec3f((((local.x * c) - (local.y * s)) + pose.x), (((local.x * s) + (local.y * c)) + pose.y), (local.z + pose.z));
+}
+
 // @block math_LUMA
 const LUMA = vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B);
 

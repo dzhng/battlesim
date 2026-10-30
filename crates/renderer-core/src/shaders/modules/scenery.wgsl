@@ -75,13 +75,6 @@ fn placedNormal(normal: vec3f, shape: vec4f, yaw: f32) -> vec3f {
   return normalize(vec3f(((nx * c) - (ny * s)), ((nx * s) + (ny * c)), (normal.z / shape.z)));
 }
 
-// @block scenery_placedPoint
-fn placedPoint(local: vec3f, pose: vec4f) -> vec3f {
-  let c = cos(pose.w);
-  let s = sin(pose.w);
-  return vec3f((((local.x * c) - (local.y * s)) + pose.x), (((local.x * s) + (local.y * c)) + pose.y), (local.z + pose.z));
-}
-
 // @block scenery_pastTrunk
 fn pastTrunk(d: f32, radius: f32, k: f32) -> f32 {
   let m = abs(d);
