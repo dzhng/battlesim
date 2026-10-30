@@ -712,7 +712,7 @@
       "impact": {"scale": 1, "surfaces": {}},
       "blast": 1,
       "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 2.5, "far_m": 1000}, "blast": {"gain": 2.6, "far_m": 1000}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 6.0}
+      "sound": {"shot": {"near": "strike-missile-combat", "far": "strike-missile-combat", "gain": 2.5, "far_m": 1000}, "blast": {"gain": 2.6, "far_m": 1000}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 6.0}
     },
     "helicopter_crash": {
       "tracer": {"zoom_boost": 2, "tail_s": 0.009, "tail_m": [3, 10], "glow": {"color": [1.0, 0.36, 0.08], "intensity": 2.5, "width_m": 0.75, "min_px": 6}, "core": {"color": [1.0, 0.6, 0.3], "intensity": 8, "width_m": 0.2, "min_px": 2.5, "share": 0.35}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14}},

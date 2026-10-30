@@ -707,6 +707,15 @@
       "path": "assets/third-party/audio/mortar-pujCGZMn_o4.webm",
       "sha256": "63a4379ff1646f02d2649e8c41f9634e58a1a4b7a251aea9a3391392b9d04ce6",
       "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29."
+    },
+    "strike-missile-live-fire": {
+      "label": "ATACMS / Hyunmoo exercise",
+      "author": "AiirSource Military; footage credited to DoD / Sinthia Rosario",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=8y_1z35LQ40",
+      "path": "assets/third-party/audio/strike-missile-8y_1z35LQ40.webm",
+      "sha256": "785c9d6b712f0f9c99cfb3b439cfc447fdd760311b57de6821ceede634fe3d9b",
+      "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29."
     }
   },
   "clips": {
@@ -4651,6 +4660,24 @@
         103968,
         153600
       ]
+    },
+    "strike-missile-launch": {
+      "label": "M270 strike missile launch",
+      "category": "weapon",
+      "role": "launch",
+      "processing": "launch",
+      "url": "/audio/clips/strike-missile-launch.wav",
+      "sha256": "dbbe70565da297b2178255bdef655783740d78202c5e5b607c7e580ab75d4aa7",
+      "sample_rate": 48000,
+      "frames": 169584,
+      "loop": false,
+      "notes": "03 selected 9.40\u201313.00 s, aligned just before the 9.472 s ignition. One launch, sustained exhaust; target impact excluded.",
+      "source": "strike-missile-live-fire",
+      "source_rate": 48000,
+      "source_frames": [
+        454416,
+        624000
+      ]
     }
   },
   "sounds": {
@@ -6015,6 +6042,16 @@
       "synth_gain": 0,
       "gain": 1,
       "loop": false
+    },
+    "strike-missile-combat": {
+      "label": "Strike missile \u00b7 recorded M270 launch",
+      "clips": [
+        "strike-missile-launch"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
     }
   },
   "provenance": {
@@ -6103,6 +6140,25 @@
         "status": "downloaded-unassigned"
       },
       "notes": "03 launch crop, aligned to the 2.169 s onset; the impact at about 31 s is excluded. User confirmed the bass-heavy mortar differs audibly from the howitzer. Research download receipt retained at its pre-admission status; sources and weapon looks record acceptance."
+    },
+    "strike-missile-launch": {
+      "label": "ATACMS / Hyunmoo exercise",
+      "author": "AiirSource Military; footage credited to DoD / Sinthia Rosario",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=8y_1z35LQ40",
+      "sha256": "785c9d6b712f0f9c99cfb3b439cfc447fdd760311b57de6821ceede634fe3d9b",
+      "path": "assets/third-party/audio/strike-missile-8y_1z35LQ40.webm",
+      "source_frames": [
+        454416,
+        624000
+      ],
+      "processing": "launch; mono decode, source-frame crop, adaptive end fade, 48 kHz PCM16 peak 0.72; see clip for any relay.",
+      "download": {
+        "tool": "yt-dlp",
+        "version": "2026.08.19",
+        "status": "downloaded-unassigned"
+      },
+      "notes": "03 selected 9.40\u201313.00 s, aligned just before the 9.472 s ignition. One launch, sustained exhaust; target impact excluded. Research download receipt retained at its pre-admission status; sources and weapon looks record acceptance."
     }
   },
   "music": {
