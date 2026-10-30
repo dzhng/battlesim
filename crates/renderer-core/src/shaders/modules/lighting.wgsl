@@ -7,21 +7,13 @@ fn shade(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal
 
 // @block lighting_unlit
 fn unlit(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
-  let worldPosition = position;
-  let observer = environment.observer.xyz;
-  let sunDirection = environment.sun.direction.xyz;
-  let sunRadiance = environment.sun.radiance.xyz;
-  let environmentIntensity = environment.sun.fill.xyz;
-  let shadowFloor = environment.sun.settings.y;
-  let maxMip = environment.sun.settings.x;
-  let air = environment.aerial;
-    // What a white matte surface facing the sky returns in sun shadow: the
-    // sky's light and the shadow floor's share of the sun's, as shade and
-    // standardPbr's diffuse terms have them.
-    let skyLight=samplePmrem(pmrem,environmentSampler,vec3f(0.0,0.0,1.0),1.0,maxMip)*environmentIntensity;
-    let white=sunRadiance*max(sunDirection.z,0.0)*shadowFloor*0.3183098861837907+skyLight;
-    return applyAerial(vec4f(colour*white,1),worldPosition,eye,observer,sunDirection,air,sky,environmentSampler);
-  }
+  // What a white matte surface facing the sky returns in sun shadow: the
+  // sky's light and the shadow floor's share of the sun's, as shade and
+  // standardPbr's diffuse terms have them.
+  let skyLight=samplePmrem(pmrem,environmentSampler,vec3f(0.0,0.0,1.0),1.0,environment.sun.settings.x)*environment.sun.fill.xyz;
+  let white=environment.sun.radiance.xyz*max(environment.sun.direction.z,0.0)*environment.sun.settings.y*0.3183098861837907+skyLight;
+  return applyAerial(vec4f(colour*white,1),position,eye,environment.observer.xyz,environment.sun.direction.xyz,environment.aerial,sky,environmentSampler);
+}
 
 // @block lighting_Aerial
 struct Aerial {

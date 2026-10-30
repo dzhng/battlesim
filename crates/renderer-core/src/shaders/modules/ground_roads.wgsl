@@ -29,8 +29,7 @@ fn groundRoads(xy: vec2f, footprint: f32, paved: GroundPaved, under: vec4f) -> v
  let worn=groundShoulder(xy,footprint,paved);
  if(worn.x>0.0){
   let look=terrainParams.roads[u32(worn.y)];
-  let luma=LUMA;
-  let lift=max(1.0,dot(under.xyz,luma)/max(dot(look.shoulder.xyz,luma),1e-5));
+  let lift=max(1.0,dot(under.xyz,LUMA)/max(dot(look.shoulder.xyz,LUMA),1e-5));
   let grain=roadGrain(xy*look.shape.w,footprint*look.shape.w)*GROUND_SHOULDER_GRAIN;
   surface=mix(under,vec4f(look.shoulder.xyz*lift*(1.0+look.shape.z*grain),look.core.w),worn.x*look.edge.w);
  }

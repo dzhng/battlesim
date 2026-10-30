@@ -52,11 +52,10 @@ fn compositeShader(uv: vec2f) -> vec4f {
 // @block post_directShader
 fn directShader(uv: vec2f) -> vec4f {
   let hdr = textureSample(scene, linearSampler, uv);
-  let exposure = grade.exposure;
   let alpha = clamp(hdr.a, 0.0, 1.0);
   var straight = vec3f(0);
   if (alpha > 0.0) { straight = hdr.rgb / alpha; }
-  return vec4f(outputSrgb(agx(straight, exposure)) * alpha, alpha);
+  return vec4f(outputSrgb(agx(straight, grade.exposure)) * alpha, alpha);
 }
 
 // @block post_finalShader
@@ -176,10 +175,9 @@ fn rawShader(uv: vec2f) -> vec4f {
 
 // @block post_blurShader
 fn blurShader(uv: vec2f) -> vec4f {
-  let sampleStep = blurStep;
   var color = textureSample(source,linearSampler,uv).rgb*BLUR_WEIGHTS[0];
   for(var i = 1; i < BLUR_WEIGHTS_LENGTH; i++) {
-    let offset = sampleStep*f32(i);
+    let offset = blurStep*f32(i);
     color += (textureSample(source,linearSampler,uv+offset).rgb+textureSample(source,linearSampler,uv-offset).rgb)*BLUR_WEIGHTS[i];
   }
   return vec4f(color,1);
