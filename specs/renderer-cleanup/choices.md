@@ -746,3 +746,69 @@ finding that the base build did not render grass the same way twice.
   named three shim sites, while inspection found this fourth unused export.
   **Reach:** no renderer-core re-export remains in native. **Verdict: sound** —
   the consumer search found no dependency on the extra forwarding names.
+## 15 · V-wakes
+
+- **Choice:** take the shader-shaping branch. **Gap:** the slice required a
+  browser observation before choosing. **Evidence:** the unprimed baseline
+  critique says, “No clear V-shaped wake reads in these images. Broad waves
+  and detached oval ripples dominate; diverging wake arms are absent.” The
+  probe uses the water reel's existing swamp squad, with a scratch-injected
+  move order; its recorded movement exceeds the V threshold in deep-enough
+  water. No capture fixture or simulation rule changes. Captures, critiques,
+  telemetry and command logs live in `throwaway/vwakes/`. **Verdict:** the
+  unused-field deletion branch would preserve the missing visual contract.
+
+- **Choice:** keep `kind` and replace the splat's padding with a direction of
+  travel, normalized from displacement rather than facing. **Gap:** a step
+  mixes independent waders' impulses without source identities, so adjacent
+  splats cannot reliably supply a heading, especially at starts and turns.
+  **Reach:** CPU impulses carry that heading to the shader; the GPU record
+  stays the same size, with no extra splats, steps, allocations or changed
+  wake limits. Slow and shallow sources retain the ring equation.
+  **Verdict:** one explicit directional input avoids guessing across units.
+
+- **Choice:** shape fast/deep impulses as paired trailing crests with
+  transverse dips, soft ends and a hull-relative footprint with a minimum
+  visible infantry footprint. Each arm's transverse profile integrates to
+  zero, avoiding a persistent mound. A wider minimum crest and lower
+  amplitude soften the first candidate's etched, oversized chevrons after
+  the fresh critique flagged them. **Gap:** the slice delegated the shape.
+  **Reach:** this deliberately changes water pictures; it does not change
+  water colour, source eligibility, emission cadence, simulation or digests.
+  **Verdict:** candidate only; the user has not accepted these pictures.
+
+- **Choice:** keep the directional GPU observation in renderer-core's tests,
+  using the production built-in wave-step pipeline and its registered layout.
+  A calm input isolates the impulse before propagation without replacing
+  shader constants. It observes displacement behind travel in perpendicular
+  headings, both arms, and a symmetric ring control. A presentation regression
+  also checks travel differing from facing. **Gap:** the slice required an
+  observation without naming its test seam. **Reach:** neither an enum value
+  nor shader text alone can satisfy the directional observation.
+  **Verdict:** shader composition and entry-point selection retain one owner;
+  the regression observes the actual production pipeline's output.
+
+- **Choice:** allow `WATER_BROWSER_ONLY=1` for the water scene, retaining
+  native replay by default. **Gap:** this delegated pass must run the water
+  scene without rendering native plates. **Reach:** browser capture, water
+  separation and directional observations still run; native plate proof
+  remains the orchestrator's job. The stale shipped-water README now points
+  to the actual native wave-history gap. **Verdict:** explicit omission,
+  never a claim that native parity was checked here.
+
+- **Choice:** keep all picture changes and their regression coverage in one
+  droppable commit, separate from the browser-only runner option and stale
+  documentation correction. **Gap:** visual acceptance belongs to the user.
+  **Reach:** screenshots and critiques are review evidence, not approval;
+  no native plates, pushes, PRs or merges are performed by this pass.
+  **Verdict:** pending user sign-off on the final candidate.
+
+  Final browser evidence: `before/wading.png` and `final/wading.png` under
+  `throwaway/vwakes/` use the same camera and tick; all shared publication
+  digests match. The comparison verdict is **candidate less wrong for the
+  promised V visibility**, not accepted art. The final unprimed critique
+  says, “the supplied wading image meets the literal visible V-shaped
+  trailing wake requirement for infantry.” It still flags separation from
+  the legs and overly regular, sharp ridges. Those are unresolved visual
+  concerns for sign-off; stills do not prove motion quality or vehicle
+  wakes. The native plates remain unrendered by this pass.

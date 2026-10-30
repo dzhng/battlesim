@@ -300,6 +300,8 @@ pub struct WakeImpulse {
     pub radius: f64,
     pub strength: f64,
     pub kind: WakeKind,
+    /// Unit direction of travel; rings have no direction.
+    pub heading: [f64; 2],
     pub at: f64,
 }
 

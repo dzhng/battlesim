@@ -564,7 +564,8 @@ crate::records! {
         /// V-wake).
         step: f32,
         kind: f32,
-        pad: [f32; 2],
+        /// Unit direction of travel in the field's x/y axes; zero for rings.
+        heading: [f32; 2],
     }
 
     /// One sun cascade as a shadow receiver reads it. An unfitted cascade is

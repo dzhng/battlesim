@@ -146,6 +146,7 @@ struct WaveSplat {
   splat: vec4f,
   step: f32,
   kind: f32,
+  heading: vec2f,
 }
 
 // @block water_splats_waveLayout
@@ -178,10 +179,24 @@ fn waveStep(pos: vec2f) -> vec4f {
     for (var k = 0u; k < run.splats; k++) {
       let s = splats[k];
       if (u32(s.step) != run.step) { continue; }
-      // A ring, not a mound: a dip with a rim, which sums to nothing, so
-      // pushes made again and again never pile the water up.
-      let d2 = dot(pos - s.splat.xy, pos - s.splat.xy) / max(s.splat.z * s.splat.z, 0.25);
-      push += s.splat.w * (1.0 - d2) * exp(-d2);
+      let offset = pos - s.splat.xy;
+      if (s.kind == 1.0) {
+        let back = -dot(offset, s.heading);
+        let across = dot(offset, vec2f(-s.heading.y, s.heading.x));
+        let width = max(s.splat.z * 0.5, 1.4);
+        let length = max(s.splat.z * 6.0, 16.0);
+        let arms = (vec2f(across) + back * vec2f(-0.5, 0.5)) / width;
+        let d2 = arms * arms;
+        let profile = (vec2f(1.0) - 2.0 * d2) * exp(-d2);
+        let fade = smoothstep(0.0, 2.0, back) * (1.0 - smoothstep(length * 0.6, length, back));
+        // Each arm has a dip beside its crest: repeated pushes do not
+        // build a mound. The heading keeps both arms behind their source.
+        push += s.splat.w * (profile.x + profile.y) * fade * 0.25;
+      } else {
+        // A ring, not a mound: a dip with a rim, which sums to nothing.
+        let d2 = dot(offset, offset) / max(s.splat.z * s.splat.z, 0.25);
+        push += s.splat.w * (1.0 - d2) * exp(-d2);
+      }
     }
     next = clamp(next + clamp(push, -4.0, 4.0) * 0.25, -1.0, 1.0);
     let edge = min(min(c.x, size.x - 1 - c.x), min(c.y, size.y - 1 - c.y));

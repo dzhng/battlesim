@@ -17,6 +17,7 @@ ryu-js = "1"
 libm = "0.2"
 
 [dev-dependencies]
+half = "2"
 wgpu = "30.0.1"
 pollster = "0.4"
 presentation = { path = "../presentation", features = ["files"] }

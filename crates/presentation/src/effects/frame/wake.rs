@@ -43,6 +43,7 @@ pub(super) fn wake(
                 radius,
                 strength: style.vee_strength,
                 kind: WakeKind::Vee,
+                heading: [d[0] / dist, d[1] / dist],
                 at: t0 + dt * ahead / dist,
             }));
             ahead += style.spacing_m;
@@ -65,6 +66,7 @@ pub(super) fn wake(
                 radius,
                 strength: style.ring_strength * (0.8 + 0.4 * rng.sample()),
                 kind: WakeKind::Rings,
+                heading: [0.0; 2],
                 at: k / style.ring_hz,
             });
         }
@@ -110,7 +112,7 @@ impl EffectFrame {
                     ],
                     step: (k - first) as f32,
                     kind: f32::from(u8::from(w.kind == WakeKind::Vee)),
-                    pad: [0.0; 2],
+                    heading: w.heading.map(|v| v as f32),
                 })
             })
             .collect();
