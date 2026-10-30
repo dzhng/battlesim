@@ -288,12 +288,10 @@
   },
   {
     "id": "ally-help",
-    "route": "/battle?type=mixed&size=medium&seed=1&battle=20260925&blue=h,a&blue_faction=us&red=a,a&red_faction=eastern",
-    "describe": "A 2v2 team battle: you hold the far objective with one squad, and under pressure your AI ally sends a detachment, not its whole force, toward your objective.",
+    "route": "/labs/ally-help",
+    "describe": "A controlled 2v2 team battle: one squad holds an objective under visible enemy pressure. Your AI ally sends a detachment, keeps its main force, and advances toward the held objective.",
     "map": null,
-    "catalog": "game",
-    "loading": false,
-    "timeout_s": 1500
+    "catalog": "test"
   },
   {
     "id": "benchmark",
