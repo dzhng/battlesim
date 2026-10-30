@@ -411,7 +411,7 @@ async function apache(ctx, page, css, surface) {
   await lab(page, (v) => window.__lab.route.variant(v), "apache");
   await page.waitForFunction(() => window.__lab?.route?.reset);
   await lab(page, () => window.__lab.route.reset());
-  await page.waitForFunction(() => window.__lab.route?.tick() > 0);
+  await page.waitForFunction(() => window.__lab?.route?.tick() > 0);
   await lab(page, () => window.__lab.route.pause());
   // Tick by tick to the chin gun's second round, at the tick its flash is
   // drawn: a drawn gun is level until its first round and eases down to it
@@ -666,7 +666,7 @@ async function lostSign(ctx, page, surface, css) {
  *  most 30 s), pause it and return its observation. */
 async function begin(page, variant, until = "identified") {
   await lab(page, (v) => window.__lab.route.variant(v), variant);
-  await page.waitForFunction(() => window.__lab.route?.reset);
+  await page.waitForFunction(() => window.__lab?.route?.reset);
   await lab(page, () => window.__lab.route.reset());
   await page.waitForFunction(
     (until) => {

@@ -3,8 +3,25 @@
 import { writeFile } from "node:fs/promises";
 import { capture } from "./_png.mjs";
 
-/** Run `fn(arg)` in the page. */
-export const lab = (page, fn, arg) => page.evaluate(fn, arg);
+/** Run `fn(arg)` after any reset or side switch installs the lab again. */
+export async function lab(page, fn, arg) {
+  const invoke = new Function(
+    "arg",
+    `return window.__lab?.ready
+      ? Promise.resolve((${fn})(arg)).then(value => ({ ready: true, value }))
+      : { ready: false };`,
+  );
+  const deadline = Date.now() + 30000;
+  for (;;) {
+    await page.waitForFunction(() => window.__lab?.ready, undefined, {
+      timeout: Math.max(1, deadline - Date.now()),
+    });
+    // A remount can clear the handle between two Playwright calls. Check and
+    // invoke in one browser task; retry only when the action never ran.
+    const result = await page.evaluate(invoke, arg);
+    if (result.ready) return result.value;
+  }
+}
 
 /** Hide everything drawn over the world (panels, callouts and their DOM
  *  leader lines, the frame rate, whose number changes shot to shot), so a
