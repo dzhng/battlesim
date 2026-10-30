@@ -53,7 +53,7 @@ rays or material light.
 [`Runtime`](src/runtime/) constructs and prepares the complete renderer from
 canonical presentation, source assets and external geometry. A held publication
 reuses its model/effect buffers; a new canonical frame prepares them again.
-Fog and scar work still prepare for every drawn frame because their incremental
+Fog and scar work prepare for every drawn frame because their incremental
 work must be consumed rather than replayed.
 
 [World geometry](src/runtime/world.rs) constructs submitted layers for both
@@ -69,9 +69,9 @@ presentation records; shells cannot substitute their own pass implementations.
 The same owner routes model surface classes and fog, encodes cascades, grows
 grass over the prepared scar pages, and submits regional ground draws when the
 scar budget requires them. It completes post, the fog rim and optional player
-overlays into one display texture. Surface admission, presentation of that
-texture and requests for readback remain shell concerns; the core owns the
-shared copy and mapping protocol. With `separate_high_air` enabled, high-air
+overlays into one display texture. Shells own surface admission, presentation
+of that texture and requests for readback; the core owns the shared copy and
+mapping protocol. With `separate_high_air` enabled, high-air
 models render to their own output for composition between UI planes.
 
 Ground paint and display marks share geometry inputs but have separate depth

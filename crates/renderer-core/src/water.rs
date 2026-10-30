@@ -7,7 +7,7 @@
 //! pass.
 use presentation::effects::frame::WaveFrame;
 use presentation::records::WaveSplat;
-use presentation::wave::{STEP_SPLATS, WAVE};
+use presentation::wave::{SPLATS_MAX, STEP_SPLATS, WAVE};
 use wgpu::*;
 
 use crate::frame::FrameInputs;
@@ -108,7 +108,7 @@ fn full_screen(
 }
 
 /// The splat storage allocation covers every step's budget.
-const SPLATS_BYTES: usize = STEP_SPLATS * WAVE.max_steps as usize * size_of::<WaveSplat>();
+const SPLATS_BYTES: usize = SPLATS_MAX * size_of::<WaveSplat>();
 
 /// What a frame's waves ask of a field last run in `epoch` (None: no
 /// battle). A new epoch, or a battle gone, clears it first, even with no

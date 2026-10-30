@@ -25,28 +25,31 @@ Decisions made where the spec was silent, per slice, with verdicts
   foreign trait for arrays). `bytemuck` is re-exported hidden for the macro.
   *Sound.*
 - **The TypeScript generator takes two explicit lists**, field offsets and
-  strides, because they have different readers; it exports 32 names (was
-  114). Every production, test and scene reader is kept, including dynamic
-  scene imports. *Sound.*
-- **A test-only record (`Nested`) exercises the exported macro, `i32` and both
-  nesting forms against inline WGSL.** *Provisional:* it tests the checker, not
-  the shaders; delete it once slices 03–04 give real records those shapes.
+  strides, restricted to records the browser reads. Production, test and scene
+  readers are included, including dynamic scene imports. Batch field docs name
+  pass and fog constants as Rust names, not browser exports. *Sound.*
+- **Real nested and signed records exercise reflection.** `Environment`,
+  `CastLights`, `ScarParams`, `Sun`, `Rays` and signed `WaveRun` fields exercise
+  the exported schema against production WGSL without a synthetic record. *Sound.*
 
 ## 03 · Ground records
 
-- **Keep the WGSL member names**, with snake-case Rust fields, so the assembled
-  shaders change only where integer literals become constant names. *Sound.*
+- **Keep WGSL leaf member names**, with snake-case Rust fields. Scar parameters
+  nest cache placement and biome appearance into `ScarCacheParams` and `ScarLook`;
+  shader accesses follow `cache` and `look` without changing field offsets,
+  arithmetic or the uniform's byte size. *Sound.*
 - **Name the ground field's primitive shift `KIND_SHIFT` beside its masks** and
   use it in CPU encoding/decoding and the `GROUND_KIND_SHIFT` export. Name the
   paved table bound `ROAD_LOOKS_MAX` in `tables`, derived from
   `AREA_KINDS.len()`. *Sound:*
   the encoders and their shader readers share the owners.
-- **Fill typed ground records and cast their bytes with bytemuck.** The `f4`
-  helper rounds only after f64 arithmetic; integer fields stay integer. Grass
-  frame updates mutate the typed record. Append packing remains only for
-  variable-length tables; offsets delimit partial record publications and the
-  GPU's scar-enable write. *Sound:* field placement has one owner, without a
-  parallel offset-based writer.
+- **Carry typed ground records to upload.** `TerrainTables.params` holds the
+  complete `TerrainParams`, including zeroed renderer diagnostic modes;
+  `GrassParams` stays typed through frame updates; scar uploads supply
+  `ScarCacheParams`, composed with the biome's `ScarLook` by field assignment.
+  The `f4` helper rounds only after f64 arithmetic; integer fields stay integer.
+  Cast at upload, retaining offset writes only for diagnostic toggles and scar
+  enable. *Sound:* no truncated records, word splicing or duplicated writers.
 - **The road loops and out-of-range sentinel also use `ROAD_LOOKS_MAX`**,
   covering five count uses beyond the array declaration. *Sound:* they read the
   same bounded table.
@@ -67,8 +70,9 @@ Decisions made where the spec was silent, per slice, with verdicts
 - **Authored `Paint` remains a strict configuration type.** Its `record()`
   packs `GroundPaintStyle` with zero padding; the shader field is
   `grassFalloffM`, matching the authored metre-valued field.
-- **The runtime stores typed `OverlayGlow`, admitting the shell's four floats
-  at its boundary.** Overlay construction and updates accept that record.
+- **The runtime's construction and update boundaries accept typed `OverlayGlow`.**
+  The browser constructs it from its public radius and strength arguments;
+  callers do not pass positional padding through the runtime API.
 - **Padding is excluded from member-name comparison on both sides**, while
   spans and the offsets of every non-padding field remain checked. This admits
   explicit WGSL padding for `WaveRun` without inventing semantic fields.
@@ -83,9 +87,6 @@ Decisions made where the spec was silent, per slice, with verdicts
 - **The local light visibility variable is `sunlight`.** Composition aliases
   rename that local instead of the `sun` record member, because aliases replace
   every whole identifier token, including member accesses.
-- **The synthetic nested-schema test is removed** (resolving slice 02's
-  provisional entry). Real `Environment`,
-  `CastLights`, `Sun`, `Rays` and signed `WaveRun` fields exercise those paths.
 ## Grass determinism prerequisite
 
 The user was not asked about any of these; the integrator decided them after
@@ -178,11 +179,11 @@ finding that the base build did not render grass the same way twice.
   `GrassShapeVertex`; renderer-core owns `FogProbe`.** Their names and members
   match the existing WGSL so reflection covers the upload contracts without
   changing shader code or binding declarations.
-- **Pack typed records and cast with bytemuck.** Plot and blade arithmetic stays
+- **Keep plot records typed until upload.** Plot and blade arithmetic stays
   f64 until each final f32 conversion; plot children remain signed integers.
-  Surface inputs are already f32 and retain their existing zero fill and tail
-  semantics. Public word/float buffer interfaces and empty-buffer sentinels stay
-  unchanged.
+  CPU surface queries consume flat float slices, so surface packing writes those
+  directly using the reflected `SurfaceRecord` stride and the existing zero-fill
+  and tail semantics. Empty storage bindings retain their sentinel record.
 - **Derive repeated record strides from the schema.** Existing public surface
   and blade float counts read their record sizes; minimum plot buffers also use
   record sizes. Input plot-tree nodes still use their own CPU source stride.
@@ -437,10 +438,12 @@ finding that the base build did not render grass the same way twice.
 ## 11 · Track side
 
 - **When:** slice 11. **Choice:** `TrackSide` is a left/right enum and
-  `Rig::track_side` derives the per-node answer from admitted tracks rather
-  than storing another node flag. `CatalogView::track_side` reads prospective
-  assets before live assets; raw `Models::from_world` callers supply the same
-  fact by row and node. **Gap:** the slice delegated accessor/type names and
+  admitted `Track.side` stores that enum directly; serde preserves the existing
+  `left: boolean` JSON contract. `Rig::track_side` reads the admitted side rather
+  than converting another flag. `CatalogView` resolves the row's appearance once
+  for rest palettes and track sides: prospective assets, canonical battle
+  appearances, then live tooling assets. Raw `Models::from_world` callers supply
+  the same fact by row and node. **Gap:** the slice delegated accessor/type names and
   the raw-world seam. **Reach:** both platform shells and staged replacements
   use presentation's pitch-qualified rig; synthetic renderer fixtures explicitly
   supply no tracks. **Verdict: sound. Confidence: high.**
@@ -463,6 +466,11 @@ finding that the base build did not render grass the same way twice.
   Native plate identity remains the orchestrator's verification gate.
   **Verdict: sound. Confidence: high.**
 ## 10 · World geometry
+
+- **Terrain tables hold only material inputs they publish.** Heights, plots and
+  water cells are computed by their actual consumers from the canonical ground;
+  `TerrainTables` does not compute unused copies. *Sound:* one computed value per
+  consumer, without retaining dead tables.
 
 - **When:** slice 10. **Choice:** `WorldGeometry::from_triangles` accepts an
   optional `(surface bytes, blocked bit)` tint, ten-float extra faces and an

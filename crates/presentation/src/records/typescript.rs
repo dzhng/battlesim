@@ -63,8 +63,8 @@ pub fn typescript() -> String {
         out.push_str(&names("EFFECT_KINDS", &EFFECT_KINDS));
         out.push_str(&names("SHAPE_NAMES", &SHAPE_NAMES));
     }
-    // Field offsets and strides have different browser readers. Neither list
-    // grows when another crate declares a GPU record.
+    // The browser reads only these records: field offsets for inspection and
+    // strides for array views.
     for l in [
         &Appearance::LAYOUT,
         &Batch::LAYOUT,

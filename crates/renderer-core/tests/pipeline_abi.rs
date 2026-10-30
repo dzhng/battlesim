@@ -58,7 +58,7 @@ fn module(shader: &str) -> naga::Module {
         .unwrap_or_else(|error| panic!("{shader}: {error}"))
 }
 
-fn members(shader: &str, name: &str) -> (Vec<(String, u32)>, u32) {
+fn span(shader: &str, name: &str) -> u32 {
     let module = module(shader);
     let ty = module
         .types
@@ -66,16 +66,10 @@ fn members(shader: &str, name: &str) -> (Vec<(String, u32)>, u32) {
         .find(|(_, ty)| ty.name.as_deref() == Some(name))
         .unwrap_or_else(|| panic!("{shader} declares no struct {name}"))
         .1;
-    let TypeInner::Struct { members, span } = &ty.inner else {
+    let TypeInner::Struct { span, .. } = &ty.inner else {
         panic!("{name} is not a struct")
     };
-    (
-        members
-            .iter()
-            .map(|member| (member.name.clone().unwrap(), member.offset))
-            .collect(),
-        *span,
-    )
+    *span
 }
 
 #[test]
@@ -87,9 +81,7 @@ fn builtin_shaders_match_record_layouts() {
     {
         let mut found = false;
         for shader in renderer_core::pipelines::builtin_shaders() {
-            let source = renderer_core::pipelines::builtin_source(shader).unwrap();
-            let module =
-                wgsl::parse_str(&source).unwrap_or_else(|error| panic!("{shader}: {error}"));
+            let module = module(shader);
             let Some((handle, _)) = module
                 .types
                 .iter()
@@ -113,8 +105,11 @@ fn builtin_shaders_match_record_layouts() {
 fn grass_stride_matches_the_builtin_shader_sources() {
     let expected = renderer_core::pipelines::builtin_sizes().grass_clump as u32;
     for shader in ["grassBuild.wgsl", "grassDraw.wgsl"] {
-        let (_, span) = members(shader, "GrassClump");
-        assert_eq!(span, expected, "{shader} GrassClump stride");
+        assert_eq!(
+            span(shader, "GrassClump"),
+            expected,
+            "{shader} GrassClump stride"
+        );
     }
 }
 
