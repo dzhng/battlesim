@@ -246,7 +246,7 @@ fn a_squad_sent_into_a_closed_yard_stops_outside_it() {
 }
 
 #[test]
-fn an_enclosed_destination_uses_reachable_ground_beside_the_pocket() {
+fn a_reachable_goal_places_formation_slots_beside_a_closed_pocket() {
     let mut rules = common::scenario_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
@@ -260,28 +260,48 @@ fn an_enclosed_destination_uses_reachable_ground_beside_the_pocket() {
             {"kind":"wall","center":[240,180],"yaw":0,"half_extents":[20,3,2]},
             {"kind":"wall","center":[220,160],"yaw":0,"half_extents":[3,20,2]},
             {"kind":"wall","center":[260,160],"yaw":0,"half_extents":[3,20,2]}]}"#,
-        json!([{"side":"blue","kind":"test_rifle","position":[180,160],"yaw":0}]),
+        json!([
+            {"side":"blue","kind":"test_rifle","position":[160,160],"yaw":0},
+            {"side":"blue","kind":"test_rifle","position":[190,160],"yaw":0}
+        ]),
         json!([]),
     );
     setup.rules = serde_json::from_value(rules).unwrap();
     let mut battle = Battle::new(&setup, 1);
-    let destinations = battle
+    // The click is on open ground east of the yard, but the rear squad's
+    // intended formation slot falls inside it. The slot search must continue.
+    let goal = [285.0, 160.0];
+    let single = battle
         .preview_move(
             Side::Blue,
             &contract::command::MovePreviewRequest {
                 units: vec![UnitId(0)],
-                goal: [240.0, 160.0],
+                goal,
                 ..Default::default()
             },
         )
         .unwrap();
-    assert!(
-        destinations[0].placed,
-        "reachable ground outside the known closed pocket remains available: {destinations:?}"
-    );
-    let p = destinations[0].goal;
-    assert!(
-        p[0] < 219.0 || p[0] > 261.0 || p[1] < 139.0 || p[1] > 181.0,
-        "marker must remain outside the pocket: {p:?}"
-    );
+    assert!(single[0].placed, "the ordered goal itself is reachable");
+    assert_eq!(single[0].goal, goal);
+    let destinations = battle
+        .preview_move(
+            Side::Blue,
+            &contract::command::MovePreviewRequest {
+                units: vec![UnitId(0), UnitId(1)],
+                goal,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    for destination in destinations {
+        assert!(
+            destination.placed,
+            "reachable ground beside the pocket remains available: {destination:?}"
+        );
+        let p = destination.goal;
+        assert!(
+            p[0] < 219.0 || p[0] > 261.0 || p[1] < 139.0 || p[1] > 181.0,
+            "marker must remain outside the pocket: {p:?}"
+        );
+    }
 }

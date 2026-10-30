@@ -74,6 +74,11 @@ retain debug invariants for already-admitted inputs.
 Rules follow physical components, with the game's [first-principles policy](../../development.md#game-rules)
 explaining where deliberate cinematic exceptions belong.
 
+[Move placement](src/battle/move_placement.rs) admits the ordered goal before
+spreading the formation around it. A disconnected goal is refused; a reachable
+goal lets individual slots search past closed pockets. Hulls retain their nearby
+parking resolution when the ordered ground cannot accommodate them.
+
 [Skirmish authority](src/skirmish.rs) owns player wallets, preparation and pending
 reinforcements; [the player list](../contract/src/players.rs) says who plays.
 A confirmed purchase reserves both its cost and a place under the player's unit
