@@ -345,11 +345,11 @@ impl EffectPresentation {
             None => Ok(()),
         };
         for (k, look) in &self.looks.looks {
-            let t = &look.tracer;
+            let Some(t) = &look.tracer else { continue };
             cast(format!("tracers.{k}"), &t.cast, false)?;
         }
         for (k, look) in &self.looks.looks {
-            let f = &look.flash;
+            let Some(f) = &look.flash else { continue };
             cast(format!("flashes.{k}"), &f.cast, true)?;
         }
         for (k, s) in &self.smoke {
@@ -364,7 +364,7 @@ impl EffectPresentation {
                 format!("impacts.{hit}.cast outlives its impact")
             })?;
             for (kind, look) in &self.looks.looks {
-                let Some(s) = look.impact.surfaces.get(hit) else {
+                let Some(s) = look.impact.as_ref().and_then(|i| i.surfaces.get(hit)) else {
                     continue;
                 };
                 let ok = s.size.is_finite() && s.size > 0.0 && s.duration.is_finite();
@@ -385,7 +385,7 @@ impl EffectPresentation {
         })?;
         self.cook_off.validate()?;
         for (k, look) in &self.looks.looks {
-            let f = &look.flash;
+            let Some(f) = &look.flash else { continue };
             ensure(f.dust.is_finite() && f.dust >= 0.0, || {
                 format!("flashes.{k}.dust must be ≥ 0")
             })?;
@@ -444,14 +444,14 @@ impl EffectPresentation {
         }
         longest = longest.max(c.impact_after() + burst(&b.plume));
         for look in self.looks.looks.values() {
-            let f = &look.flash;
+            let Some(f) = &look.flash else { continue };
             let lit = f.cast.map_or(0.0, |c| c.duration_s);
             longest = longest.max(f.duration_s).max(f.fireball_s).max(lit);
         }
         for (hit, i) in &self.impacts {
             longest = longest.max(i.duration_s);
             for look in self.looks.looks.values() {
-                if let Some(s) = look.impact.surfaces.get(hit) {
+                if let Some(s) = look.impact.as_ref().and_then(|i| i.surfaces.get(hit)) {
                     longest = longest.max(i.duration_s * s.duration);
                 }
             }
@@ -463,7 +463,7 @@ impl EffectPresentation {
                 .max(s.smoulder.life_s);
         }
         for look in self.looks.looks.values() {
-            let t = &look.tracer;
+            let Some(t) = &look.tracer else { continue };
             if let Some(s) = &t.smoke {
                 longest = longest.max(s.puff.life_s);
             }

@@ -5,7 +5,6 @@
  *  rows expire a few seconds after the sound was last heard, and only the
  *  newest few show. Hearing cues are always captioned, independently of
  *  audio settings. */
-import { shippedRules } from "@web/shippedRules";
 import { useSessionCatalog } from "../catalog/context";
 import { useCallback, useState } from "react";
 import type { ObservationView, SoundCueView } from "../sim/observationView";
@@ -13,8 +12,8 @@ import { unitName } from "./readouts";
 
 /** Rows shown at most. */
 export const CAPTION_ROWS = 3;
-/** A row lasts this long after its sound was last heard (ticks). */
-export const CAPTION_TICKS = 5 * shippedRules.tick_hz;
+/** A row lasts this long after its sound was last heard (seconds). */
+export const CAPTION_SECONDS = 5;
 
 const DIRECTIONS = [
   "east",
@@ -68,8 +67,9 @@ export function foldCaptions(
   rows: readonly CaptionLine[],
   heard: readonly CaptionLine[],
   tick: number,
+  tickHz: number,
 ): CaptionLine[] {
-  let next = rows.filter((r) => tick - r.tick < CAPTION_TICKS);
+  let next = rows.filter((r) => tick - r.tick < CAPTION_SECONDS * tickHz);
   for (const line of heard) {
     const old = next.find((r) => r.key === line.key);
     next = [
@@ -80,7 +80,7 @@ export function foldCaptions(
   return next.slice(0, CAPTION_ROWS);
 }
 
-export function useCaptions() {
+export function useCaptions(tickHz: number) {
   const { units } = useSessionCatalog();
   const [captions, setCaptions] = useState<CaptionLine[]>([]);
 
@@ -92,11 +92,11 @@ export function useCaptions() {
         return cueLine(cue, o.tick, listener ? unitName(units, listener) : "a unit");
       });
       setCaptions((current) => {
-        const expiring = current.some((r) => o.tick - r.tick >= CAPTION_TICKS);
-        return lines.length || expiring ? foldCaptions(current, lines, o.tick) : current;
+        const expiring = current.some((r) => o.tick - r.tick >= CAPTION_SECONDS * tickHz);
+        return lines.length || expiring ? foldCaptions(current, lines, o.tick, tickHz) : current;
       });
     },
-    [units],
+    [units, tickHz],
   );
 
   /** A fresh battle starts with nothing heard. */

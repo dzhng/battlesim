@@ -34,3 +34,17 @@
   style samples, not each weapon's trajectory or blast radius. Rejected
   blanks for unfielded looks, visibility-dependent street shots, and
   presentation-only production hooks.
+
+
+## Slice 10
+
+- **Sound, high confidence — a replay refuses a contradictory clock.** When a
+  capture says it ran at a different tick rate from the encounter it names,
+  native refuses it. Guessing which clock to trust could mis-time every shot
+  while still drawing plausible frames. The slice did not specify this failure
+  case; future captures must preserve their encounter's tick rate.
+- **Sound, high confidence — absent look parts remain absent.** A crash can
+  supply only its blast. Fired rounds still need explicit tracer, impact and
+  kick data in addition to shot and flash, because those consumers require
+  them; the fielding error names the weapon. Rejected filling missing parts
+  with synthetic zero values, which would hide an incomplete authored look.

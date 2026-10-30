@@ -10,11 +10,16 @@ use std::sync::Arc;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct WeaponLook {
-    pub tracer: Arc<TracerStyle>,
-    pub flash: Arc<FlashStyle>,
-    pub impact: Impact,
-    pub blast: f64,
-    pub kick: Kick,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tracer: Option<Arc<TracerStyle>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub flash: Option<Arc<FlashStyle>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub impact: Option<Impact>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blast: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kick: Option<Kick>,
     pub sound: LookSound,
 }
 
@@ -35,36 +40,76 @@ pub struct Kick {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct LookSound {
-    pub shot: NearFar,
-    pub blast: NearFar,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shot: Option<NearFar>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blast: Option<NearFar>,
     pub motor: Option<OneShot>,
     #[serde(default)]
     pub impacts: BTreeMap<String, String>,
-    pub impact_scale: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub impact_scale: Option<f64>,
 }
 
 impl WeaponLook {
     pub fn check(&self, name: &str) -> Result<(), String> {
         let path = format!("presentation.weapon_looks.{name}");
         crate::settings::validate::numbers(self, &path, &[".forward_m"])?;
-        self.tracer.validate(name)?;
-        for (field, value) in [
-            ("blast", self.blast),
-            ("impact.scale", self.impact.scale),
-            ("sound.shot.far_m", self.sound.shot.far_m),
-            ("sound.blast.far_m", self.sound.blast.far_m),
-        ] {
+        if let Some(tracer) = &self.tracer {
+            tracer.validate(name)?;
+        }
+        if let Some(impact) = &self.impact {
             crate::settings::validate::range(
-                &format!("{path}.{field}"),
-                value,
+                &format!("{path}.impact.scale"),
+                impact.scale,
                 f64::MIN_POSITIVE,
                 f64::MAX,
             )?;
         }
-        if self.sound.shot.near.is_empty() || self.sound.shot.far.is_empty() {
-            return Err(format!(
-                "{path}.sound.shot: firing needs explicit near and far recordings"
-            ));
+        if let Some(blast) = self.blast {
+            crate::settings::validate::range(
+                &format!("{path}.blast"),
+                blast,
+                f64::MIN_POSITIVE,
+                f64::MAX,
+            )?;
+        }
+        for (part, sound) in [("shot", &self.sound.shot), ("blast", &self.sound.blast)] {
+            if let Some(sound) = sound {
+                crate::settings::validate::range(
+                    &format!("{path}.sound.{part}.far_m"),
+                    sound.far_m,
+                    f64::MIN_POSITIVE,
+                    f64::MAX,
+                )?;
+            }
+        }
+        if let Some(shot) = &self.sound.shot {
+            if shot.near.is_empty() || shot.far.is_empty() {
+                return Err(format!(
+                    "{path}.sound.shot: firing needs explicit near and far recordings"
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn check_firing(&self, weapon: &str) -> Result<(), String> {
+        for (part, missing) in [
+            ("tracer", self.tracer.is_none()),
+            (
+                "impact",
+                self.impact.is_none() || self.sound.impact_scale.is_none(),
+            ),
+            ("kick", self.kick.is_none()),
+            ("shot", self.sound.shot.is_none()),
+            ("flash", self.flash.is_none()),
+        ] {
+            if missing {
+                return Err(format!(
+                    "weapons.{weapon}.appearance: missing firing {part}"
+                ));
+            }
         }
         Ok(())
     }
@@ -87,20 +132,39 @@ impl WeaponLooks {
     }
 
     pub fn new(looks: BTreeMap<String, Arc<WeaponLook>>, weapons: &Value) -> Result<Self, String> {
-        for (name, look) in &looks {
-            look.check(name)?;
-        }
         let rows =
             contract::weapons::resolve_weapons(weapons).map_err(|e| format!("weapons: {e}"))?;
         let mut index = BTreeMap::new();
         for (id, row) in rows {
-            if !looks.contains_key(&row.appearance) {
-                return Err(format!(
-                    "weapons.{id}.appearance: unknown look {}",
-                    row.appearance
-                ));
+            let look = looks.get(&row.appearance).ok_or_else(|| {
+                format!("weapons.{id}.appearance: unknown look {}", row.appearance)
+            })?;
+            if id != "helicopter_crash" {
+                look.check_firing(&id)?;
+            }
+            let required = [
+                (
+                    "blast",
+                    row.blast_radius_m > 0.0
+                        && (look.blast.is_none() || look.sound.blast.is_none()),
+                ),
+                (
+                    "motor",
+                    row.ballistics.accel_mps2.is_some() && look.sound.motor.is_none(),
+                ),
+            ];
+            for (part, missing) in required {
+                if missing {
+                    return Err(format!(
+                        "weapons.{id}.appearance ({}): missing {part}",
+                        row.appearance
+                    ));
+                }
             }
             index.insert(id, row.appearance);
+        }
+        for (name, look) in &looks {
+            look.check(name)?;
         }
         Ok(Self {
             weapons: index,
@@ -132,11 +196,13 @@ impl WeaponLooks {
                     ));
                 }
             }
-            if s.blast.near.is_empty() {
-                s.blast.near = audio.weapon_defaults.blast.near.clone();
-            }
-            if s.blast.far.is_empty() {
-                s.blast.far = audio.weapon_defaults.blast.far.clone();
+            if let Some(blast) = &mut s.blast {
+                if blast.near.is_empty() {
+                    blast.near = audio.weapon_defaults.blast.near.clone();
+                }
+                if blast.far.is_empty() {
+                    blast.far = audio.weapon_defaults.blast.far.clone();
+                }
             }
             if let Some(m) = &mut s.motor {
                 if m.sound.is_empty() {
@@ -157,10 +223,18 @@ impl WeaponLooks {
     ) -> Result<(), String> {
         for (name, look) in &self.looks {
             let at = format!("presentation.weapon_looks.{name}.sound");
-            catalog.check_shot(&look.sound.shot, &at)?;
+            if let Some(shot) = &look.sound.shot {
+                catalog.check_shot(shot, &at)?;
+            }
             for (part, sound) in [
-                ("blast.near", Some(look.sound.blast.near.as_str())),
-                ("blast.far", Some(look.sound.blast.far.as_str())),
+                (
+                    "blast.near",
+                    look.sound.blast.as_ref().map(|s| s.near.as_str()),
+                ),
+                (
+                    "blast.far",
+                    look.sound.blast.as_ref().map(|s| s.far.as_str()),
+                ),
                 ("motor", look.sound.motor.as_ref().map(|m| m.sound.as_str())),
             ] {
                 if let Some(sound) = sound {

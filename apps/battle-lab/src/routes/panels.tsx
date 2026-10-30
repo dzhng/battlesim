@@ -1,4 +1,3 @@
-import { shippedRules } from "@web/shippedRules";
 import { useFeed } from "../feed";
 import { useLabLoading } from "../LabLoading";
 // The panel workbench: every info panel the battle can draw (the specimens
@@ -11,15 +10,12 @@ import { InfoPanel, PanelCallout, PassengerCards } from "@web/battle/present/inf
 import type { PanelRules } from "@web/battle/present/panelRows";
 import { useEffect, useState } from "react";
 import { useSessionCatalog } from "@web/battle/catalog/context";
-import { presentationRules } from "@web/battle/catalog/sets";
 import { panelSpecimens, specimenUnit, type Specimen } from "../panelSpecimens";
 
 import type { CommandControl } from "@web/battle/present/commandBar";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { CaptionList } from "@web/battle/present/captions";
-
-const GAME_RULES = shippedRules as unknown as PanelRules;
 
 /** The specimens shown again over grass: one of each kind of panel. */
 const OVER_GRASS = [
@@ -53,7 +49,7 @@ export default function Panels() {
   const params = new URLSearchParams(location.search);
   const scale = Number(params.get("scale") ?? 1) || 1;
   const catalog = useSessionCatalog();
-  const specimens = panelSpecimens(catalog, presentationRules(GAME_RULES, catalog), {
+  const specimens = panelSpecimens(catalog, catalog.rules as unknown as PanelRules, {
     testUnitsOnly: params.get("units") === "test",
   });
   const groups = [...new Set(specimens.map((s) => s.group))];
@@ -98,7 +94,7 @@ export default function Panels() {
 /** The real selection and command components over controlled presentation data. */
 function DeckReview({ onBack }: { onBack: () => void }) {
   const catalog = useSessionCatalog();
-  const rules = presentationRules(GAME_RULES, catalog);
+  const rules = catalog.rules as unknown as PanelRules;
   const cases: {
     name: string;
     units: ReturnType<typeof specimenUnit>[];

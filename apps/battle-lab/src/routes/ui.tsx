@@ -12,7 +12,6 @@ import { Link } from "react-router";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
 import { useSessionCatalog } from "@web/battle/catalog/context";
-import { presentationRules } from "@web/battle/catalog/sets";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { CaptionList, type CaptionLine } from "@web/battle/present/captions";
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
@@ -38,8 +37,6 @@ import { MenuButton, PauseMenu } from "../PauseMenu";
 import { specimenUnit } from "../panelSpecimens";
 import { MatchResultOverlay } from "../MatchResultOverlay";
 import { reportSpecimen } from "../reportSpecimens";
-
-const GAME_RULES = shippedRules as unknown as PanelRules;
 
 const MATCH: SkirmishView = {
   phase: "active",
@@ -183,7 +180,7 @@ function Status({ match }: { match: SkirmishView }) {
 /** The deck with its reinforcements, as a battle in preparation shows it. */
 function Purchase({ match }: { match: SkirmishView }) {
   const catalog = useSessionCatalog();
-  const rules = presentationRules(GAME_RULES, catalog);
+  const rules = catalog.rules as unknown as PanelRules;
   const own = ["test_tank", "test_rifle", "test_at"].map((kind, i) =>
     specimenUnit(catalog, kind, { id: i + 1 }),
   );

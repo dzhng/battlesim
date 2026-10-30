@@ -128,7 +128,6 @@ export async function fieldedBattle(input: {
   if (!catalog) throw new Error("a battle was fielded before the runtime catalog was loaded");
   const fielding = new Fielding(
     JSON.stringify(presentationSettings),
-    JSON.stringify(JSON.parse(input.rules).weapons),
     input.rules,
     JSON.stringify(input.catalog),
     JSON.stringify(catalog),

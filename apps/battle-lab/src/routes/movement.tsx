@@ -102,6 +102,7 @@ function MovementLab({ battle }: { battle: SavedBattle }) {
     if (!world || !observation) return undefined;
     return orderLayer(
       session.units,
+      session.rules.air,
       observation,
       control.selected,
       session.revealed,
@@ -116,6 +117,7 @@ function MovementLab({ battle }: { battle: SavedBattle }) {
     session.revealed,
     surfaceZ,
     session.units,
+    session.rules.air,
   ]);
   const overlayFeed = useFeed(overlay);
   // Obstacles blue has learned since setup (the tick-150 wall once met).

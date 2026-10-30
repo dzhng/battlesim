@@ -54,7 +54,11 @@ export interface SessionCatalog {
 }
 
 /** `fixtures/rules.json` with a set's documents as its `catalog`. */
-export type GameRules = Omit<typeof import("../../../../fixtures/rules.json"), "default"> & {
+export type GameRules = Omit<
+  typeof import("../../../../fixtures/rules.json"),
+  "default" | "weapons"
+> & {
+  weapons: Record<string, WeaponRow>;
   catalog: unknown[];
 };
 
@@ -64,33 +68,25 @@ export type GameRules = Omit<typeof import("../../../../fixtures/rules.json"), "
  *  wrote. */
 export function composeCatalog(
   set: CatalogSetName,
-  rules: Omit<GameRules, "catalog">,
+  rules: Omit<GameRules, "catalog" | "weapons"> & { weapons: object },
   gameView: GameView,
   added: readonly string[],
   resolve: (documentsJson: string) => string,
+  resolveRules: (rulesJson: string) => string,
 ): SessionCatalog {
   const documents = [...gameView.documents.map((d) => JSON.stringify(d)), ...added];
   const view: CatalogView = added.length
     ? (JSON.parse(resolve(`[${documents.join(",")}]`)) as CatalogView)
     : gameView;
+  const admitted = JSON.parse(
+    resolveRules(JSON.stringify({ ...rules, catalog: view.documents })),
+  ) as GameRules;
   return {
     set,
     units: new UnitCatalog(view),
-    weapons: gameView.weapons,
-    rules: { ...rules, catalog: view.documents },
+    weapons: admitted.weapons,
+    rules: admitted,
   };
-}
-
-/** A scenario's rules as the page reads them: each weapon row as the
- *  catalog resolves it (`extends` followed, so a row inherits its icon,
- *  full load and range), beside any row the scenario adds. Panels, the
- *  range ruler and poses read these; the authority is sent the scenario's
- *  own text and resolves it itself. */
-export function presentationRules<R extends { weapons: object }>(
-  rules: R,
-  catalog: SessionCatalog,
-): R {
-  return { ...rules, weapons: { ...rules.weapons, ...catalog.weapons } };
 }
 
 /** The units a scenario fields, admitted against its session's catalog:

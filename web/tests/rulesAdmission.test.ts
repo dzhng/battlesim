@@ -75,6 +75,7 @@ test.each(invalid)("$path is refused before any WASM handle is returned", ({ pat
   const map = JSON.stringify(bad.map);
   const setup = JSON.stringify(bad);
   for (const create of [
+    () => wasm.resolve_rules(rules),
     () => new wasm.Battle(setup, 1),
     () => wasm.Battle.from_replay(setup, "{}"),
     () => new wasm.PreparedWorld(map, rules),
@@ -95,6 +96,7 @@ test.each(invalid)("$path is refused before any WASM handle is returned", ({ pat
   }
   const upload = badUpload(path);
   for (const create of [
+    () => wasm.resolve_rules(rules),
     () => wasm.PreparedWorld.from_bundle(upload),
     () => wasm.canonical_scenario_bundle(upload),
     () => wasm.scenario_bundle_details(upload),

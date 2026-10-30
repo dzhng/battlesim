@@ -88,6 +88,7 @@ function ConsequencesLab({ battle }: { battle: SavedBattle }) {
     const remains = remainsLayer(observation, memory.current, surfaceZ);
     const orders = orderLayer(
       session.units,
+      session.rules.air,
       observation,
       control.selected,
       session.revealed,
@@ -104,6 +105,7 @@ function ConsequencesLab({ battle }: { battle: SavedBattle }) {
     control.selected,
     session.revealed,
     session.units,
+    session.rules.air,
   ]);
   const overlayFeed = useFeed(overlay);
 

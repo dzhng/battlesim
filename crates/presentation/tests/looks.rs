@@ -84,7 +84,6 @@ fn fired_look(added: bool) {
     let kinds = vec!["test_tank".into(), "test_supply".into()];
     let fielded = Fielding {
         presentation: &settings,
-        weapons: &rules["weapons"],
         rules: &rules,
         catalog: &catalog,
         runtime: &runtime.catalog,
@@ -166,4 +165,119 @@ fn a_look_cannot_silently_assign_a_recording_to_a_misspelled_surface() {
     assert!(result
         .expect_err("unknown surface must be refused")
         .contains("hulll"));
+}
+
+#[test]
+fn fielding_names_the_weapon_when_its_look_lacks_a_required_part() {
+    for (weapon, part) in [
+        ("atgm", "motor"),
+        ("tank_he", "blast"),
+        ("tank_ap", "shot"),
+        ("tank_ap", "flash"),
+        ("tank_ap", "appearance"),
+        ("tank_ap", "tracer"),
+        ("tank_ap", "impact"),
+        ("tank_ap", "kick"),
+    ] {
+        let mut rules = sim::fixtures::test_game();
+        let mut settings = fixture("presentation");
+        let name = rules["weapons"][weapon]["appearance"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        if part == "appearance" {
+            rules["weapons"][weapon]["appearance"] = json!("unknown_look");
+        } else if ["motor", "shot"].contains(&part) {
+            settings["weapon_looks"][&name]["sound"]
+                .as_object_mut()
+                .unwrap()
+                .remove(part);
+        } else {
+            settings["weapon_looks"][&name]
+                .as_object_mut()
+                .unwrap()
+                .remove(part);
+        }
+        let rules: contract::scenario::Rules = serde_json::from_value(rules).unwrap();
+        let catalog = rules.catalog.view();
+        let rules = serde_json::to_value(rules).unwrap();
+        let result = presentation::fielded::Fielding {
+            presentation: &settings,
+            rules: &rules,
+            catalog: &catalog,
+            runtime: &json!({}),
+            kinds: &[],
+            factions: None,
+        }
+        .resolve(&|_| panic!("bad fielding must not read assets"));
+        let error = result
+            .err()
+            .expect("missing physics-required look part was accepted");
+        assert!(
+            error.contains(weapon) && error.contains(part),
+            "{weapon}/{part}: {error}"
+        );
+    }
+}
+
+#[test]
+fn a_crash_look_needs_no_firing_parts() {
+    let mut settings = fixture("presentation");
+    let original = settings["weapon_looks"]["helicopter_crash"].clone();
+    settings["weapon_looks"]["helicopter_crash"] = json!({
+        "blast": original["blast"], "sound": {"blast":original["sound"]["blast"]}
+    });
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+    let catalog = rules.catalog.view();
+    let rules = serde_json::to_value(rules).unwrap();
+    presentation::fielded::Fielding {
+        presentation: &settings,
+        rules: &rules,
+        catalog: &catalog,
+        runtime: &json!({}),
+        kinds: &[],
+        factions: None,
+    }
+    .resolve(&|_| panic!("no units need assets"))
+    .unwrap();
+}
+
+#[test]
+fn a_crash_mounted_as_a_gun_must_supply_firing_parts() {
+    let mut settings = fixture("presentation");
+    let original = settings["weapon_looks"]["helicopter_crash"].clone();
+    settings["weapon_looks"]["helicopter_crash"] = json!({
+        "blast":original["blast"],"sound":{"blast":original["sound"]["blast"]}
+    });
+    let base: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+    for weapons in [
+        json!(["helicopter_crash"]),
+        json!(["tank_ap", "helicopter_crash"]),
+    ] {
+        let rules = base
+            .clone()
+            .overridden(
+                json!({"units":{"test_tank":{"mounts":[{"id":"cannon","weapons":weapons}]}}})
+                    .as_object()
+                    .unwrap(),
+            )
+            .unwrap();
+        let catalog = rules.catalog.view();
+        let rules = serde_json::to_value(rules).unwrap();
+        let result = presentation::fielded::Fielding {
+            presentation: &settings,
+            rules: &rules,
+            catalog: &catalog,
+            runtime: &json!({}),
+            kinds: &["test_tank".into()],
+            factions: None,
+        }
+        .resolve(&|_| panic!("invalid firing look must be refused before reading art"));
+        let error = result
+            .err()
+            .expect("every ammunition kind needs firing parts");
+        assert!(error.contains("helicopter_crash"), "{error}");
+    }
 }

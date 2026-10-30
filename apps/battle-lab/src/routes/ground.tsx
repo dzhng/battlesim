@@ -193,6 +193,7 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
     const remains = remainsLayer(observation, memory.current, surfaceZ);
     const orders = orderLayer(
       session.units,
+      session.rules.air,
       observation,
       control.selected,
       session.revealed,
@@ -212,6 +213,7 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
     cells,
     shown,
     session.units,
+    session.rules.air,
   ]);
   const overlayFeed = useFeed(overlay);
 

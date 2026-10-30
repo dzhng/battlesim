@@ -1,11 +1,12 @@
+import { SessionCatalogProvider } from "@web/battle/catalog/context";
 // The end-of-match report: every player's totals under their side, a
 // timeline naming each player, and a result judged from the viewer's side.
 import { cleanup, render, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import { MatchResultOverlay } from "@apps/battle-lab/src/MatchResultOverlay";
-import { SkirmishStatus } from "@apps/battle-lab/src/battleStatus";
+import { BattleClock, SkirmishStatus } from "@apps/battle-lab/src/battleStatus";
 import type { Seat } from "@web/battle/present/playerName";
-import { WithTestCatalog } from "./catalog";
+import { TEST_CATALOG, WithTestCatalog } from "./catalog";
 import type { MatchEventView, SkirmishView } from "@web/battle/sim/observationView";
 
 afterEach(cleanup);
@@ -180,4 +181,23 @@ test("a player's purchases in one minute read as one line of the timeline", () =
   expect(red3[0].textContent).toContain("1200 CREDITS");
   expect(rows[10].textContent).toContain("BLUE 3 · AI");
   expect(rows[10].textContent).toContain("1:01");
+});
+
+test("consecutive battle clocks and report minutes use their own tick rates", () => {
+  const players = seats("h", "a");
+  const match = finished(players, "blue", [spawn(1100, 0, 1), spawn(1250, 0, 2)]);
+  const battle = (tickHz: number) => (
+    <SessionCatalogProvider
+      catalog={{ ...TEST_CATALOG, rules: { ...TEST_CATALOG.rules, tick_hz: tickHz } }}
+    >
+      <BattleClock tick={1200} />
+      <MatchResultOverlay match={match} seats={players} viewer="blue-1" />
+    </SessionCatalogProvider>
+  );
+  const view = render(battle(30));
+  expect(view.getByTestId("clock").textContent).toBe("0:40");
+  expect(view.container.querySelectorAll('[data-event="spawn"]')).toHaveLength(1);
+  view.rerender(battle(20));
+  expect(view.getByTestId("clock").textContent).toBe("1:00");
+  expect(view.container.querySelectorAll('[data-event="spawn"]')).toHaveLength(2);
 });

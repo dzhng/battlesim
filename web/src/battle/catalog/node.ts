@@ -1,8 +1,7 @@
 // Node's session factory, for tools and scenes: the committed game view and
 // a set's own documents read from `fixtures/`, composed as the browser's
-// (`sets.ts`) are. The WebAssembly resolver is loaded only for a set with
-// documents of its own (`bun run build:wasm` first), so a tool that reads
-// only the game's units never needs it.
+// (`sets.ts`) are. Rules are admitted and resolved by WebAssembly
+// (`bun run build:wasm` first), as they are on the page.
 //
 // Plain TypeScript with no bundler features, so Node scripts import it too.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -39,23 +38,18 @@ export async function nodeCatalogSet(set: CatalogSetName, root = ROOT): Promise<
   const read = (path: string) => readFileSync(path, "utf8");
   const gameView = JSON.parse(read(join(root, "fixtures/catalog.json"))) as GameView;
   const added = ownDocuments(set, root);
-  let resolve = (_json: string): string => {
-    throw new Error("nothing to resolve");
-  };
-  if (added.length) {
-    if (!existsSync(WASM))
-      throw new Error(
-        `the simulation's WebAssembly is not built (${WASM}): run \`bun run build:wasm\``,
-      );
-    const wasm = await import("../../wasm/game_wasm.js");
-    wasm.initSync({ module: readFileSync(WASM) });
-    resolve = wasm.resolve_catalog;
-  }
+  if (!existsSync(WASM))
+    throw new Error(
+      `the simulation's WebAssembly is not built (${WASM}): run \`bun run build:wasm\``,
+    );
+  const wasm = await import("../../wasm/game_wasm.js");
+  wasm.initSync({ module: readFileSync(WASM) });
   return composeCatalog(
     set,
     JSON.parse(read(join(root, "fixtures/rules.json"))),
     gameView,
     added,
-    resolve,
+    wasm.resolve_catalog,
+    wasm.resolve_rules,
   );
 }

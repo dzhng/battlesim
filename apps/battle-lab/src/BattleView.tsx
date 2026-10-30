@@ -1,3 +1,4 @@
+import { SessionCatalogProvider } from "@web/battle/catalog/context";
 import {
   ObjectiveMarkers,
   type ObjectiveMarkersHandle,
@@ -122,6 +123,7 @@ export function BattleView({
     () => ({
       size: (JSON.parse(scenario) as { map: { size: [number, number] } }).map.size,
       drawn: battleOverlayScenario(scenario, side ?? "blue"),
+      tickHz: (JSON.parse(scenario) as { rules: { tick_hz: number } }).rules.tick_hz,
     }),
     [scenario, side],
   );
@@ -132,7 +134,7 @@ export function BattleView({
   const metresPerPx = metresPerPxAt(ZOOM_BASE ** zoom, camera.fovY, window.innerHeight);
   const [renderScale, setRenderScale] = useState(1);
   const contactFacing = useContactFacing(camera, metresPerPx, renderScale);
-  const cues = useCaptions();
+  const cues = useCaptions(parsed.tickHz);
   const { note: noteCues } = cues;
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewportReady, setViewportReady] = useState(false);
@@ -200,6 +202,7 @@ export function BattleView({
       world && observation
         ? buildBattleOverlay(
             session.units,
+            session.rules,
             observation,
             control.selected,
             surfaceZ,
@@ -219,6 +222,7 @@ export function BattleView({
       session.allies,
       contactFacing.facing,
       session.units,
+      session.rules,
       world,
       observation,
       contacts,
@@ -261,7 +265,7 @@ export function BattleView({
   if (sim.error && onFailure) return cover ?? null;
   if (!meshes && !sim.error) return cover ?? null;
   return (
-    <>
+    <SessionCatalogProvider catalog={session.catalog}>
       {/* A battle that failed to start draws nothing under its refusal. */}
       {meshes && !sim.error && (
         <LabViewport
@@ -403,6 +407,6 @@ export function BattleView({
           viewer={session.viewer?.id ?? null}
         />
       )}
-    </>
+    </SessionCatalogProvider>
   );
 }

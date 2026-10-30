@@ -46,3 +46,36 @@ overrides, which is the fix.
 **Would change this slice:** a reader that can't get the battle's rules
 without a second parse path. Fix the seam; don't keep the raw-file read
 alongside it.
+
+
+## Done — 2026-10-29
+
+Both fielding bindings read weapons from the battle's rules. Native fielding
+and audio take the resolved `Rules`; replay loads its encounter through
+`sim::maps`, including its unit mounts. Browser sessions admit and serialize
+rules through wasm, rebuild their catalog and sound per battle, and provide
+those rules to the HUD. Ghost heights call the Rust cruise-height owner.
+
+Proof: all 77 probe/shader files match `after-08-merged/SHA256SUMS`; all six
+native `plate-*.png` files match `before/native/` by `cmp`. No output or identity
+was re-blessed. Evidence is under
+`/Users/server/dev/battlesim/throwaway/split-game-json/after-10/`.
+Consecutive native and wasm battles fire their real encounter-added gun through
+the publication, fielding and sound path. Fielding refusal tests cover unknown
+looks and missing physics-required parts, including a crash with only its blast.
+Mounted ammunition is checked for firing parts too: mounting that blast-only
+crash row refuses it by name, including when it is a later ammunition choice.
+The presentation crate, native replay/count/audio tests, focused web tests,
+rebuilt wasm, typecheck, lint, clippy and the staged size ratchet passed.
+
+Decisions: retain `catalog.json`'s weapon publication for tools, while sessions
+read their weapon rows exclusively from admitted rules. Look parts may be absent
+when unused (the crash needs only a blast); fired rounds retain explicit tracer,
+impact and kick data instead of acquiring defaults. Native replay refuses a
+capture clock that disagrees with its encounter. Spatial sound calculations were
+extracted without changing behavior to leave the oversized sound frame smaller.
+
+Review: shape, diff and docs reviewed; a before/after native plate was inspected
+and opened together in Preview. An unprimed screenshot critique remains for the
+integrator: this implementation-subagent brief prohibits starting child agents.
+Whole-repository closeout remains slice 16.

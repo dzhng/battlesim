@@ -315,12 +315,9 @@ impl SoundTables {
             .collect();
         for look in self.looks.looks.values() {
             let s = &look.sound;
-            names.extend([
-                s.shot.near.as_str(),
-                s.shot.far.as_str(),
-                s.blast.near.as_str(),
-                s.blast.far.as_str(),
-            ]);
+            for part in [&s.shot, &s.blast].into_iter().flatten() {
+                names.extend([part.near.as_str(), part.far.as_str()]);
+            }
             names.extend(s.motor.as_ref().map(|m| m.sound.as_str()));
             names.extend(s.impacts.values().map(String::as_str));
         }
@@ -361,7 +358,12 @@ impl SoundTables {
 
     /// The admitted firing recording and levels, without a fallback.
     pub fn shot(&self, kind: &str) -> NearFar {
-        self.looks.get(kind).sound.shot.clone()
+        self.looks
+            .get(kind)
+            .sound
+            .shot
+            .clone()
+            .expect("fielded firing sound")
     }
 
     /// A round's exact recording on the observed contact material.

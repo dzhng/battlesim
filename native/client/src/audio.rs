@@ -182,7 +182,7 @@ pub struct Audio {
 /// `audio.json`, the sound catalog, the weapon rows, the tick rate,
 /// and the effects' smoke and cook-off.
 pub fn setup(
-    rules: &Value,
+    rules: &contract::scenario::Rules,
     presentation: &Value,
     audio: &Value,
     catalog: &Value,
@@ -193,8 +193,8 @@ pub fn setup(
         "audio": audio,
         "presentation": presentation,
         "catalog": catalog,
-        "weapons": rules["weapons"],
-        "tick_hz": rules["tick_hz"],
+        "weapons": rules.weapons,
+        "tick_hz": rules.tick_hz,
         "effects": { "smoke": fx.smoke, "cook_off": fx.cook_off },
     })
     .to_string())

@@ -23,10 +23,6 @@ fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-fn game() -> Value {
-    serde_json::from_slice(&std::fs::read(root().join("fixtures/rules.json")).unwrap()).unwrap()
-}
-
 /// `scenario` with a swamp 0.6 m deep over each of `rects` (x0, y0, x1, y1).
 fn flooded(scenario: &ScenarioDefinition, rects: &[[f64; 4]]) -> ScenarioDefinition {
     let mut v = serde_json::to_value(scenario).unwrap();
@@ -58,17 +54,16 @@ fn ground_of(scenario: &ScenarioDefinition) -> Ground {
 }
 
 /// Blue's observation and its effects' publication after each of `ticks`
-/// ticks of `scenario`, its map fielded as `map`'s.
+/// ticks of `scenario`.
 fn watch(
     scenario: &ScenarioDefinition,
-    map: &str,
     ticks: u64,
     mut each: impl FnMut(&Observation, &EffectPublication),
 ) {
     let ground = ground_of(scenario);
     let water = ground.standing_water();
     let kinds: Vec<String> = scenario.units.iter().map(|u| u.kind.clone()).collect();
-    let f = fielded::fielded(&root(), &game(), map, &kinds).unwrap();
+    let f = fielded::fielded(&root(), &scenario.rules, &kinds).unwrap();
     let mut battle = Battle::new(scenario, 21);
     let mut reader = Reader::new(&publication::layout_json(&battle)).unwrap();
     let mut publisher = Publisher::new();
@@ -100,7 +95,7 @@ fn a_squad_riding_in_an_apc_makes_no_wake_and_the_apc_does() {
         &[[150.0, 200.0, 280.0, 300.0], [470.0, 220.0, 530.0, 280.0]],
     );
     let (mut rode, mut seen) = (0, 0);
-    watch(&scenario, "transport", 880, |o, p| {
+    watch(&scenario, 880, |o, p| {
         let wading = |id: f64| {
             let key = side_key(id, true);
             p.shooters
@@ -153,7 +148,7 @@ fn a_round_landing_in_the_water_splashes_and_one_on_the_bank_raises_dust() {
     let water = ground_of(&scenario);
     let water = water.standing_water();
     let (mut splashed, mut dusty) = (0, 0);
-    watch(&scenario, "air", 30 * 30, |_, p| {
+    watch(&scenario, 30 * 30, |_, p| {
         for s in &p.segments {
             let [x, y, _] = s.path[s.path.len() - 1];
             let wet = water.at(x, y).is_some();
@@ -192,7 +187,7 @@ fn a_tank_on_a_bridge_over_the_river_does_not_wade() {
         "the river runs under it"
     );
     let mut seen = 0;
-    watch(&scenario, "air", 60, |o, p| {
+    watch(&scenario, 60, |o, p| {
         let tank = &o.own[0];
         let s = p
             .shooters
@@ -236,13 +231,13 @@ fn a_soldier_crossing_a_puddle_makes_rings() {
     v["scripts"] = json!([{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
         "gesture": 1, "goal": [px + 25.0, py], "route": "shortest" } }]);
     let scenario: ScenarioDefinition = serde_json::from_value(v).unwrap();
-    let f = fielded::fielded(&root(), &game(), "air", &["test_rifle".to_owned()]).unwrap();
+    let f = fielded::fielded(&root(), &scenario.rules, &["test_rifle".to_owned()]).unwrap();
     let presentation =
         presentation::effects::tables::EffectPresentation::from_value(&f.effects.presentation)
             .unwrap();
     let mut frame = presentation::effects::frame::EffectFrame::new(30.0, presentation);
     let (mut waded, mut made) = (0, vec![]);
-    watch(&scenario, "air", 30 * 30, |o, p| {
+    watch(&scenario, 30 * 30, |o, p| {
         waded += p.shooters.iter().map(|s| s.wading.len()).sum::<usize>();
         frame.note(p);
         let t = o.tick / 30.0;

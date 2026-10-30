@@ -387,7 +387,15 @@ impl EffectFrame {
         let (t0, t1) = ((tick - 1.0) * dt, tick * dt);
         let mut rng = Mulberry32::new((tick as u32).wrapping_mul(GOLDEN));
         let p = &self.p;
-        let chance = |kind: &str| p.looks.get(kind).tracer.chance.unwrap_or(1.0);
+        let chance = |kind: &str| {
+            p.looks
+                .get(kind)
+                .tracer
+                .as_ref()
+                .expect("fielded tracer")
+                .chance
+                .unwrap_or(1.0)
+        };
         let launches = self.launches.note(publication, gap, Some(&chance));
         // A flash at each, and a hull's heavy gun's dust.
         for l in &launches {
@@ -442,7 +450,7 @@ impl EffectFrame {
                 t1,
                 b.point,
                 b.radius,
-                p.looks.get(&b.kind).blast,
+                p.looks.get(&b.kind).blast.expect("fielded blast"),
                 1.0,
                 &mut rng,
             );

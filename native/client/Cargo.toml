@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+sim = { path = "../../crates/sim" }
+contract = { path = "../../crates/contract" }
 presentation = { path = "../../crates/presentation", features = ["files"] }
 renderer-core = { path = "../../crates/renderer-core" }
 kira = { version = "0.12.5", default-features = false, features = ["cpal"] }

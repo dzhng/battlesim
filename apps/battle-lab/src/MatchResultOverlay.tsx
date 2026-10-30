@@ -1,7 +1,6 @@
 // The end-of-match report: the result as the viewer's side reads it, every
 // player's totals as a scoreboard under their side, and the battle's story,
 // each line naming the player behind it.
-import { shippedRules } from "@web/shippedRules";
 import { cardIcon, hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { Icon } from "@web/battle/present/icons";
@@ -31,9 +30,7 @@ type Line =
     }
   | { kind: "kill"; tick: number; event: Extract<MatchEventView, { kind: "kill" }> };
 
-const MINUTE = 60 * shippedRules.tick_hz;
-
-function timeline(events: readonly MatchEventView[]): Line[] {
+function timeline(events: readonly MatchEventView[], tickHz: number): Line[] {
   const lines: Line[] = [];
   const open = new Map<string, Extract<Line, { units: Unit[] }>>();
   for (const event of events) {
@@ -42,7 +39,7 @@ function timeline(events: readonly MatchEventView[]): Line[] {
       continue;
     }
     const owner = event.owner ?? null;
-    const key = `${event.kind} ${owner ?? event.side} ${Math.floor(event.tick / MINUTE)}`;
+    const key = `${event.kind} ${owner ?? event.side} ${Math.floor(event.tick / (60 * tickHz))}`;
     const unit = { kind: event.unitKind, id: event.unitId };
     const line = open.get(key);
     if (line) {
@@ -152,6 +149,7 @@ function Purchases({ who, units }: { who: Who; units: Unit[] }) {
 }
 
 function LineRow({ line, names }: { line: Line; names: Names }) {
+  const { rules } = useSessionCatalog();
   if (line.kind === "kill") {
     const { event } = line;
     const killer = event.killer;
@@ -159,7 +157,7 @@ function LineRow({ line, names }: { line: Line; names: Names }) {
     const you = victim.you || (!!killer && nameOf(names, killer.owner, killer.side).you);
     return (
       <li className="match-result-event" data-event="kill" data-you={you || undefined}>
-        <time>{clock(line.tick)}</time>
+        <time>{clock(line.tick, rules.tick_hz)}</time>
         {killer ? (
           <Actor
             who={nameOf(names, killer.owner, killer.side)}
@@ -190,7 +188,7 @@ function LineRow({ line, names }: { line: Line; names: Names }) {
   const one = line.units.length === 1;
   return (
     <li className="match-result-event" data-event={line.kind} data-you={who.you || undefined}>
-      <time>{clock(line.tick)}</time>
+      <time>{clock(line.tick, rules.tick_hz)}</time>
       <Purchases who={who} units={line.units} />
       <Icon
         path={stateIcon(spawn ? "deploy" : "withdrawing")}
@@ -274,6 +272,7 @@ export function MatchResultOverlay({
   seats: readonly Seat[];
   viewer: string | null;
 }) {
+  const { rules } = useSessionCatalog();
   const report = match.report;
   if (match.phase !== "finished" || !report) return null;
   const viewerSide = seats.find((seat) => seat.id === viewer)?.side ?? null;
@@ -298,7 +297,7 @@ export function MatchResultOverlay({
           ))}
         </div>
         <ol className="match-result-timeline" aria-label="Unit action timeline">
-          {timeline(report.events).map((line, index) => (
+          {timeline(report.events, rules.tick_hz).map((line, index) => (
             <LineRow line={line} names={names} key={`${line.tick}-${index}`} />
           ))}
         </ol>

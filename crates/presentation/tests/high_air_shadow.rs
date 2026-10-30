@@ -19,8 +19,6 @@ use sim::publication::{self, Publisher};
 use std::f64::consts::FRAC_PI_2;
 use std::path::PathBuf;
 
-/// The air lab's map, whose rules field the test aircraft.
-const MAP: &str = "air";
 /// `test_jet` flies in the high-air layer, `test_heli` in the low-air one.
 const KINDS: [&str; 2] = ["test_jet", "test_heli"];
 const JET_AT: [f64; 2] = [200.0, 200.0];
@@ -49,7 +47,7 @@ fn framed() -> Presentation {
     .unwrap();
     let battle = Battle::new(&setup, 1);
     let kinds: Vec<String> = KINDS.map(String::from).to_vec();
-    let f = fielded::fielded(&root, &game, MAP, &kinds).unwrap();
+    let f = fielded::fielded(&root, battle.rules(), &kinds).unwrap();
     let physics = &game["physics"];
     let world = WorldInput {
         battle: Some(BattleInput {

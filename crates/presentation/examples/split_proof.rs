@@ -74,7 +74,6 @@ fn run(case: cases::Case, runtime: &Runtime, out: &Path, dumps: &mut Dumps) -> V
     let fielded = Fielding {
         presentation: &serde_json::from_str(include_str!("../../../fixtures/presentation.json"))
             .unwrap(),
-        weapons: &case.game["weapons"],
         rules: &rules,
         catalog: &catalog,
         runtime: &runtime.catalog,
@@ -108,7 +107,7 @@ fn run(case: cases::Case, runtime: &Runtime, out: &Path, dumps: &mut Dumps) -> V
         "presentation": serde_json::from_str::<Value>(include_str!("../../../fixtures/presentation.json")).unwrap(),
         "audio": serde_json::from_str::<Value>(include_str!("../../../fixtures/audio.json")).unwrap(),
         "catalog": serde_json::from_slice::<Value>(&fs::read(sim::fixtures::dir().join("sounds.json")).unwrap()).unwrap(),
-        "weapons": case.game["weapons"], "tick_hz": tick_hz,
+        "weapons": rules["weapons"], "tick_hz": tick_hz,
         "effects": {"smoke": effects.presentation["smoke"], "cook_off": effects.presentation["cook_off"]}
     }).to_string()).unwrap();
     sound

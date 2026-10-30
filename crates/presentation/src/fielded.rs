@@ -1,5 +1,5 @@
 //! What a battle's units and effects draw from, resolved from the
-//! repository's own files: the rules fixture, the battle's rules and unit
+//! repository's own files: the battle's rules and unit
 //! catalog, and the runtime catalog's bundles and skeleton clips. It is
 //! `load_world`'s `units` and `effects` and each skinned body's clip table,
 //! for a battle fielding a given set of unit types, as a page running those
@@ -60,10 +60,9 @@ pub type Read<'a> = dyn Fn(&str) -> Result<Vec<u8>, String> + 'a;
 /// pose, how a dead hull stops), each side fighting for the faction
 /// `factions` names (blue, red; none: one look each), with visual settings
 /// (`fixtures/presentation.json`) and art from `runtime`. Weapon inheritance
-/// comes from the authored `weapons` rows.
+/// comes from the battle's `rules.weapons` rows.
 pub struct Fielding<'a> {
     pub presentation: &'a Value,
-    pub weapons: &'a Value,
     pub rules: &'a Value,
     pub catalog: &'a Value,
     pub runtime: &'a Value,
@@ -94,6 +93,32 @@ impl Fielding<'_> {
     pub fn resolve(&self, read: &Read<'_>) -> Result<Sections, String> {
         let presentation = PresentationSettings::from_value(self.presentation)?;
         let catalog = Catalog::new(self.catalog)?;
+        let looks = crate::looks::WeaponLooks::new(
+            presentation.weapon_looks.clone(),
+            &self.rules["weapons"],
+        )?;
+        for row in self.catalog["units"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .chain(
+                self.catalog["soldiers"]
+                    .as_object()
+                    .into_iter()
+                    .flat_map(|s| s.values()),
+            )
+        {
+            for mount in row["mounts"].as_array().into_iter().flatten() {
+                for weapon in mount["weapons"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Value::as_str)
+                {
+                    looks.get(weapon).check_firing(weapon)?;
+                }
+            }
+        }
         let art = Art {
             read,
             ..Art::new(self.runtime, &catalog, self.kinds, self.factions)?
@@ -106,13 +131,12 @@ impl Fielding<'_> {
             self.kinds,
             self.factions,
         )?;
-        let looks =
-            crate::looks::WeaponLooks::new(presentation.weapon_looks.clone(), self.weapons)?;
         for unit in units["types"].as_object_mut().unwrap().values_mut() {
             for mount in unit["mounts"].as_array_mut().unwrap() {
                 let weapon = mount["weapon"].as_str().ok_or("mount without a weapon")?;
                 mount["kick"] =
-                    serde_json::to_value(looks.get(weapon).kick).map_err(|e| e.to_string())?;
+                    serde_json::to_value(looks.get(weapon).kick.expect("fielded firing kick"))
+                        .map_err(|e| e.to_string())?;
             }
         }
         let effects = effects::section(
@@ -172,17 +196,16 @@ mod files {
     /// its art read from the runtime directory.
     pub fn fielded(
         root: &Path,
-        rules: &Value,
-        map: &str,
+        rules: &contract::scenario::Rules,
         kinds: &[String],
     ) -> Result<Fielded, String> {
-        let catalog = crate::static_world::files::rules(root, map)?.catalog.view();
+        let catalog = rules.catalog.view();
+        let rules = serde_json::to_value(rules).map_err(|e| e.to_string())?;
         let runtime = Runtime::open(&root.join("assets/runtime"))?;
         let presentation = read_json(&root.join("fixtures/presentation.json"))?;
         Fielding {
             presentation: &presentation,
-            weapons: &rules["weapons"],
-            rules,
+            rules: &rules,
             catalog: &catalog,
             runtime: &runtime.catalog,
             kinds,

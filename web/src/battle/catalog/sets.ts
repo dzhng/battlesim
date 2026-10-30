@@ -10,7 +10,6 @@ import { composeCatalog, type CatalogSetName, type GameView, type SessionCatalog
 export {
   admitScenario,
   composeScenarioCatalog,
-  presentationRules,
   type CatalogSetName,
   type SessionCatalog,
 } from "./compose";
@@ -45,9 +44,14 @@ export async function resolveCatalogSet(
         .sort()
         .map((path) => files[path]()),
     ));
-  const wasm = texts.length ? await loadWasm() : null;
-  return composeCatalog(set, shippedRules, view as unknown as GameView, texts, (json) =>
-    wasm!.resolve_catalog(json),
+  const wasm = await loadWasm();
+  return composeCatalog(
+    set,
+    shippedRules,
+    view as unknown as GameView,
+    texts,
+    wasm.resolve_catalog,
+    wasm.resolve_rules,
   );
 }
 

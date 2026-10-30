@@ -24,7 +24,6 @@ fn a_battle_reads_only_the_contents_it_names() {
             &std::fs::read(root.join("fixtures/presentation.json")).unwrap(),
         )
         .unwrap(),
-        weapons: &game["weapons"],
         rules: &game,
         catalog: &catalog,
         runtime: &runtime.catalog,
@@ -89,7 +88,6 @@ fn a_ground_hull_model_without_its_gauge_is_refused_before_loading_bundles() {
     let kinds = vec!["test_tank".to_owned()];
     let result = Fielding {
         presentation: &presentation,
-        weapons: &rules["weapons"],
         rules: &rules,
         catalog: &catalog,
         runtime: &runtime,

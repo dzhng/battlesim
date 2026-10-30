@@ -317,8 +317,6 @@ fn battle_and_lab_instances_of_one_appearance_share_one_batch_without_replacing_
         publication::{self, Publisher},
     };
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let game: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
     let battle = Battle::new(
         &serde_json::from_value(json!({
             "map":{"size":[600,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
@@ -328,7 +326,7 @@ fn battle_and_lab_instances_of_one_appearance_share_one_batch_without_replacing_
         .unwrap(),
         1,
     );
-    let fielded = fielded::fielded(&root, &game, "air", &["test_tank".into()]).unwrap();
+    let fielded = fielded::fielded(&root, battle.rules(), &["test_tank".into()]).unwrap();
     let (name, appearance) = fielded
         .units
         .appearances

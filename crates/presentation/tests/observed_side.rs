@@ -27,7 +27,12 @@ fn root() -> PathBuf {
 /// The world a page observing as `side` loads.
 fn world(root: &Path, game: &Value, side: Side) -> WorldInput {
     let kinds = fielded::encounter_kinds(root, MAP, ENCOUNTER).unwrap();
-    let f = fielded::fielded(root, game, MAP, &kinds).unwrap();
+    let f = fielded::fielded(
+        root,
+        &presentation::static_world::files::rules(root, MAP).unwrap(),
+        &kinds,
+    )
+    .unwrap();
     let physics = &game["physics"];
     WorldInput {
         battle: Some(BattleInput {

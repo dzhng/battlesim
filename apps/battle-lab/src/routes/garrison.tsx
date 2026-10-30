@@ -129,6 +129,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
     const garrisons = garrisonLayer(observation, surfaceZ);
     const orders = orderLayer(
       session.units,
+      session.rules.air,
       observation,
       control.selected,
       session.revealed,
@@ -145,6 +146,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
     control.selected,
     session.revealed,
     session.units,
+    session.rules.air,
   ]);
   const overlayFeed = useFeed(overlay);
 

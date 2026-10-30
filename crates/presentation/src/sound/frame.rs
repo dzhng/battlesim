@@ -1,46 +1,14 @@
-//! The battle's sound: the one owner of what is heard, and when. It reads
-//! exactly the feed the visuals read:
+//! Sound from the same side-visible causes as effects: publications supply
+//! transients, hearing cues and shouts; drawn motion supplies running loops.
+//! Anonymous cues stay anonymous, and visible shouts speak where heard.
 //!
-//! - the publication as the effects take it ([`Heard`]): gunfire at each
-//!   launch (the muzzle flashes' own), near or far by distance, a recorded
-//!   burst sounding the gun's next rounds on its cadence; a ricochet whine
-//!   at each glance; an impact by hit kind; a blast; a hull cooking off,
-//!   booming with each fireball and clanging where its turret lands; a motor
-//!   on a flying guided round; fire on every smoke source the side knows
-//!   (a wreck), burning then smouldering; and positional flare releases;
-//! - the frame's emitters ([`Motion`]): each drawn vehicle's engine (idle to
-//!   load), running gear, turret traverse and back-up beeper, and each drawn
-//!   soldier's footsteps by the distance he walks;
-//! - the observation's hearing cues: an unseen enemy is heard only as a
-//!   vague sound from the cue's direction sector, louder in the near band and
-//!   muffled in the far one, never at a position; a shout as a muffled bark
-//!   from the enemy faction's generic pool ([`Sound::set_shouts`]), never
-//!   the speaker's own voice;
-//! - the observation's shouts: an own unit's, or an enemy's the side
-//!   identifies, asks the voice lines ([`super::voices::Chatter`]) for a
-//!   bark in its kind's set ([`Sound::set_speakers`]), spoken where the
-//!   shout was and placed as every unit sound is ([`Sound::place`]); incoming
-//!   missile shouts also raise the positional warning cue.
+//! Events use presentation time, so reports and flashes stay aligned. A held
+//! clock silences transients and holds loops; jumps drop late events. Earlier
+//! publications or a clock running backwards start a fresh battle.
 //!
-//! So sound keeps fog of war as the picture does: every positional sound has
-//! a cause in the side's observation.
-//!
-//! Timing: an event starts when the presentation clock reaches the tick it
-//! happened in, so what is heard lines up with what is drawn. A clock that
-//! stands still (a pause) is a hold: transients fall silent and none start,
-//! loops hold. A clock that jumps drops what is too late to play. A
-//! publication earlier than the last, or the clock running back, is a new
-//! battle.
-//!
-//! Voices: a budget with loops capped apart; each voice's priority is its
-//! level at the listener, so a louder new sound takes the quietest voice's
-//! place and a quieter one is dropped. A sound loud at the listener (a near
-//! cannon, a blast) dips the ambience bus, which recovers once the dip is
-//! reached ([`Command::Duck`], `audio.ambience`), so the bed
-//! makes room for it as a film mix does; distant fire never reaches it.
-//!
-//! The player only carries out the [`Command`]s: it starts, glides and
-//! stops voices, and places them by direction (distance is decided here).
+//! The voice budget ranks by level at the listener, with loops capped apart.
+//! Loud reports dip ambience while voice lines arbitrate their own bus. Players
+//! carry out the resulting commands; they do not decide distance or visibility.
 use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 
@@ -864,7 +832,13 @@ impl Sound {
                     let at = t0 + (self.dt * cum[r.point]) / total.max(1e-6);
                     let pt = s.path[r.point];
                     let sound = tables.contact(super::GLANCE, &s.kind).to_owned();
-                    let gain = p.ricochet.gain * tables.looks.get(&s.kind).sound.impact_scale;
+                    let gain = p.ricochet.gain
+                        * tables
+                            .looks
+                            .get(&s.kind)
+                            .sound
+                            .impact_scale
+                            .expect("fielded impact");
                     let key = Key::new().nums(&pt);
                     self.queue(at, sound, None, 0.0, Bus::Effects, gain, pt, key, key);
                 }
@@ -872,7 +846,12 @@ impl Sound {
             let end = *s.path.last().expect("two points");
             if &*s.hit != "none" {
                 let hit = pick(&p.impacts, &s.hit);
-                let scale = tables.looks.get(&s.kind).sound.impact_scale;
+                let scale = tables
+                    .looks
+                    .get(&s.kind)
+                    .sound
+                    .impact_scale
+                    .expect("fielded impact");
                 let sound = tables.contact(&s.hit, &s.kind).to_owned();
                 let key = Key::new().nums(&end);
                 self.queue(
@@ -887,9 +866,7 @@ impl Sound {
                     key,
                 );
             } else if tables.looks.get(&s.kind).sound.motor.is_some() {
-                // A flying round with a motor: one loop along its chain of
-                // stretches, keyed by where its latest stretch ends; a stretch
-                // starting where one ended continues it, and its loop follows.
+                // A motor loop follows connected stretches of the same round.
                 motors.set(
                     end_key(&end),
                     Motor {
@@ -907,7 +884,13 @@ impl Sound {
         }
         self.motors = motors;
         for b in &fx.blasts {
-            let s = &tables.looks.get(&b.kind).sound.blast;
+            let s = tables
+                .looks
+                .get(&b.kind)
+                .sound
+                .blast
+                .as_ref()
+                .expect("fielded blast");
             let key = Key::new().nums(&b.point);
             self.queue(
                 t1,
@@ -921,8 +904,7 @@ impl Sound {
                 key,
             );
         }
-        // A cook-off: a boom with each fireball, the biggest loudest, and the
-        // clang of its turret striking the deck, as the effects time them.
+        // Cook-offs time their fireballs and turret landing with the effects.
         let cook = &self.timing.cook_off;
         let turret_lands_s = cook.impact_after();
         let biggest = cook

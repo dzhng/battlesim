@@ -14,7 +14,6 @@ use crate::error;
 #[wasm_bindgen]
 pub struct Fielding {
     presentation: Value,
-    weapons: Value,
     rules: Value,
     catalog: Value,
     runtime: Value,
@@ -27,7 +26,6 @@ impl Fielding {
     fn fielding(&self) -> fielded::Fielding<'_> {
         fielded::Fielding {
             presentation: &self.presentation,
-            weapons: &self.weapons,
             rules: &self.rules,
             catalog: &self.catalog,
             runtime: &self.runtime,
@@ -46,13 +44,11 @@ impl Fielding {
     /// unit `catalog` (`Catalog::view`, JSON) under the battle's `rules`
     /// (its scenario's, JSON), each side fighting for the faction
     /// `factions` names (a JSON pair, blue then red; none: one look each),
-    /// with visual settings (`fixtures/presentation.json`), authored weapon
-    /// inheritance (`weapons`), and the runtime
+    /// with visual settings (`fixtures/presentation.json`) and the runtime
     /// catalog `runtime` (`catalog.json`).
     #[wasm_bindgen(constructor)]
     pub fn new(
         presentation: &str,
-        weapons: &str,
         rules: &str,
         catalog: &str,
         runtime: &str,
@@ -64,7 +60,6 @@ impl Fielding {
         };
         Ok(Self {
             presentation: parse("presentation", presentation)?,
-            weapons: parse("weapons", weapons)?,
             rules: parse("rules", rules)?,
             catalog: parse("unit catalog", catalog)?,
             runtime: parse("runtime catalog", runtime)?,

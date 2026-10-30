@@ -97,6 +97,7 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
     if (!world || !observation) return undefined;
     return orderLayer(
       session.units,
+      session.rules.air,
       observation,
       control.selected,
       session.revealed,
@@ -111,6 +112,7 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
     session.revealed,
     surfaceZ,
     session.units,
+    session.rules.air,
   ]);
   const overlayFeed = useFeed(orders);
 

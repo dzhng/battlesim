@@ -59,6 +59,7 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
     );
     const orders = orderLayer(
       session.units,
+      session.rules.air,
       observation,
       control.selected,
       session.revealed,
@@ -77,6 +78,7 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
     session.revealed,
     rules,
     session.units,
+    session.rules.air,
   ]);
   const overlayFeed = useFeed(overlay);
 

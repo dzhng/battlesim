@@ -371,7 +371,7 @@ impl Run {
                 };
                 let fixtures = root.join("fixtures");
                 let setup = audio::setup(
-                    &read(&fixtures.join("rules.json").to_string_lossy())?,
+                    &replay.rules,
                     &read(&fixtures.join("presentation.json").to_string_lossy())?,
                     &read(&fixtures.join("audio.json").to_string_lossy())?,
                     &read(&fixtures.join("sounds.json").to_string_lossy())?,

@@ -1,3 +1,4 @@
+import { resolve_catalog, resolve_rules } from "@wasm/game_wasm";
 import type { ViewportFrame } from "./presentedFrame";
 // One side's live battle session: the static world and its meshes, the worker
 // authority, the player command path, the drawn units (interpolated; soldiers
@@ -6,7 +7,7 @@ import type { ViewportFrame } from "./presentedFrame";
 // pick and box-select adapters over what is drawn, and the
 // base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
-import { admitScenario, presentationRules } from "@web/battle/catalog/sets";
+import { admitScenario, composeScenarioCatalog } from "@web/battle/catalog/sets";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { ContactPresentation } from "@web/battle/present/contactPresentation";
 import { gameContactStyle } from "./gameFog";
@@ -118,10 +119,8 @@ export function useBattleSession({
   scenarioArt = false,
 }: BattleSessionOptions) {
   const appAudio = useAppAudio();
-  const catalog = useSessionCatalog();
-  // The session draws, reads and loads its own catalog's units; a scenario
-  // fielding a unit the catalog lacks is refused by name, not left undrawn.
-  const { map, rules, rulesText, skirmish, units, fielded, players } = useMemo(() => {
+  const sourceCatalog = useSessionCatalog();
+  const { map, rules, rulesText, skirmish, units, fielded, players, catalog } = useMemo(() => {
     const parsed = JSON.parse(scenario) as {
       map: unknown;
       rules: ScenarioRules;
@@ -129,22 +128,22 @@ export function useBattleSession({
       skirmish?: object;
       units?: { kind: string }[];
     };
+    const rules = JSON.parse(resolve_rules(JSON.stringify(parsed.rules)));
+    const catalog = { ...composeScenarioCatalog(rules, resolve_catalog), set: sourceCatalog.set };
     return {
       ...parsed,
-      rules: presentationRules(parsed.rules, catalog),
-      rulesText: JSON.stringify(parsed.rules),
+      catalog,
+      rules: rules as ScenarioRules,
+      rulesText: JSON.stringify(rules),
       units: admitScenario(parsed, catalog),
       fielded: (parsed.units ?? []).map((u) => u.kind),
       players: parsed.players ?? [],
     };
-  }, [scenario, catalog]);
+  }, [scenario, sourceCatalog.set]);
   const world = useStaticWorld(map, rules);
   const audio = useMemo(
-    () =>
-      sound
-        ? createBattleAudio(rules.tick_hz, appAudio, seed, JSON.parse(rulesText).weapons)
-        : null,
-    [sound, rules.tick_hz, appAudio, seed, rulesText],
+    () => (sound ? createBattleAudio(rules.tick_hz, appAudio, seed, rules.weapons) : null),
+    [sound, rules, appAudio, seed],
   );
   useEffect(() => () => audio?.dispose(), [audio]);
   // The units' answers to their owner (R1–R12), one battle's at a time.
@@ -329,7 +328,7 @@ export function useBattleSession({
   const mapBuildings = useMapBuildings(world);
   const placedProps = mapBuildings?.props ?? null;
   const drawnBuildings = mapBuildings?.index ?? null;
-  // The catalog, and the kits this map's buildings and stand-in boxes draw
+  // The kits this map's buildings and stand-in boxes draw
   // from and its region's looks, fetched once the map is known: the loading
   // cover stays up for them.
   const completeArt = useBattleAppearances({
@@ -581,6 +580,7 @@ export function useBattleSession({
       xray,
       placedGhostList,
       inputEnabled,
+      rules.air,
       surfaceZ,
       commanding,
     ],
@@ -835,7 +835,7 @@ export function useBattleSession({
             control.selectedUnits,
             drawnAt.current,
             units,
-            catalog.weapons,
+            rules.weapons,
           )
         : null;
     // An unload's destination carries the unload mark, held or released.
@@ -1085,7 +1085,7 @@ export function useBattleSession({
     fog,
     fogFeed,
     rules,
-    /** The session's unit catalog, for views drawing its units. */
+    catalog,
     units,
     contacts,
     sim,
@@ -1132,8 +1132,6 @@ export function useBattleSession({
             }
           : null,
       ),
-    /** The refusal callout's inputs: the side's per-unit refusals, and
-     *  where a unit's card stands. */
     refusals: {
       refusals: sim.refusals,
       cardBox: (unit: number) => readouts.current?.cardBox(unit) ?? null,

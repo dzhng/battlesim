@@ -40,7 +40,12 @@ impl Pool {
         rng: &mut Mulberry32,
         visible: bool,
     ) -> usize {
-        let style = &p.looks.get(&s.kind).tracer;
+        let style = p
+            .looks
+            .get(&s.kind)
+            .tracer
+            .as_ref()
+            .expect("fielded tracer");
         let dt = self.dt;
         let e = self.push(
             Look::Tracer {
@@ -118,7 +123,12 @@ impl Pool {
         l: &Launch,
         rng: &mut Mulberry32,
     ) -> Arc<FlashStyle> {
-        let style = &p.looks.get(&l.kind).flash;
+        let style = p
+            .looks
+            .get(&l.kind)
+            .flash
+            .as_ref()
+            .expect("fielded firing flash");
         let fireball = if style.fireball_m > 0.0 {
             style.fireball_s
         } else {
@@ -218,7 +228,7 @@ impl Pool {
         rng: &mut Mulberry32,
     ) {
         let style = pick(&p.impacts, hit);
-        let impact = &p.looks.get(kind).impact;
+        let impact = p.looks.get(kind).impact.as_ref().expect("fielded impact");
         let scale = impact.surfaces.get(hit);
         let end = at + style.duration_s * scale.map_or(1.0, |s| s.duration);
         let size = style.size_m * scale.map_or_else(|| impact.scale, |s| s.size);

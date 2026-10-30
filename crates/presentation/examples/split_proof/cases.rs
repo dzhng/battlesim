@@ -8,7 +8,6 @@ mod common;
 
 pub struct Case {
     pub name: String,
-    pub game: Value,
     pub scenario: ScenarioDefinition,
     pub expected: Vec<String>,
     pub hull_trace: bool,
@@ -109,8 +108,6 @@ pub fn weapon(id: &str, added: bool, soldier: bool) -> Case {
         scenario = encounter
             .on(scenario.map, serde_json::from_value(base_game).unwrap())
             .unwrap();
-        // Today's presentation readers need the authored chain as well.
-        game["weapons"][id] = overrides["weapons"][id].clone();
     } else {
         scenario.rules = serde_json::from_value(game.clone()).unwrap();
     }
@@ -120,7 +117,6 @@ pub fn weapon(id: &str, added: bool, soldier: bool) -> Case {
         } else {
             id.into()
         },
-        game,
         scenario,
         expected: vec![id.into()],
         hull_trace: false,
@@ -147,7 +143,6 @@ pub fn bmp() -> Case {
     scenario.rules = serde_json::from_value(game.clone()).unwrap();
     Case {
         name: "bmp-3".into(),
-        game,
         scenario,
         expected: vec!["ifv_he".into(), "bastion".into()],
         hull_trace: true,

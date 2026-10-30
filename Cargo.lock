@@ -1101,6 +1101,7 @@ name = "native-client"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "contract",
  "flate2",
  "kira",
  "png",
@@ -1110,6 +1111,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "sim",
  "symphonia",
  "wgpu",
  "winit",

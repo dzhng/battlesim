@@ -43,6 +43,7 @@ export function useLabOverlay(
       world && observation
         ? buildBattleOverlay(
             session.units,
+            session.rules,
             observation,
             control.selected,
             surfaceZ,
@@ -63,6 +64,7 @@ export function useLabOverlay(
       world,
       observation,
       session.units,
+      session.rules,
       control.selected,
       control.showOrders,
       session.revealed,

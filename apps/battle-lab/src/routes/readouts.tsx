@@ -46,6 +46,7 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
     if (!world || !observation) return undefined;
     const orders = orderLayer(
       session.units,
+      session.rules.air,
       observation,
       control.selected,
       session.revealed,
@@ -62,6 +63,7 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
     control.selected,
     session.revealed,
     session.units,
+    session.rules.air,
   ]);
   const overlayFeed = useFeed(overlay);
 

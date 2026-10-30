@@ -143,6 +143,8 @@ enum Infinite {
 pub struct Replay {
     /// The saved map the scene was filmed on (`identity.map`).
     pub map: String,
+    /// The resolved encounter rules shared by fielding and sound.
+    pub rules: contract::scenario::Rules,
     pub records: Vec<Record>,
     pub light: LightSettings,
     pub backdrop_reach_m: f64,
@@ -247,7 +249,19 @@ impl Replay {
                 ));
             }
         }
-        let game: Value = read_json(&root.join("fixtures/rules.json"))?;
+        let catalogue = sim::maps::Catalogue {
+            maps: root.join("fixtures/maps"),
+            libraries: root.join("fixtures"),
+        };
+        let scenario = catalogue
+            .scenario(&map, encounter, files::rules(root, &map)?)
+            .map_err(|e| e.to_string())?;
+        let kinds = scenario
+            .units
+            .iter()
+            .map(|u| u.kind.clone())
+            .collect::<Vec<_>>();
+        let rules = scenario.rules;
         let settings =
             presentation::settings::PresentationSettings::from_value(&read_json::<Value>(
                 &root.join("fixtures/presentation.json"),
@@ -255,18 +269,19 @@ impl Replay {
         let light = settings.light;
         // The battle's units, effects and clip tables, as a page fielding
         // the encounter's units installs them.
-        let kinds = fielded::encounter_kinds(root, &map, encounter)?;
-        let fielded = fielded::fielded(root, &game, &map, &kinds)?;
-        let physics = &game["physics"];
-        let number = |v: &Value, what: &str| v.as_f64().ok_or(format!("rules.json: no {what}"));
+        let fielded = fielded::fielded(root, &rules, &kinds)?;
+        if capture.tick_hz != f64::from(rules.tick_hz) {
+            return Err("capture tick_hz differs from the encounter rules".into());
+        }
+        let physics = &rules.physics;
         let battle = BattleInput {
             units: fielded.units,
             effects: fielded.effects,
             side: capture.side.clone(),
             tick_hz: capture.tick_hz,
             soldier: SoldierBody {
-                radius_m: number(&physics["soldier_radius_m"], "physics.soldier_radius_m")?,
-                height_m: number(&physics["soldier_height_m"], "physics.soldier_height_m")?,
+                radius_m: physics.soldier_radius_m,
+                height_m: physics.soldier_height_m,
             },
             // The UI's colours: a replay selects nothing and shows no x-ray
             // or ghost, so no frame reads them.
@@ -323,6 +338,7 @@ impl Replay {
         presentation.load_world(input, fielded.tables, Some(buildings))?;
         Ok(Self {
             map,
+            rules,
             records: capture.frames,
             light,
             backdrop_reach_m: settings.ground.backdrop_reach_m,
