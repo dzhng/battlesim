@@ -85,3 +85,27 @@
   auditions without specifying how to expose the mix defaults, and copying the
   displayed choices into the look would silently create new content overrides.
   Mix controls remain read only, matching the existing tool's scope.
+
+## Slice 15
+
+- **Directed — split artillery appearances once.** Firing identity outranks
+  the content slice's no-hash promise: `artillery_howitzer` keeps `artillery`,
+  `artillery_mortar` uses `mortar`, and both rocket artillery weapons use
+  `rocket_artillery`. Copy the original look values before tuning sound, so
+  visuals and battle outcomes remain unchanged. Re-record catalog and paired
+  replay identities through their owning tests in that same assignment commit.
+- **Directed mortar listening verdict and measurement.** The user confirmed
+  the launch is audibly distinct. Their ffmpeg astats measurement of 03's two
+  audition crops found mortar below-150-Hz RMS -26.9 dB, above-2-kHz RMS
+  -36.3 dB (about 9 dB bass-dominant); howitzer -32.8 dB and -21.7 dB
+  respectively (about 11 dB treble-dominant). That is about 20 dB difference
+  in spectral tilt, plus about 6 dB overall RMS. This supports the separate
+  mortar sound; no agent-side listening claim substitutes for that verdict.
+- **Directed — singles and constructed AA cadence.** Marksman has no burst
+  group and heavy sniper has no magazine: use 03's single-report crops per
+  observed launch. AA uses the Bofors relay fallback at 0, 0.300 and 0.600 s,
+  explicitly labelled as designed timing, not a natural matching recording.
+- **Directed — release and rocket-pod fallbacks.** Bomb release uses 03's
+  restrained mechanical/air recipe without an explosion. Accept Apache audio
+  only if its motor separates from its rotor bed on listening; otherwise use
+  03's AT4 attack plus exhaust tail, once per observed rocket.

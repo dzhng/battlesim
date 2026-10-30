@@ -813,7 +813,7 @@
       "trajectory": "indirect"
     },
     "artillery_mortar": {
-      "appearance": "artillery",
+      "appearance": "mortar",
       "round_cost": 8,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 1800, "scatter_mrad": 26 } },
       "name": "Mortar",
@@ -838,7 +838,7 @@
       "trajectory": "indirect"
     },
     "artillery_rocket_light": {
-      "appearance": "artillery",
+      "appearance": "rocket_artillery",
       "round_cost": 10,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2200, "scatter_mrad": 24 } },
       "name": "Rocket salvo",
@@ -864,7 +864,7 @@
       "trajectory": "indirect"
     },
     "artillery_rocket_heavy": {
-      "appearance": "artillery",
+      "appearance": "rocket_artillery",
       "round_cost": 16,
       "targets": { "ground": { "classes": ["infantry", "vehicle"], "range_m": 2500, "scatter_mrad": 22 } },
       "name": "Heavy rocket salvo",
