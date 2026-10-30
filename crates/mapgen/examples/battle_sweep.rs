@@ -470,6 +470,17 @@ mod tests {
     }
 
     #[test]
+    fn every_assault_row_can_take_the_reports_initial_move() {
+        let inputs = Inputs::load().unwrap();
+        let mut request = inputs.request.clone();
+        request.map_type = MapType::Mixed;
+        request.size = MapSize::Large;
+        request.seed = 7.into();
+        let report = run_case(&inputs, &request, 1);
+        assert_eq!(report["status"], "complete", "{report}");
+    }
+
+    #[test]
     fn short_battle_reports_each_acknowledged_goal_and_keeps_nonarrivals() {
         let rules: Rules = serde_json::from_value(sim::fixtures::test_rules()).unwrap();
         let casualties = rules.catalog.by_id("test_rifle").squad_size();
