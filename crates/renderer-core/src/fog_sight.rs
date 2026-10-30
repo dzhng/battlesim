@@ -242,6 +242,7 @@ impl FogSightResources {
                 label: Some("fog-scene-taps"),
                 mag_filter: FilterMode::Linear,
                 min_filter: FilterMode::Linear,
+                mipmap_filter: MipmapFilterMode::Linear,
                 ..Default::default()
             }),
             waves: no_scene.clone(),
