@@ -236,7 +236,17 @@ const project = (page, p) => lab(page, (q) => window.__lab.projectToCss(q[0], q[
 async function cameraOnMap(ctx, spec) {
   const [type, size, seed] = spec.split(":");
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await page.goto(ctx.urlFor({ type, size, seed, faction: "us" }));
+  await page.goto(
+    ctx.urlFor({
+      type,
+      size,
+      seed,
+      blue: "h",
+      blue_faction: "us",
+      red: "a",
+      red_faction: "eastern",
+    }),
+  );
   await playable(page, 300000);
   await lab(page, () => window.__lab.route.pause());
   await page.waitForFunction(() => window.__lab.route.status().status === "paused");
