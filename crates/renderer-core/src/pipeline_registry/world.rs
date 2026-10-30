@@ -514,13 +514,13 @@ pub fn all() -> Vec<PipelineSpec> {
             "grassCount",
             "grassBuild.wgsl",
             vec!["grassBuildLayout", "terrainLayout"],
-            Some("countFn"),
+            Some("grassCount"),
         ),
         compute(
             "grassBuild",
             "grassBuild.wgsl",
             vec!["grassBuildLayout", "terrainLayout"],
-            Some("buildFn"),
+            Some("grassBuild"),
         ),
         compute(
             "grassFinish",

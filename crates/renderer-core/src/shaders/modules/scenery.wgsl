@@ -81,3 +81,9 @@ fn placedPoint(local: vec3f, pose: vec4f) -> vec3f {
   let s = sin(pose.w);
   return vec3f((((local.x * c) - (local.y * s)) + pose.x), (((local.x * s) + (local.y * c)) + pose.y), (local.z + pose.z));
 }
+
+// @block scenery_pastTrunk
+fn pastTrunk(d: f32, radius: f32, k: f32) -> f32 {
+  let m = abs(d);
+  return sign(d) * (min(m, radius) + max(m - radius, 0.0) * k);
+}

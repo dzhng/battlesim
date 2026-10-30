@@ -98,6 +98,7 @@ fn paintedAlbedo(albedo: vec3f, paint: vec4f) -> vec3f {
   let colour = min(paintColour(paint), vec3f(1.0));
   return mix(albedo, colour * paintStyle.albedo, paint.w);
 }
+
 // @block effects_GroundPaintStyle
 struct GroundPaintStyle {
   albedo: f32,
@@ -149,9 +150,6 @@ fn grassPaintGlow(paint: vec4f, height: f32) -> vec3f {
   let colour = paintColour(paint);
   return colour * s.grassGlow * paint.w * exp(-max(height, 0.0) / max(s.grassFalloffM, 1e-3));
 }
-
-// @block effects_LUMA
-const LUMA = vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B);
 
 // @block effects_PI
 const PI = 3.14159265;

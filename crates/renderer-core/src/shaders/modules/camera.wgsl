@@ -1,5 +1,11 @@
 // WGSL owner: camera.
 
+// @block camera_worldAtPixel
+fn worldAtPixel(clip: vec4f) -> vec3f {
+    let p = cam.invViewProj * vec4f(ndcAt(vec2i(clip.xy)), clip.z, 1.0);
+    return p.xyz / p.w;
+  }
+
 // @block camera_clipOf
 fn clipOf(position: vec3f) -> vec4f {
   let toEye = normalize((cam.eye - position));
@@ -30,6 +36,7 @@ struct Wind {
 
 // @block camera_cameraWind
 fn cameraWind() -> Wind { return cam.wind[0]; }
+
 // @block camera_NEAR_W
 const NEAR_W = 0.05;
 

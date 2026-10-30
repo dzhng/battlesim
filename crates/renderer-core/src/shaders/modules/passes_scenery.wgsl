@@ -1,13 +1,44 @@
 // WGSL owner: passes_scenery.
 
-// @block passes_scenery_GrassVertexOutput
-struct GrassVertexOutput {
-  @builtin(position) clip: vec4f,
+// @block passes_scenery_foliageBackdropFragment
+@fragment fn foliageBackdropFragment(input: FoliageFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
+  let seen = fogTerm(input.heart, vec3f(), clip.xy, false);
+  return ColorFog(vec4f(surface(input.world, input.normal, input.color, input.local, 1f), 1f), fogCoverage(seen, 1f));
+}
+
+// @block passes_scenery_forestFragment
+@fragment fn forestFragment(input: FoliageFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
+  let n = normalize(input.normal);
+  let seen = fogTerm(input.heart, vec3f(), clip.xy, false);
+  let sunlight = sampleSunShadow(input.world, n, clip.xy);
+  let lit = surface(input.world, input.normal, input.color, input.local, sunlight);
+  return ColorFog(vec4f(lit, 1f), fogCoverage(seen, 1f));
+}
+
+// @block passes_scenery_placedVertex
+@vertex fn placedVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) pose: vec4f, @location(4) shape: vec4f, @location(5) tint: vec4f) -> FoliageVertexOutput {
+  let local = vec3f((position.x * shape.x), (position.y * shape.y), (position.z * shape.z));
+  let world = standing(local, pose, shape, f32(select(0i, 1i, (color.w > 0.5f))));
+  return FoliageVertexOutput((cam.viewProj * vec4f(world, 1f)), world, placedNormal(normal, shape, pose.w), vec4f((color.xyz * tint.xyz), color.w), vec3f((local.x + tint.w), local.y, local.z), vec3f(pose.x, pose.y, (pose.z + shape.w)));
+}
+
+// @block passes_scenery_FoliageVertexOutput
+struct FoliageVertexOutput {
+  @invariant @builtin(position) clip: vec4f,
   @location(0) world: vec3f,
-  @location(1) root: vec3f,
-  @location(2) normal: vec3f,
-  @location(3) albedo: vec3f,
-  @location(4) ground: f32,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) local: vec3f,
+  @location(4) heart: vec3f,
+}
+
+// @block passes_scenery_FoliageFragmentInput
+struct FoliageFragmentInput {
+  @location(0) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) color: vec4f,
+  @location(3) local: vec3f,
+  @location(4) heart: vec3f,
 }
 
 // @block passes_scenery_dressingVertex
@@ -51,11 +82,6 @@ struct GrassVertexOutput {
   return FoliageVertexOutput((cam.viewProj * vec4f(world, 1f)), world, normalize(vec3f(nFlat.x, nFlat.y, (((n.z * c) - (na * s)) / pressUp))), vec4f((color.xyz * tint.xyz), color.w), vec3f((local.x + tint.w), local.y, local.z), vec3f((pose.x + (t.x * ((heart * s) + ((2f * trunk) * landed)))), (pose.y + (t.y * ((heart * s) + ((2f * trunk) * landed)))), (((pose.z + (trunk * landed)) + (hinge * (1f - landed))) + (heart * c))));
 }
 
-// @block passes_scenery_grassVertex
-@vertex fn grassVertex(@builtin(vertex_index) vid: u32, @builtin(instance_index) iid: u32) -> GrassVertexOutput {
-  let g = grassVertexOf(vid, iid);
-  return GrassVertexOutput(g.clip, g.world, g.root, g.normal, g.albedo, g.ground);
-}
 // @block passes_scenery_casterVertex
 @vertex fn casterVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f, @location(3) pose: vec4f, @location(4) shape: vec4f, @location(5) tint: vec4f) -> FoliageVertexOutput {
   let local = vec3f((position.x * shape.x), (position.y * shape.y), (position.z * shape.z));

@@ -77,9 +77,6 @@ struct Count {
 // @block models_geometry_normal
 @group(1) @binding(1) var normal: texture_2d_array<f32>;
 
-// @block models_geometry_tier
-@group(1) @binding(1) var<uniform> tier: vec4u;
-
 // @block models_geometry_depth_xrayCountLayout
 @group(2) @binding(1) var depth: texture_depth_multisampled_2d;
 

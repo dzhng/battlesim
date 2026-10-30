@@ -58,12 +58,16 @@ that domain's policy; `math` holds only functions without bound resources.
 | Resource-free arithmetic | `math` | Noise, geometric predicates, interpolation and color conversion without global resources. |
 | Model geometry | `models_geometry` | Articulation, card transforms and x-ray coverage resources. |
 | Model materials | `models_material` | Authored material sampling, cutout coverage and room appearance. |
-| Effect and paint stages | `passes_effects` | Entry points and their stage IO. |
-| Visibility and world fragments | `passes_fog` | Fog compute and world-material entry points and their fragment inputs. |
-| Model stages | `passes_models` | Model entry points and their stage IO. |
-| Scenery stages | `passes_scenery` | Scenery and grass vertex entry points and their stage IO. |
-| Reused stages | `passes_shared` | Full-screen and shared mesh entry points and their reusable stage IO. |
-| Terrain and sprite stages | `passes_terrain` | Sprite, background and water-processing entry points and their stage IO. |
+| Effect and paint stages | `passes_effects` | Sprite, paint, overlay and glow entry points and their stage IO. |
+| Visibility stages | `passes_fog` | Sight rebuilds and probes, screen masks, distance transforms and rim entry points. |
+| Grass stages | `passes_grass` | Count, prefix, build and blade draw entry points and their stage IO; placement rules live in `grass`. |
+| Model stages | `passes_models` | Mesh, card, room, blended, ghost, cutout and x-ray entry points and their stage IO. |
+| Scenery stages | `passes_scenery` | Standing, felled, dressing, forest, backdrop and caster entry points and foliage IO. |
+| Terrain stages | `passes_terrain` | Ground, ground backdrop and world-mesh material entry points. |
+| Water stages | `passes_water` | Water material, wave update, normal bake and guarded scene-mip entry points. |
+| Sky stages | `passes_sky` | Background, sky bake and environment bake/filter entry points and environment IO. |
+| Display stages | `passes_post` | Grading, bloom, blur and direct/raw display entry points. |
+| Reused stages | `passes_shared` | Full-screen triangle, placed world mesh and shared mesh/screen IO. |
 
 Stage IO follows its entry-point family; reusable stage IO stays in
 `passes_shared`. Identical contracts share a struct, preserving every field

@@ -132,6 +132,7 @@ fn highpassAlgorithm(uv: vec2f, source: texture_2d<f32>, linearSampler: sampler,
   let c = textureSample(source,linearSampler,uv);
   return mix(vec4f(0),c,smoothstep(bloom.threshold,bloom.knee,dot(c.rgb,vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B))));
 }
+
 // @block post_level0
 @group(0) @binding(1) var level0: texture_2d<f32>;
 
@@ -231,7 +232,7 @@ fn rawShader(uv: vec2f) -> vec4f {
   return vec4f(texel.xyz, 1f);
 }
 
-// @block post_shader
+// @block post_blurShader
 fn blurShader(uv: vec2f) -> vec4f {
   return blurAlgorithm(uv, source, linearSampler, blurStep);
 }

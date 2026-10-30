@@ -263,6 +263,15 @@ finding that the base build did not render grass the same way twice.
   shared-binding module or merged variants. **Verdict: sound** — makes ownership
   explicit while preserving every assembled byte. **Confidence: high.**
 
+- **When:** whole-spec review. **Choice:** group entry points by the family they
+  draw or compute: effects, fog, grass, models, scenery, terrain, water, sky and
+  post. Shared stages retain only genuinely reused mesh/screen contracts and
+  vertices. This supersedes retaining the extracted `passes_*` families above.
+  Grass placement and constants live in `grass`; tree compression in `scenery`,
+  clip-to-world reconstruction in `camera`, luminance coefficients in `math`.
+  **Reach:** composition order and expressions stay unchanged. **Verdict: sound.
+  Confidence: high.**
+
 ## 07 · Names
 
 - **When:** slice 07 probe. **Choice:** author fog's uniform as `params`,
@@ -339,6 +348,13 @@ finding that the base build did not render grass the same way twice.
   suffixes and compiler names disappear while kernels, literals, record
   members, entry points and discard behavior remain unchanged. **Verdict:
   sound. Confidence: high.**
+
+- **When:** whole-spec review. **Choice:** entry points name what they draw or
+  compute, including sprites, grass stages and visibility probes. Registry entry
+  selections change with their declarations. Block ids name their declared body;
+  the grass drift endpoints both use `GRASS_MIX_DRIFT`. This supersedes preserving
+  generic entry-point names above. **Reach:** token-map verification proves only
+  identifier changes after composition. **Verdict: sound. Confidence: high.**
 
 ## 09 · Scenery tier mesh
 

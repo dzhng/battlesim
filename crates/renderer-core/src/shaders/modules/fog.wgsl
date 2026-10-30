@@ -359,12 +359,6 @@ var<workgroup> cullLo: array<atomic<i32>, 2>;
 // @block fog_out_probeLayout
 @group(1) @binding(1) var<storage, read_write> out: array<u32>;
 
-// @block fog_pastTrunk
-fn pastTrunk(d: f32, radius: f32, k: f32) -> f32 {
-  let m = abs(d);
-  return sign(d) * (min(m, radius) + max(m - radius, 0.0) * k);
-}
-
 // @block fog_rebuild
 @group(0) @binding(5) var<storage, read> rebuild: array<u32>;
 

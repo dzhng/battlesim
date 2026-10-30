@@ -25,6 +25,7 @@ fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
   let shown = (1f - smoothstep((*w).fades.y, (*w).fades.z, footprint));
   return normalize(mix(vec3f(0, 0, 1), n, shown));
 }
+
 // @block water_sceneColourMip_taps
 @group(0) @binding(1) var taps: sampler;
 
@@ -386,9 +387,3 @@ fn waterTransmission(n: vec3f, view: vec3f) -> f32 {
   let edgeOn = (1f - clamp(dot(n, view), 0f, 1f));
   return (1f - (0.02f + (0.98f * pow(edgeOn, 5f))));
 }
-
-// @block water_atPixel
-fn atPixel(clip: vec4f) -> vec3f {
-    let p = cam.invViewProj * vec4f(ndcAt(vec2i(clip.xy)), clip.z, 1.0);
-    return p.xyz / p.w;
-  }

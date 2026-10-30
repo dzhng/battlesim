@@ -1,192 +1,7 @@
 // WGSL owner: passes_fog.
 
-// @block passes_fog_backdropFragment_ground
-@fragment fn backdropFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
-  let eye = (&cam.eye);
-  let cell = groundCell(input.world.xy, length(fwidth(input.world.xy)));
-  if (groundClassView()) {
-    return ColorFog(vec4f(0, 0, 0, 1), vec4f(0, 0, 0, 1));
-  }
-  let surface = groundAlbedo(input.world, input.color, cell, groundPaved(input.world.xy, cell));
-  let up = normalize(input.normal);
-  let paintSample = groundPaint(input.world);
-  let albedo = paintedAlbedo(surface.xyz, paintSample);
-  let lit = shade(albedo, vec3f(), surface.w, 0f, 0f, 1f, up, input.world, 1f, (*eye));
-  let seen = fogTerm(input.world, up, clip.xy, fogIsGround());
-  return ColorFog(vec4f((lit.xyz + paintGlow(paintSample)), 1f), fogCoverage(paintedSeen(seen, paintSample), 1f));
-}
-
-// @block passes_fog_backdropFragment_foliage
-@fragment fn backdropFragment(input: FoliageFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
-  let seen = fogTerm(input.heart, vec3f(), clip.xy, false);
-  return ColorFog(vec4f(surface(input.world, input.normal, input.color, input.local, 1f), 1f), fogCoverage(seen, 1f));
-}
-
-// @block passes_fog_forestFragment
-@fragment fn forestFragment(input: FoliageFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
-  let n = normalize(input.normal);
-  let seen = fogTerm(input.heart, vec3f(), clip.xy, false);
-  let sunlight = sampleSunShadow(input.world, n, clip.xy);
-  let lit = surface(input.world, input.normal, input.color, input.local, sunlight);
-  return ColorFog(vec4f(lit, 1f), fogCoverage(seen, 1f));
-}
-
-// @block passes_fog_fragment
-const GRASS_BLADE_ROUGHNESS = 0.9f;
-@fragment fn fragment(input: GrassFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
-  let eye = (&cam.eye);
-  let up = vec3f(0, 0, 1);
-  let seen = fogTerm(vec3f(input.world.x, input.world.y, input.root.z), up, clip.xy, fogIsGround());
-  var n = normalize(input.normal);
-  if ((dot(n, ((*eye) - input.world)) < 0f)) {
-    n = -(n);
-  }
-  let shading = normalize(mix(n, up, input.ground));
-  let sunlight = sampleSunShadow(input.world, up, clip.xy);
-  let under = groundPaint(vec3f(input.world.x, input.world.y, input.root.z));
-  let here = groundPaintAtPixel(clip.xy);
-  let lit = shade(input.albedo, vec3f(), GRASS_BLADE_ROUGHNESS, 0f, 0f, 1f, shading, input.world, sunlight, (*eye));
-  return ColorFog(vec4f((lit.xyz + max(grassPaintGlow(under, (input.world.z - input.root.z)), grassPaintGlow(here, 0f))), 1f), fogCoverage(seen, 1f));
-}
-
-// @block passes_fog_fs
-@fragment fn fs(f: SpriteVertexOutput) -> ColorFog {
-  // Derivatives first, in uniform control flow.
-  let tuv = clamp(vec2f(f.uv.x, -f.uv.y) * 0.5 + 0.5, vec2f(0.004), vec2f(0.996));
-  let gx = dpdx(tuv);
-  let gy = dpdy(tuv);
-  let offsetWidth = fwidth(f.offset);
-  let shape = u32(f.misc.x);
-  let raw = textureLoad(sceneDepth, vec2i(f.pos.xy), 0);
-  let scene = select(1e9, cam.znear / raw, raw > 0.0);
-  let gap = scene - f.viewDepth;
-  // A ground shadow finds its own surface, in front of its quad or behind.
-  if (gap < 0.0 && shape != 4u) {
-    discard;
-  }
-  var rgb = vec3f(0.0);
-  var alpha = 0.0;
-  if (shape == 0u && f.color.a > 0.0) {
-    // A smoke ribbon: thick through its middle, thinning to its edges.
-    let across = f.uv.y * f.uv.y;
-    let cover = exp(-across * 2.0) * (1.0 - across)
-      * clamp(gap / max(f.extra.z, 1e-3), 0.0, 1.0);
-    alpha = f.color.a * cover;
-    rgb = f.color.rgb * smokeLight(f, f.offset) * alpha;
-  } else if (shape == 0u) {
-    let across = f.uv.y * f.uv.y;
-    let a = clamp(f.along, 0.0, 1.0);
-    let fromEnd = (1.0 - abs(f.uv.x)) * f.extra.x;
-    let cap = smoothstep(0.0, max(f.extra.y, 1e-3) * 2.0, fromEnd);
-    // A sharp line with a little bloom of its own, or a soft glow
-    // falling off across its whole width.
-    let sharp = exp(-across * 9.0) + 0.3 * exp(-across * 2.5);
-    let soft = exp(-across * 3.0) * (1.0 - across);
-    let distancePx = abs(f.uv.y) * (f.extra.w + 2.0) * 0.5;
-    let lineCoverage = clamp((f.extra.w + 1.0) * 0.5 - distancePx, 0.0, 1.0);
-    let profile = select(select(sharp, soft, f.misc.w == 1.0 || f.misc.w < 0.0), lineCoverage, f.extra.w > 0.0);
-    rgb = f.color.rgb * profile * a * a * cap * clamp(gap / 0.1, 0.0, 1.0);
-  } else if (shape == 1u && f.color.a > 0.0) {
-    // A solid disc: the round seen as an object.
-    let cover = (1.0 - smoothstep(0.6, 1.0, length(f.uv))) * clamp(gap / 0.1, 0.0, 1.0);
-    rgb = f.color.rgb * cover;
-    alpha = f.color.a * cover;
-  } else if (shape == 3u) {
-    // A rotor, from its hub (0) to its blade tips (1). Each blade covers
-    // the wedge it swept, back from where it is now, for the share of the
-    // exposure it spent over each point of it: its chord's angle over the
-    // wedge's, a blade no thinner than its narrowest pixels. With no blades,
-    // a disc of even cover (its hub, or the faint grey of a spinning disc).
-    let r = length(f.offset);
-    let ang = atan2(f.offset.y, f.offset.x);
-    let aa = length(offsetWidth) / max(r, 1e-3);
-    let n = i32(f.extra.z + 0.5);
-    var cover = select(0.0, f.misc.w, n == 0);
-    let chordAng = max(f.extra.y, f.misc.w * length(offsetWidth)) / max(r, 1e-3);
-    let half = (f.extra.x + chordAng) * 0.5;
-    let share = chordAng / (f.extra.x + chordAng);
-    for (var k = 0; k < n; k++) {
-      let mid = 2.0 * PI * f32(k) / f32(n) - f.extra.x * 0.5;
-      let d = abs(atan2(sin(ang - mid), cos(ang - mid)));
-      cover += (1.0 - smoothstep(half - aa, half + aa, d)) * share;
-    }
-    let edge = 1.0 - smoothstep(1.0 - length(offsetWidth), 1.0, r);
-    cover = min(cover, 1.0) * edge * clamp(gap / f.extra.w, 0.0, 1.0);
-    alpha = cover;
-    rgb = f.color.rgb * smokeLight(f, vec2f(0.0)) * alpha;
-  } else if (shape == 4u) {
-    // The surface this pixel shows, in the shadow's frame: its quad's point
-    // carried along the view ray to the scene's depth. Shaded within the
-    // band of the ground's plane, by how far inside the plan it lies.
-    let k = scene / f.viewDepth - 1.0;
-    let at = f.offset + f.ray.xy * k;
-    let off = abs(f.ray.z * k);
-    let band = 1.0 - smoothstep(0.5 * f.extra.w, f.extra.w, off);
-    let blur = max(f.extra.z, 1e-3);
-    let cover = 1.0 - smoothstep(-0.5 * blur, 0.5 * blur, planDistance(at, f.extra.xy));
-    alpha = f.color.a * cover * band;
-  } else if (shape == 1u) {
-    let r = length(f.uv);
-    let ang = atan2(f.uv.y, f.uv.x);
-    let rays = pow(abs(cos(ang * 2.0)), 16.0) * exp(-r * 2.5) * 0.6 * f.extra.y;
-    let edge = 1.0 - smoothstep(0.75, 1.0, r);
-    rgb = f.color.rgb * (exp(-r * r * 8.0) + rays) * edge * clamp(gap / 0.5, 0.0, 1.0);
-  } else {
-    let layer = i32(f.extra.y + 0.5);
-    let cols = select(5.0, 8.0, layer == 1);
-    let frames = cols * cols;
-    let frame = clamp(f.extra.x, 0.0, frames - 1.0);
-    let f0 = floor(frame);
-    let f1 = min(f0 + 1.0, frames - 1.0);
-    let g0 = gx / cols;
-    let g1 = gy / cols;
-    let s0 = textureSampleGrad(atlas, linearSampler, cell(tuv, f0, cols), layer, g0, g1);
-    let s1 = textureSampleGrad(atlas, linearSampler, cell(tuv, f1, cols), layer, g0, g1);
-    let tex = mix(s0, s1, frame - f0);
-    let straight = tex.rgb / max(tex.a, 1e-3);
-    let lum = dot(straight, LUMA);
-    let opacity = f.color.a * clamp(gap / max(f.extra.z, 1e-3), 0.0, 1.0);
-    if (f.misc.z > 0.5) {
-      // Lit, the sheet's own relief on top.
-      let relief = mix(0.65, 1.25, smoothstep(0.08, 0.45, lum));
-      rgb = f.color.rgb * smokeLight(f, f.offset) * relief * tex.a * opacity;
-    } else {
-      let boost = 1.0 + f.misc.y * lum * lum;
-      rgb = tex.rgb * f.color.rgb * boost * opacity;
-    }
-    alpha = tex.a * opacity;
-  }
-  // A shadow is ground: it leaves the fog mask as it is.
-  let strength = select(clamp(alpha + max(rgb.r, max(rgb.g, rgb.b)) * 0.25, 0.0, 1.0), 0.0, shape == 4u);
-  var out: ColorFog;
-  out.color = vec4f(rgb, alpha);
-  out.fog = vec4f(0.0, 0.0, 0.0, strength);
-  return out;
-}
-
-// @block passes_fog_modelRooms
-@fragment fn item(input: ModelFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
-  let row = (input.material * 5u);
-  let layer = materials[(row + 2u)].x;
-  let cellTexels = (f32(textureDimensions(albedo).x) / 4f);
-  let at = roomLookup(input.uv, roomPick(input.anchor), cellTexels);
-  let picture = textureSampleLevel(albedo, tiled, at.xy, i32(max(layer, 0f)), at.z);
-  var colour = materials[row].xyz;
-  if ((layer >= 0f)) {
-    colour = picture.xyz;
-  }
-  colour = (colour * mix(vec3f(1), input.tint, materials[(row + 1u)].z));
-  let eye = (&cam.eye);
-  var n = normalize(input.normal);
-  if ((dot(n, ((*eye) - input.world)) < 0f)) {
-    n = -(n);
-  }
-  let seen = modelSeen(input.world, n, input.anchor, clip.xy);
-  return ColorFog(vec4f((unlit(colour, input.world, (*eye)).xyz + highlightGlow(input.highlight)), 1f), fogCoverage(seen, 1f));
-}
-
-// @block passes_fog_mergeHorizons
-@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn item(@builtin(global_invocation_id) gid: vec3u) {
+// @block passes_fog_mergeFogHorizons
+@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn mergeFogHorizons(@builtin(global_invocation_id) gid: vec3u) {
   let P = fogParams;
   let AZ = P.azimuthBins;
   let AZT = P.terrainAzimuthBins;
@@ -302,34 +117,13 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   }
 }
 
-// @block passes_fog_modelCards
-@fragment fn item(input: CardFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
-  let baseColor = textureSample(albedo, materialSampler, input.uv, input.layer);
-  let packed = textureSample(normal, materialSampler, input.uv, input.layer);
-  if ((baseColor.w < 0.5f)) {
-    discard;;
-  }
-  let local = ((packed.xyz * 2f) - vec3f(1));
-  var n = cardNormal(local, input.scale, input.yaw);
-  let eye = (&cam.eye);
-  if ((dot(n, ((*eye) - input.world)) < 0f)) {
-    n = -(n);
-  }
-  let linearColor = pow(max(baseColor.xyz, vec3f()), vec3f(2.200000047683716));
-  let tinted = (linearColor * mix(vec3f(1), input.tint, packed.w));
-  let sunlight = sampleSunShadow(input.world, n, clip.xy);
-  let shaded = shade(tinted, vec3f(), 0.85f, 0f, 0f, 1f, n, input.world, sunlight, (*eye));
-  let seen = modelSeen(input.world, n, input.anchor, clip.xy);
-  return ColorFog(vec4f(shaded.xyz, 1f), fogCoverage(seen, 1f));
-}
-
-// @block passes_fog_composeMask
-@fragment fn item(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+// @block passes_fog_composeFogMask
+@fragment fn composeFogMask(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   return composeFog(pos.xy);
 }
 
-// @block passes_fog_cullEyes
-@compute @workgroup_size(FOG_TILE_PX, FOG_TILE_PX) fn item(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32, @builtin(global_invocation_id) gid: vec3u) {
+// @block passes_fog_cullFogEyes
+@compute @workgroup_size(FOG_TILE_PX, FOG_TILE_PX) fn cullFogEyes(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32, @builtin(global_invocation_id) gid: vec3u) {
   let P = fogParams;
   if (li == 0u) {
     atomicStore(&cullLo[0], 2147483647);
@@ -371,24 +165,8 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   }
 }
 
-// @block passes_fog_lit
-@fragment fn lit(input: ModelFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
-  let eye = (&cam.eye);
-  var n = normalize(input.normal);
-  if ((dot(n, ((*eye) - input.world)) < 0f)) {
-    n = -(n);
-  }
-  let materialSample = modelSurface(input.color, input.material, input.track, input.uv, n, input.tangent);
-  let baseColor = (materialSample.albedo * mix(vec3f(1), input.tint, materialSample.tint));
-  let paintSample = (groundPaint(input.world) * smoothstep(0.5f, 0.8f, n.z));
-  let sunlight = sampleSunShadow(input.world, n, clip.xy);
-  let shaded = shade(paintedAlbedo(baseColor, paintSample), vec3f(), materialSample.roughness, 0f, materialSample.metallic, materialSample.occlusion, materialSample.normal, input.world, sunlight, (*eye));
-  let seen = paintedSeen(modelSeen(input.world, n, input.anchor, clip.xy), paintSample);
-  return ColorFog(vec4f(((shaded.xyz + paintGlow(paintSample)) + highlightGlow(input.highlight)), 1f), fogCoverage(seen, 1f));
-}
-
-// @block passes_fog_probeFn
-@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn probeFn(@builtin(global_invocation_id) gid: vec3u) {
+// @block passes_fog_probeFogPoints
+@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn probeFogPoints(@builtin(global_invocation_id) gid: vec3u) {
   let P = fogParams;
   if (gid.x >= P.probeCount) { return; }
   let q = points[gid.x];
@@ -399,49 +177,11 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   out[gid.x] = seen;
 }
 
-// @block passes_fog_shapeFn
-@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn shapeFn(@builtin(global_invocation_id) gid: vec3u) {
+// @block passes_fog_probeFogShapes
+@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn probeFogShapes(@builtin(global_invocation_id) gid: vec3u) {
   if (gid.x >= arrayLength(&rows)) { return; }
   let r = rows[gid.x];
   out[gid.x] = fogShape(r.x, r.y, r.z, r.w);
-}
-
-// @block passes_fog_terrainFragment
-@fragment fn terrainFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
-  if (!(scarRegionContains(input.world.xy))) {
-    discard;;
-  }
-  let eye = (&cam.eye);
-  let n = normalize(input.normal);
-  let seen = fogTerm(input.world, n, clip.xy, fogIsGround());
-  let footprint = length(fwidth(input.world.xy));
-  let cell = groundCell(input.world.xy, footprint);
-  let paved = groundPaved(input.world.xy, cell);
-  if (groundClassView()) {
-    let xy = input.world.xy;
-    let site = groundSite(xy, cell, paved);
-    let classes = groundClasses(xy, footprint, site, groundWater(xy, cell));
-    return ColorFog(vec4f(classes, 1f), vec4f(0, 1, 1, 1));
-  }
-  let plain = groundAlbedo(input.world, input.color, cell, paved);
-  let biome = (1f - input.color.w);
-  let scar = groundScarsSeen(input.world, (*eye), footprint);
-  let surface = mix(plain, scarredSurface(plain, scar), biome);
-  let bank = groundBank(input.world.xy, cell, footprint);
-  var ground = n;
-  if ((bank.z > 0f)) {
-    ground = normalize(mix(n, normalize(vec3f(-(bank.x), -(bank.y), 1f)), bank.z));
-  }
-  let relief = groundRoadRelief(input.world.xy, footprint, paved);
-  ground = normalize((ground - (vec3f(relief, 0f) * (ground.z * biome))));
-  let shading = normalize(mix(ground, scarredNormal(ground, scar), biome));
-  let water = groundWater(input.world.xy, cell);
-  let dry = (1f - smoothstep((-(footprint) * 0.5f), (footprint * 0.5f), water));
-  let paintSample = (groundPaint(input.world) * dry);
-  let flecks = groundDapple(input.world.xy, footprint, cell);
-  let sunlight = max(sampleSunShadow(input.world, n, clip.xy), flecks);
-  let lit = shade(paintedAlbedo(surface.xyz, paintSample), vec3f(), surface.w, 0f, 0f, 1f, shading, input.world, sunlight, (*eye));
-  return ColorFog(vec4f((lit.xyz + paintGlow(paintSample)), 1f), fogCoverage(paintedSeen(seen, paintSample), 1f));
 }
 
 // @block passes_fog_terrainMarch
@@ -498,51 +238,8 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   }
 }
 
-// @block passes_fog_waterFragment
-@fragment fn waterFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
-  let eye = (&cam.eye);
-  let footprint = length(fwidth(input.world.xy));
-  let look = u32(round(input.color.x));
-  let w = (&terrainParams.waterLooks[look]);
-  let still = select(waterNormal(input.world.xy, footprint, look), vec3f(0, 0, 1), (input.color.w > 0f));
-  let n = waveNormal(input.world.xy, still);
-  let sunlight = sampleSunShadow(input.world, n, clip.xy);
-  let paintSample = groundPaint(input.world);
-  let puddle = (input.color.w > 0f);
-  let middle = (length((input.world.xy - input.color.yz)) / max(input.color.w, 1e-4f));
-  let up = max(normalize(((*eye) - input.world)).z, 0.2f);
-  let shaped = (((*w).fades.w * max((1f - (middle * middle)), 0f)) / up);
-  let waterDepthM = select(waterDepth(clip, input.world), shaped, puddle);
-  let bed = waterUnder(clip, input.world, n, waterDepthM, look);
-  let through = exp(((*w).surface.xyz * -(select(bed.w, waterDepthM, puddle))));
-  let lit = (bed.xyz * (1f + (waterCaustics(input.world, waterDepthM, footprint, look) * sunlight)));
-  let body = mix((*w).edge.xyz, (*w).channel.xyz, (1f - dot(through, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B))));
-  let reflected = waterReflection(n, input.world, sunlight, (*eye), look);
-  let dry = surfaceLight(vec3f(), vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, input.world, sunlight, (*eye));
-  let own = (surfaceLight(body, vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, input.world, sunlight, (*eye)) - dry);
-  let mark = surfaceLight(paintedAlbedo(body, (paintSample / max(paintSample.w, 1e-4f))), vec3f(), (*w).roughness.x, 0f, 0f, 1f, n, input.world, sunlight, (*eye));
-  let water = ((own * (vec3f(1) - through)) + reflected);
-  let seenUp = (through * waterTransmission(n, normalize(((*eye) - input.world))));
-  let shadowed = mix((*w).surface.w, 1f, sunlight);
-  let surfaceInAir = air((water * shadowed), input.world, (*eye)).xyz;
-  let bedAir = (air(vec3f(), input.world, (*eye)).xyz * seenUp);
-  let wet = ((surfaceInAir - bedAir) + (lit * seenUp));
-  let facing = max(0.35f, dot(n, normalize(((*eye) - input.world))));
-  let pixel = length(fwidth(atPixel(clip).xy));
-  let fade = max((*w).fades.x, ((pixel * 3f) / facing));
-  let rim = ((1f - middle) * input.color.w);
-  let ring = max((input.color.w / 6f), (pixel * 1.5f));
-  let fill = select((waterDepthM / fade), (rim / ring), puddle);
-  let edge = smoothstep(0f, 1f, clamp(fill, 0f, 1f));
-  let marked = (air((mark * shadowed), input.world, (*eye)).xyz * paintSample.w);
-  let cover = (paintSample.w + (edge * (1f - paintSample.w)));
-  let colour = (((marked + paintGlow(paintSample)) + (wet * (edge * (1f - paintSample.w)))) / max(cover, 1e-4f));
-  let seen = paintedSeen(fogTerm(input.world, n, clip.xy, fogIsGround()), paintSample);
-  return ColorFog(vec4f(colour, cover), fogCoverage(seen, cover));
-}
-
-// @block passes_fog_wholeFn
-@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn wholeFn(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32) {
+// @block passes_fog_probeFogWholes
+@compute @workgroup_size(FOG_BUILD_WORKGROUP) fn probeFogWholes(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32) {
   let W = whole;
   let item = wg.x + wg.y * 65535u;
   if (item >= u32(W.y)) { return; }
@@ -605,36 +302,17 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   if (li == 0u) { flags[index] = atomicLoad(&wholeFound); }
 }
 
-// @block passes_fog_worldFragment
-@fragment fn worldFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
-  let eye = (&cam.eye);
-  var n = normalize(input.normal);
-  if ((dot(n, ((*eye) - input.world)) < 0f)) {
-    n = -(n);
-  }
-  let albedo = srgbToLinear(input.color.xyz);
-  let sunlight = sampleSunShadow(input.world, n, clip.xy);
-  let lit = shade(albedo, vec3f(), 0.85f, 0f, 0f, 1f, n, input.world, sunlight, (*eye));
-  let glow = highlightGlow(input.highlight);
-  let seen = fogTerm(input.world, n, clip.xy, fogIsGround());
-  return ColorFog(vec4f((lit.xyz + glow), input.color.w), fogCoverage(seen, input.color.w));
-}
-// @block passes_fog_CardFragmentInput
-struct CardFragmentInput {
-  @location(0) world: vec3f,
-  @location(1) uv: vec2f,
-  @location(2) @interpolate(flat) layer: u32,
-  @location(3) @interpolate(flat) yaw: f32,
-  @location(4) @interpolate(flat) scale: vec3f,
-  @location(5) tint: vec3f,
-  @location(6) anchor: vec3f,
+// @block passes_fog_fogRimFragment
+@fragment fn fogRimFragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+  return rimAt(pos.xy);
 }
 
-// @block passes_fog_GrassFragmentInput
-struct GrassFragmentInput {
-  @location(0) world: vec3f,
-  @location(1) root: vec3f,
-  @location(2) normal: vec3f,
-  @location(3) albedo: vec3f,
-  @location(4) ground: f32,
+// @block passes_fog_fogDistanceColumnsFragment
+@fragment fn fogDistanceColumnsFragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+  return distanceColumns(pos.xy);
+}
+
+// @block passes_fog_fogDistanceRowsFragment
+@fragment fn fogDistanceRowsFragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+  return distanceRows(pos.xy);
 }

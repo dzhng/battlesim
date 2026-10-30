@@ -1,6 +1,6 @@
 // WGSL owner: lighting.
 
-// @block lighting_shade_lit
+// @block lighting_shade
 fn shade(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec4f {
   return air(surfaceLight(base, emissive, roughness, geomRoughness, metal, ao, normal, position, shadow, eye), position, eye);
 }
@@ -132,6 +132,7 @@ fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32
 fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
   return applyAerial(vec4f(colour, 1f), position, eye, data.observer.xyz, data.sun.direction.xyz, data.aerial, sky, environmentSampler);
 }
+
 // @block lighting_applyAerial
 fn applyAerial(surface: vec4f, position: vec3f, camera: vec3f, observer: vec3f, sun: vec3f, air: Aerial, lut: texture_2d<f32>, linearSampler: sampler) -> vec4f {
     let reach=position-observer;
