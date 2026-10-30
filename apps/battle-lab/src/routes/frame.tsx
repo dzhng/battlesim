@@ -78,7 +78,7 @@ export function groundPatch(): WorldLayers {
       CELL,
       gameBiome,
     ),
-    skirt_and_props: none,
+    extraFaces: none,
     scenery: null,
     grass: null,
   };

@@ -54,7 +54,7 @@ export interface WorldLayers {
   /** Boundary vertices for the Rust constructor's skirt; absent on bare labs. */
   skirtPositions?: Float32Array;
   /** Extra world faces. Rust prepends the skirt from `skirtPositions`. */
-  skirt_and_props: Mesh;
+  extraFaces: Mesh;
   scenery: WorldScenery | null;
   /** The grass kinds the biome grows (scenery "grass" appearances) by catalog
    *  name; `null` draws no grass (a route without appearances, or a view

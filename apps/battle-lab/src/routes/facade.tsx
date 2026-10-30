@@ -206,7 +206,7 @@ export default function Facade() {
   const world = useMemo<WorldLayers>(
     () => ({
       terrain: flatTerrain(benchGround(false)),
-      skirt_and_props: NONE,
+      extraFaces: NONE,
       scenery: null,
       grass: null,
     }),

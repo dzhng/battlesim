@@ -125,11 +125,11 @@ test("props are boxes only in the traversal view", () => {
   // The surface view supplies no extra faces: its props are appearances,
   // the scene's presentation's to draw.
   const surface = buildWorldLayers(exports, layout, biome, "surface");
-  expect(surface.skirt_and_props).toEqual(new Float32Array(0));
+  expect(surface.extraFaces).toEqual(new Float32Array(0));
   expect(surface.terrain.input.props).toBe(true);
   // The traversal view shows what blocks: the crate's box, its top at 6.
   const traversal = buildWorldLayers(exports, layout, biome, "traversal");
-  expect(Math.max(...heights(traversal.skirt_and_props))).toBeCloseTo(6);
+  expect(Math.max(...heights(traversal.extraFaces))).toBeCloseTo(6);
   expect(traversal.terrain.input.props).toBe(false);
 });
 

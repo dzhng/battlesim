@@ -12,17 +12,9 @@ fn traversal_carries_tint_and_extra_faces_while_surface_stays_bare() {
         0.6, 1.0, 1.0, 2.0, 7.0, 0.0, 0.0, 1.0, 0.2, 0.4, 0.6, 1.0,
     ];
     let cells = [0.0, 0.0, 2.0, 4.0, 0.0, 0.0, 0.0, 0.0];
-    let surface =
-        WorldGeometry::from_triangles(&positions, &indices, &cells, 80.0, None, &[], true);
-    let traversal = WorldGeometry::from_triangles(
-        &positions,
-        &indices,
-        &cells,
-        80.0,
-        Some((&surfaces, 8)),
-        &face,
-        false,
-    );
+    let surface = WorldGeometry::from_triangles(&positions, &indices, &cells, 80.0, None, &[]);
+    let traversal =
+        WorldGeometry::from_triangles(&positions, &indices, &[], 80.0, Some((&surfaces, 8)), &face);
     // The first triangle is open; the second uses the caller's blocked bit.
     for vertex in traversal.terrain[..30].as_chunks::<10>().0 {
         assert_eq!(&vertex[6..], &[0.52, 0.56, 0.5, 1.0]);
@@ -68,7 +60,7 @@ fn prebuilt_terrain_keeps_its_faces_while_backdrop_uses_the_local_patch() {
         vertex[0] += 1000.0;
         vertex[2] += 100.0;
     }
-    let mut world = WorldGeometry::from_mesh(remote.clone(), &[], &local, &[], 80.0, false);
+    let mut world = WorldGeometry::from_mesh(remote.clone(), &[], &local, &[], 80.0);
     assert_eq!(world.backdrop[0], 920.0);
     world.set_backdrop(Some(&local), 80.0);
     assert_eq!(world.terrain, remote);

@@ -1,6 +1,7 @@
 /** Browser binding of Rust presentation: side publications in, observations
  * and frame views out. Rust owns decoding, poses, effects and static walks. */
-import { installSceneGeometry } from "../render/sceneGeometry";
+import { EMPTY_MESH } from "@packages/battle-renderer/src/mesh";
+import { presentationSettings } from "@web/presentationSettings";
 import type { ModelAsset } from "../render/modelAssets";
 import type { GrassClumpRow } from "@packages/battle-renderer/src/grass";
 import type { BattleAudio } from "@packages/battle-audio/src/battleAudio";
@@ -224,11 +225,11 @@ export class ScenePresentation {
   private art: BuildingArt | null = null;
   private style: BuildingStyle | null = null;
   private sun: PresentedSun | null = null;
-  /** The ground staged, the one set, and the scenery's art it was placed by. */
+  /** The ground staged and the one set on Rust presentation. */
   private staged: GroundInput | null = null;
   private groundSet: GroundInput | null = null;
-  /** The art requested for the staged ground's scenery. */
-  private sceneryArt: WorldScenery | null = null;
+  /** Whether renderer admission should place scenery on the staged ground. */
+  private scenery = false;
   /** The installed art the ground's props were placed from. */
   private proppedBy: InstalledAppearances | null = null;
   /** The ground the page reads tables from, new with each ground set. */
@@ -354,12 +355,12 @@ export class ScenePresentation {
    * Independent changes to world or template topology keep their stale marker. */
   adoptRendererAppearanceSource(
     installed: InstalledAppearances | null,
-    scenery = this.sceneryArt,
+    scenery = this.scenery,
   ): void {
     this.installed = installed;
     this.art = buildingArt(installed);
     this.proppedBy = installed;
-    this.sceneryArt = scenery;
+    this.scenery = scenery;
   }
 
   /** Tooling models supplement the battle and static world on the next frame. */
@@ -425,11 +426,11 @@ export class ScenePresentation {
     [this.buildings, this.style, this.sun] = [buildings, style, sun];
   }
 
-  /** Stage ground and requested scenery art. Rust admits scenery after its
-   *  bundles decode during renderer installation. Cheap when unchanged. */
+  /** Stage ground and whether it requests scenery. Rust admits scenery after
+   *  its bundles decode during renderer installation. */
   setGround(ground: GroundInput | null, scenery: WorldScenery | null) {
     if (ground !== this.staged) [this.staged, this.stale] = [ground, true];
-    if (scenery !== this.sceneryArt) [this.sceneryArt, this.stale] = [scenery, true];
+    this.scenery = scenery !== null;
   }
 
   /** The side's fog of war over the ground, or none; taken once the
@@ -502,9 +503,7 @@ export class ScenePresentation {
     };
   }
 
-  /** Sets the staged ground, places its props (in the surface view) from
-   *  what the models layer installs, and its scenery once its art holds
-   *  every appearance it names. */
+  /** Set the staged ground and place its props from installed appearances. */
   private loadGround() {
     const ground = this.staged;
     if (ground !== this.groundSet) {
@@ -702,14 +701,20 @@ export class ScenePresentation {
 
   /** Construct world layers while borrowing the resolved ground synchronously. */
   installGeometry(renderer: Pick<Renderer, "set_world_geometry">, world: WorldLayers): void {
-    installSceneGeometry(renderer, this.rust, world);
+    renderer.set_world_geometry(
+      this.rust,
+      world.terrain.mesh,
+      world.skirtPositions ?? EMPTY_MESH,
+      world.extraFaces,
+      world.terrain.water,
+      presentationSettings.ground.backdrop_reach_m,
+      world.backdropTerrain,
+    );
   }
 
   /** Install canonical scene state without crossing a second WASM memory. */
   installRenderer(renderer: Pick<Renderer, "install_presentation">) {
-    this.loaded = this.readWorld(
-      renderer.install_presentation(this.rust, this.sceneryArt !== null),
-    );
+    this.loaded = this.readWorld(renderer.install_presentation(this.rust, this.scenery));
   }
 
   /** Snapshot actual GPU grass without exposing the canonical Rust handle. */

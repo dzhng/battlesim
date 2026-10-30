@@ -109,7 +109,7 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
       localMeshes && scaling.terrain
         ? {
             ...localMeshes,
-            terrain: { ...scaling.terrain, triangles: undefined },
+            terrain: scaling.terrain,
             backdropTerrain: localMeshes.terrain.mesh,
           }
         : localMeshes,

@@ -20,7 +20,6 @@ fn scene(gpu: &gpu::Gpu) -> (Replay, Runtime) {
         replay.backdrop_reach_m,
         None,
         &[],
-        true,
     ));
     let config = RuntimeConfig {
         size: [320, 180],

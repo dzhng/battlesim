@@ -259,7 +259,7 @@ export class SheetRenderer {
       benchOverlay(instance, model.body, posedSockets(bundle, skeleton, pose), marks, scale),
     );
     const world = benchWorld(figureSpot(frameOn, view));
-    this.frame.setSkirtAndProps(world.skirt_and_props);
+    this.frame.setSkirtAndProps(world.extraFaces);
     const camera = viewCamera(view, frameOn);
     this.presentation.setShadow(gameLight, world.terrain.mesh);
     this.frame.flush();

@@ -87,7 +87,7 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
     // One tint over every triangle: what is left is the ground's shading.
     const mesh = layers.terrain.mesh.slice();
     for (let v = 0; v < mesh.length; v += VERTEX_FLOATS) mesh.set(OPEN, v + VERTEX_COLOUR);
-    return { ...layers, terrain: { ...layers.terrain, mesh, triangles: undefined } };
+    return { ...layers, terrain: { ...layers.terrain, mesh } };
   }, [view, world, meshes]);
   const worldFeed = useFeed(drawn);
   const { observation } = sim;

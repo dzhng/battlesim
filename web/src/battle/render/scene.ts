@@ -226,7 +226,6 @@ export class BrowserScene {
     const previous = this.desiredWorld;
     if (
       world.terrain.mesh !== previous.terrain.mesh ||
-      world.terrain.triangles !== previous.terrain.triangles ||
       world.skirtPositions !== previous.skirtPositions ||
       world.terrain.input !== previous.terrain.input ||
       world.backdropTerrain !== previous.backdropTerrain ||
@@ -312,17 +311,17 @@ export class BrowserScene {
     const changed = this.admission.flush();
     if (changed) {
       this.installed = this.desired;
-      this.presentation.adoptRendererAppearanceSource(this.installed, this.desiredWorld.scenery);
+      this.presentation.adoptRendererAppearanceSource(
+        this.installed,
+        this.desiredWorld.scenery !== null,
+      );
       this.admittedWorld = this.presentation.world();
     }
     if (!changed && !this.admission.current()) return false;
     const worldChanged = this.activeWorld !== this.desiredWorld;
-    const propsChanged = this.activeWorld.skirt_and_props !== this.desiredWorld.skirt_and_props;
-    if (propsChanged)
-      this.setSkirtAndProps(
-        this.desiredWorld.skirt_and_props,
-        this.desiredWorld.terrain.triangles?.positions ?? this.desiredWorld.skirtPositions,
-      );
+    const facesChanged = this.activeWorld.extraFaces !== this.desiredWorld.extraFaces;
+    if (facesChanged)
+      this.setSkirtAndProps(this.desiredWorld.extraFaces, this.desiredWorld.skirtPositions);
     this.activeWorld = this.desiredWorld;
     return changed || worldChanged;
   }

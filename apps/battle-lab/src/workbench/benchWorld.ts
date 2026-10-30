@@ -115,7 +115,7 @@ function benchTerrain(): TerrainSurface {
 export function benchWorld(figureAt: [number, number] | null): WorldLayers {
   return {
     terrain: benchTerrain(),
-    skirt_and_props: figureAt ? scaleFigure(figureAt[0], figureAt[1]) : NONE,
+    extraFaces: figureAt ? scaleFigure(figureAt[0], figureAt[1]) : NONE,
     scenery: null,
     grass: null,
   };

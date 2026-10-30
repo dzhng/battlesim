@@ -7,7 +7,6 @@ mod terrain_partition;
 
 use crate::{error, Presentation};
 use presentation::presentation::Presentation as Inner;
-use presentation::shadow;
 use presentation::static_world::ground::field::Field;
 use presentation::static_world::ground::mesh;
 use presentation::static_world::ground::tables::Grid;
@@ -317,12 +316,6 @@ pub fn terrain_mesh(
         indices,
         surfaces.as_deref().map(|s| (s, blocked)),
     )
-}
-
-/// The box round a world mesh (`shadow::map_box`), none for an empty one.
-#[wasm_bindgen]
-pub fn map_box(mesh: &[f32]) -> Option<Vec<f64>> {
-    shadow::map_box(mesh).map(|b| b.to_vec())
 }
 
 /// The scene assets' limits Rust holds (`ground::grass::LIMITS`): the clump

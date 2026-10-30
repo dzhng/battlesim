@@ -27,25 +27,23 @@ impl Renderer {
         Ok(())
     }
 
-    /// Construct and retain world layers. A supplied terrain mesh is the direct
-    /// entry for render-only labs; otherwise physical triangles build the terrain.
+    /// Retain the same prebuilt terrain used by browser picking and shadows.
+    // Grouping these inputs would require another exported WASM object and its
+    // lifetime; keep the synchronous presentation borrow and geometry arrays here.
     #[allow(clippy::too_many_arguments)]
     pub fn set_world_geometry(
         &mut self,
         presentation: &Presentation,
-        positions: &[f32],
-        indices: &[u32],
-        surfaces: Option<Vec<u8>>,
-        blocked: u8,
+        terrain_mesh: Vec<f32>,
+        skirt_positions: &[f32],
         extra_faces: &[f32],
         water: bool,
         backdrop_m: f64,
-        terrain_mesh: Option<Vec<f32>>,
         backdrop_terrain: Option<Vec<f32>>,
     ) -> Result<(), JsValue> {
         if [
             Some(extra_faces),
-            terrain_mesh.as_deref(),
+            Some(terrain_mesh.as_slice()),
             backdrop_terrain.as_deref(),
         ]
         .into_iter()
@@ -63,19 +61,13 @@ impl Renderer {
         } else {
             Vec::new()
         };
-        let mut geometry = if let Some(terrain) = terrain_mesh {
-            WorldGeometry::from_mesh(terrain, positions, extra_faces, &cells, backdrop_m, water)
-        } else {
-            WorldGeometry::from_triangles(
-                positions,
-                indices,
-                &cells,
-                backdrop_m,
-                surfaces.as_deref().map(|s| (s, blocked)),
-                extra_faces,
-                water,
-            )
-        };
+        let mut geometry = WorldGeometry::from_mesh(
+            terrain_mesh,
+            skirt_positions,
+            extra_faces,
+            &cells,
+            backdrop_m,
+        );
         if let Some(terrain) = backdrop_terrain {
             geometry.set_backdrop(Some(&terrain), backdrop_m);
         }

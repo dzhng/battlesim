@@ -241,7 +241,7 @@ export function buildWorldLayers(
   return {
     terrain,
     skirtPositions: exports.positions,
-    skirt_and_props: props.build(),
+    extraFaces: props.build(),
     scenery:
       overlay === "surface" && appearances && drawScenery ? worldScenery(biome, appearances) : null,
     grass:

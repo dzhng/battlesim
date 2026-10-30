@@ -317,7 +317,6 @@ impl Run {
             replay.backdrop_reach_m,
             None,
             &[],
-            true,
         ));
         let config = RuntimeConfig {
             size,

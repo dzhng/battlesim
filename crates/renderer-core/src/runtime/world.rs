@@ -35,46 +35,33 @@ impl WorldGeometry {
         backdrop_m: f64,
         tint: Option<(&[u8], u8)>,
         extra_faces: &[f32],
-        water: bool,
     ) -> Self {
         let terrain = mesh::terrain(positions, indices, tint);
-        Self::from_mesh(
-            terrain,
-            positions,
-            extra_faces,
-            water_cells,
-            backdrop_m,
-            water,
-        )
+        Self::from_mesh(terrain, positions, extra_faces, water_cells, backdrop_m)
     }
 
-    /// Labs may supply terrain faces directly, including a disconnected mesh
-    /// whose backdrop still surrounds only the local patch.
+    /// Prebuilt terrain shares the world builders with physical triangles.
+    /// Boundary and backdrop inputs may describe only a local lab patch.
     pub fn from_mesh(
         terrain: Vec<f32>,
         skirt_positions: &[f32],
         extra_faces: &[f32],
         water_cells: &[f32],
         backdrop_m: f64,
-        water: bool,
     ) -> Self {
         let mut geometry = Self {
             terrain,
             skirt_and_props: Self::faces(skirt_positions, extra_faces),
             backdrop: Vec::new(),
-            water: if water {
-                mesh::water(water_cells)
-            } else {
-                Vec::new()
-            },
+            water: mesh::water(water_cells),
         };
         geometry.set_backdrop(None, backdrop_m);
         geometry
     }
 
     /// Boundary skirt followed by the caller's additional world faces.
-    pub fn faces(positions: &[f32], extra_faces: &[f32]) -> Vec<f32> {
-        let mut faces = mesh::skirt(positions);
+    pub fn faces(skirt_positions: &[f32], extra_faces: &[f32]) -> Vec<f32> {
+        let mut faces = mesh::skirt(skirt_positions);
         faces.extend_from_slice(extra_faces);
         faces
     }

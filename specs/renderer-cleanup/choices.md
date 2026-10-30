@@ -366,6 +366,13 @@ finding that the base build did not render grass the same way twice.
   summer state before placement. **Verdict: sound** — state selection has one
   runtime owner. **Confidence: high.**
 
+- **When:** whole-spec review of slice 09. **Choice:** the browser keeps only
+  a scenery-request boolean; changing scenery art identity does not stale the
+  canonical presentation. **Gap:** the old field survived the move of placement
+  into renderer admission. **Reach:** `loadGround` reads only ground and prop
+  sources; renderer installation and atomic appearance admission own scenery.
+  **Verdict: sound** — no load path reads scenery art. **Confidence: high.**
+
 ## 08 · Collapse copies
 
 - **When:** slice 08 fog unpack. **Choice:** all horizon readers call
@@ -481,34 +488,20 @@ finding that the base build did not render grass the same way twice.
   in Rust without a JavaScript array round trip. **Verdict: sound** — the
   failing-first seam test covers tint and extra faces, and byte-preserving
   surface/traversal probes match, including wet ground. **Confidence: high.**
+- **When:** slice 10, revised after whole-spec review. **Choice:** browser
+  installation passes its existing Rust-generated terrain mesh, explicit skirt
+  positions and `extraFaces` to `WorldGeometry::from_mesh`. Native's physical
+  triangles use `from_triangles`, which delegates to the same builders. Empty
+  water cells mean no water; there is no second runtime switch. The browser's
+  water request only selects those cells from its synchronous presentation borrow.
+  **Gap:** the initial boundary carried both mesh and triangles and triangulated
+  twice; edited lab meshes needed an easy-to-miss source override.
+  **Reach:** picking, shadow fitting and submitted terrain use the same mesh;
+  skirt and backdrop overrides remain explicit for disconnected lab geometry.
+  Runtime storage and diagnostics retain `skirt_and_props` for the assembled
+  skirt plus extra faces. **Verdict: sound** — deletes the duplicate source and
+  keeps one constructor family and one face builder. **Confidence: high.**
 
-- **When:** slice 10. **Choice:** retain the browser's early Rust-generated
-  terrain mesh for CPU shadow fitting and picking; carry source triangles for
-  submitted construction. A lab that edits its mesh clears that triangle source
-  and uses the direct entry. Separate skirt positions preserve the local edge
-  when geometry scaling adds disconnected terrain; the existing backdrop
-  override stays explicit. **Gap:** the slice named prebuilt labs but did not
-  spell out early CPU consumers or the river lab's edited tint. **Reach:**
-  installation triangulates ordinary terrain again in Rust; river tint, bare
-  labs and scaling keep their existing geometry. **Verdict: sound** — avoids
-  changing receiver fitting or inferring source ownership from mesh contents.
-  **Confidence: high.**
-
-- **When:** slice 10. **Choice:** `WorldLayers.skirt_and_props` carries only
-  extra faces; Rust adds the skirt from supplied boundary positions at initial
-  admission and live face replacement. Runtime storage and submitted diagnostics
-  use `skirt_and_props` (`skirtAndProps` in camel-case JSON). **Gap:** the slice
-  required a slot rename but did not specify the browser input after assembly
-  moved. **Reach:** traversal boxes and moving workbench figures keep one face
-  builder, and replacing extras cannot discard the skirt. Unused browser mesh
-  assembly bindings are removed. **Verdict: sound** — inputs and completed
-  renderer layers each have one owner. **Confidence: high.**
-
-- **Integrator: the browser triangulates terrain twice at install**, once early
-  (wasm helper, for CPU shadow fitting and picking) and once in the shared Rust
-  constructor. Both are Rust code, so the concept has one owner; the cost is one
-  extra triangulation per map load, not per frame. *Sound; watch it* if map
-  load time matters, and pass the early mesh to the prebuilt entry then.
 ## 12 · Frame timing
 
 - **When:** slice 12. **Choice:** `begin` takes the caller's frame index;
