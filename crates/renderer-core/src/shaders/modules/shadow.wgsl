@@ -89,7 +89,7 @@ fn inheritedSunShadow(environment: Environment, sunShadow: SunShadow, sunDepth: 
 
 // @block shadow_sampleSunShadow
 fn sampleSunShadow(world: vec3f, surfaceNormal: vec3f, pixel: vec2f) -> f32 {
-  return inheritedSunShadow(data, sun, sunDepth, sunCompare, world, surfaceNormal, pixel);
+  return inheritedSunShadow(environment, sun, sunDepth, sunCompare, world, surfaceNormal, pixel);
 }
 
 // @block shadow_shadowPcf

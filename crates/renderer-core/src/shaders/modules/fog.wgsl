@@ -350,7 +350,7 @@ var<workgroup> cullLo: array<atomic<i32>, 2>;
 // @block fog_maps_buildLayout
 @group(0) @binding(7) var<storage, read_write> maps: array<u32>;
 
-// @block fog_maps_read
+// @block fog_maps_fogLayout
 @group(GROUP) @binding(3) var<storage, read> maps: array<u32>;
 
 // @block fog_out_shapeLayout

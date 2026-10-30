@@ -140,7 +140,7 @@ fn smokeLight(f: SpriteVertexOutput, o: vec2f) -> vec3f {
   let g = 0.4;
   let forward = (1.0 - g * g) / pow(1.0 + g * g + 2.0 * g * f.sun.z, 1.5);
   let sky = mix(f.skySide, f.skyTop, clamp(n.y * 0.5 + 0.5, 0.0, 1.0));
-  return light.sun.radiance.rgb * ((0.6 * wrap + 0.4 * forward) / PI) + sky + f.castLit;
+  return environment.sun.radiance.rgb * ((0.6 * wrap + 0.4 * forward) / PI) + sky + f.castLit;
 }
 
 // @block effects_grassPaintGlow
@@ -213,15 +213,15 @@ fn spriteLight() -> SpriteLight {
   let right = normalize(vec3f(m[0].x, m[1].x, m[2].x));
   let up = normalize(vec3f(m[0].y, m[1].y, m[2].y));
   let toward = cross(right, up);
-  let sun = light.sun.direction.xyz;
+  let sun = environment.sun.direction.xyz;
   var l: SpriteLight;
   l.sun = vec3f(dot(sun, right), dot(sun, up), dot(sun, toward));
   // The PMREM wants y flipped.
-  let maxMip = light.sun.settings.x;
+  let maxMip = environment.sun.settings.x;
   let side = normalize(vec3f(toward.x, toward.y, 0.0) + vec3f(0.0, 0.0, 1e-3));
-  l.skyTop = samplePmrem(pmrem, linearSampler, vec3f(0.0, 0.0, 1.0), 1.0, maxMip) * light.sun.fill.xyz;
+  l.skyTop = samplePmrem(pmrem, linearSampler, vec3f(0.0, 0.0, 1.0), 1.0, maxMip) * environment.sun.fill.xyz;
   l.skySide = samplePmrem(pmrem, linearSampler, vec3f(side.x, -side.y, side.z), 1.0, maxMip)
-    * light.sun.fill.xyz;
+    * environment.sun.fill.xyz;
   return l;
 }
 

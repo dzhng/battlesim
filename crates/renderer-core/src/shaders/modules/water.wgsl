@@ -26,7 +26,7 @@ fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
   return normalize(mix(vec3f(0, 0, 1), n, shown));
 }
 
-// @block water_sceneColourMip_taps
+// @block water_taps_sceneMipLayout
 @group(0) @binding(1) var taps: sampler;
 
 // @block water_sceneMip
@@ -57,10 +57,10 @@ fn guardMip(pos: vec2f) -> vec4f {
     return vec4f(worst, 0.0, 0.0);
   }
 
-// @block water_waterGuardSeed_mask
+// @block water_mask_guardSeedLayout
 @group(0) @binding(0) var mask: texture_2d<f32>;
 
-// @block water_waterGuardSeed_paint
+// @block water_paint_guardSeedLayout
 @group(0) @binding(1) var paint: texture_2d<f32>;
 
 // @block water_guardSeed
@@ -124,7 +124,7 @@ fn waterNormalsSlope(uv: vec2f) -> vec4f {
   return vec4f(slope, 0.0, 1.0);
 }
 
-// @block water_waveStep_was
+// @block water_was_waveLayout
 @group(0) @binding(0) var was: texture_2d<f32>;
 
 // @block water_WaveRun
@@ -138,7 +138,7 @@ struct WaveRun {
   pad2: u32,
 }
 
-// @block water_waveStep_run
+// @block water_run_waveLayout
 @group(0) @binding(1) var<uniform> run: WaveRun;
 
 // @block water_WaveSplat
@@ -148,7 +148,7 @@ struct WaveSplat {
   kind: f32,
 }
 
-// @block water_waveStep_splats
+// @block water_splats_waveLayout
 @group(0) @binding(2) var<storage, read> splats: array<WaveSplat, WAVE_SPLATS_MAX>;
 
 // @block water_waveStep
@@ -249,7 +249,7 @@ fn waveNormal(xy: vec2f, n: vec3f) -> vec3f {
   return blendRnm(calmed, normalize(vec3f((ripple * -1f), 1f)));
 }
 
-// @block water_worldWater_depth
+// @block water_depth_fogLayout
 @group(2) @binding(9) var depth: texture_depth_multisampled_2d;
 
 // @block water_bedDistance

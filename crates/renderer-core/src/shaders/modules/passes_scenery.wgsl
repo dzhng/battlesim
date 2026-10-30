@@ -3,7 +3,7 @@
 // @block passes_scenery_foliageBackdropFragment
 @fragment fn foliageBackdropFragment(input: FoliageFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let seen = fogTerm(input.heart, vec3f(), clip.xy, false);
-  return ColorFog(vec4f(surface(input.world, input.normal, input.color, input.local, 1f), 1f), fogCoverage(seen, 1f));
+  return ColorFog(vec4f(scenerySurface(input.world, input.normal, input.color, input.local, 1f), 1f), fogCoverage(seen, 1f));
 }
 
 // @block passes_scenery_forestFragment
@@ -11,7 +11,7 @@
   let n = normalize(input.normal);
   let seen = fogTerm(input.heart, vec3f(), clip.xy, false);
   let sunlight = sampleSunShadow(input.world, n, clip.xy);
-  let lit = surface(input.world, input.normal, input.color, input.local, sunlight);
+  let lit = scenerySurface(input.world, input.normal, input.color, input.local, sunlight);
   return ColorFog(vec4f(lit, 1f), fogCoverage(seen, 1f));
 }
 

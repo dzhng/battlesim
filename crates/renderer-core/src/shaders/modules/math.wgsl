@@ -82,12 +82,12 @@ fn crossing(x: f32, edge: f32, width: f32) -> f32 {
 // @block math_fbm
 fn fbm(p0: vec2f) -> f32 {
   // Warped, so masses round into heaps rather than streaks.
-  var p = p0 + vec2f(noise(p0 * 0.5), noise(p0 * 0.5 + vec2f(5.2, 1.3))) * 0.9;
+  var p = p0 + vec2f(latticeNoise(p0 * 0.5), latticeNoise(p0 * 0.5 + vec2f(5.2, 1.3))) * 0.9;
   var sum = 0.0;
   var amp = 0.55;
   var norm = 0.0;
   for (var k = 0; k < 5; k++) {
-    sum += amp * noise(p);
+    sum += amp * latticeNoise(p);
     norm += amp;
     p = vec2f(p.x * 1.7 - p.y * 1.1, p.x * 1.1 + p.y * 1.7) + vec2f(17.3, 9.1);
     amp *= 0.45;
@@ -95,8 +95,8 @@ fn fbm(p0: vec2f) -> f32 {
   return sum / norm;
 }
 
-// @block math_hash
-fn hash(i: vec2i) -> f32 {
+// @block math_latticeHash
+fn latticeHash(i: vec2i) -> f32 {
   var h = (bitcast<u32>(i.x) * 0x8da6b343u) ^ (bitcast<u32>(i.y) * 0xd8163841u);
   h = h ^ (h >> 13u);
   h = h * 0x5bd1e995u;
@@ -104,12 +104,12 @@ fn hash(i: vec2i) -> f32 {
   return f32(h & 0xffffffu) / 16777216.0;
 }
 
-// @block math_noise
-fn noise(p: vec2f) -> f32 {
+// @block math_latticeNoise
+fn latticeNoise(p: vec2f) -> f32 {
   let i = vec2i(floor(p));
   let f = fract(p);
   let u = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hash(i), hash(i + vec2i(1, 0)), u.x), mix(hash(i + vec2i(0, 1)), hash(i + vec2i(1, 1)), u.x), u.y);
+  return mix(mix(latticeHash(i), latticeHash(i + vec2i(1, 0)), u.x), mix(latticeHash(i + vec2i(0, 1)), latticeHash(i + vec2i(1, 1)), u.x), u.y);
 }
 
 // @block math_pcgHash

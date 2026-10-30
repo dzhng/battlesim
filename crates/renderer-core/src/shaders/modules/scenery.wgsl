@@ -1,7 +1,7 @@
 // WGSL owner: scenery.
 
-// @block scenery_surface
-fn surface(world: vec3f, normal: vec3f, color: vec4f, local: vec3f, sunlight: f32) -> vec3f {
+// @block scenery_scenerySurface
+fn scenerySurface(world: vec3f, normal: vec3f, color: vec4f, local: vec3f, sunlight: f32) -> vec3f {
   let eye = (&cam.eye);
   var n = normalize(normal);
   var clumpShade = 1f;

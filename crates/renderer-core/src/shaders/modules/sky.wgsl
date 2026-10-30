@@ -5,42 +5,42 @@ fn clouds(dir: vec3f, sky: vec3f) -> vec3f {
   if (dir.z < 0.012) { return sky; }
   // A dome, not a plane: far clouds keep their bulk instead of thinning to
   // streaks along the horizon.
-  let at = dir.xy * (light.cloudReach / (dir.z + 0.12));
+  let at = dir.xy * (skyLight.cloudReach / (dir.z + 0.12));
   let n = fbm(at);
-  let density = smoothstep(light.cloudEdge.x, light.cloudEdge.y, n);
+  let density = smoothstep(skyLight.cloudEdge.x, skyLight.cloudEdge.y, n);
   // Volume: read the field as each cloud's height. Its slope faces the sun
   // or turns away; the cloud between a sample and the sun shades it; thick
   // cores grey toward their bases. Tops and sunward flanks stay bright.
   let e = 0.02;
   let slope = vec2f(fbm(at + vec2f(e, 0.0)) - n, fbm(at + vec2f(0.0, e)) - n) / e;
   let normal = normalize(vec3f(-slope * 0.35, 1.0));
-  let facing = clamp(dot(normal, light.sunDirection) * 0.5 + 0.5, 0.0, 1.0);
-  let towardSun = fbm(at + light.cloudToSun);
-  let shadow = smoothstep(light.cloudLow, light.cloudShadowTop, towardSun) * (1.0 - facing);
-  let core = smoothstep(light.cloudLow, light.cloudCoreTop, n);
-  let lit = light.cloudLit;
-  let base = light.cloudBase + sky * 0.25;
+  let facing = clamp(dot(normal, skyLight.sunDirection) * 0.5 + 0.5, 0.0, 1.0);
+  let towardSun = fbm(at + skyLight.cloudToSun);
+  let shadow = smoothstep(skyLight.cloudLow, skyLight.cloudShadowTop, towardSun) * (1.0 - facing);
+  let core = smoothstep(skyLight.cloudLow, skyLight.cloudCoreTop, n);
+  let lit = skyLight.cloudLit;
+  let base = skyLight.cloudBase + sky * 0.25;
   var cloud = mix(base, lit, clamp(facing * 1.2 - shadow * 0.5 - core * 0.3, 0.0, 1.0));
   // Thin edges toward the sun glow (forward scattering).
-  let silver = pow(max(dot(dir, light.sunDirection), 0.0), 6.0) * (1.0 - core);
-  cloud += light.sunTransmittance * silver * light.cloudSilver;
+  let silver = pow(max(dot(dir, skyLight.sunDirection), 0.0), 6.0) * (1.0 - core);
+  cloud += skyLight.sunTransmittance * silver * skyLight.cloudSilver;
   // Far clouds pile toward the horizon and take its haze.
   let near = smoothstep(0.0, 0.3, dir.z);
   cloud = mix(mix(sky, cloud, 0.55), cloud, near);
-  let alpha = density * light.cloudOpacity * smoothstep(0.012, 0.04, dir.z);
+  let alpha = density * skyLight.cloudOpacity * smoothstep(0.012, 0.04, dir.z);
   return mix(sky, cloud, alpha);
 }
 
 // @block sky_bakeColor
 fn bakeColor(uv: vec2f) -> vec4f {
-    return max(vec4f(radiance(direction(uv)), 1.0), vec4f(0.0));
+    return max(vec4f(radiance(skyDirection(uv)), 1.0), vec4f(0.0));
   }
 
 // @block sky_disc
 fn disc(dir: vec3f) -> vec3f {
-    let disc = smoothstep(9.9955000000000005e-1f, 9.9985000000000002e-1f, dot(dir, light.sunDirection))
-      * smoothstep(-0.015, 0.01, dir.z) * light.discRadiance;
-    return light.sunTransmittance * disc;
+    let disc = smoothstep(9.9955000000000005e-1f, 9.9985000000000002e-1f, dot(dir, skyLight.sunDirection))
+      * smoothstep(-0.015, 0.01, dir.z) * skyLight.discRadiance;
+    return skyLight.sunTransmittance * disc;
   }
 
 // @block sky_importanceGGX
@@ -63,8 +63,8 @@ fn bakeShade(uv: vec2f, face: f32) -> vec4f {
 // @block sky_dfg
 @group(GROUP) @binding(4) var dfg: texture_2d<f32>;
 
-// @block sky_direction
-fn direction(uv: vec2f) -> vec3f {
+// @block sky_skyDirection
+fn skyDirection(uv: vec2f) -> vec3f {
   let theta = (uv.x - 0.5) * 6.2831853071795862e+0f;
   let phi = (uv.y - 0.5) * 3.1415926535897931e+0f;
   return vec3f(cos(phi) * cos(theta), sin(phi), cos(phi) * sin(theta));
@@ -95,6 +95,7 @@ fn roughnessMip(r: f32) -> f32 {
   if(r>=0.21){return (0.305-r)/0.095+3.0;}
   return -2.0*log2(1.16*r);
 }
+
 // @block sky_bakeAlgorithm
 fn bakeAlgorithm(uv: vec2f, face: f32, source: texture_2d<f32>, linearSampler: sampler) -> vec4f {
       return textureSampleLevel(source,linearSampler,equirectUv(normalize(cubeDirection(uv,face))),0);
@@ -180,8 +181,9 @@ fn cubeUv(d: vec3f, face: f32) -> vec2f {
   else{p=vec2f(d.x,d.y)/abs(d.z);}
   return 0.5*(p+vec2f(1));
 }
-// @block sky_light
-@group(0) @binding(0) var<uniform> light: SkyLight;
+
+// @block sky_skyLight
+@group(0) @binding(0) var<uniform> skyLight: SkyLight;
 
 // @block sky_pmrem_effects
 @group(0) @binding(5) var pmrem: texture_2d<f32>;
@@ -200,6 +202,7 @@ fn samplePmrem(env: texture_2d<f32>, linearSampler: sampler, d: vec3f, r: f32, m
   if(f==0){return a;}
   return mix(a,cubeSample(env,linearSampler,d,floor(mip)+1.0,maxMip),f);
 }
+
 // @block sky_SkyLight
 struct SkyLight {
   sunDirection: vec3f,
@@ -230,15 +233,15 @@ struct SkyLight {
 // @block sky_backgroundColor
 fn backgroundColor(uv: vec2f) -> vec4f {
     // Alpha 0 marks the sky for the post pass (its grade share).
-    return max(vec4f(sample(rays.origin + rays.dx * uv.x + rays.dy * uv.y), 0.0), vec4f(0.0));
+    return max(vec4f(skySampleRay(rays.origin + rays.dx * uv.x + rays.dy * uv.y), 0.0), vec4f(0.0));
   }
 
 // @block sky_radiance
 fn radiance(dirIn: vec3f) -> vec3f {
   let betaR = vec3f(5.8019999999999999e-3f, 1.3558000000000001e-2f, 3.3099999999999997e-2f);
-  let betaMScatter = light.mieScatter;
-  let betaMExtinction = light.mieExtinction;
-  let sunDir = light.sunDirection;
+  let betaMScatter = skyLight.mieScatter;
+  let betaMExtinction = skyLight.mieExtinction;
+  let sunDir = skyLight.sunDirection;
   let mu = max(dirIn.z, 0.004);
   let dir = normalize(vec3f(dirIn.xy, mu));
   let tTop = sqrt(4.0452144039999999e+7f * (mu * mu - 1.0) + 4.1731600000000000e+7f) - mu * 6.3601999999999998e+3f;
@@ -277,24 +280,24 @@ fn radiance(dirIn: vec3f) -> vec3f {
     let scatterR = betaR * rhoR;
     let scatterM = rhoM * betaMScatter;
     let single = tSun * (scatterR * phaseR + scatterM * phaseM);
-    let multiple = (scatterR + scatterM) * vec3f(5.5000000000000004e-1f, 7.8000000000000003e-1f, 1.1499999999999999e+0f) * light.multipleScatter;
+    let multiple = (scatterR + scatterM) * vec3f(5.5000000000000004e-1f, 7.8000000000000003e-1f, 1.1499999999999999e+0f) * skyLight.multipleScatter;
     radiance += tView * (single + multiple) * dt;
   }
-  let aureole = smoothstep(-1.2000000000000000e-1f, 7.6000000000000001e-1f, cosTheta) * light.aureole;
-  let clearSkyRaw = radiance * light.radiance + light.sunTransmittance * aureole;
-  let clearSky = mix(vec3f(dot(clearSkyRaw, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B))), clearSkyRaw, light.skySaturation) * light.skyTint;
+  let aureole = smoothstep(-1.2000000000000000e-1f, 7.6000000000000001e-1f, cosTheta) * skyLight.aureole;
+  let clearSkyRaw = radiance * skyLight.radiance + skyLight.sunTransmittance * aureole;
+  let clearSky = mix(vec3f(dot(clearSkyRaw, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B))), clearSkyRaw, skyLight.skySaturation) * skyLight.skyTint;
   let overcastGradient = 1.05 - max(dirIn.z, 0.0) * 0.22;
-  let overcastSky = vec3f(1.0400000000000000e+0f, 1.0800000000000001e+0f, 1.1399999999999999e+0f) * overcastGradient * light.overcastScale;
-  let result = mix(clearSky, overcastSky, light.overcast);
+  let overcastSky = vec3f(1.0400000000000000e+0f, 1.0800000000000001e+0f, 1.1399999999999999e+0f) * overcastGradient * skyLight.overcastScale;
+  let result = mix(clearSky, overcastSky, skyLight.overcast);
   let ground = smoothstep(0.0, 0.35, -dirIn.z);
-  return mix(result, result * light.groundTint, ground);
+  return mix(result, result * skyLight.groundTint, ground);
 }
 
-// @block sky_sample
-fn sample(ray: vec3f) -> vec3f {
+// @block sky_skySampleRay
+fn skySampleRay(ray: vec3f) -> vec3f {
     let dir = normalize(ray);
     // Below the horizon the view shows the horizon's haze, not the LUT's
-    // ground-bounce hemisphere (that stays for the environment light only):
+    // ground-bounce hemisphere (that stays for the environment skyLight only):
     // the backdrop land dissolves into it rather than into a khaki band.
     let shown = normalize(vec3f(dir.xy, max(dir.z, 0.004)));
     // Clouds pass in front of the sun's disc; the LUT stays clear-sky.

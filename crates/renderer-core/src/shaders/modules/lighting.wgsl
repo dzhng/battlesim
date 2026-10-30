@@ -7,7 +7,7 @@ fn shade(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal
 
 // @block lighting_unlit
 fn unlit(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
-  return unlitAlgorithm(colour, position, eye, data.observer.xyz, data.sun.direction.xyz, data.sun.radiance.xyz, data.sun.fill.xyz, data.sun.settings.y, data.sun.settings.x, data.aerial, sky, pmrem, environmentSampler);
+  return unlitAlgorithm(colour, position, eye, environment.observer.xyz, environment.sun.direction.xyz, environment.sun.radiance.xyz, environment.sun.fill.xyz, environment.sun.settings.y, environment.sun.settings.x, environment.aerial, sky, pmrem, environmentSampler);
 }
 
 // @block lighting_unlitAlgorithm
@@ -72,12 +72,12 @@ struct Environment {
  *  with no facing (light scatters through smoke). */
 fn castAt(p: vec3f) -> vec3f {
   var sum = vec3f(0.0);
-  let count = u32(casts.header.x);
+  let count = u32(castLights.header.x);
   for (var i = 0u; i < count; i++) {
-    let toward = casts.lights[i].position.xyz - p;
-    let x2 = dot(toward, toward) * casts.lights[i].position.w;
+    let toward = castLights.lights[i].position.xyz - p;
+    let x2 = dot(toward, toward) * castLights.lights[i].position.w;
     if (x2 < 1.0) {
-      sum += casts.lights[i].color.rgb * (1.0 - x2) * (1.0 - x2) / (1.0 + 6.0 * x2);
+      sum += castLights.lights[i].color.rgb * (1.0 - x2) * (1.0 - x2) / (1.0 + 6.0 * x2);
     }
   }
   return sum * 0.31830988;
@@ -85,19 +85,19 @@ fn castAt(p: vec3f) -> vec3f {
 
 // @block lighting_castLight
 fn castLight(base: vec3f, surfaceNormal: vec3f, position: vec3f) -> vec3f {
-  let count = u32(lights.header.x);
-  let wrap = lights.header.y;
+  let count = u32(castLights.header.x);
+  let wrap = castLights.header.y;
   let n = normalize(surfaceNormal);
   var sum = vec3f();
   for (var i = 0u; (i < count); i++) {
-    let toward = (lights.lights[i].position.xyz - position);
+    let toward = (castLights.lights[i].position.xyz - position);
     let d2 = dot(toward, toward);
-    let x2 = (d2 * lights.lights[i].position.w);
+    let x2 = (d2 * castLights.lights[i].position.w);
     if ((x2 < 1f)) {
       let falloff = (((1f - x2) * (1f - x2)) / (1f + (6f * x2)));
       let facing = (dot(n, toward) * inverseSqrt(max(d2, 1e-4f)));
       let wrapped = clamp(((facing + wrap) / (1f + wrap)), 0f, 1f);
-      sum = (sum + (lights.lights[i].color.xyz * (falloff * wrapped)));
+      sum = (sum + (castLights.lights[i].color.xyz * (falloff * wrapped)));
     }
   }
   let grey = dot(base, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B));
@@ -105,17 +105,17 @@ fn castLight(base: vec3f, surfaceNormal: vec3f, position: vec3f) -> vec3f {
   return (diffuseAlbedo * (sum * 0.3183098861837907f));
 }
 
-// @block lighting_casts
-@group(0) @binding(6) var<uniform> casts: CastLights;
+// @block lighting_castLights_effects
+@group(0) @binding(6) var<uniform> castLights: CastLights;
 
-// @block lighting_data
-@group(GROUP) @binding(0) var<uniform> data: Environment;
+// @block lighting_environment
+@group(GROUP) @binding(0) var<uniform> environment: Environment;
 
-// @block lighting_light
-@group(0) @binding(4) var<uniform> light: Environment;
+// @block lighting_environment_effects
+@group(0) @binding(4) var<uniform> environment: Environment;
 
-// @block lighting_lights
-@group(GROUP) @binding(1) var<uniform> lights: CastLights;
+// @block lighting_castLights
+@group(GROUP) @binding(1) var<uniform> castLights: CastLights;
 
 // @block lighting_lightAlgorithm
 fn lightAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normalWorld: vec3f, worldPosition: vec3f, shadow: f32, eye: vec3f, sunDirection: vec3f, sunRadiance: vec3f, environmentIntensity: vec3f, maxMip: f32, pmrem: texture_2d<f32>, dfg: texture_2d<f32>, linearSampler: sampler) -> vec3f {
@@ -124,13 +124,13 @@ fn lightAlgorithm(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f
 
 // @block lighting_surfaceLight
 fn surfaceLight(base: vec3f, emissive: vec3f, roughness: f32, geomRoughness: f32, metal: f32, ao: f32, normal: vec3f, position: vec3f, shadow: f32, eye: vec3f) -> vec3f {
-  let sunlight = mix(data.sun.settings.y, 1f, shadow);
-  return lightAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sunlight, eye, data.sun.direction.xyz, data.sun.radiance.xyz, data.sun.fill.xyz, data.sun.settings.x, pmrem, dfg, environmentSampler);
+  let sunlight = mix(environment.sun.settings.y, 1f, shadow);
+  return lightAlgorithm(base, (emissive + castLight(base, normal, position)), roughness, geomRoughness, metal, ao, normal, position, sunlight, eye, environment.sun.direction.xyz, environment.sun.radiance.xyz, environment.sun.fill.xyz, environment.sun.settings.x, pmrem, dfg, environmentSampler);
 }
 
 // @block lighting_air
 fn air(colour: vec3f, position: vec3f, eye: vec3f) -> vec4f {
-  return applyAerial(vec4f(colour, 1f), position, eye, data.observer.xyz, data.sun.direction.xyz, data.aerial, sky, environmentSampler);
+  return applyAerial(vec4f(colour, 1f), position, eye, environment.observer.xyz, environment.sun.direction.xyz, environment.aerial, sky, environmentSampler);
 }
 
 // @block lighting_applyAerial
@@ -207,4 +207,4 @@ fn standardPbr(base: vec3f, emissive: vec3f, authoredRoughness: f32, geometryRou
 }
 
 // @block lighting_environmentSun
-fn environmentSun() -> vec3f { return data.sun.direction.xyz; }
+fn environmentSun() -> vec3f { return environment.sun.direction.xyz; }

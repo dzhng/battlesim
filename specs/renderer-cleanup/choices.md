@@ -356,6 +356,14 @@ finding that the base build did not render grass the same way twice.
   generic entry-point names above. **Reach:** token-map verification proves only
   identifier changes after composition. **Verdict: sound. Confidence: high.**
 
+- **When:** whole-spec review. **Choice:** binding variants use actual registry
+  layout names (`fogLayout`, `sceneMipLayout`, `guardSeedLayout`, `waveLayout`).
+  Existing `sampled` and `effects` suffixes already name real layouts and stay.
+  Environment and sky uniforms use `environment` and `skyLight`; both cast-light
+  bindings use `castLights`. Lattice noise/hash, sky ray lookup and scenery surface
+  helpers have distinct domain names. **Reach:** resource slots, record member
+  names and expression tokens stay unchanged. **Verdict: sound. Confidence: high.**
+
 ## 09 · Scenery tier mesh
 
 - **When:** slice 09. **Choice:** `renderer_core::scenery::place_scenery`
