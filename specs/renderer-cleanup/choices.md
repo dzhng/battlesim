@@ -395,3 +395,11 @@ finding that the base build did not render grass the same way twice.
 - **When:** slice 08 cutout-input. **Choice:** Depth and shadow-caster cutouts use `CutoutFragmentInput` in `passes_models`, including both Windows discard variants. The additional-copy scan found the same UV/material input; the name describes the shared fragment contract without preferring either consumer. **Gap:** the slice did not enumerate this contract or its merged vocabulary. **Verdict: sound** — assembled stage types differ only by their names; Naga validation and record reflection pass. **Confidence: high.**
 
 - **When:** slice 08 foliage-output. **Choice:** Dressing, felled scenery and scenery casters use `FoliageVertexOutput` in `passes_shared`, alongside standing scenery. The additional-copy scan found identical output fields, including invariant clip position; geometry transforms remain authored by their separate algorithms. **Gap:** the slice did not enumerate this contract or its merged vocabulary. **Verdict: sound** — assembled stage types differ only by their names; Naga validation and record reflection pass. **Confidence: high.**
+
+- **When:** slice 08 fog layer. **Choice:** one `fog_layer` binding block
+  takes the group through the existing composition grammar. **Gap:** the
+  additional-copy scan found a fixed-group declaration beside the same grouped
+  declaration. **Reach:** every binding number, resource name and type stays
+  unchanged; other layouts retain their own declarations. **Verdict: sound** —
+  assembled shaders are byte-identical; Naga validation and record reflection
+  pass. **Confidence: high.**

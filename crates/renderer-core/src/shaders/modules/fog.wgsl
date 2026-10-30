@@ -288,10 +288,7 @@ fn fogWholeWord(i: u32) -> u32 {
   return textureLoad(wholes, vec2u(i % FOG_WHOLE_TEXTURE_WIDTH, i / FOG_WHOLE_TEXTURE_WIDTH), 0).x;
 }
 
-// @block fog_layer_fixedGroup
-@group(2) @binding(1) var<uniform> layer: FogLayer;
-
-// @block fog_layer_grouped
+// @block fog_layer
 @group(GROUP) @binding(1) var<uniform> layer: FogLayer;
 
 // @block fog_modelSeen
