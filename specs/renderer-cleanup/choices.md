@@ -427,3 +427,10 @@ finding that the base build did not render grass the same way twice.
   which helpers are actually unused. **Reach:** sample-mask variants and all
   discard entry points remain intact. **Verdict: sound** — only unused depth
   discard definitions disappear; Naga and reflection pass. **Confidence: high.**
+
+- **Integrator: the shadow cascade blend stays unrolled.** A loop over the
+  middle cascades (first and last explicit) assembled back to the original
+  tokens, but it changed one wetlands plate (`plate-840`) by one level at one
+  pixel, reproducibly; without it all 54 plates are byte-identical. The loop
+  index replaces literal cascade indices, which lets the compiler fold
+  differently. Per map unknown 1, the original expression stays. *Sound.*

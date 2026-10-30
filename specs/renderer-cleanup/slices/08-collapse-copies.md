@@ -24,3 +24,6 @@
 
 **Delegated:** the merged names.
 **Stays green:** every plate.
+
+**Outcome:** the copies collapsed; the cascade loop changed one pixel by one
+level, so the blend stays unrolled (`choices.md`).
