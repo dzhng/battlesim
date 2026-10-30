@@ -1,6 +1,7 @@
 import { installWorkerStartFence } from "./_workerStart.mjs";
 import {
   advance,
+  aim,
   obs,
   openMenu,
   closeMenu,
@@ -443,6 +444,10 @@ export async function armyJourney(ctx) {
   const goal = [truck.position[0] + 50, truck.position[1]];
   await page.evaluate((ids) => window.__lab.route.select(ids), [rifle.id, truck.id]);
   await page.keyboard.press("c");
+  // Frame the goal first: the truck may have drifted off screen or under
+  // the army bar, where a right-click lands on no ground.
+  await aim(page, goal);
+  await presented(page);
   const point = await groundCss(page, goal);
   await page.mouse.click(...point, { button: "right" });
   await page.waitForFunction(() => window.__lab.route.acks()[0]?.order.kind === "attack_move");
