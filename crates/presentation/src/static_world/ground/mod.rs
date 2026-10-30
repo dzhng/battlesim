@@ -40,8 +40,8 @@ const RUN: usize = 4;
 const FOREST_TRIANGLE: usize = 7;
 const FOREST_BOUNDARY: usize = 5;
 /// A stroke's stretch is cut square at its end `a` (`b`).
-const CUT_A: u32 = 1;
-const CUT_B: u32 = 2;
+pub const CUT_A: u32 = 1;
+pub const CUT_B: u32 = 2;
 
 /// All the paved kinds but paving are carriageways.
 fn is_road(tag: f32) -> bool {

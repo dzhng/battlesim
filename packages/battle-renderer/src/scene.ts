@@ -40,8 +40,7 @@ export interface WorldScenery {
   appearances: ReadonlyMap<string, StaticBundle>;
 }
 
-/** The static world in layers, so each takes its own material and FogTerm
- *  its own ground flag: the terrain is ground; the map's skirt (and the
+/** The static world in layers, each with its material and fog ground flag: the terrain is ground; the map's skirt (and the
  *  traversal view's prop boxes) are faces. The map's props draw as their
  *  appearances, fitted to their boxes by the scene's presentation (its
  *  static batches). The scenery's forest stands in the simulation's forests

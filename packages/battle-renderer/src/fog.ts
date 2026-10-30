@@ -56,11 +56,8 @@ export interface FogProbeInput {
   normal?: readonly [number, number, number];
 }
 
-/** Presentation decides what fog is drawn from. */
-export type FogSource = Pick<
-  Presentation,
-  "prepare_fog" | "resend_fog" | "rebuild_fog" | "fog_stats" | "fog_occluders" | "pages"
->;
+/** Explicit lab control; incremental fog uploads stay inside Rust. */
+export type FogSource = Pick<Presentation, "rebuild_fog">;
 
 /** A structure that takes fog whole, as the lab reads it back. */
 export interface FogOccluder {

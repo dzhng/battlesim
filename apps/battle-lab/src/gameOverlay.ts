@@ -29,7 +29,7 @@ export const gameOverlayGlow: OverlayGlowStyle = {
   strength: overlaySettings.glow.overlay,
 };
 
-/** The ground paint (`frame/paintedMarks.ts`): its emissive glow
+/** The ground paint: its emissive glow
  *  (`glow.ground`), `paint`'s reflectance and fog. */
 export const gamePaint: PaintStyle = {
   emissive: overlaySettings.glow.ground,

@@ -24,6 +24,9 @@ use crate::bundle::{Bundle, BundleSource, Coverage, Material, Mesh, Shape, Textu
 use crate::pipelines::Pipelines;
 use crate::statics::Statics;
 
+#[cfg(test)]
+mod tests;
+
 mod admission;
 mod diagnostics;
 mod geometry;
@@ -630,7 +633,7 @@ impl Models {
             pass.set_vertex_buffer(1, instances.slice(..));
             pass.set_vertex_buffer(0, d.vertices.slice(..));
             pass.set_index_buffer(d.indices.slice(..), IndexFormat::Uint32);
-            for part in self.visible_parts(d, part) {
+            for part in visibility::visible_parts(&d.parts, part, &self.surfaces) {
                 if part.count != 0 {
                     pass.draw_indexed(
                         part.first..part.first + part.count,

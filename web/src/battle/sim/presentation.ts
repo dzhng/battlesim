@@ -6,17 +6,12 @@ import type { BattleAudio } from "@packages/battle-audio/src/battleAudio";
 import {
   Presentation,
   fog_look,
-  light_records,
   type Renderer,
   type PreparedAppearances,
 } from "@wasm/renderer_browser";
 import { LearnedGround, groundOf } from "./presentationGround";
 import { Batch, BATCH_WORDS, NONE, frameViews } from "@packages/battle-renderer/src/records.gen";
-import {
-  resolvedLight,
-  type LightPresentation,
-  type ResolvedLight,
-} from "@packages/battle-renderer/src/light/sceneLight";
+import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import type { FogStyle } from "@packages/battle-renderer/src/fog";
 import type { PresentationProbe } from "./presentationProbe";
 export type { PresentationProbe } from "./presentationProbe";
@@ -68,19 +63,10 @@ export interface ReceiverFitStats {
   reused: boolean;
 }
 
-/** `presentation.light` resolved by the presentation crate
- *  (`presentation::light`) into the records the renderer uploads as they
- *  are. A frame is built with it before any battle loads, and for scenes
- *  with none, so it needs no `Presentation`, only the module. */
-export async function resolveLight(settings: LightPresentation): Promise<ResolvedLight> {
-  await loadPresentation();
-  return resolvedLight(settings, light_records(JSON.stringify(settings)));
-}
-
 /** A `presentation.fog` style checked and resolved by the presentation crate
  *  (`presentation::fog`) into the `FogLook` record the fog mask passes
  *  upload as it is; throws naming a field out of range. Needs the module
- *  loaded, as it is once a frame is built (`resolveLight`). */
+ *  loaded before resolving a look. */
 export function resolveFogLook(style: FogStyle): Float32Array {
   if (!presentationMemory())
     throw new Error("resolveFogLook: the presentation module is not loaded");

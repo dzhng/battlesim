@@ -8,7 +8,7 @@ export const VIEW_PASS = 0;
 export const CAST_PASS = 1;
 export const GHOST_PASS = 2;
 export const HIGH_PASS = 3;
-/** Rust's tiers for a model off screen and for its card (`view.rs`): `model_tiers` and `Batch.tier` give them. */
+/** Rust's tiers for a model off screen and for its card (`view.rs`): `Batch.tier` gives them. */
 export const CULLED = -1;
 export const IMPOSTOR = 4;
 /** How fog of war takes a batch (`Batch.fog`). */
@@ -19,6 +19,9 @@ export const FOG_PAINTED_FACES = 3;
 /** The widest fog rim or soft edge a style may ask for, device pixels (`fog.rs`). */
 export const FOG_EDGE_REACH_PX = 8;
 /** Shared CPU/GPU constants (`shader_constants.rs`). */
+export const SURFACE_FLOATS = 8;
+export const CUT_A = 1;
+export const CUT_B = 2;
 export const COLOR_LUMA_R = 0.2126;
 export const COLOR_LUMA_G = 0.7152;
 export const COLOR_LUMA_B = 0.0722;

@@ -35,13 +35,6 @@ impl Renderer {
             timer.reset();
         }
     }
-
-    pub fn gpu_timing(&self) -> Result<JsValue, JsValue> {
-        match &self.gpu_timer {
-            Some(timer) => serde_wasm_bindgen::to_value(&timer.stats()).map_err(js_error),
-            None => Ok(JsValue::NULL),
-        }
-    }
 }
 
 #[derive(serde::Serialize)]
@@ -50,15 +43,6 @@ pub(super) struct MemoryStats {
     pub(super) gpu: renderer_core::memory::AllocationCounts,
     cpu_snapshot_payload_bytes: usize,
     cpu_bundle_payload_bytes: usize,
-}
-
-#[wasm_bindgen]
-impl Renderer {
-    /// Renderer-owned GPU payloads and retained external CPU asset/geometry bytes.
-    /// Excludes presentation, selection caches, allocator overhead and driver residency.
-    pub fn memory(&self) -> Result<JsValue, JsValue> {
-        serde_wasm_bindgen::to_value(&self.memory_snapshot()).map_err(js_error)
-    }
 }
 
 impl Renderer {

@@ -336,28 +336,6 @@ pub fn launches(publications: &str) -> Result<String, JsError> {
     Inner::launches_json(publications).map_err(error)
 }
 
-/// The tier each of a lab's own models draws at (`view::model_detail`:
-/// `-1` culled, a mesh tier 0–3, or `4` its card) for the frame's `View`
-/// record (its words) and `presentation.models` (JSON). Each model is six
-/// numbers: x, y, z, its size and reach (`Bounds`), and 1 when it has a
-/// card, else 0.
-#[wasm_bindgen]
-pub fn model_tiers(view: &[f32], detail: &str, models: &[f64]) -> Result<Vec<i32>, JsError> {
-    use presentation::view::{model_detail, View};
-    let record = bytemuck::pod_read_unaligned::<presentation::records::View>(
-        &bytemuck::cast_slice(view)[..std::mem::size_of::<presentation::records::View>()],
-    );
-    let view = View::from_record(&record);
-    let detail: presentation::world::Detail = serde_json::from_str(detail)?;
-    let models = models.as_chunks::<6>().0;
-    Ok(models
-        .iter()
-        .map(|&[x, y, z, size, radius, card]| {
-            model_detail(&detail, &view, [x, y, z], size, radius, card != 0.0, None)
-        })
-        .collect())
-}
-
 /// The battle's light (`presentation.light`, JSON) resolved into its uniform
 /// records' words in order: sky, aerial, sun, bloom, grade (`light.rs`). The
 /// renderer needs them when it builds its frame, before any battle loads and

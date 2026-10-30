@@ -14,6 +14,12 @@ pub enum Scalar {
 use Scalar::{F32, U32};
 
 pub const CONSTANTS: &[(&str, Scalar)] = &[
+    (
+        "SURFACE_FLOATS",
+        U32(crate::static_world::ground::field::FLOATS as u32),
+    ),
+    ("CUT_A", U32(crate::static_world::ground::CUT_A)),
+    ("CUT_B", U32(crate::static_world::ground::CUT_B)),
     ("COLOR_LUMA_R", F32(crate::color::LUMA[0])),
     ("COLOR_LUMA_G", F32(crate::color::LUMA[1])),
     ("COLOR_LUMA_B", F32(crate::color::LUMA[2])),

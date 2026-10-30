@@ -8,7 +8,7 @@
 import { presentationSettings } from "@web/presentationSettings";
 import { expect, test } from "vitest";
 import { type LightPresentation } from "@packages/battle-renderer/src/light/sceneLight.ts";
-import { loadPresentation, resolveLight, ScenePresentation } from "@web/battle/sim/presentation";
+import { loadPresentation, ScenePresentation } from "@web/battle/sim/presentation";
 import {
   SHADOW_CASCADES,
   CAMERA_WORDS,
@@ -42,15 +42,6 @@ test("the street test map's light is valid, and a broken one is refused by name"
   );
   expect(() => checkLight(withLight((l) => (l.shadow_floor = 0.8)))).toThrow(/shadow_floor/);
   expect(() => checkLight(withLight((l) => (l.shadow_floor = -0.1)))).toThrow(/shadow_floor/);
-});
-
-test("the sky and the environment light share one sun", async () => {
-  // The records the sky and the environment upload carry it.
-  const light = await resolveLight(LIGHT);
-  const sun = [...light.sun.subarray(0, 3)];
-  expect(Math.hypot(...sun)).toBeCloseTo(1, 6);
-  expect(sun[2]).toBeCloseTo(Math.sin(LIGHT.sun_elevation), 6);
-  [...light.sky.subarray(0, 3)].forEach((c, i) => expect(c).toBeCloseTo(sun[i], 6));
 });
 
 test("a frame's cascades are the structs the renderer binds: a receiver block and a camera per cascade", () => {

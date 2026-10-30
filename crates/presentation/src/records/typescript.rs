@@ -24,7 +24,7 @@ pub fn typescript() -> String {
     ));
     out.push_str(&format!(
         "/** Rust's tiers for a model off screen and for its card (`view.rs`): \
-         `model_tiers` and `Batch.tier` give them. */\n\
+         `Batch.tier` gives them. */\n\
          export const CULLED = {};\n\
          export const IMPOSTOR = {};\n",
         crate::view::CULLED,

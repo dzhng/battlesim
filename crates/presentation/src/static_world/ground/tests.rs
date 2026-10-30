@@ -487,3 +487,80 @@ fn the_grass_density_setting_scales_the_densest_stand_and_nothing_else() {
     let differ: Vec<usize> = (0..full.len()).filter(|&k| full[k] != half[k]).collect();
     assert_eq!(differ, [29]);
 }
+
+#[test]
+fn grass_growth_rows_normalize_mixes_and_refuse_composed_heights_over_the_cap() {
+    use super::grass::{KindFacts, Quality, GROWTH_ROWS, LIMITS};
+    let mut g = ground();
+    let mut growth = g.biome.grass.growth["meadow"].clone();
+    growth.height = 1.0;
+    growth.density = 0.37;
+    growth.patches.height = [0.8, 1.0];
+    growth.mix = serde_json::from_value(serde_json::json!([
+        {"appearance":"short", "share":3, "drift":0, "dry":0},
+        {"appearance":"tall", "share":1, "drift":0.7, "dry":0.3}
+    ]))
+    .unwrap();
+    g.biome.grass.growth.clear();
+    g.biome.grass.growth.insert("meadow".into(), growth.clone());
+    g.biome.grass.growth.insert("verge".into(), growth);
+    let facts = vec![
+        KindFacts {
+            mesh_height: 0.2,
+            top: 0.2,
+            blades: 1.0,
+            root_width: 0.02,
+            bases: [0, 0],
+        },
+        KindFacts {
+            mesh_height: 0.7,
+            top: 0.7,
+            blades: 1.0,
+            root_width: 0.02,
+            bases: [0, 0],
+        },
+    ];
+    let params = |g: &Ground| g.grass_params(&facts, &LIMITS, &Quality { density: 1.0 });
+    let packed = params(&g).unwrap();
+    let f: Vec<f32> = packed.iter().map(|w| f32::from_bits(*w)).collect();
+    let row = g
+        .biome
+        .plots
+        .iter()
+        .position(|p| p.name == "meadow")
+        .unwrap();
+    let growth_at = 56;
+    for (i, plot) in g.biome.plots.iter().enumerate() {
+        assert_eq!(
+            f[growth_at + i * 4],
+            if plot.name == "meadow" { 0.37 } else { 0.0 }
+        );
+    }
+    assert_eq!(f[growth_at + (GROWTH_ROWS - 1) * 4], 0.37);
+    let mixes = growth_at + GROWTH_ROWS * 8 + row * super::biome::GRASS_MIX_MAX * 4;
+    assert_eq!(
+        &f[mixes..mixes + 8],
+        &[0.0, 0.75, 0.0, 0.0, 1.0, 0.25, 0.7, 0.3]
+    );
+    assert!(g
+        .grass_params(&facts[..1], &LIMITS, &Quality { density: 1.0 })
+        .unwrap_err()
+        .contains("facts for each"));
+    g.biome
+        .grass
+        .growth
+        .get_mut("meadow")
+        .unwrap()
+        .patches
+        .height[1] = 1.1;
+    let error = params(&g).unwrap_err();
+    assert!(
+        error.contains("grass.growth.meadow") && error.contains("0.9"),
+        "{error}"
+    );
+    // Independent clump, growth and patch variations compose before the cap.
+    let meadow = g.biome.grass.growth.get_mut("meadow").unwrap();
+    meadow.height = 1.4;
+    meadow.patches.height[1] = 1.2;
+    assert!(params(&g).unwrap_err().contains("effective field height"));
+}

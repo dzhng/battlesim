@@ -21,7 +21,7 @@ export async function surfaceFieldAgreement(ctx) {
     ]);
     await wasm.default();
     const [fields, surface, grounds] = await Promise.all([
-      import(file("packages/battle-renderer/src/terrain/surfaceField.ts")),
+      import(file("packages/battle-renderer/src/records.gen.ts")),
       import(file("packages/battle-renderer/src/terrain/terrainSurface.ts")),
       import(file("web/tests/surfaceGrounds.ts")),
     ]);
@@ -132,9 +132,7 @@ export async function surfaceFieldAgreement(ctx) {
           }
           return inside;
         };
-        const tables = ground.ground_terrain();
-        const [records, index] = [tables.surfaces(), tables.surface_index()];
-        tables.free();
+        const { records, index } = JSON.parse(ground.ground_surface_field());
         const [, , cellM, cols, rows, levels, exactToM] = ground.ground_field_grid();
         try {
           for (let q = 0; q < count; q++) {

@@ -431,7 +431,7 @@ export async function run(ctx) {
     dim: 0,
     lines: { ...fixtureStyle.lines, strength: 0, floor: 0 },
   };
-  // A structure takes fog whole (fogTerm.ts), so its unseen faces are
+  // A structure takes fog whole, so its unseen faces are
   // those of a building none of which is seen. Every building on the street
   // shows the side something, so one eye stands at head height 5 m from
   // building A's west wall, which hides what lies east of it: the largest
@@ -612,7 +612,7 @@ export async function run(ctx) {
   const roofSeen = [...(await lab(page, (p) => window.__lab.route.probe(p), roofs))];
   // A lower roof 6 m up in building B's sight shadow stays unseen. A roof
   // reads as the air on its near side, up to `roof_reach_m` toward the eye
-  // (fogTerm.ts), so the roof stands that far and 10 m more past B's far
+  // in the shared fog shader, so the roof stands that far and 10 m more past B's far
   // wall, on the line from the recon through B's middle: its near side's
   // air is 10 m into B's sight shadow.
   const recon = (await lab(page, () => window.__lab.route.observation())).own.find(

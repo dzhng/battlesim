@@ -66,7 +66,3 @@ export function tierMesh(bundle: StaticBundle, tier: number): Mesh {
   }
   return out;
 }
-
-/** A landing tree's foot kicks off its stump this many trunk radii along
- *  the fall: clear of the stump, which stands bare behind it. */
-export const KICK_RADII = 2;

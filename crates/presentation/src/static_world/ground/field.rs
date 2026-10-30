@@ -16,7 +16,7 @@ use super::{SURFACE_BOUNDARY, SURFACE_STROKE, SURFACE_TRIANGLE};
 use std::collections::HashMap;
 use std::f64::consts::{PI, SQRT_2};
 
-const FLOATS: usize = 8;
+pub const FLOATS: usize = 8;
 // A record's kind, as the index names it, and the rule it serves.
 const RECT: u32 = 0;
 const STROKE: u32 = 1;

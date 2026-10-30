@@ -5,7 +5,7 @@
 import { presentationSettings } from "@web/presentationSettings";
 import type { BuildingStyle } from "@packages/battle-renderer/src/models/buildingReferences";
 
-/** Handed to Rust's tier rule unread (`model_tiers`). */
+/** Handed to the canonical Rust frame's tier selection. */
 export const gameModelDetail = JSON.stringify(presentationSettings.models);
 
 export const gameBuildingStyle: BuildingStyle =

@@ -76,14 +76,6 @@ impl Presentation {
             .map_err(error)?;
         Ok(self.refresh_world_header())
     }
-
-    /// The authored rest pose for an appearance row, in the same packed
-    /// Joint layout used by the shared model owner for corpses and rest poses.
-    pub fn rest_palette(&self, row: u32) -> Option<Vec<f32>> {
-        self.inner
-            .rest_palette(row)
-            .map(|joints| bytemuck::cast_slice(&joints).to_vec())
-    }
 }
 
 impl Presentation {

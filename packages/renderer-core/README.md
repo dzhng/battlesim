@@ -16,7 +16,3 @@ location.
 [Camera control](src/cameraController.ts) describes view movement. [Clearance](src/cameraClearance.ts)
 uses caller-supplied authoritative geometry; model silhouettes and depth pixels
 cannot substitute for physical picking or clearance.
-
-[The depth contract](src/depthContract.ts) keeps projection, format, clear and
-comparison consistent for browser projection. GPU passes consume the shared
-renderer convention.

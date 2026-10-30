@@ -3,7 +3,6 @@
 // uniform records of the sky, the haze, the sun and post, which the renderer
 // uploads as they are. The battle has one light, and the fixture owns its
 // numbers.
-import { AERIAL_WORDS, BLOOM_WORDS, GRADE_WORDS, SKY_LIGHT_WORDS, SUN_WORDS } from "../records.gen";
 
 export type Rgb = readonly [number, number, number];
 
@@ -126,28 +125,4 @@ export interface CloudSettings {
   radiance: number;
   /** A cloud base's colour against its sunlit top, per linear channel. */
   shade: Rgb;
-}
-
-/** The light a frame is built with: the authored settings, and the records
- *  the presentation crate resolved from them (`SkyLight`, `Aerial`, `Sun`,
- *  `Bloom`, `Grade` in `records.gen.ts`), each its uniform's bytes. */
-export interface ResolvedLight {
-  settings: LightPresentation;
-  sky: Float32Array<ArrayBuffer>;
-  aerial: Float32Array<ArrayBuffer>;
-  sun: Float32Array<ArrayBuffer>;
-  bloom: Float32Array<ArrayBuffer>;
-  grade: Float32Array<ArrayBuffer>;
-}
-
-/** `settings` with its records, split from the crate's words in their order
- *  (`light_records`). */
-export function resolvedLight(settings: LightPresentation, words: Float32Array): ResolvedLight {
-  const sizes = [SKY_LIGHT_WORDS, AERIAL_WORDS, SUN_WORDS, BLOOM_WORDS, GRADE_WORDS];
-  const total = sizes.reduce((a, b) => a + b);
-  if (words.length !== total)
-    throw new Error(`light records: ${words.length} words, expected ${total}`);
-  let at = 0;
-  const [sky, aerial, sun, bloom, grade] = sizes.map((n) => words.slice(at, (at += n)));
-  return { settings, sky, aerial, sun, bloom, grade };
 }

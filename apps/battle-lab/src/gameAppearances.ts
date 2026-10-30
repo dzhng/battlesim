@@ -325,8 +325,8 @@ export function useMapAppearances(
  * `prop_appearances`); and, where the map has buildings (`buildings`), the
  * template art library and the kits those buildings' templates draw from, no
  * other. A kit of those that is not installed refuses the map by name: no
- * building is drawn without its art. Trees, hedgerows and grass are the
- * scenery layer's and the grass pass's, which hold their own buffers.
+ * building is drawn without its art. The shared renderer owns the buffers
+ * for trees, hedgerows and grass.
  */
 export function mapAppearances(
   appearances: InstalledAppearances,

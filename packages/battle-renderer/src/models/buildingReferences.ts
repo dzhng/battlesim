@@ -3,8 +3,7 @@
 // it is), which building each part prop is, and the template art they are
 // drawn from.
 // Nothing here holds a module transform: Rust resolves and walks them
-// (`crates/presentation`'s static world), and `buildingLayer.ts` draws what
-// it chose.
+// (`crates/presentation`'s static world); the shared renderer draws its batches.
 //
 // Every building of every map is drawn this way, from its template's rows in
 // the installed template art library: a generated town's, a test map's

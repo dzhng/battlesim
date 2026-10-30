@@ -33,22 +33,23 @@ impl Models {
     pub fn set_buildings_shown(&mut self, on: bool) {
         self.buildings_shown = on;
     }
-    pub(super) fn visible_parts(&self, drawable: &Drawable, requested: Part) -> [Part; 4] {
-        if self.surfaces.iter().all(|shown| *shown) {
-            return [requested, Part::default(), Part::default(), Part::default()];
-        }
-        std::array::from_fn(|class| {
-            let part = drawable.parts[class];
-            let first = part.first.max(requested.first);
-            let end = (part.first + part.count).min(requested.first + requested.count);
-            Part {
-                first,
-                count: if self.surfaces[class] {
-                    end.saturating_sub(first)
-                } else {
-                    0
-                },
-            }
-        })
+}
+
+pub(super) fn visible_parts(parts: &[Part; 4], requested: Part, shown: &[bool; 4]) -> [Part; 4] {
+    if shown.iter().all(|shown| *shown) {
+        return [requested, Part::default(), Part::default(), Part::default()];
     }
+    std::array::from_fn(|class| {
+        let part = parts[class];
+        let first = part.first.max(requested.first);
+        let end = (part.first + part.count).min(requested.first + requested.count);
+        Part {
+            first,
+            count: if shown[class] {
+                end.saturating_sub(first)
+            } else {
+                0
+            },
+        }
+    })
 }

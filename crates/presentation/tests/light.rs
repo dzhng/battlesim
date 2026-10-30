@@ -182,3 +182,16 @@ fn clouds_give_way_to_the_overcast_dome() {
     let sky = light.sky();
     assert_eq!((sky.cloud_opacity, sky.overcast), (0.0, 1.0));
 }
+
+#[test]
+fn sky_and_environment_share_one_unit_sun() {
+    for case in vectors().as_object().unwrap().values() {
+        let light: LightSettings = serde_json::from_value(case["light"].clone()).unwrap();
+        let records = light.records();
+        assert_eq!(records.sky.sun_direction, records.sun.sun_direction[..3]);
+        let sun = records.sky.sun_direction;
+        let length = sun.iter().map(|c| c * c).sum::<f32>().sqrt();
+        assert!((length - 1.0).abs() < 1e-6);
+        assert!((f64::from(sun[2]) - libm::sin(light.sun_elevation)).abs() < 1e-6);
+    }
+}
