@@ -203,3 +203,11 @@ visual limitations remain outside this pass.
 **Sound done — `light_machine_gun` (2026-10-29):** Cadence gate follow-up: the inherited 100 ms rifle recording also mismatched this weapon. Existing reports are relayed at its unchanged 80 ms cadence; no rule changes. Evidence: shared `evidence-15-sound/lmg/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
 
 **Sound done — `rocket_artillery` (2026-10-29):** Item 1: a short M270 ignition/exhaust crop plays per rocket; recorded as a designed fallback, not a natural salvo. Evidence: shared `evidence-15-sound/rocket-artillery/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
+
+**Sound done — item 4 (2026-10-29):** `SoundTables` admits firing recipes
+against each resolved weapon, including derived and encounter-added rows.
+Multi-report clips require a magazine, fit its capacity and burst group, and
+match its shot interval within 5 ms. Single reports remain valid. The regression
+was written and observed red before enforcement; count and tolerance boundary
+checks pass, as does the owning sound suite. Evidence: shared
+`evidence-15-sound/4-cadence/`. This refusal changes no valid playback output.

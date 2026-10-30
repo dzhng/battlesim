@@ -301,6 +301,30 @@ impl SoundTables {
         audio.check_sounds(&catalog)?;
         let looks = crate::looks::WeaponLooks::from_value(presentation, weapons)?
             .with_sounds(&audio, &catalog)?;
+        for (id, weapon) in
+            contract::weapons::resolve_weapons(weapons).map_err(|e| format!("weapons: {e}"))?
+        {
+            let Some(shot) = &looks.get(&id).sound.shot else {
+                continue;
+            };
+            let cadence = catalog.cadence(&shot.near);
+            if cadence.shots <= 1 {
+                continue;
+            }
+            let matches = weapon.magazine.is_some_and(|magazine| {
+                let rounds = magazine
+                    .burst
+                    .map_or(magazine.rounds, |burst| burst.rounds.min(magazine.rounds));
+                cadence.shots <= rounds as usize
+                    && (cadence.interval_s - magazine.shot_interval_s).abs() <= 0.005 + 1e-12
+            });
+            if !matches {
+                return Err(format!(
+                    "weapons.{id}.appearance ({}).sound.shot: recording burst cadence or shot count does not match the weapon (within 5 ms)",
+                    weapon.appearance
+                ));
+            }
+        }
         let landing = &audio.cook_off.landing;
         let look = looks
             .looks

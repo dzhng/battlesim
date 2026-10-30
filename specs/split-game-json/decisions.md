@@ -109,3 +109,17 @@
   restrained mechanical/air recipe without an explosion. Accept Apache audio
   only if its motor separates from its rotor bed on listening; otherwise use
   03's AT4 attack plus exhaust tail, once per observed rocket.
+- **Cadence enforcement also exposes the LMG's inherited mismatch.** Its
+  unchanged 80 ms shot interval was assigned the rifle's 100 ms recording.
+  Relay the existing distinct reports at 80 ms and label that fallback;
+  refusing the shipped LMG or changing its firing rule would violate the task.
+- **Apache conditional source is not admitted.** Its six-second spectrogram
+  contains continuous low-frequency rotor energy and broad overlapping energy
+  through the crop, with no established isolated motor segment. Agent-side
+  listening is unavailable, so the required separation is unverified. Use
+  the explicitly authorized AT4/exhaust single-launch fallback. The spectrum
+  and review boundary live in shared `evidence-15-sound/rocket-pod/`.
+- **Rocket artillery uses a short ground-launch ignition fallback.** Cut the
+  accepted M270 source before its long strike-missile exhaust finishes; play
+  it once per rocket, not a whole salvo on every round. The source is an
+  ATACMS launch, so the clip explicitly records this designed fallback.
