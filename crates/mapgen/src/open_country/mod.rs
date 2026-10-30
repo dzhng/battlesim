@@ -545,7 +545,6 @@ impl<'a> Country<'a> {
         };
         let stead = self.steads.len();
         let lots_before = self.lots.len();
-        // Each side of the line is walked on its own.
         let mut cursor = [0.0_f64; 2];
         for _ in 0..homes {
             // A category by its weight, then one of its templates.
@@ -592,8 +591,9 @@ impl<'a> Country<'a> {
                 &mut self.next_prop,
             );
             self.furnish_yard(&lot, fit, &building.frame, rng);
+            let [x, y, _] = building.frame.translation;
+            self.tally.homes[self.half([x, y])] += 1.0;
             self.buildings.push(building);
-            self.tally.homes[half] += 1.0;
         }
         if self.lots.len() == lots_before {
             // No yard found room: a lane would lead nowhere, so none is laid.
@@ -1411,9 +1411,7 @@ pub(crate) fn cover(
         && country.trees.fair
         && country.cover.fair)
     {
-        return Err(fail(
-            "physical furnishing leaves uneven country halves".into(),
-        ));
+        return Err(fail(format!("uneven country halves: {country:?}")));
     }
     let metrics = crate::layout::measure(&plan, presets);
     if !(metrics.main_approach_top && metrics.main_approach_bottom) {
