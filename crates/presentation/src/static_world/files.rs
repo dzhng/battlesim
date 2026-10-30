@@ -42,19 +42,21 @@ pub struct MapGround {
 }
 
 /// The ground of saved map `map` (`fixtures/maps/<map>`), built by the
-/// simulation's own world code under the rules of the battle fought on it
-/// (the game's, with the units of the map's own category: a capture map's the
-/// capture set's, a test map's the tests'), in the map's biome (`meta.json`) and
+/// simulation's own world code under the battle's resolved rules, in the
+/// map's biome (`meta.json`) and
 /// regional finish, with `fixtures/presentation.json`'s tunings: what
 /// the page reads from `WorldView` and hands `set_ground`.
-pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
+pub fn ground(
+    root: &Path,
+    map: &str,
+    rules: &contract::scenario::Rules,
+) -> Result<MapGround, String> {
     let folder = root.join("fixtures/maps").join(map);
     let resolved = sim::maps::load_folder(&folder).map_err(|e| e.to_string())?;
     let presentation = json(&root.join("fixtures/presentation.json"))?;
     let meta = json(&folder.join("meta.json"))?;
-    let rules = rules(root, map)?;
     let map_def = &resolved.definition;
-    let world = sim::world::WorldGeometry::new(map_def, &rules);
+    let world = sim::world::WorldGeometry::new(map_def, rules);
     let layout = sim::world::export::layout_json(&rules.catalog);
     let source = ground::source(&world, &map_def.extents(), &layout)?;
     let biome_name = meta["biome"].as_str().ok_or("meta.json has no biome")?;
@@ -200,7 +202,7 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
 /// that places them.
 pub fn placed_buildings(
     root: &Path,
-    map: &str,
+    rules: &contract::scenario::Rules,
     world: &World,
 ) -> Result<(PlacedBuildings, BuildingStyle), String> {
     let exported: Value =
@@ -228,7 +230,7 @@ pub fn placed_buildings(
                 .filter_map(move |p| Some((p["prop"].as_u64()? as u32, i)))
         })
         .collect();
-    let (_, shells) = crate::fielded::building_remains(&rules(root, map)?.catalog.view());
+    let (_, shells) = crate::fielded::building_remains(&rules.catalog.view());
     let shells: Vec<String> = shells.into_iter().collect();
     let style = crate::settings::PresentationSettings::from_value(&json(
         &root.join("fixtures/presentation.json"),

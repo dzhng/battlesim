@@ -296,8 +296,8 @@ impl Replay {
         let fog_look = fog.selected()?.look()?;
         let mut presentation = Presentation::new(Some(&capture.layout), capture.tick_hz)?;
         // The ground, and its scenery placed from each kind's finest mesh.
-        let ground = files::ground(root, &map)?;
-        let (buildings, style) = files::placed_buildings(root, &map, &ground.world)?;
+        let ground = files::ground(root, &map, &rules)?;
+        let (buildings, style) = files::placed_buildings(root, &rules, &ground.world)?;
         presentation.set_ground(ground.source, ground.biome, ground.tuning)?;
         // Fog of war, where the browser drew it: the side's sight under the
         // game's sensor rules.

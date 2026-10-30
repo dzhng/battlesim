@@ -65,3 +65,4 @@ Slice 16 remains unticked in the README; no archive or push was performed.
 - Look-sheet review carriers take their magazine from a resolved weapon naming
   the sampled look, so recorded bursts meet the same fielding contract as a
   battle while the controlled HE trajectory and authored looks stay intact.
+- Native ground, fog sensors and building remains consume the battle's resolved rules. A saved-map regression failed with the base sensor height (1 instead of the encounter's 3.25), then passed with matching sensors and forest/prop geometry. The category-based rules helper remains for scenario construction and its existing test callers.
