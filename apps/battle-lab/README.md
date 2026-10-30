@@ -108,7 +108,9 @@ out of development profiling details.
 
 [Page resources](src/appResources.ts) retain the admitted GPU across screen changes;
 [the viewport](src/LabViewport.tsx) owns the canvas configuration and scene
-allocations. The battle draws one pixel per CSS pixel on any display, and a
+allocations. [Session telemetry](src/useViewportGpu.ts) borrows that live renderer;
+the viewport withdraws the borrow before freeing its scene, so telemetry has no
+renderer between generations. The battle draws one pixel per CSS pixel on any display, and a
 high-density screen scales it up: drawing at the display's density multiplies the
 frame's cost for detail a moving battlefield hardly shows, while the HUD, drawn by
 the page, stays at full density. A required resource failure ends play until manual Reload, while the
