@@ -29,13 +29,8 @@ pub fn all() -> Vec<PipelineSpec> {
             )),
             None,
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::Greater,
-            true,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::Greater, true, 0)
+        .msaa(MSAA),
         render(
             "worldCaster",
             "worldCaster.wgsl",
@@ -64,12 +59,7 @@ pub fn all() -> Vec<PipelineSpec> {
             )),
             None,
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::Greater,
-            true,
-            0,
-        ),
+        .depth(DEPTH_FORMAT, CompareFunction::Greater, true, 0),
         render(
             "worldOpaque",
             "worldOpaque.wgsl",
@@ -98,19 +88,11 @@ pub fn all() -> Vec<PipelineSpec> {
             )),
             Some(fragment(
                 None,
-                vec![
-                    target(TextureFormat::Rgba16Float),
-                    target(TextureFormat::Rgba8Unorm),
-                ],
+                vec![target(HDR_FORMAT), target(FOG_MASK_FORMAT)],
             )),
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::GreaterEqual,
-            false,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::GreaterEqual, false, 0)
+        .msaa(MSAA),
         render(
             "worldWater",
             "worldWater.wgsl",
@@ -141,7 +123,7 @@ pub fn all() -> Vec<PipelineSpec> {
                 None,
                 vec![
                     target_with(
-                        TextureFormat::Rgba16Float,
+                        HDR_FORMAT,
                         Some(BlendState {
                             color: BlendComponent {
                                 src_factor: BlendFactor::SrcAlpha,
@@ -157,7 +139,7 @@ pub fn all() -> Vec<PipelineSpec> {
                         0xf,
                     ),
                     target_with(
-                        TextureFormat::Rgba8Unorm,
+                        FOG_MASK_FORMAT,
                         Some(BlendState {
                             color: BlendComponent {
                                 src_factor: BlendFactor::SrcAlpha,
@@ -175,13 +157,8 @@ pub fn all() -> Vec<PipelineSpec> {
                 ],
             )),
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::Greater,
-            false,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::Greater, false, 0)
+        .msaa(MSAA),
         render(
             "worldTerrain",
             "worldTerrain.wgsl",
@@ -210,19 +187,11 @@ pub fn all() -> Vec<PipelineSpec> {
             )),
             Some(fragment(
                 None,
-                vec![
-                    target(TextureFormat::Rgba16Float),
-                    target(TextureFormat::Rgba8Unorm),
-                ],
+                vec![target(HDR_FORMAT), target(FOG_MASK_FORMAT)],
             )),
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::GreaterEqual,
-            false,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::GreaterEqual, false, 0)
+        .msaa(MSAA),
         render(
             "worldBackdrop",
             "worldBackdrop.wgsl",
@@ -251,19 +220,11 @@ pub fn all() -> Vec<PipelineSpec> {
             )),
             Some(fragment(
                 None,
-                vec![
-                    target(TextureFormat::Rgba16Float),
-                    target(TextureFormat::Rgba8Unorm),
-                ],
+                vec![target(HDR_FORMAT), target(FOG_MASK_FORMAT)],
             )),
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::GreaterEqual,
-            false,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::GreaterEqual, false, 0)
+        .msaa(MSAA),
         render(
             "sceneryPrepass",
             "sceneryPrepass.wgsl",
@@ -294,13 +255,8 @@ pub fn all() -> Vec<PipelineSpec> {
             None,
         )
         .primitive(PrimitiveTopology::TriangleList, Some(Face::Back))
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::Greater,
-            true,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::Greater, true, 0)
+        .msaa(MSAA),
         render(
             "sceneryCaster",
             "sceneryCaster.wgsl",
@@ -330,12 +286,7 @@ pub fn all() -> Vec<PipelineSpec> {
             )),
             None,
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::Greater,
-            true,
-            0,
-        ),
+        .depth(DEPTH_FORMAT, CompareFunction::Greater, true, 0),
         render(
             "forestColour",
             "forestColour.wgsl",
@@ -365,20 +316,12 @@ pub fn all() -> Vec<PipelineSpec> {
             )),
             Some(fragment(
                 None,
-                vec![
-                    target(TextureFormat::Rgba16Float),
-                    target(TextureFormat::Rgba8Unorm),
-                ],
+                vec![target(HDR_FORMAT), target(FOG_MASK_FORMAT)],
             )),
         )
         .primitive(PrimitiveTopology::TriangleList, Some(Face::Back))
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::GreaterEqual,
-            false,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::GreaterEqual, false, 0)
+        .msaa(MSAA),
         render(
             "dressingPrepass",
             "dressingPrepass.wgsl",
@@ -408,13 +351,8 @@ pub fn all() -> Vec<PipelineSpec> {
             )),
             None,
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::Greater,
-            true,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::Greater, true, 0)
+        .msaa(MSAA),
         render(
             "dressingColour",
             "dressingColour.wgsl",
@@ -444,19 +382,11 @@ pub fn all() -> Vec<PipelineSpec> {
             )),
             Some(fragment(
                 None,
-                vec![
-                    target(TextureFormat::Rgba16Float),
-                    target(TextureFormat::Rgba8Unorm),
-                ],
+                vec![target(HDR_FORMAT), target(FOG_MASK_FORMAT)],
             )),
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::GreaterEqual,
-            false,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::GreaterEqual, false, 0)
+        .msaa(MSAA),
         render(
             "felledPrepass",
             "felledPrepass.wgsl",
@@ -490,13 +420,8 @@ pub fn all() -> Vec<PipelineSpec> {
             None,
         )
         .primitive(PrimitiveTopology::TriangleList, Some(Face::Back))
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::Greater,
-            true,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::Greater, true, 0)
+        .msaa(MSAA),
         render(
             "felledCaster",
             "felledCaster.wgsl",
@@ -529,12 +454,7 @@ pub fn all() -> Vec<PipelineSpec> {
             )),
             None,
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::Greater,
-            true,
-            0,
-        ),
+        .depth(DEPTH_FORMAT, CompareFunction::Greater, true, 0),
         render(
             "felledColour",
             "felledColour.wgsl",
@@ -567,20 +487,12 @@ pub fn all() -> Vec<PipelineSpec> {
             )),
             Some(fragment(
                 None,
-                vec![
-                    target(TextureFormat::Rgba16Float),
-                    target(TextureFormat::Rgba8Unorm),
-                ],
+                vec![target(HDR_FORMAT), target(FOG_MASK_FORMAT)],
             )),
         )
         .primitive(PrimitiveTopology::TriangleList, Some(Face::Back))
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::GreaterEqual,
-            false,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::GreaterEqual, false, 0)
+        .msaa(MSAA),
         render(
             "grassDraw",
             "grassDraw.wgsl",
@@ -593,19 +505,11 @@ pub fn all() -> Vec<PipelineSpec> {
             Some(vertex(None, vec![])),
             Some(fragment(
                 None,
-                vec![
-                    target(TextureFormat::Rgba16Float),
-                    target(TextureFormat::Rgba8Unorm),
-                ],
+                vec![target(HDR_FORMAT), target(FOG_MASK_FORMAT)],
             )),
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::Greater,
-            true,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::Greater, true, 0)
+        .msaa(MSAA),
         compute(
             "grassBuild",
             "grassBuild.wgsl",

@@ -22,23 +22,23 @@ pub fn all() -> Vec<PipelineSpec> {
             "fogMaskRows.wgsl",
             vec!["rowsLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rg8Unorm)])),
+            Some(fragment(None, vec![target(FOG_DISTANCE_FORMAT)])),
         ),
         render(
             "fogMaskColumns",
             "fogMaskColumns.wgsl",
             vec!["columnsLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rg8Unorm)])),
+            Some(fragment(None, vec![target(FOG_DISTANCE_FORMAT)])),
         ),
         render(
             "fogMaskCompose",
             "fogMaskCompose.wgsl",
             vec!["composeLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rgba16Float)])),
+            Some(fragment(None, vec![target(HDR_FORMAT)])),
         )
-        .msaa(4),
+        .msaa(MSAA),
         render(
             "fogMaskRim",
             "fogMaskRim.wgsl",
@@ -47,7 +47,7 @@ pub fn all() -> Vec<PipelineSpec> {
             Some(fragment(
                 None,
                 vec![target_with(
-                    TextureFormat::Bgra8Unorm,
+                    DISPLAY_FORMAT,
                     Some(BlendState {
                         color: BlendComponent {
                             src_factor: BlendFactor::SrcAlpha,

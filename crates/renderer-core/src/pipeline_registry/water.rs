@@ -16,31 +16,26 @@ pub fn all() -> Vec<PipelineSpec> {
             "sceneColourMip",
             "sceneColourMip.wgsl",
             vec!["sceneMipLayout"],
-            TextureFormat::Rgba16Float,
+            HDR_FORMAT,
         ),
         full_screen(
             "waterGuardSeed",
             "waterGuardSeed.wgsl",
             vec!["guardSeedLayout"],
-            TextureFormat::Rg8Unorm,
+            GUARD_FORMAT,
         ),
         full_screen(
             "waterGuardMip",
             "waterGuardMip.wgsl",
             vec!["guardMipLayout"],
-            TextureFormat::Rg8Unorm,
+            GUARD_FORMAT,
         ),
         full_screen(
             "waterNormalsBake",
             "waterNormalsBake.wgsl",
             vec![],
-            TextureFormat::Rgba16Float,
+            HDR_FORMAT,
         ),
-        full_screen(
-            "waveStep",
-            "waveStep.wgsl",
-            vec!["waveLayout"],
-            TextureFormat::Rgba16Float,
-        ),
+        full_screen("waveStep", "waveStep.wgsl", vec!["waveLayout"], HDR_FORMAT),
     ]
 }

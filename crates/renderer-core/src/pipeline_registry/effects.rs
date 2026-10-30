@@ -30,7 +30,7 @@ pub fn all() -> Vec<PipelineSpec> {
             Some(fragment(
                 None,
                 vec![target_with(
-                    TextureFormat::Rgba8Unorm,
+                    OVERLAY_FORMAT,
                     Some(BlendState {
                         color: BlendComponent {
                             src_factor: BlendFactor::SrcAlpha,
@@ -47,13 +47,8 @@ pub fn all() -> Vec<PipelineSpec> {
                 )],
             )),
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::Greater,
-            false,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::Greater, false, 0)
+        .msaa(MSAA),
         render(
             "paintMarching",
             "paintMarching.wgsl",
@@ -83,7 +78,7 @@ pub fn all() -> Vec<PipelineSpec> {
             Some(fragment(
                 None,
                 vec![target_with(
-                    TextureFormat::Rgba8Unorm,
+                    OVERLAY_FORMAT,
                     Some(BlendState {
                         color: BlendComponent {
                             src_factor: BlendFactor::SrcAlpha,
@@ -100,13 +95,8 @@ pub fn all() -> Vec<PipelineSpec> {
                 )],
             )),
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::Greater,
-            false,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::Greater, false, 0)
+        .msaa(MSAA),
         render(
             "overlayOpaque",
             "overlayOpaque.wgsl",
@@ -136,7 +126,7 @@ pub fn all() -> Vec<PipelineSpec> {
             Some(fragment(
                 None,
                 vec![target_with(
-                    TextureFormat::Rgba8Unorm,
+                    OVERLAY_FORMAT,
                     Some(BlendState {
                         color: BlendComponent {
                             src_factor: BlendFactor::SrcAlpha,
@@ -153,13 +143,8 @@ pub fn all() -> Vec<PipelineSpec> {
                 )],
             )),
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::Greater,
-            true,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::Greater, true, 0)
+        .msaa(MSAA),
         render(
             "overlayTranslucent",
             "overlayTranslucent.wgsl",
@@ -189,7 +174,7 @@ pub fn all() -> Vec<PipelineSpec> {
             Some(fragment(
                 None,
                 vec![target_with(
-                    TextureFormat::Rgba8Unorm,
+                    OVERLAY_FORMAT,
                     Some(BlendState {
                         color: BlendComponent {
                             src_factor: BlendFactor::SrcAlpha,
@@ -206,13 +191,8 @@ pub fn all() -> Vec<PipelineSpec> {
                 )],
             )),
         )
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::Greater,
-            false,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::Greater, false, 0)
+        .msaa(MSAA),
         render(
             "overlayComposite",
             "overlayComposite.wgsl",
@@ -221,7 +201,7 @@ pub fn all() -> Vec<PipelineSpec> {
             Some(fragment(
                 None,
                 vec![target_with(
-                    TextureFormat::Bgra8Unorm,
+                    DISPLAY_FORMAT,
                     Some(BlendState {
                         color: BlendComponent {
                             src_factor: BlendFactor::One,
@@ -243,14 +223,14 @@ pub fn all() -> Vec<PipelineSpec> {
             "glowRows.wgsl",
             vec!["glowRowsLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rgba8Unorm)])),
+            Some(fragment(None, vec![target(OVERLAY_FORMAT)])),
         ),
         render(
             "glowColumns",
             "glowColumns.wgsl",
             vec!["glowColumnsLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rgba8Unorm)])),
+            Some(fragment(None, vec![target(OVERLAY_FORMAT)])),
         ),
         render(
             "effects",
@@ -273,7 +253,7 @@ pub fn all() -> Vec<PipelineSpec> {
                 Some("fs"),
                 vec![
                     target_with(
-                        TextureFormat::Rgba16Float,
+                        HDR_FORMAT,
                         Some(BlendState {
                             color: BlendComponent {
                                 src_factor: BlendFactor::One,
@@ -289,7 +269,7 @@ pub fn all() -> Vec<PipelineSpec> {
                         0xf,
                     ),
                     target_with(
-                        TextureFormat::Rgba8Unorm,
+                        FOG_MASK_FORMAT,
                         Some(BlendState {
                             color: BlendComponent {
                                 src_factor: BlendFactor::Zero,

@@ -6,16 +6,16 @@ pub fn all() -> Vec<PipelineSpec> {
             "bake.wgsl",
             vec!["skyBakeLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rgba16Float)])),
+            Some(fragment(None, vec![target(HDR_FORMAT)])),
         ),
         render(
             "background",
             "background.wgsl",
             vec!["skyBackgroundLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rgba16Float)])),
+            Some(fragment(None, vec![target(HDR_FORMAT)])),
         )
-        .msaa(4),
+        .msaa(MSAA),
         render(
             "pmremBake",
             "pmremBake.wgsl",
@@ -32,7 +32,7 @@ pub fn all() -> Vec<PipelineSpec> {
                     ],
                 )],
             )),
-            Some(fragment(None, vec![target(TextureFormat::Rgba16Float)])),
+            Some(fragment(None, vec![target(HDR_FORMAT)])),
         ),
         render(
             "pmremFilter",
@@ -50,7 +50,7 @@ pub fn all() -> Vec<PipelineSpec> {
                     ],
                 )],
             )),
-            Some(fragment(None, vec![target(TextureFormat::Rgba16Float)])),
+            Some(fragment(None, vec![target(HDR_FORMAT)])),
         ),
         render(
             "backdropColour",
@@ -81,96 +81,88 @@ pub fn all() -> Vec<PipelineSpec> {
             )),
             Some(fragment(
                 None,
-                vec![
-                    target(TextureFormat::Rgba16Float),
-                    target(TextureFormat::Rgba8Unorm),
-                ],
+                vec![target(HDR_FORMAT), target(FOG_MASK_FORMAT)],
             )),
         )
         .primitive(PrimitiveTopology::TriangleList, Some(Face::Back))
-        .depth(
-            TextureFormat::Depth32Float,
-            CompareFunction::GreaterEqual,
-            false,
-            0,
-        )
-        .msaa(4),
+        .depth(DEPTH_FORMAT, CompareFunction::GreaterEqual, false, 0)
+        .msaa(MSAA),
         render(
             "bloomHighpass",
             "bloomHighpass.wgsl",
             vec!["highpassLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rgba16Float)])),
+            Some(fragment(None, vec![target(HDR_FORMAT)])),
         ),
         render(
             "bloomBlur0",
             "bloomBlur0.wgsl",
             vec!["blurLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rgba16Float)])),
+            Some(fragment(None, vec![target(HDR_FORMAT)])),
         ),
         render(
             "bloomBlur1",
             "bloomBlur1.wgsl",
             vec!["blurLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rgba16Float)])),
+            Some(fragment(None, vec![target(HDR_FORMAT)])),
         ),
         render(
             "bloomBlur2",
             "bloomBlur2.wgsl",
             vec!["blurLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rgba16Float)])),
+            Some(fragment(None, vec![target(HDR_FORMAT)])),
         ),
         render(
             "bloomBlur3",
             "bloomBlur3.wgsl",
             vec!["blurLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rgba16Float)])),
+            Some(fragment(None, vec![target(HDR_FORMAT)])),
         ),
         render(
             "bloomBlur4",
             "bloomBlur4.wgsl",
             vec!["blurLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rgba16Float)])),
+            Some(fragment(None, vec![target(HDR_FORMAT)])),
         ),
         render(
             "bloomComposite",
             "bloomComposite.wgsl",
             vec!["compositeLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Rgba16Float)])),
+            Some(fragment(None, vec![target(HDR_FORMAT)])),
         ),
         render(
             "postHighPlane",
             "postHighPlane.wgsl",
             vec!["finalLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Bgra8Unorm)])),
+            Some(fragment(None, vec![target(DISPLAY_FORMAT)])),
         ),
         render(
             "postUngraded",
             "postUngraded.wgsl",
             vec!["finalLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Bgra8Unorm)])),
+            Some(fragment(None, vec![target(DISPLAY_FORMAT)])),
         ),
         render(
             "postRaw",
             "postRaw.wgsl",
             vec!["finalLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Bgra8Unorm)])),
+            Some(fragment(None, vec![target(DISPLAY_FORMAT)])),
         ),
         render(
             "postLook",
             "postLook.wgsl",
             vec!["finalLayout"],
             Some(vertex(None, vec![])),
-            Some(fragment(None, vec![target(TextureFormat::Bgra8Unorm)])),
+            Some(fragment(None, vec![target(DISPLAY_FORMAT)])),
         ),
     ]
 }

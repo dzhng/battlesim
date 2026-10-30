@@ -1,4 +1,8 @@
 //! Semantic built-in pipeline catalog shared by native and browser.
+use crate::{
+    DEPTH_FORMAT, DISPLAY_FORMAT, FOG_DISTANCE_FORMAT, FOG_MASK_FORMAT, GUARD_FORMAT, HDR_FORMAT,
+    MSAA, OVERLAY_FORMAT,
+};
 use wgpu::*;
 #[derive(Clone, Copy)]
 pub struct Sizes {
