@@ -158,10 +158,10 @@ impl<'a, T> Container<'a, T> {
     }
 }
 
-#[cfg(all(feature = "files", not(target_arch = "wasm32")))]
+#[cfg(feature = "files")]
 pub use runtime::{Runtime, RUNTIME};
 
-#[cfg(all(feature = "files", not(target_arch = "wasm32")))]
+#[cfg(feature = "files")]
 mod runtime {
     use flate2::read::GzDecoder;
     use serde_json::Value;
