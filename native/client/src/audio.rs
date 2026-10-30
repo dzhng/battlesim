@@ -180,22 +180,20 @@ pub struct Audio {
 
 /// The game's sound setup, as the browser builds it (`soundFeed.ts`):
 /// `audio.json`, the sound catalog, the weapon rows, the tick rate,
-/// and the effects' smoke and cook-off.
+/// and the presentation document.
 pub fn setup(
     rules: &contract::scenario::Rules,
     presentation: &Value,
     audio: &Value,
     catalog: &Value,
 ) -> Result<String, String> {
-    let settings = presentation::settings::PresentationSettings::from_value(presentation)?;
-    let fx = settings.effects;
+    presentation::settings::PresentationSettings::from_value(presentation)?;
     Ok(json!({
         "audio": audio,
         "presentation": presentation,
         "catalog": catalog,
         "weapons": rules.weapons,
         "tick_hz": rules.tick_hz,
-        "effects": { "smoke": fx.smoke, "cook_off": fx.cook_off },
     })
     .to_string())
 }

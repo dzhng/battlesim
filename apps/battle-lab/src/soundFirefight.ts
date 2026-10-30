@@ -402,8 +402,6 @@ export async function offlineSound(
     catalog,
     weapons: shippedRules.weapons,
     looks: presentationSettings,
-    smokeTimes: presentationSettings.effects.smoke,
-    cookOff: presentationSettings.effects.cook_off,
   };
   await loadPresentation();
   await sink.bank.prepare(battleSounds(options));

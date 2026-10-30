@@ -24,8 +24,6 @@ export function createBattleAudio(
       presentation: audioMix,
       weapons,
       looks: presentationSettings,
-      smokeTimes: presentationSettings.effects.smoke,
-      cookOff: presentationSettings.effects.cook_off,
     },
     seed,
   );

@@ -79,8 +79,6 @@ test("a battle's lines are heard from its sound frame's listener", () => {
       looks: presentationSettings,
       presentation: audioMix as unknown as AudioMix,
       catalog: gameSounds,
-      smokeTimes: presentationSettings.effects.smoke,
-      cookOff: presentationSettings.effects.cook_off,
     },
     sink,
   );

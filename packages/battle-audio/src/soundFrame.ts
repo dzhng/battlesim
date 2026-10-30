@@ -198,10 +198,6 @@ export interface SoundFrameOptions {
   /** The battle's weapon rows, whose appearances name admitted looks. */
   weapons: Record<string, object>;
   looks: object;
-  /** How long each smoke kind burns and smoulders (`presentation.effects.smoke`). */
-  smokeTimes: Record<string, { burn_s: number; smoulder_s: number }>;
-  /** When a cook-off's fireballs go and its turret lands (`presentation.effects.cook_off`). */
-  cookOff: object;
 }
 
 type Command =
@@ -242,7 +238,6 @@ const rustFrame = (o: SoundFrameOptions) =>
       weapons: o.weapons,
       presentation: o.looks,
       tick_hz: o.tickHz,
-      effects: { smoke: o.smokeTimes, cook_off: o.cookOff },
     }),
   );
 

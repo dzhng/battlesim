@@ -31,8 +31,6 @@ import { MusicPlayer } from "@packages/battle-audio/src/music/musicPlayer";
 
 beforeAll(() => loadPresentation());
 
-const COOK_OFF = presentationSettings.effects.cook_off;
-
 const param = () => ({
   setTargetAtTime() {},
   setValueAtTime() {},
@@ -176,8 +174,6 @@ function setupDecode(
       weapons: shippedRules.weapons,
       looks: pendingLooks,
       presentation: audioMix as unknown as AudioMix,
-      smokeTimes: {},
-      cookOff: COOK_OFF,
     },
     1,
   );
@@ -254,8 +250,6 @@ test("a departed battle cannot admit late decoding and its replacement shares th
       weapons: shippedRules.weapons,
       looks: pendingLooks,
       presentation: audioMix as unknown as AudioMix,
-      smokeTimes: {},
-      cookOff: COOK_OFF,
     },
     1,
   );

@@ -176,7 +176,6 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 const presentation = audioMix as unknown as AudioMix;
-const cookOff = presentationSettings.effects.cook_off;
 const empty = (tick: number) => ({
   effects: { tick, segments: [], blasts: [], smokes: [] },
   launches: [],
@@ -279,8 +278,6 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
       weapons: shippedRules.weapons,
       looks: presentationSettings,
       presentation,
-      smokeTimes: {},
-      cookOff,
     },
     1,
   );
@@ -304,8 +301,6 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
       weapons: shippedRules.weapons,
       looks: presentationSettings,
       presentation,
-      smokeTimes: {},
-      cookOff,
     },
     1,
   );
@@ -331,8 +326,6 @@ test("changing master volume preserves battle evidence, while mute and unmute di
       weapons: shippedRules.weapons,
       looks: presentationSettings,
       presentation,
-      smokeTimes: {},
-      cookOff,
     },
     1,
   );
@@ -368,8 +361,6 @@ test("a blocked early attempt resumes on menu input and the bed lasts until batt
       weapons: shippedRules.weapons,
       looks: presentationSettings,
       presentation,
-      smokeTimes: {},
-      cookOff,
     },
     1,
   );
@@ -414,8 +405,6 @@ test("repeated battle visits return every audio connection to the menu baseline"
         weapons: shippedRules.weapons,
         looks: presentationSettings,
         presentation,
-        smokeTimes: {},
-        cookOff,
       },
       1,
     );
@@ -477,8 +466,6 @@ test("resuming a browser-suspended context starts battle sound from fresh eviden
       weapons: shippedRules.weapons,
       looks: presentationSettings,
       presentation,
-      smokeTimes: {},
-      cookOff,
     },
     1,
   );
@@ -538,8 +525,6 @@ test("a battle's score shuffles by the battle's own seed", async () => {
         weapons: shippedRules.weapons,
         looks: presentationSettings,
         presentation,
-        smokeTimes: {},
-        cookOff,
       },
       seed,
     );

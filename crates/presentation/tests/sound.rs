@@ -33,14 +33,12 @@ fn sound_with(edit: impl FnOnce(&mut Value)) -> Sound {
     let game = fixture("rules.json");
     let mut presentation = fixture("presentation.json");
     edit(&mut presentation);
-    let fx = &presentation["effects"];
     let setup = json!({
         "audio": fixture("audio.json"),
         "presentation": presentation,
         "catalog": fixture("sounds.json"),
         "weapons": game["weapons"],
         "tick_hz": game["tick_hz"],
-        "effects": { "smoke": fx["smoke"], "cook_off": fx["cook_off"] },
     });
     Sound::from_json(&setup.to_string()).unwrap()
 }
