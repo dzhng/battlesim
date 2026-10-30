@@ -68,4 +68,10 @@ external provenance receipts. Receipts now remain immutable like source metadata
 Voice/music server tests were moved into their own file before expanding sound
 publication coverage, keeping both files within the source-size budget.
 
+The first unprimed critique identified clipped recipe descriptions and a wandering
+impact-selector/button boundary. Recipe selectors now show their unique id with
+the complete human description wrapping beneath, and material audition buttons
+share a column. Captures and the final critique were refreshed after those fixes;
+the initial evidence remains in `evidence-14/attempt-1/`.
+
 Next: [15 Content pass](15-content.md). No sound values were retuned here.

@@ -23,13 +23,19 @@ export function WeaponLooks({
   const recipe = (label: string, value: string, change: (value: string) => void) => (
     <label>
       {label}
-      <select aria-label={label} value={value} onChange={(event) => change(event.target.value)}>
-        {Object.entries(draft.sounds).map(([id, row]) => (
+      <select
+        aria-label={label}
+        title={value}
+        value={value}
+        onChange={(event) => change(event.target.value)}
+      >
+        {Object.keys(draft.sounds).map((id) => (
           <option key={id} value={id}>
-            {id} · {row.label}
+            {id}
           </option>
         ))}
       </select>
+      <small className="sw-look-recipe-label">{draft.sounds[value].label}</small>
     </label>
   );
   const report = (
@@ -140,7 +146,7 @@ export function WeaponLooks({
           <p>No motor authored.</p>
         )}
       </section>
-      <section className="sw-assignment">
+      <section className="sw-assignment sw-look-impacts">
         <h3>Impacts</h3>
         {sound.impact_scale !== undefined && (
           <NumberField

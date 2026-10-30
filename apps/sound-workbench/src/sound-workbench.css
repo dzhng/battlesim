@@ -859,3 +859,15 @@
 .sw-look-recording button {
   margin-top: 8px;
 }
+
+.sw-look-recipe-label {
+  overflow-wrap: anywhere;
+}
+.sw-look-impacts .sw-effect-row {
+  grid-template-columns: minmax(0, 1fr) 210px;
+}
+@media (max-width: 620px) {
+  .sw-look-impacts .sw-effect-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
