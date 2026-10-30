@@ -1,6 +1,6 @@
 import type { LabScript, LabUnit } from "./scenarios";
 import { buildStreetScenario } from "./streetScenario";
-import type { GameRules, SessionCatalog } from "@web/battle/catalog/compose";
+import type { ResolvedRules, SessionCatalog } from "@web/battle/catalog/compose";
 
 export const REVIEW_LANES = [
   { name: "Rifle", weapon: "rifle", shooter: "test_rifle", target: "test_rifle" },
@@ -28,7 +28,7 @@ export function reviewLanePositions(
 }
 
 /** Private experiment controls; gameplay keeps the authored rules. */
-export function projectileReviewRules(game: GameRules): GameRules {
+export function projectileReviewRules(game: ResolvedRules): ResolvedRules {
   const rules = structuredClone(game);
   for (const weapon of Object.values(rules.weapons)) {
     Object.assign(weapon, { ammo: "unlimited", damage: 0, structural_damage: 0 });

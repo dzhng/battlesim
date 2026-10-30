@@ -560,7 +560,7 @@ fn a_truck_on_the_move_serves_nobody() {
 #[test]
 fn test_a_truck_refills_a_vehicles_spent_flares() {
     use std::collections::BTreeSet;
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     rules["service"]["flare_service_s"] = json!(2.0);
     rules["service"]["stock_per_flare"] = json!(3);
     sim::fixtures::patch_catalog(

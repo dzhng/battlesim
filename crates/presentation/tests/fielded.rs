@@ -63,7 +63,7 @@ fn a_battle_reads_only_the_contents_it_names() {
 fn a_ground_hull_model_without_its_gauge_is_refused_before_loading_bundles() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let catalog = rules.catalog.view();
     let rules = serde_json::to_value(rules).unwrap();
     let mut runtime = Runtime::open(&root.join("assets/runtime")).unwrap().catalog;
@@ -108,7 +108,7 @@ fn each_factions_gauge_drives_its_own_track_travel() {
     use serde_json::json;
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let catalog = rules.catalog.view();
     let unit = catalog["units"]
         .as_array()

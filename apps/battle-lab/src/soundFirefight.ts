@@ -1,3 +1,4 @@
+import { audioMix } from "@web/audioMix";
 // A scripted firefight for the sound lab: eight seconds of publications,
 // drawn motion and hearing cues, as a battle would feed them, rendered
 // offline through the battle's real audio graph (`OfflineAudioContext`).
@@ -27,7 +28,7 @@ import { WebAudioSink } from "@packages/battle-audio/src/webAudioSink";
 import { mountMuzzles, type MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
 import { launches } from "@wasm/renderer_browser";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import { gameAudio } from "./soundFeed";
+
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 
@@ -380,10 +381,10 @@ export async function offlineSound(
 ) {
   const sampleRate = 48000;
   const ctx = new OfflineAudioContext(2, Math.round(seconds * sampleRate), sampleRate);
-  const { buses } = gameAudio;
+  const { buses } = audioMix;
   const presentation: AudioMix = solo
     ? {
-        ...gameAudio,
+        ...audioMix,
         buses: {
           master: buses.master,
           units: solo === "units" ? buses.units : 0,
@@ -393,7 +394,7 @@ export async function offlineSound(
           voices: solo === "voices" ? buses.voices : 0,
         },
       }
-    : gameAudio;
+    : audioMix;
   const sink = new OfflineSink(ctx, presentation, catalog);
   const options = {
     tickHz: HZ,
@@ -603,7 +604,7 @@ export async function renderDistanceProbe(catalog: SoundCatalog = gameSounds) {
       pitch: cam.pitch_curve[cam.pitch_curve.length - 1][1],
       yaw: cam.default.yaw,
     },
-    gameAudio.listener_eye_share,
+    audioMix.listener_eye_share,
   );
   const close: Listener = { position: [0, -4, 3], forward: [0, 1, 0] };
   return {
@@ -611,7 +612,7 @@ export async function renderDistanceProbe(catalog: SoundCatalog = gameSounds) {
     near: await renderShot(close, at, catalog),
     far: await renderShot(far, at, catalog),
     farDistanceM: Math.hypot(far.position[0], far.position[1], far.position[2] - at[2]),
-    floor: gameAudio.distance.floor,
-    farHz: gameAudio.air.far_hz,
+    floor: audioMix.distance.floor,
+    farHz: audioMix.air.far_hz,
   };
 }

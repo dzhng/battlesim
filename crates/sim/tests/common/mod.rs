@@ -34,7 +34,7 @@ impl Seat for contract::observation::ObservationFrame {
 }
 
 pub fn game() -> Value {
-    sim::fixtures::test_game()
+    sim::fixtures::test_rules()
 }
 
 /// The seats of a U.S. against Eastern skirmish where a client plays both

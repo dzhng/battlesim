@@ -1,6 +1,6 @@
 import { rulerTour } from "./_rulerTour.mjs";
 import { stageStreetMoves } from "./_streetStaging.mjs";
-// Production street controls, deterministic staging, rendered models and effects.
+// Production street controls, deterministic staging, models and effects.
 // Optional GPU cost controls run alone under the GPU lock.
 import { battleCursor } from "./_cursorOrders.mjs";
 import { appJourney, armyJourney } from "./_appJourney.mjs";
@@ -31,7 +31,7 @@ import {
   isVehicle,
   unitType,
   vehicleAppearances,
-  game,
+  rules,
   streetAttack,
   streetMap,
   visuals,
@@ -634,7 +634,7 @@ async function soldierTour(ctx) {
   ctx.check(
     "clicking a soldier picks his box",
     picked >= 0 &&
-      box.half[0] === Math.fround(game.physics.soldier_radius_m) &&
+      box.half[0] === Math.fround(rules.physics.soldier_radius_m) &&
       Math.hypot(box.x - m[0], box.y - m[1]) < 1.5,
     JSON.stringify({ picked, box, member: m }),
   );
@@ -1088,7 +1088,7 @@ function yellowInk(png) {
  *  (Shift) order flashes too. */
 async function orderFlashTour(ctx) {
   const { flash } = visuals.overlay.orders;
-  const tickHz = game.tick_hz;
+  const tickHz = rules.tick_hz;
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const o = await obs(page);
   const rifle = o.own.find((u) => u.kind === "test_rifle");

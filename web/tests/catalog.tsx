@@ -4,7 +4,7 @@
 import type { ReactNode } from "react";
 import { catalogSet } from "@web/battle/catalog/sets";
 import { SessionCatalogProvider } from "@web/battle/catalog/context";
-import type { GameRules } from "@web/battle/catalog/compose";
+import type { ResolvedRules } from "@web/battle/catalog/compose";
 import type { LabEvent, LabScript, LabUnit } from "@apps/battle-lab/src/scenarios";
 
 export const TEST_CATALOG = await catalogSet("test");
@@ -20,7 +20,7 @@ export function labScenario(
   units: LabUnit[],
   events: LabEvent[] = [],
   scripts: LabScript[] = [],
-  rules: GameRules = TEST_RULES,
+  rules: ResolvedRules = TEST_RULES,
 ): string {
   // The rules read the sections they own from the one fixture and ignore the rest.
   return JSON.stringify({ map, rules, units, events, scripts });

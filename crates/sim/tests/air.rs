@@ -14,10 +14,10 @@ use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::fixtures;
 
-/// The test rules, whose catalog holds the test helicopter (`test_heli`,
+/// Test rules whose catalog holds the test helicopter (`test_heli`,
 /// `fixtures/units/test/aircraft.json`).
 pub(crate) fn fixture() -> Value {
-    fixtures::test_game()
+    fixtures::test_rules()
 }
 
 pub(crate) fn battle_with(fixture: &Value, map: Value, units: Value) -> Battle {

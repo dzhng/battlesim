@@ -30,7 +30,7 @@ fn own(position: [f64; 3], heading: f64) -> FixedWingState {
 }
 
 fn air() -> contract::scenario::FixedWingFlight {
-    serde_json::from_value(sim::fixtures::test_game()["air"]["fixed_wing"].clone()).unwrap()
+    serde_json::from_value(sim::fixtures::test_rules()["air"]["fixed_wing"].clone()).unwrap()
 }
 
 /// Order `unit` of `side` to fly to `goal`: how a test points one jet at
@@ -55,7 +55,7 @@ fn fly_to(battle: &mut sim::battle::Battle, side: Side, seq: u64, unit: u32, goa
 }
 
 fn air_battle(units: serde_json::Value) -> sim::battle::Battle {
-    air_battle_with(sim::fixtures::test_game(), units)
+    air_battle_with(sim::fixtures::test_rules(), units)
 }
 
 fn air_battle_with(mut rules: serde_json::Value, units: serde_json::Value) -> sim::battle::Battle {
@@ -161,7 +161,7 @@ fn a_third_jet_joins_by_targeting_an_engaged_one() {
 #[test]
 fn a_jet_ordered_onto_a_far_jet_closes_until_the_dogfight_forms() {
     const BREAK_M: f64 = 1_000.0;
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     rules["air"]["fixed_wing"]["dogfight_break_m"] = json!(BREAK_M);
     sim::fixtures::patch_catalog(
         &mut rules,
@@ -227,7 +227,7 @@ fn the_link_breaks_past_the_rule_distance_in_3d() {
 /// hovers and shoots; neither links.
 #[test]
 fn a_jet_makes_passes_at_a_helicopter_and_neither_dogfights() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -269,7 +269,7 @@ fn a_jet_makes_passes_at_a_helicopter_and_neither_dogfights() {
 #[test]
 fn a_jet_answers_a_helicopter_above_it_on_high_ground_in_passes() {
     const MESA_M: f64 = 250.0;
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",

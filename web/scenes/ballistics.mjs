@@ -4,7 +4,7 @@
 import { writeFile } from "node:fs/promises";
 import { anyNear, decode, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation } from "./_overlays.mjs";
-import { game } from "./_units.mjs";
+import { rules } from "./_units.mjs";
 
 const END_TICK = 1200;
 
@@ -93,7 +93,7 @@ export async function run(ctx, options = {}) {
     return;
   }
   ctx.check(
-    "game gravity needs one chord per 30 Hz tick within 2 cm",
+    "rules gravity needs one chord per 30 Hz tick within 2 cm",
     (await page.evaluate(() => window.__lab.route.subsegments())) === 1,
   );
 
@@ -163,7 +163,7 @@ export async function run(ctx, options = {}) {
   ctx.check(
     "a fast round leads the 0.3 m sliding board and hits its face mid-chord",
     hmg?.struck === "body:1" &&
-      hmg.tick === Math.ceil(boardArrival * game.tick_hz) &&
+      hmg.tick === Math.ceil(boardArrival * rules.tick_hz) &&
       Math.abs(hmg.point[0] - 149.85) < 1e-6,
     JSON.stringify(hmg),
   );
@@ -333,12 +333,14 @@ export async function run(ctx, options = {}) {
   await writeCrop(side, ctx.evidencePath("crop-arcs-strip-2x.png"), midPx[0], midPx[1], 320, 60, 2);
   // Measure the launched arc rather than projecting a fixed expected height.
   const longArc = shot("grenade arc 180 m");
-  const gravity = game.physics.gravity_mps2;
+  const gravity = rules.physics.gravity_mps2;
   const apexTime = longArc.velocity[2] / gravity;
   const apex = [
     20 + longArc.velocity[0] * apexTime,
     26 + longArc.velocity[1] * apexTime,
-    game.physics.infantry_muzzle_m + longArc.velocity[2] * apexTime - (gravity * apexTime ** 2) / 2,
+    rules.physics.infantry_muzzle_m +
+      longArc.velocity[2] * apexTime -
+      (gravity * apexTime ** 2) / 2,
   ];
   const apexPx = await project(page, apex);
   const groundPx = await project(page, [apex[0], apex[1], 0]);

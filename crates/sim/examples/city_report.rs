@@ -50,7 +50,7 @@ fn main() {
     let reach = args.next().unwrap_or("0.92".into());
     let per_side: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(6).max(1);
     let probe_trees: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-    let fixture = sim::fixtures::test_game();
+    let fixture = sim::fixtures::test_rules();
 
     println!("| stage | wall ms | instructions G | RSS MiB | note |");
     println!("|---|---|---|---|---|");

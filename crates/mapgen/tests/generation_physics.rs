@@ -26,7 +26,7 @@ fn physical_rules_are_explicit_generation_inputs_and_identity() {
         limits: limits::game_limits(),
     })
     .unwrap();
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     let build = |rules: &serde_json::Value| match generate_map(
         &request,
         presets,
@@ -49,7 +49,7 @@ fn physical_rules_are_explicit_generation_inputs_and_identity() {
 
 #[test]
 fn physical_generation_refuses_invalid_forest_concealment() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     // Generation and the battle share the forest concealment contract.
     rules["forests"]["rule"]["concealment"] = serde_json::json!(2.0);
     assert!(
@@ -61,7 +61,7 @@ fn physical_generation_refuses_invalid_forest_concealment() {
 
 #[test]
 fn generation_refuses_circular_sight_that_cannot_be_represented() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     let catalog: contract::catalog::Catalog =
         serde_json::from_value(rules["catalog"].clone()).unwrap();
     // Every test unit sees farther than finite geometry holds: the smallest
@@ -116,7 +116,7 @@ fn an_aircraft_row_moves_nothing_on_the_ground() {
     };
     // Airframes may be far wider than anything that drives.
     const WIDE_M: f64 = contract::HullLimits::SHIPPED.rotor.half_width_m;
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     let before = build(&rules);
     let aircraft = rules["catalog"]
         .as_array()

@@ -23,7 +23,7 @@ fn row<'a>(game: &'a mut Value, section: &str, id: &str) -> &'a mut Value {
 }
 
 pub fn weapon(id: &str, added: bool, soldier: bool) -> Case {
-    let mut game = sim::fixtures::test_game();
+    let mut game = sim::fixtures::test_rules();
     let mut overrides = json!({});
     if added {
         overrides = json!({"weapons": {id: {"extends": "carbine", "name": "Encounter carbine"}}});

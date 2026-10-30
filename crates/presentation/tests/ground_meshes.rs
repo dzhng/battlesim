@@ -44,7 +44,7 @@ fn floats(hex: &str) -> Vec<f32> {
 #[test]
 fn every_ground_mesh_is_the_browsers() {
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let maps = sim::maps::Catalogue::shipped();
     for (id, want) in vectors().as_object().unwrap() {
         let map = maps.load(id).unwrap().definition;

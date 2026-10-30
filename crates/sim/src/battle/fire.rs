@@ -293,7 +293,7 @@ mod tests {
     fn a_gunner_standing_still_fires_while_a_teammate_moves() {
         let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
             "map": { "size": [1000, 1000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-            "rules": crate::fixtures::test_game(),
+            "rules": crate::fixtures::test_rules(),
             "units": [
                 { "side": "blue", "kind": "test_at", "position": [100, 300] },
                 { "side": "red", "kind": "test_tank", "position": [600, 300] }

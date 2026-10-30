@@ -27,7 +27,7 @@ fn presented() -> Presentation {
     let root = root();
     let game: Value =
         serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",

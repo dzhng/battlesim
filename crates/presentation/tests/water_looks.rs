@@ -28,7 +28,7 @@ fn river_map() -> Value {
 /// The ground of map `map` under `biome`.
 fn ground(map: &Value, biome: Biome) -> Ground {
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let def: MapDefinition = serde_json::from_value(map.clone()).unwrap();
     let world = WorldGeometry::new(&def, &rules);
     let source = ground::source(

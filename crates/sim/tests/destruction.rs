@@ -432,7 +432,7 @@ fn a_prop_that_is_no_wreck_names_no_unit() {
 /// tank it was.
 #[test]
 fn a_wreck_is_known_by_its_rules_row_not_its_art() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     rules["catalog"]
         .as_array_mut()
         .unwrap()

@@ -42,7 +42,7 @@ fn carried_interceptor_and_round(
     layer: AltitudeLayer,
     props: serde_json::Value,
 ) -> (Battle, ProjectileId) {
-    let mut rules = crate::fixtures::test_game();
+    let mut rules = crate::fixtures::test_rules();
     rules["weapons"]["test_interceptor"] = row;
     rules["weapons"]["test_interceptor"]["round_cost"] = serde_json::json!(1);
     crate::fixtures::patch_catalog(
@@ -116,7 +116,7 @@ fn launch_red_round(
 /// air, locked on a red helicopter hovering 300 m east (unit 1), too
 /// tough to bring down here.
 fn interceptor_on_a_helicopter() -> Battle {
-    let mut rules = crate::fixtures::test_game();
+    let mut rules = crate::fixtures::test_rules();
     let mut row = test_interceptor(serde_json::json!({
         "low_air": { "classes": ["air_rotor", "missile"] }
     }));
@@ -164,7 +164,7 @@ fn interceptor_on_a_helicopter() -> Battle {
 /// it, though its dispenser is ready.
 #[test]
 fn a_unit_out_of_the_battle_draws_no_flare() {
-    let mut rules = crate::fixtures::test_game();
+    let mut rules = crate::fixtures::test_rules();
     rules["weapons"]["atgm"]["aim_s"] = serde_json::json!(0.5);
     rules["weapons"]["atgm"]["seeker"] = serde_json::json!("infrared");
     rules["weapons"]["atgm"]["seeker_fov_deg"] = serde_json::json!(180);

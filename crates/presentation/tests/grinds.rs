@@ -23,7 +23,7 @@ fn row(body: &str) -> ScenarioDefinition {
         .to_vec();
     serde_json::from_value(json!({
         "map": { "size": [60, 60], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": bodies },
-        "rules": sim::fixtures::test_game(),
+        "rules": sim::fixtures::test_rules(),
         "units": [{ "side": "blue", "kind": KIND, "position": [22.0, 5.0], "engagement": "return_fire_only" }],
         "events": [],
         "scripts": [{ "tick": 1, "side": "blue", "order":

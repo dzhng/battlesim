@@ -22,7 +22,7 @@ import type { HeardShout } from "@packages/battle-audio/src/soundFrame";
 import { BattleVoices } from "@packages/battle-audio/src/voices/battleVoices";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { interleave, offlineSound } from "./soundFirefight";
-import { createBattleAudio, gameAudio } from "./soundFeed";
+import { createBattleAudio } from "./soundFeed";
 import { KIND, SET } from "./soundResponses";
 
 const SECONDS = 7;
@@ -81,7 +81,7 @@ export async function renderBarks(): Promise<BarksRender> {
   await loadPresentation();
   const { sampleRate, ctx, sink, frame } = await offlineSound(SECONDS, "voices");
   frame.speakers({ own: { [KIND]: SET }, enemy: { [KIND]: SET } });
-  const voices = new BattleVoices(sink, gameAudio.voices);
+  const voices = new BattleVoices(sink, audioMix.voices);
   voices.want([SET]);
   await voices.start();
 
@@ -169,7 +169,7 @@ export async function sampleReady(packs: boolean): Promise<ReadySample> {
     }
     return original(input, init);
   };
-  const app = new AppAudio({ presentation: gameAudio, catalog: gameSounds });
+  const app = new AppAudio({ presentation: audioMix, catalog: gameSounds });
   try {
     const started = performance.now();
     const sound = (battle = createBattleAudio(HZ, app, 0, shippedRules.weapons));

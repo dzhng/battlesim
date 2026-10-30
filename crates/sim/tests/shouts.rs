@@ -1,5 +1,5 @@
 //! Barks: the simulation decides, every tick, which units shout which bark,
-//! at which intensity, and which side hears it. Each test plays a small real
+//! at which intensity, and which side hears it. Each test plays a small
 //! battle on the test units and judges every shout against the authority's
 //! own state on the tick it was spoken.
 use crate::common as test_common;
@@ -69,7 +69,7 @@ fn ai_sources_do_not_read_the_shout_channel() {
 
 #[test]
 fn rules_without_a_positive_talk_time_are_refused() {
-    let mut fixture = sim::fixtures::test_game();
+    let mut fixture = sim::fixtures::test_rules();
     fixture["shouts"]["talk_s"] = json!(0);
     let error = serde_json::from_value::<Rules>(fixture).expect_err("zero talk time");
     assert!(error.to_string().contains("talk_s"), "{error}");

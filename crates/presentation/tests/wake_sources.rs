@@ -137,7 +137,7 @@ fn a_round_landing_in_the_water_splashes_and_one_on_the_bank_raises_dust() {
         "map": { "size": [200, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
             "swamps": [{ "shape": { "kind": "polygon",
                 "ring": [[130, 70], [190, 70], [190, 110], [130, 110]] }, "depth_m": 0.6 }] },
-        "rules": sim::fixtures::test_game(),
+        "rules": sim::fixtures::test_rules(),
         "units": [
             { "side": "blue", "kind": "test_rifle", "position": [60.0, 60.0] },
             { "side": "red", "kind": "test_rifle", "position": [150.0, 75.0] }
@@ -175,7 +175,7 @@ fn a_tank_on_a_bridge_over_the_river_does_not_wade() {
         "map": serde_json::from_str::<Value>(
             &std::fs::read_to_string(root().join("fixtures/maps/river/map.json")).unwrap()
         ).unwrap(),
-        "rules": sim::fixtures::test_game(),
+        "rules": sim::fixtures::test_rules(),
         "units": [{ "side": "blue", "kind": "test_tank", "position": [60.0, 240.0],
             "engagement": "return_fire_only" }],
         "events": [], "scripts": [],
@@ -213,7 +213,7 @@ fn a_soldier_crossing_a_puddle_makes_rings() {
         .push(json!({ "kind": "road",
         "shape": { "kind": "stroke", "points": [[100, 440], [700, 440]], "width_m": 8 } }));
     let bare: ScenarioDefinition = serde_json::from_value(json!({
-        "map": map, "rules": sim::fixtures::test_game(), "units": [], "events": [], "scripts": [],
+        "map": map, "rules": sim::fixtures::test_rules(), "units": [], "events": [], "scripts": [],
     }))
     .unwrap();
     let ground = ground_of(&bare);

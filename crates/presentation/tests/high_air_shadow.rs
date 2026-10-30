@@ -36,7 +36,7 @@ fn framed() -> Presentation {
         serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
     let setup = serde_json::from_value(json!({
         "map": { "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-        "rules": sim::fixtures::test_game(),
+        "rules": sim::fixtures::test_rules(),
         "units": [
             { "side": "blue", "kind": KINDS[0], "position": JET_AT, "yaw": 0.6 },
             { "side": "blue", "kind": KINDS[1], "position": HELI_AT },

@@ -161,7 +161,7 @@ digest for changes intended to preserve outcomes. Full workspace gates and when
 to run them are defined by the [check ladder](../../development.md#check-ladder).
 
 A test of a mechanic runs on the test units (`test_*`, `fixtures/units/test`,
-never game content), loaded by `fixtures::test_game`, and adds a fake unit when
+never game content), loaded by `fixtures::test_rules`, and adds a fake unit when
 it needs a shape they lack; it never names or walks the faction roster, which
 grows every day. The rules fixture carries no ground: a test that needs a map
 asks for a saved `test` map by name (`fixtures::with_map`, which refuses a

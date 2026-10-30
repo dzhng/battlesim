@@ -320,7 +320,7 @@ fn battle_and_lab_instances_of_one_appearance_share_one_batch_without_replacing_
     let battle = Battle::new(
         &serde_json::from_value(json!({
             "map":{"size":[600,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-            "rules":sim::fixtures::test_game(),
+            "rules":sim::fixtures::test_rules(),
             "units":[{"side":"blue","kind":"test_tank","position":[0,0]}],"events":[],"scripts":[]
         }))
         .unwrap(),

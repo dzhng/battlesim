@@ -12,7 +12,7 @@ use std::f64::consts::PI;
 /// The test rules plus hull-gun variants: a tank whose cannon is fixed in its
 /// hull, a jeep whose autocannon is, and a helicopter with a fixed autocannon.
 fn fixture() -> Value {
-    let mut fixture = sim::fixtures::test_game();
+    let mut fixture = sim::fixtures::test_rules();
     let fixed = |id: &str, weapons: &str| {
         json!([{ "id": id, "name": "Fixed gun", "weapons": [weapons], "turret": false,
             "pivot_m": [0, 0, 1.2], "muzzle_m": [3.0, 0, 0] }])

@@ -188,7 +188,7 @@ impl Report {
 
 fn main() {
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let mut report = Report {
         rules: rules.navigation,
         cases: 0,

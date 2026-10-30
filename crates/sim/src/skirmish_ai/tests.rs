@@ -1,15 +1,15 @@
 use super::*;
-use crate::fixtures;
+use crate::fixtures::{self, test_rules};
 use serde_json::{json, Value};
 
-/// The test units as a U.S. deck: a card for each, in its category.
+/// Test units as a U.S. deck: a card for each, in its category.
 /// The frame's one player row, the deciding player's (`own_player`).
 fn me(frame: &mut ObservationFrame) -> &mut contract::skirmish::PlayerView {
     &mut frame.skirmish.as_mut().unwrap().players[0]
 }
 
 fn deck() -> serde_json::Value {
-    let mut rules = fixtures::test_game();
+    let mut rules = test_rules();
     for (id, category) in [
         ("test_rifle", "inf"),
         ("test_at", "inf"),
@@ -1927,7 +1927,7 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
 #[test]
 fn a_row_that_shoots_down_missiles_alone_is_no_defence_against_aircraft() {
     let defends = |classes: Value| {
-        let mut fixture = fixtures::test_game();
+        let mut fixture = test_rules();
         fixture["weapons"]["hmg"]["targets"]["low_air"]["classes"] = classes;
         fixture["weapons"]["hmg"]["proximity_fuse_m"] = serde_json::json!(2);
         let rules: Rules = serde_json::from_value(fixture).unwrap();

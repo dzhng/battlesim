@@ -247,7 +247,7 @@ fn an_encounter_that_is_not_one_is_refused_naming_its_file() {
 
 /// The test rules a scratch encounter plays.
 fn test_rules() -> contract::scenario::Rules {
-    serde_json::from_value(sim::fixtures::test_game()).unwrap()
+    serde_json::from_value(sim::fixtures::test_rules()).unwrap()
 }
 
 #[test]

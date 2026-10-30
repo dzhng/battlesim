@@ -574,7 +574,7 @@ mod tests {
         let rules = rules();
         let mut layer = GroundLayer::new(64.0, 64.0, &rules);
         let game: contract::scenario::Rules =
-            serde_json::from_value(crate::fixtures::test_game()).unwrap();
+            serde_json::from_value(crate::fixtures::test_rules()).unwrap();
         let map = serde_json::from_value(serde_json::json!({
             "size":[64,64],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[]
         }))

@@ -10,7 +10,7 @@ fn scenario() -> ScenarioDefinition {
     .unwrap();
     let mut scenario: ScenarioDefinition =
         serde_json::from_value(fixture["scenario"].clone()).unwrap();
-    scenario.rules = serde_json::from_value(sim::fixtures::test_game()).unwrap();
+    scenario.rules = serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     scenario
 }
 
@@ -90,7 +90,7 @@ fn fixtures_refuse_flight_and_movement_before_resolving_a_catalog() {
             "infantry_movement.wander_period_s",
         ),
     ] {
-        let mut fixture = sim::fixtures::test_game();
+        let mut fixture = sim::fixtures::test_rules();
         contract::catalog::merge(&mut fixture[section], &patch);
         let docs = fixture["catalog"].as_array().unwrap().clone();
         let error = sim::fixtures::admit(fixture, docs).unwrap_err();

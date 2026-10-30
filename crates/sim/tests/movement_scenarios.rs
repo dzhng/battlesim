@@ -1,4 +1,4 @@
-//! Movement scenarios as data: a small map, units, scripted orders and a
+//! Movement scenarios: a small map, units, scripted orders and a
 //! duration, each with the outcomes it must show. The tests below assert
 //! them; `examples/movement_shots.rs` replays the same table through the
 //! same [`run`] and draws it (`cargo run -p sim --release --example
@@ -2078,7 +2078,7 @@ fn merge(base: &mut Value, patch: &Value) {
 }
 
 pub fn definition(s: &Scenario) -> ScenarioDefinition {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     let mut patch = s.rules.clone();
     if let Some(Value::Object(sections)) = patch.as_object_mut().and_then(|p| p.remove("catalog")) {
         for (section, entries) in sections {

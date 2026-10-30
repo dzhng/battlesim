@@ -7,7 +7,7 @@ use super::*;
 fn the_flight_model_not_the_layer_picks_the_flight_law() {
     let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
         "map": { "size": [3000, 3000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-        "rules": crate::fixtures::test_game(),
+        "rules": crate::fixtures::test_rules(),
         "units": [
             { "side": "blue", "kind": "test_jet", "position": [1000, 1000] },
             { "side": "blue", "kind": "test_jet", "position": [2000, 2000] }
@@ -47,7 +47,7 @@ fn the_flight_model_not_the_layer_picks_the_flight_law() {
 fn a_helicopters_settling_goal_is_in_the_digest() {
     let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
         "map": { "size": [2000, 2000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-        "rules": crate::fixtures::test_game(),
+        "rules": crate::fixtures::test_rules(),
         "units": [{ "side": "blue", "kind": "test_heli", "position": [1000, 1000] }],
         "events": [], "scripts": []
     }))
@@ -70,7 +70,7 @@ fn a_helicopters_settling_goal_is_in_the_digest() {
 fn upgrading_a_jets_move_breaks_off_its_run() {
     let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
         "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-        "rules": crate::fixtures::test_game(),
+        "rules": crate::fixtures::test_rules(),
         "units": [
             { "side": "blue", "kind": "test_jet", "position": [1000, 2000], "yaw": 0.0 },
             { "side": "red", "kind": "test_tank", "position": [2000, 2000], "engagement": "return_fire_only" }
@@ -135,7 +135,7 @@ fn upgrading_a_jets_move_breaks_off_its_run() {
 fn a_seeker_flies_at_its_own_sides_contact() {
     let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
         "map": { "size": [6000, 6000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-        "rules": crate::fixtures::test_game(),
+        "rules": crate::fixtures::test_rules(),
         "units": [
             { "side": "blue", "kind": "test_tank", "position": [500, 500], "engagement": "return_fire_only" },
             { "side": "red", "kind": "test_tank", "position": [5500, 5500], "engagement": "return_fire_only" }
@@ -265,7 +265,7 @@ fn each_sides_grid_stays_the_whole_build_of_what_it_believes() {
             "forests": [{ "shape": { "kind": "polygon",
                 "ring": [[100, 50], [200, 50], [200, 150], [100, 150]] } }],
             "props": props },
-        "rules": crate::fixtures::test_game(),
+        "rules": crate::fixtures::test_rules(),
         "units": [
             { "side": "blue", "kind": "test_tank", "position": [40, 100], "yaw": 0.0,
               "engagement": "return_fire_only" },
@@ -383,7 +383,7 @@ fn seeing_one_remain_clears_far_historical_building_snapshots() {
             yaw: 0.0,
         })
         .unwrap();
-    let mut rules = crate::fixtures::test_game();
+    let mut rules = crate::fixtures::test_rules();
     crate::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -434,7 +434,7 @@ fn corpse_support_loss_is_physical_but_enemy_memory_waits_for_sight() {
             })
             .unwrap();
         geometry.floor_z = vec![0.0, 3.0, 6.0];
-        let mut rules = crate::fixtures::test_game();
+        let mut rules = crate::fixtures::test_rules();
         crate::fixtures::patch_catalog(
             &mut rules,
             "units",

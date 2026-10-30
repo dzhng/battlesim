@@ -28,7 +28,7 @@ fn admitted_map() -> (MapDefinition, SkirmishSites) {
             .unwrap();
     let presets = mapgen::layout::PresetDefinitions::from_json(PRESETS).unwrap();
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     for seed in 1..20u64 {
         let request = serde_json::json!({
             "generator_version": mapgen::layout::GENERATOR_VERSION,

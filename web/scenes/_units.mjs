@@ -8,7 +8,7 @@ import { loadEncounter, loadMap } from "../src/maps/node.ts";
 import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
 
 /** `fixtures/rules.json`. */
-export const game = JSON.parse(
+export const rules = JSON.parse(
   await readFile(new URL("../../fixtures/rules.json", import.meta.url), "utf8"),
 );
 

@@ -37,7 +37,7 @@ fn river_with_road() -> Value {
 /// The ground of map `map` under the summer biome, seeded `seed`.
 fn ground_of(map: Value, seed: u32) -> Ground {
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let def: MapDefinition = serde_json::from_value(map).unwrap();
     let world = WorldGeometry::new(&def, &rules);
     let source = ground::source(

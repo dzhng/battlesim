@@ -78,10 +78,10 @@ fn catalogue() -> TemplateGeometryCatalog {
     TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap()).unwrap()
 }
 
-/// The test units and a hull at each drive's limits: what streets are
+/// Test units and a hull at each drive's limits: what streets are
 /// dressed for and driven by.
 fn game() -> serde_json::Value {
-    let mut game = sim::fixtures::test_game();
+    let mut game = sim::fixtures::test_rules();
     sim::fixtures::with_units_at_limits(&mut game, contract::HullLimits::SHIPPED);
     game
 }

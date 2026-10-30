@@ -10,7 +10,7 @@ use contract::ids::{Side, UnitId};
 use contract::scenario::Rules;
 use serde_json::{json, Value};
 use sim::battle::Battle;
-use sim::fixtures;
+use sim::fixtures::{self, test_rules};
 
 use crate::common;
 
@@ -347,7 +347,7 @@ fn a_disabled_source_that_is_missing_or_not_a_model_is_refused() {
 /// The test fixture with the M1 family's catalog document and the
 /// weapon row its M1A1 swaps in (a row that `extends` the tank's sabot).
 fn with_m1_family() -> Value {
-    let mut fixture = fixtures::test_game();
+    let mut fixture = test_rules();
     let family: Value = serde_json::from_str(include_str!("fixtures/m1-family.json")).unwrap();
     fixture["catalog"].as_array_mut().unwrap().push(family);
     fixture["weapons"]["m829"] = json!({
@@ -395,13 +395,13 @@ fn the_test_and_capture_sets_extend_the_games() {
 #[test]
 fn the_native_rules_fixture_carries_no_map() {
     assert!(fixtures::rules().get("map").is_none());
-    assert!(fixtures::test_game().get("map").is_none());
+    assert!(test_rules().get("map").is_none());
     let grounded = fixtures::with_map("geometry");
     let map: contract::map::MapDefinition =
         serde_json::from_value(grounded["map"].clone()).expect("the test map, under `map`");
     let geometry = sim::maps::load("geometry").unwrap().definition;
     assert_eq!(map.size, geometry.size);
-    assert_eq!(grounded["catalog"], fixtures::test_game()["catalog"]);
+    assert_eq!(grounded["catalog"], test_rules()["catalog"]);
 }
 
 #[test]

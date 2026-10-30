@@ -1,5 +1,6 @@
-//! Weapon control contracts (slice 08): selection, aim/reload overlap,
+//! Weapon control contracts: selection, aim/reload overlap,
 //! interruptions, policy and firing rules, driven through real scenarios.
+use sim::fixtures::test_rules;
 use std::collections::BTreeSet;
 
 use contract::command::{Engagement, Order, TargetRef};
@@ -3368,7 +3369,7 @@ fn a_round_with_a_gentle_falloff_still_shakes_armour_twice_its_penetration() {
 #[test]
 fn a_row_that_fires_on_its_own_ignores_the_engagement_policy() {
     let shots = |on_its_own: bool| {
-        let mut rules = sim::fixtures::test_game();
+        let mut rules = test_rules();
         rules["weapons"]["tank_he"]["fires_on_its_own"] = json!(on_its_own);
         sim::fixtures::patch_catalog(
             &mut rules,
@@ -3401,7 +3402,7 @@ fn a_row_that_fires_on_its_own_ignores_the_engagement_policy() {
 /// once the first drives out past its 400 m.
 #[test]
 fn a_mount_whose_target_drives_out_of_reach_turns_to_one_in_reach() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = test_rules();
     common::json_ground_reach(&mut rules["weapons"]["hmg"], 400.0);
     // The tanks answer its fire; it outlasts them here.
     sim::fixtures::patch_catalog(

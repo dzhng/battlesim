@@ -22,7 +22,7 @@ fn a_soldier_whose_target_is_within_one_fine_cell_walks_straight_to_it() {
     // One soldier, and a search window of an odd number of fine cells: the
     // window is centred between him and his target, so a target this close
     // falls in his own cell.
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",

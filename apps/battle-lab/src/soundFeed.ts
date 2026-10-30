@@ -7,10 +7,6 @@ import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import type { BattleAudio } from "@packages/battle-audio/src/battleAudio";
 
-/** The game's sound (`audio.json`); the presentation crate checks
- *  it when a battle's sound starts. */
-export const gameAudio = audioMix;
-
 /** The game's recordings (`fixtures/sounds.json`). */
 export const gameSoundCatalog: SoundCatalog = gameSounds;
 
@@ -25,7 +21,7 @@ export function createBattleAudio(
   return audio.createBattle(
     {
       tickHz,
-      presentation: gameAudio,
+      presentation: audioMix,
       weapons,
       looks: presentationSettings,
       smokeTimes: presentationSettings.effects.smoke,

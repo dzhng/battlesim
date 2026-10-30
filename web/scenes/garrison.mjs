@@ -11,12 +11,12 @@ import {
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop, mostChanged } from "./_png.mjs";
 import { lab, obs, advance, until, openBattle } from "./_lab.mjs";
-import { game, visuals } from "./_units.mjs";
+import { rules, visuals } from "./_units.mjs";
 
 const CENTRE = [360, 250];
 const HALF = 6;
 const TOP = 12.65;
-const STANDOFF = game.garrison.slot_standoff_m;
+const STANDOFF = rules.garrison.slot_standoff_m;
 
 const demo = (page, name) => lab(page, (n) => window.__lab.route.demo(n), name);
 const squad = (o, id) => o.own.find((u) => u.id === id);

@@ -4,7 +4,7 @@
 // the three buildings under the encounter's defender policy.
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { savedBattle } from "./savedMaps";
-import type { GameRules } from "@web/battle/catalog/compose";
+import type { ResolvedRules } from "@web/battle/catalog/compose";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { useBuiltScenario } from "./useBuiltScenario";
 import { gameCamera } from "./gameCamera";
@@ -27,6 +27,6 @@ export function useStreetScenario() {
 }
 
 /** The street encounter on its test map, under `rules`. */
-export async function buildStreetScenario(rules: GameRules) {
+export async function buildStreetScenario(rules: ResolvedRules) {
   return (await savedBattle("street", "street", rules)).scenario;
 }

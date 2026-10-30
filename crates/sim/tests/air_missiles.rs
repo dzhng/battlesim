@@ -20,7 +20,7 @@ use sim::math::v3;
 /// The test rules plus an attack helicopter: a chin autocannon on a turret,
 /// and rockets and missiles fixed in its hull.
 fn fixture() -> Value {
-    let mut fixture = sim::fixtures::test_game();
+    let mut fixture = sim::fixtures::test_rules();
     let fixed = |id: &str, weapons: &str| {
         json!({ "id": id, "name": "Fixed launcher", "weapons": [weapons], "turret": false,
             "pivot_m": [1.0, 0, 0.6], "muzzle_m": [1.5, 0, 0] })
@@ -286,7 +286,7 @@ fn a_seeker_steers_at_the_box_centre() {
 
 #[test]
 fn a_missile_engages_a_helicopter() {
-    let row = sim::fixtures::test_game()["weapons"]["air_missile"].clone();
+    let row = sim::fixtures::test_rules()["weapons"]["air_missile"].clone();
     assert!(row["targets"]["low_air"].is_object());
 }
 
@@ -346,7 +346,7 @@ fn covered_tank_battle(
     red_high_air_m: f64,
     spotter: Option<([f64; 2], f64)>,
 ) -> Battle {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     rules["weapons"]["test_agm"] = json!({
         "name": "Test AGM", "description": "A test row.", "icon": "atgm", "appearance": "air_ground_missile",
         "interceptable": true, "stationary": false, "guidance": "on_the_move",
@@ -521,7 +521,7 @@ fn a_guided_interceptor_lets_go_of_a_round_its_side_loses_sight_of() {
 /// fires a stinger with this proximity fuse at it (none: it bursts only on
 /// what it strikes).
 fn burst_from_the_helicopter(fuse_m: Option<f64>) -> f64 {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     match fuse_m {
         Some(m) => rules["weapons"]["stinger"]["proximity_fuse_m"] = json!(m),
         None => {
@@ -564,7 +564,7 @@ fn burst_from_the_helicopter(fuse_m: Option<f64>) -> f64 {
 /// at, not on its hull.
 #[test]
 fn test_a_proximity_fuse_bursts_near_a_ground_target_too() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     rules["weapons"]["atgm"]["proximity_fuse_m"] = json!(30.0);
     sim::fixtures::patch_catalog(
         &mut rules,

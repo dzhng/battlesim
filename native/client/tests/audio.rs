@@ -23,7 +23,7 @@ fn player(tune: impl Fn(&mut Value)) -> Audio {
     let mut mix = read("audio.json");
     tune(&mut mix);
     let setup = audio::setup(
-        &serde_json::from_value(sim::fixtures::test_game()).unwrap(),
+        &serde_json::from_value(sim::fixtures::test_rules()).unwrap(),
         &read("presentation.json"),
         &mix,
         &read("sounds.json"),
@@ -238,7 +238,7 @@ fn scored(music: bool, shout: bool, voices: f64) -> (Vec<f32>, Audio) {
     catalog["music"]["moods"]["tension"] = json!(if music { vec![TRACK] } else { vec![] });
     catalog["music"]["moods"]["combat"] = json!([]);
     let setup = audio::setup(
-        &serde_json::from_value(sim::fixtures::test_game()).unwrap(),
+        &serde_json::from_value(sim::fixtures::test_rules()).unwrap(),
         &read("presentation.json"),
         &mix,
         &catalog,

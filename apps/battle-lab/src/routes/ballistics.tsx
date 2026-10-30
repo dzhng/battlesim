@@ -16,7 +16,7 @@ import type { WeaponRow } from "@packages/scene-assets/src/units";
 import { LabViewport } from "../LabViewport";
 import type { ViewportFrame } from "../presentedFrame";
 import { useStandingBuildings, useStaticWorld, type WorldView } from "../useStaticWorld";
-import type { GameRules, SessionCatalog } from "@web/battle/catalog/compose";
+import type { ResolvedRules, SessionCatalog } from "@web/battle/catalog/compose";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { gameBiome } from "../gameBiome";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
@@ -67,7 +67,7 @@ interface Shot {
 interface Bench {
   movers: Mover[];
   shots: Shot[];
-  rules: GameRules;
+  rules: ResolvedRules;
   tankArmor: unknown;
 }
 

@@ -14,7 +14,7 @@ use sim::battle::Battle;
 /// `receiver_m`, `test_tank` a radar that emits, and `test_jeep` armed with
 /// `jeep_weapon`.
 fn receiver_rules(receiver_m: f64, jeep_weapon: &str) -> serde_json::Value {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -279,7 +279,7 @@ fn an_anti_radiation_row_fires_at_a_radar_contact_but_not_at_a_heard_one() {
 fn a_tank_fires_at_an_identified_emitting_radar() {
     // A radar that emits is found from afar; once seen, it is a vehicle like
     // any other. A tank 250 m from a jeep carrying one shoots at it.
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -315,7 +315,7 @@ fn ground_mission_can_strafe_while_bombs_remain() {
 
 #[test]
 fn high_air_ground_attack_uses_bombs_then_strafing_after_the_store_is_empty() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -388,7 +388,7 @@ fn high_air_ground_attack_uses_bombs_then_strafing_after_the_store_is_empty() {
 
 #[test]
 fn sead_missile_has_motor_lifetime_to_reach_its_authored_long_range() {
-    let row = &sim::fixtures::test_game()["weapons"]["sead_missile"];
+    let row = &sim::fixtures::test_rules()["weapons"]["sead_missile"];
     let range = crate::common::weapon("sead_missile").range_m;
     let launch_speed = row["speed_mps"].as_f64().unwrap();
     let top_speed = row["top_speed_mps"].as_f64().unwrap();
@@ -407,7 +407,7 @@ fn sead_missile_has_motor_lifetime_to_reach_its_authored_long_range() {
 
 #[test]
 fn long_sam_motor_lifetime_reaches_its_authored_range() {
-    let row = &sim::fixtures::test_game()["weapons"]["aa_long"];
+    let row = &sim::fixtures::test_rules()["weapons"]["aa_long"];
     let range = crate::common::weapon("aa_long").range_m;
     let launch_speed = row["speed_mps"].as_f64().unwrap();
     let top_speed = row["top_speed_mps"].as_f64().unwrap();
@@ -429,7 +429,7 @@ fn long_sam_motor_lifetime_reaches_its_authored_range() {
 #[test]
 fn every_radar_contact_reaches_the_reader_with_its_bearing_and_range() {
     use sim::publication::{self, reader::Reader};
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -493,7 +493,7 @@ fn every_radar_contact_reaches_the_reader_with_its_bearing_and_range() {
 /// The test rules with `test_heli` flying as a SEAD jet whose radar receiver
 /// reaches `reach_m`, and `test_jeep` carrying a radar that emits or not.
 fn sead_rules(reach_m: f64, jeep_emits: bool) -> serde_json::Value {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -544,7 +544,7 @@ fn a_sead_jet_finds_an_emitting_radar_but_not_a_silent_one() {
 #[test]
 fn each_bands_sight_is_the_units_own_and_zero_is_blind() {
     let seen = |target: &str, band: &str, reach: f64, across: f64, emits: bool| {
-        let mut rules = sim::fixtures::test_game();
+        let mut rules = sim::fixtures::test_rules();
         let mut sensors = json!({
             "ground_m": 200, "low_air_m": 600, "high_air_m": 1000,
             "sight_shape": { "front": 1, "side": 1, "rear": 1 }

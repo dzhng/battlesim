@@ -50,11 +50,11 @@ export interface SessionCatalog {
   readonly weapons: Record<string, WeaponRow>;
   /** The rules a scenario on this catalog carries: `rules.json` with this
    *  set's documents as `catalog`, so the authority runs what the page draws. */
-  readonly rules: GameRules;
+  readonly rules: ResolvedRules;
 }
 
 /** `fixtures/rules.json` with a set's documents as its `catalog`. */
-export type GameRules = Omit<
+export type ResolvedRules = Omit<
   typeof import("../../../../fixtures/rules.json"),
   "default" | "weapons"
 > & {
@@ -68,7 +68,7 @@ export type GameRules = Omit<
  *  wrote. */
 export function composeCatalog(
   set: CatalogSetName,
-  rules: Omit<GameRules, "catalog" | "weapons"> & { weapons: object },
+  rules: Omit<ResolvedRules, "catalog" | "weapons"> & { weapons: object },
   gameView: GameView,
   added: readonly string[],
   resolve: (documentsJson: string) => string,
@@ -80,7 +80,7 @@ export function composeCatalog(
     : gameView;
   const admitted = JSON.parse(
     resolveRules(JSON.stringify({ ...rules, catalog: view.documents })),
-  ) as GameRules;
+  ) as ResolvedRules;
   return {
     set,
     units: new UnitCatalog(view),
@@ -111,7 +111,7 @@ export function admitScenario(
  * own the resolved catalog documents, so uploaded play never falls back to
  * repository fixture units for admission or presentation. */
 export function composeScenarioCatalog(
-  rules: GameRules,
+  rules: ResolvedRules,
   resolve: (documentsJson: string) => string,
 ): SessionCatalog {
   const view = JSON.parse(resolve(JSON.stringify(rules.catalog))) as CatalogView;

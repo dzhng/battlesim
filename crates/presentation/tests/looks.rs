@@ -19,7 +19,7 @@ fn unused_shipped_looks_are_refused() {
 #[test]
 fn encounter_weapons_inherit_their_parents_look() {
     let mut rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     rules = rules
         .overridden(
             json!({"weapons": {"encounter_gun": {"extends":"tank_ap", "name":"Encounter gun"}}})
@@ -223,7 +223,7 @@ fn fielding_names_the_weapon_when_its_look_lacks_a_required_part() {
         ("tank_ap", "impact"),
         ("tank_ap", "kick"),
     ] {
-        let mut rules = sim::fixtures::test_game();
+        let mut rules = sim::fixtures::test_rules();
         let mut settings = fixture("presentation");
         let name = rules["weapons"][weapon]["appearance"]
             .as_str()
@@ -272,7 +272,7 @@ fn a_crash_look_needs_no_firing_parts() {
         "blast": original["blast"], "sound": {"blast":original["sound"]["blast"]}
     });
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let catalog = rules.catalog.view();
     let rules = serde_json::to_value(rules).unwrap();
     presentation::fielded::Fielding {
@@ -295,7 +295,7 @@ fn a_crash_mounted_as_a_gun_must_supply_firing_parts() {
         "blast":original["blast"],"sound":{"blast":original["sound"]["blast"]}
     });
     let base: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     for weapons in [
         json!(["helicopter_crash"]),
         json!(["tank_ap", "helicopter_crash"]),

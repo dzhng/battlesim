@@ -1,3 +1,4 @@
+import { audioMix } from "@web/audioMix";
 // @vitest-environment node
 // A vehicle sounds and runs as its class, which the catalog derives from its
 // physics (`contract::catalog::UnitType::vehicle_class`, carried by the view
@@ -5,7 +6,7 @@
 // The classes' rows are here: each ground class any catalog fields has its
 // own engine sound, and each weight of airframe its rotor.
 import { expect, test } from "vitest";
-import { gameAudio } from "@apps/battle-lab/src/soundFeed";
+
 import { nodeCatalogSet } from "@web/battle/catalog/node";
 
 test("the view carries each type's class: a vehicle's from its physics, none for a squad", async () => {
@@ -23,13 +24,13 @@ test("every ground vehicle class the game fields has its own engine sound", asyn
         classes.add(unit.vehicle_class);
   expect(classes.size).toBeGreaterThan(0);
   for (const cls of classes) {
-    expect(gameAudio.vehicles[cls], cls).toBeDefined();
+    expect(audioMix.vehicles[cls], cls).toBeDefined();
   }
 });
 
 test("each weight of airframe has its own rotor sound row", () => {
   for (const weight of ["light", "medium", "heavy"]) {
     const cls = `air_${weight}`;
-    expect(gameAudio.vehicles[cls], cls).toBeDefined();
+    expect(audioMix.vehicles[cls], cls).toBeDefined();
   }
 });

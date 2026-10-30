@@ -49,7 +49,7 @@ fn upload<T: bytemuck::Pod + Default>(items: &[T]) -> Value {
 /// fog shown.
 fn presentation(map: &str, layout: &str) -> Presentation {
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let resolved = sim::maps::Catalogue::shipped().load(map).unwrap();
     let def = resolved.definition;
     let world = WorldGeometry::new(&def, &rules);
@@ -177,7 +177,7 @@ fn bless_street(vectors: &mut Value) {
 
     let (ticks, _) = street_fixture();
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let scenario = sim::maps::scenario("street", "street", rules).unwrap();
     // Matches STREET_SEED in apps/battle-lab/src/streetScenario.ts.
     let mut battle = Battle::new(&scenario, 20_260_925);

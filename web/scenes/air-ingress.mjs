@@ -15,7 +15,7 @@
 import { writeFile } from "node:fs/promises";
 import { gpuWarnings, obs, own, advance, aim } from "./_lab.mjs";
 import { openAir, command, field, HIGH_AIR_CRUISE, shoot } from "./_air.mjs";
-import { game, unitType } from "./_units.mjs";
+import { rules, unitType } from "./_units.mjs";
 const JET = "f_16c_block_50";
 const DESTINATIONS = [
   [1500, 1500],
@@ -77,7 +77,7 @@ export async function run(ctx) {
     .catch(() => {});
   const cards = await page.locator(".hud-army-arriving").allTextContents();
   const due = waiting.map(
-    (p) => `Arriving in ${Math.ceil((p.arrivalTick - o.tick) / game.tick_hz)} s`,
+    (p) => `Arriving in ${Math.ceil((p.arrivalTick - o.tick) / rules.tick_hz)} s`,
   );
   ctx.check(
     "each waiting jet's pending card counts down to its published arrival",
@@ -106,11 +106,11 @@ export async function run(ctx) {
     }
     // The approach is drawn in the last seconds before arrival.
     const coming = o.airTransits.find((t) => t.dir === "in");
-    if (coming && !approachShot && coming.edgeTick - o.tick <= 4 * game.tick_hz) {
+    if (coming && !approachShot && coming.edgeTick - o.tick <= 4 * rules.tick_hz) {
       approachShot = true;
       // Close on where the approach draws the jet now: back along its heading
       // from the edge point by the distance it has still to fly.
-      const ahead = (coming.speedMps * (coming.edgeTick - o.tick)) / game.tick_hz;
+      const ahead = (coming.speedMps * (coming.edgeTick - o.tick)) / rules.tick_hz;
       const at = [
         coming.point[0] - Math.cos(coming.heading) * ahead,
         coming.point[1] - Math.sin(coming.heading) * ahead,
@@ -143,7 +143,7 @@ export async function run(ctx) {
     JSON.stringify({ inbound, entered }),
   );
   // One tick of flight past the edge point, at cruise speed.
-  const tickRun = unitType(JET).mobility.air.cruise_kmh / 3.6 / game.tick_hz;
+  const tickRun = unitType(JET).mobility.air.cruise_kmh / 3.6 / rules.tick_hz;
   const goal = entered?.goal ?? DESTINATIONS[0];
   const bearing = Math.atan2(goal[1] - ARRIVAL_POINT[1], goal[0] - ARRIVAL_POINT[0]);
   ctx.check(

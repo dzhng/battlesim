@@ -28,7 +28,7 @@ fn wet_ground() -> Ground {
         "depth_m": 0.6
     }]);
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let def: MapDefinition = serde_json::from_value(map).unwrap();
     let world = WorldGeometry::new(&def, &rules);
     let layout = sim::world::export::layout_json(&rules.catalog);

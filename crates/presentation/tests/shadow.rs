@@ -670,7 +670,7 @@ fn every_cascade_camera_runs_on_the_frames_clock_and_wind() {
     let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
     let read = |path: &str| std::fs::read_to_string(format!("{root}/{path}")).unwrap();
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let map = sim::maps::Catalogue::shipped()
         .load("wetlands")
         .unwrap()

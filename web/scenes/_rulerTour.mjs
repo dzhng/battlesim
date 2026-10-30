@@ -9,7 +9,7 @@ import {
   pointerOffCanvas,
 } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
-import { unitType, game, streetMap, visuals } from "./_units.mjs";
+import { unitType, rules, streetMap, visuals } from "./_units.mjs";
 import { stageStreetMoves } from "./_streetStaging.mjs";
 const CAMERA = visuals.camera;
 /** The range ruler (Space held with a selection) and right-clicking a
@@ -40,8 +40,8 @@ export async function rulerTour(ctx) {
     const [first] = unitType(unit.kind).mounts;
     const muzzle = first?.muzzle_m
       ? first.pivot_m[2] + first.muzzle_m[2]
-      : game.physics.infantry_muzzle_m;
-    const dz = (await surface(p)) + game.physics.infantry_aim_m - (unit.position[2] + muzzle);
+      : rules.physics.infantry_muzzle_m;
+    const dz = (await surface(p)) + rules.physics.infantry_aim_m - (unit.position[2] + muzzle);
     return Math.hypot(p[0] - unit.position[0], p[1] - unit.position[1], dz);
   };
   const frames = async () => {

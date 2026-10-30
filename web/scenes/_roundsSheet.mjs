@@ -6,7 +6,7 @@ import { MECHANICS_API } from "../../apps/mechanics-editor/src/protocol.ts";
 import { lab, advance, openBattle, aim, hideHud } from "./_lab.mjs";
 import { PNG } from "pngjs";
 import { capture, decode } from "./_png.mjs";
-import { game, weapons, curvePitch, visuals } from "./_units.mjs";
+import { rules, weapons, curvePitch, visuals } from "./_units.mjs";
 
 const CAMERA = visuals.camera;
 const LOOKS = visuals.weapon_looks;
@@ -14,7 +14,7 @@ const LOOKS = visuals.weapon_looks;
 const KINDS = process.env.ROUNDS_KINDS?.split(",") ?? Object.keys(LOOKS);
 const weapon = (id) => weapons[id];
 const lookOf = (id) => weapons[id].appearance;
-const TICK_HZ = game.tick_hz;
+const TICK_HZ = rules.tick_hz;
 /** The scan starts here, whatever tick the page paused at, so its samples repeat. */
 const START = Number(process.env.ROUNDS_TICK ?? 30);
 /** The battle's length: a kind never fired by then is reported missing. */
@@ -331,7 +331,7 @@ export async function roundsTour(ctx) {
           const rules = snapshot.documents.find((d) => d.path === "fixtures/rules.json").value;
           // Development startup installs this generation over imported fixtures.
           // Hull flashes still follow the first ammunition row until slice 12.
-          for (const rows of [rules.weapons, snapshot.game.weapons])
+          for (const rows of [rules.weapons, snapshot.rules.weapons])
             for (const id of ["tank_ap", "tank_he"]) rows[id].appearance = kind;
           await route.fulfill({ response, json: snapshot });
         });

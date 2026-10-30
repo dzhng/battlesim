@@ -81,7 +81,7 @@ pub fn test_documents() -> Vec<Value> {
 
 /// The game fixture as [`rules`] reads it, with [`test_documents`] as its
 /// catalog.
-pub fn test_game() -> Value {
+pub fn test_rules() -> Value {
     let mut fixture = rules();
     fixture["catalog"] = Value::Array(test_documents());
     fixture
@@ -179,7 +179,7 @@ pub fn rules() -> Value {
     fixture
 }
 
-/// [`test_game`] with the saved test map `id` (`fixtures/maps/<id>`),
+/// [`test_rules`] with the saved test map `id` (`fixtures/maps/<id>`),
 /// resolved, under `map`: for a test that needs ground. A map that is not a
 /// test's (a capture map) is refused, so no test stands on a capture
 /// battlefield.
@@ -192,7 +192,7 @@ pub fn with_map(id: &str) -> Value {
         "{id} is not a test map"
     );
     let map = catalogue.load(id).unwrap_or_else(|e| panic!("{e}"));
-    let mut fixture = test_game();
+    let mut fixture = test_rules();
     fixture["map"] = serde_json::to_value(map.definition).expect("the map serializes");
     fixture
 }

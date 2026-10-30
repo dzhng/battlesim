@@ -1,6 +1,6 @@
 import { lab, restart, advance, presented, buildingsSettled } from "./_lab.mjs";
-import { game } from "./_units.mjs";
-const SETTLE_MS = Math.ceil(1000 / game.tick_hz) + 1;
+import { rules } from "./_units.mjs";
+const SETTLE_MS = Math.ceil(1000 / rules.tick_hz) + 1;
 
 async function presentedStep(page, action) {
   await lab(page, () => window.__resetRafFence.hold());

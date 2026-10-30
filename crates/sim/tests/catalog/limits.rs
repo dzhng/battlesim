@@ -32,7 +32,7 @@ fn a_hull_past_its_drives_limits_is_refused_at_load() {
             "wheeled turning radius",
         ),
     ] {
-        let mut fixture = fixtures::test_game();
+        let mut fixture = fixtures::test_rules();
         fixtures::patch_catalog(&mut fixture, "units", unit, patch);
         let rules: Rules = serde_json::from_value(fixture).unwrap();
         let error = sim::admit(&rules).expect_err(limit).to_string();

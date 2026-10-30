@@ -6,7 +6,7 @@ use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use serde_json::json;
 use sim::battle::Battle;
-use sim::fixtures;
+use sim::fixtures::{self, test_rules};
 
 fn command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     CommandEnvelope {
@@ -207,7 +207,7 @@ fn a_returning_unit_reselects_the_nearest_entry_after_moving() {
 
 /// The test units, with a U.S. deck of a tank and a supply truck.
 fn deck() -> serde_json::Value {
-    let mut rules = fixtures::test_game();
+    let mut rules = test_rules();
     fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -247,7 +247,7 @@ fn match_on(rules: serde_json::Value) -> contract::scenario::ScenarioDefinition 
 }
 
 fn test_jet_rules(fuel_capacity_s: f64) -> serde_json::Value {
-    let mut rules = fixtures::test_game();
+    let mut rules = test_rules();
     fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -1354,7 +1354,7 @@ fn a_new_order_cancels_withdrawal_without_a_refund() {
 #[test]
 fn a_destroyed_withdrawing_unit_never_refunds_or_retires() {
     let mut setup = setup();
-    let mut rules = fixtures::test_game();
+    let mut rules = test_rules();
     fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -1436,7 +1436,7 @@ fn refund_condition_counts_casualties_lost_ammunition_carriers_and_empty_trucks(
         json!([]),
         json!([]),
     );
-    let mut rules = fixtures::test_game();
+    let mut rules = test_rules();
     fixtures::patch_catalog(
         &mut rules,
         "soldiers",
