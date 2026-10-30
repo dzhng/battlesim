@@ -89,3 +89,34 @@ change proceeds on the comparison and unprimed critique, and Preview is closed.
 The exact probe changes only the IFV and mixed BMP-3 effect cases. Digests,
 events, poses, sounds and hull publications/layouts match `after-13/` byte for
 byte. The per-item probe and its delta report retain the proof.
+
+## Visual item 7 — rocket pod
+
+**Done:** `rocket_pod` has a compact motor head, joined smoke wake, restrained
+launch flash and smaller explosive contact. Its disabled fireball retains its
+radius with a zero lifetime, holding the sampler's launch-camera framing.
+Sound and kick remain unchanged. The corrected sampler's single HE carrier
+establishes style; it cannot establish actual rocket flight, blast radius,
+flash duration or overlapping salvo cadence.
+
+Shared `evidence-15-visual/7/` holds `before/rocket_pod.png`,
+`after/rocket_pod.png`, the full native `capture/`, comparisons and the final
+unprimed `critique.md`. The first candidate and its rejected flight treatment
+are retained under `candidate-1/`: its motor was faint and its white trail
+looked like a wire. The revision strengthens the compact head and softens the
+wake with overlapping gray puffs. A fresh critic accepts it, including its
+hierarchy against tank HE. The wider view's motor is still subdued over pale
+crops; the closer view resolves it cleanly. Retain the compact head on that
+evidence rather than recreating the broad glowing streak. The critic's
+remaining observation is preserved for future content review.
+
+The samples keep reference camera sides/distances and shot-relative stages;
+startup timing moves the lane samples slightly, so pixel distances include
+that drift and do not prove parity. Contact/blast share one instant. Full
+frames preserve the trail outside the supplementary row crop. The final
+non-blocking Preview checkpoint elapsed without feedback and Preview is closed.
+
+Only the rocket look's vector inputs are refreshed; recorded outputs remain
+identical and the owning tests pass unflagged. Cumulative probe changes are
+confined to IFV, rocket-pod and mixed BMP-3 effects. Every non-effect stream
+still matches `after-13/` byte for byte; the probe and delta report are retained.
