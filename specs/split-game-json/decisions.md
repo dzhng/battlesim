@@ -94,13 +94,14 @@
   `rocket_artillery`. Copy the original look values before tuning sound, so
   visuals and battle outcomes remain unchanged. Re-record catalog and paired
   replay identities through their owning tests in that same assignment commit.
-- **Directed mortar listening verdict and measurement.** The user confirmed
-  the launch is audibly distinct. Their ffmpeg astats measurement of 03's two
-  audition crops found mortar below-150-Hz RMS -26.9 dB, above-2-kHz RMS
-  -36.3 dB (about 9 dB bass-dominant); howitzer -32.8 dB and -21.7 dB
-  respectively (about 11 dB treble-dominant). That is about 20 dB difference
-  in spectral tilt, plus about 6 dB overall RMS. This supports the separate
-  mortar sound; no agent-side listening claim substitutes for that verdict.
+- **Directed by integrator — mortar split on measurement, not listening.**
+  Nobody has listened to the two crops; the user was not asked. The
+  integrator measured 03's audition crops with ffmpeg astats: mortar
+  below-150-Hz RMS -26.9 dB, above-2-kHz RMS -36.3 dB (about 9 dB
+  bass-dominant); howitzer -32.8 dB and -21.7 dB (about 11 dB
+  treble-dominant). About 20 dB of spectral tilt plus about 6 dB of overall
+  RMS separates them, far past an audible difference, so the mortar gets its
+  own sound. A listen by the user is still the real check.
 - **Directed — singles and constructed AA cadence.** Marksman has no burst
   group and heavy sniper has no magazine: use 03's single-report crops per
   observed launch. AA uses the Bofors relay fallback at 0, 0.300 and 0.600 s,
