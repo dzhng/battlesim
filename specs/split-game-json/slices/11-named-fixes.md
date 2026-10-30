@@ -80,3 +80,35 @@ recorded outputs do not change. `UPDATE_SOUND_VECTORS` deliberately exits
 with its rerun reminder after writing, then the sound, effects, poses and
 look tests all pass unflagged. `BLESS_PARITY` leaves effect outputs unchanged.
 Native plates were captured under the shared GPU lock for integration review.
+
+## Named delta 2 — ground impacts (declared before changing values)
+
+For `ground_tank_ap`, `ground_tank_he`, `advanced_tank_ap`,
+`advanced_tank_he`, `light_tank_ap`, `light_tank_he` and `ifv_he`, ground
+contacts use the base tank round's surface multiplier: 5× material size
+and 5× material lifetime. Water and other surfaces do not change. Rocket
+pods and helicopter crashes keep their distinct looks for the later content
+pass.
+
+Allowed additional probe deltas are effect instances and impact cast lights
+for those seven gun cases and the mixed `bmp-3` case. Poses, sound commands,
+authoritative events, hull publications/layouts and battle digests must stay
+byte-identical to fix 1. The effect-vector migration changes only those
+looks' ground-surface inputs before `BLESS_PARITY`; sound is expected to
+remain unchanged under `UPDATE_SOUND_VECTORS` and its unflagged rerun.
+
+### Receipt 2
+
+The controlled ground-contact regression first failed on the rendered puff,
+then passed for early size, survival beyond the unscaled material lifetime,
+and eventual expiration. Only the seven ground-surface inputs change in the
+stored effect fixture; its recorded base-weapon output stays unchanged.
+Sound/effect re-blessing and all focused sound, effects, pose, look and effect
+behaviour checks pass unflagged.
+
+The standard probe has no tank ground-contact rows: its tank shots hit hulls.
+Consequently every stream is byte-identical to fix 1, including all battle
+digests. This is a coverage limit, not evidence of a visible change;
+`after-11-2/delta-report.txt` names it explicitly. A separate controlled ground
+capture supplies visual review evidence. Native capture is queued under the
+shared GPU lock; review remains with the integrator.

@@ -576,3 +576,41 @@ fn wakes_do_not_depend_on_frame_rate() {
     assert!(slow.len() > 10, "{slow:?}");
     assert_eq!(format!("{slow:?}"), format!("{:?}", at(144.0)));
 }
+
+#[test]
+fn a_derived_tank_ground_impact_keeps_the_base_rounds_size_and_lifetime() {
+    let impact = |kind: &str| {
+        // Control the material, so only the round's appearance varies.
+        let p = presentation_with(|p| {
+            p["impacts"]["ground"]["size_m"] = json!(2.0);
+            p["impacts"]["ground"]["duration_s"] = json!(0.4);
+        });
+        let mut f = EffectFrame::new(HZ, p);
+        f.note(&publ(
+            1.0,
+            json!({"segments": [{
+                "path": [[0, 0, 1], [1, 0, 0]], "ricochets": [],
+                "kind": kind, "shooter": null, "hit": "ground", "normal": [0, 0, 1]
+            }]}),
+        ));
+        f
+    };
+    let mut base = impact("tank_ap");
+    let mut derived = impact("light_tank_ap");
+    // Compare the rendered puff early and well past the unscaled lifetime.
+    // Neither its dimensions nor its survival may depend on the weapon id.
+    for age in [0.1, 0.6, 1.5] {
+        let want = drawn(&mut base, DT + age);
+        let got = drawn(&mut derived, DT + age);
+        assert!(
+            !layer(&want, 1.0).is_empty(),
+            "the tank impact must still be visible"
+        );
+        let want = layer(&want, 1.0);
+        let got = layer(&got, 1.0);
+        assert!(!got.is_empty(), "the derived impact expired at age {age}");
+        assert_eq!(got[0][3], want[0][3], "rendered puff size at age {age}");
+    }
+    assert!(layer(&drawn(&mut base, DT + 2.1), 1.0).is_empty());
+    assert!(layer(&drawn(&mut derived, DT + 2.1), 1.0).is_empty());
+}
