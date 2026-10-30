@@ -1,4 +1,4 @@
-# The decision map: splitting game.json
+# The decision map: separating fixture owners
 
 The finished unknowns walk (2026-10-29): what the code says, every decision
 with who made it and why, what the walk drew out of the user, and the
@@ -121,7 +121,7 @@ Every question the walk named, with its answer and who closed it.
 - **Three files, named by reader.** `fixtures/rules.json` (exactly what Rust's
   `Rules` reads; hashed; overridable), `fixtures/presentation.json` (looks and
   handling), `fixtures/audio.json` (the mix, beside `sounds.json`).
-  `game.json` is renamed. The mechanics editor writes only `rules.json`, the
+  The combined fixture is retired. The mechanics editor writes only `rules.json`, the
   map workbench hashes only `rules.json`. Why: each file has one reader, one
   check and one editor.
 - **Weapon looks live in `presentation.json`; `audio.json` is the mix.** A look
@@ -348,7 +348,7 @@ are sharp edges for the builder:
 - **Replays hash the rules** (`replay_identity.rs:39`): changing which look a
   weapon names moves `rules_hash` and every replay's config digest; retuning a
   look's own values in `presentation.json` does not.
-- **The desktop client finds the repository by `fixtures/game.json`**
+- **The desktop client used the combined fixture as its repository sentinel**
   (`main_desktop.rs:116-124`) and silently falls back to the build directory;
   rename the sentinel with the file.
 - **The seed literal 20260925 appears in about 9 places;** three are unrelated
@@ -365,7 +365,7 @@ are sharp edges for the builder:
   margin taken from whichever catalog loaded made the sim test and the browser
   lab route differently); the new 10 m constant's doc records why it is fixed.
 - **Mechanics editor:** allow-list, hot-reload skip and the frozen startup
-  object all name `game.json`; `range_m` is listed as an editable field
+  object all named the combined fixture; `range_m` is listed as an editable field
   (`fields.ts:290-310`) and leaves the list.
 
 ### Facts to check before coding

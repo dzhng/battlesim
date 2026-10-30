@@ -1,4 +1,4 @@
-# game.json audit
+# Combined fixture audit
 
 Taken 2026-10-29 on the shared renderer branch (PR #16). An inventory of all
 2,835 leaves (readers by name, value history over 323 commits) targeted five
