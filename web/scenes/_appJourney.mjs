@@ -262,6 +262,7 @@ export async function appJourney(ctx) {
   await closed;
   await ready();
   await advance(page, 90 - (await obs(page)).tick);
+  await presented(page);
   ctx.check(
     "restart creates a fresh authority with the same exact battle",
     !page.workers().includes(old) &&
