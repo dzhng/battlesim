@@ -30,6 +30,11 @@ Subsystem READMEs own commands and contracts for their code.
 Commands, flags, paths, and dependency versions belong in the manifest or README
 that owns them, not in this document.
 
+Battle rules, visual presentation and the audio mix have independent readers.
+Only battle rules enter the rules identity and encounter overrides; the
+[weapon-look contract](fixtures/README.md#weapon-looks) connects a resolved
+weapon to its authored sight and sound.
+
 Content has three owners, and none reaches another's place. Game battles are
 generated and field the roster's units. Test units (`test_*`) and `test` maps
 belong to tests, labs, and benchmarks; capture units (`capture_*`) and `capture`

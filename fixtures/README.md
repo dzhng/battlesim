@@ -314,6 +314,10 @@ progress; it is at least one, so moving cannot improve concealment.
 
 ## Weapon looks
 
+Rules choose appearances; presentation supplies their looks. An encounter may
+override a weapon's `appearance` through ordinary rules overrides, but it cannot
+patch a look or the mix. No firing look or recording is chosen implicitly.
+
 Every weapon's `appearance` names one entry in [presentation](presentation.json).
 [The look reader](../crates/presentation/src/looks.rs) resolves the battle's rows
 through the contract's ordinary inheritance, then supplies sight, kick and sound
