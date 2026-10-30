@@ -253,3 +253,15 @@ finding that the base build did not render grass the same way twice.
   **Reach:** composition reuses each existing declaration without a new
   shared-binding module or merged variants. **Verdict: sound** — makes ownership
   explicit while preserving every assembled byte. **Confidence: high.**
+
+## 07 · Names
+
+- **When:** slice 07 probe. **Choice:** author fog's uniform as `params`,
+  removing the 72 `params_1=params` aliases present after slice 06 (the slice
+  text anticipated 44). Where grass or ground also binds parameters, use
+  `fogParams` through explicit aliases until the domain naming pass.
+  **Gap:** the probe did not specify how to avoid those existing global-name
+  collisions. **Reach:** three assembled pipelines rename `params_1` to
+  `fogParams`; every other assembled token stays unchanged. **Verdict: sound**
+  — names the resource without merging bindings or changing layouts.
+  **Confidence: high.**

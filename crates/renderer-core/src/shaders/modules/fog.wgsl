@@ -23,7 +23,7 @@ fn fogFoliage(q: vec2f) -> vec2f {
 // @block fog_fogSeenBy_alternate
 fn fogSeenBy(ei: u32, p: vec3f, n: vec3f) -> bool {
   let e = eyes[ei];
-  let P = params_1;
+  let P = params;
   if (p.x < P.playable.x || p.y < P.playable.y ||
       p.x > P.playable.x + P.playable.z || p.y > P.playable.y + P.playable.w) {
     // The visual margin is outside the simulation. Keep it permanently unseen
@@ -90,7 +90,7 @@ fn fogSeenSurface(ei: u32, world: vec3f, normal: vec3f, ground: bool) -> bool {
   let n = select(normal, vec3f(0.0), ground);
   if (fogSeenBy(ei, p, n)) { return true; }
   let e = eyes[ei];
-  let P = params_1;
+  let P = params;
   if (ground || P.roofReachM <= 0.0 || normal.z < 0.7 || world.z <= e.position.z) {
     return false;
   }
@@ -218,7 +218,7 @@ fn fogBinEdge(k: i32, first: f32, lnr: f32, bins: u32) -> f32 {
 
 // @block fog_fogCoverage_alternate
 fn fogCoverage(seen: f32, alpha: f32) -> vec4f {
-  if (params_1.enabled == 0u || layer.seen == 1u) {
+  if (params.enabled == 0u || layer.seen == 1u) {
     return vec4f(0.0, 0.0, 0.0, alpha);
   }
   return vec4f(1.0 - seen, seen, f32(layer.ground), alpha);
@@ -237,13 +237,13 @@ fn fogPack(horizon: f32, jump: f32, foliage: f32) -> u32 {
 
 // @block fog_fogProbePoint_alternate
 fn fogProbePoint(world: vec3f, normal: vec3f, ground: bool) -> vec3f {
-  if (ground) { return world + vec3f(0.0, 0.0, params_1.targetHeightM); }
-  return world + normal * params_1.faceProbeM;
+  if (ground) { return world + vec3f(0.0, 0.0, params.targetHeightM); }
+  return world + normal * params.faceProbeM;
 }
 
 // @block fog_fogTerm_alternate
 fn fogTerm(world: vec3f, normal: vec3f, pixel: vec2f, isGround: bool) -> f32 {
-  let P = params_1;
+  let P = params;
   if (P.enabled == 0u || layer.seen == 1u) { return 1.0; }
   if (fogWholeSeen(world)) { return 1.0; }
   let tile = u32(pixel.x) / FOG_TILE_PX + (u32(pixel.y) / FOG_TILE_PX) * P.tilesX;
@@ -268,7 +268,7 @@ fn fogUnpackBuild(w: u32) -> vec3f {
 
 // @block fog_fogWholeSeen_alternate
 fn fogWholeSeen(p: vec3f) -> bool {
-  let P = params_1;
+  let P = params;
   if (P.wholeCount == 0u) { return false; }
   let c = (p.xy - P.wholeOrigin) / P.wholeCellM;
   if (c.x < 0.0 || c.y < 0.0 || c.x >= f32(P.wholeNx) || c.y >= f32(P.wholeNy)) { return false; }
@@ -341,7 +341,7 @@ fn modelSeen(world: vec3f, normal: vec3f, anchor: vec3f, pixel: vec2f) -> f32 {
 @group(0) @binding(4) var<storage, read> occluders: array<FogBox>;
 
 // @block fog_params_uniform
-@group(2) @binding(0) var<uniform> params_1: FogParams;
+@group(2) @binding(0) var<uniform> params: FogParams;
 
 // @block fog_params_primary
 @group(GROUP) @binding(0) var<uniform> params: FogParams;
