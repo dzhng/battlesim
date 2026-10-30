@@ -52,14 +52,8 @@ struct ModelFragmentInput {
   @location(11) @interpolate(flat) instance: u32,
 }
 
-// @block passes_models_CutoutCasterInput
-struct CutoutCasterInput {
-  @location(4) uv: vec2f,
-  @location(5) @interpolate(flat) material: u32,
-}
-
-// @block passes_models_CutoutDepthInput
-struct CutoutDepthInput {
+// @block passes_models_CutoutFragmentInput
+struct CutoutFragmentInput {
   @location(4) uv: vec2f,
   @location(5) @interpolate(flat) material: u32,
 }
@@ -366,23 +360,23 @@ const GLASS_GLINT = 1f;
 }
 
 // @block passes_models_modelCutoutCaster
-@fragment fn modelCutoutCaster(input: CutoutCasterInput, @builtin(position) clip: vec4f) -> @builtin(sample_mask) u32 {
+@fragment fn modelCutoutCaster(input: CutoutFragmentInput, @builtin(position) clip: vec4f) -> @builtin(sample_mask) u32 {
   return u32((cutoutCoverage(input.material, input.uv) > pixelNoise(clip.xy)));
 }
 
 // @block passes_models_modelCutoutDepth
-@fragment fn modelCutoutDepth(input: CutoutDepthInput, @builtin(position) clip: vec4f) -> @builtin(sample_mask) u32 {
+@fragment fn modelCutoutDepth(input: CutoutFragmentInput, @builtin(position) clip: vec4f) -> @builtin(sample_mask) u32 {
   let coverage = cutoutCoverage(input.material, input.uv);
   return coveredSamples(coverage, fwidth(coverage), pixelNoise(clip.xy));
 }
 
 // @block passes_models_modelCutoutCasterDiscard
-@fragment fn modelCutoutCaster(input: CutoutCasterInput, @builtin(position) clip: vec4f) {
+@fragment fn modelCutoutCaster(input: CutoutFragmentInput, @builtin(position) clip: vec4f) {
   if (!(cutoutCoverage(input.material, input.uv) > pixelNoise(clip.xy))) { discard; }
 }
 
 // @block passes_models_modelCutoutDepthDiscard
-@fragment fn modelCutoutDepth(input: CutoutDepthInput, @builtin(position) clip: vec4f) {
+@fragment fn modelCutoutDepth(input: CutoutFragmentInput, @builtin(position) clip: vec4f) {
   let coverage = cutoutCoverage(input.material, input.uv);
   if (coverage <= 0.5f) { discard; }
 }
