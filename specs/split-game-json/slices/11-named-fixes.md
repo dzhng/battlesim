@@ -45,3 +45,38 @@ weapon changes which look it names.
 
 **Would change this slice:** the user finding a tank's rock or an impact too
 big. Retune the look's values. That's a data edit and moves no hash.
+
+## Named delta 1 — recoil (declared before changing values)
+
+The seven derived tank-gun rows (`ground_tank_ap`, `ground_tank_he`,
+`advanced_tank_ap`, `advanced_tank_he`, `light_tank_ap`, `light_tank_he`,
+`ifv_he`) gain the base tank look's hull kick. The rocket pod keeps its
+explicit zero hull kick; a helicopter crash is not a firing gun.
+
+The ATGM-derived looks (`tow`, `bastion`, `kornet`, `spike`, `javelin`,
+`akeron_mp`, `heli_atgm`, `air_ground_missile`) get ATGM soldier recoil;
+`igla_s` and `fn_6` get MANPADS recoil; `rpg_at_light`, `rpg_at_heavy`,
+`rpg_general` get grenade-launcher recoil. These fix default-strength
+soldier recoil, rather than an absence of all soldier motion.
+
+Allowed outputs: hull/soldier poses and effects/sound positions carried by
+those poses, only for those weapons (including `bmp-3`, whose gun fires
+`ifv_he`). The existing all-weapon probe mounts missiles/RPGs on hulls,
+so their soldier-only multiplier changes need not move its output.
+Sound levels, impact styles, recordings, rules and all battle digests stay
+unchanged. Re-bless only affected presentation vectors, then run unflagged.
+
+### Receipt 1
+
+The battle-driven regression failed on the stationary firing hull, then passed
+with the data edit. Relative to `after-08-merged/`, the probe changes 459 effect
+rows and 3,348 pose rows: each of the seven derived gun cases has 17 effect
+and 227 pose rows changed; `bmp-3` has 340 and 1,759. All sound commands,
+events, hull publications/layouts and battle digests remain byte-identical.
+The report is `after-11-1/delta-report.txt` in the shared proof directory.
+
+Only the corresponding kick inputs change in the effect-vector fixture;
+recorded outputs do not change. `UPDATE_SOUND_VECTORS` deliberately exits
+with its rerun reminder after writing, then the sound, effects, poses and
+look tests all pass unflagged. `BLESS_PARITY` leaves effect outputs unchanged.
+Native plates were captured under the shared GPU lock for integration review.

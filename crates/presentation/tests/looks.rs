@@ -38,7 +38,7 @@ fn encounter_weapons_inherit_their_parents_look() {
 #[path = "../../sim/tests/common/mod.rs"]
 mod common;
 
-fn fired_look(added: bool) {
+fn fired_look(added: bool, require_kick: bool) {
     use contract::ids::Side;
     use presentation::{
         assets::Runtime,
@@ -106,6 +106,10 @@ fn fired_look(added: bool) {
     let mut publisher = Publisher::new();
     let mut reader = Reader::new(&sim::publication::layout_json(&battle)).unwrap();
     let mut feed = EffectFeed::new("blue");
+    let mut pose_feed = presentation::units::feed::ObservationFeed::new("blue");
+    let mut interpolator =
+        presentation::units::interpolate::TickInterpolator::new(f64::from(battle.rules().tick_hz));
+    let mut driver = presentation::units::driver::PoseDriver::new(&fielded.units).unwrap();
     for _ in 0..600 {
         let words: Vec<_> = publisher
             .publish(&battle, Side::Blue)
@@ -114,6 +118,16 @@ fn fired_look(added: bool) {
             .map(|v| v.to_bits())
             .collect();
         let observation = reader.decode(&words).unwrap().unwrap();
+        let now = observation.tick / f64::from(battle.rules().tick_hz);
+        interpolator.push(std::sync::Arc::new(observation.clone()), now);
+        let sample = interpolator
+            .frame(now + 1.0 / f64::from(battle.rules().tick_hz))
+            .unwrap();
+        driver.update(
+            pose_feed.frame(sample, &fielded.units, &fielded.effects),
+            &fielded.units,
+            None,
+        );
         let publication = feed.publication(&observation, &fielded.units, &fielded.effects, None);
         if frame
             .note(&publication)
@@ -136,6 +150,24 @@ fn fired_look(added: bool) {
                     .any(|cause| cause.as_ref() == expected_cause),
                 "the fired weapon's admitted look must reach the rendered flash"
             );
+            if require_kick {
+                let sample = interpolator.frame(now + 0.1).unwrap();
+                let poses = driver.update(
+                    pose_feed.frame(sample, &fielded.units, &fielded.effects),
+                    &fielded.units,
+                    None,
+                );
+                assert!(
+                    poses
+                        .vehicles
+                        .iter()
+                        .find(|v| v.unit == 0.0)
+                        .unwrap()
+                        .motion
+                        .is_some(),
+                    "a derived tank round must rock its stationary hull after firing"
+                );
+            }
             return;
         }
         battle.step();
@@ -145,11 +177,11 @@ fn fired_look(added: bool) {
 
 #[test]
 fn a_derived_weapon_fired_through_a_battle_presents_its_look() {
-    fired_look(false);
+    fired_look(false, false);
 }
 #[test]
 fn an_encounter_added_tank_gun_fired_through_a_battle_presents_the_tank_look() {
-    fired_look(true);
+    fired_look(true, false);
 }
 
 #[test]
@@ -280,4 +312,9 @@ fn a_crash_mounted_as_a_gun_must_supply_firing_parts() {
             .expect("every ammunition kind needs firing parts");
         assert!(error.contains("helicopter_crash"), "{error}");
     }
+}
+
+#[test]
+fn a_derived_tank_round_fired_through_a_battle_kicks_its_hull() {
+    fired_look(false, true);
 }
