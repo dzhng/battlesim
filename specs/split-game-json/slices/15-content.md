@@ -183,3 +183,5 @@ vector inputs change; every sound block is byte-identical in both files.
 Owning-slice links resolve. The final probe and all three unprimed verdicts
 stand; global bloom/exposure, small-arms contrast over wheat and the stated
 visual limitations remain outside this pass.
+
+**Sound done — `artillery` (2026-10-29):** Item 1: a recorded M777 muzzle report replaces the rifle burst. Its aligned crop excludes the target impact. Evidence: shared `evidence-15-sound/artillery/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).

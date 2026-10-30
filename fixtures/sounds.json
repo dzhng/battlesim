@@ -689,6 +689,15 @@
       "plan": "Duet ElevenLabs",
       "path": "assets/source/audio/effects/airwar-flare-burst-3.cbbe345a.mp3",
       "sha256": "cbbe345ac13bc43619a06cfa315825f775edae78809ef7139bf60aa06995029f"
+    },
+    "howitzer-live-fire": {
+      "label": "M777 direct fire",
+      "author": "FUNKER530 / original camera operator uncredited",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=KX6OPMngT2g",
+      "path": "assets/third-party/audio/artillery-KX6OPMngT2g.webm",
+      "sha256": "a0b27c1361c8a461d1e1d8c3d0e8efee955795b76b0b27c1463d5aa55de73318",
+      "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29."
     }
   },
   "clips": {
@@ -4597,6 +4606,24 @@
       "frames": 144000,
       "loop": false,
       "notes": "Generated with ElevenLabs sound effects through Duet; the prompt rules out voices and crowd noise."
+    },
+    "howitzer-launch": {
+      "label": "M777 muzzle report",
+      "category": "weapon",
+      "role": "shot",
+      "processing": "heavy-report",
+      "url": "/audio/clips/howitzer-launch.wav",
+      "sha256": "e065c42cd04a198e96eca2fad8f70fd57dacb5dc2ba21af5a6296514e6d49c31",
+      "sample_rate": 48000,
+      "frames": 38400,
+      "loop": false,
+      "notes": "03 selected 10.02\u201310.90 s; remove 80 ms of pre-attack bed to align the 10.104 s crack with the observed launch. No target impact.",
+      "source": "howitzer-live-fire",
+      "source_rate": 48000,
+      "source_frames": [
+        484800,
+        523200
+      ]
     }
   },
   "sounds": {
@@ -5941,6 +5968,16 @@
       "synth_gain": 0,
       "gain": 1,
       "loop": false
+    },
+    "howitzer-combat": {
+      "label": "Howitzer \u00b7 recorded muzzle report",
+      "clips": [
+        "howitzer-launch"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
     }
   },
   "provenance": {
@@ -5991,6 +6028,25 @@
       },
       "notes": "Downloaded source is pinned for provenance and audition only. It remains unassigned because the source is All-Rights-Reserved; replace or license it before assigning the bytes to a shipped runtime clip.",
       "path": "assets/third-party/audio/airwar-aa-launch.webm"
+    },
+    "howitzer-launch": {
+      "label": "M777 direct fire",
+      "author": "FUNKER530 / original camera operator uncredited",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=KX6OPMngT2g",
+      "sha256": "a0b27c1361c8a461d1e1d8c3d0e8efee955795b76b0b27c1463d5aa55de73318",
+      "path": "assets/third-party/audio/artillery-KX6OPMngT2g.webm",
+      "source_frames": [
+        484800,
+        523200
+      ],
+      "processing": "heavy-report; mono decode, source-frame crop, adaptive end fade, 48 kHz PCM16 peak 0.72; see clip for any relay.",
+      "download": {
+        "tool": "yt-dlp",
+        "version": "2026.08.19",
+        "status": "downloaded-unassigned"
+      },
+      "notes": "03 selected 10.02\u201310.90 s; remove 80 ms of pre-attack bed to align the 10.104 s crack with the observed launch. No target impact. Research download receipt retained at its pre-admission status; sources and weapon looks record acceptance."
     }
   },
   "music": {
