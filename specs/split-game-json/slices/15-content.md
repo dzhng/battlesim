@@ -120,3 +120,26 @@ Only the rocket look's vector inputs are refreshed; recorded outputs remain
 identical and the owning tests pass unflagged. Cumulative probe changes are
 confined to IFV, rocket-pod and mixed BMP-3 effects. Every non-effect stream
 still matches `after-13/` byte for byte; the probe and delta report are retained.
+
+## Visual item 8 — RPG
+
+**Done:** `rpg` now has a compact warm motor and a quieter, softer smoke wake
+instead of the grenade's long luminous streak, with a more contained explosive
+contact. The separate `rpg_heavy` look is outside this named item's scope.
+Sound and kick remain unchanged. Only the RPG look's vector inputs are
+refreshed; recorded outputs remain identical and the owning tests pass unflagged.
+
+Shared `evidence-15-visual/8/` holds `before/rpg.png`, `after/rpg.png`, the
+complete native `capture/`, comparisons and unprimed `critique.md`. All sampled
+ticks, heads, directions and camera sides/distances match the corrected
+reference. The fresh critic accepts the powered-projectile cue and its
+distinction from the unchanged grenade. The body remains a rounded dark speck;
+the existing body authoring offers only color and size, so no silhouette fix
+is claimed. Contact/blast stills share an instant and cannot prove motion,
+duration or evolution. The non-blocking Preview checkpoint elapsed without
+feedback, and Preview is closed.
+
+The final probe is shared `after-15-visual/`. Digests, events, poses, sound and
+hull publications/layouts remain byte-identical to `after-13/`. Effect changes
+are confined to IFV, rocket-pod, light/general RPG and mixed BMP-3 cases. The
+probe's delta report lists every changed case.
