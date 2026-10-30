@@ -17,17 +17,20 @@ only their values change.
    `aa_gun`;
 4. **the cadence check:** at fielding, a look whose burst recording doesn't
    match its weapon's rate of fire is refused (`sound/frame.rs:846-866`).
-   Write it first; it fails on today's data, and passes once item 3 lands.
+   Write it first; it fails on today's data, and passes once item 3 lands;
+5. round the folded levels [13](13-fold-looks.md) wrote as raw medians
+   (`3.0983866769659336`, far `825.0`) to the precision the file authors.
+   Judge it by ear on `firefight.wav`, not by the ledger.
 
 Record each library addition's provenance in `sounds.json` (source, author,
 license, processing), as the catalog already does.
 
 **Visuals** (judged on the look sheet):
 
-5. `ifv_cannon`: distinct from the tank's HE (flash, tracer, impact);
-6. `rocket_pod`: a rocket's motor, smoke trail and salvo impact, not a tank
+6. `ifv_cannon`: distinct from the tank's HE (flash, tracer, impact);
+7. `rocket_pod`: a rocket's motor, smoke trail and salvo impact, not a tank
    cannon's;
-7. `rpg`: distinct from the grenade.
+8. `rpg`: distinct from the grenade.
 
 **Run / see / hear:** the look sheet (flash, tracer, impact and blast per
 look), `firefight.wav`, workbench auditions ([14](14-sound-workbench.md)),
