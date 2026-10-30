@@ -15,13 +15,6 @@ struct PaintFragmentInput {
   @location(1) color: vec4f,
 }
 
-// @block passes_effects_PaintMarchVertexOutput
-struct PaintMarchVertexOutput {
-  @builtin(position) clip: vec4f,
-  @location(0) march: vec3f,
-  @location(1) color: vec4f,
-}
-
 // @block passes_effects_PaintVertexOutput
 struct PaintVertexOutput {
   @builtin(position) clip: vec4f,
@@ -75,8 +68,8 @@ struct PaintVertexOutput {
 }
 
 // @block passes_effects_paintMarchVertex
-@vertex fn paintMarchVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f) -> PaintMarchVertexOutput {
-  return PaintMarchVertexOutput(clipOf(position), normal, color);
+@vertex fn paintMarchVertex(@location(0) position: vec3f, @location(1) normal: vec3f, @location(2) color: vec4f) -> PaintVertexOutput {
+  return PaintVertexOutput(clipOf(position), normal, color);
 }
 
 // @block passes_effects_paintVertex
