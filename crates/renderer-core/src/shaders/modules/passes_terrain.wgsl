@@ -19,7 +19,7 @@
 // @block passes_terrain_terrainFragment
 @fragment fn terrainFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   if (!(scarRegionContains(input.world.xy))) {
-    discard;;
+    discard;
   }
   let eye = (&cam.eye);
   let n = normalize(input.normal);

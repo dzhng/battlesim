@@ -23,7 +23,7 @@
   let baseColor = textureSample(albedo, materialSampler, input.uv, input.layer);
   let packed = textureSample(normal, materialSampler, input.uv, input.layer);
   if ((baseColor.w < 0.5f)) {
-    discard;;
+    discard;
   }
   let local = ((packed.xyz * 2f) - vec3f(1));
   let cardSurfaceNormal = cardNormal(local, input.scale, input.yaw);
@@ -188,7 +188,7 @@ const GLASS_GLINT = 1f;
   let coverage = coverageValue(input.material, input.uv);
   let cutoff = materials[((input.material * 5u) + 4u)].x;
   if (((cutoff > 0f) && (coverage < cutoff))) {
-    discard;;
+    discard;
   }
   let eye = (&cam.eye);
   let n = faceEyeNormal(normalize(input.normal), ((*eye) - input.world));
