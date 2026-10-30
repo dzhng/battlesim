@@ -1,11 +1,13 @@
 //! The ground's GPU tables as the words both renderers upload: the height
 //! pages, the plot split's nodes and plots, the terrain material's parameters
-//! and the scars' look. Each record is the terrain material's WGSL struct
-//! word for word: every field a `vec4`, f32 unless named.
+//! and the scars' look. Reflected records own the fixed WGSL layouts.
 use super::biome::{linear, Road, AREA_KINDS, WATER_LOOKS_MAX};
 use super::field::{Field, FOOTPRINT_M};
+use super::plots::NODE;
 use super::{is_road, Ground, RIVER};
-use crate::records::{RoadLook, ScarParams, ShoreTuning, TerrainParams, WaterLook};
+use crate::records::{
+    PlotNode, PlotRecord, RoadLook, ScarParams, ShoreTuning, TerrainParams, WaterLook,
+};
 use std::f64::consts::SQRT_2;
 use std::mem::offset_of;
 
@@ -27,11 +29,6 @@ pub const ROAD_LOOKS_MAX: usize = AREA_KINDS.len();
 /// `v` as the f32 a `Float32Array` holds, in its word.
 pub fn word(v: f64) -> u32 {
     (v as f32).to_bits()
-}
-
-/// Appends a `vec4f`.
-pub fn vec4(out: &mut Vec<u32>, v: [f64; 4]) {
-    out.extend(v.map(word));
 }
 
 /// The f32 values a `Float32Array` holds, rounded after f64 arithmetic.
@@ -108,27 +105,21 @@ impl Ground {
     /// The plots' records; without `textured`, their rows and dry patches
     /// alone (a paired cost measure).
     pub fn plot_records(&self, textured: bool) -> Vec<u32> {
-        let mut out = vec![];
+        let mut records = Vec::with_capacity(self.plots.plots.len().max(1));
         for p in &self.plots.plots {
             let k = &self.biome.plots[p.kind];
             let on = |v: f64| if textured { v } else { 0.0 };
-            vec4(&mut out, rgb(linear(p.colour), k.roughness));
-            vec4(
-                &mut out,
-                [p.across[0], p.across[1], k.furrow_m, k.furrow_contrast],
-            );
-            vec4(&mut out, [k.mottle, p.kind as f64, on(k.row_break), 0.0]);
-            vec4(
-                &mut out,
-                [1.0 / k.grain_m, on(k.grain), 1.0 / k.grain_stretch, 0.0],
-            );
-            vec4(&mut out, [1.0 / k.patch_m[0], 1.0 / k.patch_m[1], 0.0, 0.0]);
-            vec4(
-                &mut out,
-                [on(k.tram.rows), k.tram.width_m / 2.0, k.tram.contrast, 0.0],
-            );
+            records.push(PlotRecord {
+                colour: f4(rgb(linear(p.colour), k.roughness)),
+                rows: f4([p.across[0], p.across[1], k.furrow_m, k.furrow_contrast]),
+                detail: f4([k.mottle, p.kind as f64, on(k.row_break), 0.0]),
+                grain: f4([1.0 / k.grain_m, on(k.grain), 1.0 / k.grain_stretch, 0.0]),
+                dry: f4([1.0 / k.patch_m[0], 1.0 / k.patch_m[1], 0.0, 0.0]),
+                tram: f4([on(k.tram.rows), k.tram.width_m / 2.0, k.tram.contrast, 0.0]),
+            });
         }
-        at_least_one(out, 24)
+        records.resize(records.len().max(1), PlotRecord::default());
+        bytemuck::cast_slice(&records).to_vec()
     }
 
     /// How far a crater's bowl moves the scars read along a view ray
@@ -201,19 +192,18 @@ impl Ground {
     /// Every terrain table but the scars' grid, from `field` (`terrain_field`).
     pub fn terrain_tables(&self, field: Field) -> TerrainTables {
         let (s, b) = (&self.source, &self.biome);
-        let mut nodes = vec![];
-        for n in self.plots.nodes.as_chunks::<5>().0 {
-            nodes.extend([
-                word(n[0]),
-                word(n[1]),
-                word(n[2]),
-                0,
-                n[3] as i32 as u32,
-                n[4] as i32 as u32,
-                0,
-                0,
-            ]);
-        }
+        let mut nodes: Vec<PlotNode> = self
+            .plots
+            .nodes
+            .as_chunks::<NODE>()
+            .0
+            .iter()
+            .map(|n| PlotNode {
+                line: f4([n[0], n[1], n[2], 0.0]),
+                children: [n[3] as i32, n[4] as i32, 0, 0],
+            })
+            .collect();
+        nodes.resize(nodes.len().max(1), PlotNode::default());
         let one = |key: &str| linear(b.palette(key)[0]);
         let rules = &b.field_rules;
         let [ox, oy, cell, cols, rows, levels, _] = field.grid;
@@ -290,7 +280,7 @@ impl Ground {
         };
         TerrainTables {
             heights: s.grid.pages(),
-            nodes: at_least_one(nodes, 8),
+            nodes: bytemuck::cast_slice(&nodes).to_vec(),
             plots: self.plot_records(true),
             params: bytemuck::cast_slice(
                 &bytemuck::bytes_of(&params)[..offset_of!(TerrainParams, view)],
@@ -382,14 +372,6 @@ impl Ground {
 
 fn chunks_of(rivers: &[f32]) -> impl Iterator<Item = &[f32; RIVER]> {
     rivers.as_chunks::<RIVER>().0.iter()
-}
-
-/// A storage binding can't be empty: at least one zeroed record of `words`.
-fn at_least_one(mut out: Vec<u32>, words: usize) -> Vec<u32> {
-    if out.is_empty() {
-        out.resize(words, 0);
-    }
-    out
 }
 
 /// The public sampled ground: absent vertex pages are flat at zero.

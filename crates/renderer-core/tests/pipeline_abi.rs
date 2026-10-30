@@ -205,9 +205,4 @@ const BUFFER_LAYOUT_EXCEPTIONS: &[(&str, &str)] = &[
     ("Count", "GPU atomic counters, cleared and read as words by probes::grass"),
     ("GrassClump", "GPU-generated storage record; grass_stride_matches_the_builtin_shader_sources checks its allocation stride"),
     ("FogMaskView", "single u32 diagnostic enum, uploaded as a word by fog_mask"),
-    ("FogProbe", "diagnostic query format packed by probes::PointRecord, outside frame uploads"),
-    ("GrassShapeVertex", "blade geometry packed by presentation::static_world::ground::grass::pack_shapes"),
-    ("PlotNode", "ground plot BVH packed by presentation::static_world::ground::tables"),
-    ("PlotRecord", "ground plot material table packed by presentation::static_world::ground::tables"),
-    ("SurfaceRecord", "ground surface segments packed by presentation::static_world::ground::field"),
 ];

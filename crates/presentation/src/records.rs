@@ -35,6 +35,36 @@ pub use bytemuck;
 pub use layout::{Binding, Field, FieldLayout, Layout};
 
 crate::records! {
+    /// A cut in the plot split tree, with signed node/leaf children.
+    Struct PlotNode {
+        line: [f32; 4],
+        children: [i32; 4],
+    }
+
+    /// One plot's material, rows and dry patches.
+    Struct PlotRecord {
+        colour: [f32; 4],
+        rows: [f32; 4],
+        detail: [f32; 4],
+        grain: [f32; 4],
+        dry: [f32; 4],
+        tram: [f32; 4],
+    }
+
+    /// A surface primitive, or a river's companion bank heights.
+    Struct SurfaceRecord {
+        ends: [f32; 4],
+        detail: [f32; 4],
+    }
+
+    /// One blade vertex's spine, side, normal and relative tint.
+    Struct GrassShapeVertex {
+        spine: [f32; 4],
+        side: [f32; 4],
+        normal: [f32; 4],
+        tint: [f32; 4],
+    }
+
     /// One paved kind's material look.
     Struct RoadLook {
         core: [f32; 4],

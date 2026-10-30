@@ -3,6 +3,7 @@ use crate::fog::{Fog, Layer};
 use crate::fog_sight::FogUpload;
 use crate::pipelines::{BoundCompute, Pipelines};
 use crate::readback::Readback;
+use crate::records::FogProbe;
 use crate::{bind, buffer};
 use wgpu::*;
 
@@ -13,15 +14,6 @@ pub mod terrain;
 pub struct FogPoint {
     pub position: [f32; 3],
     pub normal: Option<[f32; 3]>,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-struct PointRecord {
-    position: [f32; 3],
-    ground: u32,
-    normal: [f32; 3],
-    pad: u32,
 }
 
 /// GPU copies are submitted synchronously; completion owns no live scene borrow.
@@ -125,7 +117,7 @@ impl FogProbes {
             presentation::fog::sight::BUILD_WORKGROUP,
         )?;
         let size = (points.len() as u64)
-            .checked_mul(size_of::<PointRecord>() as u64)
+            .checked_mul(size_of::<FogProbe>() as u64)
             .ok_or("fog probe records overflow")?;
         if !points.is_empty() {
             check_storage(device, "fog-probe-points", size)?;
@@ -144,7 +136,7 @@ impl FogProbes {
         }
         let records: Vec<_> = points
             .iter()
-            .map(|p| PointRecord {
+            .map(|p| FogProbe {
                 position: p.position,
                 ground: u32::from(p.normal.is_none()),
                 normal: p.normal.unwrap_or([0.0; 3]),

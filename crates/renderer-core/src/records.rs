@@ -3,6 +3,14 @@ use presentation::effects::lights::CAST_LIGHTS_MAX;
 use presentation::records::{Aerial, CastLight, Sun};
 
 presentation::records! {
+    /// A diagnostic sight query, with an optional surface normal.
+    Struct FogProbe {
+        position: [f32; 3],
+        ground: u32,
+        normal: [f32; 3],
+        pad: u32,
+    }
+
     Struct Environment {
         world_to_view: [f32; 16],
         observer: [f32; 4],

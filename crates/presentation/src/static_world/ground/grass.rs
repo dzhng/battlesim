@@ -8,7 +8,7 @@
 use super::biome::{GrassRules, GRASS_MIX_MAX, VERGE_GROWTH};
 use super::tables::{f4, word};
 use super::{Ground, PROP};
-use crate::records::GrassParams;
+use crate::records::{GrassParams, GrassShapeVertex};
 
 /// Plot kinds the growth table holds; the last row is the verge.
 pub const GROWTH_ROWS: usize = 16;
@@ -37,7 +37,7 @@ const FIELD_LODS: [usize; 2] = [0, 2];
 pub const FIELD_SEGMENTS: [u32; 2] = [KIND_SEGMENTS[FIELD_LODS[0]], KIND_SEGMENTS[FIELD_LODS[1]]];
 /// Floats a clump vertex on the GPU: spine (xyz, height fraction), side
 /// (xyz, phase), normal (xyz, 0), tint (rgb, how far it answers the wind).
-pub const SHAPE_FLOATS: usize = 16;
+pub const SHAPE_FLOATS: usize = GrassShapeVertex::LAYOUT.size / size_of::<f32>();
 /// Per-clump height variation shared by packing, authoring and the shader.
 pub const HEIGHT_VARIATION: [f64; 2] = [0.8, 1.2];
 
@@ -373,7 +373,7 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
         blades.push(lod0 / per[0]);
     }
     let total: usize = blades.iter().map(|b| b * (per[0] + per[1])).sum();
-    let mut shapes = vec![0.0; total.max(1) * SHAPE_FLOATS];
+    let mut shapes = vec![GrassShapeVertex::default(); total.max(1)];
     let mut facts = Vec::with_capacity(kinds.len());
     let mut at = 0;
     for (kind, &blades) in kinds.iter().zip(&blades) {
@@ -410,33 +410,33 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
                 (sum / weight_sum.max(1e-4)).max(1e-4)
             });
             for v in 0..blades * per {
-                let o = at * SHAPE_FLOATS;
+                let record = &mut shapes[at];
                 let in_blade = v % per;
                 let tip = in_blade == per - 1;
                 // A strip pair's spine is its midpoint; the tip is its own spine.
                 let left = if tip { v } else { v - in_blade % 2 };
                 let right = if tip { v } else { left + 1 };
                 let h = f64::from(mesh.uvs[v * 2 + 1]);
-                for c in 0..3 {
+                for (c, &mean) in target.iter().enumerate() {
                     let spine = (p(left, c) + p(right, c)) / 2.0;
-                    shapes[o + c] = spine as f32;
-                    shapes[o + 4 + c] = if c == 2 {
+                    record.spine[c] = spine as f32;
+                    record.side[c] = if c == 2 {
                         0.0
                     } else {
                         (p(v, c) - spine) as f32
                     };
-                    shapes[o + 8 + c] = (f64::from(mesh.normals[v * 4 + c]) / 32767.0) as f32;
-                    let raw = linear(mesh.colors[v * 4 + c]) / target[c];
+                    record.normal[c] = (f64::from(mesh.normals[v * 4 + c]) / 32767.0) as f32;
+                    let raw = linear(mesh.colors[v * 4 + c]) / mean;
                     // Bright tips ease toward 1.3 rather than clip; the floor
                     // leaves dark gaps between stems but no black tips.
                     let floor = 0.3 + 0.5 * h;
                     let cap = 1.0 + 0.3 * (1.0 - libm::exp(-2.5 * (raw - 1.0).max(0.0)));
                     let tint = raw.max(floor).min(cap);
-                    shapes[o + 12 + c] = tint as f32;
+                    record.tint[c] = tint as f32;
                 }
-                shapes[o + 3] = mesh.uvs[v * 2 + 1];
-                shapes[o + 7] = mesh.uvs[v * 2];
-                shapes[o + 15] = (f64::from(mesh.colors[v * 4 + 3]) / 255.0) as f32;
+                record.spine[3] = mesh.uvs[v * 2 + 1];
+                record.side[3] = mesh.uvs[v * 2];
+                record.tint[3] = (f64::from(mesh.colors[v * 4 + 3]) / 255.0) as f32;
                 at += 1;
             }
         }
@@ -451,7 +451,7 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
     }
     let max_blades = blades.iter().fold(1, |m, &b| m.max(b as u32));
     Ok(PackedShapes {
-        shapes,
+        shapes: bytemuck::cast_slice(&shapes).to_vec(),
         facts,
         max_blades,
     })

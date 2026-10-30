@@ -76,12 +76,10 @@ Decisions made where the spec was silent, per slice, with verdicts
   exception list names existing diagnostic, GPU-generated and ground-packed
   formats and their owners. (The six slice-03 types it exempted temporarily
   were dropped at integration; slice 03 reflects them.)
-- **Integrator: the exception list still exempts hand-packed layouts**
-  (`PlotNode`, `PlotRecord`, `SurfaceRecord`, `GrassShapeVertex`, `FogProbe`).
-  *Unsound against definition of done 3* (every buffer layout a shader reads is
-  checked): they are CPU-packed, so a follow-up reflects them as records.
-  `Count`, `GrassClump` (GPU-written) and `FogMaskView` (one word) stay
-  exempt. *Sound.*
+- **Integrator: CPU-packed layouts are checked records**, including the remaining
+  plot, surface, blade-geometry and fog-query formats (04b). Only `Count` and
+  `GrassClump` (GPU-written) and `FogMaskView` (one word) remain exempt.
+  *Sound against definition of done 3 for CPU-packed structs.*
 - **The local light visibility variable is `sunlight`.** Composition aliases
   rename that local instead of the `sun` record member, because aliases replace
   every whole identifier token, including member accesses.
@@ -167,3 +165,23 @@ Decisions made where the spec was silent, per slice, with verdicts
   WGSL identifier or assembled byte and creates no duplicate declaration to
   accommodate overlapping layouts. **Verdict: sound** — confines naming to the
   requested binding consolidation. **Confidence: high.**
+
+## 04b · Remaining packed layouts
+
+- **Presentation owns `PlotNode`, `PlotRecord`, `SurfaceRecord` and
+  `GrassShapeVertex`; renderer-core owns `FogProbe`.** Their names and members
+  match the existing WGSL so reflection covers the upload contracts without
+  changing shader code or binding declarations.
+- **Pack typed records and cast with bytemuck.** Plot and blade arithmetic stays
+  f64 until each final f32 conversion; plot children remain signed integers.
+  Surface inputs are already f32 and retain their existing zero fill and tail
+  semantics. Public word/float buffer interfaces and empty-buffer sentinels stay
+  unchanged.
+- **Derive repeated record strides from the schema.** Existing public surface
+  and blade float counts read their record sizes; minimum plot buffers also use
+  record sizes. Input plot-tree nodes still use their own CPU source stride.
+- **Use the existing reverse/forward ABI checks as the durable guard.** Removing
+  the five exceptions makes the reverse test fail before the records exist.
+  Scratch captures compare actual ground/blade packer output and the extracted
+  fog-query packing expression before and after; no tuning-pinning fixture or
+  redundant layout test is added.
