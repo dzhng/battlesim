@@ -150,35 +150,22 @@ are confined to IFV, rocket-pod, light/general RPG and mixed BMP-3 cases. The
 probe's delta report lists every changed case.
 
 
-## Visual item 9 — stopped at the data boundary
+## Visual item 9 — closed, no change
 
-**Not done; values unchanged.** The implementation brief requires stopping and
-reporting when a value cannot express the fix. The corrected look sheet puts
-every look on a controlled HE carrier, so its sabot row receives an explosion
-cause even though real AP rounds do not. The exact probe's AP cases publish no
-blasts while their HE counterparts do; the receipt is shared
-`evidence-15-visual/9/real-round-causes.json`. This is a capture/style-contract
-limit, not evidence that real sabot rounds explode.
+**The game already tells them apart.** Real AP rounds make no explosion at the
+target: the exact probe's AP cases publish no blasts and their HE counterparts
+do (shared `evidence-15-visual/9/real-round-causes.json`). The look sheet
+showed both exploding only because its sampler fires every look on a
+controlled HE carrier, so its sabot row is not evidence of the game. Both
+rounds leave the same gun, so a shared launch flash is the realistic choice.
+A look's `blast` is a positive scale of the shared fireball, dirt and smoke;
+no value is needed, and none is added. The sheet's HE carrier is a known
+limit of the sheet, recorded here for anyone judging kinetic rounds on it.
 
-A look's `blast` is only a positive scale: [look admission](../../../crates/presentation/src/looks.rs)
-refuses zero, [effect construction](../../../crates/presentation/src/effects/frame/pool.rs)
-scales the shared fireball, dirt and smoke together, and
-[blast drawing](../../../crates/presentation/src/effects/frame/draw.rs) always
-emits the shared fire sprite. No allowed per-look field selects a kinetic
-blast or disables its fireball independently. An arbitrarily tiny positive
-scale would disguise the limitation rather than author the requested absence.
-Changing a capture cause or extending that contract needs code, which this
-brief explicitly excludes. No schema, renderer, sampler, rule or sound change
-is made, and no candidate or visual acceptance is claimed for this item.
+## Visual items 10 and 11 — resumed separately
 
-## Visual items 10 and 11 — not reached after the required stop
-
-**Not done; values unchanged.** ATGM tuning and the detached-flash reproduction
-remain outstanding because item 9 requires the implementation delegate to
-stop. The existing slice-13 report found no confidently detached flash; that
-historical finding is not a fresh reproduction or a fix in this pass. These
-items must resume in order after the item-9 boundary is settled. Slice 15
-remains unticked in the plan README.
+The first visual pass stopped at item 9 and did not reach these; they resume
+in their own pass from this point.
 
 ## Visual pass verification and review
 
