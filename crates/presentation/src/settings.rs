@@ -63,9 +63,7 @@ impl PresentationSettings {
         settings.fog_geometry.check()?;
         settings.pose.check()?;
         settings.effects.check()?;
-        for (name, look) in &settings.weapon_looks {
-            look.check(name)?;
-        }
+        settings.effects.check_looks(&settings.weapon_looks)?;
         validate::presentation(&settings)?;
         Ok(settings)
     }

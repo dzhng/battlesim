@@ -1,6 +1,6 @@
 //! `presentation.effects`: every curve and size the effects are drawn by,
 //! read from the fixture and checked once ([`EffectPresentation::check`]).
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 use serde::Deserialize;
@@ -351,23 +351,12 @@ impl EffectPresentation {
         ensure((0.0..=1.0).contains(&self.cast_wrap), || {
             "cast_wrap must be in [0, 1]".into()
         })?;
-        let cast = |at: String, c: &Option<CastStyle>, fades: bool| match c {
-            Some(c) => ensure(
-                c.radius_m > 0.0 && c.intensity >= 0.0 && (!fades || c.duration_s > 0.0),
-                || {
-                    format!("{at}.cast needs a positive reach, an intensity ≥ 0 and (fading) a duration")
-                },
-            ),
-            None => Ok(()),
+        let cast = |at: String, c: &Option<CastStyle>, fades: bool| {
+            c.as_ref().map_or(Ok(()), |c| {
+                c.check(&format!("presentation.effects.{at}.cast"), fades)
+            })
         };
-        for (k, look) in &self.looks.looks {
-            let Some(t) = &look.tracer else { continue };
-            cast(format!("tracers.{k}"), &t.cast, false)?;
-        }
-        for (k, look) in &self.looks.looks {
-            let Some(f) = &look.flash else { continue };
-            cast(format!("flashes.{k}"), &f.cast, true)?;
-        }
+        self.check_looks(&self.looks.looks)?;
         for (k, s) in &self.smoke {
             cast(format!("smoke.{k}.flame"), &s.flame.cast, false)?;
         }
@@ -379,18 +368,6 @@ impl EffectPresentation {
             ensure(lit <= i.duration_s, || {
                 format!("impacts.{hit}.cast outlives its impact")
             })?;
-            for (kind, look) in &self.looks.looks {
-                let Some(s) = look.impact.as_ref().and_then(|i| i.surfaces.get(hit)) else {
-                    continue;
-                };
-                let ok = s.size.is_finite() && s.size > 0.0 && s.duration.is_finite();
-                ensure(
-                    ok && s.duration > 0.0 && lit <= i.duration_s * s.duration,
-                    || {
-                        format!("weapon_looks.{kind}.impact.surfaces.{hit} must be positive and outlast its light")
-                    },
-                )?;
-            }
         }
         let b = &self.blast;
         ensure(b.reference_size_m > 0.0 && b.size_per_radius > 0.0, || {
@@ -400,12 +377,6 @@ impl EffectPresentation {
             "blast.cast outlives its blast".into()
         })?;
         self.cook_off.validate()?;
-        for (k, look) in &self.looks.looks {
-            let Some(f) = &look.flash else { continue };
-            ensure(f.dust.is_finite() && f.dust >= 0.0, || {
-                format!("flashes.{k}.dust must be ≥ 0")
-            })?;
-        }
         if let Some(d) = &self.shot_dust {
             for (k, b) in [("hull", &d.hull), ("ground", &d.ground.burst)] {
                 ensure(
@@ -439,6 +410,28 @@ impl EffectPresentation {
         ensure(self.max_lifetime().is_finite(), || {
             "every life must be finite".into()
         })
+    }
+
+    pub(crate) fn check_looks(
+        &self,
+        looks: &BTreeMap<String, Arc<crate::looks::WeaponLook>>,
+    ) -> Result<(), String> {
+        for (name, look) in looks {
+            look.check(name)?;
+            let Some(impact) = &look.impact else { continue };
+            for (hit, scale) in &impact.surfaces {
+                let Some(style) = self.impacts.get(hit) else {
+                    continue;
+                };
+                let lit = style.cast.map_or(0.0, |cast| cast.duration_s);
+                if lit > style.duration_s * scale.duration {
+                    return Err(format!(
+                        "presentation.weapon_looks.{name}.impact.surfaces.{hit}.duration must outlast its light"
+                    ));
+                }
+            }
+        }
+        Ok(())
     }
 
     /// The longest any one effect lives, seconds (`maxEffectLifetime`).
@@ -522,5 +515,25 @@ impl TracerStyle {
         ensure(self.smoke.is_none_or(|s| s.spacing_m > 0.0), || {
             at("smoke.spacing_m must be positive")
         })
+    }
+}
+
+impl CastStyle {
+    pub(crate) fn check(&self, path: &str, fades: bool) -> Result<(), String> {
+        for (field, value, min) in [
+            ("radius_m", self.radius_m, f64::MIN_POSITIVE),
+            ("intensity", self.intensity, 0.0),
+        ] {
+            crate::settings::validate::range(&format!("{path}.{field}"), value, min, f64::MAX)?;
+        }
+        if fades {
+            crate::settings::validate::range(
+                &format!("{path}.duration_s"),
+                self.duration_s,
+                f64::MIN_POSITIVE,
+                f64::MAX,
+            )?;
+        }
+        Ok(())
     }
 }

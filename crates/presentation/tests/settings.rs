@@ -600,3 +600,64 @@ fn camera_clearance_and_curve_are_admitted_before_control() {
     reject_presentation("/camera/fov_y", json!(std::f64::consts::PI), "camera.fov_y");
     reject_presentation("/camera/near_m", json!(0), "camera.near_m");
 }
+
+#[test]
+fn weapon_look_lights_and_impact_scales_are_refused_at_document_admission() {
+    for (pointer, value) in [
+        ("/weapon_looks/tank_sabot/flash/cast/radius_m", json!(0)),
+        ("/weapon_looks/tank_sabot/flash/cast/duration_s", json!(0)),
+        ("/weapon_looks/tank_sabot/tracer/cast/radius_m", json!(0)),
+        (
+            "/weapon_looks/tank_sabot/impact/surfaces/hull/size",
+            json!(0),
+        ),
+        (
+            "/weapon_looks/tank_sabot/impact/surfaces/hull/duration",
+            json!(0),
+        ),
+    ] {
+        let mut doc = fixture("presentation");
+        doc["weapon_looks"]["tank_sabot"]["flash"]["cast"] = json!({
+            "color": [1,1,1], "intensity": 1, "radius_m": 2, "duration_s": 0.1
+        });
+        doc["weapon_looks"]["tank_sabot"]["tracer"]["cast"] = json!({
+            "color": [1,1,1], "intensity": 1, "radius_m": 2
+        });
+        doc["weapon_looks"]["tank_sabot"]["impact"]["surfaces"]["hull"] =
+            json!({"size": 1, "duration": 1});
+        *doc.pointer_mut(pointer).unwrap() = value;
+        let error = presentation::settings::PresentationSettings::from_value(&doc)
+            .err()
+            .expect("invalid look must fail before a battle or workbench loads it");
+        assert!(
+            error.contains("tank_sabot") && error.contains(pointer.rsplit('/').next().unwrap()),
+            "{pointer}: {error}"
+        );
+        let error = presentation::sound::tables::SoundTables::from_parts(
+            fixture("audio"),
+            fixture("sounds"),
+            &doc,
+            &fixture("rules")["weapons"],
+        )
+        .expect_err("the sound workbench must refuse the same invalid look");
+        assert!(error.contains("tank_sabot"), "{pointer}: {error}");
+    }
+}
+
+#[test]
+fn a_look_cannot_shorten_an_impact_past_its_cast_light_at_document_admission() {
+    let mut doc = fixture("presentation");
+    doc["effects"]["impacts"]["hull"]["duration_s"] = json!(1);
+    doc["effects"]["impacts"]["hull"]["cast"] = json!({
+        "color": [1,1,1], "intensity": 1, "radius_m": 2, "duration_s": 0.5
+    });
+    doc["weapon_looks"]["tank_sabot"]["impact"]["surfaces"]["hull"] =
+        json!({"size": 1, "duration": 0.25});
+    let error = presentation::settings::PresentationSettings::from_value(&doc)
+        .err()
+        .expect("the scaled impact must last as long as its light");
+    assert!(
+        error.contains("tank_sabot") && error.contains("hull"),
+        "{error}"
+    );
+}

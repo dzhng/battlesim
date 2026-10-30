@@ -57,13 +57,29 @@ impl WeaponLook {
         crate::settings::validate::numbers(self, &path, &[".forward_m"])?;
         if let Some(tracer) = &self.tracer {
             tracer.validate(name)?;
+            if let Some(cast) = &tracer.cast {
+                cast.check(&format!("{path}.tracer.cast"), false)?;
+            }
+        }
+        if let Some(flash) = &self.flash {
+            if let Some(cast) = &flash.cast {
+                cast.check(&format!("{path}.flash.cast"), true)?;
+            }
         }
         if let Some(impact) = &self.impact {
-            for surface in impact.surfaces.keys() {
+            for (surface, scale) in &impact.surfaces {
                 if !crate::effects::tables::IMPACT_MATERIALS.contains(&surface.as_str()) {
                     return Err(format!(
                         "{path}.impact.surfaces.{surface}: unknown impact material"
                     ));
+                }
+                for (field, value) in [("size", scale.size), ("duration", scale.duration)] {
+                    crate::settings::validate::range(
+                        &format!("{path}.impact.surfaces.{surface}.{field}"),
+                        value,
+                        f64::MIN_POSITIVE,
+                        f64::MAX,
+                    )?;
                 }
             }
             crate::settings::validate::range(
