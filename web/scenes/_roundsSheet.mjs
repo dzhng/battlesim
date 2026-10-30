@@ -73,11 +73,15 @@ async function shoot(page, name, marks) {
   return onPage;
 }
 
-/** Whether the round's effects show within a few pixels of `head`: the
- *  frame with effects less the frame without. */
-async function shows(page, head) {
-  const at = await lab(page, (p) => window.__lab.projectToCss(...p), head);
-  if (!at || at[0] < 0 || at[1] < 0 || at[0] >= VIEWPORT.width || at[1] >= VIEWPORT.height)
+/** Whether the round's effects show along its latest stretch: presentation
+ *  can draw the head between the publication's endpoints. */
+async function shows(page, head, from) {
+  const [at, tail] = await lab(
+    page,
+    (points) => points.map((p) => window.__lab.projectToCss(...p)),
+    [head, from],
+  );
+  if (!at || !tail || at[0] < 0 || at[1] < 0 || at[0] >= VIEWPORT.width || at[1] >= VIEWPORT.height)
     return false;
   await page.evaluate(() => window.__lab.frame());
   const on = decode(await page.screenshot());
@@ -85,15 +89,17 @@ async function shows(page, head) {
   const off = decode(await page.screenshot());
   await lab(page, () => window.__lab.suppressEffects(false));
   let most = 0;
-  for (let dy = -4; dy <= 4; dy++)
-    for (let dx = -4; dx <= 4; dx++) {
-      const x = Math.round(at[0]) + dx;
-      const y = Math.round(at[1]) + dy;
-      if (x < 0 || y < 0 || x >= on.width || y >= on.height) continue;
-      const i = (y * on.width + x) * 4;
-      const lit = (png) => png.data[i] + png.data[i + 1] + png.data[i + 2];
-      most = Math.max(most, lit(on) - lit(off));
-    }
+  const steps = Math.max(1, Math.ceil(Math.hypot(tail[0] - at[0], tail[1] - at[1]) / 8));
+  for (let step = 0; step <= steps; step++)
+    for (let dy = -4; dy <= 4; dy++)
+      for (let dx = -4; dx <= 4; dx++) {
+        const x = Math.round(at[0] + ((tail[0] - at[0]) * step) / steps) + dx;
+        const y = Math.round(at[1] + ((tail[1] - at[1]) * step) / steps) + dy;
+        if (x < 0 || y < 0 || x >= on.width || y >= on.height) continue;
+        const i = (y * on.width + x) * 4;
+        const lit = (png) => png.data[i] + png.data[i + 1] + png.data[i + 2];
+        most = Math.max(most, lit(on) - lit(off));
+      }
   return most > 60;
 }
 
@@ -172,14 +178,14 @@ async function frameRound(page, key, r, far = CAMERA.default.distance) {
   let visible = false;
   for (const side of FRAMES ? [] : [course - Math.PI / 2, course + Math.PI / 2]) {
     await aim(page, center ?? back(4), { distance: close, pitch, yaw: side }, { onGround: false });
-    if (await shows(page, r.head)) {
+    if (await shows(page, r.head, r.from)) {
       yaw = side;
       visible = true;
       break;
     }
   }
   await aim(page, center ?? back(4), { distance: close, pitch, yaw }, { onGround: false });
-  if (FRAMES) visible = await shows(page, r.head);
+  if (FRAMES) visible = await shows(page, r.head, r.from);
   out.visible = visible;
   out.close = { distance: close, yaw, page: await shoot(page, `${key}-close.png`, marks) };
   if (launch) {
@@ -264,7 +270,12 @@ async function scan(page, wanted, last, shots, seen, wantBusy) {
     }
     for (const kind of kinds) {
       if (shots[kind] || !wanted.includes(kind)) continue;
-      const r = now.find((q) => q.kind === kind && q.hit === "none");
+      const r = now.find(
+        (q) =>
+          q.kind === kind &&
+          q.hit === "none" &&
+          (!lane || Math.hypot(q.from[0] - lane.from[0], q.from[1] - lane.from[1]) < 10),
+      );
       if (!r) continue;
       const w = weapon(r.weapon);
       // Far enough into its flight for its trail to show; ATGMs and shells longest.
