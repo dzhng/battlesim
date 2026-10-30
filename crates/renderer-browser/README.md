@@ -19,7 +19,7 @@ actual presentation during synchronous calls into the
 [common Runtime](../renderer-core/README.md). A presentation borrow must never
 survive asynchronous device or readback work.
 
-The shell transports authored asset bytes and external geometry, configures the
+The shell transports authored asset bytes and geometry inputs, configures the
 canvas, acquires usable surface output and presents the runtime's display
 texture. It acquires output before consuming incremental presentation work.
 The recovery harness explicitly admits a fresh `BrowserGpu` after device loss,

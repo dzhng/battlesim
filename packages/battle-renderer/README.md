@@ -13,8 +13,9 @@ resolves world placement, frame batches, camera, light, fog and learned scars.
 The generated [record readers](src/records.gen.ts) carry that Rust-owned numeric
 layout across the boundary without a second schema system.
 
-[World geometry](src/worldMesh.ts) separates physical bounds from the decorative
-surround. [Terrain inputs](src/terrain/) hand canonical exported shapes and the
+[World inputs](src/worldMesh.ts) carry physical bounds, traversal faces and lab
+overrides to the [shared world constructor](../../crates/renderer-core/src/runtime/world.rs).
+Rust assembles the decorative surround as well as the submitted terrain and water. [Terrain inputs](src/terrain/) hand canonical exported shapes and the
 biome to presentation. [Model requests](src/models/) name admitted appearances,
 poses and cues. The workbench may author a private pose, while battle poses
 remain presentation's. A map must load the art it actually draws: a catalog name

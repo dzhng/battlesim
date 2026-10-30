@@ -115,12 +115,6 @@ impl Presentation {
         self.inner.set_ground(source, biome, tuning).map_err(error)
     }
 
-    /// The water's surface mesh (`ground::mesh::water` over the ground's
-    /// water cells).
-    pub fn ground_water_mesh(&self) -> Result<Vec<f32>, JsError> {
-        Ok(mesh::water(&ground(&self.inner)?.water_cells()))
-    }
-
     /// Grows the grass by `rules` (JSON, the biome's `grass` row) in place of
     /// the biome's, or by the biome's again: a lab compares fields that
     /// differ in a single number.
@@ -323,18 +317,6 @@ pub fn terrain_mesh(
         indices,
         surfaces.as_deref().map(|s| (s, blocked)),
     )
-}
-
-/// The map's skirt (`ground::mesh::skirt`).
-#[wasm_bindgen]
-pub fn skirt_mesh(positions: &[f32]) -> Vec<f32> {
-    mesh::skirt(positions)
-}
-
-/// The land past the map's edge (`ground::mesh::backdrop`) round `map_box`.
-#[wasm_bindgen]
-pub fn backdrop_mesh(map_box: &[f64], reach_m: f64) -> Vec<f32> {
-    mesh::backdrop(&std::array::from_fn(|i| map_box[i]), reach_m)
 }
 
 /// The box round a world mesh (`shadow::map_box`), none for an empty one.

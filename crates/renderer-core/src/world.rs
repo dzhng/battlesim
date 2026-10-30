@@ -128,7 +128,7 @@ impl WorldColour {
         if !regional {
             ground.draw_terrain(&mut pass, &groups(inputs, Layer::PaintedGround));
         }
-        ground.draw_skirt(&mut pass, &groups(inputs, Layer::Faces));
+        ground.draw_skirt_and_props(&mut pass, &groups(inputs, Layer::Faces));
         for layer in [
             Layer::Units,
             Layer::Faces,

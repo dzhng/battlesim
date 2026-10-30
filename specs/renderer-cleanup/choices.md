@@ -462,3 +462,42 @@ finding that the base build did not render grass the same way twice.
   and prospective rig replacement are checked on packed scroll selectors.
   Native plate identity remains the orchestrator's verification gate.
   **Verdict: sound. Confidence: high.**
+## 10 · World geometry
+
+- **When:** slice 10. **Choice:** `WorldGeometry::from_triangles` accepts an
+  optional `(surface bytes, blocked bit)` tint, ten-float extra faces and an
+  explicit water switch. Its prebuilt-mesh entry shares the face, backdrop and
+  water builders. **Gap:** the slice delegated signature details. **Reach:**
+  both shells construct the same submitted layers; browser installation borrows
+  canonical ground synchronously for water cells and retains completed geometry
+  in Rust without a JavaScript array round trip. **Verdict: sound** — the
+  failing-first seam test covers tint and extra faces, and byte-preserving
+  surface/traversal probes match, including wet ground. **Confidence: high.**
+
+- **When:** slice 10. **Choice:** retain the browser's early Rust-generated
+  terrain mesh for CPU shadow fitting and picking; carry source triangles for
+  submitted construction. A lab that edits its mesh clears that triangle source
+  and uses the direct entry. Separate skirt positions preserve the local edge
+  when geometry scaling adds disconnected terrain; the existing backdrop
+  override stays explicit. **Gap:** the slice named prebuilt labs but did not
+  spell out early CPU consumers or the river lab's edited tint. **Reach:**
+  installation triangulates ordinary terrain again in Rust; river tint, bare
+  labs and scaling keep their existing geometry. **Verdict: sound** — avoids
+  changing receiver fitting or inferring source ownership from mesh contents.
+  **Confidence: high.**
+
+- **When:** slice 10. **Choice:** `WorldLayers.skirt_and_props` carries only
+  extra faces; Rust adds the skirt from supplied boundary positions at initial
+  admission and live face replacement. Runtime storage and submitted diagnostics
+  use `skirt_and_props` (`skirtAndProps` in camel-case JSON). **Gap:** the slice
+  required a slot rename but did not specify the browser input after assembly
+  moved. **Reach:** traversal boxes and moving workbench figures keep one face
+  builder, and replacing extras cannot discard the skirt. Unused browser mesh
+  assembly bindings are removed. **Verdict: sound** — inputs and completed
+  renderer layers each have one owner. **Confidence: high.**
+
+- **Integrator: the browser triangulates terrain twice at install**, once early
+  (wasm helper, for CPU shadow fitting and picking) and once in the shared Rust
+  constructor. Both are Rust code, so the concept has one owner; the cost is one
+  extra triangulation per map load, not per frame. *Sound; watch it* if map
+  load time matters, and pass the early mesh to the prebuilt entry then.

@@ -56,6 +56,13 @@ reuses its model/effect buffers; a new canonical frame prepares them again.
 Fog and scar work still prepare for every drawn frame because their incremental
 work must be consumed rather than replayed.
 
+[World geometry](src/runtime/world.rs) constructs submitted layers for both
+shells from physical triangles and optional traversal inputs. Prebuilt lab
+terrain shares its skirt, backdrop and water construction. Browser CPU terrain
+meshes remain available for shadow receiver fitting and picking; they do not
+assemble the submitted world. Water cells come from canonical ground while the
+browser borrows presentation synchronously.
+
 [`FrameRenderer`](src/frame.rs) encodes a complete production frame over the
 shared scene owners. Its concrete inputs carry GPU resources and canonical
 presentation records; shells cannot substitute their own pass implementations.

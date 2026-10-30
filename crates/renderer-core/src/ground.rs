@@ -1,4 +1,4 @@
-//! The presentation's ground (`Presentation::ground`): its terrain, skirt,
+//! The presentation's ground (`Presentation::ground`): its terrain, skirt and prop faces,
 //! backdrop, tables and meshes uploaded once, drawn into
 //! the depth prepass, the sun's cascades and the lit world. The terrain's
 //! group (`terrainLayout`) is the grass build's too, and holds the side's
@@ -101,7 +101,7 @@ pub struct GroundData<'a> {
     pub material: TerrainUpload<'a>,
     pub heights: &'a [u32],
     pub terrain: &'a [f32],
-    pub skirt: &'a [f32],
+    pub skirt_and_props: &'a [f32],
     pub backdrop: &'a [f32],
     pub water: &'a [f32],
 }
@@ -115,14 +115,14 @@ pub struct Ground {
     pub map_box: Option<[f64; 6]>,
     terrain: Mesh,
     pub terrain_partition: std::sync::Arc<TerrainPartition>,
-    skirt: Mesh,
+    skirt_and_props: Mesh,
     backdrop: Mesh,
     water: Mesh,
     identity: Buffer,
     prepass: Bound,
     caster: Bound,
     lit_terrain: Bound,
-    lit_skirt: Bound,
+    lit_skirt_and_props: Bound,
     lit_backdrop: Bound,
     lit_water: Bound,
 }
@@ -130,8 +130,8 @@ pub struct Ground {
 impl Ground {
     /// Replace external world-face geometry without rebuilding terrain tables,
     /// targets or appearance resources. Selection is prepared on the next draw.
-    pub fn set_skirt(&mut self, device: &Device, queue: &Queue, words: &[f32]) {
-        self.skirt = Mesh::partitioned(device, queue, "skirt", words);
+    pub fn set_skirt_and_props(&mut self, device: &Device, queue: &Queue, words: &[f32]) {
+        self.skirt_and_props = Mesh::partitioned(device, queue, "skirt_and_props", words);
     }
 
     pub fn from_data(
@@ -153,7 +153,8 @@ impl Ground {
         // the camera and each shadow cascade to exclude distant ground.
         let terrain = Mesh::partitioned(device, queue, "terrain", data.terrain);
         let terrain_partition = terrain.partition.as_ref().unwrap().clone();
-        let skirt = Mesh::partitioned(device, queue, "skirt", data.skirt);
+        let skirt_and_props =
+            Mesh::partitioned(device, queue, "skirt_and_props", data.skirt_and_props);
         let water = Mesh::partitioned(device, queue, "water", data.water);
         Self {
             submissions: Default::default(),
@@ -162,7 +163,7 @@ impl Ground {
             map_box,
             terrain,
             terrain_partition,
-            skirt,
+            skirt_and_props,
             backdrop: Mesh::new(device, queue, "backdrop", data.backdrop),
             water,
             identity: buffer(
@@ -175,7 +176,7 @@ impl Ground {
             prepass: pipelines.bound("worldPrepass"),
             caster: pipelines.bound("worldCaster"),
             lit_terrain: pipelines.bound("worldTerrain"),
-            lit_skirt: pipelines.bound("worldOpaque"),
+            lit_skirt_and_props: pipelines.bound("worldOpaque"),
             lit_backdrop: pipelines.bound("worldBackdrop"),
             lit_water: pipelines.bound("worldWater"),
         }
@@ -211,7 +212,7 @@ impl Ground {
     /// Select bounded ranges from the camera and cascade camera publications.
     pub fn prepare_records(&mut self, camera: &Camera, casters: &[Camera]) {
         self.terrain.prepare(camera, casters);
-        self.skirt.prepare(camera, casters);
+        self.skirt_and_props.prepare(camera, casters);
         self.water.prepare(camera, &[]);
     }
 
@@ -238,7 +239,7 @@ impl Ground {
         ("terrainLayout", self.material.bind_group())
     }
 
-    /// The ground, the skirt and the backdrop into the depth prepass.
+    /// The ground, skirt and prop faces, and the backdrop into the depth prepass.
     pub fn draw_depth(&self, pass: &mut RenderPass, camera: (&str, &BindGroup)) {
         self.prepass.set(pass, &[camera]);
         self.submissions
@@ -247,15 +248,15 @@ impl Ground {
                     .terrain
                     .add(self.terrain.draw(pass, &self.identity, None));
                 stats
-                    .skirt_and_debug_props
-                    .add(self.skirt.draw(pass, &self.identity, None));
+                    .skirt_and_props
+                    .add(self.skirt_and_props.draw(pass, &self.identity, None));
                 stats
                     .backdrop
                     .add(self.backdrop.draw(pass, &self.identity, None));
             });
     }
 
-    /// The ground and the skirt into one cascade (the backdrop casts nothing).
+    /// The ground, skirt and prop faces into one cascade (the backdrop casts nothing).
     pub fn draw_casters(&self, pass: &mut RenderPass, camera: (&str, &BindGroup), cascade: usize) {
         self.caster.set(pass, &[camera]);
         self.submissions
@@ -263,7 +264,7 @@ impl Ground {
                 stats
                     .terrain
                     .add(self.terrain.draw(pass, &self.identity, Some(cascade)));
-                stats.skirt_and_debug_props.add(self.skirt.draw(
+                stats.skirt_and_props.add(self.skirt_and_props.draw(
                     pass,
                     &self.identity,
                     Some(cascade),
@@ -284,14 +285,14 @@ impl Ground {
             });
     }
 
-    /// The map's skirt, lit as the world's faces.
-    pub fn draw_skirt(&self, pass: &mut RenderPass, groups: &[(&str, &BindGroup)]) {
-        self.lit_skirt.set(pass, groups);
+    /// The map's skirt and prop faces, lit as the world's faces.
+    pub fn draw_skirt_and_props(&self, pass: &mut RenderPass, groups: &[(&str, &BindGroup)]) {
+        self.lit_skirt_and_props.set(pass, groups);
         self.submissions
             .record(crate::submitted::Pass::Color, |stats| {
                 stats
-                    .skirt_and_debug_props
-                    .add(self.skirt.draw(pass, &self.identity, None));
+                    .skirt_and_props
+                    .add(self.skirt_and_props.draw(pass, &self.identity, None));
             });
     }
 
@@ -329,7 +330,12 @@ impl Ground {
     pub fn record_memory(&self, memory: &mut crate::memory::ResourceMemory) {
         memory.buffer(&self.heights);
         memory.buffer(&self.identity);
-        for mesh in [&self.terrain, &self.skirt, &self.backdrop, &self.water] {
+        for mesh in [
+            &self.terrain,
+            &self.skirt_and_props,
+            &self.backdrop,
+            &self.water,
+        ] {
             if let Some(buffer) = &mesh.buffer {
                 memory.buffer(buffer);
             }
@@ -342,9 +348,9 @@ impl Ground {
     pub fn mesh_diagnostics(&self) -> serde_json::Value {
         serde_json::json!({
             "terrainVisitedNodes": self.terrain.visited,
-            "skirtVisitedNodes": self.skirt.visited,
+            "skirtAndPropsVisitedNodes": self.skirt_and_props.visited,
             "waterVisitedNodes": self.water.visited,
-            "worldVertices": ([&self.terrain, &self.skirt, &self.water, &self.backdrop].iter()
+            "worldVertices": ([&self.terrain, &self.skirt_and_props, &self.water, &self.backdrop].iter()
                 .filter_map(|mesh| mesh.buffer.as_ref()).map(|buffer| buffer.size() / (VERTEX_FLOATS * 4) as u64).sum::<u64>()),
         })
     }

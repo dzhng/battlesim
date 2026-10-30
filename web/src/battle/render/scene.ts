@@ -15,7 +15,6 @@ import { modelAssetsOf, type ModelAsset } from "./modelAssets";
 import { isProxyAppearance, proxyModels } from "./proxyModels";
 import { SceneAppearances } from "./sceneAppearances";
 import { loadEffectAtlasLayers } from "./effectAssets";
-import { installSceneGeometry } from "./sceneGeometry";
 import type { SceneStats, DrawnInstances, FrameView } from "./sceneStats";
 import type { FogProbes } from "@packages/battle-renderer/src/fog";
 import type { GrassProbes } from "@packages/battle-renderer/src/grass";
@@ -188,7 +187,7 @@ export class BrowserScene {
       for (const asset of assets)
         renderer.load_bundle(asset.name, asset.bundle, asset.textureIds, asset.textureBytes);
       renderer.load_effect_atlas(await loadEffectAtlasLayers());
-      installSceneGeometry(renderer, presentation, options.world);
+      presentation.installGeometry(renderer, options.world);
       renderer.set_overlay_glow(options.overlayGlow.radius_px, options.overlayGlow.strength);
       presentation.installRenderer(renderer);
       const admittedWorld = presentation.world();
@@ -227,6 +226,8 @@ export class BrowserScene {
     const previous = this.desiredWorld;
     if (
       world.terrain.mesh !== previous.terrain.mesh ||
+      world.terrain.triangles !== previous.terrain.triangles ||
+      world.skirtPositions !== previous.skirtPositions ||
       world.terrain.input !== previous.terrain.input ||
       world.backdropTerrain !== previous.backdropTerrain ||
       !!world.grass !== !!previous.grass
@@ -316,8 +317,12 @@ export class BrowserScene {
     }
     if (!changed && !this.admission.current()) return false;
     const worldChanged = this.activeWorld !== this.desiredWorld;
-    const propsChanged = this.activeWorld.props !== this.desiredWorld.props;
-    if (propsChanged) this.setWorldProps(this.desiredWorld.props);
+    const propsChanged = this.activeWorld.skirt_and_props !== this.desiredWorld.skirt_and_props;
+    if (propsChanged)
+      this.setSkirtAndProps(
+        this.desiredWorld.skirt_and_props,
+        this.desiredWorld.terrain.triangles?.positions ?? this.desiredWorld.skirtPositions,
+      );
     this.activeWorld = this.desiredWorld;
     return changed || worldChanged;
   }
@@ -367,8 +372,8 @@ export class BrowserScene {
     );
   }
 
-  setWorldProps(mesh: Mesh): void {
-    this.renderer.set_world_props(mesh);
+  setSkirtAndProps(mesh: Mesh, positions: Float32Array = EMPTY_MESH): void {
+    this.renderer.set_skirt_and_props(mesh, positions);
   }
 
   setPointerMarks(mesh: Mesh): void {

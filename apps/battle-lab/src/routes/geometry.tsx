@@ -107,7 +107,11 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
   const meshes = useMemo(
     () =>
       localMeshes && scaling.terrain
-        ? { ...localMeshes, terrain: scaling.terrain, backdropTerrain: localMeshes.terrain.mesh }
+        ? {
+            ...localMeshes,
+            terrain: { ...scaling.terrain, triangles: undefined },
+            backdropTerrain: localMeshes.terrain.mesh,
+          }
         : localMeshes,
     [localMeshes, scaling.terrain],
   );

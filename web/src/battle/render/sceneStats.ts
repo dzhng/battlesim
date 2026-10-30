@@ -29,7 +29,7 @@ export interface SubmittedDraws {
  * x-ray and display overlays. Instances repeat across surfaces and passes. */
 export interface SubmittedPass {
   terrain: SubmittedDraws;
-  skirtAndDebugProps: SubmittedDraws;
+  skirtAndProps: SubmittedDraws;
   water: SubmittedDraws;
   backdrop: SubmittedDraws;
   buildings: SubmittedDraws;
@@ -186,7 +186,7 @@ export interface SceneStats {
   buildings: BuildingStats;
   submitted: SubmittedFrame;
   terrainVisitedNodes: number;
-  skirtVisitedNodes: number;
+  skirtAndPropsVisitedNodes: number;
   waterVisitedNodes: number;
   worldVertices: number;
   depth: { format: "depth32float"; clearValue: 0; compare: "greater" };

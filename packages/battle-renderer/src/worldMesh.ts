@@ -7,8 +7,7 @@
 // presentation only.
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { grassAppearancesOf } from "./terrain/grassField";
-import { concatMeshes, MeshBuilder, type Mesh, type Rgba } from "./mesh";
-import { skirt_mesh } from "@wasm/renderer_browser";
+import { MeshBuilder, type Rgba } from "./mesh";
 import type { WorldLayers, WorldScenery } from "./scene";
 import { BLOCKED, buildTerrainSurface, OPEN, type Biome } from "./terrain/terrainSurface";
 import { sceneryAppearances } from "./scenery/appearance";
@@ -235,16 +234,14 @@ export function buildWorldLayers(
   appearances: InstalledAppearances | null = null,
   drawScenery = true,
 ): WorldLayers {
-  // The skirt: vertical faces down from the map's boundary, so the bounded
-  // map reads as solid ground rather than a paper-thin sheet. They stand on
-  // the ground, so they draw with the props.
   const props = new MeshBuilder();
   if (overlay === "traversal") addTraversalProps(props, exports, layout);
 
   const terrain = buildTerrainSurface(exports, layout, biome, overlay);
   return {
     terrain,
-    props: concatMeshes([skirt_mesh(exports.positions) as Mesh, props.build()]),
+    skirtPositions: exports.positions,
+    skirt_and_props: props.build(),
     scenery:
       overlay === "surface" && appearances && drawScenery ? worldScenery(biome, appearances) : null,
     grass:

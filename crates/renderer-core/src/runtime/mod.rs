@@ -156,7 +156,7 @@ impl Runtime {
                 },
                 heights: &resolved.source.grid.pages(),
                 terrain: &world.geometry.terrain,
-                skirt: &world.geometry.skirt,
+                skirt_and_props: &world.geometry.skirt_and_props,
                 backdrop: &world.geometry.backdrop,
                 water: &world.geometry.water,
             },

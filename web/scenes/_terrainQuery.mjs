@@ -112,7 +112,7 @@ export async function openTerrainQuery(ctx) {
       gpu,
       canvas,
       presentation,
-      world: { terrain, props: new Float32Array(0), scenery: null, grass: null },
+      world: { terrain, skirt_and_props: new Float32Array(0), scenery: null, grass: null },
       settings: { light, fog: gameFogStyle, paint: gamePaint },
       detail: JSON.parse(gameModelDetail),
       overlayGlow: gameOverlayGlow,

@@ -1,22 +1,25 @@
-/** External meshes cross the browser boundary; canonical ground tables do not. */
-import { backdrop_mesh, map_box, type Renderer } from "@wasm/renderer_browser";
+/** Rust constructs world layers; the browser only transports its inputs. */
+import type { Renderer, Presentation } from "@wasm/renderer_browser";
 import type { WorldLayers } from "@packages/battle-renderer/src/scene";
+import { EMPTY_MESH } from "@packages/battle-renderer/src/mesh";
 import { presentationSettings } from "@web/presentationSettings";
-import type { ScenePresentation } from "../sim/presentation";
 
 export function installSceneGeometry(
-  renderer: Renderer,
-  presentation: ScenePresentation,
+  renderer: Pick<Renderer, "set_world_geometry">,
+  presentation: Presentation,
   world: WorldLayers,
 ): void {
-  const ground = presentation.presentedGround();
-  if (!ground) throw new Error("presentation did not resolve ground");
-  const terrain = world.terrain.mesh;
-  const box = map_box(world.backdropTerrain ?? terrain);
+  const { triangles } = world.terrain;
   renderer.set_world_geometry(
-    terrain,
-    world.props,
-    box ? backdrop_mesh(box, presentationSettings.ground.backdrop_reach_m) : new Float32Array(0),
-    world.terrain.water ? ground.ground_water_mesh() : new Float32Array(0),
+    presentation,
+    triangles?.positions ?? world.skirtPositions ?? EMPTY_MESH,
+    triangles?.indices ?? new Uint32Array(0),
+    triangles?.surfaces,
+    triangles?.blocked ?? 0,
+    world.skirt_and_props,
+    world.terrain.water,
+    presentationSettings.ground.backdrop_reach_m,
+    triangles ? undefined : world.terrain.mesh,
+    world.backdropTerrain,
   );
 }

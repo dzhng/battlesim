@@ -1,5 +1,6 @@
 /** Browser binding of Rust presentation: side publications in, observations
  * and frame views out. Rust owns decoding, poses, effects and static walks. */
+import { installSceneGeometry } from "../render/sceneGeometry";
 import type { ModelAsset } from "../render/modelAssets";
 import type { GrassClumpRow } from "@packages/battle-renderer/src/grass";
 import type { BattleAudio } from "@packages/battle-audio/src/battleAudio";
@@ -35,7 +36,7 @@ import {
   type PresentedGround,
 } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { occluderBoxes, type FogOccluder } from "@packages/battle-renderer/src/fog";
-import type { WorldScenery } from "@packages/battle-renderer/src/scene";
+import type { WorldLayers, WorldScenery } from "@packages/battle-renderer/src/scene";
 import { propArt, type KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
 import { NO_SCENERY_WALK, type SceneryWalkStats } from "@packages/battle-renderer/src/scenery/walk";
 import { TEMPLATE_STATES, type TemplateState } from "@packages/scene-assets/src/templateLibrary";
@@ -697,6 +698,11 @@ export class ScenePresentation {
   /** Reacquire views after any allocating presentation, rendering or audio call. */
   lastFrame(): PresentedFrame {
     return frameViews(buffer(), this.framePtr);
+  }
+
+  /** Construct world layers while borrowing the resolved ground synchronously. */
+  installGeometry(renderer: Pick<Renderer, "set_world_geometry">, world: WorldLayers): void {
+    installSceneGeometry(renderer, this.rust, world);
   }
 
   /** Install canonical scene state without crossing a second WASM memory. */

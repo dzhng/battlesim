@@ -5,7 +5,11 @@ use super::*;
 impl Renderer {
     /// Update external world faces on the existing runtime and retain the same
     /// source for recovery. Canonical terrain and appearance owners stay live.
-    pub fn set_world_props(&mut self, words: Vec<f32>) -> Result<(), JsValue> {
+    pub fn set_skirt_and_props(
+        &mut self,
+        words: Vec<f32>,
+        positions: &[f32],
+    ) -> Result<(), JsValue> {
         if !words.len().is_multiple_of(10) {
             return Err(js_error("world geometry needs ten floats per vertex"));
         }
@@ -14,31 +18,68 @@ impl Renderer {
             .as_mut()
             .ok_or_else(|| js_error("install presentation before replacing world props"))?;
         self.geometry = None;
-        runtime.set_world_props(&self.gpu.device, &self.gpu.queue, words);
+        runtime.set_skirt_and_props(
+            &self.gpu.device,
+            &self.gpu.queue,
+            WorldGeometry::faces(positions, &words),
+        );
         self.geometry = Some(runtime.geometry());
         Ok(())
     }
 
-    /// Only external meshes cross this boundary; ground tables stay in presentation.
+    /// Construct and retain world layers. A supplied terrain mesh is the direct
+    /// entry for render-only labs; otherwise physical triangles build the terrain.
+    #[allow(clippy::too_many_arguments)]
     pub fn set_world_geometry(
         &mut self,
-        terrain: Vec<f32>,
-        skirt: Vec<f32>,
-        backdrop: Vec<f32>,
-        water: Vec<f32>,
+        presentation: &Presentation,
+        positions: &[f32],
+        indices: &[u32],
+        surfaces: Option<Vec<u8>>,
+        blocked: u8,
+        extra_faces: &[f32],
+        water: bool,
+        backdrop_m: f64,
+        terrain_mesh: Option<Vec<f32>>,
+        backdrop_terrain: Option<Vec<f32>>,
     ) -> Result<(), JsValue> {
-        if [&terrain, &skirt, &backdrop, &water]
-            .into_iter()
-            .any(|mesh| !mesh.len().is_multiple_of(10))
+        if [
+            Some(extra_faces),
+            terrain_mesh.as_deref(),
+            backdrop_terrain.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        .any(|words| !words.len().is_multiple_of(10))
         {
             return Err(js_error("world geometry needs ten floats per vertex"));
         }
-        self.geometry = Some(Arc::new(WorldGeometry {
-            terrain,
-            skirt,
-            backdrop,
-            water,
-        }));
+        let ground = presentation
+            .core()
+            .ground()
+            .ok_or_else(|| js_error("resolve ground before world geometry"))?;
+        let cells = if water {
+            ground.water_cells()
+        } else {
+            Vec::new()
+        };
+        let mut geometry = if let Some(terrain) = terrain_mesh {
+            WorldGeometry::from_mesh(terrain, positions, extra_faces, &cells, backdrop_m, water)
+        } else {
+            WorldGeometry::from_triangles(
+                positions,
+                indices,
+                &cells,
+                backdrop_m,
+                surfaces.as_deref().map(|s| (s, blocked)),
+                extra_faces,
+                water,
+            )
+        };
+        if let Some(terrain) = backdrop_terrain {
+            geometry.set_backdrop(Some(&terrain), backdrop_m);
+        }
+        self.geometry = Some(Arc::new(geometry));
         self.runtime = None;
         self.display_group = None;
         Ok(())

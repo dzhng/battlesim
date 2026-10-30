@@ -51,7 +51,10 @@ export interface WorldLayers {
    * drawn and received by shadows (for example disconnected remote patches).
    * Omitted: surround the full terrain. This never bounds terrain selection. */
   backdropTerrain?: Mesh;
-  props: Mesh;
+  /** Boundary vertices for the Rust constructor's skirt; absent on bare labs. */
+  skirtPositions?: Float32Array;
+  /** Extra world faces. Rust prepends the skirt from `skirtPositions`. */
+  skirt_and_props: Mesh;
   scenery: WorldScenery | null;
   /** The grass kinds the biome grows (scenery "grass" appearances) by catalog
    *  name; `null` draws no grass (a route without appearances, or a view

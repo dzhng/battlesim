@@ -18,6 +18,9 @@ fn scene(gpu: &gpu::Gpu) -> (Replay, Runtime) {
         &replay.terrain.1,
         &replay.presentation().ground().unwrap().water_cells(),
         replay.backdrop_reach_m,
+        None,
+        &[],
+        true,
     ));
     let config = RuntimeConfig {
         size: [320, 180],

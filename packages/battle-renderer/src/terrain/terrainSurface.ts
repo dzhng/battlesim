@@ -31,10 +31,7 @@ export interface GroundInput {
 }
 
 /** Ground queries and lab controls used by browser scene composition. */
-export type PresentedGround = Pick<
-  Presentation,
-  "ground_water_mesh" | "grass_kinds" | "scenery_kinds" | "retune_grass"
-> &
+export type PresentedGround = Pick<Presentation, "grass_kinds" | "scenery_kinds" | "retune_grass"> &
   FogSource;
 
 export interface TerrainSurface {
@@ -42,6 +39,14 @@ export interface TerrainSurface {
    *  over the biome material, its alpha the tint's weight: 0 draws the biome,
    *  1 the tint alone (the traversal view, render-only fixtures). */
   mesh: Mesh;
+  /** Source triangles for shared Rust world construction. Absent for a lab's
+   *  prebuilt or edited terrain mesh. `mesh` also serves CPU shadow fitting. */
+  triangles?: {
+    positions: Float32Array;
+    indices: Uint32Array;
+    surfaces: Uint8Array | undefined;
+    blocked: number;
+  };
   /** What the scene's presentation resolves the ground from. */
   input: GroundInput;
   biome: Biome;
@@ -152,5 +157,12 @@ export function buildTerrainSurface(
   // The traversal overlay shows the blocked flag alone; a water tint would
   // muddy it. The water's look is its own shader's (`renderer-core` `water.rs`).
   const surface = overlay === "surface";
-  return { mesh, input, biome, grid: surface ? exports.terrain : null, water: surface };
+  return {
+    mesh,
+    triangles: { positions, indices, surfaces: traversal, blocked: layout.flags.blocked },
+    input,
+    biome,
+    grid: surface ? exports.terrain : null,
+    water: surface,
+  };
 }
