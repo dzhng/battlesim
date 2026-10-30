@@ -63,7 +63,9 @@ pub struct Grass {
     finish: BoundCompute,
     draw: Bound,
     build_group: BindGroup,
+    finish_group: BindGroup,
     build_layout: BindGroupLayout,
+    finish_layout: BindGroupLayout,
     heights: Buffer,
     /// Per tile: its total/offset followed by each lane's offset.
     ranges: Buffer,
@@ -88,12 +90,29 @@ pub struct Grass {
     regrow: bool,
 }
 
-fn build_group(device: &Device, layout: &BindGroupLayout, buffers: [&Buffer; 6]) -> BindGroup {
-    bind(
-        device,
-        layout,
-        "grass-build",
-        &buffers.map(Buffer::as_entire_binding),
+fn build_groups(
+    device: &Device,
+    build_layout: &BindGroupLayout,
+    finish_layout: &BindGroupLayout,
+    buffers: [&Buffer; 6],
+) -> (BindGroup, BindGroup) {
+    let group = |label, layout, bindings: &[u32]| {
+        let entries: Vec<_> = bindings
+            .iter()
+            .map(|&binding| BindGroupEntry {
+                binding,
+                resource: buffers[binding as usize].as_entire_binding(),
+            })
+            .collect();
+        device.create_bind_group(&BindGroupDescriptor {
+            label: Some(label),
+            layout,
+            entries: &entries,
+        })
+    };
+    (
+        group("grass-build", build_layout, &[0, 1, 2, 3, 5]),
+        group("grass-finish", finish_layout, &[0, 4, 5]),
     )
 }
 
@@ -151,9 +170,10 @@ impl Grass {
             usage: storage,
             mapped_at_creation: false,
         });
-        let build_group = build_group(
+        let (build_group, finish_group) = build_groups(
             device,
             pipelines.layout("grassBuildLayout"),
+            pipelines.layout("grassFinishLayout"),
             [&params, heights, &props, &clumps, &args, &ranges],
         );
         let mut indices = Vec::new();
@@ -201,7 +221,9 @@ impl Grass {
             finish: pipelines.bound_compute("grassFinish"),
             draw: pipelines.bound("grassDraw"),
             build_group,
+            finish_group,
             build_layout: pipelines.layout("grassBuildLayout").clone(),
+            finish_layout: pipelines.layout("grassFinishLayout").clone(),
             heights: heights.clone(),
             ranges,
             draw_groups,
@@ -289,9 +311,10 @@ impl Grass {
                 usage: BufferUsages::STORAGE,
                 mapped_at_creation: false,
             });
-            self.build_group = build_group(
+            (self.build_group, self.finish_group) = build_groups(
                 device,
                 &self.build_layout,
+                &self.finish_layout,
                 [
                     &self.params,
                     &self.heights,
@@ -343,7 +366,8 @@ impl Grass {
         let own = ("grassBuildLayout", &self.build_group);
         self.count.set(&mut pass, &[own, terrain]);
         pass.dispatch_workgroups(self.window.tiles_x, self.window.tiles_y, 1);
-        self.finish.set(&mut pass, &[own]);
+        self.finish
+            .set(&mut pass, &[("grassFinishLayout", &self.finish_group)]);
         pass.dispatch_workgroups(1, 1, 1);
         self.build.set(&mut pass, &[own, terrain]);
         pass.dispatch_workgroups(self.window.tiles_x, self.window.tiles_y, 1);

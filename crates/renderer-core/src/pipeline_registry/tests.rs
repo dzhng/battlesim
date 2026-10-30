@@ -100,3 +100,69 @@ fn shader_bindings_match_registry_layouts() {
         }
     }
 }
+
+#[test]
+fn pipelines_fit_default_per_stage_binding_limits() {
+    let limits = wgpu::Limits::default();
+    let layouts = layouts();
+    for pipeline in pipelines() {
+        for stage in [
+            ShaderStages::VERTEX,
+            ShaderStages::FRAGMENT,
+            ShaderStages::COMPUTE,
+        ] {
+            let mut counts = [0u32; 5];
+            for name in &pipeline.layouts {
+                let layout = layouts.iter().find(|layout| layout.name == *name).unwrap();
+                for entry in &layout.entries {
+                    if !entry.visibility.contains(stage) {
+                        continue;
+                    }
+                    let kind = match entry.ty {
+                        BindingType::Buffer {
+                            ty: BufferBindingType::Storage { .. },
+                            ..
+                        } => 0,
+                        BindingType::StorageTexture { .. } => 1,
+                        BindingType::Sampler(_) => 2,
+                        BindingType::Texture { .. } => 3,
+                        BindingType::Buffer {
+                            ty: BufferBindingType::Uniform,
+                            ..
+                        } => 4,
+                        _ => continue,
+                    };
+                    counts[kind] += entry.count.map_or(1, std::num::NonZeroU32::get);
+                }
+            }
+            for ((kind, limit), count) in [
+                (
+                    "storage buffers",
+                    limits.max_storage_buffers_per_shader_stage,
+                ),
+                (
+                    "storage textures",
+                    limits.max_storage_textures_per_shader_stage,
+                ),
+                ("samplers", limits.max_samplers_per_shader_stage),
+                (
+                    "sampled textures",
+                    limits.max_sampled_textures_per_shader_stage,
+                ),
+                (
+                    "uniform buffers",
+                    limits.max_uniform_buffers_per_shader_stage,
+                ),
+            ]
+            .into_iter()
+            .zip(counts)
+            {
+                assert!(
+                    count <= limit,
+                    "{} {stage:?}: {count} {kind} exceeds WebGPU default {limit}",
+                    pipeline.name
+                );
+            }
+        }
+    }
+}

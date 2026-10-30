@@ -85,3 +85,7 @@ in that pipeline's layouts, including both sample-mask and Windows discard
 cutout variants on every host. Layouts may expose entries a particular shader
 doesn't use. WGSL distinguishes comparison samplers and texture scalar kinds,
 dimensions and multisampling; filtering support remains a layout/device choice.
+
+Registry tests also count layout resources visible to each shader stage across
+all pipeline groups against WebGPU default limits. Unused layout entries count
+toward those limits, so passes with different scratch inputs use separate layouts.

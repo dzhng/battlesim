@@ -525,7 +525,7 @@ pub fn all() -> Vec<PipelineSpec> {
         compute(
             "grassFinish",
             "grassFinish.wgsl",
-            vec!["grassBuildLayout"],
+            vec!["grassFinishLayout"],
             None,
         ),
     ]
