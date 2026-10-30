@@ -254,7 +254,10 @@ export class BrowserScene {
     const sourcesChanged =
       artChanged ||
       (modelsChanged &&
-        !sameNames(sourceNames(this.presentation, models, this.hasGrass), this.authored));
+        !sameNames(
+          sourceNames(this.presentation, models, this.hasGrass, !!world.scenery),
+          this.authored,
+        ));
     if (sourcesChanged)
       this.authored = assetsFor(this.presentation, installed, models, world, this.hasGrass);
     if (sourcesChanged || proxiesChanged) void this.request();
@@ -270,7 +273,12 @@ export class BrowserScene {
     // React source publication and model props may arrive in either order.
     // A new-name request stays desired until its source generation arrives.
     if (models.some((model) => !this.desired?.appearances.has(model.appearance))) return;
-    const names = sourceNames(this.presentation, models, this.hasGrass);
+    const names = sourceNames(
+      this.presentation,
+      models,
+      this.hasGrass,
+      !!this.desiredWorld.scenery,
+    );
     if (!sameNames(names, this.authored)) {
       this.authored = assetsFor(
         this.presentation,
@@ -462,12 +470,15 @@ function sourceNames(
   presentation: ScenePresentation,
   models: readonly LabModel[],
   grass: boolean,
+  scenery: boolean,
 ): string[] {
   const names = new Set(presentation.canonicalAppearanceRows().map((row) => row.name));
   for (const model of models) names.add(model.appearance);
   const ground = presentation.presentedGround();
   if (ground && grass)
     for (const name of JSON.parse(ground.grass_kinds()) as string[]) names.add(name);
+  if (ground && scenery)
+    for (const name of JSON.parse(ground.scenery_kinds()) as string[]) names.add(name);
   return [...names].sort();
 }
 
@@ -481,7 +492,11 @@ function assetsFor(
   const sources = [world.scenery?.appearances, grass ? world.grass : null].filter(
     (source): source is NonNullable<typeof source> => source != null,
   );
-  return modelAssetsOf(installed, sourceNames(presentation, models, grass), sources);
+  return modelAssetsOf(
+    installed,
+    sourceNames(presentation, models, grass, !!world.scenery),
+    sources,
+  );
 }
 
 function sameNames(names: readonly string[], assets: readonly ModelAsset[]): boolean {

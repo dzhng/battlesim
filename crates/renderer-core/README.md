@@ -23,9 +23,10 @@ The library's weak texture index cannot retain retired art. A new source draft
 shares that index without copying canonical bundle ownership, so a late draft
 cannot restore unrelated stale sources. Initial buffer data is queued through
 the common upload owner, avoiding mapped-at-creation transfer copies in browsers.
-Scenery also shares authored tier admission and held-batch routing. The runtime
-reads the ground's kind order and stump meshes from presentation, preserving its
-authority over placement.
+Scenery also shares authored tier admission and held-batch routing. Initial
+placement and atomic art replacement derive geometry from decoded Rust bundles;
+presentation owns the resulting sizes, trunks, stumps and placement. Runtime
+reconstruction retains those facts and the observer's learned felling.
 
 [Impostors](src/impostor/) bake through the same authored model/material path,
 then filter coverage before uploading relit cards. Native and browser use the

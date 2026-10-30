@@ -10,6 +10,7 @@ export function groundOf(rust: Presentation): PresentedGround {
     rebuild_fog: () => rust.rebuild_fog(),
     ground_water_mesh: () => rust.ground_water_mesh(),
     grass_kinds: () => rust.grass_kinds(),
+    scenery_kinds: () => rust.scenery_kinds(),
     retune_grass: (rules) => rust.retune_grass(rules),
   };
 }

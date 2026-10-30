@@ -60,7 +60,19 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn install_presentation(&mut self, presentation: &mut Presentation) -> Result<(), JsValue> {
+    /// Returns the refreshed world header; admission may add scenery rows.
+    pub fn install_presentation(
+        &mut self,
+        presentation: &mut Presentation,
+        scenery: bool,
+    ) -> Result<u32, JsValue> {
+        if scenery {
+            renderer_core::scenery::place_scenery(
+                presentation.core_mut(),
+                self.model_library.as_ref(),
+            )
+            .map_err(js_error)?;
+        }
         let mut runtime = Runtime::new(
             &self.gpu.device,
             &self.gpu.queue,
@@ -83,7 +95,7 @@ impl Renderer {
         self.runtime = Some(runtime);
         self.rebind_display();
         presentation.refresh_frame_header();
-        Ok(())
+        Ok(presentation.refresh_world_header())
     }
 
     /// Async GPU asset work is separate from synchronous presentation admission.

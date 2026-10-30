@@ -263,14 +263,17 @@ impl Presentation {
         Ok(())
     }
 
+    pub(super) fn clear_lab_rows(&mut self) {
+        if let Some((rows, strings)) = self.lab.frontier.take() {
+            self.world.appearances.truncate(rows);
+            self.world.strings.truncate(strings);
+            self.world.rows.retain(|_, row| (*row as usize) < rows);
+        }
+    }
+
     pub(super) fn register_lab_rows(&mut self) {
-        let (rows, strings) = *self
-            .lab
-            .frontier
-            .get_or_insert((self.world.appearances.len(), self.world.strings.len()));
-        self.world.appearances.truncate(rows);
-        self.world.strings.truncate(strings);
-        self.world.rows.retain(|_, row| (*row as usize) < rows);
+        self.clear_lab_rows();
+        self.lab.frontier = Some((self.world.appearances.len(), self.world.strings.len()));
         register_rows(&mut self.world, &self.lab.assets);
     }
 

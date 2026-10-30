@@ -330,3 +330,37 @@ finding that the base build did not render grass the same way twice.
   suffixes and compiler names disappear while kernels, literals, record
   members, entry points and discard behavior remain unchanged. **Verdict:
   sound. Confidence: high.**
+
+## 09 · Scenery tier mesh
+
+- **When:** slice 09. **Choice:** `renderer_core::scenery::place_scenery`
+  admits initial scenery for both shells; its finest-tier extraction is also
+  used by the existing atomic replacement transaction. Reconstruction keeps
+  admitted placement rather than resetting learned felling. **Gap:** the slice
+  delegated the function's home and mutable presentation access. **Reach:**
+  renderer-browser borrows presentation synchronously during installation;
+  replacement remains prospective until commit. **Verdict: sound** — geometry
+  has one owner and replacement keeps its atomicity. **Confidence: high.**
+
+- **When:** slice 09. **Choice:** placement registers canonical scenery rows
+  immediately, before the tooling suffix, and renderer installation returns a
+  refreshed world header. **Gap:** placement now follows world loading, which
+  previously registered scenery rows. **Reach:** late scenery remains canonical
+  when tooling art is replaced; browser row readers refresh after admission.
+  **Verdict: sound** — the failing-first late-admission regression proves the
+  missing stump row and checks replacement geometry. **Confidence: high.**
+
+- **When:** slice 09. **Choice:** browser installation explicitly carries
+  whether the scene requests scenery, and source selection includes ground
+  scenery kinds only for those scenes. **Gap:** ground can exist without scenery
+  in geometry and model labs. **Reach:** those labs keep their deliberately bare
+  ground; enabled scenes load bundles before placement. **Verdict: sound** —
+  preserves the existing scene input instead of inferring intent from available
+  bundles. **Confidence: high.**
+
+- **When:** slice 09. **Choice:** `sceneryAppearances` retains catalog/category
+  lookup but no longer checks the summer state. **Gap:** the slice asked whether
+  the lookup still needed the deleted state constant. **Reach:** the authored
+  asset loader validates required states; Rust tier admission names a missing
+  summer state before placement. **Verdict: sound** — state selection has one
+  runtime owner. **Confidence: high.**

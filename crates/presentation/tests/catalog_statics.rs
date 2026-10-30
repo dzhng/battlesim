@@ -247,6 +247,15 @@ fn building_replacement_updates_culling_extents_and_keeps_the_latest_known_ruin(
 
 #[test]
 fn prospective_scenery_uses_new_trunk_and_stump_geometry_before_atomic_commit() {
+    scenery_replacement(false);
+}
+
+#[test]
+fn scenery_admitted_after_world_and_tooling_art_stays_canonical_through_replacement() {
+    scenery_replacement(true);
+}
+
+fn scenery_replacement(late: bool) {
     use presentation::static_world::ground::{biome::Biome, tables::Grid, Source};
     let game: serde_json::Value =
         serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
@@ -301,7 +310,9 @@ fn prospective_scenery_uses_new_trunk_and_stump_geometry_before_atomic_commit() 
     let count = p.ground().unwrap().scenery_kinds().len();
     let original = mesh(0.25, 4.0);
     let original_refs = vec![original.as_slice(); count];
-    p.place_scenery(&original_refs).unwrap();
+    if !late {
+        p.place_scenery(&original_refs).unwrap();
+    }
     p.load_world(
         WorldInput {
             battle: None,
@@ -313,6 +324,12 @@ fn prospective_scenery_uses_new_trunk_and_stump_geometry_before_atomic_commit() 
         None,
     )
     .unwrap();
+    if late {
+        p.install_lab_assets([("tool-crate".into(), asset())].into(), detail());
+        p.place_scenery(&original_refs).unwrap();
+        // Replacing the tooling suffix must retain admitted scenery rows.
+        p.install_lab_assets(Default::default(), detail());
+    }
     let world = p.world();
     let stump = world
         .appearances

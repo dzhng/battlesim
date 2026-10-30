@@ -33,7 +33,7 @@ export interface GroundInput {
 /** Ground queries and lab controls used by browser scene composition. */
 export type PresentedGround = Pick<
   Presentation,
-  "ground_water_mesh" | "grass_kinds" | "retune_grass"
+  "ground_water_mesh" | "grass_kinds" | "scenery_kinds" | "retune_grass"
 > &
   FogSource;
 

@@ -31,7 +31,7 @@ const STATE: &str = "summer";
 /// The material whose triangles are foliage: shaded with leaf clumps.
 const FOLIAGE: &str = "leaves";
 /// `tier` of a scenery appearance as triangles in the world vertex
-/// (`tierMesh`): linear albedo (material colour times vertex colour) in rgb,
+/// format: linear albedo (material colour times vertex colour) in rgb,
 /// 1 in the last float for foliage.
 pub fn tier_mesh(name: &str, bundle: &Bundle, tier: usize) -> Result<Vec<f32>, String> {
     let Shape::Static(states) = &bundle.shape else {
@@ -63,6 +63,35 @@ pub fn tier_mesh(name: &str, bundle: &Bundle, tier: usize) -> Result<Vec<f32>, S
         }
     }
     Ok(out)
+}
+
+/// Finest geometry shared by initial placement and atomic art replacement.
+pub(crate) fn finest_meshes(
+    ground: &presentation::static_world::ground::Ground,
+    library: &impl BundleSource,
+) -> Result<Vec<Vec<f32>>, String> {
+    ground
+        .scenery_kinds()
+        .iter()
+        .map(|name| tier_mesh(name, library.bundle(name)?.as_ref(), 0))
+        .collect()
+}
+
+/// Admit scenery from decoded bundles once per ground. Renderer reconstruction
+/// retains the current placement and learned felling instead of resetting them.
+pub fn place_scenery(
+    presentation: &mut presentation::presentation::Presentation,
+    library: &impl BundleSource,
+) -> Result<(), String> {
+    if presentation.scenery_is_placed() {
+        return Ok(());
+    }
+    let finest = finest_meshes(
+        presentation.ground().ok_or("scenery requires ground")?,
+        library,
+    )?;
+    let refs: Vec<_> = finest.iter().map(Vec::as_slice).collect();
+    presentation.place_scenery(&refs)
 }
 
 /// A mesh on the GPU and its vertices.

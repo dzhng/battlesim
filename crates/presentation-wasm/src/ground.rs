@@ -150,22 +150,6 @@ impl Presentation {
         Ok(serde_json::to_string(&ground(&self.inner)?.scenery_kinds()).unwrap())
     }
 
-    /// Places the ground's scenery, given each of its kinds' (`scenery_kinds`)
-    /// finest tier in the renderer's world vertex, one after another,
-    /// `floats` floats each; drawn from the next `load_world`.
-    pub fn place_scenery(&mut self, meshes: &[f32], floats: &[u32]) -> Result<(), JsError> {
-        let mut at = 0;
-        let finest: Vec<&[f32]> = floats
-            .iter()
-            .map(|&n| {
-                let mesh = &meshes[at..at + n as usize];
-                at += n as usize;
-                mesh
-            })
-            .collect();
-        self.inner.place_scenery(&finest).map_err(error)
-    }
-
     /// A felled tree's stump mesh for `World.appearances` row `row` (its
     /// `draws` 6), in the renderer's world vertex; none for any other row.
     pub fn stump_mesh(&self, row: u32) -> Option<Vec<f32>> {

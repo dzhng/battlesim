@@ -34,8 +34,6 @@ import {
   type GroundInput,
   type PresentedGround,
 } from "@packages/battle-renderer/src/terrain/terrainSurface";
-import { tierMesh } from "@packages/battle-renderer/src/scenery/appearance";
-import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import { occluderBoxes, type FogOccluder } from "@packages/battle-renderer/src/fog";
 import type { WorldScenery } from "@packages/battle-renderer/src/scene";
 import { propArt, type KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
@@ -228,9 +226,8 @@ export class ScenePresentation {
   /** The ground staged, the one set, and the scenery's art it was placed by. */
   private staged: GroundInput | null = null;
   private groundSet: GroundInput | null = null;
-  /** The art the staged ground's scenery draws, and the art it was placed by. */
+  /** The art requested for the staged ground's scenery. */
   private sceneryArt: WorldScenery | null = null;
-  private placedBy: WorldScenery | null = null;
   /** The installed art the ground's props were placed from. */
   private proppedBy: InstalledAppearances | null = null;
   /** The ground the page reads tables from, new with each ground set. */
@@ -362,7 +359,6 @@ export class ScenePresentation {
     this.art = buildingArt(installed);
     this.proppedBy = installed;
     this.sceneryArt = scenery;
-    this.placedBy = scenery;
   }
 
   /** Tooling models supplement the battle and static world on the next frame. */
@@ -428,10 +424,8 @@ export class ScenePresentation {
     [this.buildings, this.style, this.sun] = [buildings, style, sun];
   }
 
-  /** Stage the scene's ground (null: none) and the art its scenery draws
-   *  (`WorldLayers.scenery`; null: none placed): set, placed and loaded with
-   *  the rest by the next frame when either is another. Cheap when nothing
-   *  changed: call every frame. */
+  /** Stage ground and requested scenery art. Rust admits scenery after its
+   *  bundles decode during renderer installation. Cheap when unchanged. */
   setGround(ground: GroundInput | null, scenery: WorldScenery | null) {
     if (ground !== this.staged) [this.staged, this.stale] = [ground, true];
     if (scenery !== this.sceneryArt) [this.sceneryArt, this.stale] = [scenery, true];
@@ -514,7 +508,6 @@ export class ScenePresentation {
     const ground = this.staged;
     if (ground !== this.groundSet) {
       this.groundSet = ground;
-      this.placedBy = null;
       this.proppedBy = null;
       this.presented = null;
       if (ground) {
@@ -529,17 +522,6 @@ export class ScenePresentation {
       this.rust.place_props(ground.layout, propArt(installed, ground.family));
       this.proppedBy = installed;
     }
-    const art = this.sceneryArt;
-    if (!ground || !art || art === this.placedBy) return;
-    const kinds = JSON.parse(this.rust.scenery_kinds()) as string[];
-    const bundles = kinds.map((name) => art.appearances.get(name));
-    if (!bundles.every((b) => b !== undefined)) return;
-    const finest = bundles.map((b) => tierMesh(b!, 0));
-    this.rust.place_scenery(
-      concatMeshes(finest),
-      Uint32Array.from(finest, (m) => m.length),
-    );
-    this.placedBy = art;
   }
 
   /** Load what is staged: the battle, the buildings and the ground, in one world. */
@@ -719,7 +701,9 @@ export class ScenePresentation {
 
   /** Install canonical scene state without crossing a second WASM memory. */
   installRenderer(renderer: Pick<Renderer, "install_presentation">) {
-    renderer.install_presentation(this.rust);
+    this.loaded = this.readWorld(
+      renderer.install_presentation(this.rust, this.sceneryArt !== null),
+    );
   }
 
   /** Snapshot actual GPU grass without exposing the canonical Rust handle. */
