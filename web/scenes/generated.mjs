@@ -230,7 +230,15 @@ const look = (page, at, distance, pitch = 0.85) =>
     { at, distance, pitch },
   );
 
-const project = (page, p) => lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), p);
+const project = (page, p) =>
+  lab(
+    page,
+    async (q) => {
+      await window.__lab.frame();
+      return window.__lab.projectToCss(q[0], q[1], q[2]);
+    },
+    p,
+  );
 
 /** `CAMERA_MAP`: the camera through another map's main town, and its cost. */
 async function cameraOnMap(ctx, spec) {
