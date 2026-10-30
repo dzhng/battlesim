@@ -18,7 +18,7 @@
 // grows on (the field tints each clump by its own ground, relative to it),
 // and in its alpha how far the kind answers the wind (1 fully, 0 not at all).
 
-import { GRASS_HEIGHT_MAX } from "../../battle-renderer/src/records.gen";
+import { GRASS_HEIGHT_MAX } from "../../battle-renderer/src/records.gen.ts";
 import { vec3, type Vec3 } from "math";
 import { mulberry32, random } from "math/random";
 import { encodeGlb, type GltfJson } from "./glb.ts";
