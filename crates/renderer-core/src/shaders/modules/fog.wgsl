@@ -302,10 +302,7 @@ fn modelSeen(world: vec3f, normal: vec3f, anchor: vec3f, pixel: vec2f) -> f32 {
 // @block fog_occluders
 @group(0) @binding(4) var<storage, read> occluders: array<FogBox>;
 
-// @block fog_params_fixedGroup
-@group(2) @binding(0) var<uniform> fogParams: FogParams;
-
-// @block fog_params_grouped
+// @block fog_params
 @group(GROUP) @binding(0) var<uniform> fogParams: FogParams;
 
 // @block fog_points
