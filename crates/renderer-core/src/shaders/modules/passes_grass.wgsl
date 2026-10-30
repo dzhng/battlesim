@@ -39,20 +39,9 @@ struct GrassFragmentInput {
   }
 }
 
-// @block passes_grass_GrassVertexOutput
-struct GrassVertexOutput {
-  @builtin(position) clip: vec4f,
-  @location(0) world: vec3f,
-  @location(1) root: vec3f,
-  @location(2) normal: vec3f,
-  @location(3) albedo: vec3f,
-  @location(4) ground: f32,
-}
-
 // @block passes_grass_grassVertex
 @vertex fn grassVertex(@builtin(vertex_index) vid: u32, @builtin(instance_index) iid: u32) -> GrassVertexOutput {
-  let g = grassVertexOf(vid, iid);
-  return GrassVertexOutput(g.clip, g.world, g.root, g.normal, g.albedo, g.ground);
+  return grassVertexOf(vid, iid);
 }
 
 // @block passes_grass_grassBuild
@@ -73,4 +62,14 @@ var<workgroup> laneCounts: array<vec2u, GRASS_BUILD_LANES>;
 @compute @workgroup_size(GRASS_BUILD_LANES) fn grassBuild(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32) {
   let tile = (wg.y * grassParams.grid.x + wg.x) * GRASS_TILE_RANGES;
   _ = growTile(wg, li, true, ranges[tile] + ranges[tile + 1u + li]);
+}
+
+// @block passes_grass_GrassVertexOutput
+struct GrassVertexOutput {
+  @builtin(position) clip: vec4f,
+  @location(0) world: vec3f,
+  @location(1) root: vec3f,
+  @location(2) normal: vec3f,
+  @location(3) albedo: vec3f,
+  @location(4) ground: f32,
 }

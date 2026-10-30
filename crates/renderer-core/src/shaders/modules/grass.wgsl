@@ -28,12 +28,12 @@ const GRASS_BLADE_FLUTTER_PHASE = 0.35;
 const GRASS_BLADE_FLUTTER_ACROSS = 0.5;
 const GRASS_BLADE_LAID_LEAN = 1.1;
 const GRASS_BLADE_LAID_SINK = 0.6;
-fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
+fn grassVertexOf(vid: u32, iid: u32) -> GrassVertexOutput {
   let P = &grassParams;
   let grassTier = grassTier;
   let c = clumps[grassTier.y + iid];
   let row = (*P).kinds[c.kind];
-  var out: GrassVertex;
+  var out: GrassVertexOutput;
   if (vid / grassTier.z >= u32(row.y)) {
     // A blade this kind does not have: outside the depth range, clipped.
     out.clip = vec4f(0.0, 0.0, 2.0, 1.0);
@@ -114,16 +114,6 @@ struct GrassShapeVertex {
   side: vec4f,
   normal: vec4f,
   tint: vec4f,
-}
-
-// @block grass_GrassVertex
-struct GrassVertex {
-  clip: vec4f,
-  world: vec3f,
-  root: vec3f,
-  normal: vec3f,
-  albedo: vec3f,
-  ground: f32,
 }
 
 // @block grass_clumps_grassDrawLayout
