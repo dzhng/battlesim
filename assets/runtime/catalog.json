@@ -2731,7 +2731,7 @@
       "unit": "scenery"
     },
     "hedge_shrub": {
-      "bundle": "8ae224d24cb7f8cfe61857e9366a25c5504523fb18c3cef6f8398e2d613cf20c",
+      "bundle": "53a956ab49cbbd06e76c6379465102775d0a002ce5a85a253f5cab4fd34fe9f6",
       "kind": "static",
       "scenery": "hedgerow",
       "unit": "scenery"
@@ -3395,19 +3395,19 @@
       "unit": "scenery"
     },
     "tree_birch": {
-      "bundle": "8294f0af5ae355644579cf19310d6bb3d7b3ad2ce087f42e46d6bb0a014f83b4",
+      "bundle": "3f9fab6d60d8c9e9b9cb42f870dc73b8b71e3e1164cee1119300ded68c7ac525",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     },
     "tree_broadleaf": {
-      "bundle": "0976c01460583530768b5d313a7f65cbb6440c473df938ca7a13ff7ae8fb971d",
+      "bundle": "40f7f48966bdb894d36fa21572c2689c02ad1fe28d550c1fe60cc113cf667952",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     },
     "tree_pine": {
-      "bundle": "c6836369677790055d8d879adf0a66df6265742bbffdd24c2367fe50d223d8d7",
+      "bundle": "f62f1a01d0b2fee8283124c7f7b14fd6e9f2e0adf0924ee1ab92e7ac75265a83",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
@@ -3419,19 +3419,19 @@
       "unit": "scenery"
     },
     "tree_spreading": {
-      "bundle": "7ac15f9eb8f6161b0f2633512a4aa76b70473dfcbfe80b5b4c3287e3b7432049",
+      "bundle": "3aae02034a7a28100c3201a9fd54a0fc42137ecc4cc7e6662fb0fb1c3bbfcf8a",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     },
     "tree_spruce": {
-      "bundle": "6083dda09de3bd259117a09c7df11ffa9ca297798d4bd0de5cecdebf32dee291",
+      "bundle": "51a0363d09af809fee7acf4316e358286ae275f16a91a45c314aef34067f2b67",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     },
     "tree_tall": {
-      "bundle": "c7f5c0be9ff33d1db8487a54a9fa4b044d88427f327858f03be6d82646e23f78",
+      "bundle": "1c2042e40ed8a26231772b3246433ec03862c8e09cd3988e2af113ae7846dd1c",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
@@ -4514,11 +4514,6 @@
       "hash": "d800c55125c2063fd67e623c2446af9d90502434230d1520405741f7294ddc5a",
       "raw_bytes": 117000
     },
-    "0976c01460583530768b5d313a7f65cbb6440c473df938ca7a13ff7ae8fb971d": {
-      "bytes": 194137,
-      "hash": "f7d22be61da910060f4b8bc286f0338f0650a04835a14b5158d39faa2be68fe3",
-      "raw_bytes": 287852
-    },
     "0a13823d5a059e8ced16733fb4ec665dbc528d41c7ddec999aac3a65cf138782": {
       "bytes": 1076092,
       "hash": "a3647edf343d0c77ab6e150e61beb19cc054d20f5ab6cf56fda678a79c6f88ed",
@@ -4863,6 +4858,11 @@
       "bytes": 1020028,
       "hash": "c67a915a839c2f76fc6d7a77d7f008060c854538dff0cd1563eed36594d8d8c9",
       "raw_bytes": 3850136
+    },
+    "1c2042e40ed8a26231772b3246433ec03862c8e09cd3988e2af113ae7846dd1c": {
+      "bytes": 1226998,
+      "hash": "cb4ff21eeea0d2200efd0aff50352b36e9b5a5819a1d723557262f1e8eea746c",
+      "raw_bytes": 1870512
     },
     "1c5e8e39f675ea07268a0cffb4ca0a4eba653f5fd1c44a3bd75b12981e6b5baf": {
       "bytes": 146175,
@@ -5304,6 +5304,11 @@
       "hash": "166c1e793beb8cc175d67417dc6e886f3fec7e15d349d13d2fe96bb739fd7962",
       "raw_bytes": 3921032
     },
+    "3aae02034a7a28100c3201a9fd54a0fc42137ecc4cc7e6662fb0fb1c3bbfcf8a": {
+      "bytes": 1249988,
+      "hash": "a08dcf7b4893e0a5f3b797250107f4b6b7a25f2cd84078407d5103277189860b",
+      "raw_bytes": 1907952
+    },
     "3b2edefcb459e549ceb6fbbdb5b5e7022d59df8ca61b06015e6bfea45f746d6b": {
       "bytes": 1160907,
       "hash": "7e99d739c07599134b24e8f4a9acc1cc965b73b3a8446af40500689ed6af2c7a",
@@ -5364,6 +5369,11 @@
       "hash": "581651954c45e0bdaac1c84db7ccf5a7e588d632e74cd7e0f92377f16c631c76",
       "raw_bytes": 3423080
     },
+    "3f9fab6d60d8c9e9b9cb42f870dc73b8b71e3e1164cee1119300ded68c7ac525": {
+      "bytes": 1259539,
+      "hash": "938940328e7e3898af577640cb30f34281d44a22a724ba9ff5460404f1f6e07a",
+      "raw_bytes": 1913020
+    },
     "3fe9c9b8a93d784b201760fb06734bc462da99fcd627933867fce66f09383fdc": {
       "bytes": 28510,
       "hash": "4f758dd420775f5686c1128ab43588374ea1c5d4f20bdafe8859f761cc7caa6d",
@@ -5388,6 +5398,11 @@
       "bytes": 5742409,
       "hash": "4853c2dead1f00474850fc205f21686a678ce9f895528a6821b75958c15e15b7",
       "raw_bytes": 28088928
+    },
+    "40f7f48966bdb894d36fa21572c2689c02ad1fe28d550c1fe60cc113cf667952": {
+      "bytes": 1253344,
+      "hash": "c6686a7f701ac86b002b34a034951c0b74f8664b4ce08059edc05f7281a7fcf0",
+      "raw_bytes": 1908968
     },
     "40fb9cd8fadaebc67b8899951caeb8ab2359752907682acc0080a52cc0b40980": {
       "bytes": 6021594,
@@ -5694,6 +5709,11 @@
       "hash": "a5f0f7b95f37badeda835fc12c847b1cf706cbd1141c93987e5de9fe6365e460",
       "raw_bytes": 87399
     },
+    "51a0363d09af809fee7acf4316e358286ae275f16a91a45c314aef34067f2b67": {
+      "bytes": 1224269,
+      "hash": "0477a9e5731291601a2212e6c686da4f12dc583cc30f07c9aa5566b0dc71ee8e",
+      "raw_bytes": 1885100
+    },
     "52342dc76ce41d883ef527e8f65fd28ad7006523cbc0e09e97b4a6f6cf717c02": {
       "bytes": 12611,
       "hash": "1d2ed860ccf6da791103f41d36a36a5bec78ff28f4942001d83361fa5969400e",
@@ -5723,6 +5743,11 @@
       "bytes": 20742,
       "hash": "6ad4bd4e3750f32ed289ca49f3dc190d966e9c9f967836a1a0d7b25c4006ba54",
       "raw_bytes": 87399
+    },
+    "53a956ab49cbbd06e76c6379465102775d0a002ce5a85a253f5cab4fd34fe9f6": {
+      "bytes": 492043,
+      "hash": "9fddf834c36063e6ccda05afa06a58930ccea456480caa2e2605e41696b49fe6",
+      "raw_bytes": 733880
     },
     "53fbab398838e7926ae68e5dc8a8cbaff7e58bae9cf66ccddfb38ffaa1d9ebb2": {
       "bytes": 1146683,
@@ -5948,11 +5973,6 @@
       "bytes": 13216,
       "hash": "951eb226e65a5f6175eb23844cf72bc0311dc1cc3f66d9d7ff27c0d72855c2a5",
       "raw_bytes": 87399
-    },
-    "6083dda09de3bd259117a09c7df11ffa9ca297798d4bd0de5cecdebf32dee291": {
-      "bytes": 180893,
-      "hash": "cee143417bac9e7e2fd08b4694a62199fc46bb5cf807140e14541ce81c69c028",
-      "raw_bytes": 270428
     },
     "609a2d6f2340a0767150129022c06de510a2dcfedf8d722ea8937dadd727eb10": {
       "bytes": 1247690,
@@ -6379,11 +6399,6 @@
       "hash": "14fbceb45e2ed7c9ff075990daba7d67a73bea12dece1a1af9280ab75eec9d96",
       "raw_bytes": 349543
     },
-    "7ac15f9eb8f6161b0f2633512a4aa76b70473dfcbfe80b5b4c3287e3b7432049": {
-      "bytes": 193605,
-      "hash": "c4217a06cf48a2fe6a63f9335a17b1057b65dee7a3a6e5a59e55092be7b235de",
-      "raw_bytes": 287824
-    },
     "7b15df61a70b6511169062d073d5fc36ad0d233bfe85436d704aa00295c7cab2": {
       "bytes": 121936,
       "hash": "ec3486b8625f5b3d425d4a4b7bfb9baff93829b3fa1bd060538bf48e94849266",
@@ -6543,11 +6558,6 @@
       "bytes": 593765,
       "hash": "2dcc31984e6f2c9423ad1bc3620fc9197b4e481ca2bdca4cdf52c0fde7dc73b2",
       "raw_bytes": 1847560
-    },
-    "8294f0af5ae355644579cf19310d6bb3d7b3ad2ce087f42e46d6bb0a014f83b4": {
-      "bytes": 195560,
-      "hash": "1989a6346f94eae4d594a0a258ac465b02330cf69bd9844e68e20eb0f56a5e70",
-      "raw_bytes": 287852
     },
     "82c6454dec84a325bd7cef9379ccf31ed3a7802f672411eb94be59b0107027c2": {
       "bytes": 225679,
@@ -6713,11 +6723,6 @@
       "bytes": 1204923,
       "hash": "f153da19d1632604ffae4e61387cd59183262cb948a78ca7eea8e3ba6d534a81",
       "raw_bytes": 3825308
-    },
-    "8ae224d24cb7f8cfe61857e9366a25c5504523fb18c3cef6f8398e2d613cf20c": {
-      "bytes": 100757,
-      "hash": "3820966d322b2cb00b392574c28cb563bb8cec05f34265f7da65d634d0e92374",
-      "raw_bytes": 150140
     },
     "8ae8b2df11d758c2c8b3f359e4e657257f0cecea20003abf17e297f498488cff": {
       "bytes": 50709,
@@ -7879,11 +7884,6 @@
       "hash": "5e55826a42a3da7fe9166964915cf1cec94216224f0332aa122ea45677250d9e",
       "raw_bytes": 2255976
     },
-    "c6836369677790055d8d879adf0a66df6265742bbffdd24c2367fe50d223d8d7": {
-      "bytes": 91964,
-      "hash": "7547a8225d5a7c9fbd415552d0de348d4937848385a660eeca383d89dd99e518",
-      "raw_bytes": 136692
-    },
     "c6c1f93f12729c8289353e3a185c6e20568ee880b3522ddaf6102fbe42980d39": {
       "bytes": 4707525,
       "hash": "46eb6c7187aabb385f611c62e1a9b6a5c932676f98ebfc20eba5861720121c11",
@@ -7903,11 +7903,6 @@
       "bytes": 74203,
       "hash": "9caab2561ee44bb92278e5837a65659f51af394fd665358e61d3bc812ed7e5a3",
       "raw_bytes": 349543
-    },
-    "c7f5c0be9ff33d1db8487a54a9fa4b044d88427f327858f03be6d82646e23f78": {
-      "bytes": 171438,
-      "hash": "0a22958bedeeae0a53f964c55bdca907bcb0983eb1789ed77c1b148b44dd7cbb",
-      "raw_bytes": 253368
     },
     "c7f678ed2e55fc7b2f5917efe5f6fe71b773cb0d5472566d3f677b0d56c66785": {
       "bytes": 64637,
@@ -8773,6 +8768,11 @@
       "bytes": 570382,
       "hash": "a68f048759813860dc8289f53fa6486ed8851aa2e51cf900b1ac4ed7551ade66",
       "raw_bytes": 1874708
+    },
+    "f62f1a01d0b2fee8283124c7f7b14fd6e9f2e0adf0924ee1ab92e7ac75265a83": {
+      "bytes": 1232726,
+      "hash": "d1afeb67cf20553d3425a757951be58535e928fe8798930d286dfaa3663b38d8",
+      "raw_bytes": 1864360
     },
     "f6b9b9b16fb6c3b203c7eab975af7f3368b8e74d9e0ce2326e402aa739344d80": {
       "bytes": 2481,

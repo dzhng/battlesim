@@ -5,15 +5,16 @@
 writes assets/source/trees/<kind>.glb (then `asset bake`): every kind, or
 those named.
 
-A tree is a branch skeleton carrying solid leaf clumps, so a crown is
-separate masses on its limbs with crevices between them, not one smooth
-volume. The skeleton is grown to its clumps ([`tree_skeleton.py`](tree_skeleton.py)).
-
-Leaves are closed solids, never alpha cards: they need no discarding prepass
-and hold still under 4x MSAA. The three nearer tiers draw the same clumps,
-each coarser than the last, because a tree's shadow is cast by the tier
-below the one drawn: a caster of another shape shadows the crown it stands
-for. Branches thin out with the tiers, down to the trunk alone.
+A tree is a branch skeleton carrying leaf clumps, so a crown is separate
+masses on its limbs with crevices between them, not one smooth volume. The
+skeleton is grown to its clumps ([`tree_skeleton.py`](tree_skeleton.py)); the
+two nearer tiers shingle each clump with single leaves
+([`tree_leaves.py`](tree_leaves.py)), so a crown up close is leaves, not a
+skin. The three nearer tiers stand on the same clumps, each coarser than the
+last, because a tree's shadow is cast by the tier below the one drawn: a
+caster of another shape shadows the crown it stands for, so the solid clumps
+stand inside the leaves they cast for. Branches thin out with the tiers, down
+to the trunk alone, which every tier draws.
 
 A lobed volume is a core sphere unioned with lobe spheres, taking along every
 direction from the crown's centre the farthest surface (technique from
@@ -54,6 +55,7 @@ import bpy
 from mathutils import Matrix, Vector, noise
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from tree_leaves import CORE, CORE_SHADE, PAD_LIGHT, SPOTS, STALK, build_foliage, clump_points, finish_foliage, grow_leaves, leaf_colour
 from tree_skeleton import UP, build_branches, droop, finish, grow, smoothstep, spiral
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
@@ -62,17 +64,34 @@ OUT = os.path.abspath(ARGS[0]) if ARGS else os.path.join(ROOT, "assets", "source
 
 # Per tier. `subdiv` and `relief` are the lobed volume's: its icosphere
 # subdivisions and how much leaf relief it keeps. A tree draws leaf clumps
-# where `clump` > 0 (each an icosphere of that many subdivisions) and the
-# lobed volume of its clumps where it is 0; `sides` is its trunk's (0: no
-# trunk); with `twig` it draws the branches no thinner than that, metres,
-# thinner ones on fewer sides. The per-tier triangle budget is the validator's
-# (`SCENERY_KINDS.tree`): a new kind fits it by its count of clumps.
+# where `clump` > 0 (each an icosphere of that many subdivisions, `core` of
+# the clump's radius, carrying `leaves` leaves over the crown) and the lobed
+# volume of its clumps where it is 0; `sides` is its trunk's; with `twig` it
+# draws the branches no thinner than that, metres, thinner ones on fewer
+# sides. Every tier draws a trunk, so a far crown never floats. The per-tier
+# triangle budget is the validator's (`SCENERY_KINDS.tree`): a new kind fits
+# it by its count of clumps and leaves.
 TIERS = [
-    dict(subdiv=5, relief=1.0, clump=3, sides=16, twig=0.0),
-    dict(subdiv=4, relief=0.7, clump=2, sides=8, twig=0.07),
-    dict(subdiv=3, relief=0.0, clump=1, sides=5),
-    dict(subdiv=2, relief=0.0, clump=0, sides=0),
+    dict(subdiv=5, relief=1.0, clump=1, core=CORE, leaves=10000, sides=16, twig=0.0),
+    dict(subdiv=4, relief=0.7, clump=1, core=CORE, leaves=2500, sides=8, twig=0.07),
+    # A few large leaves keep a crown's outline ragged from afar. This tier
+    # casts the leafy tier's shadow, so its leaves lie where that tier's do.
+    dict(subdiv=3, relief=0.0, clump=1, core=CORE, leaves=400, sides=5),
+    dict(subdiv=2, relief=0.0, clump=0, sides=3),
 ]
+# A hedge's tiers: its lobed volume, a core under leaves where it has them,
+# the far one a low mound in a long row (20 triangles do) inside the leaves
+# it casts for. A hedge is short, so it takes its coarser tiers nearer than a
+# tree: the play camera sees its third.
+HEDGE_TIERS = [
+    dict(subdiv=3, relief=1.0, core=CORE, leaves=3000),
+    dict(subdiv=2, relief=0.7, core=CORE, leaves=1500),
+    dict(subdiv=2, relief=0.0, core=CORE, leaves=600),
+    dict(subdiv=1, relief=0.0, core=0.92),
+]
+# The crown and clump surfaces a tree is sized by: its finest shapes,
+# whatever a tier draws.
+PROBE = dict(subdiv=5, clump=3, relief=1.0)
 # A bare tree's tiers (a snag): bark alone, so every tier draws the skeleton,
 # the far one as the trunk and each limb from end to end.
 BARE_TIERS = [
@@ -93,13 +112,17 @@ PAD = (0.7, 0.5)
 # the tree's size is brought back to it, so the widest and highest clumps
 # reach it exactly.
 PROUD = 0.4
-# A clump's brightest leaves against white, and a far crown's: one tone, so a
-# tree keeps it when it changes tier.
-PAD_LIGHT = 0.85
+# A far crown's brightest leaves against white: a clump's (`PAD_LIGHT`), so a
+# tree keeps its tone when it changes tier.
 FAR_LIGHT = 0.72
 # A far crown's lobe, in its clump's radii: inside the clump, flattened as it
 # is, so the far crown casts for the clumps without shadowing them.
 FAR_LOBE = 0.7
+
+# A leaf's habit, a kind's `leaf`: its width against its length; how far it
+# bends from straight out of its clump toward the sky (or, below 0, the
+# ground); and how much it strays from that.
+LEAF = dict(aspect=0.9, rise=0.15, scatter=0.25)
 
 KINDS = {
     # A broad, round field tree (oak, lime): the bulk of forests and hedgerows.
@@ -116,12 +139,15 @@ KINDS = {
     "tree_tall": dict(
         seed=37, height=11.5, crown_base=2.6, radius=2.6, half_height=4.8,
         lobes=8, trunk=0.31, clump_m=1.0, clumps=18, inner=3, limbs=5, droop=0.5,
+        leaf=dict(aspect=0.75, rise=0.35, scatter=0.25),
     ),
     # A spruce: whorls of boughs sloping down from one leader, under a spire.
     # `whorls` counts the boughs of each, lowest first.
     "tree_spruce": dict(
         seed=41, height=11.2, crown_base=3.6, radius=5.3, whorls=(6, 5, 5, 4, 3),
         trunk=0.4, droop=1.2, lean=0.3,
+        # Sprays of needles hanging from the boughs.
+        leaf=dict(aspect=0.3, rise=-0.35, scatter=0.25),
     ),
     # A pine: a few flat pads of needles high on a long bare bole, its limbs
     # leaving the bole level (`rise`) so none arches over the pads, its upper
@@ -130,6 +156,8 @@ KINDS = {
         seed=53, height=11.0, crown_base=6.0, radius=4.9, half_height=2.5,
         lobes=7, trunk=0.32, clump_m=1.35, clumps=10, inner=0, limbs=5, droop=0.6, proud=0.25,
         pad=(0.5, 0.32), rise=0.1, bark=(0.16, 0.085, 0.045, 1.0), bark_low=(0.45, 0.62, 0.8),
+        # Tufts of long needles, turned up at the branch ends.
+        leaf=dict(aspect=0.2, rise=0.5, scatter=0.3),
     ),
     # A birch: a narrow crown of small hanging clumps on a white bole, dark
     # where the bark has split.
@@ -137,6 +165,8 @@ KINDS = {
         seed=67, height=11.3, crown_base=3.4, radius=2.7, half_height=4.3,
         lobes=8, trunk=0.33, clump_m=0.85, clumps=20, inner=4, limbs=6, droop=3.0,
         bark=(0.36, 0.35, 0.32, 1.0), marks=0.75,
+        # Small leaves, hanging.
+        leaf=dict(aspect=0.9, rise=-0.6, scatter=0.25),
     ),
     # A standing snag: a dead tree's grey skeleton.
     "tree_snag": dict(
@@ -219,45 +249,55 @@ def crown_point(kind, lobes, d, relief):
     return p, n, bulge
 
 
-def leaf_colour(ao, h):
-    """Vertex colour of a leaf `h` of the way up its crown: sunnier on top."""
-    sun = h * h
-    return (ao * (0.92 + 0.12 * sun), ao * (0.98 + 0.06 * sun), ao * (0.92 - 0.1 * sun), 1.0)
-
-
 def build_crown(kind, lobes, tier, lift):
     """The seeded lobed crown for one tier, with normals and colours: a hedge
     as drawn, and the volume a tree's size is read from. `lift` places the
-    crown's centre above the foot so its lowest point sits at crown_base."""
+    crown's centre above the foot so its lowest point sits at crown_base.
+    A tier with leaves draws the crown as their core, `core` of its size, and
+    grows them over its whole surface but where it lies on the ground."""
+    count = tier.get("leaves", 0)
+    hedge = "length" in kind
+    axes = crown_axes(kind)
+    lifted = Vector((0.0, 0.0, lift))
+
+    def ground(p):
+        # A hedge stands on the ground: nothing dips below its foot.
+        return Vector((p.x, p.y, max(p.z, 0.0))) if hedge else p
+
     bm = bmesh.new()
     bmesh.ops.create_icosphere(bm, subdivisions=tier["subdiv"], radius=1.0)
-    bulges = []
-    ellipsoid = []
-    for v in bm.verts:
-        d = v.co.normalized()
-        p, n, bulge = crown_point(kind, lobes, d, tier["relief"])
-        v.co = p + Vector((0.0, 0.0, lift))
-        bulges.append(bulge)
-        ellipsoid.append(n)
-    if "length" in kind:
-        # A hedge stands on the ground: nothing dips below its foot.
-        for v in bm.verts:
-            v.co.z = max(v.co.z, 0.0)
-    bm.normal_update()
+    points = [crown_point(kind, lobes, v.co.normalized(), tier["relief"]) for v in bm.verts]
+    for v, (p, _, _) in zip(bm.verts, points):
+        v.co = ground(p + lifted)
     zs = [v.co.z for v in bm.verts]
     lo, hi = min(zs), max(zs)
-    mesh = bpy.data.meshes.new("crown")
-    bm.to_mesh(mesh)
-    bm.free()
-    normals = []
-    colours = []
-    for i, v in enumerate(mesh.vertices):
-        n = (v.normal * 0.45 + ellipsoid[i] * 0.55).normalized()
-        normals.append(n)
+    surface = sum(f.calc_area() for f in bm.faces)
+    # The core shrinks toward the crown's centre, a hedge's toward its foot.
+    core = tier.get("core", 1.0)
+    for v in bm.verts if core != 1.0 else []:
+        v.co = v.co * core if hedge else (v.co - lifted) * core + lifted
+    shade = []
+    for v, (_, n, bulge) in zip(bm.verts, points):
         h = (v.co.z - lo) / max(hi - lo, 1e-6)
-        ao = (0.5 + 0.5 * smoothstep(0.0, 0.85, h)) * (0.72 + 0.28 * bulges[i] * min(1.0, tier["relief"] + 0.3))
-        colours.append(leaf_colour(ao, h))
-    return finish(mesh, normals, colours)
+        ao = (0.5 + 0.5 * smoothstep(0.0, 0.85, h)) * (0.72 + 0.28 * bulge * min(1.0, tier["relief"] + 0.3))
+        shade.append((n, 0.45, leaf_colour(ao * (CORE_SHADE if count else 1.0), h)))
+    if count:
+
+        def light(p, up):
+            h = (p.z - lo) / max(hi - lo, 1e-6)
+            ao = (0.5 + 0.5 * smoothstep(0.0, 0.85, h)) * (0.8 + 0.2 * up) * PAD_LIGHT
+            return ellipsoid_normal(p - lifted, axes), ao, h
+
+        n = SPOTS * count
+        spots = []
+        for k in range(n):
+            d = spiral(k, n, 1.0, -1.0, kind["seed"] * 0.61)
+            p, out, _ = crown_point(kind, lobes, d, tier["relief"])
+            stalk = ground(p * STALK + lifted)
+            up = 0.5 + 0.5 * d.z
+            spots.append((stalk, out, up, surface / n, (0.5 + 0.5 * up) * smoothstep(0.05, 0.3, stalk.z)))
+        grow_leaves(bm, shade, spots, count, kind.get("leaf", LEAF), ground, light)
+    return finish_foliage(bm, shade)
 
 
 # ------------------------------------------------------------------- the clumps
@@ -291,6 +331,7 @@ def clump_sites(kind, lobes):
                 centre=centre,
                 normal=n,
                 radius=radius,
+                deep=deep,
                 seed=rng.uniform(0.0, 97.0),
                 # A pad is longer one way across than the other.
                 turn=rng.uniform(0.0, math.pi),
@@ -363,48 +404,12 @@ def crown_frame(kind, lobes, q):
         across = math.hypot(q.x, q.y)
         t = min(1.0, max(WHORLS[0], q.z / (kind["height"] - kind["crown_base"])))
         edge = kind["radius"] * max(profile(t), 0.12)
-        # A cone's side faces out and up; its axis faces up.
+        # A cone's side faces out and up; its axis faces up. Its spire is
+        # all outside, though it stands on the axis.
         n = Vector((q.x, q.y, 0.0)).normalized() * 0.75 + UP * 0.65 if across > 1e-6 else UP
-        return n.normalized(), min(1.0, across / edge)
+        return n.normalized(), min(1.0, max(across / edge, smoothstep(0.75, 0.95, t)))
     surface, _, _ = crown_point(kind, lobes, q.normalized(), 0.0)
     return ellipsoid_normal(q, crown_axes(kind)), q.length / max(surface.length, 1e-6)
-
-
-_ICOSPHERES = {}
-
-
-def icosphere(subdiv):
-    """A unit icosphere's directions and faces, built once per subdivision."""
-    if subdiv not in _ICOSPHERES:
-        bm = bmesh.new()
-        bmesh.ops.create_icosphere(bm, subdivisions=subdiv, radius=1.0)
-        bm.verts.index_update()
-        _ICOSPHERES[subdiv] = (
-            [v.co.normalized() for v in bm.verts],
-            [tuple(v.index for v in f.verts) for f in bm.faces],
-        )
-        bm.free()
-    return _ICOSPHERES[subdiv]
-
-
-def clump_points(site, subdiv, relief):
-    """A leaf clump's surface about its centre: a lumpy pad, longer one way
-    across, flatter beneath, tipped a little toward the crown's outside.
-    Returns (offset, up 0..1)."""
-    directions, _ = icosphere(subdiv)
-    tip = UP.rotation_difference((UP * 0.65 + site["normal"] * 0.35).normalized())
-    turn = Matrix.Rotation(site["turn"], 3, "Z")
-    at = Vector((site["seed"], site["seed"] * 0.37, 0.0))
-    out = []
-    for u in directions:
-        lump = noise.noise(u * 1.3 + at)
-        knob = noise.noise(u * 2.7 + at * 1.3)
-        fine = noise.noise(u * 5.1 + at * 1.7)
-        r = site["radius"] * (1.0 + 0.3 * lump + 0.16 * knob + 0.08 * relief * fine)
-        flat = site["pad"][0] if u.z > 0.0 else site["pad"][1]
-        pad = Vector((u.x * r * site["stretch"], u.y * r / site["stretch"], u.z * r * flat))
-        out.append((tip @ (turn @ pad), 0.5 + 0.5 * u.z))
-    return out
 
 
 def build_skeleton(kind, lobes, lift, top, reach):
@@ -423,7 +428,7 @@ def build_skeleton(kind, lobes, lift, top, reach):
         high = max(
             (centre + offset).z
             for site, centre in zip(sites, centres)
-            for offset, _ in clump_points(site, TIERS[0]["clump"], TIERS[0]["relief"])
+            for offset, _ in clump_points(site, PROBE["clump"], PROBE["relief"])
         )
         if high > top:
             break
@@ -436,7 +441,7 @@ def build_skeleton(kind, lobes, lift, top, reach):
         wide = max(
             math.hypot((centre + offset).x, (centre + offset).y)
             for site, centre in zip(sites, centres)
-            for offset, _ in clump_points(site, TIERS[0]["clump"], TIERS[0]["relief"])
+            for offset, _ in clump_points(site, PROBE["clump"], PROBE["relief"])
         )
         if wide > reach:
             break
@@ -455,41 +460,6 @@ def within(p, top, reach):
     across = math.hypot(p.x, p.y)
     scale = min(1.0, reach / across) if across > 0.0 else 1.0
     return Vector((p.x * scale, p.y * scale, min(p.z, top)))
-
-
-def build_clumps(kind, lobes, tier, lift, sites, centres, top, reach):
-    """One tier's leaf clumps as a mesh, with normals and colours."""
-    _, faces = icosphere(tier["clump"])
-    bm = bmesh.new()
-    shade = []
-    lows = [c.z - s["radius"] for s, c in zip(sites, centres)]
-    highs = [c.z + s["radius"] for s, c in zip(sites, centres)]
-    lo, hi = min(lows), max(highs)
-    for site, centre in zip(sites, centres):
-        verts = []
-        for offset, up in clump_points(site, tier["clump"], tier["relief"]):
-            p = within(centre + offset, top, reach)
-            verts.append(bm.verts.new(p))
-            # About the crown's centre: the crown's own normal there, and
-            # how near its surface.
-            normal, near = crown_frame(kind, lobes, p - UP * lift)
-            exposed = smoothstep(0.55, 1.0, near)
-            # Leaves mottle a pad, where the tier has the vertices to carry it.
-            mottle = 0.85 + 0.3 * tier["relief"] * noise.noise(p * 1.9 + Vector((site["seed"], 0.0, 0.0)))
-            shade.append((normal, exposed * mottle, up, (p.z - lo) / (hi - lo)))
-        for a, b, c in faces:
-            bm.faces.new((verts[a], verts[b], verts[c]))
-    bm.normal_update()
-    mesh = bpy.data.meshes.new("crown")
-    bm.to_mesh(mesh)
-    bm.free()
-    normals = []
-    colours = []
-    for v, (ellipsoid, exposed, up, h) in zip(mesh.vertices, shade):
-        normals.append((v.normal * 0.3 + ellipsoid * 0.7).normalized())
-        ao = (0.5 + 0.5 * smoothstep(0.0, 0.85, h)) * (0.5 + 0.5 * exposed) * (0.8 + 0.2 * up) * PAD_LIGHT
-        colours.append(leaf_colour(ao, h))
-    return finish(mesh, normals, colours)
 
 
 def build_far_crown(kind, tier, sites, centres, top, reach):
@@ -601,7 +571,7 @@ def build_kind(name, kind):
     def probe_extents():
         """The finest lobed crown about its centre: its half-extents along x
         and y, its lowest and highest points, and its reach from the axis."""
-        probe = build_crown(kind, lobes, TIERS[0], 0.0)
+        probe = build_crown(kind, lobes, PROBE, 0.0)
         co = [v.co for v in probe.vertices]
         out = (
             max(abs(c.x) for c in co),
@@ -639,16 +609,20 @@ def build_kind(name, kind):
             scale = kind["height"] / max(p.z for branch in trunk.walk() for p in branch.points)
     root = bpy.data.objects.new(name, None)
     scene.collection.objects.link(root)
-    for t, tier in enumerate(BARE_TIERS if bare else TIERS):
-        if hedge and t == len(TIERS) - 1:
-            # A far hedge is a low mound in a long row: 20 triangles do.
-            tier = dict(tier, subdiv=1)
+    for t, tier in enumerate(BARE_TIERS if bare else HEDGE_TIERS if hedge else TIERS):
         if hedge:
             parts = [("crown", build_crown(kind, lobes, tier, lift), leaves)]
         elif bare:
             parts = []
         elif tier["clump"] > 0:
-            crown = build_clumps(kind, lobes, tier, lift, sites, centres, top, reach)
+            crown = build_foliage(
+                tier,
+                sites,
+                centres,
+                kind.get("leaf", LEAF),
+                lambda p: within(p, top, reach),
+                lambda p: crown_frame(kind, lobes, p - UP * lift),
+            )
             if t == 0:
                 # Placement sizes a tree by its finest tier: the clumps must
                 # fill the size, not merely stay inside it.

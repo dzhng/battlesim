@@ -47,7 +47,8 @@ from mathutils import Matrix, Vector, noise
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tree_skeleton import UP, bezier, finish, smoothstep, tube
-from trees import BARK, LEAVES, PAD_LIGHT, ROOT, clump_points, export, icosphere, leaf_colour, material
+from tree_leaves import PAD_LIGHT, clump_points, icosphere, leaf_colour
+from trees import BARK, LEAVES, ROOT, export, material
 
 ARGS = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
 OUT = os.path.abspath(ARGS[0]) if ARGS else os.path.join(ROOT, "assets", "source", "forest")
