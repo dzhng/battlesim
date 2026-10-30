@@ -287,6 +287,17 @@ const GLASS_GLINT = 1f;
   return coveredSamples(coverage, fwidth(coverage), pixelNoise(clip.xy));
 }
 
+// @block passes_models_modelCutoutCasterDiscard
+@fragment fn modelCutoutCaster(_arg_0: modelCutoutCaster_Input, @builtin(position) clip: vec4f) {
+  if (!(cutoutCoverage(_arg_0.material, _arg_0.uv) > pixelNoise(clip.xy))) { discard; }
+}
+
+// @block passes_models_modelCutoutDepthDiscard
+@fragment fn modelCutoutDepth(_arg_0: modelCutoutDepth_Input, @builtin(position) clip: vec4f) {
+  let coverage = cutoutCoverage(_arg_0.material, _arg_0.uv);
+  if (coverage <= 0.5f) { discard; }
+}
+
 // @block passes_models_modelVertex
 @vertex fn modelVertex(@location(0) position: vec3f, @location(1) normal: vec4f, @location(2) uv: vec2f, @location(3) color: vec4f, @location(4) joints: vec4u, @location(5) weights: vec4f, @location(6) tangent: vec4f, @location(7) material: vec2u, @builtin(instance_index) instance: u32, @location(8) placement: vec4f, @location(9) data: vec4f, @location(10) tint: vec4f, @location(11) scale: vec4f) -> modelVertex_Output {
   let base = u32(data.x);

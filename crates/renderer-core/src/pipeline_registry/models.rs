@@ -32,7 +32,11 @@ pub fn all() -> Vec<PipelineSpec> {
         .msaa(MSAA),
         render(
             "modelPrepassCutout",
-            "modelPrepassCutout.wgsl",
+            if cfg!(windows) {
+                "modelPrepassCutoutDiscard.wgsl"
+            } else {
+                "modelPrepassCutout.wgsl"
+            },
             vec!["cameraLayout", "modelLayout"],
             Some(model_vertex()),
             Some(fragment(None, vec![])),
@@ -41,7 +45,11 @@ pub fn all() -> Vec<PipelineSpec> {
         .msaa(MSAA),
         render(
             "modelCasterCutout",
-            "modelCasterCutout.wgsl",
+            if cfg!(windows) {
+                "modelCasterCutoutDiscard.wgsl"
+            } else {
+                "modelCasterCutout.wgsl"
+            },
             vec!["cameraLayout", "modelLayout"],
             Some(model_vertex()),
             Some(fragment(None, vec![])),

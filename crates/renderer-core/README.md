@@ -85,10 +85,11 @@ array, receiver and cascade camera bindings. Cascade membership remains the
 presentation's decision; the shared frame preserves it for ground, indexed
 models and scenery.
 
-On Windows, [pipeline compilation](src/pipelines.rs) uses `native_shader_source`
-to adapt cutout sample-mask fragments to discard-based fragments. AMD's Windows
-driver crashes when creating those depth-only sample-mask pipelines. The
-`cfg(windows)` adaptation leaves the composed source unchanged on other targets.
+On Windows, the [model pipeline registry](src/pipeline_registry/models.rs) selects
+authored discard variants of cutout shaders with `cfg!(windows)`. AMD's Windows
+driver crashes when creating depth-only sample-mask pipelines. Both variants
+are composed and validated on every host; compiled target code selects the
+variant without rewriting shader text.
 
 The environment lookup data and adapted material algorithms retain their
 [three.js MIT attribution](LICENSE.three).

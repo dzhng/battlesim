@@ -62,12 +62,14 @@ fn main() {
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let source_text = fs::read_to_string(&source_index).unwrap();
-    let pipeline_count = source_text.lines().count();
-    let mut generated = format!("pub const BUILTIN_PIPELINE_COUNT: usize = {pipeline_count};\n\n");
     let shaders: Vec<String> = source_text
         .lines()
         .filter_map(|line| line.split_once('|').map(|(shader, _)| shader.to_owned()))
         .collect();
+    let mut generated = format!(
+        "pub const BUILTIN_SHADER_COUNT: usize = {};\n\n",
+        shaders.len()
+    );
     generated.push_str(&format!(
         "pub const BUILTIN_SHADERS: &[&str] = &{:?};\n\n",
         shaders
