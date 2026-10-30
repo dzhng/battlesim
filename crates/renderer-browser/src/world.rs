@@ -124,16 +124,7 @@ impl Renderer {
             },
         )
         .map_err(js_error)?;
-        let [radius_px, sigma_px, strength, _] = self.overlay_glow;
-        runtime.set_overlay_glow(
-            &self.gpu.queue,
-            renderer_core::records::OverlayGlow {
-                radius_px,
-                sigma_px,
-                strength,
-                pad: 0.0,
-            },
-        );
+        runtime.set_overlay_glow(&self.gpu.queue, self.overlay_glow);
         self.runtime = Some(runtime);
         self.rebind_display();
         presentation.refresh_frame_header();
@@ -180,17 +171,14 @@ impl Renderer {
     }
 
     pub fn set_overlay_glow(&mut self, radius_px: f32, strength: f32) {
-        self.overlay_glow = [radius_px, radius_px / 2.5, strength, 0.0];
+        self.overlay_glow = OverlayGlow {
+            radius_px,
+            sigma_px: radius_px / 2.5,
+            strength,
+            pad: 0.0,
+        };
         if let Some(runtime) = &mut self.runtime {
-            runtime.set_overlay_glow(
-                &self.gpu.queue,
-                renderer_core::records::OverlayGlow {
-                    radius_px,
-                    sigma_px: radius_px / 2.5,
-                    strength,
-                    pad: 0.0,
-                },
-            );
+            runtime.set_overlay_glow(&self.gpu.queue, self.overlay_glow);
         }
     }
 }
