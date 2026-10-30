@@ -334,3 +334,7 @@ The full workspace Rust run, Wasm build, typecheck, lint/clippy, formatting and
 size ratchet pass. The full web run passed every other suite; the corrected
 receipt suite passes on focused rerun. Shared closeout logs record the results;
 the documentation-only handoff edit does not invalidate those checks.
+
+**Review follow-ups (closed):**
+
+- Dropping the pinned receipt inventory also dropped the check that each shipped download receipt matches its file. A data-driven test now requires every receipt's file to exist with the recorded SHA-256, without naming receipts or counting them.

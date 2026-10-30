@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { presentationSettings } from "@web/presentationSettings";
 import { shippedRules } from "@web/shippedRules";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { beforeAll, expect, test } from "vitest";
 import shipped from "@fixtures/sounds.json";
@@ -122,6 +123,18 @@ test("a research receipt is retained without admitting a playable source or reci
   expect(sounds.sources).toEqual({});
   expect(sounds.clips).toEqual({});
   expect(sounds.sounds).toEqual(catalog().sounds);
+});
+
+test("every shipped download receipt names its file and that file's digest", () => {
+  const receipts = Object.entries(validateSoundCatalog(structuredClone(shipped)).provenance ?? {});
+  expect(receipts.length).toBeGreaterThan(0);
+  for (const [name, receipt] of receipts) {
+    const path = fileURLToPath(new URL(`../../${receipt.path}`, import.meta.url));
+    expect(existsSync(path), `${name}: ${path}`).toBe(true);
+    expect(createHash("sha256").update(readFileSync(path)).digest("hex"), name).toBe(
+      receipt.sha256,
+    );
+  }
 });
 
 test("a provenance receipt without its download record is refused as an invalid receipt", () => {
