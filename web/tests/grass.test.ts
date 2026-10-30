@@ -186,16 +186,19 @@ test("a growth row's mix reaches the field as each kind's share of its clumps", 
   expect(row[1].dry).toBeCloseTo(0.3, 6);
 });
 
-test("a clump's tints average to one, so its mean colour is the ground's it grows on", async () => {
+test("a clump's tints are its colours against its tip-weighted mean, kept between floor and cap", async () => {
   const meadow = await tuft();
   const { shapes } = grassKinds(biome, growing(biome, meadow))!;
-  // The first kind's near tier leads the shapes.
+  // The first kind's near tier leads the shapes. Raw linear greens sit far
+  // below the 0.3 floor, so an unnormalised clump would fail here; the soft
+  // cap keeps bright tips under 1.3. The Rust packing tests own the mean.
   const count = GRASS_SPEC.blades * grassBladeVertices(GRASS_SEGMENTS[0]);
-  for (let c = 0; c < 3; c++) {
-    let sum = 0;
-    for (let v = 0; v < count; v++) sum += shapes[v * SHAPE_FLOATS + 12 + c];
-    expect(sum / count).toBeCloseTo(1, 5);
-  }
+  for (let v = 0; v < count; v++)
+    for (let c = 0; c < 3; c++) {
+      const tint = shapes[v * SHAPE_FLOATS + 12 + c];
+      expect(tint).toBeGreaterThanOrEqual(0.3 - 1e-6);
+      expect(tint).toBeLessThan(1.3);
+    }
 });
 
 test("the field refuses grass whose composed height exceeds 0.9 m", async () => {
