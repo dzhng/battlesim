@@ -4716,6 +4716,44 @@
           "lowpass_hz": 2200
         }
       ]
+    },
+    "rocket-pod-launch": {
+      "label": "Rocket pod \u00b7 AT4 attack and exhaust fallback",
+      "category": "weapon",
+      "role": "launch",
+      "processing": "launch",
+      "url": "/audio/clips/rocket-pod-launch.wav",
+      "sha256": "4fdbf30850d90f49561f9fb9f72ef41beb661e377712b63e8b3663644f9d131d",
+      "sample_rate": 48000,
+      "frames": 20160,
+      "loop": false,
+      "notes": "03 designed fallback: AT4 attack and filtered missile-exhaust tail. Apache crop not accepted: rotor bed is present throughout and motor separation has not been established on listening. One launch per observed rocket, never a repeated full salvo.",
+      "layers": [
+        {
+          "source": "missile-live-fire",
+          "source_rate": 48000,
+          "source_frames": [
+            352800,
+            367200
+          ],
+          "at_s": 0,
+          "gain": 0.7,
+          "semitones": 0,
+          "lowpass_hz": null
+        },
+        {
+          "source": "missile-live-fire",
+          "source_rate": 48000,
+          "source_frames": [
+            628800,
+            647040
+          ],
+          "at_s": 0.04,
+          "gain": 0.25,
+          "semitones": 0,
+          "lowpass_hz": 5000
+        }
+      ]
     }
   },
   "sounds": {
@@ -6099,6 +6137,16 @@
       "synth": null,
       "synth_gain": 0,
       "gain": 0.25,
+      "loop": false
+    },
+    "rocket-pod-combat": {
+      "label": "Rocket pod \u00b7 single launch fallback",
+      "clips": [
+        "rocket-pod-launch"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.75,
       "loop": false
     }
   },

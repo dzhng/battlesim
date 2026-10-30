@@ -191,3 +191,5 @@ visual limitations remain outside this pass.
 **Sound done — `strike_missile` (2026-10-29):** Item 1: one aligned M270/ATACMS launch with sustained exhaust replaces the rifle burst. Evidence: shared `evidence-15-sound/strike/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
 
 **Sound done — `bomb` (2026-10-29):** Item 1: the prescribed restrained handling/air fallback replaces the rifle burst; no explosion at release. Evidence: shared `evidence-15-sound/bomb/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
+
+**Sound done — `rocket_pod` (2026-10-29):** Item 1: the prescribed AT4 attack/exhaust fallback plays once per rocket. Apache rotor separation was not established on listening, so its conditional recording is not admitted. Evidence: shared `evidence-15-sound/rocket-pod/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
