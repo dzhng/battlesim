@@ -579,8 +579,8 @@
       "sound": {"shot": {"near": "hmg-combat", "far": "hmg-combat-distant", "gain": 0.3, "far_m": 350}, "blast": {"gain": 0.35, "far_m": 400}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-bullet-hit"}, "impact_scale": 1.5}
     },
     "atgm": {
-      "tracer": {"zoom_boost": 2, "tail_s": 0.02, "tail_m": [0.5, 4], "glow": {"color": [1.0, 0.55, 0.22], "intensity": 10, "width_m": 0.9, "min_px": 8}, "core": {"color": [1.0, 0.95, 0.85], "intensity": 18, "width_m": 0.1, "min_px": 1.5, "share": 0.25}, "smoke": {"albedo": [0.96, 0.96, 0.98], "ribbon": 0.55, "opacity": 0.5, "size_m": [0.6, 3.2], "life_s": 12, "rise_mps": 0.15, "spread_mps": 0.3, "spacing_m": 3.5}, "cast": {"color": [1.0, 0.55, 0.25], "intensity": 20, "radius_m": 20}},
-      "flash": {"color": [1.0, 0.8, 0.5], "intensity": 40, "size_m": 0.8, "tongue_m": 1.6, "duration_s": 0.12, "fireball_m": 1.2, "fireball_s": 0.3, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 12, "radius_m": 9, "duration_s": 0.3, "forward_m": -1.5}},
+      "tracer": {"zoom_boost": 2, "tail_s": 0.003, "tail_m": [0.12, 0.55], "glow": {"color": [1.0, 0.55, 0.22], "intensity": 8, "width_m": 0.18, "min_px": 4}, "core": {"color": [1.0, 0.95, 0.85], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.3}, "smoke": {"albedo": [0.85, 0.85, 0.86], "ribbon": 0.22, "opacity": 0.14, "size_m": [0.15, 0.8], "life_s": 6, "rise_mps": 0.1, "spread_mps": 0.12, "spacing_m": 0.45}, "cast": {"color": [1.0, 0.55, 0.25], "intensity": 5, "radius_m": 6}},
+      "flash": {"color": [1.0, 0.8, 0.5], "intensity": 24, "size_m": 0.3, "tongue_m": 0.6, "duration_s": 0.1, "fireball_m": 0.3, "fireball_s": 0.1, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 4, "radius_m": 4, "duration_s": 0.08, "forward_m": -1.5}},
       "impact": {"scale": 3, "surfaces": {"ground": {"size": 5, "duration": 5}, "water": {"size": 4, "duration": 3}}},
       "blast": 1,
       "kick": {"hull": 0, "soldier": 0.6},

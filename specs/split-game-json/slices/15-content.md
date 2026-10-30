@@ -166,10 +166,51 @@ A look's `blast` is a positive scale of the shared fireball, dirt and smoke;
 no value is needed, and none is added. The sheet's HE carrier is a known
 limit of the sheet, recorded here for anyone judging kinetic rounds on it.
 
-## Visual items 10 and 11 — resumed separately
+## Visual item 10 — ATGM
 
-The first visual pass stopped at item 9 and did not reach these; they resume
-in their own pass from this point.
+**Done:** the variable is the `atgm` visual identity, confined to its `flash`
+and `tracer` values. A compact launch pop and motor replace the broad glare
+and glowing flight rod, and closely spaced softer smoke forms a joined wake.
+Impact, blast, kick, every sound block and all appearance assignments stay
+unchanged. No code or global rendering value changes.
+
+Shared `evidence-15-visual/10/` holds the scoped `before/atgm.png` and
+`after/atgm.png` rows, full native `capture/`, pixel/edge `comparison/`,
+landmark observations and the fresh critique. The earlier candidates are retained
+under `candidate-1/` and `candidate-2/`: direct inspection caught a barely
+visible launch pop, and the fresh critique caught a weak default-view motor
+accent. The final keeps a compact firing cue and strengthens only the short
+head, retaining the narrow wake.
+
+The sampler retains reference camera intent and shot-relative stages, but
+startup timing moves ticks and lane positions; pixel distances are diagnostic,
+not parity. Native close/default flight and wide aftermath supplement the row
+so it does not hide the smoke tail. The controlled HE carrier cannot prove an
+actual missile body's visibility at launch, trajectory, speed or temporal
+occlusion. Actual shot dust is already absent from this look; no dust value
+needs changing. These sampling limits are not claimed fixed.
+
+Only this look's effect-vector inputs are refreshed. Their recorded outputs
+remain identical and the owning tests pass unflagged. The exact probe in shared
+`after-15-visual-2/` matches `after-13/` in digests, events, poses, sound and
+hull publications/layouts. Relative to the completed item-8 pass, effect changes
+are confined to ATGM-assigned weapon cases and mixed BMP-3. Both comparisons
+have executable scope assertions and retained reports.
+
+The final unprimed critique accepts the compact attached launch and joined
+wake over the historical luminous bar. Its motor-head reservation was addressed
+by strengthening the short head; the fresh final critic can locate it, while
+retaining a modest distinction over wheat at default framing. Keep the compact
+head on that evidence rather than reintroducing the rod. The unchanged impact
+still has an angular white core and strong glare; no impact improvement or
+animation continuity is claimed. Both critiques pass receipt validation.
+The final non-blocking Preview checkpoint elapsed without feedback, and Preview
+is closed.
+
+The final presentation crate, scoped vector bless and unflagged rerun pass.
+The exact probe and value/vector scope audits pass. Shape, diff and docs review
+retain the existing owner with no added mechanism. The resumed pass's required
+workspace and web checks are recorded with item 11's closeout below.
 
 ## Visual pass verification and review
 
