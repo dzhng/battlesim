@@ -269,7 +269,16 @@ export class SheetRenderer {
       { selected: [], xray: false, ghosts: [] },
       this.frame.staticGeneration,
     );
-    this.frame.render();
+    let drawn = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (this.frame.render()) {
+        drawn = true;
+        break;
+      }
+      if (attempt < 2) await new Promise<void>((resolve) => setTimeout(resolve, 16));
+    }
+    if (!drawn)
+      throw new Error(`SheetSurfaceUnavailable: ${model.name} (${view}) after 3 attempts`);
     const { rgba, width, height } = await this.frame.readPixels();
     return new ImageData(new Uint8ClampedArray(rgba), width, height);
   }
