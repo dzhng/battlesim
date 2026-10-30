@@ -47,6 +47,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use sim::publication::reader::{Shout as PublishedShout, SoundCue};
 
+pub use super::spatial::{distance_gain, sector_pan};
 use super::tables::{pick, Bus, SoundTables, VehicleSound};
 use super::voices::{Request, Speakers};
 use crate::effects::cook_off::CookOffFeel;
@@ -557,17 +558,6 @@ fn lerp(a: f64, b: f64, t: f64) -> f64 {
     a + t * (b - a)
 }
 
-/// Stereo position of a direction sector for a listener looking along
-/// `forward`: 0 east, counter-clockwise in 45° steps.
-pub fn sector_pan(sector: f64, forward: Vec3) -> f64 {
-    let a = sector * std::f64::consts::PI / 4.0;
-    let len = libm::hypot(forward[0], forward[1]);
-    let len = if len == 0.0 { 1.0 } else { len };
-    // Screen-right: forward × up.
-    let (rx, ry) = (forward[1] / len, -forward[0] / len);
-    (libm::cos(a) * rx + libm::sin(a) * ry).clamp(-1.0, 1.0)
-}
-
 /// One of a vehicle's sounding loops.
 #[derive(Serialize)]
 pub struct VehicleLoop<'a> {
@@ -619,17 +609,6 @@ pub fn vehicle_loops(
         });
     }
     loops
-}
-
-/// The share of a sound's gain heard `d` metres off: full within `ref_m`,
-/// then inverse distance easing down to `floor`, and nothing past `max_m`.
-pub fn distance_gain(tables: &SoundTables, d: f64) -> f64 {
-    let p = tables.audio.distance;
-    if d > p.max_m {
-        return 0.0;
-    }
-    let inverse = p.ref_m / (p.ref_m + p.rolloff * (d - p.ref_m).max(0.0));
-    p.floor + (1.0 - p.floor) * inverse
 }
 
 impl Sound {

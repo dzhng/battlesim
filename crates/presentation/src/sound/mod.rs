@@ -18,3 +18,4 @@ pub mod catalog;
 mod mix;
 
 mod setup;
+mod spatial;
