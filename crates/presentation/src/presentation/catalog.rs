@@ -150,6 +150,10 @@ enum CatalogAppearance<'a> {
 }
 
 impl<'a> CatalogView<'a> {
+    /// Resolve by row name: prospective draft assets, then the loaded battle,
+    /// then installed lab assets. Names may overlap: a draft intentionally
+    /// replaces active art. Track-side lookup must use that same prospective
+    /// rig as mesh admission, whose node indices belong to the replacement.
     fn appearance(&self, row: u32) -> Option<CatalogAppearance<'a>> {
         let world = self.world();
         let name = world.name(world.appearances.get(row as usize)?);
