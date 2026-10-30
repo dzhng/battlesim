@@ -34,6 +34,7 @@ impl Inputs {
         let templates = std::fs::read_to_string(root.join("prototype-building-templates.json"))?;
         let catalog = TemplateGeometryCatalog::new(serde_json::from_str(&templates)?)?;
         let rules: Rules = serde_json::from_value(sim::fixtures::rules())?;
+        sim::admit(&rules)?;
         let config: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(
             root.join("generated-battle.json"),
         )?)?;

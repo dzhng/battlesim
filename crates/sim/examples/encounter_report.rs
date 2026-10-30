@@ -58,6 +58,7 @@ fn main() {
         "usage: encounter_report [--recipe id] [--seed n] [--out dir] [--save] <map-directory>..."
     );
     let rules: Rules = serde_json::from_value(sim::fixtures::test_game()).expect("the test rules");
+    sim::admit(&rules).expect("admitted rules");
     let recipes = EncounterRecipes::from_json(
         &std::fs::read_to_string(sim::fixtures::dir().join("encounters.json"))
             .expect("fixtures/encounters.json"),

@@ -72,6 +72,7 @@ fn main() {
         (map, note)
     });
     let rules: Rules = serde_json::from_value(fixture.clone()).expect("the game rules");
+    sim::admit(&rules).expect("admitted rules");
     let world = stage("world build", || {
         let world = WorldGeometry::new(&map, &rules);
         let note = format!("{} props (trees included)", world.props().count());
