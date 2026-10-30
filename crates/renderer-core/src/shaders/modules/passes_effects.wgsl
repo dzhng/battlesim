@@ -357,7 +357,7 @@ struct PaintVertexOutput {
   let key = vec3f(0.49965035915374756, -0.5496153831481934, 0.669531524181366);
   let light = max(dot(n, key), 0f);
   let shaded = (input.color.xyz * (0.3f + (0.75f * light)));
-  let lit = (shaded + (vec3f(0.949999988079071, 0.800000011920929, 0.20000000298023224) * (input.highlight * 0.7f)));
+  let lit = (shaded + highlightGlow(input.highlight));
   return vec4f(lit, input.color.w);
 }
 
