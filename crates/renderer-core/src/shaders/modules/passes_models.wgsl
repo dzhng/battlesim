@@ -13,10 +13,7 @@
   }
   colour = (colour * mix(vec3f(1), input.tint, materials[(row + 1u)].z));
   let eye = (&cam.eye);
-  var n = normalize(input.normal);
-  if ((dot(n, ((*eye) - input.world)) < 0f)) {
-    n = -(n);
-  }
+  let n = faceEyeNormal(normalize(input.normal), ((*eye) - input.world));
   let seen = modelSeen(input.world, n, input.anchor, clip.xy);
   return ColorFog(vec4f((unlit(colour, input.world, (*eye)).xyz + highlightGlow(input.highlight)), 1f), fogCoverage(seen, 1f));
 }
@@ -29,11 +26,9 @@
     discard;;
   }
   let local = ((packed.xyz * 2f) - vec3f(1));
-  var n = cardNormal(local, input.scale, input.yaw);
+  let cardSurfaceNormal = cardNormal(local, input.scale, input.yaw);
   let eye = (&cam.eye);
-  if ((dot(n, ((*eye) - input.world)) < 0f)) {
-    n = -(n);
-  }
+  let n = faceEyeNormal(cardSurfaceNormal, ((*eye) - input.world));
   let linearColor = pow(max(baseColor.xyz, vec3f()), vec3f(2.200000047683716));
   let tinted = (linearColor * mix(vec3f(1), input.tint, packed.w));
   let sunlight = sampleSunShadow(input.world, n, clip.xy);
@@ -45,10 +40,7 @@
 // @block passes_models_modelFragment
 @fragment fn modelFragment(input: ModelFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let eye = (&cam.eye);
-  var n = normalize(input.normal);
-  if ((dot(n, ((*eye) - input.world)) < 0f)) {
-    n = -(n);
-  }
+  let n = faceEyeNormal(normalize(input.normal), ((*eye) - input.world));
   let materialSample = modelSurface(input.color, input.material, input.track, input.uv, n, input.tangent);
   let baseColor = (materialSample.albedo * mix(vec3f(1), input.tint, materialSample.tint));
   let paintSample = (groundPaint(input.world) * smoothstep(0.5f, 0.8f, n.z));
@@ -182,10 +174,7 @@ const GLASS_GLINT = 1f;
 @fragment fn modelBlendedFragment(input: ModelFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let eye = (&cam.eye);
   let view = normalize(((*eye) - input.world));
-  var n = normalize(input.normal);
-  if ((dot(n, view) < 0f)) {
-    n = -(n);
-  }
+  let n = faceEyeNormal(normalize(input.normal), view);
   let materialSample = modelSurface(input.color, input.material, input.track, input.uv, n, input.tangent);
   let baseColor = (materialSample.albedo * mix(vec3f(1), input.tint, materialSample.tint));
   let sunlight = sampleSunShadow(input.world, n, clip.xy);
@@ -202,10 +191,7 @@ const GLASS_GLINT = 1f;
     discard;;
   }
   let eye = (&cam.eye);
-  var n = normalize(input.normal);
-  if ((dot(n, ((*eye) - input.world)) < 0f)) {
-    n = -(n);
-  }
+  let n = faceEyeNormal(normalize(input.normal), ((*eye) - input.world));
   let materialSample = modelSurface(input.color, input.material, input.track, input.uv, n, input.tangent);
   let sunlight = sampleSunShadow(input.world, n, clip.xy);
   let shaded = shade(input.xray.xyz, vec3f(), materialSample.roughness, 0f, materialSample.metallic, materialSample.occlusion, materialSample.normal, input.world, sunlight, (*eye));

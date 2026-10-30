@@ -162,3 +162,12 @@ fn valueNoise3(p: vec3f) -> f32 {
   let x1 = mix(mix(h[4], h[5], u.x), mix(h[6], h[7], u.x), u.y);
   return mix(x0, x1, u.z);
 }
+
+// @block math_faceEyeNormal
+fn faceEyeNormal(normal: vec3f, towardEye: vec3f) -> vec3f {
+  var n = normal;
+  if ((dot(n, towardEye) < 0f)) {
+    n = -(n);
+  }
+  return n;
+}

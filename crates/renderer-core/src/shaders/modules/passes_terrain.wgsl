@@ -57,10 +57,7 @@
 // @block passes_terrain_worldFragment
 @fragment fn worldFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
   let eye = (&cam.eye);
-  var n = normalize(input.normal);
-  if ((dot(n, ((*eye) - input.world)) < 0f)) {
-    n = -(n);
-  }
+  let n = faceEyeNormal(normalize(input.normal), ((*eye) - input.world));
   let albedo = srgbToLinear(input.color.xyz);
   let sunlight = sampleSunShadow(input.world, n, clip.xy);
   let lit = shade(albedo, vec3f(), 0.85f, 0f, 0f, 1f, n, input.world, sunlight, (*eye));

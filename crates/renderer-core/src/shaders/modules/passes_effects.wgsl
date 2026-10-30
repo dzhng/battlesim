@@ -350,10 +350,7 @@ struct PaintVertexOutput {
 // @block passes_effects_overlayFragment
 @fragment fn overlayFragment(input: MeshFragmentInput) -> @location(0) vec4f {
   let toEye = (cam.eye - input.world);
-  var n = normalize(input.normal);
-  if ((dot(n, toEye) < 0f)) {
-    n = -(n);
-  }
+  let n = faceEyeNormal(normalize(input.normal), toEye);
   let key = vec3f(0.49965035915374756, -0.5496153831481934, 0.669531524181366);
   let light = max(dot(n, key), 0f);
   let shaded = (input.color.xyz * (0.3f + (0.75f * light)));

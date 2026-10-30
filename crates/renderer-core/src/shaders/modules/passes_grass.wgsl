@@ -6,10 +6,7 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   let eye = (&cam.eye);
   let up = vec3f(0, 0, 1);
   let seen = fogTerm(vec3f(input.world.x, input.world.y, input.root.z), up, clip.xy, fogIsGround());
-  var n = normalize(input.normal);
-  if ((dot(n, ((*eye) - input.world)) < 0f)) {
-    n = -(n);
-  }
+  let n = faceEyeNormal(normalize(input.normal), ((*eye) - input.world));
   let shading = normalize(mix(n, up, input.ground));
   let sunlight = sampleSunShadow(input.world, up, clip.xy);
   let under = groundPaint(vec3f(input.world.x, input.world.y, input.root.z));
