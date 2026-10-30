@@ -605,3 +605,20 @@ finding that the base build did not render grass the same way twice.
   `requestDevice` wrapper. Fake WebGPU boundaries prove destroy, checkpoint,
   multi-device drain and validation behaviour; the scenes prove weak-handle
   release on the browser. **Verdict: sound.**
+
+- **Choice:** ghost subjects are the first installed skinned, articulated and
+  static bundles with positive height; a static subject and pose must have
+  tier-zero geometry. Burial depth follows the subject's bounds. **Gap:** the
+  slice named subject properties but not eligibility or state selection.
+  **Reach:** catalog names, ordering of empty static states, and model height
+  can change without invalidating alpha/depth coverage. **Verdict: sound.**
+
+- **Choice:** ghost probes create detached scenes through the existing
+  `SheetRenderer`, one subject at a time on one GPU. Its normal tile size,
+  world and rendering settings replace the probe's duplicated scene recipe;
+  normal clear/fogged tiles also supply the foreground mask, rather than a
+  second no-bloom scene. Existing alpha, occlusion and fog thresholds remain.
+  **Gap:** the slice did not specify a rendering seam. **Reach:** production
+  workbench setup is exercised without a new production or test-only API;
+  the harness retains only loader, GPU, sheet and camera publication entry
+  points. **Verdict: sound.**

@@ -1,4 +1,4 @@
-// Placement presentation through the production frame, with named skinned,
+// Placement presentation through the production frame, with property-selected skinned,
 // articulated and static geometry. Alpha-zero must change neither colour nor
 // shadow; partial alpha must differ from both zero and full; terrain occludes it.
 import { writeFile } from "node:fs/promises";
@@ -8,47 +8,41 @@ export async function modelGhostAgreement(ctx) {
   const page = await ctx.newPage();
   try {
     const repo = new URL("../../", import.meta.url).pathname;
-    // Plain same-origin document: no route startup or HMR navigation in this GPU probe.
-    await page.goto(new URL(`/@fs/${repo}assets/runtime/catalog.json`, ctx.url).href);
+    // Keep Vite's module preamble, without starting an unrelated app scene.
+    await page.route("**/src/main.tsx*", (route) =>
+      route.fulfill({ contentType: "application/javascript", body: "" }),
+    );
+    await page.goto(new URL("/", ctx.url).href);
     const result = await page.evaluate(async (repo) => {
       const file = (p) => `/@fs/${repo}${p}`;
+      // The sheet renderer is the workbench's detached-scene seam: it owns
+      // production world, light, fog, material admission and camera setup.
       const [
-        bindings,
-        scenes,
-        assets,
-        bench,
-        views,
-        light,
-        fog,
-        overlay,
-        models,
-        presentation,
-        presented,
-        game,
+        { BrowserGpu },
+        { AppearanceLibrary },
+        { SheetRenderer },
+        { viewCamera },
+        { presentedCamera },
       ] = await Promise.all([
         import("/src/wasm/renderer_browser/renderer_browser.js"),
-        import(file("web/src/battle/render/scene.ts")),
         import(file("packages/scene-assets/src/loader.ts")),
-        import(file("apps/battle-lab/src/workbench/benchWorld.ts")),
+        import(file("apps/battle-lab/src/workbench/sheet.ts")),
         import(file("apps/battle-lab/src/workbench/views.ts")),
-        import(file("apps/battle-lab/src/gameLight.ts")),
-        import(file("apps/battle-lab/src/gameFog.ts")),
-        import(file("apps/battle-lab/src/gameOverlay.ts")),
-        import(file("apps/battle-lab/src/gameModels.ts")),
-        import(file("web/src/battle/sim/presentation.ts")),
         import(file("apps/battle-lab/src/presentedFrame.ts")),
-        import(file("fixtures/rules.json")),
       ]);
-      const installed = await new assets.AppearanceLibrary().load("/");
+      const rules = await (await fetch(file("fixtures/rules.json"))).json();
+      const installed = await new AppearanceLibrary().load("/");
       const chosen = ["skinned", "articulated", "static"].map((kind) =>
         [...installed.appearances].find(
-          ([name, entry]) =>
-            entry.bundle.kind === kind && (kind !== "static" || name === "basketball_court"),
+          ([, entry]) =>
+            entry.bundle.kind === kind &&
+            entry.bundle.bounds.max[2] > entry.bundle.bounds.min[2] &&
+            (kind !== "static" ||
+              entry.bundle.states.some((state) => state.tiers[0]?.indices.length > 0)),
         ),
       );
       if (chosen.some((entry) => !entry)) throw new Error("missing placement model kind");
-      await presentation.loadPresentation();
-      const gpu = await bindings.BrowserGpu.new();
+      const gpu = await BrowserGpu.new();
       const info = JSON.parse(gpu.info());
       const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
       const layers = {
@@ -59,88 +53,46 @@ export async function modelGhostAgreement(ctx) {
       void gpu.failure().then((error) => {
         if (error) validation.push(error);
       });
-      const width = 256;
-      const world = bench.benchWorld(null);
-      const initial = chosen.map(([name]) => ({
-        appearance: name,
-        x: 0,
-        y: 0,
-        z: 0,
-        yaw: 0,
-        pose: { kind: "rest" },
-        tier: 0,
-      }));
-      const states = [];
-      const make = async (settings) => {
-        const sight = new presentation.ScenePresentation();
-        const canvas = document.createElement("canvas");
-        canvas.width = canvas.height = width;
-        sight.setGround(world.terrain.input, null);
-        sight.setShadow(settings, world.terrain.mesh);
-        sight.frame(
-          0,
-          {
-            eye: [0, 0, 800],
-            target: [1, 1, 0],
-            up: [0, 0, 1],
-            fovY: 0.8,
-            near: 1,
-            width,
-            height: width,
-          },
-          { selected: [], xray: false, ghosts: [] },
-          0,
-        );
-        const scene = await scenes.BrowserScene.create({
-          gpu,
-          canvas,
-          presentation: sight,
-          world,
-          settings: {
-            light: settings,
-            fog: fog.gameFogStyle,
-            paint: overlay.gamePaint,
-            xrayMinHiddenFraction: overlay.gameXrayMinHiddenFragmentFraction,
-          },
-          detail: JSON.parse(models.gameModelDetail),
-          overlayGlow: overlay.gameOverlayGlow,
-          appearances: { ...installed, appearances: new Map(chosen) },
-          models: initial,
-          instances: [],
-          redraw: () => {},
-          failed: (e) => {
-            throw e;
-          },
-        });
-        const state = { scene, sight };
-        states.push(state);
-        return state;
-      };
       const cases = [];
+      let sheet;
       try {
-        const frame = await make(light.gameLight);
-        const footprint = await make({
-          ...light.gameLight,
-          bloom: { ...light.gameLight.bloom, strength: 0 },
-        });
         for (const [name, entry] of chosen) {
+          sheet = await SheetRenderer.create(gpu, {
+            name,
+            unit: entry.unit,
+            type: null,
+            scenery: entry.scenery,
+            source: "catalog",
+            findings: [],
+            stats: null,
+            clipStats: null,
+            loadMs: 0,
+            body: { edges: [], label: "ghost" },
+            installed: { ...installed, appearances: new Map([[name, entry]]) },
+          });
+          const scene = sheet.frame;
+          const sight = scene.presentation;
+          const width = scene.canvas.width;
           const bundle = entry.bundle;
           const pose =
             bundle.kind === "static"
-              ? { kind: "static", state: bundle.states.at(-1).name }
+              ? {
+                  kind: "static",
+                  state: bundle.states.find((state) => state.tiers[0]?.indices.length > 0).name,
+                }
               : { kind: "rest" };
           const instance = { appearance: name, x: 0, y: 0, z: 0, yaw: 0, pose, tier: 0 };
-          const camera = views.viewCamera("q-front", bundle.bounds);
-          const pixels = async (list, drawn = frame) => {
-            drawn.sight.setLabModels(list);
-            drawn.sight.frame(
+          const camera = viewCamera("q-front", bundle.bounds);
+          const pixels = async (list) => {
+            sight.setLabModels(list);
+            sight.frame(
               0,
-              presented.presentedCamera({ camera3d: camera, width, height: width }),
+              presentedCamera({ camera3d: camera, width, height: width }),
               { selected: [], xray: false, ghosts: [] },
-              drawn.scene.staticGeneration,
+              scene.staticGeneration,
             );
-            drawn.scene.render();
-            return Array.from((await drawn.scene.readPixels()).rgba);
+            scene.render();
+            return Array.from((await scene.readPixels()).rgba);
           };
           const background = await pixels([]);
           const zero = await pixels([{ ...instance, ghost: [0.1, 0.7, 1, 0] }]);
@@ -150,32 +102,29 @@ export async function modelGhostAgreement(ctx) {
             { ...instance, ghost: [0.1, 0.7, 1, 0.4] },
           ]);
           const full = await pixels([{ ...instance, ghost: [0.1, 0.7, 1, 1] }]);
-          const buried = await pixels([{ ...instance, z: -100, ghost: [0.1, 0.7, 1, 0.4] }]);
+          const buried = await pixels([
+            { ...instance, z: -Math.max(100, bundle.bounds.max[2] + 1), ghost: [0.1, 0.7, 1, 0.4] },
+          ]);
           const solid = [{ ...instance, ghost: [0.1, 0.7, 1, 1] }];
-          const drawnClear = [await pixels([], footprint), await pixels(solid, footprint)];
-          for (const state of states)
-            state.sight.setFog({ sensors: game.default.sensors, eyes: [] });
+          sight.setFog({ sensors: rules.sensors, eyes: [] });
           const fogBackground = await pixels([]),
             fogFull = await pixels(solid),
             fogHalf = await pixels([{ ...instance, ghost: [0.1, 0.7, 1, 0.4] }]);
-          const drawnFogged = [await pixels([], footprint), await pixels(solid, footprint)];
           let covered = 0,
             fogStable = 0;
           for (let p = 0; p < full.length; p += 4) {
             const delta = (a, b) =>
               Math.max(...[0, 1, 2].map((k) => Math.abs(a[p + k] - b[p + k])));
-            if (
-              delta(drawnClear[1], drawnClear[0]) > 30 &&
-              delta(drawnFogged[1], drawnFogged[0]) > 30
-            ) {
+            if (delta(full, background) > 30 && delta(fogFull, fogBackground) > 30) {
               covered++;
               if (delta(full, fogFull) < 8) fogStable++;
             }
           }
-          for (const state of states) state.sight.setFog(null);
+          sight.setFog(null);
           const changed = (a, b) => a.reduce((n, x, i) => n + Number(i % 4 !== 3 && x !== b[i]), 0);
           cases.push({
             name,
+            width,
             kind: bundle.kind,
             zero: changed(background, zero),
             half: changed(background, half),
@@ -188,13 +137,12 @@ export async function modelGhostAgreement(ctx) {
             fogHalfChanged: changed(half, fogHalf),
             image: fogHalf,
           });
+          sheet.dispose();
+          sheet = null;
         }
-        return { cases, validation, width, layers };
+        return { cases, validation, width: cases[0].width, layers };
       } finally {
-        for (const state of states) {
-          state.scene.dispose();
-          state.sight.free();
-        }
+        sheet?.dispose();
         gpu.dispose();
         gpu.free();
       }
