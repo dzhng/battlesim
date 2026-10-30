@@ -276,3 +276,24 @@ finding that the base build did not render grass the same way twice.
   explicit domain dependencies without changing entry points or reflected
   records. **Verdict: sound** — names explain purpose rather than extraction
   order, and no new compatibility mechanism survives. **Confidence: high.**
+
+- **When:** slice 07 models. **Choice:** use material-family stage types,
+  `materialSample` and `baseColor` for sampled materials, and `worldNormal`
+  and `worldTangent` after geometry transforms. The atlas direction helper
+  takes `localNormal`. Entry-point names and both Windows discard bodies stay
+  intact. **Gap:** the slice delegated the semantic names. **Reach:** these
+  names distinguish textures, material results and coordinate spaces without
+  changing any reflected field. **Verdict: sound. Confidence: high.**
+
+- **When:** slice 07 models. **Choice:** the scratch token-map proof resolves
+  lexical bindings when one spelling names unrelated variables. Its map is
+  consistent per pipeline and declaration: all uses must resolve to the same
+  declaration before and after. Member tokens, builtins, punctuation, literals
+  and token counts must stay identical. The probe and fog passes also pass
+  the stricter spelling-only map. **Gap:** the slice did not specify whether
+  identifier identity means spelling or lexical binding. **Reach:** removing
+  local-mangling aliases can give independent scopes different descriptive
+  names; for example, a transformed normal and a lighting normal need not
+  share a name. **Verdict: sound** — checks binding identity as well as token
+  identity, with Naga and record reflection independently checking the result.
+  **Confidence: high.**

@@ -312,9 +312,9 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
 
 // @block passes_fog_modelCards
 @fragment fn item(input: CardFragmentInput, @builtin(position) clip: vec4f) -> ModelColorFog {
-  let albedo_1 = textureSample(albedo, linear, input.uv, input.layer);
+  let baseColor = textureSample(albedo, linear, input.uv, input.layer);
   let packed = textureSample(normal, linear, input.uv, input.layer);
-  if ((albedo_1.w < 0.5f)) {
+  if ((baseColor.w < 0.5f)) {
     discard;;
   }
   let local = ((packed.xyz * 2f) - vec3f(1));
@@ -323,10 +323,10 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   if ((dot(n, ((*eye) - input.world)) < 0f)) {
     n = -(n);
   }
-  let linear_1 = pow(max(albedo_1.xyz, vec3f()), vec3f(2.200000047683716));
-  let tinted = (linear_1 * mix(vec3f(1), input.tint, packed.w));
-  let sun_1 = sampleSunShadow(input.world, n, clip.xy);
-  let shaded = shade(tinted, vec3f(), 0.85f, 0f, 0f, 1f, n, input.world, sun_1, (*eye));
+  let linearColor = pow(max(baseColor.xyz, vec3f()), vec3f(2.200000047683716));
+  let tinted = (linearColor * mix(vec3f(1), input.tint, packed.w));
+  let sunlight = sampleSunShadow(input.world, n, clip.xy);
+  let shaded = shade(tinted, vec3f(), 0.85f, 0f, 0f, 1f, n, input.world, sunlight, (*eye));
   let seen = modelSeen(input.world, n, input.anchor, clip.xy);
   return ModelColorFog(vec4f(shaded.xyz, 1f), fogCoverage(seen, 1f));
 }
@@ -386,13 +386,13 @@ const GRASS_BLADE_ROUGHNESS = 0.9f;
   if ((dot(n, ((*eye) - input.world)) < 0f)) {
     n = -(n);
   }
-  let surface_1 = modelSurface(input.color, input.material, input.track, input.uv, n, input.tangent);
-  let albedo_1 = (surface_1.albedo * mix(vec3f(1), input.tint, surface_1.tint));
-  let paint_1 = (groundPaint(input.world) * smoothstep(0.5f, 0.8f, n.z));
-  let sun_1 = sampleSunShadow(input.world, n, clip.xy);
-  let shaded = shade(paintedAlbedo(albedo_1, paint_1), vec3f(), surface_1.roughness, 0f, surface_1.metallic, surface_1.occlusion, surface_1.normal, input.world, sun_1, (*eye));
-  let seen = paintedSeen(modelSeen(input.world, n, input.anchor, clip.xy), paint_1);
-  return LitModelColorFog(vec4f(((shaded.xyz + paintGlow(paint_1)) + highlightGlow(input.highlight)), 1f), fogCoverage(seen, 1f));
+  let materialSample = modelSurface(input.color, input.material, input.track, input.uv, n, input.tangent);
+  let baseColor = (materialSample.albedo * mix(vec3f(1), input.tint, materialSample.tint));
+  let paintSample = (groundPaint(input.world) * smoothstep(0.5f, 0.8f, n.z));
+  let sunlight = sampleSunShadow(input.world, n, clip.xy);
+  let shaded = shade(paintedAlbedo(baseColor, paintSample), vec3f(), materialSample.roughness, 0f, materialSample.metallic, materialSample.occlusion, materialSample.normal, input.world, sunlight, (*eye));
+  let seen = paintedSeen(modelSeen(input.world, n, input.anchor, clip.xy), paintSample);
+  return LitModelColorFog(vec4f(((shaded.xyz + paintGlow(paintSample)) + highlightGlow(input.highlight)), 1f), fogCoverage(seen, 1f));
 }
 
 // @block passes_fog_probeFn

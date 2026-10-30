@@ -1,7 +1,7 @@
 // WGSL owner: passes_models.
 
-// @block passes_models_cardVertex_Output
-struct cardVertex_Output {
+// @block passes_models_CardVertexOutput
+struct CardVertexOutput {
   @builtin(position) clip: vec4f,
   @location(0) world: vec3f,
   @location(1) uv: vec2f,
@@ -12,8 +12,8 @@ struct cardVertex_Output {
   @location(6) anchor: vec3f,
 }
 
-// @block passes_models_impostor_Input
-struct impostor_Input {
+// @block passes_models_ImpostorFragmentInput
+struct ImpostorFragmentInput {
   @location(0) world: vec3f,
   @location(1) normal: vec3f,
   @location(2) tangent: vec4f,
@@ -28,15 +28,15 @@ struct impostor_Input {
   @location(11) @interpolate(flat) instance: u32,
 }
 
-// @block passes_models_impostor_Output
-struct impostor_Output {
+// @block passes_models_ImpostorBuffers
+struct ImpostorBuffers {
   @location(0) albedo: vec4f,
   @location(1) normal: vec4f,
   @location(2) mask: vec4f,
 }
 
-// @block passes_models_modelVertex_Output
-struct modelVertex_Output {
+// @block passes_models_ModelVertexOutput
+struct ModelVertexOutput {
   @invariant @builtin(position) clip: vec4f,
   @location(0) world: vec3f,
   @location(1) normal: vec3f,
@@ -84,20 +84,20 @@ struct LitModelFragmentInput {
   @location(11) @interpolate(flat) instance: u32,
 }
 
-// @block passes_models_modelCutoutCaster_Input
-struct modelCutoutCaster_Input {
+// @block passes_models_CutoutCasterInput
+struct CutoutCasterInput {
   @location(4) uv: vec2f,
   @location(5) @interpolate(flat) material: u32,
 }
 
-// @block passes_models_modelCutoutDepth_Input
-struct modelCutoutDepth_Input {
+// @block passes_models_CutoutDepthInput
+struct CutoutDepthInput {
   @location(4) uv: vec2f,
   @location(5) @interpolate(flat) material: u32,
 }
 
-// @block passes_models_modelXrayCountFragment_Input
-struct modelXrayCountFragment_Input {
+// @block passes_models_XrayCountFragmentInput
+struct XrayCountFragmentInput {
   @location(0) world: vec3f,
   @location(1) normal: vec3f,
   @location(2) tangent: vec4f,
@@ -112,8 +112,8 @@ struct modelXrayCountFragment_Input {
   @location(11) @interpolate(flat) instance: u32,
 }
 
-// @block passes_models_modelXrayFragment_Input
-struct modelXrayFragment_Input {
+// @block passes_models_XrayFragmentInput
+struct XrayFragmentInput {
   @location(0) world: vec3f,
   @location(1) normal: vec3f,
   @location(2) tangent: vec4f,
@@ -345,7 +345,7 @@ var<workgroup> laneCounts: array<vec2u, GRASS_BUILD_LANES>;
 }
 
 // @block passes_models_cardVertex
-@vertex fn cardVertex(@builtin(vertex_index) vertex: u32, @location(0) placement: vec4f, @location(2) tint: vec4f, @location(3) scale: vec4f) -> cardVertex_Output {
+@vertex fn cardVertex(@builtin(vertex_index) vertex: u32, @location(0) placement: vec4f, @location(2) tint: vec4f, @location(3) scale: vec4f) -> CardVertexOutput {
   let layer = u32(tint.w);
   let frame = (&frames[layer]);
   let yaw = placement.w;
@@ -383,76 +383,76 @@ var<workgroup> laneCounts: array<vec2u, GRASS_BUILD_LANES>;
   }
   let local = ((*frame).xyz + (((right * u) + (up * w)) * (*frame).w));
   let world = cardPoint(local, scale.xyz, yaw, placement.xyz);
-  return cardVertex_Output((cam.viewProj * vec4f(world, 1f)), world, vec2f((((column + 0.5f) + (0.5f * u)) / 8f), (((row + 0.5f) - (0.5f * w)) / 2f)), layer, yaw, scale.xyz, tint.xyz, placement.xyz);
+  return CardVertexOutput((cam.viewProj * vec4f(world, 1f)), world, vec2f((((column + 0.5f) + (0.5f * u)) / 8f), (((row + 0.5f) - (0.5f * w)) / 2f)), layer, yaw, scale.xyz, tint.xyz, placement.xyz);
 }
 
 // @block passes_models_impostor
-@fragment fn impostor(_arg_0: impostor_Input) -> impostor_Output {
-  let surface_1 = modelSurface(_arg_0.color, _arg_0.material, _arg_0.track, _arg_0.uv, normalize(_arg_0.normal), _arg_0.tangent);
-  let albedo_1 = (surface_1.albedo * surface_1.occlusion);
-  return impostor_Output(vec4f(pow(max(albedo_1, vec3f()), vec3f(0.4545454680919647)), 1f), vec4f(((surface_1.normal * 0.5f) + vec3f(0.5)), 1f), vec4f(surface_1.tint, 0f, 0f, 1f));
+@fragment fn impostor(input: ImpostorFragmentInput) -> ImpostorBuffers {
+  let materialSample = modelSurface(input.color, input.material, input.track, input.uv, normalize(input.normal), input.tangent);
+  let baseColor = (materialSample.albedo * materialSample.occlusion);
+  return ImpostorBuffers(vec4f(pow(max(baseColor, vec3f()), vec3f(0.4545454680919647)), 1f), vec4f(((materialSample.normal * 0.5f) + vec3f(0.5)), 1f), vec4f(materialSample.tint, 0f, 0f, 1f));
 }
 
-// @block passes_models_item_alternate
+// @block passes_models_blendedFragment
 const GLASS_TURN = 0.5f;
 const GLASS_GLINT = 1f;
-@fragment fn item(_arg_0: ModelFragmentInput, @builtin(position) clip: vec4f) -> ModelColorFog {
+@fragment fn item(input: ModelFragmentInput, @builtin(position) clip: vec4f) -> ModelColorFog {
   let eye = (&cam.eye);
-  let view = normalize(((*eye) - _arg_0.world));
-  var n = normalize(_arg_0.normal);
+  let view = normalize(((*eye) - input.world));
+  var n = normalize(input.normal);
   if ((dot(n, view) < 0f)) {
     n = -(n);
   }
-  let surface_1 = modelSurface(_arg_0.color, _arg_0.material, _arg_0.track, _arg_0.uv, n, _arg_0.tangent);
-  let albedo_1 = (surface_1.albedo * mix(vec3f(1), _arg_0.tint, surface_1.tint));
-  let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
-  let shaded = shade(albedo_1, vec3f(), surface_1.roughness, 0f, surface_1.metallic, surface_1.occlusion, normalize((surface_1.normal + (view * GLASS_TURN))), _arg_0.world, sun_1, (*eye));
-  let ceiling = (unlit(vec3f(1), _arg_0.world, (*eye)).xyz * GLASS_GLINT);
-  return ModelColorFog(vec4f((min(shaded.xyz, ceiling) + highlightGlow(_arg_0.highlight)), coverageValue(_arg_0.material, _arg_0.uv)), vec4f());
+  let materialSample = modelSurface(input.color, input.material, input.track, input.uv, n, input.tangent);
+  let baseColor = (materialSample.albedo * mix(vec3f(1), input.tint, materialSample.tint));
+  let sunlight = sampleSunShadow(input.world, n, clip.xy);
+  let shaded = shade(baseColor, vec3f(), materialSample.roughness, 0f, materialSample.metallic, materialSample.occlusion, normalize((materialSample.normal + (view * GLASS_TURN))), input.world, sunlight, (*eye));
+  let ceiling = (unlit(vec3f(1), input.world, (*eye)).xyz * GLASS_GLINT);
+  return ModelColorFog(vec4f((min(shaded.xyz, ceiling) + highlightGlow(input.highlight)), coverageValue(input.material, input.uv)), vec4f());
 }
 
-// @block passes_models_item_primary
-@fragment fn item(_arg_0: ModelFragmentInput, @builtin(position) clip: vec4f) -> @location(0) vec4f {
-  let coverage = coverageValue(_arg_0.material, _arg_0.uv);
-  let cutoff = materials[((_arg_0.material * 5u) + 4u)].x;
+// @block passes_models_ghostFragment
+@fragment fn item(input: ModelFragmentInput, @builtin(position) clip: vec4f) -> @location(0) vec4f {
+  let coverage = coverageValue(input.material, input.uv);
+  let cutoff = materials[((input.material * 5u) + 4u)].x;
   if (((cutoff > 0f) && (coverage < cutoff))) {
     discard;;
   }
   let eye = (&cam.eye);
-  var n = normalize(_arg_0.normal);
-  if ((dot(n, ((*eye) - _arg_0.world)) < 0f)) {
+  var n = normalize(input.normal);
+  if ((dot(n, ((*eye) - input.world)) < 0f)) {
     n = -(n);
   }
-  let surface_1 = modelSurface(_arg_0.color, _arg_0.material, _arg_0.track, _arg_0.uv, n, _arg_0.tangent);
-  let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
-  let shaded = shade(_arg_0.xray.xyz, vec3f(), surface_1.roughness, 0f, surface_1.metallic, surface_1.occlusion, surface_1.normal, _arg_0.world, sun_1, (*eye));
-  return vec4f(shaded.xyz, (_arg_0.xray.w * coverage));
+  let materialSample = modelSurface(input.color, input.material, input.track, input.uv, n, input.tangent);
+  let sunlight = sampleSunShadow(input.world, n, clip.xy);
+  let shaded = shade(input.xray.xyz, vec3f(), materialSample.roughness, 0f, materialSample.metallic, materialSample.occlusion, materialSample.normal, input.world, sunlight, (*eye));
+  return vec4f(shaded.xyz, (input.xray.w * coverage));
 }
 
 // @block passes_models_modelCutoutCaster
-@fragment fn modelCutoutCaster(_arg_0: modelCutoutCaster_Input, @builtin(position) clip: vec4f) -> @builtin(sample_mask) u32 {
-  return u32((cutoutCoverage(_arg_0.material, _arg_0.uv) > pixelNoise(clip.xy)));
+@fragment fn modelCutoutCaster(input: CutoutCasterInput, @builtin(position) clip: vec4f) -> @builtin(sample_mask) u32 {
+  return u32((cutoutCoverage(input.material, input.uv) > pixelNoise(clip.xy)));
 }
 
 // @block passes_models_modelCutoutDepth
-@fragment fn modelCutoutDepth(_arg_0: modelCutoutDepth_Input, @builtin(position) clip: vec4f) -> @builtin(sample_mask) u32 {
-  let coverage = cutoutCoverage(_arg_0.material, _arg_0.uv);
+@fragment fn modelCutoutDepth(input: CutoutDepthInput, @builtin(position) clip: vec4f) -> @builtin(sample_mask) u32 {
+  let coverage = cutoutCoverage(input.material, input.uv);
   return coveredSamples(coverage, fwidth(coverage), pixelNoise(clip.xy));
 }
 
 // @block passes_models_modelCutoutCasterDiscard
-@fragment fn modelCutoutCaster(_arg_0: modelCutoutCaster_Input, @builtin(position) clip: vec4f) {
-  if (!(cutoutCoverage(_arg_0.material, _arg_0.uv) > pixelNoise(clip.xy))) { discard; }
+@fragment fn modelCutoutCaster(input: CutoutCasterInput, @builtin(position) clip: vec4f) {
+  if (!(cutoutCoverage(input.material, input.uv) > pixelNoise(clip.xy))) { discard; }
 }
 
 // @block passes_models_modelCutoutDepthDiscard
-@fragment fn modelCutoutDepth(_arg_0: modelCutoutDepth_Input, @builtin(position) clip: vec4f) {
-  let coverage = cutoutCoverage(_arg_0.material, _arg_0.uv);
+@fragment fn modelCutoutDepth(input: CutoutDepthInput, @builtin(position) clip: vec4f) {
+  let coverage = cutoutCoverage(input.material, input.uv);
   if (coverage <= 0.5f) { discard; }
 }
 
 // @block passes_models_modelVertex
-@vertex fn modelVertex(@location(0) position: vec3f, @location(1) normal: vec4f, @location(2) uv: vec2f, @location(3) color: vec4f, @location(4) joints: vec4u, @location(5) weights: vec4f, @location(6) tangent: vec4f, @location(7) material: vec2u, @builtin(instance_index) instance: u32, @location(8) placement: vec4f, @location(9) data: vec4f, @location(10) tint: vec4f, @location(11) scale: vec4f) -> modelVertex_Output {
+@vertex fn modelVertex(@location(0) position: vec3f, @location(1) normal: vec4f, @location(2) uv: vec2f, @location(3) color: vec4f, @location(4) joints: vec4u, @location(5) weights: vec4f, @location(6) tangent: vec4f, @location(7) material: vec2u, @builtin(instance_index) instance: u32, @location(8) placement: vec4f, @location(9) data: vec4f, @location(10) tint: vec4f, @location(11) scale: vec4f) -> ModelVertexOutput {
   let base = u32(data.x);
   let p = vec4f(position, 1f);
   let n = vec4f(normal.xyz, 0f);
@@ -470,8 +470,8 @@ const GLASS_GLINT = 1f;
   let localNormal = (skinnedNormal.xyz / scale.xyz);
   let localTangent = (skinnedTangent.xyz * scale.xyz);
   let world = vec3f((((local.x * c) - (local.y * s)) + placement.x), (((local.x * s) + (local.y * c)) + placement.y), (local.z + placement.z));
-  let normal_1 = vec3f(((localNormal.x * c) - (localNormal.y * s)), ((localNormal.x * s) + (localNormal.y * c)), localNormal.z);
-  let tangent_1 = vec4f(((localTangent.x * c) - (localTangent.y * s)), ((localTangent.x * s) + (localTangent.y * c)), localTangent.z, tangent.w);
+  let worldNormal = vec3f(((localNormal.x * c) - (localNormal.y * s)), ((localNormal.x * s) + (localNormal.y * c)), localNormal.z);
+  let worldTangent = vec4f(((localTangent.x * c) - (localTangent.y * s)), ((localTangent.x * s) + (localTangent.y * c)), localTangent.z, tangent.w);
   var scroll = 0f;
   var track = 0f;
   if ((material.y == 1u)) {
@@ -486,15 +486,15 @@ const GLASS_GLINT = 1f;
   let red = floor((packed / 65536f));
   let green = (floor((packed / 256f)) - (red * 256f));
   let blue = (packed - (floor((packed / 256f)) * 256f));
-  return modelVertex_Output((cam.viewProj * vec4f(world, 1f)), world, normal_1, tangent_1, color, vec2f((uv.x - scroll), uv.y), material.x, track, tint.xyz, max(0f, (-1f - tint.w)), placement.xyz, vec4f((red / 255f), (green / 255f), (blue / 255f), scale.w), instance);
+  return ModelVertexOutput((cam.viewProj * vec4f(world, 1f)), world, worldNormal, worldTangent, color, vec2f((uv.x - scroll), uv.y), material.x, track, tint.xyz, max(0f, (-1f - tint.w)), placement.xyz, vec4f((red / 255f), (green / 255f), (blue / 255f), scale.w), instance);
 }
 
 // @block passes_models_modelXrayCountFragment
-@fragment fn modelXrayCountFragment(_arg_0: modelXrayCountFragment_Input, @builtin(position) clip: vec4f) -> @location(0) vec4f {
-  return countCoverage(clip, _arg_0.instance, _arg_0.xray);
+@fragment fn modelXrayCountFragment(input: XrayCountFragmentInput, @builtin(position) clip: vec4f) -> @location(0) vec4f {
+  return countCoverage(clip, input.instance, input.xray);
 }
 
 // @block passes_models_modelXrayFragment
-@fragment fn modelXrayFragment(_arg_0: modelXrayFragment_Input) -> @location(0) vec4f {
-  return drawCoverage(_arg_0.instance, _arg_0.xray);
+@fragment fn modelXrayFragment(input: XrayFragmentInput) -> @location(0) vec4f {
+  return drawCoverage(input.instance, input.xray);
 }

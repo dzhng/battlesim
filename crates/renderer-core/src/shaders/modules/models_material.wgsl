@@ -41,20 +41,20 @@ fn modelSurface(color: vec4f, material: u32, track: f32, uv: vec2f, normal: vec3
   let a = textureSample(albedo, tiled, uv, i32(max((*layers).x, 0f)));
   let nm = textureSample(surface, tiled, uv, i32(max((*layers).y, 0f)));
   let orm = textureSample(surface, tiled, uv, i32(max((*layers).z, 0f)));
-  var albedo_1 = ((color.xyz * (*factors).w) * (*base).xyz);
+  var baseColor = ((color.xyz * (*factors).w) * (*base).xyz);
   var threshold = 0.5f;
   if (((*layers).x >= 0f)) {
-    albedo_1 = (albedo_1 * a.xyz);
+    baseColor = (baseColor * a.xyz);
     threshold = a.w;
   }
   else {
     if (((*layers).x <= -2f)) {
       let mean = textureSampleLevel(albedo, tiled, vec2f(0.5), i32((-2f - (*layers).x)), 16);
-      albedo_1 = (albedo_1 * mean.xyz);
+      baseColor = (baseColor * mean.xyz);
     }
     else {
       if (((track >= 1f) && ((track - 1f) < 0.5f))) {
-        albedo_1 = (albedo_1 * 0.55f);
+        baseColor = (baseColor * 0.55f);
       }
     }
   }
@@ -78,11 +78,11 @@ fn modelSurface(color: vec4f, material: u32, track: f32, uv: vec2f, normal: vec3
   }
   if (((*layers).w > 0f)) {
     let w = smoothstep((threshold - 0.04f), (threshold + 0.04f), color.w);
-    albedo_1 = mix(albedo_1, (*worn).xyz, w);
+    baseColor = mix(baseColor, (*worn).xyz, w);
     roughness = mix(roughness, (*worn).w, w);
     metallic = mix(metallic, 0f, w);
   }
-  return ModelSurface(albedo_1, n, roughness, metallic, occlusion, tint);
+  return ModelSurface(baseColor, n, roughness, metallic, occlusion, tint);
 }
 
 // @block models_material_roomLookup

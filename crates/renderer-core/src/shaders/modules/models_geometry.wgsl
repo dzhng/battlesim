@@ -15,8 +15,8 @@ fn cardDirection(direction: vec3f, scale: vec3f, yaw: f32) -> vec3f {
 }
 
 // @block models_geometry_cardNormal
-fn cardNormal(normal_1: vec3f, scale: vec3f, yaw: f32) -> vec3f {
-  return normalize(cardPoint((normal_1 / scale), vec3f(1), yaw, vec3f()));
+fn cardNormal(localNormal: vec3f, scale: vec3f, yaw: f32) -> vec3f {
+  return normalize(cardPoint((localNormal / scale), vec3f(1), yaw, vec3f()));
 }
 
 // @block models_geometry_cardPoint
