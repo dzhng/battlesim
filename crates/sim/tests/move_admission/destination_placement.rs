@@ -244,3 +244,44 @@ fn a_squad_sent_into_a_closed_yard_stops_outside_it() {
         squad.position.xy()
     );
 }
+
+#[test]
+fn an_enclosed_destination_uses_reachable_ground_beside_the_pocket() {
+    let mut rules = common::scenario_rules();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "props",
+        "wall",
+        json!({"body":{"occludes":false}}),
+    );
+    let mut setup = common::scenario(
+        r#"{"size":[400,300],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[
+            {"kind":"wall","center":[240,140],"yaw":0,"half_extents":[20,3,2]},
+            {"kind":"wall","center":[240,180],"yaw":0,"half_extents":[20,3,2]},
+            {"kind":"wall","center":[220,160],"yaw":0,"half_extents":[3,20,2]},
+            {"kind":"wall","center":[260,160],"yaw":0,"half_extents":[3,20,2]}]}"#,
+        json!([{"side":"blue","kind":"test_rifle","position":[180,160],"yaw":0}]),
+        json!([]),
+    );
+    setup.rules = serde_json::from_value(rules).unwrap();
+    let mut battle = Battle::new(&setup, 1);
+    let destinations = battle
+        .preview_move(
+            Side::Blue,
+            &contract::command::MovePreviewRequest {
+                units: vec![UnitId(0)],
+                goal: [240.0, 160.0],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    assert!(
+        destinations[0].placed,
+        "reachable ground outside the known closed pocket remains available: {destinations:?}"
+    );
+    let p = destinations[0].goal;
+    assert!(
+        p[0] < 219.0 || p[0] > 261.0 || p[1] < 139.0 || p[1] > 181.0,
+        "marker must remain outside the pocket: {p:?}"
+    );
+}

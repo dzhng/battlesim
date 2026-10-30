@@ -3871,6 +3871,9 @@ impl Battle {
                     facing: request.facing.filter(|_| pivots),
                 });
                 let placed = grid.destination_point(p, u.ground(), hull, from(u), &pockets)?;
+                if !grid.reaches(from(u), placed, u.ground(), &pockets) {
+                    return None;
+                }
                 let short = hull
                     .filter(|_| placed != p)
                     .and_then(|hull| grid.room_on_the_way(p, u.ground(), hull, from(u), &pockets))
@@ -3910,10 +3913,7 @@ impl Battle {
                         .orders
                         .iter()
                         .any(|o| matches!(o, UnitOrder::Attack { .. }));
-                let slot_point = slot.point.filter(|p| {
-                    !after_attack
-                        && (u.airborne() || grid.reaches(from(u), *p, u.ground(), &pockets))
-                });
+                let slot_point = slot.point.filter(|_| !after_attack);
                 let goal = slot_point.unwrap_or(u.position.xy());
                 let facing =
                     movement::final_yaw(u, request.facing, from(u), goal, request.direction);
