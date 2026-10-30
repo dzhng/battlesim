@@ -16,20 +16,14 @@ to run the slices: Codex
 (gpt-6.1-sol, high) implements each slice, the orchestrator reviews and
 integrates by cherry-pick, and pushes each verified slice to the open PR.
 
-**Status (2026-10-30):** 01 and 02 landed. 03 and 04 landed with CPU proofs
-(byte-identical uploads, explained assembled-shader diffs); their plate proofs
-wait on the blocker below. 05 is implemented with an empty assembled-shader
-diff and CPU binding/refusal proofs. The next composition slice is 06.
+**Status (2026-10-30):** 01–05 and the grass determinism fix landed. Pick up
+at [slice 06](slices/06-concept-moves.md); 06–08 are shader-only and run in
+order.
 
-**Blocker on the plate proof:** the base build doesn't render grass the same
-way twice. Paris-corner (little grass) reproduces byte for byte; market-town
-and wetlands differ in scattered grass pixels (0.01–0.24%, up to 41 levels),
-and the varying pixels take more than two values, so no tolerance or
-"matches one of the base renders" test separates noise from change. The likely
-cause is the grass build's atomic slot append and its tier cap
-(`passes_models.wgsl` `atomicAdd(&args[…])`, `if (slot >= cap)`). A fix that
-makes grass deterministic lands first, in its own commit; until then, slices
-whose proof is an empty assembled-shader diff proceed, and plate proofs wait.
+The base build did not render grass the same way twice (atomic clump order);
+the fix (`fix(renderer): emit grass clumps in deterministic ranges`, see
+`choices.md`) makes every plate reproduce byte for byte. **Plate proofs compare
+against the grass-fixed build**, not the original base.
 
 Warnings:
 - Every slice before 15 must leave every plate byte-identical. A byte
@@ -110,8 +104,8 @@ Every slice keeps these true, and none adds a layer a later slice must delete:
 The proof is a scratch script per slice (map Q2), not a committed tool.
 
 1. **Determinism probe (once, first):** build the base `native-client` and
-   render one menu-reel scene twice; `cmp` the plates. If they differ, stop:
-   the byte-identical rule can't work, and the user decides what replaces it.
+   render the frozen runs twice; `cmp` the plates. The original base failed it
+   in grass; the grass determinism fix made it pass (54/54).
 2. **Frozen inputs:** film three parity runs once from the base build and reuse
    them in every slice: the menu reel, the menu reel with `PARITY_FOG=1`, and the
    water reel (`bun run --cwd web scene -- native-parity-capture`, with

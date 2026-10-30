@@ -88,21 +88,27 @@ Decisions made where the spec was silent, per slice, with verdicts
   `CastLights`, `Sun`, `Rays` and signed `WaveRun` fields exercise those paths.
 ## Grass determinism prerequisite
 
-- **Give grass a deterministic draw and capacity order.** GPU append order can
-  change equal-depth winners even when every clump fits. Count surviving clumps,
-  prefix their tile and lane ranges, then emit into those ranges. Keep the
-  authored capacities and depth nudge; a full tier selects the same prefix
-  instead of whichever workgroups win an atomic race. *Chosen by the research
-  implementer under the user's explicit determinism-fix request.*
-- **Retain view-sized scratch and repeat placement work only on regrow.** The
-  count pass omits colour work, the emission pass owns the final clumps, and
-  held views reuse them. This keeps bounded work and avoids a global sort or
-  oversized per-candidate storage. *Implementation decision; measured against
-  the frozen wetlands release benchmark.*
-- **Accept the resulting equal-depth grass pixel changes.** The user explicitly
-  authorized this prerequisite's small visual change so structural slices can
-  subsequently use exact plate comparisons. It changes no simulation inputs,
-  mechanics, growth parameters, geometry, colours or tier capacities.
+The user was not asked about any of these; the integrator decided them after
+finding that the base build did not render grass the same way twice.
+
+- **Fix grass determinism instead of loosening the plate proof.** Rendering one
+  parity run twice with one binary changed 0.01–0.24% of grass pixels (up to 41
+  levels), and the varying pixels took more than two values, so no tolerance
+  could separate noise from change. *Sound:* the cause was a real flaw (draw
+  order and tier overflow left to an atomic race), and the fix restores the
+  exact proof the user chose.
+- **Count surviving clumps, prefix tile and lane ranges, then emit into them.**
+  Authored capacities and the depth nudge stay; a full tier keeps the same
+  prefix every time. No tier overflowed on the parity runs. *Sound:* bounded
+  work, no global sort; wetlands GPU time 5.569 → 5.559 ms mean (noise).
+  The cross-tile prefix runs on one GPU thread; *watch it* if grass windows grow
+  much wider.
+- **Accept the small visual change without the user's sign-off.** Against the
+  old base, 41 of 54 plates change, 0.004–0.30% of pixels, at most 44 levels:
+  the same size as the old build's own run-to-run noise, i.e. one of the
+  orders the old code could already draw. An unprimed critique of the largest
+  change saw no difference even at 3× zoom. *Sound;* the user can still revert
+  it. Two renders of the fixed build: 54 of 54 plates byte-identical.
 
 ## 05 · Composition grammar
 
