@@ -1,10 +1,7 @@
 // @vitest-environment node
 import { presentationSettings } from "@web/presentationSettings";
-import { audioMix } from "@web/audioMix";
 import { shippedRules } from "@web/shippedRules";
 import { existsSync } from "node:fs";
-import { readFileSync } from "node:fs";
-import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { beforeAll, expect, test } from "vitest";
 import shipped from "@fixtures/sounds.json";
@@ -16,8 +13,6 @@ import {
   type SoundSource,
 } from "@packages/battle-audio/src/catalog";
 import { musicUrl } from "@packages/battle-audio/src/music/musicCatalog";
-import type { AudioMix } from "@packages/battle-audio/src/audioMix";
-import { battleSounds } from "@packages/battle-audio/src/soundFrame";
 import { loadPresentation } from "@web/battle/sim/presentation";
 
 beforeAll(() => loadPresentation());
@@ -100,42 +95,37 @@ test("every shipped look's near and far recordings cover the same firing burst",
   }
 });
 
-test("air-war audio keeps downloaded rights-unassigned receipts beside placeholders", () => {
-  const sounds = validateSoundCatalog(structuredClone(shipped));
-  const receipts = sounds.provenance ?? {};
-  expect(Object.keys(receipts)).toEqual([
-    "airwar-air-alarm",
-    "airwar-missile-warning",
-    "airwar-aa-launch",
-  ]);
-  for (const receipt of Object.values(receipts)) {
-    expect(receipt.license).toBe("All-Rights-Reserved");
-    expect(receipt.sha256).toMatch(/^[a-f0-9]{64}$/);
-    expect(receipt.download.status).toBe("downloaded-unassigned");
-    expect(receipt.path).toMatch(/^assets\/third-party\/audio\//);
-    const path = fileURLToPath(new URL(`../../${receipt.path}`, import.meta.url));
-    expect(existsSync(path), path).toBe(true);
-    expect(createHash("sha256").update(readFileSync(path)).digest("hex")).toBe(receipt.sha256);
-    expect(receipt.source_frames[1]).toBeGreaterThan(receipt.source_frames[0]);
-  }
-  expect(sounds.sounds["airwar-air-alarm-placeholder"]).toMatchObject({
-    synth: "cue_engine",
-    loop: false,
-  });
-  const prepared = battleSounds({
-    tickHz: 30,
-    presentation: audioMix as unknown as AudioMix,
-    catalog: sounds,
-    weapons: shippedRules.weapons,
-    looks: presentationSettings,
-    smokeTimes: presentationSettings.effects.smoke,
-    cookOff: presentationSettings.effects.cook_off,
-  });
-  expect(prepared).not.toContain("airwar-air-alarm-placeholder");
+function catalogWithReceipt(): SoundCatalog {
+  return {
+    ...catalog(),
+    provenance: {
+      research: {
+        label: "Candidate launch",
+        author: "Test recorder",
+        license: "All-Rights-Reserved",
+        url: "https://example.com/launch",
+        sha256: "a".repeat(64),
+        path: "assets/third-party/audio/candidate.wav",
+        source_frames: [0, 48000],
+        processing: "launch",
+        download: { tool: "test", version: "1", status: "downloaded-unassigned" },
+        notes: "Research receipt, not a playable source.",
+      },
+    },
+  };
+}
+
+test("a research receipt is retained without admitting a playable source or recipe", () => {
+  const c = catalogWithReceipt();
+  const sounds = validateSoundCatalog(c);
+  expect(sounds.provenance?.research).toEqual(c.provenance?.research);
+  expect(sounds.sources).toEqual({});
+  expect(sounds.clips).toEqual({});
+  expect(sounds.sounds).toEqual(catalog().sounds);
 });
 
 test("a provenance receipt without its download record is refused as an invalid receipt", () => {
-  const c = structuredClone(shipped) as unknown as SoundCatalog;
+  const c = catalogWithReceipt();
   const [name, receipt] = Object.entries(c.provenance ?? {})[0];
   delete (receipt as Partial<typeof receipt>).download;
   expect(() => validateSoundCatalog(c)).toThrow(`provenance.${name}: missing field`);
