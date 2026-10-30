@@ -16,7 +16,8 @@ Confidence is how sure the audit is that you would have made the same call.
 Each group lists the least confident first.
 
 **Review these first:**
-1. Unreachable move orders were silently turned into accepted ones (U1).
+1. Unreachable move orders were silently turned into accepted ones (U1), now
+   redone.
 2. The mortar's own sound rests on a measurement nobody has listened to (N1).
 3. Five firing sounds are constructed stand-ins nobody has listened to (N2).
 
@@ -127,8 +128,16 @@ Each group lists the least confident first.
   - only the slots around a reachable point may skip sealed pockets, which
     keeps the balance fix.
 
-  The restored tests run under shipped rules. A Codex child is redoing this
-  now.
+  **Redone** in `44a5cc97a` and `0f1439635`:
+  - the two original tests are restored, and run under shipped rules;
+  - the placement code resolves the ordered point first, with vehicles still
+    allowed to park at a plateau's foot as before;
+  - an order whose point can't be reached gets no slot.
+
+  The balance fix's regression now orders the group to a reachable point
+  with one slot in a sealed pocket. All 63,653 baseline digests are
+  unchanged, and the full simulation suite (1,325 tests) and the seed-7
+  balance battle pass.
 - **Confidence:** low that you'd have wanted the reversal.
 
 ---
