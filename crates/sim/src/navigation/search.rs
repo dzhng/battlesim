@@ -799,8 +799,11 @@ fn vehicle_trace(
 ) -> Vec<V2> {
     let cells = trace_cells(grid, scratch, start, target);
     let mut points: Vec<V2> = vec![from];
-    for w in cells.windows(2) {
-        points.push(grid.waypoint(w[1], who));
+    // An exact start may stand off its cell's seat. Keep that first turn:
+    // jumping directly to the next cell can clip the body beside the start.
+    // Smoothing removes the seat when the direct segment is clear.
+    for cell in cells {
+        points.push(grid.waypoint(cell, who));
     }
     *points.last_mut().unwrap() = goal;
     points
