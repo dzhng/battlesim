@@ -46,13 +46,10 @@ deterministic. The focused oracles stay green unflagged:
 **Would change this slice:** the probe being non-deterministic. Fix the
 source of the non-determinism; don't add a tolerance.
 
-**Done (proof probe):** regenerate the unrounded battle dumps and composed
-shaders from the repository root:
-
-```sh
-cargo run --profile test -p presentation --example split_proof -- /Users/server/dev/battlesim/throwaway/split-game-json/before
-cargo run -p renderer-core --example split_proof_shaders -- /Users/server/dev/battlesim/throwaway/split-game-json/before/shaders
-```
+**Done (proof controls):** the unrounded battle dumps and composed shaders
+live under `/Users/server/dev/battlesim/throwaway/split-game-json/before/`.
+The transitional executables were removed at closeout after the final digest
+comparison.
 
 Two runs matched all 77 files byte for byte (`before/SHA256SUMS` and
 `repeat/SHA256SUMS` in shared scratch). Coverage includes all 49 rows, soldier
