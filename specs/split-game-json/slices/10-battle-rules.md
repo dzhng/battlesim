@@ -79,3 +79,15 @@ Review: shape, diff and docs reviewed; a before/after native plate was inspected
 and opened together in Preview. An unprimed screenshot critique remains for the
 integrator: this implementation-subagent brief prohibits starting child agents.
 Whole-repository closeout remains slice 16.
+
+**Review follow-ups (open; for the shared fix pass):**
+- `useCaptions` (`BattleView.tsx:137`) reads the parent catalog. Pass
+  `session.units` and `session.rules.tick_hz` in.
+- Warm-up ticks and reel timing use `shippedRules.tick_hz`
+  (`capture/ScenePlayer.tsx:76`, `routes/graphicsTest.tsx:311`). Take them
+  from the resolved scenario rules.
+- Projectile diagnostics resolve looks from the raw shipped weapons
+  (`routes/projectiles.tsx:17,37`). Use `session.rules.weapons`.
+- Rename `GameRules` (`compose.ts:57`) to `ResolvedRules`.
+- `fielded.rs:194`'s doc names a removed `map` argument.
+- The decisions paragraph above repeats `decisions.md`. Link to it instead.
