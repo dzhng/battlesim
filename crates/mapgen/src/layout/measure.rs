@@ -136,7 +136,7 @@ pub fn measure(plan: &MapPlan, presets: &PresetDefinitions) -> LayoutMetrics {
     for settlement in &plan.settlements {
         *settlements.entry(settlement.class.clone()).or_insert(0) += 1;
     }
-    let main = main_settlement(plan, presets);
+    let main = main_settlement(plan);
     let main_area = main.map_or(0.0, |index| built(&plan.settlements[index]));
     let found = approaches(plan, presets);
     let count = |half| found.iter().filter(|a| a.half == half).count();
@@ -233,21 +233,10 @@ fn built(settlement: &crate::SettlementPlan) -> f64 {
     settlement.districts.iter().map(|d| area(&d.ring)).sum()
 }
 
-/// The settlement of the highest class, and among those the most built ground.
-fn main_settlement(plan: &MapPlan, presets: &PresetDefinitions) -> Option<usize> {
-    let rank = |index: usize| {
-        presets
-            .classes
-            .get(&plan.settlements[index].class)
-            .map(|class| class.rank)
-    };
-    (0..plan.settlements.len()).max_by(|a, b| {
-        rank(*a)
-            .cmp(&rank(*b))
-            .then(built(&plan.settlements[*a]).total_cmp(&built(&plan.settlements[*b])))
-            // The first of equals, whichever way the comparison is walked.
-            .then(b.cmp(a))
-    })
+/// The plan contract keeps the main settlement first, independently of
+/// how much ground any satellite happens to build.
+fn main_settlement(plan: &MapPlan) -> Option<usize> {
+    (!plan.settlements.is_empty()).then_some(0)
 }
 
 /// Something a line of open ground stops at.
@@ -719,8 +708,7 @@ fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, TransitMe
     // nearest the main settlement's centre, which stands on it. (Nearest the
     // map's middle on a plan without settlements.)
     let centre = [plan.size[0] / 2.0, plan.size[1] / 2.0];
-    let main =
-        main_settlement(plan, presets).map_or(centre, |index| plan.settlements[index].center);
+    let main = main_settlement(plan).map_or(centre, |index| plan.settlements[index].center);
     let authored = centrelines
         .filter(|(_, kind)| *kind == SurfaceKind::CountryRoad)
         .flat_map(|(line, _)| line.control_points())
