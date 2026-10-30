@@ -285,10 +285,11 @@ export class BrowserScene {
       this.admittedWorld = this.presentation.world();
     }
     if (!changed && !this.admission.current()) return false;
+    const worldChanged = this.activeWorld !== this.desiredWorld;
     const propsChanged = this.activeWorld.props !== this.desiredWorld.props;
     if (propsChanged) this.setWorldProps(this.desiredWorld.props);
     this.activeWorld = this.desiredWorld;
-    return changed || propsChanged;
+    return changed || worldChanged;
   }
 
   world(): WorldLayers {
