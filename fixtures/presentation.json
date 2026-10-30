@@ -544,7 +544,7 @@
       "impact": {"scale": 1, "surfaces": {}},
       "blast": 1,
       "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 0.08, "far_m": 200}, "blast": {"gain": 0.35, "far_m": 400}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-rifle-hit"}, "impact_scale": 0.5}
+      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 0.0748331477354788, "far_m": 190.0}, "blast": {"gain": 0.35, "far_m": 400}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-rifle-hit"}, "impact_scale": 0.5}
     },
     "grenade": {
       "tracer": {"tail_s": 0.12, "tail_m": [1, 4], "glow": {"color": [1.0, 0.35, 0.1], "intensity": 1.2, "width_m": 0.14, "min_px": 2.5}, "body": {"color": [0.04, 0.04, 0.035], "size_m": 0.12}, "smoke": {"albedo": [0.92, 0.92, 0.93], "ribbon": 0.5, "opacity": 0.2, "size_m": [0.15, 0.7], "life_s": 2, "rise_mps": 0.1, "spread_mps": 0.15, "spacing_m": 1}},
@@ -560,7 +560,7 @@
       "impact": {"scale": 3, "surfaces": {"ground": {"size": 5, "duration": 5}, "water": {"size": 4, "duration": 3}}},
       "blast": 1,
       "kick": {"hull": 1, "soldier": 1},
-      "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 3.0, "far_m": 800}, "blast": {"gain": 2.2, "far_m": 800}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 5.0}
+      "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 3.0983866769659336, "far_m": 825.0}, "blast": {"gain": 2.2494443758403984, "far_m": 825.0}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 5.244044240850759}
     },
     "tank_he": {
       "tracer": {"zoom_boost": 2, "tail_s": 0.009, "tail_m": [3, 10], "glow": {"color": [1.0, 0.36, 0.08], "intensity": 2.5, "width_m": 0.75, "min_px": 6}, "core": {"color": [1.0, 0.6, 0.3], "intensity": 8, "width_m": 0.2, "min_px": 2.5, "share": 0.35}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14}},
@@ -568,7 +568,7 @@
       "impact": {"scale": 3.5, "surfaces": {"ground": {"size": 5, "duration": 5}, "water": {"size": 4, "duration": 3}}},
       "blast": 1,
       "kick": {"hull": 1, "soldier": 1},
-      "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 3.0, "far_m": 800}, "blast": {"gain": 2.4, "far_m": 900}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 5.5}
+      "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 3.0983866769659336, "far_m": 825.0}, "blast": {"gain": 2.449489742783178, "far_m": 900.0}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 5.5}
     },
     "heavy_machine_gun": {
       "tracer": {"chance": 0.5, "line_px": 0.65, "tail_brightness": 0.25, "tail_s": 0.05, "tail_m": [1, 30], "glow": {"color": [1.0, 0.55, 0.2], "intensity": 4, "width_m": 0.36, "min_px": 1}},
@@ -584,15 +584,7 @@
       "impact": {"scale": 3, "surfaces": {"ground": {"size": 5, "duration": 5}, "water": {"size": 4, "duration": 3}}},
       "blast": 1,
       "kick": {"hull": 0, "soldier": 0.6},
-      "sound": {"shot": {"near": "recorded-launch", "far": "recorded-launch-distant", "gain": 1.5, "far_m": 700}, "blast": {"gain": 2.0, "far_m": 750}, "motor": {"gain": 0.4}, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit"}, "impact_scale": 5.0}
-    },
-    "carbine": {
-      "tracer": {"chance": 0.2, "line_px": 0.65, "tail_brightness": 0.25, "tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.55, 0.2], "intensity": 4, "width_m": 0.07, "min_px": 1}},
-      "flash": {"color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3}},
-      "impact": {"scale": 1, "surfaces": {}},
-      "blast": 1,
-      "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 0.07, "far_m": 180}, "blast": {"gain": 0.35, "far_m": 400}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-rifle-hit"}, "impact_scale": 0.5}
+      "sound": {"shot": {"near": "recorded-launch", "far": "recorded-launch-distant", "gain": 1.6, "far_m": 750}, "blast": {"gain": 2.1, "far_m": 800}, "motor": {"gain": 0.45}, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit"}, "impact_scale": 5.5}
     },
     "light_machine_gun": {
       "tracer": {"chance": 0.2, "line_px": 0.65, "tail_brightness": 0.25, "tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.55, 0.2], "intensity": 4, "width_m": 0.07, "min_px": 1}},
@@ -618,7 +610,7 @@
       "kick": {"hull": 0, "soldier": 1.8},
       "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 0.25, "far_m": 350}, "blast": {"gain": 0.35, "far_m": 400}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-rifle-hit"}, "impact_scale": 1.5}
     },
-    "ifv_cannon": {
+    "autocannon": {
       "tracer": {"zoom_boost": 1.5, "tail_s": 0.006, "tail_m": [3, 5], "glow": {"color": [1.0, 0.42, 0.1], "intensity": 4, "width_m": 0.35, "min_px": 3}, "core": {"color": [1.0, 0.8, 0.5], "intensity": 12, "width_m": 0.1, "min_px": 1.5, "share": 0.5}},
       "flash": {"color": [1.0, 0.68, 0.34], "intensity": 50, "size_m": 0.7, "tongue_m": 1.8, "duration_s": 0.06, "fireball_m": 0.8, "fireball_s": 0.12, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 16, "radius_m": 10, "duration_s": 0.1, "forward_m": 0.6}, "dust": 0.3},
       "impact": {"scale": 1.8, "surfaces": {}},
@@ -626,77 +618,21 @@
       "kick": {"hull": 0.3, "soldier": 1},
       "sound": {"shot": {"near": "autocannon-combat", "far": "autocannon-combat-distant", "gain": 0.6, "far_m": 450}, "blast": {"gain": 0.55, "far_m": 400}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-bullet-hit"}, "impact_scale": 2.5}
     },
-    "ground_sabot_no_kick": {
-      "tracer": {"zoom_boost": 2, "tail_s": 0.008, "tail_m": [3, 10], "glow": {"color": [1.0, 0.5, 0.18], "intensity": 4, "width_m": 0.75, "min_px": 6}, "core": {"color": [1.0, 0.78, 0.45], "intensity": 12, "width_m": 0.2, "min_px": 2.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14}},
-      "flash": {"color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 24, "radius_m": 11, "duration_s": 0.16, "forward_m": 0.5}, "dust": 1},
-      "impact": {"scale": 3, "surfaces": {"ground": {"size": 5, "duration": 5}}},
-      "blast": 1,
-      "kick": {"hull": 1, "soldier": 1},
-      "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 3.2, "far_m": 850}, "blast": {"gain": 2.3, "far_m": 850}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 5.5}
-    },
-    "ground_he_no_kick": {
+    "ifv_cannon": {
       "tracer": {"zoom_boost": 2, "tail_s": 0.009, "tail_m": [3, 10], "glow": {"color": [1.0, 0.36, 0.08], "intensity": 2.5, "width_m": 0.75, "min_px": 6}, "core": {"color": [1.0, 0.6, 0.3], "intensity": 8, "width_m": 0.2, "min_px": 2.5, "share": 0.35}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14}},
       "flash": {"color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 24, "radius_m": 11, "duration_s": 0.16, "forward_m": 0.5}, "dust": 1},
       "impact": {"scale": 3.5, "surfaces": {"ground": {"size": 5, "duration": 5}}},
       "blast": 1,
       "kick": {"hull": 1, "soldier": 1},
-      "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 3.2, "far_m": 850}, "blast": {"gain": 2.5, "far_m": 900}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 5.5}
+      "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 1.2, "far_m": 600}, "blast": {"gain": 1.6, "far_m": 600}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 3.5}
     },
-    "advanced_sabot_no_kick": {
-      "tracer": {"zoom_boost": 2, "tail_s": 0.008, "tail_m": [3, 10], "glow": {"color": [1.0, 0.5, 0.18], "intensity": 4, "width_m": 0.75, "min_px": 6}, "core": {"color": [1.0, 0.78, 0.45], "intensity": 12, "width_m": 0.2, "min_px": 2.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14}},
-      "flash": {"color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 24, "radius_m": 11, "duration_s": 0.16, "forward_m": 0.5}, "dust": 1},
-      "impact": {"scale": 3, "surfaces": {"ground": {"size": 5, "duration": 5}}},
+    "aa_gun": {
+      "tracer": {"chance": 0.5, "line_px": 0.65, "tail_brightness": 0.25, "tail_s": 0.05, "tail_m": [1, 30], "glow": {"color": [1.0, 0.55, 0.2], "intensity": 4, "width_m": 0.36, "min_px": 1}},
+      "flash": {"color": [1.0, 0.66, 0.3], "intensity": 40, "size_m": 0.35, "tongue_m": 1.0, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 12, "radius_m": 9, "duration_s": 0.07, "forward_m": 0.5}},
+      "impact": {"scale": 1.4, "surfaces": {}},
       "blast": 1,
-      "kick": {"hull": 1, "soldier": 1},
-      "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 3.4, "far_m": 900}, "blast": {"gain": 2.4, "far_m": 900}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 6.0}
-    },
-    "advanced_he_no_kick": {
-      "tracer": {"zoom_boost": 2, "tail_s": 0.009, "tail_m": [3, 10], "glow": {"color": [1.0, 0.36, 0.08], "intensity": 2.5, "width_m": 0.75, "min_px": 6}, "core": {"color": [1.0, 0.6, 0.3], "intensity": 8, "width_m": 0.2, "min_px": 2.5, "share": 0.35}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14}},
-      "flash": {"color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 24, "radius_m": 11, "duration_s": 0.16, "forward_m": 0.5}, "dust": 1},
-      "impact": {"scale": 3.5, "surfaces": {"ground": {"size": 5, "duration": 5}}},
-      "blast": 1,
-      "kick": {"hull": 1, "soldier": 1},
-      "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 3.4, "far_m": 900}, "blast": {"gain": 2.6, "far_m": 950}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 6.0}
-    },
-    "light_sabot_no_kick": {
-      "tracer": {"zoom_boost": 2, "tail_s": 0.008, "tail_m": [3, 10], "glow": {"color": [1.0, 0.5, 0.18], "intensity": 4, "width_m": 0.75, "min_px": 6}, "core": {"color": [1.0, 0.78, 0.45], "intensity": 12, "width_m": 0.2, "min_px": 2.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14}},
-      "flash": {"color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 24, "radius_m": 11, "duration_s": 0.16, "forward_m": 0.5}, "dust": 1},
-      "impact": {"scale": 3, "surfaces": {"ground": {"size": 5, "duration": 5}}},
-      "blast": 1,
-      "kick": {"hull": 1, "soldier": 1},
-      "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 2.7, "far_m": 750}, "blast": {"gain": 2.0, "far_m": 750}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 4.5}
-    },
-    "light_he_no_kick": {
-      "tracer": {"zoom_boost": 2, "tail_s": 0.009, "tail_m": [3, 10], "glow": {"color": [1.0, 0.36, 0.08], "intensity": 2.5, "width_m": 0.75, "min_px": 6}, "core": {"color": [1.0, 0.6, 0.3], "intensity": 8, "width_m": 0.2, "min_px": 2.5, "share": 0.35}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14}},
-      "flash": {"color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 24, "radius_m": 11, "duration_s": 0.16, "forward_m": 0.5}, "dust": 1},
-      "impact": {"scale": 3.5, "surfaces": {"ground": {"size": 5, "duration": 5}}},
-      "blast": 1,
-      "kick": {"hull": 1, "soldier": 1},
-      "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 2.7, "far_m": 750}, "blast": {"gain": 2.2, "far_m": 800}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 4.5}
-    },
-    "atgm_wire_no_kick": {
-      "tracer": {"zoom_boost": 2, "tail_s": 0.02, "tail_m": [0.5, 4], "glow": {"color": [1.0, 0.55, 0.22], "intensity": 10, "width_m": 0.9, "min_px": 8}, "core": {"color": [1.0, 0.95, 0.85], "intensity": 18, "width_m": 0.1, "min_px": 1.5, "share": 0.25}, "smoke": {"albedo": [0.96, 0.96, 0.98], "ribbon": 0.55, "opacity": 0.5, "size_m": [0.6, 3.2], "life_s": 12, "rise_mps": 0.15, "spread_mps": 0.3, "spacing_m": 3.5}, "cast": {"color": [1.0, 0.55, 0.25], "intensity": 20, "radius_m": 20}},
-      "flash": {"color": [1.0, 0.8, 0.5], "intensity": 40, "size_m": 0.8, "tongue_m": 1.6, "duration_s": 0.12, "fireball_m": 1.2, "fireball_s": 0.3, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 12, "radius_m": 9, "duration_s": 0.3, "forward_m": -1.5}},
-      "impact": {"scale": 3, "surfaces": {}},
-      "blast": 1,
-      "kick": {"hull": 0, "soldier": 0.6},
-      "sound": {"shot": {"near": "recorded-launch", "far": "recorded-launch-distant", "gain": 1.5, "far_m": 700}, "blast": {"gain": 2.0, "far_m": 750}, "motor": {"gain": 0.4}, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit"}, "impact_scale": 5.0}
-    },
-    "atgm_heavy_no_kick": {
-      "tracer": {"zoom_boost": 2, "tail_s": 0.02, "tail_m": [0.5, 4], "glow": {"color": [1.0, 0.55, 0.22], "intensity": 10, "width_m": 0.9, "min_px": 8}, "core": {"color": [1.0, 0.95, 0.85], "intensity": 18, "width_m": 0.1, "min_px": 1.5, "share": 0.25}, "smoke": {"albedo": [0.96, 0.96, 0.98], "ribbon": 0.55, "opacity": 0.5, "size_m": [0.6, 3.2], "life_s": 12, "rise_mps": 0.15, "spread_mps": 0.3, "spacing_m": 3.5}, "cast": {"color": [1.0, 0.55, 0.25], "intensity": 20, "radius_m": 20}},
-      "flash": {"color": [1.0, 0.8, 0.5], "intensity": 40, "size_m": 0.8, "tongue_m": 1.6, "duration_s": 0.12, "fireball_m": 1.2, "fireball_s": 0.3, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 12, "radius_m": 9, "duration_s": 0.3, "forward_m": -1.5}},
-      "impact": {"scale": 3, "surfaces": {}},
-      "blast": 1,
-      "kick": {"hull": 0, "soldier": 0.6},
-      "sound": {"shot": {"near": "recorded-launch", "far": "recorded-launch-distant", "gain": 1.6, "far_m": 750}, "blast": {"gain": 2.1, "far_m": 800}, "motor": {"gain": 0.45}, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit"}, "impact_scale": 5.5}
-    },
-    "atgm_top_attack_no_kick": {
-      "tracer": {"zoom_boost": 2, "tail_s": 0.02, "tail_m": [0.5, 4], "glow": {"color": [1.0, 0.55, 0.22], "intensity": 10, "width_m": 0.9, "min_px": 8}, "core": {"color": [1.0, 0.95, 0.85], "intensity": 18, "width_m": 0.1, "min_px": 1.5, "share": 0.25}, "smoke": {"albedo": [0.96, 0.96, 0.98], "ribbon": 0.55, "opacity": 0.5, "size_m": [0.6, 3.2], "life_s": 12, "rise_mps": 0.15, "spread_mps": 0.3, "spacing_m": 3.5}, "cast": {"color": [1.0, 0.55, 0.25], "intensity": 20, "radius_m": 20}},
-      "flash": {"color": [1.0, 0.8, 0.5], "intensity": 40, "size_m": 0.8, "tongue_m": 1.6, "duration_s": 0.12, "fireball_m": 1.2, "fireball_s": 0.3, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 12, "radius_m": 9, "duration_s": 0.3, "forward_m": -1.5}},
-      "impact": {"scale": 3, "surfaces": {}},
-      "blast": 1,
-      "kick": {"hull": 0, "soldier": 0.6},
-      "sound": {"shot": {"near": "recorded-launch", "far": "recorded-launch-distant", "gain": 1.7, "far_m": 800}, "blast": {"gain": 2.2, "far_m": 850}, "motor": {"gain": 0.5}, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit"}, "impact_scale": 5.5}
+      "kick": {"hull": 0, "soldier": 1},
+      "sound": {"shot": {"near": "hmg-combat", "far": "hmg-combat-distant", "gain": 0.7, "far_m": 500}, "blast": {"gain": 0.6, "far_m": 420}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-bullet-hit"}, "impact_scale": 2.8}
     },
     "manpads": {
       "tracer": {"tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}},
@@ -706,77 +642,61 @@
       "kick": {"hull": 0, "soldier": 0.6},
       "sound": {"shot": {"near": "airwar-aa-launch", "far": "airwar-aa-launch", "gain": 1.4, "far_m": 650}, "blast": {"gain": 1.9, "far_m": 700}, "motor": {"gain": 0.35}, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 4.5}
     },
-    "aa_cannon": {
-      "tracer": {"chance": 0.5, "line_px": 0.65, "tail_brightness": 0.25, "tail_s": 0.05, "tail_m": [1, 30], "glow": {"color": [1.0, 0.55, 0.2], "intensity": 4, "width_m": 0.36, "min_px": 1}},
-      "flash": {"color": [1.0, 0.66, 0.3], "intensity": 40, "size_m": 0.35, "tongue_m": 1.0, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 12, "radius_m": 9, "duration_s": 0.07, "forward_m": 0.5}},
-      "impact": {"scale": 1.4, "surfaces": {}},
-      "blast": 1,
-      "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "hmg-combat", "far": "hmg-combat-distant", "gain": 0.7, "far_m": 500}, "blast": {"gain": 0.6, "far_m": 420}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-bullet-hit"}, "impact_scale": 2.8}
-    },
     "sam": {
       "tracer": {"tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}},
       "flash": {"color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3}},
       "impact": {"scale": 1, "surfaces": {}},
       "blast": 1,
       "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "airwar-aa-launch", "far": "airwar-aa-launch", "gain": 1.8, "far_m": 850}, "blast": {"gain": 2.2, "far_m": 850}, "motor": {"gain": 0.5}, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 5.0}
+      "sound": {"shot": {"near": "airwar-aa-launch", "far": "airwar-aa-launch", "gain": 1.8973665961010278, "far_m": 900.0}, "blast": {"gain": 2.2978250586152114, "far_m": 900.0}, "motor": {"gain": 0.5244044240850758}, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 5.244044240850759}
     },
-    "sam_long": {
+    "bomb": {
       "tracer": {"tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}},
       "flash": {"color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3}},
       "impact": {"scale": 1, "surfaces": {}},
       "blast": 1,
       "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "airwar-aa-launch", "far": "airwar-aa-launch", "gain": 2.0, "far_m": 950}, "blast": {"gain": 2.4, "far_m": 950}, "motor": {"gain": 0.55}, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 5.5}
+      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 0.27386127875258304, "far_m": 290.0}, "blast": {"gain": 2.3916521486202797, "far_m": 925.0}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 5.47722557505166}
     },
-    "air_bomb": {
+    "artillery": {
       "tracer": {"tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}},
       "flash": {"color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3}},
       "impact": {"scale": 1, "surfaces": {}},
       "blast": 1,
       "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 0.3, "far_m": 300}, "blast": {"gain": 2.6, "far_m": 1000}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 6.0}
+      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 2.1908902300206643, "far_m": 875.0}, "blast": {"gain": 2.345207879911715, "far_m": 875.0}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 5.244044240850759}
     },
-    "air_bomb_cluster": {
-      "tracer": {"tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}},
-      "flash": {"color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3}},
-      "impact": {"scale": 1, "surfaces": {}},
+    "rpg": {
+      "tracer": {"tail_s": 0.12, "tail_m": [1, 4], "glow": {"color": [1.0, 0.35, 0.1], "intensity": 1.2, "width_m": 0.14, "min_px": 2.5}, "body": {"color": [0.04, 0.04, 0.035], "size_m": 0.12}, "smoke": {"albedo": [0.92, 0.92, 0.93], "ribbon": 0.5, "opacity": 0.2, "size_m": [0.15, 0.7], "life_s": 2, "rise_mps": 0.1, "spread_mps": 0.15, "spacing_m": 1}},
+      "flash": {"color": [1.0, 0.7, 0.4], "intensity": 20, "size_m": 0.3, "tongue_m": 0.5, "duration_s": 0.06, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.08, "forward_m": 0.3}},
+      "impact": {"scale": 2.5, "surfaces": {}},
       "blast": 1,
-      "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 0.25, "far_m": 280}, "blast": {"gain": 2.2, "far_m": 850}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 5.0}
+      "kick": {"hull": 0, "soldier": 1.3},
+      "sound": {"shot": {"near": "grenade-combat", "far": "grenade-combat-distant", "gain": 0.45, "far_m": 350}, "blast": {"gain": 0.55, "far_m": 350}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 2.5}
     },
-    "air_ground_missile": {
-      "tracer": {"zoom_boost": 2, "tail_s": 0.02, "tail_m": [0.5, 4], "glow": {"color": [1.0, 0.55, 0.22], "intensity": 10, "width_m": 0.9, "min_px": 8}, "core": {"color": [1.0, 0.95, 0.85], "intensity": 18, "width_m": 0.1, "min_px": 1.5, "share": 0.25}, "smoke": {"albedo": [0.96, 0.96, 0.98], "ribbon": 0.55, "opacity": 0.5, "size_m": [0.6, 3.2], "life_s": 12, "rise_mps": 0.15, "spread_mps": 0.3, "spacing_m": 3.5}, "cast": {"color": [1.0, 0.55, 0.25], "intensity": 20, "radius_m": 20}},
-      "flash": {"color": [1.0, 0.8, 0.5], "intensity": 40, "size_m": 0.8, "tongue_m": 1.6, "duration_s": 0.12, "fireball_m": 1.2, "fireball_s": 0.3, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 12, "radius_m": 9, "duration_s": 0.3, "forward_m": -1.5}},
-      "impact": {"scale": 3, "surfaces": {}},
+    "rpg_heavy": {
+      "tracer": {"tail_s": 0.12, "tail_m": [1, 4], "glow": {"color": [1.0, 0.35, 0.1], "intensity": 1.2, "width_m": 0.14, "min_px": 2.5}, "body": {"color": [0.04, 0.04, 0.035], "size_m": 0.12}, "smoke": {"albedo": [0.92, 0.92, 0.93], "ribbon": 0.5, "opacity": 0.2, "size_m": [0.15, 0.7], "life_s": 2, "rise_mps": 0.1, "spread_mps": 0.15, "spacing_m": 1}},
+      "flash": {"color": [1.0, 0.7, 0.4], "intensity": 20, "size_m": 0.3, "tongue_m": 0.5, "duration_s": 0.06, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.08, "forward_m": 0.3}},
+      "impact": {"scale": 2.5, "surfaces": {}},
       "blast": 1,
-      "kick": {"hull": 0, "soldier": 0.6},
-      "sound": {"shot": {"near": "recorded-launch", "far": "recorded-launch-distant", "gain": 1.8, "far_m": 850}, "blast": {"gain": 2.2, "far_m": 850}, "motor": {"gain": 0.5}, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit"}, "impact_scale": 5.5}
+      "kick": {"hull": 0, "soldier": 1.3},
+      "sound": {"shot": {"near": "grenade-combat", "far": "grenade-combat-distant", "gain": 0.55, "far_m": 400}, "blast": {"gain": 0.8, "far_m": 450}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 3.5}
     },
-    "manpads_no_kick": {
-      "tracer": {"tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}},
-      "flash": {"color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3}},
-      "impact": {"scale": 1, "surfaces": {}},
-      "blast": 1,
-      "kick": {"hull": 0, "soldier": 0.6},
-      "sound": {"shot": {"near": "airwar-aa-launch", "far": "airwar-aa-launch", "gain": 1.4, "far_m": 650}, "blast": {"gain": 1.9, "far_m": 700}, "motor": {"gain": 0.35}, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 4.5}
-    },
-    "air_atgm": {
-      "tracer": {"zoom_boost": 2, "tail_s": 0.02, "tail_m": [0.5, 4], "glow": {"color": [1.0, 0.55, 0.22], "intensity": 10, "width_m": 0.9, "min_px": 8}, "core": {"color": [1.0, 0.95, 0.85], "intensity": 18, "width_m": 0.1, "min_px": 1.5, "share": 0.25}, "smoke": {"albedo": [0.96, 0.96, 0.98], "ribbon": 0.55, "opacity": 0.5, "size_m": [0.6, 3.2], "life_s": 12, "rise_mps": 0.15, "spread_mps": 0.3, "spacing_m": 3.5}, "cast": {"color": [1.0, 0.55, 0.25], "intensity": 20, "radius_m": 20}},
-      "flash": {"color": [1.0, 0.8, 0.5], "intensity": 40, "size_m": 0.8, "tongue_m": 1.6, "duration_s": 0.12, "fireball_m": 1.2, "fireball_s": 0.3, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 12, "radius_m": 9, "duration_s": 0.3, "forward_m": -1.5}},
-      "impact": {"scale": 3, "surfaces": {}},
-      "blast": 1,
-      "kick": {"hull": 0, "soldier": 0.6},
-      "sound": {"shot": {"near": "recorded-launch", "far": "recorded-launch-distant", "gain": 1.6, "far_m": 750}, "blast": {"gain": 2.0, "far_m": 750}, "motor": {"gain": 0.45}, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit"}, "impact_scale": 5.0}
-    },
-    "rocket_pod_old_tank_flash": {
+    "rocket_pod": {
       "tracer": {"zoom_boost": 2, "tail_s": 0.009, "tail_m": [3, 10], "glow": {"color": [1.0, 0.36, 0.08], "intensity": 2.5, "width_m": 0.75, "min_px": 6}, "core": {"color": [1.0, 0.6, 0.3], "intensity": 8, "width_m": 0.2, "min_px": 2.5, "share": 0.35}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14}},
       "flash": {"color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 24, "radius_m": 11, "duration_s": 0.16, "forward_m": 0.5}, "dust": 1},
       "impact": {"scale": 3.5, "surfaces": {}},
       "blast": 1,
       "kick": {"hull": 0, "soldier": 1},
       "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 1.3, "far_m": 600}, "blast": {"gain": 1.6, "far_m": 600}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 4.0}
+    },
+    "strike_missile": {
+      "tracer": {"tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}},
+      "flash": {"color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3}},
+      "impact": {"scale": 1, "surfaces": {}},
+      "blast": 1,
+      "kick": {"hull": 0, "soldier": 1},
+      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 2.5, "far_m": 1000}, "blast": {"gain": 2.6, "far_m": 1000}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 6.0}
     },
     "helicopter_crash": {
       "tracer": {"zoom_boost": 2, "tail_s": 0.009, "tail_m": [3, 10], "glow": {"color": [1.0, 0.36, 0.08], "intensity": 2.5, "width_m": 0.75, "min_px": 6}, "core": {"color": [1.0, 0.6, 0.3], "intensity": 8, "width_m": 0.2, "min_px": 2.5, "share": 0.35}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14}},
@@ -785,54 +705,6 @@
       "blast": 1,
       "kick": {"hull": 0, "soldier": 1},
       "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 1.5, "far_m": 700}, "blast": {"gain": 2.2, "far_m": 800}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 5.0}
-    },
-    "ifv_he_no_kick": {
-      "tracer": {"zoom_boost": 2, "tail_s": 0.009, "tail_m": [3, 10], "glow": {"color": [1.0, 0.36, 0.08], "intensity": 2.5, "width_m": 0.75, "min_px": 6}, "core": {"color": [1.0, 0.6, 0.3], "intensity": 8, "width_m": 0.2, "min_px": 2.5, "share": 0.35}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14}},
-      "flash": {"color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 24, "radius_m": 11, "duration_s": 0.16, "forward_m": 0.5}, "dust": 1},
-      "impact": {"scale": 3.5, "surfaces": {"ground": {"size": 5, "duration": 5}}},
-      "blast": 1,
-      "kick": {"hull": 1, "soldier": 1},
-      "sound": {"shot": {"near": "recorded-cannon", "far": "recorded-cannon-distant", "gain": 1.2, "far_m": 600}, "blast": {"gain": 1.6, "far_m": 600}, "motor": null, "impacts": {"ground": "recorded-ground-heavy", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05", "hull": "armour-shell-hit", "ricochet": "ricochet-shell"}, "impact_scale": 3.5}
-    },
-    "rpg_old_levels_no_kick": {
-      "tracer": {"tail_s": 0.12, "tail_m": [1, 4], "glow": {"color": [1.0, 0.35, 0.1], "intensity": 1.2, "width_m": 0.14, "min_px": 2.5}, "body": {"color": [0.04, 0.04, 0.035], "size_m": 0.12}, "smoke": {"albedo": [0.92, 0.92, 0.93], "ribbon": 0.5, "opacity": 0.2, "size_m": [0.15, 0.7], "life_s": 2, "rise_mps": 0.1, "spread_mps": 0.15, "spacing_m": 1}},
-      "flash": {"color": [1.0, 0.7, 0.4], "intensity": 20, "size_m": 0.3, "tongue_m": 0.5, "duration_s": 0.06, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.08, "forward_m": 0.3}},
-      "impact": {"scale": 2.5, "surfaces": {}},
-      "blast": 1,
-      "kick": {"hull": 0, "soldier": 1.3},
-      "sound": {"shot": {"near": "grenade-combat", "far": "grenade-combat-distant", "gain": 0.45, "far_m": 350}, "blast": {"gain": 0.55, "far_m": 350}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 2.5}
-    },
-    "artillery_howitzer": {
-      "tracer": {"tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}},
-      "flash": {"color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3}},
-      "impact": {"scale": 1, "surfaces": {}},
-      "blast": 1,
-      "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 2.5, "far_m": 1000}, "blast": {"gain": 2.6, "far_m": 1000}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 6.0}
-    },
-    "artillery_mortar": {
-      "tracer": {"tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}},
-      "flash": {"color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3}},
-      "impact": {"scale": 1, "surfaces": {}},
-      "blast": 1,
-      "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 2.0, "far_m": 700}, "blast": {"gain": 2.2, "far_m": 700}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 5.0}
-    },
-    "artillery_rocket_light": {
-      "tracer": {"tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}},
-      "flash": {"color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3}},
-      "impact": {"scale": 1, "surfaces": {}},
-      "blast": 1,
-      "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 2.0, "far_m": 800}, "blast": {"gain": 2.2, "far_m": 800}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 5.0}
-    },
-    "artillery_rocket_heavy": {
-      "tracer": {"tail_s": 0.04, "tail_m": [1, 30], "glow": {"color": [1.0, 0.3, 0.07], "intensity": 4, "width_m": 0.22, "min_px": 3}, "core": {"color": [1.0, 0.75, 0.45], "intensity": 14, "width_m": 0.05, "min_px": 1.5, "share": 0.5}, "cast": {"color": [1.0, 0.42, 0.14], "intensity": 1, "radius_m": 3}},
-      "flash": {"color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": {"color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3}},
-      "impact": {"scale": 1, "surfaces": {}},
-      "blast": 1,
-      "kick": {"hull": 0, "soldier": 1},
-      "sound": {"shot": {"near": "rifle-combat", "far": "rifle-combat-distant", "gain": 2.4, "far_m": 950}, "blast": {"gain": 2.5, "far_m": 950}, "motor": null, "impacts": {"ground": "recorded-ground-small", "prop": "recorded-hard-05", "metal_prop": "recorded-hard-05"}, "impact_scale": 5.5}
     }
   }
 }

@@ -66,8 +66,13 @@ fn fired_look(added: bool, require_kick: bool, second: bool) {
     } else {
         "light_tank_ap"
     };
+    let mut settings = fixture("presentation");
     let mut overrides = json!({"units":{"test_tank":{"sensors":{"ground_m":3000,"low_air_m":3000,"high_air_m":3000,"sight_shape":{"front":1,"side":1,"rear":1}}, "mounts":[{"id":"cannon", "weapons":[id]}]}}});
     if second {
+        let source = &scenario.rules.weapons[id].appearance;
+        settings["weapon_looks"]["second_round"] = settings["weapon_looks"][source].clone();
+        settings["weapon_looks"]["second_round"]["kick"]["hull"] = json!(1);
+        overrides["weapons"] = json!({id:{"appearance":"second_round"}});
         overrides["units"]["test_tank"]["mounts"][0]["weapons"] = json!(["tank_ap", id]);
         scenario.units[0].condition =
             Some(serde_json::from_value(json!({"spent":{"tank_ap":10000}})).unwrap());
@@ -84,7 +89,6 @@ fn fired_look(added: bool, require_kick: bool, second: bool) {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let runtime = Runtime::open(&root.join("assets/runtime")).unwrap();
     let rules = serde_json::to_value(battle.rules()).unwrap();
-    let mut settings = fixture("presentation");
     if second {
         // Distinct authored kicks make a first-row recoil regression observable.
         let first = &battle.rules().weapons["tank_ap"].appearance;

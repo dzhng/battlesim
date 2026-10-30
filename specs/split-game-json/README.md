@@ -1,6 +1,6 @@
 # One owner per game setting
 
-**Status:** in progress: 01–12 done. **Updated:** 2026-10-29.
+**Status:** in progress: 01–13 done. **Updated:** 2026-10-29.
 
 [`fixtures/rules.json`](../../fixtures/rules.json) owns battle rules,
 [`fixtures/presentation.json`](../../fixtures/presentation.json) owns visual settings,
@@ -21,18 +21,18 @@ You are implementing this plan on PR #16 (dzhng/battlesim, branch
 slice you are on. Use
 [`implement-spec`](../../.agents/skills/implement-spec/SKILL.md).
 
-**Pick up at [13](slices/13-fold-looks.md).** Slice 12 publishes the
-last-fired weapon index (`WeaponPose.round`, decided on the user's behalf) and
-selects hull launch looks and kicks from it; its delta report is
-`after-12/delta-report.json` and its evidence `evidence-12/`, with the
-checkpoint resolved in its slice file. Slice 11's evidence is in
-`evidence-11/`. Slice 13 must split the heavy RPG's louder blast, as recorded
-there, and take the look-content notes in 11's and 12's checkpoints as inputs
-for 15. The shared review follow-ups are closed at the end of
-[04](slices/04-split-files.md), [05](slices/05-typed-readers.md),
-[06](slices/06-shader-constants.md), [07](slices/07-admission.md),
-[08](slices/08-looks.md), [09](slices/09-rules-cleanups.md) and
-[10](slices/10-battle-rules.md).
+**Pick up at [14](slices/14-sound-workbench.md).** Slice 13 assigns the final
+looks and removes all transient keys. Its per-weapon level ledger and exact
+probe delta report live in shared `after-13/`; paired look sheets and firefight
+WAVs live in `evidence-13/`. The folded levels use per-weapon medians in dB,
+with median near/far switch distances. The heavy RPG has its own restored levels.
+Slice 15 can edit look values without changing any appearance assignment or
+rules hash. Carry forward the content observations in
+[11](slices/11-named-fixes.md), [12](slices/12-firing-look.md), and
+[13](slices/13-fold-looks.md)'s visual checkpoint. The corrected sheet in
+`evidence-13/final/` is the content reference; earlier sheets exposed capture
+mismatches and are diagnostic only. Shared review follow-ups through 12 remain
+closed in their owning slices.
 
 Proof baseline: slice 01's dumps in
 `/Users/server/dev/battlesim/throwaway/split-game-json/before/` (native plates
@@ -69,7 +69,7 @@ Warnings:
 - [x] [10 Presentation reads the battle's rules](slices/10-battle-rules.md)
 - [x] [11 Named fixes: kick, impact size, RPG level](slices/11-named-fixes.md)
 - [x] [12 The firing look follows the round](slices/12-firing-look.md)
-- [ ] [13 Fold to the final looks](slices/13-fold-looks.md) (moves `rules_hash`)
+- [x] [13 Fold to the final looks](slices/13-fold-looks.md) (moves `rules_hash`)
 - [ ] [14 Sound workbench keyed by look](slices/14-sound-workbench.md)
 - [ ] [15 Content pass](slices/15-content.md)
 - [ ] [16 Closeout](slices/16-closeout.md)

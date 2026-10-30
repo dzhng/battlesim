@@ -404,9 +404,10 @@ fn a_heavy_gun_s_shot_shakes_dust_off_its_whole_hull_and_blows_it_off_the_ground
     // The test's own look: a tank round shakes a full shot's dust, an
     // autocannon's a third of it, an HMG's none; puffs that stay put.
     let p = presentation_with(|p| {
-        p["looks"]["looks"]["tank_sabot"]["flash"]["dust"] = 1.0.into();
-        p["looks"]["looks"]["ifv_cannon"]["flash"]["dust"] = (1.0 / 3.0).into();
-        p["looks"]["looks"]["heavy_machine_gun"]["flash"]["dust"] = 0.0.into();
+        for (weapon, dust) in [("tank_ap", 1.0), ("autocannon", 1.0 / 3.0), ("hmg", 0.0)] {
+            let look = p["looks"]["weapons"][weapon].as_str().unwrap().to_owned();
+            p["looks"]["looks"][look]["flash"]["dust"] = dust.into();
+        }
         let mut puff = p["dust"].clone();
         for unused in ["spacing_m", "min_speed_mps", "full_speed_mps"] {
             puff.as_object_mut().unwrap().remove(unused);
