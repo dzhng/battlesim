@@ -235,6 +235,12 @@ pub(crate) fn complete_unload(
             soldier.position = spots.next().expect("unload spot count matches passengers");
         }
         unit.settle();
+        // Taking cover after the ride belongs to the landing, not the pickup.
+        unit.anchor = Some(crate::cover::Anchor {
+            at: unit.position.xy(),
+            halt: false,
+        });
+        unit.cover.due = true;
         unit.hold = None;
     }
     true

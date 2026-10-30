@@ -83,6 +83,7 @@ mod suppression;
 mod swamps;
 mod top_attack;
 mod transport;
+mod transport_stationing;
 mod turret_reset;
 mod weapons;
 mod world_geometry;
