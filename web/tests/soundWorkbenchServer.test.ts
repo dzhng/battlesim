@@ -359,3 +359,40 @@ test.each(["missing", "loop"])(
     expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(text);
   },
 );
+
+test("a library with external provenance saves while its receipts stay immutable", async () => {
+  const { root, request } = await fixture();
+  const path = join(root, "fixtures/sounds.json");
+  const catalog = JSON.parse(await readFile(path, "utf8")) as SoundCatalog;
+  catalog.provenance = {
+    unused: {
+      label: "External receipt",
+      author: "Test",
+      license: "CC0-1.0",
+      url: "https://example.com/source",
+      sha256: null,
+      source_frames: [0, 100],
+      processing: "clean",
+      download: { tool: "test", version: "1", status: "candidate-not-downloaded" },
+      notes: "Unassigned receipt",
+    },
+  };
+  await writeFile(path, JSON.stringify(catalog));
+  const snapshot = (await request("snapshot")).body;
+  const before = await readFile(path, "utf8");
+  const draft = { revision: snapshot.revision, catalog: snapshot.catalog };
+  const review = await request("preview", draft);
+  expect(review.status).toBe(200);
+  expect(
+    (await request("save", { candidateId: review.body.candidateId, revision: snapshot.revision }))
+      .status,
+  ).toBe(200);
+  expect(await readFile(path, "utf8")).toBe(before);
+  const saved = (await request("snapshot")).body;
+  const invalid = { revision: saved.revision, catalog: saved.catalog };
+  invalid.catalog = structuredClone(invalid.catalog);
+  invalid.catalog.provenance!.unused.notes = "Changed receipt";
+  const refused = await request("preview", invalid);
+  expect(refused.status).toBe(400);
+  expect(refused.body.error).toContain("metadata are immutable");
+});

@@ -105,7 +105,7 @@ export class SoundWorkbenchStore {
   }
 
   private validate(candidate: unknown, input: Inputs): SoundCatalog {
-    object(candidate, ["sources", "clips", "sounds", "music"]);
+    object(candidate, ["sources", "clips", "sounds", "provenance", "music"]);
     let catalog;
     try {
       catalog = this.validateCatalog(candidate);
@@ -119,6 +119,7 @@ export class SoundWorkbenchStore {
       throw new WorkbenchError(error instanceof Error ? error.message : String(error));
     }
     if (
+      !equal(catalog.provenance, input.catalog.provenance) ||
       !equal(catalog.sources, input.catalog.sources) ||
       !equal(catalog.clips, input.catalog.clips)
     )
@@ -233,8 +234,13 @@ export function soundWorkbenchPlugin(root: string): Plugin {
               load("packages/battle-audio/src/catalog.ts"),
               load("packages/battle-audio/src/synthSounds.gen.ts"),
               load("web/src/wasm/renderer_browser/renderer_browser.js"),
-            ]).then(([catalog, synth, admission]) =>
-              soundWorkbenchMiddleware(
+            ]).then(async ([catalog, synth, admission]) => {
+              await admission.default({
+                module_or_path: await readFile(
+                  join(root, "web/src/wasm/renderer_browser/renderer_browser_bg.wasm"),
+                ),
+              });
+              return soundWorkbenchMiddleware(
                 new SoundWorkbenchStore(
                   root,
                   catalog.validateSoundCatalog,
@@ -249,8 +255,8 @@ export function soundWorkbenchPlugin(root: string): Plugin {
                     );
                   },
                 ),
-              ),
-            ));
+              );
+            }));
         try {
           await (
             await middleware
