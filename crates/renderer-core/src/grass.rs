@@ -13,7 +13,7 @@ use presentation::static_world::ground::grass::{
     self as field, KindMesh, PackedShapes, TierMesh, Window, FIELD_SEGMENTS,
 };
 
-const ARGS_WORDS: usize = presentation::static_world::ground::grass::ARGS_WORDS as usize;
+const ARGS_WORDS: usize = field::ARGS_WORDS as usize;
 
 /// Pack authored grass bundles through the same decoder and blade layout on every platform.
 pub fn pack_shapes(library: &impl BundleSource, names: &[String]) -> Result<PackedShapes, String> {
@@ -328,8 +328,9 @@ impl Grass {
         write_params(&mut self.record, &self.window);
         queue.write_buffer(&self.params, 0, bytemuck::bytes_of(&self.record));
         let mut args = [0u32; ARGS_WORDS];
-        args[0] = self.indices[0].1;
-        args[5] = self.indices[1].1;
+        for (tier, (_, count)) in self.indices.iter().enumerate() {
+            args[tier * field::DRAW_WORDS as usize] = *count;
+        }
         queue.write_buffer(&self.args, 0, bytemuck::cast_slice(&args));
     }
 
@@ -383,7 +384,10 @@ impl Grass {
             all.push(("grassDrawLayout", group));
             self.draw.set(pass, &all);
             pass.set_index_buffer(indices.slice(..), IndexFormat::Uint16);
-            pass.draw_indexed_indirect(&self.args, (t * 20) as u64);
+            pass.draw_indexed_indirect(
+                &self.args,
+                (t * field::DRAW_WORDS as usize * size_of::<u32>()) as u64,
+            );
         }
     }
 }

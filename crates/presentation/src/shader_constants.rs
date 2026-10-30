@@ -67,6 +67,8 @@ pub const CONSTANTS: &[(&str, Scalar)] = &[
     ("GRASS_BUILD_LANES", U32(grass::BUILD_LANES)),
     ("GRASS_TILE_RANGES", U32(grass::TILE_RANGES)),
     ("GRASS_ARGS_WORDS", U32(grass::ARGS_WORDS)),
+    ("GRASS_DRAW_WORDS", U32(grass::DRAW_WORDS)),
+    ("GRASS_RAW_COUNT_OFFSET", U32(grass::RAW_COUNT_OFFSET)),
     ("GROUND_GRASS_EDGE_M", F32(tables::GRASS_EDGE_M)),
     (
         "GROUND_FOREST_VERGE_FEATHER",

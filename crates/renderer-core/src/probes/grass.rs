@@ -2,6 +2,7 @@
 use super::u32s;
 use crate::grass::Grass;
 use crate::readback::Readback;
+use presentation::static_world::ground::grass as field;
 use wgpu::*;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, serde::Serialize)]
@@ -43,14 +44,17 @@ pub struct ClumpsReadback(Option<ClumpsSnapshot>);
 
 fn counts(bytes: &[u8]) -> Result<GrassCounts, String> {
     let words: Vec<_> = u32s(bytes).collect();
-    if words.len() != 12 {
-        return Err("grass indirect arguments must contain twelve words".into());
+    if words.len() != field::ARGS_WORDS as usize {
+        return Err(format!(
+            "grass indirect arguments must contain {} words",
+            field::ARGS_WORDS
+        ));
     }
     Ok(GrassCounts {
         near: words[1],
-        far: words[6],
-        near_found: words[10],
-        far_found: words[11],
+        far: words[field::DRAW_WORDS as usize + 1],
+        near_found: words[field::RAW_COUNT_OFFSET as usize],
+        far_found: words[field::RAW_COUNT_OFFSET as usize + 1],
     })
 }
 
@@ -63,7 +67,12 @@ pub fn queue_counts(
         return Ok(CountsReadback(None));
     };
     let mut encoder = device.create_command_encoder(&Default::default());
-    let read = Readback::buffer(device, &mut encoder, source.args, 0..48)?;
+    let read = Readback::buffer(
+        device,
+        &mut encoder,
+        source.args,
+        0..u64::from(field::ARGS_WORDS) * size_of::<u32>() as u64,
+    )?;
     queue.submit([encoder.finish()]);
     Ok(CountsReadback(Some(read)))
 }
@@ -87,7 +96,12 @@ pub fn queue_clumps(
         return Err("grass GPU rows exceed their declared stride".into());
     }
     let mut encoder = device.create_command_encoder(&Default::default());
-    let arguments = Readback::buffer(device, &mut encoder, source.args, 0..48)?;
+    let arguments = Readback::buffer(
+        device,
+        &mut encoder,
+        source.args,
+        0..u64::from(field::ARGS_WORDS) * size_of::<u32>() as u64,
+    )?;
     let clumps = Readback::buffer(device, &mut encoder, source.clumps, 0..bytes)?;
     // Both snapshots belong to the same submission, before the first await.
     queue.submit([encoder.finish()]);

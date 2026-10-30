@@ -34,8 +34,8 @@ struct GrassFragmentInput {
     total += count;
   }
   for (var t = 0u; t < 2u; t++) {
-    args[10u + t] = total[t];
-    args[t * 5u + 1u] = min(total[t], select(grassParams.grid.w, grassParams.grid.z, t == 0u));
+    args[GRASS_RAW_COUNT_OFFSET + t] = total[t];
+    args[t * GRASS_DRAW_WORDS + 1u] = min(total[t], select(grassParams.grid.w, grassParams.grid.z, t == 0u));
   }
 }
 

@@ -28,9 +28,12 @@ pub const MAX_TILES: u32 = 256;
 /// GPU lanes that grow one tile; its scratch holds a tile range and a range per lane.
 pub const BUILD_LANES: u32 = 64;
 pub const TILE_RANGES: u32 = BUILD_LANES + 1;
-/// The grass draw's indirect arguments: two indexed-indirect draws (5 words
-/// each), then each tier's raw count.
-pub const ARGS_WORDS: u32 = 12;
+/// WebGPU's indexed-indirect draw record, in u32 words.
+pub const DRAW_WORDS: u32 = 5;
+/// Raw tier counts follow the indexed-indirect draw records.
+pub const RAW_COUNT_OFFSET: u32 = FIELD_LODS.len() as u32 * DRAW_WORDS;
+/// The indirect draw records followed by one raw count per field tier.
+pub const ARGS_WORDS: u32 = RAW_COUNT_OFFSET + FIELD_LODS.len() as u32;
 /// Segments a blade in each LOD tier of a grass kind, finest first (the
 /// scene assets' `GRASS_SEGMENTS`, which the bake writes).
 const KIND_SEGMENTS: [u32; 4] = [4, 3, 2, 1];
