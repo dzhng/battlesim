@@ -1,114 +1,151 @@
-# Renderer cleanup (placeholder)
+# Renderer cleanup
 
-**Status:** placeholder. Nothing is sliced or implemented yet.
+**Status:** planned. Nothing is implemented yet.
 **Updated:** 2026-10-30.
 
 ## Next Agent Prompt
 
-You are picking up the debt the pre-merge review of the shared Rust renderer
-found and deliberately left for later. The renderer is `crates/renderer-core`,
-shared by native and the browser (`crates/renderer-browser`); its closed spec is
-[`specs/done/one-renderer`](../done/one-renderer/README.md). Its bugs, dead code
-and stale docs were fixed before PR #16 merged. What's below is structural:
-- concepts with two owners;
-- GPU layouts no test reflects;
-- WGSL modules that don't own their concepts.
+You are implementing the structural cleanup of the shared Rust renderer
+(`crates/renderer-core`, shared by native and the browser through
+`crates/renderer-browser`; its closed spec is
+[`specs/done/one-renderer`](../done/one-renderer/README.md)). Read this README,
+then [the map](map.md): it holds the verified ground truth, every decision with
+who made it, and the landmines. Load [`renderer`](../../.agents/skills/renderer/SKILL.md)
+before GPU work and [`implement-spec-with-codex`](../../.agents/skills/implement-spec-with-codex/SKILL.md)
+to run the slices: Codex
+(gpt-6.1-sol, high) implements each slice, the orchestrator reviews and
+integrates by cherry-pick, and pushes each verified slice to the open PR.
 
-None changes what the player sees. Walk the list with the user and agree an
-order. Then run `write-spec` and turn this page into a sliced plan. Prove each
-item with byte-identical native plates and the browser scenes.
+**Pick up at [slice 01](slices/01-windows-cutout.md).** Slices 01–03 can run in
+parallel; everything after runs in order.
 
-- [ ] Give each WGSL concept one module.
-- [ ] Reflect every hand-packed GPU layout.
-- [ ] Give the scenery tier mesh one owner.
-- [ ] Give GPU frame timing one owner.
-- [ ] Build world geometry in one place.
-- [ ] Move renderer-core's tests into its own crate.
-- [ ] Decide each track node once.
-- [ ] Trim the generated TypeScript records to what the page reads.
-- [ ] Draw V-wakes, or drop the wave splat's kind.
-- [ ] Stop tests and scenes pinning data or implementation shape.
+Warnings:
+- Every slice before 15 must leave every plate byte-identical. A byte
+  difference fails the slice until traced (see [Proof](#proof)).
+- Run GPU work under `lockf -k /Users/server/dev/battlesim/throwaway/gpu.lock`.
+- Build output once filled the disk. Reuse one base build per slice, fetch
+  only `assets/runtime` LFS into a child checkout, and delete a child's
+  `target/` once its work is integrated.
 
-## The items
+TODO:
+- [ ] [01](slices/01-windows-cutout.md) Windows cutout as its own WGSL variant
+- [ ] [02](slices/02-record-schema.md) Record schema: nested records, i32, TS export list
+- [ ] [03](slices/03-ground-records.md) Ground records: terrain, grass, scars, masks
+- [ ] [04](slices/04-renderer-records.md) Renderer records, lengths and the reverse check
+- [ ] [05](slices/05-composition-grammar.md) Composition grammar and one block per binding
+- [ ] [06](slices/06-concept-moves.md) Move each struct and function to its concept's module
+- [ ] [07](slices/07-names.md) Names: no suffixes, no mangling, no dead aliases
+- [ ] [08](slices/08-collapse-copies.md) Collapse copies and loop the cascades
+- [ ] [09](slices/09-scenery-tier-mesh.md) Scenery tier mesh: one Rust owner
+- [ ] [10](slices/10-world-geometry.md) World geometry: one Rust constructor
+- [ ] [11](slices/11-track-side.md) Track side: decided once, in presentation
+- [ ] [12](slices/12-frame-timing.md) GPU frame timing: one owner
+- [ ] [13](slices/13-move-tests.md) renderer-core's tests in renderer-core
+- [ ] [14](slices/14-brittle-tests.md) Tests and scenes assert behaviour
+- [ ] [15](slices/15-v-wakes.md) V-wakes read on screen, or `kind` goes
+- [ ] Closeout: full `check` and `verify` once, net line count, `close-spec`
 
-1. **WGSL modules don't own their concepts**
-   (`crates/renderer-core/src/shaders/modules/`). Shared structs and functions
-   sit in whichever module first needed them. For example, `Camera` and `Wind`
-   live in `fog_sight.wgsl`, and `TerrainParams` and `WaterLook` in
-   `scenery.wgsl`.
+Before you end a pass, tick what landed, move the pickup point, and record any
+decision the slices didn't make in `choices.md` beside this README (create it
+on first use, in the `audit-choices` ledger form).
 
-   Binding variants carry meaningless suffixes (`_primary`, `_alternate`, …),
-   and compiler-mangled names remain (`params_1`, `item_1`), with aliases that
-   only undo them. There are also hand-copied bodies:
-   - `fogUnpack` and `fogUnpackBuild` are byte-identical;
-   - `fogSample` and `grassSample` are identical;
-   - the fog output struct is defined eight times;
-   - the shadow cascade blend is unrolled four times instead of looping over
-     `SHADOW_CASCADES`.
+## Goal
 
-   Move each struct and function to its concept's module, name the variants by
-   what they are, and collapse the copies. `shaders/README.md` already states
-   the rule.
-2. **Hand-packed GPU layouts aren't reflected.** These are outside `LAYOUTS`:
-   - `TerrainParams`, `ScarParams`, `GrassParams`, `WaveRun`, and the
-     `Environment` prefix.
+Future agents building renderer features find each concept in one place and
+can't break a GPU layout silently. Nothing the player sees changes, except V-wakes
+in slice 15, which ship only with the user's sign-off.
 
-   These layout facts are duplicated as literals:
-   - `scars.rs` `WORDS = 52` and its flag word;
-   - `environment.rs` `SUN_AT = 80`;
-   - `array<WaveSplat, 1536>` (that's `STEP_SPLATS × max_steps`);
-   - `array<WaterLook, 8>` and `array<RoadLook, 4>`;
-   - `536870911u` (`KEY_MASK`), seven times;
-   - `SKY_LUT_WIDTH` and `RAYS_BYTES`.
+## Definition of done
 
-   Raising `WAVE.max_steps` would read splats out of range with no test failing.
-   Export the lengths and masks through `presentation::shader_constants`, add
-   the records to `LAYOUTS`, and derive the offsets.
-3. **The scenery tier mesh has two owners.** Rust `tier_mesh`, `STATE` and
-   `FOLIAGE` (`crates/renderer-core/src/scenery.rs`) are copied in TypeScript
-   as `tierMesh`, `SCENERY_STATE` and `FOLIAGE_MATERIAL`
-   (`packages/battle-renderer/src/scenery/appearance.ts`).
-   `web/src/battle/sim/presentation.ts` places scenery from the TypeScript copy.
-   Have presentation derive the meshes from the bundles it already receives,
-   then delete the TypeScript copy.
-4. **GPU frame timing has two owners.** `native/client/src/bench.rs`
-   (`FrameTimer`) repeats `crates/renderer-core/src/timing.rs`; it differs only
-   in resolving after the frame completes, a Metal workaround. Give the core
-   timer that mode and delete the bench copy.
-5. **World geometry is built twice.** Native builds terrain, skirt, backdrop
-   and water in Rust (`WorldGeometry::from_triangles`). The browser rebuilds
-   them in TypeScript from the same wasm helpers
-   (`web/src/battle/render/sceneGeometry.ts`,
-   `packages/battle-renderer/src/worldMesh.ts`). Also, the "skirt" slot
-   actually carries skirt plus prop faces. Expose one Rust constructor both
-   shells call, and name the slot for what it holds.
-6. **renderer-core's tests live in the native client.** These test
-   `renderer_core` types directly, behind re-export shims:
-   - `native/client/tests/{high_air,impostors,xray,probes,marks,fog_views,frame_views,scar_visibility,model_geometry}.rs`;
-   - the shims are `native/client/src/lib.rs`, `pipelines.rs` and `bundle.rs`.
+Accepted by the user during the walk:
 
-   So `cargo test -p renderer-core` skips most of its own coverage. Move them,
-   with a shared test-device helper, and delete the shims.
-7. **Track nodes are decided twice.** `crates/renderer-core/src/models/admission.rs`
-   and `crates/presentation/src/appearance.rs` both match `track_L`/`track_R`,
-   with different conditions; presentation also requires `link_pitch_m > 0`.
-   Have presentation expose each node's track side, and have admission read it.
-8. **`records.gen.ts` publishes the old renderer's schema.** Most of
-   `crates/presentation/src/records/typescript.rs`'s exports have no TypeScript
-   reader now. Generate only what the page reads.
-9. **The wave splat's `kind` is never read.** `water.wgsl` uploads it but draws
-   every splat as a ring. Shape V-wakes from it, or drop the field.
-10. **Tests and scenes pin data or implementation shape:**
-    - `web/tests/proxyModels.test.ts` copies the gamma formula;
-    - `web/scenes/_rulerTour.mjs` picks marks by mount index;
-    - `web/scenes/_modelGhost.mjs` pins a catalog prop;
-    - `web/tests/modelWorkbenchSource.test.tsx` mocks six internal modules;
-    - `_appJourney.mjs` and `_terrainQuery.mjs` re-implement the GPU
-      allocation observer `_leaks.mjs` owns.
+1. Every shared WGSL struct and function is defined once, in the module named
+   for its concept; [`shaders/README.md`](../../crates/renderer-core/src/shaders/README.md)
+   maps concept to module.
+2. No compiler-mangled names or position suffixes; aliases remain only where
+   two callers genuinely bind different names.
+3. Every buffer layout a shader reads is checked by a test, and every fixed
+   array length and mask in WGSL is a constant exported from its Rust owner. A
+   Rust length that the shader doesn't follow fails a test.
+4. The scenery tier mesh, GPU frame timing, world geometry and track side each
+   have one owner.
+5. `cargo test -p renderer-core` runs the renderer's own GPU tests; native keeps
+   no re-export shims.
+6. The generated TypeScript records hold only what something reads.
+7. Slices 01–14 leave every plate byte-identical.
+8. Net line count goes down; reported at closeout, not a target.
 
-    Assert behaviour instead (`write-tests`).
+## Single-owner invariants
 
-## Open questions for the walk
+Every slice keeps these true, and none adds a layer a later slice must delete:
 
-- Which of these is worth doing before more renderer features land on top?
-  The WGSL module ownership and layout reflection are the riskiest to leave.
+- **GPU record layouts:** `presentation::records` (the `records!` macro and its
+  `LAYOUTS` lists). Packers derive sizes and offsets from it; WGSL is checked
+  against it by `crates/renderer-core/tests/pipeline_abi.rs`.
+- **Shader constants:** `presentation::shader_constants`, prepended to every
+  built-in shader. Each value is owned by the CPU concept that bounds or
+  allocates it.
+- **The TypeScript records** are a chosen subset, not the whole schema.
+- **Shader text:** one authored body per algorithm, in its concept's module;
+  `pipeline_sources.txt` composes them; nothing rewrites shader text at runtime.
+- **Scene admission:** Rust builds scenery tiers, world geometry and track facts
+  for both shells; TypeScript passes inputs, never rebuilds them.
+- **GPU timing:** `renderer_core::timing`.
+- **Renderer tests:** live in `renderer-core`, with one shared test-device helper.
+
+## Proof
+
+The proof is a scratch script per slice (map Q2), not a committed tool.
+
+1. **Determinism probe (once, first):** build the base `native-client` and
+   render one menu-reel scene twice; `cmp` the plates. If they differ, stop:
+   the byte-identical rule can't work, and the user decides what replaces it.
+2. **Frozen inputs:** film three parity runs once from the base build and reuse
+   them in every slice: the menu reel, the menu reel with `PARITY_FOG=1`, and the
+   water reel (`bun run --cwd web scene -- native-parity-capture`, with
+   `PARITY_CAPTURE=water` for the last). They live in `throwaway/native-parity/`.
+3. **Assembled-shader diff first:** dump `renderer_core::pipelines::builtin_source`
+   for every built-in shader from the base and the changed build, and diff. An
+   empty diff proves a slice that only moves code, with no GPU. A rename-only
+   diff gets a token-map check.
+4. **Plates:** render the three runs with the base and the changed build
+   (`native-client --run <dir> --scene <map> --out <dir>`) and `cmp` every plate.
+5. **GPU pixel tests** (high air, impostors, x-ray, probes, marks, fog views,
+   frame views, scars, pipelines, water sampling) and the browser scenes each
+   slice names.
+
+**A byte difference** fails the slice until traced to its cause. Put the
+original expression back, unless the change is deliberate maths; a deliberate
+change is a named decision in `choices.md` with diff stats (map unknown 1).
+
+## Slice graph
+
+```
+01 ─────────────────────────────┐
+02 ─┬─ 03 ─┐                    ├─ 05 ─ 06 ─ 07 ─ 08 ─ 09 ─ 10 ─ 11 ─ 12 ─ 13 ─ 14 ─ 15
+    └─ 04 ─┴────────────────────┘
+```
+
+- 01 is first because it must land before any WGSL rename, and 03 and 04 rename
+  some struct members.
+- 03 and 04 both need 02's schema; they touch different records and can run in
+  parallel.
+- 09–11 all touch scene admission; they run in order to keep each diff
+  reviewable.
+- 12 touches no pixels and could run beside 09–11; it waits only to keep one
+  slice in flight on a shared file set.
+
+**Alternatives considered.** One draft merged everything into six slices
+(layouts; shader composition; scene admission; timing; test harness; wakes).
+It was rejected because each merged slice needed several verdicts. Another
+draft added a committed proof tool as slice 0; the user chose a scratch script
+instead (map Q2).
+
+## Firewalls
+
+- No change to battle outcomes or digests: nothing here touches `crates/sim`.
+- No change to what any shell draws before slice 15.
+- No backward compatibility or migrations: hard cutovers inside the repo
+  (map Q6). Nothing outside the repo reads these layouts or records.
+- No new renderer features. A latent bug found on the way gets its own commit
+  and a `choices.md` entry.
