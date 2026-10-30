@@ -153,7 +153,7 @@ const GRASS_STAND_PARCHED_TO = 0.8;
     let row = (*P).kinds[kind];
     // Patches a few metres across stand taller or lower, as uneven grass does.
     let tall = valueNoise(p * (*P).patchScales.x);
-    let height = row.x * g.y * grow * fade * mix(0.8, 1.2, h.x) * mix(stand.x, stand.y, tall) * mix(GRASS_STAND_EDGE_HEIGHT, 1.0, edge);
+    let height = row.x * g.y * grow * fade * mix(GRASS_HEIGHT_MIN, GRASS_HEIGHT_MAX, h.x) * mix(stand.x, stand.y, tall) * mix(GRASS_STAND_EDGE_HEIGHT, 1.0, edge);
     if (height < GRASS_STAND_LEAST_HEIGHT_M) { continue; }
     let centre = root + vec3f(0.0, 0.0, height * 0.5);
     let radius = height * 0.8 + 0.4;

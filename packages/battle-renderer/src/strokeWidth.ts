@@ -22,21 +22,6 @@ export interface StrokeRule {
   min_m: number;
 }
 
-export function validateStrokeRule(s: StrokeRule): StrokeRule {
-  const ok =
-    s.full_m_per_px > 0 &&
-    s.thin_m_per_px > s.full_m_per_px &&
-    s.thin_scale > 0 &&
-    s.thin_scale <= 1 &&
-    s.min_px > 0 &&
-    s.min_m > 0;
-  if (!ok)
-    throw new Error(
-      `presentation.overlay.stroke: 0 < full_m_per_px < thin_m_per_px, thin_scale in (0, 1], min_px and min_m > 0; got ${JSON.stringify(s)}`,
-    );
-  return s;
-}
-
 /** A stroke's width in metres on the ground from its full width in pixels. */
 export type StrokeWidth = (px: number) => number;
 

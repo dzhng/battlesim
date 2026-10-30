@@ -1,11 +1,6 @@
 // @vitest-environment node
-import { presentationSettings } from "@web/presentationSettings";
 import { expect, test } from "vitest";
-import {
-  strokeWidth,
-  validateStrokeRule,
-  type StrokeRule,
-} from "../../packages/battle-renderer/src/strokeWidth";
+import { strokeWidth, type StrokeRule } from "../../packages/battle-renderer/src/strokeWidth";
 
 const RULE: StrokeRule = {
   full_m_per_px: 0.05,
@@ -44,12 +39,6 @@ test("no stroke thins below the legibility floor on screen, nor its own width", 
 
 test("no stroke is narrower than the floor on the ground", () => {
   expect(strokeWidth(RULE, 1e-4)(5)).toBeCloseTo(0.05, 9);
-});
-
-test("the fixture's rule is valid and a backwards zoom range is refused", () => {
-  expect(() => validateStrokeRule(presentationSettings.overlay.stroke)).not.toThrow();
-  expect(() => validateStrokeRule({ ...RULE, thin_m_per_px: 0.01 })).toThrow(/stroke/);
-  expect(() => validateStrokeRule({ ...RULE, thin_scale: 1.5 })).toThrow(/stroke/);
 });
 
 test("reduced render resolution preserves the minimum in render pixels without enlarging CSS-sized bodies", () => {

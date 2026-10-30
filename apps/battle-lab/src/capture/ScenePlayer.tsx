@@ -5,7 +5,6 @@
 // the reel has played, behind the veil, says so (`onEnd`). The stage it
 // draws is one element: the battle, any `children` laid over it, the cards
 // when on, and the veil on top.
-import { shippedRules } from "@web/shippedRules";
 import { useEffect, useRef, useState, type ReactNode, type Ref, type RefObject } from "react";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
@@ -59,6 +58,7 @@ interface ReelBattle {
  *  warm tick and `hold` settles, then flies the reel on the battle's clock. */
 function sceneCamera(
   scene: CaptureScene,
+  tickHz: number,
   veil: RefObject<HTMLDivElement | null>,
   plate: RefObject<HTMLElement | null> | undefined,
   hold: () => Promise<void>,
@@ -73,9 +73,9 @@ function sceneCamera(
   // The reel runs on the battle's clock, not the wall's: a battle running
   // behind real time (a slow worker, a stalled frame) keeps each cut on the
   // moment it was cut for.
-  const warmClock = Math.round(scene.warm_s * shippedRules.tick_hz) / shippedRules.tick_hz;
+  const warmClock = Math.round(scene.warm_s * tickHz) / tickHz;
   const scripted: ScriptedSim = {
-    warmTo: Math.round(scene.warm_s * shippedRules.tick_hz),
+    warmTo: Math.round(scene.warm_s * tickHz),
     hold,
     onWarm: () => (warm = true),
     onTick: () => {},
@@ -166,6 +166,7 @@ export function ScenePlayer({
   const [camera] = useState(() =>
     sceneCamera(
       scene,
+      (JSON.parse(scenario) as { rules: { tick_hz: number } }).rules.tick_hz,
       veil,
       plate,
       () => {

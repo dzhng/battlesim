@@ -103,9 +103,6 @@ impl AudioMix {
                 }
             }
         }
-        for (kind, r) in &self.impacts {
-            sound(&r.sound, &format!("impacts.{kind}.sound"))?;
-        }
         sound(
             &self.weapon_defaults.blast.near,
             "weapon_defaults.blast.near",
@@ -140,7 +137,6 @@ impl AudioMix {
         for (at, name) in [
             ("ambience.sound", &self.ambience.sound),
             ("footsteps.sound", &self.footsteps.sound),
-            ("ricochet.sound", &self.ricochet.sound),
             ("air_alarm.sound", &self.air_alarm.sound),
             ("missile_warning.sound", &self.missile_warning.sound),
             ("flare_deploy.sound", &self.flare_deploy.sound),

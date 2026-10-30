@@ -113,7 +113,7 @@ impl TerrainProbe {
         reference: &[u8],
         reference_side: u32,
     ) -> Result<Readback, String> {
-        let groups = workgroups(device, rows.len())?;
+        let groups = workgroups(device, rows.len(), 64)?;
         check_storage(device, "terrain-query-input", rows.len() as u64 * 16)?;
         let bytes = rows.len() as u64 * 16 * self.query.vectors();
         let output = storage(device, "terrain-query-output", bytes)?;

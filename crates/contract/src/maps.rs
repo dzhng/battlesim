@@ -310,9 +310,6 @@ pub fn admit_world(map: &MapDefinition, rules: &crate::scenario::Rules) -> Vec<R
     .into_iter()
     .map(|error| (format!("map.{}", error.field), Err(error.message.into())))
     .collect();
-    if let Err(error) = rules.check() {
-        checks.push((format!("rules.{}", error.path), Err(error.message)));
-    }
     checks.push((
         "map.forests".into(),
         (map.forests.len() <= 1 << 24)

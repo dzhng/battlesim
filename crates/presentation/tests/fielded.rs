@@ -101,3 +101,73 @@ fn a_ground_hull_model_without_its_gauge_is_refused_before_loading_bundles() {
         "{error}"
     );
 }
+
+#[test]
+fn each_factions_gauge_drives_its_own_track_travel() {
+    use presentation::units::driver::{FeedFrame, FeedUnit, PoseDriver};
+    use serde_json::json;
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+    let catalog = rules.catalog.view();
+    let unit = catalog["units"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|u| u["id"] == "test_tank")
+        .unwrap();
+    let appearance = unit["appearance"].as_str().unwrap();
+    let half_width = unit["body"]["hull"]["half_extents_m"][1].as_f64().unwrap();
+    let runtime = Runtime::open(&root.join("assets/runtime")).unwrap();
+    let mut art = runtime.catalog.clone();
+    for (name, gauge) in [("test_blue_hull", 0.5), ("test_red_hull", 0.9)] {
+        art["appearances"][name] = art["appearances"][appearance].clone();
+        art["appearances"][name]["track_gauge"] = json!(gauge);
+    }
+    art["appearances"][appearance]["factions"] =
+        json!({"test_blue": "test_blue_hull", "test_red": "test_red_hull"});
+    let units = Fielding {
+        presentation: &serde_json::from_str(include_str!("../../../fixtures/presentation.json"))
+            .unwrap(),
+        rules: &serde_json::to_value(rules).unwrap(),
+        catalog: &catalog,
+        runtime: &art,
+        kinds: &["test_tank".into()],
+        factions: Some(["test_blue", "test_red"]),
+    }
+    .resolve(&|hash| runtime.read(hash, "bundle.bin"))
+    .unwrap()
+    .typed()
+    .unwrap()
+    .units;
+    let mut driver = PoseDriver::new(&units).unwrap();
+    for yaw in [0.0, 0.5] {
+        driver.update(
+            &FeedFrame {
+                time: yaw,
+                units: ["blue", "red"]
+                    .into_iter()
+                    .map(|side| FeedUnit {
+                        id: 1.0,
+                        kind: "test_tank".into(),
+                        side: side.into(),
+                        yaw,
+                        ..FeedUnit::default()
+                    })
+                    .collect(),
+                fallen: Default::default(),
+            },
+            &units,
+            None,
+        );
+    }
+    for pose in &driver.poses().vehicles {
+        let gauge = if &*pose.side == "blue" { 0.5 } else { 0.9 };
+        let travelled = pose.articulation.travel_r - pose.articulation.travel_l;
+        assert!(
+            (travelled - half_width * gauge).abs() < 1e-12,
+            "{}: {travelled}",
+            pose.side
+        );
+    }
+}

@@ -2,6 +2,7 @@
 // views read.
 import type { PreparedConnectionSession } from "@web/battle/prepare/client";
 import type { SoldierBody } from "@packages/battle-renderer/src/picking";
+import type { GameRules } from "@web/battle/catalog/compose";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import type { RulerRules } from "@web/battle/present/rangeRuler";
 import type { ObservationView } from "@web/battle/sim/observationView";
@@ -41,7 +42,7 @@ export interface BattleSessionOptions {
  *  catalog's documents. */
 export interface ScenarioRules extends PanelRules, RulerRules {
   tick_hz: number;
-  weapons: PanelRules["weapons"] & RulerRules["weapons"];
+  weapons: GameRules["weapons"];
   physics: SoldierBody & RulerRules["physics"];
   service: { radius_m: number };
   /** The sensor numbers fog of war shares with the simulation (the

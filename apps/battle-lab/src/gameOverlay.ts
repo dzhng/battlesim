@@ -4,27 +4,19 @@
 // lab route draws with them.
 import { overlaySettings } from "@web/presentationSettings";
 import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
-import {
-  validateOverlayGlow,
-  type OverlayGlowStyle,
-} from "@packages/battle-renderer/src/overlayStyle";
-import { validateOrderStyle, type OrderStyle } from "@packages/battle-renderer/src/orderOverlay";
-import { validatePaintStyle, type PaintStyle } from "@packages/battle-renderer/src/paintStyle";
-import { validateSupplyStyle, type SupplyStyle } from "@packages/battle-renderer/src/supplyOverlay";
+import { type OverlayGlowStyle } from "@packages/battle-renderer/src/overlayStyle";
+import { type OrderStyle } from "@packages/battle-renderer/src/orderOverlay";
+import { type PaintStyle } from "@packages/battle-renderer/src/paintStyle";
+import { type SupplyStyle } from "@packages/battle-renderer/src/supplyOverlay";
 import type { Rgba } from "@packages/battle-renderer/src/mesh";
-import {
-  validateRulerStyle,
-  type RulerStyle,
-} from "@packages/battle-renderer/src/rangeRulerOverlay";
-import { validateZoneColor } from "@packages/battle-renderer/src/playAreaOverlay";
+import { type RulerStyle } from "@packages/battle-renderer/src/rangeRulerOverlay";
 import {
   strokeWidth,
-  validateStrokeRule,
   type StrokeRule,
   type StrokeWidth,
 } from "@packages/battle-renderer/src/strokeWidth";
-import { validateXray, type XrayStyle } from "@packages/battle-renderer/src/models/modelInstances";
-import { validateOrderFlash, type OrderFlash } from "@web/battle/present/orderReveal";
+import { type XrayStyle } from "@packages/battle-renderer/src/models/modelInstances";
+import { type OrderFlash } from "@web/battle/present/orderReveal";
 import { gameHud } from "@web/battle/present/hudTheme";
 import { gameCamera } from "./gameCamera";
 
@@ -32,17 +24,17 @@ import { gameCamera } from "./gameCamera";
  *  and the x-ray): `presentation.overlay.glow.overlay`.
  *  The painted ground marks glow by their own emissive (`gamePaint`), the
  *  callouts by the HUD's CSS (`glow.callouts`, `hudTheme.ts`). */
-export const gameOverlayGlow: OverlayGlowStyle = validateOverlayGlow({
+export const gameOverlayGlow: OverlayGlowStyle = {
   radius_px: overlaySettings.glow.radius_px,
   strength: overlaySettings.glow.overlay,
-});
+};
 
 /** The ground paint (`frame/paintedMarks.ts`): its emissive glow
  *  (`glow.ground`), `paint`'s reflectance and fog. */
-export const gamePaint: PaintStyle = validatePaintStyle({
+export const gamePaint: PaintStyle = {
   emissive: overlaySettings.glow.ground,
   ...overlaySettings.paint,
-});
+};
 
 const { flash: orderFlash, ...orders } = overlaySettings.orders;
 
@@ -55,27 +47,25 @@ const CANNOT: Rgba = [...gameHud.bad, 1];
  * consequence of firing into this patch of ground. */
 export const gameAttackGroundSpread: Rgba = [...gameHud.bad, 0.82];
 
-export const gameOrderStyle: OrderStyle = validateOrderStyle({
+export const gameOrderStyle: OrderStyle = {
   ...(orders as unknown as Omit<OrderStyle, "blocked" | "ally">),
   blocked: CANNOT,
   ally: [...gameHud.ally, 1],
-});
+};
 
 /** How long an order's marks show once it is given (`orders.flash`). */
-export const gameOrderFlash: OrderFlash = validateOrderFlash(orderFlash);
+export const gameOrderFlash: OrderFlash = orderFlash;
 
-export const gameSupplyStyle: SupplyStyle = validateSupplyStyle(
-  overlaySettings.supply as unknown as SupplyStyle,
-);
+export const gameSupplyStyle: SupplyStyle = overlaySettings.supply as unknown as SupplyStyle;
 
 /** The range ruler's ground paint (Space held with a selection). */
-export const gameRulerStyle: RulerStyle = validateRulerStyle({
+export const gameRulerStyle: RulerStyle = {
   ...(overlaySettings.ruler as unknown as Omit<RulerStyle, "beyond">),
   beyond: CANNOT,
-});
+};
 
 /** The objective zone's edge. */
-export const gameZone: Rgba = validateZoneColor(overlaySettings.zone);
+export const gameZone = overlaySettings.zone as unknown as Rgba;
 
 /** The colour a unit's hidden parts are drawn in through the world in front
  *  of it (`ModelInstance.xray`). */
@@ -88,12 +78,12 @@ export const gameXray: XrayStyle = (() => {
     selected_alpha: number;
   };
   const [r, g, b] = gameOrderStyle.selected;
-  return validateXray({ own: x.own, ally: x.ally, selected: [r, g, b, x.selected_alpha] });
+  return { own: x.own, ally: x.ally, selected: [r, g, b, x.selected_alpha] };
 })();
 
 /** How every painted mark's stroke thins as the camera pulls out
  *  (`presentation.overlay.stroke`). */
-const gameStrokeRule: StrokeRule = validateStrokeRule(overlaySettings.stroke);
+const gameStrokeRule: StrokeRule = overlaySettings.stroke;
 
 /** The marks' stroke widths where one pixel spans `metresPerPx`. */
 export function gameStroke(metresPerPx: number, renderScale = 1): StrokeWidth {

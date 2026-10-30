@@ -74,9 +74,9 @@ async function fixture() {
   const audio = {
     ...authoredAudio,
     impacts: {
-      default: { sound: "impact_ground", gain: 0.2 },
-      ground: { sound: "impact_ground", gain: 0.2 },
-      hull: { sound: "impact_hull", gain: 0.4 },
+      default: { gain: 0.2 },
+      ground: { gain: 0.2 },
+      hull: { gain: 0.4 },
     },
     vehicles: { default: authoredAudio.vehicles.default },
     footsteps: { sound: "footstep", gain: 0.07, stride_m: 0.8, max_step_m: 2 },

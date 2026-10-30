@@ -134,8 +134,6 @@ export function BattleView({
   const metresPerPx = metresPerPxAt(ZOOM_BASE ** zoom, camera.fovY, window.innerHeight);
   const [renderScale, setRenderScale] = useState(1);
   const contactFacing = useContactFacing(camera, metresPerPx, renderScale);
-  const cues = useCaptions(parsed.tickHz);
-  const { note: noteCues } = cues;
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewportReady, setViewportReady] = useState(false);
   const session = useBattleSession({
@@ -154,6 +152,8 @@ export function BattleView({
     sound: true,
     inputEnabled: !menuOpen && viewportReady && inCommand,
   });
+  const cues = useCaptions(session.units, session.rules.tick_hz);
+  const { note: noteCues } = cues;
   const input = !replay && !scripted;
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);

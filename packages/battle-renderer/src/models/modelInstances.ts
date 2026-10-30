@@ -16,7 +16,7 @@ import {
   type Articulation,
 } from "@packages/scene-assets/src/articulation";
 import { poseWorlds, worldTransforms } from "@packages/scene-assets/src/pose";
-import { isRgba, type Rgba } from "../mesh";
+import { type Rgba } from "../mesh";
 import { JOINT_WORDS } from "../records.gen";
 
 /** A body or vehicle posed by its joint palette: one `Joint` (3×4 rows,
@@ -82,16 +82,6 @@ export interface XrayStyle {
   own: Rgba;
   selected: Rgba;
   ally: Rgba;
-}
-
-/** `presentation.overlay.xray`, checked: each rgba, none invisible. */
-export function validateXray(x: XrayStyle): XrayStyle {
-  const seen = (c: unknown) => isRgba(c) && c[3] > 0;
-  if (!seen(x.own) || !seen(x.selected) || !seen(x.ally))
-    throw new Error(
-      "presentation.overlay.xray: own, selected and ally, rgba in [0, 1] with alpha > 0",
-    );
-  return x;
 }
 
 /** Column-major model matrices as palette joints. */

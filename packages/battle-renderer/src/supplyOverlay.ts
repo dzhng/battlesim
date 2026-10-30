@@ -2,7 +2,7 @@
 // orders' line weight with the overlay's glow, so it reads at any zoom. It
 // is an extent, not a state: whether the truck is set up and supplying is
 // its info panel's. Which vehicles show is the caller's.
-import { groundRing, isRgba, MeshBuilder, paintOnly, type Rgba } from "./mesh";
+import { groundRing, MeshBuilder, paintOnly, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { WorldMeshes } from "./scene";
 
@@ -14,12 +14,6 @@ interface SupplySource {
 /** `presentation.overlay.supply`: the colour of a truck's reach. */
 export interface SupplyStyle {
   reach: Rgba;
-}
-
-export function validateSupplyStyle(style: SupplyStyle): SupplyStyle {
-  if (!isRgba(style?.reach))
-    throw new Error("presentation.overlay.supply: rgba in [0, 1] for reach");
-  return style;
 }
 
 /** Rings `line` metres wide (the orders' line weight), glowing by the

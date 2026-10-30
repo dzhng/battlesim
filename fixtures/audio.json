@@ -38,36 +38,28 @@
   "late_s": 0.25,
   "impacts": {
     "default": {
-      "sound": "impact_ground",
       "gain": 0.45
     },
     "ground": {
-      "sound": "impact_ground",
       "gain": 0.55
     },
     "water": {
-      "sound": "impact_ground",
       "gain": 0.55
     },
     "hull": {
-      "sound": "impact_hull",
       "gain": 0.85
     },
     "prop": {
-      "sound": "impact_prop",
       "gain": 0.5
     },
     "metal_prop": {
-      "sound": "impact_prop",
       "gain": 0.5
     },
     "soldier": {
-      "sound": "impact_soldier",
       "gain": 0.25
     }
   },
   "ricochet": {
-    "sound": "ricochet",
     "gain": 0.25
   },
   "cook_off": {

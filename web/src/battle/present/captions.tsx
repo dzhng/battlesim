@@ -5,7 +5,7 @@
  *  rows expire a few seconds after the sound was last heard, and only the
  *  newest few show. Hearing cues are always captioned, independently of
  *  audio settings. */
-import { useSessionCatalog } from "../catalog/context";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { useCallback, useState } from "react";
 import type { ObservationView, SoundCueView } from "../sim/observationView";
 import { unitName } from "./readouts";
@@ -80,8 +80,7 @@ export function foldCaptions(
   return next.slice(0, CAPTION_ROWS);
 }
 
-export function useCaptions(tickHz: number) {
-  const { units } = useSessionCatalog();
+export function useCaptions(units: UnitCatalog, tickHz: number) {
   const [captions, setCaptions] = useState<CaptionLine[]>([]);
 
   /** Caption one decoded frame's cues; expire old rows. */

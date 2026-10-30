@@ -34,12 +34,10 @@ export function standInPresentationRecordings(catalog: SoundCatalog, presentatio
     presentation.weapon_defaults.blast.far,
     ...Object.values(presentation.weapon_defaults.impacts),
     ...Object.values(presentation.effects),
-    ...Object.values(presentation.impacts).map((row) => row.sound),
     ...[
       presentation.air_alarm,
       presentation.missile_warning,
       presentation.flare_deploy,
-      presentation.ricochet,
       presentation.footsteps,
     ].map((row) => row.sound),
     presentation.cook_off.blast.near,

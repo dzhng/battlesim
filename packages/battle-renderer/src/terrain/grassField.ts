@@ -15,13 +15,6 @@ import type { StaticBundle } from "@packages/scene-assets/src/schema.ts";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader.ts";
 import { GrassShapes } from "@wasm/renderer_browser";
 
-/** Plot kinds the GPU growth table holds; the last row is the verge. */
-export const GRASS_GROWTH_ROWS = 16;
-/** The most grasses one growth row mixes (`ground::biome::GRASS_MIX_MAX`). */
-export const GRASS_MIX_MAX = 4;
-/** Grass appearances one field draws. */
-export const GRASS_MAX_KINDS = 16;
-
 /** Grass appearances (scenery kind "grass") by catalog name. */
 export type GrassAppearances = ReadonlyMap<string, StaticBundle>;
 

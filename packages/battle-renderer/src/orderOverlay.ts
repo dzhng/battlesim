@@ -34,7 +34,6 @@ import {
   groundAnnulus,
   groundRing,
   groundStrip,
-  isRgba,
   MeshBuilder,
   paintOnly,
   type Mesh,
@@ -108,40 +107,6 @@ export interface OrderStyle {
   drop_line_alpha: number;
   drop_line_hold: number;
   drop_line_reach: number;
-}
-
-export function validateOrderStyle(style: OrderStyle): OrderStyle {
-  const unit = (v: number) => v > 0 && v <= 1;
-  const ok =
-    style.line_px > 0 &&
-    style.mark_px > 0 &&
-    style.soldier_mark_px > 0 &&
-    style.soldier_line_px > 0 &&
-    style.cover_pip_m > 0 &&
-    unit(style.queued_alpha) &&
-    unit(style.current_alpha) &&
-    style.march?.cycles_per_s >= 0 &&
-    style.march?.amplitude >= 0 &&
-    style.march?.amplitude <= 1 &&
-    unit(style.area_draw_scale) &&
-    [style.glow?.order, style.glow?.selected].every((g) => g > 0 && g <= 2) &&
-    style.cover_glow >= 1 &&
-    style.cover_glow <= 2 &&
-    style.vehicle_marker_margin_m > 0 &&
-    style.building_marker_margin_m > 0 &&
-    style.drop_line_px > 0 &&
-    style.drop_line_spacing > 1 &&
-    unit(style.drop_line_alpha) &&
-    unit(style.drop_line_reach) &&
-    style.drop_line_hold >= 0 &&
-    style.drop_line_hold < style.drop_line_reach &&
-    (["light", "medium", "heavy"] as const).every((k) => isRgba(style.cover?.[k])) &&
-    [style.color, style.blocked, style.selected, style.ally].every(isRgba);
-  if (!ok)
-    throw new Error(
-      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected, ally and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow.{order, selected} in (0, 2], cover_glow in [1, 2], vehicle_marker_margin_m, building_marker_margin_m and drop_line_px > 0, drop_line_spacing > 1, drop_line_alpha and drop_line_reach in (0, 1], drop_line_hold in [0, drop_line_reach)`,
-    );
-  return style;
 }
 
 interface MemberOrderMark {

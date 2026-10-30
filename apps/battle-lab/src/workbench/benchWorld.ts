@@ -37,7 +37,7 @@ import type {
   Bundle,
   SkeletonClips,
 } from "@packages/scene-assets/src/schema";
-import { GRASS_MAX_HEIGHT_M } from "@packages/scene-assets/src/grass";
+import { GRASS_MAX_HEIGHT_M } from "@packages/battle-renderer/src/records.gen";
 import { fixtureAuthority } from "@packages/scene-assets/src/authority";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 

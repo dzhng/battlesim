@@ -1,5 +1,4 @@
 import { presentationSettings } from "@web/presentationSettings";
-import { shippedRules } from "@web/shippedRules";
 import { useEffect, useRef, useState } from "react";
 import { vec2, type Vec2, type Vec3 } from "math";
 import type { SessionCatalog } from "@web/battle/catalog/compose";
@@ -11,14 +10,6 @@ import { STREET_CAMERA, STREET_SEED } from "../streetScenario";
 import { REVIEW_LANES, buildProjectileReview, reviewLanePositions } from "../projectileReview";
 import { TickStatus } from "../TickStatus";
 import { weapon_looks } from "@wasm/renderer_browser";
-
-// Tooling reads the same Rust-resolved looks as the frame.
-const resolved = JSON.parse(
-  weapon_looks(JSON.stringify(presentationSettings), JSON.stringify(shippedRules.weapons)),
-) as {
-  weapons: Record<string, string>;
-  looks: Record<string, { tracer: { glow: { color: number[]; intensity: number } } }>;
-};
 
 const _projectiles_xy: Vec2 = [0, 0];
 function near(position: Vec3, at: Vec2) {
@@ -34,7 +25,6 @@ export default function Projectiles() {
 }
 
 function Review({ scenario }: { scenario: string }) {
-  const { weapons } = useSessionCatalog();
   return (
     <BattleView
       fixture="projectiles"
@@ -42,20 +32,29 @@ function Review({ scenario }: { scenario: string }) {
       seed={STREET_SEED}
       camera={STREET_CAMERA}
       status={(session) => <ReviewControls session={session} />}
-      diagnostics={(session) => ({
-        show: (index: number) => showLane(weapons, index),
-        lanes: () =>
-          REVIEW_LANES.map((lane, index) => {
-            const glow = resolved.looks[resolved.weapons[lane.weapon]].tracer.glow;
-            return {
-              ...lane,
-              ...reviewLanePositions(weapons, index),
-              ...weapons[lane.weapon],
-              tick_hz: session.rules.tick_hz,
-              tracerRGB: glow.color.map((c) => c * glow.intensity),
-            };
-          }),
-      })}
+      diagnostics={(session) => {
+        const weapons = session.rules.weapons;
+        const resolved = JSON.parse(
+          weapon_looks(JSON.stringify(presentationSettings), JSON.stringify(weapons)),
+        ) as {
+          weapons: Record<string, string>;
+          looks: Record<string, { tracer: { glow: { color: number[]; intensity: number } } }>;
+        };
+        return {
+          show: (index: number) => showLane(weapons, index),
+          lanes: () =>
+            REVIEW_LANES.map((lane, index) => {
+              const glow = resolved.looks[resolved.weapons[lane.weapon]].tracer.glow;
+              return {
+                ...lane,
+                ...reviewLanePositions(weapons, index),
+                ...weapons[lane.weapon],
+                tick_hz: session.rules.tick_hz,
+                tracerRGB: glow.color.map((c) => c * glow.intensity),
+              };
+            }),
+        };
+      }}
     />
   );
 }
@@ -78,7 +77,7 @@ function ReviewControls({ session }: { session: BattleSession }) {
   const { observation } = session.sim;
   const ordered = useRef(new Set<number>());
   const [view, setView] = useState(-1);
-  const { weapons } = useSessionCatalog();
+  const weapons = session.rules.weapons;
   const weapon = view >= 0 ? weapons[REVIEW_LANES[view].weapon] : null;
   useEffect(() => {
     ordered.current.clear();

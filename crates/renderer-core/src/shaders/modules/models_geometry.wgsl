@@ -131,7 +131,7 @@ fn groundRoads(xy: vec2f, footprint: f32, paved: GroundPaved, under: vec4f) -> v
      if(out<0.0&&u32(street.join.w)==k){core*=1.0-walkJoint(footprint,paved);}
     }
     if(out>=0.0&&look.stones.z>0.0&&paved.bearing>=0.0&&!plain){
-     // A plain border a slab wide (at most slabs.areaBorderM) runs along the
+     // A plain border a slab wide (at most GROUND_AREA_BORDER_M) runs along the
      // edge line before the grid starts: where the grid is not square to
      // the street, it meets the border, not the kerb.
      let border=1.0-smoothstep(0.0,footprint,out-min(1.0/look.stones.z,GROUND_AREA_BORDER_M));

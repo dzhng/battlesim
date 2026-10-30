@@ -18,6 +18,7 @@
 // grows on (the field tints each clump by its own ground, relative to it),
 // and in its alpha how far the kind answers the wind (1 fully, 0 not at all).
 
+import { GRASS_HEIGHT_MAX } from "../../battle-renderer/src/records.gen";
 import { vec3, type Vec3 } from "math";
 import { mulberry32, random } from "math/random";
 import { encodeGlb, type GltfJson } from "./glb.ts";
@@ -28,14 +29,8 @@ export const GRASS_SEGMENTS = [4, 3, 2, 1] as const;
 /** Blades a clump may hold: the field pads every kind to the most. */
 export const GRASS_MAX_BLADES = 8;
 
-/** No grass or crop the field draws stands taller: half a soldier, so nothing
- *  drawn looks like cover the simulation does not give. */
-export const GRASS_MAX_HEIGHT_M = 0.9;
 /** A blade's outline when its spec gives none. */
 const BLADE_SHAPE = { taper: 1.6, belly: 0 } as const;
-
-/** Each clump's own height variation, shared with the field shader. */
-export const GRASS_HEIGHT_VARIATION = [0.8, 1.2] as const;
 
 /** Highest vertex in any tier the field can draw, including imported clumps. */
 export function grassMeshHeight(tiers: readonly MeshData[]): number {
@@ -55,7 +50,7 @@ export function maxFieldGrassHeight(
   patchScale: number,
 ): number {
   let height = Math.fround(Math.fround(sourceHeight) * Math.fround(biomeScale));
-  height = Math.fround(height * Math.fround(GRASS_HEIGHT_VARIATION[1]));
+  height = Math.fround(height * Math.fround(GRASS_HEIGHT_MAX));
   return Math.fround(height * Math.fround(patchScale));
 }
 

@@ -10,9 +10,9 @@ use super::tables::{vec4, word};
 use super::{Ground, PROP};
 
 /// Plot kinds the growth table holds; the last row is the verge.
-const GROWTH_ROWS: usize = 16;
+pub const GROWTH_ROWS: usize = 16;
 /// Grass appearances one field draws.
-const MAX_KINDS: usize = 16;
+pub const MAX_KINDS: usize = 16;
 /// The props table's smallest cell and most cells a side; a prop is listed
 /// this far past its bounds, so a point the GPU's f32 puts in the next cell
 /// still finds it.
@@ -34,11 +34,12 @@ pub const FIELD_SEGMENTS: [u32; 2] = [KIND_SEGMENTS[FIELD_LODS[0]], KIND_SEGMENT
 /// Floats a clump vertex on the GPU: spine (xyz, height fraction), side
 /// (xyz, phase), normal (xyz, 0), tint (rgb, how far it answers the wind).
 pub const SHAPE_FLOATS: usize = 16;
-/// The scene assets' limits on a clump (`grass.ts`): its height
-/// variation's top (`GRASS_HEIGHT_VARIATION[1]`) and the tallest grass any
-/// field may draw (`GRASS_MAX_HEIGHT_M`, half a soldier).
+/// Per-clump height variation shared by packing, authoring and the shader.
+pub const HEIGHT_VARIATION: [f64; 2] = [0.8, 1.2];
+
+/// Grass stays below half a soldier, so its look never promises physical cover.
 pub const LIMITS: Limits = Limits {
-    variation: 1.2,
+    variation: HEIGHT_VARIATION[1],
     tallest: 0.9,
 };
 

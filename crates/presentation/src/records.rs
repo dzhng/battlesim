@@ -431,7 +431,7 @@ records! {
     /// (`shadow::sun_shadow`).
     Struct SunShadow {
         /// Per cascade slot (`shadow::CASCADES`).
-        cascades: [SunCascade; 4],
+        cascades: [SunCascade; crate::shadow::CASCADES],
         /// The receiver range's capped far, 0, its near, 0.
         control: [f32; 4],
     }

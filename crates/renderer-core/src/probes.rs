@@ -81,8 +81,8 @@ fn storage(device: &Device, label: &str, bytes: u64) -> Result<Buffer, String> {
         mapped_at_creation: false,
     }))
 }
-fn workgroups(device: &Device, count: usize) -> Result<u32, String> {
-    let groups = count.div_ceil(64);
+fn workgroups(device: &Device, count: usize, size: usize) -> Result<u32, String> {
+    let groups = count.div_ceil(size);
     if groups > device.limits().max_compute_workgroups_per_dimension as usize {
         return Err("probe rows exceed the GPU dispatch limit".into());
     }
@@ -119,7 +119,11 @@ impl FogProbes {
         if upload.active && upload.params.probe_count as usize != points.len() {
             return Err("fog upload probe count differs from requested points".into());
         }
-        let groups = workgroups(device, points.len())?;
+        let groups = workgroups(
+            device,
+            points.len(),
+            presentation::fog::sight::BUILD_WORKGROUP,
+        )?;
         let size = (points.len() as u64)
             .checked_mul(size_of::<PointRecord>() as u64)
             .ok_or("fog probe records overflow")?;
@@ -190,7 +194,11 @@ impl FogProbes {
         if rows.is_empty() {
             return Ok(ProbeReadback::Values(Vec::new()));
         }
-        let groups = workgroups(device, rows.len())?;
+        let groups = workgroups(
+            device,
+            rows.len(),
+            presentation::fog::sight::BUILD_WORKGROUP,
+        )?;
         check_storage(device, "fog-shape-rows", rows.len() as u64 * 16)?;
         let input = buffer(
             device,

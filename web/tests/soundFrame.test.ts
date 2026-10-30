@@ -38,7 +38,7 @@ const AUDIO: AudioMix = {
     blast: { near: "explosion", far: "explosion_far" },
     motor: "motor",
     impacts: {
-      ...Object.fromEntries(Object.entries(audioMix.impacts).map(([hit, row]) => [hit, row.sound])),
+      ...audioMix.weapon_defaults.impacts,
       ricochet: "ricochet",
     },
   },
@@ -845,7 +845,7 @@ test("a cook-off booms as its ammunition goes and clangs where its turret lands"
   );
   for (const b of booms) expect(near(b, [0, 10], 3)).toBe(true);
   // The turret striking the deck, where and when it lands.
-  const clang = heard.filter((v) => v.sound === AUDIO.impacts.hull.sound);
+  const clang = heard.filter((v) => v.sound === AUDIO.weapon_defaults.impacts.hull);
   expect(clang.length).toBe(1);
   expect(clang[0].at).toBeGreaterThanOrEqual(killed + TURRET_LANDS_S - DT);
   expect(clang[0].at).toBeLessThanOrEqual(killed + TURRET_LANDS_S + DT);

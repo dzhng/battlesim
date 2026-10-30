@@ -1,7 +1,7 @@
 //! Shared CPU/GPU numbers. Values belong to their concepts; this table
 //! only names the exports consumed by WGSL and generated TypeScript.
 use crate::fog::sight;
-use crate::static_world::ground::{sway::SWAY, tables, walk::HEART};
+use crate::static_world::ground::{biome::GRASS_MIX_MAX, grass, sway::SWAY, tables, walk::HEART};
 use crate::wave::WAVE;
 
 /// A shader scalar: floats retain the owner's precision until WGSL admits
@@ -27,6 +27,12 @@ pub const CONSTANTS: &[(&str, Scalar)] = &[
     ("WAVE_SPEED", F32(WAVE.speed)),
     ("WAVE_DAMPING", F32(WAVE.damping)),
     ("WAVE_NORMAL", F32(WAVE.normal)),
+    ("GRASS_HEIGHT_MIN", F32(grass::HEIGHT_VARIATION[0])),
+    ("GRASS_HEIGHT_MAX", F32(grass::HEIGHT_VARIATION[1])),
+    ("GRASS_MAX_HEIGHT_M", F32(grass::LIMITS.tallest)),
+    ("GRASS_GROWTH_ROWS", U32(grass::GROWTH_ROWS as u32)),
+    ("GRASS_MIX_MAX", U32(GRASS_MIX_MAX as u32)),
+    ("GRASS_MAX_KINDS", U32(grass::MAX_KINDS as u32)),
     ("GROUND_GRASS_EDGE_M", F32(tables::GRASS_EDGE_M)),
     (
         "GROUND_FOREST_VERGE_FEATHER",

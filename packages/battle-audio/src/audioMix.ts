@@ -104,8 +104,8 @@ export interface AudioMix {
   /** A transient more than this late (a clock jump) is dropped, not played. */
   late_s: number;
   /** Material impact levels; the look supplies its round's loudness. */
-  impacts: Record<string, OneShot>;
-  ricochet: OneShot;
+  impacts: Record<string, { gain: number }>;
+  ricochet: { gain: number };
   /** A hull cooking off: the boom of each fireball, and its turret's clang
    *  as it strikes the deck, heard as the look `as` striking `hit`
    *  (the look's contact recording), at `gain`. */

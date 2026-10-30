@@ -564,7 +564,7 @@ impl PoseDriver {
         self.out.vehicles.clear();
         for unit in &frame.units {
             match units.types.get(&*unit.kind) {
-                Some(ty) if ty.hull.is_some() => self.vehicle(unit, ty, frame.time, dt, generation),
+                Some(ty) if ty.hull => self.vehicle(unit, ty, frame.time, dt, generation),
                 _ => self.squad(unit, units, water.as_ref(), frame.time, dt, generation),
             }
         }
@@ -976,7 +976,7 @@ impl PoseDriver {
             let forward = (unit.position[0] - pose.position[0]) * libm::cos(unit.yaw)
                 + (unit.position[1] - pose.position[1]) * libm::sin(unit.yaw);
             let turned = delta_angle(pose.yaw, unit.yaw);
-            let half = ty.hull.map_or(0.0, |h| h.half_track);
+            let half = ty.draws[unit.side.as_ref()].half_track;
             a.travel_l += forward - turned * half;
             a.travel_r += forward + turned * half;
         }

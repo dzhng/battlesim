@@ -441,14 +441,6 @@ fn unit_types(
             mobility(t)?,
             Mobility::Tracked { .. } | Mobility::Wheeled { .. }
         );
-        let gauge = if ground {
-            let name = t["appearance"]
-                .as_str()
-                .ok_or(format!("{kind}: no hull appearance"))?;
-            track_gauge(art, name)?
-        } else {
-            1.0
-        };
         // Its vehicle class, as the catalog derives it from its physics.
         let class = t["vehicle_class"].as_str().map(str::to_owned);
         let mounts: &[Value] = t["mounts"].as_array().map_or(&[], Vec::as_slice);
@@ -463,11 +455,14 @@ fn unit_types(
                 ),
                 None => vec![],
             };
-            if ground {
-                for name in &hull_look {
-                    track_gauge(art, name)?;
-                }
-            }
+            let half_track = if ground {
+                let name = hull_look
+                    .first()
+                    .ok_or(format!("{kind}: no hull appearance"))?;
+                hull.unwrap()["half_extents_m"][1].as_f64().unwrap() * track_gauge(art, name)?
+            } else {
+                0.0
+            };
             let slots = catalog
                 .slots(kind)?
                 .iter()
@@ -494,7 +489,7 @@ fn unit_types(
             }
             draws.insert(
                 name.into(),
-                json!({ "hull": hull_look, "slots": slots, "operated": operated }),
+                json!({ "hull": hull_look, "halfTrack": half_track, "slots": slots, "operated": operated }),
             );
         }
         let roles: Vec<&str> = mounts
@@ -528,7 +523,7 @@ fn unit_types(
         types.insert(
             kind.clone(),
             json!({
-                "hull": hull.map(|h| json!({ "halfTrack": h["half_extents_m"][1].as_f64().unwrap_or(0.0) * gauge })),
+                "hull": hull.is_some(),
                 "vehicleClass": class,
                 "airborne": airborne(t),
                 "layer": mobility(t)?.layer(),

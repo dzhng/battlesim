@@ -17,18 +17,3 @@ export interface PaintStyle {
    *  tone mapper and grade pull a bright hue toward white. */
   saturation: number;
 }
-
-export function validatePaintStyle(style: PaintStyle): PaintStyle {
-  if (
-    !(style.albedo > 0 && style.albedo <= 1) ||
-    !(style.emissive >= 0 && style.emissive <= 8) ||
-    !(style.fog_keep >= 0 && style.fog_keep <= 1) ||
-    !(style.grass_glow >= 0 && style.grass_glow <= 8) ||
-    !(style.grass_falloff_m > 0 && style.grass_falloff_m <= 4) ||
-    !(style.saturation >= 0 && style.saturation <= 3)
-  )
-    throw new Error(
-      `ground paint: albedo in (0, 1], emissive in [0, 8], fog_keep in [0, 1], grass_glow in [0, 8], grass_falloff_m in (0, 4], saturation in [0, 3], got ${JSON.stringify(style)}`,
-    );
-  return style;
-}

@@ -1,4 +1,3 @@
-import { shippedRules } from "@web/shippedRules";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useSessionCatalog } from "@web/battle/catalog/context";
@@ -308,7 +307,12 @@ function ReelBattle({
 }) {
   const veil = useRef<HTMLDivElement>(null);
   const [run] = useState(() =>
-    createReelRun(scene, shippedRules.tick_hz, onDone, { plates, counts }),
+    createReelRun(
+      scene,
+      (JSON.parse(scenario) as { rules: { tick_hz: number } }).rules.tick_hz,
+      onDone,
+      { plates, counts },
+    ),
   );
   const session = useBattleSession({
     scenario,

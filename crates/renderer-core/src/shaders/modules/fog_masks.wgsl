@@ -37,13 +37,13 @@ struct GrassParams {
   counts: vec4u,
   ground: vec4f,
   sway: vec4f,
-  growth: array<vec4f, 16>,
-  patches: array<vec4f, 16>,
-  mixes: array<vec4f, 64>,
+  growth: array<vec4f, GRASS_GROWTH_ROWS>,
+  patches: array<vec4f, GRASS_GROWTH_ROWS>,
+  mixes: array<vec4f, GRASS_GROWTH_ROWS * GRASS_MIX_MAX>,
   patchScales: vec4f,
   grain: vec4f,
-  kinds: array<vec4f, 16>,
-  bases: array<vec4u, 16>,
+  kinds: array<vec4f, GRASS_MAX_KINDS>,
+  bases: array<vec4u, GRASS_MAX_KINDS>,
 }
 
 // @block fog_masks_composeFog

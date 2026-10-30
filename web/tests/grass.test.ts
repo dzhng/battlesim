@@ -1,3 +1,9 @@
+import {
+  GRASS_GROWTH_ROWS,
+  GRASS_MIX_MAX,
+  GRASS_HEIGHT_MAX,
+  GRASS_MAX_HEIGHT_M,
+} from "@packages/battle-renderer/src/records.gen";
 // @vitest-environment node
 // Grass kinds are scenery appearances (generated clumps
 // of blade strips), and the grass field grows them where the biome says. The
@@ -7,8 +13,6 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { contentSha256 } from "@packages/scene-assets/src/glb.ts";
 import {
-  GRASS_HEIGHT_VARIATION,
-  GRASS_MAX_HEIGHT_M,
   GRASS_SEGMENTS,
   grassBladeVertices,
   grassClumpGlb,
@@ -24,11 +28,7 @@ import {
   presentGround,
   type Biome,
 } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
-import {
-  GRASS_GROWTH_ROWS,
-  GRASS_MIX_MAX,
-  grassShapes,
-} from "@packages/battle-renderer/src/terrain/grassField.ts";
+import { grassShapes } from "@packages/battle-renderer/src/terrain/grassField.ts";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { grass_limits } from "@wasm/renderer_browser";
 import summer from "@fixtures/biomes/summer.json";
@@ -310,7 +310,7 @@ test("the summer biome's every growth row stays under the cap with the catalog's
 test("the field's limits are the scene assets' own: the clump's height variation and the tallest grass", () => {
   // The bake and the shader read them here; the field's check in Rust
   // (`ground::grass::LIMITS`).
-  expect([...grass_limits()]).toEqual([GRASS_HEIGHT_VARIATION[1], GRASS_MAX_HEIGHT_M]);
+  expect([...grass_limits()]).toEqual([GRASS_HEIGHT_MAX, GRASS_MAX_HEIGHT_M]);
 });
 
 test("a head shows in every tier with a second pair: the far field keeps its ears and flowers", async () => {

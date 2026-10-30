@@ -118,7 +118,7 @@ pub struct Detail {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UnitType {
-    pub hull: Option<Hull>,
+    pub hull: bool,
     /// Its vehicle class (`vehicleClass`): the sound row its engine, running
     /// gear and turret take; none for a squad.
     #[serde(default)]
@@ -141,12 +141,6 @@ impl UnitType {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Hull {
-    pub half_track: f64,
-}
-
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TypeMount {
@@ -158,6 +152,8 @@ pub struct TypeMount {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Draws {
+    #[serde(rename = "halfTrack")]
+    pub half_track: f64,
     pub hull: Vec<String>,
     pub slots: Vec<Vec<String>>,
     pub operated: Vec<Option<Operated>>,

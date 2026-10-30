@@ -7,7 +7,7 @@
 // one stroke rule, `strokeWidth.ts`), and rebuilt as
 // the pointer moves. The labels are the HUD's
 // (`web/src/battle/present/rangeRuler.ts` measures; the lab places them).
-import { groundRing, groundStrip, isRgba, MeshBuilder, type Mesh } from "./mesh";
+import { groundRing, groundStrip, MeshBuilder, type Mesh } from "./mesh";
 import type { Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { StrokeWidth } from "./strokeWidth";
@@ -28,22 +28,6 @@ export interface RulerStyle {
   beyond: Rgba;
   /** Where a weapon stops reaching. */
   tick: Rgba;
-}
-
-export function validateRulerStyle(s: RulerStyle): RulerStyle {
-  const ok =
-    s.line_px > 0 &&
-    s.tick_px > 0 &&
-    s.tick_line_px > 0 &&
-    s.end_px > 0 &&
-    isRgba(s.reach) &&
-    isRgba(s.beyond) &&
-    isRgba(s.tick);
-  if (!ok)
-    throw new Error(
-      `presentation.overlay.ruler: line_px, tick_px, tick_line_px, end_px > 0, rgba reach, beyond and tick; got ${JSON.stringify(s)}`,
-    );
-  return s;
 }
 
 /** What the ruler paints, across the ground. */

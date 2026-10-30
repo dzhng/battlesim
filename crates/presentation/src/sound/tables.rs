@@ -39,6 +39,13 @@ pub struct OneShot {
     pub gain: f64,
 }
 
+/// A shared contact level; recordings belong to weapon looks.
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Level {
+    pub gain: f64,
+}
+
 /// How far a bus dips (a share of its level), and how fast it dips and
 /// recovers (time constants, seconds): the music under a voice line, the
 /// ambience under a loud shot.
@@ -226,8 +233,8 @@ pub struct AudioMix {
     pub hold_s: f64,
     /// A transient more than this late (a clock jump) is dropped.
     pub late_s: f64,
-    pub impacts: HashMap<String, OneShot>,
-    pub ricochet: OneShot,
+    pub impacts: HashMap<String, Level>,
+    pub ricochet: Level,
     pub cook_off: CookOffSound,
     pub weapon_defaults: WeaponDefaults,
     pub effects: HashMap<String, String>,
