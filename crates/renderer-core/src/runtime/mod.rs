@@ -344,7 +344,11 @@ impl Runtime {
                 xray.prepare(device, &self.models);
             }
         }
-        let bounds = self.grass.as_ref().and_then(Grass::scar_bounds);
+        let bounds = self
+            .grass
+            .as_ref()
+            .filter(|_| self.config.controls.grass)
+            .and_then(Grass::scar_bounds);
         self.ground
             .prepare_scars(device, presentation, bounds, self.targets.size);
         self.fog.prepare(device, queue, presentation, &camera)?;
