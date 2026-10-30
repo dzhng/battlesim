@@ -24,7 +24,7 @@ Counts: 1 needs-user, 0 unsound, 31 sound, plus compressed naming discretion.
 
 ### N1. V-wakes: impulses carry a heading and the water shader draws two trailing arms
 
-- **When:** slice 15, commit the V-wake commit (`feat(water): shape directional V-wake impulses`) `feat(water): shape directional V-wake impulses`, the branch's last commit. Implementer designed it. The integrator kept it isolated and droppable.
+- **When:** slice 15, commit `feat(water): shape directional V-wake impulses`, the last code commit before the closeout. Implementer designed it. The integrator kept it isolated and droppable.
 - **The choice:** Picture a rifle squad wading fast through deep wetland water.
   Each tick, presentation drops *wake impulses* along the squad's path. An
   impulse is a small push into the *wave field*, a texture the GPU steps forward
@@ -46,10 +46,11 @@ Counts: 1 needs-user, 0 unsound, 31 sound, plus compressed naming discretion.
     register, and it pushes at a quarter of the ring's strength.
   - **Unchanged.** Slow or shallow movers keep the ring. Sim and digests do not
     change.
-  - **Test.** A new browser `water` scene check runs the production wave-step
-    shader on a calm field. It asserts wake energy behind travel in two
-    perpendicular headings, both arms present, and a symmetric ring control.
-    The old shader failed it.
+  - **Test.** `crates/renderer-core/tests/water_wake.rs` runs the production
+    wave-step pipeline on a calm field. It asserts wake energy behind travel,
+    both arms present, and a symmetric ring control; removing the V shaping
+    fails it. (An earlier browser check that re-assembled the shader in
+    JavaScript was replaced: it was a second owner of shader composition.)
   - **Open concerns.** The final critique still flags arms that sit apart from
     the legs and ridges that look too regular and sharp. Stills don't show
     motion or vehicle wakes. The arms are wider than a real boat wake (about
@@ -63,7 +64,7 @@ Counts: 1 needs-user, 0 unsound, 31 sound, plus compressed naming discretion.
 - **Verdict:** needs-user: what the player sees is the user's call.
   - **Provisional call:** the commit stays last on the branch and does not reach
     `staging` until the user signs off on the before and after crops
-    (`throwaway/vwakes/before/wading.png` vs `final/wading.png`).
+    (`assets/v-wake-before.png` vs `assets/v-wake-after.png`).
   - **To reverse:** drop the V-wake commit (`feat(water): shape directional V-wake impulses`). It carries the shader, the heading field
     and both regression checks. The README correction `130c826d6` stands on its
     own. Dropping it leaves `kind` unread again, so the slice's other branch is
