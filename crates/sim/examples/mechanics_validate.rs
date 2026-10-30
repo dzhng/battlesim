@@ -10,12 +10,30 @@ use serde_json::Value;
 struct Request {
     game: Value,
     catalog: Vec<Value>,
+    #[serde(default)]
+    ancestry: bool,
 }
 
 fn validate(text: &str) -> Result<Value, String> {
     let value = contract::catalog::parse_document(text).map_err(|e| e.to_string())?;
     let request: Request = serde_json::from_value(value).map_err(|e| e.to_string())?;
-    sim::fixtures::admit(request.game, request.catalog)
+    let mut view = sim::fixtures::admit(request.game.clone(), request.catalog.clone())?;
+    if request.ancestry {
+        let mut ancestry = serde_json::Map::new();
+        for section in ["units", "soldiers", "weapons"] {
+            let mut entries = serde_json::Map::new();
+            for document in std::iter::once(&request.game).chain(&request.catalog) {
+                if let Some(rows) = document[section].as_object() {
+                    entries.extend(rows.clone());
+                }
+            }
+            let ancestors = contract::catalog::inheritance::ancestry(section, &entries)
+                .map_err(|e| e.to_string())?;
+            ancestry.insert(section.into(), serde_json::to_value(ancestors).unwrap());
+        }
+        view["ancestry"] = Value::Object(ancestry);
+    }
+    Ok(view)
 }
 
 fn main() {

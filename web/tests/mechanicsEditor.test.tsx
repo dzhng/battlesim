@@ -172,6 +172,7 @@ it("keeps an inherited spread editable after restoring it under a re-enabled lay
   const weapons = fixture.catalog.weapons as Record<string, JsonObject>;
   const ground = (weapons.grenade.targets as JsonObject).ground as JsonObject;
   weapons.parent = { ...weapons.grenade, targets: { ground: { ...ground, scatter_mrad: 20 } } };
+  fixture.catalog.ancestry = { weapons: { grenade: ["parent"] } };
   fixture.documents = [
     {
       path: "fixtures/rules.json",
@@ -425,6 +426,7 @@ it("undoing a mount-list replacement clears unfinished edits on its discarded mo
 
 it("restoring an inherited optional object clears unfinished child text", async () => {
   const fixture = structuralSnapshot();
+  fixture.catalog.ancestry = { weapons: { rifle: ["base"] } };
   fixture.documents.unshift({
     path: "magazine.json",
     value: {
@@ -504,6 +506,7 @@ it("restores a saved soldier override to the native default omitted by its paren
       mounts: [{ id: "rifles", weapons: ["rifle"], squad: false, special: true }],
     },
   };
+  fixture.catalog.ancestry = { soldiers: { test_rifle__test_rifleman: ["test_rifleman"] } };
   fixture.documents = [
     {
       path: "soldiers.json",
@@ -597,6 +600,7 @@ it("summarizes a whole-mount restore after the accepted catalog removes its sold
   (document.units as Record<string, JsonObject>).test_rifle.body = {
     squad: { slots: ["test_rifleman", "test_rifle__test_grenadier"] },
   };
+  fixture.catalog.ancestry = { soldiers: { test_rifle__test_grenadier: ["test_grenadier"] } };
   fixture.documents.push({
     path: "local.json",
     value: {

@@ -597,3 +597,44 @@ test("clearing spotting previews and saves its neutral value through native admi
     ).spotting,
   ).toBeUndefined();
 }, 30000);
+
+test("native catalog ancestry preserves abstract field origins and inherited restores", async () => {
+  const { root, editor } = await nativeStore();
+  const file = join(root, "fixtures/units/test/ancestry.json");
+  await writeFile(
+    file,
+    JSON.stringify({
+      units: {
+        provenance_base: {
+          extends: "test_tank",
+          abstract: true,
+          cost: 123,
+          sensors: { ground_m: 555 },
+        },
+        provenance_parent: { extends: "provenance_base", abstract: true },
+        provenance_child: { extends: "provenance_parent", name: "Provenance Tank", cost: 456 },
+      },
+    }),
+  );
+  const initial = await editor.snapshot();
+  expect((initial.catalog.ancestry as JsonObject).units).toMatchObject({
+    provenance_child: ["provenance_parent", "provenance_base", "test_tank"],
+  });
+  const { fieldOrigin, resetDraft } = await import("../../apps/mechanics-editor/src/draft");
+  const target = { section: "units" as const, id: "provenance_child" };
+  expect(fieldOrigin(initial, target, ["sensors", "ground_m"])).toMatchObject({
+    id: "provenance_base",
+    path: "fixtures/units/test/ancestry.json",
+    inherited: true,
+  });
+  const restored = await editor.save(
+    resetDraft({ revision: initial.revision, changes: [] }, target, ["cost"], initial),
+  );
+  expect((restored.catalog.units as JsonObject[]).find((row) => row.id === target.id)?.cost).toBe(
+    123,
+  );
+  expect(JSON.parse(await readFile(file, "utf8")).units.provenance_child).not.toHaveProperty(
+    "cost",
+  );
+  expect(restored.game).not.toHaveProperty("ancestry");
+});

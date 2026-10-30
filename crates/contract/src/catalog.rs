@@ -18,7 +18,7 @@
 //! ([`merge_entry`]); then a type's `parts` apply in order, merged the same
 //! way. Merging is idempotent, so a resolved catalog serialises to a
 //! document that resolves to itself. Then every entry is checked, and a
-//! broken one fails naming it ([`CatalogError`]).
+//! failure names it ([`CatalogError`]).
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -28,7 +28,7 @@ use crate::observation::SoundCategory;
 use crate::scenario::{Armor, Blocks, CoverTier, PushClass, WeightClass};
 use crate::weapons::MountDefinition;
 
-mod inheritance;
+pub mod inheritance;
 pub use inheritance::inherit;
 
 mod mobility;

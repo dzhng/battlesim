@@ -22,6 +22,7 @@ type Validator = (
   catalog: JsonObject[],
   texts?: string[],
   changes?: MechanicsChange[],
+  ancestry?: boolean,
 ) => Promise<string>;
 type FileState = { path: string; text: string; value: JsonObject };
 
@@ -206,13 +207,13 @@ const revision = (files: { path: string; text: string }[]) =>
     .digest("hex");
 
 export function nativeValidator(root: string): Validator {
-  return (game, catalog, texts) =>
+  return (game, catalog, texts, _changes, ancestry = false) =>
     new Promise((resolve, reject) => {
       // Raw source text reaches Rust intact so duplicate keys cannot disappear
       // in JavaScript's otherwise permissive JSON parser.
       const input = texts
-        ? `{"game":${texts[0]},"catalog":[${texts.slice(1).join(",")}]}`
-        : JSON.stringify({ game, catalog });
+        ? `{"game":${texts[0]},"catalog":[${texts.slice(1).join(",")}],"ancestry":${ancestry}}`
+        : JSON.stringify({ game, catalog, ancestry });
       const child = spawn(
         resolvePath(
           root,
@@ -296,16 +297,17 @@ export class MechanicsStore {
     changes?: MechanicsChange[],
   ) {
     const game = files.find((file) => file.path === "fixtures/rules.json")!;
-    const run = (rows: FileState[], changes?: MechanicsChange[]) =>
+    const run = (rows: FileState[], changes?: MechanicsChange[], ancestry = false) =>
       this.validate(
         game.value,
         rows.map((file) => file.value),
         [text(game), ...rows.map(text)],
         changes,
+        ancestry,
       );
     const documents = files.filter((file) => file !== game);
     const [all, generated] = await Promise.all([
-      run(documents, changes),
+      run(documents, changes, true),
       run(documents.filter((file) => isGameDocument(file.path))),
     ]);
     return { catalog: object(JSON.parse(all)), generated };

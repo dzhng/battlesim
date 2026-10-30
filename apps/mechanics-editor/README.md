@@ -27,7 +27,10 @@ Prerequisites are in the root [Try it](../../README.md#try-it) section.
    to use the saved values. Battle starts and restarts keep the page's settings.
 
 The editor uses the simulation's Rust resolver as the authority for inheritance
-and valid gameplay values. If files change elsewhere, your draft is retained;
+and valid gameplay values. Its editor view also supplies authored ancestry,
+including abstract parents, so field provenance and restore actions use the
+same parent resolution as the admitted values. The published game catalog
+carries no authoring metadata. If files change elsewhere, your draft is retained;
 **Reload sources**, then **Discard draft and reload**, explicitly replaces it
 with current files.
 
