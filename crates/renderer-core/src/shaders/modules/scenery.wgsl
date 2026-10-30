@@ -183,7 +183,7 @@ fn groundColour(xy: vec2f, footprint: f32, site: vec4f, paved: GroundPaved, wate
   }
   let shore = groundShore(xy, footprint, water);
   if ((shore.y > 0f)) {
-    let field = mix(dot((*params_1).verge.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)), (dot((*plot).colour.xyz, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023)) * (1f - (0.5f * (*plot).rows.w))), smoothstep(0f, (*params_1).shoreTuning.ground.y, site.y));
+    let field = mix(dot((*params_1).verge.xyz, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B)), (dot((*plot).colour.xyz, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B)) * (1f - (0.5f * (*plot).rows.w))), smoothstep(0f, (*params_1).shoreTuning.ground.y, site.y));
     let least = (field * (*params_1).shoreEdge.z);
     let earth = ((*params_1).shoreEarth.xyz * (1f + ((*params_1).shoreTuning.ground.x * noise)));
     albedo = mix(albedo, atLeast(earth, least), shore.y);

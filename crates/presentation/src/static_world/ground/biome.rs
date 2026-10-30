@@ -659,7 +659,7 @@ impl Biome {
             .iter()
             .map(|c| {
                 let [r, g, b] = linear(c.map(|v| v * low));
-                116.0 * libm::cbrt((0.2126 * r + 0.7152 * g + 0.0722 * b) * rows) - 16.0
+                116.0 * libm::cbrt(crate::color::luminance([r, g, b]) * rows) - 16.0
             })
             .fold(f64::INFINITY, f64::min)
     }

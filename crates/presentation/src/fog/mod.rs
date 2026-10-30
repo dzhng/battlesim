@@ -18,8 +18,7 @@ use crate::records::FogLook;
 /// (16 pixels in `fog_masks.wgsl`) stays above.
 pub const FOG_EDGE_REACH_PX: f64 = 8.0;
 
-/// Rec. 709 luminance, the grade's.
-const LUMA: [f64; 3] = [0.2126, 0.7152, 0.0722];
+use crate::color::luminance;
 
 /// One unseen look, as the fixture writes it.
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
@@ -174,10 +173,6 @@ impl FogLook {
     pub fn has_rim(&self) -> bool {
         self.rim_width_px > 0.0 && self.rim_alpha > 0.0
     }
-}
-
-fn luminance(c: [f64; 3]) -> f64 {
-    LUMA[0] * c[0] + LUMA[1] * c[1] + LUMA[2] * c[2]
 }
 
 #[cfg(test)]

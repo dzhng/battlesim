@@ -198,7 +198,7 @@ fn fogIsGround() -> bool {
 
 // @block fog_sight_fogLook
 fn fogLook(lit: vec3f, pixel: vec2f, s: FogLook) -> vec3f {
-  let lum = dot(lit, vec3f(0.2126, 0.7152, 0.0722));
+  let lum = dot(lit, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B));
   let kept = mix(vec3f(lum), lit, s.saturation);
   let c = mix(kept, lum * s.tint, s.cool) * s.dim;
   // Distance to the nearest line, in pixels, across the lines' direction.

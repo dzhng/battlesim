@@ -8,6 +8,7 @@
 //! tuning it never moves a digest or a replay.
 pub mod assets;
 mod clip;
+pub mod color;
 pub mod effects;
 pub mod fielded;
 pub mod fog;

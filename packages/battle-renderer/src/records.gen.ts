@@ -19,6 +19,9 @@ export const FOG_PAINTED_FACES = 3;
 /** The widest fog rim or soft edge a style may ask for, device pixels (`fog.rs`). */
 export const FOG_EDGE_REACH_PX = 8;
 /** Shared CPU/GPU constants (`shader_constants.rs`). */
+export const COLOR_LUMA_R = 0.2126;
+export const COLOR_LUMA_G = 0.7152;
+export const COLOR_LUMA_B = 0.0722;
 export const SWAY_BEND = 0.18;
 export const SWAY_LEAN = 0.15;
 export const SWAY_GUST = 0.7;

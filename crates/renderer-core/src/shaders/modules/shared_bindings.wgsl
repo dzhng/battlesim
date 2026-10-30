@@ -21,11 +21,8 @@ struct In {
   @location(3) misc: vec4f,
 };
 
-// @block shared_bindings_LUMA_alternate
-const LUMA: vec3f = vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023);
-
-// @block shared_bindings_LUMA_primary
-const LUMA = vec3f(0.2126, 0.7152, 0.0722);
+// @block shared_bindings_LUMA
+const LUMA = vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B);
 
 // @block shared_bindings_NEAR_W
 const NEAR_W = 0.05;
@@ -81,7 +78,7 @@ struct _Input {
 
 // @block shared_bindings_atLeast
 fn atLeast(colour: vec3f, least: f32) -> vec3f {
-  let luminance = dot(colour, vec3f(0.2125999927520752, 0.7152000069618225, 0.0722000002861023));
+  let luminance = dot(colour, vec3f(COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B));
   return (colour * max(1f, (least / max(luminance, 1e-5f))));
 }
 

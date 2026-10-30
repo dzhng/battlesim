@@ -14,6 +14,9 @@ pub enum Scalar {
 use Scalar::{F32, U32};
 
 pub const CONSTANTS: &[(&str, Scalar)] = &[
+    ("COLOR_LUMA_R", F32(crate::color::LUMA[0])),
+    ("COLOR_LUMA_G", F32(crate::color::LUMA[1])),
+    ("COLOR_LUMA_B", F32(crate::color::LUMA[2])),
     ("SWAY_BEND", F32(SWAY.bend)),
     ("SWAY_LEAN", F32(SWAY.lean)),
     ("SWAY_GUST", F32(SWAY.gust)),

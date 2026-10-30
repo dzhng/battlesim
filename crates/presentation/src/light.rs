@@ -252,7 +252,7 @@ impl LightSettings {
         let sun = self.sun_direction();
         let overcast = smoothstep(4.0, 7.0, self.sky.turbidity);
         let t = transmittance_to_sun(sun, self.sky.turbidity);
-        let lum = 0.2126 * t[0] + 0.7152 * t[1] + 0.0722 * t[2];
+        let lum = crate::color::luminance(t);
         let colour = t.map(|c| c + (lum - c) * overcast);
         let [r, g, b] = colour.map(|c| c * self.sun_intensity);
         let fill = self.sky.fill;

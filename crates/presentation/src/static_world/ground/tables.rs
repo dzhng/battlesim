@@ -18,7 +18,7 @@ pub const BANK_EASE_M: f64 = 0.75;
 pub const MARKS_CLEAR_M: f64 = 0.3;
 /// The deepest sampled scar, before biome relief is applied.
 pub const SCAR_DEPTH_CAP: f64 = 1.6;
-const LUMA: [f64; 3] = [0.2126, 0.7152, 0.0722];
+use crate::color::luminance;
 /// Words a `WaterLook` row: eight vec4s.
 const WATER_LOOK_WORDS: usize = 40;
 
@@ -34,10 +34,6 @@ pub fn vec4(out: &mut Vec<u32>, v: [f64; 4]) {
 
 fn rgb(c: [f64; 3], w: f64) -> [f64; 4] {
     [c[0], c[1], c[2], w]
-}
-
-fn luminance(c: [f64; 3]) -> f64 {
-    c[0] * LUMA[0] + c[1] * LUMA[1] + c[2] * LUMA[2]
 }
 
 fn tan_deg(deg: f64) -> f64 {
