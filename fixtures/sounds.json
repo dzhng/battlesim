@@ -716,6 +716,15 @@
       "path": "assets/third-party/audio/strike-missile-8y_1z35LQ40.webm",
       "sha256": "785c9d6b712f0f9c99cfb3b439cfc447fdd760311b57de6821ceede634fe3d9b",
       "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29."
+    },
+    "marksman-live-fire": {
+      "label": "Firing the M110 SASS",
+      "author": "abnhawk",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=Jkt3S5WpJN8",
+      "path": "assets/third-party/audio/marksman-Jkt3S5WpJN8.m4a",
+      "sha256": "634bffb3b5643783bf7f032f442dedf3ea418313c242918d28d5bff5fd76e73a",
+      "notes": "Slice 03 yt-dlp source, admitted for this private project by the user on 2026-10-29."
     }
   },
   "clips": {
@@ -4754,6 +4763,24 @@
           "lowpass_hz": 5000
         }
       ]
+    },
+    "marksman-launch": {
+      "label": "M110 \u00b7 single report",
+      "category": "weapon",
+      "role": "shot",
+      "processing": "weighted-shot",
+      "url": "/audio/clips/marksman-launch.wav",
+      "sha256": "f2d6d4c41b290608d0d41c06bb7a66b2f377631221eb43421dceeefced5e437b",
+      "sample_rate": 48000,
+      "frames": 44160,
+      "loop": false,
+      "notes": "03 single crop aligned before the 3.682 s onset. No burst: magazine.burst is null.",
+      "source": "marksman-live-fire",
+      "source_rate": 44100,
+      "source_frames": [
+        162288,
+        202860
+      ]
     }
   },
   "sounds": {
@@ -6148,6 +6175,16 @@
       "synth_gain": 0,
       "gain": 0.75,
       "loop": false
+    },
+    "marksman-combat": {
+      "label": "Marksman \u00b7 single recorded report",
+      "clips": [
+        "marksman-launch"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
     }
   },
   "provenance": {
@@ -6255,6 +6292,25 @@
         "status": "downloaded-unassigned"
       },
       "notes": "03 selected 9.40\u201313.00 s, aligned just before the 9.472 s ignition. One launch, sustained exhaust; target impact excluded. Research download receipt retained at its pre-admission status; sources and weapon looks record acceptance."
+    },
+    "marksman-launch": {
+      "label": "Firing the M110 SASS",
+      "author": "abnhawk",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=Jkt3S5WpJN8",
+      "sha256": "634bffb3b5643783bf7f032f442dedf3ea418313c242918d28d5bff5fd76e73a",
+      "path": "assets/third-party/audio/marksman-Jkt3S5WpJN8.m4a",
+      "source_frames": [
+        162288,
+        202860
+      ],
+      "processing": "weighted-shot; mono decode, source-frame crop, adaptive end fade, 48 kHz PCM16 peak 0.72; see clip for any relay.",
+      "download": {
+        "tool": "yt-dlp",
+        "version": "2026.08.19",
+        "status": "downloaded-unassigned"
+      },
+      "notes": "03 single crop aligned before the 3.682 s onset. No burst: magazine.burst is null. Research download receipt retained at its pre-admission status; sources and weapon looks record acceptance."
     }
   },
   "music": {

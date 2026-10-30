@@ -193,3 +193,5 @@ visual limitations remain outside this pass.
 **Sound done — `bomb` (2026-10-29):** Item 1: the prescribed restrained handling/air fallback replaces the rifle burst; no explosion at release. Evidence: shared `evidence-15-sound/bomb/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
 
 **Sound done — `rocket_pod` (2026-10-29):** Item 1: the prescribed AT4 attack/exhaust fallback plays once per rocket. Apache rotor separation was not established on listening, so its conditional recording is not admitted. Evidence: shared `evidence-15-sound/rocket-pod/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
+
+**Sound done — `marksman_rifle` (2026-10-29):** Item 3: one M110 report per launch; no authored burst is invented. Evidence: shared `evidence-15-sound/marksman/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
