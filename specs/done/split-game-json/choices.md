@@ -1,6 +1,6 @@
 # Choices made on your behalf
 
-The [decision map](map.md) holds what you decided. This file holds what the
+The [README](README.md) holds what you decided and why. This file holds what the
 implementation decided where the plan was silent: by Codex children, or by
 the integrator (Claude, which orchestrated the build). Each entry says what
 happens today, what the alternative would have done, and whether you should
@@ -164,6 +164,31 @@ Each group lists the least confident first.
   unchanged, and the full simulation suite (1,325 tests) and the seed-7
   balance battle pass.
 - **Confidence:** low that you'd have wanted the reversal.
+
+### U2. The crash row was excused from firing parts by its weapon id
+
+- **When:** slices 08 and 10; found in the closing audit.
+- **The choice:**
+  - **The rule:** a fired weapon's look needs a tracer, impact, kick, shot
+    and flash. A helicopter crash is not fired; its look is only a blast.
+  - **How it was written:** the look reader skipped the check with
+    `if id != "helicopter_crash"`. That is a rule keyed to one named weapon,
+    which the project's rules forbid. It also repeated the simulation's
+    crash constant as a bare string.
+  - **The alternative:** decide from data. Fielding already checked firing
+    parts for every weapon a unit mounts.
+- **The gap:** the plan said "`helicopter_crash`'s look is only a blast"
+  without saying how to express it.
+- **The reach:** any future unfired weapon row would have needed another
+  named exception.
+- **Verdict:** unsound. **Corrected decision:** firing parts are required
+  because a unit mounts the weapon. `WeaponLooks::new` checks only what a
+  row's physics needs (blast, motor). **Redone** in `051b4221b`'s merge:
+  - fielding and the sound tables, both native and browser, check catalog
+    mounts through one `check_mounts`;
+  - the sound workbench gets the same check;
+  - an unmounted row with any id may have a blast-only look.
+- **Confidence:** low that you'd have accepted the id check.
 
 ---
 
