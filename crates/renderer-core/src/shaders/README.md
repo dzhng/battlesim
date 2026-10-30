@@ -5,26 +5,19 @@ selects ordered named blocks for each pipeline; the core build writes expanded
 sources only into Cargo's output directory. The typed Rust catalog supplies
 pipeline state. Neither platform carries shader text or descriptor policy.
 
-One algorithm has one authored body, even when its callers bind differently
-named uniforms. A block reference may supply identifier aliases in brackets,
-separated by semicolons: `block[from=to;other=target]`. Substitution replaces
-whole identifier tokens once, so aliases can rename colliding locals without
-changing expressions, operation order or unrelated names. Every alias must name
-a token present in its block; a replacement never feeds another alias.
+One algorithm has one authored body. A binding declaration shared across groups
+uses `@group(GROUP)` in its body. Its reference supplies the group as `block@N`;
+`N` is a nonnegative `u32`. The build substitutes only that attribute without
+changing binding numbers, access modes or identifiers. Declarations that differ
+only by group share one block. Different layouts' binding numbers, access modes
+or resource types remain separate declarations, named for a layout that uses
+them; another layout may reuse the declaration when its binding agrees.
 
-A binding declaration shared across groups uses `@group(GROUP)` in its body.
-Its reference supplies the group as `block@N`, or `block@N[from=to]` when it
-also needs aliases; `N` is a nonnegative `u32`. The build substitutes the group
-attribute without changing binding numbers, access modes or identifiers.
-Declarations that differ only by group share one block. Different layouts'
-binding numbers, access modes or resource types remain separate declarations,
-named for a layout that uses them; another layout may reuse the same
-declaration when its binding agrees. Aliases do not select a different algorithm.
-
-The build refuses duplicate block ids, blocks no pipeline references, and
-aliases whose source token is absent. A block containing the identifier
-`GROUP` requires `@N`; a block without it refuses `@N`. Other identifiers that
-contain those letters, such as workgroup-size constants, are ordinary tokens.
+The build refuses duplicate block ids (with both defining files), duplicate
+shader names, malformed index lines, missing blocks (with the requesting shader),
+and blocks no pipeline references. A block containing the identifier `GROUP`
+requires `@N`; a block without it refuses `@N`. Other identifiers that contain
+those letters, such as workgroup-size constants, are ordinary tokens.
 
 A built-in shader's source starts with the presentation's
 [typed constant table](../../../presentation/src/shader_constants.rs). Each

@@ -4,45 +4,20 @@ use std::{
     path::PathBuf,
 };
 
-fn replace_identifiers(source: &str, aliases: &[(String, String)], context: &str) -> String {
-    let bytes = source.as_bytes();
-    let mut out = String::with_capacity(source.len());
-    let mut at = 0;
-    let mut copied = 0;
-    let mut tokens = BTreeSet::new();
-    while at < bytes.len() {
-        if !(bytes[at].is_ascii_alphabetic() || bytes[at] == b'_') {
-            at += 1;
-            continue;
-        }
-        let start = at;
-        at += 1;
-        while at < bytes.len() && (bytes[at].is_ascii_alphanumeric() || bytes[at] == b'_') {
-            at += 1;
-        }
-        let token = &source[start..at];
-        tokens.insert(token);
-        out.push_str(&source[copied..start]);
-        if let Some((_, replacement)) = aliases.iter().find(|(name, _)| name == token) {
-            out.push_str(replacement);
-        } else {
-            out.push_str(token);
-        }
-        copied = at;
-    }
-    out.push_str(&source[copied..]);
-    for (from, to) in aliases {
-        assert!(
-            tokens.contains(from.as_str()),
-            "{context}: dead WGSL alias {from}={to}"
+fn insert_block(
+    blocks: &mut BTreeMap<String, (PathBuf, String)>,
+    id: String,
+    body: &str,
+    path: &std::path::Path,
+) {
+    if let Some((previous, _)) = blocks.get(&id) {
+        panic!(
+            "{}: duplicate WGSL block {id}, first defined in {}",
+            path.display(),
+            previous.display()
         );
     }
-    out
-}
-
-fn insert_block(blocks: &mut BTreeMap<String, String>, id: String, body: &str) {
-    assert!(!blocks.contains_key(&id), "duplicate WGSL block {id}");
-    blocks.insert(id, body.trim_end().to_owned());
+    blocks.insert(id, (path.to_owned(), body.trim_end().to_owned()));
 }
 
 fn main() {
@@ -52,7 +27,7 @@ fn main() {
     println!("cargo:rerun-if-changed={}", modules.display());
     println!("cargo:rerun-if-changed={}", source_index.display());
 
-    let mut blocks = BTreeMap::<String, String>::new();
+    let mut blocks = BTreeMap::<String, (PathBuf, String)>::new();
     for entry in fs::read_dir(&modules).unwrap() {
         let path = entry.unwrap().path();
         if path.extension().and_then(|x| x.to_str()) != Some("wgsl") {
@@ -64,7 +39,7 @@ fn main() {
         for line in text.lines() {
             if let Some(id) = line.strip_prefix("// @block ") {
                 if let Some(old) = current.replace(id.trim().to_owned()) {
-                    insert_block(&mut blocks, old, &body);
+                    insert_block(&mut blocks, old, &body, &path);
                     body.clear();
                 }
             } else if current.is_some() {
@@ -73,56 +48,52 @@ fn main() {
             }
         }
         if let Some(id) = current {
-            insert_block(&mut blocks, id, &body);
+            insert_block(&mut blocks, id, &body, &path);
         }
     }
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let source_text = fs::read_to_string(&source_index).unwrap();
-    let shaders: Vec<String> = source_text
+    let mut shaders = BTreeSet::new();
+    let entries: Vec<_> = source_text
         .lines()
-        .filter_map(|line| line.split_once('|').map(|(shader, _)| shader.to_owned()))
+        .enumerate()
+        .map(|(line_number, line)| {
+            let (shader, ids) = line.split_once('|').unwrap_or_else(|| {
+                panic!(
+                    "{}:{}: expected shader|blocks",
+                    source_index.display(),
+                    line_number + 1
+                )
+            });
+            assert!(
+                shaders.insert(shader),
+                "{}:{}: duplicate shader {shader}",
+                source_index.display(),
+                line_number + 1
+            );
+            (shader, ids)
+        })
         .collect();
     let mut generated = format!(
-        "pub const BUILTIN_SHADER_COUNT: usize = {};\n\n",
-        shaders.len()
-    );
-    generated.push_str(&format!(
         "pub const BUILTIN_SHADERS: &[&str] = &{:?};\n\n",
-        shaders
-    ));
+        entries.iter().map(|(shader, _)| shader).collect::<Vec<_>>()
+    );
     generated.push_str("fn assembled_source(name: &str) -> Option<&'static str> { match name {\n");
     let mut referenced = BTreeSet::new();
-    for line in source_text.lines() {
-        let Some((shader, ids)) = line.split_once('|') else {
-            continue;
-        };
+    for (shader, ids) in entries {
         let mut source = String::new();
         for reference in ids.split(',') {
-            let (id, aliases) = reference
-                .split_once('[')
-                .map_or((reference, ""), |(id, rest)| {
-                    (id, rest.strip_suffix(']').unwrap_or(rest))
-                });
-            let aliases: Vec<_> = aliases
-                .split(';')
-                .filter(|alias| !alias.is_empty())
-                .map(|alias| {
-                    let (from, to) = alias
-                        .split_once('=')
-                        .unwrap_or_else(|| panic!("bad WGSL alias {alias}"));
-                    (from.to_owned(), to.to_owned())
-                })
-                .collect();
+            let id = reference;
             let (id, group) = id.split_once('@').map_or((id, None), |(id, group)| {
                 let group = group
                     .parse::<u32>()
                     .unwrap_or_else(|_| panic!("{shader}: bad WGSL group {group} for {id}"));
                 (id, Some(group))
             });
-            let body = blocks
+            let (_, body) = blocks
                 .get(id)
-                .unwrap_or_else(|| panic!("missing WGSL block {id}"));
+                .unwrap_or_else(|| panic!("{shader}: missing WGSL block {id}"));
             referenced.insert(id);
             let context = format!("{shader}: block {id}");
             let has_group = body
@@ -136,7 +107,7 @@ fn main() {
                 has_group || group.is_none(),
                 "{context} has no GROUP but was given @N"
             );
-            let mut body = replace_identifiers(body, &aliases, &context);
+            let mut body = body.clone();
             if let Some(group) = group {
                 body = body.replace("@group(GROUP)", &format!("@group({group})"));
             }

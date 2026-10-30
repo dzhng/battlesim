@@ -173,6 +173,14 @@ finding that the base build did not render grass the same way twice.
   accommodate overlapping layouts. **Verdict: sound** — confines naming to the
   requested binding consolidation. **Confidence: high.**
 
+- **When:** whole-spec review. **Choice:** remove identifier aliases entirely:
+  no composition reference uses them. The only substitution is `@group(GROUP)`
+  from `block@N`, still parsed as `u32`. This supersedes the alias grammar above.
+  Composer errors name the requesting shader or both defining files; duplicate
+  shader names and index lines without `|` fail the build. The unused generated
+  shader-count constant is removed. **Reach:** assembled sources are unchanged.
+  **Verdict: sound. Confidence: high.**
+
 ## 04b · Remaining packed layouts
 
 - **Presentation owns `PlotNode`, `PlotRecord`, `SurfaceRecord` and
