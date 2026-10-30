@@ -199,3 +199,5 @@ visual limitations remain outside this pass.
 **Sound done — `heavy_sniper` (2026-10-29):** Item 3: one Barrett report per launch; reload time is not treated as burst cadence. Evidence: shared `evidence-15-sound/sniper/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
 
 **Sound done — `aa_gun` (2026-10-29):** Item 3: three distinct Bofors reports relayed at 0, 300 and 600 ms, documented as the prescribed fallback. Evidence: shared `evidence-15-sound/aa/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).
+
+**Sound done — `light_machine_gun` (2026-10-29):** Cadence gate follow-up: the inherited 100 ms rifle recording also mismatched this weapon. Existing reports are relayed at its unchanged 80 ms cadence; no rule changes. Evidence: shared `evidence-15-sound/lmg/` (paired launch auditions from the production bank, firefight WAVs, source receipt, scene and scoped vector checks).

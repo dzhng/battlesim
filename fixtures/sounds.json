@@ -4852,6 +4852,146 @@
         ],
         "interval_s": 0.3
       }
+    },
+    "lmg-rifle-11-burst-a": {
+      "label": "LMG \u00b7 80 ms relayed reports",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1110384,
+        1138320
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/lmg-rifle-11-burst-a.wav",
+      "sha256": "28202301cc69192bfe330d6692104caa67af43b0b36c3e0acbf51eb87b8456dc",
+      "sample_rate": 48000,
+      "frames": 16800,
+      "loop": false,
+      "notes": "Cadence fallback using the existing rifle source reports at 80 ms; not a naturally recorded burst.",
+      "burst": {
+        "shots": [
+          [
+            1110384,
+            1119600
+          ],
+          [
+            1119600,
+            1129200
+          ],
+          [
+            1129200,
+            1138320
+          ]
+        ],
+        "interval_s": 0.08
+      }
+    },
+    "lmg-rifle-11-burst-b": {
+      "label": "LMG \u00b7 80 ms relayed reports",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1119600,
+        1146768
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/lmg-rifle-11-burst-b.wav",
+      "sha256": "5999285badd4f8cce20a065186be2c2e537fad0f47a46621cfe9dbf143addd20",
+      "sample_rate": 48000,
+      "frames": 16128,
+      "loop": false,
+      "notes": "Cadence fallback using the existing rifle source reports at 80 ms; not a naturally recorded burst.",
+      "burst": {
+        "shots": [
+          [
+            1119600,
+            1129200
+          ],
+          [
+            1129200,
+            1138320
+          ],
+          [
+            1138320,
+            1146768
+          ]
+        ],
+        "interval_s": 0.08
+      }
+    },
+    "lmg-rifle-11-burst-c": {
+      "label": "LMG \u00b7 80 ms relayed reports",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1110384,
+        1146768
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/lmg-rifle-11-burst-c.wav",
+      "sha256": "4d4cb6a0f70e6094df6962426b3783aca41ac27144fd55eff232fdf0bad2324c",
+      "sample_rate": 48000,
+      "frames": 16896,
+      "loop": false,
+      "notes": "Cadence fallback using the existing rifle source reports at 80 ms; not a naturally recorded burst.",
+      "burst": {
+        "shots": [
+          [
+            1129200,
+            1138320
+          ],
+          [
+            1138320,
+            1146768
+          ],
+          [
+            1110384,
+            1119600
+          ]
+        ],
+        "interval_s": 0.08
+      }
+    },
+    "lmg-rifle-11-burst-d": {
+      "label": "LMG \u00b7 80 ms relayed reports",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1110384,
+        1146768
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/lmg-rifle-11-burst-d.wav",
+      "sha256": "9f9a0abac3ecb195a5e9f924101234f138ddf3bbd7422084a79fd9e46686f7d4",
+      "sample_rate": 48000,
+      "frames": 17280,
+      "loop": false,
+      "notes": "Cadence fallback using the existing rifle source reports at 80 ms; not a naturally recorded burst.",
+      "burst": {
+        "shots": [
+          [
+            1138320,
+            1146768
+          ],
+          [
+            1110384,
+            1119600
+          ],
+          [
+            1119600,
+            1129200
+          ]
+        ],
+        "interval_s": 0.08
+      }
     }
   },
   "sounds": {
@@ -6275,6 +6415,32 @@
       "synth": null,
       "synth_gain": 0,
       "gain": 1,
+      "loop": false
+    },
+    "lmg-combat": {
+      "label": "LMG \u00b7 80 ms relay fallback",
+      "clips": [
+        "lmg-rifle-11-burst-a",
+        "lmg-rifle-11-burst-b",
+        "lmg-rifle-11-burst-c",
+        "lmg-rifle-11-burst-d"
+      ],
+      "synth": "rifle",
+      "synth_gain": 0.07,
+      "gain": 0.85,
+      "loop": false
+    },
+    "lmg-combat-distant": {
+      "label": "LMG \u00b7 80 ms relay fallback-distant",
+      "clips": [
+        "lmg-rifle-11-burst-a",
+        "lmg-rifle-11-burst-b",
+        "lmg-rifle-11-burst-c",
+        "lmg-rifle-11-burst-d"
+      ],
+      "synth": "rifle",
+      "synth_gain": 0.07,
+      "gain": 1.3175,
       "loop": false
     }
   },
