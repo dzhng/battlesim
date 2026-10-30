@@ -13,9 +13,7 @@ use presentation::static_world::ground::grass::{
     self as field, KindMesh, PackedShapes, TierMesh, Window, FIELD_SEGMENTS,
 };
 
-/// Two indexed-indirect draws' arguments (5 words each), then each tier's
-/// raw count.
-const ARGS_WORDS: usize = 12;
+const ARGS_WORDS: usize = presentation::static_world::ground::grass::ARGS_WORDS as usize;
 
 /// Pack authored grass bundles through the same decoder and blade layout on every platform.
 pub fn pack_shapes(library: &impl BundleSource, names: &[String]) -> Result<PackedShapes, String> {

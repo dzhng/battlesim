@@ -49,6 +49,7 @@ pub const CONSTANTS: &[(&str, Scalar)] = &[
     ),
     ("ROAD_LOOKS_MAX", U32(tables::ROAD_LOOKS_MAX as u32)),
     ("SCAR_KEY_MASK", U32(crate::scars::KEY_MASK)),
+    ("SCAR_TILE", U32(crate::scars::TILE as u32)),
     ("SCAR_UNIFORM", U32(crate::scars::UNIFORM)),
     ("SCAR_DENSE", U32(crate::scars::DENSE)),
     (
@@ -65,6 +66,7 @@ pub const CONSTANTS: &[(&str, Scalar)] = &[
     ),
     ("GRASS_BUILD_LANES", U32(grass::BUILD_LANES)),
     ("GRASS_TILE_RANGES", U32(grass::TILE_RANGES)),
+    ("GRASS_ARGS_WORDS", U32(grass::ARGS_WORDS)),
     ("GROUND_GRASS_EDGE_M", F32(tables::GRASS_EDGE_M)),
     (
         "GROUND_FOREST_VERGE_FEATHER",

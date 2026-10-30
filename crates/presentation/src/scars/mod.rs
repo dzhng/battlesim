@@ -19,6 +19,7 @@ mod page;
 
 pub use cache::{ScarCache, ScarStats, ScarUpload};
 pub use ground::{Changes, LearnedGround, Shape};
+pub use page::TILE;
 
 /// A directory entry's flags over its tile key + 1.
 pub const UNIFORM: u32 = 0x8000_0000;

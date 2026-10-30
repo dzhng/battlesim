@@ -217,7 +217,7 @@ fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
 // @block scars_scarCell
 fn scarCell(c: vec2u, e: vec2u) -> vec4f {
  if(e.x==0u){return vec4f(0.0);}if((e.x&SCAR_UNIFORM)!=0u){return scarWord(e.y);}
- let local=(c.y%16u)*16u+c.x%16u;
+ let local=(c.y%SCAR_TILE)*SCAR_TILE+c.x%SCAR_TILE;
  if((e.x&SCAR_DENSE)!=0u){return scarPoolWord(e.y+local);}
  let offset=e.y>>8u;var lo=0u;var hi=e.y&255u;
  while(lo<hi){let mid=(lo+hi)/2u;let bytes=vec4u(round(scarPoolWord(offset+mid*2u)*255.0));let end=bytes.x+bytes.y*256u;if(end<=local){lo=mid+1u;}else{hi=mid;}}
@@ -228,7 +228,7 @@ fn scarCell(c: vec2u, e: vec2u) -> vec4f {
 fn scarEntry(tile: vec2u) -> vec2u {
  let P=scarParams;
  if(any(tile<P.cache.cacheBounds.xy)||any(tile>P.cache.cacheBounds.zw)){return vec2u(0u);}
- let tilesX=(P.cache.pages.x+15u)/16u;let key=tile.y*tilesX+tile.x;
+ let tilesX=(P.cache.pages.x+SCAR_TILE-1u)/SCAR_TILE;let key=tile.y*tilesX+tile.x;
  var at=((key*0x9e3779b1u)^(key>>16u))&P.cache.pages.z;
  loop {let dim=textureDimensions(scarPages);let e=textureLoad(scarPages,vec2i(i32(at%dim.x),i32(at/dim.x)),0).xy;
   if(e.x==0u){break;}
@@ -266,9 +266,9 @@ fn scarLinear(uv: vec2f, tiles: ScarTiles) -> vec4f {
  let P=scarParams;let size=vec2f(P.cache.pages.xy);let p=scarFilterPosition(uv,size);
  let cell=vec2i(floor(p));let f=fract(p);var q=array<vec4u,4>();
  for(var k=0u;k<4u;k++){
-  let c=vec2u(clamp(cell+vec2i(i32(k&1u),i32(k>>1u)),vec2i(0),vec2i(P.cache.pages.xy)-1));let e=scarTileEntry(tiles,c/16u);
+  let c=vec2u(clamp(cell+vec2i(i32(k&1u),i32(k>>1u)),vec2i(0),vec2i(P.cache.pages.xy)-1));let e=scarTileEntry(tiles,c/SCAR_TILE);
   // The cell's own tile, one word throughout, with all four corners in it.
-  if(k==0u&&(e.x==0u||(e.x&SCAR_UNIFORM)!=0u)&&all(c%16u<vec2u(15u))){return scarWord(e.y);}
+  if(k==0u&&(e.x==0u||(e.x&SCAR_UNIFORM)!=0u)&&all(c%SCAR_TILE<vec2u(SCAR_TILE-1u))){return scarWord(e.y);}
   q[k]=vec4u(round(scarCell(c,e)*255.0));
  }
  let w=scarFilterQuanta(q[0],q[1],q[2],q[3],f);
@@ -306,7 +306,7 @@ fn scarTileEntry(t: ScarTiles, tile: vec2u) -> vec2u {
 
 // @block scars_scarTiles
 fn scarTiles(lo: vec2u, hi: vec2u) -> ScarTiles {
- let a=lo/16u;let span=hi/16u-a;var e=array<vec2u,4>();
+ let a=lo/SCAR_TILE;let span=hi/SCAR_TILE-a;var e=array<vec2u,4>();
  // One probe site in a loop, as for the corners in `scarLinear`; a tile
  // that repeats where the cells span one is copied, not probed again.
  for(var k=0u;k<4u;k++){
