@@ -240,6 +240,7 @@ impl ObservationFeed {
                 operator: p.operator,
                 bearing: p.bearing,
                 elevation: p.elevation,
+                round: p.round as usize,
                 shots: p.shots.unwrap_or(0.0),
             };
         }

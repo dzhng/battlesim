@@ -113,7 +113,7 @@ test("consecutive wasm battles field and sound their own resolved encounter rule
       const look = (
         changed ? "tank_he" : base.weapons.tank_ap.appearance
       ) as keyof typeof presentationSettings.weapon_looks;
-      expect(sections.units.types.test_tank.mounts[0].weapon).toBe(weapon);
+      expect(sections.units.types.test_tank.mounts[0].weapons[0].kind).toBe(weapon);
       expect(sections.effects.presentation.looks.weapons[weapon]).toBe(look);
       sections.tables.forEach((name: string, i: number) =>
         presentation.add_clip_table(name, fielding.table(i)),

@@ -185,6 +185,7 @@ impl Arsenal {
                 last_enemy_lock_tick: None,
                 elevation: 0.0,
                 shots: 0,
+                round: 0,
                 reason: ActionReason::NoCompatibleTarget,
             })
             .collect()

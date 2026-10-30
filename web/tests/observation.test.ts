@@ -552,13 +552,14 @@ test("every frozen animation field and ground value decodes, integers exact past
   expect(o.own[0].memberLeans).toEqual([null, { side: "right", at: [4.5, 5.5] }]);
   expect(o.own[0].area).toEqual({ anchor: [2, 3], radius: 14 });
   expect(o.own[0].weaponPoses).toEqual([
-    { mount: 0, operator: null, bearing: 1.5, elevation: -0.25, shots: big + 4 },
-    { mount: 1, operator: big + 2, bearing: 1.5, elevation: -0.25, shots: 2 ** 32 - 1 },
+    { mount: 0, operator: null, bearing: 1.5, elevation: -0.25, round: 0, shots: big + 4 },
+    { mount: 1, operator: big + 2, bearing: 1.5, elevation: -0.25, round: 1, shots: 2 ** 32 - 1 },
   ]);
   expect(o.own[0].mounts.map((m) => m.mount)).toEqual([0, 1]);
   expect(o.identified[0].memberIds).toEqual([]);
   expect(o.identified[0].memberActiveMounts).toEqual([]);
   expect(o.identified[0].weaponPoses.map((p) => p.shots)).toEqual([9, big + 6]);
+  expect(o.identified[0].weaponPoses.map((p) => p.round)).toEqual([0, 1]);
   expect(o.identified[0].reversing).toBe(true);
   // A damaged enemy's coarse smoke bit, and nothing of its health, crosses the wire.
   expect(o.identified[0].smoking).toBe(true);

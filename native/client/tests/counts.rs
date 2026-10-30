@@ -22,6 +22,9 @@ use native_client::capture::Replay;
 use native_client::counts::Counted;
 use presentation::assets::RUNTIME;
 
+#[path = "../../../crates/sim/tests/common/capture_publication.rs"]
+mod capture_publication;
+
 const COUNTED: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/parity/capture/counts/paris-corner"
@@ -45,6 +48,33 @@ fn inflated() -> PathBuf {
 fn every_frame_the_browser_counted_shows_the_same_counts_natively() {
     let library = Library::open(Path::new(RUNTIME)).unwrap();
     let dir = inflated();
+    if std::env::var_os("BLESS_PARITY").is_some() {
+        use sha2::{Digest, Sha256};
+        use std::io::Write;
+        let mut capture: serde_json::Value =
+            serde_json::from_slice(&fs::read(dir.join("capture.json")).unwrap()).unwrap();
+        capture_publication::refresh(&mut capture);
+        let bytes = serde_json::to_vec(&capture).unwrap();
+        fs::write(dir.join("capture.json"), &bytes).unwrap();
+        let mut manifest: serde_json::Value =
+            serde_json::from_slice(&fs::read(dir.join("manifest.json")).unwrap()).unwrap();
+        manifest["identity"]["captureHash"] =
+            serde_json::json!(format!("{:x}", Sha256::digest(&bytes)));
+        fs::write(
+            dir.join("manifest.json"),
+            serde_json::to_vec(&manifest).unwrap(),
+        )
+        .unwrap();
+        for name in ["capture.json", "manifest.json"] {
+            let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::best());
+            gz.write_all(&fs::read(dir.join(name)).unwrap()).unwrap();
+            fs::write(
+                Path::new(COUNTED).join(format!("{name}.gz")),
+                gz.finish().unwrap(),
+            )
+            .unwrap();
+        }
+    }
     let replay = Replay::open(&dir, &library);
     fs::remove_dir_all(&dir).unwrap();
     let mut replay = replay.unwrap();

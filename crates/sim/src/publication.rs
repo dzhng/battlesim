@@ -22,9 +22,7 @@
 //! `heardHigh`), and rules with more rows are refused at load.
 use contract::command::TargetRef;
 use contract::ids::Side;
-use contract::observation::{
-    HostRef, MemberLean, ObservationFrame, ShoutSpeaker, ShoutTrigger, WeaponPose,
-};
+use contract::observation::{HostRef, MemberLean, ObservationFrame, ShoutSpeaker, ShoutTrigger};
 use contract::players::ControllerKind;
 use contract::scenario::CoverTier;
 
@@ -36,6 +34,7 @@ pub mod reader;
 mod tags;
 
 pub use layout::layout_json;
+use layout::pose;
 use tags::*;
 
 /// Atomic publication allowance; uniform Large ground plus finest fog is about
@@ -72,10 +71,11 @@ const MOUNT_FIELDS: [&str; 15] = [
     "reloadKind",
 ];
 
-const POSE_FIELDS: [&str; 7] = [
+const POSE_FIELDS: [&str; 8] = [
     "mount",
     "bearing",
     "elevation",
+    "round",
     "shotsLo",
     "shotsHi",
     "operatorLo",
@@ -463,20 +463,6 @@ pub(crate) fn limbs(n: u32) -> [f32; 2] {
 
 fn limbs_or_absent(n: Option<u32>) -> [f32; 2] {
     n.map_or([-1.0; 2], limbs)
-}
-
-fn pose(p: &WeaponPose) -> [f32; 7] {
-    let [lo, hi] = limbs(p.shots);
-    let [operator_lo, operator_hi] = limbs_or_absent(p.operator);
-    [
-        p.mount as f32,
-        p.bearing as f32,
-        p.elevation as f32,
-        lo,
-        hi,
-        operator_lo,
-        operator_hi,
-    ]
 }
 
 const LEAN_FIELDS: [&str; 3] = ["side", "x", "y"];

@@ -53,7 +53,10 @@ fn consecutive_battles_present_their_encounters_rules() {
             &["test_tank".into(), "test_supply".into()],
         )
         .unwrap();
-        assert_eq!(fielded.units.types["test_tank"].mounts[0].weapon, weapon);
+        assert_eq!(
+            fielded.units.types["test_tank"].mounts[0].weapons[0].kind,
+            weapon
+        );
         let effects = EffectPresentation::from_value(&fielded.effects.presentation).unwrap();
         let look = if changed {
             "tank_he"

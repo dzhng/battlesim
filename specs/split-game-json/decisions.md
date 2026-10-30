@@ -45,3 +45,26 @@
   kick data in addition to shot and flash, because those consumers require
   them; the fielding error names the weapon. Rejected filling missing parts
   with synthetic zero values, which would hide an incomplete authored look.
+
+
+## Slice 12
+
+- **Directed by integrator — publish the last-fired mount weapon index.** The
+  user did not answer the slice-02 choice within its window. The integrator
+  selected the recommended `WeaponPose.round` mechanism on the user's behalf;
+  adding it is authorized for this slice. Timing, visibility and battle digests
+  remain the boundary.
+- **Sound, high confidence — retain one ordered list of presentation mount rows.**
+  Each row carries its weapon kind and admitted kick. Replacing the former
+  first-weapon/kick pair lets effects and pose read the same published index;
+  keeping a first-row alias alongside the list would create another owner.
+- **Sound, high confidence — refresh captures through their owning bless tests.**
+  Replaying the named deterministic battle verifies every stored digest before
+  writing publication bytes. Camera records and browser count expectations stay
+  untouched. This extends the existing `BLESS_PARITY` procedure rather than
+  shipping a raw-layout migration script.
+- **Sound, medium confidence — reconstruct before selection at the presentation boundary.**
+  Both GPU capture arms run the same battle and producer. The before arm makes
+  each mount's presentation rows copies of its first row, reproducing the old
+  flash/kick choice. It is disclosed as reconstructed evidence; independent
+  visual acceptance stays with the integrator. No production debug hook remains.

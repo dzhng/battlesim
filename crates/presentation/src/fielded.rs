@@ -133,10 +133,10 @@ impl Fielding<'_> {
         )?;
         for unit in units["types"].as_object_mut().unwrap().values_mut() {
             for mount in unit["mounts"].as_array_mut().unwrap() {
-                let weapon = mount["weapon"].as_str().ok_or("mount without a weapon")?;
-                mount["kick"] =
-                    serde_json::to_value(looks.get(weapon).kick.expect("fielded firing kick"))
-                        .map_err(|e| e.to_string())?;
+                mount["weapons"] = Value::Array(mount["weapons"].as_array().unwrap().iter().map(|id| {
+                    let weapon = id.as_str().unwrap();
+                    json!({"kind": weapon, "kick": looks.get(weapon).kick.expect("fielded firing kick")})
+                }).collect());
             }
         }
         let effects = effects::section(
@@ -513,7 +513,7 @@ fn unit_types(
                     .position(|r| !m["on"].is_null() && r["id"] == m["on"]);
                 let pose = &m["operator_appearance"]["active_pose"];
                 json!({
-                    "weapon": m["weapons"][0],
+                    "weapons": m["weapons"],
                     "on": on,
                     "activePose": if pose.is_object() { pose.clone() } else { Value::Null },
                 })

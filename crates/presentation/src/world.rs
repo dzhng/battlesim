@@ -144,10 +144,15 @@ impl UnitType {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TypeMount {
-    pub weapon: String,
-    pub kick: crate::looks::Kick,
+    pub weapons: Vec<MountWeapon>,
     pub on: Option<usize>,
     pub active_pose: Option<PoseRef>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct MountWeapon {
+    pub kind: String,
+    pub kick: crate::looks::Kick,
 }
 
 #[derive(Clone, Debug, Deserialize)]

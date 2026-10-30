@@ -1,6 +1,7 @@
 //! The layout every client reads a publication by: its header, groups and
 //! fields, and what each field means.
 use super::*;
+use contract::observation::WeaponPose;
 
 /// The layout of every publication in `battle`: its round kinds are the
 /// rules' weapon rows (in name order), its ground grid the ground layer's.
@@ -155,4 +156,19 @@ pub fn layout_json(battle: &Battle) -> String {
         // propId its known prop's id, x, y, yaw and baseZ where it stands.
     })
     .to_string()
+}
+
+pub(super) fn pose(p: &WeaponPose) -> [f32; 8] {
+    let [lo, hi] = limbs(p.shots);
+    let [operator_lo, operator_hi] = limbs_or_absent(p.operator);
+    [
+        p.mount as f32,
+        p.bearing as f32,
+        p.elevation as f32,
+        p.round as f32,
+        lo,
+        hi,
+        operator_lo,
+        operator_hi,
+    ]
 }

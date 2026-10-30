@@ -4,7 +4,7 @@ use contract::ballistics::Delivery;
 use contract::catalog::{AltitudeLayer, TypeIndex};
 use contract::command::{Engagement, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
-use contract::observation::{ActionReason, ContactId, MountReadiness, WeaponPose};
+use contract::observation::{ActionReason, ContactId};
 use contract::scenario::{Armor, Rules};
 use contract::weapons::{AmmoCapacity, Fire, TargetClass, WeaponDefinition};
 
@@ -15,6 +15,8 @@ pub use admission::check_rules;
 mod bearing;
 mod cycle;
 mod muzzle;
+mod observation;
+pub use observation::{pose, readiness};
 pub mod tick;
 use bearing::{bearing_from, hull_fixed, point_mount, turned_mount};
 pub use bearing::{nose_on, nose_on_bearing, Arc};
@@ -115,6 +117,8 @@ pub struct Mount {
     pub last_enemy_lock_tick: Option<Tick>,
     /// Elevation of the last round this mount launched (radians); 0 before.
     pub elevation: f64,
+    /// Last launched weapon index, for publication only; never digested.
+    pub round: u8,
     /// Rounds launched since the battle began, wrapping at 2³².
     pub shots: u32,
     pub reason: ActionReason,
@@ -130,7 +134,7 @@ impl Mount {
         self.ammo.iter().all(|a| *a == Some(0))
     }
 
-    /// Fold the mount's complete carried state into `d`.
+    /// Fold the mount's battle state into `d`.
     pub fn digest(&self, d: &mut Digest) {
         d.u64(self.spec as u64).u64(self.ammo.len() as u64);
         for a in &self.ammo {
@@ -1759,6 +1763,7 @@ fn fire(
     }
     let last = launches.last()?.velocity;
     mount.elevation = libm::atan2(last.z, libm::hypot(last.x, last.y));
+    mount.round = k as u8;
     mount.shots = mount.shots.wrapping_add(launches.len() as u32);
     Some(Shot {
         unit: unit.id,
@@ -2113,61 +2118,6 @@ pub fn engaged(unit: &Unit) -> bool {
     unit.mounts
         .iter()
         .any(|m| m.support.is_some() || m.lock.as_ref().is_some_and(|l| l.engaging))
-}
-
-/// A mount's pose for animation: published for own units and identified enemies.
-pub fn pose(mount: &Mount) -> WeaponPose {
-    WeaponPose {
-        mount: mount.spec as u8,
-        operator: mount.operator,
-        bearing: mount.bearing,
-        elevation: mount.elevation,
-        shots: mount.shots,
-    }
-}
-
-/// Exported readiness of a mount for its owner's panel and rings.
-pub fn readiness(
-    arsenal: &Arsenal,
-    unit: &Unit,
-    mount: &Mount,
-    target_ref: Option<TargetRef>,
-) -> MountReadiness {
-    let spec = &arsenal.specs(unit.kind)[mount.spec];
-    let loaded = mount.cycles.iter().find_map(Cycle::ready);
-    let reloading = if loaded.is_some() {
-        None
-    } else {
-        mount.cycles.iter().filter_map(|c| c.reload).min_by(|a, b| {
-            let remaining = |(k, progress): (usize, f64)| {
-                arsenal.weapons[spec.kinds[k]].def.reload_s - progress
-            };
-            remaining(*a).total_cmp(&remaining(*b))
-        })
-    };
-    let aim = mount
-        .cycles
-        .iter()
-        .filter(|c| cycle_active(unit, mount, c))
-        .map(|c| {
-            let k = c.loaded.or(c.reload.map(|(k, _)| k)).unwrap_or(0);
-            (c.aim / arsenal.weapons[spec.kinds[k]].def.aim_s).min(1.0)
-        })
-        .fold(0.0, f64::max);
-    let reload = reloading.map_or(0.0, |(k, p)| {
-        (p / arsenal.weapons[spec.kinds[k]].def.reload_s).min(1.0)
-    });
-    MountReadiness {
-        mount: mount.spec as u8,
-        loaded: loaded.map(|k| k as u8),
-        reloading: reloading.map(|(k, _)| k as u8),
-        ammo: mount.ammo.clone(),
-        aim,
-        reload,
-        target: target_ref,
-        reason: mount.reason,
-        guiding: mount.support.is_some(),
-    }
 }
 
 #[cfg(test)]

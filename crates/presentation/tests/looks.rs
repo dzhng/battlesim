@@ -38,7 +38,7 @@ fn encounter_weapons_inherit_their_parents_look() {
 #[path = "../../sim/tests/common/mod.rs"]
 mod common;
 
-fn fired_look(added: bool, require_kick: bool) {
+fn fired_look(added: bool, require_kick: bool, second: bool) {
     use contract::ids::Side;
     use presentation::{
         assets::Runtime,
@@ -67,6 +67,11 @@ fn fired_look(added: bool, require_kick: bool) {
         "light_tank_ap"
     };
     let mut overrides = json!({"units":{"test_tank":{"sensors":{"ground_m":3000,"low_air_m":3000,"high_air_m":3000,"sight_shape":{"front":1,"side":1,"rear":1}}, "mounts":[{"id":"cannon", "weapons":[id]}]}}});
+    if second {
+        overrides["units"]["test_tank"]["mounts"][0]["weapons"] = json!(["tank_ap", id]);
+        scenario.units[0].condition =
+            Some(serde_json::from_value(json!({"spent":{"tank_ap":10000}})).unwrap());
+    }
     if added {
         overrides["weapons"] = json!({id:{"extends":"tank_ap", "name":"Encounter gun"}});
     }
@@ -79,7 +84,12 @@ fn fired_look(added: bool, require_kick: bool) {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let runtime = Runtime::open(&root.join("assets/runtime")).unwrap();
     let rules = serde_json::to_value(battle.rules()).unwrap();
-    let settings = fixture("presentation");
+    let mut settings = fixture("presentation");
+    if second {
+        // Distinct authored kicks make a first-row recoil regression observable.
+        let first = &battle.rules().weapons["tank_ap"].appearance;
+        settings["weapon_looks"][first]["kick"]["hull"] = json!(0);
+    }
     let catalog = battle.rules().catalog.view();
     let kinds = vec!["test_tank".into(), "test_supply".into()];
     let fielded = Fielding {
@@ -177,11 +187,11 @@ fn fired_look(added: bool, require_kick: bool) {
 
 #[test]
 fn a_derived_weapon_fired_through_a_battle_presents_its_look() {
-    fired_look(false, false);
+    fired_look(false, false, false);
 }
 #[test]
 fn an_encounter_added_tank_gun_fired_through_a_battle_presents_the_tank_look() {
-    fired_look(true, false);
+    fired_look(true, false, false);
 }
 
 #[test]
@@ -328,5 +338,10 @@ fn a_crash_mounted_as_a_gun_must_supply_firing_parts() {
 
 #[test]
 fn a_derived_tank_round_fired_through_a_battle_kicks_its_hull() {
-    fired_look(false, true);
+    fired_look(false, true, false);
+}
+
+#[test]
+fn a_two_weapon_mount_presents_the_second_rounds_look() {
+    fired_look(false, true, true);
 }

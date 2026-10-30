@@ -1,6 +1,6 @@
 # One owner per game setting
 
-**Status:** in progress: 01–11 done. **Updated:** 2026-10-29.
+**Status:** in progress: 01–12 done. **Updated:** 2026-10-29.
 
 [`fixtures/rules.json`](../../fixtures/rules.json) owns battle rules,
 [`fixtures/presentation.json`](../../fixtures/presentation.json) owns visual settings,
@@ -21,11 +21,14 @@ You are implementing this plan on PR #16 (dzhng/battlesim, branch
 slice you are on. Use
 [`implement-spec`](../../.agents/skills/implement-spec/SKILL.md).
 
-**Pick up at [12](slices/12-firing-look.md)** (running; mechanism decided on the
-user's behalf: a published `round` on `WeaponPose`), then
-[13](slices/13-fold-looks.md). Slice 11's evidence is in `evidence-11/` and its
-checkpoint is resolved in its slice file; slice 13 must split the heavy RPG's
-louder blast, as recorded there. The shared review follow-ups are closed at the end of
+**Pick up at [13](slices/13-fold-looks.md).** Slice 12 publishes the
+last-fired weapon index (`WeaponPose.round`, decided on the user's behalf) and
+selects hull launch looks and kicks from it; its delta report is
+`after-12/delta-report.json` and its evidence `evidence-12/`, with the
+checkpoint resolved in its slice file. Slice 11's evidence is in
+`evidence-11/`. Slice 13 must split the heavy RPG's louder blast, as recorded
+there, and take the look-content notes in 11's and 12's checkpoints as inputs
+for 15. The shared review follow-ups are closed at the end of
 [04](slices/04-split-files.md), [05](slices/05-typed-readers.md),
 [06](slices/06-shader-constants.md), [07](slices/07-admission.md),
 [08](slices/08-looks.md), [09](slices/09-rules-cleanups.md) and
@@ -36,9 +39,8 @@ Proof baseline: slice 01's dumps in
 re-captured from the re-recorded paris-corner run). Since 08, compare against
 `after-08-merged/` (its `SHA256SUMS`): it differs from `before/` only by 08's
 named light-cause renames in `effects.jsonl`. Composed shaders changed in 06 by
-design; `after-08-merged/` holds the current ones. Slice 12 waits on the
-user's answer to 02's question (a published `round` on `WeaponPose`); if
-unanswered when 12 is next, take that option and record why.
+design; `after-08-merged/` holds the current ones. Slice 12 took 02's
+recommended published `WeaponPose.round` option on the user's behalf after the question went unanswered, as the integrator directed.
 
 Before you end a pass, tick what landed below, write what you learned into the
 slice file, and rewrite this prompt to say where the next pass starts.
@@ -66,7 +68,7 @@ Warnings:
 - [x] [09 Rules cleanups](slices/09-rules-cleanups.md) (moves `rules_hash`, `config_hash`)
 - [x] [10 Presentation reads the battle's rules](slices/10-battle-rules.md)
 - [x] [11 Named fixes: kick, impact size, RPG level](slices/11-named-fixes.md)
-- [ ] [12 The firing look follows the round](slices/12-firing-look.md)
+- [x] [12 The firing look follows the round](slices/12-firing-look.md)
 - [ ] [13 Fold to the final looks](slices/13-fold-looks.md) (moves `rules_hash`)
 - [ ] [14 Sound workbench keyed by look](slices/14-sound-workbench.md)
 - [ ] [15 Content pass](slices/15-content.md)

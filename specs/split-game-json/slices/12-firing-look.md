@@ -20,9 +20,8 @@ fired, not from its mount's first weapon. After this:
   only after approving its publication source and a shared matching rule.
 - Both traces held all per-tick digests, replayed exactly, and passed
   `exact_numbers`. A moved only replay `engine_build`; B moved no replay bytes.
-  No production mechanism is selected. Ask the user before adding a published
-  round-kind field or authorizing another candidate. Constraints remain: no
-  new published field; one matching rule; unchanged flash tick and attachment.
+  This was the spike outcome before the integrator selected the mechanism
+  recorded below; its unchanged-flash-tick and attachment constraints remain.
 
 **Run / see / hear:** the look sheet's firing rows, and a clip of a BMP-3
 firing its gun then its Bastion, and a tank firing AP then HE.
@@ -53,5 +52,72 @@ fill a published value, the publication bytes move too; battle digests don't.
 
 **Delegated:** the implementation inside the chosen mechanism.
 
-**Would change this slice:** 02 finding no mechanism without a new field.
-Ask the user before adding one.
+**Would change this slice:** any battle digest movement, or launch timing or
+attachment changing with the selected field.
+
+
+**Done (2026-10-29):** the integrator selected the recommended mechanism on the
+user's behalf after the slice-02 question went unanswered. `WeaponPose.round`
+is the index of the mount's last-fired weapon row, initially zero, retained
+where the simulation counts the shot. It is presentation evidence, deliberately
+excluded from `Mount::digest`, and travels only with already-visible poses.
+The packed pose layout and native/Wasm/TypeScript views carry it. Presentation
+keeps the full ordered mount weapon list, with each row's admitted kick, for
+launch effects, firing sound and pose kick. Soldier launches still match member
+segments. Hull launches still use counter rises and their own muzzle.
+
+**Proof:** `after-12/delta-report.json` in the shared proof directory compares
+against `after-11-3/` and `after-08-merged/`. The complete digest stream is
+byte-identical to both. Relative to 11, only BMP-3 presentation changes: its
+Bastion launches now name Bastion instead of IFV HE. Launch tick, position,
+direction, all flight segments and actual fired rounds are unchanged. The probe's
+tank cases mount only one row, so the two-row AP/HE capture and synthetic
+regressions supplement that corpus.
+
+**Records:** `BLESS_PARITY=1` on the publication encoder tests refreshes
+`publication/{stream,combat,arrangement,cover-facing,contact-lifecycle,codec-vectors}.json`:
+publication hashes/words and the codec's layout change for the new field;
+digests do not. The codec's logical inputs now include distinct round indices.
+The publication-reader owning test rebuilds both capture streams and their
+observation fixtures, preserving and checking every recorded battle digest;
+it also updates the Paris capture hash in its manifest. The native count-test's
+same bless flag refreshes its gzipped capture and manifest, while retaining
+and verifying every browser count. The fog-sight owning test's same flag
+refreshes its embedded street layout and `fog-street-publications.u32`; every
+fog upload, dispatch, frame and stat vector remains identical. The pose fixture's unit section is an input
+schema migration from a first weapon/kick to an ordered row list. No effects,
+pose or sound output vectors were re-blessed; all still pass.
+
+**Evidence:** shared `evidence-12/` contains all paired BMP-3 gun/Bastion and
+tank AP/HE frames, launch ledgers, contact sheets, pixel comparisons, scripts
+and `review.md`. Captures held the GPU lock. The before arm reconstructs the
+removed first-row selection at the presentation boundary; battles are identical.
+Tank AP and HE currently author identical launch flash/kick/firing sound, so
+that visual pair alone cannot demonstrate row selection. The system regression
+uses distinct first/second-row kicks to make it observable. Nested reviewers
+were outside this implementation delegate's remit; independent unprimed visual
+acceptance and the human checkpoint remain with integration.
+
+**Tests:** the real-battle second-row regression was observed failing before
+implementation. The moving/turning, skipped-publication, fog-clipped and immediate
+impact regressions were also falsified together by restoring first-row selection,
+then passed after restoration. Publication, presentation vectors, browser decode,
+typecheck, lint/clippy, formatting and the file-size ratchet are checked in this
+pass; full-suite receipts are retained with the evidence.
+
+**Checkpoint resolution (2026-10-29, integrator; non-blocking, decided on the
+evidence):** accepted.
+- **BMP-3 missile launch:** an unprimed critique of `evidence-12/` found it
+  no longer opens with the 100 mm gun's large fireball; it gets a compact
+  flash at the muzzle. The gun shot is unchanged.
+- **Tank AP against HE:** they look identical before and after, because both
+  looks author the same flash, kick and sound. The selection is proven by the
+  decoded launch record and the regression test, not by the pixels.
+- **Look content handed to [13](13-fold-looks.md) and [15](15-content.md):**
+  - the missile launch is a large glowing dust bloom that hides the missile
+    for about five frames, where a viewer expects a sharp pop and a thin
+    trail;
+  - the missile trail shows as separate cotton-ball puffs;
+  - AP and HE can't be told apart;
+  - the muzzle fireball sits 40–60 px ahead of the barrel tip (also seen in
+    11).
