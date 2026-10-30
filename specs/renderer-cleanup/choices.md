@@ -145,7 +145,10 @@ finding that the base build did not render grass the same way twice.
   level of type comparison. **Reach:** adding a shader resource without its
   matching layout fails the CPU test, without making shared layouts unusable
   for smaller shaders. **Verdict: sound** — checks the shader-to-registry
-  contract rather than demanding identical resource sets. **Confidence: high.**
+  contract rather than demanding identical resource sets. The whole-spec review
+  extends it to both cutout variants on every host; a bad binding injected into
+  the unselected Windows body proved the coverage gap and the repaired refusal.
+  **Confidence: high.**
 
 - **When:** slice 05. **Choice:** filtering support stays outside reflection.
   WGSL's `sampler` and `texture_2d<f32>` declarations cannot say whether the
@@ -503,6 +506,14 @@ finding that the base build did not render grass the same way twice.
   cannot reliably distinguish entry points, members and scoped references; a
   semantic reachability pass would add a WGSL parser to the build dependencies.
   The existing all-pipeline dead-block check stays. **Verdict: provisional.**
+
+- **When:** whole-spec review. **Choice:** share overlay highlight glow, placed
+  positions through `math::placedPoint`, eye-facing normals through one arithmetic
+  helper, and grass's vertex result through its stage output contract. Each family
+  has its own structural commit so plate regressions can be isolated. This also
+  supersedes the earlier placement of shared foliage IO: it belongs to scenery.
+  **Reach:** Naga and ABI checks pass; native plate acceptance remains with the
+  orchestrator. **Verdict: provisional.**
 
 ## 11 · Track side
 

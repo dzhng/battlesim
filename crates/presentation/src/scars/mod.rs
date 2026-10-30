@@ -1,7 +1,8 @@
 //! The side's learned ground and the GPU's cache of its scars:
 //! [`LearnedGround`] keeps what the side's publications taught it, cell by
 //! cell, and [`ScarCache`] turns it into what a renderer uploads as it is:
-//! the directory's words, the pool's texels and `ScarCacheParams`. The shared `terrain_scars.wgsl` shader reads them
+//! the directory's words, the pool's texels and `ScarCacheParams`. The shared
+//! `scars.wgsl` shader reads them
 //! (`scarEntry`, `scarCell`); a renderer derives nothing.
 //!
 //! A tile the directory lists is either one word (every cell alike) or a
