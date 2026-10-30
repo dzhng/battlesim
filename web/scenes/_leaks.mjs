@@ -1,20 +1,66 @@
 // Live-resource accounting for a page, installed before any of its scripts
-// run: GPU devices, workers, audio contexts and window/document listeners,
+// run: GPU devices, buffers and textures, workers, audio contexts and listeners,
 // each counted up on creation and down on its release. A scene reads the
 // counts to prove repeated reset, side switches and remounts leave nothing
-// behind. (GPU buffers and textures are the lab's own `allocations()`.)
+// behind. GPU allocations have weak identities: wgpu may release a handle
+// without calling destroy(), and the observer must not keep it alive.
 
 /** Wrap the page's constructors and registration calls. Call before `goto`. */
 export async function trackPageResources(page) {
   await page.addInitScript(() => {
+    if (window.__resources) return;
     const live = { devices: 0, workers: 0, audioContexts: 0, listeners: 0 };
     window.__resources = () => ({ ...live });
+
+    const resources = new Map();
+    const queues = [];
+    let created = 0;
+    const gpu = {
+      devices: 0,
+      validation: [],
+      created: () => created,
+      counts(before = Infinity) {
+        const counts = { buffers: 0, textures: 0 };
+        for (const [order, { reference, kind }] of resources) {
+          if (!reference.deref()) resources.delete(order);
+          else if (order < before) counts[kind]++;
+        }
+        return counts;
+      },
+      drain: () => Promise.all(queues.map((queue) => queue.onSubmittedWorkDone())),
+    };
+    window.__gpuResources = gpu;
+    const onDestroy = (order, destroy) =>
+      function (...args) {
+        resources.delete(order);
+        return destroy.apply(this, args);
+      };
+    const observe = (resource, kind) => {
+      const order = created++;
+      resources.set(order, { reference: new WeakRef(resource), kind });
+      resource.destroy = onDestroy(order, resource.destroy);
+      return resource;
+    };
 
     if (window.GPUAdapter) {
       const requestDevice = GPUAdapter.prototype.requestDevice;
       GPUAdapter.prototype.requestDevice = async function (...args) {
         const device = await requestDevice.apply(this, args);
         live.devices++;
+        gpu.devices++;
+        queues.push(device.queue);
+        device.addEventListener("uncapturederror", (event) =>
+          gpu.validation.push(event.error.message),
+        );
+        for (const [method, kind] of [
+          ["createBuffer", "buffers"],
+          ["createTexture", "textures"],
+        ]) {
+          const create = device[method];
+          device[method] = function (...descriptors) {
+            return observe(create.apply(this, descriptors), kind);
+          };
+        }
         const destroy = device.destroy.bind(device);
         let destroyed = false;
         device.destroy = () => {

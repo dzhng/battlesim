@@ -1,3 +1,4 @@
+import { trackPageResources } from "./_leaks.mjs";
 import { installWorkerStartFence } from "./_workerStart.mjs";
 import {
   advance,
@@ -25,57 +26,11 @@ const MUSIC = JSON.parse(
 export async function appJourney(ctx) {
   const page = await ctx.newPage();
   const cdp = await page.context().newCDPSession(page);
+  await trackPageResources(page);
   await page.addInitScript(installWorkerStartFence);
   await page.addInitScript(() => {
-    // wgpu drops WebGPU handles without calling destroy(). Strong observer keys
-    // would retain every departed scene; only weak identities belong here.
-    const resources = new Map();
-    const queues = [];
-    let created = 0;
-    const allocations = (before = Infinity) => {
-      const counts = { buffers: 0, textures: 0 };
-      for (const [order, { reference, kind }] of resources) {
-        if (!reference.deref()) resources.delete(order);
-        else if (order < before) counts[kind]++;
-      }
-      return counts;
-    };
-    allocations.created = () => created;
-    const onDestroy = (order, destroy) =>
-      function (...args) {
-        resources.delete(order);
-        return destroy.apply(this, args);
-      };
-    const observe = (resource, kind) => {
-      const order = created++;
-      resources.set(order, { reference: new WeakRef(resource), kind });
-      resource.destroy = onDestroy(order, resource.destroy);
-      return resource;
-    };
-    const probe = {
-      devices: 0,
-      contexts: [],
-      music: [],
-      allocations,
-      drain: () => Promise.all(queues.map((queue) => queue.onSubmittedWorkDone())),
-    };
+    const probe = { contexts: [], music: [] };
     window.__appJourney = probe;
-    const request = GPUAdapter.prototype.requestDevice;
-    GPUAdapter.prototype.requestDevice = async function (...args) {
-      const device = await request.apply(this, args);
-      probe.devices++;
-      queues.push(device.queue);
-      for (const [method, kind] of [
-        ["createBuffer", "buffers"],
-        ["createTexture", "textures"],
-      ]) {
-        const create = device[method];
-        device[method] = function (...descriptors) {
-          return observe(create.apply(this, descriptors), kind);
-        };
-      }
-      return device;
-    };
     const NativeContext = AudioContext;
     window.AudioContext = class extends NativeContext {
       constructor(...args) {
@@ -137,9 +92,9 @@ export async function appJourney(ctx) {
       null,
       { timeout: 120000 },
     );
-    await page.evaluate(() => window.__appJourney.drain());
+    await page.evaluate(() => window.__gpuResources.drain());
     await cdp.send("HeapProfiler.collectGarbage");
-    return page.evaluate((before) => window.__appJourney.allocations(before), mark);
+    return page.evaluate((before) => window.__gpuResources.counts(before), mark);
   };
   await ready();
   const seedAddress = page.url();
@@ -152,8 +107,8 @@ export async function appJourney(ctx) {
   const digest = openingBattle.digest;
   await snapshot(ctx, page, "app-journey-play.png");
   const observed = await page.evaluate(() => ({
-    created: window.__appJourney.allocations.created(),
-    live: window.__appJourney.allocations(),
+    created: window.__gpuResources.created(),
+    live: window.__gpuResources.counts(),
   }));
   ctx.check(
     "resource lifetime observer sees the live battle's WebGPU buffers and textures",
@@ -294,7 +249,7 @@ export async function appJourney(ctx) {
   const departed = Promise.all(page.workers().map((worker) => worker.waitForEvent("close")));
   // Everything the battle made comes before this mark; the menu's backdrop,
   // which starts building at once, allocates after it.
-  let mark = await page.evaluate(() => window.__appJourney.allocations.created());
+  let mark = await page.evaluate(() => window.__gpuResources.created());
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
   await departed;
   const departedAllocations = await releasedBefore(mark);
@@ -330,13 +285,13 @@ export async function appJourney(ctx) {
   );
   await snapshot(ctx, page, "app-journey-replay.png");
   await openMenu(page);
-  mark = await page.evaluate(() => window.__appJourney.allocations.created());
+  mark = await page.evaluate(() => window.__gpuResources.created());
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
   const released = await releasedBefore(mark);
   const owners = await page.evaluate((allocations) => {
     const p = window.__appJourney;
     return {
-      devices: p.devices,
+      devices: window.__gpuResources.devices,
       contexts: p.contexts.length,
       running: p.contexts[0].state,
       // The track id is the served file's name before its content hash.

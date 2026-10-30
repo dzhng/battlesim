@@ -178,7 +178,7 @@ export async function surfaceFieldAgreement(ctx) {
     } finally {
       view.free();
     }
-    return { grounds: grown, validation: window.__terrainValidation };
+    return { grounds: grown, validation: window.__gpuResources.validation };
   }, repo);
   const { final, compiled } = await finishTerrainQuery(page);
   result.final = final;

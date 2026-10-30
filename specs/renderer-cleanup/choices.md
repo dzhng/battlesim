@@ -593,3 +593,15 @@ finding that the base build did not render grass the same way twice.
   did not define the replacement oracle. **Reach:** adding, removing or
   reordering weapons and retuning their ranges does not invalidate the mark
   checks. **Verdict: sound.**
+
+- **Choice:** `_leaks.mjs` publishes one `__gpuResources` observer: weak buffer
+  and texture identities, `counts(before)` filtered by a monotonic `created()`
+  mark, all-device queue draining, validation messages, and total devices
+  requested. `__resources` retains live page-owner counts. Installation is
+  idempotent; explicit destroy and collected handles both disappear from
+  allocation counts. **Gap:** the slice delegated the observer API.
+  **Reach:** app journeys can distinguish departed allocations from the new
+  backdrop's, while terrain probes use the same observer without another
+  `requestDevice` wrapper. Fake WebGPU boundaries prove destroy, checkpoint,
+  multi-device drain and validation behaviour; the scenes prove weak-handle
+  release on the browser. **Verdict: sound.**
