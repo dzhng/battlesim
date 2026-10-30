@@ -83,8 +83,7 @@ fn main() {
     let mut referenced = BTreeSet::new();
     for (shader, ids) in entries {
         let mut source = String::new();
-        for reference in ids.split(',') {
-            let id = reference;
+        for id in ids.split(',') {
             let (id, group) = id.split_once('@').map_or((id, None), |(id, group)| {
                 let group = group
                     .parse::<u32>()

@@ -1,4 +1,10 @@
 use super::*;
+
+pub(in crate::pipeline_registry) const CUTOUT_VARIANTS: [[&str; 2]; 2] = [
+    ["modelPrepassCutout.wgsl", "modelPrepassCutoutDiscard.wgsl"],
+    ["modelCasterCutout.wgsl", "modelCasterCutoutDiscard.wgsl"],
+];
+
 pub fn all() -> Vec<PipelineSpec> {
     vec![
         render(
@@ -32,11 +38,7 @@ pub fn all() -> Vec<PipelineSpec> {
         .msaa(MSAA),
         render(
             "modelPrepassCutout",
-            if cfg!(windows) {
-                "modelPrepassCutoutDiscard.wgsl"
-            } else {
-                "modelPrepassCutout.wgsl"
-            },
+            CUTOUT_VARIANTS[0][usize::from(cfg!(windows))],
             vec!["cameraLayout", "modelLayout"],
             Some(model_vertex()),
             Some(fragment(None, vec![])),
@@ -45,11 +47,7 @@ pub fn all() -> Vec<PipelineSpec> {
         .msaa(MSAA),
         render(
             "modelCasterCutout",
-            if cfg!(windows) {
-                "modelCasterCutoutDiscard.wgsl"
-            } else {
-                "modelCasterCutout.wgsl"
-            },
+            CUTOUT_VARIANTS[1][usize::from(cfg!(windows))],
             vec!["cameraLayout", "modelLayout"],
             Some(model_vertex()),
             Some(fragment(None, vec![])),

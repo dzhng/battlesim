@@ -4,7 +4,7 @@ mod effects;
 #[path = "fog.rs"]
 mod fog;
 #[path = "models.rs"]
-mod models;
+pub(super) mod models;
 #[path = "post.rs"]
 mod post;
 #[path = "water.rs"]

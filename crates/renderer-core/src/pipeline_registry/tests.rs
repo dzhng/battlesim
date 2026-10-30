@@ -59,11 +59,12 @@ fn binding_matches(module: &naga::Module, global: &naga::GlobalVariable, ty: Bin
 fn shader_bindings_match_registry_layouts() {
     let layouts = layouts();
     for pipeline in pipelines() {
-        let shaders: &[&str] = match pipeline.name {
-            "modelPrepassCutout" => &["modelPrepassCutout.wgsl", "modelPrepassCutoutDiscard.wgsl"],
-            "modelCasterCutout" => &["modelCasterCutout.wgsl", "modelCasterCutoutDiscard.wgsl"],
-            _ => std::slice::from_ref(&pipeline.shader),
-        };
+        let shaders: &[&str] = pipelines::models::CUTOUT_VARIANTS
+            .iter()
+            .find(|pair| pair.contains(&pipeline.shader))
+            .map_or(std::slice::from_ref(&pipeline.shader), |pair| {
+                pair.as_slice()
+            });
         for shader in shaders {
             let source = crate::pipelines::builtin_source(shader).unwrap();
             let module = naga::front::wgsl::parse_str(&source)
