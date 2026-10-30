@@ -21,22 +21,20 @@ You are implementing this plan on PR #16 (dzhng/battlesim, branch
 slice you are on. Use
 [`implement-spec`](../../.agents/skills/implement-spec/SKILL.md).
 
-**Pick up at [15](slices/15-content.md).** Slice 14 makes the sound workbench
-save only `weapon_looks.<look>.sound` in presentation, retaining reviewed-generation
-publication and byte-preserving no-ops. Its exact probe matches `after-13-merged/`;
-workbench save/reopen evidence lives in shared `evidence-14/`. Mix authoring remains
-in `audio.json`; the workbench's mix views remain read only. Slice 13 assigns the final
-looks and removes all transient keys. Its per-weapon level ledger and exact
-probe delta report live in shared `after-13/`; paired look sheets and firefight
-WAVs live in `evidence-13/`. The folded levels use per-weapon medians in dB,
-with median near/far switch distances. The heavy RPG has its own restored levels.
-Slice 15 can edit look values without changing any appearance assignment or
-rules hash. Carry forward the content observations in
-[11](slices/11-named-fixes.md), [12](slices/12-firing-look.md), and
-[13](slices/13-fold-looks.md)'s visual checkpoint. The corrected sheet in
-`evidence-13/final/` is the content reference; earlier sheets exposed capture
-mismatches and are diagnostic only. Shared review follow-ups through 12 remain
-closed in their owning slices.
+**Pick up at [16](slices/16-closeout.md).** Slices 01-15 have landed. Slice 15
+gave every look its own firing sound and visuals: real recordings for the
+howitzer, mortar and strike missile; recorded fallbacks for rocket artillery,
+rocket pods, bomb release and the AA burst; single reports for the marksman
+rifle and heavy sniper; a cadence check that refuses a burst recording that
+doesn't match its weapon; levels rounded to authored precision. It split the
+`artillery` look into `artillery`, `mortar` and `rocket_artillery` (the one
+`rules_hash` move after 13, a decision recorded in [decisions](decisions.md)),
+and retuned the IFV cannon, rocket pod, RPG and ATGM visuals. The sabot item
+needed no change: real AP rounds make no blast; the look sheet fires every
+look on an HE carrier. The detached muzzle flash did not reproduce. Battle
+digests still equal `before/`. Out of scope and left for later: screen-wide
+bloom, small-arms tracer contrast against wheat, the RPG's disc-shaped body.
+Every slice's review follow-ups are closed in its own file.
 
 Proof baseline: slice 01's dumps in
 `/Users/server/dev/battlesim/throwaway/split-game-json/before/` (native plates
@@ -75,7 +73,7 @@ Warnings:
 - [x] [12 The firing look follows the round](slices/12-firing-look.md)
 - [x] [13 Fold to the final looks](slices/13-fold-looks.md) (moves `rules_hash`)
 - [x] [14 Sound workbench keyed by look](slices/14-sound-workbench.md)
-- [ ] [15 Content pass](slices/15-content.md)
+- [x] [15 Content pass](slices/15-content.md) (moves `rules_hash`: mortar and rocket artillery looks)
 - [ ] [16 Closeout](slices/16-closeout.md)
 
 ## Slice ladder
