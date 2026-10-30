@@ -94,7 +94,7 @@ A room behind a window is not modelled per building. Every window draws one open
 
 [The atlas generator](interiors.py) owns dimensions, cell layout and source-camera
 projection. [The atlas baker](../../src/interior.ts) repacks those pictures for
-runtime use, while [the shared model shader](../../../../crates/renderer-core/src/shaders/)
+runtime use, while [the shared model shader](../../../../crates/renderer-core/src/shaders/modules/models_material.wgsl)
 reads the corresponding projection. Those owners define the numerical contract;
 copying it into a second table would let the source and renderer disagree.
 

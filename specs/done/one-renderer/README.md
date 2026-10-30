@@ -20,22 +20,14 @@ and [native client](../../../native/client/README.md) own platform admission.
 
 Presentation owns poses, visibility, model tiers, cascade membership and held
 static batches. A second browser interpretation of those records would recreate
-the ownership problem inside the new renderer. Browser presentation, rendering
-and sound therefore share one WASM module, and synchronous renderer calls borrow
-the actual Rust presentation. The simulation worker stays separate.
+the ownership problem inside the renderer. Synchronous renderer calls therefore
+borrow the actual Rust presentation instead of copying records between memories.
+The [presentation bindings](../../../crates/presentation-wasm/README.md) own the
+shared-module and memory-view contract.
 
-This removes the cross-memory frame/fog/scar copies and recovery snapshots that
-the first Rust browser integration required. A new umbrella package would add a
-name without adding an owner: the existing browser renderer entrypoint links
-the bindings. [Presentation bindings](../../../crates/presentation-wasm/README.md)
-and [the page initializer](../../../web/src/battle/sim/presentation.ts) own the
-class-identity and memory-view contract.
-
-That contract has two consequences. Every class must come from the same
-generated initializer, and JavaScript must reacquire typed views after calls
-that can allocate. Rendering or audio can grow the shared WASM memory; static
-batch materialization can also move arrays without growing it. Rendering
-republishes the current frame header before JavaScript reads it again.
+The existing browser entrypoint links the bindings: an umbrella package would
+add a name without adding an owner. The [page initializer](../../../web/src/battle/sim/presentation.ts)
+owns initialization.
 
 ## Lifetimes follow the authority that can rebuild them
 
@@ -53,10 +45,7 @@ knowledge or GPU objects:
   stale device/runtime/catalog candidates and require a fresh canonical frame
   before drawing newly installed rows. The viewport's newest desired request
   controls scheduling; completion order cannot choose the active catalog.
-- Rebuild from current presentation after device recreation. The last fog delta
-  cannot reconstruct GPU visibility, and reframing the battle to obtain static
-  records could change the held moment. `Runtime::prepare` materializes current
-  static lists and resends current fog/scars through presentation's own owners.
+- Follow the core's [device reconstruction contract](../../../crates/renderer-core/README.md#device-reconstruction).
 - Reuse model/effect uploads only while the canonical frame and renderer static
   generation remain unchanged. Fog and scar preparation still runs for every
   draw; their incremental work must be consumed rather than replayed.
@@ -159,8 +148,7 @@ began only after GPU readiness; staged topology must be admitted first.
 
 Repeated preparation of an unchanged held frame uploaded large streams on every
 draw. Canonical frame identity supplies the bounded reuse rule without hashes or
-another JavaScript dirty protocol. Recovery by replaying copied deltas was also
-rejected: only live presentation can restore current knowledge and held statics.
+another JavaScript dirty protocol.
 
 An early terrain-color `depthCompare: always` workaround hid incomplete depth
 inputs. The shared production descriptor uses reverse-Z `greater-equal`.
@@ -194,7 +182,7 @@ hatching, weak contact shadows and muted secondary paint remain visual concerns.
 The retained [TypeGPU street control](assets/paris-240-typegpu.png) and
 [shared Rust result](assets/paris-240-rust.png) are native-size captures from the
 matched frozen production plate240 cohort. They preserve the historical visual
-standard after the TypeGPU implementation is removed. The [native control plates](assets/native/before/) and
+standard after the TypeGPU implementation was removed. The [native control plates](assets/native/before/) and
 [shared-runtime plates](assets/native/shared/) preserve the six-plate extraction
 comparison, while the [TypeGPU effect state](assets/paris-effects-typegpu.png)
 and [Rust effect state](assets/paris-effects-rust.png) preserve its supplemental

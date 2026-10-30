@@ -22,15 +22,13 @@ and exposes narrow rendering and audio operations.
 Presentation, rendering and audio can all allocate in this memory. JavaScript
 views must be reacquired after allocating calls because memory growth detaches
 the old byte buffer. Renderer preparation can also materialize held static
-batches, moving their record arrays without growing memory. Both framing and
-rendering therefore republish the current frame header before the page reads
-it again.
+batches, moving their record arrays. Both framing and rendering therefore
+republish the current frame header before the page reads it again.
 
 Presentation owns learned ground, fog, placement, poses and per-view selection.
 The shared renderer consumes fresh incremental work after acquiring a drawable
-output. Device reconstruction asks presentation for its current retained state;
-a saved frame or the last fog delta cannot restore visibility correctly. The
-page still owns asset transport, input, UI observations and probes. Fielding
+output. The core owns [device reconstruction](../renderer-core/README.md#device-reconstruction).
+The page still owns asset transport, input, UI observations and probes. Fielding
 names the authored contents it needs, and the page fetches them without
 reinterpreting their battle meaning.
 

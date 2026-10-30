@@ -8,7 +8,8 @@ description: Architecture rules for the shared native/browser GPU renderer. Use 
 Use the shared Rust `wgpu` runtime for native and browser WASM. Keep platform
 shells to device/surface admission and transport. Draw canonical presentation
 inputs without querying simulation or app state. Check each change against
-these rules before writing it.
+these rules before writing it. Read the [core contract](../../../crates/renderer-core/README.md)
+before changing renderer ownership or interfaces.
 
 - **Fixed-view cost never grows with world size.** For a fixed camera and
   render size, submitted geometry, shadow casters, and per-frame lists are

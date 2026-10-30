@@ -61,7 +61,8 @@ grass over the prepared scar pages, and submits regional ground draws when the
 scar budget requires them. It completes post, the fog rim and optional player
 overlays into one display texture. Surface admission, presentation of that
 texture and requests for readback remain shell concerns; the core owns the
-shared copy and mapping protocol.
+shared copy and mapping protocol. With `separate_high_air` enabled, high-air
+models render to their own output for composition between UI planes.
 
 Ground paint and display marks share geometry inputs but have separate depth
 contracts. [Paint](src/paint.rs) sees world-only depth before units and grass;
@@ -75,11 +76,17 @@ Pipeline construction uses the typed catalog and [composed WGSL](src/shaders/REA
 owned by this crate. Native and browser call the same descriptor and
 source owner; no shell reads a manifest or supplies shader text. The catalog
 uses the actual `wgpu` binding, vertex, target, depth and multisample types.
-The ABI test reflects every WGSL record against `presentation::records::LAYOUTS`
-for member offsets and spans. Directional shadow resources own their depth
+The ABI test reflects WGSL structs named by the struct-bound entries in
+`presentation::records::LAYOUTS`, checking member offsets and spans wherever those
+structs appear in built-in shaders. Directional shadow resources own their depth
 array, receiver and cascade camera bindings. Cascade membership remains the
 presentation's decision; the shared frame preserves it for ground, indexed
 models and scenery.
+
+On Windows, [pipeline compilation](src/pipelines.rs) uses `native_shader_source`
+to adapt cutout sample-mask fragments to discard-based fragments. AMD's Windows
+driver crashes when creating those depth-only sample-mask pipelines. The
+`cfg(windows)` adaptation leaves the composed source unchanged on other targets.
 
 The environment lookup data and adapted material algorithms retain their
 [three.js MIT attribution](LICENSE.three).
@@ -93,9 +100,16 @@ Fog sight also has one GPU owner. The presentation's canonical
 optional tables hold their previous values when absent. The runtime reads that
 record directly from presentation in both native and browser WASM. Each drawn
 frame needs a fresh upload so a completed
-horizon rebuild does not run again. Device recreation asks the presentation to
-resend its tables and rebuild its eye maps; the latest delta alone cannot
-restore GPU-computed visibility.
+horizon rebuild does not run again.
+
+## Device reconstruction
+
+Device recreation rebuilds from current presentation. `Runtime::prepare`
+materializes held static lists without reframing the battle, resends retained
+scar state, and asks fog to resend its tables and rebuild its eye maps. The
+latest delta alone cannot restore GPU-computed visibility.
+
+## Rendering and diagnostics
 
 [The water](src/water.rs) draws in its own pass after the world, whose passes
 keep their samples for it. It copies the lit world as the world left it,
@@ -140,13 +154,10 @@ the current learned ground. Grass regrows when that material choice changes.
 
 Memory diagnostics count buffers and textures held by the owners, deduplicating
 shared handles and reading allocation descriptors. These are owned payload
-bytes, not browser or driver residency. The diagnostic visitor retains handles
-only while taking a snapshot: a persistent JavaScript resource registry would
-keep Rust's dropped WebGPU resources alive because that backend relies on garbage
-collection. Browser CPU diagnostics report retained external geometry and decoded assets
-separately; they do not claim allocator or whole-process memory. The browser
-shares presentation, rendering and audio in one module, so any of them can grow
-its memory. JavaScript must reacquire publication views after allocating calls.
+bytes, not allocator or driver residency. The diagnostic visitor retains handles
+only while taking a snapshot so diagnostics cannot prolong resource lifetimes.
+The [browser binding lifetime contract](../presentation-wasm/README.md) owns
+memory-view validity at the WebAssembly boundary.
 
 ```sh
 cargo check -p renderer-core --target wasm32-unknown-unknown

@@ -1,8 +1,7 @@
 # Browser renderer shell
 
-The browser entrypoint links the shared Rust renderer with presentation and
-audio bindings in one WebAssembly module. The simulation worker remains a
-separate authority. The [web manifest](../../web/package.json) owns compilation;
+The browser entrypoint exposes the shared Rust renderer with presentation and
+audio bindings. The simulation worker remains a separate authority. The [web manifest](../../web/package.json) owns compilation;
 [`loadPresentation`](../../web/src/battle/sim/presentation.ts) owns initialization.
 
 The page retains one `BrowserGpu`, admitted asynchronously without a canvas.
@@ -25,8 +24,8 @@ canvas, acquires usable surface output and presents the runtime's display
 texture. It acquires output before consuming incremental presentation work.
 The recovery harness explicitly admits a fresh `BrowserGpu` after device loss,
 then installs current presentation and prepares assets before drawing again.
-A renderer cannot silently replace the page's shared device. It does not restore a copied frame or
-replay the last fog delta.
+A renderer cannot silently replace the page's shared device.
+The core owns [device reconstruction](../renderer-core/README.md#device-reconstruction).
 
 [Appearance drafts](src/appearance.rs) collect source transport and pose facts
 without changing active art. Preparation returns an owned promise; the caller
@@ -40,8 +39,7 @@ Explicit pixel, atlas and visibility queries queue GPU snapshots synchronously.
 Their promises retain only the submitted readbacks and metadata, so the live
 scene can render, resize or replace its catalog while mapping completes.
 
-The [binding lifetime contract](../presentation-wasm/README.md) also applies to
-renderer calls: allocation can grow the same memory used by UI and audio.
-Rendering republishes the current frame header, and JavaScript reacquires typed
-views before reading it. Browser diagnostics distinguish owned GPU payload,
-retained external CPU payload and linear-memory high-water size.
+Renderer calls follow the [binding lifetime contract](../presentation-wasm/README.md).
+Browser [memory diagnostics](src/diagnostics.rs) report owned GPU payload and
+retained CPU geometry and decoded-asset payloads, excluding presentation,
+allocator overhead and driver residency.

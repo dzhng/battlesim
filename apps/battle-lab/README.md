@@ -125,8 +125,9 @@ publications during visual admission. The viewport reconciles sources after
 canonical framing so a topology change takes one rebuild path. Picking,
 projection and drawn observation advance with successful submission.
 
-The viewport subscribes and updates [the renderer](../../packages/battle-renderer/README.md)
-through that boundary. Published cause and identity remain intact; feed interpolation
+The viewport subscribes and updates the [browser scene adapter](../../web/src/battle/render/scene.ts)
+and [shared render runtime](../../crates/renderer-core/README.md) through that boundary.
+Published cause and identity remain intact; feed interpolation
 cannot grant visibility or invent firing. [The scene runner](../../web/scene.mjs)
 checks oversized development performance details as well as ordinary page errors.
 

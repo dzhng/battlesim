@@ -1,7 +1,7 @@
 # Native client
 
 The native client is the desktop shell for the shared Rust `wgpu` renderer. It
-runs the browser's own shaders and passes over the [presentation crate](../../crates/presentation/README.md)'s
+runs the shared runtime's shaders and passes over the [presentation crate](../../crates/presentation/README.md)'s
 `World` and `Frame`, and decides nothing per entity itself.
 
 The [shared runtime](../../crates/renderer-core/README.md) owns GPU resources,
@@ -30,21 +30,15 @@ Windows Chrome supplies the real GPU; configure `.wslconfig` with
 `networkingMode=mirrored` so Chrome can reach the WSL localhost server. WSL's
 own software adapter is suitable for pipeline checks, not for the full battle.
 
-On Windows, the native client adapts the browser's cutout sample-mask shaders
-to discard-based fragments while compiling pipelines. AMD's Windows driver
-crashes in `wgpu` when those depth-only sample-mask pipelines are created; the
-adaptation preserves the cutout test and leaves browser shader sources unchanged.
-
 ## Presentation and platform boundaries
 
 Replay resolves canonical presentation from the same admitted rules, map and
 content identities as the browser. The renderer consumes its camera, placement,
 visibility, tier, effect and retained-static records directly. Native cannot
 substitute camera lists for caster lists, reconstruct hidden state, or relabel a
-held frame after preparing it. Resource rebuilds use that current authority,
-including learned fog and scars, rather than replaying the last upload delta.
-The shared runtime's README owns the GPU contracts; the
-[presentation README](../../crates/presentation/README.md) owns the records.
+held frame after preparing it.
+[Device reconstruction](../../crates/renderer-core/README.md#device-reconstruction) is owned by the shared runtime.
+The [presentation README](../../crates/presentation/README.md) owns the records.
 
 Native adapts desktop services around those owners. Audio commands come from
 presentation; the desktop sink decodes runtime recordings and plays them through
@@ -105,13 +99,20 @@ interval. The report identifies both retained draw and source-record endpoints.
 
 ## Checks
 
-`tests/pipelines.rs` builds every exported pipeline on this machine's device.
+[Pipeline checks](tests/pipelines.rs) build every built-in pipeline of the shared
+catalog on this machine's device. Most newer rendering checks under [tests/](tests/)
+are synthetic GPU tests of `renderer-core`, including material, fog, overlay and
+high-air contracts. They exercise the shared runtime rather than native replay.
+[Benchmark CLI checks](tests/bench_cli.rs) reject invalid requests before window or
+GPU admission; [runtime generation checks](tests/runtime_generation.rs) verify held
+static reconstruction without reframing the battle.
+
 `tests/counts.rs` replays a committed count-only browser run (`fixtures/parity/capture/counts`,
 gzipped as written) and holds native's counts (`counts.rs`: the models, the
 effects, the building modules, the props and the scenery, all the
 presentation's) to the browser's on every frame it counted, on tick boundaries
 and between; it needs no GPU. A replay check of a plate counts the same way.
-The others replay the fixture run's world through what native reads (the
+The fixture-backed checks replay the run's world through what native reads (the
 models, the props, the scenery and the sound) and need the Git LFS files each
 names. Plates are judged against the control's, region by region, with the
 spec's screenshot skills.

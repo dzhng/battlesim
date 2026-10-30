@@ -38,10 +38,7 @@ frame are distinct: a probe must await the presentation it intends to measure.
 
 ## Lifetime
 
-Presentation, rendering and audio share one module initialized by
-[`loadPresentation`](presentation.ts). Any allocating call can grow its memory;
-reacquire frame views afterward. The simulation authority stays in its separate
-worker module.
+Presentation calls follow the [binding lifetime contract](../../../../crates/presentation-wasm/README.md).
 
 [Module initialization](module.ts) is once per realm. [Preparation](../prepare/)
 may supply an existing worker connection holding the admitted world; adopting it

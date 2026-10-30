@@ -52,10 +52,9 @@ differs between the clients.
   frames begun before that reset, even when their readbacks complete later.
 - **Pacing and surfaces.** The browser runs headless but still draws to its
   canvas surface; native benchmarks bypass acquisition, window copy and
-  presentation. Chromium's `--disable-frame-rate-limit` hangs the
-  graphics test in battle preparation (inside the model layer's appearance
-  install), and `--disable-gpu-vsync`
-  alone leaves `requestAnimationFrame` at the display's 120 Hz, so the
+  presentation. In the historical TypeGPU control, Chromium's
+  `--disable-frame-rate-limit` hung the graphics test during battle preparation;
+  `--disable-gpu-vsync` alone left `requestAnimationFrame` at the display's 120 Hz, so the
   browser stays paced and native runs uncapped. The cap doesn't bind while
   the browser's frames take longer than 8.3 ms; where it would, compare CPU
   and GPU time per frame instead. Presenting to a shown window is a separate
@@ -71,5 +70,6 @@ differs between the clients.
   the spread explained before any comparison.
 - **What still differs.** The browser also runs the live simulation
   worker and the reel's script, while native replays recorded publications.
-  Native draws the browser's passes, but not the painted ground marks: a
-  replay has no UI to paint them.
+  Both clients draw the shared runtime's passes. Native replay supplies no UI
+  geometry for painted ground marks or display overlays, and draws high-air
+  models in the main output rather than a separate UI plane.

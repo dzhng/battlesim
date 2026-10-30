@@ -75,7 +75,7 @@ calls the same reader for workbench drafts.
   it binds (`Batch.fog`). Battle and external tooling models take these same
   policies before becoming canonical frame records.
 - [The light](src/light.rs): the fixture's light resolved into the sky's,
-  bloom's and grade's uniform records, as the browser's sky model resolves it.
+  bloom's and grade's canonical uniform records for the shared renderer.
 - [The wind](src/wind.rs): the biome's one wind as the `Wind` record, which
   every camera carries on its clock (`Camera.wind`, the sun's cascades
   included), so grass, water and trees move in it in every pass, and which

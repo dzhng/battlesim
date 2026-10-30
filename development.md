@@ -13,14 +13,14 @@ Subsystem READMEs own commands and contracts for their code.
 | [Presentation](crates/presentation/README.md)             | Per-side frame publications: interpolation, poses, effects, cook-offs, tiers, and cast lights.       |
 | [Browser application](web/README.md)                      | Workers, map adapters, player input, readouts, build configuration, and browser verification.        |
 | [Battle lab](apps/battle-lab/README.md)                   | Player pages, shareable battle addresses, and focused developer fixtures.                            |
-| [Browser camera primitives](packages/renderer-core/README.md) | Camera/depth contracts, view control and CPU picking.                                           |
+| [Browser camera primitives](packages/renderer-core/README.md) | Camera/depth contracts, view control, camera rays and clearance.                                           |
 | [Browser render inputs](packages/battle-renderer/README.md) | Plain scene contracts, external geometry and material inputs.                                   |
 | [Scene assets](packages/scene-assets/README.md)           | Appearance contracts, validation, baking, loading, and Blender authoring.                            |
 | [Battle audio](packages/battle-audio/README.md)           | Recorded and synthetic sound preparation, calibration, and playback.                                 |
 | [Shared render runtime](crates/renderer-core/README.md) | Rust GPU composition, canonical preparation, resource lifetime and frame encoding across native and browser. |
 | [Fixtures](fixtures/README.md)                            | Authored rules, unit/prop catalogs, generator presets, saved maps, and sound assignments.            |
 | [Assets](assets/README.md)                                | Source media, prepared runtime files, review sheets, and third-party provenance.                     |
-| [Native client](native/client/README.md)                  | The `wgpu` client over the shared presentation frames and renderer pipelines.                        |
+| [Native client](native/client/README.md)                  | The desktop shell over the shared render runtime.                        |
 | [Mechanics editor](apps/mechanics-editor/README.md)       | Developer tool: edits resolved rules and unit families.                                              |
 | [Map workbench](apps/map-workbench/README.md)             | Developer tool: tunes generation on a live top-down plan.                                            |
 | [Sound workbench](apps/sound-workbench/README.md)         | Developer tool: auditions looks and movement, and edits library recipes.                       |
