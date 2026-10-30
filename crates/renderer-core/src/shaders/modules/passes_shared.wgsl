@@ -1,7 +1,7 @@
 // WGSL owner: passes_shared.
 
-// @block passes_shared_backdropFragment_Input
-struct backdropFragment_Input {
+// @block passes_shared_BackdropFragmentInput
+struct BackdropFragmentInput {
   @location(0) @interpolate(perspective, centroid) world: vec3f,
   @location(1) normal: vec3f,
   @location(2) color: vec4f,

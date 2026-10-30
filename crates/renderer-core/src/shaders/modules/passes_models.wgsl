@@ -52,8 +52,8 @@ struct modelVertex_Output {
   @location(11) @interpolate(flat) instance: u32,
 }
 
-// @block passes_models__Input
-struct _Input {
+// @block passes_models_ModelFragmentInput
+struct ModelFragmentInput {
   @location(0) world: vec3f,
   @location(1) normal: vec3f,
   @location(2) tangent: vec4f,
@@ -68,8 +68,8 @@ struct _Input {
   @location(11) @interpolate(flat) instance: u32,
 }
 
-// @block passes_models_lit_Input
-struct lit_Input {
+// @block passes_models_LitModelFragmentInput
+struct LitModelFragmentInput {
   @location(0) world: vec3f,
   @location(1) normal: vec3f,
   @location(2) tangent: vec4f,
@@ -396,7 +396,7 @@ var<workgroup> laneCounts: array<vec2u, GRASS_BUILD_LANES>;
 // @block passes_models_item_alternate
 const GLASS_TURN = 0.5f;
 const GLASS_GLINT = 1f;
-@fragment fn item(_arg_0: _Input, @builtin(position) clip: vec4f) -> item_1 {
+@fragment fn item(_arg_0: ModelFragmentInput, @builtin(position) clip: vec4f) -> ModelColorFog {
   let eye = (&cam.eye);
   let view = normalize(((*eye) - _arg_0.world));
   var n = normalize(_arg_0.normal);
@@ -408,11 +408,11 @@ const GLASS_GLINT = 1f;
   let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
   let shaded = shade(albedo_1, vec3f(), surface_1.roughness, 0f, surface_1.metallic, surface_1.occlusion, normalize((surface_1.normal + (view * GLASS_TURN))), _arg_0.world, sun_1, (*eye));
   let ceiling = (unlit(vec3f(1), _arg_0.world, (*eye)).xyz * GLASS_GLINT);
-  return item_1(vec4f((min(shaded.xyz, ceiling) + highlightGlow(_arg_0.highlight)), coverageValue(_arg_0.material, _arg_0.uv)), vec4f());
+  return ModelColorFog(vec4f((min(shaded.xyz, ceiling) + highlightGlow(_arg_0.highlight)), coverageValue(_arg_0.material, _arg_0.uv)), vec4f());
 }
 
 // @block passes_models_item_primary
-@fragment fn item(_arg_0: _Input, @builtin(position) clip: vec4f) -> @location(0) vec4f {
+@fragment fn item(_arg_0: ModelFragmentInput, @builtin(position) clip: vec4f) -> @location(0) vec4f {
   let coverage = coverageValue(_arg_0.material, _arg_0.uv);
   let cutoff = materials[((_arg_0.material * 5u) + 4u)].x;
   if (((cutoff > 0f) && (coverage < cutoff))) {

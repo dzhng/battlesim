@@ -2,7 +2,7 @@
 
 // @block fog_fogFoliage
 fn fogFoliage(q: vec2f) -> vec2f {
-  let P = params;
+  let P = fogParams;
   if (P.foliageNx == 0u || q.x < 0.0 || q.y < 0.0) { return vec2f(0.0); }
   let i = u32(q.x / P.foliageCellM);
   let j = u32(q.y / P.foliageCellM);
@@ -20,10 +20,10 @@ fn fogFoliage(q: vec2f) -> vec2f {
   return vec2f(0.0);
 }
 
-// @block fog_fogSeenBy_alternate
+// @block fog_fogSeenBy
 fn fogSeenBy(ei: u32, p: vec3f, n: vec3f) -> bool {
   let e = eyes[ei];
-  let P = params;
+  let P = fogParams;
   if (p.x < P.playable.x || p.y < P.playable.y ||
       p.x > P.playable.x + P.playable.z || p.y > P.playable.y + P.playable.w) {
     // The visual margin is outside the simulation. Keep it permanently unseen
@@ -84,13 +84,13 @@ fn fogSeenBy(ei: u32, p: vec3f, n: vec3f) -> bool {
   return (p.z - e.position.z) / dist >= horizon;
 }
 
-// @block fog_fogSeenSurface_alternate
+// @block fog_fogSeenSurface
 fn fogSeenSurface(ei: u32, world: vec3f, normal: vec3f, ground: bool) -> bool {
   let p = fogProbePoint(world, normal, ground);
   let n = select(normal, vec3f(0.0), ground);
   if (fogSeenBy(ei, p, n)) { return true; }
   let e = eyes[ei];
-  let P = params;
+  let P = fogParams;
   if (ground || P.roofReachM <= 0.0 || normal.z < 0.7 || world.z <= e.position.z) {
     return false;
   }
@@ -195,8 +195,8 @@ struct Frag {
   @location(1) fog: vec4f,
 };
 
-// @block fog_backdropFragment_Output
-struct backdropFragment_Output {
+// @block fog_BackdropColorFog
+struct BackdropColorFog {
   @location(0) color: vec4f,
   @location(1) fog: vec4f,
 }
@@ -207,7 +207,7 @@ struct backdropFragment_Output {
 // @block fog_eyes_buildLayout
 @group(0) @binding(1) var<storage, read> eyes: array<FogEye>;
 
-// @block fog_eyes_primary
+// @block fog_eyes_worldLayout
 @group(GROUP) @binding(2) var<storage, read> eyes: array<FogEye>;
 
 // @block fog_fogBinEdge
@@ -216,17 +216,17 @@ fn fogBinEdge(k: i32, first: f32, lnr: f32, bins: u32) -> f32 {
   return first * exp(f32(k) / f32(bins - 1u) * lnr);
 }
 
-// @block fog_fogCoverage_alternate
+// @block fog_fogCoverage
 fn fogCoverage(seen: f32, alpha: f32) -> vec4f {
-  if (params.enabled == 0u || layer.seen == 1u) {
+  if (fogParams.enabled == 0u || layer.seen == 1u) {
     return vec4f(0.0, 0.0, 0.0, alpha);
   }
   return vec4f(1.0 - seen, seen, f32(layer.ground), alpha);
 }
 
-// @block fog_fogIsGround_alternate
+// @block fog_fogIsGround
 fn fogIsGround() -> bool {
-  return (layer_1.ground == 1u);
+  return (layer.ground == 1u);
 }
 
 // @block fog_fogPack
@@ -235,15 +235,15 @@ fn fogPack(horizon: f32, jump: f32, foliage: f32) -> u32 {
   return h | (u32(round(clamp(jump, 0.0, 1.0) * 255.0)) << 16u) | (min(u32(round(foliage / FOG_FOLIAGE_STEP)), FOG_FOLIAGE_QUANTA) << 24u);
 }
 
-// @block fog_fogProbePoint_alternate
+// @block fog_fogProbePoint
 fn fogProbePoint(world: vec3f, normal: vec3f, ground: bool) -> vec3f {
-  if (ground) { return world + vec3f(0.0, 0.0, params.targetHeightM); }
-  return world + normal * params.faceProbeM;
+  if (ground) { return world + vec3f(0.0, 0.0, fogParams.targetHeightM); }
+  return world + normal * fogParams.faceProbeM;
 }
 
-// @block fog_fogTerm_alternate
+// @block fog_fogTerm
 fn fogTerm(world: vec3f, normal: vec3f, pixel: vec2f, isGround: bool) -> f32 {
-  let P = params;
+  let P = fogParams;
   if (P.enabled == 0u || layer.seen == 1u) { return 1.0; }
   if (fogWholeSeen(world)) { return 1.0; }
   let tile = u32(pixel.x) / FOG_TILE_PX + (u32(pixel.y) / FOG_TILE_PX) * P.tilesX;
@@ -266,9 +266,9 @@ fn fogUnpackBuild(w: u32) -> vec3f {
   return vec3f(unpack2x16float(w & 0xffffu).x, f32((w >> 16u) & 0xffu) / 255.0, f32(w >> 24u) * FOG_FOLIAGE_STEP);
 }
 
-// @block fog_fogWholeSeen_alternate
+// @block fog_fogWholeSeen
 fn fogWholeSeen(p: vec3f) -> bool {
-  let P = params;
+  let P = fogParams;
   if (P.wholeCount == 0u) { return false; }
   let c = (p.xy - P.wholeOrigin) / P.wholeCellM;
   if (c.x < 0.0 || c.y < 0.0 || c.x >= f32(P.wholeNx) || c.y >= f32(P.wholeNy)) { return false; }
@@ -299,37 +299,37 @@ fn fogWholeWord(i: u32) -> u32 {
   return textureLoad(wholes, vec2u(i % FOG_WHOLE_TEXTURE_WIDTH, i / FOG_WHOLE_TEXTURE_WIDTH), 0).x;
 }
 
-// @block fog_forestFragment_Output
-struct forestFragment_Output {
+// @block fog_FoliageColorFog
+struct FoliageColorFog {
   @location(0) color: vec4f,
   @location(1) fog: vec4f,
 }
 
-// @block fog_fragment_Output
-struct fragment_Output {
+// @block fog_GrassColorFog
+struct GrassColorFog {
   @location(0) color: vec4f,
   @location(1) fog: vec4f,
 }
 
-// @block fog_item_record
-struct item_1 {
+// @block fog_ModelColorFog
+struct ModelColorFog {
   @location(0) color: vec4f,
   @location(1) fog: vec4f,
 }
 
-// @block fog_layer_uniform
-@group(2) @binding(1) var<uniform> layer_1: FogLayer;
+// @block fog_layer_modelLayout
+@group(2) @binding(1) var<uniform> layer: FogLayer;
 
-// @block fog_layer_primary
+// @block fog_layer_worldLayout
 @group(GROUP) @binding(1) var<uniform> layer: FogLayer;
 
-// @block fog_lit_Output
-struct lit_Output {
+// @block fog_LitModelColorFog
+struct LitModelColorFog {
   @location(0) color: vec4f,
   @location(1) fog: vec4f,
 }
 
-// @block fog_modelSeen_alternate
+// @block fog_modelSeen
 fn modelSeen(world: vec3f, normal: vec3f, anchor: vec3f, pixel: vec2f) -> f32 {
   if (fogIsGround()) {
     return fogTerm(anchor, vec3f(), pixel, true);
@@ -340,23 +340,23 @@ fn modelSeen(world: vec3f, normal: vec3f, anchor: vec3f, pixel: vec2f) -> f32 {
 // @block fog_occluders
 @group(0) @binding(4) var<storage, read> occluders: array<FogBox>;
 
-// @block fog_params_uniform
-@group(2) @binding(0) var<uniform> params: FogParams;
+// @block fog_params_modelLayout
+@group(2) @binding(0) var<uniform> fogParams: FogParams;
 
-// @block fog_params_primary
-@group(GROUP) @binding(0) var<uniform> params: FogParams;
+// @block fog_params_worldLayout
+@group(GROUP) @binding(0) var<uniform> fogParams: FogParams;
 
 // @block fog_points
 @group(1) @binding(0) var<storage, read> points: array<FogProbe>;
 
-// @block fog_terrainFragment_Output
-struct terrainFragment_Output {
+// @block fog_TerrainColorFog
+struct TerrainColorFog {
   @location(0) color: vec4f,
   @location(1) fog: vec4f,
 }
 
-// @block fog_waterFragment_Output
-struct waterFragment_Output {
+// @block fog_WaterColorFog
+struct WaterColorFog {
   @location(0) color: vec4f,
   @location(1) fog: vec4f,
 }
@@ -367,16 +367,16 @@ struct waterFragment_Output {
 // @block fog_wholeFound
 var<workgroup> wholeFound: atomic<u32>;
 
-// @block fog_wholes_primary
+// @block fog_wholes
 @group(GROUP) @binding(8) var wholes: texture_2d<u32>;
 
-// @block fog_worldFragment_Output
-struct worldFragment_Output {
+// @block fog_WorldColorFog
+struct WorldColorFog {
   @location(0) color: vec4f,
   @location(1) fog: vec4f,
 }
 
-// @block fog_counts_primary
+// @block fog_counts_worldLayout
 @group(GROUP) @binding(5) var<storage, read> counts: array<u32>;
 
 // @block fog_counts_cullLayout
@@ -403,13 +403,13 @@ var<workgroup> cullLo: array<atomic<i32>, 2>;
 // @block fog_lists_cullLayout
 @group(0) @binding(3) var<storage, read_write> lists: array<u32>;
 
-// @block fog_lists_primary
+// @block fog_lists_worldLayout
 @group(GROUP) @binding(4) var<storage, read> lists: array<u32>;
 
 // @block fog_maps_buildLayout
 @group(0) @binding(7) var<storage, read_write> maps: array<u32>;
 
-// @block fog_maps_primary
+// @block fog_maps_read
 @group(GROUP) @binding(3) var<storage, read> maps: array<u32>;
 
 // @block fog_out_shapeLayout

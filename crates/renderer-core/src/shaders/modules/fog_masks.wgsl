@@ -50,7 +50,7 @@ fn composeFog(pixel: vec2f) -> vec4f {
   let s = look;
   var unseen = m.x;
   if (s.edgeSoftnessPx > 0.0) {
-    let toSeen = textureLoad(distance_1, p, 0).y * 16.0;
+    let toSeen = textureLoad(maskDistance, p, 0).y * 16.0;
     unseen *= smoothstep(0.0, 1.0, (toSeen - 0.5) / s.edgeSoftnessPx);
   }
   return vec4f(mix(lit.xyz, fogLook(lit.xyz, pixel, s), unseen), lit.w);
@@ -90,8 +90,8 @@ fn distanceColumns(pixel: vec2f) -> vec4f {
   return vec4f(min(sqrt(best), vec2f(16.0)) / 16.0, 0.0, 1.0);
 }
 
-// @block fog_masks_distance_texture
-@group(0) @binding(4) var distance_1: texture_2d<f32>;
+// @block fog_masks_maskDistance
+@group(0) @binding(4) var maskDistance: texture_2d<f32>;
 
 // @block fog_masks_mask_composeLayout
 @group(0) @binding(3) var mask: texture_2d<f32>;
@@ -108,7 +108,7 @@ fn rimAt(pixel: vec2f) -> vec4f {
   if (seen <= 0.0 || m.x > 0.5 || s.rimAlpha <= 0.0 || s.rimWidthPx <= 0.0) {
     return vec4f(0.0);
   }
-  let toUnseen = textureLoad(distance_1, p, 0).x * 16.0;
+  let toUnseen = textureLoad(maskDistance, p, 0).x * 16.0;
   let cover = clamp(s.rimWidthPx + 1.0 - toUnseen, 0.0, 1.0);
   return vec4f(s.rimColor, s.rimAlpha * cover * seen);
 }

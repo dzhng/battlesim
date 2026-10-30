@@ -2,7 +2,7 @@
 
 // @block ground_surface_fogHeight
 fn fogHeight(q: vec2f) -> f32 {
-  let P = params;
+  let P = fogParams;
   let nx = P.heightNx;
   let ny = P.heightNy;
   let fx = clamp(q.x / P.heightSpacing, 0.0, f32(nx - 1u));

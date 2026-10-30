@@ -265,3 +265,14 @@ finding that the base build did not render grass the same way twice.
   `fogParams`; every other assembled token stays unchanged. **Verdict: sound**
   — names the resource without merging bindings or changing layouts.
   **Confidence: high.**
+
+- **When:** slice 07 fog and sight. **Choice:** name the fog uniform
+  `fogParams` in every caller, keep `layer` for the layer selector, name
+  binding variants by layout or read access, and name color/fog records and
+  stage inputs by their material family. Cross-module declarations and
+  consumers change together; duplicate bodies remain for slice 08.
+  **Gap:** the slice delegated vocabulary and did not define how to name
+  equivalent records before consolidation. **Reach:** shader composition has
+  explicit domain dependencies without changing entry points or reflected
+  records. **Verdict: sound** — names explain purpose rather than extraction
+  order, and no new compatibility mechanism survives. **Confidence: high.**
