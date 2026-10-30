@@ -1,6 +1,7 @@
 //! Shared display-space overlay geometry and halo composition.
 
 use crate::pipelines::Pipelines;
+use crate::records::OverlayGlow;
 use crate::Targets;
 use wgpu::*;
 
@@ -55,14 +56,14 @@ pub fn new(
     queue: &Queue,
     pipelines: &Pipelines,
     targets: &Targets,
-    glow: &[u8],
+    glow: &OverlayGlow,
 ) -> OverlayResources {
     let glow = crate::buffer(
         device,
         queue,
         "overlay-glow",
         BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-        glow,
+        bytemuck::bytes_of(glow),
     );
     let opaque = pipelines.render("overlayOpaque").clone();
     let translucent = pipelines.render("overlayTranslucent").clone();
@@ -107,7 +108,10 @@ pub fn new(
         queue,
         "paint-no-glow",
         BufferUsages::UNIFORM,
-        bytemuck::cast_slice(&[1.0f32, 0.0, 0.0, 0.0]),
+        bytemuck::bytes_of(&OverlayGlow {
+            radius_px: 1.0,
+            ..Default::default()
+        }),
     );
     let paint = Screen {
         pipeline: pipelines.render("overlayComposite").clone(),
@@ -151,8 +155,8 @@ impl OverlayResources {
         });
     }
 
-    pub fn write_glow(&self, queue: &Queue, bytes: &[u8]) {
-        queue.write_buffer(&self.glow, 0, bytes);
+    pub fn write_glow(&self, queue: &Queue, glow: &OverlayGlow) {
+        queue.write_buffer(&self.glow, 0, bytemuck::bytes_of(glow));
     }
 
     pub fn encode_geometry(

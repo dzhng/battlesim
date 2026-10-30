@@ -21,13 +21,13 @@ use presentation::records::FogLook;
 use presentation::static_world::files;
 use presentation::view::Camera;
 use presentation::world::{BattleInput, SoldierBody, WorldInput, Xray};
+use renderer_core::scenery::place_scenery;
 use serde::de::IgnoredAny;
 use serde::Deserialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use crate::bundle::Library;
-use crate::scenery::tier_mesh;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -308,15 +308,7 @@ impl Replay {
                 ..FogSetup::default()
             }))?;
         }
-        let kinds = presentation
-            .ground()
-            .map_or_else(Vec::new, |g| g.scenery_kinds());
-        let finest = kinds
-            .iter()
-            .map(|name| tier_mesh(name, library.bundle(name)?.as_ref(), 0))
-            .collect::<Result<Vec<_>, String>>()?;
-        let finest: Vec<&[f32]> = finest.iter().map(Vec::as_slice).collect();
-        presentation.place_scenery(&finest)?;
+        place_scenery(&mut presentation, library)?;
         // The props, from the art a page running these units installs.
         let wearing: Vec<&str> = battle
             .units

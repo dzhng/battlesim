@@ -4,7 +4,6 @@ import { Renderer } from "@wasm/renderer_browser";
 import { BrowserScene, type SceneOptions } from "@web/battle/render/scene";
 
 vi.mock("@web/battle/render/effectAssets", () => ({ loadEffectAtlasLayers: async () => [] }));
-vi.mock("@web/battle/render/sceneGeometry", () => ({ installSceneGeometry() {} }));
 afterEach(() => vi.restoreAllMocks());
 
 async function scene(installed: string[] = []) {
@@ -32,6 +31,7 @@ async function scene(installed: string[] = []) {
     presentedGround: () => null,
     installLabAssets() {},
     setLabModels() {},
+    installGeometry() {},
     installRenderer() {},
     world: () => ({}),
     fogOccluders: freed,

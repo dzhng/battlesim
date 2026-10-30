@@ -43,6 +43,7 @@ pub mod pipelines;
 pub mod post;
 pub mod probes;
 pub mod readback;
+pub mod records;
 pub mod runtime;
 pub mod scars;
 pub mod scenery;

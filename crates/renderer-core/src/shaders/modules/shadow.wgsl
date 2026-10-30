@@ -1,5 +1,11 @@
 // WGSL owner: shadow.
 
+// @block shadow_sunCompare
+@group(GROUP) @binding(8) var sunCompare: sampler_comparison;
+
+// @block shadow_sunDepth
+@group(GROUP) @binding(7) var sunDepth: texture_depth_2d_array;
+
 // @block shadow_SunCascade
 struct SunCascade {
   matrix: mat4x4f,
@@ -81,9 +87,9 @@ fn inheritedSunShadow(environment: Environment, sunShadow: SunShadow, sunDepth: 
   return shade;
 }
 
-// @block shadow_sampleSunShadow_alternate
-fn sampleSunShadow(world: vec3f, normal_1: vec3f, pixel: vec2f) -> f32 {
-  return inheritedSunShadow(data, sun, sunDepth, sunCompare, world, normal_1, pixel);
+// @block shadow_sampleSunShadow
+fn sampleSunShadow(world: vec3f, surfaceNormal: vec3f, pixel: vec2f) -> f32 {
+  return inheritedSunShadow(environment, sun, sunDepth, sunCompare, world, surfaceNormal, pixel);
 }
 
 // @block shadow_shadowPcf
@@ -107,11 +113,5 @@ fn shadowVisibility(depth: texture_depth_2d_array, compare: sampler_comparison, 
   return shadowPcf(depth,compare,layer,uv,z,pixel,settings.z);
 }
 
-// @block shadow_sun_alternate
-@group(3) @binding(6) var<uniform> sun: SunShadow;
-
-// @block shadow_sun_extended
-@group(1) @binding(6) var<uniform> sun: SunShadow;
-
-// @block shadow_sun_primary
-@group(2) @binding(6) var<uniform> sun: SunShadow;
+// @block shadow_sun
+@group(GROUP) @binding(6) var<uniform> sun: SunShadow;

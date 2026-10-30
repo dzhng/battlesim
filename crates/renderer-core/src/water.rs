@@ -7,11 +7,12 @@
 //! pass.
 use presentation::effects::frame::WaveFrame;
 use presentation::records::WaveSplat;
-use presentation::wave::WAVE;
+use presentation::wave::{SPLATS_MAX, STEP_SPLATS, WAVE};
 use wgpu::*;
 
 use crate::frame::FrameInputs;
 use crate::pipelines::Pipelines;
+use crate::records::WaveRun;
 use crate::{bind, Targets, HDR_FORMAT};
 
 /// How much of what lies under the water it shows: its bed refracted and
@@ -106,25 +107,8 @@ fn full_screen(
     pass.draw(0..3, 0..1);
 }
 
-/// Splats one step takes at most; past it the rest of that step's are
-/// dropped. A budget per step, not per frame, so how many steps a frame
-/// covers decides nothing.
-const STEP_SPLATS: usize = 256;
-/// Splats a frame holds: every step's budget.
-const MAX_SPLATS: usize = STEP_SPLATS * WAVE.max_steps as usize;
-
-/// One run of `waveStep` (`WaveRun`): which of the frame's steps it is, how
-/// many splats the frame has, how far the field moved (texels; the first run
-/// only), and 1 when it only moves the field without stepping it.
-#[repr(C)]
-#[derive(Clone, Copy, Default, bytemuck::Pod, bytemuck::Zeroable)]
-struct WaveRun {
-    shift: [i32; 2],
-    step: u32,
-    splats: u32,
-    still: u32,
-    pad: [u32; 3],
-}
+/// The splat storage allocation covers every step's budget.
+const SPLATS_BYTES: usize = SPLATS_MAX * size_of::<WaveSplat>();
 
 /// What a frame's waves ask of a field last run in `epoch` (None: no
 /// battle). A new epoch, or a battle gone, clears it first, even with no
@@ -233,7 +217,7 @@ impl WaveField {
         let shown = texture("wave-shown", TextureUsages::COPY_DST);
         let splats = device.create_buffer(&BufferDescriptor {
             label: Some("wave-splats"),
-            size: (MAX_SPLATS * size_of::<WaveSplat>()) as u64,
+            size: SPLATS_BYTES as u64,
             usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });

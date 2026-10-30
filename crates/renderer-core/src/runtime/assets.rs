@@ -46,14 +46,10 @@ impl Runtime {
         library: &impl BundleSource,
     ) -> Result<PendingAssets, String> {
         if catalog.needs_scenery() {
-            let names = presentation
-                .ground()
-                .ok_or("scenery requires ground")?
-                .scenery_kinds();
-            let finest = names
-                .iter()
-                .map(|name| crate::scenery::tier_mesh(name, library.bundle(name)?.as_ref(), 0))
-                .collect::<Result<Vec<_>, String>>()?;
+            let finest = crate::scenery::finest_meshes(
+                presentation.ground().ok_or("scenery requires ground")?,
+                library,
+            )?;
             let refs: Vec<_> = finest.iter().map(Vec::as_slice).collect();
             catalog.stage_scenery(presentation, &refs)?;
         }

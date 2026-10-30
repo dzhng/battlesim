@@ -1,7 +1,5 @@
 //! Native runtime fetching for the shared appearance bundle decoder.
-pub use renderer_core::bundle::{
-    Bundle, BundleSource, Coverage, Draw, Material, Mesh, Node, Shape, Texture,
-};
+use renderer_core::bundle::{Bundle, BundleSource};
 
 use presentation::assets::Runtime;
 use std::path::Path;

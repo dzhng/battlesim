@@ -3,22 +3,18 @@
 //! list, timed as the browser's graphics test times its reel. Each frame
 //! records its interval (start to next start), its CPU time (framing,
 //! preparing, encoding and submitting) and its GPU time between
-//! two marker passes (1×1 cleared render passes carrying timestamp writes,
-//! the first at its start, the last at its end, as in the shared runtime;
-//! whole frame only). Metal counter values resolve after the frame submission
-//! completes; resolving in that same command buffer can return a previous
-//! frame's end timestamp. This adds a separate telemetry submission and wait.
-//! The report is the browser
+//! the shared core timer's marker passes. Its AfterCompletion mode resolves
+//! Metal stage counters in a separate telemetry submission after the frame
+//! completes. The report is the browser
 //! file's shape with `client: "native"`.
 //!
 //! The bench skips window presentation and holds at most `IN_FLIGHT` frames on
 //! the GPU, as a presenting swap chain would. Intervals include telemetry waits;
 //! timed CPU phases end at the render submission and exclude those waits.
 use std::collections::VecDeque;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use std::time::Instant;
 
+use renderer_core::timing::{FrameTimer, PendingFrame, Resolve};
 use serde_json::{json, Value};
 use wgpu::*;
 
@@ -41,143 +37,6 @@ pub fn reported_draws(draws: usize) -> Result<std::ops::Range<usize>, String> {
     Ok(WARMUP_FRAMES..end)
 }
 
-/// One frame's marker queries and the buffers its times come back through.
-struct Slot {
-    queries: QuerySet,
-    resolve: Buffer,
-    readback: Buffer,
-    mapped: Arc<AtomicBool>,
-}
-
-/// GPU time per frame from two timestamp markers.
-struct FrameTimer {
-    queue: Queue,
-    slots: Vec<Slot>,
-    marker: TextureView,
-    /// Nanoseconds per timestamp tick.
-    period: f64,
-}
-
-impl FrameTimer {
-    fn new(device: &Device, queue: &Queue) -> Option<Self> {
-        if !device.features().contains(Features::TIMESTAMP_QUERY) {
-            return None;
-        }
-        let buffer = |label, usage| {
-            device.create_buffer(&BufferDescriptor {
-                label: Some(label),
-                size: 16,
-                usage,
-                mapped_at_creation: false,
-            })
-        };
-        let slots = (0..=IN_FLIGHT)
-            .map(|_| Slot {
-                queries: device.create_query_set(&QuerySetDescriptor {
-                    label: Some("frame-timer"),
-                    ty: QueryType::Timestamp,
-                    count: 2,
-                }),
-                resolve: buffer(
-                    "frame-timer-resolve",
-                    BufferUsages::QUERY_RESOLVE | BufferUsages::COPY_SRC,
-                ),
-                readback: buffer(
-                    "frame-timer-readback",
-                    BufferUsages::MAP_READ | BufferUsages::COPY_DST,
-                ),
-                mapped: Arc::new(AtomicBool::new(false)),
-            })
-            .collect();
-        let marker = device
-            .create_texture(&TextureDescriptor {
-                label: Some("frame-timer-marker"),
-                size: Extent3d {
-                    width: 1,
-                    height: 1,
-                    depth_or_array_layers: 1,
-                },
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: TextureDimension::D2,
-                format: TextureFormat::R8Unorm,
-                usage: TextureUsages::RENDER_ATTACHMENT,
-                view_formats: &[],
-            })
-            .create_view(&Default::default());
-        Some(Self {
-            queue: queue.clone(),
-            slots,
-            marker,
-            period: f64::from(queue.get_timestamp_period()),
-        })
-    }
-
-    fn mark(&self, encoder: &mut CommandEncoder, frame: usize, index: u32) {
-        encoder.begin_render_pass(&RenderPassDescriptor {
-            label: Some(if index == 0 {
-                "frame-begin"
-            } else {
-                "frame-end"
-            }),
-            color_attachments: &[Some(RenderPassColorAttachment {
-                view: &self.marker,
-                depth_slice: None,
-                resolve_target: None,
-                ops: Operations {
-                    load: LoadOp::Clear(Color::BLACK),
-                    store: StoreOp::Store,
-                },
-            })],
-            // Match the shared frame timer's start/end marker stages;
-            // fragment work runs in order.
-            timestamp_writes: Some(RenderPassTimestampWrites {
-                query_set: &self.slots[frame % self.slots.len()].queries,
-                beginning_of_pass_write_index: (index == 0).then_some(0),
-                end_of_pass_write_index: (index == 1).then_some(1),
-            }),
-            ..Default::default()
-        });
-    }
-
-    fn map_result(&self, frame: usize) {
-        let slot = &self.slots[frame % self.slots.len()];
-        let mapped = slot.mapped.clone();
-        slot.readback.map_async(MapMode::Read, .., move |r| {
-            mapped.store(r.is_ok(), Ordering::Release);
-        });
-    }
-
-    /// Metal can return stale end-of-fragment counters before frame completion.
-    fn collect(&self, device: &Device, frame: usize) -> Result<Option<f64>, String> {
-        let slot = &self.slots[frame % self.slots.len()];
-        let mut encoder = device.create_command_encoder(&Default::default());
-        encoder.resolve_query_set(&slot.queries, 0..2, &slot.resolve, 0);
-        encoder.copy_buffer_to_buffer(&slot.resolve, 0, &slot.readback, 0, 16);
-        let index = self.queue.submit([encoder.finish()]);
-        self.map_result(frame);
-        device
-            .poll(PollType::Wait {
-                submission_index: Some(index),
-                timeout: None,
-            })
-            .map_err(|e| format!("resolving frame {frame}: {e}"))?;
-        if !slot.mapped.swap(false, Ordering::Acquire) {
-            return Ok(None);
-        }
-        let ticks: [u64; 2] = {
-            let view = slot
-                .readback
-                .get_mapped_range(..)
-                .map_err(|e| e.to_string())?;
-            bytemuck::pod_read_unaligned(&view[..16])
-        };
-        slot.readback.unmap();
-        Ok((ticks[0] != 0 && ticks[1] > ticks[0])
-            .then(|| (ticks[1] - ticks[0]) as f64 * self.period / 1e6))
-    }
-}
-
 /// One timed frame.
 struct Sample {
     interval_ms: f64,
@@ -189,7 +48,7 @@ struct Sample {
 /// The frames of one bench run.
 pub struct Bench {
     timer: Option<FrameTimer>,
-    in_flight: VecDeque<(usize, SubmissionIndex)>,
+    in_flight: VecDeque<(usize, SubmissionIndex, Option<PendingFrame>)>,
     samples: Vec<Sample>,
     /// The frame being drawn, its start and its phase marks.
     frame: usize,
@@ -200,7 +59,7 @@ pub struct Bench {
 impl Bench {
     pub fn new(device: &Device, queue: &Queue) -> Self {
         Self {
-            timer: FrameTimer::new(device, queue),
+            timer: FrameTimer::new(device, queue, Resolve::AfterCompletion, IN_FLIGHT + 1),
             in_flight: VecDeque::new(),
             samples: Vec::new(),
             frame: 0,
@@ -227,15 +86,15 @@ impl Bench {
     }
 
     /// Opens the frame in its first encoder, including any regional submissions.
-    pub fn begin(&self, encoder: &mut CommandEncoder) {
-        let Some(timer) = &self.timer else { return };
-        timer.mark(encoder, self.frame, 0);
+    pub fn begin(&mut self, encoder: &mut CommandEncoder) {
+        let Some(timer) = &mut self.timer else { return };
+        timer.begin(encoder);
     }
 
     /// Closes the frame's GPU time at the end of `encoder`.
     pub fn end(&self, encoder: &mut CommandEncoder) {
         let Some(timer) = &self.timer else { return };
-        timer.mark(encoder, self.frame, 1);
+        timer.end(encoder);
     }
 
     /// The frame was submitted as `index`: its CPU time
@@ -256,7 +115,11 @@ impl Bench {
             gpu_ms: None,
             phases_ms,
         });
-        self.in_flight.push_back((self.frame, index));
+        let pending = self
+            .timer
+            .as_mut()
+            .and_then(|timer| timer.submitted(index.clone()));
+        self.in_flight.push_back((self.frame, index, pending));
         self.frame += 1;
         while self.in_flight.len() > IN_FLIGHT {
             self.finish_oldest(device)?;
@@ -265,17 +128,21 @@ impl Bench {
     }
 
     fn finish_oldest(&mut self, device: &Device) -> Result<(), String> {
-        let Some((frame, index)) = self.in_flight.pop_front() else {
+        let Some((frame, index, pending)) = self.in_flight.pop_front() else {
             return Ok(());
         };
-        device
-            .poll(PollType::Wait {
-                submission_index: Some(index),
-                timeout: None,
-            })
-            .map_err(|e| format!("waiting on frame {frame}: {e}"))?;
-        if let Some(timer) = &self.timer {
-            self.samples[frame].gpu_ms = timer.collect(device, frame)?;
+        if let Some(pending) = pending {
+            let sample = pending
+                .wait()
+                .map_err(|e| format!("timing frame {frame}: {e}"))?;
+            self.samples[frame].gpu_ms = sample;
+        } else {
+            device
+                .poll(PollType::Wait {
+                    submission_index: Some(index),
+                    timeout: None,
+                })
+                .map_err(|e| format!("waiting on frame {frame}: {e}"))?;
         }
         Ok(())
     }

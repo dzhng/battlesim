@@ -5,6 +5,7 @@ pub use presentation_wasm::*;
 use renderer_core::bundle::Library;
 use renderer_core::effects::EffectSheets;
 use renderer_core::pipelines::Pipelines;
+use renderer_core::records::OverlayGlow;
 use renderer_core::runtime::{Runtime, RuntimeConfig, RuntimeWorld, WorldGeometry};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -68,7 +69,7 @@ pub struct Renderer {
     gpu_timer: Option<renderer_core::timing::FrameTimer>,
     player_meshes: geometry::PlayerMeshes,
     overlay_instances: Buffer,
-    overlay_glow: [f32; 4],
+    overlay_glow: OverlayGlow,
     width: u32,
     height: u32,
     format: TextureFormat,
@@ -230,7 +231,7 @@ impl Renderer {
             gpu_timer: None,
             player_meshes,
             overlay_instances,
-            overlay_glow: [0.0; 4],
+            overlay_glow: OverlayGlow::default(),
             width,
             height,
             format,

@@ -324,6 +324,27 @@ fn pitch_of(node: Option<&Value>, fallback: [f64; 2]) -> [f64; 2] {
     ]
 }
 
+/// Pitch-qualified running gear: the rig's tracks, which renderer admission reads.
+pub(crate) fn tracks(nodes: &[Value]) -> Vec<crate::world::Track> {
+    nodes
+        .iter()
+        .enumerate()
+        .filter_map(|(node, value)| {
+            let pitch = extra(value, "link_pitch_m").filter(|&p| p > 0.0)?;
+            let side = match value["name"].as_str()? {
+                "track_L" => crate::world::TrackSide::Left,
+                "track_R" => crate::world::TrackSide::Right,
+                _ => return None,
+            };
+            Some(crate::world::Track {
+                node,
+                side,
+                link_pitch: pitch,
+            })
+        })
+        .collect()
+}
+
 /// An articulated vehicle's record: its nodes, its rig (`articulationRig`)
 /// and its box at rest.
 pub(crate) fn articulated(bundle: &Container<Value>) -> Result<Value, String> {
@@ -331,7 +352,7 @@ pub(crate) fn articulated(bundle: &Container<Value>) -> Result<Value, String> {
     let find = |name: &str| list.iter().position(|n| n["name"] == name);
     let index = |i: Option<usize>| i.map_or(-1, |i| i as i64);
     let (gun, hmg_gun) = (find("gun"), find("hmg_gun"));
-    let (mut wheels, mut tracks, mut rotors, mut deploy) = (vec![], vec![], vec![], vec![]);
+    let (mut wheels, mut rotors, mut deploy) = (vec![], vec![], vec![]);
     for (i, node) in list.iter().enumerate() {
         let name = node["name"].as_str().unwrap_or("");
         if name.starts_with("wheel_") {
@@ -352,11 +373,6 @@ pub(crate) fn articulated(bundle: &Container<Value>) -> Result<Value, String> {
                 rotor["node"] = json!(i);
                 rotor["radius"] = json!(radius);
                 rotors.push(rotor);
-            }
-        }
-        if let Some(pitch) = extra(node, "link_pitch_m").filter(|&p| p > 0.0) {
-            if name == "track_L" || name == "track_R" {
-                tracks.push(json!({ "node": i, "left": name == "track_L", "linkPitch": pitch }));
             }
         }
         if let (Some(start), Some(end)) = (extra(node, "deploy_start"), extra(node, "deploy_end")) {
@@ -388,7 +404,7 @@ pub(crate) fn articulated(bundle: &Container<Value>) -> Result<Value, String> {
         },
         "stroke": stroke,
         "wheels": wheels,
-        "tracks": tracks,
+        "tracks": tracks(list),
         "rotors": rotors,
         "deploy": deploy,
         "muzzles": muzzles,

@@ -296,9 +296,11 @@ impl View {
                 (1.0 / h) as f32,
                 self.pixels_per_metre as f32,
             ],
-            sky_origin: ray(origin),
-            sky_dx: ray(std::array::from_fn(|i| across[i] - origin[i])),
-            sky_dy: ray(std::array::from_fn(|i| down[i] - origin[i])),
+            rays: crate::records::Rays {
+                origin: ray(origin),
+                dx: ray(std::array::from_fn(|i| across[i] - origin[i])),
+                dy: ray(std::array::from_fn(|i| down[i] - origin[i])),
+            },
         }
     }
 }

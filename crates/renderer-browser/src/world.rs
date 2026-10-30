@@ -5,7 +5,11 @@ use super::*;
 impl Renderer {
     /// Update external world faces on the existing runtime and retain the same
     /// source for recovery. Canonical terrain and appearance owners stay live.
-    pub fn set_world_props(&mut self, words: Vec<f32>) -> Result<(), JsValue> {
+    pub fn set_skirt_and_props(
+        &mut self,
+        words: Vec<f32>,
+        positions: &[f32],
+    ) -> Result<(), JsValue> {
         if !words.len().is_multiple_of(10) {
             return Err(js_error("world geometry needs ten floats per vertex"));
         }
@@ -14,31 +18,60 @@ impl Renderer {
             .as_mut()
             .ok_or_else(|| js_error("install presentation before replacing world props"))?;
         self.geometry = None;
-        runtime.set_world_props(&self.gpu.device, &self.gpu.queue, words);
+        runtime.set_skirt_and_props(
+            &self.gpu.device,
+            &self.gpu.queue,
+            WorldGeometry::faces(positions, &words),
+        );
         self.geometry = Some(runtime.geometry());
         Ok(())
     }
 
-    /// Only external meshes cross this boundary; ground tables stay in presentation.
+    /// Retain the same prebuilt terrain used by browser picking and shadows.
+    // Grouping these inputs would require another exported WASM object and its
+    // lifetime; keep the synchronous presentation borrow and geometry arrays here.
+    #[allow(clippy::too_many_arguments)]
     pub fn set_world_geometry(
         &mut self,
-        terrain: Vec<f32>,
-        skirt: Vec<f32>,
-        backdrop: Vec<f32>,
-        water: Vec<f32>,
+        presentation: &Presentation,
+        terrain_mesh: Vec<f32>,
+        skirt_positions: &[f32],
+        extra_faces: &[f32],
+        water: bool,
+        backdrop_m: f64,
+        backdrop_terrain: Option<Vec<f32>>,
     ) -> Result<(), JsValue> {
-        if [&terrain, &skirt, &backdrop, &water]
-            .into_iter()
-            .any(|mesh| !mesh.len().is_multiple_of(10))
+        if [
+            Some(extra_faces),
+            Some(terrain_mesh.as_slice()),
+            backdrop_terrain.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        .any(|words| !words.len().is_multiple_of(10))
         {
             return Err(js_error("world geometry needs ten floats per vertex"));
         }
-        self.geometry = Some(Arc::new(WorldGeometry {
-            terrain,
-            skirt,
-            backdrop,
-            water,
-        }));
+        let ground = presentation
+            .core()
+            .ground()
+            .ok_or_else(|| js_error("resolve ground before world geometry"))?;
+        let cells = if water {
+            ground.water_cells()
+        } else {
+            Vec::new()
+        };
+        let mut geometry = WorldGeometry::from_mesh(
+            terrain_mesh,
+            skirt_positions,
+            extra_faces,
+            &cells,
+            backdrop_m,
+        );
+        if let Some(terrain) = backdrop_terrain {
+            geometry.set_backdrop(Some(&terrain), backdrop_m);
+        }
+        self.geometry = Some(Arc::new(geometry));
         self.runtime = None;
         self.display_group = None;
         Ok(())
@@ -60,7 +93,19 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn install_presentation(&mut self, presentation: &mut Presentation) -> Result<(), JsValue> {
+    /// Returns the refreshed world header; admission may add scenery rows.
+    pub fn install_presentation(
+        &mut self,
+        presentation: &mut Presentation,
+        scenery: bool,
+    ) -> Result<u32, JsValue> {
+        if scenery {
+            renderer_core::scenery::place_scenery(
+                presentation.core_mut(),
+                self.model_library.as_ref(),
+            )
+            .map_err(js_error)?;
+        }
         let mut runtime = Runtime::new(
             &self.gpu.device,
             &self.gpu.queue,
@@ -83,7 +128,7 @@ impl Renderer {
         self.runtime = Some(runtime);
         self.rebind_display();
         presentation.refresh_frame_header();
-        Ok(())
+        Ok(presentation.refresh_world_header())
     }
 
     /// Async GPU asset work is separate from synchronous presentation admission.
@@ -126,7 +171,12 @@ impl Renderer {
     }
 
     pub fn set_overlay_glow(&mut self, radius_px: f32, strength: f32) {
-        self.overlay_glow = [radius_px, radius_px / 2.5, strength, 0.0];
+        self.overlay_glow = OverlayGlow {
+            radius_px,
+            sigma_px: radius_px / 2.5,
+            strength,
+            pad: 0.0,
+        };
         if let Some(runtime) = &mut self.runtime {
             runtime.set_overlay_glow(&self.gpu.queue, self.overlay_glow);
         }

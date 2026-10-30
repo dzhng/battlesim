@@ -190,7 +190,7 @@ export class SheetRenderer {
       const world = benchWorld(null);
       const canvas = document.createElement("canvas");
       canvas.width = canvas.height = TILE;
-      presentation.setGround(world.terrain.input, world.scenery);
+      presentation.setGround(world.terrain.input, world.scenery !== null);
       presentation.setShadow(gameLight, world.terrain.mesh);
       presentation.frame(
         0,
@@ -259,7 +259,7 @@ export class SheetRenderer {
       benchOverlay(instance, model.body, posedSockets(bundle, skeleton, pose), marks, scale),
     );
     const world = benchWorld(figureSpot(frameOn, view));
-    this.frame.setWorldProps(world.props);
+    this.frame.setSkirtAndProps(world.extraFaces);
     const camera = viewCamera(view, frameOn);
     this.presentation.setShadow(gameLight, world.terrain.mesh);
     this.frame.flush();

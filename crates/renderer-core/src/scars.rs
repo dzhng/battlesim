@@ -5,13 +5,16 @@
 //! for the whole view, or for each region in turn when the marks don't fit at
 //! once. The world pass applies each at the submission it belongs to.
 use presentation::presentation::Presentation;
-use presentation::scars::{self, ScarUpload, PARAMS_WORDS, POOL_HEIGHT, POOL_WIDTH};
+use presentation::records::{ScarCacheParams, ScarLook, ScarParams};
+use presentation::scars::{self, ScarUpload, POOL_HEIGHT, POOL_WIDTH};
+use std::mem::offset_of;
 use wgpu::*;
 
 use crate::buffer;
 
-/// `ScarParams`: the cache's words, then the biome's look (`full` on).
-const WORDS: usize = 52;
+/// The cache enable flag in `ScarParams.cache.grid.w`, stored as f32 bits.
+const ACTIVE_WORD: usize =
+    (offset_of!(ScarParams, cache) + offset_of!(ScarCacheParams, grid)) / 4 + 3;
 
 fn texture(device: &Device, label: &str, size: [u32; 2], format: TextureFormat) -> Texture {
     device.create_texture(&TextureDescriptor {
@@ -51,12 +54,12 @@ pub struct ScarFrame {
 
 pub struct Scars {
     shown: bool,
-    active: std::cell::Cell<u32>,
+    active: std::cell::Cell<f32>,
     pool: Texture,
     directory: Texture,
     pub params: Buffer,
-    /// `ScarParams` as last written: the look stays, the cache's words change.
-    words: [u32; WORDS],
+    /// The biome look retained while each upload supplies the cache prefix.
+    record: ScarParams,
     /// This frame's uploads: for the grass's window, then the view's.
     grass: Option<ScarUpload>,
     view: Option<ScarUpload>,
@@ -69,9 +72,8 @@ pub struct Scars {
 }
 
 impl Scars {
-    /// The scars' textures, empty, under the biome's `look` (`ScarParams`
-    /// from `full` on).
-    pub fn new(device: &Device, queue: &Queue, look: &[u32]) -> Self {
+    /// The scars' textures, empty, under the biome's appearance.
+    pub fn new(device: &Device, queue: &Queue, look: ScarLook) -> Self {
         let pool = texture(
             device,
             "ground-scar-words",
@@ -93,8 +95,10 @@ impl Scars {
                 depth_or_array_layers: 1,
             },
         );
-        let mut words = [0u32; WORDS];
-        words[PARAMS_WORDS..PARAMS_WORDS + look.len()].copy_from_slice(look);
+        let record = ScarParams {
+            look,
+            ..Default::default()
+        };
         let usage = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
         Self {
             shown: true,
@@ -111,9 +115,9 @@ impl Scars {
                 queue,
                 "scar-params",
                 usage,
-                bytemuck::cast_slice(&words),
+                bytemuck::bytes_of(&record),
             ),
-            words,
+            record,
             grass: None,
             view: None,
             regions: Vec::new(),
@@ -124,8 +128,12 @@ impl Scars {
     /// Hide material/grass marks while keeping canonical uploads and textures live.
     pub fn set_shown(&mut self, queue: &Queue, shown: bool) {
         self.shown = shown;
-        let active = if shown { self.active.get() } else { 0 };
-        queue.write_buffer(&self.params, 3 * 4, bytemuck::bytes_of(&active));
+        let active = if shown { self.active.get() } else { 0.0 };
+        queue.write_buffer(
+            &self.params,
+            (ACTIVE_WORD * 4) as u64,
+            bytemuck::bytes_of(&active),
+        );
     }
 
     pub fn directory_view(&self) -> TextureView {
@@ -301,13 +309,13 @@ impl Scars {
                 },
             );
         }
-        let mut words = self.words;
-        words[..PARAMS_WORDS].copy_from_slice(&upload.params);
-        self.active.set(words[3]);
+        let mut record = self.record;
+        record.cache = upload.params;
+        self.active.set(record.cache.grid[3]);
         if !self.shown {
-            words[3] = 0;
+            record.cache.grid[3] = 0.0;
         }
-        queue.write_buffer(&self.params, 0, bytemuck::cast_slice(&words));
+        queue.write_buffer(&self.params, 0, bytemuck::bytes_of(&record));
     }
 }
 

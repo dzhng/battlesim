@@ -75,9 +75,9 @@ impl Renderer {
         if let Some(timer) = &self.gpu_timer {
             timer.end(&mut encoder);
         }
-        self.gpu.queue.submit([encoder.finish()]);
+        let submission = self.gpu.queue.submit([encoder.finish()]);
         if let Some(timer) = &mut self.gpu_timer {
-            timer.submitted();
+            timer.submitted(submission);
         }
         self.gpu.queue.present(surface);
         if let Some(high) = high {

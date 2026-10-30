@@ -29,8 +29,10 @@ calls the same reader for workbench drafts.
 
 - [Records](src/records.rs): every record a renderer reads, defined once;
   `records_are_current` generates `packages/battle-renderer/src/records.gen.ts`,
-  with byte offsets and typed views for browser consumers. The renderer's
-  shader ABI check reflects WGSL against these canonical Rust layouts.
+  with the chosen word offsets, strides and typed views browser consumers read.
+  The exported `records!` macro also describes records owned by renderer crates.
+  The renderer's shader ABI check reflects WGSL against these canonical Rust
+  layouts.
   [Shader constants](src/shader_constants.rs) names shared CPU/GPU values
   from their concept owners for both the WGSL prelude and TypeScript; fixed
   allocation geometry cannot become an independent fixture setting.
@@ -62,7 +64,11 @@ calls the same reader for workbench drafts.
   airframes and the bodies they shove), the pose feed and driver,
   articulation, joint palettes (and each skinned row's rest palette: a corpse
   as it lies, a body in its far pose, which a renderer poses its mesh by once),
-  and where each drawn model's muzzles and rotors are.
+  and where each drawn model's muzzles and rotors are. Track classification
+  belongs to presentation's pitch-qualified rig facts: renderer admission reads
+  each node's side from the catalog. The source validator and workbench poser
+  share the TypeScript bake rule; source validation rejects malformed tracks
+  before admission.
 - [Effects](src/effects/): the effect publication, launches (the one derivation
   the flashes, the firing soldiers and the gunfire sounds read), the effect frame,
   the cast lights it chooses for the view, cook-offs, and the sparks a hull

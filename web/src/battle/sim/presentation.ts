@@ -1,5 +1,7 @@
 /** Browser binding of Rust presentation: side publications in, observations
  * and frame views out. Rust owns decoding, poses, effects and static walks. */
+import { EMPTY_MESH } from "@packages/battle-renderer/src/mesh";
+import { presentationSettings } from "@web/presentationSettings";
 import type { ModelAsset } from "../render/modelAssets";
 import type { GrassClumpRow } from "@packages/battle-renderer/src/grass";
 import type { BattleAudio } from "@packages/battle-audio/src/battleAudio";
@@ -34,10 +36,8 @@ import {
   type GroundInput,
   type PresentedGround,
 } from "@packages/battle-renderer/src/terrain/terrainSurface";
-import { tierMesh } from "@packages/battle-renderer/src/scenery/appearance";
-import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import { occluderBoxes, type FogOccluder } from "@packages/battle-renderer/src/fog";
-import type { WorldScenery } from "@packages/battle-renderer/src/scene";
+import type { WorldLayers } from "@packages/battle-renderer/src/scene";
 import { propArt, type KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
 import { NO_SCENERY_WALK, type SceneryWalkStats } from "@packages/battle-renderer/src/scenery/walk";
 import { TEMPLATE_STATES, type TemplateState } from "@packages/scene-assets/src/templateLibrary";
@@ -225,12 +225,11 @@ export class ScenePresentation {
   private art: BuildingArt | null = null;
   private style: BuildingStyle | null = null;
   private sun: PresentedSun | null = null;
-  /** The ground staged, the one set, and the scenery's art it was placed by. */
+  /** The ground staged and the one set on Rust presentation. */
   private staged: GroundInput | null = null;
   private groundSet: GroundInput | null = null;
-  /** The art the staged ground's scenery draws, and the art it was placed by. */
-  private sceneryArt: WorldScenery | null = null;
-  private placedBy: WorldScenery | null = null;
+  /** Whether renderer admission should place scenery on the staged ground. */
+  private scenery = false;
   /** The installed art the ground's props were placed from. */
   private proppedBy: InstalledAppearances | null = null;
   /** The ground the page reads tables from, new with each ground set. */
@@ -356,13 +355,12 @@ export class ScenePresentation {
    * Independent changes to world or template topology keep their stale marker. */
   adoptRendererAppearanceSource(
     installed: InstalledAppearances | null,
-    scenery = this.sceneryArt,
+    scenery = this.scenery,
   ): void {
     this.installed = installed;
     this.art = buildingArt(installed);
     this.proppedBy = installed;
-    this.sceneryArt = scenery;
-    this.placedBy = scenery;
+    this.scenery = scenery;
   }
 
   /** Tooling models supplement the battle and static world on the next frame. */
@@ -428,13 +426,11 @@ export class ScenePresentation {
     [this.buildings, this.style, this.sun] = [buildings, style, sun];
   }
 
-  /** Stage the scene's ground (null: none) and the art its scenery draws
-   *  (`WorldLayers.scenery`; null: none placed): set, placed and loaded with
-   *  the rest by the next frame when either is another. Cheap when nothing
-   *  changed: call every frame. */
-  setGround(ground: GroundInput | null, scenery: WorldScenery | null) {
+  /** Stage ground and whether it requests scenery. Rust admits scenery after
+   *  its bundles decode during renderer installation. */
+  setGround(ground: GroundInput | null, scenery: boolean) {
     if (ground !== this.staged) [this.staged, this.stale] = [ground, true];
-    if (scenery !== this.sceneryArt) [this.sceneryArt, this.stale] = [scenery, true];
+    this.scenery = scenery;
   }
 
   /** The side's fog of war over the ground, or none; taken once the
@@ -507,14 +503,11 @@ export class ScenePresentation {
     };
   }
 
-  /** Sets the staged ground, places its props (in the surface view) from
-   *  what the models layer installs, and its scenery once its art holds
-   *  every appearance it names. */
+  /** Set the staged ground and place its props from installed appearances. */
   private loadGround() {
     const ground = this.staged;
     if (ground !== this.groundSet) {
       this.groundSet = ground;
-      this.placedBy = null;
       this.proppedBy = null;
       this.presented = null;
       if (ground) {
@@ -529,17 +522,6 @@ export class ScenePresentation {
       this.rust.place_props(ground.layout, propArt(installed, ground.family));
       this.proppedBy = installed;
     }
-    const art = this.sceneryArt;
-    if (!ground || !art || art === this.placedBy) return;
-    const kinds = JSON.parse(this.rust.scenery_kinds()) as string[];
-    const bundles = kinds.map((name) => art.appearances.get(name));
-    if (!bundles.every((b) => b !== undefined)) return;
-    const finest = bundles.map((b) => tierMesh(b!, 0));
-    this.rust.place_scenery(
-      concatMeshes(finest),
-      Uint32Array.from(finest, (m) => m.length),
-    );
-    this.placedBy = art;
   }
 
   /** Load what is staged: the battle, the buildings and the ground, in one world. */
@@ -717,9 +699,22 @@ export class ScenePresentation {
     return frameViews(buffer(), this.framePtr);
   }
 
+  /** Construct world layers while borrowing the resolved ground synchronously. */
+  installGeometry(renderer: Pick<Renderer, "set_world_geometry">, world: WorldLayers): void {
+    renderer.set_world_geometry(
+      this.rust,
+      world.terrain.mesh,
+      world.skirtPositions ?? EMPTY_MESH,
+      world.extraFaces,
+      world.terrain.water,
+      presentationSettings.ground.backdrop_reach_m,
+      world.backdropTerrain,
+    );
+  }
+
   /** Install canonical scene state without crossing a second WASM memory. */
   installRenderer(renderer: Pick<Renderer, "install_presentation">) {
-    renderer.install_presentation(this.rust);
+    this.loaded = this.readWorld(renderer.install_presentation(this.rust, this.scenery));
   }
 
   /** Snapshot actual GPU grass without exposing the canonical Rust handle. */

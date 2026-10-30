@@ -1,19 +1,21 @@
 //! Appearance routing and placement share the authored GPU mesh allocation.
-use native_client::{bundle::Library, gpu, pipelines};
-use presentation::assets::RUNTIME;
+#[path = "support/runtime_library.rs"]
+mod runtime_library;
+mod support;
+
 use presentation::records::{Appearance, Batch, Instance, NONE, VIEW_PASS};
 use presentation::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
 use renderer_core::bundle::Shape;
 use renderer_core::memory::ResourceMemory;
 use renderer_core::models::Models;
-use std::path::Path;
+use renderer_core::pipelines;
 
 #[test]
 fn static_routing_placement_and_default_alias_share_geometry() {
-    let gpu = gpu::open(&gpu::headless_instance(), None).expect("real GPU");
-    let pipelines = pipelines::build(&gpu.device).unwrap();
-    let library = Library::open(Path::new(RUNTIME)).unwrap();
+    let gpu = support::gpu().expect("real GPU");
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
     let name = "crate_stack";
+    let library = runtime_library::runtime_library(&[name]).unwrap();
     let bundle = library.bundle(name).unwrap();
     let Shape::Static(states) = &bundle.shape else {
         panic!("the fixture is a static model");
@@ -54,6 +56,7 @@ fn static_routing_placement_and_default_alias_share_geometry() {
             rows,
             &strings,
             |_| None,
+            |_, _| None,
         )
         .unwrap()
     };

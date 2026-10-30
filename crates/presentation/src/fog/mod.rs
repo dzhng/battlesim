@@ -15,7 +15,7 @@ use crate::records::FogLook;
 
 /// The widest rim or soft edge a style may ask for, device pixels. A
 /// style's search reaches one pixel past it, which the shaders' distance cap
-/// (16 pixels in `fog_masks.wgsl`) stays above.
+/// (`FOG_MASK_DISTANCE_CAP_PX` in `fog_masks.wgsl`) stays above.
 pub const FOG_EDGE_REACH_PX: f64 = 8.0;
 
 use crate::color::luminance;

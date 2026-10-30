@@ -39,7 +39,7 @@ function frame(render: () => boolean) {
   return {
     setModels() {},
     setOverlay() {},
-    setWorldProps() {},
+    setSkirtAndProps() {},
     flush() {},
     dispose() {},
     staticGeneration: 0,

@@ -206,3 +206,49 @@ pub(in crate::presentation) fn scenery_from_art(
     walk.set_quality(quality);
     Ok(walk)
 }
+
+impl Presentation {
+    /// True once the ground's scenery has placement facts, including empty maps.
+    pub fn scenery_is_placed(&self) -> bool {
+        self.scenery.is_some()
+    }
+
+    /// Places the ground's scenery, given each of its kinds' finest mesh
+    /// (`Ground::scenery_kinds` order) in the renderer's world vertex
+    /// (`ground::mesh::VERTEX_FLOATS`, 1 in the last float for foliage):
+    /// their sizes, a tree's trunk and crown, and its stump (`kinds`) are
+    /// read off it. Rows are admitted into the current canonical world.
+    pub fn place_scenery(&mut self, finest: &[&[f32]]) -> Result<(), String> {
+        let ground = self
+            .ground
+            .as_ref()
+            .ok_or("scenery stands on a ground: set_ground first")?;
+        let walk = catalog::scenery_from_art(ground, finest, self.scenery_quality)?;
+        self.catalog_revision = catalog::next_revision();
+        self.clear_lab_rows();
+        self.scenery = Some(walk);
+        self.register_scenery_rows();
+        self.register_lab_rows();
+        self.felled_from = None;
+        self.cleared_from = (0, 0);
+        self.statics.invalidate();
+        Ok(())
+    }
+
+    pub(in crate::presentation) fn register_scenery_rows(&mut self) {
+        if let Some(walk) = &mut self.scenery {
+            let world = &mut self.world;
+            // Scenery draws its appearances' summer state (winter will be
+            // the next biome's).
+            walk.rows = DRAWS
+                .iter()
+                .map(|&d| {
+                    let names = walk.scenery.kinds.iter();
+                    names
+                        .map(|name| world.drawn_row(name, "summer", NONE, 0, true, d as u32))
+                        .collect()
+                })
+                .collect();
+        }
+    }
+}

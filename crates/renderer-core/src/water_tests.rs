@@ -84,3 +84,20 @@ fn each_step_keeps_its_own_splats_however_the_frames_batch_the_steps() {
     );
     assert_eq!(first.splats.len(), STEP_SPLATS);
 }
+
+#[test]
+fn splat_binding_matches_allocated_bytes() {
+    let source = crate::pipelines::builtin_source("waveStep.wgsl").unwrap();
+    let module = naga::front::wgsl::parse_str(&source).unwrap();
+    let (_, splats) = module
+        .global_variables
+        .iter()
+        .find(|(_, global)| global.name.as_deref() == Some("splats"))
+        .unwrap();
+    let mut layouter = naga::proc::Layouter::default();
+    layouter.update(module.to_ctx()).unwrap();
+    assert_eq!(
+        layouter[splats.ty].size as usize, SPLATS_BYTES,
+        "splats binding versus renderer allocation"
+    );
+}

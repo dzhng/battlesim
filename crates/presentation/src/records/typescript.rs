@@ -1,9 +1,9 @@
-//! `records.gen.ts`: every record's layout rendered as the TypeScript a
+//! `records.gen.ts`: chosen record layouts rendered as the TypeScript a
 //! renderer reads, word offsets and strides, and the views over a frame's
 //! and a world's sets.
 use super::*;
 
-/// `records.gen.ts`: every layout as word offsets and strides, and the
+/// `records.gen.ts`: the browser's layouts as word offsets and strides, and the
 /// views a renderer reads a frame and a world through.
 pub fn typescript() -> String {
     let mut out = String::from(
@@ -16,34 +16,27 @@ pub fn typescript() -> String {
          export const MIN_TARGET_PX = {MIN_TARGET_PX};\n",
     ));
     out.push_str(&format!(
-        "/** What a batch draws for (`Batch.pass`). */\n\
-         export const VIEW_PASS = {VIEW_PASS};\n\
-         export const CAST_PASS = {CAST_PASS};\n\
-         export const GHOST_PASS = {GHOST_PASS};\n\
-         export const HIGH_PASS = {HIGH_PASS};\n",
-    ));
-    out.push_str(&format!(
-        "/** Rust's tiers for a model off screen and for its card (`view.rs`): \
-         `Batch.tier` gives them. */\n\
-         export const CULLED = {};\n\
-         export const IMPOSTOR = {};\n",
-        crate::view::CULLED,
-        crate::view::IMPOSTOR
-    ));
-    out.push_str(&format!(
-        "/** How fog of war takes a batch (`Batch.fog`). */\n\
-         export const FOG_UNITS = {FOG_UNITS};\n\
-         export const FOG_FACES = {FOG_FACES};\n\
-         export const FOG_GROUND = {FOG_GROUND};\n\
-         export const FOG_PAINTED_FACES = {FOG_PAINTED_FACES};\n",
-    ));
-    out.push_str(&format!(
         "/** The widest fog rim or soft edge a style may ask for, device pixels (`fog.rs`). */\n\
          export const FOG_EDGE_REACH_PX = {};\n",
         crate::fog::FOG_EDGE_REACH_PX
     ));
     out.push_str("/** Shared CPU/GPU constants (`shader_constants.rs`). */\n");
-    for (name, value) in crate::shader_constants::CONSTANTS {
+    for name in [
+        "SURFACE_FLOATS",
+        "CUT_A",
+        "CUT_B",
+        "COLOR_LUMA_R",
+        "COLOR_LUMA_G",
+        "COLOR_LUMA_B",
+        "GRASS_HEIGHT_MAX",
+        "GRASS_MAX_HEIGHT_M",
+        "GRASS_MIX_MAX",
+        "SHADOW_CASCADES",
+    ] {
+        let (_, value) = crate::shader_constants::CONSTANTS
+            .iter()
+            .find(|(key, _)| *key == name)
+            .unwrap_or_else(|| panic!("no shader constant {name}"));
         use crate::shader_constants::Scalar;
         let value = match value {
             Scalar::F32(value) => format!("{value:?}"),
@@ -51,11 +44,6 @@ pub fn typescript() -> String {
         };
         out.push_str(&format!("export const {name} = {value};\n"));
     }
-    out.push_str(&format!(
-        "/** Words per whole-fog structure box (`fog/sight.rs`). */\n\
-         export const WHOLE_BOX_WORDS = {};\n",
-        crate::fog::sight::WHOLE_BOX_WORDS
-    ));
     {
         use crate::effects::frame::{EFFECT_KINDS, SHAPE_NAMES};
         // One line when it fits the formatter's width, else a name a line.
@@ -75,22 +63,16 @@ pub fn typescript() -> String {
         out.push_str(&names("EFFECT_KINDS", &EFFECT_KINDS));
         out.push_str(&names("SHAPE_NAMES", &SHAPE_NAMES));
     }
-    {
-        use crate::scars::*;
-        out.push_str(&format!(
-            "/** The scar cache's directory flags over a tile key + 1, its pool texture\n \
-             *  and the normalization table at the pool's start, and `ScarParams`' words\n \
-             *  before the biome's look (`scars/mod.rs`). */\n\
-             export const SCAR_UNIFORM = {UNIFORM:#x};\n\
-             export const SCAR_DENSE = {DENSE:#x};\n\
-             export const SCAR_KEY_MASK = {KEY_MASK:#x};\n\
-             export const SCAR_POOL_WIDTH = {POOL_WIDTH};\n\
-             export const SCAR_POOL_HEIGHT = {POOL_HEIGHT};\n\
-             export const SCAR_NORMALIZATION_WORDS = {NORMALIZATION_WORDS};\n\
-             export const SCAR_PARAMS_WORDS = {PARAMS_WORDS};\n"
-        ));
-    }
-    for l in LAYOUTS {
+    // The browser reads only these records: field offsets for inspection and
+    // strides for array views.
+    for l in [
+        &Appearance::LAYOUT,
+        &Batch::LAYOUT,
+        &Pick::LAYOUT,
+        &Counts::LAYOUT,
+        &FogLook::LAYOUT,
+        &Camera::LAYOUT,
+    ] {
         out.push_str(&format!("\n/** {} */\n", l.doc.trim()));
         match l.binding {
             Binding::Vertex => {}
@@ -123,6 +105,18 @@ pub fn typescript() -> String {
                 out.push_str("} as const;\n");
             }
         }
+    }
+    for l in [
+        &Appearance::LAYOUT,
+        &Batch::LAYOUT,
+        &Instance::LAYOUT,
+        &Joint::LAYOUT,
+        &Effect::LAYOUT,
+        &Pick::LAYOUT,
+        &FogLook::LAYOUT,
+        &Camera::LAYOUT,
+        &SunShadow::LAYOUT,
+    ] {
         out.push_str(&format!(
             "export const {}_WORDS = {};\n",
             snake(l.name),
@@ -149,9 +143,9 @@ pub fn typescript() -> String {
                 )
             } else {
                 format!(
-                    "    {}: set({word}, {}_WORDS),\n",
+                    "    {}: set({word}, {}),\n",
                     f.name,
-                    snake(record_of(f.name))
+                    record_of(f.name).size / 4
                 )
             });
         }
@@ -181,20 +175,20 @@ pub fn camel(snake: &str) -> String {
 }
 
 /// The record a header's set holds.
-fn record_of(set: &str) -> &'static str {
+fn record_of(set: &str) -> &'static Layout {
     match set {
-        "batches" => "Batch",
-        "instances" => "Instance",
-        "palettes" => "Joint",
-        "effects" => "Effect",
-        "lights" => "CastLight",
-        "picks" => "Pick",
-        "emitters" => "Emitter",
-        "counts" => "Counts",
-        "view" => "View",
-        "camera" | "casters" => "Camera",
-        "sun_shadow" => "SunShadow",
-        "appearances" => "Appearance",
+        "batches" => &Batch::LAYOUT,
+        "instances" => &Instance::LAYOUT,
+        "palettes" => &Joint::LAYOUT,
+        "effects" => &Effect::LAYOUT,
+        "lights" => &CastLight::LAYOUT,
+        "picks" => &Pick::LAYOUT,
+        "emitters" => &Emitter::LAYOUT,
+        "counts" => &Counts::LAYOUT,
+        "view" => &View::LAYOUT,
+        "camera" | "casters" => &Camera::LAYOUT,
+        "sun_shadow" => &SunShadow::LAYOUT,
+        "appearances" => &Appearance::LAYOUT,
         other => panic!("no record for set {other}"),
     }
 }

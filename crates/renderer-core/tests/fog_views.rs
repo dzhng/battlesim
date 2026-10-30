@@ -1,12 +1,16 @@
 //! Debug views inspect the actual resolved fog mask; switching back restores
 //! the style and its display-space rim without replacing renderer resources.
-use native_client::{gpu, pipelines};
+#[path = "support/readback.rs"]
+mod readback;
+mod support;
+
 use presentation::records::FogLook;
 use renderer_core::fog_mask::{self, FogMaskView};
+use renderer_core::pipelines;
 use renderer_core::{Targets, HDR_FORMAT};
 use wgpu::*;
 
-fn read(gpu: &gpu::Gpu, texture: &TextureView, mut encoder: CommandEncoder) -> Vec<[f32; 4]> {
+fn read(gpu: &support::Gpu, texture: &TextureView, mut encoder: CommandEncoder) -> Vec<[f32; 4]> {
     let shader = gpu.device.create_shader_module(ShaderModuleDescriptor {
         label: Some("read-screen-pixels"),
         source: ShaderSource::Wgsl(
@@ -60,14 +64,7 @@ fn read(gpu: &gpu::Gpu, texture: &TextureView, mut encoder: CommandEncoder) -> V
         mapped_at_creation: false,
     });
     encoder.copy_buffer_to_buffer(&output, 0, &readback, 0, output.size());
-    gpu.queue.submit([encoder.finish()]);
-    readback.map_async(MapMode::Read, .., |r| r.unwrap());
-    gpu.device.poll(PollType::wait_indefinitely()).unwrap();
-    let mapped = readback.get_mapped_range(..).unwrap();
-    let pixels = bytemuck::cast_slice(&mapped).to_vec();
-    drop(mapped);
-    readback.unmap();
-    pixels
+    readback::pixels(&gpu.device, &gpu.queue, encoder, &readback)
 }
 fn close(actual: [f32; 4], expected: [f32; 4]) {
     assert!(
@@ -80,8 +77,8 @@ fn close(actual: [f32; 4], expected: [f32; 4]) {
 }
 #[test]
 fn fog_ground_and_class_views_use_resolved_mask_and_suppress_the_rim() {
-    let gpu = gpu::open(&gpu::headless_instance(), None).expect("real GPU");
-    let pipelines = pipelines::build(&gpu.device).unwrap();
+    let gpu = support::gpu().expect("real GPU");
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
     let mut targets = Targets::new(&gpu.device, [8, 2]);
     let texture = |label, format| {
         gpu.device.create_texture(&TextureDescriptor {

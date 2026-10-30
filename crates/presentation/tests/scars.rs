@@ -72,7 +72,8 @@ impl Mirror {
             at += n;
         }
         assert_eq!(at, u.texels.len());
-        self.params = u.params;
+        self.params
+            .copy_from_slice(bytemuck::cast_slice(bytemuck::bytes_of(&u.params)));
     }
 
     fn word(&self, w: usize) -> u32 {
@@ -164,7 +165,7 @@ fn fnv(words: &[u32], bytes: &[u8]) -> String {
 }
 
 fn digest(u: &ScarUpload) -> String {
-    let mut words = u.params.to_vec();
+    let mut words = bytemuck::cast_slice::<_, u32>(bytemuck::bytes_of(&u.params)).to_vec();
     match &u.directory {
         Some((d, size)) => words.extend([1].iter().chain(size).chain(d)),
         None => words.push(0),

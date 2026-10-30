@@ -6,17 +6,18 @@
 //! serves pixels twice as wide as the one below, with cells that grow with
 //! them; the ladder ends at one cell that lists everything, or on a dense map
 //! at the last level within the list budget, which then reads no farther than
-//! its reach. This module owns the field layout; the shared terrain shader
-//! consumes its records and index.
+//! its reach. This module owns the field index; `SurfaceRecord` owns its
+//! primitive layout. The shared terrain shader consumes both.
 use super::forests::{Forest, Kind};
 use super::shapes::{closest, convex_overlap, distance, stroke_inside, triangle_contains};
 use super::water::stretch_inside;
 use super::{chunks, Source, AREA, FOREST_BOUNDARY, FOREST_STROKE, FOREST_TRIANGLE, RIVER};
 use super::{SURFACE_BOUNDARY, SURFACE_STROKE, SURFACE_TRIANGLE};
+use crate::records::SurfaceRecord;
 use std::collections::HashMap;
 use std::f64::consts::{PI, SQRT_2};
 
-pub const FLOATS: usize = 8;
+pub const FLOATS: usize = SurfaceRecord::LAYOUT.size / size_of::<f32>();
 // A record's kind, as the index names it, and the rule it serves.
 const RECT: u32 = 0;
 const STROKE: u32 = 1;
@@ -25,8 +26,10 @@ const EDGE: u32 = 3;
 const PAVED: usize = 0;
 const FOREST: usize = 1;
 const WATER: usize = 2;
-const NEW_SHAPE: u32 = 1 << 29;
-const RECORD_MASK: u32 = NEW_SHAPE - 1;
+pub const NEW_SHAPE: u32 = 1 << 29;
+pub const RECORD_MASK: u32 = NEW_SHAPE - 1;
+/// Bits below the primitive kind in a field index entry.
+pub const KIND_SHIFT: u32 = 30;
 const CELL_WORDS: usize = 3;
 /// The finest cells' side and widest pixel, in metres: the play camera looking
 /// down sees at most about 2.5 m a pixel, so only ground seen edge-on climbs.
@@ -86,13 +89,11 @@ pub fn field(
     // A record of `source`, its first `points` pairs positions, `tail` last.
     let mut put =
         |source: &[f32], tail: f32, points: usize, m: (u32, usize, Option<usize>, bool)| {
-            let at = records.len();
-            records.extend_from_slice(source);
-            records.resize(at + FLOATS, 0.0);
-            if source.len() < FLOATS {
-                records[at + FLOATS - 1] = tail;
-            }
-            for p in chunks::<2>(&records[at..at + points * 2]) {
+            let mut record = [0.0; FLOATS];
+            record[..source.len()].copy_from_slice(source);
+            record[FLOATS - 1] = source.get(FLOATS - 1).copied().unwrap_or(tail);
+            records.extend(record);
+            for p in chunks::<2>(&source[..points * 2]) {
                 (min_x, max_x) = (min_x.min(p[0] as f64), max_x.max(p[0] as f64));
                 (min_y, max_y) = (min_y.min(p[1] as f64), max_y.max(p[1] as f64));
             }
@@ -156,7 +157,7 @@ pub fn field(
     // its bank's heights follow in a record cells don't list.
     for r in chunks::<RIVER>(&s.rivers) {
         put(&r[..FLOATS], 0.0, 2, (STROKE, WATER, None, true));
-        put(&r[8..10], 0.0, 0, (STROKE, WATER, None, false));
+        put(&r[FLOATS..FLOATS + 2], 0.0, 0, (STROKE, WATER, None, false));
     }
     if meta.len() > RECORD_MASK as usize {
         return Err("surface field: too many ground primitives".into());
@@ -295,7 +296,7 @@ pub fn field(
         }
         index[header + cursors.len()] = cursor as u32;
         visit(level, &mut |slot, record| {
-            index[cursors[slot] as usize] = (meta[record].0 << 30) | record as u32;
+            index[cursors[slot] as usize] = (meta[record].0 << KIND_SHIFT) | record as u32;
             cursors[slot] += 1;
         });
         // A cell's forest list runs shape by shape: mark each later shape's start.
@@ -361,7 +362,11 @@ impl Field {
         let c = self.cell(x, y, footprint);
         self.index[c[rule]..c[rule + 1]].iter().map(|&e| {
             let at = (e & RECORD_MASK) as usize * FLOATS;
-            (e >> 30, e & NEW_SHAPE != 0, &self.records[at..at + FLOATS])
+            (
+                e >> KIND_SHIFT,
+                e & NEW_SHAPE != 0,
+                &self.records[at..at + FLOATS],
+            )
         })
     }
 

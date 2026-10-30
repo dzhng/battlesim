@@ -1,52 +1,8 @@
+import { trackPageResources } from "./_leaks.mjs";
 /** Production material probes share one ordinary scene's Rust GPU/pipeline owner. */
 export async function openTerrainQuery(ctx) {
   const page = await ctx.newPage();
-  await page.addInitScript(() => {
-    const resources = new Map();
-    const queues = [];
-    window.__terrainValidation = [];
-    let created = 0;
-    const onDestroy = (id, destroy) =>
-      function (...args) {
-        resources.delete(id);
-        return destroy.apply(this, args);
-      };
-    const observe = (resource, kind) => {
-      const id = created++;
-      resources.set(id, { reference: new WeakRef(resource), kind });
-      resource.destroy = onDestroy(id, resource.destroy);
-      return resource;
-    };
-    window.__terrainResources = {
-      counts() {
-        const counts = { buffers: 0, textures: 0 };
-        for (const [id, row] of resources) {
-          if (!row.reference.deref()) resources.delete(id);
-          else counts[row.kind]++;
-        }
-        return counts;
-      },
-      drain: () => Promise.all(queues.map((queue) => queue.onSubmittedWorkDone())),
-    };
-    const request = GPUAdapter.prototype.requestDevice;
-    GPUAdapter.prototype.requestDevice = async function (...args) {
-      const device = await request.apply(this, args);
-      device.addEventListener("uncapturederror", (event) =>
-        window.__terrainValidation.push(event.error.message),
-      );
-      queues.push(device.queue);
-      for (const [method, kind] of [
-        ["createBuffer", "buffers"],
-        ["createTexture", "textures"],
-      ]) {
-        const create = device[method];
-        device[method] = function (...descriptors) {
-          return observe(create.apply(this, descriptors), kind);
-        };
-      }
-      return device;
-    };
-  });
+  await trackPageResources(page);
   // This diagnostic owns its scene; an unrelated menu backdrop would add live resources.
   await page.route("**/src/main.tsx*", (route) =>
     route.fulfill({ contentType: "application/javascript", body: "" }),
@@ -85,7 +41,7 @@ export async function openTerrainQuery(ctx) {
     const presentation = new ScenePresentation();
     const terrain = surface.bareTerrain(new Float32Array(0), [0, 0, 32, 32], 4, biome.default);
     const light = applyShadowQuality(gameLight, sceneMinimumProfile);
-    presentation.setGround(terrain.input, null);
+    presentation.setGround(terrain.input, false);
     presentation.setBuildings(null, null, gameBuildingStyle, {
       azimuth: light.sun_azimuth,
       elevation: light.sun_elevation,
@@ -112,7 +68,7 @@ export async function openTerrainQuery(ctx) {
       gpu,
       canvas,
       presentation,
-      world: { terrain, props: new Float32Array(0), scenery: null, grass: null },
+      world: { terrain, extraFaces: new Float32Array(0), scenery: null, grass: null },
       settings: { light, fog: gameFogStyle, paint: gamePaint },
       detail: JSON.parse(gameModelDetail),
       overlayGlow: gameOverlayGlow,
@@ -141,7 +97,7 @@ export async function openTerrainQuery(ctx) {
 }
 
 export async function finishTerrainQuery(page) {
-  const observed = await page.evaluate(() => window.__terrainResources.counts());
+  const observed = await page.evaluate(() => window.__gpuResources.counts());
   if (!observed.buffers || !observed.textures)
     throw new Error("terrain lifetime observer missed live resources");
   const compiled = await page.evaluate(async () => {
@@ -153,7 +109,7 @@ export async function finishTerrainQuery(page) {
     owner.gpu.free();
     const compiled = [...owner.compiled];
     delete window.__terrainQuery;
-    await window.__terrainResources.drain();
+    await window.__gpuResources.drain();
     return compiled;
   });
   const cdp = await page.context().newCDPSession(page);
@@ -165,8 +121,8 @@ export async function finishTerrainQuery(page) {
   return {
     compiled,
     ...(await page.evaluate(() => ({
-      final: window.__terrainResources.counts(),
-      validation: window.__terrainValidation,
+      final: window.__gpuResources.counts(),
+      validation: window.__gpuResources.validation,
     }))),
   };
 }

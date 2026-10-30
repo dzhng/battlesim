@@ -32,6 +32,7 @@ pub const CONSTANTS: &[(&str, Scalar)] = &[
     ("SWAY_SHIVER_M", F32(SWAY.shiver_m)),
     ("SWAY_SHIVER_RATE", F32(SWAY.shiver_rate)),
     ("SWAY_HEART", F32(HEART)),
+    ("WAVE_SPLATS_MAX", U32(crate::wave::SPLATS_MAX as u32)),
     ("WAVE_TEXELS", F32(WAVE.texels as f64)),
     ("WAVE_SPEED", F32(WAVE.speed)),
     ("WAVE_DAMPING", F32(WAVE.damping)),
@@ -42,6 +43,32 @@ pub const CONSTANTS: &[(&str, Scalar)] = &[
     ("GRASS_GROWTH_ROWS", U32(grass::GROWTH_ROWS as u32)),
     ("GRASS_MIX_MAX", U32(GRASS_MIX_MAX as u32)),
     ("GRASS_MAX_KINDS", U32(grass::MAX_KINDS as u32)),
+    (
+        "WATER_LOOKS_MAX",
+        U32(crate::static_world::ground::biome::WATER_LOOKS_MAX as u32),
+    ),
+    ("ROAD_LOOKS_MAX", U32(tables::ROAD_LOOKS_MAX as u32)),
+    ("SCAR_KEY_MASK", U32(crate::scars::KEY_MASK)),
+    ("SCAR_TILE", U32(crate::scars::TILE as u32)),
+    ("SCAR_UNIFORM", U32(crate::scars::UNIFORM)),
+    ("SCAR_DENSE", U32(crate::scars::DENSE)),
+    (
+        "GROUND_RECORD_MASK",
+        U32(crate::static_world::ground::field::RECORD_MASK),
+    ),
+    (
+        "GROUND_NEW_SHAPE",
+        U32(crate::static_world::ground::field::NEW_SHAPE),
+    ),
+    (
+        "GROUND_KIND_SHIFT",
+        U32(crate::static_world::ground::field::KIND_SHIFT),
+    ),
+    ("GRASS_BUILD_LANES", U32(grass::BUILD_LANES)),
+    ("GRASS_TILE_RANGES", U32(grass::TILE_RANGES)),
+    ("GRASS_ARGS_WORDS", U32(grass::ARGS_WORDS)),
+    ("GRASS_DRAW_WORDS", U32(grass::DRAW_WORDS)),
+    ("GRASS_RAW_COUNT_OFFSET", U32(grass::RAW_COUNT_OFFSET)),
     ("GROUND_GRASS_EDGE_M", F32(tables::GRASS_EDGE_M)),
     (
         "GROUND_FOREST_VERGE_FEATHER",
@@ -62,7 +89,6 @@ pub const CONSTANTS: &[(&str, Scalar)] = &[
         "FOG_WHOLE_TEXTURE_WIDTH",
         U32(sight::WHOLE_TEXTURE_WIDTH as u32),
     ),
-    ("FOG_HORIZON_SECTORS", U32(sight::HORIZON_SECTORS as u32)),
     ("FOG_BUILD_WORKGROUP", U32(sight::BUILD_WORKGROUP as u32)),
     ("FOG_FOLIAGE_STEP", F32(sight::FOLIAGE_STEP)),
 ];

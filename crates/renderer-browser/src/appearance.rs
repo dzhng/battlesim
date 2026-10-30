@@ -93,6 +93,7 @@ impl Renderer {
             .collect();
         if let Some(ground) = view.ground() {
             names.extend(ground.grass_kinds());
+            names.extend(ground.scenery_kinds());
         }
         // Preserve canonical battle/static sources, remove retired external art,
         // and replace only names carried by the desired generation.

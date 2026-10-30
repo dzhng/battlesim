@@ -31,10 +31,7 @@ export interface GroundInput {
 }
 
 /** Ground queries and lab controls used by browser scene composition. */
-export type PresentedGround = Pick<
-  Presentation,
-  "ground_water_mesh" | "grass_kinds" | "retune_grass"
-> &
+export type PresentedGround = Pick<Presentation, "grass_kinds" | "scenery_kinds" | "retune_grass"> &
   FogSource;
 
 export interface TerrainSurface {
@@ -152,5 +149,11 @@ export function buildTerrainSurface(
   // The traversal overlay shows the blocked flag alone; a water tint would
   // muddy it. The water's look is its own shader's (`renderer-core` `water.rs`).
   const surface = overlay === "surface";
-  return { mesh, input, biome, grid: surface ? exports.terrain : null, water: surface };
+  return {
+    mesh,
+    input,
+    biome,
+    grid: surface ? exports.terrain : null,
+    water: surface,
+  };
 }

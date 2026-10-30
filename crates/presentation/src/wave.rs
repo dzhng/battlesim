@@ -29,6 +29,12 @@ pub struct Wave {
     pub fade_m: [f64; 2],
 }
 
+/// Splats one step takes at most; excess splats are dropped per step so
+/// batching steps into frames never changes which impulses survive.
+pub const STEP_SPLATS: usize = 256;
+/// The most splats a drawn frame can publish across its bounded steps.
+pub const SPLATS_MAX: usize = STEP_SPLATS * WAVE.max_steps as usize;
+
 pub const WAVE: Wave = Wave {
     hz: 30.0,
     max_steps: 6,

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
+import { WithTestCatalog } from "./catalog";
 import type { LoadedModel } from "@apps/battle-lab/src/workbench/sources";
 
 // The route needs the browser's complete HMR API; disable Vitest's partial stub.
@@ -18,30 +19,14 @@ const catalog = {
   onRequest: new Map(),
 };
 vi.mock("@apps/battle-lab/src/LabViewport", () => ({ LabViewport: () => null }));
-vi.mock("@web/battle/catalog/context", () => ({ useSessionCatalog: () => session }));
-const session = { units: { cards: [], ids: [] }, rules: {} };
-vi.mock("@apps/battle-lab/src/workbench/AtlasView", () => ({ AtlasView: () => null }));
-vi.mock("@apps/battle-lab/src/workbench/benchWorld", () => ({
-  benchWorld: () => ({}),
-  benchOverlay: () => ({}),
-  drawnPose: () => null,
-  posedSockets: () => [],
-}));
-vi.mock("@apps/battle-lab/src/workbench/sheet", () => ({
-  framingBounds: () => null,
-  figureSpot: () => null,
-  sheetPose: () => null,
-  renderReferenceSheet: vi.fn(),
-  renderSheet: vi.fn(),
-  textureSheet: vi.fn(),
-}));
-vi.mock("@apps/battle-lab/src/workbench/sources", () => ({
+// Source loading is the workbench's I/O boundary. Keep the real catalog
+// context, stage, pose, sheets and UI; only source completion and the GPU
+// viewport are faked so these races need neither disk/network timing nor a GPU.
+vi.mock("@apps/battle-lab/src/workbench/sources", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@apps/battle-lab/src/workbench/sources")>()),
   loadDropped: sources.loadDropped,
   catalogModel: sources.catalogModel,
   loadCatalog: async () => catalog,
-  sideTint: () => undefined,
-  catalogNames: () => [],
-  INFANTRY_LOOPS: [],
 }));
 function model(name: string): LoadedModel {
   return {
@@ -80,7 +65,7 @@ afterEach(() => {
 
 test("a slow older file read cannot replace a more recently selected source", async () => {
   sources.loadDropped.mockImplementation(async (_session, name) => model(name));
-  render(<Workbench />);
+  render(<Workbench />, { wrapper: WithTestCatalog });
   const olderRead = deferred<ArrayBuffer>();
   choose("older.glb", olderRead.promise);
   choose("latest.glb");
@@ -99,7 +84,7 @@ test("an older validation failure cannot replace the newest error or finish its 
   sources.loadDropped.mockImplementation((_session, name) =>
     name === "older.glb" ? older.promise : latest.promise,
   );
-  render(<Workbench />);
+  render(<Workbench />, { wrapper: WithTestCatalog });
   choose("older.glb");
   await waitFor(() => expect(sources.loadDropped).toHaveBeenCalledTimes(1));
   choose("latest.glb");
@@ -121,7 +106,7 @@ test("a pending catalog selection cannot replace a newer dropped file", async ()
   const older = deferred<LoadedModel>();
   sources.catalogModel.mockReturnValue(older.promise);
   sources.loadDropped.mockImplementation(async (_session, name) => model(name));
-  render(<Workbench />);
+  render(<Workbench />, { wrapper: WithTestCatalog });
   await waitFor(() => expect(sources.catalogModel).toHaveBeenCalled());
   choose("latest.glb");
   await waitFor(() =>
@@ -135,7 +120,7 @@ test("a pending catalog selection cannot replace a newer dropped file", async ()
 
 test("a failed current source rejects the automation request and shows its error", async () => {
   sources.loadDropped.mockRejectedValue(new Error("current validation failure"));
-  render(<Workbench />);
+  render(<Workbench />, { wrapper: WithTestCatalog });
   await act(async () => {
     await expect(window.__workbench!.drop("current.glb", new Uint8Array())).rejects.toThrow(
       "current validation failure",

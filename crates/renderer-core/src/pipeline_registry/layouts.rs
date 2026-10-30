@@ -1,3 +1,4 @@
+mod grass;
 mod visibility;
 mod water;
 use super::*;
@@ -408,97 +409,9 @@ pub fn all() -> Vec<LayoutSpec> {
         visibility::probe(),
         visibility::shape(),
         visibility::whole(),
-        layout(
-            "grassDrawLayout",
-            vec![
-                entry(
-                    0,
-                    ShaderStages::VERTEX,
-                    BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                ),
-                entry(
-                    1,
-                    ShaderStages::VERTEX,
-                    BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                ),
-                entry(
-                    2,
-                    ShaderStages::VERTEX,
-                    BindingType::Buffer {
-                        ty: BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                ),
-                entry(
-                    3,
-                    ShaderStages::VERTEX,
-                    BindingType::Buffer {
-                        ty: BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                ),
-            ],
-        ),
-        layout(
-            "grassBuildLayout",
-            vec![
-                entry(
-                    0,
-                    ShaderStages::COMPUTE,
-                    BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                ),
-                entry(
-                    1,
-                    ShaderStages::COMPUTE,
-                    BindingType::Buffer {
-                        ty: BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                ),
-                entry(
-                    2,
-                    ShaderStages::COMPUTE,
-                    BindingType::Buffer {
-                        ty: BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                ),
-                entry(
-                    3,
-                    ShaderStages::COMPUTE,
-                    BindingType::Buffer {
-                        ty: BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                ),
-                entry(
-                    4,
-                    ShaderStages::COMPUTE,
-                    BindingType::Buffer {
-                        ty: BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                ),
-            ],
-        ),
+        grass::draw(),
+        grass::build(),
+        grass::finish(),
         visibility::mask_rows(),
         visibility::mask_columns(),
         visibility::mask_compose(),

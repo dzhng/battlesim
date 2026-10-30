@@ -1,10 +1,10 @@
 //! Suppressing material marks preserves the latest canonical GPU upload.
-use native_client::gpu;
+mod support;
 use presentation::scars::ScarUpload;
 use renderer_core::scars::Scars;
 use wgpu::*;
 
-fn sample(gpu: &gpu::Gpu, scars: &Scars) -> [f32; 4] {
+fn sample(gpu: &support::Gpu, scars: &Scars) -> [f32; 4] {
     let source = format!(
         "{}\n{}",
         renderer_core::pipelines::builtin_source("worldTerrain.wgsl").unwrap(),
@@ -89,38 +89,34 @@ fn sample(gpu: &gpu::Gpu, scars: &Scars) -> [f32; 4] {
 }
 
 fn upload(word: u32) -> ScarUpload {
-    let f = 1f32.to_bits();
     ScarUpload {
-        params: [
-            f,
-            f,
-            f,
-            f,
-            1,
-            1,
-            0,
-            presentation::scars::POOL_WIDTH,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            word,
-            0,
-            0,
-            0,
-        ],
+        params: presentation::records::ScarCacheParams {
+            grid: [1.0; 4],
+            pages: [1, 1, 0, presentation::scars::POOL_WIDTH],
+            default_word: [word, 0, 0, 0],
+            ..Default::default()
+        },
         ..Default::default()
     }
 }
 
 #[test]
 fn hiding_marks_keeps_new_knowledge_and_restores_the_material() {
-    let gpu = gpu::open(&gpu::headless_instance(), None).expect("real GPU");
-    let mut scars = Scars::new(&gpu.device, &gpu.queue, &[1f32.to_bits(); 32]);
+    let gpu = support::gpu().expect("real GPU");
+    let mut scars = Scars::new(
+        &gpu.device,
+        &gpu.queue,
+        presentation::records::ScarLook {
+            full: [1.0; 4],
+            crater: [1.0; 4],
+            ejecta: [1.0; 4],
+            scorch: [1.0; 4],
+            tracks: [1.0; 4],
+            trampled: [1.0; 4],
+            relief: [1.0; 4],
+            grass: [1.0; 4],
+        },
+    );
     scars.apply(&gpu.queue, &upload(u32::MAX));
     let before = sample(&gpu, &scars);
     assert!(

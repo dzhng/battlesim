@@ -26,7 +26,7 @@ impl SubmittedDraws {
 #[serde(rename_all = "camelCase")]
 pub struct SubmittedPass {
     pub terrain: SubmittedDraws,
-    pub skirt_and_debug_props: SubmittedDraws,
+    pub skirt_and_props: SubmittedDraws,
     pub water: SubmittedDraws,
     pub backdrop: SubmittedDraws,
     pub buildings: SubmittedDraws,
@@ -36,7 +36,7 @@ pub struct SubmittedPass {
 impl SubmittedPass {
     fn add(&mut self, other: Self) {
         self.terrain.add(other.terrain);
-        self.skirt_and_debug_props.add(other.skirt_and_debug_props);
+        self.skirt_and_props.add(other.skirt_and_props);
         self.water.add(other.water);
         self.backdrop.add(other.backdrop);
         self.buildings.add(other.buildings);

@@ -197,7 +197,7 @@ pub fn build_display(device: &Device, shader: &str, format: TextureFormat) -> Re
 }
 
 pub fn builtin_pipeline_count() -> usize {
-    BUILTIN_PIPELINE_COUNT
+    pipeline_registry::pipelines().len()
 }
 
 pub fn builtin_sizes() -> Sizes {
@@ -270,8 +270,6 @@ where
     F: FnMut(&str, &str) -> Result<String>,
 {
     let shader = source(spec.name, spec.shader)?;
-    #[cfg(windows)]
-    let shader = native_shader_source(spec.name, shader);
     let module = device.create_shader_module(ShaderModuleDescriptor {
         label: Some(spec.shader),
         source: ShaderSource::Wgsl(shader.into()),
@@ -387,23 +385,6 @@ where
             cache: None,
         },
     )))
-}
-
-#[cfg(windows)]
-fn native_shader_source(name: &str, source: String) -> String {
-    if !name.ends_with("Cutout") {
-        return source;
-    }
-    source
-        .replace("-> @builtin(sample_mask) u32 {", " {")
-        .replace(
-            "return coveredSamples(coverage, fwidth(coverage), pixelNoise(clip.xy));",
-            "if (coverage <= 0.5f) { discard; }",
-        )
-        .replace(
-            "return u32((cutoutCoverage(_arg_0.material, _arg_0.uv) > pixelNoise(clip.xy)));",
-            "if (!(cutoutCoverage(_arg_0.material, _arg_0.uv) > pixelNoise(clip.xy))) { discard; }",
-        )
 }
 
 include!(concat!(env!("OUT_DIR"), "/pipeline_export.rs"));

@@ -1,12 +1,16 @@
 //! Inspector output uses the production post and overlay shaders: class data
 //! bypasses grading, mask views bypass bloom, and paint retains stored colour.
-use native_client::{gpu, pipelines};
+#[path = "support/readback.rs"]
+mod readback;
+mod support;
+
 use presentation::records::{Bloom, Grade};
+use renderer_core::pipelines;
 use renderer_core::post::{self, PostMode};
 use renderer_core::{overlay, Targets, HDR_FORMAT};
 use wgpu::*;
 const SIZE: [u32; 2] = [128, 64];
-fn pixels(gpu: &gpu::Gpu, targets: &Targets, mut encoder: CommandEncoder) -> Vec<[u8; 4]> {
+fn pixels(gpu: &support::Gpu, targets: &Targets, mut encoder: CommandEncoder) -> Vec<[u8; 4]> {
     let row = SIZE[0] * 4;
     let buffer = gpu.device.create_buffer(&BufferDescriptor {
         label: Some("inspector-readback"),
@@ -26,14 +30,7 @@ fn pixels(gpu: &gpu::Gpu, targets: &Targets, mut encoder: CommandEncoder) -> Vec
         },
         targets.display_texture.size(),
     );
-    gpu.queue.submit([encoder.finish()]);
-    buffer.map_async(MapMode::Read, .., |r| r.unwrap());
-    gpu.device.poll(PollType::wait_indefinitely()).unwrap();
-    let mapped = buffer.get_mapped_range(..).unwrap();
-    let pixels = bytemuck::cast_slice(&mapped).to_vec();
-    drop(mapped);
-    buffer.unmap();
-    pixels
+    readback::pixels(&gpu.device, &gpu.queue, encoder, &buffer)
 }
 fn backdrop(encoder: &mut CommandEncoder, targets: &Targets, value: f64) {
     encoder.begin_render_pass(&RenderPassDescriptor {
@@ -56,8 +53,8 @@ fn backdrop(encoder: &mut CommandEncoder, targets: &Targets, value: f64) {
 }
 #[test]
 fn post_modes_and_paint_inspection_preserve_their_output_contracts() {
-    let gpu = gpu::open(&gpu::headless_instance(), None).expect("real GPU");
-    let pipelines = pipelines::build(&gpu.device).unwrap();
+    let gpu = support::gpu().expect("real GPU");
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
     let mut targets = Targets::new(&gpu.device, SIZE);
     let texture = |label, size: [u32; 2], format| {
         gpu.device.create_texture(&TextureDescriptor {
@@ -167,7 +164,11 @@ fn post_modes_and_paint_inspection_preserve_their_output_contracts() {
         &gpu.queue,
         &pipelines,
         &targets,
-        bytemuck::cast_slice(&[4.0f32, 4., 0., 0.]),
+        &renderer_core::records::OverlayGlow {
+            radius_px: 4.0,
+            sigma_px: 4.0,
+            ..Default::default()
+        },
     );
     for (background, expected) in [(0., [0u8, 26, 102, 255]), (1., [127u8, 153, 229, 255])] {
         let mut encoder = gpu.device.create_command_encoder(&Default::default());

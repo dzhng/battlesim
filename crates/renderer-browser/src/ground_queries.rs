@@ -46,12 +46,12 @@ impl Renderer {
             &self.gpu.queue,
             &runtime.pipelines,
             TerrainUpload {
-                params: bytemuck::cast_slice(&tables.params),
+                params: tables.params,
                 nodes: bytemuck::cast_slice(&tables.nodes),
                 plots: bytemuck::cast_slice(&plots),
                 surfaces: bytemuck::cast_slice(&tables.surfaces),
                 surface_index: bytemuck::cast_slice(&tables.surface_index),
-                scars: bytemuck::cast_slice(&tables.scars),
+                scars: tables.scars,
             },
         );
         if matches!(query, Query::Filters) {

@@ -19,11 +19,13 @@ impl Models {
             &world.appearances,
             &world.strings,
             |row| catalog.rest_palette(row),
+            |row, node| catalog.track_side(row, node),
         )
     }
 
     /// Install the exact world appearance publication. A shell supplies each
-    /// body's presentation-owned far or corpse pose through `rest_palette`.
+    /// body's presentation-owned far or corpse pose through `rest_palette`,
+    /// and each node's running-gear side through `track_side`.
     #[allow(clippy::too_many_arguments)]
     pub fn from_world(
         device: &Device,
@@ -33,6 +35,7 @@ impl Models {
         appearances: &[presentation::records::Appearance],
         strings: &str,
         rest_palette: impl Fn(u32) -> Option<Vec<Joint>>,
+        track_side: impl Fn(u32, usize) -> Option<presentation::world::TrackSide>,
     ) -> Result<Self, String> {
         let text = |at: u32, len: u32| &strings[at as usize..(at + len) as usize];
         let mut bundles: HashMap<String, (Arc<Bundle>, usize)> = HashMap::new();
@@ -120,26 +123,9 @@ impl Models {
                         .or_insert_with(|| {
                             (0..count)
                                 .map(|t| {
-                                    let meshes: Vec<(&Mesh, Vec<u8>)> = nodes
-                                        .iter()
-                                        .enumerate()
-                                        .map(|(i, n)| {
-                                            let track = match n.name.as_str() {
-                                                "track_L" => 1,
-                                                "track_R" => 2,
-                                                _ => 0,
-                                            };
-                                            (
-                                                &n.tiers[t],
-                                                pack_vertices(
-                                                    &n.tiers[t],
-                                                    *base,
-                                                    Some(i as u8),
-                                                    track,
-                                                ),
-                                            )
-                                        })
-                                        .collect();
+                                    let meshes = articulated_meshes(nodes, t, *base, |node| {
+                                        track_side(r as u32, node)
+                                    });
                                     drawable(device, queue, &label, bundle, &meshes)
                                 })
                                 .collect()
@@ -256,4 +242,29 @@ impl Models {
             cards: None,
         })
     }
+}
+
+/// The exact articulated vertices uploaded at admission, before GPU allocation.
+pub(super) fn articulated_meshes(
+    nodes: &[crate::bundle::Node],
+    tier: usize,
+    material_base: usize,
+    track_side: impl Fn(usize) -> Option<presentation::world::TrackSide>,
+) -> Vec<(&Mesh, Vec<u8>)> {
+    nodes
+        .iter()
+        .enumerate()
+        .map(|(i, node)| {
+            let track = match track_side(i) {
+                Some(presentation::world::TrackSide::Left) => 1,
+                Some(presentation::world::TrackSide::Right) => 2,
+                None => 0,
+            };
+            let mesh = &node.tiers[tier];
+            (
+                mesh,
+                pack_vertices(mesh, material_base, Some(i as u8), track),
+            )
+        })
+        .collect()
 }

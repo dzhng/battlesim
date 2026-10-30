@@ -521,7 +521,12 @@ fn a_still_wader_makes_rings_and_a_moving_one_drags_a_v() {
         squad_at(40.0 + 3.0 * f64::from(t) * DT)
     });
     assert!(!moving.is_empty(), "a moving squad drags a wake");
-    assert!(moving.iter().all(|w| w.kind == WakeKind::Vee), "{moving:?}");
+    assert!(
+        moving
+            .iter()
+            .all(|w| matches!(w.kind, WakeKind::Vee { .. })),
+        "{moving:?}"
+    );
     // Each wader's own: both men's lines, along their path.
     for y in [19.0, 21.0] {
         assert!(

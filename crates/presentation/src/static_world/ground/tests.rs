@@ -381,20 +381,18 @@ fn each_paved_kind_draws_by_its_own_row_or_the_default_and_paints_by_its_layer()
     b["roads"]["paving"]["layer"] = 9.into();
     let g = ground_with(Biome::load(&b.to_string(), None).unwrap());
     let params = g.terrain_tables(g.terrain_field().unwrap()).params;
-    // `TerrainParams`: 6 vec4s, then 14 a paved kind, then the paint order.
-    let row = |tag: usize| &params[24 + tag * 56..24 + (tag + 1) * 56];
-    let core = |road: &super::biome::Road| {
-        linear(g.biome.palette(&road.palette)[0]).map(|c| (c as f32).to_bits())
-    };
+
+    let core =
+        |road: &super::biome::Road| linear(g.biome.palette(&road.palette)[0]).map(|c| c as f32);
     assert_eq!(
-        row(2)[..3],
+        params.roads[2].core[..3],
         core(g.biome.road("default")),
         "a dirt track with no row of its own draws as the default's"
     );
-    assert_eq!(row(3)[..3], core(g.biome.road("paving")));
+    assert_eq!(params.roads[3].core[..3], core(g.biome.road("paving")));
     // The dirt track's default row lays it by its tag (2); the road's own row
     // at 2.5, over it; the country road by its tag (3); paving's at 9, on top.
-    assert_eq!(params[24 + 4 * 56..24 + 4 * 56 + 4], [2, 0, 1, 3]);
+    assert_eq!(params.road_order, [2, 0, 1, 3]);
 }
 
 #[test]
@@ -402,13 +400,11 @@ fn plain_plots_keep_their_rows_and_lose_only_their_texture() {
     let g = ground();
     let (textured, plain) = (g.plot_records(true), g.plot_records(false));
     assert_eq!(textured.len(), plain.len());
-    for (k, (a, b)) in textured.iter().zip(&plain).enumerate() {
-        // Per plot: the rows' break, the grain's contrast and the wheelings.
-        if ![10, 13, 20].contains(&(k % 24)) {
-            assert_eq!(a, b, "word {k}");
-        } else {
-            assert_eq!(*b, 0, "word {k}");
-        }
+    for (mut expected, actual) in textured.into_iter().zip(plain) {
+        expected.detail[2] = 0.0; // Broken rows.
+        expected.grain[1] = 0.0; // Fine grain contrast.
+        expected.tram[0] = 0.0; // Wheelings.
+        assert_eq!(actual, expected);
     }
 }
 
@@ -481,11 +477,10 @@ fn the_grass_density_setting_scales_the_densest_stand_and_nothing_else() {
             .unwrap()
     };
     let (full, half) = (at(1.0), at(0.5));
-    // `GrassParams.density.y`, word 29: the most clumps a square metre holds.
-    let most = |p: &[u32]| f32::from_bits(p[29]);
-    assert_eq!(most(&half), most(&full) * 0.5);
-    let differ: Vec<usize> = (0..full.len()).filter(|&k| full[k] != half[k]).collect();
-    assert_eq!(differ, [29]);
+    assert_eq!(half.density[1], full.density[1] * 0.5);
+    let mut expected = full;
+    expected.density[1] *= 0.5;
+    assert_eq!(half, expected);
 }
 
 #[test]
@@ -522,25 +517,23 @@ fn grass_growth_rows_normalize_mixes_and_refuse_composed_heights_over_the_cap() 
     ];
     let params = |g: &Ground| g.grass_params(&facts, &LIMITS, &Quality { density: 1.0 });
     let packed = params(&g).unwrap();
-    let f: Vec<f32> = packed.iter().map(|w| f32::from_bits(*w)).collect();
     let row = g
         .biome
         .plots
         .iter()
         .position(|p| p.name == "meadow")
         .unwrap();
-    let growth_at = 56;
     for (i, plot) in g.biome.plots.iter().enumerate() {
         assert_eq!(
-            f[growth_at + i * 4],
+            packed.growth[i][0],
             if plot.name == "meadow" { 0.37 } else { 0.0 }
         );
     }
-    assert_eq!(f[growth_at + (GROWTH_ROWS - 1) * 4], 0.37);
-    let mixes = growth_at + GROWTH_ROWS * 8 + row * super::biome::GRASS_MIX_MAX * 4;
+    assert_eq!(packed.growth[GROWTH_ROWS - 1][0], 0.37);
+    let mixes = row * super::biome::GRASS_MIX_MAX;
     assert_eq!(
-        &f[mixes..mixes + 8],
-        &[0.0, 0.75, 0.0, 0.0, 1.0, 0.25, 0.7, 0.3]
+        &packed.mixes[mixes..mixes + 2],
+        &[[0.0, 0.75, 0.0, 0.0], [1.0, 0.25, 0.7, 0.3]]
     );
     assert!(g
         .grass_params(&facts[..1], &LIMITS, &Quality { density: 1.0 })

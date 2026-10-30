@@ -557,7 +557,8 @@ These are the user's to decide. The native items are also on the
   - its cost was never measured on the GPU; the splat loop (up to 256 a step)
     is the term to watch in a big battle;
   - captures warm it by playing the reel, with no fixed warm-up;
-  - native draws no wakes.
+  - native shares the browser's wake renderer; parity plates have less wave
+    history ([the remaining gap](../../water-native/README.md#gaps)).
 - **A second, older water lookup.** The surface field's `water` distance
   (`Field::water`) knows rivers only: it shades the bank and keeps scenery
   clear of rivers. Map generation keeps woods out of swamps, so nothing

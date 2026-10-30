@@ -1,6 +1,32 @@
 // WGSL owner: water.
 
-// @block water_sceneColourMip_taps
+// @block water_WaterLook
+struct WaterLook {
+  channel: vec4f,
+  edge: vec4f,
+  surface: vec4f,
+  normals: vec4f,
+  drifts: vec4f,
+  fades: vec4f,
+  roughness: vec4f,
+  lobes: vec4f,
+  refraction: vec4f,
+  caustics: vec4f,
+}
+
+// @block water_waterNormal
+fn waterNormal(xy: vec2f, footprint: f32, look: u32) -> vec3f {
+  let w = (&terrainParams.waterLooks[look]);
+  let carried = waterCarried();
+  let primary = waterLayer(xy, (*w).normals.x, vec2f(1, 0), (carried * (*w).drifts.x), (*w).normals.w, footprint);
+  let macroNormal = waterLayer(xy, (*w).normals.y, vec2f(0.824999988079071, 0.5649999976158142), (carried * (*w).drifts.y), (*w).normals.w, footprint);
+  let detail = waterLayer(xy, (*w).normals.z, vec2f(0.45399999618530273, -0.890999972820282), (carried * (*w).drifts.z), (*w).normals.w, footprint);
+  let n = blendRnm(blendRnm(macroNormal, primary), detail);
+  let shown = (1f - smoothstep((*w).fades.y, (*w).fades.z, footprint));
+  return normalize(mix(vec3f(0, 0, 1), n, shown));
+}
+
+// @block water_taps_sceneMipLayout
 @group(0) @binding(1) var taps: sampler;
 
 // @block water_sceneMip
@@ -8,11 +34,6 @@ fn sceneMip(pos: vec2f) -> vec4f {
     let size = max(vec2u(1u), textureDimensions(source) / 2u);
     return textureSampleLevel(source, taps, pos / vec2f(size), 0.0);
   }
-
-// @block water_sceneColourMip_fragment
-@fragment fn fragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-  return sceneMip(pos.xy);
-}
 
 // @block water_tapped
 fn tapped(u: vec2f, size: vec2f) -> vec4i {
@@ -36,15 +57,10 @@ fn guardMip(pos: vec2f) -> vec4f {
     return vec4f(worst, 0.0, 0.0);
   }
 
-// @block water_waterGuardMip_fragment
-@fragment fn fragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-  return guardMip(pos.xy);
-}
-
-// @block water_waterGuardSeed_mask
+// @block water_mask_guardSeedLayout
 @group(0) @binding(0) var mask: texture_2d<f32>;
 
-// @block water_waterGuardSeed_paint
+// @block water_paint_guardSeedLayout
 @group(0) @binding(1) var paint: texture_2d<f32>;
 
 // @block water_guardSeed
@@ -53,11 +69,6 @@ fn guardSeed(pos: vec2f) -> vec4f {
     let unseen = textureLoad(mask, p, 0).x;
     return vec4f(unseen, textureLoad(paint, p, 0).a, 0.0, 0.0);
   }
-
-// @block water_waterGuardSeed_fragment
-@fragment fn fragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-  return guardSeed(pos.xy);
-}
 
 // @block water_waterNormalsSlope
 fn waterNormalsSlope(uv: vec2f) -> vec4f {
@@ -113,12 +124,7 @@ fn waterNormalsSlope(uv: vec2f) -> vec4f {
   return vec4f(slope, 0.0, 1.0);
 }
 
-// @block water_waterNormalsBake_fragment
-@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
-  return waterNormalsSlope(fract(_arg_0.uv));
-}
-
-// @block water_waveStep_was
+// @block water_was_waveLayout
 @group(0) @binding(0) var was: texture_2d<f32>;
 
 // @block water_WaveRun
@@ -127,9 +133,12 @@ struct WaveRun {
   step: u32,
   splats: u32,
   still: u32,
+  pad0: u32,
+  pad1: u32,
+  pad2: u32,
 }
 
-// @block water_waveStep_run
+// @block water_run_waveLayout
 @group(0) @binding(1) var<uniform> run: WaveRun;
 
 // @block water_WaveSplat
@@ -137,10 +146,22 @@ struct WaveSplat {
   splat: vec4f,
   step: f32,
   kind: f32,
+  heading: vec2f,
 }
 
-// @block water_waveStep_splats
-@group(0) @binding(2) var<storage, read> splats: array<WaveSplat, 1536>;
+// @block water_splats_waveLayout
+@group(0) @binding(2) var<storage, read> splats: array<WaveSplat, WAVE_SPLATS_MAX>;
+
+// @block water_waveTuning
+const WAVE_VEE_WIDTH_SCALE = 0.5;
+const WAVE_VEE_MIN_WIDTH = 1.4;
+const WAVE_VEE_TRAIL_SCALE = 6.0;
+const WAVE_VEE_MIN_TRAIL = 16.0;
+const WAVE_VEE_ARM_SLOPE = 0.5;
+const WAVE_VEE_PROFILE_STEEPNESS = 2.0;
+const WAVE_VEE_FADE_IN = 2.0;
+const WAVE_VEE_FADE_OUT = 0.6;
+const WAVE_VEE_STRENGTH = 0.25;
 
 // @block water_waveStep
 fn waveStep(pos: vec2f) -> vec4f {
@@ -169,21 +190,30 @@ fn waveStep(pos: vec2f) -> vec4f {
     for (var k = 0u; k < run.splats; k++) {
       let s = splats[k];
       if (u32(s.step) != run.step) { continue; }
-      // A ring, not a mound: a dip with a rim, which sums to nothing, so
-      // pushes made again and again never pile the water up.
-      let d2 = dot(pos - s.splat.xy, pos - s.splat.xy) / max(s.splat.z * s.splat.z, 0.25);
-      push += s.splat.w * (1.0 - d2) * exp(-d2);
+      let offset = pos - s.splat.xy;
+      if (s.kind == 1.0) {
+        let back = -dot(offset, s.heading);
+        let across = dot(offset, vec2f(-s.heading.y, s.heading.x));
+        let width = max(s.splat.z * WAVE_VEE_WIDTH_SCALE, WAVE_VEE_MIN_WIDTH);
+        let trail = max(s.splat.z * WAVE_VEE_TRAIL_SCALE, WAVE_VEE_MIN_TRAIL);
+        let arms = (vec2f(across) + back * vec2f(-WAVE_VEE_ARM_SLOPE, WAVE_VEE_ARM_SLOPE)) / width;
+        let d2 = arms * arms;
+        let profile = (vec2f(1.0) - WAVE_VEE_PROFILE_STEEPNESS * d2) * exp(-d2);
+        let fade = smoothstep(0.0, WAVE_VEE_FADE_IN, back) * (1.0 - smoothstep(trail * WAVE_VEE_FADE_OUT, trail, back));
+        // Each arm has a dip beside its crest: repeated pushes do not
+        // build a mound. The heading keeps both arms behind their source.
+        push += s.splat.w * (profile.x + profile.y) * fade * WAVE_VEE_STRENGTH;
+      } else {
+        // A ring, not a mound: a dip with a rim, which sums to nothing.
+        let d2 = dot(offset, offset) / max(s.splat.z * s.splat.z, 0.25);
+        push += s.splat.w * (1.0 - d2) * exp(-d2);
+      }
     }
     next = clamp(next + clamp(push, -4.0, 4.0) * 0.25, -1.0, 1.0);
     let edge = min(min(c.x, size.x - 1 - c.x), min(c.y, size.y - 1 - c.y));
     next *= smoothstep(0.0, 24.0, f32(edge));
     return vec4f(next, h[4], 0.0, 0.0);
   }
-
-// @block water_waveStep_fragment
-@fragment fn fragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-  return waveStep(pos.xy);
-}
 
 // @block water_waterCarried
 fn waterCarried() -> vec2f {
@@ -228,7 +258,7 @@ fn waveHeight(uv: vec2f) -> f32 {
 // @block water_waveNormal
 fn waveNormal(xy: vec2f, n: vec3f) -> vec3f {
   let area = (&cam.waves);
-  let low = f32((params.view.z == 1u));
+  let low = f32((terrainParams.view.z == 1u));
   let shown = ((*area).w * (1f - low));
   let uv = ((xy - (*area).xy) / (*area).z);
   let inside = min(uv, (vec2f(1) - uv));
@@ -245,14 +275,7 @@ fn waveNormal(xy: vec2f, n: vec3f) -> vec3f {
   return blendRnm(calmed, normalize(vec3f((ripple * -1f), 1f)));
 }
 
-// @block water_ndcAt
-fn ndcAt(at: vec2i) -> vec2f {
-    let cam = cam;
-    let centre = vec2f(at) + 0.5;
-    return vec2f(centre.x / cam.width * 2.0 - 1.0, 1.0 - centre.y / cam.height * 2.0);
-  }
-
-// @block water_worldWater_depth
+// @block water_depth_fogLayout
 @group(2) @binding(9) var depth: texture_depth_multisampled_2d;
 
 // @block water_bedDistance
@@ -281,10 +304,10 @@ fn waterDepth(clip: vec4f, world: vec3f) -> f32 {
 // @block water_waterUnder
 fn waterUnder(clip: vec4f, world: vec3f, n: vec3f, straight: f32, look: u32) -> vec4f {
     let here = vec2i(clip.xy);
-    if (params.view.z == 1u) {
+    if (terrainParams.view.z == 1u) {
       return vec4f(textureLoad(sceneColour, here, 0).rgb, straight);
     }
-    let r = params.waterLooks[look].refraction;
+    let r = terrainParams.waterLooks[look].refraction;
     let cam = cam;
     let screen = vec2f(cam.width, cam.height);
     let shift = vec3f(n.xy * (min(straight, r.y) * r.x), 0.0);
@@ -327,9 +350,6 @@ fn waterUnder(clip: vec4f, world: vec3f, n: vec3f, straight: f32, look: u32) -> 
     return vec4f(colour.rgb, far);
   }
 
-// @block water_environmentSun
-fn environmentSun() -> vec3f { return data.sunDirection.xyz; }
-
 // @block water_slopeAt
 fn slopeAt(uv: vec2f) -> vec2f {
   return textureSampleLevel(waterNormals, waterTiles, uv, 0).xy;
@@ -351,40 +371,40 @@ fn crests(a: vec2f, b: vec2f, sharpness: f32) -> f32 {
 
 // @block water_waterCaustics
 fn waterCaustics(world: vec3f, far: f32, footprint: f32, look: u32) -> f32 {
-  if ((params.view.z == 1u)) {
+  if ((terrainParams.view.z == 1u)) {
     return 0f;
   }
-  let w = (&params.waterLooks[look]);
+  let w = (&terrainParams.waterLooks[look]);
   let c = (&(*w).caustics);
   let view = normalize((cam.eye - world));
   let bed = (world - (view * far));
-  let depth_1 = max((world.z - bed.z), 0f);
+  let bedDepthM = max((world.z - bed.z), 0f);
   let up = abs(normalize(cross(dpdx(bed), dpdy(bed))).z);
   let level = smoothstep(0.3f, 0.7f, up);
-  let sun_1 = environmentSun();
-  let through = (bed.xy + (sun_1.xy * ((0.75f * depth_1) / max(sun_1.z, 0.3f))));
+  let sunDirection = environmentSun();
+  let through = (bed.xy + (sunDirection.xy * ((0.75f * bedDepthM) / max(sunDirection.z, 0.3f))));
   let carried = waterCarried();
   let uv1 = ((through - (carried * (*w).drifts.x)) * (*c).x);
   let uv2 = ((through - (carried * (*w).drifts.z)) * ((*c).x * 1.8f));
   let s1 = slopeAt((uv1 + (slopeAt(uv2) * 0.18f)));
   let s2 = slopeAt((uv2 + (slopeAt(uv1) * 0.18f)));
-  let fade = (exp((-(depth_1) * (*c).z)) * smoothstep(0.01f, 0.08f, depth_1));
+  let fade = (exp((-(bedDepthM) * (*c).z)) * smoothstep(0.01f, 0.08f, bedDepthM));
   let held = (1f - smoothstep(0.25f, 0.5f, (((footprint * (*c).x) * 1.8f) * 12.36931687685298f)));
-  let high = clamp((sun_1.z * 1.5f), 0.35f, 1f);
+  let high = clamp((sunDirection.z * 1.5f), 0.35f, 1f);
   return (((((crests(s1, s2, (*c).w) * (*c).y) * fade) * level) * held) * high);
 }
 
 // @block water_lobe
-fn lobe(roughness: f32, n: vec3f, world: vec3f, sun_1: f32, eye: vec3f) -> vec3f {
-  return surfaceLight(vec3f(), vec3f(), roughness, 0f, 0.5f, 1f, n, world, sun_1, eye);
+fn lobe(roughness: f32, n: vec3f, world: vec3f, sunlight: f32, eye: vec3f) -> vec3f {
+  return surfaceLight(vec3f(), vec3f(), roughness, 0f, 0.5f, 1f, n, world, sunlight, eye);
 }
 
 // @block water_waterReflection
-fn waterReflection(n: vec3f, world: vec3f, sun_1: f32, eye: vec3f, look: u32) -> vec3f {
-  let w = (&params.waterLooks[look]);
-  let sharp = (lobe((*w).roughness.x, n, world, sun_1, eye) * (*w).lobes.x);
-  let sheen = (lobe((*w).roughness.y, n, world, sun_1, eye) * (*w).lobes.y);
-  let broad = (lobe((*w).roughness.z, n, world, sun_1, eye) * (*w).lobes.z);
+fn waterReflection(n: vec3f, world: vec3f, sunlight: f32, eye: vec3f, look: u32) -> vec3f {
+  let w = (&terrainParams.waterLooks[look]);
+  let sharp = (lobe((*w).roughness.x, n, world, sunlight, eye) * (*w).lobes.x);
+  let sheen = (lobe((*w).roughness.y, n, world, sunlight, eye) * (*w).lobes.y);
+  let broad = (lobe((*w).roughness.z, n, world, sunlight, eye) * (*w).lobes.z);
   return ((sharp + sheen) + broad);
 }
 
@@ -393,9 +413,3 @@ fn waterTransmission(n: vec3f, view: vec3f) -> f32 {
   let edgeOn = (1f - clamp(dot(n, view), 0f, 1f));
   return (1f - (0.02f + (0.98f * pow(edgeOn, 5f))));
 }
-
-// @block water_atPixel
-fn atPixel(clip: vec4f) -> vec3f {
-    let p = cam.invViewProj * vec4f(ndcAt(vec2i(clip.xy)), clip.z, 1.0);
-    return p.xyz / p.w;
-  }

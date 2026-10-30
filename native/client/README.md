@@ -83,12 +83,10 @@ in the browser file's shape. The benchmark keeps at most two frames on the GPU,
 as a swap chain would. Every changing frame is drawn, so static batches are
 written only when they change. Run a release build under the GPU lock.
 
-Metal can return stale end timestamps when counters resolve in the frame's own
-command buffer. The benchmark waits for that frame to complete, then resolves
-and reads its counters in a separate submission. These profiling waits affect
-frame intervals and FPS; the recorded CPU phases exclude them. Compare CPU and
-GPU cost per frame separately from this instrumented throughput. Raw GPU samples
-align with the CPU samples, and incomplete coverage suppresses the aggregate
+Profiling follows the shared renderer's
+[GPU timing contract](../../crates/renderer-core/README.md#gpu-timing).
+Recorded CPU phases exclude its explicit waits. Raw GPU samples align with the
+CPU samples, and incomplete coverage suppresses the aggregate
 GPU time instead of averaging only successful readbacks.
 
 `--bench-freeze-index <record> --bench-frames <draws>` instead frames every record
@@ -99,10 +97,10 @@ interval. The report identifies both retained draw and source-record endpoints.
 
 ## Checks
 
-[Pipeline checks](tests/pipelines.rs) build every built-in pipeline of the shared
-catalog on this machine's device. Most newer rendering checks under [tests/](tests/)
-are synthetic GPU tests of `renderer-core`, including material, fog, overlay and
-high-air contracts. They exercise the shared runtime rather than native replay.
+The [shared renderer's checks](../../crates/renderer-core/README.md#checks) own
+pipeline construction and synthetic GPU behaviour. Native's [tests](tests/)
+exercise desktop admission, filesystem loading, replay and audio; renderer
+integration checks stay here when they require those native services.
 [Benchmark CLI checks](tests/bench_cli.rs) reject invalid requests before window or
 GPU admission; [runtime generation checks](tests/runtime_generation.rs) verify held
 static reconstruction without reframing the battle.

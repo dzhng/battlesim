@@ -1,169 +1,67 @@
 // WGSL owner: passes_terrain.
 
-// @block passes_terrain_fragment
-@fragment fn fragment(_arg_0: fragment_Input) -> @location(0) vec4f {
-  return backgroundColor(_arg_0.uv);
+// @block passes_terrain_groundBackdropFragment
+@fragment fn groundBackdropFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
+  let eye = (&cam.eye);
+  let cell = groundCell(input.world.xy, length(fwidth(input.world.xy)));
+  if (groundClassView()) {
+    return ColorFog(vec4f(0, 0, 0, 1), vec4f(0, 0, 0, 1));
+  }
+  let surface = groundAlbedo(input.world, input.color, cell, groundPaved(input.world.xy, cell));
+  let up = normalize(input.normal);
+  let paintSample = groundPaint(input.world);
+  let albedo = paintedAlbedo(surface.xyz, paintSample);
+  let lit = shade(albedo, vec3f(), surface.w, 0f, 0f, 1f, up, input.world, 1f, (*eye));
+  let seen = fogTerm(input.world, up, clip.xy, fogIsGround());
+  return ColorFog(vec4f((lit.xyz + paintGlow(paintSample)), 1f), fogCoverage(paintedSeen(seen, paintSample), 1f));
 }
 
-// @block passes_terrain_vs
-@vertex fn vs(v: In) -> Out {
-  var corners = array<vec2f, 6>(
-    vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0),
-    vec2f(-1.0, -1.0), vec2f(1.0, 1.0), vec2f(-1.0, 1.0));
-  let c = corners[v.vi];
-  let half = vec2f(cam.width, cam.height) * 0.5;
-  let s = projScale();
-  var out: Out;
-  out.uv = c;
-  out.color = v.color;
-  out.misc = v.misc;
-  out.extra = vec4f(0.0);
-  out.along = 0.0;
-  out.viewDepth = 1.0;
-  out.sun = vec3f(0.0, 0.0, 1.0);
-  out.skyTop = vec3f(0.0);
-  out.skySide = vec3f(0.0);
-  out.castLit = vec3f(0.0);
-  out.ray = vec3f(0.0);
-  out.offset = c;
-  let shape = u32(v.misc.x);
-  if (shape == 0u) {
-    var ca = cam.viewProj * vec4f(v.a.xyz, 1.0);
-    var cb = cam.viewProj * vec4f(v.b.xyz, 1.0);
-    if (ca.w < NEAR_W && cb.w < NEAR_W) {
-      out.pos = vec4f(0.0, 0.0, -2.0, 1.0);
-      return out;
-    }
-    var alongA = v.misc.y;
-    var alongB = v.misc.z;
-    if (ca.w < NEAR_W) {
-      let t = (NEAR_W - ca.w) / (cb.w - ca.w);
-      ca = mix(ca, cb, t);
-      alongA = mix(alongA, alongB, t);
-    }
-    if (cb.w < NEAR_W) {
-      let t = (NEAR_W - cb.w) / (ca.w - cb.w);
-      cb = mix(cb, ca, t);
-      alongB = mix(alongB, alongA, t);
-    }
-    let sa = ca.xy / ca.w * half;
-    let sb = cb.xy / cb.w * half;
-    let d = sb - sa;
-    let len = length(d);
-    let dir = select(vec2f(1.0, 0.0), d / max(len, 1e-6), len > 1e-4);
-    let perp = vec2f(-dir.y, dir.x);
-    let end = select(ca, cb, c.x > 0.0);
-    // Negative width encodes a fixed screen-space line, independent of zoom.
-    let truePx = select(v.a.w * s.y * half.y / end.w, -v.a.w, v.a.w < 0.0);
-    let fixedLine = v.a.w < 0.0;
-    // Cover neighboring pixel centers so a one-pixel diagonal does not stipple.
-    let px = select(max(truePx, v.b.w), truePx + 2.0, fixedLine);
-    let coverage = min(1.0, truePx / px);
-    // Zoom-readable rounds get brighter as their world width shrinks below
-    // the pixel floor, so both the halo and post bloom survive strategic zoom.
-    let boost = abs(v.misc.w);
-    let k = select(coverage, mix(boost, 1.0, coverage), boost > 1.0);
-    let energy = select(k, 1.0, fixedLine);
-    let ribbon = v.color.a > 0.0;
-    // A light streak overhangs its ends by a quarter of its width and fades
-    // over the overhang, so stretches laid end to end add up to one line; a
-    // ribbon, blended over rather than added, is cut square instead.
-    let overhang = select(0.25, 0.0, ribbon);
-    let off = (perp * c.y + dir * c.x * overhang * 2.0) * px * 0.5;
-    out.pos = vec4f(end.xy + off / half * end.w, end.zw);
-    out.color = select(vec4f(v.color.rgb * energy, 0.0), v.color * energy, ribbon);
-    out.along = select(alongA, alongB, c.x > 0.0);
-    out.viewDepth = end.w;
-    // Pixels from the quad's middle to each end, and the overhang; a
-    // ribbon's soft-particle depth, half its width.
-    out.extra = vec4f(len * 0.5 + px * overhang, px * overhang, v.a.w * 0.5, select(0.0, truePx, fixedLine));
-    if (ribbon) {
-      out.offset = perp * c.y;
-      let l = spriteLight();
-      out.sun = l.sun;
-      out.skyTop = l.skyTop;
-      out.skySide = l.skySide;
-      out.castLit = castAt(select(v.a.xyz, v.b.xyz, c.x > 0.0));
-    }
-    return out;
+// @block passes_terrain_terrainFragment
+@fragment fn terrainFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
+  if (!(scarRegionContains(input.world.xy))) {
+    discard;
   }
-  if (shape == 3u) {
-    // A rotor: the quad round its hub in the plane across its axis, its
-    // first blade along +x of that plane.
-    let axis = normalize(v.b.xyz);
-    let u = normalize(v.color.xyz - axis * dot(v.color.xyz, axis));
-    let w = cross(axis, u);
-    let clip = cam.viewProj * vec4f(v.a.xyz + (u * c.x + w * c.y) * v.a.w, 1.0);
-    if (clip.w < NEAR_W) {
-      out.pos = vec4f(0.0, 0.0, -2.0, 1.0);
-      return out;
-    }
-    out.pos = clip;
-    out.viewDepth = clip.w;
-    out.color = vec4f(vec3f(v.color.w), 1.0);
-    // Its sweep, a blade's chord over its reach, its blades, and how deep
-    // it fades into what it meets. misc.w: a bladed disc's narrowest blade,
-    // pixels; a bare disc's cover.
-    out.extra = vec4f(v.b.w, v.misc.y, v.misc.z, ROTOR_SOFT_M);
-    let l = spriteLight();
-    out.sun = l.sun;
-    out.skyTop = l.skyTop;
-    out.skySide = l.skySide;
-    out.castLit = castAt(v.a.xyz);
-    return out;
+  let eye = (&cam.eye);
+  let n = normalize(input.normal);
+  let seen = fogTerm(input.world, n, clip.xy, fogIsGround());
+  let footprint = length(fwidth(input.world.xy));
+  let cell = groundCell(input.world.xy, footprint);
+  let paved = groundPaved(input.world.xy, cell);
+  if (groundClassView()) {
+    let xy = input.world.xy;
+    let site = groundSite(xy, cell, paved);
+    let classes = groundClasses(xy, footprint, site, groundWater(xy, cell));
+    return ColorFog(vec4f(classes, 1f), vec4f(0, 1, 1, 1));
   }
-  if (shape == 4u) {
-    // A high-air aircraft's shadow: a quad in the ground's plane round the
-    // middle of its plan, along its nose, reaching its blur past its plan.
-    let up = v.b.xyz;
-    let along = v.color.xyz;
-    let across = cross(up, along);
-    let blur = v.misc.y;
-    let local = c * vec2f(v.a.w + blur, v.b.w + blur);
-    let p = v.a.xyz + along * local.x + across * local.y;
-    let clip = cam.viewProj * vec4f(p, 1.0);
-    if (clip.w < NEAR_W) {
-      out.pos = vec4f(0.0, 0.0, -2.0, 1.0);
-      return out;
-    }
-    out.pos = clip;
-    out.viewDepth = clip.w;
-    out.offset = local;
-    let toward = p - cam.eye;
-    out.ray = vec3f(dot(toward, along), dot(toward, across), dot(toward, up));
-    // Its half length and half span, its blur, and its ground's band.
-    out.extra = vec4f(v.a.w, v.b.w, blur, v.misc.z);
-    out.color = vec4f(0.0, 0.0, 0.0, v.color.w);
-    return out;
+  let plain = groundAlbedo(input.world, input.color, cell, paved);
+  let biome = (1f - input.color.w);
+  let scar = groundScarsSeen(input.world, (*eye), footprint);
+  let surface = mix(plain, scarredSurface(plain, scar), biome);
+  let bank = groundBank(input.world.xy, cell, footprint);
+  var ground = n;
+  if ((bank.z > 0f)) {
+    ground = normalize(mix(n, normalize(vec3f(-(bank.x), -(bank.y), 1f)), bank.z));
   }
-  let clip = cam.viewProj * vec4f(v.a.xyz, 1.0);
-  if (clip.w < NEAR_W) {
-    out.pos = vec4f(0.0, 0.0, -2.0, 1.0);
-    return out;
-  }
-  let cr = cos(v.b.x);
-  let sr = sin(v.b.x);
-  let turned = vec2f(c.x * cr - c.y * sr, c.x * sr + c.y * cr);
-  let truePx = v.a.w * s.y * half.y / clip.w;
-  let minPx = select(0.0, v.b.y, shape == 1u);
-  let px = max(truePx, minPx);
-  let radius = v.a.w * px / max(truePx, 1e-6);
-  out.pos = vec4f(clip.xy + turned * radius * s, clip.zw);
-  if (shape == 1u) {
-    // A glow dims as the square of its shrink below the least size; a
-    // solid disc (opacity in alpha) thins its coverage with it.
-    let k = truePx / px;
-    out.color = select(vec4f(v.color.rgb * k * k, 0.0), v.color * k, v.color.a > 0.0);
-  }
-  out.extra = vec4f(v.b.y, v.b.z, v.b.w, 0.0);
-  out.viewDepth = clip.w;
-  out.offset = turned;
-  if (shape == 2u && v.misc.z > 0.5) {
-    let l = spriteLight();
-    out.sun = l.sun;
-    out.skyTop = l.skyTop;
-    out.skySide = l.skySide;
-    out.castLit = castAt(v.a.xyz);
-  }
-  return out;
+  let relief = groundRoadRelief(input.world.xy, footprint, paved);
+  ground = normalize((ground - (vec3f(relief, 0f) * (ground.z * biome))));
+  let shading = normalize(mix(ground, scarredNormal(ground, scar), biome));
+  let water = groundWater(input.world.xy, cell);
+  let dry = (1f - smoothstep((-(footprint) * 0.5f), (footprint * 0.5f), water));
+  let paintSample = (groundPaint(input.world) * dry);
+  let flecks = groundDapple(input.world.xy, footprint, cell);
+  let sunlight = max(sampleSunShadow(input.world, n, clip.xy), flecks);
+  let lit = shade(paintedAlbedo(surface.xyz, paintSample), vec3f(), surface.w, 0f, 0f, 1f, shading, input.world, sunlight, (*eye));
+  return ColorFog(vec4f((lit.xyz + paintGlow(paintSample)), 1f), fogCoverage(paintedSeen(seen, paintSample), 1f));
+}
+
+// @block passes_terrain_worldFragment
+@fragment fn worldFragment(input: MeshFragmentInput, @builtin(position) clip: vec4f) -> ColorFog {
+  let eye = (&cam.eye);
+  let n = faceEyeNormal(normalize(input.normal), ((*eye) - input.world));
+  let albedo = srgbToLinear(input.color.xyz);
+  let sunlight = sampleSunShadow(input.world, n, clip.xy);
+  let lit = shade(albedo, vec3f(), 0.85f, 0f, 0f, 1f, n, input.world, sunlight, (*eye));
+  let glow = highlightGlow(input.highlight);
+  let seen = fogTerm(input.world, n, clip.xy, fogIsGround());
+  return ColorFog(vec4f((lit.xyz + glow), input.color.w), fogCoverage(seen, input.color.w));
 }

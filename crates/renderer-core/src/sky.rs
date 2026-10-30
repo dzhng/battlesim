@@ -1,15 +1,12 @@
 //! The sky: the clear-sky lookup baked once from the
 //! world's light, then each frame the shown sky along the view's rays, with
 //! its sun disc and clouds, into the multisampled HDR target, resolved.
-use presentation::records::{SkyLight, View};
+use presentation::records::{Rays, SkyLight, View};
 use wgpu::*;
 
 use crate::buffer;
 use crate::pipelines::Pipelines;
 use crate::HDR_FORMAT;
-
-/// The view's three corner rays (`Rays`).
-const RAYS_BYTES: usize = 48;
 
 pub struct Sky {
     pipeline: RenderPipeline,
@@ -50,7 +47,12 @@ impl Sky {
         });
         let lut_view = lut.create_view(&Default::default());
         let light = uniform(device, queue, "sky-light", bytemuck::bytes_of(light));
-        let rays = uniform(device, queue, "sky-rays", &[0; RAYS_BYTES]);
+        let rays = uniform(
+            device,
+            queue,
+            "sky-rays",
+            bytemuck::bytes_of(&Rays::default()),
+        );
         let sampler = device.create_sampler(&SamplerDescriptor {
             label: Some("sky"),
             mag_filter: FilterMode::Linear,
@@ -122,8 +124,7 @@ impl Sky {
 impl Sky {
     /// Upload the view's canonical corner rays for the sky background.
     pub fn prepare(&self, queue: &Queue, view: &View) {
-        let rays: &[f32] = &[view.sky_origin, view.sky_dx, view.sky_dy].concat();
-        queue.write_buffer(&self.rays, 0, bytemuck::cast_slice(rays));
+        queue.write_buffer(&self.rays, 0, bytemuck::bytes_of(&view.rays));
     }
 
     pub fn draw(&self, pass: &mut RenderPass<'_>) {

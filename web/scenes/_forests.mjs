@@ -104,7 +104,7 @@ export async function forestExportAgreement(ctx) {
     } finally {
       view.free();
     }
-    return { rows, reach, validation: window.__terrainValidation };
+    return { rows, reach, validation: window.__gpuResources.validation };
   }, repo);
   Object.assign(result, await finishTerrainQuery(page));
   const compiled = result.compiled;

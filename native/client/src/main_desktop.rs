@@ -315,6 +315,8 @@ impl Run {
             &replay.terrain.1,
             &resolved.water_cells(),
             replay.backdrop_reach_m,
+            None,
+            &[],
         ));
         let config = RuntimeConfig {
             size,

@@ -1,11 +1,15 @@
 //! Authored bake pixels and actual relit cards through the shared model owner.
-use native_client::{gpu, pipelines};
+#[path = "support/readback.rs"]
+mod readback;
+mod support;
+
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, View, FOG_UNITS, NONE, VIEW_PASS,
 };
 use renderer_core::bundle::{Bundle, BundleSource, Coverage, Draw, Material, Mesh, Shape};
 use renderer_core::impostor::Spec;
 use renderer_core::models::Models;
+use renderer_core::pipelines;
 use std::sync::Arc;
 use wgpu::*;
 
@@ -99,8 +103,8 @@ impl BundleSource for TexturedSource {
 
 #[test]
 fn diagnostic_texture_controls_do_not_change_authored_impostor_bakes() {
-    let gpu = gpu::open(&gpu::headless_instance(), None).expect("a real GPU");
-    let pipelines = pipelines::build(&gpu.device).unwrap();
+    let gpu = support::gpu().expect("a real GPU");
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
     let models = Models::from_world(
         &gpu.device,
         &gpu.queue,
@@ -113,6 +117,7 @@ fn diagnostic_texture_controls_do_not_change_authored_impostor_bakes() {
         }],
         "body",
         |_| Some(vec![identity()]),
+        |_, _| None,
     )
     .unwrap();
     let bake = || {
@@ -136,7 +141,7 @@ fn diagnostic_texture_controls_do_not_change_authored_impostor_bakes() {
     assert_eq!(authored.hash, bake().hash);
 }
 
-fn make_models(gpu: &gpu::Gpu, pipelines: &renderer_core::pipelines::Pipelines) -> Models {
+fn make_models(gpu: &support::Gpu, pipelines: &renderer_core::pipelines::Pipelines) -> Models {
     Models::from_world(
         &gpu.device,
         &gpu.queue,
@@ -149,6 +154,7 @@ fn make_models(gpu: &gpu::Gpu, pipelines: &renderer_core::pipelines::Pipelines) 
         }],
         "body",
         |_| Some(vec![identity()]),
+        |_, _| None,
     )
     .unwrap()
 }
@@ -156,7 +162,7 @@ const MATRIX: [f32; 16] = [
     1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
 ];
 
-fn read(gpu: &gpu::Gpu, mut encoder: CommandEncoder, image: &TextureView) -> Vec<[f32; 4]> {
+fn read(gpu: &support::Gpu, mut encoder: CommandEncoder, image: &TextureView) -> Vec<[f32; 4]> {
     let shader = gpu.device.create_shader_module(ShaderModuleDescriptor {
         label: Some("impostor-pixels"),
         source: ShaderSource::Wgsl(
@@ -209,19 +215,12 @@ pixels[id.x]=textureLoad(image,vec2i(i32(id.x%size.x),i32(id.x/size.x)),0);
         mapped_at_creation: false,
     });
     encoder.copy_buffer_to_buffer(&output, 0, &readback, 0, 128 * 64 * 16);
-    gpu.queue.submit([encoder.finish()]);
-    readback.map_async(MapMode::Read, .., |r| r.unwrap());
-    gpu.device.poll(PollType::wait_indefinitely()).unwrap();
-    let map = readback.get_mapped_range(..).unwrap();
-    let pixels = bytemuck::cast_slice(&map).to_vec();
-    drop(map);
-    readback.unmap();
-    pixels
+    readback::pixels(&gpu.device, &gpu.queue, encoder, &readback)
 }
 #[test]
 fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geometry() {
-    let gpu = gpu::open(&gpu::headless_instance(), None).expect("a real GPU");
-    let pipelines = pipelines::build(&gpu.device).unwrap();
+    let gpu = support::gpu().expect("a real GPU");
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
     let mut models = make_models(&gpu, &pipelines);
     let atlas = pollster::block_on(
         models
@@ -264,6 +263,7 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
             }],
             "body",
             |_| Some(vec![identity()]),
+            |_, _| None,
         )
         .unwrap();
         let snapshot = rigid
@@ -296,7 +296,7 @@ fn authored_bake_and_runtime_cards_preserve_coverage_normals_tint_and_real_geome
         .position(|p| p[3] == 255)
         .expect("solid interior");
     let albedo = &atlas.albedo[index * 4..index * 4 + 3];
-    let expected = [0.3f64, 0.6, 0.9].map(|v| (v.powf(1. / 2.2) * 255.).round() as u8);
+    let expected = [0.3f64, 0.6, 0.9].map(|v| (libm::pow(v, 1. / 2.2) * 255.).round() as u8);
     assert!(
         albedo.iter().zip(expected).all(|(a, b)| a.abs_diff(b) <= 1),
         "bake must retain unlit untinted albedo {albedo:?} vs {expected:?}"

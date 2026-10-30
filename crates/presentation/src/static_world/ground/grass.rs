@@ -6,8 +6,9 @@
 //! props' footprints where no grass grows. Where clumps stand, how many and
 //! how tall is decided per frame on the GPU; nothing here is per clump.
 use super::biome::{GrassRules, GRASS_MIX_MAX, VERGE_GROWTH};
-use super::tables::{vec4, word};
+use super::tables::{f4, word};
 use super::{Ground, PROP};
+use crate::records::{GrassParams, GrassShapeVertex};
 
 /// Plot kinds the growth table holds; the last row is the verge.
 pub const GROWTH_ROWS: usize = 16;
@@ -24,6 +25,15 @@ const PROP_PAD_M: f64 = 0.05;
 pub const TILE_M: f64 = 4.0;
 /// Tiles a side the window may hold (the build dispatch's bound).
 pub const MAX_TILES: u32 = 256;
+/// GPU lanes that grow one tile; its scratch holds a tile range and a range per lane.
+pub const BUILD_LANES: u32 = 64;
+pub const TILE_RANGES: u32 = BUILD_LANES + 1;
+/// WebGPU's indexed-indirect draw record, in u32 words.
+pub const DRAW_WORDS: u32 = 5;
+/// Raw tier counts follow the indexed-indirect draw records.
+pub const RAW_COUNT_OFFSET: u32 = FIELD_LODS.len() as u32 * DRAW_WORDS;
+/// The indirect draw records followed by one raw count per field tier.
+pub const ARGS_WORDS: u32 = RAW_COUNT_OFFSET + FIELD_LODS.len() as u32;
 /// Segments a blade in each LOD tier of a grass kind, finest first (the
 /// scene assets' `GRASS_SEGMENTS`, which the bake writes).
 const KIND_SEGMENTS: [u32; 4] = [4, 3, 2, 1];
@@ -33,7 +43,7 @@ const FIELD_LODS: [usize; 2] = [0, 2];
 pub const FIELD_SEGMENTS: [u32; 2] = [KIND_SEGMENTS[FIELD_LODS[0]], KIND_SEGMENTS[FIELD_LODS[1]]];
 /// Floats a clump vertex on the GPU: spine (xyz, height fraction), side
 /// (xyz, phase), normal (xyz, 0), tint (rgb, how far it answers the wind).
-pub const SHAPE_FLOATS: usize = 16;
+pub const SHAPE_FLOATS: usize = GrassShapeVertex::LAYOUT.size / size_of::<f32>();
 /// Per-clump height variation shared by packing, authoring and the shader.
 pub const HEIGHT_VARIATION: [f64; 2] = [0.8, 1.2];
 
@@ -92,7 +102,7 @@ impl Ground {
         facts: &[KindFacts],
         limits: &Limits,
         quality: &Quality,
-    ) -> Result<Vec<u32>, String> {
+    ) -> Result<GrassParams, String> {
         let (rules, names) = (&self.biome.grass, self.grass_kinds());
         if self.biome.plots.len() > GROWTH_ROWS - 1 {
             return Err(format!(
@@ -147,67 +157,49 @@ impl Ground {
         }
         let grid = &self.source.grid;
         let (w, s) = (&rules.sway, &rules.patch_m);
-        let mut out = vec![0; 5 * 4];
-        vec4(&mut out, [0.0, 0.0, 0.0, tallest]);
-        out.extend([0, 0, rules.capacity[0], rules.capacity[1]]);
-        vec4(
-            &mut out,
-            [
+        let params = GrassParams {
+            window: f4([0.0, 0.0, 0.0, tallest]),
+            grid: [0, 0, rules.capacity[0], rules.capacity[1]],
+            density: f4([
                 rules.pixels_per_clump,
                 rules.max_clumps_m2 * quality.density,
                 rules.fade_m_per_px[0],
                 rules.fade_m_per_px[1],
-            ],
-        );
-        vec4(
-            &mut out,
-            [
+            ]),
+            tiers: f4([
                 rules.near_tier_px,
                 rules.min_blade_px,
                 rules.soften_m_per_px[0],
                 rules.soften_m_per_px[1],
-            ],
-        );
-        vec4(
-            &mut out,
-            [rules.soften, rules.blade_facing, rules.clump_value, 0.0],
-        );
-        vec4(&mut out, [rules.clear_m.area, row_reach, 0.0, 0.0]);
-        out.extend([grid.nx as u32, grid.ny as u32, 0, 0]);
-        vec4(&mut out, [grid.spacing, 0.0, 0.0, 0.0]);
-        vec4(
-            &mut out,
-            [
+            ]),
+            shading: f4([rules.soften, rules.blade_facing, rules.clump_value, 0.0]),
+            clear: f4([rules.clear_m.area, row_reach, 0.0, 0.0]),
+            counts: [grid.nx as u32, grid.ny as u32, 0, 0],
+            ground: f4([grid.spacing, 0.0, 0.0, 0.0]),
+            sway: f4([
                 w.lean,
                 w.gust,
                 w.flutter,
                 w.flutter_hz * 2.0 * std::f64::consts::PI,
-            ],
-        );
-        for v in growth.iter().chain(&patches).chain(&mixes) {
-            vec4(&mut out, *v);
-        }
-        vec4(
-            &mut out,
-            [1.0 / s.height, 1.0 / s.thin, 1.0 / s.dry, 1.0 / s.drift],
-        );
-        vec4(&mut out, [1.0 / s.grain, rules.dry_lift, 0.0, 0.0]);
-        for k in 0..MAX_KINDS {
-            vec4(
-                &mut out,
+            ]),
+            growth: growth.map(f4),
+            patches: patches.map(f4),
+            mixes: mixes.map(f4),
+            patch_scales: f4([1.0 / s.height, 1.0 / s.thin, 1.0 / s.dry, 1.0 / s.drift]),
+            grain: f4([1.0 / s.grain, rules.dry_lift, 0.0, 0.0]),
+            kinds: std::array::from_fn(|k| {
+                f4(facts
+                    .get(k)
+                    .map_or([0.0; 4], |f| [f.top, f.blades, f.root_width, 0.0]))
+            }),
+            bases: std::array::from_fn(|k| {
                 facts
                     .get(k)
-                    .map_or([0.0; 4], |f| [f.top, f.blades, f.root_width, 0.0]),
-            );
-        }
-        for k in 0..MAX_KINDS {
-            out.extend(
-                facts
-                    .get(k)
-                    .map_or([0; 4], |f| [f.bases[0], f.bases[1], 0, 0]),
-            );
-        }
-        Ok(out)
+                    .map_or([0; 4], |f| [f.bases[0], f.bases[1], 0, 0])
+            }),
+            ..GrassParams::default()
+        };
+        Ok(params)
     }
 
     /// The window of tiles a camera at `eye` grows grass over, by the
@@ -387,7 +379,7 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
         blades.push(lod0 / per[0]);
     }
     let total: usize = blades.iter().map(|b| b * (per[0] + per[1])).sum();
-    let mut shapes = vec![0.0; total.max(1) * SHAPE_FLOATS];
+    let mut shapes = vec![GrassShapeVertex::default(); total.max(1)];
     let mut facts = Vec::with_capacity(kinds.len());
     let mut at = 0;
     for (kind, &blades) in kinds.iter().zip(&blades) {
@@ -424,33 +416,33 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
                 (sum / weight_sum.max(1e-4)).max(1e-4)
             });
             for v in 0..blades * per {
-                let o = at * SHAPE_FLOATS;
+                let record = &mut shapes[at];
                 let in_blade = v % per;
                 let tip = in_blade == per - 1;
                 // A strip pair's spine is its midpoint; the tip is its own spine.
                 let left = if tip { v } else { v - in_blade % 2 };
                 let right = if tip { v } else { left + 1 };
                 let h = f64::from(mesh.uvs[v * 2 + 1]);
-                for c in 0..3 {
+                for (c, &mean) in target.iter().enumerate() {
                     let spine = (p(left, c) + p(right, c)) / 2.0;
-                    shapes[o + c] = spine as f32;
-                    shapes[o + 4 + c] = if c == 2 {
+                    record.spine[c] = spine as f32;
+                    record.side[c] = if c == 2 {
                         0.0
                     } else {
                         (p(v, c) - spine) as f32
                     };
-                    shapes[o + 8 + c] = (f64::from(mesh.normals[v * 4 + c]) / 32767.0) as f32;
-                    let raw = linear(mesh.colors[v * 4 + c]) / target[c];
+                    record.normal[c] = (f64::from(mesh.normals[v * 4 + c]) / 32767.0) as f32;
+                    let raw = linear(mesh.colors[v * 4 + c]) / mean;
                     // Bright tips ease toward 1.3 rather than clip; the floor
                     // leaves dark gaps between stems but no black tips.
                     let floor = 0.3 + 0.5 * h;
                     let cap = 1.0 + 0.3 * (1.0 - libm::exp(-2.5 * (raw - 1.0).max(0.0)));
                     let tint = raw.max(floor).min(cap);
-                    shapes[o + 12 + c] = tint as f32;
+                    record.tint[c] = tint as f32;
                 }
-                shapes[o + 3] = mesh.uvs[v * 2 + 1];
-                shapes[o + 7] = mesh.uvs[v * 2];
-                shapes[o + 15] = (f64::from(mesh.colors[v * 4 + 3]) / 255.0) as f32;
+                record.spine[3] = mesh.uvs[v * 2 + 1];
+                record.side[3] = mesh.uvs[v * 2];
+                record.tint[3] = (f64::from(mesh.colors[v * 4 + 3]) / 255.0) as f32;
                 at += 1;
             }
         }
@@ -465,7 +457,7 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
     }
     let max_blades = blades.iter().fold(1, |m, &b| m.max(b as u32));
     Ok(PackedShapes {
-        shapes,
+        shapes: bytemuck::cast_slice(&shapes).to_vec(),
         facts,
         max_blades,
     })
@@ -527,13 +519,13 @@ pub fn window(eye: [f64; 3], lowest: f64, metres_per_px: f64, rules: &GrassRules
     }
 }
 
-/// Writes a frame's fields into `GrassParams`' words (as
+/// Writes a frame's fields into a complete `GrassParams` record (as
 /// [`Ground::grass_params`] laid them): the view's four side planes from its
 /// view-projection (inward normal, offset; near and far are left out, the
 /// reach bounds the field), the eye and `metres_per_px`, the window's corner
 /// and tile, and its tiles.
 pub fn frame_params(
-    words: &mut [u32],
+    params: &mut GrassParams,
     view_proj: &[f32; 16],
     eye: [f64; 3],
     metres_per_px: f64,
@@ -570,23 +562,8 @@ pub fn frame_params(
         plane(r1, 1.0),
         plane(r1, -1.0),
     ];
-    for (i, pl) in planes.iter().enumerate() {
-        for (k, &v) in pl.iter().enumerate() {
-            words[i * 4 + k] = word(v);
-        }
-    }
-    let frame = [
-        eye[0],
-        eye[1],
-        eye[2],
-        metres_per_px,
-        window.x0,
-        window.y0,
-        TILE_M,
-    ];
-    for (k, v) in frame.into_iter().enumerate() {
-        words[16 + k] = word(v);
-    }
-    words[24] = window.tiles_x;
-    words[25] = window.tiles_y;
+    params.planes = planes.map(f4);
+    params.eye = f4([eye[0], eye[1], eye[2], metres_per_px]);
+    params.window[..3].copy_from_slice(&[window.x0 as f32, window.y0 as f32, TILE_M as f32]);
+    params.grid[..2].copy_from_slice(&[window.tiles_x, window.tiles_y]);
 }

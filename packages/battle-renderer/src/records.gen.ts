@@ -3,19 +3,6 @@
 export const NONE = 0xffffffff;
 /** Minimum camera and full-render target extent, in device pixels. */
 export const MIN_TARGET_PX = 64;
-/** What a batch draws for (`Batch.pass`). */
-export const VIEW_PASS = 0;
-export const CAST_PASS = 1;
-export const GHOST_PASS = 2;
-export const HIGH_PASS = 3;
-/** Rust's tiers for a model off screen and for its card (`view.rs`): `Batch.tier` gives them. */
-export const CULLED = -1;
-export const IMPOSTOR = 4;
-/** How fog of war takes a batch (`Batch.fog`). */
-export const FOG_UNITS = 0;
-export const FOG_FACES = 1;
-export const FOG_GROUND = 2;
-export const FOG_PAINTED_FACES = 3;
 /** The widest fog rim or soft edge a style may ask for, device pixels (`fog.rs`). */
 export const FOG_EDGE_REACH_PX = 8;
 /** Shared CPU/GPU constants (`shader_constants.rs`). */
@@ -25,41 +12,10 @@ export const CUT_B = 2;
 export const COLOR_LUMA_R = 0.2126;
 export const COLOR_LUMA_G = 0.7152;
 export const COLOR_LUMA_B = 0.0722;
-export const SWAY_BEND = 0.18;
-export const SWAY_LEAN = 0.15;
-export const SWAY_GUST = 0.7;
-export const SWAY_SWING = 0.35;
-export const SWAY_RATE = 1.6;
-export const SWAY_FULL_GUST_MPS = 6.0;
-export const SWAY_SHIVER_M = 0.15;
-export const SWAY_SHIVER_RATE = 7.0;
-export const SWAY_HEART = 0.62;
-export const WAVE_TEXELS = 1024.0;
-export const WAVE_SPEED = 0.2;
-export const WAVE_DAMPING = 0.08;
-export const WAVE_NORMAL = 0.15;
-export const GRASS_HEIGHT_MIN = 0.8;
 export const GRASS_HEIGHT_MAX = 1.2;
 export const GRASS_MAX_HEIGHT_M = 0.9;
-export const GRASS_GROWTH_ROWS = 16;
 export const GRASS_MIX_MAX = 4;
-export const GRASS_MAX_KINDS = 16;
-export const GROUND_GRASS_EDGE_M = 1.2;
-export const GROUND_FOREST_VERGE_FEATHER = 0.1;
-export const GROUND_BANK_EASE_M = 0.75;
-export const GROUND_MARKS_CLEAR_M = 0.3;
-export const GROUND_SCAR_DEPTH_CAP = 1.6;
-export const FOG_TILE_PX = 16;
-export const FOG_RADIAL_BINS = 64;
 export const SHADOW_CASCADES = 4;
-export const LIGHT_CAST_LIGHTS_MAX = 24;
-export const FOG_FOLIAGE_QUANTA = 255;
-export const FOG_WHOLE_TEXTURE_WIDTH = 256;
-export const FOG_HORIZON_SECTORS = 64;
-export const FOG_BUILD_WORKGROUP = 64;
-export const FOG_FOLIAGE_STEP = 0.005;
-/** Words per whole-fog structure box (`fog/sight.rs`). */
-export const WHOLE_BOX_WORDS = 8;
 /** Each effect kind (`Counts.running`'s order) and instance shape
  *  (`Effect.misc.x`), as a capture's effect counts name them (`effects/frame.rs`). */
 export const EFFECT_KINDS = [
@@ -73,62 +29,6 @@ export const EFFECT_KINDS = [
   "trail",
 ] as const;
 export const SHAPE_NAMES = ["streak", "glow", "flipbook", "rotor", "shadow"] as const;
-/** The scar cache's directory flags over a tile key + 1, its pool texture
- *  and the normalization table at the pool's start, and `ScarParams`' words
- *  before the biome's look (`scars/mod.rs`). */
-export const SCAR_UNIFORM = 0x80000000;
-export const SCAR_DENSE = 0x20000000;
-export const SCAR_KEY_MASK = 0x1fffffff;
-export const SCAR_POOL_WIDTH = 2048;
-export const SCAR_POOL_HEIGHT = 1024;
-export const SCAR_NORMALIZATION_WORDS = 4096;
-export const SCAR_PARAMS_WORDS = 20;
-
-/** Where a frame's sets lie, as pointers into the module's memory and record counts (the WASM binding fills them; native reads the `Frame` directly). */
-export const FrameHeader = {
-  /** Presentation time, seconds on the sim clock. (f32) */
-  clock: 0,
-  /** The publication drawn. (u32) */
-  tick: 1,
-  /** Frames framed so far. (u32) */
-  index: 2,
-  /** How far round a surface every cast light reaches past facing it, 0..1. (f32) */
-  light_wrap: 3,
-  /**  (u32 × 2) */
-  batches: 4,
-  /**  (u32 × 2) */
-  instances: 6,
-  /**  (u32 × 2) */
-  palettes: 8,
-  /**  (u32 × 2) */
-  effects: 10,
-  /**  (u32 × 2) */
-  lights: 12,
-  /**  (u32 × 2) */
-  picks: 14,
-  /**  (u32 × 2) */
-  emitters: 16,
-  /**  (u32 × 2) */
-  counts: 18,
-  /** The frame's view: one `View`. (u32 × 2) */
-  view: 20,
-  /** The camera every world shader binds: one `Camera`. (u32 × 2) */
-  camera: 22,
-  /** The sun's cascades as every shadow receiver binds them: one `SunShadow`, or none before the presentation has a light. (u32 × 2) */
-  sun_shadow: 24,
-  /** Each fitted cascade's caster `Camera`. (u32 × 2) */
-  casters: 26,
-} as const;
-export const FRAME_HEADER_WORDS = 28;
-
-/** Where the world's sets lie (pointer, count), as `FrameHeader`. */
-export const WorldHeader = {
-  /**  (u32 × 2) */
-  appearances: 0,
-  /** The UTF-8 arena names point into (pointer, bytes). (u32 × 2) */
-  strings: 2,
-} as const;
-export const WORLD_HEADER_WORDS = 4;
 
 /** One drawable an instance may take: an appearance's posed body or first state, a way it lies dead, or one of its states. */
 export const Appearance = {
@@ -149,7 +49,6 @@ export const Appearance = {
   /** What draws it: 0 a model or a building's kit module; scenery 1 the forest, 2 a tree line's shrubs, 3 the backdrop, 4 forest-floor dressing (its seed is its height over the size it fades at), 5 a felled tree (two records an instance: the tree with its fall's way, angle and hinge; then its press up-and-down and across, trunk, landing and crown base), 6 a felled tree's stump (`Presentation::stump_mesh`); a prop drawn as a model with the units, 7 fogged face by face, 8 a surface movers stand on, which takes the ground paint. (u32) */
   draws: 7,
 } as const;
-export const APPEARANCE_WORDS = 8;
 
 /** What one frame draws of one drawable at one tier. */
 export const Batch = {
@@ -159,11 +58,11 @@ export const Batch = {
   appearance: 1,
   /** Detail tier, 0 finest; 4 is the impostor card. (u32) */
   tier: 2,
-  /** `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`. (u32) */
+  /** Rust pass names: `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`. (u32) */
   pass: 3,
   /** Caster tier, or `NONE`. Static view batches cast through separate caster batches; dynamic models use `view::batch_caster`. (u32) */
   caster: 4,
-  /** How fog of war takes it (`FOG_UNITS` and the rest). (u32) */
+  /** How fog of war takes it (Rust's `FOG_UNITS` and related constants). (u32) */
   fog: 5,
   /** Changes when the contents change. (u32) */
   version: 6,
@@ -176,30 +75,6 @@ export const Batch = {
   /**  (u32 × 2) */
   pad: 10,
 } as const;
-export const BATCH_WORDS = 12;
-
-/** One drawn model. Palette indices and the card layer are integral floats. */
-export const INSTANCE_WORDS = 16;
-
-/** One joint's or node's motion, bind to model space: a 3×4 row-major affine (rows of basis x, basis y, basis z and origin). */
-/** Where `Joint`'s fields lie, in words. */
-export const JointAt = {
-  x: 0,
-  y: 4,
-  z: 8,
-} as const;
-export const JOINT_WORDS = 12;
-
-/** One effect instance: four vec4 whose meaning depends on `misc.x` (0 streak, 1 glow, 2 flipbook, 3 rotor, 4 shadow), in draw order. */
-export const EFFECT_WORDS = 16;
-
-/** One chosen cast light (at most 24 a frame). */
-/** Where `CastLight`'s fields lie, in words. */
-export const CastLightAt = {
-  position: 0,
-  color: 4,
-} as const;
-export const CAST_LIGHT_WORDS = 8;
 
 /** A box of what this frame draws, for the UI's hit tests. */
 export const Pick = {
@@ -216,290 +91,6 @@ export const Pick = {
   /** Half extents (m); w unused. (f32 × 4) */
   half: 8,
 } as const;
-export const PICK_WORDS = 12;
-
-/** A drawn unit as audio hears it. */
-export const Emitter = {
-  /**  (u32) */
-  unit: 0,
-  /**  (u32) */
-  member: 1,
-  /** The unit type's index in the world's `units.types` (by name), or `NONE` for a soldier. (u32) */
-  class: 2,
-  /** 1 enemy, 2 reversing. (u32) */
-  flags: 3,
-  /** Position (m, sim); w unused. (f32 × 4) */
-  position: 4,
-  /** Left and right track travel (m), turret yaw (rad), unused. (f32 × 4) */
-  motion: 8,
-} as const;
-export const EMITTER_WORDS = 12;
-
-/** What the frame's camera sees (sim space). */
-export const View = {
-  /** Sim → view, column-major. (f32 × 16) */
-  view: 0,
-  /** Reverse-Z with an infinite far plane, column-major. (f32 × 16) */
-  projection: 16,
-  /** The eye (m); w unused. (f32 × 4) */
-  eye: 32,
-  /** What it looks at (m), where the haze is measured from; w unused. (f32 × 4) */
-  target: 36,
-  /** Width and height (px), 1/height, pixels per metre at 1 m. (f32 × 4) */
-  size: 40,
-  /** The unit ray through the top-left corner, and its change across the width and down the height (the sky's `Rays`: w unused). (f32 × 4) */
-  sky_origin: 44,
-  /**  (f32 × 4) */
-  sky_dx: 48,
-  /**  (f32 × 4) */
-  sky_dy: 52,
-} as const;
-export const VIEW_WORDS = 56;
-
-/** The sky's light for the battle: what the sky lookup bakes and the shown sky and its clouds read. */
-/** Where `SkyLight`'s fields lie, in words. */
-export const SkyLightAt = {
-  sun_direction: 0,
-  overcast: 3,
-  sun_transmittance: 4,
-  radiance: 7,
-  ground_tint: 8,
-  mie_scatter: 11,
-  mie_extinction: 12,
-  multiple_scatter: 13,
-  aureole: 14,
-  overcast_scale: 15,
-  disc_radiance: 16,
-  cloud_reach: 17,
-  cloud_edge: 18,
-  cloud_to_sun: 20,
-  cloud_low: 22,
-  cloud_shadow_top: 23,
-  cloud_core_top: 24,
-  cloud_opacity: 25,
-  pad0: 26,
-  cloud_lit: 28,
-  cloud_silver: 31,
-  cloud_base: 32,
-  sky_saturation: 35,
-  sky_tint: 36,
-  pad1: 39,
-} as const;
-export const SKY_LIGHT_WORDS = 40;
-
-/** The haze, in every lit shader's environment uniform: extinction over distance from the camera's ground focus, a range term, a sunward Mie tint and a low valley mist. */
-/** Where `Aerial`'s fields lie, in words. */
-export const AerialAt = {
-  extinction: 0,
-  clear_radius_km: 3,
-  sun_tint: 4,
-  sun_strength: 7,
-  mist_color: 8,
-  mist_color_strength: 11,
-  overview_from_m: 12,
-  range_near_m: 13,
-  range_far_m: 14,
-  range_power: 15,
-  range_strength: 16,
-  mist_opacity: 17,
-  sun_power: 18,
-  pad0: 19,
-  mist_height_m: 20,
-  mist_distance_m: 22,
-  horizon_fade: 24,
-  pad1: 26,
-} as const;
-export const AERIAL_WORDS = 28;
-
-/** The one wind, in the camera every shader binds (`Camera.wind`, `wind.rs`): grass, water and trees move in it on the camera's clock, and smoke and dust drift on it. */
-/** Where `Wind`'s fields lie, in words. */
-export const WindAt = {
-  toward: 0,
-  drift_mps: 3,
-  gust_mps: 4,
-  gust_per_m: 5,
-  pad: 6,
-} as const;
-export const WIND_WORDS = 8;
-
-/** The sun and the shadow fill, as the environment uniform carries them after its view (`sunDirection` to `fill`). */
-export const Sun = {
-  /** Unit vector toward the sun; w 0. (f32 × 4) */
-  sun_direction: 0,
-  /** The sun's colour (its transmittance, greyed by overcast) times its intensity, linear rgb; w 0. (f32 × 4) */
-  sun_radiance: 4,
-  /** x the renderer's environment map's top mip (0 here); y the share of the sun a sun-shadowed surface keeps. (f32 × 4) */
-  settings: 8,
-  /** Linear rgb multiplier on the sky's environment light; w 0. (f32 × 4) */
-  fill: 12,
-} as const;
-export const SUN_WORDS = 16;
-
-/** The bloom, as post's highpass and composite read it. */
-/** Where `Bloom`'s fields lie, in words. */
-export const BloomAt = {
-  weights: 0,
-  weight4: 4,
-  strength: 5,
-  threshold: 6,
-  knee: 7,
-} as const;
-export const BLOOM_WORDS = 8;
-
-/** The grade and exposure, as post's final pass reads it. */
-/** Where `Grade`'s fields lie, in words. */
-export const GradeAt = {
-  saturation: 0,
-  contrast: 1,
-  split_tone: 2,
-  shadow_lift: 3,
-  exposure: 4,
-  sky_grade_mix: 5,
-  pad: 6,
-  shadow_tint: 8,
-  highlight_tint: 12,
-  lift: 16,
-} as const;
-export const GRADE_WORDS = 20;
-
-/** What unseen looks like to the fog mask passes: a `presentation.fog` style resolved (`fog::FogStyle::look`). */
-/** Where `FogLook`'s fields lie, in words. */
-export const FogLookAt = {
-  tint: 0,
-  dim: 3,
-  cool: 4,
-  saturation: 5,
-  veil: 6,
-  line_strength: 7,
-  line_spacing_px: 8,
-  line_width_px: 9,
-  line_angle: 10,
-  line_floor: 11,
-  edge_softness_px: 12,
-  pad0: 13,
-  rim_color: 16,
-  rim_alpha: 19,
-  rim_width_px: 20,
-  reach_px: 21,
-  pad1: 22,
-} as const;
-export const FOG_LOOK_WORDS = 24;
-
-/** A camera as every world, shadow and overlay shader binds it: the frame's eye, or a sun cascade posed as its light, with what animates the world it draws: the clock and the wind. */
-/** Where `Camera`'s fields lie, in words. */
-export const CameraAt = {
-  view_proj: 0,
-  inv_view_proj: 16,
-  eye: 32,
-  znear: 35,
-  width: 36,
-  height: 37,
-  time: 38,
-  pad: 39,
-  wind: 40,
-  waves: 48,
-} as const;
-export const CAMERA_WORDS = 52;
-
-/** A wake impulse as the wave field splats it (`EffectFrame::waves`). */
-/** Where `WaveSplat`'s fields lie, in words. */
-export const WaveSplatAt = {
-  splat: 0,
-  step: 4,
-  kind: 5,
-  pad: 6,
-} as const;
-export const WAVE_SPLAT_WORDS = 8;
-
-/** One sun cascade as a shadow receiver reads it. An unfitted cascade is the identity over [1, 1]. */
-/** Where `SunCascade`'s fields lie, in words. */
-export const SunCascadeAt = {
-  matrix: 0,
-  bias: 16,
-  interval: 20,
-} as const;
-export const SUN_CASCADE_WORDS = 24;
-
-/** Every shadow receiver's sun cascades, from the frame's fit (`shadow::sun_shadow`). */
-/** Where `SunShadow`'s fields lie, in words. */
-export const SunShadowAt = {
-  cascades: 0,
-  control: 96,
-} as const;
-export const SUN_SHADOW_WORDS = 100;
-
-/** Fog of war's sight for one frame (bound by the fog compute and every fogged material): the frame's camera and size, the sight lights' geometry, the static world sight is cut by, and the structures that take fog whole (`fog::sight`). */
-/** Where `FogParams`'s fields lie, in words. */
-export const FogParamsAt = {
-  inv_view_proj: 0,
-  camera_eye: 16,
-  translucent_lift_m: 19,
-  azimuth_bins: 20,
-  terrain_azimuth_bins: 21,
-  tiles_x: 22,
-  tile_eyes_max: 23,
-  eye_count: 24,
-  foliage_nx: 25,
-  foliage_ny: 26,
-  height_nx: 27,
-  height_ny: 28,
-  rebuild_count: 29,
-  enabled: 30,
-  probe_count: 31,
-  first_bin_m: 32,
-  target_height_m: 33,
-  foliage_cell_m: 34,
-  foliage_full_block: 35,
-  min_sight_gap_m: 36,
-  pad0: 37,
-  playable: 40,
-  height_spacing: 44,
-  face_probe_m: 45,
-  width: 46,
-  height: 47,
-  step_min_m: 48,
-  step_max_m: 49,
-  step_fraction: 50,
-  roof_reach_m: 51,
-  whole_count: 52,
-  whole_nx: 53,
-  whole_ny: 54,
-  whole_cell_m: 55,
-  whole_origin: 56,
-  whole_items_base: 58,
-  whole_boxes_base: 59,
-  whole_flags_base: 60,
-  pad1: 61,
-} as const;
-export const FOG_PARAMS_WORDS = 64;
-
-/** One eye as its map was built: `position` the map's origin and `reach` its radius; forward, shape and range the latest publication's. */
-/** Where `FogEye`'s fields lie, in words. */
-export const FogEyeAt = {
-  position: 0,
-  reach: 3,
-  forward: 4,
-  front: 5,
-  side: 6,
-  rear: 7,
-  range: 8,
-  slot: 9,
-  pad0: 10,
-  pad1: 11,
-} as const;
-export const FOG_EYE_WORDS = 12;
-
-/** An oriented box that hides what lies behind it. */
-/** Where `FogBox`'s fields lie, in words. */
-export const FogBoxAt = {
-  center: 0,
-  half: 2,
-  yaw: 4,
-  top: 5,
-  base: 6,
-  pad1: 7,
-} as const;
-export const FOG_BOX_WORDS = 8;
 
 /** What this frame poses and runs, for the gates. */
 export const Counts = {
@@ -522,7 +113,52 @@ export const Counts = {
   /** Soldiers off screen this frame. (u32) */
   culled: 15,
 } as const;
-export const COUNTS_WORDS = 16;
+
+/** What unseen looks like to the fog mask passes: a `presentation.fog` style resolved (`fog::FogStyle::look`). */
+/** Where `FogLook`'s fields lie, in words. */
+export const FogLookAt = {
+  tint: 0,
+  dim: 3,
+  cool: 4,
+  saturation: 5,
+  veil: 6,
+  line_strength: 7,
+  line_spacing_px: 8,
+  line_width_px: 9,
+  line_angle: 10,
+  line_floor: 11,
+  edge_softness_px: 12,
+  pad0: 13,
+  rim_color: 16,
+  rim_alpha: 19,
+  rim_width_px: 20,
+  reach_px: 21,
+  pad1: 22,
+} as const;
+
+/** A camera as every world, shadow and overlay shader binds it: the frame's eye, or a sun cascade posed as its light, with what animates the world it draws: the clock and the wind. */
+/** Where `Camera`'s fields lie, in words. */
+export const CameraAt = {
+  view_proj: 0,
+  inv_view_proj: 16,
+  eye: 32,
+  znear: 35,
+  width: 36,
+  height: 37,
+  time: 38,
+  pad: 39,
+  wind: 40,
+  waves: 48,
+} as const;
+export const APPEARANCE_WORDS = 8;
+export const BATCH_WORDS = 12;
+export const INSTANCE_WORDS = 16;
+export const JOINT_WORDS = 12;
+export const EFFECT_WORDS = 16;
+export const PICK_WORDS = 12;
+export const FOG_LOOK_WORDS = 24;
+export const CAMERA_WORDS = 52;
+export const SUN_SHADOW_WORDS = 100;
 
 /** Views over module memory of the Frame whose header is at `ptr`;
  *  valid until the next call into the module. */
@@ -538,18 +174,18 @@ export function frameViews(memory: ArrayBuffer, ptr: number) {
   };
   return {
     header,
-    batches: set(4, BATCH_WORDS),
-    instances: set(6, INSTANCE_WORDS),
-    palettes: set(8, JOINT_WORDS),
-    effects: set(10, EFFECT_WORDS),
-    lights: set(12, CAST_LIGHT_WORDS),
-    picks: set(14, PICK_WORDS),
-    emitters: set(16, EMITTER_WORDS),
-    counts: set(18, COUNTS_WORDS),
-    view: set(20, VIEW_WORDS),
-    camera: set(22, CAMERA_WORDS),
-    sun_shadow: set(24, SUN_SHADOW_WORDS),
-    casters: set(26, CAMERA_WORDS),
+    batches: set(4, 12),
+    instances: set(6, 16),
+    palettes: set(8, 12),
+    effects: set(10, 16),
+    lights: set(12, 8),
+    picks: set(14, 12),
+    emitters: set(16, 12),
+    counts: set(18, 16),
+    view: set(20, 56),
+    camera: set(22, 52),
+    sun_shadow: set(24, 100),
+    casters: set(26, 52),
   };
 }
 
@@ -567,7 +203,7 @@ export function worldViews(memory: ArrayBuffer, ptr: number) {
   };
   return {
     header,
-    appearances: set(0, APPEARANCE_WORDS),
+    appearances: set(0, 8),
     strings: new Uint8Array(memory, header[2], header[3]),
   };
 }

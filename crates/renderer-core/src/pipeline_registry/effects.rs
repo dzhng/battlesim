@@ -237,7 +237,7 @@ pub fn all() -> Vec<PipelineSpec> {
             "effects.wgsl",
             vec!["effects"],
             Some(vertex(
-                Some("vs"),
+                Some("spriteVertex"),
                 vec![buffer(
                     64,
                     VertexStepMode::Instance,
@@ -250,7 +250,7 @@ pub fn all() -> Vec<PipelineSpec> {
                 )],
             )),
             Some(fragment(
-                Some("fs"),
+                Some("spriteFragment"),
                 vec![
                     target_with(
                         HDR_FORMAT,

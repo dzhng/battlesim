@@ -7,7 +7,6 @@ mod terrain_partition;
 
 use crate::{error, Presentation};
 use presentation::presentation::Presentation as Inner;
-use presentation::shadow;
 use presentation::static_world::ground::field::Field;
 use presentation::static_world::ground::mesh;
 use presentation::static_world::ground::tables::Grid;
@@ -115,12 +114,6 @@ impl Presentation {
         self.inner.set_ground(source, biome, tuning).map_err(error)
     }
 
-    /// The water's surface mesh (`ground::mesh::water` over the ground's
-    /// water cells).
-    pub fn ground_water_mesh(&self) -> Result<Vec<f32>, JsError> {
-        Ok(mesh::water(&ground(&self.inner)?.water_cells()))
-    }
-
     /// Grows the grass by `rules` (JSON, the biome's `grass` row) in place of
     /// the biome's, or by the biome's again: a lab compares fields that
     /// differ in a single number.
@@ -148,22 +141,6 @@ impl Presentation {
     /// The appearances the scenery places, in kind order (JSON).
     pub fn scenery_kinds(&self) -> Result<String, JsError> {
         Ok(serde_json::to_string(&ground(&self.inner)?.scenery_kinds()).unwrap())
-    }
-
-    /// Places the ground's scenery, given each of its kinds' (`scenery_kinds`)
-    /// finest tier in the renderer's world vertex, one after another,
-    /// `floats` floats each; drawn from the next `load_world`.
-    pub fn place_scenery(&mut self, meshes: &[f32], floats: &[u32]) -> Result<(), JsError> {
-        let mut at = 0;
-        let finest: Vec<&[f32]> = floats
-            .iter()
-            .map(|&n| {
-                let mesh = &meshes[at..at + n as usize];
-                at += n as usize;
-                mesh
-            })
-            .collect();
-        self.inner.place_scenery(&finest).map_err(error)
     }
 
     /// A felled tree's stump mesh for `World.appearances` row `row` (its
@@ -339,24 +316,6 @@ pub fn terrain_mesh(
         indices,
         surfaces.as_deref().map(|s| (s, blocked)),
     )
-}
-
-/// The map's skirt (`ground::mesh::skirt`).
-#[wasm_bindgen]
-pub fn skirt_mesh(positions: &[f32]) -> Vec<f32> {
-    mesh::skirt(positions)
-}
-
-/// The land past the map's edge (`ground::mesh::backdrop`) round `map_box`.
-#[wasm_bindgen]
-pub fn backdrop_mesh(map_box: &[f64], reach_m: f64) -> Vec<f32> {
-    mesh::backdrop(&std::array::from_fn(|i| map_box[i]), reach_m)
-}
-
-/// The box round a world mesh (`shadow::map_box`), none for an empty one.
-#[wasm_bindgen]
-pub fn map_box(mesh: &[f32]) -> Option<Vec<f64>> {
-    shadow::map_box(mesh).map(|b| b.to_vec())
 }
 
 /// The scene assets' limits Rust holds (`ground::grass::LIMITS`): the clump

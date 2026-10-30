@@ -2,9 +2,11 @@
 
 /// What a field holds, for the generated schemas.
 pub trait Field {
-    /// `"f32"` or `"u32"`.
+    /// `"f32"`, `"u32"`, `"i32"`, or a record's name.
     const SCALAR: &'static str;
     const COUNT: usize;
+    /// The element's layout for a record or an array of records.
+    const RECORD: Option<&'static Layout> = None;
 }
 impl Field for f32 {
     const SCALAR: &'static str = "f32";
@@ -14,13 +16,16 @@ impl Field for u32 {
     const SCALAR: &'static str = "u32";
     const COUNT: usize = 1;
 }
-impl<const N: usize> Field for [f32; N] {
-    const SCALAR: &'static str = "f32";
-    const COUNT: usize = N;
+impl Field for i32 {
+    const SCALAR: &'static str = "i32";
+    const COUNT: usize = 1;
 }
-impl<const N: usize> Field for [u32; N] {
-    const SCALAR: &'static str = "u32";
+// Keep the array impl here: an exported macro's callers cannot implement a
+// foreign trait for arrays, even arrays of their own records.
+impl<T: Field, const N: usize> Field for [T; N] {
+    const SCALAR: &'static str = T::SCALAR;
     const COUNT: usize = N;
+    const RECORD: Option<&'static Layout> = T::RECORD;
 }
 
 pub struct FieldLayout {
@@ -28,6 +33,7 @@ pub struct FieldLayout {
     pub offset: usize,
     pub scalar: &'static str,
     pub count: usize,
+    pub record: Option<&'static Layout>,
     pub doc: &'static str,
 }
 
@@ -49,6 +55,8 @@ pub struct Layout {
     pub fields: &'static [FieldLayout],
 }
 
+/// Declare packed records and their reflection metadata, including nested records.
+#[macro_export]
 macro_rules! records {
     ($($(#[doc = $doc:literal])* $binding:ident $name:ident {
         $($(#[doc = $fdoc:literal])* $field:ident: $ty:ty),* $(,)?
@@ -58,42 +66,43 @@ macro_rules! records {
             #[repr(C)]
             #[derive(Clone, Copy, Debug, PartialEq)]
             pub struct $name { $($(#[doc = $fdoc])* pub $field: $ty),* }
-            // SAFETY: `repr(C)`, every field a 4-byte scalar or an array of
-            // them, and the size a multiple of 16 (asserted): no padding.
-            unsafe impl bytemuck::Zeroable for $name {}
-            unsafe impl bytemuck::Pod for $name {}
-            impl Default for $name {
+            // SAFETY: `repr(C)`, every field a 4-byte scalar, packed record,
+            // or array of them, and no padding (asserted below).
+            unsafe impl $crate::records::bytemuck::Zeroable for $name {}
+            unsafe impl $crate::records::bytemuck::Pod for $name {}
+            impl ::core::default::Default for $name {
                 fn default() -> Self {
-                    bytemuck::Zeroable::zeroed()
+                    $crate::records::bytemuck::Zeroable::zeroed()
                 }
             }
-            impl<const N: usize> Field for [$name; N] {
+            impl $crate::records::Field for $name {
                 const SCALAR: &'static str = stringify!($name);
-                const COUNT: usize = N;
+                const COUNT: usize = 1;
+                const RECORD: ::core::option::Option<&'static $crate::records::Layout> =
+                    ::core::option::Option::Some(&Self::LAYOUT);
             }
-            const _: () = assert!(std::mem::size_of::<$name>() % 16 == 0);
+            const _: () = assert!(::core::mem::size_of::<$name>() % 16 == 0);
             const _: () = assert!(
-                std::mem::size_of::<$name>() == 0 $(+ std::mem::size_of::<$ty>())*
+                ::core::mem::size_of::<$name>() == 0 $(+ ::core::mem::size_of::<$ty>())*
             );
             impl $name {
-                pub const LAYOUT: Layout = Layout {
+                pub const LAYOUT: $crate::records::Layout = $crate::records::Layout {
                     name: stringify!($name),
                     doc: concat!($($doc),*),
-                    binding: Binding::$binding,
-                    size: std::mem::size_of::<$name>(),
-                    fields: &[$(FieldLayout {
+                    binding: $crate::records::Binding::$binding,
+                    size: ::core::mem::size_of::<$name>(),
+                    fields: &[$($crate::records::FieldLayout {
                         name: stringify!($field),
-                        offset: std::mem::offset_of!($name, $field),
-                        scalar: <$ty as Field>::SCALAR,
-                        count: <$ty as Field>::COUNT,
+                        offset: ::core::mem::offset_of!($name, $field),
+                        scalar: <$ty as $crate::records::Field>::SCALAR,
+                        count: <$ty as $crate::records::Field>::COUNT,
+                        record: <$ty as $crate::records::Field>::RECORD,
                         doc: concat!($($fdoc),*),
                     }),*],
                 };
             }
         )*
         /// Every record's layout, in declaration order.
-        pub const LAYOUTS: &[Layout] = &[$($name::LAYOUT),*];
+        pub const LAYOUTS: &[$crate::records::Layout] = &[$($name::LAYOUT),*];
     };
 }
-
-pub(super) use records;

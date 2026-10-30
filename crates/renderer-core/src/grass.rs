@@ -13,9 +13,7 @@ use presentation::static_world::ground::grass::{
     self as field, KindMesh, PackedShapes, TierMesh, Window, FIELD_SEGMENTS,
 };
 
-/// Two indexed-indirect draws' arguments (5 words each), then each tier's
-/// raw count.
-const ARGS_WORDS: usize = 12;
+const ARGS_WORDS: usize = field::ARGS_WORDS as usize;
 
 /// Pack authored grass bundles through the same decoder and blade layout on every platform.
 pub fn pack_shapes(library: &impl BundleSource, names: &[String]) -> Result<PackedShapes, String> {
@@ -52,7 +50,7 @@ pub fn pack_shapes(library: &impl BundleSource, names: &[String]) -> Result<Pack
 
 /// World-load inputs resolved by the presentation from the authored blade facts.
 pub struct GrassData<'a> {
-    pub params: &'a [u32],
+    pub params: &'a presentation::records::GrassParams,
     pub props: &'a [u32],
     pub shapes: &'a [f32],
     pub max_blades: u32,
@@ -60,10 +58,17 @@ pub struct GrassData<'a> {
 }
 
 pub struct Grass {
+    count: BoundCompute,
     build: BoundCompute,
     finish: BoundCompute,
     draw: Bound,
     build_group: BindGroup,
+    finish_group: BindGroup,
+    build_layout: BindGroupLayout,
+    finish_layout: BindGroupLayout,
+    heights: Buffer,
+    /// Per tile: its total/offset followed by each lane's offset.
+    ranges: Buffer,
     draw_groups: Vec<BindGroup>,
     params: Buffer,
     props: Buffer,
@@ -72,7 +77,7 @@ pub struct Grass {
     tiers: Vec<Buffer>,
     /// `GrassParams` as the ground laid it, its per-frame fields rewritten
     /// each regrow.
-    words: Vec<u32>,
+    record: presentation::records::GrassParams,
     args: Buffer,
     capacity: [u32; 2],
     clump_stride: u64,
@@ -85,6 +90,32 @@ pub struct Grass {
     regrow: bool,
 }
 
+fn build_groups(
+    device: &Device,
+    build_layout: &BindGroupLayout,
+    finish_layout: &BindGroupLayout,
+    buffers: [&Buffer; 6],
+) -> (BindGroup, BindGroup) {
+    let group = |label, layout, bindings: &[u32]| {
+        let entries: Vec<_> = bindings
+            .iter()
+            .map(|&binding| BindGroupEntry {
+                binding,
+                resource: buffers[binding as usize].as_entire_binding(),
+            })
+            .collect();
+        device.create_bind_group(&BindGroupDescriptor {
+            label: Some(label),
+            layout,
+            entries: &entries,
+        })
+    };
+    (
+        group("grass-build", build_layout, &[0, 1, 2, 3, 5]),
+        group("grass-finish", finish_layout, &[0, 4, 5]),
+    )
+}
+
 impl Grass {
     pub fn from_data(
         device: &Device,
@@ -93,7 +124,7 @@ impl Grass {
         heights: &Buffer,
         data: GrassData<'_>,
     ) -> Self {
-        let words = data.params.to_vec();
+        let record = *data.params;
         let storage = BufferUsages::STORAGE;
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
         let params = buffer(
@@ -101,7 +132,7 @@ impl Grass {
             queue,
             "grass-params",
             uniform,
-            bytemuck::cast_slice(&words),
+            bytemuck::bytes_of(&record),
         );
         let props = buffer(
             device,
@@ -133,17 +164,17 @@ impl Grass {
                 | BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
-        let build_group = bind(
+        let ranges = device.create_buffer(&BufferDescriptor {
+            label: Some("grass-ranges"),
+            size: u64::from(field::TILE_RANGES) * size_of::<[u32; 2]>() as u64,
+            usage: storage,
+            mapped_at_creation: false,
+        });
+        let (build_group, finish_group) = build_groups(
             device,
             pipelines.layout("grassBuildLayout"),
-            "grass-build",
-            &[
-                params.as_entire_binding(),
-                heights.as_entire_binding(),
-                props.as_entire_binding(),
-                clumps.as_entire_binding(),
-                args.as_entire_binding(),
-            ],
+            pipelines.layout("grassFinishLayout"),
+            [&params, heights, &props, &clumps, &args, &ranges],
         );
         let mut indices = Vec::new();
         let mut draw_groups = Vec::new();
@@ -185,17 +216,23 @@ impl Grass {
             tiers.push(tier);
         }
         Self {
+            count: pipelines.bound_compute("grassCount"),
             build: pipelines.bound_compute("grassBuild"),
             finish: pipelines.bound_compute("grassFinish"),
             draw: pipelines.bound("grassDraw"),
             build_group,
+            finish_group,
+            build_layout: pipelines.layout("grassBuildLayout").clone(),
+            finish_layout: pipelines.layout("grassFinishLayout").clone(),
+            heights: heights.clone(),
+            ranges,
             draw_groups,
             params,
             props,
             clumps,
             shapes,
             tiers,
-            words,
+            record,
             args,
             capacity: data.capacity,
             clump_stride: pipelines.sizes.grass_clump,
@@ -225,12 +262,13 @@ impl Grass {
 
     /// Fits the window to `presentation`'s last frame and, if its view
     /// moved, writes the parameters for a regrow.
-    pub fn prepare(&mut self, queue: &Queue, presentation: &Presentation) {
+    pub fn prepare(&mut self, device: &Device, queue: &Queue, presentation: &Presentation) {
         self.prepare_records(
+            device,
             queue,
             presentation.grass_window(),
             &presentation.last_frame().camera,
-            |words, window| presentation.grass_frame_params(words, window),
+            |params, window| presentation.grass_frame_params(params, window),
         );
     }
 
@@ -239,10 +277,11 @@ impl Grass {
     /// only when a regrow is needed.
     pub fn prepare_records(
         &mut self,
+        device: &Device,
         queue: &Queue,
         window: Option<(Window, f64)>,
         camera: &presentation::records::Camera,
-        write_params: impl FnOnce(&mut [u32], &Window),
+        write_params: impl FnOnce(&mut presentation::records::GrassParams, &Window),
     ) {
         self.drawn = false;
         self.regrow = false;
@@ -261,11 +300,37 @@ impl Grass {
         }
         self.grown_for = Some(key);
         self.regrow = true;
-        write_params(&mut self.words, &self.window);
-        queue.write_buffer(&self.params, 0, bytemuck::cast_slice(&self.words));
+        let bytes = u64::from(window.tiles_x)
+            * u64::from(window.tiles_y)
+            * u64::from(field::TILE_RANGES)
+            * size_of::<[u32; 2]>() as u64;
+        if self.ranges.size() < bytes {
+            self.ranges = device.create_buffer(&BufferDescriptor {
+                label: Some("grass-ranges"),
+                size: bytes.next_power_of_two(),
+                usage: BufferUsages::STORAGE,
+                mapped_at_creation: false,
+            });
+            (self.build_group, self.finish_group) = build_groups(
+                device,
+                &self.build_layout,
+                &self.finish_layout,
+                [
+                    &self.params,
+                    &self.heights,
+                    &self.props,
+                    &self.clumps,
+                    &self.args,
+                    &self.ranges,
+                ],
+            );
+        }
+        write_params(&mut self.record, &self.window);
+        queue.write_buffer(&self.params, 0, bytemuck::bytes_of(&self.record));
         let mut args = [0u32; ARGS_WORDS];
-        args[0] = self.indices[0].1;
-        args[5] = self.indices[1].1;
+        for (tier, (_, count)) in self.indices.iter().enumerate() {
+            args[tier * field::DRAW_WORDS as usize] = *count;
+        }
         queue.write_buffer(&self.args, 0, bytemuck::cast_slice(&args));
     }
 
@@ -300,10 +365,13 @@ impl Grass {
             timestamp_writes: None,
         });
         let own = ("grassBuildLayout", &self.build_group);
+        self.count.set(&mut pass, &[own, terrain]);
+        pass.dispatch_workgroups(self.window.tiles_x, self.window.tiles_y, 1);
+        self.finish
+            .set(&mut pass, &[("grassFinishLayout", &self.finish_group)]);
+        pass.dispatch_workgroups(1, 1, 1);
         self.build.set(&mut pass, &[own, terrain]);
         pass.dispatch_workgroups(self.window.tiles_x, self.window.tiles_y, 1);
-        self.finish.set(&mut pass, &[own]);
-        pass.dispatch_workgroups(1, 1, 1);
     }
 
     /// Both tiers into the world's colour pass; `groups` the frame's.
@@ -316,7 +384,10 @@ impl Grass {
             all.push(("grassDrawLayout", group));
             self.draw.set(pass, &all);
             pass.set_index_buffer(indices.slice(..), IndexFormat::Uint16);
-            pass.draw_indexed_indirect(&self.args, (t * 20) as u64);
+            pass.draw_indexed_indirect(
+                &self.args,
+                (t * field::DRAW_WORDS as usize * size_of::<u32>()) as u64,
+            );
         }
     }
 }
@@ -329,6 +400,7 @@ impl Grass {
             &self.clumps,
             &self.shapes,
             &self.args,
+            &self.ranges,
         ] {
             memory.buffer(buffer);
         }

@@ -23,9 +23,10 @@ The library's weak texture index cannot retain retired art. A new source draft
 shares that index without copying canonical bundle ownership, so a late draft
 cannot restore unrelated stale sources. Initial buffer data is queued through
 the common upload owner, avoiding mapped-at-creation transfer copies in browsers.
-Scenery also shares authored tier admission and held-batch routing. The runtime
-reads the ground's kind order and stump meshes from presentation, preserving its
-authority over placement.
+Scenery also shares authored tier admission and held-batch routing. Initial
+placement and atomic art replacement derive geometry from decoded Rust bundles;
+presentation owns the resulting sizes, trunks, stumps and placement. Runtime
+reconstruction retains those facts and the observer's learned felling.
 
 [Impostors](src/impostor/) bake through the same authored model/material path,
 then filter coverage before uploading relit cards. Native and browser use the
@@ -52,8 +53,15 @@ rays or material light.
 [`Runtime`](src/runtime/) constructs and prepares the complete renderer from
 canonical presentation, source assets and external geometry. A held publication
 reuses its model/effect buffers; a new canonical frame prepares them again.
-Fog and scar work still prepare for every drawn frame because their incremental
+Fog and scar work prepare for every drawn frame because their incremental
 work must be consumed rather than replayed.
+
+[World geometry](src/runtime/world.rs) constructs submitted layers for both
+shells through shared skirt, backdrop and water builders. Native supplies physical
+triangles; the browser supplies the same Rust-generated terrain mesh it uses for
+picking and shadow fitting, plus explicit boundary positions and extra faces.
+Water cells come from canonical ground while the browser borrows presentation
+synchronously; empty cells omit water.
 
 [`FrameRenderer`](src/frame.rs) encodes a complete production frame over the
 shared scene owners. Its concrete inputs carry GPU resources and canonical
@@ -61,9 +69,9 @@ presentation records; shells cannot substitute their own pass implementations.
 The same owner routes model surface classes and fog, encodes cascades, grows
 grass over the prepared scar pages, and submits regional ground draws when the
 scar budget requires them. It completes post, the fog rim and optional player
-overlays into one display texture. Surface admission, presentation of that
-texture and requests for readback remain shell concerns; the core owns the
-shared copy and mapping protocol. With `separate_high_air` enabled, high-air
+overlays into one display texture. Shells own surface admission, presentation
+of that texture and requests for readback; the core owns the shared copy and
+mapping protocol. With `separate_high_air` enabled, high-air
 models render to their own output for composition between UI planes.
 
 Ground paint and display marks share geometry inputs but have separate depth
@@ -79,16 +87,20 @@ owned by this crate. Native and browser call the same descriptor and
 source owner; no shell reads a manifest or supplies shader text. The catalog
 uses the actual `wgpu` binding, vertex, target, depth and multisample types.
 The ABI test reflects WGSL structs named by the struct-bound entries in
-`presentation::records::LAYOUTS`, checking member offsets and spans wherever those
-structs appear in built-in shaders. Directional shadow resources own their depth
-array, receiver and cascade camera bindings. Cascade membership remains the
+`presentation::records::LAYOUTS` and the [renderer-owned records](src/records.rs),
+checking member offsets, spans and fixed array counts recursively through nested
+records wherever those structs appear in built-in shaders. A reverse check walks
+every buffer binding, including nested record types; exceptions name their
+format owner and reason in the ABI test. Directional shadow resources own their
+depth array, receiver and cascade camera bindings. Cascade membership remains the
 presentation's decision; the shared frame preserves it for ground, indexed
 models and scenery.
 
-On Windows, [pipeline compilation](src/pipelines.rs) uses `native_shader_source`
-to adapt cutout sample-mask fragments to discard-based fragments. AMD's Windows
-driver crashes when creating those depth-only sample-mask pipelines. The
-`cfg(windows)` adaptation leaves the composed source unchanged on other targets.
+On Windows, the [model pipeline registry](src/pipeline_registry/models.rs) selects
+authored discard variants of cutout shaders with `cfg!(windows)`. AMD's Windows
+driver crashes when creating depth-only sample-mask pipelines. Both variants
+are composed and validated on every host; compiled target code selects the
+variant without rewriting shader text.
 
 The environment lookup data and adapted material algorithms retain their
 [three.js MIT attribution](LICENSE.three).
@@ -123,10 +135,28 @@ height field stepped from `Presentation::waves`, taken once per drawn frame
 because taking it advances the field's clock. A step takes a bounded number of
 splats, so a big battle's wakes cost the same however frames batch the steps.
 
-GPU profiling is opt-in. Whole-frame timestamp markers bracket the actual
-ordered frame, including any regional scar submissions, and bounded asynchronous
-readbacks skip saturated frames instead of waiting for the GPU. Resetting the
-measurement window excludes pending samples from the old window.
+### GPU timing
+
+GPU profiling is opt-in and owned by [`FrameTimer`](src/timing.rs). Whole-frame
+render-pass timestamp markers bracket the actual ordered frame, including any
+regional scar submissions. Stage counters measure elapsed time between marker
+passes while GPU stages can overlap; GPU traces provide the busy/idle breakdown.
+
+The browser uses `Resolve::InFrame`: resolve in the marked encoder and publish
+rolling statistics asynchronously, without waiting. Chromium/Metal comparisons
+found no missing duration with this path. Native uses `Resolve::AfterCompletion`
+because its Metal backend can return stale counters when resolving in-frame.
+Its explicit ticket wait drains the render, resolves in a separate submission,
+then waits for readback. These profiling waits affect throughput; compare timed
+CPU phases and GPU duration separately from instrumented frame intervals.
+
+Callers size the bounded readback pool for their pacing; saturation skips a
+measurement. Each native ticket owns its duration independently of completion
+order. Resetting rolling statistics excludes every frame begun before the reset
+without cancelling its pending result. Invalid counters or failed maps remain
+missing measurements rather than zero-duration frames.
+
+### Inspection and diagnostics
 
 [Explicit probes](src/probes.rs) inspect actual GPU sight, indirect arguments
 and grass clumps. They queue bounded snapshot copies before mapping, so later
@@ -161,6 +191,26 @@ only while taking a snapshot so diagnostics cannot prolong resource lifetimes.
 The [browser binding lifetime contract](../presentation-wasm/README.md) owns
 memory-view validity at the WebAssembly boundary.
 
+Grass regrowth assigns draw ranges before emitting clumps. Tile order, then lane
+and candidate order within each tile, determines both equal-depth winners and
+which clumps fit a full tier. GPU scheduling must never choose either. The
+renderer retains scratch ranges sized to the view's tile window; a held view
+reuses its clumps without counting or emitting them again.
+
+## Checks
+
+The [integration tests](tests/) own shared renderer behaviour, including GPU
+pipeline construction, rendered pixels, readback and timing. They use headless
+admission with the production device policy. Native backend features and the
+blocking executor are test dependencies; production WASM keeps its browser-only
+backend selection. Tests that need desktop replay, filesystem adapters or audio
+belong to the [native shell](../../native/client/README.md#checks).
+
+Asset-backed tests read the prepared runtime, so materialize its Git LFS files
+before running the suite. Serialize GPU work with other renderer checks:
+
 ```sh
+git lfs checkout assets/runtime
+CARGO_INCREMENTAL=0 lockf -k <main checkout>/throwaway/gpu.lock cargo test -p renderer-core
 cargo check -p renderer-core --target wasm32-unknown-unknown
 ```
