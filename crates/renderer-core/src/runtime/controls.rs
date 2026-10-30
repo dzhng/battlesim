@@ -1,6 +1,5 @@
 //! Live rendering choices, retained across target and device reconstruction.
 use super::*;
-use crate::fog_mask::FogMaskView;
 use crate::frame::FrameView;
 
 #[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize)]
@@ -70,13 +69,8 @@ impl Runtime {
         }
         self.ground
             .set_class_view(queue, controls.view == FrameView::GroundClasses);
-        let mask = match controls.view {
-            FrameView::FogMask => FogMaskView::Fog,
-            FrameView::GroundMask => FogMaskView::Ground,
-            FrameView::GroundClasses => FogMaskView::Classes,
-            _ => FogMaskView::None,
-        };
-        self.fog_mask.set_mask_view(queue, mask);
+        self.fog_mask
+            .set_mask_view(queue, controls.view.mask_view());
         if let Some(xray) = &mut self.xray {
             xray.set_coverage_enabled(queue, controls.xray_coverage);
         }

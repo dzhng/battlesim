@@ -495,15 +495,8 @@ impl Runtime {
             &self.targets,
             &self.config.fog_look,
         );
-        self.fog_mask.set_mask_view(
-            queue,
-            match self.config.controls.view {
-                crate::frame::FrameView::FogMask => fog_mask::FogMaskView::Fog,
-                crate::frame::FrameView::GroundMask => fog_mask::FogMaskView::Ground,
-                crate::frame::FrameView::GroundClasses => fog_mask::FogMaskView::Classes,
-                _ => fog_mask::FogMaskView::None,
-            },
-        );
+        self.fog_mask
+            .set_mask_view(queue, self.config.controls.view.mask_view());
         self.overlays = overlay::new(
             device,
             queue,
@@ -519,7 +512,6 @@ impl Runtime {
         self.water = WaterPass::new(device, &self.pipelines, &self.targets, self.fog.paint());
         if let Some(xray) = &mut self.xray {
             xray.rebind_depth(device, &self.targets);
-            xray.set_coverage_enabled(queue, self.config.controls.xray_coverage);
         }
         if self.high_air.is_some() {
             self.high_air = Some(crate::high_air::HighAir::new(

@@ -40,6 +40,16 @@ pub enum FrameView {
 }
 
 impl FrameView {
+    pub fn mask_view(self) -> crate::fog_mask::FogMaskView {
+        use crate::fog_mask::FogMaskView;
+        match self {
+            Self::FogMask => FogMaskView::Fog,
+            Self::GroundMask => FogMaskView::Ground,
+            Self::GroundClasses => FogMaskView::Classes,
+            _ => FogMaskView::None,
+        }
+    }
+
     fn post_mode(self) -> Option<PostMode> {
         match self {
             Self::Final | Self::World => Some(PostMode::Look),
