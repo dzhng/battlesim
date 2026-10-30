@@ -88,3 +88,20 @@ Decisions made where the spec was silent, per slice, with verdicts
 - **The synthetic nested-schema test is removed** (resolving slice 02's
   provisional entry). Real `Environment`,
   `CastLights`, `Sun`, `Rays` and signed `WaveRun` fields exercise those paths.
+## Grass determinism prerequisite
+
+- **Give grass a deterministic draw and capacity order.** GPU append order can
+  change equal-depth winners even when every clump fits. Count surviving clumps,
+  prefix their tile and lane ranges, then emit into those ranges. Keep the
+  authored capacities and depth nudge; a full tier selects the same prefix
+  instead of whichever workgroups win an atomic race. *Chosen by the research
+  implementer under the user's explicit determinism-fix request.*
+- **Retain view-sized scratch and repeat placement work only on regrow.** The
+  count pass omits colour work, the emission pass owns the final clumps, and
+  held views reuse them. This keeps bounded work and avoids a global sort or
+  oversized per-candidate storage. *Implementation decision; measured against
+  the frozen wetlands release benchmark.*
+- **Accept the resulting equal-depth grass pixel changes.** The user explicitly
+  authorized this prerequisite's small visual change so structural slices can
+  subsequently use exact plate comparisons. It changes no simulation inputs,
+  mechanics, growth parameters, geometry, colours or tier capacities.

@@ -66,6 +66,8 @@ pub const CONSTANTS: &[(&str, Scalar)] = &[
         "GROUND_KIND_SHIFT",
         U32(crate::static_world::ground::field::KIND_SHIFT),
     ),
+    ("GRASS_BUILD_LANES", U32(grass::BUILD_LANES)),
+    ("GRASS_TILE_RANGES", U32(grass::TILE_RANGES)),
     ("GROUND_GRASS_EDGE_M", F32(tables::GRASS_EDGE_M)),
     (
         "GROUND_FOREST_VERGE_FEATHER",

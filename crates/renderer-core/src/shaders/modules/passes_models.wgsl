@@ -18,9 +18,13 @@ const GRASS_STAND_TIER_JITTER_FROM = 0.85;
 const GRASS_STAND_TIER_JITTER_TO = 1.15;
 const GRASS_STAND_PARCHED_FROM = 0.55;
 const GRASS_STAND_PARCHED_TO = 0.8;
-@compute @workgroup_size(64) fn buildFn(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32) {
+// Each tile owns a prefix range, each lane a range within that tile. Count
+// before emitting so GPU scheduling changes neither draw order nor overflow
+// selection. A lane keeps its candidates in sequence order.
+fn growTile(wg: vec3u, li: u32, emit: bool, first: vec2u) -> vec2u {
+  var found = vec2u(0u);
   let P = &params;
-  if (wg.x >= (*P).grid.x || wg.y >= (*P).grid.y) { return; }
+  if (wg.x >= (*P).grid.x || wg.y >= (*P).grid.y) { return found; }
   let T = (*P).window.z;
   let lo = (*P).window.xy + vec2f(f32(wg.x), f32(wg.y)) * T;
   let hi = lo + vec2f(T);
@@ -42,17 +46,17 @@ const GRASS_STAND_PARCHED_TO = 0.8;
   for (var i = 0u; i < 4u; i++) {
     let pl = (*P).planes[i];
     let pv = vec3f(select(lo2.x, hi2.x, pl.x >= 0.0), select(lo2.y, hi2.y, pl.y >= 0.0), select(zlo, zhi, pl.z >= 0.0));
-    if (dot(pl.xyz, pv) + pl.w < 0.0) { return; }
+    if (dot(pl.xyz, pv) + pl.w < 0.0) { return found; }
   }
   let eye = (*P).eye.xyz;
   let nearest = clamp(eye, vec3f(lo2, zlo), vec3f(hi2, zhi));
   let dNear = max(distance(eye, nearest), 0.5);
-  if ((*P).eye.w * dNear >= (*P).density.w) { return; }
+  if ((*P).eye.w * dNear >= (*P).density.w) { return found; }
   let n = u32(ceil(T * T * grassDensity(dNear, max(eye.z - zlo, 0.0))));
   // The tile's own offset of the sequence, from its place on the world grid.
   let cell = vec2i(floor(lo / T + 0.5));
   let offset = grassHash(bitcast<u32>(cell.x), bitcast<u32>(cell.y)).xy;
-  for (var j = li; j < n; j += 64u) {
+  for (var j = li; j < n; j += GRASS_BUILD_LANES) {
     // The sequence's point, jittered by a fixed amount so a sparse field
     // shows no lattice; both depend on the tile and j alone.
     let h = grassHash(bitcast<u32>(cell.x) ^ (j * 2654435761u), bitcast<u32>(cell.y) + j);
@@ -165,6 +169,10 @@ const GRASS_STAND_PARCHED_TO = 0.8;
     if (!shown) { continue; }
     var tier = 1u;
     if (height / footprint > (*P).tiers.x * mix(GRASS_STAND_TIER_JITTER_FROM, GRASS_STAND_TIER_JITTER_TO, h.y)) { tier = 0u; }
+    let slot = first[tier] + found[tier];
+    found[tier] += 1u;
+    let cap = select((*P).grid.w, (*P).grid.z, tier == 0u);
+    if (!emit || slot >= cap) { continue; }
     let width = max(1.0, (*P).tiers.y * footprint / max(row.z, 1e-4));
     // Dry patches, and a grass drier than its neighbours: toward straw at
     // the ground's own luminance, so no patch is darker than its field.
@@ -181,14 +189,31 @@ const GRASS_STAND_PARCHED_TO = 0.8;
     let colour = value * (1.0 + (*P).grain.y * dryness) * groundTint(scarredSurface(groundColour(p, footprint, site, paved, water), scar).xyz, dryness);
     // Tracks and trampling lay the clump over (carried by the colour's alpha).
     let flat = max(scar.weights.z, scar.weights.w) * S.z;
-    let slot = atomicAdd(&args[tier * 5u + 1u], 1u);
-    let cap = select((*P).grid.w, (*P).grid.z, tier == 0u);
-    if (slot >= cap) { continue; }
     let base = select((*P).grid.z, 0u, tier == 0u);
     clumps[base + slot] = GrassClump(
       root, height, pack4x8unorm(vec4f(sqrt(max(colour, vec3f(0.0))), 1.0 - flat)), kind,
       sin(h.z * 6.2831853), cos(h.z * 6.2831853), width);
   }
+  return found;
+}
+
+var<workgroup> laneCounts: array<vec2u, GRASS_BUILD_LANES>;
+
+@compute @workgroup_size(GRASS_BUILD_LANES) fn countFn(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32) {
+  let found = growTile(wg, li, false, vec2u(0u));
+  laneCounts[li] = found;
+  workgroupBarrier();
+  let tile = (wg.y * params.grid.x + wg.x) * GRASS_TILE_RANGES;
+  // Lane offsets and the tile total, ready for the cross-tile prefix pass.
+  var first = vec2u(0u);
+  for (var i = 0u; i < li; i++) { first += laneCounts[i]; }
+  ranges[tile + 1u + li] = first;
+  if (li + 1u == GRASS_BUILD_LANES) { ranges[tile] = first + found; }
+}
+
+@compute @workgroup_size(GRASS_BUILD_LANES) fn buildFn(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: u32) {
+  let tile = (wg.y * params.grid.x + wg.x) * GRASS_TILE_RANGES;
+  let found = growTile(wg, li, true, ranges[tile] + ranges[tile + 1u + li]);
 }
 
 // @block passes_models_cardVertex

@@ -168,3 +168,9 @@ memory-view validity at the WebAssembly boundary.
 ```sh
 cargo check -p renderer-core --target wasm32-unknown-unknown
 ```
+
+Grass regrowth assigns draw ranges before emitting clumps. Tile order, then lane
+and candidate order within each tile, determines both equal-depth winners and
+which clumps fit a full tier. GPU scheduling must never choose either. The
+renderer retains scratch ranges sized to the view's tile window; a held view
+reuses its clumps without counting or emitting them again.

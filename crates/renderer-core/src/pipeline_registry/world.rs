@@ -511,10 +511,16 @@ pub fn all() -> Vec<PipelineSpec> {
         .depth(DEPTH_FORMAT, CompareFunction::Greater, true, 0)
         .msaa(MSAA),
         compute(
+            "grassCount",
+            "grassBuild.wgsl",
+            vec!["grassBuildLayout", "terrainLayout"],
+            Some("countFn"),
+        ),
+        compute(
             "grassBuild",
             "grassBuild.wgsl",
             vec!["grassBuildLayout", "terrainLayout"],
-            None,
+            Some("buildFn"),
         ),
         compute(
             "grassFinish",

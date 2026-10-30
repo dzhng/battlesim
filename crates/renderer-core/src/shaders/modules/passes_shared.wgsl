@@ -2,11 +2,16 @@
 
 // @block passes_shared_finishFn
 @compute @workgroup_size(1) fn finishFn() {
-  let P = &params;
+  var total = vec2u(0u);
+  for (var tile = 0u; tile < params.grid.x * params.grid.y; tile++) {
+    let at = tile * GRASS_TILE_RANGES;
+    let count = ranges[at];
+    ranges[at] = total;
+    total += count;
+  }
   for (var t = 0u; t < 2u; t++) {
-    let raw = atomicLoad(&args[t * 5u + 1u]);
-    atomicStore(&args[10u + t], raw);
-    atomicStore(&args[t * 5u + 1u], min(raw, select((*P).grid.w, (*P).grid.z, t == 0u)));
+    atomicStore(&args[10u + t], total[t]);
+    atomicStore(&args[t * 5u + 1u], min(total[t], select(params.grid.w, params.grid.z, t == 0u)));
   }
 }
 

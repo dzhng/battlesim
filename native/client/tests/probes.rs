@@ -404,6 +404,7 @@ fn grass_probes_decode_actual_tier_buffers_and_snapshot_counts_before_a_later_fr
         0
     );
     grass.prepare_records(
+        &gpu.device,
         &gpu.queue,
         Some((
             Window {

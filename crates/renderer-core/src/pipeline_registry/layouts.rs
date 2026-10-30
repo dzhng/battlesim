@@ -497,6 +497,15 @@ pub fn all() -> Vec<LayoutSpec> {
                         min_binding_size: None,
                     },
                 ),
+                entry(
+                    5,
+                    ShaderStages::COMPUTE,
+                    BindingType::Buffer {
+                        ty: BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                ),
             ],
         ),
         visibility::mask_rows(),

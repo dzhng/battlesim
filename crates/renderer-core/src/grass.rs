@@ -60,10 +60,15 @@ pub struct GrassData<'a> {
 }
 
 pub struct Grass {
+    count: BoundCompute,
     build: BoundCompute,
     finish: BoundCompute,
     draw: Bound,
     build_group: BindGroup,
+    build_layout: BindGroupLayout,
+    heights: Buffer,
+    /// Per tile: its total/offset followed by each lane's offset.
+    ranges: Buffer,
     draw_groups: Vec<BindGroup>,
     params: Buffer,
     props: Buffer,
@@ -133,6 +138,12 @@ impl Grass {
                 | BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
+        let ranges = device.create_buffer(&BufferDescriptor {
+            label: Some("grass-ranges"),
+            size: u64::from(field::TILE_RANGES) * 8,
+            usage: storage,
+            mapped_at_creation: false,
+        });
         let build_group = bind(
             device,
             pipelines.layout("grassBuildLayout"),
@@ -143,6 +154,7 @@ impl Grass {
                 props.as_entire_binding(),
                 clumps.as_entire_binding(),
                 args.as_entire_binding(),
+                ranges.as_entire_binding(),
             ],
         );
         let mut indices = Vec::new();
@@ -185,10 +197,14 @@ impl Grass {
             tiers.push(tier);
         }
         Self {
+            count: pipelines.bound_compute("grassCount"),
             build: pipelines.bound_compute("grassBuild"),
             finish: pipelines.bound_compute("grassFinish"),
             draw: pipelines.bound("grassDraw"),
             build_group,
+            build_layout: pipelines.layout("grassBuildLayout").clone(),
+            heights: heights.clone(),
+            ranges,
             draw_groups,
             params,
             props,
@@ -225,8 +241,9 @@ impl Grass {
 
     /// Fits the window to `presentation`'s last frame and, if its view
     /// moved, writes the parameters for a regrow.
-    pub fn prepare(&mut self, queue: &Queue, presentation: &Presentation) {
+    pub fn prepare(&mut self, device: &Device, queue: &Queue, presentation: &Presentation) {
         self.prepare_records(
+            device,
             queue,
             presentation.grass_window(),
             &presentation.last_frame().camera,
@@ -239,6 +256,7 @@ impl Grass {
     /// only when a regrow is needed.
     pub fn prepare_records(
         &mut self,
+        device: &Device,
         queue: &Queue,
         window: Option<(Window, f64)>,
         camera: &presentation::records::Camera,
@@ -261,6 +279,31 @@ impl Grass {
         }
         self.grown_for = Some(key);
         self.regrow = true;
+        let bytes = u64::from(window.tiles_x)
+            * u64::from(window.tiles_y)
+            * u64::from(field::TILE_RANGES)
+            * 8;
+        if self.ranges.size() < bytes {
+            self.ranges = device.create_buffer(&BufferDescriptor {
+                label: Some("grass-ranges"),
+                size: bytes.next_power_of_two(),
+                usage: BufferUsages::STORAGE,
+                mapped_at_creation: false,
+            });
+            self.build_group = bind(
+                device,
+                &self.build_layout,
+                "grass-build",
+                &[
+                    self.params.as_entire_binding(),
+                    self.heights.as_entire_binding(),
+                    self.props.as_entire_binding(),
+                    self.clumps.as_entire_binding(),
+                    self.args.as_entire_binding(),
+                    self.ranges.as_entire_binding(),
+                ],
+            );
+        }
         write_params(&mut self.words, &self.window);
         queue.write_buffer(&self.params, 0, bytemuck::cast_slice(&self.words));
         let mut args = [0u32; ARGS_WORDS];
@@ -300,10 +343,12 @@ impl Grass {
             timestamp_writes: None,
         });
         let own = ("grassBuildLayout", &self.build_group);
-        self.build.set(&mut pass, &[own, terrain]);
+        self.count.set(&mut pass, &[own, terrain]);
         pass.dispatch_workgroups(self.window.tiles_x, self.window.tiles_y, 1);
         self.finish.set(&mut pass, &[own]);
         pass.dispatch_workgroups(1, 1, 1);
+        self.build.set(&mut pass, &[own, terrain]);
+        pass.dispatch_workgroups(self.window.tiles_x, self.window.tiles_y, 1);
     }
 
     /// Both tiers into the world's colour pass; `groups` the frame's.
@@ -329,6 +374,7 @@ impl Grass {
             &self.clumps,
             &self.shapes,
             &self.args,
+            &self.ranges,
         ] {
             memory.buffer(buffer);
         }

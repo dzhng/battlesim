@@ -334,7 +334,7 @@ impl Runtime {
                 .prepare(queue, bytemuck::bytes_of(&fit.receiver), &cameras);
         }
         if let Some(grass) = self.grass.as_mut().filter(|_| self.config.controls.grass) {
-            grass.prepare(queue, presentation);
+            grass.prepare(device, queue, presentation);
         }
         if changed {
             self.models.prepare(device, queue, frame)?;

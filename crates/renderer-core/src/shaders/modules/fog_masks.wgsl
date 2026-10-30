@@ -238,10 +238,8 @@ fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
   let n = s.normal.xyz;
   let colour = packed.xyz;
   out.clip = cam.viewProj * vec4f(world, 1.0);
-  // Blades cross each other: where two meet at (nearly) one depth the winner
-  // is left to the hardware and changes frame to frame. A per-blade nudge of
-  // up to a two-thousandth of the depth (5 cm at 100 m, a few millimetres
-  // near the eye) separates every such pair the same way each frame.
+  // A small, stable per-blade depth nudge reduces nearly coplanar crossings.
+  // Equal stored depths still rely on the clumps' deterministic draw order.
   let tie = ((bitcast<u32>(c.root.x) * 2654435761u) ^ (bitcast<u32>(c.root.y) * 2246822519u)) + (vid / tier.z) * 374761393u;
   out.clip.z *= 1.0 + 1e-3 * (f32(tie >> 8u) / 16777216.0 - 0.5);
   out.world = world;

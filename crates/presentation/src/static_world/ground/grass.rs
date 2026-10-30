@@ -25,6 +25,9 @@ const PROP_PAD_M: f64 = 0.05;
 pub const TILE_M: f64 = 4.0;
 /// Tiles a side the window may hold (the build dispatch's bound).
 pub const MAX_TILES: u32 = 256;
+/// GPU lanes that grow one tile; its scratch holds a tile range and a range per lane.
+pub const BUILD_LANES: u32 = 64;
+pub const TILE_RANGES: u32 = BUILD_LANES + 1;
 /// Segments a blade in each LOD tier of a grass kind, finest first (the
 /// scene assets' `GRASS_SEGMENTS`, which the bake writes).
 const KIND_SEGMENTS: [u32; 4] = [4, 3, 2, 1];
