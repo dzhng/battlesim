@@ -50,7 +50,7 @@ fn composeFog(pixel: vec2f) -> vec4f {
   let s = look;
   var unseen = m.x;
   if (s.edgeSoftnessPx > 0.0) {
-    let toSeen = textureLoad(maskDistance, p, 0).y * 16.0;
+    let toSeen = textureLoad(maskDistance, p, 0).y * FOG_MASK_DISTANCE_CAP_PX;
     unseen *= smoothstep(0.0, 1.0, (toSeen - 0.5) / s.edgeSoftnessPx);
   }
   return vec4f(mix(lit.xyz, fogLook(lit.xyz, pixel, s), unseen), lit.w);
@@ -81,14 +81,14 @@ fn distanceColumns(pixel: vec2f) -> vec4f {
   if (textureLoad(mask, p, 0).z <= 0.5) { return vec4f(1.0, 1.0, 0.0, 1.0); }
   let height = i32(textureDimensions(rows).y);
   let reach = i32(look.reachPx);
-  var best = vec2f(16.0 * 16.0);
+  var best = vec2f(FOG_MASK_DISTANCE_CAP_PX * FOG_MASK_DISTANCE_CAP_PX);
   for (var k = -reach; k <= reach; k++) {
     let y = p.y + k;
     if (y < 0 || y >= height) { continue; }
-    let row = textureLoad(rows, vec2i(p.x, y), 0).xy * 16.0;
+    let row = textureLoad(rows, vec2i(p.x, y), 0).xy * FOG_MASK_DISTANCE_CAP_PX;
     best = min(best, row * row + vec2f(f32(k * k)));
   }
-  return vec4f(min(sqrt(best), vec2f(16.0)) / 16.0, 0.0, 1.0);
+  return vec4f(min(sqrt(best), vec2f(FOG_MASK_DISTANCE_CAP_PX)) / FOG_MASK_DISTANCE_CAP_PX, 0.0, 1.0);
 }
 
 // @block fog_masks_maskDistance
@@ -109,7 +109,7 @@ fn rimAt(pixel: vec2f) -> vec4f {
   if (seen <= 0.0 || m.x > 0.5 || s.rimAlpha <= 0.0 || s.rimWidthPx <= 0.0) {
     return vec4f(0.0);
   }
-  let toUnseen = textureLoad(maskDistance, p, 0).x * 16.0;
+  let toUnseen = textureLoad(maskDistance, p, 0).x * FOG_MASK_DISTANCE_CAP_PX;
   let cover = clamp(s.rimWidthPx + 1.0 - toUnseen, 0.0, 1.0);
   return vec4f(s.rimColor, s.rimAlpha * cover * seen);
 }
@@ -122,14 +122,14 @@ fn distanceRows(pixel: vec2f) -> vec4f {
   let p = vec2i(pixel);
   let width = i32(textureDimensions(mask).x);
   let reach = i32(look.reachPx);
-  var best = vec2f(16.0);
+  var best = vec2f(FOG_MASK_DISTANCE_CAP_PX);
   for (var k = -reach; k <= reach; k++) {
     let x = p.x + k;
     if (x < 0 || x >= width) { continue; }
     let side = groundSide(textureLoad(mask, vec2i(x, p.y), 0));
-    best = min(best, select(vec2f(16.0), vec2f(f32(abs(k))), side > vec2f(0.5)));
+    best = min(best, select(vec2f(FOG_MASK_DISTANCE_CAP_PX), vec2f(f32(abs(k))), side > vec2f(0.5)));
   }
-  return vec4f(best / 16.0, 0.0, 1.0);
+  return vec4f(best / FOG_MASK_DISTANCE_CAP_PX, 0.0, 1.0);
 }
 
 // @block fog_masks_groundSide
@@ -137,3 +137,6 @@ fn groundSide(m: vec4f) -> vec2f {
   if (m.z <= 0.5) { return vec2f(0.0); }
   return vec2f(f32(m.x > 0.5 && m.y <= 0.0), f32(m.y > 0.5 && m.x <= 0.0));
 }
+
+// @block fog_masks_FOG_MASK_DISTANCE_CAP_PX
+const FOG_MASK_DISTANCE_CAP_PX = 16.0;
