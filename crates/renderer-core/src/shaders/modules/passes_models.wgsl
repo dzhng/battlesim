@@ -174,7 +174,7 @@ fn growTile(wg: vec3u, li: u32, emit: bool, first: vec2u) -> vec2u {
     let root = vec3f(p, grassGround(p));
     // The side's learned scars: craters, scorch and tracks leave clumps out.
     let scar = groundScars(p, footprint);
-    let S = scarParams.grass;
+    let S = scarParams.look.grass;
     let bare = max(max(scar.weights.x, scar.weights.y), scar.weights.z * S.y) * S.x;
     // Sparse patches: the stand thins there and nowhere thickens.
     let sparse = 1.0 - smoothstep(GRASS_STAND_SPARSE_FROM, GRASS_STAND_SPARSE_TO, valueNoise(p * (*P).patchScales.y + vec2f(41.7, 13.1)));

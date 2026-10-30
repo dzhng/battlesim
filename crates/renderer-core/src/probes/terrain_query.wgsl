@@ -37,8 +37,8 @@ fn originalTerrainCubic(uv: vec2f) -> vec4f {
 
 // Select the same production scar tiles for an explicit normalized sample.
 fn terrainLinear(uv: vec2f) -> vec4f {
-  let last=vec2i(scarParams.pages.xy)-1;
-  let cell=vec2i(floor(scarFilterPosition(uv,vec2f(scarParams.pages.xy))));
+  let last=vec2i(scarParams.cache.pages.xy)-1;
+  let cell=vec2i(floor(scarFilterPosition(uv,vec2f(scarParams.cache.pages.xy))));
   return scarLinear(uv,scarTiles(vec2u(clamp(cell,vec2i(0),last)),vec2u(clamp(cell+1,vec2i(0),last))));
 }
 

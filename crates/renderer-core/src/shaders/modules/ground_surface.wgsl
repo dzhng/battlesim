@@ -260,7 +260,7 @@ fn groundCubicTap(cubic: GroundCubic, k: u32) -> vec2f {
 
 // @block ground_surface_groundCubic
 fn groundCubic(uv: vec2f) -> GroundCubic {
-  let size = vec2f(scarParams.pages.xy);
+  let size = vec2f(scarParams.cache.pages.xy);
   let p = uv * size - 0.5;
   let i = floor(p);
   let f = p - i;

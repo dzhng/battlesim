@@ -388,7 +388,7 @@ fn grass_probes_decode_actual_tier_buffers_and_snapshot_counts_before_a_later_fr
         &pipelines,
         &heights,
         GrassData {
-            params: &[0; 1024],
+            params: &presentation::records::GrassParams::default(),
             props: &[0; 4],
             shapes: &[0.0; 16],
             max_blades: 1,

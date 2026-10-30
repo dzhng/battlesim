@@ -96,7 +96,7 @@ impl Ground {
         facts: &[KindFacts],
         limits: &Limits,
         quality: &Quality,
-    ) -> Result<Vec<u32>, String> {
+    ) -> Result<GrassParams, String> {
         let (rules, names) = (&self.biome.grass, self.grass_kinds());
         if self.biome.plots.len() > GROWTH_ROWS - 1 {
             return Err(format!(
@@ -193,7 +193,7 @@ impl Ground {
             }),
             ..GrassParams::default()
         };
-        Ok(bytemuck::cast_slice(bytemuck::bytes_of(&params)).to_vec())
+        Ok(params)
     }
 
     /// The window of tiles a camera at `eye` grows grass over, by the
@@ -513,13 +513,13 @@ pub fn window(eye: [f64; 3], lowest: f64, metres_per_px: f64, rules: &GrassRules
     }
 }
 
-/// Writes a frame's fields into a complete `GrassParams` record's words (as
+/// Writes a frame's fields into a complete `GrassParams` record (as
 /// [`Ground::grass_params`] laid them): the view's four side planes from its
 /// view-projection (inward normal, offset; near and far are left out, the
 /// reach bounds the field), the eye and `metres_per_px`, the window's corner
 /// and tile, and its tiles.
 pub fn frame_params(
-    words: &mut [u32],
+    params: &mut GrassParams,
     view_proj: &[f32; 16],
     eye: [f64; 3],
     metres_per_px: f64,
@@ -556,7 +556,6 @@ pub fn frame_params(
         plane(r1, 1.0),
         plane(r1, -1.0),
     ];
-    let params: &mut GrassParams = bytemuck::from_bytes_mut(bytemuck::cast_slice_mut(words));
     params.planes = planes.map(f4);
     params.eye = f4([eye[0], eye[1], eye[2], metres_per_px]);
     params.window[..3].copy_from_slice(&[window.x0 as f32, window.y0 as f32, TILE_M as f32]);

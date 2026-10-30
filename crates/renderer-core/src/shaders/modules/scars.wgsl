@@ -6,7 +6,7 @@ fn groundScarsSeen(world: vec3f, eye: vec3f, footprint: f32) -> ScarSample {
   // One call in the loop, as a shader compiler inlines each call.
   let view = normalize(eye - world);
   let run = -view.xy / max(view.z, GROUND_SCARS_SEEN_GRAZING);
-  let deep = scarParams.relief.x;
+  let deep = scarParams.look.relief.x;
   var scar: ScarSample;
   var at = world.xy;
   for (var i = 0; i < 3; i++) {
@@ -18,12 +18,14 @@ fn groundScarsSeen(world: vec3f, eye: vec3f, footprint: f32) -> ScarSample {
 }
 
 // @block scars_ScarParams
-struct ScarParams {
+struct ScarCacheParams {
   grid: vec4f,
   pages: vec4u,
   clip: vec4f,
   cacheBounds: vec4u,
   defaultWord: vec4u,
+}
+struct ScarLook {
   full: vec4f,
   crater: vec4f,
   ejecta: vec4f,
@@ -32,6 +34,10 @@ struct ScarParams {
   trampled: vec4f,
   relief: vec4f,
   grass: vec4f,
+}
+struct ScarParams {
+  cache: ScarCacheParams,
+  look: ScarLook,
 }
 
 // @block scars_scarredSurface
@@ -57,19 +63,19 @@ fn scarredSurface(surface: vec4f, scar: ScarSample) -> vec4f {
   var roughness = surface.w;
   let grain = valueNoise(xy * GROUND_SCAR_SURFACE_GRAIN_SCALE);
   let fleck = valueNoise(xy * GROUND_SCAR_SURFACE_FLECK_SCALE + vec2f(2.2, 9.1));
-  albedo = mix(albedo, P.trampled.xyz * mix(GROUND_SCAR_SURFACE_TRAMPLED_FROM, GROUND_SCAR_SURFACE_TRAMPLED_TO, grain), w.w * P.trampled.w);
-  albedo = mix(albedo, P.tracks.xyz * mix(GROUND_SCAR_SURFACE_TRACKS_FROM, GROUND_SCAR_SURFACE_TRACKS_TO, grain), w.z * P.tracks.w);
+  albedo = mix(albedo, P.look.trampled.xyz * mix(GROUND_SCAR_SURFACE_TRAMPLED_FROM, GROUND_SCAR_SURFACE_TRAMPLED_TO, grain), w.w * P.look.trampled.w);
+  albedo = mix(albedo, P.look.tracks.xyz * mix(GROUND_SCAR_SURFACE_TRACKS_FROM, GROUND_SCAR_SURFACE_TRACKS_TO, grain), w.z * P.look.tracks.w);
   // Soot is uneven: ash grey and char black in flecks and drifts.
   let ash = mix(GROUND_SCAR_SURFACE_ASH_FROM, GROUND_SCAR_SURFACE_ASH_TO, fleck * GROUND_SCAR_SURFACE_ASH_BROAD_WEIGHT + valueNoise(xy * GROUND_SCAR_SURFACE_ASH_DRIFT_SCALE + vec2f(4.4, 0.3)) * GROUND_SCAR_SURFACE_ASH_FINE_WEIGHT);
-  albedo = mix(albedo, P.scorch.xyz * ash, w.y * P.scorch.w);
-  let ring = scar.relief.z * P.ejecta.w;
-  albedo = mix(albedo, P.ejecta.xyz * mix(GROUND_SCAR_SURFACE_SOIL_FROM, GROUND_SCAR_SURFACE_SOIL_TO, fleck), ring);
-  let bowl = w.x * P.crater.w;
+  albedo = mix(albedo, P.look.scorch.xyz * ash, w.y * P.look.scorch.w);
+  let ring = scar.relief.z * P.look.ejecta.w;
+  albedo = mix(albedo, P.look.ejecta.xyz * mix(GROUND_SCAR_SURFACE_SOIL_FROM, GROUND_SCAR_SURFACE_SOIL_TO, fleck), ring);
+  let bowl = w.x * P.look.crater.w;
   // The deeper, the darker: the floor sees less sky than the lip.
   let cavity = mix(1.0, GROUND_SCAR_SURFACE_CAVITY, saturate(scar.relief.w));
-  albedo = mix(albedo, P.crater.xyz * mix(GROUND_SCAR_SURFACE_SOIL_FROM, GROUND_SCAR_SURFACE_SOIL_TO, fleck) * cavity, bowl);
+  albedo = mix(albedo, P.look.crater.xyz * mix(GROUND_SCAR_SURFACE_SOIL_FROM, GROUND_SCAR_SURFACE_SOIL_TO, fleck) * cavity, bowl);
   // Churned soil and ash are fully rough: a tilted wall never catches sky.
-  roughness = mix(roughness, 1.0, max(w.y * P.scorch.w, max(bowl, ring)));
+  roughness = mix(roughness, 1.0, max(w.y * P.look.scorch.w, max(bowl, ring)));
   return vec4f(albedo, roughness);
 }
 
@@ -119,15 +125,15 @@ fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
   var out: ScarSample;
   out.at = vec4f(xy, 0.0, 0.0);
   let P = scarParams;
-  if (P.grid.w <= 0.0) { return out; }
-  let cell = P.grid.z;
-  let uv = xy * P.grid.xy;
+  if (P.cache.grid.w <= 0.0) { return out; }
+  let cell = P.cache.grid.z;
+  let uv = xy * P.cache.grid.xy;
   if (any(uv < vec2f(0.0)) || any(uv > vec2f(1.0))) { return out; }
-  let texel = P.grid.xy * cell;
+  let texel = P.cache.grid.xy * cell;
   // Every cell the taps below read is in these tiles: where none is marked,
   // every tap is zero, and the cheap reject would return the same.
-  let centre = uv * vec2f(P.pages.xy) - 0.5;
-  let last = vec2i(P.pages.xy) - 1;
+  let centre = uv * vec2f(P.cache.pages.xy) - 0.5;
+  let last = vec2i(P.cache.pages.xy) - 1;
   let tiles = scarTiles(
     vec2u(clamp(vec2i(floor(centre - 3.0)), vec2i(0), last)),
     vec2u(clamp(vec2i(floor(centre + 3.0)) + 1, vec2i(0), last)));
@@ -170,7 +176,7 @@ fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
   let yp = taps[10];
   let ym = taps[11];
   let detail = 1.0 - smoothstep(GROUND_SCARS_DETAIL_FADE_FROM, GROUND_SCARS_DETAIL_FADE_TO, footprint / cell);
-  let k = P.full;
+  let k = P.look.full;
   let depth = min(s.x * k.x, GROUND_SCAR_DEPTH_CAP);
   let wide = min((a.x + b.x + c.x + e.x) * 0.25 * k.x, GROUND_SCAR_DEPTH_CAP);
   // Slopes per metre of the crater field, from the taps either side.
@@ -178,7 +184,7 @@ fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
   let wideSlope = vec2f((b.x + e.x) - (a.x + c.x), (c.x + e.x) - (a.x + b.x)) * 0.5 * k.x / (2.0 * r * cell);
   // The height: down into the bowl, up onto the rim just outside it.
   let onRim = select(0.0, 1.0, wide > depth);
-  let slope = (P.relief.y * onRim * (wideSlope - bowlSlope) - bowlSlope) * P.relief.x * detail;
+  let slope = (P.look.relief.y * onRim * (wideSlope - bowlSlope) - bowlSlope) * P.look.relief.x * detail;
   // Iso-lines, each crossing within a pixel.
   let grain = valueNoise(xy * GROUND_SCARS_LIP_WANDER_PER_M + vec2f(5.7, 2.1)) - 0.5;
   let pixelDepth = length(bowlSlope) * footprint;
@@ -221,13 +227,13 @@ fn scarCell(c: vec2u, e: vec2u) -> vec4f {
 // @block scars_scarEntry
 fn scarEntry(tile: vec2u) -> vec2u {
  let P=scarParams;
- if(any(tile<P.cacheBounds.xy)||any(tile>P.cacheBounds.zw)){return vec2u(0u);}
- let tilesX=(P.pages.x+15u)/16u;let key=tile.y*tilesX+tile.x;
- var at=((key*0x9e3779b1u)^(key>>16u))&P.pages.z;
+ if(any(tile<P.cache.cacheBounds.xy)||any(tile>P.cache.cacheBounds.zw)){return vec2u(0u);}
+ let tilesX=(P.cache.pages.x+15u)/16u;let key=tile.y*tilesX+tile.x;
+ var at=((key*0x9e3779b1u)^(key>>16u))&P.cache.pages.z;
  loop {let dim=textureDimensions(scarPages);let e=textureLoad(scarPages,vec2i(i32(at%dim.x),i32(at/dim.x)),0).xy;
   if(e.x==0u){break;}
-  if((e.x&SCAR_KEY_MASK)==key+1u){return e;}at=(at+1u)&P.pages.z;}
- return vec2u(SCAR_UNIFORM,P.defaultWord.x);
+  if((e.x&SCAR_KEY_MASK)==key+1u){return e;}at=(at+1u)&P.cache.pages.z;}
+ return vec2u(SCAR_UNIFORM,P.cache.defaultWord.x);
 }
 
 // @block scars_scarFilterAxis
@@ -257,10 +263,10 @@ fn scarFilterQuanta(a: vec4u, b: vec4u, c: vec4u, other: vec4u, f: vec2f) -> vec
 
 // @block scars_scarLinear
 fn scarLinear(uv: vec2f, tiles: ScarTiles) -> vec4f {
- let P=scarParams;let size=vec2f(P.pages.xy);let p=scarFilterPosition(uv,size);
+ let P=scarParams;let size=vec2f(P.cache.pages.xy);let p=scarFilterPosition(uv,size);
  let cell=vec2i(floor(p));let f=fract(p);var q=array<vec4u,4>();
  for(var k=0u;k<4u;k++){
-  let c=vec2u(clamp(cell+vec2i(i32(k&1u),i32(k>>1u)),vec2i(0),vec2i(P.pages.xy)-1));let e=scarTileEntry(tiles,c/16u);
+  let c=vec2u(clamp(cell+vec2i(i32(k&1u),i32(k>>1u)),vec2i(0),vec2i(P.cache.pages.xy)-1));let e=scarTileEntry(tiles,c/16u);
   // The cell's own tile, one word throughout, with all four corners in it.
   if(k==0u&&(e.x==0u||(e.x&SCAR_UNIFORM)!=0u)&&all(c%16u<vec2u(15u))){return scarWord(e.y);}
   q[k]=vec4u(round(scarCell(c,e)*255.0));
@@ -282,13 +288,13 @@ fn scarNormalized(q: u32) -> f32 {
 
 // @block scars_scarPoolWord
 fn scarPoolWord(offset: u32) -> vec4f {
- let width=scarParams.pages.w;
+ let width=scarParams.cache.pages.w;
  return textureLoad(scars,vec2i(i32(offset%width),i32(offset/width)),0,0);
 }
 
 // @block scars_scarRegionContains
 fn scarRegionContains(world: vec2f) -> bool {
-  let r = (&scarParams.clip);
+  let r = (&scarParams.cache.clip);
   return (((*r).z <= (*r).x) || ((((world.x >= (*r).x) && (world.y >= (*r).y)) && (world.x < (*r).z)) && (world.y < (*r).w)));
 }
 

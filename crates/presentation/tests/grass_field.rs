@@ -134,10 +134,14 @@ fn the_window_and_frame_params_are_the_browsers() {
         );
         let view_proj: [f32; 16] =
             std::array::from_fn(|i| f32::from_bits(words(&case["view_proj"])[i]));
-        let mut params = vec![0; presentation::records::GrassParams::LAYOUT.size / 4];
+        let mut params = presentation::records::GrassParams::default();
         frame_params(&mut params, &view_proj, eye, scale, &w);
         let expected = words(&case["words"]);
-        assert_eq!(params[..expected.len()], expected, "case {k} params");
+        assert_eq!(
+            bytemuck::cast_slice::<_, u32>(bytemuck::bytes_of(&params))[..expected.len()],
+            expected,
+            "case {k} params"
+        );
     }
 }
 

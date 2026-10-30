@@ -1,8 +1,7 @@
 //! The side's learned ground and the GPU's cache of its scars:
 //! [`LearnedGround`] keeps what the side's publications taught it, cell by
 //! cell, and [`ScarCache`] turns it into what a renderer uploads as it is:
-//! the directory's words, the pool's texels and `ScarParams`' words before
-//! the biome's look. The shared `terrain_scars.wgsl` shader reads them
+//! the directory's words, the pool's texels and `ScarCacheParams`. The shared `terrain_scars.wgsl` shader reads them
 //! (`scarEntry`, `scarCell`); a renderer derives nothing.
 //!
 //! A tile the directory lists is either one word (every cell alike) or a
@@ -36,9 +35,6 @@ pub const POOL_WORDS: u32 = POOL_WIDTH * POOL_HEIGHT;
 pub const NORMALIZATION_WORDS: u32 = 4096;
 /// The side of a region drawn alone when the marks don't fit at once, cells.
 pub const REGION_CELLS: usize = 1024;
-/// `ScarParams`' words before the look: grid, pages, clip, cache bounds,
-/// default word.
-pub const PARAMS_WORDS: usize = std::mem::offset_of!(crate::records::ScarParams, full) / 4;
 /// A grid axis past this many cells loses Q8 positions in the shader's f32.
 pub const MAX_AXIS: usize = (1 << 24) / 256;
 

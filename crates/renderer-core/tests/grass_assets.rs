@@ -33,5 +33,5 @@ fn every_summer_growth_row_fits_the_height_cap_with_its_catalog_kinds() {
     let params = ground
         .grass_params(&packed.facts, &LIMITS, &Quality { density: 1.0 })
         .unwrap();
-    assert!(f32::from_bits(params[23]) > 0.0);
+    assert!(params.window[3] > 0.0);
 }

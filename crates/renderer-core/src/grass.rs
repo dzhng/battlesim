@@ -52,7 +52,7 @@ pub fn pack_shapes(library: &impl BundleSource, names: &[String]) -> Result<Pack
 
 /// World-load inputs resolved by the presentation from the authored blade facts.
 pub struct GrassData<'a> {
-    pub params: &'a [u32],
+    pub params: &'a presentation::records::GrassParams,
     pub props: &'a [u32],
     pub shapes: &'a [f32],
     pub max_blades: u32,
@@ -77,7 +77,7 @@ pub struct Grass {
     tiers: Vec<Buffer>,
     /// `GrassParams` as the ground laid it, its per-frame fields rewritten
     /// each regrow.
-    words: Vec<u32>,
+    record: presentation::records::GrassParams,
     args: Buffer,
     capacity: [u32; 2],
     clump_stride: u64,
@@ -98,7 +98,7 @@ impl Grass {
         heights: &Buffer,
         data: GrassData<'_>,
     ) -> Self {
-        let words = data.params.to_vec();
+        let record = *data.params;
         let storage = BufferUsages::STORAGE;
         let uniform = BufferUsages::UNIFORM | BufferUsages::COPY_DST;
         let params = buffer(
@@ -106,7 +106,7 @@ impl Grass {
             queue,
             "grass-params",
             uniform,
-            bytemuck::cast_slice(&words),
+            bytemuck::bytes_of(&record),
         );
         let props = buffer(
             device,
@@ -211,7 +211,7 @@ impl Grass {
             clumps,
             shapes,
             tiers,
-            words,
+            record,
             args,
             capacity: data.capacity,
             clump_stride: pipelines.sizes.grass_clump,
@@ -247,7 +247,7 @@ impl Grass {
             queue,
             presentation.grass_window(),
             &presentation.last_frame().camera,
-            |words, window| presentation.grass_frame_params(words, window),
+            |params, window| presentation.grass_frame_params(params, window),
         );
     }
 
@@ -260,7 +260,7 @@ impl Grass {
         queue: &Queue,
         window: Option<(Window, f64)>,
         camera: &presentation::records::Camera,
-        write_params: impl FnOnce(&mut [u32], &Window),
+        write_params: impl FnOnce(&mut presentation::records::GrassParams, &Window),
     ) {
         self.drawn = false;
         self.regrow = false;
@@ -304,8 +304,8 @@ impl Grass {
                 ],
             );
         }
-        write_params(&mut self.words, &self.window);
-        queue.write_buffer(&self.params, 0, bytemuck::cast_slice(&self.words));
+        write_params(&mut self.record, &self.window);
+        queue.write_buffer(&self.params, 0, bytemuck::bytes_of(&self.record));
         let mut args = [0u32; ARGS_WORDS];
         args[0] = self.indices[0].1;
         args[5] = self.indices[1].1;

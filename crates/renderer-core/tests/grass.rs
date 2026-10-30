@@ -77,12 +77,12 @@ fn grass_regrowth_preserves_draw_order_and_selects_a_stable_prefix_when_full() {
         &gpu.queue,
         &pipelines,
         TerrainUpload {
-            params: bytemuck::cast_slice(&tables.params),
+            params: tables.params,
             nodes: bytemuck::cast_slice(&tables.nodes),
             plots: bytemuck::cast_slice(&ground.plot_records(true)),
             surfaces: bytemuck::cast_slice(&tables.surfaces),
             surface_index: bytemuck::cast_slice(&tables.surface_index),
-            scars: bytemuck::cast_slice(&tables.scars),
+            scars: tables.scars,
         },
     );
     let heights = renderer_core::buffer(
@@ -100,8 +100,8 @@ fn grass_regrowth_preserves_draw_order_and_selects_a_stable_prefix_when_full() {
         reach: 64.0,
     };
     let grow = |capacity: [u32; 2]| {
-        let mut params = params.clone();
-        params[26..28].copy_from_slice(&capacity);
+        let mut params = params;
+        params.grid[2..4].copy_from_slice(&capacity);
         let mut grass = Grass::from_data(
             &gpu.device,
             &gpu.queue,
@@ -123,10 +123,10 @@ fn grass_regrowth_preserves_draw_order_and_selects_a_stable_prefix_when_full() {
                 &gpu.queue,
                 Some((window, 1.0)),
                 &Default::default(),
-                |words, window| {
+                |params, window| {
                     // A fixed field view without frustum cuts; the density,
                     // ground, scars and placement still use the real pipeline.
-                    frame_params(words, &[0.0; 16], [32.0, 32.0, 4.0], 0.001, window);
+                    frame_params(params, &[0.0; 16], [32.0, 32.0, 4.0], 0.001, window);
                 },
             );
             let mut encoder = gpu.device.create_command_encoder(&Default::default());

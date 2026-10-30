@@ -147,12 +147,12 @@ impl Runtime {
             &pipelines,
             GroundData {
                 material: TerrainUpload {
-                    params: bytemuck::cast_slice(&tables.params),
+                    params: tables.params,
                     nodes: bytemuck::cast_slice(&tables.nodes),
                     plots: bytemuck::cast_slice(&plots),
                     surfaces: bytemuck::cast_slice(&tables.surfaces),
                     surface_index: bytemuck::cast_slice(&tables.surface_index),
-                    scars: bytemuck::cast_slice(&tables.scars),
+                    scars: tables.scars,
                 },
                 heights: &resolved.source.grid.pages(),
                 terrain: &world.geometry.terrain,
@@ -457,14 +457,8 @@ impl Runtime {
         self.config.fog_look = look;
     }
 
-    pub fn set_overlay_glow(&mut self, queue: &Queue, glow: [f32; 4]) {
-        let [radius_px, sigma_px, strength, pad] = glow;
-        self.overlay_glow = crate::records::OverlayGlow {
-            radius_px,
-            sigma_px,
-            strength,
-            pad,
-        };
+    pub fn set_overlay_glow(&mut self, queue: &Queue, glow: crate::records::OverlayGlow) {
+        self.overlay_glow = glow;
         self.overlays.write_glow(queue, &self.overlay_glow);
     }
 

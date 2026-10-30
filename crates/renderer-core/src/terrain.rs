@@ -5,7 +5,7 @@ use crate::pipelines::Pipelines;
 use crate::scars::Scars;
 use crate::water::{WaterDetail, WaterNormals};
 use crate::{bind, buffer};
-use presentation::records::TerrainParams;
+use presentation::records::{ScarLook, TerrainParams};
 use presentation::static_world::ground::Ground;
 
 fn table(
@@ -24,14 +24,14 @@ fn table(
 /// The presentation-owned table bytes consumed by `terrainLayout`.
 #[derive(Clone, Copy, Default)]
 pub struct TerrainUpload<'a> {
-    /// Canonical params without the renderer-owned final view vec4u.
-    pub params: &'a [u8],
+    /// Canonical material parameters, with renderer diagnostic modes initially zero.
+    pub params: TerrainParams,
     pub nodes: &'a [u8],
     pub plots: &'a [u8],
     pub surfaces: &'a [u8],
     pub surface_index: &'a [u8],
-    /// The biome look suffix of `ScarParams`; the scar cache owns its prefix.
-    pub scars: &'a [u8],
+    /// The biome appearance of scars; cache placement arrives per frame.
+    pub scars: ScarLook,
 }
 
 /// One owner for terrain tables, scar textures, the water's normal map and
@@ -50,16 +50,13 @@ pub struct TerrainResources {
 
 fn tables(device: &Device, queue: &Queue, upload: TerrainUpload<'_>) -> [Buffer; 5] {
     let storage = BufferUsages::STORAGE;
-    // The canonical table excludes the renderer's final view vec4u.
-    let mut params = upload.params.to_vec();
-    params.resize(TerrainParams::LAYOUT.size, 0);
     [
         table(
             device,
             queue,
             "terrain-params",
             BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-            &params,
+            bytemuck::bytes_of(&upload.params),
             16,
         ),
         table(device, queue, "terrain-nodes", storage, upload.nodes, 32),
@@ -98,7 +95,7 @@ impl TerrainResources {
         upload: TerrainUpload<'_>,
     ) -> Self {
         let tables = tables(device, queue, upload);
-        let scars = Scars::new(device, queue, bytemuck::cast_slice(upload.scars));
+        let scars = Scars::new(device, queue, upload.scars);
         let layout = pipelines.layout("terrainLayout").clone();
         let water_normals = WaterNormals::new(device, queue, pipelines);
         let group = Self::bind(device, &layout, &tables, &scars, &water_normals);

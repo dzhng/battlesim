@@ -105,7 +105,7 @@ crate::records! {
         caustics: [f32; 4],
     }
 
-    /// Terrain material tables, followed by the frame's view settings.
+    /// Terrain material tables and renderer diagnostic modes.
     Struct TerrainParams {
         region: [f32; 4],
         field: [f32; 4],
@@ -129,6 +129,7 @@ crate::records! {
         distant: [f32; 4],
         shore_tuning: ShoreTuning,
         water_looks: [WaterLook; crate::static_world::ground::biome::WATER_LOOKS_MAX],
+        /// Material class, disabled road wear, depth-only water, unused.
         view: [u32; 4],
     }
 
@@ -154,13 +155,23 @@ crate::records! {
         bases: [[u32; 4]; crate::static_world::ground::grass::MAX_KINDS],
     }
 
-    /// The scar cache prefix followed by the biome's look.
+    /// The cache placement and biome appearance of learned scars.
     Struct ScarParams {
+        cache: ScarCacheParams,
+        look: ScarLook,
+    }
+
+    /// The scar cache grid, clip, resident bounds and default cell.
+    Struct ScarCacheParams {
         grid: [f32; 4],
         pages: [u32; 4],
         clip: [f32; 4],
         cache_bounds: [u32; 4],
         default_word: [u32; 4],
+    }
+
+    /// Biome colours, relief and grass response to learned scars.
+    Struct ScarLook {
         full: [f32; 4],
         crater: [f32; 4],
         ejecta: [f32; 4],
@@ -247,12 +258,12 @@ crate::records! {
         appearance: u32,
         /// Detail tier, 0 finest; 4 is the impostor card.
         tier: u32,
-        /// `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`.
+        /// Rust pass names: `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`.
         pass: u32,
         /// Caster tier, or `NONE`. Static view batches cast through separate
         /// caster batches; dynamic models use `view::batch_caster`.
         caster: u32,
-        /// How fog of war takes it (`FOG_UNITS` and the rest).
+        /// How fog of war takes it (Rust's `FOG_UNITS` and related constants).
         fog: u32,
         /// Changes when the contents change.
         version: u32,
@@ -346,11 +357,11 @@ crate::records! {
         target: [f32; 4],
         /// Width and height (px), 1/height, pixels per metre at 1 m.
         size: [f32; 4],
-        /// The unit ray through the top-left corner, and its change across
-        /// the width and down the height (the sky's `Rays`: w unused).
+        /// Screen-corner rays for sky reconstruction.
         rays: Rays,
     }
 
+    /// The top-left unit ray and its changes across and down the screen; w unused.
     Struct Rays {
         origin: [f32; 4],
         dx: [f32; 4],

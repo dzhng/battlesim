@@ -58,11 +58,11 @@ export const Batch = {
   appearance: 1,
   /** Detail tier, 0 finest; 4 is the impostor card. (u32) */
   tier: 2,
-  /** `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`. (u32) */
+  /** Rust pass names: `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`. (u32) */
   pass: 3,
   /** Caster tier, or `NONE`. Static view batches cast through separate caster batches; dynamic models use `view::batch_caster`. (u32) */
   caster: 4,
-  /** How fog of war takes it (`FOG_UNITS` and the rest). (u32) */
+  /** How fog of war takes it (Rust's `FOG_UNITS` and related constants). (u32) */
   fog: 5,
   /** Changes when the contents change. (u32) */
   version: 6,

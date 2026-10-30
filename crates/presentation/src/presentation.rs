@@ -23,8 +23,8 @@ use crate::fog::sight::{
 };
 use crate::light::LightSettings;
 use crate::records::{
-    Appearance as Row, Batch, Camera as CameraRecord, CastLight, Counts, Effect, Emitter, Instance,
-    Joint, Pick, View as ViewRecord, GHOST_PASS, HIGH_PASS, NONE, VIEW_PASS,
+    Appearance as Row, Batch, Camera as CameraRecord, CastLight, Counts, Effect, Emitter,
+    GrassParams, Instance, Joint, Pick, View as ViewRecord, GHOST_PASS, HIGH_PASS, NONE, VIEW_PASS,
 };
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
 use crate::shadow::{aircraft_shadow, ReceiverStats, ShadowFit, SunShadowFrame};
@@ -834,14 +834,12 @@ impl Presentation {
         Some((ground.grass_window(c.eye, metres_per_px), metres_per_px))
     }
 
-    /// Writes the last frame's fields into `GrassParams`' `words` for
-    /// `window` (`grass_window`'s): its view's side planes, its eye and
-    /// pixel span, and the window.
-    pub fn grass_frame_params(&self, words: &mut [u32], window: &Window) {
+    /// Fill the grass view and tile window from the last framed camera.
+    pub fn grass_frame_params(&self, params: &mut GrassParams, window: &Window) {
         let Some(c) = &self.camera else { return };
         let metres_per_px = metres_per_pixel(c.fov_y, f64::from(c.size[1].max(1)));
         let view_proj: &[f32; 16] = self.frame.camera.view_proj.first_chunk().unwrap();
-        frame_params(words, view_proj, c.eye, metres_per_px, window);
+        frame_params(params, view_proj, c.eye, metres_per_px, window);
     }
 
     pub fn shadow_stats(&self) -> ReceiverStats {

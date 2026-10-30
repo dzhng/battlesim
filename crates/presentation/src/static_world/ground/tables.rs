@@ -6,10 +6,9 @@ use super::field::{Field, FOOTPRINT_M};
 use super::plots::NODE;
 use super::{is_road, Ground, RIVER};
 use crate::records::{
-    PlotNode, PlotRecord, RoadLook, ScarParams, ShoreTuning, TerrainParams, WaterLook,
+    PlotNode, PlotRecord, RoadLook, ScarLook, ShoreTuning, TerrainParams, WaterLook,
 };
 use std::f64::consts::SQRT_2;
-use std::mem::offset_of;
 
 /// The most levels the material's surface field may build: the widest is
 /// far past any map.
@@ -44,19 +43,13 @@ fn tan_deg(deg: f64) -> f64 {
     libm::tan(deg * std::f64::consts::PI / 180.0)
 }
 
-/// The surface field's grid as the material's parameters carry it.
+/// Material tables derived from a ground surface field.
 pub struct TerrainTables {
-    pub heights: Vec<u32>,
     pub nodes: Vec<u32>,
-    pub plots: Vec<u32>,
-    /// `TerrainParams` but its last `vec4u` (`view`), the frame's own.
-    pub params: Vec<u32>,
-    /// `ScarParams` from `full` on: the look; the grid and cache words
-    /// before it are the frame's.
-    pub scars: Vec<u32>,
+    pub params: TerrainParams,
+    pub scars: ScarLook,
     pub surfaces: Vec<f32>,
     pub surface_index: Vec<u32>,
-    pub water: Vec<f32>,
 }
 
 impl Ground {
@@ -104,7 +97,7 @@ impl Ground {
 
     /// The plots' records; without `textured`, their rows and dry patches
     /// alone (a paired cost measure).
-    pub fn plot_records(&self, textured: bool) -> Vec<u32> {
+    pub fn plot_records(&self, textured: bool) -> Vec<PlotRecord> {
         let mut records = Vec::with_capacity(self.plots.plots.len().max(1));
         for p in &self.plots.plots {
             let k = &self.biome.plots[p.kind];
@@ -118,8 +111,9 @@ impl Ground {
                 tram: f4([on(k.tram.rows), k.tram.width_m / 2.0, k.tram.contrast, 0.0]),
             });
         }
+        // A storage binding cannot be empty.
         records.resize(records.len().max(1), PlotRecord::default());
-        bytemuck::cast_slice(&records).to_vec()
+        records
     }
 
     /// How far a crater's bowl moves the scars read along a view ray
@@ -189,7 +183,7 @@ impl Ground {
         looks
     }
 
-    /// Every terrain table but the scars' grid, from `field` (`terrain_field`).
+    /// Terrain material inputs and scar appearance from `field` (`terrain_field`).
     pub fn terrain_tables(&self, field: Field) -> TerrainTables {
         let (s, b) = (&self.source, &self.biome);
         let mut nodes: Vec<PlotNode> = self
@@ -203,6 +197,7 @@ impl Ground {
                 children: [n[3] as i32, n[4] as i32, 0, 0],
             })
             .collect();
+        // A storage binding cannot be empty.
         nodes.resize(nodes.len().max(1), PlotNode::default());
         let one = |key: &str| linear(b.palette(key)[0]);
         let rules = &b.field_rules;
@@ -265,7 +260,7 @@ impl Ground {
         };
         let sc = &b.scars;
         let mark = |palette: &str, strength: f64| f4(rgb(one(palette), strength));
-        let scars = ScarParams {
+        let scars = ScarLook {
             full: f4(
                 [&sc.crater.mark, &sc.scorch, &sc.tracks, &sc.trampled].map(|m| 255.0 / m.full)
             ),
@@ -276,23 +271,13 @@ impl Ground {
             trampled: mark(&sc.trampled.palette, sc.trampled.strength),
             relief: f4([sc.crater.relief_m, sc.crater.rim, 0.0, 0.0]),
             grass: f4([sc.grass.thin, sc.grass.tracks_thin, sc.grass.flatten, 0.0]),
-            ..ScarParams::default()
         };
         TerrainTables {
-            heights: s.grid.pages(),
             nodes: bytemuck::cast_slice(&nodes).to_vec(),
-            plots: self.plot_records(true),
-            params: bytemuck::cast_slice(
-                &bytemuck::bytes_of(&params)[..offset_of!(TerrainParams, view)],
-            )
-            .to_vec(),
-            scars: bytemuck::cast_slice(
-                &bytemuck::bytes_of(&scars)[offset_of!(ScarParams, full)..],
-            )
-            .to_vec(),
+            params,
+            scars,
             surfaces: field.records,
             surface_index: field.index,
-            water: self.water_cells(),
         }
     }
 

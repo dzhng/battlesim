@@ -11,6 +11,7 @@ presentation::records! {
         pad: u32,
     }
 
+    /// The view, observer and shared lighting of lit world surfaces.
     Struct Environment {
         world_to_view: [f32; 16],
         observer: [f32; 4],
@@ -18,6 +19,7 @@ presentation::records! {
         aerial: Aerial,
     }
 
+    /// The active light count and bounded cast-light table.
     Struct CastLights {
         header: [f32; 4],
         lights: [CastLight; CAST_LIGHTS_MAX],
@@ -32,6 +34,7 @@ presentation::records! {
         pad: [u32; 3],
     }
 
+    /// Visibility and paint modes for one submitted layer.
     Struct FogLayer {
         ground: u32,
         seen: u32,
@@ -39,6 +42,7 @@ presentation::records! {
         pad: u32,
     }
 
+    /// Material and grass responses to the resolved ground paint.
     Struct GroundPaintStyle {
         albedo: f32,
         emissive: f32,
@@ -49,6 +53,7 @@ presentation::records! {
         pad: [f32; 2],
     }
 
+    /// Display-space blur radius, spread and strength of overlay glow.
     Struct OverlayGlow {
         radius_px: f32,
         sigma_px: f32,

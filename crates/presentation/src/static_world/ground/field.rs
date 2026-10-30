@@ -82,23 +82,17 @@ pub fn field(
     strokes: &[f32],
     reach: &[[f64; 3]],
 ) -> Result<Field, String> {
-    let mut records: Vec<SurfaceRecord> = vec![];
+    let mut records: Vec<f32> = vec![];
     // Per record: kind, rule, forest shape, whether cells list it.
     let mut meta: Vec<(u32, usize, Option<usize>, bool)> = vec![];
     let [mut min_x, mut min_y, mut max_x, mut max_y] = s.map;
     // A record of `source`, its first `points` pairs positions, `tail` last.
     let mut put =
         |source: &[f32], tail: f32, points: usize, m: (u32, usize, Option<usize>, bool)| {
-            let value = |i| source.get(i).copied().unwrap_or(0.0);
-            records.push(SurfaceRecord {
-                ends: std::array::from_fn(value),
-                detail: [
-                    value(4),
-                    value(5),
-                    value(6),
-                    source.get(7).copied().unwrap_or(tail),
-                ],
-            });
+            let mut record = [0.0; FLOATS];
+            record[..source.len()].copy_from_slice(source);
+            record[FLOATS - 1] = source.get(FLOATS - 1).copied().unwrap_or(tail);
+            records.extend(record);
             for p in chunks::<2>(&source[..points * 2]) {
                 (min_x, max_x) = (min_x.min(p[0] as f64), max_x.max(p[0] as f64));
                 (min_y, max_y) = (min_y.min(p[1] as f64), max_y.max(p[1] as f64));
@@ -169,8 +163,7 @@ pub fn field(
         return Err("surface field: too many ground primitives".into());
     }
     // A storage binding cannot be empty: the table holds a record at least.
-    records.resize(records.len().max(1), SurfaceRecord::default());
-    let records: Vec<f32> = bytemuck::cast_slice(&records).to_vec();
+    records.resize(records.len().max(FLOATS), 0.0);
 
     // The grid covers the map and every primitive, so a point past it is
     // nearer the border cell it clamps to than to anything listed elsewhere.
