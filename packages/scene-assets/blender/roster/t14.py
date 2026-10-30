@@ -113,9 +113,17 @@ def t14_turret(v, turret, base):
         # Afganit: a rack of launcher tubes under each flank's overhang,
         # pointing out and up.
         for j in range(5):
-            cyl(f"afganit_{s}_{j}", 0.06, 0.38, (-0.15 - j * 0.15, side * 1.40, z0 + 0.14), "Y", m["paint"], turret,
+            launcher_y = side * 1.40
+            launcher_z = z0 + 0.14
+            cyl(f"afganit_{s}_{j}", 0.06, 0.38, (-0.15 - j * 0.15, launcher_y, launcher_z), "Y", m["paint"], turret,
                 seg=12, rot=(side * -0.35, 0, 0), lods=MID)
-            cyl(f"afganit_bore_{s}_{j}", 0.045, 0.01, (-0.15 - j * 0.15, side * 1.59, z0 + 0.21), "Y", m["black"],
+            # Position bore at launcher end, accounting for tilt
+            import math as _m
+            bore_offset_y = 0.19 * _m.cos(0.35)
+            bore_offset_z = 0.19 * _m.sin(0.35) * side
+            bore_y = launcher_y + side * bore_offset_y
+            bore_z = launcher_z + bore_offset_z
+            cyl(f"afganit_bore_{s}_{j}", 0.045, 0.04, (-0.15 - j * 0.15, bore_y, bore_z), "Y", m["black"],
                 turret, seg=10, rot=(side * -0.35, 0, 0), lods=FINE)
         VP.smoke_discharger_bank(f"smoke_{s}", (0.40, side * 1.40, z1 - 0.08), m, turret, count=4, tube_radius=0.045,
                                  tube_length=0.20, elevation=0.35, spread=0.4, rot=(0, 0, side * 0.9))

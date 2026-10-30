@@ -1,0 +1,117 @@
+{
+  "_comment": "Allowlist of intentional geometry gaps. ONLY for: cab interiors, parts buried inside other geometry, articulating components requiring clearance, and genuinely thin structural elements on aircraft.",
+  "patterns": [
+    {
+      "part_pattern": "gear_nose_*",
+      "reason": "Landing gear nose strut requires articulation clearance for steering"
+    },
+    {
+      "part_pattern": "gear_*_brace",
+      "reason": "Landing gear braces require articulation clearance"
+    },
+    {
+      "part_pattern": "rear_door",
+      "reason": "Rear ramps/doors require articulation clearance for opening"
+    },
+    {
+      "part_pattern": "clamshell_seam*",
+      "reason": "Clamshell door seams require articulation clearance"
+    },
+    {
+      "part_pattern": "gun_yoke_*",
+      "reason": "Gun yokes require elevation/traverse articulation clearance"
+    },
+    {
+      "part_pattern": "barrel_root",
+      "reason": "Gun barrel root requires elevation clearance in mantlet"
+    },
+    {
+      "part_pattern": "*_sleeve",
+      "reason": "Gun sleeves require elevation clearance in mantlet"
+    },
+    {
+      "part_pattern": "*_mg_port*",
+      "reason": "Machine gun ports require traverse clearance for firing"
+    },
+    {
+      "part_pattern": "door_window*",
+      "reason": "Door windows recessed in frames by design"
+    },
+    {
+      "part_pattern": "*_door_glass*",
+      "reason": "Door glass panels recessed in frames by design"
+    },
+    {
+      "part_pattern": "*_ammo",
+      "reason": "Ammo boxes on weapon stations need clearance for reloading access"
+    },
+    {
+      "part_pattern": "coax_barrel",
+      "reason": "Coaxial MG barrel requires traverse clearance parallel to main gun"
+    },
+    {
+      "part_pattern": "wheel_*_sprocket_hub",
+      "reason": "Sprocket hub: center touches wheel body, tips protrude for track guide"
+    },
+    {
+      "part_pattern": "wheel_*_idler_hub",
+      "reason": "Idler hub: center touches wheel body, tips protrude for track guide"
+    },
+    {
+      "part_pattern": "fume_extractor",
+      "reason": "Gun barrel fume extractor: sleeve has clearance around barrel by design"
+    },
+    {
+      "part_pattern": "bore_evacuator",
+      "reason": "Bore evacuator sleeve: same as fume extractor, clearance around barrel"
+    },
+    {
+      "part_pattern": "kornet_sight",
+      "reason": "ATGM sight optics require clearance for elevation"
+    },
+    {
+      "part_pattern": "station_cradle_*",
+      "reason": "Weapon station cradle requires traverse clearance"
+    },
+    {
+      "part_pattern": "side_bay_*",
+      "reason": "Side weapon bay doors require articulation clearance"
+    },
+    {
+      "part_pattern": "gun_door",
+      "reason": "Gun bay door requires articulation clearance"
+    },
+    {
+      "part_pattern": "refuel_door",
+      "reason": "Refueling door requires articulation clearance"
+    },
+    {
+      "part_pattern": "gun_mount",
+      "reason": "Gun mount requires traverse/elevation clearance"
+    },
+    {
+      "part_pattern": "gun_barrel",
+      "reason": "Gun barrel requires elevation clearance in mount"
+    },
+    {
+      "part_pattern": "m2_ammo_can",
+      "reason": "Ammo can on weapon station needs clearance for access"
+    },
+    {
+      "part_pattern": "dash",
+      "reason": "Dashboard interior part: hidden inside cab, visible through glass"
+    },
+    {
+      "part_pattern": "dash_*",
+      "reason": "Dashboard interior parts: hidden inside cab"
+    },
+    {
+      "part_pattern": "door_hinge_*",
+      "reason": "Door hinges require articulation clearance for opening"
+    },
+    {
+      "part_pattern": "rws_gun",
+      "reason": "RWS gun barrel requires traverse clearance in mount"
+    }
+  ]
+}

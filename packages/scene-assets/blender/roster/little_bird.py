@@ -65,7 +65,8 @@ def build(variant, v):
             # The weapon plank with a rocket pod and a minigun.
             box(f"plank_{k}", (0.4, 0.95, 0.08), (0.4, side * 1.12, 0.78), m["dark"], hull, bevel=0.01)
             A.store(f"rocket_pod_{k}", "rockets", (0.6, side * 1.45, 0.58), 1.4, 0.19, m, hull)
-            cyl(f"minigun_{k}", 0.08, 0.9, (0.6, side * 1.15, 0.52), "X", m["steel"], hull, seg=8, lods=MID)
+            box(f"gun_strut_{k}", (0.06, 0.06, 0.16), (0.6, side * 1.15, 0.66), m["dark"], hull, lods=NEAR)
+            cyl(f"minigun_{k}", 0.08, 0.9, (0.6, side * 1.15, 0.56), "X", m["steel"], hull, seg=8, lods=MID)
         else:
             # The assault bench along the cabin's side.
             box(f"bench_{k}", (1.4, 0.55, 0.06), (0.6, side * 1.2, 0.68), m["dark"], hull, bevel=0.01)

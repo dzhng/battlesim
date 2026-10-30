@@ -119,6 +119,45 @@ partial output on failure or interruption and stops at the first failed exporter
 A successful source export is still followed by
 [appearance baking and checking](../README.md).
 
+## Geometry lint
+
+[Vehicle lint](vehicle_lint.py) catches modeling mistakes before export. It runs
+headless as part of the vehicle export pipeline, checking:
+
+- **Interpenetrating parts:** mesh-to-mesh intersection between separate parts
+  (e.g., side skirts sinking into wheels). Uses BVH overlap detection with a 5mm
+  tolerance for intended contacts and mounts.
+- **Floating parts:** any part more than 2cm from every other part of the same
+  vehicle (detached bits hovering in the air).
+- **Ground contact:** tracks or wheels must touch the ground plane in rest pose
+  within 1cm. Flags vehicles that hover above or sink below.
+
+The lint runs automatically during export; pass `--no-lint` to skip it. New issues
+not in the [baseline](vehicle_lint_baseline.json) fail the export. Known issues in
+the baseline pass, giving a path to fix them incrementally.
+
+Standalone commands:
+
+```bash
+# Lint the whole roster
+bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --roster
+
+# Lint one variant
+bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --variant=t72
+
+# Update the baseline to accept current issues
+bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --update-baseline
+```
+
+Tests use synthetic fixtures; the geometry checks run inside Blender
+([`vehicle_lint_test.py`](vehicle_lint_test.py) through the `asset` command),
+while the baseline filtering logic has non-Blender tests
+(`python3 -m unittest discover -s packages/scene-assets/blender -p 'vehicle_lint_logic_test.py'`).
+
+The checks are extensible: add new checks to `LINT_CHECKS` in `vehicle_lint.py`.
+Planned checks include flat or missing materials, texture setup, and hull side
+profile versus reference.
+
 [City authoring](city/README.md) owns kits, template descriptors, interiors and
 source-side review. Procedural grass and the generic prop stand-in are generated
 by the asset CLI's TypeScript owners rather than this Blender batch. Changing a

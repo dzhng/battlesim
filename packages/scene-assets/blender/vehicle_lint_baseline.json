@@ -1,0 +1,659 @@
+{
+  "eastern_j_10_vigorous_dragon_j_10c": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0384,
+      "message": "Part 'fuselage_dsi' is 3.8cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "fuselage_dsi"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0733,
+      "message": "Part 'tail_fin_1' is 7.3cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_fin_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0732,
+      "message": "Part 'tail_fin_2' is 7.3cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_fin_2"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_ka_52_alligator_ka_52m": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.023,
+      "message": "Part 'mast' is 2.3cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "mast"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_mi_28_havoc_mi_28nm": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0222,
+      "message": "Part 'mast_radar' is 2.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "mast_radar"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_mi_8_hip_mi_8amtsh": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.032,
+      "message": "Part 'mast' is 3.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "mast"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_mig_29_fulcrum_mig_29smt": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0919,
+      "message": "Part 'tail_stab_L' is 9.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_stab_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0918,
+      "message": "Part 'tail_stab_R' is 9.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_stab_R"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_mig_31_foxhound_mig_31bm": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0489,
+      "message": "Part 'tail_fin_2' is 4.9cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_fin_2"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0487,
+      "message": "Part 'tail_fin_3' is 4.9cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_fin_3"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_s300_long": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0225,
+      "message": "Part 'headlight_L_guard_0' is 2.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "headlight_L_guard_0"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0225,
+      "message": "Part 'headlight_R_guard_0' is 2.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "headlight_R_guard_0"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.023,
+      "message": "Part 'power_exhaust_guard' is 2.3cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "power_exhaust_guard"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_su_25_frogfoot_su_25sm3": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.1272,
+      "message": "Part 'tail_stab_L' is 12.7cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_stab_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.1272,
+      "message": "Part 'tail_stab_R' is 12.7cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_stab_R"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_sukhoi_flanker_family_su_27sm3": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0377,
+      "message": "Part 'tail_fin_2' is 3.8cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_fin_2"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0373,
+      "message": "Part 'tail_fin_3' is 3.7cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_fin_3"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_sukhoi_flanker_family_su_30sm2": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0377,
+      "message": "Part 'tail_fin_2' is 3.8cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_fin_2"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0373,
+      "message": "Part 'tail_fin_3' is 3.7cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_fin_3"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_sukhoi_flanker_family_su_34": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0377,
+      "message": "Part 'tail_fin_2' is 3.8cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_fin_2"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0373,
+      "message": "Part 'tail_fin_3' is 3.7cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_fin_3"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_sukhoi_flanker_family_su_35s": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0377,
+      "message": "Part 'tail_fin_2' is 3.8cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_fin_2"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0373,
+      "message": "Part 'tail_fin_3' is 3.7cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_fin_3"
+      ],
+      "severity": "error"
+    }
+  ],
+  "eastern_z_10_attack_helicopter": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0374,
+      "message": "Part 'mast' is 3.7cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "mast"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0223,
+      "message": "Part 'tail_stab_L' is 2.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_stab_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0223,
+      "message": "Part 'tail_stab_R' is 2.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_stab_R"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_aw101_merlin_hc4": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.05,
+      "message": "Part 'antenna_belly' is 5.0cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "antenna_belly"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.078,
+      "message": "Part 'engine_intake_L' is 7.8cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "engine_intake_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.078,
+      "message": "Part 'engine_intake_R' is 7.8cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "engine_intake_R"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0655,
+      "message": "Part 'mast' is 6.5cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "mast"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.2048,
+      "message": "Part 'tail_stab_L' is 20.5cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_stab_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0245,
+      "message": "Part 'tail_stab_R' is 2.4cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_stab_R"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_aw159_wildcat_ah1": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0558,
+      "message": "Part 'mast' is 5.6cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "mast"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0452,
+      "message": "Part 'tail_stab' is 4.5cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_stab"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_caesar_88": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0216,
+      "message": "Part 'rear_step_L_0' is 2.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "rear_step_L_0"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0213,
+      "message": "Part 'rear_step_R_0' is 2.1cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "rear_step_R_0"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_centauro_ii": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0209,
+      "message": "Part 'muzzle_reference' is 2.1cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "muzzle_reference"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_fennek_reconnaissance_vehicle": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0484,
+      "message": "Part 'front_plate' is 4.8cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "front_plate"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0395,
+      "message": "Part 'rear_deck' is 4.0cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "rear_deck"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_gepard_1a2": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.029,
+      "message": "Part 'gun_v0_radar_L' is 2.9cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "gun_v0_radar_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.029,
+      "message": "Part 'gun_v0_radar_R' is 2.9cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "gun_v0_radar_R"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0725,
+      "message": "Part 'skirt_L' is 7.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "skirt_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0725,
+      "message": "Part 'skirt_R' is 7.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "skirt_R"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_nh90_tth": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0861,
+      "message": "Part 'antenna_belly' is 8.6cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "antenna_belly"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.027,
+      "message": "Part 'engine_intake_L' is 2.7cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "engine_intake_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.027,
+      "message": "Part 'engine_intake_R' is 2.7cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "engine_intake_R"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0655,
+      "message": "Part 'mast' is 6.5cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "mast"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_rafale_c_f4": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0286,
+      "message": "Part 'osf_window' is 2.9cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "osf_window"
+      ],
+      "severity": "error"
+    }
+  ],
+  "europe_vbl_machine_gun_scout": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.027,
+      "message": "Part 'shield' is 2.7cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "shield"
+      ],
+      "severity": "error"
+    }
+  ],
+  "f_16c_block_50": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0214,
+      "message": "Part 'tail_stab_L' is 2.1cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_stab_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0212,
+      "message": "Part 'tail_stab_R' is 2.1cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "tail_stab_R"
+      ],
+      "severity": "error"
+    }
+  ],
+  "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.024,
+      "message": "Part 'marking_insignia_5_L_10' is 2.4cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "marking_insignia_5_L_10"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0258,
+      "message": "Part 'marking_insignia_5_L_11' is 2.6cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "marking_insignia_5_L_11"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0271,
+      "message": "Part 'marking_insignia_5_L_12' is 2.7cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "marking_insignia_5_L_12"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0231,
+      "message": "Part 'marking_insignia_5_L_8' is 2.3cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "marking_insignia_5_L_8"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0249,
+      "message": "Part 'marking_insignia_5_L_9' is 2.5cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "marking_insignia_5_L_9"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0244,
+      "message": "Part 'marking_insignia_5_R_10' is 2.4cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "marking_insignia_5_R_10"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0258,
+      "message": "Part 'marking_insignia_5_R_11' is 2.6cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "marking_insignia_5_R_11"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0275,
+      "message": "Part 'marking_insignia_5_R_12' is 2.7cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "marking_insignia_5_R_12"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0231,
+      "message": "Part 'marking_insignia_5_R_8' is 2.3cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "marking_insignia_5_R_8"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.025,
+      "message": "Part 'marking_insignia_5_R_9' is 2.5cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "marking_insignia_5_R_9"
+      ],
+      "severity": "error"
+    }
+  ],
+  "us_m109_paladin_m109a7": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0317,
+      "message": "Part 'turret_number_L' is 3.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "turret_number_L"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0321,
+      "message": "Part 'turret_number_R' is 3.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "turret_number_R"
+      ],
+      "severity": "error"
+    }
+  ],
+  "us_patriot_long": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0225,
+      "message": "Part 'headlight_L_guard_0' is 2.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "headlight_L_guard_0"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0225,
+      "message": "Part 'headlight_R_guard_0' is 2.2cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "headlight_R_guard_0"
+      ],
+      "severity": "error"
+    }
+  ],
+  "us_uh_1y_venom_utility_transport": [
+    {
+      "check": "floating_part",
+      "distance_m": 0.0413,
+      "message": "Part 'antenna_roof' is 4.1cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "antenna_roof"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0348,
+      "message": "Part 'mast' is 3.5cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "mast"
+      ],
+      "severity": "error"
+    }
+  ]
+}

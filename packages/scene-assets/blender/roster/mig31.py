@@ -60,9 +60,17 @@ def build(variant, v):
     hull = v.hull
     box("antiglare", (1.2, 0.7, 0.03), (9.3, 0, 3.15), m["dark"], hull, rot=(0, 0.22, 0), lods=MID)
     box("intake_ramp_seam", (2.4, 2.6, 0.03), (4.2, 0, 3.34), m["dark"], hull, lods=MID)
-    A.mirrored(lambda side, k: box(f"wing_fence_{k}", (1.6, 0.04, 0.12), (-0.4, side * 4.6, WING_Z + 0.04), m["paint"],
+    fence_y = 4.6
+    fence_frac = (fence_y - 1.6) / (6.73 - 1.6)
+    wing_z = WING_Z - fence_frac * 0.2
+    thickness = 0.34 - fence_frac * (0.34 - 0.08)
+    fence_z = wing_z + thickness / 2 + 0.06
+    leading_x = 0.8 + fence_frac * (-3.3 - 0.8)
+    chord = 5.4 + fence_frac * (2.0 - 5.4)
+    fence_x = leading_x - chord * 0.35
+    A.mirrored(lambda side, k: box(f"wing_fence_{k}", (0.8, 0.04, 0.12), (fence_x, side * fence_y, fence_z), m["paint"],
                                    hull, lods=MID))
-    A.blade_antenna("antenna_spine", (0.0, 0, 3.58), 0.25, m, hull)
+    A.blade_antenna("antenna_spine", (0.0, 0, 3.45), 0.25, m, hull)
     # The photo's markings: the red star and VVS ROSSII on the fins' outer
     # faces, the red star under the wings, the blue 86 on the nose.
     fin_x, fin_z = -5.7 - 2.4 * 0.45 - 1.2, 3.25 + 2.93 * 0.5

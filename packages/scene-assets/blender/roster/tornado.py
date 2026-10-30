@@ -99,8 +99,8 @@ def build(variant, v):
     A.body("nose_radome", [(8.38, 0.0, 2.0, 2.0), (7.5, 0.43, 1.69, 2.31, 2.0), (7.05, 0.5, 1.62, 2.42, 2.0)],
            m["dark"], hull, seg=24)
     box("antiglare", (0.9, 0.6, 0.03), (6.05, 0, 2.62), m["dark"], hull, rot=(0, 0.16, 0), lods=MID)
-    box("probe_fairing", (1.4, 0.12, 0.12), (4.9, -0.64, 2.72), m["paint"], hull, bevel=0.03, lods=MID)
-    A.blade_antenna("antenna_spine", (-2.4, 0, 3.15), 0.22, m, hull)
+    box("probe_fairing", (1.4, 0.12, 0.12), (4.9, -0.56, 2.72), m["paint"], hull, bevel=0.03, lods=MID)
+    A.blade_antenna("antenna_spine", (-2.4, 0, 3.10), 0.22, m, hull)
     # The Luftwaffe's markings, as the photo: the cross and the 46+07
     # on the body, the flag on the fin, crosses on the wings.
     serial = "46+25" if variant["id"] == ECR else "46+07"

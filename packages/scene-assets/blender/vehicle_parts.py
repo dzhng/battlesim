@@ -739,6 +739,8 @@ def browning_m2(parent, reach, mats, receiver_x=0.06, grips=False, prefix="m2"):
     made += cyl(name=f"{prefix}_flash_hider", r=0.034, r2=0.026, depth=0.08, loc=(reach - 0.04, 0, 0), axis="X",
                 mat=mats["steel"], parent=parent, seg=10, lods=NEAR)
     if grips:
+        made += box(name=f"{prefix}_grip_yoke", size=(0.10, 0.16, 0.04),
+                    loc=(receiver_x - 0.26, 0, -0.04), mat=mats["dark"], parent=parent, lods=NEAR)
         for side in (-1, 1):
             made += cyl(name=f"{prefix}_grip_{side}", r=0.018, depth=0.12, loc=(receiver_x - 0.30, side * 0.07, -0.02),
                         mat=mats["black"], parent=parent, seg=8, lods=NEAR)
@@ -887,7 +889,8 @@ def cargo_bed(name, loc, size, mats, parent, stakes=5, tarp=None, rot=(0, 0, 0))
             x = -sx / 2 + 0.10 + (sx - 0.20) * k / max(1, stakes - 1)
             made += box(name=f"{name}_stake_{side}_{k}", size=(0.08, 0.04, sz), loc=(x, side * (sy / 2 + 0.01), sz / 2),
                         mat=mats["paint"], parent=parent, bevel=0.01, lods=MID)
-            made += box(name=f"{name}_hinge_{side}_{k}", size=(0.10, 0.03, 0.05), loc=(x + 0.2, side * (sy / 2 + 0.01),
+            hinge_x = min(x + 0.2, sx / 2 - 0.10)
+            made += box(name=f"{name}_hinge_{side}_{k}", size=(0.10, 0.03, 0.05), loc=(hinge_x, side * (sy / 2 + 0.01),
                                                                                      0.04),
                         mat=mats["steel"], parent=parent, lods=FINE)
     for end in (-1, 1):

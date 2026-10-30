@@ -75,9 +75,17 @@ def wheels(v):
         for k, x in enumerate(WHEEL_X):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.26, hub_bolts=8)
-            box(f"suspension_arm_{s}_{k}", (0.18, 0.40, 0.10), (x, side * (WHEEL_Y - 0.36), WHEEL_R + 0.02),
+            arm_z = WHEEL_R + 0.02
+            arm_top = arm_z + 0.05  # arm is 0.10 tall, centered
+            box(f"suspension_arm_{s}_{k}", (0.18, 0.40, 0.10), (x, side * (WHEEL_Y - 0.36), arm_z),
                 m["dark"], hull, lods=NEAR)
-            cyl(f"spring_{s}_{k}", 0.08, 0.42, (x, side * (WHEEL_Y - 0.40), WHEEL_R + 0.36), "Z", m["dark"], hull,
+            # Spring sits on top of arm with small bracket plate
+            spring_y = side * (WHEEL_Y - 0.40)
+            spring_bottom = arm_top + 0.01  # 1cm gap for bracket
+            spring_center = spring_bottom + 0.21  # spring is 0.42 tall
+            box(f"spring_mount_{s}_{k}", (0.12, 0.18, 0.02), (x, spring_y, arm_top + 0.01),
+                m["dark"], hull, lods=FINE)
+            cyl(f"spring_{s}_{k}", 0.08, 0.42, (x, spring_y, spring_center), "Z", m["dark"], hull,
                 seg=10, lods=FINE)
         VP.mudflap(f"mudflap_{s}", (-2.55, side * WHEEL_Y, CHINE - 0.05), (0.34, 0.45), m, hull)
 

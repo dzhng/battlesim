@@ -78,7 +78,7 @@ def build(variant, v):
     # The electro-optical targeting window under the chin, the distributed
     # aperture windows round the nose.
     box("eots_window", (0.5, 0.36, 0.14), (6.4, 0, 1.66), m["glass"], hull, rot=(0, 0.3, 0), lods=MID)
-    A.mirrored(lambda side, k: box(f"das_window_{k}", (0.18, 0.03, 0.14), (5.2, side * 0.92, 2.2), m["glass"], hull,
+    A.mirrored(lambda side, k: box(f"das_window_{k}", (0.18, 0.03, 0.14), (5.2, side * 0.78, 2.2), m["glass"], hull,
                                    lods=NEAR))
     box("antiglare", (0.9, 0.5, 0.03), (6.4, 0, 2.56), m["dark"], hull, rot=(0, 0.2, 0), lods=MID)
     A.mirrored(lambda side, k: box(f"bay_seam_{k}", (3.4, 0.03, 0.03), (0.4, side * 0.5, 1.05), m["dark"], hull,

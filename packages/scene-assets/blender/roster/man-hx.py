@@ -54,6 +54,7 @@ def running_gear(v):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
                           rim_radius=0.30, tread="bar", hub_bolts=10)
             box(f"axle_{s}_{k}", (0.18, 0.55, 0.18), (x, side * 0.55, WHEEL_R), m["dark"], hull, lods=NEAR)
+            box(f"spring_{s}_{k}", (0.70, 0.10, 0.30), (x, side * 0.50, 0.83), m["dark"], hull, lods=NEAR)
         box(f"chassis_rail_{s}", (9.60, 0.14, 0.26), (-0.10, side * 0.45, RAIL_Z), m["dark"], hull, bevel=0.01,
             lods=MID)
         VP.mudflap(f"mudflap_{s}", (-4.80, side * WHEEL_Y, BED_FLOOR - 0.15), (0.42, 0.55), m, hull)
@@ -102,8 +103,10 @@ def cab(v):
         box(f"wiper_{side}", (0.02, 0.03, 0.55), (NOSE - 0.17, side * 0.50, 2.45), m["black"], hull,
             rot=(side * 0.5, -rake, 0), lods=FINE)
         box(f"seat_back_{side}", (0.12, 0.50, 0.60), (3.45, side * 0.55, 2.05), m["black"], hull, lods=NEAR)
+        box(f"seat_base_{side}", (0.40, 0.50, 0.45), (3.35, side * 0.55, 1.555), m["black"], hull, lods=NEAR)
     box("dash", (0.40, 2.00, 0.22), (4.75, 0, 2.05), m["black"], hull, lods=NEAR)
-    box("plate", (0.02, 0.50, 0.12), (NOSE - 0.07, 0, 1.55), m["marking"], hull, lods=MID)
+    box("dash_support", (0.06, 1.80, 0.73), (4.72, 0, 1.685), m["black"], hull, lods=NEAR)
+    box("plate", (0.02, 0.50, 0.12), (NOSE + 0.01, 0, 1.08), m["marking"], hull, lods=MID)
 
 
 def body(v):
@@ -118,6 +121,8 @@ def body(v):
                             rot=(0, 0, math.pi))
     VP.fuel_tank("fuel_tank", (-1.20, 0.95, 1.00), 1.30, 0.30, m, hull)
     box("rear_underrun", (0.12, 2.20, 0.14), (-5.05, 0, 0.70), m["dark"], hull, bevel=0.012)
+    for side, s in ((1, "L"), (-1, "R")):
+        box(f"underrun_bracket_{s}", (0.08, 0.10, 0.35), (-5.05, side * 0.45, 0.875), m["dark"], hull, lods=MID)
     VP.tow_hook("pintle", (-5.00, 0, 0.92), m, hull, size=0.10, rot=(0, 0, math.pi))
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=hull)

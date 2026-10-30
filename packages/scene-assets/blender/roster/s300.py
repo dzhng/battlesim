@@ -78,6 +78,7 @@ def enclosures(v, cab_rear, roof, deck):
         VP.bolted_panel(f"electronics_door_{k}", (x - 0.40 + k * 0.80, 1.36, deck + 0.75), (0.70, 1.05, 0.03), m, h,
                         bolts=(2, 3), rot=(-math.pi / 2, 0, 0), bevel=0.01)
     box("enclosure_step", (0.30, 0.50, 0.05), (x0 - length - 0.10, 0.85, deck + 0.40), m["steel"], h, lods=MID)
+    box("enclosure_step_leg", (0.08, 0.08, 0.38), (x0 - length - 0.10, 0.90, deck + 0.20), m["steel"], h, lods=FINE)
     whip = empty("dressing_antenna", parent=h)
     VP.antenna("antenna", (x - 0.55, 1.20, deck + 1.95), m, whip, height=2.4)
     # The guard rails: a bent pipe rising off each cab's roof to the
@@ -146,9 +147,9 @@ def launcher(v, deck):
     # The hinge at the chassis' rear and the cradle under the pack.
     low = TUBE_Z[0] - TUBE_R - 0.06
     for side in (-1, 1):
-        box(f"hinge_bracket_{side}", (0.60, 0.10, low - deck + 0.10), (hx, side * 0.45, (low + deck) / 2), m["dark"],
+        box(f"hinge_bracket_{side}", (0.60, 0.18, low - deck + 0.10), (hx, side * 0.47, (low + deck) / 2), m["dark"],
             h, bevel=0.01)
-    cyl("hinge_pin", 0.10, 1.10, (hx, 0, hz), "Y", m["steel"], h, seg=14, lods=MID)
+    cyl("hinge_pin", 0.10, 1.10, (hx, 0, low - 0.25), "Y", m["steel"], h, seg=14, lods=MID)
     # The erector's cradle: two deep girders under the pack from the hinge
     # forward, cross-members between them.
     cx, clen = (hx + x1) / 2 - 0.30, x1 - hx - 0.60

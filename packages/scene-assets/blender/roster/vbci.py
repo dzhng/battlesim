@@ -98,6 +98,8 @@ def fittings(v):
         for k in range(18):
             x = 3.10 - k * 0.38
             for j, (z, face) in enumerate(((1.62, LOWER_SIDE), (2.30, UPPER_SIDE))):
+                if j == 1 and x > 2.10:
+                    continue
                 loc, rot = VP.on_side(x, z, side, *face, proud=0.012)
                 cyl(f"side_bolt_{s}_{k}_{j}", 0.026, 0.03, loc, "Z", m["steel"], hull, seg=6, rot=rot, lods=FINE)
         # The upper hull's lower edge, a darker strip over the wheels.

@@ -95,7 +95,10 @@ def cab(v):
                                        (1.05, y, 0.95)], m, hull, radius=0.012)
         box(f"door_window_{s}", (0.68, 0.03, 0.46), (1.55, y, 2.28), m["glass"], hull, lods=MID)
         box(f"door_handle_{s}", (0.14, 0.04, 0.04), (1.20, y + side * 0.02, 1.80), m["steel"], hull, lods=FINE)
+        # Step attached to cab via bracket
         box(f"step_{s}", (0.30, 0.20, 0.04), (1.40, side * 1.05, 0.62), m["steel"], hull, lods=MID)
+        box(f"step_bracket_v_{s}", (0.06, 0.06, 0.38), (1.40, side * 1.02, 0.83), m["dark"], hull, lods=MID)
+        box(f"step_bracket_h_{s}", (0.06, 0.55, 0.06), (1.40, side * 0.76, 1.01), m["dark"], hull, lods=MID)
         mirror = empty(f"dressing_mirror_{s}", parent=hull)
         box(f"mirror_arm_{s}", (0.04, 0.22, 0.04), (CAB_FRONT, side * 1.16, 2.20), m["black"], mirror, lods=NEAR)
         box(f"mirror_{s}", (0.05, 0.14, 0.30), (CAB_FRONT, side * 1.27, 2.15), m["black"], mirror, bevel=0.012,
@@ -103,13 +106,16 @@ def cab(v):
     for side in (-1, 1):
         box(f"windscreen_{side}", (0.03, 0.88, 0.50), (CAB_FRONT - 0.04, side * 0.48, 2.28), m["glass"], hull,
             rot=(0, -0.12, 0), lods=MID)
-        box(f"seat_back_{side}", (0.12, 0.45, 0.55), (1.05, side * 0.50, 1.70), m["black"], hull, lods=NEAR)
+        # Seat: base on floor (Z=0.92), cushion on base, back behind cushion
+        box(f"seat_base_{side}", (0.45, 0.45, 0.35), (1.18, side * 0.50, 1.10), m["dark"], hull, lods=NEAR)
+        box(f"seat_back_{side}", (0.12, 0.45, 0.55), (1.02, side * 0.50, 1.55), m["black"], hull, lods=NEAR)
     box("dash", (0.35, 1.90, 0.20), (1.95, 0, 1.75), m["black"], hull, lods=NEAR)
     cyl("cab_marker", 0.04, 0.05, (CAB_FRONT - 0.30, 0.0, ROOF + 0.02), "Z", m["tail"], hull, seg=10, lods=FINE)
     # Behind the cab: exhaust and intake stacks, the spare wheel.
     cyl("exhaust_stack", 0.09, 1.70, (0.72, -0.75, 1.95), "Z", m["steel"], hull, seg=12)
     cyl("exhaust_cap", 0.10, 0.10, (0.72, -0.75, 2.85), "Z", m["dark"], hull, seg=12, lods=MID)
-    cyl("intake_stack", 0.08, 1.60, (0.72, -0.55, 1.95), "Z", m["paint"], hull, seg=12, lods=MID)
+    cyl("intake_stack", 0.08, 1.60, (0.72, -0.55, 1.92), "Z", m["paint"], hull, seg=12, lods=MID)
+    box("stack_base", (0.22, 0.40, 0.10), (0.72, -0.65, 1.15), m["dark"], hull, lods=MID)
     cyl("spare_tyre", WHEEL_R * 0.97, WHEEL_W, (0.62, 0.35, 1.92), "X", m["rubber"], hull, seg=28)
     cyl("spare_rim", 0.30, 0.06, (0.82, 0.35, 1.92), "X", m["paint"], hull, seg=18, lods=MID)
     # Under the cab's side: the fuel tank, the battery box.

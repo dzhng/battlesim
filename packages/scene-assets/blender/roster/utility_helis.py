@@ -136,7 +136,8 @@ def build(variant, v):
             tip_chord=chord * (1.2 if vid == WILDCAT else 1.0))
     at, r = TAIL_ROTOR[vid]
     A.rotor("tail", at, r, 4, 0.26, m, hull, hub=0.15, mast=0.0, droop=0.0, rot=(-math.pi / 2, 0, 0), thick=0.12)
-    A.blade_antenna("antenna_belly", (-0.8, 0, 0.5), 0.25, m, hull, down=True)
+    belly_z = 0.82 if vid == WILDCAT else 0.5
+    A.blade_antenna("antenna_belly", (-0.8, 0, belly_z), 0.25, m, hull, down=True)
     A.door_guns(v, rig(v.frame, v.root), m, DOOR_PITCH_DEG, inboard=0.15)
 
     # The Esercito's roundel and title on the NH90 (the photo is Italian); the Royal Navy's roundel and

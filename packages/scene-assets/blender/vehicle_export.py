@@ -12,6 +12,8 @@ does the rest, the same way for every family:
   it;
 - the materials, one per role (`materials`), in the family's real scheme;
 - each mount's articulation nodes at its frame's pivot and muzzle (`rig`);
+- geometry lint (`vehicle_lint`): interpenetrating parts, floating parts,
+  and ground contact; new issues not in the baseline fail the export;
 - `--wreck`: the family's damage, then debris thrown clear from what it
   carries (`wreckage.scatter`, seeded by the variant's id) and
   `wreckage.burn()`, written beside the live vehicle with its hull and turret
@@ -20,7 +22,12 @@ does the rest, the same way for every family:
   their materials carried through the export;
 - tiers checked to reduce, the GLB exported, and the family's receipt.
 
-    bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/<family>.py -- [--variant=<id>] [--wreck]
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/<family>.py -- [--variant=<id>] [--wreck] [--no-lint]
+
+Lint standalone (over the whole roster or one variant):
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --roster
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --variant=<id>
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --update-baseline
 """
 import hashlib
 import json
@@ -42,6 +49,20 @@ from wreckage import WRECK_ARG, burn, export_wreck, scatter  # noqa: E402
 REPO = Path(__file__).resolve().parents[3]
 # Each articulation's nodes (MOUNT_NODES in packages/scene-assets/src/validate.ts).
 RIG_NODES = {"gun": ("turret", "gun", "muzzle"), "hmg": ("hmg", "hmg_gun", "hmg_muzzle")}
+
+
+def _run_lint(vehicle_id):
+    """Run geometry lint checks on the current scene; fail on new issues."""
+    import vehicle_lint
+    if getattr(vehicle_lint, '_SUPPRESS_EXPORT_LINT', False):
+        return
+    all_issues, new_issues = vehicle_lint.lint_and_report(vehicle_id)
+    if all_issues.issues:
+        print(f"LINT {vehicle_id}: {len(all_issues.issues)} issue(s), {len(new_issues.issues)} new", flush=True)
+    if new_issues.issues:
+        print(vehicle_lint.format_issues(new_issues.issues), flush=True)
+        raise SystemExit(f"{vehicle_id}: lint found {len(new_issues.issues)} new issue(s); "
+                         "fix them or run `vehicle_lint.py --update-baseline` to accept them")
 
 
 def materials(scheme, fittings=(0.11, 0.095, 0.068), canvas=(0.105, 0.098, 0.062), chip=0.35):
@@ -130,9 +151,18 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
     live or with `--wreck`; returns the receipt rows, or None for a partial run.
     `scheme` is one scheme or a scheme per variant id; `looks` are `materials`
     keywords (a family's fittings, canvas or chip)."""
+    # Check if export is suppressed (during roster lint scanning)
+    try:
+        import vehicle_lint
+        if getattr(vehicle_lint, '_SUPPRESS_EXPORT', False):
+            return None
+    except ImportError:
+        pass
+    
     args = script_args()
     selected = next((a.split("=", 1)[1] for a in args if a.startswith("--variant=")), None)
     wrecking = WRECK_ARG in args
+    skip_lint = "--no-lint" in args
     receipt = []
     if selected and selected not in {v["id"] for v in variants}:
         raise SystemExit(f"{selected}: not one of {', '.join(v['id'] for v in variants)}")
@@ -147,6 +177,8 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
         build(variant, v)
         if check is not None and not wrecking:
             check(variant)
+        if not wrecking and not skip_lint:
+            _run_lint(variant["id"])
         if wrecking:
             wreck(variant, v)
             scatter((v.length / 2, v.width / 2), v.mats, seed=zlib.crc32(variant["id"].encode()))

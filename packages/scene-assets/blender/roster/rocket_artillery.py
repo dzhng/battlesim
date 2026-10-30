@@ -136,7 +136,7 @@ def m270(v):
             lods=MID)
         box(f"windscreen_frame_{k}", (0.04, 0.72, 0.52), (cab_front - 0.235, y, 2.145), m["paint"], h,
             rot=(0, -0.55, 0), bevel=0.01, lods=NEAR)
-        box(f"windscreen_shutter_{k}", (0.04, 0.66, 0.10), (cab_front - 0.12, y, 2.42), m["paint"], h,
+        box(f"windscreen_shutter_{k}", (0.04, 0.66, 0.10), (cab_front - 0.38, y, 2.42), m["paint"], h,
             rot=(0, -0.55, 0), bevel=0.01, lods=NEAR)
         box(f"wiper_{k}", (0.02, 0.03, 0.34), (cab_front - 0.19, y - 0.15, 2.12), m["black"], h,
             rot=(-0.5, -0.55, 0), lods=FINE)

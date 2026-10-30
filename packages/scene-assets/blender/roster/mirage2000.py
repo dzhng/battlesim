@@ -68,7 +68,7 @@ def build(variant, v):
     cyl("probe_base", 0.08, 1.0, (4.75, -0.36, 2.72), "X", m["paint"], hull, seg=10, rot=(0, -0.58, 0), lods=MID)
     cyl("probe", 0.045, 0.6, (5.35, -0.36, 3.0), "X", m["steel"], hull, seg=8, lods=MID)
     box("antiglare", (1.0, 0.5, 0.03), (5.0, 0, 2.55), m["dark"], hull, rot=(0, 0.16, 0), lods=MID)
-    A.blade_antenna("antenna_spine", (-2.0, 0, 3.08), 0.22, m, hull)
+    A.blade_antenna("antenna_spine", (-2.0, 0, 3.04), 0.22, m, hull)
     # The Armée de l'air's roundels (aft on the body and on the wings) and
     # the 3-IM code of the photo on the nose.
     A.markings(v, [
