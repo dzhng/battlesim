@@ -20,6 +20,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "geometry-scaling": lazy(() => import("./routes/geometry")),
   geometry: lazy(() => import("./routes/geometry")),
   authority: lazy(() => import("./routes/authority")),
+  "ally-help": lazy(() => import("./routes/allyHelp")),
   movement: lazy(() => import("./routes/movement")),
   river: lazy(() => import("./routes/river")),
   sensors: lazy(() => import("./routes/sensors")),

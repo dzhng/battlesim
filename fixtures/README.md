@@ -1,13 +1,19 @@
 # Fixtures
 
-Authored settings belong here, validated by their reader. [Game rules](game.json)
-own battle and presentation numbers. [Units](units/), [props](props/) and [biomes](biomes/)
+Authored settings belong here, validated by their reader. [Battle rules](rules.json)
+own simulation numbers, [presentation](presentation.json) owns visual settings,
+and [audio](audio.json) owns the mix. [Presentation admission](../crates/presentation/src/settings.rs)
+and [sound admission](../crates/presentation/src/sound/catalog.rs) refuse unknown keys and invalid values
+for native, browser and authoring tools. Browser input settings belong beside
+the input code; the lobby owns the default battle seed. [Units](units/), [props](props/) and [biomes](biomes/)
 own component catalogs and terrain palettes; [catalog resolution](../crates/contract/src/catalog.rs)
 produces the browser's resolved [catalog](catalog.json).
 
-[Rules admission](../crates/contract/src/scenario.rs) refuses unknown sections
-and fields, including in encounter overrides. Application settings carried
-alongside the rules have explicit owners and do not enter resolved battle rules.
+[The rules contract](../crates/contract/src/scenario.rs) refuses unknown sections,
+fields and invalid section ranges, including in encounter overrides.
+[Simulation admission](../crates/sim/src/admission.rs) checks external rules before
+a world or battle is built. Application settings have separate owners and do not
+enter resolved battle rules.
 
 [Map presets](map-presets.json) and the generator's [physical template library](prototype-building-templates.json)
 feed [mapgen](../crates/mapgen/README.md). Its templates are derived from accepted
@@ -86,7 +92,7 @@ A saved map is one folder, `maps/<id>/`, under [the saved-map catalog](maps/), a
 
 - **`encounters/<name>.json`** is an encounter laid on the map (`contract::scenario::EncounterDefinition`): units, events and scripted orders, and optionally an opponent, a completion rule and `overrides`. A scenario is the resolved map, the rules and one encounter. The endurance battle is not a file: the simulation builds it from the rules and the resolved map (`sim::endurance`).
 
-**A scenario may override any rules entity.** An encounter's `overrides` is shaped like the authored rules: any section of `game.json` (`weapons`, `sensors`, `air` and the rest) or of a catalog document (`units`, `soldiers`, `parts`, `roles`, `props`). It patches the rows it names field by field, by the merge an `extends` child uses, and a row the rules lack is added for this scenario alone; it may `extends` any row of its section, and the encounter's units may field it. The merged rules are read and checked again exactly as the shipped ones are, so a bad override is refused naming the encounter, the row and the field. The one owner is `EncounterDefinition::on` (`Rules::overridden`): native readers reach it through `sim::maps::scenario`, and the browser through the WebAssembly `encounter_scenario`, so a scenario's rules never differ between them. The shared rules it was laid on are untouched.
+**A scenario may override any rules entity.** An encounter's `overrides` is shaped like the authored rules: any section of `rules.json` (`weapons`, `sensors`, `air` and the rest) or of a catalog document (`units`, `soldiers`, `parts`, `roles`, `props`). It patches the rows it names field by field, by the merge an `extends` child uses, and a row the rules lack is added for this scenario alone; it may `extends` any row of its section, and the encounter's units may field it. The merged rules are read and checked again exactly as the shipped ones are, so a bad override is refused naming the encounter, the row and the field. The one owner is `EncounterDefinition::on` (`Rules::overridden`): native readers reach it through `sim::maps::scenario`, and the browser through the WebAssembly `encounter_scenario`, so a scenario's rules never differ between them. The shared rules it was laid on are untouched.
 
 Scripted group orders address the formation's surviving own units when their tick arrives. Fallen own actors are removed before ordinary command validation, so one casualty cannot cancel a reserve wave; an all-fallen group has no effect. Unknown or foreign actors still refuse the script, and player commands validate their exact submitted selection. Script execution follows the same rule during live play and replay in [the battle authority](../crates/sim/src/battle.rs).
 
@@ -134,7 +140,7 @@ or riders come out of a destroyed host: death odds, the health lost and how far
 to search for a place to stand.
 
 - **Soldier kinds** are a catalog of their own: `hp`, the `appearance` set a soldier of the kind wears (one picked per soldier), and the `mounts` he carries. A `special` mount passes to the next living soldier when its carrier falls; any other is lost with him. Every soldier carries an unlimited `squad` gun, and every finite weapon is a `special` extra, so no squad runs dry: a sniper whose rifle is empty still has his carbine or rifle ([squad weapons](../specs/done/squad-weapons/README.md)). A single-operator mount may name `operator_appearance` with paired active and carried appearance sets: the equipment worn by its current living carrier while using that weapon or his rifle, including after a handoff. Variant identity stays the same across both sets. The observation publishes the carrier and each soldier’s active weapon only when visible. A squad's slots name soldier kinds, so hundreds of squads reuse a few kinds.
-- **A variant is `extends` plus overrides.** `"m1a1": { "extends": "m1", "body": { "hull": { "armor": { "front": 180 } } } }` inherits everything else. An `abstract` entry only exists to be extended. Weapon rows in `game.json` extend the same way. The merge:
+- **A variant is `extends` plus overrides.** `"m1a1": { "extends": "m1", "body": { "hull": { "armor": { "front": 180 } } } }` inherits everything else. An `abstract` entry only exists to be extended. Weapon rows in `rules.json` extend the same way. The merge:
   - objects merge key by key, and a list of objects with ids (mounts) merges by id, a new id appended;
   - a unit's one-key variant component (`body`, `mobility`) written as another variant replaces the parent's: `"mobility": { "wheeled": … }` over a tracked parent is wheeled;
   - a unit's `parts` gather along the chain, the parent's first;
@@ -161,9 +167,9 @@ change, the [asset CLI](../web/asset.mjs) regenerates and checks model-derived i
 
 ## Weapon cycles
 
-Engagement distances belong to each weapon row. Minimum range is a crew's firing restriction measured from the actual muzzle to the aim point, not a delayed arming fuse: already-fired rounds still collide and explode normally. A too-close weapon holds its rounds rather than requesting an advance, while other mounts remain independent. Target selection and each physical shot enforce the same minimum, including sampled contacts and individual soldiers.
+Engagement distances belong to each weapon row's target layers. The resolved top-level `range_m` is their greatest range; authored rows do not set a second range. Minimum range is a crew's firing restriction measured from the actual muzzle to the aim point, not a delayed arming fuse: already-fired rounds still collide and explode normally. A too-close weapon holds its rounds rather than requesting an advance, while other mounts remain independent. Target selection and each physical shot enforce the same minimum, including sampled contacts and individual soldiers.
 
-A weapon row's `ammo` is total carried rounds, including loaded magazines; `"unlimited"` means unlimited reserves. `magazine` adds a physical gun's capacity and interval between shots, while `reload_s` is the pause to replace its magazine or belt. An optional `burst` groups rapid shots. Pace beats realism here: no weapon takes more than about 5 s to reload (artillery and the long-range SAM up to 15 s), none aims for longer than 3 s, and an aircraft's flares come back in 3 s ([D50](../specs/done/air-war-flight/flight-model-map.md)). The [fire cadence rationale](../specs/done/fire-cadence/README.md) explains their readiness and interruptible idle reload contract.
+A weapon row's `ammo` is total carried rounds, including loaded magazines; `"unlimited"` means unlimited reserves. A finite-ammunition row must supply `round_cost`, directly or by inheritance, so resupply always has an authored price. `magazine` adds a physical gun's capacity and interval between shots, while `reload_s` is the pause to replace its magazine or belt. An optional `burst` groups rapid shots. Pace beats realism here: no weapon takes more than about 5 s to reload (artillery and the long-range SAM up to 15 s), none aims for longer than 3 s, and an aircraft's flares come back in 3 s ([D50](../specs/done/air-war-flight/flight-model-map.md)). The [fire cadence rationale](../specs/done/fire-cadence/README.md) explains their readiness and interruptible idle reload contract.
 
 The nominal vehicle aim height comes from its body, with a fixture-owned fraction allowing fire into both the upper body and hull. Direct-fire scatter stays at or below that aim point. A round that survives to its aim plane falls under stronger downward gravity, chosen at launch to reach even the lowest ground within the authored fall-time limit. Its horizontal flight and its position and velocity at the join stay intact. Both legs use ordinary swept collision: intervening bodies still decide the first impact. A ricochet cancels that fall and keeps its deflected direction under ordinary gravity; its remaining lifetime is capped from the first bounce, without restarting on later bounces. Guided fire keeps its own guidance, and indirect fire keeps its ballistic arc.
 
@@ -201,14 +207,14 @@ Add one entry. A variant is an `extends` and what differs. Code learns nothing a
   - The renderer skill has the mechanics (`.agents/skills/renderer/SKILL.md`).
 - **Culling bounds cover every reachable pose:** a traversed turret, a deployed spade, a raised gun. Size them from the articulation's extremes, not the rest pose.
 - **A vehicle needs its whole life cycle:** its `mobility`, its weight and push class (what it pushes, and what it's worth as cover, live or wrecked), its `wreck` (a prop row with hit points and a destroyed state, which may chain into a lighter wreck), and its `sound`. Missing one shows up late, as a vehicle that can't be pushed, or a wreck that never burns out.
-- **Presentation follows physics, never the id.** A vehicle sounds and articulates as its class (`vehicleClass` in `packages/scene-assets/src/units.ts`: tracked, wheeled, air or high air, its hull's weight class, and `_logistics` for a supply hauler), and a derived weapon row looks and sounds like its nearest styled ancestor. A new type of a fielded class needs no presentation edit; a new class needs its rows in `presentation.audio.vehicles` and `presentation.pose.gauge`.
+- **Presentation follows physics, never the id.** A vehicle sounds and articulates as its class (`vehicleClass` in `packages/scene-assets/src/units.ts`: tracked, wheeled, air or high air, its hull's weight class, and `_logistics` for a supply hauler), and a derived weapon row inherits its `appearance` through the ordinary weapon resolver. That appearance names its look in [presentation](presentation.json). A new type of a fielded class needs no presentation edit; a new class needs its engine row in [audio](audio.json). Each ground model authors its own track gauge in the [asset catalog](../assets/catalog.json); fielding refuses one without it.
 - **Infantry** share one body frame: the soldier's radius, height, eye and muzzle heights, and the cover rules, are `physics` numbers here, not per soldier kind. Variants within one appearance set share a skeleton; each soldier animates with the clips of his current appearance.
 
 **The guards scale with the catalog.** Every resolved type runs the same generated checks with no test of its own: its components are complete and in range, it sets up, fires each mount and moves (`crates/sim/tests/catalog.rs`), its appearance exists and fits its numbers, and its icons exist. Then add the type to the lab or scene that exercises it: the workbench sheet for the model, and a movement scenario (`crates/sim/tests/movement_scenarios.rs`) for its movement and cover. Run the checks for whatever you changed (see [`AGENTS.md`](../AGENTS.md)).
 
 ## The prop catalog
 
-A prop type (a house, a wall, a tree, a wreck, rubble) is **one entry** of a `props` section, in `props/<faction>/<family>.json`, addressed by its string id. No code lists prop types, and no rule asks which one a prop is. A map's props, a forest's trees (`forests.tree` in `game.json`), a bridge's deck (`deck` on each map bridge) and a vehicle's wreck all name types by id; the world layout and the publication send the id list (`propKinds`) and each prop's index into it.
+A prop type (a house, a wall, a tree, a wreck, rubble) is **one entry** of a `props` section, in `props/<faction>/<family>.json`, addressed by its string id. No code lists prop types, and no rule asks which one a prop is. A map's props, a forest's trees (`forests.tree` in `rules.json`), a bridge's deck (`deck` on each map bridge) and a vehicle's wreck all name types by id; the world layout and the publication send the id list (`propKinds`) and each prop's index into it.
 
 [The prop schema](../crates/contract/src/catalog.rs) separates body properties,
 destroyed-state transitions and appearance bindings. Each physical rule reads its
@@ -232,9 +238,9 @@ Add one entry. A mechanic comes from the body's columns, so a new obstacle needs
 
 ## Surface speeds
 
-Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (validated against its off-road speed and the catalog's limits). An aircraft (`"air"`) states one `cruise_kmh` instead, with its turn and climb rates, the `layer` it flies in and its `flight` model, always authored: `rotor` or `fixed_wing`. A pair no flight law flies yet is refused at load. `game.json`'s `air` section holds each air layer's heights (`low_air`, `high_air`) and each flight model's rules (`rotor`, `fixed_wing`). Everything else that changes a mover's speed is a **speed factor**, a share of its own speed at most 1, named `*speed_factor` wherever it lives:
+Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (validated against its off-road speed and the catalog's limits). An aircraft (`"air"`) states one `cruise_kmh` instead, with its turn and climb rates, the `layer` it flies in and its `flight` model, always authored: `rotor` or `fixed_wing`. A pair no flight law flies yet is refused at load. `rules.json`'s `air` section holds each air layer's heights (`low_air`, `high_air`) and each flight model's rules (`rotor`, `fixed_wing`). Everything else that changes a mover's speed is a **speed factor**, a share of its own speed at most 1, named `*speed_factor` wherever it lives:
 
-- **The ground** is `game.json`'s `movement.speed_factors`, one row per locomotion, keyed by the unit's `mobility` kind (`foot`, `wheeled`, `tracked`), because how a unit moves, not how big it is, decides how terrain slows it. Each row holds `surfaces`, one factor of road speed per surface kind a map may pave (`road`, `country_road`, `dirt_track`, and `paving`, hard ground that is no way through: a yard, a court), never below off-road speed, with 0 for no road at all; `forest` and `swamp`, of off-road speed off any road (where both lie, the slower applies once); `crater`, over a full crater, a shallower one slowing in proportion; and `slope`, speed falling in proportion to the slope to nothing at `zero_speed_deg` but never below `min_speed_factor` (the map's `slope_cutoff_deg` decides what is too steep to climb). A new surface kind is a new field in every row plus its variant in `contract::map::SurfaceKind`.
+- **The ground** is `rules.json`'s `movement.speed_factors`, one row per locomotion, keyed by the unit's `mobility` kind (`foot`, `wheeled`, `tracked`), because how a unit moves, not how big it is, decides how terrain slows it. Each row holds `surfaces`, one factor of road speed per surface kind a map may pave (`road`, `country_road`, `dirt_track`, and `paving`, hard ground that is no way through: a yard, a court), never below off-road speed, with 0 for no road at all; `forest` and `swamp`, of off-road speed off any road (where both lie, the slower applies once); `crater`, over a full crater, a shallower one slowing in proportion; and `slope`, speed falling in proportion to the slope to nothing at `zero_speed_deg` but never below `min_speed_factor` (the map's `slope_cutoff_deg` decides what is too steep to climb). A new surface kind is a new field in every row plus its variant in `contract::map::SurfaceKind`.
 - **Driving** is a vehicle's own `reverse_speed_factor` and the rules' `movement.drive.turn_speed_factor`, the most a manoeuvre keeps.
 - **An afterburner** is a jet's `capabilities.air.afterburner` `speed_factor`, above 1, paid for by its `fuel_factor`.
 
@@ -243,7 +249,7 @@ Suppression is the one exception: its tiers slow infantry by a `move_penalty` ta
 A paved area's authored kind also selects its appearance. A map names a rural road `country_road` and a town street `road`; the renderer does not infer a different kind from the other surfaces present. The biome owns a country road's local appearance through built ground.
 
 Vehicle surface speeds are targets, not instantaneous velocity. The drive settings in
-[`game.json`](game.json) express acceleration and braking as time from rest to
+[`rules.json`](rules.json) express acceleration and braking as time from rest to
 full road speed and back; each vehicle's own top speed sets the rate. This keeps
 road entry gradual without reducing the road advantage. Surface and shove limits
 act on the target speed so slowdown does not compound every tick. The follower
@@ -284,11 +290,12 @@ A map's standing shallow water is its `swamps`: each an outline polygon and the 
 
 `BLESS_PARITY=1` on the Rust test that reads a record re-records its native half, for a named behaviour change; the web test then holds Wasm to it.
 
-The [capture files](parity/capture/) are browser runs of the menu reel (`native-parity-capture`), re-recorded whole, never edited: a change to the publication layout means a new run. The paris-corner run is copied as it is, and gzipped for the native counts. The market-town window is seven samples of that battle from a fresh publisher, so its first sample is a full snapshot. The run gives its layout and its first tick's frame record. The samples come from replaying the battle natively (`game.json` with the capture catalog), and they match the run's own samples except for the fog revision counters.
+The [capture files](parity/capture/) are browser runs of the menu reel (`native-parity-capture`), re-recorded whole, never edited: a change to the publication layout means a new run. The paris-corner run is copied as it is, and gzipped for the native counts. The market-town window is seven samples of that battle from a fresh publisher, so its first sample is a full snapshot. The run gives its layout and its first tick's frame record. The samples come from replaying the battle natively (`rules.json` with the capture catalog), and they match the run's own samples except for the fog revision counters.
 
 The generation corpus pins its [physical rules](parity/map-layout/physical-rules.json)
-as well as its requests. That document is frozen and hand-edited, never
-regenerated from current game rules. A schema change needs a deliberate edit
+as well as its requests. The record supplies complete battle rules for admission;
+only the generator's physical fields enter generation identity. That document is
+frozen and hand-edited, never regenerated from current game rules. A schema change needs a deliberate edit
 that preserves unrelated frozen values. Changes to shipped unit vision can
 change the sight certificate and forest placement; they must not silently
 change the inputs behind a frozen output. Current-rule generation and
@@ -297,25 +304,32 @@ preparation remain covered separately.
 A record belongs here only if both sides read it, and it stores a hash of the output unless a reader needs the bytes. A snapshot of one implementation's own output, read by that implementation alone, is not a paired record: state the rule in a test instead.
 
 
-## Forest floor cover
+## Forest ground
 
-The one `forests.rule` controls sparse log and boulder candidate density and
-physical size. The forest's catalog references select their body properties.
-The world places floor cover after all trunks with independent seeds, so changing
-floor density cannot shift any trunk or its published source range. Candidates
-that conflict with trees, roads, water, bodies or the forest boundary are omitted;
-per-hectare densities are placement ceilings, not guaranteed counts. The floor
-adds no concealment. Uncleared forest ground uses the single
-`forests.rule.concealment` multiplier for every unit; differences in how well
-bodies hide belong on the units, never an infantry/vehicle forest split. Trunk
-crowns separately own sight-line attenuation. The rules' required
+Uncleared forest ground uses the single `forests.rule.concealment` multiplier
+for every unit; differences in how well bodies hide belong on the units.
+Trunk crowns separately own sight-line attenuation. The required
 `sensors.moving_concealment` multiplier applies while a move order is in
 progress; it is at least one, so moving cannot improve concealment.
+
+## Weapon looks
+
+Rules choose appearances; presentation supplies their looks. An encounter may
+override a weapon's `appearance` through ordinary rules overrides, but it cannot
+patch a look or the mix. No firing look or recording is chosen implicitly.
+
+Every weapon's `appearance` names one entry in [presentation](presentation.json).
+[The look reader](../crates/presentation/src/looks.rs) resolves the battle's rows
+through the contract's ordinary inheritance, then supplies sight, kick and sound
+from that one look. Firing recordings and sound levels are explicit; other sound
+parts may use [the mix's](audio.json) default recording. Unknown looks fail at
+fielding, and unused looks fail the shipped-fixture check. Changing which look a
+weapon names changes battle identity; tuning that look does not.
 
 ## Sound catalog
 
 [The sound catalog](sounds.json) owns source receipts, exact clip crops, reusable
-recipes and exact unit/mount assignments. A stored recording may remain unused;
+recipes. A stored recording may remain unused;
 a reload clip does not create a reload event. [Battle audio](../packages/battle-audio/README.md)
 owns preparation and source loudness, while [the sound workbench](../apps/sound-workbench/README.md)
 owns audition and reviewed edits. Gameplay ranges, cadence and hearing remain with

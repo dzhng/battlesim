@@ -13,18 +13,19 @@
 // for the paired cost), `?fog=1` puts an eye before each station whose sight
 // ends across it, `?azimuth=` and `?sun=` turn and raise the sun, and
 // `?order=reversed` hands the frame the same modules in the opposite order.
+import { shippedRules } from "@web/shippedRules";
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { FogRequest } from "@web/battle/sim/presentation";
-import { validateLight } from "@packages/battle-renderer/src/light/sceneLight";
+import { light_records } from "@wasm/renderer_browser";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import type { WorldLayers } from "@packages/battle-renderer/src/scene";
 import { CameraController, type CameraPose } from "@packages/renderer-core/src/cameraController";
-import game from "@fixtures/game.json";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { useGameAppearances } from "../gameAppearances";
 import { gameCamera } from "../gameCamera";
 import { gameLight } from "../gameLight";
-import { LabViewport, type ViewportPilot } from "../LabViewport";
+import { LabViewport } from "../LabViewport";
+import type { ViewportPilot } from "../viewportRender";
 import { benchGround, flatTerrain } from "../workbench/benchWorld";
 
 const KIT = "city_kit_facade_lab";
@@ -155,7 +156,7 @@ function fogRequest(): FogRequest {
       range,
     };
   });
-  return { sensors: game.sensors, eyes };
+  return { sensors: shippedRules.sensors, eyes };
 }
 
 export default function Facade() {
@@ -166,11 +167,13 @@ export default function Facade() {
       query.get(name) !== null && Number.isFinite(Number(query.get(name)))
         ? Number(query.get(name))
         : or;
-    return validateLight({
+    const light = {
       ...gameLight,
       sun_azimuth: number("azimuth", gameLight.sun_azimuth),
       sun_elevation: number("sun", gameLight.sun_elevation),
-    });
+    };
+    light_records(JSON.stringify(light));
+    return light;
   }, [query]);
   const installed = useGameAppearances(KITS);
   // The kit alone: nothing else is drawn here.

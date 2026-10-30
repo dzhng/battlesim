@@ -122,6 +122,7 @@ function runtimeAppearance(
     ...(entry.scenery ? { scenery: entry.scenery } : {}),
     ...(entry.footprint_half_m ? { footprint_half_m: entry.footprint_half_m } : {}),
     ...(entry.mounts ? { mounts: entry.mounts } : {}),
+    ...(entry.track_gauge !== undefined ? { track_gauge: entry.track_gauge } : {}),
     ...(entry.regional_family ? { regional_family: entry.regional_family } : {}),
     ...(entry.paints ? { paints: entry.paints } : {}),
     ...(entry.wreck ? { wreck: entry.wreck } : {}),

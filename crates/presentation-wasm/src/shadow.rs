@@ -13,8 +13,10 @@ impl Presentation {
 
     /// Fit local receivers under the quality-resolved light; terrain is immutable.
     pub fn set_shadow(&mut self, light: &str, terrain: &[f32]) -> Result<(), JsError> {
-        let light: presentation::light::LightSettings = serde_json::from_str(light)
-            .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
+        let light = presentation::light::LightSettings::from_value(
+            &serde_json::from_str(light).map_err(crate::error)?,
+        )
+        .map_err(crate::error)?;
         let terrain = Arc::new(TerrainPartition::new(terrain, CELL_M));
         self.inner.set_shadow(Some((light, terrain)));
         Ok(())

@@ -8,7 +8,7 @@
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { grassAppearancesOf } from "./terrain/grassField";
 import { concatMeshes, MeshBuilder, type Mesh, type Rgba } from "./mesh";
-import { skirt_mesh } from "@wasm/presentation/presentation_wasm.js";
+import { skirt_mesh } from "@wasm/renderer_browser";
 import type { WorldLayers, WorldScenery } from "./scene";
 import { BLOCKED, buildTerrainSurface, OPEN, type Biome } from "./terrain/terrainSurface";
 import { sceneryAppearances } from "./scenery/appearance";

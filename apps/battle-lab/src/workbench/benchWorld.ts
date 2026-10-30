@@ -4,8 +4,8 @@
 // the ground and figure are world meshes, lit and shadowed with the model;
 // the marks are display-space overlays.
 
+import { shippedRules } from "@web/shippedRules";
 import { vec3, type Mat4, type Vec3 } from "math";
-import game from "@fixtures/game.json";
 import { MeshBuilder, type Mesh, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { WorldLayers, WorldMeshes } from "@packages/battle-renderer/src/scene";
 import {
@@ -37,17 +37,18 @@ import type {
   Bundle,
   SkeletonClips,
 } from "@packages/scene-assets/src/schema";
-import { GRASS_MAX_HEIGHT_M } from "@packages/scene-assets/src/grass";
+import { GRASS_MAX_HEIGHT_M } from "@packages/battle-renderer/src/records.gen";
 import { fixtureAuthority } from "@packages/scene-assets/src/authority";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 
 // The bench's grounds are resolved by the presentation module.
 await loadPresentation();
 
-export const physics = game.physics;
+export const physics = shippedRules.physics;
 
 /** The simulation's bodies and `units`' types: the fit authority the validator reads too. */
-export const benchAuthority = (units: UnitCatalog): Authority => fixtureAuthority(game, units);
+export const benchAuthority = (units: UnitCatalog): Authority =>
+  fixtureAuthority(shippedRules, units);
 
 /** Height of the scale figure: the rules' soldier. */
 const FIGURE_HEIGHT_M = physics.soldier_height_m;
@@ -258,7 +259,7 @@ export function footprint(
     };
   }
   if (rule?.footprint.kind === "tree") {
-    const tree = game.forests.rule;
+    const tree = shippedRules.forests.rule;
     cylinder(edges, tree.trunk_radius_m, 0, tree.trunk_height_m, 12);
     cylinder(edges, tree.canopy_radius_m, tree.canopy_height_m, tree.canopy_height_m, 24);
     return {

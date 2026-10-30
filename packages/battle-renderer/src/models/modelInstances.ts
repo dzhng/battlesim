@@ -16,8 +16,8 @@ import {
   type Articulation,
 } from "@packages/scene-assets/src/articulation";
 import { poseWorlds, worldTransforms } from "@packages/scene-assets/src/pose";
-import { isRgba, type Rgba } from "../mesh";
-import { INSTANCE_WORDS, JOINT_WORDS } from "../records.gen";
+import { type Rgba } from "../mesh";
+import { JOINT_WORDS } from "../records.gen";
 
 /** A body or vehicle posed by its joint palette: one `Joint` (3×4 rows,
  *  `records.gen.ts`) per joint or node. */
@@ -57,11 +57,13 @@ export interface ModelInstance {
   /** Heading of the model's +X, radians counter-clockwise from world +X. */
   yaw: number;
   /** Per-axis scale in the model's own frame, applied before `yaw`: a static
-   *  prop fitted to its placed box (`propAppearance.ts`). None is 1. */
+   *  prop fitted by `presentation::static_world::props`. None is 1. */
   scale?: readonly [number, number, number];
   pose: ModelPose;
   /** The side's tint on tint-masked surfaces; none keeps the authored colours. */
   tint?: readonly [number, number, number];
+  /** Additive selection cue on actual mesh geometry; highlighted models never use cards. */
+  highlight?: boolean;
   /** Mesh tier, 0 finest. Omitted, the frame picks it by projected size and
    *  draws a far model as an impostor. */
   tier?: number;
@@ -80,16 +82,6 @@ export interface XrayStyle {
   own: Rgba;
   selected: Rgba;
   ally: Rgba;
-}
-
-/** `presentation.overlay.xray`, checked: each rgba, none invisible. */
-export function validateXray(x: XrayStyle): XrayStyle {
-  const seen = (c: unknown) => isRgba(c) && c[3] > 0;
-  if (!seen(x.own) || !seen(x.selected) || !seen(x.ally))
-    throw new Error(
-      "presentation.overlay.xray: own, selected and ally, rgba in [0, 1] with alpha > 0",
-    );
-  return x;
 }
 
 /** Column-major model matrices as palette joints. */
@@ -137,52 +129,4 @@ export function posedPalette(
     };
   }
   return { kind: "static", state: bundle.states[0].name };
-}
-
-/** The authored resting model: shared by placement previews and far-model bakes. */
-export function restingModelPose(
-  bundle: Exclude<Bundle, SkeletonClips>,
-  skeleton: SkeletonClips | null,
-): ModelPose {
-  return posedPalette(bundle, skeleton);
-}
-
-/** A column-major model matrix into palette joint `at`, as its 3×4 rows. */
-export function writeJoint(into: Float32Array, at: number, m: ArrayLike<number>) {
-  const o = at * JOINT_WORDS;
-  for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) into[o + r * 4 + c] = m[c * 4 + r];
-}
-const NO_XRAY = [0, 0, 0, 0] as const;
-/** An x-ray colour's rgb as one integer under 2^24, which f32 holds exactly
- *  (the vertex stage unpacks it). */
-export function packXray(c: readonly number[]): number {
-  const byte = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 255);
-  return byte(c[0]) * 65536 + byte(c[1]) * 256 + byte(c[2]);
-}
-/** A model drawn without a side keeps its authored colours. */
-const NO_TINT = [1, 1, 1] as const;
-const UNIT_SCALE = [1, 1, 1] as const;
-export function writeRecord(
-  into: Float32Array,
-  at: number,
-  inst: ModelInstance,
-  base: number,
-  scrollL: number,
-  scrollR: number,
-  layer: number,
-) {
-  const r = at * INSTANCE_WORDS;
-  into[r] = inst.x;
-  into[r + 1] = inst.y;
-  into[r + 2] = inst.z;
-  into[r + 3] = inst.yaw;
-  into[r + 4] = base;
-  into[r + 5] = scrollL - Math.floor(scrollL);
-  into[r + 6] = scrollR - Math.floor(scrollR);
-  const presentation = inst.ghost ?? inst.xray ?? NO_XRAY;
-  into[r + 7] = packXray(presentation);
-  into.set(inst.tint ?? NO_TINT, r + 8);
-  into[r + 11] = layer;
-  into.set(inst.scale ?? UNIT_SCALE, r + 12);
-  into[r + 15] = presentation[3];
 }

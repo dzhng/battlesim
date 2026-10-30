@@ -1,5 +1,5 @@
 //! Shared test setup. Rules always come from the one fixture owner
-//! (game.json): scenario rules for authority tests; flight rules, weapon
+//! (rules.json): scenario rules for authority tests; flight rules, weapon
 //! rows, analytic maps and constant-velocity bodies for flight tests.
 #![allow(dead_code)]
 use contract::ballistics::{FlightRules, WeaponBallistics};
@@ -34,7 +34,7 @@ impl Seat for contract::observation::ObservationFrame {
 }
 
 pub fn game() -> Value {
-    sim::fixtures::test_game()
+    sim::fixtures::test_rules()
 }
 
 /// The seats of a U.S. against Eastern skirmish where a client plays both
@@ -96,7 +96,11 @@ pub fn config() -> FlightConfig {
 }
 
 pub fn weapon(name: &str) -> WeaponBallistics {
-    serde_json::from_value(game()["weapons"][name].clone()).unwrap()
+    contract::weapons::resolve_weapons(game()["weapons"].clone())
+        .unwrap()
+        .remove(name)
+        .unwrap()
+        .ballistics
 }
 
 /// Sets a row's flight bound and its ground reach together.
@@ -126,7 +130,7 @@ pub fn ground_reach_spread(
 
 /// [`ground_reach`] on an authored JSON row.
 pub fn json_ground_reach(row: &mut Value, range_m: f64) {
-    row["range_m"] = serde_json::json!(range_m);
+    row.as_object_mut().unwrap().remove("range_m");
     row["targets"]["ground"]["range_m"] = serde_json::json!(range_m);
 }
 

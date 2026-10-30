@@ -1,4 +1,4 @@
-import { camera_listener, Presentation } from "@wasm/presentation/presentation_wasm.js";
+import { camera_listener, Presentation } from "@wasm/renderer_browser";
 import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { vec3 } from "math";
 import {

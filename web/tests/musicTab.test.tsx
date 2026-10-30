@@ -28,9 +28,6 @@ function fixture() {
     sources: Object.fromEntries([...combat, ...tension].map((id) => [id, generated(id)])),
     clips: {},
     sounds: {},
-    defaults: {},
-    impacts: {},
-    effects: {},
     music: {
       moods: { menu: [], tension, combat },
       tracks: Object.fromEntries(
@@ -44,12 +41,12 @@ function fixture() {
   const snapshot = {
     revision: "sounds-1",
     catalog,
-    weapons: {},
-    firing: {},
+    looks: {},
+    weaponDefaults: { blast: {}, impacts: {} },
+    effects: {},
     vehicles: {},
     footsteps: {},
     runMps: 4,
-    materials: [],
     music: {
       duck: { depth: 0.35, attack_s: 0.05, release_s: 0.8 },
       combat_window_s: 20,

@@ -101,35 +101,3 @@ pub fn ground_mobility(t: &UnitType, rules: &Rules) -> Option<Mobility> {
         }),
     })
 }
-
-/// Driving rules the motion model eases by. (Each unit type's own numbers
-/// and the speed factors are checked at load.)
-pub fn validate(rules: &Rules) {
-    let m = &rules.movement;
-    let d = &m.drive;
-    assert!(
-        d.acceleration_s.is_finite()
-            && d.acceleration_s > 0.0
-            && d.braking_s.is_finite()
-            && d.braking_s > 0.0
-            && d.wreck_stop_s.is_finite()
-            && d.wreck_stop_s > 0.0,
-        "movement.drive acceleration, braking and wreck stop times must be finite and positive"
-    );
-    for (name, v) in [
-        ("turn_in_place_deg", d.turn_in_place_deg),
-        ("abeam_m", d.abeam_m),
-        ("abeam_deg", d.abeam_deg),
-        ("turning_deg", d.turning_deg),
-    ] {
-        assert!(v > 0.0, "movement.drive.{name} must be positive");
-    }
-    assert!(
-        d.min_leg_m >= 0.0 && d.circle_margin_m >= 0.0,
-        "movement.drive.min_leg_m and circle_margin_m must not be negative"
-    );
-    assert!(
-        d.turn_speed_factor > 0.0 && d.turn_speed_factor <= 1.0,
-        "movement.drive.turn_speed_factor must be in (0, 1]: a turning vehicle never stops"
-    );
-}

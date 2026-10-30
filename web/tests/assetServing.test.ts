@@ -1,7 +1,14 @@
 // @vitest-environment node
 // A production build carries every runtime appearance file, served
 // same-origin under the page's cross-origin isolation headers.
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, preview, type PreviewServer } from "vite";
@@ -9,18 +16,18 @@ import { afterAll, beforeAll, expect, test } from "vitest";
 
 const WEB = new URL("../", import.meta.url).pathname;
 const RUNTIME = new URL("../../assets/runtime/", import.meta.url).pathname;
-const work = mkdtempSync(join(tmpdir(), "asset-serving-"));
+const work = realpathSync(mkdtempSync(join(tmpdir(), "asset-serving-")));
 let server: PreviewServer;
 let origin: string;
 
 beforeAll(async () => {
   // A one-line entry keeps the build to the public directory's copy, which is what is under test.
-  const entry = join(WEB, "asset-serving.html");
+  const entry = join(work, "asset-serving.html");
   writeFileSync(entry, "<!doctype html><title>assets</title>\n");
   try {
     await build({
       configFile: join(WEB, "vite.config.ts"),
-      root: WEB,
+      root: work,
       logLevel: "silent",
       build: { outDir: join(work, "dist"), emptyOutDir: true, rollupOptions: { input: entry } },
     });

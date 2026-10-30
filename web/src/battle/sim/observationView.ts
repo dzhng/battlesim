@@ -319,6 +319,8 @@ export interface WeaponPoseView {
   bearing: number;
   /** Elevation of the mount's last launched round; 0 before it first fires. */
   elevation: number;
+  /** Index of the last launched row in the mount’s weapon list; 0 before firing. */
+  round: number;
   /** Rounds launched so far (a squad volley counts per soldier); a rise is a shot. */
   shots: number;
 }

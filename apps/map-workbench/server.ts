@@ -28,7 +28,7 @@ const paths = {
   presets: "fixtures/map-presets.json",
   defaults: "fixtures/generated-battle.json",
   templates: "fixtures/prototype-building-templates.json",
-  rules: "fixtures/game.json",
+  rules: "fixtures/rules.json",
   catalog: "fixtures/catalog.json",
   recipes: "fixtures/encounters.json",
 } as const;

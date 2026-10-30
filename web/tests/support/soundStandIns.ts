@@ -1,17 +1,14 @@
-import game from "@fixtures/game.json";
-import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
+import { presentationSettings } from "@web/presentationSettings";
+import type { AudioMix } from "@packages/battle-audio/src/audioMix";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
-import { battleSounds } from "@packages/battle-audio/src/soundFrame";
 
 /** A test catalog of synthesized baselines, completed for `presentation`: each
- *  sound Rust says the battle plays that the catalog lacks (a recording the
+ *  sound the mix names that the catalog lacks (a recording the
  *  presentation names itself, such as the jet engine or an air-war cue) gets a
  *  synthesized stand-in that loops as its slot does, so the battle prepares what
- *  production prepares. The presentation module must be loaded. */
-export function standInPresentationRecordings(
-  catalog: SoundCatalog,
-  presentation: AudioPresentation,
-) {
+ *  production prepares. The fake must be admissible before Rust can prepare it. */
+export function standInPresentationRecordings(catalog: SoundCatalog, presentation: AudioMix) {
   const loops = new Set<string | null | undefined>([
     presentation.ambience.sound,
     ...Object.values(presentation.vehicles).flatMap((row) => [
@@ -21,14 +18,44 @@ export function standInPresentationRecordings(
       row.reverse,
     ]),
   ]);
-  const { smoke, cook_off } = game.presentation.effects;
-  const plays = battleSounds({
-    tickHz: 30,
-    presentation,
-    catalog,
-    smokeTimes: smoke,
-    cookOff: cook_off,
-  });
+  for (const row of Object.values(presentation.fires)) loops.add(row.sound);
+  for (const look of Object.values(presentationSettings.weapon_looks))
+    if (look.sound.motor) loops.add(presentation.weapon_defaults.motor);
+  for (const [slot, name] of Object.entries(presentation.effects))
+    if (SOUNDS[slot]?.loop) loops.add(name);
+  const plays = new Set<string>([
+    ...[...loops].filter((name): name is string => typeof name === "string"),
+    ...Object.values(presentationSettings.weapon_looks).flatMap(({ sound }) => [
+      sound.shot.near,
+      sound.shot.far,
+      ...Object.values(sound.impacts),
+    ]),
+    presentation.weapon_defaults.blast.near,
+    presentation.weapon_defaults.blast.far,
+    ...Object.values(presentation.weapon_defaults.impacts),
+    ...Object.values(presentation.effects),
+    ...[
+      presentation.air_alarm,
+      presentation.missile_warning,
+      presentation.flare_deploy,
+      presentation.footsteps,
+    ].map((row) => row.sound),
+    presentation.cook_off.blast.near,
+    presentation.cook_off.blast.far,
+    ...Object.values(presentation.cues.sounds),
+  ]);
   for (const name of plays)
     catalog.sounds[name] ??= { ...catalog.sounds[loops.has(name) ? "rotor" : "launch"] };
+  // A score uses the same library admission as battle sounds, so its fake
+  // tracks need source receipts even though the test controls their transport.
+  for (const track of Object.values(catalog.music.tracks))
+    catalog.sources[track.source] ??= {
+      label: "Test score",
+      author: "Test",
+      license: "CC0-1.0",
+      url: "https://example.invalid/score",
+      path: "assets/third-party/audio/score.wav",
+      sha256: "0".repeat(64),
+      notes: "Controlled test transport",
+    };
 }

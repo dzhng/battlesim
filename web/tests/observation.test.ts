@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { shippedRules } from "@web/shippedRules";
 import { UNITS } from "./catalog";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
@@ -16,7 +17,6 @@ import { packedGroundRuns } from "./groundRuns";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import { labScenario, TEST_RULES } from "./catalog";
 import { loadEncounter, loadMap } from "@web/maps/node";
-import game from "@fixtures/game.json";
 import type { Order } from "../src/battle/sim/protocol";
 
 await loadPresentation();
@@ -248,8 +248,8 @@ test("deployment progress, its target and the packing state decode", () => {
   const send = (seq: number, order: Order) =>
     JSON.parse(battle.accept(JSON.stringify({ side: "blue", seq, order, queued: false })));
   const timing = UNITS.type("test_supply").capabilities.deploy!;
-  const ticks = timing.seconds * game.tick_hz;
-  const packTicks = (timing.pack_seconds ?? timing.seconds) * game.tick_hz;
+  const ticks = timing.seconds * shippedRules.tick_hz;
+  const packTicks = (timing.pack_seconds ?? timing.seconds) * shippedRules.tick_hz;
   for (let t = 0; t < ticks / 2; t++) battle.step();
   let [supply, tank] = decode().own;
   // A stopped supply unit sets up where it stands; a tank never deploys.
@@ -552,13 +552,14 @@ test("every frozen animation field and ground value decodes, integers exact past
   expect(o.own[0].memberLeans).toEqual([null, { side: "right", at: [4.5, 5.5] }]);
   expect(o.own[0].area).toEqual({ anchor: [2, 3], radius: 14 });
   expect(o.own[0].weaponPoses).toEqual([
-    { mount: 0, operator: null, bearing: 1.5, elevation: -0.25, shots: big + 4 },
-    { mount: 1, operator: big + 2, bearing: 1.5, elevation: -0.25, shots: 2 ** 32 - 1 },
+    { mount: 0, operator: null, bearing: 1.5, elevation: -0.25, round: 0, shots: big + 4 },
+    { mount: 1, operator: big + 2, bearing: 1.5, elevation: -0.25, round: 1, shots: 2 ** 32 - 1 },
   ]);
   expect(o.own[0].mounts.map((m) => m.mount)).toEqual([0, 1]);
   expect(o.identified[0].memberIds).toEqual([]);
   expect(o.identified[0].memberActiveMounts).toEqual([]);
   expect(o.identified[0].weaponPoses.map((p) => p.shots)).toEqual([9, big + 6]);
+  expect(o.identified[0].weaponPoses.map((p) => p.round)).toEqual([0, 1]);
   expect(o.identified[0].reversing).toBe(true);
   // A damaged enemy's coarse smoke bit, and nothing of its health, crosses the wire.
   expect(o.identified[0].smoking).toBe(true);
@@ -687,7 +688,7 @@ test("a live battle publishes poses, soldier ids, tracer kinds and blasts", () =
     blast ??= frame.blasts.find((b) => b.kind === "tank_he") ?? null;
   }
   expect(kinds.has("rifle")).toBe(true);
-  expect(blast?.radius).toBe(game.weapons.tank_he.blast_radius_m);
+  expect(blast?.radius).toBe(shippedRules.weapons.tank_he.blast_radius_m);
   const tank = frame.own[0];
   expect(tank.weaponPoses.map((p) => p.mount)).toEqual([0, 1]);
   expect(tank.weaponPoses[0].shots).toBeGreaterThan(0);

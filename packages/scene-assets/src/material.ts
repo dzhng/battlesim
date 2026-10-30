@@ -2,6 +2,7 @@
 // become the bundle's coverage, interior and role metadata (`Coverage`,
 // `schema.ts`), and which combinations a bundle may carry. Nothing here draws.
 
+import { COLOR_LUMA_R, COLOR_LUMA_G, COLOR_LUMA_B } from "../../battle-renderer/src/records.gen.ts";
 import type { GltfJson } from "./glb.ts";
 import {
   GLASS_MAX_LUMINANCE,
@@ -79,7 +80,8 @@ export function sourceRole(m: GltfJson, name: string, add: AddFinding): Material
 }
 
 /** Linear luminance (Rec. 709). */
-const luminance = ([r, g, b]: readonly number[]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+const luminance = ([r, g, b]: readonly number[]) =>
+  COLOR_LUMA_R * r + COLOR_LUMA_G * g + COLOR_LUMA_B * b;
 
 /** What material `i` draws on average over the area every mesh draws it on,
  *  as the model shader does: its albedo texture's mean times the vertex

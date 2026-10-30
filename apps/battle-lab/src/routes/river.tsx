@@ -11,7 +11,7 @@ import { orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useBattleSession } from "../useBattleSession";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameBiome } from "../gameBiome";
 import { gameCamera } from "../gameCamera";
 
@@ -97,6 +97,7 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
     if (!world || !observation) return undefined;
     return orderLayer(
       session.units,
+      session.rules.air,
       observation,
       control.selected,
       session.revealed,
@@ -111,6 +112,7 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
     session.revealed,
     surfaceZ,
     session.units,
+    session.rules.air,
   ]);
   const overlayFeed = useFeed(orders);
 

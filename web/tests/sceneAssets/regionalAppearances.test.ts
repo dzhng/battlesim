@@ -6,7 +6,7 @@ import { expect, test } from "vitest";
 import { mapDownloads } from "@apps/battle-lab/src/gameAppearances";
 import { propArt } from "@packages/battle-renderer/src/models/propAppearance.ts";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import { prop_appearances } from "@wasm/presentation/presentation_wasm.js";
+import { prop_appearances } from "@wasm/renderer_browser";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
 import { gzipTransport } from "@packages/scene-assets/src/gzip.ts";
 import { AppearanceLibrary, memoryFetch, type Fetch } from "@packages/scene-assets/src/loader.ts";
@@ -115,7 +115,7 @@ test("a map of one family fetches its family's looks and no other family's", asy
   await loadPresentation();
   const layout = JSON.stringify({
     propKinds: ["crate"],
-    propAppearance: { crate: { drawn_by: "crate" } },
+    propAppearance: { crate: { drawn_by: "crate", stand_in_tint: [0.5, 0.5, 0.5] } },
     blockingPropKinds: {},
     unitKinds: [],
     unitAppearance: {},

@@ -38,7 +38,7 @@ export const ALL_TRIGGERS = [...RESPONSE_TRIGGERS, ...BARK_TRIGGERS] as const;
 export type BarkTrigger = (typeof BARK_TRIGGERS)[number];
 
 /** A bark's voice name from the simulation's tag: the contract names B5
- *  `b5_under_fire` (the publication layout's `shoutTriggers`, `ShoutRules.talk_s`),
+ *  `b5_under_fire` (the publication layout's `shoutTriggers`),
  *  a voice line `under_fire`. The one place the two forms meet; a tag whose
  *  number and name aren't the same bark is refused. */
 export function barkTrigger(tag: string): BarkTrigger {

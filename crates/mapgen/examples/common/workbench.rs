@@ -141,6 +141,8 @@ fn checked(inputs: &Inputs) -> Result<Checked, Vec<Diagnostic>> {
     let resolved_rules = serde_json::to_string(&raw_rules)
         .map_err(|error| vec![diagnostic("$.rules", error.to_string())])?;
     let rules: Rules = parse(&resolved_rules, "$.rules")?;
+    sim::admit(&rules)
+        .map_err(|error| vec![diagnostic(format!("$.rules.{}", error.path), error.message)])?;
     let recipes = EncounterRecipes::from_json(&inputs.recipes)
         .map_err(|error| vec![diagnostic("$.recipes", error.to_string())])?;
     if !recipes.recipes.contains_key(JUDGED_RECIPE) {

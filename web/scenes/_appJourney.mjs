@@ -1,5 +1,7 @@
+import { installWorkerStartFence } from "./_workerStart.mjs";
 import {
   advance,
+  aim,
   obs,
   openMenu,
   closeMenu,
@@ -22,13 +24,56 @@ const MUSIC = JSON.parse(
  *  history, a saved replay and the way back to the menu. */
 export async function appJourney(ctx) {
   const page = await ctx.newPage();
+  const cdp = await page.context().newCDPSession(page);
+  await page.addInitScript(installWorkerStartFence);
   await page.addInitScript(() => {
-    const probe = { devices: 0, contexts: [], music: [], allocations: null };
+    // wgpu drops WebGPU handles without calling destroy(). Strong observer keys
+    // would retain every departed scene; only weak identities belong here.
+    const resources = new Map();
+    const queues = [];
+    let created = 0;
+    const allocations = (before = Infinity) => {
+      const counts = { buffers: 0, textures: 0 };
+      for (const [order, { reference, kind }] of resources) {
+        if (!reference.deref()) resources.delete(order);
+        else if (order < before) counts[kind]++;
+      }
+      return counts;
+    };
+    allocations.created = () => created;
+    const onDestroy = (order, destroy) =>
+      function (...args) {
+        resources.delete(order);
+        return destroy.apply(this, args);
+      };
+    const observe = (resource, kind) => {
+      const order = created++;
+      resources.set(order, { reference: new WeakRef(resource), kind });
+      resource.destroy = onDestroy(order, resource.destroy);
+      return resource;
+    };
+    const probe = {
+      devices: 0,
+      contexts: [],
+      music: [],
+      allocations,
+      drain: () => Promise.all(queues.map((queue) => queue.onSubmittedWorkDone())),
+    };
     window.__appJourney = probe;
     const request = GPUAdapter.prototype.requestDevice;
     GPUAdapter.prototype.requestDevice = async function (...args) {
       const device = await request.apply(this, args);
       probe.devices++;
+      queues.push(device.queue);
+      for (const [method, kind] of [
+        ["createBuffer", "buffers"],
+        ["createTexture", "textures"],
+      ]) {
+        const create = device[method];
+        device[method] = function (...descriptors) {
+          return observe(create.apply(this, descriptors), kind);
+        };
+      }
       return device;
     };
     const NativeContext = AudioContext;
@@ -69,24 +114,52 @@ export async function appJourney(ctx) {
   await openMenuPage(page, "Skirmish");
   await page.getByTestId("menu-map-open").click();
   await page.getByTestId("menu-size-small").click();
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await page.getByTestId("menu-deploy").click();
   await backdropClosed;
 
   const ready = async () => {
-    await page.waitForFunction(() => window.__lab?.ready && window.__lab.route?.tick() > 3, null, {
+    await page.waitForFunction(() => window.__lab?.ready && window.__lab.route, null, {
       timeout: 120000,
     });
     await page.evaluate(() => window.__lab.route.pause());
-    await page.evaluate(() => {
-      window.__appJourney.allocations = window.__lab.allocations;
-    });
+    // The pause reply follows every publication already in flight. Only then
+    // is the tick used to compute our exact advance stable.
+    await page.waitForFunction(() => window.__lab?.route?.status().status === "paused");
+    if ((await page.evaluate(() => window.__lab.route.tick())) === 0) await advance(page, 1);
+  };
+  // One deliberate collection per lifecycle checkpoint. The new backdrop has
+  // drawn, and prior queue work has completed; a surviving old wrapper fails.
+  const releasedBefore = async (mark) => {
+    await menuShown(page);
+    await page.waitForFunction(
+      () => Number(document.querySelector(".menu-backdrop-veil")?.style.opacity ?? 1) < 1,
+      null,
+      { timeout: 120000 },
+    );
+    await page.evaluate(() => window.__appJourney.drain());
+    await cdp.send("HeapProfiler.collectGarbage");
+    return page.evaluate((before) => window.__appJourney.allocations(before), mark);
   };
   await ready();
   const seedAddress = page.url();
   await advance(page, 90 - (await obs(page)).tick);
   await presented(page);
-  const digest = await page.evaluate(() => window.__lab.route.digest());
+  const openingBattle = await page.evaluate(() => ({
+    tick: window.__lab.route.tick(),
+    digest: window.__lab.route.digest(),
+  }));
+  const digest = openingBattle.digest;
   await snapshot(ctx, page, "app-journey-play.png");
+  const observed = await page.evaluate(() => ({
+    created: window.__appJourney.allocations.created(),
+    live: window.__appJourney.allocations(),
+  }));
+  ctx.check(
+    "resource lifetime observer sees the live battle's WebGPU buffers and textures",
+    observed.created > 0 && observed.live.buffers > 0 && observed.live.textures > 0,
+    JSON.stringify(observed),
+  );
   // A real skirmish's map grows trees: the battle's presentation is handed
   // the world's scenery art, so its forests are placed and some are drawn,
   // far from the opening camera and near from a low one looking across the
@@ -197,14 +270,24 @@ export async function appJourney(ctx) {
   const old = page.workers().find((worker) => worker.url().includes("/prepare/worker.ts"));
   const closed = old.waitForEvent("close");
   await openMenu(page);
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await page.getByRole("button", { name: "Restart", exact: true }).click();
   await closed;
   await ready();
   await advance(page, 90 - (await obs(page)).tick);
+  await presented(page);
+  const restarted = await page.evaluate(() => ({
+    tick: window.__lab.route.tick(),
+    digest: window.__lab.route.digest(),
+  }));
+  await ctx.writeEvidence("app-journey-restart.json", { opening: openingBattle, restarted });
   ctx.check(
     "restart creates a fresh authority with the same exact battle",
     !page.workers().includes(old) &&
-      (await page.evaluate(() => window.__lab.route.digest())) === digest,
+      openingBattle.tick === 90 &&
+      restarted.tick === 90 &&
+      restarted.digest === digest,
+    JSON.stringify({ opening: openingBattle, restarted }),
   );
 
   await openMenu(page);
@@ -214,12 +297,13 @@ export async function appJourney(ctx) {
   let mark = await page.evaluate(() => window.__appJourney.allocations.created());
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
   await departed;
-  // The departed battle's allocations all return.
-  await page.waitForFunction((mark) => {
-    const counts = window.__appJourney.allocations(mark);
-    return counts.buffers === 0 && counts.textures === 0;
-  }, mark);
-  await menuShown(page);
+  const departedAllocations = await releasedBefore(mark);
+  ctx.check(
+    "main-menu return releases the departed battle's WebGPU resources",
+    departedAllocations.buffers === 0 && departedAllocations.textures === 0,
+    JSON.stringify(departedAllocations),
+  );
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await page.goBack();
   await ready();
   await advance(page, 90 - (await obs(page)).tick);
@@ -230,9 +314,11 @@ export async function appJourney(ctx) {
   );
   await page.goForward();
   await menuShown(page);
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await page.goBack();
   await ready();
   await openMenu(page);
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await page.getByRole("link", { name: "Watch saved replay", exact: true }).click();
   await ready();
   await advance(page, 90 - (await obs(page)).tick);
@@ -246,31 +332,22 @@ export async function appJourney(ctx) {
   await openMenu(page);
   mark = await page.evaluate(() => window.__appJourney.allocations.created());
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
-  // Read when the departed battle's allocations have all returned, whatever
-  // the menu's backdrop has allocated of its own scene meanwhile.
-  const released = await page.waitForFunction((mark) => {
-    const counts = window.__appJourney.allocations(mark);
-    return counts.buffers === 0 && counts.textures === 0 && counts;
-  }, mark);
-  await menuShown(page);
-  const owners = await page.evaluate(
-    (allocations) => {
-      const p = window.__appJourney;
-      return {
-        devices: p.devices,
-        contexts: p.contexts.length,
-        running: p.contexts[0].state,
-        // The track id is the served file's name before its content hash.
-        music: p.music.map((m) => ({
-          track: new URL(m.src).pathname.split("/").pop().split(".")[0],
-          offset: m.offset,
-        })),
-        allocations,
-        timeOrigin: performance.timeOrigin,
-      };
-    },
-    await released.jsonValue(),
-  );
+  const released = await releasedBefore(mark);
+  const owners = await page.evaluate((allocations) => {
+    const p = window.__appJourney;
+    return {
+      devices: p.devices,
+      contexts: p.contexts.length,
+      running: p.contexts[0].state,
+      // The track id is the served file's name before its content hash.
+      music: p.music.map((m) => ({
+        track: new URL(m.src).pathname.split("/").pop().split(".")[0],
+        offset: m.offset,
+      })),
+      allocations,
+      timeOrigin: performance.timeOrigin,
+    };
+  }, released);
   // The menu replays its one track from the start on every return; a battle
   // plays its own score (tension and combat tracks), also from the start.
   const [menuTrack] = MUSIC.moods.menu;
@@ -293,6 +370,7 @@ export async function appJourney(ctx) {
     JSON.stringify(owners),
   );
   await ctx.writeEvidence("app-journey.json", { digest, owners });
+  await cdp.detach();
   await page.close();
 }
 
@@ -366,6 +444,10 @@ export async function armyJourney(ctx) {
   const goal = [truck.position[0] + 50, truck.position[1]];
   await page.evaluate((ids) => window.__lab.route.select(ids), [rifle.id, truck.id]);
   await page.keyboard.press("c");
+  // Frame the goal first: the truck may have drifted off screen or under
+  // the army bar, where a right-click lands on no ground.
+  await aim(page, goal);
+  await presented(page);
   const point = await groundCss(page, goal);
   await page.mouse.click(...point, { button: "right" });
   await page.waitForFunction(() => window.__lab.route.acks()[0]?.order.kind === "attack_move");

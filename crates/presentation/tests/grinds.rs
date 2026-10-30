@@ -23,7 +23,7 @@ fn row(body: &str) -> ScenarioDefinition {
         .to_vec();
     serde_json::from_value(json!({
         "map": { "size": [60, 60], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": bodies },
-        "rules": sim::fixtures::test_game(),
+        "rules": sim::fixtures::test_rules(),
         "units": [{ "side": "blue", "kind": KIND, "position": [22.0, 5.0], "engagement": "return_fire_only" }],
         "events": [],
         "scripts": [{ "tick": 1, "side": "blue", "order":
@@ -36,9 +36,7 @@ fn row(body: &str) -> ScenarioDefinition {
 /// from its publications, with the hull's distance from each.
 fn shove_through(body: &str) -> (f64, Vec<(Grind, f64)>) {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let game: Value =
-        serde_json::from_slice(&std::fs::read(root.join("fixtures/game.json")).unwrap()).unwrap();
-    let f = fielded::fielded(&root, &game, "air", &[KIND.to_owned()]).unwrap();
+    let f = fielded::fielded(&root, &row(body).rules, &[KIND.to_owned()]).unwrap();
     let mut battle = Battle::new(&row(body), 1);
     let parked = battle.world().prop(SHOVED as u32).unwrap().center;
     let mut reader = Reader::new(&publication::layout_json(&battle)).unwrap();

@@ -11,7 +11,7 @@ const presets = fixture("map-presets.json");
 const templates = fixture("prototype-building-templates.json");
 // The resolved physical rules shared by generation and the battle.
 const rules = JSON.stringify({
-  ...JSON.parse(fixture("game.json")),
+  ...JSON.parse(fixture("rules.json")),
   catalog: JSON.parse(fixture("catalog.json")).documents,
 });
 

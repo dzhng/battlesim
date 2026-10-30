@@ -53,7 +53,7 @@ export async function fixture(run: NativeReporter = reporter) {
     "map-presets.json": { revision: "initial", density: 0.5 },
     "generated-battle.json": { analysis: { target: 0.5 } },
     "prototype-building-templates.json": [],
-    "game.json": { seed: 1 },
+    "rules.json": { tick_hz: 1 },
     "catalog.json": { documents: [], units: [], props: [] },
     "encounters.json": { recipes: {} },
   };

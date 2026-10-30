@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 #[test]
 fn weapon_values_reject_negative_damage_with_a_named_error() {
     let mut rows: Value =
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
     rows["weapons"]["rifle"]["damage"] = json!(-1);
     let error = contract::weapons::resolve_weapons(rows["weapons"].clone())
         .unwrap_err()
@@ -29,7 +29,7 @@ fn weapon_values_reject_invalid_scalar_settings() {
         ("grenade", "partial_from", 1.0),
     ] {
         let mut game: Value =
-            serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+            serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
         game["weapons"][id][field] = json!(value);
         let result = contract::weapons::resolve_weapons(game["weapons"].clone());
         assert!(result.is_err(), "accepted weapons.{id}.{field} = {value}");
@@ -44,8 +44,8 @@ fn weapon_values_reject_invalid_scalar_settings() {
 #[test]
 fn minimum_range_cannot_exceed_maximum_range() {
     let mut game: Value =
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
-    game["weapons"]["grenade"]["range_m"] = json!(10.0);
+        serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
+    game["weapons"]["grenade"]["targets"]["ground"]["range_m"] = json!(10.0);
     game["weapons"]["grenade"]["min_range_m"] = json!(11.0);
     let error = contract::weapons::resolve_weapons(game["weapons"].clone())
         .unwrap_err()
@@ -59,13 +59,13 @@ fn minimum_range_cannot_exceed_maximum_range() {
 #[test]
 fn an_unpowered_row_with_range_is_refused() {
     let mut game: Value =
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
     game["weapons"]["air_bomb"]["range_m"] = json!(1000.0);
     let error = contract::weapons::resolve_weapons(game["weapons"].clone())
         .unwrap_err()
         .to_string();
     assert!(
-        error.contains("weapons.air_bomb") && error.contains("unpowered"),
+        error.contains("weapons.air_bomb") && error.contains("range_m"),
         "{error}"
     );
 }
@@ -77,7 +77,7 @@ fn an_unpowered_row_with_range_is_refused() {
 fn a_weapon_row_needs_a_short_label_and_an_icon_id() {
     let load = |field: &str, value: Value| {
         let mut game: Value =
-            serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+            serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
         // A derived row: its own label and icon are checked, not only its parent's.
         game["weapons"]["autocannon"][field] = value;
         contract::weapons::resolve_weapons(game["weapons"].clone())
@@ -118,13 +118,11 @@ fn a_weapon_row_needs_a_short_label_and_an_icon_id() {
     }
 }
 
-/// A height band's fire profile may only shorten the row's reach: the flight
-/// rules admit a row's range, speed and lifetime together, so a longer reach
-/// at one band would fly rounds the row was never checked for.
+/// Each layer authors valid reach and scatter; the flight envelope follows
+/// the longest layer. Other firing values belong to the weapon.
 #[test]
-fn a_height_band_cannot_reach_past_the_row() {
+fn a_height_band_requires_valid_range_and_scatter() {
     for (band, named) in [
-        (json!({ "range_m": 701.0 }), "targets.low_air.range_m"),
         (json!({ "range_m": -1.0 }), "targets.low_air.range_m"),
         (
             json!({ "scatter_mrad": -1.0 }),
@@ -135,7 +133,7 @@ fn a_height_band_cannot_reach_past_the_row() {
         (json!({ "aim_s": 1.0 }), "aim_s"),
     ] {
         let mut game: Value =
-            serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+            serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
         game["weapons"]["heavy_sniper"]["targets"]["low_air"] = band.clone();
         let error = contract::weapons::resolve_weapons(game["weapons"].clone())
             .err()
@@ -151,7 +149,7 @@ fn a_height_band_cannot_reach_past_the_row() {
 #[test]
 fn seeker_fov_is_typed_and_bounded() {
     let mut game: Value =
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
     game["weapons"]["stinger"]["seeker"] = json!("infrared");
     game["weapons"]["stinger"]["seeker_fov_deg"] = json!(70.0);
     let rows = contract::weapons::resolve_weapons(game["weapons"].clone()).unwrap();
@@ -167,7 +165,7 @@ fn seeker_fov_is_typed_and_bounded() {
 #[test]
 fn anti_radiation_is_distinct_from_a_radar_seeker() {
     let mut game: Value =
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
     game["weapons"]["sead_missile"]["anti_radiation"] = json!(true);
     game["weapons"]["air_missile"]["anti_radiation"] = json!(false);
     let rows = contract::weapons::resolve_weapons(game["weapons"].clone()).unwrap();
@@ -181,7 +179,7 @@ fn anti_radiation_is_distinct_from_a_radar_seeker() {
 
 #[test]
 fn every_air_target_row_reaches_its_range_within_its_lifetime() {
-    let game: Value = serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    let game: Value = serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
     let rows = contract::weapons::resolve_weapons(game["weapons"].clone()).unwrap();
     for (id, row) in rows {
         if row
@@ -227,8 +225,8 @@ fn test_rows(targets: Value) -> Value {
         fire.entry("scatter_mrad").or_insert(json!(5));
     }
     json!({ "test_gun": {
-        "name": "Test Gun", "description": "A test row.", "icon": "rifle",
-        "stationary": false, "range_m": 300, "speed_mps": 800,
+        "name": "Test Gun", "description": "A test row.", "icon": "rifle", "appearance": "rifle",
+        "stationary": false, "speed_mps": 800,
         "aim_s": 1, "reload_s": 2, "ammo": "unlimited",
         "penetration": 5, "partial_from": 0.6, "damage": 10,
         "near_miss_suppression": 0, "suppression_radius_m": 0, "blast_radius_m": 0,
@@ -394,7 +392,7 @@ fn resolved_weapons_require_explicit_damage_and_layer_values() {
         }))
     };
     let mut inherited = base();
-    inherited["child"] = json!({ "extends": "test_gun", "range_m": 400 });
+    inherited["child"] = json!({ "extends": "test_gun" });
     let resolved = contract::weapons::resolve_weapons(inherited).unwrap();
     assert_eq!(
         resolved["child"]
@@ -436,4 +434,22 @@ fn resolved_weapons_require_explicit_damage_and_layer_values() {
             "{error}"
         );
     }
+}
+
+/// A serialized resolved row may carry its computed reach, but authors cannot
+/// give it a second reach that disagrees with its target layers.
+#[test]
+fn an_authored_range_must_match_the_largest_target_layer() {
+    let mut rows = test_rows(json!({
+        "ground": { "classes": ["vehicle"], "range_m": 300 },
+        "low_air": { "classes": ["air_rotor"], "range_m": 150 }
+    }));
+    rows["test_gun"]["range_m"] = json!(301);
+    let error = contract::weapons::resolve_weapons(rows)
+        .expect_err("a second, disagreeing reach must be refused")
+        .to_string();
+    assert!(
+        error.contains("weapons.test_gun") && error.contains("range_m"),
+        "{error}"
+    );
 }

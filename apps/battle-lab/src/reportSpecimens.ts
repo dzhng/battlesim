@@ -3,9 +3,9 @@
 // battle's (each player buying in waves, kills crossing the front, a few
 // refunds) and every player's totals summed from it, as the referee keeps
 // them. Test units only: the roster grows.
+import { shippedRules } from "@web/shippedRules";
 import type { Seat } from "@web/battle/present/playerName";
 import type { MatchEventView, SkirmishView } from "@web/battle/sim/observationView";
-import game from "@fixtures/game.json";
 
 const KINDS = [
   ["test_tank", 300],
@@ -37,7 +37,7 @@ export function reportSpecimen(
       controller: code === "h" ? ("human" as const) : ("active_ai" as const),
     })),
   );
-  const minute = 60 * game.tick_hz;
+  const minute = 60 * shippedRules.tick_hz;
   const events: MatchEventView[] = [];
   const alive: { side: "blue" | "red"; owner: number; unitId: number; kind: number }[] = [];
   let unitId = 0;
@@ -62,7 +62,7 @@ export function reportSpecimen(
       }
     });
     for (let k = 0; k < seats.length + wave; k++) {
-      const tick = at + minute + k * 13 * game.tick_hz;
+      const tick = at + minute + k * 13 * shippedRules.tick_hz;
       // Only what fights kills: tanks, rifles, anti-tank teams.
       const fighters = alive.filter(
         (u) => KINDS[u.kind][0] !== "test_supply" && KINDS[u.kind][0] !== "test_jeep",

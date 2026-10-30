@@ -15,7 +15,6 @@ use std::fs;
 use std::path::Path;
 
 use presentation::fielded;
-use presentation::fog::FogPresentation;
 use presentation::light::LightSettings;
 use presentation::presentation::{FogSetup, Frame, Presentation, Ui};
 use presentation::records::FogLook;
@@ -144,8 +143,11 @@ enum Infinite {
 pub struct Replay {
     /// The saved map the scene was filmed on (`identity.map`).
     pub map: String,
+    /// The resolved encounter rules shared by fielding and sound.
+    pub rules: contract::scenario::Rules,
     pub records: Vec<Record>,
     pub light: LightSettings,
+    pub backdrop_reach_m: f64,
     /// The fixture's selected unseen look (`presentation.fog`).
     pub fog_look: FogLook,
     /// The browser's posed-model counts by plate (`modelCounts`).
@@ -247,23 +249,39 @@ impl Replay {
                 ));
             }
         }
-        let game: Value = read_json(&root.join("fixtures/game.json"))?;
-        let light: LightSettings = serde_json::from_value(game["presentation"]["light"].clone())
-            .map_err(|e| format!("presentation.light: {e}"))?;
+        let catalogue = sim::maps::Catalogue {
+            maps: root.join("fixtures/maps"),
+            libraries: root.join("fixtures"),
+        };
+        let scenario = catalogue
+            .scenario(&map, encounter, files::rules(root, &map)?)
+            .map_err(|e| e.to_string())?;
+        let kinds = scenario
+            .units
+            .iter()
+            .map(|u| u.kind.clone())
+            .collect::<Vec<_>>();
+        let rules = scenario.rules;
+        let settings =
+            presentation::settings::PresentationSettings::from_value(&read_json::<Value>(
+                &root.join("fixtures/presentation.json"),
+            )?)?;
+        let light = settings.light;
         // The battle's units, effects and clip tables, as a page fielding
         // the encounter's units installs them.
-        let kinds = fielded::encounter_kinds(root, &map, encounter)?;
-        let fielded = fielded::fielded(root, &game, &map, &kinds)?;
-        let physics = &game["physics"];
-        let number = |v: &Value, what: &str| v.as_f64().ok_or(format!("game.json: no {what}"));
+        let fielded = fielded::fielded(root, &rules, &kinds)?;
+        if capture.tick_hz != f64::from(rules.tick_hz) {
+            return Err("capture tick_hz differs from the encounter rules".into());
+        }
+        let physics = &rules.physics;
         let battle = BattleInput {
             units: fielded.units,
             effects: fielded.effects,
             side: capture.side.clone(),
             tick_hz: capture.tick_hz,
             soldier: SoldierBody {
-                radius_m: number(&physics["soldier_radius_m"], "physics.soldier_radius_m")?,
-                height_m: number(&physics["soldier_height_m"], "physics.soldier_height_m")?,
+                radius_m: physics.soldier_radius_m,
+                height_m: physics.soldier_height_m,
             },
             // The UI's colours: a replay selects nothing and shows no x-ray
             // or ghost, so no frame reads them.
@@ -274,13 +292,12 @@ impl Replay {
             },
             blocked: [0.0; 4],
         };
-        let fog: FogPresentation = serde_json::from_value(game["presentation"]["fog"].clone())
-            .map_err(|e| format!("presentation.fog: {e}"))?;
+        let fog = settings.fog;
         let fog_look = fog.selected()?.look()?;
         let mut presentation = Presentation::new(Some(&capture.layout), capture.tick_hz)?;
         // The ground, and its scenery placed from each kind's finest mesh.
-        let ground = files::ground(root, &map)?;
-        let (buildings, style) = files::placed_buildings(root, &map, &ground.world)?;
+        let ground = files::ground(root, &map, &rules)?;
+        let (buildings, style) = files::placed_buildings(root, &rules, &ground.world)?;
         presentation.set_ground(ground.source, ground.biome, ground.tuning)?;
         // Fog of war, where the browser drew it: the side's sight under the
         // game's sensor rules.
@@ -296,7 +313,7 @@ impl Replay {
             .map_or_else(Vec::new, |g| g.scenery_kinds());
         let finest = kinds
             .iter()
-            .map(|name| tier_mesh(name, &library.bundle(name)?, 0))
+            .map(|name| tier_mesh(name, library.bundle(name)?.as_ref(), 0))
             .collect::<Result<Vec<_>, String>>()?;
         let finest: Vec<&[f32]> = finest.iter().map(Vec::as_slice).collect();
         presentation.place_scenery(&finest)?;
@@ -321,8 +338,10 @@ impl Replay {
         presentation.load_world(input, fielded.tables, Some(buildings))?;
         Ok(Self {
             map,
+            rules,
             records: capture.frames,
             light,
+            backdrop_reach_m: settings.ground.backdrop_reach_m,
             fog_look,
             model_counts: manifest.model_counts,
             effect_counts: manifest.effect_counts,

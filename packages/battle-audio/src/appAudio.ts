@@ -1,4 +1,4 @@
-import type { AudioPresentation } from "./audioPresentation";
+import type { AudioMix } from "./audioMix";
 import { BattleAudio } from "./battleAudio";
 import type { SoundCatalog } from "./catalog";
 import type { SoundFrameOptions } from "./soundFrame";
@@ -71,9 +71,7 @@ export class AppAudio {
   };
   private readonly onPageHide = () => this.dispose();
 
-  constructor(
-    private readonly options: { presentation: AudioPresentation; catalog: SoundCatalog },
-  ) {
+  constructor(private readonly options: { presentation: AudioMix; catalog: SoundCatalog }) {
     this.unsubscribe = soundSettings.subscribe(() => this.applySettings());
     for (const type of ["pointerdown", "keydown"] as const)
       window.addEventListener(type, this.onGesture, { capture: true });

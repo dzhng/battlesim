@@ -3,7 +3,7 @@
 // paint. Its width is given in pixels at the camera's target and turned into metres
 // by the one stroke rule at the caller's zoom step (`strokeWidth.ts`), so it
 // reads at the strategic height without becoming a road-wide band close in.
-import { groundRing, groundStrip, isRgba, MeshBuilder, type Mesh, type Rgba } from "./mesh";
+import { groundRing, groundStrip, MeshBuilder, type Mesh, type Rgba } from "./mesh";
 import type { SurfaceHeight } from "./orderOverlay";
 import type { StrokeWidth } from "./strokeWidth";
 
@@ -14,22 +14,6 @@ export interface MapBorderStyle {
   width_px: number;
   /** Never narrower than this on the ground. */
   min_width_m: number;
-}
-
-/** `presentation.map_border`, checked: an rgba colour, a positive width on
- *  screen and on the ground. It lies on the ground, as all paint does. */
-export function validateMapBorder(b: MapBorderStyle): MapBorderStyle {
-  if (!isRgba(b.color) || !(b.width_px > 0) || !(b.min_width_m > 0))
-    throw new Error(
-      `presentation.map_border: color rgba, width_px > 0, min_width_m > 0; got ${JSON.stringify(b)}`,
-    );
-  return b;
-}
-
-/** `presentation.overlay.zone`, the objective zone's edge colour, checked. */
-export function validateZoneColor(zone: unknown): Rgba {
-  if (!isRgba(zone)) throw new Error("presentation.overlay.zone: rgba in [0, 1]");
-  return zone;
 }
 
 /** The border's width in metres at the camera's zoom (`stroke`). */

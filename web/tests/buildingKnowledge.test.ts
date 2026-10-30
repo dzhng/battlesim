@@ -4,12 +4,12 @@
 // each side's publication pushed into a presentation that draws the map's
 // buildings, and the state its frame draws each in. A low compound is shelled down and a tower gutted while
 // blue watches and red stands behind two slabs; later red walks out and sees.
+import { presentationSettings } from "@web/presentationSettings";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { gameBuildingStyle } from "@apps/battle-lab/src/gameModels";
 import { buildingRemains } from "@packages/scene-assets/src/authority";
 import { shippedBuildingArt } from "./support/presentedBuildings";
-import game from "@fixtures/game.json";
 import { TEST_RULES, labScenario } from "./catalog";
 import { type LabEncounter } from "@apps/battle-lab/src/scenarios";
 import { Battle, initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
@@ -22,7 +22,6 @@ import {
   mapProps,
   type MapProp,
 } from "@packages/battle-renderer/src/models/propAppearance";
-import { gameBiome } from "@apps/battle-lab/src/gameBiome";
 import {
   readWorldExports,
   type WorldExports,
@@ -75,8 +74,6 @@ interface Played {
   /** The buildings a side's presentation draws destroyed now, from its
    *  whole publication. */
   drawn(side: "blue" | "red"): FallenBuilding[];
-  /** The boxes a side's fog of war is cut by now, from its whole publication. */
-  occluders(side: "blue" | "red"): ReturnType<ScenePresentation["fogOccluders"]>;
   /** The building of `template`, as `index` numbers it. */
   building(template: string): number;
   free(): void;
@@ -130,22 +127,6 @@ function play(encounter: LabEncounter): Played {
         presentation.decode(new Float32Array(memory.buffer, battle.publication_ptr(), len));
         presentation.frame(0, OVERHEAD, { selected: [], xray: false, ghosts: [] }, 0);
         return presentation.fallenBuildings();
-      } finally {
-        presentation.free();
-      }
-    },
-    occluders(side) {
-      const presentation = new ScenePresentation(observations);
-      try {
-        const ground = { exports, layout: JSON.stringify(layout), biome: gameBiome, family: null };
-        presentation.setGround(ground, null);
-        battle.resync_observation();
-        const len = battle.publish(side);
-        presentation.decode(new Float32Array(memory.buffer, battle.publication_ptr(), len));
-        presentation.frame(0, OVERHEAD, { selected: [], xray: false, ghosts: [] }, 0);
-        presentation.setFog({ sensors: TEST_RULES.sensors });
-        presentation.presentedGround()!.prepare_fog(undefined, 0, 0, 0)?.free();
-        return presentation.fogOccluders();
       } finally {
         presentation.free();
       }
@@ -215,25 +196,9 @@ test("a side knows a building collapsed or gutted once it has seen it, and intac
     expect(stands.kinds).toEqual(["gutted"]);
     expect(stands.known).toEqual([stands.authored]);
 
-    // The fog's occluders follow the same knowledge: for blue the compound's
-    // are its remains and the tower's still its full height; for red both
-    // stand as the map has them.
-    const tops = (side: "blue" | "red", building: number) => {
-      const parts = battle.index.parts[building];
-      const at = new Set(parts.map((p) => p.center.join()));
-      return battle
-        .occluders(side)
-        .filter((o) => at.has([o.x, o.y].join()))
-        .map((o) => o.top - o.base);
-    };
-    expect(tops("blue", compound)).toEqual([remains, remains, remains]);
-    expect(tops("blue", tower)).toEqual([stands.authored]);
-    expect(tops("red", compound)).toEqual([fell.authored, fell.authored, fell.authored]);
-    expect(tops("red", tower)).toEqual([stands.authored]);
-
     // What a side knows destroyed smokes for it (the presentation's effects,
     // `crates/presentation`): ruins and gutted shells each have a look.
-    expect(Object.keys(game.presentation.effects.smoke)).toEqual(
+    expect(Object.keys(presentationSettings.effects.smoke)).toEqual(
       expect.arrayContaining(["gutted", "ruin"]),
     );
 

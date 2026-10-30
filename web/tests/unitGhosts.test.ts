@@ -1,5 +1,8 @@
+import { shippedRules } from "@web/shippedRules";
+import { loadWasm } from "@web/battle/sim/module";
+beforeAll(() => loadWasm());
 // @vitest-environment node
-import { expect, test } from "vitest";
+import { beforeAll, expect, test } from "vitest";
 import type { OwnUnitView } from "@web/battle/sim/observationView";
 import {
   GHOST_SELECTED,
@@ -146,6 +149,7 @@ test("the ghost stands at its kind's cruise height: its own, else its layer's, n
     }),
   } as any;
   const air = {
+    ...shippedRules.air,
     low_air: { cruise_agl_m: 30 },
     high_air: { cruise_agl_m: 250, floor_agl_m: 100 },
   };

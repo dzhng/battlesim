@@ -273,7 +273,7 @@ fn tiers_that_do_not_climb_or_cost_less_deeper_fail_at_load() {
         json!({ "decay_per_s": 0.0 }),
     ] {
         let e = load(broken.clone()).unwrap_err();
-        assert!(e.contains("rules.suppression: "), "{broken}: {e}");
+        assert!(e.contains("suppression: "), "{broken}: {e}");
     }
     // The old continuous keys are gone, not ignored.
     let e = load(json!({ "max_move_penalty": 0.7 })).unwrap_err();

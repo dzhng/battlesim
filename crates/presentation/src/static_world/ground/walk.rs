@@ -389,7 +389,7 @@ struct Cell {
 
 /// The ground the side has seen cleared: cells `cell_m` metres a side,
 /// `cols` across.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Cleared {
     cell_m: f64,
     cols: usize,
@@ -548,6 +548,22 @@ impl SceneryWalk {
             scenery,
             sizes,
             trunks,
+        }
+    }
+
+    /// Preserve only current observation state; placement and geometric bounds
+    /// are rebuilt from the candidate art and remain independent of knowledge.
+    pub fn adopt_view_state(&mut self, current: &Self, ground: &Ground) {
+        self.set_quality(current.quality);
+        self.set_cleared(current.cleared.clone());
+        self.set_felled(current.felled.clone());
+        self.set_clock(current.clock);
+        // Regenerate the bounded retained dressing cache with new sizes, so
+        // committed visible cells do not disappear while the normal walk warms.
+        for cell in current.cells.iter().filter(|cell| cell.laid.is_some()) {
+            if let Some(&n) = self.cell_index.get(&cell.at) {
+                self.lay(ground, n);
+            }
         }
     }
 

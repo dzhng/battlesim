@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { OwnUnitView } from "@web/battle/sim/observationView";
-import type { CameraFocusRequest } from "./LabViewport";
+import type { CameraFocusRequest } from "./viewportRender";
 
 /** One-shot camera focuses on the player's own units: every call produces a
  *  new token, so clicking the same card again still moves the camera. */

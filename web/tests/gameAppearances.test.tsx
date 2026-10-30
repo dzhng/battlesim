@@ -1,6 +1,8 @@
 import { renderInRouter as render } from "./support/router";
-import { cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
+import type { UnitCard } from "@packages/scene-assets/src/units";
+import type { ObservationView } from "@web/battle/sim/observationView";
 import { afterEach, expect, test, vi } from "vitest";
 import { TEST_CATALOG } from "./catalog";
 
@@ -18,6 +20,98 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   vi.resetModules();
+});
+
+test("the player's enabled purchases are ready before any unit enters the battle", async () => {
+  const { useBattleKinds } = await import("@apps/battle-lab/src/gameAppearances");
+  const card = (
+    id: string,
+    faction: "us" | "eastern",
+    disabled_reason: string | null,
+  ): UnitCard => ({
+    id,
+    name: id,
+    description: "",
+    family: "test",
+    cost: 1,
+    roster: { factions: [faction], family_name: "Test", category: "veh", variant: id },
+    disabled_reason,
+    planned_weapons: [],
+  });
+  const input = {
+    scope: {},
+    side: "blue",
+    units: {
+      cards: [
+        card("buyable", "us", null),
+        card("unavailable", "us", "planned"),
+        card("enemy", "eastern", null),
+      ],
+    },
+    fielded: ["scenario-unit"],
+    faction: "us",
+    observation: null,
+    purchasing: null,
+  };
+  const { result } = renderHook(() => useBattleKinds(input));
+  expect(result.current).toEqual(["buyable", "scenario-unit"]);
+});
+
+test("learned and fallen unit art stays until the battle or observing side changes", async () => {
+  const { useBattleKinds } = await import("@apps/battle-lab/src/gameAppearances");
+  const observation: ObservationView = {
+    tick: 1,
+    own: [],
+    identified: [],
+    contacts: [
+      {
+        id: 1,
+        source: "last_seen",
+        center: [0, 0, 0],
+        layer: "ground",
+        aloft: false,
+        radius: 1,
+        evidenceTick: 1,
+        expiresTick: 2,
+        kind: "remembered",
+        heard: [],
+      },
+    ],
+    corpses: [{ kind: "fallen", position: [0, 0, 0], own: false, soldier: 1, slot: 0, yaw: 0 }],
+    audible: [],
+    refusals: [],
+    knownProps: [],
+    projectiles: [],
+    blasts: [],
+    airTransits: [],
+    fallenBodies: [],
+    propDisplayPoses: [],
+    grinds: [],
+    crashes: [],
+    shouts: [],
+    guided: [],
+    encounter: null,
+    skirmish: null,
+    fog: { cellM: 1, nx: 1, ny: 1, bits: new Uint32Array(1) },
+    groundPatch: { epoch: 1, side: "blue", baseRevision: 0, revision: 1, full: true },
+  };
+  const input = {
+    scope: {},
+    side: "blue",
+    units: { cards: [] },
+    fielded: ["initial"],
+    faction: null,
+    observation: observation as ObservationView | null,
+    purchasing: null,
+  };
+  const hook = renderHook((props) => useBattleKinds(props), { initialProps: input });
+  expect(hook.result.current).toEqual(["fallen", "initial", "remembered"]);
+  hook.rerender({ ...input, observation: null });
+  expect(hook.result.current).toEqual(["fallen", "initial", "remembered"]);
+  hook.rerender({ ...input, side: "red", observation: null });
+  expect(hook.result.current).toEqual(["initial"]);
+  hook.rerender({ ...input, scope: {}, observation: null });
+  expect(hook.result.current).toEqual(["initial"]);
 });
 
 test("required appearance rejection remains fatal on the menu", async () => {

@@ -1,4 +1,8 @@
 //! One side's publications into a frame of poses, effects, batches and palettes.
+pub mod catalog;
+pub mod lab;
+pub use catalog::World;
+mod static_frame;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -25,12 +29,11 @@ use crate::records::{
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
 use crate::shadow::{aircraft_shadow, ReceiverStats, ShadowFit, SunShadowFrame};
 use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
-use crate::static_world::batches::{Population, StaticBatches};
+use crate::static_world::batches::StaticBatches;
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
 use crate::static_world::ground::biome::Biome;
 use crate::static_world::ground::grass::{frame_params, metres_per_pixel, Window};
-use crate::static_world::ground::kinds;
 use crate::static_world::ground::partition::TerrainPartition;
 use crate::static_world::ground::walk::{
     Cleared, Draws, FelledTree, Quality as SceneryQuality, SceneryPopulation, SceneryWalk, DRAWS,
@@ -118,55 +121,6 @@ pub struct Frame {
     pub counts: Counts,
 }
 
-/// The world's records, read once per load.
-#[derive(Default)]
-pub struct World {
-    pub appearances: Vec<Row>,
-    pub strings: String,
-    rows: HashMap<(String, String, u32, u32), u32>,
-}
-
-impl World {
-    fn row(&mut self, name: &str, state: &str, lies: u32, skin: u32, placed: bool) -> u32 {
-        self.drawn_row(name, state, lies, skin, placed, 0)
-    }
-
-    fn drawn_row(
-        &mut self,
-        name: &str,
-        state: &str,
-        lies: u32,
-        skin: u32,
-        placed: bool,
-        draws: u32,
-    ) -> u32 {
-        let key = (name.to_owned(), state.to_owned(), lies, draws);
-        if let Some(&row) = self.rows.get(&key) {
-            return row;
-        }
-        let mut text = |s: &str| {
-            let at = self.strings.len() as u32;
-            self.strings.push_str(s);
-            (at, s.len() as u32)
-        };
-        let (name_at, name_len) = text(name);
-        let (state_at, state_len) = text(state);
-        let row = self.appearances.len() as u32;
-        self.appearances.push(Row {
-            name: name_at,
-            name_len,
-            state: state_at,
-            state_len,
-            lies,
-            skin,
-            placed: u32::from(placed),
-            draws,
-        });
-        self.rows.insert(key, row);
-        row
-    }
-}
-
 /// One model this frame may draw, before batching.
 struct Model {
     row: u32,
@@ -175,6 +129,7 @@ struct Model {
     at: Vec3,
     yaw: f64,
     tint: [f32; 3],
+    highlight: bool,
     scale: [f32; 3],
     colour: [f64; 4],
     /// First palette joint, or 0 (identity).
@@ -216,7 +171,6 @@ struct Loaded {
     shadow_fall: [f64; 2],
     locals: Vec<Trs>,
     worlds: Vec<Mat4>,
-    models: Vec<Model>,
 }
 
 pub struct Presentation {
@@ -251,6 +205,9 @@ pub struct Presentation {
     /// values (`set_detail_scale`).
     detail_scale: [f64; 2],
     world: World,
+    catalog_revision: u32,
+    lab: lab::Lab,
+    models: Vec<Model>,
     frame: Frame,
     /// The camera the last frame was asked for.
     camera: Option<Camera>,
@@ -328,6 +285,9 @@ impl Presentation {
             felled_from: None,
             detail_scale: [1.0, 1.0],
             world: World::default(),
+            catalog_revision: catalog::next_revision(),
+            lab: lab::Lab::default(),
+            models: Vec::new(),
             frame: Frame::default(),
             camera: None,
             shadow: None,
@@ -437,7 +397,9 @@ impl Presentation {
         if let Some(fit) = &mut self.shadow {
             fit.invalidate();
         }
+        self.catalog_revision = catalog::next_revision();
         self.world = World::default();
+        self.lab.frontier = None;
         self.fallen.clear();
         self.known_from = KnownFrom::Unread;
         self.knowledge = Knowledge::default();
@@ -497,6 +459,7 @@ impl Presentation {
         self.loaded = None;
         let (azimuth, elevation) = (input.sun_azimuth, input.sun_elevation);
         let Some(input) = input.battle else {
+            self.register_lab_rows();
             return Ok(());
         };
         let units = Arc::new(input.units.clone());
@@ -558,7 +521,6 @@ impl Presentation {
             shadow_fall,
             locals: Vec::new(),
             worlds: Vec::new(),
-            models: Vec::new(),
             inverse_binds,
             units,
             tables,
@@ -577,6 +539,7 @@ impl Presentation {
             loaded.note(&o, self.ground.as_ref());
         }
         self.loaded = Some(loaded);
+        self.register_lab_rows();
         Ok(())
     }
 
@@ -656,6 +619,12 @@ impl Presentation {
 
     /// The buildings' walk as the last frame left it (`BuildingWalk::stats`);
     /// none without buildings.
+    pub fn building_population(&self) -> Option<(usize, usize)> {
+        self.buildings
+            .as_ref()
+            .map(|b| (b.walk.buildings.len(), b.walk.pool_capacity()))
+    }
+
     pub fn building_stats(&self) -> Option<&[usize]> {
         self.buildings.as_ref().map(|b| &b.walk.stats[..])
     }
@@ -668,56 +637,6 @@ impl Presentation {
             b.walk.set_lod_scale(buildings);
         }
         self.statics.invalidate();
-    }
-
-    /// A skinned row's body as it holds still (`World.appearances`): a
-    /// corpse row as it lies (its `corpse_poses` entry), a body row in its
-    /// far pose (what its impostor card shows). Each joint's bind-to-model
-    /// motion: a renderer skins the body's mesh by it once, when it loads
-    /// the row (`posedMesh`), and draws that mesh where the frame's
-    /// instance takes the identity. None for a rigid row, or before a world
-    /// loads.
-    pub fn rest_palette(&self, row: u32) -> Option<Vec<Joint>> {
-        let loaded = self.loaded.as_ref()?;
-        let r = self.world.appearances.get(row as usize)?;
-        let name = self
-            .world
-            .strings
-            .get(r.name as usize..(r.name + r.name_len) as usize)?;
-        let Some(Appearance::Skinned {
-            joints,
-            clips,
-            table,
-            far_pose,
-            corpse_poses,
-            ..
-        }) = loaded.units.appearances.get(name)
-        else {
-            return None;
-        };
-        let pose = match r.lies {
-            NONE => far_pose,
-            lies => corpse_poses.get(lies as usize)?,
-        };
-        let mut worlds = Vec::new();
-        let table = loaded.tables.get(table)?;
-        skin::joint_worlds(
-            joints,
-            clips,
-            table,
-            &pose.clip,
-            pose.phase,
-            None,
-            &mut worlds,
-        );
-        let ibs = &loaded.inverse_binds[name];
-        Some(
-            worlds
-                .iter()
-                .zip(ibs)
-                .map(|(w, ib)| joint(&skin::affine(&skin::mul(w, ib))))
-                .collect(),
-        )
     }
 
     /// The presentation time at wall time `wall_s` (live only).
@@ -835,6 +754,7 @@ impl Presentation {
             fog.known_from = None;
             fog.dirty = true;
         }
+        self.catalog_revision = catalog::next_revision();
         self.ground = Some(ground);
         self.scenery = None;
         self.props = None;
@@ -848,6 +768,7 @@ impl Presentation {
 
     /// The ground's mutably (a lab growing grass by other rules).
     pub fn ground_mut(&mut self) -> Option<&mut Ground> {
+        self.catalog_revision = catalog::next_revision();
         self.ground.as_mut()
     }
 
@@ -861,28 +782,8 @@ impl Presentation {
             .ground
             .as_ref()
             .ok_or("scenery stands on a ground: set_ground first")?;
-        let names = ground.scenery_kinds();
-        if finest.len() != names.len() {
-            return Err(format!(
-                "scenery: {} kinds' meshes for {} kinds",
-                finest.len(),
-                names.len()
-            ));
-        }
-        let trees = &ground.biome.trees;
-        let kinds = names
-            .iter()
-            .zip(finest)
-            .map(|(name, tier)| {
-                let tree = trees.species.iter().any(|s| &s.appearance == name);
-                kinds::kind(tier, tree.then_some(&trees.felled)).map_err(|e| format!("{name}: {e}"))
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        let sizes: Vec<_> = kinds.iter().map(|k| k.size).collect();
-        let trunks = kinds.iter().map(|k| k.trunk).collect();
-        let mut walk = SceneryWalk::new(ground.scenery(&sizes), sizes, trunks);
-        walk.stump_meshes = kinds.into_iter().map(|k| k.stump).collect();
-        walk.set_quality(self.scenery_quality);
+        let walk = catalog::scenery_from_art(ground, finest, self.scenery_quality)?;
+        self.catalog_revision = catalog::next_revision();
         self.scenery = Some(walk);
         self.felled_from = None;
         self.cleared_from = (0, 0);
@@ -900,6 +801,7 @@ impl Presentation {
         let layout = PropLayout::parse(layout)?;
         let props = crate::static_world::props::map_props(records, &layout);
         self.props = Some(PropPopulation::new(PropArt::new(layout, input)?, props));
+        self.catalog_revision = catalog::next_revision();
         self.known_from = KnownFrom::Unread;
         Ok(())
     }
@@ -1080,32 +982,28 @@ impl Presentation {
             }
             _ => None,
         };
-        let mut populations: Vec<&mut dyn Population> = Vec::new();
-        if let Some(b) = &mut self.buildings {
-            populations.push(b);
-        }
-        if let Some(s) = &mut scenery {
-            populations.push(s);
-        }
-        if let Some(p) = self.props.as_mut().filter(|p| !p.rows.is_empty()) {
-            populations.push(p);
-        }
+        let mut populations =
+            static_frame::populations(&mut self.buildings, &mut scenery, &mut self.props);
         let f = &mut self.frame;
         self.statics
             .write(&mut populations, camera, &view, generation, f);
-        let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), sample) else {
-            return Ok(&self.frame);
-        };
-        f.tick = sample.observation.tick as u32;
-        loaded.frame(
-            sample,
-            &view,
-            ui,
-            &self.world,
-            self.ground.as_ref(),
-            self.detail_scale[0],
-            f,
-        );
+        self.models.clear();
+        if let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), sample) {
+            f.tick = sample.observation.tick as u32;
+            loaded.frame(
+                sample,
+                &view,
+                ui,
+                &self.world,
+                self.ground.as_ref(),
+                self.detail_scale[0],
+                f,
+                &mut self.models,
+            );
+        }
+        self.lab
+            .append(&view, &self.world, &mut self.frame, &mut self.models);
+        batches(&mut self.models, &mut self.frame);
         Ok(&self.frame)
     }
 }
@@ -1121,6 +1019,7 @@ impl Loaded {
         ground: Option<&Ground>,
         unit_scale: f64,
         f: &mut Frame,
+        models: &mut Vec<Model>,
     ) {
         let Loaded {
             input,
@@ -1142,7 +1041,6 @@ impl Loaded {
             shadow_fall,
             worlds,
             locals,
-            models,
             ..
         } = self;
         let time = sample.time;
@@ -1220,9 +1118,8 @@ impl Loaded {
         };
         let tint = |s: &str| units.tints.get(s).map_or([1.0; 3], |t| t.map(|v| v as f32));
         let row = |name: &str, state: &str, lies: u32| {
-            world.rows[&(name.to_owned(), state.to_owned(), lies, 0)]
+            world.rows[&(name.to_owned(), state.to_owned(), lies, 0, false)]
         };
-        models.clear();
         // Soldiers off screen, as the gates count bodies drawn, carded or culled.
         let mut culled = 0;
         let model = |row: u32,
@@ -1240,6 +1137,7 @@ impl Loaded {
             at,
             yaw,
             tint,
+            highlight: false,
             scale: [1.0; 3],
             colour,
             palette,
@@ -1561,7 +1459,6 @@ impl Loaded {
             ));
         }
         f.counts.culled = culled;
-        batches(models, f);
         picks::picks(sample, units, input, f);
         emitters(o, poses, side, units, f);
     }
@@ -1603,7 +1500,12 @@ fn batches(models: &mut [Model], f: &mut Frame) {
                 fract(m.scroll[1]),
                 pack_colour(m.colour),
             ],
-            tint: [m.tint[0], m.tint[1], m.tint[2], -1.0],
+            tint: [
+                m.tint[0],
+                m.tint[1],
+                m.tint[2],
+                if m.highlight { -2.0 } else { -1.0 },
+            ],
             scale: [m.scale[0], m.scale[1], m.scale[2], m.colour[3] as f32],
         }));
     }

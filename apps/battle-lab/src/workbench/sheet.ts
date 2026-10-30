@@ -1,18 +1,8 @@
-// Model sheets: every view needed to judge a model, rendered by the
-// production battle frame (a second `BattleFrame` on the viewport's device, at
-// a fixed tile size) and laid out with labels on a 2D canvas.
-//
-// - The contact sheet: the eight named views in one pose, with the scale
-//   figure, the hit box and the socket gizmos.
-// - Strips (spike 03's shape): eight phases per clip for a body; for a
-//   vehicle, articulation (turret, gun, HMG), running gear and deploy.
-// - Stats: tiers, joints or nodes, clips, bounds, findings, frame numbers.
-// - On request, the reference sheet: each studio view beside the family's
-//   reference of the same view (`renderReferenceSheet`).
+// Shared Rust scenes render sheet tiles; canvas composition owns labels and layout.
 
 import { vec3, type Vec3 } from "math";
-import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
-import type { BattleFrame } from "@packages/battle-renderer/src/scene";
+import { BrowserScene } from "@web/battle/render/scene";
+import type { BrowserGpu } from "@wasm/renderer_browser";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import type { ImpostorAtlas } from "@packages/battle-renderer/src/models/impostor";
 import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
@@ -27,11 +17,11 @@ import {
   type TextureChannel,
 } from "@packages/scene-assets/src/schema";
 import { gameLight } from "../gameLight";
-import { ScenePresentation, resolveFogLook, resolveLight } from "@web/battle/sim/presentation";
+import { ScenePresentation } from "@web/battle/sim/presentation";
 import { presentedCamera } from "../presentedFrame";
-import { gameFogGeometry, gameFogStyle } from "../gameFog";
+import { gameFogStyle } from "../gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
-import { gameGlass, gameModelDetail } from "../gameModels";
+import { gameModelDetail } from "../gameModels";
 import { benchOverlay, benchWorld, drawnPose, posedSockets, type BenchPose } from "./benchWorld";
 import { sideTint, type LoadedModel } from "./sources";
 import {
@@ -42,7 +32,7 @@ import {
   type SheetView,
 } from "./views";
 
-/** Tile size in pixels; a multiple of 64 so a row of texels is 256-aligned. */
+/** Tile size in pixels. */
 export const TILE = 512;
 const STRIP_TILE = 256;
 const PHASES = 8;
@@ -111,7 +101,7 @@ const articulated = (a: Partial<Articulation>): BenchPose => ({
   articulation: { ...REST_ARTICULATION, ...a },
 });
 
-/** Spike 03's strips: eight phases of each clip, or of each vehicle motion. */
+/** Animation and vehicle-motion strips sample each authored sequence. */
 function sheetStrips(bundle: Appearance, skeleton: SkeletonClips | null): Strip[] {
   const phases = Array.from({ length: PHASES }, (_, k) => k / PHASES);
   if (bundle.kind === "skinned")
@@ -187,48 +177,57 @@ export interface SheetResult {
   stats: Record<string, unknown>;
 }
 
-/** Renders tiles with a battle frame of its own on the viewport's device,
- *  each framed by a presentation of its own. */
+/** A detached canvas and canonical presentation own one independent sheet scene. */
 export class SheetRenderer {
-  private target: GPUTexture;
-  private read: GPUBuffer;
-  private readonly presentation = new ScenePresentation();
-
   private constructor(
-    private readonly device: GPUDevice,
-    private readonly format: GPUTextureFormat,
-    readonly frame: BattleFrame,
-  ) {
-    this.target = device.createTexture({
-      label: "sheet-tile",
-      size: [TILE, TILE],
-      format,
-      usage: 0x10 | 0x01, // RENDER_ATTACHMENT | COPY_SRC
-    });
-    this.read = device.createBuffer({
-      label: "sheet-read",
-      size: TILE * TILE * 4,
-      usage: 0x01 | 0x08,
-    });
-  }
+    private readonly presentation: ScenePresentation,
+    readonly frame: BrowserScene,
+  ) {}
 
-  static async create(device: GPUDevice, format: GPUTextureFormat, model: LoadedModel) {
-    const frame = await createBattleFrame(device, format, {
-      light: await resolveLight(gameLight),
-      fogGeometry: gameFogGeometry,
-      fogLook: resolveFogLook(gameFogStyle),
-      overlayGlow: gameOverlayGlow,
-      paint: gamePaint,
-      xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
-      models: gameModelDetail,
-      glass: gameGlass,
-      world: benchWorld(null),
-      instances: [],
-      width: TILE,
-      height: TILE,
-    });
-    await frame.setAppearances(model.installed);
-    return new SheetRenderer(device, format, frame);
+  static async create(gpu: BrowserGpu, model: LoadedModel) {
+    const presentation = new ScenePresentation();
+    try {
+      const world = benchWorld(null);
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = TILE;
+      presentation.setGround(world.terrain.input, world.scenery);
+      presentation.setShadow(gameLight, world.terrain.mesh);
+      presentation.frame(
+        0,
+        presentedCamera({
+          camera3d: viewCamera("q-front", framingBounds(model)),
+          width: TILE,
+          height: TILE,
+        }),
+        { selected: [], xray: false, ghosts: [] },
+        0,
+      );
+      const frame = await BrowserScene.create({
+        gpu,
+        canvas,
+        presentation,
+        world,
+        settings: {
+          light: gameLight,
+          fog: gameFogStyle,
+          paint: gamePaint,
+          xrayMinHiddenFraction: gameXrayMinHiddenFragmentFraction,
+        },
+        detail: JSON.parse(gameModelDetail),
+        overlayGlow: gameOverlayGlow,
+        appearances: model.installed,
+        models: [{ appearance: model.name, x: 0, y: 0, z: 0, yaw: 0, pose: { kind: "rest" } }],
+        instances: [],
+        redraw: () => {},
+        failed: (error) => {
+          throw error;
+        },
+      });
+      return new SheetRenderer(presentation, frame);
+    } catch (error) {
+      presentation.free();
+      throw error;
+    }
   }
 
   /** One tile as RGBA pixels. */
@@ -260,42 +259,33 @@ export class SheetRenderer {
       benchOverlay(instance, model.body, posedSockets(bundle, skeleton, pose), marks, scale),
     );
     const world = benchWorld(figureSpot(frameOn, view));
-    this.frame.setWorld(world);
+    this.frame.setWorldProps(world.props);
     const camera = viewCamera(view, frameOn);
     this.presentation.setShadow(gameLight, world.terrain.mesh);
-    this.frame.setCamera(
-      this.presentation.frame(
-        0,
-        presentedCamera({ camera3d: camera, width: TILE, height: TILE }),
-        { selected: [], xray: false, ghosts: [] },
-        this.frame.staticGeneration,
-      ),
+    this.frame.flush();
+    this.presentation.frame(
+      0,
+      presentedCamera({ camera3d: camera, width: TILE, height: TILE }),
+      { selected: [], xray: false, ghosts: [] },
+      this.frame.staticGeneration,
     );
-    this.frame.render(this.target.createView());
-    const encoder = this.device.createCommandEncoder();
-    encoder.copyTextureToBuffer(
-      { texture: this.target },
-      { buffer: this.read, bytesPerRow: TILE * 4 },
-      [TILE, TILE],
-    );
-    this.device.queue.submit([encoder.finish()]);
-    await this.read.mapAsync(1);
-    const bytes = new Uint8ClampedArray(this.read.getMappedRange().slice(0));
-    this.read.unmap();
-    if (this.format.startsWith("bgra"))
-      for (let i = 0; i < bytes.length; i += 4) {
-        const b = bytes[i];
-        bytes[i] = bytes[i + 2];
-        bytes[i + 2] = b;
+    let drawn = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (this.frame.render()) {
+        drawn = true;
+        break;
       }
-    return new ImageData(bytes, TILE, TILE);
+      if (attempt < 2) await new Promise<void>((resolve) => setTimeout(resolve, 16));
+    }
+    if (!drawn)
+      throw new Error(`SheetSurfaceUnavailable: ${model.name} (${view}) after 3 attempts`);
+    const { rgba, width, height } = await this.frame.readPixels();
+    return new ImageData(new Uint8ClampedArray(rgba), width, height);
   }
 
   dispose() {
-    this.presentation.free();
     this.frame.dispose();
-    this.target.destroy();
-    this.read.destroy();
+    this.presentation.free();
   }
 }
 
@@ -343,13 +333,12 @@ function describe(model: LoadedModel, bundle: Appearance): string {
 
 /** The contact sheet, strips and stats of one loaded model. */
 export async function renderSheet(
-  device: GPUDevice,
-  format: GPUTextureFormat,
+  gpu: BrowserGpu,
   model: LoadedModel,
   impostor: ImpostorAtlas | null,
   side: Side = "blue",
 ): Promise<SheetResult> {
-  const renderer = await SheetRenderer.create(device, format, model);
+  const renderer = await SheetRenderer.create(gpu, model);
   const tint = sideTint(model, side);
   try {
     const entry = model.installed.appearances.get(model.name)!;
@@ -503,8 +492,7 @@ export interface ReferenceRow {
  *  no marks, beside the reference that shows it. A view no reference shows is
  *  marked missing, a generated one generated. */
 export async function renderReferenceSheet(
-  device: GPUDevice,
-  format: GPUTextureFormat,
+  gpu: BrowserGpu,
   model: LoadedModel,
   rows: ReferenceRow[],
   title: string,
@@ -517,7 +505,7 @@ export async function renderReferenceSheet(
   g.fillText(`${model.name} · ${title}`, 12, 30);
   g.font = "15px system-ui, sans-serif";
   g.fillText("left: the model, no marks · right: the reference of the same view", 12, 56);
-  const renderer = await SheetRenderer.create(device, format, model);
+  const renderer = await SheetRenderer.create(gpu, model);
   try {
     const bundle = model.installed.appearances.get(model.name)!.bundle;
     const skeleton =

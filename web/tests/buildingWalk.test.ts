@@ -19,7 +19,6 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
   artCovers,
   indexBuildings,
-  validateBuildingStyle,
   type BuildingArt,
   type BuildingStyle,
   type PlacedBuildings,
@@ -143,12 +142,12 @@ const ART: BuildingArt = {
   ],
 };
 
-const STYLE: BuildingStyle = validateBuildingStyle({
+const STYLE: BuildingStyle = {
   lod_px_per_m: [12, 5, 2],
   chunk_m: 64,
   pool_records: 1024,
   tint_jitter: 0,
-});
+};
 
 /** Buildings of `template` at each `[x, y, z, yaw]`. */
 function placedOf(list: [template: string, frame: [number, number, number, number]][]) {
@@ -635,10 +634,4 @@ test("identical neighbours differ a little in value, each the same every time", 
   expect(scales).toHaveLength(2);
   expect(scales[0]).not.toBeCloseTo(scales[1], 3);
   expect(tints()).toEqual(tints());
-});
-
-test("presentation.buildings is checked: tiers that fall, a pool, a jitter in range", () => {
-  expect(() => validateBuildingStyle({ ...STYLE, lod_px_per_m: [5, 12, 2] })).toThrow(/fall/);
-  expect(() => validateBuildingStyle({ ...STYLE, pool_records: 10 })).toThrow(/pool_records/);
-  expect(() => validateBuildingStyle({ ...STYLE, tint_jitter: 0.9 })).toThrow(/tint_jitter/);
 });

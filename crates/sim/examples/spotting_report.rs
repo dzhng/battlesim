@@ -39,7 +39,7 @@ fn names(html: &mut String, names: &[String], kind: &str) {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let rules: Rules = serde_json::from_value(sim::fixtures::game())?;
+    let rules: Rules = serde_json::from_value(sim::fixtures::rules())?;
     let mut targets = Vec::new();
     let mut observers = Vec::new();
     // Only squads garrison, so only their groups get a garrisoned row.

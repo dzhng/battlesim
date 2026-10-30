@@ -5,6 +5,7 @@
 //! lines, and the boundary carries a rim on its seen side. Both clients
 //! upload the record as it is.
 pub mod sight;
+pub mod upload;
 
 use std::collections::BTreeMap;
 
@@ -14,14 +15,13 @@ use crate::records::FogLook;
 
 /// The widest rim or soft edge a style may ask for, device pixels. A
 /// style's search reaches one pixel past it, which the shaders' distance cap
-/// (`FOG_DISTANCE_CAP_PX`, `fogStyle.ts`) stays above.
+/// (16 pixels in `fog_masks.wgsl`) stays above.
 pub const FOG_EDGE_REACH_PX: f64 = 8.0;
 
-/// Rec. 709 luminance, the grade's.
-const LUMA: [f64; 3] = [0.2126, 0.7152, 0.0722];
+use crate::color::luminance;
 
 /// One unseen look, as the fixture writes it.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct FogStyle {
     /// Brightness kept, 0–1.
@@ -42,7 +42,7 @@ pub struct FogStyle {
 }
 
 /// Screen-space lines ruled across unseen pixels.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct FogLines {
     /// Brightness change on a line; 0 off.
@@ -56,7 +56,7 @@ pub struct FogLines {
 }
 
 /// A line along the boundary, on the seen side, drawn after post.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct FogRim {
     pub width_px: f64,
@@ -66,7 +66,7 @@ pub struct FogRim {
 }
 
 /// `presentation.fog`: named looks and the one drawn.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct FogPresentation {
     pub style: String,
@@ -175,10 +175,6 @@ impl FogLook {
     }
 }
 
-fn luminance(c: [f64; 3]) -> f64 {
-    LUMA[0] * c[0] + LUMA[1] * c[1] + LUMA[2] * c[2]
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -186,10 +182,10 @@ mod tests {
     fn fixture() -> FogPresentation {
         let game: serde_json::Value = serde_json::from_str(include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../fixtures/game.json"
+            "/../../fixtures/presentation.json"
         )))
         .unwrap();
-        serde_json::from_value(game["presentation"]["fog"].clone()).unwrap()
+        serde_json::from_value(game["fog"].clone()).unwrap()
     }
 
     fn base() -> FogStyle {

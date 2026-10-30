@@ -1,9 +1,10 @@
-import { requestGpuDevice, type GpuDeviceInfo } from "@packages/renderer-core/src/device";
+import { BrowserGpu } from "@wasm/renderer_browser";
+import { loadPresentation } from "@web/battle/sim/presentation";
 
 /** Page resources survive client navigation; scene and worker owners do not. */
 export class AppResources {
-  private device: GpuDeviceInfo | null = null;
-  private pending: Promise<GpuDeviceInfo> | null = null;
+  private device: BrowserGpu | null = null;
+  private pending: Promise<BrowserGpu> | null = null;
   private released = false;
   private failure: string | null = null;
   private readonly listeners = new Set<() => void>();
@@ -23,27 +24,28 @@ export class AppResources {
     for (const listener of this.listeners) listener();
   }
 
-  async gpu(): Promise<GpuDeviceInfo> {
+  async gpu(): Promise<BrowserGpu> {
     if (this.failure) throw new Error(this.failure);
-    this.pending ??= requestGpuDevice({
-      callbacks: {
-        onDeviceLost: (report) => this.refuse(`WebGPU device lost: ${report.message}`),
-        onUncapturedError: (report) => this.refuse(`WebGPU error: ${report.message}`),
-      },
-    }).then(
-      (info) => {
-        if (this.released) {
-          info.device.destroy();
-          throw new Error("Page resources have been released");
-        }
-        this.device = info;
-        return info;
-      },
-      (error: unknown) => {
-        this.refuse(error);
-        throw error;
-      },
-    );
+    this.pending ??= loadPresentation()
+      .then(() => BrowserGpu.new())
+      .then(
+        (info) => {
+          if (this.released) {
+            info.dispose();
+            info.free();
+            throw new Error("Page resources have been released");
+          }
+          this.device = info;
+          void info.failure().then((reason) => {
+            if (reason && !this.released) this.refuse(reason);
+          });
+          return info;
+        },
+        (error: unknown) => {
+          this.refuse(error);
+          throw error;
+        },
+      );
     return this.pending;
   }
 
@@ -62,10 +64,17 @@ export class AppResources {
     if (this.released) return;
     this.released = true;
     this.departure.abort();
-    this.device?.device.destroy();
+    this.device?.dispose();
+    this.device?.free();
     this.device = null;
     this.refuse("The page's resources were released. Reload to continue.");
   }
 }
 
 export const appResources = new AppResources();
+
+/** Required rendering failures carry the browser admission remedy. */
+export function gpuFailureMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return `${message} Enable WebGPU or use a browser/GPU combination that exposes navigator.gpu.`;
+}

@@ -13,10 +13,9 @@ export async function modelGhostAgreement(ctx) {
     const result = await page.evaluate(async (repo) => {
       const file = (p) => `/@fs/${repo}${p}`;
       const [
-        gpu,
-        frames,
+        bindings,
+        scenes,
         assets,
-        poses,
         bench,
         views,
         light,
@@ -27,10 +26,9 @@ export async function modelGhostAgreement(ctx) {
         presented,
         game,
       ] = await Promise.all([
-        import(file("packages/renderer-core/src/device.ts")),
-        import(file("packages/battle-renderer/src/frame/battleFrame.ts")),
+        import("/src/wasm/renderer_browser/renderer_browser.js"),
+        import(file("web/src/battle/render/scene.ts")),
         import(file("packages/scene-assets/src/loader.ts")),
-        import(file("packages/battle-renderer/src/models/modelInstances.ts")),
         import(file("apps/battle-lab/src/workbench/benchWorld.ts")),
         import(file("apps/battle-lab/src/workbench/views.ts")),
         import(file("apps/battle-lab/src/gameLight.ts")),
@@ -39,123 +37,111 @@ export async function modelGhostAgreement(ctx) {
         import(file("apps/battle-lab/src/gameModels.ts")),
         import(file("web/src/battle/sim/presentation.ts")),
         import(file("apps/battle-lab/src/presentedFrame.ts")),
-        import(file("fixtures/game.json")),
+        import(file("fixtures/rules.json")),
       ]);
-      // Every unit's art: the probe draws one model of each kind, whoever wears it.
       const installed = await new assets.AppearanceLibrary().load("/");
-      // One model of each kind; the static one is named, so a model added to
-      // the catalog never silently changes what this check judges.
-      const STATIC_SAMPLE = "basketball_court";
       const chosen = ["skinned", "articulated", "static"].map((kind) =>
         [...installed.appearances].find(
           ([name, entry]) =>
-            entry.bundle.kind === kind && (kind !== "static" || name === STATIC_SAMPLE),
+            entry.bundle.kind === kind && (kind !== "static" || name === "basketball_court"),
         ),
       );
       if (chosen.some((entry) => !entry)) throw new Error("missing placement model kind");
-      // The page's device admission, as every page that draws models gets it.
-      const { adapter, device } = await gpu.requestGpuDevice();
+      await presentation.loadPresentation();
+      const gpu = await bindings.BrowserGpu.new();
+      const info = JSON.parse(gpu.info());
+      const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
       const layers = {
         adapter: adapter.limits.maxTextureArrayLayers,
-        device: device.limits.maxTextureArrayLayers,
+        device: info.limits.maxTextureArrayLayers,
       };
       const validation = [];
-      device.addEventListener("uncapturederror", (event) => validation.push(event.error.message));
-      const width = 256;
-      const target = device.createTexture({
-        size: [width, width],
-        format: "rgba8unorm",
-        usage: 0x11,
+      void gpu.failure().then((error) => {
+        if (error) validation.push(error);
       });
-      const read = device.createBuffer({ size: width * width * 4, usage: 0x09 });
+      const width = 256;
       const world = bench.benchWorld(null);
-      // Fog is the scene's presentation's: over the bench's ground, with no
-      // eye, every cell is unseen. The ground is drawn in every case, so
-      // only the fog differs between them.
-      await presentation.loadPresentation();
-      const sight = new presentation.ScenePresentation();
-      sight.setGround(world.terrain.input, null);
-      sight.setShadow(light.gameLight, world.terrain.mesh);
-      sight.frame(
-        0,
-        {
-          eye: [0, 0, 800],
-          target: [1, 1, 0],
-          up: [0, 0, 1],
-          fovY: 0.8,
-          near: 1,
-          width,
-          height: width,
-        },
-        { selected: [], xray: false, ghosts: [] },
-      );
-      // Every page's frame: the light resolved by the presentation crate.
-      const frameWith = (settings) =>
-        presentation.resolveLight(settings).then((resolved) =>
-          frames.createBattleFrame(device, "rgba8unorm", {
-            light: resolved,
-            fogGeometry: fog.gameFogGeometry,
-            fogLook: presentation.resolveFogLook(fog.gameFogStyle),
-            overlayGlow: overlay.gameOverlayGlow,
-            paint: overlay.gamePaint,
-            xrayMinHiddenFragmentFraction: overlay.gameXrayMinHiddenFragmentFraction,
-            models: models.gameModelDetail,
-            glass: models.gameGlass,
-            world,
-            instances: [],
+      const initial = chosen.map(([name]) => ({
+        appearance: name,
+        x: 0,
+        y: 0,
+        z: 0,
+        yaw: 0,
+        pose: { kind: "rest" },
+        tier: 0,
+      }));
+      const states = [];
+      const make = async (settings) => {
+        const sight = new presentation.ScenePresentation();
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = width;
+        sight.setGround(world.terrain.input, null);
+        sight.setShadow(settings, world.terrain.mesh);
+        sight.frame(
+          0,
+          {
+            eye: [0, 0, 800],
+            target: [1, 1, 0],
+            up: [0, 0, 1],
+            fovY: 0.8,
+            near: 1,
             width,
             height: width,
-          }),
+          },
+          { selected: [], xray: false, ghosts: [] },
+          0,
         );
-      const frame = await frameWith(light.gameLight);
-      // The same frame without bloom, only to find where a model is drawn:
-      // bloom spreads a bright ghost's glow onto the ground round it, which
-      // is the ground's pixel and fogged with it, not the model's.
-      const footprint = await frameWith({
-        ...light.gameLight,
-        bloom: { ...light.gameLight.bloom, strength: 0 },
-      });
+        const scene = await scenes.BrowserScene.create({
+          gpu,
+          canvas,
+          presentation: sight,
+          world,
+          settings: {
+            light: settings,
+            fog: fog.gameFogStyle,
+            paint: overlay.gamePaint,
+            xrayMinHiddenFraction: overlay.gameXrayMinHiddenFragmentFraction,
+          },
+          detail: JSON.parse(models.gameModelDetail),
+          overlayGlow: overlay.gameOverlayGlow,
+          appearances: { ...installed, appearances: new Map(chosen) },
+          models: initial,
+          instances: [],
+          redraw: () => {},
+          failed: (e) => {
+            throw e;
+          },
+        });
+        const state = { scene, sight };
+        states.push(state);
+        return state;
+      };
       const cases = [];
       try {
-        for (const f of [frame, footprint]) {
-          f.setPresentedGround(sight.presentedGround());
-          await f.setAppearances({
-            ...installed,
-            appearances: new Map(chosen),
-            templates: undefined,
-          });
-        }
+        const frame = await make(light.gameLight);
+        const footprint = await make({
+          ...light.gameLight,
+          bloom: { ...light.gameLight.bloom, strength: 0 },
+        });
         for (const [name, entry] of chosen) {
           const bundle = entry.bundle;
-          const pose = poses.restingModelPose(bundle);
-          // A later state exercises its nonzero range in the shared index buffer.
-          if (pose.kind === "static") pose.state = bundle.states.at(-1).name;
+          const pose =
+            bundle.kind === "static"
+              ? { kind: "static", state: bundle.states.at(-1).name }
+              : { kind: "rest" };
           const instance = { appearance: name, x: 0, y: 0, z: 0, yaw: 0, pose, tier: 0 };
           const camera = views.viewCamera("q-front", bundle.bounds);
-          async function pixels(list, drawn = frame) {
-            drawn.setModels(list);
-            // The frame draws for the camera the scene's presentation framed.
-            drawn.setCamera(
-              sight.frame(
-                0,
-                presented.presentedCamera({ camera3d: camera, width, height: width }),
-                { selected: [], xray: false, ghosts: [] },
-                drawn.staticGeneration,
-              ),
+          const pixels = async (list, drawn = frame) => {
+            drawn.sight.setLabModels(list);
+            drawn.sight.frame(
+              0,
+              presented.presentedCamera({ camera3d: camera, width, height: width }),
+              { selected: [], xray: false, ghosts: [] },
+              drawn.scene.staticGeneration,
             );
-            drawn.render(target.createView());
-            const encoder = device.createCommandEncoder();
-            encoder.copyTextureToBuffer(
-              { texture: target },
-              { buffer: read, bytesPerRow: width * 4 },
-              [width, width],
-            );
-            device.queue.submit([encoder.finish()]);
-            await read.mapAsync(1);
-            const data = [...new Uint8Array(read.getMappedRange())];
-            read.unmap();
-            return data;
-          }
+            drawn.scene.render();
+            return Array.from((await drawn.scene.readPixels()).rgba);
+          };
           const background = await pixels([]);
           const zero = await pixels([{ ...instance, ghost: [0.1, 0.7, 1, 0] }]);
           const half = await pixels([{ ...instance, ghost: [0.1, 0.7, 1, 0.4] }]);
@@ -167,13 +153,12 @@ export async function modelGhostAgreement(ctx) {
           const buried = await pixels([{ ...instance, z: -100, ghost: [0.1, 0.7, 1, 0.4] }]);
           const solid = [{ ...instance, ghost: [0.1, 0.7, 1, 1] }];
           const drawnClear = [await pixels([], footprint), await pixels(solid, footprint)];
-          sight.setFog({ sensors: game.default.sensors, eyes: [] });
-          const fogBackground = await pixels([]);
-          const fogFull = await pixels(solid);
-          const fogHalf = await pixels([{ ...instance, ghost: [0.1, 0.7, 1, 0.4] }]);
+          for (const state of states)
+            state.sight.setFog({ sensors: game.default.sensors, eyes: [] });
+          const fogBackground = await pixels([]),
+            fogFull = await pixels(solid),
+            fogHalf = await pixels([{ ...instance, ghost: [0.1, 0.7, 1, 0.4] }]);
           const drawnFogged = [await pixels([], footprint), await pixels(solid, footprint)];
-          // Covered: the model is drawn there, seen and unseen alike. Stable:
-          // the production frame's ghost keeps its colour there under fog.
           let covered = 0,
             fogStable = 0;
           for (let p = 0; p < full.length; p += 4) {
@@ -187,7 +172,7 @@ export async function modelGhostAgreement(ctx) {
               if (delta(full, fogFull) < 8) fogStable++;
             }
           }
-          sight.setFog(null);
+          for (const state of states) state.sight.setFog(null);
           const changed = (a, b) => a.reduce((n, x, i) => n + Number(i % 4 !== 3 && x !== b[i]), 0);
           cases.push({
             name,
@@ -204,15 +189,14 @@ export async function modelGhostAgreement(ctx) {
             image: fogHalf,
           });
         }
-        await device.queue.onSubmittedWorkDone();
         return { cases, validation, width, layers };
       } finally {
-        frame.dispose();
-        footprint.dispose();
-        sight.free();
-        target.destroy();
-        read.destroy();
-        device.destroy();
+        for (const state of states) {
+          state.scene.dispose();
+          state.sight.free();
+        }
+        gpu.dispose();
+        gpu.free();
       }
     }, repo);
     ctx.check(

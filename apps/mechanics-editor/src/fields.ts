@@ -288,13 +288,6 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       { unit: "m" },
     ),
     field(
-      "range_m",
-      "Flight range bound",
-      "Flight & accuracy",
-      "Every target layer's range must stay within this flight bound.",
-      { unit: "m" },
-    ),
-    field(
       "speed_mps",
       "Launch speed",
       "Flight & accuracy",
@@ -305,7 +298,7 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "gravity_scale",
       "Gravity strength",
       "Flight & accuracy",
-      "Share of world gravity used by unguided flight, shown as a percentage. Slow visual rounds can use reduced gravity to preserve their ballistic line.",
+      "Share of world gravity used by unguided flight, shown as a percentage. Authors choose the screen arc independently of launch speed.",
       { conversion: "percent", unit: "%" },
     ),
     field(

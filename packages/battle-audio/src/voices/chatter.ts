@@ -6,10 +6,7 @@
 // ask for, and hands back the start commands a player carries out on the
 // voices bus, with the lines started and dropped. The presentation module
 // must be loaded first (`loadPresentation`).
-import {
-  Chatter as RustChatter,
-  type SoundFrame as RustSoundFrame,
-} from "@wasm/presentation/presentation_wasm.js";
+import { Chatter as RustChatter, type SoundFrame as RustSoundFrame } from "@wasm/renderer_browser";
 import type { VoiceSpec as LineSpec } from "../soundFrame";
 import type { Intensity, Trigger, VoiceSpec } from "./voiceCatalog";
 
@@ -33,7 +30,7 @@ export interface VoiceRequest {
   at: number;
 }
 
-/** `presentation.audio.voices` in `fixtures/game.json`. */
+/** `voices` in `fixtures/audio.json`. */
 export interface ChatterRules {
   /** Lines sounding at once. */
   lines: number;

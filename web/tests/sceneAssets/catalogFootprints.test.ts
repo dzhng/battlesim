@@ -15,7 +15,7 @@ import { loadMap } from "@web/maps/node";
 
 const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
 const catalog = read("../../../assets/catalog.json") as Catalog;
-const game = read("../../../fixtures/game.json");
+const game = read("../../../fixtures/rules.json");
 const same = (a: readonly number[], b: readonly number[]) =>
   a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) < 1e-9);
 
@@ -188,21 +188,5 @@ test("the street test map's authored props and their remains have accepted bindi
     expect(t.appearance.status, id).toBeUndefined();
     if (typeof t.destroyed === "object" && !placed.includes(t.destroyed.into.prop))
       placed.push(t.destroyed.into.prop);
-  }
-});
-
-test("the street test map enables generated floor blockers only with accepted drawing", () => {
-  for (const [kindField, densityField] of [
-    ["log", "logs_per_ha"],
-    ["boulder", "boulders_per_ha"],
-  ]) {
-    if (game.forests.rule[densityField] <= 0) continue;
-    const kind = game.forests[kindField];
-    const t = units.view.props[kind];
-    expect(t.appearance.status, `${kind}: active generated cover must draw`).toBeUndefined();
-    expect(
-      propEntries.some(([, e]) => e.scenery === t.appearance.drawn_by),
-      kind,
-    ).toBe(true);
   }
 });

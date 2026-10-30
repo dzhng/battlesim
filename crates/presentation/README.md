@@ -16,23 +16,48 @@ what it decides for, and every transcendental function is `libm`'s ([the
 simulation's rule](../sim/README.md#determinism-and-evidence)), so a dust puff,
 a tracer's chance or a placed tree falls the same in WebAssembly and native.
 
+[Settings admission](src/settings.rs) owns the presentation document's typed
+sections and path-bearing load errors for both clients. Unknown fields and
+invalid visual ranges fail before installation. Ground receives only its own
+tuning sections; UI colours derive from the HUD, and fog selection belongs to
+the Rust reader. The [sound library](src/sound/catalog.rs) admits source receipts,
+crops, recipes and routing; the [mix](src/sound/mix.rs) checks its references
+against that library before preparation. TypeScript carries these values and
+calls the same reader for workbench drafts.
+
 ## What it owns
 
 - [Records](src/records.rs): every record a renderer reads, defined once;
   `records_are_current` generates `packages/battle-renderer/src/records.gen.ts`,
-  with each struct record's TypeGPU schema, so the browser's uniform and
-  storage structs are Rust's.
+  with byte offsets and typed views for browser consumers. The renderer's
+  shader ABI check reflects WGSL against these canonical Rust layouts.
+  [Shader constants](src/shader_constants.rs) names shared CPU/GPU values
+  from their concept owners for both the WGSL prelude and TypeScript; fixed
+  allocation geometry cannot become an independent fixture setting.
 - [The runtime assets](src/assets.rs): the one reader of the scene-assets
   container the template library and the bundles travel in, and (feature
   `files`) of the runtime directory: its catalog and each gzipped transport
   file. The native client reads its models through it.
 - [What a battle fields](src/fielded.rs): `load_world`'s units, effects and
-  clip tables for the units a battle fields, resolved from the rules
-  fixture, the battle's rules and their catalog, and the runtime bundles,
+  clip tables for the units a battle fields, resolved from presentation
+  settings, weapon appearances resolved by the contract, the battle's rules and their catalog,
+  and the runtime bundles,
   as a page wearing those units installs them, for both clients. It names
   the runtime contents it reads; the caller reads them (native from the
   runtime directory, feature `files`; the page by fetching them, through
   [its WebAssembly binding](../presentation-wasm/README.md)), and it decides.
+- [External models](src/presentation/lab.rs): tooling admits authored art and
+  descriptive poses independently of a battle roster. Its instances supplement
+  the same frame, sharing pose math, detail, fog and batch identity with battle
+  models. [Catalog admission](src/presentation/catalog.rs) stages prospective rows and
+  pose and placement facts without replacing the observer. Prop fitting, building
+  extents and scenery trunks/stumps follow the new authored art while current
+  learned, fallen and held movement state survives. Matching GPU assets and the latest
+  model requests commit together; stale or failed work preserves the active
+  generation. Battle replacements preserve the pose vocabulary used by retained
+  history. Unchanged time still permits edited geometry. Mesh
+  selection cues retain actual geometry rather than silently disappearing when
+  detail would otherwise select an impostor.
 - [Units](src/units/): interpolation between ticks (of units, falling
   airframes and the bodies they shove), the pose feed and driver,
   articulation, joint palettes (and each skinned row's rest palette: a corpse
@@ -47,10 +72,10 @@ a tracer's chance or a placed tree falls the same in WebAssembly and native.
   tier rule every drawn model takes and the tier it casts with, and the
   frame's `View` record (with the sky's corner rays) and camera uniform,
   the browser's camera math to the bit. Each batch also names the fog group
-  it binds (`Batch.fog`); a lab's own models, which reach a renderer without
-  a frame, take the same tier, caster and fog rules through the module.
+  it binds (`Batch.fog`). Battle and external tooling models take these same
+  policies before becoming canonical frame records.
 - [The light](src/light.rs): the fixture's light resolved into the sky's,
-  bloom's and grade's uniform records, as the browser's sky model resolves it.
+  bloom's and grade's canonical uniform records for the shared renderer.
 - [The wind](src/wind.rs): the biome's one wind as the `Wind` record, which
   every camera carries on its clock (`Camera.wind`, the sun's cascades
   included), so grass, water and trees move in it in every pass, and which
@@ -124,6 +149,12 @@ a tracer's chance or a placed tree falls the same in WebAssembly and native.
   the commands recorded over the sound lab's firefight, and `tests/voices.rs`
   to the lines recorded scripts start and drop.
 
+Weapon appearance admission follows use: [the look reader](src/looks.rs) checks
+blast and motor needs from each row's physics, while fielding and sound admission
+require firing parts for every weapon a catalog unit or soldier mounts.
+Unmounted rows may describe only a blast. Sound setup carries the resolved
+unit catalog so it enforces the same rule before preparing voices.
+
 ## How a battle looks
 
 Soldier poses follow actual published soldiers rather than formation slots. A
@@ -143,8 +174,8 @@ than life: a heavy gun throws its hull back on its springs, away from where the
 round went, to rock past rest and settle without moving off its spot, and shakes
 dust off the whole hull and off the ground ahead of the muzzle; each of a
 soldier's own shots snaps his upper body back about his waist, his muzzle
-climbing. How hard each round kicks is its row in `presentation.pose`
-(`hull_kick`, `soldier_kick`) and its flash's `dust`. The whole-model motion
+climbing. How hard each round kicks is its weapon look's `kick` and its flash's `dust`;
+`presentation.pose` owns the shared spring and recovery curves. The whole-model motion
 carries the drawn muzzle. A flying aircraft's rotor is drawn by the effects from the
 same drawn pose, as a film camera's shutter sees it: each blade smeared over the
 angle it turned while the shutter was open, so a fast rotor blurs at any frame

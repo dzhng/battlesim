@@ -1,4 +1,4 @@
-import game from "@fixtures/game.json";
+import { DEFAULT_BATTLE_SEED } from "@apps/battle-lab/src/lobby/defaults";
 import type { Player, PrepareBattleRequest } from "@web/battle/prepare/protocol";
 import {
   MAP_SIZES,
@@ -98,7 +98,7 @@ export function preset(kind: LobbyPreset, from?: LobbyState): LobbyState {
   return {
     players,
     map: { ...(from?.map ?? DEFAULT_MAP), size: floor },
-    battleSeed: from?.battleSeed ?? Number(game.seed),
+    battleSeed: from?.battleSeed ?? Number(DEFAULT_BATTLE_SEED),
     sizeFloor: floor,
   };
 }

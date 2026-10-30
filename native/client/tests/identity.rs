@@ -135,3 +135,15 @@ fn the_fixture_run_is_its_manifests_battle() {
     let library = Library::open(Path::new(RUNTIME)).unwrap();
     Replay::open(Path::new(RUN), &library).unwrap();
 }
+
+#[test]
+fn a_capture_with_a_different_tick_rate_than_its_encounter_is_refused() {
+    let dir = staged("clock", |capture, manifest| {
+        let mut parsed: Value = serde_json::from_str(capture).unwrap();
+        parsed["tickHz"] = Value::from(parsed["tickHz"].as_f64().unwrap() * 2.0);
+        *capture = parsed.to_string();
+        stamp(capture, manifest);
+    });
+    assert!(refusal(&dir).contains("tick_hz"));
+    fs::remove_dir_all(dir).unwrap();
+}

@@ -23,12 +23,12 @@ import {
   aim,
   snapshot,
 } from "./_lab.mjs";
-import { game, hull, unitType } from "./_units.mjs";
+import { rules, hull, unitType, visuals } from "./_units.mjs";
 
 /** The test helicopter's ground marker's radius: its hull's half length and
  *  the vehicle marker's margin. */
 const MARKER_R =
-  hull("test_heli").half_extents_m[0] + game.presentation.overlay.orders.vehicle_marker_margin_m;
+  hull("test_heli").half_extents_m[0] + visuals.overlay.orders.vehicle_marker_margin_m;
 
 /** Mean luminance of the pixels within `r` px of `p`. */
 function luminance(png, p, r) {
@@ -69,7 +69,7 @@ function brightestAlong(png, a, b, r) {
  *  past the pitch of its dots at every zoom the scene views it from. */
 const DROP_SPAN_M = 3;
 /** The share of an airframe's height its drop line's dots fade out by. */
-const DROP_REACH = game.presentation.overlay.orders.drop_line_reach;
+const DROP_REACH = visuals.overlay.orders.drop_line_reach;
 /** Where along the height a drop line is looked for: low, where its dots
  *  are strongest. */
 const DROP_LOW = 0.2;
@@ -99,7 +99,7 @@ export async function run(ctx) {
   const jeep = o.own.find((u) => u.kind === "test_jeep");
   const surface = (p) => lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), p);
   const ground = await surface(heli.position);
-  const cruise = game.air.low_air.cruise_agl_m;
+  const cruise = rules.air.low_air.cruise_agl_m;
   ctx.check(
     "the helicopter hovers at cruise height over the ground",
     Math.abs(heli.position[2] - ground - cruise) < 0.5,
@@ -107,7 +107,7 @@ export async function run(ctx) {
   );
 
   // Where its shadow falls: its foot, carried along the sun's fall by its height.
-  const { sun_azimuth: azimuth, sun_elevation: elevation } = game.presentation.light;
+  const { sun_azimuth: azimuth, sun_elevation: elevation } = visuals.light;
   const lift = heli.position[2] - ground;
   const throwM = lift / Math.tan(elevation);
   const shadow = [
@@ -409,9 +409,9 @@ export async function run(ctx) {
  *  is drawn, at the barrel's tip where the round leaves. */
 async function apache(ctx, page, css, surface) {
   await lab(page, (v) => window.__lab.route.variant(v), "apache");
-  await page.waitForFunction(() => window.__lab.route?.reset);
+  await page.waitForFunction(() => window.__lab?.route?.reset);
   await lab(page, () => window.__lab.route.reset());
-  await page.waitForFunction(() => window.__lab.route?.tick() > 0);
+  await page.waitForFunction(() => window.__lab?.route?.tick() > 0);
   await lab(page, () => window.__lab.route.pause());
   // Tick by tick to the chin gun's second round, at the tick its flash is
   // drawn: a drawn gun is level until its first round and eases down to it
@@ -425,7 +425,7 @@ async function apache(ctx, page, css, surface) {
       : undefined;
   };
   let o = await obs(page);
-  for (let t = 0; t < 30 * game.tick_hz && !chinRound(o); t++) {
+  for (let t = 0; t < 30 * rules.tick_hz && !chinRound(o); t++) {
     await advance(page, 1);
     o = await obs(page);
   }
@@ -440,7 +440,7 @@ async function apache(ctx, page, css, surface) {
   const ground = await surface(heli.position);
   ctx.check(
     "the Apache hovers at cruise height",
-    Math.abs(heli.position[2] - ground - game.air.low_air.cruise_agl_m) < 1,
+    Math.abs(heli.position[2] - ground - rules.air.low_air.cruise_agl_m) < 1,
     JSON.stringify({ at: heli.position, ground }),
   );
   const pose = heli.weaponPoses.find((w) => w.mount === CHIN);
@@ -475,7 +475,7 @@ async function apache(ctx, page, css, surface) {
   const bore = [Math.cos(e) * Math.cos(b), Math.cos(e) * Math.sin(b), Math.sin(e)];
   const tip = [0, 1, 2].map((k) => launch[k] - reach * level[k] + reach * bore[k]);
   const back = Math.min(
-    game.presentation.pose.mount.recoil_m,
+    visuals.pose.mount.recoil_m,
     Math.max(
       0,
       [0, 1, 2].reduce((s, k) => s + (tip[k] - muzzle[k]) * bore[k], 0),
@@ -560,7 +560,8 @@ async function lostSign(ctx, page, surface, css) {
     "the lost helicopter leaves an aloft contact at its height, out of sight",
     !!sign &&
       sign.layer === "low_air" &&
-      Math.abs(sign.center[2] - (await surface(sign.center)) - game.air.low_air.cruise_agl_m) < 1 &&
+      Math.abs(sign.center[2] - (await surface(sign.center)) - rules.air.low_air.cruise_agl_m) <
+        1 &&
       !o.identified.some((u) => u.kind === "test_heli"),
     JSON.stringify({ contacts: o.contacts, identified: o.identified.map((u) => u.kind) }),
   );
@@ -573,9 +574,9 @@ async function lostSign(ctx, page, surface, css) {
   const house = buildings.reduce((a, b) => (near(b) < near(a) ? b : a));
   const roofTop = Math.max(...house.authored.map((p) => p.baseZ + 2 * p.half[2]));
   const footprint = house.authored[0];
-  const { min_radius_px: smallest, max_radius_px: largest } = game.presentation.contacts.air;
+  const { min_radius_px: smallest, max_radius_px: largest } = visuals.contacts.air;
   // Strokes thin to this share of their width as the camera pulls out.
-  const thin = game.presentation.overlay.stroke.thin_scale;
+  const thin = visuals.overlay.stroke.thin_scale;
   // From the south-east the sign hangs over the fogged field beyond the
   // house; from across the sign, low, the shop the jeep stands against lies behind it. Close
   // in and from the map's zoom.
@@ -665,12 +666,12 @@ async function lostSign(ctx, page, surface, css) {
  *  most 30 s), pause it and return its observation. */
 async function begin(page, variant, until = "identified") {
   await lab(page, (v) => window.__lab.route.variant(v), variant);
-  await page.waitForFunction(() => window.__lab.route?.reset);
+  await page.waitForFunction(() => window.__lab?.route?.reset);
   await lab(page, () => window.__lab.route.reset());
   await page.waitForFunction(
     (until) => {
-      const o = window.__lab.route?.observation();
-      if (!(window.__lab.route?.tick() > 3 && o)) return false;
+      const o = window.__lab?.route?.observation();
+      if (!(window.__lab?.route?.tick() > 3 && o)) return false;
       return until === "aloft"
         ? o.contacts.some((c) => c.aloft)
         : o.identified.some((u) => u.kind === "test_heli");

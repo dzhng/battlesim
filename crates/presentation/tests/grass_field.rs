@@ -221,3 +221,37 @@ fn the_window_holds_the_grass_reach_round_the_eye_and_nothing_from_high_up() {
     let high = window([100.0, 200.0, reach + 1.0], 0.0, scale, &rules);
     assert_eq!((high.tiles_x, high.tiles_y), (0, 0));
 }
+
+#[test]
+fn packed_tints_stay_bounded_and_every_vertex_keeps_its_wind_response() {
+    for wind in [255, 64] {
+        let mut tiers: Vec<Tier> = [4, 3, 2, 1].map(|s| blade(s, [30, 90, 20])).into();
+        for tier in &mut tiers {
+            let n = tier.colors.len() / 4;
+            for (v, color) in tier.colors.chunks_mut(4).enumerate() {
+                color[..3].copy_from_slice(if v == n - 1 {
+                    &[240, 255, 90]
+                } else {
+                    &[10, 30, 5]
+                });
+                color[3] = wind;
+            }
+        }
+        let packed = pack_shapes(&[kind("tuft", &tiers, 1.0)]).unwrap();
+        for v in packed.shapes.chunks(SHAPE_FLOATS) {
+            for tint in &v[12..15] {
+                assert!(*tint >= 0.3 - 1e-6 && *tint < 1.3, "{v:?}");
+            }
+            assert_eq!(v[15], f32::from(wind) / 255.0);
+            assert_eq!(v[6], 0.0, "widening a blade cannot add height");
+        }
+    }
+}
+
+#[test]
+fn field_height_includes_the_drawn_far_tier() {
+    let mut tiers: Vec<Tier> = [4, 3, 2, 1].map(|s| blade(s, [60, 120, 30])).into();
+    *tiers[2].positions.last_mut().unwrap() = 2.0;
+    let packed = pack_shapes(&[kind("far-tip", &tiers, 1.0)]).unwrap();
+    assert_eq!(packed.facts[0].mesh_height, 2.0);
+}

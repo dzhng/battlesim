@@ -17,6 +17,13 @@ use sim::publication::{self, Publisher};
 use sim::world::WorldGeometry;
 use wasm_bindgen::prelude::*;
 
+mod rules;
+pub use rules::{cruise_agl_m, resolve_catalog, resolve_rules};
+mod admission;
+use admission::admit_bundle;
+pub use admission::{author_scenario_bundle, canonical_scenario_bundle, check_scenario_bundle};
+mod prepared_world;
+pub use prepared_world::PreparedWorld;
 mod skirmish;
 mod world_view;
 pub use skirmish::synthetic_skirmish_setup;
@@ -65,44 +72,6 @@ pub fn check_scenario_player_contract(scenario_json: &str) -> String {
     }
 }
 
-/// Validate a downloaded ScenarioBundle without consulting repository
-/// fixtures. The bundle module owns canonical bytes, identities, topology,
-/// and embedded asset admission.
-#[wasm_bindgen]
-pub fn check_scenario_bundle(bundle_json: &str) -> String {
-    match contract::bundle::ScenarioBundle::from_json(bundle_json) {
-        Ok(bundle) => serde_json::json!({
-            "status": "ok",
-            "identity": bundle.identity().expect("validated bundle identity"),
-        })
-        .to_string(),
-        Err(contract::bundle::BundleError::Invalid(diagnostics)) => {
-            serde_json::json!({ "status": "error", "diagnostics": diagnostics }).to_string()
-        }
-    }
-}
-
-/// Canonicalize a builder draft after deriving its map and rules identities.
-/// This is intentionally separate from upload admission: saved files must
-/// already carry the identities they claim.
-#[wasm_bindgen]
-pub fn author_scenario_bundle(bundle_json: &str) -> Result<String, JsError> {
-    contract::bundle::ScenarioBundle::from_authoring_json(bundle_json)
-        .map_err(js_error)?
-        .to_json()
-        .map_err(js_error)
-}
-
-/// Return the canonical bytes of a validated ScenarioBundle.
-#[wasm_bindgen]
-pub fn canonical_scenario_bundle(bundle_json: &str) -> Result<String, JsError> {
-    let bundle = contract::bundle::ScenarioBundle::from_json(bundle_json)
-        .map_err(|error| js_error(error.to_string()))?;
-    bundle
-        .to_json()
-        .map_err(|error| js_error(error.to_string()))
-}
-
 /// Run one authored script through the same deterministic contract host used
 /// by scenario battles. The observation JSON is the caller's side-scoped frame.
 #[wasm_bindgen]
@@ -132,7 +101,7 @@ pub fn scenario_bundle_controllers(
     bundle_json: &str,
     active_human: Option<String>,
 ) -> Result<String, JsError> {
-    let bundle = contract::bundle::ScenarioBundle::from_json(bundle_json).map_err(js_error)?;
+    let bundle = admit_bundle(bundle_json).map_err(js_error)?;
     serde_json::to_string(
         &bundle
             .effective_controllers(active_human.as_deref())
@@ -147,7 +116,7 @@ pub fn scenario_bundle_controllers(
 /// owner used by ordinary play.
 #[wasm_bindgen]
 pub fn scenario_bundle_details(bundle_json: &str) -> Result<String, JsError> {
-    let bundle = contract::bundle::ScenarioBundle::from_json(bundle_json).map_err(js_error)?;
+    let bundle = admit_bundle(bundle_json).map_err(js_error)?;
     let identity = bundle.identity().map_err(js_error)?;
     let scenario_json = bundle.scenario_json().map_err(js_error)?;
     let map = bundle.scenario.map.clone();
@@ -316,6 +285,7 @@ impl FlightLab {
     ) -> Result<FlightLab, JsError> {
         let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
         let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
+        sim::admit(&rules).map_err(js_error)?;
         let config = FlightConfig::new(&rules.physics.flight, rules.tick_hz)
             .map_err(|e| JsError::new(&format!("{e:?}")))?;
         Ok(FlightLab {
@@ -593,20 +563,6 @@ pub fn sight_multiplier_vectors() -> Vec<f64> {
     out
 }
 
-/// A unit catalog's documents (`fixtures/units/**`, or a test's own)
-/// resolved by the simulation's one resolver: its view
-/// (`contract::catalog::Catalog::view`), or the named error it fails with.
-#[wasm_bindgen]
-pub fn resolve_catalog(documents_json: &str) -> Result<String, JsError> {
-    // Parsed by the catalog's own reader, which refuses a repeated key.
-    let documents = contract::catalog::parse_document(documents_json).map_err(js_error)?;
-    let documents = documents
-        .as_array()
-        .ok_or_else(|| js_error("the catalog is a list of documents"))?;
-    let catalog = contract::catalog::resolve(documents).map_err(js_error)?;
-    Ok(catalog.view().to_string())
-}
-
 /// The scenario a saved encounter (`encounter_json`, its file's text) makes on
 /// its resolved map under `rules_json`, its overrides merged in, as
 /// `EncounterDefinition::on` makes it natively; or the refusal naming the
@@ -622,6 +578,7 @@ pub fn encounter_scenario(
         serde_json::from_str(encounter_json).map_err(js_error)?;
     let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
     let setup = encounter.on(map, rules).map_err(js_error)?;
+    sim::admit(&setup.rules).map_err(js_error)?;
     serde_json::to_string(&setup).map_err(js_error)
 }
 
@@ -696,6 +653,7 @@ impl BattleHandle {
     #[wasm_bindgen(constructor)]
     pub fn new(scenario_json: &str, seed: f64) -> Result<BattleHandle, JsError> {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
+        sim::admit(&setup.rules).map_err(js_error)?;
         Ok(BattleHandle {
             battle: Battle::new(&setup, seed as u64),
             publisher: Publisher::new(),
@@ -713,6 +671,7 @@ impl BattleHandle {
     /// A battle that re-applies a recorded replay and refuses live commands.
     pub fn from_replay(scenario_json: &str, replay_json: &str) -> Result<BattleHandle, JsError> {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
+        sim::admit(&setup.rules).map_err(js_error)?;
         let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
         let battle =
             Battle::from_replay(&setup, &replay).map_err(|e| JsError::new(&e.to_string()))?;
@@ -808,145 +767,6 @@ impl BattleHandle {
     /// The next publication opens a new epoch with full visibility and learned ground.
     pub fn resync_observation(&mut self) {
         self.publisher.resync();
-    }
-}
-
-/// A worker-owned world: skirmish admission lends it, battle startup consumes it.
-#[wasm_bindgen]
-pub struct PreparedWorld {
-    map: MapDefinition,
-    rules: Rules,
-    prepared: sim::encounter::PreparedMap,
-    map_digest: u64,
-    rules_digest: u64,
-}
-
-#[wasm_bindgen]
-impl PreparedWorld {
-    /// Final skirmish placement/route admission on this prepared physical world.
-    pub fn admit_skirmish(&self, sites_json: &str, players_json: &str) -> Result<String, JsError> {
-        let sites = serde_json::from_str(sites_json).map_err(js_error)?;
-        let players: Vec<contract::players::Player> =
-            serde_json::from_str(players_json).map_err(js_error)?;
-        let admitted = sim::map_analysis::admit_skirmish(
-            &self.prepared.queries(&self.map, &sites),
-            &self.rules,
-            &players,
-        )
-        .map_err(js_error)?;
-        serde_json::to_string(&admitted).map_err(js_error)
-    }
-    /// Build the complete generated skirmish scenario from this prepared
-    /// world's own map and rules serialization.
-    pub fn skirmish_scenario(
-        &self,
-        sites_json: &str,
-        players_json: &str,
-    ) -> Result<String, JsError> {
-        let sites: contract::encounter::EncounterSites =
-            serde_json::from_str(sites_json).map_err(js_error)?;
-        let players: Vec<contract::players::Player> =
-            serde_json::from_str(players_json).map_err(js_error)?;
-        let setup = sim::skirmish::setup_for(
-            &players,
-            sites
-                .skirmish
-                .ok_or_else(|| JsError::new("skirmish sites are missing"))?,
-        );
-        setup.sites.validate().map_err(js_error)?;
-        serde_json::to_string(&ScenarioDefinition {
-            players,
-            skirmish: Some(setup),
-            map: self.map.clone(),
-            rules: self.rules.clone(),
-            units: vec![],
-            events: vec![],
-            scripts: vec![],
-            authored_scripts: vec![],
-            victory: None,
-            opponent: None,
-            encounter: None,
-        })
-        .map_err(js_error)
-    }
-
-    #[wasm_bindgen(constructor)]
-    pub fn new(map_json: &str, rules_json: &str) -> Result<PreparedWorld, JsError> {
-        let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
-        let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
-        Self::build(map, rules)
-    }
-
-    pub fn from_scenario(scenario_json: &str) -> Result<PreparedWorld, JsError> {
-        let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
-        Self::build(setup.map, setup.rules)
-    }
-
-    /// Admit a self-contained download without consulting fixtures or a map generator.
-    pub fn from_bundle(bundle_json: &str) -> Result<PreparedWorld, JsError> {
-        let bundle = contract::bundle::ScenarioBundle::from_json(bundle_json).map_err(js_error)?;
-        let scenario: ScenarioDefinition =
-            serde_json::from_str(&bundle.scenario_json().map_err(js_error)?).map_err(js_error)?;
-        Self::build(scenario.map, scenario.rules)
-    }
-
-    pub fn extents(&self) -> String {
-        serde_json::to_string(&self.map.extents()).expect("finite map extents")
-    }
-
-    pub fn into_battle(self, scenario_json: &str, seed: f64) -> Result<BattleHandle, JsError> {
-        let setup = self.scenario(scenario_json)?;
-        Ok(BattleHandle {
-            battle: Battle::from_prepared(&setup, seed as u64, self.prepared),
-            publisher: Publisher::new(),
-        })
-    }
-
-    pub fn into_replay(
-        self,
-        scenario_json: &str,
-        replay_json: &str,
-    ) -> Result<BattleHandle, JsError> {
-        let setup = self.scenario(scenario_json)?;
-        let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
-        let battle = Battle::from_prepared_replay(&setup, &replay, self.prepared)
-            .map_err(|e| JsError::new(&e.to_string()))?;
-        Ok(BattleHandle {
-            battle,
-            publisher: Publisher::new(),
-        })
-    }
-}
-
-fn identity_digest<T: serde::Serialize>(value: &T) -> Result<u64, JsError> {
-    Ok(sim::digest::of_str(
-        &serde_json::to_string(value).map_err(js_error)?,
-    ))
-}
-
-impl PreparedWorld {
-    fn build(map: MapDefinition, rules: Rules) -> Result<Self, JsError> {
-        let map_digest = identity_digest(&map)?;
-        let rules_digest = identity_digest(&rules)?;
-        let prepared = sim::encounter::PreparedMap::new(&map, &rules);
-        Ok(Self {
-            map,
-            rules,
-            prepared,
-            map_digest,
-            rules_digest,
-        })
-    }
-
-    fn scenario(&self, scenario_json: &str) -> Result<ScenarioDefinition, JsError> {
-        let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
-        if identity_digest(&setup.map)? != self.map_digest
-            || identity_digest(&setup.rules)? != self.rules_digest
-        {
-            return Err(JsError::new("prepared map and rules do not match scenario"));
-        }
-        setup.validate_player_contract().map_err(js_error)?;
-        Ok(setup)
     }
 }
 

@@ -1,3 +1,4 @@
+import { shippedRules } from "@web/shippedRules";
 import { fixtureMap } from "../fixtures";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -11,15 +12,15 @@ import {
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import type { MapDefinition } from "@web/maps/resolve";
 import { SavedMap } from "../savedMaps";
-import game from "@fixtures/game.json";
 import type { WeaponRow } from "@packages/scene-assets/src/units";
-import { LabViewport, type ViewportFrame } from "../LabViewport";
+import { LabViewport } from "../LabViewport";
+import type { ViewportFrame } from "../presentedFrame";
 import { useStandingBuildings, useStaticWorld, type WorldView } from "../useStaticWorld";
-import type { GameRules, SessionCatalog } from "@web/battle/catalog/compose";
+import type { ResolvedRules, SessionCatalog } from "@web/battle/catalog/compose";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { gameBiome } from "../gameBiome";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 
 // Flight reproduction bench. Scripted bodies move at constant velocity (one
@@ -31,8 +32,8 @@ import { gameCamera } from "../gameCamera";
 // traces and marks, not as the battle's combat effects.
 
 const SEED = 20260925;
-const TICK_HZ = game.tick_hz;
-const P = game.physics;
+const TICK_HZ = shippedRules.tick_hz;
+const P = shippedRules.physics;
 
 type Xyz = [number, number, number];
 
@@ -66,7 +67,7 @@ interface Shot {
 interface Bench {
   movers: Mover[];
   shots: Shot[];
-  rules: GameRules;
+  rules: ResolvedRules;
   tankArmor: unknown;
 }
 

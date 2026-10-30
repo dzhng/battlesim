@@ -475,7 +475,7 @@ fn smoke(units: Value, scripts: Value) -> ScenarioDefinition {
         .push(json!({ "props": { "smoke": {
         "body": { "blocks": { "infantry": false, "vehicle": false }, "stops_rounds": false,
             "occludes": true, "weight_class": "immovable", "lifetime_s": 10 },
-        "appearance": { "drawn_by": "smoke" },
+        "appearance": { "drawn_by": "smoke", "stand_in_tint": [0.5, 0.5, 0.5] },
     } } }));
     let map = json!({
         "size": [200, 100], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,

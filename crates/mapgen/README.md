@@ -3,9 +3,10 @@
 One crate turns a seeded request into a plan and compiles generated or authored
 plans into the shared physical map. Battles and renderers consume that compiled
 geometry; they never reinterpret the plan or look up its physical template library.
-[The library boundary](src/lib.rs) owns the production sequence. It imports no
-simulation or appearance library; developer reports may use the simulation to
-prove the resulting map supports a battle.
+[The library boundary](src/lib.rs) owns the production sequence. Its rules
+reader uses [simulation admission](../sim/src/admission.rs) before extracting
+physical generation inputs; battle execution and appearance do not shape the
+compiler. Developer reports may play a battle to judge the resulting map.
 
 ## Physical and visual bounds
 

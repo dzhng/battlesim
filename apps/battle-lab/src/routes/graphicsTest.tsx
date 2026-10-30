@@ -4,12 +4,11 @@ import { useSessionCatalog } from "@web/battle/catalog/context";
 import { REELS, type ReelWorkload } from "@web/battle/benchmark/reels";
 import type { FrameCount, PresentationLayer } from "@web/battle/benchmark/visualPresentation";
 import { listMaps } from "@web/maps/catalogue";
-import game from "@fixtures/game.json";
 import { filmCamera, validateCapture, type CaptureScene } from "../capture/capture";
 import { savedBattle } from "../savedMaps";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import { useBattleSession } from "../useBattleSession";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 import { LabViewport } from "../LabViewport";
 import { useLabLoading } from "../LabLoading";
@@ -307,7 +306,14 @@ function ReelBattle({
   onDone: (r: ReelResult) => void;
 }) {
   const veil = useRef<HTMLDivElement>(null);
-  const [run] = useState(() => createReelRun(scene, game.tick_hz, onDone, { plates, counts }));
+  const [run] = useState(() =>
+    createReelRun(
+      scene,
+      (JSON.parse(scenario) as { rules: { tick_hz: number } }).rules.tick_hz,
+      onDone,
+      { plates, counts },
+    ),
+  );
   const session = useBattleSession({
     scenario,
     seed: scene.seed,

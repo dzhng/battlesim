@@ -82,6 +82,38 @@ impl StaticBatches {
         self.stale = true;
     }
 
+    /// Republish currently held lists from their authoritative populations
+    /// without reframing dynamic motion, UI, effects or camera selection.
+    pub fn materialize(
+        &mut self,
+        populations: &[&mut dyn Population],
+        frame: &mut Frame,
+        generation: u32,
+    ) {
+        let missing: HashMap<_, _> = frame
+            .batches
+            .iter()
+            .enumerate()
+            .filter(|(_, batch)| batch.first == NONE)
+            .map(|(index, batch)| (batch.key, index))
+            .collect();
+        for population in populations {
+            population.each_list(&mut |list| {
+                let key = crate::view::batch_key(list.row, list.tier, list.pass, list.cascade_mask);
+                if let Some(&index) = missing.get(&key) {
+                    frame.batches[index].first = frame.instances.len() as u32;
+                    frame
+                        .instances
+                        .extend_from_slice(bytemuck::cast_slice(list.records));
+                }
+            });
+        }
+        // The recovered frame is complete now. The next ordinary frame still
+        // writes every list, so a renderer may install before or after it.
+        self.invalidate();
+        self.generation = Some(generation);
+    }
+
     /// Walks `populations` for `camera` when it or what they know changed,
     /// and lists their batches in `f`: written when any list changed or the
     /// renderer's `generation` (bumped whenever it holds nothing) is new,

@@ -1,14 +1,16 @@
+import { shippedRules } from "@web/shippedRules";
 // @vitest-environment jsdom
+import { presentationSettings } from "@web/presentationSettings";
+import { audioMix } from "@web/audioMix";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
-import game from "@fixtures/game.json";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import { soundSettings } from "@packages/battle-audio/src/settings";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import { standInPresentationRecordings } from "./support/soundStandIns";
-import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+import type { AudioMix } from "@packages/battle-audio/src/audioMix";
 
 beforeAll(() => loadPresentation());
 
@@ -173,8 +175,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
-const presentation = game.presentation.audio as unknown as AudioPresentation;
-const cookOff = game.presentation.effects.cook_off;
+const presentation = audioMix as unknown as AudioMix;
 const empty = (tick: number) => ({
   effects: { tick, segments: [], blasts: [], smokes: [] },
   launches: [],
@@ -215,9 +216,6 @@ function setup() {
         { label: name, clips: [], synth: name, synth_gain: 1, gain: 1, loop: sound.loop },
       ]),
     ),
-    defaults: {},
-    impacts: {},
-    effects: {},
     music: {
       moods: { menu: ["bed"], tension: [], combat: [] },
       tracks: { bed: { source: "bed", sha256: "a".repeat(64), gain: 0.5 } },
@@ -274,7 +272,16 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
   app.start();
   await vi.waitFor(() => expect(app.stats().menuReady).toBe(true));
   app.setScreen("loading");
-  const first = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff }, 1);
+  const first = app.createBattle(
+    {
+      tickHz: 30,
+      weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
+      looks: presentationSettings,
+      presentation,
+    },
+    1,
+  );
   await vi.waitFor(() => expect(first.stats()?.loading).toBe(false));
   first.note(empty(8));
   first.update({
@@ -289,7 +296,16 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
   expect(first.stats()).toBeNull();
   expect(oldSources.every((s) => s.stopped && s.connections.size === 0)).toBe(true);
   expect(contexts[0].close).not.toHaveBeenCalled();
-  const second = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff }, 1);
+  const second = app.createBattle(
+    {
+      tickHz: 30,
+      weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
+      looks: presentationSettings,
+      presentation,
+    },
+    1,
+  );
   await vi.waitFor(() => expect(second.stats()?.loading).toBe(false));
   expect(second.stats()).toMatchObject({ tick: -1, pending: 0 });
   second.note(empty(1));
@@ -306,7 +322,16 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
 
 test("changing master volume preserves battle evidence, while mute and unmute discard it", async () => {
   const app = setup();
-  const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff }, 1);
+  const battle = app.createBattle(
+    {
+      tickHz: 30,
+      weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
+      looks: presentationSettings,
+      presentation,
+    },
+    1,
+  );
   await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
   battle.note(empty(4));
   expect(battle.stats()?.tick).toBe(4);
@@ -333,7 +358,16 @@ test("a blocked early attempt resumes on menu input and the bed lasts until batt
   await vi.waitFor(() => expect(app.stats().menuReady).toBe(true));
   expect(app.stats().running).toBe(false);
   app.setScreen("loading");
-  const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff }, 1);
+  const battle = app.createBattle(
+    {
+      tickHz: 30,
+      weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
+      looks: presentationSettings,
+      presentation,
+    },
+    1,
+  );
   await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
   battle.note(empty(4));
   battle.update({
@@ -369,7 +403,16 @@ test("repeated battle visits return every audio connection to the menu baseline"
   const baseline = nodes.reduce((n, node) => n + node.connections.size, 0);
   for (let visit = 0; visit < 5; visit++) {
     app.setScreen("loading");
-    const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff }, 1);
+    const battle = app.createBattle(
+      {
+        tickHz: 30,
+        weapons: shippedRules.weapons,
+        unitCatalog: { units: [], soldiers: {} },
+        looks: presentationSettings,
+        presentation,
+      },
+      1,
+    );
     await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
     battle.note(empty(1));
     battle.update({
@@ -422,7 +465,16 @@ test("quick mute then unmute resumes even while the earlier suspension is pendin
 
 test("resuming a browser-suspended context starts battle sound from fresh evidence", async () => {
   const app = setup();
-  const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff }, 1);
+  const battle = app.createBattle(
+    {
+      tickHz: 30,
+      weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
+      looks: presentationSettings,
+      presentation,
+    },
+    1,
+  );
   await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
   battle.note(empty(4));
   expect(battle.stats()?.tick).toBe(4);
@@ -473,7 +525,16 @@ test("a battle's score shuffles by the battle's own seed", async () => {
   const app = setup();
   scoreSeeds.length = 0;
   for (const seed of [7, 7, 11]) {
-    const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff }, seed);
+    const battle = app.createBattle(
+      {
+        tickHz: 30,
+        weapons: shippedRules.weapons,
+        unitCatalog: { units: [], soldiers: {} },
+        looks: presentationSettings,
+        presentation,
+      },
+      seed,
+    );
     await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
     battle.note(empty(1));
     battle.update({

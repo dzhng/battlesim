@@ -1,13 +1,13 @@
 // @vitest-environment node
 // The score's decisions are Rust's (`crates/presentation/tests/music.rs`);
 // this holds the page's carrier to them: each command reaches the player.
+import { audioMix } from "@web/audioMix";
 import { beforeAll, expect, test } from "vitest";
-import game from "@fixtures/game.json";
 import { BattleMusic, type BattleMusicRules } from "@packages/battle-audio/src/music/battleMusic";
 import type { VoiceRequest } from "@packages/battle-audio/src/voices/chatter";
 import { loadPresentation } from "@web/battle/sim/presentation";
 
-const RULES = game.presentation.audio.music as BattleMusicRules;
+const RULES = audioMix.music as BattleMusicRules;
 const TRACKS = { tension: ["t1"], combat: ["c1"] };
 
 beforeAll(() => loadPresentation());

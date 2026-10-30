@@ -28,7 +28,7 @@ fn river_map() -> Value {
 /// The ground of map `map` under `biome`.
 fn ground(map: &Value, biome: Biome) -> Ground {
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let def: MapDefinition = serde_json::from_value(map.clone()).unwrap();
     let world = WorldGeometry::new(&def, &rules);
     let source = ground::source(
@@ -37,8 +37,10 @@ fn ground(map: &Value, biome: Biome) -> Ground {
         &sim::world::export::layout_json(&rules.catalog),
     )
     .unwrap();
-    let game: Value = serde_json::from_str(&read("fixtures/game.json")).unwrap();
-    let tuning: Tuning = serde_json::from_value(game["presentation"].clone()).unwrap();
+    let game: Value = serde_json::from_str(&read("fixtures/presentation.json")).unwrap();
+    let tuning: Tuning = presentation::settings::PresentationSettings::from_value(&game)
+        .unwrap()
+        .tuning();
     Ground::new(source, biome, tuning).unwrap()
 }
 

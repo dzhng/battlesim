@@ -9,12 +9,8 @@ use crate::{error, Presentation};
 use presentation::presentation::Presentation as Inner;
 use presentation::shadow;
 use presentation::static_world::ground::field::Field;
-use presentation::static_world::ground::grass::{
-    blade_vertices, pack_shapes, strip_indices, KindMesh, PackedShapes, Quality, TierMesh, Window,
-    FIELD_SEGMENTS, LIMITS,
-};
 use presentation::static_world::ground::mesh;
-use presentation::static_world::ground::tables::{Grid, TerrainTables};
+use presentation::static_world::ground::tables::Grid;
 use presentation::static_world::ground::walk::Quality as SceneryQuality;
 use presentation::static_world::ground::{self, biome::Biome, Ground, Source, Tuning};
 use serde::Deserialize;
@@ -39,6 +35,12 @@ fn ground(inner: &Inner) -> Result<&Ground, JsError> {
 
 #[wasm_bindgen]
 impl Presentation {
+    /// The packed height pages consumed by the renderer's fog and terrain
+    /// compute passes (`page_size`, directory, then height bit patterns).
+    pub fn pages(&self) -> Result<Vec<u32>, JsError> {
+        Ok(ground(&self.inner)?.source.grid.pages())
+    }
+
     /// Sets the map's ground: `extents` is the physical map's `[min x, min y,
     /// max x, max y]`, the playable rectangle, then its rendered
     /// surroundings' where it has them;
@@ -108,22 +110,9 @@ impl Presentation {
         };
         let biome = Biome::load(biome, family.as_deref()).map_err(error)?;
         self.grass = Some(biome.grass.clone());
-        let tuning: Tuning =
-            serde_json::from_str(tuning).map_err(|e| error(format!("tuning: {e}")))?;
+        let value = serde_json::from_str(tuning).map_err(error)?;
+        let tuning = Tuning::from_value(&value).map_err(error)?;
         self.inner.set_ground(source, biome, tuning).map_err(error)
-    }
-
-    /// The terrain's GPU tables (`GroundTables`).
-    pub fn ground_terrain(&self) -> Result<GroundTables, JsError> {
-        let g = ground(&self.inner)?;
-        Ok(GroundTables(
-            g.terrain_tables(g.terrain_field().map_err(error)?),
-        ))
-    }
-
-    /// The plots' records, with or without their texture.
-    pub fn ground_plots(&self, textured: bool) -> Result<Vec<u32>, JsError> {
-        Ok(ground(&self.inner)?.plot_records(textured))
     }
 
     /// The water's surface mesh (`ground::mesh::water` over the ground's
@@ -154,54 +143,6 @@ impl Presentation {
     /// The grass appearances the field draws, in kind order (JSON).
     pub fn grass_kinds(&self) -> Result<String, JsError> {
         Ok(serde_json::to_string(&ground(&self.inner)?.grass_kinds()).unwrap())
-    }
-
-    /// `GrassParams` for the kinds `shapes` packed (in `grass_kinds` order),
-    /// under the scene assets' limits and the player's grass density (a
-    /// scale on the densest stand, 1 the biome's), its per-frame fields zero
-    /// (`grass_frame_params` writes them).
-    pub fn grass_params(&self, shapes: &GrassShapes, density: f64) -> Result<Vec<u32>, JsError> {
-        ground(&self.inner)?
-            .grass_params(&shapes.0.facts, &LIMITS, &Quality { density })
-            .map_err(error)
-    }
-
-    /// The window of tiles the grass grows over for the last frame's camera:
-    /// its corner x and y, tiles across and up, reach, and the far corner x
-    /// and y; empty before a frame.
-    pub fn grass_window(&self) -> Result<Vec<f64>, JsError> {
-        ground(&self.inner)?;
-        let Some((w, _)) = self.inner.grass_window() else {
-            return Ok(Vec::new());
-        };
-        let [.., x1, y1] = w.bounds();
-        Ok(vec![
-            w.x0,
-            w.y0,
-            f64::from(w.tiles_x),
-            f64::from(w.tiles_y),
-            w.reach,
-            x1,
-            y1,
-        ])
-    }
-
-    /// Writes the last frame's fields into `GrassParams`' `words`
-    /// (`ground::grass::frame_params`) for the window `grass_window` gave.
-    pub fn grass_frame_params(&self, words: &mut [u32], window: &[f64]) {
-        let window = Window {
-            x0: window[0],
-            y0: window[1],
-            tiles_x: window[2] as u32,
-            tiles_y: window[3] as u32,
-            reach: window[4],
-        };
-        self.inner.grass_frame_params(words, &window);
-    }
-
-    /// The props' footprints where no grass grows, by grid cell.
-    pub fn grass_props(&self) -> Result<Vec<u32>, JsError> {
-        Ok(ground(&self.inner)?.grass_props())
     }
 
     /// The appearances the scenery places, in kind order (JSON).
@@ -333,6 +274,12 @@ impl Presentation {
         Ok(ground(&self.inner)?.reach(footprint, 0.0).to_vec())
     }
 
+    /// Surface-field geometry and bucket index for the CPU/GPU agreement probe.
+    pub fn ground_surface_field(&self) -> Result<String, JsError> {
+        let field = self.field()?;
+        Ok(serde_json::json!({ "records": field.records, "index": field.index }).to_string())
+    }
+
     /// The material's surface field's grid: its low corner, finest cell,
     /// columns, rows, levels, and the widest pixel it reads exactly (infinite
     /// where its ladder ends in one cell).
@@ -377,36 +324,6 @@ pub fn terrain_heights(
     .pages()
 }
 
-#[wasm_bindgen]
-pub struct GroundTables(TerrainTables);
-
-#[wasm_bindgen]
-impl GroundTables {
-    pub fn nodes(&self) -> Vec<u32> {
-        self.0.nodes.clone()
-    }
-    pub fn plots(&self) -> Vec<u32> {
-        self.0.plots.clone()
-    }
-    /// `TerrainParams` but its frame's `view`.
-    pub fn params(&self) -> Vec<u32> {
-        self.0.params.clone()
-    }
-    /// `ScarParams`' look, from `full` on.
-    pub fn scars(&self) -> Vec<u32> {
-        self.0.scars.clone()
-    }
-    pub fn surfaces(&self) -> Vec<f32> {
-        self.0.surfaces.clone()
-    }
-    pub fn surface_index(&self) -> Vec<u32> {
-        self.0.surface_index.clone()
-    }
-    pub fn water(&self) -> Vec<f32> {
-        self.0.water.clone()
-    }
-}
-
 /// The simulation's ground triangles as the renderer draws them
 /// (`ground::mesh::terrain`): untinted, or, given the triangle surfaces
 /// and the blocked flag, tinted by what ground units can enter.
@@ -442,111 +359,12 @@ pub fn map_box(mesh: &[f32]) -> Option<Vec<f64>> {
     shadow::map_box(mesh).map(|b| b.to_vec())
 }
 
-/// The pixels a scar region can cover on a `width` × `height` target
-/// through the map's box, if it has one (`scars::scissor`): `[x, y, width,
-/// height]`, empty when it is off screen.
-#[wasm_bindgen]
-pub fn scar_scissor(
-    region: &[f64],
-    map_box: Option<Box<[f64]>>,
-    view_proj: &[f32],
-    width: u32,
-    height: u32,
-) -> Vec<u32> {
-    let view_proj = view_proj.first_chunk().expect("a 4×4 matrix");
-    let map_box = map_box.map(|b| std::array::from_fn(|i| b[i]));
-    presentation::scars::scissor(
-        std::array::from_fn(|i| region[i]),
-        map_box.as_ref(),
-        view_proj,
-        [width, height],
-    )
-    .map_or_else(Vec::new, |r| r.to_vec())
-}
-
-/// The installed grass kinds' meshes packed for the field
-/// (`ground::grass::pack_shapes`), and their facts for `Ground.grass_params`.
-#[wasm_bindgen]
-pub struct GrassShapes(PackedShapes);
-
-#[wasm_bindgen]
-impl GrassShapes {
-    /// Packs the kinds `names` (JSON, in `Ground.grass_kinds` order): each
-    /// kind's first state's tier count (`tiers`) and top (`tops`), and per
-    /// tier its vertex count (`vertices`); the tiers' positions, normals,
-    /// uvs and colours one after another. Refuses a kind whose tiers are not
-    /// blade strips, by name.
-    #[wasm_bindgen(constructor)]
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        names: &str,
-        tiers: &[u32],
-        tops: &[f64],
-        vertices: &[u32],
-        positions: &[f32],
-        normals: &[i16],
-        uvs: &[f32],
-        colors: &[u8],
-    ) -> Result<GrassShapes, JsError> {
-        let names: Vec<String> = serde_json::from_str(names).map_err(error)?;
-        let mut at = 0;
-        let mut v = 0;
-        let mut kinds = Vec::with_capacity(names.len());
-        for (k, name) in names.iter().enumerate() {
-            let mut list = Vec::with_capacity(tiers[k] as usize);
-            for _ in 0..tiers[k] {
-                let n = vertices[at] as usize;
-                list.push(TierMesh {
-                    positions: &positions[v * 3..(v + n) * 3],
-                    normals: &normals[v * 4..(v + n) * 4],
-                    uvs: &uvs[v * 2..(v + n) * 2],
-                    colors: &colors[v * 4..(v + n) * 4],
-                });
-                (at, v) = (at + 1, v + n);
-            }
-            kinds.push(KindMesh {
-                name,
-                tiers: list,
-                top: tops[k],
-            });
-        }
-        Ok(GrassShapes(pack_shapes(&kinds).map_err(error)?))
-    }
-
-    /// Every kind's two field tiers as clump vertices.
-    pub fn shapes(&self) -> Vec<f32> {
-        self.0.shapes.clone()
-    }
-
-    /// The most blades any kind has: the index lists' blades.
-    pub fn max_blades(&self) -> u32 {
-        self.0.max_blades
-    }
-}
-
-/// The field's two tiers' segments a blade, near then far.
-#[wasm_bindgen]
-pub fn grass_field_segments() -> Vec<u32> {
-    FIELD_SEGMENTS.to_vec()
-}
-
-/// Vertices of one blade of `segments` segments.
-#[wasm_bindgen]
-pub fn grass_blade_vertices(segments: u32) -> u32 {
-    blade_vertices(segments)
-}
-
-/// The index list of `blades` blade strips of `segments` segments.
-#[wasm_bindgen]
-pub fn grass_strip_indices(blades: u32, segments: u32) -> Vec<u16> {
-    strip_indices(blades, segments)
-}
-
 /// The scene assets' limits Rust holds (`ground::grass::LIMITS`): the clump
 /// height variation's top and the tallest grass.
 #[wasm_bindgen]
 pub fn grass_limits() -> Vec<f64> {
-    vec![LIMITS.variation, LIMITS.tallest]
+    let limits = presentation::static_world::ground::grass::LIMITS;
+    vec![limits.variation, limits.tallest]
 }
 
 /// The appearances drawing a map's props (its exported `props` under the

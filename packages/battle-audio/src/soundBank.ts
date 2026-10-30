@@ -6,7 +6,7 @@ import {
   max_momentary_loudness,
   source_normalization,
   synthesize as rustSynthesize,
-} from "@wasm/presentation/presentation_wasm.js";
+} from "@wasm/renderer_browser";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { clipCadence, type SoundCatalog } from "./catalog";
 import { SOUNDS } from "./synthSounds.gen";

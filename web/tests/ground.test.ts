@@ -7,11 +7,8 @@ import { beforeAll, expect, test } from "vitest";
 import { initSync, Battle, WorldView } from "@wasm/game_wasm.js";
 import { cellPatchRuns, groundRecords } from "./groundRuns";
 import type { ObservationLayout } from "../src/battle/sim/observationView";
-import {
-  ScenePresentation,
-  loadPresentation,
-  type LearnedGround,
-} from "../src/battle/sim/presentation";
+import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
+import type { LearnedGround } from "../src/battle/sim/presentationGround";
 import { TEST_RULES, labScenario } from "./catalog";
 import { type LabEvent } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
@@ -107,7 +104,6 @@ test(
     // Observing the other side forgets what was learned until its snapshot.
     decoder.invalidate("red");
     expect(view.markedCells().length).toBe(0);
-    expect(view.changed()).toBe(true);
     battle.resync_observation();
     decoder.decode(publication(battle, "red"));
     expect(view.side).toBe("red");

@@ -1,7 +1,7 @@
 // Player gestures through the shared session and real worker authority.
 import { lab, obs, advance, until, openBattle, snapshot, presented } from "./_lab.mjs";
 import { decode, writeCrop } from "./_png.mjs";
-import { game } from "./_units.mjs";
+import { visuals } from "./_units.mjs";
 
 const base = (ctx) => new URL(ctx.url).origin;
 const select = async (page, ids) => {
@@ -11,7 +11,15 @@ const select = async (page, ids) => {
     ids,
   );
 };
-const project = (page, at) => lab(page, (p) => window.__lab.projectToCss(...p), at);
+const project = (page, at) =>
+  lab(
+    page,
+    async (p) => {
+      await window.__lab.frame();
+      return window.__lab.projectToCss(...p);
+    },
+    at,
+  );
 /** The action the system's pointer shows (AppCursor names it on the document). */
 const action = (page) => page.evaluate(() => document.documentElement.dataset.cursor);
 /** In the page: does `element` show the game's arrow, the cursor the
@@ -460,17 +468,11 @@ export async function movementCursor(ctx) {
 }
 
 export async function battleCursor(ctx) {
-  const page = await openBattle(
-    {
-      ...ctx,
-      newPage: async (options) => {
-        const page = await ctx.newPage(options);
-        await page.addInitScript(delayedAdmission);
-        return page;
-      },
-    },
-    { url: `${base(ctx)}/labs/street`, tick: 40 },
-  );
+  const page = await openBattle(ctx, {
+    url: `${base(ctx)}/labs/street`,
+    tick: 40,
+    initScript: delayedAdmission,
+  });
   const o = await obs(page);
   const tank = o.own.find((u) => u.kind === "test_tank");
   const squad = o.own.find((u) => u.kind === "test_rifle");
@@ -578,7 +580,27 @@ export async function battleCursor(ctx) {
   await page.evaluate(() => {
     window.__delayCommandAcks = 800;
   });
-  const pendingPoint = await project(page, [tank.position[0] + 20, tank.position[1] + 20, 0]);
+  // Reset installs the opening camera again. Frame the pending command's
+  // ground point clear of the HUD before waiting for a delayed admission.
+  const currentTank = (await obs(page)).own.find((unit) => unit.id === tank.id);
+  await lab(
+    page,
+    async (at) => {
+      window.__lab.setCamera({
+        ...window.__lab.camera(),
+        target: at,
+        distance: 200,
+        pitch: 1.15,
+      });
+      await window.__lab.frame();
+    },
+    currentTank.position,
+  );
+  const pendingPoint = await project(page, [
+    currentTank.position[0] + 20,
+    currentTank.position[1] + 20,
+    0,
+  ]);
   await page.mouse.click(...pendingPoint, { button: "right" });
   await page.waitForFunction(() => window.__cursorCommands?.length > 0);
   await page.waitForTimeout(100);
@@ -798,7 +820,7 @@ async function resetWorkerBattle(page) {
   const epoch = await page.evaluate(() => window.__cursorWorkerEpoch);
   await lab(page, () => window.__lab.route.reset());
   await page.waitForFunction((epoch) => window.__cursorWorkerEpoch > epoch, epoch);
-  await page.waitForFunction(() => window.__lab.route.tick() > 3);
+  await page.waitForFunction(() => window.__lab?.route?.tick() > 3);
   await lab(page, () => window.__lab.route.pause());
 }
 
@@ -825,7 +847,7 @@ export async function readoutEdge(ctx) {
   );
   // A card keeps `panel_edge_hide_px` clear of the screen's edge (nearer, it
   // hides), so the one framed against the right edge stands at that margin.
-  const margin = 430 - game.presentation.hud.panel_edge_hide_px;
+  const margin = 430 - visuals.hud.panel_edge_hide_px;
   const box = await page.locator('.ro-unit[data-unit="0"]').boundingBox();
   if (!box || box.x + box.width < margin - 4)
     throw Error(`own readout is not framed against the screen edge: ${JSON.stringify(box)}`);

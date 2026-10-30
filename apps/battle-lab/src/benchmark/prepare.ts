@@ -10,13 +10,13 @@ import type { PrepareMessage } from "@web/battle/prepare/protocol";
 import type { Wasm } from "@web/battle/sim/module";
 import { cityContactTour } from "@web/battle/benchmark/camera";
 import type { BenchmarkPreset, BenchmarkScenario } from "@web/battle/benchmark/presets";
-import type { GameRules } from "@web/battle/catalog/compose";
+import type { ResolvedRules } from "@web/battle/catalog/compose";
 import { playersFor } from "../skirmishSetup";
 
 function benchmarkPreparation(
   wasm: Wasm,
   scenario: BenchmarkPreset,
-  rules: GameRules,
+  rules: ResolvedRules,
 ): PrepareMessage {
   return {
     type: "prepare",
@@ -44,7 +44,7 @@ export async function prepareBenchmark(
   wasm: Wasm,
   workload: BenchmarkPreset,
   signal: AbortSignal,
-  rules: GameRules,
+  rules: ResolvedRules,
 ): Promise<BenchmarkBattle> {
   const preparation = prepareBattle(benchmarkPreparation(wasm, workload, rules), () => {});
   signal.addEventListener("abort", preparation.cancel, { once: true });

@@ -62,29 +62,6 @@ export interface ClearanceTuning {
   sweep_max_steps: number;
 }
 
-/** Throws unless `t` is a usable tuning. */
-export function validateClearanceTuning(t: ClearanceTuning): ClearanceTuning {
-  const positive: (keyof ClearanceTuning)[] = [
-    "lift_max_m",
-    "slide_max_m",
-    "slide_max_rad",
-    "smoothing_s",
-    "sweep_step_m",
-  ];
-  const counts: (keyof ClearanceTuning)[] = ["lift_steps", "slide_steps", "sweep_max_steps"];
-  for (const key of positive)
-    if (!(t[key] > 0)) throw new Error(`camera clearance ${key} must be positive`);
-  for (const key of counts)
-    if (!(Number.isInteger(t[key]) && t[key] >= 1 && t[key] <= 64))
-      throw new Error(`camera clearance ${key} must be a whole number from 1 to 64`);
-  if (!(Number.isInteger(t.refine_steps) && t.refine_steps >= 0 && t.refine_steps <= 16))
-    throw new Error("camera clearance refine_steps must be a whole number from 0 to 16");
-  if (!(t.margin_m >= 0 && t.release_m > 0))
-    throw new Error("camera clearance margin_m must not be negative and release_m positive");
-  if (!(t.lookahead_s >= 0)) throw new Error("camera clearance lookahead_s must not be negative");
-  return t;
-}
-
 /** What holds the eye off the desired pose. */
 export type ClearanceHold = "none" | "lift" | "slide" | "pushback";
 

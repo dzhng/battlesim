@@ -206,7 +206,7 @@ fn a_tank_s_turret_slews_to_its_bearing_its_gun_eases_and_recoils_on_a_shot() {
 fn driving_rolls_both_tracks_and_turning_in_place_counter_rotates_them() {
     let units = units();
     let none = fallen(&[]);
-    let half = units.types["capture_us_tank"].hull.unwrap().half_track;
+    let half = units.types["capture_us_tank"].draws["blue"].half_track;
     let mut driver = PoseDriver::new(&units).unwrap();
     let mut at = |time: f64, x: f64, yaw: f64| {
         let poses = driver.update(
@@ -270,7 +270,7 @@ fn an_aircraft_s_rotors_turn_and_blur_while_nothing_it_has_rolls() {
 /// kicks fully, an HMG's not at all.
 fn kicking_units() -> UnitsSection {
     units_with(|v| {
-        v["pose"]["hull_kick"] = json!({"rounds": {"default": 0, "tank_ap": 1},
+        v["pose"]["hull_kick"] = json!({
             "rock_deg": 4, "slide_m": 0.2, "hz": 2, "damping": 0.3});
     })
 }

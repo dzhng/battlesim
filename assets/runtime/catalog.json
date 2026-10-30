@@ -390,6 +390,7 @@
     "eastern_2s19_msta_s_2s19m2": {
       "bundle": "8e0933b819ec83d5aa3bc16c435b5526542695c16dd30adf1610182ad2973510",
       "kind": "articulated",
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "eastern_2s19_msta_s_2s19m2_wreck"
     },
@@ -407,6 +408,7 @@
     "eastern_9k515_tornado_s_heavy_rocket_artillery": {
       "bundle": "2d358211a90d06aad6b2282b2480a2c5e45a232fdffebd4b4a8bd551a5120233",
       "kind": "articulated",
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "eastern_9k515_tornado_s_heavy_rocket_artillery_wreck"
     },
@@ -550,6 +552,7 @@
     "eastern_bm_21_grad_bm_21_rocket_artillery": {
       "bundle": "d98145018b2e80b57bf9f49c4496534660155edf1e5a654ec029a8d037a0d54c",
       "kind": "articulated",
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "eastern_bm_21_grad_bm_21_rocket_artillery_wreck"
     },
@@ -571,6 +574,7 @@
         "autocannon": "gun",
         "launcher": "hmg"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "eastern_bmp_ifv_family_bmp_2m_berezhok_wreck"
     },
@@ -592,6 +596,7 @@
         "autocannon": "hmg",
         "main_gun": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "eastern_bmp_ifv_family_bmp_3_wreck"
     },
@@ -612,6 +617,7 @@
       "mounts": {
         "autocannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "eastern_brm_brm_3k_wreck"
     },
@@ -632,6 +638,7 @@
       "mounts": {
         "autocannon": "gun"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "eastern_btr_btr_82a_wreck"
     },
@@ -652,6 +659,7 @@
       "mounts": {
         "launcher": "hull"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "eastern_buk_buk_m3_medium_range_air_defense_wreck"
     },
@@ -836,6 +844,7 @@
       "mounts": {
         "launcher": "hull"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "eastern_pantsir_pantsir_sm_wreck"
     },
@@ -853,6 +862,7 @@
     "eastern_plz_05_chinese_tracked_155_mm_howitzer": {
       "bundle": "3caa9cedd9354623f2f1b33db0c95efe5f7b0405c3c8144213ac91c0e6ecd0b9",
       "kind": "articulated",
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "eastern_plz_05_chinese_tracked_155_mm_howitzer_wreck"
     },
@@ -981,6 +991,7 @@
       "mounts": {
         "launcher": "hull"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "eastern_s300_long_wreck"
     },
@@ -1001,6 +1012,7 @@
       "mounts": {
         "launcher": "hull"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "eastern_s350_long_wreck"
     },
@@ -1160,6 +1172,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "eastern_t_14_armata_main_battle_tank_wreck"
     },
@@ -1181,6 +1194,7 @@
         "autocannon": "gun",
         "launcher": "hmg"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "eastern_t_15_armata_heavy_ifv_wreck"
     },
@@ -1202,6 +1216,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "eastern_t_72_t_72b3_2016_wreck"
     },
@@ -1223,6 +1238,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "eastern_t_80_t_80bvm_wreck"
     },
@@ -1244,6 +1260,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "eastern_t_90_t_90m_proryv_wreck"
     },
@@ -1264,6 +1281,7 @@
       "mounts": {
         "HMG": "hmg"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "eastern_tigr_tigr_m_wreck"
     },
@@ -1285,6 +1303,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "eastern_type_15_ztq_15_light_tank_wreck"
     },
@@ -1306,6 +1325,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "eastern_type_99_ztz_99a_wreck"
     },
@@ -1324,6 +1344,7 @@
       "bundle": "ba03c11d9cd5042f5e513aefe6422798eebfb530c0412bc1f78252b1ce33e624",
       "kind": "articulated",
       "mounts": {},
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "eastern_ural_4320_general_resupply_wreck"
     },
@@ -1385,6 +1406,7 @@
       "mounts": {
         "autocannon": "gun"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "eastern_zbl_08_wheeled_ifv_wreck"
     },
@@ -1405,6 +1427,7 @@
       "mounts": {
         "autocannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_ajax_tracked_reconnaissance_vehicle_wreck"
     },
@@ -1520,6 +1543,7 @@
       "mounts": {
         "HMG": "hmg"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "europe_boxer_apc_wreck"
     },
@@ -1540,6 +1564,7 @@
       "mounts": {
         "autocannon": "gun"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "europe_boxer_rct30_wreck"
     },
@@ -1560,6 +1585,7 @@
       "mounts": {
         "launcher": "hull"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "europe_boxer_skyranger_30_gun_and_missile_air_defense_wreck"
     },
@@ -1577,6 +1603,7 @@
     "europe_caesar_88": {
       "bundle": "798e99e05820bc5b58ce4bca1cb07291ce52fcc75911d8883fe6a890033cc053",
       "kind": "articulated",
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "europe_caesar_88_wreck"
     },
@@ -1598,6 +1625,7 @@
         "RWS": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "europe_centauro_ii_wreck"
     },
@@ -1640,6 +1668,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_challenger_challenger_2_tes_wreck"
     },
@@ -1661,6 +1690,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_challenger_challenger_3_wreck"
     },
@@ -1682,6 +1712,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_cv90120_light_tank_wreck"
     },
@@ -1702,6 +1733,7 @@
       "mounts": {
         "autocannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_cv90_cv9040c_wreck"
     },
@@ -1722,6 +1754,7 @@
       "mounts": {
         "autocannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_cv90_mk_iv_wreck"
     },
@@ -1743,6 +1776,7 @@
         "autocannon": "gun",
         "launcher": "hmg"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "europe_ebrc_jaguar_armed_reconnaissance_vehicle_wreck"
     },
@@ -1817,6 +1851,7 @@
       "mounts": {
         "HMG": "hmg"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "europe_fennek_reconnaissance_vehicle_wreck"
     },
@@ -1837,6 +1872,7 @@
       "mounts": {
         "gun": "hull"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_gepard_1a2_wreck"
     },
@@ -1857,6 +1893,7 @@
       "mounts": {
         "launcher": "hull"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "europe_iris_t_medium_wreck"
     },
@@ -1895,6 +1932,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_kf51_panther_prototype_main_battle_tank_wreck"
     },
@@ -1916,6 +1954,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_leclerc_xlr_wreck"
     },
@@ -1937,6 +1976,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_leopard_2_2a6_wreck"
     },
@@ -1958,6 +1998,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_leopard_2_2a7v_wreck"
     },
@@ -1979,6 +2020,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_leopard_2_2a8_wreck"
     },
@@ -1997,6 +2039,7 @@
       "bundle": "3fab397ca2bddde09344cd7cd00d79d65beed0c63a854d32232b81577be1bc83",
       "kind": "articulated",
       "mounts": {},
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "europe_man_hx_general_resupply_wreck"
     },
@@ -2032,6 +2075,7 @@
     "europe_mars_ii_multiple_launch_rocket_system": {
       "bundle": "a15d2458dec9f54ca77fb75da0a51848e35d432038e76743a9c62e57e0fb6bfa",
       "kind": "articulated",
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_mars_ii_multiple_launch_rocket_system_wreck"
     },
@@ -2069,6 +2113,7 @@
       "mounts": {
         "launcher": "hull"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "europe_nasams_nasams_3_wreck"
     },
@@ -2111,6 +2156,7 @@
         "autocannon": "gun",
         "launcher": "hmg"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_puma_level_c_wreck"
     },
@@ -2128,6 +2174,7 @@
     "europe_pzh_2000_tracked_155_mm_howitzer": {
       "bundle": "e58a0be124ffa30195f4e3621fb1ad3abed46a19b8e25b17bffcde5c0c07897d",
       "kind": "articulated",
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "europe_pzh_2000_tracked_155_mm_howitzer_wreck"
     },
@@ -2217,6 +2264,7 @@
       "mounts": {
         "autocannon": "gun"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "europe_vbci_infantry_fighting_vehicle_wreck"
     },
@@ -2237,6 +2285,7 @@
       "mounts": {
         "HMG": "hmg"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "europe_vbl_machine_gun_scout_wreck"
     },
@@ -3226,6 +3275,7 @@
       "mounts": {
         "HMG": "hmg"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "test_jeep_wreck"
     },
@@ -3296,6 +3346,7 @@
     "test_supply_truck": {
       "bundle": "88f1d64f1cbde4affc669d29650d7cc1d539735c7697e34f149c74f3a642d1de",
       "kind": "articulated",
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "test_supply_truck_wreck"
     },
@@ -3317,6 +3368,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "test_tank_wreck"
     },
@@ -3407,6 +3459,7 @@
       "mounts": {
         "HMG": "hmg"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_acv_acv_p_wreck"
     },
@@ -3698,6 +3751,7 @@
       "mounts": {
         "autocannon": "gun"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_lav_lav_25a2_wreck"
     },
@@ -3718,6 +3772,7 @@
       "mounts": {
         "launcher": "hmg"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_lav_lav_at_wreck"
     },
@@ -3735,6 +3790,7 @@
     "us_m109_paladin_m109a7": {
       "bundle": "dd87ab153b29fe15f63c5139e9307a7b79dc37a0b73d9b4e462936394fde342b",
       "kind": "articulated",
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "us_m109_paladin_m109a7_wreck"
     },
@@ -3756,6 +3812,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "us_m10_booker_wreck"
     },
@@ -3776,6 +3833,7 @@
       "mounts": {
         "HMG": "hmg"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_m1127_stryker_rv_reconnaissance_vehicle_wreck"
     },
@@ -3793,6 +3851,7 @@
     "us_m1129_stryker_mortar_120_mm_mortar_carrier": {
       "bundle": "91c118a30b074b995067df0beef3ea3df1e542649b4e2b27833d36086d6bbbe6",
       "kind": "articulated",
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_m1129_stryker_mortar_120_mm_mortar_carrier_wreck"
     },
@@ -3813,6 +3872,7 @@
       "mounts": {
         "HMG": "hmg"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_m1151_hmmwv_hmg_wreck"
     },
@@ -3830,6 +3890,7 @@
     "us_m142_himars_gmlrs": {
       "bundle": "fe7f70484856481b6f241ea64ba080da81bef424afe79ce13703873c0e556347",
       "kind": "articulated",
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_m142_himars_gmlrs_wreck"
     },
@@ -3847,6 +3908,7 @@
     "us_m142_himars_prsm": {
       "bundle": "0882f3dd1a0c0e445d1f6e925e902c830b42f818ab1276f1ec1ac96aba74d301",
       "kind": "articulated",
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_m142_himars_prsm_wreck"
     },
@@ -3868,6 +3930,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "us_m1_abrams_sep_v2_wreck"
     },
@@ -3878,6 +3941,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "us_m1_abrams_sep_v2_trophy_wreck"
     },
@@ -3910,6 +3974,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "us_m1_abrams_sep_v3_trophy_wreck"
     },
@@ -3931,6 +3996,7 @@
         "HMG": "hmg",
         "cannon": "gun"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "us_m1e3_abrams_wreck"
     },
@@ -3948,6 +4014,7 @@
     "us_m270_mlrs_m270a2": {
       "bundle": "8195830ae3fae31e33e2808b2ea3bdbfdef3e267da7d32201928dfdb1fd82004",
       "kind": "articulated",
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "us_m270_mlrs_m270a2_wreck"
     },
@@ -3969,6 +4036,7 @@
         "autocannon": "gun",
         "launcher": "hmg"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "us_m2_bradley_ifv_m2a4_wreck"
     },
@@ -3990,6 +4058,7 @@
         "autocannon": "gun",
         "launcher": "hmg"
       },
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "wreck": "us_m3_bradley_cfv_m3a3_wreck"
     },
@@ -4008,6 +4077,7 @@
       "bundle": "9b67e26133eaf7ab717619f8c9a1b9932afeb6accff2e53f742142182a887a99",
       "kind": "articulated",
       "mounts": {},
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_m977_hemtt_general_resupply_wreck"
     },
@@ -4100,6 +4170,7 @@
       "mounts": {
         "launcher": "hull"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_nasams_medium_wreck"
     },
@@ -4120,6 +4191,7 @@
       "mounts": {
         "launcher": "hull"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_patriot_long_wreck"
     },
@@ -4158,6 +4230,7 @@
       "mounts": {
         "HMG": "hmg"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_stryker_m1126_icv_wreck"
     },
@@ -4178,6 +4251,7 @@
       "mounts": {
         "launcher": "hmg"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_stryker_m1134_atgm_wreck"
     },
@@ -4198,6 +4272,7 @@
       "mounts": {
         "autocannon": "gun"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_stryker_m1296_dragoon_wreck"
     },
@@ -4218,6 +4293,7 @@
       "mounts": {
         "launcher": "hull"
       },
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "wreck": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle_wreck"
     },

@@ -10,7 +10,7 @@ import { BattleMemory, orderLayer, remainsLayer, tracerLayer } from "../battleOv
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
@@ -88,6 +88,7 @@ function ConsequencesLab({ battle }: { battle: SavedBattle }) {
     const remains = remainsLayer(observation, memory.current, surfaceZ);
     const orders = orderLayer(
       session.units,
+      session.rules.air,
       observation,
       control.selected,
       session.revealed,
@@ -104,6 +105,7 @@ function ConsequencesLab({ battle }: { battle: SavedBattle }) {
     control.selected,
     session.revealed,
     session.units,
+    session.rules.air,
   ]);
   const overlayFeed = useFeed(overlay);
 

@@ -7,6 +7,9 @@
 /// `u32::MAX`: no row, no id.
 pub const NONE: u32 = u32::MAX;
 
+/// Shared camera/render extent floor, keeping the post-processing pyramid usable.
+pub const MIN_TARGET_PX: u32 = 64;
+
 /// What a batch draws for (`Batch.pass`): the view; the sun's cascades; a
 /// placement ghost, translucent (no shadow, no depth write); a high-air
 /// model in view, which casts nothing and which a client with cards over
@@ -26,101 +29,9 @@ pub const FOG_FACES: u32 = 1;
 pub const FOG_GROUND: u32 = 2;
 pub const FOG_PAINTED_FACES: u32 = 3;
 
-/// What a field holds, for the generated schemas.
-pub trait Field {
-    /// `"f32"` or `"u32"`.
-    const SCALAR: &'static str;
-    const COUNT: usize;
-}
-impl Field for f32 {
-    const SCALAR: &'static str = "f32";
-    const COUNT: usize = 1;
-}
-impl Field for u32 {
-    const SCALAR: &'static str = "u32";
-    const COUNT: usize = 1;
-}
-impl<const N: usize> Field for [f32; N] {
-    const SCALAR: &'static str = "f32";
-    const COUNT: usize = N;
-}
-impl<const N: usize> Field for [u32; N] {
-    const SCALAR: &'static str = "u32";
-    const COUNT: usize = N;
-}
-
-pub struct FieldLayout {
-    pub name: &'static str,
-    pub offset: usize,
-    pub scalar: &'static str,
-    pub count: usize,
-    pub doc: &'static str,
-}
-
-/// How a renderer binds a record: a vertex instance attribute, a WGSL
-/// struct (a uniform, or a storage buffer's element), or plain words it reads
-/// on the CPU.
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Binding {
-    Vertex,
-    Struct,
-    Plain,
-}
-
-pub struct Layout {
-    pub name: &'static str,
-    pub doc: &'static str,
-    pub binding: Binding,
-    pub size: usize,
-    pub fields: &'static [FieldLayout],
-}
-
-macro_rules! records {
-    ($($(#[doc = $doc:literal])* $binding:ident $name:ident {
-        $($(#[doc = $fdoc:literal])* $field:ident: $ty:ty),* $(,)?
-    })*) => {
-        $(
-            $(#[doc = $doc])*
-            #[repr(C)]
-            #[derive(Clone, Copy, Debug, PartialEq)]
-            pub struct $name { $($(#[doc = $fdoc])* pub $field: $ty),* }
-            // SAFETY: `repr(C)`, every field a 4-byte scalar or an array of
-            // them, and the size a multiple of 16 (asserted): no padding.
-            unsafe impl bytemuck::Zeroable for $name {}
-            unsafe impl bytemuck::Pod for $name {}
-            impl Default for $name {
-                fn default() -> Self {
-                    bytemuck::Zeroable::zeroed()
-                }
-            }
-            impl<const N: usize> Field for [$name; N] {
-                const SCALAR: &'static str = stringify!($name);
-                const COUNT: usize = N;
-            }
-            const _: () = assert!(std::mem::size_of::<$name>() % 16 == 0);
-            const _: () = assert!(
-                std::mem::size_of::<$name>() == 0 $(+ std::mem::size_of::<$ty>())*
-            );
-            impl $name {
-                pub const LAYOUT: Layout = Layout {
-                    name: stringify!($name),
-                    doc: concat!($($doc),*),
-                    binding: Binding::$binding,
-                    size: std::mem::size_of::<$name>(),
-                    fields: &[$(FieldLayout {
-                        name: stringify!($field),
-                        offset: std::mem::offset_of!($name, $field),
-                        scalar: <$ty as Field>::SCALAR,
-                        count: <$ty as Field>::COUNT,
-                        doc: concat!($($fdoc),*),
-                    }),*],
-                };
-            }
-        )*
-        /// Every record's layout, in declaration order.
-        pub const LAYOUTS: &[Layout] = &[$($name::LAYOUT),*];
-    };
-}
+mod layout;
+use layout::records;
+pub use layout::{Binding, Field, FieldLayout, Layout};
 
 records! {
     /// Where a frame's sets lie, as pointers into the module's memory and
@@ -225,7 +136,8 @@ records! {
         /// packed as `r·65536 + g·256 + b` bytes.
         data: [f32; 4],
         /// The side's tint (linear rgb) on tint-masked surfaces, and the
-        /// impostor atlas layer a card draws (the renderer's; −1 for a mesh).
+        /// impostor atlas layer a card draws (the renderer's; >=0), or
+        /// a mesh cue: −1 ordinary, −2 highlighted. Highlight keeps mesh geometry.
         tint: [f32; 4],
         /// Per-axis scale in its own frame, and the x-ray or ghost alpha.
         scale: [f32; 4],
@@ -519,7 +431,7 @@ records! {
     /// (`shadow::sun_shadow`).
     Struct SunShadow {
         /// Per cascade slot (`shadow::CASCADES`).
-        cascades: [SunCascade; 4],
+        cascades: [SunCascade; crate::shadow::CASCADES],
         /// The receiver range's capped far, 0, its near, 0.
         control: [f32; 4],
     }
@@ -535,8 +447,6 @@ records! {
         translucent_lift_m: f32,
         azimuth_bins: u32,
         terrain_azimuth_bins: u32,
-        radial_bins: u32,
-        tile_px: u32,
         tiles_x: u32,
         tile_eyes_max: u32,
         eye_count: u32,
@@ -555,7 +465,8 @@ records! {
         foliage_cell_m: f32,
         foliage_full_block: f32,
         min_sight_gap_m: f32,
-        pad0: f32,
+        /// WGSL aligns the following vec4 to 16 bytes.
+        pad0: [f32; 3],
         /// The playable rectangle as the map's extents give it; outside it
         /// is fogged.
         playable: [f32; 4],

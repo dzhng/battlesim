@@ -1,5 +1,5 @@
+import { shippedRules } from "@web/shippedRules";
 import { useMemo, useState } from "react";
-import game from "@fixtures/game.json";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -16,7 +16,7 @@ import { LabViewport } from "../LabViewport";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import { gameBiome } from "../gameBiome";
 import { useGameAppearances } from "../gameAppearances";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 
 // The patch's ground is resolved by the presentation module.
@@ -34,7 +34,7 @@ function patchHeight(x: number, y: number): number {
 }
 
 /** The patch's own checker, fully over the biome (the tint's alpha is its weight). */
-function groundPatch(): WorldLayers {
+export function groundPatch(): WorldLayers {
   const mesh = new MeshBuilder();
   const vertex = (x: number, y: number): [number, number, number] => [x, y, patchHeight(x, y)];
   const color = (x: number, y: number): Rgba => {
@@ -97,7 +97,7 @@ interface Placed {
 
 const onPatch = (p: Omit<Placed, "z">): Placed => ({ ...p, z: patchHeight(p.x, p.y) });
 
-const FOUNDATION: Placed[] = [
+export const FOUNDATION: Placed[] = [
   onPatch({ kind: "test_tank", x: 0, y: 0, yaw: 0.35 }),
   // A crate the tank's gun reaches over: the depth-overlap check.
   onPatch({ kind: "box", x: 6.4, y: 2.5, yaw: 0.2 }),
@@ -119,10 +119,16 @@ const targetsOf = (units: UnitCatalog): PickBox[] =>
   FOUNDATION.map((p) =>
     p.kind === "box"
       ? proxyPickBox({ ...p, kind: "box", color: [1, 1, 1] })
-      : { x: p.x, y: p.y, z: p.z, yaw: p.yaw, ...bodyBox(game.physics, hullOf(units, p.kind)) },
+      : {
+          x: p.x,
+          y: p.y,
+          z: p.z,
+          yaw: p.yaw,
+          ...bodyBox(shippedRules.physics, hullOf(units, p.kind)),
+        },
   );
 
-const FOUNDATION_CAMERA: Camera3DParams = {
+export const FOUNDATION_CAMERA: Camera3DParams = {
   target: [-2, 1, 0.5],
   distance: 38,
   pitch: 0.6,

@@ -10,6 +10,7 @@ use contract::ids::{Side, UnitId};
 use contract::scenario::Rules;
 use serde_json::{json, Value};
 use sim::battle::Battle;
+use sim::fixtures::{self, test_rules};
 
 use crate::common;
 
@@ -33,13 +34,12 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
         source_path: String,
     }
 
-    let path = sim::fixtures::dir().join("units/model-manifest.json");
+    let path = fixtures::dir().join("units/model-manifest.json");
     let manifest: Manifest = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     assert_eq!(manifest.schema_version, 1);
-    let catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents(
-        sim::fixtures::CatalogSet::Game,
-    ))
-    .unwrap();
+    let catalog =
+        contract::catalog::resolve(&fixtures::catalog_documents(fixtures::CatalogSet::Game))
+            .unwrap();
     let disabled: std::collections::BTreeMap<_, _> = catalog
         .cards()
         .filter(|card| card.disabled_reason.is_some())
@@ -102,11 +102,7 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
         );
         let library = format!("assets/references/{}/references.json", entry.source_family);
         assert!(
-            sim::fixtures::dir()
-                .parent()
-                .unwrap()
-                .join(&library)
-                .is_file(),
+            fixtures::dir().parent().unwrap().join(&library).is_file(),
             "{}: source_family {:?} has no {library}",
             entry.id,
             entry.source_family
@@ -127,7 +123,7 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
 fn every_faction_has_a_sead_aircraft() {
     // A SEAD aircraft finds radars (a receiver) and fires at them (an
     // anti-radiation row): a roster guideline, not a rule.
-    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let rules: contract::scenario::Rules = serde_json::from_value(fixtures::rules()).unwrap();
     let catalog = &rules.catalog;
     for faction in ["us", "europe", "eastern"] {
         assert!(
@@ -152,7 +148,7 @@ fn every_faction_fields_a_ground_missile_jet_and_a_bomb_jet() {
     // Read across enabled and planned cards: a planned card's weapons are its
     // icons, so the contract holds while a row waits on the bench.
     let view: Value = serde_json::from_str(
-        &std::fs::read_to_string(sim::fixtures::dir().join("catalog.json")).unwrap(),
+        &std::fs::read_to_string(fixtures::dir().join("catalog.json")).unwrap(),
     )
     .unwrap();
     let mut roles = std::collections::BTreeMap::<&str, (bool, bool)>::new();
@@ -214,7 +210,7 @@ fn every_faction_fields_a_ground_missile_jet_and_a_bomb_jet() {
 #[test]
 fn no_jet_carries_bombs_and_ground_missiles() {
     let view: Value = serde_json::from_str(
-        &std::fs::read_to_string(sim::fixtures::dir().join("catalog.json")).unwrap(),
+        &std::fs::read_to_string(fixtures::dir().join("catalog.json")).unwrap(),
     )
     .unwrap();
     for card in view["cards"]
@@ -272,7 +268,7 @@ fn only_drones_are_planned() {
         "scout-drone",
         "thermal-drone",
     ];
-    let planned: Vec<String> = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game)
+    let planned: Vec<String> = fixtures::catalog_documents(fixtures::CatalogSet::Game)
         .iter()
         .filter_map(|doc| doc["units"].as_object())
         .flatten()
@@ -292,7 +288,7 @@ fn only_drones_are_planned() {
 /// LFS pointer to one in a checkout that has not pulled it. `asset validate`
 /// judges the model itself.
 fn disabled_source(source_path: &str) -> Result<(), String> {
-    let path = sim::fixtures::dir().parent().unwrap().join(source_path);
+    let path = fixtures::dir().parent().unwrap().join(source_path);
     let bytes = std::fs::read(&path).map_err(|e| format!("{source_path}: {e}"))?;
     if bytes.starts_with(b"version https://git-lfs.github.com/spec/v1") {
         let text = String::from_utf8_lossy(&bytes);
@@ -330,7 +326,7 @@ fn disabled_source(source_path: &str) -> Result<(), String> {
 /// not compared (pull both to compare them).
 fn source_identity(source_path: &str) -> String {
     use std::hash::{Hash, Hasher};
-    let bytes = std::fs::read(sim::fixtures::dir().parent().unwrap().join(source_path)).unwrap();
+    let bytes = std::fs::read(fixtures::dir().parent().unwrap().join(source_path)).unwrap();
     let text = String::from_utf8_lossy(&bytes);
     match text.lines().find_map(|l| l.strip_prefix("oid sha256:")) {
         Some(oid) if bytes.starts_with(b"version https://git-lfs") => oid.to_owned(),
@@ -351,14 +347,14 @@ fn a_disabled_source_that_is_missing_or_not_a_model_is_refused() {
 /// The test fixture with the M1 family's catalog document and the
 /// weapon row its M1A1 swaps in (a row that `extends` the tank's sabot).
 fn with_m1_family() -> Value {
-    let mut fixture = sim::fixtures::test_game();
+    let mut fixture = test_rules();
     let family: Value = serde_json::from_str(include_str!("fixtures/m1-family.json")).unwrap();
     fixture["catalog"].as_array_mut().unwrap().push(family);
     fixture["weapons"]["m829"] = json!({
         "extends": "tank_ap", "name": "M829", "description": "Test only.", "icon": "ap_shell",
         "penetration": 240
     });
-    fixture["service"]["round_costs"]["m829"] = json!(6);
+    fixture["weapons"]["m829"]["round_cost"] = json!(6);
     fixture
 }
 
@@ -367,7 +363,7 @@ fn with_m1_family() -> Value {
 /// without the game's units, and a document both sets name is not doubled.
 #[test]
 fn the_test_and_capture_sets_extend_the_games() {
-    use sim::fixtures::{catalog_documents, CatalogSet};
+    use fixtures::{catalog_documents, CatalogSet};
     let game = catalog_documents(CatalogSet::Game);
     for set in [CatalogSet::Test, CatalogSet::Capture] {
         let documents = catalog_documents(set);
@@ -382,7 +378,7 @@ fn the_test_and_capture_sets_extend_the_games() {
     // The capture units extend the test units, so the capture set holds them too.
     let test = catalog_documents(CatalogSet::Test);
     let capture = catalog_documents(CatalogSet::Capture);
-    for doc in sim::fixtures::test_documents() {
+    for doc in fixtures::test_documents() {
         assert!(
             test.contains(&doc),
             "the test set lacks a test unit document"
@@ -398,20 +394,20 @@ fn the_test_and_capture_sets_extend_the_games() {
 /// names its test map, so no test stands on a battlefield by default.
 #[test]
 fn the_native_rules_fixture_carries_no_map() {
-    assert!(sim::fixtures::game().get("map").is_none());
-    assert!(sim::fixtures::test_game().get("map").is_none());
-    let grounded = sim::fixtures::with_map("geometry");
+    assert!(fixtures::rules().get("map").is_none());
+    assert!(test_rules().get("map").is_none());
+    let grounded = fixtures::with_map("geometry");
     let map: contract::map::MapDefinition =
         serde_json::from_value(grounded["map"].clone()).expect("the test map, under `map`");
     let geometry = sim::maps::load("geometry").unwrap().definition;
     assert_eq!(map.size, geometry.size);
-    assert_eq!(grounded["catalog"], sim::fixtures::test_game()["catalog"]);
+    assert_eq!(grounded["catalog"], test_rules()["catalog"]);
 }
 
 #[test]
 fn the_browsers_catalog_view_is_current() {
-    let path = sim::fixtures::dir().join("catalog.json");
-    let view = sim::fixtures::catalog_view();
+    let path = fixtures::dir().join("catalog.json");
+    let view = fixtures::catalog_view();
     if std::env::var_os("BLESS_CATALOG").is_some() {
         std::fs::write(&path, &view).unwrap();
     }
@@ -427,7 +423,7 @@ fn the_browsers_catalog_view_is_current() {
 /// test or menu unit ships.
 #[test]
 fn the_game_catalog_holds_only_what_roster_cards_reach() {
-    let path = sim::fixtures::dir().join("catalog.json");
+    let path = fixtures::dir().join("catalog.json");
     let view: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     let cards: std::collections::BTreeSet<&str> = view["cards"]
         .as_array()
@@ -470,7 +466,7 @@ fn the_game_catalog_holds_only_what_roster_cards_reach() {
 #[test]
 fn every_shipped_artillery_card_is_a_complete_physical_catalog_unit() {
     let view: Value = serde_json::from_str(
-        &std::fs::read_to_string(sim::fixtures::dir().join("catalog.json")).unwrap(),
+        &std::fs::read_to_string(fixtures::dir().join("catalog.json")).unwrap(),
     )
     .unwrap();
     let ids = [
@@ -538,7 +534,7 @@ fn every_shipped_artillery_card_is_a_complete_physical_catalog_unit() {
 /// rifle is empty still has his rifle.
 #[test]
 fn every_roster_soldier_carries_an_unlimited_squad_gun() {
-    let rules: Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let rules: Rules = serde_json::from_value(fixtures::rules()).unwrap();
     let c = &rules.catalog;
     let unlimited = |w: &String| {
         matches!(
@@ -578,12 +574,11 @@ fn every_roster_soldier_carries_an_unlimited_squad_gun() {
 /// squad.
 #[test]
 fn the_roster_resolves_without_the_test_units() {
-    let game: Value = serde_json::from_str(
-        &std::fs::read_to_string(sim::fixtures::dir().join("game.json")).unwrap(),
-    )
-    .unwrap();
-    let documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
-    if let Err(e) = sim::fixtures::admit(game, documents) {
+    let game: Value =
+        serde_json::from_str(&std::fs::read_to_string(fixtures::dir().join("rules.json")).unwrap())
+            .unwrap();
+    let documents = fixtures::catalog_documents(fixtures::CatalogSet::Game);
+    if let Err(e) = fixtures::admit(game, documents) {
         panic!("the roster leans on documents outside it: {e}");
     }
 }
@@ -623,7 +618,7 @@ fn the_m1_family_resolves_its_variants_from_one_base() {
 fn a_mount_naming_no_weapon_row_fails_at_load() {
     let load = |section: &str, id: &str, patch: Value| {
         let mut fixture = common::game();
-        sim::fixtures::patch_catalog(&mut fixture, section, id, patch);
+        fixtures::patch_catalog(&mut fixture, section, id, patch);
         serde_json::from_value::<Rules>(fixture)
             .unwrap_err()
             .to_string()
@@ -656,21 +651,11 @@ fn a_mount_naming_no_weapon_row_fails_at_load() {
 fn only_a_winged_aircraft_carries_a_bomb() {
     let load = |id: &str| {
         let mut fixture = common::game();
-        fixture["weapons"]["test_bomb"] = json!({
-            "name": "Test Bomb", "description": "A test row.", "icon": "bomb",
-            "delivery": "unpowered", "stationary": false, "gravity_scale": 2,
-            "aim_s": 0.1, "reload_s": 3, "ammo": 2, "penetration": 10,
-            "partial_from": 0.08, "damage": 50,
-            "near_miss_suppression": 0, "suppression_radius_m": 0,
-            "blast_radius_m": 5, "structural_damage": 10,
-            "targets": { "ground": { "classes": ["vehicle"], "range_m": 0, "scatter_mrad": 1 } }
-        });
-        fixture["service"]["round_costs"]["test_bomb"] = json!(1);
-        sim::fixtures::patch_catalog(
+        fixtures::patch_catalog(
             &mut fixture,
             "units",
             id,
-            json!({ "mounts": [{ "id": "rack", "name": "Rack", "weapons": ["test_bomb"],
+            json!({ "mounts": [{ "id": "rack", "name": "Rack", "weapons": ["air_bomb"],
                 "turret": false, "pivot_m": [0, 0, 1], "muzzle_m": [1, 0, 0] }] }),
         );
         serde_json::from_value::<Rules>(fixture).map(|_| ())
@@ -679,7 +664,7 @@ fn only_a_winged_aircraft_carries_a_bomb() {
     for id in ["test_heli", "test_tank"] {
         let e = load(id).unwrap_err().to_string();
         assert!(
-            e.contains(&format!("units.{id}")) && e.contains("test_bomb"),
+            e.contains(&format!("units.{id}")) && e.contains("air_bomb"),
             "{id}: {e}"
         );
     }
@@ -699,7 +684,7 @@ fn a_fallen_carriers_weapon_is_lost_unless_it_is_special() {
     for special in [true, false] {
         let mut fixture = common::game();
         grenade_firing_profile(&mut fixture);
-        let patch = |f: &mut Value, section, id, p| sim::fixtures::patch_catalog(f, section, id, p);
+        let patch = |f: &mut Value, section, id, p| fixtures::patch_catalog(f, section, id, p);
         // The grenadier in the squad's last slot, so its one casualty is him.
         let slots = json!({ "body": { "squad": { "slots": [
             "test_rifleman", "test_rifleman", "test_rifleman", "test_rifleman",
@@ -714,7 +699,7 @@ fn a_fallen_carriers_weapon_is_lost_unless_it_is_special() {
             "test_rifleman",
             json!({ "hp": 1.0e6 }),
         );
-        let range = fixture["weapons"]["grenade"]["range_m"].as_f64().unwrap();
+        let range = common::weapon("grenade").range_m;
         let setup = serde_json::from_value(json!({
             "map": { "size": [700, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
             "rules": fixture,
@@ -777,13 +762,13 @@ fn battle_at(
 fn every_unit_type_sets_up_fires_each_mount_and_moves() {
     let mut fixture = with_m1_family();
     grenade_firing_profile(&mut fixture);
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut fixture,
         "soldiers",
         "test_rifleman",
         json!({ "hp": 1.0e6 }),
     );
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut fixture,
         "units",
         "test_tank",
@@ -919,7 +904,7 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
 #[test]
 fn vehicle_wrecks_cannot_require_missing_building_facts() {
     let mut raw = crate::common::game();
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut raw,
         "props",
         "light_wreck",
@@ -930,48 +915,5 @@ fn vehicle_wrecks_cannot_require_missing_building_facts() {
     assert!(error.to_string().contains("wreck"), "{error}");
 }
 
-/// No hull is admitted past the absolute limits for its drive: what the map
-/// generator and the route planner are proven against (tests drive hulls
-/// built at the limits), so every unit within them is covered too.
-#[test]
-fn a_hull_past_its_drives_limits_is_refused_at_load() {
-    for (unit, patch, limit) in [
-        (
-            "test_tank",
-            json!({ "body": { "hull": { "half_extents_m": [3.5, 2.2, 1.2] } } }),
-            "tracked half width",
-        ),
-        (
-            "test_tank",
-            json!({ "body": { "hull": { "half_extents_m": [4.9, 1.8, 1.2] } } }),
-            "tracked half length",
-        ),
-        (
-            "test_supply",
-            json!({ "body": { "hull": { "half_extents_m": [3.0, 1.7, 1.8] } } }),
-            "wheeled half width",
-        ),
-        (
-            "test_supply",
-            json!({ "body": { "hull": { "half_extents_m": [6.3, 1.4, 1.8] } } }),
-            "wheeled half length",
-        ),
-        (
-            "test_supply",
-            json!({ "mobility": { "wheeled": { "turning_radius_m": 8.5 } } }),
-            "wheeled turning radius",
-        ),
-    ] {
-        let mut fixture = sim::fixtures::test_game();
-        sim::fixtures::patch_catalog(&mut fixture, "units", unit, patch);
-        let error = serde_json::from_value::<Rules>(fixture)
-            .expect_err(limit)
-            .to_string();
-        assert!(
-            error.contains(unit) && error.contains(limit),
-            "{limit}: {error}"
-        );
-    }
-    // The shipped roster stands within them.
-    serde_json::from_value::<Rules>(common::game()).unwrap();
-}
+#[path = "catalog/limits.rs"]
+mod limits;

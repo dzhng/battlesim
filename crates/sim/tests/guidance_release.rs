@@ -374,7 +374,7 @@ fn a_screened_release_repeats_from_its_seed() {
 
 #[test]
 fn a_prompt_escape_is_beaten_by_a_second_launcher_in_crossfire() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     rules["movement"]["drive"]["acceleration_s"] = json!(1e-6);
     rules["movement"]["drive"]["braking_s"] = json!(1e-6);
     let rules = serde_json::from_value(rules).unwrap();

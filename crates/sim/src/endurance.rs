@@ -6,7 +6,7 @@
 //! fight turning over for an hour: waves of attack-moves to shifting points,
 //! reserves arriving from the rear edge, supply trucks setting up behind the
 //! lines. The optional late state adds the remains of a fully destroyed roster:
-//! 800 corpses and 100 wrecks. Rules come from the one fixture owner (game.json).
+//! 800 corpses and 100 wrecks. Rules come from the one fixture owner (rules.json).
 use contract::command::{Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
@@ -127,6 +127,7 @@ fn scenario_in_arena(
 ) -> Result<ScenarioDefinition, String> {
     let [left, bottom, width] = arena;
     let rules: Rules = serde_json::from_value(fixture.clone()).map_err(|e| e.to_string())?;
+    crate::admit(&rules).map_err(|e| e.to_string())?;
     // Separate streams, so the late state's remains never move the waves.
     let mut rng = Rng::new(seed);
     let mut remains = Rng::new(seed ^ 0x005e_ed0f_4e3a_1175);

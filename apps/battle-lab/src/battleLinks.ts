@@ -10,6 +10,7 @@
 // and then default (the size to the smallest that fits the players); `&region=<family>` is optional, and without it the seed
 // draws the region. A wrong value, or a parameter the battle does not read
 // (an old link's `faction` or `enemy`), is refused by name, never ignored.
+import { DEFAULT_BATTLE_SEED } from "@apps/battle-lab/src/lobby/defaults";
 import { FACTIONS, type Faction } from "@packages/scene-assets/src/units";
 import type { Player } from "@web/battle/prepare/protocol";
 import {
@@ -19,7 +20,6 @@ import {
   type SkirmishBattle,
   type SkirmishSide,
 } from "./skirmishSetup";
-import game from "@fixtures/game.json";
 import presets from "@fixtures/map-presets.json";
 import {
   canonicalSeed,
@@ -134,7 +134,7 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   if (unknown !== undefined) return { error: `${unknown} is not a battle parameter` };
   if (params.has("replay")) return { kind: "replay" };
   const seed = (name: string, fallback: string) => canonicalSeed(params.get(name) ?? fallback);
-  const battleSeed = Number(params.get("battle") ?? game.seed);
+  const battleSeed = Number(params.get("battle") ?? DEFAULT_BATTLE_SEED);
   if (!Number.isSafeInteger(battleSeed) || battleSeed < 0)
     return { error: `battle must be a whole number from 0 to ${Number.MAX_SAFE_INTEGER}` };
   const blueCodes = params.get("blue");

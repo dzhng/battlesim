@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 import type { ImpostorAtlas } from "@packages/battle-renderer/src/models/impostor";
-import type { FeedSource } from "../feed";
+import type { FeedSource } from "@web/feed";
 import { atlasCanvas } from "./sheet";
 /** The baked atlas's channels as canvases; fed (`useFeed`), since its pixels
  *  as a changing prop would fill React's development measures. */

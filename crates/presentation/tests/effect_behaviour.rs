@@ -404,10 +404,14 @@ fn a_heavy_gun_s_shot_shakes_dust_off_its_whole_hull_and_blows_it_off_the_ground
     // The test's own look: a tank round shakes a full shot's dust, an
     // autocannon's a third of it, an HMG's none; puffs that stay put.
     let p = presentation_with(|p| {
-        p["flashes"]["tank_ap"]["dust"] = 1.0.into();
-        p["flashes"]["autocannon"]["dust"] = (1.0 / 3.0).into();
-        p["flashes"]["hmg"]["dust"] = 0.0.into();
+        for (weapon, dust) in [("tank_ap", 1.0), ("autocannon", 1.0 / 3.0), ("hmg", 0.0)] {
+            let look = p["looks"]["weapons"][weapon].as_str().unwrap().to_owned();
+            p["looks"]["looks"][look]["flash"]["dust"] = dust.into();
+        }
         let mut puff = p["dust"].clone();
+        for unused in ["spacing_m", "min_speed_mps", "full_speed_mps"] {
+            puff.as_object_mut().unwrap().remove(unused);
+        }
         for (k, v) in [
             ("rise_mps", json!(0)),
             ("spread_mps", json!(0)),
@@ -572,4 +576,44 @@ fn wakes_do_not_depend_on_frame_rate() {
     let slow = at(24.0);
     assert!(slow.len() > 10, "{slow:?}");
     assert_eq!(format!("{slow:?}"), format!("{:?}", at(144.0)));
+}
+
+#[test]
+fn every_weapon_naming_a_look_lands_with_that_look_s_ground_size_and_lifetime() {
+    let impact = |kind: &str| {
+        // Control the material and the look, so only the weapon id varies.
+        let p = presentation_with(|p| {
+            p["impacts"]["ground"]["size_m"] = json!(2.0);
+            p["impacts"]["ground"]["duration_s"] = json!(0.4);
+            p["looks"]["looks"]["shell"] = p["looks"]["looks"]["tank_sabot"].clone();
+            p["looks"]["looks"]["shell"]["impact"]["surfaces"] =
+                json!({"ground": {"size": 1.5, "duration": 3}});
+            p["looks"]["weapons"]["tank_ap"] = json!("shell");
+            p["looks"]["weapons"]["light_tank_ap"] = json!("shell");
+        });
+        let mut f = EffectFrame::new(HZ, p);
+        f.note(&publ(
+            1.0,
+            json!({"segments": [{
+                "path": [[0, 0, 1], [1, 0, 0]], "ricochets": [],
+                "kind": kind, "shooter": null, "hit": "ground", "normal": [0, 0, 1]
+            }]}),
+        ));
+        f
+    };
+    let mut base = impact("tank_ap");
+    let mut derived = impact("light_tank_ap");
+    // Past the material's own 0.4 s, inside the look's 3x: both still draw,
+    // the same size. Neither may depend on the weapon id.
+    for age in [0.1, 0.6, 1.0] {
+        let want = drawn(&mut base, DT + age);
+        let got = drawn(&mut derived, DT + age);
+        let want = layer(&want, 1.0);
+        let got = layer(&got, 1.0);
+        assert!(!want.is_empty(), "the look's impact expired at age {age}");
+        assert!(!got.is_empty(), "the derived impact expired at age {age}");
+        assert_eq!(got[0][3], want[0][3], "rendered puff size at age {age}");
+    }
+    assert!(layer(&drawn(&mut base, DT + 1.3), 1.0).is_empty());
+    assert!(layer(&drawn(&mut derived, DT + 1.3), 1.0).is_empty());
 }

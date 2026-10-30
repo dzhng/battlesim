@@ -1,30 +1,29 @@
-//! The browser's presentation module, the WASM binding of
-//! `crates/presentation`: one side's publications in; the game UI's
-//! observation, and each drawn frame's records as views over this module's
-//! memory, out. It links the publication reader and the presentation crate,
-//! not the rules, and runs on the page's main thread.
+//! Presentation and sound bindings linked into the browser renderer's module.
+//! Side publications become canonical Rust frames and UI observation views;
+//! rendering borrows those records directly in the same memory.
 mod fielded;
 mod fog;
 mod ground;
-mod scars;
+mod lab;
 mod shadow;
-mod waves;
-use scars::ScarUpload;
+mod world;
+
+#[cfg(test)]
+mod header_tests;
 
 use std::sync::Arc;
 
 use presentation::presentation::{Ghost, Presentation as Inner, Ui};
 use presentation::records::{FrameHeader, WorldHeader};
 use presentation::sound::bank::{self, Bank, Core};
+use presentation::sound::catalog::{Cadence, Recipe};
 use presentation::sound::frame::{
     self, Command, Listener, Motion, Scripted, Sound, SoundSoldier, SoundVehicle,
 };
-use presentation::sound::tables::{Cadence, Recipe};
 use presentation::sound::voices::{self, Request};
 use presentation::sound::{music, synth};
-use presentation::static_world::buildings::{Placed, PlacedBuildings};
+use presentation::static_world::buildings::PlacedBuildings;
 use presentation::static_world::fallen::Known;
-use presentation::static_world::library::{Bounds, Library};
 use presentation::units::drawn::ClipTables;
 use presentation::view::Camera;
 use serde::Serialize;
@@ -35,6 +34,7 @@ use wasm_bindgen::prelude::*;
 pub struct Presentation {
     inner: Inner,
     tables: ClipTables,
+    lab_assets: std::collections::BTreeMap<String, presentation::presentation::lab::Asset>,
     buildings: Option<PlacedBuildings>,
     /// The static groups and the fog the page last took, kept to compare by pointer.
     taken: Option<(Shared<Corpse>, Shared<KnownProp>, Shared<FallenBody>)>,
@@ -43,6 +43,49 @@ pub struct Presentation {
     world_header: WorldHeader,
     /// The biome's own grass rules, while a lab grows the ground's by others.
     grass: Option<presentation::static_world::ground::biome::GrassRules>,
+}
+
+impl Presentation {
+    /// The canonical presentation borrowed by the browser's Rust renderer.
+    pub fn core(&self) -> &Inner {
+        &self.inner
+    }
+
+    /// Publish current canonical record pointers after preparation may append
+    /// batches or instances without invoking the JavaScript frame entrypoint.
+    pub fn refresh_frame_header(&mut self) -> u32 {
+        let f = self.inner.last_frame();
+        let shadow = f.shadow.as_ref();
+        let header = FrameHeader {
+            clock: f.clock as f32,
+            tick: f.tick,
+            index: f.index,
+            light_wrap: f.light_wrap,
+            batches: set(&f.batches),
+            instances: set(&f.instances),
+            palettes: set(&f.palettes),
+            effects: [0; 2],
+            lights: [0; 2],
+            picks: set(&f.picks),
+            emitters: set(&f.emitters),
+            counts: set(std::slice::from_ref(&f.counts)),
+            view: set(std::slice::from_ref(&f.view)),
+            camera: set(std::slice::from_ref(&f.camera)),
+            sun_shadow: set(shadow.map_or(&[][..], |s| std::slice::from_ref(&s.receiver))),
+            casters: set(shadow.map_or(&[][..], |s| &s.casters)),
+        };
+        self.frame_header = FrameHeader {
+            effects: set(self.inner.effects()),
+            lights: set(self.inner.lights()),
+            ..header
+        };
+        &self.frame_header as *const FrameHeader as u32
+    }
+
+    /// Mutable preparation never carries a borrow across an asynchronous call.
+    pub fn core_mut(&mut self) -> &mut Inner {
+        &mut self.inner
+    }
 }
 
 fn error(e: impl std::fmt::Display) -> JsError {
@@ -89,6 +132,7 @@ impl Presentation {
         Ok(Presentation {
             inner: Inner::new(layout.as_deref(), tick_hz.unwrap_or(30.0)).map_err(error)?,
             tables: ClipTables::new(),
+            lab_assets: Default::default(),
             buildings: None,
             taken: None,
             taken_fog: None,
@@ -153,105 +197,6 @@ impl Presentation {
         self.inner.invalidate(side.as_deref()).map_err(error)?;
         (self.taken, self.taken_fog) = (None, None);
         Ok(())
-    }
-
-    /// One skinned body's dense clip table, before `load_world`.
-    pub fn add_clip_table(&mut self, name: String, floats: Vec<f32>) {
-        self.tables.insert(name, floats);
-    }
-
-    /// The map's buildings, before `load_world`: the template library's
-    /// file, inflated; per library module its mesh bounds (min, max), NaN
-    /// where its kit is not installed; per building its template (an index
-    /// of `templates`, a JSON list of ids), frame (x, y, z, yaw) and owner
-    /// prop; each part prop (`part_props`) and its building
-    /// (`part_buildings`); and the prop kinds a gutted building's parts
-    /// become (`shells`, a JSON list). `load_world`'s `buildings` style
-    /// places them.
-    #[allow(clippy::too_many_arguments)]
-    pub fn add_buildings(
-        &mut self,
-        library: &[u8],
-        bounds: &[f32],
-        templates: &str,
-        template: &[u16],
-        frames: &[f64],
-        owners: &[u32],
-        part_props: &[u32],
-        part_buildings: &[u32],
-        shells: &str,
-    ) -> Result<(), JsError> {
-        let ids: Vec<String> = serde_json::from_str(templates).map_err(error)?;
-        let shells: Vec<String> = serde_json::from_str(shells).map_err(error)?;
-        let bounds: Vec<Option<Bounds>> = bounds
-            .as_chunks::<6>()
-            .0
-            .iter()
-            .map(|b| (!b[0].is_nan()).then_some(*b))
-            .collect();
-        let placed = (0..owners.len())
-            .map(|b| Placed {
-                owner: owners[b],
-                template: ids[template[b] as usize].clone(),
-                frame: frames[b * 4..b * 4 + 4].try_into().unwrap(),
-            })
-            .collect();
-        self.buildings = Some(PlacedBuildings {
-            library: Library::decode(library).map_err(error)?,
-            bounds,
-            placed,
-            parts: part_props
-                .iter()
-                .zip(part_buildings)
-                .map(|(&p, &b)| (p, b as usize))
-                .collect(),
-            shells,
-        });
-        Ok(())
-    }
-
-    /// Loads what the world draws (`WorldInput`
-    /// JSON) with the clip tables and buildings added; returns the
-    /// `WorldHeader`'s address.
-    pub fn load_world(&mut self, json: &str) -> Result<u32, JsError> {
-        let input = serde_json::from_str(json).map_err(error)?;
-        self.inner
-            .load_world(
-                input,
-                std::mem::take(&mut self.tables),
-                self.buildings.take(),
-            )
-            .map_err(error)?;
-        let world = self.inner.world();
-        self.world_header = WorldHeader {
-            appearances: set(&world.appearances),
-            strings: set(world.strings.as_bytes()),
-        };
-        Ok(&self.world_header as *const WorldHeader as u32)
-    }
-
-    /// Whether the scars changed since the last call: what grows on them
-    /// grows again.
-    pub fn scars_changed(&mut self) -> bool {
-        self.inner.scars_changed()
-    }
-
-    /// The regions the terrain draws one by one, four metres each (x0, y0,
-    /// x1, y1); none when the marks draw at once.
-    pub fn scar_regions(&self) -> Vec<f64> {
-        self.inner.scar_regions().concat()
-    }
-
-    /// What to upload before drawing the scars over `region` (four metres;
-    /// none: the view), clipped to it when `clipped`.
-    pub fn prepare_scars(&mut self, region: Option<Vec<f64>>, clipped: bool) -> ScarUpload {
-        let region = region.map(|r| [r[0], r[1], r[2], r[3]]);
-        ScarUpload(self.inner.prepare_scars(region, clipped))
-    }
-
-    /// The renderer holds no scars: the next upload writes them all.
-    pub fn resend_scars(&mut self) {
-        self.inner.resend_scars();
     }
 
     /// The scar cache's `ScarStats`, as JSON.
@@ -366,35 +311,10 @@ impl Presentation {
             ghosts: &ghosts,
             known: known.as_deref(),
         };
-        let f = self
-            .inner
+        self.inner
             .frame(time, &camera, &ui, generation)
             .map_err(error)?;
-        let shadow = f.shadow.as_ref();
-        let header = FrameHeader {
-            clock: f.clock as f32,
-            tick: f.tick,
-            index: f.index,
-            light_wrap: f.light_wrap,
-            batches: set(&f.batches),
-            instances: set(&f.instances),
-            palettes: set(&f.palettes),
-            effects: [0; 2],
-            lights: [0; 2],
-            picks: set(&f.picks),
-            emitters: set(&f.emitters),
-            counts: set(std::slice::from_ref(&f.counts)),
-            view: set(std::slice::from_ref(&f.view)),
-            camera: set(std::slice::from_ref(&f.camera)),
-            sun_shadow: set(shadow.map_or(&[][..], |s| std::slice::from_ref(&s.receiver))),
-            casters: set(shadow.map_or(&[][..], |s| &s.casters)),
-        };
-        self.frame_header = FrameHeader {
-            effects: set(self.inner.effects()),
-            lights: set(self.inner.lights()),
-            ..header
-        };
-        Ok(&self.frame_header as *const FrameHeader as u32)
+        Ok(self.refresh_frame_header())
     }
 
     /// The last frame as the labs' scenes probe it, JSON.
@@ -416,49 +336,16 @@ pub fn launches(publications: &str) -> Result<String, JsError> {
     Inner::launches_json(publications).map_err(error)
 }
 
-/// The tier a batch casts with (`Batch.caster`), for a lab's own models,
-/// which reach the renderer without a frame: `view::batch_caster`.
-#[wasm_bindgen]
-pub fn batch_caster(tier: u32, pass: u32) -> u32 {
-    presentation::view::batch_caster(tier, pass)
-}
-
-/// The fog group a lab's own model binds (`Batch.fog`): `view::model_fog`.
-#[wasm_bindgen]
-pub fn model_fog(lies: bool, state: bool, ground: bool) -> u32 {
-    presentation::view::model_fog(lies, state, ground)
-}
-
-/// The tier each of a lab's own models draws at (`view::model_detail`:
-/// `-1` culled, a mesh tier 0–3, or `4` its card) for the frame's `View`
-/// record (its words) and `presentation.models` (JSON). Each model is six
-/// numbers: x, y, z, its size and reach (`Bounds`), and 1 when it has a
-/// card, else 0.
-#[wasm_bindgen]
-pub fn model_tiers(view: &[f32], detail: &str, models: &[f64]) -> Result<Vec<i32>, JsError> {
-    use presentation::view::{model_detail, View};
-    let record = bytemuck::pod_read_unaligned::<presentation::records::View>(
-        &bytemuck::cast_slice(view)[..std::mem::size_of::<presentation::records::View>()],
-    );
-    let view = View::from_record(&record);
-    let detail: presentation::world::Detail = serde_json::from_str(detail)?;
-    let models = models.as_chunks::<6>().0;
-    Ok(models
-        .iter()
-        .map(|&[x, y, z, size, radius, card]| {
-            model_detail(&detail, &view, [x, y, z], size, radius, card != 0.0, None)
-        })
-        .collect())
-}
-
 /// The battle's light (`presentation.light`, JSON) resolved into its uniform
 /// records' words in order: sky, aerial, sun, bloom, grade (`light.rs`). The
 /// renderer needs them when it builds its frame, before any battle loads and
 /// for scenes with none, so this needs no `Presentation`.
 #[wasm_bindgen]
 pub fn light_records(light: &str) -> Result<Vec<f32>, JsError> {
-    let settings: presentation::light::LightSettings = serde_json::from_str(light)
-        .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
+    let settings = presentation::light::LightSettings::from_value(
+        &serde_json::from_str(light).map_err(error)?,
+    )
+    .map_err(error)?;
     Ok(settings.records().words())
 }
 
@@ -476,8 +363,8 @@ fn commands(c: &[Command]) -> String {
 
 #[wasm_bindgen]
 impl SoundFrame {
-    /// From its setup JSON: `presentation.audio`, the sound catalog, the
-    /// game's weapon rows, the tick rate and `presentation.effects`' smoke
+    /// From its setup JSON: `audio.json`, the sound catalog, the
+    /// battle's weapon rows, the tick rate and `presentation.effects`' smoke
     /// and cook-off.
     #[wasm_bindgen(constructor)]
     pub fn new(setup: &str) -> Result<SoundFrame, JsError> {
@@ -611,11 +498,11 @@ pub struct Chatter {
 
 #[wasm_bindgen]
 impl Chatter {
-    /// By `rules` (`presentation.audio.voices`, JSON), takes chosen by `seed`.
+    /// By `rules` (`audio.json.voices`, JSON), takes chosen by `seed`.
     #[wasm_bindgen(constructor)]
     pub fn new(rules: &str, seed: f64) -> Result<Chatter, JsError> {
-        let rules: voices::ChatterRules = serde_json::from_str(rules)
-            .map_err(|e| JsError::new(&format!("presentation.audio.voices: {e}")))?;
+        let rules: voices::ChatterRules =
+            serde_json::from_str(rules).map_err(|e| JsError::new(&format!("audio.voices: {e}")))?;
         rules.check().map_err(error)?;
         Ok(Chatter {
             inner: voices::Chatter::new(rules, seed),
@@ -682,12 +569,12 @@ pub struct Score {
 
 #[wasm_bindgen]
 impl Score {
-    /// By `rules` (`presentation.audio.music`, JSON) over `moods` (the sound
+    /// By `rules` (`audio.json.music`, JSON) over `moods` (the sound
     /// catalog's `music.moods`, JSON; its battle moods), shuffled by `seed`.
     #[wasm_bindgen(constructor)]
     pub fn new(rules: &str, moods: &str, seed: u32) -> Result<Score, JsError> {
-        let rules = serde_json::from_str(rules)
-            .map_err(|e| JsError::new(&format!("presentation.audio.music: {e}")))?;
+        let rules =
+            serde_json::from_str(rules).map_err(|e| JsError::new(&format!("audio.music: {e}")))?;
         let moods =
             serde_json::from_str(moods).map_err(|e| JsError::new(&format!("music.moods: {e}")))?;
         Ok(Score {
@@ -848,4 +735,82 @@ pub fn fog_look(style: &str) -> Result<Vec<f32>, JsError> {
     let style: presentation::fog::FogStyle =
         serde_json::from_str(style).map_err(|e| JsError::new(&format!("fog style: {e}")))?;
     Ok(style.look().map_err(error)?.words())
+}
+
+/// Admit all authored presentation sections and select the fog style once.
+#[wasm_bindgen]
+pub fn check_presentation(text: &str) -> Result<String, JsError> {
+    let value = serde_json::from_str(text).map_err(error)?;
+    let settings =
+        presentation::settings::PresentationSettings::from_value(&value).map_err(error)?;
+    let [r, g, b] = settings.hud.accent;
+    serde_json::to_string(&serde_json::json!({
+        "fog_style": settings.fog.selected().map_err(error)?,
+        "ally_xray": settings.ally_xray(),
+        "ruler_reach": [r,g,b,1.0],
+    }))
+    .map_err(error)
+}
+
+/// Shared library admission, including workbench-only metadata and routing.
+#[wasm_bindgen]
+pub fn check_sound_catalog(text: &str) -> Result<(), JsError> {
+    presentation::sound::catalog::SoundCatalog::from_value(
+        &serde_json::from_str(text).map_err(error)?,
+    )
+    .map_err(error)?;
+    Ok(())
+}
+
+#[wasm_bindgen]
+pub fn check_audio_mix(text: &str, catalog: Option<String>) -> Result<(), JsError> {
+    let mix = serde_json::from_str(text).map_err(error)?;
+    match catalog {
+        Some(catalog) => {
+            let audio = presentation::sound::tables::AudioMix::from_value(&mix).map_err(error)?;
+            let catalog = presentation::sound::catalog::SoundCatalog::from_value(
+                &serde_json::from_str(&catalog).map_err(error)?,
+            )
+            .map_err(error)?;
+            audio.check_sounds(&catalog).map_err(error)?;
+        }
+        None => {
+            presentation::sound::tables::AudioMix::from_value(&mix).map_err(error)?;
+        }
+    }
+    Ok(())
+}
+
+/// Admit library drafts against a battle's mix, looks, weapon rows and catalog mounts.
+#[wasm_bindgen]
+pub fn check_battle_sounds(
+    presentation: &str,
+    audio: &str,
+    catalog: &str,
+    weapons: &str,
+    unit_catalog: &str,
+) -> Result<(), JsError> {
+    let tables = presentation::sound::tables::SoundTables::from_parts(
+        serde_json::from_str(audio).map_err(error)?,
+        serde_json::from_str(catalog).map_err(error)?,
+        &serde_json::from_str(presentation).map_err(error)?,
+        &serde_json::from_str(weapons).map_err(error)?,
+    )
+    .map_err(error)?;
+    tables
+        .looks
+        .check_mounts(&serde_json::from_str(unit_catalog).map_err(error)?)
+        .map_err(error)?;
+    Ok(())
+}
+
+/// Resolved weapon appearances for tooling; inheritance belongs to contract.
+#[wasm_bindgen]
+pub fn weapon_looks(presentation: &str, weapons: &str) -> Result<String, JsError> {
+    let looks = presentation::looks::WeaponLooks::from_value(
+        &serde_json::from_str(presentation).map_err(error)?,
+        &serde_json::from_str(weapons).map_err(error)?,
+    )
+    .map_err(error)?;
+    serde_json::to_string(&looks).map_err(error)
 }

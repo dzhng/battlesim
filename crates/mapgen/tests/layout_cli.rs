@@ -14,7 +14,7 @@ const CATALOGUE: &str = concat!(
     "/../../fixtures/prototype-building-templates.json"
 );
 
-const RULES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/game.json");
+const RULES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/rules.json");
 
 /// The resolved unit and prop catalog, as the browser reads it.
 const CATALOG: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/catalog.json");

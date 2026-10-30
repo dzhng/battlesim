@@ -2,10 +2,13 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { isGenerated } from "../../../packages/battle-audio/src/catalog";
 import { SOUNDS } from "../../../packages/battle-audio/src/synthSounds.gen";
 import { RecipeEditor } from "./RecipeEditor";
+import type { LookSound } from "./protocol";
 import type { EditorProps } from "./editorProps";
 export type Selection = { kind: "clip" | "sound"; id: string };
 export function Library({
   draft,
+  snapshot,
+  lookSounds,
   edit,
   play,
   search,
@@ -13,7 +16,8 @@ export function Library({
   selected,
   select,
   clone,
-}: Omit<EditorProps, "snapshot"> & {
+}: EditorProps & {
+  lookSounds: Record<string, LookSound>;
   search: string;
   setSearch(value: string): void;
   selected: Selection | null;
@@ -27,9 +31,19 @@ export function Library({
   }, [selected, filter]);
   const matches = (text: string) => text.toLowerCase().includes(search.toLowerCase());
   const assigned = new Set([
-    ...Object.values(draft.defaults).flatMap((choice) => [choice.near, choice.far]),
-    ...Object.values(draft.impacts).flatMap((rounds) => Object.values(rounds)),
-    ...Object.values(draft.effects),
+    ...Object.values(lookSounds).flatMap((sound) => [
+      ...(sound.shot ? [sound.shot.near, sound.shot.far] : []),
+      ...(sound.blast
+        ? [
+            sound.blast.near || snapshot.weaponDefaults.blast.near,
+            sound.blast.far || snapshot.weaponDefaults.blast.far,
+          ]
+        : []),
+      ...(sound.motor ? [sound.motor.sound || snapshot.weaponDefaults.motor] : []),
+    ]),
+    ...Object.values(snapshot.weaponDefaults.impacts),
+    ...Object.values(lookSounds).flatMap((sound) => Object.values(sound.impacts)),
+    ...Object.values(snapshot.effects),
   ]);
   const usedClips = new Set([...assigned].flatMap((name) => draft.sounds[name].clips));
   return (

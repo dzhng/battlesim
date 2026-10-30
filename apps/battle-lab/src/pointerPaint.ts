@@ -40,7 +40,7 @@ import type {
 } from "@web/battle/sim/protocol";
 import type { Vec3 } from "math";
 import { orderView } from "./battleOverlay";
-import { Feed } from "./feed";
+import { Feed } from "@web/feed";
 import { groundUnderRay, type StaticWorld } from "./useStaticWorld";
 import { gameAttackGroundSpread, gameOrderStyle, gameRulerStyle, gameStroke } from "./gameOverlay";
 

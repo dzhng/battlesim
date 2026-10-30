@@ -1,23 +1,9 @@
-// The battle view on the street test map (`/labs/street`). Blue plays through
-// the production controls; the clock, seed and pause/reset work.
-// The camera tour, from the opening framing out to the
-// strategic height and in to the ground, through the real wheel.
-// The tree-line tour, the forests drawn as trees, and
-// the scenery's GPU resources returned on rebuild.
-// The grass field at those framings (GRASS_COST=1 also
-// measures its GPU cost; run it alone, under the GPU lock).
-// Soldiers as posed models, by detail tier and as
-// impostor cards, never fogged and picked by the simulation's boxes. The
-// consequences scene owns the death-to-static-corpse lifecycle.
-// Vehicles and wrecks as their appearances, buildings as their templates' art:
-// every vehicle a posed model following its published weapon poses, the
-// street's houses on their boxes, and a tank firing (recoil).
-// Order markers and the Space overlay (a real
-// right-drag's facing, a reverse move's marker, Space held at the default and
-// ground cameras over the fog), and no enemy plan in the observation.
-// Combat effects in the firefight, a burst read at its
-// moment and after, from the effects' own frame and the pass inspector's
-// world view.
+import { playTour } from "./_playTour.mjs";
+import { smokeTour } from "./_smokeTour.mjs";
+import { rulerTour } from "./_rulerTour.mjs";
+import { stageStreetMoves } from "./_streetStaging.mjs";
+// Production street controls, deterministic staging, models and effects.
+// Optional GPU cost controls run alone under the GPU lock.
 import { battleCursor } from "./_cursorOrders.mjs";
 import { appJourney, armyJourney } from "./_appJourney.mjs";
 import {
@@ -30,8 +16,6 @@ import {
   presented,
   openMenu,
   closeMenu,
-  restart,
-  pauseMenuText,
   openBattle,
   aim,
   groundCss,
@@ -47,41 +31,21 @@ import {
   isVehicle,
   unitType,
   vehicleAppearances,
-  game,
+  rules,
   streetAttack,
   streetMap,
+  visuals,
 } from "./_units.mjs";
 
-const CAMERA = game.presentation.camera;
+const CAMERA = visuals.camera;
 const roadStrokes = streetMap.surfaces
   .filter((s) => s.shape.kind === "stroke" && s.kind !== "paving") // carriageways
   .map((s) => s.shape);
-/** Every mark, paint or overlay, lies on the ground itself (the ground and
- *  its blades read the paint at their own point): checks read the marks at
- *  the surface. */
 /** The tour's fixed tick: every framing shows the same battle state. */
 const TOUR_TICK = 90;
 
-const text = (page, id) => page.getByTestId(id).innerText();
-
 async function shot(ctx, page, name) {
   await snapshot(ctx, page, `frame-${name}.png`);
-}
-
-/** Emoji, pictographs and the symbol blocks a placeholder icon is drawn
- *  from (arrows, maths, technical, shapes, dingbats): the HUD's icons are
- *  the generated set, never a font's glyph. */
-const GLYPH_ICON =
-  /[\p{Extended_Pictographic}\u2190-\u21ff\u2200-\u23ff\u25a0-\u27bf\u2900-\u2bff]/gu;
-
-/** The HUD's text as the player sees it holds no glyph icon. */
-async function checkNoGlyphIcons(ctx, page, where) {
-  const found = (await page.evaluate(() => document.body.innerText)).match(GLYPH_ICON) ?? [];
-  ctx.check(
-    `the HUD draws no emoji or symbol glyph as an icon (${where})`,
-    found.length === 0,
-    [...new Set(found)].join(" "),
-  );
 }
 
 /** The road is drawn where the simulation has it. Top
@@ -412,8 +376,8 @@ async function tour(ctx) {
   ctx.check(
     "the battle opens at the fixture's default framing",
     opening.distance === CAMERA.default.distance &&
-      opening.target[0] === CAMERA.default.target[0] &&
-      opening.target[1] === CAMERA.default.target[1],
+      opening.target[0] === 170 &&
+      opening.target[1] === 800,
     JSON.stringify(opening),
   );
   await tourShot("default");
@@ -583,7 +547,7 @@ async function soldierTour(ctx) {
   const squads = o.own.filter((u) => u.members.length > 0);
   const soldiers = squads.reduce((n, u) => n + u.members.length, 0);
   // The squad nearest the opening framing's target.
-  const [tx, ty] = CAMERA.default.target;
+  const [tx, ty] = [170, 800];
   const squad = squads.reduce((a, b) =>
     Math.hypot(a.position[0] - tx, a.position[1] - ty) <=
     Math.hypot(b.position[0] - tx, b.position[1] - ty)
@@ -649,7 +613,7 @@ async function soldierTour(ctx) {
   ctx.check(
     "clicking a soldier picks his box",
     picked >= 0 &&
-      box.half[0] === Math.fround(game.physics.soldier_radius_m) &&
+      box.half[0] === Math.fround(rules.physics.soldier_radius_m) &&
       Math.hypot(box.x - m[0], box.y - m[1]) < 1.5,
     JSON.stringify({ picked, box, member: m }),
   );
@@ -702,18 +666,19 @@ async function vehicleTour(ctx) {
   let o = await obs(page);
   let posed = await lab(page, () => window.__lab.route.vehicles());
   const stats = await lab(page, () => window.__lab.stats());
+  const proxies = stats.models.proxyAppearances;
   const own = o.own.filter(isVehicle);
   const enemy = o.identified.filter(isVehicle);
   ctx.check(
     "every own and identified vehicle is drawn as its appearance, and nothing as a proxy",
     posed.length === own.length + enemy.length &&
       posed.every((v) => v.articulation && vehicleAppearances.has(v.appearance)) &&
-      stats.instances === 0,
+      proxies === 0,
     JSON.stringify({
       posed: posed.length,
       own: own.length,
       enemy: enemy.length,
-      proxies: stats.instances,
+      proxies,
     }),
   );
   // Each own tank's turret is on its cannon's published bearing, relative to the hull.
@@ -912,165 +877,6 @@ async function effectTour(ctx) {
   await page.close();
 }
 
-/** Pixels whose colour differs by more than 16 levels inside a box. */
-function changedIn(a, b, [x0, y0, x1, y1]) {
-  let n = 0;
-  for (let y = Math.max(0, y0); y < Math.min(a.height, y1); y += 2)
-    for (let x = Math.max(0, x0); x < Math.min(a.width, x1); x += 2) {
-      const p = pixel(a, x, y);
-      const q = pixel(b, x, y);
-      if (Math.abs(p[0] - q[0]) + Math.abs(p[1] - q[1]) + Math.abs(p[2] - q[2]) > 16) n++;
-    }
-  return n;
-}
-
-/** The aftermath. The first wreck blue learns burns and smokes
- *  over it, paused and playing; a moving tank kicks dust behind it; pause
- *  holds the smoke and reset clears it. `SMOKE_GIF=1` also writes the
- *  frames of a burning wreck and of a tank's dust, tick by tick. */
-async function smokeTour(ctx) {
-  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
-  await lab(page, () => {
-    const o = window.__lab.route.observation();
-    window.__lab.route.command({
-      kind: "attack_move",
-      units: o.own.filter((u) => u.kind !== "test_tank").map((u) => u.id),
-      gesture: 1,
-      goal: [1000, 800],
-    });
-    // Tanks drive on (a plain move, still firing at will): an attack-move
-    // halts them at the first target, and the wood's AT is one from the start.
-    window.__lab.route.command({
-      kind: "move",
-      units: o.own.filter((u) => u.kind === "test_tank").map((u) => u.id),
-      gesture: 2,
-      goal: [1000, 800],
-      route: "shortest",
-    });
-  });
-  // A tank under way, framed from behind its shoulder, kicking up dust.
-  const before = await obs(page);
-  await advance(page, 90);
-  const moving = await obs(page);
-  const tank = moving.own.find((u) => {
-    const was = before.own.find((b) => b.id === u.id);
-    return (
-      u.kind === "test_tank" &&
-      was &&
-      Math.hypot(u.position[0] - was.position[0], u.position[1] - was.position[1]) > 3
-    );
-  });
-  if (tank) {
-    await aim(page, tank.position, { distance: 32, pitch: 0.4, yaw: tank.yaw + Math.PI * 0.75 });
-    if (process.env.SMOKE_GIF === "1")
-      for (let k = 0; k < 90; k++) {
-        await advance(page, 1);
-        const t = (await obs(page)).own.find((u) => u.id === tank.id);
-        await aim(page, t.position, { distance: 32, pitch: 0.4, yaw: tank.yaw + Math.PI * 0.75 });
-        await snapshot(ctx, page, `gif-dust-${String(k).padStart(3, "0")}.png`);
-      }
-    const now = (await obs(page)).own.find((u) => u.id === tank.id);
-    await aim(page, now.position, { distance: 32, pitch: 0.4, yaw: tank.yaw + Math.PI * 0.75 });
-    const shotPng = decode(await snapshot(ctx, page, "smoke-dust-1920x1080.png"));
-    await lab(page, () => window.__lab.suppressEffects(true));
-    const bare = decode(await snapshot(ctx, page, "smoke-dust-bare-1920x1080.png"));
-    await lab(page, () => window.__lab.suppressEffects(false));
-    // Behind the tank: the side of it away from where it heads.
-    const back = [
-      now.position[0] - Math.cos(now.yaw) * 6,
-      now.position[1] - Math.sin(now.yaw) * 6,
-      now.position[2] + 1,
-    ];
-    const [bx, by] = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), back);
-    const dust = changedIn(shotPng, bare, [bx - 90, by - 90, bx + 90, by + 90]);
-    ctx.check(
-      "a moving tank kicks up dust behind it",
-      dust > 200,
-      JSON.stringify({ tick: moving.tick, tank: tank.id, dustPixels: dust }),
-    );
-  } else ctx.check("a moving tank kicks up dust behind it", false, "no tank under way");
-
-  const o = await until(
-    page,
-    (f) => f.knownProps.some((p) => p.kind.endsWith("_wreck")),
-    30 * 150,
-    15,
-  );
-  if (!o) {
-    ctx.check("a known wreck burns and smokes", false, "no wreck by tick 4600");
-    await page.close();
-    return;
-  }
-  const wreck = o.knownProps.find((p) => p.kind.endsWith("_wreck"));
-  const at = [wreck.center[0], wreck.center[1], wreck.baseZ];
-  const view = { distance: 70, pitch: 0.5, yaw: -1.2 };
-  const shots = {};
-  for (const [age, step] of [
-    [2, 60],
-    [10, 240],
-  ]) {
-    await advance(page, step);
-    await aim(page, at, view);
-    shots[age] = decode(await snapshot(ctx, page, `smoke-wreck-${age}s-1920x1080.png`));
-    await lab(page, () => window.__lab.setFrameView("world"));
-    await snapshot(ctx, page, `smoke-wreck-${age}s-world-1920x1080.png`);
-    await lab(page, () => window.__lab.setFrameView("final"));
-  }
-  if (process.env.SMOKE_GIF === "1")
-    for (let k = 0; k < 90; k++) {
-      await advance(page, 1);
-      await snapshot(ctx, page, `gif-wreck-${String(k).padStart(3, "0")}.png`);
-    }
-  await lab(page, () => window.__lab.suppressEffects(true));
-  const bare = decode(await snapshot(ctx, page, "smoke-wreck-bare-1920x1080.png"));
-  await lab(page, () => window.__lab.suppressEffects(false));
-  const [wx, wy] = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 8), at);
-  const column = changedIn(shots[10], bare, [wx - 200, wy - 300, wx + 200, wy + 150]);
-  const stats = await lab(page, () => window.__lab.route.effects());
-  ctx.check(
-    "a known wreck burns and smokes over it",
-    column > 1500 && stats.sources > 0 && stats.dropped === 0,
-    JSON.stringify({ tick: o.tick, wreck, columnPixels: column, ...stats }),
-  );
-
-  // Paused, the smoke holds still: the same frame twice.
-  const held = decode(await snapshot(ctx, page, "smoke-paused-a-1920x1080.png"));
-  await page.waitForTimeout(500);
-  const again = decode(await snapshot(ctx, page, "smoke-paused-b-1920x1080.png"));
-  const drift = changedIn(held, again, [wx - 200, wy - 300, wx + 200, wy + 150]);
-  ctx.check("paused, the smoke holds still", drift === 0, JSON.stringify({ drift }));
-
-  // Playing, it rises on.
-  await lab(page, () => window.__lab.route.resume());
-  await page.waitForTimeout(1500);
-  await lab(page, () => window.__lab.route.pause());
-  await aim(page, at, view);
-  const playing = decode(await snapshot(ctx, page, "smoke-playing-1920x1080.png"));
-  const rose = changedIn(held, playing, [wx - 200, wy - 300, wx + 200, wy + 150]);
-  ctx.check("playing, the smoke moves on", rose > 200, JSON.stringify({ rose }));
-
-  // Reset: a new battle, no smoke left from the old one.
-  await lab(page, () => window.__lab.route.reset());
-  await page.waitForFunction(
-    () => window.__lab.route.tick() > 3 && window.__lab.route.tick() < 60,
-    undefined,
-    {
-      timeout: 30000,
-    },
-  );
-  await lab(page, () => window.__lab.frame());
-  const cleared = await lab(page, () => ({
-    effects: window.__lab.route.effects(),
-    frame: window.__lab.stats().effects,
-  }));
-  ctx.check(
-    "reset clears every effect",
-    cleared.effects.sources === 0 && cleared.effects.live === 0,
-    JSON.stringify(cleared),
-  );
-  await page.close();
-}
-
 /** The paint's ink, by hue: the orders' yellow, and the cover ramp's white
  *  (light), light green (medium) and strong green (heavy). */
 function overlayInk(png) {
@@ -1095,14 +901,14 @@ function yellowInk(png) {
   return ink;
 }
 
-/** The order flash (post-close, 2026-09-28): an order's marks are the Space
- *  view's, shown for its units as the order is given, held for
+/** An order's flash uses the Space view's marks, shown as the order is given,
+ *  held for
  *  `orders.flash.hold_s` and faded over `fade_s`; a selection alone shows
  *  none. Holding Space shows the same marks, pixel for pixel. A queued
  *  (Shift) order flashes too. */
 async function orderFlashTour(ctx) {
-  const { flash } = game.presentation.overlay.orders;
-  const tickHz = game.tick_hz;
+  const { flash } = visuals.overlay.orders;
+  const tickHz = rules.tick_hz;
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const o = await obs(page);
   const rifle = o.own.find((u) => u.kind === "test_rifle");
@@ -1639,7 +1445,7 @@ async function orderTour(ctx) {
     // The route runs from the edge of the circle the squad stands in to the
     // edge of its area ring (both drawn at the fixture's scale):
     // sample only the line between them.
-    const scale = game.presentation.overlay.orders.area_draw_scale;
+    const scale = visuals.overlay.orders.area_draw_scale;
     const here = Math.max(
       ...u.members.map((m) => Math.hypot(m[0] - u.position[0], m[1] - u.position[1])),
     );
@@ -1827,8 +1633,7 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const o = await obs(page);
   const squad = o.own.find((u) => u.id === squadId);
   const vehicle = o.own.find((u) => u.id === vehicleId);
-  const { area_draw_scale: scale, vehicle_marker_margin_m: margin } =
-    game.presentation.overlay.orders;
+  const { area_draw_scale: scale, vehicle_marker_margin_m: margin } = visuals.overlay.orders;
   const vehicleR = hullOf(vehicle.kind).half_extents_m[0] + margin;
   // The paint (the orders and the selection), each mark in its own colour.
   const paint = await orderPaint(ctx, page, "orders-selected");
@@ -1977,7 +1782,7 @@ async function checkRimJoin(ctx, page, squadId) {
     }
     return c;
   };
-  const { color, selected: amberRgb, glow } = game.presentation.overlay.orders;
+  const { color, selected: amberRgb, glow } = visuals.overlay.orders;
   const Y = color.map((v) => v * glow.order);
   const A = amberRgb.map((v) => v * glow.selected);
   const det = A[0] * Y[1] - A[1] * Y[0];
@@ -2052,9 +1857,7 @@ async function checkPaintedLight(ctx, page, vehicleId) {
     yaw: CAMERA.default.yaw,
   });
   await lab(page, () => window.__lab.frame());
-  const r =
-    hullOf(vehicle.kind).half_extents_m[0] +
-    game.presentation.overlay.orders.vehicle_marker_margin_m;
+  const r = hullOf(vehicle.kind).half_extents_m[0] + visuals.overlay.orders.vehicle_marker_margin_m;
   const at = [];
   for (let k = 0; k < 64; k++) {
     const a = (k / 64) * 2 * Math.PI;
@@ -2291,7 +2094,7 @@ const WORKS = {
 
 async function worksTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
-  const { distance, yaw } = game.presentation.camera.default;
+  const { distance, yaw } = visuals.camera.default;
   for (const [name, at] of Object.entries(WORKS)) {
     await aim(page, at, { distance, pitch: 0.85, yaw });
     await snapshot(ctx, page, `works-${name}-1920x1080.png`);
@@ -2338,41 +2141,6 @@ const FLASH_LIGHT_MIN = 60;
  *  the gun's pitch and recoil and a tick's drive; the phantom muzzle this
  *  replaced was metres off for an HMG turned from the cannon. */
 const TRACER_M = 1;
-
-/** A scene journey is ready only after every destination was admitted and
- *  the authority published through the acknowledged application tick. Its
- *  caller still observes the travel or sighting the picture requires. An
- *  order given as `{ order, queued: true }` joins its units' queues. */
-async function stageStreetMoves(ctx, page, orders, name) {
-  const before = await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0);
-  await lab(
-    page,
-    (orders) => {
-      for (const o of orders) window.__lab.route.command(o.order ?? o, o.queued ?? false);
-    },
-    orders,
-  );
-  await page.waitForFunction(
-    ({ before, count }) => window.__lab.route.acks().filter((a) => a.seq > before).length === count,
-    { before, count: orders.length },
-  );
-  const staging = await lab(
-    page,
-    (seq) => window.__lab.route.acks().filter((a) => a.seq > seq),
-    before,
-  );
-  const admitted = staging.every(
-    ({ ack, order }) =>
-      ack.error === null &&
-      ack.placement?.destinations.length === order.units.length &&
-      ack.placement.destinations.every((d) => d.placed && order.units.includes(d.unit)),
-  );
-  ctx.check(`${name}: every destination is admitted`, admitted, JSON.stringify(staging));
-  if (!admitted) throw new Error(`${name}: refused staging command`);
-  const applied = Math.max(...staging.map(({ ack }) => ack.applied_tick));
-  await advance(page, Math.max(0, applied - (await obs(page)).tick));
-  ctx.check(`${name}: the acknowledged tick is published`, (await obs(page)).tick >= applied);
-}
 
 /** Every flash sits on the muzzle as the model draws
  *  it, not where the simulation starts the round: a tank's cannon (recoiling)
@@ -2774,285 +2542,6 @@ async function selectionTour(ctx) {
   await page.close();
 }
 
-/** The range ruler (Space held with a selection) and right-clicking a
- *  contact's area to attack it. */
-async function rulerTour(ctx) {
-  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
-  let o = await obs(page);
-  const rifle = o.own.find((u) => u.kind === "test_rifle");
-  const tank = o.own.find((u) => u.kind === "test_tank");
-  const surface = (p) => lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), p);
-  const ruler = () => lab(page, () => window.__lab.route.ruler());
-  /** The ruler's text as shown: the distance, and each tick's label. */
-  const shownText = () =>
-    lab(page, () => {
-      const layer = document.querySelector("[data-testid=range-ruler]");
-      const visible = (e) => e && getComputedStyle(e).display !== "none";
-      return {
-        shown: visible(layer),
-        distance: layer?.querySelector(".rr-distance")?.textContent ?? null,
-        ticks: [...(layer?.querySelectorAll(".rr-tick") ?? [])]
-          .filter(visible)
-          .map((t) => t.textContent),
-      };
-    });
-  /** The muzzle-to-aim distance from `unit` to the ground at `p`, as the
-   *  simulation's range check measures it (computed here from the fixture). */
-  const expected = async (unit, p) => {
-    const [first] = unitType(unit.kind).mounts;
-    const muzzle = first?.muzzle_m
-      ? first.pivot_m[2] + first.muzzle_m[2]
-      : game.physics.infantry_muzzle_m;
-    const dz = (await surface(p)) + game.physics.infantry_aim_m - (unit.position[2] + muzzle);
-    return Math.hypot(p[0] - unit.position[0], p[1] - unit.position[1], dz);
-  };
-  const frames = async () => {
-    await lab(page, () => window.__lab.frame());
-    await lab(page, () => window.__lab.frame());
-  };
-
-  // Default camera: the rifle squad and the tank selected, the cursor on the
-  // ground 40 m past the squad, away from the tank.
-  await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id, tank.id]);
-  await page.waitForFunction(() => window.__lab.route.selected().length === 2);
-  const away = Math.atan2(
-    rifle.position[1] - tank.position[1],
-    rifle.position[0] - tank.position[0],
-  );
-  const near = [rifle.position[0] + Math.cos(away) * 40, rifle.position[1] + Math.sin(away) * 40];
-  const mid = [(rifle.position[0] + near[0]) / 2, (rifle.position[1] + near[1]) / 2];
-  await aim(page, mid, { distance: CAMERA.default.distance, pitch: 0.85, yaw: CAMERA.default.yaw });
-  await frames();
-  let css = await groundCss(page, near);
-  await page.mouse.move(css[0], css[1]);
-  await frames();
-  ctx.check("without Space, no ruler", (await ruler()) === null && !(await shownText()).shown);
-  await page.keyboard.down("Space");
-  await page.waitForFunction(() => window.__lab.route.showOrders());
-  await frames();
-  let r = await ruler();
-  let want = await expected(rifle, near);
-  let text = await shownText();
-  ctx.check(
-    "with Space held, the ruler runs from the selected unit nearest the cursor, measuring muzzle to aim point",
-    r?.unit === rifle.id && Math.abs(r.distance_m - want) < 0.5,
-    JSON.stringify({ unit: r?.unit, distance: r?.distance_m, want }),
-  );
-  ctx.check(
-    "the ruler's readout is its distance in metres alone, and every weapon of the squad reaches 40 m (no tick)",
-    text.shown &&
-      text.distance === `${Math.round(r.distance_m)} m` &&
-      r.marks.every((m) => m.inRange) &&
-      text.ticks.length === 0,
-    JSON.stringify(text),
-  );
-  await snapshot(ctx, page, "ruler-default-1920x1080.png");
-  // The ruler is paint: the frame with it less the frame with the pointer
-  // off the canvas (no ruler) is lit along the line.
-  const withRuler = decode(await snapshot(ctx, page, "ruler-default-on.png"));
-  await pointerOffCanvas(page);
-  await frames();
-  const offCanvas = await ruler();
-  const without = decode(await snapshot(ctx, page, "ruler-default-off.png"));
-  const quarter = await groundCss(page, [
-    rifle.position[0] + Math.cos(away) * 30,
-    rifle.position[1] + Math.sin(away) * 30,
-  ]);
-  let lit = 0;
-  for (let dy = -4; dy <= 4; dy++)
-    for (let dx = -4; dx <= 4; dx++) {
-      const a = pixel(withRuler, quarter[0] + dx, quarter[1] + dy);
-      const b = pixel(without, quarter[0] + dx, quarter[1] + dy);
-      if (Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]) > 40) lit++;
-    }
-  ctx.check(
-    "the ruler is painted along its line, and goes with the pointer off the ground",
-    offCanvas === null && lit >= 4,
-    JSON.stringify({ lit, offCanvas }),
-  );
-
-  // The tank alone, the cursor 40 m off it: the line leaves its marker's
-  // circle at the border, as it leaves the squad's (evidence only).
-  await lab(page, (ids) => window.__lab.route.select(ids), [tank.id]);
-  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-  const tankNear = [tank.position[0] - Math.cos(away) * 40, tank.position[1] - Math.sin(away) * 40];
-  await aim(page, [(tank.position[0] + tankNear[0]) / 2, (tank.position[1] + tankNear[1]) / 2], {
-    distance: CAMERA.default.distance,
-    pitch: 0.85,
-    yaw: CAMERA.default.yaw,
-  });
-  await frames();
-  css = await groundCss(page, tankNear);
-  await page.mouse.move(css[0], css[1]);
-  await frames();
-  r = await ruler();
-  ctx.check("with the tank alone selected, the ruler runs from the tank", r?.unit === tank.id);
-  await snapshot(ctx, page, "ruler-tank-near-1920x1080.png");
-
-  // Far camera: the squad alone, the cursor 750 m off, past both its reaches.
-  await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
-  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-  // Toward the map's middle, so the far points stay on the map.
-  const [mx, my] = streetMap.size.map((v) => v / 2);
-  const inward = (u) => Math.atan2(my - u.position[1], mx - u.position[0]);
-  const far = [
-    rifle.position[0] + Math.cos(inward(rifle)) * 750,
-    rifle.position[1] + Math.sin(inward(rifle)) * 750,
-  ];
-  const farMid = [(rifle.position[0] + far[0]) / 2, (rifle.position[1] + far[1]) / 2];
-  await aim(page, farMid, { distance: 1100, pitch: 0.85, yaw: CAMERA.default.yaw });
-  await frames();
-  css = await groundCss(page, far);
-  await page.mouse.move(css[0], css[1]);
-  await frames();
-  r = await ruler();
-  want = await expected(rifle, far);
-  text = await shownText();
-  ctx.check(
-    "past every reach, each weapon ticks the line where its reach ends, labelled",
-    r?.unit === rifle.id &&
-      Math.abs(r.distance_m - want) < 2 &&
-      r.marks.length > 0 &&
-      r.marks.every((m) => !m.inRange && m.along_m > 0 && m.along_m < 750) &&
-      text.ticks.length === r.marks.length &&
-      text.ticks.every((t) => / \d+ m$/.test(t)),
-    JSON.stringify({ r, want, text }),
-  );
-  await snapshot(ctx, page, "ruler-far-1920x1080.png");
-  // Both again, the cursor 750 m out from the tank: the tank is nearer. Its
-  // HMG falls short, its gun reaches.
-  await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id, tank.id]);
-  await page.waitForFunction(() => window.__lab.route.selected().length === 2);
-  const tankFar = [
-    tank.position[0] + Math.cos(inward(tank)) * 750,
-    tank.position[1] + Math.sin(inward(tank)) * 750,
-  ];
-  await aim(page, [(tank.position[0] + tankFar[0]) / 2, (tank.position[1] + tankFar[1]) / 2], {
-    distance: 1400,
-    pitch: 0.85,
-    yaw: CAMERA.default.yaw,
-  });
-  await frames();
-  css = await groundCss(page, tankFar);
-  if (css) await page.mouse.move(css[0], css[1]);
-  await frames();
-  r = await ruler();
-  text = await shownText();
-  ctx.check(
-    "from the tank at 750 m, the gun reaches and the HMG's reach ticks the line",
-    r?.unit === tank.id &&
-      r.marks.length === 2 &&
-      !r.marks[0].inRange &&
-      r.marks[1].inRange &&
-      text.ticks.length === 1,
-    JSON.stringify({ r, text }),
-  );
-  await snapshot(ctx, page, "ruler-tank-far-1920x1080.png");
-  await page.keyboard.up("Space");
-  await page.waitForFunction(() => !window.__lab.route.showOrders());
-  await frames();
-  ctx.check(
-    "releasing Space removes the ruler",
-    (await ruler()) === null && !(await shownText()).shown,
-  );
-
-  // A contact's area: right-click it with an armed unit selected. Scout
-  // along the southern forest edge until their own sight identifies an enemy,
-  // then withdraw beyond that sight. Admission alone proves neither journey.
-  o = await obs(page);
-  const scoutId = o.own.find((u) => u.kind === "test_recon").id;
-  await stageStreetMoves(
-    ctx,
-    page,
-    [
-      {
-        kind: "move",
-        units: [scoutId],
-        gesture: 2901,
-        goal: [550, 910],
-        route: "shortest",
-      },
-    ],
-    "ruler scout approach",
-  );
-  o = await until(
-    page,
-    (x) => {
-      const scouts = x.own.find((u) => u.id === scoutId);
-      return scouts && x.identified.some((e) => scouts.sees.includes(e.id));
-    },
-    30 * 180,
-    15,
-  );
-  const scouts = o?.own.find((u) => u.id === scoutId);
-  const from = (e) =>
-    Math.hypot(e.position[0] - scouts.position[0], e.position[1] - scouts.position[1]);
-  const seen = o?.identified.filter((e) => scouts.sees.includes(e.id)) ?? [];
-  const farthest = seen.reduce((a, b) => (!a || from(b) > from(a) ? b : a), null);
-  const back = farthest ? unitType("test_recon").sensors.ground_m - from(farthest) + 40 : 0;
-  ctx.check(
-    "staging: the scouts hold an enemy near the edge of their sight to lose",
-    back > 0 && back < 120,
-    JSON.stringify({
-      tick: o?.tick,
-      scouts: scouts?.position,
-      identified: seen.map((e) => [e.kind, Math.round(from(e))]),
-    }),
-  );
-  if (!farthest) throw new Error("ruler scouts never identified an enemy");
-  await stageStreetMoves(
-    ctx,
-    page,
-    [
-      {
-        kind: "move",
-        units: [scoutId],
-        gesture: 2902,
-        goal: [
-          scouts.position[0] -
-            ((farthest.position[0] - scouts.position[0]) / from(farthest)) * back,
-          scouts.position[1] -
-            ((farthest.position[1] - scouts.position[1]) / from(farthest)) * back,
-        ],
-        route: "shortest",
-      },
-    ],
-    "ruler scout withdrawal",
-  );
-  // Losing it leaves an area that remembers the type seen there. The side
-  // keeps one area per cause, so the tank firing on after it is lost renews
-  // that same area as firing evidence, still remembering the tank.
-  const lostArea = (x) => x.contacts.find((c) => c.kind === farthest.kind);
-  o = await until(
-    page,
-    (x) => !x.identified.some((e) => e.id === farthest.id) && !!lostArea(x),
-    30 * 180,
-    15,
-  );
-  const contact = o && lostArea(o);
-  if (contact) {
-    const armed =
-      o.own.find((u) => u.kind === "test_tank") ?? o.own.find((u) => u.kind === "test_rifle");
-    await lab(page, (ids) => window.__lab.route.select(ids), [armed.id]);
-    await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-    await aim(page, contact.center, { distance: 120, pitch: 0.85, yaw: CAMERA.default.yaw });
-    await frames();
-    const before = await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0);
-    css = await groundCss(page, contact.center);
-    await page.mouse.click(css[0], css[1], { button: "right" });
-    await page.waitForFunction((n) => (window.__lab.route.acks()[0]?.seq ?? 0) > n, before);
-    const [ack] = await lab(page, () => window.__lab.route.acks());
-    ctx.check(
-      "right-clicking a contact's area attacks it",
-      ack.ack.error === null && ack.label.startsWith(`attack area ${contact.id} `),
-      JSON.stringify({ ack, contact }),
-    );
-    await snapshot(ctx, page, "contact-attack-1920x1080.png");
-  }
-  ctx.check("a contact appears to right-click", !!contact, `${o?.tick}`);
-  await page.close();
-}
-
 /** The info panels' layout: at a far, busy camera the closest units' panels
  *  get full detail and stay clear of each other, holding that layout steady,
  *  and hovering an unselected unit opens its full panel. */
@@ -3219,210 +2708,6 @@ const TOURS = {
   cleanup: cleanupTour,
   play: playTour,
 };
-
-async function playTour(ctx) {
-  const page = await openBattle(ctx);
-  await shot(ctx, page, "start-1280x800");
-  const opened = await pauseMenuText(page);
-  ctx.check("the pause menu shows no seed", !/seed|\d{3,}/i.test(opened), opened);
-  ctx.check(
-    "the top bar holds the clock alone",
-    /^\d+:\d\d$/.test(await text(page, "clock")) &&
-      (await page.locator("header.hud-top").innerText()).split("\n").length === 1,
-    await page.locator("header.hud-top").innerText(),
-  );
-  // Esc opens the pause menu over a running battle and pauses it; Esc again
-  // closes it and the battle runs on. An armed command takes Esc first.
-  const armedUnit = (await obs(page)).own.find((u) => u.kind === "test_tank").id;
-  await lab(page, (id) => window.__lab.route.select([id]), armedUnit);
-  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-  await lab(page, () => window.__lab.route.resume());
-  await page.waitForFunction(() => window.__lab.route.status().status === "running");
-  await page.keyboard.press("c");
-  await page.keyboard.press("Escape");
-  const disarmed = (await page.getByRole("dialog", { name: "Paused" }).count()) === 0;
-  await page.keyboard.press("Escape");
-  await page.getByRole("dialog", { name: "Paused" }).waitFor();
-  await page.waitForFunction(() => window.__lab.route.status().status === "paused");
-  const pausedTick = await lab(page, () => window.__lab.route.tick());
-  await page.waitForTimeout(300);
-  const heldInMenu = (await lab(page, () => window.__lab.route.tick())) === pausedTick;
-  await page.keyboard.press("Escape");
-  await page.waitForFunction((t) => window.__lab.route.tick() > t + 2, pausedTick, {
-    timeout: 5000,
-  });
-  ctx.check(
-    "Esc disarms an armed command first, then opens the pause menu, which holds the battle until closed",
-    disarmed && heldInMenu,
-    JSON.stringify({ disarmed, heldInMenu }),
-  );
-  await lab(page, () => window.__lab.route.pause());
-
-  // Select the tanks and right-click the ground: an accepted move.
-  const o = await obs(page);
-  const tanks = o.own.filter((u) => u.kind === "test_tank").map((u) => u.id);
-  await lab(page, (ids) => window.__lab.route.select(ids), tanks);
-  await page.waitForFunction((n) => window.__lab.route.selected().length === n, tanks.length);
-  await checkNoGlyphIcons(ctx, page, "tanks selected");
-  await openMenu(page);
-  await checkNoGlyphIcons(ctx, page, "pause menu");
-  await closeMenu(page);
-  await lab(page, () =>
-    window.__lab.setCamera({ ...window.__lab.camera(), target: [360, 800, 0], distance: 600 }),
-  );
-  const spot = await lab(page, () => window.__lab.projectToCss(420, 800, 0));
-  await page.mouse.click(spot[0], spot[1], { button: "right" });
-  await page.waitForFunction(() => window.__lab.route.acks().length > 0, undefined, {
-    timeout: 5000,
-  });
-  const ack = (await lab(page, () => window.__lab.route.acks()))[0];
-  ctx.check(
-    "right-clicking the ground moves the selected tanks",
-    /move/.test(ack.label) && ack.ack.error === null,
-    JSON.stringify(ack),
-  );
-  await advance(page, 30 * 20);
-  const moved = await obs(page);
-  await shot(ctx, page, "advance-1280x800");
-  ctx.check(
-    "the tanks drove toward the order",
-    moved.own
-      .filter((u) => tanks.includes(u.id))
-      .every((u) => Math.hypot(u.position[0] - 420, u.position[1] - 800) < 150),
-    JSON.stringify(moved.own.filter((u) => tanks.includes(u.id)).map((u) => u.position)),
-  );
-  await lab(page, () =>
-    window.__lab.setCamera({ ...window.__lab.camera(), target: [420, 800, 0], distance: 350 }),
-  );
-  await shot(ctx, page, "tanks-close-1280x800");
-
-  // Each selected tank's callout carries the unit card's name; a
-  // destination carries no text (its marker and route say
-  // whose it is).
-  const tags = await lab(page, () => ({
-    names: [...document.querySelectorAll(".ro-unit.ro-selected .ro-name-word")].map((n) => ({
-      unit: Number(n.closest(".ro-unit").dataset.unit),
-      text: n.textContent.trim(),
-    })),
-    panel: [...document.querySelectorAll('.hud-army-card[aria-pressed="true"]')].map((n) =>
-      n
-        .getAttribute("aria-label")
-        .replace(/ #\d+$/, "")
-        .toUpperCase(),
-    ),
-    extraText: (() => {
-      const layer = document.querySelector("[data-testid=readouts]").cloneNode(true);
-      layer.querySelectorAll(".ro-unit").forEach((panel) => panel.remove());
-      return layer.textContent.trim();
-    })(),
-  }));
-  ctx.check(
-    "each selected tank's callout shows the unit card's name, and no destination shows text",
-    tags.extraText === "" &&
-      tanks.every((id) => {
-        const name = tags.names.find((n) => n.unit === id)?.text;
-        return !!name && tags.panel.includes(name);
-      }),
-    JSON.stringify(tags),
-  );
-
-  // Far views keep compact cards and allow depth-ordered overlap, while
-  // keeping the HUD clear.
-  await pointerOffCanvas(page);
-  await lab(page, () =>
-    window.__lab.setCamera({ ...window.__lab.camera(), target: [300, 800, 0], distance: 1150 }),
-  );
-  await shot(ctx, page, "tanks-far-1280x800");
-  const placed = await lab(page, () => {
-    const box = (e) => {
-      const r = e.getBoundingClientRect();
-      return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom };
-    };
-    return {
-      panels: [...document.querySelectorAll("[data-occludes-readouts]")].map(box),
-      readouts: [...document.querySelectorAll(".ro-unit")]
-        .filter((e) => e.style.display !== "none")
-        .map((e) => ({ ...box(e), zoom: e.dataset.zoom })),
-    };
-  });
-  const overlap = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
-  ctx.check(
-    "far readouts remain compact and clear of the HUD's bars",
-    placed.readouts.length > 0 &&
-      placed.readouts.every(
-        (b) => b.zoom === "compressed" && placed.panels.every((p) => !overlap(b, p)),
-      ),
-    JSON.stringify(placed),
-  );
-
-  // Sound: at a tick where blue hears something, the newest caption says
-  // what, how far and from where, for the unit that heard it.
-  // Nobody fires until blue closes to weapon range, so send it into contact.
-  await lab(page, () =>
-    window.__lab.route.command({
-      kind: "attack_move",
-      units: window.__lab.route.observation().own.map((u) => u.id),
-      gesture: 9,
-      goal: [700, 800],
-    }),
-  );
-  await advance(page, 1);
-  await page.waitForFunction(
-    () => window.__lab.route.acks().some((entry) => entry.order.gesture === 9),
-    undefined,
-    { timeout: 5000 },
-  );
-  const approach = (await lab(page, () => window.__lab.route.acks())).find(
-    (entry) => entry.order.gesture === 9,
-  ).ack;
-  const admitted =
-    approach && !approach.error && approach.placement?.destinations.some((d) => d.placed);
-  ctx.check("the sound approach admits observers", !!admitted, JSON.stringify(approach));
-  await ctx.writeEvidence("play-contact-approach.json", approach ?? null);
-  if (!admitted) return page.close();
-  const heard = await until(page, (o) => o.audible.length > 0, 30 * 240, 1);
-  const cue = heard?.audible.at(-1);
-  const listener = cue && heard.own.find((u) => u.id === cue.listener);
-  const caption = heard && (await text(page, "captions")).split("\n")[0];
-  ctx.check(
-    "when blue hears something, a caption names the sound, its range and the listener",
-    !!listener &&
-      caption.startsWith("Heard ") &&
-      caption.includes(`, ${cue.band}, `) &&
-      caption.includes(` of ${unitType(listener.kind).name}`),
-    heard ? `tick ${heard.tick}: ${JSON.stringify(cue)} → ${caption}` : "never heard",
-  );
-  // Twenty seconds of fire later, repeats have collapsed into a few rows.
-  await advance(page, 30 * 20);
-  await page.evaluate(() => window.__lab.frame());
-  const rows = await lab(page, () =>
-    [...document.querySelectorAll("[data-testid=captions] li[data-count]")].map((li) => ({
-      text: li.textContent.replace(/ ×\d+$/, ""),
-      count: Number(li.dataset.count),
-    })),
-  );
-  ctx.check(
-    "repeated sounds collapse into at most three counted rows",
-    rows.length <= 3 && new Set(rows.map((r) => r.text)).size === rows.length,
-    JSON.stringify(rows),
-  );
-
-  // Pause holds the tick; resume continues.
-  const held = await lab(page, () => window.__lab.route.tick());
-  await page.waitForTimeout(400);
-  ctx.check(
-    "paused, the battle does not advance",
-    (await lab(page, () => window.__lab.route.tick())) === held,
-  );
-
-  // Restart restarts the clock with an empty command log.
-  await restart(page);
-  await page.waitForFunction(() => {
-    const route = window.__lab?.route;
-    return !!route && route.acks().length === 0 && route.tick() < 60;
-  });
-  ctx.check("restart empties the command log and restarts the clock", true);
-}
 
 export async function run(ctx) {
   const only = process.env.STREET_TOURS?.split(",");

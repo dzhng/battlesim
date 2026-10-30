@@ -20,7 +20,7 @@ use sim::math::v3;
 /// The test rules plus an attack helicopter: a chin autocannon on a turret,
 /// and rockets and missiles fixed in its hull.
 fn fixture() -> Value {
-    let mut fixture = sim::fixtures::test_game();
+    let mut fixture = sim::fixtures::test_rules();
     let fixed = |id: &str, weapons: &str| {
         json!({ "id": id, "name": "Fixed launcher", "weapons": [weapons], "turret": false,
             "pivot_m": [1.0, 0, 0.6], "muzzle_m": [1.5, 0, 0] })
@@ -129,7 +129,7 @@ fn its_rockets_never_go_up_at_an_aircraft() {
 
 #[test]
 fn a_guided_row_must_say_how_it_guides() {
-    let mut fixture = sim::fixtures::game();
+    let mut fixture = sim::fixtures::rules();
     fixture["weapons"]["atgm"]
         .as_object_mut()
         .unwrap()
@@ -286,7 +286,7 @@ fn a_seeker_steers_at_the_box_centre() {
 
 #[test]
 fn a_missile_engages_a_helicopter() {
-    let row = sim::fixtures::test_game()["weapons"]["air_missile"].clone();
+    let row = sim::fixtures::test_rules()["weapons"]["air_missile"].clone();
     assert!(row["targets"]["low_air"].is_object());
 }
 
@@ -346,9 +346,9 @@ fn covered_tank_battle(
     red_high_air_m: f64,
     spotter: Option<([f64; 2], f64)>,
 ) -> Battle {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     rules["weapons"]["test_agm"] = json!({
-        "name": "Test AGM", "description": "A test row.", "icon": "atgm",
+        "name": "Test AGM", "description": "A test row.", "icon": "atgm", "appearance": "air_ground_missile",
         "interceptable": true, "stationary": false, "guidance": "on_the_move",
         "range_m": 1500, "min_range_m": 5, "speed_mps": 50, "accel_mps2": 140,
         "top_speed_mps": 300, "aim_s": 0.1, "reload_s": 4, "ammo": 1,
@@ -358,7 +358,7 @@ fn covered_tank_battle(
         "targets": { "ground": { "classes": ["vehicle"], "range_m": 1500, "scatter_mrad": 0.5 } }
     });
     rules["weapons"]["test_interceptor"] = json!({
-        "name": "Test SAM", "description": "A test row.", "icon": "aa_missile",
+        "name": "Test SAM", "description": "A test row.", "icon": "aa_missile", "appearance": "sam",
         "stationary": true, "guidance": "stationary", "range_m": 1500, "min_range_m": 50,
         "speed_mps": 100, "accel_mps2": 95, "top_speed_mps": 290,
         "aim_s": 0.5, "reload_s": 4, "ammo": 6, "penetration": 300, "partial_from": 0.08,
@@ -368,8 +368,8 @@ fn covered_tank_battle(
         "targets": { intercepts_in: { "classes": ["missile"], "range_m": 1500, "scatter_mrad": 0.5 } }
     });
     rules["air"]["fixed_wing"]["edge_margin_m"] = json!(300.0);
-    rules["service"]["round_costs"]["test_agm"] = json!(1);
-    rules["service"]["round_costs"]["test_interceptor"] = json!(1);
+    rules["weapons"]["test_agm"]["round_cost"] = json!(1);
+    rules["weapons"]["test_interceptor"]["round_cost"] = json!(1);
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -521,7 +521,7 @@ fn a_guided_interceptor_lets_go_of_a_round_its_side_loses_sight_of() {
 /// fires a stinger with this proximity fuse at it (none: it bursts only on
 /// what it strikes).
 fn burst_from_the_helicopter(fuse_m: Option<f64>) -> f64 {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     match fuse_m {
         Some(m) => rules["weapons"]["stinger"]["proximity_fuse_m"] = json!(m),
         None => {
@@ -564,7 +564,7 @@ fn burst_from_the_helicopter(fuse_m: Option<f64>) -> f64 {
 /// at, not on its hull.
 #[test]
 fn test_a_proximity_fuse_bursts_near_a_ground_target_too() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     rules["weapons"]["atgm"]["proximity_fuse_m"] = json!(30.0);
     sim::fixtures::patch_catalog(
         &mut rules,

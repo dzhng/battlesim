@@ -1,5 +1,5 @@
 //! Barks: the simulation decides, every tick, which units shout which bark,
-//! at which intensity, and which side hears it. Each test plays a small real
+//! at which intensity, and which side hears it. Each test plays a small
 //! battle on the test units and judges every shout against the authority's
 //! own state on the tick it was spoken.
 use crate::common as test_common;
@@ -68,14 +68,11 @@ fn ai_sources_do_not_read_the_shout_channel() {
 }
 
 #[test]
-fn rules_without_a_talk_time_for_every_bark_are_refused() {
-    let mut fixture = sim::fixtures::test_game();
-    fixture["shouts"]["talk_s"]
-        .as_object_mut()
-        .unwrap()
-        .remove("b11_kill");
-    let error = serde_json::from_value::<Rules>(fixture).expect_err("a bark without a talk time");
-    assert!(error.to_string().contains("b11_kill"), "{error}");
+fn rules_without_a_positive_talk_time_are_refused() {
+    let mut fixture = sim::fixtures::test_rules();
+    fixture["shouts"]["talk_s"] = json!(0);
+    let error = serde_json::from_value::<Rules>(fixture).expect_err("zero talk time");
+    assert!(error.to_string().contains("talk_s"), "{error}");
 }
 
 #[test]
@@ -192,13 +189,7 @@ fn chatty(rules: &mut Value) {
 /// in the way. The cooldown stays as authored.
 fn brief(rules: &mut Value) {
     let hz = rules["tick_hz"].as_f64().unwrap();
-    for v in rules["shouts"]["talk_s"]
-        .as_object_mut()
-        .unwrap()
-        .values_mut()
-    {
-        *v = json!(1.0 / hz);
-    }
+    rules["shouts"]["talk_s"] = json!(1.0 / hz);
 }
 
 fn play(setup: &ScenarioDefinition, seed: u64, seconds: f64, orders: &[(Side, Order)]) -> Run {
@@ -275,8 +266,8 @@ impl Run {
             .collect()
     }
 
-    fn talk_ticks(&self, trigger: T) -> u64 {
-        (self.rules.shouts.talk_s[&trigger] * self.rules.tick_hz as f64).round() as u64
+    fn talk_ticks(&self) -> u64 {
+        (self.rules.shouts.talk_s * self.rules.tick_hz as f64).round() as u64
     }
 
     fn cooldown_ticks(&self) -> u64 {
@@ -725,7 +716,7 @@ fn a_unit_never_starts_a_bark_while_it_is_still_talking() {
         for pair in barks.windows(2) {
             let ((a, k), (b, _)) = (pair[0], pair[1]);
             assert!(
-                (b - a) as u64 >= run.talk_ticks(k),
+                (b - a) as u64 >= run.talk_ticks(),
                 "unit {id} began {:?} at {b} while saying {k:?} from {a}",
                 pair[1].1
             );

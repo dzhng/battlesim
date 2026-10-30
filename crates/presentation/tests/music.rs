@@ -15,8 +15,8 @@ use presentation::sound::voices::{Request, Tier};
 use serde_json::Value;
 
 fn rules() -> MusicRules {
-    let game: Value = serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
-    serde_json::from_value(game["presentation"]["audio"]["music"].clone()).unwrap()
+    let game: Value = serde_json::from_str(include_str!("../../../fixtures/audio.json")).unwrap();
+    serde_json::from_value(game["music"].clone()).unwrap()
 }
 
 fn bark(tier: Tier, trigger: &str, at: f64) -> Request {

@@ -6,6 +6,7 @@ use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use serde_json::json;
 use sim::battle::Battle;
+use sim::fixtures::{self, test_rules};
 
 fn command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     CommandEnvelope {
@@ -206,8 +207,8 @@ fn a_returning_unit_reselects_the_nearest_entry_after_moving() {
 
 /// The test units, with a U.S. deck of a tank and a supply truck.
 fn deck() -> serde_json::Value {
-    let mut rules = sim::fixtures::test_game();
-    sim::fixtures::patch_catalog(
+    let mut rules = test_rules();
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_tank",
@@ -216,7 +217,7 @@ fn deck() -> serde_json::Value {
             "roster": { "factions": ["us"], "category": "veh", "family_name": "Test tank", "variant": "Test" }
         }),
     );
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_supply",
@@ -246,8 +247,8 @@ fn match_on(rules: serde_json::Value) -> contract::scenario::ScenarioDefinition 
 }
 
 fn test_jet_rules(fuel_capacity_s: f64) -> serde_json::Value {
-    let mut rules = sim::fixtures::test_game();
-    sim::fixtures::patch_catalog(
+    let mut rules = test_rules();
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jet",
@@ -624,7 +625,7 @@ fn packed_match_header_exposes_players_and_pending_counts() {
 #[test]
 fn a_purchase_preview_spreads_a_squad_round_its_destination_and_a_hull_stands_alone() {
     let mut rules = deck();
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_rifle",
@@ -662,7 +663,7 @@ fn a_purchase_preview_spreads_a_squad_round_its_destination_and_a_hull_stands_al
 #[test]
 fn a_purchase_ghost_keeps_its_shape_as_the_cursor_moves_over_open_ground() {
     let mut rules = deck();
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_rifle",
@@ -700,13 +701,13 @@ fn a_purchase_aimed_at_a_blocked_point_is_sent_to_the_nearest_open_ground() {
     let (hull_half_length, hull_half_width) = (3.0, 1.5);
     let block_half = 10.0;
     let mut rules = deck();
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_tank",
         json!({ "body": { "hull": { "half_extents_m": [hull_half_length, hull_half_width, 1.2] } } }),
     );
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_rifle",
@@ -1353,8 +1354,8 @@ fn a_new_order_cancels_withdrawal_without_a_refund() {
 #[test]
 fn a_destroyed_withdrawing_unit_never_refunds_or_retires() {
     let mut setup = setup();
-    let mut rules = sim::fixtures::test_game();
-    sim::fixtures::patch_catalog(
+    let mut rules = test_rules();
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_tank",
@@ -1435,8 +1436,8 @@ fn refund_condition_counts_casualties_lost_ammunition_carriers_and_empty_trucks(
         json!([]),
         json!([]),
     );
-    let mut rules = sim::fixtures::test_game();
-    sim::fixtures::patch_catalog(
+    let mut rules = test_rules();
+    fixtures::patch_catalog(
         &mut rules,
         "soldiers",
         "test_grenadier",
@@ -1564,7 +1565,7 @@ fn air_deck(arrival: serde_json::Value) -> serde_json::Value {
         ("test_jet", "veh", "Test jet"),
         ("test_heli", "hel", "Test heli"),
     ] {
-        sim::fixtures::patch_catalog(
+        fixtures::patch_catalog(
             &mut rules,
             "units",
             id,
@@ -1573,7 +1574,7 @@ fn air_deck(arrival: serde_json::Value) -> serde_json::Value {
             }),
         );
     }
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jet",
@@ -1629,7 +1630,7 @@ fn arrivals(battle: &mut Battle, seconds: u32) -> Vec<(u64, contract::observatio
 fn a_waiting_aircraft_leaves_the_queue_and_waits_on_its_own_clock() {
     // Flying its own cruise height, which its approach is drawn at too.
     let mut rules = air_deck(json!({ "delay_s": [20, 20] }));
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jet",
@@ -2005,7 +2006,7 @@ fn fuel_return_uses_the_edge_distance() {
 
 #[test]
 fn air_ingress_jet_returns_through_west_edge_and_refunds_its_owner() {
-    let rules = sim::fixtures::game();
+    let rules = fixtures::rules();
     let map = serde_json::to_value(sim::maps::load("air-jet").unwrap().definition).unwrap();
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map": map,

@@ -51,8 +51,6 @@ fn rules() -> Rules {
     slow_ground(&mut rules, true);
     // One trunk to a wood, so a planned line through it stays open.
     rules.forests.rule.trunk_spacing_m = 500.0;
-    rules.forests.rule.logs_per_ha = 0.0;
-    rules.forests.rule.boulders_per_ha = 0.0;
     rules
 }
 

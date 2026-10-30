@@ -19,10 +19,10 @@ import {
   pointerOffCanvas,
 } from "./_lab.mjs";
 import { orderPaint, paintHue } from "./_overlays.mjs";
-import { game } from "./_units.mjs";
+import { visuals } from "./_units.mjs";
 
-const CAMERA = game.presentation.camera;
-const COVER = game.presentation.overlay.orders.cover;
+const CAMERA = visuals.camera;
+const COVER = visuals.overlay.orders.cover;
 const START = Number(process.env.BATTLE_TICK ?? 8100);
 /** How far past START the cases are looked for (five minutes), and the
  *  step: a squad may hold in cover for only a second or two. */

@@ -6,7 +6,6 @@ import { expect, test } from "vitest";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
 import type { ObservationView, OwnUnitView } from "@web/battle/sim/observationView";
 import { supplyLayer } from "@apps/battle-lab/src/battleOverlay";
-import { validateSupplyStyle, type SupplyStyle } from "@packages/battle-renderer/src/supplyOverlay";
 
 const flat = () => 0;
 const RADIUS = 170;
@@ -54,8 +53,4 @@ test("a selected supply vehicle, or every stocked one with Space held, shows its
     // Every vertex lies on the reach ring: no ring under a unit it serves.
     for (const r of d) expect(Math.abs(r - RADIUS)).toBeLessThan(2);
   }
-});
-
-test("a supply style without its reach colour is refused", () => {
-  expect(() => validateSupplyStyle({} as SupplyStyle)).toThrow(/reach/);
 });

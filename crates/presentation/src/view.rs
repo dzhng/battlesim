@@ -91,6 +91,12 @@ pub const SHADOW_MARGIN_M: f64 = 3.0;
 
 /// `math`'s `mat4.lookAt`, stored in f32 as the GPU holds it.
 pub(crate) fn look_at(eye: Vec3, center: Vec3, up: [f64; 3]) -> [f32; 16] {
+    look_at64(eye, center, up).map(|v| v as f32)
+}
+
+/// Model baking composes its projection before narrowing the camera matrix.
+/// Ordinary frame cameras retain their float32 view contract through `look_at`.
+pub fn look_at64(eye: Vec3, center: Vec3, up: [f64; 3]) -> [f64; 16] {
     let mut z = [eye[0] - center[0], eye[1] - center[1], eye[2] - center[2]];
     if z.iter().all(|c| c.abs() < 1e-6) {
         let mut m = [0.0; 16];
@@ -137,7 +143,6 @@ pub(crate) fn look_at(eye: Vec3, center: Vec3, up: [f64; 3]) -> [f32; 16] {
         dot(z),
         1.0,
     ]
-    .map(|v| v as f32)
 }
 
 /// Reverse-Z perspective (`perspectiveReverseZ`): near at depth 1, `far` at
@@ -385,8 +390,8 @@ mod tests {
     /// `presentation.models`, as the fixture tunes it.
     fn detail() -> Detail {
         let game: serde_json::Value =
-            serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
-        serde_json::from_value(game["presentation"]["models"].clone()).unwrap()
+            serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
+        serde_json::from_value(game["models"].clone()).unwrap()
     }
 
     /// 65 m out from a target on the ground, looking north, at 1080p.

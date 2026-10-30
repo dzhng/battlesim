@@ -58,9 +58,6 @@
     "mist_color_strength": 0.25,
     "mist_opacity": 0.08
    },
-   "backdrop": {
-    "reach_m": 40000
-   },
    "exposure": 1,
    "grade": {
     "saturation": 1.1,
@@ -90,7 +87,6 @@
     "smooth_width": 0.75
    },
    "cascades": {
-    "count": 4,
     "map_size": 2048,
     "max_far_m": 2600,
     "split_lambda": 0.5,
@@ -280,9 +276,6 @@
     "mist_color_strength": 0.25,
     "mist_opacity": 0.08
    },
-   "backdrop": {
-    "reach_m": 40000
-   },
    "exposure": 1,
    "grade": {
     "saturation": 1.1,
@@ -312,7 +305,6 @@
     "smooth_width": 0.75
    },
    "cascades": {
-    "count": 4,
     "map_size": 2048,
     "max_far_m": 2600,
     "split_lambda": 0.5,

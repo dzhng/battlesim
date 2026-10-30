@@ -2,7 +2,7 @@
 // The panel workbench shows every panel the battle can draw: every row kind
 // the derivation (`panelRows.ts`) can produce appears in its specimens, so a
 // new state row, unit type, weapon row or reason can't slip past review.
-import game from "@fixtures/game.json";
+import { shippedRules } from "@web/shippedRules";
 import { UnitCatalog } from "@packages/scene-assets/src/units";
 import { TEST_CATALOG } from "./catalog";
 import { expect, test } from "vitest";
@@ -27,7 +27,7 @@ const UNITS = new UnitCatalog({
   units: TEST_CATALOG.units.view.units.filter((type) => standIns.includes(type.id)),
 });
 
-const RULES = game as unknown as PanelRules;
+const RULES = shippedRules as unknown as PanelRules;
 const specimens = panelSpecimens({ ...TEST_CATALOG, units: UNITS }, RULES);
 const rows = specimens.flatMap((s) => s.panel.weapons);
 const kinds = rows.flatMap((w) => w.kinds);

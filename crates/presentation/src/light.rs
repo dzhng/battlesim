@@ -5,6 +5,7 @@
 //! the overcast, with a cumulus layer over it. Both clients upload the records
 //! as they are: a renderer bakes its sky lookup from [`SkyLight`] and derives
 //! nothing itself.
+mod check;
 use serde::Deserialize;
 
 use crate::records::{Aerial, Bloom, Grade, SkyLight, Sun};
@@ -36,7 +37,8 @@ const HORIZON_CLEAR_EXTRA_Z: [f64; 2] = [0.2, 0.08];
 const HORIZON_VISIBILITY_KM: [f64; 2] = [8.0, 32.0];
 
 /// `presentation.light`, as far as the records read it.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct LightSettings {
     /// About +z from +x, and above the ground (rad).
     pub sun_azimuth: f64,
@@ -51,14 +53,12 @@ pub struct LightSettings {
     pub bloom: BloomSettings,
     /// The sun's shadow cascades (`shadow.rs`).
     pub cascades: CascadeSettings,
-    pub backdrop: BackdropSettings,
 }
 
 /// `presentation.light.cascades`: how the sun's shadow maps are fitted.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct CascadeSettings {
-    /// The receiver layout's slots (`shadow::CASCADES`).
-    pub count: u32,
     /// Texels a side of each cascade's map.
     pub map_size: u32,
     /// No sun shadow beyond this view depth (m).
@@ -75,14 +75,8 @@ pub struct CascadeSettings {
     pub softness_m: f64,
 }
 
-/// `presentation.light.backdrop`: the land drawn past the map's edge.
-#[derive(Clone, Debug, Deserialize)]
-pub struct BackdropSettings {
-    /// How far it reaches out from the map (m).
-    pub reach_m: f64,
-}
-
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SkySettings {
     /// 1 is pure Rayleigh air; from 4 to 7 the sky turns overcast.
     pub turbidity: f64,
@@ -113,7 +107,8 @@ fn white() -> [f64; 3] {
 }
 
 /// The haze's curve over the physical extinction.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct HazeSettings {
     pub distance_scale: f64,
     pub clear_radius_m: f64,
@@ -156,7 +151,8 @@ impl LightRecords {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct CloudSettings {
     pub coverage: f64,
     pub height_m: f64,
@@ -167,7 +163,8 @@ pub struct CloudSettings {
     pub shade: [f64; 3],
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct GradeSettings {
     /// Whether the grade applies; off leaves only exposure and AgX.
     #[serde(default = "yes")]
@@ -185,7 +182,8 @@ fn yes() -> bool {
     true
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BloomSettings {
     pub strength: f64,
     pub radius: f64,
@@ -254,7 +252,7 @@ impl LightSettings {
         let sun = self.sun_direction();
         let overcast = smoothstep(4.0, 7.0, self.sky.turbidity);
         let t = transmittance_to_sun(sun, self.sky.turbidity);
-        let lum = 0.2126 * t[0] + 0.7152 * t[1] + 0.0722 * t[2];
+        let lum = crate::color::luminance(t);
         let colour = t.map(|c| c + (lum - c) * overcast);
         let [r, g, b] = colour.map(|c| c * self.sun_intensity);
         let fill = self.sky.fill;

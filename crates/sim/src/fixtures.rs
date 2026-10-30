@@ -1,5 +1,5 @@
 //! The shipped fixtures as native tools (tests, reports, the shot runner)
-//! read them: `fixtures/game.json` with a unit catalog's documents (a
+//! read them: `fixtures/rules.json` with a unit catalog's documents (a
 //! [`CatalogSet`]: the game's, or the game's plus test or capture units) as its
 //! `catalog`. The browser gets the game's set resolved from
 //! `fixtures/catalog.json`, which [`catalog_view`] writes and a test keeps
@@ -79,21 +79,21 @@ pub fn test_documents() -> Vec<Value> {
     documents(&[TEST_ROOT, "units/roles.json", "props"])
 }
 
-/// The game fixture as [`game`] reads it, with [`test_documents`] as its
+/// The game fixture as [`rules`] reads it, with [`test_documents`] as its
 /// catalog.
-pub fn test_game() -> Value {
-    let mut fixture = game();
+pub fn test_rules() -> Value {
+    let mut fixture = rules();
     fixture["catalog"] = Value::Array(test_documents());
     fixture
 }
 
 /// Add to `fixture`'s catalog a hull at each drive's absolute limits
-/// (`hull_limits`): `test_limit_tracked`, the test tank grown to the tracked
+/// (`contract::HullLimits`): `test_limit_tracked`, the test tank grown to the tracked
 /// limits, and `test_limit_wheeled`, the test truck grown to the wheeled
 /// limits and turning as wide as they allow. What is proven for them holds
 /// for every unit the limits admit.
-pub fn with_units_at_limits(fixture: &mut Value) {
-    let limits = fixture["hull_limits"].clone();
+pub fn with_units_at_limits(fixture: &mut Value, limits: contract::HullLimits) {
+    let limits = serde_json::to_value(limits).unwrap();
     let hull = |base: &str, drive: &str| {
         let height = fixture["catalog"]
             .as_array()
@@ -118,14 +118,19 @@ pub fn with_units_at_limits(fixture: &mut Value) {
         .push(serde_json::json!({ "units": units }));
 }
 
-/// Lift `fixture`'s hull limits, for a test that needs a hull no battle may
-/// field (a truck too long to turn a corner, a tank wider than any street)
-/// to show how a mechanic fails.
-pub fn lift_hull_limits(fixture: &mut Value) {
-    let far =
-        serde_json::json!({ "half_width_m": 1e6, "half_length_m": 1e6, "turning_radius_m": 1e6 });
-    fixture["hull_limits"] =
-        serde_json::json!({ "tracked": far, "wheeled": far, "rotor": far, "fixed_wing": far });
+/// Bounds for tests that deliberately field a hull no battle may admit.
+pub fn lift_hull_limits() -> contract::HullLimits {
+    let far = contract::DriveLimits {
+        half_width_m: 1e6,
+        half_length_m: 1e6,
+        turning_radius_m: Some(1e6),
+    };
+    contract::HullLimits {
+        tracked: far,
+        wheeled: far,
+        rotor: far,
+        fixed_wing: far,
+    }
 }
 
 /// The catalog documents at `roots` under `fixtures/` (a directory, walked,
@@ -165,16 +170,16 @@ fn documents(roots: &[&str]) -> Vec<Value> {
         .collect()
 }
 
-/// The game fixture as `Rules` read it: the rules (`game.json`) with the
+/// The game fixture as `Rules` read it: the rules (`rules.json`) with the
 /// game's unit catalog. It carries no map: a battle's ground is its own
 /// (generated, or a saved map named by [`with_map`]).
-pub fn game() -> Value {
-    let mut fixture = read(&dir().join("game.json"));
+pub fn rules() -> Value {
+    let mut fixture = read(&dir().join("rules.json"));
     fixture["catalog"] = Value::Array(catalog_documents(CatalogSet::Game));
     fixture
 }
 
-/// [`test_game`] with the saved test map `id` (`fixtures/maps/<id>`),
+/// [`test_rules`] with the saved test map `id` (`fixtures/maps/<id>`),
 /// resolved, under `map`: for a test that needs ground. A map that is not a
 /// test's (a capture map) is refused, so no test stands on a capture
 /// battlefield.
@@ -187,7 +192,7 @@ pub fn with_map(id: &str) -> Value {
         "{id} is not a test map"
     );
     let map = catalogue.load(id).unwrap_or_else(|e| panic!("{e}"));
-    let mut fixture = test_game();
+    let mut fixture = test_rules();
     fixture["map"] = serde_json::to_value(map.definition).expect("the map serializes");
     fixture
 }
@@ -201,19 +206,18 @@ pub fn admit(mut game: Value, documents: Vec<Value>) -> Result<Value, String> {
     game["catalog"] = Value::Array(documents);
     let rules: contract::scenario::Rules =
         serde_json::from_value(game).map_err(|e| e.to_string())?;
-    crate::weapons::check_rules(&rules)?;
-    crate::supply::validate(&rules)?;
+    crate::admit(&rules).map_err(|e| e.to_string())?;
     let mut view = rules.catalog.view();
     view["weapons"] = serde_json::to_value(rules.weapons).map_err(|e| e.to_string())?;
     Ok(view)
 }
 
 /// The resolved catalog's view (`Catalog::view`) as `fixtures/catalog.json`
-/// holds it, with `weapons`: `game.json`'s weapon rows, `extends`
+/// holds it, with `weapons`: `rules.json`'s weapon rows, `extends`
 /// resolved, as the mounts name them.
 pub fn catalog_view() -> String {
     let view = admit(
-        read(&dir().join("game.json")),
+        read(&dir().join("rules.json")),
         catalog_documents(CatalogSet::Game),
     )
     .unwrap_or_else(|e| panic!("the mechanics: {e}"));

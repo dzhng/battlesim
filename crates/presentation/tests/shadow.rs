@@ -43,9 +43,12 @@ fn street() -> TerrainPartition {
 }
 
 fn game_light() -> LightSettings {
-    let at = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/game.json");
+    let at = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../fixtures/presentation.json"
+    );
     let game: Value = serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap();
-    serde_json::from_value(game["presentation"]["light"].clone()).unwrap()
+    serde_json::from_value(game["light"].clone()).unwrap()
 }
 
 /// An orbit camera over `target`, `distance` out at `pitch` and `yaw`, as
@@ -667,7 +670,7 @@ fn every_cascade_camera_runs_on_the_frames_clock_and_wind() {
     let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
     let read = |path: &str| std::fs::read_to_string(format!("{root}/{path}")).unwrap();
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let map = sim::maps::Catalogue::shipped()
         .load("wetlands")
         .unwrap()
@@ -681,8 +684,11 @@ fn every_cascade_camera_runs_on_the_frames_clock_and_wind() {
     biome.wind.gust_mps = 7.5;
     let wind = biome.wind.record();
     assert!(wind.gust_mps > 0.0 && wind.toward[1] > 0.0);
-    let game: serde_json::Value = serde_json::from_str(&read("fixtures/game.json")).unwrap();
-    let tuning: Tuning = serde_json::from_value(game["presentation"].clone()).unwrap();
+    let game: serde_json::Value =
+        serde_json::from_str(&read("fixtures/presentation.json")).unwrap();
+    let tuning: Tuning = presentation::settings::PresentationSettings::from_value(&game)
+        .unwrap()
+        .tuning();
     let mut presentation = Presentation::new(None, 30.).unwrap();
     presentation.set_ground(source, biome, tuning).unwrap();
     presentation.set_shadow(Some((game_light(), Arc::new(street()))));

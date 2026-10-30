@@ -284,6 +284,7 @@ export interface PropType {
       };
   appearance: {
     drawn_by: string;
+    stand_in_tint: Vec3;
     status?: "systems_only";
     modular?: boolean;
     map_only?: boolean;
@@ -293,6 +294,8 @@ export interface PropType {
 /** One resolved weapon row (`contract::weapons::WeaponDefinition`), as the
  *  shipped view carries it; the fields presentation reads are typed. */
 export interface WeaponRow {
+  /** The admitted presentation look, inherited by the contract resolver. */
+  appearance: string;
   name: string;
   description: string;
   icon: string;

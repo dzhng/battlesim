@@ -1,32 +1,25 @@
+import { openTerrainQuery, finishTerrainQuery } from "./_terrainQuery.mjs";
 // The scars are filtered in the shader from loaded texels, never by a
 // sampler. Query the production cubic and linear lookups on a dense ground and
 // compare them, bit for bit, with the hardware filter's original arithmetic.
 import { createHash } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 export async function groundFilterExact(ctx) {
-  const page = await ctx.newPage();
-  await page.goto(new URL("/", ctx.url).href);
+  const page = await openTerrainQuery(ctx);
   const repo = new URL("../../", import.meta.url).pathname;
   const result = await page.evaluate(async (repo) => {
     const file = (p) => `/@fs/${repo}${p}`;
-    const [mesh, rules, biome, wasm, allocations] = await Promise.all([
+    const [mesh, rules, biome, wasm] = await Promise.all([
       import(file("packages/battle-renderer/src/worldMesh.ts")),
       import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("test")),
       import(file("fixtures/biomes/summer.json")),
       import("/src/wasm/game_wasm.js"),
-      import(file("packages/renderer-core/src/gpuAllocations.ts")),
     ]);
     await wasm.default();
-    // The ground's shapes are resolved by the presentation module.
-    await (await import(file("web/src/battle/sim/presentation.ts"))).loadPresentation();
     const view = new wasm.WorldView(
       JSON.stringify({ size: [32, 32], height_grid_m: 4, fog_cell_m: 8, slope_cutoff_deg: 35 }),
       JSON.stringify(rules.rules),
     );
-    const adapter = await navigator.gpu.requestAdapter();
-    const device = await adapter.requestDevice();
-    const live = allocations.trackGpuAllocations(device);
-    const baseline = live();
     const world = mesh.buildWorldLayers(
       mesh.readWorldExports(view),
       JSON.parse(wasm.world_layout(JSON.stringify(rules.rules))),
@@ -34,49 +27,17 @@ export async function groundFilterExact(ctx) {
       "surface",
     );
     try {
-      // Use the production lookup and bindings. A profile-only shader can
-      // miss cancellation that appears after this source is inlined.
-      const terrainPath = file("packages/battle-renderer/src/frame/terrainMaterial.ts");
-      const terrainText = await (await fetch(terrainPath)).text();
-      const gpuUrl = terrainText.match(/from ["']([^"']*typegpu[^"']*)["']/)[1];
-      const [
-        { tgpu, d },
-        { GpuRegistry },
-        ,
-        scars,
-        surface,
-        { ScenePresentation },
-        { groundRecords },
-      ] = await Promise.all([
-        import(gpuUrl),
-        import(file("packages/battle-renderer/src/frame/registry.ts")),
-        import(terrainPath), // the terrain material: loaded, never read
-        import(file("packages/battle-renderer/src/frame/groundScars.ts")),
-        import(file("packages/battle-renderer/src/terrain/terrainSurface.ts")),
+      const [{ ScenePresentation }, { groundRecords }] = await Promise.all([
         import(file("web/src/battle/sim/presentation.ts")),
         import(file("web/tests/groundRuns.ts")),
       ]);
-      const compiled = [],
-        shader = device.createShaderModule.bind(device);
-      device.createShaderModule = (descriptor) => {
-        compiled.push(descriptor.code);
-        return shader(descriptor);
-      };
-      const registry = new GpuRegistry(device),
-        root = tgpu.initFromDevice({ device });
-      registry.adopt(() => root.destroy());
       const failures = [];
       let queryCount = 0;
       let bitFailures = 0,
         linearFailures = 0,
         maxError = 0;
-      // The terrain draws the ground the presentation resolved.
-      const ground = surface.presentGround(world.terrain.input);
+      let decoder;
       try {
-        const source = (
-          await import(file("packages/battle-renderer/src/frame/terrainSource.ts"))
-        ).createTerrainSource(root, registry, "full");
-        source.set(ground);
         const runs = [];
         for (let y = 0; y < 38; y++)
           for (let x = 0; x < 38; x++) {
@@ -116,7 +77,7 @@ export async function groundFilterExact(ctx) {
         const published = JSON.parse(battle.observation_layout());
         battle.free();
         published.ground = { ...published.ground, cellM: 1, cols: 600, rows: 600 };
-        const decoder = new ScenePresentation(published);
+        decoder = new ScenePresentation(published);
         decoder.decode(
           groundRecords(published)({
             epoch: 1,
@@ -127,8 +88,21 @@ export async function groundFilterExact(ctx) {
             runs: Float32Array.from(runs.flat()),
           }),
         );
-        source.setGround(decoder.ground);
-        source.prepareScars();
+        decoder.setGround(world.terrain.input, null);
+        decoder.frame(
+          0,
+          {
+            eye: [0, -20, 20],
+            target: [0, 0, 0],
+            up: [0, 0, 1],
+            fovY: 0.8,
+            near: 1,
+            width: 64,
+            height: 64,
+          },
+          { selected: [], xray: false, ghosts: [] },
+          0,
+        );
         const bytes = new Uint8Array(600 * 600 * 4);
         for (let y = 0; y < 600; y++)
           for (let x = 0; x < 600; x++)
@@ -171,138 +145,64 @@ export async function groundFilterExact(ctx) {
         const points = Float32Array.from(pointValues),
           n = points.length / 2;
         queryCount = n;
-        const layout = tgpu.bindGroupLayout({
-          points: { storage: (n) => d.arrayOf(d.vec2f, n), access: "readonly" },
-          output: { storage: (n) => d.arrayOf(d.vec4f, n), access: "mutable" },
-          reference: { texture: d.texture2d(d.f32) },
-          sampler: { sampler: "filtering" },
-        });
-        // Frozen b538ecd coefficients, independent of the production helper.
-        const original = tgpu
-          .fn(
-            [d.vec2f],
-            d.vec4f,
-          )(`(uv:vec2f)->vec4f {
-          let size=vec2f(textureDimensions(layout.$.reference));let p=uv*size-0.5;let i=floor(p);let f=p-i;
-          let f2=f*f;let f3=f2*f;let w0=(1.0-3.0*f+3.0*f2-f3)/6.0;let w1=(4.0-6.0*f2+3.0*f3)/6.0;let w2=(1.0+3.0*f+3.0*f2-3.0*f3)/6.0;let w3=f3/6.0;
-          let g0=w0+w1;let g1=w2+w3;let h0=(i-0.5+w1/g0)/size;let h1=(i+1.5+w3/g1)/size;
-          let a=textureSampleLevel(layout.$.reference,layout.$.sampler,vec2f(h0.x,h0.y),0.0);let b=textureSampleLevel(layout.$.reference,layout.$.sampler,vec2f(h1.x,h0.y),0.0);let c=textureSampleLevel(layout.$.reference,layout.$.sampler,vec2f(h0.x,h1.y),0.0);let other=textureSampleLevel(layout.$.reference,layout.$.sampler,vec2f(h1.x,h1.y),0.0);
-          return g0.y*(g0.x*a+g1.x*b)+g1.y*(g0.x*c+g1.x*other);
-        }`)
-          .$uses({ layout });
-        const sampleGroundCubic = scars.sampleGroundCubic,
-          sampleGroundLinear = scars.sampleGroundLinear;
-        const kernel = tgpu
-          .computeFn({ in: { gid: d.builtin.globalInvocationId }, workgroupSize: [1] })(`{
-          let uv=layout.$.points[gid.x];layout.$.output[gid.x*4u]=sampleGroundCubic(uv);layout.$.output[gid.x*4u+1u]=original(uv);layout.$.output[gid.x*4u+2u]=sampleGroundLinear(uv);layout.$.output[gid.x*4u+3u]=textureSampleLevel(layout.$.reference,layout.$.sampler,uv,0.0);
-        }`)
-          .$uses({ layout, sampleGroundCubic, sampleGroundLinear, original });
-        const pipeline = root.createComputePipeline({ compute: kernel });
-        await pipeline.initAsync();
-        const reference = registry.texture({
-          size: [600, 600],
-          format: "rgba8unorm",
-          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-        });
-        device.queue.writeTexture(
-          { texture: reference },
-          bytes,
-          { bytesPerRow: 2400, rowsPerImage: 600 },
-          [600, 600],
+        const rows = Float32Array.from(
+          Array.from({ length: n }, (_, i) => [points[i * 2], points[i * 2 + 1], 0, 0]).flat(),
         );
-        const input = registry.buffer({
-          size: points.byteLength,
-          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        });
-        const output = registry.buffer({
-          size: n * 64,
-          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-        });
-        const read = registry.buffer({
-          size: n * 64,
-          usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-        });
-        device.queue.writeBuffer(input, 0, points);
-        const encoder = root["~unstable"].createCommandEncoder();
-        pipeline
-          .with(source.group)
-          .with(
-            root.createBindGroup(layout, {
-              points: input,
-              output,
-              reference: reference.createView(),
-              sampler: device.createSampler({
-                minFilter: "linear",
-                magFilter: "linear",
-                addressModeU: "clamp-to-edge",
-                addressModeV: "clamp-to-edge",
-              }),
-            }),
-          )
-          .with(encoder)
-          .dispatchWorkgroups(n);
-        root.unwrap(encoder).copyBufferToBuffer(output, 0, read, 0, n * 64);
-        encoder.submit();
-        await read.mapAsync(GPUMapMode.READ);
-        try {
-          const mapped = read.getMappedRange(),
-            bits = new Uint32Array(mapped),
-            values = new Float32Array(mapped);
-          for (let i = 0; i < n; i++)
-            for (let c = 0; c < 4; c++) {
-              if (bits[i * 16 + c] !== bits[i * 16 + 4 + c]) {
-                bitFailures++;
-                failures.push({
-                  point: i,
-                  channel: c,
-                  uv: [points[i * 2], points[i * 2 + 1]],
-                  actual: values[i * 16 + c],
-                  original: values[i * 16 + 4 + c],
-                  ulp: Math.abs(bits[i * 16 + c] - bits[i * 16 + 4 + c]),
-                });
-              }
-              if (bits[i * 16 + 8 + c] !== bits[i * 16 + 12 + c]) linearFailures++;
-              maxError = Math.max(maxError, Math.abs(values[i * 16 + c] - values[i * 16 + 4 + c]));
+        const result = await decoder.queryGround(
+          window.__terrainQuery.scene.renderer,
+          "filters",
+          rows,
+          bytes,
+          600,
+        );
+        window.__terrainQuery.compiled.add(result.source);
+        const values = result.values;
+        const bits = new Uint32Array(values.buffer, values.byteOffset, values.length);
+        for (let i = 0; i < n; i++)
+          for (let c = 0; c < 4; c++) {
+            if (bits[i * 16 + c] !== bits[i * 16 + 4 + c]) {
+              bitFailures++;
+              failures.push({
+                point: i,
+                channel: c,
+                uv: [points[i * 2], points[i * 2 + 1]],
+                actual: values[i * 16 + c],
+                original: values[i * 16 + 4 + c],
+                ulp: Math.abs(bits[i * 16 + c] - bits[i * 16 + 4 + c]),
+              });
             }
-        } finally {
-          read.unmap();
-        }
+            if (bits[i * 16 + 8 + c] !== bits[i * 16 + 12 + c]) linearFailures++;
+            maxError = Math.max(maxError, Math.abs(values[i * 16 + c] - values[i * 16 + 4 + c]));
+          }
       } finally {
-        registry.release();
-        ground.free();
-        device.createShaderModule = shader;
+        decoder?.free();
       }
       return {
-        baseline,
         queryCount,
         bitFailures,
         linearFailures,
         failures,
         maxError,
-        afterQueries: live(),
-        compiled,
+        validation: window.__terrainValidation,
       };
     } finally {
       view.free();
-      device.destroy();
     }
   }, repo);
-  const modules = result.compiled;
-  delete result.compiled;
+  const { final, compiled: modules } = await finishTerrainQuery(page);
+  result.afterQueries = final;
   result.shaderHashes = modules.map((code) => createHash("sha256").update(code).digest("hex"));
   for (let i = 0; i < modules.length; i++)
     await writeFile(ctx.evidencePath(`ground-filter-query-${i}.wgsl`), modules[i]);
-  result.sourceHashes = {};
-  for (const name of ["scarFilter", "terrainMaterial", "scarTexture"])
-    result.sourceHashes[name] = createHash("sha256")
-      .update(await readFile(`${repo}packages/battle-renderer/src/frame/${name}.ts`))
-      .digest("hex");
+  // Hash the actual composed production material together with the diagnostic entry.
+  result.sourceHashes = result.shaderHashes;
   await writeFile(ctx.evidencePath("ground-filter-query.json"), JSON.stringify(result, null, 2));
   ctx.check(
     "the production cubic sampler matches original dense hardware values bit for bit",
     result.bitFailures === 0 &&
       result.linearFailures === 0 &&
-      JSON.stringify(result.afterQueries) === JSON.stringify(result.baseline),
+      Object.values(result.afterQueries).every((count) => count === 0) &&
+      result.validation.length === 0,
     JSON.stringify({
       bitFailures: result.bitFailures,
       linearFailures: result.linearFailures,

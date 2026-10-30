@@ -124,9 +124,12 @@ fn camel(snake: &str) -> String {
 }
 
 fn game_light() -> LightSettings {
-    let at = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/game.json");
+    let at = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../fixtures/presentation.json"
+    );
     let game: Value = serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap();
-    serde_json::from_value(game["presentation"]["light"].clone()).unwrap()
+    serde_json::from_value(game["light"].clone()).unwrap()
 }
 
 /// The sky, the shading and the haze share one sun, and a sun shadow keeps
@@ -178,4 +181,17 @@ fn clouds_give_way_to_the_overcast_dome() {
     light.sky.turbidity = 12.0;
     let sky = light.sky();
     assert_eq!((sky.cloud_opacity, sky.overcast), (0.0, 1.0));
+}
+
+#[test]
+fn sky_and_environment_share_one_unit_sun() {
+    for case in vectors().as_object().unwrap().values() {
+        let light: LightSettings = serde_json::from_value(case["light"].clone()).unwrap();
+        let records = light.records();
+        assert_eq!(records.sky.sun_direction, records.sun.sun_direction[..3]);
+        let sun = records.sky.sun_direction;
+        let length = sun.iter().map(|c| c * c).sum::<f32>().sqrt();
+        assert!((length - 1.0).abs() < 1e-6);
+        assert!((f64::from(sun[2]) - libm::sin(light.sun_elevation)).abs() < 1e-6);
+    }
 }

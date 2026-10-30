@@ -1,30 +1,24 @@
 /** Browser binding of Rust presentation: side publications in, observations
  * and frame views out. Rust owns decoding, poses, effects and static walks. */
-import init, {
+import type { ModelAsset } from "../render/modelAssets";
+import type { GrassClumpRow } from "@packages/battle-renderer/src/grass";
+import type { BattleAudio } from "@packages/battle-audio/src/battleAudio";
+import {
   Presentation,
   fog_look,
-  light_records,
-} from "@wasm/presentation/presentation_wasm.js";
-import wasmUrl from "@wasm/presentation/presentation_wasm_bg.wasm?url";
-import {
-  APPEARANCE_WORDS,
-  Appearance,
-  Batch,
-  BATCH_WORDS,
-  NONE,
-  frameViews,
-  worldViews,
-} from "@packages/battle-renderer/src/records.gen";
-import {
-  resolvedLight,
-  type LightPresentation,
-  type ResolvedLight,
-} from "@packages/battle-renderer/src/light/sceneLight";
-import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
+  type Renderer,
+  type PreparedAppearances,
+} from "@wasm/renderer_browser";
+import { LearnedGround, groundOf } from "./presentationGround";
+import { Batch, BATCH_WORDS, NONE, frameViews } from "@packages/battle-renderer/src/records.gen";
+import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
+import type { FogStyle } from "@packages/battle-renderer/src/fog";
+import type { PresentationProbe } from "./presentationProbe";
+export type { PresentationProbe } from "./presentationProbe";
 import {
   emptyBuildingWalkStats,
   type BuildingWalkStats,
-} from "@packages/battle-renderer/src/models/buildingLayer";
+} from "@packages/battle-renderer/src/models/buildingWalk";
 import {
   artCovers,
   buildingArt,
@@ -41,26 +35,25 @@ import {
   type PresentedGround,
 } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { tierMesh } from "@packages/battle-renderer/src/scenery/appearance";
-import { concatMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
-import { STUMP } from "@packages/battle-renderer/src/frame/sceneryLayer";
-import { occluderBoxes, type FogOccluder } from "@packages/battle-renderer/src/frame/fogVisibility";
+import { concatMeshes } from "@packages/battle-renderer/src/mesh";
+import { occluderBoxes, type FogOccluder } from "@packages/battle-renderer/src/fog";
 import type { WorldScenery } from "@packages/battle-renderer/src/scene";
 import { propArt, type KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
-import {
-  NO_SCENERY_WALK,
-  type SceneryWalkStats,
-} from "@packages/battle-renderer/src/frame/sceneryLayer";
+import { NO_SCENERY_WALK, type SceneryWalkStats } from "@packages/battle-renderer/src/scenery/walk";
 import { TEMPLATE_STATES, type TemplateState } from "@packages/scene-assets/src/templateLibrary";
-import { countedFetch } from "../../downloads";
-import type {
-  GroundMarks,
-  ScarRegion,
-  ScarUpload,
-} from "@packages/battle-renderer/src/frame/scarTexture";
-import type { GroundLayout, ObservationLayout, ObservationView } from "./observationView";
+import { loadPresentationModule, presentationMemory } from "../../presentationModule";
+export const loadPresentation = loadPresentationModule;
+import type { LabAsset } from "../render/modelAssets";
+import {
+  labModelsJson,
+  readAppearanceRows,
+  prepareAppearances,
+  type PresentedAppearance,
+  type LabModel,
+  type ModelDetail,
+} from "./presentationModels";
 
-let loaded: Promise<{ memory: WebAssembly.Memory }> | null = null;
-let memory: WebAssembly.Memory | null = null;
+import type { ObservationLayout, ObservationView } from "./observationView";
 
 /** Receiver traversal work, separate from terrain draw selection. */
 export interface ReceiverFitStats {
@@ -70,39 +63,13 @@ export interface ReceiverFitStats {
   reused: boolean;
 }
 
-/** Initialises the module once per realm; decoders need it first. */
-export function loadPresentation(): Promise<unknown> {
-  // Vitest runs in Node, where Vite's asset URL cannot be fetched (module.ts).
-  loaded ??= (
-    typeof process !== "undefined" && process.versions?.node
-      ? import("node:fs/promises")
-          .then(({ readFile }) =>
-            readFile(`${import.meta.dirname}/../../wasm/presentation/presentation_wasm_bg.wasm`),
-          )
-          .then((bytes) => init({ module_or_path: bytes }))
-      : init({ module_or_path: countedFetch(wasmUrl) })
-  ).then((output) => {
-    memory = output.memory;
-    return output;
-  });
-  return loaded;
-}
-
-/** `presentation.light` resolved by the presentation crate
- *  (`presentation::light`) into the records the renderer uploads as they
- *  are. A frame is built with it before any battle loads, and for scenes
- *  with none, so it needs no `Presentation`, only the module. */
-export async function resolveLight(settings: LightPresentation): Promise<ResolvedLight> {
-  await loadPresentation();
-  return resolvedLight(settings, light_records(JSON.stringify(settings)));
-}
-
 /** A `presentation.fog` style checked and resolved by the presentation crate
  *  (`presentation::fog`) into the `FogLook` record the fog mask passes
  *  upload as it is; throws naming a field out of range. Needs the module
- *  loaded, as it is once a frame is built (`resolveLight`). */
+ *  loaded before resolving a look. */
 export function resolveFogLook(style: FogStyle): Float32Array {
-  if (!memory) throw new Error("resolveFogLook: the presentation module is not loaded");
+  if (!presentationMemory())
+    throw new Error("resolveFogLook: the presentation module is not loaded");
   return fog_look(JSON.stringify(style));
 }
 /** The camera a frame is drawn for: the eye and what it looks at (m, sim), the screen's up,
@@ -149,45 +116,9 @@ export interface PresentedUi {
   known?: readonly (KnownPart & Partial<KnownProp>)[];
 }
 
-export type PresentedFrame = ReturnType<typeof frameViews> & { waves?: Float32Array };
+export type PresentedFrame = ReturnType<typeof frameViews>;
 
-import type { PresentationProbe } from "./presentationProbe";
-export type { PresentationProbe };
-/** One drawable the frame's batches name, by `World.appearances` row;
- *  `placed` for the static world's (`Appearance.placed`). */
-export interface PresentedAppearance {
-  name: string;
-  state: string;
-  lies: number;
-  placed: boolean;
-  /** What draws it (`Appearance.draws`): 0 a model or kit module, else the scenery. */
-  draws: number;
-  /** A felled tree's stump row's mesh (`draws` 6; `Presentation::stump_mesh`). */
-  stump?: Mesh;
-}
-
-const buffer = () => memory!.buffer;
-
-/** The ground `rust` holds, as the renderer reads its tables: a new object
- *  for each ground set, so a renderer knows to read them again. */
-function groundOf(rust: Presentation): PresentedGround {
-  return {
-    prepare_fog: (camera, width, height, probes) => rust.prepare_fog(camera, width, height, probes),
-    resend_fog: () => rust.resend_fog(),
-    rebuild_fog: () => rust.rebuild_fog(),
-    fog_stats: () => rust.fog_stats(),
-    fog_occluders: () => rust.fog_occluders(),
-    ground_terrain: () => rust.ground_terrain(),
-    ground_plots: (textured) => rust.ground_plots(textured),
-    ground_water_mesh: () => rust.ground_water_mesh(),
-    grass_kinds: () => rust.grass_kinds(),
-    grass_params: (shapes, density) => rust.grass_params(shapes, density),
-    grass_window: () => rust.grass_window(),
-    grass_frame_params: (words, window) => rust.grass_frame_params(words, window),
-    grass_props: () => rust.grass_props(),
-    retune_grass: (rules) => rust.retune_grass(rules),
-  };
-}
+const buffer = () => presentationMemory()!.buffer;
 
 /** One own eye fog sees from (`presentation::fog::sight::Eye`). */
 export interface FogEye {
@@ -275,84 +206,6 @@ export interface FallenBuilding {
   state: Exclude<TemplateState, "intact">;
 }
 
-/** The side's learned ground as the presentation keeps it
- *  (`crates/presentation/src/scars`): what its publications taught it, cell
- *  by cell, and its scars as the renderer uploads them. */
-export class LearnedGround implements GroundMarks {
-  readonly cellM: number;
-  readonly cols: number;
-  readonly rows: number;
-  private regionsFlat: Float64Array | null = null;
-  private regionList: ScarRegion[] = [];
-
-  constructor(
-    private readonly rust: Presentation,
-    grid: Pick<GroundLayout, "cellM" | "cols" | "rows">,
-  ) {
-    ({ cellM: this.cellM, cols: this.cols, rows: this.rows } = grid);
-  }
-
-  get epoch(): number {
-    return this.rust.ground_epoch();
-  }
-  get revision(): number {
-    return this.rust.ground_revision();
-  }
-  /** The side it learned for, once a snapshot came. */
-  get side(): string | null {
-    return this.rust.ground_side() ?? null;
-  }
-  /** Cells the side has seen cleared. */
-  get clearedCount(): number {
-    return this.rust.ground_cleared_count();
-  }
-  isCleared(i: number, j: number): boolean {
-    return i >= 0 && j >= 0 && this.rust.ground_cleared(i, j);
-  }
-  /** The cleared spans in tile order: (tile, start + length × 256) pairs. */
-  clearedRuns(): Uint32Array {
-    return this.rust.ground_cleared_runs();
-  }
-  /** Every marked or cleared cell in row-major order: (cell index, marks as
-   *  drawn: crater, scorch, tracks, trampled a byte each) pairs. */
-  markedCells(): Uint32Array {
-    return this.rust.ground_marked();
-  }
-
-  changed(): boolean {
-    return this.rust.scars_changed();
-  }
-  regions(): readonly ScarRegion[] {
-    const flat = this.rust.scar_regions();
-    if (this.regionsFlat?.length !== flat.length) {
-      this.regionsFlat = flat;
-      this.regionList = [];
-      for (let k = 0; k < flat.length; k += 4)
-        this.regionList.push([flat[k], flat[k + 1], flat[k + 2], flat[k + 3]]);
-    }
-    return this.regionList;
-  }
-  prepare(region?: ScarRegion, clipped = false): ScarUpload {
-    const upload = this.rust.prepare_scars(region && Float64Array.from(region), clipped);
-    const words = upload.directory(),
-      size = upload.directory_size();
-    const out: ScarUpload = {
-      directory: words ? { words, width: size[0], height: size[1] } : null,
-      writes: upload.writes(),
-      texels: upload.texels(),
-      params: upload.params(),
-    };
-    upload.free();
-    return out;
-  }
-  resend() {
-    this.rust.resend_scars();
-  }
-  stats() {
-    return JSON.parse(this.rust.scar_stats()) as ReturnType<GroundMarks["stats"]>;
-  }
-}
-
 /** One ordered side-publication stream, and its presentation; or, with no
  * layout, a presentation no battle publishes into (a world of statics).
  * Retained observations are immutable; unchanged fog and static groups
@@ -366,8 +219,6 @@ export class ScenePresentation {
   private last: ObservationView | null = null;
   /** The last frame's header. */
   private framePtr = 0;
-  /** The wave field's frame the last `frame` took (`Presentation.waves`). */
-  private waves: Float32Array = new Float32Array(0);
   private battle: PresentedBattle | null = null;
   private buildings: SceneBuildings | null = null;
   private installed: InstalledAppearances | null = null;
@@ -464,29 +315,69 @@ export class ScenePresentation {
       );
     }
     // The call may grow memory: the views are taken after it.
-    const ptr = this.rust.load_world(JSON.stringify(world));
-    const views = worldViews(buffer(), ptr);
-    const text = new TextDecoder();
-    const rows = views.appearances.u32;
-    const name = (at: number, len: number) => text.decode(views.strings.subarray(at, at + len));
-    const loaded: PresentedAppearance[] = Array.from(
-      { length: views.appearances.count },
-      (_, r) => {
-        const o = r * APPEARANCE_WORDS;
-        return {
-          name: name(rows[o + Appearance.name], rows[o + Appearance.name_len]),
-          state: name(rows[o + Appearance.state], rows[o + Appearance.state_len]),
-          lies: rows[o + Appearance.lies],
-          placed: rows[o + Appearance.placed] === 1,
-          draws: rows[o + Appearance.draws],
-        };
-      },
-    );
-    // After the views: each call may grow memory.
-    loaded.forEach((row, r) => {
-      if (row.draws === STUMP) row.stump = this.rust.stump_mesh(r) as Mesh;
-    });
-    return (this.rows = loaded);
+    return this.readWorld(this.rust.load_world(JSON.stringify(world)));
+  }
+
+  private readWorld(ptr: number): PresentedAppearance[] {
+    return (this.rows = readAppearanceRows(buffer(), ptr, this.rust));
+  }
+
+  /** Installs a complete external art generation without fabricating a battle.
+   *  Reinstall renderer tables after admission; returned rows include both. */
+  installLabAssets(assets: readonly LabAsset[], detail: ModelDetail): PresentedAppearance[] {
+    this.rust.begin_lab_assets();
+    for (const asset of assets) this.rust.add_lab_asset(asset.name, asset.bundle, asset.skeleton);
+    const ptr = this.rust.install_lab_assets(JSON.stringify(detail));
+    return (this.loaded = this.readWorld(ptr));
+  }
+
+  /** Prepare a complete source/GPU generation while the active catalog stays live. */
+  prepareRendererAppearances(
+    renderer: Pick<Renderer, "appearance_draft" | "prepare_appearances">,
+    assets: readonly ModelAsset[],
+    detail: ModelDetail,
+  ): Promise<PreparedAppearances> {
+    return prepareAppearances(renderer, this.rust, assets, detail);
+  }
+
+  /** Call at a frame boundary, then publish a fresh canonical frame before drawing. */
+  commitRendererAppearances(
+    renderer: Pick<Renderer, "commit_appearances">,
+    prepared: PreparedAppearances,
+    models: readonly LabModel[],
+  ): boolean {
+    const ptr = renderer.commit_appearances(this.rust, prepared, labModelsJson(models));
+    if (!ptr) return false;
+    this.loaded = this.readWorld(ptr);
+    return true;
+  }
+
+  /** Adopt the source generation committed by Rust without reloading its observer.
+   * Independent changes to world or template topology keep their stale marker. */
+  adoptRendererAppearanceSource(
+    installed: InstalledAppearances | null,
+    scenery = this.sceneryArt,
+  ): void {
+    this.installed = installed;
+    this.art = buildingArt(installed);
+    this.proppedBy = installed;
+    this.sceneryArt = scenery;
+    this.placedBy = scenery;
+  }
+
+  /** Tooling models supplement the battle and static world on the next frame. */
+  setLabModels(models: readonly LabModel[]): void {
+    this.rust.set_lab_models(labModelsJson(models));
+  }
+
+  /** Battle/static source names exclude the replaceable tooling suffix. */
+  canonicalAppearanceRows(): readonly PresentedAppearance[] {
+    return this.rows.slice(0, this.rust.canonical_appearance_rows());
+  }
+
+  /** The drawables named by the last loaded world, in frame row order. */
+  appearanceRows(): readonly PresentedAppearance[] {
+    return this.rows;
   }
 
   /** Stage what the battle draws (null: none); loaded with the rest by the
@@ -495,6 +386,11 @@ export class ScenePresentation {
     if (battle === this.battle) return;
     this.battle = battle;
     this.stale = true;
+  }
+
+  /** Canonical battle topology is staged before the worker starts publishing. */
+  hasBattle(): boolean {
+    return this.battle !== null;
   }
 
   /** Stage the scene's buildings (null: none) drawn from `installed`'s
@@ -767,12 +663,9 @@ export class ScenePresentation {
     return this.rust.clock(nowMs / 1000) ?? null;
   }
 
-  /** What to draw at presentation time `time` for `camera`, loading first
-   *  what was staged: views over the module's memory, valid until the next
-   *  call into it. `generation` is the renderer's, bumped whenever it holds
-   *  no static batches (a new GPU frame, a new world): a new one is written
-   *  every one. A building the side knows in a state its template lacks
-   *  throws by name. */
+  /** Loads staged inputs and frames at `time`. Views expire on the next module
+   *  call. A fresh renderer `generation` resends all static batches; a known
+   *  building state absent from its template throws by name. */
   frame(
     time: number,
     camera: PresentedCamera,
@@ -808,9 +701,7 @@ export class ScenePresentation {
     );
     this.walk.selectMs = performance.now() - started;
     this.framePtr = ptr;
-    // Before the views: it may grow the module's memory.
-    this.waves = this.rust.waves();
-    const views = { ...frameViews(buffer(), ptr), waves: this.waves };
+    const views = frameViews(buffer(), ptr);
     const batches = views.batches.u32;
     this.walked = false;
     for (let b = 0; b < views.batches.count && !this.walked; b++) {
@@ -821,15 +712,72 @@ export class ScenePresentation {
     return views;
   }
 
-  /** The last frame's views, taken again after another call into the module. */
+  /** Reacquire views after any allocating presentation, rendering or audio call. */
   lastFrame(): PresentedFrame {
-    return { ...frameViews(buffer(), this.framePtr), waves: this.waves };
+    return frameViews(buffer(), this.framePtr);
   }
 
-  /** The module's presentation, which battle sound hears
-   *  (`battle-audio`'s `SoundFrame`). */
-  get wasm(): Presentation {
-    return this.rust;
+  /** Install canonical scene state without crossing a second WASM memory. */
+  installRenderer(renderer: Pick<Renderer, "install_presentation">) {
+    renderer.install_presentation(this.rust);
+  }
+
+  /** Snapshot actual GPU grass without exposing the canonical Rust handle. */
+  grassClumps(renderer: Pick<Renderer, "grass_clumps">): Promise<GrassClumpRow[]> {
+    return renderer.grass_clumps(this.rust);
+  }
+
+  /** Explicit material queries snapshot this observer's learned ground. */
+  queryGround(
+    renderer: Pick<Renderer, "ground_query">,
+    mode: string,
+    rows: Float32Array,
+    reference = new Uint8Array(0),
+    side = 0,
+  ): Promise<{ values: Float32Array; source: string }> {
+    return renderer.ground_query(this.rust, mode, rows, reference, side);
+  }
+
+  /** Live controls apply to the same canonical scene and survive recovery. */
+  setRendererControls(renderer: Pick<Renderer, "set_controls">, controls: object) {
+    renderer.set_controls(this.rust, JSON.stringify(controls));
+  }
+
+  /** Queue a canonical visibility query without exposing the Rust handle. */
+  probeFog(
+    renderer: Pick<Renderer, "fog_probe">,
+    points: readonly { position: readonly number[]; normal?: readonly number[] }[],
+  ): Promise<Uint8Array> {
+    return renderer.fog_probe(this.rust, JSON.stringify(points));
+  }
+
+  /** Rebuild targets against the canonical state; reacquire UI views afterward. */
+  resizeRenderer(renderer: Pick<Renderer, "resize">, canvas: HTMLCanvasElement) {
+    renderer.resize(canvas, this.rust);
+  }
+
+  /** Rust acquires the output and prepares/draws from the canonical frame.
+   * Recreate UI views afterward: renderer allocation can grow this memory. */
+  render(renderer: Pick<Renderer, "render_presentation">): PresentedFrame | null {
+    const frame = renderer.render_presentation(this.rust);
+    if (frame === undefined) return null;
+    this.framePtr = frame;
+    return this.lastFrame();
+  }
+
+  /** The side's publication heard by sound, without exposing the Rust handle. */
+  noteAudio(audio: Pick<BattleAudio, "note"> | null | undefined) {
+    audio?.note(this.rust);
+  }
+
+  /** Sound's presentation frame, heard after rendering prepares the view. */
+  updateAudio(audio: Pick<BattleAudio, "update"> | null | undefined) {
+    audio?.update(this.rust);
+  }
+
+  /** Canonical ground-patch rows, copied by the binding for observation consumers. */
+  groundRuns(): Float32Array {
+    return this.rust.ground_runs();
   }
 
   /** The last frame as the labs' scenes probe it (`Presentation::probe_json`). */

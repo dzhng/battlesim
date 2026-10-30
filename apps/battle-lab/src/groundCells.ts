@@ -4,7 +4,7 @@
 // as the presentation applied them), never the authoritative layer.
 import { MeshBuilder, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
-import type { LearnedGround } from "@web/battle/sim/presentation";
+import type { LearnedGround } from "@web/battle/sim/presentationGround";
 
 /** A learned cell's marks, in the order their bytes are packed. */
 export const GROUND_CHANNELS = ["crater", "scorch", "tracks", "trampled"] as const;

@@ -1,10 +1,15 @@
-import type { BattleFrame, FrameView } from "@packages/battle-renderer/src/scene";
+import type { BrowserScene } from "@web/battle/render/scene";
+import type {
+  AllocationCounts,
+  BrowserGpuInfo,
+  SceneStats,
+  FrameView,
+} from "@web/battle/render/sceneStats";
 import type { SurfaceClass } from "@packages/battle-renderer/src/models/surfaceParts";
 import type { PickBox } from "@packages/battle-renderer/src/picking";
 import type { Camera3DParams, WorldRay } from "@packages/renderer-core/src/camera3d";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import type { ClearanceState } from "@packages/renderer-core/src/cameraClearance";
-import type { GpuAllocationTracker } from "@packages/renderer-core/src/gpuAllocations";
 import type { PropStats } from "@web/battle/sim/presentation";
 
 /** What holds a drawn pose off the pose asked for, and how it got there. */
@@ -14,12 +19,12 @@ export type ClearanceReading = Pick<ClearanceState, "hold" | "cut" | "blocked">;
 export interface LabHandle {
   ready: boolean;
   error: string | null;
-  adapter?: { vendor: string; architecture: string; description: string; format: string };
+  adapter?: BrowserGpuInfo;
   /** The frame's statistics, and what the scene's props draw. */
-  stats?: () => ReturnType<BattleFrame["stats"]> & { props: PropStats };
+  stats?: () => SceneStats & { props: PropStats };
   /** Start a fresh GPU measurement window without moving or rebuilding the scene. */
-  resetGpuTiming?: BattleFrame["resetGpuTiming"];
-  allocations?: GpuAllocationTracker;
+  resetGpuTiming?: () => void;
+  allocations?: () => AllocationCounts;
   /** The camera drawn. */
   camera?: () => Camera3DParams;
   /** The harness's raw framing: drawn exactly as given, through neither the
@@ -59,12 +64,12 @@ export interface LabHandle {
   /** The pass inspector's view of the frame; resolves once it is drawn. */
   setFrameView?: (view: FrameView) => Promise<void>;
   /** The sight lights' lab probes. */
-  fog?: () => BattleFrame["fogProbes"];
+  fog?: () => BrowserScene["fogProbes"];
   /** Draw without fog while on (a paired cost measure); the route's fog
    *  returns when it goes off. */
   suppressFog?: (on: boolean) => Promise<void>;
   /** The grass field's lab probes. */
-  grass?: () => BattleFrame["grassProbes"];
+  grass?: () => BrowserScene["grassProbes"];
   /** Draw without grass while on (a paired cost measure). */
   suppressGrass?: (on: boolean) => Promise<void>;
   /** Draw the plots without their own texture while on: their plain rows

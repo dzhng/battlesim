@@ -1,3 +1,4 @@
+import { rendererLifecycle } from "./_rendererLifecycle.mjs";
 // Slice 01: honest 3D frame — camera/depth/picking/lifecycle on the real adapter.
 // The tank and truck are their appearances (models), the
 // crate and soldiers proxies; picking reads the simulation's boxes.
@@ -23,8 +24,10 @@ export async function run(ctx) {
     placed: window.__lab.route.placed,
   }));
   ctx.check(
-    "hardware adapter reported",
-    Boolean(info.adapter?.vendor),
+    "WebGPU adapter admission reports hardware and supported limits",
+    info.adapter?.backend === "browser-webgpu" &&
+      info.adapter.fallback === false &&
+      info.adapter.limits.maxTextureDimension2D > 0,
     JSON.stringify(info.adapter),
   );
   const depth = info.stats.depth;
@@ -212,13 +215,36 @@ export async function run(ctx) {
   // renderer compositions; keep these captures in the same browser run.
   const origin = new URL(ctx.url).origin;
   await ctx.openLab(page, ctx.url);
-  await ctx.matchBaseline(page, "foundation");
+  const match = async (name) => {
+    // Pin the wall-clock diagnostic to its approved placeholder; scene startup
+    // and shader compilation must not turn the picture into a speed assertion.
+    await page.evaluate(() => {
+      const label = document.querySelector(".frame-rate");
+      if (!label) return;
+      label.textContent = "— FPS";
+      Object.defineProperty(label, "textContent", {
+        configurable: true,
+        get: () => "— FPS",
+        set: () => {},
+      });
+    });
+    try {
+      return await ctx.matchBaseline(page, name);
+    } finally {
+      await page.evaluate(() => {
+        const label = document.querySelector(".frame-rate");
+        if (label) delete label.textContent;
+      });
+    }
+  };
+  await match("foundation");
   for (const [url, name] of [
     [`${origin}/labs/geometry?map=geometry&test-quality=${quality}`, "geometry"],
     [`${origin}/labs/river?test-quality=${quality}`, "river"],
   ]) {
     await ctx.openLab(page, url);
-    const capture = await ctx.matchBaseline(page, name);
+    const capture = await match(name);
     ctx.check(`low graphics draws an opaque ${name} frame`, capture.length > 1000);
   }
+  await rendererLifecycle(ctx);
 }

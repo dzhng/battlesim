@@ -22,8 +22,8 @@ publication its poses blend toward, so one frame shows one tick.
 
 Rust decodes. [The presentation module](presentation.ts) pushes each publication
 into the [publication reader](../../../../crates/sim/src/publication/reader.rs),
-compiled into its own small WebAssembly module, and takes the observation back as
-JSON in [the view's shape](observationView.ts). The fog bits and ground runs come
+linked into the browser's rendering/audio WebAssembly module, and takes the
+observation back as JSON in [the view's shape](observationView.ts). The fog bits and ground runs come
 back as typed arrays, and unchanged fog and static groups keep their previous
 views. Nothing on the page reads field offsets, enum rosters or packed bit grammars.
 
@@ -37,6 +37,8 @@ a lab's observation-side switch. Completion acknowledgements and an actually dra
 frame are distinct: a probe must await the presentation it intends to measure.
 
 ## Lifetime
+
+Presentation calls follow the [binding lifetime contract](../../../../crates/presentation-wasm/README.md).
 
 [Module initialization](module.ts) is once per realm. [Preparation](../prepare/)
 may supply an existing worker connection holding the admitted world; adopting it

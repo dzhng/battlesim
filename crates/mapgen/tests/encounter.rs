@@ -36,7 +36,7 @@ fn the_shipped_recipes_are_valid() {
 
 #[test]
 fn generated_maps_plan_the_assault_with_the_sides_at_opposite_edges() {
-    let mut rules_json = sim::fixtures::test_game();
+    let mut rules_json = sim::fixtures::test_rules();
     rules_json["catalog"] = serde_json::Value::Array(sim::fixtures::catalog_documents(
         sim::fixtures::CatalogSet::Test,
     ));

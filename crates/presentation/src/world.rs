@@ -34,7 +34,8 @@ pub struct WorldInput {
 }
 
 /// `presentation.buildings`: how buildings are tiered, chunked and pooled.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BuildingStyle {
     /// Pixels a metre covers at a chunk's nearest point for tiers 0 to 2.
     pub lod_px_per_m: [f64; 3],
@@ -103,7 +104,8 @@ pub struct UnitsSection {
 }
 
 /// `presentation.models`: mesh tiers by projected height, and the card size.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Detail {
     pub lod_px: [f64; 3],
     pub impostor_px: f64,
@@ -116,7 +118,7 @@ pub struct Detail {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UnitType {
-    pub hull: Option<Hull>,
+    pub hull: bool,
     /// Its vehicle class (`vehicleClass`): the sound row its engine, running
     /// gear and turret take; none for a squad.
     #[serde(default)]
@@ -139,22 +141,24 @@ impl UnitType {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Hull {
-    pub half_track: f64,
-}
-
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TypeMount {
-    pub weapon: String,
+    pub weapons: Vec<MountWeapon>,
     pub on: Option<usize>,
     pub active_pose: Option<PoseRef>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
+pub struct MountWeapon {
+    pub kind: String,
+    pub kick: crate::looks::Kick,
+}
+
+#[derive(Clone, Debug, Deserialize)]
 pub struct Draws {
+    #[serde(rename = "halfTrack")]
+    pub half_track: f64,
     pub hull: Vec<String>,
     pub slots: Vec<Vec<String>>,
     pub operated: Vec<Option<Operated>>,

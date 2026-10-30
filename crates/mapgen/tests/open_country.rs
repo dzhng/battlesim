@@ -25,6 +25,7 @@ use mapgen::open_country;
 use mapgen::parcels::fill_districts;
 use mapgen::{Diagnostic, MapPlan};
 use sim::encounter::{plan_encounter, PreparedMap};
+use sim::fixtures::test_rules;
 use sim::math::v2;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -86,7 +87,7 @@ fn generate(map_type: MapType, size: MapSize, seed: u64) -> Result<Country, Vec<
         &serde_json::to_string(&request).unwrap(),
         PRESETS,
         TEMPLATES,
-        &sim::fixtures::test_game().to_string(),
+        &test_rules().to_string(),
     ) {
         mapgen::GenerateOutcome::Ok { plan } => *plan,
         mapgen::GenerateOutcome::Error { diagnostics } => return Err(diagnostics),
@@ -162,7 +163,7 @@ fn medium_maps() -> Vec<Arc<Country>> {
 }
 
 fn rules() -> Rules {
-    serde_json::from_value(sim::fixtures::test_game()).unwrap()
+    serde_json::from_value(test_rules()).unwrap()
 }
 
 fn outside_settlements(plan: &MapPlan, p: Point) -> bool {
@@ -929,7 +930,7 @@ fn coverage_refusal(presets: &str, rules: &serde_json::Value, reason: &str) {
 
 #[test]
 fn generation_refuses_foliage_below_every_ground_eye() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = test_rules();
     rules["forests"]["rule"]["canopy_height_m"] = serde_json::json!(0.5);
     coverage_refusal(PRESETS, &rules, "foliage below every ground eye");
 }
@@ -942,7 +943,7 @@ fn generation_refuses_when_no_patch_has_legal_ground() {
     presets["open_country"]["clear"]["edge_m"] = serde_json::json!(3100.0);
     coverage_refusal(
         &presets.to_string(),
-        &sim::fixtures::test_game(),
+        &test_rules(),
         "no legal patch placement",
     );
 }
@@ -959,7 +960,7 @@ fn generation_refuses_an_unbounded_fallback_tree_line() {
     presets["open_country"]["sight"]["fill"] = serde_json::json!(["tree_line"]);
     coverage_refusal(
         &presets.to_string(),
-        &sim::fixtures::test_game(),
+        &test_rules(),
         "unbounded fallback tree-line sampling and grove allocation",
     );
 }
@@ -970,7 +971,7 @@ fn generation_refuses_an_unbounded_coverage_resolution() {
     presets["open_country"]["sight"]["cell_m"] = serde_json::json!(1e-9);
     coverage_refusal(
         &presets.to_string(),
-        &sim::fixtures::test_game(),
+        &test_rules(),
         "unbounded coverage grid and placement lattice",
     );
 }

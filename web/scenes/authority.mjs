@@ -226,7 +226,7 @@ export async function run(ctx) {
   // Reset restarts the clock with an empty command log.
   await route(page, () => window.__lab.route.reset());
   await page.waitForFunction(
-    () => window.__lab.route.acks().length === 0 && window.__lab.route.tick() < 20,
+    () => window.__lab?.route?.acks().length === 0 && window.__lab.route.tick() < 20,
   );
   ctx.check("reset empties the command log and restarts the clock", true);
 }

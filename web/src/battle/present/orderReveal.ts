@@ -17,12 +17,6 @@ export interface OrderFlash {
   fade_s: number;
 }
 
-export function validateOrderFlash(flash: OrderFlash): OrderFlash {
-  if (!(flash?.hold_s >= 0 && flash?.fade_s >= 0))
-    throw new Error("presentation.overlay.orders.flash: hold_s ≥ 0 and fade_s ≥ 0 (seconds)");
-  return flash;
-}
-
 /** Opacities are rounded to this many steps, so a fade rebuilds the overlay
  *  at most this often. */
 const STEPS = 16;

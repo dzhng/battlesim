@@ -5,7 +5,7 @@ import { AckLog } from "../AckLog";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 
 // Blue only: enemy units stay absent until sensing produces permitted observations.

@@ -12,11 +12,12 @@ use contract::observation::{ActionReason, ContactSource};
 use contract::scenario::Rules;
 use serde_json::{json, Value};
 use sim::battle::Battle;
+use sim::fixtures;
 
-/// The test rules, whose catalog holds the test helicopter (`test_heli`,
+/// Test rules whose catalog holds the test helicopter (`test_heli`,
 /// `fixtures/units/test/aircraft.json`).
 pub(crate) fn fixture() -> Value {
-    sim::fixtures::test_game()
+    fixtures::test_rules()
 }
 
 pub(crate) fn battle_with(fixture: &Value, map: Value, units: Value) -> Battle {
@@ -78,31 +79,6 @@ fn air_rules_refuse_a_high_air_floor_above_the_fixed_wing_ceilings() {
     let error = serde_json::from_value::<contract::scenario::Rules>(fixture)
         .expect_err("a high-air floor above a fixed-wing ceiling must be rejected");
     assert!(error.to_string().contains("high-air floor"), "{error}");
-}
-
-#[test]
-fn helicopters_route_with_the_rotor_hull_limit() {
-    let rules: Rules = serde_json::from_value(fixture()).unwrap();
-    assert_eq!(
-        sim::navigation::air::routing_margin(&rules),
-        rules.hull_limits.rotor.half_length_m
-    );
-}
-
-#[test]
-fn fixed_wing_admission_uses_the_fixed_wing_hull_limit() {
-    let mut fixture = fixture();
-    sim::fixtures::patch_catalog(
-        &mut fixture,
-        "units",
-        "test_heli",
-        json!({
-            "mobility": { "air": { "layer": "high_air", "flight": "fixed_wing" } },
-            "body": { "hull": { "half_extents_m": [10.0, 4.0, 1.6] } }
-        }),
-    );
-    serde_json::from_value::<Rules>(fixture)
-        .expect("a fixed-wing hull within the fixed-wing limit is admitted");
 }
 
 #[test]
@@ -209,7 +185,7 @@ fn air_sensor_ranges_use_the_target_layer_without_extending_ground_vision() {
     high["mobility"]["air"]["layer"] = json!("high_air");
     high["mobility"]["air"]["flight"] = json!("fixed_wing");
     doc["units"]["test_high_air"] = high;
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut fixture,
         "units",
         "test_jeep",
@@ -406,9 +382,9 @@ fn an_air_defence_gun_engages_air_within_its_rows_reach_at_each_layer() {
         }
     });
     json_ground_reach(&mut rules["weapons"]["test_aa_gun"], high_reach);
-    rules["service"]["round_costs"]["test_aa_gun"] =
-        rules["service"]["round_costs"]["aa_ballistic"].clone();
-    sim::fixtures::patch_catalog(
+    rules["weapons"]["test_aa_gun"]["round_cost"] =
+        rules["weapons"]["aa_ballistic"]["round_cost"].clone();
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jeep",
@@ -485,9 +461,9 @@ fn a_jet_draws_fire_only_from_a_row_listing_fixed_wing_aircraft() {
             "targets": { "high_air": { "range_m": reach, "scatter_mrad": 6, "classes": classes } }
         });
         json_ground_reach(&mut rules["weapons"]["test_aa_gun"], reach);
-        rules["service"]["round_costs"]["test_aa_gun"] =
-            rules["service"]["round_costs"]["aa_ballistic"].clone();
-        sim::fixtures::patch_catalog(
+        rules["weapons"]["test_aa_gun"]["round_cost"] =
+            rules["weapons"]["aa_ballistic"]["round_cost"].clone();
+        fixtures::patch_catalog(
             &mut rules,
             "units",
             "test_jeep",
@@ -574,7 +550,7 @@ fn a_round_keeps_the_band_it_was_fired_from_for_its_whole_flight() {
 
 #[test]
 fn an_attack_on_a_target_the_side_has_never_identified_is_refused() {
-    let rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let rules = serde_json::from_value(fixtures::rules()).unwrap();
     let mut b = Battle::new(&sim::maps::scenario("air", "ground", rules).unwrap(), 6);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
@@ -594,7 +570,7 @@ fn an_attack_on_a_target_the_side_has_never_identified_is_refused() {
 #[test]
 fn authored_aircraft_fuel_starts_full_and_burns_on_map() {
     let mut fixture = fixture();
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut fixture,
         "units",
         "test_heli",
@@ -624,7 +600,7 @@ fn authored_aircraft_fuel_starts_full_and_burns_on_map() {
 #[test]
 fn a_skirmish_aircraft_with_low_fuel_turns_home_and_is_refunded() {
     let mut fixture = fixture();
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut fixture,
         "units",
         "test_heli",
@@ -818,43 +794,6 @@ fn an_identified_enemy_helicopter_below_half_hp_publishes_smoking() {
     assert_eq!(own, [true, false, false]);
 }
 
-#[test]
-fn an_air_hull_past_its_flight_models_limits_is_refused() {
-    let mut fixture = fixture();
-    let past = fixture["hull_limits"]["rotor"]["half_length_m"]
-        .as_f64()
-        .unwrap()
-        + 0.5;
-    sim::fixtures::patch_catalog(
-        &mut fixture,
-        "units",
-        "test_heli",
-        json!({ "body": { "hull": { "half_extents_m": [past, 1.2, 1.6] } } }),
-    );
-    let error = serde_json::from_value::<Rules>(fixture).expect_err("past the rotor limit");
-    assert!(error.to_string().contains("rotor half length"), "{error}");
-}
-
-#[test]
-fn an_aircraft_cruising_past_its_flight_models_limit_is_refused() {
-    // The rules set the limit: a helicopter cruising at 200 km/h is refused
-    // under a 150 km/h rotor limit, and admitted under a 250 km/h one.
-    let admitted = |limit: f64| {
-        let mut fixture = fixture();
-        fixture["air_speed_limits_kmh"]["rotor"] = json!(limit);
-        sim::fixtures::patch_catalog(
-            &mut fixture,
-            "units",
-            "test_heli",
-            json!({ "mobility": { "air": { "cruise_kmh": 200 } } }),
-        );
-        serde_json::from_value::<Rules>(fixture).map_err(|e| e.to_string())
-    };
-    let error = admitted(150.0).expect_err("past the rotor speed");
-    assert!(error.contains("rotor cruise_kmh"), "{error}");
-    admitted(250.0).expect("within the rotor speed");
-}
-
 /// An aircraft carries as many weapon rows as it has mounts for: there is no
 /// cap on how many distinct rows it fields.
 #[test]
@@ -864,7 +803,7 @@ fn test_an_aircraft_with_five_distinct_weapon_rows_is_admitted() {
         json!({ "id": id, "name": id.to_uppercase(), "weapons": [row], "turret": true,
             "pivot_m": [1.0, 0.0, 1.0], "muzzle_m": [1.0, 0.0, 0.0] })
     };
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut fixture,
         "units",
         "test_heli",
@@ -885,7 +824,7 @@ fn test_an_aircraft_with_five_distinct_weapon_rows_is_admitted() {
 #[test]
 fn test_an_aircraft_in_the_ground_layer_is_refused() {
     let mut fixture = fixture();
-    sim::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut fixture,
         "units",
         "test_heli",
@@ -1227,3 +1166,6 @@ fn a_high_air_unit_lights_no_ground_fog_in_its_sides_picture() {
     assert_eq!(eyes(0), 0, "a high-air unit lights no ground fog");
     assert!(eyes(1) > 0, "a low-air unit still does");
 }
+
+#[path = "air/limits.rs"]
+mod limits;

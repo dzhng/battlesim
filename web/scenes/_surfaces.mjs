@@ -1,30 +1,20 @@
+import { openTerrainQuery, finishTerrainQuery } from "./_terrainQuery.mjs";
 import { createHash } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 
 /** Query the production terrain material at the public surface-export seam. */
 export async function surfaceExportAgreement(ctx) {
-  const page = await ctx.newPage();
-  await page.goto(new URL("/", ctx.url).href);
+  const page = await openTerrainQuery(ctx);
   const repo = new URL("../../", import.meta.url).pathname;
   const result = await page.evaluate(async (repo) => {
     const file = (p) => `/@fs/${repo}${p}`;
-    const terrainPath = file("packages/battle-renderer/src/frame/terrainMaterial.ts");
-    const terrainText = await (await fetch(terrainPath)).text();
-    const gpuUrl = terrainText.match(/from ["']([^"']*typegpu[^"']*)["']/)[1];
-    const [{ tgpu, d }, { GpuRegistry }, terrain, mesh, rules, biome, wasm, allocations] =
-      await Promise.all([
-        import(gpuUrl),
-        import(file("packages/battle-renderer/src/frame/registry.ts")),
-        import(terrainPath),
-        import(file("packages/battle-renderer/src/worldMesh.ts")),
-        import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("test")),
-        import(file("fixtures/biomes/summer.json")),
-        import("/src/wasm/game_wasm.js"),
-        import(file("packages/renderer-core/src/gpuAllocations.ts")),
-      ]);
+    const [mesh, rules, biome, wasm] = await Promise.all([
+      import(file("packages/battle-renderer/src/worldMesh.ts")),
+      import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("test")),
+      import(file("fixtures/biomes/summer.json")),
+      import("/src/wasm/game_wasm.js"),
+    ]);
     await wasm.default();
-    // The ground's shapes are resolved by the presentation module.
-    await (await import(file("web/src/battle/sim/presentation.ts"))).loadPresentation();
     const polygon = (ring) => ({ kind: "road", shape: { kind: "polygon", ring } });
     const map = {
       size: [32, 64],
@@ -65,20 +55,6 @@ export async function surfaceExportAgreement(ctx) {
       ],
     };
     const view = new wasm.WorldView(JSON.stringify(map), JSON.stringify(rules.rules));
-    const adapter = await navigator.gpu.requestAdapter();
-    const device = await adapter.requestDevice();
-    const live = allocations.trackGpuAllocations(device);
-    const registry = new GpuRegistry(device);
-    const root = tgpu.initFromDevice({ device });
-    registry.adopt(() => root.destroy());
-    const validation = [];
-    device.addEventListener("uncapturederror", (event) => validation.push(event.error.message));
-    const compiled = [],
-      shader = device.createShaderModule.bind(device);
-    device.createShaderModule = (descriptor) => {
-      compiled.push(descriptor.code);
-      return shader(descriptor);
-    };
     const cases = [
       { name: "single polygon diagonal centre", xy: [7, 7], distance: 5 },
       { name: "single polygon across diagonal", xy: [7.25, 7], distance: 4.75 },
@@ -110,54 +86,12 @@ export async function surfaceExportAgreement(ctx) {
         await import(file("packages/battle-renderer/src/terrain/terrainSurface.ts"))
       ).presentGround(world.terrain.input);
       reach = ground.ground_reach(2)[0];
-      const source = (
-        await import(file("packages/battle-renderer/src/frame/terrainSource.ts"))
-      ).createTerrainSource(root, registry, "full");
-      source.set(ground);
-      const queryLayout = tgpu.bindGroupLayout({
-        points: { storage: (n) => d.arrayOf(d.vec4f, n), access: "readonly" },
-        output: { storage: (n) => d.arrayOf(d.vec4f, n), access: "mutable" },
-      });
-      const groundSite = terrain.groundSite;
-      const groundCell = terrain.groundCell;
-      const groundPaved = terrain.groundPaved;
-      const GroundPaved = terrain.GroundPaved;
-      const groundColour = terrain.groundColour;
-      const kernel = tgpu
-        .computeFn({ in: { gid: d.builtin.globalInvocationId }, workgroupSize: [1] })(`{
-        let query=queryLayout.$.points[gid.x];let xy=query.xy;let cell=groundCell(xy,query.z);let paved=groundPaved(xy,cell);let site=groundSite(xy,cell,paved);let actual=groundColour(xy,0.1,site,paved,-1e9);var interiorDrawn=vec4f(-1e9);interiorDrawn[${interiorRow}u]=5.0;let interior=groundColour(xy,0.1,site,GroundPaved(interiorDrawn,vec4f(0.0),vec4f(0.0,0.0,0.0,-1.0),5.0,vec2u(0u),-1.0),-1e9);queryLayout.$.output[gid.x]=vec4f(site.z,actual.w,interior.w,site.w);
-      }`)
-        .$uses({ queryLayout, groundSite, groundCell, groundPaved, GroundPaved, groundColour });
-      const pipeline = root.createComputePipeline({ compute: kernel });
-      await pipeline.initAsync();
-      const input = registry.buffer({
-        size: queries.length * 16,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-      });
-      const output = registry.buffer({
-        size: queries.length * 16,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-      });
-      const read = registry.buffer({
-        size: queries.length * 16,
-        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-      });
-      device.queue.writeBuffer(
-        input,
-        0,
-        Float32Array.from(queries.flatMap((c) => [...c.xy, c.footprint, 0])),
+      const values = await window.__terrainQuery.query(
+        ground,
+        "paved",
+        Float32Array.from(queries.flatMap((c) => [...c.xy, c.footprint, interiorRow])),
       );
-      const encoder = root["~unstable"].createCommandEncoder();
-      pipeline
-        .with(source.group)
-        .with(root.createBindGroup(queryLayout, { points: input, output }))
-        .with(encoder)
-        .dispatchWorkgroups(queries.length);
-      root.unwrap(encoder).copyBufferToBuffer(output, 0, read, 0, queries.length * 16);
-      encoder.submit();
-      await read.mapAsync(GPUMapMode.READ);
       try {
-        const values = new Float32Array(read.getMappedRange());
         rows = queries.map((c, i) => ({
           ...c,
           actual: values[i * 4],
@@ -165,17 +99,14 @@ export async function surfaceExportAgreement(ctx) {
           interiorRoughness: values[i * 4 + 2],
         }));
       } finally {
-        read.unmap();
+        ground.free();
       }
     } finally {
-      registry.release();
       view.free();
-      device.createShaderModule = shader;
     }
-    const final = live();
-    device.destroy();
-    return { rows, reach, validation, final, compiled };
+    return { rows, reach, validation: window.__terrainValidation };
   }, repo);
+  Object.assign(result, await finishTerrainQuery(page));
   const compiled = result.compiled;
   delete result.compiled;
   result.shaderHashes = compiled.map((s) => createHash("sha256").update(s).digest("hex"));

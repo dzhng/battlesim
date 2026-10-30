@@ -218,7 +218,7 @@ export function decodeTexture(id: string, bytes: Uint8Array): Texture {
 
 /** Distinct texture layers per GPU array: the renderer holds albedo (sRGB)
  *  and surface (normal and ORM) textures in one array each, a layer per
- *  content address (`battle-renderer` `models/modelTextures.ts`). */
+ *  content address in the shared Rust renderer. */
 export interface TextureLayerCounts {
   albedo: number;
   surface: number;

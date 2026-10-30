@@ -2,26 +2,37 @@
 import { expect, test } from "vitest";
 import type { Browser } from "playwright";
 import { launchBrowser } from "../browser.mjs";
-import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
+import { browserTestServer } from "./support/browserServer";
 
 // A battle that failed to start has nothing to play: its refusal is shown
 // with the menu, and no battlefield is drawn under it.
 test("a rejected replay shows its refusal and draws no battlefield", async () => {
-  const server = await createServer({
-    configFile: fileURLToPath(new URL("../vite.config.ts", import.meta.url)),
-    configLoader: "runner",
-    server: { port: 0, host: "127.0.0.1" },
-  });
+  const server = await browserTestServer();
   let browser: Browser | undefined;
+  const failures: string[] = [];
+  const responses: Promise<void>[] = [];
   try {
-    await server.listen();
     browser = await launchBrowser({
       args: ["--disable-gpu", "--disable-software-rasterizer"],
     });
     const page = await browser.newPage();
-    const base = server.resolvedUrls!.local[0];
-    await page.goto(base);
+    page.on("requestfailed", (request) => {
+      failures.push(`${request.url()}: ${request.failure()?.errorText}`);
+    });
+    page.on("response", (response) => {
+      if (response.status() < 400) return;
+      responses.push(
+        (async () => {
+          const body = await response.text().catch(String);
+          failures.push(`${response.status()} ${response.url()}: ${body.slice(0, 4000)}`);
+        })(),
+      );
+    });
+    const base = server.url;
+    // Seed storage on this origin without booting the menu's GPU warm-up.
+    // The rejected battle must reach its own refusal on a GPU-less browser.
+    await page.goto(`${base}__test_setup__`);
     await page.evaluate(
       async (root) => {
         const importModule = new Function("url", "return import(url)");
@@ -109,6 +120,10 @@ test("a rejected replay shows its refusal and draws no battlefield", async () =>
     await page.screenshot({
       path: fileURLToPath(new URL("../../throwaway/battle-failure.png", import.meta.url)),
     });
+  } catch (error) {
+    await Promise.all(responses);
+    if (failures.length) throw new Error(failures.join("\n"), { cause: error });
+    throw error;
   } finally {
     await browser?.close();
     await server.close();

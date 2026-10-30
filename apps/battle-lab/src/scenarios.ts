@@ -1,12 +1,12 @@
 // Lab scenarios compose a resolved map (a saved map of the catalogue, or a
-// test's own) with the session catalog's rules (game.json with the
+// test's own) with the session catalog's rules (rules.json with the
 // catalog's documents) and an encounter: units, events and scripted orders.
-import type { GameRules } from "@web/battle/catalog/compose";
+import type { ResolvedRules } from "@web/battle/catalog/compose";
 import type { Engagement, Order, SideName } from "@web/battle/sim/protocol";
 
 /** `rules` with every soldier kind all but unkillable: how a lab keeps a
  *  firefight going so what it shows holds still. */
-export function durableSoldiers(rules: GameRules): GameRules {
+export function durableSoldiers(rules: ResolvedRules): ResolvedRules {
   const durable = structuredClone(rules);
   for (const doc of durable.catalog as { soldiers?: Record<string, { hp: number }> }[])
     for (const kind of Object.values(doc.soldiers ?? {})) kind.hp = 1.0e6;

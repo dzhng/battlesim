@@ -56,14 +56,15 @@ import {
   viewCamera,
   type WorkbenchView,
 } from "../workbench/views";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
+import {
+  useModelSource,
+  validationOptions,
+  type DroppedSource,
+  type SourceOptions,
+} from "../workbench/useModelSource";
 
-// The model workbench: drop a GLB (or pick a catalog appearance) and, within
-// seconds, see the validator's findings and our own production render — the
-// battle frame, light and pose paths — with every view needed to judge a
-// model or an animation: named views, a 1.8 m figure, the simulation's hit
-// box, socket gizmos, a clip and phase scrubber, stats, sheets and the
-// impostor bake.
+// Judge authored sources through production pose/render paths and simulation rulers.
 
 const EMPTY: WorldMeshes = { opaque: new Float32Array(0), translucent: new Float32Array(0) };
 const DEG = Math.PI / 180;
@@ -122,16 +123,14 @@ function initialPose(model: LoadedModel | null): BenchPose | null {
   return sheetPose(bundle, skeleton);
 }
 
-// eslint-disable-next-line complexity -- debt: 23 useState hooks for model, camera and render controls in one component; split the control panels into subcomponents once their state is grouped (a reducer or one hook per panel).
+// eslint-disable-next-line complexity -- debt: model, camera and render controls share one component; split the control panels into subcomponents once their state is grouped (a reducer or one hook per panel).
 export default function Workbench() {
-  // The test set: test units' art is judged here as roster art is.
+  // Test and roster art share the same review path.
   const session = useSessionCatalog();
   const { units } = session;
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const [catalog, setCatalog] = useState<InstalledAppearances | null>(null);
   const [model, setModel] = useState<LoadedModel | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
   const [pose, setPose] = useState<BenchPose | null>(null);
   const [tier, setTier] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -148,19 +147,12 @@ export default function Workbench() {
   const [impostor, setImpostor] = useState<ImpostorAtlas | null>(null);
   const impostorFeed = useFeed(impostor);
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
-  const [options, setOptions] = useState<{
-    unit: AppearanceUnit | "auto";
-    /** A dropped vehicle's unit type to fit it to. */
-    type: string | "auto";
-    scenery: string;
-    yaw: "auto" | number;
-  }>({
+  const [options, setOptions] = useState<SourceOptions>({
     unit: "auto",
     type: "auto",
     scenery: "tree",
     yaw: "auto",
   });
-  const dropped = useRef<{ name: string; bytes: Uint8Array } | null>(null);
   const gpu = useRef<ViewportGpu | null>(null);
   const [ready, setReady] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -292,38 +284,30 @@ export default function Workbench() {
     setTier(0);
     setImpostor(null);
     setSheetUrl(null);
-    setError(null);
   }, []);
+  const source = useModelSource(install);
+  const { version: sourceVersion, dropped, error, setError, busy, load: loadSource } = source;
 
   const loadBytes = useCallback(
-    async (name: string, bytes: Uint8Array, opts: typeof options) => {
-      setBusy(true);
-      try {
-        const next = await loadDropped(session, name, bytes, {
-          unit: opts.unit === "auto" ? undefined : opts.unit,
-          type: opts.type === "auto" ? undefined : opts.type,
-          scenery: opts.unit === "scenery" ? opts.scenery : undefined,
-          yaw: opts.yaw === "auto" ? undefined : opts.yaw,
-          loops: INFANTRY_LOOPS,
-        });
-        install(next);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-      } finally {
-        setBusy(false);
-      }
-    },
-    [install, session],
+    (name: string, read: DroppedSource["read"], opts: LooseOptions) =>
+      loadSource(
+        async () =>
+          loadDropped(session, name, await read(), {
+            loops: INFANTRY_LOOPS,
+            ...opts,
+          }),
+        { name, read },
+      ),
+    [loadSource, session],
   );
-
-  const onFile = useCallback(
-    async (file: File) => {
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      dropped.current = { name: file.name, bytes };
-      await loadBytes(file.name, bytes, options);
-    },
-    [loadBytes, options],
-  );
+  const onFile = (file: File) => {
+    let bytes: Promise<Uint8Array> | undefined;
+    return loadBytes(
+      file.name,
+      () => (bytes ??= file.arrayBuffer().then((buffer) => new Uint8Array(buffer))),
+      validationOptions(options),
+    );
+  };
 
   const reloadCatalog = useCallback(
     async (fresh = false) => {
@@ -334,37 +318,52 @@ export default function Workbench() {
     [session],
   );
 
-  // The runtime catalog, and `?bundle=` naming one of its appearances.
-  useEffect(() => {
-    void reloadCatalog()
-      .then(async (installed) => {
-        const name = params.get("bundle");
-        if (!name) return;
+  const selectCatalog = useCallback(
+    (name: string) =>
+      loadSource(async () => {
+        const installed = latest.current.catalog ?? (await reloadCatalog());
         const found = await catalogModel(units, installed, name);
-        if (found) install(found);
-        else setError(`no appearance "${name}" in the runtime catalog`);
-      })
-      .catch((e) => setError(`runtime catalog: ${e instanceof Error ? e.message : String(e)}`));
-  }, [params, reloadCatalog, install, units]);
+        if (!found) throw new Error(`no appearance "${name}" in the runtime catalog`);
+        return found;
+      }),
+    [loadSource, reloadCatalog, units],
+  );
+
+  // The initial source reserves its ticket before fetching the catalog.
+  useEffect(() => {
+    const name = params.get("bundle");
+    if (name) void selectCatalog(name);
+    else {
+      const ticket = sourceVersion.current;
+      void reloadCatalog().catch((error) => {
+        if (sourceVersion.current === ticket)
+          setError(`runtime catalog: ${error instanceof Error ? error.message : String(error)}`);
+      });
+    }
+  }, [params, reloadCatalog, selectCatalog, sourceVersion, setError]);
 
   // Hot reload: the dev server re-bakes on a source change and says so.
   useEffect(() => {
     const hot = import.meta.hot;
     if (!hot) return;
     const onRebaked = async (data: { ok: boolean; output: string }) => {
-      if (!data.ok) {
-        setError(`re-bake failed:\n${data.output}`);
-        return;
-      }
-      const installed = await reloadCatalog(true);
+      const ticket = sourceVersion.current;
       const shown = latest.current.model;
-      if (shown?.source !== "catalog") return;
-      const rebaked = await catalogModel(units, installed, shown.name);
-      setModel((current) => (current === shown ? (rebaked ?? current) : current));
+      try {
+        if (!data.ok) throw new Error(`re-bake failed:\n${data.output}`);
+        const installed = await reloadCatalog(true);
+        if (shown?.source !== "catalog") return;
+        const rebaked = await catalogModel(units, installed, shown.name);
+        if (sourceVersion.current === ticket)
+          setModel((current) => (current === shown ? (rebaked ?? current) : current));
+      } catch (error) {
+        if (sourceVersion.current === ticket)
+          setError(error instanceof Error ? error.message : String(error));
+      }
     };
     hot.on("assets:rebaked", onRebaked);
     return () => hot.off("assets:rebaked", onRebaked);
-  }, [reloadCatalog, units]);
+  }, [reloadCatalog, units, sourceVersion, setError]);
 
   const setCamera = useCallback(
     (v: WorkbenchView) => {
@@ -398,7 +397,7 @@ export default function Workbench() {
 
   const sheet = useCallback(async () => {
     if (!model || !gpu.current) throw new Error("no model");
-    const result = await renderSheet(gpu.current.device, gpu.current.format, model, impostor, side);
+    const result = await renderSheet(gpu.current.gpu, model, impostor, side);
     setSheetUrl(result.contact.toDataURL("image/png"));
     return result;
   }, [model, impostor, side]);
@@ -427,13 +426,7 @@ export default function Workbench() {
             setCatalogModels((models) => ({ ...models, [row.id]: next! }));
           }
           if (!next) throw new Error("no runtime appearance or authored model source");
-          const result = await renderSheet(
-            gpu.current!.device,
-            gpu.current!.format,
-            next,
-            null,
-            side,
-          );
+          const result = await renderSheet(gpu.current!.gpu, next, null, side);
           setCatalogShots((shots) => ({
             ...shots,
             [row.id]: result.contact.toDataURL("image/png"),
@@ -472,8 +465,12 @@ export default function Workbench() {
   useEffect(() => {
     const drawn = () => window.__lab?.frame?.() ?? Promise.resolve();
     /** Resolve once `name` is installed on the GPU and drawn. */
-    const installedOnGpu = async (name: string) => {
+    const installedOnGpu = async (name: string, result: Awaited<ReturnType<typeof loadSource>>) => {
+      if (result === null) return;
+      if ("error" in result) throw result.error;
+      const { ticket } = result;
       for (let i = 0; i < 600; i++) {
+        if (sourceVersion.current !== ticket) return;
         if (gpu.current?.frame().stats().models.installed.includes(name)) return drawn();
         await new Promise((r) => requestAnimationFrame(r));
       }
@@ -481,20 +478,10 @@ export default function Workbench() {
     };
     const handle: WorkbenchHandle = {
       async drop(name, bytes, opts = {}) {
-        dropped.current = { name, bytes };
-        const next = await loadDropped(session, name, bytes, {
-          loops: INFANTRY_LOOPS,
-          ...opts,
-        });
-        install(next);
-        await installedOnGpu(name);
+        await installedOnGpu(name, await loadBytes(name, () => bytes, opts));
       },
       async select(name) {
-        const installed = latest.current.catalog ?? (await reloadCatalog());
-        const found = await catalogModel(units, installed, name);
-        if (!found) throw new Error(`no appearance ${name}`);
-        install(found);
-        await installedOnGpu(name);
+        await installedOnGpu(name, await selectCatalog(name));
       },
       state() {
         const m = latest.current.model;
@@ -548,14 +535,7 @@ export default function Workbench() {
       async referenceSheet(rows, title) {
         const { model, side } = latest.current;
         if (!model || !gpu.current) throw new Error("no model");
-        const sheet = await renderReferenceSheet(
-          gpu.current.device,
-          gpu.current.format,
-          model,
-          rows,
-          title,
-          side,
-        );
+        const sheet = await renderReferenceSheet(gpu.current.gpu, model, rows, title, side);
         return sheet.toDataURL("image/png");
       },
       async reloadCatalog() {
@@ -567,7 +547,7 @@ export default function Workbench() {
     return () => {
       if (window.__workbench === handle) delete window.__workbench;
     };
-  }, [install, reloadCatalog, setCamera, session, units]);
+  }, [loadBytes, selectCatalog, reloadCatalog, setCamera, sourceVersion]);
 
   const initialCamera = useMemo(
     () => viewCamera("q-front", { min: [-1, -1, 0], max: [1, 1, 2] }),
@@ -653,7 +633,11 @@ export default function Workbench() {
                 const next = { ...options, unit: e.target.value as AppearanceUnit | "auto" };
                 setOptions(next);
                 if (dropped.current)
-                  void loadBytes(dropped.current.name, dropped.current.bytes, next);
+                  void loadBytes(
+                    dropped.current.name,
+                    dropped.current.read,
+                    validationOptions(next),
+                  );
               }}
             >
               <option value="auto">auto</option>
@@ -673,7 +657,11 @@ export default function Workbench() {
                 const next = { ...options, type: e.target.value };
                 setOptions(next);
                 if (dropped.current)
-                  void loadBytes(dropped.current.name, dropped.current.bytes, next);
+                  void loadBytes(
+                    dropped.current.name,
+                    dropped.current.read,
+                    validationOptions(next),
+                  );
               }}
             >
               <option value="auto">auto</option>
@@ -694,7 +682,11 @@ export default function Workbench() {
                   const next = { ...options, scenery: e.target.value };
                   setOptions(next);
                   if (dropped.current)
-                    void loadBytes(dropped.current.name, dropped.current.bytes, next);
+                    void loadBytes(
+                      dropped.current.name,
+                      dropped.current.read,
+                      validationOptions(next),
+                    );
                 }}
               >
                 {Object.keys(SCENERY_KINDS).map((k) => (
@@ -717,7 +709,11 @@ export default function Workbench() {
                 };
                 setOptions(next);
                 if (dropped.current)
-                  void loadBytes(dropped.current.name, dropped.current.bytes, next);
+                  void loadBytes(
+                    dropped.current.name,
+                    dropped.current.read,
+                    validationOptions(next),
+                  );
               }}
             >
               {["auto", "0", "90", "180", "270"].map((y) => (
@@ -734,11 +730,7 @@ export default function Workbench() {
             <select
               value={model?.source === "catalog" ? model.name : ""}
               onChange={(e) => {
-                void catalogModel(units, catalog, e.target.value).then(
-                  (found) => found && install(found),
-                  (error: unknown) =>
-                    setError(error instanceof Error ? error.message : String(error)),
-                );
+                if (e.target.value) void selectCatalog(e.target.value);
               }}
             >
               <option value="">—</option>
@@ -1046,11 +1038,8 @@ export default function Workbench() {
                   catalogDrag.current = null;
                   if (!catalog) return;
                   const cached = catalogModels[row.id];
-                  if (cached) install(cached);
-                  else if (row.appearance)
-                    void catalogModel(units, catalog, row.appearance).then(
-                      (found) => found && install(found),
-                    );
+                  if (cached) void loadSource(async () => cached);
+                  else if (row.appearance) void selectCatalog(row.appearance);
                   setCatalogOpen(false);
                 }}
               >

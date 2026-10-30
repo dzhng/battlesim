@@ -27,7 +27,12 @@ fn root() -> PathBuf {
 /// The world a page observing as `side` loads.
 fn world(root: &Path, game: &Value, side: Side) -> WorldInput {
     let kinds = fielded::encounter_kinds(root, MAP, ENCOUNTER).unwrap();
-    let f = fielded::fielded(root, game, MAP, &kinds).unwrap();
+    let f = fielded::fielded(
+        root,
+        &presentation::static_world::files::rules(root, MAP).unwrap(),
+        &kinds,
+    )
+    .unwrap();
     let physics = &game["physics"];
     WorldInput {
         battle: Some(BattleInput {
@@ -68,7 +73,7 @@ fn smoke(p: &Presentation) -> (u64, f64) {
 fn a_side_switched_back_to_smokes_at_once_over_what_it_saw_destroyed() {
     let root = root();
     let game: Value =
-        serde_json::from_slice(&std::fs::read(root.join("fixtures/game.json")).unwrap()).unwrap();
+        serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
     let rules = presentation::static_world::files::rules(&root, MAP).unwrap();
     let scenario = sim::maps::scenario(MAP, ENCOUNTER, rules).unwrap();
     let mut battle = Battle::new(&scenario, SEED);
@@ -133,7 +138,7 @@ fn wave_epoch(p: &mut Presentation, time: f64) -> Option<u32> {
 fn a_side_switch_starts_the_wave_field_over_before_the_new_side_loads() {
     let root = root();
     let game: Value =
-        serde_json::from_slice(&std::fs::read(root.join("fixtures/game.json")).unwrap()).unwrap();
+        serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
     let rules = presentation::static_world::files::rules(&root, MAP).unwrap();
     let scenario = sim::maps::scenario(MAP, ENCOUNTER, rules).unwrap();
     let mut battle = Battle::new(&scenario, SEED);

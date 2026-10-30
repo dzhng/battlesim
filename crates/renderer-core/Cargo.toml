@@ -1,0 +1,21 @@
+[package]
+name = "renderer-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+png = "0.17"
+presentation = { path = "../presentation" }
+wgpu = { version = "30.0.1", default-features = false, features = ["webgpu", "wgsl", "serde"] }
+bytemuck = { version = "1.25", features = ["derive"] }
+
+serde = { version = "1", features = ["derive"] }
+serde_json.workspace = true
+
+sha2 = "0.10"
+ryu-js = "1"
+libm = "0.2"
+
+[dev-dependencies]
+presentation = { path = "../presentation", features = ["files"] }
+naga = { version = "30.0.1", default-features = false, features = ["wgsl-in"] }

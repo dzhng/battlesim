@@ -30,7 +30,7 @@ mod tests {
             .to_string()
     }
     fn inputs() -> Value {
-        json!({"presets":include_str!("../../../fixtures/map-presets.json"),"defaults":include_str!("../../../fixtures/generated-battle.json"),"templates":include_str!("../../../fixtures/prototype-building-templates.json"),"rules":include_str!("../../../fixtures/game.json"),"catalog":test_catalog(),"recipes":include_str!("../../../fixtures/encounters.json")})
+        json!({"presets":include_str!("../../../fixtures/map-presets.json"),"defaults":include_str!("../../../fixtures/generated-battle.json"),"templates":include_str!("../../../fixtures/prototype-building-templates.json"),"rules":include_str!("../../../fixtures/rules.json"),"catalog":test_catalog(),"recipes":include_str!("../../../fixtures/encounters.json")})
     }
     #[test]
     fn retained_plan_geometry_matches_standalone_and_notes_follow_the_crop() {
@@ -253,7 +253,7 @@ mod tests {
             "presets":include_str!("../../../fixtures/map-presets.json"),
             "defaults":"{\"analysis\":{\"step_m\":0,\"min_median_open\":0.5}}",
             "templates":include_str!("../../../fixtures/prototype-building-templates.json"),
-            "rules":include_str!("../../../fixtures/game.json"),
+            "rules":include_str!("../../../fixtures/rules.json"),
             "catalog":test_catalog(),
             "recipes":include_str!("../../../fixtures/encounters.json")
         }});

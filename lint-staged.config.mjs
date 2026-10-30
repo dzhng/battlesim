@@ -1,6 +1,5 @@
 const runWithoutStagedPaths = (command) => () => command;
-// A staged file the formatter ignores (the shader export) leaves it no
-// target, which is not a failure.
+// Staged ignored files can leave the formatter with no targets.
 const FORMAT = "web/node_modules/.bin/oxfmt --write --no-error-on-unmatched-pattern";
 
 // No formatter or linter glob reaches past the paths `bun run lint` and

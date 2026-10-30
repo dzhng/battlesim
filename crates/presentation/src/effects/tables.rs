@@ -1,6 +1,6 @@
 //! `presentation.effects`: every curve and size the effects are drawn by,
-//! read from the fixture and checked once ([`EffectPresentation::validate`]).
-use std::collections::HashMap;
+//! read from the fixture and checked once ([`EffectPresentation::check`]).
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 use serde::Deserialize;
@@ -10,6 +10,17 @@ use super::cook_off::CookOffFeel;
 use super::high_air_shadow::HighAirShadowStyle;
 use crate::world::Vec3;
 
+/// Contact materials an observed round can present, plus the shared default.
+pub const IMPACT_MATERIALS: &[&str] = &[
+    "default",
+    "ground",
+    "water",
+    "hull",
+    "prop",
+    "soldier",
+    "metal_prop",
+];
+
 /// A tracer on a very short stretch lives at most this past its tick, s.
 pub(super) const TRACER_TAIL_MAX_S: f64 = 1.0;
 
@@ -18,20 +29,18 @@ pub(super) fn pick<'a, T>(table: &'a HashMap<String, T>, kind: &str) -> &'a T {
     table.get(kind).unwrap_or_else(|| &table["default"])
 }
 
-/// `presentation.effects`. Styles by round or hit kind, each with a `default`.
-#[derive(Clone, Debug, Deserialize)]
+/// Shared effect tuning and the battle's admitted weapon looks.
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct EffectPresentation {
     /// Instances the effect pass holds; past it an effect is dropped.
     pub capacity: usize,
     /// The narrowest a streak or smallest a sprite draws, pixels.
     pub min_px: f64,
-    pub tracers: HashMap<String, Arc<TracerStyle>>,
-    pub flashes: HashMap<String, Arc<FlashStyle>>,
+    #[serde(default, skip_serializing_if = "crate::looks::WeaponLooks::is_empty")]
+    pub looks: crate::looks::WeaponLooks,
     pub impacts: HashMap<String, Arc<ImpactStyle>>,
-    /// An impact puff's size by round kind.
-    pub impact_scale: HashMap<String, f64>,
-    /// A burst's fireball by round kind, over its blast radius's.
-    pub blast_scale: HashMap<String, f64>,
+
     pub sparks: SparkStyle,
     pub ricochet_sparks: f64,
     /// Sparks a second a hull grinding a metal body throws.
@@ -57,7 +66,8 @@ pub struct EffectPresentation {
 /// A light an effect casts: colour, irradiance at its centre and reach; a
 /// burning-out one fades as 1 − (age/duration)² over `duration_s`, and a
 /// flash's sits `forward_m` along the shot.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct CastStyle {
     pub color: Vec3,
     pub intensity: f64,
@@ -70,7 +80,8 @@ pub struct CastStyle {
 
 /// A round's light along its tail: a glow at least `min_px` wide, or a hot
 /// core over the tail's front `share`.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct TracerLight {
     pub color: Vec3,
     pub intensity: f64,
@@ -83,7 +94,8 @@ pub struct TracerLight {
 /// A round in flight: a glow along a tail `tail_s` of its flight long
 /// (within `tail_m`), and optionally a hot core, a dark body, a smoke trail
 /// and a light.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct TracerStyle {
     /// Chance to show a new round; its whole flight keeps the choice.
     pub chance: Option<f64>,
@@ -101,14 +113,16 @@ pub struct TracerStyle {
     pub cast: Option<CastStyle>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Body {
     pub color: Vec3,
     pub size_m: f64,
 }
 
 /// A soft sun-lit puff that rises, spreads and drifts downwind.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct PuffStyle {
     pub albedo: Vec3,
     pub opacity: f64,
@@ -120,7 +134,7 @@ pub struct PuffStyle {
 }
 
 /// A smoke trail: an unbroken ribbon at `ribbon` opacity, and a puff every `spacing_m`.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, serde::Serialize)]
 pub struct TrailStyle {
     #[serde(flatten)]
     pub puff: PuffStyle,
@@ -129,7 +143,7 @@ pub struct TrailStyle {
 }
 
 /// `count` puffs born over the first `over_s` seconds.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, serde::Serialize)]
 pub struct PuffBurst {
     #[serde(flatten)]
     pub puff: PuffStyle,
@@ -138,7 +152,7 @@ pub struct PuffBurst {
 }
 
 /// Dust off each track every `spacing_m`, thicker with speed.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, serde::Serialize)]
 pub struct DustStyle {
     #[serde(flatten)]
     pub puff: PuffStyle,
@@ -151,14 +165,15 @@ pub struct DustStyle {
 /// round a still or slow wader, `ring_hz` a second each, and at `vee_mps`
 /// or faster a V-wake, a push every `spacing_m` along its way, where the
 /// water stands `vee_depth_m` deep or more (shallower, a splash's rings).
-/// A soldier's push reaches `soldier_radius_m`, a hull's its half width.
-#[derive(Clone, Copy, Debug, Deserialize)]
+/// A soldier's push reaches `soldier_push_radius_m`, a hull's its half width.
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct WakeStyle {
     pub ring_hz: f64,
     pub vee_mps: f64,
     pub vee_depth_m: f64,
     pub spacing_m: f64,
-    pub soldier_radius_m: f64,
+    pub soldier_push_radius_m: f64,
     pub ring_strength: f64,
     pub vee_strength: f64,
 }
@@ -166,13 +181,14 @@ pub struct WakeStyle {
 /// The dust a heavy gun's shot raises at full strength (`FlashStyle::dust`):
 /// shaken off the whole hull as it jolts, and blown off the ground by the
 /// muzzle blast, out to `reach_m` ahead of the muzzle where it points.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ShotDustStyle {
     pub hull: PuffBurst,
     pub ground: GroundDust,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, serde::Serialize)]
 pub struct GroundDust {
     #[serde(flatten)]
     pub burst: PuffBurst,
@@ -180,14 +196,15 @@ pub struct GroundDust {
 }
 
 /// Smoke a damaged hull trails: a puff `rate_hz` a second where it is.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, serde::Serialize)]
 pub struct DamageSmokeStyle {
     #[serde(flatten)]
     pub puff: PuffStyle,
     pub rate_hz: f64,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct FlashStyle {
     pub color: Vec3,
     pub intensity: f64,
@@ -204,27 +221,28 @@ pub struct FlashStyle {
     pub dust: f64,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct RoundScale {
     pub size: f64,
     pub duration: f64,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ImpactStyle {
     pub color: Vec3,
     pub opacity: f64,
     pub size_m: f64,
     pub duration_s: f64,
-    #[serde(default)]
-    pub round_scale: HashMap<String, RoundScale>,
     /// Sparks a tracer round throws off the surface, and its flash (0: none).
     pub sparks: f64,
     pub flash: f64,
     pub cast: Option<CastStyle>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SparkStyle {
     pub color: Vec3,
     pub intensity: f64,
@@ -237,7 +255,8 @@ pub struct SparkStyle {
 /// A burst: its fireball per metre of blast radius, and the one the
 /// style's numbers describe (`reference_size_m`); smaller ones burn, spark,
 /// throw and light less.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BlastStyle {
     pub size_per_radius: f64,
     pub reference_size_m: f64,
@@ -256,7 +275,8 @@ pub struct BlastStyle {
     pub cast: CastStyle,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct FlameStyle {
     pub tint: Vec3,
     pub emissive: f64,
@@ -271,7 +291,8 @@ pub struct FlameStyle {
 }
 
 /// A smoke source's look: it burns `burn_s`, smoulders `smoulder_s`, then is out.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct SmokeSourceStyle {
     pub burn_s: f64,
     pub smoulder_s: f64,
@@ -283,7 +304,8 @@ pub struct SmokeSourceStyle {
 }
 
 /// A rotor as a shutter sees it: each blade smeared over the angle it swept.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct RotorBlurStyle {
     pub albedo: f64,
     /// The share of a frame the shutter stays open.
@@ -303,52 +325,38 @@ fn ensure(ok: bool, why: impl FnOnce() -> String) -> Result<(), String> {
 }
 
 impl EffectPresentation {
-    /// Reads and checks `presentation.effects`: every table has its
-    /// `default`, every light reaches, every life is bounded.
+    /// Read effect tuning: every material table is complete, every light reaches,
+    /// and every life is bounded.
     pub fn from_value(value: &Value) -> Result<Self, String> {
-        let p = Self::deserialize(value).map_err(|e| format!("presentation.effects: {e}"))?;
-        p.validate()?;
+        let p: Self = crate::settings::read(value, "presentation.effects")?;
+        p.check()?;
         Ok(p)
     }
 
-    fn validate(&self) -> Result<(), String> {
+    pub fn check(&self) -> Result<(), String> {
+        crate::settings::validate::numbers(
+            self,
+            "presentation.effects",
+            &[".forward_m", ".spin_turns", ".up_m"],
+        )?;
         ensure(self.capacity > 0, || "capacity must be positive".into())?;
-        let defaults = [
-            ("tracers", self.tracers.contains_key("default")),
-            ("flashes", self.flashes.contains_key("default")),
-            ("impacts", self.impacts.contains_key("default")),
-            ("impact_scale", self.impact_scale.contains_key("default")),
-            ("blast_scale", self.blast_scale.contains_key("default")),
-        ];
-        for (table, has) in defaults {
-            ensure(has, || format!("{table} needs a default"))?;
-        }
-        for (kind, &scale) in &self.blast_scale {
-            ensure(scale.is_finite() && scale > 0.0, || {
-                format!("blast_scale.{kind} must be finite and positive")
+        for (name, spacing) in [("dust", self.dust.spacing_m), ("wake", self.wake.spacing_m)] {
+            ensure(spacing > 0.0, || {
+                format!("{name}.spacing_m must be positive")
             })?;
         }
-        for (kind, t) in &self.tracers {
-            t.validate(kind)?;
-        }
+        ensure(self.impacts.contains_key("default"), || {
+            "impacts needs a default".into()
+        })?;
         ensure((0.0..=1.0).contains(&self.cast_wrap), || {
             "cast_wrap must be in [0, 1]".into()
         })?;
-        let cast = |at: String, c: &Option<CastStyle>, fades: bool| match c {
-            Some(c) => ensure(
-                c.radius_m > 0.0 && c.intensity >= 0.0 && (!fades || c.duration_s > 0.0),
-                || {
-                    format!("{at}.cast needs a positive reach, an intensity ≥ 0 and (fading) a duration")
-                },
-            ),
-            None => Ok(()),
+        let cast = |at: String, c: &Option<CastStyle>, fades: bool| {
+            c.as_ref().map_or(Ok(()), |c| {
+                c.check(&format!("presentation.effects.{at}.cast"), fades)
+            })
         };
-        for (k, t) in &self.tracers {
-            cast(format!("tracers.{k}"), &t.cast, false)?;
-        }
-        for (k, f) in &self.flashes {
-            cast(format!("flashes.{k}"), &f.cast, true)?;
-        }
+        self.check_looks(&self.looks.looks)?;
         for (k, s) in &self.smoke {
             cast(format!("smoke.{k}.flame"), &s.flame.cast, false)?;
         }
@@ -360,15 +368,6 @@ impl EffectPresentation {
             ensure(lit <= i.duration_s, || {
                 format!("impacts.{hit}.cast outlives its impact")
             })?;
-            for (kind, s) in &i.round_scale {
-                let ok = s.size.is_finite() && s.size > 0.0 && s.duration.is_finite();
-                ensure(
-                    ok && s.duration > 0.0 && lit <= i.duration_s * s.duration,
-                    || {
-                        format!("impacts.{hit}.round_scale.{kind} must be positive and outlast its light")
-                    },
-                )?;
-            }
         }
         let b = &self.blast;
         ensure(b.reference_size_m > 0.0 && b.size_per_radius > 0.0, || {
@@ -378,11 +377,6 @@ impl EffectPresentation {
             "blast.cast outlives its blast".into()
         })?;
         self.cook_off.validate()?;
-        for (k, f) in &self.flashes {
-            ensure(f.dust.is_finite() && f.dust >= 0.0, || {
-                format!("flashes.{k}.dust must be ≥ 0")
-            })?;
-        }
         if let Some(d) = &self.shot_dust {
             for (k, b) in [("hull", &d.hull), ("ground", &d.ground.burst)] {
                 ensure(
@@ -418,6 +412,28 @@ impl EffectPresentation {
         })
     }
 
+    pub(crate) fn check_looks(
+        &self,
+        looks: &BTreeMap<String, Arc<crate::looks::WeaponLook>>,
+    ) -> Result<(), String> {
+        for (name, look) in looks {
+            look.check(name)?;
+            let Some(impact) = &look.impact else { continue };
+            for (hit, scale) in &impact.surfaces {
+                let Some(style) = self.impacts.get(hit) else {
+                    continue;
+                };
+                let lit = style.cast.map_or(0.0, |cast| cast.duration_s);
+                if lit > style.duration_s * scale.duration {
+                    return Err(format!(
+                        "presentation.weapon_looks.{name}.impact.surfaces.{hit}.duration must outlast its light"
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// The longest any one effect lives, seconds (`maxEffectLifetime`).
     fn max_lifetime(&self) -> f64 {
         let b = &self.blast;
@@ -436,14 +452,17 @@ impl EffectPresentation {
             longest = longest.max(c.delay_s + f.after_s + fire);
         }
         longest = longest.max(c.impact_after() + burst(&b.plume));
-        for f in self.flashes.values() {
+        for look in self.looks.looks.values() {
+            let Some(f) = &look.flash else { continue };
             let lit = f.cast.map_or(0.0, |c| c.duration_s);
             longest = longest.max(f.duration_s).max(f.fireball_s).max(lit);
         }
-        for i in self.impacts.values() {
+        for (hit, i) in &self.impacts {
             longest = longest.max(i.duration_s);
-            for s in i.round_scale.values() {
-                longest = longest.max(i.duration_s * s.duration);
+            for look in self.looks.looks.values() {
+                if let Some(s) = look.impact.as_ref().and_then(|i| i.surfaces.get(hit)) {
+                    longest = longest.max(i.duration_s * s.duration);
+                }
             }
         }
         for s in self.smoke.values() {
@@ -452,7 +471,8 @@ impl EffectPresentation {
                 .max(s.smoke.life_s)
                 .max(s.smoulder.life_s);
         }
-        for t in self.tracers.values() {
+        for look in self.looks.looks.values() {
+            let Some(t) = &look.tracer else { continue };
             if let Some(s) = &t.smoke {
                 longest = longest.max(s.puff.life_s);
             }
@@ -462,7 +482,7 @@ impl EffectPresentation {
 }
 
 impl TracerStyle {
-    fn validate(&self, kind: &str) -> Result<(), String> {
+    pub(crate) fn validate(&self, kind: &str) -> Result<(), String> {
         let at = |why: &str| format!("tracers.{kind}.{why}");
         let within = |v: Option<f64>, ok: fn(f64) -> bool| v.is_none_or(|v| v.is_finite() && ok(v));
         ensure(within(self.chance, |c| (0.0..=1.0).contains(&c)), || {
@@ -495,5 +515,25 @@ impl TracerStyle {
         ensure(self.smoke.is_none_or(|s| s.spacing_m > 0.0), || {
             at("smoke.spacing_m must be positive")
         })
+    }
+}
+
+impl CastStyle {
+    pub(crate) fn check(&self, path: &str, fades: bool) -> Result<(), String> {
+        for (field, value, min) in [
+            ("radius_m", self.radius_m, f64::MIN_POSITIVE),
+            ("intensity", self.intensity, 0.0),
+        ] {
+            crate::settings::validate::range(&format!("{path}.{field}"), value, min, f64::MAX)?;
+        }
+        if fades {
+            crate::settings::validate::range(
+                &format!("{path}.duration_s"),
+                self.duration_s,
+                f64::MIN_POSITIVE,
+                f64::MAX,
+            )?;
+        }
+        Ok(())
     }
 }

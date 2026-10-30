@@ -76,7 +76,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map_err(|diagnostics| format!("invalid presets: {diagnostics:?}"))?;
     let catalogue =
         contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES)?)?;
-    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::test_game())?;
+    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::test_rules())?;
     let players: Vec<contract::players::Player> = serde_json::from_value(serde_json::json!([
         {"id":"blue-1","side":"blue","faction":"us","controller":"active_ai"},
         {"id":"red-1","side":"red","faction":"eastern","controller":"active_ai"}

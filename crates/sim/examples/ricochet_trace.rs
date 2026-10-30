@@ -10,7 +10,7 @@
 //! `ricochet_trace tank_ap 20 20 120`.
 use std::collections::BTreeMap;
 
-use contract::ballistics::{FlightRules, WeaponBallistics};
+use contract::ballistics::FlightRules;
 use contract::ids::UnitId;
 use contract::map::MapDefinition;
 use contract::random::Rng;
@@ -28,7 +28,7 @@ fn main() {
     let row = arg(1).unwrap_or_else(|| "hmg".into());
     let incidence: f64 = arg(2).and_then(|s| s.parse().ok()).unwrap_or(60.0);
     let rounds: usize = arg(3).and_then(|s| s.parse().ok()).unwrap_or(20);
-    let fixture = sim::fixtures::test_game();
+    let fixture = sim::fixtures::test_rules();
     let section = |name: &str| fixture[name].clone();
     let flight: FlightRules = serde_json::from_value(section("physics")).unwrap();
     let rules: Rules = serde_json::from_value(fixture.clone()).unwrap();
@@ -40,7 +40,7 @@ fn main() {
     let ricochet: RicochetRules = serde_json::from_value(section("ricochet")).unwrap();
     let weapon_row = &fixture["weapons"][&row];
     assert!(weapon_row.is_object(), "no weapon row {row}");
-    let weapon: WeaponBallistics = serde_json::from_value(weapon_row.clone()).unwrap();
+    let weapon = rules.weapons[&row].ballistics.clone();
     let power = RoundPower {
         penetration: arg(4)
             .and_then(|s| s.parse().ok())

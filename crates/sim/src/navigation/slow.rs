@@ -124,7 +124,7 @@ mod tests {
             cells.set(at, cell);
         }
         let mut speed_factors: SpeedFactorTable = serde_json::from_value(
-            crate::fixtures::test_game()["movement"]["speed_factors"].clone(),
+            crate::fixtures::test_rules()["movement"]["speed_factors"].clone(),
         )
         .unwrap();
         speed_factors.tracked.forest = 0.5;

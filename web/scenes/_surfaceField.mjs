@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { openTerrainQuery, finishTerrainQuery } from "./_terrainQuery.mjs";
 import { writeFile } from "node:fs/promises";
 
 /** The terrain material's field lookup on the GPU against the same lookup on
@@ -7,54 +9,25 @@ import { writeFile } from "node:fs/promises";
  *  round every stroke's ends too, where the stroke is cut square: past the
  *  end, beside it and off its corners. */
 export async function surfaceFieldAgreement(ctx) {
-  const page = await ctx.newPage();
-  await page.goto(new URL("/", ctx.url).href);
+  const page = await openTerrainQuery(ctx);
   const repo = new URL("../../", import.meta.url).pathname;
   const result = await page.evaluate(async (repo) => {
     const file = (p) => `/@fs/${repo}${p}`;
-    const terrainPath = file("packages/battle-renderer/src/frame/terrainMaterial.ts");
-    const terrainText = await (await fetch(terrainPath)).text();
-    const gpuUrl = terrainText.match(/from ["']([^"']*typegpu[^"']*)["']/)[1];
-    const [
-      { tgpu, d },
-      { GpuRegistry },
-      terrain,
-      fields,
-      surface,
-      mesh,
-      grounds,
-      rules,
-      biome,
-      wasm,
-      allocations,
-    ] = await Promise.all([
-      import(gpuUrl),
-      import(file("packages/battle-renderer/src/frame/registry.ts")),
-      import(terrainPath),
-      import(file("packages/battle-renderer/src/terrain/surfaceField.ts")),
-      import(file("packages/battle-renderer/src/terrain/terrainSurface.ts")),
+    const [mesh, rules, biome, wasm] = await Promise.all([
       import(file("packages/battle-renderer/src/worldMesh.ts")),
-      import(file("web/tests/surfaceGrounds.ts")),
       import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("test")),
       import(file("fixtures/biomes/summer.json")),
       import("/src/wasm/game_wasm.js"),
-      import(file("packages/renderer-core/src/gpuAllocations.ts")),
+    ]);
+    await wasm.default();
+    const [fields, surface, grounds] = await Promise.all([
+      import(file("packages/battle-renderer/src/records.gen.ts")),
+      import(file("packages/battle-renderer/src/terrain/terrainSurface.ts")),
+      import(file("web/tests/surfaceGrounds.ts")),
     ]);
     // A stroke's stretch: `ax, ay, bx, by, half width, kind, cut ends`.
     const STROKE_FLOATS = 7;
     const STROKE_CUTS = 6;
-    await wasm.default();
-    // The ground's shapes are resolved by the presentation module.
-    await (await import(file("web/src/battle/sim/presentation.ts"))).loadPresentation();
-    const adapter = await navigator.gpu.requestAdapter();
-    const device = await adapter.requestDevice();
-    const live = allocations.trackGpuAllocations(device);
-    const registry = new GpuRegistry(device);
-    const root = tgpu.initFromDevice({ device });
-    registry.adopt(() => root.destroy());
-    const validation = [];
-    device.addEventListener("uncapturederror", (event) => validation.push(event.error.message));
-
     const FOOTPRINTS = [0.1, 3, 12, 40, 1e9];
     const POINTS = 4000;
     const view = new wasm.WorldView(
@@ -80,38 +53,9 @@ export async function surfaceFieldAgreement(ctx) {
           [0, 0, 1600, 1600],
         ],
       ];
-      const source = (
-        await import(file("packages/battle-renderer/src/frame/terrainSource.ts"))
-      ).createTerrainSource(root, registry, "full");
-      const queryLayout = tgpu.bindGroupLayout({
-        points: { storage: (n) => d.arrayOf(d.vec4f, n), access: "readonly" },
-        output: { storage: (n) => d.arrayOf(d.vec4f, n), access: "mutable" },
-      });
-      const { groundCell, groundPaved, groundSite, groundWater } = terrain;
-      const kernel = tgpu
-        .computeFn({ in: { gid: d.builtin.globalInvocationId }, workgroupSize: [1] })(`{
-        let query=queryLayout.$.points[gid.x];let cell=groundCell(query.xy,query.z);let site=groundSite(query.xy,cell,groundPaved(query.xy,cell));
-        queryLayout.$.output[gid.x]=vec4f(site.z,site.w,groundWater(query.xy,cell),0.0);
-      }`)
-        .$uses({ queryLayout, groundCell, groundPaved, groundSite, groundWater });
-      const pipeline = root.createComputePipeline({ compute: kernel });
-      await pipeline.initAsync();
       const count = POINTS * FOOTPRINTS.length;
-      const input = registry.buffer({
-        size: count * 16,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-      });
-      const output = registry.buffer({
-        size: count * 16,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-      });
-      const read = registry.buffer({
-        size: count * 16,
-        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-      });
       for (const [name, surfaceOf, streams, map] of cases) {
         const ground = surface.presentGround(surfaceOf.input);
-        source.set(ground);
         // Seeded points over the map and a margin past it, as f32.
         let seed = 63;
         const next = () => {
@@ -160,19 +104,10 @@ export async function surfaceFieldAgreement(ctx) {
             queries.set([x, y, footprint, 0], (i * FOOTPRINTS.length + k) * 4),
           );
         }
-        device.queue.writeBuffer(input, 0, queries);
         const points = new Float64Array(count * 3);
         for (let q = 0; q < count; q++) points.set(queries.subarray(q * 4, q * 4 + 3), q * 3);
         const cpu = ground.ground_distances(points);
-        const encoder = root["~unstable"].createCommandEncoder();
-        pipeline
-          .with(source.group)
-          .with(root.createBindGroup(queryLayout, { points: input, output }))
-          .with(encoder)
-          .dispatchWorkgroups(count);
-        root.unwrap(encoder).copyBufferToBuffer(output, 0, read, 0, count * 16);
-        encoder.submit();
-        await read.mapAsync(GPUMapMode.READ);
+        const values = await window.__terrainQuery.query(ground, "distances", queries);
         const wrong = [];
         let finite = 0,
           worst = 0;
@@ -197,8 +132,9 @@ export async function surfaceFieldAgreement(ctx) {
           }
           return inside;
         };
+        const { records, index } = JSON.parse(ground.ground_surface_field());
+        const [, , cellM, cols, rows, levels, exactToM] = ground.ground_field_grid();
         try {
-          const values = new Float32Array(read.getMappedRange());
           for (let q = 0; q < count; q++) {
             const [x, y, footprint] = queries.subarray(q * 4, q * 4 + 3);
             const expected = cpu.subarray(q * 3, q * 3 + 3);
@@ -220,12 +156,8 @@ export async function surfaceFieldAgreement(ctx) {
             });
           }
         } finally {
-          read.unmap();
+          ground.free();
         }
-        const tables = ground.ground_terrain();
-        const [records, index] = [tables.surfaces(), tables.surface_index()];
-        tables.free();
-        const [, , cellM, cols, rows, levels, exactToM] = ground.ground_field_grid();
         grown.push({
           name,
           records: records.length / fields.SURFACE_FLOATS,
@@ -244,13 +176,15 @@ export async function surfaceFieldAgreement(ctx) {
         });
       }
     } finally {
-      registry.release();
       view.free();
     }
-    const final = live();
-    device.destroy();
-    return { grounds: grown, validation, final };
+    return { grounds: grown, validation: window.__terrainValidation };
   }, repo);
+  const { final, compiled } = await finishTerrainQuery(page);
+  result.final = final;
+  result.shaderHashes = compiled.map((source) => createHash("sha256").update(source).digest("hex"));
+  for (let i = 0; i < compiled.length; i++)
+    await writeFile(ctx.evidencePath(`surface-field-${i}.wgsl`), compiled[i]);
   await writeFile(ctx.evidencePath("surface-field.json"), JSON.stringify(result, null, 2));
   ctx.check(
     "the GPU's surface field lookup equals the CPU's on every shape and on a dense town, round the square ends of their strokes too",

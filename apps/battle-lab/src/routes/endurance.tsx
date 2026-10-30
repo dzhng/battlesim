@@ -1,9 +1,9 @@
 // /labs/endurance: the synthetic 100-a-side stress battle, played
 // in real time with the production view, and live telemetry for the scale
 // verdict. Clearly labelled stress input, on its saved or full generated world.
+import { shippedRules } from "@web/shippedRules";
 import { useEffect, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import game from "@fixtures/game.json";
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
@@ -171,7 +171,7 @@ export default function Endurance() {
       <>
         <ul className="lab-log" data-testid="telemetry">
           <li>
-            tick {t.tick} ({(t.tick / game.tick_hz / 60).toFixed(1)} min) · {t.status}
+            tick {t.tick} ({(t.tick / shippedRules.tick_hz / 60).toFixed(1)} min) · {t.status}
             {t.slow ? " · behind real time" : ""}
           </li>
           <li>

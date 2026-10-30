@@ -248,7 +248,7 @@ fn production_resolver_prevents_hull_damage_but_keeps_ordinary_collateral_and_so
     use sim::battle::{Battle, Round};
     use sim::damage::{self, DamageContext, HullResolver};
     use std::collections::BTreeMap;
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -353,7 +353,7 @@ fn supply_restores_one_charge_per_ten_seconds_with_finite_stock_and_unchanged_co
     use serde_json::json;
     use sim::battle::Battle;
     use std::collections::BTreeSet;
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -416,7 +416,7 @@ fn active_protection_intercepts_a_top_attack_missile_in_its_dive() {
     use contract::ids::Side;
     use serde_json::json;
     use sim::battle::Battle;
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -468,7 +468,7 @@ fn active_protection_intercepts_a_top_attack_missile_in_its_dive() {
 
 #[test]
 fn ordinary_tank_shell_metadata_bypasses_active_protection() {
-    let rules = sim::fixtures::test_game();
+    let rules = sim::fixtures::test_rules();
     for id in [
         "rifle",
         "tank_ap",

@@ -9,12 +9,13 @@ import {
   musicAPI,
   workbenchAPI,
   type MusicAPI,
+  type LookSound,
   type Review,
   type Snapshot,
   type WorkbenchAPI,
 } from "./protocol";
 import { Library, type Selection } from "./Library";
-import { GlobalAssignments } from "./Assignments";
+import { WeaponLooks } from "./WeaponLooks";
 import { Movement } from "./Movement";
 import { VoicesTab } from "./voices/VoicesTab";
 import { MusicTab } from "./music/MusicTab";
@@ -51,10 +52,11 @@ export function SoundWorkbench({
   const audition = useMemo(() => suppliedAudition ?? new SoundAuditioner(), [suppliedAudition]);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [draft, setDraft] = useState<SoundCatalog | null>(null);
+  const [lookSounds, setLookSounds] = useState<Record<string, LookSound>>({});
   const [review, setReview] = useState<Review | null>(null);
-  const [tab, setTab] = useState<
-    "library" | "movement" | "effects" | "voices" | "music" | "chatter"
-  >("library");
+  const [tab, setTab] = useState<"library" | "movement" | "looks" | "voices" | "music" | "chatter">(
+    "library",
+  );
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Selection | null>(null);
   const [busy, setBusy] = useState(false);
@@ -77,6 +79,11 @@ export function SoundWorkbench({
       stopAudio();
       setSnapshot(value);
       setDraft(structuredClone(value.catalog));
+      setLookSounds(
+        structuredClone(
+          Object.fromEntries(Object.entries(value.looks).map(([name, look]) => [name, look.sound])),
+        ),
+      );
       setReview(null);
       setSelected((selection) => {
         if (
@@ -115,6 +122,14 @@ export function SoundWorkbench({
     const next = structuredClone(draft);
     change(next);
     setDraft(next);
+    setReview(null);
+    setMessage("");
+    stopAudio();
+  };
+  const editLooks = (change: (sounds: Record<string, LookSound>) => void) => {
+    const next = structuredClone(lookSounds);
+    change(next);
+    setLookSounds(next);
     setReview(null);
     setMessage("");
     stopAudio();
@@ -177,7 +192,13 @@ export function SoundWorkbench({
     });
     setSelected({ kind: "sound", id: name });
   };
-  const dirty = snapshot && draft && JSON.stringify(snapshot.catalog) !== JSON.stringify(draft);
+  const dirty =
+    snapshot &&
+    draft &&
+    (JSON.stringify(snapshot.catalog) !== JSON.stringify(draft) ||
+      Object.entries(snapshot.looks).some(
+        ([name, look]) => JSON.stringify(look.sound) !== JSON.stringify(lookSounds[name]),
+      ));
 
   return (
     <main className="sound-workbench" data-sound-workbench>
@@ -185,7 +206,7 @@ export function SoundWorkbench({
         <div>
           <Link to="/">Developer menu</Link>
           <h1>Sound workbench</h1>
-          <p>Audition the library. Choose the sound of each unit and weapon mount.</p>
+          <p>Audition the library and edit each weapon look’s sound.</p>
         </div>
         {tab !== "voices" && tab !== "music" && tab !== "chatter" && (
           <div className="sw-publication">
@@ -195,7 +216,13 @@ export function SoundWorkbench({
               onClick={() =>
                 void action(async () => {
                   validateSoundCatalog(draft);
-                  setReview(await api.preview({ revision: snapshot!.revision, catalog: draft! }));
+                  setReview(
+                    await api.preview({
+                      revision: snapshot!.revision,
+                      catalog: draft!,
+                      lookSounds,
+                    }),
+                  );
                 })
               }
             >
@@ -220,7 +247,7 @@ export function SoundWorkbench({
           [
             ["library", "Library & recipes"],
             ["movement", "Movement"],
-            ["effects", "Defaults & effects"],
+            ["looks", "Weapon looks"],
             ["voices", "Voices"],
             ["music", "Music"],
             ["chatter", "Chatter preview"],
@@ -232,6 +259,7 @@ export function SoundWorkbench({
             onClick={() => {
               setTab(value);
               setSearch("");
+              stopAudio();
             }}
           >
             {label}
@@ -278,6 +306,8 @@ export function SoundWorkbench({
           <fieldset className="sw-editable" disabled={busy}>
             {tab === "library" && (
               <Library
+                snapshot={snapshot}
+                lookSounds={lookSounds}
                 draft={draft}
                 edit={edit}
                 play={play}
@@ -300,8 +330,15 @@ export function SoundWorkbench({
                 stop={stopAudio}
               />
             )}
-            {tab === "effects" && (
-              <GlobalAssignments snapshot={snapshot} draft={draft} edit={edit} play={play} />
+            {tab === "looks" && (
+              <WeaponLooks
+                snapshot={snapshot}
+                draft={draft}
+                sounds={lookSounds}
+                edit={editLooks}
+                play={play}
+                stop={stopAudio}
+              />
             )}
           </fieldset>
           {review && (

@@ -3,7 +3,7 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { LabViewport } from "../LabViewport";
 import { SavedEncounters, type SavedBattle } from "../savedMaps";
 import { useBattleSession } from "../useBattleSession";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { useLabOverlay } from "../labOverlay";
 import { TickStatus } from "../TickStatus";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
@@ -50,6 +50,8 @@ function TransportLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
   const { observation } = sim;
   const worldFeed = useFeed(meshes);
   const { overlayFeed, onFrame } = useLabOverlay(session, CAMERA);
+  const armyState = useFeed({ own: observation?.own ?? [], control });
+
   if (!meshes) return null;
   return (
     <>
@@ -78,11 +80,10 @@ function TransportLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
       </aside>
       <div className="hud">
         <ArmyDeck
-          own={observation?.own ?? []}
+          state={armyState}
           selected={control.selected}
           onSelect={control.setSelected}
           rules={session.rules}
-          control={control}
           captions={null}
         />
       </div>

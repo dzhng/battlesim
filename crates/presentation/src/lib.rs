@@ -8,14 +8,18 @@
 //! tuning it never moves a digest or a replay.
 pub mod assets;
 mod clip;
+pub mod color;
 pub mod effects;
 pub mod fielded;
 pub mod fog;
 pub mod light;
+pub mod looks;
 pub mod presentation;
 pub mod records;
 pub mod scars;
 pub mod seed;
+pub mod settings;
+pub mod shader_constants;
 pub mod shadow;
 pub mod sound;
 pub mod static_world;
@@ -24,3 +28,8 @@ pub mod view;
 pub mod wave;
 pub mod wind;
 pub mod world;
+
+pub(crate) mod appearance;
+
+/// Gravity for debris arcs and vehicle attitude in presentation.
+pub(crate) const GRAVITY: f64 = 9.81;

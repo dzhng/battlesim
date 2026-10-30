@@ -4,7 +4,8 @@
 import { createAuthority, type AuthorityHost } from "./authority";
 import { loadSimModule } from "./module";
 import type { ObservationView } from "./observationView";
-import { ScenePresentation, loadPresentation, type LearnedGround } from "./presentation";
+import { ScenePresentation, loadPresentation } from "./presentation";
+import type { LearnedGround } from "./presentationGround";
 import type {
   AuthorityStatus,
   CommandAck,

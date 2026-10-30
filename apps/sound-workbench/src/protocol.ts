@@ -1,28 +1,36 @@
-import type { AudioPresentation } from "../../../packages/battle-audio/src/audioPresentation";
+import type { NearFar, OneShot, AudioMix } from "../../../packages/battle-audio/src/audioMix";
 import type { SoundCatalog } from "../../../packages/battle-audio/src/catalog";
 import type { Replacement } from "../../fixture-publication/publication";
 
+/** Authored sound controls; omitted recordings use the mix's shared choices. */
+export interface LookSound {
+  shot?: NearFar;
+  blast?: Pick<NearFar, "gain" | "far_m"> & Partial<Pick<NearFar, "near" | "far">>;
+  motor: (Pick<OneShot, "gain"> & Partial<Pick<OneShot, "sound">>) | null;
+  impacts: Record<string, string>;
+  impact_scale?: number;
+}
 export interface Snapshot {
   revision: string;
   catalog: SoundCatalog;
-  /** `game.json`'s weapon rows by name, each with the row it `extends`: a
-   *  row without a firing choice of its own takes its nearest ancestor's. */
-  weapons: Record<string, { extends?: string }>;
-  /** The synthesized baseline shots (`presentation.audio.shots`). */
-  firing: AudioPresentation["shots"];
-  /** Each vehicle class's loops (`presentation.audio.vehicles`), read only here. */
-  vehicles: AudioPresentation["vehicles"];
-  /** A soldier's footstep and stride (`presentation.audio.footsteps`), read only here. */
-  footsteps: AudioPresentation["footsteps"];
+  looks: Record<string, { sound: LookSound }>;
+  weaponDefaults: AudioMix["weapon_defaults"];
+  impacts: AudioMix["impacts"];
+  ricochet: AudioMix["ricochet"];
+  effects: AudioMix["effects"];
+  /** Each vehicle class's loops (`audio.json.vehicles`), read only here. */
+  vehicles: AudioMix["vehicles"];
+  /** A soldier's footstep and stride (`audio.json.footsteps`), read only here. */
+  footsteps: AudioMix["footsteps"];
   /** A soldier's running pace (`presentation.pose.gait.run_mps`). */
   runMps: number;
-  /** Battle music's mood direction and ducking (`presentation.audio.music`), read only here. */
-  music: AudioPresentation["music"];
-  materials: string[];
+  /** Battle music's mood direction and ducking (`audio.json.music`), read only here. */
+  music: AudioMix["music"];
 }
 export interface Draft {
   revision: string;
   catalog: SoundCatalog;
+  lookSounds: Record<string, LookSound>;
 }
 export interface Review {
   candidateId: string;

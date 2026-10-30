@@ -8,6 +8,9 @@ use sim::fixtures::{self, CatalogSet};
 use sim::publication::reader::Reader;
 use sim::publication::Publisher;
 
+#[path = "common/capture_publication.rs"]
+mod capture_publication;
+
 const FIXTURES: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/parity/capture/"
@@ -75,12 +78,27 @@ fn both_fixture_captures_decode_as_the_browser_decoded_them() {
         ("paris-corner", "run/paris-corner/capture.json"),
         ("market-town", "publication/market-town-capture.json"),
     ] {
-        let (capture, expected) = (
+        let (mut capture, expected) = (
             read(capture),
             read(&format!("publication/{scene}-observations.json")),
         );
-        if scene == "market-town" && std::env::var_os("BLESS_PARITY").is_some() {
-            continue;
+        if std::env::var_os("BLESS_PARITY").is_some() {
+            capture_publication::refresh(&mut capture);
+            let relative = if scene == "paris-corner" {
+                "run/paris-corner/capture.json"
+            } else {
+                "publication/market-town-capture.json"
+            };
+            let bytes = serde_json::to_vec(&capture).unwrap();
+            std::fs::write(format!("{FIXTURES}{relative}"), &bytes).unwrap();
+            if scene == "paris-corner" {
+                let path = format!("{FIXTURES}run/paris-corner/manifest.json");
+                let mut manifest: Value =
+                    serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+                manifest["identity"]["captureHash"] =
+                    json!(format!("{:x}", Sha256::digest(&bytes)));
+                std::fs::write(path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+            }
         }
         let mut reader = Reader::new(capture["layout"].as_str().unwrap()).unwrap();
         let samples = capture["samples"].as_array().unwrap();
@@ -137,7 +155,7 @@ fn market_town_window_matches_a_fresh_stream_after_its_preamble() {
         .collect();
     assert_eq!(window.len(), 7);
     let mut game: Value =
-        serde_json::from_str(&std::fs::read_to_string(fixtures::dir().join("game.json")).unwrap())
+        serde_json::from_str(&std::fs::read_to_string(fixtures::dir().join("rules.json")).unwrap())
             .unwrap();
     game["catalog"] = Value::Array(fixtures::catalog_documents(CatalogSet::Capture));
     let rules: contract::scenario::Rules = serde_json::from_value(game).unwrap();

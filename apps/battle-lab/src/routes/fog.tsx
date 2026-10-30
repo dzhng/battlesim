@@ -5,8 +5,8 @@
 // the GPU sight shape against Rust's vectors, and turn one eye's bearing
 // without moving it.
 import { useEffect, useMemo, useState } from "react";
-import type { FogProbes } from "@packages/battle-renderer/src/frame/fogVisibility";
-import type { FrameView } from "@packages/battle-renderer/src/scene";
+import type { FogProbes } from "@packages/battle-renderer/src/fog";
+import type { FrameView } from "@web/battle/render/sceneStats";
 import { loadWasm } from "@web/battle/sim/module";
 import type { ObservationView } from "@web/battle/sim/observationView";
 import type { SideName } from "@web/battle/sim/protocol";
@@ -14,7 +14,7 @@ import type { FogEye, FogRequest } from "@web/battle/sim/presentation";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { TickStatus } from "../TickStatus";
 
 /** Every 8 m fog cell's centre on the ground, and the simulation's bit there. */

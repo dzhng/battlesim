@@ -7,13 +7,13 @@
 // scenery are resolved by the scene's presentation (`crates/presentation`'s
 // `static_world::ground`) from what is set here (`GroundInput`); the
 // presentation module must have loaded (`loadPresentation`).
-import { Presentation, terrain_mesh } from "@wasm/presentation/presentation_wasm.js";
-import game from "@fixtures/game.json";
+import { presentationSettings } from "@web/presentationSettings";
+import { Presentation, terrain_mesh } from "@wasm/renderer_browser";
 import type summer from "@fixtures/biomes/summer.json";
 import type { Mesh, Rgba } from "../mesh";
 import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
 import type { TerrainGrid } from "./terrainGrid";
-import type { FogSource } from "../frame/fogVisibility";
+import type { FogSource } from "../fog";
 
 /** A biome file (`fixtures/biomes/`), as the page reads it: Rust admits it
  *  (`ground::biome`) and resolves the ground from it; the page reads the grass
@@ -30,20 +30,10 @@ export interface GroundInput {
   props?: boolean;
 }
 
-/** The ground a scene's presentation resolved: the calls the terrain
- *  material, the grass and the water read its tables through, and
- *  fog of war's sight over it. */
+/** Ground queries and lab controls used by browser scene composition. */
 export type PresentedGround = Pick<
   Presentation,
-  | "ground_terrain"
-  | "ground_plots"
-  | "ground_water_mesh"
-  | "grass_kinds"
-  | "grass_params"
-  | "grass_window"
-  | "grass_frame_params"
-  | "grass_props"
-  | "retune_grass"
+  "ground_water_mesh" | "grass_kinds" | "retune_grass"
 > &
   FogSource;
 
@@ -99,7 +89,10 @@ export function setGround(presentation: Presentation, input: GroundInput): void 
     layout,
     JSON.stringify(biome),
     family ?? undefined,
-    JSON.stringify(game.presentation),
+    JSON.stringify({
+      terrain: presentationSettings.terrain,
+      fog_geometry: presentationSettings.fog_geometry,
+    }),
   );
 }
 
@@ -157,7 +150,7 @@ export function buildTerrainSurface(
     props: overlay === "surface",
   };
   // The traversal overlay shows the blocked flag alone; a water tint would
-  // muddy it. The water's look is its surface's (`frame/waterSurface.ts`).
+  // muddy it. The water's look is its own shader's (`renderer-core` `water.rs`).
   const surface = overlay === "surface";
   return { mesh, input, biome, grid: surface ? exports.terrain : null, water: surface };
 }

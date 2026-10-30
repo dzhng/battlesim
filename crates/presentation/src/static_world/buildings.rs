@@ -11,6 +11,7 @@ use crate::static_world::walk::Record;
 use crate::view::TIERS;
 use crate::world::BuildingStyle;
 use std::ops::Range;
+use std::sync::Arc;
 
 /// Every building draws at the coarsest tier from afar.
 const COARSEST: usize = TIERS - 1;
@@ -62,8 +63,10 @@ pub struct BuildingModule {
 }
 
 pub struct Buildings {
-    library: Library,
-    placed: Vec<Placed>,
+    library: Arc<Library>,
+    placed: Arc<Vec<Placed>>,
+    bounds: Vec<Option<Bounds>>,
+    style: BuildingStyle,
     /// Per building: its template's rows in each state.
     states: Vec<[Option<Range<usize>>; 3]>,
     /// Per building: its value, the factor its tint is drawn at.
@@ -127,6 +130,15 @@ impl Buildings {
         library: Library,
         bounds: &[Option<Bounds>],
         placed: Vec<Placed>,
+        style: &BuildingStyle,
+    ) -> Result<Self, String> {
+        Self::from_source(Arc::new(library), bounds, Arc::new(placed), style)
+    }
+
+    fn from_source(
+        library: Arc<Library>,
+        bounds: &[Option<Bounds>],
+        placed: Arc<Vec<Placed>>,
         style: &BuildingStyle,
     ) -> Result<Self, String> {
         let states = placed
@@ -204,6 +216,8 @@ impl Buildings {
         }
         let linear = std::array::from_fn(|v| super::srgb_to_linear(v as f64 / 255.0) as f32);
         Ok(Self {
+            bounds: bounds.to_vec(),
+            style: *style,
             library,
             placed,
             states,
@@ -213,6 +227,26 @@ impl Buildings {
             compact,
             linear,
         })
+    }
+
+    /// Rebuilds authored extents while sharing immutable template placement.
+    pub fn replace_bounds(
+        &self,
+        mut replacement: impl FnMut(&str, &str) -> Result<Option<Bounds>, String>,
+    ) -> Result<Self, String> {
+        let mut bounds = self.bounds.clone();
+        for &i in &self.modules {
+            let module = &self.library.modules[i];
+            if let Some(next) = replacement(&module.kit, &module.name)? {
+                bounds[i] = Some(next);
+            }
+        }
+        Self::from_source(
+            self.library.clone(),
+            &bounds,
+            self.placed.clone(),
+            &self.style,
+        )
     }
 
     /// The library's module `m` (kit appearance, module name).

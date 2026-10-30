@@ -4,6 +4,7 @@ mod common;
 #[path = "common/limits.rs"]
 mod limits;
 use common::overlap_depth;
+use sim::fixtures::test_rules;
 
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::{BuildingDefinition, MapDefinition, SurfaceKind};
@@ -774,7 +775,7 @@ fn every_building_of_a_map_is_of_one_regional_family() {
 /// district kinds; the sweep covers the sizes.
 #[test]
 fn each_regional_family_asked_for_builds_every_map_type() {
-    let rules = sim::fixtures::test_game().to_string();
+    let rules = test_rules().to_string();
     for family in presets().parcels.regional_families {
         for map_type in TYPES {
             let mut request = request(map_type, MapSize::Medium, 1);
@@ -809,7 +810,7 @@ fn a_region_the_presets_do_not_list_is_refused() {
         &serde_json::to_string(&request).unwrap(),
         PRESETS,
         TEMPLATES,
-        &sim::fixtures::test_game().to_string(),
+        &test_rules().to_string(),
     ) {
         mapgen::CompileOutcome::Ok { .. } => panic!("an unlisted region built a map"),
         mapgen::CompileOutcome::Error { diagnostics } => {
@@ -1320,8 +1321,7 @@ fn car_parks_open_on_a_carriageway_on_ground_the_parcels_leave() {
 #[test]
 fn a_dense_districts_ground_between_its_parcels_is_lawn() {
     let presets = presets();
-    let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+    let rules: contract::scenario::Rules = serde_json::from_value(test_rules()).unwrap();
     let verge = presets.parcels.verge_m;
     let mut lawn = 0;
     for map_type in TYPES {

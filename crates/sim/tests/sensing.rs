@@ -20,7 +20,7 @@ fn blue_sees_round(b: &Battle, at: sim::math::V3, layer: contract::catalog::Alti
 #[test]
 fn high_air_sees_no_round_fired_from_the_ground() {
     use contract::catalog::AltitudeLayer;
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",

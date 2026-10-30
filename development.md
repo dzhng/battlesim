@@ -13,22 +13,27 @@ Subsystem READMEs own commands and contracts for their code.
 | [Presentation](crates/presentation/README.md)             | Per-side frame publications: interpolation, poses, effects, cook-offs, tiers, and cast lights.       |
 | [Browser application](web/README.md)                      | Workers, map adapters, player input, readouts, build configuration, and browser verification.        |
 | [Battle lab](apps/battle-lab/README.md)                   | Player pages, shareable battle addresses, and focused developer fixtures.                            |
-| [Renderer primitives](packages/renderer-core/README.md)   | Camera/depth contracts, device admission, and GPU allocation accounting.                             |
-| [Battle renderer](packages/battle-renderer/README.md)     | Observed feeds, terrain, models, lights, fog, effects, overlays, and GPU lifetime.                   |
+| [Browser camera primitives](packages/renderer-core/README.md) | Camera/depth contracts, view control, camera rays and clearance.                                           |
+| [Browser render inputs](packages/battle-renderer/README.md) | Plain scene contracts, external geometry and material inputs.                                   |
 | [Scene assets](packages/scene-assets/README.md)           | Appearance contracts, validation, baking, loading, and Blender authoring.                            |
 | [Battle audio](packages/battle-audio/README.md)           | Recorded and synthetic sound preparation, calibration, and playback.                                 |
-| [Pipelines](crates/pipelines/README.md)                   | Browser shaders and pipeline settings consumed by the renderer and native client.                    |
+| [Shared render runtime](crates/renderer-core/README.md) | Rust GPU composition, canonical preparation, resource lifetime and frame encoding across native and browser. |
 | [Fixtures](fixtures/README.md)                            | Authored rules, unit/prop catalogs, generator presets, saved maps, and sound assignments.            |
 | [Assets](assets/README.md)                                | Source media, prepared runtime files, review sheets, and third-party provenance.                     |
-| [Native client](native/client/README.md)                  | The `wgpu` client over the shared presentation frames and renderer pipelines.                        |
+| [Native client](native/client/README.md)                  | The desktop shell over the shared render runtime.                        |
 | [Mechanics editor](apps/mechanics-editor/README.md)       | Developer tool: edits resolved rules and unit families.                                              |
 | [Map workbench](apps/map-workbench/README.md)             | Developer tool: tunes generation on a live top-down plan.                                            |
-| [Sound workbench](apps/sound-workbench/README.md)         | Developer tool: auditions the sound library and edits recipes and assignments.                       |
+| [Sound workbench](apps/sound-workbench/README.md)         | Developer tool: auditions looks and movement, and edits library recipes.                       |
 | [Fixture publication](apps/fixture-publication/README.md) | Reviewed fixture saves from the developer tools, and interrupted-write recovery.                     |
 | [Capture tool](apps/battle-lab/src/capture/README.md)     | Developer tool: films saved encounters into MP4s from a JSON capture file; the menu backdrop is one. |
 
 Commands, flags, paths, and dependency versions belong in the manifest or README
 that owns them, not in this document.
+
+Battle rules, visual presentation and the audio mix have independent readers.
+Only battle rules enter the rules identity and encounter overrides; the
+[weapon-look contract](fixtures/README.md#weapon-looks) connects a resolved
+weapon to its authored sight and sound.
 
 Content has three owners, and none reaches another's place. Game battles are
 generated and field the roster's units. Test units (`test_*`) and `test` maps

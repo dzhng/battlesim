@@ -2,16 +2,18 @@
 //! replay's frame records drawn back to back, each through the whole pass
 //! list, timed as the browser's graphics test times its reel. Each frame
 //! records its interval (start to next start), its CPU time (framing,
-//! preparing, encoding, submitting and presenting) and its GPU time between
-//! two marker passes (`gpuTiming.ts`'s technique: 1×1 cleared render passes
-//! carrying timestamp writes, the first at its start, the last at its end;
-//! whole frame only). The report is the browser
+//! preparing, encoding and submitting) and its GPU time between
+//! two marker passes (1×1 cleared render passes carrying timestamp writes,
+//! the first at its start, the last at its end, as in the shared runtime;
+//! whole frame only). Metal counter values resolve after the frame submission
+//! completes; resolving in that same command buffer can return a previous
+//! frame's end timestamp. This adds a separate telemetry submission and wait.
+//! The report is the browser
 //! file's shape with `client: "native"`.
 //!
-//! A window that isn't shown presents nothing and blocks on nothing, so the
-//! bench holds at most `IN_FLIGHT` frames on the GPU, as a presenting swap
-//! chain would: a frame's interval is then whichever of the CPU and the GPU
-//! is slower.
+//! The bench skips window presentation and holds at most `IN_FLIGHT` frames on
+//! the GPU, as a presenting swap chain would. Intervals include telemetry waits;
+//! timed CPU phases end at the render submission and exclude those waits.
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -28,6 +30,17 @@ pub const IN_FLIGHT: usize = 2;
 /// The CPU frame's parts, in order.
 pub const PHASES: [&str; 4] = ["frame", "prepare", "encode", "submit"];
 
+/// Draws with both a completed warm-up and a following frame interval.
+pub fn reported_draws(draws: usize) -> Result<std::ops::Range<usize>, String> {
+    let end = draws.saturating_sub(1);
+    if end <= WARMUP_FRAMES {
+        return Err(format!(
+            "{draws} frames: none after the {WARMUP_FRAMES}-frame warm-up and final interval boundary"
+        ));
+    }
+    Ok(WARMUP_FRAMES..end)
+}
+
 /// One frame's marker queries and the buffers its times come back through.
 struct Slot {
     queries: QuerySet,
@@ -38,6 +51,7 @@ struct Slot {
 
 /// GPU time per frame from two timestamp markers.
 struct FrameTimer {
+    queue: Queue,
     slots: Vec<Slot>,
     marker: TextureView,
     /// Nanoseconds per timestamp tick.
@@ -92,6 +106,7 @@ impl FrameTimer {
             })
             .create_view(&Default::default());
         Some(Self {
+            queue: queue.clone(),
             slots,
             marker,
             period: f64::from(queue.get_timestamp_period()),
@@ -114,9 +129,8 @@ impl FrameTimer {
                     store: StoreOp::Store,
                 },
             })],
-            // The frame opens where the first marker's vertex stage starts
-            // and closes where the last marker's fragment stage ends, as
-            // `gpuTiming.ts` takes them: fragment work runs in order.
+            // Match the shared frame timer's start/end marker stages;
+            // fragment work runs in order.
             timestamp_writes: Some(RenderPassTimestampWrites {
                 query_set: &self.slots[frame % self.slots.len()].queries,
                 beginning_of_pass_write_index: (index == 0).then_some(0),
@@ -126,8 +140,7 @@ impl FrameTimer {
         });
     }
 
-    /// After `frame` is submitted: its times map back when it finishes.
-    fn submitted(&self, frame: usize) {
+    fn map_result(&self, frame: usize) {
         let slot = &self.slots[frame % self.slots.len()];
         let mapped = slot.mapped.clone();
         slot.readback.map_async(MapMode::Read, .., move |r| {
@@ -135,19 +148,33 @@ impl FrameTimer {
         });
     }
 
-    /// `frame`'s GPU ms, once its submission has finished.
-    fn collect(&self, frame: usize) -> Option<f64> {
+    /// Metal can return stale end-of-fragment counters before frame completion.
+    fn collect(&self, device: &Device, frame: usize) -> Result<Option<f64>, String> {
         let slot = &self.slots[frame % self.slots.len()];
+        let mut encoder = device.create_command_encoder(&Default::default());
+        encoder.resolve_query_set(&slot.queries, 0..2, &slot.resolve, 0);
+        encoder.copy_buffer_to_buffer(&slot.resolve, 0, &slot.readback, 0, 16);
+        let index = self.queue.submit([encoder.finish()]);
+        self.map_result(frame);
+        device
+            .poll(PollType::Wait {
+                submission_index: Some(index),
+                timeout: None,
+            })
+            .map_err(|e| format!("resolving frame {frame}: {e}"))?;
         if !slot.mapped.swap(false, Ordering::Acquire) {
-            return None;
+            return Ok(None);
         }
         let ticks: [u64; 2] = {
-            let view = slot.readback.get_mapped_range(..).ok()?;
+            let view = slot
+                .readback
+                .get_mapped_range(..)
+                .map_err(|e| e.to_string())?;
             bytemuck::pod_read_unaligned(&view[..16])
         };
         slot.readback.unmap();
-        (ticks[0] != 0 && ticks[1] > ticks[0])
-            .then(|| (ticks[1] - ticks[0]) as f64 * self.period / 1e6)
+        Ok((ticks[0] != 0 && ticks[1] > ticks[0])
+            .then(|| (ticks[1] - ticks[0]) as f64 * self.period / 1e6))
     }
 }
 
@@ -199,25 +226,19 @@ impl Bench {
         self.marks.push(Instant::now());
     }
 
-    /// Opens the frame's GPU time, submitted at once: the frame's passes may
-    /// submit parts of the frame before its last encoder.
-    pub fn begin(&self, device: &Device, queue: &Queue) {
+    /// Opens the frame in its first encoder, including any regional submissions.
+    pub fn begin(&self, encoder: &mut CommandEncoder) {
         let Some(timer) = &self.timer else { return };
-        let mut encoder = device.create_command_encoder(&Default::default());
-        timer.mark(&mut encoder, self.frame, 0);
-        queue.submit([encoder.finish()]);
+        timer.mark(encoder, self.frame, 0);
     }
 
     /// Closes the frame's GPU time at the end of `encoder`.
     pub fn end(&self, encoder: &mut CommandEncoder) {
         let Some(timer) = &self.timer else { return };
         timer.mark(encoder, self.frame, 1);
-        let slot = &timer.slots[self.frame % timer.slots.len()];
-        encoder.resolve_query_set(&slot.queries, 0..2, &slot.resolve, 0);
-        encoder.copy_buffer_to_buffer(&slot.resolve, 0, &slot.readback, 0, 16);
     }
 
-    /// The frame was submitted as `index` (and presented): its CPU time
+    /// The frame was submitted as `index`: its CPU time
     /// ends here. Then waits until no more than `IN_FLIGHT` frames are
     /// unfinished, collecting the finished frames' GPU times.
     pub fn submitted(&mut self, device: &Device, index: SubmissionIndex) -> Result<(), String> {
@@ -235,9 +256,6 @@ impl Bench {
             gpu_ms: None,
             phases_ms,
         });
-        if let Some(timer) = &self.timer {
-            timer.submitted(self.frame);
-        }
         self.in_flight.push_back((self.frame, index));
         self.frame += 1;
         while self.in_flight.len() > IN_FLIGHT {
@@ -257,7 +275,7 @@ impl Bench {
             })
             .map_err(|e| format!("waiting on frame {frame}: {e}"))?;
         if let Some(timer) = &self.timer {
-            self.samples[frame].gpu_ms = timer.collect(frame);
+            self.samples[frame].gpu_ms = timer.collect(device, frame)?;
         }
         Ok(())
     }
@@ -276,17 +294,11 @@ impl Bench {
         while !self.in_flight.is_empty() {
             self.finish_oldest(device)?;
         }
-        let timed = self
-            .samples
-            .get(WARMUP_FRAMES..self.samples.len().saturating_sub(1))
-            .filter(|t| !t.is_empty())
-            .ok_or(format!(
-                "{} frames: none after the {WARMUP_FRAMES}-frame warm-up",
-                self.samples.len()
-            ))?;
+        let timed = &self.samples[reported_draws(self.samples.len())?];
         let mut gpu: Vec<f64> = timed.iter().filter_map(|s| s.gpu_ms).collect();
         gpu.sort_by(f64::total_cmp);
-        let gpu = (!gpu.is_empty()).then(|| {
+        let measured_gpu_frames = gpu.len();
+        let gpu = (gpu.len() == timed.len()).then(|| {
             json!({
                 "frames": gpu.len(),
                 "meanMs": gpu.iter().sum::<f64>() / gpu.len() as f64,
@@ -311,6 +323,9 @@ impl Bench {
                 "intervalsMs": timed.iter().map(|s| s.interval_ms).collect::<Vec<_>>(),
                 "cpuMs": timed.iter().map(|s| s.cpu_ms).collect::<Vec<_>>(),
                 "gpu": gpu,
+                "gpuMs": timed.iter().map(|s| s.gpu_ms).collect::<Vec<_>>(),
+                "gpuCoverage": { "expected": timed.len(), "measured": measured_gpu_frames },
+                "gpuTiming": self.timer.as_ref().map(|_| "render-pass stage counters; post-completion resolve submission and wait"),
                 "phasesMs": phases,
             }],
         }))
@@ -368,4 +383,19 @@ pub fn summary(report: &Value) -> String {
         scene["gpu"],
         report["conditions"]["meanDrawn"],
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::reported_draws;
+
+    #[test]
+    fn reported_draws_keep_the_first_complete_interval_through_the_penultimate_draw() {
+        let indices: Vec<_> = reported_draws(181).unwrap().collect();
+        assert_eq!(indices.len(), 120);
+        assert_eq!(indices.first(), Some(&60));
+        assert_eq!(indices.last(), Some(&179));
+        assert!(reported_draws(61).is_err());
+        assert_eq!(reported_draws(62).unwrap().collect::<Vec<_>>(), [60]);
+    }
 }

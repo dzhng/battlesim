@@ -142,7 +142,7 @@ fn standing_caster_lists_keep_only_each_cascades_chunks() {
 fn felled_fixture(remote: usize) -> (Ground, SceneryWalk) {
     use super::super::{biome::Biome, tables::Grid, Source};
     let game: serde_json::Value =
-        serde_json::from_str(include_str!("../../../../../../fixtures/game.json")).unwrap();
+        serde_json::from_str(include_str!("../../../../../../fixtures/presentation.json")).unwrap();
     let mut ground = Ground::new(
         Source {
             map: [0., 0., 32., 32.],
@@ -156,7 +156,9 @@ fn felled_fixture(remote: usize) -> (Ground, SceneryWalk) {
             ..Source::default()
         },
         Biome::load(super::super::biome::tests::SUMMER, None).unwrap(),
-        serde_json::from_value(game["presentation"].clone()).unwrap(),
+        crate::settings::PresentationSettings::from_value(&game)
+            .unwrap()
+            .tuning(),
     )
     .unwrap();
     ground.biome.trees.felled = super::tests::rules();

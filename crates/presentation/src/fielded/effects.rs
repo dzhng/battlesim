@@ -3,35 +3,13 @@
 //! once known, and how each installed hull dies.
 use super::*;
 
-/// `presentation.effects` with a row for every weapon of `weapons` that has
-/// none in the tables each weapon's round reads: its nearest ancestor's.
-fn game_effects(game: &Value) -> Result<Value, String> {
-    let mut effects = game["presentation"]["effects"].clone();
-    let parents: BTreeMap<String, Option<String>> = game["weapons"]
-        .as_object()
-        .ok_or("game.json has no weapons")?
-        .iter()
-        .map(|(k, w)| (k.clone(), w["extends"].as_str().map(str::to_owned)))
-        .collect();
-    for table in ["tracers", "flashes", "impact_scale", "blast_scale"] {
-        let mut rows: HashMap<String, Value> = effects[table]
-            .as_object()
-            .ok_or(format!("presentation.effects.{table} is not a table"))?
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect();
-        inherit(&mut rows, &parents);
-        effects[table] = Value::Object(rows.into_iter().collect());
-    }
-    Ok(effects)
-}
-
 /// The `effects` section: the effects' tuning, each
 /// fielded type's hull and mount muzzles, the prop kinds that smoke once
 /// known, and each installed hull's wreck: what a cook-off throws, how it is
 /// fitted and how hard the dead hull stops.
 pub(super) fn section(
-    game: &Value,
+    presentation: &PresentationSettings,
+    weapon_looks: &crate::looks::WeaponLooks,
     rules: &Value,
     catalog: &Catalog,
     art: &Art,
@@ -120,8 +98,13 @@ pub(super) fn section(
             }),
         );
     }
+    let effect_settings = {
+        let mut effects = serde_json::to_value(&presentation.effects).map_err(|e| e.to_string())?;
+        effects["looks"] = serde_json::to_value(weapon_looks).map_err(|e| e.to_string())?;
+        effects
+    };
     Ok(json!({
-        "presentation": game_effects(game)?,
+        "presentation": effect_settings,
         "types": types,
         "smokes": smokes,
         "wrecks": wrecks,

@@ -10,7 +10,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { useUnitFocus } from "../useUnitFocus";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
@@ -46,6 +46,7 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
     if (!world || !observation) return undefined;
     const orders = orderLayer(
       session.units,
+      session.rules.air,
       observation,
       control.selected,
       session.revealed,
@@ -62,11 +63,14 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
     control.selected,
     session.revealed,
     session.units,
+    session.rules.air,
   ]);
   const overlayFeed = useFeed(overlay);
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = { ...session.probes, mode: () => control.mode };
+
+  const armyState = useFeed({ own: observation?.own ?? [], control });
 
   if (!meshes) return null;
   return (
@@ -105,12 +109,11 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
       </aside>
       <div className="hud">
         <ArmyDeck
-          own={observation?.own ?? []}
+          state={armyState}
           selected={control.selected}
           onSelect={control.setSelected}
           onCenter={focusUnit}
           rules={session.rules}
-          control={control}
           captions={null}
         />
       </div>

@@ -30,7 +30,7 @@ fn against_at(fixture: &Value, kind: &str, metres: f64, seconds: u64) -> Battle 
 }
 
 fn against(kind: &str, metres: f64) -> Battle {
-    against_at(&sim::fixtures::test_game(), kind, metres, 30)
+    against_at(&sim::fixtures::test_rules(), kind, metres, 30)
 }
 
 /// Rounds red's mount `id` fired.
@@ -176,7 +176,7 @@ fn a_gun_scatters_wider_at_a_helicopter_than_along_the_ground() {
     // the whole run, so its loss counts the hits, and a harmless door gun
     // (the autocannon states its own damage) keeps the jeep firing.
     let counting = || {
-        let mut f = sim::fixtures::test_game();
+        let mut f = sim::fixtures::test_rules();
         f["weapons"]["autocannon"]["damage"] = json!(1.0);
         f["weapons"]["autocannon"]["targets"]["ground"]["scatter_mrad"] = json!(8.0);
         f["weapons"]["hmg"]["damage"] = json!(0.0);
@@ -199,7 +199,7 @@ fn a_gun_scatters_wider_at_a_helicopter_than_along_the_ground() {
 /// can wear one down; a Wildcat, sharing its class, shrugs them off.
 #[test]
 fn rifles_can_hurt_a_little_bird_but_not_a_wildcat() {
-    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::rules()).unwrap();
     let rifle = rules.weapons.get("rifle").unwrap();
     let armor = |id: &str| match &rules.catalog.by_id(id).body {
         contract::catalog::Body::Hull(hull) => hull.armor,

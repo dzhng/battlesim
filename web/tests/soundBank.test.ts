@@ -36,9 +36,6 @@ function recordingCatalog(): SoundCatalog {
         loop: false,
       },
     },
-    defaults: {},
-    impacts: {},
-    effects: {},
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
 }
@@ -256,7 +253,6 @@ test("a recorded core and synthesized support retain the tail without corrupting
     gain: 1,
     loop: false,
   };
-  catalog.effects.rifle = "supported";
   const bank = new SoundBank(context, catalog, async () => new Response(Uint8Array.of(1)));
   await bank.prepare(["supported", "rifle"]);
   const baseline = synthesize("rifle", sampleRate).channels[0];
