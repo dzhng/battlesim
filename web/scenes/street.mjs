@@ -41,13 +41,8 @@ const CAMERA = visuals.camera;
 const roadStrokes = streetMap.surfaces
   .filter((s) => s.shape.kind === "stroke" && s.kind !== "paving") // carriageways
   .map((s) => s.shape);
-/** Every mark, paint or overlay, lies on the ground itself (the ground and
- *  its blades read the paint at their own point): checks read the marks at
- *  the surface. */
 /** The tour's fixed tick: every framing shows the same battle state. */
 const TOUR_TICK = 90;
-
-const text = (page, id) => page.getByTestId(id).innerText();
 
 async function shot(ctx, page, name) {
   await snapshot(ctx, page, `frame-${name}.png`);
