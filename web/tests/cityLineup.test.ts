@@ -24,7 +24,6 @@ import {
 } from "@packages/renderer-core/src/camera3d";
 import {
   FRAME_FLOATS,
-  validateBuildingStyle,
   type BuildingArt,
   type BuildingStyle,
 } from "@packages/battle-renderer/src/models/buildingReferences";
@@ -223,12 +222,12 @@ const ART: BuildingArt = {
     { min: [-0.5, -0.1, 0], max: [0.5, 0.1, 1] },
   ],
 };
-const STYLE: BuildingStyle = validateBuildingStyle({
+const STYLE: BuildingStyle = {
   lod_px_per_m: [10, 4, 1.2],
   chunk_m: 64,
   pool_records: 1024,
   tint_jitter: 0,
-});
+};
 const LENS = { fovY: 0.8, aspect: 16 / 9, near: 1 };
 const HEIGHT_PX = 1080;
 

@@ -432,3 +432,171 @@ fn fog_tiles_cover_partial_screen_edges_and_reuse_their_camera_layout() {
     assert_eq!(probes.params.tiles_x, upload.tiles[0]);
     assert_eq!(probes.params.probe_count, 1);
 }
+
+#[test]
+fn air_contact_hatching_must_have_positive_width() {
+    reject_presentation("/contacts/air/hatch_px", json!(0), "contacts.air.hatch_px");
+}
+
+#[test]
+fn air_contact_rim_px_must_be_positive() {
+    reject_presentation("/contacts/air/rim_px", json!(0), "contacts.air.rim_px");
+}
+
+#[test]
+fn air_contact_keyline_px_must_be_positive() {
+    reject_presentation(
+        "/contacts/air/keyline_px",
+        json!(0),
+        "contacts.air.keyline_px",
+    );
+}
+
+#[test]
+fn air_contact_min_radius_px_must_be_positive() {
+    reject_presentation(
+        "/contacts/air/min_radius_px",
+        json!(0),
+        "contacts.air.min_radius_px",
+    );
+}
+
+#[test]
+fn air_contact_stem_px_must_be_positive() {
+    reject_presentation("/contacts/air/stem_px", json!(0), "contacts.air.stem_px");
+}
+
+#[test]
+fn camera_zoom_range_must_have_distinct_bounds() {
+    let mut doc = fixture("presentation");
+    doc["camera"]["zoom_max"] = doc["camera"]["zoom_min"].clone();
+    let error = presentation::settings::PresentationSettings::from_value(&doc)
+        .err()
+        .expect("invalid presentation must be refused");
+    assert!(error.contains("camera.zoom_max"), "{error}");
+}
+
+#[test]
+fn building_geometry_and_residency_are_admitted_before_use() {
+    for (pointer, value) in [
+        ("/buildings/lod_px_per_m", json!([5, 12, 2])),
+        ("/buildings/lod_px_per_m", json!([12, 2, 2])),
+        ("/buildings/lod_px_per_m", json!([12, 5, 0])),
+        ("/buildings/chunk_m", json!(15.99)),
+        ("/buildings/pool_records", json!(1023)),
+        ("/buildings/pool_records", json!(1024.5)),
+        ("/buildings/tint_jitter", json!(-0.01)),
+        ("/buildings/tint_jitter", json!(0.51)),
+    ] {
+        reject_presentation(pointer, value, &pointer[1..].replace('/', "."));
+    }
+}
+
+#[test]
+fn contact_opacity_and_ground_geometry_are_admitted_before_use() {
+    for key in [
+        "fade_s",
+        "hatch_spacing_m",
+        "hatch_width_m",
+        "outline_width_m",
+    ] {
+        let pointer = format!("/contacts/{key}");
+        reject_presentation(&pointer, json!(0), &format!("contacts.{key}"));
+    }
+    for key in [
+        "hatch_alpha",
+        "glow_alpha",
+        "fill_alpha",
+        "air/fill_alpha",
+        "air/hatch_alpha",
+        "air/glow_alpha",
+        "air/keyline_alpha",
+        "air/stem_alpha",
+    ] {
+        for value in [-0.01, 1.01] {
+            reject_presentation(
+                &format!("/contacts/{key}"),
+                json!(value),
+                &format!("contacts.{}", key.replace('/', ".")),
+            );
+        }
+    }
+    reject_presentation(
+        "/contacts/outline_color/0",
+        json!(1.01),
+        "contacts.outline_color[0]",
+    );
+    reject_presentation("/contacts/lift_m", json!(-0.01), "contacts.lift_m");
+    let mut doc = fixture("presentation");
+    doc["contacts"]["hatch_spacing_m"] = json!(2);
+    doc["contacts"]["hatch_width_m"] = json!(2);
+    assert!(
+        presentation::settings::PresentationSettings::from_value(&doc)
+            .err()
+            .unwrap()
+            .contains("contacts.hatch_width_m")
+    );
+    doc["contacts"]["hatch_width_m"] = json!(1);
+    doc["contacts"]["air"]["min_radius_px"] = json!(20);
+    doc["contacts"]["air"]["max_radius_px"] = json!(10);
+    assert!(
+        presentation::settings::PresentationSettings::from_value(&doc)
+            .err()
+            .unwrap()
+            .contains("contacts.air.max_radius_px")
+    );
+}
+
+#[test]
+fn camera_clearance_and_curve_are_admitted_before_control() {
+    for key in ["lift_steps", "slide_steps", "sweep_max_steps"] {
+        for value in [0.0, 1.5, 65.0] {
+            reject_presentation(
+                &format!("/camera/clearance/{key}"),
+                json!(value),
+                &format!("camera.clearance.{key}"),
+            );
+        }
+    }
+    for value in [-1.0, 0.5, 17.0] {
+        reject_presentation(
+            "/camera/clearance/refine_steps",
+            json!(value),
+            "camera.clearance.refine_steps",
+        );
+    }
+    for key in [
+        "lift_max_m",
+        "slide_max_m",
+        "slide_max_rad",
+        "smoothing_s",
+        "sweep_step_m",
+        "release_m",
+    ] {
+        reject_presentation(
+            &format!("/camera/clearance/{key}"),
+            json!(0),
+            &format!("camera.clearance.{key}"),
+        );
+    }
+    for key in ["margin_m", "lookahead_s"] {
+        reject_presentation(
+            &format!("/camera/clearance/{key}"),
+            json!(-1),
+            &format!("camera.clearance.{key}"),
+        );
+    }
+    for curve in [
+        json!([]),
+        json!([[1, 0.5], [1, 0.6]]),
+        json!([[1, 0.6], [10000, 0.5]]),
+        json!([[1, 0.01], [10000, 1]]),
+        json!([[1, 0.5], [10000, 1.6]]),
+        json!([[1, 0.5], [2, 1]]),
+    ] {
+        reject_presentation("/camera/pitch_curve", curve, "camera.pitch_curve");
+    }
+    reject_presentation("/camera/fov_y", json!(0), "camera.fov_y");
+    reject_presentation("/camera/fov_y", json!(std::f64::consts::PI), "camera.fov_y");
+    reject_presentation("/camera/near_m", json!(0), "camera.near_m");
+}

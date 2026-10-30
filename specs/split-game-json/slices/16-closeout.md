@@ -54,3 +54,11 @@ The implementation-child restriction prevented an independent screenshot agent;
 the documented adversarial self-review fallback was used. The integrator still
 owns `/review`, the choices ledger, independent acceptance and `close-spec`.
 Slice 16 remains unticked in the README; no archive or push was performed.
+
+## Whole-spec review follow-ups (closed)
+
+- Presentation admission is Rust-only for contacts, buildings and the camera:
+  air-mark dimensions must be positive and zoom bounds distinct. The other
+  browser constraints already existed in Rust, including integral building
+  residency; refusal coverage now lives at document admission. Browser readers
+  trust admitted values and retain their geometry and control behavior tests.

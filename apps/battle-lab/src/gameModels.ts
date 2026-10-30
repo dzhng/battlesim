@@ -3,14 +3,10 @@
 // and the buildings' tiers, chunks and pool. Every view that draws models (the
 // battle, the labs, the workbench) draws with them.
 import { presentationSettings } from "@web/presentationSettings";
-import {
-  validateBuildingStyle,
-  type BuildingStyle,
-} from "@packages/battle-renderer/src/models/buildingReferences";
+import type { BuildingStyle } from "@packages/battle-renderer/src/models/buildingReferences";
 
 /** Handed to Rust's tier rule unread (`model_tiers`). */
 export const gameModelDetail = JSON.stringify(presentationSettings.models);
 
-export const gameBuildingStyle: BuildingStyle = validateBuildingStyle(
-  presentationSettings.buildings as unknown as BuildingStyle,
-);
+export const gameBuildingStyle: BuildingStyle =
+  presentationSettings.buildings as unknown as BuildingStyle;

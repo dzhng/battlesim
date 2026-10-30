@@ -69,8 +69,6 @@ pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
         1e6,
     )?;
     let positive = |p: &str, v| range(&format!("presentation.{p}"), v, f64::MIN_POSITIVE, f64::MAX);
-    positive("buildings.chunk_m", s.buildings.chunk_m)?;
-    positive("buildings.pool_records", s.buildings.pool_records as f64)?;
     let c = &s.camera;
     range(
         "presentation.camera.fov_y",
@@ -80,12 +78,9 @@ pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
     )?;
     positive("camera.near_m", c.near_m)?;
     positive("camera.zoom_min", c.zoom_min)?;
-    range(
-        "presentation.camera.zoom_max",
-        c.zoom_max,
-        c.zoom_min,
-        f64::MAX,
-    )?;
+    if c.zoom_max <= c.zoom_min {
+        return Err("presentation.camera.zoom_max: must exceed zoom_min".into());
+    }
     if c.pitch_curve.is_empty()
         || c.pitch_curve
             .windows(2)
@@ -217,6 +212,18 @@ pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
         1.0,
     )?;
     positive("overlay.orders.flash.fade_s", overlay.orders.flash.fade_s)?;
+    let air = &s.contacts.air;
+    for (key, value) in [
+        ("hatch_px", air.hatch_px),
+        ("rim_px", air.rim_px),
+        ("keyline_px", air.keyline_px),
+        ("min_radius_px", air.min_radius_px),
+        ("max_radius_px", air.max_radius_px),
+        ("stem_px", air.stem_px),
+    ] {
+        positive(&format!("contacts.air.{key}"), value)?;
+    }
+    positive("contacts.hatch_spacing_m", s.contacts.hatch_spacing_m)?;
     positive("contacts.hatch_width_m", s.contacts.hatch_width_m)?;
     positive("contacts.outline_width_m", s.contacts.outline_width_m)?;
     if s.contacts.hatch_width_m >= s.contacts.hatch_spacing_m {
@@ -225,7 +232,6 @@ pub(super) fn presentation(s: &PresentationSettings) -> Result<(), String> {
         );
     }
     positive("contacts.fade_s", s.contacts.fade_s)?;
-    positive("contacts.hatch_spacing_m", s.contacts.hatch_spacing_m)?;
     range(
         "presentation.contacts.air.max_radius_px",
         s.contacts.air.max_radius_px,

@@ -37,19 +37,6 @@ export interface BuildingStyle {
   tint_jitter: number;
 }
 
-export function validateBuildingStyle(style: BuildingStyle): BuildingStyle {
-  const at = "presentation.buildings";
-  const [t0, t1, t2] = style.lod_px_per_m ?? [];
-  if (!(t0 > t1 && t1 > t2 && t2 > 0))
-    throw new Error(`${at}.lod_px_per_m must fall and stay above zero`);
-  if (!(style.chunk_m >= 16)) throw new Error(`${at}.chunk_m must be 16 m or more`);
-  if (!(Number.isInteger(style.pool_records) && style.pool_records >= 1024))
-    throw new Error(`${at}.pool_records must be a whole number, 1024 or more`);
-  if (!(style.tint_jitter >= 0 && style.tint_jitter <= 0.5))
-    throw new Error(`${at}.tint_jitter must be within [0, 0.5]`);
-  return style;
-}
-
 /** Floats per building frame: x, y, z, then yaw (radians about +Z). */
 export const FRAME_FLOATS = 4;
 

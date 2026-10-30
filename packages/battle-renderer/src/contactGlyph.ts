@@ -61,51 +61,6 @@ export interface ContactGlyphStyle {
   air: AirSignStyle;
 }
 
-export function validateContactGlyphStyle(s: ContactGlyphStyle): ContactGlyphStyle {
-  const positive = (name: string, v: number) => {
-    if (!(Number.isFinite(v) && v > 0))
-      throw new Error(`presentation.contacts.${name} must be > 0, got ${v}`);
-  };
-  const unit = (name: string, v: number) => {
-    if (!(v >= 0 && v <= 1)) throw new Error(`presentation.contacts.${name} must be in [0, 1]`);
-  };
-  positive("fade_s", s.fade_s);
-  positive("hatch_spacing_m", s.hatch_spacing_m);
-  positive("hatch_width_m", s.hatch_width_m);
-  positive("outline_width_m", s.outline_width_m);
-  if (s.hatch_width_m >= s.hatch_spacing_m)
-    throw new Error("presentation.contacts.hatch_width_m must be less than hatch_spacing_m");
-  if (!Number.isFinite(s.hatch_angle_deg))
-    throw new Error("presentation.contacts.hatch_angle_deg must be finite");
-  unit("hatch_alpha", s.hatch_alpha);
-  unit("glow_alpha", s.glow_alpha);
-  unit("fill_alpha", s.fill_alpha);
-  for (const key of ["outline_color", "color"] as const)
-    s[key].forEach((c, i) => unit(`${key}[${i}]`, c));
-  if (!(s.lift_m >= 0)) throw new Error("presentation.contacts.lift_m must be ≥ 0");
-  if (!s.air) throw new Error("presentation.contacts.air is required");
-  for (const key of [
-    "fill_alpha",
-    "hatch_alpha",
-    "glow_alpha",
-    "keyline_alpha",
-    "stem_alpha",
-  ] as const)
-    unit(`air.${key}`, s.air[key]);
-  for (const key of [
-    "hatch_px",
-    "rim_px",
-    "keyline_px",
-    "min_radius_px",
-    "max_radius_px",
-    "stem_px",
-  ] as const)
-    positive(`air.${key}`, s.air[key]);
-  if (s.air.max_radius_px < s.air.min_radius_px)
-    throw new Error("presentation.contacts.air.max_radius_px must be ≥ min_radius_px");
-  return s;
-}
-
 /** What a glyph is drawn from: an approximate contact's area, presentation
  *  opacity and whether it hangs in the air. A report not aloft lies on the
  *  ground at the centre's XY, whatever its height. */
