@@ -116,7 +116,7 @@ fn view(v: &Value) -> Result<View> {
     serde_json::from_value(v.clone()).map_err(|_| "expected a typed array".to_string())
 }
 
-fn mesh(views: &Views, v: &Value) -> Result<Mesh> {
+fn mesh(views: &Views, v: &Value, materials: usize) -> Result<Mesh> {
     let some = |key: &str| (!v[key].is_null()).then(|| &v[key]);
     let mesh = Mesh {
         positions: views.f32s(view(&v["positions"])?)?,
@@ -129,6 +129,21 @@ fn mesh(views: &Views, v: &Value) -> Result<Mesh> {
         indices: views.indices(view(&v["indices"])?)?,
         draws: serde_json::from_value(v["draws"].clone()).map_err(|e| e.to_string())?,
     };
+    for (index, draw) in mesh.draws.iter().enumerate() {
+        if draw
+            .first
+            .checked_add(draw.count)
+            .is_none_or(|end| end > mesh.indices.len())
+        {
+            return Err(format!("draw {index} exceeds mesh indices"));
+        }
+        if draw.material >= materials {
+            return Err(format!(
+                "draw {index} names missing material {}",
+                draw.material
+            ));
+        }
+    }
     let n = mesh.vertices();
     let skinned_ok = match (&mesh.joints, &mesh.weights) {
         (Some(j), Some(w)) => j.len() == n * 4 && w.len() == n * 4,
@@ -141,29 +156,33 @@ fn mesh(views: &Views, v: &Value) -> Result<Mesh> {
         || mesh.tangents.as_ref().is_some_and(|t| t.len() != n * 4)
         || !skinned_ok
         || mesh.indices.iter().any(|&i| i as usize >= n)
-        || mesh.draws.iter().map(|d| d.count).sum::<usize>() != mesh.indices.len()
+        || mesh
+            .draws
+            .iter()
+            .try_fold(0usize, |sum, d| sum.checked_add(d.count))
+            != Some(mesh.indices.len())
     {
         return Err("malformed mesh".into());
     }
     Ok(mesh)
 }
 
-fn tiers(views: &Views, v: &Value) -> Result<Vec<Mesh>> {
+fn tiers(views: &Views, v: &Value, materials: usize) -> Result<Vec<Mesh>> {
     v.as_array()
         .ok_or("no tiers")?
         .iter()
-        .map(|m| mesh(views, m))
+        .map(|m| mesh(views, m, materials))
         .collect()
 }
 
-fn nodes(views: &Views, list: &Value) -> Result<Vec<Node>> {
+fn nodes(views: &Views, list: &Value, materials: usize) -> Result<Vec<Node>> {
     list.as_array()
         .ok_or("no nodes")?
         .iter()
         .map(|n| {
             Ok(Node {
                 name: n["name"].as_str().ok_or("unnamed node")?.to_owned(),
-                tiers: tiers(views, &n["tiers"])?,
+                tiers: tiers(views, &n["tiers"], materials)?,
                 top: n["bounds"]["max"][2].as_f64(),
             })
         })
@@ -188,14 +207,20 @@ fn decode_with(
     let views = Views::parse(bundle_bytes, BUNDLE, &what)?;
     let c = &views.content;
     let fail = |e: String| format!("{what}: {e}");
-    let shape = match c["kind"].as_str() {
-        Some("skinned") => Shape::Skinned(tiers(&views, &c["tiers"]).map_err(fail)?),
-        Some("articulated") => Shape::Articulated(nodes(&views, &c["nodes"]).map_err(fail)?),
-        Some("static") => Shape::Static(nodes(&views, &c["states"]).map_err(fail)?),
-        other => return Err(format!("{what}: kind {other:?}")),
-    };
     let materials: Vec<Material> =
         serde_json::from_value(c["materials"].clone()).map_err(|e| fail(e.to_string()))?;
+    let shape = match c["kind"].as_str() {
+        Some("skinned") => {
+            Shape::Skinned(tiers(&views, &c["tiers"], materials.len()).map_err(fail)?)
+        }
+        Some("articulated") => {
+            Shape::Articulated(nodes(&views, &c["nodes"], materials.len()).map_err(fail)?)
+        }
+        Some("static") => {
+            Shape::Static(nodes(&views, &c["states"], materials.len()).map_err(fail)?)
+        }
+        other => return Err(format!("{what}: kind {other:?}")),
+    };
     let textures = textures
         .iter()
         .map(|(id, bytes)| texture(id, bytes))
