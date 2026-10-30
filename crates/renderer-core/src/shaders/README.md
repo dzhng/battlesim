@@ -15,8 +15,9 @@ remain explicit; aliases do not select a different algorithm.
 A built-in shader's source starts with the presentation's
 [typed constant table](../../../presentation/src/shader_constants.rs). Each
 value belongs to the CPU concept that bounds, allocates or clocks it; the
-prelude and generated TypeScript export that same table. Integer constants
-remain integers so workgroup sizes and array lengths share the CPU's owner.
+prelude reads the whole table; generated TypeScript exports the browser's chosen
+subset. Integer constants remain integers so workgroup sizes and array lengths
+share the CPU's owner.
 
 GPU-only tuning stays as named constants beside its composed function. Keep
 the original literal spelling and inferred type: an abstract WGSL constant

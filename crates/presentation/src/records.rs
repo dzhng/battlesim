@@ -1,7 +1,7 @@
 //! The records a renderer reads, defined once. Each is `#[repr(C)]`,
-//! a multiple of 16 bytes, of 4-byte scalars or arrays of them, so the same
+//! a multiple of 16 bytes, of 4-byte scalars, nested records or arrays, so the same
 //! bytes are a WGSL struct, a vertex instance attribute and a typed array.
-//! `records_are_current` renders every layout into
+//! `records_are_current` renders the browser's chosen layouts into
 //! `packages/battle-renderer/src/records.gen.ts`; nothing is kept by hand.
 
 /// `u32::MAX`: no row, no id.
@@ -30,10 +30,11 @@ pub const FOG_GROUND: u32 = 2;
 pub const FOG_PAINTED_FACES: u32 = 3;
 
 mod layout;
-use layout::records;
+#[doc(hidden)]
+pub use bytemuck;
 pub use layout::{Binding, Field, FieldLayout, Layout};
 
-records! {
+crate::records! {
     /// Where a frame's sets lie, as pointers into the module's memory and
     /// record counts (the WASM binding fills them; native reads the
     /// `Frame` directly).

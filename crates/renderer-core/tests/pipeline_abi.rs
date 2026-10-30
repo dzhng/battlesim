@@ -1,6 +1,81 @@
 use naga::ShaderStage;
 use naga::{front::wgsl, TypeInner};
-use presentation::records::{camel, Binding, Sun, View, LAYOUTS};
+use presentation::records::{camel, Binding, Layout, Sun, View, LAYOUTS};
+
+mod schema {
+    use presentation::records::Wind;
+
+    presentation::records! {
+        Struct Nested {
+            wind: Wind,
+            winds: [Wind; 2],
+            shift: i32,
+            pad: [u32; 3],
+        }
+    }
+}
+
+fn assert_layout(
+    module: &naga::Module,
+    handle: naga::Handle<naga::Type>,
+    layout: &Layout,
+    path: &str,
+) {
+    let TypeInner::Struct { members, span } = &module.types[handle].inner else {
+        panic!("{path} is not a struct")
+    };
+    let fields: Vec<_> = layout
+        .fields
+        .iter()
+        .filter(|field| !field.name.starts_with("pad"))
+        .collect();
+    let expected: Vec<_> = fields
+        .iter()
+        .map(|field| (camel(field.name), field.offset as u32))
+        .collect();
+    let actual: Vec<_> = members
+        .iter()
+        .map(|member| (member.name.clone().unwrap(), member.offset))
+        .collect();
+    assert_eq!(actual, expected, "{path}");
+    assert_eq!(*span as usize, layout.size, "{path} size");
+    for (member, field) in members.iter().zip(fields) {
+        let path = format!("{path}.{}", field.name);
+        let nested = match module.types[member.ty].inner {
+            TypeInner::Array { base, size, .. } => {
+                let naga::ArraySize::Constant(count) = size else {
+                    panic!("{path} must have a constant array count")
+                };
+                assert_eq!(count.get() as usize, field.count, "{path} array count");
+                base
+            }
+            _ => {
+                if field.record.is_some() {
+                    assert_eq!(field.count, 1, "{path} record count");
+                }
+                member.ty
+            }
+        };
+        if let Some(record) = field.record {
+            assert_layout(module, nested, record, &path);
+        }
+    }
+}
+
+#[test]
+fn exported_schema_matches_nested_and_signed_shader_fields() {
+    let module = wgsl::parse_str(
+        "struct Wind { toward: vec3<f32>, driftMps: f32, gustMps: f32, gustPerM: f32 };\n\
+         struct Nested { wind: Wind, winds: array<Wind, 2>, shift: i32 };",
+    )
+    .unwrap();
+    let (handle, _) = module
+        .types
+        .iter()
+        .find(|(_, ty)| ty.name.as_deref() == Some("Nested"))
+        .unwrap();
+    assert_layout(&module, handle, &schema::LAYOUTS[0], "Nested");
+}
 
 fn module(shader: &str) -> naga::Module {
     wgsl::parse_str(&renderer_core::pipelines::builtin_source(shader).unwrap())
@@ -58,31 +133,18 @@ fn builtin_shaders_match_presentation_record_layouts() {
             let source = renderer_core::pipelines::builtin_source(shader).unwrap();
             let module =
                 wgsl::parse_str(&source).unwrap_or_else(|error| panic!("{shader}: {error}"));
-            let Some((_, ty)) = module
+            let Some((handle, _)) = module
                 .types
                 .iter()
                 .find(|(_, ty)| ty.name.as_deref() == Some(layout.name))
             else {
                 continue;
             };
-            let TypeInner::Struct { members, span } = &ty.inner else {
-                panic!("{} is not a struct", layout.name)
-            };
-            let expected: Vec<_> = layout
-                .fields
-                .iter()
-                .filter(|field| !field.name.starts_with("pad"))
-                .map(|field| (camel(field.name), field.offset as u32))
-                .collect();
-            let actual: Vec<_> = members
-                .iter()
-                .map(|member| (member.name.clone().unwrap(), member.offset))
-                .collect();
-            assert_eq!(actual, expected, "{} in {shader}", layout.name);
-            assert_eq!(
-                *span as usize, layout.size,
-                "{} size in {shader}",
-                layout.name
+            assert_layout(
+                &module,
+                handle,
+                layout,
+                &format!("{shader}: {}", layout.name),
             );
             found = true;
         }

@@ -29,8 +29,10 @@ calls the same reader for workbench drafts.
 
 - [Records](src/records.rs): every record a renderer reads, defined once;
   `records_are_current` generates `packages/battle-renderer/src/records.gen.ts`,
-  with byte offsets and typed views for browser consumers. The renderer's
-  shader ABI check reflects WGSL against these canonical Rust layouts.
+  with the chosen word offsets, strides and typed views browser consumers read.
+  The exported `records!` macro also describes records owned by renderer crates.
+  The renderer's shader ABI check reflects WGSL against these canonical Rust
+  layouts.
   [Shader constants](src/shader_constants.rs) names shared CPU/GPU values
   from their concept owners for both the WGSL prelude and TypeScript; fixed
   allocation geometry cannot become an independent fixture setting.
