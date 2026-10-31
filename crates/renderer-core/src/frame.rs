@@ -174,6 +174,15 @@ impl FrameRenderer {
     /// Initial/final timestamp markers belong before/after this call, so they
     /// span those ordered submissions as well as the final command buffer.
     pub fn encode(&self, inputs: &FrameInputs<'_>, encoder: &mut CommandEncoder) {
+        self.encode_with_post(inputs, encoder, None);
+    }
+
+    pub fn encode_with_post(
+        &self,
+        inputs: &FrameInputs<'_>,
+        encoder: &mut CommandEncoder,
+        post_mode_override: Option<PostMode>,
+    ) {
         inputs.ground.submissions.reset();
         inputs.models.submissions.reset();
         inputs.scenery.submissions.reset();
@@ -243,7 +252,8 @@ impl FrameRenderer {
                     }
                 }
                 FrameStage::Post => {
-                    if let Some(mode) = inputs.frame_view.post_mode() {
+                    let post_mode = post_mode_override.or_else(|| inputs.frame_view.post_mode());
+                    if let Some(mode) = post_mode {
                         inputs.post.encode(encoder, mode);
                     } else {
                         let value = if inputs.frame_view == FrameView::OverlaysOnWhite {
@@ -272,8 +282,12 @@ impl FrameRenderer {
                     }
                 }
                 FrameStage::FogRim => {
-                    if inputs.frame_view.post_mode().is_some() {
+                    if post_mode_override.is_some() || inputs.frame_view.post_mode().is_some() {
                         inputs.fog_mask.encode_rim(encoder, inputs.targets);
+                    }
+                    // In HDR mode, also draw the rim into the HDR output at reference white.
+                    if post_mode_override == Some(PostMode::Hdr) {
+                        inputs.fog_mask.encode_rim_hdr(encoder, &inputs.post.hdr_output);
                     }
                 }
             }

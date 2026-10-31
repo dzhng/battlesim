@@ -35,6 +35,8 @@ pub struct FogMaskResources {
     distances: [Screen; 2],
     compose: Screen,
     rim: Screen,
+    /// The rim pass for HDR output (same as rim but different target).
+    rim_hdr: Screen,
 }
 
 fn screen(
@@ -114,6 +116,14 @@ pub fn fog_mask(
         "composeLayout",
         &compose_resources,
     );
+    // The HDR rim uses a separate shader that outputs HLG-encoded values at reference white.
+    let rim_hdr = screen(
+        device,
+        pipelines,
+        "fogMaskRimHdr",
+        "composeLayout",
+        &compose_resources,
+    );
     FogMaskResources {
         look,
         record: *record,
@@ -122,6 +132,7 @@ pub fn fog_mask(
         distances,
         compose,
         rim,
+        rim_hdr,
     }
 }
 
@@ -197,6 +208,14 @@ impl FogMaskResources {
     pub fn encode_rim(&self, encoder: &mut CommandEncoder, targets: &Targets) {
         if self.record.has_rim() && self.mask_view == FogMaskView::None {
             draw(encoder, &self.rim, &targets.display, None, LoadOp::Load);
+        }
+    }
+
+    /// Encode the optional seen-side rim over the HDR output target.
+    /// The rim is drawn at reference white in HLG space.
+    pub fn encode_rim_hdr(&self, encoder: &mut CommandEncoder, hdr_output: &TextureView) {
+        if self.record.has_rim() && self.mask_view == FogMaskView::None {
+            draw(encoder, &self.rim_hdr, hdr_output, None, LoadOp::Load);
         }
     }
 }

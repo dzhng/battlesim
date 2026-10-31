@@ -179,3 +179,78 @@ impl RgbaReadback {
         Ok(rgba)
     }
 }
+
+/// Raw stored RGBA16F half-float bytes, top row first.
+/// The caller supplies a COPY_SRC Rgba16Float texture.
+pub struct Rgba16fReadback {
+    readback: Readback,
+    width: u32,
+    height: u32,
+    padded_row: u32,
+}
+
+impl Rgba16fReadback {
+    pub fn encode(
+        device: &Device,
+        encoder: &mut CommandEncoder,
+        source: &Texture,
+    ) -> Result<Self, String> {
+        if source.format() != wgpu::TextureFormat::Rgba16Float {
+            return Err("Rgba16fReadback requires an Rgba16Float texture".into());
+        }
+        if source.dimension() != TextureDimension::D2
+            || source.depth_or_array_layers() != 1
+            || source.sample_count() != 1
+            || !source.usage().contains(TextureUsages::COPY_SRC)
+        {
+            return Err(
+                "Rgba16fReadback requires a single-layer, single-sample COPY_SRC texture".into(),
+            );
+        }
+        let width = source.width();
+        let height = source.height();
+        let padded_row = width
+            .checked_mul(8)
+            .ok_or("Rgba16f row overflows")?
+            .checked_next_multiple_of(COPY_BYTES_PER_ROW_ALIGNMENT)
+            .ok_or("Rgba16f row alignment overflows")?;
+        let readback = Readback::allocate(device, u64::from(padded_row) * u64::from(height))?;
+        encoder.copy_texture_to_buffer(
+            source.as_image_copy(),
+            TexelCopyBufferInfo {
+                buffer: &readback.buffer,
+                layout: TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(padded_row),
+                    rows_per_image: Some(height),
+                },
+            },
+            source.size(),
+        );
+        Ok(Self {
+            readback,
+            width,
+            height,
+            padded_row,
+        })
+    }
+
+    /// Read back the texture data as half-float values (8 bytes per pixel: R16G16B16A16).
+    pub async fn read(self, device: &Device) -> Result<Vec<u8>, String> {
+        let bytes = self.readback.read(device).await?;
+        let row = self.width as usize * 8;
+        let mut rgba16f = Vec::with_capacity(row * self.height as usize);
+        for line in bytes.chunks_exact(self.padded_row as usize) {
+            rgba16f.extend_from_slice(&line[..row]);
+        }
+        Ok(rgba16f)
+    }
+
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+}

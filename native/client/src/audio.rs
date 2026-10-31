@@ -176,6 +176,8 @@ pub struct Audio {
     music: music::Music,
     /// What could not be played, by name (a missing pack, take or track).
     errors: Vec<String>,
+    /// Suppress music playback (for clips that will have their own soundtrack).
+    no_music: bool,
 }
 
 /// The game's sound setup, as the browser builds it (`soundFeed.ts`):
@@ -251,8 +253,14 @@ fn recording(runtime: &Path, url: &str) -> Result<Vec<Vec<f32>>, String> {
 
 impl Audio {
     /// The battle's sound from its `setup` (see [`setup`]), its recordings
-    /// read from `runtime` (`assets/runtime`), on `output`.
-    pub fn new(setup: &str, runtime: &Path, output: OutputSettings) -> Result<Self, String> {
+    /// read from `runtime` (`assets/runtime`), on `output`. When `no_music`
+    /// is true, music commands are ignored (for clips with their own soundtrack).
+    pub fn new(
+        setup: &str,
+        runtime: &Path,
+        output: OutputSettings,
+        no_music: bool,
+    ) -> Result<Self, String> {
         let mut sound = Sound::from_json(setup)?;
         let tables = sound.tables().clone();
         let mut bank = Bank::new(f64::from(SAMPLE_RATE));
@@ -383,6 +391,7 @@ impl Audio {
             },
             played: Played::default(),
             errors: Vec::new(),
+            no_music,
         })
     }
 
@@ -484,18 +493,23 @@ impl Audio {
                     }
                 }
                 Command::Listen { listener, .. } => self.listen(*listener),
-                Command::Music { track, fade, .. } => {
+                Command::Music { track, fade, .. } if !self.no_music => {
                     if let Err(e) = self.music.play(track, *fade) {
                         self.errors.push(e);
                     }
                 }
-                Command::MusicStop { fade, .. } => self.music.stop(*fade),
+                Command::Music { .. } => {}
+                Command::MusicStop { fade, .. } if !self.no_music => self.music.stop(*fade),
+                Command::MusicStop { .. } => {}
                 Command::Duck {
                     bus: Ducked::Music,
                     depth,
                     glide,
                     ..
-                } => self.music.duck(*depth, *glide),
+                } if !self.no_music => self.music.duck(*depth, *glide),
+                Command::Duck {
+                    bus: Ducked::Music, ..
+                } => {}
                 Command::Duck {
                     bus: Ducked::Ambience,
                     depth,

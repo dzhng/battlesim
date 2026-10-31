@@ -114,6 +114,46 @@ fn rimAt(pixel: vec2f) -> vec4f {
   return vec4f(s.rimColor, s.rimAlpha * cover * seen);
 }
 
+// @block fog_masks_rimAtHdr
+// Output the rim at HLG reference white (0.75 in HLG space = 203 nits).
+// Uses the BT.2100 inverse OOTF (1000-nit peak, system gamma 1.2).
+fn rimAtHdr(pixel: vec2f) -> vec4f {
+  let p = vec2i(pixel);
+  let s = look;
+  let m = textureLoad(mask, p, 0).xy;
+  let seen = m.y;
+  if (seen <= 0.0 || m.x > 0.5 || s.rimAlpha <= 0.0 || s.rimWidthPx <= 0.0) {
+    return vec4f(0.0);
+  }
+  let toUnseen = textureLoad(maskDistance, p, 0).x * FOG_MASK_DISTANCE_CAP_PX;
+  let cover = clamp(s.rimWidthPx + 1.0 - toUnseen, 0.0, 1.0);
+  // Convert sRGB rim color to linear (display-referred, 1.0 = reference white).
+  let linearColor = pow(s.rimColor, vec3f(2.2));
+  // Display-linear (1.0 = 203 nits) -> scene-linear HLG E via the BT.2100 inverse OOTF.
+  // Reference white lands at E 0.265, HLG 0.75.
+  let ed = linearColor * (203.0 / 1000.0);
+  let yd = max(dot(ed, vec3f(0.2627, 0.6780, 0.0593)), 1e-6);
+  let es = clamp(ed * pow(yd, (1.0 - 1.2) / 1.2), vec3f(0.0), vec3f(1.0));
+  let hlgColor = hlgOetfVec(es);
+  return vec4f(hlgColor, s.rimAlpha * cover * seen);
+}
+
+// @block fog_masks_hlgOetfVec
+fn hlgOetfVec(rgb: vec3f) -> vec3f {
+  return vec3f(hlgOetfScalar(rgb.r), hlgOetfScalar(rgb.g), hlgOetfScalar(rgb.b));
+}
+
+// @block fog_masks_hlgOetfScalar
+fn hlgOetfScalar(e: f32) -> f32 {
+  let a = 0.17883277;
+  let b = 0.28466892;
+  let c = 0.55991073;
+  if (e <= 1.0 / 12.0) {
+    return sqrt(3.0 * e);
+  }
+  return a * log(12.0 * e - b) + c;
+}
+
 // @block fog_masks_rows_columnsLayout
 @group(0) @binding(2) var rows: texture_2d<f32>;
 

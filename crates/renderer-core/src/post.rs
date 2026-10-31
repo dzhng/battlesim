@@ -20,6 +20,7 @@ pub enum PostMode {
     Look,
     Ungraded,
     Raw,
+    Hdr,
 }
 
 pub struct PostResources {
@@ -31,6 +32,10 @@ pub struct PostResources {
     bloom: Buffer,
     grade: Buffer,
     steps: Vec<Buffer>,
+    hdr_pipeline: RenderPipeline,
+    /// The HDR output texture view for rendering.
+    pub hdr_output: TextureView,
+    pub hdr_texture: Texture,
 }
 
 fn texture(device: &Device, label: &str, size: [u32; 2]) -> TextureView {
@@ -148,6 +153,20 @@ pub fn new(
             grade.as_entire_binding(),
         ],
     );
+    let hdr_texture = device.create_texture(&TextureDescriptor {
+        label: Some("hdr-output"),
+        size: Extent3d {
+            width: targets.size[0],
+            height: targets.size[1],
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: TextureDimension::D2,
+        format: HDR_FORMAT,
+        usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_SRC,
+        view_formats: &[],
+    });
     PostResources {
         stages,
         finals: ["postLook", "postUngraded", "postRaw"].map(|name| pipelines.render(name).clone()),
@@ -157,6 +176,9 @@ pub fn new(
         bloom,
         grade,
         steps,
+        hdr_pipeline: pipelines.render("postHdr").clone(),
+        hdr_output: hdr_texture.create_view(&Default::default()),
+        hdr_texture,
     }
 }
 
@@ -208,7 +230,7 @@ impl PostResources {
     }
 
     pub fn encode(&self, encoder: &mut CommandEncoder, mode: PostMode) {
-        if mode == PostMode::Look {
+        if mode == PostMode::Look || mode == PostMode::Hdr {
             for stage in &self.stages {
                 Self::screen(
                     encoder,
@@ -219,10 +241,20 @@ impl PostResources {
                 );
             }
         }
+        if mode == PostMode::Hdr {
+            Self::screen(
+                encoder,
+                &self.hdr_pipeline,
+                &self.final_group,
+                &self.hdr_output,
+                "post-hdr",
+            );
+            return;
+        }
         let pipeline = &self.finals[match mode {
             PostMode::Look => 0,
             PostMode::Ungraded => 1,
-            PostMode::Raw => 2,
+            PostMode::Raw | PostMode::Hdr => 2,
         }];
         Self::screen(
             encoder,
@@ -245,5 +277,7 @@ impl PostResources {
             memory.view(&stage.target);
         }
         memory.view(&self.display);
+        memory.view(&self.hdr_output);
+        memory.texture(&self.hdr_texture);
     }
 }

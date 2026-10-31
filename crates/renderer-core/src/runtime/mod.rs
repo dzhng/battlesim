@@ -417,7 +417,37 @@ impl Runtime {
         encoder: &mut CommandEncoder,
         geometry: PlayerGeometry<'_>,
     ) {
-        self.frame.encode(
+        self.encode_with_post(device, queue, view, encoder, geometry, None);
+    }
+
+    pub fn encode_hdr(
+        &self,
+        device: &Device,
+        queue: &Queue,
+        view: &View,
+        encoder: &mut CommandEncoder,
+        geometry: PlayerGeometry<'_>,
+    ) {
+        self.encode_with_post(
+            device,
+            queue,
+            view,
+            encoder,
+            geometry,
+            Some(post::PostMode::Hdr),
+        );
+    }
+
+    fn encode_with_post(
+        &self,
+        device: &Device,
+        queue: &Queue,
+        view: &View,
+        encoder: &mut CommandEncoder,
+        geometry: PlayerGeometry<'_>,
+        post_mode_override: Option<post::PostMode>,
+    ) {
+        self.frame.encode_with_post(
             &FrameInputs {
                 device,
                 queue,
@@ -449,6 +479,7 @@ impl Runtime {
                 high_air: self.high_air.as_ref(),
             },
             encoder,
+            post_mode_override,
         );
     }
 

@@ -191,3 +191,143 @@ so a run waits for other rendering jobs.
 The `capture` browser scene (`bun run --cwd web scene -- capture`) proves the
 recording path on its own, through the CLI's own receiver, and reports the
 frame rate as the CLI measures it. It is a tool, so the full verify skips it.
+
+## HDR Capture
+
+For HDR gameplay clips suitable for X/iPhone playback, use the native client's
+HDR output path. This produces real HDR (HLG, BT.2020, 10-bit HEVC) where
+highlights (muzzle flashes, fires, explosions, bloom, sun glints, tracers) can
+exceed SDR white while midtones match the SDR look.
+
+### Prerequisites
+
+1. Build the native client in release mode:
+
+   ```bash
+   cargo build --release -p native-client
+   ```
+
+2. Have a native parity run recorded. Run
+   `bun run --cwd web scene -- native-parity-capture` to produce a replayable
+   run under `throwaway/native-parity/`. The standard `bun run --cwd web capture`
+   writes MP4s directly and does not produce replayable runs.
+
+   The parity capture runs at 1280×720 by default. For 1080p output, set
+   `PARITY_VIEWPORT=1920x1080` before running (requires modifying
+   `_parityRun.mjs` to read this environment variable).
+
+3. `ffmpeg` and `ffprobe` must be on PATH.
+
+### Recording HDR frames
+
+Use the native client with `--hdr --all-frames` to replay a run with HDR output:
+
+```bash
+./target/release/native-client \
+  --run throwaway/native-parity/<run-dir> \
+  --scene <map-name> \
+  --out throwaway/hdr-frames \
+  --hdr \
+  --all-frames \
+  --fps 60 \
+  --from-ms 0 --to-ms 8000 \
+  --sound throwaway/hdr-frames/sound.wav \
+  --window offscreen \
+  --pace 0
+```
+
+The `--run` argument is the parent folder containing the scene directories;
+the client appends `<scene>/` to find the actual run data.
+
+Additional flags:
+- `--fps <n>`: Output frame rate (default: 60). Renders at fixed timesteps.
+- `--from-ms <n>`: Only render frames from this millisecond (default: start)
+- `--to-ms <n>`: Only render frames up to this millisecond (default: end)
+- `--no-music`: Disable music during sound rendering (not yet implemented)
+
+This produces:
+- EXR frames (HLG-encoded BT.2020 half-float) in the output directory
+- A WAV file with rendered audio
+
+### Encoding to HLG
+
+Use the HDR capture script to orchestrate the full pipeline:
+
+```bash
+bun run --cwd web hdr-capture <run-dir> <scene> [--fps=60] [--h264] [--output=<dir>]
+```
+
+The `<run-dir>` is the parent folder of scene directories (same as `--run`).
+
+Flags:
+- `--fps=<n>`: Target frame rate (default 60)
+- `--h264`: Also emit an H.264 HLG variant (X serves this format back)
+- `--output=<dir>`: Output directory (default `throwaway/hdr-capture/`)
+- `--keep-frames`: Keep intermediate EXR frames after encoding
+- `--from-ms=<n>`: Start time in milliseconds
+- `--to-ms=<n>`: End time in milliseconds
+- `--no-music`: Disable music during sound rendering
+
+Output files:
+- `<scene>-hdr.mp4`: HEVC Main10 HLG video
+- `<scene>-hdr-h264.mp4`: H.264 High10 HLG variant (if `--h264`)
+- `<scene>-hdr.report.json`: Encoding metadata and verification results
+
+### Verifying HDR metadata
+
+The script verifies the output with ffprobe. The expected metadata:
+
+```
+codec_name: hevc (or h264)
+profile: Main 10 (or High 10)
+pix_fmt: yuv420p10le
+color_primaries: bt2020
+color_space: bt2020nc
+color_transfer: arib-std-b67
+color_range: tv
+```
+
+You can manually verify with:
+
+```bash
+ffprobe -v error -select_streams v:0 \
+  -show_entries stream=codec_name,profile,pix_fmt,color_primaries,color_space,color_transfer,color_range \
+  -of json output.mp4
+```
+
+### HDR tonemap design
+
+The HDR path uses a modified tonemap that:
+- Keeps midtones identical to SDR (same color grade + AgX-like shape)
+- Places diffuse/reference white around 203 nits (HLG 0.75)
+- Rolls highlights up to ~1000 nits (about 5× headroom, HLG 1.0)
+- Desaturates very bright colors toward white like AgX
+- Converts from Rec.709/sRGB working space to BT.2020 primaries
+- Applies HLG OETF directly in the shader (not ffmpeg)
+
+UI overlays and fog-of-war rim are drawn into the HDR target at reference white.
+
+### Why HLG
+
+HLG (Hybrid Log-Gamma) is chosen over PQ because:
+- SDR backward compatibility: HLG degrades gracefully on SDR displays
+- iPhone/X native support: Both platforms recognize HLG metadata
+- Simpler mastering: No absolute brightness targets to hit
+
+### Manual encoding
+
+For custom encoding, use the EXR frames directly with ffmpeg. Since the shader
+applies HLG OETF, the frames are already in HLG space:
+
+```bash
+ffmpeg -y -framerate 60 -i frames/frame-%06d.exr -i sound.wav \
+  -vf "scale=1920:1080:out_color_matrix=bt2020:out_range=tv,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1,setparams=color_primaries=bt2020:color_trc=arib-std-b67:colorspace=bt2020nc" \
+  -c:v libx265 -preset slow -crf 18 -profile:v main10 \
+  -pix_fmt yuv420p10le \
+  -color_primaries bt2020 -colorspace bt2020nc -color_trc arib-std-b67 \
+  -color_range tv -tag:v hvc1 \
+  -x265-params repeat-headers=1 \
+  -c:a aac -b:a 192k -ar 48000 \
+  -movflags +faststart \
+  output-hdr.mp4
+```
