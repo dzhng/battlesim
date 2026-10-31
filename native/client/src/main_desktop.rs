@@ -95,8 +95,16 @@ struct Args {
     window: String,
     pace: usize,
     sound: Option<PathBuf>,
-    /// Output HDR frames (linear BT.2020 half-float EXR).
+    /// Output HDR frames (HLG-encoded BT.2020 half-float EXR).
     hdr: bool,
+    /// Write every frame, not just plates (for video encoding).
+    all_frames: bool,
+    /// Time window: only render frames from this millisecond.
+    from_ms: Option<f64>,
+    /// Time window: only render frames up to this millisecond.
+    to_ms: Option<f64>,
+    /// Disable music during sound rendering.
+    no_music: bool,
 }
 
 /// Resolve native runtime files without relying on the build machine's path.
@@ -132,6 +140,10 @@ fn args() -> Result<Args, String> {
     let (mut sound, mut bench) = (None, None);
     let (mut freeze_index, mut bench_frames) = (None, None);
     let mut hdr = false;
+    let mut all_frames = false;
+    let mut from_ms: Option<f64> = None;
+    let mut to_ms: Option<f64> = None;
+    let mut no_music = false;
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
         let mut value = || it.next().ok_or(format!("{flag} needs a value"));
@@ -158,6 +170,14 @@ fn args() -> Result<Args, String> {
                 );
             }
             "--hdr" => hdr = true,
+            "--all-frames" => all_frames = true,
+            "--from-ms" => {
+                from_ms = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?);
+            }
+            "--to-ms" => {
+                to_ms = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?);
+            }
+            "--no-music" => no_music = true,
             other => return Err(format!("unknown argument {other}")),
         }
     }
@@ -182,6 +202,15 @@ fn args() -> Result<Args, String> {
     if hdr && bench.is_some() {
         return Err("--hdr is not supported with --bench".into());
     }
+    if all_frames && !hdr {
+        return Err("--all-frames requires --hdr".into());
+    }
+    if from_ms.is_some() && !all_frames {
+        return Err("--from-ms requires --all-frames".into());
+    }
+    if to_ms.is_some() && !all_frames {
+        return Err("--to-ms requires --all-frames".into());
+    }
     Ok(Args {
         scene: run
             .ok_or("--run is required")?
@@ -193,6 +222,10 @@ fn args() -> Result<Args, String> {
         pace,
         sound,
         hdr,
+        all_frames,
+        from_ms,
+        to_ms,
+        no_music,
     })
 }
 
@@ -226,6 +259,8 @@ struct Run {
     /// props.
     bench: Option<Bench>,
     drew: [f64; 9],
+    /// Sequential frame counter for --all-frames HDR output.
+    frame_index: usize,
 }
 
 impl Run {
@@ -402,6 +437,7 @@ impl Run {
             sound,
             bench,
             drew: [0.0; 9],
+            frame_index: 0,
         })
     }
 
@@ -518,6 +554,22 @@ impl Run {
             self.next += 1;
             // The reel's wall time is both the sound's wall and its mixer clock.
             let now = record.reel_ms / 1000.0;
+
+            // Time window filtering for --all-frames mode
+            if args.all_frames {
+                if let Some(from_ms) = args.from_ms {
+                    if record.reel_ms < from_ms {
+                        continue;
+                    }
+                }
+                if let Some(to_ms) = args.to_ms {
+                    if record.reel_ms > to_ms {
+                        // Done with time window
+                        return Ok(false);
+                    }
+                }
+            }
+
             let mut sound = self.sound.as_mut();
             self.replay
                 .frame(&record, self.scene.static_generation(), |p| {
@@ -528,6 +580,37 @@ impl Run {
             if let Some(audio) = self.sound.as_mut() {
                 audio.hear(self.replay.presentation(), now, now);
             }
+
+            // In --all-frames mode, write every frame with sequential naming
+            if args.all_frames && args.hdr {
+                self.prepare()?;
+                let (device, queue) = (&self.gpu.device, &self.gpu.queue);
+                let mut encoder = device.create_command_encoder(&Default::default());
+                self.scene
+                    .encode_hdr(device, queue, &self.view, &mut encoder, Default::default());
+                let read = renderer_core::readback::Rgba16fReadback::encode(
+                    device,
+                    &mut encoder,
+                    &self.scene.post.hdr_texture,
+                )?;
+                queue.submit([encoder.finish()]);
+                let rgba16f = pollster::block_on(read.read(device))?;
+                // Sequential naming for ffmpeg: frame-000001.exr, frame-000002.exr, ...
+                let exr_name = format!("frame-{:06}.exr", self.frame_index);
+                output::write_exr(&out.join(&exr_name), self.scene.targets.size, &rgba16f)?;
+                self.frame_index += 1;
+                self.plates += 1;
+                if self.plates % 60 == 0 {
+                    println!(
+                        "frame {}: reel_ms {:.0}, {} frames written",
+                        self.frame_index, record.reel_ms, self.plates
+                    );
+                }
+                let encoder = device.create_command_encoder(&Default::default());
+                self.present(encoder);
+                return Ok(true);
+            }
+
             let Some(plate) = record.plate.clone() else {
                 continue;
             };

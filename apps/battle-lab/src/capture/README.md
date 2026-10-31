@@ -207,28 +207,39 @@ exceed SDR white while midtones match the SDR look.
    cargo build --release -p native-client
    ```
 
-2. Have a browser parity run recorded. The standard capture workflow
-   (`bun run --cwd web capture`) produces these under `throwaway/capture/`.
+2. Have a native parity run recorded. Run `bun run --cwd web capture:parity`
+   (or the native-parity-capture command) to produce a replayable run under
+   `throwaway/parity/`. The standard `bun run --cwd web capture` writes MP4s
+   directly and does not produce replayable runs.
 
 3. `ffmpeg` and `ffprobe` must be on PATH.
 
 ### Recording HDR frames
 
-Use the native client with `--hdr` to replay a run with HDR output:
+Use the native client with `--hdr --all-frames` to replay a run with HDR output:
 
 ```bash
 ./target/release/native-client \
-  --run throwaway/capture/<run-dir> \
+  --run throwaway/parity/<run-dir> \
   --scene <map-name> \
   --out throwaway/hdr-frames \
   --hdr \
+  --all-frames \
   --sound throwaway/hdr-frames/sound.wav \
   --window offscreen \
   --pace 0
 ```
 
+The `--run` argument is the parent folder containing the scene directories;
+the client appends `<scene>/` to find the actual run data.
+
+Additional flags:
+- `--from-ms <n>`: Only render frames from this millisecond (default: start)
+- `--to-ms <n>`: Only render frames up to this millisecond (default: end)
+- `--no-music`: Disable music during sound rendering
+
 This produces:
-- EXR frames (linear BT.2020 half-float) in the output directory
+- EXR frames (HLG-encoded BT.2020 half-float) in the output directory
 - A WAV file with rendered audio
 
 ### Encoding to HLG
@@ -239,11 +250,16 @@ Use the HDR capture script to orchestrate the full pipeline:
 bun run --cwd web hdr-capture <run-dir> <scene> [--fps=60] [--h264] [--output=<dir>]
 ```
 
+The `<run-dir>` is the parent folder of scene directories (same as `--run`).
+
 Flags:
 - `--fps=<n>`: Target frame rate (default 60)
 - `--h264`: Also emit an H.264 HLG variant (X serves this format back)
 - `--output=<dir>`: Output directory (default `throwaway/hdr-capture/`)
 - `--keep-frames`: Keep intermediate EXR frames after encoding
+- `--from-ms=<n>`: Start time in milliseconds
+- `--to-ms=<n>`: End time in milliseconds
+- `--no-music`: Disable music during sound rendering
 
 Output files:
 - `<scene>-hdr.mp4`: HEVC Main10 HLG video
@@ -276,12 +292,13 @@ ffprobe -v error -select_streams v:0 \
 
 The HDR path uses a modified tonemap that:
 - Keeps midtones identical to SDR (same color grade + AgX-like shape)
-- Places diffuse/reference white around 203 nits
-- Rolls highlights up to ~1000 nits (about 5× headroom)
+- Places diffuse/reference white around 203 nits (HLG 0.75)
+- Rolls highlights up to ~1000 nits (about 5× headroom, HLG 1.0)
+- Desaturates very bright colors toward white like AgX
 - Converts from Rec.709/sRGB working space to BT.2020 primaries
-- Outputs linear values (HLG OETF applied by ffmpeg)
+- Applies HLG OETF directly in the shader (not ffmpeg)
 
-UI overlays and fog-of-war remain pinned at reference white.
+UI overlays and fog-of-war rim are drawn into the HDR target at reference white.
 
 ### Why HLG
 
@@ -292,11 +309,12 @@ HLG (Hybrid Log-Gamma) is chosen over PQ because:
 
 ### Manual encoding
 
-For custom encoding, use the EXR frames directly with ffmpeg:
+For custom encoding, use the EXR frames directly with ffmpeg. Since the shader
+applies HLG OETF, the frames are already in HLG space:
 
 ```bash
-ffmpeg -y -framerate 60 -i frames/plate-%04d.exr -i sound.wav \
-  -vf "scale=1920:1080,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1" \
+ffmpeg -y -framerate 60 -i frames/frame-%06d.exr -i sound.wav \
+  -vf "scale=1920:1080:out_color_matrix=bt2020:out_range=tv,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1,setparams=color_primaries=bt2020:color_trc=arib-std-b67:colorspace=bt2020nc" \
   -c:v libx265 -preset slow -crf 18 -profile:v main10 \
   -pix_fmt yuv420p10le \
   -color_primaries bt2020 -colorspace bt2020nc -color_trc arib-std-b67 \

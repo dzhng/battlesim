@@ -101,6 +101,37 @@ describe("HDR encode arguments", () => {
     expect(vfValue).toContain("pad=1920:1080");
     expect(vfValue).toContain("setsar=1");
   });
+
+  test("includes start_number when provided", () => {
+    const args = hdrEncodeArgs({
+      framePattern: "frames/frame-%06d.exr",
+      audio: null as unknown as string,
+      output: "output.mp4",
+      fps: 60,
+      width: 1920,
+      height: 1080,
+      hevc: true,
+      startNumber: 100,
+    });
+
+    expect(args).toContain("-start_number");
+    expect(args).toContain("100");
+  });
+
+  test("omits start_number when 0", () => {
+    const args = hdrEncodeArgs({
+      framePattern: "frames/frame-%06d.exr",
+      audio: null as unknown as string,
+      output: "output.mp4",
+      fps: 60,
+      width: 1920,
+      height: 1080,
+      hevc: true,
+      startNumber: 0,
+    });
+
+    expect(args).not.toContain("-start_number");
+  });
 });
 
 describe("HDR probe arguments", () => {

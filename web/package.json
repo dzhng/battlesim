@@ -12,6 +12,7 @@
     "scene": "node scene.mjs",
     "asset": "node asset.mjs",
     "capture": "node capture.mjs",
+    "hdr-capture": "node capture/hdr-capture.mjs",
     "tutorial-shots": "node tutorial-shots.mjs",
     "install-browsers": "playwright install chromium",
     "check-prerequisites": "node check-prerequisites.mjs",

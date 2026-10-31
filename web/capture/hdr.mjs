@@ -1,8 +1,8 @@
 // ffmpeg argv: HDR EXR frames + WAV audio → HLG HEVC Main10 MP4.
 //
-// The native client outputs linear BT.2020 half-float EXR frames. This module
-// encodes them to HLG (Hybrid Log-Gamma) for cross-platform compatibility:
-// HLG looks correct on both HDR and SDR displays.
+// The native client outputs HLG-encoded BT.2020 half-float EXR frames.
+// The shader applies the HLG OETF directly, so frames are in [0, 1] HLG space.
+// This module encodes them to HLG HEVC for X/iPhone HDR playback.
 //
 // Output specs for X/iPhone HDR:
 // - libx265 Main 10 profile
@@ -63,14 +63,19 @@ export const AAC = ["-c:a", "aac", "-b:a", "192k", "-ar", "48000"];
 
 /**
  * Build ffmpeg arguments to encode EXR frames to HLG HEVC.
+ * The input EXR frames are HLG-encoded BT.2020 (the shader applies HLG OETF).
+ * We use scale with out_color_matrix=bt2020 to convert RGB to YUV correctly,
+ * and setparams to tag the output with proper color metadata.
+ *
  * @param {Object} options
- * @param {string} options.framePattern - Input frame pattern (e.g., "frames/plate-%04d.exr")
+ * @param {string} options.framePattern - Input frame pattern (e.g., "frames/frame-%06d.exr")
  * @param {string} options.audio - Input audio file (WAV)
  * @param {string} options.output - Output MP4 file
  * @param {number} options.fps - Frame rate
  * @param {number} options.width - Frame width
  * @param {number} options.height - Frame height
  * @param {boolean} [options.hevc=true] - Use HEVC (true) or H.264 (false)
+ * @param {number} [options.startNumber=0] - Start number for frame sequence
  */
 export function hdrEncodeArgs({
   framePattern,
@@ -80,8 +85,22 @@ export function hdrEncodeArgs({
   width,
   height,
   hevc = true,
+  startNumber = 0,
 }) {
   const videoCodec = hevc ? HLG_HEVC : HLG_H264;
+  // The EXR frames are HLG-encoded BT.2020. We need to:
+  // 1. Scale with BT.2020 color matrix for proper RGB→YUV conversion
+  // 2. Use limited range (16-235) for broadcast compatibility
+  // 3. Tag the output with proper HLG/BT.2020 metadata
+  const vf = [
+    // Scale with BT.2020 color matrix and limited range
+    `scale=${width}:${height}:force_original_aspect_ratio=decrease:out_color_matrix=bt2020:out_range=tv`,
+    `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`,
+    "setsar=1",
+    // Set color parameters: BT.2020 primaries, BT.2020 non-constant luminance, HLG transfer
+    "setparams=color_primaries=bt2020:color_trc=arib-std-b67:colorspace=bt2020nc",
+  ].join(",");
+
   return [
     "-y",
     "-hide_banner",
@@ -89,15 +108,12 @@ export function hdrEncodeArgs({
     "error",
     "-framerate",
     String(fps),
+    ...(startNumber > 0 ? ["-start_number", String(startNumber)] : []),
     "-i",
     framePattern,
     ...(audio ? ["-i", audio] : []),
     "-vf",
-    [
-      `scale=${width}:${height}:force_original_aspect_ratio=decrease`,
-      `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`,
-      "setsar=1",
-    ].join(","),
+    vf,
     "-fps_mode",
     "cfr",
     "-r",

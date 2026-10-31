@@ -4,15 +4,18 @@
 // Usage:
 //   bun run --cwd web hdr-capture <run-dir> <scene> [flags]
 //
-// The run-dir must contain a browser parity run (capture/*.json files).
+// The run-dir must contain a native parity run (capture/*.json files).
 // The script:
-//   1. Runs the native client with --hdr to render HDR frames + sound
+//   1. Runs the native client with --hdr --all-frames to render HDR frames + sound
 //   2. Encodes the EXR frames + WAV to HLG HEVC Main10 MP4
 //
 // Flags:
 //   --fps=<n>        Frame rate (default 60)
 //   --output=<dir>   Output directory (default throwaway/hdr-capture/)
 //   --h264           Also emit H.264 HLG variant (for X playback)
+//   --from-ms=<n>    Start time in milliseconds (default: start of reel)
+//   --to-ms=<n>      End time in milliseconds (default: end of reel)
+//   --no-music       Disable music during sound rendering
 
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -24,14 +27,17 @@ const NATIVE_CLIENT = join(REPO_ROOT, "target/release/native-client");
 
 const USAGE = `usage: bun run --cwd web hdr-capture <run-dir> <scene> [flags]
 
-  <run-dir>      Path to a browser parity run directory
+  <run-dir>      Path to a native parity run directory (parent of <scene>/)
   <scene>        Scene/map name to render
 
 Flags:
   --fps=<n>      Frame rate (default 60)
   --output=<dir> Output directory (default throwaway/hdr-capture/)
   --h264         Also emit H.264 HLG variant (for X playback)
-  --keep-frames  Keep intermediate EXR frames after encoding`;
+  --keep-frames  Keep intermediate EXR frames after encoding
+  --from-ms=<n>  Start time in milliseconds (default: start of reel)
+  --to-ms=<n>    End time in milliseconds (default: end of reel)
+  --no-music     Disable music during sound rendering`;
 
 function parseArgs(argv) {
   const args = {
@@ -41,6 +47,9 @@ function parseArgs(argv) {
     output: join(REPO_ROOT, "throwaway/hdr-capture"),
     h264: false,
     keepFrames: false,
+    fromMs: null,
+    toMs: null,
+    noMusic: false,
   };
 
   for (const arg of argv) {
@@ -49,6 +58,8 @@ function parseArgs(argv) {
       args.h264 = true;
     } else if (arg === "--keep-frames") {
       args.keepFrames = true;
+    } else if (arg === "--no-music") {
+      args.noMusic = true;
     } else if (arg.startsWith("--fps=")) {
       args.fps = Number(arg.slice("--fps=".length));
       if (!Number.isSafeInteger(args.fps) || args.fps < 1 || args.fps > 120) {
@@ -56,6 +67,16 @@ function parseArgs(argv) {
       }
     } else if (arg.startsWith("--output=")) {
       args.output = resolve(REPO_ROOT, arg.slice("--output=".length));
+    } else if (arg.startsWith("--from-ms=")) {
+      args.fromMs = Number(arg.slice("--from-ms=".length));
+      if (!Number.isFinite(args.fromMs) || args.fromMs < 0) {
+        throw new Error(`--from-ms must be a non-negative number`);
+      }
+    } else if (arg.startsWith("--to-ms=")) {
+      args.toMs = Number(arg.slice("--to-ms=".length));
+      if (!Number.isFinite(args.toMs) || args.toMs < 0) {
+        throw new Error(`--to-ms must be a non-negative number`);
+      }
     } else if (arg.startsWith("-")) {
       throw new Error(`unknown flag ${arg}\n\n${USAGE}`);
     } else if (!args.runDir) {
@@ -69,6 +90,9 @@ function parseArgs(argv) {
 
   if (!args.runDir) throw new Error(`missing run directory\n\n${USAGE}`);
   if (!args.scene) throw new Error(`missing scene name\n\n${USAGE}`);
+  if (args.fromMs !== null && args.toMs !== null && args.fromMs >= args.toMs) {
+    throw new Error(`--from-ms must be less than --to-ms`);
+  }
 
   return args;
 }
@@ -91,7 +115,7 @@ function checkNativeClient() {
   }
 }
 
-function runNativeClient(runDir, scene, framesDir, soundFile) {
+function runNativeClient(runDir, scene, framesDir, soundFile, options) {
   console.log(`Running native client with HDR output...`);
   const args = [
     "--run",
@@ -101,6 +125,7 @@ function runNativeClient(runDir, scene, framesDir, soundFile) {
     "--out",
     framesDir,
     "--hdr",
+    "--all-frames",
     "--sound",
     soundFile,
     "--window",
@@ -108,6 +133,15 @@ function runNativeClient(runDir, scene, framesDir, soundFile) {
     "--pace",
     "0",
   ];
+  if (options.fromMs !== null) {
+    args.push("--from-ms", String(options.fromMs));
+  }
+  if (options.toMs !== null) {
+    args.push("--to-ms", String(options.toMs));
+  }
+  if (options.noMusic) {
+    args.push("--no-music");
+  }
   console.log(`  ${NATIVE_CLIENT} ${args.join(" ")}`);
   const result = spawnSync(NATIVE_CLIENT, args, {
     stdio: "inherit",
@@ -123,17 +157,41 @@ function findFrames(framesDir) {
   if (files.length === 0) {
     throw new Error(`no EXR frames found in ${framesDir}`);
   }
+  // Sequential naming: frame-000001.exr, frame-000002.exr, ...
+  // The native client with --all-frames uses this format.
   const first = files[0];
-  const match = first.match(/^(.+?)(\d+)(\.exr)$/);
+  const last = files[files.length - 1];
+  const match = first.match(/^frame-(\d+)\.exr$/);
   if (!match) {
-    throw new Error(`unexpected frame naming: ${first}`);
+    // Fallback: try to detect other patterns
+    const altMatch = first.match(/^(.+?)(\d+)(\.exr)$/);
+    if (!altMatch) {
+      throw new Error(`unexpected frame naming: ${first}`);
+    }
+    const [, prefix, digits, suffix] = altMatch;
+    const pattern = `${prefix}%0${digits.length}d${suffix}`;
+    return {
+      pattern: join(framesDir, pattern),
+      count: files.length,
+      first: files[0],
+    };
   }
-  const [, prefix, digits, suffix] = match;
-  const pattern = `${prefix}%0${digits.length}d${suffix}`;
+  // Sequential frame-NNNNNN.exr pattern
+  const startIndex = parseInt(match[1], 10);
+  const lastMatch = last.match(/^frame-(\d+)\.exr$/);
+  const endIndex = lastMatch ? parseInt(lastMatch[1], 10) : startIndex + files.length - 1;
+
+  // Verify sequential: count should match expected range
+  const expected = endIndex - startIndex + 1;
+  if (files.length !== expected) {
+    console.warn(`Warning: expected ${expected} frames (${startIndex}-${endIndex}), found ${files.length}`);
+  }
+
   return {
-    pattern: join(framesDir, pattern),
+    pattern: join(framesDir, "frame-%06d.exr"),
     count: files.length,
     first: files[0],
+    startNumber: startIndex,
   };
 }
 
@@ -161,7 +219,7 @@ function getFrameSize(framesDir, firstFrame) {
   return { width: stream.width, height: stream.height };
 }
 
-function encodeHdr(framePattern, audioFile, outputFile, fps, width, height, hevc) {
+function encodeHdr(framePattern, audioFile, outputFile, fps, width, height, hevc, startNumber) {
   const format = hevc ? "HEVC" : "H.264";
   console.log(`Encoding ${format} HLG...`);
   const args = hdrEncodeArgs({
@@ -172,6 +230,7 @@ function encodeHdr(framePattern, audioFile, outputFile, fps, width, height, hevc
     width,
     height,
     hevc,
+    startNumber,
   });
   console.log(`  ffmpeg ${args.join(" ")}`);
   execFileSync("ffmpeg", args, { stdio: "inherit" });
@@ -205,20 +264,25 @@ function main() {
     const soundFile = join(args.output, "sound.wav");
     mkdirSync(framesDir, { recursive: true });
 
-    runNativeClient(args.runDir, args.scene, framesDir, soundFile);
+    runNativeClient(args.runDir, args.scene, framesDir, soundFile, {
+      fromMs: args.fromMs,
+      toMs: args.toMs,
+      noMusic: args.noMusic,
+    });
 
     const frames = findFrames(framesDir);
     const { width, height } = getFrameSize(framesDir, frames.first);
-    console.log(`Found ${frames.count} frames at ${width}x${height}`);
+    const startNumber = frames.startNumber || 0;
+    console.log(`Found ${frames.count} frames at ${width}x${height} (starting at ${startNumber})`);
 
     const hevcOutput = join(args.output, `${args.scene}-hdr.mp4`);
-    encodeHdr(frames.pattern, soundFile, hevcOutput, args.fps, width, height, true);
+    encodeHdr(frames.pattern, soundFile, hevcOutput, args.fps, width, height, true, startNumber);
     const hevcMeta = probeAndVerify(hevcOutput);
 
     let h264Output = null;
     if (args.h264) {
       h264Output = join(args.output, `${args.scene}-hdr-h264.mp4`);
-      encodeHdr(frames.pattern, soundFile, h264Output, args.fps, width, height, false);
+      encodeHdr(frames.pattern, soundFile, h264Output, args.fps, width, height, false, startNumber);
       probeAndVerify(h264Output);
     }
 
@@ -234,6 +298,10 @@ function main() {
       frames: frames.count,
       width,
       height,
+      timeWindow: {
+        fromMs: args.fromMs,
+        toMs: args.toMs,
+      },
       outputs: {
         hevc: {
           file: hevcOutput,

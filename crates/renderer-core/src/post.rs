@@ -33,7 +33,8 @@ pub struct PostResources {
     grade: Buffer,
     steps: Vec<Buffer>,
     hdr_pipeline: RenderPipeline,
-    hdr_output: TextureView,
+    /// The HDR output texture view for rendering.
+    pub hdr_output: TextureView,
     pub hdr_texture: Texture,
 }
 

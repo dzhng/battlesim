@@ -193,14 +193,53 @@ fn rec709ToBt2020(rgb: vec3f) -> vec3f {
   return m * rgb;
 }
 
+// @block post_hlgOetf
+// HLG OETF per ARIB STD-B67, mapping scene-linear [0, 12] to HLG [0, 1].
+// Reference white (1.0 scene-linear, 203 nits) maps to HLG ~0.75.
+// Peak white (12.0 scene-linear, 1000 nits) maps to HLG 1.0.
+fn hlgOetf(e: f32) -> f32 {
+  let a = 0.17883277;
+  let b = 0.28466892;
+  let c = 0.55991073;
+  if (e <= 1.0 / 12.0) {
+    return sqrt(3.0 * e);
+  }
+  return a * log(12.0 * e - b) + c;
+}
+
+fn hlgOetfVec(rgb: vec3f) -> vec3f {
+  return vec3f(hlgOetf(rgb.r), hlgOetf(rgb.g), hlgOetf(rgb.b));
+}
+
 // @block post_hdrTonemap
+// HDR tonemap matching SDR AgX for midtones, rolling highlights to 1000 nits.
+// Peak is ~5x reference white (1000/203 nits), so linear 5.0 -> HLG 1.0.
 fn hdrTonemap(color: vec3f, exposure: f32) -> vec3f {
+  let to2020 = mat3x3f(vec3f(0.6274,0.0691,0.0164),vec3f(0.3293,0.9195,0.0880),vec3f(0.0433,0.0113,0.8956));
+  let inset = mat3x3f(vec3f(0.856627153315983,0.137318972929847,0.11189821299995),vec3f(0.0951212405381588,0.761241990602591,0.0767994186031903),vec3f(0.0482516061458583,0.101439036467562,0.811302368396859));
+  let outset = mat3x3f(vec3f(1.1271005818144368,-0.1413297634984383,-0.14132976349843826),vec3f(-0.11060664309660323,1.157823702216272,-0.11060664309660294),vec3f(-0.016493938717834573,-0.016493938717834257,1.2519364065950405));
+
   let exposed = color * exposure;
+  let bt2020 = to2020 * exposed;
+  let x = clamp((log2(max(inset * bt2020, vec3f(1e-10))) + 12.47393) / (4.026069 + 12.47393), vec3f(0), vec3f(1));
+  let x2 = x * x;
+  let x4 = x2 * x2;
+  let contrast = 15.5 * (x4 * x2) - 40.14 * (x4 * x) + (31.96 * x4 - 6.868 * (x2 * x) + (0.4298 * x2 + (0.1191 * x - 0.00232)));
+  let sdrBase = max(vec3f(0), outset * contrast);
+
   let luma = max(dot(exposed, LUMA), 0.0001);
+  let sdrLuma = max(dot(sdrBase, vec3f(0.2627, 0.6780, 0.0593)), 0.0001);
   let peakWhite = 5.0;
-  let mappedLuma = luma * (1.0 + luma / (peakWhite * peakWhite)) / (1.0 + luma);
-  let scale = mappedLuma / luma;
-  return max(exposed * scale, vec3f(0.0));
+  let highlightRolloff = luma / (luma + 1.0) * (1.0 + luma / peakWhite);
+  let highlightLuma = min(highlightRolloff, peakWhite);
+
+  let blend = smoothstep(0.6, 1.2, sdrLuma);
+  let hdrLuma = mix(sdrLuma, highlightLuma, blend);
+
+  let desat = smoothstep(1.0, peakWhite, hdrLuma);
+  let hdrColor = mix(sdrBase * (hdrLuma / sdrLuma), vec3f(hdrLuma), desat);
+
+  return max(hdrColor, vec3f(0.0));
 }
 
 // @block post_hdrShader
@@ -210,6 +249,6 @@ fn hdrShader(uv: vec2f) -> vec4f {
   let gradeShare = select(1.0, grade.skyGradeMix, world.a < 0.5);
   let graded = mix(hdrInput, gradeColor(hdrInput, grade), gradeShare);
   let tonemapped = hdrTonemap(graded, grade.exposure);
-  let bt2020 = rec709ToBt2020(tonemapped);
-  return vec4f(bt2020, 1.0);
+  let hlg = hlgOetfVec(tonemapped);
+  return vec4f(hlg, 1.0);
 }

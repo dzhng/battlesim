@@ -285,6 +285,10 @@ impl FrameRenderer {
                     if post_mode_override.is_some() || inputs.frame_view.post_mode().is_some() {
                         inputs.fog_mask.encode_rim(encoder, inputs.targets);
                     }
+                    // In HDR mode, also draw the rim into the HDR output at reference white.
+                    if post_mode_override == Some(PostMode::Hdr) {
+                        inputs.fog_mask.encode_rim_hdr(encoder, &inputs.post.hdr_output);
+                    }
                 }
             }
             if stage != FrameStage::World {
