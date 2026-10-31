@@ -182,3 +182,34 @@ fn blurShader(uv: vec2f) -> vec4f {
   }
   return vec4f(color,1);
 }
+
+// @block post_rec709ToBt2020
+fn rec709ToBt2020(rgb: vec3f) -> vec3f {
+  let m = mat3x3f(
+    vec3f(0.6274, 0.0691, 0.0164),
+    vec3f(0.3293, 0.9195, 0.0880),
+    vec3f(0.0433, 0.0113, 0.8956)
+  );
+  return m * rgb;
+}
+
+// @block post_hdrTonemap
+fn hdrTonemap(color: vec3f, exposure: f32) -> vec3f {
+  let exposed = color * exposure;
+  let luma = max(dot(exposed, LUMA), 0.0001);
+  let peakWhite = 5.0;
+  let mappedLuma = luma * (1.0 + luma / (peakWhite * peakWhite)) / (1.0 + luma);
+  let scale = mappedLuma / luma;
+  return max(exposed * scale, vec3f(0.0));
+}
+
+// @block post_hdrShader
+fn hdrShader(uv: vec2f) -> vec4f {
+  let world = textureSample(scene, linearSampler, uv);
+  let hdrInput = world.rgb + textureSample(bloom, linearSampler, uv).rgb;
+  let gradeShare = select(1.0, grade.skyGradeMix, world.a < 0.5);
+  let graded = mix(hdrInput, gradeColor(hdrInput, grade), gradeShare);
+  let tonemapped = hdrTonemap(graded, grade.exposure);
+  let bt2020 = rec709ToBt2020(tonemapped);
+  return vec4f(bt2020, 1.0);
+}

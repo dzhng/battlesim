@@ -18,6 +18,8 @@ png = "0.17"
 serde = { version = "1", features = ["derive"] }
 serde_json.workspace = true
 sha2 = "0.10"
+exr = "1.74"
+half = "2"
 
 [dev-dependencies]
 flate2 = "1"

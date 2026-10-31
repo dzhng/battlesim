@@ -95,6 +95,8 @@ struct Args {
     window: String,
     pace: usize,
     sound: Option<PathBuf>,
+    /// Output HDR frames (linear BT.2020 half-float EXR).
+    hdr: bool,
 }
 
 /// Resolve native runtime files without relying on the build machine's path.
@@ -129,6 +131,7 @@ fn args() -> Result<Args, String> {
     let (mut scene, mut out, mut window, mut pace) = (None, None, "offscreen".to_owned(), 120);
     let (mut sound, mut bench) = (None, None);
     let (mut freeze_index, mut bench_frames) = (None, None);
+    let mut hdr = false;
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
         let mut value = || it.next().ok_or(format!("{flag} needs a value"));
@@ -154,6 +157,7 @@ fn args() -> Result<Args, String> {
                         .map_err(|e| format!("{flag}: {e}"))?,
                 );
             }
+            "--hdr" => hdr = true,
             other => return Err(format!("unknown argument {other}")),
         }
     }
@@ -175,6 +179,9 @@ fn args() -> Result<Args, String> {
     if let Some(frames) = bench_frames {
         bench::reported_draws(frames).map_err(|e| format!("--bench-frames: {e}"))?;
     }
+    if hdr && bench.is_some() {
+        return Err("--hdr is not supported with --bench".into());
+    }
     Ok(Args {
         scene: run
             .ok_or("--run is required")?
@@ -185,6 +192,7 @@ fn args() -> Result<Args, String> {
         window,
         pace,
         sound,
+        hdr,
     })
 }
 
@@ -563,28 +571,43 @@ impl Run {
             let (device, queue) = (&self.gpu.device, &self.gpu.queue);
             let scars = self.replay.presentation().scar_stats();
             println!(
-                "{plate}: drawn {drawn:?}, culled soldiers {}, effects {} and {} lights, scar pages {} ({})",
+                "{plate}: drawn {drawn:?}, culled soldiers {}, effects {} and {} lights, scar pages {} ({}){}",
                 counts.culled,
                 self.scene.effects.count(),
                 counts.lights,
                 scars.pages,
                 if self.scene.ground.material.scars.regional() { "by region" } else { "at once" },
+                if args.hdr { " [HDR]" } else { "" },
             );
             let mut encoder = device.create_command_encoder(&Default::default());
-            self.scene
-                .encode(device, queue, &self.view, &mut encoder, Default::default());
-            let read = renderer_core::readback::RgbaReadback::encode(
-                device,
-                &mut encoder,
-                &self.scene.targets.display_texture,
-            )?;
-            queue.submit([encoder.finish()]);
-            let mut rgba = pollster::block_on(read.read(device))?;
-            // Native plates are opaque exports, independent of stored display alpha.
-            for pixel in rgba.as_chunks_mut::<4>().0 {
-                pixel[3] = 255;
+            if args.hdr {
+                self.scene
+                    .encode_hdr(device, queue, &self.view, &mut encoder, Default::default());
+                let read = renderer_core::readback::Rgba16fReadback::encode(
+                    device,
+                    &mut encoder,
+                    &self.scene.post.hdr_texture,
+                )?;
+                queue.submit([encoder.finish()]);
+                let rgba16f = pollster::block_on(read.read(device))?;
+                let exr_name = plate.replace(".png", ".exr");
+                output::write_exr(&out.join(&exr_name), self.scene.targets.size, &rgba16f)?;
+            } else {
+                self.scene
+                    .encode(device, queue, &self.view, &mut encoder, Default::default());
+                let read = renderer_core::readback::RgbaReadback::encode(
+                    device,
+                    &mut encoder,
+                    &self.scene.targets.display_texture,
+                )?;
+                queue.submit([encoder.finish()]);
+                let mut rgba = pollster::block_on(read.read(device))?;
+                // Native plates are opaque exports, independent of stored display alpha.
+                for pixel in rgba.as_chunks_mut::<4>().0 {
+                    pixel[3] = 255;
+                }
+                output::write_png(&out.join(&plate), self.scene.targets.size, &rgba)?;
             }
-            output::write_png(&out.join(&plate), self.scene.targets.size, &rgba)?;
             self.plates += 1;
             let encoder = device.create_command_encoder(&Default::default());
             self.present(encoder);
