@@ -225,7 +225,7 @@ fn hdrTonemap(color: vec3f, exposure: f32) -> vec3f {
   let x2 = x * x;
   let x4 = x2 * x2;
   let contrast = 15.5 * (x4 * x2) - 40.14 * (x4 * x) + (31.96 * x4 - 6.868 * (x2 * x) + (0.4298 * x2 + (0.1191 * x - 0.00232)));
-  let sdrBase = max(vec3f(0), outset * contrast);
+  let sdrBase = pow(max(vec3f(0), outset * contrast), vec3f(2.2));
 
   let luma = max(dot(exposed, LUMA), 0.0001);
   let sdrLuma = max(dot(sdrBase, vec3f(0.2627, 0.6780, 0.0593)), 0.0001);
@@ -249,6 +249,11 @@ fn hdrShader(uv: vec2f) -> vec4f {
   let gradeShare = select(1.0, grade.skyGradeMix, world.a < 0.5);
   let graded = mix(hdrInput, gradeColor(hdrInput, grade), gradeShare);
   let tonemapped = hdrTonemap(graded, grade.exposure);
-  let hlg = hlgOetfVec(tonemapped);
+  // Display-linear (1.0 = 203 nits) -> scene-linear HLG E via the BT.2100 inverse OOTF
+  // (1000-nit nominal peak, system gamma 1.2): reference white lands at E 0.265, HLG 0.75.
+  let ed = tonemapped * (203.0 / 1000.0);
+  let yd = max(dot(ed, vec3f(0.2627, 0.6780, 0.0593)), 1e-6);
+  let es = clamp(ed * pow(yd, (1.0 - 1.2) / 1.2), vec3f(0.0), vec3f(1.0));
+  let hlg = hlgOetfVec(es);
   return vec4f(hlg, 1.0);
 }

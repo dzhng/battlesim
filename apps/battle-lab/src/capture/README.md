@@ -207,10 +207,14 @@ exceed SDR white while midtones match the SDR look.
    cargo build --release -p native-client
    ```
 
-2. Have a native parity run recorded. Run `bun run --cwd web capture:parity`
-   (or the native-parity-capture command) to produce a replayable run under
-   `throwaway/parity/`. The standard `bun run --cwd web capture` writes MP4s
-   directly and does not produce replayable runs.
+2. Have a native parity run recorded. Run
+   `bun run --cwd web scene -- native-parity-capture` to produce a replayable
+   run under `throwaway/native-parity/`. The standard `bun run --cwd web capture`
+   writes MP4s directly and does not produce replayable runs.
+
+   The parity capture runs at 1280×720 by default. For 1080p output, set
+   `PARITY_VIEWPORT=1920x1080` before running (requires modifying
+   `_parityRun.mjs` to read this environment variable).
 
 3. `ffmpeg` and `ffprobe` must be on PATH.
 
@@ -220,11 +224,13 @@ Use the native client with `--hdr --all-frames` to replay a run with HDR output:
 
 ```bash
 ./target/release/native-client \
-  --run throwaway/parity/<run-dir> \
+  --run throwaway/native-parity/<run-dir> \
   --scene <map-name> \
   --out throwaway/hdr-frames \
   --hdr \
   --all-frames \
+  --fps 60 \
+  --from-ms 0 --to-ms 8000 \
   --sound throwaway/hdr-frames/sound.wav \
   --window offscreen \
   --pace 0
@@ -234,9 +240,10 @@ The `--run` argument is the parent folder containing the scene directories;
 the client appends `<scene>/` to find the actual run data.
 
 Additional flags:
+- `--fps <n>`: Output frame rate (default: 60). Renders at fixed timesteps.
 - `--from-ms <n>`: Only render frames from this millisecond (default: start)
 - `--to-ms <n>`: Only render frames up to this millisecond (default: end)
-- `--no-music`: Disable music during sound rendering
+- `--no-music`: Disable music during sound rendering (not yet implemented)
 
 This produces:
 - EXR frames (HLG-encoded BT.2020 half-float) in the output directory

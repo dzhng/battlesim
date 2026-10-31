@@ -269,3 +269,93 @@ describe("HLG codec constants", () => {
     expect(HLG_H264).toContain("tv");
   });
 });
+
+// CPU mirror of the WGSL HLG OETF and tonemap math for verification
+describe("HLG OETF math", () => {
+  // HLG OETF per ARIB STD-B67: maps scene-linear E [0, 1] to HLG [0, 1]
+  function hlgOetf(e: number): number {
+    const a = 0.17883277;
+    const b = 0.28466892;
+    const c = 0.55991073;
+    if (e <= 1.0 / 12.0) {
+      return Math.sqrt(3.0 * e);
+    }
+    return a * Math.log(12.0 * e - b) + c;
+  }
+
+  // BT.2020 luminance
+  function luma2020(rgb: [number, number, number]): number {
+    return 0.2627 * rgb[0] + 0.678 * rgb[1] + 0.0593 * rgb[2];
+  }
+
+  // Inverse OOTF: display-linear (1.0 = 203 nits) -> scene-linear E
+  // For HLG with 1000-nit peak display and system gamma 1.2
+  function inverseOotf(displayLinear: [number, number, number]): [number, number, number] {
+    // Scale to [0, 1] range where 1.0 = 1000 nits
+    const ed: [number, number, number] = [
+      displayLinear[0] * (203.0 / 1000.0),
+      displayLinear[1] * (203.0 / 1000.0),
+      displayLinear[2] * (203.0 / 1000.0),
+    ];
+    const yd = Math.max(luma2020(ed), 1e-6);
+    const exp = (1.0 - 1.2) / 1.2;
+    const scale = Math.pow(yd, exp);
+    return [
+      Math.max(0, Math.min(1, ed[0] * scale)),
+      Math.max(0, Math.min(1, ed[1] * scale)),
+      Math.max(0, Math.min(1, ed[2] * scale)),
+    ];
+  }
+
+  test("reference white (display-linear 1.0) maps to HLG ~0.75", () => {
+    // Reference white is display-linear [1, 1, 1] = 203 nits
+    const refWhite: [number, number, number] = [1, 1, 1];
+    const es = inverseOotf(refWhite);
+    const hlg = es.map(hlgOetf);
+
+    // HLG reference white should be approximately 0.75
+    expect(hlg[0]).toBeCloseTo(0.75, 2);
+    expect(hlg[1]).toBeCloseTo(0.75, 2);
+    expect(hlg[2]).toBeCloseTo(0.75, 2);
+  });
+
+  test("1000-nit peak maps to HLG ~1.0", () => {
+    // Peak white is display-linear ~4.93 (1000/203 nits)
+    const peakWhite: [number, number, number] = [4.93, 4.93, 4.93];
+    const es = inverseOotf(peakWhite);
+    const hlg = es.map(hlgOetf);
+
+    // Should be close to 1.0
+    expect(hlg[0]).toBeCloseTo(1.0, 1);
+  });
+
+  test("black maps to HLG 0", () => {
+    const black: [number, number, number] = [0, 0, 0];
+    const es = inverseOotf(black);
+    const hlg = es.map(hlgOetf);
+
+    expect(hlg[0]).toBeCloseTo(0, 5);
+    expect(hlg[1]).toBeCloseTo(0, 5);
+    expect(hlg[2]).toBeCloseTo(0, 5);
+  });
+
+  test("midtone 0.5 maps to HLG < 0.75", () => {
+    // 18% grey in display-linear is approximately 0.18
+    const midGrey: [number, number, number] = [0.18, 0.18, 0.18];
+    const es = inverseOotf(midGrey);
+    const hlg = es.map(hlgOetf);
+
+    // Should be less than reference white
+    expect(hlg[0]).toBeLessThan(0.75);
+    expect(hlg[0]).toBeGreaterThan(0);
+  });
+
+  test("HLG OETF is monotonically increasing", () => {
+    let prevHlg = 0;
+    for (let e = 0; e <= 1; e += 0.01) {
+      const hlg = hlgOetf(e);
+      expect(hlg).toBeGreaterThanOrEqual(prevHlg);
+      prevHlg = hlg;
+    }
+  });
+});

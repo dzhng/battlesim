@@ -116,6 +116,7 @@ fn rimAt(pixel: vec2f) -> vec4f {
 
 // @block fog_masks_rimAtHdr
 // Output the rim at HLG reference white (0.75 in HLG space = 203 nits).
+// Uses the BT.2100 inverse OOTF (1000-nit peak, system gamma 1.2).
 fn rimAtHdr(pixel: vec2f) -> vec4f {
   let p = vec2i(pixel);
   let s = look;
@@ -126,10 +127,14 @@ fn rimAtHdr(pixel: vec2f) -> vec4f {
   }
   let toUnseen = textureLoad(maskDistance, p, 0).x * FOG_MASK_DISTANCE_CAP_PX;
   let cover = clamp(s.rimWidthPx + 1.0 - toUnseen, 0.0, 1.0);
-  // Convert sRGB rim color to linear, then apply HLG OETF.
-  // Reference white is HLG 0.75 (1.0 in scene-linear before OETF).
+  // Convert sRGB rim color to linear (display-referred, 1.0 = reference white).
   let linearColor = pow(s.rimColor, vec3f(2.2));
-  let hlgColor = hlgOetfVec(linearColor);
+  // Display-linear (1.0 = 203 nits) -> scene-linear HLG E via the BT.2100 inverse OOTF.
+  // Reference white lands at E 0.265, HLG 0.75.
+  let ed = linearColor * (203.0 / 1000.0);
+  let yd = max(dot(ed, vec3f(0.2627, 0.6780, 0.0593)), 1e-6);
+  let es = clamp(ed * pow(yd, (1.0 - 1.2) / 1.2), vec3f(0.0), vec3f(1.0));
+  let hlgColor = hlgOetfVec(es);
   return vec4f(hlgColor, s.rimAlpha * cover * seen);
 }
 

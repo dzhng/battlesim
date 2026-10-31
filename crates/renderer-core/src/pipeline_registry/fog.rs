@@ -64,5 +64,30 @@ pub fn all() -> Vec<PipelineSpec> {
                 )],
             )),
         ),
+        render(
+            "fogMaskRimHdr",
+            "fogMaskRimHdr.wgsl",
+            vec!["composeLayout"],
+            Some(vertex(None, vec![])),
+            Some(fragment(
+                None,
+                vec![target_with(
+                    HDR_FORMAT,
+                    Some(BlendState {
+                        color: BlendComponent {
+                            src_factor: BlendFactor::SrcAlpha,
+                            dst_factor: BlendFactor::OneMinusSrcAlpha,
+                            operation: BlendOperation::Add,
+                        },
+                        alpha: BlendComponent {
+                            src_factor: BlendFactor::Zero,
+                            dst_factor: BlendFactor::One,
+                            operation: BlendOperation::Add,
+                        },
+                    }),
+                    0xf,
+                )],
+            )),
+        ),
     ]
 }

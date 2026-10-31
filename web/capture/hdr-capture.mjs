@@ -126,6 +126,8 @@ function runNativeClient(runDir, scene, framesDir, soundFile, options) {
     framesDir,
     "--hdr",
     "--all-frames",
+    "--fps",
+    String(options.fps),
     "--sound",
     soundFile,
     "--window",
@@ -265,6 +267,7 @@ function main() {
     mkdirSync(framesDir, { recursive: true });
 
     runNativeClient(args.runDir, args.scene, framesDir, soundFile, {
+      fps: args.fps,
       fromMs: args.fromMs,
       toMs: args.toMs,
       noMusic: args.noMusic,
