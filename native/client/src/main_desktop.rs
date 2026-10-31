@@ -429,7 +429,7 @@ impl Run {
                     &read(&fixtures.join("sounds.json").to_string_lossy())?,
                 )?;
                 let output = OutputSettings::Buffer(audio::SAMPLE_RATE);
-                Some(Audio::new(&setup, &runtime, output)?)
+                Some(Audio::new(&setup, &runtime, output, args.no_music)?)
             }
         };
         Ok(Self {
