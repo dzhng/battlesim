@@ -28,7 +28,7 @@ use crate::statics::Statics;
 
 /// The state scenery draws (winter will be the next biome's).
 const STATE: &str = "summer";
-/// The material whose triangles are foliage: shaded with leaf clumps.
+/// The material whose triangles are foliage: painted with small leaves.
 const FOLIAGE: &str = "leaves";
 /// `tier` of a scenery appearance as triangles in the world vertex
 /// format: linear albedo (material colour times vertex colour) in rgb,

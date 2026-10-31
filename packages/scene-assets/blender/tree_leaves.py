@@ -1,11 +1,11 @@
 """A crown's foliage: leaf clumps, and the leaves on them.
 
 A clump is a lumpy pad on the end of a branch (`clump_points`). Near, it is a
-small dark core shingled with leaves: each leaf one folded diamond whose stalk
-lies just inside the clump's surface and whose blade lies along it, tilted
-out, so a crown's outline is leaf tips and the view into it falls into shade
-between leaves rather than onto a smooth skin. Far, it is the pad alone,
-drawn solid.
+small dark core shingled with leaves: each leaf one triangle, narrow at a
+stalk just inside the clump's surface and broad at its tip, its blade lying
+along the surface, tilted out, so a crown's outline is the scalloped ends of
+leaves and the view into it falls into shade between leaves rather than onto a
+smooth skin. Far, it is the pad alone, drawn solid.
 
 Leaves grow where they show: on the clump surface that the sky and the
 camera reach past the other clumps, not on what the crown buries. A tier
@@ -37,7 +37,7 @@ from tree_skeleton import UP, finish, smoothstep, spiral
 PAD_LIGHT = 0.85
 # How much of the crown's shown surface its leaves cover between them,
 # counting the overlap: past 1 the core shows only in the gaps between leaves.
-COVER = 1.8
+COVER = 1.4
 # The ways out of a crown a spot is looked at from: straight out of its
 # clump, and leant up toward the sky by these shares of the vertical.
 LOOKS = (0.0, 1.0, 3.0)
@@ -50,15 +50,12 @@ TILT = 0.35
 # Spots offered per leaf, so the shown share of the clumps still has more
 # spots than leaves.
 SPOTS = 5
-# Where a leaf's stalk sits, as a share of the way out to the clump's surface.
-STALK = 0.9
+# How deep a leaf's stalk sits under the surface it grows from, in its
+# lengths: its tip stands proud of it, so the outermost leaves fill the crown.
+STALK = 0.2
 # The core under a clump's leaves, in the clump's radii, and how dark it is.
 CORE = 0.85
 CORE_SHADE = 0.45
-# A leaf's widest point, as a share of its length from the stalk, and how far
-# its two halves fold down from the midrib, in its widths.
-WIDEST = 0.5
-FOLD = 0.18
 # A leaf's shade at the stalk against its tip.
 STALK_SHADE = 0.62
 # Seeded step of each leaf's brightness, and of its yellow.
@@ -151,7 +148,7 @@ def clump_spots(tier, sites, centres):
             surface = centres[i] + offset
             looks = [(normal + UP * lift).normalized() for lift in LOOKS]
             shown = sum(not blocked(surface, look, others) for look in looks) / len(looks)
-            out.append((centres[i] + offset * STALK, normal, up, area / n, shown * (0.5 + 0.5 * up)))
+            out.append((centres[i] + offset, normal, up, area / n, shown * (0.5 + 0.5 * up)))
     return out
 
 
@@ -173,36 +170,34 @@ def leaf_frame(rng, out, shape):
 
 def grow_leaves(bm, shade, spots, count, shape, clamp, light):
     """About `count` leaves into `bm`, their entries into `shade`
-    (`finish_foliage`), over `spots`: each `(stalk, out, up, area, weight)`,
-    where a leaf's stalk would lie, the way out of the mass it grows from,
+    (`finish_foliage`), over `spots`: each `(at, out, up, area, weight)`,
+    where on the surface a leaf grows, the way out of the mass it grows from,
     how high on that mass it stands (0 to 1), the share of the surface it
     stands for and how much a leaf there shows (0 to 1). Leaves fall on
     spots as they show, and are as long as covers the shown surface `COVER`
     times. `light(p, up)` is the crown's normal, occlusion and height at
     `p`."""
     shown = sum(weight for *_, weight in spots)
-    # A diamond's area is half its length by its width.
+    # A leaf's area is half its length by its width.
     length = math.sqrt(COVER * sum(a * w for *_, a, w in spots) / (count * 0.5 * shape["aspect"]))
     rng = random.Random(len(spots) * 7 + count)
-    for stalk, out, up, _, weight in spots:
+    for at, out, up, _, weight in spots:
         if rng.random() >= weight * count / shown:
             continue
         reach, face = leaf_frame(rng, out, shape)
         size = length * rng.uniform(0.75, 1.25)
+        stalk = at - out * (size * STALK)
         width = size * shape["aspect"]
-        side = reach.cross(face)
+        side = reach.cross(face) * (width * 0.5)
         tip = stalk + reach * size
-        mid = stalk + reach * (size * WIDEST) - face * (width * FOLD)
-        corners = [clamp(p) for p in (stalk, mid + side * (width * 0.5), tip, mid - side * (width * 0.5))]
-        leaf = [bm.verts.new(p) for p in corners]
-        # Its face looks along `face`: stalk, left, tip and stalk, tip, right.
-        bm.faces.new((leaf[0], leaf[1], leaf[2]))
-        bm.faces.new((leaf[0], leaf[2], leaf[3]))
+        corners = [clamp(p) for p in (stalk, tip + side, tip - side)]
+        # Its face looks along `face`: stalk, then its tip's left and right.
+        bm.faces.new([bm.verts.new(p) for p in corners])
         tone = 1.0 + LEAF_JITTER * rng.uniform(-1.0, 1.0)
         yellow = LEAF_YELLOW * rng.uniform(-0.3, 1.0)
         for k, p in enumerate(corners):
             normal, ao, h = light(p, up)
-            along = STALK_SHADE if k == 0 else (1.0 if k == 2 else 0.85)
+            along = STALK_SHADE if k == 0 else 1.0
             r, g, b, a = leaf_colour(ao * tone * along, h)
             # A leaf's normal: the crown's mass, turned toward its own face.
             shade.append(((normal * 0.6 + face * 0.4).normalized(), 0.0, (r * (1.0 + yellow), g * (1.0 + 0.5 * yellow), b, a)))

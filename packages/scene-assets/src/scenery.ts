@@ -152,7 +152,7 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   tree: {
     states: ["summer"],
     footprint: { kind: "tree" },
-    tier_triangles: [24000, 6500, 1500, 96],
+    tier_triangles: [20500, 5800, 1800, 96],
     size: { top_m: 11, bole_radius_m: 0.4, breast_m: 1.3, within: 0.05 },
   },
   hedgerow: { states: ["summer"], footprint: { kind: "none" } },

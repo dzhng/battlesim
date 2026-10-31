@@ -4,31 +4,77 @@
 fn scenerySurface(world: vec3f, normal: vec3f, color: vec4f, local: vec3f, sunlight: f32) -> vec3f {
   let eye = (&cam.eye);
   var n = normalize(normal);
-  var clumpShade = 1f;
+  var leafShade = 1f;
   var roughness = 0.8999999761581421f;
-  let fade = (1f - smoothstep(0.08f, 0.45f, length(fwidth(world))));
-  if (((color.w > 0.5f) && (fade > 0f))) {
-    let clumps = leafClumps(local, n, fade);
-    n = clumps.xyz;
-    clumpShade = clumps.w;
+  let footprint = length(fwidth(world));
+  if (((color.w > 0.5f) && (footprint < LEAF_FADE_M.y))) {
+    let leaves = leafCells(local, n, footprint);
+    n = leaves.xyz;
+    leafShade = leaves.w;
     roughness = 0.85f;
   }
-  let lit = shade((color.xyz * clumpShade), vec3f(), roughness, 0f, 0f, 1f, n, world, sunlight, (*eye));
+  let lit = shade((color.xyz * leafShade), vec3f(), roughness, 0f, 0f, 1f, n, world, sunlight, (*eye));
   return lit.xyz;
 }
 
-// @block scenery_leafClumps
-fn leafClumps(p: vec3f, n: vec3f, fade: f32) -> vec4f {
-  let q = p * 2.1;
-  let bend = vec3f(
-    valueNoise3(q),
-    valueNoise3(q + vec3f(17.3, 5.1, 9.7)),
-    valueNoise3(q + vec3f(3.7, 29.3, 13.1)),
-  ) - vec3f(0.5);
-  let bent = normalize(n + bend * (0.7 * fade));
-  let gap = valueNoise3(p * 3.4 + vec3f(7.0, 1.0, 3.0));
-  let shade = mix(1.0, 0.72 + 0.4 * gap, fade);
-  return vec4f(bent, shade);
+// @block scenery_leafCells
+// Leaves finer than a crown's triangles, painted on them: the cells of a
+// jittered lattice in the tree's own space, each a leaf with its own tilt and
+// tone and a shade where it meets the next. A cell is a few pixels across:
+// LEAF_CELL_M near, doubling with distance into the clumps a far crown reads
+// as (blended into the next size over the last LEAF_BLEND of each, so none
+// pops), and gone where even those shrink to a pixel's footprint
+// (LEAF_FADE_M, of `fwidth`'s length).
+const LEAF_CELL_M = 0.08;
+const LEAF_CELL_PX = 3.0;
+const LEAF_FADE_M = vec2f(0.3, 0.45);
+const LEAF_TILT = 0.5;
+const LEAF_TONE = 0.2;
+const LEAF_RIM = 0.25;
+const LEAF_RIM_SHADE = 0.7;
+const LEAF_JITTER = 0.8;
+const LEAF_BLEND = 0.3;
+
+// A cell's leaf: its tilt and its shade at `q`, in cells, `soft` the cells a
+// pixel spans. Only the eight cells round `q` are searched, so a leaf's
+// centre strays at most LEAF_JITTER from its cell's.
+fn leafCell(q: vec3f, soft: f32) -> vec4f {
+  let base = floor(q - vec3f(0.5));
+  var near = 8.0;
+  var next = 8.0;
+  var id = 0u;
+  for (var k = 0u; k < 8u; k++) {
+    let c = base + vec3f(f32(k & 1u), f32((k >> 1u) & 1u), f32(k >> 2u));
+    let i = bitcast<vec3u>(vec3i(c));
+    let h = pcgHash((i.x * 1597334677u) ^ (i.y * 3812015801u) ^ (i.z * 2798796415u));
+    let stray = vec3f(f32(h & 1023u), f32((h >> 10u) & 1023u), f32((h >> 20u) & 1023u)) / 1023.0 - vec3f(0.5);
+    let d = length(c + vec3f(0.5) + stray * LEAF_JITTER - q);
+    if (d < near) {
+      next = near;
+      near = d;
+      id = h;
+    } else if (d < next) {
+      next = d;
+    }
+  }
+  let g = pcgHash(id);
+  let tilt = vec3f(f32(g & 1023u), f32((g >> 10u) & 1023u), f32((g >> 20u) & 1023u)) / 511.5 - vec3f(1.0);
+  let tone = 1.0 + LEAF_TONE * (f32((g * 747796405u) >> 22u) / 511.5 - 1.0);
+  let rim = mix(LEAF_RIM_SHADE, 1.0, smoothstep(0.0, LEAF_RIM + soft, next - near));
+  return vec4f(tilt, tone * rim);
+}
+
+fn leafCells(p: vec3f, n: vec3f, footprint: f32) -> vec4f {
+  let size = max(footprint * LEAF_CELL_PX, LEAF_CELL_M);
+  let octave = log2(size / LEAF_CELL_M);
+  let fine = LEAF_CELL_M * exp2(floor(octave));
+  var cell = leafCell(p / fine, footprint / fine);
+  let blend = smoothstep(1.0 - LEAF_BLEND, 1.0, fract(octave));
+  if (blend > 0.0) {
+    cell = mix(cell, leafCell(p / (fine * 2.0), footprint / (fine * 2.0)), blend);
+  }
+  let fade = 1.0 - smoothstep(LEAF_FADE_M.x, LEAF_FADE_M.y, footprint);
+  return vec4f(normalize(n + cell.xyz * (LEAF_TILT * fade)), mix(1.0, cell.w, fade));
 }
 
 // @block scenery_sway

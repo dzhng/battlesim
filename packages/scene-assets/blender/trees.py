@@ -55,7 +55,7 @@ import bpy
 from mathutils import Matrix, Vector, noise
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from tree_leaves import CORE, CORE_SHADE, PAD_LIGHT, SPOTS, STALK, build_foliage, clump_points, finish_foliage, grow_leaves, leaf_colour
+from tree_leaves import CORE, CORE_SHADE, PAD_LIGHT, SPOTS, build_foliage, clump_points, finish_foliage, grow_leaves, leaf_colour
 from tree_skeleton import UP, build_branches, droop, finish, grow, smoothstep, spiral
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
@@ -72,11 +72,11 @@ OUT = os.path.abspath(ARGS[0]) if ARGS else os.path.join(ROOT, "assets", "source
 # triangle budget is the validator's (`SCENERY_KINDS.tree`): a new kind fits
 # it by its count of clumps and leaves.
 TIERS = [
-    dict(subdiv=5, relief=1.0, clump=1, core=CORE, leaves=10000, sides=16, twig=0.0),
-    dict(subdiv=4, relief=0.7, clump=1, core=CORE, leaves=2500, sides=8, twig=0.07),
+    dict(subdiv=5, relief=1.0, clump=1, core=CORE, leaves=18000, sides=16, twig=0.0),
+    dict(subdiv=4, relief=0.7, clump=1, core=CORE, leaves=4500, sides=8, twig=0.07),
     # A few large leaves keep a crown's outline ragged from afar. This tier
     # casts the leafy tier's shadow, so its leaves lie where that tier's do.
-    dict(subdiv=3, relief=0.0, clump=1, core=CORE, leaves=400, sides=5),
+    dict(subdiv=3, relief=0.0, clump=1, core=CORE, leaves=1200, sides=5),
     dict(subdiv=2, relief=0.0, clump=0, sides=3),
 ]
 # A hedge's tiers: its lobed volume, a core under leaves where it has them,
@@ -84,9 +84,9 @@ TIERS = [
 # it casts for. A hedge is short, so it takes its coarser tiers nearer than a
 # tree: the play camera sees its third.
 HEDGE_TIERS = [
-    dict(subdiv=3, relief=1.0, core=CORE, leaves=3000),
-    dict(subdiv=2, relief=0.7, core=CORE, leaves=1500),
-    dict(subdiv=2, relief=0.0, core=CORE, leaves=600),
+    dict(subdiv=3, relief=1.0, core=CORE, leaves=6000),
+    dict(subdiv=2, relief=0.7, core=CORE, leaves=3000),
+    dict(subdiv=2, relief=0.0, core=CORE, leaves=1200),
     dict(subdiv=1, relief=0.0, core=0.92),
 ]
 # The crown and clump surfaces a tree is sized by: its finest shapes,
@@ -293,9 +293,9 @@ def build_crown(kind, lobes, tier, lift):
         for k in range(n):
             d = spiral(k, n, 1.0, -1.0, kind["seed"] * 0.61)
             p, out, _ = crown_point(kind, lobes, d, tier["relief"])
-            stalk = ground(p * STALK + lifted)
+            at = ground(p + lifted)
             up = 0.5 + 0.5 * d.z
-            spots.append((stalk, out, up, surface / n, (0.5 + 0.5 * up) * smoothstep(0.05, 0.3, stalk.z)))
+            spots.append((at, out, up, surface / n, (0.5 + 0.5 * up) * smoothstep(0.05, 0.3, at.z)))
         grow_leaves(bm, shade, spots, count, kind.get("leaf", LEAF), ground, light)
     return finish_foliage(bm, shade)
 
