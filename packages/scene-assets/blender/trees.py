@@ -8,12 +8,12 @@ those named.
 A tree is a branch skeleton carrying leaf clumps, so a crown is separate
 masses on its limbs with crevices between them, not one smooth volume. The
 skeleton is grown to its clumps ([`tree_skeleton.py`](tree_skeleton.py)); the
-two nearer tiers shingle each clump with single leaves
-([`tree_leaves.py`](tree_leaves.py)), so a crown up close is leaves, not a
-skin. The three nearer tiers stand on the same clumps, each coarser than the
-last, because a tree's shadow is cast by the tier below the one drawn: a
-caster of another shape shadows the crown it stands for, so the solid clumps
-stand inside the leaves they cast for. Branches thin out with the tiers, down
+three nearer tiers shingle each clump with single leaves
+([`tree_leaves.py`](tree_leaves.py)), fewer and larger on each, so a crown up
+close is leaves, not a skin. Those tiers stand on the same clumps, each
+coarser than the last, because a tree's shadow is cast by the tier below the
+one drawn: a caster of another shape shadows the crown it stands for, so the
+solid clumps stand inside the leaves they cast for. Branches thin out with the tiers, down
 to the trunk alone, which every tier draws.
 
 A lobed volume is a core sphere unioned with lobe spheres, taking along every

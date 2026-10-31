@@ -144,11 +144,11 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   // the next biome spec). A tree also stands inside the forests' canopy
   // (`fit.canopy`); hedgerows stand past the map, and under the trees of a
   // tree line, a strip of forest sight does not cross. A tree's tiers are
-  // the forest's frame cost: the nearer two carry its single leaves, and the
-  // budget is what the paired forest cost (`TREE_COST=1` on the ground
-  // scene) measured to fit. Its size is the common
-  // broadleaf's: placement scales it to the forest rule's canopy, where its
-  // bole comes out near the simulation's trunk.
+  // the forest's frame cost: the nearer three carry its single leaves, and
+  // the budget is what the paired forest cost (`TREE_COST=1` on the ground
+  // scene) measured to fit. Its size is the common broadleaf's: placement
+  // scales it to the forest rule's canopy, where its bole comes out near the
+  // simulation's trunk.
   tree: {
     states: ["summer"],
     footprint: { kind: "tree" },

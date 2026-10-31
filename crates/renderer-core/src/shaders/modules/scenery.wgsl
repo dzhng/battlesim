@@ -33,7 +33,7 @@ const LEAF_TILT = 0.5;
 const LEAF_TONE = 0.2;
 const LEAF_RIM = 0.25;
 const LEAF_RIM_SHADE = 0.7;
-const LEAF_JITTER = 0.8;
+const LEAF_STRAY = 0.8;
 const LEAF_BLEND = 0.3;
 const LEAF_ROUND = 0.6;
 const LEAF_DOME = 0.6;
@@ -41,7 +41,7 @@ const LEAF_GAP_SHADE = 0.7;
 
 // A cell's leaf: its tilt and its shade at `q`, in cells, `soft` the cells a
 // pixel spans. Only the eight cells round `q` are searched, so a leaf's
-// centre strays at most LEAF_JITTER from its cell's.
+// centre strays at most LEAF_STRAY from its cell's.
 fn leafCell(q: vec3f, soft: f32) -> vec4f {
   let base = floor(q - vec3f(0.5));
   var near = 8.0;
@@ -53,7 +53,7 @@ fn leafCell(q: vec3f, soft: f32) -> vec4f {
     let i = bitcast<vec3u>(vec3i(c));
     let h = pcgHash((i.x * 1597334677u) ^ (i.y * 3812015801u) ^ (i.z * 2798796415u));
     let stray = vec3f(f32(h & 1023u), f32((h >> 10u) & 1023u), f32((h >> 20u) & 1023u)) / 1023.0 - vec3f(0.5);
-    let centre = c + vec3f(0.5) + stray * LEAF_JITTER;
+    let centre = c + vec3f(0.5) + stray * LEAF_STRAY;
     let d = length(centre - q);
     if (d < near) {
       next = near;
