@@ -108,6 +108,9 @@ BARK = (0.070, 0.052, 0.036, 1.0)
 # flatter beneath.
 PAD = (0.7, 0.5)
 
+# An outer clump's radius, in the kind's `clump_m`: small enough against
+# their spacing that the crown shows the shade between its clumps.
+SHELL = (0.75, 1.15)
 # How far past the seeded crown a clump is set, in clump radii. What passes
 # the tree's size is brought back to it, so the widest and highest clumps
 # reach it exactly.
@@ -171,7 +174,7 @@ KINDS = {
     # A standing snag: a dead tree's grey skeleton.
     "tree_snag": dict(
         seed=79, height=10.7, crown_base=3.2, radius=3.4, half_height=3.8,
-        lobes=7, trunk=0.26, clump_m=1.1, clumps=8, inner=0, limbs=7, droop=0.3,
+        lobes=7, trunk=0.275, clump_m=1.1, clumps=8, inner=0, limbs=7, droop=0.3,
         bare=True, bark=(0.13, 0.115, 0.1, 1.0),
     ),
     # A hedgerow shrub: a 6 m run of hedge, 2.4 m wide and 2.8 m tall, set end
@@ -324,7 +327,7 @@ def clump_sites(kind, lobes):
             radius = kind["clump_m"] * rng.uniform(1.3, 1.6)
             centre = surface * rng.uniform(0.3, 0.5)
         else:
-            radius = kind["clump_m"] * rng.uniform(1.0, 1.5)
+            radius = kind["clump_m"] * rng.uniform(*SHELL)
             centre = surface - n * radius * (1.0 - kind.get("proud", PROUD))
         out.append(
             dict(
