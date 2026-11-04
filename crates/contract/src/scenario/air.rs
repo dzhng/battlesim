@@ -69,9 +69,6 @@ pub struct FixedWingFlight {
     /// Seconds a winged aircraft takes to roll from wings level into its
     /// full-rate turn, or out of it: its turn rate never steps.
     pub roll_in_s: f64,
-    /// Seconds a jet holds its run's heading, wings level, after its
-    /// weapon's release before it breaks away to line up again.
-    pub egress_s: f64,
 }
 
 impl AirRules {
@@ -100,14 +97,13 @@ impl AirRules {
             && wing.edge_margin_m >= 0.0
             && wing.nose_on_deg > 0.0
             && wing.nose_on_deg < 180.0
-            && wing.roll_in_s > 0.0
-            && wing.egress_s >= 0.0;
+            && wing.roll_in_s > 0.0;
         let ok = rotor_ok && wing_ok && self.separation_m > 0.0;
         if ok {
             Ok(())
         } else {
             Err(
-                "air: low-air cruise must be positive and within the rotor ceiling; the high-air floor must not exceed the fixed-wing ceilings, those ceilings must not exceed high-air cruise, the dogfight band must be ordered from the floor up, and air timings/margins must be positive (an egress may be none), afterburner scatter at least 1, and the nose-on cone within (0, 180) degrees"
+                "air: low-air cruise must be positive and within the rotor ceiling; the high-air floor must not exceed the fixed-wing ceilings, those ceilings must not exceed high-air cruise, the dogfight band must be ordered from the floor up, and air timings/margins must be positive, afterburner scatter at least 1, and the nose-on cone within (0, 180) degrees"
                     .into(),
             )
         }

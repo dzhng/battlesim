@@ -533,8 +533,7 @@
       "afterburner_scatter_multiplier": 1.8,
       "edge_margin_m": 300,
       "nose_on_deg": 2,
-      "roll_in_s": 0.8,
-      "egress_s": 1.2
+      "roll_in_s": 1.5
     },
     "separation_m": 14
   },

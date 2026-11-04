@@ -54,10 +54,6 @@ pub enum PassPhase {
     /// until it reaches its release point (a bomb's drop, or the aim itself:
     /// the gun has passed it) or the edge guard turns it away.
     Dive,
-    /// Off the run: holding its heading wings level for its egress after
-    /// the release, unless the edge guard turns it away first, before it
-    /// lines up again.
-    Egress,
 }
 
 /// A jet's attack on one target with one pass weapon: the runs it makes
@@ -75,11 +71,8 @@ pub struct PassPlan {
     /// The seeded height the runs are flown at, in metres above ground.
     pub agl: f64,
     /// The bearing of the line flown through the aim: away from it lining
-    /// up, toward it turning in, and in a run and its egress the one it
-    /// committed along.
+    /// up, toward it turning in, and in a run the one it committed along.
     pub heading: f64,
-    /// Seconds of its egress still to hold.
-    pub egress_s: f64,
 }
 
 /// Limited ground stores take a run before the unlimited fixed gun.
@@ -127,7 +120,6 @@ pub fn begin(
         weapon,
         agl,
         heading,
-        egress_s: 0.0,
     }
 }
 
@@ -244,9 +236,9 @@ fn line_up(
 /// guard, however much run-in is left. The release cue comes on the tick
 /// whose `dt` step carries the jet to its release point, so a bomb leaves
 /// the jet within half a step of it, and the run is over with it: the jet
-/// holds its heading wings level for its egress, then lines up again. A
-/// run the edge guard takes is broken and releases nothing, and the guard
-/// cuts an egress short; either way the jet is lining up again.
+/// lines up again at once, rolling into its break from wings level. A run
+/// the edge guard takes is broken and releases nothing; it lines up again
+/// too.
 pub fn advance(
     plan: &mut PassPlan,
     state: &FixedWingState,
@@ -258,13 +250,6 @@ pub fn advance(
 ) -> (Intent, bool) {
     let speed = state.speed_mps.max(1.0);
     let guarded = edge_guarded(state, limits, bounds, dt);
-    if plan.phase == PassPhase::Egress {
-        plan.egress_s -= dt;
-        if plan.egress_s > 0.0 && !guarded {
-            return (line(plan), false);
-        }
-        plan.phase = PassPhase::LineUp;
-    }
     if plan.phase != PassPhase::Dive {
         let to_aim = aim.xy() - state.pos.xy();
         let distance = to_aim.length();
@@ -293,8 +278,7 @@ pub fn advance(
     let short = (release.at - state.pos.xy()).dot(forward);
     let cue = short - step <= step * 0.5;
     if cue {
-        plan.phase = PassPhase::Egress;
-        plan.egress_s = limits.egress_s;
+        plan.phase = PassPhase::LineUp;
     }
     (intent, cue)
 }

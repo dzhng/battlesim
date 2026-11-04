@@ -51,8 +51,7 @@ impl Unit {
                         .u64(p.phase as u64)
                         .u64(p.weapon as u64)
                         .f64(p.agl)
-                        .f64(p.heading)
-                        .f64(p.egress_s);
+                        .f64(p.heading);
                 }
                 None => {
                     d.u64(0);

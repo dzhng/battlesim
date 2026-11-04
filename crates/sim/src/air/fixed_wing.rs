@@ -31,8 +31,6 @@ pub struct FixedWingLimits {
     pub cruise_agl_m: f64,
     /// The nose-on cone either side of its heading (`nose_on_deg`).
     pub nose_on_rad: f64,
-    /// Seconds it holds its heading after an attack run's release.
-    pub egress_s: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

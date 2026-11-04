@@ -12,6 +12,7 @@ use sim::fixtures::{self, test_rules};
 const RUN_CRUISE_KMH: f64 = 540.0;
 const RUN_TURN_DEG_S: f64 = 60.0;
 const RUN_EDGE_MARGIN_M: f64 = 300.0;
+const RUN_ROLL_IN_S: f64 = 0.8;
 const RUN_BOMB_CEILING_M: f64 = 200.0;
 const RUN_STRAFE_CEILING_M: f64 = 130.0;
 const RUN_GRAVITY_MPS2: f64 = 9.81;
@@ -51,6 +52,7 @@ fn run_bounds() -> RunBounds {
 pub(crate) fn run_rules(weapons: &[&str]) -> serde_json::Value {
     let mut rules = test_rules();
     rules["air"]["fixed_wing"]["edge_margin_m"] = json!(RUN_EDGE_MARGIN_M);
+    rules["air"]["fixed_wing"]["roll_in_s"] = json!(RUN_ROLL_IN_S);
     rules["air"]["fixed_wing"]["bomb_ceiling_m"] = json!(RUN_BOMB_CEILING_M);
     rules["air"]["fixed_wing"]["strafe_ceiling_m"] = json!(RUN_STRAFE_CEILING_M);
     rules["physics"]["gravity_mps2"] = json!(RUN_GRAVITY_MPS2);
@@ -661,12 +663,13 @@ fn trail_strafe(behind_m: f64) -> sim::battle::Battle {
     battle
 }
 
-/// A bombing run as a viewer sees it: the jet holds its heading wings level
-/// for its egress after the bomb leaves, then rolls into its break. Its
-/// turn rate never steps or passes its full rate, and the bomb, released on
-/// a straight run, still falls onto the aim.
+/// A bombing run as a viewer sees it: the jet releases wings level on its
+/// straight run and begins rolling into its break at once, building its
+/// turn from nothing rather than snapping to it. Its turn rate never steps
+/// or passes its full rate, and the bomb, released on a straight run, still
+/// falls onto the aim.
 #[test]
-fn a_bomb_run_holds_its_heading_after_release_then_rolls_into_its_break() {
+fn a_bomb_run_rolls_into_its_break_from_the_release() {
     let aim = [2000.0, 2000.0];
     let mut rules = run_rules(&["air_bomb"]);
     rules["weapons"]["air_bomb"]["targets"]["ground"]["scatter_mrad"] = json!(0.0);
@@ -684,8 +687,10 @@ fn a_bomb_run_holds_its_heading_after_release_then_rolls_into_its_break() {
     let wing = battle.rules().air.fixed_wing;
     let dt = 1.0 / f64::from(battle.rules().tick_hz);
     let roll = flight.turn_rad_s / wing.roll_in_s * dt;
+    let level = flight.turn_rad_s * 0.01;
     let (mut yaw, mut rate) = (battle.unit(UnitId(0)).unwrap().yaw, 0.0);
-    let (mut released, mut bomb, mut landed, mut broke) = (None, None, None, false);
+    let (mut released, mut bomb, mut landed) = (None, None, None);
+    let (mut rolling, mut broke) = (None, None);
     for tick in 1..=(RUN_WINDOW_S / dt) as u64 {
         battle.step();
         let now = tick as f64 * dt;
@@ -706,16 +711,16 @@ fn a_bomb_run_holds_its_heading_after_release_then_rolls_into_its_break() {
                 .find(|(_, r)| r.unit == UnitId(0))
                 .map(|(p, _)| p.id);
             released = bomb.map(|_| now);
+            if released.is_some() {
+                assert!(rate.abs() < level, "it released turning at {rate:.3} rad/s");
+            }
         }
         if let Some(since) = released.map(|at| now - at) {
-            // Its egress runs out on the tick that ends it.
-            if since < wing.egress_s - dt / 2.0 {
-                assert!(
-                    rate.abs() < flight.turn_rad_s * 0.01,
-                    "{since:.2}s after the release it turns at {rate:.3} rad/s"
-                );
-            } else {
-                broke |= rate.abs() >= flight.turn_rad_s * 0.99;
+            if rolling.is_none() && rate.abs() >= level {
+                rolling = Some(since);
+            }
+            if broke.is_none() && rate.abs() >= flight.turn_rad_s * 0.99 {
+                broke = Some(since);
             }
         }
         landed = landed.or_else(|| {
@@ -724,14 +729,20 @@ fn a_bomb_run_holds_its_heading_after_release_then_rolls_into_its_break() {
                 _ => None,
             })
         });
-        if broke && landed.is_some() {
+        if broke.is_some() && landed.is_some() {
             break;
         }
     }
     released.expect("the jet never released its bomb");
+    let rolling = rolling.expect("the jet never rolled into its break");
     assert!(
-        broke,
-        "the jet never rolled into its break after the egress"
+        rolling <= 2.0 * dt + 1e-9,
+        "it flew on straight for {rolling:.2}s after the release"
+    );
+    let broke = broke.expect("the jet never reached its full turn rate");
+    assert!(
+        broke >= wing.roll_in_s * 0.9,
+        "it reached its full turn rate {broke:.2}s after the release, under its roll-in"
     );
     let miss =
         (landed.expect("the bomb never landed").xy() - sim::math::v2(aim[0], aim[1])).length();

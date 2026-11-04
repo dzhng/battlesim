@@ -106,7 +106,6 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         edge_margin_m: ctx.rules.air.fixed_wing.edge_margin_m,
         cruise_agl_m: flight.cruise_agl_m,
         nose_on_rad: ctx.rules.air.fixed_wing.nose_on_deg.to_radians(),
-        egress_s: ctx.rules.air.fixed_wing.egress_s,
     };
     let bounds = Bounds::new(v2(0.0, 0.0), v2(ctx.world.width(), ctx.world.depth()));
     let mut pass_release_now = false;
@@ -193,11 +192,8 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                 let chosen =
                     pass::choose_weapon(&weapons.iter().map(|(w, _)| *w).collect::<Vec<_>>());
                 if let Some(weapon) = chosen {
-                    // A new weapon waits for the egress to end.
-                    let restart = pass_before.is_none_or(|p| {
-                        p.target != target
-                            || (p.weapon != weapon && p.phase != pass::PassPhase::Egress)
-                    });
+                    let restart =
+                        pass_before.is_none_or(|p| p.weapon != weapon || p.target != target);
                     if restart {
                         let mut rng = Rng::new(mix(ctx.seed ^ u64::from(unit.id.0)));
                         let mut plan = pass::begin(

@@ -1,6 +1,6 @@
 use crate::attack_runs::{attack_ground, run_field, run_rules, RUN_START, RUN_WINDOW_S};
 use crate::common;
-use crate::common::air_field::wing_limits;
+use crate::common::air_field::{narrow_field_rules, wing_limits, NARROW_FIELD_ROLL_IN_S};
 use crate::common::Seat;
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
@@ -78,14 +78,8 @@ fn ground_attack_battle_with(
     battle
 }
 
-/// The edge margin for the narrow fields of the order and reaction tests,
-/// where a jet's turn circles would not fit inside the shipped margin.
-const NARROW_FIELD_MARGIN_M: f64 = 50.0;
-
 fn air_battle() -> sim::battle::Battle {
-    let mut rules = test_rules();
-    // A narrow field: the edge guard, not this test's subject, keeps out of it.
-    rules["air"]["fixed_wing"]["edge_margin_m"] = json!(NARROW_FIELD_MARGIN_M);
+    let mut rules = narrow_field_rules();
     fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -816,9 +810,7 @@ fn attack_move_battle_with_hp(target_hp: f64) -> sim::battle::Battle {
 }
 
 fn attack_move_battle_with_hp_and_fire(target_hp: f64, fire: bool) -> sim::battle::Battle {
-    let mut rules = test_rules();
-    // A narrow field: the edge guard, not this test's subject, keeps out of it.
-    rules["air"]["fixed_wing"]["edge_margin_m"] = json!(NARROW_FIELD_MARGIN_M);
+    let mut rules = narrow_field_rules();
     if fire {
         rules["sensors"]["contact_lifetime_s"] = json!(100.0);
     }
@@ -851,9 +843,7 @@ fn attack_move_battle_with_hp_and_fire(target_hp: f64, fire: bool) -> sim::battl
 }
 
 fn holding_ground_battle(engagement: &str, fire_event: bool) -> sim::battle::Battle {
-    let mut rules = test_rules();
-    // A narrow field: the edge guard, not this test's subject, keeps out of it.
-    rules["air"]["fixed_wing"]["edge_margin_m"] = json!(NARROW_FIELD_MARGIN_M);
+    let mut rules = narrow_field_rules();
     fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -1269,6 +1259,9 @@ fn a_tank_on_high_ground_gets_attack_runs_not_a_dogfight() {
 #[test]
 fn a_bomb_carrier_strafes_a_helicopter_attacker_above_it() {
     let mut rules = test_rules();
+    // A narrow field: the jet's roll-in, not this test's subject, is kept
+    // out of the way.
+    rules["air"]["fixed_wing"]["roll_in_s"] = json!(NARROW_FIELD_ROLL_IN_S);
     let mount = |id: &str, weapon: &str| {
         json!({ "id": id, "name": "Test Mount", "weapons": [weapon], "turret": false,
             "pivot_m": [0, 0, 1.2], "muzzle_m": [7, 0, 0] })

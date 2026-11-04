@@ -110,7 +110,6 @@ fn upgrading_a_jets_move_breaks_off_its_run() {
         weapon: crate::air::pass::PassWeapon::Gun,
         agl: 120.0,
         heading: 0.0,
-        egress_s: 0.0,
     });
     air.pass_release = true;
     air.dogfight_target = Some(UnitId(1));
