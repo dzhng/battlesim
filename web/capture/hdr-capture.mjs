@@ -13,7 +13,13 @@ import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { REPO_ROOT } from "./args.mjs";
-import { hdrEncodeArgs, hdrProbeArgs, hlgTagErrors } from "./hdr.mjs";
+import {
+  blankFrameError,
+  hdrEncodeArgs,
+  hdrProbeArgs,
+  hlgTagErrors,
+  lumaStatsArgs,
+} from "./hdr.mjs";
 
 const NATIVE_CLIENT = join(REPO_ROOT, "target/release/native-client");
 const USAGE = `usage: bun run --cwd web hdr-capture <run-dir> <scene> [flags]
@@ -97,9 +103,16 @@ function main() {
   ]);
   const count = readdirSync(frames).filter((f) => f.endsWith(".png")).length;
   if (count === 0) throw new Error(`the native client wrote no frames to ${frames}`);
+  // A clip opening on the renderer's empty clear colour is refused, not encoded.
+  const first = join(frames, "frame-000000.png");
+  const blank = blankFrameError(
+    first,
+    execFileSync("ffmpeg", lumaStatsArgs(first), { encoding: "utf8" }),
+  );
+  if (blank) throw new Error(blank);
   const size = ["-v", "error", "-show_entries", "stream=width,height", "-of", "json"];
   const { width, height } = JSON.parse(
-    execFileSync("ffprobe", [...size, join(frames, "frame-000000.png")], { encoding: "utf8" }),
+    execFileSync("ffprobe", [...size, first], { encoding: "utf8" }),
   ).streams[0];
 
   console.log(`Encoding ${count} frames at ${width}x${height}...`);

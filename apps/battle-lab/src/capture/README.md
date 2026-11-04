@@ -203,7 +203,9 @@ at a fixed frame rate, with the replay's own sound
 ([native client](../../../../native/client/README.md)). The script
 ([`web/capture/hdr-capture.mjs`](../../../../web/capture/hdr-capture.mjs)) owns
 its flags. Clip frames are on the reel's clock, not the wall's, so a slow
-machine is slower to finish, never choppier.
+machine is slower to finish, never choppier, and the battle in them is on it
+too: units move at even steps with the camera rather than at the jittery times
+the page drew them.
 
 **The look is encoded once, in the renderer.** A runtime built with
 `hdr_output` sends its look to a half-float target instead of the display: the
@@ -212,8 +214,9 @@ fires, sun glints) rolled up past white toward the HLG peak and desaturated
 toward white as AgX does. The shader then applies the BT.2100 HLG encoding
 (reference white at 203 nits, signal 0.75; a 1000-nit peak at 1.0) in BT.2020
 primaries. The fog rim is drawn over it in the same signal. ffmpeg only
-converts the frames to 10-bit BT.2020 YUV and tags the stream, and the script
-refuses a stream whose tags say otherwise
+converts the frames to 10-bit BT.2020 YUV and tags the stream. The script
+refuses a first frame of one flat colour (nothing drawn) before encoding, and a
+stream whose tags say otherwise after
 ([`web/capture/hdr.mjs`](../../../../web/capture/hdr.mjs)).
 
 HLG rather than PQ: an SDR screen shows an HLG stream acceptably without

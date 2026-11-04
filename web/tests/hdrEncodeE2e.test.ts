@@ -9,20 +9,30 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vitest";
-import { hdrEncodeArgs, hdrProbeArgs, hlgTagErrors } from "../capture/hdr.mjs";
+import {
+  blankFrameError,
+  hdrEncodeArgs,
+  hdrProbeArgs,
+  hlgTagErrors,
+  lumaStatsArgs,
+} from "../capture/hdr.mjs";
 
 const ffmpeg = (args: string[]) => execFileSync("ffmpeg", ["-v", "error", "-y", ...args]);
 const SIZE = 64;
 
-/** A flat 16-bit RGB PNG whose channels hold the HLG signal `rgb`. */
-function frame(dir: string, index: number, rgb: number[]) {
+/** A 16-bit RGB PNG whose channels hold the HLG signal `rgb`, its lower half
+ * `below` when given; answers its path. */
+function frame(dir: string, index: number, rgb: number[], below = rgb) {
   const raw = Buffer.alloc(SIZE * SIZE * 6);
-  for (let i = 0; i < raw.length; i += 2)
-    raw.writeUInt16BE(Math.round(rgb[(i / 2) % 3] * 65535), i);
+  for (let i = 0; i < raw.length; i += 2) {
+    const colour = i < raw.length / 2 ? rgb : below;
+    raw.writeUInt16BE(Math.round(colour[(i / 2) % 3] * 65535), i);
+  }
   const rawFile = join(dir, `frame-${index}.rgb`);
   writeFileSync(rawFile, raw);
   const png = join(dir, `frame-${String(index).padStart(6, "0")}.png`);
   ffmpeg(["-f", "rawvideo", "-pix_fmt", "rgb48be", "-s", `${SIZE}x${SIZE}`, "-i", rawFile, png]);
+  return png;
 }
 
 test("frames of an HLG signal encode to a tagged HLG stream that decodes to that signal", () => {
@@ -67,6 +77,18 @@ test("frames of an HLG signal encode to a tagged HLG stream that decodes to that
     // Luma is the BT.2020 weighting of the signal, in 10-bit limited range.
     const expected = frames.map(([r, g, b]) => 64 + 876 * (0.2627 * r + 0.678 * g + 0.0593 * b));
     luma.forEach((y, i) => expect(Math.abs(y - expected[i])).toBeLessThan(4));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}, 60_000);
+
+test("a frame of one flat colour is refused as nothing drawn; one with content is not", () => {
+  const dir = mkdtempSync(join(tmpdir(), "hdr-blank-"));
+  try {
+    const verdict = (png: string) =>
+      blankFrameError(png, execFileSync("ffmpeg", lumaStatsArgs(png), { encoding: "utf8" }));
+    expect(verdict(frame(dir, 0, [0.6, 0.58, 0.5]))).toMatch(/flat colour/);
+    expect(verdict(frame(dir, 1, [0.6, 0.58, 0.5], [0.3, 0.35, 0.2]))).toBeNull();
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
