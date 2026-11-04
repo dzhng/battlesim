@@ -1,8 +1,9 @@
 // `bun run --cwd web hdr-capture <run-dir> <scene> [flags]`: an HDR clip of a
 // recorded battle. The release native client replays the run with the HDR
 // look, writing its HLG signal as 16-bit PNG frames at a fixed rate and the battle's
-// sound cut to the same window; ffmpeg encodes them to HLG HEVC (and H.264)
-// and the stream's tags are checked.
+// sound cut to the same window; ffmpeg encodes them to 8-bit HLG H.264, which
+// X's web uploader accepts (or 10-bit HLG HEVC with --hevc), and the stream's
+// tags are checked.
 //
 // <run-dir> is a native parity run (`bun run --cwd web scene --
 // native-parity-capture` writes one under throwaway/native-parity/), the
@@ -22,7 +23,8 @@ const USAGE = `usage: bun run --cwd web hdr-capture <run-dir> <scene> [flags]
   --from-ms=<n>   start of the clip in reel milliseconds (default 0)
   --to-ms=<n>     end of the clip (default: the end of the reel)
   --no-music      leave the music out (for a clip with its own soundtrack)
-  --h264          also write an H.264 High 10 variant
+  --hevc          write 10-bit HEVC Main 10 (<scene>-hdr-hevc.mp4) instead of
+                  8-bit H.264 High; X's web uploader hangs on HEVC
   --keep-frames   keep the frames after encoding
   --output=<dir>  output directory (default throwaway/hdr-capture/)`;
 
@@ -35,7 +37,7 @@ function options(argv) {
       "from-ms": { type: "string" },
       "to-ms": { type: "string" },
       "no-music": { type: "boolean", default: false },
-      h264: { type: "boolean", default: false },
+      hevc: { type: "boolean", default: false },
       "keep-frames": { type: "boolean", default: false },
       output: { type: "string", default: "throwaway/hdr-capture" },
     },
@@ -59,9 +61,9 @@ function run(command, args) {
   if (result.status !== 0) throw new Error(`${command} failed with exit code ${result.status}`);
 }
 
-function checkTags(file) {
+function checkTags(file, hevc) {
   const probe = JSON.parse(execFileSync("ffprobe", hdrProbeArgs(file), { encoding: "utf8" }));
-  const errors = hlgTagErrors(probe);
+  const errors = hlgTagErrors(probe, { hevc });
   if (errors.length > 0) throw new Error(`${file} is not tagged as HLG:\n  ${errors.join("\n  ")}`);
 }
 
@@ -104,14 +106,14 @@ function main() {
 
   console.log(`Encoding ${count} frames at ${width}x${height}...`);
   const outputs = [];
-  for (const hevc of args.h264 ? [true, false] : [true]) {
-    const output = join(args.output, `${args.scene}-hdr${hevc ? "" : "-h264"}.mp4`);
+  for (const hevc of [args.hevc]) {
+    const output = join(args.output, `${args.scene}-hdr${hevc ? "-hevc" : ""}.mp4`);
     const framePattern = join(frames, "frame-%06d.png");
     run(
       "ffmpeg",
       hdrEncodeArgs({ framePattern, audio: sound, output, fps: args.fps, width, height, hevc }),
     );
-    checkTags(output);
+    checkTags(output, hevc);
     outputs.push(output);
   }
   if (!args["keep-frames"]) rmSync(frames, { recursive: true });
