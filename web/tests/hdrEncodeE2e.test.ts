@@ -58,12 +58,12 @@ test("frames of an HLG signal encode to a tagged HLG stream that decodes to that
         fps: 30,
         width: SIZE,
         height: SIZE,
+        hevc: true,
       }),
     );
 
     const probe = JSON.parse(execFileSync("ffprobe", hdrProbeArgs(video), { encoding: "utf8" }));
-    expect(hlgTagErrors(probe)).toEqual([]);
-    expect(probe.streams[0].profile).toBe("Main 10");
+    expect(hlgTagErrors(probe, { hevc: true })).toEqual([]);
 
     const yuv = join(dir, "clip.yuv");
     ffmpeg(["-i", video, "-f", "rawvideo", "-pix_fmt", "yuv420p10le", yuv]);
@@ -89,6 +89,60 @@ test("a frame of one flat colour is refused as nothing drawn; one with content i
       blankFrameError(png, execFileSync("ffmpeg", lumaStatsArgs(png), { encoding: "utf8" }));
     expect(verdict(frame(dir, 0, [0.6, 0.58, 0.5]))).toMatch(/flat colour/);
     expect(verdict(frame(dir, 1, [0.6, 0.58, 0.5], [0.3, 0.35, 0.2]))).toBeNull();
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}, 60_000);
+
+test("the default encode is 8-bit HLG H.264 High that X uploads, with 48 kHz stereo AAC", () => {
+  const dir = mkdtempSync(join(tmpdir(), "hdr-h264-"));
+  try {
+    const rgb = [0.75, 0, 0];
+    frame(dir, 0, rgb);
+    frame(dir, 1, rgb);
+    // Mono sound at another rate: the clip's audio is still 48 kHz stereo AAC.
+    const audio = join(dir, "sound.wav");
+    ffmpeg(["-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100:duration=0.1", audio]);
+    const video = join(dir, "clip.mp4");
+    const framePattern = join(dir, "frame-%06d.png");
+    execFileSync(
+      "ffmpeg",
+      hdrEncodeArgs({ framePattern, audio, output: video, fps: 30, width: SIZE, height: SIZE }),
+    );
+    const probe = (args: string[]) =>
+      JSON.parse(execFileSync("ffprobe", args, { encoding: "utf8" }));
+    const tags = probe(hdrProbeArgs(video));
+    expect(hlgTagErrors(tags)).toEqual([]);
+    expect(tags.streams[0]).toMatchObject({
+      codec_name: "h264",
+      profile: "High",
+      pix_fmt: "yuv420p",
+    });
+    const audioEntries = "stream=codec_name,sample_rate,channels";
+    const sound = probe([
+      "-v",
+      "error",
+      "-select_streams",
+      "a:0",
+      "-show_entries",
+      audioEntries,
+      "-of",
+      "json",
+      video,
+    ]).streams[0];
+    expect(sound).toMatchObject({ codec_name: "aac", sample_rate: "48000", channels: 2 });
+
+    // Refused for the other mode, and when not tagged HLG.
+    expect(hlgTagErrors(tags, { hevc: true })).not.toEqual([]);
+    const hevcTags = {
+      streams: [
+        { ...tags.streams[0], codec_name: "hevc", profile: "Main 10", pix_fmt: "yuv420p10le" },
+      ],
+    };
+    expect(hlgTagErrors(hevcTags, { hevc: true })).toEqual([]);
+    expect(hlgTagErrors(hevcTags)).not.toEqual([]);
+    const sdr = { streams: [{ ...tags.streams[0], color_transfer: "bt709" }] };
+    expect(hlgTagErrors(sdr)).toEqual([expect.stringContaining("color_transfer")]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

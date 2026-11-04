@@ -8,6 +8,6 @@ export function hdrEncodeArgs(options: {
   hevc?: boolean;
 }): string[];
 export function hdrProbeArgs(file: string): string[];
-export function hlgTagErrors(probe: unknown): string[];
+export function hlgTagErrors(probe: unknown, mode?: { hevc?: boolean }): string[];
 export function lumaStatsArgs(file: string): string[];
 export function blankFrameError(file: string, stats: string): string | null;

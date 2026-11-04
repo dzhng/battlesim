@@ -214,10 +214,14 @@ fires, sun glints) rolled up past white toward the HLG peak and desaturated
 toward white as AgX does. The shader then applies the BT.2100 HLG encoding
 (reference white at 203 nits, signal 0.75; a 1000-nit peak at 1.0) in BT.2020
 primaries. The fog rim is drawn over it in the same signal. ffmpeg only
-converts the frames to 10-bit BT.2020 YUV and tags the stream. The script
-refuses a first frame of one flat colour (nothing drawn) before encoding, and a
-stream whose tags say otherwise after
+converts the frames to BT.2020 YUV and tags the stream. The script refuses a
+first frame of one flat colour (nothing drawn) before encoding, and a stream
+whose tags say otherwise after
 ([`web/capture/hdr.mjs`](../../../../web/capture/hdr.mjs)).
+
+The clip is 8-bit H.264 High by default, because X's web uploader hangs on
+HEVC; `--hevc` writes 10-bit HEVC Main 10 instead. Both carry the same BT.2020
+HLG tags.
 
 HLG rather than PQ: an SDR screen shows an HLG stream acceptably without
 tone-mapping metadata, and iPhone and X both recognize it.
