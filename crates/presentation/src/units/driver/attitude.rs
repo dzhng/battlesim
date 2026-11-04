@@ -31,12 +31,17 @@ pub(super) struct Flight {
 }
 
 /// How a winged aircraft follows its published flight path: pitch is the
-/// path angle and roll is the bank needed to turn at its published yaw rate.
+/// path angle, and roll is the bank its full-rate turn needs (the angle that
+/// tilts its lift into that turn, at most `max_deg`) in proportion to the
+/// share of that rate its published yaw turns at now. So the bank builds
+/// with the turn as the jet rolls in, and reaches its cap only at full rate.
+/// A type that states no full rate banks for the rate it turns at.
 fn fixed_wing_attitude(
     f: &mut Flight,
     feel: &TiltFeel,
     (was, was_yaw): (Vec3, f64),
     unit: &FeedUnit,
+    full_rate: Option<f64>,
     dt: f64,
 ) -> Option<(f64, f64)> {
     let TiltFeel {
@@ -58,7 +63,9 @@ fn fixed_wing_attitude(
     let limit = |angle: f64| (gain * angle).clamp(-max, max);
     let target_pitch = limit(libm::atan2(f.path_velocity[2], horizontal));
     let turn_rate = delta_angle(was_yaw, unit.yaw) / dt;
-    let target_roll = limit(-libm::atan2(horizontal * turn_rate, GRAVITY));
+    let full = full_rate.unwrap_or(turn_rate.abs()).max(f64::MIN_POSITIVE);
+    let share = (turn_rate / full).clamp(-1.0, 1.0);
+    let target_roll = -limit(libm::atan2(horizontal * full, GRAVITY)) * share;
     let (old_pitch, old_roll) = f.attitude.unwrap_or_default();
     let pitch = old_pitch + (target_pitch - old_pitch) * k;
     let roll = old_roll + (target_roll - old_roll) * k;
@@ -87,7 +94,7 @@ pub(super) fn aircraft_attitude(
     let flight = ty.flight.unwrap_or(FlightModel::Rotor);
     let feel = feel.flight(flight);
     if flight == FlightModel::FixedWing {
-        return fixed_wing_attitude(f, feel, was, unit, dt);
+        return fixed_wing_attitude(f, feel, was, unit, ty.turn_rad_s, dt);
     }
     let (was, _) = was;
     let k = 1.0 - libm::exp(-dt / feel.smoothing_s);

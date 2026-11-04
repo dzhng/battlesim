@@ -506,6 +506,10 @@ fn unit_types(
                 "airborne": airborne(t),
                 "layer": mobility(t)?.layer(),
                 "flight": mobility(t)?.flight(),
+                "turnRadS": match mobility(t)? {
+                    Mobility::Air { turn_deg_s, .. } => Some(turn_deg_s.to_radians()),
+                    _ => None,
+                },
                 "roles": roles,
                 "mounts": mount_rows,
                 "draws": draws,
