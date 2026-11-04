@@ -77,6 +77,13 @@ pub(crate) fn roll_lag_s(
     short * short / (2.0 * roll_rad_s2(limits, full) * full)
 }
 
+/// The lag of a turn rolled into from wings level (`roll_lag_s`): half its
+/// roll-in, whatever rate it rolls to, as it reaches any rate over its
+/// roll-in.
+pub(crate) fn level_roll_lag_s(limits: &FixedWingLimits) -> f64 {
+    limits.roll_in_s * 0.5
+}
+
 fn orbit_turn(state: &FixedWingState, limits: &FixedWingLimits, centre: V2) -> f64 {
     let radius = turn_radius(state, limits);
     let offset = state.pos.xy() - centre;
@@ -100,10 +107,10 @@ fn orbit_turn(state: &FixedWingState, limits: &FixedWingLimits, centre: V2) -> f
     };
     // The way round the circle, bent toward it by how far off it the jet
     // is: straight at the centre from two radii out, straight out of it
-    // from the middle. It holds the full rate inside and on the circle,
+    // from the middle. It holds its turn rate inside and on the circle,
     // none from two radii out, and rolls out its error over a roll-in's
     // swing, so it flies straight at a far goal, rolls onto the circle and
-    // stays there, where the full rate gives the authored radius exactly
+    // stays there, where its turn rate gives the authored radius exactly
     // (speed / turn rate).
     let off = ((distance - radius) / radius).clamp(-1.0, 1.0);
     let wanted = radial + sign * core::f64::consts::FRAC_PI_2 * (1.0 + off);
@@ -132,9 +139,9 @@ pub fn inward_from(point: V2, reach: f64, bounds: &Bounds) -> Option<V2> {
     (inward.dot(inward) > 0.0).then_some(inward)
 }
 
-/// How much nearer an edge a full-rate turn away from it still carries a
-/// jet closing on it at `closing` (the cosine between its heading and the
-/// edge's outward normal), turning on a circle of `radius`.
+/// How much nearer an edge a turn away from it on a circle of `radius`
+/// still carries a jet closing on it at `closing` (the cosine between its
+/// heading and the edge's outward normal).
 fn turn_away_reach(radius: f64, closing: f64) -> f64 {
     let closing = closing.max(0.0);
     radius * (1.0 - (1.0 - closing * closing).max(0.0).sqrt())
@@ -204,12 +211,8 @@ fn edge_guard(
     // toward that, so it never turns away from one edge into the other, nor
     // swaps which way it turns as each edge in turn presses. Straight away
     // from it, toward the middle.
-    let level = FixedWingState {
-        turn_rate_rad_s: 0.0,
-        ..*state
-    };
-    let roll = roll_lag_s(&level, limits, 1.0, limits.max_turn_rad_s);
-    let reach = limits.edge_margin_m + 2.0 * radius + state.speed_mps * (dt_s + roll);
+    let reach =
+        limits.edge_margin_m + 2.0 * radius + state.speed_mps * (dt_s + level_roll_lag_s(limits));
     let inward = inward_from(state.pos.xy(), reach, bounds).unwrap_or(-pressing);
     let side = forward.x * inward.y - forward.y * inward.x;
     // Only the guard turns harder than the rate it turns at by choice: a
@@ -248,11 +251,7 @@ pub fn guard_short_of(
 ) -> f64 {
     let radius = tightest_radius(state, limits);
     // Flying the run, it is wings level when the guard takes it.
-    let level = FixedWingState {
-        turn_rate_rad_s: 0.0,
-        ..*state
-    };
-    let step = state.speed_mps * (dt_s + roll_lag_s(&level, limits, 1.0, limits.max_turn_rad_s));
+    let step = state.speed_mps * (dt_s + level_roll_lag_s(limits));
     // Short of the aim by `s`, an edge the line closes on at `closing` is
     // `room + s * closing` away: the guard takes the jet where that first
     // meets its point of no return.

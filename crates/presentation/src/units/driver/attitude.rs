@@ -31,11 +31,12 @@ pub(super) struct Flight {
 }
 
 /// How a winged aircraft follows its published flight path: pitch is the
-/// path angle, and roll is the bank its full-rate turn needs (the angle that
-/// tilts its lift into that turn, at most `max_deg`) in proportion to the
-/// share of that rate its published yaw turns at now. So the bank builds
-/// with the turn as the jet rolls in, and reaches its cap only at full rate.
-/// A type that states no full rate banks for the rate it turns at.
+/// path angle, and roll is the bank a turn at its turn rate needs (the angle
+/// that tilts its lift into that turn, at most `max_deg`) in proportion to
+/// the share of that rate its published yaw turns at now. So the bank builds
+/// with the turn as the jet rolls in and reaches its cap at its turn rate;
+/// an edge-guard break past that rate holds the cap. A type that states no
+/// turn rate banks for the rate it turns at.
 fn fixed_wing_attitude(
     f: &mut Flight,
     feel: &TiltFeel,

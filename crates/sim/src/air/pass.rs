@@ -10,7 +10,8 @@ use crate::weapons::nose_on_bearing;
 
 use super::fixed_wing::{FixedWingLimits, FixedWingState};
 use super::steer::{
-    edge_guarded, guard_short_of, inward_from, roll_lag_s, tightest_radius, Bounds, Intent,
+    edge_guarded, guard_short_of, inward_from, level_roll_lag_s, roll_lag_s, tightest_radius,
+    Bounds, Intent,
 };
 use crate::weapons::Target;
 
@@ -47,7 +48,7 @@ pub fn pass_weapon(def: &contract::weapons::WeaponDefinition) -> Option<PassWeap
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PassPhase {
     /// Lining up, committed to nothing: flying out along a line through the
-    /// aim until a full-rate turn in on it leaves a full run-in.
+    /// aim until a turn in on it at its turn rate leaves a full run-in.
     LineUp,
     /// Lining up, committed to nothing: holding that turn until the nose
     /// comes on the aim.
@@ -133,7 +134,7 @@ fn line(plan: &PassPlan) -> Intent {
     }
 }
 
-/// The circle a full-rate turn toward `aim` flies, on the side it lies,
+/// The circle a turn toward `aim` at its turn rate flies, on the side it lies,
 /// once the jet has rolled into it: its centre and radius.
 fn turn_circle(state: &FixedWingState, limits: &FixedWingLimits, aim: V2) -> (V2, f64) {
     let to_aim = aim - state.pos.xy();
@@ -183,11 +184,7 @@ fn line_up(
     // where the turn toward the aim is a turn away from the edge.
     // Two seconds' flight, and the lag of its roll out of the turn in onto
     // the line: half its roll-in, as rolling into it costs.
-    let level = FixedWingState {
-        turn_rate_rad_s: 0.0,
-        ..*state
-    };
-    let settle = speed * (2.0 + roll_lag_s(&level, limits, 1.0, limits.turn_rad_s));
+    let settle = speed * (2.0 + level_roll_lag_s(limits));
     let away = bearing + core::f64::consts::PI;
     let away_dir = v2(libm::cos(away), libm::sin(away));
     let straight_ends = release
