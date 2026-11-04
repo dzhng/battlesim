@@ -9,7 +9,9 @@ use crate::math::{v2, wrap_angle, V2, V3};
 use crate::weapons::nose_on_bearing;
 
 use super::fixed_wing::{FixedWingLimits, FixedWingState};
-use super::steer::{edge_guarded, guard_short_of, inward_from, roll_lag_s, Bounds, Intent};
+use super::steer::{
+    edge_guarded, guard_short_of, inward_from, roll_lag_s, tightest_radius, Bounds, Intent,
+};
 use crate::weapons::Target;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -139,7 +141,7 @@ fn turn_circle(state: &FixedWingState, limits: &FixedWingLimits, aim: V2) -> (V2
     let radius = state.speed_mps / limits.turn_rad_s.max(f64::MIN_POSITIVE);
     let forward = v2(libm::cos(state.heading), libm::sin(state.heading));
     let left = v2(-forward.y, forward.x);
-    let lag = state.speed_mps * roll_lag_s(state, limits, side);
+    let lag = state.speed_mps * roll_lag_s(state, limits, side, limits.turn_rad_s);
     (
         state.pos.xy() + forward * lag + left * (radius * side),
         radius,
@@ -171,8 +173,10 @@ fn line_up(
     // jet's side, and the run ends at its release point or sooner where the
     // edge guard takes it. It fits when flying out along it, a full run-in
     // and a turn radius, and the turn round at its end keep the margin
-    // inside every edge: an edge the line runs along, however near the aim,
-    // never bends it. Where it doesn't fit it is a fixed line into the map,
+    // inside every edge, turning as tight as it can: it turns round at the
+    // rate it turns at by choice, and the edge guard pulls harder where
+    // that would not keep the margin. An edge the line runs along, however
+    // near the aim, never bends it. Where it doesn't fit it is a fixed line into the map,
     // so the run comes back at the edge from inside rather than along it.
     // The jet flies out two turn radii to the side of that line so that
     // turning in lands it on it, and turns in only once out on that leg,
@@ -183,19 +187,20 @@ fn line_up(
         turn_rate_rad_s: 0.0,
         ..*state
     };
-    let settle = speed * (2.0 + roll_lag_s(&level, limits, 1.0));
+    let settle = speed * (2.0 + roll_lag_s(&level, limits, 1.0, limits.turn_rad_s));
     let away = bearing + core::f64::consts::PI;
     let away_dir = v2(libm::cos(away), libm::sin(away));
     let straight_ends = release
         .ahead_m
         .max(guard_short_of(aim, -away_dir, state, limits, bounds, dt));
+    let tightest = tightest_radius(state, limits);
     let straight_fits = bounds.edges(aim).into_iter().all(|(room, outward)| {
         let along = away_dir.dot(outward).max(0.0);
-        room >= limits.edge_margin_m + radius + (settle + straight_ends) * along
+        room >= limits.edge_margin_m + tightest + (settle + straight_ends) * along
     });
     let free_run_in = settle + release.ahead_m;
     let edge_line = (!straight_fits)
-        .then(|| inward_from(aim, limits.edge_margin_m + radius + free_run_in, bounds))
+        .then(|| inward_from(aim, limits.edge_margin_m + tightest + free_run_in, bounds))
         .flatten();
     let (out, through, on_leg, ends) = match edge_line {
         None => (away, aim, true, straight_ends),

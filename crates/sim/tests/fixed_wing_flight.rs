@@ -637,3 +637,39 @@ fn an_idle_jet_circles_the_goal_it_reached() {
         (centre - goal).length()
     );
 }
+
+/// A jet circling anywhere on the map, wherever it starts its circle from,
+/// stays inside the square: its gentle turn is too wide for a corner, and
+/// the edge guard pulls its hardest turn there.
+#[test]
+fn a_circling_jet_never_leaves_the_square() {
+    // A wide, slow-rolling turn by choice, with a reserve over twice as
+    // tight.
+    let mut l = wing_limits();
+    l.turn_rad_s = 0.5;
+    l.max_turn_rad_s = 1.2;
+    l.roll_in_s = 1.5;
+    let side = 2_400.0;
+    let bounds = Bounds::new(v2(0.0, 0.0), v2(side, side));
+    let dt = 1.0 / 30.0;
+    for cx in (1..12).map(|i| f64::from(i) * 200.0) {
+        for cy in (1..12).map(|i| f64::from(i) * 200.0) {
+            for heading in [0_f64, 150.0, 260.0] {
+                let mut s = state();
+                s.pos = v3(side * 0.5, side * 0.5, 250.0);
+                s.heading = heading.to_radians();
+                let intent = Intent::Orbit { centre: v2(cx, cy) };
+                for tick in 0..30 * 90 {
+                    let command = steer(&intent, &s, &l, &bounds, dt);
+                    s = fly(s, command, &l, &|_| 0.0, dt);
+                    let p = s.pos.xy();
+                    let room = p.x.min(p.y).min(side - p.x).min(side - p.y);
+                    assert!(
+                        room >= 0.0,
+                        "circling ({cx}, {cy}) from {heading} deg: out of the square at {p:?}, tick {tick}"
+                    );
+                }
+            }
+        }
+    }
+}

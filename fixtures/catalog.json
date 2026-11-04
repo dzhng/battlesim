@@ -8087,6 +8087,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -8224,6 +8225,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -8934,6 +8936,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -9092,6 +9095,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -9899,6 +9903,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -10036,6 +10041,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -10194,6 +10200,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -10334,6 +10341,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -10471,6 +10479,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -10629,6 +10638,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -14013,6 +14023,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -14434,6 +14445,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -15459,6 +15471,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -16031,6 +16044,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -16284,6 +16298,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -16421,6 +16436,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -16754,6 +16770,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -16913,6 +16930,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -17227,6 +17245,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -18062,6 +18081,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -18199,6 +18219,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -18357,6 +18378,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -18494,6 +18516,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -18631,6 +18654,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -18789,6 +18813,7 @@
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
               "layer": "high_air",
+              "max_turn_deg_s": 72.0,
               "turn_deg_s": 30.0
             }
           },
@@ -27645,6 +27670,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -27786,6 +27812,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -28608,6 +28635,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -28771,6 +28799,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -29906,6 +29935,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -30047,6 +30077,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -30210,6 +30241,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -30354,6 +30386,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -30495,6 +30528,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -30658,6 +30692,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -34213,6 +34248,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -34647,6 +34683,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -35796,6 +35833,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -36386,6 +36424,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -36660,6 +36699,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -36801,6 +36841,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -37144,6 +37185,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -37308,6 +37350,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -37866,6 +37909,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -38848,6 +38892,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -38989,6 +39034,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -39152,6 +39198,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -39293,6 +39340,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -39434,6 +39482,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },
@@ -39597,6 +39646,7 @@
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
           "layer": "high_air",
+          "max_turn_deg_s": 72.0,
           "turn_deg_s": 30.0
         }
       },

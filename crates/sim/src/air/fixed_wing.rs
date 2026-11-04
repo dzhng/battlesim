@@ -21,8 +21,12 @@ pub struct FixedWingState {
 pub struct FixedWingLimits {
     pub cruise_mps: f64,
     pub burner_mult: f64,
+    /// The rate it turns at by choice.
     pub turn_rad_s: f64,
-    /// Seconds it takes to roll from wings level to its full turn rate.
+    /// The hardest it turns, only to keep off the map's edge.
+    pub max_turn_rad_s: f64,
+    /// Seconds it takes to roll from wings level to the rate it is steered
+    /// to (`roll_rad_s2`).
     pub roll_in_s: f64,
     pub climb_mps: f64,
     pub ramp_s: f64,
@@ -35,7 +39,8 @@ pub struct FixedWingLimits {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Steer {
-    /// The turn rate it is steered to, as a share of its full rate.
+    /// The turn rate it is steered to, as a share of its `turn_rad_s`:
+    /// beyond one only up to its max.
     pub turn: f64,
     pub agl_m: f64,
     pub burner: bool,
@@ -63,8 +68,9 @@ pub fn fly(
     state.speed_mps = (limits.cruise_mps * (1.0 + state.burner * (limits.burner_mult - 1.0)))
         .max(limits.cruise_mps);
 
-    let wanted = steer.turn.clamp(-1.0, 1.0) * limits.turn_rad_s;
-    let roll = roll_rad_s2(limits) * dt;
+    let reserve = reserve(limits);
+    let wanted = steer.turn.clamp(-reserve, reserve) * limits.turn_rad_s;
+    let roll = roll_rad_s2(limits, wanted) * dt;
     state.turn_rate_rad_s += (wanted - state.turn_rate_rad_s).clamp(-roll, roll);
     if state.turn_rate_rad_s != 0.0 {
         state.turn_sign = if state.turn_rate_rad_s < 0.0 { -1 } else { 1 };
@@ -79,10 +85,17 @@ pub fn fly(
     state
 }
 
-/// How fast its turn rate can change, radians a second squared: from wings
-/// level to its full rate over its roll-in.
-pub fn roll_rad_s2(limits: &FixedWingLimits) -> f64 {
-    limits.turn_rad_s / limits.roll_in_s.max(f64::MIN_POSITIVE)
+/// Its max turn rate as a share of the rate it turns at by choice.
+pub fn reserve(limits: &FixedWingLimits) -> f64 {
+    (limits.max_turn_rad_s / limits.turn_rad_s.max(f64::MIN_POSITIVE)).max(1.0)
+}
+
+/// How fast its turn rate can change on its way to `rate` (radians a
+/// second), in radians a second squared: from wings level to that rate over
+/// its roll-in, and never slower than to `turn_rad_s`. Turning by choice it
+/// rolls gently; breaking to its max off an edge, it rolls as hard.
+pub fn roll_rad_s2(limits: &FixedWingLimits, rate: f64) -> f64 {
+    rate.abs().max(limits.turn_rad_s) / limits.roll_in_s.max(f64::MIN_POSITIVE)
 }
 
 /// The velocity along the aircraft's nose. Height changes are applied by `fly`.

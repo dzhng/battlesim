@@ -174,3 +174,33 @@ fn an_afterburner_needs_fixed_wing_flight() {
         "{error}"
     );
 }
+
+/// A winged aircraft's max turn is a reserve beyond the rate it turns at by
+/// choice, and only a winged aircraft has one.
+#[test]
+fn a_max_turn_is_a_fixed_wing_reserve() {
+    let mut rotor = base_tank();
+    rotor["abstract"] = json!(false);
+    rotor["mobility"] = rotor_mobility(180, 30, 8);
+    let mut wing = rotor.clone();
+    wing["mobility"]["air"]["layer"] = json!("high_air");
+    wing["mobility"]["air"]["flight"] = json!("fixed_wing");
+    let error = |entry: &Value| {
+        resolve(&units(json!({ "aircraft": entry })))
+            .err()
+            .map(|e| e.to_string())
+    };
+
+    wing["mobility"]["air"]["max_turn_deg_s"] = json!(72);
+    assert_eq!(error(&wing), None);
+    wing["mobility"]["air"]["max_turn_deg_s"] = json!(20);
+    let below = error(&wing).expect("a max below the turn rate");
+    assert!(below.contains("max_turn_deg_s"), "{below}");
+
+    rotor["mobility"]["air"]["max_turn_deg_s"] = json!(72);
+    let rotor = error(&rotor).expect("a rotor with a max turn");
+    assert!(
+        rotor.contains("max_turn_deg_s") && rotor.contains("fixed-wing"),
+        "{rotor}"
+    );
+}

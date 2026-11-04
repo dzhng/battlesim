@@ -66,8 +66,9 @@ pub struct FixedWingFlight {
     /// nose-on: where a row it aims by the nose fires, and what an attack
     /// pass needs before its dive begins.
     pub nose_on_deg: f64,
-    /// Seconds a winged aircraft takes to roll from wings level into its
-    /// full-rate turn, or out of it: its turn rate never steps.
+    /// Seconds a winged aircraft takes to roll from wings level into a turn
+    /// at its `turn_deg_s`, or out of it: its turn rate never steps, and
+    /// changes no faster on the way to its `max_turn_deg_s`.
     pub roll_in_s: f64,
 }
 

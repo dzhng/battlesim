@@ -95,6 +95,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         cruise_mps: cruise,
         burner_mult,
         turn_rad_s: flight.turn_rad_s,
+        max_turn_rad_s: flight.max_turn_rad_s,
         roll_in_s: ctx.rules.air.fixed_wing.roll_in_s,
         climb_mps: flight.climb_mps,
         ramp_s: ctx.rules.air.fixed_wing.afterburner_ramp_s,
