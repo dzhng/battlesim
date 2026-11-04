@@ -1,6 +1,7 @@
 //! The fixed-wing flight law, the only writer of a winged aircraft's position,
-//! heading and speed: it never stops, turns at its rate, ramps its
-//! afterburner, and holds its layer's height, never below the layer's floor.
+//! heading and speed: it never stops, rolls into and out of its turns,
+//! ramps its afterburner, and holds its layer's height, never below the
+//! layer's floor.
 
 use crate::math::{v2, v3, wrap_angle, V2, V3};
 
@@ -10,6 +11,9 @@ pub struct FixedWingState {
     pub heading: f64,
     pub speed_mps: f64,
     pub burner: f64,
+    /// How fast it is turning now, radians a second (positive to the
+    /// left): it rolls toward the rate it is steered to, never steps.
+    pub turn_rate_rad_s: f64,
     pub turn_sign: i8,
 }
 
@@ -17,7 +21,13 @@ pub struct FixedWingState {
 pub struct FixedWingLimits {
     pub cruise_mps: f64,
     pub burner_mult: f64,
+    /// The rate it turns at by choice.
     pub turn_rad_s: f64,
+    /// The hardest it turns, only to keep off the map's edge.
+    pub max_turn_rad_s: f64,
+    /// Seconds it takes to roll from wings level to the rate it is steered
+    /// to (`roll_rad_s2`).
+    pub roll_in_s: f64,
     pub climb_mps: f64,
     pub ramp_s: f64,
     pub floor_agl_m: f64,
@@ -29,6 +39,8 @@ pub struct FixedWingLimits {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Steer {
+    /// The turn rate it is steered to, as a share of its `turn_rad_s`:
+    /// beyond one only up to its max.
     pub turn: f64,
     pub agl_m: f64,
     pub burner: bool,
@@ -56,11 +68,14 @@ pub fn fly(
     state.speed_mps = (limits.cruise_mps * (1.0 + state.burner * (limits.burner_mult - 1.0)))
         .max(limits.cruise_mps);
 
-    let turn = steer.turn.clamp(-1.0, 1.0) * limits.turn_rad_s * dt;
-    if turn != 0.0 {
-        state.turn_sign = if turn.is_sign_negative() { -1 } else { 1 };
+    let reserve = reserve(limits);
+    let wanted = steer.turn.clamp(-reserve, reserve) * limits.turn_rad_s;
+    let roll = roll_rad_s2(limits, wanted) * dt;
+    state.turn_rate_rad_s += (wanted - state.turn_rate_rad_s).clamp(-roll, roll);
+    if state.turn_rate_rad_s != 0.0 {
+        state.turn_sign = if state.turn_rate_rad_s < 0.0 { -1 } else { 1 };
     }
-    state.heading = wrap_angle(state.heading + turn);
+    state.heading = wrap_angle(state.heading + state.turn_rate_rad_s * dt);
     let direction = v2(libm::cos(state.heading), libm::sin(state.heading));
     let next_xy = state.pos.xy() + direction * (state.speed_mps * dt);
     let ground_z = ground(next_xy);
@@ -68,6 +83,19 @@ pub fn fly(
     let dz = (target_z - state.pos.z).clamp(-limits.climb_mps * dt, limits.climb_mps * dt);
     state.pos = next_xy.with_z((state.pos.z + dz).max(ground_z + limits.floor_agl_m));
     state
+}
+
+/// Its max turn rate as a share of the rate it turns at by choice.
+pub fn reserve(limits: &FixedWingLimits) -> f64 {
+    (limits.max_turn_rad_s / limits.turn_rad_s.max(f64::MIN_POSITIVE)).max(1.0)
+}
+
+/// How fast its turn rate can change on its way to `rate` (radians a
+/// second), in radians a second squared: from wings level to that rate over
+/// its roll-in, and never slower than to `turn_rad_s`. Turning by choice it
+/// rolls gently; breaking to its max off an edge, it rolls as hard.
+pub fn roll_rad_s2(limits: &FixedWingLimits, rate: f64) -> f64 {
+    rate.abs().max(limits.turn_rad_s) / limits.roll_in_s.max(f64::MIN_POSITIVE)
 }
 
 /// The velocity along the aircraft's nose. Height changes are applied by `fly`.

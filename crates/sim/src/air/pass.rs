@@ -9,7 +9,9 @@ use crate::math::{v2, wrap_angle, V2, V3};
 use crate::weapons::nose_on_bearing;
 
 use super::fixed_wing::{FixedWingLimits, FixedWingState};
-use super::steer::{edge_guarded, guard_short_of, inward_from, Bounds, Intent};
+use super::steer::{
+    edge_guarded, guard_short_of, inward_from, roll_lag_s, tightest_radius, Bounds, Intent,
+};
 use crate::weapons::Target;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -131,14 +133,19 @@ fn line(plan: &PassPlan) -> Intent {
     }
 }
 
-/// The circle a full-rate turn toward `aim` flies, on the side it lies:
-/// its centre and radius.
+/// The circle a full-rate turn toward `aim` flies, on the side it lies,
+/// once the jet has rolled into it: its centre and radius.
 fn turn_circle(state: &FixedWingState, limits: &FixedWingLimits, aim: V2) -> (V2, f64) {
     let to_aim = aim - state.pos.xy();
     let side = wrap_angle(libm::atan2(to_aim.y, to_aim.x) - state.heading).signum();
     let radius = state.speed_mps / limits.turn_rad_s.max(f64::MIN_POSITIVE);
-    let left = v2(-libm::sin(state.heading), libm::cos(state.heading));
-    (state.pos.xy() + left * (radius * side), radius)
+    let forward = v2(libm::cos(state.heading), libm::sin(state.heading));
+    let left = v2(-forward.y, forward.x);
+    let lag = state.speed_mps * roll_lag_s(state, limits, side, limits.turn_rad_s);
+    (
+        state.pos.xy() + forward * lag + left * (radius * side),
+        radius,
+    )
 }
 
 /// Fly one tick of lining up (`plan` is lining up or turning in and does not
@@ -162,30 +169,54 @@ fn line_up(
     let (centre, radius) = turn_circle(state, limits, aim);
     let from_centre = aim - centre;
     // Out along the line the run will come back on, and where on it the run
-    // must end. Clear of the edges the line is straight away from the aim,
-    // and the run ends at its release point. By an edge it is a fixed line
-    // into the map, so the run comes back at the edge from inside rather
-    // than along it, and ends at its release point or sooner where the edge
-    // guard takes it. The jet flies out two turn radii to the side of that
-    // line so that turning in lands it on it, and turns in only once out on
-    // that leg, where the turn toward the aim is a turn away from the edge.
-    let free_run_in = speed * 2.0 + release.ahead_m;
-    let (out, through, on_leg, ends) =
-        match inward_from(aim, limits.edge_margin_m + radius + free_run_in, bounds) {
-            None => (bearing + core::f64::consts::PI, aim, true, release.ahead_m),
-            Some(way) => {
-                let out = libm::atan2(way.y, way.x);
-                let out_dir = v2(libm::cos(out), libm::sin(out));
-                let left = v2(-out_dir.y, out_dir.x);
-                let side = if left.dot(-to_aim) < 0.0 { -1.0 } else { 1.0 };
-                let through = aim + left * (2.0 * radius * side);
-                let on_leg = wrap_angle(state.heading - out).abs() < core::f64::consts::FRAC_PI_4
-                    && (state.pos.xy() - through).dot(left).abs() < radius;
-                let guarded_at = guard_short_of(aim, -out_dir, state, limits, bounds, dt);
-                (out, through, on_leg, release.ahead_m.max(guarded_at))
-            }
-        };
-    let run_in = speed * 2.0 + ends;
+    // must end. Where it fits, the line is straight away from the aim on the
+    // jet's side, and the run ends at its release point or sooner where the
+    // edge guard takes it. It fits when flying out along it, a full run-in
+    // and a turn radius, and the turn round at its end keep the margin
+    // inside every edge, turning as tight as it can: it turns round at the
+    // rate it turns at by choice, and the edge guard pulls harder where
+    // that would not keep the margin. An edge the line runs along, however
+    // near the aim, never bends it. Where it doesn't fit it is a fixed line into the map,
+    // so the run comes back at the edge from inside rather than along it.
+    // The jet flies out two turn radii to the side of that line so that
+    // turning in lands it on it, and turns in only once out on that leg,
+    // where the turn toward the aim is a turn away from the edge.
+    // Two seconds' flight, and the lag of its roll out of the turn in onto
+    // the line: half its roll-in, as rolling into it costs.
+    let level = FixedWingState {
+        turn_rate_rad_s: 0.0,
+        ..*state
+    };
+    let settle = speed * (2.0 + roll_lag_s(&level, limits, 1.0, limits.turn_rad_s));
+    let away = bearing + core::f64::consts::PI;
+    let away_dir = v2(libm::cos(away), libm::sin(away));
+    let straight_ends = release
+        .ahead_m
+        .max(guard_short_of(aim, -away_dir, state, limits, bounds, dt));
+    let tightest = tightest_radius(state, limits);
+    let straight_fits = bounds.edges(aim).into_iter().all(|(room, outward)| {
+        let along = away_dir.dot(outward).max(0.0);
+        room >= limits.edge_margin_m + tightest + (settle + straight_ends) * along
+    });
+    let free_run_in = settle + release.ahead_m;
+    let edge_line = (!straight_fits)
+        .then(|| inward_from(aim, limits.edge_margin_m + tightest + free_run_in, bounds))
+        .flatten();
+    let (out, through, on_leg, ends) = match edge_line {
+        None => (away, aim, true, straight_ends),
+        Some(way) => {
+            let out = libm::atan2(way.y, way.x);
+            let out_dir = v2(libm::cos(out), libm::sin(out));
+            let left = v2(-out_dir.y, out_dir.x);
+            let side = if left.dot(-to_aim) < 0.0 { -1.0 } else { 1.0 };
+            let through = aim + left * (2.0 * radius * side);
+            let on_leg = wrap_angle(state.heading - out).abs() < core::f64::consts::FRAC_PI_4
+                && (state.pos.xy() - through).dot(left).abs() < radius;
+            let guarded_at = guard_short_of(aim, -out_dir, state, limits, bounds, dt);
+            (out, through, on_leg, release.ahead_m.max(guarded_at))
+        }
+    };
+    let run_in = settle + ends;
     // A turn in the edge guard takes over is broken like a run: the jet
     // lines up again rather than riding the edge.
     plan.phase = if guarded {
@@ -228,9 +259,10 @@ fn line_up(
 /// nose comes on the aim, short of the release point and clear of the edge
 /// guard, however much run-in is left. The release cue comes on the tick
 /// whose `dt` step carries the jet to its release point, so a bomb leaves
-/// the jet within half a step of it, and the run is over with it. A run the
-/// edge guard takes is broken and releases nothing. Either way the jet is
-/// lining up again.
+/// the jet within half a step of it, and the run is over with it: the jet
+/// lines up again at once, rolling into its break from wings level. A run
+/// the edge guard takes is broken and releases nothing; it lines up again
+/// too.
 pub fn advance(
     plan: &mut PassPlan,
     state: &FixedWingState,

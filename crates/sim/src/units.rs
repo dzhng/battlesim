@@ -335,6 +335,8 @@ pub struct AirState {
     pub velocity: V3,
     /// Afterburner ramp state, from zero to one.
     pub burner: f64,
+    /// A winged aircraft's turn rate now, held by its flight law.
+    pub turn_rate_rad_s: f64,
     /// Last non-zero turn direction, retained by the fixed-wing flight law.
     pub turn_sign: i8,
     /// Where an idle jet circles: the move goal it last reached, or where it

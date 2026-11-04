@@ -15,7 +15,11 @@ pub enum Motion {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Flight {
     pub cruise_mps: f64,
+    /// The rate it turns at by choice.
     pub turn_rad_s: f64,
+    /// The hardest it turns, to keep off the map's edge; its `turn_rad_s`
+    /// when it has no reserve.
+    pub max_turn_rad_s: f64,
     pub climb_mps: f64,
     /// Authored altitude band copied into runtime state at spawn.
     pub layer: AltitudeLayer,
@@ -31,6 +35,7 @@ pub fn motion(t: &UnitType, rules: &Rules) -> Motion {
         Moves::Air {
             cruise_kmh,
             turn_deg_s,
+            max_turn_deg_s,
             climb_mps,
             layer,
             flight,
@@ -38,6 +43,7 @@ pub fn motion(t: &UnitType, rules: &Rules) -> Motion {
         } => Motion::Air(Flight {
             cruise_mps: cruise_kmh / 3.6,
             turn_rad_s: turn_deg_s.to_radians(),
+            max_turn_rad_s: max_turn_deg_s.unwrap_or(turn_deg_s).to_radians(),
             climb_mps,
             layer,
             model: flight,

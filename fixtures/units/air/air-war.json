@@ -39,7 +39,8 @@
       "mobility": {
         "air": {
           "cruise_kmh": 650,
-          "turn_deg_s": 72,
+          "turn_deg_s": 30,
+          "max_turn_deg_s": 72,
           "climb_mps": 30,
           "layer": "high_air",
           "flight": "fixed_wing",

@@ -132,6 +132,144 @@ fn a_turning_jet_banks_into_the_turn() {
     assert!(motion[6] < -0.05, "left turn banks left: {motion:?}");
 }
 
+/// A winged aircraft banks as far as the turn it flies needs (the angle that
+/// tilts its lift into the turn) and levels its wings once it flies
+/// straight again.
+#[test]
+fn a_jet_banks_as_far_as_its_turn_needs_and_levels_out_flying_straight() {
+    let units = units_with(|v| {
+        let mut jet = v["types"]["capture_us_tank"].clone();
+        jet["airborne"] = true.into();
+        jet["flight"] = "fixed_wing".into();
+        jet["turnRadS"] = 0.3.into();
+        v["types"]["test_jet"] = jet;
+        v["pose"]["attitude"]["fixed_wing"] = json!({
+            "gain": 1,
+            "max_deg": 85,
+            "smoothing_s": 0.05
+        });
+    });
+    let none = fallen(&[]);
+    let mut driver = PoseDriver::new(&units).unwrap();
+    let mut jet = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
+    jet.kind = "test_jet".into();
+    let (speed, rate, dt) = (100.0, 0.3, 1.0 / 30.0);
+    let radius = speed / rate;
+    let mut roll = |time: f64, at: [f64; 2], yaw: f64| {
+        jet.position = [at[0], at[1], 100.0];
+        jet.yaw = yaw;
+        let poses = driver.update(&frame(time, vec![jet.clone()], &none), &units, None);
+        poses.vehicles[0].motion.map_or(0.0, |m| m[6].asin())
+    };
+    // A steady left turn, then straight on along its last heading.
+    let turning = 90;
+    for tick in 0..=turning {
+        let turned = f64::from(tick) * dt * rate;
+        let at = [radius * turned.sin(), radius * (1.0 - turned.cos())];
+        let banked = roll(f64::from(tick) * dt, at, turned);
+        if tick == turning {
+            let needed = -(speed * rate / 9.81).atan();
+            assert!(
+                (banked - needed).abs() < 2_f64.to_radians(),
+                "banked {:.1} deg in a turn that needs {:.1}",
+                banked.to_degrees(),
+                needed.to_degrees()
+            );
+        }
+    }
+    let heading = f64::from(turning) * dt * rate;
+    let from = [radius * heading.sin(), radius * (1.0 - heading.cos())];
+    let mut banked = 0.0;
+    for tick in 1..=turning {
+        let flown = f64::from(tick) * dt * speed;
+        let at = [
+            from[0] + flown * heading.cos(),
+            from[1] + flown * heading.sin(),
+        ];
+        banked = roll(f64::from(turning + tick) * dt, at, heading);
+    }
+    assert!(
+        banked.abs() < 1_f64.to_radians(),
+        "still banked {:.1} deg",
+        banked.to_degrees()
+    );
+}
+
+/// A jet rolling into a turn its full rate would bank past the cap for
+/// banks with the turn, never ahead of it: the bank grows steadily as the
+/// turn rate builds, and reaches the cap only once the jet turns at its
+/// full rate.
+#[test]
+fn a_jets_bank_builds_with_its_turn_and_reaches_its_cap_at_full_rate() {
+    let (speed, full, roll_in_s, dt): (f64, f64, f64, f64) =
+        (180.0, 30_f64.to_radians(), 1.5, 1.0 / 30.0);
+    let cap = 60_f64.to_radians();
+    assert!(
+        (speed * full / 9.81_f64).atan() > cap,
+        "the full-rate turn banks past the cap"
+    );
+    let units = units_with(|v| {
+        let mut jet = v["types"]["capture_us_tank"].clone();
+        jet["airborne"] = true.into();
+        jet["flight"] = "fixed_wing".into();
+        jet["turnRadS"] = full.into();
+        v["types"]["test_jet"] = jet;
+        v["pose"]["attitude"]["fixed_wing"] = json!({
+            "gain": 1,
+            "max_deg": cap.to_degrees(),
+            "smoothing_s": 0.15
+        });
+    });
+    let none = fallen(&[]);
+    let mut driver = PoseDriver::new(&units).unwrap();
+    let mut jet = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
+    jet.kind = "test_jet".into();
+    jet.position[2] = 100.0;
+    let (mut at, mut yaw, mut rate) = ([0.0, 0.0], 0.0, 0.0);
+    let mut step = |time: f64, at: [f64; 2], yaw: f64| {
+        jet.position = [at[0], at[1], 100.0];
+        jet.yaw = yaw;
+        let poses = driver.update(&frame(time, vec![jet.clone()], &none), &units, None);
+        -poses.vehicles[0].motion.map_or(0.0, |m| m[6].asin())
+    };
+    // Straight and level, then a left turn rolled into over the roll-in and
+    // held at full rate.
+    let straight = 30;
+    let rolling = (roll_in_s / dt).round() as u32;
+    let mut last = 0.0;
+    for tick in 0..=straight + rolling + 30 {
+        if tick > straight {
+            rate = (rate + full / f64::from(rolling)).min(full);
+        }
+        yaw += rate * dt;
+        at = [
+            at[0] + speed * dt * yaw.cos(),
+            at[1] + speed * dt * yaw.sin(),
+        ];
+        let bank = step(f64::from(tick) * dt, at, yaw);
+        let share = rate / full;
+        assert!(
+            bank / cap <= share + 0.01,
+            "tick {tick}: banked {:.1} deg turning at {:.0}% of its full rate",
+            bank.to_degrees(),
+            share * 100.0
+        );
+        assert!(
+            bank >= last - 1e-9,
+            "tick {tick}: bank fell from {:.2} to {:.2} deg while rolling in",
+            last.to_degrees(),
+            bank.to_degrees()
+        );
+        last = bank;
+    }
+    assert!(
+        (last - cap).abs() < 1_f64.to_radians(),
+        "banked {:.1} deg at full rate, cap {:.1}",
+        last.to_degrees(),
+        cap.to_degrees()
+    );
+}
+
 #[test]
 fn a_helicopters_attitude_is_unchanged() {
     let units = units_with(|v| {

@@ -2,7 +2,7 @@ use crate::common::air_field::{wing_limits, AirField, Track};
 use contract::command::{CommandEnvelope, Order};
 use contract::ids::{Side, UnitId};
 use sim::air::{fly, steer, velocity, Bounds, FixedWingState, Intent, Steer};
-use sim::math::{v2, v3, V2};
+use sim::math::{v2, v3, wrap_angle, V2};
 
 fn state() -> FixedWingState {
     FixedWingState {
@@ -10,6 +10,7 @@ fn state() -> FixedWingState {
         heading: 0.0,
         speed_mps: 100.0,
         burner: 0.0,
+        turn_rate_rad_s: 0.0,
         turn_sign: 0,
     }
 }
@@ -157,23 +158,95 @@ fn afterburner_burns_fuel_at_its_multiplier() {
     assert!((before - after - 2.0 * dt).abs() < 1e-9);
 }
 
+/// A jet flies where its nose points and rolls into a turn: from wings
+/// level its turn rate builds over its roll-in, never by more in a tick than
+/// that allows, and never past its full rate.
 #[test]
-fn a_jet_flies_where_its_nose_points_and_turns_no_faster_than_its_rate() {
+fn a_jet_rolls_into_a_turn_and_never_turns_faster_than_its_rate() {
     let l = wing_limits();
-    let s = fly(
-        state(),
-        Steer {
-            turn: 1.0,
-            agl_m: 250.0,
-            burner: false,
-        },
-        &l,
-        &|_| 0.0,
-        0.5,
+    let dt = 1.0 / 30.0;
+    let roll = l.turn_rad_s / l.roll_in_s * dt;
+    let mut s = state();
+    let mut rates = vec![0.0];
+    for _ in 0..(3.0 * l.roll_in_s / dt) as usize {
+        let before = s.heading;
+        s = fly(
+            s,
+            Steer {
+                turn: 1.0,
+                agl_m: 250.0,
+                burner: false,
+            },
+            &l,
+            &|_| 0.0,
+            dt,
+        );
+        rates.push(wrap_angle(s.heading - before) / dt);
+        let v = velocity(&s);
+        assert!(wrap_angle(libm::atan2(v.y, v.x) - s.heading).abs() < 1e-9);
+    }
+    for (tick, pair) in rates.windows(2).enumerate() {
+        assert!(
+            (pair[1] - pair[0]).abs() <= roll + 1e-9,
+            "tick {tick}: the turn rate stepped from {:.3} to {:.3} rad/s",
+            pair[0],
+            pair[1]
+        );
+        assert!(
+            pair[1] <= l.turn_rad_s + 1e-9,
+            "tick {tick}: {:.3} rad/s",
+            pair[1]
+        );
+    }
+    let full = rates
+        .iter()
+        .position(|&r| r >= l.turn_rad_s - 1e-9)
+        .expect("it never reached its full rate") as f64
+        * dt;
+    assert!(
+        (full - l.roll_in_s).abs() <= dt,
+        "reached its full rate after {full:.2}s, not over its {:.2}s roll-in",
+        l.roll_in_s
     );
-    assert!((s.heading - 0.5).abs() < 1e-9);
-    let v = velocity(&s);
-    assert!(v.x > 0.0 && v.y > 0.0);
+}
+
+/// Steered onto a new heading, a jet rolls out onto it rather than through
+/// it: it never turns past the heading it wants, and settles on it within
+/// the time a full-rate turn and a roll in and out take.
+#[test]
+fn a_jet_rolls_out_onto_its_heading_without_overshooting() {
+    let l = wing_limits();
+    let dt = 1.0 / 30.0;
+    let bounds = Bounds::new(v2(-1e9, -1e9), v2(1e9, 1e9));
+    for degrees in [3.0_f64, 20.0, 60.0, 120.0, 170.0, -45.0, -150.0] {
+        let wanted = degrees.to_radians();
+        // So far off that its bearing stays put while the jet turns.
+        let intent = Intent::Pursue {
+            point: v2(libm::cos(wanted), libm::sin(wanted)) * 1e8,
+            vel: v2(0.0, 0.0),
+            lag_s: 0.0,
+            agl: 250.0,
+        };
+        let mut s = state();
+        let settle_s = wanted.abs() / l.turn_rad_s + 2.0 * l.roll_in_s;
+        for tick in 0..(2.0 * settle_s / dt) as usize {
+            let command = steer(&intent, &s, &l, &bounds, dt);
+            s = fly(s, command, &l, &|_| 0.0, dt);
+            let left = wrap_angle(wanted - s.heading);
+            assert!(
+                left * wanted.signum() > -0.1_f64.to_radians(),
+                "turning {degrees} deg, it turned {:.2} deg past its heading",
+                -left.to_degrees() * wanted.signum()
+            );
+            if tick as f64 * dt >= settle_s {
+                assert!(
+                    left.abs() < l.nose_on_rad,
+                    "turning {degrees} deg, still {:.1} deg off after {settle_s:.1}s",
+                    left.to_degrees()
+                );
+            }
+        }
+    }
 }
 
 #[test]
@@ -399,11 +472,11 @@ fn the_edge_guard_holds_a_jet_its_margin_inside_every_edge() {
         let room_y = p.y.min(side - p.y);
         (mid(p.y) && room_x < room_y) || (mid(p.x) && room_y < room_x)
     };
-    for start in [
-        v2(1_000.0, 1_000.0),
-        v2(1_600.0, 1_000.0),
-        v2(1_600.0, 1_600.0),
-    ] {
+    // At the margin, a turn radius and a roll-in's lag from an edge: as near
+    // as a jet flying straight at it can start and still turn away in time.
+    let near =
+        side - l.edge_margin_m - l.cruise_mps / l.turn_rad_s - l.cruise_mps * l.roll_in_s / 2.0;
+    for start in [v2(1_000.0, 1_000.0), v2(near, 1_000.0), v2(near, near)] {
         for k in 0..24 {
             let out = f64::from(k) * 15_f64.to_radians();
             let mut s = state();
@@ -446,8 +519,9 @@ fn the_edge_guard_leaves_a_jet_that_can_still_turn_away() {
     let bounds = Bounds::new(v2(0.0, 0.0), v2(side, side));
     let radius = l.cruise_mps / l.turn_rad_s;
     let dt = 1.0 / 30.0;
-    // Half a turn radius nearer the east edge than a radius plus the margin.
-    let x = side - l.edge_margin_m - radius * 0.5;
+    // Half a turn radius nearer the east edge than a radius plus the margin,
+    // less the way it flies while rolling into its turn away.
+    let x = side - l.edge_margin_m - radius * 0.5 - l.cruise_mps * l.roll_in_s * 0.5;
     for heading in [90_f64, 45.0, -45.0, 180.0] {
         let heading = heading.to_radians();
         let mut s = state();
@@ -562,4 +636,40 @@ fn an_idle_jet_circles_the_goal_it_reached() {
         "circles {centre:?}, {:.0} m from its goal (turn radius {radius:.0} m)",
         (centre - goal).length()
     );
+}
+
+/// A jet circling anywhere on the map, wherever it starts its circle from,
+/// stays inside the square: its gentle turn is too wide for a corner, and
+/// the edge guard pulls its hardest turn there.
+#[test]
+fn a_circling_jet_never_leaves_the_square() {
+    // A wide, slow-rolling turn by choice, with a reserve over twice as
+    // tight.
+    let mut l = wing_limits();
+    l.turn_rad_s = 0.5;
+    l.max_turn_rad_s = 1.2;
+    l.roll_in_s = 1.5;
+    let side = 2_400.0;
+    let bounds = Bounds::new(v2(0.0, 0.0), v2(side, side));
+    let dt = 1.0 / 30.0;
+    for cx in (1..12).map(|i| f64::from(i) * 200.0) {
+        for cy in (1..12).map(|i| f64::from(i) * 200.0) {
+            for heading in [0_f64, 150.0, 260.0] {
+                let mut s = state();
+                s.pos = v3(side * 0.5, side * 0.5, 250.0);
+                s.heading = heading.to_radians();
+                let intent = Intent::Orbit { centre: v2(cx, cy) };
+                for tick in 0..30 * 90 {
+                    let command = steer(&intent, &s, &l, &bounds, dt);
+                    s = fly(s, command, &l, &|_| 0.0, dt);
+                    let p = s.pos.xy();
+                    let room = p.x.min(p.y).min(side - p.x).min(side - p.y);
+                    assert!(
+                        room >= 0.0,
+                        "circling ({cx}, {cy}) from {heading} deg: out of the square at {p:?}, tick {tick}"
+                    );
+                }
+            }
+        }
+    }
 }

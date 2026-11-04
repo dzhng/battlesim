@@ -28,9 +28,15 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         unreachable!("only aircraft fly");
     };
     let dt = 1.0 / ctx.rules.tick_hz as f64;
-    let (afterburner, burner, turn_sign, fuel_s) = {
+    let (afterburner, burner, turn_rate_rad_s, turn_sign, fuel_s) = {
         let air = unit.air.as_ref().expect("an aircraft's flight state");
-        (air.afterburner, air.burner, air.turn_sign, air.fuel_s)
+        (
+            air.afterburner,
+            air.burner,
+            air.turn_rate_rad_s,
+            air.turn_sign,
+            air.fuel_s,
+        )
     };
     // The afterburner's speed is the type's; the toggle only says which way
     // the ramp runs, so switching it off eases back to cruise.
@@ -82,12 +88,15 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         heading: unit.yaw,
         speed_mps: speed,
         burner,
+        turn_rate_rad_s,
         turn_sign,
     };
     let limits = FixedWingLimits {
         cruise_mps: cruise,
         burner_mult,
         turn_rad_s: flight.turn_rad_s,
+        max_turn_rad_s: flight.max_turn_rad_s,
+        roll_in_s: ctx.rules.air.fixed_wing.roll_in_s,
         climb_mps: flight.climb_mps,
         ramp_s: ctx.rules.air.fixed_wing.afterburner_ramp_s,
         floor_agl_m: ctx
@@ -244,6 +253,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
     let horizontal = velocity(&next);
     air.velocity = crate::math::v3(horizontal.x, horizontal.y, vertical);
     air.burner = next.burner;
+    air.turn_rate_rad_s = next.turn_rate_rad_s;
     air.turn_sign = next.turn_sign;
     air.pass_release = pass_release_now;
     if flying_to_goal || attacking || air.last_goal.is_none() {

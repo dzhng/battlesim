@@ -128,6 +128,10 @@ pub struct UnitType {
     pub layer: AltitudeLayer,
     /// How it flies (its mobility's `flight`); none on the ground.
     pub flight: Option<FlightModel>,
+    /// An aircraft's full turn rate, radians a second (its mobility's
+    /// `turn_deg_s`); none on the ground.
+    #[serde(default)]
+    pub turn_rad_s: Option<f64>,
     pub roles: Vec<String>,
     pub mounts: Vec<TypeMount>,
     pub draws: BTreeMap<String, Draws>,

@@ -10,6 +10,8 @@
 mod catalog;
 mod kick;
 use kick::kick_hull;
+mod attitude;
+use attitude::{aircraft_attitude, tilt, Flight};
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
@@ -214,23 +216,6 @@ fn sine_in_out(x: f64) -> f64 {
     -(libm::cos(PI * x) - 1.0) / 2.0
 }
 
-/// Nose up about +Y, then right side down about +X, column-major
-/// (`mat4.fromYRotation(-pitch)` then `rotateX(roll)`).
-fn tilt(pitch: f64, roll: f64) -> [f64; 16] {
-    let (s, c) = libm::sincos(-pitch);
-    let (sx, cx) = libm::sincos(roll);
-    let y = [0.0, 1.0, 0.0];
-    let z = [s, 0.0, c];
-    let mut m = [
-        c, 0.0, -s, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-    ];
-    for i in 0..3 {
-        m[4 + i] = y[i] * cx + z[i] * sx;
-        m[8 + i] = z[i] * cx - y[i] * sx;
-    }
-    m
-}
-
 struct SoldierState {
     pose: SoldierPose,
     /// Where the simulation last put him (tucked in): his gait reads this,
@@ -338,17 +323,6 @@ impl SoldierState {
             self.pose.blend = None;
         }
     }
-}
-
-#[derive(Default)]
-struct Flight {
-    /// Its drawn ground velocity and acceleration, eased.
-    velocity: [f64; 2],
-    accel: [f64; 2],
-    /// A fixed-wing aircraft's published 3D flight velocity, eased.
-    path_velocity: [f64; 3],
-    /// The (pitch, roll) they gave it last, held while the clock stands still.
-    attitude: Option<(f64, f64)>,
 }
 
 struct VehicleState {
@@ -944,85 +918,4 @@ impl PoseDriver {
         state.shots.extend(unit.mounts.iter().map(|m| m.shots));
         self.out.vehicles.push(pose.clone());
     }
-}
-
-/// How a winged aircraft follows its published flight path: pitch is the
-/// path angle and roll is the bank needed to turn at its published yaw rate.
-fn fixed_wing_attitude(
-    f: &mut Flight,
-    feel: &TiltFeel,
-    (was, was_yaw): (Vec3, f64),
-    unit: &FeedUnit,
-    dt: f64,
-) -> Option<(f64, f64)> {
-    let TiltFeel {
-        gain,
-        max_deg,
-        smoothing_s,
-    } = *feel;
-    let k = 1.0 - libm::exp(-dt / smoothing_s);
-    let measured = [
-        (unit.position[0] - was[0]) / dt,
-        (unit.position[1] - was[1]) / dt,
-        (unit.position[2] - was[2]) / dt,
-    ];
-    for (velocity, next) in f.path_velocity.iter_mut().zip(measured) {
-        *velocity += (next - *velocity) * k;
-    }
-    let horizontal = libm::hypot(f.path_velocity[0], f.path_velocity[1]);
-    let max = max_deg * PI / 180.0;
-    let limit = |angle: f64| (gain * angle).clamp(-max, max);
-    let target_pitch = limit(libm::atan2(f.path_velocity[2], horizontal));
-    let turn_rate = delta_angle(was_yaw, unit.yaw) / dt;
-    let target_roll = limit(-libm::atan2(horizontal * turn_rate, GRAVITY));
-    let (old_pitch, old_roll) = f.attitude.unwrap_or_default();
-    let pitch = old_pitch + (target_pitch - old_pitch) * k;
-    let roll = old_roll + (target_roll - old_roll) * k;
-    f.attitude = (pitch.abs() + roll.abs() > 1e-9).then_some((pitch, roll));
-    f.attitude
-}
-
-/// How a flying aircraft leans, from how its drawn pose (position and yaw)
-/// moved since the last frame (`was`). A winged aircraft follows its flight
-/// path (see `fixed_wing_attitude`). Any other aircraft leans by its
-/// acceleration: nose down to speed up, up to brake, into a turn, by the
-/// angle that tilts its lift into its acceleration. Held while the clock
-/// stands still; level, it carries no tilt.
-fn aircraft_attitude(
-    f: &mut Flight,
-    feel: &AttitudeFeel,
-    was: (Vec3, f64),
-    unit: &FeedUnit,
-    ty: &UnitType,
-    dt: f64,
-) -> Option<(f64, f64)> {
-    if dt == 0.0 {
-        return f.attitude;
-    }
-    // The flight model, never the layer, decides how it tilts.
-    let flight = ty.flight.unwrap_or(FlightModel::Rotor);
-    let feel = feel.flight(flight);
-    if flight == FlightModel::FixedWing {
-        return fixed_wing_attitude(f, feel, was, unit, dt);
-    }
-    let (was, _) = was;
-    let k = 1.0 - libm::exp(-dt / feel.smoothing_s);
-    let v = [
-        (unit.position[0] - was[0]) / dt,
-        (unit.position[1] - was[1]) / dt,
-    ];
-    let [ox, oy] = f.velocity;
-    f.velocity = [ox + (v[0] - ox) * k, oy + (v[1] - oy) * k];
-    let a = [(f.velocity[0] - ox) / dt, (f.velocity[1] - oy) / dt];
-    f.accel = [
-        f.accel[0] + (a[0] - f.accel[0]) * k,
-        f.accel[1] + (a[1] - f.accel[1]) * k,
-    ];
-    let max = feel.max_deg * PI / 180.0;
-    let tilt_by = |a: f64| (feel.gain * libm::atan(a / GRAVITY)).clamp(-max, max);
-    let (s, c) = libm::sincos(unit.yaw);
-    let pitch = -tilt_by(f.accel[0] * c + f.accel[1] * s);
-    let roll = -tilt_by(-f.accel[0] * s + f.accel[1] * c);
-    f.attitude = (pitch.abs() + roll.abs() > 1e-9).then_some((pitch, roll));
-    f.attitude
 }

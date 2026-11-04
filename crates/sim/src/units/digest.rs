@@ -25,6 +25,7 @@ impl Unit {
                 .f64(a.velocity.y)
                 .f64(a.velocity.z)
                 .f64(a.burner)
+                .f64(a.turn_rate_rad_s)
                 .f64(a.turn_sign as f64);
             d.opt_v2(a.last_goal);
             match a.settle {
