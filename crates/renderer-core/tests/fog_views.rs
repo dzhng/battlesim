@@ -187,7 +187,7 @@ fn fog_ground_and_class_views_use_resolved_mask_and_suppress_the_rim() {
             })],
             ..Default::default()
         });
-        fog.encode_rim(&mut encoder, &targets);
+        fog.encode_rim(&mut encoder, &targets, None);
         assert!(
             read(&gpu, &targets.display, encoder)
                 .iter()
@@ -202,7 +202,7 @@ fn fog_ground_and_class_views_use_resolved_mask_and_suppress_the_rim() {
     close(pixels[0], [0.125, 0.25, 0.375, 1.]);
     close(pixels[1], [0.25, 0.5, 0.75, 1.]);
     let mut encoder = gpu.device.create_command_encoder(&Default::default());
-    fog.encode_rim(&mut encoder, &targets);
+    fog.encode_rim(&mut encoder, &targets, None);
     let rim = read(&gpu, &targets.display, encoder);
     assert!(
         rim[1][0] > 0.1,

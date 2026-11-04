@@ -176,7 +176,7 @@ pub struct Audio {
     music: music::Music,
     /// What could not be played, by name (a missing pack, take or track).
     errors: Vec<String>,
-    /// Suppress music playback (for clips that will have their own soundtrack).
+    /// Starts no music, for a clip with a soundtrack of its own.
     no_music: bool,
 }
 
@@ -253,8 +253,8 @@ fn recording(runtime: &Path, url: &str) -> Result<Vec<Vec<f32>>, String> {
 
 impl Audio {
     /// The battle's sound from its `setup` (see [`setup`]), its recordings
-    /// read from `runtime` (`assets/runtime`), on `output`. When `no_music`
-    /// is true, music commands are ignored (for clips with their own soundtrack).
+    /// read from `runtime` (`assets/runtime`), on `output`; with `no_music`,
+    /// no track starts.
     pub fn new(
         setup: &str,
         runtime: &Path,
@@ -493,23 +493,20 @@ impl Audio {
                     }
                 }
                 Command::Listen { listener, .. } => self.listen(*listener),
+                // Stopping or ducking music that never started changes nothing.
                 Command::Music { track, fade, .. } if !self.no_music => {
                     if let Err(e) = self.music.play(track, *fade) {
                         self.errors.push(e);
                     }
                 }
                 Command::Music { .. } => {}
-                Command::MusicStop { fade, .. } if !self.no_music => self.music.stop(*fade),
-                Command::MusicStop { .. } => {}
+                Command::MusicStop { fade, .. } => self.music.stop(*fade),
                 Command::Duck {
                     bus: Ducked::Music,
                     depth,
                     glide,
                     ..
-                } if !self.no_music => self.music.duck(*depth, *glide),
-                Command::Duck {
-                    bus: Ducked::Music, ..
-                } => {}
+                } => self.music.duck(*depth, *glide),
                 Command::Duck {
                     bus: Ducked::Ambience,
                     depth,

@@ -272,13 +272,9 @@ impl FrameRenderer {
                     }
                 }
                 FrameStage::FogRim => {
-                    match (inputs.frame_view.post_mode(), inputs.post.hdr_output()) {
-                        // The look went to the HDR target, so its rim goes there too.
-                        (Some(PostMode::Look), Some(hdr)) => {
-                            inputs.fog_mask.encode_rim_hdr(encoder, hdr)
-                        }
-                        (Some(_), _) => inputs.fog_mask.encode_rim(encoder, inputs.targets),
-                        (None, _) => {}
+                    if let Some(mode) = inputs.frame_view.post_mode() {
+                        let hdr = inputs.post.hdr_output(mode);
+                        inputs.fog_mask.encode_rim(encoder, inputs.targets, hdr);
                     }
                 }
             }

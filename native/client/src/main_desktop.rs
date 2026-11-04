@@ -86,7 +86,7 @@ mod count_verdict_tests {
 
 struct Args {
     scene: PathBuf,
-    /// Where plates are written; absent for a bench.
+    /// Where plates or clip frames are written; absent for a bench.
     out: Option<PathBuf>,
     /// Where a bench's report is written.
     bench: Option<PathBuf>,
@@ -95,7 +95,7 @@ struct Args {
     window: String,
     pace: usize,
     sound: Option<PathBuf>,
-    /// Write the look as HLG half-float EXRs rather than PNGs.
+    /// Write the HDR look's HLG signal as 16-bit PNGs rather than the display.
     hdr: bool,
     /// Leave the music out of the sound.
     no_music: bool,
@@ -224,7 +224,8 @@ struct Run {
     replay: Replay,
     next: usize,
     view: View,
-    plates: usize,
+    /// Plates, or clip frames, written so far.
+    written: usize,
     count_mismatches: Vec<String>,
     paced: usize,
     presents: Presents,
@@ -406,7 +407,7 @@ impl Run {
             replay,
             next: 0,
             view: View::default(),
-            plates: 0,
+            written: 0,
             count_mismatches: Vec::new(),
             paced: 0,
             presents: Presents::default(),
@@ -614,7 +615,7 @@ impl Run {
     /// frame; false once the clip is done.
     fn clip_step(&mut self, clip: &Clip, out: &Path) -> Result<bool, String> {
         let last = self.replay.records.last().map_or(0.0, |r| r.reel_ms);
-        let Some(at) = clip.frame_ms(self.plates, last) else {
+        let Some(at) = clip.frame_ms(self.written, last) else {
             return Ok(false);
         };
         while let Some(record) = self.replay.records.get(self.next).cloned() {
@@ -625,9 +626,9 @@ impl Run {
             self.advance(&record)?;
         }
         self.prepare()?;
-        self.write_frame(&out.join(format!("frame-{:06}.png", self.plates)))?;
-        if self.plates.is_multiple_of(clip.fps as usize) {
-            println!("{} frames, reel {:.1} s", self.plates, at / 1000.0);
+        self.write_frame(&out.join(format!("frame-{:06}.png", self.written)))?;
+        if self.written.is_multiple_of(clip.fps as usize) {
+            println!("{} frames, reel {:.1} s", self.written, at / 1000.0);
         }
         Ok(true)
     }
@@ -654,7 +655,12 @@ impl Run {
             return self.bench_report(args, dir);
         }
         if let Some(out) = &args.out {
-            println!("plates: {} written to {}", self.plates, out.display());
+            let what = if args.clip.is_some() {
+                "frames"
+            } else {
+                "plates"
+            };
+            println!("{what}: {} written to {}", self.written, out.display());
         }
         if let (Some(audio), Some(path)) = (&mut self.sound, &args.sound) {
             let samples = match &args.clip {
@@ -701,6 +707,10 @@ impl Run {
             at(0.95),
             ms.len()
         );
+        // A clip's frames are no plates, so it has no browser counts to meet.
+        if args.clip.is_some() {
+            return Ok(());
+        }
         count_verdict(&self.count_mismatches)
     }
 

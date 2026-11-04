@@ -20,7 +20,7 @@ const HLG_TAGS = [
   "tv",
 ];
 /** `hvc1` and repeated headers are what QuickTime and iOS need to play HEVC. */
-export const HLG_HEVC = [
+const HLG_HEVC = [
   "-c:v",
   "libx265",
   "-preset",
@@ -35,7 +35,7 @@ export const HLG_HEVC = [
   "-x265-params",
   "repeat-headers=1",
 ];
-export const HLG_H264 = [
+const HLG_H264 = [
   "-c:v",
   "libx264",
   "-preset",
@@ -80,11 +80,7 @@ export function hdrEncodeArgs({ framePattern, audio, output, fps, width, height,
   ];
 }
 
-/**
- * Build ffmpeg probe command to verify HDR metadata.
- * @param {string} file - Video file to probe
- * @returns {string[]} ffprobe arguments
- */
+/** ffprobe argv reporting the first video stream's codec and colour tags as JSON. */
 export function hdrProbeArgs(file) {
   return [
     "-v",
@@ -99,33 +95,20 @@ export function hdrProbeArgs(file) {
   ];
 }
 
-/**
- * Verify that the encoded file has correct HDR metadata.
- * @param {Object} probe - Parsed ffprobe JSON output
- * @returns {{valid: boolean, errors: string[]}}
- */
-export function verifyHdrMetadata(probe) {
-  const errors = [];
+/** What in an ffprobe report (`hdrProbeArgs`) keeps its first stream from
+ * being 10-bit HLG in BT.2020; empty when nothing does. */
+export function hlgTagErrors(probe) {
   const stream = probe?.streams?.[0];
-  if (!stream) {
-    return { valid: false, errors: ["no video stream found"] };
-  }
-
-  const checks = [
-    ["codec_name", ["hevc", "h264"]],
-    ["pix_fmt", ["yuv420p10le"]],
-    ["color_primaries", ["bt2020"]],
-    ["color_space", ["bt2020nc"]],
-    ["color_transfer", ["arib-std-b67"]],
-    ["color_range", ["tv"]],
-  ];
-
-  for (const [key, expected] of checks) {
-    const value = stream[key];
-    if (!expected.includes(value)) {
-      errors.push(`${key}: expected ${expected.join(" or ")}, got ${value}`);
-    }
-  }
-
-  return { valid: errors.length === 0, errors };
+  if (!stream) return ["no video stream"];
+  const expected = {
+    codec_name: ["hevc", "h264"],
+    pix_fmt: ["yuv420p10le"],
+    color_primaries: ["bt2020"],
+    color_space: ["bt2020nc"],
+    color_transfer: ["arib-std-b67"],
+    color_range: ["tv"],
+  };
+  return Object.entries(expected)
+    .filter(([key, values]) => !values.includes(stream[key]))
+    .map(([key, values]) => `${key}: expected ${values.join(" or ")}, got ${stream[key]}`);
 }

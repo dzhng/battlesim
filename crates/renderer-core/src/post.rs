@@ -238,9 +238,14 @@ impl PostResources {
         Ok(())
     }
 
-    /// The HDR target the look is encoded into, when the runtime encodes HDR.
-    pub fn hdr_output(&self) -> Option<&TextureView> {
-        self.hdr.as_ref().map(|hdr| &hdr.target)
+    /// The HDR target `mode` draws to instead of the display: the look's,
+    /// when the runtime encodes HDR.
+    pub fn hdr_output(&self, mode: PostMode) -> Option<&TextureView> {
+        self.hdr_look(mode).map(|hdr| &hdr.target)
+    }
+
+    fn hdr_look(&self, mode: PostMode) -> Option<&HdrOutput> {
+        self.hdr.as_ref().filter(|_| mode == PostMode::Look)
     }
 
     pub fn encode(&self, encoder: &mut CommandEncoder, mode: PostMode) {
@@ -255,7 +260,7 @@ impl PostResources {
                 );
             }
         }
-        if let (PostMode::Look, Some(hdr)) = (mode, &self.hdr) {
+        if let Some(hdr) = self.hdr_look(mode) {
             Self::screen(
                 encoder,
                 &hdr.pipeline,

@@ -1,6 +1,6 @@
 // `bun run --cwd web hdr-capture <run-dir> <scene> [flags]`: an HDR clip of a
 // recorded battle. The release native client replays the run with the HDR
-// look, writing HLG half-float EXR frames at a fixed rate and the battle's
+// look, writing its HLG signal as 16-bit PNG frames at a fixed rate and the battle's
 // sound cut to the same window; ffmpeg encodes them to HLG HEVC (and H.264)
 // and the stream's tags are checked.
 //
@@ -9,11 +9,11 @@
 // parent of <scene>/.
 
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { REPO_ROOT } from "./args.mjs";
-import { hdrEncodeArgs, hdrProbeArgs, verifyHdrMetadata } from "./hdr.mjs";
+import { hdrEncodeArgs, hdrProbeArgs, hlgTagErrors } from "./hdr.mjs";
 
 const NATIVE_CLIENT = join(REPO_ROOT, "target/release/native-client");
 const USAGE = `usage: bun run --cwd web hdr-capture <run-dir> <scene> [flags]
@@ -23,7 +23,7 @@ const USAGE = `usage: bun run --cwd web hdr-capture <run-dir> <scene> [flags]
   --to-ms=<n>     end of the clip (default: the end of the reel)
   --no-music      leave the music out (for a clip with its own soundtrack)
   --h264          also write an H.264 High 10 variant
-  --keep-frames   keep the EXR frames after encoding
+  --keep-frames   keep the frames after encoding
   --output=<dir>  output directory (default throwaway/hdr-capture/)`;
 
 function options(argv) {
@@ -59,11 +59,10 @@ function run(command, args) {
   if (result.status !== 0) throw new Error(`${command} failed with exit code ${result.status}`);
 }
 
-function probe(file) {
-  const stream = JSON.parse(execFileSync("ffprobe", hdrProbeArgs(file), { encoding: "utf8" }));
-  const { valid, errors } = verifyHdrMetadata(stream);
-  if (!valid) throw new Error(`${file} is not tagged as HLG:\n  ${errors.join("\n  ")}`);
-  return stream.streams[0];
+function checkTags(file) {
+  const probe = JSON.parse(execFileSync("ffprobe", hdrProbeArgs(file), { encoding: "utf8" }));
+  const errors = hlgTagErrors(probe);
+  if (errors.length > 0) throw new Error(`${file} is not tagged as HLG:\n  ${errors.join("\n  ")}`);
 }
 
 function main() {
@@ -96,53 +95,27 @@ function main() {
     ...(args["to-ms"] ? ["--to-ms", args["to-ms"]] : []),
     ...(args["no-music"] ? ["--no-music"] : []),
   ]);
-  const count = readdirSync(frames).filter((f) => f.endsWith(".exr")).length;
+  const count = readdirSync(frames).filter((f) => f.endsWith(".png")).length;
   if (count === 0) throw new Error(`the native client wrote no frames to ${frames}`);
   const size = ["-v", "error", "-show_entries", "stream=width,height", "-of", "json"];
   const { width, height } = JSON.parse(
-    execFileSync("ffprobe", [...size, join(frames, "frame-000000.exr")], { encoding: "utf8" }),
+    execFileSync("ffprobe", [...size, join(frames, "frame-000000.png")], { encoding: "utf8" }),
   ).streams[0];
 
   console.log(`Encoding ${count} frames at ${width}x${height}...`);
-  const outputs = {};
+  const outputs = [];
   for (const hevc of args.h264 ? [true, false] : [true]) {
-    const file = join(args.output, `${args.scene}-hdr${hevc ? "" : "-h264"}.mp4`);
-    const framePattern = join(frames, "frame-%06d.exr");
+    const output = join(args.output, `${args.scene}-hdr${hevc ? "" : "-h264"}.mp4`);
+    const framePattern = join(frames, "frame-%06d.png");
     run(
       "ffmpeg",
-      hdrEncodeArgs({
-        framePattern,
-        audio: sound,
-        output: file,
-        fps: args.fps,
-        width,
-        height,
-        hevc,
-      }),
+      hdrEncodeArgs({ framePattern, audio: sound, output, fps: args.fps, width, height, hevc }),
     );
-    const stream = probe(file);
-    outputs[hevc ? "hevc" : "h264"] = { file, codec: stream.codec_name, profile: stream.profile };
+    checkTags(output);
+    outputs.push(output);
   }
   if (!args["keep-frames"]) rmSync(frames, { recursive: true });
-  const report = join(args.output, `${args.scene}-hdr.report.json`);
-  const clip = {
-    fromMs: args["from-ms"] ?? null,
-    toMs: args["to-ms"] ?? null,
-    fps: Number(args.fps),
-  };
-  writeFileSync(
-    report,
-    JSON.stringify(
-      { scene: args.scene, runDir: args.runDir, frames: count, width, height, clip, outputs },
-      null,
-      2,
-    ) + "\n",
-  );
-  console.log(
-    `\nHDR clip, tagged HLG: ${Object.values(outputs)
-      .map((o) => o.file)
-      .join(", ")}\nReport: ${report}`,
-  );
+  console.log(`\nHDR clip, tagged HLG: ${outputs.join(", ")}`);
 }
 
 try {

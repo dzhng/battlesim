@@ -203,17 +203,20 @@ impl FogMaskResources {
         );
     }
 
-    /// Encode the optional seen-side rim over the completed display target.
-    pub fn encode_rim(&self, encoder: &mut CommandEncoder, targets: &Targets) {
+    /// Encode the optional seen-side rim over the completed look: the display,
+    /// or as an HLG signal the HDR look's target (`PostResources::hdr_output`).
+    pub fn encode_rim(
+        &self,
+        encoder: &mut CommandEncoder,
+        targets: &Targets,
+        hdr_output: Option<&TextureView>,
+    ) {
         if self.record.has_rim() && self.mask_view == FogMaskView::None {
-            draw(encoder, &self.rim, &targets.display, None, LoadOp::Load);
-        }
-    }
-
-    /// Encode the optional seen-side rim over the HDR look's target.
-    pub fn encode_rim_hdr(&self, encoder: &mut CommandEncoder, hdr_output: &TextureView) {
-        if self.record.has_rim() && self.mask_view == FogMaskView::None {
-            draw(encoder, &self.rim_hdr, hdr_output, None, LoadOp::Load);
+            let (rim, output) = match hdr_output {
+                Some(hdr) => (&self.rim_hdr, hdr),
+                None => (&self.rim, &targets.display),
+            };
+            draw(encoder, rim, output, None, LoadOp::Load);
         }
     }
 }

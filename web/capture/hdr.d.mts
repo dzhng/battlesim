@@ -1,5 +1,3 @@
-export const HLG_HEVC: string[];
-export const HLG_H264: string[];
 export function hdrEncodeArgs(options: {
   framePattern: string;
   audio: string | null;
@@ -10,4 +8,4 @@ export function hdrEncodeArgs(options: {
   hevc?: boolean;
 }): string[];
 export function hdrProbeArgs(file: string): string[];
-export function verifyHdrMetadata(probe: unknown): { valid: boolean; errors: string[] };
+export function hlgTagErrors(probe: unknown): string[];

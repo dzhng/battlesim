@@ -199,6 +199,8 @@ fn blurShader(uv: vec2f) -> vec4f {
 // HLG signal: the BT.2100 inverse OOTF for a 1000-nit display (system gamma 1.2)
 // gives scene light in [0, 1], which the ARIB STD-B67 OETF encodes. Reference
 // white lands at 0.75 and 1000/203 at 1.0.
+const BT2020_LUMA = vec3f(0.2627, 0.6780, 0.0593);
+
 fn hlgOetf(e: f32) -> f32 {
   if (e <= 1.0 / 12.0) {
     return sqrt(3.0 * e);
@@ -208,7 +210,7 @@ fn hlgOetf(e: f32) -> f32 {
 
 fn hlgSignal(display: vec3f) -> vec3f {
   let ed = display * (203.0 / 1000.0);
-  let yd = max(dot(ed, vec3f(0.2627, 0.6780, 0.0593)), 1e-6);
+  let yd = max(dot(ed, BT2020_LUMA), 1e-6);
   let es = clamp(ed * pow(yd, (1.0 - 1.2) / 1.2), vec3f(0.0), vec3f(1.0));
   return vec3f(hlgOetf(es.r), hlgOetf(es.g), hlgOetf(es.b));
 }
@@ -219,7 +221,7 @@ fn hlgSignal(display: vec3f) -> vec3f {
 fn hdrTonemap(color: vec3f, exposure: f32) -> vec3f {
   let sdrBase = agxDisplay(color, exposure);
   let luma = max(dot(color * exposure, LUMA), 0.0001);
-  let sdrLuma = max(dot(sdrBase, vec3f(0.2627, 0.6780, 0.0593)), 0.0001);
+  let sdrLuma = max(dot(sdrBase, BT2020_LUMA), 0.0001);
   let peakWhite = 5.0;
   let highlightRolloff = luma / (luma + 1.0) * (1.0 + luma / peakWhite);
   let highlightLuma = min(highlightRolloff, peakWhite);
