@@ -2,7 +2,7 @@
 //! speeds, or through the air by its flight model.
 use serde::{Deserialize, Serialize};
 
-use super::AltitudeLayer;
+use super::{at_least_zero, positive, AltitudeLayer};
 
 /// No ground mover's top speed may exceed this (light wheeled vehicles do 110).
 pub const MAX_SPEED_KMH: f64 = 130.0;
@@ -146,4 +146,61 @@ impl Mobility {
         let (offroad, road) = self.speeds_kmh();
         (offroad / 3.6, road / 3.6)
     }
+}
+
+/// Why no flight law flies `flight` in `layer` yet, naming the data it
+/// lacks; None for a pair the simulation flies.
+fn unflown(layer: AltitudeLayer, flight: FlightModel) -> Option<&'static str> {
+    match (layer, flight) {
+        (AltitudeLayer::HighAir, FlightModel::Rotor) => Some(
+            "mobility: a rotor aircraft in high air has no flight law yet (rotors fly low air)",
+        ),
+        (AltitudeLayer::LowAir, FlightModel::FixedWing) => Some(
+            "mobility: a fixed-wing aircraft in low air has no flight law yet: low air has no fixed-wing cruise height, floor or pass ceilings (air.low_air)",
+        ),
+        _ => None,
+    }
+}
+
+/// Why an aircraft's mobility can't be flown: its layer, flight model and
+/// numbers in the ranges the simulation divides and eases by. None for a
+/// ground mover and for an aircraft it flies.
+pub(super) fn air_problem(mobility: &Mobility) -> Option<&'static str> {
+    let Mobility::Air {
+        cruise_kmh,
+        turn_deg_s,
+        climb_mps,
+        layer,
+        flight,
+        arrival,
+        cruise_agl_m,
+    } = *mobility
+    else {
+        return None;
+    };
+    if layer == AltitudeLayer::Ground {
+        return Some(
+            "mobility: an aircraft flies in low_air or high_air; in the ground layer it would sit at 0 m, a target for nothing",
+        );
+    }
+    if let Some(missing) = unflown(layer, flight) {
+        return Some(missing);
+    }
+    if cruise_agl_m.is_some_and(|h| !positive(h)) {
+        return Some("mobility: an aircraft's cruise_agl_m must be positive");
+    }
+    if arrival.is_some_and(|a| {
+        let [min, max] = a.delay_s;
+        !(at_least_zero(min) && at_least_zero(max) && min <= max)
+    }) {
+        return Some("mobility: arrival.delay_s must be [min, max] with 0 <= min <= max");
+    }
+    // Admission checks its flight model's speed envelope.
+    if !positive(cruise_kmh) {
+        return Some("mobility: an aircraft's cruise_kmh must be positive");
+    }
+    if !positive(turn_deg_s) || !positive(climb_mps) {
+        return Some("mobility: an aircraft's turn_deg_s and climb_mps must be positive");
+    }
+    None
 }

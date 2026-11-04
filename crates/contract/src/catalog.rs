@@ -32,6 +32,7 @@ pub mod inheritance;
 pub use inheritance::inherit;
 
 mod mobility;
+use mobility::air_problem;
 pub use mobility::{Arrival, FlightModel, Mobility, MAX_SPEED_KMH};
 mod sensors;
 pub use sensors::Sensors;
@@ -1346,59 +1347,16 @@ fn check(
     ranges(t).map_or(Ok(()), rule)
 }
 
-/// Why no flight law flies `flight` in `layer` yet, naming the data it
-/// lacks; None for a pair the simulation flies.
-fn unflown(layer: AltitudeLayer, flight: FlightModel) -> Option<&'static str> {
-    match (layer, flight) {
-        (AltitudeLayer::HighAir, FlightModel::Rotor) => Some(
-            "mobility: a rotor aircraft in high air has no flight law yet (rotors fly low air)",
-        ),
-        (AltitudeLayer::LowAir, FlightModel::FixedWing) => Some(
-            "mobility: a fixed-wing aircraft in low air has no flight law yet: low air has no fixed-wing cruise height, floor or pass ceilings (air.low_air)",
-        ),
-        _ => None,
-    }
-}
-
 /// A type's numbers in the ranges the simulation divides and eases by.
 fn ranges(t: &UnitType) -> Option<&'static str> {
     let s = t.sensors.sight_shape;
     let (offroad_kmh, road_kmh) = t.mobility.speeds_kmh();
-    if let Mobility::Air {
-        cruise_kmh,
-        turn_deg_s,
-        climb_mps,
-        layer,
-        flight,
-        arrival,
-        cruise_agl_m,
-    } = t.mobility
+    if let Some(problem) = air_problem(&t.mobility) {
+        return Some(problem);
+    }
+    if !matches!(t.mobility, Mobility::Air { .. })
+        && !(offroad_kmh > 0.0 && road_kmh >= offroad_kmh && road_kmh <= MAX_SPEED_KMH)
     {
-        if layer == AltitudeLayer::Ground {
-            return Some(
-                "mobility: an aircraft flies in low_air or high_air; in the ground layer it would sit at 0 m, a target for nothing",
-            );
-        }
-        if let Some(missing) = unflown(layer, flight) {
-            return Some(missing);
-        }
-        if cruise_agl_m.is_some_and(|h| !positive(h)) {
-            return Some("mobility: an aircraft's cruise_agl_m must be positive");
-        }
-        if arrival.is_some_and(|a| {
-            let [min, max] = a.delay_s;
-            !(at_least_zero(min) && at_least_zero(max) && min <= max)
-        }) {
-            return Some("mobility: arrival.delay_s must be [min, max] with 0 <= min <= max");
-        }
-        // Admission checks its flight model's speed envelope.
-        if !positive(cruise_kmh) {
-            return Some("mobility: an aircraft's cruise_kmh must be positive");
-        }
-        if !positive(turn_deg_s) || !positive(climb_mps) {
-            return Some("mobility: an aircraft's turn_deg_s and climb_mps must be positive");
-        }
-    } else if !(offroad_kmh > 0.0 && road_kmh >= offroad_kmh && road_kmh <= MAX_SPEED_KMH) {
         return Some("mobility: speeds must satisfy 0 < offroad_kmh <= road_kmh <= 130");
     }
     let bad = match t.mobility {
