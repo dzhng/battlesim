@@ -43,6 +43,12 @@ which existing tests can go, use [audit-tests](../audit-tests/SKILL.md).
   signature — field shapes, rejected argument types — can only fail if the
   compiler failed first. Spend the budget on business rules, arithmetic,
   branching, ordering, edge cases, side effects.
+- **Not presentation.** Class names, styles and copy are content, not logic.
+  Checking them as strings only repeats the source: the test breaks on every
+  design or wording edit and passes when the page looks wrong. Check
+  appearance by looking at it: extend the visual test that already covers that
+  part of the UI, or add one. Add a behavioural test only if the change also
+  alters behaviour or accessibility.
 - **Actual values, not collection sizes.** For dedup/normalize/idempotency
   paths, `length == 1` passes even when normalization is broken; also assert
   the stored value equals the expected canonical form.
@@ -205,6 +211,10 @@ confirm green. Verify the revert actually took: a stash or checkout with a
 wrong pathspec reverts nothing, silently, and the "red" run quietly tests the
 fixed code. The tell: the "red" numbers equal the green numbers.
 
+For a screenshot test, confirm the capture differs before and after at the
+state you changed. A screenshot taken in a different state than the one you
+changed proves nothing.
+
 ## When a test goes red after a change
 
 Triage in order of likelihood before editing anything:
@@ -242,3 +252,5 @@ Walk this on any test diff, apply fixes in the same pass, re-run the suite:
 9. Does an interface change come with both a geometry contract and an approved
    picture of every state it touched, and did a person look at the picture? →
    add the missing half; never re-approve to pass.
+10. Does it check a class name, style or line of copy as a string? → delete
+    it; check appearance with a screenshot.

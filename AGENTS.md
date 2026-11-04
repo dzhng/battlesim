@@ -47,6 +47,8 @@ Write the test first for behavior changes and regressions. Use
 and how it fails, not how the code is shaped. The tests test mechanics not
 configuration. A roster, a loadout or a stat is data that is meant to change; a
 test that pins one breaks on the next retune and proves nothing about the game.
+Presentation is data too: a class name is no more logic than a marketing
+headline, so never test it as a string.
 
 The simulation is deterministic, and the battle digest is the proof. A change
 that should not alter outcomes must leave digests and replays unchanged, or be
