@@ -11,7 +11,7 @@
 //! under the control plate's name. Then the last frame is drawn and presented
 //! `--pace` more times, and the report says how presenting went. The window
 //! opens off-screen unless told otherwise. With `--sound`, the battle's
-//! sound is heard through every record at the reel's own times and rendered
+//! sound is heard through every frame at the reel's own times and rendered
 //! to that file (never played aloud).
 //!
 //! With `--bench`, every frame record is framed and drawn back to back without
@@ -555,7 +555,7 @@ impl Run {
     fn plate_step(&mut self, out: &Path) -> Result<bool, String> {
         while let Some(record) = self.replay.records.get(self.next).cloned() {
             self.next += 1;
-            self.advance(&record)?;
+            self.advance(&record, None)?;
             let Some(plate) = record.plate.clone() else {
                 continue;
             };
@@ -611,20 +611,20 @@ impl Run {
         Ok(false)
     }
 
-    /// Plays every record up to the clip's next frame time and writes that
-    /// frame; false once the clip is done.
+    /// Writes the clip's next frame: the battle at its reel time on the
+    /// reel's clock, through the camera of the last record drawn by then (the
+    /// first before any); false once the clip is done.
     fn clip_step(&mut self, clip: &Clip, out: &Path) -> Result<bool, String> {
-        let last = self.replay.records.last().map_or(0.0, |r| r.reel_ms);
+        let records = &self.replay.records;
+        let last = records.last().map_or(0.0, |r| r.reel_ms);
         let Some(at) = clip.frame_ms(self.written, last) else {
             return Ok(false);
         };
-        while let Some(record) = self.replay.records.get(self.next).cloned() {
-            if record.reel_ms > at {
-                break;
-            }
+        while records.get(self.next).is_some_and(|r| r.reel_ms <= at) {
             self.next += 1;
-            self.advance(&record)?;
         }
+        let record = records[self.next.max(1) - 1].clone();
+        self.advance(&record, Some(at))?;
         self.prepare()?;
         self.write_frame(&out.join(format!("frame-{:06}.png", self.written)))?;
         if self.written.is_multiple_of(clip.fps as usize) {
@@ -633,17 +633,22 @@ impl Run {
         Ok(true)
     }
 
-    /// Plays one record into the presentation and its sound.
-    fn advance(&mut self, record: &Record) -> Result<(), String> {
+    /// Plays one record into the presentation and its sound: as the page
+    /// drew it, or at a clip's reel time `clip_ms` on the reel's clock.
+    fn advance(&mut self, record: &Record, clip_ms: Option<f64>) -> Result<(), String> {
         // The reel's wall time is both the sound's wall and its mixer clock.
-        let now = record.reel_ms / 1000.0;
+        let now = clip_ms.unwrap_or(record.reel_ms) / 1000.0;
         let mut sound = self.sound.as_mut();
-        self.replay
-            .frame(record, self.scene.static_generation(), |p| {
-                if let Some(audio) = sound.as_mut() {
-                    audio.note(p, now);
-                }
-            })?;
+        let heard = |p: &_| {
+            if let Some(audio) = sound.as_mut() {
+                audio.note(p, now);
+            }
+        };
+        let generation = self.scene.static_generation();
+        match clip_ms {
+            Some(at) => self.replay.frame_on_reel(record, at, generation, heard),
+            None => self.replay.frame(record, generation, heard),
+        }?;
         if let Some(audio) = self.sound.as_mut() {
             audio.hear(self.replay.presentation(), now, now);
         }

@@ -203,7 +203,9 @@ at a fixed frame rate, with the replay's own sound
 ([native client](../../../../native/client/README.md)). The script
 ([`web/capture/hdr-capture.mjs`](../../../../web/capture/hdr-capture.mjs)) owns
 its flags. Clip frames are on the reel's clock, not the wall's, so a slow
-machine is slower to finish, never choppier.
+machine is slower to finish, never choppier, and the battle in them is on it
+too: units move at even steps with the camera rather than at the jittery times
+the page drew them.
 
 **The look is encoded once, in the renderer.** A runtime built with
 `hdr_output` sends its look to a half-float target instead of the display: the

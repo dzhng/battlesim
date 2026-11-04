@@ -64,8 +64,15 @@ listing each difference after the report. Its argument parser (`args` in
 lock.
 
 `--fps` writes a clip instead of the plates: frames on the reel's clock over a
-window of it, each showing every record up to its time, with the sound cut to
-the same window. `--hdr` writes each plate or frame as the HDR look's HLG
+window of it, with the sound cut to the same window. A record's sim time is the
+page's presentation clock, read off its wall clock, which jitters by up to a
+frame against the reel its camera is keyed to; drawn at it, a fast unit
+judders against the camera. So a clip frame draws the battle at its own reel
+time plus the run's median lead of sim time over reel time (`ReelClock` in
+[`capture.rs`](src/capture.rs)), through the camera of the last record drawn
+by then, with the publications that time needs. Frames at even reel steps are
+at even sim steps, and none draws past the run's last publication. Plates and
+benches still draw each record at its own sim time, as the page did. `--hdr` writes each plate or frame as the HDR look's HLG
 signal in a 16-bit PNG rather than the display (see the [capture
 README](../../apps/battle-lab/src/capture/README.md#hdr-clips)).
 
