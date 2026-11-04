@@ -432,19 +432,37 @@ impl Replay {
         {
             self.push_next(&mut heard)?;
         }
-        self.draw(record, record.sim_time, generation)
+        self.draw(&self.camera(record), record.sim_time, generation)
     }
 
-    /// The record whose camera reel time `reel_ms` is seen through: the last
-    /// the page drew by then, or before its first (the reel starts a frame
-    /// before the page records one) the first; none without records.
-    pub fn record_at(&self, reel_ms: f64) -> Option<&Record> {
+    /// The camera reel time `reel_ms` is seen through: the last the page
+    /// drew by then. Before its first record (the reel starts a frame before
+    /// the page records one) the page drew none, so its first camera is
+    /// carried back along its first two records' motion to that time: a
+    /// frame's camera is of the same moment as its battle. None without
+    /// records.
+    pub fn camera_at(&self, reel_ms: f64) -> Option<Camera> {
         let drawn = self.records.partition_point(|r| r.reel_ms <= reel_ms);
-        self.records.get(drawn.saturating_sub(1))
+        if let (0, [first, second, ..]) = (drawn, &self.records[..]) {
+            if second.reel_ms > first.reel_ms {
+                let k = (reel_ms - first.reel_ms) / (second.reel_ms - first.reel_ms);
+                let along =
+                    |a: [f64; 3], b: [f64; 3]| std::array::from_fn(|i| a[i] + (b[i] - a[i]) * k);
+                let up = along(first.up, second.up);
+                let length = up.iter().map(|v| v * v).sum::<f64>().sqrt();
+                return Some(Camera {
+                    eye: along(first.eye, second.eye),
+                    target: along(first.target, second.target),
+                    up: up.map(|v| v / length),
+                    ..self.camera(first)
+                });
+            }
+        }
+        Some(self.camera(self.records.get(drawn.saturating_sub(1))?))
     }
 
-    /// Frames reel time `reel_ms` of a clip through the camera of the record
-    /// at it (`record_at`): the battle at the reel clock's time, with the
+    /// Frames reel time `reel_ms` of a clip through the camera at it
+    /// (`camera_at`): the battle at the reel clock's time, with the
     /// publications that time blends toward pushed, `heard` after each. The
     /// time stops at the run's last publication; the presentation never
     /// draws past the newest it has, as the page's clock never does.
@@ -454,10 +472,9 @@ impl Replay {
         generation: u32,
         mut heard: impl FnMut(&Presentation),
     ) -> Result<&Frame, String> {
-        let (Some(clock), Some(record)) = (self.clock, self.record_at(reel_ms).cloned()) else {
+        let (Some(clock), Some(camera)) = (self.clock, self.camera_at(reel_ms)) else {
             return Err("a capture without frames has no reel".into());
         };
-        let record = &record;
         let time = clock.sim_time(reel_ms);
         let latest = |r: &Self| {
             r.pushed
@@ -466,7 +483,7 @@ impl Replay {
         };
         while latest(self).is_none_or(|t| t < time) && self.push_next(&mut heard)? {}
         let time = latest(self).map_or(time, |t| time.min(t));
-        self.draw(record, time, generation)
+        self.draw(&camera, time, generation)
     }
 
     /// Pushes the next publication, `heard` after it; false when the run
@@ -481,15 +498,14 @@ impl Replay {
         Ok(true)
     }
 
-    /// Asks for the frame at sim time `time` through `record`'s camera, for
+    /// Asks for the frame at sim time `time` through `camera`, for
     /// a renderer at `generation` (`Presentation::frame`): a new one is
     /// written every static batch, the same one only what changed. Then, as
     /// the page's simulation exports it, fog's foliage follows the ground the
     /// side has seen cleared, from the next frame on.
-    fn draw(&mut self, record: &Record, time: f64, generation: u32) -> Result<&Frame, String> {
-        let camera = self.camera(record);
+    fn draw(&mut self, camera: &Camera, time: f64, generation: u32) -> Result<&Frame, String> {
         self.presentation
-            .frame(time, &camera, &Ui::default(), generation)?;
+            .frame(time, camera, &Ui::default(), generation)?;
         // Fog's foliage is the side's: less the trees on ground it has seen
         // cleared, as the page re-exports it.
         if let (Some(world), Some(learned)) = (&self.world, self.presentation.learned()) {

@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use native_client::bundle::Library;
 use native_client::capture::Replay;
 use presentation::assets::RUNTIME;
+use presentation::view::View;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
@@ -20,6 +21,8 @@ const FRAME_MS: f64 = 1000.0 / 60.0;
 /// The page's clock: this far ahead of the reel at most, by `JITTER_MS` behind at least.
 const LEAD_S: f64 = 2.0;
 const JITTER_MS: [f64; 4] = [0.0, 9.0, 15.0, 4.0];
+/// The page's camera pans along x at this speed, as the reel moves it.
+const PAN_MPS: f64 = 60.0;
 
 /// The fixture run with `records` page frames: one every `FRAME_MS`, but
 /// for one the page skipped, its clock behind the reel by a jitter that
@@ -43,6 +46,10 @@ fn jittered(name: &str, records: usize, samples: usize) -> (PathBuf, f64, f64) {
             // Warming up, the page's clock holds at its first reading.
             sim_time = if k <= 3 { LEAD_S } else { sim_time.max(page) };
             let mut frame = template.clone();
+            for key in ["eye", "target"] {
+                let x = frame[key][0].as_f64().unwrap();
+                frame[key][0] = Value::from(x + PAN_MPS * reel_ms / 1000.0);
+            }
             frame["index"] = Value::from(index);
             frame["reelMs"] = Value::from(reel_ms);
             frame["simTime"] = Value::from(sim_time);
@@ -128,31 +135,58 @@ fn a_clip_stops_at_the_runs_last_publication() {
 }
 
 #[test]
-fn a_clips_first_frame_shows_the_battle_through_the_pages_first_camera() {
-    // The reel starts a frame before the page records one: its first frame
-    // is still the battle, seen as the page's first record saw it, never the
-    // empty sky.
+fn a_clips_first_frame_shows_the_battle_and_the_camera_of_its_own_moment() {
+    // The reel starts a frame before the page records one. The clip's first
+    // frame is still the battle (never the empty sky), and its camera is of
+    // the same moment as its battle: from frame 0 on, the camera, the
+    // battle's clock and the units each move one even step a frame.
     let (dir, _, _) = jittered("first", 12, usize::MAX);
     let library = Library::open(Path::new(RUNTIME)).unwrap();
     let mut replay = Replay::open(&dir, &library).unwrap();
-    let first = replay.records[0].reel_ms;
     assert!(
-        first > 0.0,
+        replay.records[0].reel_ms > 0.0,
         "the page's first record is a frame into the reel"
     );
-    let view = |r: &mut Replay, at: f64| {
-        let frame = r.frame_on_reel(at, 0, |_| {}).unwrap();
-        bytemuck::bytes_of(&frame.view).to_vec()
+    let mut frames = Vec::new();
+    for k in 0..4 {
+        let at = k as f64 * FRAME_MS;
+        let camera = replay.camera_at(at).unwrap();
+        let frame = replay.frame_on_reel(at, 0, |_| {}).unwrap();
+        let view = bytemuck::bytes_of(&frame.view).to_vec();
+        assert_eq!(
+            view,
+            bytemuck::bytes_of(&View::new(&camera).record(&camera)).to_vec()
+        );
+        let units: Vec<[f32; 4]> = frame.emitters.iter().map(|e| e.position).collect();
+        assert!(!units.is_empty(), "frame {k} draws no battle");
+        frames.push((camera.eye[0], frame.clock, units));
+    }
+    let step = |k: usize, of: &dyn Fn(usize) -> f64| of(k + 1) - of(k);
+    let even = |what: &str, of: &dyn Fn(usize) -> f64| {
+        let (first, steady) = (step(0, of), step(1, of));
+        assert!(
+            (first - steady).abs() < 1e-6,
+            "{what}: frame 0 to 1 {first}, then {steady}"
+        );
     };
-    let at_start = view(&mut replay, 0.0);
-    assert!(
-        replay.presentation().observation().is_some(),
-        "no battle at the reel's start"
-    );
-    assert_eq!(
-        at_start,
-        view(&mut replay, first),
-        "not the first record's camera"
-    );
+    even("camera", &|k| frames[k].0);
+    even("clock", &|k| frames[k].1);
+    // A unit's speed changes from one tick to the next (and a soldier sways
+    // centimetres), but drawing a whole tick ahead or behind would make a
+    // moving unit's step none or about twice the next.
+    for unit in 0..frames[0].2.len() {
+        let moved = |k: usize| {
+            let (a, b) = (frames[k].2[unit], frames[k + 1].2[unit]);
+            (0..3)
+                .map(|i| f64::from(b[i] - a[i]).powi(2))
+                .sum::<f64>()
+                .sqrt()
+        };
+        let (first, steady) = (moved(0), moved(1));
+        assert!(
+            (first - steady).abs() <= 0.5 * steady + 0.05,
+            "unit {unit}: frame 0 to 1 {first} m, then {steady} m"
+        );
+    }
     fs::remove_dir_all(dir).unwrap();
 }
