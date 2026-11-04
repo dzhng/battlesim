@@ -272,8 +272,9 @@ impl FrameRenderer {
                     }
                 }
                 FrameStage::FogRim => {
-                    if inputs.frame_view.post_mode().is_some() {
-                        inputs.fog_mask.encode_rim(encoder, inputs.targets);
+                    if let Some(mode) = inputs.frame_view.post_mode() {
+                        let hdr = inputs.post.hdr_output(mode);
+                        inputs.fog_mask.encode_rim(encoder, inputs.targets, hdr);
                     }
                 }
             }

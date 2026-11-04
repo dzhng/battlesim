@@ -164,5 +164,12 @@ pub fn all() -> Vec<PipelineSpec> {
             Some(vertex(None, vec![])),
             Some(fragment(None, vec![target(DISPLAY_FORMAT)])),
         ),
+        render(
+            "postHdr",
+            "postHdr.wgsl",
+            vec!["finalLayout"],
+            Some(vertex(None, vec![])),
+            Some(fragment(None, vec![target(HDR_FORMAT)])),
+        ),
     ]
 }

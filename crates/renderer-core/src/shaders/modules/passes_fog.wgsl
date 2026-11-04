@@ -307,6 +307,11 @@
   return rimAt(pos.xy);
 }
 
+// @block passes_fog_fogRimHdrFragment
+@fragment fn fogRimHdrFragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+  return rimAtHdr(pos.xy);
+}
+
 // @block passes_fog_fogDistanceColumnsFragment
 @fragment fn fogDistanceColumnsFragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   return distanceColumns(pos.xy);

@@ -34,3 +34,8 @@
 @fragment fn blurFragment(input: ScreenFragmentInput) -> @location(0) vec4f {
   return blurShader(input.uv);
 }
+
+// @block passes_post_hdrFragment
+@fragment fn hdrFragment(input: ScreenFragmentInput) -> @location(0) vec4f {
+  return hdrShader(input.uv);
+}

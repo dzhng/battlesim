@@ -49,6 +49,9 @@ pub struct RuntimeConfig {
     pub xray_min_hidden_fraction: Option<f32>,
     pub paint: Option<crate::paint::Paint>,
     pub separate_high_air: bool,
+    /// Encode the look as an HLG signal into a half-float target
+    /// (`post.hdr_output()`) rather than the display, for HDR video.
+    pub hdr_output: bool,
     pub water_detail: WaterDetail,
     pub controls: Controls,
 }
@@ -209,6 +212,7 @@ impl Runtime {
             &targets,
             bytemuck::bytes_of(&config.light.bloom()),
             bytemuck::bytes_of(&config.light.grade()),
+            config.hdr_output,
         );
         let overlay_glow = crate::records::OverlayGlow::default();
         let overlays = overlay::new(device, queue, &pipelines, &targets, &overlay_glow);
@@ -481,6 +485,7 @@ impl Runtime {
             &self.targets,
             bytemuck::bytes_of(&self.config.light.bloom()),
             bytemuck::bytes_of(&self.config.light.grade()),
+            self.config.hdr_output,
         );
         self.fog_mask = fog_mask::fog_mask(
             device,

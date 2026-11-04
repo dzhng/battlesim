@@ -25,7 +25,7 @@ Subsystem READMEs own commands and contracts for their code.
 | [Map workbench](apps/map-workbench/README.md)             | Developer tool: tunes generation on a live top-down plan.                                            |
 | [Sound workbench](apps/sound-workbench/README.md)         | Developer tool: auditions looks and movement, and edits library recipes.                       |
 | [Fixture publication](apps/fixture-publication/README.md) | Reviewed fixture saves from the developer tools, and interrupted-write recovery.                     |
-| [Capture tool](apps/battle-lab/src/capture/README.md)     | Developer tool: films saved encounters into MP4s from a JSON capture file; the menu backdrop is one. |
+| [Capture tool](apps/battle-lab/src/capture/README.md)     | Developer tool: films saved encounters into MP4s from a JSON capture file (the menu backdrop is one), and HDR clips of a native replay. |
 
 Commands, flags, paths, and dependency versions belong in the manifest or README
 that owns them, not in this document.

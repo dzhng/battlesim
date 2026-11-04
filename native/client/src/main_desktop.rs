@@ -25,7 +25,7 @@ use std::time::{Duration, Instant};
 use native_client::audio::{self, Audio, OutputSettings};
 use native_client::bench::{self, Bench};
 use native_client::bundle::Library;
-use native_client::capture::Replay;
+use native_client::capture::{Record, Replay};
 use native_client::counts::Counted;
 use native_client::gpu::{self, Gpu};
 use presentation::assets::RUNTIME;
@@ -86,7 +86,7 @@ mod count_verdict_tests {
 
 struct Args {
     scene: PathBuf,
-    /// Where plates are written; absent for a bench.
+    /// Where plates or clip frames are written; absent for a bench.
     out: Option<PathBuf>,
     /// Where a bench's report is written.
     bench: Option<PathBuf>,
@@ -95,6 +95,12 @@ struct Args {
     window: String,
     pace: usize,
     sound: Option<PathBuf>,
+    /// Write the HDR look's HLG signal as 16-bit PNGs rather than the display.
+    hdr: bool,
+    /// Leave the music out of the sound.
+    no_music: bool,
+    /// Frames at a fixed rate over a window of the reel, instead of plates.
+    clip: Option<Clip>,
 }
 
 /// Resolve native runtime files without relying on the build machine's path.
@@ -129,6 +135,7 @@ fn args() -> Result<Args, String> {
     let (mut scene, mut out, mut window, mut pace) = (None, None, "offscreen".to_owned(), 120);
     let (mut sound, mut bench) = (None, None);
     let (mut freeze_index, mut bench_frames) = (None, None);
+    let (mut hdr, mut no_music, mut fps, mut from_ms, mut to_ms) = (false, false, None, None, None);
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
         let mut value = || it.next().ok_or(format!("{flag} needs a value"));
@@ -154,6 +161,11 @@ fn args() -> Result<Args, String> {
                         .map_err(|e| format!("{flag}: {e}"))?,
                 );
             }
+            "--hdr" => hdr = true,
+            "--no-music" => no_music = true,
+            "--fps" => fps = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),
+            "--from-ms" => from_ms = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),
+            "--to-ms" => to_ms = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),
             other => return Err(format!("unknown argument {other}")),
         }
     }
@@ -175,6 +187,10 @@ fn args() -> Result<Args, String> {
     if let Some(frames) = bench_frames {
         bench::reported_draws(frames).map_err(|e| format!("--bench-frames: {e}"))?;
     }
+    if bench.is_some() && (hdr || fps.is_some()) {
+        return Err("a bench writes no frames: --hdr and --fps need --out".into());
+    }
+    let clip = Clip::new(fps, from_ms, to_ms)?;
     Ok(Args {
         scene: run
             .ok_or("--run is required")?
@@ -185,6 +201,9 @@ fn args() -> Result<Args, String> {
         window,
         pace,
         sound,
+        hdr,
+        no_music,
+        clip,
     })
 }
 
@@ -205,7 +224,8 @@ struct Run {
     replay: Replay,
     next: usize,
     view: View,
-    plates: usize,
+    /// Plates, or clip frames, written so far.
+    written: usize,
     count_mismatches: Vec<String>,
     paced: usize,
     presents: Presents,
@@ -326,6 +346,7 @@ impl Run {
             xray_min_hidden_fraction: None,
             paint: None,
             separate_high_air: false,
+            hdr_output: args.hdr,
             water_detail: Default::default(),
             controls: Default::default(),
         };
@@ -375,7 +396,7 @@ impl Run {
                     &read(&fixtures.join("sounds.json").to_string_lossy())?,
                 )?;
                 let output = OutputSettings::Buffer(audio::SAMPLE_RATE);
-                Some(Audio::new(&setup, &runtime, output)?)
+                Some(Audio::new(&setup, &runtime, output, args.no_music)?)
             }
         };
         Ok(Self {
@@ -386,7 +407,7 @@ impl Run {
             replay,
             next: 0,
             view: View::default(),
-            plates: 0,
+            written: 0,
             count_mismatches: Vec::new(),
             paced: 0,
             presents: Presents::default(),
@@ -506,20 +527,35 @@ impl Run {
             return self.bench_step(args);
         }
         let out = args.out.as_ref().ok_or("--out is required")?;
+        let wrote = match &args.clip {
+            Some(clip) => self.clip_step(clip, out)?,
+            None => self.plate_step(out)?,
+        };
+        if wrote {
+            return Ok(true);
+        }
+        if self.paced < args.pace {
+            self.paced += 1;
+            let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
+            self.scene.encode(
+                &self.gpu.device,
+                &self.gpu.queue,
+                &self.view,
+                &mut encoder,
+                Default::default(),
+            );
+            self.present(encoder);
+            return Ok(true);
+        }
+        Ok(false)
+    }
+
+    /// Plays records up to the next plate, checks its counts against the
+    /// browser's and writes it; false once the reel has no plate left.
+    fn plate_step(&mut self, out: &Path) -> Result<bool, String> {
         while let Some(record) = self.replay.records.get(self.next).cloned() {
             self.next += 1;
-            // The reel's wall time is both the sound's wall and its mixer clock.
-            let now = record.reel_ms / 1000.0;
-            let mut sound = self.sound.as_mut();
-            self.replay
-                .frame(&record, self.scene.static_generation(), |p| {
-                    if let Some(audio) = sound.as_mut() {
-                        audio.note(p, now);
-                    }
-                })?;
-            if let Some(audio) = self.sound.as_mut() {
-                audio.hear(self.replay.presentation(), now, now);
-            }
+            self.advance(&record)?;
             let Some(plate) = record.plate.clone() else {
                 continue;
             };
@@ -560,7 +596,6 @@ impl Run {
                         .push(format!("{plate} {what}: {got} against {listed}"));
                 }
             }
-            let (device, queue) = (&self.gpu.device, &self.gpu.queue);
             let scars = self.replay.presentation().scar_stats();
             println!(
                 "{plate}: drawn {drawn:?}, culled soldiers {}, effects {} and {} lights, scar pages {} ({})",
@@ -570,40 +605,49 @@ impl Run {
                 scars.pages,
                 if self.scene.ground.material.scars.regional() { "by region" } else { "at once" },
             );
-            let mut encoder = device.create_command_encoder(&Default::default());
-            self.scene
-                .encode(device, queue, &self.view, &mut encoder, Default::default());
-            let read = renderer_core::readback::RgbaReadback::encode(
-                device,
-                &mut encoder,
-                &self.scene.targets.display_texture,
-            )?;
-            queue.submit([encoder.finish()]);
-            let mut rgba = pollster::block_on(read.read(device))?;
-            // Native plates are opaque exports, independent of stored display alpha.
-            for pixel in rgba.as_chunks_mut::<4>().0 {
-                pixel[3] = 255;
-            }
-            output::write_png(&out.join(&plate), self.scene.targets.size, &rgba)?;
-            self.plates += 1;
-            let encoder = device.create_command_encoder(&Default::default());
-            self.present(encoder);
-            return Ok(true);
-        }
-        if self.paced < args.pace {
-            self.paced += 1;
-            let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
-            self.scene.encode(
-                &self.gpu.device,
-                &self.gpu.queue,
-                &self.view,
-                &mut encoder,
-                Default::default(),
-            );
-            self.present(encoder);
+            self.write_frame(&out.join(&plate))?;
             return Ok(true);
         }
         Ok(false)
+    }
+
+    /// Plays every record up to the clip's next frame time and writes that
+    /// frame; false once the clip is done.
+    fn clip_step(&mut self, clip: &Clip, out: &Path) -> Result<bool, String> {
+        let last = self.replay.records.last().map_or(0.0, |r| r.reel_ms);
+        let Some(at) = clip.frame_ms(self.written, last) else {
+            return Ok(false);
+        };
+        while let Some(record) = self.replay.records.get(self.next).cloned() {
+            if record.reel_ms > at {
+                break;
+            }
+            self.next += 1;
+            self.advance(&record)?;
+        }
+        self.prepare()?;
+        self.write_frame(&out.join(format!("frame-{:06}.png", self.written)))?;
+        if self.written.is_multiple_of(clip.fps as usize) {
+            println!("{} frames, reel {:.1} s", self.written, at / 1000.0);
+        }
+        Ok(true)
+    }
+
+    /// Plays one record into the presentation and its sound.
+    fn advance(&mut self, record: &Record) -> Result<(), String> {
+        // The reel's wall time is both the sound's wall and its mixer clock.
+        let now = record.reel_ms / 1000.0;
+        let mut sound = self.sound.as_mut();
+        self.replay
+            .frame(record, self.scene.static_generation(), |p| {
+                if let Some(audio) = sound.as_mut() {
+                    audio.note(p, now);
+                }
+            })?;
+        if let Some(audio) = self.sound.as_mut() {
+            audio.hear(self.replay.presentation(), now, now);
+        }
+        Ok(())
     }
 
     fn report(&mut self, args: &Args) -> Result<(), String> {
@@ -611,10 +655,18 @@ impl Run {
             return self.bench_report(args, dir);
         }
         if let Some(out) = &args.out {
-            println!("plates: {} written to {}", self.plates, out.display());
+            let what = if args.clip.is_some() {
+                "frames"
+            } else {
+                "plates"
+            };
+            println!("{what}: {} written to {}", self.written, out.display());
         }
         if let (Some(audio), Some(path)) = (&mut self.sound, &args.sound) {
-            let samples = audio.samples();
+            let samples = match &args.clip {
+                Some(clip) => clip.sound(audio.samples()),
+                None => audio.samples(),
+            };
             output::write_wav(path, samples)?;
             let seconds = samples.len() as f64 / 2.0 / f64::from(audio::SAMPLE_RATE);
             let (played, stats) = (audio.played(), audio.stats());
@@ -655,6 +707,10 @@ impl Run {
             at(0.95),
             ms.len()
         );
+        // A clip's frames are no plates, so it has no browser counts to meet.
+        if args.clip.is_some() {
+            return Ok(());
+        }
         count_verdict(&self.count_mismatches)
     }
 
@@ -737,9 +793,12 @@ fn count_verdict(mismatches: &[String]) -> Result<(), String> {
 
 #[path = "main_app.rs"]
 mod app;
+#[path = "main_clip.rs"]
+mod clip;
 #[path = "main_output.rs"]
 mod output;
 use app::App;
+use clip::Clip;
 
 pub fn run() {
     let result = args().and_then(|args| {

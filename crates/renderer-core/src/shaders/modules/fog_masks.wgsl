@@ -114,6 +114,14 @@ fn rimAt(pixel: vec2f) -> vec4f {
   return vec4f(s.rimColor, s.rimAlpha * cover * seen);
 }
 
+// @block fog_masks_rimAtHdr
+// The rim as `rimAt` draws it, as an HLG signal: its display colour is the
+// light it shows at reference white.
+fn rimAtHdr(pixel: vec2f) -> vec4f {
+  let rim = rimAt(pixel);
+  return vec4f(hlgSignal(rec709ToBt2020(srgbToLinear(rim.rgb))), rim.a);
+}
+
 // @block fog_masks_rows_columnsLayout
 @group(0) @binding(2) var rows: texture_2d<f32>;
 

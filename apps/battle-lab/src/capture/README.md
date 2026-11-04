@@ -191,3 +191,30 @@ so a run waits for other rendering jobs.
 The `capture` browser scene (`bun run --cwd web scene -- capture`) proves the
 recording path on its own, through the CLI's own receiver, and reports the
 frame rate as the CLI measures it. It is a tool, so the full verify skips it.
+
+## HDR clips
+
+`bun run --cwd web hdr-capture <run-dir> <scene>` makes an HDR clip of a
+recorded battle, for posting where phones show HDR (X on an iPhone). It is a
+second path, not a mode of the browser capture: the browser can't encode HDR
+video, so the release native client replays a native parity run (`bun run --cwd
+web scene -- native-parity-capture` writes one under `throwaway/native-parity/`)
+at a fixed frame rate, with the replay's own sound
+([native client](../../../../native/client/README.md)). The script
+([`web/capture/hdr-capture.mjs`](../../../../web/capture/hdr-capture.mjs)) owns
+its flags. Clip frames are on the reel's clock, not the wall's, so a slow
+machine is slower to finish, never choppier.
+
+**The look is encoded once, in the renderer.** A runtime built with
+`hdr_output` sends its look to a half-float target instead of the display: the
+same grade and AgX midtones as the SDR look, with highlights (muzzle flashes,
+fires, sun glints) rolled up past white toward the HLG peak and desaturated
+toward white as AgX does. The shader then applies the BT.2100 HLG encoding
+(reference white at 203 nits, signal 0.75; a 1000-nit peak at 1.0) in BT.2020
+primaries. The fog rim is drawn over it in the same signal. ffmpeg only
+converts the frames to 10-bit BT.2020 YUV and tags the stream, and the script
+refuses a stream whose tags say otherwise
+([`web/capture/hdr.mjs`](../../../../web/capture/hdr.mjs)).
+
+HLG rather than PQ: an SDR screen shows an HLG stream acceptably without
+tone-mapping metadata, and iPhone and X both recognize it.

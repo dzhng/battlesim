@@ -31,6 +31,16 @@ pub struct PostResources {
     bloom: Buffer,
     grade: Buffer,
     steps: Vec<Buffer>,
+    /// Where the look goes instead of the display when the runtime encodes
+    /// HDR video (`RuntimeConfig::hdr_output`).
+    hdr: Option<HdrOutput>,
+}
+
+/// The look as an HLG signal in BT.2020 primaries, in a half-float target a
+/// capture reads back.
+struct HdrOutput {
+    pipeline: RenderPipeline,
+    target: TextureView,
 }
 
 fn texture(device: &Device, label: &str, size: [u32; 2]) -> TextureView {
@@ -59,6 +69,7 @@ pub fn new(
     targets: &Targets,
     bloom_bytes: &[u8],
     grade_bytes: &[u8],
+    hdr_output: bool,
 ) -> PostResources {
     let sampler = device.create_sampler(&SamplerDescriptor {
         label: Some("post"),
@@ -148,6 +159,25 @@ pub fn new(
             grade.as_entire_binding(),
         ],
     );
+    let hdr = hdr_output.then(|| HdrOutput {
+        pipeline: pipelines.render("postHdr").clone(),
+        target: device
+            .create_texture(&TextureDescriptor {
+                label: Some("post-hdr-output"),
+                size: Extent3d {
+                    width: targets.size[0],
+                    height: targets.size[1],
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: TextureDimension::D2,
+                format: HDR_FORMAT,
+                usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_SRC,
+                view_formats: &[],
+            })
+            .create_view(&Default::default()),
+    });
     PostResources {
         stages,
         finals: ["postLook", "postUngraded", "postRaw"].map(|name| pipelines.render(name).clone()),
@@ -157,6 +187,7 @@ pub fn new(
         bloom,
         grade,
         steps,
+        hdr,
     }
 }
 
@@ -207,6 +238,16 @@ impl PostResources {
         Ok(())
     }
 
+    /// The HDR target `mode` draws to instead of the display: the look's,
+    /// when the runtime encodes HDR.
+    pub fn hdr_output(&self, mode: PostMode) -> Option<&TextureView> {
+        self.hdr_look(mode).map(|hdr| &hdr.target)
+    }
+
+    fn hdr_look(&self, mode: PostMode) -> Option<&HdrOutput> {
+        self.hdr.as_ref().filter(|_| mode == PostMode::Look)
+    }
+
     pub fn encode(&self, encoder: &mut CommandEncoder, mode: PostMode) {
         if mode == PostMode::Look {
             for stage in &self.stages {
@@ -218,6 +259,16 @@ impl PostResources {
                     "post",
                 );
             }
+        }
+        if let Some(hdr) = self.hdr_look(mode) {
+            Self::screen(
+                encoder,
+                &hdr.pipeline,
+                &self.final_group,
+                &hdr.target,
+                "post-hdr",
+            );
+            return;
         }
         let pipeline = &self.finals[match mode {
             PostMode::Look => 0,
@@ -245,5 +296,8 @@ impl PostResources {
             memory.view(&stage.target);
         }
         memory.view(&self.display);
+        if let Some(hdr) = &self.hdr {
+            memory.view(&hdr.target);
+        }
     }
 }

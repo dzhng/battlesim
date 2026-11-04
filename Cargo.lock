@@ -1103,6 +1103,7 @@ dependencies = [
  "bytemuck",
  "contract",
  "flate2",
+ "half",
  "kira",
  "png",
  "pollster",

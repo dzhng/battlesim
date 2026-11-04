@@ -22,17 +22,23 @@ struct Grade {
   lift: vec4f,
 }
 
-// @block post_agx
-fn agx(color: vec3f, exposure: f32) -> vec3f {
-  let to2020 = mat3x3f(vec3f(0.6274,0.0691,0.0164),vec3f(0.3293,0.9195,0.0880),vec3f(0.0433,0.0113,0.8956));
+// @block post_agxDisplay
+// AgX's display-linear image in BT.2020 primaries (1.0 = display white), before
+// an encoding clips it to its own range and gamut.
+fn agxDisplay(color: vec3f, exposure: f32) -> vec3f {
   let inset = mat3x3f(vec3f(0.856627153315983,0.137318972929847,0.11189821299995),vec3f(0.0951212405381588,0.761241990602591,0.0767994186031903),vec3f(0.0482516061458583,0.101439036467562,0.811302368396859));
   let outset = mat3x3f(vec3f(1.1271005818144368,-0.1413297634984383,-0.14132976349843826),vec3f(-0.11060664309660323,1.157823702216272,-0.11060664309660294),vec3f(-0.016493938717834573,-0.016493938717834257,1.2519364065950405));
-  let toSrgb = mat3x3f(vec3f(1.6605,-0.1246,-0.0182),vec3f(-0.5876,1.1329,-0.1006),vec3f(-0.0728,-0.0083,1.1187));
-  let x = clamp((log2(max(inset*(to2020*(color*exposure)),vec3f(1e-10)))+12.47393)/(4.026069+12.47393),vec3f(0),vec3f(1));
+  let x = clamp((log2(max(inset*rec709ToBt2020(color*exposure),vec3f(1e-10)))+12.47393)/(4.026069+12.47393),vec3f(0),vec3f(1));
   let x2 = x*x;
   let x4 = x2*x2;
   let contrast = 15.5*(x4*x2)-40.14*(x4*x)+(31.96*x4-6.868*(x2*x)+(0.4298*x2+(0.1191*x-0.00232)));
-  return clamp(toSrgb*pow(max(vec3f(0),outset*contrast),vec3f(2.2)),vec3f(0),vec3f(1));
+  return pow(max(vec3f(0),outset*contrast),vec3f(2.2));
+}
+
+// @block post_agx
+fn agx(color: vec3f, exposure: f32) -> vec3f {
+  let toSrgb = mat3x3f(vec3f(1.6605,-0.1246,-0.0182),vec3f(-0.5876,1.1329,-0.1006),vec3f(-0.0728,-0.0083,1.1187));
+  return clamp(toSrgb*agxDisplay(color, exposure),vec3f(0),vec3f(1));
 }
 
 // @block post_bloom_highpassLayout
@@ -58,16 +64,21 @@ fn directShader(uv: vec2f) -> vec4f {
   return vec4f(outputSrgb(agx(straight, grade.exposure)) * alpha, alpha);
 }
 
-// @block post_finalShader
-fn finalShader(uv: vec2f) -> vec4f {
+// @block post_lookScene
+// The scene with its bloom, graded: the light both display encodings tone-map.
+fn lookScene(uv: vec2f) -> vec3f {
   let world = textureSample(scene,linearSampler,uv);
   let hdr = world.rgb+textureSample(bloom,linearSampler,uv).rgb;
   // The sky pass leaves the scene's alpha 0 where nothing covers it (the
   // bloom's own alpha is no coverage, so it is not read); the sky takes
   // `skyGradeMix` of the grade, everything in front of it all of it.
   let gradeShare = select(1.0, grade.skyGradeMix, world.a < 0.5);
-  let graded = mix(hdr, gradeColor(hdr,grade), gradeShare);
-  return vec4f(outputSrgb(agx(graded,grade.exposure)),1.0);
+  return mix(hdr, gradeColor(hdr,grade), gradeShare);
+}
+
+// @block post_finalShader
+fn finalShader(uv: vec2f) -> vec4f {
+  return vec4f(outputSrgb(agx(lookScene(uv),grade.exposure)),1.0);
 }
 
 // @block post_grade
@@ -181,4 +192,47 @@ fn blurShader(uv: vec2f) -> vec4f {
     color += (textureSample(source,linearSampler,uv+offset).rgb+textureSample(source,linearSampler,uv-offset).rgb)*BLUR_WEIGHTS[i];
   }
   return vec4f(color,1);
+}
+
+// @block post_hlgSignal
+// Display-linear BT.2020 light, 1.0 at HLG reference white (203 nits), as an
+// HLG signal: the BT.2100 inverse OOTF for a 1000-nit display (system gamma 1.2)
+// gives scene light in [0, 1], which the ARIB STD-B67 OETF encodes. Reference
+// white lands at 0.75 and 1000/203 at 1.0.
+const BT2020_LUMA = vec3f(0.2627, 0.6780, 0.0593);
+
+fn hlgOetf(e: f32) -> f32 {
+  if (e <= 1.0 / 12.0) {
+    return sqrt(3.0 * e);
+  }
+  return 0.17883277 * log(12.0 * e - 0.28466892) + 0.55991073;
+}
+
+fn hlgSignal(display: vec3f) -> vec3f {
+  let ed = display * (203.0 / 1000.0);
+  let yd = max(dot(ed, BT2020_LUMA), 1e-6);
+  let es = clamp(ed * pow(yd, (1.0 - 1.2) / 1.2), vec3f(0.0), vec3f(1.0));
+  return vec3f(hlgOetf(es.r), hlgOetf(es.g), hlgOetf(es.b));
+}
+
+// @block post_hdrTonemap
+// AgX's midtones, with highlights rolled up to the HLG peak, about 4.9 times
+// reference white (1000 / 203 nits), desaturating toward white as AgX does.
+fn hdrTonemap(color: vec3f, exposure: f32) -> vec3f {
+  let sdrBase = agxDisplay(color, exposure);
+  let luma = max(dot(color * exposure, LUMA), 0.0001);
+  let sdrLuma = max(dot(sdrBase, BT2020_LUMA), 0.0001);
+  let peakWhite = 5.0;
+  let highlightRolloff = luma / (luma + 1.0) * (1.0 + luma / peakWhite);
+  let highlightLuma = min(highlightRolloff, peakWhite);
+  let blend = smoothstep(0.6, 1.2, sdrLuma);
+  let hdrLuma = mix(sdrLuma, highlightLuma, blend);
+  let desat = smoothstep(1.0, peakWhite, hdrLuma);
+  let hdrColor = mix(sdrBase * (hdrLuma / sdrLuma), vec3f(hdrLuma), desat);
+  return max(hdrColor, vec3f(0.0));
+}
+
+// @block post_hdrShader
+fn hdrShader(uv: vec2f) -> vec4f {
+  return vec4f(hlgSignal(hdrTonemap(lookScene(uv), grade.exposure)), 1.0);
 }
