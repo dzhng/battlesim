@@ -65,19 +65,17 @@ lock.
 
 `--fps` writes a clip instead of the plates: frames on the reel's clock over a
 window of it, with the sound cut to the same window. A record's sim time is the
-page's presentation clock, read off its wall clock, which jitters by up to a
-frame against the reel its camera is keyed to; drawn at it, a fast unit
-judders against the camera. So a clip frame draws the battle at its own reel
-time plus the run's median lead of sim time over reel time (`ReelClock` in
-[`capture.rs`](src/capture.rs)), through the camera of the last record drawn
-by then (before the page's first record, as the reel starts a frame earlier,
-its first camera carried back along its first two records' motion), with the publications that time needs. Frames at even reel steps are
-at even sim steps, and none draws past the run's last publication. Plates and
-benches still draw each record at its own sim time, as the page did. Nothing is
-written before the replay has framed something, which would be the empty sky.
-`--hdr` writes each plate or frame as the HDR look's HLG
-signal in a 16-bit PNG rather than the display (see the [capture
-README](../../apps/battle-lab/src/capture/README.md#hdr-clips)).
+page's presentation clock, which jitters by up to a frame against the reel its
+camera is keyed to, so a clip frame draws the battle at its reel time plus the
+run's median lead of sim time over reel time (`ReelClock` in
+[`capture.rs`](src/capture.rs)), through the camera of the last record by then.
+Before the page's first record (the reel starts a frame earlier) that camera is
+carried back along the first two records' motion. Even reel steps are even sim
+steps, and no frame draws past the run's last publication. Plates and benches
+still draw each record at its own sim time, as the page did. Nothing is written
+before the replay has framed something, which would be the empty sky. `--hdr`
+writes each plate or frame as the HDR look's HLG signal in a 16-bit PNG rather
+than the display (see the [capture README](../../apps/battle-lab/src/capture/README.md#hdr-clips)).
 
 The window opens borderless and off-screen by default, so nothing appears on
 the user's screen. On macOS, `wgpu` presents nothing to a window that isn't
