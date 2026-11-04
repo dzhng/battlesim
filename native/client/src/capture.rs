@@ -435,19 +435,29 @@ impl Replay {
         self.draw(record, record.sim_time, generation)
     }
 
-    /// Frames reel time `reel_ms` of a clip through `record`'s camera (the
-    /// last the page drew by then): the battle at the reel clock's time,
-    /// with the publications that time blends toward pushed, `heard` after
-    /// each. The time stops at the run's last publication; the presentation
-    /// never draws past the newest it has, as the page's clock never does.
+    /// The record whose camera reel time `reel_ms` is seen through: the last
+    /// the page drew by then, or before its first (the reel starts a frame
+    /// before the page records one) the first; none without records.
+    pub fn record_at(&self, reel_ms: f64) -> Option<&Record> {
+        let drawn = self.records.partition_point(|r| r.reel_ms <= reel_ms);
+        self.records.get(drawn.saturating_sub(1))
+    }
+
+    /// Frames reel time `reel_ms` of a clip through the camera of the record
+    /// at it (`record_at`): the battle at the reel clock's time, with the
+    /// publications that time blends toward pushed, `heard` after each. The
+    /// time stops at the run's last publication; the presentation never
+    /// draws past the newest it has, as the page's clock never does.
     pub fn frame_on_reel(
         &mut self,
-        record: &Record,
         reel_ms: f64,
         generation: u32,
         mut heard: impl FnMut(&Presentation),
     ) -> Result<&Frame, String> {
-        let clock = self.clock.ok_or("a capture without frames has no reel")?;
+        let (Some(clock), Some(record)) = (self.clock, self.record_at(reel_ms).cloned()) else {
+            return Err("a capture without frames has no reel".into());
+        };
+        let record = &record;
         let time = clock.sim_time(reel_ms);
         let latest = |r: &Self| {
             r.pushed

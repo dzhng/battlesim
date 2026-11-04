@@ -64,8 +64,12 @@ fn rgb16(rgba16f: &[u8]) -> Vec<u8> {
 
 impl super::Run {
     /// Draws the prepared frame and writes it to `path` as a PNG: the display,
-    /// or the HDR look's signal at 16 bits. Then presents it.
+    /// or the HDR look's signal at 16 bits. Then presents it. Refuses before
+    /// the replay has framed anything: that picture is the empty sky.
     pub(super) fn write_frame(&mut self, path: &Path) -> Result<(), String> {
+        if self.replay.last_frame().index == 0 {
+            return Err(format!("{}: nothing has been framed yet", path.display()));
+        }
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         let mut encoder = device.create_command_encoder(&Default::default());
         self.scene

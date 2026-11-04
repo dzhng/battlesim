@@ -70,9 +70,12 @@ frame against the reel its camera is keyed to; drawn at it, a fast unit
 judders against the camera. So a clip frame draws the battle at its own reel
 time plus the run's median lead of sim time over reel time (`ReelClock` in
 [`capture.rs`](src/capture.rs)), through the camera of the last record drawn
-by then, with the publications that time needs. Frames at even reel steps are
+by then (the first, before the page's first record: the reel starts a frame
+earlier), with the publications that time needs. Frames at even reel steps are
 at even sim steps, and none draws past the run's last publication. Plates and
-benches still draw each record at its own sim time, as the page did. `--hdr` writes each plate or frame as the HDR look's HLG
+benches still draw each record at its own sim time, as the page did. Nothing is
+written before the replay has framed something, which would be the empty sky.
+`--hdr` writes each plate or frame as the HDR look's HLG
 signal in a 16-bit PNG rather than the display (see the [capture
 README](../../apps/battle-lab/src/capture/README.md#hdr-clips)).
 

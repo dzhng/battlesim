@@ -7,7 +7,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use native_client::bundle::Library;
-use native_client::capture::{Record, Replay};
+use native_client::capture::Replay;
 use presentation::assets::RUNTIME;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -69,19 +69,13 @@ fn jittered(name: &str, records: usize, samples: usize) -> (PathBuf, f64, f64) {
 fn clip(dir: &Path) -> Vec<(f64, f64, f64)> {
     let library = Library::open(Path::new(RUNTIME)).unwrap();
     let mut replay = Replay::open(dir, &library).unwrap();
-    let records: Vec<Record> = replay.records.clone();
-    let last = records.last().unwrap().reel_ms;
+    let last = replay.records.last().unwrap().reel_ms;
     let mut drawn = Vec::new();
     for at in (0..)
         .map(|i| i as f64 * FRAME_MS)
         .take_while(|&at| at < last)
     {
-        let record = records
-            .iter()
-            .rev()
-            .find(|r| r.reel_ms <= at)
-            .unwrap_or(&records[0]);
-        replay.frame_on_reel(record, at, 0, |_| {}).unwrap();
+        replay.frame_on_reel(at, 0, |_| {}).unwrap();
         let p = replay.presentation();
         drawn.push((at, p.clock_of_frame(), p.observation().unwrap().tick));
     }
@@ -131,4 +125,34 @@ fn a_clip_stops_at_the_runs_last_publication() {
     let &(_, time, tick) = drawn.last().unwrap();
     assert_eq!(tick, last_tick, "the newest publication pushed");
     assert_eq!(time, last_tick / tick_hz, "held at the last publication");
+}
+
+#[test]
+fn a_clips_first_frame_shows_the_battle_through_the_pages_first_camera() {
+    // The reel starts a frame before the page records one: its first frame
+    // is still the battle, seen as the page's first record saw it, never the
+    // empty sky.
+    let (dir, _, _) = jittered("first", 12, usize::MAX);
+    let library = Library::open(Path::new(RUNTIME)).unwrap();
+    let mut replay = Replay::open(&dir, &library).unwrap();
+    let first = replay.records[0].reel_ms;
+    assert!(
+        first > 0.0,
+        "the page's first record is a frame into the reel"
+    );
+    let view = |r: &mut Replay, at: f64| {
+        let frame = r.frame_on_reel(at, 0, |_| {}).unwrap();
+        bytemuck::bytes_of(&frame.view).to_vec()
+    };
+    let at_start = view(&mut replay, 0.0);
+    assert!(
+        replay.presentation().observation().is_some(),
+        "no battle at the reel's start"
+    );
+    assert_eq!(
+        at_start,
+        view(&mut replay, first),
+        "not the first record's camera"
+    );
+    fs::remove_dir_all(dir).unwrap();
 }

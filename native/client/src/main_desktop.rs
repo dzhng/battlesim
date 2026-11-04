@@ -555,7 +555,7 @@ impl Run {
     fn plate_step(&mut self, out: &Path) -> Result<bool, String> {
         while let Some(record) = self.replay.records.get(self.next).cloned() {
             self.next += 1;
-            self.advance(&record, None)?;
+            self.advance(record.reel_ms, Some(&record))?;
             let Some(plate) = record.plate.clone() else {
                 continue;
             };
@@ -612,19 +612,13 @@ impl Run {
     }
 
     /// Writes the clip's next frame: the battle at its reel time on the
-    /// reel's clock, through the camera of the last record drawn by then (the
-    /// first before any); false once the clip is done.
+    /// reel's clock (`Replay::frame_on_reel`); false once the clip is done.
     fn clip_step(&mut self, clip: &Clip, out: &Path) -> Result<bool, String> {
-        let records = &self.replay.records;
-        let last = records.last().map_or(0.0, |r| r.reel_ms);
+        let last = self.replay.records.last().map_or(0.0, |r| r.reel_ms);
         let Some(at) = clip.frame_ms(self.written, last) else {
             return Ok(false);
         };
-        while records.get(self.next).is_some_and(|r| r.reel_ms <= at) {
-            self.next += 1;
-        }
-        let record = records[self.next.max(1) - 1].clone();
-        self.advance(&record, Some(at))?;
+        self.advance(at, None)?;
         self.prepare()?;
         self.write_frame(&out.join(format!("frame-{:06}.png", self.written)))?;
         if self.written.is_multiple_of(clip.fps as usize) {
@@ -633,11 +627,12 @@ impl Run {
         Ok(true)
     }
 
-    /// Plays one record into the presentation and its sound: as the page
-    /// drew it, or at a clip's reel time `clip_ms` on the reel's clock.
-    fn advance(&mut self, record: &Record, clip_ms: Option<f64>) -> Result<(), String> {
+    /// Plays reel time `reel_ms` into the presentation and its sound:
+    /// `record` as the page drew it, or without one, a clip's frame on the
+    /// reel's clock.
+    fn advance(&mut self, reel_ms: f64, record: Option<&Record>) -> Result<(), String> {
         // The reel's wall time is both the sound's wall and its mixer clock.
-        let now = clip_ms.unwrap_or(record.reel_ms) / 1000.0;
+        let now = reel_ms / 1000.0;
         let mut sound = self.sound.as_mut();
         let heard = |p: &_| {
             if let Some(audio) = sound.as_mut() {
@@ -645,9 +640,9 @@ impl Run {
             }
         };
         let generation = self.scene.static_generation();
-        match clip_ms {
-            Some(at) => self.replay.frame_on_reel(record, at, generation, heard),
-            None => self.replay.frame(record, generation, heard),
+        match record {
+            Some(record) => self.replay.frame(record, generation, heard),
+            None => self.replay.frame_on_reel(reel_ms, generation, heard),
         }?;
         if let Some(audio) = self.sound.as_mut() {
             audio.hear(self.replay.presentation(), now, now);
