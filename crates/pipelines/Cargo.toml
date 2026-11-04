@@ -1,9 +1,0 @@
-[package]
-name = "pipelines"
-version = "0.1.0"
-edition = "2021"
-
-[dev-dependencies]
-naga = { version = "30.0.1", features = ["wgsl-in", "msl-out"] }
-serde_json.workspace = true
-presentation = { path = "../presentation" }

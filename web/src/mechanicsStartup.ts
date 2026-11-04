@@ -1,4 +1,4 @@
-import game from "@fixtures/game.json";
+import { shippedRules } from "@web/shippedRules";
 import { editGameView } from "@web/battle/catalog/sets";
 import { MECHANICS_API, type MechanicsSnapshot } from "@apps/mechanics-editor/src/protocol";
 
@@ -27,12 +27,12 @@ export async function startWithMechanics(
         `Mechanics could not be loaded (${response.status}): ${await response.text()}`,
       );
     const snapshot: MechanicsSnapshot = await response.json();
-    const rules = snapshot.documents.find((document) => document.path === "fixtures/game.json");
+    const rules = snapshot.documents.find((document) => document.path === "fixtures/rules.json");
     if (!rules) throw new Error("The mechanics snapshot has no game rules");
-    replace(game, rules.value);
+    replace(shippedRules, rules.value);
     editGameView((view) => replace(view, snapshot.game));
   }
-  freeze(game);
+  freeze(shippedRules);
   editGameView(freeze);
   await start();
 }

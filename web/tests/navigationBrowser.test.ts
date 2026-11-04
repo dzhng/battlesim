@@ -2,8 +2,7 @@
 import { expect, test } from "vitest";
 import type { Browser, Page } from "playwright";
 import { launchBrowser } from "../browser.mjs";
-import { createServer } from "vite";
-import { fileURLToPath } from "node:url";
+import { browserTestServer } from "./support/browserServer";
 
 // The shipped entry, links, loading cover and preparation worker. Menu warm-up
 // admits the page GPU, but this history proof cancels before drawing a battle.
@@ -15,14 +14,9 @@ import { fileURLToPath } from "node:url";
 // A first launch then measures the graphics tiers behind the menu (another
 // 30 s or so); this is a returning player's, whose detected tier is kept.
 test("client exit and history keep the document while discarding preparation visits", async () => {
-  const server = await createServer({
-    configFile: fileURLToPath(new URL("../vite.config.ts", import.meta.url)),
-    configLoader: "runner",
-    server: { port: 0, host: "127.0.0.1" },
-  });
+  const server = await browserTestServer();
   let browser: Browser | undefined;
   try {
-    await server.listen();
     browser = await launchBrowser({ args: ["--mute-audio"] });
     const page = await browser.newPage();
     await page.addInitScript(() =>
@@ -35,9 +29,11 @@ test("client exit and history keep the document while discarding preparation vis
         }),
       ),
     );
-    await page.goto(server.resolvedUrls!.local[0]);
+    await page.goto(server.url);
     await coverLifted(page);
     await page.getByRole("button", { name: "Skirmish", exact: true }).click();
+    // Finish the lobby's preview worker before listening for the battle worker.
+    await page.locator('[data-testid="lobby-map"][data-status="ready"]').waitFor();
     const origin = await page.evaluate(() => performance.timeOrigin);
     const workerOpened = page.waitForEvent("worker");
     await page.getByRole("link", { name: "Deploy" }).click();

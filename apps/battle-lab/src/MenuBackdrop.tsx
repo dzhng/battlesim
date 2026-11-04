@@ -9,7 +9,7 @@
 // at its warm tick until the menu is shown, so the reel's first cut opens on
 // the moment it was cut for.
 import { Suspense, useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
-import type { GameRules } from "@web/battle/catalog/compose";
+import type { ResolvedRules } from "@web/battle/catalog/compose";
 import { SessionCatalogScope, useSessionCatalog } from "@web/battle/catalog/context";
 import menuCapture from "@fixtures/captures/menu.json";
 import { listMaps } from "@web/maps/catalogue";
@@ -43,7 +43,7 @@ const FILM_CAMERA = filmCamera(
  *  once: the next scene's is asked for while the current one plays, so the
  *  cut to it waits on starting and warming its battle, not on the download. */
 const scenarios = new Map<CaptureScene, Promise<string>>();
-function sceneScenario(scene: CaptureScene, rules: GameRules): Promise<string> {
+function sceneScenario(scene: CaptureScene, rules: ResolvedRules): Promise<string> {
   let s = scenarios.get(scene);
   if (!s) {
     s = savedBattle(scene.map, scene.encounter, rules).then((b) => b.scenario);

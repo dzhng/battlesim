@@ -1,15 +1,12 @@
 # Native rendering parity
 
-**Shipped (closed 2026-10-13).** Native is [`native/client`](../../../native/client/README.md),
-a Rust client on `wgpu` that draws what the browser draws for the authored menu
-reel, and at least as fast as the browser on the frame-rate measures that matter. It
-runs the browser's own exported shaders over one Rust presentation crate
-([`crates/presentation`](../../../crates/presentation/README.md)) that both clients
-share; the browser runs that crate through
-[`crates/presentation-wasm`](../../../crates/presentation-wasm/README.md). Rust stays
-the only authority for rules, observation, visibility, replay and digests. The
-browser is the shipped client; native is a maintained second client, verified on
-macOS with Metal.
+The renderer half is superseded by [One renderer](../one-renderer/README.md).
+
+The native [desktop shell](../../../native/client/README.md) and the browser
+share [presentation](../../../crates/presentation/README.md) and the
+[render runtime](../../../crates/renderer-core/README.md). This spec records why
+presentation has one Rust owner and the historical evidence for native parity.
+Rust is the only authority for rules, observation, visibility, replay and digests.
 
 Every decision this spec left in the code, with who made it and how confident the
 audit is, is in [`choices.md`](choices.md), the final ledger. Treat its entries as
@@ -60,22 +57,17 @@ are working rules that review holds, with no check behind them.
   `Batch.fog`. A renderer must not decode a publication, interpolate, choose a
   tier or a resident, cull an entity, pick or cap lights, seed randomness, decide
   anything from gameplay or presentation tuning, or name a unit kind, side, state
-  or order. A fact a renderer needs goes into a record, as data. The one use of
-  the tuning a renderer makes is to splice the fixture's shader tunings into its
-  WGSL, and to hand fixture text to Rust unread.
+  or order. A fact a renderer needs goes into a record, as data.
 - **One owner per concept.** Records are declared once in
   `crates/presentation/src/records.rs` and generated into
   `packages/battle-renderer/src/records.gen.ts` (`records_are_current` fails on a
-  stale file). Shaders and pipeline settings exist once, in the browser's frame
-  code. `web/tests/shaderExport.test.ts` exports them to
-  `packages/battle-renderer/pipelines/`, a drift test fails when the export is
-  stale, and [`crates/pipelines`](../../../crates/pipelines/README.md) validates them
-  with naga. The publication reader lives beside its writer
+  stale file). The [shared renderer](../../../crates/renderer-core/README.md)
+  now owns shader composition and typed pipeline settings; its ABI reflection
+  validates assembled WGSL with naga. The publication reader lives beside its writer
   (`crates/sim/src/publication/reader.rs`, one `GROUP_LAYOUTS`). Runtime bundles
   have one Rust reader (`presentation::assets`), and a battle's world has one
-  resolver (`presentation::fielded`). Tunings are data in `fixtures/game.json`
-  (`presentation.*`), read by Rust and spliced into the browser's WGSL from the
-  same file.
+  resolver (`presentation::fielded`). Visual tunings belong to
+  [`fixtures/presentation.json`](../../../fixtures/presentation.json), admitted by Rust.
 - **Determinism.** `frame()` is a function of the world loaded, the publications
   pushed and the frame inputs: no wall clock, and no randomness it does not seed
   itself. Every random draw is Mulberry32 (`crates/presentation/src/seed.rs`),
@@ -95,13 +87,10 @@ are working rules that review holds, with no check behind them.
   ground, foliage and props, through the simulation's own export code). It never
   writes the simulation's state, so tuning it never moves a digest or a replay.
   Convention and review hold this; no type does.
-- **Web first.** Every shared-code change lands in the browser first, with clean
-  before-and-after frame rates, and only then does native switch to it. Each move
-  into Rust deletes the TypeScript it replaces.
 - **Less code over speed.** A shared-code move must reduce net code. A small
   measured browser cost is acceptable for that; a meaningful regression still
   blocks. Machinery that only buys speed against a budget already met stays out:
-  the 5–7% GPU gap below is accepted on this rule.
+  the historical 5–7% GPU gap at parity close was accepted on this rule.
 - **Nothing silent.** Native never falls back, caps or skips anything silently,
   never invents visibility or a presentation layer, and never infers dust or
   smoke from camera motion or map geometry. It refuses a capture or a saved map
@@ -168,8 +157,8 @@ rewrites every one.
 **Conventions.** Sim space throughout (right-handed, `z` up), metres, radians,
 seconds on the sim clock. Projection is reverse-Z with an infinite far plane.
 Records are `#[repr(C)]` multiples of 16 bytes, valid as WGSL structs and vertex
-attributes as they are. A WebAssembly view over module memory is valid until the
-next call into the module: upload it, then call again.
+attributes as they are. The browser follows the
+[binding lifetime contract](../../../crates/presentation-wasm/README.md).
 
 ## What parity means, and how it is proved
 
@@ -210,8 +199,8 @@ plate is paired with the frame records of its own run.
   At close, native is at or above the browser on average FPS and clearly ahead
   on the 1% lows and frame p99 on both scenes. Market-town ran 83.2 against
   83.2 FPS, with p99 17.4 against 23.4 ms. Paris-corner ran 123.2 against
-  108.0, with p99 11.2 against 16.7. Native's GPU frame is 5–7% longer, the one
-  named exception (below).
+  108.0, with p99 11.2 against 16.7. Native's GPU frame was 5–7% longer, an accepted
+  historical tradeoff.
 - **The browser was proved whole on the shared code:** the web suite, the
   visual suite and every scene green, the medium battle no worse than before the
   move, digests and replays unchanged.
@@ -227,8 +216,8 @@ plate is paired with the frame records of its own run.
 | Fog of war's sight and look                                      | `presentation::fog` (`sight.rs`, `FogLook`)                                                              |
 | Sound and the score                                              | `presentation::sound` (`frame.rs`, `music.rs`)                                                           |
 | Publication reader                                               | `crates/sim/src/publication/reader.rs`, held by `crates/sim/tests/publication_reader.rs`                 |
-| Shader export and validation                                     | `packages/battle-renderer/pipelines/`, `web/tests/shaderExport.test.ts`, `crates/pipelines`              |
-| Native client: passes, statics, models, audio                    | `native/client` (`frame.rs`, `statics.rs`, `models.rs`, `audio.rs`), its tests in `native/client/tests/` |
+| Shader composition and validation                                | `crates/renderer-core/src/shaders/`, `crates/renderer-core/tests/pipeline_abi.rs`                       |
+| GPU resources and frame encoding; desktop services | [Shared runtime](../../../crates/renderer-core/README.md); [native shell](../../../native/client/README.md) |
 | Capture run and control                                          | `web/scenes/native-parity-capture.mjs`, `apps/battle-lab/src/benchmark/reelRun.ts`                       |
 | Frame-rate comparison                                            | `web/src/battle/benchmark/frameComparison.ts`, `web/fps-compare.mjs`, native's `--bench`                 |
 | Committed parity fixtures                                        | `fixtures/parity/`                                                                                       |
@@ -273,49 +262,11 @@ Each was tried and rejected; don't walk it again.
   browser holds 30 FPS for a reason never found. A shown window adds presenting
   cost the headless browser never pays.
 
-## Known limitations
+## Remaining platform gaps
 
-Each is named in `choices.md` and owned where listed. The follow-up work is held
-in [Native gaps](../../native-gaps/README.md).
-
-- **Native's GPU frame is 5–7% longer than the browser's.** It is accepted:
-  `wgpu` keeps Metal's per-resource hazard tracking, so later passes wait for
-  the world's shading. _Owner:_ `native/client`. Revisit if `wgpu` ships untracked
-  resources, and re-run the interleaved pairs.
-- **Native draws far soldiers as meshes, not impostor cards.** At the card tier
-  it draws the body's coarsest mesh in its far pose. Counts are equal, and the
-  picture is the same few pixels. A battle with hundreds of far soldiers costs
-  more triangles. _Owner:_ `native/client/src/models.rs`. To reverse it, first
-  export the browser's impostor bake (`packages/battle-renderer/src/models/impostor.ts`;
-  no impostor-bake pipeline is exported today, and `bake.wgsl` is the sky's
-  lookup bake), then bake at load and draw the card tier as cards.
-- **An unseen enemy's shout is silent natively.** Rust picks the take
-  (`presentation::sound::frame`, `Sound::set_shouts`), but the pool of takes is
-  loaded by the browser's `packages/battle-audio/src/voices/shoutPool.ts`, and
-  native loads none. _Owner:_ `native/client/src/audio.rs`. Moving the pool's take
-  list into Rust would give it one owner.
-- **Native's music duck glides linearly and its reverb is `kira`'s.** The
-  browser glides by a time constant and convolves with a synthesized impulse.
-  These are player differences only. _Owner:_ `native/client/src/audio.rs`.
-- **Native paints no ground marks.** The UI paints them, and a replay has no UI.
-  _Owner:_ `native/client`, if it gains a UI.
-- **Two of the sky's bind group layouts carry TypeGPU's automatic names** in the
-  export (`bake - Automatic Bind Group & Layout`, `background - …`). _Owners:_
-  `packages/battle-renderer`'s sky, which names them, and `native/client/src/sky.rs`,
-  which looks them up by those names. Rename both together the next time the
-  export is regenerated.
-- **Water has never been judged on a plate.** Neither reel map has water. Native
-  draws it through the browser's own WGSL, so it is the browser's look by
-  construction. _Owner:_ whoever next changes water: film a map with water.
-- **Only macOS with Metal is verified.** Windows is not a requirement, but no
-  native dependency rules it out.
-
-**Open decision (owner: the user):** whether the browser moves to the same Rust
-`wgpu` renderer, so both clients share one renderer and the pass orchestration
-stops being duplicated. This was deferred until native was measured against
-TypeGPU. It now is: equal or better frame rates, a 5–7% longer GPU frame. TypeGPU
-stays the browser's stack until the user decides; the decision is held in
-[One renderer](../../one-renderer/README.md).
+[Native gaps](../../native-gaps/README.md) owns the remaining platform differences;
+[One renderer](../one-renderer/README.md) records the shared runtime's rationale
+and the limits of historical performance comparisons.
 
 ## Visual provenance
 

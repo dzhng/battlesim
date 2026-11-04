@@ -14,6 +14,7 @@ serde = { version = "1", features = ["derive", "rc"] }
 # Every number a file holds reads back to its own bits: a bundle's joints
 # and bounds, the fixtures' tunings and the recorded vectors alike.
 serde_json.workspace = true
+serde_path_to_error = "0.1"
 bytemuck = "1.25"
 # One implementation of the transcendental functions for WebAssembly and
 # native, so both clients place, cull and synthesize alike.

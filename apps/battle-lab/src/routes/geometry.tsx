@@ -16,7 +16,7 @@ import { LabViewport, type LabPick } from "../LabViewport";
 import { useStandingBuildings, useStaticWorld, type WorldView } from "../useStaticWorld";
 import { gameBiome } from "../gameBiome";
 import { useMapAppearances } from "../gameAppearances";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 import { useGeometryScaling } from "../benchmark/geometryScaling";
 
@@ -107,7 +107,11 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
   const meshes = useMemo(
     () =>
       localMeshes && scaling.terrain
-        ? { ...localMeshes, terrain: scaling.terrain, backdropTerrain: localMeshes.terrain.mesh }
+        ? {
+            ...localMeshes,
+            terrain: scaling.terrain,
+            backdropTerrain: localMeshes.terrain.mesh,
+          }
         : localMeshes,
     [localMeshes, scaling.terrain],
   );

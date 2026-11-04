@@ -7,7 +7,7 @@ use serde_json::json;
 use sim::battle::Battle;
 
 fn setup() -> contract::scenario::ScenarioDefinition {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",

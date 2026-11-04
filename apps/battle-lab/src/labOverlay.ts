@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { ViewportPointer } from "./LabViewport";
 import type { useBattleSession } from "./useBattleSession";
-import { useFeed } from "./feed";
+import { useFeed } from "@web/feed";
 import { buildBattleOverlay } from "./battleOverlay";
 import { gameStroke } from "./gameOverlay";
 import { useContactFacing } from "./contactFacing";
@@ -43,6 +43,7 @@ export function useLabOverlay(
       world && observation
         ? buildBattleOverlay(
             session.units,
+            session.rules,
             observation,
             control.selected,
             surfaceZ,
@@ -63,6 +64,7 @@ export function useLabOverlay(
       world,
       observation,
       session.units,
+      session.rules,
       control.selected,
       control.showOrders,
       session.revealed,

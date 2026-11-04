@@ -89,7 +89,6 @@ export function presentBuildings(
         // the current game's shadow-quality tuning.
         cascades: {
           ...gameLight.cascades,
-          count: 4,
           map_size: 2048,
           split_lambda: 0.5,
           max_far_m: sun.farM,

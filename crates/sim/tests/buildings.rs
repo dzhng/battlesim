@@ -784,7 +784,7 @@ fn a_facade_without_bays_seats_nobody() {
 #[test]
 fn abundant_facade_bays_never_admit_more_than_32_seats() {
     let mut setup = compound_setup(json!([]));
-    setup.rules.buildings.capacity_soldiers = 100;
+    setup.rules.buildings.capacity_soldiers = 32;
     let geometry = &mut setup.map.buildings[0].geometry;
     geometry.floor_z = vec![0.0, 3.0, 6.0];
     for edge in geometry.edges.iter_mut().filter(|e| e.exposed) {

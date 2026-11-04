@@ -432,7 +432,7 @@ fn a_prop_that_is_no_wreck_names_no_unit() {
 /// tank it was.
 #[test]
 fn a_wreck_is_known_by_its_rules_row_not_its_art() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     rules["catalog"]
         .as_array_mut()
         .unwrap()
@@ -442,7 +442,7 @@ fn a_wreck_is_known_by_its_rules_row_not_its_art() {
                 "body": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true,
                     "occludes": false, "weight_class": "light", "cover_tier": "light", "hp": 150 },
                 "destroyed": "removed",
-                "appearance": { "drawn_by": "crate" }
+                "appearance": { "drawn_by": "crate", "stand_in_tint": [0.5, 0.5, 0.5] }
             }
         }}));
     let map = json!({ "size": [600, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,

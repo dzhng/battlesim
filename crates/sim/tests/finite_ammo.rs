@@ -7,10 +7,10 @@ use sim::battle::Battle;
 #[test]
 fn a_supply_truck_rearms_a_finite_launcher_until_its_stock_runs_out() {
     use contract::ids::Side;
-    let mut fixture = sim::fixtures::test_game();
+    let mut fixture = sim::fixtures::test_rules();
     // A missile costs the whole of the truck's stock.
     fixture["weapons"]["atgm"]["ammo"] = json!(4);
-    fixture["service"]["round_costs"]["atgm"] = json!(20);
+    fixture["weapons"]["atgm"]["round_cost"] = json!(20);
     let setup = serde_json::from_value(json!({
         "map": { "size": [500, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": fixture,
@@ -55,7 +55,7 @@ fn a_supply_truck_rearms_a_finite_launcher_until_its_stock_runs_out() {
 
 #[test]
 fn finite_squad_guns_exhaust_independently() {
-    let mut fixture = sim::fixtures::test_game();
+    let mut fixture = sim::fixtures::test_rules();
     fixture["weapons"]["marksman_rifle"]["ammo"] = json!(2);
     // Carried as a squad gun, it is each soldier's own default gun.
     fixture["weapons"]["marksman_rifle"]["default"] = json!(true);

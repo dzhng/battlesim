@@ -295,6 +295,7 @@ export async function run(fixtures, { pinnedIds = new Set() } = {}) {
     if (pageErrorKeys.has(message)) return;
     pageErrorKeys.add(message);
     pageErrors.push(message);
+    console.log(`PAGE ERROR ${message}`);
   };
   const seconds = [];
   try {
@@ -371,7 +372,7 @@ export async function run(fixtures, { pinnedIds = new Set() } = {}) {
           });
           if (!allowErrors) {
             page.on("pageerror", (e) => {
-              recordPageError(`${fixture.id}: ${e.message}`);
+              recordPageError(`${fixture.id}: ${e.stack ?? e.message}`);
               if (fatalGpuMessage(e.message)) failForGpu(e.message);
             });
             page.on("console", (m) => {

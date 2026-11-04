@@ -194,7 +194,7 @@ export async function run(ctx) {
   await lab(page, () => window.__lab.route.setSide("blue"));
   await ctx.writeEvidence("meta.json", {
     browser: ctx.browser,
-    adapter: await page.evaluate(() => window.__lab.adapter),
+    adapter: await lab(page, () => window.__lab.adapter),
     viewport: [1280, 800],
     dpr: 1,
   });

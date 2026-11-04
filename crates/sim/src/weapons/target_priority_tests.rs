@@ -17,7 +17,7 @@ fn a_claimed_lean_preserves_the_launchers_full_bore_offset() {
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map":{"size":[500,500],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
             "props":[{"kind":"wall","center":[101,100],"yaw":0,"half_extents":[0.3,2,3]}]},
-        "rules":crate::fixtures::test_game(),"units":[{"side":"blue","kind":"test_at","position":[100,100]}],
+        "rules":crate::fixtures::test_rules(),"units":[{"side":"blue","kind":"test_at","position":[100,100]}],
         "events":[],"scripts":[]
     })).unwrap();
     let battle = crate::battle::Battle::new(&setup, 5);
@@ -62,7 +62,7 @@ fn a_claimed_lean_preserves_the_launchers_full_bore_offset() {
 
 #[test]
 fn known_infantry_bore_turns_toward_us_from_the_observed_center() {
-    let mut game = crate::fixtures::test_game();
+    let mut game = crate::fixtures::test_rules();
     game["weapons"]["atgm"]["min_range_m"] = json!(200.0);
     game["catalog"].as_array_mut().unwrap().push(json!({
         "soldiers":{"grounded":{"extends":"test_atgm_gunner", "mounts":[{
@@ -124,7 +124,7 @@ fn known_return_fire_threat_requires_a_clear_physical_trajectory() {
         };
         let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
             "map":{"size":[1000,600],"fog_cell_m":8,"height_grid_m":4,
-                "slope_cutoff_deg":35,"props":props},"rules":crate::fixtures::test_game(),
+                "slope_cutoff_deg":35,"props":props},"rules":crate::fixtures::test_rules(),
             "units":[{"side":"blue","kind":"test_tank","position":[100,300]},
                 {"side":"red","kind":"test_tank","position":[300,300]}],"events":[],"scripts":[]
         }))
@@ -165,7 +165,7 @@ fn known_return_fire_threat_requires_a_clear_physical_trajectory() {
 
 #[test]
 fn frozen_observation_keeps_priority_with_hidden_ammo_reload_orders_and_pose_changes() {
-    let mut authored = crate::fixtures::test_game();
+    let mut authored = crate::fixtures::test_rules();
     crate::fixtures::patch_catalog(&mut authored, "units", "test_rifle", json!({"cost":1000}));
     crate::fixtures::patch_catalog(&mut authored, "units", "test_tank", json!({"cost":100}));
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({

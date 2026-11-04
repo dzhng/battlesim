@@ -1,9 +1,10 @@
+import { cruise_agl_m } from "@wasm/game_wasm";
 // Where a unit will stand, drawn as its own models in a ghost colour: the one
 // look for a purchase being placed or already placed, a move's held facing
 // preview, and every ordered destination with Space held. The UI says where
 // each body stands; the presentation fields and poses them (`GhostBody`).
 import type { SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
-import { layerOf, type UnitCatalog } from "@packages/scene-assets/src/units";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { GhostReadout } from "@web/battle/present/readouts";
 import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type { GhostBody } from "@web/battle/sim/presentation";
@@ -16,23 +17,22 @@ export const GHOST_BLOCKED = 2;
 
 /** The rules' air layers, each with its cruise height, and high air's
  *  floor (`contract::scenario::AirRules`). */
-export type AirLayers = {
-  low_air: { cruise_agl_m: number };
-  high_air: { cruise_agl_m: number; floor_agl_m: number };
-};
+export type AirLayers = typeof import("../../../fixtures/rules.json").air;
 
 /** How high over the ground a kind's ghost stands, flying where it will be:
  *  an aircraft's own cruise height, else its layer's, never under its
  *  layer's floor (`AirRules::cruise_agl_m`); anything else on the ground. */
-export const ghostAloft =
-  (units: UnitCatalog, air: AirLayers) =>
-  (kind: string): number => {
-    const type = units.type(kind);
-    const layer = layerOf(type);
-    if (layer === "ground" || !("air" in type.mobility)) return 0;
-    const height = type.mobility.air.cruise_agl_m ?? air[layer].cruise_agl_m;
-    return layer === "high_air" ? Math.max(height, air.high_air.floor_agl_m) : height;
+export function ghostAloft(units: UnitCatalog, air: AirLayers) {
+  const layers = JSON.stringify(air);
+  const heights = new Map<string, number>();
+  return (kind: string): number => {
+    const known = heights.get(kind);
+    if (known !== undefined) return known;
+    const height = cruise_agl_m(layers, JSON.stringify(units.type(kind).mobility));
+    heights.set(kind, height);
+    return height;
   };
+}
 
 /** Cards accompany only revealed HighAir order ghosts while Space is held. */
 export function aircraftOrderReadouts(

@@ -12,6 +12,7 @@
         "cover_tier": "heavy"
       },
       "appearance": {
+        "stand_in_tint": [0.62, 0.62, 0.62],
         "drawn_by": "boulder",
         "map_only": true
       }

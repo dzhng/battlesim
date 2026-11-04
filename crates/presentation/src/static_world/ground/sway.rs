@@ -1,6 +1,6 @@
 //! How a standing tree sways in the one wind (look only): the numbers the
-//! renderer's `sway` shader reads (generated into `records.gen.ts` as
-//! `SWAY`), and so the farthest any point of a tree can move from rest,
+//! renderer's `sway` shader reads by name (`SWAY_*`, prepended to every
+//! built-in shader), and so the farthest any point of a tree can move from rest,
 //! which the scenery walk grows its chunks by, so a crown bent into view or
 //! into a cascade is drawn there. One owner: the shader and the bounds
 //! cannot disagree.

@@ -9,12 +9,6 @@ export const VERTEX_FLOATS = 10;
 export type Mesh = Float32Array<ArrayBuffer>;
 export type Rgba = readonly [number, number, number, number];
 
-/** A fixture colour: four channels in [0, 1]. */
-export function isRgba(c: unknown): c is Rgba {
-  return (
-    Array.isArray(c) && c.length === 4 && c.every((v) => typeof v === "number" && v >= 0 && v <= 1)
-  );
-}
 type P2 = readonly [number, number];
 type P3 = readonly [number, number, number];
 
@@ -30,7 +24,7 @@ export const glowing = (c: Rgba, g: number): Rgba => [c[0] * g, c[1] * g, c[2] *
 /** A mesh with no triangles. */
 export const EMPTY_MESH: Mesh = new Float32Array(0);
 
-/** Marks that are all paint on the ground (`frame/paintedMarks.ts`): the
+/** Marks that are all paint on the ground: the
  *  still ones, and those whose pulse marches. */
 export function paintOnly(painted: Mesh, paintedMarching?: Mesh): WorldMeshes {
   return { opaque: EMPTY_MESH, translucent: EMPTY_MESH, painted, paintedMarching };

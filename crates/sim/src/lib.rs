@@ -2,6 +2,8 @@
 #![recursion_limit = "256"]
 //! The one battle authority: world geometry, time, bodies, sensing, knowledge,
 //! weapons, flight, damage, orders, deployment and supply.
+mod admission;
+pub use admission::{admit, RulesError};
 pub mod air;
 pub mod arrangement;
 pub mod bail_out;

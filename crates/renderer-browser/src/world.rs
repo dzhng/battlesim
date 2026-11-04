@@ -1,0 +1,184 @@
+//! External asset/geometry transport and synchronous canonical world admission.
+use super::*;
+
+#[wasm_bindgen]
+impl Renderer {
+    /// Update external world faces on the existing runtime and retain the same
+    /// source for recovery. Canonical terrain and appearance owners stay live.
+    pub fn set_skirt_and_props(
+        &mut self,
+        words: Vec<f32>,
+        positions: &[f32],
+    ) -> Result<(), JsValue> {
+        if !words.len().is_multiple_of(10) {
+            return Err(js_error("world geometry needs ten floats per vertex"));
+        }
+        let runtime = self
+            .runtime
+            .as_mut()
+            .ok_or_else(|| js_error("install presentation before replacing world props"))?;
+        self.geometry = None;
+        runtime.set_skirt_and_props(
+            &self.gpu.device,
+            &self.gpu.queue,
+            WorldGeometry::faces(positions, &words),
+        );
+        self.geometry = Some(runtime.geometry());
+        Ok(())
+    }
+
+    /// Retain the same prebuilt terrain used by browser picking and shadows.
+    // Grouping these inputs would require another exported WASM object and its
+    // lifetime; keep the synchronous presentation borrow and geometry arrays here.
+    #[allow(clippy::too_many_arguments)]
+    pub fn set_world_geometry(
+        &mut self,
+        presentation: &Presentation,
+        terrain_mesh: Vec<f32>,
+        skirt_positions: &[f32],
+        extra_faces: &[f32],
+        water: bool,
+        backdrop_m: f64,
+        backdrop_terrain: Option<Vec<f32>>,
+    ) -> Result<(), JsValue> {
+        if [
+            Some(extra_faces),
+            Some(terrain_mesh.as_slice()),
+            backdrop_terrain.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        .any(|words| !words.len().is_multiple_of(10))
+        {
+            return Err(js_error("world geometry needs ten floats per vertex"));
+        }
+        let ground = presentation
+            .core()
+            .ground()
+            .ok_or_else(|| js_error("resolve ground before world geometry"))?;
+        let cells = if water {
+            ground.water_cells()
+        } else {
+            Vec::new()
+        };
+        let mut geometry = WorldGeometry::from_mesh(
+            terrain_mesh,
+            skirt_positions,
+            extra_faces,
+            &cells,
+            backdrop_m,
+        );
+        if let Some(terrain) = backdrop_terrain {
+            geometry.set_backdrop(Some(&terrain), backdrop_m);
+        }
+        self.geometry = Some(Arc::new(geometry));
+        self.runtime = None;
+        self.display_group = None;
+        Ok(())
+    }
+
+    pub fn load_effect_atlas(&mut self, pngs: js_sys::Array) -> Result<(), JsValue> {
+        let bytes: Vec<_> = pngs
+            .iter()
+            .map(|value| js_sys::Uint8Array::new(&value).to_vec())
+            .collect();
+        let refs: Vec<_> = bytes.iter().map(Vec::as_slice).collect();
+        // The authored atlas side is exported with the production pipeline sizes.
+        let side = renderer_core::pipelines::builtin_sizes().effect_sheet as u32;
+        self.effect_sheets = Some(Arc::new(
+            EffectSheets::decode(side, &refs).map_err(js_error)?,
+        ));
+        self.runtime = None;
+        self.display_group = None;
+        Ok(())
+    }
+
+    /// Returns the refreshed world header; admission may add scenery rows.
+    pub fn install_presentation(
+        &mut self,
+        presentation: &mut Presentation,
+        scenery: bool,
+    ) -> Result<u32, JsValue> {
+        if scenery {
+            renderer_core::scenery::place_scenery(
+                presentation.core_mut(),
+                self.model_library.as_ref(),
+            )
+            .map_err(js_error)?;
+        }
+        let mut runtime = Runtime::new(
+            &self.gpu.device,
+            &self.gpu.queue,
+            self.config.clone(),
+            RuntimeWorld {
+                presentation: presentation.core_mut(),
+                assets: self.model_library.as_ref(),
+                geometry: self
+                    .geometry
+                    .clone()
+                    .ok_or_else(|| js_error("load external world geometry first"))?,
+                effect_sheets: self
+                    .effect_sheets
+                    .clone()
+                    .ok_or_else(|| js_error("load effect sheets first"))?,
+            },
+        )
+        .map_err(js_error)?;
+        runtime.set_overlay_glow(&self.gpu.queue, self.overlay_glow);
+        self.runtime = Some(runtime);
+        self.rebind_display();
+        presentation.refresh_frame_header();
+        Ok(presentation.refresh_world_header())
+    }
+
+    /// Async GPU asset work is separate from synchronous presentation admission.
+    pub async fn prepare_assets(&mut self) -> Result<(), JsValue> {
+        self.runtime
+            .as_mut()
+            .ok_or_else(|| js_error("install presentation before preparing assets"))?
+            .prepare_assets(&self.gpu.device, &self.gpu.queue)
+            .await
+            .map_err(js_error)
+    }
+
+    pub fn set_controls(&mut self, presentation: &Presentation, json: &str) -> Result<(), JsValue> {
+        let controls = serde_json::from_str(json).map_err(js_error)?;
+        if let Some(runtime) = &mut self.runtime {
+            runtime
+                .set_controls(&self.gpu.queue, presentation.core(), controls)
+                .map_err(js_error)?;
+        }
+        self.config.controls = controls;
+        Ok(())
+    }
+
+    /// Canonical static-batch generation for the next presentation frame.
+    pub fn static_generation(&self) -> Result<u32, JsValue> {
+        self.runtime
+            .as_ref()
+            .map(Runtime::static_generation)
+            .ok_or_else(|| js_error("install presentation before framing"))
+    }
+
+    pub fn set_fog_style(&mut self, style: String) -> Result<(), JsValue> {
+        let style: presentation::fog::FogStyle = serde_json::from_str(&style).map_err(js_error)?;
+        let look = style.look().map_err(js_error)?;
+        self.config.fog_look = look;
+        if let Some(runtime) = &mut self.runtime {
+            runtime.set_fog_look(&self.gpu.queue, look);
+        }
+        Ok(())
+    }
+
+    pub fn set_overlay_glow(&mut self, radius_px: f32, strength: f32) {
+        self.overlay_glow = OverlayGlow {
+            radius_px,
+            sigma_px: radius_px / 2.5,
+            strength,
+            pad: 0.0,
+        };
+        if let Some(runtime) = &mut self.runtime {
+            runtime.set_overlay_glow(&self.gpu.queue, self.overlay_glow);
+        }
+    }
+}

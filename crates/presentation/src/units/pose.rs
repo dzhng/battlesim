@@ -6,7 +6,8 @@ use std::sync::Arc;
 use crate::world::Vec3;
 
 /// How a vehicle's articulated parts stand (`articulation.ts`).
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, serde::Deserialize)]
+#[serde(default)]
 pub struct Articulation {
     /// Turret heading relative to the hull, radians about +Z.
     pub turret_yaw: f64,

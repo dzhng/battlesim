@@ -157,6 +157,13 @@ impl DrawnModels {
         }
     }
 
+    /// Replace art facts without dropping observed poses or rotor travel.
+    pub fn replace_catalog(&mut self, units: Arc<UnitsSection>, tables: Arc<ClipTables>) {
+        self.units = units;
+        self.tables = tables;
+        self.memo.clear();
+    }
+
     /// Take the pose frame the models are drawn from this frame.
     pub fn update(&mut self, frame: &PoseFrame) {
         self.memo.clear();

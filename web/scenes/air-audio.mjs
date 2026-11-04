@@ -15,10 +15,10 @@
 // an_unseen_enemy_is_heard_only_by_direction).
 import { gpuWarnings, obs, lab } from "./_lab.mjs";
 import { openAir, shoot } from "./_air.mjs";
-import { game, unitType } from "./_units.mjs";
+import { unitType, audioMix } from "./_units.mjs";
 
 const ENEMY_JET = "eastern_j_10_vigorous_dragon_j_10c";
-const { air_alarm, vehicles } = game.presentation.audio;
+const { air_alarm, vehicles } = audioMix;
 const ALARM = air_alarm.sound;
 /** The engine the J-10 sounds with: its class's row. */
 const ENGINE = vehicles[unitType(ENEMY_JET).vehicle_class].engine;

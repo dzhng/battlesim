@@ -11,7 +11,7 @@
 //!   cue's sector), and sending its share into its bus's reverb;
 //! - buses (units, effects, ambience, voices) sum under the master,
 //!   through the presentation's limiter and a hard clip at its ceiling
-//!   (`presentation.audio.limiter`); the ambience bus, and its reverb's tail, dip under
+//!   (`audio.limiter`); the ambience bus, and its reverb's tail, dip under
 //!   a loud sound through a duck of their own, so its level stays as set;
 //! - voice lines are the line arbitration's (`presentation::sound::voices`):
 //!   its answers and the barks the sound heard, each a take of a voice pack
@@ -179,18 +179,24 @@ pub struct Audio {
 }
 
 /// The game's sound setup, as the browser builds it (`soundFeed.ts`):
-/// `presentation.audio`, the sound catalog, the weapon rows, the tick rate,
-/// and the effects' smoke and cook-off.
-pub fn setup(game: &Value, catalog: &Value) -> String {
-    let fx = &game["presentation"]["effects"];
-    json!({
-        "audio": game["presentation"]["audio"],
+/// `audio.json`, the sound catalog, the weapon rows, the tick rate,
+/// the presentation document and the resolved unit catalog.
+pub fn setup(
+    rules: &contract::scenario::Rules,
+    presentation: &Value,
+    audio: &Value,
+    catalog: &Value,
+) -> Result<String, String> {
+    presentation::settings::PresentationSettings::from_value(presentation)?;
+    Ok(json!({
+        "audio": audio,
+        "presentation": presentation,
         "catalog": catalog,
-        "weapons": game["weapons"],
-        "tick_hz": game["tick_hz"],
-        "effects": { "smoke": fx["smoke"], "cook_off": fx["cook_off"] },
+        "weapons": rules.weapons,
+        "unit_catalog": rules.catalog.view(),
+        "tick_hz": rules.tick_hz,
     })
-    .to_string()
+    .to_string())
 }
 
 /// A recording's samples, from `assets/runtime` (`url` is where the browser
@@ -359,7 +365,7 @@ impl Audio {
             chatter: Chatter::new(audio.voices, CHATTER_SEED),
             score: Score::new(
                 audio.music.clone(),
-                tables.catalog.music.moods.clone(),
+                tables.catalog.music.moods.battle(),
                 SCORE_SEED,
             ),
             packs: voices::Packs::new(runtime),

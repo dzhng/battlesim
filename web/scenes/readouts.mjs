@@ -4,7 +4,7 @@
 import { decode, pixel, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, snapshot, until, openBattle } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
-import { hull, game, unitType, weapons } from "./_units.mjs";
+import { hull, unitType, weapons, visuals } from "./_units.mjs";
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -116,7 +116,7 @@ export async function run(ctx) {
       }
       return null;
     },
-    game.presentation.overlay.orders.area_draw_scale,
+    visuals.overlay.orders.area_draw_scale,
   );
   ctx.check(
     "the infantry picking probe is inside its circle and clear of bodies and panels",
@@ -328,6 +328,7 @@ export async function run(ctx) {
   await page.setViewportSize({ width: 1280, height: 800 });
   await lab(page, () => window.__lab.route.select([0]));
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
+  await lab(page, () => window.__lab.frame());
   const priority = await page.locator("[data-testid=readouts] .ro-callout").evaluateAll((nodes) =>
     nodes.map((n) => ({
       selected: n.classList.contains("ro-selected"),
@@ -489,7 +490,12 @@ export async function run(ctx) {
 async function vehicleMarker(ctx) {
   const page = await openBattle(ctx);
   const TANK = 0;
-  const BUILDING = { center: [150, 110], half: 12 };
+  const BUILDING = await lab(page, () => {
+    const boxes = window.__lab.route.buildings()[0].authored;
+    const low = [0, 1].map((axis) => Math.min(...boxes.map((p) => p.center[axis] - p.half[axis])));
+    const high = [0, 1].map((axis) => Math.max(...boxes.map((p) => p.center[axis] + p.half[axis])));
+    return { low, high, center: low.map((v, i) => (v + high[i]) / 2) };
+  });
   // The tank's marker, selected: the selection's amber paint.
   await lab(page, (id) => window.__lab.route.select([id]), TANK);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
@@ -504,19 +510,21 @@ async function vehicleMarker(ctx) {
     TANK,
   );
   const radius =
-    hull("test_tank").half_extents_m[0] + game.presentation.overlay.orders.vehicle_marker_margin_m;
+    hull("test_tank").half_extents_m[0] + visuals.overlay.orders.vehicle_marker_margin_m;
   // Ground paint lies on the ground itself.
   const place = (target, yaw) =>
     lab(
       page,
-      (c) =>
+      async (c) => {
         window.__lab.setCamera({
           ...window.__lab.camera(),
           target: [c.target[0], c.target[1], 0],
           distance: 65,
           pitch: 0.85,
           yaw: c.yaw,
-        }),
+        });
+        await window.__lab.frame();
+      },
       { target, yaw },
     );
   // Frame `target` at the default camera's distance and pitch, with the
@@ -573,7 +581,7 @@ async function vehicleMarker(ctx) {
   await frameFrom(start, -Math.PI / 2);
   const open = await rimShown("open-ground");
   // Parked hard against the building's north wall, framed across its corner.
-  const park = [BUILDING.center[0] + 6, BUILDING.center[1] + BUILDING.half + 3];
+  const park = [BUILDING.center[0], BUILDING.high[1] + radius + 1];
   await lab(
     page,
     (c) =>
@@ -607,7 +615,7 @@ async function vehicleMarker(ctx) {
   // `presentation.light.sun_azimuth`, so it falls west): the painted marker
   // is darker than in the open, lit like the ground, yet still drawn (its
   // emissive).
-  const shadowed = [BUILDING.center[0] - BUILDING.half - 5, BUILDING.center[1]];
+  const shadowed = [BUILDING.low[0] - radius - 1, BUILDING.center[1]];
   await lab(
     page,
     (c) =>

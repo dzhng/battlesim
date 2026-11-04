@@ -249,7 +249,7 @@ fn trial(
         .iter()
         .filter(|s| {
             if garrison {
-                sim::garrison::shelter(target, b.rules()) > 0.0
+                sim::garrison::shelter(target) > 0.0
             } else {
                 origins.iter().all(|&from| {
                     sim::cover::at(b.world(), b.ground(), &[], b.rules(), s.position.xy(), from)

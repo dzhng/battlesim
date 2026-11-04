@@ -8,6 +8,7 @@ use contract::observation::HoldPhase;
 use contract::scenario::BailOutHost;
 use serde_json::json;
 use sim::battle::Battle;
+use sim::fixtures::test_rules;
 
 fn setup(units: serde_json::Value) -> contract::scenario::ScenarioDefinition {
     let map = json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],"buildings":[]});
@@ -56,7 +57,7 @@ struct HeliCrash {
 }
 
 fn transport_heli_crash(seed: u64, leaves_map: bool) -> HeliCrash {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -475,7 +476,7 @@ fn a_retiring_helicopter_takes_its_passengers_with_it() {
 }
 
 fn transport_skirmish_setup() -> contract::scenario::ScenarioDefinition {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = test_rules();
     for (kind, faction, category) in [
         ("test_apc", "us", "veh"),
         ("test_recon", "us", "inf"),
@@ -930,7 +931,7 @@ fn soldiers_riding_another_carrier_take_up_no_ground() {
 /// stood and how fast it drove the tick before it died, its braking rate,
 /// where its wreck lies, and where the helicopter hovered as it died.
 fn battle_soldier_radius() -> f64 {
-    sim::fixtures::test_game()["physics"]["soldier_radius_m"]
+    test_rules()["physics"]["soldier_radius_m"]
         .as_f64()
         .expect("a soldier's radius")
 }
@@ -1098,7 +1099,7 @@ fn transport_orders_replay_every_tick_exactly() {
 
 #[test]
 fn catalog_rejects_invalid_carriage_seats_and_squads() {
-    let mut game = sim::fixtures::test_game();
+    let mut game = test_rules();
     sim::fixtures::patch_catalog(
         &mut game,
         "units",
@@ -1578,7 +1579,7 @@ fn carrier_destroyed_once(
     board_s: Option<f64>,
     ready: fn(sim::hold::Phase) -> bool,
 ) -> (Battle, Vec<Vec<f64>>) {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = test_rules();
     if let Some(board_s) = board_s {
         rules["carriage"]["board_s"] = json!(board_s);
     }
@@ -1827,7 +1828,7 @@ fn the_unload_step_of_a_queued_drive_unload_drive_is_published() {
 /// runs once before the jeep is ordered. Returns the battle on the tick the
 /// carrier died.
 fn carrier_killed_with_squad_at(squad: [f64; 2], before_kill: impl FnOnce(&mut Battle)) -> Battle {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",

@@ -7,7 +7,11 @@ The [combat audio rationale](../../specs/done/combat-audio/README.md) records th
 constraints behind the library and workbench.
 
 The [sound catalog](../../fixtures/sounds.json) separates provenance, clean clips,
-reusable recipes and assignments. Each recording in a recipe is an alternative,
+reusable recipes. Its [Rust reader](../../crates/presentation/src/sound/catalog.rs)
+admits both player loads and workbench drafts, including source metadata and
+burst/loop compatibility. The [audio mix](../../fixtures/audio.json), [weapon looks](../../fixtures/presentation.json)
+and resolved weapon rows are admitted together before a bank prepares voices
+or the workbench previews or saves a library draft. Each recording in a recipe is an alternative,
 not another shot. Optional synthesis supplies restrained body inside that same
 buffer, under each of its shots, so one cause still costs one voice.
 
@@ -22,10 +26,8 @@ grenades and launchers keep single reports.
 
 A round's contact sound follows the round as well as the surface: a hit by
 its material, a glance by its ricochet, so a shell strikes and deflects off
-armour with weight a rifle round lacks. A derived round without its own
-choice takes its nearest ancestor's, as for firing; otherwise it falls back to
-the contact's default, then the shared slot. Heavier rounds sound louder by their
-impact scale.
+armour with weight a rifle round lacks. Its weapon look carries contact overrides and loudness; absent recording overrides
+use the mix's default for that part.
 
 A battle prepares only what it can play: the synthesized baselines and every
 assigned or replacing recipe. The rest of the library is stored for audition
@@ -42,11 +44,13 @@ volume adjustments. Silence stays silent.
 Mixed loops repeat each layer at its own period and crossfade the resulting seam;
 a shorter layer never creates a silent gap in the longer loop.
 
-Firing choices are keyed by weapon row, never by unit. The audio catalog does not
-resolve inheritance: the battle lab gives a derived row without a choice of its own
-its nearest ancestor's (`inheritRows`, as for every weapon-keyed presentation table),
-else the `default` row's. A hull's launch is heard as its mount's first weapon row,
-not its currently selected ammunition. Vehicle loops are keyed by vehicle class
+Weapon rows name one appearance, inherited by the contract's catalog resolver.
+[The look reader](../../crates/presentation/src/looks.rs) is the authority for
+both clients: firing has an explicit recording, while other parts may use the
+mix's defaults. Changing look values never changes battle rules or outcomes.
+A hull's launch follows the mount's last-fired weapon row (the published
+`WeaponPose.round`), so a mount carrying several weapons plays the one it fired.
+Vehicle loops are keyed by vehicle class
 (the catalog view's `vehicle_class`, which `contract::catalog::UnitType::vehicle_class`
 derives from mobility, hull weight and the logistics role).
 
@@ -161,7 +165,7 @@ Which lines play is decided in one place, in Rust
 ([`presentation::sound::voices`](../../crates/presentation/src/sound/voices.rs),
 bound by [the chatter](src/voices/chatter.ts)): answers before own shouts before a
 seen enemy's, nearest the listener first (a battle's is its sound frame's own), a
-few lines at once (`presentation.audio.voices`), a line dropped when it can't start
+few lines at once (`audio.voices`), a line dropped when it can't start
 soon, a unit never over itself, one answer per group. It picks the take with the
 client's own seeded randomness, never the simulation's, and gives start commands
 on the voices bus that the page only carries out. Its takes come from
@@ -225,7 +229,7 @@ play the same samples. The synthesized sounds' names are generated from Rust
 and prevents late admission.
 
 The bed keeps its level between shots and makes room under a loud one, as a
-film mix does: a sound at least `presentation.audio.ambience.duck_over` loud
+film mix does: a sound at least `audio.ambience.duck_over` loud
 at the listener (its level there, as the voice budget ranks it, never a list
 of weapons) dips the ambience bus by the bed's `duck`, which recovers once the
 dip is reached. Distant fire never reaches the threshold, so the bed does not
@@ -274,7 +278,7 @@ sets it to −26 LUFS. `--track` buys a track again.
 Which mood plays, which track comes next and when the music dips is decided in
 Rust, once for both clients ([`presentation::sound::music`](../../crates/presentation/src/sound/music.rs)),
 from the side's own barks and whether a voice line sounds. Its numbers live in
-`presentation.audio.music`. Each mood's tracks shuffle by the score's seed, every
+`audio.music`. Each mood's tracks shuffle by the score's seed, every
 track once a shuffle and never one back to back. Rust names a track by its
 catalog id and emits music commands with the rest: start a track fading in, stop
 every track fading out (a crossfade is the two over one span), and duck. In a

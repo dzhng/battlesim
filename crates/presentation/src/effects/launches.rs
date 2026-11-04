@@ -50,8 +50,10 @@ pub struct LaunchTracker {
     flying: HashMap<FlightKey, Vec<bool>>,
     /// This publication's segments (by index) chosen as tracers.
     pub tracers: HashSet<usize>,
-    /// Squads' rises in the last publication, by shooter key and mount.
-    owed: HashMap<u64, Vec<f64>>,
+    /// Squads' rises in the last publication, by shooter key and mount,
+    /// with the round they fired: its flight shows a publication later,
+    /// when the mount may name the next round.
+    owed: HashMap<u64, Vec<(f64, Arc<str>)>>,
 }
 
 impl LaunchTracker {
@@ -81,7 +83,7 @@ impl LaunchTracker {
             starts.entry(shooter.to_bits()).or_default().push(s);
         }
         let mut seen = HashSet::new();
-        let mut owed: HashMap<u64, Vec<f64>> = HashMap::new();
+        let mut owed: HashMap<u64, Vec<(f64, Arc<str>)>> = HashMap::new();
         for u in &pub_.shooters {
             let key = u.key.to_bits();
             seen.insert(key);
@@ -103,14 +105,16 @@ impl LaunchTracker {
                 if rose > 0.0 {
                     let rises = owed.entry(key).or_default();
                     if rises.len() <= m {
-                        rises.resize(m + 1, 0.0);
+                        rises.resize(m + 1, (0.0, mount.kind.clone()));
                     }
-                    rises[m] = rose;
+                    rises[m] = (rose, mount.kind.clone());
                 }
-                let mut left = due.and_then(|d| d.get(m).copied()).unwrap_or(0.0);
+                let Some((mut left, kind)) = due.and_then(|d| d.get(m)).cloned() else {
+                    continue;
+                };
                 for id in u.members.iter().flatten() {
                     for s in starts.get(&id.to_bits()).into_iter().flatten() {
-                        if left <= 0.0 || s.kind != mount.kind {
+                        if left <= 0.0 || s.kind != kind {
                             continue;
                         }
                         left -= 1.0;

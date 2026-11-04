@@ -149,6 +149,34 @@ fn each_wake_impulse_splats_once_at_the_step_that_covers_it_whatever_the_frame_r
     assert_eq!(slow, splats(144.0));
 }
 
+#[test]
+fn moving_wakes_follow_travel_instead_of_the_units_facing() {
+    let mut f = effects();
+    let camera = looking_at(40.0, 20.0, 60.0);
+    f.waves(0.0, &camera);
+    let mut splats = vec![];
+    for tick in 1..=60 {
+        let mut p = wading(f64::from(tick));
+        let d = [0.06 * f64::from(tick), 0.08 * f64::from(tick)];
+        let s = &mut p.shooters[0];
+        s.position[0] += d[0];
+        s.position[1] += d[1];
+        for w in &mut s.wading {
+            w.at[0] += d[0];
+            w.at[1] += d[1];
+        }
+        // Its yaw stays east while its displacement travels north-east.
+        f.note(&p);
+        splats.extend(f.waves(f64::from(tick) / HZ, &camera).splats);
+    }
+    let moving: Vec<_> = splats.iter().filter(|s| s.kind == 1.0).collect();
+    assert!(!moving.is_empty(), "the moving squad disturbed the water");
+    for s in moving {
+        assert!((s.heading[0] - 0.6).abs() < 1e-5, "{s:?}");
+        assert!((s.heading[1] - 0.8).abs() < 1e-5, "{s:?}");
+    }
+}
+
 /// A side switch (`Presentation::invalidate`, which starts the field over)
 /// discards the wakes the old side saw made and not yet splatted: none
 /// reaches the new side's field.

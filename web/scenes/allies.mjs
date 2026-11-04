@@ -196,7 +196,9 @@ export async function run(ctx) {
   // A box over both armies selects only yours.
   await lab(page, () => window.__lab.route.select([]));
   o = await obs(page);
-  // Your unit and your ally's nearest it, framed together.
+  // Your unit and your ally's nearest it, framed together and small enough
+  // that the padded box stays clear of the HUD's bars: a drag released on
+  // a panel selects nothing.
   const yours = o.own.filter((u) => u.owner === YOU);
   const theirs = o.own.filter((u) => u.owner === ALLY);
   const pair = yours
@@ -205,7 +207,7 @@ export async function run(ctx) {
   ctx.check("your units and your ally's are both on the field for the box", !!pair);
   if (!pair) return;
   const together = pair;
-  await aim(page, centroid(together), { distance: Math.max(220, 1.8 * dist(...pair)) });
+  await aim(page, centroid(together), { distance: Math.max(220, 3 * dist(...pair)) });
   await presented(page);
   const box = await lab(
     page,

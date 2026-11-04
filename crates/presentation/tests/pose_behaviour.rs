@@ -310,7 +310,7 @@ fn past_the_cap_a_battle_joined_lies_its_newest_and_a_reset_forgets_the_gone() {
 fn each_of_his_own_shots_kicks_a_soldier_back_by_his_weapon_s_kick_and_he_recovers() {
     // The test's own kick: a rifle's kicks fully, anything else half as hard.
     let units = units_with(|v| {
-        v["pose"]["soldier_kick"] = json!({"rounds": {"default": 0.5, "rifle": 1},
+        v["pose"]["soldier_kick"] = json!({
             "pitch_deg": 10, "back_m": 0.06, "return_s": 0.3});
     });
     let none = fallen(&[]);

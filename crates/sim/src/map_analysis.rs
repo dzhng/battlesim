@@ -476,7 +476,7 @@ mod skirmish_tests {
     fn admission_returns_route_selected_sites() {
         let players = Vec::new();
         let rules: contract::scenario::Rules =
-            serde_json::from_value(crate::fixtures::test_game()).unwrap();
+            serde_json::from_value(crate::fixtures::test_rules()).unwrap();
         let map: contract::map::MapDefinition = serde_json::from_str(
             r#"{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
         )
@@ -524,7 +524,7 @@ mod skirmish_tests {
     fn central_fields_use_fair_reserved_centerline_locations() {
         let players = Vec::new();
         let rules: contract::scenario::Rules =
-            serde_json::from_value(crate::fixtures::test_game()).unwrap();
+            serde_json::from_value(crate::fixtures::test_rules()).unwrap();
         let map: contract::map::MapDefinition = serde_json::from_str(
             r#"{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
         )
@@ -557,7 +557,7 @@ mod skirmish_tests {
     #[test]
     fn player_topology_enforces_the_larger_side_size_floor() {
         let rules: contract::scenario::Rules =
-            serde_json::from_value(crate::fixtures::test_game()).unwrap();
+            serde_json::from_value(crate::fixtures::test_rules()).unwrap();
         let map: contract::map::MapDefinition = serde_json::from_str(
             r#"{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
         )
@@ -594,7 +594,7 @@ mod skirmish_tests {
     fn unequal_objective_routes_are_refused() {
         let players = Vec::new();
         let rules: contract::scenario::Rules =
-            serde_json::from_value(crate::fixtures::test_game()).unwrap();
+            serde_json::from_value(crate::fixtures::test_rules()).unwrap();
         let map: contract::map::MapDefinition = serde_json::from_str(
             r#"{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
         )

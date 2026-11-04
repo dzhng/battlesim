@@ -1,14 +1,15 @@
 use super::*;
+use crate::fixtures::{self, test_rules};
 use serde_json::{json, Value};
 
-/// The test units as a U.S. deck: a card for each, in its category.
+/// Test units as a U.S. deck: a card for each, in its category.
 /// The frame's one player row, the deciding player's (`own_player`).
 fn me(frame: &mut ObservationFrame) -> &mut contract::skirmish::PlayerView {
     &mut frame.skirmish.as_mut().unwrap().players[0]
 }
 
 fn deck() -> serde_json::Value {
-    let mut rules = crate::fixtures::test_game();
+    let mut rules = test_rules();
     for (id, category) in [
         ("test_rifle", "inf"),
         ("test_at", "inf"),
@@ -17,7 +18,7 @@ fn deck() -> serde_json::Value {
         ("test_tank", "veh"),
         ("test_supply", "sup"),
     ] {
-        crate::fixtures::patch_catalog(
+        fixtures::patch_catalog(
             &mut rules,
             "units",
             id,
@@ -77,7 +78,7 @@ fn missing_opening_role_uses_admitted_category_fallback() {
     let (_, frame, entry) = empty_match();
     // The deck's one infantry-role card loses the role.
     let mut authored = deck();
-    crate::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut authored,
         "units",
         "test_rifle",
@@ -622,7 +623,7 @@ fn different_seeds_can_change_a_reinforcement_choice_without_changing_legality()
 #[test]
 fn identified_helicopter_selects_a_catalog_unit_that_can_engage_low_air() {
     let mut authored = deck();
-    crate::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut authored,
         "units",
         "test_rifle",
@@ -630,7 +631,7 @@ fn identified_helicopter_selects_a_catalog_unit_that_can_engage_low_air() {
             "body": { "squad": { "slots": ["test_atgm_gunner"] } }
         }),
     );
-    crate::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut authored,
         "units",
         "test_jeep",
@@ -851,7 +852,7 @@ fn a_route_blocked_unit_gets_a_new_non_plan_order_next_decision() {
 #[test]
 fn nearest_air_target_uses_body_distance_in_three_dimensions() {
     let mut authored = deck();
-    crate::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut authored,
         "units",
         "test_jeep",
@@ -921,7 +922,7 @@ fn nearest_air_target_uses_body_distance_in_three_dimensions() {
 #[test]
 fn opening_procures_an_authored_artillery_role() {
     let mut authored = deck();
-    crate::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut authored,
         "units",
         "test_jeep",
@@ -952,7 +953,7 @@ fn opening_procures_an_authored_artillery_role() {
 
 #[test]
 fn every_ai_opening_includes_a_high_air_defender() {
-    let rules: Rules = serde_json::from_value(crate::fixtures::game()).unwrap();
+    let rules: Rules = serde_json::from_value(fixtures::rules()).unwrap();
     let (_, frame, entry) = empty_match();
     for faction in [Faction::Us, Faction::Europe, Faction::Eastern] {
         let orders = BalancedDoctrine::default().decide(
@@ -992,7 +993,7 @@ fn every_ai_opening_includes_a_high_air_defender() {
                 .index(id)
                 .is_some_and(|k| unit_engages_aircraft_in(&rules, k, AltitudeLayer::HighAir))
     };
-    let mut authored = crate::fixtures::game();
+    let mut authored = fixtures::rules();
     for doc in authored["catalog"].as_array_mut().unwrap() {
         let Some(units) = doc.get_mut("units").and_then(Value::as_object_mut) else {
             continue;
@@ -1044,9 +1045,9 @@ fn an_opening_that_cannot_afford_its_aa_card_buys_the_rest() {
         "test_tank",
         "test_supply",
     ] {
-        crate::fixtures::patch_catalog(&mut authored, "units", id, json!({ "cost": 50 }));
+        fixtures::patch_catalog(&mut authored, "units", id, json!({ "cost": 50 }));
     }
-    crate::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut authored,
         "units",
         "test_jeep",
@@ -1075,7 +1076,7 @@ fn an_opening_that_cannot_afford_its_aa_card_buys_the_rest() {
 #[test]
 fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
     let mut authored = deck();
-    crate::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut authored,
         "units",
         "test_jeep",
@@ -1083,7 +1084,7 @@ fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
             "mounts": [{ "id": "HMG", "weapons": ["aa_long"] }]
         }),
     );
-    crate::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut authored,
         "units",
         "test_jet",
@@ -1170,7 +1171,7 @@ fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
 #[test]
 fn the_ai_sends_bought_jets_on_attack_move() {
     let mut authored = deck();
-    crate::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut authored,
         "units",
         "test_jet",
@@ -1280,15 +1281,15 @@ fn with_steady_income_the_ai_saves_for_an_expensive_jet_and_keeps_its_aa() {
         ("test_supply", 50),
         ("test_jeep", 150),
     ] {
-        crate::fixtures::patch_catalog(&mut authored, "units", id, json!({ "cost": cost }));
+        fixtures::patch_catalog(&mut authored, "units", id, json!({ "cost": cost }));
     }
-    crate::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut authored,
         "units",
         "test_jeep",
         json!({ "mounts": [{ "id": "HMG", "weapons": ["aa_long"] }] }),
     );
-    crate::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut authored,
         "units",
         "test_jet",
@@ -1399,7 +1400,7 @@ fn active_policy_uses_an_ordinary_attack_for_a_known_target() {
 #[test]
 fn artillery_fires_a_bounded_ground_guess_from_a_contact() {
     let mut authored = deck();
-    crate::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut authored,
         "units",
         "test_jeep",
@@ -1467,7 +1468,7 @@ fn entry_from(center: [f64; 2]) -> EntrySite {
 
 fn artillery_frame() -> (Rules, ObservationFrame, EntrySite) {
     let mut authored = deck();
-    crate::fixtures::patch_catalog(
+    fixtures::patch_catalog(
         &mut authored,
         "units",
         "test_jeep",
@@ -1475,7 +1476,6 @@ fn artillery_frame() -> (Rules, ObservationFrame, EntrySite) {
     );
     authored["weapons"]["hmg"]["trajectory"] = json!("indirect");
     authored["weapons"]["hmg"]["min_range_m"] = json!(50);
-    authored["weapons"]["hmg"]["range_m"] = json!(500);
     authored["weapons"]["hmg"]["targets"]["ground"]["range_m"] = json!(500);
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
@@ -1846,8 +1846,8 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
         "targets": { "ground": { "range_m": 650, "scatter_mrad": 26 } },
         "requires_clear_launch_path": true,
     });
-    rules["service"]["round_costs"]["test_launcher"] = json!(1);
-    crate::fixtures::patch_catalog(
+    rules["weapons"]["test_launcher"]["round_cost"] = json!(1);
+    fixtures::patch_catalog(
         &mut rules,
         "units",
         "test_jeep",
@@ -1927,7 +1927,7 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
 #[test]
 fn a_row_that_shoots_down_missiles_alone_is_no_defence_against_aircraft() {
     let defends = |classes: Value| {
-        let mut fixture = crate::fixtures::test_game();
+        let mut fixture = test_rules();
         fixture["weapons"]["hmg"]["targets"]["low_air"]["classes"] = classes;
         fixture["weapons"]["hmg"]["proximity_fuse_m"] = serde_json::json!(2);
         let rules: Rules = serde_json::from_value(fixture).unwrap();

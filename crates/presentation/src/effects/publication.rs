@@ -49,7 +49,7 @@ pub struct Mount {
     pub bearing: f64,
     pub elevation: f64,
     pub shots: f64,
-    /// The round kind it fires (its first weapon row).
+    /// The round kind it last fired, selected from the mount's weapon list.
     pub kind: Arc<str>,
     /// Where a hull's mount fires from; None for a soldier's weapon.
     pub muzzle: Option<MountMuzzle>,
@@ -192,17 +192,16 @@ impl EffectFeed {
                 members: members.to_vec(),
                 mounts: poses
                     .iter()
-                    .map(|p| {
+                    .filter_map(|p| {
                         let m = p.mount as usize;
-                        Mount {
+                        let row = unit?.mounts.get(m)?;
+                        Some(Mount {
                             bearing: p.bearing,
                             elevation: p.elevation,
                             shots: p.shots.unwrap_or(f64::NAN),
-                            kind: unit
-                                .and_then(|u| u.mounts.get(m))
-                                .map_or_else(|| "default".into(), |r| r.weapon.as_str().into()),
+                            kind: row.weapons.get(p.round as usize)?.kind.as_str().into(),
                             muzzle: ty.and_then(|t| t.muzzles.get(m).copied().flatten()),
-                        }
+                        })
                     })
                     .collect(),
                 wading: vec![],

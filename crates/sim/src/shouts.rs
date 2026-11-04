@@ -389,7 +389,7 @@ impl ShoutLedger {
         if !self.can_start(unit.id, trigger, now, rules) {
             return;
         }
-        let talk = (rules.shouts.talk_s[&trigger] * rules.tick_hz as f64).round() as Tick;
+        let talk = (rules.shouts.talk_s * rules.tick_hz as f64).round() as Tick;
         self.last.insert((unit.id, trigger), now);
         self.talking_until.insert(unit.id, now.saturating_add(talk));
         out.push(Shout {

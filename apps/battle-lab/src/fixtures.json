@@ -19,7 +19,7 @@
   {
     "id": "native-parity-capture",
     "route": "/labs/graphics-test?plates=1",
-    "describe": "The native client's control run: the graphics-test reel at 1280×720 with control plates read back from the canvas at each shot's middle; writes each scene's capture, visual presentation manifest and plates to throwaway/native-parity/. PARITY_SCENES=<map,…> films only those scenes.",
+    "describe": "The native client's control run: the graphics-test reel at 1280\u00d7720 with control plates read back from the canvas at each shot's middle; writes each scene's capture, visual presentation manifest and plates to throwaway/native-parity/. PARITY_SCENES=<map,\u2026> films only those scenes.",
     "map": null,
     "timeout_s": 600,
     "serial": true,
@@ -29,7 +29,7 @@
   {
     "id": "graphics-fps",
     "route": "/labs/graphics-test?scenes=market-town,paris-corner",
-    "describe": "The browser's half of the frame-rate comparison with the native client: the graphics-test reel without plates, on a production build at 1280×720, paced to the display; writes each scene's frame intervals, CPU and GPU times after the warm-up, and the in-game FPS counter's readings, to throwaway/perf/. FPS_SCENES=<map,…> picks the scenes.",
+    "describe": "The browser's half of the frame-rate comparison with the native client: the graphics-test reel without plates, on a production build at 1280\u00d7720, paced to the display; writes each scene's frame intervals, CPU and GPU times after the warm-up, and the in-game FPS counter's readings, to throwaway/perf/. FPS_SCENES=<map,\u2026> picks the scenes.",
     "map": null,
     "build": "production",
     "timeout_s": 900,
@@ -150,7 +150,7 @@
   {
     "id": "air-ingress",
     "route": "/labs/air-ingress",
-    "describe": "Paid jet ingress on air-jet: both purchases debit immediately; the delay has no unit or enemy draw; an approach AirTransit streaks over the render margin, then the jet arrives on blue’s back edge at cruise height heading in; after fuel burn it withdraws through the nearest back edge and is refunded.",
+    "describe": "Paid jet ingress on air-jet: both purchases debit immediately; the delay has no unit or enemy draw; an approach AirTransit streaks over the render margin, then the jet arrives on blue\u2019s back edge at cruise height heading in; after fuel burn it withdraws through the nearest back edge and is refunded.",
     "map": "air-jet"
   },
   {
@@ -223,7 +223,7 @@
   {
     "id": "readouts",
     "route": "/labs/readouts",
-    "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, ∞ unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the army deck's card keeps a unit's whole panel when zoomed out, and clicking a card already selected centres the camera on its unit; the command bar exposes the selection's actions (X attack-move, G attack ground, Backspace stop, F fire policy).",
+    "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, \u221e unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the army deck's card keeps a unit's whole panel when zoomed out, and clicking a card already selected centres the camera on its unit; the command bar exposes the selection's actions (X attack-move, G attack ground, Backspace stop, F fire policy).",
     "map": "readouts"
   },
   {
@@ -288,12 +288,10 @@
   },
   {
     "id": "ally-help",
-    "route": "/battle?type=mixed&size=medium&seed=1&battle=20260925&blue=h,a&blue_faction=us&red=a,a&red_faction=eastern",
-    "describe": "A 2v2 team battle: you hold the far objective with one squad, and under pressure your AI ally sends a detachment, not its whole force, toward your objective.",
+    "route": "/labs/ally-help",
+    "describe": "A controlled 2v2 team battle: one squad holds an objective under visible enemy pressure. Your AI ally sends a detachment, keeps its main force, and advances toward the held objective.",
     "map": null,
-    "catalog": "game",
-    "loading": false,
-    "timeout_s": 1500
+    "catalog": "test"
   },
   {
     "id": "benchmark",
@@ -327,7 +325,7 @@
   {
     "id": "workbench",
     "route": "/labs/workbench",
-    "describe": "Model workbench: drop a GLB (or /labs/workbench?bundle=name) to see validator findings and the production render — named views, a 1.8 m figure, the simulation hit box, socket gizmos, clip and phase scrubber, pose inputs, a feed replay through the pose driver, stats, sheets and the impostor bake.",
+    "describe": "Model workbench: drop a GLB (or /labs/workbench?bundle=name) to see validator findings and the production render \u2014 named views, a 1.8 m figure, the simulation hit box, socket gizmos, clip and phase scrubber, pose inputs, a feed replay through the pose driver, stats, sheets and the impostor bake.",
     "map": null
   },
   {
@@ -355,7 +353,7 @@
   {
     "id": "lobby",
     "route": "/",
-    "describe": "The skirmish lobby at /: an order of battle over real admitted map previews. Its scene covers the 1v1 default, the 3v3 and 5v5 presets, 3v4 and 2v3 by Add and Delete, taking another Blue seat, the size floor, a preview on opening and on each map change, Reroll, a hidden retry, a map that cannot be made, and Deploy starting the previewed map, and shoots each state at 1280×720 and 1920×1080.",
+    "describe": "The skirmish lobby at /: an order of battle over real admitted map previews. Its scene covers the 1v1 default, the 3v3 and 5v5 presets, 3v4 and 2v3 by Add and Delete, taking another Blue seat, the size floor, a preview on opening and on each map change, Reroll, a hidden retry, a map that cannot be made, and Deploy starting the previewed map, and shoots each state at 1280\u00d7720 and 1920\u00d71080.",
     "map": null,
     "timeout_s": 600
   },

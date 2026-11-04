@@ -15,10 +15,10 @@
 // LIGHT_LABEL names the set (default `current`, or `dusk` with LIGHT_SUN).
 import { mkdir, writeFile } from "node:fs/promises";
 import { lab, advance, aim, hideHud } from "./_lab.mjs";
-import { game, curvePitch } from "./_units.mjs";
+import { rules, curvePitch, visuals } from "./_units.mjs";
 
-const CAMERA = game.presentation.camera;
-const TICK_HZ = game.tick_hz;
+const CAMERA = visuals.camera;
+const TICK_HZ = rules.tick_hz;
 const START = Number(process.env.LIGHT_TICK ?? 30);
 const LAST = Number(process.env.LIGHT_LAST_TICK ?? 300 * TICK_HZ);
 const SUN = process.env.LIGHT_SUN ?? null;
@@ -27,8 +27,8 @@ const OUT = new URL(`../../throwaway/evidence/light/${LABEL}/`, import.meta.url)
 const VIEWPORT = { width: 1920, height: 1080 };
 /** Each shot: its name and the cast light that marks it. */
 const SHOTS = [
-  ["tank", (c) => c === "flash:tank_ap" || c === "flash:tank_he"],
-  ["hmg", (c) => c === "flash:hmg"],
+  ["tank", (c) => c === "flash:tank_sabot" || c === "flash:tank_he"],
+  ["hmg", (c) => c === "flash:heavy_machine_gun"],
   ["rifle", (c) => c === "flash:rifle"],
   ["grenade", (c) => c === "flash:grenade"],
   ["atgm-launch", (c) => c === "flash:atgm"],

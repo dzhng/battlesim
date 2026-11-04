@@ -1,5 +1,5 @@
 //! Cast lights: the light combat throws on what is round it
-//! (the renderer's `light/castLights.ts` holds the light model). The effects offer each frame's burning lights
+//! (the shared renderer's `lighting.wgsl` owns shading). Effects offer burning lights each frame
 //! (a flash, a motor, a tracer, a burst, a fire), each with its cause; of
 //! those reaching into the view, the world's uniform takes every one while
 //! they fit, else the `CAST_LIGHTS_MAX` of most weight as the camera sees them.
@@ -115,7 +115,7 @@ impl CastLights {
             for &i in &self.order {
                 self.weight[i] = weight(&v[i * CAST_LIGHT_FLOATS..], view.target, view.distance);
             }
-            // Stable, by float32 weight, as the browser's typed-array sort.
+            // Stable, by float32 weight, so equal candidates retain their order.
             let w = &self.weight;
             self.order.sort_by(|&a, &b| w[b].total_cmp(&w[a]));
         }

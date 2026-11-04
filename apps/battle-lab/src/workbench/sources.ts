@@ -7,7 +7,7 @@
 //   its preview bundle encoded and served from memory, so it installs exactly
 //   as a baked bundle would, findings and all.
 
-import type { GameRules } from "@web/battle/catalog/compose";
+import type { ResolvedRules } from "@web/battle/catalog/compose";
 import catalogJson from "../../../../assets/catalog.json";
 import type { Vec3 } from "math";
 import { previewRuntime } from "@packages/scene-assets/src/bake";
@@ -82,7 +82,7 @@ let propClasses: PropClasses | null = null;
 /** The simulation's prop classes (what blocks whom, what hides sight) under
  *  the page's `rules`, read once from `world_layout()`, with the boxes the
  *  street test map places. */
-async function loadPropClasses(rules: GameRules): Promise<PropClasses> {
+async function loadPropClasses(rules: ResolvedRules): Promise<PropClasses> {
   if (!propClasses) {
     const [wasm, street] = await Promise.all([loadWasm(), loadMap("street")]);
     propClasses = {
@@ -97,7 +97,7 @@ async function loadPropClasses(rules: GameRules): Promise<PropClasses> {
  *  scenery and their art installed at once): the page's load, or `fresh`
  *  after a re-bake. */
 export async function loadCatalog(
-  { units, rules }: { units: UnitCatalog; rules: GameRules },
+  { units, rules }: { units: UnitCatalog; rules: ResolvedRules },
   fresh = false,
 ): Promise<InstalledAppearances> {
   await loadPropClasses(rules);
@@ -143,7 +143,7 @@ const MEMORY = "memory:/";
 
 /** Validate a dropped GLB and install its preview through the loader. */
 export async function loadDropped(
-  { units, rules }: { units: UnitCatalog; rules: GameRules },
+  { units, rules }: { units: UnitCatalog; rules: ResolvedRules },
   file: string,
   bytes: Uint8Array,
   options: LooseOptions,

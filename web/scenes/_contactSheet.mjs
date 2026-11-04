@@ -12,7 +12,7 @@ import {
   presented,
 } from "./_lab.mjs";
 import { decode, writeCrop } from "./_png.mjs";
-import { curvePitch, game, streetMap, unitType } from "./_units.mjs";
+import { curvePitch, rules, streetMap, unitType, visuals } from "./_units.mjs";
 
 export async function contactTour(ctx) {
   const page = await openBattle(ctx, {
@@ -52,7 +52,7 @@ export async function contactTour(ctx) {
     await aim(page, [...contact.center, 0], {
       distance,
       pitch: curvePitch(distance),
-      yaw: game.presentation.camera.default.yaw,
+      yaw: visuals.camera.default.yaw,
     });
     const file = `contact-${label}-${distance}`;
     const png = await snapshot(ctx, page, `${file}.png`);
@@ -215,7 +215,7 @@ async function stageContact(ctx, page) {
   );
   // The scouts also saw the houses and the jeep; those reports expire, and
   // their panels fade out. The capture waits until the last has faded.
-  const fade = game.presentation.contacts.fade_s * game.tick_hz;
+  const fade = visuals.contacts.fade_s * rules.tick_hz;
   let held = new Set(hidden.contacts.map((c) => c.id));
   let faded = hidden.tick;
   const observation = await until(

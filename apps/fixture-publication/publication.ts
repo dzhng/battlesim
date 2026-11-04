@@ -23,7 +23,7 @@ const queues = new Map<string, Promise<unknown>>();
 
 /** Authored mechanics sources, also used to validate interrupted destinations. */
 export async function mechanicsSourcePaths(root: string): Promise<string[]> {
-  const out = ["fixtures/game.json"];
+  const out = ["fixtures/rules.json"];
   const candidates: string[] = [];
   const sections = new Set(["parts", "props", "roles", "soldiers", "units", "weapons"]);
   async function walk(path: string) {
@@ -108,7 +108,7 @@ export class FixturePublication {
       editor === "maps"
         ? ["fixtures/map-presets.json", "fixtures/generated-battle.json"]
         : editor === "sounds"
-          ? ["fixtures/sounds.json"]
+          ? ["fixtures/sounds.json", "fixtures/presentation.json"]
           : editor === "voices"
             ? ["fixtures/voices.json"]
             : [...(await mechanicsSourcePaths(this.root)), "fixtures/catalog.json"],

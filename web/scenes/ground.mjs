@@ -17,7 +17,8 @@
 // (`_groundStations.mjs`). What grows where is checked at the rig's stations
 // (`_grass.mjs`, GRASS_ONLY=1 alone), the texture inside each field
 // (`_fields.mjs`, FIELDS_ONLY=1 alone; FIELD_COST=1 measures its cost), and
-// how far the canopy closes over the wood (`_canopy.mjs`, CANOPY_ONLY=1 alone).
+// how far the canopy closes over the wood (`_canopy.mjs`, CANOPY_ONLY=1 alone;
+// TREE_COST=1 measures what the trees cost).
 // The forest floor's dressing is checked at the wood's edge
 // (`_forestFloor.mjs`, FLOOR_ONLY=1 alone; FLOOR_SHOTS=1 writes its stations,
 // FLOOR_COST=1 measures its cost), and a tree line on the generated map's
@@ -34,7 +35,7 @@ import { groundRig, stationSheets } from "./_groundStations.mjs";
 import { grassGrowth } from "./_grass.mjs";
 import { roadCost, roadLooks } from "./_roads.mjs";
 import { fieldCost, fieldTexture } from "./_fields.mjs";
-import { canopyClosure } from "./_canopy.mjs";
+import { canopyClosure, treeCost } from "./_canopy.mjs";
 import { streetLooks } from "./_streets.mjs";
 import { forestFloor, forestFloorCost, forestFloorShots } from "./_forestFloor.mjs";
 import { townGround } from "./_town.mjs";
@@ -64,6 +65,7 @@ export async function run(ctx) {
   if (process.env.FIELDS_ONLY) return fieldTexture(ctx);
   if (process.env.FIELD_COST) return fieldCost(ctx);
   if (process.env.CANOPY_ONLY) return canopyClosure(ctx);
+  if (process.env.TREE_COST) return treeCost(ctx);
   if (process.env.FLOOR_SHOTS) return forestFloorShots(ctx, process.env.FLOOR_SHOTS);
   if (process.env.FLOOR_ONLY) return forestFloor(ctx);
   if (process.env.FLOOR_COST) return forestFloorCost(ctx);
@@ -419,18 +421,25 @@ async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
   if (!exclusive || !offset) return;
   const at = [exclusive.x + 0.5, exclusive.y + 0.5];
   const blank = [at[0] + offset[0], at[1] + offset[1]];
-  await lab(page, () => window.__lab.suppressGrass(true));
-  await lab(page, () => window.__lab.suppressFog(true));
-  // A view switch can publish a new burst; its light is separate from its sprite.
-  await lab(page, () => window.__lab.suppressModels(true));
-  await lab(page, () => window.__lab.suppressEffects(true));
-  await lab(page, () => window.__lab.suppressCastLights(true));
-  await lab(page, () => window.__lab.route.show([]));
-  await cameraAt(page, { target: at, distance: 30, pitch: 1.3 });
+  // Side changes replace the viewport. Reapply the same picture controls to
+  // each new instance so only learned ground changes between these captures.
+  const frameScars = async () => {
+    await lab(page, () => window.__lab.suppressGrass(true));
+    await lab(page, () => window.__lab.suppressFog(true));
+    // A view switch can publish a new burst; its light is separate from its sprite.
+    await lab(page, () => window.__lab.suppressModels(true));
+    await lab(page, () => window.__lab.suppressEffects(true));
+    await lab(page, () => window.__lab.suppressCastLights(true));
+    await lab(page, () => window.__lab.route.show([]));
+    await cameraAt(page, { target: at, distance: 30, pitch: 1.3 });
+    await lab(page, () => window.__lab.frame());
+  };
+  await frameScars();
   const [pc, pb] = [await groundCss(page, at), await groundCss(page, blank)];
   const redShot = decode(await snapshot(ctx, page, "scars-sides-red-1920x1080.png"));
   await lab(page, () => window.__lab.route.observeAs("blue"));
   await advance(page, 1);
+  await frameScars();
   const blueShot = decode(await snapshot(ctx, page, "scars-sides-blue-1920x1080.png"));
   // Within a few pixels of each point: the crater's bowl and rim against grass
   // is a colour change, and the bare ground is the same in both views.

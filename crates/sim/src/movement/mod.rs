@@ -157,7 +157,7 @@ impl SideGeometry {
             .filter_map(|p| self.belief(p, authored))
             .filter(|p| walls_aircraft(world, rules, p))
             .collect();
-        let grid = Arc::new(AirGrid::build(world, rules, walls.iter()));
+        let grid = Arc::new(AirGrid::build(world, walls.iter()));
         self.air = Some((stamp.0, stamp.1, grid.clone()));
         grid
     }
@@ -1243,7 +1243,7 @@ mod remembered_sight_tests {
 
     #[test]
     fn remembered_body_queries_follow_replacements_and_observed_removals() {
-        let rules = serde_json::from_value(crate::fixtures::test_game()).unwrap();
+        let rules = serde_json::from_value(crate::fixtures::test_rules()).unwrap();
         let map = serde_json::from_value(serde_json::json!({
             "size":[256,256],"fog_cell_m":8,"height_grid_m":4,
             "slope_cutoff_deg":35,"props":[{
@@ -1271,9 +1271,6 @@ mod remembered_sight_tests {
         side.saw_fallen(0);
         nearby.clear();
         side.standing_ids_near_many(&[(v2(200.0, 200.0), 2.0)], &mut nearby);
-        assert!(
-            nearby.is_empty(),
-            "observed removals leave no remembered body"
-        );
+        assert!(nearby.is_empty(), "removals leave no remembered body");
     }
 }

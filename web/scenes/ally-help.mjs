@@ -1,16 +1,11 @@
-// An AI ally answers your lane under pressure (team skirmish).
-// You and one AI ally against two AI: you send a lone squad to the
-// objective nearest the enemy and hold it. As the enemy closes in, your
-// ally sends a detachment, not its army, toward your objective, while the
-// rest of its force keeps its own lane. It closes on your objective, or is
-// engaged by whatever stands between.
-// The planner rules themselves are tested in crates/sim/src/skirmish_ai/team/.
-import { advance, aim, groundCss, lab, obs, presented, snapshot, until } from "./_lab.mjs";
+import { installWorkerStartFence } from "./_workerStart.mjs";
+// One squad holds an objective against visible enemies. The AI ally has a
+// separate main force and sends only a detachment to help. Fixed test forces
+// isolate that decision from generated-map travel and roster tuning.
+import { advance, aim, lab, obs, presented, snapshot, until } from "./_lab.mjs";
 
 const YOU = 0;
 const ALLY = 1;
-/** What you buy: one squad, too little to hold an objective alone. */
-const FAMILY = "rifle";
 
 const hypot = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 const xy = (u) => [u.position[0], u.position[1]];
@@ -23,53 +18,80 @@ const heading = (o, objective) =>
 
 export async function run(ctx) {
   const page = await ctx.newPage();
+  await page.addInitScript(installWorkerStartFence);
+  await page.addInitScript(() => window.__pauseNextWorkerStart(1));
   await ctx.openLab(page, ctx.url, 120000);
   await page.addStyleTag({ content: ".frame-rate { display: none !important; }" });
   await lab(page, () => window.__lab.route.pause());
+  await page.waitForFunction(
+    () => window.__lab.route.status().status === "paused" && window.__lab.route.tick() >= 1,
+  );
+  ctx.check(
+    "the opening is held at tick one",
+    (await lab(page, () => window.__lab.route.tick())) === 1,
+  );
   await presented(page);
+  await ctx.writeEvidence(
+    "opening.json",
+    await lab(page, () => ({
+      tick: window.__lab.route.tick(),
+      digest: window.__lab.route.digest(),
+    })),
+  );
 
-  // Your objective: the one farthest from your entry, where the enemy comes.
-  const entry = await lab(page, () => window.__lab.route.prepared().start.at);
-  const objectives = (await obs(page)).skirmish.objectives;
-  const objective = [...objectives].sort(
-    (a, b) => hypot(b.center, entry) - hypot(a.center, entry),
-  )[0];
-  ctx.check("the map has an objective to hold", !!objective, JSON.stringify(objectives));
-  if (!objective) return;
-
-  await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
-  const search = page.getByRole("textbox", { name: "Search units" });
-  await search.fill(FAMILY);
-  await search.press("Enter");
-  const at = await groundCss(page, [entry[0], entry[1]]);
-  await page.mouse.move(at[0], at[1]);
-  await page
-    .waitForFunction(() => window.__lab.route.purchaseGhost?.()?.valid === true, undefined, {
-      timeout: 5000,
-    })
-    .catch(() => {});
-  await page.mouse.click(at[0], at[1]);
-  await advance(page, 1);
-  await page.mouse.click(40, 300, { button: "right" });
-  await page.getByRole("button", { name: "START BATTLE", exact: true }).click();
-
-  // Your squad on the field, then sent to hold the far objective.
-  let o = await until(page, (o) => o.own.some((u) => u.owner === YOU), 150 * 30, 150);
-  ctx.check("your squad is on the field", !!o);
-  if (!o) return;
-  const yours = o.own.filter((u) => u.owner === YOU).map((u) => u.id);
+  const east = (await obs(page)).skirmish.objectives.find((o) => o.id === "east");
+  if (!east) throw Error("the help fixture has no east objective");
   await lab(page, (order) => window.__lab.route.command(order), {
-    kind: "attack_move",
-    units: yours,
-    gesture: 200,
-    goal: objective.center,
+    kind: "confirm_purchase",
+    variant: "test_rifle",
+    destination: east.center,
   });
+  await advance(page, 1);
+  await lab(page, (order) => window.__lab.route.command(order), { kind: "ready" });
+  const initial = await until(page, (o) => o.own.some((u) => u.owner === YOU), 150 * 30, 30);
+  ctx.check("your squad is on the field", !!initial);
+  if (!initial) return;
+  const squad = initial.own.find((u) => u.owner === YOU);
+  const objective = initial.skirmish.objectives.find(
+    (o) => squad && hypot(xy(squad), o.center) <= o.radiusM,
+  );
+  ctx.check(
+    "your squad holds an objective",
+    !!objective,
+    JSON.stringify({ squad: squad?.id, at: squad && xy(squad), objective }),
+  );
+  if (!objective) return;
+  ctx.check(
+    "the held objective has visible enemy pressure",
+    initial.identified.some((u) => hypot(xy(u), objective.center) <= objective.radiusM * 3),
+  );
 
   // Under pressure your ally answers: some of its units head for your
   // objective while others keep their own goals.
-  o = await until(page, (o) => heading(o, objective).length > 0, 4 * 60 * 30, 300);
-  const helpers = o ? heading(o, objective) : [];
-  const allyUnits = o ? o.own.filter((u) => u.owner === ALLY) : [];
+  const support = [];
+  let o = await until(
+    page,
+    (o) => heading(o, objective).length > 0,
+    4 * 60 * 30,
+    300,
+    (o) =>
+      support.push({
+        tick: o.tick,
+        squad: o.own.find((u) => u.id === squad.id)?.position ?? null,
+        enemies: o.identified.map((u) => [u.id, xy(u)]),
+        allies: o.own.filter((u) => u.owner === ALLY).map((u) => [u.id, u.goal]),
+      }),
+  );
+  await ctx.writeEvidence("support-trace.json", support);
+  const latest = o ?? (await obs(page));
+  const helpers = heading(latest, objective);
+  const allyUnits = latest.own.filter((u) => u.owner === ALLY);
+  const holding = latest.own.find((u) => u.id === squad.id);
+  ctx.check(
+    "your squad still holds the objective when help is sent",
+    !!holding && hypot(xy(holding), objective.center) <= objective.radiusM,
+  );
+  await ctx.writeEvidence("support-state.json", { objective, observation: latest });
   ctx.check(
     "your ally sends units toward your objective",
     helpers.length > 0,
@@ -87,12 +109,8 @@ export async function run(ctx) {
     helpers: helpers.map((u) => [u.id, u.kind, xy(u), u.goal]),
   });
 
-  // The detachment on its way: followed by id (a squad that boards its own
-  // carrier rides with no goal of its own, at the carrier's position), it
-  // closes on your objective or is engaged on the way, an attack-move
-  // holding to fight what stands between (enemy forces often do).
-  // Every unit the ally sends joins as it is sent, a lost one's
-  // replacement too, measured from where it was first seen sent.
+  // Follow each dispatched unit from its first help order. It closes on the
+  // objective or holds to fight an enemy along its attack move.
   const sent = new Set();
   const start = new Map();
   const join = (o) => {
@@ -122,7 +140,8 @@ export async function run(ctx) {
       return answering(o).length > 0;
     },
     150 * 30,
-    300,
+    // A helper can halt to aim for less than two seconds between movements.
+    15,
   );
   await ctx.writeEvidence("path.json", path);
   ctx.check(

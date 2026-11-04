@@ -44,7 +44,7 @@ import {
   type LineupEntry,
   type LineupTemplate,
 } from "../cityLineup";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { useGameAppearances, useMapAppearances } from "../gameAppearances";
 import { gameBiome } from "../gameBiome";
 import { gameCamera } from "../gameCamera";

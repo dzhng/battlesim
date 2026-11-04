@@ -1,5 +1,5 @@
 import type { MapDefinition } from "@web/maps/resolve";
-import type { GameRules } from "@web/battle/catalog/compose";
+import type { ResolvedRules } from "@web/battle/catalog/compose";
 import { FACTIONS, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { SideName, Engagement } from "@web/battle/sim/protocol";
 import type { Player } from "@web/battle/prepare/protocol";
@@ -34,7 +34,7 @@ export interface ScenarioBundleDraft {
   scenario: {
     skirmish?: BuilderSkirmish;
     map: MapDefinition;
-    rules: GameRules;
+    rules: ResolvedRules;
     units: BuilderUnit[];
     players: Player[];
     events: unknown[];
@@ -114,7 +114,7 @@ export function nextPlayerId(players: readonly Player[], side: SideName): string
   return `${prefix}${n}`;
 }
 
-export function createBuilderDraft(rules: GameRules, units: UnitCatalog): ScenarioBundleDraft {
+export function createBuilderDraft(rules: ResolvedRules, units: UnitCatalog): ScenarioBundleDraft {
   const blueKind = units.ids[0] ?? "";
   const redKind = blueKind;
   const authored: BuilderUnit[] = [

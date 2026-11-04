@@ -587,6 +587,8 @@ export interface AppearanceEntry {
    *  every mount is declared and its rig's nodes exist; the battle poses
    *  and places muzzles by it. */
   mounts?: MountDraws;
+  /** Running-gear half gauge as a share of hull half width; required by ground hulls. */
+  track_gauge?: number;
   /**
    * Static appearances that stand for a simulation prop (scenery kinds with
    * a `prop` footprint): the half extents of the box the art is authored to,
@@ -720,6 +722,7 @@ export interface RuntimeCatalog {
       scenery?: string;
       footprint_half_m?: Vec3;
       mounts?: MountDraws;
+      track_gauge?: number;
       regional_family?: string;
       paints?: Vec3[];
       wreck?: string;

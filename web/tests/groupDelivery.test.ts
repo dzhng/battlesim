@@ -507,7 +507,7 @@ test("packed ground preserves marks and retained rows, rejects invalid tails bef
     put(0, 5);
   });
   decoder.decode(groundPacket(1, 2, full));
-  const before = decoder.wasm.ground_runs();
+  const before = decoder.groundRuns();
   expect([...before]).toEqual([0, 65536, 17 + 29 * 256, 31 + 43 * 256 + 255 * 65536, 1, 263, 0, 0]);
   const valid = compactBits((put) => {
     put(1, 8);
@@ -551,7 +551,7 @@ test("packed ground preserves marks and retained rows, rejects invalid tails bef
   for (const count of [NaN, Infinity, -1, 0.5, 2 ** 24])
     expect(() => decoder.decode(groundPacket(2, count, valid))).toThrow();
   decoder.decode(groundPacket(2, 1, valid));
-  expect([...decoder.wasm.ground_runs()]).toEqual([1, 263, 0, 255 * 65536]);
+  expect([...decoder.groundRuns()]).toEqual([1, 263, 0, 255 * 65536]);
   expect([...before]).toEqual([0, 65536, 17 + 29 * 256, 31 + 43 * 256 + 255 * 65536, 1, 263, 0, 0]);
 });
 
@@ -569,7 +569,5 @@ test("a packed ground NaN carrier reconstructs finite canonical rows bit-exactly
   const decoder = new ScenePresentation(wider);
   decoder.decode(groundPacket(1, 1, copied));
   const expected = Float32Array.of(69, 35 + 194 * 256, 3 + 255 * 256, 16777215);
-  expect(new Uint32Array(decoder.wasm.ground_runs().buffer)).toEqual(
-    new Uint32Array(expected.buffer),
-  );
+  expect(new Uint32Array(decoder.groundRuns().buffer)).toEqual(new Uint32Array(expected.buffer));
 });

@@ -2658,7 +2658,12 @@
         "basketball_court": {
           "appearance": {
             "drawn_by": "basketball_court",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.35,
+              0.42,
+              0.5
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -2681,7 +2686,12 @@
         "basketball_hoop": {
           "appearance": {
             "drawn_by": "basketball_hoop",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.9,
+              0.45,
+              0.15
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -2705,7 +2715,12 @@
         "bench": {
           "appearance": {
             "drawn_by": "bench",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.45,
+              0.33,
+              0.22
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -2729,7 +2744,12 @@
         "bike_rack": {
           "appearance": {
             "drawn_by": "bike_rack",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.52,
+              0.36,
+              0.78
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -2753,7 +2773,12 @@
         "bike_shed": {
           "appearance": {
             "drawn_by": "bike_shed",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.4,
+              0.55,
+              0.5
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -2777,7 +2802,12 @@
         "bins": {
           "appearance": {
             "drawn_by": "bins",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.2,
+              0.36,
+              0.26
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -2801,7 +2831,12 @@
         "bollard": {
           "appearance": {
             "drawn_by": "bollard",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.8,
+              0.72,
+              0.2
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -2825,7 +2860,12 @@
         "boulder": {
           "appearance": {
             "drawn_by": "boulder",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -2848,7 +2888,12 @@
         "bridge_deck": {
           "appearance": {
             "drawn_by": "bridge_deck",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -2871,7 +2916,12 @@
         "building": {
           "appearance": {
             "drawn_by": "building",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -2907,7 +2957,12 @@
         "bus_shelter": {
           "appearance": {
             "drawn_by": "bus_shelter",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.55,
+              0.66,
+              0.72
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -2930,7 +2985,12 @@
         },
         "car_wreck": {
           "appearance": {
-            "drawn_by": "car_wreck"
+            "drawn_by": "car_wreck",
+            "stand_in_tint": [
+              0.2,
+              0.2,
+              0.2
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -2955,7 +3015,12 @@
           "appearance": {
             "drawn_by": "chainlink_fence",
             "map_only": true,
-            "modular": true
+            "modular": true,
+            "stand_in_tint": [
+              0.7,
+              0.72,
+              0.7
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -2980,7 +3045,12 @@
           "appearance": {
             "drawn_by": "courtyard_wall",
             "map_only": true,
-            "modular": true
+            "modular": true,
+            "stand_in_tint": [
+              0.72,
+              0.7,
+              0.66
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3008,7 +3078,12 @@
         },
         "crate": {
           "appearance": {
-            "drawn_by": "crate"
+            "drawn_by": "crate",
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3032,7 +3107,12 @@
         "dumpster": {
           "appearance": {
             "drawn_by": "dumpster",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.2,
+              0.42,
+              0.28
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3056,7 +3136,12 @@
         "fence": {
           "appearance": {
             "drawn_by": "fence",
-            "modular": true
+            "modular": true,
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3080,7 +3165,12 @@
         "garage_row": {
           "appearance": {
             "drawn_by": "garage_row",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.6,
+              0.38,
+              0.3
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3110,7 +3200,12 @@
           "appearance": {
             "drawn_by": "garden_fence",
             "map_only": true,
-            "modular": true
+            "modular": true,
+            "stand_in_tint": [
+              0.6,
+              0.48,
+              0.34
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3134,7 +3229,12 @@
         "garden_shed": {
           "appearance": {
             "drawn_by": "garden_shed",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.5,
+              0.38,
+              0.26
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3158,7 +3258,12 @@
         "garden_table": {
           "appearance": {
             "drawn_by": "garden_table",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.8,
+              0.78,
+              0.72
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3183,6 +3288,11 @@
           "appearance": {
             "drawn_by": "gutted",
             "map_only": true,
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ],
             "status": "systems_only"
           },
           "body": {
@@ -3205,7 +3315,12 @@
         },
         "heavy_wreck": {
           "appearance": {
-            "drawn_by": "wreck"
+            "drawn_by": "wreck",
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 0.5,
@@ -3236,7 +3351,12 @@
           "appearance": {
             "drawn_by": "hedge",
             "map_only": true,
-            "modular": true
+            "modular": true,
+            "stand_in_tint": [
+              0.2,
+              0.36,
+              0.16
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3261,7 +3381,12 @@
           "appearance": {
             "drawn_by": "heras_fence",
             "map_only": true,
-            "modular": true
+            "modular": true,
+            "stand_in_tint": [
+              0.62,
+              0.64,
+              0.66
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3285,7 +3410,12 @@
         "hydrant": {
           "appearance": {
             "drawn_by": "hydrant",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.72,
+              0.16,
+              0.12
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3310,7 +3440,12 @@
           "appearance": {
             "drawn_by": "iron_railing",
             "map_only": true,
-            "modular": true
+            "modular": true,
+            "stand_in_tint": [
+              0.12,
+              0.13,
+              0.14
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3335,7 +3470,12 @@
           "appearance": {
             "drawn_by": "jersey_barrier",
             "map_only": true,
-            "modular": true
+            "modular": true,
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3359,7 +3499,12 @@
         "kiosk": {
           "appearance": {
             "drawn_by": "kiosk",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.2,
+              0.36,
+              0.3
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3383,7 +3528,12 @@
         "lamp": {
           "appearance": {
             "drawn_by": "lamp",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.2,
+              0.2,
+              0.22
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3407,7 +3557,12 @@
         "laundry_poles": {
           "appearance": {
             "drawn_by": "laundry_poles",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.92,
+              0.38,
+              0.7
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3430,7 +3585,12 @@
         },
         "light_wreck": {
           "appearance": {
-            "drawn_by": "wreck"
+            "drawn_by": "wreck",
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 0.5,
@@ -3455,7 +3615,12 @@
         "log": {
           "appearance": {
             "drawn_by": "log",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3478,7 +3643,12 @@
         },
         "medium_wreck": {
           "appearance": {
-            "drawn_by": "wreck"
+            "drawn_by": "wreck",
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 0.5,
@@ -3508,7 +3678,12 @@
         "outdoor_gym": {
           "appearance": {
             "drawn_by": "outdoor_gym",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.92,
+              0.75,
+              0.15
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3532,7 +3707,12 @@
         "pallet_stack": {
           "appearance": {
             "drawn_by": "pallet_stack",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.72,
+              0.6,
+              0.4
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3556,7 +3736,12 @@
         "parked_car": {
           "appearance": {
             "drawn_by": "parked_car",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.3,
+              0.37,
+              0.5
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3585,7 +3770,12 @@
         "petanque_pitch": {
           "appearance": {
             "drawn_by": "petanque_pitch",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.82,
+              0.74,
+              0.58
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3608,7 +3798,12 @@
         "pingpong_table": {
           "appearance": {
             "drawn_by": "pingpong_table",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.15,
+              0.5,
+              0.78
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3632,7 +3827,12 @@
         "planter": {
           "appearance": {
             "drawn_by": "planter",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.52,
+              0.5,
+              0.44
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3656,7 +3856,12 @@
         "playground_frame": {
           "appearance": {
             "drawn_by": "playground_frame",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.85,
+              0.35,
+              0.2
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3681,7 +3886,12 @@
           "appearance": {
             "drawn_by": "plinth_railing",
             "map_only": true,
-            "modular": true
+            "modular": true,
+            "stand_in_tint": [
+              0.25,
+              0.3,
+              0.27
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3710,7 +3920,12 @@
         "road_barrier": {
           "appearance": {
             "drawn_by": "road_barrier",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3733,7 +3948,12 @@
         },
         "rubble": {
           "appearance": {
-            "drawn_by": "ruin"
+            "drawn_by": "ruin",
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3755,7 +3975,12 @@
         },
         "ruin": {
           "appearance": {
-            "drawn_by": "ruin"
+            "drawn_by": "ruin",
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3778,7 +4003,12 @@
         "sandbags": {
           "appearance": {
             "drawn_by": "sandbags",
-            "modular": true
+            "modular": true,
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3808,7 +4038,12 @@
           "appearance": {
             "drawn_by": "scaffold",
             "map_only": true,
-            "modular": true
+            "modular": true,
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3832,7 +4067,12 @@
         "scooter": {
           "appearance": {
             "drawn_by": "scooter",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.24,
+              0.24,
+              0.3
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3856,7 +4096,12 @@
         "site_cabin": {
           "appearance": {
             "drawn_by": "site_cabin",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.84,
+              0.84,
+              0.8
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3880,7 +4125,12 @@
         "skip_bin": {
           "appearance": {
             "drawn_by": "skip_bin",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.78,
+              0.62,
+              0.16
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3904,7 +4154,12 @@
         "street_tree": {
           "appearance": {
             "drawn_by": "forest",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3928,7 +4183,12 @@
         "swing": {
           "appearance": {
             "drawn_by": "swing",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.3,
+              0.55,
+              0.75
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3951,7 +4211,12 @@
         },
         "tooth": {
           "appearance": {
-            "drawn_by": "tooth"
+            "drawn_by": "tooth",
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3974,7 +4239,12 @@
         "traffic_cone": {
           "appearance": {
             "drawn_by": "traffic_cone",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -3997,7 +4267,12 @@
         },
         "trunk": {
           "appearance": {
-            "drawn_by": "forest"
+            "drawn_by": "forest",
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -4021,7 +4296,12 @@
         "utility_box": {
           "appearance": {
             "drawn_by": "utility_box",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.5,
+              0.56,
+              0.5
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -4045,7 +4325,12 @@
         "wall": {
           "appearance": {
             "drawn_by": "wall",
-            "modular": true
+            "modular": true,
+            "stand_in_tint": [
+              0.62,
+              0.62,
+              0.62
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -4074,7 +4359,12 @@
         "washing_line": {
           "appearance": {
             "drawn_by": "washing_line",
-            "map_only": true
+            "map_only": true,
+            "stand_in_tint": [
+              0.9,
+              0.9,
+              0.86
+            ]
           },
           "body": {
             "armor": 1.0,
@@ -21569,7 +21859,12 @@
     "basketball_court": {
       "appearance": {
         "drawn_by": "basketball_court",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.35,
+          0.42,
+          0.5
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21592,7 +21887,12 @@
     "basketball_hoop": {
       "appearance": {
         "drawn_by": "basketball_hoop",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.9,
+          0.45,
+          0.15
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21616,7 +21916,12 @@
     "bench": {
       "appearance": {
         "drawn_by": "bench",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.45,
+          0.33,
+          0.22
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21640,7 +21945,12 @@
     "bike_rack": {
       "appearance": {
         "drawn_by": "bike_rack",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.52,
+          0.36,
+          0.78
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21664,7 +21974,12 @@
     "bike_shed": {
       "appearance": {
         "drawn_by": "bike_shed",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.4,
+          0.55,
+          0.5
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21688,7 +22003,12 @@
     "bins": {
       "appearance": {
         "drawn_by": "bins",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.2,
+          0.36,
+          0.26
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21712,7 +22032,12 @@
     "bollard": {
       "appearance": {
         "drawn_by": "bollard",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.8,
+          0.72,
+          0.2
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21736,7 +22061,12 @@
     "boulder": {
       "appearance": {
         "drawn_by": "boulder",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21759,7 +22089,12 @@
     "bridge_deck": {
       "appearance": {
         "drawn_by": "bridge_deck",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21782,7 +22117,12 @@
     "building": {
       "appearance": {
         "drawn_by": "building",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21818,7 +22158,12 @@
     "bus_shelter": {
       "appearance": {
         "drawn_by": "bus_shelter",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.55,
+          0.66,
+          0.72
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21841,7 +22186,12 @@
     },
     "car_wreck": {
       "appearance": {
-        "drawn_by": "car_wreck"
+        "drawn_by": "car_wreck",
+        "stand_in_tint": [
+          0.2,
+          0.2,
+          0.2
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21866,7 +22216,12 @@
       "appearance": {
         "drawn_by": "chainlink_fence",
         "map_only": true,
-        "modular": true
+        "modular": true,
+        "stand_in_tint": [
+          0.7,
+          0.72,
+          0.7
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21891,7 +22246,12 @@
       "appearance": {
         "drawn_by": "courtyard_wall",
         "map_only": true,
-        "modular": true
+        "modular": true,
+        "stand_in_tint": [
+          0.72,
+          0.7,
+          0.66
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21919,7 +22279,12 @@
     },
     "crate": {
       "appearance": {
-        "drawn_by": "crate"
+        "drawn_by": "crate",
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21943,7 +22308,12 @@
     "dumpster": {
       "appearance": {
         "drawn_by": "dumpster",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.2,
+          0.42,
+          0.28
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21967,7 +22337,12 @@
     "fence": {
       "appearance": {
         "drawn_by": "fence",
-        "modular": true
+        "modular": true,
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -21991,7 +22366,12 @@
     "garage_row": {
       "appearance": {
         "drawn_by": "garage_row",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.6,
+          0.38,
+          0.3
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22021,7 +22401,12 @@
       "appearance": {
         "drawn_by": "garden_fence",
         "map_only": true,
-        "modular": true
+        "modular": true,
+        "stand_in_tint": [
+          0.6,
+          0.48,
+          0.34
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22045,7 +22430,12 @@
     "garden_shed": {
       "appearance": {
         "drawn_by": "garden_shed",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.5,
+          0.38,
+          0.26
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22069,7 +22459,12 @@
     "garden_table": {
       "appearance": {
         "drawn_by": "garden_table",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.8,
+          0.78,
+          0.72
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22094,6 +22489,11 @@
       "appearance": {
         "drawn_by": "gutted",
         "map_only": true,
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ],
         "status": "systems_only"
       },
       "body": {
@@ -22116,7 +22516,12 @@
     },
     "heavy_wreck": {
       "appearance": {
-        "drawn_by": "wreck"
+        "drawn_by": "wreck",
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 0.5,
@@ -22147,7 +22552,12 @@
       "appearance": {
         "drawn_by": "hedge",
         "map_only": true,
-        "modular": true
+        "modular": true,
+        "stand_in_tint": [
+          0.2,
+          0.36,
+          0.16
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22172,7 +22582,12 @@
       "appearance": {
         "drawn_by": "heras_fence",
         "map_only": true,
-        "modular": true
+        "modular": true,
+        "stand_in_tint": [
+          0.62,
+          0.64,
+          0.66
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22196,7 +22611,12 @@
     "hydrant": {
       "appearance": {
         "drawn_by": "hydrant",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.72,
+          0.16,
+          0.12
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22221,7 +22641,12 @@
       "appearance": {
         "drawn_by": "iron_railing",
         "map_only": true,
-        "modular": true
+        "modular": true,
+        "stand_in_tint": [
+          0.12,
+          0.13,
+          0.14
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22246,7 +22671,12 @@
       "appearance": {
         "drawn_by": "jersey_barrier",
         "map_only": true,
-        "modular": true
+        "modular": true,
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22270,7 +22700,12 @@
     "kiosk": {
       "appearance": {
         "drawn_by": "kiosk",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.2,
+          0.36,
+          0.3
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22294,7 +22729,12 @@
     "lamp": {
       "appearance": {
         "drawn_by": "lamp",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.2,
+          0.2,
+          0.22
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22318,7 +22758,12 @@
     "laundry_poles": {
       "appearance": {
         "drawn_by": "laundry_poles",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.92,
+          0.38,
+          0.7
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22341,7 +22786,12 @@
     },
     "light_wreck": {
       "appearance": {
-        "drawn_by": "wreck"
+        "drawn_by": "wreck",
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 0.5,
@@ -22366,7 +22816,12 @@
     "log": {
       "appearance": {
         "drawn_by": "log",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22389,7 +22844,12 @@
     },
     "medium_wreck": {
       "appearance": {
-        "drawn_by": "wreck"
+        "drawn_by": "wreck",
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 0.5,
@@ -22419,7 +22879,12 @@
     "outdoor_gym": {
       "appearance": {
         "drawn_by": "outdoor_gym",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.92,
+          0.75,
+          0.15
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22443,7 +22908,12 @@
     "pallet_stack": {
       "appearance": {
         "drawn_by": "pallet_stack",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.72,
+          0.6,
+          0.4
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22467,7 +22937,12 @@
     "parked_car": {
       "appearance": {
         "drawn_by": "parked_car",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.3,
+          0.37,
+          0.5
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22496,7 +22971,12 @@
     "petanque_pitch": {
       "appearance": {
         "drawn_by": "petanque_pitch",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.82,
+          0.74,
+          0.58
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22519,7 +22999,12 @@
     "pingpong_table": {
       "appearance": {
         "drawn_by": "pingpong_table",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.15,
+          0.5,
+          0.78
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22543,7 +23028,12 @@
     "planter": {
       "appearance": {
         "drawn_by": "planter",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.52,
+          0.5,
+          0.44
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22567,7 +23057,12 @@
     "playground_frame": {
       "appearance": {
         "drawn_by": "playground_frame",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.85,
+          0.35,
+          0.2
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22592,7 +23087,12 @@
       "appearance": {
         "drawn_by": "plinth_railing",
         "map_only": true,
-        "modular": true
+        "modular": true,
+        "stand_in_tint": [
+          0.25,
+          0.3,
+          0.27
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22621,7 +23121,12 @@
     "road_barrier": {
       "appearance": {
         "drawn_by": "road_barrier",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22644,7 +23149,12 @@
     },
     "rubble": {
       "appearance": {
-        "drawn_by": "ruin"
+        "drawn_by": "ruin",
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22666,7 +23176,12 @@
     },
     "ruin": {
       "appearance": {
-        "drawn_by": "ruin"
+        "drawn_by": "ruin",
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22689,7 +23204,12 @@
     "sandbags": {
       "appearance": {
         "drawn_by": "sandbags",
-        "modular": true
+        "modular": true,
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22719,7 +23239,12 @@
       "appearance": {
         "drawn_by": "scaffold",
         "map_only": true,
-        "modular": true
+        "modular": true,
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22743,7 +23268,12 @@
     "scooter": {
       "appearance": {
         "drawn_by": "scooter",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.24,
+          0.24,
+          0.3
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22767,7 +23297,12 @@
     "site_cabin": {
       "appearance": {
         "drawn_by": "site_cabin",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.84,
+          0.84,
+          0.8
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22791,7 +23326,12 @@
     "skip_bin": {
       "appearance": {
         "drawn_by": "skip_bin",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.78,
+          0.62,
+          0.16
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22815,7 +23355,12 @@
     "street_tree": {
       "appearance": {
         "drawn_by": "forest",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22839,7 +23384,12 @@
     "swing": {
       "appearance": {
         "drawn_by": "swing",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.3,
+          0.55,
+          0.75
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22862,7 +23412,12 @@
     },
     "tooth": {
       "appearance": {
-        "drawn_by": "tooth"
+        "drawn_by": "tooth",
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22885,7 +23440,12 @@
     "traffic_cone": {
       "appearance": {
         "drawn_by": "traffic_cone",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22908,7 +23468,12 @@
     },
     "trunk": {
       "appearance": {
-        "drawn_by": "forest"
+        "drawn_by": "forest",
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22932,7 +23497,12 @@
     "utility_box": {
       "appearance": {
         "drawn_by": "utility_box",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.5,
+          0.56,
+          0.5
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22956,7 +23526,12 @@
     "wall": {
       "appearance": {
         "drawn_by": "wall",
-        "modular": true
+        "modular": true,
+        "stand_in_tint": [
+          0.62,
+          0.62,
+          0.62
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -22985,7 +23560,12 @@
     "washing_line": {
       "appearance": {
         "drawn_by": "washing_line",
-        "map_only": true
+        "map_only": true,
+        "stand_in_tint": [
+          0.9,
+          0.9,
+          0.86
+        ]
       },
       "body": {
         "armor": 1.0,
@@ -42445,6 +43025,7 @@
       "aim_s": 1.0,
       "ammo": 300,
       "anti_radiation": false,
+      "appearance": "aa_gun",
       "armor_piercing": false,
       "blast_radius_m": 2.0,
       "damage": 100.0,
@@ -42473,6 +43054,7 @@
       "range_m": 1500.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
+      "round_cost": 1,
       "speed_mps": 600.0,
       "stationary": false,
       "structural_damage": 8.0,
@@ -42514,6 +43096,7 @@
       "aim_s": 2.0,
       "ammo": 6,
       "anti_radiation": false,
+      "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 260.0,
@@ -42536,6 +43119,7 @@
       "range_m": 5200.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
+      "round_cost": 45,
       "seeker": "radar",
       "seeker_fov_deg": 100.0,
       "speed_mps": 100.0,
@@ -42561,6 +43145,7 @@
       "aim_s": 2.0,
       "ammo": 8,
       "anti_radiation": false,
+      "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 120.0,
@@ -42583,6 +43168,7 @@
       "range_m": 2600.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 30,
       "seeker": "radar",
       "seeker_fov_deg": 120.0,
       "speed_mps": 100.0,
@@ -42616,6 +43202,7 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_radiation": false,
+      "appearance": "tank_sabot",
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 50.0,
@@ -42636,6 +43223,7 @@
       "range_m": 900.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
+      "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -42659,6 +43247,7 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_radiation": false,
+      "appearance": "tank_he",
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 80.0,
@@ -42679,6 +43268,7 @@
       "range_m": 900.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
+      "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -42702,6 +43292,7 @@
       "aim_s": 1.2,
       "ammo": 4,
       "anti_radiation": false,
+      "appearance": "bomb",
       "armor_piercing": false,
       "blast_radius_m": 14.0,
       "damage": 140.0,
@@ -42723,6 +43314,7 @@
       "range_m": 0.0,
       "reload_s": 3.0,
       "requires_clear_launch_path": false,
+      "round_cost": 25,
       "speed_mps": 0.0,
       "stationary": false,
       "structural_damage": 80.0,
@@ -42746,6 +43338,7 @@
       "aim_s": 1.2,
       "ammo": 3,
       "anti_radiation": false,
+      "appearance": "bomb",
       "armor_piercing": false,
       "blast_radius_m": 9.0,
       "damage": 70.0,
@@ -42771,6 +43364,7 @@
       "range_m": 0.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
+      "round_cost": 25,
       "speed_mps": 0.0,
       "stationary": false,
       "structural_damage": 35.0,
@@ -42794,10 +43388,11 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_radiation": false,
+      "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 45.0,
-      "decoyable": true,
+      "decoyable": false,
       "default": false,
       "description": "A fast guided anti-armour missile for ground attack.",
       "fires_on_its_own": false,
@@ -42815,6 +43410,7 @@
       "range_m": 2000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -42837,6 +43433,7 @@
       "aim_s": 1.0,
       "ammo": "unlimited",
       "anti_radiation": false,
+      "appearance": "aa_gun",
       "armor_piercing": false,
       "blast_radius_m": 2.0,
       "damage": 100.0,
@@ -42903,6 +43500,7 @@
       "aim_s": 2.0,
       "ammo": 4,
       "anti_radiation": false,
+      "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 150.0,
@@ -42925,6 +43523,7 @@
       "range_m": 3000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 25,
       "seeker": "infrared",
       "seeker_fov_deg": 70.0,
       "speed_mps": 100.0,
@@ -42958,10 +43557,11 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_radiation": false,
+      "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
-      "decoyable": true,
+      "decoyable": false,
       "default": false,
       "description": "Top-attack anti-tank missile: it climbs, then dives onto the roof; the gunner must keep sight.",
       "fires_on_its_own": false,
@@ -42979,6 +43579,7 @@
       "range_m": 900.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
@@ -43005,6 +43606,7 @@
       "aim_s": 2.5,
       "ammo": 24,
       "anti_radiation": false,
+      "appearance": "artillery",
       "armor_piercing": false,
       "blast_radius_m": 18.0,
       "damage": 120.0,
@@ -43025,6 +43627,7 @@
       "range_m": 2500.0,
       "reload_s": 7.0,
       "requires_clear_launch_path": true,
+      "round_cost": 12,
       "speed_mps": 160.0,
       "stationary": true,
       "structural_damage": 180.0,
@@ -43048,6 +43651,7 @@
       "aim_s": 3.0,
       "ammo": 36,
       "anti_radiation": false,
+      "appearance": "mortar",
       "armor_piercing": false,
       "blast_radius_m": 15.0,
       "damage": 90.0,
@@ -43068,6 +43672,7 @@
       "range_m": 1800.0,
       "reload_s": 5.0,
       "requires_clear_launch_path": true,
+      "round_cost": 8,
       "speed_mps": 145.0,
       "stationary": true,
       "structural_damage": 110.0,
@@ -43091,6 +43696,7 @@
       "aim_s": 3.0,
       "ammo": 12,
       "anti_radiation": false,
+      "appearance": "rocket_artillery",
       "armor_piercing": false,
       "blast_radius_m": 24.0,
       "damage": 150.0,
@@ -43115,6 +43721,7 @@
       "range_m": 2500.0,
       "reload_s": 12.0,
       "requires_clear_launch_path": true,
+      "round_cost": 16,
       "speed_mps": 160.0,
       "stationary": true,
       "structural_damage": 220.0,
@@ -43138,6 +43745,7 @@
       "aim_s": 2.5,
       "ammo": 18,
       "anti_radiation": false,
+      "appearance": "rocket_artillery",
       "armor_piercing": false,
       "blast_radius_m": 20.0,
       "damage": 100.0,
@@ -43162,6 +43770,7 @@
       "range_m": 2200.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
+      "round_cost": 10,
       "speed_mps": 160.0,
       "stationary": true,
       "structural_damage": 150.0,
@@ -43185,6 +43794,7 @@
       "aim_s": 3.0,
       "ammo": 6,
       "anti_radiation": false,
+      "appearance": "strike_missile",
       "armor_piercing": false,
       "blast_radius_m": 28.0,
       "damage": 220.0,
@@ -43205,6 +43815,7 @@
       "range_m": 2500.0,
       "reload_s": 15.0,
       "requires_clear_launch_path": true,
+      "round_cost": 24,
       "speed_mps": 160.0,
       "stationary": true,
       "structural_damage": 300.0,
@@ -43228,10 +43839,11 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_radiation": false,
+      "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 45.0,
-      "decoyable": true,
+      "decoyable": false,
       "default": false,
       "description": "A wire-guided anti-tank missile, steered onto its target.",
       "fires_on_its_own": false,
@@ -43249,6 +43861,7 @@
       "range_m": 900.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
@@ -43271,6 +43884,7 @@
       "aim_s": 1.0,
       "ammo": 240,
       "anti_radiation": false,
+      "appearance": "autocannon",
       "armor_piercing": false,
       "blast_radius_m": 2.0,
       "damage": 100.0,
@@ -43298,6 +43912,7 @@
       "range_m": 650.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
+      "round_cost": 1,
       "speed_mps": 600.0,
       "stationary": false,
       "structural_damage": 8.0,
@@ -43329,10 +43944,11 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_radiation": false,
+      "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
-      "decoyable": true,
+      "decoyable": false,
       "default": false,
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "fires_on_its_own": false,
@@ -43350,6 +43966,7 @@
       "range_m": 650.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
+      "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
@@ -43372,6 +43989,7 @@
       "aim_s": 0.8,
       "ammo": "unlimited",
       "anti_radiation": false,
+      "appearance": "rifle",
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 35.0,
@@ -43430,6 +44048,7 @@
       "aim_s": 2.0,
       "ammo": 3,
       "anti_radiation": false,
+      "appearance": "manpads",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 260.0,
@@ -43452,6 +44071,7 @@
       "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 30,
       "speed_mps": 100.0,
       "stationary": true,
       "structural_damage": 20.0,
@@ -43475,6 +44095,7 @@
       "aim_s": 1.5,
       "ammo": 8,
       "anti_radiation": false,
+      "appearance": "grenade",
       "armor_piercing": false,
       "blast_radius_m": 6.0,
       "damage": 20.0,
@@ -43495,6 +44116,7 @@
       "range_m": 150.0,
       "reload_s": 5.0,
       "requires_clear_launch_path": false,
+      "round_cost": 2,
       "speed_mps": 100.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -43518,6 +44140,7 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_radiation": false,
+      "appearance": "tank_sabot",
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 45.0,
@@ -43538,6 +44161,7 @@
       "range_m": 850.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
+      "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -43561,6 +44185,7 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_radiation": false,
+      "appearance": "tank_he",
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 80.0,
@@ -43581,6 +44206,7 @@
       "range_m": 850.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
+      "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -43604,6 +44230,7 @@
       "aim_s": 2.0,
       "ammo": 30,
       "anti_radiation": false,
+      "appearance": "heavy_sniper",
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 100.0,
@@ -43624,6 +44251,7 @@
       "range_m": 700.0,
       "reload_s": 2.5,
       "requires_clear_launch_path": false,
+      "round_cost": 2,
       "speed_mps": 800.0,
       "stationary": false,
       "structural_damage": 0.25,
@@ -43655,10 +44283,11 @@
       "aim_s": 3.0,
       "ammo": 8,
       "anti_radiation": false,
+      "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 45.0,
-      "decoyable": true,
+      "decoyable": false,
       "default": false,
       "description": "A helicopter's anti-tank missile: fired and steered on the move.",
       "fires_on_its_own": false,
@@ -43676,6 +44305,7 @@
       "range_m": 1200.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -43698,6 +44328,7 @@
       "aim_s": 2.0,
       "ammo": "unlimited",
       "anti_radiation": false,
+      "appearance": "helicopter_crash",
       "armor_piercing": false,
       "blast_radius_m": 9.0,
       "damage": 50.0,
@@ -43718,6 +44349,7 @@
       "range_m": 800.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
+      "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 300.0,
@@ -43741,6 +44373,7 @@
       "aim_s": 1.0,
       "ammo": "unlimited",
       "anti_radiation": false,
+      "appearance": "heavy_machine_gun",
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 20.0,
@@ -43799,6 +44432,7 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_radiation": false,
+      "appearance": "ifv_cannon",
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 65.0,
@@ -43819,6 +44453,7 @@
       "range_m": 650.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
+      "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -43842,6 +44477,7 @@
       "aim_s": 2.0,
       "ammo": 3,
       "anti_radiation": false,
+      "appearance": "manpads",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 260.0,
@@ -43864,6 +44500,7 @@
       "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 30,
       "speed_mps": 100.0,
       "stationary": true,
       "structural_damage": 20.0,
@@ -43887,10 +44524,11 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_radiation": false,
+      "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
-      "decoyable": true,
+      "decoyable": false,
       "default": false,
       "description": "Top-attack anti-tank missile: it climbs, then dives onto the roof; the gunner must keep sight.",
       "fires_on_its_own": false,
@@ -43908,6 +44546,7 @@
       "range_m": 800.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
@@ -43934,10 +44573,11 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_radiation": false,
+      "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
-      "decoyable": true,
+      "decoyable": false,
       "default": false,
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "fires_on_its_own": false,
@@ -43955,6 +44595,7 @@
       "range_m": 950.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
+      "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
@@ -43977,6 +44618,7 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_radiation": false,
+      "appearance": "tank_sabot",
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 40.0,
@@ -43997,6 +44639,7 @@
       "range_m": 750.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
+      "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -44020,6 +44663,7 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_radiation": false,
+      "appearance": "tank_he",
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 65.0,
@@ -44040,6 +44684,7 @@
       "range_m": 750.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
+      "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -44063,6 +44708,7 @@
       "aim_s": 1.0,
       "ammo": 600,
       "anti_radiation": false,
+      "appearance": "light_machine_gun",
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 30.0,
@@ -44090,6 +44736,7 @@
       "range_m": 400.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
+      "round_cost": 1,
       "speed_mps": 800.0,
       "stationary": false,
       "structural_damage": 1.0,
@@ -44121,6 +44768,7 @@
       "aim_s": 2.0,
       "ammo": 120,
       "anti_radiation": false,
+      "appearance": "marksman_rifle",
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 45.0,
@@ -44145,6 +44793,7 @@
       "range_m": 450.0,
       "reload_s": 3.0,
       "requires_clear_launch_path": false,
+      "round_cost": 1,
       "speed_mps": 800.0,
       "stationary": false,
       "structural_damage": 0.25,
@@ -44176,6 +44825,7 @@
       "aim_s": 2.0,
       "ammo": 8,
       "anti_radiation": false,
+      "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 120.0,
@@ -44198,6 +44848,7 @@
       "range_m": 2600.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 30,
       "seeker": "radar",
       "seeker_fov_deg": 120.0,
       "speed_mps": 100.0,
@@ -44233,6 +44884,7 @@
       "aim_s": 2.0,
       "ammo": 6,
       "anti_radiation": false,
+      "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 260.0,
@@ -44255,6 +44907,7 @@
       "range_m": 5200.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
+      "round_cost": 45,
       "seeker": "radar",
       "seeker_fov_deg": 100.0,
       "speed_mps": 100.0,
@@ -44281,6 +44934,7 @@
       "aim_s": 0.8,
       "ammo": "unlimited",
       "anti_radiation": false,
+      "appearance": "rifle",
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 35.0,
@@ -44339,6 +44993,7 @@
       "aim_s": 1.5,
       "ammo": 38,
       "anti_radiation": false,
+      "appearance": "rocket_pod",
       "armor_piercing": false,
       "blast_radius_m": 7.0,
       "damage": 60.0,
@@ -44363,6 +45018,7 @@
       "range_m": 900.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
+      "round_cost": 2,
       "speed_mps": 450.0,
       "stationary": false,
       "structural_damage": 80.0,
@@ -44386,6 +45042,7 @@
       "aim_s": 2.0,
       "ammo": 3,
       "anti_radiation": false,
+      "appearance": "rpg_heavy",
       "armor_piercing": false,
       "blast_radius_m": 6.0,
       "damage": 55.0,
@@ -44406,6 +45063,7 @@
       "range_m": 400.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 10,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -44428,6 +45086,7 @@
       "aim_s": 2.0,
       "ammo": 4,
       "anti_radiation": false,
+      "appearance": "rpg",
       "armor_piercing": false,
       "blast_radius_m": 6.0,
       "damage": 45.0,
@@ -44448,6 +45107,7 @@
       "range_m": 300.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 10,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -44470,6 +45130,7 @@
       "aim_s": 2.0,
       "ammo": 3,
       "anti_radiation": false,
+      "appearance": "rpg",
       "armor_piercing": false,
       "blast_radius_m": 6.0,
       "damage": 50.0,
@@ -44490,6 +45151,7 @@
       "range_m": 280.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 10,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 35.0,
@@ -44513,10 +45175,11 @@
       "aim_s": 2.0,
       "ammo": 4,
       "anti_radiation": true,
+      "appearance": "sam",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 130.0,
-      "decoyable": true,
+      "decoyable": false,
       "default": false,
       "description": "Long-range anti-radiation missile.",
       "fires_on_its_own": true,
@@ -44534,6 +45197,7 @@
       "range_m": 6500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 40,
       "seeker": "radar",
       "seeker_fov_deg": 90.0,
       "speed_mps": 100.0,
@@ -44558,10 +45222,11 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_radiation": false,
+      "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
-      "decoyable": true,
+      "decoyable": false,
       "default": false,
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "fires_on_its_own": false,
@@ -44579,6 +45244,7 @@
       "range_m": 900.0,
       "reload_s": 4.5,
       "requires_clear_launch_path": false,
+      "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,
@@ -44601,6 +45267,7 @@
       "aim_s": 2.0,
       "ammo": 3,
       "anti_radiation": false,
+      "appearance": "manpads",
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 260.0,
@@ -44623,6 +45290,7 @@
       "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 30,
       "speed_mps": 100.0,
       "stationary": true,
       "structural_damage": 20.0,
@@ -44646,6 +45314,7 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_radiation": false,
+      "appearance": "tank_sabot",
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 40.0,
@@ -44666,6 +45335,7 @@
       "range_m": 800.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
+      "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 10.0,
@@ -44689,6 +45359,7 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_radiation": false,
+      "appearance": "tank_he",
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 80.0,
@@ -44709,6 +45380,7 @@
       "range_m": 800.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
+      "round_cost": 5,
       "speed_mps": 400.0,
       "stationary": false,
       "structural_damage": 100.0,
@@ -44732,10 +45404,11 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_radiation": false,
+      "appearance": "atgm",
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 45.0,
-      "decoyable": true,
+      "decoyable": false,
       "default": false,
       "description": "Optically supported direct anti-tank missile; launcher line of sight is required.",
       "fires_on_its_own": false,
@@ -44753,6 +45426,7 @@
       "range_m": 900.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
+      "round_cost": 20,
       "speed_mps": 50.0,
       "stationary": true,
       "structural_damage": 100.0,

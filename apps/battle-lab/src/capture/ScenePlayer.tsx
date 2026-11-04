@@ -9,11 +9,11 @@ import { useEffect, useRef, useState, type ReactNode, type Ref, type RefObject }
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import game from "@fixtures/game.json";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 import type { graphicsProfiles } from "../graphicsSettings";
-import { LabViewport, type ViewportPilot } from "../LabViewport";
+import { LabViewport } from "../LabViewport";
+import type { ViewportPilot } from "../viewportRender";
 import { useLabLoading } from "../LabLoading";
 import { useBattleSession } from "../useBattleSession";
 import type { ScriptedSim } from "../useSimSession";
@@ -59,6 +59,7 @@ interface ReelBattle {
  *  warm tick and `hold` settles, then flies the reel on the battle's clock. */
 function sceneCamera(
   scene: CaptureScene,
+  tickHz: number,
   veil: RefObject<HTMLDivElement | null>,
   plate: RefObject<HTMLElement | null> | undefined,
   hold: () => Promise<void>,
@@ -73,9 +74,9 @@ function sceneCamera(
   // The reel runs on the battle's clock, not the wall's: a battle running
   // behind real time (a slow worker, a stalled frame) keeps each cut on the
   // moment it was cut for.
-  const warmClock = Math.round(scene.warm_s * game.tick_hz) / game.tick_hz;
+  const warmClock = Math.round(scene.warm_s * tickHz) / tickHz;
   const scripted: ScriptedSim = {
-    warmTo: Math.round(scene.warm_s * game.tick_hz),
+    warmTo: Math.round(scene.warm_s * tickHz),
     hold,
     onWarm: () => (warm = true),
     onTick: () => {},
@@ -166,6 +167,7 @@ export function ScenePlayer({
   const [camera] = useState(() =>
     sceneCamera(
       scene,
+      (JSON.parse(scenario) as { rules: { tick_hz: number } }).rules.tick_hz,
       veil,
       plate,
       () => {

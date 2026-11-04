@@ -1496,9 +1496,7 @@ fn unseen_shouter() -> Battle {
     );
     let tick = 1.0 / setup.rules.tick_hz as f64;
     setup.rules.shouts.cooldown_s = tick;
-    for t in setup.rules.shouts.talk_s.values_mut() {
-        *t = tick;
-    }
+    setup.rules.shouts.talk_s = tick;
     Battle::new(&setup, 3)
 }
 

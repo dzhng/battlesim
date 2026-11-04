@@ -72,7 +72,7 @@ fn sites() -> SkirmishSites {
 /// `test_gun_jeep` becomes a ground air-defence vehicle that can hold but
 /// cannot engage ground (D57).
 fn team_rules() -> Rules {
-    let mut fixture = crate::fixtures::test_game();
+    let mut fixture = crate::fixtures::test_rules();
     for (id, category) in [
         ("test_tank", "veh"),
         ("test_rifle", "inf"),

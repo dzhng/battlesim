@@ -269,67 +269,6 @@ impl WorldGeometry {
             let end = u32::try_from(world.props.len()).expect("world exceeds u32 prop IDs");
             world.note_forest(forest, [first, end]);
         }
-        // Floor cover follows every forest's trunks, so it cannot displace a
-        // later forest's trees or change their immutable source ID ranges.
-        let mut floor_nav = (!map.forests.is_empty()
-            && (forests.rule.logs_per_ha > 0.0 || forests.rule.boulders_per_ha > 0.0))
-            .then(|| {
-                crate::navigation::NavGrid::new(std::sync::Arc::new(
-                    crate::navigation::NavBase::build(
-                        &world,
-                        world.props(),
-                        rules.physics.soldier_radius_m,
-                    ),
-                ))
-            });
-        let floor_movers = floor_nav.as_ref().map(|_| {
-            let mut movers: Vec<crate::navigation::Mobility> = Vec::new();
-            for kind in rules.catalog.indices() {
-                let Some(mover) = crate::units::ground_mobility(rules.catalog.get(kind), rules)
-                else {
-                    continue;
-                };
-                if !movers.iter().any(|m| {
-                    m.class == mover.class
-                        && m.push == mover.push
-                        && m.half_width_m == mover.half_width_m
-                }) {
-                    movers.push(mover);
-                }
-            }
-            movers
-        });
-        for (index, forest) in map.forests.iter().enumerate() {
-            for (kind, density, half, salt) in [
-                (
-                    &forests.log,
-                    forests.rule.logs_per_ha,
-                    forests.rule.log_half_extents_m,
-                    3,
-                ),
-                (
-                    &forests.boulder,
-                    forests.rule.boulders_per_ha,
-                    forests.rule.boulder_half_extents_m,
-                    4,
-                ),
-            ] {
-                if density > 0.0 {
-                    world.place_forest_bodies(
-                        index,
-                        forest,
-                        forest::FloorBody {
-                            kind: kind.as_deref().expect("validated floor kind"),
-                            density,
-                            half,
-                            salt,
-                        },
-                        floor_nav.as_mut().expect("enabled floor grid"),
-                        floor_movers.as_ref().expect("enabled floor movers"),
-                    );
-                }
-            }
-        }
         // Authored setup is revision 0; only later changes count.
         world.revision = 0;
         world.props.track_changes();

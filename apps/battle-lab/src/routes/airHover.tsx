@@ -3,7 +3,7 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounters, type SavedBattle } from "../savedMaps";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { useLabOverlay } from "../labOverlay";
 import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";

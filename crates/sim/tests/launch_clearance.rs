@@ -32,7 +32,7 @@ fn launcher(requires: bool) -> Value {
 fn rules_with(row: Value, clearance_m: f64) -> Value {
     let mut rules = common::game();
     rules["weapons"]["test_launcher"] = row;
-    rules["service"]["round_costs"]["test_launcher"] = json!(1);
+    rules["weapons"]["test_launcher"]["round_cost"] = json!(1);
     rules["launch"]["clearance_m"] = json!(clearance_m);
     sim::fixtures::patch_catalog(
         &mut rules,

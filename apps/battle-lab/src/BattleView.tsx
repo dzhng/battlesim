@@ -1,3 +1,4 @@
+import { SessionCatalogProvider } from "@web/battle/catalog/context";
 import {
   ObjectiveMarkers,
   type ObjectiveMarkersHandle,
@@ -32,14 +33,14 @@ import { MenuButton, PauseMenu, usePauseMenu } from "./PauseMenu";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
 import { commandedEconomy } from "./commandingPlayer";
 import type { ScriptedSim } from "./useSimSession";
-import type { ViewportPilot } from "./LabViewport";
-import { useFeed } from "./feed";
+import type { ViewportPilot } from "./viewportRender";
+import { useFeed } from "@web/feed";
 import { useSyncExternalStore } from "react";
 import {
   graphicsProfiles,
   graphicsSettings,
   resolveEffectiveTier,
-  sceneMinimumProfile,
+  testQualityProfile,
 } from "./graphicsSettings";
 import {
   RangeRulerLabels,
@@ -122,6 +123,7 @@ export function BattleView({
     () => ({
       size: (JSON.parse(scenario) as { map: { size: [number, number] } }).map.size,
       drawn: battleOverlayScenario(scenario, side ?? "blue"),
+      tickHz: (JSON.parse(scenario) as { rules: { tick_hz: number } }).rules.tick_hz,
     }),
     [scenario, side],
   );
@@ -132,8 +134,6 @@ export function BattleView({
   const metresPerPx = metresPerPxAt(ZOOM_BASE ** zoom, camera.fovY, window.innerHeight);
   const [renderScale, setRenderScale] = useState(1);
   const contactFacing = useContactFacing(camera, metresPerPx, renderScale);
-  const cues = useCaptions();
-  const { note: noteCues } = cues;
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewportReady, setViewportReady] = useState(false);
   const session = useBattleSession({
@@ -152,6 +152,8 @@ export function BattleView({
     sound: true,
     inputEnabled: !menuOpen && viewportReady && inCommand,
   });
+  const cues = useCaptions(session.units, session.rules.tick_hz);
+  const { note: noteCues } = cues;
   const input = !replay && !scripted;
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
@@ -168,15 +170,9 @@ export function BattleView({
   const { clear: clearCues } = cues;
   const pause = usePauseMenu(sim.client, menuOpen, setMenuOpen);
   const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
-  const requestedQuality = import.meta.env.DEV
-    ? new URLSearchParams(window.location.search).get("test-quality")
-    : null;
   const quality =
-    requestedQuality === "minimum"
-      ? sceneMinimumProfile
-      : requestedQuality && requestedQuality in graphicsProfiles
-        ? graphicsProfiles[requestedQuality as keyof typeof graphicsProfiles]
-        : graphicsProfiles[resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
+    testQualityProfile(window.location.search) ??
+    graphicsProfiles[resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
   const { audio } = session;
   useEffect(() => {
     clearCues();
@@ -200,6 +196,7 @@ export function BattleView({
       world && observation
         ? buildBattleOverlay(
             session.units,
+            session.rules,
             observation,
             control.selected,
             surfaceZ,
@@ -219,6 +216,7 @@ export function BattleView({
       session.allies,
       contactFacing.facing,
       session.units,
+      session.rules,
       world,
       observation,
       contacts,
@@ -256,10 +254,12 @@ export function BattleView({
   // The battle accepts keys only while it is the thing on screen.
   const battleInput = !pause.open && !matchFinished && loadStage === "playable";
 
+  const armyState = useFeed({ own: control.controlled, control: input ? control : undefined });
+
   if (sim.error && onFailure) return cover ?? null;
   if (!meshes && !sim.error) return cover ?? null;
   return (
-    <>
+    <SessionCatalogProvider catalog={session.catalog}>
       {/* A battle that failed to start draws nothing under its refusal. */}
       {meshes && !sim.error && (
         <LabViewport
@@ -351,14 +351,13 @@ export function BattleView({
         )}
         <MenuButton onOpen={() => pause.show(true)} />
         <ArmyDeck
-          own={control.controlled}
+          state={armyState}
           selected={control.selected}
           onSelect={control.setSelected}
           onCenter={input ? focusUnit : undefined}
           rules={session.rules}
           pending={viewingPlayer?.pending}
           tick={observation?.tick}
-          control={input ? control : undefined}
           captions={<CaptionList captions={cues} />}
           reinforcements={
             input && session.purchase && observation?.skirmish ? (
@@ -402,6 +401,6 @@ export function BattleView({
           viewer={session.viewer?.id ?? null}
         />
       )}
-    </>
+    </SessionCatalogProvider>
   );
 }

@@ -1,11 +1,14 @@
 //! The records a renderer reads, defined once. Each is `#[repr(C)]`,
-//! a multiple of 16 bytes, of 4-byte scalars or arrays of them, so the same
+//! a multiple of 16 bytes, of 4-byte scalars, nested records or arrays, so the same
 //! bytes are a WGSL struct, a vertex instance attribute and a typed array.
-//! `records_are_current` renders every layout into
+//! `records_are_current` renders the browser's chosen layouts into
 //! `packages/battle-renderer/src/records.gen.ts`; nothing is kept by hand.
 
 /// `u32::MAX`: no row, no id.
 pub const NONE: u32 = u32::MAX;
+
+/// Shared camera/render extent floor, keeping the post-processing pyramid usable.
+pub const MIN_TARGET_PX: u32 = 64;
 
 /// What a batch draws for (`Batch.pass`): the view; the sun's cascades; a
 /// placement ghost, translucent (no shadow, no depth write); a high-air
@@ -26,103 +29,159 @@ pub const FOG_FACES: u32 = 1;
 pub const FOG_GROUND: u32 = 2;
 pub const FOG_PAINTED_FACES: u32 = 3;
 
-/// What a field holds, for the generated schemas.
-pub trait Field {
-    /// `"f32"` or `"u32"`.
-    const SCALAR: &'static str;
-    const COUNT: usize;
-}
-impl Field for f32 {
-    const SCALAR: &'static str = "f32";
-    const COUNT: usize = 1;
-}
-impl Field for u32 {
-    const SCALAR: &'static str = "u32";
-    const COUNT: usize = 1;
-}
-impl<const N: usize> Field for [f32; N] {
-    const SCALAR: &'static str = "f32";
-    const COUNT: usize = N;
-}
-impl<const N: usize> Field for [u32; N] {
-    const SCALAR: &'static str = "u32";
-    const COUNT: usize = N;
-}
+mod layout;
+#[doc(hidden)]
+pub use bytemuck;
+pub use layout::{Binding, Field, FieldLayout, Layout};
 
-pub struct FieldLayout {
-    pub name: &'static str,
-    pub offset: usize,
-    pub scalar: &'static str,
-    pub count: usize,
-    pub doc: &'static str,
-}
+crate::records! {
+    /// A cut in the plot split tree, with signed node/leaf children.
+    Struct PlotNode {
+        line: [f32; 4],
+        children: [i32; 4],
+    }
 
-/// How a renderer binds a record: a vertex instance attribute, a WGSL
-/// struct (a uniform, or a storage buffer's element), or plain words it reads
-/// on the CPU.
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Binding {
-    Vertex,
-    Struct,
-    Plain,
-}
+    /// One plot's material, rows and dry patches.
+    Struct PlotRecord {
+        colour: [f32; 4],
+        rows: [f32; 4],
+        detail: [f32; 4],
+        grain: [f32; 4],
+        dry: [f32; 4],
+        tram: [f32; 4],
+    }
 
-pub struct Layout {
-    pub name: &'static str,
-    pub doc: &'static str,
-    pub binding: Binding,
-    pub size: usize,
-    pub fields: &'static [FieldLayout],
-}
+    /// A surface primitive, or a river's companion bank heights.
+    Struct SurfaceRecord {
+        ends: [f32; 4],
+        detail: [f32; 4],
+    }
 
-macro_rules! records {
-    ($($(#[doc = $doc:literal])* $binding:ident $name:ident {
-        $($(#[doc = $fdoc:literal])* $field:ident: $ty:ty),* $(,)?
-    })*) => {
-        $(
-            $(#[doc = $doc])*
-            #[repr(C)]
-            #[derive(Clone, Copy, Debug, PartialEq)]
-            pub struct $name { $($(#[doc = $fdoc])* pub $field: $ty),* }
-            // SAFETY: `repr(C)`, every field a 4-byte scalar or an array of
-            // them, and the size a multiple of 16 (asserted): no padding.
-            unsafe impl bytemuck::Zeroable for $name {}
-            unsafe impl bytemuck::Pod for $name {}
-            impl Default for $name {
-                fn default() -> Self {
-                    bytemuck::Zeroable::zeroed()
-                }
-            }
-            impl<const N: usize> Field for [$name; N] {
-                const SCALAR: &'static str = stringify!($name);
-                const COUNT: usize = N;
-            }
-            const _: () = assert!(std::mem::size_of::<$name>() % 16 == 0);
-            const _: () = assert!(
-                std::mem::size_of::<$name>() == 0 $(+ std::mem::size_of::<$ty>())*
-            );
-            impl $name {
-                pub const LAYOUT: Layout = Layout {
-                    name: stringify!($name),
-                    doc: concat!($($doc),*),
-                    binding: Binding::$binding,
-                    size: std::mem::size_of::<$name>(),
-                    fields: &[$(FieldLayout {
-                        name: stringify!($field),
-                        offset: std::mem::offset_of!($name, $field),
-                        scalar: <$ty as Field>::SCALAR,
-                        count: <$ty as Field>::COUNT,
-                        doc: concat!($($fdoc),*),
-                    }),*],
-                };
-            }
-        )*
-        /// Every record's layout, in declaration order.
-        pub const LAYOUTS: &[Layout] = &[$($name::LAYOUT),*];
-    };
-}
+    /// One blade vertex's spine, side, normal and relative tint.
+    Struct GrassShapeVertex {
+        spine: [f32; 4],
+        side: [f32; 4],
+        normal: [f32; 4],
+        tint: [f32; 4],
+    }
 
-records! {
+    /// One paved kind's material look.
+    Struct RoadLook {
+        core: [f32; 4],
+        worn: [f32; 4],
+        shape: [f32; 4],
+        join: [f32; 4],
+        shoulder: [f32; 4],
+        edge: [f32; 4],
+        ruts: [f32; 4],
+        track: [f32; 4],
+        slabs: [f32; 4],
+        curb: [f32; 4],
+        paint: [f32; 4],
+        marks: [f32; 4],
+        crossing: [f32; 4],
+        stones: [f32; 4],
+    }
+
+    /// Shared shore bands and ground shading.
+    Struct ShoreTuning {
+        bands: [f32; 4],
+        turns: [f32; 4],
+        ground: [f32; 4],
+        fade: [f32; 4],
+    }
+
+    /// One water look, ten vec4s.
+    Struct WaterLook {
+        channel: [f32; 4],
+        edge: [f32; 4],
+        surface: [f32; 4],
+        normals: [f32; 4],
+        drifts: [f32; 4],
+        fades: [f32; 4],
+        roughness: [f32; 4],
+        lobes: [f32; 4],
+        refraction: [f32; 4],
+        caustics: [f32; 4],
+    }
+
+    /// Terrain material tables and renderer diagnostic modes.
+    Struct TerrainParams {
+        region: [f32; 4],
+        field: [f32; 4],
+        field_grid: [u32; 4],
+        shape: [f32; 4],
+        verge: [f32; 4],
+        feathers: [f32; 4],
+        roads: [RoadLook; crate::static_world::ground::tables::ROAD_LOOKS_MAX],
+        road_order: [u32; 4],
+        forest_litter: [f32; 4],
+        forest_moss: [f32; 4],
+        forest_humus: [f32; 4],
+        forest_detail: [f32; 4],
+        forest_verge: [f32; 4],
+        forest_dapple: [f32; 4],
+        forest_line: [f32; 4],
+        water_bed: [f32; 4],
+        shore: [f32; 4],
+        shore_earth: [f32; 4],
+        shore_edge: [f32; 4],
+        distant: [f32; 4],
+        shore_tuning: ShoreTuning,
+        water_looks: [WaterLook; crate::static_world::ground::biome::WATER_LOOKS_MAX],
+        /// Material class, disabled road wear, depth-only water, unused.
+        view: [u32; 4],
+    }
+
+    /// Grass growth, appearances and the frame's window.
+    Struct GrassParams {
+        planes: [[f32; 4]; 4],
+        eye: [f32; 4],
+        window: [f32; 4],
+        grid: [u32; 4],
+        density: [f32; 4],
+        tiers: [f32; 4],
+        shading: [f32; 4],
+        clear: [f32; 4],
+        counts: [u32; 4],
+        ground: [f32; 4],
+        sway: [f32; 4],
+        growth: [[f32; 4]; crate::static_world::ground::grass::GROWTH_ROWS],
+        patches: [[f32; 4]; crate::static_world::ground::grass::GROWTH_ROWS],
+        mixes: [[f32; 4]; crate::static_world::ground::grass::GROWTH_ROWS * crate::static_world::ground::biome::GRASS_MIX_MAX],
+        patch_scales: [f32; 4],
+        grain: [f32; 4],
+        kinds: [[f32; 4]; crate::static_world::ground::grass::MAX_KINDS],
+        bases: [[u32; 4]; crate::static_world::ground::grass::MAX_KINDS],
+    }
+
+    /// The cache placement and biome appearance of learned scars.
+    Struct ScarParams {
+        cache: ScarCacheParams,
+        look: ScarLook,
+    }
+
+    /// The scar cache grid, clip, resident bounds and default cell.
+    Struct ScarCacheParams {
+        grid: [f32; 4],
+        pages: [u32; 4],
+        clip: [f32; 4],
+        cache_bounds: [u32; 4],
+        default_word: [u32; 4],
+    }
+
+    /// Biome colours, relief and grass response to learned scars.
+    Struct ScarLook {
+        full: [f32; 4],
+        crater: [f32; 4],
+        ejecta: [f32; 4],
+        scorch: [f32; 4],
+        tracks: [f32; 4],
+        trampled: [f32; 4],
+        relief: [f32; 4],
+        grass: [f32; 4],
+    }
+
     /// Where a frame's sets lie, as pointers into the module's memory and
     /// record counts (the WASM binding fills them; native reads the
     /// `Frame` directly).
@@ -199,12 +258,12 @@ records! {
         appearance: u32,
         /// Detail tier, 0 finest; 4 is the impostor card.
         tier: u32,
-        /// `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`.
+        /// Rust pass names: `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`.
         pass: u32,
         /// Caster tier, or `NONE`. Static view batches cast through separate
         /// caster batches; dynamic models use `view::batch_caster`.
         caster: u32,
-        /// How fog of war takes it (`FOG_UNITS` and the rest).
+        /// How fog of war takes it (Rust's `FOG_UNITS` and related constants).
         fog: u32,
         /// Changes when the contents change.
         version: u32,
@@ -225,7 +284,8 @@ records! {
         /// packed as `r·65536 + g·256 + b` bytes.
         data: [f32; 4],
         /// The side's tint (linear rgb) on tint-masked surfaces, and the
-        /// impostor atlas layer a card draws (the renderer's; −1 for a mesh).
+        /// impostor atlas layer a card draws (the renderer's; >=0), or
+        /// a mesh cue: −1 ordinary, −2 highlighted. Highlight keeps mesh geometry.
         tint: [f32; 4],
         /// Per-axis scale in its own frame, and the x-ray or ghost alpha.
         scale: [f32; 4],
@@ -297,11 +357,15 @@ records! {
         target: [f32; 4],
         /// Width and height (px), 1/height, pixels per metre at 1 m.
         size: [f32; 4],
-        /// The unit ray through the top-left corner, and its change across
-        /// the width and down the height (the sky's `Rays`: w unused).
-        sky_origin: [f32; 4],
-        sky_dx: [f32; 4],
-        sky_dy: [f32; 4],
+        /// Screen-corner rays for sky reconstruction.
+        rays: Rays,
+    }
+
+    /// The top-left unit ray and its changes across and down the screen; w unused.
+    Struct Rays {
+        origin: [f32; 4],
+        dx: [f32; 4],
+        dy: [f32; 4],
     }
 
     /// The sky's light for the battle: what the sky lookup bakes and the
@@ -398,14 +462,13 @@ records! {
         pad: [f32; 2],
     }
 
-    /// The sun and the shadow fill, as the environment uniform carries them
-    /// after its view (`sunDirection` to `fill`).
-    Plain Sun {
+    /// The sun and shadow fill nested in the environment uniform.
+    Struct Sun {
         /// Unit vector toward the sun; w 0.
-        sun_direction: [f32; 4],
+        direction: [f32; 4],
         /// The sun's colour (its transmittance, greyed by overcast) times its
         /// intensity, linear rgb; w 0.
-        sun_radiance: [f32; 4],
+        radiance: [f32; 4],
         /// x the renderer's environment map's top mip (0 here); y the share
         /// of the sun a sun-shadowed surface keeps.
         settings: [f32; 4],
@@ -501,7 +564,8 @@ records! {
         /// V-wake).
         step: f32,
         kind: f32,
-        pad: [f32; 2],
+        /// Unit direction of travel in the field's x/y axes; zero for rings.
+        heading: [f32; 2],
     }
 
     /// One sun cascade as a shadow receiver reads it. An unfitted cascade is
@@ -519,7 +583,7 @@ records! {
     /// (`shadow::sun_shadow`).
     Struct SunShadow {
         /// Per cascade slot (`shadow::CASCADES`).
-        cascades: [SunCascade; 4],
+        cascades: [SunCascade; crate::shadow::CASCADES],
         /// The receiver range's capped far, 0, its near, 0.
         control: [f32; 4],
     }
@@ -535,8 +599,6 @@ records! {
         translucent_lift_m: f32,
         azimuth_bins: u32,
         terrain_azimuth_bins: u32,
-        radial_bins: u32,
-        tile_px: u32,
         tiles_x: u32,
         tile_eyes_max: u32,
         eye_count: u32,
@@ -555,7 +617,8 @@ records! {
         foliage_cell_m: f32,
         foliage_full_block: f32,
         min_sight_gap_m: f32,
-        pad0: f32,
+        /// WGSL aligns the following vec4 to 16 bytes.
+        pad0: [f32; 3],
         /// The playable rectangle as the map's extents give it; outside it
         /// is fogged.
         playable: [f32; 4],

@@ -12,8 +12,6 @@ use sim::battle::Battle;
 use sim::publication::{self, Publisher};
 use std::path::PathBuf;
 
-/// A map whose rules field the test units.
-const MAP: &str = "air";
 const KIND: &str = "test_tank";
 const MINE_AT: [f64; 2] = [300.0, 200.0];
 const ALLY_AT: [f64; 2] = [340.0, 200.0];
@@ -28,8 +26,8 @@ fn root() -> PathBuf {
 fn presented() -> Presentation {
     let root = root();
     let game: Value =
-        serde_json::from_slice(&std::fs::read(root.join("fixtures/game.json")).unwrap()).unwrap();
-    let mut rules = sim::fixtures::test_game();
+        serde_json::from_slice(&std::fs::read(root.join("fixtures/rules.json")).unwrap()).unwrap();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -53,7 +51,7 @@ fn presented() -> Presentation {
     }))
     .unwrap();
     let battle = Battle::new(&setup, 1);
-    let f = fielded::fielded(&root, &game, MAP, &[KIND.to_owned()]).unwrap();
+    let f = fielded::fielded(&root, battle.rules(), &[KIND.to_owned()]).unwrap();
     let physics = &game["physics"];
     let world = WorldInput {
         battle: Some(BattleInput {

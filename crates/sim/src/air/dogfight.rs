@@ -140,7 +140,7 @@ mod tests {
     fn only_two_winged_aircraft_in_one_layer_dogfight() {
         let setup = serde_json::from_value(serde_json::json!({
             "map": { "size": [2000, 2000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-            "rules": crate::fixtures::test_game(),
+            "rules": crate::fixtures::test_rules(),
             "units": [
                 { "side": "blue", "kind": "test_jet", "position": [500, 500] },
                 { "side": "red", "kind": "test_heli", "position": [900, 500] }

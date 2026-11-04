@@ -1,3 +1,4 @@
+import { installWorkerStartFence } from "./_workerStart.mjs";
 // Slice 16: the stress battle in real time. Runs ENDURANCE_S seconds (60 by
 // default), reset cycles, then the late state for ENDURANCE_LATE_S seconds
 // (60 by default); the verdict's run sets both to 300. Budgets (validation.md) are measured and written as evidence, not
@@ -16,9 +17,9 @@ import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot, until, openMenu } from "./_lab.mjs";
 import { installResetRafFence, restartPresentedOpening } from "./_reset.mjs";
 import { freshGpuWindow, measureViews, measureTransitions, pauseView } from "./_viewCost.mjs";
-import { game } from "./_units.mjs";
+import { visuals } from "./_units.mjs";
 
-const CORPSE_CAP = game.presentation.pose.corpses.max;
+const CORPSE_CAP = visuals.pose.corpses.max;
 const LATE_CORPSES = 800;
 
 const SECONDS = Number(process.env.ENDURANCE_S ?? 60);
@@ -388,6 +389,7 @@ export async function run(ctx) {
   if (process.env.MODEL_COST === "1") return measureModelCost(ctx);
   if (process.env.EFFECT_COST === "1") return measureEffectCost(ctx);
   const page = await ctx.newPage();
+  await page.addInitScript(installWorkerStartFence);
   await page.addInitScript(installResetRafFence);
   const preparation = await openStressLab(ctx, page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 30, undefined, {

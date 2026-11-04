@@ -102,13 +102,19 @@ impl Catalogue {
         rules: Rules,
     ) -> Result<ScenarioDefinition, ResolveError> {
         let map = self.load(id)?.definition;
-        self.encounter(id, name)?
+        let setup = self
+            .encounter(id, name)?
             .on(map, rules)
+            .and_then(|setup| {
+                crate::admit(&setup.rules).map_err(|e| e.to_string())?;
+                Ok(setup)
+            })
             .map_err(|message| ResolveError {
                 code: ResolveCode::InvalidEncounter,
                 location: format!("{id}/encounters/{name}.json"),
                 message,
-            })
+            })?;
+        Ok(setup)
     }
 
     /// What the map `id` is for: its listing's (`meta.json`) `category`,

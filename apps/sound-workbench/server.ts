@@ -4,9 +4,8 @@ import { join, resolve } from "node:path";
 import type { Plugin } from "vite";
 import { FixturePublication } from "../fixture-publication/publication";
 import type { SoundCatalog } from "../../packages/battle-audio/src/catalog";
-import { GLANCE } from "../../packages/battle-audio/src/contacts";
 import { validateVoiceCatalog } from "../../packages/battle-audio/src/voices/voiceCatalog";
-import type { AudioPresentation } from "../../packages/battle-audio/src/audioPresentation";
+import type { AudioMix } from "../../packages/battle-audio/src/audioMix";
 import type { Draft, Review, Save, Snapshot } from "./src/protocol";
 import { WorkbenchError, equal, hash, jsonRoutes, object } from "./http";
 import { GenerationQueue, generateTool, musicWorkbenchMiddleware } from "./generation";
@@ -15,9 +14,9 @@ import { VoiceWorkbenchStore, voiceWorkbenchMiddleware } from "./voiceStore";
 interface Inputs {
   texts: string[];
   catalog: SoundCatalog;
-  audio: AudioPresentation;
+  audio: AudioMix;
+  looks: Snapshot["looks"];
   runMps: number;
-  weapons: Snapshot["weapons"];
   media: [string, string][];
   revision: string;
 }
@@ -25,7 +24,7 @@ interface Candidate {
   review: Review;
   inputs: Inputs;
   catalog: SoundCatalog;
-  after: string;
+  after: string[];
 }
 
 export class SoundWorkbenchStore {
@@ -35,6 +34,13 @@ export class SoundWorkbenchStore {
     private readonly root: string,
     private readonly validateCatalog: (value: unknown) => SoundCatalog,
     private readonly baselines: readonly string[],
+    private readonly admitSettings: (
+      presentation: string,
+      audio: string,
+      catalog: SoundCatalog,
+      weapons: string,
+      unitCatalog: string,
+    ) => void,
   ) {
     this.publication = new FixturePublication(
       root,
@@ -45,11 +51,25 @@ export class SoundWorkbenchStore {
 
   private async inputs(): Promise<Inputs> {
     const texts = await Promise.all(
-      ["sounds", "game"].map((name) => readFile(join(this.root, `fixtures/${name}.json`), "utf8")),
+      ["sounds", "rules", "presentation", "audio", "catalog"].map((name) =>
+        readFile(join(this.root, `fixtures/${name}.json`), "utf8"),
+      ),
     );
-    const catalog = this.validateCatalog(JSON.parse(texts[0]));
-    const game = JSON.parse(texts[1]);
-    const audio = game.presentation.audio as AudioPresentation;
+    let catalog: SoundCatalog;
+    try {
+      catalog = this.validateCatalog(JSON.parse(texts[0]));
+      this.admitSettings(
+        texts[2],
+        texts[3],
+        catalog,
+        JSON.stringify(JSON.parse(texts[1]).weapons),
+        texts[4],
+      );
+    } catch (error) {
+      throw new WorkbenchError(error instanceof Error ? error.message : String(error));
+    }
+    const presentation = JSON.parse(texts[2]);
+    const audio = JSON.parse(texts[3]) as AudioMix;
     const media: [string, string][] = [];
     for (const [id, clip] of Object.entries(catalog.clips)) {
       let bytes;
@@ -67,14 +87,8 @@ export class SoundWorkbenchStore {
       texts,
       catalog,
       audio,
-      runMps: game.presentation.pose.gait.run_mps,
-      // Each row's lineage only: what it inherits a firing choice from.
-      weapons: Object.fromEntries(
-        Object.entries(game.weapons as Record<string, { extends?: string }>).map(([kind, row]) => [
-          kind,
-          row.extends ? { extends: row.extends } : {},
-        ]),
-      ),
+      looks: presentation.weapon_looks,
+      runMps: presentation.pose.gait.run_mps,
       media,
       revision: hash(JSON.stringify([texts, media])),
     };
@@ -84,14 +98,15 @@ export class SoundWorkbenchStore {
     return {
       revision: input.revision,
       catalog: input.catalog,
-      weapons: input.weapons,
-      firing: input.audio.shots,
+      looks: input.looks,
+      weaponDefaults: input.audio.weapon_defaults,
+      impacts: input.audio.impacts,
+      ricochet: input.audio.ricochet,
+      effects: input.audio.effects,
       vehicles: input.audio.vehicles,
       footsteps: input.audio.footsteps,
       runMps: input.runMps,
       music: input.audio.music,
-      // A glance is a contact too: each round may choose its ricochet.
-      materials: [...Object.keys(input.audio.impacts), GLANCE],
     };
   }
 
@@ -99,15 +114,23 @@ export class SoundWorkbenchStore {
     return this.publication.capture(async () => this.snapshotOf(await this.inputs()));
   }
 
-  private validate(candidate: unknown, input: Inputs): SoundCatalog {
-    object(candidate, ["sources", "clips", "sounds", "defaults", "impacts", "effects", "music"]);
+  private validate(candidate: unknown, input: Inputs, presentation: string): SoundCatalog {
+    object(candidate, ["sources", "clips", "sounds", "provenance", "music"]);
     let catalog;
     try {
       catalog = this.validateCatalog(candidate);
+      this.admitSettings(
+        presentation,
+        input.texts[3],
+        catalog,
+        JSON.stringify(JSON.parse(input.texts[1]).weapons),
+        input.texts[4],
+      );
     } catch (error) {
       throw new WorkbenchError(error instanceof Error ? error.message : String(error));
     }
     if (
+      !equal(catalog.provenance, input.catalog.provenance) ||
       !equal(catalog.sources, input.catalog.sources) ||
       !equal(catalog.clips, input.catalog.clips)
     )
@@ -117,36 +140,34 @@ export class SoundWorkbenchStore {
     for (const name of this.baselines)
       if (!equal(catalog.sounds[name], input.catalog.sounds[name]))
         throw new WorkbenchError(`Baseline ${name} is immutable; clone it to a new recipe`);
-    for (const kind of Object.keys(catalog.defaults))
-      if (kind !== "default" && !Object.hasOwn(input.weapons, kind))
-        throw new WorkbenchError(`Unknown weapon row ${kind}`);
-    for (const [material, rounds] of Object.entries(catalog.impacts)) {
-      if (!Object.hasOwn(input.audio.impacts, material))
-        throw new WorkbenchError(`Unknown impact material ${material}`);
-      for (const round of Object.keys(rounds))
-        if (round !== "default" && !Object.hasOwn(input.weapons, round))
-          throw new WorkbenchError(`Unknown impact round ${round}`);
-    }
     return catalog;
   }
 
   preview(value: Draft): Promise<Review> {
     return this.publication.capture(async () => {
-      const draft = object(value, ["revision", "catalog"]);
+      const draft = object(value, ["revision", "catalog", "lookSounds"]);
       const input = await this.inputs();
       if (draft.revision !== input.revision)
         throw new WorkbenchError("Sources changed; reload before reviewing this draft", 409);
-      const catalog = structuredClone(this.validate(draft.catalog, input));
-      const after = equal(catalog, input.catalog)
-        ? input.texts[0]
-        : `${JSON.stringify(catalog, null, 2)}\n`;
+      const sounds = object(draft.lookSounds, Object.keys(input.looks));
+      if (!equal(Object.keys(sounds).sort(), Object.keys(input.looks).sort()))
+        throw new WorkbenchError("Keep every existing look; only its sound is editable");
+      const presentation = JSON.parse(input.texts[2]);
+      for (const [name, sound] of Object.entries(sounds))
+        presentation.weapon_looks[name].sound = sound;
+      const after = [...input.texts];
+      if (!equal(presentation, JSON.parse(input.texts[2])))
+        after[2] = `${JSON.stringify(presentation, null, 2)}\n`;
+      const catalog = structuredClone(this.validate(draft.catalog, input, after[2]));
+      if (!equal(catalog, input.catalog)) after[0] = `${JSON.stringify(catalog, null, 2)}\n`;
       const review: Review = {
         candidateId: randomUUID(),
         revision: input.revision,
-        files:
-          after === input.texts[0]
+        files: ["sounds", "rules", "presentation", "audio"].flatMap((name, index) =>
+          after[index] === input.texts[index]
             ? []
-            : [{ path: "fixtures/sounds.json", before: input.texts[0], after }],
+            : [{ path: `fixtures/${name}.json`, before: input.texts[index], after: after[index] }],
+        ),
       };
       if (this.candidates.size >= 8) this.candidates.delete(this.candidates.keys().next().value!);
       this.candidates.set(review.candidateId, { review, inputs: input, catalog, after });
@@ -161,19 +182,21 @@ export class SoundWorkbenchStore {
       throw new WorkbenchError("Review expired; preview the draft again", 409);
     const verify = async (phase: "before" | "after") => {
       const current = await this.inputs();
-      const expected = [...candidate.inputs.texts];
-      if (phase === "after") expected[0] = candidate.after;
+      const expected = phase === "after" ? candidate.after : candidate.inputs.texts;
       if (!equal(current.texts, expected) || !equal(current.media, candidate.inputs.media))
         throw new WorkbenchError("Sources changed after review; outside edits were preserved", 409);
-      this.validate(candidate.catalog, { ...current, catalog: candidate.inputs.catalog });
+      this.validate(
+        candidate.catalog,
+        { ...current, catalog: candidate.inputs.catalog },
+        candidate.after[2],
+      );
     };
     // A repeated reviewed save succeeds only when every captured input is still its exact published generation.
     const already = await this.publication.capture(async () => {
       const current = await this.inputs();
       return (
-        candidate.after !== candidate.inputs.texts[0] &&
-        current.texts[0] === candidate.after &&
-        equal(current.texts.slice(1), candidate.inputs.texts.slice(1)) &&
+        candidate.review.files.length > 0 &&
+        equal(current.texts, candidate.after) &&
         equal(current.media, candidate.inputs.media)
       );
     });
@@ -196,6 +219,8 @@ export function soundWorkbenchMiddleware(store: SoundWorkbenchStore) {
 /** Repository documents the workbench saves; a save never hot-replaces a running battle's. */
 const SAVED_DOCUMENTS = [
   "fixtures/sounds.json",
+  "fixtures/presentation.json",
+  "fixtures/audio.json",
   "fixtures/voices.json",
   "fixtures/voices.lock.json",
 ];
@@ -231,15 +256,31 @@ export function soundWorkbenchPlugin(root: string): Plugin {
           : (sounds ??= Promise.all([
               load("packages/battle-audio/src/catalog.ts"),
               load("packages/battle-audio/src/synthSounds.gen.ts"),
-            ]).then(([catalog, synth]) =>
-              soundWorkbenchMiddleware(
+              load("web/src/wasm/renderer_browser/renderer_browser.js"),
+            ]).then(async ([catalog, synth, admission]) => {
+              await admission.default({
+                module_or_path: await readFile(
+                  join(root, "web/src/wasm/renderer_browser/renderer_browser_bg.wasm"),
+                ),
+              });
+              return soundWorkbenchMiddleware(
                 new SoundWorkbenchStore(
                   root,
                   catalog.validateSoundCatalog,
                   Object.keys(synth.SOUNDS),
+                  (presentation, audio, library, weapons, unitCatalog) => {
+                    admission.check_presentation(presentation);
+                    admission.check_battle_sounds(
+                      presentation,
+                      audio,
+                      JSON.stringify(library),
+                      weapons,
+                      unitCatalog,
+                    );
+                  },
                 ),
-              ),
-            ));
+              );
+            }));
         try {
           await (
             await middleware

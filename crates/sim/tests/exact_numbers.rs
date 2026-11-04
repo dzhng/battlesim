@@ -29,7 +29,7 @@ fn scenario() -> serde_json::Value {
             "size": [800.0, 600.0], "fog_cell_m": 8.0, "height_grid_m": 4.0, "slope_cutoff_deg": 35.0,
             "props": [{ "kind": "bench", "center": [e, f], "yaw": yaw, "half_extents": [0.9, 0.3, 0.45] }],
         },
-        "rules": sim::fixtures::test_game(),
+        "rules": sim::fixtures::test_rules(),
         "units": [
             { "side": "blue", "kind": "test_tank", "position": [a, b], "yaw": yaw, "engagement": "return_fire_only" },
             { "side": "red", "kind": "test_rifle", "position": [c, d], "engagement": "return_fire_only" },

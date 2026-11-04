@@ -13,7 +13,7 @@ use crate::world::Vec3;
 
 /// `presentation.effects.high_air_shadow`: how dark and soft the shadow
 /// beneath a high-air aircraft lies at each height over the ground.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct HighAirShadowStyle {
     /// How much light it takes off the ground at no height, 0..1.

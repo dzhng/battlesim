@@ -74,9 +74,6 @@ function workspace() {
     },
     clips: {},
     sounds: {},
-    defaults: {},
-    impacts: {},
-    effects: {},
     music: {
       moods: { menu: ["menu"], tension: [], combat: [] },
       tracks: { menu: { source: "menu", sha256: "b".repeat(64), gain: 0.16 } },

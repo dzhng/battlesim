@@ -1,3 +1,4 @@
+import { shippedRules } from "@web/shippedRules";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { Link } from "react-router";
 import { useLabLoading } from "../LabLoading";
@@ -5,7 +6,6 @@ import { useLabLoading } from "../LabLoading";
 // flies its tour, then read the results. The page publishes its state on
 // `window.__benchmark` for the scene harness.
 import { useEffect, useState } from "react";
-import game from "@fixtures/game.json";
 import { frameCostRow, type BenchmarkReport } from "@web/battle/benchmark/report";
 import {
   benchmarkPreset,
@@ -142,7 +142,7 @@ function BenchmarkSession({
   const { workload, prepared } = battle;
   // One run per mount: the page remounts for another.
   const [run] = useState<BenchmarkRun>(() =>
-    createBenchmarkRun(workload, length, game.tick_hz, onDone, prepared?.report),
+    createBenchmarkRun(workload, length, shippedRules.tick_hz, onDone, prepared?.report),
   );
   return (
     <BattleView

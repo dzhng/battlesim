@@ -12,7 +12,7 @@ import { orderLayer, supplyLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
@@ -59,6 +59,7 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
     );
     const orders = orderLayer(
       session.units,
+      session.rules.air,
       observation,
       control.selected,
       session.revealed,
@@ -77,6 +78,7 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
     session.revealed,
     rules,
     session.units,
+    session.rules.air,
   ]);
   const overlayFeed = useFeed(overlay);
 

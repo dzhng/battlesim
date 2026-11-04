@@ -1,0 +1,376 @@
+{
+  "buses": {
+    "master": 2.8,
+    "units": 0.8,
+    "effects": 1.0,
+    "ambience": 0.6,
+    "music": 1.0,
+    "voices": 1.3
+  },
+  "limiter": {
+    "threshold_db": -2,
+    "attack_s": 0.001,
+    "release_s": 0.05,
+    "ratio": 20,
+    "clip_db": -1
+  },
+  "listener_eye_share": 0.25,
+  "distance": {
+    "ref_m": 15,
+    "rolloff": 1.8,
+    "max_m": 3000,
+    "floor": 0.06,
+    "cull": 0.004
+  },
+  "air": {
+    "near_hz": 18000,
+    "far_hz": 1600,
+    "far_m": 500,
+    "wet": 0.35,
+    "reverb_s": 1.8,
+    "attack_s": 0.012
+  },
+  "budget": {
+    "voices": 48,
+    "loops": 16
+  },
+  "hold_s": 0.25,
+  "late_s": 0.25,
+  "impacts": {
+    "default": {
+      "gain": 0.45
+    },
+    "ground": {
+      "gain": 0.55
+    },
+    "water": {
+      "gain": 0.55
+    },
+    "hull": {
+      "gain": 0.85
+    },
+    "prop": {
+      "gain": 0.5
+    },
+    "metal_prop": {
+      "gain": 0.5
+    },
+    "soldier": {
+      "gain": 0.25
+    }
+  },
+  "ricochet": {
+    "gain": 0.25
+  },
+  "cook_off": {
+    "blast": {
+      "near": "explosion",
+      "far": "explosion_far",
+      "gain": 2.0,
+      "far_m": 900
+    },
+    "landing": {
+      "hit": "hull",
+      "as": "tank_sabot",
+      "gain": 0.5
+    }
+  },
+  "vehicles": {
+    "default": {
+      "engine": "engine_small",
+      "idle_rate": 0.8,
+      "load_rate": 1.4,
+      "idle_gain": 0.04,
+      "load_gain": 0.08,
+      "running": "wheels",
+      "running_gain": 0.06,
+      "full_speed_mps": 12,
+      "turret": null,
+      "turret_gain": 0,
+      "full_traverse_rps": 0.5,
+      "reverse": "reverse_beep",
+      "reverse_gain": 0.02
+    },
+    "tracked_heavy": {
+      "engine": "engine_diesel",
+      "idle_rate": 0.8,
+      "load_rate": 1.35,
+      "idle_gain": 0.06,
+      "load_gain": 0.1,
+      "running": "tracks",
+      "running_gain": 0.08,
+      "full_speed_mps": 10,
+      "turret": "turret",
+      "turret_gain": 0.03,
+      "full_traverse_rps": 0.5,
+      "reverse": "reverse_beep",
+      "reverse_gain": 0.03
+    },
+    "tracked_medium": {
+      "engine": "engine_diesel",
+      "idle_rate": 0.8,
+      "load_rate": 1.35,
+      "idle_gain": 0.06,
+      "load_gain": 0.1,
+      "running": "tracks",
+      "running_gain": 0.08,
+      "full_speed_mps": 10,
+      "turret": "turret",
+      "turret_gain": 0.03,
+      "full_traverse_rps": 0.5,
+      "reverse": "reverse_beep",
+      "reverse_gain": 0.03
+    },
+    "wheeled_light": {
+      "engine": "engine_small",
+      "idle_rate": 0.95,
+      "load_rate": 1.7,
+      "idle_gain": 0.06,
+      "load_gain": 0.12,
+      "running": "wheels",
+      "running_gain": 0.08,
+      "full_speed_mps": 16,
+      "turret": "turret",
+      "turret_gain": 0.03,
+      "full_traverse_rps": 1.5,
+      "reverse": "reverse_beep",
+      "reverse_gain": 0.03
+    },
+    "wheeled_medium": {
+      "engine": "engine_small",
+      "idle_rate": 0.75,
+      "load_rate": 1.3,
+      "idle_gain": 0.08,
+      "load_gain": 0.16,
+      "running": "wheels",
+      "running_gain": 0.12,
+      "full_speed_mps": 12,
+      "turret": "turret",
+      "turret_gain": 0.04,
+      "full_traverse_rps": 0.5,
+      "reverse": "reverse_beep",
+      "reverse_gain": 0.04
+    },
+    "wheeled_medium_logistics": {
+      "engine": "engine_small",
+      "idle_rate": 0.75,
+      "load_rate": 1.3,
+      "idle_gain": 0.08,
+      "load_gain": 0.16,
+      "running": "wheels",
+      "running_gain": 0.12,
+      "full_speed_mps": 12,
+      "turret": null,
+      "turret_gain": 0,
+      "full_traverse_rps": 0.5,
+      "reverse": "reverse_beep",
+      "reverse_gain": 0.04
+    },
+    "wheeled_heavy": {
+      "engine": "engine_diesel",
+      "idle_rate": 0.75,
+      "load_rate": 1.3,
+      "idle_gain": 0.1,
+      "load_gain": 0.2,
+      "running": "wheels",
+      "running_gain": 0.14,
+      "full_speed_mps": 12,
+      "turret": "turret",
+      "turret_gain": 0.05,
+      "full_traverse_rps": 0.5,
+      "reverse": "reverse_beep",
+      "reverse_gain": 0.05
+    },
+    "air_light": {
+      "engine": "rotor",
+      "idle_rate": 1.1,
+      "load_rate": 1.1,
+      "idle_gain": 0.25,
+      "load_gain": 0.25,
+      "running": null,
+      "running_gain": 0,
+      "full_speed_mps": 60,
+      "turret": null,
+      "turret_gain": 0,
+      "full_traverse_rps": 0.5,
+      "reverse": null,
+      "reverse_gain": 0
+    },
+    "air_medium": {
+      "engine": "rotor",
+      "idle_rate": 1,
+      "load_rate": 1,
+      "idle_gain": 0.3,
+      "load_gain": 0.3,
+      "running": null,
+      "running_gain": 0,
+      "full_speed_mps": 60,
+      "turret": null,
+      "turret_gain": 0,
+      "full_traverse_rps": 0.5,
+      "reverse": null,
+      "reverse_gain": 0
+    },
+    "air_heavy": {
+      "engine": "rotor",
+      "idle_rate": 0.9,
+      "load_rate": 0.9,
+      "idle_gain": 0.35,
+      "load_gain": 0.35,
+      "running": null,
+      "running_gain": 0,
+      "full_speed_mps": 60,
+      "turret": null,
+      "turret_gain": 0,
+      "full_traverse_rps": 0.5,
+      "reverse": null,
+      "reverse_gain": 0
+    },
+    "high_air_light": {
+      "engine": "airwar-jet-engine",
+      "idle_rate": 0.7,
+      "load_rate": 1.25,
+      "idle_gain": 0.2,
+      "load_gain": 0.4,
+      "running": null,
+      "running_gain": 0,
+      "full_speed_mps": 180,
+      "turret": null,
+      "turret_gain": 0,
+      "full_traverse_rps": 0.5,
+      "reverse": null,
+      "reverse_gain": 0
+    },
+    "high_air_medium": {
+      "engine": "airwar-jet-engine",
+      "idle_rate": 0.7,
+      "load_rate": 1.25,
+      "idle_gain": 0.24,
+      "load_gain": 0.48,
+      "running": null,
+      "running_gain": 0,
+      "full_speed_mps": 180,
+      "turret": null,
+      "turret_gain": 0,
+      "full_traverse_rps": 0.5,
+      "reverse": null,
+      "reverse_gain": 0
+    },
+    "high_air_heavy": {
+      "engine": "airwar-jet-engine",
+      "idle_rate": 0.7,
+      "load_rate": 1.25,
+      "idle_gain": 0.28,
+      "load_gain": 0.55,
+      "running": null,
+      "running_gain": 0,
+      "full_speed_mps": 180,
+      "turret": null,
+      "turret_gain": 0,
+      "full_traverse_rps": 0.5,
+      "reverse": null,
+      "reverse_gain": 0
+    }
+  },
+  "footsteps": {
+    "sound": "footstep",
+    "gain": 0.07,
+    "stride_m": 0.8,
+    "max_step_m": 2
+  },
+  "fires": {
+    "default": {
+      "sound": "fire",
+      "gain": 0.25,
+      "smoulder_gain": 0.06
+    }
+  },
+  "ambience": {
+    "sound": "distant_battle",
+    "gain": 0.4,
+    "duck": {
+      "depth": 0.7,
+      "attack_s": 0.03,
+      "release_s": 1.5
+    },
+    "duck_over": 0.5
+  },
+  "air_alarm": {
+    "sound": "airwar-air-alarm",
+    "gain": 0.8
+  },
+  "missile_warning": {
+    "sound": "airwar-missile-warning",
+    "gain": 0.9
+  },
+  "flare_deploy": {
+    "sound": "airwar-flare-burst",
+    "gain": 0.75
+  },
+  "music": {
+    "duck": {
+      "depth": 0.35,
+      "attack_s": 0.05,
+      "release_s": 0.8
+    },
+    "combat_window_s": 20,
+    "calm_s": 45,
+    "crossfade_s": 4,
+    "combat_triggers": [
+      "under_fire",
+      "suppressed",
+      "pinned",
+      "hit",
+      "man_down"
+    ]
+  },
+  "voices": {
+    "lines": 4,
+    "wait_s": 1,
+    "group_s": 0.25,
+    "gain": 0.5
+  },
+  "cues": {
+    "sounds": {
+      "shot": "cue_gunfire",
+      "vehicle": "cue_engine",
+      "infantry_moving": "cue_footsteps"
+    },
+    "shout": {
+      "gain": 1,
+      "lowpass_hz": 600,
+      "wet": 0.6,
+      "takes_per_voice": 4
+    },
+    "near_gain": 0.3,
+    "far_gain": 0.12,
+    "far_lowpass_hz": 900,
+    "repeat_s": 1.5
+  },
+  "effects": {
+    "ricochet": "ricochet-bullet",
+    "explosion": "recorded-explosion",
+    "explosion_far": "recorded-explosion",
+    "motor": "recorded-motor",
+    "footstep": "recorded-footstep-boots-gravel-fission9",
+    "tracks": "recorded-tracks-craigsmith-tanks-close",
+    "rotor": "recorded-rotor-uh60"
+  },
+  "weapon_defaults": {
+    "blast": {
+      "near": "recorded-explosion",
+      "far": "recorded-explosion"
+    },
+    "motor": "recorded-motor",
+    "impacts": {
+      "default": "impact_ground",
+      "ground": "impact_ground",
+      "water": "impact_ground",
+      "hull": "impact_hull",
+      "prop": "impact_prop",
+      "metal_prop": "impact_prop",
+      "soldier": "impact_soldier",
+      "ricochet": "ricochet-bullet"
+    }
+  }
+}

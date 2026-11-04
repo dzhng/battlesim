@@ -2,7 +2,6 @@
 import { expect, test } from "vitest";
 import type { Browser } from "playwright";
 import { launchBrowser } from "../browser.mjs";
-import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
@@ -11,22 +10,18 @@ import * as wasm from "@wasm/game_wasm.js";
 import config from "@fixtures/generated-battle.json";
 import { TEST_RULES } from "./catalog";
 import { generationRequest } from "../src/maps/source";
+import { browserTestServer } from "./support/browserServer";
 
 // No GPU device or drawing: this tests the real worker ownership boundary.
 test("a preparation worker becomes the battle authority and replays its commands", async () => {
-  const server = await createServer({
-    configFile: fileURLToPath(new URL("../vite.config.ts", import.meta.url)),
-    configLoader: "runner",
-    server: { port: 0, host: "127.0.0.1" },
-  });
+  const server = await browserTestServer();
   let browser: Browser | undefined;
   try {
-    await server.listen();
     browser = await launchBrowser({
       args: ["--disable-gpu", "--disable-software-rasterizer"],
     });
     const page = await browser.newPage();
-    await page.goto(server.resolvedUrls!.local[0]);
+    await page.goto(`${server.url}__test_setup__`);
     const shots = join(process.cwd(), "../throwaway/replay-closeout/loading-shots");
     await mkdir(shots, { recursive: true });
     await page.exposeFunction("replayShot", async (name: string) => {
@@ -154,12 +149,9 @@ test("a preparation worker becomes the battle authority and replays its commands
             await replay.advance(tick);
             // Exercise the importer at the real browser storage edge. A failed
             // write must not hand the new file to its viewer or navigate away.
-            const { createElement } = (
-              await importModule(`${root}/../../throwaway/vite-cache/deps/react.js`)
-            ).default;
-            const { createRoot } = (
-              await importModule(`${root}/../../throwaway/vite-cache/deps/react-dom_client.js`)
-            ).default;
+            const { createElement, createRoot } = await importModule(
+              `${root}/../tests/support/browserVisit.tsx`,
+            );
             const host = document.createElement("div");
             document.body.replaceChildren();
             document.body.append(host);

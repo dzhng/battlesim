@@ -4,13 +4,19 @@ use contract::ballistics::Delivery;
 use contract::catalog::{AltitudeLayer, TypeIndex};
 use contract::command::{Engagement, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
-use contract::observation::{ActionReason, ContactId, MountReadiness, WeaponPose};
+use contract::observation::{ActionReason, ContactId};
 use contract::scenario::{Armor, Rules};
 use contract::weapons::{AmmoCapacity, Fire, TargetClass, WeaponDefinition};
 
+mod arsenal;
+pub use arsenal::{Arsenal, MountSpec, Weapon};
+mod admission;
+pub use admission::check_rules;
 mod bearing;
 mod cycle;
 mod muzzle;
+mod observation;
+pub use observation::{pose, readiness};
 pub mod tick;
 use bearing::{bearing_from, hull_fixed, point_mount, turned_mount};
 pub use bearing::{nose_on, nose_on_bearing, Arc};
@@ -33,229 +39,6 @@ use contract::random::Rng;
 
 /// Vehicle hull bodies take ids above every soldier id.
 pub const VEHICLE_BODY_BASE: u32 = 1 << 24;
-
-/// A weapon row with its validated flight profile.
-pub struct Weapon {
-    /// The row's id in the rules' `weapons`.
-    pub id: String,
-    pub def: WeaponDefinition,
-    pub profile: LaunchProfile,
-}
-
-/// An authored mount: ammunition kinds (weapon indices) sharing targeting.
-#[derive(Clone)]
-pub struct MountSpec {
-    pub kinds: Vec<usize>,
-    pub squad: bool,
-    pub turret: bool,
-    /// A squad's slots whose soldiers carry it; empty on a hull.
-    pub carriers: Vec<usize>,
-    /// It passes to the next living soldier when its carrier falls.
-    pub special: bool,
-    /// The mount (index in the type's list) whose turret carries this one;
-    /// `None` is the hull.
-    pub on: Option<usize>,
-    /// Where it turns, in the hull's frame at rest (forward, left, up).
-    pub pivot: V3,
-    /// The ring its carrier turns round, on the ground under the carrier's
-    /// pivot: its pivot swings round this with the carrier. The hull's
-    /// middle for a hull mount.
-    pub ring: V3,
-    /// Its muzzle from the pivot along its own bearing; `None` is a hand
-    /// weapon, fired at the infantry muzzle height.
-    pub muzzle: Option<V3>,
-    /// The bearings a turret swings through off the hull's heading; `None`,
-    /// all round.
-    pub arc: Option<Arc>,
-}
-
-/// Every weapon and mount in the battle, fixed at setup.
-pub struct Arsenal {
-    pub weapons: Vec<Weapon>,
-    /// Each unit type's mounts, by type index.
-    mounts: Vec<Vec<MountSpec>>,
-    /// Each unit type's optics mount (`sensors.on`), by type index.
-    optics: Vec<Option<usize>>,
-    pub config: FlightConfig,
-}
-
-/// Admit every row's flight and the weapon table.
-pub fn check_rules(rules: &Rules) -> Result<FlightConfig, String> {
-    let config = FlightConfig::new(&rules.physics.flight, rules.tick_hz)
-        .map_err(|e| format!("physics: {e}"))?;
-    for (id, weapon) in &rules.weapons {
-        config
-            .profile(&weapon.ballistics)
-            .map_err(|e| format!("weapons.{id}: {e}"))?;
-        for (layer, fire) in &weapon.targets {
-            config
-                .check_layer(&weapon.ballistics, fire.range_m, fire.scatter_mrad)
-                .map_err(|e| format!("weapons.{id}.{layer:?}: {e}"))?;
-        }
-    }
-    if rules.weapons.len() > crate::publication::MAX_WEAPON_ROWS {
-        return Err(format!(
-            "weapons: more than {} rows, the publication limit",
-            crate::publication::MAX_WEAPON_ROWS
-        ));
-    }
-    for t in rules.catalog.indices() {
-        for mount in rules.catalog.mounts(t) {
-            if mount.def.weapons.len() > crate::publication::MAX_AMMO_KINDS {
-                return Err(format!(
-                    "units.{}: mount {:?} has more than {} ammunition kinds, the publication limit",
-                    rules.catalog.id(t),
-                    mount.def.id,
-                    crate::publication::MAX_AMMO_KINDS
-                ));
-            }
-        }
-    }
-    Ok(config)
-}
-
-impl Arsenal {
-    pub fn new(rules: &Rules) -> Self {
-        let config = check_rules(rules).expect("fixture weapon rules are valid");
-        let weapons: Vec<Weapon> = rules
-            .weapons
-            .iter()
-            .map(|(id, def)| Weapon {
-                id: id.clone(),
-                profile: config
-                    .profile(&def.ballistics)
-                    .expect("fixture weapon rows are valid"),
-                def: def.clone(),
-            })
-            .collect();
-        // The catalog's checks at load hold every mount to an existing row
-        // and an earlier turret (`Catalog::check_weapons`, `catalog::check`).
-        let index = |id: &str| {
-            weapons
-                .iter()
-                .position(|w| w.id == id)
-                .expect("mounts name weapon rows (checked at load)")
-        };
-        let catalog = &rules.catalog;
-        let mounts: Vec<Vec<MountSpec>> = catalog
-            .indices()
-            .map(|t| {
-                let list = catalog.mounts(t);
-                list.iter()
-                    .enumerate()
-                    .map(|(i, c)| {
-                        let m = &c.def;
-                        let on = m.on.as_ref().map(|carrier| {
-                            list[..i]
-                                .iter()
-                                .position(|c| c.def.id == *carrier && c.def.turret)
-                                .expect("a mount rides an earlier turret (checked at load)")
-                        });
-                        let v = |[x, y, z]: [f64; 3]| v3(x, y, z);
-                        let ring = on.map_or(V3::default(), |c| {
-                            let [x, y, _] = list[c].def.pivot_m;
-                            v3(x, y, 0.0)
-                        });
-                        MountSpec {
-                            kinds: m.weapons.iter().map(|w| index(w)).collect(),
-                            squad: m.squad,
-                            turret: m.turret,
-                            carriers: c.carriers.clone(),
-                            special: m.special,
-                            on,
-                            pivot: v(m.pivot_m),
-                            ring,
-                            muzzle: m.muzzle_m.map(v),
-                            arc: m.arc.map(|a| Arc {
-                                centre: a.centre_deg.to_radians(),
-                                half: (a.width_deg / 2.0).to_radians(),
-                            }),
-                        }
-                    })
-                    .collect()
-            })
-            .collect();
-        let optics = catalog
-            .indices()
-            .map(|t| {
-                let on = catalog.get(t).sensors.on.as_ref()?;
-                catalog.mounts(t).iter().position(|m| &m.def.id == on)
-            })
-            .collect();
-        Arsenal {
-            weapons,
-            mounts,
-            optics,
-            config,
-        }
-    }
-
-    /// A mount's report as a firing report hears it: a bit for every row it
-    /// fires (the layout's `roundKinds`), since its sound doesn't say which.
-    pub fn heard(&self, kind: TypeIndex, mount: usize) -> u64 {
-        self.mounts[kind.0 as usize][mount]
-            .kinds
-            .iter()
-            .fold(0, |m, &k| m | 1u64 << k)
-    }
-
-    pub fn specs(&self, kind: TypeIndex) -> &[MountSpec] {
-        &self.mounts[kind.0 as usize]
-    }
-
-    /// The mount a type's optics turn with; `None`, its hull.
-    pub fn optics(&self, kind: TypeIndex) -> Option<usize> {
-        self.optics[kind.0 as usize]
-    }
-
-    /// Fresh mounts for a unit of type `kind` facing `yaw`, loaded and aimed nowhere.
-    pub fn mounts_for(
-        &self,
-        kind: TypeIndex,
-        yaw: f64,
-        members: &[crate::units::Soldier],
-    ) -> Vec<Mount> {
-        self.specs(kind)
-            .iter()
-            .enumerate()
-            .map(|(i, spec)| Mount {
-                spec: i,
-                ammo: spec
-                    .kinds
-                    .iter()
-                    .map(|&k| match self.weapons[k].def.ammo {
-                        AmmoCapacity::Unlimited(_) => None,
-                        AmmoCapacity::Rounds(n) => Some(n),
-                    })
-                    .collect(),
-                cycles: if spec.squad {
-                    members
-                        .iter()
-                        .filter(|s| spec.carriers.contains(&s.slot))
-                        .map(|s| Cycle::new(Some(s.id), spec, &self.weapons))
-                        .collect()
-                } else {
-                    vec![Cycle::new(None, spec, &self.weapons)]
-                },
-                operator: (!spec.squad)
-                    .then(|| {
-                        members
-                            .iter()
-                            .find(|s| s.alive() && spec.carriers.contains(&s.slot))
-                            .map(|s| s.id)
-                    })
-                    .flatten(),
-                lock: None,
-                support: None,
-                bearing: yaw,
-                last_enemy_lock_tick: None,
-                elevation: 0.0,
-                shots: 0,
-                reason: ActionReason::NoCompatibleTarget,
-            })
-            .collect()
-    }
-}
 
 /// A guided missile in flight and what its launcher steers it at.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -334,6 +117,8 @@ pub struct Mount {
     pub last_enemy_lock_tick: Option<Tick>,
     /// Elevation of the last round this mount launched (radians); 0 before.
     pub elevation: f64,
+    /// Last launched weapon index, for publication only; never digested.
+    pub round: u8,
     /// Rounds launched since the battle began, wrapping at 2³².
     pub shots: u32,
     pub reason: ActionReason,
@@ -349,7 +134,7 @@ impl Mount {
         self.ammo.iter().all(|a| *a == Some(0))
     }
 
-    /// Fold the mount's complete carried state into `d`.
+    /// Fold the mount's battle state into `d`.
     pub fn digest(&self, d: &mut Digest) {
         d.u64(self.spec as u64).u64(self.ammo.len() as u64);
         for a in &self.ammo {
@@ -1756,7 +1541,7 @@ fn fire(
     // building's slots (Q22); a soldier aimed at in the open by his cover
     // body's tier (Q20), vehicles near him among them. Vehicles get none.
     let shelter = match target {
-        Target::Unit(u) => crate::garrison::shelter(&units[u.0 as usize], ctx.rules),
+        Target::Unit(u) => crate::garrison::shelter(&units[u.0 as usize]),
         _ => 0.0,
     };
     let hulls = if shelter == 0.0 && !seen.is_empty() {
@@ -1978,6 +1763,7 @@ fn fire(
     }
     let last = launches.last()?.velocity;
     mount.elevation = libm::atan2(last.z, libm::hypot(last.x, last.y));
+    mount.round = k as u8;
     mount.shots = mount.shots.wrapping_add(launches.len() as u32);
     Some(Shot {
         unit: unit.id,
@@ -2332,61 +2118,6 @@ pub fn engaged(unit: &Unit) -> bool {
     unit.mounts
         .iter()
         .any(|m| m.support.is_some() || m.lock.as_ref().is_some_and(|l| l.engaging))
-}
-
-/// A mount's pose for animation: published for own units and identified enemies.
-pub fn pose(mount: &Mount) -> WeaponPose {
-    WeaponPose {
-        mount: mount.spec as u8,
-        operator: mount.operator,
-        bearing: mount.bearing,
-        elevation: mount.elevation,
-        shots: mount.shots,
-    }
-}
-
-/// Exported readiness of a mount for its owner's panel and rings.
-pub fn readiness(
-    arsenal: &Arsenal,
-    unit: &Unit,
-    mount: &Mount,
-    target_ref: Option<TargetRef>,
-) -> MountReadiness {
-    let spec = &arsenal.specs(unit.kind)[mount.spec];
-    let loaded = mount.cycles.iter().find_map(Cycle::ready);
-    let reloading = if loaded.is_some() {
-        None
-    } else {
-        mount.cycles.iter().filter_map(|c| c.reload).min_by(|a, b| {
-            let remaining = |(k, progress): (usize, f64)| {
-                arsenal.weapons[spec.kinds[k]].def.reload_s - progress
-            };
-            remaining(*a).total_cmp(&remaining(*b))
-        })
-    };
-    let aim = mount
-        .cycles
-        .iter()
-        .filter(|c| cycle_active(unit, mount, c))
-        .map(|c| {
-            let k = c.loaded.or(c.reload.map(|(k, _)| k)).unwrap_or(0);
-            (c.aim / arsenal.weapons[spec.kinds[k]].def.aim_s).min(1.0)
-        })
-        .fold(0.0, f64::max);
-    let reload = reloading.map_or(0.0, |(k, p)| {
-        (p / arsenal.weapons[spec.kinds[k]].def.reload_s).min(1.0)
-    });
-    MountReadiness {
-        mount: mount.spec as u8,
-        loaded: loaded.map(|k| k as u8),
-        reloading: reloading.map(|(k, _)| k as u8),
-        ammo: mount.ammo.clone(),
-        aim,
-        reload,
-        target: target_ref,
-        reason: mount.reason,
-        guiding: mount.support.is_some(),
-    }
 }
 
 #[cfg(test)]

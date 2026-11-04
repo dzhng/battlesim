@@ -208,7 +208,7 @@ mod tests {
     use super::*;
 
     fn cover() -> CoverRules {
-        serde_json::from_value(crate::fixtures::test_game()["cover"].clone()).unwrap()
+        serde_json::from_value(crate::fixtures::test_rules()["cover"].clone()).unwrap()
     }
 
     fn trunk() -> Obb2 {

@@ -38,7 +38,7 @@ export function isGameDocument(path: string): boolean {
     .every((folder) => !path.startsWith(`fixtures/${folder}/`));
 }
 
-/** The game's committed view: `Catalog::view` plus `game.json`'s resolved weapons. */
+/** The game's committed view: `Catalog::view` plus `rules.json`'s resolved weapons. */
 export type GameView = CatalogView & { weapons: Record<string, WeaponRow> };
 
 /** One battle's unit catalog, owned by its session. */
@@ -46,15 +46,19 @@ export interface SessionCatalog {
   readonly set: CatalogSetName;
   /** The resolved unit, soldier, card and prop types. */
   readonly units: UnitCatalog;
-  /** `game.json`'s weapon rows, `extends` resolved, by the names mounts give them. */
+  /** `rules.json`'s weapon rows, `extends` resolved, by the names mounts give them. */
   readonly weapons: Record<string, WeaponRow>;
-  /** The rules a scenario on this catalog carries: `game.json` with this
+  /** The rules a scenario on this catalog carries: `rules.json` with this
    *  set's documents as `catalog`, so the authority runs what the page draws. */
-  readonly rules: GameRules;
+  readonly rules: ResolvedRules;
 }
 
-/** `fixtures/game.json` with a set's documents as its `catalog`. */
-export type GameRules = Omit<typeof import("../../../../fixtures/game.json"), "default"> & {
+/** `fixtures/rules.json` with a set's documents as its `catalog`. */
+export type ResolvedRules = Omit<
+  typeof import("../../../../fixtures/rules.json"),
+  "default" | "weapons"
+> & {
+  weapons: Record<string, WeaponRow>;
   catalog: unknown[];
 };
 
@@ -64,33 +68,25 @@ export type GameRules = Omit<typeof import("../../../../fixtures/game.json"), "d
  *  wrote. */
 export function composeCatalog(
   set: CatalogSetName,
-  game: Omit<GameRules, "catalog">,
+  rules: Omit<ResolvedRules, "catalog" | "weapons"> & { weapons: object },
   gameView: GameView,
   added: readonly string[],
   resolve: (documentsJson: string) => string,
+  resolveRules: (rulesJson: string) => string,
 ): SessionCatalog {
   const documents = [...gameView.documents.map((d) => JSON.stringify(d)), ...added];
   const view: CatalogView = added.length
     ? (JSON.parse(resolve(`[${documents.join(",")}]`)) as CatalogView)
     : gameView;
+  const admitted = JSON.parse(
+    resolveRules(JSON.stringify({ ...rules, catalog: view.documents })),
+  ) as ResolvedRules;
   return {
     set,
     units: new UnitCatalog(view),
-    weapons: gameView.weapons,
-    rules: { ...game, catalog: view.documents },
+    weapons: admitted.weapons,
+    rules: admitted,
   };
-}
-
-/** A scenario's rules as the page reads them: each weapon row as the
- *  catalog resolves it (`extends` followed, so a row inherits its icon,
- *  full load and range), beside any row the scenario adds. Panels, the
- *  range ruler and poses read these; the authority is sent the scenario's
- *  own text and resolves it itself. */
-export function presentationRules<R extends { weapons: object }>(
-  rules: R,
-  catalog: SessionCatalog,
-): R {
-  return { ...rules, weapons: { ...rules.weapons, ...catalog.weapons } };
 }
 
 /** The units a scenario fields, admitted against its session's catalog:
@@ -115,7 +111,7 @@ export function admitScenario(
  * own the resolved catalog documents, so uploaded play never falls back to
  * repository fixture units for admission or presentation. */
 export function composeScenarioCatalog(
-  rules: GameRules,
+  rules: ResolvedRules,
   resolve: (documentsJson: string) => string,
 ): SessionCatalog {
   const view = JSON.parse(resolve(JSON.stringify(rules.catalog))) as CatalogView;

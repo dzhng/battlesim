@@ -39,7 +39,7 @@ impl GenerationPhysics {
             infantry_eye_m: fields.physics.infantry_eye_m,
             fog_target_height_m: fields.sensors.fog_target_height_m,
         };
-        physics.forests.check(&physics.catalog)?;
+        physics.forests.check()?;
         let rule = physics.forests.rule;
         if !(physics.infantry_eye_m.is_finite()
             && physics.infantry_eye_m > 0.

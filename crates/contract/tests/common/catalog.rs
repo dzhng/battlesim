@@ -39,7 +39,7 @@ fn wrecks() -> Value {
         "wreck": { "abstract": true, "wreck": true,
             "body": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true,
                 "occludes": false, "armor": 0.5 },
-            "appearance": { "drawn_by": "wreck" } },
+            "appearance": { "drawn_by": "wreck", "stand_in_tint": [0.5, 0.5, 0.5] } },
         "light_wreck": { "extends": "wreck",
             "body": { "weight_class": "light", "cover_tier": "light", "hp": 150 },
             "destroyed": "removed" },

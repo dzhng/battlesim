@@ -30,8 +30,8 @@ use super::{
     GROUND_FIELDS, GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS,
     IDENTIFIED_FIELDS, KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS,
     MEMBER_ORDER_FIELDS, MOUNT_FIELDS, OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, PLAYER_FIELDS,
-    POSE_FIELDS, PROJECTILE_FIELDS, PROP_DISPLAY_POSE_FIELDS, QUEUE_FIELDS, RANGE_FIELDS,
-    REFUSAL_FIELDS, REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS, SHOUT_FIELDS,
+    PROJECTILE_FIELDS, PROP_DISPLAY_POSE_FIELDS, QUEUE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS,
+    REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS, SHOUT_FIELDS,
 };
 
 pub use view::*;
@@ -113,6 +113,9 @@ macro_rules! v {
         $row[const { at(FIELDS, $name) }] as f64
     };
 }
+
+mod poses;
+use poses::weapon_poses;
 
 const LIMB: f64 = (1u32 << LIMB_BITS) as f64;
 
@@ -1299,19 +1302,6 @@ fn map<T>(rows: &[Row], read: impl Fn(&Row) -> Result<T>) -> Result<Vec<T>> {
 /// One value per member, from the `memberIds` section (id limbs, slot, mount).
 fn member_column<T>(flat: &[f32], read: impl Fn(&[f32; 4]) -> T) -> Vec<T> {
     each::<{ MEMBER_ID_FIELDS.len() }>(flat).map(read).collect()
-}
-
-fn weapon_poses(flat: &[f32]) -> Vec<WeaponPose> {
-    const FIELDS: &[&str] = &POSE_FIELDS;
-    each::<{ POSE_FIELDS.len() }>(flat)
-        .map(|p| WeaponPose {
-            mount: v!(p, "mount"),
-            bearing: v!(p, "bearing"),
-            elevation: v!(p, "elevation"),
-            shots: limbs(v!(p, "shotsLo"), v!(p, "shotsHi")),
-            operator: limbs(v!(p, "operatorLo"), v!(p, "operatorHi")),
-        })
-        .collect()
 }
 
 fn guided(r: &Row) -> Guided {

@@ -9,7 +9,7 @@
 // and a hard clip to the output. The listener is the camera's (`Listener`).
 // Works on an `AudioContext` or an `OfflineAudioContext` alike: every change
 // is scheduled at a sink time.
-import { BUSES, type AudioPresentation, type Bus } from "./audioPresentation";
+import { BUSES, type AudioMix, type Bus } from "./audioMix";
 import type { Listener, VoiceParams, VoiceSink, VoiceSpec } from "./soundFrame";
 import { mulberry32 } from "math/random";
 import { hashString } from "@packages/renderer-core/src/math";
@@ -49,7 +49,7 @@ export class WebAudioSink implements VoiceSink {
 
   constructor(
     readonly context: BaseAudioContext,
-    presentation: AudioPresentation,
+    presentation: AudioMix,
     catalog: SoundCatalog,
     bank?: SoundBank,
   ) {

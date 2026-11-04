@@ -85,7 +85,7 @@ view!(Deployment {
     progress: f64,
     target: Name
 });
-view!(WeaponPose { mount: f64, bearing: f64, elevation: f64, shots: Option<f64>, operator: Option<f64> });
+view!(WeaponPose { mount: f64, bearing: f64, elevation: f64, round: f64, shots: Option<f64>, operator: Option<f64> });
 view!(Mount { mount: f64, loaded: Option<f64>, ammo: Vec<Option<f64>>, aim: f64, reload: f64,
     target: Option<MountTarget>, reason: Name, guiding: bool, reloading: Option<f64> });
 view!(MountTarget { kind: Name, #[serde(skip_serializing_if = "Option::is_none")] id: Option<f64>,

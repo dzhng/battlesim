@@ -132,6 +132,8 @@ pub struct PropAppearance {
     /// fitted to its box, `building` for a part its building draws from its
     /// template's art, `forest` for the trees a forest draws itself.
     pub drawn_by: String,
+    /// Authored sRGB colour when this prop needs a stand-in box.
+    pub stand_in_tint: [f64; 3],
     /// Drawn by repeating one module along the box's long side (a wall, a
     /// fence), not stretched.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]

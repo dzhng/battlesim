@@ -1,3 +1,4 @@
+import { audioMix } from "@web/audioMix";
 // Units answering their owner in the sound lab: a selection, an order given
 // to a group (asked twice, as two units would) and a refused order, mapped by
 // `responseFor` and played through the battle's own voice lines
@@ -12,7 +13,6 @@ import {
 import type { VoiceLine } from "@packages/battle-audio/src/voices/chatter";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { interleave, offlineSound } from "./soundFirefight";
-import { gameAudio } from "./soundFeed";
 
 /** The set the lab's units speak with, and a unit kind that speaks with it. */
 export const SET = "us_tank_crew";
@@ -60,7 +60,7 @@ export interface ResponsesRender {
 export async function renderResponses(): Promise<ResponsesRender> {
   await loadPresentation();
   const { sampleRate, ctx, sink } = await offlineSound(SECONDS, "voices");
-  const lines = new BattleVoices(sink, gameAudio.voices);
+  const lines = new BattleVoices(sink, audioMix.voices);
   lines.want([SET]);
   await lines.start();
   const played: VoiceLine[] = [];

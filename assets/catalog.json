@@ -476,6 +476,7 @@
       "basis_yaw_deg": 0
     },
     "test_tank": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/test/tank.glb",
       "basis_yaw_deg": 0,
@@ -486,12 +487,14 @@
       "wreck": "test_tank_wreck"
     },
     "test_supply_truck": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/test/supply_truck.glb",
       "basis_yaw_deg": 0,
       "wreck": "test_supply_truck_wreck"
     },
     "test_jeep": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/test/jeep.glb",
       "basis_yaw_deg": 0,
@@ -2137,6 +2140,7 @@
       }
     },
     "eastern_zbl_08_wheeled_ifv": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/zbl08/eastern_zbl_08_wheeled_ifv.glb",
       "basis_yaw_deg": 0,
@@ -2165,6 +2169,7 @@
       }
     },
     "us_lav_lav_25a2": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/lav/us_lav_lav_25a2.glb",
       "basis_yaw_deg": 0,
@@ -2193,6 +2198,7 @@
       }
     },
     "us_lav_lav_at": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/lav/us_lav_lav_at.glb",
       "basis_yaw_deg": 0,
@@ -2219,6 +2225,7 @@
       }
     },
     "us_m2_bradley_ifv_m2a4": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/bradley/us_m2_bradley_ifv_m2a4.glb",
       "basis_yaw_deg": 0,
@@ -2248,6 +2255,7 @@
       }
     },
     "us_m3_bradley_cfv_m3a3": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/bradley/us_m3_bradley_cfv_m3a3.glb",
       "basis_yaw_deg": 0,
@@ -2277,6 +2285,7 @@
       }
     },
     "europe_leclerc_xlr": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/leclerc/europe_leclerc_xlr.glb",
       "basis_yaw_deg": 0,
@@ -2306,6 +2315,7 @@
       }
     },
     "europe_ebrc_jaguar_armed_reconnaissance_vehicle": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle.glb",
       "basis_yaw_deg": 0,
@@ -2335,6 +2345,7 @@
       }
     },
     "europe_fennek_reconnaissance_vehicle": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/fennek/europe_fennek_reconnaissance_vehicle.glb",
       "basis_yaw_deg": 0,
@@ -2361,6 +2372,7 @@
       }
     },
     "europe_ajax_tracked_reconnaissance_vehicle": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/ajax/europe_ajax_tracked_reconnaissance_vehicle.glb",
       "basis_yaw_deg": 0,
@@ -2389,6 +2401,7 @@
       }
     },
     "eastern_ural_4320_general_resupply": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/ural/eastern_ural_4320_general_resupply.glb",
       "basis_yaw_deg": 0,
@@ -2410,6 +2423,7 @@
       ]
     },
     "us_m1151_hmmwv_hmg": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/humvee/us_m1151_hmmwv_hmg.glb",
       "basis_yaw_deg": 0,
@@ -2436,6 +2450,7 @@
       }
     },
     "europe_leopard_2_2a6": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/leopard/europe_leopard_2_2a6.glb",
       "basis_yaw_deg": 0,
@@ -2465,6 +2480,7 @@
       }
     },
     "europe_leopard_2_2a7v": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/leopard/europe_leopard_2_2a7v.glb",
       "basis_yaw_deg": 0,
@@ -2494,6 +2510,7 @@
       }
     },
     "europe_leopard_2_2a8": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/leopard/europe_leopard_2_2a8.glb",
       "basis_yaw_deg": 0,
@@ -2523,6 +2540,7 @@
       }
     },
     "europe_challenger_challenger_2_tes": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/challenger/europe_challenger_challenger_2_tes.glb",
       "basis_yaw_deg": 0,
@@ -2552,6 +2570,7 @@
       }
     },
     "europe_challenger_challenger_3": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/challenger_3/europe_challenger_challenger_3.glb",
       "basis_yaw_deg": 0,
@@ -2581,6 +2600,7 @@
       }
     },
     "us_m1_abrams_sep_v2": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/abrams/us_m1_abrams_sep_v2.glb",
       "basis_yaw_deg": 0,
@@ -2610,6 +2630,7 @@
       }
     },
     "us_m1_abrams_sep_v2_trophy": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/abrams/us_m1_abrams_sep_v2_trophy.glb",
       "basis_yaw_deg": 0,
@@ -2639,6 +2660,7 @@
       }
     },
     "us_m1_abrams_sep_v3_trophy": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/abrams/us_m1_abrams_sep_v3_trophy.glb",
       "basis_yaw_deg": 0,
@@ -2668,6 +2690,7 @@
       }
     },
     "us_m1e3_abrams": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/m1e3/us_m1e3_abrams.glb",
       "basis_yaw_deg": 0,
@@ -2697,6 +2720,7 @@
       }
     },
     "europe_cv90_cv9040c": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/cv90/europe_cv90_cv9040c.glb",
       "basis_yaw_deg": 0,
@@ -2725,6 +2749,7 @@
       }
     },
     "europe_cv90_mk_iv": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/cv90/europe_cv90_mk_iv.glb",
       "basis_yaw_deg": 0,
@@ -2753,6 +2778,7 @@
       }
     },
     "eastern_btr_btr_82a": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/btr/eastern_btr_btr_82a.glb",
       "basis_yaw_deg": 0,
@@ -2781,6 +2807,7 @@
       }
     },
     "eastern_tigr_tigr_m": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/tigr/eastern_tigr_tigr_m.glb",
       "basis_yaw_deg": 0,
@@ -2807,6 +2834,7 @@
       }
     },
     "eastern_t_80_t_80bvm": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/t80/eastern_t_80_t_80bvm.glb",
       "basis_yaw_deg": 0,
@@ -2836,6 +2864,7 @@
       }
     },
     "us_m977_hemtt_general_resupply": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/hemtt/us_m977_hemtt_general_resupply.glb",
       "basis_yaw_deg": 0,
@@ -2857,6 +2886,7 @@
       ]
     },
     "eastern_type_99_ztz_99a": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/type99/eastern_type_99_ztz_99a.glb",
       "basis_yaw_deg": 0,
@@ -2886,6 +2916,7 @@
       }
     },
     "eastern_type_15_ztq_15_light_tank": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank.glb",
       "basis_yaw_deg": 0,
@@ -2915,6 +2946,7 @@
       }
     },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/stryker/us_m1127_stryker_rv_reconnaissance_vehicle.glb",
       "basis_yaw_deg": 0,
@@ -2941,6 +2973,7 @@
       }
     },
     "us_stryker_m1126_icv": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/stryker/us_stryker_m1126_icv.glb",
       "basis_yaw_deg": 0,
@@ -2967,6 +3000,7 @@
       }
     },
     "us_stryker_m1134_atgm": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/stryker/us_stryker_m1134_atgm.glb",
       "basis_yaw_deg": 0,
@@ -2993,6 +3027,7 @@
       }
     },
     "us_stryker_m1296_dragoon": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/stryker/us_stryker_m1296_dragoon.glb",
       "basis_yaw_deg": 0,
@@ -3021,6 +3056,7 @@
       }
     },
     "europe_puma_level_c": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/puma/europe_puma_level_c.glb",
       "basis_yaw_deg": 0,
@@ -3050,6 +3086,7 @@
       }
     },
     "us_acv_acv_p": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/acv/us_acv_acv_p.glb",
       "basis_yaw_deg": 0,
@@ -3076,6 +3113,7 @@
       }
     },
     "us_m10_booker": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/m10/us_m10_booker.glb",
       "basis_yaw_deg": 0,
@@ -3105,6 +3143,7 @@
       }
     },
     "europe_vbl_machine_gun_scout": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/vbl/europe_vbl_machine_gun_scout.glb",
       "basis_yaw_deg": 0,
@@ -3131,6 +3170,7 @@
       }
     },
     "eastern_bmp_ifv_family_bmp_2m_berezhok": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok.glb",
       "basis_yaw_deg": 0,
@@ -3160,6 +3200,7 @@
       }
     },
     "eastern_bmp_ifv_family_bmp_3": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_3.glb",
       "basis_yaw_deg": 0,
@@ -3189,6 +3230,7 @@
       }
     },
     "eastern_brm_brm_3k": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/brm/eastern_brm_brm_3k.glb",
       "basis_yaw_deg": 0,
@@ -3217,6 +3259,7 @@
       }
     },
     "europe_vbci_infantry_fighting_vehicle": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/vbci/europe_vbci_infantry_fighting_vehicle.glb",
       "basis_yaw_deg": 0,
@@ -3242,6 +3285,7 @@
       ]
     },
     "europe_man_hx_general_resupply": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/man-hx/europe_man_hx_general_resupply.glb",
       "basis_yaw_deg": 0,
@@ -3263,6 +3307,7 @@
       ]
     },
     "eastern_t_90_t_90m_proryv": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/t90/eastern_t_90_t_90m_proryv.glb",
       "basis_yaw_deg": 0,
@@ -3292,6 +3337,7 @@
       }
     },
     "eastern_t_14_armata_main_battle_tank": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank.glb",
       "basis_yaw_deg": 0,
@@ -3321,6 +3367,7 @@
       }
     },
     "eastern_t_15_armata_heavy_ifv": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv.glb",
       "basis_yaw_deg": 0,
@@ -3350,6 +3397,7 @@
       }
     },
     "europe_boxer_apc": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/boxer/europe_boxer_apc.glb",
       "basis_yaw_deg": 0,
@@ -3376,6 +3424,7 @@
       }
     },
     "europe_boxer_rct30": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/boxer/europe_boxer_rct30.glb",
       "basis_yaw_deg": 0,
@@ -3404,6 +3453,7 @@
       }
     },
     "europe_kf51_panther_prototype_main_battle_tank": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/kf51/europe_kf51_panther_prototype_main_battle_tank.glb",
       "basis_yaw_deg": 0,
@@ -3433,6 +3483,7 @@
       }
     },
     "europe_cv90120_light_tank": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/cv90120/europe_cv90120_light_tank.glb",
       "basis_yaw_deg": 0,
@@ -3956,6 +4007,7 @@
       }
     },
     "europe_centauro_ii": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/centauro/europe_centauro_ii.glb",
       "basis_yaw_deg": 0,
@@ -3985,6 +4037,7 @@
       }
     },
     "eastern_t_72_t_72b3_2016": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/t72/eastern_t_72_t_72b3_2016.glb",
       "basis_yaw_deg": 0,
@@ -5841,6 +5894,7 @@
       }
     },
     "us_m109_paladin_m109a7": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/m109_paladin/us_m109_paladin_m109a7.glb",
       "basis_yaw_deg": 0,
@@ -5867,6 +5921,7 @@
       }
     },
     "us_m1129_stryker_mortar_120_mm_mortar_carrier": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/m1129_stryker_mortar/us_m1129_stryker_mortar_120_mm_mortar_carrier.glb",
       "basis_yaw_deg": 0,
@@ -5893,6 +5948,7 @@
       }
     },
     "us_m142_himars_gmlrs": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/m142_himars/us_m142_himars_gmlrs.glb",
       "basis_yaw_deg": 0,
@@ -5919,6 +5975,7 @@
       }
     },
     "us_m142_himars_prsm": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/m142_himars/us_m142_himars_prsm.glb",
       "basis_yaw_deg": 0,
@@ -5945,6 +6002,7 @@
       }
     },
     "us_m270_mlrs_m270a2": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/m270_mlrs/us_m270_mlrs_m270a2.glb",
       "basis_yaw_deg": 0,
@@ -5971,6 +6029,7 @@
       }
     },
     "europe_mars_ii_multiple_launch_rocket_system": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/mars_ii/europe_mars_ii_multiple_launch_rocket_system.glb",
       "basis_yaw_deg": 0,
@@ -5997,6 +6056,7 @@
       }
     },
     "europe_caesar_88": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/caesar/europe_caesar_88.glb",
       "basis_yaw_deg": 0,
@@ -6023,6 +6083,7 @@
       }
     },
     "europe_pzh_2000_tracked_155_mm_howitzer": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/pzh_2000/europe_pzh_2000_tracked_155_mm_howitzer.glb",
       "basis_yaw_deg": 0,
@@ -6049,6 +6110,7 @@
       }
     },
     "eastern_2s19_msta_s_2s19m2": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/2s19_msta_s/eastern_2s19_msta_s_2s19m2.glb",
       "basis_yaw_deg": 0,
@@ -6075,6 +6137,7 @@
       }
     },
     "eastern_plz_05_chinese_tracked_155_mm_howitzer": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/plz_05/eastern_plz_05_chinese_tracked_155_mm_howitzer.glb",
       "basis_yaw_deg": 0,
@@ -6101,6 +6164,7 @@
       }
     },
     "eastern_bm_21_grad_bm_21_rocket_artillery": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/bm_21_grad/eastern_bm_21_grad_bm_21_rocket_artillery.glb",
       "basis_yaw_deg": 0,
@@ -6127,6 +6191,7 @@
       }
     },
     "eastern_9k515_tornado_s_heavy_rocket_artillery": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/9k515_tornado_s/eastern_9k515_tornado_s_heavy_rocket_artillery.glb",
       "basis_yaw_deg": 0,
@@ -6153,6 +6218,7 @@
       }
     },
     "eastern_buk_buk_m3_medium_range_air_defense": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/buk/eastern_buk_buk_m3_medium_range_air_defense.glb",
       "basis_yaw_deg": 0,
@@ -6176,6 +6242,7 @@
       ]
     },
     "eastern_pantsir_pantsir_sm": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/pantsir/eastern_pantsir_pantsir_sm.glb",
       "basis_yaw_deg": 0,
@@ -6202,6 +6269,7 @@
       }
     },
     "eastern_s350_long": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/s350/eastern_s350_long.glb",
       "basis_yaw_deg": 0,
@@ -6225,6 +6293,7 @@
       ]
     },
     "europe_boxer_skyranger_30_gun_and_missile_air_defense": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/boxer_skyranger_30/europe_boxer_skyranger_30_gun_and_missile_air_defense.glb",
       "basis_yaw_deg": 0,
@@ -6248,6 +6317,7 @@
       ]
     },
     "europe_gepard_1a2": {
+      "track_gauge": 0.8,
       "unit": "vehicle",
       "source": "assets/source/roster/gepard/europe_gepard_1a2.glb",
       "basis_yaw_deg": 0,
@@ -6274,6 +6344,7 @@
       }
     },
     "europe_nasams_nasams_3": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/nasams/europe_nasams_nasams_3.glb",
       "basis_yaw_deg": 0,
@@ -6297,6 +6368,7 @@
       ]
     },
     "us_patriot_long": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/patriot/us_patriot_long.glb",
       "basis_yaw_deg": 0,
@@ -6320,6 +6392,7 @@
       ]
     },
     "us_nasams_medium": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/nasams/us_nasams_medium.glb",
       "basis_yaw_deg": 0,
@@ -6343,6 +6416,7 @@
       ]
     },
     "eastern_s300_long": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/s300/eastern_s300_long.glb",
       "basis_yaw_deg": 0,
@@ -6366,6 +6440,7 @@
       ]
     },
     "europe_iris_t_medium": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/iris_t_slm/europe_iris_t_medium.glb",
       "basis_yaw_deg": 0,
@@ -6389,6 +6464,7 @@
       ]
     },
     "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": {
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/stryker_m_shorad/us_stryker_m_shorad_gun_and_missile_air_defense_vehicle.glb",
       "basis_yaw_deg": 0,

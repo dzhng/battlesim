@@ -1,3 +1,4 @@
+import { shippedRules } from "@web/shippedRules";
 // @vitest-environment node
 // A side's players share its roads in, and a purchase may arrive by any of
 // them, so every road in of the viewer's side carries its chevrons, and no
@@ -43,6 +44,7 @@ const observation = {
 function marchingPoints(side: "blue" | "red"): [number, number][] {
   const meshes = buildBattleOverlay(
     {} as UnitCatalog,
+    shippedRules,
     observation,
     [],
     () => 0,

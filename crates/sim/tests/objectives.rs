@@ -179,7 +179,7 @@ fn objective_transitions_replay_and_have_a_paired_browser_record() {
 /// A helicopter over a flag neither captures nor contests it (D20).
 #[test]
 fn a_helicopter_cannot_capture_or_contest_a_flag() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     rules["catalog"].as_array_mut().unwrap().push(serde_json::json!({ "units": { "blue_test_heli": {
         "extends": "test_heli",
         "roles": ["helicopter"],

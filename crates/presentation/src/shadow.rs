@@ -73,7 +73,7 @@ impl ShadowFit {
 }
 
 /// The receiver layout's cascade slots: `SunShadow` and the depth array
-/// hold this many, so `presentation.light.cascades.count` must equal it.
+/// hold this many. Cascade count belongs to the receiver layout.
 pub const CASCADES: usize = 4;
 pub const ALL_CASCADES: u32 = (1 << CASCADES) - 1;
 /// How far above its slice's highest corner each cascade's light sits, so
@@ -167,7 +167,7 @@ fn fit_shadow(
     let view = look_at(camera.eye, camera.target, camera.up);
     let (near, far) = receiver_range(camera, &view, aspect, terrain, stats);
 
-    let count = (settings.count.max(1) as usize).min(CASCADES);
+    let count = CASCADES;
     let map_size = settings.map_size.max(16);
     let projection_far = FAR_FALLBACK;
     let extent_far = projection_far.max(settings.max_far_m);

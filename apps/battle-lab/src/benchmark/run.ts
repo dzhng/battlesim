@@ -14,7 +14,7 @@ import {
   type BenchmarkReport,
 } from "@web/battle/benchmark/report";
 import type { BenchmarkLength, BenchmarkScenario } from "@web/battle/benchmark/presets";
-import type { ViewportPilot } from "../LabViewport";
+import type { ViewportPilot } from "../viewportRender";
 import type { ScriptedSim } from "../useSimSession";
 import type { PreparationReport } from "@web/battle/prepare/protocol";
 

@@ -2,15 +2,14 @@
 // catalog. A page asks it for its battle's set (`catalogSet`), and the
 // session hands what it gets to its views; nothing else reads a catalog at
 // module level. Sets are resolved once per page and kept.
+import { shippedRules } from "@web/shippedRules";
 import view from "@fixtures/catalog.json";
-import game from "@fixtures/game.json";
 import { loadWasm } from "../sim/module";
 import { composeCatalog, type CatalogSetName, type GameView, type SessionCatalog } from "./compose";
 
 export {
   admitScenario,
   composeScenarioCatalog,
-  presentationRules,
   type CatalogSetName,
   type SessionCatalog,
 } from "./compose";
@@ -45,9 +44,14 @@ export async function resolveCatalogSet(
         .sort()
         .map((path) => files[path]()),
     ));
-  const wasm = texts.length ? await loadWasm() : null;
-  return composeCatalog(set, game, view as unknown as GameView, texts, (json) =>
-    wasm!.resolve_catalog(json),
+  const wasm = await loadWasm();
+  return composeCatalog(
+    set,
+    shippedRules,
+    view as unknown as GameView,
+    texts,
+    wasm.resolve_catalog,
+    wasm.resolve_rules,
   );
 }
 

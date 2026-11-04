@@ -4,19 +4,22 @@
       "abstract": true,
       "wreck": true,
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "armor": 0.5, "metal": true},
-      "appearance": {"drawn_by": "wreck"}
+      "appearance": {"stand_in_tint": [0.62, 0.62, 0.62], "drawn_by": "wreck"}
     },
     "light_wreck": {
+      "appearance": { "stand_in_tint": [0.62, 0.62, 0.62] },
       "extends": "wreck",
       "body": {"weight_class": "light", "cover_tier": "light", "hp": 150},
       "destroyed": "removed"
     },
     "medium_wreck": {
+      "appearance": { "stand_in_tint": [0.62, 0.62, 0.62] },
       "extends": "wreck",
       "body": {"weight_class": "medium", "cover_tier": "medium", "hp": 250},
       "destroyed": {"into": {"prop": "light_wreck", "height_m": 0.8}}
     },
     "heavy_wreck": {
+      "appearance": { "stand_in_tint": [0.62, 0.62, 0.62] },
       "extends": "wreck",
       "body": {"weight_class": "heavy", "cover_tier": "heavy", "hp": 400},
       "destroyed": {"into": {"prop": "medium_wreck", "height_m": 1.2}}

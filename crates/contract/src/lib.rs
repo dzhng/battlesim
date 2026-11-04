@@ -16,6 +16,8 @@ pub mod ground;
 pub mod identity;
 pub mod ids;
 pub mod labels;
+mod limits;
+pub use limits::{AirSpeedLimits, DriveLimits, HullLimits};
 pub mod map;
 pub mod maps;
 pub mod movement;

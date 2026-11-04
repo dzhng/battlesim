@@ -65,8 +65,19 @@ anti-radiation weapons, with no sight override or body-based range table.
 
 ## Battle rules
 
+[Admission](src/admission.rs) refuses external rules before a world or battle is
+built. It combines the contract's section checks with flight and supply checks,
+returning a `RulesError` whose path is relative to the rules document. Fixture,
+encounter, upload, generation and client loaders share this boundary; constructors
+retain debug invariants for already-admitted inputs.
+
 Rules follow physical components, with the game's [first-principles policy](../../development.md#game-rules)
 explaining where deliberate cinematic exceptions belong.
+
+[Move placement](src/battle/move_placement.rs) admits the ordered goal before
+spreading the formation around it. A disconnected goal is refused; a reachable
+goal lets individual slots search past closed pockets. Hulls retain their nearby
+parking resolution when the ordered ground cannot accommodate them.
 
 [Skirmish authority](src/skirmish.rs) owns player wallets, preparation and pending
 reinforcements; [the player list](../contract/src/players.rs) says who plays.
@@ -127,7 +138,8 @@ Native fixture and map adapters load the same [authored inputs](../../fixtures/R
 that browser preparation admits. [Encounter planning](src/encounter/) asks ordinary
 placement rules where its roster can stand; it does not invent a second movement model.
 [Map analysis](src/map_analysis.rs) shares sampled sight calculations with generation
-tools, without making the production generator depend on the simulation. Skirmish
+tools. The generator depends on the simulation only to admit the rules it generates
+under ([mapgen](../mapgen/README.md)). Skirmish
 admission returns selected sites together with route evidence. Native and browser
 preparation carry those selected coordinates into gameplay; measurements of an
 alternative are never permission to use the original unmeasured site.
@@ -155,7 +167,7 @@ digest for changes intended to preserve outcomes. Full workspace gates and when
 to run them are defined by the [check ladder](../../development.md#check-ladder).
 
 A test of a mechanic runs on the test units (`test_*`, `fixtures/units/test`,
-never game content), loaded by `fixtures::test_game`, and adds a fake unit when
+never game content), loaded by `fixtures::test_rules`, and adds a fake unit when
 it needs a shape they lack; it never names or walks the faction roster, which
 grows every day. The rules fixture carries no ground: a test that needs a map
 asks for a saved `test` map by name (`fixtures::with_map`, which refuses a
@@ -183,12 +195,12 @@ back edge, since they can't land at the base (`air`). Loading refuses a pair
 no flight law flies yet.
 
 Where a mechanic depends on how big or how extreme a unit can be, the extreme
-is data: the rules' `hull_limits` bound every hull a battle may field, loading
+is a catalog admission constant: `contract::HullLimits::SHIPPED` bounds every hull a battle may field; admission
 refuses a unit past them, and the mechanic is proven against fake units built
 at the limits (`fixtures::with_units_at_limits`: `test_limit_tracked`,
 `test_limit_wheeled`). What holds at the limit holds
 for every unit inside it. A test that needs a shape past the limits, to show
-how a mechanic fails, lifts them explicitly (`fixtures::lift_hull_limits`).
+how a mechanic fails, passes lifted limits explicitly (`fixtures::lift_hull_limits`) to catalog admission.
 
 ## Reports and cost
 

@@ -20,7 +20,7 @@ Sheets (`each` and `tiers` unless named):
 The camera is the battle's: 0.8 rad of vertical view at 1920x1080, pitched 0.34 rad
 down at 30 m and 0.85 rad from 65 m out. A building is drawn at the tier the game
 draws it at: by how many pixels a metre of it covers (`presentation.buildings.lod_px_per_m`
-in `fixtures/game.json`), which at this camera is tier 0 to 128 m, tier 1 to 319 m
+in `fixtures/presentation.json`), which at this camera is tier 0 to 128 m, tier 1 to 319 m
 and tier 2 to about a kilometre. The
 materials rebuild the model shader's surface (vertex colour times texture, wear
 past the albedo's alpha, tint through the mask), lit by one sun and a sky: a
@@ -44,7 +44,7 @@ import collapse  # noqa: E402
 
 WIDTH, HEIGHT, VFOV = 1920, 1080, 0.8
 FOCAL_PX = HEIGHT / 2 / math.tan(VFOV / 2)
-LOD_PX_PER_M = json.load(open(os.path.join(HERE, "../../../../fixtures/game.json")))["presentation"]["buildings"]["lod_px_per_m"]
+LOD_PX_PER_M = json.load(open(os.path.join(HERE, "../../../../fixtures/presentation.json")))["buildings"]["lod_px_per_m"]
 WEAR_EDGE = 0.04  # the model shader's
 SUN_TOWARD = Vector((0.55, -0.6, 0.62)).normalized()  # from the south-east, mid-morning
 

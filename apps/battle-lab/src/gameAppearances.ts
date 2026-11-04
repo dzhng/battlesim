@@ -1,15 +1,11 @@
 // The page's appearances, through the one loader (`AppearanceLibrary`), from
 // what the bake wrote under `assets/runtime/` (Vite's publicDir, served at
-// the site root). A battle installs the complete unit-art catalog with its
-// scenery at map startup, so selecting a reinforcement never has to decode or
-// upload a new model during play. The browser warms the remaining files into
-// network/cache storage without uploading them. Kits and regional
-// looks are fetched on request. One of those is fetched the
-// first time the page asks for it, and a page asks for what it will draw: a
-// map for the kits its buildings' templates place and its region's looks
-// (`useMapAppearances`), a lab for the kit it shows. Every route that draws
-// the world waits for its appearances, so its trees and buildings are there
-// from the first frame. The workbench reloads the catalog after a re-bake.
+// the site root). A battle admits its requested units, their wrecks and the
+// map's scenery, kits and regional looks. The page cache can retain other art;
+// that cache never determines the battle's GPU residency. Routes wait for a
+// complete source generation before exposing its presentation to the viewport.
+// The workbench reloads the catalog after a re-bake.
+import type { MapBuildings, StaticWorld } from "./useStaticWorld";
 import { countedFetch } from "@web/downloads";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppearanceLibrary, type InstalledAppearances } from "@packages/scene-assets/src/loader";
@@ -19,15 +15,17 @@ import {
   templateLibraryPath,
   texturePath,
   type RuntimeCatalog,
+  catalogLoadNames,
 } from "@packages/scene-assets/src/schema";
 import { STAND_IN_KIT } from "@packages/scene-assets/src/standInKit";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
+import type { ObservationView } from "@web/battle/sim/observationView";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { TemplateArtError, templateKits } from "@packages/scene-assets/src/templateLibrary";
 import type { PlacedBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
-import { propArt } from "@packages/battle-renderer/src/models/propAppearance";
+import { propArt, mapProps } from "@packages/battle-renderer/src/models/propAppearance";
 import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh";
-import { prop_appearances } from "@wasm/presentation/presentation_wasm.js";
+import { prop_appearances } from "@wasm/renderer_browser";
 import { diagnosticsSource } from "@web/diagnostics";
 import { appResources } from "./appResources";
 import type { RuntimeFiles } from "./presentedFrame";
@@ -171,7 +169,12 @@ export function gameAppearances(
 /** Load the catalog afresh (it was re-baked) for a session running `units`:
  *  the page's appearances from now on. The new bake's kits are fetched when
  *  asked for again. */
-export function reloadGameAppearances(units: UnitCatalog): Promise<InstalledAppearances> {
+export function reloadGameAppearances(
+  units: UnitCatalog,
+  wearing: ReadonlySet<string> = units.appearances,
+  factions?: ReadonlySet<string> | null,
+  scenery?: ReadonlySet<string> | null,
+): Promise<InstalledAppearances> {
   loading = null;
   loadingFactions = undefined;
   loadingScenery = undefined;
@@ -181,7 +184,7 @@ export function reloadGameAppearances(units: UnitCatalog): Promise<InstalledAppe
     prefetchTimer = null;
   }
   prefetchStatus = { state: "idle" };
-  return gameAppearances(units);
+  return gameAppearances(units, [], wearing, factions, scenery);
 }
 
 const NOTHING: ReadonlySet<string> = new Set();
@@ -316,22 +319,33 @@ export function useMapAppearances(
 }
 
 /**
- * What the models layer installs to draw `world`: with `units`, every soldier
- * and vehicle; the appearance each of the map's props takes, and every wreck
+ * What the models layer installs to draw `world`: the selected source generation
+ * and its unit wreck dependencies; the appearance each of the map's props takes, and every wreck
  * and heap of rubble a battle can leave (the presentation's
  * `prop_appearances`); and, where the map has buildings (`buildings`), the
  * template art library and the kits those buildings' templates draw from, no
  * other. A kit of those that is not installed refuses the map by name: no
- * building is drawn without its art. Trees, hedgerows and grass are the
- * scenery layer's and the grass pass's, which hold their own buffers.
+ * building is drawn without its art. The shared renderer owns the buffers
+ * for trees, hedgerows and grass.
  */
 export function mapAppearances(
   appearances: InstalledAppearances,
   world: { exports: WorldExports; layout: WorldLayout },
   buildings: PlacedBuildings,
-  units: boolean,
+  sources: ReadonlySet<string> | null,
   dynamicProps = true,
 ): InstalledAppearances {
+  // The page cache can contain art from an earlier battle. Scope it before
+  // canonical prop selection, which otherwise admits every cached wreck.
+  if (sources)
+    appearances = {
+      ...appearances,
+      appearances: new Map(
+        [...appearances.appearances].filter(
+          ([name]) => sources.has(name) || appearances.onRequest.has(name),
+        ),
+      ),
+    };
   const art = propArt(appearances, world.exports.buildings.regionalFamily, dynamicProps);
   const drawn = new Set(
     JSON.parse(
@@ -339,6 +353,10 @@ export function mapAppearances(
     ) as string[],
   );
   const kits = mapKits(appearances, buildings);
+  // Unit topology includes its possible wreck even on maps without dynamic props.
+  const wrecks = new Set(
+    sources ? [...appearances.appearances.values()].flatMap((entry) => entry.wreck ?? []) : [],
+  );
   for (const kit of kits)
     if (!appearances.appearances.has(kit))
       throw new TemplateArtError(
@@ -350,11 +368,138 @@ export function mapAppearances(
     appearances: new Map(
       [...appearances.appearances].filter(
         ([name, a]) =>
-          (units && (a.unit === "soldier" || a.unit === "vehicle")) ||
+          (sources?.has(name) && (a.unit === "soldier" || a.unit === "vehicle")) ||
+          wrecks.has(name) ||
           kits.has(name) ||
           drawn.has(name),
       ),
     ),
     templates: buildings.template.length > 0 ? appearances.templates : undefined,
   };
+}
+
+/** A battle keeps art it has learned, and preloads its player's purchase choices. */
+export function useBattleKinds(input: {
+  scope: unknown;
+  side: string;
+  units: Pick<UnitCatalog, "cards">;
+  fielded: readonly string[];
+  faction: string | null;
+  observation: ObservationView | null;
+  purchasing: string | null;
+}): readonly string[] {
+  const { scope, side, units, fielded, faction, observation, purchasing } = input;
+  const seed = useMemo(
+    () =>
+      new Set([
+        ...fielded,
+        ...units.cards
+          .filter(
+            (card) => !card.disabled_reason && card.roster.factions.some((f) => f === faction),
+          )
+          .map((card) => card.id),
+      ]),
+    [units, fielded, faction],
+  );
+  const history = useRef<{
+    scope: unknown;
+    side: string;
+    seed: Set<string>;
+    kinds: Set<string>;
+  } | null>(null);
+  if (
+    !history.current ||
+    history.current.scope !== scope ||
+    history.current.side !== side ||
+    history.current.seed !== seed
+  )
+    history.current = { scope, side, seed, kinds: new Set(seed) };
+  const retained = history.current.kinds;
+  const key = useMemo(() => {
+    for (const unit of [
+      ...(observation?.own ?? []),
+      ...(observation?.identified ?? []),
+      ...(observation?.corpses ?? []),
+      ...(observation?.crashes ?? []),
+      ...(observation?.airTransits ?? []),
+    ])
+      retained.add(unit.kind);
+    for (const prop of observation?.knownProps ?? []) if (prop.wreckOf) retained.add(prop.wreckOf);
+    for (const contact of observation?.contacts ?? []) if (contact.kind) retained.add(contact.kind);
+    for (const pending of observation?.skirmish?.players.flatMap((player) => player.pending) ?? [])
+      retained.add(pending.kind);
+    if (purchasing) retained.add(purchasing);
+    return [...retained].sort().join("\0");
+  }, [retained, observation, purchasing]);
+  return useMemo(() => (key ? key.split("\0") : []), [key]);
+}
+
+/** Keep cached art separate from the complete source generation this battle admits. */
+export function useBattleAppearances(input: {
+  world: StaticWorld | null;
+  buildings: MapBuildings | null;
+  units: UnitCatalog;
+  kinds: readonly string[];
+  skirmish: boolean;
+  factions: ReadonlySet<string> | null;
+  scenery: ReadonlySet<string> | null | undefined;
+}) {
+  const { world, buildings, units, kinds, skirmish, factions, scenery } = input;
+  const selectedKinds = useMemo(
+    () => [
+      ...new Set([
+        ...kinds,
+        ...(world
+          ? mapProps(world.exports, world.layout).flatMap((prop) => prop.wreckOf ?? [])
+          : []),
+      ]),
+    ],
+    [kinds, world],
+  );
+  const appearances = useMapAppearances(
+    buildings?.index.placed ?? null,
+    world?.exports.buildings.regionalFamily ?? null,
+    (world?.exports.props.length ?? 0) > 0 || (buildings?.index.placed.template.length ?? 0) > 0,
+    selectedKinds,
+    factions,
+    scenery,
+  );
+  const sources = useMemo(() => {
+    if (!appearances || !library.catalog) return null;
+    return new Set(
+      catalogLoadNames(library.catalog, units.appearancesFor(selectedKinds), factions, scenery),
+    );
+  }, [appearances, selectedKinds, units, factions, scenery]);
+  const ready = !!(
+    appearances &&
+    sources &&
+    world &&
+    buildings &&
+    [
+      ...sources,
+      ...mapDownloads(
+        appearances,
+        buildings.index.placed,
+        world.exports.buildings.regionalFamily,
+        world.exports.props.length > 0 || buildings.index.placed.template.length > 0,
+      ),
+    ].every((name) => appearances.appearances.has(name))
+  );
+  const models = useMemo(
+    () =>
+      ready && appearances && world && buildings
+        ? mapAppearances(
+            appearances,
+            world,
+            buildings.index.placed,
+            sources,
+            skirmish || world.exports.forests.length > 0,
+          )
+        : null,
+    [ready, appearances, world, buildings, sources, skirmish],
+  );
+  return useMemo(
+    () => (appearances && models ? { appearances, models } : null),
+    [appearances, models],
+  );
 }

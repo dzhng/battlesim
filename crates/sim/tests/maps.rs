@@ -74,7 +74,7 @@ fn every_saved_encounter_makes_a_battle_on_its_map() {
     // map's on the test set (labs field the game's units too, the Apache),
     // the menu's on the menu's set.
     let rules_of = |set| {
-        let mut game = sim::fixtures::game();
+        let mut game = sim::fixtures::rules();
         game["catalog"] = serde_json::Value::Array(sim::fixtures::catalog_documents(set));
         serde_json::from_value::<contract::scenario::Rules>(game).unwrap()
     };
@@ -247,7 +247,7 @@ fn an_encounter_that_is_not_one_is_refused_naming_its_file() {
 
 /// The test rules a scratch encounter plays.
 fn test_rules() -> contract::scenario::Rules {
-    serde_json::from_value(sim::fixtures::test_game()).unwrap()
+    serde_json::from_value(sim::fixtures::test_rules()).unwrap()
 }
 
 #[test]
@@ -268,10 +268,8 @@ fn an_encounters_overrides_retune_its_own_battle_and_no_other() {
         "overrides": {
             "weapons": {
                 "tank_ap": { "reload_s": reload_s },
-                "test_scenario_gun": { "extends": "tank_ap", "name": "Scenario Gun" }
+                "test_scenario_gun": { "round_cost": 5, "extends": "tank_ap", "name": "Scenario Gun" }
             },
-            // A finite row is priced for resupply, as a shipped one is.
-            "service": { "round_costs": { "test_scenario_gun": 5 } },
             "units": {
                 "test_scenario_tank": {
                     "extends": "test_tank",
@@ -327,6 +325,14 @@ fn an_override_is_held_to_the_shipped_rules_checks_naming_its_encounter_and_fiel
     let catalogue = scratch.catalogue();
     for (overrides, field) in [
         (
+            serde_json::json!({"weapons": {"test_bad_flight": {"extends": "rifle", "name": "Bad Flight", "lifetime_s": 1e6}}}),
+            "weapons.test_bad_flight.lifetime_s",
+        ),
+        (
+            serde_json::json!({"infantry_movement": {"wander_period_s": 0}}),
+            "infantry_movement.wander_period_s",
+        ),
+        (
             serde_json::json!({ "weapons": { "tank_ap": { "reload_s": -1 } } }),
             "weapons.tank_ap: reload_s",
         ),
@@ -366,7 +372,7 @@ fn an_overridden_encounter_plays_its_paired_record() {
         "../../../fixtures/parity/scenario-overrides.json"
     ))
     .unwrap();
-    let mut game = sim::fixtures::game();
+    let mut game = sim::fixtures::rules();
     game["catalog"] = serde_json::Value::Array(sim::fixtures::catalog_documents(
         sim::fixtures::CatalogSet::Test,
     ));

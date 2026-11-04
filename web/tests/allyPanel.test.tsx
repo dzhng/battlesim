@@ -1,9 +1,9 @@
 // An ally's unit in the battle's callouts: its normal info panel, read-only,
 // with a line naming the player that owns it.
+import { shippedRules } from "@web/shippedRules";
 import { cleanup, render } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, expect, test } from "vitest";
-import game from "@fixtures/game.json";
 import { specimenUnit } from "@apps/battle-lab/src/panelSpecimens";
 import { TEST_CATALOG, WithTestCatalog } from "./catalog";
 import type { PanelRules } from "../src/battle/present/panelRows";
@@ -29,7 +29,7 @@ test("an ally's panel names its owner and has no order controls; your own has ne
     <ReadoutLayer
       own={observation.own}
       allies={allyOwners(observation, "blue-1")}
-      rules={game as unknown as PanelRules}
+      rules={shippedRules as unknown as PanelRules}
       selected={[2]}
       handle={createRef<ReadoutLayerHandle>()}
     />,

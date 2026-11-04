@@ -158,9 +158,12 @@ fn a_fixture_runs_plate_counts_are_the_pages_replay_of_its_capture() {
     let map = workload["map"].as_str().unwrap();
     let kinds =
         fielded::encounter_kinds(&root, map, workload["encounter"].as_str().unwrap()).unwrap();
-    let game: Value =
-        serde_json::from_slice(&std::fs::read(root.join("fixtures/game.json")).unwrap()).unwrap();
-    let Fielded { units, effects, .. } = fielded::fielded(&root, &game, map, &kinds).unwrap();
+    let Fielded { units, effects, .. } = fielded::fielded(
+        &root,
+        &presentation::static_world::files::rules(&root, map).unwrap(),
+        &kinds,
+    )
+    .unwrap();
     let p = EffectPresentation::from_value(&effects.presentation).expect("presentation");
     let mut batch = EffectBatch::new(p.capacity);
     let mut frame = EffectFrame::new(capture["tickHz"].as_f64().unwrap(), p);

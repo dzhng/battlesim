@@ -2,10 +2,10 @@
 // Picking by the simulation's boxes: a vehicle is picked by its hull box and a
 // soldier by his body's, whatever the drawn model's overhang (the tank's gun,
 // its antenna), so a click selects what the rules say is there.
+import { shippedRules } from "@web/shippedRules";
 import { UNITS } from "./catalog";
 import type { Vec3 } from "math";
 import { expect, test } from "vitest";
-import game from "@fixtures/game.json";
 import {
   bodyBox,
   pickBox,
@@ -13,7 +13,7 @@ import {
   type PickBox,
 } from "@packages/battle-renderer/src/picking.ts";
 
-const bodies = game.physics;
+const bodies = shippedRules.physics;
 const at = (kind: string, x: number, yaw = 0): PickBox => ({
   x,
   y: 0,

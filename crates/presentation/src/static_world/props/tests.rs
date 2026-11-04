@@ -9,13 +9,13 @@ fn layout() -> PropLayout {
         &serde_json::json!({
             "propKinds": ["wall", "car", "heavy_wreck", "lamp", "trunk", "part", "deck"],
             "propAppearance": {
-                "wall": { "drawn_by": "wall", "modular": true },
-                "car": { "drawn_by": "car" },
-                "heavy_wreck": { "drawn_by": "wreck" },
-                "lamp": { "drawn_by": "lamp" },
-                "trunk": { "drawn_by": "forest" },
-                "part": { "drawn_by": "building", "map_only": true },
-                "deck": { "drawn_by": "deck", "map_only": true },
+                "wall": { "drawn_by": "wall", "stand_in_tint": [0.5, 0.5, 0.5], "modular": true },
+                "car": { "drawn_by": "car", "stand_in_tint": [0.5, 0.5, 0.5] },
+                "heavy_wreck": { "drawn_by": "wreck", "stand_in_tint": [0.5, 0.5, 0.5] },
+                "lamp": { "drawn_by": "lamp", "stand_in_tint": [1.0, 1.0, 0.0] },
+                "trunk": { "drawn_by": "forest", "stand_in_tint": [0.5, 0.5, 0.5] },
+                "part": { "drawn_by": "building", "stand_in_tint": [0.5, 0.5, 0.5], "map_only": true },
+                "deck": { "drawn_by": "deck", "stand_in_tint": [0.5, 0.5, 0.5], "map_only": true },
             },
             "blockingPropKinds": { "wheeled": ["wall", "car", "heavy_wreck", "part"] },
             "unitKinds": ["tank", "jeep"],
@@ -60,13 +60,6 @@ fn input() -> PropInput {
             min: [-0.5, -0.5, 0.0],
             max: [0.5, 0.5, 1.0],
         }),
-        stand_in_tints: Some(
-            [
-                ("default".to_owned(), [0.5, 0.5, 0.5]),
-                ("lamp".to_owned(), [1.0, 1.0, 0.0]),
-            ]
-            .into(),
-        ),
         family: None,
         detail: Detail {
             lod_px: [200.0, 80.0, 30.0],

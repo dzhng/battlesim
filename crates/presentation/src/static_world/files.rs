@@ -42,19 +42,21 @@ pub struct MapGround {
 }
 
 /// The ground of saved map `map` (`fixtures/maps/<map>`), built by the
-/// simulation's own world code under the rules of the battle fought on it
-/// (the game's, with the units of the map's own category: a capture map's the
-/// capture set's, a test map's the tests'), in the map's biome (`meta.json`) and
-/// regional finish, with `fixtures/game.json`'s `presentation` tunings: what
+/// simulation's own world code under the battle's resolved rules, in the
+/// map's biome (`meta.json`) and
+/// regional finish, with `fixtures/presentation.json`'s tunings: what
 /// the page reads from `WorldView` and hands `set_ground`.
-pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
+pub fn ground(
+    root: &Path,
+    map: &str,
+    rules: &contract::scenario::Rules,
+) -> Result<MapGround, String> {
     let folder = root.join("fixtures/maps").join(map);
     let resolved = sim::maps::load_folder(&folder).map_err(|e| e.to_string())?;
-    let game = json(&root.join("fixtures/game.json"))?;
+    let presentation = json(&root.join("fixtures/presentation.json"))?;
     let meta = json(&folder.join("meta.json"))?;
-    let rules = rules(root, map)?;
     let map_def = &resolved.definition;
-    let world = sim::world::WorldGeometry::new(map_def, &rules);
+    let world = sim::world::WorldGeometry::new(map_def, rules);
     let layout = sim::world::export::layout_json(&rules.catalog);
     let source = ground::source(&world, &map_def.extents(), &layout)?;
     let biome_name = meta["biome"].as_str().ok_or("meta.json has no biome")?;
@@ -64,10 +66,10 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
     let biome_text = std::fs::read_to_string(&biome_path)
         .map_err(|e| format!("{}: {e}", biome_path.display()))?;
     let biome = Biome::load(&biome_text, map_def.regional_family.as_deref())?;
-    let tuning: Tuning = serde_json::from_value(game["presentation"].clone())
-        .map_err(|e| format!("presentation: {e}"))?;
+    let tuning = crate::settings::PresentationSettings::from_value(&presentation)?.tuning();
     let sensors =
-        serde_json::from_value(game["sensors"].clone()).map_err(|e| format!("sensors: {e}"))?;
+        serde_json::from_value(serde_json::to_value(&rules.sensors).map_err(|e| e.to_string())?)
+            .map_err(|e| format!("sensors: {e}"))?;
     Ok(MapGround {
         source,
         biome,
@@ -92,9 +94,11 @@ pub fn rules(root: &Path, map: &str) -> Result<contract::scenario::Rules, String
         MapCategory::Capture => sim::fixtures::CatalogSet::Capture,
         MapCategory::Test => sim::fixtures::CatalogSet::Test,
     };
-    let mut fixture = sim::fixtures::game();
+    let mut fixture = sim::fixtures::rules();
     fixture["catalog"] = Value::Array(sim::fixtures::catalog_documents(set));
-    serde_json::from_value(fixture).map_err(|e| format!("rules: {e}"))
+    let rules = serde_json::from_value(fixture).map_err(|e| format!("rules: {e}"))?;
+    sim::admit(&rules).map_err(|e| e.to_string())?;
+    Ok(rules)
 }
 
 /// The simulation's world a saved map's ground was built by.
@@ -121,10 +125,12 @@ pub fn side_foliage(world: &World, learned: &crate::scars::LearnedGround) -> Vec
 /// of no region, and of the wrecks only the worn vehicles' own) or the map's
 /// family fetches, each read for its first state's bounds; each worn
 /// vehicle's wreck; the stand-in kit's box where the catalog has its module;
-/// and the fixture's stand-in tints and model tiers.
+/// and the fixture's model tiers. Prop bindings in the layout own stand-in tints.
 pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<PropInput, String> {
     let runtime = Runtime::open(&root.join("assets/runtime"))?;
-    let game = json(&root.join("fixtures/game.json"))?;
+    let presentation = crate::settings::PresentationSettings::from_value(&json(
+        &root.join("fixtures/presentation.json"),
+    )?)?;
     let none = serde_json::Map::new();
     let entries = runtime.catalog["appearances"].as_object().unwrap_or(&none);
     let worn = |name: &str| wearing.contains(&name);
@@ -179,16 +185,12 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
         }
         _ => None,
     };
-    let presentation = &game["presentation"];
     Ok(PropInput {
         appearances,
         wrecks: serde_json::from_value(Value::Object(wrecks)).map_err(|e| e.to_string())?,
         stand_in,
-        stand_in_tints: serde_json::from_value(presentation["stand_ins"]["tints"].clone())
-            .map_err(|e| format!("presentation.stand_ins.tints: {e}"))?,
         family: family.map(str::to_owned),
-        detail: serde_json::from_value(presentation["models"].clone())
-            .map_err(|e| format!("presentation.models: {e}"))?,
+        detail: presentation.models,
         dynamic: true,
     })
 }
@@ -200,7 +202,7 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
 /// that places them.
 pub fn placed_buildings(
     root: &Path,
-    map: &str,
+    rules: &contract::scenario::Rules,
     world: &World,
 ) -> Result<(PlacedBuildings, BuildingStyle), String> {
     let exported: Value =
@@ -228,12 +230,12 @@ pub fn placed_buildings(
                 .filter_map(move |p| Some((p["prop"].as_u64()? as u32, i)))
         })
         .collect();
-    let (_, shells) = crate::fielded::building_remains(&rules(root, map)?.catalog.view());
+    let (_, shells) = crate::fielded::building_remains(&rules.catalog.view());
     let shells: Vec<String> = shells.into_iter().collect();
-    let style: BuildingStyle = serde_json::from_value(
-        json(&root.join("fixtures/game.json"))?["presentation"]["buildings"].clone(),
-    )
-    .map_err(|e| format!("presentation.buildings: {e}"))?;
+    let style = crate::settings::PresentationSettings::from_value(&json(
+        &root.join("fixtures/presentation.json"),
+    )?)?
+    .buildings;
     let runtime = Runtime::open(&root.join("assets/runtime"))?;
     let hash = runtime.catalog["templates"]["library"]
         .as_str()

@@ -46,3 +46,5 @@ pub struct Mast {
     pub base: Vec3,
     pub top: Vec3,
 }
+
+mod tables_read;

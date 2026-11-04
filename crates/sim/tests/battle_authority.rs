@@ -264,11 +264,10 @@ fn an_infinite_fog_cell_is_refused_by_name() {
 }
 
 #[test]
-#[should_panic(expected = "rules.ground.cell_m: ground cells must be finite positive metres")]
-fn a_zero_ground_cell_is_refused_by_name() {
+fn a_zero_ground_cell_is_refused_before_construction() {
     let mut setup = scenario();
     setup.rules.ground.cell_m = 0.0;
-    Battle::new(&setup, 1);
+    assert_eq!(sim::admit(&setup.rules).unwrap_err().path, "ground.cell_m");
 }
 
 /// Reports measure the production tick, including replay and side observations.

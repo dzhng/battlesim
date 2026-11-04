@@ -2,7 +2,7 @@
 //! name and sample rate (seeded noise, filters, envelopes), so both clients
 //! play the same samples. Transients are shaped noise and sines; loops wrap
 //! seamlessly (whole cycles, or a crossfaded seam). Each sound peaks at
-//! `PEAK`; the mix's levels are `presentation.audio`'s. Samples are stored
+//! `PEAK`; the mix's levels are `audio.json`'s. Samples are stored
 //! as f32 and worked in f64, and the transcendental functions are `libm`'s,
 //! so the browser's WebAssembly and native agree bit for bit.
 use std::f64::consts::PI;

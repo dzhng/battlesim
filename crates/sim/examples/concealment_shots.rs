@@ -39,7 +39,7 @@ struct Lane {
 /// Synthetic values match the system comparison, rather than depending on
 /// today's roster tuning. The AT team's body stands in for a sniper team.
 fn setup(lane: Lane, ordinary: bool) -> ScenarioDefinition {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     for (id, concealment, spotting) in [
         ("test_rifle", 1.0, 1.0),
         ("test_at", 0.5, 2.0),

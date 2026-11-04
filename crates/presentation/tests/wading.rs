@@ -28,14 +28,16 @@ fn wet_ground() -> Ground {
         "depth_m": 0.6
     }]);
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let def: MapDefinition = serde_json::from_value(map).unwrap();
     let world = WorldGeometry::new(&def, &rules);
     let layout = sim::world::export::layout_json(&rules.catalog);
     let source = ground::source(&world, &def.extents(), &layout).unwrap();
     let biome = Biome::load(&read("fixtures/biomes/summer.json"), None).unwrap();
-    let game: Value = serde_json::from_str(&read("fixtures/game.json")).unwrap();
-    let tuning: Tuning = serde_json::from_value(game["presentation"].clone()).unwrap();
+    let game: Value = serde_json::from_str(&read("fixtures/presentation.json")).unwrap();
+    let tuning: Tuning = presentation::settings::PresentationSettings::from_value(&game)
+        .unwrap()
+        .tuning();
     Ground::new(source, biome, tuning).unwrap()
 }
 

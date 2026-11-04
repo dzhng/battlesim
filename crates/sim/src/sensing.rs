@@ -200,7 +200,7 @@ fn sample(world: &WorldGeometry, u: &Unit, at: V3, rules: &Rules) -> (f64, f64) 
     }
     let ground = ground(
         world.forest_concealment(at.x, at.y),
-        crate::garrison::shelter(u, rules),
+        crate::garrison::shelter(u),
         &rules.sensors,
     );
     (

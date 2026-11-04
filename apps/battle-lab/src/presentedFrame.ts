@@ -3,17 +3,17 @@
 // capture's plates record. And what the page hands the presentation once
 // per battle (`load_world`'s battle), which Rust resolves from the files the
 // page reads.
+import { presentationSettings } from "@web/presentationSettings";
 import {
   Counts,
   EFFECT_KINDS,
   EFFECT_WORDS,
   SHAPE_NAMES,
+  MIN_TARGET_PX,
 } from "@packages/battle-renderer/src/records.gen";
-import { MIN_TARGET_PX } from "@packages/battle-renderer/src/frame/battleFrame";
-import game from "@fixtures/game.json";
 import type { AppearanceLibrary } from "@packages/scene-assets/src/loader";
 import type { CatalogView } from "@packages/scene-assets/src/units";
-import { Fielding } from "@wasm/presentation/presentation_wasm.js";
+import { Fielding } from "@wasm/renderer_browser";
 import type {
   PresentedBattle,
   PresentedCamera,
@@ -22,6 +22,8 @@ import type {
 import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { eyePosition } from "@packages/renderer-core/src/camera3d";
 import { vec3 } from "math";
+import type { SceneInstance } from "@packages/battle-renderer/src/scene";
+import type { PickBox } from "@packages/battle-renderer/src/picking";
 import type { SideName } from "@web/battle/sim/protocol";
 
 /** What a frame poses, by kind: living and dying soldiers, ground
@@ -106,7 +108,7 @@ export type RuntimeFiles = Pick<AppearanceLibrary, "catalog" | "contents">;
  *  for `factions` (blue, red).
  *  Rust resolves what its units and effects draw from
  *  (`presentation::fielded`); the page only reads the files it names
- *  (`fixtures/game.json`, the runtime catalog, its bundles and skeleton
+ *  (`fixtures/presentation.json`, authored weapon rows, the runtime catalog, its bundles and skeleton
  *  clips) and adds the facts the presentation reads of the battle and the
  *  page. */
 export async function fieldedBattle(input: {
@@ -125,7 +127,7 @@ export async function fieldedBattle(input: {
   const catalog = input.runtime.catalog;
   if (!catalog) throw new Error("a battle was fielded before the runtime catalog was loaded");
   const fielding = new Fielding(
-    JSON.stringify(game),
+    JSON.stringify(presentationSettings),
     input.rules,
     JSON.stringify(input.catalog),
     JSON.stringify(catalog),
@@ -168,4 +170,26 @@ export async function fieldedBattle(input: {
   } finally {
     fielding.free();
   }
+}
+
+/** One animation frame's drawn units. Anything omitted keeps its last value. */
+export interface ViewportFrame {
+  /** Commit this candidate observation only after successful GPU submission. */
+  submitted?: () => void;
+  /** Proxies to draw (lab markers). */
+  instances?: readonly SceneInstance[];
+  /** What a click can pick, as boxes (every drawn soldier and vehicle, by
+   *  the simulation's bodies); the drawn proxies when omitted. Picks report
+   *  an index into this list. */
+  picks?: readonly PickBox[];
+  /** The presentation's frame (`crates/presentation`): the units, corpses,
+   *  ghosts and effects it draws, and the static world's batches, read
+   *  before the next call into the module. */
+  presented?: PresentedFrame;
+  /** How many models of each kind the frame poses. */
+  counts?: ModelCounts;
+  /** The presentation clock, in seconds (the pose driver's and the wind's). */
+  clock?: number;
+  /** What the frame's effects hold, by kind and shape. */
+  effectCounts?: EffectCounts;
 }

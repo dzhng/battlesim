@@ -5,7 +5,7 @@ import { Link } from "react-router";
 // (levels per bus, clipping, onsets against the visual events). The scene
 // drives `window.__sound`.
 import { useEffect, useState } from "react";
-import type { Bus } from "@packages/battle-audio/src/audioPresentation";
+import type { Bus } from "@packages/battle-audio/src/audioMix";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import {
   battleScaleCost,

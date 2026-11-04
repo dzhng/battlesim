@@ -226,7 +226,7 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
 
 #[test]
 fn help_detachment_uses_weapon_target_classes_for_a_ground_threat() {
-    let rules: Rules = serde_json::from_value(crate::fixtures::game()).unwrap();
+    let rules: Rules = serde_json::from_value(crate::fixtures::rules()).unwrap();
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(serde_json::json!({
         "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
         "rules":serde_json::to_value(&rules).unwrap(),
@@ -281,7 +281,7 @@ fn help_detachment_uses_weapon_target_classes_for_a_ground_threat() {
 fn a_detachment_holds_ground_not_just_flies_over_it() {
     // The nearest unit able to fight is a helicopter, which cannot hold
     // an objective; a one-unit detachment is the tank behind it.
-    let rules: Rules = serde_json::from_value(crate::fixtures::game()).unwrap();
+    let rules: Rules = serde_json::from_value(crate::fixtures::rules()).unwrap();
     let objective = sites().objectives[0].clone();
     let at = objective.center;
     let setup: contract::scenario::ScenarioDefinition =

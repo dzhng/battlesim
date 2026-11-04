@@ -35,7 +35,7 @@ fn play() -> Beat {
     let encounter = sim::maps::encounter("air", "flight").unwrap();
     let freed = encounter.scripts[1].tick;
     let held = encounter.scripts[2].tick;
-    let mut game = fixtures::game();
+    let mut game = fixtures::rules();
     game["catalog"] = serde_json::Value::Array(fixtures::catalog_documents(CatalogSet::Test));
     let rules: Rules = serde_json::from_value(game).unwrap();
     let mut b = Battle::new(&encounter.on(map, rules).unwrap(), SEED);

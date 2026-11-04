@@ -67,6 +67,10 @@ if (values.help) {
   process.exit(0);
 }
 const maxTokens = Number(values["max-tokens"]);
+if (!Number.isInteger(maxTokens) || maxTokens <= 0) {
+  console.error(`check-file-size: --max-tokens must be a positive whole number.\n\n${usage}`);
+  process.exit(2);
+}
 const maxBytes = maxTokens * 4;
 
 const git = (args, input) =>
@@ -140,8 +144,19 @@ const sources = (paths) => {
 };
 
 if (values.all) {
-  const over = sources(git(["ls-files", "-z"]).split("\0").filter(Boolean))
-    .map((path) => ({ path, bytes: blobBytes(`:${path}`) }))
+  // One batched size lookup, not a git process per file.
+  const blobs = new Map();
+  for (const entry of git(["ls-files", "--stage", "-z"]).split("\0").filter(Boolean)) {
+    const tab = entry.indexOf("\t"); // A path may itself contain tabs.
+    blobs.set(entry.slice(tab + 1), entry.slice(0, tab).split(" ")[1]);
+  }
+  const paths = sources([...blobs.keys()]);
+  const sizes = git(
+    ["cat-file", "--batch-check=%(objectsize)"],
+    paths.map((path) => `${blobs.get(path)}\n`).join(""),
+  ).split("\n");
+  const over = paths
+    .map((path, i) => ({ path, bytes: Number(sizes[i]) }))
     .filter(({ bytes }) => bytes > maxBytes)
     .sort((a, b) => b.bytes - a.bytes);
   const opted = over.filter(({ path }) => ignored(`:${path}`));
@@ -153,10 +168,13 @@ if (values.all) {
   process.exit(listed.length > 0 ? 1 : 0);
 }
 
+// NUL-separated, so paths come back unquoted (Git quotes non-ASCII ones).
 const origin = new Map();
-for (const line of git(["diff", "--cached", "--find-renames", "--name-status"]).split("\n")) {
-  const [status, from, to] = line.split("\t");
-  if (status?.startsWith("R")) origin.set(to, from);
+const changes = git(["diff", "--cached", "--find-renames", "--name-status", "-z"]).split("\0");
+for (let i = 0; i < changes.length - 1; i += 2) {
+  if (!changes[i].startsWith("R")) continue;
+  origin.set(changes[i + 2], changes[i + 1]); // A rename carries two paths.
+  i++;
 }
 const failures = [];
 // Git reports the root with symlinks resolved (macOS /tmp is /private/tmp).

@@ -26,7 +26,7 @@ fn physical_rules_are_explicit_generation_inputs_and_identity() {
         limits: limits::game_limits(),
     })
     .unwrap();
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     let build = |rules: &serde_json::Value| match generate_map(
         &request,
         presets,
@@ -48,21 +48,20 @@ fn physical_rules_are_explicit_generation_inputs_and_identity() {
 }
 
 #[test]
-fn physical_generation_refuses_a_floor_the_world_cannot_build() {
-    let mut rules = sim::fixtures::test_game();
-    // A resolved input still needs the same physical floor contract as a
-    // battle; silently admitting this density would make world construction fail.
-    rules["forests"]["rule"]["logs_per_ha"] = serde_json::json!(101.0);
+fn physical_generation_refuses_invalid_forest_concealment() {
+    let mut rules = sim::fixtures::test_rules();
+    // Generation and the battle share the forest concealment contract.
+    rules["forests"]["rule"]["concealment"] = serde_json::json!(2.0);
     assert!(
         contract::generation_physics::GenerationPhysics::from_rules_json(&rules.to_string())
             .is_err(),
-        "generation admitted a forest floor the battle refuses"
+        "generation admitted forest concealment the battle refuses"
     );
 }
 
 #[test]
 fn generation_refuses_circular_sight_that_cannot_be_represented() {
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     let catalog: contract::catalog::Catalog =
         serde_json::from_value(rules["catalog"].clone()).unwrap();
     // Every test unit sees farther than finite geometry holds: the smallest
@@ -116,13 +115,8 @@ fn an_aircraft_row_moves_nothing_on_the_ground() {
         CompileOutcome::Error { diagnostics } => panic!("generation refused: {diagnostics:?}"),
     };
     // Airframes may be far wider than anything that drives.
-    const WIDE_M: f64 = 40.0;
-    let mut rules = sim::fixtures::test_game();
-    for flight in ["rotor", "fixed_wing"] {
-        rules["hull_limits"][flight] = serde_json::json!({
-            "half_width_m": WIDE_M, "half_length_m": WIDE_M
-        });
-    }
+    const WIDE_M: f64 = contract::HullLimits::SHIPPED.rotor.half_width_m;
+    let mut rules = sim::fixtures::test_rules();
     let before = build(&rules);
     let aircraft = rules["catalog"]
         .as_array()

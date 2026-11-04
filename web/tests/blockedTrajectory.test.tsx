@@ -1,5 +1,5 @@
+import { shippedRules } from "@web/shippedRules";
 import { cleanup, render } from "@testing-library/react";
-import game from "@fixtures/game.json";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { specimenUnit } from "@apps/battle-lab/src/panelSpecimens";
 import { afterEach, expect, test } from "vitest";
@@ -18,7 +18,7 @@ test("a weapon held for a blocked trajectory keeps its row and its blocked-shot 
     {},
     { ammo: [3], reason: "blocked_trajectory" },
   ]);
-  const panel = ownPanel(TEST_CATALOG.units, unit, [unit], game as unknown as PanelRules);
+  const panel = ownPanel(TEST_CATALOG.units, unit, [unit], shippedRules as unknown as PanelRules);
   // The blocked-shot icon as the page parses it.
   const icon = document.createElement("span");
   icon.innerHTML = iconSvg(hudIcon("blocked_shot"))!;

@@ -1,6 +1,7 @@
 //! The bounded GPU cache of the learned ground's scars: which tiles the
 //! directory lists, where each varying page lies in the pool, and what a
 //! renderer uploads to follow it.
+use crate::records::ScarCacheParams;
 use std::collections::BTreeSet;
 
 use serde::Serialize;
@@ -8,8 +9,8 @@ use serde::Serialize;
 use super::ground::{Changes, LearnedGround};
 use super::page::{Page, CELLS, TILE};
 use super::{
-    hash, Ordered, DENSE, DIRECTORY_CAPACITY, NORMALIZATION_WORDS, PARAMS_WORDS, POOL_WORDS,
-    REGION_CELLS, RUNS, UNIFORM,
+    hash, Ordered, DENSE, DIRECTORY_CAPACITY, NORMALIZATION_WORDS, POOL_WORDS, REGION_CELLS, RUNS,
+    UNIFORM,
 };
 
 /// What a renderer writes before drawing with the scars.
@@ -23,9 +24,8 @@ pub struct ScarUpload {
     /// in `texels`, four a texel (`rgba8unorm`).
     pub writes: Vec<[u32; 2]>,
     pub texels: Vec<u8>,
-    /// `ScarParams`' words before the look: the grid, pages, clip, cache
-    /// bounds and default word.
-    pub params: [u32; PARAMS_WORDS],
+    /// The grid, pages, clip, cache bounds and default word.
+    pub params: ScarCacheParams,
 }
 
 /// What the cache holds and what its uploads wrote.
@@ -279,29 +279,23 @@ impl ScarCache {
             }
         };
         let clip = region.filter(|_| clipped).unwrap_or([0.0; 4]);
-        let f = |v: f32| v.to_bits();
-        upload.params = [
-            f(inverse(self.cols)),
-            f(inverse(self.rows)),
-            f(self.cell_m as f32),
-            f(on as u32 as f32),
-            self.cols as u32,
-            self.rows as u32,
-            self.entries as u32 - 1,
-            self.width,
-            f(clip[0] as f32),
-            f(clip[1] as f32),
-            f(clip[2] as f32),
-            f(clip[3] as f32),
-            self.cache_bounds[0],
-            self.cache_bounds[1],
-            self.cache_bounds[2],
-            self.cache_bounds[3],
-            self.default_word,
-            0,
-            0,
-            0,
-        ];
+        upload.params = ScarCacheParams {
+            grid: [
+                inverse(self.cols),
+                inverse(self.rows),
+                self.cell_m as f32,
+                on as u32 as f32,
+            ],
+            pages: [
+                self.cols as u32,
+                self.rows as u32,
+                self.entries as u32 - 1,
+                self.width,
+            ],
+            clip: clip.map(|v| v as f32),
+            cache_bounds: self.cache_bounds,
+            default_word: [self.default_word, 0, 0, 0],
+        };
         upload
     }
 

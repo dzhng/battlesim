@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/contract", "crates/sim", "crates/game-wasm", "crates/presentation", "crates/presentation-wasm", "crates/mapgen", "crates/pipelines", "native/client"]
+members = ["crates/contract", "crates/sim", "crates/game-wasm", "crates/presentation", "crates/presentation-wasm", "crates/mapgen", "crates/renderer-core", "crates/renderer-browser", "native/client"]
 resolver = "2"
 
 # Every build reads JSON numbers exactly. Cargo unifies features per binary, so a

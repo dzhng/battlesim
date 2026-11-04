@@ -15,7 +15,7 @@ test("real Rust admits settings independently of the selected seed and new runs 
     "map-presets.json",
     "generated-battle.json",
     "prototype-building-templates.json",
-    "game.json",
+    "rules.json",
     "catalog.json",
     "encounters.json",
   ])

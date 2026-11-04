@@ -36,8 +36,8 @@ const OPEN_HZ: f64 = 20_000.0;
 /// The takes a line may be recorded in.
 const TAKES: [u32; 2] = [0, 1];
 
-/// `presentation.audio.voices`.
-#[derive(Clone, Copy, Debug, Deserialize)]
+/// `audio.voices`.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ChatterRules {
     /// Lines sounding at once.
@@ -55,7 +55,10 @@ impl ChatterRules {
         if self.lines >= 1 && self.wait_s >= 0.0 && self.group_s >= 0.0 && self.gain > 0.0 {
             Ok(())
         } else {
-            Err("presentation.audio.voices: lines a whole number from 1, wait_s and group_s ≥ 0, gain > 0".into())
+            Err(
+                "audio.voices: lines a whole number from 1, wait_s and group_s ≥ 0, gain > 0"
+                    .into(),
+            )
         }
     }
 }

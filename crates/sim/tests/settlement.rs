@@ -400,7 +400,7 @@ fn friendly_and_source_free_deaths_preserve_bounty_and_pay_nothing() {
 fn unseen_purchased_kill_changes_wallet_without_enemy_identity_and_replays() {
     use contract::command::{CommandEnvelope, Order, TargetRef};
     let mut setup = crate::skirmish::setup();
-    let mut rules = sim::fixtures::test_game();
+    let mut rules = sim::fixtures::test_rules();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",

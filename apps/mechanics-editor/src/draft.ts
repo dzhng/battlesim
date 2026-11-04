@@ -142,7 +142,7 @@ export interface FieldOrigin {
   parentValue?: Json;
 }
 
-/** Source provenance is a leaf lookup along authored parents, not a second merger. */
+/** The catalog supplies ancestry; source documents only identify authored leaves. */
 export function fieldOrigin(
   snapshot: EditableSources,
   target: EditTarget,
@@ -157,13 +157,12 @@ export function fieldOrigin(
   let owner = first;
   let ownerId = target.id;
   let parentValue: Json | undefined;
-  const chain = new Set<string>();
+  const ancestry = valueAt(snapshot.catalog, ["ancestry", target.section, target.id]) as
+    | string[]
+    | undefined;
   const local = first ? valueAt(first.row, path) !== undefined : false;
-  let current = first;
-  while (current && typeof current.row.extends === "string" && !chain.has(current.row.extends)) {
-    const id = current.row.extends;
-    chain.add(id);
-    current = source(id);
+  for (const id of ancestry ?? []) {
+    const current = source(id);
     if (current && valueAt(current.row, path) !== undefined) {
       if (parentValue === undefined) parentValue = valueAt(current.row, path);
       if (!local && owner === first) {
@@ -174,7 +173,7 @@ export function fieldOrigin(
   }
   const descriptor = gameplayField(target.section, path);
   const authoredParent = parentValue;
-  const parentId = first?.row.extends;
+  const parentId = ancestry?.[0];
   const resolvedParent =
     typeof parentId === "string"
       ? resolvedEntries(snapshot.catalog, target.section)[parentId]
@@ -192,7 +191,7 @@ export function fieldOrigin(
     canRestore:
       local &&
       (parentValue !== undefined || Boolean(descriptor?.optional)) &&
-      Boolean(first && typeof first.row.extends === "string"),
+      Boolean(first && parentId),
     restoresDefault,
     parentValue,
   };

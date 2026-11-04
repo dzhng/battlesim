@@ -1,10 +1,10 @@
-/** The HUD's look, from the one fixture owner's presentation block
+/** The HUD's look, from `fixtures/presentation.json`
  *  (`presentation.hud`): the holo-tactical accents, text and glass
  *  the readouts, callouts and panel draw with. Applied once as CSS custom
  *  properties (`--hud-<name>`: "r g b" channels, so a rule picks its own
  *  alpha with `rgb(var(--hud-accent) / 0.5)`), so the stylesheet holds no
  *  colour of its own. */
-import game from "@fixtures/game.json";
+import { presentationSettings } from "@web/presentationSettings";
 import type { Vec3 } from "math";
 
 export interface HudTheme {
@@ -50,13 +50,8 @@ export interface HudTheme {
 /** How strongly the callouts (leader lines, rings, names) glow, 1 their
  *  designed glow and 0 none: `presentation.overlay.glow.callouts`, beside the
  *  ground marks' halo (`glow.ground`, the overlay pass's). */
-export function validateCalloutGlow(callouts: number): number {
-  if (!(callouts >= 0 && callouts <= 4))
-    throw new Error(`presentation.overlay.glow.callouts: in [0, 4], got ${callouts}`);
-  return callouts;
-}
 
-export const gameCalloutGlow: number = validateCalloutGlow(game.presentation.overlay.glow.callouts);
+export const gameCalloutGlow: number = presentationSettings.overlay.glow.callouts;
 
 const COLOURS = [
   "accent",
@@ -72,24 +67,7 @@ const COLOURS = [
   "film",
 ] as const;
 
-export function validateHudTheme(theme: HudTheme): HudTheme {
-  const unit = (c: readonly number[], n: number) =>
-    Array.isArray(c) && c.length === n && c.every((v) => v >= 0 && v <= 1);
-  if (
-    typeof theme.font !== "string" ||
-    !COLOURS.every((k) => unit(theme[k], 3)) ||
-    !unit(theme.glass, 4) ||
-    !(theme.glow_px >= 0) ||
-    !(theme.panel_gap_px >= 0) ||
-    !(theme.panel_edge_hide_px >= 0)
-  )
-    throw new Error(
-      `presentation.hud: font, rgb in [0, 1] for ${COLOURS.join(", ")}, rgba glass, glow_px ≥ 0, panel_gap_px ≥ 0`,
-    );
-  return theme;
-}
-
-export const gameHud: HudTheme = validateHudTheme(game.presentation.hud as unknown as HudTheme);
+export const gameHud: HudTheme = presentationSettings.hud as unknown as HudTheme;
 
 /** A 0–1 colour's rgb as CSS channels ("r g b", 0–255): `rgb(${…})`. */
 export const channels = (c: readonly number[]) =>

@@ -241,3 +241,37 @@ export async function flyTown(ctx, page, town, boxes, { shots = 4, reps = 20 } =
   await lab(page, () => window.__lab.suppressFog(false));
   return out;
 }
+
+/** Fly the camera through the main town of the paused battle on `page`, and
+ *  check that no eye drawn, by the viewport's camera or by its rig over the
+ *  whole of each move, comes inside a building. */
+export async function cameraKeepsOut(ctx, page, town, options) {
+  const boxes = await lab(page, () => window.__lab.route.buildings().flatMap((b) => b.parts));
+  const flown = await flyTown(ctx, page, town, boxes, options);
+  const view = await lab(page, () => window.__lab.route.cameraObstacles());
+  const moves = Object.entries(flown.moves);
+  ctx.check(
+    "scripted camera moves through the main town never put the eye inside a building: its near plane stays out of every box drawn",
+    view.boxes === boxes.length &&
+      moves.every(
+        ([, m]) =>
+          m.askedInside > 0 &&
+          m.liveFrames > 100 &&
+          m.flownGap >= flown.envelope &&
+          m.drawnGap >= flown.envelope &&
+          m.moved === 0 &&
+          m.blocked === 0,
+      ),
+    moves
+      .map(
+        ([name, m]) =>
+          `${name}: ${m.askedInside} of ${m.poses} poses asked for an eye inside a building, drawn never nearer than ${Math.min(m.flownGap, m.drawnGap).toFixed(2)} m (envelope ${flown.envelope.toFixed(2)}; nearest at live frame ${m.nearest.frame} of ${m.liveFrames}, ${m.nearest.hold}), ${m.cuts} cuts, ${m.holds.join("+")}`,
+      )
+      .join("; "),
+  );
+  for (const [name, m] of moves)
+    console.log(
+      `METRIC generated camera ${name}: ${m.usPerFrame.toFixed(1)} µs and ${m.boxTestsPerFrame.toFixed(1)} box tests a frame of ${boxes.length} boxes; the obstacle view built in ${view.buildMs.toFixed(1)} ms (development build)`,
+    );
+  return { ...flown, view };
+}

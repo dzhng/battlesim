@@ -14,6 +14,7 @@ use crate::js_error;
 #[wasm_bindgen]
 pub fn world_layout(rules_json: &str) -> Result<String, JsError> {
     let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
+    sim::admit(&rules).map_err(js_error)?;
     Ok(export::layout_json(&rules.catalog))
 }
 
@@ -35,6 +36,7 @@ impl WorldView {
     pub fn new(map_json: &str, rules_json: &str) -> Result<WorldView, JsError> {
         let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
         let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
+        sim::admit(&rules).map_err(js_error)?;
         Ok(WorldView {
             extents: map.extents(),
             world: WorldGeometry::new(&map, &rules),

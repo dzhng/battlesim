@@ -13,12 +13,7 @@
 
 import { clamp } from "math";
 import type { Camera3DParams } from "./camera3d";
-import {
-  resolveClearance,
-  validateClearanceTuning,
-  type ClearanceState,
-  type ClearanceTuning,
-} from "./cameraClearance";
+import { resolveClearance, type ClearanceState, type ClearanceTuning } from "./cameraClearance";
 import type { CameraObstacles } from "./cameraObstacles";
 
 /** `presentation.camera` in the fixture. */
@@ -92,23 +87,6 @@ export class CameraController {
 
   /** `groundAt` keeps the orbit target on the ground as the camera moves. */
   constructor(config: CameraPresentation, groundAt?: (x: number, y: number) => number) {
-    const curve = config.pitch_curve;
-    if (curve.length < 1) throw new Error("camera pitch_curve is empty");
-    for (let k = 1; k < curve.length; k++)
-      if (!(curve[k][0] > curve[k - 1][0]) || curve[k][1] < curve[k - 1][1])
-        throw new Error("camera pitch_curve must be monotonic: ascending distance, rising pitch");
-    for (const [, pitch] of curve)
-      if (pitch < PITCH_LIMITS[0] || pitch > PITCH_LIMITS[1])
-        throw new Error(`camera pitch_curve leaves the pitch limits ${PITCH_LIMITS.join("–")}`);
-    if (
-      !(config.zoom_min > 0 && config.zoom_min < config.zoom_max) ||
-      curve[0][0] > config.zoom_min ||
-      curve.at(-1)![0] < config.zoom_max
-    )
-      throw new Error("camera pitch_curve must cover the zoom range zoom_min..zoom_max");
-    if (!(config.fov_y > 0 && config.fov_y < Math.PI && config.near_m > 0))
-      throw new Error("camera fov_y must be in (0, π) and near_m positive");
-    validateClearanceTuning(config.clearance);
     this.config = config;
     this.groundAt = groundAt;
   }

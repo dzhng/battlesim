@@ -2,12 +2,12 @@
  *  vehicle selected, a right-click in the strip behind its hull is a reverse
  *  move. The strip runs from the rear face up to `reverse_zone_length_m`
  *  back, and is the hull's width plus `reverse_zone_margin_m` each side. */
+import { inputSettings } from "@web/battle/input/settings";
 import { vec2, type Vec2 } from "math";
-import game from "@fixtures/game.json";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { OwnUnitView } from "../sim/observationView";
 
-const { reverse_zone_length_m: LENGTH_M, reverse_zone_margin_m: MARGIN_M } = game.controls;
+const { reverse_zone_length_m: LENGTH_M, reverse_zone_margin_m: MARGIN_M } = inputSettings;
 
 const _zone_local: Vec2 = [0, 0];
 const _zone_origin: Vec2 = [0, 0];

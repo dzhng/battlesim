@@ -42,9 +42,9 @@ fn carried_interceptor_and_round(
     layer: AltitudeLayer,
     props: serde_json::Value,
 ) -> (Battle, ProjectileId) {
-    let mut rules = crate::fixtures::test_game();
+    let mut rules = crate::fixtures::test_rules();
     rules["weapons"]["test_interceptor"] = row;
-    rules["service"]["round_costs"]["test_interceptor"] = serde_json::json!(1);
+    rules["weapons"]["test_interceptor"]["round_cost"] = serde_json::json!(1);
     crate::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -116,14 +116,13 @@ fn launch_red_round(
 /// air, locked on a red helicopter hovering 300 m east (unit 1), too
 /// tough to bring down here.
 fn interceptor_on_a_helicopter() -> Battle {
-    let mut rules = crate::fixtures::test_game();
+    let mut rules = crate::fixtures::test_rules();
     let mut row = test_interceptor(serde_json::json!({
         "low_air": { "classes": ["air_rotor", "missile"] }
     }));
-    row["range_m"] = serde_json::json!(800);
     row["targets"]["low_air"]["range_m"] = serde_json::json!(800);
     rules["weapons"]["test_interceptor"] = row;
-    rules["service"]["round_costs"]["test_interceptor"] = serde_json::json!(1);
+    rules["weapons"]["test_interceptor"]["round_cost"] = serde_json::json!(1);
     crate::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -165,7 +164,7 @@ fn interceptor_on_a_helicopter() -> Battle {
 /// it, though its dispenser is ready.
 #[test]
 fn a_unit_out_of_the_battle_draws_no_flare() {
-    let mut rules = crate::fixtures::test_game();
+    let mut rules = crate::fixtures::test_rules();
     rules["weapons"]["atgm"]["aim_s"] = serde_json::json!(0.5);
     rules["weapons"]["atgm"]["seeker"] = serde_json::json!("infrared");
     rules["weapons"]["atgm"]["seeker_fov_deg"] = serde_json::json!(180);
@@ -293,8 +292,8 @@ fn test_interceptor(mut targets: serde_json::Value) -> serde_json::Value {
         fire.entry("scatter_mrad").or_insert(serde_json::json!(16));
     }
     serde_json::json!({
-        "name": "Test AA", "description": "A test row.", "icon": "autocannon",
-        "stationary": false, "range_m": 1500, "speed_mps": 600, "gravity_scale": 0.5,
+        "name": "Test AA", "description": "A test row.", "icon": "autocannon", "appearance": "aa_cannon",
+        "stationary": false, "speed_mps": 600, "gravity_scale": 0.5,
         "aim_s": 0.5, "reload_s": 3.5, "ammo": 40, "penetration": 65, "partial_from": 0.08,
         "damage": 100, "near_miss_suppression": 0.1,
         "suppression_radius_m": 6, "blast_radius_m": 2, "proximity_fuse_m": 5,
@@ -415,7 +414,7 @@ fn a_gun_shoots_down_rounds_fired_from_the_layers_that_list_missile() {
 /// or homing on its own with a radar seeker.
 fn test_guided_interceptor(seeker: bool) -> serde_json::Value {
     let mut row = serde_json::json!({
-        "name": "Test SAM", "description": "A test row.", "icon": "aa_missile",
+        "name": "Test SAM", "description": "A test row.", "icon": "aa_missile", "appearance": "sam",
         "stationary": true, "range_m": 1500, "min_range_m": 50,
         "speed_mps": 100, "accel_mps2": 95, "top_speed_mps": 290,
         "aim_s": 0.5, "reload_s": 4, "ammo": 6, "penetration": 300, "partial_from": 0.08,

@@ -64,4 +64,4 @@ Marshal in, compute, marshal out — and allocate on neither crossing. Keep the 
 - **Marshal with whatever writes into memory you already own.** For flat buffers — an instanced attribute, a packed particle array — that's `vec3.fromBuffer(out, buffer, i * 3)` and `vec3.toBuffer(buffer, v, i * 3)` (also on `vec2`, `vec4`, `quat`), or `buffer.set(m, i * 16)` for a whole matrix, since `TypedArray.set` takes any array-like.
 - **State that crosses a worker, Wasm, or GPU boundary lives in a typed array from the start.** A plain-array `Vec3` can't be transferred or shared, so back the long-lived data with `Float32Array` / `SharedArrayBuffer` at creation and marshal at the edges.
 
-(This repo renders with TypeGPU, not three.js; the package's three.js integration section is omitted here.)
+(Rendering belongs to the shared Rust `wgpu` runtime; this skill covers browser CPU math, so the package's three.js integration section is omitted.)

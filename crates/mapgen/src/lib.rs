@@ -169,6 +169,17 @@ fn generate(
     let presets = PresetDefinitions::from_json(presets_json)?;
     let presets = presets.for_request(&request);
     let catalogue = catalogue(descriptors_json)?;
+    let rules = serde_json::from_str::<contract::scenario::Rules>(rules_json)
+        .map_err(|e| e.to_string())
+        .and_then(|rules| sim::admit(&rules).map_err(|e| e.to_string()));
+    rules.map_err(|message| {
+        vec![Diagnostic {
+            code: DiagnosticCode::InvalidPhysicalRules,
+            feature: None,
+            location: "$.rules".into(),
+            message,
+        }]
+    })?;
     let physics = contract::generation_physics::GenerationPhysics::from_rules_json(rules_json)
         .map_err(|message| {
             vec![Diagnostic {

@@ -40,7 +40,7 @@ selection skips rejected hierarchy branches and merges adjacent ranges. The Rust
 presentation owner supplies the same records and visibility decisions to browser
 and native clients. See the [shared spatial owner](../../../crates/presentation/src/static_world/index.rs),
 [terrain partition](../../../crates/presentation/src/static_world/ground/partition.rs),
-and [browser range draws](../../../packages/battle-renderer/src/frame/spatialMeshDraws.ts).
+and [shared range draws](../../../crates/renderer-core/src/ground.rs).
 
 Camera visibility and shadow reach are separate contracts. Shadows fit local
 terrain receivers, retain standing headroom and configured reach, and select
@@ -48,8 +48,7 @@ casters against the fitted cascade cameras. Four cascade lists route only to the
 shadow images they can affect; offscreen casters remain eligible. Receiver fits
 are reused while camera, terrain and light identities hold and invalidated when
 those inputs change. See [receiver fitting](../../../crates/presentation/src/shadow.rs),
-[browser cascade routing](../../../packages/battle-renderer/src/world/shadow.ts),
-and [native routing](../../../native/client/src/shadow.rs).
+[shared cascade routing](../../../crates/renderer-core/src/frame.rs).
 
 Forest knowledge changes filter one immutable hierarchy whose envelopes include
 falling motion. Standing bounds still control standing detail; known falls select
@@ -109,8 +108,8 @@ list recycling remain deferred until measurements show their cost matters.
 
 ## Pointers and provenance
 
-The code owners are the presentation static-world and shadow modules, the browser
-battle renderer frame/model layers, and the native client draw layers. Focused
+The code owners are the presentation static-world and shadow modules and the
+shared renderer's frame/model layers. Focused
 contracts live beside those owners; the three-view harness owns camera, phase,
 submission and GPU-window measurement. Prior shipped context is in
 [prior results](prior-results.md), [research](research.md), and [choices](choices.md).

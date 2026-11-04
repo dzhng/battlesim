@@ -1,13 +1,15 @@
+import { shippedRules } from "@web/shippedRules";
 // @vitest-environment node
 // Voice lines at the seam to Rust, where their rules live
 // (`crates/presentation/tests/voices.rs` holds them to the vectors the
 // TypeScript arbitration wrote): a loaded take and a request in, a start
 // command on the voices bus out; a battle's lines heard from where its sound
 // frame last heard, never the world origin.
+import { presentationSettings } from "@web/presentationSettings";
+import { audioMix } from "@web/audioMix";
 import { beforeAll, expect, test } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import game from "@fixtures/game.json";
-import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+import type { AudioMix } from "@packages/battle-audio/src/audioMix";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import { SoundFrame, type VoiceSink } from "@packages/battle-audio/src/soundFrame";
 import { Chatter, type VoiceRequest } from "@packages/battle-audio/src/voices/chatter";
@@ -73,10 +75,11 @@ test("a battle's lines are heard from its sound frame's listener", () => {
   const frame = new SoundFrame(
     {
       tickHz: 30,
-      presentation: game.presentation.audio as unknown as AudioPresentation,
+      weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
+      looks: presentationSettings,
+      presentation: audioMix as unknown as AudioMix,
       catalog: gameSounds,
-      smokeTimes: game.presentation.effects.smoke,
-      cookOff: game.presentation.effects.cook_off,
     },
     sink,
   );

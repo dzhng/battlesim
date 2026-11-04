@@ -7,11 +7,8 @@ edition = "2021"
 contract = { path = "../contract" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { workspace = true, features = ["raw_value"] }
-libm = { version = "=0.2.16", default-features = false }
-
-[dev-dependencies]
-# Verification loads generated maps into the simulation, including the battle sweep.
 sim = { path = "../sim" }
+libm = { version = "=0.2.16", default-features = false }
 
 [[example]]
 name = "battle_sweep"

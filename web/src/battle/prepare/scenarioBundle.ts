@@ -23,7 +23,7 @@ export function scenarioBundleCatalog(
   scenario: string,
   wasm: Pick<ScenarioBundlePreparationModule, "resolve_catalog">,
 ): SessionCatalog {
-  const parsed = JSON.parse(scenario) as { rules: import("../catalog/compose").GameRules };
+  const parsed = JSON.parse(scenario) as { rules: import("../catalog/compose").ResolvedRules };
   return composeScenarioCatalog(parsed.rules, wasm.resolve_catalog);
 }
 

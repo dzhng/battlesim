@@ -1,5 +1,5 @@
 //! Admit supplied mechanics without loading a map or changing fixture files.
-//! Reads { "game": <game.json>, "catalog": [<authored documents>] } on stdin.
+//! Reads { "game": <rules.json>, "catalog": [<authored documents>] } on stdin.
 use std::io::{self, Read};
 
 use serde::Deserialize;
@@ -10,12 +10,30 @@ use serde_json::Value;
 struct Request {
     game: Value,
     catalog: Vec<Value>,
+    #[serde(default)]
+    ancestry: bool,
 }
 
 fn validate(text: &str) -> Result<Value, String> {
     let value = contract::catalog::parse_document(text).map_err(|e| e.to_string())?;
     let request: Request = serde_json::from_value(value).map_err(|e| e.to_string())?;
-    sim::fixtures::admit(request.game, request.catalog)
+    let mut view = sim::fixtures::admit(request.game.clone(), request.catalog.clone())?;
+    if request.ancestry {
+        let mut ancestry = serde_json::Map::new();
+        for section in ["units", "soldiers", "weapons"] {
+            let mut entries = serde_json::Map::new();
+            for document in std::iter::once(&request.game).chain(&request.catalog) {
+                if let Some(rows) = document[section].as_object() {
+                    entries.extend(rows.clone());
+                }
+            }
+            let ancestors = contract::catalog::inheritance::ancestry(section, &entries)
+                .map_err(|e| e.to_string())?;
+            ancestry.insert(section.into(), serde_json::to_value(ancestors).unwrap());
+        }
+        view["ancestry"] = Value::Object(ancestry);
+    }
+    Ok(view)
 }
 
 fn main() {
@@ -42,21 +60,14 @@ mod tests {
     use serde_json::json;
 
     fn game() -> Value {
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap()
+        serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap()
     }
 
     #[test]
     fn unknown_rules_keys_are_refused() {
         let documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
-        sim::fixtures::admit(game(), documents.clone()).expect("the shipped game.json loads");
-        for path in [
-            "/sensors",
-            "",
-            "/physics",
-            "/guided",
-            "/cover/tiers",
-            "/controls",
-        ] {
+        sim::fixtures::admit(game(), documents.clone()).expect("the shipped rules.json loads");
+        for path in ["/sensors", "", "/physics", "/guided", "/cover/tiers"] {
             let mut game = game();
             game.pointer_mut(path).unwrap()["stale_rules_key"] = json!({});
             let error = sim::fixtures::admit(game, documents.clone())
@@ -72,10 +83,10 @@ mod tests {
     #[test]
     fn rejects_each_layer_tighter_than_the_games_accuracy_ceiling() {
         let documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
-        for (layer, named, class) in [
-            ("ground", "Ground", "infantry"),
-            ("low_air", "LowAir", "air_rotor"),
-            ("high_air", "HighAir", "air_fixed_wing"),
+        for (layer, class) in [
+            ("ground", "infantry"),
+            ("low_air", "air_rotor"),
+            ("high_air", "air_fixed_wing"),
         ] {
             let mut game = game();
             game["physics"]["min_spread_at_max_range_m"] = json!(2);
@@ -89,8 +100,9 @@ mod tests {
             let error = sim::fixtures::admit(game, documents.clone())
                 .expect_err("spread below the ceiling must fail");
             assert!(
-                error.contains(&format!("weapons.ceiling_test.{named}"))
-                    && error.contains("Landing spread must be at least 2 m")
+                error.contains(&format!(
+                    "weapons.ceiling_test.targets.{layer}.scatter_mrad"
+                )) && error.contains("Landing spread must be at least 2 m")
                     && error.contains("entered 1.5 m"),
                 "{error}"
             );
@@ -141,7 +153,7 @@ mod tests {
             .unwrap()
             .iter()
             .filter(|(id, row)| *id == "rifle" || row["extends"] == "rifle")
-            .map(|(id, _)| format!("row {id}"))
+            .map(|(id, _)| id.clone())
             .collect();
         let error = sim::fixtures::admit(
             game,
@@ -149,7 +161,7 @@ mod tests {
         )
         .expect_err("finite ammunition needs a supply price");
         assert!(
-            error.contains("service.round_costs") && finite.iter().any(|row| error.contains(row)),
+            error.contains("round_cost") && finite.iter().any(|row| error.contains(row)),
             "{error}"
         );
     }

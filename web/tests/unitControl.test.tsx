@@ -1,3 +1,4 @@
+import { Feed } from "@web/feed";
 // The player's pointer input at the input seam: `useUnitControl.onPointer`
 // with a pick, and the orders it sends to a recording client.
 import { act, fireEvent, render, renderHook } from "@testing-library/react";
@@ -6,9 +7,8 @@ import { expect, test } from "vitest";
 import { UnitCatalog } from "@packages/scene-assets/src/units";
 import { SessionCatalogProvider } from "@web/battle/catalog/context";
 import { TEST_CATALOG } from "./catalog";
-import { contactUnder } from "../src/battle/input/contactPick";
 import { useUnitControl } from "../src/battle/input/useUnitControl";
-import { CommandBar } from "../src/battle/present/readouts";
+import { CommandBar } from "../src/battle/present/commandBar";
 import type { PointerPick } from "../src/battle/input/pointerIntent";
 import type { SimClient } from "../src/battle/sim/client";
 import type { ContactView, ObservationView, OwnUnitView } from "../src/battle/sim/observationView";
@@ -44,24 +44,6 @@ function recordingClient() {
 
 const own = (id: number, kind: string) =>
   ({ id, kind, position: [0, 0, 0], yaw: 0 }) as unknown as OwnUnitView;
-const contact = (
-  id: number,
-  [x, y]: [number, number],
-  radius: number,
-  z = 0,
-  layer = "ground",
-): ContactView => ({
-  id,
-  source: "firing",
-  center: [x, y, z],
-  layer,
-  aloft: layer !== "ground",
-  radius,
-  evidenceTick: 0,
-  expiresTick: 100,
-  kind: null,
-  heard: [],
-});
 
 /** A rifle squad (armed) and a supply truck (unarmed), both selected. */
 async function control(contacts: ContactView[] = []) {
@@ -187,33 +169,6 @@ test("an unarmed enemy click disarms the command but sends no attack", async () 
   await click({ enemy: 3 });
   expect(hook.result.current.mode).toBe("move");
   expect(sent).toEqual([]);
-});
-
-test("the contact under a ground point is the one whose area holds it, the nearest centre first", () => {
-  const areas = [contact(1, [0, 0], 10), contact(2, [12, 0], 10), contact(3, [100, 0], 5)];
-  expect(contactUnder(areas, [8, 0])).toBe(2);
-  expect(contactUnder(areas, [-9, 0])).toBe(1);
-  expect(contactUnder(areas, [50, 0])).toBe(null);
-  expect(contactUnder(areas, [104.9, 0])).toBe(3);
-  expect(contactUnder(areas, null)).toBe(null);
-});
-
-test("an aloft contact is picked where the pointer's ray meets it at height, not on the ground below", () => {
-  // A helicopter's report 30 m up over (100, 0); the camera looks down at
-  // 45° from the west, so the ray through the report meets the ground 30 m
-  // beyond it.
-  const air = [contact(1, [100, 0], 10, 30, "low_air")];
-  const s = Math.SQRT1_2;
-  const through = { origin: [0, 0, 130], dir: [s, 0, -s] } as const;
-  expect(contactUnder(air, [130, 0], through)).toBe(1);
-  const under = { origin: [0, 0, 100], dir: [s, 0, -s] } as const;
-  expect(contactUnder(air, [100, 0], under), "the ground beneath it is empty").toBe(null);
-  const behind = { origin: [200, 0, 130], dir: [s, 0, -s] } as const;
-  expect(contactUnder(air, [330, 0], behind), "a ray already past it misses").toBe(null);
-  // Heard from the low hover, the report lies on the ground like any other.
-  const low = [{ ...contact(1, [100, 0], 10, 4, "low_air"), aloft: false }];
-  expect(contactUnder(low, [100, 0], under)).toBe(1);
-  expect(contactUnder(low, [130, 0], through)).toBe(null);
 });
 
 test("every order sent is heard as it goes, a queued (Shift) one too", async () => {
@@ -909,7 +864,9 @@ test("Unload is unavailable, by key and on the bar, without a carrier holding pa
   act(() => hook.result.current.setSelected([1, 4]));
   await key("KeyU");
   expect(hook.result.current.mode).toBe("move");
-  const bar = () => <CommandBar control={hook.result.current} own={observation.own} />;
+  const bar = () => (
+    <CommandBar state={new Feed({ control: hook.result.current, own: observation.own })} />
+  );
   const view = render(bar(), { wrapper });
   const unload = () => view.getByRole("button", { name: /^Unload/ });
   expect(unload().hasAttribute("disabled")).toBe(true);

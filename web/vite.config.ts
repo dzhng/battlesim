@@ -1,7 +1,6 @@
 import { execSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
-import typegpu from "unplugin-typegpu/vite";
 import react from "@vitejs/plugin-react";
 import { mechanicsPlugin } from "../apps/mechanics-editor/server";
 import { mapWorkbenchPlugin } from "../apps/map-workbench/server";
@@ -99,7 +98,6 @@ export default defineConfig({
   cacheDir: fileURLToPath(new URL("../throwaway/vite-cache/", import.meta.url)),
   plugins: [
     react(),
-    typegpu(),
     assetWatch(),
     // The page's title is the game's public name.
     {
@@ -115,7 +113,6 @@ export default defineConfig({
   publicDir: fileURLToPath(new URL("../assets/runtime/", import.meta.url)),
   resolve: {
     alias: [
-      { find: /^typegpu$/, replacement: nodeModule("typegpu/index.js") },
       { find: /^math$/, replacement: nodeModule("math/dist/index.js") },
       { find: /^math\/shapes$/, replacement: nodeModule("math/dist/shapes/index.js") },
       { find: /^math\/random$/, replacement: nodeModule("math/dist/random/index.js") },

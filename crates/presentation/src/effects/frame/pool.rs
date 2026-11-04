@@ -40,7 +40,12 @@ impl Pool {
         rng: &mut Mulberry32,
         visible: bool,
     ) -> usize {
-        let style = pick(&p.tracers, &s.kind);
+        let style = p
+            .looks
+            .get(&s.kind)
+            .tracer
+            .as_ref()
+            .expect("fielded tracer");
         let dt = self.dt;
         let e = self.push(
             Look::Tracer {
@@ -50,7 +55,7 @@ impl Pool {
             t0,
             t0,
         );
-        e.cause = format!("round:{}", s.kind).into();
+        e.cause = format!("round:{}", p.looks.name(&s.kind)).into();
         let mut total = 0.0;
         for (i, q) in s.path.iter().enumerate() {
             if i > 0 {
@@ -118,7 +123,12 @@ impl Pool {
         l: &Launch,
         rng: &mut Mulberry32,
     ) -> Arc<FlashStyle> {
-        let style = pick(&p.flashes, &l.kind);
+        let style = p
+            .looks
+            .get(&l.kind)
+            .flash
+            .as_ref()
+            .expect("fielded firing flash");
         let fireball = if style.fireball_m > 0.0 {
             style.fireball_s
         } else {
@@ -135,7 +145,7 @@ impl Pool {
             soldier: l.soldier,
         };
         let e = self.push(look, t0, t0 + last);
-        e.cause = format!("flash:{}", l.kind).into();
+        e.cause = format!("flash:{}", p.looks.name(&l.kind)).into();
         e.p = l.at;
         e.n = l.dir;
         e.rotation = rng.sample() * PI * 2.0;
@@ -218,9 +228,10 @@ impl Pool {
         rng: &mut Mulberry32,
     ) {
         let style = pick(&p.impacts, hit);
-        let scale = style.round_scale.get(kind);
+        let impact = p.looks.get(kind).impact.as_ref().expect("fielded impact");
+        let scale = impact.surfaces.get(hit);
         let end = at + style.duration_s * scale.map_or(1.0, |s| s.duration);
-        let size = style.size_m * scale.map_or_else(|| *pick(&p.impact_scale, kind), |s| s.size);
+        let size = style.size_m * scale.map_or_else(|| impact.scale, |s| s.size);
         let e = self.push(
             Look::Impact {
                 style: style.clone(),
@@ -280,7 +291,7 @@ impl Pool {
         at: f64,
         point: Vec3,
         radius: f64,
-        kind: &str,
+        scale: f64,
         sparks: f64,
         rng: &mut Mulberry32,
     ) {
@@ -288,7 +299,7 @@ impl Pool {
         let e = self.push(Look::Blast, at, at + style.duration_s);
         e.cause = "blast".into();
         e.p = point;
-        e.size = radius * style.size_per_radius * pick(&p.blast_scale, kind);
+        e.size = radius * style.size_per_radius * scale;
         let size = e.size;
         let share = size / style.reference_size_m;
         e.rotation = rng.sample() * PI * 2.0;
@@ -331,7 +342,7 @@ impl Pool {
         for f in &feel.fireballs {
             let point = [c.center[0], c.center[1], top + f.up_m];
             let born = at + feel.delay_s + f.after_s;
-            self.blast(p, born, point, f.radius_m, "cook_off", f.sparks, rng);
+            self.blast(p, born, point, f.radius_m, 1.0, f.sparks, rng);
         }
         let Some(landing) = c.landing else { return };
         let plume = &p.blast.plume;

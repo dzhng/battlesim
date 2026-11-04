@@ -9,7 +9,9 @@
 //
 // It also samples what loading voice packs costs a battle: how long a fresh
 // battle's sounds take to be ready, with packs served and without.
-import game from "@fixtures/game.json";
+import { catalogSet } from "@web/battle/catalog/sets";
+import { audioMix } from "@web/audioMix";
+import { shippedRules } from "@web/shippedRules";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
 import {
   BattleMusic,
@@ -21,12 +23,12 @@ import type { HeardShout } from "@packages/battle-audio/src/soundFrame";
 import { BattleVoices } from "@packages/battle-audio/src/voices/battleVoices";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { interleave, offlineSound } from "./soundFirefight";
-import { createBattleAudio, gameAudio } from "./soundFeed";
+import { createBattleAudio } from "./soundFeed";
 import { KIND, SET } from "./soundResponses";
 
 const SECONDS = 7;
 const FPS = 60;
-const HZ = game.tick_hz;
+const HZ = shippedRules.tick_hz;
 
 /** Who shouts, and when (seconds): a seen enemy off to the right, then an
  *  own tank nearer, off to the left; the listener stands at the origin
@@ -80,7 +82,7 @@ export async function renderBarks(): Promise<BarksRender> {
   await loadPresentation();
   const { sampleRate, ctx, sink, frame } = await offlineSound(SECONDS, "voices");
   frame.speakers({ own: { [KIND]: SET }, enemy: { [KIND]: SET } });
-  const voices = new BattleVoices(sink, gameAudio.voices);
+  const voices = new BattleVoices(sink, audioMix.voices);
   voices.want([SET]);
   await voices.start();
 
@@ -89,7 +91,7 @@ export async function renderBarks(): Promise<BarksRender> {
   const moodOf = (track: string): BattleMood =>
     gameSounds.music.moods.combat.includes(track) ? "combat" : "tension";
   const score = new BattleMusic(
-    game.presentation.audio.music as BattleMusicRules,
+    audioMix.music as BattleMusicRules,
     gameSounds.music.moods,
     {
       play: (track: string) => void moods.push({ at: sink.t, mood: moodOf(track) }),
@@ -168,10 +170,10 @@ export async function sampleReady(packs: boolean): Promise<ReadySample> {
     }
     return original(input, init);
   };
-  const app = new AppAudio({ presentation: gameAudio, catalog: gameSounds });
+  const app = new AppAudio({ presentation: audioMix, catalog: gameSounds });
   try {
     const started = performance.now();
-    const sound = (battle = createBattleAudio(HZ, app, 0));
+    const sound = (battle = createBattleAudio(app, 0, await catalogSet("test")));
     sound.speakers({ own: { [KIND]: SET }, enemy: {} });
     sound.loadVoices([SET]);
     while (sound.stats()?.loading !== false) {

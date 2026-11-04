@@ -33,7 +33,9 @@ it("reads source provenance and restores only the addressed mount override", asy
   const { fieldOrigin } = await import("../../apps/mechanics-editor/src/draft");
   const snapshot = {
     revision: "one",
-    catalog: {} as import("../../apps/mechanics-editor/src/protocol").JsonObject,
+    catalog: {
+      ancestry: { units: { variant: ["base"] } },
+    } as import("../../apps/mechanics-editor/src/protocol").JsonObject,
     documents: [
       {
         path: "family.json",
@@ -76,6 +78,7 @@ it("reads source provenance and restores only the addressed mount override", asy
   ).toEqual({ mounts: [{ id: "cannon", weapons: ["ap"], turret: true }] });
   const { unitWeapons, weaponUsers } = await import("../../apps/mechanics-editor/src/draft");
   snapshot.catalog = {
+    ancestry: { units: { variant: ["base"] } },
     documents: [
       { units: { variant: { mounts: [{ id: "cannon", weapons: ["he"], turret: true }] } } },
     ],
@@ -89,7 +92,7 @@ it("offers restore for optional absence without inventing defaults for abstract 
   const { fieldOrigin } = await import("../../apps/mechanics-editor/src/draft");
   const snapshot = {
     revision: "one",
-    catalog: {},
+    catalog: { ancestry: { units: { variant: ["base"] } } },
     documents: [
       {
         path: "units.json",

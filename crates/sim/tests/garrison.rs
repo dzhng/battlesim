@@ -768,13 +768,13 @@ fn every_round_meets_the_same_capsules_and_shell_whatever_it_was_aimed_at() {
 fn a_garrison_is_sheltered_by_its_building_and_only_a_garrison() {
     let r: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
     let mut b = battle(west_squads(&["test_rifle"]), 1);
-    let shelter = |b: &Battle| sim::garrison::shelter(b.unit(UnitId(0)).unwrap(), b.rules());
+    let shelter = |b: &Battle| sim::garrison::shelter(b.unit(UnitId(0)).unwrap());
     assert_eq!(shelter(&b), 0.0, "an outside squad has no building shelter");
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 600, "inside", |b| inside(b, 0));
     let strength = shelter(&b);
-    assert_eq!(strength, num("buildings", "cover_strength"));
+    assert_eq!(strength, 1.0);
     let (bs, bf) = (
         num("cover", "building_spread_multiplier"),
         num("cover", "building_fragment_probability_multiplier"),

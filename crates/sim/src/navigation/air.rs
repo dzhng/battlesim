@@ -27,18 +27,15 @@ pub fn walls_aircraft(world: &WorldGeometry, rules: &Rules, prop: &Prop) -> bool
     prop.top_z() - ground > rules.air.rotor.obstacle_m
 }
 
-pub fn routing_margin(rules: &Rules) -> f64 {
-    rules.hull_limits.rotor.half_length_m
-}
+/// Fixed clearance keeps a helicopter's route independent of the catalog a
+/// client loads. Deriving it from that catalog made native and browser routes
+/// diverge (1f521bb78 and 70b6de62b).
+pub const ROUTING_MARGIN_M: f64 = 10.0;
 
 impl AirGrid {
     /// The grid over `world` with `walls` closed, each widened by the
-    /// helicopter hull limit (`hull_limits.rotor.half_length_m`).
-    pub fn build<'a>(
-        world: &WorldGeometry,
-        rules: &Rules,
-        walls: impl Iterator<Item = &'a Prop>,
-    ) -> Self {
+    /// fixed helicopter routing clearance.
+    pub fn build<'a>(world: &WorldGeometry, walls: impl Iterator<Item = &'a Prop>) -> Self {
         let cols = (world.width() / CELL_M).ceil().max(1.0) as usize;
         let rows = (world.depth() / CELL_M).ceil().max(1.0) as usize;
         let mut grid = AirGrid {
@@ -46,7 +43,7 @@ impl AirGrid {
             rows,
             blocked: vec![false; cols * rows],
         };
-        let margin = routing_margin(rules);
+        let margin = ROUTING_MARGIN_M;
         for prop in walls {
             let footprint = prop.footprint();
             let reach = prop.footprint_radius() + margin;

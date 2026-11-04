@@ -49,7 +49,7 @@ fn upload<T: bytemuck::Pod + Default>(items: &[T]) -> Value {
 /// fog shown.
 fn presentation(map: &str, layout: &str) -> Presentation {
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let resolved = sim::maps::Catalogue::shipped().load(map).unwrap();
     let def = resolved.definition;
     let world = WorldGeometry::new(&def, &rules);
@@ -66,8 +66,12 @@ fn presentation(map: &str, layout: &str) -> Presentation {
         meta["biome"].as_str().unwrap()
     ));
     let biome = Biome::load(&biome, def.regional_family.as_deref()).unwrap();
-    let game: Value = serde_json::from_str(&read("fixtures/game.json")).unwrap();
-    let tuning: Tuning = serde_json::from_value(game["presentation"].clone()).unwrap();
+    let game: Value = serde_json::from_str(&read("fixtures/rules.json")).unwrap();
+    let tuning: Tuning = presentation::settings::PresentationSettings::from_value(
+        &serde_json::from_str(&read("fixtures/presentation.json")).unwrap(),
+    )
+    .unwrap()
+    .tuning();
     let sensors: Sensors = serde_json::from_value(game["sensors"].clone()).unwrap();
     let mut p = Presentation::new(Some(layout), 30.0).unwrap();
     p.set_ground(source, biome, tuning).unwrap();
@@ -173,7 +177,7 @@ fn bless_street(vectors: &mut Value) {
 
     let (ticks, _) = street_fixture();
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_rules()).unwrap();
     let scenario = sim::maps::scenario("street", "street", rules).unwrap();
     // Matches STREET_SEED in apps/battle-lab/src/streetScenario.ts.
     let mut battle = Battle::new(&scenario, 20_260_925);

@@ -1,6 +1,6 @@
+import { audioMix } from "@web/audioMix";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import game from "@fixtures/game.json";
-import type { AudioPresentation } from "../../../../packages/battle-audio/src/audioPresentation";
+import type { AudioMix } from "../../../../packages/battle-audio/src/audioMix";
 import {
   Chatter,
   type DropReason,
@@ -13,7 +13,7 @@ import type { Auditioner } from "../audition";
 import type { VoiceAPI } from "./protocol";
 import { CHATTER_SCRIPT, LISTENER, SCRIPT_S, SCRIPT_SETS, SCRIPT_SPEAKERS } from "./chatterScript";
 
-const RULES = (game.presentation.audio as unknown as AudioPresentation).voices;
+const RULES = (audioMix as unknown as AudioMix).voices;
 /** The preview's take seed: fixed, so a replay is the same performance. */
 const SEED = 1;
 const TICK_MS = 40;

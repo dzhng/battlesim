@@ -134,7 +134,7 @@ fn routes_around_a_tower_over_30m_and_never_passes_the_ceiling() {
         .map(|p| (p.x - 300.0).abs().max((p.y - 200.0).abs()) - 10.0)
         .fold(f64::INFINITY, f64::min);
     // Its whole airframe, not just its centre, stays clear of the walls.
-    let margin = sim::navigation::air::routing_margin(b.rules());
+    let margin = sim::navigation::air::ROUTING_MARGIN_M;
     // The 4 m air grid rounds a corner by at most one cell; the authored
     // hull margin remains the routing bound, with that grid quantisation.
     assert!(
@@ -175,7 +175,7 @@ fn stops_short_of_a_goal_walled_in_by_towers() {
         let (dx, dy) = ((rest.x - gx).abs(), (rest.y - gy).abs());
         (dx.max(dy) - ring - 2.0, dx.min(dy))
     };
-    let margin = sim::navigation::air::routing_margin(b.rules());
+    let margin = sim::navigation::air::ROUTING_MARGIN_M;
     assert!(
         out > 0.0 && out < 2.0 * margin && along < ring / 2.0,
         "it came to rest at {rest:?}"

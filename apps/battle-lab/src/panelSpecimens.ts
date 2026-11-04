@@ -592,7 +592,11 @@ export function panelSpecimens(
       "contact",
     ),
   );
-  const rows = Object.keys(rules.weapons).filter((r) => !testUnitsOnly || carried.has(r));
+  const rows = testUnitsOnly
+    ? ["rifle", "grenade", "tank_ap", "tank_he", "hmg", "atgm", "autocannon"].filter((r) =>
+        carried.has(r),
+      )
+    : Object.keys(rules.weapons);
   const mixes = [
     [],
     ...rows.map((r) => [r]),

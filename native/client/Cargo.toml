@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+sim = { path = "../../crates/sim" }
+contract = { path = "../../crates/contract" }
 presentation = { path = "../../crates/presentation", features = ["files"] }
-pipelines = { path = "../../crates/pipelines" }
+renderer-core = { path = "../../crates/renderer-core" }
 kira = { version = "0.12.5", default-features = false, features = ["cpal"] }
 symphonia = { version = "0.6", default-features = false, features = ["mp3", "id3v2"] }
 wgpu = "30.0.1"

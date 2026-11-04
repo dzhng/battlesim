@@ -87,7 +87,7 @@ async function settle(page) {
 async function observeAs(page, side) {
   await route(page, "setSide", side);
   await advance(page, 1);
-  await page.waitForFunction((side) => window.__lab.route.side() === side, side);
+  await page.waitForFunction((side) => window.__lab?.route?.side() === side, side);
   await presented(page);
   await settle(page);
 }
@@ -138,7 +138,7 @@ export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   const warnings = gpuWarnings(page);
   await ctx.openLab(page, ctx.url, 120000);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 60000 });
+  await page.waitForFunction(() => window.__lab?.route?.tick() > 3, undefined, { timeout: 60000 });
   await lab(page, () => window.__lab.route.pause());
   await page.addStyleTag({ content: HIDE_PANEL });
 
@@ -209,6 +209,14 @@ export async function run(ctx) {
    *  ground-classes view, the buildings' statistics, and each subject there
    *  as its authored parts and as the remains the simulation would leave. */
   async function capture(phase, side) {
+    // Observing another side admits a new viewport; isolate the same building
+    // layers on each instance before comparing its picture.
+    await lab(page, async () => {
+      await window.__lab.suppressGrass(true);
+      await window.__lab.suppressEffects(true);
+      await window.__lab.suppressCastLights(true);
+      await window.__lab.suppressModels(true);
+    });
     const out = {};
     for (const [id, station] of Object.entries(stations)) {
       await cut(page, station.pose);
@@ -286,12 +294,6 @@ export async function run(ctx) {
   await settle(page);
   // The battle as it is played, units and grass and all.
   await writeFile(ctx.evidencePath("battle-before-blue.png"), await shot(page));
-  await lab(page, async () => {
-    await window.__lab.suppressGrass(true);
-    await window.__lab.suppressEffects(true);
-    await window.__lab.suppressCastLights(true);
-    await window.__lab.suppressModels(true);
-  });
   const before = {
     blue: await capture("before", "blue"),
     blueKnows: await subjects(),

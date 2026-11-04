@@ -5,12 +5,12 @@
 // music commands out on a player: a start fades a track in, a stop fades
 // every track out (a crossfade is the two over the same span), and a duck
 // dips the bus.
-import { Score } from "@wasm/presentation/presentation_wasm.js";
-import type { Duck } from "../audioPresentation";
+import { Score } from "@wasm/renderer_browser";
+import type { Duck } from "../audioMix";
 import type { VoiceRequest } from "../voices/chatter";
 import type { Mood } from "./musicCatalog";
 
-/** `presentation.audio.music`: read by Rust, typed here for the workbench. */
+/** `audio.json.music`: read by Rust, typed here for the workbench. */
 export interface BattleMusicRules {
   /** How far the music dips under a voice line, and how fast it dips and recovers. */
   duck: Duck;

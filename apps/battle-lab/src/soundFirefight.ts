@@ -1,3 +1,5 @@
+import { catalogSet } from "@web/battle/catalog/sets";
+import { audioMix } from "@web/audioMix";
 // A scripted firefight for the sound lab: eight seconds of publications,
 // drawn motion and hearing cues, as a battle would feed them, rendered
 // offline through the battle's real audio graph (`OfflineAudioContext`).
@@ -9,10 +11,11 @@
 // a guided missile late on. Red's identified tank fires AP, HE and HMG
 // bursts from the far side; a round glances off it. A wreck burns. An
 // unseen red truck and unseen riflemen are heard only as cues.
-import game from "@fixtures/game.json";
+import { presentationSettings } from "@web/presentationSettings";
+import { shippedRules } from "@web/shippedRules";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { vec3 } from "math";
-import type { AudioPresentation, Bus } from "@packages/battle-audio/src/audioPresentation";
+import type { AudioMix, Bus } from "@packages/battle-audio/src/audioMix";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import {
   SoundFrame,
@@ -24,9 +27,9 @@ import {
 } from "@packages/battle-audio/src/soundFrame";
 import { WebAudioSink } from "@packages/battle-audio/src/webAudioSink";
 import { mountMuzzles, type MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
-import { launches } from "@wasm/presentation/presentation_wasm.js";
+import { launches } from "@wasm/renderer_browser";
 import { loadPresentation } from "@web/battle/sim/presentation";
-import { gameAudio } from "./soundFeed";
+
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 
@@ -67,7 +70,7 @@ async function heard(pubs: readonly EffectPublication[]): Promise<HeardPublicati
 }
 
 const FIREFIGHT_S = 8;
-const HZ = game.tick_hz;
+const HZ = shippedRules.tick_hz;
 const DT = 1 / HZ;
 /** Frames a second the offline render schedules at, like a display. */
 const FPS = 60;
@@ -95,7 +98,7 @@ const tickAt = (s: number) => Math.round(s * HZ);
 /** Whether a gun firing bursts from `starts` (ticks) fires a round at `tick`:
  *  its weapon's burst of rounds, its shot interval apart. */
 function inBurst(kind: "rifle" | "hmg", starts: (start: number) => boolean, tick: number) {
-  const { shot_interval_s, burst } = game.weapons[kind].magazine;
+  const { shot_interval_s, burst } = shippedRules.weapons[kind].magazine;
   const step = tickAt(shot_interval_s);
   for (let round = 0; round < burst.rounds; round++) if (starts(tick - round * step)) return true;
   return false;
@@ -379,10 +382,10 @@ export async function offlineSound(
 ) {
   const sampleRate = 48000;
   const ctx = new OfflineAudioContext(2, Math.round(seconds * sampleRate), sampleRate);
-  const { buses } = gameAudio;
-  const presentation: AudioPresentation = solo
+  const { buses } = audioMix;
+  const presentation: AudioMix = solo
     ? {
-        ...gameAudio,
+        ...audioMix,
         buses: {
           master: buses.master,
           units: solo === "units" ? buses.units : 0,
@@ -392,15 +395,15 @@ export async function offlineSound(
           voices: solo === "voices" ? buses.voices : 0,
         },
       }
-    : gameAudio;
+    : audioMix;
   const sink = new OfflineSink(ctx, presentation, catalog);
   const options = {
     tickHz: HZ,
     presentation,
     catalog,
-    weapons: game.weapons,
-    smokeTimes: game.presentation.effects.smoke,
-    cookOff: game.presentation.effects.cook_off,
+    weapons: shippedRules.weapons,
+    unitCatalog: (await catalogSet("test")).units.view,
+    looks: presentationSettings,
   };
   await loadPresentation();
   await sink.bank.prepare(battleSounds(options));
@@ -593,7 +596,7 @@ async function renderShot(
  *  and far cutoff the sound scene measures them against. */
 export async function renderDistanceProbe(catalog: SoundCatalog = gameSounds) {
   const at = [0, 0, 1];
-  const cam = game.presentation.camera;
+  const cam = presentationSettings.camera;
   const far = cameraListener(
     {
       target: vec3.fromValues(at[0], at[1], 0),
@@ -601,7 +604,7 @@ export async function renderDistanceProbe(catalog: SoundCatalog = gameSounds) {
       pitch: cam.pitch_curve[cam.pitch_curve.length - 1][1],
       yaw: cam.default.yaw,
     },
-    gameAudio.listener_eye_share,
+    audioMix.listener_eye_share,
   );
   const close: Listener = { position: [0, -4, 3], forward: [0, 1, 0] };
   return {
@@ -609,7 +612,7 @@ export async function renderDistanceProbe(catalog: SoundCatalog = gameSounds) {
     near: await renderShot(close, at, catalog),
     far: await renderShot(far, at, catalog),
     farDistanceM: Math.hypot(far.position[0], far.position[1], far.position[2] - at[2]),
-    floor: gameAudio.distance.floor,
-    farHz: gameAudio.air.far_hz,
+    floor: audioMix.distance.floor,
+    farHz: audioMix.air.far_hz,
   };
 }

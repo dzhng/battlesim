@@ -94,9 +94,9 @@ fn scenes() -> Vec<Scene> {
         .collect()
 }
 
-/// The rules the menu's battles run: `game.json` with the menu's catalog.
+/// The rules the menu's battles run: `rules.json` with the menu's catalog.
 fn capture_rules() -> Rules {
-    let path = fixtures::dir().join("game.json");
+    let path = fixtures::dir().join("rules.json");
     let mut game: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     game["catalog"] = Value::Array(fixtures::catalog_documents(CatalogSet::Capture));
     serde_json::from_value(game).unwrap()

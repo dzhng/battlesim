@@ -312,8 +312,8 @@ class Template:
 
 class Kit:
     def __init__(self, set_id, script, fit_side_m, fit_top_m, fit_ruin_top_m=None):
-        """`fit_ruin_top_m` is how far a ruin's broken walls may stand above its remains; a set with no ruin has none."""
-        with open(os.path.join(REPO, "fixtures", "game.json")) as f:
+        """`fit_ruin_top_m` bounds broken walls above a ruin's remains, if it has one."""
+        with open(os.path.join(REPO, "fixtures", "rules.json")) as f:
             physics = json.load(f)["physics"]
         self.firing_heights = (physics["infantry_muzzle_m"], physics["infantry_eye_m"])
         reset()

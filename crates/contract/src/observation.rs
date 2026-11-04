@@ -311,6 +311,9 @@ pub struct WeaponPose {
     /// Elevation above the horizontal of the mount's last launched round
     /// (radians); 0 until it first fires.
     pub elevation: f64,
+    /// Index into the mount's weapon list of its last launched round;
+    /// 0 until it first fires.
+    pub round: u8,
     /// Rounds this mount has launched since the battle began, wrapping at
     /// 2³²; each soldier's individual round counts. A rise between two
     /// publications is a shot.

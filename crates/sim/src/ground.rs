@@ -23,7 +23,7 @@ use std::sync::Arc;
 use crate::cell_page::Page;
 
 use contract::observation::VisibilityField;
-use contract::scenario::{GroundRules, Rules};
+use contract::scenario::GroundRules;
 
 use crate::digest::Digest;
 use crate::math::{v2, V2, V3};
@@ -97,29 +97,6 @@ pub struct GroundLayer {
 struct Edits {
     revision: u64,
     tiles: BTreeMap<u64, usize>,
-}
-
-/// Reject ground rules that would break the contract: craters are never
-/// impassable.
-pub fn validate(rules: &Rules) {
-    let g = &rules.ground;
-    assert!(g.cell_m > 0.0, "ground.cell_m must be positive");
-    assert!(
-        g.crater_full_depth > 0.0 && g.crater_full_depth <= u8::MAX as f64,
-        "ground.crater_full_depth must be in (0, 255]"
-    );
-    assert!(
-        (0.0..=1.0).contains(&g.track_gauge),
-        "ground.track_gauge is a share of the half width, in [0, 1]"
-    );
-    assert!(
-        g.mark_reference_blast_m > 0.0,
-        "ground.mark_reference_blast_m must be positive"
-    );
-    assert!(
-        g.lane_margin_m >= 0.0,
-        "ground.lane_margin_m must not be negative"
-    );
 }
 
 impl GroundLayer {

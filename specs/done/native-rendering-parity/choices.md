@@ -15,11 +15,13 @@ These are the decisions this spec left in the code. Each was checked against the
 
 **Decided by:** _User_ means you decided it. _Agent_ means an implementing agent, coordinator or orchestrator decided it on your behalf. **Confidence** is how sure the audit is that you would have made the same call.
 
-**Review these first:** none open. The three least-confident entries were closed on 2026-10-13 (`lastowners`); they are listed under Sound with their resolution. The spec's [README](README.md#known-limitations) lists what stays open, each with its owner.
+**Review these first:** none open. The three least-confident entries were closed on 2026-10-13 (`lastowners`); they are listed under Sound with their resolution. [Native gaps](../../native-gaps/README.md) owns the remaining platform differences.
 
 ## Needs you
 
 ### Native draws far soldiers as meshes, not impostor cards
+
+Superseded by [specs/done/one-renderer](../one-renderer/README.md).
 
 _Agent, slices 14 and 25 (step 5a). Confidence: medium._
 
@@ -215,6 +217,8 @@ The painted ground marks are drawn by the UI, and a replay has no UI. Native bin
 - **Verdict:** sound as a named gap.
 
 ### The sky's two layouts keep TypeGPU's automatic names
+
+Superseded by [specs/done/one-renderer](../one-renderer/README.md).
 
 _Agent, slice 25 (steps 1 to 3). Confidence: high._
 
@@ -450,6 +454,8 @@ _Agent, slice 25 (step 3). Confidence: high._
 `presentation::light` resolves `presentation.light` into `SkyLight`, `Aerial` (the haze), `Sun`, `Bloom` and `Grade`, each laid out as its shader's struct. The browser reads them through `light_records(json)` (a frame can be built before any battle), and native through `LightSettings::records()`.
 
 ### The browser's shaders are exported once and built natively
+
+Superseded by [specs/done/one-renderer](../one-renderer/README.md).
 
 _Agent, slice 25 (steps 1 and 2). Confidence: high._
 

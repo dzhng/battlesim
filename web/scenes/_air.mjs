@@ -9,7 +9,7 @@ import { promisify } from "node:util";
 import { PNG } from "pngjs";
 import { lab, obs, advance, presented, openBattle } from "./_lab.mjs";
 import { loadEncounter } from "../src/maps/node.ts";
-import { game } from "./_units.mjs";
+import { rules } from "./_units.mjs";
 const ffmpeg = promisify(execFile);
 
 /** A saved encounter `name` on the fixture's map (`fixtures.json`), as the
@@ -126,7 +126,7 @@ export async function strip(page, ticks, file) {
 }
 
 /** The high-air layer's cruise height over the ground. */
-export const HIGH_AIR_CRUISE = game.air.high_air.cruise_agl_m;
+export const HIGH_AIR_CRUISE = rules.air.high_air.cruise_agl_m;
 
 /** Visible ground cells in the side's fog field. */
 export function visibleCells(o) {

@@ -27,7 +27,7 @@ use contract::ground::GroundShape;
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-20";
+pub const GENERATOR_VERSION: &str = "layout-22";
 
 pub use contract::generation::{GenerationRequest, MapSize, MapType};
 

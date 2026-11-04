@@ -200,7 +200,7 @@ fn only_the_forests_own_tree_decides_who_clears_a_lane() {
                   "occludes": false, "weight_class": "light", "cover_tier": "light",
                   "topples": true, "hp": 10 },
         "destroyed": "cleared",
-        "appearance": { "drawn_by": "forest" } } } });
+        "appearance": { "drawn_by": "forest", "stand_in_tint": [0.5, 0.5, 0.5] } } } });
     rules["catalog"].as_array_mut().unwrap().push(sapling);
     // Trees stand clear of the forest's edge: the truck's hull overlaps the
     // treeless band inside it by a metre.

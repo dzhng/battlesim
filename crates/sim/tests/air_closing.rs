@@ -21,7 +21,7 @@ const SEED: u64 = 6;
 /// The encounter as its lab runs it: the game's rules with the test set's
 /// catalog (the game's units plus the test units).
 fn battle() -> Battle {
-    let mut game = fixtures::game();
+    let mut game = fixtures::rules();
     game["catalog"] = serde_json::Value::Array(fixtures::catalog_documents(CatalogSet::Test));
     let rules: Rules = serde_json::from_value(game).unwrap();
     Battle::new(&sim::maps::scenario("air", "closing", rules).unwrap(), SEED)

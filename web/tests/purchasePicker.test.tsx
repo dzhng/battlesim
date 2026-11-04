@@ -1,3 +1,4 @@
+import { shippedRules } from "@web/shippedRules";
 import { cleanup, fireEvent, render as renderView } from "@testing-library/react";
 import { WithTestCatalog } from "./catalog";
 import { afterEach, expect, test, vi } from "vitest";
@@ -5,9 +6,8 @@ import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import type { UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
 import type { SkirmishView } from "@web/battle/sim/observationView";
 import type { PanelRules } from "@web/battle/present/panelRows";
-import game from "@fixtures/game.json";
 
-const RULES = game as unknown as PanelRules;
+const RULES = shippedRules as unknown as PanelRules;
 
 /** Views render under the test set, as a lab page provides it. */
 const render = (ui: Parameters<typeof renderView>[0]) =>

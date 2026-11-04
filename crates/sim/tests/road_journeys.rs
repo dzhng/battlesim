@@ -807,3 +807,39 @@ fn a_truck_moves_over_round_a_car_abandoned_in_its_lane_wherever_it_stands() {
         }
     }
 }
+
+#[test]
+fn a_vehicle_connector_beside_a_rotated_wreck_has_a_finite_route() {
+    use sim::encounter::PreparedMap;
+    use sim::math::v2;
+    use sim::navigation::{Leg, Plan};
+    let from = v2(181.5919158962415, 96.4739260604533);
+    let setup = scenario(
+        json!({"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+        "props":[{"kind":"car_wreck","center":[184.35,99.25],"yaw":-2.226191,"half_extents":[2.1,0.9,0.6]}]}),
+        jeep([from.x, from.y]),
+        json!([]),
+    );
+    let battle = Battle::new(&setup, 1);
+    let m = battle.unit(UnitId(0)).unwrap().ground();
+    let prepared = PreparedMap::new(&setup.map, &setup.rules);
+    let (plan, _) = sim::navigation::plan(
+        &prepared.grid,
+        &prepared.roads,
+        Leg {
+            from,
+            goal: v2(181.0, 150.0),
+            m,
+            policy: RoutePolicy::Shortest,
+            avoid: &[],
+        },
+        &setup.rules.navigation,
+    );
+    let Plan::Route(points) = plan else {
+        panic!("{plan:?}")
+    };
+    assert!(
+        prepared.grid.route_time(from, &points, m).is_finite(),
+        "{points:?}"
+    );
+}

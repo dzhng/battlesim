@@ -1,10 +1,10 @@
+import { shippedRules } from "../../../../web/src/shippedRules";
 import { spawn, spawnSync } from "node:child_process";
-import game from "../../../../fixtures/game.json";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  barkTrigger,
+  BARK_TRIGGERS,
   lineText,
   takeFile,
   takeId,
@@ -31,14 +31,12 @@ import { checkPacks } from "./packs";
 import { LIMITS, Pool } from "./pool";
 import { matches } from "./transcript";
 
-/** A bark's talk time is the simulation's (`ShoutRules.talk_s`, keyed `b<n>_<trigger>`); a
- *  response, which the simulation never sees, is held to `RESPONSE_TALK_S`. */
+/** Barks share the simulation's talk time; responses have no simulation event. */
 const RESPONSE_TALK_S = 4;
-const BARK_TALK_S: Record<string, number> = Object.fromEntries(
-  Object.entries(game.shouts.talk_s).map(([key, seconds]) => [barkTrigger(key), seconds]),
-);
 function talkTime(trigger: string): number {
-  return BARK_TALK_S[trigger] ?? RESPONSE_TALK_S;
+  return BARK_TRIGGERS.some((bark) => bark === trigger)
+    ? shippedRules.shouts.talk_s
+    : RESPONSE_TALK_S;
 }
 
 export const TTS_MODEL = "eleven_v3";

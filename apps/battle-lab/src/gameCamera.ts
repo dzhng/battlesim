@@ -1,5 +1,5 @@
-// The player camera's numbers, from the one fixture owner's presentation block.
-import game from "@fixtures/game.json";
+// The player camera's numbers, from `fixtures/presentation.json`.
+import { presentationSettings } from "@web/presentationSettings";
 import generated from "@fixtures/generated-battle.json";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
@@ -7,7 +7,7 @@ import {
   type CameraPresentation,
 } from "@packages/renderer-core/src/cameraController";
 
-const presentation = game.presentation.camera;
+const presentation = presentationSettings.camera;
 const config: CameraPresentation = {
   ...presentation,
   pitch_curve: presentation.pitch_curve as [number, number][],
@@ -19,10 +19,11 @@ export const gameCamera = {
   /** The lens every lab camera looks through: the fixture's field of view
    *  and near plane (aspect is the viewport's, set as it draws). */
   lens: { fovY: config.fov_y, aspect: 1, near: config.near_m },
-  /** The battle's opening framing (Defilade's): the fixture's target, distance
+  /** The battle's opening framing (Defilade's): the lab's target and fixture's distance
    *  and yaw, pitched by the curve. */
   opening(): Camera3DParams {
-    const { target, distance, yaw } = presentation.default;
+    const { distance, yaw } = presentation.default;
+    const target = LAB_OPENING_TARGET;
     return {
       target: [target[0], target[1], 0],
       distance,
@@ -88,3 +89,6 @@ export const gameCamera = {
     };
   },
 };
+
+/** Defilade lab framing; player battles frame their own admitted start. */
+export const LAB_OPENING_TARGET: readonly [number, number] = [170, 800];

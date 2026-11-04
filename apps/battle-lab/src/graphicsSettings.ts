@@ -163,6 +163,18 @@ function load(): GraphicsSettings {
 let current = load();
 const listeners = new Set<() => void>();
 
+/** The profile a verification run asks for (`?test-quality=`), without a
+ *  player-facing setting. Production builds ignore the query; the runner
+ *  chooses minimum or player low for picture scenes. */
+export function testQualityProfile(search: string): GraphicsQualityProfile | undefined {
+  if (!import.meta.env.DEV) return undefined;
+  const requested = new URLSearchParams(search).get("test-quality");
+  if (requested === "minimum") return sceneMinimumProfile;
+  return requested === "low" || requested === "medium" || requested === "high"
+    ? graphicsProfiles[requested]
+    : undefined;
+}
+
 export function resolveEffectiveTier(
   mode: GraphicsMode,
   detectedMode: GraphicsTier | null,

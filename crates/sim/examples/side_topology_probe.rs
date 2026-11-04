@@ -10,7 +10,7 @@ use sim::battle::Battle;
 
 fn main() {
     let map = serde_json::to_value(sim::maps::load("geometry").unwrap().definition).unwrap();
-    let rules = sim::fixtures::test_game();
+    let rules = sim::fixtures::test_rules();
     let two_side = json!({
         "map": map,
         "rules": rules,
@@ -40,7 +40,7 @@ fn main() {
     ]);
     let candidate_fixture = json!({
         "map": serde_json::to_value(sim::maps::load("geometry").unwrap().definition).unwrap(),
-        "rules": sim::fixtures::test_game(),
+        "rules": sim::fixtures::test_rules(),
         "units": candidate,
         "events": [],
         "scripts": []

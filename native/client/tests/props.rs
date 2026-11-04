@@ -55,7 +55,8 @@ fn the_scenes_vehicles_leave_their_own_wrecks_and_the_map_its_own_regions_looks(
 #[test]
 fn a_capture_maps_props_are_placed_under_the_capture_units() {
     let root = Path::new(ROOT);
-    let ground = files::ground(root, "paris-corner").unwrap();
+    let rules = files::rules(root, "paris-corner").unwrap();
+    let ground = files::ground(root, "paris-corner", &rules).unwrap();
     let layout: Value = serde_json::from_str(&ground.layout).unwrap();
     // The scene's tank is a capture unit: its wreck is drawn as its own hull's.
     assert_eq!(

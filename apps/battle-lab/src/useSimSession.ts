@@ -2,7 +2,7 @@ import { useLabLoading } from "./LabLoading";
 import type { PreparedConnectionSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createSimClient, type Publication, type SimClient } from "@web/battle/sim/client";
-import type { LearnedGround } from "@web/battle/sim/presentation";
+import type { LearnedGround } from "@web/battle/sim/presentationGround";
 import type { ObservationView, RefusalView } from "@web/battle/sim/observationView";
 import type { AuthorityStatus } from "@web/battle/sim/protocol";
 import type { SideName } from "@web/battle/sim/protocol";

@@ -11,11 +11,10 @@
 // sheet per map (`river:bend-65+wide-65`: those stations alone, the ones a
 // change can move). A slice's own checks open a map with `openStations` and
 // read it with `shoot` or `stationFrame`, a mask with `classAt` or
-// `classPixels`, and a switch's frame cost with `pairedCost`.
+// `classPixels`, and a switch's frame cost with `pairedCost` (`_pairedCost.mjs`).
 import { readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
-import { median } from "./_colour.mjs";
 import { advance, aim, hideHud, lab, presented, snapshot } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
 
@@ -82,6 +81,8 @@ export const STATION_MAPS = {
       // Over the wood's middle, from the play camera and from twice as high.
       "forest-65": at([790, 960], 65),
       "forest-120": at([790, 960], 120),
+      // The wood from far off and low, where its trees take their far tier.
+      "forest-far-700": at([790, 960], 700, LOW),
       // The first log and the first boulder on a forest floor, where the
       // forest rule lays any.
       "floor-log-25": ({ floor }) => at(floor.log, 25, 0.6),
@@ -1156,37 +1157,6 @@ export async function groundRig(ctx) {
     JSON.stringify({ placed, changedShare: changed / (trees.width * trees.height) }),
   );
   await page.close();
-}
-
-/** Frames a cost batch draws before its GPU time is read. */
-const COST_FRAMES = 120;
-
-/** What one of the lab's `suppress*` switches costs a frame at the pose the
- *  page stands at: the same frozen frame with what the switch draws and
- *  without it, in `pairs` interleaved batches. `plainMs` is the median frame
- *  without it, `costMs` the median of the paired differences, `differences`
- *  each pair's. Run it alone, under the GPU lock. */
-export async function pairedCost(page, suppress, pairs) {
-  // The page draws on demand, and the timer's mean runs over the frames
-  // drawn: a view change resets it, then every frame is forced.
-  const batch = (off) =>
-    lab(
-      page,
-      async ({ suppress, off, frames }) => {
-        await window.__lab[suppress](off);
-        await window.__lab.setFrameView("final");
-        for (let i = 0; i < frames; i++) await window.__lab.frame();
-        return window.__lab.stats().gpu.meanMs;
-      },
-      { suppress, off, frames: COST_FRAMES },
-    );
-  const rows = { on: [], off: [] };
-  for (let pair = 0; pair < pairs; pair++) {
-    rows.off.push(await batch(true));
-    rows.on.push(await batch(false));
-  }
-  const differences = rows.on.map((v, i) => v - rows.off[i]);
-  return { plainMs: median(rows.off), costMs: median(differences), differences };
 }
 
 /** `STATIONS=map,...`: every station of those maps, as shots, masks and a

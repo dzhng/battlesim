@@ -7,6 +7,11 @@ use crate::movement::MovementRules;
 use crate::observation::SuppressionTier;
 use serde::{Deserialize, Serialize};
 
+mod admission;
+mod ranges;
+pub use admission::RulesError;
+use admission::UncheckedRules;
+
 pub use crate::maps::{MapIdentity, MapSource, ResolvedMap};
 
 /// How hard a body is to shove (Q3, Q4). A pusher moves only bodies
@@ -343,9 +348,6 @@ pub struct SightShape {
 pub struct ServiceRules {
     /// Recipients within this distance of a deployed supply vehicle are served.
     pub radius_m: f64,
-    /// Stock per restored round, by weapon row. Every finite row is priced
-    /// (checked when a battle is set up), so no round is given away (L05).
-    pub round_costs: std::collections::BTreeMap<String, u32>,
     pub ammo_rounds_per_s: f64,
     pub vehicle_hp_per_s: f64,
     pub stock_per_hp: u32,
@@ -358,18 +360,7 @@ pub struct ServiceRules {
     pub stock_per_flare: u32,
 }
 
-/// Browser input controls carried alongside the simulation rules. The browser
-/// owns their behavior (`reverseZone.ts`); the shared loader admits the
-/// authored shape so it cannot be mistaken for an arbitrary rules section.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Controls {
-    pub reverse_zone_length_m: f64,
-    pub reverse_zone_margin_m: f64,
-}
-
-/// The game's rules (`fixtures/game.json` with its catalog). Loading
-/// them checks what crosses sections: every mount names a weapon row.
+/// Battle rules, checked across sections on deserialization.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(try_from = "UncheckedRules")]
 pub struct Rules {
@@ -400,8 +391,6 @@ pub struct Rules {
     pub garrison: GarrisonRules,
     pub carriage: CarriageRules,
     pub bail_out: std::collections::BTreeMap<BailOutHost, BailOutRow>,
-    pub hull_limits: HullLimits,
-    pub air_speed_limits_kmh: AirSpeedLimits,
     pub air: AirRules,
     pub shouts: ShoutRules,
 }
@@ -411,16 +400,13 @@ pub struct Rules {
 #[serde(deny_unknown_fields)]
 pub struct ShoutRules {
     pub cooldown_s: f64,
-    pub talk_s: std::collections::BTreeMap<crate::observation::ShoutTrigger, f64>,
+    pub talk_s: f64,
 }
 
 impl ShoutRules {
     fn check(&self) -> Result<(), String> {
-        for trigger in crate::observation::ShoutTrigger::ALL {
-            if !self.talk_s.get(&trigger).is_some_and(|s| *s > 0.0) {
-                let name = serde_json::to_value(trigger).unwrap_or_default();
-                return Err(format!("shouts: talk_s needs a positive time for {name}"));
-            }
+        if !self.talk_s.is_finite() || self.talk_s <= 0.0 {
+            return Err("shouts: talk_s must be finite and positive".into());
         }
         if self.cooldown_s > 0.0 {
             Ok(())
@@ -564,281 +550,7 @@ impl AirRules {
     }
 }
 
-/// The largest hull each drive may have: what the map generator and the
-/// route planner are proven against, by tests that drive hulls built at
-/// these limits. A unit past them is refused where the rules load, so every
-/// admitted unit is covered by those tests.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct HullLimits {
-    pub tracked: DriveLimits,
-    pub wheeled: DriveLimits,
-    /// A helicopter's hull, without its rotor disc.
-    pub rotor: DriveLimits,
-    /// A fixed-wing aircraft's hull.
-    pub fixed_wing: DriveLimits,
-}
-
-impl HullLimits {
-    /// The limits of an aircraft that flies by `flight`.
-    pub fn flight(&self, flight: crate::catalog::FlightModel) -> &DriveLimits {
-        match flight {
-            crate::catalog::FlightModel::Rotor => &self.rotor,
-            crate::catalog::FlightModel::FixedWing => &self.fixed_wing,
-        }
-    }
-}
-
-/// The fastest an aircraft of each flight model may cruise, km/h.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AirSpeedLimits {
-    pub rotor: f64,
-    pub fixed_wing: f64,
-}
-
-impl AirSpeedLimits {
-    /// The fastest an aircraft that flies by `flight` may cruise, km/h.
-    pub fn flight(&self, flight: crate::catalog::FlightModel) -> f64 {
-        match flight {
-            crate::catalog::FlightModel::Rotor => self.rotor,
-            crate::catalog::FlightModel::FixedWing => self.fixed_wing,
-        }
-    }
-
-    /// The first aircraft of `catalog` cruising past its flight model's limit.
-    fn check(&self, catalog: &crate::catalog::Catalog) -> Result<(), crate::catalog::CatalogError> {
-        use crate::catalog::Mobility;
-        for index in catalog.indices() {
-            let Mobility::Air {
-                cruise_kmh, flight, ..
-            } = catalog.get(index).mobility
-            else {
-                continue;
-            };
-            let (name, limit) = (flight.name(), self.flight(flight));
-            if cruise_kmh > limit {
-                return Err(crate::catalog::CatalogError::Invalid {
-                    section: "units",
-                    id: catalog.id(index).into(),
-                    error: format!(
-                        "its {name} cruise_kmh {cruise_kmh} is past the limit of {limit} (air_speed_limits_kmh)"
-                    ),
-                });
-            }
-        }
-        Ok(())
-    }
-}
-
-/// One drive's largest hull; a tracked hull pivots and has no turn limit.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct DriveLimits {
-    pub half_width_m: f64,
-    pub half_length_m: f64,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub turning_radius_m: Option<f64>,
-}
-
-impl HullLimits {
-    /// The first unit of `catalog` whose hull passes its drive's limits.
-    fn check(&self, catalog: &crate::catalog::Catalog) -> Result<(), crate::catalog::CatalogError> {
-        use crate::catalog::Mobility;
-        for index in catalog.indices() {
-            let unit = catalog.get(index);
-            let Some(hull) = unit.hull() else { continue };
-            let (drive, limits, radius) = match unit.mobility {
-                Mobility::Tracked { .. } => ("tracked", &self.tracked, None),
-                Mobility::Wheeled {
-                    turning_radius_m, ..
-                } => ("wheeled", &self.wheeled, Some(turning_radius_m)),
-                Mobility::Air { flight, .. } => (flight.name(), self.flight(flight), None),
-                // A squad has no hull; the catalog refuses a hull on foot.
-                Mobility::Foot { .. } => continue,
-            };
-            let [length, width, _] = hull.half_extents_m;
-            let past = [
-                ("half width", width, Some(limits.half_width_m)),
-                ("half length", length, Some(limits.half_length_m)),
-            ]
-            .into_iter()
-            .chain(radius.map(|r| ("turning radius", r, limits.turning_radius_m)))
-            .find(|(_, value, limit)| limit.is_some_and(|limit| *value > limit));
-            if let Some((what, value, limit)) = past {
-                return Err(crate::catalog::CatalogError::Invalid {
-                    section: "units",
-                    id: catalog.id(index).into(),
-                    error: format!(
-                        "its {drive} {what} {value} m is past the limit of {} m (hull_limits)",
-                        limit.unwrap()
-                    ),
-                });
-            }
-        }
-        Ok(())
-    }
-}
-
-/// [`Rules`] as read, before the checks across its sections.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct UncheckedRules {
-    // These sections belong to presentation and browser input, never simulation.
-    #[serde(rename = "presentation")]
-    _presentation: Option<serde::de::IgnoredAny>,
-    #[serde(rename = "controls")]
-    _controls: Option<Controls>,
-    // The battle lab's default; a battle supplies its own seed separately.
-    #[serde(rename = "seed")]
-    _seed: Option<u64>,
-    tick_hz: u32,
-    commands: CommandRules,
-    movement: MovementRules,
-    navigation: NavigationRules,
-    formation: FormationRules,
-    infantry_movement: InfantryMovementRules,
-    physics: BodyRules,
-    catalog: crate::catalog::Catalog,
-    pushing: PushingRules,
-    ricochet: RicochetRules,
-    guided: crate::ballistics::GuidedRules,
-    launch: LaunchRules,
-    sensors: SensorRules,
-    forests: ForestRules,
-    #[serde(deserialize_with = "crate::weapons::resolve_weapons")]
-    weapons: crate::weapons::WeaponRules,
-    service: ServiceRules,
-    suppression: SuppressionRules,
-    cover: CoverRules,
-    ground: GroundRules,
-    buildings: BuildingRules,
-    garrison: GarrisonRules,
-    carriage: CarriageRules,
-    bail_out: std::collections::BTreeMap<BailOutHost, BailOutRow>,
-    hull_limits: HullLimits,
-    air_speed_limits_kmh: AirSpeedLimits,
-    air: AirRules,
-    shouts: ShoutRules,
-}
-
-impl TryFrom<UncheckedRules> for Rules {
-    type Error = crate::catalog::CatalogError;
-    fn try_from(r: UncheckedRules) -> Result<Self, Self::Error> {
-        r.catalog.check_weapons(&r.weapons)?;
-        r.hull_limits.check(&r.catalog)?;
-        r.air_speed_limits_kmh.check(&r.catalog)?;
-        for (id, checked) in [
-            ("suppression", r.suppression.check()),
-            ("navigation", r.navigation.check()),
-            ("movement", r.movement.speed_factors.check()),
-            ("sensors", r.sensors.check()),
-            ("forests", r.forests.check(&r.catalog)),
-            ("formation", r.formation.check()),
-            ("commands", r.commands.check()),
-            ("carriage", r.carriage.check()),
-            ("air", r.air.check()),
-            ("shouts", r.shouts.check()),
-        ] {
-            checked.map_err(|error| crate::catalog::CatalogError::Invalid {
-                section: "rules",
-                id: id.into(),
-                error,
-            })?;
-        }
-        // Every host a passenger can be thrown out of has its row, so a
-        // bail-out never finds one missing mid-battle.
-        for (host, name) in [
-            (BailOutHost::Building, "building"),
-            (BailOutHost::Ground, "ground"),
-            (BailOutHost::Air, "air"),
-        ] {
-            if !r.bail_out.contains_key(&host) {
-                return Err(crate::catalog::CatalogError::Invalid {
-                    section: "rules",
-                    id: "bail_out".into(),
-                    error: format!("no row for {name} hosts"),
-                });
-            }
-        }
-        Ok(Rules {
-            tick_hz: r.tick_hz,
-            commands: r.commands,
-            movement: r.movement,
-            navigation: r.navigation,
-            formation: r.formation,
-            infantry_movement: r.infantry_movement,
-            physics: r.physics,
-            catalog: r.catalog,
-            pushing: r.pushing,
-            ricochet: r.ricochet,
-            guided: r.guided,
-            launch: r.launch,
-            sensors: r.sensors,
-            forests: r.forests,
-            weapons: r.weapons,
-            service: r.service,
-            suppression: r.suppression,
-            cover: r.cover,
-            ground: r.ground,
-            buildings: r.buildings,
-            garrison: r.garrison,
-            carriage: r.carriage,
-            bail_out: r.bail_out,
-            hull_limits: r.hull_limits,
-            air_speed_limits_kmh: r.air_speed_limits_kmh,
-            air: r.air,
-            shouts: r.shouts,
-        })
-    }
-}
-
-impl Rules {
-    /// These rules with a scenario's `overrides` merged in, read and checked
-    /// again as the shipped rules are, so an override is held to every rule
-    /// a shipped row is. The patch is shaped like the authored rules: a rules
-    /// section of `game.json` (`weapons`, `sensors`, `air`, ...) or a catalog
-    /// section (`units`, `soldiers`, `parts`, `roles`, `props`). It merges
-    /// into the resolved rows as an `extends` child merges into its parent
-    /// ([`crate::catalog::merge_entry`]); a row the rules lack is added, and
-    /// may `extends` any resolved row of its section.
-    pub fn overridden(
-        self,
-        overrides: &serde_json::Map<String, serde_json::Value>,
-    ) -> Result<Rules, String> {
-        use crate::catalog::{merge, merge_entry, SECTIONS};
-        if overrides.is_empty() {
-            return Ok(self);
-        }
-        let mut document = serde_json::to_value(&self).map_err(|e| e.to_string())?;
-        for (section, patch) in overrides {
-            let in_catalog = SECTIONS.contains(&section.as_str());
-            let base = match in_catalog {
-                // A resolved catalog travels as one document.
-                true => document["catalog"][0].get_mut(section),
-                false if section == "catalog" => None,
-                false => document.get_mut(section),
-            }
-            .ok_or_else(|| format!("{section} is not a section of the rules or the catalog"))?;
-            if !in_catalog {
-                merge(base, patch);
-                continue;
-            }
-            let (Some(rows), Some(patch)) = (base.as_object_mut(), patch.as_object()) else {
-                return Err(format!("{section} is a table of rows by id"));
-            };
-            for (id, row) in patch {
-                match rows.get_mut(id) {
-                    Some(base) => merge_entry(section, base, row),
-                    None => {
-                        rows.insert(id.clone(), row.clone());
-                    }
-                }
-            }
-        }
-        serde_json::from_value(document).map_err(|e| e.to_string())
-    }
-}
+mod overrides;
 
 /// How fast a side may give orders: a backstop no player reaches (a
 /// tournament player's effective rate is about 5 a second), so a flood from
@@ -907,15 +619,12 @@ pub struct PushingRules {
     pub relearn_m: f64,
 }
 
-/// Buildings as fighting positions (L08–L10): soldier capacity and the
-/// cover strength occupants get. Their integrity and ruin are the body
-/// table's `building` row (34c).
+/// Buildings as fighting positions (L08–L10): supported soldier capacity.
+/// Their integrity and ruin are the body table's `building` row (34c).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BuildingRules {
     pub capacity_soldiers: u32,
-    /// Building cover strength in [0, 1] (contracts: building strength).
-    pub cover_strength: f64,
 }
 
 /// Entering, leaving and escaping buildings (the fixture's `garrison` section).

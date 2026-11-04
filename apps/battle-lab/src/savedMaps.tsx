@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { loadEncounter, loadMap } from "@web/maps/browser";
 import { MapResolveError, type Encounter, type MapDefinition } from "@web/maps/resolve";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
-import type { GameRules } from "@web/battle/catalog/compose";
+import type { ResolvedRules } from "@web/battle/catalog/compose";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import type { LabEncounter, LabEvent, LabScript, LabUnit } from "./scenarios";
 import { buildFailed, useBuiltScenario } from "./useBuiltScenario";
@@ -28,7 +28,7 @@ export async function enduranceScenario(
   fixture: string,
   seed: number,
   late: boolean,
-  rules: GameRules,
+  rules: ResolvedRules,
 ): Promise<string> {
   const { definition } = await loadMap(fixtureMap(fixture));
   return wasm.endurance_scenario(
@@ -57,7 +57,7 @@ export function savedScenario(
 export async function savedBattle(
   id: string,
   name: string,
-  rules: GameRules,
+  rules: ResolvedRules,
 ): Promise<SavedBattle> {
   const [wasm, map, saved] = await Promise.all([loadWasm(), loadMap(id), loadEncounter(id, name)]);
   const encounter: LabEncounter = {
@@ -120,7 +120,7 @@ export function SavedEncounters<Name extends string>({
 }: {
   fixture: string;
   encounters: readonly Name[];
-  rules?: GameRules | ((encounter: Name) => GameRules);
+  rules?: ResolvedRules | ((encounter: Name) => ResolvedRules);
   children: (battles: Record<Name, SavedBattle>) => ReactNode;
 }) {
   const catalog = useSessionCatalog();
@@ -148,7 +148,7 @@ export function SavedEncounter({
 }: {
   fixture: string;
   encounter: string;
-  rules?: GameRules;
+  rules?: ResolvedRules;
   children: (battle: SavedBattle) => ReactNode;
 }) {
   return (

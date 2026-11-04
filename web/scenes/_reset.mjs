@@ -1,6 +1,6 @@
 import { lab, restart, advance, presented, buildingsSettled } from "./_lab.mjs";
-import { game } from "./_units.mjs";
-const SETTLE_MS = Math.ceil(1000 / game.tick_hz) + 1;
+import { rules } from "./_units.mjs";
+const SETTLE_MS = Math.ceil(1000 / rules.tick_hz) + 1;
 
 async function presentedStep(page, action) {
   await lab(page, () => window.__resetRafFence.hold());
@@ -22,34 +22,22 @@ async function presentedStep(page, action) {
 
 export async function restartPresentedOpening(page, targetTick) {
   const priorTick = await lab(page, () => window.__lab.route.tick());
+  // Pause at the real worker boundary before the new authority can tick.
+  // Renderer admission can finish after its clock has already started.
+  await page.evaluate(() => window.__pauseNextWorkerStart());
   await restart(page);
   await page.waitForFunction((prior) => window.__lab?.route?.tick() < prior, priorTick, {
     timeout: 60000,
   });
-  const firstStarted = Date.now();
-  // Cleared refs can precede the new client closure. Only a disposed predecessor
-  // is retried; the first actual step must acknowledge this battle's tick one.
-  await presentedStep(page, async () => {
-    for (;;) {
-      if (Date.now() - firstStarted >= 60000)
-        throw Error("new reset client did not acknowledge its first step");
-      const stepped = await lab(page, async () => {
-        const route = window.__lab.route;
-        if (route.tick() !== 0) throw Error("reset moved before its first controlled step");
-        route.pause();
-        try {
-          const tick = await route.advance(1);
-          if (tick !== 1) throw Error(`first reset step acknowledged tick ${tick}`);
-          return true;
-        } catch (error) {
-          if (error.message === "simulation client disposed") return false;
-          throw error;
-        }
-      });
-      if (stepped) break;
-      await page.waitForTimeout(1);
-    }
-  });
+  await presentedStep(page, () =>
+    lab(page, async () => {
+      const route = window.__lab.route;
+      if (route.tick() !== 0) throw Error("reset moved before its first controlled step");
+      route.pause();
+      const tick = await route.advance(1);
+      if (tick !== 1) throw Error(`first reset step acknowledged tick ${tick}`);
+    }),
+  );
   for (let tick = 1; tick <= targetTick; tick++) {
     if (tick > 1) await presentedStep(page, () => advance(page, 1));
     const state = await lab(page, () => ({

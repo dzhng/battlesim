@@ -4,7 +4,8 @@
 //! V-wakes spread alike at any frame rate. [`WaveClock`] says how many steps
 //! a frame runs, when the field starts over (a new epoch) and how far it
 //! moved; [`area`] where it lies, in the camera every shader binds
-//! (`Camera.waves`). Its numbers ([`WAVE`]) are generated for the shaders.
+//! (`Camera.waves`). The shaders read its numbers ([`WAVE`]) by name
+//! (`WAVE_*`, prepended to every built-in shader).
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::view::Camera;
@@ -27,6 +28,12 @@ pub struct Wave {
     /// past this far (metres): beyond, a wake is under a pixel.
     pub fade_m: [f64; 2],
 }
+
+/// Splats one step takes at most; excess splats are dropped per step so
+/// batching steps into frames never changes which impulses survive.
+pub const STEP_SPLATS: usize = 256;
+/// The most splats a drawn frame can publish across its bounded steps.
+pub const SPLATS_MAX: usize = STEP_SPLATS * WAVE.max_steps as usize;
 
 pub const WAVE: Wave = Wave {
     hz: 30.0,

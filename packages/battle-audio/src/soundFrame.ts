@@ -11,8 +11,8 @@ import {
   sector_pan,
   vehicle_loops,
   type Presentation,
-} from "@wasm/presentation/presentation_wasm.js";
-import type { AudioPresentation, Bus, VehicleSound } from "./audioPresentation";
+} from "@wasm/renderer_browser";
+import type { AudioMix, Bus, VehicleSound } from "./audioMix";
 import type { SoundCatalog } from "./catalog";
 import type { Chatter, ChatterUpdate } from "./voices/chatter";
 
@@ -193,14 +193,13 @@ export interface SoundStats {
 
 export interface SoundFrameOptions {
   tickHz: number;
-  presentation: AudioPresentation;
+  presentation: AudioMix;
   catalog: SoundCatalog;
-  /** The game's weapon rows: a derived weapon sounds as its nearest styled ancestor. */
-  weapons?: Record<string, object>;
-  /** How long each smoke kind burns and smoulders (`presentation.effects.smoke`). */
-  smokeTimes: Record<string, { burn_s: number; smoulder_s: number }>;
-  /** When a cook-off's fireballs go and its turret lands (`presentation.effects.cook_off`). */
-  cookOff: object;
+  /** The battle's weapon rows, whose appearances name admitted looks. */
+  weapons: Record<string, object>;
+  looks: object;
+  /** The resolved unit and soldier mounts admitted with these weapon rows. */
+  unitCatalog: object;
 }
 
 type Command =
@@ -238,9 +237,10 @@ const rustFrame = (o: SoundFrameOptions) =>
     JSON.stringify({
       audio: o.presentation,
       catalog: o.catalog,
-      weapons: o.weapons ?? {},
+      weapons: o.weapons,
+      unit_catalog: o.unitCatalog,
+      presentation: o.looks,
       tick_hz: o.tickHz,
-      effects: { smoke: o.smokeTimes, cook_off: o.cookOff },
     }),
   );
 

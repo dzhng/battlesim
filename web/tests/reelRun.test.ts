@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { createReelRun, grassCells, type ReelPlate } from "@apps/battle-lab/src/benchmark/reelRun";
 import type { CaptureScene } from "@apps/battle-lab/src/capture/capture";
 import { emptyEffectCounts } from "@apps/battle-lab/src/presentedFrame";
-import type { FrameCounts, FramePlate } from "@apps/battle-lab/src/LabViewport";
+import type { FrameCounts, FramePlate } from "@apps/battle-lab/src/viewportRender";
 import type { FrameCount } from "@web/battle/benchmark/visualPresentation";
 
 const pose = { target: [0, 0] as [number, number], distance: 40, yaw: 0, pitch: 0.2 };

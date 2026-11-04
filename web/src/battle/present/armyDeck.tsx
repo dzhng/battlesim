@@ -6,35 +6,36 @@ import { stateIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { InfoPanel } from "./infoPanel";
 import { ownPanel, unitStrength, type PanelRules } from "./panelRows";
-import { CommandBar, unitName } from "./readouts";
+import { unitName } from "./readouts";
+import { CommandBar, type ArmyCommandState } from "./commandBar";
+import { useFeedValue, type FeedSource } from "@web/feed";
 
 /** Own observations populate the army row; selection remains the input owner's,
  *  and a plain click on an already selected card asks the page to centre on it. */
 export function ArmyDeck({
-  own,
+  state,
   selected,
   onSelect,
   onCenter,
   rules,
-  control,
   captions,
   reinforcements,
   pending = [],
   tick = 0,
 }: {
-  own: readonly OwnUnitView[];
+  state: FeedSource<ArmyCommandState>;
   selected: readonly number[];
   onSelect: (ids: number[]) => void;
   /** A plain click on a card already in `selected`: show this unit on the map. */
   onCenter?: (unit: OwnUnitView) => void;
   rules: PanelRules;
-  control?: Parameters<typeof CommandBar>[0]["control"];
   captions: ReactNode;
   reinforcements?: ReactNode;
   pending?: PendingPurchaseView[];
   /** The observed tick, which a waiting aircraft's countdown runs from. */
   tick?: number;
 }) {
+  const { own, control } = useFeedValue(state);
   const lower = useRef<HTMLDivElement>(null);
   const deck = useRef<HTMLElement>(null);
   const [hintHost, setHintHost] = useState<HTMLDivElement | null>(null);
@@ -236,7 +237,7 @@ export function ArmyDeck({
               );
             })}
           </div>
-          {control && <CommandBar control={control} own={own} hintHost={hintHost} />}
+          {control && <CommandBar state={state} hintHost={hintHost} />}
         </footer>
       )}
     </div>

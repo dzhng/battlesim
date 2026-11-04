@@ -102,58 +102,6 @@ fn a_round_lands_at_the_analytic_gravity_endpoint() {
 }
 
 #[test]
-fn a_gun_round_is_slowed_for_the_eye_but_flies_the_real_round_s_line() {
-    // Hollywood realism: a gun round flies slower than a real one, slow
-    // enough to follow, under its row's share of gravity, so it keeps the
-    // line of a real round at `speed / √gravity_scale` under full gravity:
-    // the same elevation for the distance, flown in longer. Flown, it
-    // arrives on the aim point at the solved time.
-    for name in ["rifle", "hmg", "tank_ap", "tank_he"] {
-        let (w, p) = (weapon(name), profile(name));
-        let real_mps = p.speed_mps / p.gravity_scale.sqrt();
-        let distance = w.range_m;
-        let world = flat([distance + 400.0, 400.0], "");
-        let o = v3(100.0, 200.0, 2.0);
-        let target = o + v3(distance, 0.0, 0.0);
-        let aim = Aim {
-            origin: o,
-            target,
-            target_velocity: V3::default(),
-            carrier: V3::default(),
-        };
-        let s = solve_launch_past(&world, &config(), &p, &aim, None).unwrap();
-        let (real, _) = analytic_elevations(real_mps, G, distance, 0.0);
-        let rel = (elevation(s.velocity) - real).abs() / real;
-        assert!(
-            rel < 1e-3,
-            "{name}: elevation {} vs the real round's {real}",
-            elevation(s.velocity)
-        );
-        let flown_s = distance / (p.speed_mps * real.cos());
-        assert!(
-            (s.time_of_flight_s - flown_s).abs() < 1e-3 * flown_s,
-            "{name}: {} s to {distance} m, the slowed round's {flown_s} s",
-            s.time_of_flight_s
-        );
-        let body = Mover::standing(7, 1, tank_shape(), target - v3(0.0, 0.0, 2.0));
-        let mut store = Projectiles::new(config());
-        store.launch(fired(&p, o, s.velocity));
-        let dt = config().tick_s();
-        let ticks = (s.time_of_flight_s / dt) as u64 + 30;
-        let events = fly(&mut store, &world, ticks, |k| vec![body.body(k, dt)]);
-        let [(tick, hit)] = impacts(&events)[..] else {
-            panic!("{name}: one impact expected: {events:?}")
-        };
-        assert_eq!(hit.struck, Struck::Body(sim::flight::BodyId(7)), "{name}");
-        let when = event_time(tick, &FlightEvent::Impact(hit), dt);
-        assert!(
-            (when - s.time_of_flight_s).abs() < dt,
-            "{name}: struck at {when} s"
-        );
-    }
-}
-
-#[test]
 fn a_missile_leaves_at_its_launch_speed_and_speeds_up_striking_at_its_full_range() {
     // A rocket motor: a slow launch the eye catches leaving the tube, then
     // faster and faster, never slowing, up to its top speed; its full range
@@ -797,10 +745,10 @@ fn a_synthetic_artillery_profile_reaches_2500m_on_the_high_arc() {
 
 #[test]
 fn every_shipped_artillery_row_reaches_its_declared_range_on_the_high_arc() {
-    let game: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    let raw: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/rules.json")).unwrap();
     let rules: contract::ballistics::FlightRules =
-        serde_json::from_value(game["physics"].clone()).unwrap();
+        serde_json::from_value(raw["physics"].clone()).unwrap();
     let config = FlightConfig::new(&rules, 30).unwrap();
     for name in [
         "artillery_howitzer",
@@ -809,7 +757,7 @@ fn every_shipped_artillery_row_reaches_its_declared_range_on_the_high_arc() {
         "artillery_rocket_heavy",
         "artillery_strike_missile",
     ] {
-        let row: WeaponBallistics = serde_json::from_value(game["weapons"][name].clone()).unwrap();
+        let row = crate::common::weapon(name);
         let profile = config.profile(&row).unwrap();
         let world = flat([row.range_m + 400.0, 400.0], "");
         let aim = Aim {
@@ -1188,3 +1136,6 @@ fn a_ricochet_keeps_its_deflected_flight_instead_of_the_post_target_fall() {
         - first_time;
     assert!((elapsed - 1.5).abs() < 1e-6, "ricochet lifetime: {elapsed}");
 }
+
+#[path = "flight_ballistics/authored_arc.rs"]
+mod authored_arc;

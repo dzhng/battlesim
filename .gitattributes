@@ -23,9 +23,5 @@ assets/runtime/audio/** filter=lfs diff=lfs merge=lfs -text
 specs/**/decisions.md merge=union
 specs/**/choices.md merge=union
 
-# The browser's shader export is generated (web/tests/shaderExport.test.ts):
-# collapsed in review diffs; regenerate it rather than merging it by hand.
-packages/battle-renderer/pipelines/** linguist-generated=true
-
 # Third-party code bundled with a skill.
 .agents/skills/*/vendor/** linguist-vendored

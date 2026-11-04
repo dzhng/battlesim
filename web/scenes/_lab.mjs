@@ -3,8 +3,25 @@
 import { writeFile } from "node:fs/promises";
 import { capture } from "./_png.mjs";
 
-/** Run `fn(arg)` in the page. */
-export const lab = (page, fn, arg) => page.evaluate(fn, arg);
+/** Run `fn(arg)` after any reset or side switch installs the lab again. */
+export async function lab(page, fn, arg) {
+  const invoke = new Function(
+    "arg",
+    `return window.__lab?.ready
+      ? Promise.resolve((${fn})(arg)).then(value => ({ ready: true, value }))
+      : { ready: false };`,
+  );
+  const deadline = Date.now() + 30000;
+  for (;;) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw Error("lab did not remain ready for a probe");
+    await page.waitForFunction(() => window.__lab?.ready, undefined, { timeout: remaining });
+    // A remount can clear the handle between two Playwright calls. Check and
+    // invoke in one browser task; retry only when the action never ran.
+    const result = await page.evaluate(invoke, arg);
+    if (result.ready) return result.value;
+  }
+}
 
 /** Hide everything drawn over the world (panels, callouts and their DOM
  *  leader lines, the frame rate, whose number changes shot to shot), so a
@@ -59,7 +76,15 @@ export async function presented(page, timeout = 30000) {
     () => {
       const tick = window.__lab.route.tick();
       const p = window.__lab.route.presented();
-      return !!p && p.tick === tick && p.clock >= tick - 1e-6;
+      const observation = window.__lab.route.observation();
+      if (!observation) return false;
+      const ground = observation.groundPatch;
+      return (
+        !!p &&
+        p.tick === tick &&
+        p.clock >= tick - 1e-6 &&
+        (!ground || (p.side === ground.side && p.epoch === ground.epoch))
+      );
     },
     undefined,
     { timeout, polling: 50 },
@@ -207,10 +232,11 @@ export async function snapshot(ctx, page, file) {
  *  catalog loads after the battle starts). */
 export async function openBattle(
   ctx,
-  { viewport, url, tick, timeout, grass = false, allowErrors } = {},
+  { viewport, url, tick, timeout, grass = false, allowErrors, initScript } = {},
 ) {
   timeout ??= ctx.readinessTimeout;
   const page = await ctx.newPage({ viewport, allowErrors });
+  if (initScript) await page.addInitScript(initScript);
   await ctx.openLab(page, url, timeout);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout });
   if (grass)

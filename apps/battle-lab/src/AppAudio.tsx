@@ -1,6 +1,7 @@
+import { audioMix } from "@web/audioMix";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { AppAudio, type AudioScreen } from "@packages/battle-audio/src/appAudio";
-import { gameAudio, gameSoundCatalog } from "./soundFeed";
+import { gameSoundCatalog } from "./soundFeed";
 
 const AppAudioContext = createContext<AppAudio | null>(null);
 
@@ -9,7 +10,7 @@ const AppAudioContext = createContext<AppAudio | null>(null);
 export function AppAudioProvider({ children }: { children: ReactNode }) {
   const [audio, setAudio] = useState<AppAudio | null>(null);
   useEffect(() => {
-    const engine = new AppAudio({ presentation: gameAudio, catalog: gameSoundCatalog });
+    const engine = new AppAudio({ presentation: audioMix, catalog: gameSoundCatalog });
     setAudio(engine);
     return () => engine.dispose();
   }, []);

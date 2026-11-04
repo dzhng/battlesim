@@ -12,6 +12,8 @@
 // Browser-only evidence: the same flight on the real field and catalog, and
 // a shot of the jet over the wood at its goal.
 import { gpuWarnings, aim } from "./_lab.mjs";
+import { writeFile } from "node:fs/promises";
+import { decode } from "./_png.mjs";
 import { unitType } from "./_units.mjs";
 import {
   encounter,
@@ -84,5 +86,43 @@ export async function run(ctx) {
       { onGround: false },
     );
   await shoot(ctx, page, "jet-over-the-village");
+  const stats = await page.evaluate(() => window.__lab.stats());
+  ctx.check(
+    "the high-air draw uses the jet's admitted authored geometry",
+    stats.models.installed.includes(unitType(JET).appearance) &&
+      stats.submitted.highColor.modelsIncludingProps.triangles > 0,
+    JSON.stringify({
+      appearance: unitType(JET).appearance,
+      admitted: stats.models.installed.includes(unitType(JET).appearance),
+      highColor: stats.submitted.highColor.modelsIncludingProps,
+    }),
+  );
+  const plane = await page.evaluate(() => {
+    const host = document.querySelector("[data-high-plane]");
+    const canvas = host?.querySelector("canvas");
+    return {
+      image: canvas?.toDataURL(),
+      betweenCards:
+        host?.previousElementSibling?.classList.contains("ro-plane") &&
+        host?.nextElementSibling?.hasAttribute("data-high-air"),
+    };
+  });
+  ctx.check("high-air output composes between ground and high-air readouts", plane.betweenCards);
+  let covered = 0;
+  let transparent = 0;
+  if (plane.image) {
+    const bytes = Buffer.from(plane.image.split(",")[1], "base64");
+    await writeFile(ctx.evidencePath("high-air-plane.png"), bytes);
+    const image = decode(bytes);
+    for (let i = 3; i < image.data.length; i += 4) {
+      if (image.data[i]) covered++;
+      else transparent++;
+    }
+  }
+  ctx.check(
+    "the separate browser output contains the jet on transparent background",
+    covered > 0 && transparent > 0,
+    JSON.stringify({ covered, transparent }),
+  );
   ctx.check("no GPU validation warnings", warnings.length === 0, warnings.join("\n"));
 }

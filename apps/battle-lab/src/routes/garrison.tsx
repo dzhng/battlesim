@@ -20,7 +20,7 @@ import { useBattleSession } from "../useBattleSession";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { durableSoldiers } from "../scenarios";
-import { useFeed } from "../feed";
+import { useFeed } from "@web/feed";
 import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
@@ -129,6 +129,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
     const garrisons = garrisonLayer(observation, surfaceZ);
     const orders = orderLayer(
       session.units,
+      session.rules.air,
       observation,
       control.selected,
       session.revealed,
@@ -145,6 +146,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
     control.selected,
     session.revealed,
     session.units,
+    session.rules.air,
   ]);
   const overlayFeed = useFeed(overlay);
 

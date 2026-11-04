@@ -5,8 +5,9 @@
 //! loudest moment to the library's reference before any authored level.
 use std::collections::HashMap;
 
+use super::catalog::{Cadence, Recipe};
 use super::synth::{self, seamless, Synth};
-use super::tables::{Cadence, Recipe, SoundTables};
+use super::tables::SoundTables;
 
 /// Library reference, before recipe, weapon, distance and bus gains (LUFS).
 pub const SOURCE_LOUDNESS_DB: f64 = -23.0;

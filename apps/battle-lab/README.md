@@ -97,16 +97,20 @@ installs previews through the same appearance loader used by battles.
 
 ## Observation feeds
 
-[Stable feeds](src/feed.ts) carry large, changing presentation data to the
-viewport without making it a new React prop tree on every publication. React's
+[Stable feeds](../../web/src/feed.ts) carry large, changing presentation data to the
+viewport and army HUD without making it a new React prop tree on every publication. React's
 development instrumentation traverses changed typed-array props, so an apparently
 ordinary prop update can retain enormous diagnostic payloads. Keep live geometry,
-fog and effects behind the existing feed boundary rather than copying them into
-component state.
+fog, effects and complete unit observations behind the feed boundary. Consumers
+that render React views subscribe to the same feed, publishing before paint so
+cards and commands agree with the committed selection. This keeps full observations
+out of development profiling details.
 
 [Page resources](src/appResources.ts) retain the admitted GPU across screen changes;
 [the viewport](src/LabViewport.tsx) owns the canvas configuration and scene
-allocations. The battle draws one pixel per CSS pixel on any display, and a
+allocations. [Session telemetry](src/useViewportGpu.ts) borrows that live renderer;
+the viewport withdraws the borrow before freeing its scene, so telemetry has no
+renderer between generations. The battle draws one pixel per CSS pixel on any display, and a
 high-density screen scales it up: drawing at the display's density multiplies the
 frame's cost for detail a moving battlefield hardly shows, while the HUD, drawn by
 the page, stays at full density. A required resource failure ends play until manual Reload, while the
@@ -114,8 +118,16 @@ menu remains available. Document departure releases the page GPU; component
 refresh cleanup only detaches listeners so development refresh cannot destroy a
 still-live page's resources.
 
-The viewport subscribes and updates [the renderer](../../packages/battle-renderer/README.md)
-through that boundary. Published cause and identity remain intact; feed interpolation
+Source loading retains the last complete topology and art generation for the
+same battle and observer. Downloads cannot withdraw the running battlefield;
+changing battle or observer retires its old generation. Audio continues receiving
+publications during visual admission. The viewport reconciles sources after
+canonical framing so a topology change takes one rebuild path. Picking,
+projection and drawn observation advance with successful submission.
+
+The viewport subscribes and updates the [browser scene adapter](../../web/src/battle/render/scene.ts)
+and [shared render runtime](../../crates/renderer-core/README.md) through that boundary.
+Published cause and identity remain intact; feed interpolation
 cannot grant visibility or invent firing. [The scene runner](../../web/scene.mjs)
 checks oversized development performance details as well as ordinary page errors.
 
@@ -156,5 +168,5 @@ The [geometry scaling control](src/benchmark/geometryScaling.ts) appends distant
 terrain to one admitted export without recompiling the local patch. It uses the
 production viewport and measurement pilot; material domains and static identities
 stay local while the full mesh reaches receiver fitting. Its registered scene is
-an explicit measurement tool. The [performance measurement plan](../../specs/performance/slices/measurement.md)
-records its scope and outstanding acceptance gates.
+an explicit measurement tool. The [performance rationale](../../specs/done/performance/README.md)
+records its scope and measurement limits.

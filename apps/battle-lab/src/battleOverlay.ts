@@ -1,3 +1,4 @@
+import type { ScenarioRules } from "./battleSessionOptions";
 // What one side's battle view draws from its own observation besides the
 // static world and its structures (the session's fitted props), one layer
 // per concern: contact glyphs, visible flight and strike marks, garrison
@@ -14,7 +15,6 @@
 // them as diagnostics.
 import { gameHud } from "@web/battle/present/hudTheme";
 import type { SideName } from "@web/battle/sim/protocol";
-import game from "@fixtures/game.json";
 import { airborne, fixedWing, type UnitCatalog } from "@packages/scene-assets/src/units";
 import { buildContactGlyphs, type ContactFacing } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
@@ -250,6 +250,7 @@ export function orderView(
  *  its camera). */
 export function orderLayer(
   units: UnitCatalog,
+  air: ScenarioRules["air"],
   o: ObservationView,
   selected: readonly number[],
   reveal: RevealedOrders,
@@ -258,7 +259,7 @@ export function orderLayer(
   ghosts = false,
   allies: ReadonlyMap<number, unknown> = new Map(),
 ): WorldMeshes {
-  const aloft = ghostAloft(units, game.air);
+  const aloft = ghostAloft(units, air);
   return buildOrderOverlay(
     o.own
       // A squad a carrier holds has no marks of its own: it is off the field.
@@ -306,6 +307,7 @@ export function aircraftLayer(
 
 export function buildBattleOverlay(
   units: UnitCatalog,
+  rules: Pick<ScenarioRules, "air" | "tick_hz">,
   o: ObservationView,
   selected: readonly number[],
   z: SurfaceHeight,
@@ -329,7 +331,7 @@ export function buildBattleOverlay(
 ): WorldMeshes {
   const contactMarks = contactLayer(contacts, z, facing);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, stroke, showOrders);
-  const orders = orderLayer(units, o, selected, reveal, z, stroke, showOrders, allies);
+  const orders = orderLayer(units, rules.air, o, selected, reveal, z, stroke, showOrders, allies);
   const aircraft = aircraftLayer(units, o, z, stroke);
   const deployments = scenario.deployments.map(({ center, facing }) =>
     buildDeploymentMarker(center, facing, z, gameOrderStyle, gameHud.accent, { stroke }),
@@ -352,7 +354,7 @@ export function buildBattleOverlay(
       objective.center,
       objective.radiusM,
       line,
-      objective.contested && Math.floor(o.tick / game.tick_hz) % 2 === 1
+      objective.contested && Math.floor(o.tick / rules.tick_hz) % 2 === 1
         ? [...gameHud.warn, 1]
         : objective.owner === "red"
           ? [...gameHud.enemy, 1]

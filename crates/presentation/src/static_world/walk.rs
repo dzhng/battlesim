@@ -90,6 +90,17 @@ pub struct BuildingWalk {
 }
 
 impl BuildingWalk {
+    /// A new art generation retains the player's detail and residency policy.
+    pub fn replace_buildings(&self, buildings: Buildings) -> Self {
+        let mut next = Self::new(buildings, self.authored_lod, self.chunk_m, self.pool);
+        next.lod = self.lod;
+        next
+    }
+
+    pub fn pool_capacity(&self) -> usize {
+        self.pool
+    }
+
     /// Draws the tier rule's thresholds `scale` times their authored values
     /// (a graphics quality: below 1 a building coarsens nearer the eye).
     pub fn set_lod_scale(&mut self, scale: f64) {

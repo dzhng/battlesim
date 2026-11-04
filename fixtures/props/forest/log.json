@@ -13,6 +13,7 @@
         "hp": 120
       },
       "appearance": {
+        "stand_in_tint": [0.62, 0.62, 0.62],
         "drawn_by": "log",
         "map_only": true
       },
