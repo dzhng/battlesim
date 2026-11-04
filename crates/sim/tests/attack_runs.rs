@@ -748,3 +748,35 @@ fn a_bomb_run_rolls_into_its_break_from_the_release() {
         (landed.expect("the bomb never landed").xy() - sim::math::v2(aim[0], aim[1])).length();
     assert!(miss < blast_m, "the bomb landed {miss:.0} m from the aim");
 }
+
+/// A jet flying along an edge at an aim near it bombs on its first
+/// approach, rolling onto the aim and running straight in from its own
+/// side: the edge it runs parallel to never sends it out on a lap to come
+/// back at the aim from inside the map.
+#[test]
+fn a_bomb_run_along_an_edge_comes_straight_in_from_the_jets_side() {
+    let aim = [2500.0, 700.0];
+    let mut battle = run_field(
+        run_rules(&["air_bomb"]),
+        json!([{ "side": "blue", "kind": "test_jet", "position": [500.0, 700.0], "yaw": 0.45 }]),
+    );
+    assert_eq!(battle.accept(attack_ground(1, aim)).error, None);
+    let dt = 1.0 / f64::from(battle.rules().tick_hz);
+    let speed = run_bounds().speed;
+    // Straight there, with a lap's worth of time to spare to line up.
+    let lap_s = std::f64::consts::TAU / RUN_TURN_DEG_S.to_radians();
+    let window_s = (aim[0] - 500.0) / speed + lap_s;
+    for _ in 0..(window_s / dt) as u64 {
+        battle.step();
+        if battle.rounds().any(|(_, r)| r.unit == UnitId(0)) {
+            let yaw = battle.unit(UnitId(0)).unwrap().yaw;
+            assert!(
+                sim::math::wrap_angle(yaw).abs() < std::f64::consts::FRAC_PI_4,
+                "it released heading {:.0} deg, not in from its own side",
+                yaw.to_degrees()
+            );
+            return;
+        }
+    }
+    panic!("no bomb left the jet on its first approach, within {window_s:.1}s");
+}

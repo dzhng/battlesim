@@ -15,7 +15,7 @@ impl Bounds {
     }
 
     /// Each edge as seen from `p`: the room to it, and its outward normal.
-    fn edges(self, p: V2) -> [(f64, V2); 4] {
+    pub(crate) fn edges(self, p: V2) -> [(f64, V2); 4] {
         [
             (p.x - self.min.x, v2(-1.0, 0.0)),
             (self.max.x - p.x, v2(1.0, 0.0)),

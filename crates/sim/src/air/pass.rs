@@ -167,31 +167,50 @@ fn line_up(
     let (centre, radius) = turn_circle(state, limits, aim);
     let from_centre = aim - centre;
     // Out along the line the run will come back on, and where on it the run
-    // must end. Clear of the edges the line is straight away from the aim,
-    // and the run ends at its release point. By an edge it is a fixed line
-    // into the map, so the run comes back at the edge from inside rather
-    // than along it, and ends at its release point or sooner where the edge
-    // guard takes it. The jet flies out two turn radii to the side of that
-    // line so that turning in lands it on it, and turns in only once out on
-    // that leg, where the turn toward the aim is a turn away from the edge.
-    // Two seconds' flight, and the roll out of the turn in onto it.
-    let settle = speed * (2.0 + limits.roll_in_s);
+    // must end. Where it fits, the line is straight away from the aim on the
+    // jet's side, and the run ends at its release point or sooner where the
+    // edge guard takes it. It fits when flying out along it, a full run-in
+    // and a turn radius, and the turn round at its end keep the margin
+    // inside every edge: an edge the line runs along, however near the aim,
+    // never bends it. Where it doesn't fit it is a fixed line into the map,
+    // so the run comes back at the edge from inside rather than along it.
+    // The jet flies out two turn radii to the side of that line so that
+    // turning in lands it on it, and turns in only once out on that leg,
+    // where the turn toward the aim is a turn away from the edge.
+    // Two seconds' flight, and the lag of its roll out of the turn in onto
+    // the line: half its roll-in, as rolling into it costs.
+    let level = FixedWingState {
+        turn_rate_rad_s: 0.0,
+        ..*state
+    };
+    let settle = speed * (2.0 + roll_lag_s(&level, limits, 1.0));
+    let away = bearing + core::f64::consts::PI;
+    let away_dir = v2(libm::cos(away), libm::sin(away));
+    let straight_ends = release
+        .ahead_m
+        .max(guard_short_of(aim, -away_dir, state, limits, bounds, dt));
+    let straight_fits = bounds.edges(aim).into_iter().all(|(room, outward)| {
+        let along = away_dir.dot(outward).max(0.0);
+        room >= limits.edge_margin_m + radius + (settle + straight_ends) * along
+    });
     let free_run_in = settle + release.ahead_m;
-    let (out, through, on_leg, ends) =
-        match inward_from(aim, limits.edge_margin_m + radius + free_run_in, bounds) {
-            None => (bearing + core::f64::consts::PI, aim, true, release.ahead_m),
-            Some(way) => {
-                let out = libm::atan2(way.y, way.x);
-                let out_dir = v2(libm::cos(out), libm::sin(out));
-                let left = v2(-out_dir.y, out_dir.x);
-                let side = if left.dot(-to_aim) < 0.0 { -1.0 } else { 1.0 };
-                let through = aim + left * (2.0 * radius * side);
-                let on_leg = wrap_angle(state.heading - out).abs() < core::f64::consts::FRAC_PI_4
-                    && (state.pos.xy() - through).dot(left).abs() < radius;
-                let guarded_at = guard_short_of(aim, -out_dir, state, limits, bounds, dt);
-                (out, through, on_leg, release.ahead_m.max(guarded_at))
-            }
-        };
+    let edge_line = (!straight_fits)
+        .then(|| inward_from(aim, limits.edge_margin_m + radius + free_run_in, bounds))
+        .flatten();
+    let (out, through, on_leg, ends) = match edge_line {
+        None => (away, aim, true, straight_ends),
+        Some(way) => {
+            let out = libm::atan2(way.y, way.x);
+            let out_dir = v2(libm::cos(out), libm::sin(out));
+            let left = v2(-out_dir.y, out_dir.x);
+            let side = if left.dot(-to_aim) < 0.0 { -1.0 } else { 1.0 };
+            let through = aim + left * (2.0 * radius * side);
+            let on_leg = wrap_angle(state.heading - out).abs() < core::f64::consts::FRAC_PI_4
+                && (state.pos.xy() - through).dot(left).abs() < radius;
+            let guarded_at = guard_short_of(aim, -out_dir, state, limits, bounds, dt);
+            (out, through, on_leg, release.ahead_m.max(guarded_at))
+        }
+    };
     let run_in = settle + ends;
     // A turn in the edge guard takes over is broken like a run: the jet
     // lines up again rather than riding the edge.
