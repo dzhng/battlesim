@@ -29,6 +29,7 @@ fn scene(gpu: &gpu::Gpu) -> (Replay, Runtime) {
         xray_min_hidden_fraction: None,
         paint: None,
         separate_high_air: false,
+        hdr_output: false,
         water_detail: Default::default(),
         controls: Default::default(),
     };

@@ -59,8 +59,17 @@ and props, and the units its encounter fields with their effects
 (`presentation::fielded`). Then it frames every record through the presentation
 crate and writes each plate the browser wrote, under the same name. A plate
 whose counts differ from the browser's fails the run: it exits with an error
-listing each difference after the report. Its usage text lists the flags. Run it
-under the GPU lock.
+listing each difference after the report. Its argument parser (`args` in
+[`main_desktop.rs`](src/main_desktop.rs)) owns the flags. Run it under the GPU
+lock.
+
+`--fps <n>` writes a clip instead of the plates: a frame at every 1/n s of reel
+time, from `--from-ms` (default 0) to `--to-ms` (default the last record),
+each showing every record up to its time, with `--sound` cut to the same
+window. `--hdr` writes each plate or frame as the HDR look (see the [capture
+README](../../apps/battle-lab/src/capture/README.md#hdr-clips)) in an EXR
+rather than the display in a PNG; `--no-music` leaves the music out of the
+sound.
 
 The window opens borderless and off-screen by default, so nothing appears on
 the user's screen. On macOS, `wgpu` presents nothing to a window that isn't

@@ -109,6 +109,7 @@ fn post_modes_and_paint_inspection_preserve_their_output_contracts() {
         &targets,
         bytemuck::bytes_of(&bloom),
         bytemuck::bytes_of(&grade),
+        false,
     );
     let mut results = vec![];
     for mode in [PostMode::Raw, PostMode::Ungraded, PostMode::Look] {

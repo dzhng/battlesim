@@ -36,45 +36,60 @@ pub(super) fn write_png(path: &std::path::Path, size: [u32; 2], rgba: &[u8]) -> 
     writer.write_image_data(rgba).map_err(|e| e.to_string())
 }
 
+/// Writes an RGBA16F readback (little-endian half floats) as an RGB EXR.
 pub(super) fn write_exr(
     path: &std::path::Path,
     size: [u32; 2],
     rgba16f: &[u8],
 ) -> Result<(), String> {
     use exr::prelude::*;
-    use half::f16;
-
     let width = size[0] as usize;
-    let height = size[1] as usize;
-
-    let pixels: Vec<f16> = rgba16f
-        .chunks_exact(2)
-        .map(|b| f16::from_le_bytes([b[0], b[1]]))
-        .collect();
-
-    let create_channel = |offset: usize| -> Vec<f16> {
-        (0..width * height)
-            .map(|i| pixels[i * 4 + offset])
-            .collect()
+    let half = |pixel: usize, channel: usize| {
+        let at = (pixel * 4 + channel) * 2;
+        f16::from_le_bytes([rgba16f[at], rgba16f[at + 1]])
     };
-
-    let red = create_channel(0);
-    let green = create_channel(1);
-    let blue = create_channel(2);
-
+    let channels = SpecificChannels::rgb(|pos: Vec2<usize>| {
+        let pixel = pos.y() * width + pos.x();
+        (half(pixel, 0), half(pixel, 1), half(pixel, 2))
+    });
     let layer = Layer::new(
-        (width, height),
+        (width, size[1] as usize),
         LayerAttributes::named("main"),
         Encoding::SMALL_LOSSLESS,
-        SpecificChannels::rgb(|pos: Vec2<usize>| {
-            let idx = pos.y() * width + pos.x();
-            (red[idx], green[idx], blue[idx])
-        }),
+        channels,
     );
-
-    let image = Image::from_layer(layer);
-    image
+    Image::from_layer(layer)
         .write()
         .to_file(path)
         .map_err(|e| format!("{}: {e}", path.display()))
+}
+
+impl super::Run {
+    /// Draws the prepared frame and writes it to `path`: the display as a
+    /// PNG, or the HDR look as an EXR beside it. Then presents it.
+    pub(super) fn write_frame(&mut self, path: &Path) -> Result<(), String> {
+        let (device, queue) = (&self.gpu.device, &self.gpu.queue);
+        let mut encoder = device.create_command_encoder(&Default::default());
+        self.scene
+            .encode(device, queue, &self.view, &mut encoder, Default::default());
+        let hdr = self.scene.post.hdr_output();
+        let source = hdr.map_or(&self.scene.targets.display_texture, |view| view.texture());
+        let read = renderer_core::readback::RgbaReadback::encode(device, &mut encoder, source)?;
+        queue.submit([encoder.finish()]);
+        let mut texels = pollster::block_on(read.read(device))?;
+        let size = self.scene.targets.size;
+        if hdr.is_some() {
+            output::write_exr(&path.with_extension("exr"), size, &texels)?;
+        } else {
+            // Native plates are opaque exports, independent of stored display alpha.
+            for pixel in texels.as_chunks_mut::<4>().0 {
+                pixel[3] = 255;
+            }
+            output::write_png(path, size, &texels)?;
+        }
+        self.plates += 1;
+        let encoder = device.create_command_encoder(&Default::default());
+        self.present(encoder);
+        Ok(())
+    }
 }

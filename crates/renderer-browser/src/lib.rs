@@ -114,6 +114,7 @@ impl Renderer {
                     paint: settings.paint,
                     xray_min_hidden_fraction: settings.xray_min_hidden_fraction,
                     separate_high_air: high_canvas.is_some(),
+                    hdr_output: false,
                     water_detail: settings.water_detail.unwrap_or_default(),
                     controls: settings.controls.unwrap_or_default(),
                 },

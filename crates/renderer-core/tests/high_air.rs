@@ -249,6 +249,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         &targets,
         bytemuck::bytes_of(&light.bloom()),
         bytemuck::bytes_of(&light.grade()),
+        false,
     );
     let appearances = [Appearance {
         name_len: 4,

@@ -1,18 +1,25 @@
-// ffmpeg argv: HDR EXR frames + WAV audio → HLG HEVC Main10 MP4.
+// ffmpeg argv: the native client's HDR frames + WAV → HLG HEVC Main 10 MP4
+// (or H.264 High 10), the format X and iPhone play as HDR.
 //
-// The native client outputs HLG-encoded BT.2020 half-float EXR frames.
-// The shader applies the HLG OETF directly, so frames are in [0, 1] HLG space.
-// This module encodes them to HLG HEVC for X/iPhone HDR playback.
-//
-// Output specs for X/iPhone HDR:
-// - libx265 Main 10 profile
-// - yuv420p10le pixel format
-// - BT.2020 color primaries and matrix
-// - ARIB STD-B67 (HLG) transfer function
-// - Limited range
-// - hvc1 tag for QuickTime/iOS compatibility
-// - Repeat headers for robustness
+// The frames already hold the HLG signal in BT.2020 primaries (the renderer's
+// HDR look encodes it), so ffmpeg only converts RGB to 10-bit BT.2020 YUV and
+// tags the stream; it applies no transfer function of its own.
 
+import { AAC } from "./transcode.mjs";
+
+const HLG_TAGS = [
+  "-pix_fmt",
+  "yuv420p10le",
+  "-color_primaries",
+  "bt2020",
+  "-colorspace",
+  "bt2020nc",
+  "-color_trc",
+  "arib-std-b67",
+  "-color_range",
+  "tv",
+];
+/** `hvc1` and repeated headers are what QuickTime and iOS need to play HEVC. */
 export const HLG_HEVC = [
   "-c:v",
   "libx265",
@@ -22,22 +29,12 @@ export const HLG_HEVC = [
   "18",
   "-profile:v",
   "main10",
-  "-pix_fmt",
-  "yuv420p10le",
-  "-color_primaries",
-  "bt2020",
-  "-colorspace",
-  "bt2020nc",
-  "-color_trc",
-  "arib-std-b67",
-  "-color_range",
-  "tv",
+  ...HLG_TAGS,
   "-tag:v",
   "hvc1",
   "-x265-params",
   "repeat-headers=1",
 ];
-
 export const HLG_H264 = [
   "-c:v",
   "libx264",
@@ -47,60 +44,18 @@ export const HLG_H264 = [
   "18",
   "-profile:v",
   "high10",
-  "-pix_fmt",
-  "yuv420p10le",
-  "-color_primaries",
-  "bt2020",
-  "-colorspace",
-  "bt2020nc",
-  "-color_trc",
-  "arib-std-b67",
-  "-color_range",
-  "tv",
+  ...HLG_TAGS,
 ];
 
-export const AAC = ["-c:a", "aac", "-b:a", "192k", "-ar", "48000"];
-
-/**
- * Build ffmpeg arguments to encode EXR frames to HLG HEVC.
- * The input EXR frames are HLG-encoded BT.2020 (the shader applies HLG OETF).
- * We use scale with out_color_matrix=bt2020 to convert RGB to YUV correctly,
- * and setparams to tag the output with proper color metadata.
- *
- * @param {Object} options
- * @param {string} options.framePattern - Input frame pattern (e.g., "frames/frame-%06d.exr")
- * @param {string} options.audio - Input audio file (WAV)
- * @param {string} options.output - Output MP4 file
- * @param {number} options.fps - Frame rate
- * @param {number} options.width - Frame width
- * @param {number} options.height - Frame height
- * @param {boolean} [options.hevc=true] - Use HEVC (true) or H.264 (false)
- * @param {number} [options.startNumber=0] - Start number for frame sequence
- */
-export function hdrEncodeArgs({
-  framePattern,
-  audio,
-  output,
-  fps,
-  width,
-  height,
-  hevc = true,
-  startNumber = 0,
-}) {
-  const videoCodec = hevc ? HLG_HEVC : HLG_H264;
-  // The EXR frames are HLG-encoded BT.2020. We need to:
-  // 1. Scale with BT.2020 color matrix for proper RGB→YUV conversion
-  // 2. Use limited range (16-235) for broadcast compatibility
-  // 3. Tag the output with proper HLG/BT.2020 metadata
+/** Frames `framePattern` (from 0) at `fps`, fitted into width×height, with
+ * `audio` when given. */
+export function hdrEncodeArgs({ framePattern, audio, output, fps, width, height, hevc = true }) {
   const vf = [
-    // Scale with BT.2020 color matrix and limited range
     `scale=${width}:${height}:force_original_aspect_ratio=decrease:out_color_matrix=bt2020:out_range=tv`,
     `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`,
     "setsar=1",
-    // Set color parameters: BT.2020 primaries, BT.2020 non-constant luminance, HLG transfer
     "setparams=color_primaries=bt2020:color_trc=arib-std-b67:colorspace=bt2020nc",
   ].join(",");
-
   return [
     "-y",
     "-hide_banner",
@@ -108,7 +63,6 @@ export function hdrEncodeArgs({
     "error",
     "-framerate",
     String(fps),
-    ...(startNumber > 0 ? ["-start_number", String(startNumber)] : []),
     "-i",
     framePattern,
     ...(audio ? ["-i", audio] : []),
@@ -118,7 +72,7 @@ export function hdrEncodeArgs({
     "cfr",
     "-r",
     String(fps),
-    ...videoCodec,
+    ...(hevc ? HLG_HEVC : HLG_H264),
     ...(audio ? AAC : ["-an"]),
     "-movflags",
     "+faststart",

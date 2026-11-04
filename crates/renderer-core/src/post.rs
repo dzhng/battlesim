@@ -20,7 +20,6 @@ pub enum PostMode {
     Look,
     Ungraded,
     Raw,
-    Hdr,
 }
 
 pub struct PostResources {
@@ -32,10 +31,16 @@ pub struct PostResources {
     bloom: Buffer,
     grade: Buffer,
     steps: Vec<Buffer>,
-    hdr_pipeline: RenderPipeline,
-    /// The HDR output texture view for rendering.
-    pub hdr_output: TextureView,
-    pub hdr_texture: Texture,
+    /// Where the look goes instead of the display when the runtime encodes
+    /// HDR video (`RuntimeConfig::hdr_output`).
+    hdr: Option<HdrOutput>,
+}
+
+/// The look as an HLG signal in BT.2020 primaries, in a half-float target a
+/// capture reads back.
+struct HdrOutput {
+    pipeline: RenderPipeline,
+    target: TextureView,
 }
 
 fn texture(device: &Device, label: &str, size: [u32; 2]) -> TextureView {
@@ -64,6 +69,7 @@ pub fn new(
     targets: &Targets,
     bloom_bytes: &[u8],
     grade_bytes: &[u8],
+    hdr_output: bool,
 ) -> PostResources {
     let sampler = device.create_sampler(&SamplerDescriptor {
         label: Some("post"),
@@ -153,19 +159,24 @@ pub fn new(
             grade.as_entire_binding(),
         ],
     );
-    let hdr_texture = device.create_texture(&TextureDescriptor {
-        label: Some("hdr-output"),
-        size: Extent3d {
-            width: targets.size[0],
-            height: targets.size[1],
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: TextureDimension::D2,
-        format: HDR_FORMAT,
-        usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_SRC,
-        view_formats: &[],
+    let hdr = hdr_output.then(|| HdrOutput {
+        pipeline: pipelines.render("postHdr").clone(),
+        target: device
+            .create_texture(&TextureDescriptor {
+                label: Some("post-hdr-output"),
+                size: Extent3d {
+                    width: targets.size[0],
+                    height: targets.size[1],
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: TextureDimension::D2,
+                format: HDR_FORMAT,
+                usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_SRC,
+                view_formats: &[],
+            })
+            .create_view(&Default::default()),
     });
     PostResources {
         stages,
@@ -176,9 +187,7 @@ pub fn new(
         bloom,
         grade,
         steps,
-        hdr_pipeline: pipelines.render("postHdr").clone(),
-        hdr_output: hdr_texture.create_view(&Default::default()),
-        hdr_texture,
+        hdr,
     }
 }
 
@@ -229,8 +238,13 @@ impl PostResources {
         Ok(())
     }
 
+    /// The HDR target the look is encoded into, when the runtime encodes HDR.
+    pub fn hdr_output(&self) -> Option<&TextureView> {
+        self.hdr.as_ref().map(|hdr| &hdr.target)
+    }
+
     pub fn encode(&self, encoder: &mut CommandEncoder, mode: PostMode) {
-        if mode == PostMode::Look || mode == PostMode::Hdr {
+        if mode == PostMode::Look {
             for stage in &self.stages {
                 Self::screen(
                     encoder,
@@ -241,12 +255,12 @@ impl PostResources {
                 );
             }
         }
-        if mode == PostMode::Hdr {
+        if let (PostMode::Look, Some(hdr)) = (mode, &self.hdr) {
             Self::screen(
                 encoder,
-                &self.hdr_pipeline,
+                &hdr.pipeline,
                 &self.final_group,
-                &self.hdr_output,
+                &hdr.target,
                 "post-hdr",
             );
             return;
@@ -254,7 +268,7 @@ impl PostResources {
         let pipeline = &self.finals[match mode {
             PostMode::Look => 0,
             PostMode::Ungraded => 1,
-            PostMode::Raw | PostMode::Hdr => 2,
+            PostMode::Raw => 2,
         }];
         Self::screen(
             encoder,
@@ -277,7 +291,8 @@ impl PostResources {
             memory.view(&stage.target);
         }
         memory.view(&self.display);
-        memory.view(&self.hdr_output);
-        memory.texture(&self.hdr_texture);
+        if let Some(hdr) = &self.hdr {
+            memory.view(&hdr.target);
+        }
     }
 }

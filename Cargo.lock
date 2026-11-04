@@ -1152,7 +1152,6 @@ dependencies = [
  "contract",
  "exr",
  "flate2",
- "half",
  "kira",
  "png",
  "pollster",

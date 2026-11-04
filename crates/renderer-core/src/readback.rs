@@ -105,13 +105,15 @@ impl Readback {
     }
 }
 
-/// Raw stored RGBA bytes, top row first, independent of row-copy alignment or
-/// RGBA/BGRA storage. The caller supplies an actual copyable display texture.
+/// Raw stored RGBA texels, top row first, independent of row-copy alignment or
+/// RGBA/BGRA storage: 4 bytes a pixel from an 8-bit texture, 8 (little-endian
+/// half floats) from `Rgba16Float`. The caller supplies a copyable texture.
 pub struct RgbaReadback {
     readback: Readback,
     width: u32,
     height: u32,
     padded_row: u32,
+    texel: u32,
     bgra: bool,
 }
 
@@ -121,10 +123,11 @@ impl RgbaReadback {
         encoder: &mut CommandEncoder,
         source: &Texture,
     ) -> Result<Self, String> {
-        let bgra = match source.format() {
-            TextureFormat::Rgba8Unorm | TextureFormat::Rgba8UnormSrgb => false,
-            TextureFormat::Bgra8Unorm | TextureFormat::Bgra8UnormSrgb => true,
-            _ => return Err("RGBA readback requires an RGBA8 or BGRA8 texture".into()),
+        let (texel, bgra) = match source.format() {
+            TextureFormat::Rgba8Unorm | TextureFormat::Rgba8UnormSrgb => (4, false),
+            TextureFormat::Bgra8Unorm | TextureFormat::Bgra8UnormSrgb => (4, true),
+            TextureFormat::Rgba16Float => (8, false),
+            _ => return Err("RGBA readback requires an RGBA8, BGRA8 or RGBA16F texture".into()),
         };
         if source.dimension() != TextureDimension::D2
             || source.depth_or_array_layers() != 1
@@ -138,7 +141,7 @@ impl RgbaReadback {
         let width = source.width();
         let height = source.height();
         let padded_row = width
-            .checked_mul(4)
+            .checked_mul(texel)
             .ok_or("RGBA row overflows")?
             .checked_next_multiple_of(COPY_BYTES_PER_ROW_ALIGNMENT)
             .ok_or("RGBA row alignment overflows")?;
@@ -160,13 +163,14 @@ impl RgbaReadback {
             width,
             height,
             padded_row,
+            texel,
             bgra,
         })
     }
 
     pub async fn read(self, device: &Device) -> Result<Vec<u8>, String> {
         let bytes = self.readback.read(device).await?;
-        let row = self.width as usize * 4;
+        let row = (self.width * self.texel) as usize;
         let mut rgba = Vec::with_capacity(row * self.height as usize);
         for line in bytes.chunks_exact(self.padded_row as usize) {
             rgba.extend_from_slice(&line[..row]);
@@ -177,80 +181,5 @@ impl RgbaReadback {
             }
         }
         Ok(rgba)
-    }
-}
-
-/// Raw stored RGBA16F half-float bytes, top row first.
-/// The caller supplies a COPY_SRC Rgba16Float texture.
-pub struct Rgba16fReadback {
-    readback: Readback,
-    width: u32,
-    height: u32,
-    padded_row: u32,
-}
-
-impl Rgba16fReadback {
-    pub fn encode(
-        device: &Device,
-        encoder: &mut CommandEncoder,
-        source: &Texture,
-    ) -> Result<Self, String> {
-        if source.format() != wgpu::TextureFormat::Rgba16Float {
-            return Err("Rgba16fReadback requires an Rgba16Float texture".into());
-        }
-        if source.dimension() != TextureDimension::D2
-            || source.depth_or_array_layers() != 1
-            || source.sample_count() != 1
-            || !source.usage().contains(TextureUsages::COPY_SRC)
-        {
-            return Err(
-                "Rgba16fReadback requires a single-layer, single-sample COPY_SRC texture".into(),
-            );
-        }
-        let width = source.width();
-        let height = source.height();
-        let padded_row = width
-            .checked_mul(8)
-            .ok_or("Rgba16f row overflows")?
-            .checked_next_multiple_of(COPY_BYTES_PER_ROW_ALIGNMENT)
-            .ok_or("Rgba16f row alignment overflows")?;
-        let readback = Readback::allocate(device, u64::from(padded_row) * u64::from(height))?;
-        encoder.copy_texture_to_buffer(
-            source.as_image_copy(),
-            TexelCopyBufferInfo {
-                buffer: &readback.buffer,
-                layout: TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(padded_row),
-                    rows_per_image: Some(height),
-                },
-            },
-            source.size(),
-        );
-        Ok(Self {
-            readback,
-            width,
-            height,
-            padded_row,
-        })
-    }
-
-    /// Read back the texture data as half-float values (8 bytes per pixel: R16G16B16A16).
-    pub async fn read(self, device: &Device) -> Result<Vec<u8>, String> {
-        let bytes = self.readback.read(device).await?;
-        let row = self.width as usize * 8;
-        let mut rgba16f = Vec::with_capacity(row * self.height as usize);
-        for line in bytes.chunks_exact(self.padded_row as usize) {
-            rgba16f.extend_from_slice(&line[..row]);
-        }
-        Ok(rgba16f)
-    }
-
-    pub fn width(&self) -> u32 {
-        self.width
-    }
-
-    pub fn height(&self) -> u32 {
-        self.height
     }
 }

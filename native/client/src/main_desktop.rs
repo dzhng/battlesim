@@ -25,7 +25,7 @@ use std::time::{Duration, Instant};
 use native_client::audio::{self, Audio, OutputSettings};
 use native_client::bench::{self, Bench};
 use native_client::bundle::Library;
-use native_client::capture::Replay;
+use native_client::capture::{Record, Replay};
 use native_client::counts::Counted;
 use native_client::gpu::{self, Gpu};
 use presentation::assets::RUNTIME;
@@ -95,18 +95,12 @@ struct Args {
     window: String,
     pace: usize,
     sound: Option<PathBuf>,
-    /// Output HDR frames (HLG-encoded BT.2020 half-float EXR).
+    /// Write the look as HLG half-float EXRs rather than PNGs.
     hdr: bool,
-    /// Write every frame, not just plates (for video encoding).
-    all_frames: bool,
-    /// Time window: only render frames from this millisecond.
-    from_ms: Option<f64>,
-    /// Time window: only render frames up to this millisecond.
-    to_ms: Option<f64>,
-    /// Disable music during sound rendering.
+    /// Leave the music out of the sound.
     no_music: bool,
-    /// Output frame rate for --all-frames mode (default 60).
-    fps: u32,
+    /// Frames at a fixed rate over a window of the reel, instead of plates.
+    clip: Option<Clip>,
 }
 
 /// Resolve native runtime files without relying on the build machine's path.
@@ -141,12 +135,7 @@ fn args() -> Result<Args, String> {
     let (mut scene, mut out, mut window, mut pace) = (None, None, "offscreen".to_owned(), 120);
     let (mut sound, mut bench) = (None, None);
     let (mut freeze_index, mut bench_frames) = (None, None);
-    let mut hdr = false;
-    let mut all_frames = false;
-    let mut from_ms: Option<f64> = None;
-    let mut to_ms: Option<f64> = None;
-    let mut no_music = false;
-    let mut fps: u32 = 60;
+    let (mut hdr, mut no_music, mut fps, mut from_ms, mut to_ms) = (false, false, None, None, None);
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
         let mut value = || it.next().ok_or(format!("{flag} needs a value"));
@@ -173,20 +162,10 @@ fn args() -> Result<Args, String> {
                 );
             }
             "--hdr" => hdr = true,
-            "--all-frames" => all_frames = true,
-            "--from-ms" => {
-                from_ms = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?);
-            }
-            "--to-ms" => {
-                to_ms = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?);
-            }
             "--no-music" => no_music = true,
-            "--fps" => {
-                fps = value()?.parse().map_err(|e| format!("{flag}: {e}"))?;
-                if fps == 0 || fps > 120 {
-                    return Err("--fps must be 1-120".into());
-                }
-            }
+            "--fps" => fps = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),
+            "--from-ms" => from_ms = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),
+            "--to-ms" => to_ms = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),
             other => return Err(format!("unknown argument {other}")),
         }
     }
@@ -208,15 +187,10 @@ fn args() -> Result<Args, String> {
     if let Some(frames) = bench_frames {
         bench::reported_draws(frames).map_err(|e| format!("--bench-frames: {e}"))?;
     }
-    if hdr && bench.is_some() {
-        return Err("--hdr is not supported with --bench".into());
+    if bench.is_some() && (hdr || fps.is_some()) {
+        return Err("a bench writes no frames: --hdr and --fps need --out".into());
     }
-    if from_ms.is_some() && !all_frames {
-        return Err("--from-ms requires --all-frames".into());
-    }
-    if to_ms.is_some() && !all_frames {
-        return Err("--to-ms requires --all-frames".into());
-    }
+    let clip = Clip::new(fps, from_ms, to_ms)?;
     Ok(Args {
         scene: run
             .ok_or("--run is required")?
@@ -228,11 +202,8 @@ fn args() -> Result<Args, String> {
         pace,
         sound,
         hdr,
-        all_frames,
-        from_ms,
-        to_ms,
         no_music,
-        fps,
+        clip,
     })
 }
 
@@ -266,12 +237,6 @@ struct Run {
     /// props.
     bench: Option<Bench>,
     drew: [f64; 9],
-    /// Sequential frame counter for --all-frames output.
-    frame_index: usize,
-    /// Target time for the next frame in fixed-timestep mode (milliseconds).
-    target_time_ms: f64,
-    /// Last record index we processed for the current target time.
-    last_processed: usize,
 }
 
 impl Run {
@@ -380,6 +345,7 @@ impl Run {
             xray_min_hidden_fraction: None,
             paint: None,
             separate_high_air: false,
+            hdr_output: args.hdr,
             water_detail: Default::default(),
             controls: Default::default(),
         };
@@ -448,9 +414,6 @@ impl Run {
             sound,
             bench,
             drew: [0.0; 9],
-            frame_index: 0,
-            target_time_ms: 0.0,
-            last_processed: 0,
         })
     }
 
@@ -563,120 +526,35 @@ impl Run {
             return self.bench_step(args);
         }
         let out = args.out.as_ref().ok_or("--out is required")?;
-
-        // Fixed-timestep rendering for --all-frames mode
-        if args.all_frames {
-            let frame_interval_ms = 1000.0 / f64::from(args.fps);
-            let from_ms = args.from_ms.unwrap_or(0.0);
-            let to_ms = args
-                .to_ms
-                .unwrap_or_else(|| self.replay.records.last().map_or(0.0, |r| r.reel_ms));
-
-            // Initialize target_time_ms on first call
-            if self.frame_index == 0 {
-                self.target_time_ms = from_ms;
-            }
-
-            // Check if we're past the end
-            if self.target_time_ms > to_ms {
-                return Ok(false);
-            }
-
-            // Find the record closest to (but not after) target_time_ms
-            let mut best_idx = self.last_processed;
-            for (i, record) in self.replay.records.iter().enumerate().skip(self.last_processed) {
-                if record.reel_ms > self.target_time_ms {
-                    break;
-                }
-                best_idx = i;
-            }
-
-            // Process all records from last_processed to best_idx for sound
-            for i in self.last_processed..=best_idx {
-                if i >= self.replay.records.len() {
-                    break;
-                }
-                let record = self.replay.records[i].clone();
-                let now = record.reel_ms / 1000.0;
-                let mut sound = self.sound.as_mut();
-                self.replay
-                    .frame(&record, self.scene.static_generation(), |p| {
-                        if let Some(audio) = sound.as_mut() {
-                            audio.note(p, now);
-                        }
-                    })?;
-                if let Some(audio) = self.sound.as_mut() {
-                    audio.hear(self.replay.presentation(), now, now);
-                }
-            }
-            self.last_processed = best_idx + 1;
-
-            // Render at the current state
-            self.prepare()?;
-            let (device, queue) = (&self.gpu.device, &self.gpu.queue);
-
-            if args.hdr {
-                let mut encoder = device.create_command_encoder(&Default::default());
-                self.scene
-                    .encode_hdr(device, queue, &self.view, &mut encoder, Default::default());
-                let read = renderer_core::readback::Rgba16fReadback::encode(
-                    device,
-                    &mut encoder,
-                    &self.scene.post.hdr_texture,
-                )?;
-                queue.submit([encoder.finish()]);
-                let rgba16f = pollster::block_on(read.read(device))?;
-                let exr_name = format!("frame-{:06}.exr", self.frame_index);
-                output::write_exr(&out.join(&exr_name), self.scene.targets.size, &rgba16f)?;
-            } else {
-                let mut encoder = device.create_command_encoder(&Default::default());
-                self.scene
-                    .encode(device, queue, &self.view, &mut encoder, Default::default());
-                let read = renderer_core::readback::RgbaReadback::encode(
-                    device,
-                    &mut encoder,
-                    &self.scene.targets.display_texture,
-                )?;
-                queue.submit([encoder.finish()]);
-                let mut rgba = pollster::block_on(read.read(device))?;
-                for pixel in rgba.as_chunks_mut::<4>().0 {
-                    pixel[3] = 255;
-                }
-                let name = format!("frame-{:06}.png", self.frame_index);
-                output::write_png(&out.join(&name), self.scene.targets.size, &rgba)?;
-            }
-
-            self.frame_index += 1;
-            self.plates += 1;
-            if self.plates % f64::from(args.fps) as usize == 0 {
-                println!(
-                    "frame {}: target_ms {:.0}, {} frames written",
-                    self.frame_index, self.target_time_ms, self.plates
-                );
-            }
-
-            // Advance to next target time
-            self.target_time_ms += frame_interval_ms;
-            let encoder = device.create_command_encoder(&Default::default());
+        let wrote = match &args.clip {
+            Some(clip) => self.clip_step(clip, out)?,
+            None => self.plate_step(out)?,
+        };
+        if wrote {
+            return Ok(true);
+        }
+        if self.paced < args.pace {
+            self.paced += 1;
+            let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
+            self.scene.encode(
+                &self.gpu.device,
+                &self.gpu.queue,
+                &self.view,
+                &mut encoder,
+                Default::default(),
+            );
             self.present(encoder);
             return Ok(true);
         }
+        Ok(false)
+    }
 
-        // Original plate-based rendering for non --all-frames mode
+    /// Plays records up to the next plate, checks its counts against the
+    /// browser's and writes it; false once the reel has no plate left.
+    fn plate_step(&mut self, out: &Path) -> Result<bool, String> {
         while let Some(record) = self.replay.records.get(self.next).cloned() {
             self.next += 1;
-            let now = record.reel_ms / 1000.0;
-            let mut sound = self.sound.as_mut();
-            self.replay
-                .frame(&record, self.scene.static_generation(), |p| {
-                    if let Some(audio) = sound.as_mut() {
-                        audio.note(p, now);
-                    }
-                })?;
-            if let Some(audio) = self.sound.as_mut() {
-                audio.hear(self.replay.presentation(), now, now);
-            }
-
+            self.advance(&record)?;
             let Some(plate) = record.plate.clone() else {
                 continue;
             };
@@ -717,65 +595,58 @@ impl Run {
                         .push(format!("{plate} {what}: {got} against {listed}"));
                 }
             }
-            let (device, queue) = (&self.gpu.device, &self.gpu.queue);
             let scars = self.replay.presentation().scar_stats();
             println!(
-                "{plate}: drawn {drawn:?}, culled soldiers {}, effects {} and {} lights, scar pages {} ({}){}",
+                "{plate}: drawn {drawn:?}, culled soldiers {}, effects {} and {} lights, scar pages {} ({})",
                 counts.culled,
                 self.scene.effects.count(),
                 counts.lights,
                 scars.pages,
                 if self.scene.ground.material.scars.regional() { "by region" } else { "at once" },
-                if args.hdr { " [HDR]" } else { "" },
             );
-            let mut encoder = device.create_command_encoder(&Default::default());
-            if args.hdr {
-                self.scene
-                    .encode_hdr(device, queue, &self.view, &mut encoder, Default::default());
-                let read = renderer_core::readback::Rgba16fReadback::encode(
-                    device,
-                    &mut encoder,
-                    &self.scene.post.hdr_texture,
-                )?;
-                queue.submit([encoder.finish()]);
-                let rgba16f = pollster::block_on(read.read(device))?;
-                let exr_name = plate.replace(".png", ".exr");
-                output::write_exr(&out.join(&exr_name), self.scene.targets.size, &rgba16f)?;
-            } else {
-                self.scene
-                    .encode(device, queue, &self.view, &mut encoder, Default::default());
-                let read = renderer_core::readback::RgbaReadback::encode(
-                    device,
-                    &mut encoder,
-                    &self.scene.targets.display_texture,
-                )?;
-                queue.submit([encoder.finish()]);
-                let mut rgba = pollster::block_on(read.read(device))?;
-                // Native plates are opaque exports, independent of stored display alpha.
-                for pixel in rgba.as_chunks_mut::<4>().0 {
-                    pixel[3] = 255;
-                }
-                output::write_png(&out.join(&plate), self.scene.targets.size, &rgba)?;
-            }
-            self.plates += 1;
-            let encoder = device.create_command_encoder(&Default::default());
-            self.present(encoder);
-            return Ok(true);
-        }
-        if self.paced < args.pace {
-            self.paced += 1;
-            let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
-            self.scene.encode(
-                &self.gpu.device,
-                &self.gpu.queue,
-                &self.view,
-                &mut encoder,
-                Default::default(),
-            );
-            self.present(encoder);
+            self.write_frame(&out.join(&plate))?;
             return Ok(true);
         }
         Ok(false)
+    }
+
+    /// Plays every record up to the clip's next frame time and writes that
+    /// frame; false once the clip is done.
+    fn clip_step(&mut self, clip: &Clip, out: &Path) -> Result<bool, String> {
+        let last = self.replay.records.last().map_or(0.0, |r| r.reel_ms);
+        let Some(at) = clip.frame_ms(self.plates, last) else {
+            return Ok(false);
+        };
+        while let Some(record) = self.replay.records.get(self.next).cloned() {
+            if record.reel_ms > at {
+                break;
+            }
+            self.next += 1;
+            self.advance(&record)?;
+        }
+        self.prepare()?;
+        self.write_frame(&out.join(format!("frame-{:06}.png", self.plates)))?;
+        if self.plates.is_multiple_of(clip.fps as usize) {
+            println!("{} frames, reel {:.1} s", self.plates, at / 1000.0);
+        }
+        Ok(true)
+    }
+
+    /// Plays one record into the presentation and its sound.
+    fn advance(&mut self, record: &Record) -> Result<(), String> {
+        // The reel's wall time is both the sound's wall and its mixer clock.
+        let now = record.reel_ms / 1000.0;
+        let mut sound = self.sound.as_mut();
+        self.replay
+            .frame(record, self.scene.static_generation(), |p| {
+                if let Some(audio) = sound.as_mut() {
+                    audio.note(p, now);
+                }
+            })?;
+        if let Some(audio) = self.sound.as_mut() {
+            audio.hear(self.replay.presentation(), now, now);
+        }
+        Ok(())
     }
 
     fn report(&mut self, args: &Args) -> Result<(), String> {
@@ -786,25 +657,9 @@ impl Run {
             println!("plates: {} written to {}", self.plates, out.display());
         }
         if let (Some(audio), Some(path)) = (&mut self.sound, &args.sound) {
-            let all_samples = audio.samples();
-            // Trim samples to the time window if specified
-            let samples = if args.all_frames && (args.from_ms.is_some() || args.to_ms.is_some()) {
-                let rate = f64::from(audio::SAMPLE_RATE);
-                let total_samples = all_samples.len() / 2; // stereo
-                let from_sample = args
-                    .from_ms
-                    .map(|ms| ((ms / 1000.0) * rate) as usize)
-                    .unwrap_or(0)
-                    .min(total_samples);
-                let to_sample = args
-                    .to_ms
-                    .map(|ms| ((ms / 1000.0) * rate) as usize)
-                    .unwrap_or(total_samples)
-                    .min(total_samples);
-                // Samples are interleaved stereo, so multiply indices by 2
-                &all_samples[from_sample * 2..to_sample * 2]
-            } else {
-                all_samples
+            let samples = match &args.clip {
+                Some(clip) => clip.sound(audio.samples()),
+                None => audio.samples(),
             };
             output::write_wav(path, samples)?;
             let seconds = samples.len() as f64 / 2.0 / f64::from(audio::SAMPLE_RATE);
@@ -928,9 +783,12 @@ fn count_verdict(mismatches: &[String]) -> Result<(), String> {
 
 #[path = "main_app.rs"]
 mod app;
+#[path = "main_clip.rs"]
+mod clip;
 #[path = "main_output.rs"]
 mod output;
 use app::App;
+use clip::Clip;
 
 pub fn run() {
     let result = args().and_then(|args| {

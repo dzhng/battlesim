@@ -44,6 +44,11 @@ fn rectInside(xy: vec2f, r: vec4f) -> f32 {
   return min(min((xy.x - r.x), (r.z - xy.x)), min((xy.y - r.y), (r.w - xy.y)));
 }
 
+// @block math_rec709ToBt2020
+fn rec709ToBt2020(rgb: vec3f) -> vec3f {
+  return mat3x3f(vec3f(0.6274,0.0691,0.0164),vec3f(0.3293,0.9195,0.0880),vec3f(0.0433,0.0113,0.8956)) * rgb;
+}
+
 // @block math_srgbToLinear
 fn srgbToLinear(c: vec3f) -> vec3f {
   return pow(max(c, vec3f()), vec3f(2.200000047683716));
