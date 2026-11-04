@@ -11,6 +11,10 @@
 //! has, and no other, so a stale file is refused rather than read in part or
 //! defaulted. A value native has no use for is required but not read
 //! (`IgnoredAny`).
+//!
+//! A clip is framed on the reel's clock instead ([`ReelClock`]): a record's
+//! sim time is the page's presentation clock, read off its own wall clock,
+//! which jitters by up to a frame against the reel the camera is keyed to.
 use std::fs;
 use std::path::Path;
 
@@ -173,6 +177,42 @@ pub struct Replay {
     pushed: usize,
     lens: Lens,
     presentation: Presentation,
+    /// The battle's time on the reel's clock; none without records.
+    clock: Option<ReelClock>,
+}
+
+/// The battle's time on the reel's clock, for a clip: reel time plus the
+/// run's typical lead (the median over its records of sim time less reel
+/// time), so frames at even reel steps draw the battle at even sim steps,
+/// as the camera moved. The median keeps the clip where the page drew the
+/// battle on most frames, which is what its camera followed, and ignores a
+/// late start or a stray frame.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ReelClock {
+    lead_s: f64,
+}
+
+impl ReelClock {
+    /// The clock of `records`; none for a capture without any.
+    pub fn of(records: &[Record]) -> Option<Self> {
+        let mut leads: Vec<f64> = records
+            .iter()
+            .map(|r| r.sim_time - r.reel_ms / 1000.0)
+            .collect();
+        leads.sort_by(f64::total_cmp);
+        let middle = leads.len() / 2;
+        let lead_s = match leads.len() {
+            0 => return None,
+            n if n % 2 == 1 => leads[middle],
+            _ => (leads[middle - 1] + leads[middle]) / 2.0,
+        };
+        Some(Self { lead_s })
+    }
+
+    /// The sim time at reel time `reel_ms`.
+    pub fn sim_time(&self, reel_ms: f64) -> f64 {
+        reel_ms / 1000.0 + self.lead_s
+    }
 }
 
 fn read_json<T: for<'a> Deserialize<'a>>(path: &Path) -> Result<T, String> {
@@ -331,6 +371,7 @@ impl Replay {
         Ok(Self {
             map,
             rules,
+            clock: ReelClock::of(&capture.frames),
             records: capture.frames,
             light,
             backdrop_reach_m: settings.ground.backdrop_reach_m,
@@ -376,30 +417,95 @@ impl Replay {
         self.presentation.last_frame()
     }
 
-    /// Frames `record`: pushes the publications up to its tick, `heard`
-    /// after each, then asks for its frame for a renderer at `generation`
-    /// (`Presentation::frame`): a new one is written every static batch, the
-    /// same one only what changed. Then, as the page's simulation exports
-    /// it, fog's foliage follows the ground the side has seen cleared, from
-    /// the next frame on.
+    /// Frames `record` as the page drew it: pushes the publications up to its
+    /// tick, `heard` after each, then draws it at its sim time (`draw`).
     pub fn frame(
         &mut self,
         record: &Record,
         generation: u32,
         mut heard: impl FnMut(&Presentation),
     ) -> Result<&Frame, String> {
-        while let Some(s) = self
+        while self
             .samples
             .get(self.pushed)
-            .filter(|s| s.tick <= record.tick)
+            .is_some_and(|s| s.tick <= record.tick)
         {
-            self.presentation.push_publication(&s.publication, 0.0)?;
-            heard(&self.presentation);
-            self.pushed += 1;
+            self.push_next(&mut heard)?;
         }
-        let camera = self.camera(record);
+        self.draw(&self.camera(record), record.sim_time, generation)
+    }
+
+    /// The camera reel time `reel_ms` is seen through: the last the page
+    /// drew by then. Before its first record (the reel starts a frame before
+    /// the page records one) the page drew none, so its first camera is
+    /// carried back along its first two records' motion to that time: a
+    /// frame's camera is of the same moment as its battle. None without
+    /// records.
+    pub fn camera_at(&self, reel_ms: f64) -> Option<Camera> {
+        let drawn = self.records.partition_point(|r| r.reel_ms <= reel_ms);
+        if let (0, [first, second, ..]) = (drawn, &self.records[..]) {
+            if second.reel_ms > first.reel_ms {
+                let k = (reel_ms - first.reel_ms) / (second.reel_ms - first.reel_ms);
+                let along =
+                    |a: [f64; 3], b: [f64; 3]| std::array::from_fn(|i| a[i] + (b[i] - a[i]) * k);
+                let up = along(first.up, second.up);
+                let length = up.iter().map(|v| v * v).sum::<f64>().sqrt();
+                return Some(Camera {
+                    eye: along(first.eye, second.eye),
+                    target: along(first.target, second.target),
+                    up: up.map(|v| v / length),
+                    ..self.camera(first)
+                });
+            }
+        }
+        Some(self.camera(self.records.get(drawn.saturating_sub(1))?))
+    }
+
+    /// Frames reel time `reel_ms` of a clip through the camera at it
+    /// (`camera_at`): the battle at the reel clock's time, with the
+    /// publications that time blends toward pushed, `heard` after each. The
+    /// time stops at the run's last publication; the presentation never
+    /// draws past the newest it has, as the page's clock never does.
+    pub fn frame_on_reel(
+        &mut self,
+        reel_ms: f64,
+        generation: u32,
+        mut heard: impl FnMut(&Presentation),
+    ) -> Result<&Frame, String> {
+        let (Some(clock), Some(camera)) = (self.clock, self.camera_at(reel_ms)) else {
+            return Err("a capture without frames has no reel".into());
+        };
+        let time = clock.sim_time(reel_ms);
+        let latest = |r: &Self| {
+            r.pushed
+                .checked_sub(1)
+                .map(|i| r.samples[i].tick as f64 / r.tick_hz)
+        };
+        while latest(self).is_none_or(|t| t < time) && self.push_next(&mut heard)? {}
+        let time = latest(self).map_or(time, |t| time.min(t));
+        self.draw(&camera, time, generation)
+    }
+
+    /// Pushes the next publication, `heard` after it; false when the run
+    /// has none left.
+    fn push_next(&mut self, heard: &mut impl FnMut(&Presentation)) -> Result<bool, String> {
+        let Some(s) = self.samples.get(self.pushed) else {
+            return Ok(false);
+        };
+        self.presentation.push_publication(&s.publication, 0.0)?;
+        heard(&self.presentation);
+        self.pushed += 1;
+        Ok(true)
+    }
+
+    /// Asks for the frame at sim time `time` through `camera`, for
+    /// a renderer at `generation` (`Presentation::frame`): a new one is
+    /// written every static batch, the same one only what changed. Then, as
+    /// the page's simulation exports it, fog's foliage follows the ground the
+    /// side has seen cleared, from the next frame on.
+    fn draw(&mut self, camera: &Camera, time: f64, generation: u32) -> Result<&Frame, String> {
         self.presentation
-            .frame(record.sim_time, &camera, &Ui::default(), generation)?;
+            .frame(time, camera, &Ui::default(), generation)?;
         // Fog's foliage is the side's: less the trees on ground it has seen
         // cleared, as the page re-exports it.
         if let (Some(world), Some(learned)) = (&self.world, self.presentation.learned()) {

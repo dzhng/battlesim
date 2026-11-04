@@ -129,3 +129,18 @@ export function hlgTagErrors(probe, { hevc = false } = {}) {
     .filter(([key, values]) => !values.includes(stream[key]))
     .map(([key, values]) => `${key}: expected ${values.join(" or ")}, got ${stream[key]}`);
 }
+
+/** ffmpeg argv printing an image's luma statistics (`signalstats`). */
+export function lumaStatsArgs(file) {
+  return ["-v", "error", "-i", file, "-vf", "signalstats,metadata=print:file=-", "-f", "null", "-"];
+}
+
+/** Why the frame `file` whose luma statistics (`lumaStatsArgs`' output) are
+ * `stats` is no picture of the battle: one flat value is what the renderer
+ * clears to before anything is drawn. Null for a frame with content. */
+export function blankFrameError(file, stats) {
+  const read = (key) => Number(stats.match(new RegExp(`signalstats\\.${key}=([\\d.]+)`))?.[1]);
+  const [min, max] = [read("YMIN"), read("YMAX")];
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return `${file}: no luma statistics`;
+  return min === max ? `${file} is one flat colour (luma ${min}): nothing was drawn` : null;
+}
