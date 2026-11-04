@@ -6,6 +6,7 @@
 // crowns are all hidden in a wood that passes (the x-ray draws them).
 import { decode } from "./_png.mjs";
 import { classAt, openStations, shoot } from "./_groundStations.mjs";
+import { pairedCost } from "./_pairedCost.mjs";
 
 /** The wood from the play camera and from higher: the default distance and
  *  twice it. */
@@ -45,5 +46,28 @@ export async function canopyClosure(ctx) {
     ),
     JSON.stringify(seen),
   );
+  await page.close();
+}
+
+/** The pairs a station's cost is measured over. */
+const COST_PAIRS = 4;
+
+/** TREE_COST=1: what the trees cost a frame over the street's west wood,
+ *  close, from the play camera and from twice as high, and from far off
+ *  (`pairedCost`, every tree suppressed against drawn). */
+export async function treeCost(ctx) {
+  const page = await openStations(ctx, "street");
+  const result = { stations: {} };
+  for (const station of ["forest-deep-25", "forest-65", "forest-120", "forest-far-700"]) {
+    await shoot(page, "street", station);
+    const cost = await pairedCost(page, "suppressTrees", COST_PAIRS);
+    result.stations[station] = {
+      bareMs: +cost.plainMs.toFixed(3),
+      treesMs: +cost.costMs.toFixed(3),
+      differences: cost.differences.map((v) => +v.toFixed(3)),
+    };
+  }
+  result.adapter = await page.evaluate(() => window.__lab.adapter);
+  await ctx.writeEvidence("tree-cost.json", result);
   await page.close();
 }

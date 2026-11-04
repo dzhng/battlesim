@@ -62,7 +62,7 @@ def build(variant, v):
     box("windscreen_frame", (0.08, 0.7, 0.4), (5.55, 0, 2.82), m["dark"], hull, rot=(0, -0.5, 0), lods=MID)
     A.mirrored(lambda side, k: box(f"wing_tip_brake_{k}", (1.4, 0.06, 0.18), (-0.9, side * 6.95, WING_Z - 0.2),
                                    m["paint"], hull, lods=MID))
-    A.pitot("air_data_probe", (7.65, 0.0, 1.95), 0.8, m, hull)
+    A.pitot("air_data_probe", (7.65, 0.0, 1.95), 0.75, m, hull)
     # The photo's markings: the red star, VKS ROSSII and the serial on the
     # fin, red stars under the wings, the red 10 on the nose.
     A.markings(v, [
@@ -80,7 +80,7 @@ def build(variant, v):
 
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-3.6, wing_y=4.6, wing_side=-1, tail_yaw=-0.32, seed=25)
+    A.crash(v, tail_x=-3.6, wing_y=4.6, wing_side=-1, tail_yaw=-0.32, seed=25, litter_reach=0.95)
 
 
 run("su_25_frogfoot", "russian_helicopter_camo", build, wreck, script="su25.py")

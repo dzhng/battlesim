@@ -52,7 +52,7 @@ that domain's policy; `math` holds only functions without bound resources.
 | Water | `water` | Water appearance, normals, wakes, bed sampling and guarded scene mips. |
 | Grass | `grass` | Clumps, blade construction and placement resources, including prop exclusion. |
 | Ground scars | `scars` | Scar cache sampling, relief, material changes and view-dependent scar drawing. |
-| Scenery | `scenery` | Placement, wind sway, leaf clumps and foliage surface shading. |
+| Scenery | `scenery` | Placement, wind sway, painted leaves and foliage surface shading. |
 | Paint and effects | `effects` | Ground-paint sampling and treatment, sprite lighting and overlay glow. |
 | Display processing | `post` | Grading, bloom, blur and sampled color inputs shared with other pipelines. |
 | Resource-free arithmetic | `math` | Noise, geometric predicates, interpolation and color conversion without global resources. |

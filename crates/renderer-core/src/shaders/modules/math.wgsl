@@ -146,23 +146,6 @@ fn valueNoise(p: vec2f) -> f32 {
   return mix(mix(h[0], h[1], u.x), mix(h[2], h[3], u.x), u.y);
 }
 
-// @block math_valueNoise3
-fn valueNoise3(p: vec3f) -> f32 {
-  let cell = floor(p);
-  let f = p - cell;
-  let u = f * f * (3.0 - 2.0 * f);
-  let i = vec3u(bitcast<vec3u>(vec3i(cell)));
-  var h = array<f32, 8>();
-  for (var k = 0u; k < 8u; k++) {
-    let q = i + vec3u(k & 1u, (k >> 1u) & 1u, k >> 2u);
-    let s = pcgHash((q.x * 1597334677u) ^ (q.y * 3812015801u) ^ (q.z * 2798796415u));
-    h[k] = f32(s) * (1.0 / 4294967295.0);
-  }
-  let x0 = mix(mix(h[0], h[1], u.x), mix(h[2], h[3], u.x), u.y);
-  let x1 = mix(mix(h[4], h[5], u.x), mix(h[6], h[7], u.x), u.y);
-  return mix(x0, x1, u.z);
-}
-
 // @block math_faceEyeNormal
 fn faceEyeNormal(normal: vec3f, towardEye: vec3f) -> vec3f {
   var n = normal;

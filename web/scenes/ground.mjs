@@ -17,7 +17,8 @@
 // (`_groundStations.mjs`). What grows where is checked at the rig's stations
 // (`_grass.mjs`, GRASS_ONLY=1 alone), the texture inside each field
 // (`_fields.mjs`, FIELDS_ONLY=1 alone; FIELD_COST=1 measures its cost), and
-// how far the canopy closes over the wood (`_canopy.mjs`, CANOPY_ONLY=1 alone).
+// how far the canopy closes over the wood (`_canopy.mjs`, CANOPY_ONLY=1 alone;
+// TREE_COST=1 measures what the trees cost).
 // The forest floor's dressing is checked at the wood's edge
 // (`_forestFloor.mjs`, FLOOR_ONLY=1 alone; FLOOR_SHOTS=1 writes its stations,
 // FLOOR_COST=1 measures its cost), and a tree line on the generated map's
@@ -34,7 +35,7 @@ import { groundRig, stationSheets } from "./_groundStations.mjs";
 import { grassGrowth } from "./_grass.mjs";
 import { roadCost, roadLooks } from "./_roads.mjs";
 import { fieldCost, fieldTexture } from "./_fields.mjs";
-import { canopyClosure } from "./_canopy.mjs";
+import { canopyClosure, treeCost } from "./_canopy.mjs";
 import { streetLooks } from "./_streets.mjs";
 import { forestFloor, forestFloorCost, forestFloorShots } from "./_forestFloor.mjs";
 import { townGround } from "./_town.mjs";
@@ -64,6 +65,7 @@ export async function run(ctx) {
   if (process.env.FIELDS_ONLY) return fieldTexture(ctx);
   if (process.env.FIELD_COST) return fieldCost(ctx);
   if (process.env.CANOPY_ONLY) return canopyClosure(ctx);
+  if (process.env.TREE_COST) return treeCost(ctx);
   if (process.env.FLOOR_SHOTS) return forestFloorShots(ctx, process.env.FLOOR_SHOTS);
   if (process.env.FLOOR_ONLY) return forestFloor(ctx);
   if (process.env.FLOOR_COST) return forestFloorCost(ctx);
