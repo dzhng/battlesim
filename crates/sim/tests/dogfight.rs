@@ -25,6 +25,7 @@ fn own(position: [f64; 3], heading: f64) -> FixedWingState {
         heading,
         speed_mps: 200.0,
         burner: 0.0,
+        turn_rate_rad_s: 0.0,
         turn_sign: 1,
     }
 }

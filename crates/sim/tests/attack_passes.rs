@@ -11,7 +11,8 @@ use sim::air::pass::{advance, begin, choose_weapon, PassPhase, PassWeapon};
 use sim::air::{Bounds, FixedWingState};
 use sim::fixtures::{self, test_rules};
 use sim::flight::Release;
-use sim::math::v3;
+use sim::math::{v2, v3};
+use std::f64::consts::TAU;
 
 fn ground_attack_battle(weapons: &[&str]) -> sim::battle::Battle {
     ground_attack_battle_with_bomb_ammo(weapons, 1)
@@ -107,24 +108,12 @@ fn air_battle() -> sim::battle::Battle {
 }
 
 fn wing() -> FixedWingFlight {
-    FixedWingFlight {
-        strafe_ceiling_m: 130.0,
-        bomb_ceiling_m: 200.0,
-        dogfight_band_agl_m: [150.0, 350.0],
-        dogfight_break_m: 1200.0,
-        afterburner_ramp_s: 2.0,
-        afterburner_scatter_multiplier: 1.8,
-        edge_margin_m: 300.0,
-        nose_on_deg: 2.0,
-    }
+    serde_json::from_value(test_rules()["air"]["fixed_wing"].clone()).unwrap()
 }
 
 /// Bounds far beyond any pass in the pass tests: no edge guard.
 fn far() -> Bounds {
-    Bounds::new(
-        sim::math::v2(-100_000.0, -100_000.0),
-        sim::math::v2(100_000.0, 100_000.0),
-    )
+    Bounds::new(v2(-100_000.0, -100_000.0), v2(100_000.0, 100_000.0))
 }
 
 fn state(agl: f64) -> FixedWingState {
@@ -133,6 +122,7 @@ fn state(agl: f64) -> FixedWingState {
         heading: 0.0,
         speed_mps: 100.0,
         burner: 0.0,
+        turn_rate_rad_s: 0.0,
         turn_sign: 1,
     }
 }
@@ -155,7 +145,7 @@ fn a_bombing_run_releases_at_its_release_point_and_is_over() {
     let release = Release {
         fall_s: 3.0,
         ahead_m: 300.0,
-        at: sim::math::v2(700.0, 0.0),
+        at: v2(700.0, 0.0),
     };
     // 100 m/s in 0.6 s steps: 60 m a step.
     let dt = 0.6;
@@ -204,14 +194,14 @@ fn a_run_the_edge_guard_takes_over_is_broken() {
     let release = Release {
         fall_s: 3.0,
         ahead_m: 300.0,
-        at: sim::math::v2(700.0, 0.0),
+        at: v2(700.0, 0.0),
     };
     // The east edge lies just past the aim: by the release point the jet,
     // heading straight at it, is at its point of no return.
     let limits = wing_limits();
     let bounds = Bounds::new(
-        sim::math::v2(-5_000.0, -5_000.0),
-        sim::math::v2(700.0 + limits.edge_margin_m + 1.0, 5_000.0),
+        v2(-5_000.0, -5_000.0),
+        v2(700.0 + limits.edge_margin_m + 1.0, 5_000.0),
     );
     // Nose-on, 400 m short of its release point: it commits.
     let mut current = state(plan.agl);
@@ -596,7 +586,7 @@ fn a_bomb_leaves_the_jet_and_falls_onto_the_aim() {
             _ => None,
         });
         if let Some(point) = landed {
-            let miss = (point.xy() - sim::math::v2(2000.0, 2000.0)).length();
+            let miss = (point.xy() - v2(2000.0, 2000.0)).length();
             assert!(miss < blast_m, "the bomb landed {miss:.0} m from the aim");
             return;
         }
@@ -1109,7 +1099,11 @@ fn a_fired_on_holding_jet_attacks_its_visible_attacker() {
         },
     });
     assert_eq!(ack.error, None);
-    for _ in 0..180 {
+    // Three laps of its turn to bring its nose on.
+    let sim::units::Motion::Air(f) = battle.unit(UnitId(1)).unwrap().motion else {
+        unreachable!()
+    };
+    for _ in 0..(3.0 * TAU / f.turn_rad_s * 30.0) as u32 {
         battle.step();
         if battle.unit(UnitId(0)).unwrap().air.unwrap().dogfight_target == Some(UnitId(1)) {
             return;

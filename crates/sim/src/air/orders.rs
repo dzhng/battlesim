@@ -23,9 +23,9 @@ pub enum AirTask {
 }
 
 /// Resolve one jet's order and reaction against the knowledge available to
-/// its side. On attack-move a committed run finishes before the jet picks
-/// anew (D18), and once the target it picked up is dead the jet holds,
-/// unless something calls for an answer (D15).
+/// its side. On attack-move a committed run, and its egress, finish before
+/// the jet picks anew (D18), and once the target it picked up is dead the
+/// jet holds, unless something calls for an answer (D15).
 pub fn task(
     unit: &Unit,
     knowledge: &SideKnowledge,
@@ -40,7 +40,7 @@ pub fn task(
         if target_is_destroyed(pass.target, knowledge) {
             return reaction(unit, knowledge);
         }
-        if pass.phase == PassPhase::Dive {
+        if matches!(pass.phase, PassPhase::Dive | PassPhase::Egress) {
             return AirTask::Attack {
                 target: pass.target,
             };

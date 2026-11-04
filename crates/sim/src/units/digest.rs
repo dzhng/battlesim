@@ -25,6 +25,7 @@ impl Unit {
                 .f64(a.velocity.y)
                 .f64(a.velocity.z)
                 .f64(a.burner)
+                .f64(a.turn_rate_rad_s)
                 .f64(a.turn_sign as f64);
             d.opt_v2(a.last_goal);
             match a.settle {
@@ -50,7 +51,8 @@ impl Unit {
                         .u64(p.phase as u64)
                         .u64(p.weapon as u64)
                         .f64(p.agl)
-                        .f64(p.heading);
+                        .f64(p.heading)
+                        .f64(p.egress_s);
                 }
                 None => {
                     d.u64(0);

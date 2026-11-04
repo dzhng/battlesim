@@ -289,12 +289,18 @@ fn repeated_passes_each_dive_in_nose_on_and_fire() {
 /// A target by the map's edge gets run after run like any other: the jet
 /// commits when its nose comes on, fires or drops if it gets there before
 /// the edge guard turns it away, and comes round again. It never circles
-/// over the target unable to attack.
+/// over the target unable to attack. A bomb is thrown its fall's flight
+/// short of the aim, and the jet must roll into its turn away before the
+/// edge: from its ceiling, it can't reach an aim 50 m from the edge before
+/// the guard takes it (D4/D10′), so only the gun attacks one there.
 #[test]
 fn runs_at_an_aim_near_an_edge_keep_firing() {
-    for from_edge in [50.0, 100.0, 150.0] {
+    for from_edge in [100.0, 150.0] {
         runs_keep_firing([RUN_FIELD_M - from_edge, 2000.0]);
     }
+    let aim = [RUN_FIELD_M - 50.0, 2000.0];
+    let flown = fly_runs(&mut run_battle(&["air_gun"], aim), aim, RUN_WINDOW_S);
+    assert_runs_keep_firing("air_gun", aim, &flown, RUN_WINDOW_S);
 }
 
 #[test]
@@ -653,4 +659,81 @@ fn trail_strafe(behind_m: f64) -> sim::battle::Battle {
     });
     assert_eq!(ack.error, None);
     battle
+}
+
+/// A bombing run as a viewer sees it: the jet holds its heading wings level
+/// for its egress after the bomb leaves, then rolls into its break. Its
+/// turn rate never steps or passes its full rate, and the bomb, released on
+/// a straight run, still falls onto the aim.
+#[test]
+fn a_bomb_run_holds_its_heading_after_release_then_rolls_into_its_break() {
+    let aim = [2000.0, 2000.0];
+    let mut rules = run_rules(&["air_bomb"]);
+    rules["weapons"]["air_bomb"]["targets"]["ground"]["scatter_mrad"] = json!(0.0);
+    let blast_m = rules["weapons"]["air_bomb"]["blast_radius_m"]
+        .as_f64()
+        .unwrap();
+    let mut battle = run_field(
+        rules,
+        json!([{ "side": "blue", "kind": "test_jet", "position": RUN_START, "yaw": 0.0 }]),
+    );
+    assert_eq!(battle.accept(attack_ground(1, aim)).error, None);
+    let sim::units::Motion::Air(flight) = battle.unit(UnitId(0)).unwrap().motion else {
+        panic!("test_jet flies");
+    };
+    let wing = battle.rules().air.fixed_wing;
+    let dt = 1.0 / f64::from(battle.rules().tick_hz);
+    let roll = flight.turn_rad_s / wing.roll_in_s * dt;
+    let (mut yaw, mut rate) = (battle.unit(UnitId(0)).unwrap().yaw, 0.0);
+    let (mut released, mut bomb, mut landed, mut broke) = (None, None, None, false);
+    for tick in 1..=(RUN_WINDOW_S / dt) as u64 {
+        battle.step();
+        let now = tick as f64 * dt;
+        let jet = battle.unit(UnitId(0)).unwrap();
+        let next = sim::math::wrap_angle(jet.yaw - yaw) / dt;
+        assert!(
+            (next - rate).abs() <= roll + 1e-9,
+            "{now:.2}s: the turn rate stepped from {rate:.3} to {next:.3} rad/s"
+        );
+        assert!(
+            next.abs() <= flight.turn_rad_s + 1e-9,
+            "{now:.2}s: {next:.3} rad/s"
+        );
+        (yaw, rate) = (jet.yaw, next);
+        if bomb.is_none() {
+            bomb = battle
+                .rounds()
+                .find(|(_, r)| r.unit == UnitId(0))
+                .map(|(p, _)| p.id);
+            released = bomb.map(|_| now);
+        }
+        if let Some(since) = released.map(|at| now - at) {
+            // Its egress runs out on the tick that ends it.
+            if since < wing.egress_s - dt / 2.0 {
+                assert!(
+                    rate.abs() < flight.turn_rad_s * 0.01,
+                    "{since:.2}s after the release it turns at {rate:.3} rad/s"
+                );
+            } else {
+                broke |= rate.abs() >= flight.turn_rad_s * 0.99;
+            }
+        }
+        landed = landed.or_else(|| {
+            battle.flight_events().iter().find_map(|e| match e {
+                sim::flight::FlightEvent::Impact(i) if Some(i.projectile) == bomb => Some(i.point),
+                _ => None,
+            })
+        });
+        if broke && landed.is_some() {
+            break;
+        }
+    }
+    released.expect("the jet never released its bomb");
+    assert!(
+        broke,
+        "the jet never rolled into its break after the egress"
+    );
+    let miss =
+        (landed.expect("the bomb never landed").xy() - sim::math::v2(aim[0], aim[1])).length();
+    assert!(miss < blast_m, "the bomb landed {miss:.0} m from the aim");
 }

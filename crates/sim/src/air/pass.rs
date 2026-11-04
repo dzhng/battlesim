@@ -9,7 +9,7 @@ use crate::math::{v2, wrap_angle, V2, V3};
 use crate::weapons::nose_on_bearing;
 
 use super::fixed_wing::{FixedWingLimits, FixedWingState};
-use super::steer::{edge_guarded, guard_short_of, inward_from, Bounds, Intent};
+use super::steer::{edge_guarded, guard_short_of, inward_from, roll_lag_s, Bounds, Intent};
 use crate::weapons::Target;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -54,6 +54,10 @@ pub enum PassPhase {
     /// until it reaches its release point (a bomb's drop, or the aim itself:
     /// the gun has passed it) or the edge guard turns it away.
     Dive,
+    /// Off the run: holding its heading wings level for its egress after
+    /// the release, unless the edge guard turns it away first, before it
+    /// lines up again.
+    Egress,
 }
 
 /// A jet's attack on one target with one pass weapon: the runs it makes
@@ -71,8 +75,11 @@ pub struct PassPlan {
     /// The seeded height the runs are flown at, in metres above ground.
     pub agl: f64,
     /// The bearing of the line flown through the aim: away from it lining
-    /// up, toward it turning in, and in a run the one it committed along.
+    /// up, toward it turning in, and in a run and its egress the one it
+    /// committed along.
     pub heading: f64,
+    /// Seconds of its egress still to hold.
+    pub egress_s: f64,
 }
 
 /// Limited ground stores take a run before the unlimited fixed gun.
@@ -120,6 +127,7 @@ pub fn begin(
         weapon,
         agl,
         heading,
+        egress_s: 0.0,
     }
 }
 
@@ -131,14 +139,19 @@ fn line(plan: &PassPlan) -> Intent {
     }
 }
 
-/// The circle a full-rate turn toward `aim` flies, on the side it lies:
-/// its centre and radius.
+/// The circle a full-rate turn toward `aim` flies, on the side it lies,
+/// once the jet has rolled into it: its centre and radius.
 fn turn_circle(state: &FixedWingState, limits: &FixedWingLimits, aim: V2) -> (V2, f64) {
     let to_aim = aim - state.pos.xy();
     let side = wrap_angle(libm::atan2(to_aim.y, to_aim.x) - state.heading).signum();
     let radius = state.speed_mps / limits.turn_rad_s.max(f64::MIN_POSITIVE);
-    let left = v2(-libm::sin(state.heading), libm::cos(state.heading));
-    (state.pos.xy() + left * (radius * side), radius)
+    let forward = v2(libm::cos(state.heading), libm::sin(state.heading));
+    let left = v2(-forward.y, forward.x);
+    let lag = state.speed_mps * roll_lag_s(state, limits, side);
+    (
+        state.pos.xy() + forward * lag + left * (radius * side),
+        radius,
+    )
 }
 
 /// Fly one tick of lining up (`plan` is lining up or turning in and does not
@@ -169,7 +182,9 @@ fn line_up(
     // guard takes it. The jet flies out two turn radii to the side of that
     // line so that turning in lands it on it, and turns in only once out on
     // that leg, where the turn toward the aim is a turn away from the edge.
-    let free_run_in = speed * 2.0 + release.ahead_m;
+    // Two seconds' flight, and the roll out of the turn in onto it.
+    let settle = speed * (2.0 + limits.roll_in_s);
+    let free_run_in = settle + release.ahead_m;
     let (out, through, on_leg, ends) =
         match inward_from(aim, limits.edge_margin_m + radius + free_run_in, bounds) {
             None => (bearing + core::f64::consts::PI, aim, true, release.ahead_m),
@@ -185,7 +200,7 @@ fn line_up(
                 (out, through, on_leg, release.ahead_m.max(guarded_at))
             }
         };
-    let run_in = speed * 2.0 + ends;
+    let run_in = settle + ends;
     // A turn in the edge guard takes over is broken like a run: the jet
     // lines up again rather than riding the edge.
     plan.phase = if guarded {
@@ -228,9 +243,10 @@ fn line_up(
 /// nose comes on the aim, short of the release point and clear of the edge
 /// guard, however much run-in is left. The release cue comes on the tick
 /// whose `dt` step carries the jet to its release point, so a bomb leaves
-/// the jet within half a step of it, and the run is over with it. A run the
-/// edge guard takes is broken and releases nothing. Either way the jet is
-/// lining up again.
+/// the jet within half a step of it, and the run is over with it: the jet
+/// holds its heading wings level for its egress, then lines up again. A
+/// run the edge guard takes is broken and releases nothing, and the guard
+/// cuts an egress short; either way the jet is lining up again.
 pub fn advance(
     plan: &mut PassPlan,
     state: &FixedWingState,
@@ -242,6 +258,13 @@ pub fn advance(
 ) -> (Intent, bool) {
     let speed = state.speed_mps.max(1.0);
     let guarded = edge_guarded(state, limits, bounds, dt);
+    if plan.phase == PassPhase::Egress {
+        plan.egress_s -= dt;
+        if plan.egress_s > 0.0 && !guarded {
+            return (line(plan), false);
+        }
+        plan.phase = PassPhase::LineUp;
+    }
     if plan.phase != PassPhase::Dive {
         let to_aim = aim.xy() - state.pos.xy();
         let distance = to_aim.length();
@@ -270,7 +293,8 @@ pub fn advance(
     let short = (release.at - state.pos.xy()).dot(forward);
     let cue = short - step <= step * 0.5;
     if cue {
-        plan.phase = PassPhase::LineUp;
+        plan.phase = PassPhase::Egress;
+        plan.egress_s = limits.egress_s;
     }
     (intent, cue)
 }
