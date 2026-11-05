@@ -5,6 +5,7 @@ import { createElement } from "react";
 import { cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { canonicalLabPath, LabRouter, labIndexSections } from "@apps/battle-lab/src/router";
+import { SOURCE_REPO } from "@apps/battle-lab/src/buildIdentity";
 
 afterEach(() => {
   cleanup();
@@ -20,7 +21,10 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   const menu = await visit(createElement(DevelopmentRouter));
   const links = () => menu.queryAllByRole("link").map((a) => a.getAttribute("href"));
   const pages = ["Skirmish", "Tutorial", "Settings", "Developer"];
-  expect(links()).toEqual([]);
+  // Every entry opens in the plate; the one link leaves the game, in a new
+  // tab, for its source.
+  expect(links()).toEqual([SOURCE_REPO]);
+  expect(menu.getByRole("link").getAttribute("target")).toBe("_blank");
   for (const page of pages) expect(menu.getByRole("button", { name: page })).toBeTruthy();
   expect(menu.queryByRole("button", { name: "Watch replay" })).toBeNull();
   expect(menu.queryByRole("button", { name: "Back" })).toBeNull();
