@@ -1,17 +1,71 @@
-//! The recorded indicators on the GPU: a frame's overlay uploaded as the
-//! browser uploads its player meshes (ten floats a vertex, drawn through one
-//! identity instance), and handed to each encode as player geometry.
+//! The recorded player layers on the GPU: a frame's indicators uploaded as
+//! the browser uploads its player meshes (ten floats a vertex, drawn through
+//! one identity instance), and its unit info cards prepared in the shared
+//! readout pass, both handed to each encode as player geometry.
 
+use native_client::capture::Replay;
 use native_client::overlays::{RecordedOverlays, VERTEX_FLOATS};
 use renderer_core::overlay::{Geometry, MeshDraw};
 use renderer_core::paint::PaintGeometry;
-use renderer_core::runtime::PlayerGeometry;
+use renderer_core::readouts::ReadoutResources;
+use renderer_core::runtime::{PlayerGeometry, Runtime};
 use wgpu::{Buffer, BufferUsages, Device, Queue};
 
-/// A frame's player geometry: the uploaded indicators, or none when the
-/// replay draws none.
-pub(super) fn geometry(meshes: Option<&IndicatorMeshes>) -> PlayerGeometry<'_> {
-    meshes.map_or_else(PlayerGeometry::default, IndicatorMeshes::geometry)
+/// What the replay draws over its battle, as the page recorded it: the
+/// indicators and the cards, each only when the replay draws it.
+pub(super) struct RecordedLayers {
+    indicators: Option<IndicatorMeshes>,
+    cards: Option<ReadoutResources>,
+}
+
+impl RecordedLayers {
+    pub fn new(
+        device: &Device,
+        queue: &Queue,
+        scene: &mut Runtime,
+        replay: &Replay,
+    ) -> Result<Self, String> {
+        let indicators = replay.indicators.as_ref().map(|recorded| {
+            scene.set_overlay_glow(queue, recorded.glow);
+            IndicatorMeshes::new(device, queue)
+        });
+        let cards = match &replay.cards {
+            Some(cards) => {
+                let (size, pixels) = cards.atlas();
+                Some(ReadoutResources::new(
+                    device,
+                    queue,
+                    &scene.pipelines,
+                    scene.targets.size,
+                    size,
+                    pixels,
+                )?)
+            }
+            None => None,
+        };
+        Ok(Self { indicators, cards })
+    }
+
+    /// Uploads what the page drew with record `index`.
+    pub fn show(&mut self, device: &Device, queue: &Queue, replay: &Replay, index: usize) {
+        if let (Some(meshes), Some(recorded)) = (&mut self.indicators, &replay.indicators) {
+            meshes.show(device, queue, &recorded.overlays, index);
+        }
+        if let (Some(pass), Some(cards)) = (&mut self.cards, &replay.cards) {
+            let draw = cards.draw(index, pass.size());
+            pass.prepare(device, queue, &draw);
+        }
+    }
+
+    /// The frame's player geometry: what was last shown.
+    pub fn geometry(&self) -> PlayerGeometry<'_> {
+        let mut geometry = self
+            .indicators
+            .as_ref()
+            .map_or_else(PlayerGeometry::default, IndicatorMeshes::geometry);
+        geometry.readouts = self.cards.as_ref();
+        geometry
+    }
 }
 
 struct Mesh {
@@ -19,7 +73,7 @@ struct Mesh {
     vertices: u32,
 }
 
-pub(super) struct IndicatorMeshes {
+struct IndicatorMeshes {
     /// Placement (xyz, yaw), tint (rgb) and highlight: in place, untinted,
     /// as the browser's `overlay_instances`.
     instances: Buffer,
@@ -30,7 +84,7 @@ pub(super) struct IndicatorMeshes {
 }
 
 impl IndicatorMeshes {
-    pub fn new(device: &Device, queue: &Queue) -> Self {
+    fn new(device: &Device, queue: &Queue) -> Self {
         Self {
             instances: renderer_core::buffer(
                 device,
@@ -46,13 +100,7 @@ impl IndicatorMeshes {
 
     /// Uploads the overlay the page drew with record `index`, unless it is
     /// the one already uploaded.
-    pub fn show(
-        &mut self,
-        device: &Device,
-        queue: &Queue,
-        overlays: &RecordedOverlays,
-        index: usize,
-    ) {
+    fn show(&mut self, device: &Device, queue: &Queue, overlays: &RecordedOverlays, index: usize) {
         let parts = overlays.parts_of(index);
         if self.shown.as_deref() == Some(parts) {
             return;
@@ -91,6 +139,7 @@ impl IndicatorMeshes {
                 marching: draw(3),
                 pointer: None,
             },
+            readouts: None,
         }
     }
 }

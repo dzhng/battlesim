@@ -1,3 +1,4 @@
+import cardsCapture from "@fixtures/captures/cards.json";
 import menuCapture from "@fixtures/captures/menu.json";
 import waterCapture from "@fixtures/captures/water.json";
 
@@ -30,12 +31,14 @@ const workload = (id: string, capture: { scenes: readonly ReelScene[] }): ReelWo
 });
 
 /** The reels the graphics test films, by their `?capture=` name: the main
- *  menu's (the default, and the one the graphics tier is measured on) and
- *  the water scene's. The capture files own the content; this module only
- *  gives each a workload key. */
+ *  menu's (the default, and the one the graphics tier is measured on), the
+ *  water scene's, and the unit info cards' (a commander's view over the
+ *  menu battle's contacts). The capture files own the content; this module
+ *  only gives each a workload key. */
 export const REELS = {
   menu: workload("menu-reel", menuCapture),
   water: workload("water", waterCapture),
+  cards: workload("cards", cardsCapture),
 } as const satisfies Record<string, ReelWorkload>;
 
 export const MENU_REEL_WORKLOAD = REELS.menu;

@@ -142,6 +142,8 @@ pub struct FrameInputs<'a> {
     pub paint: Option<PaintFrame<'a>>,
     pub xray: Option<&'a XrayResources>,
     pub high_air: Option<&'a crate::high_air::HighAir>,
+    /// The unit info cards, laid over the overlay.
+    pub readouts: Option<&'a crate::readouts::ReadoutResources>,
 }
 
 /// Pipeline policy for a complete production frame, shared on every target.
@@ -297,6 +299,16 @@ impl FrameRenderer {
             inputs
                 .overlays
                 .encode_composite(encoder, inputs.targets, hdr);
+        }
+        // The cards float over the world, its fog and the indicators.
+        if let Some(readouts) = inputs.readouts {
+            if inputs.frame_view.has_display_overlays() {
+                let hdr = inputs
+                    .frame_view
+                    .post_mode()
+                    .and_then(|mode| inputs.post.hdr_output(mode));
+                readouts.encode(encoder, &inputs.targets.display, hdr);
+            }
         }
         if let Some(high_air) = inputs.high_air {
             if inputs.frame_view == FrameView::Final {

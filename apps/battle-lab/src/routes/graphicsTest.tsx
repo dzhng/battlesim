@@ -16,8 +16,12 @@ import { useLabLoading } from "../LabLoading";
 import { appResources } from "../appResources";
 import { createReelRun, type ReelPlate, type ReelResult } from "../benchmark/reelRun";
 import { createReelReport, type ReelReport } from "../benchmark/reelReport";
-import { reelDrawing } from "../benchmark/reelDrawing";
+import { reelDrawing, type ReelCards } from "../benchmark/reelDrawing";
 import { useBattleOverlay } from "../useBattleOverlay";
+import { battleReadouts } from "../BattleReadouts";
+import { ReadoutLayer } from "@web/battle/present/readouts";
+import { SessionCatalogProvider } from "@web/battle/catalog/context";
+import { readoutSnapshot } from "@web/battle/present/readoutSnapshot";
 import { FrameChart } from "../benchmark/FrameChart";
 import { graphicsProfiles, type GraphicsTier } from "../graphicsSettings";
 
@@ -25,6 +29,7 @@ import { graphicsProfiles, type GraphicsTier } from "../graphicsSettings";
 const REEL_SUBJECTS: Record<keyof typeof REELS, string> = {
   menu: "the complete main-menu battle sequence",
   water: "the water reel on the wetlands map",
+  cards: "the unit info cards' reel over the market town's contacts",
 };
 
 /** The reel `?capture=<name>` names (the menu's without it), its scenes
@@ -83,11 +88,18 @@ interface GraphicsTestState {
   /** Each scene's recorded indicators (`overlays.bin`; not with
    *  `?indicators=0`), in run order. */
   overlays: readonly { scene: string; bytes: Uint8Array }[];
+  /** Each scene's recorded unit info cards (`cards.bin`; not with
+   *  `?cards=0`), in run order, once their sprites are drawn. */
+  cards: readonly { scene: string; bytes: Promise<Uint8Array> }[];
 }
 
 declare global {
   interface Window {
     __graphicsTest?: GraphicsTestState;
+    /** The running scene's reel time in milliseconds, null before it
+     *  starts: what a screenshot of the page shows, to find the frame a
+     *  second client draws of it. */
+    __graphicsTestReelMs?: () => number | null;
   }
 }
 
@@ -97,7 +109,7 @@ export default function GraphicsTest() {
   const [chosen] = useState(() => chooseScenes(reel, params.get("scenes")));
   const [plates] = useState(() => params.get("plates") === "1");
   const [counts] = useState(() => params.get("counts") === "1");
-  const [{ fog, indicators, layers }] = useState(() => reelDrawing(params));
+  const [{ fog, indicators, cards, layers }] = useState(() => reelDrawing(params));
   const [quality] = useState<GraphicsTier | undefined>(() => {
     const value = params.get("quality");
     return value === "low" || value === "medium" || value === "high" ? value : undefined;
@@ -116,7 +128,7 @@ export default function GraphicsTest() {
     });
   const report = stage === "results" ? reportOf(results, failure) : null;
   const publish = (
-    state: Omit<GraphicsTestState, "plates" | "counts" | "overlays">,
+    state: Omit<GraphicsTestState, "plates" | "counts" | "overlays" | "cards">,
     done: readonly ReelResult[],
   ) => {
     window.__graphicsTest = {
@@ -125,6 +137,9 @@ export default function GraphicsTest() {
       counts: done.map((r) => ({ scene: r.scene.map, frames: r.counts })),
       overlays: done.flatMap((r) =>
         r.overlays ? [{ scene: r.scene.map, bytes: r.overlays.encode() }] : [],
+      ),
+      cards: done.flatMap((r) =>
+        r.cards ? [{ scene: r.scene.map, bytes: r.cards.encode() }] : [],
       ),
     };
   };
@@ -170,6 +185,7 @@ export default function GraphicsTest() {
         counts={counts}
         fog={fog}
         indicators={indicators}
+        cards={cards}
         quality={quality}
         onDone={done}
         onFailure={(reason) => {
@@ -242,6 +258,7 @@ function ReelScene({
   counts,
   fog,
   indicators,
+  cards,
   quality,
   onDone,
   onFailure,
@@ -252,6 +269,7 @@ function ReelScene({
   counts: boolean;
   fog: boolean;
   indicators: boolean;
+  cards: ReelCards;
   quality?: GraphicsTier;
   onDone: (r: ReelResult) => void;
   onFailure: (reason: string) => void;
@@ -275,6 +293,7 @@ function ReelScene({
       counts={counts}
       fog={fog}
       indicators={indicators}
+      cards={cards}
       quality={quality}
       onDone={onDone}
     />
@@ -289,6 +308,7 @@ function ReelBattle({
   counts,
   fog,
   indicators,
+  cards,
   quality,
   onDone,
 }: {
@@ -302,6 +322,8 @@ function ReelBattle({
   fog: boolean;
   /** The battle view's indicators, drawn and recorded with every frame. */
   indicators: boolean;
+  /** The battle view's unit info cards, shown and recorded with every frame. */
+  cards: ReelCards;
   quality?: GraphicsTier;
   onDone: (r: ReelResult) => void;
 }) {
@@ -311,7 +333,7 @@ function ReelBattle({
       scene,
       (JSON.parse(scenario) as { rules: { tick_hz: number } }).rules.tick_hz,
       onDone,
-      { plates, counts, indicators },
+      { plates, counts, indicators, cards: cards !== "off" },
     ),
   );
   const [camera] = useState<Camera3DParams>(() => {
@@ -332,9 +354,20 @@ function ReelBattle({
   // show, as in a battle the player is not commanding.
   const overlay = useBattleOverlay(session, { scenario, camera, shown: indicators });
   run.subject.overlay = () => overlay.partsFeed.current;
+  // The battle view's cards, as their layer placed them this frame.
+  const readouts = useRef<HTMLDivElement>(null);
+  run.subject.cards = (sprites, cache) => {
+    const layer = readouts.current?.querySelector<HTMLElement>("[data-testid=readouts]");
+    return layer ? readoutSnapshot(layer, sprites, cache) : undefined;
+  };
   useEffect(() => {
     if (session.sim.error) run.fail(session.sim.error);
   }, [run, session.sim.error]);
+  useEffect(() => {
+    window.__graphicsTestReelMs = () =>
+      run.recording.started ? run.recording.elapsed(performance.now()) : null;
+    return () => void delete window.__graphicsTestReelMs;
+  }, [run]);
   useEffect(() => {
     const interrupt = () => {
       if (document.hidden) run.fail("The test was interrupted when the window became hidden.");
@@ -365,10 +398,22 @@ function ReelBattle({
         initialCamera={camera}
         groundAt={session.surfaceZ}
         pilot={pilot}
-        onFrame={(_, view, __, scale) => overlay.follow(view, scale)}
+        onFrame={(project, view, pointer, scale) => {
+          overlay.follow(view, scale);
+          // Nobody points at a filmed battle: no card opens under a stray pointer.
+          if (cards !== "off")
+            session.placePanels(project, view, { ...pointer, position: null }, cards === "open");
+        }}
         cameraConfig={cameraConfig}
         quality={quality ? graphicsProfiles[quality] : undefined}
       />
+      {cards !== "off" && (
+        <div ref={readouts}>
+          <SessionCatalogProvider catalog={session.catalog}>
+            <ReadoutLayer {...battleReadouts(session)} />
+          </SessionCatalogProvider>
+        </div>
+      )}
       <div className="menu-backdrop-veil" ref={veil} style={{ opacity: 1 }} />
       <div role="status" className="bench-progress graphics-test-progress">
         <span>Graphics test · {scene.map}</span>

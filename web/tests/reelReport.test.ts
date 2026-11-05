@@ -48,6 +48,7 @@ function result(map: string, started: number, intervals: number[]): ReelResult {
     plates: [],
     counts: [],
     overlays: null,
+    cards: null,
   };
 }
 

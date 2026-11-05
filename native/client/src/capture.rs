@@ -32,6 +32,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use crate::bundle::Library;
+use crate::cards::{self, RecordedCards};
 use crate::overlays::{self, Indicators, RecordedOverlays};
 
 #[derive(Deserialize)]
@@ -183,9 +184,12 @@ pub struct Replay {
     /// The indicators the page drew over the battle, frame by frame; none
     /// when it drew none or playback leaves them out.
     pub indicators: Option<Indicators>,
+    /// The unit info cards the page showed, frame by frame; none when it
+    /// showed none or playback leaves them out.
+    pub cards: Option<RecordedCards>,
 }
 
-/// Which of the layers a capture drew its playback draws. Both default on:
+/// Which of the layers a capture drew its playback draws. All default on:
 /// a layer the capture never drew stays off regardless.
 #[derive(Clone, Copy, Debug)]
 pub struct Playback {
@@ -193,6 +197,8 @@ pub struct Playback {
     pub fog: bool,
     /// The recorded indicators (the manifest's `overlays`).
     pub indicators: bool,
+    /// The recorded unit info cards (the manifest's `cards`).
+    pub cards: bool,
 }
 
 impl Default for Playback {
@@ -200,6 +206,7 @@ impl Default for Playback {
         Self {
             fog: true,
             indicators: true,
+            cards: true,
         }
     }
 }
@@ -262,9 +269,10 @@ impl Replay {
     }
 
     /// Loads scene `dir` to play back as `playback` chooses: each layer the
-    /// browser drew (`fog`, `overlays`) is drawn unless it leaves it out.
-    /// The manifest naming `overlays` requires the scene's recorded
-    /// overlays ([`overlays::FILE`]); a capture without the layer has none.
+    /// browser drew (`fog`, `overlays`, `cards`) is drawn unless it leaves
+    /// it out. The manifest naming `overlays` requires the scene's recorded
+    /// overlays ([`overlays::FILE`]), and naming `cards` its recorded cards
+    /// ([`cards::FILE`]); a capture without the layer has none.
     pub fn open_played(
         dir: &Path,
         library: &Library,
@@ -331,6 +339,14 @@ impl Replay {
         let recorded = if playback.indicators && drawn("overlays") {
             let path = dir.join(overlays::FILE);
             Some(RecordedOverlays::read(&path, capture.frames.len())?)
+        } else {
+            None
+        };
+        let recorded_cards = if playback.cards && drawn("cards") {
+            Some(RecordedCards::read(
+                &dir.join(cards::FILE),
+                capture.frames.len(),
+            )?)
         } else {
             None
         };
@@ -418,6 +434,7 @@ impl Replay {
             .transpose()?;
         Ok(Self {
             indicators,
+            cards: recorded_cards,
             map,
             rules,
             clock: ReelClock::of(&capture.frames),

@@ -17,7 +17,8 @@ export interface LastDrawnFrame {
 
 /** Places the info panels' layer (`ReadoutLayer`'s handle) off what the last
  *  frame drew, at its presentation clock; call the result once per animation
- *  frame. The panels open as Space opens them. */
+ *  frame. The panels open as Space opens them, or when `open` says so (a
+ *  capture filming them open). */
 export const panelPlacer =
   (
     readouts: { readonly current: ReadoutLayerHandle | null },
@@ -25,13 +26,13 @@ export const panelPlacer =
     ground: (x: number, y: number) => number,
     control: { readonly showOrders: boolean },
   ) =>
-  (project: Project, camera: Camera3DParams, pointer: ViewportPointer) =>
+  (project: Project, camera: Camera3DParams, pointer: ViewportPointer, open = control.showOrders) =>
     readouts.current?.place(
       project,
       camera,
       { own: frame.drawnAt.current, enemies: frame.drawnEnemyAt.current, ground },
       frame.drawnClock.current,
-      control.showOrders,
+      open,
       pointer.position
         ? {
             ...pointer.position,

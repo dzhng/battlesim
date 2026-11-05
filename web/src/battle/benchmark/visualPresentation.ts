@@ -24,6 +24,7 @@ export const PRESENTATION_LAYERS = [
   "scars",
   "fog",
   "overlays",
+  "cards",
 ] as const;
 export type PresentationLayer = (typeof PRESENTATION_LAYERS)[number];
 

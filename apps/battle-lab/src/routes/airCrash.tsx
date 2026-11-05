@@ -49,7 +49,7 @@ function AirCrashLab({ battle }: { battle: SavedBattle }) {
         {...session.viewport}
         initialCamera={CAMERA}
         {...session.input}
-        onFrame={session.placePanels}
+        onFrame={(project, view, pointer) => session.placePanels(project, view, pointer)}
         diagnostics={session.probes}
       />
       <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="air-crash-panel">

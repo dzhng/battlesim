@@ -1,8 +1,9 @@
 // @vitest-environment node
 // What the graphics test films, as the native parity scene asks for it: the
 // battle view's indicators by default and the `overlays` layer that names
-// them, none with PARITY_INDICATORS=0; the fog of war only with
-// PARITY_FOG=1; each independently of the other.
+// them, none with PARITY_INDICATORS=0; its unit info cards by default and
+// the `cards` layer, none with PARITY_CARDS=0; the fog of war only with
+// PARITY_FOG=1; each independently of the others.
 import { expect, test } from "vitest";
 import { reelDrawing } from "@apps/battle-lab/src/benchmark/reelDrawing";
 import { parityUrl } from "../scenes/native-parity-capture.mjs";
@@ -17,6 +18,28 @@ test("indicators are filmed by default and left out with PARITY_INDICATORS=0", (
   const clean = filmed({ PARITY_INDICATORS: "0" });
   expect(clean.indicators).toBe(false);
   expect(clean.layers).not.toContain("overlays");
+});
+
+test("cards are filmed compact by default, open with PARITY_CARDS=open, and left out with PARITY_CARDS=0", () => {
+  expect(filmed({}).cards).toBe("compact");
+  expect(filmed({}).layers).toContain("cards");
+  expect(filmed({ PARITY_CARDS: "open" })).toMatchObject({ cards: "open" });
+  const clean = filmed({ PARITY_CARDS: "0", PARITY_INDICATORS: "0" });
+  expect(clean).toMatchObject({ cards: "off", indicators: false });
+  expect(clean.layers).not.toContain("cards");
+  expect(clean.layers).not.toContain("overlays");
+});
+
+test("cards, indicators and fog are chosen independently", () => {
+  for (const [env, cards, indicators, fog] of [
+    [{ PARITY_INDICATORS: "0" }, "compact", false, false],
+    [{ PARITY_CARDS: "0" }, "off", true, false],
+    [{ PARITY_CARDS: "0", PARITY_FOG: "1" }, "off", true, true],
+  ] as const) {
+    const drawn = filmed(env);
+    expect(drawn, JSON.stringify(env)).toMatchObject({ cards, indicators, fog });
+    expect(drawn.layers.includes("cards")).toBe(cards !== "off");
+  }
 });
 
 test("fog and indicators are chosen independently", () => {

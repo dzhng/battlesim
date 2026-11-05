@@ -48,7 +48,12 @@ geometry is the indicators the browser recorded (`overlays.bin`, when its
 manifest names the `overlays` layer), drawn as the page uploaded them with the
 game's ground paint and overlay halo; native builds no indicator itself.
 Without them player paint is off, and shaders still read valid empty
-resources.
+resources. A replay's unit info cards are the cards the browser laid out
+(`cards.bin`, when its manifest names the `cards` layer): each frame's
+backings, words, icons and leaders as primitives in page pixels, with the
+page's glyph and icon pixels, drawn by the shared readout pass
+(`renderer_core::readouts`) scaled to the replay's size. Native decides no
+card, word or place.
 
 ## Running a parity scene
 
@@ -79,9 +84,9 @@ still draw each record at its own sim time, as the page did. Nothing is written
 before the replay has framed something, which would be the empty sky. `--hdr`
 writes each plate or frame as the HDR look's HLG signal in a 16-bit PNG rather
 than the display (see the [capture README](../../apps/battle-lab/src/capture/README.md#hdr-clips)).
-A clip frame draws the indicators of the record whose camera it uses.
-`--no-indicators` and `--no-fog` leave out a layer the run drew, each
-independently.
+A clip frame draws the indicators and cards of the record whose camera it
+uses. `--no-indicators`, `--no-cards` and `--no-fog` leave out a layer the
+run drew, each independently.
 
 The window opens borderless and off-screen by default, so nothing appears on
 the user's screen. On macOS, `wgpu` presents nothing to a window that isn't

@@ -232,9 +232,31 @@ gets an identified unit's. The page records what it uploaded each frame
 beside the capture (`overlays.bin`, the manifest's `overlays` layer); native
 draws exactly that, the ground marks as paint in the world and the rest laid
 over the look as an HLG signal at reference white, as the fog rim is.
-`PARITY_INDICATORS=0` films a run without them. At playback,
-`--no-indicators` makes a clean clip and `--no-fog` leaves out a filmed fog of
-war, each on its own. Unit info cards are not filmed.
+`PARITY_INDICATORS=0` films a run without them.
+
+**Cards are the game's, recorded.** The parity page shows the battle view's
+own unit info cards (`battleReadouts`): blue's units in cyan, the enemies it
+has identified in red, its contacts (a remembered one fading out as it
+retires, still saying what blue last knew of it), laid out by the live
+readout layer, fading as the camera closes from 90 m to nothing at 48 m. A
+hidden enemy has no card. Each frame the page reads back what that layer
+placed, each card's backing, words, icons, place, opacity and leader, and
+records it with the pixels of its glyphs and icons in the page's own fonts
+(`cards.bin`, the manifest's `cards` layer;
+[`cardCapture.ts`](../../../../web/src/battle/benchmark/cardCapture.ts) owns
+the format). Native draws those primitives over the look, after the fog and
+the indicators, through the indicators' composite. `PARITY_CARDS=0` films a
+run without them, and `PARITY_CARDS=open` films them open, as holding Space
+opens them; at rest a card is compact (its name, its status marks and a
+carrier's seats).
+
+At playback, `--no-indicators`, `--no-cards` and `--no-fog` each leave out
+one filmed layer; `--no-indicators --no-cards` makes a clean clip, with or
+without the fog. `PARITY_VIEWPORT=1920x1080` films the run at the clip's
+size. The `cards` reel (`PARITY_CAPTURE=cards`,
+[`fixtures/captures/cards.json`](../../../../fixtures/captures/cards.json))
+watches the menu battle's contacts from a commander's height, about 120 m,
+then closes in through the fade.
 
 HLG rather than PQ: an SDR screen shows an HLG stream acceptably without
 tone-mapping metadata, and iPhone and X both recognize it.

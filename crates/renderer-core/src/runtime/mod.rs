@@ -70,6 +70,8 @@ pub struct RuntimeWorld<'a, S: BundleSource> {
 pub struct PlayerGeometry<'a> {
     pub overlay: overlay::Geometry<'a>,
     pub paint: PaintGeometry<'a>,
+    /// Laid-out unit info cards, prepared by the shell, drawn over the overlay.
+    pub readouts: Option<&'a crate::readouts::ReadoutResources>,
 }
 
 pub struct Runtime {
@@ -451,6 +453,7 @@ impl Runtime {
                 }),
                 xray: self.xray.as_ref(),
                 high_air: self.high_air.as_ref(),
+                readouts: geometry.readouts,
             },
             encoder,
         );
