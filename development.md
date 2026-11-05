@@ -137,8 +137,13 @@ dependencies.
 ## Checks and hooks
 
 After setup, a pre-commit hook formats and lints what the commit touches;
-[lint-staged.config.mjs](lint-staged.config.mjs) owns what runs. It sits beside
-Git LFS's hooks, so setup never redirects Git's hooks directory.
+[lint-staged.config.mjs](lint-staged.config.mjs) owns what runs. A pre-push
+hook holds the release order: work lands on `staging` first and is promoted to
+`main`, so [the guard](tools/check-branch-order.mjs) refuses a push that would
+put a commit on `main` that remote `staging` lacks, or move `staging` behind
+`main`, then hands the push to Git LFS's own pre-push. Both hooks sit beside
+LFS's in the shared hooks directory, one installation for every worktree, so
+setup never redirects Git's hooks directory.
 
 Source files (what GitHub Linguist calls a programming language) have a size
 budget of 8,000 tokens (bytes / 4), so an agent can read any file whole. It is
