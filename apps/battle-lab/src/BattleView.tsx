@@ -21,12 +21,7 @@ import { MatchResultOverlay } from "./MatchResultOverlay";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
-import { battleOverlayScenario, buildBattleOverlay } from "./battleOverlay";
-import { useContactFacing } from "./contactFacing";
-import { borderWidthM, buildMapBorder } from "@packages/battle-renderer/src/playAreaOverlay";
-import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
-import { gameMapBorder } from "./gameFog";
-import { gameStroke } from "./gameOverlay";
+import { useBattleOverlay } from "./useBattleOverlay";
 import { LabViewport } from "./LabViewport";
 import { useUnitFocus } from "./useUnitFocus";
 import { MenuButton, PauseMenu, usePauseMenu } from "./PauseMenu";
@@ -51,11 +46,6 @@ import {
  *  (`world`), the viewport has drawn its first frame (`renderer`), and the
  *  battle's first observation has arrived (`playable`). */
 export type BattleLoadStage = "world" | "renderer" | "playable";
-
-/** Zoom steps for the marks whose strokes are sized on screen (the border,
- *  the orders, the ruler): distance = ZOOM_BASE ** step. */
-const ZOOM_BASE = 1.25;
-const zoomStep = (distance: number) => Math.round(Math.log(distance) / Math.log(ZOOM_BASE));
 
 // eslint-disable-next-line complexity -- debt: most branches are `observation?.` and `input &&` guards on HUD props; moving the `.hud` block into a component that takes a non-null observation would split it, but proving nothing on screen moved needs the HUD screenshot gates.
 export function BattleView({
@@ -119,21 +109,6 @@ export function BattleView({
   /** Scenario/runtime audio may react to the first authoritative publication. */
   onDecoded?: (observation: ObservationView, digest: string) => void;
 }) {
-  const parsed = useMemo(
-    () => ({
-      size: (JSON.parse(scenario) as { map: { size: [number, number] } }).map.size,
-      drawn: battleOverlayScenario(scenario, side ?? "blue"),
-      tickHz: (JSON.parse(scenario) as { rules: { tick_hz: number } }).rules.tick_hz,
-    }),
-    [scenario, side],
-  );
-  // The border and the orders are rebuilt only when the zoom crosses a step
-  // (×1.25), so their widths hold near their `_px` widths on screen.
-  const [zoom, setZoom] = useState(() => zoomStep(camera.distance));
-  const zoomRef = useRef(zoom);
-  const metresPerPx = metresPerPxAt(ZOOM_BASE ** zoom, camera.fovY, window.innerHeight);
-  const [renderScale, setRenderScale] = useState(1);
-  const contactFacing = useContactFacing(camera, metresPerPx, renderScale);
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewportReady, setViewportReady] = useState(false);
   const session = useBattleSession({
@@ -155,7 +130,7 @@ export function BattleView({
   const cues = useCaptions(session.units, session.rules.tick_hz);
   const { note: noteCues } = cues;
   const input = !replay && !scripted;
-  const { world, meshes, sim, control, surfaceZ } = session;
+  const { meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
   const matchFinished = observation?.skirmish?.phase === "finished";
@@ -179,58 +154,7 @@ export function BattleView({
     audio?.reset();
   }, [sim.client, clearCues, audio]);
 
-  const border = useMemo(
-    () =>
-      world
-        ? buildMapBorder(
-            parsed.size,
-            gameMapBorder,
-            borderWidthM(gameMapBorder, gameStroke(metresPerPx, renderScale)),
-            surfaceZ,
-          )
-        : null,
-    [world, parsed.size, metresPerPx, renderScale, surfaceZ],
-  );
-  const overlay = useMemo(
-    () =>
-      world && observation
-        ? buildBattleOverlay(
-            session.units,
-            session.rules,
-            observation,
-            control.selected,
-            surfaceZ,
-            parsed.drawn,
-            {
-              showOrders: control.showOrders,
-              reveal: session.revealed,
-              contacts,
-              facing: contactFacing.facing,
-              allies: session.allies,
-            },
-            border,
-            gameStroke(metresPerPx, renderScale),
-          )
-        : undefined,
-    [
-      session.allies,
-      contactFacing.facing,
-      session.units,
-      session.rules,
-      world,
-      observation,
-      contacts,
-      surfaceZ,
-      control.selected,
-      parsed.drawn,
-      control.showOrders,
-      session.revealed,
-      border,
-      metresPerPx,
-      renderScale,
-    ],
-  );
-  const overlayFeed = useFeed(overlay);
+  const overlay = useBattleOverlay(session, { scenario, side, camera });
 
   // Loading: the static world's meshes, then the viewport's first frame, then
   // the battle's first observation, which is when the player can act.
@@ -267,7 +191,7 @@ export function BattleView({
           inputEnabled={battleInput}
           world={worldFeed}
           {...session.known}
-          overlay={overlayFeed}
+          overlay={overlay.overlayFeed}
           pointerMarks={pointerPaint.feed}
           fog={session.fogFeed}
           {...session.viewport}
@@ -291,14 +215,8 @@ export function BattleView({
           }}
           pilot={scripted?.pilot}
           onFrame={(project, view, pointer, scale) => {
-            setRenderScale(scale);
             session.hear();
-            contactFacing.follow(view);
-            const step = zoomStep(view.distance);
-            if (step !== zoomRef.current) {
-              zoomRef.current = step;
-              setZoom(step);
-            }
+            overlay.follow(view, scale);
             session.placePanels(project, view, pointer);
             objectiveMarkers.current?.place(project, surfaceZ);
           }}

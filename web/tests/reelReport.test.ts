@@ -47,6 +47,7 @@ function result(map: string, started: number, intervals: number[]): ReelResult {
     lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
     plates: [],
     counts: [],
+    overlays: null,
   };
 }
 

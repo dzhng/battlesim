@@ -342,3 +342,96 @@ fn paint_preserves_still_marching_pointer_depth_and_clear_contracts() {
         "hidden paint must clear the previous frame"
     );
 }
+
+/// The display overlay `straight` (unpremultiplied) at `alpha`, composited
+/// over a black HDR look: what the HLG signal reads there.
+fn overlay_over_hdr(straight: [f64; 3], alpha: f64) -> [f32; 4] {
+    let gpu = support::gpu().unwrap();
+    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
+    let targets = Targets::new(&gpu.device, [SIZE, SIZE]);
+    let overlay = overlay::new(
+        &gpu.device,
+        &gpu.queue,
+        &pipelines,
+        &targets,
+        &renderer_core::records::OverlayGlow {
+            radius_px: 1.0,
+            sigma_px: 0.4,
+            ..Default::default()
+        },
+    );
+    let hdr = gpu
+        .device
+        .create_texture(&TextureDescriptor {
+            label: Some("test-hdr-look"),
+            size: Extent3d {
+                width: SIZE,
+                height: SIZE,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: renderer_core::HDR_FORMAT,
+            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        })
+        .create_view(&Default::default());
+    let camera = camera(&gpu.device, &gpu.queue, &pipelines);
+    let mut encoder = gpu.device.create_command_encoder(&Default::default());
+    // The overlay target holds premultiplied colour.
+    let mark = Color {
+        r: straight[0] * alpha,
+        g: straight[1] * alpha,
+        b: straight[2] * alpha,
+        a: alpha,
+    };
+    for (view, color) in [(&hdr, Color::BLACK), (&targets.overlay_msaa, mark)] {
+        let _pass = encoder.begin_render_pass(&RenderPassDescriptor {
+            color_attachments: &[Some(RenderPassColorAttachment {
+                view,
+                depth_slice: None,
+                resolve_target: None,
+                ops: Operations {
+                    load: LoadOp::Clear(color),
+                    store: StoreOp::Store,
+                },
+            })],
+            ..Default::default()
+        });
+    }
+    // Empty geometry resolves the cleared overlay, as an empty UI frame does.
+    overlay.encode_geometry(
+        &mut encoder,
+        &targets,
+        &camera,
+        overlay::Geometry::default(),
+    );
+    overlay.encode_composite(&mut encoder, &targets, Some(&hdr));
+    let readback = read(&gpu.device, &mut encoder, &hdr);
+    let pixels = readback::pixels(&gpu.device, &gpu.queue, encoder, &readback);
+    at(&pixels, SIZE / 2)
+}
+
+#[test]
+fn display_overlays_land_on_the_hdr_look_at_hlg_reference_white() {
+    let white = overlay_over_hdr([1.0; 3], 1.0);
+    for channel in &white[..3] {
+        assert!(
+            (channel - 0.75).abs() < 0.01,
+            "UI white is HLG reference white (signal 0.75), not the peak: {white:?}"
+        );
+    }
+    let grey = overlay_over_hdr([0.5; 3], 1.0);
+    assert!(
+        grey[0] > 0.2 && grey[0] < white[0] - 0.1,
+        "a mid grey mark reads darker than white: {grey:?} against {white:?}"
+    );
+    let half = overlay_over_hdr([1.0; 3], 0.5);
+    for channel in &half[..3] {
+        assert!(
+            (channel - 0.375).abs() < 0.01,
+            "half-covered white lays half of reference white over black: {half:?}"
+        );
+    }
+}

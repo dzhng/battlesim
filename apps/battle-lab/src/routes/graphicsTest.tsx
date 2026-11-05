@@ -2,19 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { REELS, type ReelWorkload } from "@web/battle/benchmark/reels";
-import type { FrameCount, PresentationLayer } from "@web/battle/benchmark/visualPresentation";
+import type { FrameCount } from "@web/battle/benchmark/visualPresentation";
 import { listMaps } from "@web/maps/catalogue";
 import { filmCamera, validateCapture, type CaptureScene } from "../capture/capture";
 import { savedBattle } from "../savedMaps";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import { useBattleSession } from "../useBattleSession";
 import { useFeed } from "@web/feed";
+import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { gameCamera } from "../gameCamera";
 import { LabViewport } from "../LabViewport";
 import { useLabLoading } from "../LabLoading";
 import { appResources } from "../appResources";
 import { createReelRun, type ReelPlate, type ReelResult } from "../benchmark/reelRun";
 import { createReelReport, type ReelReport } from "../benchmark/reelReport";
+import { reelDrawing } from "../benchmark/reelDrawing";
+import { useBattleOverlay } from "../useBattleOverlay";
 import { FrameChart } from "../benchmark/FrameChart";
 import { graphicsProfiles, type GraphicsTier } from "../graphicsSettings";
 
@@ -56,22 +59,6 @@ function chooseReel(name: string | null) {
 }
 type Reel = Exclude<ReturnType<typeof chooseReel>, string>;
 
-/** What the reel's viewport is handed: the battle, with no orders, and with
- *  no fog of war unless `?fog=1` asks for the side's. */
-const REEL_LAYERS: readonly PresentationLayer[] = [
-  "sky",
-  "terrain",
-  "water",
-  "grass",
-  "scenery",
-  "props",
-  "structures",
-  "buildings",
-  "models",
-  "effects",
-  "scars",
-];
-
 /** The scenes of `reel` that `?scenes=<map,…>` names, in that order (every
  *  scene without it), or the refusal naming a map the reel does not film. */
 function chooseScenes(reel: Reel | string, names: string | null): readonly CaptureScene[] | string {
@@ -93,6 +80,9 @@ interface GraphicsTestState {
   plates: readonly (ReelPlate & { scene: string })[];
   /** Each scene's counted frames (`?counts=1`), in run order. */
   counts: readonly { scene: string; frames: readonly FrameCount[] }[];
+  /** Each scene's recorded indicators (`overlays.bin`; not with
+   *  `?indicators=0`), in run order. */
+  overlays: readonly { scene: string; bytes: Uint8Array }[];
 }
 
 declare global {
@@ -107,7 +97,7 @@ export default function GraphicsTest() {
   const [chosen] = useState(() => chooseScenes(reel, params.get("scenes")));
   const [plates] = useState(() => params.get("plates") === "1");
   const [counts] = useState(() => params.get("counts") === "1");
-  const [fog] = useState(() => params.get("fog") === "1");
+  const [{ fog, indicators, layers }] = useState(() => reelDrawing(params));
   const [quality] = useState<GraphicsTier | undefined>(() => {
     const value = params.get("quality");
     return value === "low" || value === "medium" || value === "high" ? value : undefined;
@@ -121,18 +111,21 @@ export default function GraphicsTest() {
       reel: typeof reel === "string" ? undefined : reel.workload,
       maps: run.map((s) => s.map),
       plates,
-      layers: fog ? [...REEL_LAYERS, "fog"] : REEL_LAYERS,
+      layers,
       interruption: reason ? { status: "failed", reason } : undefined,
     });
   const report = stage === "results" ? reportOf(results, failure) : null;
   const publish = (
-    state: Omit<GraphicsTestState, "plates" | "counts">,
+    state: Omit<GraphicsTestState, "plates" | "counts" | "overlays">,
     done: readonly ReelResult[],
   ) => {
     window.__graphicsTest = {
       ...state,
       plates: done.flatMap((r) => r.plates.map((p) => ({ ...p, scene: r.scene.map }))),
       counts: done.map((r) => ({ scene: r.scene.map, frames: r.counts })),
+      overlays: done.flatMap((r) =>
+        r.overlays ? [{ scene: r.scene.map, bytes: r.overlays.encode() }] : [],
+      ),
     };
   };
   useLabLoading("renderer", stage !== "running" ? true : null);
@@ -176,6 +169,7 @@ export default function GraphicsTest() {
         plates={plates}
         counts={counts}
         fog={fog}
+        indicators={indicators}
         quality={quality}
         onDone={done}
         onFailure={(reason) => {
@@ -247,6 +241,7 @@ function ReelScene({
   plates,
   counts,
   fog,
+  indicators,
   quality,
   onDone,
   onFailure,
@@ -256,6 +251,7 @@ function ReelScene({
   plates: boolean;
   counts: boolean;
   fog: boolean;
+  indicators: boolean;
   quality?: GraphicsTier;
   onDone: (r: ReelResult) => void;
   onFailure: (reason: string) => void;
@@ -278,6 +274,7 @@ function ReelScene({
       plates={plates}
       counts={counts}
       fog={fog}
+      indicators={indicators}
       quality={quality}
       onDone={onDone}
     />
@@ -291,6 +288,7 @@ function ReelBattle({
   plates,
   counts,
   fog,
+  indicators,
   quality,
   onDone,
 }: {
@@ -302,6 +300,8 @@ function ReelBattle({
   counts: boolean;
   /** The side's fog of war (the reel films without it). */
   fog: boolean;
+  /** The battle view's indicators, drawn and recorded with every frame. */
+  indicators: boolean;
   quality?: GraphicsTier;
   onDone: (r: ReelResult) => void;
 }) {
@@ -311,9 +311,13 @@ function ReelBattle({
       scene,
       (JSON.parse(scenario) as { rules: { tick_hz: number } }).rules.tick_hz,
       onDone,
-      { plates, counts },
+      { plates, counts, indicators },
     ),
   );
+  const [camera] = useState<Camera3DParams>(() => {
+    const first = scene.reel.shots[0].from;
+    return { ...first, target: [first.target[0], first.target[1], 0], ...gameCamera.lens };
+  });
   const session = useBattleSession({
     scenario,
     seed: scene.seed,
@@ -323,6 +327,11 @@ function ReelBattle({
   });
   run.subject.unitAt = (id) =>
     session.sim.latest.current?.own.find((u) => u.id === id)?.position ?? null;
+  // The battle view's indicators, from the side's own observation and
+  // presented contacts; with input off nothing is selected and no orders
+  // show, as in a battle the player is not commanding.
+  const overlay = useBattleOverlay(session, { scenario, camera, shown: indicators });
+  run.subject.overlay = () => overlay.partsFeed.current;
   useEffect(() => {
     if (session.sim.error) run.fail(session.sim.error);
   }, [run, session.sim.error]);
@@ -342,7 +351,6 @@ function ReelBattle({
       return run.pilot.pose(now);
     },
   }));
-  const first = scene.reel.shots[0].from;
   if (!session.meshes || session.sim.error) return null;
   return (
     <>
@@ -353,13 +361,11 @@ function ReelBattle({
         {...session.known}
         {...session.viewport}
         fog={fog ? session.fogFeed : undefined}
-        initialCamera={{
-          ...first,
-          target: [first.target[0], first.target[1], 0],
-          ...gameCamera.lens,
-        }}
+        overlay={indicators ? overlay.overlayFeed : undefined}
+        initialCamera={camera}
         groundAt={session.surfaceZ}
         pilot={pilot}
+        onFrame={(_, view, __, scale) => overlay.follow(view, scale)}
         cameraConfig={cameraConfig}
         quality={quality ? graphicsProfiles[quality] : undefined}
       />

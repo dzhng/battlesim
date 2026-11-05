@@ -29,6 +29,11 @@ const USAGE = `usage: bun run --cwd web hdr-capture <run-dir> <scene> [flags]
   --from-ms=<n>   start of the clip in reel milliseconds (default 0)
   --to-ms=<n>     end of the clip (default: the end of the reel)
   --no-music      leave the music out (for a clip with its own soundtrack)
+  --no-indicators a clean clip: leave out the battle's recorded indicators
+                  (contact glyphs, orders, zone, border); drawn by default
+                  when the run recorded them
+  --no-fog        leave out the fog of war the run was filmed with; fog and
+                  indicators are chosen independently
   --hevc          write 10-bit HEVC Main 10 (<scene>-hdr-hevc.mp4) instead of
                   8-bit H.264 High; X's web uploader hangs on HEVC
   --keep-frames   keep the frames after encoding
@@ -43,6 +48,8 @@ function options(argv) {
       "from-ms": { type: "string" },
       "to-ms": { type: "string" },
       "no-music": { type: "boolean", default: false },
+      "no-indicators": { type: "boolean", default: false },
+      "no-fog": { type: "boolean", default: false },
       hevc: { type: "boolean", default: false },
       "keep-frames": { type: "boolean", default: false },
       output: { type: "string", default: "throwaway/hdr-capture" },
@@ -102,6 +109,8 @@ function main() {
     ...(args["from-ms"] ? ["--from-ms", args["from-ms"]] : []),
     ...(args["to-ms"] ? ["--to-ms", args["to-ms"]] : []),
     ...(args["no-music"] ? ["--no-music"] : []),
+    ...(args["no-indicators"] ? ["--no-indicators"] : []),
+    ...(args["no-fog"] ? ["--no-fog"] : []),
   ]);
   const count = readdirSync(frames).filter((f) => f.endsWith(".png")).length;
   if (count === 0) throw new Error(`the native client wrote no frames to ${frames}`);

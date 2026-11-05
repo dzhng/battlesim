@@ -20,6 +20,7 @@ import {
   type PresentationSample,
 } from "@web/battle/benchmark/presentationCapture";
 import { GRASS_CELLS, type FrameCount, type Lens } from "@web/battle/benchmark/visualPresentation";
+import { OverlayRecording, type OverlayPart } from "@web/battle/benchmark/overlayCapture";
 
 /** A control plate: the frame it names read back (`FramePlate`) with what it
  *  drew of the buildings and scenery, and the grass clumps it grew counted
@@ -75,6 +76,9 @@ export interface ReelResult {
   plates: readonly ReelPlate[];
   /** What the counted frames drew (`counts`), in frame order. */
   counts: readonly FrameCount[];
+  /** The indicators each frame drew (`indicators`), in lockstep with
+   *  `frames`; null when the run recorded none. */
+  overlays: OverlayRecording | null;
 }
 
 /** Of the frames between tick boundaries, a counting run counts one in this many. */
@@ -86,12 +90,17 @@ const COUNT_BETWEEN = 4;
  *  frames their timing); without, nothing is read back. With `counts`, every
  *  frame drawn exactly on a tick boundary is counted, and one in
  *  `COUNT_BETWEEN` of the rest: a second client's counts there catch a clock
- *  read a hair off. */
+ *  read a hair off. With `indicators`, every frame records the overlay
+ *  layers the page drew with it (`subject.overlay`). */
 export function createReelRun(
   scene: CaptureScene,
   tickHz: number,
   onDone: (result: ReelResult) => void,
-  { plates = false, counts = false }: { plates?: boolean; counts?: boolean } = {},
+  {
+    plates = false,
+    counts = false,
+    indicators = false,
+  }: { plates?: boolean; counts?: boolean; indicators?: boolean } = {},
 ) {
   const durationMs = scene.reel.shots.reduce((sum, shot) => sum + shot.seconds * 1000, 0);
   const recording = new BenchmarkRecording(durationMs);
@@ -104,7 +113,12 @@ export function createReelRun(
   let adapter: string | null = null;
   let stats: Parameters<NonNullable<ViewportPilot["attach"]>>[0]["stats"] | null = null;
   let lastStats = 0;
-  const subject = { unitAt: (_id: number): ArrayLike<number> | null => null };
+  const subject = {
+    unitAt: (_id: number): ArrayLike<number> | null => null,
+    /** The overlay layers the page's viewport has uploaded. */
+    overlay: (): readonly OverlayPart[] | undefined => undefined,
+  };
+  const overlays = indicators ? new OverlayRecording() : null;
   let lastSubject: readonly number[] = [0, 0];
   let tracked: { follow: number; at: [number, number]; now: number } | null = null;
   const capture: PresentationSample[] = [];
@@ -141,6 +155,7 @@ export function createReelRun(
       lens,
       plates: plated,
       counts: counted,
+      overlays,
     });
   };
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
@@ -211,6 +226,7 @@ export function createReelRun(
         canvas: [canvas[0], canvas[1]],
         plate,
       });
+      overlays?.frame(subject.overlay());
       if (stats && now - lastStats >= 2000) {
         const s = stats();
         recording.sample({

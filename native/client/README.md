@@ -43,8 +43,11 @@ The [presentation README](../../crates/presentation/README.md) owns the records.
 Native adapts desktop services around those owners. Audio commands come from
 presentation; the desktop sink decodes runtime recordings and plays them through
 `kira`. Missing Git LFS takes or tracks are refused by name. Offline replay sound
-is rendered to a file or buffer, never played aloud by a test. Player paint is
-absent when a replay supplies no UI geometry; shaders still read valid empty
+is rendered to a file or buffer, never played aloud by a test. A replay's UI
+geometry is the indicators the browser recorded (`overlays.bin`, when its
+manifest names the `overlays` layer), drawn as the page uploaded them with the
+game's ground paint and overlay halo; native builds no indicator itself.
+Without them player paint is off, and shaders still read valid empty
 resources.
 
 ## Running a parity scene
@@ -76,6 +79,9 @@ still draw each record at its own sim time, as the page did. Nothing is written
 before the replay has framed something, which would be the empty sky. `--hdr`
 writes each plate or frame as the HDR look's HLG signal in a 16-bit PNG rather
 than the display (see the [capture README](../../apps/battle-lab/src/capture/README.md#hdr-clips)).
+A clip frame draws the indicators of the record whose camera it uses.
+`--no-indicators` and `--no-fog` leave out a layer the run drew, each
+independently.
 
 The window opens borderless and off-screen by default, so nothing appears on
 the user's screen. On macOS, `wgpu` presents nothing to a window that isn't

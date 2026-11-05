@@ -218,6 +218,32 @@ pub fn all() -> Vec<PipelineSpec> {
                 )],
             )),
         ),
+        // The same composite over the HDR look's HLG signal.
+        render(
+            "overlayCompositeHdr",
+            "overlayCompositeHdr.wgsl",
+            vec!["overlaySource"],
+            Some(vertex(None, vec![])),
+            Some(fragment(
+                None,
+                vec![target_with(
+                    HDR_FORMAT,
+                    Some(BlendState {
+                        color: BlendComponent {
+                            src_factor: BlendFactor::One,
+                            dst_factor: BlendFactor::OneMinusSrcAlpha,
+                            operation: BlendOperation::Add,
+                        },
+                        alpha: BlendComponent {
+                            src_factor: BlendFactor::One,
+                            dst_factor: BlendFactor::OneMinusSrcAlpha,
+                            operation: BlendOperation::Add,
+                        },
+                    }),
+                    0xf,
+                )],
+            )),
+        ),
         render(
             "glowRows",
             "glowRows.wgsl",

@@ -6,3 +6,4 @@ pub mod capture;
 pub mod counts;
 pub mod effects;
 pub mod gpu;
+pub mod overlays;

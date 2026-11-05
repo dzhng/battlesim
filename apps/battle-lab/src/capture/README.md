@@ -223,5 +223,18 @@ The clip is 8-bit H.264 High by default, because X's web uploader hangs on
 HEVC; `--hevc` writes 10-bit HEVC Main 10 instead. Both carry the same BT.2020
 HLG tags.
 
+**Indicators are the game's, recorded.** The parity run films the battle
+view's in-world indicators with the battle: contact glyphs (a remembered
+contact's too, while it fades), aircraft marks, the zone, objectives, roads in
+and the map's border, built by the live game's own builders from blue's own
+view (`useBattleOverlay`). A hidden enemy has no mark, and a contact never
+gets an identified unit's. The page records what it uploaded each frame
+beside the capture (`overlays.bin`, the manifest's `overlays` layer); native
+draws exactly that, the ground marks as paint in the world and the rest laid
+over the look as an HLG signal at reference white, as the fog rim is.
+`PARITY_INDICATORS=0` films a run without them. At playback,
+`--no-indicators` makes a clean clip and `--no-fog` leaves out a filmed fog of
+war, each on its own. Unit info cards are not filmed.
+
 HLG rather than PQ: an SDR screen shows an HLG stream acceptably without
 tone-mapping metadata, and iPhone and X both recognize it.

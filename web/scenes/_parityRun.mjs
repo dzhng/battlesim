@@ -3,9 +3,10 @@
 // at 1280×720 on a visible page, unattended. For each scene it writes
 //
 //   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,
-//     plate-<index>.png, plain-<index>.png}
+//     overlays.bin, plate-<index>.png, plain-<index>.png}
 //
-// the capture (its publications and frame records), the
+// the capture (its publications and frame records), the indicators each
+// frame drew (`overlayCapture.ts`; not with `?indicators=0`), the
 // `native-visual-presentation` manifest (the battle's identity, the lens and
 // layers, and each plate's grass, building-module, scenery, posed-model and
 // effect counts), and the plates read back in their own frames with each
@@ -14,6 +15,10 @@
 // route's stage, never on a timer.
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { plainPlateFile } from "../src/battle/benchmark/presentationCapture.ts";
+import {
+  OVERLAY_CAPTURE_FILE,
+  decodeOverlayCapture,
+} from "../src/battle/benchmark/overlayCapture.ts";
 import { writeVisualPresentation } from "../src/battle/benchmark/visualPresentation.ts";
 
 const ROOT = new URL("../../", import.meta.url);
@@ -86,8 +91,8 @@ export async function filmParityRun(ctx, url, { counts = false } = {}) {
   );
   if (report.outcome.status !== "complete") return null;
 
-  // Plates cross from the page as base64 PNGs.
-  const { plates, counted } = await page.evaluate(async () => {
+  // Plates cross from the page as base64 PNGs, and overlays as base64 bytes.
+  const { plates, counted, overlays } = await page.evaluate(async () => {
     const base64 = async (blob) => {
       const data = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -100,6 +105,12 @@ export async function filmParityRun(ctx, url, { counts = false } = {}) {
     const state = window.__graphicsTest;
     return {
       counted: state.counts,
+      overlays: await Promise.all(
+        state.overlays.map(async ({ scene, bytes }) => ({
+          scene,
+          base64: await base64(new Blob([bytes])),
+        })),
+      ),
       plates: await Promise.all(
         state.plates.map(async ({ scene, file, png, plain, grass, drawn, models, effects }) => ({
           scene,
@@ -121,6 +132,26 @@ export async function filmParityRun(ctx, url, { counts = false } = {}) {
     await mkdir(dir, { recursive: true });
     const captureJson = report.presentationCaptureJson[i];
     await writeFile(new URL("capture.json", dir), captureJson);
+    // The indicators, in lockstep with the capture's frames, where the
+    // manifest names its `overlays` layer.
+    const drewOverlays = report.drawnPresentations[i]?.layers.includes("overlays") ?? false;
+    const recorded = overlays.find((o) => o.scene === map);
+    if (drewOverlays) {
+      const bytes = recorded && Buffer.from(recorded.base64, "base64");
+      const overlayFrames = bytes ? decodeOverlayCapture(bytes).frames.length : 0;
+      const frameCount = JSON.parse(captureJson).frames.length;
+      ctx.check(
+        `${map}: the indicators are recorded with every frame`,
+        overlayFrames === frameCount,
+        `${overlayFrames} overlay frames for ${frameCount} frame records`,
+      );
+      if (bytes) {
+        await writeFile(new URL(OVERLAY_CAPTURE_FILE, dir), bytes);
+        console.log(
+          `METRIC parity-run ${map} indicators: ${(bytes.length / 2 ** 20).toFixed(1)} MiB over ${overlayFrames} frames`,
+        );
+      }
+    }
     const mapBytes = await readFile(new URL(`fixtures/maps/${map}/map.json`, ROOT));
     const own = plates.filter((p) => p.scene === map);
     const manifest = await writeVisualPresentation({

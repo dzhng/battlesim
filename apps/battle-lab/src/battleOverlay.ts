@@ -305,7 +305,15 @@ export function aircraftLayer(
   );
 }
 
-export function buildBattleOverlay(
+/** The battle view's overlay: its layers (`battleOverlayParts`) combined. */
+export function buildBattleOverlay(...args: Parameters<typeof battleOverlayParts>): WorldMeshes {
+  return combineWorldMeshes(battleOverlayParts(...args));
+}
+
+/** The battle view's overlay layers, in drawing order; combined they are
+ *  what the view uploads (`buildBattleOverlay`). A recording keeps them apart
+ *  so a layer that holds still between rebuilds (the border) is kept once. */
+export function battleOverlayParts(
   units: UnitCatalog,
   rules: Pick<ScenarioRules, "air" | "tick_hz">,
   o: ObservationView,
@@ -328,7 +336,7 @@ export function buildBattleOverlay(
   },
   border: Mesh | null = null,
   stroke = gameStroke(OPENING_METRES_PER_PX),
-): WorldMeshes {
+): Partial<WorldMeshes>[] {
   const contactMarks = contactLayer(contacts, z, facing);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, stroke, showOrders);
   const orders = orderLayer(units, rules.air, o, selected, reveal, z, stroke, showOrders, allies);
@@ -366,7 +374,7 @@ export function buildBattleOverlay(
       z,
     ),
   }));
-  return combineWorldMeshes([
+  return [
     ...objectives,
     ...(zone ? [{ painted: zone }] : []),
     ...(border ? [{ painted: border }] : []),
@@ -375,5 +383,5 @@ export function buildBattleOverlay(
     orders,
     aircraft,
     ...deployments.map((paintedMarching) => ({ paintedMarching })),
-  ]);
+  ];
 }

@@ -26,6 +26,16 @@ fn compositeOverlay(pixel: vec2f) -> vec4f {
   return o + (1.0 - o.w) * blur * gain;
 }
 
+// @block effects_compositeOverlayHdr
+// The overlay as `compositeOverlay` lays it over the display, as an HLG
+// signal: its display colour is the light it shows at reference white. The
+// composite is premultiplied, so its colour converts unpremultiplied.
+fn compositeOverlayHdr(pixel: vec2f) -> vec4f {
+  let o = compositeOverlay(pixel);
+  if (o.a <= 0.0) { return vec4f(0.0); }
+  return vec4f(hlgSignal(rec709ToBt2020(srgbToLinear(o.rgb / o.a))) * o.a, o.a);
+}
+
 // @block effects_glow
 @group(0) @binding(0) var<uniform> glow: OverlayGlow;
 
