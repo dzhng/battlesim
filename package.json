@@ -13,6 +13,7 @@
     "build:wasm": "bun run --cwd web build:wasm",
     "build:web": "bun run --cwd web build",
     "prepare": "bun tools/install-git-hooks.mjs",
+    "promote:main": "bun tools/promote-main.mjs",
     "lint:complexity": "web/node_modules/.bin/eslint --config web/eslint.config.mjs packages apps web/src",
     "lint:staged": "lint-staged",
     "lint": "bun run lint:complexity && cargo clippy --workspace --all-targets -- -D warnings && web/node_modules/.bin/oxlint -c web/.oxlintrc.json packages apps web",
