@@ -1,9 +1,8 @@
 # Verification and review
 
 The [repository check ladder](../../development.md#check-ladder) governs cost.
-Planning inspected source and existing tests only; it did not execute the checks
-listed below. This document owns the shared policy; slice files name their focused
-tests and consumer journeys.
+This document records the shared verification policy. Focused tests and consumer
+journeys remain in the repository's test suites and git history for each owner.
 
 ## Before each change
 
@@ -20,22 +19,22 @@ existing mounted components or exported client APIs, not new test-only productio
 hooks. Existing pure unit tests stay where they earn fast feedback; prefer the
 outer practical consumer for new regression coverage.
 
-Each slice's acceptance receipt records baseline commit, candidate commit/diff,
-focused commands/results, any controlled response ordering, evidence paths, changed
-ownership and deleted state. Keep evidence under `throwaway/lifecycle-ownership/`.
-The plan records conclusions and pointers, not copied logs or mutable test inventories.
+Acceptance evidence records focused commands/results, controlled response ordering,
+changed ownership, and deleted state. Keep scratch evidence under
+`throwaway/lifecycle-ownership/`; durable docs record conclusions and pointers,
+not copied logs or mutable test inventories.
 
 ## Gates by boundary
 
-| Question | Narrow evidence |
-|---|---|
-| Does stale work alter a newer owner? | Controllable delayed response through the existing client/component, then actual admitted result/output |
-| Does cancellation release the correct resource? | Owned worker/graph/scene lifetime and late completion, including repeat cleanup; observe outcomes, not invented internal phases |
-| Are command results and credits identical? | Existing client/authority tests, accepted commands, release ordering and raw publication bits |
-| Does an editor retain the right draft/map? | Mounted editor with real draft logic and controlled HTTP boundary; inspect values, review identity and displayed artifact |
-| Does file publication remain safe? | Existing server/publication tests; no new journal format or transaction implementation |
-| Does picking refer to the drawn image? | Viewport tests for skipped submission/replacement, then existing camera/input scene when browser behavior is in question |
-| Does audio remain identical? | Existing command/graph tests, admission/drop output and lifecycle cleanup; browser/offline audio only for a question mocks cannot answer |
+| Question                                        | Narrow evidence                                                                                                                          |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Does stale work alter a newer owner?            | Controllable delayed response through the existing client/component, then actual admitted result/output                                  |
+| Does cancellation release the correct resource? | Owned worker/graph/scene lifetime and late completion, including repeat cleanup; observe outcomes, not invented internal phases          |
+| Are command results and credits identical?      | Existing client/authority tests, accepted commands, release ordering and raw publication bits                                            |
+| Does an editor retain the right draft/map?      | Mounted editor with real draft logic and controlled HTTP boundary; inspect values, review identity and displayed artifact                |
+| Does file publication remain safe?              | Existing server/publication tests; no new journal format or transaction implementation                                                   |
+| Does picking refer to the drawn image?          | Viewport tests for skipped submission/replacement, then existing camera/input scene when browser behavior is in question                 |
+| Does audio remain identical?                    | Existing command/graph tests, admission/drop output and lifecycle cleanup; browser/offline audio only for a question mocks cannot answer |
 
 The [web manifest](../../web/package.json) owns test/typecheck commands; a focused
 invocation is `bun run --cwd web test -- tests/client.test.ts`. Build required WASM
@@ -89,10 +88,10 @@ disable cross-build replay admission. No migration is a substitute for parity.
 
 ## Closeout once
 
-After each coherent slice, run its owning focused checks, necessary type/lint
-checks, and the repository's `review` procedure. Count production code separately
-from tests/docs and inspect any increased indirection. A new owner must delete the
-old coordination, not merely wrap it. Follow `codex` for substantive implementation
+For each coherent change, run its owning focused checks, necessary type/lint checks,
+and the repository's `review` procedure. Count production code separately from
+tests/docs and inspect any increased indirection. A new owner must delete the old
+coordination, not merely wrap it. Follow `codex` for substantive implementation
 review where required by the repository skills.
 
 After all slices, run the root manifest's full `check` and `verify` once, plus the
@@ -102,6 +101,7 @@ is no balance-report requirement for this plan because it selects no rule change
 All encountered check failures must be handled under repository policy, with
 unrelated corrections isolated rather than hidden in a cleanup diff.
 
-Finally reconcile the scope ledger, resolve every selected slice, search for
-obsolete state/aliases/compatibility residue, and update only the subsystem docs
-whose ownership contracts changed. Then archive with `close-spec` when shipped.
+The final closeout reconciles the scope ledger, searches for obsolete
+state/aliases/compatibility residue, and updates only the subsystem docs whose
+ownership contracts changed. The closed rationale is archived under
+`specs/done/lifecycle-ownership/`.
