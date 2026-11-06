@@ -55,17 +55,21 @@ Record evidence and decisions; update the README handoff before ending the pass.
 ## Implementation receipt
 
 The route reducer now carries uploaded package/controller identity through the ready
-phase, and preparation cleanup cancels only before worker handoff. Upload-start and
-late-read policies preserve the old visible ordering; ready-phase errors retain the
-existing invisible error behavior.
+phase. The preparation effect remains active across deploying→ready and cancels on
+route cleanup/replacement, so the adopted worker has a continuous owner. Upload-start
+and late-read policies preserve the old visible ordering; ready-phase errors retain
+the existing invisible error behavior.
 
 Mounted route coverage in `web/tests/scenarioPlay.test.tsx` proves upload → controller
 choice → Deploy, waits for session readiness/catalog admission, and verifies the
 adopted preparation is not cancelled. The cancellation mutation at
 `throwaway/lifecycle-ownership/05-mutation.txt` fails when the handoff guard is
 removed. Focused route/scenario/router/preparation checks pass 19 tests; typecheck,
-ESLint and Oxlint pass. Claude final review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3Acdbb94b3-c200-4d34-a874-96e9d1cc0c87%3Adelegate-task%3Ad5c0978f-3d6b-497e-b48b-cd8ad3eaf3b7>. Its findings were fixed: stable error dispatch and a test that waits for the actual ready-only catalog effect.
+ESLint and Oxlint pass. Claude final review and re-review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3Acdbb94b3-c200-4d34-a874-96e9d1cc0c87%3Adelegate-task%3Ad5c0978f-3d6b-497e-b48b-cd8ad3eaf3b7>. Its findings were fixed: stable error dispatch and a test that waits for the actual ready-only catalog effect.
 
 No public route, package format, controller meaning, worker protocol or gameplay
 behavior changed. Production route diff: 135 additions, 37 deletions; test addition
 provides the mounted boundary proof.
+
+
+Follow-up Claude review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3Acdbb94b3-c200-4d34-a874-96e9d1cc0c87%3Adelegate-task%3A3d83d06f-7975-42c8-bd4e-e051832323a8>. It found and we fixed the effect dependency warning by deriving the preparation effect solely from the non-null package/controller identity; this prevents an accidental dependency on the deploying projection from cancelling handoff. The mounted test now verifies both handoff survival and route-unmount cleanup.

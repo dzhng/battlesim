@@ -113,16 +113,14 @@ export default function ScenarioPlay() {
   const appAudio = useAppAudio();
   const [route, dispatch] = useReducer(scenarioRouteReducer, { kind: "empty", error: null });
   const setError = useCallback((error: string) => dispatch({ type: "error", error }), []);
-  const deploying = route.kind === "deploying";
   const hasPreparation = route.kind === "deploying" || route.kind === "ready";
   const bundle = hasPreparation ? route.bundle : null;
   const activeHuman = hasPreparation ? route.activeHuman : null;
   const [replayText, setReplayText] = useState<string | undefined>();
   const playedAsset = useRef<string | null>(null);
   useEffect(() => {
-    if (!bundle || !deploying) return;
+    if (!bundle) return;
     let live = true;
-    let handedOff = false;
     let preparation: ReturnType<typeof prepareUploadedScenarioBundle> | null = null;
     void loadWasm().then(() => {
       if (!live) return;
@@ -136,7 +134,6 @@ export default function ScenarioPlay() {
       preparation.battle.then(
         (loaded) => {
           if (!live) return;
-          handedOff = true;
           dispatch({ type: "loaded", session: loaded });
         },
         (reason: unknown) =>
@@ -149,9 +146,9 @@ export default function ScenarioPlay() {
     });
     return () => {
       live = false;
-      if (!handedOff) preparation?.cancel();
+      preparation?.cancel();
     };
-  }, [bundle, deploying, activeHuman]);
+  }, [bundle, hasPreparation, activeHuman]);
 
   async function upload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];

@@ -55,4 +55,6 @@ test("uploaded route carries the package through controller choice and deploymen
   mocks.resolve({ report: {}, session: { scenario: "{}" } });
   await waitFor(() => expect(mocks.catalog).toHaveBeenCalled());
   await waitFor(() => expect(preparation.cancel).not.toHaveBeenCalled());
+  view.unmount();
+  expect(preparation.cancel).toHaveBeenCalledOnce();
 });

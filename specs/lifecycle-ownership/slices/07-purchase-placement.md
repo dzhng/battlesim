@@ -55,7 +55,8 @@ Record evidence and decisions; update the README handoff before ending the pass.
 ## Implementation receipt
 
 The purchase controller keeps its public choose/cancel/at/confirm API and replaces
-scattered busy flags with preview-run and confirmation records. Existing stale
+scattered busy flags with preview-run and confirmation records. The records carry the
+spot and generation identities used by stale completion checks. Existing stale
 knowledge tolerance, one-query cadence, retained answer, independent choice and
 confirmation generations, and finally cleanup are unchanged.
 
@@ -64,4 +65,5 @@ review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-ta
 
 The minimal public `variant`/generation fields remain because consumers read variant and
 the records carry only operation identity; this is deliberate local ownership rather
-than a universal purchase state object. No public format or visual behavior changed.
+than a universal purchase state object. Claude follow-up review is pending after the
+identity and coverage fixes. No public format or visual behavior changed.
