@@ -41,13 +41,11 @@ import bmesh
 from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from parts import SEG_SCALE, box, cyl, empty, flat_paint, mesh_part, paint, textured  # noqa: E402
+from parts import box, cyl, empty, flat_paint, mesh_part, paint, textured  # noqa: E402
 from vehicle_parts import ALL, FINE, MID, NEAR, tube_part, wheel_node  # noqa: E402
+from aircraft_body import BODY_STEPS, body  # noqa: E402,F401
 from aircraft_markings import MARK, insignia, lettering, mark, markings  # noqa: E402,F401
 
-# Interpolated rings per station interval, per tier: a fuselage keeps its
-# curves at the near tiers and its stations alone at the far ones.
-BODY_STEPS = (3, 2, 1, 1)
 # Chord samples of a flying surface's section, per tier (fractions of chord).
 CHORD = ((0.0, 0.03, 0.1, 0.22, 0.38, 0.55, 0.72, 0.88, 1.0),
          (0.0, 0.08, 0.3, 0.6, 1.0),
@@ -115,89 +113,6 @@ def line(name, a, b, mat, parent, width=0.025, height=0.012, lods=NEAR):
 def mirrored(make):
     """Call `make(side, suffix)` for the left (+Y, "L") and right ("R") side."""
     return [make(side, s) for side, s in ((1, "L"), (-1, "R"))]
-
-
-# ---------------------------------------------------------------- lofted bodies
-def _station(s):
-    x, w, lo, hi = s[:4]
-    mid = s[4] if len(s) > 4 and s[4] is not None else (lo + hi) / 2
-    p = s[5] if len(s) > 5 else 2.0
-    return [x, w, lo, hi, mid, p]
-
-
-def _spline(stations, steps):
-    """Stations with `steps` Catmull-Rom rings per interval (x stays linear)."""
-    if steps <= 1:
-        return stations
-    out = []
-    n = len(stations)
-    for i in range(n - 1):
-        p0, p1, p2, p3 = (stations[max(i - 1, 0)], stations[i], stations[i + 1], stations[min(i + 2, n - 1)])
-        for k in range(steps):
-            t = k / steps
-            row = [p1[0] + (p2[0] - p1[0]) * t]
-            for j in range(1, 6):
-                a, b, c, d = p0[j], p1[j], p2[j], p3[j]
-                val = 0.5 * ((2 * b) + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t ** 3)
-                lo_, hi_ = min(b, c), max(b, c)
-                row.append(min(max(val, lo_ - 0.25 * (hi_ - lo_)), hi_ + 0.25 * (hi_ - lo_)))
-            row[1] = max(row[1], 0.0)
-            out.append(row)
-    out.append(stations[-1])
-    return out
-
-
-def _ring(st, n):
-    x, w, lo, hi, mid, p = st
-    pts = []
-    for k in range(n):
-        a = math.tau * k / n
-        c, s = math.cos(a), math.sin(a)
-        cy = math.copysign(abs(c) ** (2 / p), c)
-        sz = math.copysign(abs(s) ** (2 / p), s)
-        z = mid + (hi - mid) * sz if sz >= 0 else mid + (mid - lo) * sz
-        pts.append((x, w * cy, z))
-    return pts
-
-
-def body(name, stations, mat, parent, seg=24, lods=ALL, loc=(0, 0, 0), rot=(0, 0, 0), steps=BODY_STEPS):
-    """A smooth body lofted along X through `stations`, each
-    `(x, half_width, bottom_z, top_z[, widest_z[, power]])`: a superellipse
-    section (power 2 an ellipse, higher squarer, below 2 a chined diamond)
-    widest at `widest_z`. A station of no width closes the body to a point;
-    otherwise its ends are capped. Fuselages, nacelles, booms, stores."""
-    st = [_station(s) for s in stations]
-
-    def build(bm, lod):
-        n = max(6, int(round(seg * SEG_SCALE[lod] / 2)) * 2)
-        rows = _spline(st, steps[lod])
-        rings = []
-        for row in rows:
-            if row[1] < 1e-3:
-                rings.append([bm.verts.new((row[0], 0.0, row[4]))])
-            else:
-                rings.append([bm.verts.new(p) for p in _ring(row, n)])
-        for a, b in zip(rings, rings[1:]):
-            if len(a) == 1 and len(b) == 1:
-                continue
-            if len(a) == 1:
-                for k in range(n):
-                    bm.faces.new((a[0], b[(k + 1) % n], b[k]))
-            elif len(b) == 1:
-                for k in range(n):
-                    bm.faces.new((a[k], a[(k + 1) % n], b[0]))
-            else:
-                for k in range(n):
-                    bm.faces.new((a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]))
-        for f in bm.faces:
-            f.smooth = True
-        for ring in (rings[0], rings[-1]):
-            if len(ring) > 1:
-                cap = bm.faces.new(ring)
-                cap.smooth = False
-        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-
-    return mesh_part(name, build, mat, parent, lods=lods, loc=loc, rot=rot)
 
 
 # ---------------------------------------------------------------- flying surfaces
