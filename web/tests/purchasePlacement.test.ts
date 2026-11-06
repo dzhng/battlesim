@@ -66,7 +66,7 @@ test("an accepted old confirmation cannot clear a newer choice", async () => {
   const confirmation = control.confirm(() => new Promise((reply) => (resolve = reply)));
   control.choose("test_tank");
   resolve({ seq: 1, applied_tick: 2, error: null, refused: [] });
-  await confirmation;
+  expect(await confirmation).toBeTruthy();
   expect(control.variant).toBe("test_tank");
 });
 

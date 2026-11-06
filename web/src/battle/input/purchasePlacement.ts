@@ -34,7 +34,7 @@ export class PurchasePlacementControl {
   /** The chosen squad's soldiers about its destination, as the last preview
    *  spread them: the ghost keeps this shape while the next one is pending. */
   private shape: [number, number][] = [];
-  private previewRun: { spot: string; client: SimClient } | null = null;
+  private previewRun: { spot: string } | null = null;
   private generation = 0;
   private confirmation: { generation: number } | null = null;
   private client: SimClient | null = null;
@@ -91,7 +91,7 @@ export class PurchasePlacementControl {
       (this.resolved?.spot === intent.spot && this.resolved.revision === intent.revision)
     )
       return;
-    const run = (this.previewRun = { spot: intent.spot, client: intent.client });
+    const run = (this.previewRun = { spot: intent.spot });
     void intent.client
       .previewPurchase(intent.ghost.variant, intent.cursor)
       .then(

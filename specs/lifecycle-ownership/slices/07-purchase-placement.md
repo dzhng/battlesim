@@ -65,5 +65,9 @@ review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-ta
 
 The minimal public `variant`/generation fields remain because consumers read variant and
 the records carry only operation identity; this is deliberate local ownership rather
-than a universal purchase state object. Claude follow-up review is pending after the
-identity and coverage fixes. No public format or visual behavior changed.
+than a universal purchase state object. Claude follow-up review is clean: the optional
+unused client field was removed and the accepted-ack test now asserts the returned
+ghost. No public or numeric contract changed. No public format or visual behavior changed.
+
+
+Follow-up Claude review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3Acdbb94b3-c200-4d34-a874-96e9d1cc0c87%3Adelegate-task%3A4ea294cd-da35-4f08-bd5c-60995172c73e>. Verdict clean; focused 43-test receipt and mutation evidence were accepted.
