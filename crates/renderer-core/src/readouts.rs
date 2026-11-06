@@ -206,7 +206,6 @@ pub struct ReadoutResources {
     capacity: u64,
     count: u32,
     size: [u32; 2],
-    atlas_size: [u32; 2],
     layer: TextureView,
     composite: RenderPipeline,
     composite_hdr: RenderPipeline,
@@ -329,7 +328,6 @@ impl ReadoutResources {
             capacity: 64,
             count: 0,
             size,
-            atlas_size: [aw, ah],
             layer,
             composite: pipelines.render("overlayComposite").clone(),
             composite_hdr: pipelines.render("overlayCompositeHdr").clone(),
@@ -350,11 +348,6 @@ impl ReadoutResources {
     /// The display size the layer was made for.
     pub fn size(&self) -> [u32; 2] {
         self.size
-    }
-
-    /// The atlas's size, for a `ReadoutDraw` of this pass.
-    pub fn atlas_size(&self) -> [u32; 2] {
-        self.atlas_size
     }
 
     /// Uploads the frame's primitives; the next encode draws them.

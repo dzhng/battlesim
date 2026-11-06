@@ -309,7 +309,7 @@ impl Run {
 
     /// Uploads the indicators and cards the page drew with record `index`,
     /// those the replay draws.
-    fn show_indicators(&mut self, index: usize) {
+    fn show_layers(&mut self, index: usize) {
         self.layers
             .show(&self.gpu.device, &self.gpu.queue, &self.replay, index);
     }
@@ -384,7 +384,7 @@ impl Run {
         }
         self.bench.as_mut().ok_or("not a bench")?.mark();
         self.prepare()?;
-        self.show_indicators(index);
+        self.show_layers(index);
         let geometry = self.layers.geometry();
         let bench = self.bench.as_mut().ok_or("not a bench")?;
         bench.mark();
@@ -459,7 +459,7 @@ impl Run {
                 continue;
             };
             self.prepare()?;
-            self.show_indicators(self.next - 1);
+            self.show_layers(self.next - 1);
             let counts = self.replay.last_frame().counts;
             let presentation = self.replay.presentation();
             let row = |rows: &[serde_json::Value]| {
@@ -521,7 +521,7 @@ impl Run {
         self.advance(at, None)?;
         self.prepare()?;
         // The indicators the page showed then, with the camera it showed.
-        self.show_indicators(self.replay.record_at(at));
+        self.show_layers(self.replay.record_at(at));
         self.write_frame(&out.join(format!("frame-{:06}.png", self.written)))?;
         if self.written.is_multiple_of(clip.fps as usize) {
             println!("{} frames, reel {:.1} s", self.written, at / 1000.0);
@@ -700,13 +700,13 @@ mod args;
 mod app;
 #[path = "main_clip.rs"]
 mod clip;
-#[path = "main_indicators.rs"]
-mod indicators;
+#[path = "main_layers.rs"]
+mod layers;
 #[path = "main_output.rs"]
 mod output;
 use app::App;
 use clip::Clip;
-use indicators::RecordedLayers;
+use layers::RecordedLayers;
 
 pub fn run() {
     let result = args().and_then(|args| {
