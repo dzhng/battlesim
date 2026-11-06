@@ -16,6 +16,7 @@ import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
 import { ReadoutLayer } from "@web/battle/present/readouts";
+import { battleReadouts } from "./BattleReadouts";
 import { SkirmishStatus } from "./battleStatus";
 import { MatchResultOverlay } from "./MatchResultOverlay";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
@@ -228,17 +229,7 @@ export function BattleView({
         objectives={observation?.skirmish?.objectives ?? []}
         handle={objectiveMarkers}
       />
-      <ReadoutLayer
-        own={observation?.own ?? []}
-        identified={observation?.identified}
-        contacts={contacts}
-        tick={observation?.tick}
-        rules={session.rules}
-        selected={control.selected}
-        handle={session.readouts}
-        ghosts={session.ghostReadouts}
-        allies={session.allies}
-      />
+      <ReadoutLayer {...battleReadouts(session)} />
       <RangeRulerLabels handle={rulerLabels} />
       {/* The army roster and command row keep their place as selection changes. */}
       <div className="hud" data-testid="battle-panel" inert={pause.open || matchFinished}>

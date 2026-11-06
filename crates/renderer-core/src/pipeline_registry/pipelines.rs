@@ -7,6 +7,8 @@ mod fog;
 pub(super) mod models;
 #[path = "post.rs"]
 mod post;
+#[path = "readouts.rs"]
+mod readouts;
 #[path = "water.rs"]
 mod water;
 #[path = "world.rs"]
@@ -19,5 +21,6 @@ pub fn all() -> Vec<PipelineSpec> {
     out.extend(models::all());
     out.extend(fog::all());
     out.extend(effects::all());
+    out.extend(readouts::all());
     out
 }

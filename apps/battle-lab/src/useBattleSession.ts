@@ -8,8 +8,8 @@ import { useSessionCatalog } from "@web/battle/catalog/context";
 import { ContactPresentation } from "@web/battle/present/contactPresentation";
 import { gameContactStyle } from "./gameFog";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
-import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import type { ReadoutLayerHandle } from "@web/battle/present/readouts";
+import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
 import { knownStanding, type PropBox } from "@packages/battle-renderer/src/models/propAppearance";
 import { pickBox } from "@packages/battle-renderer/src/picking";
 import {
@@ -55,14 +55,9 @@ import {
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observationView";
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { Player } from "@web/battle/prepare/protocol";
-import type { LabBox, LabPick, ViewportPointer, ViewportCursor } from "./LabViewport";
-import {
-  drawnUnits,
-  pickedUnit,
-  pickToPointer,
-  sideInstances,
-  type DrawnInstances,
-} from "./sideInstances";
+import type { LabBox, LabPick, ViewportCursor } from "./LabViewport";
+import { drawnUnits, pickToPointer, sideInstances, type DrawnInstances } from "./sideInstances";
+import { panelPlacer } from "./panelPlacement";
 import { commandedEconomy, commandingPlayer, takesOrders } from "./commandingPlayer";
 import { allyOwners, controlled, playerIndex } from "@web/battle/input/controlled";
 import { useSimSession } from "./useSimSession";
@@ -1091,27 +1086,14 @@ export function useBattleSession({
     /** The battle's sound (null unless `sound`), and its per-frame listener. */
     audio,
     hear,
-    /** The info panels' layer (`ReadoutLayer`'s handle), and its placing
-     *  off what the last frame drew, at its presentation clock; call once
-     *  per animation frame. */
+    /** The info panels' layer, and its placing (`panelPlacer`). */
     readouts,
-    placePanels: (project: Project, camera: Camera3DParams, pointer: ViewportPointer) =>
-      readouts.current?.place(
-        project,
-        camera,
-        { own: drawnAt.current, enemies: drawnEnemyAt.current, ground: surfaceZ },
-        drawnClock.current,
-        control.showOrders,
-        pointer.position
-          ? {
-              ...pointer.position,
-              ...pickedUnit(
-                drawn.current,
-                pointer.ray ? pickBox(pointer.ray, drawn.current.picks) : -1,
-              ),
-            }
-          : null,
-      ),
+    placePanels: panelPlacer(
+      readouts,
+      { drawn, drawnAt, drawnEnemyAt, drawnClock },
+      surfaceZ,
+      control,
+    ),
     refusals: {
       refusals: sim.refusals,
       cardBox: (unit: number) => readouts.current?.cardBox(unit) ?? null,

@@ -72,7 +72,7 @@ impl super::Run {
         }
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         let mut encoder = device.create_command_encoder(&Default::default());
-        let geometry = super::indicators::geometry(self.indicators.as_ref());
+        let geometry = self.layers.geometry();
         self.scene
             .encode(device, queue, &self.view, &mut encoder, geometry);
         let hdr = self.scene.post.hdr_output(PostMode::Look);

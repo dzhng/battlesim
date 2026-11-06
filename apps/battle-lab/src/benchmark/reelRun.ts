@@ -21,6 +21,8 @@ import {
 } from "@web/battle/benchmark/presentationCapture";
 import { GRASS_CELLS, type FrameCount, type Lens } from "@web/battle/benchmark/visualPresentation";
 import { OverlayRecording, type OverlayPart } from "@web/battle/benchmark/overlayCapture";
+import { CardRecording } from "@web/battle/benchmark/cardCapture";
+import type { CardPlacement, PartCache, SpriteRequests } from "@web/battle/present/readoutSnapshot";
 
 /** A control plate: the frame it names read back (`FramePlate`) with what it
  *  drew of the buildings and scenery, and the grass clumps it grew counted
@@ -79,6 +81,9 @@ export interface ReelResult {
   /** The indicators each frame drew (`indicators`), in lockstep with
    *  `frames`; null when the run recorded none. */
   overlays: OverlayRecording | null;
+  /** The unit info cards each frame showed (`cards`), in lockstep with
+   *  `frames`; null when the run recorded none. */
+  cards: CardRecording | null;
 }
 
 /** Of the frames between tick boundaries, a counting run counts one in this many. */
@@ -91,7 +96,9 @@ const COUNT_BETWEEN = 4;
  *  frame drawn exactly on a tick boundary is counted, and one in
  *  `COUNT_BETWEEN` of the rest: a second client's counts there catch a clock
  *  read a hair off. With `indicators`, every frame records the overlay
- *  layers the page drew with it (`subject.overlay`). */
+ *  layers the page drew with it (`subject.overlay`), and with `cards` the
+ *  unit info cards it showed, as their layer placed them that frame
+ *  (`subject.cards`). */
 export function createReelRun(
   scene: CaptureScene,
   tickHz: number,
@@ -100,7 +107,8 @@ export function createReelRun(
     plates = false,
     counts = false,
     indicators = false,
-  }: { plates?: boolean; counts?: boolean; indicators?: boolean } = {},
+    cards = false,
+  }: { plates?: boolean; counts?: boolean; indicators?: boolean; cards?: boolean } = {},
 ) {
   const durationMs = scene.reel.shots.reduce((sum, shot) => sum + shot.seconds * 1000, 0);
   const recording = new BenchmarkRecording(durationMs);
@@ -117,8 +125,13 @@ export function createReelRun(
     unitAt: (_id: number): ArrayLike<number> | null => null,
     /** The overlay layers the page's viewport has uploaded. */
     overlay: (): readonly OverlayPart[] | undefined => undefined,
+    /** The cards the page's readout layer placed this frame, read with
+     *  the recording's sprites and its cache of card contents. */
+    cards: (_sprites: SpriteRequests, _cache: PartCache): readonly CardPlacement[] | undefined =>
+      undefined,
   };
   const overlays = indicators ? new OverlayRecording() : null;
+  const cardRecording = cards ? new CardRecording() : null;
   let lastSubject: readonly number[] = [0, 0];
   let tracked: { follow: number; at: [number, number]; now: number } | null = null;
   const capture: PresentationSample[] = [];
@@ -156,6 +169,7 @@ export function createReelRun(
       plates: plated,
       counts: counted,
       overlays,
+      cards: cardRecording,
     });
   };
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
@@ -227,6 +241,11 @@ export function createReelRun(
         plate,
       });
       overlays?.frame(subject.overlay());
+      cardRecording?.frame(
+        subject.cards(cardRecording, cardRecording.cache),
+        [window.innerWidth, window.innerHeight],
+        window.devicePixelRatio,
+      );
       if (stats && now - lastStats >= 2000) {
         const s = stats();
         recording.sample({

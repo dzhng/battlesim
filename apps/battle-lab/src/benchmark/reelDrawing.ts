@@ -16,18 +16,27 @@ const REEL_LAYERS: readonly PresentationLayer[] = [
   "scars",
 ];
 
+/** How the reel shows the battle view's unit info cards: not at all, as a
+ *  player sees them at rest (compact), or open, as holding Space opens them. */
+export type ReelCards = "off" | "compact" | "open";
+
 /** What the graphics test draws, from its URL, each independently: the
- *  side's fog of war only with `?fog=1`, and the battle view's indicators
- *  (contacts, orders, zone, border; `overlays`), drawn and recorded for a
- *  second client, only with `?indicators=1`; and the layers that names.
- *  Without them the test times the reel as the menu plays it. */
+ *  side's fog of war only with `?fog=1`; the battle view's indicators
+ *  (contacts, orders, zone, border; `overlays`) only with `?indicators=1`;
+ *  its unit info cards (`cards`) only with `?cards=1`, open with
+ *  `?cards=open`; and the layers that names. Indicators and cards are drawn
+ *  and recorded for a second client; without them the test times the reel
+ *  as the menu plays it. */
 export function reelDrawing(params: URLSearchParams) {
   const fog = params.get("fog") === "1";
   const indicators = params.get("indicators") === "1";
+  const asked = params.get("cards");
+  const cards: ReelCards = asked === "1" ? "compact" : asked === "open" ? "open" : "off";
   const layers: readonly PresentationLayer[] = [
     ...REEL_LAYERS,
     ...(fog ? (["fog"] as const) : []),
     ...(indicators ? (["overlays"] as const) : []),
+    ...(cards !== "off" ? (["cards"] as const) : []),
   ];
-  return { fog, indicators, layers };
+  return { fog, indicators, cards, layers };
 }

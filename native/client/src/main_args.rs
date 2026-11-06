@@ -89,6 +89,7 @@ pub(super) fn args() -> Result<Args, String> {
             "--hdr" => hdr = true,
             "--no-music" => no_music = true,
             "--no-indicators" => playback.indicators = false,
+            "--no-cards" => playback.cards = false,
             "--no-fog" => playback.fog = false,
             "--fps" => fps = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),
             "--from-ms" => from_ms = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),

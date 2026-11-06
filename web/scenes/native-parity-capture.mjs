@@ -4,12 +4,20 @@
 // PARITY_FOG=1 films them with the side's fog of war (`?fog=1`, the
 // manifest's `fog` layer). The battle view's indicators are filmed and
 // recorded (`?indicators=1`: `overlays.bin`, the manifest's `overlays`
-// layer) unless PARITY_INDICATORS=0, independently of the fog.
+// layer) unless PARITY_INDICATORS=0, independently of the fog. Its unit
+// info cards, as the battle view lays them out, are filmed and recorded
+// (`?cards=1`: `cards.bin`, the manifest's `cards` layer) unless
+// PARITY_CARDS=0; PARITY_CARDS=open films them open, as holding Space
+// opens them (`?cards=open`). PARITY_VIEWPORT=<w>x<h> films
+// at that size (1280x720 by default; 1920x1080 for a clip to post), and
+// PARITY_PAGE_SHOTS=1 also screenshots the live page about once a second
+// (`page-<reel ms>.png`), its cards as the player sees them, to set beside
+// the frame native draws at that reel time.
 // PARITY_COUNTS=1 also counts what chosen frames drew, on tick boundaries
 // and between (`?counts=1`, the manifest's `frameCounts`): the committed
 // fixture `native-client`'s replay test counts against. Run it under the
 // GPU lock.
-import { filmParityRun } from "./_parityRun.mjs";
+import { filmParityRun, parityViewport } from "./_parityRun.mjs";
 
 /** The graphics test's URL from the scene's `base` URL and the `PARITY_*`
  *  variables in `env`. */
@@ -19,11 +27,17 @@ export function parityUrl(base, env) {
   if (env.PARITY_SCENES) url.searchParams.set("scenes", env.PARITY_SCENES);
   if (env.PARITY_FOG === "1") url.searchParams.set("fog", "1");
   if (env.PARITY_INDICATORS !== "0") url.searchParams.set("indicators", "1");
+  if (env.PARITY_CARDS !== "0")
+    url.searchParams.set("cards", env.PARITY_CARDS === "open" ? "open" : "1");
   if (env.PARITY_COUNTS === "1") url.searchParams.set("counts", "1");
   return url.href;
 }
 
 export async function run(ctx) {
   const counts = process.env.PARITY_COUNTS === "1";
-  await filmParityRun(ctx, parityUrl(ctx.url, process.env), { counts });
+  await filmParityRun(ctx, parityUrl(ctx.url, process.env), {
+    counts,
+    viewport: parityViewport(process.env.PARITY_VIEWPORT),
+    pageShots: process.env.PARITY_PAGE_SHOTS === "1",
+  });
 }

@@ -3,12 +3,13 @@
 //!
 //! `native-client --run <parity run> --scene <map> (--out <dir> | --bench <dir>)
 //!   [--window offscreen|minimised|hidden|visible] [--pace <frames>]
-//!   [--sound <wav>] [--no-indicators] [--no-fog]`
+//!   [--sound <wav>] [--no-indicators] [--no-cards] [--no-fog]`
 //! A held benchmark adds `--bench-freeze-index <record> --bench-frames <draws>`.
 //!
 //! The replay draws each layer the browser drew. `--no-indicators` leaves
-//! out the recorded indicators (a clean picture) and `--no-fog` the fog of
-//! war, each independently of the other.
+//! out the recorded indicators, `--no-cards` the recorded unit info cards
+//! (both, for a clean picture) and `--no-fog` the fog of war, each
+//! independently of the others.
 //!
 //! Every frame record is framed through the presentation crate; each one
 //! the browser wrote a plate of is drawn, presented and written to `--out`
@@ -120,8 +121,8 @@ struct Run {
     /// props.
     bench: Option<Bench>,
     drew: [f64; 9],
-    /// The recorded indicators on the GPU, when the replay draws them.
-    indicators: Option<IndicatorMeshes>,
+    /// The recorded indicators and cards on the GPU, as the replay draws them.
+    layers: RecordedLayers,
 }
 
 impl Run {
@@ -248,10 +249,7 @@ impl Run {
             },
         )?;
         pollster::block_on(scene.prepare_assets(&gpu.device, &gpu.queue))?;
-        let indicators = replay.indicators.as_ref().map(|recorded| {
-            scene.set_overlay_glow(&gpu.queue, recorded.glow);
-            IndicatorMeshes::new(&gpu.device, &gpu.queue)
-        });
+        let layers = RecordedLayers::new(&gpu.device, &gpu.queue, &mut scene, &replay)?;
         if let Some((index, _)) = args.frozen_bench {
             for at in 0..=index {
                 let record = replay.records[at].clone();
@@ -305,16 +303,15 @@ impl Run {
             sound,
             bench,
             drew: [0.0; 9],
-            indicators,
+            layers,
         })
     }
 
-    /// Uploads the indicators the page drew with record `index`, when the
-    /// replay draws them.
-    fn show_indicators(&mut self, index: usize) {
-        if let (Some(meshes), Some(recorded)) = (&mut self.indicators, &self.replay.indicators) {
-            meshes.show(&self.gpu.device, &self.gpu.queue, &recorded.overlays, index);
-        }
+    /// Uploads the indicators and cards the page drew with record `index`,
+    /// those the replay draws.
+    fn show_layers(&mut self, index: usize) {
+        self.layers
+            .show(&self.gpu.device, &self.gpu.queue, &self.replay, index);
     }
 
     /// Submits `encoder`, copying the display target to the window and
@@ -387,8 +384,8 @@ impl Run {
         }
         self.bench.as_mut().ok_or("not a bench")?.mark();
         self.prepare()?;
-        self.show_indicators(index);
-        let geometry = indicators::geometry(self.indicators.as_ref());
+        self.show_layers(index);
+        let geometry = self.layers.geometry();
         let bench = self.bench.as_mut().ok_or("not a bench")?;
         bench.mark();
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
@@ -444,7 +441,7 @@ impl Run {
                 &self.gpu.queue,
                 &self.view,
                 &mut encoder,
-                indicators::geometry(self.indicators.as_ref()),
+                self.layers.geometry(),
             );
             self.present(encoder);
             return Ok(true);
@@ -462,7 +459,7 @@ impl Run {
                 continue;
             };
             self.prepare()?;
-            self.show_indicators(self.next - 1);
+            self.show_layers(self.next - 1);
             let counts = self.replay.last_frame().counts;
             let presentation = self.replay.presentation();
             let row = |rows: &[serde_json::Value]| {
@@ -524,7 +521,7 @@ impl Run {
         self.advance(at, None)?;
         self.prepare()?;
         // The indicators the page showed then, with the camera it showed.
-        self.show_indicators(self.replay.record_at(at));
+        self.show_layers(self.replay.record_at(at));
         self.write_frame(&out.join(format!("frame-{:06}.png", self.written)))?;
         if self.written.is_multiple_of(clip.fps as usize) {
             println!("{} frames, reel {:.1} s", self.written, at / 1000.0);
@@ -703,13 +700,13 @@ mod args;
 mod app;
 #[path = "main_clip.rs"]
 mod clip;
-#[path = "main_indicators.rs"]
-mod indicators;
+#[path = "main_layers.rs"]
+mod layers;
 #[path = "main_output.rs"]
 mod output;
 use app::App;
 use clip::Clip;
-use indicators::IndicatorMeshes;
+use layers::RecordedLayers;
 
 pub fn run() {
     let result = args().and_then(|args| {

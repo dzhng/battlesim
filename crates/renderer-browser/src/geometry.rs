@@ -67,6 +67,8 @@ impl PlayerMeshes {
                 marching: self.marching.draw(instances),
                 pointer: self.pointer.draw(instances),
             },
+            // The browser lays its cards out in the page.
+            readouts: None,
         }
     }
 

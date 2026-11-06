@@ -1,12 +1,14 @@
 // The native parity control run, shared by the scenes that film one: the
 // graphics test's reel with control plates (`/labs/graphics-test?plates=1`),
-// at 1280×720 on a visible page, unattended. For each scene it writes
+// at 1280×720 (or the size asked for) on a visible page, unattended. For
+// each scene it writes
 //
 //   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,
-//     overlays.bin, plate-<index>.png, plain-<index>.png}
+//     overlays.bin, cards.bin, plate-<index>.png, plain-<index>.png}
 //
 // the capture (its publications and frame records), the indicators each
-// frame drew (`overlayCapture.ts`; with `?indicators=1`), the
+// frame drew (`overlayCapture.ts`; with `?indicators=1`), the unit info
+// cards each frame showed (`cardCapture.ts`; with `?cards=1` or `open`), the
 // `native-visual-presentation` manifest (the battle's identity, the lens and
 // layers, and each plate's grass, building-module, scenery, posed-model and
 // effect counts), and the plates read back in their own frames with each
@@ -19,11 +21,31 @@ import {
   OVERLAY_CAPTURE_FILE,
   decodeOverlayCapture,
 } from "../src/battle/benchmark/overlayCapture.ts";
+import { CARD_CAPTURE_FILE, decodeCardCapture } from "../src/battle/benchmark/cardCapture.ts";
 import { writeVisualPresentation } from "../src/battle/benchmark/visualPresentation.ts";
 
 const ROOT = new URL("../../", import.meta.url);
 const OUT = new URL("throwaway/native-parity/", ROOT);
 const VIEWPORT = { width: 1280, height: 720 };
+
+/** The page size `<w>x<h>` names (PARITY_VIEWPORT), or the run's default. */
+export function parityViewport(value) {
+  if (!value) return VIEWPORT;
+  const match = /^(\d+)x(\d+)$/.exec(value);
+  if (!match) throw new Error(`PARITY_VIEWPORT=${value}: expected <width>x<height>, as 1920x1080`);
+  return { width: Number(match[1]), height: Number(match[2]) };
+}
+
+/** Each kind of card a scene's frames showed, and in how many frames: the
+ *  cases a reviewer looks for (own, ally, identified enemy, contact, a
+ *  remembered contact retiring). */
+function cardCases(file) {
+  const kinds = new Map();
+  for (const frame of file.frames)
+    for (const kind of new Set(frame.map(([card]) => file.cards[card].replace(/-\d+/, ""))))
+      kinds.set(kind, (kinds.get(kind) ?? 0) + 1);
+  return [...kinds].map(([kind, frames]) => `${kind} in ${frames}`).join(", ") || "none";
+}
 
 /** Refuse to start without what the route needs, naming how to build it. */
 async function prerequisites() {
@@ -50,12 +72,20 @@ function pngSize(bytes) {
 /** Film the graphics test at `url` (`/labs/graphics-test?plates=1` and
  *  its other parameters) and write each scene's parity run to
  *  `throwaway/native-parity/<run>/<scene>/`; `counts` says the url asked for
- *  counts. Answers the run's directory, or null when the run did not
- *  complete (a failed check says why). */
-export async function filmParityRun(ctx, url, { counts = false } = {}) {
+ *  counts, `viewport` sizes the page, and `pageShots` also screenshots the
+ *  live page about once a second (`page-<reel ms>.png`, the page's HUD and
+ *  cards over its canvas), for comparing with the frame native draws at
+ *  that reel time; the shots cost the run its timing. Answers the run's
+ *  directory, or null when the run did not complete (a failed check says
+ *  why). */
+export async function filmParityRun(
+  ctx,
+  url,
+  { counts = false, viewport: asked = VIEWPORT, pageShots = false } = {},
+) {
   await prerequisites();
   const started = performance.now();
-  const page = await ctx.newPage({ viewport: VIEWPORT });
+  const page = await ctx.newPage({ viewport: asked });
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.goto(url);
@@ -70,6 +100,7 @@ export async function filmParityRun(ctx, url, { counts = false } = {}) {
 
   // Progress: one line per scene as it starts; out on a result or a page error.
   let shown = "";
+  const shots = [];
   for (;;) {
     const state = await page.evaluate(() => ({
       stage: window.__graphicsTest?.stage,
@@ -77,6 +108,15 @@ export async function filmParityRun(ctx, url, { counts = false } = {}) {
     }));
     if (state.stage === "results") break;
     if (pageErrors.length) throw new Error(`the page failed: ${pageErrors[0]}`);
+    if (pageShots) {
+      // The reel time either side of the shot: the frame native draws there.
+      const reel = () => page.evaluate(() => window.__graphicsTestReelMs?.() ?? null);
+      const before = await reel();
+      const png = before === null ? null : await page.screenshot();
+      const after = await reel();
+      if (png && after !== null)
+        shots.push({ map: state.progress.split("· ").at(-1), before, after, png });
+    }
     if (state.progress && state.progress !== shown) {
       shown = state.progress;
       console.log(`  ${shown} (${((performance.now() - started) / 1000).toFixed(0)} s)`);
@@ -91,8 +131,8 @@ export async function filmParityRun(ctx, url, { counts = false } = {}) {
   );
   if (report.outcome.status !== "complete") return null;
 
-  // Plates cross from the page as base64 PNGs, and overlays as base64 bytes.
-  const { plates, counted, overlays } = await page.evaluate(async () => {
+  // Plates cross from the page as base64 PNGs, overlays and cards as base64 bytes.
+  const { plates, counted, overlays, cards } = await page.evaluate(async () => {
     const base64 = async (blob) => {
       const data = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -109,6 +149,12 @@ export async function filmParityRun(ctx, url, { counts = false } = {}) {
         state.overlays.map(async ({ scene, bytes }) => ({
           scene,
           base64: await base64(new Blob([bytes])),
+        })),
+      ),
+      cards: await Promise.all(
+        state.cards.map(async ({ scene, bytes }) => ({
+          scene,
+          base64: await base64(new Blob([await bytes])),
         })),
       ),
       plates: await Promise.all(
@@ -152,6 +198,32 @@ export async function filmParityRun(ctx, url, { counts = false } = {}) {
         );
       }
     }
+    for (const shot of shots.filter((s) => s.map === map)) {
+      const file = `page-${Math.round(shot.before)}.png`;
+      await writeFile(new URL(file, dir), shot.png);
+      console.log(
+        `METRIC parity-run ${map} page shot ${file}: reel ${shot.before.toFixed(0)}–${shot.after.toFixed(0)} ms`,
+      );
+    }
+    // The cards, likewise, where the manifest names its `cards` layer.
+    if (report.drawnPresentations[i]?.layers.includes("cards") ?? false) {
+      const filmed = cards.find((c) => c.scene === map);
+      const bytes = filmed && Buffer.from(filmed.base64, "base64");
+      const decoded = bytes ? decodeCardCapture(bytes) : null;
+      const frameCount = JSON.parse(captureJson).frames.length;
+      const cardFrames = decoded?.file.frames.length ?? 0;
+      ctx.check(
+        `${map}: the cards are recorded with every frame`,
+        cardFrames === frameCount,
+        `${cardFrames} card frames for ${frameCount} frame records`,
+      );
+      if (bytes && decoded) {
+        await writeFile(new URL(CARD_CAPTURE_FILE, dir), bytes);
+        console.log(
+          `METRIC parity-run ${map} cards: ${(bytes.length / 2 ** 20).toFixed(1)} MiB, ${decoded.file.parts.length} contents, ${decoded.file.sprites.length} sprites in a ${decoded.atlas.width}×${decoded.atlas.height} atlas; frames showing each: ${cardCases(decoded.file)}`,
+        );
+      }
+    }
     const mapBytes = await readFile(new URL(`fixtures/maps/${map}/map.json`, ROOT));
     const own = plates.filter((p) => p.scene === map);
     const manifest = await writeVisualPresentation({
@@ -185,10 +257,10 @@ export async function filmParityRun(ctx, url, { counts = false } = {}) {
     const parsed = JSON.parse(manifest);
     const { viewport } = parsed;
     ctx.check(
-      `${map}: frames, plates and plain plates are ${VIEWPORT.width}×${VIEWPORT.height}`,
-      viewport.width === VIEWPORT.width &&
-        viewport.height === VIEWPORT.height &&
-        sizes.every((s) => s === `${VIEWPORT.width}×${VIEWPORT.height}`),
+      `${map}: frames, plates and plain plates are ${asked.width}×${asked.height}`,
+      viewport.width === asked.width &&
+        viewport.height === asked.height &&
+        sizes.every((s) => s === `${asked.width}×${asked.height}`),
       `viewport ${viewport.width}×${viewport.height}; plates ${[...new Set(sizes)].join(", ")}`,
     );
     const grown = parsed.grassCounts.map((g) => g.cells.reduce((a, b) => a + b, 0));
