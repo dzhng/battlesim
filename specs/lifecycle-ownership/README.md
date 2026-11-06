@@ -15,11 +15,12 @@ state-machine audit. Read the repository README and development guide, then this
 plan's [contracts](contracts.md), [scope decisions](scope.md),
 [verification policy](verification.md), and [decisions](decisions.md).
 
-Slices 01–08, 10, 12–15 and 18 are complete: client settlement, shared preparation-worker
+Slices 01–08, 10, 12–15, 18 and 19 are complete: client settlement, shared preparation-worker
 handoff, authority resource ownership, session startup, pointer/purchase/order
 ownership, viewport scene admission, page/battle audio, mechanics editor and map
-draft/display all passed focused checks and Claude review. Continue with released
-action and the remaining dependent ownership slices, then the integration closeout.
+draft/display, and audition session ownership all passed focused checks and Claude
+review. Continue with released action, submitted view, map operations/artifacts and
+the integration closeout.
 
 There is no blocking product decision. The [source-derived behavior
 questions](decisions.md#behavior-questions-outside-this-refactor) are deliberately
@@ -79,7 +80,7 @@ when safe, never mutable build output. Avoid GPU contention or permanent debug r
 | [ ] | [16 Map manual work](slices/16-map-operations.md) | 15 | Inspect, compare, sample and cancel |
 | [ ] | [17 Map artifacts](slices/17-map-artifacts.md) | 16 | Retention, release and server close |
 | [x] | [18 Sound review](slices/18-sound-review.md) | — | Draft review, save and retained errors |
-| [ ] | [19 Audition session](slices/19-audition-session.md) | 18 | Loading, playback, stop and replacement |
+| [x] | [19 Audition session](slices/19-audition-session.md) | 18 | Loading, playback, stop and replacement |
 | [ ] | [20 Integration closeout](slices/20-closeout.md) | 01–19 | Complete preserved player/tool journeys |
 
 The [interactive roadmap](visualizations/roadmap.html) is a generated review aid;
