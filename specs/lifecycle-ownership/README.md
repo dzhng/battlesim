@@ -15,11 +15,11 @@ state-machine audit. Read the repository README and development guide, then this
 plan's [contracts](contracts.md), [scope decisions](scope.md),
 [verification policy](verification.md), and [decisions](decisions.md).
 
-Slices 01–07, 10, 12–15 and 18 are complete: client settlement, shared preparation-worker
-handoff, authority resource ownership, session startup, pointer/purchase ownership,
-viewport scene admission, page/battle audio, mechanics editor and map draft/display
-all passed focused checks and Claude review. Continue with order preview and the
-remaining dependent ownership slices, then the integration closeout.
+Slices 01–08, 10, 12–15 and 18 are complete: client settlement, shared preparation-worker
+handoff, authority resource ownership, session startup, pointer/purchase/order
+ownership, viewport scene admission, page/battle audio, mechanics editor and map
+draft/display all passed focused checks and Claude review. Continue with released
+action and the remaining dependent ownership slices, then the integration closeout.
 
 There is no blocking product decision. The [source-derived behavior
 questions](decisions.md#behavior-questions-outside-this-refactor) are deliberately
@@ -68,7 +68,7 @@ when safe, never mutable build output. Avoid GPU contention or permanent debug r
 | [x] | [05 Uploaded scenario](slices/05-uploaded-scenario.md) | 02, 04 | Package → controller → battle |
 | [x] | [06 Pointer gestures](slices/06-pointer-gestures.md) | — | Selection, facing and camera gestures |
 | [x] | [07 Purchase placement](slices/07-purchase-placement.md) | 01, 06 | Ghost, preview and confirmation |
-| [ ] | [08 Order preview](slices/08-order-preview.md) | 01, 06 | Move/building answer and marker |
+| [x] | [08 Order preview](slices/08-order-preview.md) | 01, 06 | Move/building answer and marker |
 | [ ] | [09 Released action](slices/09-released-action.md) | 08 | Acknowledgement correcting its own gesture |
 | [x] | [10 Viewport replacement](slices/10-viewport-replacement.md) | 04, 06 | Replace scene while current view is owned |
 | [ ] | [11 Submitted view](slices/11-submitted-view.md) | 10 | Picking and frame completion after submit |
