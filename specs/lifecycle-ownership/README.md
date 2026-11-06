@@ -71,7 +71,7 @@ when safe, never mutable build output. Avoid GPU contention or permanent debug r
 | [x] | [08 Order preview](slices/08-order-preview.md) | 01, 06 | Move/building answer and marker |
 | [x] | [09 Released action](slices/09-released-action.md) | 08 | Acknowledgement correcting its own gesture |
 | [x] | [10 Viewport replacement](slices/10-viewport-replacement.md) | 04, 06 | Replace scene while current view is owned |
-| [ ] | [11 Submitted view](slices/11-submitted-view.md) | 10 | Picking and frame completion after submit |
+| [x] | [11 Submitted view](slices/11-submitted-view.md) | 10 | Picking and frame completion after submit |
 | [x] | [12 Page audio](slices/12-page-audio.md) | — | Permission, mute and menu/battle handoff |
 | [x] | [13 Battle audio](slices/13-battle-audio.md) | 12 | Ready graph, fresh evidence and departure |
 | [x] | [14 Mechanics editor](slices/14-mechanics-editor.md) | — | Invalid text, current review and conflict |
