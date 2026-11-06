@@ -1,6 +1,6 @@
 # 17 — Map service artifact retention
 
-**Status:** pending. **Audit families:** 77. **Dependencies:** 16.
+**Status:** complete. **Audit families:** 77. **Dependencies:** 16.
 
 ## Contract and question
 
@@ -51,3 +51,15 @@ Feedback that would change scope: Longer artifact history, new persistence or di
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+Baseline: `54ac5abee`. `MapArtifactStore` now owns artifact registration,
+retained-ID validation, temporary directory creation and disposal, preview/sample
+retirement, admitted-directory lookup, and close cleanup. `WorkbenchStore` keeps
+the bounded request queue, native admission, reviewed candidate and HTTP-facing
+methods, delegating all artifact lifetime transitions to the store. Public IDs,
+receipts, report shapes, retention limits, refusal retention, sample export and
+late-cancel behavior are unchanged.
+
+Focused evidence: `bun run --cwd web test -- tests/mapWorkbenchServer.test.ts tests/mapWorkbenchHttp.test.ts tests/nativeReporter.test.ts` — 3 files, 26 tests passed. `bun run --cwd web typecheck` passed; `bun run lint` completed with only the repository's existing warnings; `bun run fmt:check` passed after formatting the new owner; `git diff --check` passed. Claude Opus high-effort review initially found duplicated directory cleanup; the owner was rewired to create and dispose directories and a second review then confirmed the remaining implementation. No visual shot was produced because this is a server-only ownership extraction.

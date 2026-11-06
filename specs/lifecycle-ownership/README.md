@@ -15,12 +15,11 @@ state-machine audit. Read the repository README and development guide, then this
 plan's [contracts](contracts.md), [scope decisions](scope.md),
 [verification policy](verification.md), and [decisions](decisions.md).
 
-Slices 01–08, 10, 12–15, 18 and 19 are complete: client settlement, shared preparation-worker
-handoff, authority resource ownership, session startup, pointer/purchase/order
-ownership, viewport scene admission, page/battle audio, mechanics editor and map
-draft/display, and audition session ownership all passed focused checks and Claude
-review. Continue with released action, submitted view, map operations/artifacts and
-the integration closeout.
+Slices 01–10, 12–16 and 18–19 are complete: client settlement, shared preparation-worker
+handoff, authority resource ownership, session startup, pointer/purchase/order/released-action
+ownership, viewport scene admission, page/battle audio, mechanics editor,
+map draft/manual/artifact ownership, and audition session ownership all passed focused checks
+and Claude review. Continue with the integration closeout.
 
 There is no blocking product decision. The [source-derived behavior
 questions](decisions.md#behavior-questions-outside-this-refactor) are deliberately
@@ -78,7 +77,7 @@ when safe, never mutable build output. Avoid GPU contention or permanent debug r
 | [x] | [14 Mechanics editor](slices/14-mechanics-editor.md) | — | Invalid text, current review and conflict |
 | [x] | [15 Map draft/display](slices/15-map-draft.md) | — | Latest request versus last admitted map |
 | [x] | [16 Map manual work](slices/16-map-operations.md) | 15 | Inspect, compare, sample and cancel |
-| [ ] | [17 Map artifacts](slices/17-map-artifacts.md) | 16 | Retention, release and server close |
+| [x] | [17 Map artifacts](slices/17-map-artifacts.md) | 16 | Retention, release and server close |
 | [x] | [18 Sound review](slices/18-sound-review.md) | — | Draft review, save and retained errors |
 | [x] | [19 Audition session](slices/19-audition-session.md) | 18 | Loading, playback, stop and replacement |
 | [ ] | [20 Integration closeout](slices/20-closeout.md) | 01–19 | Complete preserved player/tool journeys |
