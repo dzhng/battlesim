@@ -1,6 +1,6 @@
 # 14 — Mechanics draft and publication session
 
-**Status:** pending. **Audit families:** 75. **Dependencies:** none.
+**Status:** complete. **Audit families:** 75. **Dependencies:** none.
 
 ## Contract and question
 
@@ -51,3 +51,19 @@ Feedback that would change scope: Autosave, different discard confirmation or a 
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+Delegated implementation commit `1ffc3a3894628137987d790b1603578abee0e88b`,
+integrated as `5f1d83f2b`. The mechanics-local reducer and controller now own draft,
+unfinished text, review, operation, conflict, save and reload transitions; field
+validation, view-only search/selection and publication ownership remain where they
+were.
+
+Focused mechanics suites pass 33 tests; typecheck, Oxlint, formatting and diff
+checks passed in the delegated checkout and the focused suites pass after
+integration. Claude review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3Aa82b3d8c-c609-4ebd-a3d5-eb6a7e09cf0e%3Adelegate-task%3A88c9fe0a-e9f3-4d7b-af2e-a4981578e397>; findings were verified and fixed before commit. No visual surface changed, so no screenshot gate was needed.
+
+Production size: 88 additions and 126 deletions in the existing component, plus the
+209-line local reducer; test additions are 60 lines. No public format or server
+contract changed.
