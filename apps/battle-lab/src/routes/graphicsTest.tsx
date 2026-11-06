@@ -80,8 +80,8 @@ interface GraphicsTestState {
   plates: readonly (ReelPlate & { scene: string })[];
   /** Each scene's counted frames (`?counts=1`), in run order. */
   counts: readonly { scene: string; frames: readonly FrameCount[] }[];
-  /** Each scene's recorded indicators (`overlays.bin`; not with
-   *  `?indicators=0`), in run order. */
+  /** Each scene's recorded indicators (`overlays.bin`; only with
+   *  `?indicators=1`), in run order. */
   overlays: readonly { scene: string; bytes: Uint8Array }[];
 }
 
