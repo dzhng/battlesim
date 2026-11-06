@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
   type ReactNode,
@@ -44,12 +45,18 @@ import {
   valueAt,
   type GameplayField,
 } from "./fields";
+import {
+  canPreview,
+  canSave,
+  editorBusy,
+  editorDirty,
+  editorReducer,
+  initialEditorState,
+  needsReloadConfirmation,
+  type TextEdit,
+} from "./editorState";
 import "./mechanics.css";
 
-interface TextEdit {
-  text: string;
-  error?: string;
-}
 interface EditorState {
   snapshot: MechanicsSnapshot;
   draft: MechanicsDraft;
@@ -73,10 +80,6 @@ const useEditor = () => {
 };
 const rowName = (id: string, entry: JsonObject) =>
   typeof entry.name === "string" ? entry.name : id;
-const emptyDraft = (snapshot: MechanicsSnapshot): MechanicsDraft => ({
-  revision: snapshot.revision,
-  changes: [],
-});
 function ChangeSummary({
   change,
   preview,
@@ -125,21 +128,6 @@ function ChangeSummary({
         </small>
       </div>
     </li>
-  );
-}
-
-function textIsWithin(key: string, target: EditTarget, path: readonly string[]): boolean {
-  const [section, id, unit, candidatePath] = JSON.parse(key.slice(0, key.lastIndexOf(":"))) as [
-    EditTarget["section"],
-    string,
-    string | null,
-    string[],
-  ];
-  return (
-    section === target.section &&
-    id === target.id &&
-    unit === (target.unit ?? null) &&
-    path.every((part, index) => candidatePath[index] === part)
   );
 }
 
@@ -509,40 +497,56 @@ function ExpandedUnit({ id, unit }: { id: string; unit: JsonObject }) {
 }
 
 export default function MechanicsEditor() {
-  const [snapshot, setSnapshot] = useState<MechanicsSnapshot | null>(null);
-  const [draft, setDraft] = useState<MechanicsDraft | null>(null);
-  const [texts, setTexts] = useState<Record<string, TextEdit>>({});
+  const [state, dispatch] = useReducer(editorReducer, initialEditorState);
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
   const lastEdit = useRef<HTMLElement | null>(null);
   const [hasLastEdit, setHasLastEdit] = useState(false);
+  const nextOperation = useRef(0);
+  const { snapshot, draft, texts, review: preview, outcome, reloadArmed } = state;
+  const busy = editorBusy(state);
+  const dirty = editorDirty(state);
+  const error = outcome?.kind === "error" ? outcome.message : "";
+  const conflict = state.conflict;
+  const saved = outcome?.kind === "saved";
+
   useEffect(() => {
     if (lastEdit.current && !lastEdit.current.isConnected) {
       lastEdit.current = null;
       setHasLastEdit(false);
     }
   });
-  const [conflict, setConflict] = useState(false);
-  const [reloadArmed, setReloadArmed] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [preview, setPreview] = useState<{ value: MechanicsPreview; draft: string } | null>(null);
-  const errors = Object.values(texts).some((t) => t.error);
-  const dirty = Boolean(draft?.changes.length || Object.keys(texts).length);
-  const draftJSON = JSON.stringify(draft);
+
+  const run = async <T,>(
+    kind: "load" | "reload" | "preview" | "save",
+    suffix: string,
+    body?: MechanicsDraft,
+  ) => {
+    const id = ++nextOperation.current;
+    dispatch({
+      type: "operation-started",
+      operation: { id, kind, draftJSON: body ? JSON.stringify(body) : undefined },
+    });
+    try {
+      const value = await request<T>(suffix, body);
+      return { id, value };
+    } catch (failure) {
+      dispatch({
+        type: "operation-failed",
+        id,
+        message: failure instanceof Error ? failure.message : String(failure),
+        conflict: failure instanceof RequestError && failure.conflict,
+      });
+      return null;
+    }
+  };
+
   useEffect(() => {
     let active = true;
-    request<MechanicsSnapshot>()
-      .then((value) => {
-        if (active) {
-          setSnapshot(value);
-          setDraft(emptyDraft(value));
-        }
-      })
-      .catch((error) => {
-        if (active) setError(String(error.message));
-      });
+    void run<MechanicsSnapshot>("load", "").then((result) => {
+      if (active && result)
+        dispatch({ type: "snapshot-received", id: result.id, snapshot: result.value });
+    });
     return () => {
       active = false;
     };
@@ -596,63 +600,31 @@ export default function MechanicsEditor() {
     ...matching.filter(([id]) => testUnits.has(id)),
   ];
   const firstTestUnit = filtered.find(([id]) => testUnits.has(id))?.[0];
-  const handleFailure = (failure: unknown) => {
-    setError(failure instanceof Error ? failure.message : String(failure));
-    if (failure instanceof RequestError && failure.conflict) setConflict(true);
-  };
   const reload = async () => {
-    if (dirty && !reloadArmed) {
-      setReloadArmed(true);
+    if (!snapshot) return;
+    if (needsReloadConfirmation(state)) {
+      dispatch({ type: "reload-armed" });
       return;
     }
-    setBusy(true);
-    try {
-      const value = await request<MechanicsSnapshot>();
-      setSnapshot(value);
-      setDraft(emptyDraft(value));
-      setTexts({});
-      setPreview(null);
-      setConflict(false);
-      setError("");
-      setSaved(false);
-      setReloadArmed(false);
-    } catch (failure) {
-      handleFailure(failure);
-    } finally {
-      setBusy(false);
-    }
+    const result = await run<MechanicsSnapshot>("reload", "");
+    if (result) dispatch({ type: "snapshot-received", id: result.id, snapshot: result.value });
   };
   const previewChanges = async () => {
-    if (!draft || errors) return;
-    setBusy(true);
-    setError("");
-    setSaved(false);
-    try {
-      setPreview({ value: await request<MechanicsPreview>("/preview", draft), draft: draftJSON });
-    } catch (failure) {
-      setPreview(null);
-      handleFailure(failure);
-    } finally {
-      setBusy(false);
-    }
+    if (!canPreview(state) || !draft) return;
+    const captured = draft;
+    const result = await run<MechanicsPreview>("preview", "/preview", captured);
+    if (result)
+      dispatch({
+        type: "preview-received",
+        id: result.id,
+        value: result.value,
+      });
   };
   const save = async () => {
-    if (!draft || errors || !preview || preview.draft !== draftJSON) return;
-    setBusy(true);
-    setError("");
-    try {
-      const value = await request<MechanicsSnapshot>("/save", draft);
-      setSnapshot(value);
-      setDraft(emptyDraft(value));
-      setTexts({});
-      setPreview(null);
-      setConflict(false);
-      setSaved(true);
-    } catch (failure) {
-      handleFailure(failure);
-    } finally {
-      setBusy(false);
-    }
+    if (!canSave(state) || !draft) return;
+    const captured = draft;
+    const result = await run<MechanicsSnapshot>("save", "/save", captured);
+    if (result) dispatch({ type: "snapshot-received", id: result.id, snapshot: result.value });
   };
   const applyDraft = (
     next: MechanicsDraft,
@@ -661,7 +633,7 @@ export default function MechanicsEditor() {
     entry: JsonObject,
     textKey?: string,
   ) => {
-    if (!snapshot) return;
+    if (!snapshot || !draft) return;
     const slots = valueAt(entry, ["body", "squad", "slots"]);
     const nextSlots = valueAt(draftEntry(entry, next, target, snapshot), [
       "body",
@@ -673,25 +645,24 @@ export default function MechanicsEditor() {
       for (const kind of slots)
         if (typeof kind === "string" && (!Array.isArray(nextSlots) || !nextSlots.includes(kind)))
           removedSoldiers.add(kind);
-    const removedTarget = (candidate: EditTarget) =>
-      candidate.section === "soldiers" &&
-      candidate.unit === target.id &&
-      removedSoldiers.has(candidate.id);
-    setDraft({ ...next, changes: next.changes.filter((change) => !removedTarget(change)) });
-    setPreview(null);
-    setSaved(false);
-    setReloadArmed(false);
-    setTexts((current) =>
-      Object.fromEntries(
-        Object.entries(current).filter(
-          ([key]) =>
-            !(textIsWithin(key, target, field.path) && key !== textKey) &&
-            ![...removedSoldiers].some((id) =>
-              textIsWithin(key, { section: "soldiers", id, unit: target.id }, []),
+    dispatch({
+      type: "draft-edited",
+      draft: {
+        ...next,
+        changes: next.changes.filter(
+          (change) =>
+            !(
+              change.section === "soldiers" &&
+              change.unit === target.id &&
+              removedSoldiers.has(change.id)
             ),
         ),
-      ),
-    );
+      },
+      target,
+      path: field.path,
+      textKey,
+      removedSoldiers: [...removedSoldiers],
+    });
   };
   const editor: EditorState | null =
     snapshot && draft
@@ -701,12 +672,7 @@ export default function MechanicsEditor() {
           texts,
           busy,
           setText: (key, edit) =>
-            setTexts((current) => {
-              const next = { ...current };
-              if (edit) next[key] = edit;
-              else delete next[key];
-              return next;
-            }),
+            dispatch(edit ? { type: "text-changed", key, edit } : { type: "text-cleared", key }),
           change: (target, field, value, entry, textKey) => {
             if (validateGameplayValue(target.section, field.path, value)) return;
             applyDraft(editDraft(draft, target, field.path, value), target, field, entry, textKey);
@@ -766,17 +732,13 @@ export default function MechanicsEditor() {
           <button type="button" disabled={busy || !snapshot} onClick={reload}>
             Reload sources
           </button>
-          <button
-            type="button"
-            disabled={busy || !draft?.changes.length || errors || conflict}
-            onClick={previewChanges}
-          >
+          <button type="button" disabled={busy || !canPreview(state)} onClick={previewChanges}>
             {busy ? "Working…" : "Preview changes"}
           </button>
           <button
             type="button"
             className="me-primary"
-            disabled={busy || errors || conflict || !preview || preview.draft !== draftJSON}
+            disabled={busy || !canSave(state)}
             onClick={save}
           >
             Save authored JSON
@@ -817,7 +779,7 @@ export default function MechanicsEditor() {
           <button type="button" disabled={busy} onClick={reload}>
             Discard draft and reload
           </button>
-          <button type="button" onClick={() => setReloadArmed(false)}>
+          <button type="button" onClick={() => dispatch({ type: "reload-disarmed" })}>
             Keep editing
           </button>
         </div>
