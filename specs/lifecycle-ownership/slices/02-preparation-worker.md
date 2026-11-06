@@ -73,6 +73,9 @@ Shape/diff/docs review: duplicated worker handlers, adoption and termination are
 removed; no compatibility path or new public type was introduced. Existing worker
 and route docs remain accurate. Candidate visual captures were compared against the
 baseline with `visual-parity-diff`; all four pairs are pixel-identical within the
-existing capture noise (worst distance 0.00002). The unchanged visual surface needs
-no screenshot critique beyond the required preservation record. Production diff:
+existing capture noise (worst distance 0.00002). A fresh screenshot critique found
+no candidate framing, clipping or artifact regression. It did flag the pre-existing
+uniform-white `replay-ready.png` and dim low-pulse bar as visual usability concerns;
+both candidate and baseline match, so they are preserved evidence and outside this
+cleanup's behavior-preservation scope. Production diff:
 74 additions, 107 deletions; tests/docs carry the remaining coverage and receipt.

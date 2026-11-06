@@ -42,6 +42,58 @@ export interface ScriptedSim {
 
 const REFUSAL_LOG = 8;
 
+interface SessionStartup {
+  onViewportReady(): void;
+  cancel(): void;
+}
+
+/** Own the one session's readiness and optional scripted warm-up. React keeps
+ * observations and status; this operation keeps continuations tied to the
+ * client they were created for. */
+function startSessionStartup(
+  client: SimClient,
+  plan: ScriptedSim | undefined,
+  onWarm: () => void,
+  viewportInitiallyReady: boolean,
+): SessionStartup {
+  let cancelled = false;
+  let authorityReady = false;
+  let viewportReady = viewportInitiallyReady;
+  const startWhenBothReady = () => {
+    if (authorityReady && viewportReady && !cancelled) client.start();
+  };
+  if (plan) {
+    client.pause();
+    void client
+      .advance(plan.warmTo)
+      .then(() => plan.hold?.())
+      .then(() => {
+        if (cancelled) return;
+        client.resume();
+        onWarm();
+        plan.onWarm();
+      });
+  }
+  void client.ready.then(
+    (info) => {
+      if (cancelled) return;
+      authorityReady = true;
+      plan?.onReady?.(info);
+      startWhenBothReady();
+    },
+    () => {},
+  );
+  return {
+    onViewportReady() {
+      viewportReady = true;
+      startWhenBothReady();
+    },
+    cancel() {
+      cancelled = true;
+    },
+  };
+}
+
 /** One worker authority for a lab scenario. Publications are consumed (their
  *  credit returned) as soon as they are decoded, unless the lab holds credit
  *  to stall the producer; drawing interpolates between the last two frames.
@@ -86,6 +138,7 @@ export function useSimSession({
   // side never starts a new one.
   const openSide = useRef(side);
   openSide.current = side;
+  const startup = useRef<SessionStartup | null>(null);
 
   useEffect(() => {
     const plan = scriptedRef.current;
@@ -103,19 +156,15 @@ export function useSimSession({
       connect: generation === 0 && !replay ? prepared?.connect : undefined,
     });
     let warm = !plan;
-    if (plan) {
-      // Queued ahead of `start`: the battle steps to warmTo as fast as its
-      // publications are consumed, then runs in real time.
-      next.pause();
-      void next
-        .advance(plan.warmTo)
-        .then(() => plan.hold?.())
-        .then(() => {
-          warm = true;
-          next.resume();
-          plan.onWarm();
-        });
-    }
+    const operation = startSessionStartup(
+      next,
+      plan,
+      () => {
+        warm = true;
+      },
+      viewportReady.current,
+    );
+    startup.current = operation;
     setClient(next);
     setObservation(null);
     setRefusals([]);
@@ -155,14 +204,9 @@ export function useSimSession({
     });
     setError(null);
     next.ready.catch((e: Error) => setError(e.message));
-    void next.ready.then(
-      (info) => {
-        plan?.onReady?.(info);
-        if (viewportReady.current) next.start();
-      },
-      () => {}, // reported through `error`
-    );
     return () => {
+      operation.cancel();
+      if (startup.current === operation) startup.current = null;
       if (frame !== null) cancelAnimationFrame(frame);
       next.dispose();
     };
@@ -170,12 +214,8 @@ export function useSimSession({
 
   const onViewportReady = useCallback(() => {
     viewportReady.current = true;
-    if (client)
-      void client.ready.then(
-        () => client.start(),
-        () => {}, // reported through `error`
-      );
-  }, [client]);
+    startup.current?.onViewportReady();
+  }, []);
 
   /** Stall test: keep publications instead of returning their credit. */
   const holdCredit = useCallback((hold: boolean) => {

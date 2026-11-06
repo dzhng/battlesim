@@ -114,3 +114,96 @@ test("ticks published within one frame render once, the latest, while each is st
     battle.free();
   }
 });
+
+test("a held warm-up continuation cannot act after Restart replaces its session", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { initSync, Battle } = await import("@wasm/game_wasm.js");
+  const { labScenario } = await import("./catalog");
+  const { loadMap } = await import("@web/maps/node");
+  type Reply = import("@web/battle/sim/protocol").SimReply;
+  const memory = initSync({
+    module: readFileSync(`${process.cwd()}/src/wasm/game_wasm_bg.wasm`),
+  }).memory;
+  const battle = new Battle(
+    labScenario(loadMap("geometry").definition, [
+      { side: "blue", kind: "test_tank", position: [40, 150] },
+    ]),
+    9,
+  );
+  const workers: Array<{
+    onmessage: ((event: MessageEvent<Reply>) => void) | null;
+    requests: SimRequest[];
+    terminate(): void;
+  }> = [];
+  vi.stubGlobal(
+    "Worker",
+    class {
+      onmessage: ((event: MessageEvent<Reply>) => void) | null = null;
+      requests: SimRequest[] = [];
+      constructor() {
+        workers.push(this);
+      }
+      postMessage(request: SimRequest) {
+        this.requests.push(request);
+      }
+      terminate() {}
+    },
+  );
+  let releaseHold!: () => void;
+  const onWarm = vi.fn();
+  const scripted = {
+    warmTo: 1,
+    hold: () => new Promise<void>((resolve) => (releaseHold = resolve)),
+    onWarm,
+    onTick: () => {},
+  };
+  const { result } = renderHook(() => useSimSession({ scenario: "{}", seed: 1, scripted }));
+  try {
+    const deliver = (worker: (typeof workers)[number], reply: Reply) =>
+      worker.onmessage?.({ data: reply } as MessageEvent<Reply>);
+    await act(async () => {
+      deliver(workers[0], {
+        type: "ready",
+        layout: battle.observation_layout(),
+        tickHz: 30,
+        tick: 0,
+      });
+    });
+    act(() => result.current.onViewportReady());
+    expect(workers[0].requests).toContainEqual({ type: "start" });
+    deliver(workers[0], { type: "advanced", id: 1, tick: 1 });
+    battle.step();
+    const length = battle.publish("blue");
+    const buffer = new Float32Array(memory.buffer, battle.publication_ptr(), length).slice().buffer;
+    deliver(workers[0], {
+      type: "publication",
+      tick: 1,
+      digest: battle.digest(),
+      length,
+      buffer,
+      stepMs: 0,
+    });
+    await Promise.resolve();
+    expect(releaseHold).toBeDefined();
+    act(() => result.current.restart());
+    await act(async () => {
+      deliver(workers[1], {
+        type: "ready",
+        layout: battle.observation_layout(),
+        tickHz: 30,
+        tick: 0,
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(workers[1].requests.some((request) => request.type === "start")).toBe(true);
+    await act(async () => {
+      releaseHold();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(onWarm).not.toHaveBeenCalled();
+  } finally {
+    battle.free();
+  }
+});

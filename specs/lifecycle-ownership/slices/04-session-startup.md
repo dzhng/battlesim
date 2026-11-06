@@ -1,6 +1,6 @@
 # 04 — Session startup and warm-up ownership
 
-**Status:** pending. **Audit families:** 6. **Dependencies:** 01, 02, 03.
+**Status:** complete. **Audit families:** 6. **Dependencies:** 01, 02, 03.
 
 ## Contract and question
 
@@ -51,3 +51,25 @@ Feedback that would change scope: Different loading semantics, capture start tim
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+Baseline: `32e605e`. The candidate passes the five focused suites (37 tests),
+typecheck, ESLint and Oxlint. Mutation receipts under
+`throwaway/lifecycle-ownership/04-*.txt` prove both stale warm continuation and
+missing start gates fail, then the restored candidate passes.
+
+Claude final review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3Acdbb94b3-c200-4d34-a874-96e9d1cc0c87%3Adelegate-task%3A7e2533c6-80f1-41d2-ac59-7da38478711c>.
+The review is clean. The private SessionStartup operation owns authority/viewport
+readiness, scripted pause/advance/hold/resume and stale cancellation; the hook keeps
+observation, status, latest/ground and RAF projection. Scripted sessions still send
+`start`; a mounted viewport's readiness is retained across replacement so Restart,
+replay and prepared-session swaps keep the prior start timing. The stale `onWarm`
+continuation is now blocked; this is an internal ownership invariant, not a player
+behavior correction, because shipped scripted flows do not restart under a pending
+hold. Error settlement remains unchanged, including the existing unhandled warm-up
+rejection policy.
+
+Shape/diff/docs review: no public hook/callback shape, wire message, timing policy,
+prepared-connection rule or deterministic output changed. Production diff: 89
+additions, 28 deletions; tests add the restart and stale-hold preservation cases.
