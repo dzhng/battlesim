@@ -1,6 +1,6 @@
 # 09 — Released action and acknowledgement ownership
 
-**Status:** pending. **Audit families:** 20. **Dependencies:** 08.
+**Status:** complete. **Audit families:** 20. **Dependencies:** 08.
 
 ## Contract and question
 
@@ -51,3 +51,30 @@ Feedback that would change scope: Changing optimistic feedback duration or comma
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+`ReleasedAction` now owns the session-local held gesture and the single released
+order record, including client, queue flag, press generation, feedback intent and
+acknowledgement. Only the right-release transition adopts the held gesture;
+unrelated stop/left-click/purchase/probe commands leave it independent. Acks
+match client, order and queue identity, and publication retirement is identity
+guarded. `useUnitControl` remains the command authority, public probes and wire
+shapes are unchanged, and the old `pendingAction`, `captured` and
+`pressGeneration` ownership is removed.
+
+Focused evidence:
+
+- `bun run --cwd web test -- tests/releasedAction.test.ts tests/orderPreview.test.ts tests/unitControl.test.tsx tests/rejectedOrder.test.tsx tests/blockedTrajectory.test.tsx tests/battleIndicators.test.ts` — 56 tests passed.
+- `bun run --cwd web typecheck` — passed.
+- `bun run lint` — passed with the repository's existing exhaustive-deps and no-explicit-any warnings.
+- `bun run fmt:check` and `git diff --check` — passed.
+- Mutation receipts in `throwaway/lifecycle-ownership/released-action-mutation.log` and `released-action-retirement-mutation.log` both record focused test failure after removing stale-ack identity or retirement guards.
+
+Review: refactor-clean/code-review/write-docs lenses found no unresolved shape,
+diff or documentation issue. Independent Claude Opus high-effort read-only
+review was run after the fixes; its final verdict is clean with no blocking
+findings. The review was run through `claude -p` and emitted no shareable thread
+link. No screenshot was produced: this slice preserves the existing cursor,
+marker and refusal geometry and changes only session-local acknowledgement
+ownership.

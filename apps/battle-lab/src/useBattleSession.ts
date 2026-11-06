@@ -53,6 +53,7 @@ import {
   previewContextIdentity,
 } from "./pointerPaint";
 import { OrderPreview } from "./orderPreview";
+import { ReleasedAction } from "./releasedAction";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observationView";
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { Player } from "@web/battle/prepare/protocol";
@@ -240,31 +241,27 @@ export function useBattleSession({
   const orderReveal = useMemo(() => new OrderReveal(gameOrderFlash), []);
   const [pointerPaint] = useState(() => new PointerPaint(units));
   const [orderPreview] = useState(() => new OrderPreview());
-  const pendingAction = useRef<{ order: Order; queued: boolean; generation: number } | null>(null);
-  const pressGeneration = useRef(0);
-  const captured = useRef<{
-    pick: PointerPick;
-    intent: PointerIntent;
-    generation: number;
-    client: typeof sim.client;
-  } | null>(null);
+  const [releasedAction] = useState(() => new ReleasedAction());
   const shownIntent = useRef<PointerIntent>({ kind: "none" });
   const dragGhosts = useRef<UnitGhost[]>([]);
   const [revealed, setRevealed] = useState<RevealedOrders>(NOTHING_REVEALED);
   const revealedRef = useRef(revealed);
   const noteOrder = useCallback(
     (order: Order, queued: boolean) => {
-      pendingAction.current = { order, queued, generation: captured.current?.generation ?? 0 };
+      releasedAction.issue(order, queued, sim.client, intentForOrder(order, queued));
       if (drawnClock.current !== null) orderReveal.noteOrder(order, drawnClock.current);
     },
-    [orderReveal],
+    [orderReveal, releasedAction, sim.client],
   );
   const control = useUnitControl(
     replay || scripted ? null : sim.client,
     observation,
     {
       onIssue: noteOrder,
-      onAck: (order, ack, queued) => responses.current?.acknowledged(order, ack, queued),
+      onAck: (order, ack, queued) => {
+        releasedAction.acknowledge(order, ack, queued, sim.client);
+        responses.current?.acknowledged(order, ack, queued);
+      },
       onSelect: (added, clicked) => responses.current?.selected(added, clicked),
     },
     inputEnabled && takesOrders(players, commanding),
@@ -305,10 +302,9 @@ export function useBattleSession({
     cancelPurchase();
     placedGhosts.current = [];
     orderReveal.clear();
-    pendingAction.current = null;
-    captured.current = null;
+    releasedAction.reset();
     orderPreview.update(null, [], null, 0);
-  }, [sim.client, orderReveal, orderPreview, cancelPurchase]);
+  }, [sim.client, orderReveal, orderPreview, releasedAction, cancelPurchase]);
 
   // Every building is drawn from its template's rows, as instances of kit
   // modules, standing or fallen: no fitted model stands for one or for its
@@ -485,8 +481,8 @@ export function useBattleSession({
         return null;
       }
       // The order just issued has not landed: its units still publish the old one.
-      const pending = pendingAction.current;
-      const ack = pending && control.acks.find(({ order }) => order === pending.order)?.ack;
+      const pending = releasedAction.released;
+      const ack = pending?.ack;
       const landed = ack && (ack.error || published.tick >= ack.applied_tick);
       const awaiting = new Set(
         pending && !landed && "units" in pending.order ? pending.order.units : [],
@@ -563,7 +559,7 @@ export function useBattleSession({
       units,
       orderReveal,
       control.showOrders,
-      control.acks,
+      releasedAction,
       control.selected,
       xray,
       placedGhostList,
@@ -591,16 +587,10 @@ export function useBattleSession({
   const onRightPress = useCallback(
     (pick: LabPick | null) => {
       const pointer = pick && semanticPick(pick);
-      captured.current = pointer
-        ? {
-            pick: pointer,
-            intent: control.intentAt(pointer),
-            generation: ++pressGeneration.current,
-            client: sim.client,
-          }
-        : null;
+      if (pointer) releasedAction.capture(pointer, control.intentAt(pointer), sim.client);
+      else releasedAction.cancelCapture();
     },
-    [semanticPick, control, sim.client],
+    [semanticPick, control, sim.client, releasedAction],
   );
   const facedIntent = (
     intent: PointerIntent,
@@ -625,22 +615,21 @@ export function useBattleSession({
           });
         return;
       }
-      const held = captured.current;
+      const held = releasedAction.capturedFor(sim.client);
       if (pick.button === "right") {
         // A reset cancels the old press; its release cannot command the new battle.
-        if (!held || held.client !== sim.client) return;
+        if (!held) return;
         const release = pick.release && world && groundUnderRay(world.view, pick.release);
-        control.onPointer(
-          held.pick,
-          facedIntent(held.intent, held.pick, release && [release[0], release[1]]),
-        );
-        captured.current = null;
+        const intent = facedIntent(held.intent, held.pick, release && [release[0], release[1]]);
+        releasedAction.beginRelease();
+        control.onPointer(held.pick, intent);
+        releasedAction.cancelCapture();
       } else {
         const pointer = semanticPick(pick);
         if (pointer) control.onPointer(pointer);
       }
     },
-    [semanticPick, control, world, sim.client, purchasePlacement, cancelPurchase],
+    [semanticPick, control, world, sim.client, purchasePlacement, cancelPurchase, releasedAction],
   );
   const eligibilityIdentity = JSON.stringify(
     (observation?.own ?? []).map((u) => [
@@ -689,7 +678,7 @@ export function useBattleSession({
       !pointer.cameraDragging &&
       !replay &&
       !scripted &&
-      (!pointer.rightPress || captured.current?.client === sim.client) &&
+      (!pointer.rightPress || releasedAction.capturedFor(sim.client) !== null) &&
       sim.client &&
       world;
     if (purchasePlacement.variant) {
@@ -730,8 +719,7 @@ export function useBattleSession({
           time: 0,
         })
       : null;
-    const held =
-      pointer.rightPress && captured.current?.client === sim.client ? captured.current : null;
+    const held = pointer.rightPress ? releasedAction.capturedFor(sim.client) : null;
     const release =
       held &&
       pointer.rightDragging &&
@@ -749,9 +737,9 @@ export function useBattleSession({
           ? control.intentAt(pick)
           : ({ kind: "none" } as PointerIntent);
     shownIntent.current = intent;
-    const pending = pendingAction.current;
-    const accepted = pending && control.acks.find(({ order }) => order === pending.order)?.ack;
-    const released = pending && intentForOrder(pending.order, pending.queued);
+    const pending = releasedAction.released;
+    const accepted = pending?.ack;
+    const released = pending?.intent;
     // Until admission answers, the released request retains its resolved marks,
     // including facing. It uses the same coalesced preview owner as held/hover intent.
     const waiting = !held && pending && !accepted && released;
@@ -788,7 +776,7 @@ export function useBattleSession({
           })
         : [];
     if (!held && accepted) {
-      if ((shown?.tick ?? 0) >= accepted.applied_tick) pendingAction.current = null;
+      if ((shown?.tick ?? 0) >= accepted.applied_tick) releasedAction.retire(pending);
       else if (
         !accepted.error &&
         released &&
