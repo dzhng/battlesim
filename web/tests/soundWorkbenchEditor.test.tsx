@@ -1,6 +1,6 @@
 import { MemoryRouter } from "react-router";
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import { SoundWorkbench } from "../../apps/sound-workbench/src/SoundWorkbench";
@@ -310,6 +310,37 @@ test("a stale look save retains its draft and another edit invalidates the revie
   expect((screen.getByLabelText("Shot gain") as HTMLInputElement).value).toBe("0.3");
   fireEvent.change(screen.getByLabelText("Shot gain"), { target: { value: "0.2" } });
   expect(screen.queryByRole("button", { name: "Save reviewed JSON" })).toBeNull();
+});
+
+test("a failed preview retains the mounted draft", async () => {
+  const { api, audition } = fixture();
+  api.preview = vi.fn(async () => {
+    throw new Error("Preview rejected by admission");
+  });
+  render(<SoundWorkbench api={api} audition={audition} />, { wrapper: MemoryRouter });
+  fireEvent.click(await screen.findByRole("button", { name: "Weapon looks" }));
+  await screen.findByLabelText("Shot gain");
+  fireEvent.change(screen.getByLabelText("Shot gain"), { target: { value: "0.2" } });
+  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+
+  await screen.findByText("Preview rejected by admission");
+  expect((screen.getByLabelText("Shot gain") as HTMLInputElement).value).toBe("0.2");
+  expect(screen.queryByRole("button", { name: "Save reviewed JSON" })).toBeNull();
+});
+
+test("a late initial snapshot after unmount does not stop a shared auditioner again", async () => {
+  const f = fixture();
+  let complete!: (snapshot: Snapshot) => void;
+  f.api.snapshot = () => new Promise<Snapshot>((resolve) => (complete = resolve));
+  const view = render(<SoundWorkbench api={f.api} audition={f.audition} />, {
+    wrapper: MemoryRouter,
+  });
+  view.unmount();
+  expect(f.audition.stop).toHaveBeenCalledOnce();
+  await act(async () => {
+    complete(f.snapshot);
+  });
+  expect(f.audition.stop).toHaveBeenCalledOnce();
 });
 
 test.each(["Stop", "selection", "unmount"])(

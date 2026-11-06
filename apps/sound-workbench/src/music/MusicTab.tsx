@@ -49,6 +49,7 @@ export function MusicTab({
     from: string | null;
   } | null>(null);
   const [jobs, setJobs] = useState<GenerationJob[]>([]);
+  const jobsRef = useRef(jobs);
   const [message, setMessage] = useState("");
   const session = useRef<{
     player: Player;
@@ -135,20 +136,22 @@ export function MusicTab({
       .catch(report);
   const running = jobs.some((job) => job.status === "queued" || job.status === "running");
   useEffect(() => {
+    jobsRef.current = jobs;
+  }, [jobs]);
+  useEffect(() => {
     if (!running) return;
     const timer = setInterval(() => {
       api
         .jobs()
         .then(({ jobs: next }) => {
-          setJobs((before) => {
-            const ended = next.some(
-              (job) =>
-                (job.status === "done" || job.status === "failed") &&
-                before.some((old) => old.id === job.id && old.status !== job.status),
-            );
-            if (ended) reload();
-            return next;
-          });
+          const ended = next.some(
+            (job) =>
+              (job.status === "done" || job.status === "failed") &&
+              jobsRef.current.some((old) => old.id === job.id && old.status !== job.status),
+          );
+          jobsRef.current = next;
+          setJobs(next);
+          if (ended) reload();
         })
         .catch(report);
     }, JOB_POLL_MS);
