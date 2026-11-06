@@ -15,7 +15,7 @@ state-machine audit. Read the repository README and development guide, then this
 plan's [contracts](contracts.md), [scope decisions](scope.md),
 [verification policy](verification.md), and [decisions](decisions.md).
 
-Slices 01–04 and 12 are complete: client settlement, shared preparation-worker
+Slices 01–04 and 12–13 are complete: client settlement, shared preparation-worker
 handoff, authority resource ownership, session startup and page audio all passed
 focused checks and Claude review. Slice 14 (mechanics editor) is complete in
 committed delegated work and is ready to integrate after the current audio/session
@@ -74,7 +74,7 @@ when safe, never mutable build output. Avoid GPU contention or permanent debug r
 | [ ] | [10 Viewport replacement](slices/10-viewport-replacement.md) | 04, 06 | Replace scene while current view is owned |
 | [ ] | [11 Submitted view](slices/11-submitted-view.md) | 10 | Picking and frame completion after submit |
 | [x] | [12 Page audio](slices/12-page-audio.md) | — | Permission, mute and menu/battle handoff |
-| [ ] | [13 Battle audio](slices/13-battle-audio.md) | 12 | Ready graph, fresh evidence and departure |
+| [x] | [13 Battle audio](slices/13-battle-audio.md) | 12 | Ready graph, fresh evidence and departure |
 | [x] | [14 Mechanics editor](slices/14-mechanics-editor.md) | — | Invalid text, current review and conflict |
 | [ ] | [15 Map draft/display](slices/15-map-draft.md) | — | Latest request versus last admitted map |
 | [ ] | [16 Map manual work](slices/16-map-operations.md) | 15 | Inspect, compare, sample and cancel |

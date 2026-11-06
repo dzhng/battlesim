@@ -1,6 +1,6 @@
 # 13 — Battle audio graph lifetime
 
-**Status:** pending. **Audit families:** 69. **Dependencies:** 12.
+**Status:** complete. **Audit families:** 69. **Dependencies:** 12.
 
 ## Contract and question
 
@@ -51,3 +51,17 @@ Feedback that would change scope: Buffering pre-ready/muted combat to play later
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+The candidate passes `battleAudio`, `appAudio` and `soundFrame` suites: 36 tests;
+typecheck, ESLint and Oxlint also pass. Claude final review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3Acdbb94b3-c200-4d34-a874-96e9d1cc0c87%3Adelegate-task%3A68634042-b135-4661-af5b-f22c85fbcd78>.
+
+The private BattleGraph record owns sink, frame, voices, shout pool, preparation
+state and error while graph identity guards late async completion. The review found
+no reachable behavior drift. Its earlier finding that post-ready preparation errors
+must leave an admitted graph live was fixed by setting `failed` only while preparing;
+post-ready errors retain the old live/error behavior. Public BattleAudio methods and
+BattleAudioStats remain unchanged. Existing tests cover pre-ready drop, failed
+preparation, departure/late completion, shared pending bank, voice admission and
+disposal. No visual surface changed.

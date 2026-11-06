@@ -44,6 +44,15 @@ export function cameraListener(
   return { position: [l[0], l[1], l[2]], forward: [l[3], l[4], l[5]] };
 }
 
+interface BattleGraph {
+  readonly sink: WebAudioSink;
+  readonly frame: SoundFrame;
+  readonly voices: BattleVoices;
+  shouts: ShoutPool | null;
+  state: "preparing" | "ready" | "failed";
+  error: string | null;
+}
+
 export interface BattleAudioStats extends SoundStats {
   /** The context is running (a gesture came and sound is not muted). */
   running: boolean;
@@ -58,15 +67,10 @@ export interface BattleAudioStats extends SoundStats {
 /** One battle's observed causes. The page owns context and prepared buffers;
  * this observer owns its evidence and disposable mixer, including reverb tails. */
 export class BattleAudio {
-  private sink: WebAudioSink | null = null;
-  private frame: SoundFrame | null = null;
-  private voices: BattleVoices | null = null;
-  private shouts: ShoutPool | null = null;
+  private graph: BattleGraph | null = null;
   private speakerSets: Speakers | null = null;
   /** Enemy unit kinds the side has identified: their sets load. */
   private readonly enemyKinds = new Set<string>();
-  private ready = false;
-  private error: string | null = null;
   private disposed = false;
 
   constructor(
@@ -76,28 +80,31 @@ export class BattleAudio {
 
   /** The app connects a fresh graph once its context exists. */
   connect(context: AudioContext, bank: SoundBank) {
-    if (this.disposed || this.sink) return;
-    const sink = (this.sink = new WebAudioSink(
-      context,
-      this.options.presentation,
-      this.options.catalog,
-      bank,
-    ));
-    this.frame = new SoundFrame(this.options, sink);
-    this.voices = new BattleVoices(sink, this.options.presentation.voices);
+    if (this.disposed || this.graph) return;
+    const sink = new WebAudioSink(context, this.options.presentation, this.options.catalog, bank);
+    const graph: BattleGraph = {
+      sink,
+      frame: new SoundFrame(this.options, sink),
+      voices: new BattleVoices(sink, this.options.presentation.voices),
+      shouts: null,
+      state: "preparing",
+      error: null,
+    };
+    this.graph = graph;
     void loadSoundModule()
       .then(() => bank.prepare(battleSounds(this.options)))
       .then(() => {
-        if (this.sink !== sink) return;
-        this.ready = true;
-        this.frame?.reset();
-        void this.voices?.start();
+        if (this.graph !== graph) return;
+        graph.state = "ready";
+        graph.frame.reset();
+        void graph.voices.start();
         this.hearSpeakers();
       })
       .catch((error: unknown) => {
-        if (this.sink !== sink) return;
-        this.error = error instanceof Error ? error.message : String(error);
-        console.error("Battle sound could not be prepared:", this.error);
+        if (this.graph !== graph) return;
+        if (graph.state === "preparing") graph.state = "failed";
+        graph.error = error instanceof Error ? error.message : String(error);
+        console.error("Battle sound could not be prepared:", graph.error);
       });
   }
 
@@ -105,7 +112,7 @@ export class BattleAudio {
     if (!this.disposed) this.app.start();
   }
   private get live() {
-    return this.ready && this.app.stats().running ? this.frame : null;
+    return this.graph?.state === "ready" && this.app.stats().running ? this.graph.frame : null;
   }
   /** Hear the battle's last publication, or a script's. */
   note(feed: Presentation | SoundPublication) {
@@ -116,12 +123,12 @@ export class BattleAudio {
   }
   /** A unit's answer to its owner (`responseFor`); unheard before sound is live. */
   respond(request: ResponseRequest) {
-    if (this.live) this.voices?.respond(request);
+    if (this.live) this.graph?.voices.respond(request);
   }
   /** The voice sets the side's own units, and its purchases on their way,
    *  speak with; they load once its sounds are ready. */
   loadVoices(sets: Iterable<string>) {
-    void this.voices?.want(sets);
+    void this.graph?.voices.want(sets);
   }
   /** Enemy unit kinds the side identifies: from the first sight of a kind,
    *  the set it speaks with (`speakers`) loads, in the background. */
@@ -136,7 +143,8 @@ export class BattleAudio {
   }
   private wantEnemies() {
     const enemy = this.speakerSets?.enemy;
-    if (enemy) void this.voices?.want([...this.enemyKinds].flatMap((kind) => enemy[kind] ?? []));
+    if (enemy)
+      void this.graph?.voices.want([...this.enemyKinds].flatMap((kind) => enemy[kind] ?? []));
   }
   /** Which voice set each unit kind speaks with, for the side's own faction
    *  and its enemy's: a shout heard in the open is a bark in its kind's set,
@@ -148,17 +156,19 @@ export class BattleAudio {
     this.hearSpeakers();
   }
   private hearSpeakers() {
-    const { sink, frame, speakerSets } = this;
-    if (!this.ready || !sink || !frame || !speakerSets || this.shouts) return;
+    const graph = this.graph;
+    const { speakerSets } = this;
+    if (graph?.state !== "ready" || !speakerSets || graph.shouts) return;
+    const { sink, frame } = graph;
     frame.speakers(speakerSets);
     this.wantEnemies();
     const enemySets = [...new Set(Object.values(speakerSets.enemy))].sort();
-    const pool = (this.shouts = new ShoutPool(
+    const pool = (graph.shouts = new ShoutPool(
       sink.context,
       this.options.presentation.cues.shout.takes_per_voice,
     ));
     void pool.load(enemySets).then((takes) => {
-      if (this.shouts !== pool) return;
+      if (this.graph !== graph) return;
       sink.addTakes(takes);
       frame.shouts(takes.map(({ sound, buffer }) => ({ sound, duration: buffer.duration })));
     });
@@ -172,50 +182,48 @@ export class BattleAudio {
     else frame.update(feed.clock, wall, feed.motion, feed.listener);
     // Lines are heard from where the frame just heard, in Rust, with the
     // barks it heard; the score hears them too, and dips under any line.
-    const voices = this.voices;
+    const voices = this.graph?.voices;
     const lines = voices?.hear(frame);
     this.app.battleHeard(this, lines?.heard ?? [], voices?.speaking() ?? false);
   }
   reset() {
-    this.frame?.reset();
-    this.voices?.reset();
+    this.graph?.frame.reset();
+    this.graph?.voices.reset();
   }
   setVolume(volume: number, voices = 1) {
-    if (!this.sink) return;
-    const at = this.sink.now();
-    this.sink.master.gain.setTargetAtTime(
-      this.options.presentation.buses.master * volume,
-      at,
-      0.02,
-    );
-    this.sink.buses.voices.gain.setTargetAtTime(
+    const sink = this.graph?.sink;
+    if (!sink) return;
+    const at = sink.now();
+    sink.master.gain.setTargetAtTime(this.options.presentation.buses.master * volume, at, 0.02);
+    sink.buses.voices.gain.setTargetAtTime(
       this.options.presentation.buses.voices * voices,
       at,
       0.02,
     );
   }
   stats(): BattleAudioStats | null {
-    if (!this.frame) return null;
+    const graph = this.graph;
+    if (!graph) return null;
     return {
-      ...this.frame.stats(),
+      ...graph.frame.stats(),
       running: this.app.stats().running,
-      graph: this.sink?.live ?? 0,
-      bankMs: this.sink?.bank.ms ?? 0,
-      loading: !this.ready && this.error === null,
-      error: this.error,
+      graph: graph.sink.live,
+      bankMs: graph.sink.bank.ms,
+      loading: graph.state === "preparing",
+      error: graph.error,
     };
   }
   dispose() {
     if (this.disposed) return;
     this.disposed = true;
-    this.frame?.reset();
-    this.voices?.dispose();
-    this.shouts?.dispose();
-    this.shouts = null;
-    this.sink?.dispose();
-    this.sink = null;
-    this.frame = null;
-    this.voices = null;
+    const graph = this.graph;
+    if (graph) {
+      graph.frame.reset();
+      graph.voices.dispose();
+      graph.shouts?.dispose();
+      graph.sink.dispose();
+    }
+    this.graph = null;
     this.app.releaseBattle(this);
   }
 }
