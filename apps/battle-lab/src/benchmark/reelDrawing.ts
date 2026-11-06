@@ -22,14 +22,16 @@ export type ReelCards = "off" | "compact" | "open";
 
 /** What the graphics test draws, from its URL, each independently: the
  *  side's fog of war only with `?fog=1`; the battle view's indicators
- *  (contacts, orders, zone, border; `overlays`) unless `?indicators=0`; its
- *  unit info cards (`cards`) unless `?cards=0`, open with `?cards=open`;
- *  and the layers that names. */
+ *  (contacts, orders, zone, border; `overlays`) only with `?indicators=1`;
+ *  its unit info cards (`cards`) only with `?cards=1`, open with
+ *  `?cards=open`; and the layers that names. Indicators and cards are drawn
+ *  and recorded for a second client; without them the test times the reel
+ *  as the menu plays it. */
 export function reelDrawing(params: URLSearchParams) {
   const fog = params.get("fog") === "1";
-  const indicators = params.get("indicators") !== "0";
+  const indicators = params.get("indicators") === "1";
   const asked = params.get("cards");
-  const cards: ReelCards = asked === "0" ? "off" : asked === "open" ? "open" : "compact";
+  const cards: ReelCards = asked === "1" ? "compact" : asked === "open" ? "open" : "off";
   const layers: readonly PresentationLayer[] = [
     ...REEL_LAYERS,
     ...(fog ? (["fog"] as const) : []),

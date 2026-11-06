@@ -3,6 +3,10 @@
 **A browser real-time tactics game where reconnaissance, physical fire, and
 positioning decide the battle.**
 
+**Pre-alpha.** The game is in active development and things can break at any
+time. It is open source, and contributors are welcome: start with
+[development.md](development.md).
+
 Every round is a flown projectile. Every side sees only what its own units can
 see. Fresh seeded battlefields put the same roster into a different fight each
 time, while the simulation keeps every replay exact.

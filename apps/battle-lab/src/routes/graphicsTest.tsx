@@ -85,11 +85,11 @@ interface GraphicsTestState {
   plates: readonly (ReelPlate & { scene: string })[];
   /** Each scene's counted frames (`?counts=1`), in run order. */
   counts: readonly { scene: string; frames: readonly FrameCount[] }[];
-  /** Each scene's recorded indicators (`overlays.bin`; not with
-   *  `?indicators=0`), in run order. */
+  /** Each scene's recorded indicators (`overlays.bin`; only with
+   *  `?indicators=1`), in run order. */
   overlays: readonly { scene: string; bytes: Uint8Array }[];
-  /** Each scene's recorded unit info cards (`cards.bin`; not with
-   *  `?cards=0`), in run order, once their sprites are drawn. */
+  /** Each scene's recorded unit info cards (`cards.bin`; only with
+   *  `?cards=1` or `open`), in run order, once their sprites are drawn. */
   cards: readonly { scene: string; bytes: Promise<Uint8Array> }[];
 }
 

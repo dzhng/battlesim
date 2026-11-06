@@ -137,8 +137,10 @@ dependencies.
 ## Checks and hooks
 
 After setup, a pre-commit hook formats and lints what the commit touches;
-[lint-staged.config.mjs](lint-staged.config.mjs) owns what runs. It sits beside
-Git LFS's hooks, so setup never redirects Git's hooks directory.
+[lint-staged.config.mjs](lint-staged.config.mjs) owns what runs, and a
+pre-push hook holds the [release order](#release-order). Both sit beside Git
+LFS's hooks in the shared hooks directory, one installation for every
+worktree, so setup never redirects Git's hooks directory.
 
 Source files (what GitHub Linguist calls a programming language) have a size
 budget of 8,000 tokens (bytes / 4), so an agent can read any file whole. It is
@@ -161,6 +163,20 @@ one you touch as a cue to try the split again. When a function drops back under
 the budget, the lint fails on the stale comment until you delete it. For the
 same reason, suppress an Oxlint rule with an `oxlint-disable` comment: ESLint
 reports an `eslint-disable` for a rule it doesn't run.
+
+## Release order
+
+Work lands on `staging` first; `main` (production) only ever fast-forwards to a
+commit `staging` already published, so `main` is always `staging` or behind
+it. Push `staging`, then run `bun run promote:main`: it fast-forwards remote
+`main` to remote `staging` without touching your checkout. If `main` ever gets
+a commit `staging` lacks (a merge made on GitHub), merge `main` into `staging`
+and push `staging` before promoting; the promotion refuses until then.
+
+A pre-push hook holds the order: [the guard](tools/check-branch-order.mjs)
+refuses a push that would put a commit on `main` that remote `staging` lacks,
+or move `staging` behind `main`, then hands the push to Git LFS's own pre-push.
+It is local, so `--no-verify` and merges made on GitHub pass it by.
 
 ## Scratch output
 

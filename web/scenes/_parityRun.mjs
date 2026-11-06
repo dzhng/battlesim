@@ -7,8 +7,8 @@
 //     overlays.bin, cards.bin, plate-<index>.png, plain-<index>.png}
 //
 // the capture (its publications and frame records), the indicators each
-// frame drew (`overlayCapture.ts`; not with `?indicators=0`), the unit info
-// cards each frame showed (`cardCapture.ts`; not with `?cards=0`), the
+// frame drew (`overlayCapture.ts`; with `?indicators=1`), the unit info
+// cards each frame showed (`cardCapture.ts`; with `?cards=1` or `open`), the
 // `native-visual-presentation` manifest (the battle's identity, the lens and
 // layers, and each plate's grass, building-module, scenery, posed-model and
 // effect counts), and the plates read back in their own frames with each

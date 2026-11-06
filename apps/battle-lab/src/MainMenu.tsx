@@ -29,7 +29,7 @@ import { MenuBackdrop } from "./MenuBackdrop";
 import { LOADING_STAGES, LoadingTasks, useLoadingTasks } from "./LabLoading";
 import { LoadingScreen } from "./LoadingScreen";
 import { Wordmark } from "./Wordmark";
-import { APP_COMMIT, simFingerprint } from "./buildIdentity";
+import { APP_COMMIT, SOURCE_REPO, simFingerprint } from "./buildIdentity";
 import { GraphicsDetectionHost } from "./GraphicsDetectionHost";
 import {
   graphicsDetectionState,
@@ -121,6 +121,23 @@ function BuildLine() {
     <p className="menu-build" data-testid="menu-build">
       build {APP_COMMIT} · sim {sim ?? "…"}
     </p>
+  );
+}
+
+/** What a visitor should know before playing, under the pre-alpha tag beside
+ *  the name: the game is unfinished, and its source is open to read and to
+ *  contribute to. */
+function ReleaseNotice() {
+  return (
+    <aside className="menu-notice" aria-label="About this build">
+      <p>In active development: things can break at any time.</p>
+      <p>
+        Open source, and contributors are welcome:{" "}
+        <a href={SOURCE_REPO} target="_blank" rel="noreferrer">
+          {SOURCE_REPO.replace(/^https:\/\//, "")}
+        </a>
+      </p>
+    </aside>
   );
 }
 
@@ -247,6 +264,7 @@ export function MainMenu() {
       <>
         <h1>
           <Wordmark />
+          <span className="menu-stage">Pre-alpha</span>
         </h1>
         <nav aria-label="Main menu">
           <ul>
@@ -255,6 +273,7 @@ export function MainMenu() {
             <PageEntry page="settings" open={setPage} />
           </ul>
         </nav>
+        <ReleaseNotice />
         <button
           type="button"
           className="menu-dev"

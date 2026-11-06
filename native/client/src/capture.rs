@@ -259,13 +259,7 @@ impl Replay {
     /// art, the scenery placed from `library`'s bundles, under the game's
     /// rules (the soldier's body, the light).
     pub fn open(dir: &Path, library: &Library) -> Result<Self, String> {
-        Self::open_with_root(dir, library, Path::new(ROOT))
-    }
-
-    /// Load a replay using an explicit repository root. Packaged Windows
-    /// builds provide this because the build-time manifest path may be WSL's.
-    pub fn open_with_root(dir: &Path, library: &Library, root: &Path) -> Result<Self, String> {
-        Self::open_played(dir, library, root, Playback::default())
+        Self::open_played(dir, library, Path::new(ROOT), Playback::default())
     }
 
     /// Loads scene `dir` to play back as `playback` chooses: each layer the
@@ -273,6 +267,8 @@ impl Replay {
     /// it out. The manifest naming `overlays` requires the scene's recorded
     /// overlays ([`overlays::FILE`]), and naming `cards` its recorded cards
     /// ([`cards::FILE`]); a capture without the layer has none.
+    /// `root` is the repository: packaged Windows builds name it, because
+    /// the build-time manifest path may be WSL's.
     pub fn open_played(
         dir: &Path,
         library: &Library,

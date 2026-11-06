@@ -171,12 +171,7 @@ impl Renderer {
     }
 
     pub fn set_overlay_glow(&mut self, radius_px: f32, strength: f32) {
-        self.overlay_glow = OverlayGlow {
-            radius_px,
-            sigma_px: radius_px / 2.5,
-            strength,
-            pad: 0.0,
-        };
+        self.overlay_glow = OverlayGlow::halo(radius_px, strength);
         if let Some(runtime) = &mut self.runtime {
             runtime.set_overlay_glow(&self.gpu.queue, self.overlay_glow);
         }

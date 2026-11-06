@@ -61,3 +61,16 @@ presentation::records! {
         pad: f32,
     }
 }
+
+impl OverlayGlow {
+    /// The halo every overlay mark carries: one reaching `radius_px` on
+    /// screen (about 2.5 Gaussian sigmas) at gain `strength`.
+    pub fn halo(radius_px: f32, strength: f32) -> Self {
+        Self {
+            radius_px,
+            sigma_px: radius_px / 2.5,
+            strength,
+            pad: 0.0,
+        }
+    }
+}

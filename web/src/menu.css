@@ -113,6 +113,20 @@
   color: rgb(var(--hud-accent));
   text-shadow: var(--hud-text-halo);
 }
+/* The game's stage of development, stamped beside its name: a small boxed
+   tag in the accent, so no visitor mistakes it for a finished game. */
+.menu-stage {
+  display: inline-block;
+  margin-left: 18px;
+  padding: 2px 7px 1px;
+  vertical-align: 7px;
+  font: 700 10px var(--hud-font);
+  letter-spacing: 0.22em;
+  color: rgb(var(--hud-accent));
+  border: 1px solid rgb(var(--hud-accent) / 0.6);
+  background: rgb(var(--hud-accent) / 0.08);
+  text-shadow: none;
+}
 /* The game's name: wide-tracked near-white letters glowing in the accent over
    a short rule, centred under the letters and fading out at both ends. The
    plate's corner brackets frame it. */
@@ -379,6 +393,35 @@
   gap: 16px;
   align-items: start;
   color: rgb(var(--hud-dim));
+}
+/* Before a visitor plays: the game is unfinished, and its source is open.
+   Read once, so it stands small under the entries, behind a thin accent
+   rule; the repository's address is its one link. */
+.menu-notice {
+  display: grid;
+  gap: 4px;
+  padding-left: 10px;
+  border-left: 1px solid rgb(var(--hud-accent) / 0.45);
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgb(var(--hud-dim));
+}
+.menu-notice p {
+  margin: 0;
+}
+/* What can go wrong reads first, in the plate's own text colour. */
+.menu-notice p:first-child {
+  color: rgb(var(--hud-text));
+}
+.hud-panel .menu-notice a {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  color: rgb(var(--hud-accent));
+  text-decoration: none;
+  border-bottom: 1px solid rgb(var(--hud-accent) / 0.4);
+}
+.hud-panel .menu-notice a:hover {
+  border-bottom-color: rgb(var(--hud-accent));
 }
 /* The developer tools' link: quiet, under everything the player uses. */
 .hud-panel button.menu-dev {
