@@ -1,0 +1,17 @@
+[
+  {
+    "glb": "assets/source/skins/f_16_fighting_falcon/f_16c_block_50.glb",
+    "sha256": "2295dee6117d425f5d058d514d0066f0655f69fa058a7bd93a639912a18b0577",
+    "generator": "Meshy 7.1 multi-image to 3D, through fal (fal-ai/meshy/v7.1/multi-image-to-3d), untextured, symmetric, 150,000 triangles",
+    "request_id": "01a1b273-dc99-7713-bbf8-29514b022003",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: Meshy's terms give its output to the customer; fal's leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/f_16_fighting_falcon/f_16c_block_50-photo.png": "a88cd92c68a03a4e6840e5e70f54b64a402b9e93c10d674b30bbdf3aa0c61d18",
+      "assets/source/skins/f_16_fighting_falcon/f_16c_block_50-side.png": "01512983d957a6edff90759a88b6ce8cab0d4ee1d21840ad9f2d494d6b07f9e7",
+      "assets/source/skins/f_16_fighting_falcon/f_16c_block_50-top.png": "b35f20e7be30b5cb1a9b373e7e1d4c726a9d19b2fc951269a0d0077716242842",
+      "assets/source/skins/f_16_fighting_falcon/f_16c_block_50-front.png": "ec675d27887e361d8943dd679518f84d97dc7014e01a0b988921c6b9a2a97d88"
+    },
+    "note": "The photo is the public-domain USAF three-quarter (references/f_16_fighting_falcon/f_16c_block_50-three_quarter_front.jpg) with its gear, stores and markings painted out by FLUX.1 Kontext [max]. The side, top and front are shaded renders of the lofted F-16 measured from Marek Cel's CC0 three-view, without gear or stores, for its proportions."
+  }
+]

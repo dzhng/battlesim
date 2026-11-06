@@ -1,6 +1,8 @@
 """A whole fixed-wing airframe from its family's spec, every part named so
 `crash` finds it. Built from `aircraft_parts`' pieces, and reached through
-it (`A.jet`), as every roster script does.
+it (`A.jet`), as every roster script does. Its shell is either lofted
+(`fuselage`, `bodies`, and its flying surfaces) or a generated `skin`
+(`aircraft_skin`), on which the rest is built just the same.
 """
 import os
 import sys
@@ -8,6 +10,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from aircraft_parts import (body, canopy, fin, fit, gear, intake, nav_lights, nozzle, paired_surface,  # noqa: E402
                             pitot, pylon, round_intake, store)
+from aircraft_skin import skin  # noqa: E402
 
 
 def _both(rows, at):
@@ -22,7 +25,9 @@ def _both(rows, at):
 
 def jet(v, spec):
     """A fixed-wing airframe from its family's `spec` (all optional but the
-    fuselage), every part named so `crash` finds it: `fuselage` (stations,
+    fuselage or the skin), every part named so `crash` finds it: `skin`
+    (the `aircraft_skin.skin` keywords but the material and parent, in
+    place of the lofted fuselage, bodies and surfaces), `fuselage` (stations,
     `seg`), `bodies` (more bodies: `(name, stations[, y[, seg]])`, off the
     centreline by `y`), `canopy` (the
     `canopy()` arguments), `wing`, `strake`, `canard`, `stab` (left-side
@@ -36,7 +41,10 @@ def jet(v, spec):
     `nav` (`nav_lights` keywords). Markings go on afterwards (`markings`):
     they are painted onto the skin, so the skin must be built first."""
     m, hull = fit(v), v.hull
-    body("fuselage", spec["fuselage"], m["paint"], hull, seg=spec.get("seg", 28))
+    if "skin" in spec:
+        skin(mat=m["paint"], parent=hull, **spec["skin"])
+    else:
+        body("fuselage", spec["fuselage"], m["paint"], hull, seg=spec.get("seg", 28))
     for name, stations, *at in spec.get("bodies", ()):
         y, seg = (list(at) + [0.0, 18][len(at):])[:2]
         body(name, stations, m["paint"], hull, seg=seg, loc=(0, y, 0))

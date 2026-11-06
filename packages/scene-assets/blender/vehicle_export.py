@@ -217,11 +217,16 @@ def _receipt(path, script, variants, frames, references=None):
     loaded = (Path(m.__file__).resolve() for m in list(sys.modules.values()) if getattr(m, "__file__", None))
     sources = sorted({p for p in loaded if p.is_relative_to(here)} | {here / "roster" / script})
     family = script.removesuffix(".py")
+    # The generated skins an airframe wore (`aircraft_skin`), their pinned hashes.
+    worn = dict(getattr(sys.modules.get("aircraft_skin"), "WORN", {}))
     (REPO / path).write_text(json.dumps({
         "blender_version": bpy.app.version_string,
         "source_sha256": {str(p.relative_to(REPO)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
         "references": references or f"assets/references/{family}/references.json",
-        "authoring": "Original procedural geometry built from the committed references; photos are visual reference only.",
+        "authoring": ("A generated skin (`skins`, pinned in blender/skins/) carrying procedural parts built from the "
+                      "committed references; photos are visual reference only." if worn else
+                      "Original procedural geometry built from the committed references; photos are visual reference only."),
+        **({"skins": worn} if worn else {}),
         "frames": frames,
         "variants": variants,
     }, indent=2) + "\n")

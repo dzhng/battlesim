@@ -54,11 +54,99 @@
    "licence": "public-domain",
    "sha256": "d80848f59dcfdaf0e81a823866a107bdcaf512d9a72fae6f1c94692d18883fa4",
    "note": "F-16C Block 50 landing, left side: gear down, flaperons, stores"
+  },
+  {
+   "file": "f_16c_block_50-front.jpg",
+   "variant": "f_16c_block_50",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:230309-Z-YH452-1080_-_177th_Fighter_Wing_F-16C%2B_taxis_prior_to_take_off,_en_route_to_Red_Flag_23-2.jpg",
+   "author": "Andrew Moseley, New Jersey Air National Guard (US government work)",
+   "licence": "public-domain",
+   "sha256": "c088ae30dba415b87c227dff8bcc341f1ed4ee915869ab9e5dc8d91a783553cd",
+   "note": "F-16C+ (Block 30, F110 large-mouth intake as the Block 50) of the 177th Fighter Wing taxiing head-on: the intake's D-shaped mouth under the radome, the strakes' fall to the wing, tanks, AIM-120s on the tip rails, gear"
+  },
+  {
+   "file": "f_16c_block_50-rear.jpg",
+   "variant": "f_16c_block_50",
+   "view": "rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Rear_View_of_ROCAF_F-16A_6718_at_Ching_Chuang_Kang_AFB_20140719.jpg",
+   "author": "玄史生",
+   "licence": "CC0-1.0",
+   "sha256": "916a0637919371f4ce8dc4aadc0e2289114bde1e234a07fcfde19df92905fa90",
+   "note": "Taiwanese F-16A Block 20 straight from behind: the fin, the tailplanes' anhedral, the ventral fins, the booms and nozzle (an F100's, shorter-petalled than the Block 50's F110)"
+  },
+  {
+   "file": "f_16c_block_50-side-3.png",
+   "variant": "f_16c_block_50",
+   "view": "side",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Lockheed_F-16A_Fighting_Falcon_3-view_line_drawing.svg",
+   "author": "Marek Cel",
+   "licence": "CC0-1.0",
+   "sha256": "35abc56e9067b3a6d311adecf307c95bf22e4a6482bf29af41f45729f6762213",
+   "note": "Side view of the CC0 three-view (Block 15 and later), rasterised from the SVG: the measured source of the model's side profile (radome droop, canopy, spine, belly, intake, fin, ventral fins, wheelbase 4.0 m at one scale from 15.06 m overall)"
+  },
+  {
+   "file": "f_16c_block_50-top-2.png",
+   "variant": "f_16c_block_50",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Lockheed_F-16A_Fighting_Falcon_3-view_line_drawing.svg",
+   "author": "Marek Cel",
+   "licence": "CC0-1.0",
+   "sha256": "b5a6b892049cd233c6381804bc41e3ce92dedbc75933541782b9fd91dfa978a5",
+   "note": "Plan view of the same three-view: the measured source of the strake, wing, tailplane, boom and canopy planforms (span over the tip rails 9.51 m at that scale)"
+  },
+  {
+   "file": "f_16c_block_50-front-2.png",
+   "variant": "f_16c_block_50",
+   "view": "front",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Lockheed_F-16A_Fighting_Falcon_3-view_line_drawing.svg",
+   "author": "Marek Cel",
+   "licence": "CC0-1.0",
+   "sha256": "41e7f23b4276da7c8e243f82d439f4cc9f7df493e42f341fdfcc9e415c1953a1",
+   "note": "Front view of the same three-view, turned upright: the measured source of the body's cross-section envelope (canopy, shoulders, strake fillet), the intake mouth, the tailplanes' anhedral and the ventral fins' cant"
+  },
+  {
+   "file": "f_16c_block_50-front-3.png",
+   "variant": "f_16c_block_50",
+   "view": "front",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:General_Dynamics_F-16_Fighting_Falcon_3-view_line_drawing.svg",
+   "author": "United States Air Force (af.mil art)",
+   "licence": "public-domain",
+   "sha256": "b7b6deea9bf65302c57da59d7b94c74403273e4b976b77d520cb5bf6d333dc76",
+   "note": "Front view of the USAF three-view with gear and pylons: a cross-check of the intake mouth and the pylon stations; its own proportions are looser than the CC0 drawing's"
+  },
+  {
+   "file": "f_16c_block_50-detail.jpg",
+   "variant": "f_16c_block_50",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:BAF_F-16_Waddington_020711_03.jpg",
+   "author": "Oren Rozen",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "a13beef3d498a7627a63d6b8a40c3fc96d2ba699735ac63229115b05b3353aca",
+   "note": "Belgian F-16 nose-on, close: the intake lip and its dark duct, the nose gear behind it, the radome's section and the bubble canopy from ahead"
+  },
+  {
+   "file": "f_16c_block_50-detail-2.jpg",
+   "variant": "f_16c_block_50",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Hot_end_of_a_F-16_(18583421706).jpg",
+   "author": "AleGranholm",
+   "licence": "CC-BY-2.0",
+   "sha256": "fa33d3a6993797c6f3a3f8955b249ed36a1e656be4f2d3a3068f0fd7fa841bdd",
+   "note": "An F-16's nozzle from straight behind: the petals, the liner and the turbine face"
   }
  ],
  "gaps": [
-  "f_16c_block_50: no straight front, rear or detail view (gear bays, cockpit, nozzle petals are from the three-quarter shots)",
+  "f_16c_block_50: the straight front and rear photos are a Block 30 and an F-16A of the same airframe; the rear shows an F100's nozzle, not the Block 50's F110 (from the three-quarter rear photo and the nozzle detail)",
   "f_16c_block_50: the photographed stores vary sortie to sortie; the model carries tanks, AIM-120s and the Block 50 HTS and targeting pods as a typical fit",
-  "f_16c_block_50: dimensions 15.06 x 9.96 x 4.88 m from the USAF fact sheet as cited by https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon (49 ft 5 in x 32 ft 8 in x 16 ft): match"
+  "f_16c_block_50: dimensions 15.06 x 9.96 x 4.88 m from the USAF fact sheet as cited by https://en.wikipedia.org/wiki/General_Dynamics_F-16_Fighting_Falcon (49 ft 5 in x 32 ft 8 in x 16 ft). The CC0 three-view at one scale from its overall length gives a 4.0 m wheelbase and 9.51 m over the tip rails (9.96 m with the AIM-120s), but 5.19 m from wheel to fin top (Lockheed gives 5.09 m): the model presses its heights 4% into the 4.88 m frame"
  ]
 }

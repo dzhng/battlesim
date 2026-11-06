@@ -26,7 +26,7 @@ def pylon(name, loc, length, depth, mats, parent):
         box(f"{name}_sway_{k}", (0.05, 0.16, 0.08), (x + dx, y, z - depth - 0.02), mats["dark"], parent, lods=FINE)
 
 
-def store(name, kind, loc, length, radius, mats, parent, fins=True, rail=False):
+def store(name, kind, loc, length, radius, mats, parent, fins=True, rail=False, seg=12):
     """A store hung with its nose at +X, centred on `loc`: `missile` (a slim
     body, a pointed seeker, canards and tail fins, its live bands), `bomb`
     (a fat body, its fuze and tail fins), `tank` (a drop tank, in the
@@ -34,7 +34,8 @@ def store(name, kind, loc, length, radius, mats, parent, fins=True, rail=False):
     with its window), `jammer` (a jamming pod, the ram-air turbine on its
     nose that powers it) or `rockets` (a blunt rocket launcher, its tubes'
     mouths in its dark front face); all but the tank in the stores' grey. `rail`
-    hangs it from a launch rail."""
+    hangs it from a launch rail; `seg` is its body's sides at the near tier, for
+    a store so big the usual dozen show as facets."""
     x, y, z = loc
     h = length / 2
     nose = {"missile": 0.12, "bomb": 0.25, "tank": 0.3, "pod": 0.15, "jammer": 0.15, "rockets": 0.04}[kind]
@@ -42,7 +43,7 @@ def store(name, kind, loc, length, radius, mats, parent, fins=True, rail=False):
     st = [(x + h, 0.0, z, z), (x + h - length * nose, radius, z - radius, z + radius),
           (x - h + length * (1 - tail), radius, z - radius, z + radius),
           (x - h, radius * (0.4 if kind != "missile" else 0.95), z - radius * 0.5, z + radius * 0.5)]
-    body(f"{name}_body", st, mats["paint" if kind == "tank" else "store"], parent, seg=12,
+    body(f"{name}_body", st, mats["paint" if kind == "tank" else "store"], parent, seg=seg,
          lods=MID if kind == "missile" else ALL,
          loc=(0, y, 0), steps=(2, 1, 1, 1))
     if kind == "missile":

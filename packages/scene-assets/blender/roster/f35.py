@@ -20,7 +20,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
-from aircraft_markings import skin_top  # noqa: E402
+from aircraft_skin import Probe  # noqa: E402
 from parts import box, cyl  # noqa: E402
 from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID, NEAR  # noqa: E402
@@ -133,7 +133,7 @@ def build(variant, v):
                                   up=(0, 0, 1), onto=("tail_boom",), colour="lowvis_light")))
     A.markings(v, rows)
     # The body's top under (x, y), for what lies on its curved skin.
-    skin = skin_top(("fuselage",), hull)
+    skin = Probe(hull, ("fuselage",)).over
 
     if b:
         # The lift-fan door behind the canopy, its outline a dark seam on
