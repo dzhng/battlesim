@@ -182,13 +182,10 @@ impl Indicators {
         Ok(Self {
             overlays,
             paint,
-            // The browser's halo: its blur's sigma follows its radius.
-            glow: renderer_core::records::OverlayGlow {
-                radius_px: glow.radius_px as f32,
-                sigma_px: glow.radius_px as f32 / 2.5,
-                strength: glow.overlay as f32,
-                pad: 0.0,
-            },
+            glow: renderer_core::records::OverlayGlow::halo(
+                glow.radius_px as f32,
+                glow.overlay as f32,
+            ),
         })
     }
 }
