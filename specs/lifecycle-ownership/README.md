@@ -1,6 +1,6 @@
 # Lifecycle ownership
 
-**Status:** planned; implementation has not started. **Updated:** 2026-11-06.
+**Status:** implementation in progress. **Updated:** 2026-11-06.
 
 The simulation remains the authority, public formats remain unchanged, and each
 resource or operation gets one transition owner where that removes scattered
@@ -15,13 +15,17 @@ state-machine audit. Read the repository README and development guide, then this
 plan's [contracts](contracts.md), [scope decisions](scope.md),
 [verification policy](verification.md), and [decisions](decisions.md).
 
-Start at [01: simulation client requests](slices/01-client-requests.md). All slices
-are pending; no implementation or runtime verification was performed during
-planning. Work through the dependency graph, one independently verified slice at
-a time. Read each affected subsystem README and the applicable skills before
-editing. Keep real cancellation and settlement policies, including the unusual
-ones recorded in the contracts. Do not turn the retained audit families into extra
-work, or introduce a general lifecycle framework.
+Slice 01 is complete: focused checks and Claude review passed; its receipt records
+finding dispositions. Continue [02: preparation worker](slices/02-preparation-worker.md),
+implemented locally with 13 focused tests plus typecheck/lint passing. Complete its
+Claude review and loading-shot comparison/critique before committing. Its worker
+test writes shots under `throwaway/replay-closeout/loading-shots`.
+
+Slices 12 and 14 are delegated in isolated checkouts; integrate their reviewed
+commits before claiming them complete. Other slices remain pending. Keep real
+cancellation and settlement policies, including the unusual ones recorded in the
+contracts. Do not turn retained audit families into extra work or introduce a
+universal lifecycle framework.
 
 There is no blocking product decision. The [source-derived behavior
 questions](decisions.md#behavior-questions-outside-this-refactor) are deliberately
@@ -30,7 +34,8 @@ defect encountered during implementation follows the correction procedure there.
 
 Use existing consumer tests first; add a missing preservation case before changing
 its owner. Keep old and new state from becoming parallel authorities. After each
-slice, run the closeout review required by the repository, record the evidence and
+slice, run the repository closeout review and an independent Claude review (current
+Opus, high effort), verify and resolve its findings, record the evidence and
 any decisions, and update this prompt and the checklist before ending your pass.
 Do not mark this feature shipped until [20: closeout](slices/20-closeout.md).
 
@@ -56,12 +61,13 @@ just because its visible state says failed.
 ## Slice graph and global TODO
 
 Dependencies describe integration order, not a requirement to run parallel agents.
-Slices touching the same file should be implemented sequentially. No new worktrees,
-shared build output, GPU contention, or permanent debug route are needed.
+Slices touching the same file should be implemented sequentially. Independent
+passes use isolated checkouts under implement-spec; share installed dependencies
+when safe, never mutable build output. Avoid GPU contention or permanent debug routes.
 
 | Done | Slice | Depends on | Review surface |
 |---|---|---|---|
-| [ ] | [01 Client requests](slices/01-client-requests.md) | — | Authority command, preview and advance results |
+| [x] | [01 Client requests](slices/01-client-requests.md) | — | Authority command, preview and advance results |
 | [ ] | [02 Preparation worker](slices/02-preparation-worker.md) | — | Generated and uploaded battle handoff |
 | [ ] | [03 Authority resources](slices/03-authority-resources.md) | 01 | Pause, step, credit stall and restart |
 | [ ] | [04 Session startup](slices/04-session-startup.md) | 01, 02, 03 | First frame and scripted warm-up |

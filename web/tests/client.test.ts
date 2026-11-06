@@ -72,7 +72,7 @@ function workerSeam() {
     postMessage(request: SimRequest) {
       requests.push(request);
     }
-    terminate() {}
+    terminate = vi.fn();
     deliver(reply: SimReply) {
       this.onmessage?.({ data: reply } as MessageEvent<SimReply>);
     }
@@ -83,9 +83,99 @@ function workerSeam() {
   });
   return {
     requests,
+    close: worker.terminate,
     deliver: (reply: SimReply) => worker.deliver(reply),
   };
 }
+
+test("disposal rejects previews while leaving already pending operations silent", async () => {
+  const { deliver, close } = workerSeam();
+  const client = createSimClient({ scenario: "{}", seed: 1, side: "blue", transport: "worker" });
+  const statuses: string[] = [];
+  client.onStatus((status) => statuses.push(status));
+  const settled = vi.fn();
+  const pending = [
+    client.ready,
+    client.command({ kind: "stop", units: [1] }),
+    client.advance(1),
+    client.replay(),
+  ];
+  for (const promise of pending) void promise.then(settled, settled);
+  const previews = Promise.allSettled([
+    client.previewMove({ units: [1], goal: [100, 100], facing: 0 }),
+    client.previewPurchase("test_tank", [100, 100]),
+    client.previewBuilding({ units: [1], building: 9 }),
+  ]);
+  try {
+    client.dispose();
+    client.dispose();
+    expect(statuses).toEqual(["disposed"]);
+    expect(close).toHaveBeenCalledOnce();
+    expect(await previews).toEqual(
+      Array.from({ length: 3 }, () => ({
+        status: "rejected",
+        reason: new Error("simulation client disposed"),
+      })),
+    );
+    deliver({ type: "ack", ack: { seq: 1, applied_tick: 1, error: null, refused: [] } });
+    deliver({ type: "advanced", id: 1, tick: 0 });
+    deliver({ type: "replay", json: "{}" });
+    deliver({ type: "error", message: "late worker failure" });
+    await Promise.resolve();
+    expect(settled).not.toHaveBeenCalled();
+    await expect(client.advance(1)).rejects.toThrow("simulation client disposed");
+  } finally {
+    client.dispose();
+    vi.unstubAllGlobals();
+  }
+});
+
+test.each([true, false])(
+  "advance waits for both acknowledgement and publication release (ack first: %s)",
+  async (ackFirst) => {
+    const memory = initSync({
+      module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
+    }).memory;
+    const battle = new Battle(
+      labScenario(loadMap("geometry").definition, [
+        { side: "blue", kind: "test_tank", position: [40, 150] },
+      ]),
+      9,
+    );
+    const { requests, deliver } = workerSeam();
+    const client = createSimClient({ scenario: "{}", seed: 1, side: "blue", transport: "worker" });
+    const held: Publication[] = [];
+    client.onPublication((publication) => held.push(publication));
+    try {
+      deliver({ type: "ready", layout: battle.observation_layout(), tickHz: 10, tick: 0 });
+      await client.ready;
+      const advance = client.advance(1);
+      const completed = vi.fn();
+      void advance.then(completed);
+      battle.step();
+      const length = battle.publish("blue");
+      const buffer = new Float32Array(memory.buffer, battle.publication_ptr(), length).slice()
+        .buffer;
+      deliver({ type: "publication", tick: 1, digest: battle.digest(), length, buffer, stepMs: 0 });
+      const acknowledge = () => deliver({ type: "advanced", id: 1, tick: 1 });
+      if (ackFirst) acknowledge();
+      else held[0].release();
+      await Promise.resolve();
+      expect(completed).not.toHaveBeenCalled();
+      if (ackFirst) held[0].release();
+      else acknowledge();
+      expect(await advance).toBe(1);
+      held[0].release();
+      expect(requests.filter((request) => request.type === "credit")).toEqual([
+        { type: "credit", buffer },
+      ]);
+    } finally {
+      client.dispose();
+      battle.free();
+      vi.unstubAllGlobals();
+    }
+  },
+);
 
 test("building preview returns the entrant and companion placements without issuing a command", async () => {
   const { requests, deliver } = workerSeam();

@@ -1,6 +1,6 @@
 # 01 — Simulation client request ownership
 
-**Status:** pending. **Audit families:** 9. **Dependencies:** none.
+**Status:** complete. **Audit families:** 9. **Dependencies:** none.
 
 ## Contract and question
 
@@ -51,3 +51,27 @@ Feedback that would change scope: A request to support concurrent replay snapsho
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+Baseline: `32e605e`. The expanded baseline client suite passed 9 cases before
+structural edits. The candidate passed client, authority, purchase placement and
+session suites (35 cases), typecheck, ESLint and Oxlint. Mutation evidence in
+`throwaway/lifecycle-ownership/01-mutation.txt` proves the disposal-silence and
+advance-release tests reject broken settlement, followed by a restored green run.
+
+Claude review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3Acdbb94b3-c200-4d34-a874-96e9d1cc0c87%3Adelegate-task%3A6e34bfac-af11-4ab5-aac3-aafabcd10f07>.
+Verdict clean; accepted the repeated-disposal coverage suggestion and reran the
+client suite (9 passing) and typecheck. The existing malformed-before-ready test
+already exercises a pending advance, so no duplicate failure case was added. The
+unchanged decoder's stale-observation path uses the same settlement function proved
+by both acknowledgement/release orderings. Kept the direct closed-request guards:
+they read one lifetime rather than owning parallel policy. Kept the shared preview
+rejection within terminate to preserve family rejection order without duplicating
+the policy. No public or numeric contract changed.
+
+Shape/diff/docs review: one lifetime and one advance record per pending request;
+no new module, dependency, public field or compatibility path. Existing adapter
+documentation remains accurate. Decision audit found no architecture beyond the
+slice's delegated private-record choices. Production diff: 61 additions, 53
+deletions; this replaces independent flags/map with their owning records.
