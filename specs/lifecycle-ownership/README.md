@@ -15,10 +15,10 @@ state-machine audit. Read the repository README and development guide, then this
 plan's [contracts](contracts.md), [scope decisions](scope.md),
 [verification policy](verification.md), and [decisions](decisions.md).
 
-Slices 01–07, 12–15 and 18 are complete: client settlement, shared preparation-worker
+Slices 01–07, 10, 12–15 and 18 are complete: client settlement, shared preparation-worker
 handoff, authority resource ownership, session startup, pointer/purchase ownership,
-page/battle audio, mechanics editor and map draft/display all passed focused checks
-and Claude review. Continue with order preview, viewport replacement and the
+viewport scene admission, page/battle audio, mechanics editor and map draft/display
+all passed focused checks and Claude review. Continue with order preview and the
 remaining dependent ownership slices, then the integration closeout.
 
 There is no blocking product decision. The [source-derived behavior
@@ -70,7 +70,7 @@ when safe, never mutable build output. Avoid GPU contention or permanent debug r
 | [x] | [07 Purchase placement](slices/07-purchase-placement.md) | 01, 06 | Ghost, preview and confirmation |
 | [ ] | [08 Order preview](slices/08-order-preview.md) | 01, 06 | Move/building answer and marker |
 | [ ] | [09 Released action](slices/09-released-action.md) | 08 | Acknowledgement correcting its own gesture |
-| [ ] | [10 Viewport replacement](slices/10-viewport-replacement.md) | 04, 06 | Replace scene while current view is owned |
+| [x] | [10 Viewport replacement](slices/10-viewport-replacement.md) | 04, 06 | Replace scene while current view is owned |
 | [ ] | [11 Submitted view](slices/11-submitted-view.md) | 10 | Picking and frame completion after submit |
 | [x] | [12 Page audio](slices/12-page-audio.md) | — | Permission, mute and menu/battle handoff |
 | [x] | [13 Battle audio](slices/13-battle-audio.md) | 12 | Ready graph, fresh evidence and departure |
