@@ -1,6 +1,6 @@
 # 16 — Map manual operation lifetime
 
-**Status:** pending. **Audit families:** 76. **Dependencies:** 15.
+**Status:** complete. **Audit families:** 76. **Dependencies:** 15.
 
 ## Contract and question
 

@@ -77,7 +77,7 @@ when safe, never mutable build output. Avoid GPU contention or permanent debug r
 | [x] | [13 Battle audio](slices/13-battle-audio.md) | 12 | Ready graph, fresh evidence and departure |
 | [x] | [14 Mechanics editor](slices/14-mechanics-editor.md) | — | Invalid text, current review and conflict |
 | [x] | [15 Map draft/display](slices/15-map-draft.md) | — | Latest request versus last admitted map |
-| [ ] | [16 Map manual work](slices/16-map-operations.md) | 15 | Inspect, compare, sample and cancel |
+| [x] | [16 Map manual work](slices/16-map-operations.md) | 15 | Inspect, compare, sample and cancel |
 | [ ] | [17 Map artifacts](slices/17-map-artifacts.md) | 16 | Retention, release and server close |
 | [x] | [18 Sound review](slices/18-sound-review.md) | — | Draft review, save and retained errors |
 | [x] | [19 Audition session](slices/19-audition-session.md) | 18 | Loading, playback, stop and replacement |
