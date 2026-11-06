@@ -289,9 +289,14 @@ impl FrameRenderer {
                     .encode_paint(encoder, &inputs.targets.display);
             }
         } else if display_overlays && inputs.frame_view.has_display_overlays() {
+            // Over the HDR look when the runtime encodes one, as the fog rim.
+            let hdr = inputs
+                .frame_view
+                .post_mode()
+                .and_then(|mode| inputs.post.hdr_output(mode));
             inputs
                 .overlays
-                .encode_composite(encoder, inputs.targets, &inputs.targets.display);
+                .encode_composite(encoder, inputs.targets, hdr);
         }
         if let Some(high_air) = inputs.high_air {
             if inputs.frame_view == FrameView::Final {

@@ -43,6 +43,8 @@ pub struct OverlayResources {
     rows: Screen,
     columns: Screen,
     composite: Screen,
+    /// The composite as an HLG signal, for the HDR look.
+    composite_hdr: Screen,
     paint: Screen,
     no_glow: Buffer,
 }
@@ -90,17 +92,22 @@ pub fn new(
             ],
         ),
     };
+    let source = bind(
+        device,
+        pipelines.layout("overlaySource"),
+        &[
+            glow_binding,
+            BindingResource::TextureView(&targets.overlay),
+            BindingResource::TextureView(&targets.overlay_glow),
+        ],
+    );
     let composite = Screen {
         pipeline: pipelines.render("overlayComposite").clone(),
-        group: bind(
-            device,
-            pipelines.layout("overlaySource"),
-            &[
-                glow_binding,
-                BindingResource::TextureView(&targets.overlay),
-                BindingResource::TextureView(&targets.overlay_glow),
-            ],
-        ),
+        group: source.clone(),
+    };
+    let composite_hdr = Screen {
+        pipeline: pipelines.render("overlayCompositeHdr").clone(),
+        group: source,
     };
     // Paint inspection reads the stored mark itself, with no halo or lighting.
     let no_glow = crate::buffer(
@@ -132,6 +139,7 @@ pub fn new(
         rows,
         columns,
         composite,
+        composite_hdr,
         paint,
         no_glow,
     }
@@ -223,11 +231,13 @@ impl OverlayResources {
         pass.draw(0..3, 0..1);
     }
 
+    /// Lays the overlay and its halo over the completed look: the display, or
+    /// as an HLG signal the HDR look's target (`PostResources::hdr_output`).
     pub fn encode_composite(
         &self,
         encoder: &mut CommandEncoder,
         targets: &Targets,
-        output: &TextureView,
+        hdr_output: Option<&TextureView>,
     ) {
         Self::screen(
             encoder,
@@ -241,7 +251,11 @@ impl OverlayResources {
             &targets.overlay_glow,
             LoadOp::Clear(Color::TRANSPARENT),
         );
-        Self::screen(encoder, &self.composite, output, LoadOp::Load);
+        let (composite, output) = match hdr_output {
+            Some(hdr) => (&self.composite_hdr, hdr),
+            None => (&self.composite, &targets.display),
+        };
+        Self::screen(encoder, composite, output, LoadOp::Load);
     }
 
     pub fn encode_paint(&self, encoder: &mut CommandEncoder, output: &TextureView) {

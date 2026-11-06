@@ -32,6 +32,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use crate::bundle::Library;
+use crate::overlays::{self, Indicators, RecordedOverlays};
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -179,6 +180,28 @@ pub struct Replay {
     presentation: Presentation,
     /// The battle's time on the reel's clock; none without records.
     clock: Option<ReelClock>,
+    /// The indicators the page drew over the battle, frame by frame; none
+    /// when it drew none or playback leaves them out.
+    pub indicators: Option<Indicators>,
+}
+
+/// Which of the layers a capture drew its playback draws. Both default on:
+/// a layer the capture never drew stays off regardless.
+#[derive(Clone, Copy, Debug)]
+pub struct Playback {
+    /// The side's fog of war (the manifest's `fog`).
+    pub fog: bool,
+    /// The recorded indicators (the manifest's `overlays`).
+    pub indicators: bool,
+}
+
+impl Default for Playback {
+    fn default() -> Self {
+        Self {
+            fog: true,
+            indicators: true,
+        }
+    }
 }
 
 /// The battle's time on the reel's clock, for a clip: reel time plus the
@@ -229,12 +252,21 @@ impl Replay {
     /// art, the scenery placed from `library`'s bundles, under the game's
     /// rules (the soldier's body, the light).
     pub fn open(dir: &Path, library: &Library) -> Result<Self, String> {
-        Self::open_with_root(dir, library, Path::new(ROOT))
+        Self::open_played(dir, library, Path::new(ROOT), Playback::default())
     }
 
-    /// Load a replay using an explicit repository root. Packaged Windows
-    /// builds provide this because the build-time manifest path may be WSL's.
-    pub fn open_with_root(dir: &Path, library: &Library, root: &Path) -> Result<Self, String> {
+    /// Loads scene `dir` to play back as `playback` chooses: each layer the
+    /// browser drew (`fog`, `overlays`) is drawn unless it leaves it out.
+    /// The manifest naming `overlays` requires the scene's recorded
+    /// overlays ([`overlays::FILE`]); a capture without the layer has none.
+    /// `root` is the repository: packaged Windows builds name it, because
+    /// the build-time manifest path may be WSL's.
+    pub fn open_played(
+        dir: &Path,
+        library: &Library,
+        root: &Path,
+        playback: Playback,
+    ) -> Result<Self, String> {
         let capture_path = dir.join("capture.json");
         let capture_bytes =
             fs::read(&capture_path).map_err(|e| format!("{}: {e}", capture_path.display()))?;
@@ -289,6 +321,15 @@ impl Replay {
                 ));
             }
         }
+        let drawn = |layer: &str| manifest.layers.iter().any(|l| l == layer);
+        // The indicators, in lockstep with the frame records, where the
+        // browser drew them: refused before the world loads.
+        let recorded = if playback.indicators && drawn("overlays") {
+            let path = dir.join(overlays::FILE);
+            Some(RecordedOverlays::read(&path, capture.frames.len())?)
+        } else {
+            None
+        };
         let catalogue = sim::maps::Catalogue {
             maps: root.join("fixtures/maps"),
             libraries: root.join("fixtures"),
@@ -341,7 +382,7 @@ impl Replay {
         presentation.set_ground(ground.source, ground.biome, ground.tuning)?;
         // Fog of war, where the browser drew it: the side's sight under the
         // game's sensor rules.
-        let fog = manifest.layers.iter().any(|l| l == "fog");
+        let fog = playback.fog && drawn("fog");
         if fog {
             presentation.set_fog(Some(FogSetup {
                 sensors: Some(ground.sensors),
@@ -368,7 +409,11 @@ impl Replay {
             buildings: Some(style),
         };
         presentation.load_world(input, fielded.tables, Some(buildings))?;
+        let indicators = recorded
+            .map(|overlays| Indicators::new(overlays, &settings.overlay))
+            .transpose()?;
         Ok(Self {
+            indicators,
             map,
             rules,
             clock: ReelClock::of(&capture.frames),
@@ -459,6 +504,14 @@ impl Replay {
             }
         }
         Some(self.camera(self.records.get(drawn.saturating_sub(1))?))
+    }
+
+    /// The record the page was showing at reel time `reel_ms`: the last it
+    /// drew by then (the first, before any), whose camera `camera_at` follows.
+    pub fn record_at(&self, reel_ms: f64) -> usize {
+        self.records
+            .partition_point(|r| r.reel_ms <= reel_ms)
+            .saturating_sub(1)
     }
 
     /// Frames reel time `reel_ms` of a clip through the camera at it

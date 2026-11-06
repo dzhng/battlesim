@@ -3,8 +3,12 @@
 //!
 //! `native-client --run <parity run> --scene <map> (--out <dir> | --bench <dir>)
 //!   [--window offscreen|minimised|hidden|visible] [--pace <frames>]
-//!   [--sound <wav>]`
+//!   [--sound <wav>] [--no-indicators] [--no-fog]`
 //! A held benchmark adds `--bench-freeze-index <record> --bench-frames <draws>`.
+//!
+//! The replay draws each layer the browser drew. `--no-indicators` leaves
+//! out the recorded indicators (a clean picture) and `--no-fog` the fog of
+//! war, each independently of the other.
 //!
 //! Every frame record is framed through the presentation crate; each one
 //! the browser wrote a plate of is drawn, presented and written to `--out`
@@ -28,7 +32,6 @@ use native_client::bundle::Library;
 use native_client::capture::{Record, Replay};
 use native_client::counts::Counted;
 use native_client::gpu::{self, Gpu};
-use presentation::assets::RUNTIME;
 use presentation::records::View;
 use renderer_core::frame::FrameStage;
 use renderer_core::runtime::{Runtime, RuntimeConfig, RuntimeWorld, WorldGeometry};
@@ -42,6 +45,8 @@ use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::{Window, WindowId};
+
+use args::{args, repository_root, runtime_dir, Args};
 
 #[cfg(test)]
 mod runtime_path_tests {
@@ -84,129 +89,6 @@ mod count_verdict_tests {
     }
 }
 
-struct Args {
-    scene: PathBuf,
-    /// Where plates or clip frames are written; absent for a bench.
-    out: Option<PathBuf>,
-    /// Where a bench's report is written.
-    bench: Option<PathBuf>,
-    /// One canonical record held across a fixed number of GPU draws.
-    frozen_bench: Option<(usize, usize)>,
-    window: String,
-    pace: usize,
-    sound: Option<PathBuf>,
-    /// Write the HDR look's HLG signal as 16-bit PNGs rather than the display.
-    hdr: bool,
-    /// Leave the music out of the sound.
-    no_music: bool,
-    /// Frames at a fixed rate over a window of the reel, instead of plates.
-    clip: Option<Clip>,
-}
-
-/// Resolve native runtime files without relying on the build machine's path.
-/// Packaged builds set `BATTLEGAME_RUNTIME`; development builds find the
-/// repository's `assets/runtime` beside the executable's target directory.
-fn runtime_dir(executable: &Path, configured: Option<&Path>) -> PathBuf {
-    if let Some(path) = configured {
-        return path.to_owned();
-    }
-    for ancestor in executable.ancestors() {
-        let candidate = ancestor.join("assets/runtime");
-        if candidate.join("catalog.json").is_file() {
-            return candidate;
-        }
-    }
-    PathBuf::from(RUNTIME)
-}
-
-fn repository_root(executable: &Path) -> PathBuf {
-    for ancestor in executable.ancestors() {
-        if ancestor.join("fixtures/rules.json").is_file() {
-            return ancestor.to_owned();
-        }
-    }
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .to_owned()
-}
-
-fn args() -> Result<Args, String> {
-    let mut run = None;
-    let (mut scene, mut out, mut window, mut pace) = (None, None, "offscreen".to_owned(), 120);
-    let (mut sound, mut bench) = (None, None);
-    let (mut freeze_index, mut bench_frames) = (None, None);
-    let (mut hdr, mut no_music, mut fps, mut from_ms, mut to_ms) = (false, false, None, None, None);
-    let mut it = std::env::args().skip(1);
-    while let Some(flag) = it.next() {
-        let mut value = || it.next().ok_or(format!("{flag} needs a value"));
-        match flag.as_str() {
-            "--run" => run = Some(PathBuf::from(value()?)),
-            "--scene" => scene = Some(value()?),
-            "--out" => out = Some(PathBuf::from(value()?)),
-            "--window" => window = value()?,
-            "--pace" => pace = value()?.parse().map_err(|e| format!("--pace: {e}"))?,
-            "--sound" => sound = Some(PathBuf::from(value()?)),
-            "--bench" => bench = Some(PathBuf::from(value()?)),
-            "--bench-freeze-index" => {
-                freeze_index = Some(
-                    value()?
-                        .parse::<usize>()
-                        .map_err(|e| format!("{flag}: {e}"))?,
-                );
-            }
-            "--bench-frames" => {
-                bench_frames = Some(
-                    value()?
-                        .parse::<usize>()
-                        .map_err(|e| format!("{flag}: {e}"))?,
-                );
-            }
-            "--hdr" => hdr = true,
-            "--no-music" => no_music = true,
-            "--fps" => fps = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),
-            "--from-ms" => from_ms = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),
-            "--to-ms" => to_ms = Some(value()?.parse().map_err(|e| format!("{flag}: {e}"))?),
-            other => return Err(format!("unknown argument {other}")),
-        }
-    }
-    if !["offscreen", "minimised", "hidden", "visible"].contains(&window.as_str()) {
-        return Err(format!("--window {window}"));
-    }
-    if out.is_some() == bench.is_some() {
-        return Err("one of --out and --bench is required".into());
-    }
-    if bench.is_some() && sound.is_some() {
-        return Err("a bench renders no sound".into());
-    }
-    if freeze_index.is_some() != bench_frames.is_some() {
-        return Err("--bench-freeze-index and --bench-frames must be supplied together".into());
-    }
-    if freeze_index.is_some() && bench.is_none() {
-        return Err("--bench-freeze-index and --bench-frames require --bench".into());
-    }
-    if let Some(frames) = bench_frames {
-        bench::reported_draws(frames).map_err(|e| format!("--bench-frames: {e}"))?;
-    }
-    if bench.is_some() && (hdr || fps.is_some()) {
-        return Err("a bench writes no frames: --hdr and --fps need --out".into());
-    }
-    let clip = Clip::new(fps, from_ms, to_ms)?;
-    Ok(Args {
-        scene: run
-            .ok_or("--run is required")?
-            .join(scene.ok_or("--scene is required")?),
-        out,
-        bench,
-        frozen_bench: freeze_index.zip(bench_frames),
-        window,
-        pace,
-        sound,
-        hdr,
-        no_music,
-        clip,
-    })
-}
-
 #[derive(Default)]
 struct Presents {
     shown: usize,
@@ -238,6 +120,8 @@ struct Run {
     /// props.
     bench: Option<Bench>,
     drew: [f64; 9],
+    /// The recorded indicators on the GPU, when the replay draws them.
+    indicators: Option<IndicatorMeshes>,
 }
 
 impl Run {
@@ -255,7 +139,7 @@ impl Run {
             .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."));
         std::env::set_var("BATTLEGAME_ROOT", &root);
         let opened = Instant::now();
-        let mut replay = Replay::open_with_root(&args.scene, &library, &root)?;
+        let mut replay = Replay::open_played(&args.scene, &library, &root, args.playback)?;
         if let Some((index, _)) = args.frozen_bench {
             if index >= replay.records.len() {
                 return Err(format!(
@@ -344,7 +228,9 @@ impl Run {
             fog_look: replay.fog_look,
             grass_density: Some(1.0),
             xray_min_hidden_fraction: None,
-            paint: None,
+            // Ground paint only under recorded indicators: a capture without
+            // them draws as it always has.
+            paint: replay.indicators.as_ref().map(|i| i.paint),
             separate_high_air: false,
             hdr_output: args.hdr,
             water_detail: Default::default(),
@@ -362,6 +248,10 @@ impl Run {
             },
         )?;
         pollster::block_on(scene.prepare_assets(&gpu.device, &gpu.queue))?;
+        let indicators = replay.indicators.as_ref().map(|recorded| {
+            scene.set_overlay_glow(&gpu.queue, recorded.glow);
+            IndicatorMeshes::new(&gpu.device, &gpu.queue)
+        });
         if let Some((index, _)) = args.frozen_bench {
             for at in 0..=index {
                 let record = replay.records[at].clone();
@@ -415,7 +305,16 @@ impl Run {
             sound,
             bench,
             drew: [0.0; 9],
+            indicators,
         })
+    }
+
+    /// Uploads the indicators the page drew with record `index`, when the
+    /// replay draws them.
+    fn show_indicators(&mut self, index: usize) {
+        if let (Some(meshes), Some(recorded)) = (&mut self.indicators, &self.replay.indicators) {
+            meshes.show(&self.gpu.device, &self.gpu.queue, &recorded.overlays, index);
+        }
     }
 
     /// Submits `encoder`, copying the display target to the window and
@@ -478,6 +377,7 @@ impl Run {
             .frozen_bench
             .is_none()
             .then(|| self.replay.records[self.next].clone());
+        let index = args.frozen_bench.map_or(self.next, |(index, _)| index);
         self.next += 1;
         let bench = self.bench.as_mut().ok_or("not a bench")?;
         bench.start();
@@ -487,13 +387,15 @@ impl Run {
         }
         self.bench.as_mut().ok_or("not a bench")?.mark();
         self.prepare()?;
+        self.show_indicators(index);
+        let geometry = indicators::geometry(self.indicators.as_ref());
         let bench = self.bench.as_mut().ok_or("not a bench")?;
         bench.mark();
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         let mut encoder = device.create_command_encoder(&Default::default());
         bench.begin(&mut encoder);
         self.scene
-            .encode(device, queue, &self.view, &mut encoder, Default::default());
+            .encode(device, queue, &self.view, &mut encoder, geometry);
         bench.end(&mut encoder);
         bench.mark();
         let index = self.present(encoder);
@@ -542,7 +444,7 @@ impl Run {
                 &self.gpu.queue,
                 &self.view,
                 &mut encoder,
-                Default::default(),
+                indicators::geometry(self.indicators.as_ref()),
             );
             self.present(encoder);
             return Ok(true);
@@ -560,6 +462,7 @@ impl Run {
                 continue;
             };
             self.prepare()?;
+            self.show_indicators(self.next - 1);
             let counts = self.replay.last_frame().counts;
             let presentation = self.replay.presentation();
             let row = |rows: &[serde_json::Value]| {
@@ -620,6 +523,8 @@ impl Run {
         };
         self.advance(at, None)?;
         self.prepare()?;
+        // The indicators the page showed then, with the camera it showed.
+        self.show_indicators(self.replay.record_at(at));
         self.write_frame(&out.join(format!("frame-{:06}.png", self.written)))?;
         if self.written.is_multiple_of(clip.fps as usize) {
             println!("{} frames, reel {:.1} s", self.written, at / 1000.0);
@@ -791,14 +696,20 @@ fn count_verdict(mismatches: &[String]) -> Result<(), String> {
     ))
 }
 
+#[path = "main_args.rs"]
+mod args;
+
 #[path = "main_app.rs"]
 mod app;
 #[path = "main_clip.rs"]
 mod clip;
+#[path = "main_indicators.rs"]
+mod indicators;
 #[path = "main_output.rs"]
 mod output;
 use app::App;
 use clip::Clip;
+use indicators::IndicatorMeshes;
 
 pub fn run() {
     let result = args().and_then(|args| {

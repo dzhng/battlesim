@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { createReelRun, grassCells, type ReelPlate } from "@apps/battle-lab/src/benchmark/reelRun";
+import {
+  createReelRun,
+  grassCells,
+  type ReelPlate,
+  type ReelResult,
+} from "@apps/battle-lab/src/benchmark/reelRun";
+import { decodeOverlayCapture, type OverlayPart } from "@web/battle/benchmark/overlayCapture";
 import type { CaptureScene } from "@apps/battle-lab/src/capture/capture";
 import { emptyEffectCounts } from "@apps/battle-lab/src/presentedFrame";
 import type { FrameCounts, FramePlate } from "@apps/battle-lab/src/viewportRender";
@@ -205,4 +211,39 @@ test("a counting run counts every frame drawn on a tick boundary and one in four
   const [result] = results;
   expect(result.counts.map((c) => c.frame)).toEqual([0, 1, 4, 5]);
   expect(result.counts[1]).toEqual({ frame: 1, ...countsOf(1200) });
+});
+
+test("with indicators every frame records the overlay its page had uploaded, in lockstep", () => {
+  const results: ReelResult[] = [];
+  const run = createReelRun(scene, 30, (r) => results.push(r), { indicators: true });
+  const glyphs = { translucent: new Float32Array(20).fill(1) };
+  const border = { painted: new Float32Array(10).fill(2) };
+  let uploaded: OverlayPart[] | undefined;
+  run.subject.overlay = () => uploaded;
+  run.scripted.onWarm();
+  run.pilot.frame!(drawn(1000));
+  run.pilot.frame!(drawn(1100));
+  uploaded = [border];
+  run.pilot.frame!(drawn(1200));
+  uploaded = [border, glyphs];
+  run.pilot.frame!(drawn(1300));
+  run.pilot.frame!(drawn(3100));
+  const [result] = results;
+  const { parts, frames } = decodeOverlayCapture(result.overlays!.encode());
+  expect(frames).toHaveLength(result.frames.length);
+  expect(frames.map((f) => f.map((i) => parts[i].flatMap((c) => [...c])))).toEqual([
+    [],
+    [[...border.painted]],
+    [[...border.painted], [...glyphs.translucent]],
+    [[...border.painted], [...glyphs.translucent]],
+  ]);
+});
+
+test("without indicators the run records none", () => {
+  const results: ReelResult[] = [];
+  const run = createReelRun(scene, 30, (r) => results.push(r));
+  run.subject.overlay = () => [{ painted: new Float32Array(10) }];
+  run.scripted.onWarm();
+  for (const now of [1000, 1500, 3100]) run.pilot.frame!(drawn(now));
+  expect(results[0].overlays).toBeNull();
 });

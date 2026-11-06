@@ -72,8 +72,9 @@ impl super::Run {
         }
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         let mut encoder = device.create_command_encoder(&Default::default());
+        let geometry = super::indicators::geometry(self.indicators.as_ref());
         self.scene
-            .encode(device, queue, &self.view, &mut encoder, Default::default());
+            .encode(device, queue, &self.view, &mut encoder, geometry);
         let hdr = self.scene.post.hdr_output(PostMode::Look);
         let source = hdr.map_or(&self.scene.targets.display_texture, |view| view.texture());
         let read = renderer_core::readback::RgbaReadback::encode(device, &mut encoder, source)?;

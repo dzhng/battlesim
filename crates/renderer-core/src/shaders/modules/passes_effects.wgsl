@@ -337,6 +337,11 @@ struct PaintVertexOutput {
   return compositeOverlay(pos.xy);
 }
 
+// @block passes_effects_compositeOverlayHdrFragment
+@fragment fn compositeOverlayHdrFragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+  return compositeOverlayHdr(pos.xy);
+}
+
 // @block passes_effects_glowRowsFragment
 @fragment fn glowRowsFragment(@builtin(position) pos: vec4f) -> @location(0) vec4f {
   return glowRows(pos.xy);
