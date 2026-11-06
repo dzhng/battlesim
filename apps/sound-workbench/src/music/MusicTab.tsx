@@ -62,6 +62,9 @@ export function MusicTab({
   const report = useCallback((error: unknown) => {
     setMessage(error instanceof Error ? error.message : String(error));
   }, []);
+  const reportUnlessAborted = (error: unknown) => {
+    if (!(error instanceof DOMException && error.name === "AbortError")) report(error);
+  };
   const now = () => performance.now() / 1000 + (session.current?.skipped ?? 0);
 
   /** The audition's player, opened on the first click so opening the tab stays silent. */
@@ -106,7 +109,7 @@ export function MusicTab({
           hear([]);
         }
       })
-      .catch(report);
+      .catch(reportUnlessAborted);
   const playTrack = (track: string) =>
     open()
       .then((current) => {
@@ -114,7 +117,7 @@ export function MusicTab({
         current.score = null;
         play(track, null);
       })
-      .catch(report);
+      .catch(reportUnlessAborted);
 
   useEffect(() => {
     if (!playing) return;

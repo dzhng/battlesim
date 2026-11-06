@@ -1,6 +1,6 @@
 # 19 — Audition operation and resource ownership
 
-**Status:** pending. **Audit families:** 79. **Dependencies:** 18.
+**Status:** complete. **Audit families:** 79. **Dependencies:** 18.
 
 ## Contract and question
 
@@ -51,3 +51,43 @@ Feedback that would change scope: Crossfading auditions, parallel playback or re
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+Baseline: `f7c0c65b8` (sound review closeout). The workbench now projects one local
+audition session snapshot (`stopped`, `loading`, or `playing`, with its current key,
+live mix, and stop notification) while `SoundAuditioner` owns one complete resource
+run. Replacement and stop admission use captured run identity; voice and chatter
+previews continue through their existing line/voice seams. No wire, publication,
+generation, or timing contract changed.
+
+Named correction: **stale audition resume/module-load ownership**. A replacement
+could let an older resume/module-load completion create a stale bank or player after
+the newer run was current, leaking resources and allowing the wrong owner to be
+disposed. The run record, abort admission before bank creation, and per-run cleanup
+fix that ordering. The focused module-load test fails against the pre-slice code by
+showing a bank used without a matching disposal; the candidate also covers replacement
+during bank decode and proves the old context/bank closes before the deferred decode
+resolves. A separate music-player test proves an orphan player is disposed and the
+replacement rejects with `AbortError`.
+
+Named preservation correction: MusicTab now consumes `AbortError` silently when a
+music audition is cancelled or replaced while loading. Real playback errors still
+reach the existing message path; the change avoids exposing an expected lifecycle
+abort as an error after the resource owner has already stopped.
+
+Focused evidence:
+
+- `bun run --cwd web test -- tests/audition.test.ts tests/auditionSession.test.ts tests/auditionMusic.test.ts tests/soundWorkbenchEditor.test.tsx tests/voicesTab.test.tsx tests/chatter.test.ts tests/musicTab.test.tsx` — 37 passed.
+- `bun run --cwd web typecheck` — passed after generated WASM artifacts were built.
+- `bun run fmt:check` and `bun run lint` — passed; lint reports only existing unrelated warnings.
+- Changed-file Oxlint, ESLint complexity, Oxfmt, and `git diff --check` — passed.
+- Mutation cases cover late replacement completion, explicit stop during loading,
+  stale module-load, bank/decode completion, orphan music-player disposal, and the
+  cancellation-silence test fails if MusicTab reports `AbortError` again.
+
+The focused voice suite emits jsdom's existing `window.confirm` not-implemented
+console message while passing; it is from the unchanged voice tab. No visual surface
+changed, so no screenshot evidence was produced. Claude Opus high-effort read-only
+acceptance re-check was clean at
+<t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3Afb8cabd0-71aa-483e-bdcb-ec55c9186c63%3Adelegate-task%3A50a5833d-7efe-4672-9ac5-135da423581f>.

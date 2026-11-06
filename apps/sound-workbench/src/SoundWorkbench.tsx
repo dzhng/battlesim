@@ -1,10 +1,19 @@
 import { Link } from "react-router";
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   validateSoundCatalog,
   type SoundCatalog,
 } from "../../../packages/battle-audio/src/catalog";
 import { SoundAuditioner, type Auditioner, type LiveMix } from "./audition";
+import { AuditionSession, type AuditionSnapshot } from "./auditionSession";
 import {
   musicAPI,
   workbenchAPI,
@@ -49,6 +58,8 @@ function changedSettings(
   return [{ path, before: display(before), after: display(after) }];
 }
 
+const playingKey = ({ phase, key }: AuditionSnapshot) => (phase === "playing" ? (key ?? "") : "");
+
 export function SoundWorkbench({
   api = workbenchAPI,
   voices = voiceAPI,
@@ -63,25 +74,24 @@ export function SoundWorkbench({
   );
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Selection | null>(null);
-  const [playing, setPlaying] = useState("");
-  const [mix, setMix] = useState<LiveMix | null>(null);
-  const [loadingAudio, setLoadingAudio] = useState(false);
   const [auditionMessage, setAuditionMessage] = useState("");
-  const [stops, setStops] = useState(0);
-  const auditionGeneration = useRef(0);
+  const session = useMemo(() => new AuditionSession(audition), [audition]);
+  const auditionState = useSyncExternalStore(
+    session.subscribe,
+    session.getSnapshot,
+    session.getSnapshot,
+  );
+  const { mix, stops } = auditionState;
+  const playing = playingKey(auditionState);
+  const loadingAudio = auditionState.phase === "loading";
   const nextOperation = useRef(0);
   const activeOperation = useRef<{
     id: number;
     kind: "load" | "reload" | "preview" | "save";
   } | null>(null);
   const stopAudio = useCallback(() => {
-    auditionGeneration.current++;
-    setStops((count) => count + 1);
-    audition.stop();
-    setPlaying("");
-    setMix(null);
-    setLoadingAudio(false);
-  }, [audition]);
+    session.stop();
+  }, [session]);
   const busy = soundWorkbenchBusy(state);
   const message =
     outcome?.kind === "error"
@@ -175,34 +185,30 @@ export function SoundWorkbench({
   };
   // One audition at a time: a later one, or a stop, supersedes an earlier
   // still preparing, which then never sounds or reports.
-  const begin = async <T,>(key: string, open: (catalog: SoundCatalog) => Promise<T>) => {
+  const begin = async <T,>(
+    key: string,
+    open: (catalog: SoundCatalog) => Promise<T>,
+    mixOf: (value: T) => LiveMix | null = () => null,
+  ) => {
     if (!draft) return null;
-    const generation = ++auditionGeneration.current;
     dispatch({ type: "outcome-cleared" });
-    setLoadingAudio(true);
-    setPlaying("");
-    setMix(null);
     setAuditionMessage("");
     try {
-      const opened = await open(draft);
-      if (generation !== auditionGeneration.current) return null;
-      setPlaying(key);
-      return opened;
+      return await session.start(key, () => open(draft), mixOf);
     } catch (error) {
-      if (generation === auditionGeneration.current)
-        setAuditionMessage(error instanceof Error ? error.message : String(error));
+      setAuditionMessage(error instanceof Error ? error.message : String(error));
       return null;
-    } finally {
-      if (generation === auditionGeneration.current) setLoadingAudio(false);
     }
   };
   const play = async (kind: Selection["kind"], id: string, variant = 0, gain = 1) => {
     await begin(id, (catalog) => audition.play(catalog, kind, id, variant, gain));
   };
   const live = async (key: string, sounds: readonly string[]) => {
-    const opened = await begin(key, (catalog) => audition.live(catalog, sounds));
-    if (opened) setMix(opened);
-    return opened;
+    return begin(
+      key,
+      (catalog) => audition.live(catalog, sounds),
+      (value) => value,
+    );
   };
   const previewChanges = async () => {
     if (!snapshot || !draft || busy) return;
