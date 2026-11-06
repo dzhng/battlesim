@@ -15,11 +15,10 @@ state-machine audit. Read the repository README and development guide, then this
 plan's [contracts](contracts.md), [scope decisions](scope.md),
 [verification policy](verification.md), and [decisions](decisions.md).
 
-Slices 01–03 are complete: client settlement, shared preparation-worker handoff,
-and authority resource ownership passed focused checks and Claude reviews. Slice 12
-(page audio) is complete in delegated commit `9a0f1dca`; cherry-pick it after the
-current authority commit and verify its receipt. Slice 14 (mechanics editor) remains
-delegated. Continue with slice 04 after integrating independent work, then proceed
+Slices 01–03 and 12 are complete: client settlement, shared preparation-worker handoff,
+and authority resource ownership passed focused checks and Claude reviews. Slice 12 (page audio) is integrated as `a317e7a4e` with its delegated Claude review
+receipt. Slice 14 (mechanics editor) remains
+delegated. Continue with slice 04 after its Claude review, then proceed
 through the dependency graph.
 
 There is no blocking product decision. The [source-derived behavior
@@ -73,7 +72,7 @@ when safe, never mutable build output. Avoid GPU contention or permanent debug r
 | [ ] | [09 Released action](slices/09-released-action.md) | 08 | Acknowledgement correcting its own gesture |
 | [ ] | [10 Viewport replacement](slices/10-viewport-replacement.md) | 04, 06 | Replace scene while current view is owned |
 | [ ] | [11 Submitted view](slices/11-submitted-view.md) | 10 | Picking and frame completion after submit |
-| [ ] | [12 Page audio](slices/12-page-audio.md) | — | Permission, mute and menu/battle handoff |
+| [x] | [12 Page audio](slices/12-page-audio.md) | — | Permission, mute and menu/battle handoff |
 | [ ] | [13 Battle audio](slices/13-battle-audio.md) | 12 | Ready graph, fresh evidence and departure |
 | [ ] | [14 Mechanics editor](slices/14-mechanics-editor.md) | — | Invalid text, current review and conflict |
 | [ ] | [15 Map draft/display](slices/15-map-draft.md) | — | Latest request versus last admitted map |

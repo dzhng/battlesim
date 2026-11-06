@@ -1,6 +1,6 @@
 # 12 — Page audio resources and handoff
 
-**Status:** pending. **Audit families:** 68. **Dependencies:** none.
+**Status:** complete. **Audit families:** 68. **Dependencies:** none.
 
 ## Contract and question
 
@@ -51,3 +51,14 @@ Feedback that would change scope: Changing autoplay retries, ambience/music hand
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+Delegated implementation commit: `9a0f1dca0393d790af1ccc0ca28287730a7edc00`,
+integrated as `a317e7a4e`. The page audio graph now owns context, bank, menu sink
+and music together with terminal cleanup; menu preparation failure remains distinct
+from context admission failure. Public AppAudio methods, permission retries, mute
+behavior, score identity and stats precedence are unchanged.
+
+Focused app-audio suite: 18 tests passed. Typecheck, Oxlint, formatting and diff
+checks passed in the delegated checkout. Claude review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3A4a9f2ccf-cbd9-4c5b-8ea2-e57299d3d23c%3Adelegate-task%3A72678dcf-63d8-4627-b244-270c4c587d61>; no blocking findings, cosmetic findings were fixed before integration. No visual surface changed; no screenshot was needed.
