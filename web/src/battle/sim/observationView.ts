@@ -304,6 +304,10 @@ export interface FallingAirframeView {
   pitch: number;
   /** Right side down, radians: it leans into its spin. */
   roll: number;
+  /** The building it struck this tick hard enough to throw sparks and dust:
+   *  the point on the face, the face's outward normal (up off a roof) and its
+   *  closing speed, m/s. Null when it struck nothing. */
+  strike: { point: Point3; normal: Point3; speedMps: number } | null;
 }
 
 /**

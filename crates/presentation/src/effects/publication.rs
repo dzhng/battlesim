@@ -2,7 +2,8 @@
 //! visible flight and blasts (a round landing in standing water splashes),
 //! the shot counters and hulls of every unit the side sees (own units and
 //! identified enemies, apart by side key) and where each wades, the
-//! downed airframes still falling (which smoke), and every wreck and part of
+//! downed airframes still falling (which smoke, and throw sparks and dust
+//! where they strike a building), and every wreck and part of
 //! a destroyed building it knows (which smoke, each with its kind's look).
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -120,6 +121,18 @@ pub struct EffectPublication {
     pub flare_deploys: Vec<Vec3>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub grinds: Vec<Grind>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub strikes: Vec<Strike>,
+}
+
+/// Where a downed airframe the side watches fall struck a building this
+/// tick: the point on its face, the face's outward normal, and how fast it
+/// closed on it, m/s.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct Strike {
+    pub point: Vec3,
+    pub normal: Vec3,
+    pub speed_mps: f64,
 }
 
 /// Where a hull grinds a metal body it shoves this tick, and the way it
@@ -309,6 +322,14 @@ impl EffectFeed {
                 .map(|g| Grind {
                     point: g.point,
                     heading: g.heading,
+                })
+                .collect(),
+            strikes: (o.crashes.iter())
+                .filter_map(|c| c.strike.as_ref())
+                .map(|s| Strike {
+                    point: s.point,
+                    normal: s.normal,
+                    speed_mps: s.speed_mps,
                 })
                 .collect(),
         }

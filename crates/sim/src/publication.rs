@@ -29,10 +29,12 @@ use contract::scenario::CoverTier;
 use crate::battle::Battle;
 use crate::ground::GroundRunPatch;
 
+mod crash_row;
 mod layout;
 pub mod reader;
 mod tags;
 
+use crash_row::{crash_row, CRASH_FIELDS};
 pub use layout::layout_json;
 use layout::pose;
 use tags::*;
@@ -203,7 +205,6 @@ const CORPSE_FIELDS: [&str; 9] = [
     "yaw",
 ];
 const FALLEN_BODY_FIELDS: [&str; 7] = ["propLo", "propHi", "x", "y", "towardX", "towardY", "tick"];
-const CRASH_FIELDS: [&str; 9] = ["id", "own", "kind", "x", "y", "z", "yaw", "pitch", "roll"];
 const SHOUT_FIELDS: [&str; 9] = [
     "own",
     "idLo",
@@ -1297,17 +1298,7 @@ fn pack_record(
         ends.push(out.len());
     }
     for c in &frame.crashes {
-        out.extend([
-            c.id as f32,
-            c.own as u8 as f32,
-            c.kind.0 as f32,
-            c.position[0] as f32,
-            c.position[1] as f32,
-            c.position[2] as f32,
-            c.yaw as f32,
-            c.pitch as f32,
-            c.roll as f32,
-        ]);
+        out.extend(crash_row(c));
     }
     if let Some(ends) = ends.as_mut() {
         ends.push(out.len());

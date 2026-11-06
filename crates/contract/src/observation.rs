@@ -686,6 +686,20 @@ pub struct FallingAirframe {
     pub pitch: f64,
     /// Right side down, radians: it leans into its spin.
     pub roll: f64,
+    /// The structure it struck this tick hard enough to throw sparks and
+    /// dust, if any. Resting or grinding contact strikes nothing.
+    #[serde(default)]
+    pub strike: Option<AirframeStrike>,
+}
+
+/// Where a falling airframe struck a body it cannot break: the point on the
+/// body's face, the face's outward unit normal (straight up off a roof), and
+/// how fast the airframe closed on that face, m/s.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AirframeStrike {
+    pub point: [f64; 3],
+    pub normal: [f64; 3],
+    pub speed_mps: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

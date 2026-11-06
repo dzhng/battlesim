@@ -506,6 +506,7 @@ test("every frozen animation field and ground value decodes, integers exact past
       yaw: 0.75,
       pitch: -0.25,
       roll: 0.125,
+      strike: null,
     },
   ]);
   // A bark keeps whose it is (an identified enemy's handle exact past 2^24),

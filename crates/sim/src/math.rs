@@ -206,6 +206,13 @@ impl Obb2 {
         libm::hypot(x, y)
     }
 
+    /// The rectangle's point nearest `p` (`p` itself inside).
+    pub fn closest(&self, p: V2) -> V2 {
+        let d = self.to_local(p);
+        let (hx, hy) = (self.half.x, self.half.y);
+        self.center + v2(d.x.clamp(-hx, hx), d.y.clamp(-hy, hy)).rotated(self.yaw)
+    }
+
     /// The squared radius, a hair over, of the circle about the centre that
     /// holds the rectangle grown by `margin`: a point or a segment further
     /// off cannot meet it, and is answered without turning it into the
