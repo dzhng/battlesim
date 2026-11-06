@@ -51,3 +51,29 @@ Feedback that would change scope: New job concurrency or restarting a cancelled 
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+Baseline: `82a750c55`. `manualOperation.ts` now owns one manual operation record
+with kind, controller, captured input/artifact, completion and cancellation
+generation. Manual starts await the cancelled predecessor before touching
+`LatestRunner`; queued cancel/edit and late completion gates are ownership
+checked. `LatestRunner`, the protocol, sample collector, server queue and
+retention behavior remain unchanged. The old `sampleRunning` and
+`cancelledWork` coordination was removed. Partial sample rows and artifact
+pins remain retained, and explicit cancel does not resume generation.
+
+Focused evidence: `bun run --cwd web test -- tests/mapWorkbenchEditor.test.tsx tests/mapWorkbenchRunner.test.ts tests/mapWorkbenchSample.test.ts` — 3 files, 23 tests passed. Map API/native/server evidence: the six map-workbench test files — 6 files, 49 tests passed. Typecheck, format check, complexity lint and package lint passed; oxlint retains one pre-existing `unitGhosts.test.ts` `no-explicit-any` warning. Mutation evidence is in
+`throwaway/lifecycle-ownership/16-mutation-run.txt`: removing predecessor
+completion waiting fails the mounted waiting test (exit 1), then the source is
+restored and the focused suite is green.
+
+Shape, diff and docs review lenses are clean; the diff changes only the map
+workbench owner and its mounted tests, with no documentation outside this
+receipt. Fresh independent Claude Opus high-effort read-only review: CLEAN
+(the direct CLI review exposed no shareable thread URL). No visual shot was
+produced because layout, styling and map presentation are unchanged.
+
+Production diff: 133 additions and 138 deletions in `MapWorkbench.tsx`, plus 134
+new lines in `manualOperation.ts`; test diff: 130 additions and 3 deletions in
+`mapWorkbenchEditor.test.tsx`.

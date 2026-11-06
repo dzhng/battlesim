@@ -16,6 +16,7 @@ import { Measurements } from "./Measurements";
 import { SourceReview } from "./SourceReview";
 import { LatestRunner } from "./runner";
 import { collectSample, type SeedSample } from "./sample";
+import { createManualOwner, downloadJson, type ManualKind } from "./manualOperation";
 import {
   displayedInspection,
   displayedReport,
@@ -30,7 +31,7 @@ import "./workbench.css";
 const defaultAPI = workbenchAPI();
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
-// eslint-disable-next-line complexity -- debt: the plan controls and inspection markup remain one cohesive artifact-scoped surface; split them after the manual-operation owner is cut over without moving lifecycle policy into prop plumbing.
+// eslint-disable-next-line complexity -- cohesive map workbench surface.
 export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
   const [editor, dispatch] = useReducer(editorReducer, initialEditorState);
   const { snapshot, loaded, draft, raw, unfinished, latest, accepted, baseline, view, review } =
@@ -55,10 +56,9 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
   const [sampleCount, setSampleCount] = useState(10);
   const [allCells, setAllCells] = useState(false);
   const [sample, setSample] = useState<SeedSample | null>(null);
-  const [sampleRunning, setSampleRunning] = useState(false);
+  const [manualKind, setManualKind] = useState<ManualKind | null>(null);
+  const sampleActive = manualKind === "sample";
   const alive = useRef(true);
-  const manual = useRef<AbortController | null>(null);
-  const cancelledWork = useRef(0);
   const diagram = useRef<HTMLDivElement | null>(null);
   const artifactPins = useRef<string[]>([]);
   artifactPins.current = [
@@ -90,6 +90,32 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     [api],
   );
 
+  const choice = useMemo<MapChoice | null>(() => {
+    const text = canonicalSeed(seed);
+    return text === null ? null : { type: mapType, size: mapSize, seed: text };
+  }, [mapType, mapSize, seed]);
+  const currentInput = useRef({ draft, choice, latest, valid: unfinished.size === 0 });
+  currentInput.current = { draft, choice, latest, valid: unfinished.size === 0 };
+  const manualOwner = useMemo(
+    () =>
+      createManualOwner({
+        runner,
+        alive: () => alive.current,
+        currentInput: () => currentInput.current,
+        onKind: setManualKind,
+        onError: setError,
+        onStatus: setStatus,
+        request: (nextDraft, nextChoice) =>
+          runner.request({
+            purpose: "preview",
+            retainedArtifactIds: [],
+            draft: nextDraft,
+            choice: nextChoice,
+          }),
+      }),
+    [runner],
+  );
+
   useEffect(() => {
     alive.current = true;
     const controller = new AbortController();
@@ -106,24 +132,17 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     return () => {
       alive.current = false;
       controller.abort();
-      manual.current?.abort();
+      manualOwner.abort();
       runner.dispose();
     };
   }, [api, runner]);
-
-  const choice = useMemo<MapChoice | null>(() => {
-    const text = canonicalSeed(seed);
-    return text === null ? null : { type: mapType, size: mapSize, seed: text };
-  }, [mapType, mapSize, seed]);
-  const currentInput = useRef({ draft, choice, latest, valid: unfinished.size === 0 });
-  currentInput.current = { draft, choice, latest, valid: unfinished.size === 0 };
 
   useEffect(() => {
     dispatch({ type: "choice-changed" });
   }, [snapshot, choice]);
 
   useEffect(() => {
-    manual.current?.abort();
+    manualOwner.abort();
     if (!draft || !choice || unfinished.size) {
       runner.invalidate();
       if (draft) setStatus("Finish input before regeneration");
@@ -131,7 +150,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     }
     setStatus("Waiting for edits to settle…");
     runner.request({ purpose: "preview", retainedArtifactIds: [], draft, choice });
-  }, [runner, draft, choice, unfinished]);
+  }, [runner, draft, choice, unfinished, manualOwner]);
 
   const current = isCurrent(editor, choice);
   const shown = displayedReport(editor);
@@ -143,7 +162,6 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     (shown?.status === "refused"
       ? '<div class="mw-empty">Saved baseline refused. Choose Draft plan to inspect the last admitted map.</div>'
       : '<div class="mw-empty">The plan will appear after generation. Draft edits do not save automatically.</div>');
-  // React compares the prop object; stable markup preserves selection and layer attributes.
   const planMarkup = useMemo(() => ({ __html: planHTML }), [planHTML]);
   const selectedCrop = shown?.features?.find((feature) => feature.id === selectedId)?.crop;
   const layers = useMemo(() => {
@@ -200,55 +218,9 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     }
   }
 
-  async function operation(action: (signal: AbortSignal) => Promise<void>) {
-    manual.current?.abort();
-    const controller = new AbortController();
-    manual.current = controller;
-    const cancellation = cancelledWork.current;
-    setError("");
-    try {
-      await runner.cancel();
-      if (controller.signal.aborted) return;
-      await action(controller.signal);
-    } catch (failure) {
-      if (!controller.signal.aborted && alive.current) setError(errorText(failure));
-    } finally {
-      if (manual.current === controller) {
-        manual.current = null;
-        const now = currentInput.current;
-        if (
-          alive.current &&
-          !controller.signal.aborted &&
-          cancellation === cancelledWork.current &&
-          now.draft &&
-          now.choice &&
-          now.valid &&
-          (now.latest?.request.draft.documents !== now.draft.documents ||
-            !sameValue(now.latest?.report.choice, now.choice))
-        )
-          runner.request({
-            purpose: "preview",
-            retainedArtifactIds: [],
-            draft: now.draft,
-            choice: now.choice,
-          });
-      }
-    }
-  }
-
-  function download(name: string, value: unknown) {
-    const url = URL.createObjectURL(
-      new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }),
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = name;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
   async function compare() {
     if (!snapshot || !choice) return;
+    const captured = { snapshot, choice };
     if (
       accepted?.request.draft.revision === snapshot.revision &&
       sameValue(accepted.request.draft.documents, snapshot.documents) &&
@@ -257,13 +229,18 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
       dispatch({ type: "baseline-set", report: accepted.report });
       return;
     }
-    await operation(async (signal) => {
+    await manualOwner.start("compare", captured, async ({ controller, captured }, owned) => {
       setStatus("Inspecting saved defaults on the same seed…");
       const result = await api.generate(
-        { purpose: "preview", retainedArtifactIds: artifactPins.current, draft: snapshot, choice },
-        signal,
+        {
+          purpose: "preview",
+          retainedArtifactIds: artifactPins.current,
+          draft: captured.snapshot!,
+          choice: captured.choice!,
+        },
+        controller.signal,
       );
-      if (signal.aborted) return;
+      if (!owned()) return;
       dispatch({ type: "baseline-set", report: result });
       setStatus(result.status === "ok" ? "Saved baseline admitted" : "Saved baseline refused");
     });
@@ -272,32 +249,44 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
   async function inspect(crop?: string) {
     if (!shown?.artifactId) return;
     const artifactId = shown.artifactId;
-    await operation(async (signal) => {
-      const result = await api.inspect(artifactId, crop, signal);
-      if (!signal.aborted) {
-        dispatch({ type: "inspection-completed", artifactId, inspection: result });
-        setZoom(1);
-      }
-    });
+    await manualOwner.start(
+      "inspect",
+      { artifactId, crop },
+      async ({ controller, captured }, owned) => {
+        const result = await api.inspect(captured.artifactId!, captured.crop, controller.signal);
+        if (owned()) {
+          dispatch({
+            type: "inspection-completed",
+            artifactId: captured.artifactId!,
+            inspection: result,
+          });
+          setZoom(1);
+        }
+      },
+    );
   }
 
   async function measureSight() {
     if (!shown?.artifactId) return;
     const artifactId = shown.artifactId;
-    await operation(async (signal) => {
-      setStatus("Measuring sampled openness…");
-      const start = performance.now();
-      const result = await api.sight(artifactId, signal);
-      if (!signal.aborted) {
-        setSight({
-          artifactId,
-          report: result,
-          roundTripMs: performance.now() - start,
-          source: { choice: shown.choice, fingerprint: shown.fingerprint },
-        });
-        setStatus("Openness report ready");
-      }
-    });
+    await manualOwner.start(
+      "sight",
+      { artifactId, choice: shown.choice, fingerprint: shown.fingerprint },
+      async ({ controller, captured }, owned) => {
+        setStatus("Measuring sampled openness…");
+        const start = performance.now();
+        const result = await api.sight(captured.artifactId!, controller.signal);
+        if (owned()) {
+          setSight({
+            artifactId: captured.artifactId!,
+            report: result,
+            roundTripMs: performance.now() - start,
+            source: { choice: captured.choice!, fingerprint: captured.fingerprint! },
+          });
+          setStatus("Openness report ready");
+        }
+      },
+    );
   }
 
   async function runSample() {
@@ -320,31 +309,39 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
         seed: String(BigInt.asUintN(64, BigInt(choice.seed) + BigInt(index))),
       })),
     );
-    await operation(async (signal) => {
-      setSampleRunning(true);
-      try {
-        const result = await collectSample(api, captured, choices, signal, (progress) => {
-          if (alive.current) setSample(progress);
-        });
-        if (alive.current) setSample(result);
-      } finally {
-        if (alive.current) {
-          setSampleRunning(false);
-          setStatus(
-            signal.aborted
-              ? "Sample cancelled; completed outcomes retained"
-              : "Seed sample complete",
+    await manualOwner.start(
+      "sample",
+      { draft: captured, choice, choices },
+      async ({ controller, captured }) => {
+        try {
+          const result = await collectSample(
+            api,
+            captured.draft!,
+            captured.choices!,
+            controller.signal,
+            (progress) => {
+              if (alive.current) setSample(progress);
+            },
           );
+          if (alive.current) setSample(result);
+        } finally {
+          if (alive.current) {
+            setStatus(
+              controller.signal.aborted
+                ? "Sample cancelled; completed outcomes retained"
+                : "Seed sample complete",
+            );
+          }
         }
-      }
-    });
+      },
+    );
   }
 
   async function reload(discard: boolean) {
-    await operation(async (signal) => {
-      const value = await api.snapshot(signal);
-      if (signal.aborted) return;
-      if (discard) {
+    await manualOwner.start("reload", { discard }, async ({ controller, captured }, owned) => {
+      const value = await api.snapshot(controller.signal);
+      if (!owned()) return;
+      if (captured.discard) {
         dispatch({ type: "snapshot-accepted", snapshot: value });
       } else {
         dispatch({ type: "sources-loaded", snapshot: value });
@@ -389,17 +386,17 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
 
   async function preview() {
     if (!draft || unfinished.size) return;
-    await operation(async (signal) => {
-      const value = await api.preview(draft, signal);
-      if (!signal.aborted) dispatch({ type: "review-set", review: value });
+    await manualOwner.start("review", { draft }, async ({ controller, captured }, owned) => {
+      const value = await api.preview(captured.draft!, controller.signal);
+      if (owned()) dispatch({ type: "review-set", review: value });
     });
   }
 
   async function save() {
     if (!review) return;
-    await operation(async (signal) => {
-      const value = await api.save(review, signal);
-      if (signal.aborted) return;
+    await manualOwner.start("save", { review }, async ({ controller, captured }, owned) => {
+      const value = await api.save(captured.review!, controller.signal);
+      if (!owned()) return;
       dispatch({ type: "snapshot-accepted", snapshot: value });
       setStatus("Saved defaults; new battles use the published values");
     });
@@ -462,16 +459,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
         >
           Regenerate
         </button>
-        <button
-          onClick={() => {
-            ++cancelledWork.current;
-            manual.current?.abort();
-            void runner.cancel();
-            setStatus("Cancelled; previous result retained");
-          }}
-        >
-          Cancel work
-        </button>
+        <button onClick={manualOwner.cancel}>Cancel work</button>
       </div>
       <div className="mw-status" role="status">
         {status}
@@ -605,7 +593,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
               Draft plan
             </button>
             <button
-              disabled={!snapshot || !choice || sampleRunning}
+              disabled={!snapshot || !choice || sampleActive}
               aria-pressed={view === "saved"}
               onClick={() =>
                 baseline ? dispatch({ type: "view-set", view: "saved" }) : void compare()
@@ -626,13 +614,13 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
               Zoom out
             </button>
             <button
-              disabled={shown?.status !== "ok" || !shown.artifactId || sampleRunning}
+              disabled={shown?.status !== "ok" || !shown.artifactId || sampleActive}
               onClick={() => void inspect()}
             >
               Whole map
             </button>
             <button
-              disabled={!selectedCrop || !shown?.artifactId || sampleRunning}
+              disabled={!selectedCrop || !shown?.artifactId || sampleActive}
               onClick={() => void inspect(selectedCrop!)}
             >
               Inspect selection
@@ -753,11 +741,13 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
               {latest.report.artifactId && (
                 <button
                   onClick={() =>
-                    void operation(async (signal) =>
-                      download(
-                        "map-refused-inputs.json",
-                        await api.export(latest.report.artifactId!, signal),
-                      ),
+                    void manualOwner.start(
+                      "export",
+                      { artifactId: latest.report.artifactId },
+                      async ({ controller, captured }, owned) => {
+                        const value = await api.export(captured.artifactId!, controller.signal);
+                        if (owned()) downloadJson("map-refused-inputs.json", value);
+                      },
                     )
                   }
                 >
@@ -787,7 +777,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
           )}
           <div className="mw-analysis">
             <button
-              disabled={shown?.status !== "ok" || !shown.artifactId || sampleRunning}
+              disabled={shown?.status !== "ok" || !shown.artifactId || sampleActive}
               onClick={() => void measureSight()}
             >
               Measure openness
@@ -795,10 +785,15 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
             <span>Sampled sight runs on demand to keep editing responsive.</span>
             {shown?.artifactId && (
               <button
-                disabled={sampleRunning}
+                disabled={sampleActive}
                 onClick={() =>
-                  void operation(async (signal) =>
-                    download("map-input-report.json", await api.export(shown.artifactId!, signal)),
+                  void manualOwner.start(
+                    "export",
+                    { artifactId: shown.artifactId },
+                    async ({ controller, captured }, owned) => {
+                      const value = await api.export(captured.artifactId!, controller.signal);
+                      if (owned()) downloadJson("map-input-report.json", value);
+                    },
                   )
                 }
               >
@@ -894,12 +889,12 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
           All {MAP_TYPES.length * MAP_SIZES.length} type/size cells
         </label>
         <button
-          disabled={!draft || !choice || !!unfinished.size || sampleRunning}
+          disabled={!draft || !choice || !!unfinished.size || sampleActive}
           onClick={() => void runSample()}
         >
           Run seed sample
         </button>
-        {sampleRunning && <button onClick={() => manual.current?.abort()}>Cancel sample</button>}
+        {sampleActive && <button onClick={manualOwner.cancelSample}>Cancel sample</button>}
         {sample && (
           <>
             <p>
@@ -913,7 +908,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
                   : "running"}
               {draft && sample.input.documents !== draft.documents ? " · older input snapshot" : ""}
             </p>
-            <button onClick={() => download("map-seed-sample.json", sample)}>
+            <button onClick={() => downloadJson("map-seed-sample.json", sample)}>
               Export sample summary
             </button>
             {sample.receiptErrors.length > 0 && (
