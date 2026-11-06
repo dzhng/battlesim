@@ -57,14 +57,14 @@ export interface Authority {
 }
 
 export function createAuthority(host: AuthorityHost): Authority {
-  let sim: SimModule | null = null;
-  let battle: SimBattle | null = null;
+  type Resources = { sim: SimModule; battle: SimBattle };
+  type Lifetime = { kind: "loading" } | { kind: "live"; resources: Resources } | { kind: "closed" };
+  let lifetime: Lifetime = { kind: "loading" };
   let side: SideName = "blue";
   // The rules' rate, kept as given: the page's presentation times every
   // effect from it, so a rate derived back from `tickMs` would drift.
   let tickHz = 30;
   let tickMs = 1000 / tickHz;
-  let disposed = false;
   let started = false;
   let paused = false;
   let hidden = false;
@@ -76,6 +76,11 @@ export function createAuthority(host: AuthorityHost): Authority {
   const credits: ArrayBuffer[] = [];
   // Requests that arrive while the module loads keep their order.
   const backlog: SimRequest[] = [];
+
+  const activeResources = (): Resources => {
+    if (lifetime.kind !== "live") throw new Error("simulation resources are not admitted");
+    return lifetime.resources;
+  };
 
   const setStatus = (next: AuthorityStatus) => {
     if (next === status) return;
@@ -93,22 +98,21 @@ export function createAuthority(host: AuthorityHost): Authority {
   };
 
   function teardown() {
-    disposed = true;
-    battle?.free();
-    battle = null;
+    if (lifetime.kind === "live") lifetime.resources.battle.free();
+    lifetime = { kind: "closed" };
     credits.length = 0;
     host.close();
   }
 
   /** Step one tick and publish it into a credited buffer. */
-  function stepAndPublish() {
-    const b = battle!;
+  function stepAndPublish(resources: Resources) {
+    const b = resources.battle;
     const started = host.now();
     const tick = b.step();
     const stepMs = host.now() - started;
     const length = b.publish(side);
     // Re-derive the view every time: memory may have grown since the last tick.
-    const view = new Float32Array(sim!.memory.buffer, b.publication_ptr(), length);
+    const view = new Float32Array(resources.sim.memory.buffer, b.publication_ptr(), length);
     let buffer = credits.pop()!;
     // Declared admission point: a publication larger than its credit gets a
     // bigger buffer, never a truncated copy.
@@ -123,7 +127,9 @@ export function createAuthority(host: AuthorityHost): Authority {
   }
 
   function pump() {
-    if (disposed || !battle || !started) return;
+    if (lifetime.kind !== "live" || !started) return;
+    const resources = lifetime.resources;
+    const battle = resources.battle;
     if (battle.finished()) {
       if (script) {
         host.post({ type: "advanced", id: script.id, tick: battle.tick() });
@@ -132,7 +138,7 @@ export function createAuthority(host: AuthorityHost): Authority {
       return setStatus("finished");
     }
     if (script) {
-      while (script && credits.length > 0) stepAndPublish();
+      while (script && credits.length > 0) stepAndPublish(resources);
       if (script) return setStatus("waiting-consumer");
       nextTickAt = host.now();
     }
@@ -152,7 +158,7 @@ export function createAuthority(host: AuthorityHost): Authority {
         waitingForCredit = true;
         return setStatus("waiting-consumer");
       }
-      stepAndPublish();
+      stepAndPublish(resources);
       if (battle.finished()) return setStatus("finished");
       nextTickAt += tickMs;
       ran++;
@@ -168,13 +174,13 @@ export function createAuthority(host: AuthorityHost): Authority {
   }
 
   function handle(request: SimRequest) {
-    if (disposed) return;
+    if (lifetime.kind === "closed") return;
     if (request.type === "dispose") {
       setStatus("disposed");
       teardown();
       return;
     }
-    if (!battle && request.type !== "init") {
+    if (lifetime.kind !== "live" && request.type !== "init") {
       backlog.push(request);
       return;
     }
@@ -188,11 +194,11 @@ export function createAuthority(host: AuthorityHost): Authority {
           void host
             .load()
             .then((module) => {
-              if (disposed) return;
-              sim = module;
-              battle = request.replay
+              if (lifetime.kind === "closed") return;
+              const battle = request.replay
                 ? module.replayBattle(request.scenario, request.replay)
                 : module.createBattle(request.scenario, request.seed);
+              lifetime = { kind: "live", resources: { sim: module, battle } };
               for (let i = 0; i < PUBLICATION_POOL; i++) credits.push(new ArrayBuffer(4096));
               host.post({
                 type: "ready",
@@ -213,7 +219,7 @@ export function createAuthority(host: AuthorityHost): Authority {
         case "command":
           host.post({
             type: "ack",
-            ack: JSON.parse(battle!.accept(JSON.stringify(request.command))),
+            ack: JSON.parse(activeResources().battle.accept(JSON.stringify(request.command))),
           });
           return;
         case "purchase_preview":
@@ -221,7 +227,11 @@ export function createAuthority(host: AuthorityHost): Authority {
             type: "purchase_preview",
             id: request.id,
             placement: JSON.parse(
-              battle!.preview_purchase(request.side, request.variant, ...request.destination),
+              activeResources().battle.preview_purchase(
+                request.side,
+                request.variant,
+                ...request.destination,
+              ),
             ),
           });
           return;
@@ -230,7 +240,7 @@ export function createAuthority(host: AuthorityHost): Authority {
             type: "move_preview",
             id: request.id,
             destinations: JSON.parse(
-              battle!.preview_move(request.side, JSON.stringify(request.move)),
+              activeResources().battle.preview_move(request.side, JSON.stringify(request.move)),
             ),
           });
           return;
@@ -241,7 +251,10 @@ export function createAuthority(host: AuthorityHost): Authority {
               type: "building_preview",
               id: request.id,
               placement: JSON.parse(
-                battle!.preview_building(request.side, JSON.stringify(request.building)),
+                activeResources().battle.preview_building(
+                  request.side,
+                  JSON.stringify(request.building),
+                ),
               ),
             });
           } catch (error) {
@@ -269,17 +282,17 @@ export function createAuthority(host: AuthorityHost): Authority {
           if (!hidden) nextTickAt = host.now();
           break;
         case "advance":
-          script = { id: request.id, target: battle!.tick() + request.ticks };
+          script = { id: request.id, target: activeResources().battle.tick() + request.ticks };
           break;
         case "replay":
-          host.post({ type: "replay", json: battle!.replay_json() });
+          host.post({ type: "replay", json: activeResources().battle.replay_json() });
           return;
         case "side":
           side = request.side;
-          battle!.resync_observation();
+          activeResources().battle.resync_observation();
           return;
         case "controllers":
-          battle!.set_controllers(request.controllers);
+          activeResources().battle.set_controllers(request.controllers);
           return;
       }
       pump();

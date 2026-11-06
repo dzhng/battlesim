@@ -1,6 +1,6 @@
 # 03 — Authority resource lifetime
 
-**Status:** pending. **Audit families:** 7. **Dependencies:** 01.
+**Status:** in progress; admitted resource record. **Audit families:** 7. **Dependencies:** 01.
 
 ## Contract and question
 
@@ -51,3 +51,23 @@ Feedback that would change scope: Changing whether scripted advancement honors v
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+Baseline: `32e605e`. The authority/client focused suites passed 26 cases before
+closeout; the preparation-worker focused gate also passed. The candidate passes
+17 authority tests, 9 client tests, typecheck, ESLint and Oxlint. A disposal-during-load
+mutation fails the new race test and was restored in
+`throwaway/lifecycle-ownership/03-mutation.txt`.
+
+Claude review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3Acdbb94b3-c200-4d34-a874-96e9d1cc0c87%3Adelegate-task%3Ac0bde75d-83ff-4546-8fb6-77da35483c36>.
+The first review found no behavior drift but required the slice's deletion contract:
+remove the redundant disposed flag and all resource non-null assertions. The final
+shape uses one loading/live/closed lifetime carrying the admitted module/battle pair,
+passes resources explicitly through pump, and uses a checked active-resource helper
+for requests. The load/dispose test now waits a bounded timer turn. No wire, timing,
+credit or gameplay behavior changed.
+
+Shape/diff/docs review: the old correlated nullable ownership and redundant lifetime
+flag are gone; no compatibility path or new public shape exists. Production diff:
+67 additions, 60 deletions including the preservation test.

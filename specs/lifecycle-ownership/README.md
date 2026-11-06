@@ -15,17 +15,12 @@ state-machine audit. Read the repository README and development guide, then this
 plan's [contracts](contracts.md), [scope decisions](scope.md),
 [verification policy](verification.md), and [decisions](decisions.md).
 
-Slice 01 is complete: focused checks and Claude review passed; its receipt records
-finding dispositions. Continue [02: preparation worker](slices/02-preparation-worker.md),
-implemented locally with 13 focused tests plus typecheck/lint passing. Complete its
-Claude review and loading-shot comparison/critique before committing. Its worker
-test writes shots under `throwaway/replay-closeout/loading-shots`.
-
-Slices 12 and 14 are delegated in isolated checkouts; integrate their reviewed
-commits before claiming them complete. Other slices remain pending. Keep real
-cancellation and settlement policies, including the unusual ones recorded in the
-contracts. Do not turn retained audit families into extra work or introduce a
-universal lifecycle framework.
+Slices 01–03 are complete: client settlement, shared preparation-worker handoff,
+and authority resource ownership passed focused checks and Claude reviews. Slice 12
+(page audio) is complete in delegated commit `9a0f1dca`; cherry-pick it after the
+current authority commit and verify its receipt. Slice 14 (mechanics editor) remains
+delegated. Continue with slice 04 after integrating independent work, then proceed
+through the dependency graph.
 
 There is no blocking product decision. The [source-derived behavior
 questions](decisions.md#behavior-questions-outside-this-refactor) are deliberately
@@ -68,8 +63,8 @@ when safe, never mutable build output. Avoid GPU contention or permanent debug r
 | Done | Slice | Depends on | Review surface |
 |---|---|---|---|
 | [x] | [01 Client requests](slices/01-client-requests.md) | — | Authority command, preview and advance results |
-| [ ] | [02 Preparation worker](slices/02-preparation-worker.md) | — | Generated and uploaded battle handoff |
-| [ ] | [03 Authority resources](slices/03-authority-resources.md) | 01 | Pause, step, credit stall and restart |
+| [x] | [02 Preparation worker](slices/02-preparation-worker.md) | — | Generated and uploaded battle handoff |
+| [x] | [03 Authority resources](slices/03-authority-resources.md) | 01 | Pause, step, credit stall and restart |
 | [ ] | [04 Session startup](slices/04-session-startup.md) | 01, 02, 03 | First frame and scripted warm-up |
 | [ ] | [05 Uploaded scenario](slices/05-uploaded-scenario.md) | 02, 04 | Package → controller → battle |
 | [ ] | [06 Pointer gestures](slices/06-pointer-gestures.md) | — | Selection, facing and camera gestures |
