@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   canonicalSeed,
   MAP_SIZES,
@@ -9,54 +9,43 @@ import {
   type MapSize,
   type MapType,
 } from "../../../web/src/maps/source";
-import type {
-  Documents,
-  Draft,
-  Field,
-  Inspection,
-  Report,
-  RunRequest,
-  SaveReview,
-  SightReport,
-  Snapshot,
-  WorkbenchAPI,
-} from "./protocol";
+import type { Field, Report, RunRequest, SightReport, WorkbenchAPI } from "./protocol";
 import { editField, fieldText, fieldValue, humanize, parseField } from "./fields";
 import { workbenchAPI } from "./http";
 import { Measurements } from "./Measurements";
 import { SourceReview } from "./SourceReview";
 import { LatestRunner } from "./runner";
 import { collectSample, type SeedSample } from "./sample";
+import {
+  displayedInspection,
+  displayedReport,
+  displayedSelection,
+  editorReducer,
+  initialEditorState,
+  isCurrent,
+  sameValue,
+} from "./editorState";
 import "./workbench.css";
 
 const defaultAPI = workbenchAPI();
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
-const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 
-// eslint-disable-next-line complexity -- debt: 28 useState hooks share one draft, run, review and inspection lifecycle; split it once a reducer owns that lifecycle, then the panels can be subcomponents.
+// eslint-disable-next-line complexity -- debt: the plan controls and inspection markup remain one cohesive artifact-scoped surface; split them after the manual-operation owner is cut over without moving lifecycle policy into prop plumbing.
 export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [loaded, setLoaded] = useState<Snapshot | null>(null);
-  const [documents, setDocuments] = useState<Documents | null>(null);
-  const [raw, setRaw] = useState<Record<string, string>>({});
-  const [unfinished, setUnfinished] = useState<Set<string>>(new Set());
+  const [editor, dispatch] = useReducer(editorReducer, initialEditorState);
+  const { snapshot, loaded, draft, raw, unfinished, latest, accepted, baseline, view, review } =
+    editor;
+  const documents = draft?.documents ?? null;
   const [mapType, setMapType] = useState<MapType>("mixed");
   const [mapSize, setMapSize] = useState<MapSize>("small");
   const [seed, setSeed] = useState("1");
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState("");
   const [readOnly, setReadOnly] = useState(false);
-  const [latest, setLatest] = useState<{ report: Report; request: RunRequest } | null>(null);
-  const [accepted, setAccepted] = useState<{ report: Report; request: RunRequest } | null>(null);
-  const [baseline, setBaseline] = useState<Report | null>(null);
-  const [view, setView] = useState<"draft" | "saved">("draft");
-  const [inspection, setInspection] = useState<(Inspection & { artifactId: string }) | null>(null);
-  const [selected, setSelected] = useState<{ artifactId: string; id: string } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState("Loading saved sources…");
   const [error, setError] = useState("");
-  const [review, setReview] = useState<SaveReview | null>(null);
   const [sight, setSight] = useState<{
     artifactId: string;
     report: SightReport;
@@ -89,8 +78,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
           return api.generate({ ...request, retainedArtifactIds: artifactPins.current }, signal);
         },
         publish: (report, request) => {
-          setLatest({ report, request });
-          if (report.status === "ok") setAccepted({ report, request });
+          dispatch({ type: "generation-completed", report, request });
           setStatus(report.status === "ok" ? "Current draft admitted" : "Current draft refused");
           setError("");
         },
@@ -108,8 +96,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     void api.snapshot(controller.signal).then(
       (value) => {
         if (alive.current) {
-          setSnapshot(value);
-          setDocuments(value.documents);
+          dispatch({ type: "snapshot-accepted", snapshot: value });
         }
       },
       (failure) => {
@@ -128,20 +115,14 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     const text = canonicalSeed(seed);
     return text === null ? null : { type: mapType, size: mapSize, seed: text };
   }, [mapType, mapSize, seed]);
-  const draft = useMemo<Draft | null>(
-    () => (snapshot && documents ? { revision: snapshot.revision, documents } : null),
-    [snapshot, documents],
-  );
   const currentInput = useRef({ draft, choice, latest, valid: unfinished.size === 0 });
   currentInput.current = { draft, choice, latest, valid: unfinished.size === 0 };
 
   useEffect(() => {
-    setBaseline(null);
-    setView("draft");
+    dispatch({ type: "choice-changed" });
   }, [snapshot, choice]);
 
   useEffect(() => {
-    setReview(null);
     manual.current?.abort();
     if (!draft || !choice || unfinished.size) {
       runner.invalidate();
@@ -152,16 +133,10 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     runner.request({ purpose: "preview", retainedArtifactIds: [], draft, choice });
   }, [runner, draft, choice, unfinished]);
 
-  const current =
-    unfinished.size === 0 &&
-    !!latest &&
-    draft !== null &&
-    choice !== null &&
-    latest.request.draft.documents === draft.documents &&
-    same(latest.report.choice, choice);
-  const shown = view === "saved" ? baseline : accepted?.report;
-  const selectedId = selected?.artifactId === shown?.artifactId ? selected?.id : null;
-  const picture = shown && inspection?.artifactId === shown.artifactId ? inspection : shown;
+  const current = isCurrent(editor, choice);
+  const shown = displayedReport(editor);
+  const selectedId = displayedSelection(editor);
+  const picture = displayedInspection(editor);
   const svg = picture?.svg;
   const planHTML =
     svg ||
@@ -209,19 +184,19 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
 
   function change(field: Field, text: string) {
     if (!documents) return;
-    setRaw((value) => ({ ...value, [field.id]: text }));
     try {
       const value = parseField(text, fieldValue(documents, field), field);
-      setUnfinished((old) => {
-        if (!old.has(field.id)) return old;
-        const next = new Set(old);
-        next.delete(field.id);
-        return next;
+      dispatch({
+        type: "draft-edited",
+        documents: sameValue(value, fieldValue(documents, field))
+          ? documents
+          : editField(documents, field, value),
+        fieldId: field.id,
+        text,
+        valid: true,
       });
-      if (!same(value, fieldValue(documents, field)))
-        setDocuments(editField(documents, field, value));
     } catch {
-      setUnfinished((old) => (old.has(field.id) ? old : new Set(old).add(field.id)));
+      dispatch({ type: "draft-edited", documents, fieldId: field.id, text, valid: false });
     }
   }
 
@@ -249,7 +224,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
           now.choice &&
           now.valid &&
           (now.latest?.request.draft.documents !== now.draft.documents ||
-            !same(now.latest?.report.choice, now.choice))
+            !sameValue(now.latest?.report.choice, now.choice))
         )
           runner.request({
             purpose: "preview",
@@ -276,11 +251,10 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     if (!snapshot || !choice) return;
     if (
       accepted?.request.draft.revision === snapshot.revision &&
-      same(accepted.request.draft.documents, snapshot.documents) &&
-      same(accepted.report.choice, choice)
+      sameValue(accepted.request.draft.documents, snapshot.documents) &&
+      sameValue(accepted.report.choice, choice)
     ) {
-      setBaseline(accepted.report);
-      setView("saved");
+      dispatch({ type: "baseline-set", report: accepted.report });
       return;
     }
     await operation(async (signal) => {
@@ -290,8 +264,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
         signal,
       );
       if (signal.aborted) return;
-      setBaseline(result);
-      setView("saved");
+      dispatch({ type: "baseline-set", report: result });
       setStatus(result.status === "ok" ? "Saved baseline admitted" : "Saved baseline refused");
     });
   }
@@ -302,7 +275,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     await operation(async (signal) => {
       const result = await api.inspect(artifactId, crop, signal);
       if (!signal.aborted) {
-        setInspection({ artifactId, ...result });
+        dispatch({ type: "inspection-completed", artifactId, inspection: result });
         setZoom(1);
       }
     });
@@ -372,14 +345,9 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
       const value = await api.snapshot(signal);
       if (signal.aborted) return;
       if (discard) {
-        setSnapshot(value);
-        setDocuments(value.documents);
-        setRaw({});
-        setUnfinished(new Set());
-        setLoaded(null);
-        setView("draft");
+        dispatch({ type: "snapshot-accepted", snapshot: value });
       } else {
-        setLoaded(value);
+        dispatch({ type: "sources-loaded", snapshot: value });
         setStatus("Sources loaded; current draft retained");
       }
     });
@@ -401,7 +369,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     for (const field of snapshot.fields) {
       if (
         !field.editable ||
-        same(fieldValue(snapshot.documents, field), fieldValue(documents, field))
+        sameValue(fieldValue(snapshot.documents, field), fieldValue(documents, field))
       )
         continue;
       const target = loaded.fields.find((value) => value.id === field.id && value.editable);
@@ -411,18 +379,19 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
       }
       next = editField(next, target, fieldValue(documents, field)!);
     }
-    setSnapshot(loaded);
-    setDocuments(next);
-    setRaw((old) => Object.fromEntries(Object.entries(old).filter(([id]) => unfinished.has(id))));
-    setLoaded(null);
-    setView("draft");
+    dispatch({
+      type: "draft-reapplied",
+      snapshot: loaded,
+      documents: next,
+      raw: Object.fromEntries(Object.entries(raw).filter(([id]) => unfinished.has(id))),
+    });
   }
 
   async function preview() {
     if (!draft || unfinished.size) return;
     await operation(async (signal) => {
       const value = await api.preview(draft, signal);
-      if (!signal.aborted) setReview(value);
+      if (!signal.aborted) dispatch({ type: "review-set", review: value });
     });
   }
 
@@ -431,13 +400,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     await operation(async (signal) => {
       const value = await api.save(review, signal);
       if (signal.aborted) return;
-      setSnapshot(value);
-      setDocuments(value.documents);
-      setRaw({});
-      setUnfinished(new Set());
-      setLoaded(null);
-      setReview(null);
-      setView("draft");
+      dispatch({ type: "snapshot-accepted", snapshot: value });
       setStatus("Saved defaults; new battles use the published values");
     });
   }
@@ -578,7 +541,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
             {fields.map((field) => {
               const value = documents && fieldValue(documents, field);
               const saved = snapshot && fieldValue(snapshot.documents, field);
-              const changed = !same(value, saved);
+              const changed = !sameValue(value, saved);
               const text = raw[field.id] ?? fieldText(value ?? undefined, field);
               return (
                 <section className={`mw-field ${changed ? "mw-changed" : ""}`} key={field.id}>
@@ -617,16 +580,10 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
                     <button
                       className="mw-reset"
                       onClick={() => {
-                        setDocuments(editField(documents!, field, saved!));
-                        setRaw((old) => {
-                          const next = { ...old };
-                          delete next[field.id];
-                          return next;
-                        });
-                        setUnfinished((old) => {
-                          const next = new Set(old);
-                          next.delete(field.id);
-                          return next;
+                        dispatch({
+                          type: "field-undone",
+                          documents: editField(documents!, field, saved!),
+                          fieldId: field.id,
                         });
                       }}
                     >
@@ -641,13 +598,18 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
         </aside>
         <section className="mw-inspection">
           <div className="mw-view-tools">
-            <button aria-pressed={view === "draft"} onClick={() => setView("draft")}>
+            <button
+              aria-pressed={view === "draft"}
+              onClick={() => dispatch({ type: "view-set", view: "draft" })}
+            >
               Draft plan
             </button>
             <button
               disabled={!snapshot || !choice || sampleRunning}
               aria-pressed={view === "saved"}
-              onClick={() => (baseline ? setView("saved") : void compare())}
+              onClick={() =>
+                baseline ? dispatch({ type: "view-set", view: "saved" }) : void compare()
+              }
             >
               Saved baseline · same seed
             </button>
@@ -727,7 +689,10 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
                   setGroup(node.getAttribute("data-rule-group")!);
                   setQuery("");
                   const id = node.getAttribute("data-feature-id");
-                  setSelected(id ? { artifactId: shown.artifactId, id } : null);
+                  dispatch({
+                    type: "selection-set",
+                    selection: id ? { artifactId: shown.artifactId, id } : null,
+                  });
                 }
               }}
               dangerouslySetInnerHTML={planMarkup}
@@ -751,11 +716,13 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
                 value={selectedId ?? ""}
                 onChange={(event) => {
                   const feature = shown.features!.find((item) => item.id === event.target.value);
-                  setSelected(
-                    feature && shown.artifactId
-                      ? { artifactId: shown.artifactId, id: feature.id }
-                      : null,
-                  );
+                  dispatch({
+                    type: "selection-set",
+                    selection:
+                      feature && shown.artifactId
+                        ? { artifactId: shown.artifactId, id: feature.id }
+                        : null,
+                  });
                   if (feature) {
                     setGroup(feature.group);
                     setQuery("");
@@ -895,7 +862,9 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
             <button disabled={review.diagnostics.length > 0} onClick={() => void save()}>
               Save reviewed defaults
             </button>
-            <button onClick={() => setReview(null)}>Close review</button>
+            <button onClick={() => dispatch({ type: "review-set", review: null })}>
+              Close review
+            </button>
           </div>
         )}
       </section>

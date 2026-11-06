@@ -144,6 +144,60 @@ test("map selection and search edit the same district rule and regenerate the ed
   expect(screen.getByText(/wherever this preset is used/)).toBeTruthy();
 });
 
+test("a formatting-only edit keeps the admitted input and does not regenerate", async () => {
+  const { api, generate } = fixture();
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
+  await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
+  fireEvent.change(screen.getByLabelText("Block depth"), { target: { value: "130.0" } });
+  await new Promise((resolve) => setTimeout(resolve, 450));
+  expect(generate).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull();
+});
+
+test("selection remains scoped to the displayed artifact when a newer seed is refused", async () => {
+  const { api, generate } = fixture();
+  const inspect = vi.fn<WorkbenchAPI["inspect"]>(async () => ({ svg: "<svg />", features: [] }));
+  api.inspect = inspect;
+  generate.mockImplementation(async (request) =>
+    request.choice.seed === "2"
+      ? {
+          fingerprint: "refused",
+          choice: request.choice,
+          status: "refused",
+          diagnostics: [],
+          artifactId: "refusal",
+        }
+      : {
+          fingerprint: "admitted",
+          choice: request.choice,
+          status: "ok",
+          diagnostics: [],
+          artifactId: "artifact",
+          svg: '<svg><path data-rule-group="districts.apartments" data-feature-id="district-1" /></svg>',
+          features: [
+            {
+              id: "district-1",
+              group: "districts.apartments",
+              label: "Apartment",
+              crop: "district-1",
+            },
+          ],
+        },
+  );
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
+  await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
+  fireEvent.click(screen.getByTestId("map-plan").querySelector("path")!);
+  fireEvent.click(screen.getByRole("button", { name: "Inspect selection" }));
+  await waitFor(() =>
+    expect(inspect).toHaveBeenCalledWith("artifact", "district-1", expect.anything()),
+  );
+  fireEvent.change(screen.getByLabelText("Map seed"), { target: { value: "2" } });
+  await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Current draft refused"));
+  fireEvent.click(screen.getByRole("button", { name: "Inspect selection" }));
+  await waitFor(() => expect(inspect).toHaveBeenCalledTimes(2));
+  expect(inspect.mock.calls.at(-1)?.slice(0, 2)).toEqual(["artifact", "district-1"]);
+});
+
 test("Cancel work during a sample closes it without restarting generation", async () => {
   const { api, generate } = fixture();
   render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
