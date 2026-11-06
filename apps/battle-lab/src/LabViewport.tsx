@@ -6,7 +6,12 @@ import type {
   ViewportGpu,
   ViewportPilot,
 } from "./viewportRender";
-import type { ViewportPointer, LabPick, LabBox } from "./viewportInput";
+import {
+  ViewportGestureOwner,
+  type ViewportPointer,
+  type LabPick,
+  type LabBox,
+} from "./viewportInput";
 export type { ViewportPointer, LabPick, LabBox } from "./viewportInput";
 import type { ClearanceReading, LabHandle } from "./labDiagnostics";
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
@@ -27,7 +32,6 @@ import {
   createWorldRay,
   screenRay,
   type Camera3DParams,
-  type WorldRay,
 } from "@packages/renderer-core/src/camera3d";
 import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import {
@@ -187,8 +191,6 @@ interface LabViewportProps {
 /** The viewport owns the live projection and render resolution passed to pointer paint. */
 export type ViewportCursor = NonNullable<LabViewportProps["onCursor"]>;
 
-/** Pixels a left press may travel and still count as a click. */
-const CLICK_SLOP_PX = 5;
 /** Screen-edge band that pans the camera like a held key. */
 const EDGE_PAN_PX = 14;
 
@@ -754,9 +756,7 @@ export function LabViewport({
           if (
             pointer &&
             (interactionSurface(document.elementFromPoint(pointer.x, pointer.y)) === canvas ||
-              rightPress ||
-              press ||
-              orbit)
+              gestures.active)
           ) {
             const rect = canvas.getBoundingClientRect();
             edge = [
@@ -901,20 +901,13 @@ export function LabViewport({
             ? interactionSurface(document.elementFromPoint(pointer.x, pointer.y))
             : null;
           const pointerState: ViewportPointer = {
-            position: surface || rightPress ? pointer : null,
+            position: surface || gestures.rightPressRay ? pointer : null,
             ray: pointerRay(),
             ...modifiers,
-            cameraDragging: !!orbit,
-            rightPress: rightPress?.ray ?? null,
-            leftPress: press?.dragged && leftDragActionRef.current ? press.ray : null,
-            rightDragging: !!(
-              rightPress &&
-              pointer &&
-              Math.hypot(
-                pointer.x - rightPress.event.clientX,
-                pointer.y - rightPress.event.clientY,
-              ) > CLICK_SLOP_PX
-            ),
+            cameraDragging: gestures.cameraDragging,
+            rightPress: gestures.rightPressRay,
+            leftPress: gestures.leftPressRay,
+            rightDragging: !!pointer && gestures.rightDraggingAt(pointer),
           };
           const project = projector();
           const renderScale = canvas.height / Math.max(1, canvas.clientHeight);
@@ -923,7 +916,7 @@ export function LabViewport({
           const action =
             onCursorRef.current?.(pointerState, shownCamera, project, renderScale) ?? null;
           // The app cursor always shows; the battle only chooses its action.
-          const active = surface && !orbit && !pilot;
+          const active = surface && !gestures.cameraDragging && !pilot;
           setCursorAction((active && action) || "default");
           pilot?.frame?.({
             now,
@@ -1116,15 +1109,6 @@ export function LabViewport({
         // places at the press and faces toward the release), right click
         // orders (on release: a right-drag also sets the facing); the camera (CameraController) takes held WASD/arrows and the
         // screen edge to pan, Q/E to turn, Z/X to tilt, middle drag to orbit, the wheel to zoom.
-        let orbit: { x: number; y: number } | null = null;
-        let press: {
-          x: number;
-          y: number;
-          shift: boolean;
-          ray: WorldRay;
-          dragged: boolean;
-        } | null = null;
-        let rightPress: { event: PointerEvent; pick: LabPick; ray: WorldRay } | null = null;
         const makePick = (e: PointerEvent, button: "left" | "right") => {
           const ray = handle.rayAt!(e.clientX, e.clientY);
           return {
@@ -1138,6 +1122,19 @@ export function LabViewport({
             time: e.timeStamp,
           };
         };
+        const gestures = new ViewportGestureOwner({
+          leftDragAction: () => leftDragActionRef.current,
+          onPick: (pick) => onPickRef.current?.(pick),
+          onRightPress: (pick) => onRightPressRef.current?.(pick),
+          onBoxPreview: (next) => setBox(next),
+          onBox: (next) => onBoxRef.current?.(next),
+          onOrbit: ([dx, dy]) => {
+            const h = canvas.clientHeight || 1;
+            steer({ drag: [dx / h, dy / h] }, 0);
+            see(0);
+          },
+          project: handle.projectToCss!,
+        });
         const onDown = (e: PointerEvent) => {
           if (!inputEnabledRef.current) return;
           // Let the HUD own its native click sequence. Capturing a HUD press
@@ -1146,23 +1143,34 @@ export function LabViewport({
           if (!interactionSurface(e.target)) return;
           modifiers = { ctrl: e.ctrlKey, shift: e.shiftKey };
           if (e.button === 0) {
-            press = {
+            gestures.down({
+              button: "left",
               x: e.clientX,
               y: e.clientY,
               shift: e.shiftKey,
               ray: handle.rayAt!(e.clientX, e.clientY),
-              dragged: false,
-            };
+            });
             canvas.setPointerCapture(e.pointerId);
           } else if (e.button === 2) {
             pointer = { x: e.clientX, y: e.clientY };
             const pick = makePick(e, "right");
-            rightPress = { event: e, ray: pick.ray, pick };
-            onRightPressRef.current?.(pick);
+            gestures.down({
+              button: "right",
+              x: e.clientX,
+              y: e.clientY,
+              shift: e.shiftKey,
+              ray: pick.ray,
+              pick,
+            });
             canvas.setPointerCapture(e.pointerId);
           } else if (e.button === 1) {
             e.preventDefault();
-            orbit = { x: e.clientX, y: e.clientY };
+            gestures.down({
+              button: "middle",
+              x: e.clientX,
+              y: e.clientY,
+              shift: e.shiftKey,
+            });
             canvas.setPointerCapture(e.pointerId);
           }
         };
@@ -1170,72 +1178,34 @@ export function LabViewport({
           if (!inputEnabledRef.current) return;
           modifiers = { ctrl: e.ctrlKey, shift: e.shiftKey };
           const over = interactionSurface(e.target);
-          pointer = over || rightPress || press || orbit ? { x: e.clientX, y: e.clientY } : null;
-          if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > CLICK_SLOP_PX) {
-            press.dragged = true;
-            // A drag that is an action (placing, then facing) draws no selection box.
-            if (!leftDragActionRef.current)
-              setBox({ x0: press.x, y0: press.y, x1: e.clientX, y1: e.clientY });
-          }
-          if (!orbit) return;
-          const dx = e.clientX - orbit.x,
-            dy = e.clientY - orbit.y;
-          orbit.x = e.clientX;
-          orbit.y = e.clientY;
-          const h = canvas.clientHeight || 1;
-          steer({ drag: [dx / h, dy / h] }, 0);
-          see(0);
+          pointer = over || gestures.active ? { x: e.clientX, y: e.clientY } : null;
+          gestures.move({ x: e.clientX, y: e.clientY });
         };
         const onUp = (e: PointerEvent) => {
           if (!inputEnabledRef.current) return;
-          orbit = null;
-          if (e.button === 2 && rightPress) {
-            const start = rightPress.event;
-            const captured = rightPress.pick;
-            rightPress = null;
-            const dragged =
-              Math.hypot(e.clientX - start.clientX, e.clientY - start.clientY) > CLICK_SLOP_PX;
-            onPickRef.current?.({
-              ...captured,
-              release: dragged ? handle.rayAt!(e.clientX, e.clientY) : undefined,
-            });
-            return;
-          }
-          if (e.button !== 0 || !press) return;
-          const start = press;
-          press = null;
-          setBox(null);
-          // A drag that is an action ends as a click: the route aimed it while held.
-          if (
-            leftDragActionRef.current ||
-            Math.hypot(e.clientX - start.x, e.clientY - start.y) <= CLICK_SLOP_PX
-          ) {
-            onPickRef.current?.(makePick(e, "left"));
-          } else {
-            onBoxRef.current?.({
-              x0: Math.min(start.x, e.clientX),
-              y0: Math.min(start.y, e.clientY),
-              x1: Math.max(start.x, e.clientX),
-              y1: Math.max(start.y, e.clientY),
-              shift: start.shift,
-              project: handle.projectToCss!,
-            });
-          }
+          if (e.button !== 0 && e.button !== 1 && e.button !== 2) return;
+          const button = e.button === 0 ? "left" : e.button === 1 ? "middle" : "right";
+          gestures.up({
+            button,
+            x: e.clientX,
+            y: e.clientY,
+            pick: e.button === 0 && gestures.leftPressActive ? makePick(e, "left") : undefined,
+            release: e.button === 2 ? handle.rayAt!(e.clientX, e.clientY) : undefined,
+          });
         };
         const onLeave = (e: PointerEvent) => {
           const to = e.relatedTarget;
-          if (!rightPress && !(to instanceof Element && to.closest(".ro-layer .ro-unit"))) {
+          if (
+            !gestures.rightPressRay &&
+            !(to instanceof Element && to.closest(".ro-layer .ro-unit"))
+          ) {
             pointer = null;
           }
         };
         const cancelGesture = () => {
           pointer = null;
-          rightPress = null;
-          press = null;
-          orbit = null;
-          setBox(null);
+          gestures.cancel();
           modifiers = { ctrl: false, shift: false };
-          onRightPressRef.current?.(null);
         };
         cancelInputRef.current = cancelGesture;
         const onWheel = (e: WheelEvent) => {
@@ -1260,7 +1230,7 @@ export function LabViewport({
           "lostpointercapture",
           () => {
             // Normal release ends the gesture, not the stationary pointer's hover.
-            if (rightPress || press || orbit) cancelGesture();
+            if (gestures.active) cancelGesture();
           },
           { signal },
         );
