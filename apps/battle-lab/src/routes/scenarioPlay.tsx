@@ -44,7 +44,6 @@ type ScenarioRouteState =
       bundle: string;
       activeHuman: string | null | undefined;
       session: PreparedScenarioBundleSession;
-      error: string | null;
     };
 
 type ScenarioRouteAction =
@@ -97,7 +96,6 @@ function scenarioRouteReducer(
             bundle: state.bundle,
             activeHuman: state.activeHuman,
             session: action.session,
-            error: null,
           }
         : state;
     case "error":
@@ -277,7 +275,6 @@ export default function ScenarioPlay() {
       appAudio={appAudio}
       report={report}
       prepared={prepared}
-      stage="world"
       setError={setError}
       playedAsset={playedAsset}
       replayText={replayText}
@@ -290,7 +287,6 @@ function ScenarioBattle({
   appAudio,
   report,
   prepared,
-  stage,
   setError,
   playedAsset,
   replayText,
@@ -299,7 +295,6 @@ function ScenarioBattle({
   appAudio: ReturnType<typeof useAppAudio>;
   report: NonNullable<PreparedScenarioBundleSession["report"]>;
   prepared: NonNullable<PreparedScenarioBundleSession["session"]>;
-  stage: "bundle" | "world";
   setError: (error: string) => void;
   playedAsset: { current: string | null };
   replayText?: string;
@@ -354,7 +349,7 @@ function ScenarioBattle({
               { id: "bundle", label: "Validate package" },
               { id: "world", label: "Build world" },
             ]}
-            current={stage}
+            current="world"
           />
         }
         status={({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />}

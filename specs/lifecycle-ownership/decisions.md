@@ -59,6 +59,7 @@ They do not block implementation of the selected owners.
 | Build errors across option changes | The async scenario hook keys success but not its error payload. | Retain audit 11; stale-error behavior needs a focused consumer regression before any correction. |
 | Counted stream error/cancellation | Download accounting finishes on normal transform flush. | Retain audit 14; abnormal stream completion is a separate behavior investigation, not a reason to introduce a general download FSM. |
 | Late import or audition completion | Several UI flows await external reads and resource preparation before publishing fields. | Selected slices preserve current ordering and identity gates. A newly demonstrated stale mutation is fixed only through the correction procedure below. |
+| Submitted-view replacement admission | A replacement scene can be installed before its first successful draw; retaining the retired scene's picks or staged frame would let input and frame completion refer to resources no longer on screen. | Named correction in slice 11: picks are withheld and staged work is dropped until the replacement submits. `viewportReplacement.test.tsx` pins the scene identity and skipped-submit behavior. |
 
 If implementation demonstrates a defect, record a named correction with trigger,
 current outcome, intended outcome, affected consumers and invariant impact; write

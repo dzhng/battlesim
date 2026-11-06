@@ -1,6 +1,6 @@
 # Lifecycle ownership
 
-**Status:** implementation in progress. **Updated:** 2026-11-06.
+**Status:** implementation complete; closeout checks recorded below. **Updated:** 2026-11-07.
 
 The simulation remains the authority, public formats remain unchanged, and each
 resource or operation gets one transition owner where that removes scattered
@@ -15,7 +15,7 @@ state-machine audit. Read the repository README and development guide, then this
 plan's [contracts](contracts.md), [scope decisions](scope.md),
 [verification policy](verification.md), and [decisions](decisions.md).
 
-Slices 01–10, 12–16 and 18–19 are complete: client settlement, shared preparation-worker
+Slices 01–19 are complete: client settlement, shared preparation-worker
 handoff, authority resource ownership, session startup, pointer/purchase/order/released-action
 ownership, viewport scene admission, page/battle audio, mechanics editor,
 map draft/manual/artifact ownership, and audition session ownership all passed focused checks

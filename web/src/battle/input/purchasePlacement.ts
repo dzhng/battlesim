@@ -34,9 +34,9 @@ export class PurchasePlacementControl {
   /** The chosen squad's soldiers about its destination, as the last preview
    *  spread them: the ghost keeps this shape while the next one is pending. */
   private shape: [number, number][] = [];
-  private previewRun: { spot: string } | null = null;
+  private previewRun: string | null = null;
   private generation = 0;
-  private confirmation: { generation: number } | null = null;
+  private confirmation: number | null = null;
   private client: SimClient | null = null;
 
   choose(variant: string) {
@@ -91,12 +91,12 @@ export class PurchasePlacementControl {
       (this.resolved?.spot === intent.spot && this.resolved.revision === intent.revision)
     )
       return;
-    const run = (this.previewRun = { spot: intent.spot });
+    const run = (this.previewRun = intent.spot);
     void intent.client
       .previewPurchase(intent.ghost.variant, intent.cursor)
       .then(
         (placement) => {
-          if (this.intent?.spot !== run.spot) return;
+          if (this.intent?.spot !== run) return;
           this.resolved = { spot: intent.spot, revision: intent.revision, placement };
           if ("Ok" in placement) {
             const [x, y] = placement.Ok.destination;
@@ -104,7 +104,7 @@ export class PurchasePlacementControl {
           }
         },
         () => {
-          if (this.intent?.spot === run.spot)
+          if (this.intent?.spot === run)
             this.resolved = {
               spot: intent.spot,
               revision: intent.revision,
@@ -131,7 +131,7 @@ export class PurchasePlacementControl {
     )
       return null;
     const generation = this.generation;
-    const confirmation = (this.confirmation = { generation });
+    const confirmation = (this.confirmation = generation);
     try {
       const ack = await send({
         kind: "confirm_purchase",
@@ -139,7 +139,7 @@ export class PurchasePlacementControl {
         destination: ghost.destination,
       });
       if (!ack || ack.error) return null;
-      if (confirmation.generation === this.generation) this.cancel();
+      if (confirmation === this.generation) this.cancel();
       return { ...ghost, valid: true };
     } finally {
       if (this.confirmation === confirmation) this.confirmation = null;

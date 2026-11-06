@@ -113,7 +113,10 @@ export function editorReducer(
       return {
         ...state,
         operation: action.operation,
-        outcome: action.operation.kind === "preview" ? null : state.outcome,
+        outcome:
+          action.operation.kind === "preview" || action.operation.kind === "save"
+            ? null
+            : state.outcome,
       };
     case "snapshot-received":
       if (

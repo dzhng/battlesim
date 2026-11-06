@@ -49,8 +49,7 @@ interface BattleGraph {
   readonly frame: SoundFrame;
   readonly voices: BattleVoices;
   shouts: ShoutPool | null;
-  state: "preparing" | "ready" | "failed";
-  error: string | null;
+  state: "preparing" | "ready" | { kind: "failed"; message: string };
 }
 
 export interface BattleAudioStats extends SoundStats {
@@ -88,7 +87,6 @@ export class BattleAudio {
       voices: new BattleVoices(sink, this.options.presentation.voices),
       shouts: null,
       state: "preparing",
-      error: null,
     };
     this.graph = graph;
     void loadSoundModule()
@@ -102,9 +100,9 @@ export class BattleAudio {
       })
       .catch((error: unknown) => {
         if (this.graph !== graph) return;
-        if (graph.state === "preparing") graph.state = "failed";
-        graph.error = error instanceof Error ? error.message : String(error);
-        console.error("Battle sound could not be prepared:", graph.error);
+        const message = error instanceof Error ? error.message : String(error);
+        if (graph.state === "preparing") graph.state = { kind: "failed", message };
+        console.error("Battle sound could not be prepared:", message);
       });
   }
 
@@ -210,7 +208,7 @@ export class BattleAudio {
       graph: graph.sink.live,
       bankMs: graph.sink.bank.ms,
       loading: graph.state === "preparing",
-      error: graph.error,
+      error: typeof graph.state === "object" ? graph.state.message : null,
     };
   }
   dispose() {

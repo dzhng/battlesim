@@ -1188,8 +1188,7 @@ export function LabViewport({
         };
         const onUp = (e: PointerEvent) => {
           if (!inputEnabledRef.current) return;
-          if (e.button !== 0 && e.button !== 1 && e.button !== 2) return;
-          const button = e.button === 0 ? "left" : e.button === 1 ? "middle" : "right";
+          const button = e.button === 0 ? "left" : e.button === 2 ? "right" : "middle";
           gestures.up({
             button,
             x: e.clientX,

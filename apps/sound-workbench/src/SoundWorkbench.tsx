@@ -85,10 +85,6 @@ export function SoundWorkbench({
   const playing = playingKey(auditionState);
   const loadingAudio = auditionState.phase === "loading";
   const nextOperation = useRef(0);
-  const activeOperation = useRef<{
-    id: number;
-    kind: "load" | "reload" | "preview" | "save";
-  } | null>(null);
   const stopAudio = useCallback(() => {
     session.stop();
   }, [session]);
@@ -104,10 +100,7 @@ export function SoundWorkbench({
 
   const startOperation = useCallback(
     (kind: "load" | "reload" | "preview" | "save", draftJSON?: string) => {
-      if (kind === "load" && activeOperation.current?.kind === "preview") return null;
-      if (kind === "load" && activeOperation.current?.kind === "save") return null;
       const id = ++nextOperation.current;
-      activeOperation.current = { id, kind };
       dispatch({ type: "operation-started", operation: { id, kind, draftJSON } });
       setAuditionMessage("");
       return id;
@@ -127,11 +120,9 @@ export function SoundWorkbench({
         const value = await load();
         if (!active()) return;
         dispatch({ type: "snapshot-received", id, snapshot: value });
-        if (activeOperation.current?.id === id) activeOperation.current = null;
         if (nextOperation.current === id) stopAudio();
       } catch (error) {
         if (!active()) return;
-        if (activeOperation.current?.id === id) activeOperation.current = null;
         dispatch({
           type: "operation-failed",
           id,
@@ -223,9 +214,7 @@ export function SoundWorkbench({
       validateSoundCatalog(captured.catalog);
       const value = await api.preview(captured);
       dispatch({ type: "preview-received", id, value });
-      if (activeOperation.current?.id === id) activeOperation.current = null;
     } catch (error) {
-      if (activeOperation.current?.id === id) activeOperation.current = null;
       dispatch({
         type: "operation-failed",
         id,
