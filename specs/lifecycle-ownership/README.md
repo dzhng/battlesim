@@ -15,12 +15,11 @@ state-machine audit. Read the repository README and development guide, then this
 plan's [contracts](contracts.md), [scope decisions](scope.md),
 [verification policy](verification.md), and [decisions](decisions.md).
 
-Slices 01–07, 12–14 and 18 are complete: client settlement, shared preparation-worker
-handoff, authority resource ownership, session startup and page audio all passed
-focused checks and Claude review. Slice 14 (mechanics editor) is complete in
-committed delegated work and is ready to integrate after the current audio/session
-commits. Continue with slice 08 after closing these receipts; then proceed through
-the dependency graph.
+Slices 01–07, 12–15 and 18 are complete: client settlement, shared preparation-worker
+handoff, authority resource ownership, session startup, pointer/purchase ownership,
+page/battle audio, mechanics editor and map draft/display all passed focused checks
+and Claude review. Continue with order preview, viewport replacement and the
+remaining dependent ownership slices, then the integration closeout.
 
 There is no blocking product decision. The [source-derived behavior
 questions](decisions.md#behavior-questions-outside-this-refactor) are deliberately
@@ -76,7 +75,7 @@ when safe, never mutable build output. Avoid GPU contention or permanent debug r
 | [x] | [12 Page audio](slices/12-page-audio.md) | — | Permission, mute and menu/battle handoff |
 | [x] | [13 Battle audio](slices/13-battle-audio.md) | 12 | Ready graph, fresh evidence and departure |
 | [x] | [14 Mechanics editor](slices/14-mechanics-editor.md) | — | Invalid text, current review and conflict |
-| [ ] | [15 Map draft/display](slices/15-map-draft.md) | — | Latest request versus last admitted map |
+| [x] | [15 Map draft/display](slices/15-map-draft.md) | — | Latest request versus last admitted map |
 | [ ] | [16 Map manual work](slices/16-map-operations.md) | 15 | Inspect, compare, sample and cancel |
 | [ ] | [17 Map artifacts](slices/17-map-artifacts.md) | 16 | Retention, release and server close |
 | [x] | [18 Sound review](slices/18-sound-review.md) | — | Draft review, save and retained errors |
