@@ -6,6 +6,7 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
+import { SoundBank } from "@packages/battle-audio/src/soundBank";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import { soundSettings } from "@packages/battle-audio/src/settings";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
@@ -438,6 +439,32 @@ test("context admission failure stays explicit until manual recovery", () => {
   app.start();
   expect(app.stats()).toMatchObject({ error: "Audio unavailable", running: false });
   expect(admit).toHaveBeenCalledTimes(1);
+});
+
+test("menu bank failure leaves an admitted context usable for battle audio", async () => {
+  const app = setup();
+  const prepare = vi.spyOn(SoundBank.prototype, "prepare");
+  prepare.mockRejectedValueOnce(new Error("menu bank unavailable"));
+  app.setScreen("menu");
+  await vi.waitFor(() => expect(app.stats().error).toBe("menu bank unavailable"));
+  expect(app.stats().running).toBe(true);
+  expect(app.stats().menuReady).toBe(false);
+
+  const battle = app.createBattle(
+    {
+      tickHz: 30,
+      weapons: shippedRules.weapons,
+      unitCatalog: { units: [], soldiers: {} },
+      looks: presentationSettings,
+      presentation,
+    },
+    1,
+  );
+  await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
+  expect(battle.stats()?.error).toBeNull();
+  battle.dispose();
+  app.dispose();
+  expect(contexts[0].close).toHaveBeenCalledTimes(1);
 });
 
 test("quick mute then unmute resumes even while the earlier suspension is pending", async () => {
