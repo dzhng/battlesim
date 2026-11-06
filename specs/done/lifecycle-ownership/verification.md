@@ -1,10 +1,10 @@
 # Verification and review
 
-The [repository check ladder](../../development.md#check-ladder) governs cost.
+The [repository check ladder](../../../development.md#check-ladder) governs cost.
 This document records the shared verification policy. Focused tests and consumer
 journeys remain in the repository's test suites and git history for each owner.
 
-## Before each change
+## Verification principles
 
 Read the existing test for the seam and identify which contract it proves. Run the
 narrow relevant case before editing. Add a missing important preservation case
@@ -36,7 +36,7 @@ not copied logs or mutable test inventories.
 | Does picking refer to the drawn image?          | Viewport tests for skipped submission/replacement, then existing camera/input scene when browser behavior is in question                 |
 | Does audio remain identical?                    | Existing command/graph tests, admission/drop output and lifecycle cleanup; browser/offline audio only for a question mocks cannot answer |
 
-The [web manifest](../../web/package.json) owns test/typecheck commands; a focused
+The [web manifest](../../../web/package.json) owns test/typecheck commands; a focused
 invocation is `bun run --cwd web test -- tests/client.test.ts`. Build required WASM
 and native test helpers only when the test's subsystem needs them. Do not change
 Cargo build configuration, artifact identities, or dependencies to make a planning
@@ -44,15 +44,15 @@ or cleanup check cheaper.
 
 ## Visual and interactive preservation
 
-These slices do not redesign the UI. Still, controls and event timing are visible
-behavior. Use the existing [fixture registry](../../apps/battle-lab/src/fixtures.json)
-and [browser scene runner](../../web/README.md#checks-and-evidence) rather than
+This refactor does not redesign the UI. Still, controls and event timing are visible
+behavior. Use the existing [fixture registry](../../../apps/battle-lab/src/fixtures.json)
+and [browser scene runner](../../../web/README.md#checks-and-evidence) rather than
 creating an FSM lab. Choose the smallest existing scene that proves the changed
 interaction. Capture before/after at identical content, seed, tick, camera, quality,
 viewport and input state. The variable is the changed interaction/lifetime; color,
 layout, models, animation tuning and scene density are frozen.
 
-For every slice that produces a shot:
+For any changed player-facing flow that produces a shot:
 
 1. Use `game-ui` for the player-facing preservation constraints and `renderer`
    before renderer-boundary work. Verify the actual production entry path.
@@ -94,7 +94,7 @@ tests/docs and inspect any increased indirection. A new owner must delete the ol
 coordination, not merely wrap it. Follow `codex` for substantive implementation
 review where required by the repository skills.
 
-After all slices, run the root manifest's full `check` and `verify` once, plus the
+At final closeout, run the root manifest's full `check` and `verify` once, plus the
 production web build if the scene runner has not already established that artifact.
 Reuse a still-valid result; rerun only what a subsequent edit invalidated. There
 is no balance-report requirement for this plan because it selects no rule changes.

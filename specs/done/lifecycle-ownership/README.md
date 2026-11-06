@@ -27,7 +27,7 @@ The principal owners are greppable by these modules and types:
 - `apps/battle-lab/src/useSimSession.ts` and `routes/scenarioPlay.tsx` own session continuations and uploaded-route payloads.
 - `apps/battle-lab/src/viewportInput.ts`, `orderPreview.ts`, `releasedAction.ts`, `viewportSceneAdmission.ts`, and `viewportSubmittedView.ts` own pointer, preview, acknowledgement, scene, and submitted-frame transitions. `ViewportFrames` remains the frame waiter owner.
 - `packages/battle-audio/src/appAudio.ts` and `battleAudio.ts` own page and battle graph lifetimes. `apps/sound-workbench/src/soundWorkbenchState.ts`, `auditionSession.ts`, and `audition.ts` own sound review and auditions.
-- `apps/mechanics-editor/src/editorState.ts`, `apps/map-workbench/src/mapWorkbenchState.ts`, `manualOperation.ts`, and `artifacts.ts` own editor operations and map artifact storage. `LatestRunner` and `FixturePublication` retain their prior responsibilities.
+- `apps/mechanics-editor/src/editorState.ts`, `apps/map-workbench/src/editorState.ts`, `manualOperation.ts`, and `apps/map-workbench/artifacts.ts` own editor operations and map artifact storage. `LatestRunner` and `FixturePublication` retain their prior responsibilities.
 
 Consumer tests pin behavior at the existing seams under `web/tests/`, including the client, preparation, authority, session, pointer, purchase, order-preview, viewport, audio, mechanics, map, sound, audition, and voice suites, plus map-workbench server and native tests. Mutation receipts for stale identities, skipped submissions, cancellation waiting, artifact retention, and audition cleanup live under ignored `throwaway/lifecycle-ownership/` evidence.
 
@@ -39,8 +39,8 @@ A universal pending-request table was rejected because command, preview, advance
 
 ## Verification record
 
-All 19 implementation slices have focused tests, typecheck/lint/format evidence, and an independent Claude Opus review; review findings were fixed before each slice was accepted. The final integration review reconciled all 85 scope rows and found no obsolete selected-owner symbols.
+Each implementation pass has focused consumer tests and review evidence; the final integration review reconciled all 85 scope rows and found no obsolete selected-owner symbols.
 
-The once-only full `bun run check` reached the complete Rust suite and passed all non-audio tests, then stopped because native audio fixtures are Git LFS pointers (`assets/runtime/audio/clips/aa-burst.wav`). The final `bun run verify` reached browser scenes and was blocked by unfetched runtime art, visual baselines, and audio. These are repository asset availability limits, not lifecycle test failures; no requirement or tolerance was weakened.
+The once-only full `bun run check` reached the Rust suite, passed the non-audio tests observed before the audio fixture gate, and stopped because native audio fixtures are Git LFS pointers (`assets/runtime/audio/clips/aa-burst.wav`). The final `bun run verify` reached browser scenes and was blocked by unfetched runtime art, visual baselines, and audio. These are repository asset availability limits, not lifecycle test failures; no requirement or tolerance was weakened.
 
 No visual provenance image belongs to this refactor: player-facing geometry, rendering, and the audio mix were intentionally preserved. Browser visual gates were attempted only through the repository verifier and could not load the required LFS assets.

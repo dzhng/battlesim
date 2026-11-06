@@ -5,15 +5,15 @@ contract owners; proposed internal records are specified in the slice files.
 
 ## Boundaries
 
-| Boundary                                                             | Preserved contract                                                                                                                          |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Worker protocol](../../web/src/battle/sim/protocol.ts)              | Same request/reply shapes, issuer sequences, verdicts, transfer ownership and ordering. No version negotiation or new IDs on the wire.      |
-| [Preparation](../../web/src/battle/prepare/client.ts)                | One worker prepares and then runs the battle. Cancelled pending preparation stays unsettled and silent, including the uploaded-bundle path. |
-| [Publication reader](../../crates/sim/src/publication/reader.rs)     | Same epoch, observer, baseline transaction and raw packed bits; no hidden knowledge added.                                                  |
-| [Replay](../../crates/sim/src/battle/replay_identity.rs)             | Same saved shape, identity validation and accepted-command semantics. Do not bypass cross-build rejection.                                  |
-| [Renderer runtime](../../crates/renderer-core/src/runtime/mod.rs)    | Same canonical frame, incremental work and requirement for a fresh frame after catalog commit.                                              |
-| [Audio](../../packages/battle-audio/src/appAudio.ts)                 | Same permission retries, mix, start/stop timing, seeded score, observations dropped before readiness, and stats fields.                     |
-| [Fixture publication](../../apps/fixture-publication/publication.ts) | Same reviews/receipts, HTTP payloads, journal bytes, serialization, rollback and outside-edit refusal.                                      |
+| Boundary                                                                | Preserved contract                                                                                                                          |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Worker protocol](../../../web/src/battle/sim/protocol.ts)              | Same request/reply shapes, issuer sequences, verdicts, transfer ownership and ordering. No version negotiation or new IDs on the wire.      |
+| [Preparation](../../../web/src/battle/prepare/client.ts)                | One worker prepares and then runs the battle. Cancelled pending preparation stays unsettled and silent, including the uploaded-bundle path. |
+| [Publication reader](../../../crates/sim/src/publication/reader.rs)     | Same epoch, observer, baseline transaction and raw packed bits; no hidden knowledge added.                                                  |
+| [Replay](../../../crates/sim/src/battle/replay_identity.rs)             | Same saved shape, identity validation and accepted-command semantics. Do not bypass cross-build rejection.                                  |
+| [Renderer runtime](../../../crates/renderer-core/src/runtime/mod.rs)    | Same canonical frame, incremental work and requirement for a fresh frame after catalog commit.                                              |
+| [Audio](../../../packages/battle-audio/src/appAudio.ts)                 | Same permission retries, mix, start/stop timing, seeded score, observations dropped before readiness, and stats fields.                     |
+| [Fixture publication](../../../apps/fixture-publication/publication.ts) | Same reviews/receipts, HTTP payloads, journal bytes, serialization, rollback and outside-edit refusal.                                      |
 
 No schema migration is planned. Internal callers cut over in the owning slice;
 no alias, adapter or second state representation remains to protect obsolete code.
@@ -44,7 +44,7 @@ no alias, adapter or second state representation remains to protect obsolete cod
 
 ## Request settlement and timing
 
-The [simulation client](../../web/src/battle/sim/client.ts) currently distinguishes
+The [simulation client](../../../web/src/battle/sim/client.ts) currently distinguishes
 failure from disposal. Preserve this distinction rather than giving every promise
 the same termination policy:
 
