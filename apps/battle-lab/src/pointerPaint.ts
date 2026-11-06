@@ -28,18 +28,17 @@ import {
 import type { PointerIntent } from "@web/battle/input/pointerIntent";
 import type { CursorAction } from "@web/battle/present/gameCursor";
 import type { OwnUnitView } from "@web/battle/sim/observationView";
-import type { SimClient } from "@web/battle/sim/client";
 import type {
   MovePreviewRequest,
   MoveDestination,
   BuildingPreviewRequest,
-  BuildingPlacement,
   Order,
   CommandAck,
   SideName,
 } from "@web/battle/sim/protocol";
 import type { Vec3 } from "math";
 import { orderView } from "./battleOverlay";
+import type { OrderPreviewSnapshot } from "./orderPreview";
 import { Feed } from "@web/feed";
 import { groundUnderRay, type StaticWorld } from "./useStaticWorld";
 import { gameAttackGroundSpread, gameOrderStyle, gameRulerStyle, gameStroke } from "./gameOverlay";
@@ -166,85 +165,9 @@ export class PointerPaint {
   shown: RangeRuler | null = null;
 
   preview: readonly (DestinationMarker & { unit: number })[] = [];
-  private previewClient: Pick<SimClient, "previewMove" | "previewBuilding"> | null = null;
-  private resolved = "";
-  private gesture = "";
-  private generation = 0;
-  private busy = false;
-  /** The press's last answered destinations, kept while its facing turns. */
-  destinations: MoveDestination[] = [];
-  building: BuildingPlacement | null = null;
-  state: "idle" | "pending" | "ready" | "blocked" = "idle";
 
   constructor(units: UnitCatalog) {
     this.units = units;
-  }
-
-  /** At most one placement query is in flight; intermediate pointer updates
-   *  are coalesced, and a reply cannot restore a cancelled gesture. Turning
-   *  the facing is the same gesture: its last answer stays drawn until the
-   *  new facing's answer replaces it, so a facing drag never blanks. */
-  resolvePreview(
-    intent: PointerPreview | null,
-    selected: readonly OwnUnitView[],
-    client: Pick<SimClient, "previewMove" | "previewBuilding"> | null,
-    revision: number | string,
-    identity = "",
-  ) {
-    const gesture =
-      intent && client
-        ? JSON.stringify([intent.kind, { ...intent.request, facing: undefined }, identity])
-        : "";
-    if (gesture !== this.gesture || client !== this.previewClient) {
-      this.generation += 1;
-      this.gesture = gesture;
-      this.previewClient = client;
-      this.destinations = [];
-      this.building = null;
-      this.state = intent && client ? "pending" : "idle";
-      this.resolved = "";
-    }
-    const key = gesture && JSON.stringify([intent, revision]);
-    const generation = this.generation;
-    if (intent && client && key && !this.busy && key !== this.resolved) {
-      this.busy = true;
-      const query =
-        intent.kind === "move"
-          ? client
-              .previewMove(intent.request)
-              .then((destinations) => ({ destinations, building: null }))
-          : client
-              .previewBuilding(intent.request)
-              .then((building) => ({ destinations: building.destinations, building }));
-      void query
-        .then(
-          (result) => {
-            if (this.generation === generation && this.previewClient === client) {
-              this.destinations = result.destinations;
-              this.building = result.building;
-              this.state =
-                result.building?.entrant || result.destinations.some((mark) => mark.placed)
-                  ? "ready"
-                  : !result.building || result.building.unproven
-                    ? "pending"
-                    : "blocked";
-              this.resolved = key;
-            }
-          },
-          () => {
-            if (this.generation === generation && this.previewClient === client) {
-              this.destinations = [];
-              this.building = null;
-              this.state = "pending"; // A failed query cannot prove an action unavailable.
-              this.resolved = key;
-            }
-          },
-        )
-        .finally(() => {
-          this.busy = false;
-        });
-    }
-    return this.markers(this.destinations, selected);
   }
 
   markers(
@@ -402,7 +325,7 @@ export function previewForIntent(intent: PointerIntent): PointerPreview | null {
 /** Pending availability stays plain; an attack may validly pursue its target. */
 export function cursorForIntent(
   intent: PointerIntent,
-  paint: Pick<PointerPaint, "state" | "building">,
+  paint: Pick<OrderPreviewSnapshot, "state" | "building">,
 ): CursorAction {
   if (intent.kind === "none") return "default";
   if (intent.kind === "blocked") return "blocked";

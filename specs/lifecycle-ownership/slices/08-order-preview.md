@@ -1,6 +1,6 @@
 # 08 — Order preview admission separated from paint
 
-**Status:** pending. **Audit families:** 20. **Dependencies:** 01, 06.
+**Status:** complete. **Audit families:** 20. **Dependencies:** 01, 06.
 
 ## Contract and question
 
@@ -51,3 +51,23 @@ Feedback that would change scope: New speculative availability or clearing a ret
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+`OrderPreview` now owns move/building preview requests, gesture/client generations,
+the one-active-query next-frame cadence, retained facing answers, and derived
+availability. `PointerPaint` retains the marker geometry, mesh cache and feed;
+the session composes its snapshot for cursor, drag ghosts, probe output and paint.
+No protocol, public probe shape, visible geometry, timing policy or gameplay rule
+changed. The old async fields and `resolvePreview` path were removed.
+
+Focused evidence:
+
+- `bun run --cwd web test -- tests/orderPreview.test.ts tests/unitControl.test.tsx tests/viewport.test.tsx tests/blockedTrajectory.test.tsx tests/rejectedOrder.test.tsx` — 78 tests passed.
+- `bun run --cwd web typecheck`, `bun run lint`, and `bun run fmt:check` — passed; only pre-existing exhaustive-deps/type warnings remain.
+- Mutation receipts in `throwaway/lifecycle-ownership/`: `order-preview-mutation-generation.log` and `order-preview-mutation-facing.log` both fail when stale invalidation or facing retention is broken.
+
+Shape/diff/docs review is clean. Decision audit found no unsound architectural
+choices beyond the slice's delegated private owner naming. No screenshot was
+produced: the slice preserves the existing marker/cursor geometry and changes
+only async ownership. Final Claude Opus high-effort read-only review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3A3f8297f5-ce0b-4fd8-8113-42313cd71b4f%3Adelegate-task%3A0192df0c-3c4a-4ef5-b208-da9232597282>. Verdict: clean; it confirmed admitted gesture/client revocation, one-query cadence, facing retention, failure/idle semantics, and the complete production cutover.

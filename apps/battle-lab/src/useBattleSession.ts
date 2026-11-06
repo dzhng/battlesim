@@ -52,6 +52,7 @@ import {
   samePointerIntent,
   previewContextIdentity,
 } from "./pointerPaint";
+import { OrderPreview } from "./orderPreview";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observationView";
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { Player } from "@web/battle/prepare/protocol";
@@ -236,11 +237,9 @@ export function useBattleSession({
   // Whatever reads the drawn frame (its picks, its drawn positions) reads the
   // battle from this, not from React's `observation`, which lags it by a render.
   const drawnObservation = useRef<ObservationView | null>(null);
-  // Which units' order marks show (Space, or an order's flash), refreshed
-  // each frame and kept as state only when it changes.
   const orderReveal = useMemo(() => new OrderReveal(gameOrderFlash), []);
-  /** Bridge the released preview until the publication contains its order. */
   const [pointerPaint] = useState(() => new PointerPaint(units));
+  const [orderPreview] = useState(() => new OrderPreview());
   const pendingAction = useRef<{ order: Order; queued: boolean; generation: number } | null>(null);
   const pressGeneration = useRef(0);
   const captured = useRef<{
@@ -250,7 +249,6 @@ export function useBattleSession({
     client: typeof sim.client;
   } | null>(null);
   const shownIntent = useRef<PointerIntent>({ kind: "none" });
-  /** Where a held right-drag's units will stand. */
   const dragGhosts = useRef<UnitGhost[]>([]);
   const [revealed, setRevealed] = useState<RevealedOrders>(NOTHING_REVEALED);
   const revealedRef = useRef(revealed);
@@ -309,8 +307,8 @@ export function useBattleSession({
     orderReveal.clear();
     pendingAction.current = null;
     captured.current = null;
-    pointerPaint.resolvePreview(null, [], null, 0);
-  }, [sim.client, orderReveal, pointerPaint, cancelPurchase]);
+    orderPreview.update(null, [], null, 0);
+  }, [sim.client, orderReveal, orderPreview, cancelPurchase]);
 
   // Every building is drawn from its template's rows, as instances of kit
   // modules, standing or fallen: no fitted model stands for one or for its
@@ -755,16 +753,17 @@ export function useBattleSession({
     const accepted = pending && control.acks.find(({ order }) => order === pending.order)?.ack;
     const released = pending && intentForOrder(pending.order, pending.queued);
     // Until admission answers, the released request retains its resolved marks,
-    // including facing. It uses the same coalesced resolver as held/hover intent.
+    // including facing. It uses the same coalesced preview owner as held/hover intent.
     const waiting = !held && pending && !accepted && released;
     const queryIntent = waiting ? reconcilePointerIntent(released, shown, commanding) : intent;
-    const marks = pointerPaint.resolvePreview(
+    const previewSnapshot = orderPreview.update(
       active ? previewForIntent(queryIntent) : null,
       shown?.own ?? [],
       active ? sim.client : null,
       `${shown?.tick ?? 0}:${control.acks[0]?.seq ?? 0}`,
       `${semanticRevision.current.version}:${held?.generation ?? (waiting ? pending.generation : 0)}`,
     );
+    const marks = pointerPaint.markers(previewSnapshot.destinations, shown?.own ?? []);
     const showDestinations =
       queryIntent.kind === "move" ||
       queryIntent.kind === "occupy_building" ||
@@ -774,7 +773,7 @@ export function useBattleSession({
     // right-click does not.
     dragGhosts.current =
       active && held && pointer.rightDragging && showDestinations
-        ? pointerPaint.destinations.flatMap((d) => {
+        ? previewSnapshot.destinations.flatMap((d) => {
             const unit = shown?.own.find((u) => u.id === d.unit);
             if (!unit || !d.placed) return [];
             return [
@@ -848,7 +847,9 @@ export function useBattleSession({
     }
     return cursorForIntent(
       intent,
-      samePointerIntent(intent, queryIntent) ? pointerPaint : { state: "pending", building: null },
+      samePointerIntent(intent, queryIntent)
+        ? previewSnapshot
+        : { state: "pending", building: null },
     );
   };
   /** Drag-select own units whose drawn position falls in the rectangle. */
@@ -898,7 +899,10 @@ export function useBattleSession({
     selected: () => control.selected,
     select: (ids: number[]) => control.setSelected(ids),
     pointerIntent: () => shownIntent.current,
-    pointerResolution: () => ({ state: pointerPaint.state, building: pointerPaint.building }),
+    pointerResolution: () => {
+      const { state, building } = orderPreview.snapshot;
+      return { state, building };
+    },
     movePreview: () => pointerPaint.preview,
     /** The currently selected reinforcement's live cursor ghost. */
     purchaseGhost: () => purchaseGhost.current,
