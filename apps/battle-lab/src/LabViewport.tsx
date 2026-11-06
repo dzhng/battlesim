@@ -80,9 +80,10 @@ import {
 } from "./presentedFrame";
 import { type FogRequest } from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
-import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
+import { pickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 import { testQualityProfile, type GraphicsQualityProfile } from "./graphicsSettings";
 import { SceneAdmission, type SceneAdmissionIdentity } from "./viewportSceneAdmission";
+import { ViewportSubmittedView } from "./viewportSubmittedView";
 
 const NO_MODELS: readonly ModelInstance[] = [];
 const NO_INSTANCES: readonly SceneInstance[] = [];
@@ -275,7 +276,6 @@ export function LabViewport({
   const onFrameRef = useRef(onFrame);
   onFrameRef.current = onFrame;
   const instancesRef = useRef(instances);
-  const picksRef = useRef<readonly PickBox[] | null>(null);
   const fixedPicksRef = useRef(fixedPicks);
   fixedPicksRef.current = fixedPicks;
   const worldRef = useRef(world);
@@ -474,9 +474,8 @@ export function LabViewport({
       width: canvas.width,
       height: canvas.height,
     });
-    let submittedView: ViewportCamera | null = null;
-    let submittedPicks: readonly PickBox[] = [];
-    const interactionView = () => submittedView ?? snapshot();
+    const submitted = new ViewportSubmittedView();
+    const interactionView = () => submitted.camera(snapshot());
 
     (async () => {
       try {
@@ -687,6 +686,7 @@ export function LabViewport({
           redraw: () => (dirty = true),
           installed: (next) => {
             scene = next;
+            staged = null;
             setInspecting((shown) => (shown ? next : shown));
           },
         });
@@ -896,13 +896,18 @@ export function LabViewport({
             if (dirty && draw()) {
               drawn = true;
               if (staged?.instances) instancesRef.current = staged.instances;
-              if (staged?.picks) picksRef.current = staged.picks;
               if (staged?.counts) countsRef.current = staged.counts;
               if (staged?.effectCounts) effectCountsRef.current = staged.effectCounts;
-              submittedPicks =
-                picksRef.current ?? fixedPicksRef.current ?? instancesRef.current.map(proxyPickBox);
-              submittedView = snapshot();
-              staged?.submitted?.();
+              submitted.submit(
+                {
+                  scene,
+                  camera: snapshot(),
+                  framePicks: staged?.picks,
+                  routePicks: fixedPicksRef.current,
+                  instances: instancesRef.current,
+                },
+                staged?.submitted,
+              );
               staged = null;
               if (scene.current()) frameRequests.submitted();
             }
@@ -950,9 +955,8 @@ export function LabViewport({
         const projector = (): Project =>
           viewportProjector(interactionView(), canvas.getBoundingClientRect());
 
-        /** What a click can pick: the frame's picks, else the route's, else
-         *  each drawn proxy by its own box. */
-        const picks = (): readonly PickBox[] => submittedPicks;
+        const picks = (): readonly PickBox[] =>
+          submitted.currentFor(sceneAdmissionRef.current?.current())?.picks ?? [];
         const nextFrame = () => frameRequests.request();
 
         Object.assign(handle, {

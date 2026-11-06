@@ -403,13 +403,13 @@ test("a skipped surface neither completes a frame nor publishes its observation"
 test("skipped frames retain the submitted pick boxes and camera rays", async () => {
   const box = (x: number) => ({
     x,
-    y: 0,
+    y: 800,
     z: 0,
     yaw: 0,
     center: [0, 0, 0] as const,
     half: [1, 1, 1] as const,
   });
-  let candidate: ViewportFrame = { picks: [box(1)] };
+  let candidate: ViewportFrame = { picks: [box(170)] };
   const { advance, view } = await mount({ frame: () => candidate });
   await building();
   let usable = true;
@@ -428,24 +428,38 @@ test("skipped frames retain the submitted pick boxes and camera rays", async () 
   });
   await act(async () => advance(1));
   const initialRay = window.__lab!.rayAt!(400, 300);
-  expect(window.__lab!.instances!()).toEqual([box(1)]);
+  expect(window.__lab!.instances!()).toEqual([box(170)]);
+  const initialPoint = window.__lab!.projectToCss!(170, 800, 0)!;
+  expect(window.__lab!.pickAt!(...initialPoint)).toBe(0);
 
   usable = false;
-  candidate = { picks: [box(2)] };
+  candidate = { picks: [box(180)] };
   const camera = window.__lab!.camera!();
   window.__lab!.setCamera!({
     ...camera,
     target: [camera.target[0] + 10, camera.target[1], camera.target[2]],
   });
   await act(async () => advance(2));
-  expect(window.__lab!.instances!()).toEqual([box(1)]);
+  expect(window.__lab!.instances!()).toEqual([box(170)]);
   expect(window.__lab!.rayAt!(400, 300)).toEqual(initialRay);
+  expect(window.__lab!.pickAt!(...initialPoint)).toBe(0);
 
   usable = true;
   candidate = {}; // Omitted fields keep the staged value across a skipped draw.
   await act(async () => advance(3));
-  expect(window.__lab!.instances!()).toEqual([box(2)]);
+  expect(window.__lab!.instances!()).toEqual([box(180)]);
   expect(window.__lab!.rayAt!(400, 300)).not.toEqual(initialRay);
+  const nextPoint = window.__lab!.projectToCss!(180, 800, 0)!;
+  expect(window.__lab!.pickAt!(...nextPoint)).toBe(0);
+  const committedCamera = window.__lab!.camera!();
+  window.__lab!.setCamera!({
+    ...committedCamera,
+    target: [committedCamera.target[0] + 10, committedCamera.target[1], committedCamera.target[2]],
+  });
+  await act(async () => advance(4));
+  expect(window.__lab!.instances!()).toEqual([box(180)]);
+  const retainedPoint = window.__lab!.projectToCss!(180, 800, 0)!;
+  expect(window.__lab!.pickAt!(...retainedPoint)).toBe(0);
   view.unmount();
 });
 
@@ -485,35 +499,6 @@ test("departing during a quality rebuild does not refuse the page's shared GPU",
   view.unmount();
   await act(async () => {});
   expect(getGpu().refused).toEqual([]);
-});
-
-test("a replaced session draws its new presentation without touching the retired observer", async () => {
-  const { ScenePresentation } = await import("@web/battle/sim/presentation");
-  const before = new ScenePresentation(),
-    after = new ScenePresentation();
-  before.setBattle({ world: {}, tables: new Map() });
-  after.setBattle({ world: {}, tables: new Map() });
-  const observer = new Feed<ScenePresentation | null>(before);
-  const { advance, view } = await mount({ presentation: observer, frame: () => null });
-  await building();
-  const oldRender = vi.fn(() => true),
-    oldDispose = vi.fn();
-  await act(async () => getGpu().resolve!({ render: oldRender, dispose: oldDispose }));
-  act(() => advance(1));
-  oldRender.mockClear();
-  const retiredFrame = vi.spyOn(before, "frame");
-  act(() => observer.set(after));
-  await act(async () => advance(2));
-  expect(retiredFrame).not.toHaveBeenCalled();
-  expect(oldRender).not.toHaveBeenCalled();
-  expect(getGpu().options).toHaveLength(2);
-  expect(getGpu().options[1].presentation).toBe(after);
-  const newRender = vi.fn(() => true);
-  await act(async () => getGpu().resolve!({ render: newRender }));
-  act(() => advance(3));
-  expect(newRender).toHaveBeenCalledTimes(1);
-  expect(oldDispose).toHaveBeenCalledTimes(1);
-  view.unmount();
 });
 
 test("a preset changed during admission installs only the newest grass and shadow settings", async () => {

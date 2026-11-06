@@ -1,6 +1,6 @@
 # 11 — Submitted view snapshot
 
-**Status:** pending. **Audit families:** 27. **Dependencies:** 10.
+**Status:** complete. **Audit families:** 27. **Dependencies:** 10.
 
 ## Contract and question
 
@@ -51,3 +51,33 @@ Feedback that would change scope: Picking against newest simulation data rather 
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+Baseline: `a07756197`. `ViewportSubmittedView` now owns the last successful
+scene/camera/pick snapshot. `ViewportFrames` remains the sole waiter owner;
+publication still occurs only after `draw()` succeeds, in the existing callback
+and waiter order. Rays and projection retain the last drawn camera across scene
+replacement, while picks are withheld until the installed scene submits. Frame
+picks carry over only within the same scene; route picks and proxy picks are
+re-read on each successful submission. Retired staged callbacks are discarded
+when `SceneAdmission` installs a replacement. The session observation remains
+owned by the existing `submitted` callback rather than retaining a second
+presentation-module view in the snapshot.
+
+Focused checks:
+
+- `bun run --cwd web test -- tests/viewport.test.tsx tests/viewportReplacement.test.tsx tests/picking.test.ts tests/camera3d.test.ts` — 47 tests passed.
+- `bun run --cwd web typecheck` — passed.
+- `bun run --cwd web lint` — passed with the existing `unitGhosts.test.ts:150` `no-explicit-any` warning.
+- Changed-file ESLint, repository `fmt:check`, and `git diff --check` — passed.
+- `web/verify` was attempted; scene runs were blocked by unfetched Git LFS runtime art/baselines and existing audio decode failures. No visual shot was produced, so screenshot comparison/critique/Preview were not applicable.
+
+Mutation evidence: `throwaway/lifecycle-ownership/mutation-skipped-submit.log` fails when skipped rendering is changed to publish/complete; `throwaway/lifecycle-ownership/mutation-stale-pick.log` fails when replacement scene identity gating is removed. Both mutants were restored and the focused suite passed.
+
+Fresh independent Claude Opus high-effort read-only review: [receipt](../../../throwaway/lifecycle-ownership/claude-review-final.txt) — code and scope clean. The review's documentation and code tidies were applied before this receipt was finalized.
+
+Production diff: 80 added, 12 deleted lines across `LabViewport.tsx` and
+`viewportSubmittedView.ts`; new `viewportSubmittedView.ts` is 64 lines. Test
+diff: 124 added, 35 deleted lines across `viewport.test.tsx` and the new
+`viewportReplacement.test.tsx`; both remain under the source-size ratchet.
