@@ -124,6 +124,18 @@ def _targets(prefixes):
     return BVHTree.FromPolygons(verts, polys)
 
 
+def skin_top(prefixes, parent):
+    """The height of the skin of the parts `prefixes` names under (x, y),
+    both in `parent`'s frame: for what lies on a curved skin (a door's
+    outline, a panel) rather than being painted onto it."""
+    tree, inv = _targets(prefixes), parent.matrix_world.inverted_safe()
+
+    def top(x, y):
+        hit = tree.ray_cast(parent.matrix_world @ Vector((x, y, 6.0)), Vector((0, 0, -1)), 8.0)[0]
+        return (inv @ hit).z
+    return top
+
+
 def _lay(points, centre, normal, up, size, tree, lift):
     """Each (u, v) of `points`, `size` metres to the unit, on the plane at
     `centre` facing `normal` with +V toward `up`, then pressed onto the skin

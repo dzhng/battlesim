@@ -31,13 +31,14 @@ def store(name, kind, loc, length, radius, mats, parent, fins=True, rail=False):
     body, a pointed seeker, canards and tail fins, its live bands), `bomb`
     (a fat body, its fuze and tail fins), `tank` (a drop tank, in the
     airframe's paint as an air arm paints its tanks), `pod` (a sensor pod
-    with its window) or `rockets` (a blunt rocket launcher, its tubes' mouths
-    in its dark front face); all but the tank in the stores' grey. `rail`
+    with its window), `jammer` (a jamming pod, the ram-air turbine on its
+    nose that powers it) or `rockets` (a blunt rocket launcher, its tubes'
+    mouths in its dark front face); all but the tank in the stores' grey. `rail`
     hangs it from a launch rail."""
     x, y, z = loc
     h = length / 2
-    nose = {"missile": 0.12, "bomb": 0.25, "tank": 0.3, "pod": 0.15, "rockets": 0.04}[kind]
-    tail = {"missile": 0.98, "bomb": 0.8, "tank": 0.75, "pod": 0.9, "rockets": 0.94}[kind]
+    nose = {"missile": 0.12, "bomb": 0.25, "tank": 0.3, "pod": 0.15, "jammer": 0.15, "rockets": 0.04}[kind]
+    tail = {"missile": 0.98, "bomb": 0.8, "tank": 0.75, "pod": 0.9, "jammer": 0.9, "rockets": 0.94}[kind]
     st = [(x + h, 0.0, z, z), (x + h - length * nose, radius, z - radius, z + radius),
           (x - h + length * (1 - tail), radius, z - radius, z + radius),
           (x - h, radius * (0.4 if kind != "missile" else 0.95), z - radius * 0.5, z + radius * 0.5)]
@@ -57,6 +58,11 @@ def store(name, kind, loc, length, radius, mats, parent, fins=True, rail=False):
     if kind == "pod":
         box(f"{name}_window", (0.03, radius * 1.1, radius * 1.1), (x + h - length * nose * 0.4, y, z),
             mats["glass"], parent, lods=MID)
+    if kind == "jammer":
+        cyl(f"{name}_rat", radius * 0.45, 0.12, (x + h + 0.02, y, z), "X", mats["dark"], parent, seg=12, lods=MID)
+        for b in range(2):
+            box(f"{name}_rat_blade_{b}", (0.03, 0.05, radius * 1.4), (x + h + 0.07, y, z), mats["dark"], parent,
+                rot=(b * math.pi / 2, 0, 0), lods=NEAR)
     if kind == "rockets":
         # The front face, and a ring of tube mouths round a centre one.
         cyl(f"{name}_face", radius * 0.94, 0.02, (x + h + 0.01, y, z), "X", mats["black"], parent, seg=14, lods=MID)
