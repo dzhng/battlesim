@@ -1,6 +1,6 @@
 # 03 — Authority resource lifetime
 
-**Status:** in progress; admitted resource record. **Audit families:** 7. **Dependencies:** 01.
+**Status:** complete. **Audit families:** 7. **Dependencies:** 01.
 
 ## Contract and question
 
