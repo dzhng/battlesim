@@ -1,6 +1,6 @@
 # 10 — Viewport scene admission and replacement
 
-**Status:** pending. **Audit families:** 27. **Dependencies:** 04, 06.
+**Status:** complete. **Audit families:** 27. **Dependencies:** 04, 06.
 
 ## Contract and question
 
@@ -51,3 +51,28 @@ Feedback that would change scope: Automatic GPU recovery, cross-generation shari
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+`SceneAdmission` in `apps/battle-lab/src/viewportSceneAdmission.ts` now owns the
+viewport's complete observer/world/art/quality identity, serialized candidate
+builds, stale candidate disposal, scene replacement, and departure cleanup.
+`LabViewport` retains frame scheduling and camera/input ownership; `AppResources`
+and `SceneAppearances` remain the page GPU and asset-only owners.
+
+Focused checks: `viewport.test.tsx`, `viewportAdmission.test.tsx`, `appResources.test.ts`,
+`sceneAppearances.test.ts`, and `battleFielding.test.tsx` — 42 tests passed.
+The viewport suite adds coverage for initial-build refusal and a
+consumer-requested rebuild failure ending readiness. Web typecheck, changed-file Oxlint, and changed-file Oxfmt checks
+passed; Oxlint retains the existing exhaustive-deps warning in `LabViewport`.
+
+The generated replacement browser scene was attempted but could not reach
+readiness because this checkout's runtime art is still Git LFS pointer content;
+the run also reported the existing menu audio decode limitation. No screenshot
+was produced and successful scene builds preserve the existing pixels, so the
+compare-screenshots, screenshot-critique, and preview gates were not applicable.
+
+Claude Opus 5.5 high-effort review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3Ab3b7bb17-b597-4fa3-9ae5-cc4a9e8396d4%3Adelegate-task%3A3262d6eb-2c8a-4d7f-a231-9d780bb3b58e>.
+Findings were verified and fixed before commit: rebuild failures report through
+the viewport boundary, first-build failures retain page refusal behavior, and
+diagnostic/telemetry borrows withdraw before scene disposal.

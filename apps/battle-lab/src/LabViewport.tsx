@@ -82,6 +82,7 @@ import { type FogRequest } from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 import { testQualityProfile, type GraphicsQualityProfile } from "./graphicsSettings";
+import { SceneAdmission, type SceneAdmissionIdentity } from "./viewportSceneAdmission";
 
 const NO_MODELS: readonly ModelInstance[] = [];
 const NO_INSTANCES: readonly SceneInstance[] = [];
@@ -188,7 +189,6 @@ interface LabViewportProps {
   cameraConfig?: CameraPresentation;
 }
 
-/** The viewport owns the live projection and render resolution passed to pointer paint. */
 export type ViewportCursor = NonNullable<LabViewportProps["onCursor"]>;
 
 /** Screen-edge band that pans the camera like a held key. */
@@ -280,7 +280,7 @@ export function LabViewport({
   fixedPicksRef.current = fixedPicks;
   const worldRef = useRef(world);
   worldRef.current = world;
-  const sceneRef = useRef<BrowserScene | null>(null);
+  const sceneAdmissionRef = useRef<SceneAdmission | null>(null);
   const [inspecting, setInspecting] = useState<BrowserScene | null>(null);
   instancesRef.current = instances;
 
@@ -314,7 +314,7 @@ export function LabViewport({
   useEffect(
     () =>
       pointerMarks?.subscribe((marks) => {
-        sceneRef.current?.setPointerMarks(marks);
+        sceneAdmissionRef.current?.current()?.setPointerMarks(marks);
         redrawRef.current();
       }),
     [pointerMarks],
@@ -335,7 +335,7 @@ export function LabViewport({
   fogStyleRef.current = fogStyle;
   const lightRef = useRef(light);
   useEffect(() => {
-    sceneRef.current?.setFogStyle(fogStyle ?? gameFogStyle);
+    sceneAdmissionRef.current?.current()?.setFogStyle(fogStyle ?? gameFogStyle);
     redrawRef.current();
   }, [fogStyle]);
   const fogSuppressed = useRef(false);
@@ -345,7 +345,7 @@ export function LabViewport({
   useEffect(
     () =>
       overlay?.subscribe((meshes: WorldMeshes | undefined) => {
-        if (meshes) sceneRef.current?.setOverlay(meshes);
+        if (meshes) sceneAdmissionRef.current?.current()?.setOverlay(meshes);
         redrawRef.current();
       }),
     [overlay],
@@ -491,7 +491,7 @@ export function LabViewport({
           if (canvas.width !== w || canvas.height !== h) {
             canvas.width = w;
             canvas.height = h;
-            sceneRef.current?.resize();
+            sceneAdmissionRef.current?.current()?.resize();
             dirty = true;
           }
         };
@@ -575,7 +575,6 @@ export function LabViewport({
             };
             signal.addEventListener("abort", abort, { once: true });
           });
-        let rebuilding: Promise<void> | null = null;
         const readyPresentation = async (): Promise<ScenePresentation> => {
           while (!signal.aborted) {
             const decoder = scenePresentation();
@@ -590,10 +589,22 @@ export function LabViewport({
           }
           throw new Error("Viewport departed during renderer admission");
         };
-        const build = async (): Promise<BrowserScene> => {
-          const decoder = await readyPresentation();
+        const captureIdentity = async (): Promise<SceneAdmissionIdentity> => {
+          const observer = await readyPresentation();
           const quality = qualityRef.current;
-          const qualityKey = JSON.stringify(quality);
+          return {
+            observer,
+            world: worldRef.current.current!,
+            appearances: appearancesRef.current,
+            quality,
+            qualityKey: JSON.stringify(quality),
+          };
+        };
+        const build = async (
+          identity: SceneAdmissionIdentity,
+          current: () => boolean,
+        ): Promise<BrowserScene | null> => {
+          const { observer: decoder, world, appearances: installed, quality } = identity;
           const lit = light();
           staticSun = {
             azimuth: lit.sun_azimuth,
@@ -602,13 +613,6 @@ export function LabViewport({
           };
           staticStyle = buildingStyleRef.current ?? gameBuildingStyle;
           shadowLight = applyShadowQuality(lit, quality);
-          const world = worldRef.current.current!;
-          const installed = appearancesRef.current;
-          const current = () =>
-            decoder === scenePresentation() &&
-            installed === appearancesRef.current &&
-            world === worldRef.current.current &&
-            qualityKey === JSON.stringify(qualityRef.current);
           decoder.setBuildings(
             buildingsRef.current?.current ?? null,
             installed,
@@ -619,11 +623,9 @@ export function LabViewport({
           decoder.setShadow(shadowLight, world.terrain.mesh);
           decoder.setFog(fogSuppressed.current ? null : (fogRef.current?.current ?? null));
           let first = frameRef.current?.(performance.now(), snapshot(), 0);
-          // Publications start only after GPU readiness. Admit the complete
-          // staged battle topology before its first observed frame exists.
           while (presentationRef.current && !decoder.hasBattle() && !signal.aborted) {
             await admissionFrame();
-            if (!current()) return build();
+            if (!current()) return null;
             first = frameRef.current?.(performance.now(), snapshot(), 0);
           }
           if (signal.aborted) throw new Error("Viewport departed during renderer admission");
@@ -654,16 +656,15 @@ export function LabViewport({
               failed: reportFailure,
             });
           } catch (error) {
-            if (!current()) return build();
+            if (!current()) return null;
             throw error;
           }
           if (signal.aborted) {
-            next.dispose();
             return next;
           }
           if (!current() || !next.worldCurrent()) {
             next.dispose();
-            return build();
+            return null;
           }
           next.setModels(modelsRef.current);
           next.setInstances(instancesRef.current);
@@ -673,10 +674,25 @@ export function LabViewport({
           if (marks) next.setPointerMarks(marks);
           return next;
         };
-        let scene = await build();
+        let scene!: BrowserScene;
         let staged: ViewportFrame | null = null;
+        const admission = new SceneAdmission({
+          capture: captureIdentity,
+          current: (identity) =>
+            identity.observer === scenePresentation() &&
+            identity.world === worldRef.current.current &&
+            identity.appearances === appearancesRef.current &&
+            identity.qualityKey === JSON.stringify(qualityRef.current),
+          build,
+          redraw: () => (dirty = true),
+          installed: (next) => {
+            scene = next;
+            setInspecting((shown) => (shown ? next : shown));
+          },
+        });
+        sceneAdmissionRef.current = admission;
+        await admission.request();
         if (signal.aborted) return;
-        sceneRef.current = scene;
         const allocations = () => scene.stats().memory;
         const adapter = info.name || info.backend;
         pilot?.attach?.({
@@ -737,7 +753,7 @@ export function LabViewport({
         // eslint-disable-next-line complexity -- debt: its stages read and write the effect's mutable locals (scene, dirty, pointer, grassSuppressed, lastFrame); split needs those in one frame-state object the stages take, not more closures.
         const loop = (now: number) => {
           if (signal.aborted || handle.error) return;
-          if (rebuilding) {
+          if (admission.replacing()) {
             raf = requestAnimationFrame(loop);
             return;
           }
@@ -786,8 +802,6 @@ export function LabViewport({
             dirty = true; // a piloted frame is always drawn: it is measured
           }
           see(dt);
-          // The scene's presentation is staged with its buildings before the
-          // battle frames it (or, without one, the viewport frames it).
           const decoder = scene.presentation;
           const terrain = scene.world().terrain.mesh;
           let animated: ViewportFrame | null | undefined = null;
@@ -990,25 +1004,12 @@ export function LabViewport({
             see(0);
           },
           async rebuild() {
-            rebuilding ??= (async () => {
-              try {
-                const previous = scene;
-                const next = await build();
-                if (signal.aborted) return;
-                next.inheritControls(scene);
-                scene = next;
-                sceneRef.current = next;
-                previous.dispose();
-                setInspecting((shown) => (shown ? scene : shown));
-                dirty = true;
-              } catch (error) {
-                reportFailure(error);
-                throw error;
-              } finally {
-                rebuilding = null;
-              }
-            })();
-            await rebuilding;
+            try {
+              await admission.request();
+            } catch (error) {
+              reportFailure(error);
+              throw error;
+            }
             if (!signal.aborted && !handle.error) await nextFrame();
           },
           rayAt(cssX: number, cssY: number) {
@@ -1279,8 +1280,8 @@ export function LabViewport({
       keys.detach();
       setCursorAction("default");
       onRightPressRef.current?.(null);
-      sceneRef.current?.dispose();
-      sceneRef.current = null;
+      sceneAdmissionRef.current?.dispose();
+      sceneAdmissionRef.current = null;
       if (window.__lab === handle) delete window.__lab;
     };
     // The viewport is rebuilt only when the fixture identity changes.
