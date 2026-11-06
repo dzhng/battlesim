@@ -115,7 +115,6 @@ export function SoundWorkbench({
       active: () => boolean = () => true,
     ) => {
       const id = startOperation(kind);
-      if (id === null) return;
       try {
         const value = await load();
         if (!active()) return;
@@ -209,7 +208,6 @@ export function SoundWorkbench({
       lookSounds: structuredClone(lookSounds),
     };
     const id = startOperation("preview", JSON.stringify(captured));
-    if (id === null) return;
     try {
       validateSoundCatalog(captured.catalog);
       const value = await api.preview(captured);

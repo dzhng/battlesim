@@ -36,7 +36,6 @@ type ScenarioRouteState =
       kind: "deploying";
       bundle: string;
       activeHuman: string | null | undefined;
-      stage: "bundle" | "world";
       error: string | null;
     }
   | {
@@ -56,7 +55,6 @@ type ScenarioRouteAction =
     }
   | { type: "choose"; activeHuman: string | null }
   | { type: "deploy" }
-  | { type: "stage"; stage: "bundle" | "world" }
   | { type: "loaded"; session: PreparedScenarioBundleSession }
   | { type: "error"; error: string }
   | { type: "upload-error"; error: string };
@@ -83,12 +81,9 @@ function scenarioRouteReducer(
             kind: "deploying",
             bundle: state.bundle,
             activeHuman: state.activeHuman,
-            stage: "bundle",
             error: null,
           }
         : state;
-    case "stage":
-      return state.kind === "deploying" ? { ...state, stage: action.stage } : state;
     case "loaded":
       return state.kind === "deploying"
         ? {
@@ -122,13 +117,7 @@ export default function ScenarioPlay() {
     let preparation: ReturnType<typeof prepareUploadedScenarioBundle> | null = null;
     void loadWasm().then(() => {
       if (!live) return;
-      preparation = prepareUploadedScenarioBundle(
-        bundle,
-        (next) => {
-          if (next === "bundle") dispatch({ type: "stage", stage: "bundle" });
-        },
-        activeHuman,
-      );
+      preparation = prepareUploadedScenarioBundle(bundle, () => undefined, activeHuman);
       preparation.battle.then(
         (loaded) => {
           if (!live) return;
@@ -228,7 +217,7 @@ export default function ScenarioPlay() {
           { id: "bundle", label: "Validate package" },
           { id: "world", label: "Build world" },
         ]}
-        current={route.stage}
+        current="bundle"
         failure={
           route.error
             ? {

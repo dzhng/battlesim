@@ -127,7 +127,7 @@ export class PurchasePlacementControl {
       this.resolved?.spot !== this.intent?.spot ||
       !this.resolved ||
       !("Ok" in this.resolved.placement) ||
-      this.confirmation
+      this.confirmation !== null
     )
       return null;
     const generation = this.generation;

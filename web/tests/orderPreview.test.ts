@@ -1,7 +1,6 @@
 import { expect, test, vi } from "vitest";
 import { OrderPreview, type OrderPreviewSnapshot } from "@apps/battle-lab/src/orderPreview";
 import { cursorForIntent } from "@apps/battle-lab/src/pointerPaint";
-import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type { MoveDestination } from "@web/battle/sim/protocol";
 
 const move = (goal: [number, number], facing?: number) => ({
@@ -40,8 +39,6 @@ async function settled() {
   await Promise.resolve();
 }
 
-const own: readonly OwnUnitView[] = [];
-
 test("a superseded move answer cannot repopulate the newer preview", async () => {
   const old = deferred<MoveDestination[]>();
   const next = deferred<MoveDestination[]>();
@@ -49,22 +46,22 @@ test("a superseded move answer cannot repopulate the newer preview", async () =>
   sim.previewMove.mockReturnValueOnce(old.promise).mockReturnValueOnce(next.promise);
   const preview = new OrderPreview();
 
-  preview.update(move([10, 10]), own, sim, 1, "gesture-a");
-  preview.update(move([20, 20]), own, sim, 1, "gesture-b");
+  preview.update(move([10, 10]), sim, 1, "gesture-a");
+  preview.update(move([20, 20]), sim, 1, "gesture-b");
   expect(sim.previewMove).toHaveBeenCalledTimes(1);
   old.resolve([destination([10, 10])]);
   await old.promise;
   await settled();
   expect(sim.previewMove).toHaveBeenCalledTimes(1);
 
-  const beforeNext = preview.update(move([20, 20]), own, sim, 1, "gesture-b");
+  const beforeNext = preview.update(move([20, 20]), sim, 1, "gesture-b");
   expect(beforeNext.destinations).toEqual([]);
   expect(sim.previewMove).toHaveBeenCalledTimes(2);
 
   next.resolve([destination([20, 20])]);
   await next.promise;
   await settled();
-  expect(preview.update(move([20, 20]), own, sim, 1, "gesture-b").destinations).toEqual([
+  expect(preview.update(move([20, 20]), sim, 1, "gesture-b").destinations).toEqual([
     destination([20, 20]),
   ]);
 });
@@ -76,15 +73,15 @@ test("gesture and client changes revoke an already admitted answer", async () =>
   sim.previewMove.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
   const preview = new OrderPreview();
 
-  preview.update(move([10, 10]), own, sim, 1, "gesture-a");
+  preview.update(move([10, 10]), sim, 1, "gesture-a");
   first.resolve([destination([10, 10])]);
   await first.promise;
   await settled();
-  expect(preview.update(move([10, 10]), own, sim, 1, "gesture-a").destinations).toEqual([
+  expect(preview.update(move([10, 10]), sim, 1, "gesture-a").destinations).toEqual([
     destination([10, 10]),
   ]);
 
-  expect(preview.update(move([20, 20]), own, sim, 1, "gesture-b").destinations).toEqual([]);
+  expect(preview.update(move([20, 20]), sim, 1, "gesture-b").destinations).toEqual([]);
   second.resolve([destination([20, 20])]);
   await second.promise;
   await settled();
@@ -97,20 +94,18 @@ test("gesture and client changes revoke an already admitted answer", async () =>
   freshClient.previewMove.mockReturnValue(fresh.promise);
   const clientPreview = new OrderPreview();
   const intent = move([30, 30]);
-  clientPreview.update(intent, own, oldClient, 1, "same-gesture");
+  clientPreview.update(intent, oldClient, 1, "same-gesture");
   old.resolve([destination([30, 30])]);
   await old.promise;
   await settled();
-  expect(clientPreview.update(intent, own, oldClient, 1, "same-gesture").destinations).toEqual([
+  expect(clientPreview.update(intent, oldClient, 1, "same-gesture").destinations).toEqual([
     destination([30, 30]),
   ]);
-  expect(clientPreview.update(intent, own, freshClient, 1, "same-gesture").destinations).toEqual(
-    [],
-  );
+  expect(clientPreview.update(intent, freshClient, 1, "same-gesture").destinations).toEqual([]);
   fresh.resolve([destination([31, 31])]);
   await fresh.promise;
   await settled();
-  expect(clientPreview.update(intent, own, freshClient, 1, "same-gesture").destinations).toEqual([
+  expect(clientPreview.update(intent, freshClient, 1, "same-gesture").destinations).toEqual([
     destination([31, 31]),
   ]);
 });
@@ -122,23 +117,23 @@ test("facing changes retain admitted destinations while the next query is pendin
   sim.previewMove.mockReturnValueOnce(first.promise).mockReturnValueOnce(turned.promise);
   const preview = new OrderPreview();
 
-  preview.update(move([10, 10], 0), own, sim, 1, "same-gesture");
+  preview.update(move([10, 10], 0), sim, 1, "same-gesture");
   first.resolve([destination([10, 10])]);
   await first.promise;
   await settled();
-  expect(preview.update(move([10, 10], 0), own, sim, 1, "same-gesture").destinations).toEqual([
+  expect(preview.update(move([10, 10], 0), sim, 1, "same-gesture").destinations).toEqual([
     destination([10, 10]),
   ]);
 
-  const retained = preview.update(move([10, 10], Math.PI / 2), own, sim, 1, "same-gesture");
+  const retained = preview.update(move([10, 10], Math.PI / 2), sim, 1, "same-gesture");
   expect(retained.destinations).toEqual([destination([10, 10])]);
   expect(sim.previewMove).toHaveBeenCalledTimes(2);
   turned.resolve([destination([12, 12])]);
   await turned.promise;
   await settled();
-  expect(
-    preview.update(move([10, 10], Math.PI / 2), own, sim, 1, "same-gesture").destinations,
-  ).toEqual([destination([12, 12])]);
+  expect(preview.update(move([10, 10], Math.PI / 2), sim, 1, "same-gesture").destinations).toEqual([
+    destination([12, 12]),
+  ]);
 });
 
 test("a failed query remains pending and does not become blocked", async () => {
@@ -146,12 +141,12 @@ test("a failed query remains pending and does not become blocked", async () => {
   const sim = client();
   sim.previewMove.mockReturnValue(answer.promise);
   const preview = new OrderPreview();
-  preview.update(move([10, 10]), own, sim, 1, "gesture");
+  preview.update(move([10, 10]), sim, 1, "gesture");
   answer.reject(new Error("preview failed"));
   await answer.promise.catch(() => undefined);
   await settled();
 
-  const snapshot: OrderPreviewSnapshot = preview.update(move([10, 10]), own, sim, 1, "gesture");
+  const snapshot: OrderPreviewSnapshot = preview.update(move([10, 10]), sim, 1, "gesture");
   expect(snapshot.destinations).toEqual([]);
   expect(snapshot.building).toBeNull();
   expect(
@@ -192,11 +187,11 @@ test("building placement drives blocked, pending and garrison cursor outcomes", 
     ...(unproven === undefined ? {} : { unproven }),
   });
 
-  preview.update(intent, own, sim, 1, "building");
+  preview.update(intent, sim, 1, "building");
   blocked.resolve(building(null));
   await blocked.promise;
   await settled();
-  const blockedSnapshot = preview.update(intent, own, sim, 1, "building");
+  const blockedSnapshot = preview.update(intent, sim, 1, "building");
   expect(
     cursorForIntent(
       { kind: "occupy_building", units: [1], building: 4, queued: false },
@@ -204,13 +199,12 @@ test("building placement drives blocked, pending and garrison cursor outcomes", 
     ),
   ).toBe("blocked");
 
-  preview.update({ ...intent, request: { ...intent.request, facing: 1 } }, own, sim, 1, "building");
+  preview.update({ ...intent, request: { ...intent.request, facing: 1 } }, sim, 1, "building");
   pending.resolve(building(null, true));
   await pending.promise;
   await settled();
   const pendingSnapshot = preview.update(
     { ...intent, request: { ...intent.request, facing: 1 } },
-    own,
     sim,
     1,
     "building",
@@ -222,13 +216,12 @@ test("building placement drives blocked, pending and garrison cursor outcomes", 
     ),
   ).toBe("default");
 
-  preview.update({ ...intent, request: { ...intent.request, facing: 2 } }, own, sim, 1, "building");
+  preview.update({ ...intent, request: { ...intent.request, facing: 2 } }, sim, 1, "building");
   admitted.resolve(building({ unit: 1, approach: [10, 10] }));
   await admitted.promise;
   await settled();
   const admittedSnapshot = preview.update(
     { ...intent, request: { ...intent.request, facing: 2 } },
-    own,
     sim,
     1,
     "building",
@@ -251,24 +244,24 @@ test("changing client revokes the old answer", async () => {
   const preview = new OrderPreview();
 
   const intent = move([10, 10]);
-  preview.update(intent, own, first, 1, "gesture");
-  preview.update(intent, own, second, 1, "gesture");
+  preview.update(intent, first, 1, "gesture");
+  preview.update(intent, second, 1, "gesture");
   expect(second.previewMove).toHaveBeenCalledTimes(0);
   old.resolve([destination([10, 10])]);
   await old.promise;
   await settled();
-  const beforeFresh = preview.update(intent, own, second, 1, "gesture");
+  const beforeFresh = preview.update(intent, second, 1, "gesture");
   expect(beforeFresh.destinations).toEqual([]);
   expect(second.previewMove).toHaveBeenCalledTimes(1);
   fresh.resolve([destination([10, 10])]);
   await fresh.promise;
   await settled();
-  expect(preview.update(intent, own, second, 1, "gesture").destinations).toEqual([
+  expect(preview.update(intent, second, 1, "gesture").destinations).toEqual([
     destination([10, 10]),
   ]);
 });
 
 test("no query leaves the preview idle", () => {
   const preview = new OrderPreview();
-  expect(preview.update(null, own, null, 1).destinations).toEqual([]);
+  expect(preview.update(null, null, 1).destinations).toEqual([]);
 });

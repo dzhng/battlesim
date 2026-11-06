@@ -303,7 +303,7 @@ export function useBattleSession({
     placedGhosts.current = [];
     orderReveal.clear();
     releasedAction.reset();
-    orderPreview.update(null, [], null, 0);
+    orderPreview.update(null, null, 0);
   }, [sim.client, orderReveal, orderPreview, releasedAction, cancelPurchase]);
 
   // Every building is drawn from its template's rows, as instances of kit
@@ -746,7 +746,6 @@ export function useBattleSession({
     const queryIntent = waiting ? reconcilePointerIntent(released, shown, commanding) : intent;
     const previewSnapshot = orderPreview.update(
       active ? previewForIntent(queryIntent) : null,
-      shown?.own ?? [],
       active ? sim.client : null,
       `${shown?.tick ?? 0}:${control.acks[0]?.seq ?? 0}`,
       `${semanticRevision.current.version}:${held?.generation ?? (waiting ? pending.generation : 0)}`,

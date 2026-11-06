@@ -126,8 +126,8 @@ export function editorReducer(
         return state;
       return acceptedSnapshot(state, action.snapshot);
     case "preview-received":
+      if (state.operation?.id !== action.id) return state;
       if (
-        state.operation?.id !== action.id ||
         state.operation.kind !== "preview" ||
         currentDraftJSON(state) !== state.operation.draftJSON
       )

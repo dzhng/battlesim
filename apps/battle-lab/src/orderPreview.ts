@@ -1,4 +1,3 @@
-import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type { SimClient } from "@web/battle/sim/client";
 import type { BuildingPlacement, MoveDestination } from "@web/battle/sim/protocol";
 import type { PointerPreview } from "./pointerPaint";
@@ -17,10 +16,6 @@ interface Answer {
   key: string;
   destinations: MoveDestination[];
   building: BuildingPlacement | null;
-}
-
-interface ActiveRequest {
-  generation: number;
 }
 
 const IDLE: OrderPreviewSnapshot = {
@@ -45,7 +40,7 @@ export class OrderPreview {
   private client: PreviewClient | null = null;
   private gesture = "";
   private generation = 0;
-  private active: ActiveRequest | null = null;
+  private active: number | null = null;
   private answer: Answer | null = null;
 
   get snapshot(): OrderPreviewSnapshot {
@@ -65,7 +60,6 @@ export class OrderPreview {
    */
   update(
     intent: PointerPreview | null,
-    _selected: readonly OwnUnitView[],
     client: PreviewClient | null,
     revision: number | string,
     identity = "",
@@ -89,7 +83,7 @@ export class OrderPreview {
   }
 
   private start(intent: PointerPreview, client: PreviewClient, key: string) {
-    const request: ActiveRequest = { generation: this.generation };
+    const request = this.generation;
     this.active = request;
     const query =
       intent.kind === "move"
@@ -103,7 +97,7 @@ export class OrderPreview {
     void query
       .then(
         ({ destinations, building }) => {
-          if (request.generation !== this.generation) return;
+          if (request !== this.generation) return;
           this.answer = {
             key,
             destinations,
@@ -111,7 +105,7 @@ export class OrderPreview {
           };
         },
         () => {
-          if (request.generation !== this.generation) return;
+          if (request !== this.generation) return;
           this.answer = { key, destinations: [], building: null };
         },
       )
