@@ -34,9 +34,9 @@ export class PurchasePlacementControl {
   /** The chosen squad's soldiers about its destination, as the last preview
    *  spread them: the ghost keeps this shape while the next one is pending. */
   private shape: [number, number][] = [];
-  private inFlight = false;
+  private previewRun: { spot: string; client: SimClient } | null = null;
   private generation = 0;
-  private confirming = false;
+  private confirmation: { generation: number } | null = null;
   private client: SimClient | null = null;
 
   choose(variant: string) {
@@ -87,16 +87,16 @@ export class PurchasePlacementControl {
     const intent = this.intent;
     if (
       !intent ||
-      this.inFlight ||
+      this.previewRun ||
       (this.resolved?.spot === intent.spot && this.resolved.revision === intent.revision)
     )
       return;
-    this.inFlight = true;
+    const run = (this.previewRun = { spot: intent.spot, client: intent.client });
     void intent.client
       .previewPurchase(intent.ghost.variant, intent.cursor)
       .then(
         (placement) => {
-          if (this.intent?.spot !== intent.spot) return;
+          if (this.intent?.spot !== run.spot) return;
           this.resolved = { spot: intent.spot, revision: intent.revision, placement };
           if ("Ok" in placement) {
             const [x, y] = placement.Ok.destination;
@@ -104,7 +104,7 @@ export class PurchasePlacementControl {
           }
         },
         () => {
-          if (this.intent?.spot === intent.spot)
+          if (this.intent?.spot === run.spot)
             this.resolved = {
               spot: intent.spot,
               revision: intent.revision,
@@ -113,7 +113,7 @@ export class PurchasePlacementControl {
         },
       )
       .finally(() => {
-        this.inFlight = false;
+        if (this.previewRun === run) this.previewRun = null;
         this.resolve();
       });
   }
@@ -127,11 +127,11 @@ export class PurchasePlacementControl {
       this.resolved?.spot !== this.intent?.spot ||
       !this.resolved ||
       !("Ok" in this.resolved.placement) ||
-      this.confirming
+      this.confirmation
     )
       return null;
     const generation = this.generation;
-    this.confirming = true;
+    const confirmation = (this.confirmation = { generation });
     try {
       const ack = await send({
         kind: "confirm_purchase",
@@ -139,10 +139,10 @@ export class PurchasePlacementControl {
         destination: ghost.destination,
       });
       if (!ack || ack.error) return null;
-      if (generation === this.generation) this.cancel();
+      if (confirmation.generation === this.generation) this.cancel();
       return { ...ghost, valid: true };
     } finally {
-      this.confirming = false;
+      if (this.confirmation === confirmation) this.confirmation = null;
     }
   }
 }

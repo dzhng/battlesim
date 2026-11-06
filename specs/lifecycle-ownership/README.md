@@ -19,7 +19,7 @@ Slices 01–04 and 12–13 are complete: client settlement, shared preparation-w
 handoff, authority resource ownership, session startup and page audio all passed
 focused checks and Claude review. Slice 14 (mechanics editor) is complete in
 committed delegated work and is ready to integrate after the current audio/session
-commits. Continue with slice 05 after closing these receipts; then proceed through
+commits. Continue with slice 06 after closing these receipts; then proceed through
 the dependency graph.
 
 There is no blocking product decision. The [source-derived behavior
@@ -66,9 +66,9 @@ when safe, never mutable build output. Avoid GPU contention or permanent debug r
 | [x] | [02 Preparation worker](slices/02-preparation-worker.md) | — | Generated and uploaded battle handoff |
 | [x] | [03 Authority resources](slices/03-authority-resources.md) | 01 | Pause, step, credit stall and restart |
 | [x] | [04 Session startup](slices/04-session-startup.md) | 01, 02, 03 | First frame and scripted warm-up |
-| [ ] | [05 Uploaded scenario](slices/05-uploaded-scenario.md) | 02, 04 | Package → controller → battle |
+| [x] | [05 Uploaded scenario](slices/05-uploaded-scenario.md) | 02, 04 | Package → controller → battle |
 | [ ] | [06 Pointer gestures](slices/06-pointer-gestures.md) | — | Selection, facing and camera gestures |
-| [ ] | [07 Purchase placement](slices/07-purchase-placement.md) | 01, 06 | Ghost, preview and confirmation |
+| [x] | [07 Purchase placement](slices/07-purchase-placement.md) | 01, 06 | Ghost, preview and confirmation |
 | [ ] | [08 Order preview](slices/08-order-preview.md) | 01, 06 | Move/building answer and marker |
 | [ ] | [09 Released action](slices/09-released-action.md) | 08 | Acknowledgement correcting its own gesture |
 | [ ] | [10 Viewport replacement](slices/10-viewport-replacement.md) | 04, 06 | Replace scene while current view is owned |

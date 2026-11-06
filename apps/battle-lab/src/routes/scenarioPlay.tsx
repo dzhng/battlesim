@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 import { Link } from "react-router";
 import { SessionCatalogProvider } from "@web/battle/catalog/context";
 import type { SessionCatalog } from "@web/battle/catalog/compose";
@@ -15,54 +23,141 @@ import {
 import { readScenarioBundle } from "@web/battle/scenarioBundle";
 import { useAppAudio } from "../AppAudio";
 
+type HumanPlayer = { id: string; side: string };
+type ScenarioRouteState =
+  | { kind: "empty"; error: string | null }
+  | {
+      kind: "choice";
+      bundle: string;
+      humanCapable: HumanPlayer[];
+      activeHuman: string | null | undefined;
+    }
+  | {
+      kind: "deploying";
+      bundle: string;
+      activeHuman: string | null | undefined;
+      stage: "bundle" | "world";
+      error: string | null;
+    }
+  | {
+      kind: "ready";
+      bundle: string;
+      activeHuman: string | null | undefined;
+      session: PreparedScenarioBundleSession;
+      error: string | null;
+    };
+
+type ScenarioRouteAction =
+  | { type: "upload-start" }
+  | {
+      type: "uploaded";
+      bundle: string;
+      humanCapable: HumanPlayer[];
+      activeHuman: string | undefined;
+    }
+  | { type: "choose"; activeHuman: string | null }
+  | { type: "deploy" }
+  | { type: "stage"; stage: "bundle" | "world" }
+  | { type: "loaded"; session: PreparedScenarioBundleSession }
+  | { type: "error"; error: string }
+  | { type: "upload-error"; error: string };
+
+function scenarioRouteReducer(
+  state: ScenarioRouteState,
+  action: ScenarioRouteAction,
+): ScenarioRouteState {
+  switch (action.type) {
+    case "upload-start":
+      return { kind: "empty", error: null };
+    case "uploaded":
+      return {
+        kind: "choice",
+        bundle: action.bundle,
+        humanCapable: action.humanCapable,
+        activeHuman: action.activeHuman,
+      };
+    case "choose":
+      return state.kind === "choice" ? { ...state, activeHuman: action.activeHuman } : state;
+    case "deploy":
+      return state.kind === "choice"
+        ? {
+            kind: "deploying",
+            bundle: state.bundle,
+            activeHuman: state.activeHuman,
+            stage: "bundle",
+            error: null,
+          }
+        : state;
+    case "stage":
+      return state.kind === "deploying" ? { ...state, stage: action.stage } : state;
+    case "loaded":
+      return state.kind === "deploying"
+        ? {
+            kind: "ready",
+            bundle: state.bundle,
+            activeHuman: state.activeHuman,
+            session: action.session,
+            error: null,
+          }
+        : state;
+    case "error":
+      return state.kind === "choice" || state.kind === "ready"
+        ? state
+        : { ...state, error: action.error };
+    case "upload-error":
+      return state.kind === "empty" ? { kind: "empty", error: action.error } : state;
+  }
+}
+
 export default function ScenarioPlay() {
   const appAudio = useAppAudio();
-  const [bundle, setBundle] = useState<string | null>(null);
-  const [session, setSession] = useState<PreparedScenarioBundleSession | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [stage, setStage] = useState<"bundle" | "world">("bundle");
-  const [deploy, setDeploy] = useState(false);
-  const [activeHuman, setActiveHuman] = useState<string | null | undefined>(undefined);
-  const [humanCapable, setHumanCapable] = useState<{ id: string; side: string }[]>([]);
+  const [route, dispatch] = useReducer(scenarioRouteReducer, { kind: "empty", error: null });
+  const setError = useCallback((error: string) => dispatch({ type: "error", error }), []);
+  const deploying = route.kind === "deploying";
+  const hasPreparation = route.kind === "deploying" || route.kind === "ready";
+  const bundle = hasPreparation ? route.bundle : null;
+  const activeHuman = hasPreparation ? route.activeHuman : null;
   const [replayText, setReplayText] = useState<string | undefined>();
   const playedAsset = useRef<string | null>(null);
   useEffect(() => {
-    if (!bundle || !deploy) return;
+    if (!bundle || !deploying) return;
     let live = true;
+    let handedOff = false;
     let preparation: ReturnType<typeof prepareUploadedScenarioBundle> | null = null;
     void loadWasm().then(() => {
       if (!live) return;
       preparation = prepareUploadedScenarioBundle(
         bundle,
         (next) => {
-          if (next === "bundle") setStage("bundle");
+          if (next === "bundle") dispatch({ type: "stage", stage: "bundle" });
         },
         activeHuman,
       );
       preparation.battle.then(
         (loaded) => {
           if (!live) return;
-          setStage("world");
-          setSession(loaded);
+          handedOff = true;
+          dispatch({ type: "loaded", session: loaded });
         },
         (reason: unknown) =>
-          live && setError(reason instanceof Error ? reason.message : String(reason)),
+          live &&
+          dispatch({
+            type: "error",
+            error: reason instanceof Error ? reason.message : String(reason),
+          }),
       );
     });
     return () => {
       live = false;
-      preparation?.cancel();
+      if (!handedOff) preparation?.cancel();
     };
-  }, [bundle, deploy, activeHuman]);
+  }, [bundle, deploying, activeHuman]);
 
   async function upload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    setSession(null);
-    setError(null);
-    setStage("bundle");
-    setDeploy(false);
+    dispatch({ type: "upload-start" });
     playedAsset.current = null;
     try {
       const text = await readScenarioBundle(file);
@@ -72,18 +167,25 @@ export default function ScenarioPlay() {
       const players = (parsed.scenario?.players ?? [])
         .filter((player) => player.human_capable)
         .map(({ id, side }) => ({ id, side }));
-      setHumanCapable(players);
-      setActiveHuman(players[0]?.id);
-      setBundle(text);
+      dispatch({
+        type: "uploaded",
+        bundle: text,
+        humanCapable: players,
+        activeHuman: players[0]?.id,
+      });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason));
+      dispatch({
+        type: "upload-error",
+        error: reason instanceof Error ? reason.message : String(reason),
+      });
     }
   }
 
+  const session = route.kind === "ready" ? route.session : null;
   const report = session?.report ?? null;
   const prepared = useMemo(() => session?.session ?? null, [session]);
 
-  if (!session && bundle && !deploy)
+  if (route.kind === "choice")
     return (
       <main className="menu scenario-play-menu">
         <div className="hud-panel menu-body scenario-play-upload">
@@ -92,20 +194,27 @@ export default function ScenarioPlay() {
           <label>
             Active human player
             <select
-              value={activeHuman ?? "__none"}
+              value={route.activeHuman ?? "__none"}
               onChange={(event) =>
-                setActiveHuman(event.target.value === "__none" ? null : event.target.value)
+                dispatch({
+                  type: "choose",
+                  activeHuman: event.target.value === "__none" ? null : event.target.value,
+                })
               }
             >
               <option value="__none">No human · AI only</option>
-              {humanCapable.map((player) => (
+              {route.humanCapable.map((player) => (
                 <option key={player.id} value={player.id}>
                   {player.id} · {player.side}
                 </option>
               ))}
             </select>
           </label>
-          <button type="button" className="hud-menu-item" onClick={() => setDeploy(true)}>
+          <button
+            type="button"
+            className="hud-menu-item"
+            onClick={() => dispatch({ type: "deploy" })}
+          >
             Deploy scenario
           </button>
           <Link className="hud-menu-item" to="/labs/scenario?mode=play">
@@ -115,7 +224,7 @@ export default function ScenarioPlay() {
       </main>
     );
 
-  if (!session && bundle && deploy)
+  if (route.kind === "deploying")
     return (
       <LoadingScreen
         title="Deploying"
@@ -124,13 +233,13 @@ export default function ScenarioPlay() {
           { id: "bundle", label: "Validate package" },
           { id: "world", label: "Build world" },
         ]}
-        current={stage}
+        current={route.stage}
         failure={
-          error
+          route.error
             ? {
-                message: error,
+                message: route.error,
                 advice: "Upload a canonical scenario package exported by the builder.",
-                details: [error],
+                details: [route.error],
               }
             : null
         }
@@ -138,7 +247,7 @@ export default function ScenarioPlay() {
       />
     );
 
-  if (!session)
+  if (route.kind === "empty")
     return (
       <main className="menu scenario-play-menu">
         <div className="hud-panel menu-body scenario-play-upload">
@@ -154,7 +263,7 @@ export default function ScenarioPlay() {
               Choose a downloaded .json package to deploy it through the normal battle worker.
             </span>
           </label>
-          {error && <p role="alert">{error}</p>}
+          {route.error && <p role="alert">{route.error}</p>}
           <Link className="hud-menu-item" to="/labs/scenario">
             Open scenario builder
           </Link>
@@ -171,7 +280,7 @@ export default function ScenarioPlay() {
       appAudio={appAudio}
       report={report}
       prepared={prepared}
-      stage={stage}
+      stage="world"
       setError={setError}
       playedAsset={playedAsset}
       replayText={replayText}

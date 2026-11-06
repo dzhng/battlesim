@@ -1,6 +1,6 @@
 # 07 — Purchase choice, preview and confirmation
 
-**Status:** pending. **Audit families:** 19. **Dependencies:** 01, 06.
+**Status:** complete. **Audit families:** 19. **Dependencies:** 01, 06.
 
 ## Contract and question
 
@@ -51,3 +51,17 @@ Feedback that would change scope: Changing what Cancel does to an already issued
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+The purchase controller keeps its public choose/cancel/at/confirm API and replaces
+scattered busy flags with preview-run and confirmation records. Existing stale
+knowledge tolerance, one-query cadence, retained answer, independent choice and
+confirmation generations, and finally cleanup are unchanged.
+
+Focused purchase/skirmish/unit-control suites pass 43 tests; typecheck passes. Claude
+review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3Acdbb94b3-c200-4d34-a874-96e9d1cc0c87%3Adelegate-task%3Ad5c0978f-3d6b-497e-b48b-cd8ad3eaf3b7>. Its findings were fixed: records now carry the identity checks they own, cancellation/new-choice coverage resolves an old answer after a new choice, and rejection retry coverage proves confirmation cleanup. The mutation receipt at `throwaway/lifecycle-ownership/07-mutation.txt` records a stale generation guard failure.
+
+The minimal public `variant`/generation fields remain because consumers read variant and
+the records carry only operation identity; this is deliberate local ownership rather
+than a universal purchase state object. No public format or visual behavior changed.

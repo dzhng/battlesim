@@ -1,6 +1,6 @@
 # 05 — Uploaded scenario route state
 
-**Status:** pending. **Audit families:** 13. **Dependencies:** 02, 04.
+**Status:** complete. **Audit families:** 13. **Dependencies:** 02, 04.
 
 ## Contract and question
 
@@ -51,3 +51,21 @@ Feedback that would change scope: New import concurrency, persistence or control
 Exit only when the focused consumer contracts pass, affected type/lint checks are
 green, obsolete ownership is removed, and the substantive-change review is complete.
 Record evidence and decisions; update the README handoff before ending the pass.
+
+## Implementation receipt
+
+The route reducer now carries uploaded package/controller identity through the ready
+phase, and preparation cleanup cancels only before worker handoff. Upload-start and
+late-read policies preserve the old visible ordering; ready-phase errors retain the
+existing invisible error behavior.
+
+Mounted route coverage in `web/tests/scenarioPlay.test.tsx` proves upload → controller
+choice → Deploy, waits for session readiness/catalog admission, and verifies the
+adopted preparation is not cancelled. The cancellation mutation at
+`throwaway/lifecycle-ownership/05-mutation.txt` fails when the handoff guard is
+removed. Focused route/scenario/router/preparation checks pass 19 tests; typecheck,
+ESLint and Oxlint pass. Claude final review: <t3-thread://v2/9950c6b4-6db9-4544-9904-e8f629486d1f/thread:delegated-task:command%3Amcp%3Acdbb94b3-c200-4d34-a874-96e9d1cc0c87%3Adelegate-task%3Ad5c0978f-3d6b-497e-b48b-cd8ad3eaf3b7>. Its findings were fixed: stable error dispatch and a test that waits for the actual ready-only catalog effect.
+
+No public route, package format, controller meaning, worker protocol or gameplay
+behavior changed. Production route diff: 135 additions, 37 deletions; test addition
+provides the mounted boundary proof.

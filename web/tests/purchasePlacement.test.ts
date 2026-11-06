@@ -35,6 +35,63 @@ test("a changed variant/destination cannot reuse an earlier valid preview", asyn
   expect(control.variant).toBeNull();
 });
 
+test("cancelling during a preview keeps its late answer from reviving the choice", async () => {
+  const replies: ((placement: PurchasePlacement) => void)[] = [];
+  const client = {
+    previewPurchase: vi.fn(() => new Promise<PurchasePlacement>((reply) => replies.push(reply))),
+  } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_scout");
+  control.at([10, 20], client, "1");
+  control.cancel();
+  control.choose("test_scout");
+  control.at([10, 20], client, "1");
+  replies[0]({ Ok: { kind: 1, destination: [10, 20], spots: [] } });
+  await settle();
+  expect(control.at([10, 20], client, "1")?.valid).toBeNull();
+  expect(client.previewPurchase).toHaveBeenCalledTimes(2);
+});
+
+test("an accepted old confirmation cannot clear a newer choice", async () => {
+  let resolve!: (ack: { seq: number; applied_tick: number; error: null; refused: [] }) => void;
+  const client = {
+    previewPurchase: vi.fn(async (_variant: string, at: [number, number]) => ({
+      Ok: { kind: 1, destination: at, spots: [] },
+    })),
+  } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_scout");
+  control.at([10, 20], client, "1");
+  await settle();
+  const confirmation = control.confirm(() => new Promise((reply) => (resolve = reply)));
+  control.choose("test_tank");
+  resolve({ seq: 1, applied_tick: 2, error: null, refused: [] });
+  await confirmation;
+  expect(control.variant).toBe("test_tank");
+});
+
+test("a rejected confirmation releases ownership for a retry", async () => {
+  const client = {
+    previewPurchase: vi.fn(async (_variant: string, at: [number, number]) => ({
+      Ok: { kind: 1, destination: at, spots: [] },
+    })),
+  } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_scout");
+  control.at([10, 20], client, "1");
+  await settle();
+  let calls = 0;
+  const send = vi.fn(async () => {
+    calls++;
+    return calls === 1
+      ? { seq: 1, applied_tick: 2, error: { reason: "blocked" }, refused: [] }
+      : { seq: 2, applied_tick: 3, error: null, refused: [] };
+  });
+  expect(await control.confirm(send)).toBeNull();
+  expect(await control.confirm(send)).toBeTruthy();
+  expect(send).toHaveBeenCalledTimes(2);
+});
+
 test("a replaced authority cannot inherit a valid preview", async () => {
   const resolvers: ((p: PurchasePlacement) => void)[] = [];
   const first = {
