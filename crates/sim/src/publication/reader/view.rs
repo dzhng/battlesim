@@ -137,7 +137,13 @@ view!(Crash {
     position: Point3,
     yaw: f64,
     pitch: f64,
-    roll: f64
+    roll: f64,
+    strike: Option<Strike>
+});
+view!(Strike {
+    point: Point3,
+    normal: Point3,
+    speed_mps: f64
 });
 view!(Shout {
     own: bool,

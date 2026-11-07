@@ -20,6 +20,7 @@
 //!   burning, then smouldering, then out, all thinned alike past `smoke_budget`;
 //! - a watched hull's cook-off: fireballs out of its ring, then sparks and
 //!   dust where its thrown turret lands;
+//! - sparks and dust off a building where a downed airframe strikes it;
 //! - every drawn rotor as a film camera's shutter sees it turn;
 //! - a high-air aircraft's shadow on the ground beneath it
 //!   ([`high_air_shadow`](super::high_air_shadow)), under everything else.
@@ -37,11 +38,11 @@ use super::batch::{v4, DUST, DUST_FRAMES, FIRE, FIRE_FRAMES, ROTOR};
 pub use super::batch::{EffectBatch, EFFECT_FLOATS, SHAPE_NAMES};
 use super::high_air_shadow::GroundShadow;
 use super::launches::{Launch, LaunchTracker};
-use super::publication::{CookOff, EffectPublication, Segment, Shooter};
+use super::publication::{CookOff, EffectPublication, Segment, Shooter, Strike};
 use super::tables::{
     pick, CastStyle, EffectPresentation, FlameStyle, FlashStyle, ImpactStyle, PuffStyle,
-    RotorBlurStyle, ShotDustStyle, SmokeSourceStyle, SparkStyle, TracerLight, TracerStyle,
-    TrailStyle, TRACER_TAIL_MAX_S,
+    RotorBlurStyle, ShotDustStyle, SmokeSourceStyle, SparkStyle, StrikeStyle, TracerLight,
+    TracerStyle, TrailStyle, TRACER_TAIL_MAX_S,
 };
 use super::{DrawnRotor, MuzzleSource};
 use crate::seed::{Key, Mulberry32, GOLDEN};
@@ -460,6 +461,11 @@ impl EffectFrame {
         }
         for c in &publication.cook_offs {
             self.pool.cook_off(p, t0, c, &mut rng);
+        }
+        if let Some(style) = &p.airframe_strike {
+            for s in &publication.strikes {
+                self.pool.strike(&p.sparks, style, t1, s, &mut rng);
+            }
         }
         for g in &publication.grinds {
             // The tick's share, rounded by chance.

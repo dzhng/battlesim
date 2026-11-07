@@ -10,8 +10,8 @@ use contract::command::{
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::{MoverClass, PropDefinition};
 use contract::observation::{
-    AirTransit, AirTransitDirection, Blast, Corpse, EncounterStatus, FallenBody, FallingAirframe,
-    Grind, GuidedMissile, KnownProp, MemberOrder, MoveState, ObservationFrame, OwnUnit, Posture,
+    AirTransit, AirTransitDirection, Blast, Corpse, EncounterStatus, FallenBody, Grind,
+    GuidedMissile, KnownProp, MemberOrder, MoveState, ObservationFrame, OwnUnit, Posture,
     PropDisplayPose, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, SquadArea, UnitSight,
     VisibilityField, VisibleSegment,
 };
@@ -4305,18 +4305,8 @@ impl Battle {
             // same sides that learn its wreck.
             frame.crashes.clear();
             frame.crashes.extend(self.crashes.iter().filter_map(|c| {
-                let &(_, id) = c.knowing.iter().find(|(s, _)| *s == side)?;
                 let unit = &self.units[c.unit.0 as usize];
-                let (pitch, roll) = c.attitude();
-                Some(FallingAirframe {
-                    id,
-                    own: unit.side == side,
-                    kind: unit.kind,
-                    position: [c.position.x, c.position.y, c.position.z],
-                    yaw: c.yaw,
-                    pitch,
-                    roll,
-                })
+                c.seen_by(side, unit.side, unit.kind)
             }));
         }
     }

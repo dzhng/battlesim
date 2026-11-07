@@ -45,6 +45,10 @@ pub struct EffectPresentation {
     pub ricochet_sparks: f64,
     /// Sparks a second a hull grinding a metal body throws.
     pub grind_sparks_per_s: f64,
+    /// What a downed airframe throws off a building it strikes; nothing
+    /// where absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub airframe_strike: Option<StrikeStyle>,
     pub blast: BlastStyle,
     pub cook_off: CookOffFeel,
     pub dust: DustStyle,
@@ -192,6 +196,19 @@ pub struct ShotDustStyle {
 pub struct GroundDust {
     #[serde(flatten)]
     pub burst: PuffBurst,
+    pub reach_m: f64,
+}
+
+/// A downed airframe striking a building: `sparks` off its skin and the
+/// `dust` it knocks off the face, spread up to `reach_m` over it, all at a
+/// strike closing at `full_mps` or faster and fewer for a slower one. Steel
+/// on masonry throws no fire: its fireball is the crash's on the ground.
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct StrikeStyle {
+    pub full_mps: f64,
+    pub sparks: f64,
+    pub dust: PuffBurst,
     pub reach_m: f64,
 }
 
@@ -388,6 +405,19 @@ impl EffectPresentation {
                 "shot_dust.ground.reach_m must be ≥ 0".into()
             })?;
         }
+        if let Some(s) = &self.airframe_strike {
+            ensure(
+                s.full_mps > 0.0
+                    && s.sparks >= 0.0
+                    && s.reach_m >= 0.0
+                    && s.dust.count.fract() == 0.0
+                    && s.dust.count >= 0.0
+                    && s.dust.over_s >= 0.0,
+                || {
+                    "airframe_strike: full_mps > 0, sparks ≥ 0, reach_m ≥ 0, a whole dust.count ≥ 0, dust.over_s ≥ 0".into()
+                },
+            )?;
+        }
         ensure(self.damage_smoke.rate_hz > 0.0, || {
             "damage_smoke.rate_hz must be positive".into()
         })?;
@@ -447,6 +477,7 @@ impl EffectPresentation {
                     .map_or(0.0, |d| burst(&d.hull).max(burst(&d.ground.burst))),
             )
             .max(self.damage_smoke.puff.life_s)
+            .max(self.airframe_strike.map_or(0.0, |s| burst(&s.dust)))
             .max(self.sparks.duration_s * b.spark_scale.max(1.0).sqrt());
         for f in &c.fireballs {
             longest = longest.max(c.delay_s + f.after_s + fire);

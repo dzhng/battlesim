@@ -334,6 +334,21 @@
     "sparks": { "color": [1.0, 0.72, 0.4], "intensity": 30, "speed_mps": 8, "duration_s": 0.3, "length_m": 0.35, "width_m": 0.03 },
     "ricochet_sparks": 10,
     "grind_sparks_per_s": 60,
+    "airframe_strike": {
+      "full_mps": 20,
+      "sparks": 24,
+      "dust": {
+        "albedo": [0.62, 0.6, 0.56],
+        "opacity": 0.55,
+        "size_m": [0.8, 3.2],
+        "life_s": 2.6,
+        "rise_mps": 0.6,
+        "spread_mps": 1.4,
+        "count": 8,
+        "over_s": 0.25
+      },
+      "reach_m": 2.5
+    },
     "blast": {
       "size_per_radius": 0.9,
       "reference_size_m": 3,
