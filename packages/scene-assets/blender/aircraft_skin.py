@@ -80,10 +80,7 @@ def _bounds(bm):
             Vector((max(v.x for v in vs), max(v.y for v in vs), max(v.z for v in vs))))
 
 
-NOSES = {"+x": 0.0, "-x": math.pi, "+y": -math.pi / 2, "-y": math.pi / 2}
-
-
-def load(path, length, top, lower=None, span=None, x=0.0, nose=None):
+def load(path, length, top, lower=None, span=None, x=0.0):
     """The skin at `path` as one bmesh in the engine basis, `length` nose to
     tail, centred on Y and on `x` along its length (a family whose stations
     are not centred on its length), its highest point at `top`. `lower` is
@@ -91,11 +88,7 @@ def load(path, length, top, lower=None, span=None, x=0.0, nose=None):
     too high: everything up to `z_from` drops by `dz` and what is above it
     stretches, so the fins' tips stay at `top`. `span` is `(y_from,
     half_span)` for wings that came out short or long: outboard of `y_from`
-    the skin stretches across until its tips reach `half_span`. `nose`
-    ("+x", "-x", "+y" or "-y", in the generator's frame) says which way the
-    nose points where the usual reading fails: the length along the longer
-    side, the tail where the fin's tip is (a span longer than the length, a
-    skin without fins)."""
+    the skin stretches across until its tips reach `half_span`."""
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=str(REPO / path))
     new = [o for o in bpy.data.objects if o not in before]
@@ -115,14 +108,15 @@ def load(path, length, top, lower=None, span=None, x=0.0, nose=None):
         while len(layers):
             layers.remove(layers[0])
     lo, hi = _bounds(bm)
-    if nose is not None:
-        turn = NOSES[nose]
-    else:
-        # The length lies along the longer horizontal axis, the fin's tip at the tail.
-        axis = 0 if hi.x - lo.x >= hi.y - lo.y else 1
-        tip = max((v.co for v in bm.verts), key=lambda c: c.z)
-        tail_high = tip[axis] > (lo[axis] + hi[axis]) / 2
-        turn = (math.pi if tail_high else 0.0) if axis == 0 else (math.pi / 2 if tail_high else -math.pi / 2)
+    # The highest point (the fin's tip) stands near the tail along the
+    # length and near the middle across the span: the length is the axis it
+    # sits furthest out along, for its size, and the tail is that end.
+    tip = max((v.co for v in bm.verts), key=lambda c: c.z)
+    mid = (lo + hi) / 2
+    reach = [abs(tip[a] - mid[a]) / max(hi[a] - lo[a], 1e-9) for a in (0, 1)]
+    axis = 0 if reach[0] >= reach[1] else 1
+    tail_high = tip[axis] > mid[axis]
+    turn = (math.pi if tail_high else 0.0) if axis == 0 else (math.pi / 2 if tail_high else -math.pi / 2)
     bm.transform(Matrix.Rotation(turn, 4, "Z"))
     lo, hi = _bounds(bm)
     centre = (lo + hi) / 2
@@ -261,7 +255,8 @@ def fit_canopy(bm, plan, lift=0.015, seat=0.02):
     (`(x, half width)` front to back), measured on the skin's own hump: its
     top over the centreline stood `lift` proud, its sill `seat` below where
     the hump's surface is at the glass's half width, so the glass's edge
-    sits into the skin rather than on it."""
+    sits into the skin rather than on it. Widths short of the hump's foot
+    leave hump standing beside the glass: the sill zigzags."""
     tree = BVHTree.FromBMesh(bm)
     out = []
     for x, hw in plan:
@@ -306,18 +301,18 @@ def _under_canopy(bm, stations, edge, under=0.03, grow=1.12):
 
 
 def skin(path, length, top, mats, parent, parts=(), press=(), cut=(), tris=TRIS, sharp_deg=40, lower=None, span=None,
-         x=0.0, nose=None, canopy=None):
+         x=0.0, canopy=None):
     """Wear the skin pinned at `path` (see the module doc), in the airframe's
     `mats["paint"]`: `parts` are `(name, ((x0, x1), (y0, y1), (z0, z1)))`;
     `press` are boxes whose skin is pressed to their floor (a
     generated lump flattened), or `(box, z)` pressed to `z` (a plate raised),
-    `cut` those whose faces go; `lower`, `span`, `x` and `nose` are
+    `cut` those whose faces go; `lower`, `span` and `x` are
     `load`'s. `canopy` is `dict(glass=plan, tail=plan)`, the clear canopy's
     plan and its opaque tail's, front to back (`fit_canopy`): their stations
     are measured on the hump (after `press`), which is then pressed under
     them, and returned as `(glass, tail)` for `aircraft_canopy.bubble_canopy`."""
     pinned(path)
-    bm = load(path, length, top, lower, span, x, nose)
+    bm = load(path, length, top, lower, span, x)
     for entry in press:
         box, z = (entry, entry[2][0]) if len(entry) == 3 else entry
         for v in bm.verts:

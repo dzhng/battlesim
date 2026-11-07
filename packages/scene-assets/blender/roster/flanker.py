@@ -62,26 +62,26 @@ BOOM_Y, FIN_Z = 2.3, 2.5
 # mirrored by its symmetry: x, |y| and the nose's height there, to which
 # they are pressed).
 FIT = {
-    SU27: dict(length=21.8, lower=(0.62, 4.5), span=None,
+    SU27: dict(length=21.8, lower=(1.13, 5.0), span=None,
                glass=dict(x_front=6.05, x_back=3.25, half_width=0.58, peak=0.38),
                tail=[(2.85, 0.3), (2.45, 0.04)], bows=(5.5,),
-               mouth=((0.86, 1.2), (1.56, 1.2), (1.56, 1.9), (0.86, 1.9)), engine=(-8.76, 1.2, 1.62, 0.42), tip=7.1,
-               irst=(6.8, -0.25), lumps=((6.6, 7.0), (0.1, 0.4), 3.0)),
-    SU30: dict(length=21.84, lower=(0.95, 4.85), span=(3.0, 7.3),
+               mouth=((1.08, 1.15), (1.72, 1.15), (1.72, 1.92), (1.08, 1.92)), engine=(-8.93, 1.2, 1.62, 0.42), tip=7.1,
+               irst=(6.8, -0.25), lumps=((6.6, 7.0), (0.1, 0.4), 3.06)),
+    SU30: dict(length=21.84, lower=(0.73, 4.85), span=(3.0, 7.27),
                glass=dict(x_front=6.05, x_back=2.55, half_width=0.6, peak=0.44),
                tail=[(2.1, 0.25), (1.7, 0.04)], bows=(5.5, 4.0),
-               mouth=((0.92, 1.3), (1.62, 1.3), (1.62, 2.1), (0.92, 2.1)), engine=(-9.35, 1.27, 1.7, 0.44), tip=7.25,
-               irst=(6.55, -0.17), lumps=((6.35, 6.75), (0.0, 0.32), 2.99)),
-    SU35: dict(length=21.8, lower=(0.41, 4.3), span=(3.0, 7.6),
+               mouth=((0.92, 1.15), (1.6, 1.15), (1.6, 2.0), (0.92, 2.0)), engine=(-8.92, 1.27, 1.7, 0.44), tip=7.25,
+               irst=(6.55, -0.17), lumps=((6.35, 6.75), (0.0, 0.32), 3.02)),
+    SU35: dict(length=21.8, lower=(0.5, 4.45), span=(3.0, 7.57),
                glass=dict(x_front=6.05, x_back=3.4, half_width=0.56, peak=0.35),
                tail=[(3.0, 0.25), (2.6, 0.04)], bows=(5.5,),
-               mouth=((0.8, 1.3), (1.62, 1.3), (1.62, 1.95), (0.8, 1.95)), engine=(-9.26, 1.2, 1.62, 0.42), tip=7.55,
-               irst=(6.95, -0.12), lumps=((6.8, 7.1), (0.0, 0.2), 2.97)),
-    SU34: dict(length=23.24, lower=(0.97, 4.75), span=(3.0, 7.3),
+               mouth=((0.92, 1.15), (1.68, 1.15), (1.68, 2.05), (0.92, 2.05)), engine=(-8.89, 1.2, 1.62, 0.42), tip=7.55,
+               irst=(6.95, -0.12), lumps=((6.8, 7.1), (0.0, 0.2), 3.1)),
+    SU34: dict(length=23.24, lower=(0.63, 4.75), span=(3.0, 7.27),
                glass=dict(x_front=7.05, x_back=4.35, half_width=0.92, peak=0.37),
                tail=[(3.95, 0.35), (3.6, 0.05)], bows=(6.5,),
-               mouth=((1.15, 1.32), (1.7, 1.32), (1.7, 2.05), (1.15, 2.05)), engine=(-8.4, 1.35, 1.78, 0.4), tip=7.2,
-               irst=(7.4, -0.45), lumps=((7.2, 7.6), (0.0, 0.7), 2.83)),
+               mouth=((1.16, 1.2), (1.44, 1.2), (1.44, 2.0), (1.16, 2.0)), engine=(-9.07, 1.35, 1.78, 0.4), tip=7.2,
+               irst=(7.4, -0.45), lumps=((7.2, 7.6), (0.0, 0.7), 2.94)),
 }
 # The skins' wings out from the booms, ahead of the stabilators, and their
 # fins above the booms, split off by name.
@@ -89,7 +89,7 @@ PARTS = [("wing_L", ((-6.3, 3.0), (2.9, 9.0), (1.5, 3.2))), ("wing_R", ((-6.3, 3
          ("tail_fin_0", ((-11.5, -3.5), (1.6, 3.4), (2.95, 9.0))),
          ("tail_fin_1", ((-11.5, -3.5), (-3.4, -1.6), (2.95, 9.0)))]
 # The wing's stations (x, y, length, depth) and their missiles (length, radius).
-PYLONS = [((-0.6, 3.4, 1.3, 0.34), (3.6, 0.12)), ((-1.5, 4.8, 1.1, 0.28), (3.0, 0.09))]
+PYLONS = [((-1.6, 3.4, 1.3, 0.34), (3.6, 0.12)), ((-2.5, 4.8, 1.1, 0.28), (3.0, 0.09))]
 
 
 def _canopy(fit):

@@ -3,12 +3,11 @@ from, for its `aircraft_skin.skin` corrections: the median offsets of its
 belly and its top on the centreline along the length (away from the fins),
 and its half span against the model's (fittings left out).
 
-    blender -b --factory-startup --python skin_register.py -- <skin.glb> <length_m> <top_m> <model.glb> [nose]
+    blender -b --factory-startup --python skin_register.py -- <skin.glb> <length_m> <top_m> <model.glb>
 
 A body standing high (belly and top both up) wants `lower=(dz, z_from)`
 with `z_from` just above the canopy's top; a half span off by more than a
-few centimetres wants `span=(y_from, half_span)`. `nose` is `skin`'s, for a
-skin `load` reads the wrong way round.
+few centimetres wants `span=(y_from, half_span)`.
 """
 import os
 import statistics
@@ -34,9 +33,8 @@ def heights(tree, x):
 def main():
     a = sys.argv[sys.argv.index("--") + 1:]
     skin_path, length, top, model = os.path.abspath(a[0]), float(a[1]), float(a[2]), a[3]
-    nose = a[4] if len(a) > 4 else None
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bm = load(os.path.relpath(skin_path, REPO), length, top, nose=nose)
+    bm = load(os.path.relpath(skin_path, REPO), length, top)
     skin_tree, skin_half = BVHTree.FromBMesh(bm), max(abs(v.co.y) for v in bm.verts)
     bpy.ops.import_scene.gltf(filepath=model)
     verts, polys = [], []

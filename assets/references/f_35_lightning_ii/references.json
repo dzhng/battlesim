@@ -154,6 +154,72 @@
     "us_f_35_lightning_ii_f_35b-front.jpg"
    ],
    "seed": 16103
+  },
+  {
+   "file": "f_35a-side-3.png",
+   "variant": "f_35a",
+   "view": "side",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Lockheed_Martin_F-35A_Lightning_II_3-view_drawing.png",
+   "author": "Lockheed Martin / US DoD",
+   "licence": "public-domain",
+   "sha256": "023d8de7300f41911b6bb198174b65c37181963367a0ac2b90b8f7dbbb065100",
+   "note": "Side view of the public-domain F-35A three-view: the measured outline of the guide model (guides/f35.py) its skin was made from"
+  },
+  {
+   "file": "f_35a-top-2.png",
+   "variant": "f_35a",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Lockheed_Martin_F-35A_Lightning_II_3-view_drawing.png",
+   "author": "Lockheed Martin / US DoD",
+   "licence": "public-domain",
+   "sha256": "d19265211c753959e71891a1172a864432f1d335695d3eae95b66dfe44789311",
+   "note": "Top view of the public-domain F-35A three-view: the measured outline of the guide model (guides/f35.py) its skin was made from"
+  },
+  {
+   "file": "f_35a-front-2.png",
+   "variant": "f_35a",
+   "view": "front",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Lockheed_Martin_F-35A_Lightning_II_3-view_drawing.png",
+   "author": "Lockheed Martin / US DoD",
+   "licence": "public-domain",
+   "sha256": "c8b69cf878f70a5c76b9cd8d2ba473095936bbcf6ef0cb2f29b567edf866d6ff",
+   "note": "Front view of the public-domain F-35A three-view: the measured outline of the guide model (guides/f35.py) its skin was made from"
+  },
+  {
+   "file": "us_f_35_lightning_ii_f_35b-side-3.png",
+   "variant": "us_f_35_lightning_ii_f_35b",
+   "view": "side",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:F-35B_three-view.PNG",
+   "author": "Lockheed Martin / US DoD",
+   "licence": "public-domain",
+   "sha256": "f0d2c717295f00d1bc88140badb862a0026943aa53c2c5774d434c979340c45b",
+   "note": "Side view of the public-domain F-35B three-view: the measured outline of the guide model (guides/f35.py) its skin was made from"
+  },
+  {
+   "file": "us_f_35_lightning_ii_f_35b-top-2.png",
+   "variant": "us_f_35_lightning_ii_f_35b",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:F-35B_three-view.PNG",
+   "author": "Lockheed Martin / US DoD",
+   "licence": "public-domain",
+   "sha256": "7f88b300793fc751dc1c0878ecad5d728d737dc83f78678cbb27720781ce6843",
+   "note": "Top view of the public-domain F-35B three-view: the measured outline of the guide model (guides/f35.py) its skin was made from"
+  },
+  {
+   "file": "us_f_35_lightning_ii_f_35b-front-3.png",
+   "variant": "us_f_35_lightning_ii_f_35b",
+   "view": "front",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:F-35B_three-view.PNG",
+   "author": "Lockheed Martin / US DoD",
+   "licence": "public-domain",
+   "sha256": "47079c8caa7529cc87a9a98bacefcf3350b167224d86721eeda69fce1510445d",
+   "note": "Front view of the public-domain F-35B three-view: the measured outline of the guide model (guides/f35.py) its skin was made from"
   }
  ],
  "gaps": [

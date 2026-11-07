@@ -1,17 +1,17 @@
 [
   {
     "glb": "assets/source/skins/rafale/europe_rafale_c_f4.glb",
-    "sha256": "d71202b4cc1ffb919c826f51ef9294d0f1fe8a9e9b72b6667c3b7e610aa67796",
+    "sha256": "8077495cf132af0f1d1dc7708839fd6bf6e1c9933d93044d78c84295027baa3b",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b5b1-7f73-7701-90a8-5330644592f2",
+    "request_id": "01a1b703-f745-7032-8464-4a01f5abb71d",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/rafale/europe_rafale_c_f4-right.png": "ffb07343f055560330a5e24fb767be47b4c97c50d96be79478ee07f825e39f3d",
-      "assets/source/skins/rafale/europe_rafale_c_f4-left.png": "e107ef34644be7b90d2016ddf6af8703cf6b329cc8628b29f1a2345f3f8ab876",
-      "assets/source/skins/rafale/europe_rafale_c_f4-top.png": "24e88c30e36de88bc365901e878595aa528c643dd9f70c967fd1fe82dc599bde",
-      "assets/source/skins/rafale/europe_rafale_c_f4-bottom.png": "8c2b1dfab4e0dc7ce7e6c005a69932dd0a74dca6e79df9513386d70f54bf4b72"
+      "assets/source/skins/rafale/europe_rafale_c_f4-right.png": "d1f57b0063a4174639596161c7de2ac700d903ecf7f371e90a8f91997b428c31",
+      "assets/source/skins/rafale/europe_rafale_c_f4-left.png": "87c7ed6d6d14513c75281e89311fc385448402b95194b31a72a5c80189a69166",
+      "assets/source/skins/rafale/europe_rafale_c_f4-top.png": "7474291812d8f611a145fb028ba1f0bcfda689e307659e4b5828ba07e84956ed",
+      "assets/source/skins/rafale/europe_rafale_c_f4-bottom.png": "f45cb3a14b590a78e117e8c418dabe92ce1343e4008ae8bc92c57a233b65b913"
     },
-    "note": "Our own shaded orthographic renders of the lofted europe_rafale_c_f4 (its roster script before the skin), without gear, stores or markings."
+    "note": "Our own shaded orthographic renders of the guide model (blender/guides/rafale.py), its outline measured against Kaboldy's CC BY-SA 3.0 three-view of the Rafale B (dimensions only), without gear, stores or markings."
   }
 ]

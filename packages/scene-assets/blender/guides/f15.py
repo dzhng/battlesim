@@ -1,0 +1,141 @@
+"""F-15E Strike Eagle and F-15EX Eagle II, from assets/references/f_15_eagle/.
+
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/f15.py -- [--variant=<card>] [--wreck]
+
+What the photos settle: the slab-sided body between two big box intakes
+raked forward at the top, the shoulder wing cropped square at the tips, twin
+upright fins on the tail booms, stabilators below them, two engines' nozzles
+between the booms with the stinger between them; the two-seat canopy (the
+EX keeps the E's), conformal fuel tanks along the intakes' flanks below the
+wing, tall gear legs. The Strike Eagle wears gunship grey, the EX two-tone
+compass grey; the E carries bombs on its CFTs, the EX missiles.
+
+The references' dimensions (USAF and Boeing figures agree):
+length 19.43 m, span 13.05 m, height 5.63 m.
+"""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import aircraft_parts as A  # noqa: E402
+from parts import box  # noqa: E402
+from vehicle_export import run  # noqa: E402
+from vehicle_parts import MID, NEAR  # noqa: E402
+
+E, EX = "us_f_15_eagle_f_15e_strike_eagle", "us_f_15_eagle_f_15ex_eagle_ii"
+SCHEME = {E: "us_gunship_grey", EX: "us_compass_grey"}
+
+WING_Z = 2.62
+
+
+def _down(rows, at, dz):
+    """Rows with their heights at indices `at` lowered by `dz`."""
+    return [tuple(r - dz if i in at and isinstance(r, float) else r for i, r in enumerate(row)) for row in rows]
+
+
+# The three-view (public domain) stands the body 0.1 m lower under the same
+# fin tips than the lofted model did: everything but the fins goes down.
+DROP = 0.1
+
+
+def spec(variant):
+    s = _spec(variant)
+    s["fuselage"] = _down(s["fuselage"], (2, 3, 4), DROP)
+    s["bodies"] = [(n, _down(st, (2, 3, 4), DROP), *rest) for n, st, *rest in s["bodies"]]
+    s["wing"], s["stab"] = _down(s["wing"], (2,), DROP), _down(s["stab"], (2,), DROP)
+    s["canopy"] = dict(s["canopy"], sill=s["canopy"]["sill"] - DROP, top=s["canopy"]["top"] - DROP)
+    s["fins"] = [dict(f, root_z=f["root_z"] - DROP, height=f["height"] + DROP) for f in s["fins"]]
+    s["nozzles"] = [dict(n, loc=(n["loc"][0], n["loc"][1], n["loc"][2] - DROP)) for n in s["nozzles"]]
+    s["gear"] = [dict(g, top=g["top"] - DROP) for g in s["gear"]]
+    return s
+
+
+def _spec(variant):
+    s = dict(
+        # The long nose: the windscreen 3.4 m back from the tip, the cockpit
+        # over the nose gear, the intakes' mouths below its rear seat (side photo).
+        fuselage=[(9.68, 0.0, 2.3, 2.3), (9.0, 0.38, 2.0, 2.62, 2.28), (7.6, 0.62, 1.76, 2.92, 2.25),
+                  (6.0, 0.74, 1.64, 3.06, 2.25, 2.4), (4.4, 0.82, 1.6, 3.1, 2.2, 2.6),
+                  (2.4, 1.42, 1.32, 3.0, 2.05, 4.0), (-2.0, 1.52, 1.3, 2.86, 2.0, 4.5),
+                  (-5.4, 1.42, 1.42, 2.66, 2.02, 4.0), (-8.0, 1.2, 1.6, 2.5, 2.02, 3.0), (-8.62, 1.16, 1.62, 2.42, 2.0)],
+        bodies=[
+            # The two intake trunks, from their raked mouths back into the body,
+            # and the conformal fuel tanks along their flanks below the wing.
+            *[(f"fuselage_intake_{k}", [(4.0, 0.42, 1.26, 2.66, 1.95, 5.0), (3.0, 0.44, 1.24, 2.72, 1.95, 5.0),
+                                        (1.2, 0.44, 1.26, 2.76, 1.95, 4.0)], side * 1.08) for side, k in ((1, "L"), (-1, "R"))],
+            # The CFTs: slab-sided tanks hugging the intakes from their
+            # mouths to the wing's trailing edge, as every photo shows.
+            *[(f"fuselage_cft_{k}", [(3.7, 0.0, 1.9, 1.9), (3.1, 0.4, 1.22, 2.5, 1.9, 3.5),
+                                     (-2.8, 0.42, 1.22, 2.52, 1.9, 3.5), (-3.9, 0.0, 1.95, 1.95)], side * 1.74)
+              for side, k in ((1, "L"), (-1, "R"))],
+            # The dorsal spine the canopy fairs into, under the speed brake.
+            ("fuselage_spine", [(2.3, 0.4, 2.9, 3.6, 3.0, 2.4), (0.6, 0.44, 2.9, 3.22, 3.0, 2.6),
+                                (-3.0, 0.32, 2.8, 2.98, 2.85, 2.4), (-4.6, 0.0, 2.8, 2.8)]),
+            # The stinger between the nozzles.
+            ("tail_stinger", [(-8.2, 0.3, 1.86, 2.3), (-9.4, 0.14, 1.96, 2.18)]),
+        ],
+        canopy=dict(x_front=6.3, x_back=2.15, sill=3.0, top=3.86, half_width=0.56, bows=(5.5, 3.8), peak=0.42,
+                    tail=0.7),
+        wing_hinge=(0.75,),
+        # A cropped delta (the top photo): the leading edge swept 45 degrees,
+        # the trailing edge straight across, the tip raked off.
+        wing=[(1.15, 1.4, WING_Z, 6.8, 0.32), (-3.97, 6.52, WING_Z - 0.08, 1.62, 0.08)],
+        stab=[(-6.3, 1.3, 2.18, 2.95, 0.14), (-8.25, 4.3, 2.18, 1.35, 0.05)],
+        fins=[dict(root_x=-5.7, root_z=2.62, height=3.01, root_chord=3.4, tip_chord=1.45, sweep_m=2.6, y=1.16),
+              dict(root_x=-5.7, root_z=2.62, height=3.01, root_chord=3.4, tip_chord=1.45, sweep_m=2.6, y=-1.16)],
+        nozzles=[dict(loc=(-8.6, 0.64, 2.0), r_front=0.58, r_exit=0.52, length=0.82, petals=16),
+                 dict(loc=(-8.6, -0.64, 2.0), r_front=0.58, r_exit=0.52, length=0.82, petals=16)],
+        gear=[dict(name="nose", x=3.3, y=0.0, top=1.64, radius=0.33, width=0.19, door=(0.9, 0.5), light=True),
+              dict(name="main_L", x=-2.3, y=1.38, top=1.5, radius=0.52, width=0.26, door=(1.3, 0.6), rake=0.08),
+              dict(name="main_R", x=-2.3, y=-1.38, top=1.5, radius=0.52, width=0.26, door=(1.3, 0.6), rake=0.08)],
+        nav=dict(left=(-3.2, 6.5, WING_Z - 0.06), right=(-3.2, -6.5, WING_Z - 0.06), tail=(-9.45, 0.0, 2.08)),
+        pylons=[((-0.3, 3.1, WING_Z - 0.1), 1.3, 0.36)],
+        # A 610-gallon tank on each wing and on the centreline.
+        stores=[("tank", (-0.4, 3.1, 1.66), 5.0, 0.46), ("missile", (-0.3, 3.55, 1.95), 2.9, 0.08),
+                ("tank", (-0.6, 0.0, 0.8), 5.0, 0.46)],
+    )
+    if variant["id"] == E:
+        # GBU-31s in tandem on the CFTs' stub pylons, the Sniper and
+        # LANTIRN pods under the intakes.
+        s["stores"] += [("bomb", (1.3, 2.0, 0.92), 3.0, 0.23), ("bomb", (-1.6, 2.0, 0.92), 3.0, 0.23),
+                        ("pod", (3.0, 1.0, 1.0), 2.4, 0.18)]
+        s["pylons"] += [((1.3, 2.0, 1.26), 0.9, 0.1), ((-1.6, 2.0, 1.26), 0.9, 0.1)]
+    else:
+        s["stores"] += [("missile", (1.4, 2.0, 1.08), 3.65, 0.09), ("missile", (-1.6, 2.0, 1.08), 3.65, 0.09)]
+    return s
+
+
+def build(variant, v):
+    m = A.jet(v, spec(variant))
+    hull = v.hull
+    # Splitter plates and the ramp hinge line inside each intake mouth.
+    A.mirrored(lambda side, k: box(f"intake_splitter_{k}", (1.6, 0.04, 1.1), (3.8, side * 0.62, 2.1), m["paint"], hull,
+                                   lods=MID))
+    box("antiglare", (1.2, 0.6, 0.03), (7.0, 0, 2.98), m["dark"], hull, rot=(0, 0.12, 0), lods=MID)
+    # The speed brake on the spine behind the canopy, closed; the gun's port in the right wing root.
+    box("speed_brake", (2.2, 0.8, 0.04), (0.4, 0, 3.2), m["paint"], hull, bevel=0.02, lods=MID)
+    box("gun_port", (0.3, 0.12, 0.1), (1.6, -1.55, 2.6), m["black"], hull, lods=NEAR)
+    A.blade_antenna("antenna_spine", (-1.0, 0, 2.86), 0.25, m, hull)
+    A.blade_antenna("antenna_belly", (0.8, 0, 1.3), 0.2, m, hull, down=True)
+    # Seymour Johnson's SJ in black on the E's gunship grey; Eglin's ET on the EX.
+    code, serial, ink = (("SJ", "AF 88 1682", "black") if variant["id"] == E else
+                         ("ET", "AF 20 0001", "lowvis_dark"))
+    A.markings(v, [
+        ("insignia", dict(kind="us_lowvis", centre=(0.4, 1.9, 2.05), normal=(0, 1, 0), up=(0, 0, 1), size=0.42,
+                          onto=("fuselage",))),
+        ("insignia", dict(kind="us_lowvis", centre=(-1.4, 4.6, WING_Z + 0.2), normal=(0, 0, 1), up=(1, 0, 0),
+                          size=0.6, onto=("wing_L",), mirror=False)),
+        ("insignia", dict(kind="us_lowvis", centre=(-1.4, -4.6, WING_Z - 0.2), normal=(0, 0, -1), up=(1, 0, 0),
+                          size=0.6, onto=("wing_R",), mirror=False)),
+        ("text", dict(text=code, height=0.75, centre=(-8.2, 1.4, 4.25), normal=(0, 1, 0), up=(0, 0, 1),
+                      onto=("tail_fin_",), colour=ink)),
+        ("text", dict(text=serial, height=0.2, centre=(-8.0, 1.4, 3.5), normal=(0, 1, 0), up=(0, 0, 1),
+                      onto=("tail_fin_",), colour=ink)),
+    ])
+
+
+def wreck(variant, v):
+    A.crash(v, tail_x=-5.6, wing_y=3.8, wing_side=1, tail_yaw=0.25, seed=15)
+
+
+run("f_15_eagle", SCHEME, build, wreck, script="f15.py")

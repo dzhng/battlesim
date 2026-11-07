@@ -54,6 +54,17 @@
    "licence": "CC-BY-SA-2.0",
    "sha256": "769b02da49a9e63f50909e1536d9f17bd6f4b9a92ad03683323686ea02cc63ab",
    "note": "Rafale nose detail: canopy, probe, canard root"
+  },
+  {
+   "file": "europe_rafale_c_f4-top.png",
+   "variant": "europe_rafale_c_f4",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Dassault_Rafale_3-view_line_drawing.svg",
+   "author": "Kaboldy",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "955deb0a9c83ede027766d56144417dcb700310b52543185910920562c91d74b",
+   "note": "Three-view of the two-seat Rafale B: review only, never a generator input (share-alike). The measured source of the guide's body, canards, wing and fin; the C's single-seat canopy comes from the photos"
   }
  ],
  "gaps": [

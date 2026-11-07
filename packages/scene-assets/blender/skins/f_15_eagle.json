@@ -1,32 +1,32 @@
 [
   {
     "glb": "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle.glb",
-    "sha256": "ec92f60fab51acfc59ede007d6b7bd22a68c19e167873e270b369f712b90d7f1",
+    "sha256": "d8318d54c926c16165b83a46137b2adabe2553875d10befdb461dc57693cdf7d",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b5b1-8489-7bd2-a8af-e170870777df",
+    "request_id": "01a1b701-7afe-7b22-b9e9-ce3b77e817b5",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle-right.png": "09bae0b8bb93d11063e0f09e2a6ec5751b088c279438b0bb13039194cce1f9c8",
-      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle-left.png": "5f9f7615b58157d4024d6b05c5da092f43b0af02764e67825d3b5d00d1b3f807",
-      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle-top.png": "0dc6e30dbf5e6fef96731f6315626e56dd0d4c3fbe088dbfdd6d0a2b38c25846",
-      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle-bottom.png": "4dfe4f769dfd1404a196c7869c5326fd3f7c62a622c86248dde12c197bb59bec"
+      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle-right.png": "93060c1d02e40789f75020f36d403a93c39c81a7e7685de10b2796753e50f25e",
+      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle-left.png": "32b900b6e96273778de76841c52c3a2b72334aaa644bc28206f5c01be506bd40",
+      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle-top.png": "e75763d858c94baa1f542128ad74ad8faa492b5fe78ec9f8059df1d2b48c7cb3",
+      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle-bottom.png": "d5a89dcae64224e20586a4c2b101a956b3a681c1a1d933420dc14629a9d3b2ec"
     },
-    "note": "Our own shaded orthographic renders of the lofted us_f_15_eagle_f_15e_strike_eagle (its roster script before the skin), without gear, stores or markings."
+    "note": "Our own shaded orthographic renders of the guide model guides/f15.py, measured against the public-domain three-view references/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle-side-2.png, without gear, stores or markings."
   },
   {
     "glb": "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15ex_eagle_ii.glb",
-    "sha256": "39118208ae1401aa22addf879ecb00d4b30777987c56baccdd50e78e631e2621",
+    "sha256": "3b49cc7b46122ae838d0cc9b2ca5f5bfe7fd373fd69b0d05206b6cef00e700e4",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b5b5-2662-7b73-8f20-fd30d195b968",
+    "request_id": "01a1b702-e6e9-76f2-97f1-357e7de7b04b",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15ex_eagle_ii-right.png": "09bae0b8bb93d11063e0f09e2a6ec5751b088c279438b0bb13039194cce1f9c8",
-      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15ex_eagle_ii-left.png": "5f9f7615b58157d4024d6b05c5da092f43b0af02764e67825d3b5d00d1b3f807",
-      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15ex_eagle_ii-top.png": "0dc6e30dbf5e6fef96731f6315626e56dd0d4c3fbe088dbfdd6d0a2b38c25846",
-      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15ex_eagle_ii-bottom.png": "4dfe4f769dfd1404a196c7869c5326fd3f7c62a622c86248dde12c197bb59bec"
+      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15ex_eagle_ii-right.png": "93060c1d02e40789f75020f36d403a93c39c81a7e7685de10b2796753e50f25e",
+      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15ex_eagle_ii-left.png": "32b900b6e96273778de76841c52c3a2b72334aaa644bc28206f5c01be506bd40",
+      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15ex_eagle_ii-top.png": "e75763d858c94baa1f542128ad74ad8faa492b5fe78ec9f8059df1d2b48c7cb3",
+      "assets/source/skins/f_15_eagle/us_f_15_eagle_f_15ex_eagle_ii-bottom.png": "d5a89dcae64224e20586a4c2b101a956b3a681c1a1d933420dc14629a9d3b2ec"
     },
-    "note": "Our own shaded orthographic renders of the lofted us_f_15_eagle_f_15ex_eagle_ii (its roster script before the skin), without gear, stores or markings."
+    "note": "Our own shaded orthographic renders of the guide model guides/f15.py, measured against the public-domain F-15E three-view references/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle-side-2.png (the same airframe), without gear, stores or markings."
   }
 ]

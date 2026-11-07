@@ -33,10 +33,10 @@ def _distance(at, positions):
     return np.minimum(d, SIZE - d).min(-1)
 
 
-def panels(seed, rows=(34, 80), cols=(28, 90)):
+def panels(seed, rows=(42, 100), cols=(36, 120)):
     """An airframe's panel seams: rows of panels of varied height, each row
-    split at its own varied widths (texels; a 6 m tile makes them 0.7 to
-    2 m), as a 0..1 mask a texel or so wide."""
+    split at its own varied widths (texels; a 6 m tile makes them 0.9 to
+    2.6 m), as a 0..1 mask a texel or so wide."""
     rng = np.random.default_rng(seed)
     yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float)
     row_cuts = _cuts(rng, *rows)
@@ -61,8 +61,8 @@ def _finished(col, seed, rough=AIR_ROUGH):
     lines = scratches(seed + 50)
     col = mix(col, col * 1.25, lines * 0.2)
     seams = panels(seed + 60)
-    col = col * (1 - 0.16 * seams)[..., None]
-    h = fbm(96, seed + 20, 2) * 0.06 - lines * 0.2 - seams * 0.5
+    col = col * (1 - 0.08 * seams)[..., None]
+    h = fbm(96, seed + 20, 2) * 0.06 - lines * 0.2 - seams * 0.25
     return Baked(col, chips(seed + 40, 14), normals_from_height(blur(h), 1.0), 0.94, rough + 0.04 * (mottle - 0.5))
 
 

@@ -1,17 +1,17 @@
 [
   {
     "glb": "assets/source/skins/mirage_2000/europe_mirage_2000_2000d_rmv.glb",
-    "sha256": "990e7fce92e1effb9e568ca03a6ca5fe2a3b6cd76fe8649598115dce67484c4e",
+    "sha256": "63390cef9c2ce4da0a44e0e5ec965755c384a56af34d50f01a67e39c3008a142",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b5d8-610c-7f53-926e-f4f1169c74cc",
+    "request_id": "01a1b703-eb9d-7b53-a626-55a98103c2c4",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/mirage_2000/europe_mirage_2000_2000d_rmv-right.png": "060b09cb66f9b699a6e12a07bb4e29803350f61832d4d58eb210ecf6e4f59adc",
-      "assets/source/skins/mirage_2000/europe_mirage_2000_2000d_rmv-left.png": "0ed2d0a41c7b8995e009283c7ad0ed937ac97bbf04a49d2f1c49ff17380a7dfb",
-      "assets/source/skins/mirage_2000/europe_mirage_2000_2000d_rmv-top.png": "46cbde8dbe4721e3d73f5a08eee9da1f28a1706e77cdd242e6580dc93ac98bc4",
-      "assets/source/skins/mirage_2000/europe_mirage_2000_2000d_rmv-bottom.png": "aabcff2ba997fab95dc524ede8858e0a80d14728bd1e58c5b2699c8229dae87b"
+      "assets/source/skins/mirage_2000/europe_mirage_2000_2000d_rmv-right.png": "3d1b6e4c35cfaeb1d268a7355df6334861f4b8a9760f73bb181e7a305dfb67ef",
+      "assets/source/skins/mirage_2000/europe_mirage_2000_2000d_rmv-left.png": "9ae62a1c4e108a5e38bc143103400fc02890774ebf798094571c1ce451edf54b",
+      "assets/source/skins/mirage_2000/europe_mirage_2000_2000d_rmv-top.png": "1d0dfdec3a864cbb04f441324baaad1045f90f2a99c7c844c130115b0c5f327e",
+      "assets/source/skins/mirage_2000/europe_mirage_2000_2000d_rmv-bottom.png": "d61a2cabb147b623a5695ae51bb545832ce954296619e85b08230764637a8193"
     },
-    "note": "Our own shaded orthographic renders of the lofted europe_mirage_2000_2000d_rmv (its roster script before the skin, its fin seated on the spine), without gear, stores or markings."
+    "note": "Our own shaded orthographic renders of the guide model (blender/guides/mirage2000.py), its outline measured against Henrickson's CC BY-SA 3.0 three-view of the 2000C (dimensions only), without gear, stores or markings."
   }
 ]

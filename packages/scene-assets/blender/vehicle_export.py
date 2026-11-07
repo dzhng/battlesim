@@ -20,9 +20,11 @@ does the rest, the same way for every family:
   pieces where it has a turret, and its debris;
 - visible crew after the paint is baked (they keep the soldier's own), and
   their materials carried through the export;
-- tiers checked to reduce, the GLB exported, and the family's receipt.
+- tiers checked to reduce, the GLB exported, and the family's receipt;
+  `--out=<path>` writes the one `--variant` there instead, without a
+  receipt (a skin's guide model, `guides/<family>.py`).
 
-    bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/<family>.py -- [--variant=<id>] [--wreck] [--no-lint]
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/<family>.py -- [--variant=<id>] [--wreck] [--no-lint] [--out=<path>]
 
 Lint standalone (over the whole roster or one variant):
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/vehicle_lint.py -- --roster
@@ -161,6 +163,12 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
     
     args = script_args()
     selected = next((a.split("=", 1)[1] for a in args if a.startswith("--variant=")), None)
+    elsewhere = next((a.split("=", 1)[1] for a in args if a.startswith("--out=")), None)
+    if elsewhere and not selected:
+        raise SystemExit("--out writes one variant: name it with --variant")
+    # A guide is a skin's source, never the shipped model: it only ever writes elsewhere.
+    if not elsewhere and any(Path(a).parent.name == "guides" for a in sys.argv):
+        raise SystemExit("a guide writes only where --out says, never over the shipped model")
     wrecking = WRECK_ARG in args
     skip_lint = "--no-lint" in args
     receipt = []
@@ -193,7 +201,7 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
         counts = triangles_by_tier()
         if not all(counts[k] > counts[k + 1] > 0 for k in range(3)):
             raise SystemExit(f"{variant['id']}: tiers must reduce, got {counts}")
-        out = str(REPO / variant["export"])
+        out = elsewhere or str(REPO / variant["export"])
         if wrecking:
             print("WRECK", variant["id"], counts, export_wreck(out), flush=True)
             continue

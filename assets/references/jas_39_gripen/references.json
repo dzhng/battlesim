@@ -54,6 +54,17 @@
    "licence": "CC-BY-SA-2.0",
    "sha256": "35c6e80895905854379139f3bf5e461f40cbebc02638597481ad45f471fcd106",
    "note": "JAS 39 canard and intake lip detail"
+  },
+  {
+   "file": "europe_jas_39_gripen_e-top.png",
+   "variant": "europe_jas_39_gripen_e",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Saab_JAS_39_Gripen_3-view.svg",
+   "author": "Kaboldy",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "42a651d7ccf34dfc4a4a27e9bc2ac39d22c91cfca0b2cb1498a282d11a315f05",
+   "note": "Three-view (side, top, front) of the single-seat Gripen: review only, never a generator input (share-alike). The measured source of the guide's heights, canopy, canards, wing and fin (dimensions only)"
   }
  ],
  "gaps": [

@@ -1,17 +1,17 @@
 [
   {
     "glb": "assets/source/skins/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3.glb",
-    "sha256": "6853ddba4950a4139ee94770c2d74606114b866e0c44de2f4a405488a107aceb",
+    "sha256": "0807dbcb62361aae94310a8467634ab5be94ff157010995383f4430399b908db",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b5b1-8656-7750-896e-b8c0c3c8f9ad",
+    "request_id": "01a1b704-033f-7452-94fc-96d911d4f341",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3-right.png": "2996bed8b42700ffc7b8c12434e4a6318867f9b219e332d38dd5aefb02f5bff8",
-      "assets/source/skins/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3-left.png": "b6819e5f77bfb6771ec2c2e494616e6b6c1f8a0503ec92d8f6433fdd53a33e55",
-      "assets/source/skins/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3-top.png": "11fd042c6c609e8b0c9d2f4e6f7f7761a80939d925db7fdc1c90cf2ac5c7e494",
-      "assets/source/skins/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3-bottom.png": "e68988033771cf90e6d49df4a0612d69504a23a92d136f620aa4b8e3163ef982"
+      "assets/source/skins/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3-right.png": "35c96c6b4796f8fe79b336fd71b4a4c622d8572f8606b32c084eb041d002f931",
+      "assets/source/skins/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3-left.png": "6429a7531e2bb15aaeb22390b80e044f998b9e1b204e274553ae86fbb50978cb",
+      "assets/source/skins/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3-top.png": "22d4355c238de1c73fc1c79f73b00cf4c8e2a16c9f501bb7014e1d2d7f58dd60",
+      "assets/source/skins/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3-bottom.png": "0a259cee851650254427c6384e6f0efa7572c73265be0ffbcd5b911cd9321051"
     },
-    "note": "Our own shaded orthographic renders of the lofted europe_eurofighter_typhoon_tranche_3 (its roster script before the skin), without gear, stores or markings."
+    "note": "Our own shaded orthographic renders of the guide model (blender/guides/typhoon.py), its outline measured against Inductiveload's public-domain three-view, without gear, stores or markings."
   }
 ]

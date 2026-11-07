@@ -54,6 +54,39 @@
    "licence": "public-domain",
    "sha256": "cca4c65a0982056c46778106377d41cd11f27b2d86305742f16dbdfc3d47a0a3",
    "note": "A-10C nose and cockpit detail: armoured tub, bubble canopy, gun bay"
+  },
+  {
+   "file": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-side-2.png",
+   "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
+   "view": "side",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Fairchild_Republic_A-10_Thunderbolt_II_3-view.svg",
+   "author": "Kaboldy",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "e9feeaa01123ae60e6df975fb2867b62896e5564b8ed813dd174ead4c8191eef",
+   "note": "Side view of Kaboldy's three-view (rasterised from the SVG): the measured outline of the guide model (guides/a10.py). Share-alike, so review and measurement only: no generator saw it"
+  },
+  {
+   "file": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-top.png",
+   "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Fairchild_Republic_A-10_Thunderbolt_II_3-view.svg",
+   "author": "Kaboldy",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "91f3b4e53e6277c05ba9ee6c52bd45596df972566208010d5dfc769a7477ae70",
+   "note": "Top view of Kaboldy's three-view (rasterised from the SVG): the measured outline of the guide model (guides/a10.py). Share-alike, so review and measurement only: no generator saw it"
+  },
+  {
+   "file": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-front-2.png",
+   "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
+   "view": "front",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Fairchild_Republic_A-10_Thunderbolt_II_3-view.svg",
+   "author": "Kaboldy",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "811fadea26a6d1e3a885352ea36c494f2afe552ff30c9f40fa4d23b70a86b63d",
+   "note": "Front view of Kaboldy's three-view (rasterised from the SVG): the measured outline of the guide model (guides/a10.py). Share-alike, so review and measurement only: no generator saw it"
   }
  ],
  "gaps": [

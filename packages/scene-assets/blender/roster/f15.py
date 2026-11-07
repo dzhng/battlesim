@@ -14,11 +14,13 @@ The references' dimensions (USAF and Boeing figures agree):
 length 19.43 m, span 13.05 m, height 5.63 m.
 
 Each variant's shell is a generated skin (`aircraft_skin`, pinned in
-`skins/`): Hunyuan3D from our own shaded views of the lofted F-15 its
-roster script drew before, so it keeps that model's measured outline as one
-smooth surface. The E's skin stands 0.1 m high on it and the EX's 0.28 m
-(their fins came out short): both are lowered, the fins' tips held, and
-their wings brought in to the 13.05 m span. The canopy is fitted to each
+`skins/`): Hunyuan3D from our own shaded views of the guide
+(`guides/f15.py`, the lofted F-15 measured against the public-domain
+three-view: the wing 1.25 m further aft, slimmer intake trunks, the body
+0.1 m lower), so it keeps that outline as one smooth surface. The E's skin
+stands 0.39 m high on it and the EX's 0.34 m (their fins came out short):
+both are lowered, the fins' tips held, and their wings set to the 13.05 m
+span. The canopy is fitted to each
 skin's hump; the intakes' mouths, the nozzles, the gear, the pylons and
 every store are seated on the skin where it is (`Probe`).
 """
@@ -37,8 +39,8 @@ SCHEME = {E: "us_gunship_grey", EX: "us_compass_grey"}
 # The wing's mean height on the skins, for the insignia laid on it.
 WING_Z = 2.45
 SKINS = "assets/source/skins/f_15_eagle"
-# Each skin's corrections on the lofted model's outline, and the y of its fins.
-FIT = {E: dict(lower=(0.1, 4.2), fin_y=1.06), EX: dict(lower=(0.28, 4.3), fin_y=1.2)}
+# Each skin's corrections on its guide's outline, and the y of its fins.
+FIT = {E: dict(lower=(0.39, 4.3), fin_y=1.16), EX: dict(lower=(0.34, 4.3), fin_y=1.16)}
 # The two-seat canopy's plan (the framed canopy's outline the lofted model
 # drew), its tail fairing onto the spine, and its bows: the windscreen's
 # arch and the bow between the seats.
@@ -46,11 +48,11 @@ GLASS = framed_plan(6.3, 2.15, 0.56, peak=0.42)
 CANOPY = dict(glass=GLASS, tail=[GLASS[-1], (1.7, 0.3), (1.25, 0.03)], bows=(5.5, 3.8))
 # The box intakes' mouths within the lips of each skin's raked intake face
 # (`aircraft_skin.intake_mouth` corners, y and z), measured from ahead.
-MOUTH = {E: ((0.95, 1.45), (1.55, 1.45), (1.55, 2.3), (0.95, 2.3)),
-         EX: ((0.85, 1.45), (1.45, 1.45), (1.45, 2.35), (0.85, 2.35))}
+MOUTH = {E: ((0.92, 1.47), (1.33, 1.47), (1.33, 2.4), (0.92, 2.4)),
+         EX: ((0.92, 1.35), (1.25, 1.35), (1.25, 2.4), (0.92, 2.4))}
 # The F110s' nozzles in place of the skin's, which is cut inside their radius.
-NOZZLES = [dict(loc=(-8.6, y, 2.0), r_front=0.58, r_exit=0.52, length=0.82, petals=16) for y in (0.64, -0.64)]
-NOZZLE_CUT = [((-10.0, -8.65), (y - 0.5, y + 0.5), (1.5, 2.5)) for y in (0.64, -0.64)]
+NOZZLES = [dict(loc=(-8.4, y, 1.95), r_front=0.58, r_exit=0.52, length=0.82, petals=16) for y in (0.64, -0.64)]
+NOZZLE_CUT = [((-10.0, -8.42), (y - 0.5, y + 0.5), (1.5, 2.45)) for y in (0.64, -0.64)]
 # Wheelbase and track as the photos give them; each leg's top on the skin.
 GEAR = [dict(name="nose", x=3.3, y=0.0, radius=0.33, width=0.19, door=(0.9, 0.5), light=True),
         dict(name="main_L", x=-2.3, y=1.38, radius=0.52, width=0.26, door=(1.3, 0.6), rake=0.08),
@@ -64,8 +66,8 @@ def spec(variant):
     return dict(
         skin=dict(path=f"{SKINS}/{variant['id']}.glb", length=19.43, top=5.63, lower=fit["lower"], span=(2.0, 6.52),
                   canopy=CANOPY, cut=NOZZLE_CUT,
-                  parts=[("wing_L", ((-5.2, 3.5), (2.3, 8.0), (2.05, 3.0))),
-                         ("wing_R", ((-5.2, 3.5), (-8.0, -2.3), (2.05, 3.0))),
+                  parts=[("wing_L", ((-6.2, 2.5), (2.3, 8.0), (1.8, 3.0))),
+                         ("wing_R", ((-6.2, 2.5), (-8.0, -2.3), (1.8, 3.0))),
                          ("tail_fin_0", fin_box[0]), ("tail_fin_1", fin_box[1])]),
         nozzles=NOZZLES,
     )
@@ -79,15 +81,16 @@ def build(variant, v):
     A.mirrored(lambda side, k: intake_mouth(f"intake_mouth_{k}", shell, m["black"], hull, side, MOUTH[variant["id"]]))
     for g in GEAR:
         A.gear(top=shell.under(g["x"], g["y"]) + 0.02, mats=m, parent=hull, **g)
+    tip_x = sum(shell.chord(6.3, 2.0, -7.0)) / 2
     A.nav_lights(m, hull, tail=(-9.0, 0.0, 2.05),
-                 **{k: (-3.2, side * 6.3, shell.over(-3.2, side * 6.3) + 0.01) for k, side in (("left", 1), ("right", -1))})
+                 **{k: (tip_x, side * 6.3, shell.over(tip_x, side * 6.3) + 0.01) for k, side in (("left", 1), ("right", -1))})
     # A 610-gallon tank on each wing's pylon, an AIM-9 on the pylon's
     # outboard rail, and one tank on the centreline under the belly.
     for side, k in ((1, "L"), (-1, "R")):
-        top = shell.under(-0.3, side * 3.1)
-        A.pylon(f"pylon_wing_{k}", (-0.3, side * 3.1, top), 1.3, 0.36, m, hull)
-        A.store(f"store_tank_{k}", "tank", (-0.4, side * 3.1, top - 0.36 - 0.46 - 0.02), 5.0, 0.46, m, hull)
-        A.store(f"store_aim9_{k}", "missile", (-0.3, side * 3.55, top - 0.2), 2.9, 0.08, m, hull)
+        top = shell.under(-1.55, side * 3.1)
+        A.pylon(f"pylon_wing_{k}", (-1.55, side * 3.1, top), 1.3, 0.36, m, hull)
+        A.store(f"store_tank_{k}", "tank", (-1.65, side * 3.1, top - 0.36 - 0.46 - 0.02), 5.0, 0.46, m, hull)
+        A.store(f"store_aim9_{k}", "missile", (-1.55, side * 3.55, top - 0.2), 2.9, 0.08, m, hull)
     A.store("store_tank_c", "tank", (-0.6, 0.0, shell.under(-0.6, 0.0) - 0.46 + 0.01), 5.0, 0.46, m, hull)
     # The CFTs' stations: the E's GBU-31s in tandem on stub pylons and its
     # targeting pod under the intake; the EX's AIM-120s on their rails.
@@ -110,9 +113,9 @@ def build(variant, v):
     A.markings(v, [
         ("insignia", dict(kind="us_lowvis", centre=(0.4, 1.9, 2.05), normal=(0, 1, 0), up=(0, 0, 1), size=0.42,
                           onto=("fuselage",))),
-        ("insignia", dict(kind="us_lowvis", centre=(-1.4, 4.6, WING_Z + 0.2), normal=(0, 0, 1), up=(1, 0, 0),
+        ("insignia", dict(kind="us_lowvis", centre=(-2.65, 4.6, WING_Z + 0.2), normal=(0, 0, 1), up=(1, 0, 0),
                           size=0.6, onto=("wing_L",), mirror=False)),
-        ("insignia", dict(kind="us_lowvis", centre=(-1.4, -4.6, WING_Z - 0.2), normal=(0, 0, -1), up=(1, 0, 0),
+        ("insignia", dict(kind="us_lowvis", centre=(-2.65, -4.6, WING_Z - 0.2), normal=(0, 0, -1), up=(1, 0, 0),
                           size=0.6, onto=("wing_R",), mirror=False)),
         ("text", dict(text=code, height=0.75, centre=(-8.3, fin_y + 0.3, 4.25), normal=(0, 1, 0), up=(0, 0, 1),
                       onto=("tail_fin_",), colour=ink)),

@@ -54,6 +54,17 @@
    "licence": "CC-BY-SA-4.0",
    "sha256": "36ff7550f258437a938a117ba73ac7414cf57bf8668faa6ae80e798f4b746460",
    "note": "MiG-31BM from below in flight: planform, missiles under the body"
+  },
+  {
+   "file": "eastern_mig_31_foxhound_mig_31bm-top-2.png",
+   "variant": "eastern_mig_31_foxhound_mig_31bm",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Mikoyan_MiG-31_3-view.svg",
+   "author": "Kaboldy",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "fd8978bfb634d1f9e24a81dea7731f21895991567ae5cb0659c1550176bbdaea",
+   "note": "Three-view line drawing (top, front and side): the measured source of the guide's (guides/mig31.py) outline at one scale; review and measurement only, never a generator input"
   }
  ],
  "gaps": [

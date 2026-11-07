@@ -1,17 +1,17 @@
 [
   {
     "glb": "assets/source/skins/su_25_frogfoot/eastern_su_25_frogfoot_su_25sm3.glb",
-    "sha256": "56a3367b2068d8e98d424ee14fd0c4e327db24554ebf262d566da5c34b530f61",
+    "sha256": "22158ce4d93cddd75a46e63f6fa315ee43375bb848eb72a984042e0158e71ffa",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b5b1-82d6-75e3-a897-dff2c15ac393",
+    "request_id": "01a1b6e2-aaa5-7b72-8693-c0324ae972bf",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/su_25_frogfoot/eastern_su_25_frogfoot_su_25sm3-right.png": "6b5824bf23c4a37a7866d1d4276b452b1adfc2560ac24d3865bef5592a66794a",
-      "assets/source/skins/su_25_frogfoot/eastern_su_25_frogfoot_su_25sm3-left.png": "98dacd5bceb12e736a39473dde4cb05012f9c53aafcc7f2ba82f6ce082c0f7ea",
-      "assets/source/skins/su_25_frogfoot/eastern_su_25_frogfoot_su_25sm3-top.png": "be4bc9a52357c38e9385d9a93e65947920e1a428aa5aafe2b4e55db7e0211cb5",
-      "assets/source/skins/su_25_frogfoot/eastern_su_25_frogfoot_su_25sm3-bottom.png": "99612c7fb610a0902881719f6e45e305737ea9f067ec41aef77b376ecd0a9079"
+      "assets/source/skins/su_25_frogfoot/eastern_su_25_frogfoot_su_25sm3-right.png": "a3f01894ce37ca0ff42ffdce8833b1cc59054b941c6d88095f2389318368d785",
+      "assets/source/skins/su_25_frogfoot/eastern_su_25_frogfoot_su_25sm3-left.png": "f82d35c6a3b0d91c866f5c6b679763047818f613f66ebf7b700fe11937e3ac96",
+      "assets/source/skins/su_25_frogfoot/eastern_su_25_frogfoot_su_25sm3-top.png": "f50b8584e54ba549905e3078bb3098dfed474616792f28c619333fa7db3ceca1",
+      "assets/source/skins/su_25_frogfoot/eastern_su_25_frogfoot_su_25sm3-bottom.png": "1710f04c45f5e9c4e51c63f52badf1a65227473e8e493519dd453affd001cb7c"
     },
-    "note": "Our own shaded orthographic renders of the lofted eastern_su_25_frogfoot_su_25sm3 (its roster script before the skin), without gear, stores or markings."
+    "note": "Our own shaded orthographic renders of the guide guides/su25.py, a lofted model measured against the public-domain three-view in references/su_25_frogfoot, without gear, stores or markings."
   }
 ]

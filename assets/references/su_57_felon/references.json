@@ -82,6 +82,17 @@
    ],
    "seed": 2002,
    "sha256": "2420d5f8713e0bb7a6c43ffc088ed8d6897b5ce5328bb3720c4da1268caa6bc0"
+  },
+  {
+   "file": "eastern_su_57_felon_stealth_multirole_fighter-top-2.png",
+   "variant": "eastern_su_57_felon_stealth_multirole_fighter",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Sukhoi_T-50_3-view.svg",
+   "author": "XaHyMaH",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "1b0bb2d1a15e7c2fe8efe96ea93ed24bf35f805bd1d618c82d160ce2fdfcdb4f",
+   "note": "Two-view line drawing of the T-50 (top and side, same outline as the Su-57): the measured source of the guide's (guides/su57.py) outline at one scale; review and measurement only, never a generator input"
   }
  ],
  "gaps": [

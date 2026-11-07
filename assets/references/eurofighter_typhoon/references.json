@@ -54,6 +54,17 @@
    "licence": "CC-BY-SA-2.0",
    "sha256": "b67966a140b562af42c70934e39b708981cac216c42ceba9ed46d7f62acc6ffa",
    "note": "Typhoon nose detail: canopy, canard, intake lip, nose gear"
+  },
+  {
+   "file": "europe_eurofighter_typhoon_tranche_3-top.png",
+   "variant": "europe_eurofighter_typhoon_tranche_3",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Eurofighter_Typhoon_line_drawing.svg",
+   "author": "Inductiveload",
+   "licence": "public-domain",
+   "sha256": "9766e8acd081ac1bfb2ed2dc37095d95fd75633266c2122a0c6d021787cc6160",
+   "note": "Public-domain three-view: the measured source of the guide's body, chin intake, canards, wing and fin"
   }
  ],
  "gaps": [

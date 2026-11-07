@@ -43,6 +43,17 @@
    "licence": "CC-BY-2.0",
    "sha256": "19f86238f4eadf482f0e375e1ace81ca18208fefb0f3cf86fd042275fde6036f",
    "note": "Mirage 2000D rear-low three-quarter in flight: M53 nozzle, fin"
+  },
+  {
+   "file": "europe_mirage_2000_2000d_rmv-top.png",
+   "variant": "europe_mirage_2000_2000d_rmv",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Dassault_Mirage_2000C_3-view_line_drawing.gif",
+   "author": "Henrickson",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "0108a91d4cc9755853cf5a209848c465ffbc811996db4d050daf7f4910fdb71b",
+   "note": "Three-view of the single-seat 2000C, canopy open: review only, never a generator input (share-alike). Its views overlap, so each was measured alone; the measured source of the guide's body, intakes, wing and fin; the D's two-seat canopy comes from the photos"
   }
  ],
  "gaps": [

@@ -243,6 +243,28 @@
    ],
    "seed": 2004,
    "sha256": "6323f973c9e39c2fcd7b9ba960af15c21cf1de1f9cae877673cc38e234c1ee2b"
+  },
+  {
+   "file": "eastern_sukhoi_flanker_family_su_27sm3-top-2.png",
+   "variant": "eastern_sukhoi_flanker_family_su_27sm3",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Sukhoi_Su-27_3-view_line_drawing.svg",
+   "author": "Malyszkz, after the US Army (airdefense.bliss.army.mil)",
+   "licence": "public-domain",
+   "sha256": "4f12e7f91ded8d0752a7e0d15b5c5541654d4c82876b205e56a36f3f8a2142bf",
+   "note": "US Army three-view (top, front and side), rasterised from the SVG: the measured source of the Flanker guide's planform (radome, extensions, wing and stabilator stations) and forebody depth; the Su-30SM2 and Su-35S share it"
+  },
+  {
+   "file": "eastern_sukhoi_flanker_family_su_34-top-2.png",
+   "variant": "eastern_sukhoi_flanker_family_su_34",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Sukhoi_Su-34_3-view_line_drawing.gif",
+   "author": "US Air Force",
+   "licence": "public-domain",
+   "sha256": "1202ee803d773be7ff89ca9f5b016548fc4659f70874c76418385a99dae0458d",
+   "note": "US Air Force three-view (top, front and side, gear and stores drawn): the measured source of the Su-34 guide's canards on the extensions"
   }
  ],
  "gaps": [

@@ -13,10 +13,10 @@ The references' dimensions (USAF fact sheet figures agree):
 length 16.26 m, span 17.53 m, height 4.47 m.
 
 Its shell is a generated skin (`aircraft_skin`, pinned in `skins/`):
-Hunyuan3D from our own shaded views of the lofted A-10 its roster script
-drew before. It spans wider than it is long, so its nose's direction is
-given (`nose`); it left out the twin fins, so they are built here, and it
-stands with its engine nacelles' tops where the lofted model's were
+Hunyuan3D from our own shaded views of the guide (`guides/a10.py`, the
+lofted A-10 measured against a three-view: the wing, gear pods, tailplane
+and fins 0.25-0.6 m aft or outboard of where it had them). It left out
+the twin fins, so they are built here, and it stands with its engine nacelles' tops where the lofted model's were
 (`top`). The canopy is fitted to its hump; the gun, the engines' fan faces
 and exhausts, the gear, the pylons and the stores sit on the skin (`Probe`).
 """
@@ -47,7 +47,7 @@ ENGINE_Y, ENGINE_Z, FAN_R = 1.5, 3.28, 0.52
 GUN_PROUD = 0.44
 SPEC = dict(
     skin=dict(path="assets/source/skins/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed.glb",
-              length=16.46 - GUN_PROUD, x=-GUN_PROUD / 2, top=ENGINE_Z + 0.68, nose="+x", span=(2.0, 8.77),
+              length=16.46 - GUN_PROUD, x=-GUN_PROUD / 2, top=ENGINE_Z + 0.68, span=(2.0, 8.77),
               canopy=dict(glass=GLASS, tail=[GLASS[-1], (2.8, 0.3), (2.4, 0.03)], bows=(5.6,)),
               parts=[("wing_L", ((-2.5, 3.5), (1.6, 9.5), (1.2, 2.4))),
                      ("wing_R", ((-2.5, 3.5), (-9.5, -1.6), (1.2, 2.4)))]),

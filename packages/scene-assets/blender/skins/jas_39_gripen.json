@@ -1,17 +1,17 @@
 [
   {
     "glb": "assets/source/skins/jas_39_gripen/europe_jas_39_gripen_e.glb",
-    "sha256": "eff0fb00ef675b83aa3131ff96d5aae67942e147ec3ce5f928081a040d2a9444",
+    "sha256": "802a34fa4bcbf6c15e3479ff192b58e46f2b43f9d358fb766afc4d03b3680d2d",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b5b1-7e4b-7d62-9043-17bfbc592495",
+    "request_id": "01a1b703-f1d9-70f2-a710-720896d86a1b",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/jas_39_gripen/europe_jas_39_gripen_e-right.png": "de9c9e7b3a5102d4f550f2361c67f14c1dfe1d5b50146647be8b34e3f62c8b08",
-      "assets/source/skins/jas_39_gripen/europe_jas_39_gripen_e-left.png": "3c892167145a5dcbf3f109fed9c797d797ce53af0cd1f2193d4d7b853eca5583",
-      "assets/source/skins/jas_39_gripen/europe_jas_39_gripen_e-top.png": "0d4293009296b838eab82763f6c548a163e39db877528738d41b0c9abd0c1305",
-      "assets/source/skins/jas_39_gripen/europe_jas_39_gripen_e-bottom.png": "92b18794483aa0f3d1baff175e7db2a55c645ad8932f052c99f7dfcc69a35906"
+      "assets/source/skins/jas_39_gripen/europe_jas_39_gripen_e-right.png": "08eee173c68c35e70549bfce768b3afcfda2621bc0d8fe352009b4faef8d5874",
+      "assets/source/skins/jas_39_gripen/europe_jas_39_gripen_e-left.png": "f5402a1ceb6e2e276329dd493899d64edc62029f611001cb4e0001df68daf9c9",
+      "assets/source/skins/jas_39_gripen/europe_jas_39_gripen_e-top.png": "2d96877ba00ff4a90e4e30e5b3f837553c24803b982a19ee4ca3418e4339b334",
+      "assets/source/skins/jas_39_gripen/europe_jas_39_gripen_e-bottom.png": "1d32d46b678b27ced61f9dfc6c91c4a39329b13d74667dd819107bcc77790515"
     },
-    "note": "Our own shaded orthographic renders of the lofted europe_jas_39_gripen_e (its roster script before the skin), without gear, stores or markings."
+    "note": "Our own shaded orthographic renders of the guide model (blender/guides/gripen.py), its outline measured against Kaboldy's CC BY-SA 3.0 three-view (dimensions only), without gear, stores or markings."
   }
 ]

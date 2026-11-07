@@ -15,10 +15,10 @@ The references' dimensions (Lockheed Martin figures agree):
 F-35A 15.7 x 10.7 x 4.38 m; F-35B 15.6 x 10.7 x 4.36 m.
 
 Each variant's shell is a generated skin (`aircraft_skin`, pinned in
-`skins/`): Hunyuan3D's model of the lofted model it replaces, from its side,
-top and bottom renders, so its proportions are the measured ones (the A's
-body set 0.08 m down, both spans let out to 10.72 m; the B's body stands a
-little deeper than the lofted one). Its canopy is fitted to its hump, and
+`skins/`): Hunyuan3D's model of the guide (`guides/f35.py`, the lofted
+model measured against the public-domain three-views), from its side, top
+and bottom renders, so its proportions are the drawings' (the A's span let
+out to 10.72 m and its belly a little deep; the B's body set 0.11 m down). Its canopy is fitted to its hump, and
 every part that sits on it is seated on it (`Probe`). The skin carries the
 caret intakes and the A's gun fairing; its tail is a box, so the A's round
 nozzle and the B's swivel duct are built round it.
@@ -37,8 +37,8 @@ from vehicle_parts import MID, NEAR  # noqa: E402
 FA, FB = "f_35a", "us_f_35_lightning_ii_f_35b"
 # The caret intakes' mouths on each skin's raked faces, inside their lips
 # (`aircraft_skin.intake_mouth` corners, y and z), measured from ahead.
-MOUTH = {FA: ((1.12, 1.55), (1.48, 1.55), (1.58, 2.4), (1.12, 2.4)),
-         FB: ((1.12, 1.45), (1.62, 1.45), (1.72, 2.42), (1.12, 2.42))}
+MOUTH = {FA: ((1.05, 1.4), (1.45, 1.4), (1.47, 2.25), (1.05, 2.25)),
+         FB: ((1.08, 1.45), (1.55, 1.45), (1.58, 2.32), (1.08, 2.32))}
 SKINS = "assets/source/skins/f_35_lightning_ii"
 # Length and height (to the fins' tips) of each, the skin's frame.
 FRAME = {FA: (15.7, 4.38), FB: (15.6, 4.36)}
@@ -58,9 +58,9 @@ CANOPY = {
     FB: ([(5.85, 0.06), (5.4, 0.42), (5.0, 0.47), (4.6, 0.5), (4.2, 0.52), (3.8, 0.53), (3.5, 0.52)],
          [(3.5, 0.52), (3.35, 0.4), (3.2, 0.15)]),
 }
-# Each skin on the measured outline: the A's body a little high (down 0.08
-# m below its canopy's top, its fins' tips held), both spans a little short.
-FIT = {FA: dict(lower=(0.08, 3.2), span=(2.5, 5.36)), FB: dict(span=(2.5, 5.36))}
+# Each skin on its guide's outline: both spans a little short, the B's body
+# a little high (down 0.11 m below its canopy's top, its fins' tips held).
+FIT = {FA: dict(span=(2.5, 5.36)), FB: dict(lower=(0.11, 3.4), span=(2.5, 5.36))}
 # The engine's axis on the skin's tail (its section there, 1.45 to 2.55 m
 # up). The skin's own nozzle is a box: the built pipe (the A's round nozzle,
 # the B's swivel duct) is drawn a little fuller than it, round its end, and

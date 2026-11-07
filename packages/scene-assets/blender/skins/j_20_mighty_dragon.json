@@ -1,17 +1,17 @@
 [
   {
     "glb": "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter.glb",
-    "sha256": "653232d1b8cb95e1dd354db4ef4be78106a652e1355f038c49003e2e0db7f65b",
+    "sha256": "24862eaaaf291d73c1564677a6380b4fd2fa75f5a60106e4a9812a808d1813ed",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b5b1-7b3a-7072-a81a-5f0a7478065a",
+    "request_id": "01a1b6dc-a0b5-73b2-b9a3-765240a8833e",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter-right.png": "cb4a07fbe1a3876fd8cdf97fbb5f8b6b2eac27ffcc5110d316c008ee2cab17ee",
-      "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter-left.png": "678ed804c8191fab0fcd282946f7f72522d9b7780c89af60af91311e25bb5319",
-      "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter-top.png": "12ffee6e62120374d9eb818c30a7741946d0d7b1302edca85ec209c1533632f4",
-      "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter-bottom.png": "2d3c4f1ddce3dcb60f2350561d018dc48222fa7580bc3d4803479b06490e3a6e"
+      "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter-right.png": "f849e2908745e917b5ae345c82f2966c6a3e7fd5527d0576932c92e744e04905",
+      "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter-left.png": "5388a3cc3f431cf0162469bd2a3a2a6d086988beab12f96cc8e60fb3ec28a520",
+      "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter-top.png": "2a05db57152f2d15f5ea2f69c5c7d17d56cc6ac1533e1e57f099043fc744515e",
+      "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter-bottom.png": "42fc16ad81e93a2caf0bdfdc219b1a31387e3867e2af09b2605e12d0be8bf317"
     },
-    "note": "Our own shaded orthographic renders of the lofted eastern_j_20_mighty_dragon_stealth_fighter (its roster script before the skin), without gear, stores or markings."
+    "note": "Our own shaded orthographic renders of the J-20's guide (guides/j20.py), measured from Kaboldy's three-view (CC BY-SA 3.0, a measurement reference only), without gear, stores or markings."
   }
 ]

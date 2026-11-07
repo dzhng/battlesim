@@ -12,8 +12,8 @@ The references' dimensions (Eurofighter figures agree): length
 15.96 m, span 10.95 m, height 5.28 m.
 
 Its shell is a generated skin (`aircraft_skin`, pinned in `skins/`), made
-from shaded views of the lofted model this script drew before it, which it
-matches to a few centimetres but for a span 0.3 m short (`SPAN`). Its canopy
+from shaded views of the measured lofted model in guides/typhoon.py, which
+it matches to a few centimetres. Its canopy
 is fitted to its hump; the chin intake's dark mouth, the nozzles, gear,
 stores, lights and markings are built on it, seated where it is (`Probe`).
 """
@@ -27,31 +27,31 @@ from aircraft_skin import Probe, intake_mouth  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 SKIN = "assets/source/skins/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3.glb"
-WING_Z = 1.9
+WING_Z = 1.3
 # The skin's span to the frame's half span (its tips' pods outboard).
 SPAN = (2.0, 5.32)
 # The canopy's plan, the lofted model's framed canopy's outline, its
 # opaque tail onto the spine; its heights are the skin's hump's.
-CANOPY_GLASS = framed_plan(x_front=5.5, x_back=2.0, half_width=0.5, peak=0.42, tail=0.75)
+CANOPY_GLASS = framed_plan(x_front=5.4, x_back=2.0, half_width=0.5, peak=0.42, tail=0.75)
 CANOPY_TAIL = [CANOPY_GLASS[-1], (1.6, 0.28), (1.2, 0.03)]
 # The chin intake's dark mouth inside its lips on the skin's face
 # (`aircraft_skin.intake_mouth` corners, y and z: one mouth across the
 # centreline).
-MOUTH = ((-0.52, 1.42), (0.52, 1.42), (0.52, 1.88), (-0.52, 1.88))
+MOUTH = ((-0.54, 0.86), (0.54, 0.86), (0.54, 1.38), (-0.54, 1.38))
 # The two EJ200 nozzles in place of the skin's, the skin cut inside them.
-NOZZLES = [dict(loc=(-6.4, y, 1.8), r_front=0.45, r_exit=0.42, length=0.45, petals=12) for y in (0.44, -0.44)]
+NOZZLES = [dict(loc=(-6.4, y, 1.65), r_front=0.45, r_exit=0.42, length=0.45, petals=12) for y in (0.44, -0.44)]
 # One box over both: between the pipes the skin's own tail would be left in shreds.
-NOZZLE_CUT = [((-7.4, -6.5), (-0.85, 0.85), (1.39, 2.21))]
+NOZZLE_CUT = [((-7.4, -6.5), (-0.85, 0.85), (1.24, 2.06))]
 SPEC = dict(
     # The skin: its wings out from the body, its canards ahead of them
     # under the cockpit, its fin above the spine.
     skin=dict(path=SKIN, length=15.96, top=5.28, span=SPAN, cut=NOZZLE_CUT,
-              canopy=dict(glass=CANOPY_GLASS, tail=CANOPY_TAIL, bows=(4.9,)),
-              parts=[("wing_L", ((-6.5, 1.5), (1.0, 6.0), (1.4, 2.4))),
-                     ("wing_R", ((-6.5, 1.5), (-6.0, -1.0), (1.4, 2.4))),
-                     ("wing_canard_L", ((3.8, 6.0), (0.75, 2.5), (2.1, 2.8))),
-                     ("wing_canard_R", ((3.8, 6.0), (-2.5, -0.75), (2.1, 2.8))),
-                     ("tail_fin_0", ((-8.5, -3.5), (-0.3, 0.3), (3.05, 9.0)))]),
+              canopy=dict(glass=CANOPY_GLASS, tail=CANOPY_TAIL, bows=(4.85,)),
+              parts=[("wing_L", ((-6.5, 2.0), (1.0, 6.0), (0.8, 1.8))),
+                     ("wing_R", ((-6.5, 2.0), (-6.0, -1.0), (0.8, 1.8))),
+                     ("wing_canard_L", ((3.3, 5.6), (0.75, 2.5), (1.6, 2.7))),
+                     ("wing_canard_R", ((3.3, 5.6), (-2.5, -0.75), (1.6, 2.7))),
+                     ("tail_fin_0", ((-8.5, -3.0), (-0.3, 0.3), (2.75, 9.0)))]),
     nozzles=NOZZLES,
 )
 # Wheelbase and track as the photos give them; each leg's top on the skin.
@@ -64,17 +64,17 @@ GEAR = [dict(name="nose", x=2.7, y=0.0, radius=0.26, width=0.16, door=(0.7, 0.4)
 # the body.
 PYLONS = [((-1.7, 2.0, 1.1, 0.3), ("tank", -0.1, 4.0, 0.36)), ((-2.5, 3.3, 1.0, 0.24), ("missile", 0.0, 3.65, 0.09))]
 # The tip's chord is measured at `TIP_X`; its pod reaches forward of it.
-TIP_X, POD_X, TIP_POD = -5.1, -4.4, (1.6, 0.12)
+TIP_X, POD_X, TIP_POD = -4.35, -3.6, (1.6, 0.12)
 BODY_MISSILES = [(0.4, 0.55), (-2.6, 0.55)]
 # The RAF's low-visibility roundels and fin flash, as the side photo.
 MARKINGS = [
-    ("insignia", dict(kind="uk_lowvis", centre=(1.4, 1.2, 2.6), normal=(0, 1, 0), up=(0, 0, 1), size=0.32,
+    ("insignia", dict(kind="uk_lowvis", centre=(1.4, 1.2, 2.05), normal=(0, 1, 0), up=(0, 0, 1), size=0.32,
                       onto=("fuselage",))),
     ("insignia", dict(kind="uk_flash", centre=(-5.9, 0.3, 3.45), normal=(0, 1, 0), up=(0, 0, 1), size=0.32,
                       onto=("tail_fin_0",))),
     ("insignia", dict(kind="uk_lowvis", centre=(-3.6, 3.4, WING_Z + 0.2), normal=(0, 0, 1), up=(1, 0, 0), size=0.45,
                       onto=("wing_",))),
-    ("text", dict(text="ZK353", height=0.2, centre=(-4.2, 1.2, 2.3), normal=(0, 1, 0), up=(0, 0, 1),
+    ("text", dict(text="ZK353", height=0.2, centre=(-4.2, 1.2, 1.8), normal=(0, 1, 0), up=(0, 0, 1),
                   onto=("fuselage",))),
 ]
 

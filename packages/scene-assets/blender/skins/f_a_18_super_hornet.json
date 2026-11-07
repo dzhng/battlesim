@@ -1,17 +1,17 @@
 [
   {
     "glb": "assets/source/skins/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e.glb",
-    "sha256": "7b8517cf94ced2670eaf607234057fdb630d6f9184772ed0b7148a8a5372cad6",
+    "sha256": "fee7021c5a013de2ce2f8f0e621ccde8b1afa524ed4a329bbdddce8ae39bc98b",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b31c-b36f-71f0-815c-c225652ccc47",
+    "request_id": "01a1b72b-7a29-72a1-bc14-181c46026b5b",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e-right.png": "09e8642222f00ac5b7139f190ceb2aef4dd945e01ec33f756719ab05359bb622",
-      "assets/source/skins/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e-left.png": "7fdd59437dcf0be2e700c039f80a7dde9ccce352822df80b903dfc7b9231f81e",
-      "assets/source/skins/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e-top.png": "c4023fdfd195fbb2788aaccbb8499bfa254bb8705e86b7fa26470aa137a54603",
-      "assets/source/skins/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e-bottom.png": "b6f15cb831a229a060f48b7b0c15aade835a79d87128c0cc1b2d13d66fb23537"
+      "assets/source/skins/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e-right.png": "9aadaa5e67f38675d8a5e0bad87aa1efe4086ff7b9c3cf4a2703ebae022cf534",
+      "assets/source/skins/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e-left.png": "738f1a1e42aac72ebd0a9385d921f3154c9b66dfb00554283f577e16e73aaa1e",
+      "assets/source/skins/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e-top.png": "6ff0f3f418ca965a58f0675586d4b440e05905b9a09b6d0e10d0c4cb141302fb",
+      "assets/source/skins/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e-bottom.png": "dfb752a2138b1f5af3d6fcdeef240dac146c149eb1a4acbf2bc76ded8f4b1c35"
     },
-    "note": "All four inputs are our own: shaded orthographic renders of the lofted us_f_a_18_super_hornet_f_a_18e (its roster script before the skin), without gear, stores or markings. Only views whose longest side is the airframe's length go in: the generator scales each view to fill it, so a nose-on view would read its span as its length."
+    "note": "Our own shaded orthographic renders of the guide model guides/super_hornet.py, measured against the public-domain F/A-18F plan silhouette references/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e-top-2.png (plan only; no public-domain side view), without gear, stores or markings."
   }
 ]

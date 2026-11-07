@@ -54,6 +54,17 @@
    "licence": "CC-BY-SA-2.0",
    "sha256": "a13648450bfb457bb8e53e43f4420637aba2e6c77a3122bbcd672e15c1d60f0b",
    "note": "MiG-29SMT banking, seen from above: planform"
+  },
+  {
+   "file": "eastern_mig_29_fulcrum_mig_29smt-top-2.png",
+   "variant": "eastern_mig_29_fulcrum_mig_29smt",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Mikoyan_MiG-29_3-view_line_drawing.png",
+   "author": "US Government",
+   "licence": "public-domain",
+   "sha256": "6b9be90157c0fac31c37e91bdfb7993a150338eb5192168f9d37f56e033ddd1f",
+   "note": "Public-domain three-view (top, front and side): the measured source of the guide's wing and stabilator stations"
   }
  ],
  "gaps": [

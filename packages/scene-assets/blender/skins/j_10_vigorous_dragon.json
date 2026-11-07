@@ -1,17 +1,17 @@
 [
   {
     "glb": "assets/source/skins/j_10_vigorous_dragon/eastern_j_10_vigorous_dragon_j_10c.glb",
-    "sha256": "6267c9b080c4f5056dc542ae4e47bae5f5eb8dbf13d6942a3c2d2cd974e2272d",
+    "sha256": "cbbf3965e51808f38631d4ae88f320051cd2b05284725a0ec36e0db846f1be67",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b5b1-82e4-7280-8214-347f8f3c5af4",
+    "request_id": "01a1b6fa-1ec8-7a10-b249-2b3da67ac38b",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/j_10_vigorous_dragon/eastern_j_10_vigorous_dragon_j_10c-right.png": "49bf8c716cdc0863e29f01234853b1c49a8a8610589371f6ce02f0cec78fac0d",
-      "assets/source/skins/j_10_vigorous_dragon/eastern_j_10_vigorous_dragon_j_10c-left.png": "b0ada3c920a4b8e3faa85d3c710e96dfac38913d9973dfa43dfa6a5d32a9f415",
-      "assets/source/skins/j_10_vigorous_dragon/eastern_j_10_vigorous_dragon_j_10c-top.png": "77812fe92a605c6d21dbea29708a64bf89efef027aa6ae544908686ed6fcfce8",
-      "assets/source/skins/j_10_vigorous_dragon/eastern_j_10_vigorous_dragon_j_10c-bottom.png": "30f0699d86ceac92874ef1116f2585e84196a48b95ce8a4e4f10151def5a5ca3"
+      "assets/source/skins/j_10_vigorous_dragon/eastern_j_10_vigorous_dragon_j_10c-right.png": "72980400bf4e49442c83e3304c3095a281373e7139a1686eaf82aa6ab19d2909",
+      "assets/source/skins/j_10_vigorous_dragon/eastern_j_10_vigorous_dragon_j_10c-left.png": "59c6c1defbbd5f4c26773abef93b00d4a2c2fe799712eabd5cce5bc3fc381d5f",
+      "assets/source/skins/j_10_vigorous_dragon/eastern_j_10_vigorous_dragon_j_10c-top.png": "d4a511dab334f73df9cf5144db3da8123d02dea3b72721d7d8a9096a67d6a360",
+      "assets/source/skins/j_10_vigorous_dragon/eastern_j_10_vigorous_dragon_j_10c-bottom.png": "97171148cc56f94b78a4bc20fab3da20a5906d52601556155c8a887082e24e1f"
     },
-    "note": "Our own shaded orthographic renders of the lofted eastern_j_10_vigorous_dragon_j_10c (its roster script before the skin), without gear, stores or markings."
+    "note": "Our own shaded orthographic renders of the J-10C's guide (guides/j10.py), measured from Kaboldy's three-view (CC BY-SA 3.0, a measurement reference only), without gear, stores or markings."
   }
 ]

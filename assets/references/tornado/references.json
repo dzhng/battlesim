@@ -143,6 +143,17 @@
     "europe_tornado_ids-three_quarter_rear.jpg"
    ],
    "seed": 2402
+  },
+  {
+   "file": "europe_tornado_ids-top-2.png",
+   "variant": "europe_tornado_ids",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Panavia_Tornado_IDS_3-view_line_drawing.svg",
+   "author": "Flappiefh, after A. Khaustova",
+   "licence": "public-domain",
+   "sha256": "53f06733cdf286745b3f02d6748b56824544aae7fdb9d7a9d2b16b68deefb278",
+   "note": "Public-domain three-view of the IDS, wings spread and swept: the measured source of the guide's nose, spine, tailerons, fin and nozzles"
   }
  ],
  "gaps": [

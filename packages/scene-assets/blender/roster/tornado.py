@@ -14,9 +14,9 @@ The references' dimensions (Panavia figures): length 16.72 m,
 span 13.91 m spread, height 5.95 m.
 
 Each variant's shell is a generated skin (`aircraft_skin`, pinned in
-`skins/`), made from shaded views of the lofted model this script drew
-before it, which it matches but for wings reaching 0.6-1 m too far, drawn
-back in to the spread span (`span`). Its canopy is fitted to its hump; the
+`skins/`), made from shaded views of the measured lofted model in
+guides/tornado.py, which it matches to a few centimetres but for the IDS's
+standing 0.12 m high (`lower`) and both spans a few centimetres off (`span`). Its canopy is fitted to its hump; the
 intakes' dark mouths, the nozzles and buckets, gear, stores, lights, the
 variant's nose fittings and markings are built on it, seated where it is
 (`Probe`). The radome stays in the airframe's grey: a split along its
@@ -41,12 +41,15 @@ SPAN = (2.2, 6.89)
 CANOPY_GLASS = framed_plan(x_front=5.6, x_back=1.45, half_width=0.5, peak=0.4, tail=0.7)
 CANOPY_TAIL = [CANOPY_GLASS[-1], (1.05, 0.27), (0.65, 0.03)]
 # Each raked intake's dark mouth inside its lips on the skin's face
-# (`aircraft_skin.intake_mouth` corners, y and z).
-MOUTH = ((0.85, 1.5), (1.42, 1.5), (1.42, 2.42), (0.85, 2.42))
+# (`aircraft_skin.intake_mouth` corners, y and z), each variant's skin's own.
+MOUTH = {ECR: ((0.88, 1.54), (1.38, 1.54), (1.38, 2.3), (0.88, 2.3)),
+         IDS: ((0.88, 1.5), (1.4, 1.5), (1.4, 2.46), (0.88, 2.46))}
+# The IDS's skin stood high on its outline; the ECR's matches it.
+LOWER = {ECR: None, IDS: (0.12, 3.45)}
 # The two RB199s in place of the skin's nozzles, the skin cut inside them.
-NOZZLES = [dict(loc=(-7.0, y, 1.92), r_front=0.45, r_exit=0.42, length=0.95, petals=10) for y in (0.48, -0.48)]
+NOZZLES = [dict(loc=(-6.3, y, 2.1), r_front=0.45, r_exit=0.42, length=0.95, petals=10) for y in (0.48, -0.48)]
 # One box over both: between the pipes the skin's own tail would be left in shreds.
-NOZZLE_CUT = [((-8.6, -7.1), (-0.9, 0.9), (1.5, 2.34))]
+NOZZLE_CUT = [((-8.6, -6.4), (-1.08, 1.08), (1.5, 2.52))]
 GEAR = [dict(name="nose", x=4.1, y=0.0, radius=0.28, width=0.15, wheels=2, spread=0.24, door=(0.8, 0.5), light=True),
         dict(name="main_L", x=-1.2, y=1.55, radius=0.46, width=0.24, door=(1.2, 0.55), rake=0.1),
         dict(name="main_R", x=-1.2, y=-1.55, radius=0.46, width=0.24, door=(1.2, 0.55), rake=0.1)]
@@ -64,7 +67,7 @@ def spec(variant):
     return dict(
         # The skin: its swing wings outboard of the gloves, its fin above
         # the spine; the tailerons stay with the body.
-        skin=dict(path=f"assets/source/skins/tornado/{variant['id']}.glb", length=16.68, top=5.95, span=SPAN,
+        skin=dict(path=f"assets/source/skins/tornado/{variant['id']}.glb", length=16.68, top=5.95, span=SPAN, lower=LOWER[variant["id"]],
                   cut=NOZZLE_CUT, canopy=dict(glass=CANOPY_GLASS, tail=CANOPY_TAIL, bows=(4.6, 2.9)),
                   parts=[("wing_L", ((-3.5, 1.5), (2.6, 8.0), (1.9, 2.7))),
                          ("wing_R", ((-3.5, 1.5), (-8.0, -2.6), (1.9, 2.7))),
@@ -90,9 +93,9 @@ def build(variant, v):
     A.nav_lights(m, hull, tail=(-7.3, 0.0, fin.over(-7.3, 0.0) - 0.1),
                  **{k: (TIP_X, side * (tip - 0.15), shell.over(TIP_X, side * (tip - 0.15)) + 0.01)
                     for k, side in (("left", 1), ("right", -1))})
-    A.mirrored(lambda side, k: intake_mouth(f"intake_mouth_{k}", shell, m["black"], hull, side, MOUTH))
-    # The thrust reverser buckets above the nozzles, stowed.
-    A.mirrored(lambda side, k: box(f"reverser_{k}", (0.9, 0.9, 0.08), (-7.2, side * 0.48, 2.4), m["paint"], hull,
+    A.mirrored(lambda side, k: intake_mouth(f"intake_mouth_{k}", shell, m["black"], hull, side, MOUTH[variant["id"]]))
+    # The thrust reverser buckets stowed on top of the nozzles.
+    A.mirrored(lambda side, k: box(f"reverser_{k}", (0.9, 0.9, 0.08), (-6.55, side * 0.48, 2.58), m["paint"], hull,
                                    bevel=0.02, rot=(0, -0.1, 0), lods=MID))
     if variant["id"] == IDS:
         A.mirrored(lambda side, k: box(f"gun_port_{k}", (0.3, 0.1, 0.1), (4.9, shell.flank(4.9, side, 1.66), 1.66),

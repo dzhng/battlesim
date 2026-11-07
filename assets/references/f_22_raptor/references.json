@@ -54,6 +54,39 @@
    "licence": "public-domain",
    "sha256": "89bc995862bb72354e8f0795f69856a99087e7a3401a51185721b64f2ab99eb0",
    "note": "F-22A straight rear, parked: 2D nozzles, fins, stabilators"
+  },
+  {
+   "file": "us_f_22_raptor_f_22a-side-2.png",
+   "variant": "us_f_22_raptor_f_22a",
+   "view": "side",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Lockheed_Martin_F-22A_Raptor_3-view_line_drawing.jpg",
+   "author": "U.S. Air Force",
+   "licence": "public-domain",
+   "sha256": "1b4d8ece3bd3e2bced82c2e1220b7bbcecd741c8558d68b05d48f66fa77a672a",
+   "note": "Side view of the USAF's public-domain three-view: the measured outline of the guide model (guides/f22.py) its skin was made from"
+  },
+  {
+   "file": "us_f_22_raptor_f_22a-top.png",
+   "variant": "us_f_22_raptor_f_22a",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Lockheed_Martin_F-22A_Raptor_3-view_line_drawing.jpg",
+   "author": "U.S. Air Force",
+   "licence": "public-domain",
+   "sha256": "bf9d96b7350dbbd317e835dafae8845a1e4008a30784165391a56a20caf68601",
+   "note": "Top view of the USAF's public-domain three-view: the measured outline of the guide model (guides/f22.py) its skin was made from"
+  },
+  {
+   "file": "us_f_22_raptor_f_22a-front-2.png",
+   "variant": "us_f_22_raptor_f_22a",
+   "view": "front",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Lockheed_Martin_F-22A_Raptor_3-view_line_drawing.jpg",
+   "author": "U.S. Air Force",
+   "licence": "public-domain",
+   "sha256": "2561a997d50a0a1be2bf8dddc6feb0a0fe3746e68e50bffbdb2ee99b8e8f8ab7",
+   "note": "Front view of the USAF's public-domain three-view: the measured outline of the guide model (guides/f22.py) its skin was made from"
   }
  ],
  "gaps": [

@@ -1,17 +1,17 @@
 [
   {
     "glb": "assets/source/skins/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed.glb",
-    "sha256": "17da31bb8da467ee748ece50ce8ec53b2b02a1f17010612ac913d78a9404180a",
+    "sha256": "33d385a9a983fac35bcbc1d9c8338be26072343f27b84f96a5c73b4bc6dc5cf1",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b5ec-cd81-7093-b057-7bad32a57106",
+    "request_id": "01a1b714-0fe5-7cd2-9a05-1c28b820f968",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-right.png": "da2f0e4810d510061ce76497d911668e8d53e00e0d4b6860ccf24c9da55bfb87",
-      "assets/source/skins/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-left.png": "367abcb09304bdaa36e3292229169a39ae3f35aa44610b7fd743d6d84f1ef80e",
-      "assets/source/skins/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-top.png": "3040ab0e17c3d1c02d53ddcad53bea17beaf873e3967f029de5fc43f358c1a18",
-      "assets/source/skins/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-bottom.png": "b3ef17046d9500b1e1f52a9834142cd22b8fa10874051b9f4c813e6db36bde80"
+      "assets/source/skins/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-right.png": "6566a5ee48ae4096bf85e370cc55a6dbadd1c9e13252445efbf0b20a1cfcdb55",
+      "assets/source/skins/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-left.png": "1eeb6f62f1196e85acae672bf2080037429e4c06afcae78f373ae8ed40d79d56",
+      "assets/source/skins/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-top.png": "2648f36289321559c0b035631694b2165bc5d1fcfad54e354d6f39333d6a9c54",
+      "assets/source/skins/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-bottom.png": "b537db307606f46b1989d15d2d5da66630e2c1930f13f61b952e0e4d082a856c"
     },
-    "note": "Our own shaded orthographic renders of the lofted us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed (its roster script before the skin), without gear, stores or markings."
+    "note": "Our own shaded orthographic renders of the guide model guides/a10.py, measured against Kaboldy's CC-BY-SA-3.0 three-view references/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-top.png (measured only; it is not an input), without gear, stores or markings."
   }
 ]

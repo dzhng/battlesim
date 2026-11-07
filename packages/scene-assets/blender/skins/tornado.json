@@ -1,32 +1,32 @@
 [
   {
     "glb": "assets/source/skins/tornado/europe_tornado_ecr.glb",
-    "sha256": "00fa9ff33a2e188fa4febd6aeeffe6293f69f63d23a0f413bacf6069bc90a0e1",
+    "sha256": "20aaf85f8f685d89a622d5639f4435d94f5292bff719df9c5f7fbaaa301fa5e6",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b5b1-8509-73d1-96ca-4c4665b92ca7",
+    "request_id": "01a1b703-f741-77f1-ad61-48ec0dd9ef1d",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/tornado/europe_tornado_ecr-right.png": "a0c5f5ec149381d26f17690db72589b11cbf2a2d4eda81f83bf31aaf700b2d92",
-      "assets/source/skins/tornado/europe_tornado_ecr-left.png": "7183d7b014bbccd71776e672f3620823aa9d4b882fb84251d5eaab507585d5d0",
-      "assets/source/skins/tornado/europe_tornado_ecr-top.png": "1307a98040521afab1fb23986009bd44c893cf910fbf23710b0fe229bc4702c3",
-      "assets/source/skins/tornado/europe_tornado_ecr-bottom.png": "2ce23392829d2f1f7fb30740eccc35483f0caddd571a92dd1b59e4f616853288"
+      "assets/source/skins/tornado/europe_tornado_ecr-right.png": "02f815135094625e7502183afa976ec298541349d567183efd743385558fa999",
+      "assets/source/skins/tornado/europe_tornado_ecr-left.png": "bbf1cb55ea6bcd5506117b33b250dab13995c67583958ffb9158c8e713fff144",
+      "assets/source/skins/tornado/europe_tornado_ecr-top.png": "9bc3136a2e8ea30dbff59ebc8081f8bd2ac98178e69f806dcdeaa7c0798b9e38",
+      "assets/source/skins/tornado/europe_tornado_ecr-bottom.png": "028784c2ae0990a3ab35d187edc2f48ee4446f8e9e93f91d300acf027c17c207"
     },
-    "note": "Our own shaded orthographic renders of the lofted europe_tornado_ecr (its roster script before the skin), without gear, stores or markings."
+    "note": "Our own shaded orthographic renders of the guide model (blender/guides/tornado.py), its outline measured against the public-domain three-view of the IDS, without gear, stores or markings."
   },
   {
     "glb": "assets/source/skins/tornado/europe_tornado_ids.glb",
-    "sha256": "f106700c0f0622c66fcabd38b7864141e324a3940d93f50fc3f321dc5de2d770",
+    "sha256": "14e95345c76212a9a0cc61dd3e875e531cf4ca122ec33cc3d175e31ad1271b8f",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b5b3-c15c-73e3-86d0-f663c91b2d7b",
+    "request_id": "01a1b704-f9f7-71d0-bcb1-47fb1f7508bc",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/tornado/europe_tornado_ids-right.png": "4321d171a6ec4ff2555b7994c8d90049f573c4edeb2a8471a0c80e171bf44c6c",
-      "assets/source/skins/tornado/europe_tornado_ids-left.png": "ac53fc531f1c6eb8a61b2a7584630c9dcd9c4d873f2bb23b7db3009e042a9bdd",
-      "assets/source/skins/tornado/europe_tornado_ids-top.png": "0ef15da754740df1f364205f27fe250a1691da4cb2eab5a43276bbc50d4d2b94",
-      "assets/source/skins/tornado/europe_tornado_ids-bottom.png": "6b09e3a8937e3cbe13cfe0fa26fff4e288d9c0b6506fd2ef2271cf000cd1611a"
+      "assets/source/skins/tornado/europe_tornado_ids-right.png": "875ce7713165d6709267f52d6fba31807726e87decdc692959abd3fb54ae9a17",
+      "assets/source/skins/tornado/europe_tornado_ids-left.png": "506856f72e43e77ceea82c788dbea25ab05c34a5716c4031104fb056064e2746",
+      "assets/source/skins/tornado/europe_tornado_ids-top.png": "0b7368aec59193d5a1196a32811bf6293fff1e6f8304cdfa8c7fa0f837571c23",
+      "assets/source/skins/tornado/europe_tornado_ids-bottom.png": "bb86d06a88733e1f1be6ced0aef9400cbfe4932f7682aa19801f516c3e3a3ece"
     },
-    "note": "Our own shaded orthographic renders of the lofted europe_tornado_ids (its roster script before the skin), without gear, stores or markings."
+    "note": "Our own shaded orthographic renders of the guide model (blender/guides/tornado.py), its outline measured against the public-domain three-view of the IDS, without gear, stores or markings."
   }
 ]

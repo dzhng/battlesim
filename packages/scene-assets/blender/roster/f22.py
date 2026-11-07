@@ -13,9 +13,11 @@ The references' dimensions (USAF fact sheet figures agree):
 length 18.92 m, span 13.56 m, height 5.08 m.
 
 Its shell is a generated skin (`aircraft_skin`, pinned in `skins/`):
-Hunyuan3D from our own shaded views of the lofted F-22 its roster script
-drew before, one smooth surface on that model's measured outline, 0.1 m
-low there and its wings 0.4 m short of the span, both corrected. The
+Hunyuan3D from our own shaded views of the guide (`guides/f22.py`, the
+lofted F-22 measured against the USAF's public-domain three-view: the wing
+0.6 m further aft, thin canted fins, the intake trunks without box cowls),
+one smooth surface on that outline, 0.25 m high there and its wings 0.55 m
+short of the span, both corrected. The
 frameless canopy is fitted to its hump; the skin's own vectoring nozzles
 get dark bores; the intakes' mouths, the bays' seams, the gear and the
 lights sit on the skin (`Probe`).
@@ -41,13 +43,13 @@ FIN_Y, FIN_Z, FIN_CANT = 1.25, 2.55, 0.49
 GLASS = framed_plan(6.75, 3.75, 0.54, peak=0.45, tail=0.7)
 # The caret intakes' mouths within the lips of the skin's raked faces
 # (`aircraft_skin.intake_mouth` corners, y and z), measured from ahead.
-MOUTH = ((1.25, 1.45), (1.78, 1.45), (1.82, 2.35), (1.3, 2.35))
+MOUTH = ((1.22, 1.38), (1.82, 1.38), (1.85, 2.42), (1.22, 2.42))
 # The vectoring nozzles are the skin's own square pipes between their
 # flaps: each exit's dark bore sits in its recess (x, centre y and z).
-BORE_X, BORE_Y, BORE_Z = -8.14, 0.6, 1.95
+BORE_X, BORE_Y, BORE_Z = -8.285, 0.6, 1.8
 SPEC = dict(
     skin=dict(path="assets/source/skins/f_22_raptor/us_f_22_raptor_f_22a.glb", length=18.92, top=5.12,
-              lower=(0.1, 3.6), span=(2.2, 6.78),
+              lower=(0.25, 3.75), span=(2.2, 6.78),
               canopy=dict(glass=GLASS, tail=[GLASS[-1], (3.3, 0.3), (2.9, 0.03)]),
               parts=[("wing_L", ((-5.5, 3.5), (2.3, 8.0), (1.95, 2.6))),
                      ("wing_R", ((-5.5, 3.5), (-8.0, -2.3), (1.95, 2.6))),

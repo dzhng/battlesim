@@ -115,6 +115,39 @@
     "us_f_15_eagle_f_15ex_eagle_ii-front.jpg"
    ],
    "seed": 16101
+  },
+  {
+   "file": "us_f_15_eagle_f_15e_strike_eagle-side-2.png",
+   "variant": "us_f_15_eagle_f_15e_strike_eagle",
+   "view": "side",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:McDonnell_Douglas_F-15_Eagle_3-view.svg",
+   "author": "U.S. Air Force (via Wikimedia)",
+   "licence": "public-domain",
+   "sha256": "9110c536e4f0a5d803fce6e84fee9fb67369c01cdf52533b934776e650db04c4",
+   "note": "Side view of the public-domain F-15 three-view (rasterised from the SVG): the measured outline of the guide model (guides/f15.py) both variants' skins were made from"
+  },
+  {
+   "file": "us_f_15_eagle_f_15e_strike_eagle-top.png",
+   "variant": "us_f_15_eagle_f_15e_strike_eagle",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:McDonnell_Douglas_F-15_Eagle_3-view.svg",
+   "author": "U.S. Air Force (via Wikimedia)",
+   "licence": "public-domain",
+   "sha256": "057b41299ce1403106443c4d5cb1d7cbd45ef3f2f7dc9883979118c0c92d6d91",
+   "note": "Top view of the public-domain F-15 three-view (rasterised from the SVG): the measured outline of the guide model (guides/f15.py) both variants' skins were made from"
+  },
+  {
+   "file": "us_f_15_eagle_f_15e_strike_eagle-front-2.png",
+   "variant": "us_f_15_eagle_f_15e_strike_eagle",
+   "view": "front",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:McDonnell_Douglas_F-15_Eagle_3-view.svg",
+   "author": "U.S. Air Force (via Wikimedia)",
+   "licence": "public-domain",
+   "sha256": "0511f32ccf5770bd7562e0898333c88baa54bb88695374aed78666c0e025613c",
+   "note": "Front view of the public-domain F-15 three-view (rasterised from the SVG): the measured outline of the guide model (guides/f15.py) both variants' skins were made from"
   }
  ],
  "gaps": [

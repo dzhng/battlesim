@@ -1,17 +1,17 @@
 [
   {
     "glb": "assets/source/skins/f_22_raptor/us_f_22_raptor_f_22a.glb",
-    "sha256": "b238557770217573b9e0c1a269ec1c7364559b43ff771d4cbee35fe1e879f7ee",
+    "sha256": "a4b18ea55958d2ff855b3dca03efc194be8605d1486576082c3a0d2f1d532eab",
     "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
-    "request_id": "01a1b5b1-7aa6-7553-89eb-2ccdfbc24227",
+    "request_id": "01a1b6eb-e156-7bb2-9b6f-c6fe512e19b2",
     "generated": "2026-11-07",
     "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
     "inputs": {
-      "assets/source/skins/f_22_raptor/us_f_22_raptor_f_22a-right.png": "be76282f9f45d5cbb5178ed8124f5fb618a73765f22cab070cf96ce314b44c64",
-      "assets/source/skins/f_22_raptor/us_f_22_raptor_f_22a-left.png": "f10c86da85e81d9027c873a1f82b204e912ba966a6ffbea6b36b02d5262df75d",
-      "assets/source/skins/f_22_raptor/us_f_22_raptor_f_22a-top.png": "4261558d12d9ac5fe2e9bf202da1627378593f9a8ff0700bae18b7483c02676a",
-      "assets/source/skins/f_22_raptor/us_f_22_raptor_f_22a-bottom.png": "91ad3ef4da43ab249dd56fc1b9c7ac76290e4a24220d2aee9fe72f4a91c5cfc6"
+      "assets/source/skins/f_22_raptor/us_f_22_raptor_f_22a-right.png": "d6fc8911d004f37d19a91bfc004dce07bc4696089953508892c04b265834a65c",
+      "assets/source/skins/f_22_raptor/us_f_22_raptor_f_22a-left.png": "5fc82eff0c20ff217f5614b8ce697ff429858930395b208344a531a8cb04af53",
+      "assets/source/skins/f_22_raptor/us_f_22_raptor_f_22a-top.png": "b57f66bc58bb49d9af76a5098e5245040e22d247040a3b652812977c6599af3d",
+      "assets/source/skins/f_22_raptor/us_f_22_raptor_f_22a-bottom.png": "8530e320bd2110f20dfab0b653400c60b5151012110d0cd7d225658b8068f3c8"
     },
-    "note": "Our own shaded orthographic renders of the lofted us_f_22_raptor_f_22a (its roster script before the skin), without gear, stores or markings."
+    "note": "Our own shaded orthographic renders of the guide model guides/f22.py, measured against the public-domain USAF three-view references/f_22_raptor/us_f_22_raptor_f_22a-side-2.png, -top.png, -front-2.png, without gear, stores or markings."
   }
 ]

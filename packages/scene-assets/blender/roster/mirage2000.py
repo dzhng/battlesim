@@ -12,9 +12,9 @@ The references' dimensions (Dassault figures): length 14.36 m,
 span 9.13 m, height 5.2 m.
 
 Its shell is a generated skin (`aircraft_skin`, pinned in `skins/`), made
-from shaded views of the lofted model this script drew before it (its fin
-seated on the spine first: drawn floating, the generator dropped it); on
-that outline it stood 0.09 m high and spanned 0.24 m short (`lower`,
+from shaded views of the measured lofted model in guides/mirage2000.py (its
+fin seated on the spine: drawn floating, the generator dropped it); on that
+outline it stood 0.33 m high and spanned 0.16 m short (`lower`,
 `span`), and it carries the probe. Its canopy is fitted to its hump; the
 intakes' dark mouths and shock cones, the nozzle, gear, stores, lights and
 markings are built on it, seated where it is (`Probe`).
@@ -38,20 +38,21 @@ SPAN = (1.5, 4.57)
 CANOPY_GLASS = framed_plan(x_front=4.3, x_back=0.25, half_width=0.44, peak=0.4, tail=0.7)
 CANOPY_TAIL = [CANOPY_GLASS[-1], (-0.15, 0.24), (-0.55, 0.03)]
 # Each half-round intake's dark mouth inside its lips on the skin's face
-# (`aircraft_skin.intake_mouth` corners, y and z), its shock cone ahead of
-# it on the face's centre.
-MOUTH = ((0.75, 1.6), (1.1, 1.6), (1.1, 2.28), (0.75, 2.28))
-CONE = (1.9, 0.94, 1.95)
+# (`aircraft_skin.intake_mouth` corners, y and z), outboard of the cone the
+# skin drew (a mouth across it would stand out at its tip); the shock cone
+# built over the skin's.
+MOUTH = ((0.98, 1.54), (1.16, 1.54), (1.16, 2.18), (0.98, 2.18))
+CONE = (1.9, 0.78, 1.84)
 # The M53 in place of the skin's nozzle, the skin cut inside it.
 NOZZLE = dict(loc=(-6.4, 0.0, 2.06), r_front=0.52, r_exit=0.5, length=0.8, petals=14)
 NOZZLE_CUT = ((-7.6, -6.5), (-0.48, 0.48), (1.58, 2.54))
 SPEC = dict(
     # The skin: its delta out from the intakes, its fin above the spine.
-    skin=dict(path=SKIN, length=14.38, top=5.2, lower=(0.09, 3.6), span=SPAN, cut=[NOZZLE_CUT],
+    skin=dict(path=SKIN, length=14.38, top=5.2, lower=(0.33, 3.25), span=SPAN, cut=[NOZZLE_CUT],
               canopy=dict(glass=CANOPY_GLASS, tail=CANOPY_TAIL, bows=(3.6, 2.0)),
-              parts=[("wing_L", ((-6.5, 2.5), (1.35, 6.0), (1.1, 2.0))),
-                     ("wing_R", ((-6.5, 2.5), (-6.0, -1.35), (1.1, 2.0))),
-                     ("tail_fin_0", ((-7.5, -3.3), (-0.3, 0.3), (2.95, 9.0)))]),
+              parts=[("wing_L", ((-6.5, 2.5), (1.35, 6.0), (1.1, 1.95))),
+                     ("wing_R", ((-6.5, 2.5), (-6.0, -1.35), (1.1, 1.95))),
+                     ("tail_fin_0", ((-7.5, -2.8), (-0.3, 0.3), (2.7, 9.0)))]),
     nozzles=[NOZZLE],
 )
 GEAR = [dict(name="nose", x=2.9, y=0.0, radius=0.25, width=0.14, wheels=2, spread=0.2, light=True),
@@ -97,7 +98,7 @@ def build(variant, v):
                           onto=("fuselage",))),
         ("insignia", dict(kind="fr", centre=(-2.6, 3.0, WING_Z + 0.2), normal=(0, 0, 1), up=(1, 0, 0), size=0.42,
                           onto=("wing_",))),
-        ("text", dict(text="3-IM", height=0.26, centre=(3.1, 1.0, 1.95), normal=(0, 1, 0), up=(0, 0, 1),
+        ("text", dict(text="3-IM", height=0.26, centre=(3.1, 1.0, 1.8), normal=(0, 1, 0), up=(0, 0, 1),
                       onto=("fuselage",), colour="black")),
     ])
 

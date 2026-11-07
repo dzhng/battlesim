@@ -12,9 +12,9 @@ The references' dimensions (Saab figures): length 15.2 m, span
 8.6 m over the tip missiles, height 4.5 m.
 
 Its shell is a generated skin (`aircraft_skin`, pinned in `skins/`), made
-from shaded views of the lofted model this script drew before it, which it
-matches standing 0.27 m high (`lower`); it drew no canards, so they are
-built as before. Its canopy is fitted to its hump; the intakes' dark
+from shaded views of the measured lofted model in guides/gripen.py, which
+it matches standing 0.09 m high (`lower`), its wings 0.8 m long a side
+(`span`). Its canopy is fitted to its hump; the intakes' dark
 mouths, the nozzle, gear, stores, lights and markings are built on it,
 seated where it is (`Probe`).
 """
@@ -28,27 +28,27 @@ from aircraft_skin import Probe, intake_mouth  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 SKIN = "assets/source/skins/jas_39_gripen/europe_jas_39_gripen_e.glb"
-WING_Z = 1.6
+WING_Z = 1.25
 # The canopy's plan, the lofted model's framed canopy's outline, its opaque
 # tail onto the spine; its heights are the skin's hump's.
-CANOPY_GLASS = framed_plan(x_front=5.25, x_back=2.0, half_width=0.44, peak=0.42, tail=0.7)
-CANOPY_TAIL = [CANOPY_GLASS[-1], (1.6, 0.24), (1.2, 0.03)]
+CANOPY_GLASS = framed_plan(x_front=4.85, x_back=1.9, half_width=0.44, peak=0.48, tail=0.7)
+CANOPY_TAIL = [CANOPY_GLASS[-1], (1.5, 0.24), (1.1, 0.03)]
 # Each side intake's dark mouth inside its lips on the skin's face
 # (`aircraft_skin.intake_mouth` corners, y and z).
-MOUTH = ((0.62, 1.38), (0.92, 1.38), (0.92, 1.95), (0.62, 1.95))
+MOUTH = ((0.73, 1.1), (0.9, 1.1), (0.9, 1.62), (0.73, 1.62))
 # The single nozzle in place of the skin's, the skin cut inside it.
-NOZZLE = dict(loc=(-7.0, 0.0, 1.82), r_front=0.44, r_exit=0.4, length=0.6, petals=12)
-NOZZLE_CUT = ((-7.9, -7.1), (-0.4, 0.4), (1.42, 2.22))
+NOZZLE = dict(loc=(-7.0, 0.0, 1.66), r_front=0.44, r_exit=0.4, length=0.6, petals=12)
+NOZZLE_CUT = ((-7.9, -7.1), (-0.4, 0.4), (1.26, 2.06))
 SPEC = dict(
-    # The skin: its wings out from the intakes, its fin above the spine.
-    skin=dict(path=SKIN, length=15.2, top=4.5, lower=(0.27, 3.2), cut=[NOZZLE_CUT],
-              canopy=dict(glass=CANOPY_GLASS, tail=CANOPY_TAIL, bows=(4.7,)),
-              parts=[("wing_L", ((-6.0, 0.4), (1.15, 5.0), (1.2, 2.0))),
-                     ("wing_R", ((-6.0, 0.4), (-5.0, -1.15), (1.2, 2.0))),
-                     ("tail_fin_0", ((-7.5, -3.2), (-0.3, 0.3), (2.5, 9.0)))]),
-    # The close-coupled canards on the intakes, as the photos have them.
-    canard=[(2.5, 0.95, 2.12, 1.5, 0.08), (1.35, 2.6, 2.12, 0.7, 0.03)],
-    canard_hinge=(0.7,),
+    # The skin: its wings out from the intakes, its close-coupled canards
+    # on the intakes above them, its fin above the spine.
+    skin=dict(path=SKIN, length=15.2, top=4.5, lower=(0.09, 2.7), span=(2.0, 4.17), cut=[NOZZLE_CUT],
+              canopy=dict(glass=CANOPY_GLASS, tail=CANOPY_TAIL, bows=(4.4,)),
+              parts=[("wing_L", ((-6.0, 0.4), (1.15, 5.0), (0.8, 1.55))),
+                     ("wing_R", ((-6.0, 0.4), (-5.0, -1.15), (0.8, 1.55))),
+                     ("wing_canard_L", ((-0.3, 3.0), (1.05, 3.2), (1.58, 2.1))),
+                     ("wing_canard_R", ((-0.3, 3.0), (-3.2, -1.05), (1.58, 2.1))),
+                     ("tail_fin_0", ((-7.5, -3.0), (-0.3, 0.3), (2.4, 9.0)))]),
     nozzles=[NOZZLE],
 )
 GEAR = [dict(name="nose", x=3.7, y=0.0, radius=0.24, width=0.14, wheels=2, spread=0.2, light=True),
@@ -84,11 +84,11 @@ def build(variant, v):
     A.blade_antenna("antenna_spine", (-1.0, 0, shell.over(-1.0, 0)), 0.2, m, hull)
     # The Flygvapnet's roundel on the intakes and wings, the 270 of the photo on the fin.
     A.markings(v, [
-        ("insignia", dict(kind="se", centre=(3.4, 1.2, 1.7), normal=(0, 1, 0), up=(0, 0, 1), size=0.2,
+        ("insignia", dict(kind="se", centre=(3.4, 1.2, 1.3), normal=(0, 1, 0), up=(0, 0, 1), size=0.2,
                           onto=("fuselage",))),
         ("insignia", dict(kind="se", centre=(-3.0, 2.2, WING_Z + 0.2), normal=(0, 0, 1), up=(1, 0, 0), size=0.4,
                           onto=("wing_",))),
-        ("text", dict(text="270", height=0.42, centre=(-5.0, 0.3, 3.55), normal=(0, 1, 0), up=(0, 0, 1),
+        ("text", dict(text="270", height=0.42, centre=(-5.7, 0.3, 3.2), normal=(0, 1, 0), up=(0, 0, 1),
                       onto=("tail_fin_0",), colour="lowvis_dark")),
     ])
 

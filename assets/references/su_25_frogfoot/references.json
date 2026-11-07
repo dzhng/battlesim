@@ -39,7 +39,7 @@
    "view": "three_quarter_rear",
    "source": "photo",
    "page": "https://commons.wikimedia.org/wiki/File:Sukhoi_Su-25SM_%C2%ABRoman_Filipov%C2%BB_03.jpg",
-   "author": "\u041c\u0438\u043d\u043e\u0431\u043e\u0440\u043e\u043d\u044b \u0420\u043e\u0441\u0441\u0438\u0438",
+   "author": "Минобороны России",
    "licence": "CC-BY-4.0",
    "sha256": "25c2310c28b887ac0915de374872c016c952cdbc07beec9c5febd3ef99538e42",
    "note": "Su-25SM rear three-quarter static: nozzles, fin, tailplane"
@@ -65,6 +65,17 @@
    "licence": "CC-BY-SA-3.0",
    "sha256": "06ec53a54c4e4185e321f50c057311e1147c3177b7994642e1956ae9ee7b09fc",
    "note": "Su-25SM3's L-370 ECM wing-tip pod"
+  },
+  {
+   "file": "eastern_su_25_frogfoot_su_25sm3-top-2.png",
+   "variant": "eastern_su_25_frogfoot_su_25sm3",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Suchoi_Su-25_0801.png",
+   "author": "US Government",
+   "licence": "public-domain",
+   "sha256": "2ec8b30229f51875c52548190ced94dcd12a942947d81f4bca3d4695c5f88abf",
+   "note": "Public-domain three-view (top, front and side): the measured source of the guide's wing root chord and tailplane station"
   }
  ],
  "gaps": [

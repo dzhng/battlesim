@@ -82,6 +82,17 @@
    ],
    "seed": 2001,
    "sha256": "2eb635fe5e8bfefdd1478af4cb52cc38c5e361e271a7710793b904ef8b82f2ee"
+  },
+  {
+   "file": "eastern_j_20_mighty_dragon_stealth_fighter-top-3.png",
+   "variant": "eastern_j_20_mighty_dragon_stealth_fighter",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:Chengdu_J-20.svg",
+   "author": "Kaboldy",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "da4181fbe1f0fb1f84f5375be695529d0fb477b2cbaeed48e4af68461b3d0cac",
+   "note": "Three-view line drawing (top, front and side): the measured source of the guide's (guides/j20.py) outline at one scale; review and measurement only, never a generator input"
   }
  ],
  "gaps": [

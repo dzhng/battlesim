@@ -63,7 +63,7 @@ STAR = (-6.1, 1.68, 3.3)
 SPEC = dict(
     # The skin's wings outboard of the nacelles' shelves, its fins above the
     # booms.
-    skin=dict(path=SKIN, length=17.16, top=4.72, lower=(0.27, 3.7), span=(SPAN_FROM, TIP), cut=NOZZLE_CUTS, press=[IRST_PRESS],
+    skin=dict(path=SKIN, length=17.16, top=4.72, lower=(0.2, 3.7), span=(SPAN_FROM, TIP), cut=NOZZLE_CUTS, press=[IRST_PRESS],
               canopy=dict(glass=CANOPY_GLASS, tail=CANOPY_TAIL, bows=(3.95,)),
               parts=[("wing_L", ((-4.5, 3.0), (1.95, 6.5), (1.4, 2.4))),
                      ("wing_R", ((-4.5, 3.0), (-6.5, -1.95), (1.4, 2.4))),

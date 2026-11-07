@@ -108,8 +108,11 @@ and pinned in [`skins/<family>.json`](skins/) with its hash, request and
 inputs (`assets/source/skins/<family>/`); the export refuses any other file
 and its receipt names the skins it wore. Its canopy is fitted to its own
 hump; everything else (gear, stores, nozzles, markings) is still built here,
-seated on the skin. To make one: draw the airframe's guide views from a model measured
-against its references ([`skin_views.py`](skin_views.py)), generate and pin
+seated on the skin. To make one: build the airframe's guide, a lofted model measured against
+its references and kept in `guides/<family>.py` (exported with `--out`
+and `--no-lint`: the shipped model is untouched, and a guide carries none of
+its fittings), draw its guide views
+([`skin_views.py`](skin_views.py)), generate and pin
 the skin from them ([`../tools/skin-generate.mjs`](../tools/skin-generate.mjs),
 paid, with `FAL_KEY`), measure it against that model
 ([`skin_register.py`](skin_register.py)) for the `lower` and `span` the
