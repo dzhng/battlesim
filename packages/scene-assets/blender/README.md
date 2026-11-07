@@ -95,7 +95,25 @@ infantry card is a kit in `KITS` like any roster kit; each look is its own
 export, so the kit's receipt is written once all are (`--receipt`). Aircraft and rotorcraft parts (fuselages,
 flying surfaces, canopies, intakes, nozzles, gear, stores, rotors, skids) and
 the crash every airframe's wreck starts from have [their own
-owner](aircraft_parts.py) beside the vehicle parts. A rotorcraft's frame leaves
+owner](aircraft_parts.py) beside the vehicle parts, and a whole jet from its
+spec [its own](aircraft_jet.py). A body lofted through drawn cross-sections and
+a bubble canopy drawn from its outlines live beside them
+([`aircraft_loft.py`](aircraft_loft.py), [`aircraft_canopy.py`](aircraft_canopy.py)).
+
+A jet's shell can instead be a generated skin ([`aircraft_skin.py`](aircraft_skin.py)):
+an image-to-3D model's mesh of the airframe alone, made from shaded side, top
+and bottom views of a model measured against the references, so it keeps the
+measured proportions as one smooth, blended surface. Each is paid for once
+and pinned in [`skins/<family>.json`](skins/) with its hash, request and
+inputs (`assets/source/skins/<family>/`); the export refuses any other file
+and its receipt names the skins it wore. Its canopy is fitted to its own
+hump; everything else (gear, stores, nozzles, markings) is still built here,
+seated on the skin. To make one: draw the airframe's guide views from a model measured
+against its references ([`skin_views.py`](skin_views.py)), generate and pin
+the skin from them ([`../tools/skin-generate.mjs`](../tools/skin-generate.mjs),
+paid, with `FAL_KEY`), measure it against that model
+([`skin_register.py`](skin_register.py)) for the `lower` and `span` the
+family's spec gives `skin`, and check it on its sheet. A rotorcraft's frame leaves
 its blades out (`blade_*`): length nose to tail, width over the widest fixed
 part, height to the top of the rotor head.
 

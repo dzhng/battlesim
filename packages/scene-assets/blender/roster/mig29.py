@@ -2,78 +2,123 @@
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/mig29.py -- [--wreck]
 
-What the photos settle: the drooping radome, the bubble canopy on the SMT's
-humped spine (its extra fuel), the wide flat centre body with the engine
-nacelles slung apart under it and their raked box intakes under the
-leading-edge extensions, a swept wing, twin fins on the nacelles canted a
-little outward, stabilators, two nozzles; twin nose wheels. Two greys.
+What the photos settle: the short drooping radome in its darker grey and
+the long probe, the bubble canopy on the SMT's humped spine (its extra
+fuel), the wide flat centre body with the engine nacelles slung apart under
+it, a tunnel between them, their raked box intakes under the long curved
+leading-edge extensions, the nacelles toeing in to nozzles that all but
+touch, a swept wing, twin fins on tail booms outboard of the nozzles canted
+a little outward, stabilators on the booms; twin nose wheels. Two greys.
 
 The references' dimensions (MiG figures): length 17.32 m, span
 11.36 m, height 4.73 m.
+
+Its shell is a generated skin (`aircraft_skin`, pinned in `skins/`):
+Hunyuan3D's model of the lofted MiG-29 this script drew before, from its
+shaded side, top and bottom views. It stands 0.27 m too high on its short
+fins (lowered here, the fins' tips held) and spans 11.03 m (stretched out to
+the hit box's 11.34 m; the MiG figure is 11.36). Its canopy is fitted to its
+hump; the numbers below are measured on it: the dark mouths on its closed
+intake faces and the nozzles in its nacelles' ends (its radome stays in the
+airframe's grey: a split along the joint would cut a ragged line across
+the skin). The gear, pylons and antennas sit where it is.
 """
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
+from aircraft_skin import Probe, intake_mouth  # noqa: E402
 from parts import box  # noqa: E402
 from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-WING_Z = 2.3
-FIN = dict(root_x=-3.6, root_z=2.6, height=2.13, root_chord=3.0, tip_chord=1.0, sweep_m=1.9, cant=0.12)
+SKIN = "assets/source/skins/mig_29_fulcrum/eastern_mig_29_fulcrum_mig_29smt.glb"
+WING_Z = 1.72
+# The canopy's plan (x, half width): the windscreen's foot where the hump
+# rises off the nose, widest from the windscreen's arch back, as wide as the
+# skin's hump to the glass's end, and its opaque tail on the SMT's humped
+# spine narrowing to nothing; its heights are the hump's
+# (`aircraft_skin.fit_canopy`), stations close enough to follow its crest.
+CANOPY_GLASS = [(4.25, 0.1), (4.1, 0.3), (3.95, 0.42), (3.8, 0.48), (3.6, 0.5), (3.4, 0.5), (3.2, 0.5),
+                (3.0, 0.5), (2.8, 0.5), (2.55, 0.5), (2.3, 0.5)]
+CANOPY_TAIL = [(2.3, 0.5), (2.1, 0.48), (1.9, 0.45), (1.7, 0.38), (1.5, 0.3), (1.3, 0.16), (1.05, 0.02)]
+# The skin's IRST ball, mirrored by its symmetric generation onto both
+# sides of the nose: pressed flat onto the nose, and the one ball, right of
+# the centreline, is built.
+IRST_PRESS = ((4.15, 4.65), (-0.45, 0.45), (2.6, 3.2))
+# Each intake's dark mouth within the lips of its closed, raked face on the
+# skin (`aircraft_skin.intake_mouth` corners, y and z).
+MOUTH = ((0.76, 0.86), (1.28, 0.86), (1.28, 1.66), (0.76, 1.66))
+# The nozzles in place of the skin's nacelle ends (x of their front, centre
+# y, z, radius), the skin cut away inside their radius.
+NOZZLE_X, NOZZLE_Y, NOZZLE_Z, NOZZLE_R = -6.6, 1.0, 1.33, 0.42
+NOZZLE_CUTS = [((-7.7, -6.65), tuple(sorted((side * (NOZZLE_Y - 0.36), side * (NOZZLE_Y + 0.36)))),
+                (NOZZLE_Z - 0.36, NOZZLE_Z + 0.36)) for side in (1, -1)]
+# The skin's wings span 11.03 m; outboard of `SPAN_FROM` it stretches to the
+# hit box's half span (the MiG figure is 11.36 m), continuous at the root.
+SPAN_FROM, TIP = 2.2, 5.67
+# The fins on the skin: the red stars' centre on the left fin.
+STAR = (-6.1, 1.68, 3.3)
 SPEC = dict(
-    fuselage=[(8.0, 0.0, 2.2, 2.2), (7.6, 0.4, 1.95, 2.48, 2.2), (6.6, 0.56, 1.78, 2.72, 2.18, 2.2),
-              (5.2, 0.62, 1.72, 2.88, 2.16, 2.4), (3.6, 0.78, 1.82, 3.02, 2.22, 2.6), (2.0, 1.3, 1.95, 2.98, 2.25, 3.5),
-              (0.0, 1.5, 1.95, 2.9, 2.25, 4.0), (-3.0, 1.4, 2.0, 2.82, 2.25, 4.0), (-5.5, 0.9, 2.05, 2.72, 2.3, 3.0),
-              (-7.6, 0.35, 2.15, 2.56, 2.3)],
-    # The side photo: the canopy 4 m behind the probe's tip, the SMT's fuel
-    # hump behind it, the intakes and the nose gear under the LERX's root,
-    # the mains a metre further aft than drawn before.
-    canopy=dict(x_front=4.7, x_back=2.45, sill=2.86, top=3.44, half_width=0.47, bows=(4.15,), peak=0.42, tail=0.75),
-    bodies=[("fuselage_spine", [(2.6, 0.48, 2.8, 3.3, 2.95, 2.4), (0.0, 0.62, 2.8, 3.3, 2.95, 2.6),
-                                (-3.5, 0.42, 2.7, 3.0, 2.8, 2.4), (-5.6, 0.0, 2.65, 2.65)])],
-    wing_hinge=((0.8, 0, 1), 0.1),
-    nav=dict(left=(-2.6, 5.55, WING_Z), right=(-2.6, -5.55, WING_Z)),
-    strake=[(5.6, 0.75, 2.36, 3.6, 0.08), (2.0, 1.5, WING_Z, 0.4, 0.05)],
-    wing=[(1.7, 1.5, WING_Z, 4.3, 0.26), (-2.4, 5.66, WING_Z - 0.06, 1.1, 0.05)],
-    stab=[(-5.5, 1.5, 2.15, 2.6, 0.12), (-7.4, 3.9, 2.12, 1.1, 0.04)],
-    # The front photo: the fins stand over the main wheels, on the nacelles'
-    # outer shoulders, the nozzles as far apart as the intakes.
-    fins=[dict(FIN, y=1.4), dict(FIN, y=-1.4)],
-    intakes=[("rect", (1.58, 1.1, 1.62), 0.68, 0.6, 0.22, (0, 0.3, 0)),
-             ("rect", (1.58, -1.1, 1.62), 0.68, 0.6, 0.22, (0, 0.3, 0))],
-    nozzles=[dict(loc=(-7.0, 1.1, 1.65), r_front=0.5, r_exit=0.46, length=0.95, petals=12),
-             dict(loc=(-7.0, -1.1, 1.65), r_front=0.5, r_exit=0.46, length=0.95, petals=12)],
-    gear=[dict(name="nose", x=2.1, y=0.0, top=1.6, radius=0.28, width=0.15, wheels=2, spread=0.24, light=True),
-          dict(name="main_L", x=-1.4, y=1.55, top=1.55, radius=0.42, width=0.22, door=(1.1, 0.55), rake=0.1),
-          dict(name="main_R", x=-1.4, y=-1.55, top=1.55, radius=0.42, width=0.22, door=(1.1, 0.55), rake=0.1)],
-    pylons=[((-0.2, 2.6, WING_Z - 0.08), 1.0, 0.3), ((-0.9, 3.7, WING_Z - 0.08), 0.9, 0.24)],
-    stores=[("tank", (-0.3, 2.6, 1.6), 3.8, 0.36), ("missile", (-0.9, 3.7, 1.86), 3.6, 0.1)],
-    nose_probe=((8.0, 0.0, 2.2), 0.66),
+    # The skin's wings outboard of the nacelles' shelves, its fins above the
+    # booms.
+    skin=dict(path=SKIN, length=17.16, top=4.72, lower=(0.27, 3.7), span=(SPAN_FROM, TIP), cut=NOZZLE_CUTS, press=[IRST_PRESS],
+              canopy=dict(glass=CANOPY_GLASS, tail=CANOPY_TAIL, bows=(3.95,)),
+              parts=[("wing_L", ((-4.5, 3.0), (1.95, 6.5), (1.4, 2.4))),
+                     ("wing_R", ((-4.5, 3.0), (-6.5, -1.95), (1.4, 2.4))),
+                     ("tail_fin_0", ((-9.0, -4.0), (1.15, 3.0), (2.1, 6.0))),
+                     ("tail_fin_1", ((-9.0, -4.0), (-3.0, -1.15), (2.1, 6.0)))]),
+    nozzles=[dict(loc=(NOZZLE_X, y, NOZZLE_Z), r_front=NOZZLE_R, r_exit=NOZZLE_R - 0.04, length=0.85, petals=12)
+             for y in (NOZZLE_Y, -NOZZLE_Y)],
 )
+# The nose leg in the tunnel between the intakes, the mains under the
+# shelves outboard of the nacelles (x, y, radius, width).
+GEAR = [dict(name="nose", x=2.1, y=0.0, radius=0.28, width=0.15, wheels=2, spread=0.24, light=True),
+        dict(name="main_L", x=-1.4, y=1.55, radius=0.42, width=0.22, door=(1.1, 0.5), rake=0.1),
+        dict(name="main_R", x=-1.4, y=-1.55, radius=0.42, width=0.22, door=(1.1, 0.5), rake=0.1)]
+# Missiles on the inner and middle wing pylons (x, y, pylon length and
+# depth, missile length and radius), the nacelles clear in the side photo.
+STORES = [(-0.9, 3.0, 1.4, 0.28, 3.6, 0.11), (-1.6, 4.1, 1.2, 0.24, 2.9, 0.09)]
 
 
 def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
-    for side, k in ((1, "L"), (-1, "R")):
-        A.body(f"nacelle_{k}", [(1.5, 0.42, 1.3, 2.0, 1.62, 3.5), (-0.6, 0.48, 1.2, 2.1, 1.64, 3.5),
-                                (-4.0, 0.5, 1.15, 2.15, 1.65, 2.6), (-7.0, 0.5, 1.15, 2.15, 1.65)],
-               m["paint"], hull, seg=18, loc=(0, side * 1.1, 0))
-    A.sensor_ball("irst", (4.95, 0.25, 2.92), 0.14, m, hull)
-    box("antiglare", (0.9, 0.55, 0.03), (5.6, 0, 2.8), m["dark"], hull, rot=(0, 0.12, 0), lods=MID)
-    A.blade_antenna("antenna_spine", (-1.0, 0, 3.22), 0.22, m, hull)
+    shell = Probe(hull)
+    for g in GEAR:
+        A.gear(top=shell.under(g["x"], g["y"]) + 0.02, mats=m, parent=hull, **g)
+    for x, y, pl, depth, sl, r in STORES:
+        def hang(side, k, x=x, y=y, pl=pl, depth=depth, sl=sl, r=r):
+            z = shell.under(x, side * y)
+            A.pylon(f"pylon_{k}_{abs(y):.0f}", (x, side * y, z + 0.02), pl, depth + 0.02, m, hull)
+            A.store(f"store_{k}_{abs(y):.0f}", "missile", (x, side * y, z - depth - r - 0.02), sl, r, m, hull,
+                    rail=True)
+        A.mirrored(hang)
+    # The wing-tip navigation lights, mid-chord on the tips' edges.
+    tip_y = TIP - 0.12
+    chord = [x / 20 for x in range(0, -120, -1) if shell._z(x / 20, tip_y, 20, -1) is not None]
+    nav_x = (max(chord) + min(chord)) / 2
+    A.nav_lights(m, hull, **{k: (nav_x, s * tip_y, (shell.under(nav_x, s * tip_y) + shell.over(nav_x, s * tip_y)) / 2)
+                             for k, s in (("left", 1), ("right", -1))})
+    # Each intake's dark mouth just ahead of its closed face on the skin.
+    A.mirrored(lambda side, k: intake_mouth(f"intake_{k}_mouth", shell, m["black"], hull, side, MOUTH))
+    body = Probe(hull, ("fuselage",))
+    A.sensor_ball("irst", (4.4, -0.22, body.over(4.4, -0.22) + 0.06), 0.14, m, hull)
+    # The anti-glare panel ahead of the windscreen, laid along the nose's slope.
+    box("antiglare", (0.7, 0.3, 0.02), (5.3, 0, body.over(5.3, 0) - 0.004), m["dark"], hull, rot=(0, 0.24, 0),
+        lods=MID)
+    A.blade_antenna("antenna_spine", (-1.0, 0, body.over(-1.0, 0)), 0.22, m, hull)
     # The VKS's red star on the fins (both faces) and under the wings, the
-    # photo's blue 777 on the intakes.
-    fin_x, fin_z = -3.6 - 1.9 * 0.6 - 0.9, 2.6 + 2.13 * 0.6
-    rows = [("insignia", dict(kind="ru_star", centre=(fin_x, y, fin_z), normal=(0, n, 0), up=(0, 0, 1), size=0.3,
+    # photo's blue 777 on the nacelles behind the intakes.
+    x, y, z = STAR
+    rows = [("insignia", dict(kind="ru_star", centre=(x, yy, z), normal=(0, n, 0), up=(0, 0, 1), size=0.3,
                               onto=("tail_fin_",), mirror=False))
-            for y, n in ((1.75, 1), (1.15, -1), (-1.75, -1), (-1.15, 1))]
-    rows += [("insignia", dict(kind="ru_star", centre=(-1.2, y, WING_Z - 0.3), normal=(0, 0, -1), up=(1, 0, 0),
-                               size=0.6, onto=("wing_",), mirror=False)) for y in (3.6, -3.6)]
-    rows.append(("text", dict(text="777", height=0.42, centre=(0.4, 1.6, 1.75), normal=(0, 1, 0), up=(0, 0, 1),
-                              onto=("nacelle_",), colour="blue")))
+            for yy, n in ((y + 0.2, 1), (y - 0.4, -1), (-y - 0.2, -1), (-y + 0.4, 1))]
+    rows += [("insignia", dict(kind="ru_star", centre=(-2.2, yy, WING_Z - 0.3), normal=(0, 0, -1), up=(1, 0, 0),
+                               size=0.6, onto=("wing_",), mirror=False)) for yy in (3.6, -3.6)]
+    rows.append(("text", dict(text="777", height=0.42, centre=(0.2, 1.6, 1.35), normal=(0, 1, 0), up=(0, 0, 1),
+                              onto=("fuselage",), colour="blue")))
     A.markings(v, rows)
 
 

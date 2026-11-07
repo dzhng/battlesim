@@ -61,26 +61,6 @@
       "severity": "error"
     }
   ],
-  "eastern_mig_29_fulcrum_mig_29smt": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.0919,
-      "message": "Part 'tail_stab_L' is 9.2cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "tail_stab_L"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0918,
-      "message": "Part 'tail_stab_R' is 9.2cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "tail_stab_R"
-      ],
-      "severity": "error"
-    }
-  ],
   "eastern_mig_31_foxhound_mig_31bm": [
     {
       "check": "floating_part",
@@ -480,26 +460,6 @@
       "message": "Part 'shield' is 2.7cm from nearest part (threshold: 2cm)",
       "parts": [
         "shield"
-      ],
-      "severity": "error"
-    }
-  ],
-  "f_16c_block_50": [
-    {
-      "check": "floating_part",
-      "distance_m": 0.0214,
-      "message": "Part 'tail_stab_L' is 2.1cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "tail_stab_L"
-      ],
-      "severity": "error"
-    },
-    {
-      "check": "floating_part",
-      "distance_m": 0.0212,
-      "message": "Part 'tail_stab_R' is 2.1cm from nearest part (threshold: 2cm)",
-      "parts": [
-        "tail_stab_R"
       ],
       "severity": "error"
     }

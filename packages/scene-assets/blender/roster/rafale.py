@@ -81,7 +81,8 @@ def build(variant, v):
 
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-3.4, wing_y=3.0, wing_side=1, tail_yaw=0.3, seed=7)
+    # Its litter kept within the wreck's footprint (its wide delta).
+    A.crash(v, tail_x=-3.4, wing_y=3.0, wing_side=1, tail_yaw=0.3, seed=7, litter_reach=0.9)
 
 
 run("rafale", "nato_air_grey", build, wreck, script="rafale.py")

@@ -1,0 +1,17 @@
+[
+  {
+    "glb": "assets/source/skins/ea_18g_growler/us_ea_18g_growler_electronic_warfare_aircraft.glb",
+    "sha256": "7b057080ef21169a98d1d5a177a2e75c1a8c0fe051719a12ae6bc08d33901e94",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b31c-bd97-7131-a531-7796b3175ad9",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/ea_18g_growler/us_ea_18g_growler_electronic_warfare_aircraft-right.png": "0c642e64259e1ea541fd5e598ecbbc0d742de8191e3d308a2a12dd088dd5fea0",
+      "assets/source/skins/ea_18g_growler/us_ea_18g_growler_electronic_warfare_aircraft-left.png": "e3ced3c5c684b4eec2ca41b19919bb6b571d9576f4240d8775fae3ebc2bc9c31",
+      "assets/source/skins/ea_18g_growler/us_ea_18g_growler_electronic_warfare_aircraft-top.png": "e9adf64242bd662aabc17cd4c1f760ae0e6769b184f3003c611f9a36a3fdcfe4",
+      "assets/source/skins/ea_18g_growler/us_ea_18g_growler_electronic_warfare_aircraft-bottom.png": "a09cb2d3e400234dd17d5db96470661130d34c30c051fce19ae6f9e5ffc5bff4"
+    },
+    "note": "All four inputs are our own: shaded orthographic renders of the lofted us_ea_18g_growler_electronic_warfare_aircraft (its roster script before the skin), without gear, stores or markings. Only views whose longest side is the airframe's length go in: the generator scales each view to fill it, so a nose-on view would read its span as its length."
+  }
+]

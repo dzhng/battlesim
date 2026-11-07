@@ -1,0 +1,17 @@
+[
+  {
+    "glb": "assets/source/skins/f_16_fighting_falcon/f_16c_block_50.glb",
+    "sha256": "9ee2dafa72e1ab16b630ff28c72f70b97cbf6cce40e03dc12884f4418a60459f",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b319-79c0-7521-9a1c-61420f951535",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/f_16_fighting_falcon/f_16c_block_50-right.png": "aa31fafcd48a92bb89519854dc6269fb1f9545908d930e579bc40067b03b94a1",
+      "assets/source/skins/f_16_fighting_falcon/f_16c_block_50-left.png": "39725d002e1f0955b97f05c0d1e30cc88f9ab8e881c7565e05a121ad998ad2ba",
+      "assets/source/skins/f_16_fighting_falcon/f_16c_block_50-top.png": "3cd003b29adef8d7743c2307abae6dce842fcb64c21590f6079720fa4ff0e90e",
+      "assets/source/skins/f_16_fighting_falcon/f_16c_block_50-bottom.png": "99dab1a1928b70fa0f30629aaa647c92a265c5c18e6f34f7a6c30319bf8ebdcd"
+    },
+    "note": "All four inputs are our own: shaded orthographic renders of the F-16 measured from Marek Cel's CC0 three-view (right side, left side and top; the bottom from the first skinned model, which matches it to a few centimetres). Only views whose longest side is the airframe's length go in: the generator scales each view to fill it, so a nose-on view would read its span as its length."
+  }
+]

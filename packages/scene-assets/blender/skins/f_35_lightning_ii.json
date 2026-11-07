@@ -1,0 +1,32 @@
+[
+  {
+    "glb": "assets/source/skins/f_35_lightning_ii/f_35a.glb",
+    "sha256": "f2d9dee5e9db307f77b0cc7e11cc5081e67fde55a357750a0c9543a641517969",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b31c-a1bd-71c3-a0f6-ac0bfe438510",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/f_35_lightning_ii/f_35a-right.png": "522ad347c34a37892b092ddde927312584a4ce7c9ba8b90c6af66c685f829e20",
+      "assets/source/skins/f_35_lightning_ii/f_35a-left.png": "3764400c3afb04ceb00567de9f4dc3b09df8e4ef87b524b395e5c977b96654af",
+      "assets/source/skins/f_35_lightning_ii/f_35a-top.png": "c1b4e356b80757b76ff514a4d30e865d7c38d87ae0baa1a56f5eb3d7a0d7a71e",
+      "assets/source/skins/f_35_lightning_ii/f_35a-bottom.png": "69f3fe9628b2f73de99a8bedd485cb4c37105a4171409c1cd4e95dd4ea648059"
+    },
+    "note": "All four inputs are our own: shaded orthographic renders of the lofted f_35a (its roster script before the skin), without gear, stores or markings. Only views whose longest side is the airframe's length go in: the generator scales each view to fill it, so a nose-on view would read its span as its length."
+  },
+  {
+    "glb": "assets/source/skins/f_35_lightning_ii/us_f_35_lightning_ii_f_35b.glb",
+    "sha256": "02c328ebcd81258b0301c3e92e30cc53f2f6f43c80d95af4fc67b45ab86f246f",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b31c-aa72-7b60-8a4d-c4e22c7cc189",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/f_35_lightning_ii/us_f_35_lightning_ii_f_35b-right.png": "a707c653663a816fec3677db6f7400022ce66ddd01ff5d9f3c491644d316e72c",
+      "assets/source/skins/f_35_lightning_ii/us_f_35_lightning_ii_f_35b-left.png": "5ccd3044e088586aaca36be043b50cf2f8b9965089d6595bb00733eec3569d9e",
+      "assets/source/skins/f_35_lightning_ii/us_f_35_lightning_ii_f_35b-top.png": "df39ec47b24c5bd948722d44735c4b11e7e564f7ce1cedf75295df3a63c00f74",
+      "assets/source/skins/f_35_lightning_ii/us_f_35_lightning_ii_f_35b-bottom.png": "6d1eeb57d5b075cce644f47175613fbd1cf919f1e6e1e81bbd47498732dc05b8"
+    },
+    "note": "All four inputs are our own: shaded orthographic renders of the lofted us_f_35_lightning_ii_f_35b (its roster script before the skin), without gear, stores or markings. Only views whose longest side is the airframe's length go in: the generator scales each view to fill it, so a nose-on view would read its span as its length."
+  }
+]
