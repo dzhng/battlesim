@@ -10,6 +10,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from aircraft_parts import (body, canopy, fin, fit, gear, intake, nav_lights, nozzle, paired_surface,  # noqa: E402
                             pitot, pylon, round_intake, store)
+from aircraft_canopy import bubble_canopy  # noqa: E402
 from aircraft_skin import skin  # noqa: E402
 
 
@@ -26,8 +27,10 @@ def _both(rows, at):
 def jet(v, spec):
     """A fixed-wing airframe from its family's `spec` (all optional but the
     fuselage or the skin), every part named so `crash` finds it: `skin`
-    (the `aircraft_skin.skin` keywords but the material and parent, in
-    place of the lofted fuselage, bodies and surfaces), `fuselage` (stations,
+    (the `aircraft_skin.skin` keywords but the materials and parent, in
+    place of the lofted fuselage, bodies and surfaces; its `canopy` plan
+    becomes a bubble canopy fitted to its hump, with frame bows at its
+    `bows`), `fuselage` (stations,
     `seg`), `bodies` (more bodies: `(name, stations[, y[, seg]])`, off the
     centreline by `y`), `canopy` (the
     `canopy()` arguments), `wing`, `strake`, `canard`, `stab` (left-side
@@ -42,7 +45,9 @@ def jet(v, spec):
     they are painted onto the skin, so the skin must be built first."""
     m, hull = fit(v), v.hull
     if "skin" in spec:
-        skin(mat=m["paint"], parent=hull, **spec["skin"])
+        fitted = skin(mats=m, parent=hull, **spec["skin"])
+        if fitted is not None:
+            bubble_canopy("canopy", *fitted, m, hull, bows=spec["skin"]["canopy"].get("bows", ()))
     else:
         body("fuselage", spec["fuselage"], m["paint"], hull, seg=spec.get("seg", 28))
     for name, stations, *at in spec.get("bodies", ()):

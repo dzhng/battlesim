@@ -107,7 +107,7 @@ INSIGNIA = {
 }
 
 
-def _targets(prefixes):
+def near_shell(prefixes):
     """A BVH of the near tier of the parts `prefixes` names, in world space."""
     import bpy
     from mathutils.bvhtree import BVHTree
@@ -147,7 +147,7 @@ def insignia(name, kind, centre, normal, up, size, mats, parent, onto, lods=NEAR
     toward `ahead`, so each side's copy faces the same way."""
     import bpy
     from parts import _obj
-    tree = _targets(onto)
+    tree = near_shell(onto)
     flip = 1
     if ahead is not None:
         n = Vector(normal).normalized()
@@ -192,7 +192,7 @@ def lettering(name, text, height, centre, normal, up, mats, parent, onto, colour
     metres tall on the skin of the parts named by `onto`, as `insignia`."""
     import bpy
     from parts import _each, _obj
-    tree = _targets(onto)
+    tree = near_shell(onto)
     inv = parent.matrix_world.inverted_safe()
 
     def make(lod, n):

@@ -2,7 +2,7 @@
 other (`textures.SCHEMES` names them); `textures` imports this module, which
 registers them.
 """
-from textures import _bands, _sprayed, recipe
+from textures import Baked, _bands, blur, chips, fbm, mix, normals_from_height, recipe, scratches
 
 
 # Aircraft and rotorcraft schemes: the air arms' greys and the army aviation
@@ -10,20 +10,34 @@ from textures import _bands, _sprayed, recipe
 # is a light thing on screen) but kept off white so the battle's sun can't
 # blow them out, and a shade cooler than they would be under a white sun (the
 # battle's is warm); chipped edges in a paler tone of the same grey. Tactical
-# paint is flat: it scatters the sky and the ground at a grazing angle rather
-# than mirroring them, so a curved skin keeps its grey to the silhouette.
-AIR_ROUGH = 0.68
+# paint is satin, not gloss: it sheens toward the sun at a grazing angle
+# without mirroring the sky and the ground, so a curved skin keeps its grey
+# to the silhouette.
+AIR_ROUGH = 0.62
+
+
+def _finished(col, seed, rough=AIR_ROUGH):
+    """Finish an air scheme's colours as an airframe's paint, kept by its
+    ground crew: an even coat, barely mottled, without the dust patches and
+    the scratches of a ground vehicle's enamel (`_sprayed`), a fine scratch
+    here and there. -> Baked."""
+    mottle = fbm(24, seed, 4)
+    col = col * (0.97 + 0.06 * mottle)[..., None]
+    lines = scratches(seed + 50)
+    col = mix(col, col * 1.25, lines * 0.2)
+    h = fbm(96, seed + 20, 2) * 0.06 - lines * 0.2
+    return Baked(col, chips(seed + 40, 14), normals_from_height(blur(h), 1.0), 0.94, rough + 0.04 * (mottle - 0.5))
 
 
 def _air(colours, levels, seed, cells=(2, 3)):
-    return _sprayed(_bands(colours, levels, seed, cells, edge=0.03, warp_px=18), seed + 2, rough=AIR_ROUGH)
+    return _finished(_bands(colours, levels, seed, cells, edge=0.03, warp_px=18), seed + 2)
 
 
 @recipe("us_compass_grey", tile=6.0, wear=(0.3, 0.31, 0.32, 0.8))
 def us_compass_grey():
     """US Navy, Marine and Air Force tactical greys (FS 36375 over 36320): two
     close greys in broad soft patches."""
-    return _air(((0.23, 0.25, 0.275), (0.155, 0.17, 0.19)), (0.6,), 1701)
+    return _air(((0.23, 0.25, 0.275), (0.19, 0.205, 0.226)), (0.6,), 1701)
 
 
 @recipe("us_gunship_grey", tile=6.0, wear=(0.2, 0.2, 0.21, 0.8))
@@ -51,7 +65,7 @@ def russian_air_blue():
 def russian_air_grey():
     """Russian greys: the MiG-29SMT's and MiG-31BM's light greys, the Su-57's
     splinter greys and the gunships' dark grey, as two greys in patches."""
-    return _air(((0.135, 0.15, 0.168), (0.082, 0.092, 0.106)), (0.6,), 1741)
+    return _air(((0.15, 0.165, 0.185), (0.112, 0.124, 0.14)), (0.6,), 1741)
 
 
 @recipe("russian_helicopter_camo", tile=6.0, wear=(0.17, 0.17, 0.13, 0.85))

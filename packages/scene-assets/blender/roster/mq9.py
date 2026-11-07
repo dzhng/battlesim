@@ -34,7 +34,7 @@ SPEC = dict(
     wing_hinge=(0.75,),
     nav=dict(left=(0.0, 9.9, WING_Z + 0.25), right=(0.0, -9.9, WING_Z + 0.25)),
     fins=[dict(V_TAIL, y=0.12), dict(V_TAIL, y=-0.12),
-          dict(root_x=-3.9, root_z=1.08, height=0.62, root_chord=1.0, tip_chord=0.6, sweep_m=0.35, cant=math.pi,
+          dict(root_x=-3.9, root_z=1.12, height=0.66, root_chord=1.0, tip_chord=0.6, sweep_m=0.35, cant=math.pi,
                rudder=False)],
     gear=[dict(name="nose", x=3.9, y=0.0, top=0.95, radius=0.2, width=0.12),
           dict(name="main_L", x=0.5, y=1.25, top=1.0, radius=0.28, width=0.16),
@@ -60,7 +60,7 @@ def build(variant, v):
     cyl("prop_spinner", 0.16, 0.3, (-5.4, 0, 1.28), "X", m["paint"], hull, seg=12, r2=0.04)
     A.mirrored(lambda side, k: cyl(f"exhaust_{k}", 0.06, 0.25, (-4.3, side * 0.24, 1.15), "Y", m["nozzle"], hull,
                                    seg=8, lods=MID))
-    box("satcom_seam", (0.03, 0.7, 0.5), (4.6, 0, 1.45), m["dark"], hull, lods=MID)
+    box("satcom_seam", (0.03, 0.7, 0.5), (4.56, 0, 1.45), m["dark"], hull, lods=MID)
     # The low-visibility insignia on the body and the serial on the tail.
     A.markings(v, [
         ("insignia", dict(kind="us_lowvis", centre=(-1.6, 0.6, 1.26), normal=(0, 1, 0), up=(0, 0, 1), size=0.2,

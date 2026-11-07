@@ -23,6 +23,7 @@ markings. The drawing stands 5.19 m from wheel to fin top (the gear at full
 extension; Lockheed gives 5.09 m), the catalog 4.88 m, so heights are
 pressed by 4% about the fin top (`Z`) and the gear is 0.1 m shorter.
 """
+import math
 import os
 import sys
 
@@ -30,7 +31,7 @@ import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
-from aircraft_canopy import bubble_canopy  # noqa: E402
+from aircraft_loft import loft  # noqa: E402
 from aircraft_skin import Probe  # noqa: E402
 from parts import box  # noqa: E402
 from vehicle_export import run  # noqa: E402
@@ -46,43 +47,43 @@ def Z(z):
 
 WING_Z = Z(1.58)
 
-# The canopy, from the plan's outline and the side's top and glass edge: the
-# windscreen's foot at 4.74 m, widest (0.44 m half) over 3.6, its peak 2.75
-# m high over 3.0, the bow where the glass ends at 2.42, the frame's opaque
-# tail narrowing onto the spine by 1.35; its sill rising aft along it. Its
-# section is fuller than an ellipse, as the front view's (0.41 m out to 2.38
-# m high, 0.35 at 2.54, 0.26 at 2.63).
-CANOPY_GLASS = [(4.74, 0.06, 2.08, 2.09), (4.5, 0.29, 2.09, 2.257), (4.3, 0.35, 2.07, 2.391),
-                (4.1, 0.40, 2.06, 2.505), (3.9, 0.42, 2.07, 2.596), (3.6, 0.44, 2.10, 2.69),
-                (3.3, 0.43, 2.13, 2.744), (3.0, 0.40, 2.19, 2.753), (2.7, 0.35, 2.25, 2.739),
-                (2.42, 0.31, 2.30, 2.70)]
-CANOPY_TAIL = [(2.42, 0.31, 2.30, 2.70), (2.1, 0.25, 2.33, 2.648), (1.8, 0.18, 2.37, 2.59),
-               (1.5, 0.08, 2.42, 2.53), (1.35, 0.02, 2.46, 2.5)]
+# The canopy's plan, from the drawing's outline (x, half width): the
+# windscreen's foot at 4.74 m, widest (0.44 m half) over 3.6, the bow where
+# the glass ends at 2.42, the frame's opaque tail narrowing onto the spine
+# by 1.35. Its heights are the skin's hump's (`aircraft_skin.fit_canopy`).
+CANOPY_GLASS = [(4.74, 0.06), (4.5, 0.29), (4.3, 0.35), (4.1, 0.40), (3.9, 0.42), (3.6, 0.44), (3.3, 0.43),
+                (3.0, 0.40), (2.7, 0.35), (2.42, 0.31)]
+CANOPY_TAIL = [(2.42, 0.31), (2.1, 0.25), (1.8, 0.18), (1.5, 0.08), (1.35, 0.02)]
 CANOPY_BOW = 2.42
 # A main leg's links in to the duct's side from its top and its middle
 # (gear-node frame, inboard negative): the leg slants out to the wheel. Its
 # bay door hangs from the duct's floor inboard of it (x, y, length, drop).
 MAIN_LEG = (((0, 0, 0.02), (0, -0.46, 0.64), 0.085), ((0, 0, -0.06), (-0.35, -0.42, 0.56), 0.04))
 MAIN_DOOR = (-1.55, 0.6, 1.1, 0.42)
-# The thin ventral fins under the engine bay, canted 17 degrees out (the
-# skin is too coarse to carry them).
-VENTRALS = [dict(root_x=-2.95, root_z=Z(0.88), height=SQUASH * 0.67, root_chord=1.41, tip_chord=1.04, sweep_m=0.37,
-                 y=side * 0.44, cant=side * 2.84, rudder=False, thick=0.035) for side in (1, -1)]
 # The IFF interrogator's four blades on the nose ahead of the windscreen (span).
 IFF = (0.1, 0.27)
 SKIN = "assets/source/skins/f_16_fighting_falcon/f_16c_block_50.glb"
-# The skin's hump under the canopy goes, station by station down to the
-# sill, where the clear canopy and its cockpit take its place.
-CANOPY_CUT = [((b[0], a[0]), (-a[1] - 0.02, a[1] + 0.02), (Z(min(a[2], b[2])) + 0.01, 9.0))
-              for a, b in zip(CANOPY_GLASS + CANOPY_TAIL[1:], CANOPY_GLASS[1:] + CANOPY_TAIL[1:])]
+# The F110's nozzle from the engine bay's end (1.31 m across) to its exit
+# (0.85 m) at -7.03, in place of the skin's own: its petals round the exit as
+# a shell of bare-metal flaps converging aft (x, radius), creased between each.
+NOZZLE_Z = Z(1.6)
+NOZZLE = dict(loc=(-5.55, 0.0, NOZZLE_Z), r_front=0.64, r_exit=0.425, length=1.48, petals=15)
+NOZZLE_CUT = ((-7.3, -5.7), (-0.6, 0.6), (NOZZLE_Z - 0.62, NOZZLE_Z + 0.6))
+PETALS, PETAL_SHELL = 15, ((-6.05, 0.59), (-6.55, 0.525), (-7.04, 0.442))
 SPEC = dict(
     # The generated skin, from the cleaned USAF photo and the lofted model
     # measured from the three-view (`skins/`): its wings, out from the
     # strakes' end, and its fin above the spine split off by name.
-    skin=dict(path=SKIN, length=15.06, top=4.88, cut=CANOPY_CUT,
+    # The canopy fitted to the skin's hump (the plan's widths, the hump's
+    # heights), the skin a little low and wide on the measured outline: up
+    # 0.15 m, its fin's tip held, and the tip rails in to the drawing's span.
+    skin=dict(path=SKIN, length=15.06, top=4.88, lower=(-0.15, 2.95), span=(1.5, 4.9),
+              canopy=dict(glass=CANOPY_GLASS, tail=CANOPY_TAIL, bows=(CANOPY_BOW,)),
+              cut=[NOZZLE_CUT],
               parts=[("wing_L", ((-4.0, 1.5), (1.3, 6.0), (WING_Z - 0.45, WING_Z + 0.45))),
                      ("wing_R", ((-4.0, 1.5), (-6.0, -1.3), (WING_Z - 0.45, WING_Z + 0.45))),
                      ("tail_fin_0", ((-8.0, -3.0), (-0.3, 0.3), (Z(2.31) + 0.12, 9.0)))]),
+    nozzles=[NOZZLE],
     # Wheelbase 4.0 m and track 2.36 m; the nose leg on the duct behind its
     # lip, its legs a tenth shorter (`Z`). The mains' legs stand out from the
     # duct's sides (`MAIN_LEG`), as the head-on photo shows them.
@@ -117,10 +118,6 @@ def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
     shell = Probe(hull)
-    bubble_canopy("canopy", [(x, hw, Z(sill), Z(top)) for x, hw, sill, top in CANOPY_GLASS],
-                  [(x, hw, Z(sill), Z(top)) for x, hw, sill, top in CANOPY_TAIL], m, hull, bows=(CANOPY_BOW,))
-    for k, f in enumerate(VENTRALS):
-        A.fin(f"tail_fin_{k + 1}", mats=m, parent=hull, **f)
     for side, s in ((1, "L"), (-1, "R")):
         leg = bpy.data.objects[f"gear_main_{s}"]
         for k, (a, b, r) in enumerate(MAIN_LEG):
@@ -138,6 +135,10 @@ def build(variant, v):
     # The drop tanks on stations 4/6, smooth: the dozen sides a missile has would show as facets.
     A.mirrored(lambda side, s: A.store(f"store_tank_{s}", "tank", (0.2, side * 1.95, Z(0.835)), 4.8, 0.34, m, hull,
                                        seg=28))
+    loft("nozzle_petals", [(x, [(r * math.sin(math.pi * k / PETALS) * (1 if k % 2 == 0 else 0.94),
+                                 NOZZLE_Z + r * math.cos(math.pi * k / PETALS) * (1 if k % 2 == 0 else 0.94), k % 2 == 1)
+                                for k in range(PETALS + 1)]) for x, r in PETAL_SHELL],
+         m["steel"], hull, caps=False, outline_steps=(2, 1, 1, 1))
     for k, y in enumerate(IFF):
         A.mirrored(lambda side, s, y=y, k=k: A.blade_antenna(f"antenna_iff_{s}{k}", (5.15, side * y,
                                                                                       shell.over(5.15, side * y)),
@@ -146,8 +147,8 @@ def build(variant, v):
     for side, s, length in ((1, "L", 2.5), (-1, "R", 2.2)):
         box(f"cheek_pylon_{s}", (0.8, 0.1, 0.16), (2.25, side * 0.72, Z(0.87)), m["paint"], hull, bevel=0.02, lods=MID)
         A.store(f"cheek_pod_{s}", "pod", (2.25, side * 0.86, Z(0.69)), length, 0.17, m, hull)
-    A.blade_antenna("antenna_spine", (-1.2, 0, Z(2.31)), 0.22, m, hull)
-    A.blade_antenna("antenna_belly", (0.4, 0, Z(0.65)), 0.22, m, hull, down=True)
+    A.blade_antenna("antenna_spine", (-1.2, 0, shell.over(-1.2, 0)), 0.22, m, hull)
+    A.blade_antenna("antenna_belly", (0.4, 0, shell.under(0.4, 0)), 0.22, m, hull, down=True)
     A.markings(v, MARKINGS)
 
 

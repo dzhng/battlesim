@@ -1,0 +1,17 @@
+[
+  {
+    "glb": "assets/source/skins/mig_29_fulcrum/eastern_mig_29_fulcrum_mig_29smt.glb",
+    "sha256": "86ce4001fd0138cd783d821216fe4722aef66a5c6321f27f739845c7b13f1a51",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b31c-c4d3-7801-b8b2-2e20b0aa93af",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/mig_29_fulcrum/eastern_mig_29_fulcrum_mig_29smt-right.png": "cbbea3dcde6f94f9da36b20ba2e8851b6344beaf3ceb79a2d2a9f568df3a476a",
+      "assets/source/skins/mig_29_fulcrum/eastern_mig_29_fulcrum_mig_29smt-left.png": "4cc4bed46721bc56b660238c022f5ae6bf070d56cea133c68e3deade1c9dd470",
+      "assets/source/skins/mig_29_fulcrum/eastern_mig_29_fulcrum_mig_29smt-top.png": "1e2d00405cf192fa9fbca228ec58f36d5db4f2119637bae95135c219817ee25d",
+      "assets/source/skins/mig_29_fulcrum/eastern_mig_29_fulcrum_mig_29smt-bottom.png": "bac2935cd286e675a63390aa48e321e714f3f06f20493dd86cdfd5f482231162"
+    },
+    "note": "All four inputs are our own: shaded orthographic renders of the lofted eastern_mig_29_fulcrum_mig_29smt (its roster script before the skin), without gear, stores or markings. Only views whose longest side is the airframe's length go in: the generator scales each view to fill it, so a nose-on view would read its span as its length."
+  }
+]

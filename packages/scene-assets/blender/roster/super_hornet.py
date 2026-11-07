@@ -14,6 +14,15 @@ the body. Both in the Navy's tactical greys.
 
 The references' dimensions (Navy fact file figures agree): length
 18.31 m, span 13.62 m over the tip stores, height 4.88 m.
+
+Each one's shell is its own generated skin (`aircraft_skin`, pinned in
+`skins/`): Hunyuan3D's model, given side, top and bottom renders of the
+lofted airframe it replaced, whose outline it matches to about 0.1 m once
+the Growler's is set down and its span brought in (`SKIN`). The skin
+carries the LEX, the wings, the canted fins and the caret intakes; the
+canopy is fitted to its hump from the old canopy's plan (`CANOPY`), and the
+nozzles, the intakes' dark mouths, the gear, the stores and everything else
+are still built here, seated on the skin where they touch it (`Probe`).
 """
 import math
 import os
@@ -21,6 +30,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
+from aircraft_canopy import framed_plan  # noqa: E402
+from aircraft_skin import Probe, intake_mouth  # noqa: E402
 from parts import box  # noqa: E402
 from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID, NEAR  # noqa: E402
@@ -30,94 +41,114 @@ E, G = "us_f_a_18_super_hornet_f_a_18e", "us_ea_18g_growler_electronic_warfare_a
 WING_Z = 2.45
 # The nose's tip and the tail's last point (the nozzles' and fins' trailing edges).
 NOSE_X, TAIL_X = 9.28, -8.9
-TIP_Y = 6.72
-# The wing's sections at its root and tip, and at the fold between them,
-# where the outboard panel's leading edge stands proud of the inboard one's:
-# the dogtooth (front photo).
-_ROOT, _TIP = (1.75, 1.1, WING_Z, 4.7, 0.28), (-1.45, TIP_Y - 0.08, WING_Z - 0.02, 1.6, 0.06)
-_F = (4.2 - _ROOT[1]) / (_TIP[1] - _ROOT[1])
-FOLD = tuple(a + (b - a) * _F for a, b in zip(_ROOT, _TIP))
-DOGTOOTH = 0.28
-OUTER_WING = [(FOLD[0] + DOGTOOTH, FOLD[1], FOLD[2], FOLD[3] + DOGTOOTH, FOLD[4]), _TIP]
-# An intake trunk's stations, about its own centreline 1 m off the body's.
-TRUNK = [(3.7, 0.4, 1.47, 2.33, 1.9, 4.0), (1.6, 0.4, 1.44, 2.38, 1.9, 4.0), (-0.8, 0.34, 1.48, 2.3, 1.9, 3.5),
-         (-2.8, 0.12, 1.62, 2.16, 1.9, 3.0)]
+# The stations are not centred on the length (`build` stands the airframe
+# centred): the skin is centred here, in their frame.
+MID_X = (NOSE_X + TAIL_X) / 2
+# Each its own skin; the Growler's sits 0.4 m high on its measured outline
+# (its fins came out short) and spans 0.8 m too wide: down, the fins' tips
+# held, and its wings in to the lofted span.
+SKIN = {E: dict(path="assets/source/skins/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e.glb",
+                lower=(0.05, 3.7)),
+        G: dict(path="assets/source/skins/ea_18g_growler/us_ea_18g_growler_electronic_warfare_aircraft.glb",
+                lower=(0.4, 4.0), span=(2.5, 6.65))}
+# The skin's parts by box (x, y, z): the wings out from the body's flanks,
+# the canted fins above the body's back.
+PARTS = [("wing_L", ((-3.7, 2.3), (1.6, 7.5), (1.95, 2.95))), ("wing_R", ((-3.7, 2.3), (-7.5, -1.6), (1.95, 2.95))),
+         ("tail_fin_0", ((-8.95, -3.0), (0.3, 2.5), (3.0, 9.0))), ("tail_fin_1", ((-8.95, -3.0), (-2.5, -0.3), (3.0, 9.0)))]
+# The canopy's plan (the framed canopy's outline as `canopy` drew it on the
+# lofted airframe), its opaque tail fairing onto the spine behind it, and
+# its bows: the windscreen's arch, and the Growler's between its two seats.
+CANOPY = {E: dict(x_front=5.95, x_back=2.9, half_width=0.5, peak=0.4, bows=(5.15,)),
+          G: dict(x_front=5.95, x_back=2.0, half_width=0.5, peak=0.4, bows=(5.15, 3.5))}
+# The two nozzles, built in place of the skin's (cut inside their radius).
+NOZZLES = [dict(loc=(-7.65, y, 1.96), r_front=0.5, r_exit=0.46, length=0.98, petals=14) for y in (0.5, -0.5)]
+NOZZLE_CUT = [((-9.0, -7.75), (y - 0.44, y + 0.44), (1.52, 2.4)) for y in (0.5, -0.5)]
+# The skin's launch rails at the wing tips (the lofted model's, drawn into
+# the skin and fused with the tip into a deep plate) pressed up into a thin
+# tip; the tip stores carry their own rails.
+TIP_PRESS = [(((-4.5, 1.0), tuple(sorted((s * 5.7, s * 8.0))), (1.0, 1.94)), 1.94) for s in (1, -1)]
+# Each skin's tip span, where the tip stores hang, and a station on the
+# tip's chord (it narrows aft of the store's middle) to measure it at.
+TIP = {E: 6.74, G: 6.65}
+TIP_X = -2.4
+# The wing pylons (x, y, length, depth) from the skin's underside, and what
+# hangs under each: the tanks inboard, the AIM-120s (E) or jammer pods (G)
+# outboard; the tips' AIM-9s (E) or receiver pods (G).
+PYLONS = [(-0.4, 2.6, 1.2, 0.35), (-1.0, 4.0, 1.1, 0.3)]
+STORES = {E: [("tank", -0.1, 4.7, 0.42), ("missile", 0.0, 3.65, 0.09)],
+          G: [("tank", -0.1, 4.7, 0.42), ("jammer", 0.1, 4.6, 0.36)]}
+TIP_STORE = {E: ("missile", 3.0, 0.065, True), G: ("pod", 3.0, 0.23, False)}
+
+
+def _canopy(c):
+    glass = framed_plan(c["x_front"], c["x_back"], c["half_width"], peak=c["peak"])
+    x_back, hw = glass[-1]
+    return dict(glass=glass, tail=[(x_back, hw), (x_back - 0.4, hw * 0.55), (x_back - 0.8, 0.03)], bows=c["bows"])
 
 
 def spec(variant):
-    growler = variant["id"] == G
-    s = dict(
-        # The windscreen 3.4 m back from the nose, over the nose gear (side
-        # photo); the body deep under the LEX and the spine behind the cockpit.
-        fuselage=[(9.28, 0.0, 2.0, 2.0), (8.5, 0.36, 1.74, 2.36, 2.04), (7.2, 0.58, 1.6, 2.76, 2.1),
-                  (5.8, 0.68, 1.52, 2.96, 2.15, 2.5), (4.0, 0.8, 1.46, 2.98, 2.15, 2.8),
-                  (2.0, 1.08, 1.36, 3.12, 2.15, 2.6), (-1.0, 1.16, 1.36, 3.18, 2.1, 2.8),
-                  (-4.0, 1.06, 1.44, 2.86, 2.05, 2.6), (-6.6, 0.96, 1.54, 2.6, 1.96, 2.6),
-                  (-7.7, 0.92, 1.58, 2.42, 1.96)],
-        canopy=dict(x_front=5.95, x_back=2.0 if growler else 2.9, sill=2.86, top=3.52, half_width=0.5,
-                    bows=(5.15, 3.5) if growler else (5.15,), peak=0.4, tail=0.7),
-        # The spine stays high behind the canopy back to the fins (side photo).
-        # The body's broad back stays high from the canopy to the fins (side
-        # photo); the spine only fairs the canopy into it.
-        bodies=[("fuselage_spine", [(2.2 if growler else 3.1, 0.38, 2.75, 3.36, 2.75, 2.2),
-                                    (1.2, 0.5, 2.8, 3.23, 2.8, 2.0), (-0.8, 0.0, 3.1, 3.1)]),
-                # The intake trunks under the LEX, boxy, from the caret mouths
-                # aft into the body's flanks over the main gear.
-                ("fuselage_trunk_L", TRUNK, 1.0, 16), ("fuselage_trunk_R", TRUNK, -1.0, 16)],
-        wing_hinge=(0.12, 0.76),
-        strake=[(6.4, 0.55, 2.55, 5.0, 0.1), (1.95, 2.05, WING_Z + 0.04, 0.95, 0.07)],
-        # The inboard wing out to the fold; the outboard panel and its
-        # dogtooth are `build`'s (`OUTER_WING`).
-        wing=[(1.75, 1.1, WING_Z, 4.7, 0.28), FOLD],
-        stab=[(-5.65, 0.9, 2.02, 2.7, 0.12), (-7.65, 3.45, 1.96, 1.25, 0.05)],
-        fins=[dict(root_x=-3.55, root_z=2.5, height=2.5, root_chord=3.2, tip_chord=1.3, sweep_m=2.15, y=0.78,
-                   cant=0.35),
-              dict(root_x=-3.55, root_z=2.5, height=2.5, root_chord=3.2, tip_chord=1.3, sweep_m=2.15, y=-0.78,
-                   cant=0.35)],
-        # The caret mouths: big, square, right under the LEX, raked back
-        # from the top lip and swept back outboard (front and side photos).
-        intakes=[("rect", (3.72, 1.0, 1.9), 0.72, 0.84, 0.2, (0, 0.28, 0.22)),
-                 ("rect", (3.72, -1.0, 1.9), 0.72, 0.84, 0.2, (0, 0.28, -0.22))],
-        nozzles=[dict(loc=(-7.65, 0.5, 1.96), r_front=0.5, r_exit=0.46, length=0.98, petals=14),
-                 dict(loc=(-7.65, -0.5, 1.96), r_front=0.5, r_exit=0.46, length=0.98, petals=14)],
-        gear=[dict(name="nose", x=3.9, y=0.0, top=1.6, radius=0.33, width=0.17, wheels=2, spread=0.26,
-                   door=(0.9, 0.5), light=True),
-              dict(name="main_L", x=-1.6, y=1.56, top=1.4, radius=0.5, width=0.25, door=(1.2, 0.55), rake=0.1),
-              dict(name="main_R", x=-1.6, y=-1.56, top=1.4, radius=0.5, width=0.25, door=(1.2, 0.55), rake=0.1)],
-        pylons=[((-0.4, 2.6, WING_Z - 0.1), 1.2, 0.35), ((-1.0, 4.0, WING_Z - 0.08), 1.1, 0.3)],
-        stores=[("tank", (-0.5, 2.6, 1.6), 4.7, 0.42)],
-        nav=dict(left=(-1.0, TIP_Y - 0.3, WING_Z + 0.04), right=(-1.0, -TIP_Y + 0.3, WING_Z + 0.04),
-                 tail=(-8.6, 0.0, 1.96)),
-    )
-    if growler:
-        s["stores"] += [("jammer", (-0.9, 4.0, 1.66), 4.6, 0.36), ("jammer", (-1.0, 0.0, 0.98), 4.6, 0.36),
-                        ("pod", (-1.6, TIP_Y, WING_Z), 3.0, 0.23)]
-    else:
-        s["stores"] += [("missile", (-1.0, 4.0, 1.9), 3.65, 0.09), ("missile", (-1.6, TIP_Y, WING_Z), 3.0, 0.065)]
+    s = dict(nozzles=NOZZLES)
+    s["skin"] = dict(length=NOSE_X - TAIL_X, top=4.87, x=MID_X, canopy=_canopy(CANOPY[variant["id"]]),
+                     cut=NOZZLE_CUT, press=TIP_PRESS, parts=PARTS, **SKIN[variant["id"]])
     return s
+
+
+# The caret intakes' mouths, inside the lips of each skin's flat intake
+# faces (raked back from the top lip): `aircraft_skin.intake_mouth` corners.
+# The Growler's skin drew its faces wider.
+MOUTH = {E: ((0.75, 1.65), (1.2, 1.65), (1.2, 2.25), (0.75, 2.25)),
+         G: ((0.8, 1.65), (1.45, 1.65), (1.45, 2.25), (0.8, 2.25))}
+
+
+# Wheelbase and track as the photos give them; each leg's top on the skin's underside.
+GEAR = [dict(name="nose", x=3.9, y=0.0, radius=0.33, width=0.17, wheels=2, spread=0.26, door=(0.9, 0.5), light=True),
+        dict(name="main_L", x=-1.6, y=1.56, radius=0.5, width=0.25, door=(1.2, 0.55), rake=0.1),
+        dict(name="main_R", x=-1.6, y=-1.56, radius=0.5, width=0.25, door=(1.2, 0.55), rake=0.1)]
 
 
 def build(variant, v):
     m = A.jet(v, spec(variant))
     hull = v.hull
-    if variant["id"] != G:
-        box("gun_port", (0.25, 0.1, 0.12), (8.4, 0, 2.48), m["black"], hull, lods=NEAR)
-        A.mirrored(lambda side, k: box(f"wing_tip_rail_{k}", (2.2, 0.08, 0.1), (-1.5, side * (TIP_Y - 0.02),
-                                                                                 WING_Z - 0.02), m["dark"], hull))
-    # The outboard wing panels, their leading edges stepped forward at the
-    # fold into the dogtooth.
-    A.paired_surface("wing_outer", OUTER_WING, m["paint"], hull, hinge=(0.12, 0.76), hinge_mat=m["black"])
+    shell = Probe(hull)
+    A.mirrored(lambda side, k: intake_mouth(f"intake_mouth_{k}", shell, m["black"], hull, side, MOUTH[variant["id"]]))
+    # The wing's stations on the skin: each pylon from the wing's underside,
+    # its store under it, and the tips' stores at the tips' mid-thickness.
+    v_id = variant["id"]
+    for k, ((x, y, length, depth), (kind, dx, s_len, radius)) in enumerate(zip(PYLONS, STORES[v_id])):
+        for side in (1, -1):
+            top = shell.under(x, side * y)
+            A.pylon(f"pylon_{k}_{side + 1}", (x, side * y, top), length, depth, m, hull)
+            A.store(f"store_{k}_{side + 1}", kind, (x + dx, side * y, top - depth - radius - 0.02), s_len, radius, m,
+                    hull, rail=kind == "missile")
+    kind, s_len, radius, rail = TIP_STORE[v_id]
+    tip = TIP[v_id]
+    for side, s in ((1, "L"), (-1, "R")):
+        mid = (shell.under(TIP_X, side * (tip - 0.15)) + shell.over(TIP_X, side * (tip - 0.15))) / 2
+        A.store(f"store_tip_{s}", kind, (-1.6, side * tip, mid - (0.1 if rail else 0.0)), s_len, radius, m, hull,
+                rail=rail)
+    A.nav_lights(m, hull, tail=(-8.6, 0.0, 1.96),
+                 **{k: (TIP_X, side * (tip - 0.3), shell.over(TIP_X, side * (tip - 0.3)) + 0.01)
+                    for k, side in (("left", 1), ("right", -1))})
+    for g in GEAR:
+        A.gear(top=shell.under(g["x"], g["y"]) + 0.02, mats=m, parent=hull, **g)
+    if variant["id"] == G:
+        # The centreline jamming pod hung close under the belly.
+        A.store("store_jammer_belly", "jammer", (-1.0, 0.0, shell.under(-1.0, 0.0) - 0.37), 4.6, 0.36, m, hull)
+    else:
+        box("gun_port", (0.25, 0.1, 0.12), (8.4, 0, shell.over(8.4, 0)), m["black"], hull, lods=NEAR)
     # The nose leg's catapult launch bar, stowed up and forward off the strut.
     nose_leg = next(o for o in hull.children if o.name == "gear_nose")
     box("gear_nose_launch_bar", (0.9, 0.07, 0.07), (0.45, 0, -0.78), m["gear"], nose_leg, rot=(0, -0.55, 0),
         lods=MID)
     # The refuelling probe's door, antiglare.
-    box("probe_door", (0.8, 0.12, 0.03), (6.6, -0.46, 2.72), m["dark"], hull, rot=(0.5, 0, 0), lods=NEAR)
-    box("antiglare", (0.9, 0.5, 0.03), (6.5, 0, 2.87), m["dark"], hull, rot=(0, 0.1, 0), lods=MID)
-    A.blade_antenna("antenna_spine", (-1.0, 0, 3.19), 0.24, m, hull)
-    A.blade_antenna("antenna_belly", (0.4, 0, 1.38), 0.2, m, hull, down=True)
+    box("probe_door", (0.8, 0.12, 0.03), (6.6, -0.46, shell.over(6.6, -0.46)), m["dark"], hull, rot=(0.5, 0, 0),
+        lods=NEAR)
+    box("antiglare", (0.9, 0.5, 0.03), (6.5, 0, shell.over(6.5, 0)), m["dark"], hull, rot=(0, 0.1, 0), lods=MID)
+    A.blade_antenna("antenna_spine", (-1.0, 0, shell.over(-1.0, 0)), 0.24, m, hull)
+    A.blade_antenna("antenna_belly", (0.4, 0, shell.under(0.4, 0)), 0.2, m, hull, down=True)
     # The arrestor hook under the tail.
-    box("arrestor_hook", (1.6, 0.08, 0.08), (-6.8, 0, 1.5), m["steel"], hull, rot=(0, 0.12, 0), lods=MID)
+    box("arrestor_hook", (1.6, 0.08, 0.08), (-6.8, 0, shell.under(-6.8, 0) - 0.05), m["steel"], hull,
+        rot=(0, 0.12, 0), lods=MID)
     # The Navy's low-visibility greys: the insignia on the intake below the
     # LEX, NAVY aft, the squadron on the LEX and its air wing's code on the fins.
     code, squadron, modex = ("NL", "VAQ-133", "500") if variant["id"] == G else ("AJ", "VFA-31", "200")
@@ -126,13 +157,13 @@ def build(variant, v):
         ("insignia", dict(kind="us_lowvis", centre=(4.6, 1.3, 1.95), normal=(0, 1, 0), up=(0, 0, 1), size=0.36,
                           onto=("fuselage",))),
         ("insignia", dict(kind="us_lowvis", centre=(-1.0, 4.2, WING_Z + 0.2), normal=(0, 0, 1), up=(1, 0, 0),
-                          size=0.55, onto=("wing_L", "wing_outer_L"), mirror=False)),
+                          size=0.55, onto=("wing_L",), mirror=False)),
         ("insignia", dict(kind="us_lowvis", centre=(-1.0, -4.2, WING_Z - 0.2), normal=(0, 0, -1), up=(1, 0, 0),
-                          size=0.55, onto=("wing_R", "wing_outer_R"), mirror=False)),
+                          size=0.55, onto=("wing_R",), mirror=False)),
         ("text", dict(text="NAVY", height=0.3, centre=(-4.6, 1.5, 2.05), normal=(0, 1, 0), up=(0, 0, 1),
                       onto=("fuselage",))),
         ("text", dict(text=squadron, height=0.2, centre=(2.4, 1.6, 2.62), normal=(0, 1, 0), up=(0, 0, 1),
-                      onto=("fuselage", "wing_strake"))),
+                      onto=("fuselage", "wing_"))),
         ("text", dict(text=modex, height=0.26, centre=(7.6, 1.0, 2.3), normal=(0, 1, 0), up=(0, 0, 1),
                       onto=("fuselage",))),
         ("text", dict(text=code, height=0.6, centre=(-5.4, 0.78 + 1.5 * fin_up[1] + 0.3, 2.5 + 1.5 * fin_up[2]),
@@ -140,7 +171,7 @@ def build(variant, v):
     ])
     # The stations run from the nose at 9.28 m to the tail at -8.9 m: the
     # airframe stands centred on its length, as its frame's hull is.
-    hull.location.x = -(NOSE_X + TAIL_X) / 2
+    hull.location.x = -MID_X
 
 
 def wreck(variant, v):

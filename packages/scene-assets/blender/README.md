@@ -101,14 +101,19 @@ a bubble canopy drawn from its outlines live beside them
 ([`aircraft_loft.py`](aircraft_loft.py), [`aircraft_canopy.py`](aircraft_canopy.py)).
 
 A jet's shell can instead be a generated skin ([`aircraft_skin.py`](aircraft_skin.py)):
-an image-to-3D model's mesh of the airframe alone, made from a cleaned photo
-and shaded side, top and front views of a model measured against the
-references, so its proportions are the measured ones and its surfaces the
-photo's. Each is paid for once and pinned in [`skins/<family>.json`](skins/) with
-its hash, request and inputs (`assets/source/skins/<family>/`); the export
-refuses any other file and its receipt names the skins it wore. Everything
-else (canopy, gear, stores, markings) is still built here, seated on the
-skin. A rotorcraft's frame leaves
+an image-to-3D model's mesh of the airframe alone, made from shaded side, top
+and bottom views of a model measured against the references, so it keeps the
+measured proportions as one smooth, blended surface. Each is paid for once
+and pinned in [`skins/<family>.json`](skins/) with its hash, request and
+inputs (`assets/source/skins/<family>/`); the export refuses any other file
+and its receipt names the skins it wore. Its canopy is fitted to its own
+hump; everything else (gear, stores, nozzles, markings) is still built here,
+seated on the skin. To make one: draw the airframe's guide views from a model measured
+against its references ([`skin_views.py`](skin_views.py)), generate and pin
+the skin from them ([`../tools/skin-generate.mjs`](../tools/skin-generate.mjs),
+paid, with `FAL_KEY`), measure it against that model
+([`skin_register.py`](skin_register.py)) for the `lower` and `span` the
+family's spec gives `skin`, and check it on its sheet. A rotorcraft's frame leaves
 its blades out (`blade_*`): length nose to tail, width over the widest fixed
 part, height to the top of the rotor head.
 

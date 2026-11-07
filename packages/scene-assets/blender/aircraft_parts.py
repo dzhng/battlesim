@@ -46,6 +46,7 @@ from vehicle_parts import ALL, FINE, MID, NEAR, tube_part, wheel_node  # noqa: E
 from aircraft_body import BODY_STEPS, body  # noqa: E402,F401
 from aircraft_stores import pylon, store  # noqa: E402,F401
 from aircraft_markings import MARK, insignia, lettering, mark, markings  # noqa: E402,F401
+from aircraft_canopy import canopy_profile  # noqa: E402
 
 # Chord samples of a flying surface's section, per tier (fractions of chord).
 CHORD = ((0.0, 0.03, 0.1, 0.22, 0.38, 0.55, 0.72, 0.88, 1.0),
@@ -221,8 +222,7 @@ def canopy(name, x_front, x_back, sill, top, half_width, mats, parent, bows=(), 
     of its rise: a canopy faired into a spine ends tall."""
     length = x_front - x_back
     rise = top - sill
-    prof = ((0.0, nose, 0.35), (0.12, 0.45, 0.7), (0.3, 0.85, 0.95), (peak, 1.0, 1.0), (0.75, 0.86, 0.94),
-            (1.0, tail, 0.7))
+    prof = canopy_profile(peak, nose, tail)
     st = [(x_front - f * length, half_width * wf, sill - 0.04, sill + rise * hf, sill) for f, hf, wf in prof]
     made = body(f"{name}_glass", st, mats["canopy"], parent, seg=20, lods=lods)
     # The cockpit under the glass, opaque so the glass's own floor never
