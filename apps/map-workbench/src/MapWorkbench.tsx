@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   canonicalSeed,
   MAP_SIZES,
@@ -9,54 +9,44 @@ import {
   type MapSize,
   type MapType,
 } from "../../../web/src/maps/source";
-import type {
-  Documents,
-  Draft,
-  Field,
-  Inspection,
-  Report,
-  RunRequest,
-  SaveReview,
-  SightReport,
-  Snapshot,
-  WorkbenchAPI,
-} from "./protocol";
+import type { Field, Report, RunRequest, SightReport, WorkbenchAPI } from "./protocol";
 import { editField, fieldText, fieldValue, humanize, parseField } from "./fields";
 import { workbenchAPI } from "./http";
 import { Measurements } from "./Measurements";
 import { SourceReview } from "./SourceReview";
 import { LatestRunner } from "./runner";
 import { collectSample, type SeedSample } from "./sample";
+import { createManualOwner, downloadJson, type ManualKind } from "./manualOperation";
+import {
+  displayedInspection,
+  displayedReport,
+  displayedSelection,
+  editorReducer,
+  initialEditorState,
+  isCurrent,
+  sameValue,
+} from "./editorState";
 import "./workbench.css";
 
 const defaultAPI = workbenchAPI();
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
-const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 
-// eslint-disable-next-line complexity -- debt: 28 useState hooks share one draft, run, review and inspection lifecycle; split it once a reducer owns that lifecycle, then the panels can be subcomponents.
+// eslint-disable-next-line complexity -- cohesive map workbench surface.
 export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [loaded, setLoaded] = useState<Snapshot | null>(null);
-  const [documents, setDocuments] = useState<Documents | null>(null);
-  const [raw, setRaw] = useState<Record<string, string>>({});
-  const [unfinished, setUnfinished] = useState<Set<string>>(new Set());
+  const [editor, dispatch] = useReducer(editorReducer, initialEditorState);
+  const { snapshot, loaded, draft, raw, unfinished, latest, accepted, baseline, view, review } =
+    editor;
+  const documents = draft?.documents ?? null;
   const [mapType, setMapType] = useState<MapType>("mixed");
   const [mapSize, setMapSize] = useState<MapSize>("small");
   const [seed, setSeed] = useState("1");
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState("");
   const [readOnly, setReadOnly] = useState(false);
-  const [latest, setLatest] = useState<{ report: Report; request: RunRequest } | null>(null);
-  const [accepted, setAccepted] = useState<{ report: Report; request: RunRequest } | null>(null);
-  const [baseline, setBaseline] = useState<Report | null>(null);
-  const [view, setView] = useState<"draft" | "saved">("draft");
-  const [inspection, setInspection] = useState<(Inspection & { artifactId: string }) | null>(null);
-  const [selected, setSelected] = useState<{ artifactId: string; id: string } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState("Loading saved sources…");
   const [error, setError] = useState("");
-  const [review, setReview] = useState<SaveReview | null>(null);
   const [sight, setSight] = useState<{
     artifactId: string;
     report: SightReport;
@@ -66,10 +56,9 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
   const [sampleCount, setSampleCount] = useState(10);
   const [allCells, setAllCells] = useState(false);
   const [sample, setSample] = useState<SeedSample | null>(null);
-  const [sampleRunning, setSampleRunning] = useState(false);
+  const [manualKind, setManualKind] = useState<ManualKind | null>(null);
+  const sampleActive = manualKind === "sample";
   const alive = useRef(true);
-  const manual = useRef<AbortController | null>(null);
-  const cancelledWork = useRef(0);
   const diagram = useRef<HTMLDivElement | null>(null);
   const artifactPins = useRef<string[]>([]);
   artifactPins.current = [
@@ -89,8 +78,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
           return api.generate({ ...request, retainedArtifactIds: artifactPins.current }, signal);
         },
         publish: (report, request) => {
-          setLatest({ report, request });
-          if (report.status === "ok") setAccepted({ report, request });
+          dispatch({ type: "generation-completed", report, request });
           setStatus(report.status === "ok" ? "Current draft admitted" : "Current draft refused");
           setError("");
         },
@@ -102,14 +90,39 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     [api],
   );
 
+  const choice = useMemo<MapChoice | null>(() => {
+    const text = canonicalSeed(seed);
+    return text === null ? null : { type: mapType, size: mapSize, seed: text };
+  }, [mapType, mapSize, seed]);
+  const currentInput = useRef({ draft, choice, latest, valid: unfinished.size === 0 });
+  currentInput.current = { draft, choice, latest, valid: unfinished.size === 0 };
+  const manualOwner = useMemo(
+    () =>
+      createManualOwner({
+        runner,
+        alive: () => alive.current,
+        currentInput: () => currentInput.current,
+        onKind: setManualKind,
+        onError: setError,
+        onStatus: setStatus,
+        request: (nextDraft, nextChoice) =>
+          runner.request({
+            purpose: "preview",
+            retainedArtifactIds: [],
+            draft: nextDraft,
+            choice: nextChoice,
+          }),
+      }),
+    [runner],
+  );
+
   useEffect(() => {
     alive.current = true;
     const controller = new AbortController();
     void api.snapshot(controller.signal).then(
       (value) => {
         if (alive.current) {
-          setSnapshot(value);
-          setDocuments(value.documents);
+          dispatch({ type: "snapshot-accepted", snapshot: value });
         }
       },
       (failure) => {
@@ -119,30 +132,17 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     return () => {
       alive.current = false;
       controller.abort();
-      manual.current?.abort();
+      manualOwner.abort();
       runner.dispose();
     };
   }, [api, runner]);
 
-  const choice = useMemo<MapChoice | null>(() => {
-    const text = canonicalSeed(seed);
-    return text === null ? null : { type: mapType, size: mapSize, seed: text };
-  }, [mapType, mapSize, seed]);
-  const draft = useMemo<Draft | null>(
-    () => (snapshot && documents ? { revision: snapshot.revision, documents } : null),
-    [snapshot, documents],
-  );
-  const currentInput = useRef({ draft, choice, latest, valid: unfinished.size === 0 });
-  currentInput.current = { draft, choice, latest, valid: unfinished.size === 0 };
-
   useEffect(() => {
-    setBaseline(null);
-    setView("draft");
+    dispatch({ type: "choice-changed" });
   }, [snapshot, choice]);
 
   useEffect(() => {
-    setReview(null);
-    manual.current?.abort();
+    manualOwner.abort();
     if (!draft || !choice || unfinished.size) {
       runner.invalidate();
       if (draft) setStatus("Finish input before regeneration");
@@ -150,25 +150,18 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     }
     setStatus("Waiting for edits to settle…");
     runner.request({ purpose: "preview", retainedArtifactIds: [], draft, choice });
-  }, [runner, draft, choice, unfinished]);
+  }, [runner, draft, choice, unfinished, manualOwner]);
 
-  const current =
-    unfinished.size === 0 &&
-    !!latest &&
-    draft !== null &&
-    choice !== null &&
-    latest.request.draft.documents === draft.documents &&
-    same(latest.report.choice, choice);
-  const shown = view === "saved" ? baseline : accepted?.report;
-  const selectedId = selected?.artifactId === shown?.artifactId ? selected?.id : null;
-  const picture = shown && inspection?.artifactId === shown.artifactId ? inspection : shown;
+  const current = isCurrent(editor, choice);
+  const shown = displayedReport(editor);
+  const selectedId = displayedSelection(editor);
+  const picture = displayedInspection(editor);
   const svg = picture?.svg;
   const planHTML =
     svg ||
     (shown?.status === "refused"
       ? '<div class="mw-empty">Saved baseline refused. Choose Draft plan to inspect the last admitted map.</div>'
       : '<div class="mw-empty">The plan will appear after generation. Draft edits do not save automatically.</div>');
-  // React compares the prop object; stable markup preserves selection and layer attributes.
   const planMarkup = useMemo(() => ({ __html: planHTML }), [planHTML]);
   const selectedCrop = shown?.features?.find((feature) => feature.id === selectedId)?.crop;
   const layers = useMemo(() => {
@@ -209,89 +202,46 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
 
   function change(field: Field, text: string) {
     if (!documents) return;
-    setRaw((value) => ({ ...value, [field.id]: text }));
     try {
       const value = parseField(text, fieldValue(documents, field), field);
-      setUnfinished((old) => {
-        if (!old.has(field.id)) return old;
-        const next = new Set(old);
-        next.delete(field.id);
-        return next;
+      dispatch({
+        type: "draft-edited",
+        documents: sameValue(value, fieldValue(documents, field))
+          ? documents
+          : editField(documents, field, value),
+        fieldId: field.id,
+        text,
+        valid: true,
       });
-      if (!same(value, fieldValue(documents, field)))
-        setDocuments(editField(documents, field, value));
     } catch {
-      setUnfinished((old) => (old.has(field.id) ? old : new Set(old).add(field.id)));
+      dispatch({ type: "draft-edited", documents, fieldId: field.id, text, valid: false });
     }
-  }
-
-  async function operation(action: (signal: AbortSignal) => Promise<void>) {
-    manual.current?.abort();
-    const controller = new AbortController();
-    manual.current = controller;
-    const cancellation = cancelledWork.current;
-    setError("");
-    try {
-      await runner.cancel();
-      if (controller.signal.aborted) return;
-      await action(controller.signal);
-    } catch (failure) {
-      if (!controller.signal.aborted && alive.current) setError(errorText(failure));
-    } finally {
-      if (manual.current === controller) {
-        manual.current = null;
-        const now = currentInput.current;
-        if (
-          alive.current &&
-          !controller.signal.aborted &&
-          cancellation === cancelledWork.current &&
-          now.draft &&
-          now.choice &&
-          now.valid &&
-          (now.latest?.request.draft.documents !== now.draft.documents ||
-            !same(now.latest?.report.choice, now.choice))
-        )
-          runner.request({
-            purpose: "preview",
-            retainedArtifactIds: [],
-            draft: now.draft,
-            choice: now.choice,
-          });
-      }
-    }
-  }
-
-  function download(name: string, value: unknown) {
-    const url = URL.createObjectURL(
-      new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }),
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = name;
-    link.click();
-    URL.revokeObjectURL(url);
   }
 
   async function compare() {
     if (!snapshot || !choice) return;
+    const captured = { snapshot, choice };
     if (
       accepted?.request.draft.revision === snapshot.revision &&
-      same(accepted.request.draft.documents, snapshot.documents) &&
-      same(accepted.report.choice, choice)
+      sameValue(accepted.request.draft.documents, snapshot.documents) &&
+      sameValue(accepted.report.choice, choice)
     ) {
-      setBaseline(accepted.report);
-      setView("saved");
+      dispatch({ type: "baseline-set", report: accepted.report });
       return;
     }
-    await operation(async (signal) => {
+    await manualOwner.start("compare", captured, async ({ controller, captured }, owned) => {
       setStatus("Inspecting saved defaults on the same seed…");
       const result = await api.generate(
-        { purpose: "preview", retainedArtifactIds: artifactPins.current, draft: snapshot, choice },
-        signal,
+        {
+          purpose: "preview",
+          retainedArtifactIds: artifactPins.current,
+          draft: captured.snapshot!,
+          choice: captured.choice!,
+        },
+        controller.signal,
       );
-      if (signal.aborted) return;
-      setBaseline(result);
-      setView("saved");
+      if (!owned()) return;
+      dispatch({ type: "baseline-set", report: result });
       setStatus(result.status === "ok" ? "Saved baseline admitted" : "Saved baseline refused");
     });
   }
@@ -299,32 +249,44 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
   async function inspect(crop?: string) {
     if (!shown?.artifactId) return;
     const artifactId = shown.artifactId;
-    await operation(async (signal) => {
-      const result = await api.inspect(artifactId, crop, signal);
-      if (!signal.aborted) {
-        setInspection({ artifactId, ...result });
-        setZoom(1);
-      }
-    });
+    await manualOwner.start(
+      "inspect",
+      { artifactId, crop },
+      async ({ controller, captured }, owned) => {
+        const result = await api.inspect(captured.artifactId!, captured.crop, controller.signal);
+        if (owned()) {
+          dispatch({
+            type: "inspection-completed",
+            artifactId: captured.artifactId!,
+            inspection: result,
+          });
+          setZoom(1);
+        }
+      },
+    );
   }
 
   async function measureSight() {
     if (!shown?.artifactId) return;
     const artifactId = shown.artifactId;
-    await operation(async (signal) => {
-      setStatus("Measuring sampled openness…");
-      const start = performance.now();
-      const result = await api.sight(artifactId, signal);
-      if (!signal.aborted) {
-        setSight({
-          artifactId,
-          report: result,
-          roundTripMs: performance.now() - start,
-          source: { choice: shown.choice, fingerprint: shown.fingerprint },
-        });
-        setStatus("Openness report ready");
-      }
-    });
+    await manualOwner.start(
+      "sight",
+      { artifactId, choice: shown.choice, fingerprint: shown.fingerprint },
+      async ({ controller, captured }, owned) => {
+        setStatus("Measuring sampled openness…");
+        const start = performance.now();
+        const result = await api.sight(captured.artifactId!, controller.signal);
+        if (owned()) {
+          setSight({
+            artifactId: captured.artifactId!,
+            report: result,
+            roundTripMs: performance.now() - start,
+            source: { choice: captured.choice!, fingerprint: captured.fingerprint! },
+          });
+          setStatus("Openness report ready");
+        }
+      },
+    );
   }
 
   async function runSample() {
@@ -347,39 +309,42 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
         seed: String(BigInt.asUintN(64, BigInt(choice.seed) + BigInt(index))),
       })),
     );
-    await operation(async (signal) => {
-      setSampleRunning(true);
-      try {
-        const result = await collectSample(api, captured, choices, signal, (progress) => {
-          if (alive.current) setSample(progress);
-        });
-        if (alive.current) setSample(result);
-      } finally {
-        if (alive.current) {
-          setSampleRunning(false);
-          setStatus(
-            signal.aborted
-              ? "Sample cancelled; completed outcomes retained"
-              : "Seed sample complete",
+    await manualOwner.start(
+      "sample",
+      { draft: captured, choice, choices },
+      async ({ controller, captured }) => {
+        try {
+          const result = await collectSample(
+            api,
+            captured.draft!,
+            captured.choices!,
+            controller.signal,
+            (progress) => {
+              if (alive.current) setSample(progress);
+            },
           );
+          if (alive.current) setSample(result);
+        } finally {
+          if (alive.current) {
+            setStatus(
+              controller.signal.aborted
+                ? "Sample cancelled; completed outcomes retained"
+                : "Seed sample complete",
+            );
+          }
         }
-      }
-    });
+      },
+    );
   }
 
   async function reload(discard: boolean) {
-    await operation(async (signal) => {
-      const value = await api.snapshot(signal);
-      if (signal.aborted) return;
-      if (discard) {
-        setSnapshot(value);
-        setDocuments(value.documents);
-        setRaw({});
-        setUnfinished(new Set());
-        setLoaded(null);
-        setView("draft");
+    await manualOwner.start("reload", { discard }, async ({ controller, captured }, owned) => {
+      const value = await api.snapshot(controller.signal);
+      if (!owned()) return;
+      if (captured.discard) {
+        dispatch({ type: "snapshot-accepted", snapshot: value });
       } else {
-        setLoaded(value);
+        dispatch({ type: "sources-loaded", snapshot: value });
         setStatus("Sources loaded; current draft retained");
       }
     });
@@ -401,7 +366,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     for (const field of snapshot.fields) {
       if (
         !field.editable ||
-        same(fieldValue(snapshot.documents, field), fieldValue(documents, field))
+        sameValue(fieldValue(snapshot.documents, field), fieldValue(documents, field))
       )
         continue;
       const target = loaded.fields.find((value) => value.id === field.id && value.editable);
@@ -411,33 +376,28 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
       }
       next = editField(next, target, fieldValue(documents, field)!);
     }
-    setSnapshot(loaded);
-    setDocuments(next);
-    setRaw((old) => Object.fromEntries(Object.entries(old).filter(([id]) => unfinished.has(id))));
-    setLoaded(null);
-    setView("draft");
+    dispatch({
+      type: "draft-reapplied",
+      snapshot: loaded,
+      documents: next,
+      raw: Object.fromEntries(Object.entries(raw).filter(([id]) => unfinished.has(id))),
+    });
   }
 
   async function preview() {
     if (!draft || unfinished.size) return;
-    await operation(async (signal) => {
-      const value = await api.preview(draft, signal);
-      if (!signal.aborted) setReview(value);
+    await manualOwner.start("review", { draft }, async ({ controller, captured }, owned) => {
+      const value = await api.preview(captured.draft!, controller.signal);
+      if (owned()) dispatch({ type: "review-set", review: value });
     });
   }
 
   async function save() {
     if (!review) return;
-    await operation(async (signal) => {
-      const value = await api.save(review, signal);
-      if (signal.aborted) return;
-      setSnapshot(value);
-      setDocuments(value.documents);
-      setRaw({});
-      setUnfinished(new Set());
-      setLoaded(null);
-      setReview(null);
-      setView("draft");
+    await manualOwner.start("save", { review }, async ({ controller, captured }, owned) => {
+      const value = await api.save(captured.review!, controller.signal);
+      if (!owned()) return;
+      dispatch({ type: "snapshot-accepted", snapshot: value });
       setStatus("Saved defaults; new battles use the published values");
     });
   }
@@ -499,16 +459,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
         >
           Regenerate
         </button>
-        <button
-          onClick={() => {
-            ++cancelledWork.current;
-            manual.current?.abort();
-            void runner.cancel();
-            setStatus("Cancelled; previous result retained");
-          }}
-        >
-          Cancel work
-        </button>
+        <button onClick={manualOwner.cancel}>Cancel work</button>
       </div>
       <div className="mw-status" role="status">
         {status}
@@ -578,7 +529,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
             {fields.map((field) => {
               const value = documents && fieldValue(documents, field);
               const saved = snapshot && fieldValue(snapshot.documents, field);
-              const changed = !same(value, saved);
+              const changed = !sameValue(value, saved);
               const text = raw[field.id] ?? fieldText(value ?? undefined, field);
               return (
                 <section className={`mw-field ${changed ? "mw-changed" : ""}`} key={field.id}>
@@ -617,16 +568,10 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
                     <button
                       className="mw-reset"
                       onClick={() => {
-                        setDocuments(editField(documents!, field, saved!));
-                        setRaw((old) => {
-                          const next = { ...old };
-                          delete next[field.id];
-                          return next;
-                        });
-                        setUnfinished((old) => {
-                          const next = new Set(old);
-                          next.delete(field.id);
-                          return next;
+                        dispatch({
+                          type: "field-undone",
+                          documents: editField(documents!, field, saved!),
+                          fieldId: field.id,
                         });
                       }}
                     >
@@ -641,13 +586,18 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
         </aside>
         <section className="mw-inspection">
           <div className="mw-view-tools">
-            <button aria-pressed={view === "draft"} onClick={() => setView("draft")}>
+            <button
+              aria-pressed={view === "draft"}
+              onClick={() => dispatch({ type: "view-set", view: "draft" })}
+            >
               Draft plan
             </button>
             <button
-              disabled={!snapshot || !choice || sampleRunning}
+              disabled={!snapshot || !choice || sampleActive}
               aria-pressed={view === "saved"}
-              onClick={() => (baseline ? setView("saved") : void compare())}
+              onClick={() =>
+                baseline ? dispatch({ type: "view-set", view: "saved" }) : void compare()
+              }
             >
               Saved baseline · same seed
             </button>
@@ -664,13 +614,13 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
               Zoom out
             </button>
             <button
-              disabled={shown?.status !== "ok" || !shown.artifactId || sampleRunning}
+              disabled={shown?.status !== "ok" || !shown.artifactId || sampleActive}
               onClick={() => void inspect()}
             >
               Whole map
             </button>
             <button
-              disabled={!selectedCrop || !shown?.artifactId || sampleRunning}
+              disabled={!selectedCrop || !shown?.artifactId || sampleActive}
               onClick={() => void inspect(selectedCrop!)}
             >
               Inspect selection
@@ -727,7 +677,10 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
                   setGroup(node.getAttribute("data-rule-group")!);
                   setQuery("");
                   const id = node.getAttribute("data-feature-id");
-                  setSelected(id ? { artifactId: shown.artifactId, id } : null);
+                  dispatch({
+                    type: "selection-set",
+                    selection: id ? { artifactId: shown.artifactId, id } : null,
+                  });
                 }
               }}
               dangerouslySetInnerHTML={planMarkup}
@@ -751,11 +704,13 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
                 value={selectedId ?? ""}
                 onChange={(event) => {
                   const feature = shown.features!.find((item) => item.id === event.target.value);
-                  setSelected(
-                    feature && shown.artifactId
-                      ? { artifactId: shown.artifactId, id: feature.id }
-                      : null,
-                  );
+                  dispatch({
+                    type: "selection-set",
+                    selection:
+                      feature && shown.artifactId
+                        ? { artifactId: shown.artifactId, id: feature.id }
+                        : null,
+                  });
                   if (feature) {
                     setGroup(feature.group);
                     setQuery("");
@@ -786,11 +741,13 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
               {latest.report.artifactId && (
                 <button
                   onClick={() =>
-                    void operation(async (signal) =>
-                      download(
-                        "map-refused-inputs.json",
-                        await api.export(latest.report.artifactId!, signal),
-                      ),
+                    void manualOwner.start(
+                      "export",
+                      { artifactId: latest.report.artifactId },
+                      async ({ controller, captured }, owned) => {
+                        const value = await api.export(captured.artifactId!, controller.signal);
+                        if (owned()) downloadJson("map-refused-inputs.json", value);
+                      },
                     )
                   }
                 >
@@ -820,7 +777,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
           )}
           <div className="mw-analysis">
             <button
-              disabled={shown?.status !== "ok" || !shown.artifactId || sampleRunning}
+              disabled={shown?.status !== "ok" || !shown.artifactId || sampleActive}
               onClick={() => void measureSight()}
             >
               Measure openness
@@ -828,10 +785,15 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
             <span>Sampled sight runs on demand to keep editing responsive.</span>
             {shown?.artifactId && (
               <button
-                disabled={sampleRunning}
+                disabled={sampleActive}
                 onClick={() =>
-                  void operation(async (signal) =>
-                    download("map-input-report.json", await api.export(shown.artifactId!, signal)),
+                  void manualOwner.start(
+                    "export",
+                    { artifactId: shown.artifactId },
+                    async ({ controller, captured }, owned) => {
+                      const value = await api.export(captured.artifactId!, controller.signal);
+                      if (owned()) downloadJson("map-input-report.json", value);
+                    },
                   )
                 }
               >
@@ -895,7 +857,9 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
             <button disabled={review.diagnostics.length > 0} onClick={() => void save()}>
               Save reviewed defaults
             </button>
-            <button onClick={() => setReview(null)}>Close review</button>
+            <button onClick={() => dispatch({ type: "review-set", review: null })}>
+              Close review
+            </button>
           </div>
         )}
       </section>
@@ -925,12 +889,12 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
           All {MAP_TYPES.length * MAP_SIZES.length} type/size cells
         </label>
         <button
-          disabled={!draft || !choice || !!unfinished.size || sampleRunning}
+          disabled={!draft || !choice || !!unfinished.size || sampleActive}
           onClick={() => void runSample()}
         >
           Run seed sample
         </button>
-        {sampleRunning && <button onClick={() => manual.current?.abort()}>Cancel sample</button>}
+        {sampleActive && <button onClick={manualOwner.cancelSample}>Cancel sample</button>}
         {sample && (
           <>
             <p>
@@ -944,7 +908,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
                   : "running"}
               {draft && sample.input.documents !== draft.documents ? " · older input snapshot" : ""}
             </p>
-            <button onClick={() => download("map-seed-sample.json", sample)}>
+            <button onClick={() => downloadJson("map-seed-sample.json", sample)}>
               Export sample summary
             </button>
             {sample.receiptErrors.length > 0 && (

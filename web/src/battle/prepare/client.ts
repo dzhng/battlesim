@@ -46,47 +46,57 @@ export interface Preparation {
   cancel(): void;
 }
 
-export function prepareBattle(
+/** Own the worker through preparation and connection handoff. The promise owns
+ * settlement; installed handlers own the protocol phase. Cancellation stays
+ * separate because even an already-queued answer must become silent. */
+function prepareWorker<T>(
   message: PreparationMessage,
   onStage: (stage: PrepareStage) => void,
-): Preparation {
+  admit: (
+    reply: Extract<PrepareReply, { type: "prepared" | "bundle-prepared" }>,
+    connect: SimConnection,
+  ) => T,
+  reportToConsole: boolean,
+): { battle: Promise<T>; cancel(): void } {
   const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
-  // A cancelled request stays silent even if its answer was already on its
-  // way when the worker was closed.
   let cancelled = false;
-  const battle = new Promise<PreparedSession>((resolve, reject) => {
+  const cancel = () => {
+    cancelled = true;
+    worker.terminate();
+  };
+  const connect: SimConnection = (receive, fail) => {
+    worker.onmessage = (event: MessageEvent<SimReply>) => {
+      if (!cancelled) receive(event.data);
+    };
+    worker.onerror = (event) => {
+      if (!cancelled) fail(event.message || "The battle worker failed.");
+    };
+    return {
+      send: (request, transfer) => worker.postMessage(request, { transfer: transfer ?? [] }),
+      close: cancel,
+    };
+  };
+  const battle = new Promise<T>((resolve, reject) => {
     worker.onmessage = (event: MessageEvent<PrepareReply>) => {
       if (cancelled) return;
       const reply = event.data;
       if (reply.type === "stage") return onStage(reply.stage);
-      if (reply.type === "prepared") {
-        resolve({
-          ...reply.battle,
-          connect: (receive, fail) => {
-            worker.onmessage = (event: MessageEvent<SimReply>) => {
-              if (!cancelled) receive(event.data);
-            };
-            worker.onerror = (event) => {
-              if (!cancelled) fail(event.message || "The battle worker failed.");
-            };
-            return {
-              send: (request, transfer) =>
-                worker.postMessage(request, { transfer: transfer ?? [] }),
-              close: () => {
-                cancelled = true;
-                worker.terminate();
-              },
-            };
-          },
-        });
+      if (reply.type === "prepared" || reply.type === "bundle-prepared") {
+        try {
+          resolve(admit(reply, connect));
+        } catch (error) {
+          worker.terminate();
+          reject(error);
+        }
         return;
       }
       worker.terminate();
       if (reply.type === "refused") {
-        console.warn("battle preparation refused", {
-          stage: reply.stage,
-          diagnostics: reply.diagnostics,
-        });
+        if (reportToConsole)
+          console.warn("battle preparation refused", {
+            stage: reply.stage,
+            diagnostics: reply.diagnostics,
+          });
         reject(
           new PreparationFailed(
             reply.diagnostics.map((d) => d.message).join("; "),
@@ -94,33 +104,40 @@ export function prepareBattle(
             reply.stage,
           ),
         );
-      } else if (reply.type === "error") {
-        console.warn("battle preparation worker failed", { message: reply.message });
-        reject(new PreparationFailed(reply.message));
       } else {
-        reject(
-          new PreparationFailed(
-            "The worker returned an uploaded bundle to the ordinary battle path.",
-          ),
-        );
+        if (reportToConsole)
+          console.warn("battle preparation worker failed", { message: reply.message });
+        reject(new PreparationFailed(reply.message));
       }
     };
     worker.onerror = (event) => {
       if (cancelled) return;
       worker.terminate();
       const message = event.message || "The preparation worker failed to start.";
-      console.warn("battle preparation worker error", { message });
+      if (reportToConsole) console.warn("battle preparation worker error", { message });
       reject(new PreparationFailed(message));
     };
   });
   worker.postMessage(message);
-  return {
-    battle,
-    cancel: () => {
-      cancelled = true;
-      worker.terminate();
+  return { battle, cancel };
+}
+
+export function prepareBattle(
+  message: PreparationMessage,
+  onStage: (stage: PrepareStage) => void,
+): Preparation {
+  return prepareWorker(
+    message,
+    onStage,
+    (reply, connect) => {
+      if (reply.type !== "prepared")
+        throw new PreparationFailed(
+          "The worker returned an uploaded bundle to the ordinary battle path.",
+        );
+      return { ...reply.battle, connect };
     },
-  };
+    true,
+  );
 }
 
 export interface PreparedScenarioBundleSession {
@@ -140,73 +157,23 @@ export function prepareUploadedScenarioBundle(
   onStage: (stage: PrepareStage | BundlePrepareStage) => void = () => {},
   activeHuman?: string | null,
 ): ScenarioBundlePreparation {
-  const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
-  let cancelled = false;
-  const battle = new Promise<PreparedScenarioBundleSession>((resolve, reject) => {
-    worker.onmessage = (event: MessageEvent<PrepareReply>) => {
-      if (cancelled) return;
-      const reply = event.data;
-      if (reply.type === "stage") return onStage(reply.stage);
-      if (reply.type === "bundle-prepared") {
-        resolve({
-          canonical: reply.battle.canonical,
-          report: reply.battle.report,
-          session: {
-            scenario: reply.battle.scenario,
-            connect: (receive, fail) => {
-              worker.onmessage = (event: MessageEvent<SimReply>) => {
-                if (!cancelled) receive(event.data);
-              };
-              worker.onerror = (event) => {
-                if (!cancelled) fail(event.message || "The battle worker failed.");
-              };
-              return {
-                send: (request, transfer) =>
-                  worker.postMessage(request, { transfer: transfer ?? [] }),
-                close: () => {
-                  cancelled = true;
-                  worker.terminate();
-                },
-              };
-            },
-          },
-        });
-        return;
-      }
-      worker.terminate();
-      if (reply.type === "refused") {
-        reject(
-          new PreparationFailed(
-            reply.diagnostics.map((d) => d.message).join("; "),
-            reply.diagnostics,
-            reply.stage,
-          ),
-        );
-      } else if (reply.type === "error") {
-        reject(new PreparationFailed(reply.message));
-      } else {
-        reject(
-          new PreparationFailed("The worker returned an ordinary battle instead of a bundle."),
-        );
-      }
-    };
-    worker.onerror = (event) => {
-      if (cancelled) return;
-      worker.terminate();
-      reject(new PreparationFailed(event.message || "The preparation worker failed to start."));
-    };
-  });
   const message: PrepareScenarioBundleMessage = {
     type: "prepare-bundle",
     bundle,
     active_human: activeHuman,
   };
-  worker.postMessage(message);
-  return {
-    battle,
-    cancel: () => {
-      cancelled = true;
-      worker.terminate();
+  return prepareWorker(
+    message,
+    onStage,
+    (reply, connect) => {
+      if (reply.type !== "bundle-prepared")
+        throw new PreparationFailed("The worker returned an ordinary battle instead of a bundle.");
+      return {
+        canonical: reply.battle.canonical,
+        report: reply.battle.report,
+        session: { scenario: reply.battle.scenario, connect },
+      };
     },
-  };
+    false,
+  );
 }

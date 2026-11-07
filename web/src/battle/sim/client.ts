@@ -138,21 +138,23 @@ export function createSimClient(options: SimClientOptions): SimClient {
   let seq = 0;
   let nextAdvance = 1;
   let nextPreview = 1;
-  let disposed = false;
-  let failure: Error | null = null;
+  type Lifetime =
+    | { kind: "active" }
+    | { kind: "failed"; error: Error }
+    | { kind: "disposed"; error: Error | null };
+  let lifetime: Lifetime = { kind: "active" };
   const heldBuffers = new Set<ArrayBuffer>();
   // Highest tick the consumer has released; an advance resolves once its target is covered.
   let releasedTick = -1;
   type Pending<T> = { resolve: (value: T) => void; reject: (error: Error) => void };
   const pendingAcks = new Map<number, Pending<CommandAck>>();
-  const advances = new Map<number, Pending<number>>();
+  const advances = new Map<number, Pending<number> & { target?: number }>();
   const previews = new Map<
     number,
     | (Pending<MoveDestination[]> & { kind: "move" })
     | (Pending<BuildingPlacement> & { kind: "building" })
     | (Pending<PurchasePlacement> & { kind: "purchase" })
   >();
-  const advanceTargets = new Map<number, number>();
   const statusListeners: ((status: AuthorityStatus, slow: boolean) => void)[] = [];
   let consumer: ((publication: Publication) => void) | null = null;
   let replayWaiter: Pending<string> | null = null;
@@ -177,37 +179,48 @@ export function createSimClient(options: SimClientOptions): SimClient {
     channel.send({ type: "credit", buffer }, [buffer]);
   };
 
+  const terminate = (next: Exclude<Lifetime, { kind: "active" }>) => {
+    lifetime = next;
+    if (next.kind === "failed") {
+      for (const buffer of heldBuffers) returnCredit(buffer);
+      channel.send({ type: "pause" });
+      rejectReady(next.error);
+      for (const pending of pendingAcks.values()) pending.reject(next.error);
+      for (const pending of advances.values()) pending.reject(next.error);
+    }
+    for (const pending of previews.values())
+      pending.reject(next.error ?? new Error("simulation client disposed"));
+    if (next.kind === "failed") {
+      replayWaiter?.reject(next.error);
+      pendingAcks.clear();
+      advances.clear();
+      previews.clear();
+      replayWaiter = null;
+    } else {
+      previews.clear();
+      if (typeof document !== "undefined")
+        document.removeEventListener("visibilitychange", onVisibility);
+      channel.close();
+    }
+    setStatus(next.kind);
+  };
+
   const fail = (message: string) => {
-    if (failure || disposed) return;
-    failure = new Error(message);
-    for (const buffer of heldBuffers) returnCredit(buffer);
-    channel.send({ type: "pause" });
-    rejectReady(failure);
-    for (const pending of pendingAcks.values()) pending.reject(failure);
-    for (const pending of advances.values()) pending.reject(failure);
-    for (const pending of previews.values()) pending.reject(failure);
-    replayWaiter?.reject(failure);
-    pendingAcks.clear();
-    advances.clear();
-    previews.clear();
-    advanceTargets.clear();
-    replayWaiter = null;
-    setStatus("failed");
+    if (lifetime.kind === "active") terminate({ kind: "failed", error: new Error(message) });
   };
 
   const settleAdvances = () => {
-    for (const [id, target] of advanceTargets) {
-      if (releasedTick < target) continue;
-      advanceTargets.delete(id);
-      advances.get(id)?.resolve(target);
+    for (const [id, pending] of advances) {
+      if (pending.target === undefined || releasedTick < pending.target) continue;
+      pending.resolve(pending.target);
       advances.delete(id);
     }
   };
 
   const receive = (reply: SimReply) => {
-    if (disposed) return;
+    if (lifetime.kind === "disposed") return;
     if (reply.type === "publication") heldBuffers.add(reply.buffer);
-    if (failure) {
+    if (lifetime.kind === "failed") {
       if (reply.type === "publication") returnCredit(reply.buffer);
       return;
     }
@@ -217,7 +230,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
           // Publications follow `start`, which waits on `ready`.
           void loadPresentation()
             .then(() => {
-              if (disposed || failure) return;
+              if (lifetime.kind !== "active") return;
               decoder = new ScenePresentation(reply.layout, reply.tickHz);
               decoder.invalidate(observedSide);
               resolveReady({ tickHz: reply.tickHz, tick: reply.tick, layout: reply.layout });
@@ -281,7 +294,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
               return Array.from(new Uint32Array(buffer, 0, reply.length));
             },
             release() {
-              if (released || disposed) return;
+              if (released || lifetime.kind === "disposed") return;
               released = true;
               returnCredit(buffer);
               releasedTick = Math.max(releasedTick, reply.tick);
@@ -292,10 +305,12 @@ export function createSimClient(options: SimClientOptions): SimClient {
           else publication.release();
           break;
         }
-        case "advanced":
-          advanceTargets.set(reply.id, reply.tick);
+        case "advanced": {
+          const pending = advances.get(reply.id);
+          if (pending) pending.target = reply.tick;
           settleAdvances();
           break;
+        }
         case "replay":
           replayWaiter?.resolve(reply.json);
           replayWaiter = null;
@@ -324,7 +339,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
   });
 
   const send = (request: SimRequest) => {
-    if (!failure && !disposed) channel.send(request);
+    if (lifetime.kind === "active") channel.send(request);
   };
   const onVisibility = () => send({ type: "hidden", hidden: document.hidden });
   if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisibility);
@@ -339,8 +354,8 @@ export function createSimClient(options: SimClientOptions): SimClient {
     },
     start: () => send({ type: "start" }),
     command(order, queued = false) {
-      if (failure || disposed)
-        return Promise.reject(failure ?? new Error("simulation client disposed"));
+      if (lifetime.kind !== "active")
+        return Promise.reject(lifetime.error ?? new Error("simulation client disposed"));
       seq += 1;
       const command = { side: options.side, player: options.player, seq, order, queued };
       return new Promise<CommandAck>((resolve, reject) => {
@@ -349,8 +364,8 @@ export function createSimClient(options: SimClientOptions): SimClient {
       });
     },
     previewPurchase(variant, destination) {
-      if (failure || disposed)
-        return Promise.reject(failure ?? new Error("simulation client disposed"));
+      if (lifetime.kind !== "active")
+        return Promise.reject(lifetime.error ?? new Error("simulation client disposed"));
       const id = nextPreview++;
       return new Promise<PurchasePlacement>((resolve, reject) => {
         previews.set(id, { kind: "purchase", resolve, reject });
@@ -358,8 +373,8 @@ export function createSimClient(options: SimClientOptions): SimClient {
       });
     },
     previewMove(move) {
-      if (failure || disposed)
-        return Promise.reject(failure ?? new Error("simulation client disposed"));
+      if (lifetime.kind !== "active")
+        return Promise.reject(lifetime.error ?? new Error("simulation client disposed"));
       const id = nextPreview++;
       return new Promise<MoveDestination[]>((resolve, reject) => {
         previews.set(id, { kind: "move", resolve, reject });
@@ -367,8 +382,8 @@ export function createSimClient(options: SimClientOptions): SimClient {
       });
     },
     previewBuilding(building) {
-      if (failure || disposed)
-        return Promise.reject(failure ?? new Error("simulation client disposed"));
+      if (lifetime.kind !== "active")
+        return Promise.reject(lifetime.error ?? new Error("simulation client disposed"));
       const id = nextPreview++;
       return new Promise<BuildingPlacement>((resolve, reject) => {
         previews.set(id, { kind: "building", resolve, reject });
@@ -390,8 +405,8 @@ export function createSimClient(options: SimClientOptions): SimClient {
       send({ type: "resume" });
     },
     advance(ticks) {
-      if (failure || disposed)
-        return Promise.reject(failure ?? new Error("simulation client disposed"));
+      if (lifetime.kind !== "active")
+        return Promise.reject(lifetime.error ?? new Error("simulation client disposed"));
       const id = nextAdvance++;
       return new Promise<number>((resolve, reject) => {
         advances.set(id, { resolve, reject });
@@ -399,33 +414,26 @@ export function createSimClient(options: SimClientOptions): SimClient {
       });
     },
     setControllers(controllers) {
-      if (failure || disposed) return;
+      if (lifetime.kind !== "active") return;
       channel.send({ type: "controllers", controllers });
     },
     observeAs(side) {
-      if (failure || disposed) return;
+      if (lifetime.kind !== "active") return;
       observedSide = side;
       decoder?.invalidate(side);
       channel.send({ type: "side", side });
     },
     replay() {
-      if (failure || disposed)
-        return Promise.reject(failure ?? new Error("simulation client disposed"));
+      if (lifetime.kind !== "active")
+        return Promise.reject(lifetime.error ?? new Error("simulation client disposed"));
       return new Promise<string>((resolve, reject) => {
         replayWaiter = { resolve, reject };
         channel.send({ type: "replay" });
       });
     },
     dispose() {
-      if (disposed) return;
-      disposed = true;
-      for (const pending of previews.values())
-        pending.reject(new Error("simulation client disposed"));
-      previews.clear();
-      if (typeof document !== "undefined")
-        document.removeEventListener("visibilitychange", onVisibility);
-      channel.close();
-      setStatus("disposed");
+      if (lifetime.kind === "disposed") return;
+      terminate({ kind: "disposed", error: lifetime.kind === "failed" ? lifetime.error : null });
     },
   };
 }

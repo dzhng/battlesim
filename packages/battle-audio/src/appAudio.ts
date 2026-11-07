@@ -19,25 +19,35 @@ export const MENU_FADE_S = 1.2;
 
 export type AudioScreen = "menu" | "loading" | "other";
 
+interface AudioGraph {
+  readonly context: AudioContext;
+  readonly bank: SoundBank;
+  readonly menu: WebAudioSink;
+  readonly music: MusicPlayer;
+  dispose(): void;
+}
+
+type MenuPreparation =
+  | { status: "unprepared" }
+  | { status: "preparing" }
+  | { status: "ready" }
+  | { status: "failed"; error: string };
+
 /** Page lifetime, shared by menu and battles. Context activation remains tied
  * to real browser permission; navigation never closes or recreates it. */
 export class AppAudio {
-  private context: AudioContext | null = null;
-  private bank: SoundBank | null = null;
-  private menu: WebAudioSink | null = null;
-  private music: MusicPlayer | null = null;
+  private graph: AudioGraph | null = null;
   /** The running battle's score, from its first drawn update. */
   private score: BattleMusic | null = null;
   private battle: BattleAudio | null = null;
   /** The battle's seed, which its score shuffles by. */
   private scoreSeed = 0;
   private screen: AudioScreen = "other";
-  private menuReady = false;
-  private menuPreparing = false;
+  private menuPreparation: MenuPreparation = { status: "unprepared" };
   private menuPlaying = false;
   private combatStarted = false;
   private readonly embeddedSources = new Set<AudioBufferSourceNode>();
-  private error: string | null = null;
+  private contextError: string | null = null;
   private closed = false;
   private muted = soundSettings.get().muted;
   private readonly unsubscribe: () => void;
@@ -93,63 +103,73 @@ export class AppAudio {
   /** Attempt immediately, and again synchronously inside permitted input.
    * A pending autoplay resume never blocks preparation or gesture handling. */
   start() {
-    if (this.closed || soundSettings.get().muted || (this.error && !this.context)) return;
-    if (!this.context) {
+    if (this.closed || soundSettings.get().muted || (this.contextError && !this.graph)) return;
+    if (!this.graph) {
+      let context: AudioContext | null = null;
+      let bank: SoundBank | null = null;
+      let menu: WebAudioSink | null = null;
+      let music: MusicPlayer | null = null;
       try {
-        this.context = new AudioContext({ latencyHint: "interactive" });
-        this.bank = new SoundBank(this.context, this.options.catalog);
-        this.menu = new WebAudioSink(
-          this.context,
-          this.options.presentation,
-          this.options.catalog,
-          this.bank,
-        );
-        this.music = new MusicPlayer(
-          this.context,
-          this.options.catalog.music.tracks,
-          this.menu.master,
-        );
+        context = new AudioContext({ latencyHint: "interactive" });
+        bank = new SoundBank(context, this.options.catalog);
+        menu = new WebAudioSink(context, this.options.presentation, this.options.catalog, bank);
+        music = new MusicPlayer(context, this.options.catalog.music.tracks, menu.master);
+        this.graph = {
+          context,
+          bank,
+          menu,
+          music,
+          dispose: () => {
+            menu?.dispose();
+            music?.dispose();
+            bank?.dispose();
+            void context?.close().catch(() => {});
+          },
+        };
       } catch (error) {
-        this.error = error instanceof Error ? error.message : String(error);
-        this.bank?.dispose();
-        void this.context?.close().catch(() => {});
-        this.context = null;
-        this.bank = null;
+        this.contextError = error instanceof Error ? error.message : String(error);
+        menu?.dispose();
+        bank?.dispose();
+        void context?.close().catch(() => {});
         return;
       }
     }
+    const graph = this.graph;
+    if (!graph) return;
     this.setVolume();
     // Media autoplay is admitted per element: retry inside this input too.
-    this.music?.resume();
-    if (this.context.state !== "running") this.battle?.reset();
+    graph.music.resume();
+    if (graph.context.state !== "running") this.battle?.reset();
     // Queue resume even when state is still running: a prior suspend may be
     // pending. Permission failure remains eligible for the next gesture.
-    void this.context
+    void graph.context
       .resume()
       .then(() => {
-        if (this.closed || soundSettings.get().muted || (this.error && !this.context)) return;
+        if (this.closed || soundSettings.get().muted || (this.contextError && !this.graph)) return;
         this.syncMenu();
       })
       .catch(() => {});
     this.prepareMenu();
-    if (this.bank) this.battle?.connect(this.context, this.bank);
+    this.battle?.connect(graph.context, graph.bank);
     this.battle?.setVolume(soundSettings.get().volume, soundSettings.get().voices);
     this.syncMenu();
   }
 
   private playMenuCue(kind: keyof typeof MENU_CUES) {
+    const graph = this.graph;
     if (
       this.closed ||
       soundSettings.get().muted ||
-      !this.menuReady ||
-      this.context?.state !== "running" ||
-      !this.menu
+      this.menuPreparation.status !== "ready" ||
+      !graph ||
+      graph.context.state !== "running"
     )
       return;
-    const at = this.menu.now();
+    const menu = graph.menu;
+    const at = menu.now();
     // One transient slot bounds rapid pointer sweeps and lets activation win.
-    this.menu.stop(3, at, 0);
-    this.menu.start(3, {
+    menu.stop(3, at, 0);
+    menu.start(3, {
       ...MENU_CUES[kind],
       variant: 0,
       bus: "effects",
@@ -180,17 +200,16 @@ export class AppAudio {
    *  heard and whether a voice line sounds. The first ends the menu's music
    *  and opens the battle's score, which the barks direct and the lines duck. */
   battleHeard(battle: BattleAudio, barks: readonly VoiceRequest[], speaking: boolean) {
-    if (this.battle !== battle || !this.context) return;
+    const graph = this.graph;
+    if (this.battle !== battle || !graph) return;
     if (!this.combatStarted) {
       this.combatStarted = true;
       this.syncMenu();
       const { music } = this.options.presentation;
       const { tension, combat } = this.options.catalog.music.moods;
-      this.score = this.music
-        ? new BattleMusic(music, { tension, combat }, this.music, this.scoreSeed)
-        : null;
+      this.score = new BattleMusic(music, { tension, combat }, graph.music, this.scoreSeed);
     }
-    this.score?.update(this.context.currentTime, barks, speaking);
+    this.score?.update(graph.context.currentTime, barks, speaking);
   }
 
   /** Play one validated, embedded scenario clip through the existing effects
@@ -198,13 +217,13 @@ export class AppAudio {
   async playEmbeddedAudio(bytesBase64: string, mediaType: string): Promise<void> {
     if (!mediaType.startsWith("audio/")) throw new Error("embedded scenario asset is not audio");
     this.start();
-    const context = this.context;
-    const sink = this.menu;
+    const context = this.graph?.context;
+    const sink = this.graph?.menu;
     if (!context || !sink) throw new Error("audio context is unavailable");
     const binary = atob(bytesBase64);
     const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
     const decoded = await context.decodeAudioData(bytes.buffer.slice(0));
-    if (this.closed || this.menu !== sink) return;
+    if (this.closed || this.graph?.menu !== sink) return;
     const source = new AudioBufferSourceNode(context, { buffer: decoded });
     source.connect(sink.buses.effects);
     this.embeddedSources.add(source);
@@ -232,50 +251,52 @@ export class AppAudio {
     if (!this.score) return;
     this.score.dispose();
     this.score = null;
-    this.music?.duck(0, 0);
-    this.music?.stop(fade);
+    this.graph?.music.duck(0, 0);
+    this.graph?.music.stop(fade);
   }
 
   private prepareMenu() {
-    if (!this.bank || this.menuReady || this.menuPreparing || this.error || this.screen === "other")
-      return;
-    this.menuPreparing = true;
-    void this.bank
+    const graph = this.graph;
+    if (!graph || this.menuPreparation.status !== "unprepared" || this.screen === "other") return;
+    this.menuPreparation = { status: "preparing" };
+    void graph.bank
       .prepare([MENU_AMBIENCE.sound, ...Object.values(MENU_CUES).map(({ sound }) => sound)])
       .then(() => {
         if (this.closed) return;
-        this.menuReady = true;
+        this.menuPreparation = { status: "ready" };
         this.syncMenu();
       })
       .catch((error: unknown) => {
         if (this.closed) return;
-        this.error = error instanceof Error ? error.message : String(error);
-        console.error("Menu sound could not be prepared:", this.error);
+        const message = error instanceof Error ? error.message : String(error);
+        this.menuPreparation = { status: "failed", error: message };
+        console.error("Menu sound could not be prepared:", message);
       });
   }
 
   private syncMenu() {
-    if (!this.menu) return;
+    const graph = this.graph;
+    if (!graph) return;
     const wantsBed =
       !this.closed &&
       !soundSettings.get().muted &&
-      this.menuReady &&
+      this.menuPreparation.status === "ready" &&
       (this.screen === "menu" || (this.screen === "loading" && !this.combatStarted));
-    if (!wantsBed && (soundSettings.get().muted || this.screen === "other")) this.menu.clear();
+    if (!wantsBed && (soundSettings.get().muted || this.screen === "other")) graph.menu.clear();
     if (wantsBed === this.menuPlaying) return;
     this.menuPlaying = wantsBed;
-    const at = this.menu.now();
+    const at = graph.menu.now();
     if (!wantsBed) {
-      this.music?.stop(this.combatStarted ? MENU_FADE_S : 0);
-      this.menu.stop(1, at, this.combatStarted ? MENU_FADE_S : 0);
+      graph.music.stop(this.combatStarted ? MENU_FADE_S : 0);
+      graph.menu.stop(1, at, this.combatStarted ? MENU_FADE_S : 0);
       return;
     }
     // A quick return during the battle fade replaces it rather than stacking beds.
-    this.menu.clear();
-    this.music?.stop();
+    graph.menu.clear();
+    graph.music.stop();
     const bed = this.options.catalog.music.moods.menu[0];
-    if (bed) this.music?.play(bed, { fade: 0.5 });
-    this.menu.start(1, {
+    if (bed) graph.music.play(bed, { fade: 0.5 });
+    graph.menu.start(1, {
       sound: MENU_AMBIENCE.sound,
       variant: 0,
       bus: "ambience",
@@ -292,15 +313,16 @@ export class AppAudio {
   }
 
   private setVolume() {
-    if (!this.context || !this.menu) return;
+    const graph = this.graph;
+    if (!graph) return;
     const settings = soundSettings.get();
-    this.menu.master.gain.setTargetAtTime(
+    graph.menu.master.gain.setTargetAtTime(
       this.options.presentation.buses.master * settings.volume,
-      this.context.currentTime,
+      graph.context.currentTime,
       0.02,
     );
     // Music feeds this master, so it is master × music.
-    this.music?.setLevel(this.options.presentation.buses.music * settings.music);
+    graph.music.setLevel(this.options.presentation.buses.music * settings.music);
   }
   private applySettings() {
     if (this.closed) return;
@@ -310,17 +332,20 @@ export class AppAudio {
     this.muted = soundSettings.get().muted;
     if (this.muted) {
       this.syncMenu();
-      void this.context?.suspend().catch(() => {});
+      void this.graph?.context.suspend().catch(() => {});
     } else this.start();
   }
 
   stats() {
     return {
-      running: !this.closed && !soundSettings.get().muted && this.context?.state === "running",
-      menuReady: this.menuReady,
+      running:
+        !this.closed && !soundSettings.get().muted && this.graph?.context.state === "running",
+      menuReady: this.menuPreparation.status === "ready",
       menuPlaying: this.menuPlaying,
-      menuVoices: this.menu?.live ?? 0,
-      error: this.error,
+      menuVoices: this.graph?.menu.live ?? 0,
+      error:
+        this.contextError ??
+        (this.menuPreparation.status === "failed" ? this.menuPreparation.error : null),
       closed: this.closed,
     };
   }
@@ -343,14 +368,8 @@ export class AppAudio {
       source.disconnect();
     }
     this.embeddedSources.clear();
-    this.menu?.dispose();
-    this.music?.dispose();
-    this.bank?.dispose();
-    void this.context?.close().catch(() => {});
-    this.menu = null;
-    this.music = null;
-    this.bank = null;
-    this.context = null;
+    this.graph?.dispose();
+    this.graph = null;
     this.menuPlaying = false;
   }
 }

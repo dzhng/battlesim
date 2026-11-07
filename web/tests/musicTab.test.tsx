@@ -1,6 +1,6 @@
 import { MemoryRouter } from "react-router";
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import { SoundWorkbench } from "../../apps/sound-workbench/src/SoundWorkbench";
@@ -99,6 +99,28 @@ test("opening the Music tab is silent and lists each mood's tracks", async () =>
     for (const id of ids) expect(rows.getByText(id)).toBeTruthy();
   }
   expect(f.audition.music).not.toHaveBeenCalled();
+});
+
+test("a cancelled music open stays silent", async () => {
+  const f = await open();
+  f.audition.music = vi.fn(async () => {
+    throw new DOMException("Audition was replaced", "AbortError");
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Combat mood" }));
+  await vi.waitFor(() => expect(f.audition.music).toHaveBeenCalled());
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  expect(screen.queryByRole("status")).toBeNull();
+});
+
+test("a real music open error is reported", async () => {
+  const f = await open();
+  f.audition.music = vi.fn(async () => {
+    throw new Error("Audio device unavailable");
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Combat mood" }));
+  expect(await screen.findByText("Audio device unavailable")).toBeTruthy();
 });
 
 test("the mood switch crossfades the real player into a track of that mood over 4 s", async () => {

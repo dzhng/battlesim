@@ -61,6 +61,14 @@ export interface Auditioner {
   stop(): void;
 }
 
+interface AuditionRun {
+  controller: AbortController;
+  context: AudioContext;
+  bank: SoundBank | null;
+  sources: Set<AudioBufferSourceNode>;
+  player: MusicPlayer | null;
+}
+
 /** Where an audition's lines are heard, on a clock from 0. */
 export interface LineSink {
   now(): number;
@@ -78,23 +86,20 @@ export interface LineAudition<T> {
 
 /** User-triggered audition uses the production bank, including its variation and support mixing. */
 export class SoundAuditioner implements Auditioner {
-  private context: AudioContext | null = null;
-  private controller: AbortController | null = null;
-  private bank: SoundBank | null = null;
-  private sources = new Set<AudioBufferSourceNode>();
-  private player: MusicPlayer | null = null;
+  private run: AuditionRun | null = null;
 
   stop() {
-    this.player?.dispose();
-    this.player = null;
-    this.controller?.abort();
-    this.controller = null;
-    for (const source of this.sources) source.stop();
-    this.sources.clear();
-    this.bank?.dispose();
-    this.bank = null;
-    void this.context?.close();
-    this.context = null;
+    const run = this.run;
+    if (!run) return;
+    this.run = null;
+    run.player?.dispose();
+    run.player = null;
+    run.controller.abort();
+    for (const source of run.sources) source.stop();
+    run.sources.clear();
+    run.bank?.dispose();
+    run.bank = null;
+    void run.context.close();
   }
 
   /** A fresh context, with a bank of `catalog` when given and `prepare` loaded, and the
@@ -104,11 +109,21 @@ export class SoundAuditioner implements Auditioner {
     prepare: (bank: SoundBank | null, signal: AbortSignal, context: AudioContext) => Promise<T>,
   ) {
     this.stop();
-    const controller = (this.controller = new AbortController());
-    const context = (this.context = new AudioContext({ latencyHint: "interactive" }));
+    const controller = new AbortController();
+    const run: AuditionRun = {
+      controller,
+      context: new AudioContext({ latencyHint: "interactive" }),
+      bank: null,
+      sources: new Set(),
+      player: null,
+    };
+    this.run = run;
+    const { context } = run;
     try {
       await Promise.all([context.resume(), loadSoundModule()]);
-      const bank = (this.bank = catalog && new SoundBank(context, catalog));
+      controller.signal.throwIfAborted();
+      const bank = catalog && new SoundBank(context, catalog);
+      run.bank = bank;
       const prepared = await prepare(bank, controller.signal, context);
       controller.signal.throwIfAborted();
       const output = new WaveShaperNode(context, { curve: AUDITION_LIMIT_CURVE });
@@ -121,16 +136,16 @@ export class SoundAuditioner implements Auditioner {
         const source = new AudioBufferSourceNode(context, { buffer, loop });
         const volume = new GainNode(context, { gain: level(buffer, gain) });
         source.connect(volume).connect(output);
-        source.onended = () => this.sources.delete(source);
-        this.sources.add(source);
+        source.onended = () => run.sources.delete(source);
+        run.sources.add(source);
         source.start(context.currentTime + delay, offset);
         return { source, volume };
       };
       // Whether this audition still sounds: a later one, or a stop, ends it.
-      const current = () => this.controller === controller;
+      const current = () => this.run === run;
       return { context, bank, prepared, level, start, current, output };
     } catch (error) {
-      if (this.controller === controller) this.stop();
+      if (this.run === run) this.stop();
       throw error;
     }
   }
@@ -180,6 +195,7 @@ export class SoundAuditioner implements Auditioner {
     ).catch(unlessAborted);
     if (!opened) return;
     const { prepared, start, current } = opened;
+    if (!current()) return;
     const loop = kind === "clip" ? catalog.clips[id].loop : catalog.sounds[id].loop;
     const { source } = start(prepared, gain, loop);
     source.onended = () => {
@@ -219,6 +235,7 @@ export class SoundAuditioner implements Auditioner {
     ).catch(unlessAborted);
     if (!opened) return;
     const { prepared, start, current } = opened;
+    if (!current()) return;
     let delay = 0;
     let last: AudioBufferSourceNode | null = null;
     for (const buffer of prepared) {
@@ -234,6 +251,13 @@ export class SoundAuditioner implements Auditioner {
   /** Music streams at its catalog gain, as in battle: the level is the track's, not the calibration's. */
   async music(tracks: Record<string, MusicTrack>) {
     const { context, output } = await this.open(null, async () => null);
-    return (this.player = new MusicPlayer(context, tracks, output));
+    const player = new MusicPlayer(context, tracks, output);
+    const run = this.run;
+    if (!run || run.context !== context) {
+      player.dispose();
+      throw new DOMException("Audition was replaced", "AbortError");
+    }
+    run.player = player;
+    return player;
   }
 }

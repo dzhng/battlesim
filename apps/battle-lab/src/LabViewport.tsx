@@ -6,7 +6,12 @@ import type {
   ViewportGpu,
   ViewportPilot,
 } from "./viewportRender";
-import type { ViewportPointer, LabPick, LabBox } from "./viewportInput";
+import {
+  ViewportGestureOwner,
+  type ViewportPointer,
+  type LabPick,
+  type LabBox,
+} from "./viewportInput";
 export type { ViewportPointer, LabPick, LabBox } from "./viewportInput";
 import type { ClearanceReading, LabHandle } from "./labDiagnostics";
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
@@ -27,7 +32,6 @@ import {
   createWorldRay,
   screenRay,
   type Camera3DParams,
-  type WorldRay,
 } from "@packages/renderer-core/src/camera3d";
 import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import {
@@ -76,8 +80,10 @@ import {
 } from "./presentedFrame";
 import { type FogRequest } from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
-import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
+import { pickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 import { testQualityProfile, type GraphicsQualityProfile } from "./graphicsSettings";
+import { SceneAdmission, type SceneAdmissionIdentity } from "./viewportSceneAdmission";
+import { ViewportSubmittedView } from "./viewportSubmittedView";
 
 const NO_MODELS: readonly ModelInstance[] = [];
 const NO_INSTANCES: readonly SceneInstance[] = [];
@@ -184,11 +190,8 @@ interface LabViewportProps {
   cameraConfig?: CameraPresentation;
 }
 
-/** The viewport owns the live projection and render resolution passed to pointer paint. */
 export type ViewportCursor = NonNullable<LabViewportProps["onCursor"]>;
 
-/** Pixels a left press may travel and still count as a click. */
-const CLICK_SLOP_PX = 5;
 /** Screen-edge band that pans the camera like a held key. */
 const EDGE_PAN_PX = 14;
 
@@ -273,12 +276,11 @@ export function LabViewport({
   const onFrameRef = useRef(onFrame);
   onFrameRef.current = onFrame;
   const instancesRef = useRef(instances);
-  const picksRef = useRef<readonly PickBox[] | null>(null);
   const fixedPicksRef = useRef(fixedPicks);
   fixedPicksRef.current = fixedPicks;
   const worldRef = useRef(world);
   worldRef.current = world;
-  const sceneRef = useRef<BrowserScene | null>(null);
+  const sceneAdmissionRef = useRef<SceneAdmission | null>(null);
   const [inspecting, setInspecting] = useState<BrowserScene | null>(null);
   instancesRef.current = instances;
 
@@ -312,7 +314,7 @@ export function LabViewport({
   useEffect(
     () =>
       pointerMarks?.subscribe((marks) => {
-        sceneRef.current?.setPointerMarks(marks);
+        sceneAdmissionRef.current?.current()?.setPointerMarks(marks);
         redrawRef.current();
       }),
     [pointerMarks],
@@ -333,7 +335,7 @@ export function LabViewport({
   fogStyleRef.current = fogStyle;
   const lightRef = useRef(light);
   useEffect(() => {
-    sceneRef.current?.setFogStyle(fogStyle ?? gameFogStyle);
+    sceneAdmissionRef.current?.current()?.setFogStyle(fogStyle ?? gameFogStyle);
     redrawRef.current();
   }, [fogStyle]);
   const fogSuppressed = useRef(false);
@@ -343,7 +345,7 @@ export function LabViewport({
   useEffect(
     () =>
       overlay?.subscribe((meshes: WorldMeshes | undefined) => {
-        if (meshes) sceneRef.current?.setOverlay(meshes);
+        if (meshes) sceneAdmissionRef.current?.current()?.setOverlay(meshes);
         redrawRef.current();
       }),
     [overlay],
@@ -472,9 +474,8 @@ export function LabViewport({
       width: canvas.width,
       height: canvas.height,
     });
-    let submittedView: ViewportCamera | null = null;
-    let submittedPicks: readonly PickBox[] = [];
-    const interactionView = () => submittedView ?? snapshot();
+    const submitted = new ViewportSubmittedView();
+    const interactionView = () => submitted.camera(snapshot());
 
     (async () => {
       try {
@@ -489,7 +490,7 @@ export function LabViewport({
           if (canvas.width !== w || canvas.height !== h) {
             canvas.width = w;
             canvas.height = h;
-            sceneRef.current?.resize();
+            sceneAdmissionRef.current?.current()?.resize();
             dirty = true;
           }
         };
@@ -573,7 +574,6 @@ export function LabViewport({
             };
             signal.addEventListener("abort", abort, { once: true });
           });
-        let rebuilding: Promise<void> | null = null;
         const readyPresentation = async (): Promise<ScenePresentation> => {
           while (!signal.aborted) {
             const decoder = scenePresentation();
@@ -588,10 +588,22 @@ export function LabViewport({
           }
           throw new Error("Viewport departed during renderer admission");
         };
-        const build = async (): Promise<BrowserScene> => {
-          const decoder = await readyPresentation();
+        const captureIdentity = async (): Promise<SceneAdmissionIdentity> => {
+          const observer = await readyPresentation();
           const quality = qualityRef.current;
-          const qualityKey = JSON.stringify(quality);
+          return {
+            observer,
+            world: worldRef.current.current!,
+            appearances: appearancesRef.current,
+            quality,
+            qualityKey: JSON.stringify(quality),
+          };
+        };
+        const build = async (
+          identity: SceneAdmissionIdentity,
+          current: () => boolean,
+        ): Promise<BrowserScene | null> => {
+          const { observer: decoder, world, appearances: installed, quality } = identity;
           const lit = light();
           staticSun = {
             azimuth: lit.sun_azimuth,
@@ -600,13 +612,6 @@ export function LabViewport({
           };
           staticStyle = buildingStyleRef.current ?? gameBuildingStyle;
           shadowLight = applyShadowQuality(lit, quality);
-          const world = worldRef.current.current!;
-          const installed = appearancesRef.current;
-          const current = () =>
-            decoder === scenePresentation() &&
-            installed === appearancesRef.current &&
-            world === worldRef.current.current &&
-            qualityKey === JSON.stringify(qualityRef.current);
           decoder.setBuildings(
             buildingsRef.current?.current ?? null,
             installed,
@@ -617,11 +622,9 @@ export function LabViewport({
           decoder.setShadow(shadowLight, world.terrain.mesh);
           decoder.setFog(fogSuppressed.current ? null : (fogRef.current?.current ?? null));
           let first = frameRef.current?.(performance.now(), snapshot(), 0);
-          // Publications start only after GPU readiness. Admit the complete
-          // staged battle topology before its first observed frame exists.
           while (presentationRef.current && !decoder.hasBattle() && !signal.aborted) {
             await admissionFrame();
-            if (!current()) return build();
+            if (!current()) return null;
             first = frameRef.current?.(performance.now(), snapshot(), 0);
           }
           if (signal.aborted) throw new Error("Viewport departed during renderer admission");
@@ -652,16 +655,15 @@ export function LabViewport({
               failed: reportFailure,
             });
           } catch (error) {
-            if (!current()) return build();
+            if (!current()) return null;
             throw error;
           }
           if (signal.aborted) {
-            next.dispose();
             return next;
           }
           if (!current() || !next.worldCurrent()) {
             next.dispose();
-            return build();
+            return null;
           }
           next.setModels(modelsRef.current);
           next.setInstances(instancesRef.current);
@@ -671,10 +673,26 @@ export function LabViewport({
           if (marks) next.setPointerMarks(marks);
           return next;
         };
-        let scene = await build();
+        let scene!: BrowserScene;
         let staged: ViewportFrame | null = null;
+        const admission = new SceneAdmission({
+          capture: captureIdentity,
+          current: (identity) =>
+            identity.observer === scenePresentation() &&
+            identity.world === worldRef.current.current &&
+            identity.appearances === appearancesRef.current &&
+            identity.qualityKey === JSON.stringify(qualityRef.current),
+          build,
+          redraw: () => (dirty = true),
+          installed: (next) => {
+            scene = next;
+            staged = null;
+            setInspecting((shown) => (shown ? next : shown));
+          },
+        });
+        sceneAdmissionRef.current = admission;
+        await admission.request();
         if (signal.aborted) return;
-        sceneRef.current = scene;
         const allocations = () => scene.stats().memory;
         const adapter = info.name || info.backend;
         pilot?.attach?.({
@@ -735,7 +753,7 @@ export function LabViewport({
         // eslint-disable-next-line complexity -- debt: its stages read and write the effect's mutable locals (scene, dirty, pointer, grassSuppressed, lastFrame); split needs those in one frame-state object the stages take, not more closures.
         const loop = (now: number) => {
           if (signal.aborted || handle.error) return;
-          if (rebuilding) {
+          if (admission.replacing()) {
             raf = requestAnimationFrame(loop);
             return;
           }
@@ -754,9 +772,7 @@ export function LabViewport({
           if (
             pointer &&
             (interactionSurface(document.elementFromPoint(pointer.x, pointer.y)) === canvas ||
-              rightPress ||
-              press ||
-              orbit)
+              gestures.active)
           ) {
             const rect = canvas.getBoundingClientRect();
             edge = [
@@ -786,8 +802,6 @@ export function LabViewport({
             dirty = true; // a piloted frame is always drawn: it is measured
           }
           see(dt);
-          // The scene's presentation is staged with its buildings before the
-          // battle frames it (or, without one, the viewport frames it).
           const decoder = scene.presentation;
           const terrain = scene.world().terrain.mesh;
           let animated: ViewportFrame | null | undefined = null;
@@ -882,13 +896,18 @@ export function LabViewport({
             if (dirty && draw()) {
               drawn = true;
               if (staged?.instances) instancesRef.current = staged.instances;
-              if (staged?.picks) picksRef.current = staged.picks;
               if (staged?.counts) countsRef.current = staged.counts;
               if (staged?.effectCounts) effectCountsRef.current = staged.effectCounts;
-              submittedPicks =
-                picksRef.current ?? fixedPicksRef.current ?? instancesRef.current.map(proxyPickBox);
-              submittedView = snapshot();
-              staged?.submitted?.();
+              submitted.submit(
+                {
+                  scene,
+                  camera: snapshot(),
+                  framePicks: staged?.picks,
+                  routePicks: fixedPicksRef.current,
+                  instances: instancesRef.current,
+                },
+                staged?.submitted,
+              );
               staged = null;
               if (scene.current()) frameRequests.submitted();
             }
@@ -901,20 +920,13 @@ export function LabViewport({
             ? interactionSurface(document.elementFromPoint(pointer.x, pointer.y))
             : null;
           const pointerState: ViewportPointer = {
-            position: surface || rightPress ? pointer : null,
+            position: surface || gestures.rightPressRay ? pointer : null,
             ray: pointerRay(),
             ...modifiers,
-            cameraDragging: !!orbit,
-            rightPress: rightPress?.ray ?? null,
-            leftPress: press?.dragged && leftDragActionRef.current ? press.ray : null,
-            rightDragging: !!(
-              rightPress &&
-              pointer &&
-              Math.hypot(
-                pointer.x - rightPress.event.clientX,
-                pointer.y - rightPress.event.clientY,
-              ) > CLICK_SLOP_PX
-            ),
+            cameraDragging: gestures.cameraDragging,
+            rightPress: gestures.rightPressRay,
+            leftPress: gestures.leftPressRay,
+            rightDragging: !!pointer && gestures.rightDraggingAt(pointer),
           };
           const project = projector();
           const renderScale = canvas.height / Math.max(1, canvas.clientHeight);
@@ -923,7 +935,7 @@ export function LabViewport({
           const action =
             onCursorRef.current?.(pointerState, shownCamera, project, renderScale) ?? null;
           // The app cursor always shows; the battle only chooses its action.
-          const active = surface && !orbit && !pilot;
+          const active = surface && !gestures.cameraDragging && !pilot;
           setCursorAction((active && action) || "default");
           pilot?.frame?.({
             now,
@@ -943,9 +955,8 @@ export function LabViewport({
         const projector = (): Project =>
           viewportProjector(interactionView(), canvas.getBoundingClientRect());
 
-        /** What a click can pick: the frame's picks, else the route's, else
-         *  each drawn proxy by its own box. */
-        const picks = (): readonly PickBox[] => submittedPicks;
+        const picks = (): readonly PickBox[] =>
+          submitted.currentFor(sceneAdmissionRef.current?.current())?.picks ?? [];
         const nextFrame = () => frameRequests.request();
 
         Object.assign(handle, {
@@ -997,25 +1008,12 @@ export function LabViewport({
             see(0);
           },
           async rebuild() {
-            rebuilding ??= (async () => {
-              try {
-                const previous = scene;
-                const next = await build();
-                if (signal.aborted) return;
-                next.inheritControls(scene);
-                scene = next;
-                sceneRef.current = next;
-                previous.dispose();
-                setInspecting((shown) => (shown ? scene : shown));
-                dirty = true;
-              } catch (error) {
-                reportFailure(error);
-                throw error;
-              } finally {
-                rebuilding = null;
-              }
-            })();
-            await rebuilding;
+            try {
+              await admission.request();
+            } catch (error) {
+              reportFailure(error);
+              throw error;
+            }
             if (!signal.aborted && !handle.error) await nextFrame();
           },
           rayAt(cssX: number, cssY: number) {
@@ -1116,15 +1114,6 @@ export function LabViewport({
         // places at the press and faces toward the release), right click
         // orders (on release: a right-drag also sets the facing); the camera (CameraController) takes held WASD/arrows and the
         // screen edge to pan, Q/E to turn, Z/X to tilt, middle drag to orbit, the wheel to zoom.
-        let orbit: { x: number; y: number } | null = null;
-        let press: {
-          x: number;
-          y: number;
-          shift: boolean;
-          ray: WorldRay;
-          dragged: boolean;
-        } | null = null;
-        let rightPress: { event: PointerEvent; pick: LabPick; ray: WorldRay } | null = null;
         const makePick = (e: PointerEvent, button: "left" | "right") => {
           const ray = handle.rayAt!(e.clientX, e.clientY);
           return {
@@ -1138,6 +1127,19 @@ export function LabViewport({
             time: e.timeStamp,
           };
         };
+        const gestures = new ViewportGestureOwner({
+          leftDragAction: () => leftDragActionRef.current,
+          onPick: (pick) => onPickRef.current?.(pick),
+          onRightPress: (pick) => onRightPressRef.current?.(pick),
+          onBoxPreview: (next) => setBox(next),
+          onBox: (next) => onBoxRef.current?.(next),
+          onOrbit: ([dx, dy]) => {
+            const h = canvas.clientHeight || 1;
+            steer({ drag: [dx / h, dy / h] }, 0);
+            see(0);
+          },
+          project: handle.projectToCss!,
+        });
         const onDown = (e: PointerEvent) => {
           if (!inputEnabledRef.current) return;
           // Let the HUD own its native click sequence. Capturing a HUD press
@@ -1146,23 +1148,34 @@ export function LabViewport({
           if (!interactionSurface(e.target)) return;
           modifiers = { ctrl: e.ctrlKey, shift: e.shiftKey };
           if (e.button === 0) {
-            press = {
+            gestures.down({
+              button: "left",
               x: e.clientX,
               y: e.clientY,
               shift: e.shiftKey,
               ray: handle.rayAt!(e.clientX, e.clientY),
-              dragged: false,
-            };
+            });
             canvas.setPointerCapture(e.pointerId);
           } else if (e.button === 2) {
             pointer = { x: e.clientX, y: e.clientY };
             const pick = makePick(e, "right");
-            rightPress = { event: e, ray: pick.ray, pick };
-            onRightPressRef.current?.(pick);
+            gestures.down({
+              button: "right",
+              x: e.clientX,
+              y: e.clientY,
+              shift: e.shiftKey,
+              ray: pick.ray,
+              pick,
+            });
             canvas.setPointerCapture(e.pointerId);
           } else if (e.button === 1) {
             e.preventDefault();
-            orbit = { x: e.clientX, y: e.clientY };
+            gestures.down({
+              button: "middle",
+              x: e.clientX,
+              y: e.clientY,
+              shift: e.shiftKey,
+            });
             canvas.setPointerCapture(e.pointerId);
           }
         };
@@ -1170,72 +1183,33 @@ export function LabViewport({
           if (!inputEnabledRef.current) return;
           modifiers = { ctrl: e.ctrlKey, shift: e.shiftKey };
           const over = interactionSurface(e.target);
-          pointer = over || rightPress || press || orbit ? { x: e.clientX, y: e.clientY } : null;
-          if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > CLICK_SLOP_PX) {
-            press.dragged = true;
-            // A drag that is an action (placing, then facing) draws no selection box.
-            if (!leftDragActionRef.current)
-              setBox({ x0: press.x, y0: press.y, x1: e.clientX, y1: e.clientY });
-          }
-          if (!orbit) return;
-          const dx = e.clientX - orbit.x,
-            dy = e.clientY - orbit.y;
-          orbit.x = e.clientX;
-          orbit.y = e.clientY;
-          const h = canvas.clientHeight || 1;
-          steer({ drag: [dx / h, dy / h] }, 0);
-          see(0);
+          pointer = over || gestures.active ? { x: e.clientX, y: e.clientY } : null;
+          gestures.move({ x: e.clientX, y: e.clientY });
         };
         const onUp = (e: PointerEvent) => {
           if (!inputEnabledRef.current) return;
-          orbit = null;
-          if (e.button === 2 && rightPress) {
-            const start = rightPress.event;
-            const captured = rightPress.pick;
-            rightPress = null;
-            const dragged =
-              Math.hypot(e.clientX - start.clientX, e.clientY - start.clientY) > CLICK_SLOP_PX;
-            onPickRef.current?.({
-              ...captured,
-              release: dragged ? handle.rayAt!(e.clientX, e.clientY) : undefined,
-            });
-            return;
-          }
-          if (e.button !== 0 || !press) return;
-          const start = press;
-          press = null;
-          setBox(null);
-          // A drag that is an action ends as a click: the route aimed it while held.
-          if (
-            leftDragActionRef.current ||
-            Math.hypot(e.clientX - start.x, e.clientY - start.y) <= CLICK_SLOP_PX
-          ) {
-            onPickRef.current?.(makePick(e, "left"));
-          } else {
-            onBoxRef.current?.({
-              x0: Math.min(start.x, e.clientX),
-              y0: Math.min(start.y, e.clientY),
-              x1: Math.max(start.x, e.clientX),
-              y1: Math.max(start.y, e.clientY),
-              shift: start.shift,
-              project: handle.projectToCss!,
-            });
-          }
+          const button = e.button === 0 ? "left" : e.button === 2 ? "right" : "middle";
+          gestures.up({
+            button,
+            x: e.clientX,
+            y: e.clientY,
+            pick: e.button === 0 && gestures.leftPressActive ? makePick(e, "left") : undefined,
+            release: e.button === 2 ? handle.rayAt!(e.clientX, e.clientY) : undefined,
+          });
         };
         const onLeave = (e: PointerEvent) => {
           const to = e.relatedTarget;
-          if (!rightPress && !(to instanceof Element && to.closest(".ro-layer .ro-unit"))) {
+          if (
+            !gestures.rightPressRay &&
+            !(to instanceof Element && to.closest(".ro-layer .ro-unit"))
+          ) {
             pointer = null;
           }
         };
         const cancelGesture = () => {
           pointer = null;
-          rightPress = null;
-          press = null;
-          orbit = null;
-          setBox(null);
+          gestures.cancel();
           modifiers = { ctrl: false, shift: false };
-          onRightPressRef.current?.(null);
         };
         cancelInputRef.current = cancelGesture;
         const onWheel = (e: WheelEvent) => {
@@ -1260,7 +1234,7 @@ export function LabViewport({
           "lostpointercapture",
           () => {
             // Normal release ends the gesture, not the stationary pointer's hover.
-            if (rightPress || press || orbit) cancelGesture();
+            if (gestures.active) cancelGesture();
           },
           { signal },
         );
@@ -1309,8 +1283,8 @@ export function LabViewport({
       keys.detach();
       setCursorAction("default");
       onRightPressRef.current?.(null);
-      sceneRef.current?.dispose();
-      sceneRef.current = null;
+      sceneAdmissionRef.current?.dispose();
+      sceneAdmissionRef.current = null;
       if (window.__lab === handle) delete window.__lab;
     };
     // The viewport is rebuilt only when the fixture identity changes.

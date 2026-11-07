@@ -49,6 +49,7 @@ export function MusicTab({
     from: string | null;
   } | null>(null);
   const [jobs, setJobs] = useState<GenerationJob[]>([]);
+  const jobsRef = useRef(jobs);
   const [message, setMessage] = useState("");
   const session = useRef<{
     player: Player;
@@ -61,6 +62,9 @@ export function MusicTab({
   const report = useCallback((error: unknown) => {
     setMessage(error instanceof Error ? error.message : String(error));
   }, []);
+  const reportUnlessAborted = (error: unknown) => {
+    if (!(error instanceof DOMException && error.name === "AbortError")) report(error);
+  };
   const now = () => performance.now() / 1000 + (session.current?.skipped ?? 0);
 
   /** The audition's player, opened on the first click so opening the tab stays silent. */
@@ -105,7 +109,7 @@ export function MusicTab({
           hear([]);
         }
       })
-      .catch(report);
+      .catch(reportUnlessAborted);
   const playTrack = (track: string) =>
     open()
       .then((current) => {
@@ -113,7 +117,7 @@ export function MusicTab({
         current.score = null;
         play(track, null);
       })
-      .catch(report);
+      .catch(reportUnlessAborted);
 
   useEffect(() => {
     if (!playing) return;
@@ -135,20 +139,22 @@ export function MusicTab({
       .catch(report);
   const running = jobs.some((job) => job.status === "queued" || job.status === "running");
   useEffect(() => {
+    jobsRef.current = jobs;
+  }, [jobs]);
+  useEffect(() => {
     if (!running) return;
     const timer = setInterval(() => {
       api
         .jobs()
         .then(({ jobs: next }) => {
-          setJobs((before) => {
-            const ended = next.some(
-              (job) =>
-                (job.status === "done" || job.status === "failed") &&
-                before.some((old) => old.id === job.id && old.status !== job.status),
-            );
-            if (ended) reload();
-            return next;
-          });
+          const ended = next.some(
+            (job) =>
+              (job.status === "done" || job.status === "failed") &&
+              jobsRef.current.some((old) => old.id === job.id && old.status !== job.status),
+          );
+          jobsRef.current = next;
+          setJobs(next);
+          if (ended) reload();
         })
         .catch(report);
     }, JOB_POLL_MS);

@@ -1,5 +1,5 @@
 import * as fs from "node:fs/promises";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { join, relative } from "node:path";
 import { FixturePublication } from "../fixture-publication/publication";
 import { changedPaths } from "../fixture-publication/changes";
@@ -8,6 +8,7 @@ import { WorkbenchError } from "./error";
 import { workbenchMiddleware } from "./httpServer";
 import { canonicalSeed, MAP_TYPES, MAP_SIZES } from "../../web/src/maps/source";
 import { ownDocuments } from "../../web/src/battle/catalog/node";
+import { MapArtifactStore } from "./artifacts";
 import type {
   Draft,
   Field,
@@ -67,25 +68,18 @@ interface Candidate {
   inputs: NativeInputs;
   expectedRevision: string;
 }
-interface Artifact {
-  dir: string | null;
-  inputs: NativeInputs;
-  report: Report;
-  receipts: Record<string, string>;
-  purpose: RunRequest["purpose"];
-}
-
 export class WorkbenchStore {
   private publication: FixturePublication;
   private queue: Promise<unknown> = Promise.resolve();
   private candidate: Candidate | null = null;
-  private artifacts = new Map<string, Artifact>();
+  private artifacts: MapArtifactStore;
   private controllers = new Set<AbortController>();
   private closed = false;
   constructor(
     private root: string,
     private report: NativeReporter = nativeReporter(root),
   ) {
+    this.artifacts = new MapArtifactStore(root);
     this.publication = new FixturePublication(
       root,
       "maps",
@@ -271,34 +265,18 @@ export class WorkbenchStore {
         canonicalSeed(choice.seed) !== choice.seed
       )
         throw new WorkbenchError("Expected a map type, size and canonical u64 seed");
-      const retained = this.retainedPreviews(request.retainedArtifactIds);
+      const retained = this.artifacts.retainedPreviews(request.retainedArtifactIds);
       const state = await this.state();
       const current = this.requireValid(await this.validate(state.inputs, owned));
       const inputs = this.inputsFor(request.draft, state, current.fields);
       // Native generation reports invalid draft policy with its exact tested inputs.
       if (request.purpose === "preview") {
-        for (const [id, artifact] of this.artifacts) {
-          if (
-            artifact.purpose === "preview" &&
-            artifact.report.status === "ok" &&
-            !retained.has(id)
-          ) {
-            await this.release(artifact);
-            this.artifacts.delete(id);
-          }
-        }
+        await this.artifacts.releaseUndisplayedPreviews(retained);
       }
       if (request.purpose === "sample") {
-        for (const [id, artifact] of this.artifacts) {
-          if (artifact.purpose === "sample") {
-            await this.release(artifact);
-            this.artifacts.delete(id);
-          }
-        }
+        await this.artifacts.releaseSamples();
       }
-      const artifactId = randomUUID();
-      const dir = join(this.root, "throwaway", "map-workbench", artifactId);
-      await fs.mkdir(dir, { recursive: true });
+      const { id: artifactId, dir } = await this.artifacts.allocate();
       try {
         const native = (await this.report(
           { operation: "generate", inputs, choice, artifactDir: dir },
@@ -311,23 +289,13 @@ export class WorkbenchStore {
           fingerprint: hash(JSON.stringify({ inputs, choice })),
           artifactId,
         };
-        for (const [id, old] of this.artifacts) {
-          if (
-            request.purpose === "preview" &&
-            result.status === "refused" &&
-            old.purpose === "preview" &&
-            old.report.status === "refused"
-          ) {
-            await this.release(old);
-            this.artifacts.delete(id);
-          }
-        }
-        if (result.status === "refused") await fs.rm(dir, { recursive: true, force: true });
+        if (request.purpose === "preview" && result.status === "refused")
+          await this.artifacts.releaseRefusedPreviews();
         const receipts = Object.fromEntries(
           Object.entries(inputs).map(([name, text]) => [name, hash(text)]),
         );
-        this.artifacts.set(artifactId, {
-          dir: result.status === "ok" ? dir : null,
+        await this.artifacts.register(artifactId, {
+          dir,
           inputs,
           report: result,
           receipts,
@@ -335,47 +303,14 @@ export class WorkbenchStore {
         });
         return structuredClone(result);
       } catch (error) {
-        await fs.rm(dir, { recursive: true, force: true });
-        this.artifacts.delete(artifactId);
+        await this.artifacts.discard(artifactId, dir);
         throw error;
       }
     }, signal);
   }
-  private artifact(id: string): Artifact {
-    const result = this.artifacts.get(id);
-    if (!result) throw new WorkbenchError("This result expired. Generate it again.", 410);
-    return result;
-  }
-  private retainedPreviews(ids: string[]): Set<string> {
-    if (!Array.isArray(ids) || ids.length > 2 || new Set(ids).size !== ids.length)
-      throw new WorkbenchError("Retain at most two distinct displayed preview results");
-    for (const id of ids) {
-      const artifact = this.artifacts.get(id);
-      if (
-        typeof id !== "string" ||
-        !artifact ||
-        artifact.purpose !== "preview" ||
-        artifact.report.status !== "ok" ||
-        artifact.dir === null
-      )
-        throw new WorkbenchError("Retained IDs must name admitted preview results");
-    }
-    return new Set(ids);
-  }
-  private async release(artifact: Artifact) {
-    if (artifact.dir !== null) {
-      await fs.rm(artifact.dir, { recursive: true, force: true });
-      artifact.dir = null;
-    }
-  }
-  private admittedDir(artifact: Artifact): string {
-    if (artifact.dir === null)
-      throw new WorkbenchError("This sample was exported. Generate a preview to inspect it.", 410);
-    return artifact.dir;
-  }
   inspect(id: string, crop?: string, signal?: AbortSignal): Promise<Inspection> {
     return this.serial(async (owned) => {
-      const artifact = this.artifact(id);
+      const artifact = this.artifacts.get(id);
       if (artifact.report.status !== "ok")
         throw new WorkbenchError("A refused map has no admitted plan to inspect");
       if (crop !== undefined && (typeof crop !== "string" || crop.length > 1024))
@@ -383,7 +318,7 @@ export class WorkbenchStore {
       return this.report(
         {
           operation: "inspect",
-          artifactDir: this.admittedDir(artifact),
+          artifactDir: this.artifacts.admittedDir(artifact),
           ...(crop === undefined ? {} : { crop }),
         },
         owned,
@@ -392,19 +327,19 @@ export class WorkbenchStore {
   }
   sight(id: string, signal?: AbortSignal): Promise<SightReport> {
     return this.serial(async (owned) => {
-      const artifact = this.artifact(id);
+      const artifact = this.artifacts.get(id);
       if (artifact.report.status !== "ok")
         throw new WorkbenchError("A refused map has no admitted sight report");
       return this.report(
-        { operation: "sight", artifactDir: this.admittedDir(artifact) },
+        { operation: "sight", artifactDir: this.artifacts.admittedDir(artifact) },
         owned,
       ) as Promise<SightReport>;
     }, signal);
   }
   export(id: string, signal?: AbortSignal): Promise<JsonObject> {
     return this.serial(async () => {
-      const artifact = this.artifact(id);
-      if (artifact.purpose === "sample") await this.release(artifact);
+      const artifact = this.artifacts.get(id);
+      if (artifact.purpose === "sample") await this.artifacts.release(artifact);
       return structuredClone({
         inputs: artifact.inputs,
         report: artifact.report,
@@ -416,8 +351,7 @@ export class WorkbenchStore {
     this.closed = true;
     for (const controller of this.controllers) controller.abort();
     await this.queue;
-    await Promise.all([...this.artifacts.values()].map((artifact) => this.release(artifact)));
-    this.artifacts.clear();
+    await this.artifacts.close();
     this.candidate = null;
   }
 }

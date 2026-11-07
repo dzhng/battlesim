@@ -120,7 +120,14 @@ function fixture() {
 }
 
 test("map selection and search edit the same district rule and regenerate the edited snapshot", async () => {
-  const { api, generate } = fixture();
+  const { api } = fixture();
+  const preview = vi.fn<WorkbenchAPI["preview"]>(async (draft) => ({
+    candidateId: "candidate",
+    revision: draft.revision,
+    files: [],
+    diagnostics: [],
+  }));
+  api.preview = preview;
   render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
   await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
   fireEvent.click(screen.getByTestId("map-plan").querySelector("path")!);
@@ -136,7 +143,7 @@ test("map selection and search edit the same district rule and regenerate the ed
   expect((screen.getByLabelText("Block depth") as HTMLInputElement).value).toBe("160");
   fireEvent.click(screen.getByRole("button", { name: "Review save" }));
   await waitFor(() =>
-    expect(generate.mock.calls.at(-1)?.[0].draft.documents.presets).toEqual({
+    expect(preview.mock.calls.at(-1)?.[0].documents.presets).toEqual({
       districts: { apartments: { block_depth_m: 160 } },
       transit: { max_s: 215 },
     }),
@@ -144,7 +151,81 @@ test("map selection and search edit the same district rule and regenerate the ed
   expect(screen.getByText(/wherever this preset is used/)).toBeTruthy();
 });
 
-test("Cancel work during a sample closes it without restarting generation", async () => {
+test("a formatting-only edit keeps the admitted input and does not regenerate", async () => {
+  const { api, generate } = fixture();
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
+  await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
+  fireEvent.change(screen.getByLabelText("Block depth"), { target: { value: "130.0" } });
+  await new Promise((resolve) => setTimeout(resolve, 450));
+  expect(generate).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull();
+});
+
+test("selection remains scoped to the displayed artifact when a newer seed is refused", async () => {
+  const { api, generate } = fixture();
+  const inspect = vi.fn<WorkbenchAPI["inspect"]>(async () => ({ svg: "<svg />", features: [] }));
+  api.inspect = inspect;
+  generate.mockImplementation(async (request) =>
+    request.choice.seed === "2"
+      ? {
+          fingerprint: "refused",
+          choice: request.choice,
+          status: "refused",
+          diagnostics: [],
+          artifactId: "refusal",
+        }
+      : {
+          fingerprint: "admitted",
+          choice: request.choice,
+          status: "ok",
+          diagnostics: [],
+          artifactId: "artifact",
+          svg: '<svg><path data-rule-group="districts.apartments" data-feature-id="district-1" /></svg>',
+          features: [
+            {
+              id: "district-1",
+              group: "districts.apartments",
+              label: "Apartment",
+              crop: "district-1",
+            },
+          ],
+        },
+  );
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
+  await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
+  fireEvent.click(screen.getByTestId("map-plan").querySelector("path")!);
+  fireEvent.click(screen.getByRole("button", { name: "Inspect selection" }));
+  await waitFor(() =>
+    expect(inspect).toHaveBeenCalledWith("artifact", "district-1", expect.anything()),
+  );
+  fireEvent.change(screen.getByLabelText("Map seed"), { target: { value: "2" } });
+  await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Current draft refused"));
+  fireEvent.click(screen.getByRole("button", { name: "Inspect selection" }));
+  await waitFor(() => expect(inspect).toHaveBeenCalledTimes(2));
+  expect(inspect.mock.calls.at(-1)?.slice(0, 2)).toEqual(["artifact", "district-1"]);
+});
+
+test("cancelling a sample closes it without restarting generation", async () => {
+  const { api, generate } = fixture();
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
+  await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
+  generate.mockImplementation(
+    (_request, signal) =>
+      new Promise((_resolve, reject) => {
+        signal?.addEventListener("abort", () => reject(new Error("cancelled")), { once: true });
+      }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Run seed sample" }));
+  await waitFor(() => expect(generate).toHaveBeenCalledTimes(2));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel sample" }));
+  await waitFor(() =>
+    expect(screen.getByText(/cancelled; remaining seeds unattempted/)).toBeTruthy(),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 450));
+  expect(generate).toHaveBeenCalledTimes(2);
+});
+
+test("explicit cancel does not restart the background draft", async () => {
   const { api, generate } = fixture();
   render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
   await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
@@ -162,6 +243,106 @@ test("Cancel work during a sample closes it without restarting generation", asyn
   );
   await new Promise((resolve) => setTimeout(resolve, 450));
   expect(generate).toHaveBeenCalledTimes(2);
+});
+
+test("explicit cancel after an edit does not resume the pending draft", async () => {
+  const { api, generate } = fixture();
+  const inspect = vi.fn<WorkbenchAPI["inspect"]>(
+    (_artifactId, _crop, signal) =>
+      new Promise((_resolve, reject) => {
+        signal?.addEventListener("abort", () => reject(new Error("cancelled")), { once: true });
+      }),
+  );
+  api.inspect = inspect;
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
+  await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
+  fireEvent.change(screen.getByLabelText("Block depth"), { target: { value: "140" } });
+  fireEvent.click(screen.getByRole("button", { name: "Whole map" }));
+  await waitFor(() => expect(inspect).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel work" }));
+  expect(screen.getByRole("status").textContent).toBe("Cancelled; previous result retained");
+  await new Promise((resolve) => setTimeout(resolve, 450));
+  expect(generate).toHaveBeenCalledTimes(1);
+});
+
+test("a new manual operation waits for the cancelled operation to settle", async () => {
+  const { api } = fixture();
+  const finishes: ((value: { svg: string; features: [] }) => void)[] = [];
+  const inspect = vi.fn<WorkbenchAPI["inspect"]>(
+    () => new Promise((resolve) => finishes.push(resolve)),
+  );
+  api.inspect = inspect;
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
+  await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
+  fireEvent.click(screen.getByRole("button", { name: "Whole map" }));
+  await waitFor(() => expect(inspect).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole("button", { name: "Whole map" }));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(inspect).toHaveBeenCalledTimes(1);
+  finishes[0]!({ svg: "<svg>first</svg>", features: [] });
+  await waitFor(() => expect(inspect).toHaveBeenCalledTimes(2));
+  finishes[1]!({ svg: "<svg>second</svg>", features: [] });
+  await waitFor(() => expect(screen.getByTestId("map-plan").innerHTML).toContain("second"));
+  expect(screen.getByTestId("map-plan").innerHTML).not.toContain("first");
+});
+
+test("cancelling a queued manual operation prevents it from starting", async () => {
+  const { api } = fixture();
+  const finishes: ((value: { svg: string; features: [] }) => void)[] = [];
+  const inspect = vi.fn<WorkbenchAPI["inspect"]>(
+    () => new Promise((resolve) => finishes.push(resolve)),
+  );
+  api.inspect = inspect;
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
+  await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
+  fireEvent.click(screen.getByRole("button", { name: "Whole map" }));
+  await waitFor(() => expect(inspect).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole("button", { name: "Whole map" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel work" }));
+  finishes[0]!({ svg: "<svg>late</svg>", features: [] });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(inspect).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId("map-plan").innerHTML).not.toContain("late");
+});
+
+test("a late comparison completion cannot replace the edited draft view", async () => {
+  const { api, generate } = fixture();
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
+  await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
+  fireEvent.change(screen.getByLabelText("Block depth"), { target: { value: "140" } });
+  await waitFor(() =>
+    expect(screen.getByRole("status").textContent).toBe("Current draft admitted"),
+  );
+
+  let finish!: (report: Report) => void;
+  generate.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Saved baseline · same seed" }));
+  await waitFor(() => expect(generate).toHaveBeenCalledTimes(3));
+  fireEvent.change(screen.getByLabelText("Block depth"), { target: { value: "150" } });
+  finish({
+    fingerprint: "late-baseline",
+    choice: { type: "mixed", size: "small", seed: "1" },
+    status: "ok",
+    diagnostics: [],
+    artifactId: "late-baseline",
+    svg: "<svg>late</svg>",
+  });
+  await waitFor(() => expect(generate).toHaveBeenCalledTimes(4));
+
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Draft plan" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    ),
+  );
+  expect(
+    screen.getByRole("button", { name: "Saved baseline · same seed" }).getAttribute("aria-pressed"),
+  ).toBe("false");
+  expect(screen.getByTestId("map-plan").innerHTML).not.toContain("late");
 });
 
 test("reapplying an unchanged formatted value displays the outside source change", async () => {

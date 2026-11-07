@@ -1,19 +1,34 @@
 import { Link } from "react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   validateSoundCatalog,
   type SoundCatalog,
 } from "../../../packages/battle-audio/src/catalog";
 import { SoundAuditioner, type Auditioner, type LiveMix } from "./audition";
+import { AuditionSession, type AuditionSnapshot } from "./auditionSession";
 import {
   musicAPI,
   workbenchAPI,
   type MusicAPI,
   type LookSound,
-  type Review,
   type Snapshot,
   type WorkbenchAPI,
 } from "./protocol";
+import {
+  initialSoundWorkbenchState,
+  soundWorkbenchBusy,
+  soundWorkbenchCanSave,
+  soundWorkbenchDirty,
+  soundWorkbenchReducer,
+} from "./soundWorkbenchState";
 import { Library, type Selection } from "./Library";
 import { WeaponLooks } from "./WeaponLooks";
 import { Movement } from "./Movement";
@@ -43,6 +58,8 @@ function changedSettings(
   return [{ path, before: display(before), after: display(after) }];
 }
 
+const playingKey = ({ phase, key }: AuditionSnapshot) => (phase === "playing" ? (key ?? "") : "");
+
 export function SoundWorkbench({
   api = workbenchAPI,
   voices = voiceAPI,
@@ -50,130 +67,171 @@ export function SoundWorkbench({
   audition: suppliedAudition,
 }: { api?: WorkbenchAPI; voices?: VoiceAPI; music?: MusicAPI; audition?: Auditioner } = {}) {
   const audition = useMemo(() => suppliedAudition ?? new SoundAuditioner(), [suppliedAudition]);
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [draft, setDraft] = useState<SoundCatalog | null>(null);
-  const [lookSounds, setLookSounds] = useState<Record<string, LookSound>>({});
-  const [review, setReview] = useState<Review | null>(null);
+  const [state, dispatch] = useReducer(soundWorkbenchReducer, initialSoundWorkbenchState);
+  const { snapshot, draft, lookSounds, review, outcome } = state;
   const [tab, setTab] = useState<"library" | "movement" | "looks" | "voices" | "music" | "chatter">(
     "library",
   );
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Selection | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [playing, setPlaying] = useState("");
-  const [mix, setMix] = useState<LiveMix | null>(null);
-  const [loadingAudio, setLoadingAudio] = useState(false);
-  const [stops, setStops] = useState(0);
-  const auditionGeneration = useRef(0);
+  const [auditionMessage, setAuditionMessage] = useState("");
+  const session = useMemo(() => new AuditionSession(audition), [audition]);
+  const auditionState = useSyncExternalStore(
+    session.subscribe,
+    session.getSnapshot,
+    session.getSnapshot,
+  );
+  const { mix, stops } = auditionState;
+  const playing = playingKey(auditionState);
+  const loadingAudio = auditionState.phase === "loading";
+  const nextOperation = useRef(0);
   const stopAudio = useCallback(() => {
-    auditionGeneration.current++;
-    setStops((count) => count + 1);
-    audition.stop();
-    setPlaying("");
-    setMix(null);
-    setLoadingAudio(false);
-  }, [audition]);
-  const accept = useCallback(
-    (value: Snapshot) => {
-      stopAudio();
-      setSnapshot(value);
-      setDraft(structuredClone(value.catalog));
-      setLookSounds(
-        structuredClone(
-          Object.fromEntries(Object.entries(value.looks).map(([name, look]) => [name, look.sound])),
-        ),
-      );
-      setReview(null);
-      setSelected((selection) => {
-        if (
-          selection &&
-          (selection.kind === "clip"
-            ? value.catalog.clips[selection.id]
-            : value.catalog.sounds[selection.id])
-        )
-          return selection;
-        const clip = Object.keys(value.catalog.clips)[0];
-        const sound = Object.keys(value.catalog.sounds)[0];
-        return clip ? { kind: "clip", id: clip } : sound ? { kind: "sound", id: sound } : null;
-      });
+    session.stop();
+  }, [session]);
+  const busy = soundWorkbenchBusy(state);
+  const message =
+    outcome?.kind === "error"
+      ? outcome.message
+      : outcome?.kind === "saved"
+        ? "Saved. Reload or open a battle page to use this generation."
+        : outcome?.kind === "reloaded"
+          ? "Reloaded saved sources. Draft discarded."
+          : auditionMessage;
+
+  const startOperation = useCallback(
+    (kind: "load" | "reload" | "preview" | "save", draftJSON?: string) => {
+      const id = ++nextOperation.current;
+      dispatch({ type: "operation-started", operation: { id, kind, draftJSON } });
+      setAuditionMessage("");
+      return id;
     },
-    [stopAudio],
+    [],
+  );
+
+  const loadSnapshot = useCallback(
+    async (
+      kind: "load" | "reload" | "save",
+      load: () => Promise<Snapshot>,
+      active: () => boolean = () => true,
+    ) => {
+      const id = startOperation(kind);
+      try {
+        const value = await load();
+        if (!active()) return;
+        dispatch({ type: "snapshot-received", id, snapshot: value });
+        if (nextOperation.current === id) stopAudio();
+      } catch (error) {
+        if (!active()) return;
+        dispatch({
+          type: "operation-failed",
+          id,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+    [startOperation, stopAudio],
   );
 
   useEffect(() => {
     let active = true;
-    void api
-      .snapshot()
-      .then((value) => {
-        if (active) accept(value);
-      })
-      .catch((error) => {
-        if (active) setMessage(String(error.message));
-      });
+    void loadSnapshot("load", api.snapshot, () => active);
     return () => {
       active = false;
       stopAudio();
     };
-  }, [api, accept, stopAudio]);
+  }, [api, loadSnapshot, stopAudio]);
+
+  useEffect(() => {
+    if (!snapshot) return;
+    setSelected((selection) => {
+      if (
+        selection &&
+        (selection.kind === "clip"
+          ? snapshot.catalog.clips[selection.id]
+          : snapshot.catalog.sounds[selection.id])
+      )
+        return selection;
+      const clip = Object.keys(snapshot.catalog.clips)[0];
+      const sound = Object.keys(snapshot.catalog.sounds)[0];
+      return clip ? { kind: "clip", id: clip } : sound ? { kind: "sound", id: sound } : null;
+    });
+  }, [snapshot]);
 
   const edit = (change: (catalog: SoundCatalog) => void) => {
     if (!draft) return;
     const next = structuredClone(draft);
     change(next);
-    setDraft(next);
-    setReview(null);
-    setMessage("");
+    dispatch({ type: "catalog-edited", draft: next });
+    setAuditionMessage("");
     stopAudio();
   };
   const editLooks = (change: (sounds: Record<string, LookSound>) => void) => {
     const next = structuredClone(lookSounds);
     change(next);
-    setLookSounds(next);
-    setReview(null);
-    setMessage("");
+    if (!draft) return;
+    dispatch({ type: "look-sounds-edited", lookSounds: next });
+    setAuditionMessage("");
     stopAudio();
   };
   // One audition at a time: a later one, or a stop, supersedes an earlier
   // still preparing, which then never sounds or reports.
-  const begin = async <T,>(key: string, open: (catalog: SoundCatalog) => Promise<T>) => {
+  const begin = async <T,>(
+    key: string,
+    open: (catalog: SoundCatalog) => Promise<T>,
+    mixOf: (value: T) => LiveMix | null = () => null,
+  ) => {
     if (!draft) return null;
-    const generation = ++auditionGeneration.current;
-    setLoadingAudio(true);
-    setPlaying("");
-    setMix(null);
-    setMessage("");
+    dispatch({ type: "outcome-cleared" });
+    setAuditionMessage("");
     try {
-      const opened = await open(draft);
-      if (generation !== auditionGeneration.current) return null;
-      setPlaying(key);
-      return opened;
+      return await session.start(key, () => open(draft), mixOf);
     } catch (error) {
-      if (generation === auditionGeneration.current)
-        setMessage(error instanceof Error ? error.message : String(error));
+      setAuditionMessage(error instanceof Error ? error.message : String(error));
       return null;
-    } finally {
-      if (generation === auditionGeneration.current) setLoadingAudio(false);
     }
   };
   const play = async (kind: Selection["kind"], id: string, variant = 0, gain = 1) => {
     await begin(id, (catalog) => audition.play(catalog, kind, id, variant, gain));
   };
   const live = async (key: string, sounds: readonly string[]) => {
-    const opened = await begin(key, (catalog) => audition.live(catalog, sounds));
-    if (opened) setMix(opened);
-    return opened;
+    return begin(
+      key,
+      (catalog) => audition.live(catalog, sounds),
+      (value) => value,
+    );
   };
-  const action = async (run: () => Promise<void>) => {
-    setBusy(true);
-    setMessage("");
+  const previewChanges = async () => {
+    if (!snapshot || !draft || busy) return;
+    const captured = {
+      revision: snapshot.revision,
+      catalog: structuredClone(draft),
+      lookSounds: structuredClone(lookSounds),
+    };
+    const id = startOperation("preview", JSON.stringify(captured));
     try {
-      await run();
+      validateSoundCatalog(captured.catalog);
+      const value = await api.preview(captured);
+      dispatch({ type: "preview-received", id, value });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : String(error));
-    } finally {
-      setBusy(false);
+      dispatch({
+        type: "operation-failed",
+        id,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
+  };
+  const saveReview = async () => {
+    if (!soundWorkbenchCanSave(state) || !review) return;
+    await loadSnapshot("save", () =>
+      api.save({
+        candidateId: review.value.candidateId,
+        revision: review.value.revision,
+      }),
+    );
+  };
+  const reload = async () => {
+    if (!snapshot || busy) return;
+    await loadSnapshot("reload", api.snapshot);
   };
   const select = (selection: Selection) => {
     setSelected(selection);
@@ -192,13 +250,7 @@ export function SoundWorkbench({
     });
     setSelected({ kind: "sound", id: name });
   };
-  const dirty =
-    snapshot &&
-    draft &&
-    (JSON.stringify(snapshot.catalog) !== JSON.stringify(draft) ||
-      Object.entries(snapshot.looks).some(
-        ([name, look]) => JSON.stringify(look.sound) !== JSON.stringify(lookSounds[name]),
-      ));
+  const dirty = soundWorkbenchDirty(state);
 
   return (
     <main className="sound-workbench" data-sound-workbench>
@@ -211,32 +263,10 @@ export function SoundWorkbench({
         {tab !== "voices" && tab !== "music" && tab !== "chatter" && (
           <div className="sw-publication">
             <span>{dirty ? "UNSAVED DRAFT" : "SAVED GENERATION"}</span>
-            <button
-              disabled={!draft || busy}
-              onClick={() =>
-                void action(async () => {
-                  validateSoundCatalog(draft);
-                  setReview(
-                    await api.preview({
-                      revision: snapshot!.revision,
-                      catalog: draft!,
-                      lookSounds,
-                    }),
-                  );
-                })
-              }
-            >
+            <button disabled={!draft || busy} onClick={() => void previewChanges()}>
               {busy ? "Working…" : "Preview changes"}
             </button>
-            <button
-              disabled={!snapshot || busy}
-              onClick={() =>
-                void action(async () => {
-                  accept(await api.snapshot());
-                  setMessage("Reloaded saved sources. Draft discarded.");
-                })
-              }
-            >
+            <button disabled={!snapshot || busy} onClick={() => void reload()}>
               Discard draft and reload
             </button>
           </div>
@@ -293,9 +323,9 @@ export function SoundWorkbench({
           audition={audition}
           stop={stopAudio}
           stops={stops}
-          reload={() =>
-            void api.snapshot().then(accept, (error) => setMessage(String(error.message)))
-          }
+          reload={() => {
+            if (!busy) void loadSnapshot("load", api.snapshot);
+          }}
         />
       ) : tab === "chatter" ? (
         <ChatterPreview api={voices} audition={audition} />
@@ -345,11 +375,11 @@ export function SoundWorkbench({
             <section className="sw-review">
               <h2>Reviewed JSON</h2>
               <p>
-                {review.files.length
+                {review.value.files.length
                   ? "Save this exact candidate to the repository. Running battles keep their current sound generation."
                   : "No source changes. Saving preserves the original bytes."}
               </p>
-              {review.files.map((file) => (
+              {review.value.files.map((file) => (
                 <div key={file.path}>
                   <section aria-label="Changed sound settings" className="sw-changes">
                     <h3>Changed settings</h3>
@@ -381,23 +411,10 @@ export function SoundWorkbench({
                   </details>
                 </div>
               ))}
-              <button
-                disabled={busy}
-                onClick={() =>
-                  void action(async () => {
-                    accept(
-                      await api.save({
-                        candidateId: review.candidateId,
-                        revision: review.revision,
-                      }),
-                    );
-                    setMessage("Saved. Reload or open a battle page to use this generation.");
-                  })
-                }
-              >
+              <button disabled={busy} onClick={() => void saveReview()}>
                 Save reviewed JSON
               </button>
-              <button onClick={() => setReview(null)}>Close review</button>
+              <button onClick={() => dispatch({ type: "review-closed" })}>Close review</button>
             </section>
           )}
         </>

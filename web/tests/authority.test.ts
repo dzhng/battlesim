@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { shippedRules } from "@web/shippedRules";
 import { readFileSync } from "node:fs";
-import { afterEach, beforeAll, expect, test } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { initSync } from "@wasm/game_wasm.js";
 import {
   createAuthority,
@@ -319,6 +319,26 @@ test("dispose stops all work and closes the host", async () => {
   h.releaseAll();
   h.advanceClock(1000);
   expect(h.publications().length).toBe(count);
+  expect(h.closed()).toBe(true);
+});
+
+test("disposal during module loading cannot admit a battle or drain queued work", async () => {
+  let resolveLoaded!: (module: SimModule) => void;
+  const loaded = new Promise<SimModule>((resolve) => {
+    resolveLoaded = resolve;
+  });
+  const createBattle = vi.fn((scenario: string, seed: number) => sim.createBattle(scenario, seed));
+  const h = harness(() => loaded);
+  await h.init();
+  h.authority.handle({ type: "start" });
+  h.authority.handle({ type: "command", command: move(1, [0]) });
+  h.authority.handle({ type: "dispose" });
+  h.authority.handle({ type: "dispose" });
+  resolveLoaded({ ...sim, createBattle });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  h.authority.pump();
+  expect(createBattle).not.toHaveBeenCalled();
+  expect(h.replies).toEqual([{ type: "status", status: "disposed", slow: false }]);
   expect(h.closed()).toBe(true);
 });
 

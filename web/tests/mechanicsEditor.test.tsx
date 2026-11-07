@@ -708,3 +708,63 @@ it("shows the neutral spotting value in preview and after saving a cleared input
   await waitFor(() => expect(screen.queryByRole("region", { name: "Save preview" })).toBeNull());
   expect((screen.getByLabelText("test_recon Spotting") as HTMLInputElement).value).toBe("1");
 });
+
+it("keeps the conflict lockout and draft when a discard reload is refused", async () => {
+  let rootReads = 0;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.endsWith("/preview"))
+        return new Response(JSON.stringify({ error: "Revision changed on disk." }), {
+          status: 409,
+        });
+      rootReads += 1;
+      if (rootReads === 1) return respond(snapshot);
+      return new Response(JSON.stringify({ error: "Current sources are invalid." }), {
+        status: 400,
+      });
+    }),
+  );
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
+  fireEvent.change(await screen.findByLabelText("Rifle Section deployment cost"), {
+    target: { value: "125" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+  await screen.findByText("Sources changed outside this editor");
+  fireEvent.click(screen.getByRole("button", { name: "Reload sources" }));
+  fireEvent.click(screen.getByRole("button", { name: "Discard draft and reload" }));
+  await screen.findByText("Current sources are invalid.");
+  expect(screen.getByText("Sources changed outside this editor")).toBeTruthy();
+  expect((screen.getByLabelText("Rifle Section deployment cost") as HTMLInputElement).value).toBe(
+    "125",
+  );
+  expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
+    true,
+  );
+});
+
+it("keeps a validated preview while an unfinished edit is visible", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) =>
+      url.endsWith("/preview")
+        ? respond({
+            revision: snapshot.revision,
+            catalog,
+            soldierIds: {},
+            affectedUnits: ["test_rifle"],
+            warnings: [],
+            files: [],
+          })
+        : respond(snapshot),
+    ),
+  );
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
+  const cost = await screen.findByLabelText("Rifle Section deployment cost");
+  fireEvent.change(cost, { target: { value: "125" } });
+  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+  await screen.findByRole("heading", { name: "Preview authored changes" });
+  fireEvent.change(cost, { target: { value: "12e" } });
+  expect(screen.getByRole("heading", { name: "Preview authored changes" })).toBeTruthy();
+  expect((cost as HTMLInputElement).value).toBe("12e");
+});
