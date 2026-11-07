@@ -2,7 +2,9 @@
 other (`textures.SCHEMES` names them); `textures` imports this module, which
 registers them.
 """
-from textures import Baked, _bands, blur, chips, fbm, mix, normals_from_height, recipe, scratches
+import numpy as np
+
+from textures import SIZE, Baked, _bands, blur, chips, fbm, mix, normals_from_height, recipe, scratches
 
 
 # Aircraft and rotorcraft schemes: the air arms' greys and the army aviation
@@ -13,19 +15,54 @@ from textures import Baked, _bands, blur, chips, fbm, mix, normals_from_height, 
 # paint is satin, not gloss: it sheens toward the sun at a grazing angle
 # without mirroring the sky and the ground, so a curved skin keeps its grey
 # to the silhouette.
-AIR_ROUGH = 0.62
+AIR_ROUGH = 0.55
+
+
+def _cuts(rng, lo, hi):
+    """Seam positions across one tile: gaps between `lo` and `hi` texels,
+    scaled to close the tile exactly, so the pattern repeats seamlessly."""
+    gaps = []
+    while sum(gaps) < SIZE:
+        gaps.append(rng.uniform(lo, hi))
+    return np.cumsum(np.array(gaps) * SIZE / sum(gaps)) % SIZE
+
+
+def _distance(at, positions):
+    """Each texel's distance (in texels, across the tile's wrap) to the nearest of `positions`."""
+    d = np.abs(at[..., None] - positions)
+    return np.minimum(d, SIZE - d).min(-1)
+
+
+def panels(seed, rows=(34, 80), cols=(28, 90)):
+    """An airframe's panel seams: rows of panels of varied height, each row
+    split at its own varied widths (texels; a 6 m tile makes them 0.7 to
+    2 m), as a 0..1 mask a texel or so wide."""
+    rng = np.random.default_rng(seed)
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float)
+    row_cuts = _cuts(rng, *rows)
+    near = _distance(yy, row_cuts)
+    # Each row's own vertical seams, by the band each texel falls in.
+    band = np.searchsorted(np.sort(row_cuts), yy, side="right") % len(row_cuts)
+    across = np.full((SIZE, SIZE), SIZE / 2.0)
+    for k in range(len(row_cuts)):
+        here = band == k
+        across[here] = _distance(xx[here], _cuts(rng, *cols))
+    return np.clip(1.4 - np.minimum(near, across), 0, 1)
 
 
 def _finished(col, seed, rough=AIR_ROUGH):
     """Finish an air scheme's colours as an airframe's paint, kept by its
     ground crew: an even coat, barely mottled, without the dust patches and
     the scratches of a ground vehicle's enamel (`_sprayed`), a fine scratch
-    here and there. -> Baked."""
+    here and there, and its panels' seams (`panels`) a shade darker and
+    sunk a little into the skin. -> Baked."""
     mottle = fbm(24, seed, 4)
     col = col * (0.97 + 0.06 * mottle)[..., None]
     lines = scratches(seed + 50)
     col = mix(col, col * 1.25, lines * 0.2)
-    h = fbm(96, seed + 20, 2) * 0.06 - lines * 0.2
+    seams = panels(seed + 60)
+    col = col * (1 - 0.16 * seams)[..., None]
+    h = fbm(96, seed + 20, 2) * 0.06 - lines * 0.2 - seams * 0.5
     return Baked(col, chips(seed + 40, 14), normals_from_height(blur(h), 1.0), 0.94, rough + 0.04 * (mottle - 0.5))
 
 

@@ -1,0 +1,17 @@
+[
+  {
+    "glb": "assets/source/skins/mig_31_foxhound/eastern_mig_31_foxhound_mig_31bm.glb",
+    "sha256": "6080ea4ef9ff336bb5b5cf5bf9876f11586e2ae751f925e78ccd5dca10fe2145",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b5b1-951e-78c2-9a3a-b9dcfb70251a",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/mig_31_foxhound/eastern_mig_31_foxhound_mig_31bm-right.png": "7643808d5802bdee61b21d2b5c1351fe44e6b5fad1642241b2d71cc549fe0e47",
+      "assets/source/skins/mig_31_foxhound/eastern_mig_31_foxhound_mig_31bm-left.png": "21dbb25cc5774689b4684f2ae24ae79b39fb0d58cee266cd41e8ca5d2ac64aa3",
+      "assets/source/skins/mig_31_foxhound/eastern_mig_31_foxhound_mig_31bm-top.png": "f97a594c5df7299833da6efa1fc27693821e9f0431fa4cda198b1cdafefd8fcc",
+      "assets/source/skins/mig_31_foxhound/eastern_mig_31_foxhound_mig_31bm-bottom.png": "2a6beb13e4b927db2053ba2b7f20a15dc2c62c3f2044b21612e81cc258d1b9c0"
+    },
+    "note": "Our own shaded orthographic renders of the lofted eastern_mig_31_foxhound_mig_31bm (its roster script before the skin), without gear, stores or markings."
+  }
+]

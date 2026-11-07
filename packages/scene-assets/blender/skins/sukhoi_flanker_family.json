@@ -1,0 +1,62 @@
+[
+  {
+    "glb": "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_27sm3.glb",
+    "sha256": "da613744e3177c86a19552b239a194ef1d46df120617781c9092cb22f9cd2365",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b5b1-7f0d-76d1-a94a-18024373bec7",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_27sm3-right.png": "072de570e1bddb0047e646211e078b204a1db28991fd18ec73b71782484e2462",
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_27sm3-left.png": "8b406ccf742c352a08b622e63ca857141b8bcee2862072cd6652b30e318d21bf",
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_27sm3-top.png": "19247dddc05a5daba9a4865f00123cc3048d754572d86ccaf5246d24f0cbe51e",
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_27sm3-bottom.png": "0d38308002071b588d60f6421ea9107e670ce626cbf0aaa7ab6dcb7b825142d8"
+    },
+    "note": "Our own shaded orthographic renders of the lofted eastern_sukhoi_flanker_family_su_27sm3 (its roster script before the skin), without gear, stores or markings."
+  },
+  {
+    "glb": "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_30sm2.glb",
+    "sha256": "b6e01935fc59cfae12876eca5698fbe1daff1ab47472e2bd2b26535dd14f2bc7",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b5b3-d258-7ef3-9b85-50a1d9a6e471",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_30sm2-right.png": "ebab4d5d029164dca232a7c89b7d55cabb8195dcdc4e2445459cf1e68ab8692c",
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_30sm2-left.png": "aa7ac120c0d01e2c44761c087f488a40b4ee3d64daddae002b04e6dbd54bdaf7",
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_30sm2-top.png": "b9a3797c9177b4a377261a597595ebd9ba3a7d6efbb6947566403f5c53aebb72",
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_30sm2-bottom.png": "d16838b580d1307cd33b6512a5c057202fe4d754f303774c11928614ad3050e9"
+    },
+    "note": "Our own shaded orthographic renders of the lofted eastern_sukhoi_flanker_family_su_30sm2 (its roster script before the skin), without gear, stores or markings."
+  },
+  {
+    "glb": "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_34.glb",
+    "sha256": "3da642e64d585913c197c0679196f068b9775e73a2b36b0a4e13d8709cd32552",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b5b5-f95a-7f21-823a-ad6013b0e5ab",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_34-right.png": "98e2b48fdf2bb7029dba82a7ff6a6b22b7e159fd664ef8e8694ad52242fae561",
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_34-left.png": "3a1b829a481843e27bf5eba59b915879d4d2016df3a99b4c1001f6164ce8a17c",
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_34-top.png": "5a65d3bdf0f044e93a387c49d8d306ac97e6b27480aa18a497f178800c6b9b2a",
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_34-bottom.png": "d60ed5ae354773278b844ea7c472b8296dce0bd54493698b4c357251af484d1c"
+    },
+    "note": "Our own shaded orthographic renders of the lofted eastern_sukhoi_flanker_family_su_34 (its roster script before the skin), without gear, stores or markings."
+  },
+  {
+    "glb": "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_35s.glb",
+    "sha256": "9ef4c45d072aacf9c9663b38848d7fd66a0e225039a487890001d0d8820355bd",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b5b7-9a68-77e3-a52b-20657e550fdd",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_35s-right.png": "d9a610dd786b77da5d589a5a6cf1032c3cfa7b734746c644b88a5f1c23337113",
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_35s-left.png": "8c358f56aea70174181669f60e911f8a14e822c61f5c954a843ef83bb9b595e6",
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_35s-top.png": "86a20afaea09b167b4068759e6a07551244866c6d4c206d4136706fc5582642c",
+      "assets/source/skins/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_35s-bottom.png": "7f1c218d2d68d2676ee53138dc106b732cea11bc0324eeada63514adadaca46c"
+    },
+    "note": "Our own shaded orthographic renders of the lofted eastern_sukhoi_flanker_family_su_35s (its roster script before the skin), without gear, stores or markings."
+  }
+]

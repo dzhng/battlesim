@@ -11,6 +11,14 @@ the tail booms, the tall gear. Compass greys.
 
 The references' dimensions (USAF fact sheet figures agree):
 length 18.92 m, span 13.56 m, height 5.08 m.
+
+Its shell is a generated skin (`aircraft_skin`, pinned in `skins/`):
+Hunyuan3D from our own shaded views of the lofted F-22 its roster script
+drew before, one smooth surface on that model's measured outline, 0.1 m
+low there and its wings 0.4 m short of the span, both corrected. The
+frameless canopy is fitted to its hump; the skin's own vectoring nozzles
+get dark bores; the intakes' mouths, the bays' seams, the gear and the
+lights sit on the skin (`Probe`).
 """
 import math
 import os
@@ -18,62 +26,59 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
+from aircraft_canopy import framed_plan  # noqa: E402
+from aircraft_skin import Probe, intake_mouth  # noqa: E402
 from parts import box  # noqa: E402
 from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID, NEAR  # noqa: E402
 
 
+# The wing's mean height on the skin, for the insignia laid on it.
 WING_Z = 2.24
-# The fins' leading edges sweep only a metre over their height (side photo).
-FIN = dict(root_x=-3.8, root_z=2.55, height=2.87, root_chord=4.0, tip_chord=1.5, sweep_m=1.0, cant=0.49)
+# The fins' root and cant, for the lettering laid on them.
+FIN_Y, FIN_Z, FIN_CANT = 1.25, 2.55, 0.49
+# The frameless canopy's plan (the lofted model's outline) and its tail onto the spine.
+GLASS = framed_plan(6.75, 3.75, 0.54, peak=0.45, tail=0.7)
+# The caret intakes' mouths within the lips of the skin's raked faces
+# (`aircraft_skin.intake_mouth` corners, y and z), measured from ahead.
+MOUTH = ((1.25, 1.45), (1.78, 1.45), (1.82, 2.35), (1.3, 2.35))
+# The vectoring nozzles are the skin's own square pipes between their
+# flaps: each exit's dark bore sits in its recess (x, centre y and z).
+BORE_X, BORE_Y, BORE_Z = -8.14, 0.6, 1.95
 SPEC = dict(
-    fuselage=[(9.46, 0.0, 1.8, 1.8), (8.6, 0.42, 1.62, 2.2, 1.82, 1.4), (7.2, 0.78, 1.5, 2.56, 1.88, 1.5),
-              # The body deep over the weapons bays, its belly 1.1 m off the ground.
-              (5.6, 1.02, 1.4, 2.8, 1.98, 1.7), (3.8, 1.4, 1.28, 2.82, 2.0, 2.4), (0.5, 1.96, 1.12, 2.82, 2.0, 3.4),
-              (-3.5, 1.82, 1.2, 2.66, 2.0, 3.4), (-6.5, 1.52, 1.6, 2.46, 2.0, 3.0), (-7.7, 1.32, 1.7, 2.36, 2.0, 3.0)],
-    canopy=dict(x_front=6.75, x_back=3.75, sill=2.7, top=3.3, half_width=0.54, peak=0.45, tail=0.7),
-    bodies=[("fuselage_spine", [(3.9, 0.42, 2.7, 3.12, 2.8, 2.4), (1.0, 0.5, 2.7, 2.94, 2.8, 2.6),
-                                (-3.0, 0.0, 2.6, 2.6)]),
-            # The intakes' trunks, from their raked mouths back into the body.
-            *[(f"fuselage_intake_{k}", [(4.05, 0.6, 1.24, 2.56, 1.9, 4.0), (2.4, 0.64, 1.22, 2.62, 1.9, 3.5),
-                                        (0.0, 0.5, 1.26, 2.5, 1.9, 3.0)], side * 1.48)
-              for side, k in ((1, "L"), (-1, "R"))]],
-    wing_hinge=(0.1, (0.8, 0, 1)),
-    nav=dict(left=(-3.3, 6.5, WING_Z - 0.04), right=(-3.3, -6.5, WING_Z - 0.04)),
-    wing=[(2.3, 1.8, WING_Z, 7.8, 0.3), (-2.7, 6.78, WING_Z - 0.1, 1.4, 0.06)],
-    stab=[(-5.6, 1.4, 2.1, 3.3, 0.12), (-8.0, 4.4, 2.06, 1.4, 0.04)],
-    fins=[dict(FIN, y=1.25), dict(FIN, y=-1.25)],
-    intakes=[("rect", (3.98, 1.48, 1.9), 0.92, 1.02, 0.2, (0.12, 0.25, -0.12)),
-             ("rect", (3.98, -1.48, 1.9), 0.92, 1.02, 0.2, (-0.12, 0.25, 0.12))],
-    # The nose gear under the canopy's back, the mains 2.6 m behind the middle.
-    gear=[dict(name="nose", x=3.6, y=0.0, top=1.3, radius=0.32, width=0.18, door=(1.0, 0.5), light=True),
-          dict(name="main_L", x=-2.6, y=1.62, top=1.25, radius=0.48, width=0.24, door=(1.4, 0.6), rake=0.1),
-          dict(name="main_R", x=-2.6, y=-1.62, top=1.25, radius=0.48, width=0.24, door=(1.4, 0.6), rake=0.1)],
+    skin=dict(path="assets/source/skins/f_22_raptor/us_f_22_raptor_f_22a.glb", length=18.92, top=5.12,
+              lower=(0.1, 3.6), span=(2.2, 6.78),
+              canopy=dict(glass=GLASS, tail=[GLASS[-1], (3.3, 0.3), (2.9, 0.03)]),
+              parts=[("wing_L", ((-5.5, 3.5), (2.3, 8.0), (1.95, 2.6))),
+                     ("wing_R", ((-5.5, 3.5), (-8.0, -2.3), (1.95, 2.6))),
+                     ("tail_fin_0", ((-8.5, -3.5), (0.9, 3.4), (2.75, 9.0))),
+                     ("tail_fin_1", ((-8.5, -3.5), (-3.4, -0.9), (2.75, 9.0)))]),
 )
+# The nose gear under the canopy's back, the mains 2.6 m behind the middle;
+# each leg's top on the skin.
+GEAR = [dict(name="nose", x=3.6, y=0.0, radius=0.32, width=0.18, door=(1.0, 0.5), light=True),
+        dict(name="main_L", x=-2.6, y=1.62, radius=0.48, width=0.24, door=(1.4, 0.6), rake=0.1),
+        dict(name="main_R", x=-2.6, y=-1.62, radius=0.48, width=0.24, door=(1.4, 0.6), rake=0.1)]
 
 
 def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
-    # Each intake's dark mouth on its raked lip.
-    for k, (_, loc, w, h, d, rot) in enumerate(SPEC["intakes"]):
-        A.intake_mouth(f"intake_{k}", loc, w, h, d, m, hull, rot=rot)
-    # The two-dimensional vectoring nozzles: square-section pipes ending in
-    # the upper and lower flaps, dark inside.
+    shell = Probe(hull)
+    A.mirrored(lambda side, k: intake_mouth(f"intake_mouth_{k}", shell, m["black"], hull, side, MOUTH))
+    for g in GEAR:
+        A.gear(top=shell.under(g["x"], g["y"]) + 0.02, mats=m, parent=hull, **g)
+    A.nav_lights(m, hull, **{k: (-3.3, side * 6.4, shell.over(-3.3, side * 6.4) + 0.01)
+                             for k, side in (("left", 1), ("right", -1))})
     for side, s in ((1, "L"), (-1, "R")):
-        A.body(f"nozzle_{s}", [(-7.5, 0.5, 1.6, 2.3, 1.95, 5.0), (-8.4, 0.46, 1.66, 2.24, 1.95, 5.0)], m["nozzle"], hull,
-               seg=16, loc=(0, side * 0.62, 0), steps=(1, 1, 1, 1))
-        box(f"nozzle_{s}_flap_top", (0.6, 0.9, 0.06), (-8.5, side * 0.62, 2.22), m["nozzle"], hull, rot=(0, 0.12, 0),
-            lods=MID)
-        box(f"nozzle_{s}_flap_low", (0.6, 0.9, 0.06), (-8.5, side * 0.62, 1.68), m["nozzle"], hull, rot=(0, -0.12, 0),
-            lods=MID)
-        box(f"nozzle_{s}_bore", (0.04, 0.78, 0.4), (-8.42, side * 0.62, 1.95), m["black"], hull, lods=MID)
-        # The weapon bay doors' seams under the intakes and on the belly.
-        box(f"side_bay_{s}", (1.8, 0.03, 0.4), (1.9, side * 1.78, 1.6), m["dark"], hull, lods=NEAR)
-    box("main_bay", (4.2, 1.6, 0.03), (0.4, 0, 1.11), m["dark"], hull, lods=MID)
-    box("antiglare", (1.0, 0.6, 0.03), (7.4, 0, 2.5), m["dark"], hull, rot=(0, 0.14, 0), lods=MID)
+        box(f"nozzle_{s}_bore", (0.03, 0.6, 0.38), (BORE_X, side * BORE_Y, BORE_Z), m["black"], hull, lods=MID)
+        # The side weapon bays' door seams under the intakes.
+        box(f"side_bay_{s}", (1.8, 0.03, 0.4), (1.9, shell.flank(1.9, side, 1.6) - side * 0.01, 1.6), m["dark"],
+            hull, lods=NEAR)
+    box("main_bay", (4.2, 1.6, 0.03), (0.4, 0, shell.under(0.4, 0) - 0.01), m["dark"], hull, lods=MID)
+    box("gun_door", (0.6, 0.06, 0.12), (3.6, shell.flank(3.6, -1, 2.4) + 0.02, 2.4), m["dark"], hull, lods=NEAR)
     # Langley's FF on the fins, the low-visibility insignia on the intakes and wings.
-    fin_n, fin_up = (0, math.cos(0.49), -math.sin(0.49)), (0, math.sin(0.49), math.cos(0.49))
+    fin_n, fin_up = (0, math.cos(FIN_CANT), -math.sin(FIN_CANT)), (0, math.sin(FIN_CANT), math.cos(FIN_CANT))
     A.markings(v, [
         ("insignia", dict(kind="us_lowvis", centre=(2.6, 2.3, 1.75), normal=(0, 1, 0), up=(0, 0, 1), size=0.36,
                           onto=("fuselage",))),
@@ -81,13 +86,12 @@ def build(variant, v):
                           size=0.55, onto=("wing_L",), mirror=False)),
         ("insignia", dict(kind="us_lowvis", centre=(-1.6, -4.6, WING_Z - 0.2), normal=(0, 0, -1), up=(1, 0, 0),
                           size=0.55, onto=("wing_R",), mirror=False)),
-        ("text", dict(text="FF", height=0.6, centre=(-6.0, 1.25 + 1.4 * fin_up[1] + 0.3, 2.55 + 1.4 * fin_up[2]),
+        ("text", dict(text="FF", height=0.6, centre=(-6.0, FIN_Y + 1.4 * fin_up[1] + 0.3, FIN_Z + 1.4 * fin_up[2]),
                       normal=fin_n, up=fin_up, onto=("tail_fin_",))),
-        ("text", dict(text="AF 05 4085", height=0.14, centre=(-6.0, 1.25 + 0.75 * fin_up[1] + 0.3,
-                                                              2.55 + 0.75 * fin_up[2]),
+        ("text", dict(text="AF 05 4085", height=0.14, centre=(-6.0, FIN_Y + 0.75 * fin_up[1] + 0.3,
+                                                              FIN_Z + 0.75 * fin_up[2]),
                       normal=fin_n, up=fin_up, onto=("tail_fin_",))),
     ])
-    box("gun_door", (0.6, 0.06, 0.12), (3.6, -1.84, 2.4), m["dark"], hull, lods=NEAR)
 
 
 def wreck(variant, v):

@@ -16,94 +16,121 @@ blue-greys.
 The references' dimensions (Sukhoi figures): Su-27SM3 21.9 x 14.7
 x 5.92 m; Su-30SM2 21.935 x 14.7 x 6.36 m; Su-35S 21.9 x 15.3 x 5.9 m;
 Su-34 23.34 x 14.7 x 6.09 m.
+
+Each airframe's shell is a generated skin (`aircraft_skin`, pinned in
+`skins/`): Hunyuan3D's model of it alone from our own renders of the lofted
+airframe this script drew before, both sides, top and bottom. Their fins
+came out short, standing the bodies high with the fins' tips at the frame's
+height: each is lowered (`lower`) back onto the lofted body's line, and the
+two-seaters' and the Su-35's wings brought in or out to the frame's span
+(`span`). The canopy is fitted to each skin's own hump from the plan
+measured on it (the Su-34's wide side-by-side glass); the intakes' dark
+mouths, the nozzles in place of the nacelles' flat ends, the gear, the
+stations and the sensors are measured on the skins (the tables below) or
+seated on them (`Probe`). The canards and the ventral fins the skins left
+out are built.
 """
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
+from aircraft_canopy import framed_plan  # noqa: E402
+from aircraft_skin import Probe, intake_mouth  # noqa: E402
 from parts import box  # noqa: E402
 from vehicle_export import run  # noqa: E402
-from vehicle_parts import MID, NEAR  # noqa: E402
+from vehicle_parts import MID  # noqa: E402
 
 SU27, SU30, SU35, SU34 = ("eastern_sukhoi_flanker_family_su_27sm3", "eastern_sukhoi_flanker_family_su_30sm2",
                           "eastern_sukhoi_flanker_family_su_35s", "eastern_sukhoi_flanker_family_su_34")
 DIMENSIONS = {SU27: (21.9, 14.7, 5.92), SU30: (21.935, 14.7, 6.36), SU35: (21.9, 15.3, 5.9), SU34: (23.34, 14.7, 6.09)}
+SKINS = "assets/source/skins/sukhoi_flanker_family"
 
 WING_Z = 2.55
-# The engines' centres, and the tail booms' outboard of them (over the main
-# wheels); the fins stand on the booms' tops.
-NACELLE_Y, BOOM_Y, FIN_Z = 1.35, 2.3, 2.5
+# The tail booms outboard of the nacelles (over the main wheels), where the
+# fins and the ventral fins stand.
+BOOM_Y, FIN_Z = 2.3, 2.5
+# Each skin, measured on it once lowered (`skin_register`, the hump's top
+# along the centreline, casts from ahead and behind): its length to the
+# probe's tip, `lower` and `span`; the canopy's plan (the framed canopy's
+# outline from the windscreen's foot to where the glass meets the spine,
+# highest at `peak` of the way back) and its opaque tail onto the spine, its
+# bows; each intake's dark mouth (`intake_mouth` corners); the nacelles'
+# flat ends (x, centre y, z, radius), where the nozzles go; the wing tip;
+# the infrared sensor's ball (x, y) ahead of the windscreen, to starboard
+# on the skin's own, and the lumps the skin drew there (the old ball,
+# mirrored by its symmetry: x, |y| and the nose's height there, to which
+# they are pressed).
+FIT = {
+    SU27: dict(length=21.8, lower=(0.62, 4.5), span=None,
+               glass=dict(x_front=6.05, x_back=3.25, half_width=0.58, peak=0.38),
+               tail=[(2.85, 0.3), (2.45, 0.04)], bows=(5.5,),
+               mouth=((0.86, 1.2), (1.56, 1.2), (1.56, 1.9), (0.86, 1.9)), engine=(-8.76, 1.2, 1.62, 0.42), tip=7.1,
+               irst=(6.8, -0.25), lumps=((6.6, 7.0), (0.1, 0.4), 3.0)),
+    SU30: dict(length=21.84, lower=(0.95, 4.85), span=(3.0, 7.3),
+               glass=dict(x_front=6.05, x_back=2.55, half_width=0.6, peak=0.44),
+               tail=[(2.1, 0.25), (1.7, 0.04)], bows=(5.5, 4.0),
+               mouth=((0.92, 1.3), (1.62, 1.3), (1.62, 2.1), (0.92, 2.1)), engine=(-9.35, 1.27, 1.7, 0.44), tip=7.25,
+               irst=(6.55, -0.17), lumps=((6.35, 6.75), (0.0, 0.32), 2.99)),
+    SU35: dict(length=21.8, lower=(0.41, 4.3), span=(3.0, 7.6),
+               glass=dict(x_front=6.05, x_back=3.4, half_width=0.56, peak=0.35),
+               tail=[(3.0, 0.25), (2.6, 0.04)], bows=(5.5,),
+               mouth=((0.8, 1.3), (1.62, 1.3), (1.62, 1.95), (0.8, 1.95)), engine=(-9.26, 1.2, 1.62, 0.42), tip=7.55,
+               irst=(6.95, -0.12), lumps=((6.8, 7.1), (0.0, 0.2), 2.97)),
+    SU34: dict(length=23.24, lower=(0.97, 4.75), span=(3.0, 7.3),
+               glass=dict(x_front=7.05, x_back=4.35, half_width=0.92, peak=0.37),
+               tail=[(3.95, 0.35), (3.6, 0.05)], bows=(6.5,),
+               mouth=((1.15, 1.32), (1.7, 1.32), (1.7, 2.05), (1.15, 2.05)), engine=(-8.4, 1.35, 1.78, 0.4), tip=7.2,
+               irst=(7.4, -0.45), lumps=((7.2, 7.6), (0.0, 0.7), 2.83)),
+}
+# The skins' wings out from the booms, ahead of the stabilators, and their
+# fins above the booms, split off by name.
+PARTS = [("wing_L", ((-6.3, 3.0), (2.9, 9.0), (1.5, 3.2))), ("wing_R", ((-6.3, 3.0), (-9.0, -2.9), (1.5, 3.2))),
+         ("tail_fin_0", ((-11.5, -3.5), (1.6, 3.4), (2.95, 9.0))),
+         ("tail_fin_1", ((-11.5, -3.5), (-3.4, -1.6), (2.95, 9.0)))]
+# The wing's stations (x, y, length, depth) and their missiles (length, radius).
+PYLONS = [((-0.6, 3.4, 1.3, 0.34), (3.6, 0.12)), ((-1.5, 4.8, 1.1, 0.28), (3.0, 0.09))]
+
+
+def _canopy(fit):
+    glass = framed_plan(**fit["glass"])
+    return dict(glass=glass, tail=[glass[-1]] + fit["tail"], bows=fit["bows"])
+
+
+def _edge(shell, x):
+    """The skin's half width at `x`, from above."""
+    ys = []
+    for k in range(60):
+        try:
+            shell.over(x, k * 0.05)
+            ys.append(k * 0.05)
+        except ValueError:
+            pass
+    return max(ys)
+
+
+def _lumps(xs, ys, z):
+    """`press` boxes flattening a lump each side of the centreline (one
+    across it when `ys` starts there) down to `z`."""
+    if ys[0] == 0:
+        return [(xs, (-ys[1], ys[1]), (z, 9.0))]
+    return [(xs, ys, (z, 9.0)), (xs, (-ys[1], -ys[0]), (z, 9.0))]
 
 
 def spec(variant):
     vid = variant["id"]
-    length, span, height = DIMENSIONS[vid]
-    nose = length / 2
-    su34 = vid == SU34
-    # The Su-34 draws its nose broad and flat for the side-by-side cockpit.
-    if su34:
-        # The platypus: wide and flat, sharp chines along its sides (power
-        # below 2) back to the cockpit.
-        front = [(nose - 0.95, 0.0, 2.3, 2.3), (nose - 1.6, 0.7, 2.1, 2.52, 2.3, 1.6),
-                 (nose - 3.0, 1.0, 1.9, 2.86, 2.3, 1.8), (6.4, 1.08, 1.76, 3.16, 2.3, 2.6),
-                 (4.4, 1.12, 1.82, 3.12, 2.35, 3.0)]
-    else:
-        front = [(nose - 0.95, 0.0, 2.35, 2.35), (9.3, 0.42, 2.05, 2.65, 2.35), (8.0, 0.62, 1.85, 2.95, 2.32, 2.2),
-                 (6.3, 0.72, 1.78, 3.12, 2.3, 2.4), (4.5, 0.9, 1.85, 3.05, 2.35, 2.6)]
-    tail = -length / 2
+    fit = FIT[vid]
+    x, y, z, r = fit["engine"]
     s = dict(
-        fuselage=front + [(2.5, 1.6, 2.05, 2.96, 2.4, 3.5), (0.0, 2.0, 2.05, 2.9, 2.4, 4.0),
-                          (-3.0, 1.9, 2.1, 2.85, 2.4, 4.0), (-6.0, 1.3, 2.15, 2.75, 2.42, 3.5),
-                          (-8.5, 0.5, 2.25, 2.62, 2.42, 2.4), (tail + 0.05, 0.22, 2.35, 2.52, 2.42)],
-        # The single seat's long bubble sits a fifth of the way back, behind
-        # the IRST ball (three-quarter photos); the two-seater's runs on.
-        canopy=(dict(x_front=7.4, x_back=4.6, sill=3.12, top=3.7, half_width=0.95, bows=(6.4,), peak=0.4, tail=0.7)
-                if su34 else dict(x_front=6.6, x_back=2.6 if vid == SU30 else 3.6, sill=3.02, top=3.78,
-                                  half_width=0.58, bows=(6.0, 4.4) if vid == SU30 else (6.0,), peak=0.4, tail=0.7)),
-        # The Flanker's hump: the spine from the canopy back to the stinger.
-        bodies=[("fuselage_spine", [((4.6 if su34 else 2.6 if vid == SU30 else 3.6), 0.5, 2.9, 3.56, 3.0, 2.4),
-                                    (0.0, 0.62, 2.85, 3.22, 3.0, 2.6), (-6.0, 0.45, 2.6, 2.92, 2.7, 2.4),
-                                    (tail + 0.6, 0.2, 2.42, 2.6)]),
-                # The tail booms outboard of the nacelles (the front photos: the
-                # fins stand over the main wheels), carrying fins and stabilators.
-                *[(f"fuselage_boom_{k}", [(-2.4, 0.3, 2.15, 2.55, 2.35, 3.0), (-6.0, 0.36, 2.05, 2.6, 2.33, 3.0),
-                                         (-9.2, 0.3, 2.1, 2.5, 2.32, 3.0), (-9.9, 0.12, 2.25, 2.4, 2.32)], y, 16)
-                  for k, y in (("L", BOOM_Y), ("R", -BOOM_Y))]],
+        skin=dict(path=f"{SKINS}/{vid}.glb", length=fit["length"], top=DIMENSIONS[vid][2], lower=fit["lower"],
+                  span=fit["span"], canopy=_canopy(fit), parts=PARTS,
+                  press=_lumps(*fit["lumps"]),
+                  # The nacelles' flat ends go inside the nozzles.
+                  cut=[((x - 1.0, x + 0.12), tuple(sorted((sd * (y - r), sd * (y + r)))), (z - r, z + r))
+                       for sd in (1, -1)]),
         wing_hinge=(0.12, (0.78, 0, 1)),
-        nav=dict(left=(-3.4, span / 2 - 0.35, WING_Z), right=(-3.4, -span / 2 + 0.35, WING_Z),
-                 tail=(tail + 0.3, 0.0, 2.6)),
-        strake=[(6.0, 0.85, 2.86, 5.4, 0.12), (1.5, 1.95, WING_Z + 0.05, 0.4, 0.08)],
-        wing=[(1.5, 1.9, WING_Z, 5.8, 0.36), (-3.6, 7.15, WING_Z - 0.1, 1.8, 0.07)],
-        stab=[(-6.9, BOOM_Y, 2.32, 3.0, 0.14), (-8.9, 4.95, 2.3, 1.3, 0.05)],
-        fins=[dict(root_x=-4.4, root_z=FIN_Z, height=height - FIN_Z, root_chord=3.6, tip_chord=1.4, sweep_m=2.4,
-                   y=y) for y in (BOOM_Y, -BOOM_Y)]
-             + [dict(root_x=-4.9, root_z=2.15, height=0.8, root_chord=1.6, tip_chord=0.9, sweep_m=0.6, y=y,
-                     cant=2.95, rudder=False) for y in (BOOM_Y, -BOOM_Y)],
-        intakes=[("rect", (3.02, NACELLE_Y, 1.66), 0.98, 0.94, 0.24, (0, 0.25, 0)),
-                 ("rect", (3.02, -NACELLE_Y, 1.66), 0.98, 0.94, 0.24, (0, 0.25, 0))],
-        nozzles=[dict(loc=(-8.4, NACELLE_Y, 1.85), r_front=0.62, r_exit=0.58, length=1.05, petals=14),
-                 dict(loc=(-8.4, -NACELLE_Y, 1.85), r_front=0.62, r_exit=0.58, length=1.05, petals=14)],
-        gear=[dict(name="nose", x=7.0, y=0.0, top=2.0, radius=0.34, width=0.18, wheels=2, spread=0.3,
-                   door=(1.0, 0.6)),
-              dict(name="main_L", x=-0.9, y=2.2, top=1.6, radius=0.52, width=0.28, door=(1.4, 0.7), rake=0.1,
-                   tandem=1.0 if su34 else 0.0),
-              dict(name="main_R", x=-0.9, y=-2.2, top=1.6, radius=0.52, width=0.28, door=(1.4, 0.7), rake=0.1,
-                   tandem=1.0 if su34 else 0.0)],
-        pylons=[((-0.6, 3.4, WING_Z - 0.1), 1.3, 0.34), ((-1.5, 4.8, WING_Z - 0.1), 1.1, 0.28)],
-        stores=[("missile", (-0.8, 3.4, 1.92), 3.6, 0.12), ("missile", (-1.6, 4.8, 2.04), 3.0, 0.09),
-                ("missile", (0.0, NACELLE_Y, 0.92), 3.6, 0.12)],
-        nose_probe=((nose - 1.0, 0.0, 2.3 if su34 else 2.35), 0.95),
+        nozzles=[dict(loc=(x + 0.4, sd * y, z), r_front=r + 0.03, r_exit=r, length=0.95, petals=14) for sd in (1, -1)],
     )
-    if vid in (SU30, SU34):
-        s["canard"] = [(5.6, 1.0, 2.9, 1.7, 0.1), (4.7, 3.2, 2.9, 0.8, 0.04)]
-    tip_y = span / 2 - 0.12
-    if vid == SU35:
-        s["stores"] += [("pod", (-3.0, tip_y, WING_Z - 0.1), 2.2, 0.12)]
-    else:
-        s["stores"] += [("missile", (-2.9, tip_y, WING_Z - 0.1), 2.9, 0.09)]
-    if su34:
-        s["stores"] += [("bomb", (1.0, 0.0, 1.55), 3.0, 0.25)]
     return s
 
 
@@ -113,22 +140,66 @@ def build(variant, v):
     hull = v.hull
     vid = variant["id"]
     su34 = vid == SU34
-    # The engine nacelles slung apart under the centre body.
+    fit = FIT[vid]
+    shell = Probe(hull)
+    length = fit["length"]
+    # The two-seaters' canards on the extensions' sides, level with where
+    # their roots meet the skin.
+    if vid in (SU30, SU34):
+        root = _edge(shell, 4.8) - 0.06
+        z = shell.over(4.8, root) - 0.06
+        A.paired_surface("wing_canard", [(5.6, root, z, 1.7, 0.1), (4.7, root + 2.2, z, 0.8, 0.04)], m["paint"],
+                         hull)
+    # The ventral fins under the booms, canted out, their roots up into the skin.
+    for k, side in ((2, 1), (3, -1)):
+        A.fin(f"tail_fin_{k}", root_x=-4.9, root_z=shell.under(-5.7, side * BOOM_Y) + 0.04, height=0.8,
+              root_chord=1.6, tip_chord=0.9, sweep_m=0.6, y=side * BOOM_Y, cant=side * 2.95, rudder=False, mats=m,
+              parent=hull)
+    # The gear, each leg's top under the skin: the twin nose wheels, the
+    # mains (the Su-34's in tandem).
+    A.gear(name="nose", x=7.0, y=0.0, top=shell.under(7.0, 0.0) + 0.02, radius=0.34, width=0.18, wheels=2,
+           spread=0.3, door=(1.0, 0.6), mats=m, parent=hull)
+    A.mirrored(lambda side, k: A.gear(name=f"main_{k}", x=-0.9, y=side * 2.2, top=shell.under(-0.9, side * 2.2) + 0.02,
+                                      radius=0.52, width=0.28, door=(1.4, 0.7), rake=0.1,
+                                      tandem=1.0 if su34 else 0.0, mats=m, parent=hull))
+    # The wing's stations, each pylon from the wing's underside; the
+    # missiles under the nacelles; the Su-34's bomb on the centreline.
+    for k, ((px, py, plen, depth), (mlen, mr)) in enumerate(PYLONS):
+        for side in (1, -1):
+            top = shell.under(px, side * py)
+            A.pylon(f"pylon_{k}_{side + 1}", (px, side * py, top), plen, depth, m, hull)
+            A.store(f"store_{k}_{side + 1}", "missile", (px - 0.2, side * py, top - depth - mr - 0.02), mlen, mr, m,
+                    hull)
+    _, ey, _, _ = fit["engine"]
+    A.mirrored(lambda side, k: A.store(f"store_belly_{k}", "missile",
+                                       (0.0, side * ey, shell.under(0.0, side * ey) - 0.2), 3.6, 0.12, m, hull,
+                                       rail=True))
+    if su34:
+        A.store("store_bomb", "bomb", (1.0, 0.0, shell.under(1.0, 0.0) - 0.36), 3.0, 0.25, m, hull)
+    # The wing tips' rails and what they carry: the Su-35's jamming pods,
+    # the others' missiles; each at the tip's mid-thickness.
+    tip = fit["tip"]
+    tx = sum(shell.chord(tip - 0.15, 2.0, -7.9)) / 2
     for side, k in ((1, "L"), (-1, "R")):
-        A.body(f"nacelle_{k}", [(3.0, 0.56, 1.16, 2.24, 1.66, 4.5), (0.0, 0.62, 1.12, 2.3, 1.68, 4.0),
-                                (-4.0, 0.62, 1.2, 2.36, 1.75, 3.0), (-8.4, 0.6, 1.25, 2.45, 1.85)],
-               m["paint"], hull, seg=20, loc=(0, side * NACELLE_Y, 0))
-    tip_y = DIMENSIONS[vid][1] / 2 - 0.12
-    A.mirrored(lambda side, k: box(f"wing_tip_rail_{k}", (2.4, 0.08, 0.1), (-3.0, side * tip_y, WING_Z - 0.08),
-                                   m["dark"], hull))
+        mid = (shell.under(tx, side * (tip - 0.15)) + shell.over(tx, side * (tip - 0.15))) / 2
+        box(f"wing_tip_rail_{k}", (2.4, 0.08, 0.1), (tx, side * tip, mid), m["dark"], hull)
+        if vid == SU35:
+            A.store(f"store_tip_{k}", "pod", (tx, side * (tip + 0.05), mid - 0.1), 2.2, 0.12, m, hull)
+        else:
+            A.store(f"store_tip_{k}", "missile", (tx + 0.1, side * (tip + 0.05), mid - 0.1), 2.9, 0.09, m, hull)
+    nx = sum(shell.chord(tip - 0.35, 2.0, -7.9)) / 2
+    A.nav_lights(m, hull, left=(nx, tip - 0.35, shell.over(nx, tip - 0.35) + 0.01),
+                 right=(nx, -tip + 0.35, shell.over(nx, -tip + 0.35) + 0.01),
+                 tail=(-length / 2 + 0.6, 0.0, shell.over(-length / 2 + 0.6, 0.0) + 0.02))
+    mouth = fit["mouth"]
+    A.mirrored(lambda side, k: intake_mouth(f"intake_mouth_{k}", shell, m["black"], hull, side, mouth))
     if vid != SU35:
-        box("spine_brake", (2.0, 0.56, 0.05), (0.6, 0, 3.19), m["paint"], hull, bevel=0.02, lods=MID)
+        box("spine_brake", (2.0, 0.56, 0.05), (0.6, 0, shell.over(0.6, 0) + 0.005), m["paint"], hull, bevel=0.02,
+            lods=MID)
     # The infrared search sensor ahead of the windscreen.
-    A.sensor_ball("irst", (7.05 if vid != SU34 else 7.6, 0.25 if vid != SU34 else 0.6, 3.06), 0.15, m, hull)
-    box("antiglare", (1.0, 0.7 if vid != SU34 else 1.4, 0.03), (7.6 if vid != SU34 else 8.2, 0, 2.98), m["dark"],
-        hull, rot=(0, 0.18, 0), lods=MID)
-    A.blade_antenna("antenna_spine", (-1.5, 0, 2.9), 0.25, m, hull)
-    box("gun_port", (0.4, 0.1, 0.12), (3.8, -1.0, 2.7), m["black"], hull, lods=NEAR)
+    ix, iy = fit["irst"]
+    A.sensor_ball("irst", (ix, iy, shell.over(ix, iy) + 0.06), 0.15, m, hull)
+    A.blade_antenna("antenna_spine", (-1.5, 0, shell.over(-1.5, 0)), 0.25, m, hull)
     # The VKS's red star on the fins (out and in) and under the wings; the
     # red bort number on the nose (52 and 01 in the side photos).
     fin_x = -4.4 - 2.4 * 0.72 - 1.0

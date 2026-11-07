@@ -1,0 +1,17 @@
+[
+  {
+    "glb": "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter.glb",
+    "sha256": "653232d1b8cb95e1dd354db4ef4be78106a652e1355f038c49003e2e0db7f65b",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b5b1-7b3a-7072-a81a-5f0a7478065a",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter-right.png": "cb4a07fbe1a3876fd8cdf97fbb5f8b6b2eac27ffcc5110d316c008ee2cab17ee",
+      "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter-left.png": "678ed804c8191fab0fcd282946f7f72522d9b7780c89af60af91311e25bb5319",
+      "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter-top.png": "12ffee6e62120374d9eb818c30a7741946d0d7b1302edca85ec209c1533632f4",
+      "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter-bottom.png": "2d3c4f1ddce3dcb60f2350561d018dc48222fa7580bc3d4803479b06490e3a6e"
+    },
+    "note": "Our own shaded orthographic renders of the lofted eastern_j_20_mighty_dragon_stealth_fighter (its roster script before the skin), without gear, stores or markings."
+  }
+]

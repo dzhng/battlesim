@@ -22,10 +22,10 @@ from parts import box, flat_paint  # noqa: E402
 from vehicle_parts import FINE, MID, NEAR, tube_part  # noqa: E402
 
 # A clear canopy: near black, as all glass is drawn (it shows what it
-# reflects), warmed toward the gold of a fighter's coated transparency,
-# smooth, and half seen through: enough of the cockpit to read, enough of
-# the glass to read as glass.
-CLEAR_TINT, CLEAR_ROUGH, CLEAR_OPACITY = (0.03, 0.022, 0.008), 0.04, 0.55
+# reflects), a cool smoke rather than the coating's gold (which reads as a
+# brown hole under the battle's warm light), smooth, and a little more seen
+# through than not: the cockpit reads, and so does the glass.
+CLEAR_TINT, CLEAR_ROUGH, CLEAR_OPACITY = (0.018, 0.022, 0.028), 0.04, 0.45
 
 
 def canopy_profile(peak=0.45, nose=0.05, tail=0.45):

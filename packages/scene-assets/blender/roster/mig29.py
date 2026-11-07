@@ -97,7 +97,7 @@ def build(variant, v):
         A.mirrored(hang)
     # The wing-tip navigation lights, mid-chord on the tips' edges.
     tip_y = TIP - 0.12
-    chord = [x / 20 for x in range(0, -120, -1) if shell._z(x / 20, tip_y, 20, -1) is not None]
+    chord = shell.chord(tip_y, 0.0, -5.95)
     nav_x = (max(chord) + min(chord)) / 2
     A.nav_lights(m, hull, **{k: (nav_x, s * tip_y, (shell.under(nav_x, s * tip_y) + shell.over(nav_x, s * tip_y)) / 2)
                              for k, s in (("left", 1), ("right", -1))})

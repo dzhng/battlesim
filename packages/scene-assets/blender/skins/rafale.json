@@ -1,0 +1,17 @@
+[
+  {
+    "glb": "assets/source/skins/rafale/europe_rafale_c_f4.glb",
+    "sha256": "d71202b4cc1ffb919c826f51ef9294d0f1fe8a9e9b72b6667c3b7e610aa67796",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b5b1-7f73-7701-90a8-5330644592f2",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/rafale/europe_rafale_c_f4-right.png": "ffb07343f055560330a5e24fb767be47b4c97c50d96be79478ee07f825e39f3d",
+      "assets/source/skins/rafale/europe_rafale_c_f4-left.png": "e107ef34644be7b90d2016ddf6af8703cf6b329cc8628b29f1a2345f3f8ab876",
+      "assets/source/skins/rafale/europe_rafale_c_f4-top.png": "24e88c30e36de88bc365901e878595aa528c643dd9f70c967fd1fe82dc599bde",
+      "assets/source/skins/rafale/europe_rafale_c_f4-bottom.png": "8c2b1dfab4e0dc7ce7e6c005a69932dd0a74dca6e79df9513386d70f54bf4b72"
+    },
+    "note": "Our own shaded orthographic renders of the lofted europe_rafale_c_f4 (its roster script before the skin), without gear, stores or markings."
+  }
+]

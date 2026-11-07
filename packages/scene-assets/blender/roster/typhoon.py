@@ -10,50 +10,62 @@ under the wing, missiles semi-recessed under the body. Light grey.
 
 The references' dimensions (Eurofighter figures agree): length
 15.96 m, span 10.95 m, height 5.28 m.
+
+Its shell is a generated skin (`aircraft_skin`, pinned in `skins/`), made
+from shaded views of the lofted model this script drew before it, which it
+matches to a few centimetres but for a span 0.3 m short (`SPAN`). Its canopy
+is fitted to its hump; the chin intake's dark mouth, the nozzles, gear,
+stores, lights and markings are built on it, seated where it is (`Probe`).
 """
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
-from parts import box  # noqa: E402
+from aircraft_canopy import framed_plan  # noqa: E402
+from aircraft_skin import Probe, intake_mouth  # noqa: E402
 from vehicle_export import run  # noqa: E402
-from vehicle_parts import MID  # noqa: E402
 
-# The side photo (an RAF jet taxiing): the nose high (its tip 2.5 m up),
-# the canopy's top 3.7 m, the spine falling to 2.8 m at the fin; the chin
-# intake's lip 4.6 m behind the nose, 1.35-1.95 m up; the two nozzles low
-# under the fin's root (centres 1.8 m up), ending 1.1 m short of the fin's
-# tip; the delta's trailing edge across the nozzles; both gear further aft.
+SKIN = "assets/source/skins/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3.glb"
 WING_Z = 1.9
+# The skin's span to the frame's half span (its tips' pods outboard).
+SPAN = (2.0, 5.32)
+# The canopy's plan, the lofted model's framed canopy's outline, its
+# opaque tail onto the spine; its heights are the skin's hump's.
+CANOPY_GLASS = framed_plan(x_front=5.5, x_back=2.0, half_width=0.5, peak=0.42, tail=0.75)
+CANOPY_TAIL = [CANOPY_GLASS[-1], (1.6, 0.28), (1.2, 0.03)]
+# The chin intake's dark mouth inside its lips on the skin's face
+# (`aircraft_skin.intake_mouth` corners, y and z: one mouth across the
+# centreline).
+MOUTH = ((-0.52, 1.42), (0.52, 1.42), (0.52, 1.88), (-0.52, 1.88))
+# The two EJ200 nozzles in place of the skin's, the skin cut inside them.
+NOZZLES = [dict(loc=(-6.4, y, 1.8), r_front=0.45, r_exit=0.42, length=0.45, petals=12) for y in (0.44, -0.44)]
+# One box over both: between the pipes the skin's own tail would be left in shreds.
+NOZZLE_CUT = [((-7.4, -6.5), (-0.85, 0.85), (1.39, 2.21))]
 SPEC = dict(
-    fuselage=[(7.98, 0.0, 2.5, 2.5), (7.2, 0.38, 2.22, 2.78, 2.5), (6.0, 0.58, 2.05, 3.02, 2.52, 2.2),
-              (4.4, 0.66, 1.98, 3.1, 2.52, 2.4), (2.6, 0.76, 1.85, 3.12, 2.45, 2.6), (0.0, 0.88, 1.7, 3.0, 2.3, 2.8),
-              (-3.0, 0.88, 1.62, 2.9, 2.2, 2.8), (-5.6, 0.82, 1.4, 2.75, 2.0, 2.6), (-6.4, 0.76, 1.32, 2.62, 1.9)],
-    # The chin intake's trunk, wide and deep under the forward body and
-    # faired into the belly behind the wing's root.
-    bodies=[("fuselage_intake", [(3.35, 0.7, 1.3, 2.2, 1.7, 4.0), (2.0, 0.74, 1.32, 2.24, 1.75, 4.0),
-                                 (-0.1, 0.7, 1.46, 2.26, 1.85, 3.0), (-2.3, 0.55, 1.62, 2.2, 1.9, 2.4),
-                                 (-4.0, 0.0, 1.8, 1.8)], 0.0, 16),
-            ("fuselage_spine", [(2.1, 0.4, 2.95, 3.38, 3.05, 2.4), (-0.5, 0.42, 2.75, 3.04, 2.85, 2.6),
-                                (-4.0, 0.0, 2.8, 2.8)])],
-    canopy=dict(x_front=5.5, x_back=2.0, sill=3.02, top=3.72, half_width=0.5, bows=(4.9,), peak=0.42, tail=0.75),
-    canard=[(5.3, 0.62, 2.42, 1.3, 0.08), (4.45, 2.1, 2.4, 0.55, 0.03)],
-    wing=[(0.9, 0.86, WING_Z, 6.4, 0.3), (-4.5, 5.32, WING_Z, 1.3, 0.05)],
-    wing_hinge=((0.82, 0, 1),),
-    fins=[dict(root_x=-4.0, root_z=2.95, height=2.33, root_chord=2.7, tip_chord=0.93, sweep_m=3.05)],
-    intakes=[("rect", (3.38, 0.0, 1.68), 1.3, 0.62, 0.22, (0, -0.1, 0))],
-    nozzles=[dict(loc=(-6.4, 0.44, 1.8), r_front=0.45, r_exit=0.42, length=0.45, petals=12),
-             dict(loc=(-6.4, -0.44, 1.8), r_front=0.45, r_exit=0.42, length=0.45, petals=12)],
-    gear=[dict(name="nose", x=2.7, y=0.0, top=1.35, radius=0.26, width=0.16, door=(0.7, 0.4), light=True),
-          dict(name="main_L", x=-1.5, y=1.2, top=1.62, radius=0.38, width=0.2, door=(1.0, 0.55), rake=0.1),
-          dict(name="main_R", x=-1.5, y=-1.2, top=1.62, radius=0.38, width=0.2, door=(1.0, 0.55), rake=0.1)],
-    pylons=[((-1.7, 2.0, WING_Z - 0.06), 1.1, 0.3), ((-2.5, 3.3, WING_Z - 0.04), 1.0, 0.24)],
-    stores=[("tank", (-1.8, 2.0, 1.18), 4.0, 0.36), ("missile", (-2.5, 3.3, 1.5), 3.65, 0.09),
-            ("pod", (-3.7, 5.42, WING_Z), 1.6, 0.12), ("missile", (0.4, 0.55, 1.42), 3.65, 0.09, False),
-            ("missile", (-2.6, 0.55, 1.5), 3.65, 0.09, False)],
-    nav=dict(left=(-3.9, 5.2, WING_Z + 0.04), right=(-3.9, -5.2, WING_Z + 0.04), tail=(-7.8, 0.0, 5.0)),
+    # The skin: its wings out from the body, its canards ahead of them
+    # under the cockpit, its fin above the spine.
+    skin=dict(path=SKIN, length=15.96, top=5.28, span=SPAN, cut=NOZZLE_CUT,
+              canopy=dict(glass=CANOPY_GLASS, tail=CANOPY_TAIL, bows=(4.9,)),
+              parts=[("wing_L", ((-6.5, 1.5), (1.0, 6.0), (1.4, 2.4))),
+                     ("wing_R", ((-6.5, 1.5), (-6.0, -1.0), (1.4, 2.4))),
+                     ("wing_canard_L", ((3.8, 6.0), (0.75, 2.5), (2.1, 2.8))),
+                     ("wing_canard_R", ((3.8, 6.0), (-2.5, -0.75), (2.1, 2.8))),
+                     ("tail_fin_0", ((-8.5, -3.5), (-0.3, 0.3), (3.05, 9.0)))]),
+    nozzles=NOZZLES,
 )
+# Wheelbase and track as the photos give them; each leg's top on the skin.
+GEAR = [dict(name="nose", x=2.7, y=0.0, radius=0.26, width=0.16, door=(0.7, 0.4), light=True),
+        dict(name="main_L", x=-1.5, y=1.2, radius=0.38, width=0.2, door=(1.0, 0.55), rake=0.1),
+        dict(name="main_R", x=-1.5, y=-1.2, radius=0.38, width=0.2, door=(1.0, 0.55), rake=0.1)]
+# The wing pylons (x, y, length, depth) from the skin's underside and what
+# hangs under each (kind, x offset, length, radius): tanks inboard, AIM-120s
+# outboard; the tips' defensive-aids pods; the semi-recessed missiles under
+# the body.
+PYLONS = [((-1.7, 2.0, 1.1, 0.3), ("tank", -0.1, 4.0, 0.36)), ((-2.5, 3.3, 1.0, 0.24), ("missile", 0.0, 3.65, 0.09))]
+# The tip's chord is measured at `TIP_X`; its pod reaches forward of it.
+TIP_X, POD_X, TIP_POD = -5.1, -4.4, (1.6, 0.12)
+BODY_MISSILES = [(0.4, 0.55), (-2.6, 0.55)]
 # The RAF's low-visibility roundels and fin flash, as the side photo.
 MARKINGS = [
     ("insignia", dict(kind="uk_lowvis", centre=(1.4, 1.2, 2.6), normal=(0, 1, 0), up=(0, 0, 1), size=0.32,
@@ -70,10 +82,29 @@ MARKINGS = [
 def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
-    box("intake_splitter", (0.5, 0.04, 0.62), (3.2, 0, 1.68), m["paint"], hull, lods=MID)
-    box("antiglare", (1.1, 0.55, 0.03), (6.0, 0, 3.03), m["dark"], hull, rot=(0, 0.12, 0), lods=MID)
-    box("probe_fairing", (1.2, 0.12, 0.12), (5.0, -0.56, 3.0), m["paint"], hull, bevel=0.03, lods=MID)
-    A.blade_antenna("antenna_spine", (-1.2, 0, 3.0), 0.22, m, hull)
+    shell = Probe(hull)
+    for g in GEAR:
+        A.gear(top=shell.under(g["x"], g["y"]) + 0.02, mats=m, parent=hull, **g)
+    for k, ((x, y, length, depth), (kind, dx, s_len, radius)) in enumerate(PYLONS):
+        for side in (1, -1):
+            top = shell.under(x, side * y)
+            A.pylon(f"pylon_{k}_{side + 1}", (x, side * y, top), length, depth, m, hull)
+            A.store(f"store_{k}_{side + 1}", kind, (x + dx, side * y, top - depth - radius - 0.02), s_len, radius, m,
+                    hull, rail=kind == "missile")
+    tip = SPAN[1]
+    for side, s in ((1, "L"), (-1, "R")):
+        mid = (shell.under(TIP_X, side * (tip - 0.1)) + shell.over(TIP_X, side * (tip - 0.1))) / 2
+        A.store(f"store_tip_{s}", "pod", (POD_X, side * (tip + 0.08), mid), *TIP_POD, m, hull)
+    for k, (x, y) in enumerate(BODY_MISSILES):
+        A.mirrored(lambda side, s, x=x, y=y, k=k: A.store(f"store_body_{k}_{s}", "missile",
+                                                           (x, side * y, shell.under(x, side * y) - 0.07), 3.65, 0.09,
+                                                           m, hull, rail=False))
+    fin = Probe(hull, ("tail_fin",))
+    A.nav_lights(m, hull, tail=(-7.5, 0.0, fin.over(-7.5, 0.0) - 0.1),
+                 **{k: (TIP_X, side * (tip - 0.25), shell.over(TIP_X, side * (tip - 0.25)) + 0.01)
+                    for k, side in (("left", 1), ("right", -1))})
+    intake_mouth("intake_mouth", shell, m["black"], hull, 1, MOUTH)
+    A.blade_antenna("antenna_spine", (-1.2, 0, shell.over(-1.2, 0)), 0.22, m, hull)
     A.markings(v, MARKINGS)
 
 

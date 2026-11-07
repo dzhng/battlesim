@@ -9,64 +9,82 @@ nozzles; wing-tip missiles, tanks and Meteors under the wing. Mid grey.
 
 The references' dimensions (Dassault figures): length 15.27 m,
 span 10.80 m, height 5.34 m.
+
+Its shell is a generated skin (`aircraft_skin`, pinned in `skins/`), made
+from shaded views of the lofted model this script drew before it: it stood
+0.22 m high and spanned 0.3 m wide on that outline (`lower`, `span`), and
+carries the probe and the intakes. Its canopy is fitted to its hump; the
+intakes' dark mouths, the nozzles, gear, stores, lights and markings are
+built on it, seated where it is (`Probe`).
 """
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
-from parts import box, cyl  # noqa: E402
+from aircraft_canopy import framed_plan  # noqa: E402
+from aircraft_skin import Probe, intake_mouth  # noqa: E402
 from vehicle_export import run  # noqa: E402
-from vehicle_parts import MID  # noqa: E402
 
+SKIN = "assets/source/skins/rafale/europe_rafale_c_f4.glb"
 WING_Z = 1.85
+SPAN = (2.0, 5.25)
+# The canopy's plan, the lofted model's framed canopy's outline (the long
+# canopy from 2.3 m behind the nose), its opaque tail onto the spine; its
+# heights are the skin's hump's.
+CANOPY_GLASS = framed_plan(x_front=5.35, x_back=1.7, half_width=0.47, peak=0.42, tail=0.7)
+CANOPY_TAIL = [CANOPY_GLASS[-1], (1.3, 0.26), (0.9, 0.03)]
+# Each crescent intake's dark mouth inside its lips on the skin's face
+# (`aircraft_skin.intake_mouth` corners, y and z).
+MOUTH = ((0.78, 1.45), (1.12, 1.45), (1.12, 1.95), (0.78, 1.95))
+# The two M88s in place of the skin's nozzles, the skin cut inside them.
+NOZZLES = [dict(loc=(-6.0, y, 2.02), r_front=0.42, r_exit=0.4, length=0.75, petals=12) for y in (0.42, -0.42)]
+# One box over both: between the pipes the skin's own tail would be left in shreds.
+NOZZLE_CUT = [((-7.3, -6.1), (-0.8, 0.8), (1.5, 2.4))]
 SPEC = dict(
-    fuselage=[(7.63, 0.0, 2.0, 2.0), (6.9, 0.36, 1.75, 2.26, 2.0), (5.8, 0.52, 1.58, 2.46, 1.95, 2.2),
-              (4.3, 0.6, 1.5, 2.6, 1.92, 2.4), (2.5, 0.68, 1.46, 2.6, 1.9, 2.6), (0.0, 0.8, 1.46, 2.55, 1.9, 2.8),
-              (-3.0, 0.82, 1.5, 2.45, 1.9, 2.8), (-5.0, 0.76, 1.56, 2.5, 1.98, 2.6), (-6.05, 0.72, 1.62, 2.42, 2.02)],
-    # The side profile photo (a C taking off): the long canopy from 2.3 m
-    # behind the nose, its top 3.2 m up; the crescent intakes under its
-    # front half, their lips 4.7 m behind the nose; the canards high over
-    # them; the fin's root leaving the spine 10 m back, its tip and fairing
-    # overhanging the two nozzles, which end 0.9 m short of it.
-    # Each intake on the lower side of the body, outboard of the belly, its
-    # trunk faired back into the wing's root.
-    bodies=[*[(f"fuselage_intake_{s}", [(2.85, 0.3, 1.36, 1.98, 1.66, 2.6), (0.9, 0.33, 1.34, 2.0, 1.66, 2.6),
-                                         (-1.2, 0.28, 1.42, 1.98, 1.72, 2.4), (-3.0, 0.0, 1.8, 1.8)],
-               0.86 if s == "L" else -0.86, 14) for s in "LR"],
-            ("fuselage_spine", [(1.7, 0.38, 2.5, 2.98, 2.6, 2.4), (-0.8, 0.44, 2.5, 2.88, 2.6, 2.6),
-                                (-4.4, 0.0, 2.55, 2.55)])],
-    canopy=dict(x_front=5.35, x_back=1.7, sill=2.58, top=3.2, half_width=0.47, bows=(4.75,), peak=0.42, tail=0.7),
-    canard=[(3.05, 0.78, 2.36, 1.7, 0.08), (2.0, 2.3, 2.42, 0.7, 0.03)],
-    canard_hinge=(0.7,),
-    wing_hinge=((0.8, 0, 1), 0.08),
-    nav=dict(left=(-4.4, 5.2, WING_Z + 0.06), right=(-4.4, -5.2, WING_Z + 0.06), tail=(-7.45, 0.0, 5.1)),
-    # The cranked delta: its root from behind the intakes back to the
-    # nozzles, the leading edge 48 degrees back to the tip rails.
-    wing=[(0.8, 0.8, WING_Z, 6.2, 0.28), (-4.1, 5.24, WING_Z, 1.2, 0.05)],
-    fins=[dict(root_x=-2.4, root_z=2.75, height=2.59, root_chord=4.3, tip_chord=1.7, sweep_m=3.5)],
-    intakes=[("rect", (2.92, 0.86, 1.67), 0.48, 0.6, 0.2), ("rect", (2.92, -0.86, 1.67), 0.48, 0.6, 0.2)],
-    nozzles=[dict(loc=(-6.0, 0.42, 2.02), r_front=0.42, r_exit=0.4, length=0.75, petals=12),
-             dict(loc=(-6.0, -0.42, 2.02), r_front=0.42, r_exit=0.4, length=0.75, petals=12)],
-    gear=[dict(name="nose", x=3.05, y=0.0, top=1.3, radius=0.27, width=0.15, wheels=2, spread=0.22, light=True),
-          dict(name="main_L", x=-1.8, y=1.32, top=1.35, radius=0.4, width=0.2, door=(1.0, 0.55), rake=0.1),
-          dict(name="main_R", x=-1.8, y=-1.32, top=1.35, radius=0.4, width=0.2, door=(1.0, 0.55), rake=0.1)],
-    pylons=[((-2.0, 2.0, WING_Z - 0.06), 1.1, 0.3), ((-3.0, 3.3, WING_Z - 0.04), 1.0, 0.24)],
-    stores=[("tank", (-2.1, 2.0, 1.15), 4.2, 0.38), ("missile", (-3.0, 3.3, 1.46), 3.65, 0.09),
-            ("missile", (-4.3, 5.32, WING_Z), 3.1, 0.08)],
+    # The skin: its wings out from the intakes' trunks, its canards high
+    # over the intakes, its fin above the spine.
+    skin=dict(path=SKIN, length=15.23, top=5.34, lower=(0.22, 3.5), span=SPAN, cut=NOZZLE_CUT,
+              canopy=dict(glass=CANOPY_GLASS, tail=CANOPY_TAIL, bows=(4.75,)),
+              parts=[("wing_L", ((-6.5, 1.3), (1.25, 6.0), (1.4, 2.4))),
+                     ("wing_R", ((-6.5, 1.3), (-6.0, -1.25), (1.4, 2.4))),
+                     ("wing_canard_L", ((1.0, 3.4), (1.0, 2.6), (2.15, 2.75))),
+                     ("wing_canard_R", ((1.0, 3.4), (-2.6, -1.0), (2.15, 2.75))),
+                     ("tail_fin_0", ((-7.8, -2.2), (-0.3, 0.3), (2.85, 9.0)))]),
+    nozzles=NOZZLES,
 )
+GEAR = [dict(name="nose", x=3.05, y=0.0, radius=0.27, width=0.15, wheels=2, spread=0.22, light=True),
+        dict(name="main_L", x=-1.8, y=1.32, radius=0.4, width=0.2, door=(1.0, 0.55), rake=0.1),
+        dict(name="main_R", x=-1.8, y=-1.32, radius=0.4, width=0.2, door=(1.0, 0.55), rake=0.1)]
+# The wing pylons (x, y, length, depth) from the skin's underside and what
+# hangs under each (kind, x offset, length, radius): tanks inboard, Meteors
+# outboard; the tips' missiles on their rails, measured at the tip's chord.
+PYLONS = [((-2.0, 2.0, 1.1, 0.3), ("tank", -0.1, 4.2, 0.38)), ((-3.0, 3.3, 1.0, 0.24), ("missile", 0.0, 3.65, 0.09))]
+TIP_X = -4.4
 
 
 def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
-    # The fixed refuelling probe ahead of the windscreen, right of the nose:
-    # raked up off the nose, its tip level.
-    cyl("probe_base", 0.08, 0.7, (5.75, -0.32, 2.6), "X", m["paint"], hull, seg=10, rot=(0, -0.5, 0), lods=MID)
-    cyl("probe", 0.045, 0.8, (6.35, -0.32, 2.76), "X", m["steel"], hull, seg=8, lods=MID)
-    box("antiglare", (1.0, 0.5, 0.03), (6.4, 0, 2.35), m["dark"], hull, rot=(0, 0.2, 0), lods=MID)
-    box("osf_window", (0.3, 0.25, 0.2), (5.85, 0, 2.6), m["glass"], hull, lods=MID)
-    A.blade_antenna("antenna_spine", (-1.4, 0, 2.7), 0.22, m, hull)
+    shell = Probe(hull)
+    for g in GEAR:
+        A.gear(top=shell.under(g["x"], g["y"]) + 0.02, mats=m, parent=hull, **g)
+    for k, ((x, y, length, depth), (kind, dx, s_len, radius)) in enumerate(PYLONS):
+        for side in (1, -1):
+            top = shell.under(x, side * y)
+            A.pylon(f"pylon_{k}_{side + 1}", (x, side * y, top), length, depth, m, hull)
+            A.store(f"store_{k}_{side + 1}", kind, (x + dx, side * y, top - depth - radius - 0.02), s_len, radius, m,
+                    hull, rail=kind == "missile")
+    tip = SPAN[1]
+    for side, s in ((1, "L"), (-1, "R")):
+        z = shell.under(TIP_X, side * (tip - 0.1))
+        A.store(f"store_tip_{s}", "missile", (TIP_X, side * tip, z - 0.1), 3.1, 0.08, m, hull)
+    fin = Probe(hull, ("tail_fin",))
+    A.nav_lights(m, hull, tail=(-7.3, 0.0, fin.over(-7.3, 0.0) - 0.1),
+                 **{k: (TIP_X, side * (tip - 0.3), shell.over(TIP_X, side * (tip - 0.3)) + 0.01)
+                    for k, side in (("left", 1), ("right", -1))})
+    A.mirrored(lambda side, k: intake_mouth(f"intake_mouth_{k}", shell, m["black"], hull, side, MOUTH))
+    A.blade_antenna("antenna_spine", (-1.4, 0, shell.over(-1.4, 0)), 0.22, m, hull)
     # The Armée de l'air's roundels and fin title, the 30-GT code of the photo.
     A.markings(v, [
         ("insignia", dict(kind="fr", centre=(1.2, 1.2, 2.2), normal=(0, 1, 0), up=(0, 0, 1), size=0.2,

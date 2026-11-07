@@ -11,80 +11,93 @@ eleven pylons. Two-tone grey.
 
 The references' dimensions (USAF fact sheet figures agree):
 length 16.26 m, span 17.53 m, height 4.47 m.
+
+Its shell is a generated skin (`aircraft_skin`, pinned in `skins/`):
+Hunyuan3D from our own shaded views of the lofted A-10 its roster script
+drew before. It spans wider than it is long, so its nose's direction is
+given (`nose`); it left out the twin fins, so they are built here, and it
+stands with its engine nacelles' tops where the lofted model's were
+(`top`). The canopy is fitted to its hump; the gun, the engines' fan faces
+and exhausts, the gear, the pylons and the stores sit on the skin (`Probe`).
 """
 import math
 import os
 import sys
 
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
+from aircraft_canopy import framed_plan  # noqa: E402
+from aircraft_skin import Probe  # noqa: E402
 from parts import box, cyl  # noqa: E402
 from vehicle_export import run  # noqa: E402
-from vehicle_parts import FINE, MID, NEAR  # noqa: E402
+from vehicle_parts import MID, NEAR  # noqa: E402
 
 
-# The side photo stands the A-10 tall on its gear: its low wing 1.6 m up,
-# its forward body 1.4-3.2 m, the canopy's top 3.6 m.
+# The low wing's height, for the insignia laid on it.
 WING_Z = 1.6
+# The twin fins at the tailplane's ends, as the lofted model drew them.
 FIN = dict(root_x=-6.08, root_z=1.5, height=2.97, root_chord=2.0, tip_chord=1.45, sweep_m=0.45)
+# The canopy's plan (the lofted model's framed outline), its tail onto the spine.
+GLASS = framed_plan(6.1, 3.3, 0.56, peak=0.5, tail=0.6)
+# The engines' centres (y, z) on their pylons over the rear fuselage.
+ENGINE_Y, ENGINE_Z, FAN_R = 1.5, 3.28, 0.52
+# The frame's 16.46 m runs from the gun's muzzle, which stands this far
+# proud of the nose, to the tail: the skin is the rest, its tail held.
+GUN_PROUD = 0.44
 SPEC = dict(
-    fuselage=[(7.72, 0.0, 2.15, 2.15), (7.35, 0.46, 1.7, 2.6, 2.15), (6.3, 0.72, 1.55, 2.95, 2.2, 2.4),
-              (4.6, 0.8, 1.45, 3.15, 2.25, 2.6), (2.5, 0.82, 1.4, 3.1, 2.2, 2.6), (0.0, 0.76, 1.42, 2.85, 2.1, 2.4),
-              (-3.0, 0.56, 1.5, 2.45, 1.95, 2.2), (-6.0, 0.32, 1.6, 2.0, 1.78), (-7.6, 0.16, 1.72, 1.95, 1.84)],
-    bodies=[*[(f"nacelle_gear_{s}", [(1.9, 0.0, 1.4, 1.4), (1.4, 0.34, 1.1, 1.62, 1.4), (-0.8, 0.34, 1.1, 1.6, 1.38),
-                                     (-1.6, 0.0, 1.5, 1.5)], 2.1 if s == "L" else -2.1, 14) for s in "LR"],
-            # The spine behind the canopy, falling to the engines.
-            ("fuselage_spine", [(3.4, 0.42, 3.0, 3.4, 3.1, 2.4), (1.0, 0.42, 2.9, 3.1, 3.0, 2.4),
-                                (-1.6, 0.0, 2.8, 2.8)])],
-    canopy=dict(x_front=6.1, x_back=3.3, sill=3.02, top=3.78, half_width=0.56, bows=(5.6,), peak=0.5, tail=0.6),
-    wing=[(1.48, 0.72, WING_Z, 3.1, 0.46), (1.42, 2.7, WING_Z, 3.0, 0.4), (0.92, 8.38, WING_Z + 0.4, 1.7, 0.16),
-          (0.86, 8.76, WING_Z + 0.3, 1.6, 0.1)],
-    wing_hinge=((0.78, 0, 3),),
-    nav=dict(left=(0.4, 8.7, WING_Z + 0.32), right=(0.4, -8.7, WING_Z + 0.32)),
-    stab=[(-6.25, 0.2, 1.92, 1.95, 0.16), (-6.4, 2.86, 1.92, 1.65, 0.12)],
+    skin=dict(path="assets/source/skins/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed.glb",
+              length=16.46 - GUN_PROUD, x=-GUN_PROUD / 2, top=ENGINE_Z + 0.68, nose="+x", span=(2.0, 8.77),
+              canopy=dict(glass=GLASS, tail=[GLASS[-1], (2.8, 0.3), (2.4, 0.03)], bows=(5.6,)),
+              parts=[("wing_L", ((-2.5, 3.5), (1.6, 9.5), (1.2, 2.4))),
+                     ("wing_R", ((-2.5, 3.5), (-9.5, -1.6), (1.2, 2.4)))]),
     fins=[dict(FIN, y=2.86), dict(FIN, y=-2.86)],
-    gear=[dict(name="nose", x=5.0, y=-0.46, top=1.55, radius=0.33, width=0.2, door=(0.8, 0.4), light=True),
-          dict(name="main_L", x=-0.3, y=2.1, top=1.2, radius=0.5, width=0.3),
-          dict(name="main_R", x=-0.3, y=-2.1, top=1.2, radius=0.5, width=0.3)],
-    pylons=[((0.9, 3.4, WING_Z - 0.18), 1.2, 0.26), ((0.9, 4.6, WING_Z - 0.08), 1.1, 0.24),
-            ((0.6, 5.8, WING_Z + 0.04), 1.0, 0.22)],
-    stores=[("missile", (0.8, 3.4, 0.98), 2.5, 0.15), ("bomb", (0.8, 4.6, 1.1), 2.3, 0.2),
-            ("pod", (0.5, 5.8, 1.33), 2.4, 0.15)],
 )
+# The nose leg offset to the right, the mains in their pods; each leg's top on the skin.
+GEAR = [dict(name="nose", x=5.0, y=-0.46, radius=0.33, width=0.2, door=(0.8, 0.4), light=True),
+        dict(name="main_L", x=-0.3, y=2.1, radius=0.5, width=0.3),
+        dict(name="main_R", x=-0.3, y=-2.1, radius=0.5, width=0.3)]
+# The wing pylons (x, y, length, depth) on the skin's chord, a little aft
+# of the lofted wing's, and what hangs under each.
+STATIONS = [((0.3, 3.4, 1.2, 0.26), ("missile", -0.1, 2.5, 0.15)), ((0.2, 4.6, 1.1, 0.24), ("bomb", -0.1, 2.3, 0.2)),
+            ((0.0, 5.8, 1.0, 0.22), ("pod", -0.1, 2.4, 0.15))]
 
 
 def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
+    shell = Probe(hull)
+    for g in GEAR:
+        A.gear(top=shell.under(g["x"], g["y"]) + 0.02, mats=m, parent=hull, **g)
+    for k, ((x, y, length, depth), (kind, dx, s_len, radius)) in enumerate(STATIONS):
+        for side in (1, -1):
+            top = shell.under(x, side * y)
+            A.pylon(f"pylon_{k}_{side + 1}", (x, side * y, top), length, depth, m, hull)
+            A.store(f"store_{k}_{side + 1}", kind, (x + dx, side * y, top - depth - radius - 0.02), s_len, radius, m,
+                    hull)
+    A.nav_lights(m, hull, **{k: (-0.2, side * 8.6, shell.over(-0.2, side * 8.6) + 0.01)
+                             for k, side in (("left", 1), ("right", -1))})
     # The GAU-8 under the nose: its muzzle fairing and seven barrels.
-    cyl("gun_fairing", 0.24, 0.5, (7.6, 0.06, 1.85), "X", m["paint"], hull, seg=16, bevel=0.02)
+    nose_x = shell.along(0.06, 1.85, True)
+    cyl("gun_fairing", 0.24, 0.5, (nose_x - 0.2, 0.06, 1.85), "X", m["paint"], hull, seg=16, bevel=0.02)
     for k in range(7):
         a = math.tau * k / 7
-        cyl(f"gun_barrel_{k}", 0.035, 0.5, (8.0, 0.06 + math.cos(a) * 0.12, 1.85 + math.sin(a) * 0.12), "X",
+        cyl(f"gun_barrel_{k}", 0.035, 0.5, (nose_x + 0.2, 0.06 + math.cos(a) * 0.12, 1.85 + math.sin(a) * 0.12), "X",
             m["steel"], hull, seg=8, lods=MID if k % 2 == 0 else NEAR)
-    cyl("gun_muzzle", 0.17, 0.04, (8.24, 0.06, 1.85), "X", m["black"], hull, seg=14, lods=MID)
-    # The engines: round nacelles on pylons over the rear fuselage.
+    cyl("gun_muzzle", 0.17, 0.04, (nose_x + 0.44, 0.06, 1.85), "X", m["black"], hull, seg=14, lods=MID)
+    # The engines are the skin's nacelles: each fan's face and exhaust, dark, just inside their lips.
     for side, s_ in ((1, "L"), (-1, "R")):
-        y, z = side * 1.5, 3.28
-        A.body(f"nacelle_engine_{s_}", [(-0.8, 0.6, z - 0.6, z + 0.6, z), (-1.1, 0.68, z - 0.68, z + 0.68, z),
-                                        (-4.1, 0.68, z - 0.68, z + 0.68, z), (-4.85, 0.46, z - 0.46, z + 0.46, z)],
-               m["paint"], hull, seg=20, loc=(0, y, 0))
-        cyl(f"nacelle_engine_{s_}_fan", 0.52, 0.04, (-0.79, y, z), "X", m["dark"], hull, seg=20, lods=MID)
-        cyl(f"nacelle_engine_{s_}_spinner", 0.14, 0.2, (-0.7, y, z), "X", m["steel"], hull, seg=10,
-            r2=0.03, lods=NEAR)
-        cyl(f"nacelle_engine_{s_}_exhaust", 0.38, 0.05, (-4.87, y, z), "X", m["black"], hull, seg=16, lods=MID)
-        # The short pylon from the fuselage's shoulder up to the nacelle's
-        # underside, the gap under the nacelle open either side of it.
-        box(f"nacelle_pylon_{s_}", (2.4, 0.8, 0.14), (-2.6, side * 0.84, 2.7), m["paint"], hull, bevel=0.03,
-            rot=(side * 0.5, 0, 0))
-    box("antiglare", (1.1, 0.7, 0.03), (6.5, 0, 2.86), m["dark"], hull, rot=(0, 0.25, 0), lods=MID)
-    box("refuel_door", (0.5, 0.3, 0.03), (7.0, 0, 2.6), m["dark"], hull, rot=(0, 0.35, 0), lods=NEAR)
-    for side, s_ in ((1, "L"), (-1, "R")):
-        box(f"wing_flap_seam_{s_}", (0.03, 5.4, 0.03), (-1.0, side * 5.4, 1.84), m["dark"], hull,
-            rot=(0, 0, side * 0.05), lods=FINE)
-    A.blade_antenna("antenna_spine", (0.8, 0, 3.08), 0.2, m, hull)
+        y = side * ENGINE_Y
+        cyl(f"nacelle_engine_{s_}_fan", FAN_R, 0.04, (shell.along(y, ENGINE_Z, True) - 0.03, y, ENGINE_Z), "X",
+            m["dark"], hull, seg=20, lods=MID)
+        lip = shell.along(y, ENGINE_Z + 0.4, False)
+        cyl(f"nacelle_engine_{s_}_exhaust", 0.44, 0.05, (lip + 0.06, y, ENGINE_Z), "X", m["black"], hull, seg=16,
+            lods=MID)
+    box("refuel_door", (0.5, 0.3, 0.03), (7.0, 0, shell.over(7.0, 0)), m["dark"], hull, rot=(0, 0.35, 0), lods=NEAR)
+    A.blade_antenna("antenna_spine", (0.8, 0, shell.over(0.8, 0)), 0.2, m, hull)
     # Moody's FT on the fins in black, the low-visibility insignia behind the
-    # cockpit and on the wings, the serial on the nose gear door's fuselage.
+    # cockpit and on the wings, the serial on the nose's flank.
+    mouth_y, serial_y = shell.flank(6.8, 1, 1.98), shell.flank(4.2, 1, 2.3)
     A.markings(v, [
         ("insignia", dict(kind="us_lowvis", centre=(2.5, 1.0, 2.55), normal=(0, 1, 0), up=(0, 0, 1), size=0.42,
                           onto=("fuselage",))),
@@ -96,10 +109,11 @@ def build(variant, v):
                       onto=("tail_fin_",), colour="black")),
         ("text", dict(text="AF 80 223", height=0.16, centre=(-6.9, 3.1, 3.2), normal=(0, 1, 0), up=(0, 0, 1),
                       onto=("tail_fin_",), colour="black")),
-        # The 23rd Wing's Flying Tiger shark mouth under the nose (the photo).
-        ("insignia", dict(kind="shark_mouth", centre=(6.9, 1.0, 1.95), normal=(0, 1, 0), up=(0, 0, 1), size=0.85,
-                          onto=("fuselage", "gun_fairing"), ahead=(1, 0, 0))),
-        ("text", dict(text="0223", height=0.18, centre=(-0.3, 0.9, 1.75), normal=(0, 1, 0), up=(0, 0, 1),
+        # The 23rd Wing's Flying Tiger shark mouth under the nose (the photo),
+        # sized to the skin's nose (its side 1.7 to 2.3 m up at x 6.9).
+        ("insignia", dict(kind="shark_mouth", centre=(6.8, mouth_y, 1.98), normal=(0, 1, 0), up=(0, 0, 1), size=0.6,
+                          onto=("fuselage",), ahead=(1, 0, 0))),
+        ("text", dict(text="0223", height=0.18, centre=(4.2, serial_y, 2.3), normal=(0, 1, 0), up=(0, 0, 1),
                       onto=("fuselage",), colour="black")),
     ])
 

@@ -37,6 +37,7 @@ from pathlib import Path
 
 import bmesh
 import bpy
+import numpy as np
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
@@ -48,7 +49,7 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 PINS = HERE / "skins"
 # Triangles per tier for the shell, about what a lofted airframe spends.
-TRIS = (36000, 9000, 1800, 500)
+TRIS = (26000, 7000, 1500, 450)
 # The longest edge round a canopy's rim per tier, so its glass meets the skin cleanly.
 RIM_EDGE = (0.08, 0.16, 0.4, 1.0)
 # An intake mouth's grid per tier (across, up); the far tier has none.
@@ -79,7 +80,10 @@ def _bounds(bm):
             Vector((max(v.x for v in vs), max(v.y for v in vs), max(v.z for v in vs))))
 
 
-def load(path, length, top, lower=None, span=None, x=0.0):
+NOSES = {"+x": 0.0, "-x": math.pi, "+y": -math.pi / 2, "-y": math.pi / 2}
+
+
+def load(path, length, top, lower=None, span=None, x=0.0, nose=None):
     """The skin at `path` as one bmesh in the engine basis, `length` nose to
     tail, centred on Y and on `x` along its length (a family whose stations
     are not centred on its length), its highest point at `top`. `lower` is
@@ -87,7 +91,11 @@ def load(path, length, top, lower=None, span=None, x=0.0):
     too high: everything up to `z_from` drops by `dz` and what is above it
     stretches, so the fins' tips stay at `top`. `span` is `(y_from,
     half_span)` for wings that came out short or long: outboard of `y_from`
-    the skin stretches across until its tips reach `half_span`."""
+    the skin stretches across until its tips reach `half_span`. `nose`
+    ("+x", "-x", "+y" or "-y", in the generator's frame) says which way the
+    nose points where the usual reading fails: the length along the longer
+    side, the tail where the fin's tip is (a span longer than the length, a
+    skin without fins)."""
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=str(REPO / path))
     new = [o for o in bpy.data.objects if o not in before]
@@ -107,11 +115,14 @@ def load(path, length, top, lower=None, span=None, x=0.0):
         while len(layers):
             layers.remove(layers[0])
     lo, hi = _bounds(bm)
-    # The length lies along the longer horizontal axis, the fin's tip at the tail.
-    axis = 0 if hi.x - lo.x >= hi.y - lo.y else 1
-    tip = max((v.co for v in bm.verts), key=lambda c: c.z)
-    tail_high = tip[axis] > (lo[axis] + hi[axis]) / 2
-    turn = (math.pi if tail_high else 0.0) if axis == 0 else (math.pi / 2 if tail_high else -math.pi / 2)
+    if nose is not None:
+        turn = NOSES[nose]
+    else:
+        # The length lies along the longer horizontal axis, the fin's tip at the tail.
+        axis = 0 if hi.x - lo.x >= hi.y - lo.y else 1
+        tip = max((v.co for v in bm.verts), key=lambda c: c.z)
+        tail_high = tip[axis] > (lo[axis] + hi[axis]) / 2
+        turn = (math.pi if tail_high else 0.0) if axis == 0 else (math.pi / 2 if tail_high else -math.pi / 2)
     bm.transform(Matrix.Rotation(turn, 4, "Z"))
     lo, hi = _bounds(bm)
     centre = (lo + hi) / 2
@@ -181,6 +192,24 @@ class Probe:
             raise ValueError(f"no skin over ({x}, {y})")
         return z
 
+    def chord(self, y, front, back, step=0.05):
+        """The (leading, trailing) edges' x at span `y`, looking down on the
+        skin between `front` and `back` (to keep another surface out)."""
+        xs = [front - k * step for k in range(int((front - back) / step) + 1)
+              if self._z(front - k * step, y, 20, -1) is not None]
+        if not xs:
+            raise ValueError(f"no skin at span {y} between x {front} and {back}")
+        return max(xs), min(xs)
+
+    def along(self, y, z, ahead=True):
+        """Where the skin is first met along X at (y, z): from ahead (its
+        front there, a nose or a lip) or from behind (its back, a tail)."""
+        d = -1 if ahead else 1
+        hit = self.tree.ray_cast(self.world @ Vector((-d * 30, y, z)), self.world.to_3x3() @ Vector((d, 0, 0)), 60)[0]
+        if hit is None:
+            raise ValueError(f"no skin along x at ({y}, {z})")
+        return (self.local @ hit).x
+
     def flank(self, x, y, z):
         """The side's reach at (x, z), on the side `y` is on, seen from outboard."""
         out = math.copysign(1.0, y)
@@ -194,26 +223,31 @@ class Probe:
 def intake_mouth(name, shell, mat, parent, side, corners, lift=0.012):
     """The dark mouth of an intake on the skin's own intake face: the quad
     `corners` (`(y, z)` inboard low, outboard low, outboard high, inboard
-    high, on the left; `side` -1 mirrors it) as a grid cast onto the face
-    from ahead (`shell`, a `Probe`), each row at its frontmost hit and stood
-    `lift` ahead of it: it follows a raked face and covers whatever the
-    generator drew inside the lips (a grille's slats)."""
+    high, on the left; `side` -1 mirrors it) as a grid on the face's plane:
+    fitted to where rays from ahead meet the skin (`shell`, a `Probe`), then
+    stood `lift` ahead of the most forward of them, so it follows a raked or
+    swept face and covers whatever the generator drew inside the lips (a
+    grille's slats)."""
     c = [Vector((0, y, z)) for y, z in corners]
 
     def build(bm, lod):
         nu, nv = MOUTH_GRID[lod]
-        rows = []
+        grid = []
         for j in range(nv + 1):
-            points = []
             for i in range(nu + 1):
                 p = c[0].lerp(c[1], i / nu).lerp(c[3].lerp(c[2], i / nu), j / nv)
                 hit = shell.tree.ray_cast(shell.world @ Vector((20, side * p.y, p.z)),
                                           shell.world.to_3x3() @ Vector((-1, 0, 0)), 40)[0]
                 if hit is None:
                     raise ValueError(f"{name}: no intake face ahead of ({side * p.y:.2f}, {p.z:.2f})")
-                points.append((side * p.y, p.z, (shell.local @ hit).x))
-            front = max(x for *_, x in points) + lift
-            rows.append([bm.verts.new((front, y, z)) for y, z, _ in points])
+                grid.append((side * p.y, p.z, (shell.local @ hit).x))
+        pts = np.array(grid)
+        basis = np.column_stack([np.ones(len(pts)), pts[:, 0], pts[:, 1]])
+        plane = np.linalg.lstsq(basis, pts[:, 2], rcond=None)[0]
+        fitted = basis @ plane
+        ahead = float((pts[:, 2] - fitted).max()) + lift
+        verts = [bm.verts.new((x + ahead, y, z)) for (y, z, _), x in zip(grid, fitted)]
+        rows = [verts[j * (nu + 1):(j + 1) * (nu + 1)] for j in range(nv + 1)]
         for j in range(nv):
             for i in range(nu):
                 quad = [rows[j][i], rows[j][i + 1], rows[j + 1][i + 1], rows[j + 1][i]]
@@ -272,18 +306,18 @@ def _under_canopy(bm, stations, edge, under=0.03, grow=1.12):
 
 
 def skin(path, length, top, mats, parent, parts=(), press=(), cut=(), tris=TRIS, sharp_deg=40, lower=None, span=None,
-         x=0.0, canopy=None):
+         x=0.0, nose=None, canopy=None):
     """Wear the skin pinned at `path` (see the module doc), in the airframe's
     `mats["paint"]`: `parts` are `(name, ((x0, x1), (y0, y1), (z0, z1)))`;
     `press` are boxes whose skin is pressed to their floor (a
     generated lump flattened), or `(box, z)` pressed to `z` (a plate raised),
-    `cut` those whose faces go; `lower`, `span` and `x` are
+    `cut` those whose faces go; `lower`, `span`, `x` and `nose` are
     `load`'s. `canopy` is `dict(glass=plan, tail=plan)`, the clear canopy's
     plan and its opaque tail's, front to back (`fit_canopy`): their stations
     are measured on the hump (after `press`), which is then pressed under
     them, and returned as `(glass, tail)` for `aircraft_canopy.bubble_canopy`."""
     pinned(path)
-    bm = load(path, length, top, lower, span, x)
+    bm = load(path, length, top, lower, span, x, nose)
     for entry in press:
         box, z = (entry, entry[2][0]) if len(entry) == 3 else entry
         for v in bm.verts:

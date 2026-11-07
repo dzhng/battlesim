@@ -9,6 +9,15 @@ two ventral fins, two nozzles; weapon bays under the body. Dark grey.
 
 The references' dimensions: about 21.2 m long, 13.01 m span and
 4.69 m high (published estimates; no official figures).
+
+Its shell is a generated skin (`aircraft_skin`, pinned in `skins/`):
+Hunyuan3D's model of the airframe alone from our own renders of the lofted
+J-20 this script drew before (both sides, top and bottom). Its fins came
+out short, standing its body 0.7 m high (`lower`), and its wings 0.35 m
+short a side (`span`); the canopy is fitted to its hump from the lofted
+canopy's plan. The intakes' dark mouths, the nozzles (the skin's flat pipe
+ends cut away inside them), the gear, bays and lights are measured on it or
+seated on it (`Probe`).
 """
 import math
 import os
@@ -16,60 +25,74 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
+from aircraft_canopy import framed_plan  # noqa: E402
+from aircraft_skin import Probe, intake_mouth  # noqa: E402
 from parts import box  # noqa: E402
 from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
+SKIN = "assets/source/skins/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter.glb"
 WING_Z = 2.0
-FIN = dict(root_x=-4.8, root_z=2.35, height=2.4, root_chord=3.2, tip_chord=1.0, sweep_m=2.5, cant=0.4, rudder=False)
-VENTRAL = dict(root_x=-5.6, root_z=1.5, height=0.65, root_chord=1.6, tip_chord=0.8, sweep_m=0.5, cant=2.6,
-               rudder=False)
+# The fins, canted outward from the booms (their star's frame).
+FIN_Y, FIN_Z, FIN_CANT = 1.1, 2.35, 0.4
+# The canopy's plan: the lofted canopy's outline with the windscreen's foot
+# where the skin's hump starts (6.9), the glass ending on the spine at 4.3,
+# its opaque tail faired in by 3.3; the windscreen's bow at 6.35.
+CANOPY_GLASS = framed_plan(x_front=6.9, x_back=4.3, half_width=0.52, peak=0.45, tail=0.7)
+CANOPY_TAIL = [CANOPY_GLASS[-1], (3.9, 0.24), (3.6, 0.1), (3.3, 0.02)]
+# Each intake's dark mouth on the skin's flat face (x 4.8 to 5.0), inside its lips.
+MOUTH = ((1.14, 1.5), (1.4, 1.5), (1.6, 2.1), (1.14, 2.1))
+# The two nozzles in place of the skin's flat pipe ends (cut inside their radius).
+NOZZLES = [dict(loc=(-8.8, y, 1.9), r_front=0.5, r_exit=0.46, length=1.62, petals=14) for y in (0.52, -0.52)]
+NOZZLE_CUT = [((-10.6, -8.9), tuple(sorted((s * 0.08, s * 0.96))), (1.46, 2.34)) for s in (1, -1)]
 SPEC = dict(
-    fuselage=[(10.6, 0.0, 1.9, 1.9), (9.6, 0.42, 1.7, 2.12, 1.9, 1.4), (8.0, 0.8, 1.55, 2.4, 1.88, 1.5),
-              (6.4, 1.0, 1.45, 2.55, 1.85, 1.7), (4.6, 1.5, 1.4, 2.5, 1.85, 2.4), (1.5, 1.8, 1.38, 2.45, 1.85, 3.2),
-              (-2.5, 1.7, 1.4, 2.4, 1.85, 3.2), (-6.5, 1.3, 1.5, 2.3, 1.88, 3.0), (-8.6, 1.1, 1.55, 2.25, 1.9)],
-    # The side photo: the canopy 2.9 m behind the nose and 3.3 m long.
-    canopy=dict(x_front=7.7, x_back=4.4, sill=2.46, top=3.08, half_width=0.52, bows=(7.1,), peak=0.45, tail=0.7),
-    bodies=[("fuselage_spine", [(4.5, 0.42, 2.35, 2.9, 2.5, 2.4), (0.5, 0.5, 2.35, 2.66, 2.5, 2.6),
-                                (-5.0, 0.0, 2.3, 2.3)])],
-    canard_hinge=(0.75,),
-    wing_hinge=((0.8, 0, 1), 0.08),
-    nav=dict(left=(-7.2, 6.4, WING_Z - 0.02), right=(-7.2, -6.4, WING_Z - 0.02)),
-    # The near-plan photo from above: the canards just aft of the intakes, the
-    # wing set far aft (its root leading edge past mid-length, its tips level
-    # with the fins), the extensions blending the two.
-    canard=[(3.9, 1.4, 2.25, 2.3, 0.08), (2.2, 3.7, 2.2, 0.8, 0.03)],
-    strake=[(1.8, 1.6, 2.1, 2.8, 0.06), (-0.9, 2.3, 2.05, 0.5, 0.04)],
-    wing=[(-0.6, 1.8, WING_Z, 7.6, 0.32), (-6.6, 6.5, WING_Z - 0.04, 1.5, 0.05)],
-    fins=[dict(FIN, y=1.1), dict(FIN, y=-1.1), dict(VENTRAL, y=1.0), dict(VENTRAL, y=-1.0)],
-    intakes=[("rect", (5.05, 1.3, 1.85), 0.6, 0.85, 0.22, (0.2, 0.3, -0.15)),
-             ("rect", (5.05, -1.3, 1.85), 0.6, 0.85, 0.22, (-0.2, 0.3, 0.15))],
-    nozzles=[dict(loc=(-8.6, 0.55, 1.9), r_front=0.52, r_exit=0.48, length=1.62, petals=14),
-             dict(loc=(-8.6, -0.55, 1.9), r_front=0.52, r_exit=0.48, length=1.62, petals=14)],
-    gear=[dict(name="nose", x=6.0, y=0.0, top=1.5, radius=0.3, width=0.17, door=(1.0, 0.5), light=True),
-          dict(name="main_L", x=-2.0, y=1.6, top=1.4, radius=0.48, width=0.24, door=(1.3, 0.55), rake=0.1),
-          dict(name="main_R", x=-2.0, y=-1.6, top=1.4, radius=0.48, width=0.24, door=(1.3, 0.55), rake=0.1)],
+    # The skin's wings, canards (`wing_canard_*`, kept from the wreck's
+    # fold) and canted fins split off by name.
+    skin=dict(path=SKIN, length=20.82, top=4.58, lower=(0.7, 3.9), span=(2.0, 6.51), cut=NOZZLE_CUT,
+              canopy=dict(glass=CANOPY_GLASS, tail=CANOPY_TAIL, bows=(6.35,)),
+              parts=[("wing_canard_L", ((1.5, 4.8), (1.9, 4.5), (1.8, 2.7))),
+                     ("wing_canard_R", ((1.5, 4.8), (-4.5, -1.9), (1.8, 2.7))),
+                     ("wing_L", ((-10.0, 1.5), (2.2, 7.5), (1.4, 2.6))),
+                     ("wing_R", ((-10.0, 1.5), (-7.5, -2.2), (1.4, 2.6))),
+                     ("tail_fin_0", ((-10.5, -4.0), (0.9, 3.5), (2.45, 9.0))),
+                     ("tail_fin_1", ((-10.5, -4.0), (-3.5, -0.9), (2.45, 9.0)))]),
+    nozzles=NOZZLES,
 )
+# Gear (x, y, radius, width, extras), each leg's top seated under the skin.
+GEAR = [("nose", 6.0, 0.0, 0.3, 0.17, dict(door=(1.0, 0.5), light=True)),
+        ("main_L", -2.0, 1.6, 0.48, 0.24, dict(door=(1.3, 0.55), rake=0.1)),
+        ("main_R", -2.0, -1.6, 0.48, 0.24, dict(door=(1.3, 0.55), rake=0.1))]
 
 
 def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
-    box("antiglare", (1.0, 0.7, 0.03), (8.5, 0, 2.28), m["dark"], hull, rot=(0, 0.18, 0), lods=MID)
+    shell = Probe(hull)
+    for name, x, y, radius, width, extra in GEAR:
+        A.gear(name=name, x=x, y=y, top=shell.under(x, y) + 0.02, radius=radius, width=width, mats=m, parent=hull,
+               **extra)
+    A.mirrored(lambda side, k: intake_mouth(f"intake_mouth_{k}", shell, m["black"], hull, side, MOUTH))
+    # The wing-tip lights mid-chord on the tips.
+    chord = shell.chord(6.3, 0.0, -10.45)
+    tip_x = (max(chord) + min(chord)) / 2
+    A.nav_lights(m, hull, **{k: (tip_x, side * 6.3, shell.over(tip_x, side * 6.3) + 0.01)
+                             for k, side in (("left", 1), ("right", -1))})
     # The photo's markings: the PLA's star on the fins' outer faces, the
     # star and bars under the wings, the white 2011 on the nose.
-    fin_n, fin_up = (0, math.cos(0.4), -math.sin(0.4)), (0, math.sin(0.4), math.cos(0.4))
+    fin_n, fin_up = (0, math.cos(FIN_CANT), -math.sin(FIN_CANT)), (0, math.sin(FIN_CANT), math.cos(FIN_CANT))
     A.markings(v, [
-        ("insignia", dict(kind="cn_fin", centre=(-6.6, 1.1 + 1.4 * fin_up[1] + 0.3, 2.35 + 1.4 * fin_up[2]),
+        ("insignia", dict(kind="cn_fin", centre=(-6.6, FIN_Y + 1.4 * fin_up[1] + 0.3, FIN_Z + 1.4 * fin_up[2]),
                           normal=fin_n, up=fin_up, size=0.38, onto=("tail_fin_0", "tail_fin_1"))),
         *[("insignia", dict(kind="cn_star", centre=(-5.0, y, WING_Z - 0.3), normal=(0, 0, -1), up=(1, 0, 0),
                             size=0.7, onto=("wing_",), mirror=False)) for y in (4.0, -4.0)],
-        ("text", dict(text="2011", height=0.36, centre=(7.5, 1.3, 1.95), normal=(0, 1, 0), up=(0, 0, 1),
+        ("text", dict(text="2011", height=0.34, centre=(6.6, 1.5, 1.9), normal=(0, 1, 0), up=(0, 0, 1),
                       onto=("fuselage",), colour="white")),
     ])
-    box("main_bay", (4.6, 1.4, 0.03), (0.6, 0, 1.37), m["dark"], hull, lods=MID)
-    A.mirrored(lambda side, k: box(f"side_bay_{k}", (1.8, 0.03, 0.35), (3.2, side * 1.62, 1.6), m["dark"], hull,
-                                   lods=MID))
+    # The weapon bays' seams: the main bay under the body, a side bay each
+    # side of the intakes.
+    box("main_bay", (4.6, 1.4, 0.03), (0.6, 0, shell.under(0.6, 0) - 0.01), m["dark"], hull, lods=MID)
+    A.mirrored(lambda side, k: box(f"side_bay_{k}", (1.8, 0.03, 0.35), (3.2, shell.flank(3.2, side, 1.6), 1.6),
+                                   m["dark"], hull, lods=MID))
 
 
 def wreck(variant, v):

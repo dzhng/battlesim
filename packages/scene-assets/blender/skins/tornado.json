@@ -1,0 +1,32 @@
+[
+  {
+    "glb": "assets/source/skins/tornado/europe_tornado_ecr.glb",
+    "sha256": "00fa9ff33a2e188fa4febd6aeeffe6293f69f63d23a0f413bacf6069bc90a0e1",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b5b1-8509-73d1-96ca-4c4665b92ca7",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/tornado/europe_tornado_ecr-right.png": "a0c5f5ec149381d26f17690db72589b11cbf2a2d4eda81f83bf31aaf700b2d92",
+      "assets/source/skins/tornado/europe_tornado_ecr-left.png": "7183d7b014bbccd71776e672f3620823aa9d4b882fb84251d5eaab507585d5d0",
+      "assets/source/skins/tornado/europe_tornado_ecr-top.png": "1307a98040521afab1fb23986009bd44c893cf910fbf23710b0fe229bc4702c3",
+      "assets/source/skins/tornado/europe_tornado_ecr-bottom.png": "2ce23392829d2f1f7fb30740eccc35483f0caddd571a92dd1b59e4f616853288"
+    },
+    "note": "Our own shaded orthographic renders of the lofted europe_tornado_ecr (its roster script before the skin), without gear, stores or markings."
+  },
+  {
+    "glb": "assets/source/skins/tornado/europe_tornado_ids.glb",
+    "sha256": "f106700c0f0622c66fcabd38b7864141e324a3940d93f50fc3f321dc5de2d770",
+    "generator": "Hunyuan3D 3.1 Pro image to 3D, through fal (fal-ai/hunyuan-3d/v3.1/pro/image-to-3d), geometry only, 300,000 faces, from four views: the right side as its front, the left side as its back, the top and the bottom",
+    "request_id": "01a1b5b3-c15c-73e3-86d0-f663c91b2d7b",
+    "generated": "2026-11-07",
+    "terms": "A paid generation: fal lists the model for commercial use, and its terms leave output content to the customer.",
+    "inputs": {
+      "assets/source/skins/tornado/europe_tornado_ids-right.png": "4321d171a6ec4ff2555b7994c8d90049f573c4edeb2a8471a0c80e171bf44c6c",
+      "assets/source/skins/tornado/europe_tornado_ids-left.png": "ac53fc531f1c6eb8a61b2a7584630c9dcd9c4d873f2bb23b7db3009e042a9bdd",
+      "assets/source/skins/tornado/europe_tornado_ids-top.png": "0ef15da754740df1f364205f27fe250a1691da4cb2eab5a43276bbc50d4d2b94",
+      "assets/source/skins/tornado/europe_tornado_ids-bottom.png": "6b09e3a8937e3cbe13cfe0fa26fff4e288d9c0b6506fd2ef2271cf000cd1611a"
+    },
+    "note": "Our own shaded orthographic renders of the lofted europe_tornado_ids (its roster script before the skin), without gear, stores or markings."
+  }
+]

@@ -139,6 +139,20 @@ def _lay(points, centre, normal, up, size, tree, lift):
     return out
 
 
+def _levels(layers):
+    """Each layer's height in the stack: one above the highest earlier layer
+    its outline's box overlaps, so side-by-side pieces (a mouth's teeth)
+    share a level rather than climbing off the skin one by one."""
+    boxes, levels = [], []
+    for outline, scale, (du, dv), _ in layers:
+        us, vs = [du + x * scale for x, _ in outline], [dv + y * scale for _, y in outline]
+        box = (min(us), max(us), min(vs), max(vs))
+        under = [lv for b, lv in zip(boxes, levels) if b[0] < box[1] and box[0] < b[1] and b[2] < box[3] and box[2] < b[3]]
+        levels.append(max(under) + 1 if under else 0)
+        boxes.append(box)
+    return levels
+
+
 def insignia(name, kind, centre, normal, up, size, mats, parent, onto, lods=NEAR, ahead=None):
     """A national insignia `kind` (`INSIGNIA`), `size` metres from its centre
     to its outer edge, painted on the skin of the parts named by `onto` at
@@ -154,6 +168,7 @@ def insignia(name, kind, centre, normal, up, size, mats, parent, onto, lods=NEAR
         ev = (Vector(up) - n * Vector(up).dot(n)).normalized()
         flip = 1 if ev.cross(n).dot(Vector(ahead)) >= 0 else -1
     inv = parent.matrix_world.inverted_safe()
+    levels = _levels(INSIGNIA[kind])
     for k, (outline, scale, (du, dv), colour) in enumerate(INSIGNIA[kind]):
         def make(lod, n, outline=outline, scale=scale, du=du, dv=dv, k=k):
             rings = 4 if lod == 0 else 2
@@ -165,7 +180,7 @@ def insignia(name, kind, centre, normal, up, size, mats, parent, onto, lods=NEAR
                 dense += [(a[0] + (b[0] - a[0]) * j / steps, a[1] + (b[1] - a[1]) * j / steps) for j in range(steps)]
             pts = [(flip * du, dv)] + [(flip * (du + x * scale * t), dv + y * scale * t) for t in
                                         [(r + 1) / rings for r in range(rings)] for x, y in dense]
-            world = _lay(pts, centre, normal, up, size, tree, 0.006 + 0.004 * k)
+            world = _lay(pts, centre, normal, up, size, tree, 0.006 + 0.004 * levels[k])
             bm = bmesh.new()
             vs = [bm.verts.new(inv @ p) for p in world]
             m_ = len(dense)
