@@ -375,6 +375,51 @@ impl Pool {
         }
     }
 
+    /// A downed airframe striking a building's face at `at`: sparks off its
+    /// skin, and the dust it knocks off the face round the point; a strike
+    /// slower than the style's full throws fewer of each, and smaller dust.
+    pub(super) fn strike(
+        &mut self,
+        sparks: &SparkStyle,
+        style: &StrikeStyle,
+        at: f64,
+        s: &Strike,
+        rng: &mut Mulberry32,
+    ) {
+        let share = (s.speed_mps / style.full_mps).clamp(0.0, 1.0);
+        let n = s.normal;
+        let count = (style.sparks * share).round();
+        if count > 0.0 {
+            self.sparks(sparks, at, s.point, n, n, count, rng, 1.0);
+        }
+        // Two directions across the face: along a wall and up it, or over a roof.
+        let across = if n[2].abs() > 0.9 {
+            [1.0, 0.0, 0.0]
+        } else {
+            let flat = libm::hypot(n[0], n[1]).max(1e-9);
+            [-n[1] / flat, n[0] / flat, 0.0]
+        };
+        let over = [
+            n[1] * across[2] - n[2] * across[1],
+            n[2] * across[0] - n[0] * across[2],
+            n[0] * across[1] - n[1] * across[0],
+        ];
+        let dust = &style.dust;
+        let puffs = (dust.count * share).round();
+        let mut k = 0.0;
+        while k < puffs {
+            let r = style.reach_m * rng.sample().sqrt();
+            let a = rng.sample() * PI * 2.0;
+            let (u, v) = (libm::cos(a) * r, libm::sin(a) * r);
+            let born = at + dust.over_s * (k / (puffs - 1.0).max(1.0));
+            let p = std::array::from_fn(|i| {
+                s.point[i] + n[i] * SURFACE_LIFT_M + across[i] * u + over[i] * v
+            });
+            self.puff(born, p, &dust.puff, share.sqrt(), 1.0, rng);
+            k += 1.0;
+        }
+    }
+
     /// A puff born at `at` at p: its own drift, spin and first frame.
     pub(super) fn puff(
         &mut self,

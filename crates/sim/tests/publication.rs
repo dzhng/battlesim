@@ -119,8 +119,8 @@ fn reader_rejects_a_publication_layout_mismatch() {
 
 /// One decoded row: its fields by name and its sections' points.
 #[derive(Debug, Default)]
-struct Row {
-    fields: BTreeMap<String, f32>,
+pub(crate) struct Row {
+    pub(crate) fields: BTreeMap<String, f32>,
     sections: BTreeMap<String, Vec<BTreeMap<String, f32>>>,
 }
 
@@ -133,7 +133,7 @@ fn names(v: &Value) -> Vec<String> {
 }
 
 /// Walks `data` exactly as the web decoder does, by the layout alone.
-fn decode(layout: &Value, data: &[f32]) -> BTreeMap<String, Vec<Row>> {
+pub(crate) fn decode(layout: &Value, data: &[f32]) -> BTreeMap<String, Vec<Row>> {
     let header = names(&layout["header"]);
     let head: BTreeMap<String, f32> = header.iter().cloned().zip(data.iter().copied()).collect();
     let mut at = header.len();
@@ -391,52 +391,6 @@ fn a_contact_publishes_its_height_and_layer() {
             ([120.0, 80.0, 2.5], "ground", 0.0),
             ([300.0, 250.0, 22.5], "low_air", 1.0)
         ]
-    );
-}
-
-#[test]
-fn a_falling_airframe_publishes_its_place_and_attitude() {
-    // Read back by the layout alone: who it is to this side, its type, and
-    // how it hangs where it falls.
-    use contract::observation::FallingAirframe;
-    let map =
-        json!({ "size": [400, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 });
-    let b = Battle::new(
-        &common::scenario(
-            &map.to_string(),
-            json!([{ "side": "blue", "kind": "test_rifle", "position": [100, 100] }]),
-            json!([]),
-        ),
-        1,
-    );
-    let mut frame = b.observe(Side::Blue).clone();
-    frame.crashes = vec![FallingAirframe {
-        id: 7,
-        own: false,
-        kind: common::unit_kind("test_heli"),
-        position: [120.5, 80.25, 14.5],
-        yaw: 1.25,
-        pitch: -0.25,
-        roll: 0.125,
-    }];
-    let layout: Value = serde_json::from_str(&publication::layout_json(&b)).unwrap();
-    let patch = publication::GroundHeader {
-        epoch: 1,
-        side: Side::Blue,
-        base: 0,
-        revision: 0,
-        full: false,
-        count: 0,
-    };
-    let mut data = Vec::new();
-    publication::pack_logical(&frame, &patch, &full_fog(), std::iter::empty(), &mut data).unwrap();
-    let crashes = &decode(&layout, &data)["crashes"];
-    assert_eq!(crashes.len(), 1);
-    let f = &crashes[0].fields;
-    assert_eq!(layout["unitKinds"][f["kind"] as usize], "test_heli");
-    assert_eq!(
-        [f["id"], f["own"], f["x"], f["y"], f["z"], f["yaw"], f["pitch"], f["roll"]],
-        [7.0, 0.0, 120.5, 80.25, 14.5, 1.25, -0.25, 0.125]
     );
 }
 
@@ -805,7 +759,7 @@ fn high_churn_replaces_the_field_inside_the_same_stream() {
     assert_eq!(head("fogFloats") as usize, expected.len() * 2);
 }
 
-fn full_fog() -> publication::FogPatch<'static> {
+pub(crate) fn full_fog() -> publication::FogPatch<'static> {
     publication::FogPatch {
         full: true,
         base: 0,
