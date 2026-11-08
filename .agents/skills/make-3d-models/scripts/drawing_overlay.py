@@ -12,7 +12,7 @@ out of the model; a drawing's own gear or ground line will show as pink."""
 import sys, math
 import bpy, numpy as np
 from mathutils import Vector
-a = sys.argv[sys.argv.index("--") + 1:]
+a = [v for v in sys.argv[sys.argv.index("--") + 1:] if v != "--"]  # the asset CLI adds its own separator
 glb, drw, box, view, nose, real, out = a[0], a[1], [int(v) for v in a[2].split(",")], a[3], a[4], float(a[5]), a[6]
 bpy.ops.wm.read_factory_settings(use_empty=True)
 img = bpy.data.images.load(drw)
