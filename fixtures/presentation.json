@@ -66,26 +66,26 @@
       "sweep_max_steps": 32
     }
   },
-  "light": {
+  "light":                               {
     "sun_azimuth": -0.35,
     "sun_elevation": 0.7,
-    "sun_intensity": 6.8,
-    "shadow_floor": 0.38,
+    "sun_intensity": 7.4,
+    "shadow_floor": 0.18,
     "sky": {
       "turbidity": 4.5,
-      "radiance": 10.8,
+      "radiance": 9.6,
       "fill": [
-        1.02,
-        0.96,
-        0.82
+        0.68,
+        0.72,
+        0.56
       ],
-      "saturation": 1.68,
+      "saturation": 1.75,
       "tint": [
-        0.98,
-        0.97,
-        1.08
+        0.96,
+        0.96,
+        1.12
       ],
-      "grade_mix": 0.35,
+      "grade_mix": 0.25,
       "clouds": {
         "coverage": 0.42,
         "height_m": 1600,
@@ -94,9 +94,9 @@
         "opacity": 0.95,
         "radiance": 1.6,
         "shade": [
-          0.6,
-          0.58,
-          0.55
+          0.45,
+          0.43,
+          0.41
         ]
       }
     },
@@ -109,16 +109,16 @@
       "range_power": 1.2,
       "range_strength": 0.35,
       "sun_tint": [
-        1.0,
-        0.95,
-        0.82
+        1.03,
+        1.01,
+        0.76
       ],
       "sun_strength": 0.18,
       "sun_power": 3.2,
       "mist_color": [
         0.78,
-        0.82,
-        0.78
+        0.85,
+        0.72
       ],
       "mist_height_m": [
         8,
@@ -131,27 +131,27 @@
       "mist_color_strength": 0.18,
       "mist_opacity": 0.05
     },
-    "exposure": 1.75,
+    "exposure": 1.78,
     "grade": {
       "enabled": true,
-      "saturation": 0.72,
-      "contrast": 0.78,
-      "split_tone": 0.8,
-      "shadow_lift": 0.4,
+      "saturation": 0.94,
+      "contrast": 0.86,
+      "split_tone": 0.78,
+      "shadow_lift": 0.18,
       "shadow_tint": [
-        1.02,
-        1.06,
-        0.92
+        1.03,
+        1.1,
+        0.86
       ],
       "highlight_tint": [
-        1.08,
-        1.04,
-        0.9
+        1.05,
+        1.1,
+        0.85
       ],
       "lift": [
-        0.035,
-        0.04,
-        0.032
+        0.016,
+        0.024,
+        0.012
       ]
     },
     "bloom": {
@@ -167,7 +167,7 @@
       "normal_bias_texels": 1.5,
       "normal_bias_min_m": 0.03,
       "depth_bias": -3e-05,
-      "softness_m": 0.2
+      "softness_m": 0.12
     }
   },
   "fog_geometry": {
