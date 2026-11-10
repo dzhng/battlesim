@@ -447,7 +447,7 @@
       "max_gap_s": 0.5,
       "speed_window_s": 0.5,
       "reheat_share": [1.08, 1.4],
-      "vapour": { "load": [1.8, 4.0], "off_load": 1.5, "onset": 0.45, "attack_s": 0.25, "release_s": 1.5 },
+      "vapour": { "load": [1.8, 4.0], "off_load": 1.5, "onset": 0.45, "attack_s": 0.25, "release_s": 1.0 },
       "engines": {
         "afterburning_turbofan": {
           "glow": { "color": [1.0, 0.42, 0.12], "intensity": [2, 10], "reheat_intensity": 4, "radius": 1.6, "min_px": 1.5 },
@@ -469,8 +469,8 @@
           "trail": 0.7
         }
       },
-      "engine_trail": { "albedo": [0.8, 0.8, 0.78], "opacity": [0, 0.16], "life_s": 3, "width_m": [0.5, 3], "fade_in_s": 0.03 },
-      "wingtip_trail": { "albedo": [0.95, 0.95, 0.95], "opacity": [0, 0.6], "life_s": 2, "width_m": [0.25, 1.4], "fade_in_s": 0.015 },
+      "engine_trail": { "albedo": [0.8, 0.8, 0.78], "opacity": [0, 0.09], "life_s": 2, "width_m": [0.5, 2.5], "fade_in_s": 0.03 },
+      "wingtip_trail": { "albedo": [0.95, 0.95, 0.95], "opacity": [0, 0.45], "life_s": 1.1, "width_m": [0.3, 2.4], "fade_in_s": 0.015 },
       "airframes": {
       "us_f_22_raptor_f_22a": {
         "engine": "afterburning_turbofan",
