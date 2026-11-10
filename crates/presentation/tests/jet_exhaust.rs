@@ -16,6 +16,8 @@ use serde_json::{json, Value};
 
 const ENGINE_ALBEDO: f32 = 0.5;
 const TIP_ALBEDO: f32 = 0.9;
+const HAZE_ALBEDO: f32 = 0.4;
+const SMOKE_ALBEDO: f32 = 0.1;
 const CRUISE: f64 = 200.0;
 const LIFE: f64 = 2.0;
 const TICK_HZ: f64 = 30.0;
@@ -40,7 +42,14 @@ fn style() -> Value {
             },
             "fan": {"glow": {"color": [1, 0.3, 0.1], "intensity": [0.2, 1], "reheat_intensity": 0, "radius": 1.5, "min_px": 0}, "trail": 1}
         },
-        "engine_trail": {"albedo": [ENGINE_ALBEDO, ENGINE_ALBEDO, ENGINE_ALBEDO], "opacity": [0.05, 0.2], "life_s": LIFE, "width_m": [0.5, 4], "fade_in_s": 0.1},
+        "engine_style": "plain",
+        "engine_styles": {
+            "plain": [{"albedo": [ENGINE_ALBEDO, ENGINE_ALBEDO, ENGINE_ALBEDO], "opacity": [0.05, 0.2], "life_s": LIFE, "width_m": [0.5, 4], "fade_in_s": 0.1}],
+            "layered": [
+                {"albedo": [HAZE_ALBEDO, HAZE_ALBEDO, HAZE_ALBEDO], "opacity": [0.0, 0.3], "life_s": 0.5, "width_m": [0.5, 1.5], "fade_in_s": 0.02},
+                {"albedo": [SMOKE_ALBEDO, SMOKE_ALBEDO, SMOKE_ALBEDO], "opacity": [0.0, 0.2], "reheat": 0.6, "life_s": LIFE, "width_m": [0.5, 3], "fade_in_s": 0.02}
+            ]
+        },
         "wingtip_trail": {"albedo": [TIP_ALBEDO, TIP_ALBEDO, TIP_ALBEDO], "opacity": [0.0, 0.4], "life_s": LIFE, "width_m": [0.2, 2], "fade_in_s": 0.05},
         "airframes": {}
     })
@@ -668,5 +677,114 @@ fn wisps_hang_where_they_were_laid_without_seams_and_engines_stay_smooth() {
     let flown = fly(&mut frame_with(wispy()), 60.0, 1.2, &flight, &flight);
     for r in ribbons(&flown, ENGINE_ALBEDO) {
         assert_eq!(r[15], 0.0, "an engine's trail is not broken into wisps");
+    }
+}
+
+/// The test style drawing the engines in `engine_style`.
+fn styled(engine_style: &str) -> Value {
+    let mut s = style();
+    s["engine_style"] = json!(engine_style);
+    s
+}
+
+#[test]
+fn the_engine_style_chosen_in_the_data_alone_sets_how_the_engines_trail() {
+    let flight = circling;
+    let plain = fly(&mut frame_with(styled("plain")), 60.0, 1.5, flight, flight);
+    let layered = fly(
+        &mut frame_with(styled("layered")),
+        60.0,
+        1.5,
+        flight,
+        flight,
+    );
+    assert!(!ribbons(&plain, ENGINE_ALBEDO).is_empty());
+    assert!(ribbons(&plain, HAZE_ALBEDO).is_empty() && ribbons(&plain, SMOKE_ALBEDO).is_empty());
+    assert!(
+        ribbons(&layered, ENGINE_ALBEDO).is_empty(),
+        "the other style's trail is gone"
+    );
+    let (haze, smoke) = (
+        ribbons(&layered, HAZE_ALBEDO),
+        ribbons(&layered, SMOKE_ALBEDO),
+    );
+    assert!(
+        !haze.is_empty() && !smoke.is_empty(),
+        "every layer of the chosen style trails"
+    );
+    assert!(
+        smoke.len() > haze.len(),
+        "each layer keeps its own length: a short haze, a long trail"
+    );
+    // Nothing else changes: the glows, flames and wingtip vapour.
+    assert_eq!(glows(&plain), glows(&layered));
+    assert_eq!(flames(&plain), flames(&layered));
+    assert_eq!(ribbons(&plain, TIP_ALBEDO), ribbons(&layered, TIP_ALBEDO));
+    let mut unknown = style();
+    unknown["engine_style"] = json!("missing");
+    let at = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/effect-vectors.json"
+    );
+    let v: Value = serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap();
+    let mut p = v["presentation"].clone();
+    p["jet_exhaust"] = unknown;
+    assert!(
+        EffectPresentation::from_value(&p).is_err(),
+        "an engine style that names no look is refused"
+    );
+}
+
+#[test]
+fn a_layer_thickens_on_the_afterburner_by_its_reheat() {
+    // Past cruise the throttle is full either way; only the afterburner adds.
+    let thickest = |speed: f64, albedo: f32| {
+        let flight = straight(2.0, "burner", speed);
+        let d = fly(
+            &mut frame_with(styled("layered")),
+            60.0,
+            2.0,
+            &flight,
+            &flight,
+        );
+        ribbons(&d, albedo)
+            .iter()
+            .map(|r| r[11])
+            .fold(0.0, f32::max)
+    };
+    let (cruise, burning) = (
+        thickest(CRUISE, SMOKE_ALBEDO),
+        thickest(1.5 * CRUISE, SMOKE_ALBEDO),
+    );
+    assert!(
+        burning > 1.5 * cruise,
+        "smoke thickens on the burner: {cruise} {burning}"
+    );
+    let (haze_cruise, haze_burning) = (
+        thickest(CRUISE, HAZE_ALBEDO),
+        thickest(1.5 * CRUISE, HAZE_ALBEDO),
+    );
+    assert!(
+        (haze_burning - haze_cruise).abs() < 1e-4,
+        "a layer without reheat does not: {haze_cruise} {haze_burning}"
+    );
+}
+
+#[test]
+fn every_shipped_engine_style_loads_when_chosen() {
+    let shipped: Value =
+        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
+    let base = shipped["effects"].clone();
+    let names: Vec<String> = base["jet_exhaust"]["engine_styles"]
+        .as_object()
+        .expect("shipped engine styles")
+        .keys()
+        .cloned()
+        .collect();
+    assert!(names.len() > 1, "a choice of looks");
+    for name in names {
+        let mut p = base.clone();
+        p["jet_exhaust"]["engine_style"] = json!(name);
+        EffectPresentation::from_value(&p).unwrap_or_else(|e| panic!("{name}: {e}"));
     }
 }

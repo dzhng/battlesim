@@ -48,6 +48,8 @@ pub(super) struct Sample {
     pub t: f64,
     pub p: Vec3,
     pub strength: f64,
+    /// How far into its afterburner (an engine's).
+    pub reheat: f64,
     pub joined: bool,
     pub along: f64,
 }
@@ -173,7 +175,7 @@ impl Track {
 
     /// Lay a sample of every emitter where `body` puts it.
     fn lay(&mut self, body: &Body, style: &JetExhaustStyle) {
-        let (heat, _) = self.heat(style);
+        let (heat, reheat) = self.heat(style);
         let (s, c) = libm::sincos(body.yaw);
         for ((ring, kind), d) in self.rings.iter_mut().zip(&self.kinds).zip(&self.local) {
             let joined = body.joined && ring.back().is_some_and(|last| last.t < body.t);
@@ -192,6 +194,10 @@ impl Track {
                 strength: match kind {
                     Emitter::Nozzle { .. } => heat,
                     Emitter::Wingtip => body.vapour,
+                },
+                reheat: match kind {
+                    Emitter::Nozzle { .. } => reheat,
+                    Emitter::Wingtip => 0.0,
                 },
                 joined,
             });
@@ -279,7 +285,8 @@ impl JetTrails {
                 track.lay(&body, style);
             }
         }
-        let life = style.engine_trail.life_s.max(style.wingtip_trail.life_s);
+        let nozzle = Emitter::Nozzle { radius: 0.0 };
+        let life = style.life(nozzle).max(style.life(Emitter::Wingtip));
         let mut kept = 0;
         for i in 0..self.tracks.len() {
             let track = &mut self.tracks[i];
@@ -291,7 +298,7 @@ impl JetTrails {
                 track.bodies.pop_front();
             }
             for (ring, &kind) in track.rings.iter_mut().zip(&track.kinds) {
-                let life = style.trail(kind).life_s;
+                let life = style.life(kind);
                 while ring.front().is_some_and(|s| t - s.t >= life) {
                     ring.pop_front();
                 }

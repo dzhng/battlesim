@@ -469,8 +469,22 @@
           "trail": 0.7
         }
       },
-      "engine_trail": { "albedo": [0.8, 0.8, 0.78], "opacity": [0, 0.09], "life_s": 2, "width_m": [0.5, 2.5], "fade_in_s": 0.03 },
-      "wingtip_trail": { "albedo": [0.95, 0.95, 0.95], "opacity": [0, 0.8], "life_s": 0.3, "width_m": [0.25, 1.2], "fade_in_s": 0.03, "taper": 3.5, "breakup": { "amount": 0.75, "length_m": 6 } },
+      "engine_style": "realistic",
+      "engine_styles": {
+        "realistic": [
+          { "albedo": [0.42, 0.38, 0.33], "opacity": [0, 0.22], "reheat": 0.1, "life_s": 0.45, "width_m": [0.5, 1.6], "fade_in_s": 0.02, "breakup": { "amount": 0.5, "length_m": 3 } },
+          { "albedo": [0.96, 0.96, 0.95], "opacity": [0, 0.32], "reheat": 0.08, "life_s": 2.2, "width_m": [0.4, 3.2], "fade_in_s": 0.25, "taper": 2.2, "breakup": { "amount": 0.55, "length_m": 9 } }
+        ],
+        "white_core": [
+          { "albedo": [0.95, 0.95, 0.94], "opacity": [0, 0.3], "reheat": 0.1, "life_s": 2.4, "width_m": [0.8, 4], "fade_in_s": 0.12, "breakup": { "amount": 0.45, "length_m": 10 } },
+          { "albedo": [0.28, 0.27, 0.26], "opacity": [0, 0.2], "reheat": 0.45, "life_s": 1.0, "width_m": [0.3, 1.4], "fade_in_s": 0.03, "taper": 2.5, "breakup": { "amount": 0.5, "length_m": 5 } }
+        ],
+        "dramatic": [
+          { "albedo": [0.9, 0.9, 0.88], "opacity": [0, 0.35], "reheat": 0.1, "life_s": 3, "width_m": [1, 6], "fade_in_s": 0.1, "breakup": { "amount": 0.7, "length_m": 12 } },
+          { "albedo": [0.06, 0.06, 0.06], "opacity": [0.1, 0.55], "reheat": 0.25, "life_s": 2.4, "width_m": [0.6, 3.5], "fade_in_s": 0.03, "breakup": { "amount": 0.6, "length_m": 7 } }
+        ]
+      },
+      "wingtip_trail": { "albedo": [0.95, 0.95, 0.95], "opacity": [0, 0.8], "life_s": 0.3, "width_m": [0.25, 1.2], "fade_in_s": 0.03, "taper": 3.5, "breakup": { "amount": 1, "length_m": 6 } },
       "airframes": {
       "us_f_22_raptor_f_22a": {
         "engine": "afterburning_turbofan",

@@ -205,7 +205,15 @@ read from how its published flight bends (a tight turn, a pull-up), so level
 flight never vapours however fast it flies, and the vapour forms with
 hysteresis and thins over a second or two once the pull ends. It is drawn as
 short wisps: thin at the tip, tapering fast, broken by noise fixed where the
-vapour formed, so the wisps hang in the air rather than slide. Glows sit
+vapour formed, so the wisps hang in the air rather than slide. How the
+engines trail is a choice in the data, `jet_exhaust.engine_style`, naming one
+of `jet_exhaust.engine_styles`: each a list of layers laid from the same points
+behind each nozzle and drawn in order. The shipped looks are `realistic` (the
+default: a short grey-brown haze off the nozzle fading into a white
+condensation trail), `white_core` (a white trail round a darker smoky core
+that thickens with throttle and afterburner) and `dramatic` (dense black and
+white smoke, an artistic look modern fighters do not make). The haze is drawn
+smoke, not refraction: nothing bends the picture behind a jet. Glows sit
 on the drawn model; trails are laid tick by tick where the publications put
 it, from emitters placed as its model was last drawn, so they are the same at
 any frame rate and a replay framed mid-flight shows them whole. A gap or a jump

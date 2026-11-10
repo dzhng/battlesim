@@ -44,7 +44,12 @@ pub struct JetExhaustStyle {
     pub vapour: VapourLook,
     /// Each engine kind's look.
     pub engines: BTreeMap<String, EngineLook>,
-    pub engine_trail: TrailLook,
+    /// The engine trails drawn: one of `engine_styles`.
+    pub engine_style: String,
+    /// Looks the engines' trails can take, each one or more layers laid
+    /// from the same points behind each nozzle (a haze, a condensation
+    /// trail, a smoky core), drawn in their order.
+    pub engine_styles: BTreeMap<String, Vec<TrailLook>>,
     pub wingtip_trail: TrailLook,
     /// Each jet appearance's engines and wingtips.
     pub airframes: BTreeMap<String, Airframe>,
@@ -129,6 +134,9 @@ pub struct TrailLook {
     /// share of its life left to this power.
     #[serde(default = "square")]
     pub taper: f64,
+    /// Its added opacity at full afterburner (an engine's).
+    #[serde(default)]
+    pub reheat: f64,
     /// Vapour broken into wisps rather than one even ribbon.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub breakup: Option<Breakup>,
@@ -201,10 +209,28 @@ impl JetExhaustStyle {
                     .into(),
             );
         }
-        for (name, t) in [
-            ("engine_trail", &self.engine_trail),
-            ("wingtip_trail", &self.wingtip_trail),
-        ] {
+        let Some(layers) = self.engine_styles.get(&self.engine_style) else {
+            return fail(format!(
+                "engine_style: no engine_styles.{}",
+                self.engine_style
+            ));
+        };
+        if layers.is_empty() {
+            return fail(format!(
+                "engine_styles.{}: needs a layer",
+                self.engine_style
+            ));
+        }
+        let looks = self
+            .engine_styles
+            .iter()
+            .flat_map(|(name, layers)| {
+                layers
+                    .iter()
+                    .map(move |t| (format!("engine_styles.{name}"), t))
+            })
+            .chain([("wingtip_trail".to_string(), &self.wingtip_trail)]);
+        for (name, t) in looks {
             let opaque = t.opacity.iter().all(|o| (0.0..=1.0).contains(o));
             let broken = t
                 .breakup
@@ -215,9 +241,10 @@ impl JetExhaustStyle {
                 || !opaque
                 || t.taper <= 0.0
                 || !broken
+                || !(0.0..=1.0).contains(&t.reheat)
             {
                 return fail(format!(
-                    "{name}: life_s, width_m and taper must be positive, width_m must not narrow, opacity in [0, 1], breakup amount in [0, 1] over a positive length_m"
+                    "{name}: life_s, width_m and taper must be positive, width_m must not narrow, opacity and reheat in [0, 1], breakup amount in [0, 1] over a positive length_m"
                 ));
             }
         }
@@ -245,11 +272,23 @@ impl JetExhaustStyle {
         Ok(())
     }
 
-    fn trail(&self, kind: Emitter) -> &TrailLook {
+    /// The layers an emitter's trail is drawn in.
+    fn layers(&self, kind: Emitter) -> &[TrailLook] {
         match kind {
-            Emitter::Nozzle { .. } => &self.engine_trail,
-            Emitter::Wingtip => &self.wingtip_trail,
+            Emitter::Nozzle { .. } => self
+                .engine_styles
+                .get(&self.engine_style)
+                .map_or(&[], Vec::as_slice),
+            Emitter::Wingtip => std::slice::from_ref(&self.wingtip_trail),
         }
+    }
+
+    /// How long an emitter's trail is kept: its longest layer's life, s.
+    fn life(&self, kind: Emitter) -> f64 {
+        self.layers(kind)
+            .iter()
+            .map(|t| t.life_s)
+            .fold(0.0, f64::max)
     }
 }
 
@@ -311,17 +350,9 @@ impl JetTrails {
                     Emitter::Wingtip => 1.0,
                 };
                 let head = t.heads.get(i).copied().filter(|_| seen);
-                draw_ring(
-                    style,
-                    style.trail(kind),
-                    ring,
-                    head,
-                    scale,
-                    clock,
-                    drift,
-                    min_px,
-                    batch,
-                );
+                for layer in style.layers(kind) {
+                    draw_ring(style, layer, ring, head, scale, clock, drift, min_px, batch);
+                }
             }
         }
         for t in self.tracks.iter().filter(now) {
@@ -362,9 +393,13 @@ fn draw_ring(
         let age = (age_a + age_b) / 2.0;
         let x = (age / look.life_s).min(1.0);
         let strength = (a.strength + b.strength) / 2.0;
+        let reheat = (a.reheat + b.reheat) / 2.0;
         let fade_in = smooth(age / look.fade_in_s.max(1e-6));
         let opacity = scale
-            * (look.opacity[0] + (look.opacity[1] - look.opacity[0]) * strength)
+            * (look.opacity[0]
+                + (look.opacity[1] - look.opacity[0]) * strength
+                + look.reheat * reheat)
+                .min(1.0)
             * fade_in
             * libm::pow(1.0 - x, look.taper);
         if opacity <= 1e-4 {
