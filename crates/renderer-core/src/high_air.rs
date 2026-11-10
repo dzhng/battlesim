@@ -1,7 +1,9 @@
 //! High air over the finished world and page overlays. Spent world colour,
 //! fog mask and depth targets serve again; only the transparent output is new.
+//! The plane is made with the frame's targets and made again with them.
 use wgpu::*;
 
+use crate::effects::EffectsResources;
 use crate::environment::Environment;
 use crate::fog::{Fog, Layer};
 use crate::models::{Models, Surface};
@@ -17,6 +19,13 @@ pub struct HighAir {
     surfaces: [(Bound, Surface); 3],
     glass: Bound,
     cards: Bound,
+    effects: RenderPipeline,
+    /// The frame's targets it draws through (`Targets`).
+    depth: TextureView,
+    hdr_msaa: TextureView,
+    hdr: TextureView,
+    fog_mask_msaa: TextureView,
+    fog_mask: TextureView,
 }
 
 impl HighAir {
@@ -49,6 +58,12 @@ impl HighAir {
             ],
             glass: pipelines.bound("modelBlended"),
             cards: pipelines.bound("modelCards"),
+            effects: pipelines.render("effectsHighPlane").clone(),
+            depth: targets.depth.clone(),
+            hdr_msaa: targets.hdr_msaa.clone(),
+            hdr: targets.hdr.clone(),
+            fog_mask_msaa: targets.fog_mask_msaa.clone(),
+            fog_mask: targets.fog_mask.clone(),
         }
     }
 
@@ -79,13 +94,17 @@ impl HighAir {
 
     /// Encode after world post and overlay composition have consumed their
     /// targets. This depth starts empty: world geometry never hides high air.
+    /// The world's effects draw again over the models, soft against their
+    /// depth, as they would in one output: a jet's own nozzle glow and
+    /// flame, or smoke in front of it, stay over it. Weighted by the plane's
+    /// coverage, they add nothing off the models, where the world shows them.
     pub fn encode(
         &self,
         encoder: &mut CommandEncoder,
-        targets: &Targets,
         environment: &Environment,
         models: &Models,
         fog: &Fog,
+        effects: &EffectsResources,
         post: &PostResources,
     ) {
         if !models.has_high_meshes() {
@@ -96,7 +115,7 @@ impl HighAir {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("high-air-depth"),
                 depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
-                    view: &targets.depth,
+                    view: &self.depth,
                     depth_ops: Some(Operations {
                         load: LoadOp::Clear(0.0),
                         store: StoreOp::Store,
@@ -129,14 +148,14 @@ impl HighAir {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("high-air"),
                 color_attachments: &[
-                    attachment(&targets.hdr_msaa, Some(&targets.hdr)),
-                    attachment(&targets.fog_mask_msaa, None),
+                    attachment(&self.hdr_msaa, Some(&self.hdr)),
+                    attachment(&self.fog_mask_msaa, None),
                 ],
                 depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
-                    view: &targets.depth,
+                    view: &self.depth,
                     depth_ops: Some(Operations {
                         load: LoadOp::Load,
-                        store: StoreOp::Discard,
+                        store: StoreOp::Store,
                     }),
                     stencil_ops: None,
                 }),
@@ -166,6 +185,7 @@ impl HighAir {
             self.glass.set(&mut pass, &groups);
             models.draw_high_air(&mut pass, Surface::Blended);
         }
+        effects.encode_over(encoder, &self.effects, &self.hdr, &self.fog_mask);
         post.encode_high_plane(encoder, &self.output);
     }
 

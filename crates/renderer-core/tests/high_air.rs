@@ -1,5 +1,6 @@
 //! Separate high air preserves model lighting, premultiplied coverage and its
-//! own depth while the single-output client still draws it with the world.
+//! own depth while the single-output client still draws it with the world,
+//! and keeps the world's effects in front of its models over them.
 mod support;
 
 use presentation::light::LightSettings;
@@ -8,7 +9,9 @@ use presentation::records::{
     VIEW_PASS,
 };
 use presentation::shadow::SunShadowFrame;
+use presentation::view::{Camera as Eye, View as Framed};
 use renderer_core::bundle::{Bundle, BundleSource, Coverage, Draw, Material, Mesh, Node, Shape};
+use renderer_core::effects::{EffectSheets, EffectsResources};
 use renderer_core::environment::Environment;
 use renderer_core::fog::Fog;
 use renderer_core::high_air::HighAir;
@@ -199,9 +202,18 @@ fn world_pixels(gpu: &support::Gpu, targets: &Targets, models: &Models) -> Vec<[
     read(&gpu.device, &gpu.queue, &targets.display_texture, encoder)
 }
 
-#[test]
-fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
-    let gpu = support::gpu().expect("real GPU");
+/// What a high-air frame draws with, seen as `view` and `camera`.
+struct Stage {
+    pipelines: pipelines::Pipelines,
+    targets: Targets,
+    environment: Environment,
+    fog: Fog,
+    post: post::PostResources,
+    models: Models,
+    effects: EffectsResources,
+}
+
+fn stage(gpu: &support::Gpu, view: &View, camera: &Camera) -> Stage {
     let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
     let targets = Targets::new(&gpu.device, SIZE);
     let game: serde_json::Value =
@@ -226,21 +238,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         &light.aerial(),
         &shadow,
     );
-    environment.prepare(
-        &gpu.queue,
-        &View {
-            view: IDENTITY,
-            projection: IDENTITY,
-            eye: [0., 0., 1., 0.],
-            ..Default::default()
-        },
-        &Camera {
-            view_proj: IDENTITY,
-            width: SIZE[0] as f32,
-            height: SIZE[1] as f32,
-            ..Default::default()
-        },
-    );
+    environment.prepare(&gpu.queue, view, camera);
     let fog = Fog::new(&gpu.device, &gpu.queue, &pipelines, &targets);
     let post = post::new(
         &gpu.device,
@@ -256,7 +254,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         lies: NONE,
         ..Default::default()
     }];
-    let mut models = Models::from_world(
+    let models = Models::from_world(
         &gpu.device,
         &gpu.queue,
         &pipelines,
@@ -267,6 +265,61 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         |_, _| None,
     )
     .unwrap();
+    // No sheet shape is drawn here; the atlas only has to exist.
+    let mut png = vec![];
+    {
+        let mut encoder = ::png::Encoder::new(&mut png, 4, 4);
+        encoder.set_color(::png::ColorType::Rgba);
+        encoder.set_depth(::png::BitDepth::Eight);
+        let mut writer = encoder.write_header().unwrap();
+        writer.write_image_data(&[0; 64]).unwrap();
+    }
+    let sheets = Arc::new(EffectSheets::decode(4, &[&png]).unwrap());
+    let effects = EffectsResources::new(
+        &gpu.device,
+        &gpu.queue,
+        &pipelines,
+        &targets,
+        &environment,
+        sheets,
+    );
+    Stage {
+        pipelines,
+        targets,
+        environment,
+        fog,
+        post,
+        models,
+        effects,
+    }
+}
+
+#[test]
+fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
+    let gpu = support::gpu().expect("real GPU");
+    let Stage {
+        pipelines,
+        targets,
+        environment,
+        fog,
+        post,
+        mut models,
+        effects,
+    } = stage(
+        &gpu,
+        &View {
+            view: IDENTITY,
+            projection: IDENTITY,
+            eye: [0., 0., 1., 0.],
+            ..Default::default()
+        },
+        &Camera {
+            view_proj: IDENTITY,
+            width: SIZE[0] as f32,
+            height: SIZE[1] as f32,
+            ..Default::default()
+        },
+    );
     models.set_high_apart(true);
     prepare(&mut models, &gpu, true);
     assert_eq!(
@@ -312,7 +365,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
         models.draw(&mut pass, Surface::Solid);
     }
     post.encode(&mut encoder, post::PostMode::Look);
-    high.encode(&mut encoder, &targets, &environment, &models, &fog, &post);
+    high.encode(&mut encoder, &environment, &models, &fog, &effects, &post);
     let pixels = read(&gpu.device, &gpu.queue, high.texture(), encoder);
     let submitted = models.submissions.snapshot();
     assert_eq!(submitted.depth.models_including_props.triangles, 1);
@@ -351,7 +404,7 @@ fn high_air_has_separate_depth_premultiplied_grade_and_clears_stale_output() {
     );
     prepare(&mut models, &gpu, false);
     let mut encoder = gpu.device.create_command_encoder(&Default::default());
-    high.encode(&mut encoder, &targets, &environment, &models, &fog, &post);
+    high.encode(&mut encoder, &environment, &models, &fog, &effects, &post);
     let pixels = read(&gpu.device, &gpu.queue, high.texture(), encoder);
     assert!(
         pixels.iter().all(|pixel| *pixel == [0; 4]),
@@ -479,5 +532,78 @@ fn model_suppression_preserves_static_props_and_buildings() {
             .models_including_props
             .triangles,
         2
+    );
+}
+
+/// A jet's nozzle glow in front of the jet stays over it in the separate
+/// high-air output, as it does when one output draws both; a glow behind the
+/// jet stays hidden, and none shows where the plane has no model.
+#[test]
+fn effects_in_front_of_high_air_stay_over_it() {
+    let gpu = support::gpu().expect("real GPU");
+    // Looking straight down on the high-air model (+x of the world one).
+    let eye = Eye {
+        eye: [0.5, 0., 4.],
+        target: [0.5, 0., 0.],
+        up: [0., 1., 0.],
+        fov_y: 0.6,
+        near: 0.1,
+        size: SIZE,
+    };
+    let framed = Framed::new(&eye);
+    let Stage {
+        pipelines,
+        targets,
+        environment,
+        fog,
+        post,
+        mut models,
+        mut effects,
+    } = stage(&gpu, &framed.record(&eye), &framed.camera(&eye, 0.));
+    models.set_high_apart(true);
+    prepare(&mut models, &gpu, true);
+    let high = HighAir::new(&gpu.device, &pipelines, &targets);
+    // Glows (shape 1): middle and radius, turn and least size, light.
+    let glow = |at: [f32; 3]| {
+        [
+            at[0], at[1], at[2], 0.15, 0., 0., 0., 0., 6., 3., 1., 0., 1., 0., 0., 0.,
+        ]
+    };
+    let mut frame = |glows: &[[f32; 3]]| {
+        let records: Vec<f32> = glows.iter().flat_map(|&at| glow(at)).collect();
+        effects.prepare(&gpu.device, &gpu.queue, bytemuck::cast_slice(&records));
+        let mut encoder = gpu.device.create_command_encoder(&Default::default());
+        post.encode(&mut encoder, post::PostMode::Look);
+        high.encode(&mut encoder, &environment, &models, &fog, &effects, &post);
+        read(&gpu.device, &gpu.queue, high.texture(), encoder)
+    };
+    let middle = (SIZE[1] / 2 * SIZE[0] + SIZE[0] / 2) as usize;
+    // 0.8 m to the side at the front glow's distance: off every model.
+    let aside = (SIZE[1] / 2 * SIZE[0] + SIZE[0] / 2 + 27) as usize;
+    let bare = frame(&[]);
+    assert_eq!(bare[middle][3], 255, "the high-air model is in the middle");
+    assert_eq!(bare[aside], [0; 4], "nothing beside it");
+    let front = frame(&[[0.5, 0., 1.], [1.3, 0., 1.]]);
+    let light = |p: [u8; 4]| p[..3].iter().map(|&v| u32::from(v)).sum::<u32>();
+    assert!(
+        light(front[middle]) > light(bare[middle]) + 60,
+        "a glow in front of the model is covered by it: {:?} vs {:?}",
+        front[middle],
+        bare[middle]
+    );
+    assert_eq!(front[middle][3], 255);
+    assert_eq!(
+        front[aside], [0; 4],
+        "a glow off the model drew into the plane"
+    );
+    let behind = frame(&[[0.5, 0., -0.5]]);
+    assert!(
+        behind[middle]
+            .iter()
+            .zip(&bare[middle])
+            .all(|(a, b)| a.abs_diff(*b) <= 1),
+        "a glow behind the model shows through it: {:?} vs {:?}",
+        behind[middle],
+        bare[middle]
     );
 }

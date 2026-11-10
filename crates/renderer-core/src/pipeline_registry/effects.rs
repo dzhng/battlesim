@@ -258,60 +258,68 @@ pub fn all() -> Vec<PipelineSpec> {
             Some(vertex(None, vec![])),
             Some(fragment(None, vec![target(OVERLAY_FORMAT)])),
         ),
-        render(
-            "effects",
-            "effects.wgsl",
-            vec!["effects"],
-            Some(vertex(
-                Some("spriteVertex"),
-                vec![buffer(
-                    64,
-                    VertexStepMode::Instance,
-                    vec![
-                        attr(VertexFormat::Float32x4, 0, 0),
-                        attr(VertexFormat::Float32x4, 16, 1),
-                        attr(VertexFormat::Float32x4, 32, 2),
-                        attr(VertexFormat::Float32x4, 48, 3),
-                    ],
-                )],
-            )),
-            Some(fragment(
-                Some("spriteFragment"),
-                vec![
-                    target_with(
-                        HDR_FORMAT,
-                        Some(BlendState {
-                            color: BlendComponent {
-                                src_factor: BlendFactor::One,
-                                dst_factor: BlendFactor::OneMinusSrcAlpha,
-                                operation: BlendOperation::Add,
-                            },
-                            alpha: BlendComponent {
-                                src_factor: BlendFactor::Zero,
-                                dst_factor: BlendFactor::One,
-                                operation: BlendOperation::Add,
-                            },
-                        }),
-                        0xf,
-                    ),
-                    target_with(
-                        FOG_MASK_FORMAT,
-                        Some(BlendState {
-                            color: BlendComponent {
-                                src_factor: BlendFactor::Zero,
-                                dst_factor: BlendFactor::OneMinusSrcAlpha,
-                                operation: BlendOperation::Add,
-                            },
-                            alpha: BlendComponent {
-                                src_factor: BlendFactor::Zero,
-                                dst_factor: BlendFactor::One,
-                                operation: BlendOperation::Add,
-                            },
-                        }),
-                        0x3,
-                    ),
-                ],
-            )),
-        ),
+        sprites("effects", BlendFactor::One),
+        // Over the separate high-air plane: weighted by its coverage, so its
+        // premultiplied colour gains an effect only where its models are.
+        sprites("effectsHighPlane", BlendFactor::DstAlpha),
     ]
+}
+
+/// The effect sprites, their light added (or blended over) by `colour`.
+fn sprites(name: &'static str, colour: BlendFactor) -> PipelineSpec {
+    render(
+        name,
+        "effects.wgsl",
+        vec!["effects"],
+        Some(vertex(
+            Some("spriteVertex"),
+            vec![buffer(
+                64,
+                VertexStepMode::Instance,
+                vec![
+                    attr(VertexFormat::Float32x4, 0, 0),
+                    attr(VertexFormat::Float32x4, 16, 1),
+                    attr(VertexFormat::Float32x4, 32, 2),
+                    attr(VertexFormat::Float32x4, 48, 3),
+                ],
+            )],
+        )),
+        Some(fragment(
+            Some("spriteFragment"),
+            vec![
+                target_with(
+                    HDR_FORMAT,
+                    Some(BlendState {
+                        color: BlendComponent {
+                            src_factor: colour,
+                            dst_factor: BlendFactor::OneMinusSrcAlpha,
+                            operation: BlendOperation::Add,
+                        },
+                        alpha: BlendComponent {
+                            src_factor: BlendFactor::Zero,
+                            dst_factor: BlendFactor::One,
+                            operation: BlendOperation::Add,
+                        },
+                    }),
+                    0xf,
+                ),
+                target_with(
+                    FOG_MASK_FORMAT,
+                    Some(BlendState {
+                        color: BlendComponent {
+                            src_factor: BlendFactor::Zero,
+                            dst_factor: BlendFactor::OneMinusSrcAlpha,
+                            operation: BlendOperation::Add,
+                        },
+                        alpha: BlendComponent {
+                            src_factor: BlendFactor::Zero,
+                            dst_factor: BlendFactor::One,
+                            operation: BlendOperation::Add,
+                        },
+                    }),
+                    0x3,
+                ),
+            ],
+        )),
+    )
 }

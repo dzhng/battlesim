@@ -314,10 +314,10 @@ impl FrameRenderer {
             if inputs.frame_view == FrameView::Final {
                 high_air.encode(
                     encoder,
-                    inputs.targets,
                     inputs.environment,
                     inputs.models,
                     inputs.fog,
+                    inputs.effects,
                     inputs.post,
                 );
             } else {
