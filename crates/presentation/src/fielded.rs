@@ -510,6 +510,10 @@ fn unit_types(
                     Mobility::Air { turn_deg_s, .. } => Some(turn_deg_s.to_radians()),
                     _ => None,
                 },
+                "cruiseMps": match mobility(t)? {
+                    Mobility::Air { cruise_kmh, .. } => Some(cruise_kmh / 3.6),
+                    _ => None,
+                },
                 "roles": roles,
                 "mounts": mount_rows,
                 "draws": draws,

@@ -133,6 +133,10 @@ pub struct UnitType {
     /// on the ground.
     #[serde(default)]
     pub turn_rad_s: Option<f64>,
+    /// An aircraft's cruise speed, m/s (its mobility's `cruise_kmh`): its
+    /// engines' throttle reads its drawn speed against it. None on the ground.
+    #[serde(default)]
+    pub cruise_mps: Option<f64>,
     pub roles: Vec<String>,
     pub mounts: Vec<TypeMount>,
     pub draws: BTreeMap<String, Draws>,

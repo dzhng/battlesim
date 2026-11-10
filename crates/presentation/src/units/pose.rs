@@ -76,6 +76,8 @@ pub struct VehiclePose {
     pub yaw: f64,
     /// It flies: its rotors turn, and nothing it has rolls.
     pub airborne: bool,
+    /// A downed airframe falling: its engines are out.
+    pub downed: bool,
     pub articulation: Articulation,
     /// Its rigid motion in its own frame about its foot, column-major: an
     /// aircraft's lean (`FeedUnit::attitude`, or into its flight), or a hull

@@ -73,8 +73,10 @@ calls the same reader for workbench drafts.
   the flashes, the firing soldiers and the gunfire sounds read), the effect frame,
   the cast lights it chooses for the view, cook-offs, and the sparks a hull
   throws where it grinds a metal body it shoves (the simulation publishes
-  where they meet), and the sparks and dust a downed airframe throws off a
-  building it strikes (the simulation publishes each strike once).
+  where they meet), the sparks and dust a downed airframe throws off a
+  building it strikes (the simulation publishes each strike once), and
+  [jets' exhaust](src/effects/exhaust.rs): engine glow, afterburner flame and
+  engine and wingtip trails, from the drawn models alone.
 - [The view](src/view.rs): what the camera means for culling and detail, the one
   tier rule every drawn model takes and the tier it casts with, and the
   frame's `View` record (with the sky's corner rays) and camera uniform,
@@ -187,6 +189,21 @@ carries the drawn muzzle. A flying aircraft's rotor is drawn by the effects from
 same drawn pose, as a film camera's shutter sees it: each blade smeared over the
 angle it turned while the shutter was open, so a fast rotor blurs at any frame
 rate and a paused one shows its blades.
+
+A running jet glows in every nozzle and leaves its engines' and wingtips'
+trails, as a war film shows a jet: visual only, read from the drawn model, so
+it never touches the simulation. Where its nozzles and wingtips are is data on
+its appearance (`presentation.effects.jet_exhaust.airframes`), in its model's
+own frame, because the baked art keeps no node for them; its engine kind names
+a look, and only a look with a `flame` ever burns, so a high-bypass turbofan
+like the A-10's only glows. Its throttle is its drawn speed against its type's
+cruise: brighter the faster, with the afterburner's flame and shock diamonds
+past cruise (the simulation's afterburner is the only thing that flies it
+there). Wingtip vapour thickens with load, its bank in a turn. Trails are
+sampled on the presentation clock, not per frame, so they look the same at any
+frame rate; a paused clock holds them, a rewind clears them, a jump breaks
+them, a downed or vanished jet's fade out, and they hold at most `max_jets`
+tracks of one trail life each.
 
 An aircraft's shadow follows its altitude layer, never what kind of aircraft
 it is. A low-air one casts its real shadow along the sun. From the high-air

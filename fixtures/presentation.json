@@ -441,6 +441,94 @@
     },
     "rotor_blur": { "albedo": 0.03, "shutter": 0.2, "hub_share": 0.07, "min_chord_px": 2.5, "disc": 0.1 },
     "high_air_shadow": { "opacity": 0.7, "fade_half_m": 400, "blur_m": 0.5, "blur_per_m": 0.01, "ground_band_m": 0.6 },
+    "jet_exhaust": {
+      "sample_hz": 20,
+      "max_jets": 16,
+      "break_mps": 1500,
+      "max_gap_s": 0.5,
+      "speed_smoothing_s": 0.4,
+      "reheat_share": [1.08, 1.4],
+      "vapour_load": [1.05, 1.6],
+      "engines": {
+        "afterburning_turbofan": {
+          "glow": { "color": [1.0, 0.42, 0.12], "intensity": [1.5, 6], "reheat_intensity": 10, "radius": 2.2, "min_px": 1.5 },
+          "flame": {
+            "color": [1.0, 0.42, 0.13],
+            "core_color": [1.0, 0.78, 0.5],
+            "intensity": 9,
+            "core_intensity": 22,
+            "length": 9,
+            "width": 1.7,
+            "diamonds": 3,
+            "diamond_intensity": 14,
+            "flicker": 0.12
+          },
+          "trail": 1
+        },
+        "high_bypass_turbofan": {
+          "glow": { "color": [1.0, 0.3, 0.1], "intensity": [0.2, 0.9], "reheat_intensity": 0, "radius": 1.6, "min_px": 0 },
+          "trail": 0.7
+        }
+      },
+      "engine_trail": { "albedo": [0.8, 0.8, 0.78], "opacity": [0, 0.12], "life_s": 3, "width_m": [0.7, 6], "fade_in_s": 0.12 },
+      "wingtip_trail": { "albedo": [0.95, 0.95, 0.95], "opacity": [0.06, 0.4], "life_s": 2, "width_m": [0.25, 2.2], "fade_in_s": 0.05 },
+      "airframes": {
+      "us_f_22_raptor_f_22a": {
+        "engine": "afterburning_turbofan",
+        "nozzles": [
+          { "at": [-8.3, 0.6, 1.8], "radius_m": 0.3 },
+          { "at": [-8.3, -0.6, 1.8], "radius_m": 0.3 }
+        ],
+        "wingtips": [{ "at": [-3.2, 6.75, 2.05] }, { "at": [-3.2, -6.75, 2.05] }]
+      },
+      "us_f_35_lightning_ii_f_35b": {
+        "engine": "afterburning_turbofan",
+        "nozzles": [
+          { "at": [-7.25, 0, 2.0], "radius_m": 0.55 }
+        ],
+        "wingtips": [{ "at": [-2.85, 5.33, 1.95] }, { "at": [-2.85, -5.33, 1.95] }]
+      },
+      "f_35a": {
+        "engine": "afterburning_turbofan",
+        "nozzles": [
+          { "at": [-7.15, 0, 2.0], "radius_m": 0.55 }
+        ],
+        "wingtips": [{ "at": [-2.9, 5.33, 1.98] }, { "at": [-2.9, -5.33, 1.98] }]
+      },
+      "us_f_a_18_super_hornet_f_a_18e": {
+        "engine": "afterburning_turbofan",
+        "nozzles": [
+          { "at": [-8.63, 0.45, 1.96], "radius_m": 0.46 },
+          { "at": [-8.63, -0.45, 1.96], "radius_m": 0.46 }
+        ],
+        "wingtips": [{ "at": [-4.34, 6.84, 2.08] }, { "at": [-4.34, -6.84, 2.08] }]
+      },
+      "europe_eurofighter_typhoon_tranche_3": {
+        "engine": "afterburning_turbofan",
+        "nozzles": [
+          { "at": [-6.85, 0.43, 1.65], "radius_m": 0.42 },
+          { "at": [-6.85, -0.43, 1.65], "radius_m": 0.42 }
+        ],
+        "wingtips": [{ "at": [-3.04, 5.5, 1.36] }, { "at": [-3.04, -5.5, 1.36] }]
+      },
+      "eastern_su_57_felon_stealth_multirole_fighter": {
+        "engine": "afterburning_turbofan",
+        "nozzles": [
+          { "at": [-8.9, 1.27, 1.96], "radius_m": 0.38 },
+          { "at": [-8.9, -1.27, 1.96], "radius_m": 0.38 }
+        ],
+        "wingtips": [{ "at": [-4.53, 7.04, 2.06] }, { "at": [-4.53, -7.04, 2.06] }]
+      },
+      "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed": {
+        "engine": "high_bypass_turbofan",
+        "nozzles": [
+          { "at": [-4.87, 1.5, 3.28], "radius_m": 0.44 },
+          { "at": [-4.87, -1.5, 3.28], "radius_m": 0.44 }
+        ],
+        "wingtips": [{ "at": [-1.15, 8.75, 1.72] }, { "at": [-1.15, -8.75, 1.72] }]
+      }
+      }
+    },
     "damage_smoke": {
       "albedo": [0.08, 0.078, 0.075],
       "opacity": 0.45,

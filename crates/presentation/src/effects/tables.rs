@@ -7,6 +7,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::cook_off::CookOffFeel;
+use super::exhaust::{JetExhaustStyle, SIGNED};
 use super::high_air_shadow::HighAirShadowStyle;
 use crate::world::Vec3;
 
@@ -59,6 +60,10 @@ pub struct EffectPresentation {
     pub rotor_blur: RotorBlurStyle,
     /// The shadow beneath a high-air aircraft.
     pub high_air_shadow: HighAirShadowStyle,
+    /// Jets' engine glow and flame, and their engine and wingtip trails;
+    /// none where absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jet_exhaust: Option<JetExhaustStyle>,
     /// Smoke sources' looks by kind; a kind without one draws nothing.
     pub smoke: HashMap<String, Arc<SmokeSourceStyle>>,
     /// Instances every smoke source together may hold; past it each thins alike.
@@ -354,8 +359,18 @@ impl EffectPresentation {
         crate::settings::validate::numbers(
             self,
             "presentation.effects",
-            &[".forward_m", ".spin_turns", ".up_m"],
+            &[
+                ".forward_m",
+                ".spin_turns",
+                ".up_m",
+                SIGNED[0],
+                SIGNED[1],
+                SIGNED[2],
+            ],
         )?;
+        if let Some(jets) = &self.jet_exhaust {
+            jets.check()?;
+        }
         ensure(self.capacity > 0, || "capacity must be positive".into())?;
         for (name, spacing) in [("dust", self.dust.spacing_m), ("wake", self.wake.spacing_m)] {
             ensure(spacing > 0.0, || {
