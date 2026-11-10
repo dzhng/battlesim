@@ -1,0 +1,174 @@
+{
+ "off": {
+  "intervals": {
+   "n": 1420,
+   "median_ms": 22.4691665,
+   "p95_nearest_rank_ms": 26.989875
+  },
+  "meanDrawn": [
+   {
+    "corpses": 0.0,
+    "effects": 6.0,
+    "instanceBytes": 12107849.0,
+    "pieces": 16151.0,
+    "props": 8885.0,
+    "scenery": 35959.0,
+    "soldiers": 0.0,
+    "triangles": 1880343.0,
+    "vehicles": 6.0
+   },
+   {
+    "corpses": 0.0,
+    "effects": 6.0,
+    "instanceBytes": 12107849.0,
+    "pieces": 16151.0,
+    "props": 8885.0,
+    "scenery": 35959.0,
+    "soldiers": 0.0,
+    "triangles": 1880343.0,
+    "vehicles": 6.0
+   },
+   {
+    "corpses": 0.0,
+    "effects": 6.0,
+    "instanceBytes": 12107849.0,
+    "pieces": 16151.0,
+    "props": 8885.0,
+    "scenery": 35959.0,
+    "soldiers": 0.0,
+    "triangles": 1880343.0,
+    "vehicles": 6.0
+   },
+   {
+    "corpses": 0.0,
+    "effects": 6.0,
+    "instanceBytes": 12107849.0,
+    "pieces": 16151.0,
+    "props": 8885.0,
+    "scenery": 35959.0,
+    "soldiers": 0.0,
+    "triangles": 1880343.0,
+    "vehicles": 6.0
+   },
+   {
+    "corpses": 0.0,
+    "effects": 6.0,
+    "instanceBytes": 12107849.0,
+    "pieces": 16151.0,
+    "props": 8885.0,
+    "scenery": 35959.0,
+    "soldiers": 0.0,
+    "triangles": 1880343.0,
+    "vehicles": 6.0
+   }
+  ],
+  "gpuCoverage": [
+   {
+    "expected": 284,
+    "measured": 284
+   },
+   {
+    "expected": 284,
+    "measured": 284
+   },
+   {
+    "expected": 284,
+    "measured": 284
+   },
+   {
+    "expected": 284,
+    "measured": 284
+   },
+   {
+    "expected": 284,
+    "measured": 284
+   }
+  ]
+ },
+ "C": {
+  "intervals": {
+   "n": 1420,
+   "median_ms": 22.806292,
+   "p95_nearest_rank_ms": 27.280124999999998
+  },
+  "meanDrawn": [
+   {
+    "corpses": 0.0,
+    "effects": 2132.0,
+    "instanceBytes": 12107849.0,
+    "pieces": 16151.0,
+    "props": 8885.0,
+    "scenery": 35959.0,
+    "soldiers": 0.0,
+    "triangles": 1880343.0,
+    "vehicles": 6.0
+   },
+   {
+    "corpses": 0.0,
+    "effects": 2132.0,
+    "instanceBytes": 12107849.0,
+    "pieces": 16151.0,
+    "props": 8885.0,
+    "scenery": 35959.0,
+    "soldiers": 0.0,
+    "triangles": 1880343.0,
+    "vehicles": 6.0
+   },
+   {
+    "corpses": 0.0,
+    "effects": 2132.0,
+    "instanceBytes": 12107849.0,
+    "pieces": 16151.0,
+    "props": 8885.0,
+    "scenery": 35959.0,
+    "soldiers": 0.0,
+    "triangles": 1880343.0,
+    "vehicles": 6.0
+   },
+   {
+    "corpses": 0.0,
+    "effects": 2132.0,
+    "instanceBytes": 12107849.0,
+    "pieces": 16151.0,
+    "props": 8885.0,
+    "scenery": 35959.0,
+    "soldiers": 0.0,
+    "triangles": 1880343.0,
+    "vehicles": 6.0
+   },
+   {
+    "corpses": 0.0,
+    "effects": 2132.0,
+    "instanceBytes": 12107849.0,
+    "pieces": 16151.0,
+    "props": 8885.0,
+    "scenery": 35959.0,
+    "soldiers": 0.0,
+    "triangles": 1880343.0,
+    "vehicles": 6.0
+   }
+  ],
+  "gpuCoverage": [
+   {
+    "expected": 284,
+    "measured": 284
+   },
+   {
+    "expected": 284,
+    "measured": 284
+   },
+   {
+    "expected": 284,
+    "measured": 284
+   },
+   {
+    "expected": 284,
+    "measured": 284
+   },
+   {
+    "expected": 284,
+    "measured": 284
+   }
+  ]
+ }
+}

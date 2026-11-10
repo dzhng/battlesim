@@ -1,0 +1,20 @@
+{
+  "feature_head": "8eaf7a59b299739261854e84e886d99ce36c0afe",
+  "binary_sha256": "b55d3da5d8954bc55d4104281361a80754e861db2520b8f26aef63c4ef8542f8",
+  "render": "proof-plume3; A/B frozen; C retained as permitted",
+  "file_sha256": {
+    "CHECKS.md": "b1df0421545796f77f4afc1a54b50a9e5ac8b07bcbb92ef2299708b3fc2b0051",
+    "critique.md": "0639c6579ec7026c6978e6a67a8b254ed1cbd07e3062d39055e1df2e470710a4",
+    "invariant-audit.json": "5e498326aef01757c2374a3782af4c3b1e90b3b4ffe58cd054172ce95e1f3254",
+    "level-no-wingtip.png": "8b38464c684f49d9ee8c0ce87926994cf79e9f54b97485bb12889262e002fd54",
+    "performance-C.json": "40dee187d4fb4dc2d073b6d87d70e37f31e0dcfd549f96547fbb63dc43a27039",
+    "performance-conditions.json": "558af7901d57f7317abe7da12edb30cb9dfd8fee7d00ce19845dfd5ce5685f2d",
+    "performance-provenance.json": "5547f14c522d5b2b970c74885da711c13ff0281b528bf9c3c6fcd576028a0066",
+    "turn-strip.png": "a885eca56c6f63860662928106b34373b0c2cc63303ef790d0baf1484bb09f79",
+    "variant-A.mp4": "7c823d980090387c6a3c0cdd343218131c542b3f4b36f4f91b49e1aa7f265288",
+    "variant-B.mp4": "bd8f8d4d12115cb54ed8381f78b23304ff94a290aa00308fa879a5f597a77293",
+    "variant-C.mp4": "d701f2c4f2e019457338f49fc81c7350111330cf03c74d6a5fbcda70eae49040",
+    "variants-closeup.png": "ff13037b9263b91476868b6a5e7e61ce764f4bf42328a3dda913f490c0c6917f",
+    "variants-strip.png": "45bc78388023a5c33e66098306a6c8802553f497fbb0b99dd7c87e6dc9b59ccf"
+  }
+}

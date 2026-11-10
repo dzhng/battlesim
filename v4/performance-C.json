@@ -1,0 +1,483 @@
+{
+  "framing": {
+    "original": {
+      "capture_sha256": "6ed5e420a0e0f223f6569f6233cc6d71b51bb2da1ce387db8b2bc15b5c3db63b",
+      "prefix_sha256": "c579f40d9302ac504e2c6eb195fad9958b47f83f5a87e4313c29f42493091d3e"
+    },
+    "copy": {
+      "capture_sha256": "ac8f757012c85cb58cc203a7e82040b8aea69dda82640e0aad26394c6ec2982b",
+      "prefix_sha256": "c579f40d9302ac504e2c6eb195fad9958b47f83f5a87e4313c29f42493091d3e"
+    },
+    "changed_frame_keys": [
+      "eye",
+      "target",
+      "up"
+    ],
+    "rig": {
+      "distance_m": 220.0,
+      "pitch_rad": 0.35,
+      "side_rad": -0.8,
+      "heading_tau_s": 0.9,
+      "target_z_m": 80.0
+    },
+    "records": 345,
+    "timed_records": [
+      60,
+      343
+    ],
+    "timed_simTime": [
+      5.943238332894643,
+      11.041088333161673
+    ],
+    "timed_worst_ndc_with_12m_margin": 0.7853478981607301,
+    "timed_near_far_m": [
+      136.65354835570952,
+      270.34935167061803
+    ]
+  },
+  "off": {
+    "runs": [
+      {
+        "pair": 1,
+        "file": ".jet-fx-local/work/v4-final-benchview/off/1/native-market-town-1794341175909.json",
+        "viewport": {
+          "height": 1080,
+          "width": 1920
+        },
+        "warmupFrames": 60,
+        "gpuCoverage": {
+          "expected": 284,
+          "measured": 284
+        },
+        "cpu": {
+          "n": 284,
+          "median": 6.705,
+          "mean": 6.087719077464788,
+          "p95": 8.423
+        },
+        "gpu": {
+          "n": 284,
+          "median": 14.0225625,
+          "mean": 14.324446894366197,
+          "p95": 17.118458
+        }
+      },
+      {
+        "pair": 2,
+        "file": ".jet-fx-local/work/v4-final-benchview/off/2/native-market-town-1794341209971.json",
+        "viewport": {
+          "height": 1080,
+          "width": 1920
+        },
+        "warmupFrames": 60,
+        "gpuCoverage": {
+          "expected": 284,
+          "measured": 284
+        },
+        "cpu": {
+          "n": 284,
+          "median": 6.6741665,
+          "mean": 6.005819725352113,
+          "p95": 8.093042
+        },
+        "gpu": {
+          "n": 284,
+          "median": 14.017396,
+          "mean": 14.321928147887323,
+          "p95": 17.140334
+        }
+      },
+      {
+        "pair": 3,
+        "file": ".jet-fx-local/work/v4-final-benchview/off/3/native-market-town-1794341244163.json",
+        "viewport": {
+          "height": 1080,
+          "width": 1920
+        },
+        "warmupFrames": 60,
+        "gpuCoverage": {
+          "expected": 284,
+          "measured": 284
+        },
+        "cpu": {
+          "n": 284,
+          "median": 6.6735415,
+          "mean": 6.0093483028169015,
+          "p95": 8.124209
+        },
+        "gpu": {
+          "n": 284,
+          "median": 14.009000499999999,
+          "mean": 14.31982232746479,
+          "p95": 17.083042
+        }
+      },
+      {
+        "pair": 4,
+        "file": ".jet-fx-local/work/v4-final-benchview/off/4/native-market-town-1794341278481.json",
+        "viewport": {
+          "height": 1080,
+          "width": 1920
+        },
+        "warmupFrames": 60,
+        "gpuCoverage": {
+          "expected": 284,
+          "measured": 284
+        },
+        "cpu": {
+          "n": 284,
+          "median": 6.692125000000001,
+          "mean": 6.022183542253521,
+          "p95": 8.153584
+        },
+        "gpu": {
+          "n": 284,
+          "median": 14.0538335,
+          "mean": 14.329347697183097,
+          "p95": 17.121
+        }
+      },
+      {
+        "pair": 5,
+        "file": ".jet-fx-local/work/v4-final-benchview/off/5/native-market-town-1794341312816.json",
+        "viewport": {
+          "height": 1080,
+          "width": 1920
+        },
+        "warmupFrames": 60,
+        "gpuCoverage": {
+          "expected": 284,
+          "measured": 284
+        },
+        "cpu": {
+          "n": 284,
+          "median": 6.7265,
+          "mean": 6.0095630633802815,
+          "p95": 8.155333
+        },
+        "gpu": {
+          "n": 284,
+          "median": 14.041229000000001,
+          "mean": 14.327406714788733,
+          "p95": 17.128834
+        }
+      }
+    ],
+    "pooled": {
+      "cpu": {
+        "n": 1420,
+        "median": 6.7052915,
+        "mean": 6.02692674225352,
+        "p95": 8.2325
+      },
+      "gpu": {
+        "n": 1420,
+        "median": 14.0220005,
+        "mean": 14.324590356338028,
+        "p95": 17.137208
+      },
+      "phases_median": {
+        "encode": 0.0954795,
+        "frame": 2.3740620000000003,
+        "prepare": 3.2782289999999996,
+        "submit": 0.7344165
+      }
+    },
+    "run_medians": {
+      "cpu": [
+        6.705,
+        6.6741665,
+        6.6735415,
+        6.692125000000001,
+        6.7265
+      ],
+      "gpu": [
+        14.0225625,
+        14.017396,
+        14.009000499999999,
+        14.0538335,
+        14.041229000000001
+      ]
+    },
+    "run_p95s": {
+      "cpu": [
+        8.423,
+        8.093042,
+        8.124209,
+        8.153584,
+        8.155333
+      ],
+      "gpu": [
+        17.118458,
+        17.140334,
+        17.083042,
+        17.121,
+        17.128834
+      ]
+    },
+    "spread_of_run_medians_ms": {
+      "cpu": 0.05295849999999991,
+      "gpu": 0.04483300000000057
+    }
+  },
+  "on": {
+    "runs": [
+      {
+        "pair": 1,
+        "file": ".jet-fx-local/work/v4-final-benchview/on/1/native-market-town-1794341192960.json",
+        "viewport": {
+          "height": 1080,
+          "width": 1920
+        },
+        "warmupFrames": 60,
+        "gpuCoverage": {
+          "expected": 284,
+          "measured": 284
+        },
+        "cpu": {
+          "n": 284,
+          "median": 6.783291999999999,
+          "mean": 6.114551633802817,
+          "p95": 8.249125
+        },
+        "gpu": {
+          "n": 284,
+          "median": 14.280521,
+          "mean": 14.588577482394365,
+          "p95": 17.380584
+        }
+      },
+      {
+        "pair": 2,
+        "file": ".jet-fx-local/work/v4-final-benchview/on/2/native-market-town-1794341227116.json",
+        "viewport": {
+          "height": 1080,
+          "width": 1920
+        },
+        "warmupFrames": 60,
+        "gpuCoverage": {
+          "expected": 284,
+          "measured": 284
+        },
+        "cpu": {
+          "n": 284,
+          "median": 6.717083000000001,
+          "mean": 6.098034207746479,
+          "p95": 8.213583999999999
+        },
+        "gpu": {
+          "n": 284,
+          "median": 14.290833,
+          "mean": 14.591080404929576,
+          "p95": 17.325583
+        }
+      },
+      {
+        "pair": 3,
+        "file": ".jet-fx-local/work/v4-final-benchview/on/3/native-market-town-1794341261399.json",
+        "viewport": {
+          "height": 1080,
+          "width": 1920
+        },
+        "warmupFrames": 60,
+        "gpuCoverage": {
+          "expected": 284,
+          "measured": 284
+        },
+        "cpu": {
+          "n": 284,
+          "median": 6.8317499999999995,
+          "mean": 6.198743830985916,
+          "p95": 8.311791000000001
+        },
+        "gpu": {
+          "n": 284,
+          "median": 14.285375,
+          "mean": 14.601378792253522,
+          "p95": 17.390125
+        }
+      },
+      {
+        "pair": 4,
+        "file": ".jet-fx-local/work/v4-final-benchview/on/4/native-market-town-1794341295712.json",
+        "viewport": {
+          "height": 1080,
+          "width": 1920
+        },
+        "warmupFrames": 60,
+        "gpuCoverage": {
+          "expected": 284,
+          "measured": 284
+        },
+        "cpu": {
+          "n": 284,
+          "median": 6.8726455,
+          "mean": 6.159664457746479,
+          "p95": 8.267834
+        },
+        "gpu": {
+          "n": 284,
+          "median": 14.3008955,
+          "mean": 14.597137626760562,
+          "p95": 17.353
+        }
+      },
+      {
+        "pair": 5,
+        "file": ".jet-fx-local/work/v4-final-benchview/on/5/native-market-town-1794341330073.json",
+        "viewport": {
+          "height": 1080,
+          "width": 1920
+        },
+        "warmupFrames": 60,
+        "gpuCoverage": {
+          "expected": 284,
+          "measured": 284
+        },
+        "cpu": {
+          "n": 284,
+          "median": 6.8379995000000005,
+          "mean": 6.171941190140846,
+          "p95": 8.322917
+        },
+        "gpu": {
+          "n": 284,
+          "median": 14.2719375,
+          "mean": 14.59353123943662,
+          "p95": 17.353542
+        }
+      }
+    ],
+    "pooled": {
+      "cpu": {
+        "n": 1420,
+        "median": 6.821146000000001,
+        "mean": 6.148587064084507,
+        "p95": 8.288167000000001
+      },
+      "gpu": {
+        "n": 1420,
+        "median": 14.281458,
+        "mean": 14.594341109154929,
+        "p95": 17.391541
+      },
+      "phases_median": {
+        "encode": 0.095292,
+        "frame": 2.481396,
+        "prepare": 3.300271,
+        "submit": 0.7366035
+      }
+    },
+    "run_medians": {
+      "cpu": [
+        6.783291999999999,
+        6.717083000000001,
+        6.8317499999999995,
+        6.8726455,
+        6.8379995000000005
+      ],
+      "gpu": [
+        14.280521,
+        14.290833,
+        14.285375,
+        14.3008955,
+        14.2719375
+      ]
+    },
+    "run_p95s": {
+      "cpu": [
+        8.249125,
+        8.213583999999999,
+        8.311791000000001,
+        8.267834,
+        8.322917
+      ],
+      "gpu": [
+        17.380584,
+        17.325583,
+        17.390125,
+        17.353,
+        17.353542
+      ]
+    },
+    "spread_of_run_medians_ms": {
+      "cpu": 0.15556249999999938,
+      "gpu": 0.028957999999999373
+    }
+  },
+  "pairs_on_minus_off": [
+    {
+      "pair": 1,
+      "cpu_median_delta_ms": 0.07829199999999936,
+      "cpu_p95_delta_ms": -0.17387500000000067,
+      "gpu_median_delta_ms": 0.25795850000000087,
+      "gpu_p95_delta_ms": 0.2621259999999985
+    },
+    {
+      "pair": 2,
+      "cpu_median_delta_ms": 0.04291650000000047,
+      "cpu_p95_delta_ms": 0.1205419999999986,
+      "gpu_median_delta_ms": 0.2734369999999995,
+      "gpu_p95_delta_ms": 0.18524900000000244
+    },
+    {
+      "pair": 3,
+      "cpu_median_delta_ms": 0.15820849999999975,
+      "cpu_p95_delta_ms": 0.1875820000000008,
+      "gpu_median_delta_ms": 0.2763745000000011,
+      "gpu_p95_delta_ms": 0.3070830000000022
+    },
+    {
+      "pair": 4,
+      "cpu_median_delta_ms": 0.1805204999999992,
+      "cpu_p95_delta_ms": 0.11425000000000018,
+      "gpu_median_delta_ms": 0.24706199999999967,
+      "gpu_p95_delta_ms": 0.23200000000000287
+    },
+    {
+      "pair": 5,
+      "cpu_median_delta_ms": 0.11149950000000075,
+      "cpu_p95_delta_ms": 0.16758399999999973,
+      "gpu_median_delta_ms": 0.23070849999999865,
+      "gpu_p95_delta_ms": 0.22470799999999969
+    }
+  ],
+  "delta_on_minus_off": {
+    "pooled": {
+      "cpu_median_ms": 0.1158545000000002,
+      "cpu_p95_ms": 0.055667000000001465,
+      "gpu_median_ms": 0.2594574999999999,
+      "gpu_p95_ms": 0.25433299999999903
+    },
+    "median_of_pair_deltas": {
+      "cpu_median_delta_ms": 0.11149950000000075,
+      "cpu_p95_delta_ms": 0.1205419999999986,
+      "gpu_median_delta_ms": 0.25795850000000087,
+      "gpu_p95_delta_ms": 0.23200000000000287
+    },
+    "range_of_pair_deltas": {
+      "cpu_median_delta_ms": [
+        0.04291650000000047,
+        0.1805204999999992
+      ],
+      "cpu_p95_delta_ms": [
+        -0.17387500000000067,
+        0.1875820000000008
+      ],
+      "gpu_median_delta_ms": [
+        0.23070849999999865,
+        0.2763745000000011
+      ],
+      "gpu_p95_delta_ms": [
+        0.18524900000000244,
+        0.3070830000000022
+      ]
+    },
+    "phases_median_ms": {
+      "encode": -0.00018749999999999323,
+      "frame": 0.10733399999999982,
+      "prepare": 0.02204200000000034,
+      "submit": 0.002186999999999939
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "baseline": "017773c74bdd84e03e9c319c85ff480313b250c1",
+  "head": "8eaf7a59b299739261854e84e886d99ce36c0afe",
+  "at_dubai": "2026-11-11T00:10:00.105585+04:00",
+  "checks": {
+    "style.wingtip_trail": true,
+    "style.vapour": true,
+    "style.speed_window_s": true,
+    "style.reheat_share": true,
+    "style.engines": true,
+    "style.airframes": true,
+    "crates/presentation/src/effects/batch.rs::wisp": true,
+    "crates/presentation/src/effects/exhaust.rs::draw_nozzle": true,
+    "crates/presentation/src/effects/exhaust/trails.rs::load": true,
+    "crates/presentation/src/effects/exhaust/trails.rs::vapour": true,
+    "crates/presentation/src/effects/exhaust/trails.rs::heat": true,
+    "original_wisp_fragment_body_byte_identical": true,
+    "plume_flag_excludes_valid_wing_amounts": true,
+    "nonplume_vertex_reduces_exactly_to_original_tokens": true,
+    "wing_track_file_unchanged": true
+  },
+  "all_ok": true,
+  "tracked_status": "",
+  "changed_files_vs_baseline": [
+    "crates/presentation/README.md",
+    "crates/presentation/src/effects/batch.rs",
+    "crates/presentation/src/effects/exhaust.rs",
+    "crates/presentation/tests/jet_engine_looks.rs",
+    "crates/presentation/tests/jet_exhaust.rs",
+    "crates/presentation/tests/jets/mod.rs",
+    "crates/renderer-core/src/shaders/modules/effects.wgsl",
+    "crates/renderer-core/src/shaders/modules/passes_effects.wgsl",
+    "crates/renderer-core/src/shaders/pipeline_sources.txt",
+    "crates/renderer-core/tests/effect_smoke_shade.rs",
+    "crates/renderer-core/tests/effect_wisps.rs",
+    "crates/renderer-core/tests/high_air.rs",
+    "crates/renderer-core/tests/support/effects.rs",
+    "fixtures/presentation.json"
+  ]
+}

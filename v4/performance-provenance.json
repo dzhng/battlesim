@@ -1,0 +1,10 @@
+{
+ "source_commit": "8eaf7a59b299739261854e84e886d99ce36c0afe",
+ "binary_sha256": "b55d3da5d8954bc55d4104281361a80754e861db2520b8f26aef63c4ef8542f8",
+ "binary_note": "built from the same source before a test-only file split (no shipped-code difference)",
+ "engine_styles_sha256": "04b43a67c387aadabd6cefee7b5eaf4849222ca94bd7608a93144e4579ea7703",
+ "comparator": "whole jet_exhaust removed (off) vs engine_style dramatic (C)",
+ "run": ".jet-fx-local/v2/six-onscreen/run, camera-only copy, publications byte-identical",
+ "worst_ndc_timed": 0.7853478981607301,
+ "protocol": "5 alternating off/C pairs, 60 warm-up, 284 timed frames each, both GPU locks, no cargo/ffmpeg"
+}
