@@ -203,7 +203,9 @@ past cruise (the simulation's afterburner is the only thing that flies it
 there). Its wingtips leave vapour only while its wings pull hard: the load is
 read from how its published flight bends (a tight turn, a pull-up), so level
 flight never vapours however fast it flies, and the vapour forms with
-hysteresis and thins over a second or two once the pull ends. Glows sit
+hysteresis and thins over a second or two once the pull ends. It is drawn as
+short wisps: thin at the tip, tapering fast, broken by noise fixed where the
+vapour formed, so the wisps hang in the air rather than slide. Glows sit
 on the drawn model; trails are laid tick by tick where the publications put
 it, from emitters placed as its model was last drawn, so they are the same at
 any frame rate and a replay framed mid-flight shows them whole. A gap or a jump
