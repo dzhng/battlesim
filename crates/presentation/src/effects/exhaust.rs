@@ -125,6 +125,28 @@ pub struct TrailLook {
     pub width_m: [f64; 2],
     /// It thickens from nothing over this, s.
     pub fade_in_s: f64,
+    /// How sharply it thins toward its end: its opacity falls as the
+    /// share of its life left to this power.
+    #[serde(default = "square")]
+    pub taper: f64,
+    /// Vapour broken into wisps rather than one even ribbon.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub breakup: Option<Breakup>,
+}
+
+/// How a trail breaks into wisps: anchored where it was laid, so the wisps
+/// hang in the air as it ages rather than sliding along it.
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Breakup {
+    /// How much of it the gaps take away, 0 to 1.
+    pub amount: f64,
+    /// About how long one wisp is, m.
+    pub length_m: f64,
+}
+
+fn square() -> f64 {
+    2.0
 }
 
 /// One jet appearance: its engine kind, and where its nozzles and wingtips
@@ -184,9 +206,18 @@ impl JetExhaustStyle {
             ("wingtip_trail", &self.wingtip_trail),
         ] {
             let opaque = t.opacity.iter().all(|o| (0.0..=1.0).contains(o));
-            if t.life_s <= 0.0 || t.width_m[0] <= 0.0 || t.width_m[1] < t.width_m[0] || !opaque {
+            let broken = t
+                .breakup
+                .is_none_or(|b| (0.0..=1.0).contains(&b.amount) && b.length_m > 0.0);
+            if t.life_s <= 0.0
+                || t.width_m[0] <= 0.0
+                || t.width_m[1] < t.width_m[0]
+                || !opaque
+                || t.taper <= 0.0
+                || !broken
+            {
                 return fail(format!(
-                    "{name}: life_s and width_m must be positive, width_m must not narrow, opacity in [0, 1]"
+                    "{name}: life_s, width_m and taper must be positive, width_m must not narrow, opacity in [0, 1], breakup amount in [0, 1] over a positive length_m"
                 ));
             }
         }
@@ -335,20 +366,25 @@ fn draw_ring(
         let opacity = scale
             * (look.opacity[0] + (look.opacity[1] - look.opacity[0]) * strength)
             * fade_in
-            * (1.0 - x)
-            * (1.0 - x);
+            * libm::pow(1.0 - x, look.taper);
         if opacity <= 1e-4 {
             return;
         }
         let width = look.width_m[0] + (look.width_m[1] - look.width_m[0]) * x.sqrt();
-        batch.ribbon(
-            point(a.p, age_a),
-            point(b.p, age_b),
-            width,
-            min_px,
-            look.albedo,
-            opacity,
-        );
+        let (a_at, b_at) = (point(a.p, age_a), point(b.p, age_b));
+        match look.breakup {
+            Some(w) => batch.wisp(
+                a_at,
+                b_at,
+                width,
+                min_px,
+                look.albedo,
+                opacity,
+                [a.along / w.length_m, b.along / w.length_m],
+                w.amount,
+            ),
+            None => batch.ribbon(a_at, b_at, width, min_px, look.albedo, opacity),
+        }
     };
     let mut prev: Option<Sample> = None;
     for &s in ring.iter().take_while(|s| s.t <= clock) {
@@ -364,6 +400,7 @@ fn draw_ring(
                 t: clock,
                 p: head,
                 joined: true,
+                along: p.along + distance(p.p, head),
                 ..p
             };
             piece(p, head);

@@ -1,25 +1,23 @@
 //! Separate high air preserves model lighting, premultiplied coverage and its
 //! own depth while the single-output client still draws it with the world,
 //! and keeps the world's effects in front of its models over them.
+#[path = "support/effects.rs"]
+mod effects;
 mod support;
 
-use presentation::light::LightSettings;
 use presentation::records::{
     Appearance, Batch, Camera, Instance as ModelInstance, Joint, View, FOG_UNITS, HIGH_PASS, NONE,
     VIEW_PASS,
 };
-use presentation::shadow::SunShadowFrame;
 use presentation::view::{Camera as Eye, View as Framed};
 use renderer_core::bundle::{Bundle, BundleSource, Coverage, Draw, Material, Mesh, Node, Shape};
-use renderer_core::effects::{EffectSheets, EffectsResources};
+use renderer_core::effects::EffectsResources;
 use renderer_core::environment::Environment;
 use renderer_core::fog::Fog;
 use renderer_core::high_air::HighAir;
 use renderer_core::models::{Models, Surface};
 use renderer_core::pipelines;
 use renderer_core::post;
-use renderer_core::shadow::ShadowResources;
-use renderer_core::sky::Sky;
 use renderer_core::Targets;
 use std::sync::Arc;
 use wgpu::*;
@@ -214,31 +212,7 @@ struct Stage {
 }
 
 fn stage(gpu: &support::Gpu, view: &View, camera: &Camera) -> Stage {
-    let pipelines = pipelines::build_builtin(&gpu.device).unwrap();
-    let targets = Targets::new(&gpu.device, SIZE);
-    let game: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/presentation.json")).unwrap();
-    let mut light: LightSettings = serde_json::from_value(game["light"].clone()).unwrap();
-    light.bloom.strength = 0.;
-    let cold = SunShadowFrame::cold(&light);
-    let shadow = ShadowResources::new(
-        &gpu.device,
-        &gpu.queue,
-        &pipelines,
-        16,
-        bytemuck::bytes_of(&cold.receiver),
-    );
-    let sky = Sky::new(&gpu.device, &gpu.queue, &pipelines, &light.sky());
-    let mut environment = Environment::new(
-        &gpu.device,
-        &gpu.queue,
-        &pipelines,
-        &sky.lut,
-        &light.sun(),
-        &light.aerial(),
-        &shadow,
-    );
-    environment.prepare(&gpu.queue, view, camera);
+    let (pipelines, targets, environment, effects, light) = effects::stage(gpu, SIZE, view, camera);
     let fog = Fog::new(&gpu.device, &gpu.queue, &pipelines, &targets);
     let post = post::new(
         &gpu.device,
@@ -265,24 +239,6 @@ fn stage(gpu: &support::Gpu, view: &View, camera: &Camera) -> Stage {
         |_, _| None,
     )
     .unwrap();
-    // No sheet shape is drawn here; the atlas only has to exist.
-    let mut png = vec![];
-    {
-        let mut encoder = ::png::Encoder::new(&mut png, 4, 4);
-        encoder.set_color(::png::ColorType::Rgba);
-        encoder.set_depth(::png::BitDepth::Eight);
-        let mut writer = encoder.write_header().unwrap();
-        writer.write_image_data(&[0; 64]).unwrap();
-    }
-    let sheets = Arc::new(EffectSheets::decode(4, &[&png]).unwrap());
-    let effects = EffectsResources::new(
-        &gpu.device,
-        &gpu.queue,
-        &pipelines,
-        &targets,
-        &environment,
-        sheets,
-    );
     Stage {
         pipelines,
         targets,

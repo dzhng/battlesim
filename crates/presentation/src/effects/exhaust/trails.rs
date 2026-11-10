@@ -40,14 +40,16 @@ struct Body {
 /// Gravity, m/s²: level flight's load is 1.
 const G: f64 = 9.81;
 
-/// A point of one emitter's trail: when it was laid, where, how strong, and
-/// whether it joins the point before it.
+/// A point of one emitter's trail: when it was laid, where, how strong,
+/// whether it joins the point before it, and how far along its trail it
+/// lies, m (where its wisps are).
 #[derive(Clone, Copy, Debug)]
 pub(super) struct Sample {
     pub t: f64,
     pub p: Vec3,
     pub strength: f64,
     pub joined: bool,
+    pub along: f64,
 }
 
 /// One aircraft: its published history and, once drawn, its jet.
@@ -175,13 +177,18 @@ impl Track {
         let (s, c) = libm::sincos(body.yaw);
         for ((ring, kind), d) in self.rings.iter_mut().zip(&self.kinds).zip(&self.local) {
             let joined = body.joined && ring.back().is_some_and(|last| last.t < body.t);
+            let p = [
+                body.at[0] + d[0] * c - d[1] * s,
+                body.at[1] + d[0] * s + d[1] * c,
+                body.at[2] + d[2],
+            ];
+            let along = ring.back().map_or(0.0, |last| {
+                last.along + if joined { distance(last.p, p) } else { 0.0 }
+            });
             ring.push_back(Sample {
                 t: body.t,
-                p: [
-                    body.at[0] + d[0] * c - d[1] * s,
-                    body.at[1] + d[0] * s + d[1] * c,
-                    body.at[2] + d[2],
-                ],
+                p,
+                along,
                 strength: match kind {
                     Emitter::Nozzle { .. } => heat,
                     Emitter::Wingtip => body.vapour,

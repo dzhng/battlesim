@@ -20,8 +20,15 @@
   if (shape == 0u && f.color.a > 0.0) {
     // A smoke ribbon: thick through its middle, thinning to its edges.
     let across = f.uv.y * f.uv.y;
-    let cover = exp(-across * 2.0) * (1.0 - across)
+    var cover = exp(-across * 2.0) * (1.0 - across)
       * clamp(gap / max(f.extra.z, 1e-3), 0.0, 1.0);
+    // A wisp (misc.w its breakup): broken along and across by noise fixed
+    // where it was laid (along, in wisps), so it hangs still as it ages.
+    if (f.misc.w > 0.0) {
+      let at = vec2f(f.along, f.uv.y * 1.3);
+      let n = valueNoise(at) * 0.65 + valueNoise(at * 2.3 + vec2f(5.2, 1.7)) * 0.35;
+      cover *= mix(1.0, smoothstep(0.3, 0.7, n), f.misc.w);
+    }
     alpha = f.color.a * cover;
     rgb = f.color.rgb * smokeLight(f, f.offset) * alpha;
   } else if (shape == 0u) {

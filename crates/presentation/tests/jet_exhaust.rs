@@ -47,14 +47,27 @@ fn style() -> Value {
 }
 
 fn frame() -> EffectFrame {
+    frame_with(style())
+}
+
+fn frame_with(style: Value) -> EffectFrame {
     let at = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/fixtures/effect-vectors.json"
     );
     let v: Value = serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap();
     let mut p = v["presentation"].clone();
-    p["jet_exhaust"] = style();
+    p["jet_exhaust"] = style;
     EffectFrame::new(TICK_HZ, EffectPresentation::from_value(&p).unwrap())
+}
+
+/// The test style with short, thin, sharply tapered wingtip wisps.
+fn wispy() -> Value {
+    let mut s = style();
+    s["wingtip_trail"] = json!({"albedo": [TIP_ALBEDO, TIP_ALBEDO, TIP_ALBEDO], "opacity": [0.0, 0.6],
+        "life_s": 0.4, "width_m": [0.1, 0.8], "fade_in_s": 0.08, "taper": 3,
+        "breakup": {"amount": 0.85, "length_m": 4}});
+    s
 }
 
 /// One aircraft at a moment: its key, where it is and its heading.
@@ -541,4 +554,119 @@ fn a_trail_widens_and_fades_toward_its_end() {
     let (old, young) = (r[0], r[half - 4]);
     assert!(old[3] > young[3], "wider far behind");
     assert!(old[11] < young[11], "fainter far behind");
+}
+
+/// Each frame's wingtip vapour at the jet (the thickest stretch ending
+/// within a metre of a wingtip), over a hard turn between level flight,
+/// drawn half a tick past each tick so a stretch reaches every wingtip.
+fn vapour_at_the_wingtips(mut f: EffectFrame) -> Vec<(f64, f32)> {
+    let rate = |t: f64| {
+        if (1.0..2.5).contains(&t) {
+            rate_for(CRUISE, 3.0)
+        } else {
+            0.0
+        }
+    };
+    let flight = along(turning(CRUISE, rate));
+    let mut noted = 0u32;
+    let mut out = Vec::new();
+    for k in 0..(5.0 * TICK_HZ) as u32 {
+        let t = (f64::from(k) + 0.5) / TICK_HZ;
+        while f64::from(noted) / TICK_HZ <= t + 1e-9 {
+            f.note(&publ(noted, &flight(f64::from(noted) / TICK_HZ)));
+            noted += 1;
+        }
+        let jets = flight(t);
+        let d = draw(&mut f, t, &jets);
+        let tips: Vec<[f64; 3]> = drawn_jet(&jets[0])
+            .emitters
+            .iter()
+            .filter(|e| e.0 == Emitter::Wingtip)
+            .map(|e| e.1)
+            .collect();
+        let near = |r: &&Vec<f32>| {
+            tips.iter().any(|w| {
+                (0..3)
+                    .map(|i| (f64::from(r[4 + i]) - w[i]).powi(2))
+                    .sum::<f64>()
+                    < 1.0
+            })
+        };
+        let head = ribbons(&d, TIP_ALBEDO)
+            .into_iter()
+            .filter(near)
+            .map(|r| r[11])
+            .fold(0.0, f32::max);
+        out.push((t, head));
+    }
+    out
+}
+
+#[test]
+fn how_the_wingtip_vapour_looks_never_moves_when_it_forms_or_stops() {
+    // The same flight under the plain look and the short, wispy one.
+    let plain = vapour_at_the_wingtips(frame());
+    let wispy = vapour_at_the_wingtips(frame_with(wispy()));
+    let level = plain.iter().zip(&wispy).filter(|(p, _)| p.0 < 1.0);
+    for ((t, a), (_, b)) in level {
+        assert!(*a == 0.0 && *b == 0.0, "none before the turn, at {t}");
+    }
+    // Where it forms it is one envelope under either look: at the jet each
+    // frame, the two looks differ by the same factor.
+    let shared: Vec<f64> = plain
+        .iter()
+        .zip(&wispy)
+        .filter(|(p, _)| p.1 > 1e-3)
+        .map(|(p, w)| f64::from(w.1) / f64::from(p.1))
+        .collect();
+    assert!(shared.len() > 60, "vapour through the turn and its release");
+    for r in &shared {
+        assert!(
+            (r / shared[0] - 1.0).abs() < 1e-3,
+            "the wispy look's vapour forms and fades as the plain one's: {shared:?}"
+        );
+    }
+}
+
+#[test]
+fn wisps_hang_where_they_were_laid_without_seams_and_engines_stay_smooth() {
+    let rate = |_: f64| rate_for(CRUISE, 3.0);
+    let flight = along(turning(CRUISE, rate));
+    let mut f = frame_with(wispy());
+    let a = fly(&mut f, 60.0, 1.2, &flight, &flight);
+    let b = fly(&mut f, 60.0, 1.2 + 1.0 / 60.0, &flight, &flight);
+    let tips =
+        |d: &[Vec<f32>]| -> Vec<Vec<f32>> { ribbons(d, TIP_ALBEDO).into_iter().cloned().collect() };
+    let (a, b) = (tips(&a), tips(&b));
+    assert!(a.len() > 6, "a wingtip trail of several stretches");
+    // A wisp (misc.w) breaks up by its amount; its ends are fixed where laid.
+    for r in &a {
+        assert_eq!(r[15], 0.85, "a wingtip stretch is broken into wisps");
+    }
+    let mut kept = 0;
+    for r in &a {
+        if let Some(s) = b.iter().find(|s| s[..3] == r[..3] && s[4..7] == r[4..7]) {
+            assert_eq!(
+                s[13..15],
+                r[13..15],
+                "a stretch's wisps stay put as it ages"
+            );
+            kept += 1;
+        }
+    }
+    assert!(kept > 4, "the same stretches a frame later");
+    // Along each trail, one stretch's end is the next one's start.
+    for w in a.windows(2) {
+        if w[0][4..7] == w[1][..3] {
+            assert!(
+                (w[0][14] - w[1][13]).abs() < 1e-4,
+                "no seam between stretches"
+            );
+        }
+    }
+    // Engines leave the plain, even trail.
+    let flown = fly(&mut frame_with(wispy()), 60.0, 1.2, &flight, &flight);
+    for r in ribbons(&flown, ENGINE_ALBEDO) {
+        assert_eq!(r[15], 0.0, "an engine's trail is not broken into wisps");
+    }
 }

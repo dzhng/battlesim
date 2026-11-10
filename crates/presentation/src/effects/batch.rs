@@ -124,6 +124,25 @@ impl EffectBatch {
         self.put([v4(a, width), v4(b, min_px), v4(albedo, opacity), shape]);
     }
 
+    /// As `ribbon`, broken into wisps by `amount` (0 to 1): `along` is how
+    /// far along its trail each end lies, in wisps, so the gaps stay where
+    /// it was laid.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn wisp(
+        &mut self,
+        a: Vec3,
+        b: Vec3,
+        width: f64,
+        min_px: f64,
+        albedo: Vec3,
+        opacity: f64,
+        along: [f64; 2],
+        amount: f64,
+    ) {
+        let shape = [STREAK, along[0], along[1], amount];
+        self.put([v4(a, width), v4(b, min_px), v4(albedo, opacity), shape]);
+    }
+
     /// A flipbook sprite at p: `layer`'s (fractional) `frame` times `tint`,
     /// lifted by `emissive`, fading into what it meets over `soft_m`; `lit`:
     /// `tint` is an albedo the sun lights (smoke, dust), else fire's own colour.
