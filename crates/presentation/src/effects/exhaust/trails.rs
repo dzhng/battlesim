@@ -10,7 +10,15 @@
 //! after its history was taken (a replay framed mid-flight) lays its whole
 //! history at once. A gap in the publications or a jump past `break_mps`
 //! starts a new stretch; a downed or vanished jet lays nothing more and its
-//! trail fades out. At most `max_aircraft` aircraft are tracked, each holding no
+//! trail fades out.
+//!
+//! Wingtip vapour follows the load on the wings, read from the published
+//! flight: the lift that bends it off a straight line and holds it up,
+//! over its weight. Past `vapour.load[0]` it forms, `onset` thick and
+//! thicker the harder the pull; so a load hovering there does not flicker,
+//! it holds until the load falls below `off_load`. It thickens over
+//! `attack_s` and thins over `release_s`, tick by tick, and what was laid
+//! ages out as any trail does. At most `max_aircraft` aircraft are tracked, each holding no
 //! more than its longest trail's life; spent tracks keep their room.
 use std::collections::VecDeque;
 
@@ -18,15 +26,19 @@ use super::{distance, DrawnJet, Emitter, JetExhaustStyle};
 use crate::effects::publication::Shooter;
 use crate::world::Vec3;
 
-/// Where an aircraft was published at a tick, and whether that follows on
-/// from the tick before.
+/// Where an aircraft was published at a tick, whether that follows on from
+/// the tick before, and how thick its wingtip vapour was then.
 #[derive(Clone, Copy, Debug)]
 struct Body {
     t: f64,
     at: Vec3,
     yaw: f64,
     joined: bool,
+    vapour: f64,
 }
+
+/// Gravity, m/s²: level flight's load is 1.
+const G: f64 = 9.81;
 
 /// A point of one emitter's trail: when it was laid, where, how strong, and
 /// whether it joins the point before it.
@@ -49,7 +61,8 @@ pub(super) struct Track {
     pub engine: String,
     cruise_mps: f64,
     pub aft: Vec3,
-    load: f64,
+    /// Whether its wings are making vapour now (`vapour.load`, `off_load`).
+    vaporing: bool,
     pub kinds: Vec<Emitter>,
     /// Each emitter's offset from where the model stands, in its heading's
     /// frame (+x along it), leaning as last drawn.
@@ -76,6 +89,75 @@ impl Track {
         (newest.t > oldest.t).then(|| distance(newest.at, oldest.at) / (newest.t - oldest.t))
     }
 
+    /// The load on its wings at its newest pose, from its unbroken flight
+    /// over the last `window` s: what bends it off a straight line and
+    /// holds it up, across its way, over its weight. None without the
+    /// flight to read it from.
+    fn load(&self, window: f64) -> Option<f64> {
+        let c = *self.bodies.back()?;
+        if !c.joined {
+            return None;
+        }
+        let mut b = None;
+        let mut a = None;
+        for p in self.bodies.iter().rev().skip(1) {
+            if b.is_none() && c.t - p.t >= window / 2.0 {
+                b = Some(*p);
+            }
+            if b.is_some() && c.t - p.t >= window {
+                a = Some(*p);
+                break;
+            }
+            if !p.joined {
+                return None;
+            }
+        }
+        let (a, b) = (a?, b?);
+        let v = |p: &Body, q: &Body| {
+            let dt = q.t - p.t;
+            [0, 1, 2].map(|k| (q.at[k] - p.at[k]) / dt)
+        };
+        let (v0, v1) = (v(&a, &b), v(&b, &c));
+        let mid = (c.t - a.t) / 2.0;
+        // What holds it on this path: its acceleration, and up against
+        // gravity; along its way that is thrust and drag, across it lift.
+        let mut lift = [0, 1, 2].map(|k| (v1[k] - v0[k]) / mid);
+        lift[2] += G;
+        let way = v(&a, &c);
+        let speed = crate::world::length(way);
+        if speed < 1e-3 {
+            return None;
+        }
+        let along = (0..3).map(|k| lift[k] * way[k]).sum::<f64>() / speed;
+        let across = [0, 1, 2].map(|k| lift[k] - along * way[k] / speed);
+        Some(crate::world::length(across) / G)
+    }
+
+    /// Its wingtip vapour after its newest pose, `dt` after the one before:
+    /// formed and thinned with hysteresis, eased toward what its load makes.
+    fn vapour(&mut self, style: &JetExhaustStyle, dt: f64) -> f64 {
+        let v = &style.vapour;
+        let load = self.load(style.speed_window_s).unwrap_or(1.0);
+        if load >= v.load[0] {
+            self.vaporing = true;
+        } else if load < v.off_load {
+            self.vaporing = false;
+        }
+        let target = if self.vaporing {
+            v.onset + (1.0 - v.onset) * super::smooth((load - v.load[0]) / (v.load[1] - v.load[0]))
+        } else {
+            0.0
+        };
+        let was = self.bodies.iter().rev().nth(1).map_or(0.0, |b| b.vapour);
+        // Most of the way there in its time.
+        let time = if target > was {
+            v.attack_s
+        } else {
+            v.release_s
+        };
+        was + (target - was) * (1.0 - libm::exp(-3.0 * dt / time))
+    }
+
     /// Its throttle: speed over cruise, and how far into its afterburner.
     pub fn heat(&self, style: &JetExhaustStyle) -> (f64, f64) {
         let cruise = self.cruise_mps.max(1e-6);
@@ -90,8 +172,6 @@ impl Track {
     /// Lay a sample of every emitter where `body` puts it.
     fn lay(&mut self, body: &Body, style: &JetExhaustStyle) {
         let (heat, _) = self.heat(style);
-        let [from, full] = style.vapour_load;
-        let vapour = super::smooth((self.load - from) / (full - from));
         let (s, c) = libm::sincos(body.yaw);
         for ((ring, kind), d) in self.rings.iter_mut().zip(&self.kinds).zip(&self.local) {
             let joined = body.joined && ring.back().is_some_and(|last| last.t < body.t);
@@ -104,7 +184,7 @@ impl Track {
                 ],
                 strength: match kind {
                     Emitter::Nozzle { .. } => heat,
-                    Emitter::Wingtip => vapour,
+                    Emitter::Wingtip => body.vapour,
                 },
                 joined,
             });
@@ -141,6 +221,7 @@ impl JetTrails {
                 let mut t = self.spent.pop().unwrap_or_default();
                 t.key = key;
                 t.drawn = None;
+                t.vaporing = false;
                 t.bodies.clear();
                 t.kinds.clear();
                 t.rings.clear();
@@ -176,13 +257,17 @@ impl JetTrails {
                     (t - dt - b.t).abs() < dt * 0.5
                         && distance(b.at, s.position) <= style.break_mps * dt + 1.0
                 });
-            let body = Body {
+            track.bodies.push_back(Body {
                 t,
                 at: s.position,
                 yaw: s.yaw,
                 joined,
-            };
-            track.bodies.push_back(body);
+                vapour: 0.0,
+            });
+            let vapour = track.vapour(style, dt);
+            let body = track.bodies.back_mut().expect("just published");
+            body.vapour = vapour;
+            let body = *body;
             if track.drawn.is_some_and(|d| t - d <= style.max_gap_s) {
                 track.lay(&body, style);
             }
@@ -193,6 +278,7 @@ impl JetTrails {
             let track = &mut self.tracks[i];
             if !track.published {
                 track.bodies.clear();
+                track.vaporing = false;
             }
             while track.bodies.front().is_some_and(|b| t - b.t > life) {
                 track.bodies.pop_front();
@@ -227,7 +313,6 @@ impl JetTrails {
             track.engine.clone_from(&jet.engine);
             track.cruise_mps = jet.cruise_mps;
             track.aft = jet.aft;
-            track.load = jet.load;
             let (s, c) = libm::sincos(jet.yaw);
             track.heads.clear();
             track.local.clear();

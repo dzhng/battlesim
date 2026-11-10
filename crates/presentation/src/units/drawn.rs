@@ -316,8 +316,6 @@ impl DrawnModels {
                 at: v.position,
                 yaw: v.yaw,
                 aft: normalized(placed([0.0; 3], v.yaw, -m[0], -m[1], -m[2])),
-                // Its lift over its weight: its up's share of the vertical.
-                load: 1.0 / m[10].max(0.25),
                 cruise_mps,
                 emitters: nozzles.chain(tips).collect(),
             });

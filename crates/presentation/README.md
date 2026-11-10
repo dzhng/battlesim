@@ -76,7 +76,8 @@ calls the same reader for workbench drafts.
   where they meet), the sparks and dust a downed airframe throws off a
   building it strikes (the simulation publishes each strike once), and
   [jets' exhaust](src/effects/exhaust.rs): engine glow, afterburner flame and
-  engine and wingtip trails, from the drawn models alone.
+  engine trails and wingtip vapour, from the drawn models and their published
+  flight.
 - [The view](src/view.rs): what the camera means for culling and detail, the one
   tier rule every drawn model takes and the tier it casts with, and the
   frame's `View` record (with the sky's corner rays) and camera uniform,
@@ -199,7 +200,10 @@ only a look with a `flame` ever burns, so a high-bypass turbofan like the
 A-10's only glows. Its throttle is its published speed against its type's
 cruise: brighter the faster, with the afterburner's flame and shock diamonds
 past cruise (the simulation's afterburner is the only thing that flies it
-there). Wingtip vapour thickens with load, its drawn bank in a turn. Glows sit
+there). Its wingtips leave vapour only while its wings pull hard: the load is
+read from how its published flight bends (a tight turn, a pull-up), so level
+flight never vapours however fast it flies, and the vapour forms with
+hysteresis and thins over a second or two once the pull ends. Glows sit
 on the drawn model; trails are laid tick by tick where the publications put
 it, from emitters placed as its model was last drawn, so they are the same at
 any frame rate and a replay framed mid-flight shows them whole. A gap or a jump

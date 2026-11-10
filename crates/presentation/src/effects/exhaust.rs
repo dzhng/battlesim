@@ -1,14 +1,16 @@
 //! A jet's engines and wings as a film shows them: each nozzle's hot glow,
 //! brighter the faster it flies, with an afterburner's flame and shock
 //! diamonds once it flies faster than its cruise; and the trails its engines
-//! and wingtips leave, widening and fading behind it over a few seconds.
+//! leave, widening and fading behind it over a few seconds. Its wingtips
+//! leave vapour only while its wings pull hard: in a tight turn or a pull-up,
+//! never in level flight however fast.
 //!
 //! What it draws from is data. Each airframe's nozzles and wingtips are
 //! authored on its appearance (`airframes`), in its model's own frame, and
 //! its engine kind names a look (`engines`): a look without a `flame` (a
 //! high-bypass turbofan's) only ever glows. Its throttle is how fast it is
-//! published flying against its type's cruise; a downed airframe's engines
-//! are out. Glows and flames sit on the drawn model; trails are laid tick by
+//! published flying against its type's cruise, and its wings' load how its
+//! published flight bends ([`trails`]); a downed airframe's engines are out. Glows and flames sit on the drawn model; trails are laid tick by
 //! tick ([`trails`]).
 use std::collections::{BTreeMap, VecDeque};
 
@@ -38,9 +40,8 @@ pub struct JetExhaustStyle {
     /// The share of its cruise a jet flies at where its afterburner lights
     /// and where it burns full.
     pub reheat_share: [f64; 2],
-    /// The load (1 level, 2 in a 60° banked turn) where wingtip vapour
-    /// starts to thicken, and where it is thickest.
-    pub vapour_load: [f64; 2],
+    /// When the wingtips leave vapour.
+    pub vapour: VapourLook,
     /// Each engine kind's look.
     pub engines: BTreeMap<String, EngineLook>,
     pub engine_trail: TrailLook,
@@ -94,13 +95,30 @@ pub struct FlameLook {
     pub flicker: f64,
 }
 
+/// When wingtip vapour forms, from the load the wings carry: the lift they
+/// make over the jet's weight (1 in level flight, 2 in a 60° banked turn),
+/// read from how its published flight bends.
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct VapourLook {
+    /// The load where vapour forms, and where it is thickest.
+    pub load: [f64; 2],
+    /// Once formed, it holds until the load falls below this.
+    pub off_load: f64,
+    /// How thick it forms (a share of its thickest), and holds while formed.
+    pub onset: f64,
+    /// How long it takes to form, and to stop forming, s.
+    pub attack_s: f64,
+    pub release_s: f64,
+}
+
 /// A trail: lit, blended over, widening and fading as it ages.
 #[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct TrailLook {
     pub albedo: Vec3,
     /// Its opacity at its weakest and strongest (an engine: standing and
-    /// at cruise; a wingtip: level and at its fullest vapour).
+    /// at cruise; a wingtip: no vapour and its thickest).
     pub opacity: [f64; 2],
     pub life_s: f64,
     /// Its width when made and when it has lived its life, m.
@@ -147,8 +165,19 @@ impl JetExhaustStyle {
         if self.max_gap_s <= 0.0 || self.speed_window_s <= 0.0 {
             return fail("max_gap_s and speed_window_s must be positive".into());
         }
-        if !ordered(self.reheat_share) || !ordered(self.vapour_load) {
-            return fail("reheat_share and vapour_load must each rise".into());
+        let v = &self.vapour;
+        if !ordered(self.reheat_share) || !ordered(v.load) {
+            return fail("reheat_share and vapour.load must each rise".into());
+        }
+        if !(1.0..=v.load[0]).contains(&v.off_load)
+            || !(0.0..=1.0).contains(&v.onset)
+            || v.attack_s <= 0.0
+            || v.release_s <= 0.0
+        {
+            return fail(
+                "vapour: off_load from 1 to load[0], onset in [0, 1], attack_s and release_s positive"
+                    .into(),
+            );
         }
         for (name, t) in [
             ("engine_trail", &self.engine_trail),
@@ -216,8 +245,6 @@ pub struct DrawnJet {
     pub yaw: f64,
     /// Its tail's way: the model's −X.
     pub aft: Vec3,
-    /// Its load: 1 flying level, more in a banked turn.
-    pub load: f64,
     /// Its type's cruise speed, m/s.
     pub cruise_mps: f64,
     /// Each emitter and where it is drawn.
