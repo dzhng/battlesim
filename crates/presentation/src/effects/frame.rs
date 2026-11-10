@@ -483,6 +483,9 @@ impl EffectFrame {
                     .sparks(&p.sparks, t1, g.point, UP, dir, n, &mut rng, 1.0);
             }
         }
+        if let Some(style) = &self.p.jet_exhaust {
+            self.jets.note(style, t1, dt, gap, &publication.shooters);
+        }
         self.note_movers(publication, gap, t0);
         self.note_smokers(publication, gap, t0, t1);
         self.note_sources(publication, t0, t1);
@@ -698,8 +701,9 @@ impl EffectFrame {
         }
     }
 
-    /// Take the jets drawn at presentation time `clock`, for their trails;
-    /// the next `build` at `clock` draws them. Without an exhaust style
+    /// Take the jets drawn at presentation time `clock`: where their
+    /// emitters are on their models, for the trails publications lay and the
+    /// glows the next `build` at `clock` draws. Without an exhaust style
     /// nothing is kept.
     pub fn observe_jets(&mut self, clock: f64, jets: &[DrawnJet]) {
         if let Some(style) = &self.p.jet_exhaust {
@@ -707,7 +711,7 @@ impl EffectFrame {
         }
     }
 
-    /// Samples every jet's trails hold now.
+    /// Samples every aircraft's trails and published history hold now.
     pub fn jet_samples(&self) -> usize {
         self.jets.samples()
     }

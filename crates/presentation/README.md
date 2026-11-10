@@ -191,19 +191,20 @@ angle it turned while the shutter was open, so a fast rotor blurs at any frame
 rate and a paused one shows its blades.
 
 A running jet glows in every nozzle and leaves its engines' and wingtips'
-trails, as a war film shows a jet: visual only, read from the drawn model, so
-it never touches the simulation. Where its nozzles and wingtips are is data on
-its appearance (`presentation.effects.jet_exhaust.airframes`), in its model's
-own frame, because the baked art keeps no node for them; its engine kind names
-a look, and only a look with a `flame` ever burns, so a high-bypass turbofan
-like the A-10's only glows. Its throttle is its drawn speed against its type's
+trails, as a war film shows a jet: visual only, so it never touches the
+simulation. Where its nozzles and wingtips are is data on its appearance
+(`presentation.effects.jet_exhaust.airframes`), in its model's own frame,
+because the baked art keeps no node for them; its engine kind names a look, and
+only a look with a `flame` ever burns, so a high-bypass turbofan like the
+A-10's only glows. Its throttle is its published speed against its type's
 cruise: brighter the faster, with the afterburner's flame and shock diamonds
 past cruise (the simulation's afterburner is the only thing that flies it
-there). Wingtip vapour thickens with load, its bank in a turn. Trails are
-sampled on the presentation clock, not per frame, so they look the same at any
-frame rate; a paused clock holds them, a rewind clears them, a jump breaks
-them, a downed or vanished jet's fade out, and they hold at most `max_jets`
-tracks of one trail life each.
+there). Wingtip vapour thickens with load, its drawn bank in a turn. Glows sit
+on the drawn model; trails are laid tick by tick where the publications put
+it, from emitters placed as its model was last drawn, so they are the same at
+any frame rate and a replay framed mid-flight shows them whole. A gap or a jump
+breaks them, a downed or vanished jet's fade out, and they hold at most
+`max_aircraft` tracks of one trail life each.
 
 An aircraft's shadow follows its altitude layer, never what kind of aircraft
 it is. A low-air one casts its real shadow along the sun. From the high-air

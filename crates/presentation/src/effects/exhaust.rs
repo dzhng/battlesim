@@ -6,20 +6,15 @@
 //! What it draws from is data. Each airframe's nozzles and wingtips are
 //! authored on its appearance (`airframes`), in its model's own frame, and
 //! its engine kind names a look (`engines`): a look without a `flame` (a
-//! high-bypass turbofan's) only ever glows. Its throttle is how fast its
-//! drawn model flies against its type's cruise; a downed airframe's engines
-//! are out.
-//!
-//! Trails are history the frames leave, so they follow the drawn model,
-//! sampled at fixed instants of the presentation clock (`sample_hz`) between
-//! the frames that bracket each one: how long a trail is, and how wide and
-//! faint each stretch of it, depend on the clock and not on the frame rate.
-//! A paused clock holds them, a clock run backwards (a replay seek, a new
-//! battle) clears them, and a jet that jumps (a teleport, a long gap) breaks
-//! its trail rather than drawing a stroke across the jump. Memory is
-//! bounded: at most `max_jets` tracks, each emitter's samples no more than
-//! its trail lives, and spent tracks keep their room for the next jet.
+//! high-bypass turbofan's) only ever glows. Its throttle is how fast it is
+//! published flying against its type's cruise; a downed airframe's engines
+//! are out. Glows and flames sit on the drawn model; trails are laid tick by
+//! tick ([`trails`]).
 use std::collections::{BTreeMap, VecDeque};
+
+mod trails;
+pub use trails::JetTrails;
+use trails::Sample;
 
 use serde::Deserialize;
 
@@ -30,17 +25,16 @@ use crate::world::Vec3;
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct JetExhaustStyle {
-    /// Trail samples a second of the presentation clock.
-    pub sample_hz: f64,
-    /// Jets whose trails are kept at once; a jet past them draws no trail.
-    pub max_jets: usize,
-    /// A drawn jet moving faster than this between two frames has jumped,
-    /// m/s: its trail breaks there.
+    /// Aircraft whose trails are kept at once; one past them draws none.
+    pub max_aircraft: usize,
+    /// An aircraft published moving faster than this between two ticks has
+    /// jumped, m/s: its trail breaks there.
     pub break_mps: f64,
-    /// How long between two frames a trail may bridge, s; longer breaks it.
+    /// How long after it was last drawn running a jet still lays its
+    /// trails, s.
     pub max_gap_s: f64,
-    /// How quickly the drawn speed a throttle reads settles, s.
-    pub speed_smoothing_s: f64,
+    /// The published flight a throttle reads its speed over, s.
+    pub speed_window_s: f64,
     /// The share of its cruise a jet flies at where its afterburner lights
     /// and where it burns full.
     pub reheat_share: [f64; 2],
@@ -147,11 +141,11 @@ impl JetExhaustStyle {
     pub(super) fn check(&self) -> Result<(), String> {
         let fail = |what: String| Err(format!("jet_exhaust: {what}"));
         let ordered = |p: [f64; 2]| p[0] < p[1];
-        if self.sample_hz <= 0.0 || self.max_jets == 0 || self.break_mps <= 0.0 {
-            return fail("sample_hz, max_jets and break_mps must be positive".into());
+        if self.max_aircraft == 0 || self.break_mps <= 0.0 {
+            return fail("max_aircraft and break_mps must be positive".into());
         }
-        if self.max_gap_s <= 0.0 || self.speed_smoothing_s <= 0.0 {
-            return fail("max_gap_s and speed_smoothing_s must be positive".into());
+        if self.max_gap_s <= 0.0 || self.speed_window_s <= 0.0 {
+            return fail("max_gap_s and speed_window_s must be positive".into());
         }
         if !ordered(self.reheat_share) || !ordered(self.vapour_load) {
             return fail("reheat_share and vapour_load must each rise".into());
@@ -213,12 +207,13 @@ pub enum Emitter {
 /// ([`DrawnModels::jets`](crate::units::drawn::DrawnModels::jets)).
 #[derive(Clone, Debug, PartialEq)]
 pub struct DrawnJet {
-    /// Its side key, the same every frame.
+    /// Its key as the effect publication keys it (`Shooter::key`), as bits.
     pub key: u64,
     /// Its engine kind (`engines`).
     pub engine: String,
-    /// Where its model stands (its foot), for its speed.
+    /// Where its model stands (its foot), and its heading.
     pub at: Vec3,
+    pub yaw: f64,
     /// Its tail's way: the model's −X.
     pub aft: Vec3,
     /// Its load: 1 flying level, more in a banked turn.
@@ -227,65 +222,6 @@ pub struct DrawnJet {
     pub cruise_mps: f64,
     /// Each emitter and where it is drawn.
     pub emitters: Vec<(Emitter, Vec3)>,
-}
-
-/// A trail's point: when it was made, where, how strong, and whether it
-/// joins the point before it.
-#[derive(Clone, Copy, Debug)]
-struct Sample {
-    t: f64,
-    p: Vec3,
-    strength: f64,
-    joined: bool,
-}
-
-/// One emitter's history.
-#[derive(Clone, Debug, Default)]
-struct Ring {
-    samples: VecDeque<Sample>,
-    /// Where it was drawn the last frame, and how strong.
-    at: Vec3,
-    strength: f64,
-}
-
-/// One jet's history and what it showed last frame.
-#[derive(Clone, Debug, Default)]
-struct Track {
-    key: u64,
-    engine: String,
-    /// The clock it was last drawn at; a track not drawn now only fades.
-    drawn: Option<f64>,
-    at: Vec3,
-    aft: Vec3,
-    /// Its drawn speed, eased; none before a second frame.
-    speed: Option<f64>,
-    cruise_mps: f64,
-    kinds: Vec<Emitter>,
-    rings: Vec<Ring>,
-}
-
-impl Track {
-    /// Its throttle: speed over cruise, and how far into its afterburner.
-    fn heat(&self, style: &JetExhaustStyle) -> (f64, f64) {
-        let share = self.speed.unwrap_or(self.cruise_mps) / self.cruise_mps.max(1e-6);
-        let [from, full] = style.reheat_share;
-        (
-            share.clamp(0.0, 1.0),
-            ((share - from) / (full - from)).clamp(0.0, 1.0),
-        )
-    }
-}
-
-/// Every jet's trails and the glows of those drawn now.
-#[derive(Debug, Default)]
-pub struct JetTrails {
-    tracks: Vec<Track>,
-    spent: Vec<Track>,
-    clock: Option<f64>,
-}
-
-fn lerp(a: Vec3, b: Vec3, f: f64) -> Vec3 {
-    std::array::from_fn(|i| a[i] + (b[i] - a[i]) * f)
 }
 
 fn distance(a: Vec3, b: Vec3) -> f64 {
@@ -298,69 +234,8 @@ fn smooth(x: f64) -> f64 {
 }
 
 impl JetTrails {
-    /// Forget every trail (a new battle).
-    pub fn reset(&mut self) {
-        self.spent.append(&mut self.tracks);
-        self.clock = None;
-    }
-
-    /// Samples kept now, over every jet (for bounds).
-    pub fn samples(&self) -> usize {
-        self.tracks
-            .iter()
-            .flat_map(|t| &t.rings)
-            .map(|r| r.samples.len())
-            .sum()
-    }
-
-    /// Take the jets drawn at `clock`: sample each emitter at every instant
-    /// of `sample_hz` since the last frame, where it was between the two
-    /// frames; drop what has outlived its trail.
-    pub fn observe(&mut self, style: &JetExhaustStyle, clock: f64, jets: &[DrawnJet]) {
-        if self.clock.is_some_and(|c| clock < c) {
-            self.reset();
-        }
-        let last = self.clock.unwrap_or(clock);
-        self.clock = Some(clock);
-        for jet in jets {
-            let i = match self.tracks.iter().position(|t| t.key == jet.key) {
-                Some(i) => i,
-                None if self.tracks.len() < style.max_jets => {
-                    let mut t = self.spent.pop().unwrap_or_default();
-                    t.key = jet.key;
-                    t.drawn = None;
-                    t.speed = None;
-                    t.kinds.clear();
-                    for r in &mut t.rings {
-                        r.samples.clear();
-                    }
-                    self.tracks.push(t);
-                    self.tracks.len() - 1
-                }
-                None => continue,
-            };
-            observe_jet(&mut self.tracks[i], style, jet, last, clock);
-        }
-        // Age out what has lived its trail; a track with nothing left is spent.
-        let mut kept = 0;
-        for i in 0..self.tracks.len() {
-            let t = &mut self.tracks[i];
-            for (ring, &kind) in t.rings.iter_mut().zip(&t.kinds) {
-                let life = style.trail(kind).life_s;
-                while ring.samples.front().is_some_and(|s| clock - s.t >= life) {
-                    ring.samples.pop_front();
-                }
-            }
-            if t.drawn == Some(clock) || t.rings.iter().any(|r| !r.samples.is_empty()) {
-                self.tracks.swap(kept, i);
-                kept += 1;
-            }
-        }
-        self.spent.extend(self.tracks.drain(kept..));
-    }
-
-    /// Every trail's ribbons at `clock`, drifting on `drift` (m/s), then
-    /// each drawn jet's glows and flames over them.
+    /// Every trail's ribbons at `clock`, drifting on `drift` (m/s), from
+    /// what was laid by then; then each jet drawn now's glows and flames.
     pub fn draw(
         &self,
         style: &JetExhaustStyle,
@@ -369,18 +244,20 @@ impl JetTrails {
         min_px: f64,
         batch: &mut EffectBatch,
     ) {
-        let now = |t: &&Track| t.drawn == Some(clock) && self.clock == Some(clock);
+        let now = |t: &&trails::Track| t.drawn == Some(clock);
         for t in &self.tracks {
             let seen = now(&t);
-            for (ring, &kind) in t.rings.iter().zip(&t.kinds) {
+            for (i, (ring, &kind)) in t.rings.iter().zip(&t.kinds).enumerate() {
                 let scale = match kind {
                     Emitter::Nozzle { .. } => style.engines.get(&t.engine).map_or(0.0, |e| e.trail),
                     Emitter::Wingtip => 1.0,
                 };
+                let head = t.heads.get(i).copied().filter(|_| seen);
                 draw_ring(
+                    style,
                     style.trail(kind),
                     ring,
-                    seen,
+                    head,
                     scale,
                     clock,
                     drift,
@@ -394,87 +271,24 @@ impl JetTrails {
                 continue;
             };
             let (heat, reheat) = t.heat(style);
-            for (ring, kind) in t.rings.iter().zip(&t.kinds) {
+            for (&at, kind) in t.heads.iter().zip(&t.kinds) {
                 if let Emitter::Nozzle { radius } = *kind {
-                    draw_nozzle(
-                        look, ring.at, t.aft, radius, heat, reheat, clock, t.key, batch,
-                    );
+                    draw_nozzle(look, at, t.aft, radius, heat, reheat, clock, t.key, batch);
                 }
             }
         }
     }
 }
 
-/// Take one jet drawn this frame into its track.
-fn observe_jet(t: &mut Track, style: &JetExhaustStyle, jet: &DrawnJet, last: f64, clock: f64) {
-    let dt = clock - last;
-    let fresh = !t.kinds.iter().eq(jet.emitters.iter().map(|e| &e.0));
-    if fresh {
-        t.kinds.clear();
-        t.kinds.extend(jet.emitters.iter().map(|e| e.0));
-        t.rings.resize_with(t.kinds.len(), Ring::default);
-        for r in &mut t.rings {
-            r.samples.clear();
-        }
-    }
-    let moved = distance(jet.at, t.at);
-    // Drawn the frame before, near enough where it could have flown since.
-    let followed = t.drawn == Some(last) && dt <= style.max_gap_s;
-    // A trail that breaks starts again where the jet is now.
-    let broken = fresh || !followed || moved > style.break_mps * dt + 1.0;
-    if !broken && dt > 0.0 {
-        let k = 1.0 - libm::exp(-dt / style.speed_smoothing_s);
-        let v = moved / dt;
-        t.speed = Some(t.speed.map_or(v, |s| s + (v - s) * k));
-    }
-    t.engine.clone_from(&jet.engine);
-    t.cruise_mps = jet.cruise_mps;
-    t.at = jet.at;
-    t.aft = jet.aft;
-    t.drawn = Some(clock);
-    let (heat, _) = t.heat(style);
-    let [from, full] = style.vapour_load;
-    let vapour = smooth((jet.load - from) / (full - from));
-    for (ring, &(kind, at)) in t.rings.iter_mut().zip(&jet.emitters) {
-        let strength = match kind {
-            Emitter::Nozzle { .. } => heat,
-            Emitter::Wingtip => vapour,
-        };
-        if !broken {
-            // Every sample instant in (last, clock], between the two frames.
-            let hz = style.sample_hz;
-            let mut k = libm::floor(last * hz) + 1.0;
-            while k / hz <= clock {
-                let s = k / hz;
-                let f = (s - last) / dt;
-                ring.samples.push_back(Sample {
-                    t: s,
-                    p: lerp(ring.at, at, f),
-                    strength: ring.strength + (strength - ring.strength) * f,
-                    joined: true,
-                });
-                k += 1.0;
-            }
-        } else {
-            ring.samples.push_back(Sample {
-                t: clock,
-                p: at,
-                strength,
-                joined: false,
-            });
-        }
-        ring.at = at;
-        ring.strength = strength;
-    }
-}
-
-/// One emitter's trail: a ribbon between each two joined samples, as wide
-/// and faint as their age, and one from the newest to where it is drawn now.
+/// One emitter's trail: a ribbon between each two joined samples laid by
+/// `clock`, as wide and faint as their age, and one from the newest to
+/// `head`, where it is drawn now, unless that is further than it could fly.
 #[allow(clippy::too_many_arguments)]
 fn draw_ring(
+    style: &JetExhaustStyle,
     look: &TrailLook,
-    ring: &Ring,
-    seen: bool,
+    ring: &VecDeque<Sample>,
+    head: Option<Vec3>,
     scale: f64,
     clock: f64,
     drift: [f64; 2],
@@ -510,20 +324,21 @@ fn draw_ring(
         );
     };
     let mut prev: Option<Sample> = None;
-    for &s in &ring.samples {
+    for &s in ring.iter().take_while(|s| s.t <= clock) {
         if let Some(p) = prev.filter(|_| s.joined) {
             piece(p, s);
         }
         prev = Some(s);
     }
-    if let (Some(p), true) = (prev, seen) {
-        let head = Sample {
-            t: clock,
-            p: ring.at,
-            strength: ring.strength,
-            joined: true,
-        };
-        if p.t < clock {
+    if let (Some(p), Some(head)) = (prev, head) {
+        let reach = style.break_mps * (clock - p.t) + 1.0;
+        if p.t < clock && distance(p.p, head) <= reach {
+            let head = Sample {
+                t: clock,
+                p: head,
+                joined: true,
+                ..p
+            };
             piece(p, head);
         }
     }
@@ -567,7 +382,8 @@ fn draw_nozzle(
             * (libm::sin(clock * 31.0 + phase) * 0.6 + libm::sin(clock * 53.0 + phase * 1.7) * 0.4);
     let length = radius * f.length * (0.35 + 0.65 * reheat) * flicker;
     let width = radius * f.width;
-    let start = back(radius * 0.1);
+    // Out of the exit, so the plume never paints over the nozzle's lip.
+    let start = back(radius * 0.35);
     batch.streak(
         back(length),
         start,

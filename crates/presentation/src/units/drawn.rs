@@ -310,9 +310,11 @@ impl DrawnModels {
                 .iter()
                 .map(|t| (Emitter::Wingtip, world(t.at)));
             out.push(DrawnJet {
-                key: key_of(&v.side, v.unit),
+                // As the effect publication keys it: the presented side's ids even.
+                key: side_key(v.unit, v.side == self.side).to_bits(),
                 engine: frame.engine.clone(),
                 at: v.position,
+                yaw: v.yaw,
                 aft: normalized(placed([0.0; 3], v.yaw, -m[0], -m[1], -m[2])),
                 // Its lift over its weight: its up's share of the vertical.
                 load: 1.0 / m[10].max(0.25),
