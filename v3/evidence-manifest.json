@@ -21,12 +21,13 @@
   ],
   "pinned_capture_binary_sha256": "b7108421545d8087864ff913abe9865801d7d182d3bdcbf15bb2d0e1134c8392",
   "file_sha256": {
-    "critique.md": "629ff1189e8acca6462c1b305b9b17b8ef92dd16b2a297cec590171b8a8cae67",
+    "critique.md": "d175c90a587bebfb6c89f00ae8bcbb6eef6f5fb314cfa82f8c976bc6787f1476",
     "crop-easing-out-4.3s-ABC.png": "06b0a4bc67aa496fd7db27ce7f48a6983f82dc7756a6eb222fc69622320ae155",
     "crop-steady-ABC.png": "7fac89b27f74950c3ab0feaa690975b6ccd1522aa78ca6c6bfcaf0d6330895d8",
     "crop-turn-wingtip-ABC.png": "caa7b654642361d8a31a4d28188bac6e94c034e365cfc480b33884ea6af83b2b",
     "engine-invariants.json": "f5681b17e9368938f5695fe20b69a6f7cfb14ab24fa8586d89d29d44c8849c15",
     "hero-framing-report.json": "0b3d60a4d3a171a8b679cf8167799648d4f085b5f235886c20eb847a3c4f5e14",
+    "independent-perf-audit.json": "d138dc0be5afd246ad9d2e3b753b36680d546693a76b44765c1d94b7a3d51cee",
     "level-no-wingtip.png": "a8d1beebf07ced0ef568433c83faf37e753a425f838d2f2448ebf09be5cff58c",
     "six-onscreen-C/bench/C/1/native-market-town-1794332785629.json": "f7a50b4bc9c2ff7f968e5b525b5d5df6279da81e937e565b8485636ab0742403",
     "six-onscreen-C/bench/C/2/native-market-town-1794332820903.json": "1cf8de841db8ba4483d11d859df37e16b0200deed6ff6595d63d45f9c89bdda6",
@@ -42,7 +43,7 @@
     "turn-clip-6s.mp4": "2c3c3fcf90caf1a7389d8b9a35af28be57a314eca58c6ed1daaa07e8f44b4c24",
     "turn-phone-strip.png": "4657f9f0ae248396094d62b2960393b4adfd3aa3d7087297252f5a65c0151b6a",
     "turn-strip.png": "1a54d453e41d1b3e81396e572a8372bce34d87d51ba28de79362335dba8abaa4",
-    "validation-status.json": "974ac4a03a6b63908c30fcc8ec2bc202de4f66cdc9826fea8def2328eb39728c",
+    "validation-status.json": "0a837d5225285edfbb50bd043bde42d611fd2d3cfbbea16f57ac5f8e2f9fba54",
     "variant-A.mp4": "2c3c3fcf90caf1a7389d8b9a35af28be57a314eca58c6ed1daaa07e8f44b4c24",
     "variant-B.mp4": "60fa617c0acb7b0e9b31549b91dabcf7f724cb8607443bb96d88448923ac3ab8",
     "variant-C.mp4": "ab6bf33bbec0d41fa691c3e48504b04664ddeee9d4e0059e6deb11f634eceae6",
@@ -52,5 +53,8 @@
     "Same sim publications/camera/timestamps; procedural wisps not pixel-matched",
     "Only clean benchmark native JSON reports published; private process snapshots and local transcripts excluded",
     "Image/movie files reviewed independently before publication"
-  ]
+  ],
+  "validation_complete": true,
+  "all_checks_pass": false,
+  "known_baseline_failure": "native-client counts: stale publication layout fixture; no new failures"
 }

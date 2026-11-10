@@ -1,6 +1,6 @@
 # Jet FX v3: short wispy wingtips, plus three switchable engine trail looks
 
-Branch `feat/jet-engine-glow-contrails`. These are new commits on top of the published `32d29c1e8`:
+Branch `feat/jet-engine-glow-contrails`. V3 feature head: `017773c74bdd84e03e9c319c85ff480313b250c1`. Commits since the previous `32d29c1e8`:
 
 | Commit | What |
 |---|---|
@@ -49,8 +49,7 @@ Branch `feat/jet-engine-glow-contrails`. These are new commits on top of the pub
 - the onset, the attack of 0.25 s and the release of 1.0 s;
 - the `vapour` config.
 
-The load, vapour and heat code is byte-identical to `32d29c1e8`. Its sha256 is `c60e3d65…`, and the
-trigger-guard check confirms it.
+The load, vapour and heat methods are byte-identical to `32d29c1e8`; `engine-invariants.json` records each digest and the unchanged protected activation/glow/nozzle configuration.
 
 ## Evidence (`.jet-fx-local/evidence/v3/`)
 
@@ -129,6 +128,8 @@ Six jets pulling together, native, Apple M6, 1920×1080, with the heaviest look,
 | GPU p95 | 17.316 ms | 17.457 ms | +0.141 ms |
 | CPU wall median (framing+prepare+encode+submit, excl. GPU waits) | 7.839 ms | 7.917 ms | +0.077 ms |
 | CPU p95 | 9.903 ms | 10.006 ms | +0.103 ms |
+| Offscreen benchmark frame interval median, including waits | 23.901 ms | 24.079 ms | +0.177 ms |
+| Offscreen benchmark frame interval p95 | 28.762 ms | 28.882 ms | +0.120 ms |
 
 - **GPU:** every pair is positive, from +0.022 to +0.103 ms (median +0.082 ms). The run medians spread
   from 14.06 to 14.48 ms (off) and 14.11 to 14.54 ms (C).
@@ -139,35 +140,15 @@ Six jets pulling together, native, Apple M6, 1920×1080, with the heaviest look,
 
 Raw reports: `six-onscreen-C/bench/{off,C}/<pair>/`; summary: `six-onscreen-C/summary.json`.
 
+Independent recomputation of all 2,840 raw samples matches the published CPU/GPU medians and **nearest-rank p95** (`independent-perf-audit.json`). All ten reports draw six vehicles; C averages 2,113 effect instances versus six baseline effects. The offscreen frame intervals include GPU/profiling waits; they are **not presented game FPS**, and these native Mini numbers are not browser/mobile performance measurements.
+
 ## Checks
 
-Final chain on HEAD `017773c74`. Logs: `.jet-fx-local/logs/v3-engine-final*.log`.
-
-| Check | Result |
-|---|---|
-| `bun run build:wasm` | pass |
-| `cargo build --release -p native-client` | pass |
-| `cargo test -p presentation` | 44/44 test binaries pass, including `tests/jet_exhaust.rs` 21/21 |
-| `cargo fmt --check`; workspace `cargo clippy --all-targets -D warnings`; size ratchet | pass (the clippy and ratchet results are from the pre-commit hook on each of the five commits) |
-| Focused GPU tests (`effect_wisps`, `high_air`, `pipelines`, `pipeline_abi`) | pass at `ccdb51ce8`; renderer-core is unchanged since |
-| Rest of the workspace (non-GPU) | **running** (`v3-engine-final-workspace.log`) |
-| GPU suites, `renderer-core` + `native-client` `--no-fail-fast` | **queued after the workspace step** (`v3-engine-final-gpu.log`). `native-client --test counts` is expected to fail on the pre-existing stale fixture (`1a8123141`) |
-
-`jet_exhaust.rs` covers:
-- **The 17 earlier tests,** kept.
-- **Look against envelope:** a flight drawn under the plain and the wispy wingtip look forms and fades
-  vapour identically.
-- **Wisps:** they stay where they were laid, with no seams, and engine trails stay plain.
-- **Engine looks:** the `engine_style` in the data alone selects the layers, and nothing else changes.
-- **Reheat:** a layer thickens on the afterburner only by its `reheat`.
-- **Shipped looks:** every one loads when chosen.
-- **Fade-in:** a trail thickens from the nozzle without a tick-long step.
-
-Mutation checks:
-- coupling the look to the strength fails the envelope test;
-- removing the shader breakup fails the GPU wisp test;
-- `FADE_IN_PARTS = 1` fails the fade-in test;
-- the earlier hysteresis and release mutations still fail.
+- PASS: native release build and WASM build (`bun run build:wasm`).
+- PASS: `cargo fmt --all -- --check`; `cargo clippy -j 2 --workspace --all-targets -- -D warnings`.
+- PASS: presentation 44/44 test harnesses (including all 21 jet-exhaust tests), plus the other non-GPU workspace 65/65 harnesses: **109 non-GPU harnesses passed**.
+- Locked GPU/native suite: **39/40 harnesses passed**. The sole failure is the previously reproduced `native-client --test counts`: `every_frame_the_browser_counted_shows_the_same_counts_natively`, stale fixture error **"the publication layout is not this writer's"**. The aggregate command therefore exits 101, not green. This predates the feature (`1a8123141` publication-layout change); the unrelated golden fixture was not regenerated or weakened.
+- New wisp/seam/high-air/pipeline tests pass. Fade-in and breakup regressions were mutation-checked. The independent guard confirms the load/vapour/heat methods and protected glow/nozzle/activation configuration are unchanged from v2.
 
 ## Independent executor visual review
 

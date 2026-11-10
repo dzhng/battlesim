@@ -1,12 +1,53 @@
 {
   "head": "017773c74bdd84e03e9c319c85ff480313b250c1",
-  "as_of_dubai": "2026-11-10T21:56:20.886728+04:00",
+  "completed_at_dubai": "2026-11-10T22:18:40.594575+04:00",
+  "complete": true,
+  "all_checks_pass": false,
+  "only_known_baseline_failure": true,
   "steps": {
-    "wasm": 0,
-    "native": 0,
-    "presentation": 0,
-    "workspace": "running/not started",
-    "gpu": "running/not started"
+    "wasm": {
+      "exit_code": 0,
+      "harnesses": 0,
+      "passed_harnesses": 0,
+      "failed_harnesses": 0
+    },
+    "native": {
+      "exit_code": 0,
+      "harnesses": 0,
+      "passed_harnesses": 0,
+      "failed_harnesses": 0
+    },
+    "presentation": {
+      "exit_code": 0,
+      "harnesses": 44,
+      "passed_harnesses": 44,
+      "failed_harnesses": 0
+    },
+    "workspace": {
+      "exit_code": 0,
+      "harnesses": 65,
+      "passed_harnesses": 65,
+      "failed_harnesses": 0
+    },
+    "gpu": {
+      "exit_code": 101,
+      "harnesses": 40,
+      "passed_harnesses": 39,
+      "failed_harnesses": 1
+    }
   },
-  "known_baseline_failure": "native-client counts: stale publication fixture, predates feature"
+  "lints": {
+    "fmt": {
+      "exit_code": 0
+    },
+    "clippy": {
+      "exit_code": 0
+    }
+  },
+  "baseline_failure": {
+    "target": "native-client --test counts",
+    "test": "counts fixture",
+    "message": "the publication layout is not this writer's",
+    "context": "Previously reproduced stale publication fixture predating this look pass; staging change 1a8123141. No unrelated golden fixture regenerated."
+  }
 }
