@@ -1,0 +1,56 @@
+{
+  "feature_head": "017773c74bdd84e03e9c319c85ff480313b250c1",
+  "default": "realistic",
+  "selectors": {
+    "A": "realistic",
+    "B": "white_core",
+    "C": "dramatic"
+  },
+  "clip_seconds": 6.2,
+  "clip_fps": 30,
+  "clip_viewport": [
+    1280,
+    720
+  ],
+  "comparison_times_s": [
+    0.6,
+    1.6,
+    2.8,
+    4.3,
+    6.1
+  ],
+  "pinned_capture_binary_sha256": "b7108421545d8087864ff913abe9865801d7d182d3bdcbf15bb2d0e1134c8392",
+  "file_sha256": {
+    "critique.md": "629ff1189e8acca6462c1b305b9b17b8ef92dd16b2a297cec590171b8a8cae67",
+    "crop-easing-out-4.3s-ABC.png": "06b0a4bc67aa496fd7db27ce7f48a6983f82dc7756a6eb222fc69622320ae155",
+    "crop-steady-ABC.png": "7fac89b27f74950c3ab0feaa690975b6ccd1522aa78ca6c6bfcaf0d6330895d8",
+    "crop-turn-wingtip-ABC.png": "caa7b654642361d8a31a4d28188bac6e94c034e365cfc480b33884ea6af83b2b",
+    "engine-invariants.json": "f5681b17e9368938f5695fe20b69a6f7cfb14ab24fa8586d89d29d44c8849c15",
+    "hero-framing-report.json": "0b3d60a4d3a171a8b679cf8167799648d4f085b5f235886c20eb847a3c4f5e14",
+    "level-no-wingtip.png": "a8d1beebf07ced0ef568433c83faf37e753a425f838d2f2448ebf09be5cff58c",
+    "six-onscreen-C/bench/C/1/native-market-town-1794332785629.json": "f7a50b4bc9c2ff7f968e5b525b5d5df6279da81e937e565b8485636ab0742403",
+    "six-onscreen-C/bench/C/2/native-market-town-1794332820903.json": "1cf8de841db8ba4483d11d859df37e16b0200deed6ff6595d63d45f9c89bdda6",
+    "six-onscreen-C/bench/C/3/native-market-town-1794332856203.json": "7dc0a62365b4c64855bd992f685263214c161a30f0bca097011277560dd576ab",
+    "six-onscreen-C/bench/C/4/native-market-town-1794332891634.json": "eb20075b3de241542b2e49795f0878ba71dc60a87bd9f76e0da6ba1bcb1ffb0c",
+    "six-onscreen-C/bench/C/5/native-market-town-1794332927133.json": "6842af123dce8fc74a6ec6c5ec7753d2515c3e6441fcb30fed8c0057c70dd242",
+    "six-onscreen-C/bench/off/1/native-market-town-1794332767986.json": "b40499b0815c6e05da531c4e46c1fd04ed81ca3c313ce10e8c3cc92704ad5fb4",
+    "six-onscreen-C/bench/off/2/native-market-town-1794332803239.json": "071673a025a156e74715e7eb9de698d6ed5e50e98092eed41feb64ad06303785",
+    "six-onscreen-C/bench/off/3/native-market-town-1794332838533.json": "bf16bc9fdf5ea926c5244a9c41e3509a525c80c89beaa8737816a11f339e707a",
+    "six-onscreen-C/bench/off/4/native-market-town-1794332873861.json": "edddb811e2d8d96972b7dd28c9f923ccf37d1632e028778f3cc8f9501f9734a2",
+    "six-onscreen-C/bench/off/5/native-market-town-1794332909340.json": "85570ca2b39ae9c9781483091e671ac49c1abee091e4f387e34b6188b3c74eb5",
+    "six-onscreen-C/summary.json": "cc7181f4e9c220162c987351a367f402dd62a708cd5a6da70311da47dd8466b6",
+    "turn-clip-6s.mp4": "2c3c3fcf90caf1a7389d8b9a35af28be57a314eca58c6ed1daaa07e8f44b4c24",
+    "turn-phone-strip.png": "4657f9f0ae248396094d62b2960393b4adfd3aa3d7087297252f5a65c0151b6a",
+    "turn-strip.png": "1a54d453e41d1b3e81396e572a8372bce34d87d51ba28de79362335dba8abaa4",
+    "validation-status.json": "974ac4a03a6b63908c30fcc8ec2bc202de4f66cdc9826fea8def2328eb39728c",
+    "variant-A.mp4": "2c3c3fcf90caf1a7389d8b9a35af28be57a314eca58c6ed1daaa07e8f44b4c24",
+    "variant-B.mp4": "60fa617c0acb7b0e9b31549b91dabcf7f724cb8607443bb96d88448923ac3ab8",
+    "variant-C.mp4": "ab6bf33bbec0d41fa691c3e48504b04664ddeee9d4e0059e6deb11f634eceae6",
+    "variants-strip.png": "af9931913457dd2f24db7dfb7fe0a47e7ac93fbae8a9885bd4fbd449c867d8be"
+  },
+  "notes": [
+    "Same sim publications/camera/timestamps; procedural wisps not pixel-matched",
+    "Only clean benchmark native JSON reports published; private process snapshots and local transcripts excluded",
+    "Image/movie files reviewed independently before publication"
+  ]
+}

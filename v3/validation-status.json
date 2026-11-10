@@ -1,0 +1,12 @@
+{
+  "head": "017773c74bdd84e03e9c319c85ff480313b250c1",
+  "as_of_dubai": "2026-11-10T21:56:20.886728+04:00",
+  "steps": {
+    "wasm": 0,
+    "native": 0,
+    "presentation": 0,
+    "workspace": "running/not started",
+    "gpu": "running/not started"
+  },
+  "known_baseline_failure": "native-client counts: stale publication fixture, predates feature"
+}

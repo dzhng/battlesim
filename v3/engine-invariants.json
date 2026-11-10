@@ -1,0 +1,44 @@
+{
+  "base": "32d29c1e8499cb9d14bdcc1ebe743408770e3e58",
+  "head": "017773c74bdd84e03e9c319c85ff480313b250c1",
+  "methods": {
+    "load": {
+      "unchanged": true,
+      "sha256": "c3f6978e77680c0a81ccd8d2d33d5655e863aeef376bfbf3444a7e1fed56d9fb"
+    },
+    "vapour": {
+      "unchanged": true,
+      "sha256": "336e94b52e4a8a7685bef0e5fb1cb2071c7c2c62b6aeaaeb9676829e17077f85"
+    },
+    "heat": {
+      "unchanged": true,
+      "sha256": "9ed99d9c4eda7f21d2e8a7a878b4062206ee5c51f92de1eafd869e44523bf387"
+    }
+  },
+  "protected_config_unchanged": {
+    "vapour": true,
+    "speed_window_s": true,
+    "reheat_share": true,
+    "engines": true,
+    "airframes": true
+  },
+  "default": "realistic",
+  "layers": {
+    "realistic": 2,
+    "white_core": 2,
+    "dramatic": 2
+  },
+  "changed_files": [
+    "crates/presentation/README.md",
+    "crates/presentation/src/effects/batch.rs",
+    "crates/presentation/src/effects/exhaust.rs",
+    "crates/presentation/src/effects/exhaust/trails.rs",
+    "crates/presentation/tests/jet_exhaust.rs",
+    "crates/renderer-core/src/shaders/modules/passes_effects.wgsl",
+    "crates/renderer-core/src/shaders/pipeline_sources.txt",
+    "crates/renderer-core/tests/effect_wisps.rs",
+    "crates/renderer-core/tests/high_air.rs",
+    "crates/renderer-core/tests/support/effects.rs",
+    "fixtures/presentation.json"
+  ]
+}
