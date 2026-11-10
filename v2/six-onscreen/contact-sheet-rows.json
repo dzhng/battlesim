@@ -1,0 +1,44 @@
+[
+ {
+  "frame": 1,
+  "reelMs": 1350,
+  "simTime": 6.187,
+  "record": 72,
+  "loadF22": 5.75
+ },
+ {
+  "frame": 5,
+  "reelMs": 2350,
+  "simTime": 7.187,
+  "record": 127,
+  "loadF22": 11.31
+ },
+ {
+  "frame": 9,
+  "reelMs": 3350,
+  "simTime": 8.187,
+  "record": 179,
+  "loadF22": 8.87
+ },
+ {
+  "frame": 12,
+  "reelMs": 4100,
+  "simTime": 8.937,
+  "record": 221,
+  "loadF22": 5.95
+ },
+ {
+  "frame": 16,
+  "reelMs": 5100,
+  "simTime": 9.937,
+  "record": 277,
+  "loadF22": 3.63
+ },
+ {
+  "frame": 20,
+  "reelMs": 6100,
+  "simTime": 10.937,
+  "record": 337,
+  "loadF22": 2.36
+ }
+]

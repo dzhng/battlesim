@@ -5,7 +5,7 @@ Commits on `feat/jet-engine-glow-contrails`, after the published `2c7038589`:
 - `e6ea6b398` feat(effects): wingtip vapour only while the wings pull hard
 - `32d29c1e8` tune(effects): shorter, softer wingtip vapour; fainter cruise engine haze
 
-This update makes wingtip vapour intermittent and driven by manoeuvre load.
+This update makes wingtip vapour intermittent and manoeuvre-load driven.
 
 ## Answer: vapour comes from the load on the wings, not from the afterburner
 
@@ -66,7 +66,7 @@ The flight and vapour come from a real sim turn. Only the evidence camera is aut
 | `level-no-wingtip.png` | Level flight: nozzle glow and faint engine haze, zero wingtip trails |
 | `frames/turn-*.png` | The six full-size frames |
 | `six-pulling.png` | The six-jet bench shot mid-turn |
-| `bench/`, `bench-summary.json` | Final benchmark (data from `32d29c1e8`); `bench-round1*` is the same run before the tuning commit |
+| `bench/`, `bench-summary.json` | Initial partial-visibility benchmark (data from `32d29c1e8`); `bench-round1*` is the same run before the tuning commit |
 
 ## Proof rounds (2 of the allowed 3)
 
@@ -80,8 +80,7 @@ The flight and vapour come from a real sim turn. Only the evidence camera is aut
    - tip vapour life 2 → 1.1 s, peak opacity 0.6 → 0.45, end width 1.4 → 2.4 m, release 1.5 → 1.0 s;
    - engine haze opacity 0.16 → 0.09, life 3 → 2 s.
 
-   Re-rendered and inspected: the fog band and rooftop haze are mostly gone, and the vapour stops reading
-   as lines.
+   Re-rendered and inspected: the fog band and rooftop haze are mostly gone, and the vapour reads softer and less like rigid lines.
 
 ## Honest critique of the shipped round
 
@@ -101,11 +100,24 @@ The flight and vapour come from a real sim turn. Only the evidence camera is aut
 - **Heat shimmer:** skipped, as before. It needs a screen-space distortion pass (sample the finished frame
   behind the exhaust with an offset). The current pipeline has no such pass, and adding one is a new
   render-target read for every frame. That is not "truly cheap".
-- **Six-jet bench framing:** the camera frames the six jets only for part of the 6.2 s shot (wide, high
-  rig). The vapour instances count in every frame (they are uploaded and drawn wherever they are on
-  screen), but the on-screen fragment cost is understated in the frames where the jets are out of view.
+- **Initial bench framing:** the first bench included partial-visibility frames. The six-on-screen supplement below fixes this; its formation chase is still not a close-up worst case.
 
-## Performance (six jets pulling together, native, Apple M6, 1920×1080)
+## Current performance: six jets on screen throughout the timed interval
+
+Native Apple M6, 1920×1080, five alternating off/on pairs, 60 warm-up frames excluded then 284 timed frames per run (1,420 per side). Same pinned binary, same replay, only `jet_exhaust` disabled/enabled. Camera follows the formation at 220 m; only camera vectors/hash were changed in a replay copy, while the original layout and all publications remain byte-identical. All six jets stay within frame (including a 12 m margin) over sim 5.94–11.04 s. The 21-frame marked witness and paired six-time sheet were personally inspected.
+
+| Metric | off | v2 | delta |
+|---|---:|---:|---:|
+| GPU median | 14.023 ms | 14.075 ms | +0.052 ms |
+| GPU p95 | 17.125 ms | 17.170 ms | +0.045 ms |
+| CPU wall median, excludes GPU waits | 6.779 ms | 6.753 ms | −0.027 ms, noise |
+| CPU p95 | 8.287 ms | 8.274 ms | −0.013 ms, noise |
+
+GPU run-median spread: 0.051/0.055 ms; all five paired GPU deltas are positive (+0.027 to +0.105 ms, median +0.047 ms). CPU paired deltas range −0.237 to +0.130 ms, so no CPU improvement is claimed. The small GPU cost is more representative than the initial partial-visibility result. No Rust compilation overlapped the sample. Existing interactive Chrome helpers remained present in both conditions.
+
+See `six-onscreen/README.md`, `summary.json`, paired/marked contact sheets and raw `bench/` reports on the box. This is one formation/turn/camera, with aircraft about 60–150 px across. A closer overlapping shot may cost more. Browser-specific performance is still unmeasured. Compare off/on within each camera, not absolute times across the two differently framed benches.
+
+## Initial six-simulated-jet benchmark (partial visibility; historical)
 
 **Setup:**
 - Scene: the six v4.1 airframes abreast at 760 km/h, all turning about 90° at 5.5 s.
@@ -132,7 +144,14 @@ The flight and vapour come from a real sim turn. Only the evidence camera is aut
 
 ## Checks (on clean HEAD `32d29c1e8`)
 
-See the `v2-final*.log` files in `.jet-fx-local/logs/`. The final summary is filled in `../../v2/PR_UPDATE.md`.
+Logs: `.jet-fx-local/logs/v2-final*.log`.
+
+- **Builds:** wasm and native release build pass.
+- **Tests:**
+  - `cargo test -p presentation`: 44/44 binaries pass.
+  - Rest of the workspace (non-GPU): 65/65 pass.
+  - GPU suites (`renderer-core` and `native-client`, `--no-fail-fast`): 38 binaries pass, 1 pre-existing
+    failure (below).
 
 - **`tests/jet_exhaust.rs`:** 15 tests. The new and changed ones:
   - level flight at three speeds, and straight afterburner acceleration, lay no tip vapour;
@@ -145,11 +164,7 @@ See the `v2-final*.log` files in `.jet-fx-local/logs/`. The final summary is fil
 
   Mutation checks: removing the hysteresis fails the flicker test; removing the envelope fails the
   release test.
-- **Workspace clippy `-D warnings`, fmt, size ratchet:** pass, run by the pre-commit hook on both commits.
+- **Workspace clippy `-D warnings` and fmt:** rerun on final head `32d29c1e8`, both pass (`v2-final-clippy.log`, `v2-final-fmt.log`). Size ratchet passed the normal commit hook. No hooks were skipped.
 - **Pre-existing failure:** `native-client --test counts` fails with "the publication layout is not this
   writer's". It is caused by the fixture `paris-corner` counts, which predate `1a8123141` in staging. It
   is not changed or caused here.
-
-## Publication status
-
-Native and WASM release builds, the full presentation suite (44 binaries, including 15 jet-exhaust tests), workspace clippy, fmt and size ratchet pass. The full workspace and GPU reruns are still running; their final status will be added to PR #33. The six-jet benchmark above includes frames with partial aircraft visibility, so it is not a six-on-screen worst-case measurement.
