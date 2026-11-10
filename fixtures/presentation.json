@@ -472,16 +472,17 @@
       "engine_style": "realistic",
       "engine_styles": {
         "realistic": [
-          { "albedo": [0.42, 0.37, 0.31], "opacity": [0, 0.35], "reheat": 0.1, "life_s": 0.45, "width_m": [0.5, 1.8], "fade_in_s": 0.02, "breakup": { "amount": 0.45, "length_m": 3 } },
-          { "albedo": [0.97, 0.97, 0.96], "opacity": [0, 0.5], "reheat": 0.1, "life_s": 2.2, "width_m": [0.6, 3.5], "fade_in_s": 0.08, "taper": 2.2, "breakup": { "amount": 0.45, "length_m": 9 } }
+          { "albedo": [0.5, 0.42, 0.33], "opacity": [0, 0.6], "reheat": 0.1, "life_s": 0.6, "width_m": [0.6, 2.2], "fade_in_s": 0.02, "breakup": { "amount": 0.35, "length_m": 3 } },
+          { "albedo": [1, 1, 1], "opacity": [0, 1], "reheat": 0, "life_s": 3, "width_m": [0.8, 7], "fade_in_s": 0.05, "taper": 1.5, "plume": { "density": 2.6, "length_m": 8 } },
+          { "albedo": [1, 1, 1], "opacity": [0, 1], "reheat": 0, "life_s": 3, "width_m": [1, 5.5], "fade_in_s": 0.08, "taper": 1.6, "puffs": { "spacing_m": 3, "density": 0.7 } }
         ],
         "white_core": [
-          { "albedo": [0.96, 0.96, 0.95], "opacity": [0, 0.45], "reheat": 0.1, "life_s": 2.4, "width_m": [0.9, 4.5], "fade_in_s": 0.06, "breakup": { "amount": 0.4, "length_m": 10 } },
-          { "albedo": [0.2, 0.19, 0.18], "opacity": [0, 0.35], "reheat": 0.45, "life_s": 1.2, "width_m": [0.4, 1.8], "fade_in_s": 0.03, "taper": 2.5, "breakup": { "amount": 0.4, "length_m": 5 } }
+          { "albedo": [1, 1, 1], "opacity": [0, 1], "reheat": 0, "life_s": 3, "width_m": [1.6, 10], "fade_in_s": 0.05, "taper": 1.5, "plume": { "density": 2.6, "length_m": 8 } },
+          { "albedo": [0.08, 0.078, 0.075], "opacity": [0.6, 0.7], "reheat": 0.3, "life_s": 2.4, "width_m": [0.9, 4.4], "fade_in_s": 0.03, "taper": 1.5, "plume": { "density": 7, "length_m": 6 } }
         ],
         "dramatic": [
-          { "albedo": [0.92, 0.92, 0.9], "opacity": [0, 0.5], "reheat": 0.1, "life_s": 3, "width_m": [1.2, 6.5], "fade_in_s": 0.08, "breakup": { "amount": 0.6, "length_m": 12 } },
-          { "albedo": [0.03, 0.03, 0.03], "opacity": [0.35, 0.8], "reheat": 0.15, "life_s": 2.4, "width_m": [0.8, 4], "fade_in_s": 0.03, "breakup": { "amount": 0.45, "length_m": 7 } }
+          { "albedo": [0.5, 0.5, 0.5], "opacity": [0.7, 0.85], "reheat": 0.15, "life_s": 3.2, "width_m": [1.8, 11], "fade_in_s": 0.02, "taper": 1.4, "plume": { "density": 7, "length_m": 6, "mix": [0.02, 0.95] } },
+          { "albedo": [0.5, 0.5, 0.5], "opacity": [0.6, 0.75], "reheat": 0.1, "life_s": 2.6, "width_m": [1.2, 7], "fade_in_s": 0.02, "taper": 1.5, "plume": { "density": 5, "length_m": 4, "mix": [0.02, 0.95] } }
         ]
       },
       "wingtip_trail": { "albedo": [0.95, 0.95, 0.95], "opacity": [0, 0.8], "life_s": 0.3, "width_m": [0.25, 1.2], "fade_in_s": 0.03, "taper": 3.5, "breakup": { "amount": 1, "length_m": 6 } },

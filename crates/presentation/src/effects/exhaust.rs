@@ -137,6 +137,12 @@ pub struct TrailLook {
     /// Its added opacity at full afterburner (an engine's).
     #[serde(default)]
     pub reheat: f64,
+    /// Billowing smoke puffs along it rather than a ribbon (an engine's).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub puffs: Option<Puffs>,
+    /// One continuous plume of smoke rather than a ribbon (an engine's).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plume: Option<Plume>,
     /// Vapour broken into wisps rather than one even ribbon.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub breakup: Option<Breakup>,
@@ -151,6 +157,33 @@ pub struct Breakup {
     pub amount: f64,
     /// About how long one wisp is, m.
     pub length_m: f64,
+}
+
+/// A trail drawn as soft billows of lit smoke: one every `spacing_m` along
+/// it, fixed where it was laid, each `width_m` across at its age, its edge
+/// and inside broken by noise. How much it hides is optical depth: at its
+/// thickest it lets through e^-`density` of what is behind it, so dense
+/// black smoke really darkens a bright sky.
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Puffs {
+    pub spacing_m: f64,
+    pub density: f64,
+}
+
+/// A trail drawn as one continuous plume of lit smoke: its edges wander
+/// and its inside breaks up by noise fixed where it was laid, about every
+/// `length_m`, and it hides by optical depth: at its thickest it lets
+/// through e^-`density` of what is behind it.
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Plume {
+    pub density: f64,
+    pub length_m: f64,
+    /// Black and white smoke in one: its albedo runs between these two
+    /// greys by noise fixed where it was laid (`albedo` then unused).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mix: Option<[f64; 2]>,
 }
 
 fn square() -> f64 {
@@ -242,6 +275,15 @@ impl JetExhaustStyle {
                 || t.taper <= 0.0
                 || !broken
                 || !(0.0..=1.0).contains(&t.reheat)
+                || t.puffs
+                    .is_some_and(|p| p.spacing_m <= 0.0 || p.density <= 0.0)
+                || t.plume.is_some_and(|p| {
+                    p.density <= 0.0
+                        || p.length_m <= 0.0
+                        || p.mix
+                            .is_some_and(|m| !m.iter().all(|g| (0.0..=1.0).contains(g)))
+                })
+                || (t.plume.is_some() && (t.puffs.is_some() || t.breakup.is_some()))
             {
                 return fail(format!(
                     "{name}: life_s, width_m and taper must be positive, width_m must not narrow, opacity and reheat in [0, 1], breakup amount in [0, 1] over a positive length_m"
@@ -350,8 +392,12 @@ impl JetTrails {
                     Emitter::Wingtip => 1.0,
                 };
                 let head = t.heads.get(i).copied().filter(|_| seen);
-                for layer in style.layers(kind) {
-                    draw_ring(style, layer, ring, head, scale, clock, drift, min_px, batch);
+                for (n, layer) in style.layers(kind).iter().enumerate() {
+                    let seed =
+                        t.key ^ ((i as u64) << 8 | n as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+                    draw_ring(
+                        style, layer, ring, head, scale, clock, drift, min_px, seed, batch,
+                    );
                 }
             }
         }
@@ -366,6 +412,78 @@ impl JetTrails {
                 }
             }
         }
+    }
+}
+
+/// A unit-interval hash of puff `k` of the trail `seed` names.
+fn hash01(seed: u64, k: i64) -> f64 {
+    let mut z = seed ^ (k as u64).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 30)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^= z >> 31;
+    (z >> 11) as f64 / (1u64 << 53) as f64
+}
+
+/// The puffs of the stretch from `a` to `b`: those whose fixed place along
+/// the trail (every `spacing_m`) falls in it, end excluded, so stretches
+/// laid end to end share none; each at its own age, faded and grown as the
+/// trail is, turning and rolling through the smoke sheet by its own hash.
+#[allow(clippy::too_many_arguments)]
+fn draw_puffs(
+    look: &TrailLook,
+    puffs: Puffs,
+    a: Sample,
+    b: Sample,
+    scale: f64,
+    clock: f64,
+    point: &impl Fn(Vec3, f64) -> Vec3,
+    seed: u64,
+    batch: &mut EffectBatch,
+) {
+    let span = b.along - a.along;
+    if span <= 1e-9 {
+        return;
+    }
+    let mut k = libm::ceil(a.along / puffs.spacing_m) as i64;
+    while (k as f64) * puffs.spacing_m < b.along {
+        let f = ((k as f64) * puffs.spacing_m - a.along) / span;
+        let mix = |x: f64, y: f64| x + (y - x) * f;
+        let age = clock - mix(a.t, b.t);
+        let x = (age / look.life_s).clamp(0.0, 1.0);
+        let opacity = scale
+            * (look.opacity[0]
+                + (look.opacity[1] - look.opacity[0]) * mix(a.strength, b.strength)
+                + look.reheat * mix(a.reheat, b.reheat))
+            .min(1.0)
+            * smooth(age / look.fade_in_s.max(1e-6))
+            * libm::pow(1.0 - x, look.taper);
+        if opacity > 1e-4 {
+            let h = |salt: u64| hash01(seed ^ salt, k);
+            // Each its own size and a little off the line: billows, not a
+            // string of equal beads, and no two layers' puffs concentric.
+            let radius = (look.width_m[0] + (look.width_m[1] - look.width_m[0]) * x.sqrt()) / 2.0
+                * (0.65 + 0.7 * h(0x2545_f491));
+            let (side, lift) = (h(0x9e37_79b9) - 0.5, h(0x7f4a_7c15) - 0.5);
+            let d = [0, 1, 2].map(|i| b.p[i] - a.p[i]);
+            let across = crate::world::length([d[1], -d[0], 0.0]).max(1e-9);
+            let off = |i: usize| match i {
+                0 => d[1] / across * side * radius * 0.8,
+                1 => -d[0] / across * side * radius * 0.8,
+                _ => lift * radius * 0.6,
+            };
+            let (h, spin) = (h(0), h(0x5bd1_e995));
+            let at = point([0, 1, 2].map(|i| mix(a.p[i], b.p[i]) + off(i)), age);
+            batch.billow(
+                at,
+                radius,
+                spin * std::f64::consts::TAU + x * 0.8,
+                h * 64.0 + x * 1.5,
+                look.albedo,
+                opacity,
+                puffs.density,
+                radius * 0.8,
+            );
+        }
+        k += 1;
     }
 }
 
@@ -385,6 +503,7 @@ fn draw_ring(
     clock: f64,
     drift: [f64; 2],
     min_px: f64,
+    seed: u64,
     batch: &mut EffectBatch,
 ) {
     if scale <= 0.0 {
@@ -392,6 +511,10 @@ fn draw_ring(
     }
     let point = |p: Vec3, age: f64| [p[0] + drift[0] * age, p[1] + drift[1] * age, p[2]];
     let mut stretch = |a: Sample, b: Sample| {
+        if let Some(puffs) = look.puffs {
+            draw_puffs(look, puffs, a, b, scale, clock, &point, seed, batch);
+            return;
+        }
         let (age_a, age_b) = (clock - a.t, clock - b.t);
         let age = (age_a + age_b) / 2.0;
         let x = (age / look.life_s).min(1.0);
@@ -410,6 +533,27 @@ fn draw_ring(
         }
         let width = look.width_m[0] + (look.width_m[1] - look.width_m[0]) * x.sqrt();
         let (a_at, b_at) = (point(a.p, age_a), point(b.p, age_b));
+        if let Some(pl) = look.plume {
+            // Each layer's noise at its own place, so layers weave.
+            let phase = (seed % 1000) as f64 * 0.731;
+            // Each end at its own age's width: no step between stretches.
+            let wide = |age: f64| {
+                let x = (age / look.life_s).clamp(0.0, 1.0);
+                look.width_m[0] + (look.width_m[1] - look.width_m[0]) * x.sqrt()
+            };
+            batch.plume(
+                a_at,
+                b_at,
+                [wide(age_a), wide(age_b)],
+                pl.mix
+                    .map_or(look.albedo, |[dark, light]| [dark, light, 0.0]),
+                opacity,
+                [a.along / pl.length_m + phase, b.along / pl.length_m + phase],
+                pl.density,
+                pl.mix.is_some(),
+            );
+            return;
+        }
         match look.breakup {
             Some(w) => batch.wisp(
                 a_at,

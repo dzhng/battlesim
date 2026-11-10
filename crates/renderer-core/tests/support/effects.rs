@@ -48,16 +48,17 @@ pub fn stage(
         &shadow,
     );
     environment.prepare(&gpu.queue, view, camera);
-    // No sheet shape is drawn here; the atlas only has to exist.
+    // Two even, opaque white sheets (fire's and smoke's layers): a sheet
+    // sprite's own colour is then its tint, lit or not.
     let mut png = vec![];
     {
         let mut encoder = ::png::Encoder::new(&mut png, 4, 4);
         encoder.set_color(::png::ColorType::Rgba);
         encoder.set_depth(::png::BitDepth::Eight);
         let mut writer = encoder.write_header().unwrap();
-        writer.write_image_data(&[0; 64]).unwrap();
+        writer.write_image_data(&[255; 64]).unwrap();
     }
-    let sheets = Arc::new(EffectSheets::decode(4, &[&png]).unwrap());
+    let sheets = Arc::new(EffectSheets::decode(4, &[&png, &png]).unwrap());
     let effects = EffectsResources::new(
         &gpu.device,
         &gpu.queue,

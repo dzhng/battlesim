@@ -17,7 +17,33 @@
   }
   var rgb = vec3f(0.0);
   var alpha = 0.0;
-  if (shape == 0u && f.color.a > 0.0) {
+  if (shape == 0u && f.color.a > 0.0 && f.misc.w > 1.5) {
+    // An engine's plume (misc.w 2 + its density): one continuous ribbon of
+    // smoke whose middle wanders and whose width swells and pinches along
+    // it, broken inside by noise fixed where it was laid (along, in plume
+    // lengths), hiding by optical depth so dark smoke darkens a bright sky.
+    let s = f.along;
+    let across = f.ray.x / max(f.ray.y, 1e-6);
+    // Its middle wanders at most 0.2 and its half width is 0.35 to 0.8, so
+    // its whole soft body stays inside the quad: no edge cut straight.
+    let mid = (valueNoise(vec2f(s * 0.9, 3.7)) - 0.5) * 0.4;
+    let half = 0.35 + 0.45 * valueNoise(vec2f(s * 1.7, 9.1));
+    let d = (across - mid) / half;
+    let body = exp(-d * d * 2.5) * (1.0 - smoothstep(0.7, 1.0, abs(d)));
+    let n = valueNoise(vec2f(s * 2.3, across * 1.6)) * 0.6
+      + valueNoise(vec2f(s * 5.1 + 2.0, across * 3.4 + 1.0)) * 0.4;
+    // Thick and thin by noise, down to clear gaps.
+    let cover = body * smoothstep(0.2, 0.7, n) * 1.6 * clamp(gap / max(f.extra.z, 1e-3), 0.0, 1.0);
+    // A mixed plume (misc.w MIXED_PLUME + density) is black and white
+    // smoke in one: its albedo runs from color.r to color.g by noise.
+    let mixed = f.misc.w > MIXED_PLUME - 0.5;
+    let depth = select(f.misc.w - 2.0, f.misc.w - MIXED_PLUME, mixed);
+    let k = smoothstep(0.35, 0.65, valueNoise(vec2f(s * 1.9 + 7.0, across * 1.3 + 4.0)) * 0.7
+      + valueNoise(vec2f(s * 4.3 + 1.0, across * 2.9)) * 0.3);
+    let albedo = select(f.color.rgb, vec3f(mix(f.color.r, f.color.g, k)), mixed);
+    alpha = clamp(1.0 - exp(-depth * f.color.a * cover), 0.0, 1.0);
+    rgb = albedo * smokeLight(f, f.offset) * alpha;
+  } else if (shape == 0u && f.color.a > 0.0) {
     // A smoke ribbon: thick through its middle, thinning to its edges.
     let across = f.uv.y * f.uv.y;
     var cover = exp(-across * 2.0) * (1.0 - across)
@@ -89,6 +115,21 @@
     let rays = pow(abs(cos(ang * 2.0)), 16.0) * exp(-r * 2.5) * 0.6 * f.extra.y;
     let edge = 1.0 - smoothstep(0.75, 1.0, r);
     rgb = f.color.rgb * (exp(-r * r * 8.0) + rays) * edge * clamp(gap / 0.5, 0.0, 1.0);
+  } else if (shape == 2u && f.misc.w > 0.5) {
+    // An engine's billow: no sheet, a soft silhouette broken by noise at its
+    // own phase (extra.x), hiding by optical depth (misc.y × opacity), so
+    // dense dark smoke darkens even a bright sky.
+    let r = length(f.offset);
+    let ph = vec2f(f.extra.x * 1.37, f.extra.x * 0.71);
+    let n = valueNoise(f.offset * 2.2 + ph) * 0.65
+      + valueNoise(f.offset * 4.7 + ph * 1.9 + vec2f(3.1, 7.3)) * 0.35;
+    // Its outer edge too reaches out and in by noise round it: no disc.
+    let reach = 0.6 + 0.4 * valueNoise(f.offset * 1.6 + ph * 0.5 + vec2f(11.0, 5.0));
+    let edge = 1.0 - smoothstep(0.25 * reach + 0.3 * n, reach, r);
+    let cover = clamp(edge * (0.4 + 1.2 * n), 0.0, 1.0)
+      * clamp(gap / max(f.extra.z, 1e-3), 0.0, 1.0);
+    alpha = clamp(1.0 - exp(-f.misc.y * f.color.a * cover), 0.0, 1.0);
+    rgb = f.color.rgb * smokeLight(f, vec2f(0.0)) * alpha;
   } else {
     let layer = i32(f.extra.y + 0.5);
     let cols = select(5.0, 8.0, layer == 1);
@@ -194,14 +235,19 @@ struct SpriteVertexOutput {
     let perp = vec2f(-dir.y, dir.x);
     let end = select(ca, cb, c.x > 0.0);
     // Negative width encodes a fixed screen-space line, independent of zoom.
-    let truePx = select(v.a.w * s.y * half.y / end.w, -v.a.w, v.a.w < 0.0);
+    // An engine's plume (a ribbon, misc.w 2 + its density) carries each
+    // end's own width (b.w its far end's), so it widens smoothly from
+    // stretch to stretch rather than in steps, and no least pixel width.
+    let plume = v.color.a > 0.0 && v.misc.w > 1.5;
+    let wide = select(v.a.w, select(v.a.w, v.b.w, c.x > 0.0), plume);
+    let truePx = select(wide * s.y * half.y / end.w, -v.a.w, v.a.w < 0.0);
     let fixedLine = v.a.w < 0.0;
     // Cover neighboring pixel centers so a one-pixel diagonal does not stipple.
-    let px = select(max(truePx, v.b.w), truePx + 2.0, fixedLine);
+    let px = select(max(truePx, select(v.b.w, PLUME_MIN_PX, plume)), truePx + 2.0, fixedLine);
     let coverage = min(1.0, truePx / px);
     // Zoom-readable rounds get brighter as their world width shrinks below
     // the pixel floor, so both the halo and post bloom survive strategic zoom.
-    let boost = abs(v.misc.w);
+    let boost = select(abs(v.misc.w), 1.0, plume);
     let k = select(coverage, mix(boost, 1.0, coverage), boost > 1.0);
     let energy = select(k, 1.0, fixedLine);
     let ribbon = v.color.a > 0.0;
@@ -212,6 +258,13 @@ struct SpriteVertexOutput {
     let off = (perp * c.y + dir * c.x * overhang * 2.0) * px * 0.5;
     out.pos = vec4f(end.xy + off / half * end.w, end.zw);
     out.color = select(vec4f(v.color.rgb * energy, 0.0), v.color * energy, ribbon);
+    if (plume) {
+      // Thinner than its least width it hides less, not glows.
+      out.color = vec4f(v.color.rgb, v.color.a * coverage);
+      // Across it, as its width there over its width (the ratio undoes the
+      // tapered quad's diagonal warp).
+      out.ray = vec3f(c.y * px, px, 0.0);
+    }
     out.along = select(alongA, alongB, c.x > 0.0);
     out.viewDepth = end.w;
     // Pixels from the quad's middle to each end, and the overhang; a

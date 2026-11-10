@@ -563,3 +563,65 @@ fn effects_in_front_of_high_air_stay_over_it() {
         bare[middle]
     );
 }
+
+/// An engine's black smoke in front of a jet in the separate high-air plane
+/// darkens the jet there, as it would in one output; behind it, it does not.
+#[test]
+fn black_smoke_in_front_of_high_air_darkens_it() {
+    let gpu = support::gpu().expect("real GPU");
+    let eye = Eye {
+        eye: [0.5, 0., 4.],
+        target: [0.5, 0., 0.],
+        up: [0., 1., 0.],
+        fov_y: 0.6,
+        near: 0.1,
+        size: SIZE,
+    };
+    let framed = Framed::new(&eye);
+    let Stage {
+        pipelines,
+        targets,
+        environment,
+        fog,
+        post,
+        mut models,
+        mut effects,
+    } = stage(&gpu, &framed.record(&eye), &framed.camera(&eye, 0.));
+    models.set_high_apart(true);
+    prepare(&mut models, &gpu, true);
+    let high = HighAir::new(&gpu.device, &pipelines, &targets);
+    // An engine's billow (shape 2, misc.w 1), near black and dense,
+    // softening into what it meets over 5 cm (it is 70 cm in front).
+    let puff = |z: f32| {
+        [
+            0.5f32, 0., z, 0.15, 0., 3., 1., 0.05, 0.035, 0.035, 0.035, 1.0, 2., 10., 1., 1.,
+        ]
+    };
+    let mut frame = |puffs: &[f32]| {
+        effects.prepare(&gpu.device, &gpu.queue, bytemuck::cast_slice(puffs));
+        let mut encoder = gpu.device.create_command_encoder(&Default::default());
+        post.encode(&mut encoder, post::PostMode::Look);
+        high.encode(&mut encoder, &environment, &models, &fog, &effects, &post);
+        read(&gpu.device, &gpu.queue, high.texture(), encoder)
+    };
+    let middle = (SIZE[1] / 2 * SIZE[0] + SIZE[0] / 2) as usize;
+    let light = |p: [u8; 4]| p[..3].iter().map(|&v| u32::from(v)).sum::<u32>();
+    let bare = frame(&[]);
+    assert_eq!(bare[middle][3], 255, "the high-air model is in the middle");
+    let front = frame(&puff(1.0));
+    assert!(
+        light(front[middle]) < light(bare[middle]) / 2,
+        "black smoke in front darkens the jet: {:?} vs {:?}",
+        front[middle],
+        bare[middle]
+    );
+    assert_eq!(front[middle][3], 255, "and leaves its coverage");
+    let behind = frame(&puff(-0.5));
+    assert!(
+        behind[middle]
+            .iter()
+            .zip(&bare[middle])
+            .all(|(a, b)| a.abs_diff(*b) <= 1),
+        "smoke behind the jet does not show through it"
+    );
+}

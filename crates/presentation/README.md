@@ -212,8 +212,13 @@ behind each nozzle and drawn in order. The shipped looks are `realistic` (the
 default: a short grey-brown haze off the nozzle fading into a white
 condensation trail), `white_core` (a white trail round a darker smoky core
 that thickens with throttle and afterburner) and `dramatic` (dense black and
-white smoke, an artistic look modern fighters do not make). The haze is drawn
-smoke, not refraction: nothing bends the picture behind a jet. Glows sit
+white smoke, an artistic look modern fighters do not make). A layer may be a
+continuous `plume`: one ribbon whose middle wanders and width swells, broken
+by noise fixed where it was laid, that hides by optical depth so dark smoke
+darkens even a bright sky; with `mix` its colour runs between a dark and a
+light grey by noise, black and white smoke in one. A layer may instead be
+`puffs`, soft noise-broken billows. The haze is drawn smoke, not refraction:
+nothing bends the picture behind a jet. Glows sit
 on the drawn model; trails are laid tick by tick where the publications put
 it, from emitters placed as its model was last drawn, so they are the same at
 any frame rate and a replay framed mid-flight shows them whole. A gap or a jump

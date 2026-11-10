@@ -132,3 +132,37 @@ fn a_wisp_breaks_up_where_it_was_laid_and_a_plain_ribbon_stays_even() {
         }
     }
 }
+
+/// An engine plume drawn as one ribbon or as two meeting at its middle, as
+/// a trail lays it, is the same plume: its noise runs on across the joint.
+#[test]
+fn a_plume_drawn_in_two_stretches_draws_as_one() {
+    let gpu = support::gpu().expect("real GPU");
+    let (a, m, b) = ([-12., 0., 0.], [0., 0., 0.], [12., 0., 0.]);
+    let middle = |v: Vec<f32>| v[94..162].to_vec();
+    // misc.w 2 + its optical depth; b.w its far end's width: 2 m to 4 m.
+    let plume = |a, b, along, w: [f32; 2]| {
+        let mut r = ribbon(a, b, along, 5.0);
+        (r[3], r[7]) = (w[0], w[1]);
+        r
+    };
+    let whole = middle(draw(&gpu, &[plume(a, b, [0., 2.], [2., 4.])]));
+    let split = middle(draw(
+        &gpu,
+        &[
+            plume(a, m, [0., 1.], [2., 3.]),
+            plume(m, b, [1., 2.], [3., 4.]),
+        ],
+    ));
+    let top = whole.iter().copied().fold(0.0f32, f32::max);
+    assert!(top > 0.05, "the plume is drawn: {top}");
+    let seam = SIZE[0] as usize / 2 - 94;
+    for (k, (x, y)) in whole.iter().zip(&split).enumerate() {
+        if k.abs_diff(seam) > 1 {
+            assert!(
+                (x - y).abs() < 0.03 * top,
+                "two stretches draw as one plume: {x} vs {y} at {k}"
+            );
+        }
+    }
+}
