@@ -3,6 +3,7 @@
 **Source commit:** `8eaf7a59b`, on top of the published `017773c74`. The coordinator accepted the plume3 render for human review on PR #33, with the limitations below. **This is not a claim of full cinematic or photoreal success.**
 
 ## Latest review and scope decision (Nov 11, Dubai)
+**A (`realistic`) is the chosen default. C is kept as-is; no further polish.**
 The reviewed A/B closeups were accepted as clearly visible and distinct; both are frozen unchanged. The earlier independent B borderline note below is retained as a phone-strip caveat, not a request for another A/B pass. C is retained under the explicit optional-change allowance: soft, genuinely puffier billowing is not a safe tiny adjustment to this already-tested ribbon path. Its cow-print/mottled character remains an acknowledged weakness; no further proof or claim of improved C.
 
 ## Request
@@ -61,4 +62,6 @@ The reviewed A/B closeups were accepted as clearly visible and distinct; both ar
 - **Not benchmarked:** A and B. C is not necessarily the heaviest look: A carries a third, billow layer.
 
 ## Checks
-Native release build, WASM build, presentation suite, and the normal source commit hook (fmt/workspace clippy/file-size checks) passed. Full workspace and native/renderer test suites are still running; this is NOT an all-checks-green claim. Their final status will be added to PR #33 and CHECKS.md.
+Native release build, WASM build, presentation suite, and the normal source commit hook (fmt/workspace clippy/file-size checks) passed. Focused proof checks passed 24 jet + 17 GPU tests; the test-only split then passed 17 + 7 jet tests.
+
+Per the final instruction to stop after publication and leave the GPU free for a separate capture job, the remaining workspace test run was stopped and the queued native/renderer GPU test step was cancelled before it began. Full final suites are therefore **incomplete**, not all green. No new GPU work was started after publication.

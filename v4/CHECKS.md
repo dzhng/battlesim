@@ -1,7 +1,7 @@
-# v4 validation — in progress
-Source: `8eaf7a59b299739261854e84e886d99ce36c0afe`.
+# v4 validation — partial, deliberately stopped
+Source: `8eaf7a59b299739261854e84e886d99ce36c0afe`. A / `realistic` is the chosen code default.
 
-Passed: native release build, `bun run build:wasm`, presentation tests, source commit hook (fmt, workspace clippy, file-size).
-Focused proof checks before the test-only split: 24 jet tests and 17 GPU tests passed; split jet targets then passed 17 + 7.
+Passed: native release build, `bun run build:wasm`, presentation suite, normal source commit hook (fmt, workspace clippy, file-size).
+Focused proof checks: 24 jet + 17 GPU tests passed before the test-only split; split jet targets passed 17 + 7.
 
-Full remaining workspace and native/renderer suites are running under nohup on the Mini. This is not a claim that every test passed. PR #33's v4 comment will be updated with final results.
+The remaining workspace run was stopped and the queued native/renderer GPU test step cancelled, following the final instruction to stop after the push and reserve GPU for a separate post capture. Full final suites are INCOMPLETE; this is not an all-tests-pass claim. No further C polish or GPU work.

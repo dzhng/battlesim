@@ -3,8 +3,8 @@
   "binary_sha256": "b55d3da5d8954bc55d4104281361a80754e861db2520b8f26aef63c4ef8542f8",
   "render": "proof-plume3; A/B frozen; C retained as permitted",
   "file_sha256": {
-    "CHECKS.md": "b1df0421545796f77f4afc1a54b50a9e5ac8b07bcbb92ef2299708b3fc2b0051",
-    "critique.md": "0639c6579ec7026c6978e6a67a8b254ed1cbd07e3062d39055e1df2e470710a4",
+    "CHECKS.md": "f83c6fd3a61c461b53f39bdcdb59c2e57ea71d9ea75bd3d346cce2f336e54be7",
+    "critique.md": "368d861042515917a456d75e06637d05f3eab24210555dba53921a455e34f8f2",
     "invariant-audit.json": "5e498326aef01757c2374a3782af4c3b1e90b3b4ffe58cd054172ce95e1f3254",
     "level-no-wingtip.png": "8b38464c684f49d9ee8c0ce87926994cf79e9f54b97485bb12889262e002fd54",
     "performance-C.json": "40dee187d4fb4dc2d073b6d87d70e37f31e0dcfd549f96547fbb63dc43a27039",
@@ -16,5 +16,7 @@
     "variant-C.mp4": "d701f2c4f2e019457338f49fc81c7350111330cf03c74d6a5fbcda70eae49040",
     "variants-closeup.png": "ff13037b9263b91476868b6a5e7e61ce764f4bf42328a3dda913f490c0c6917f",
     "variants-strip.png": "45bc78388023a5c33e66098306a6c8802553f497fbb0b99dd7c87e6dc9b59ccf"
-  }
+  },
+  "chosen_default": "A / realistic",
+  "validation": "partial; remaining full suites stopped per final instruction"
 }
