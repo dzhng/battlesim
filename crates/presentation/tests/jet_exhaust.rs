@@ -788,3 +788,32 @@ fn every_shipped_engine_style_loads_when_chosen() {
         EffectPresentation::from_value(&p).unwrap_or_else(|e| panic!("{name}: {e}"));
     }
 }
+
+#[test]
+fn a_trail_thickens_from_the_nozzle_without_a_step() {
+    // A trail fading in over three ticks, drawn half a tick past one.
+    let flight = straight(2.0, "burner", CRUISE);
+    let d = fly(&mut frame(), 60.0, 1.0 + 0.5 / TICK_HZ, &flight, &flight);
+    let one: Vec<f32> = {
+        let r = ribbons(&d, ENGINE_ALBEDO);
+        r[..r.len() / 2].iter().map(|r| r[11]).collect()
+    };
+    let full = one.iter().copied().fold(0.0, f32::max);
+    // Newest last: from the nozzle back to where it is whole.
+    let young: Vec<f32> = one
+        .iter()
+        .rev()
+        .take_while(|&&o| o < 0.98 * full)
+        .copied()
+        .collect();
+    assert!(
+        young.len() > 4,
+        "it thickens over several stretches: {young:?}"
+    );
+    for w in young.windows(2) {
+        assert!(
+            (w[1] - w[0]).abs() < 0.35 * full,
+            "no step a tick long as it thickens: {young:?}"
+        );
+    }
+}

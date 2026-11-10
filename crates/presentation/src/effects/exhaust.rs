@@ -369,6 +369,9 @@ impl JetTrails {
     }
 }
 
+/// The pieces a still-thickening stretch of trail is drawn in.
+const FADE_IN_PARTS: usize = 4;
+
 /// One emitter's trail: a ribbon between each two joined samples laid by
 /// `clock`, as wide and faint as their age, and one from the newest to
 /// `head`, where it is drawn now, unless that is further than it could fly.
@@ -388,7 +391,7 @@ fn draw_ring(
         return;
     }
     let point = |p: Vec3, age: f64| [p[0] + drift[0] * age, p[1] + drift[1] * age, p[2]];
-    let mut piece = |a: Sample, b: Sample| {
+    let mut stretch = |a: Sample, b: Sample| {
         let (age_a, age_b) = (clock - a.t, clock - b.t);
         let age = (age_a + age_b) / 2.0;
         let x = (age / look.life_s).min(1.0);
@@ -419,6 +422,28 @@ fn draw_ring(
                 w.amount,
             ),
             None => batch.ribbon(a_at, b_at, width, min_px, look.albedo, opacity),
+        }
+    };
+    // One stretch per tick holds one opacity: where the trail is still
+    // thickening from nothing, split it so it fades in smoothly rather than
+    // in a step a tick long.
+    let mut piece = |a: Sample, b: Sample| {
+        let young = clock - a.t < 2.0 * look.fade_in_s;
+        let parts = if young { FADE_IN_PARTS } else { 1 };
+        let at = |k: usize| {
+            let f = k as f64 / parts as f64;
+            let mix = |x: f64, y: f64| x + (y - x) * f;
+            Sample {
+                t: mix(a.t, b.t),
+                p: [0, 1, 2].map(|i| mix(a.p[i], b.p[i])),
+                strength: mix(a.strength, b.strength),
+                reheat: mix(a.reheat, b.reheat),
+                joined: true,
+                along: mix(a.along, b.along),
+            }
+        };
+        for k in 0..parts {
+            stretch(at(k), at(k + 1));
         }
     };
     let mut prev: Option<Sample> = None;
