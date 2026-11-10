@@ -66,7 +66,7 @@
       "sweep_max_steps": 32
     }
   },
-  "light":                               {
+  "light": {
     "sun_azimuth": -0.35,
     "sun_elevation": 0.7,
     "sun_intensity": 7.4,
@@ -74,31 +74,11 @@
     "sky": {
       "turbidity": 4.5,
       "radiance": 9.6,
-      "fill": [
-        0.68,
-        0.72,
-        0.56
-      ],
+      "fill": [0.68, 0.72, 0.56],
       "saturation": 1.75,
-      "tint": [
-        0.96,
-        0.96,
-        1.12
-      ],
+      "tint": [0.96, 0.96, 1.12],
       "grade_mix": 0.25,
-      "clouds": {
-        "coverage": 0.42,
-        "height_m": 1600,
-        "scale_m": 600,
-        "softness": 0.05,
-        "opacity": 0.95,
-        "radiance": 1.6,
-        "shade": [
-          0.45,
-          0.43,
-          0.41
-        ]
-      }
+      "clouds": { "coverage": 0.42, "height_m": 1600, "scale_m": 600, "softness": 0.05, "opacity": 0.95, "radiance": 1.6, "shade": [0.45, 0.43, 0.41] }
     },
     "haze": {
       "distance_scale": 2.6,
@@ -108,26 +88,12 @@
       "range_far_m": 5000,
       "range_power": 1.2,
       "range_strength": 0.35,
-      "sun_tint": [
-        1.03,
-        1.01,
-        0.76
-      ],
+      "sun_tint": [1.03, 1.01, 0.76],
       "sun_strength": 0.18,
       "sun_power": 3.2,
-      "mist_color": [
-        0.78,
-        0.85,
-        0.72
-      ],
-      "mist_height_m": [
-        8,
-        50
-      ],
-      "mist_distance_m": [
-        1800,
-        5200
-      ],
+      "mist_color": [0.78, 0.85, 0.72],
+      "mist_height_m": [8, 50],
+      "mist_distance_m": [1800, 5200],
       "mist_color_strength": 0.18,
       "mist_opacity": 0.05
     },
@@ -138,35 +104,18 @@
       "contrast": 0.86,
       "split_tone": 0.78,
       "shadow_lift": 0.18,
-      "shadow_tint": [
-        1.03,
-        1.1,
-        0.86
-      ],
-      "highlight_tint": [
-        1.05,
-        1.1,
-        0.85
-      ],
-      "lift": [
-        0.016,
-        0.024,
-        0.012
-      ]
+      "shadow_tint": [1.03, 1.1, 0.86],
+      "highlight_tint": [1.05, 1.1, 0.85],
+      "lift": [0.016, 0.024, 0.012]
     },
-    "bloom": {
-      "strength": 0.24,
-      "radius": 0.55,
-      "threshold": 1.55,
-      "smooth_width": 0.5
-    },
+    "bloom": { "strength": 0.24, "radius": 0.55, "threshold": 1.55, "smooth_width": 0.5 },
     "cascades": {
       "map_size": 2048,
       "max_far_m": 2600,
       "split_lambda": 0.5,
       "normal_bias_texels": 1.5,
       "normal_bias_min_m": 0.03,
-      "depth_bias": -3e-05,
+      "depth_bias": -0.00003,
       "softness_m": 0.12
     }
   },

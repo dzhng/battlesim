@@ -142,7 +142,7 @@ The plan was a slice ladder of spikes, then parallel simulation, controls, asset
 ## Where the standard came from
 
 The visual requirement is the reference frames in [`assets/reference/`](assets/reference/). Each folder's `SOURCES.md` says where its frames came from (store pages, trailers, posts). They are copyrighted, kept with the user's permission as targets only, and never ship. What each drove:
-- **WARNO** (`warno/`), the user's favourite aesthetic: the patchwork fields, hedgerows, trees, sky and fireballs; the strategic zoom (`gameplay-tutorial-29`), the light and haze grade (`gameplay-tutorial-14`), grass density (`steam-warno-1`), and the tank and truck (`steam-warno-1`, `-13`).
+- **WARNO** (`warno/`), the user's favourite aesthetic: the patchwork fields, hedgerows, trees, sky and fireballs; the strategic zoom (`gameplay-tutorial-29`), the light and haze grade (`gameplay-tutorial-14`, since replaced by the [reference colour grade](../reference-grade/README.md)), grass density (`steam-warno-1`), and the tank and truck (`steam-warno-1`, `-13`).
 - **Defilade** (`defilade/`): framing (the default camera at 65 m and 0.85 rad, soldiers about 40 px), battle scars, and the form of infantry (`x-saving-wounded-f4`), houses (`trailer-t36s`) and ruins (`x-shader-craters-f4`).
 - **Broken Arrow** (`brokenarrow/`), whose graphics the user rates highest: ground framing, fire and smoke, infantry scale (`steam-brokenarrow-7`) and fireballs (`steam-brokenarrow-1`).
 - **ARMAPHRACT** (`armaphract/`): sharp building-cut sight, an untouched seen area, a dimmed and cooled unseen one, hatched contacts, and (`x-urban-fog-t9s`) the callouts on leader lines.
