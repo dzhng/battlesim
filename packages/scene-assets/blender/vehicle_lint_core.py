@@ -67,6 +67,31 @@ class LintResult:
             self.passed = False
 
 
+TRACKS = ("track_L", "track_R")
+
+
+def running_gear(node: str) -> bool:
+    """Whether a node on the hull is running gear, a body of its own that moves
+    apart from the hull: a wheel (`wheel_*`), a track belt (`track_L`,
+    `track_R`) or landing gear (`gear_*`). A fitting named after them, such as
+    a `track_guard_L` fender, is part of the hull."""
+    return node in TRACKS or node.startswith(("wheel_", "gear_"))
+
+
+def compared(body_a: str, body_b: str) -> bool:
+    """Whether the overlap check compares two bodies (`vehicle_lint._part_group`).
+    Parts of one body overlap by design. So does a closed track belt with the
+    wheels on its own side (`wheel_L_*`): it wraps the sprocket and idler,
+    rests on the road wheels and return rollers, and the sprocket's teeth sit
+    in its links."""
+    if body_a == body_b:
+        return False
+    for belt, wheel in ((body_a, body_b), (body_b, body_a)):
+        if belt in TRACKS and wheel.startswith(f"wheel_{belt[-1]}_"):
+            return False
+    return True
+
+
 def load_baseline(path: Path) -> dict[str, list[dict]]:
     """Load the baseline file of known issues."""
     if not path.exists():

@@ -148,10 +148,11 @@ headless as part of the vehicle export pipeline, checking:
 - **Interpenetrating parts:** mesh-to-mesh intersection between separate
   bodies (e.g., side skirts sinking into wheels, a turret cutting into a fender
   box). A body is the hull with everything fixed to it, each piece of running
-  gear on it (`wheel_*`, `track_*`, `gear_*`), or each node hung off the
-  vehicle's root (the turret, with all it carries); plates and fittings fixed
-  to one body overlap by design and are not compared. Uses BVH overlap
-  detection with a 5mm tolerance for intended contacts and mounts.
+  gear on it (`wheel_*`, `track_L`, `track_R`, `gear_*`), or each node hung
+  off the vehicle's root (the turret, with all it carries); plates and
+  fittings fixed to one body overlap by design and are not compared, and nor
+  is a track belt with the wheels on its own side, which it wraps. Uses BVH
+  overlap detection with a 5mm tolerance for intended contacts and mounts.
 - **Floating parts:** any part more than 2cm from every other part of the same
   vehicle (detached bits hovering in the air).
 - **Ground contact:** tracks or wheels must touch the ground plane in rest pose

@@ -25,11 +25,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from vehicle_lint_core import (
     LintIssue,
     LintResult,
+    compared,
     filter_by_allowlist,
     filter_by_baseline,
     format_issues,
     load_allowlist,
     load_baseline,
+    running_gear,
 )
 
 HERE = Path(__file__).resolve().parent
@@ -42,8 +44,6 @@ INTERPENETRATION_TOLERANCE = 0.005  # 5mm
 FLOATING_PART_THRESHOLD = 0.02  # 2cm
 GROUND_CONTACT_TOLERANCE = 0.01  # 1cm
 GROUND_PLANE_Z = 0.0
-# Hull children that move apart from the hull: compared with it, not part of it.
-RUNNING_GEAR = ("wheel_", "track_", "gear_")
 
 
 # --------------------------------------------------------------------- helpers
@@ -204,17 +204,17 @@ def _bounds_overlap(lo1, hi1, lo2, hi2, margin=0.0):
 def _part_group(obj):
     """The separate body an object belongs to, for the overlap check: the hull
     with everything fixed to it, each piece of running gear on the hull
-    (`wheel_*`, `track_*`, `gear_*`), or each node articulated off the
-    vehicle's root (the node carrying `unit_id`), such as the turret with all
-    it carries. Plates and fittings fixed to one body overlap by design, so
-    only different bodies are compared."""
+    (`running_gear`), or each node articulated off the vehicle's root (the
+    node carrying `unit_id`), such as the turret with all it carries. Plates and fittings fixed to one body overlap by design, so
+    only different bodies are compared, and a track belt never with the
+    wheels it wraps (`compared`)."""
     chain = [obj]
     while chain[-1].parent is not None:
         chain.append(chain[-1].parent)
     below_root = [node.name for node in reversed(chain) if node.get("unit_id") is None]
     if below_root[0] != "hull":
         return _base_part_name(below_root[0])
-    if len(below_root) > 1 and below_root[1].startswith(RUNNING_GEAR):
+    if len(below_root) > 1 and running_gear(_base_part_name(below_root[1])):
         return _base_part_name(below_root[1])
     return "hull"
 
@@ -324,7 +324,7 @@ def _measure_penetration(obj1, obj2, bvh1, bvh2, lo1, hi1, lo2, hi2, tolerance):
 def check_interpenetration(result: LintResult, tolerance=INTERPENETRATION_TOLERANCE):
     """Check for real mesh-to-mesh penetration between separate parts.
     
-    For each pair of meshes from different part groups:
+    For each pair of meshes from bodies the check compares (`compared`):
     1. Check if bounding boxes overlap (fast prefilter)
     2. Check if BVH trees have overlapping triangles
     3. For overlapping pairs, test vertices of mesh A that are inside mesh B
@@ -351,13 +351,13 @@ def check_interpenetration(result: LintResult, tolerance=INTERPENETRATION_TOLERA
             continue
         mesh_data.append((obj, lo, hi, group, bvh))
 
-    # Check each pair of meshes from different part groups
+    # Check each pair of meshes from bodies that are compared
     checked_pairs = set()
     for i, (obj1, lo1, hi1, group1, bvh1) in enumerate(mesh_data):
         for j, (obj2, lo2, hi2, group2, bvh2) in enumerate(mesh_data):
             if i >= j:
                 continue
-            if group1 == group2:
+            if not compared(group1, group2):
                 continue
             
             pair_key = tuple(sorted([_base_part_name(obj1.name), _base_part_name(obj2.name)]))

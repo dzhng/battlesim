@@ -1,7 +1,7 @@
 """Non-Blender tests for vehicle lint's pure Python logic.
 
-These tests verify the baseline filtering, issue matching, and data structures
-without requiring Blender. The geometry checks are tested separately in
+These tests verify which bodies the overlap check compares, the baseline
+filtering, issue matching, and data structures without requiring Blender. The geometry checks are tested separately in
 vehicle_lint_test.py which runs inside Blender.
 
     python3 -m unittest discover -s packages/scene-assets/blender -p 'vehicle_lint_logic_test.py'
@@ -17,6 +17,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from vehicle_lint_core import (
     LintIssue,
     LintResult,
+    compared,
+    running_gear,
     filter_by_baseline,
     filter_by_allowlist,
 )
@@ -177,6 +179,27 @@ class TestTolerances(unittest.TestCase):
         tolerance = 0.01  # From vehicle_lint.py
         self.assertGreater(tolerance, 0.001, "Too strict - would flag floating point errors")
         self.assertLess(tolerance, 0.05, "Too loose - would miss visible gaps")
+
+
+class TestComparedBodies(unittest.TestCase):
+    """Which bodies the overlap check compares."""
+
+    def test_belt_is_not_compared_with_the_wheels_it_wraps(self):
+        for wheel in ("wheel_L_1", "wheel_L_sprocket", "wheel_L_idler", "wheel_L_return_2"):
+            self.assertFalse(compared("track_L", wheel), wheel)
+            self.assertFalse(compared(wheel, "track_L"), wheel)
+        # The belt still meets everything else: the other side, the hull, the turret.
+        for body in ("wheel_R_1", "track_R", "hull", "turret"):
+            self.assertTrue(compared("track_L", body), body)
+        self.assertTrue(compared("wheel_L_1", "hull"))
+        self.assertFalse(compared("hull", "hull"))
+
+    def test_only_running_gear_is_a_body_apart_from_the_hull(self):
+        for node in ("track_L", "track_R", "wheel_L_3", "wheel_R_sprocket", "gear_nose"):
+            self.assertTrue(running_gear(node), node)
+        # Fittings fixed to the hull, however they are named.
+        for node in ("track_guard_L", "hull_upper", "skirt_L_1"):
+            self.assertFalse(running_gear(node), node)
 
 
 class TestFilterByBaseline(unittest.TestCase):
