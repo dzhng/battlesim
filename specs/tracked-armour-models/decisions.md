@@ -390,3 +390,23 @@ now needing Blender, and roster scripts run as `__main__`.
 - **The committed T-72B3 art lags its sources.** Territory, not a decision.
   Fresh exports repeat byte for byte, but don't match the committed GLB, so
   the sources changed after the last export. Slice 01's re-export absorbs it.
+
+## Coordinator decisions during implementation
+
+- **C1 Experiments and the survey start from the spec commit, not slice 02**
+  (2026-11-11). Lanes E1 (03), E2 (04) and F-A/F-B/F-C (07) write only to
+  `throwaway/`, their own `assets/experiments/` or `assets/frames/` folders,
+  reference libraries and the overlay script. None of those collide with slices
+  00–02. Starting early shortens the critical path. The survey overlays the
+  GLBs committed before slice 01. Slice 01 only removes drift from stale
+  helpers, and that drift doesn't affect frame measurements.
+- **C2 Lanes save checkpoint shots instead of opening Preview** (2026-11-11).
+  Each lane writes its shots into the spec. The coordinator opens them with
+  `preview-shots` at milestones. That keeps several unattended agents from each
+  opening windows, and the checkpoints still never block.
+- **C3 Generated skins go through Bento's fal proxy** (2026-11-11). The user
+  declined to hand over a fal key and asked for Bento instead. Hunyuan3D 3.1
+  Pro is not on Bento's admitted fal list. Lane E1 tries it through the proxy
+  first and falls back to the admitted default, `tripo3d/h3.1/image-to-3d`.
+  `tools/skin-generate.mjs`, which calls fal directly with a key, is not used in
+  this pass.
