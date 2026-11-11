@@ -2248,7 +2248,7 @@
       "footprint_half_m": [
         3.275,
         1.8,
-        1.49
+        1.38
       ],
       "tolerances": {
         "footprint_m": 0.4
@@ -2278,7 +2278,7 @@
       "footprint_half_m": [
         3.275,
         1.8,
-        1.49
+        1.38
       ],
       "tolerances": {
         "footprint_m": 0.4
@@ -2377,7 +2377,8 @@
       "source": "assets/source/roster/ajax/europe_ajax_tracked_reconnaissance_vehicle.glb",
       "basis_yaw_deg": 0,
       "mounts": {
-        "autocannon": "gun"
+        "autocannon": "gun",
+        "HMG": "hmg"
       },
       "wreck": "europe_ajax_tracked_reconnaissance_vehicle_wreck"
     },
@@ -2394,7 +2395,7 @@
       "footprint_half_m": [
         3.81,
         1.675,
-        1.5
+        1.35
       ],
       "tolerances": {
         "footprint_m": 0.3
@@ -2473,7 +2474,7 @@
       "footprint_half_m": [
         3.85,
         1.875,
-        1.5
+        1.35
       ],
       "tolerances": {
         "footprint_m": 2.5
@@ -2501,9 +2502,9 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        3.85,
+        4.025,
         1.875,
-        1.5
+        1.415
       ],
       "tolerances": {
         "footprint_m": 2.5
@@ -2531,9 +2532,9 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        3.85,
+        4.025,
         1.875,
-        1.5
+        1.415
       ],
       "tolerances": {
         "footprint_m": 2.5
@@ -2566,7 +2567,7 @@
         1.245
       ],
       "tolerances": {
-        "footprint_m": 0.8
+        "footprint_m": 2.1
       }
     },
     "europe_challenger_challenger_3": {
@@ -2593,10 +2594,10 @@
       "footprint_half_m": [
         4.15,
         2.1,
-        1.245
+        1.35
       ],
       "tolerances": {
-        "footprint_m": 1.7
+        "footprint_m": 2.2
       }
     },
     "us_m1_abrams_sep_v2": {
@@ -2720,7 +2721,7 @@
       }
     },
     "europe_cv90_cv9040c": {
-      "track_gauge": 0.8,
+      "track_gauge": 0.75,
       "unit": "vehicle",
       "source": "assets/source/roster/cv90/europe_cv90_cv9040c.glb",
       "basis_yaw_deg": 0,
@@ -2741,8 +2742,8 @@
       "basis_yaw_deg": 0,
       "footprint_half_m": [
         3.4,
-        1.6,
-        1.4
+        1.69,
+        1.25
       ],
       "tolerances": {
         "footprint_m": 0.5
@@ -2855,12 +2856,12 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        3.7,
+        3.505,
         1.8015,
         1.101
       ],
       "tolerances": {
-        "footprint_m": 1.9
+        "footprint_m": 2.0
       }
     },
     "us_m977_hemtt_general_resupply": {
@@ -2909,7 +2910,7 @@
       "footprint_half_m": [
         3.8,
         1.85,
-        1.175
+        1.25
       ],
       "tolerances": {
         "footprint_m": 2.7
@@ -3079,7 +3080,7 @@
       "footprint_half_m": [
         3.7,
         2.0,
-        1.8
+        1.65
       ],
       "tolerances": {
         "footprint_m": 0.3
@@ -3136,7 +3137,7 @@
       "footprint_half_m": [
         3.5,
         1.7,
-        1.49
+        1.3
       ],
       "tolerances": {
         "footprint_m": 1.2
@@ -3193,7 +3194,7 @@
       "footprint_half_m": [
         3.3675,
         1.575,
-        1.225
+        1.075
       ],
       "tolerances": {
         "footprint_m": 0.3
@@ -3360,7 +3361,7 @@
       "footprint_half_m": [
         4.35,
         1.75,
-        1.65
+        1.4
       ],
       "tolerances": {
         "footprint_m": 1.9
@@ -3506,7 +3507,7 @@
       "footprint_half_m": [
         3.475,
         1.65,
-        1.325
+        1.25
       ],
       "tolerances": {
         "footprint_m": 1.6
@@ -5914,7 +5915,7 @@
       "footprint_half_m": [
         3.4,
         1.95,
-        1.625
+        1.48
       ],
       "tolerances": {
         "footprint_m": 6.0
@@ -6101,7 +6102,7 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        3.935,
+        4.165,
         1.79,
         1.53
       ],
@@ -6110,7 +6111,7 @@
       }
     },
     "eastern_2s19_msta_s_2s19m2": {
-      "track_gauge": 0.8,
+      "track_gauge": 0.76,
       "unit": "vehicle",
       "source": "assets/source/roster/2s19_msta_s/eastern_2s19_msta_s_2s19m2.glb",
       "basis_yaw_deg": 0,
@@ -6129,8 +6130,8 @@
       "basis_yaw_deg": 0,
       "footprint_half_m": [
         3.575,
-        1.79,
-        1.495
+        1.69,
+        1.41
       ],
       "tolerances": {
         "footprint_m": 6.0
@@ -6157,7 +6158,7 @@
       "footprint_half_m": [
         3.65,
         1.7,
-        1.55
+        1.625
       ],
       "tolerances": {
         "footprint_m": 6.0
@@ -6236,10 +6237,13 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        4.876,
+        4.65,
         1.6,
         1.78
-      ]
+      ],
+      "tolerances": {
+        "footprint_m": 0.2
+      }
     },
     "eastern_pantsir_pantsir_sm": {
       "track_gauge": 0.75,
@@ -6337,7 +6341,7 @@
       "footprint_half_m": [
         3.556,
         1.685,
-        1.645
+        1.5
       ],
       "tolerances": {
         "footprint_m": 0.7
