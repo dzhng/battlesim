@@ -217,3 +217,181 @@ Three drafts, each with a different lens: fewest slices (Opus), risk first
   not ignored (`.gitignore:6` ignores only `throwaway/`). The lineup record now
   lives in `assets/before/`. Everything else moved to
   `throwaway/tracked-lineup/` when the spec was written.
+
+## Lane E2: slice 04 seam experiment (2026-11-11)
+
+The evidence is in [`assets/experiments/04/verdict.md`](assets/experiments/04/verdict.md).
+
+- **04 seams: grooves win (D1 settled).** The per-model baked normal+AO map
+  did not clearly win. In an unprimed, unlabelled critique of five
+  candidates, it ranked third and fourth on both models. Its surface scores
+  were 0.5–2.5 points below the grooves. It also showed unique-UV artifacts
+  along the seams. So S8 does not trigger, and no follow-up spec is opened.
+  - **Surface scores** (battle zoom / cinematic):
+
+    | Candidate | T-72B3 | Leopard 2A6 |
+    |---|---|---|
+    | grooves 2 × 2 cm | 6 / 6 | 5.5 / 5.5 |
+    | grooves 1 cm × 6 mm | 6 / 6 | 5.5 / 5.5 |
+    | bake from 2 × 2 cm | 6 / 5.5 | 5 / 4.5 |
+    | bake from 1 cm × 6 mm | 5.5 / 5 | 4.5 / 3 |
+    | control | 5 / 4 | 4 / 3.5 |
+
+  - **The 1 cm × 6 mm grooves vanished at `battle_zoom` on the T-72B3.**
+    Fewer than 0.1% of the glacis and side crop's pixels moved by 16 grey
+    levels. That triggered the one deeper re-run, at 2 × 2 cm. It moved the
+    most pixels on every crop: 0.29% glacis, 0.92% side and 3.36% Leopard
+    cheek, by 16 levels or more. At native battle-zoom size, the Leopard's
+    wedge joints read; the T-72's seams are only barely there.
+  - **The cause, for slice 13.** `parts.finish` starts its occlusion rays 12 mm
+    off the surface (`parts.py:664`). So a 6 mm groove floor gets about 4%
+    darkening, and a 20 mm floor about 30%. At the closest battle camera one
+    pixel covers about 2 cm.
+- **04 costs.**
+  - **Grooves.** The T-72B3, 36 seamed plates: tier 0 goes from 62,382 to
+    66,588 triangles (+6.7%), and the GLB grows 3.2%. The Leopard 2A6, two
+    wedges: 56,256 to 57,268 (+1.8%), GLB +1.2%. Tiers 1–3 are unchanged.
+    That is about 120 tier-0 triangles per seamed plate.
+  - **Bake.** Two textures (normal + AO) per part, or one atlas per model.
+    - At 400 px/m it measured 14.2 M texels and 8.3 MB of PNG for 24 T-72
+      plates.
+    - A whole-model atlas at runtime RGBA8 is 8192², 268 MB per model, at
+      400 px/m. At 100 px/m it is 2048², 16.8 MB per model, about 620 MB
+      for the 37 appearances against the 640 MiB catalog tripwire.
+    - It also needs a second UV, bundle support and a shader change.
+- **04 signature for slice 13: `armour_parts.panel_seam(plate, points,
+  width=0.02, depth=0.02)`.** It cuts a groove along a polyline into a plate's
+  tier-0 mesh, inside a family's `build`, before `finish` bakes vertex colour.
+  - **`plate`:** the part name its `box`, `prism` or `loft` was given. Only
+    `<plate>_LOD0` is cut, because `battle_zoom` draws tier 0. Tiers 1–3 keep
+    the plain plate.
+  - **`points`:** two or more points in the plate's parent frame (the hull
+    or turret node), on or within a few centimetres of one face, each snapped
+    to the nearest surface. The polyline is closed when the first point equals
+    the last.
+  - **`width`, `depth`:** in metres. The defaults, 2 × 2 cm, are the
+    candidate that read best at `battle_zoom`. `depth` must stay above the
+    occlusion bake's 12 mm ray offset, or the groove gets no darkening, so
+    use no less than 1.5 cm.
+  - **Roles:** none of its own. The groove takes the plate's material (the
+    paint role) and adds no part or node. `finish`'s occlusion darkens the
+    floor, and the paint's edge-wear chip lights the lips. It returns
+    nothing.
+  - **Geometry:**
+    - one swept box per segment, `width` wide, extended `width / 2` past
+      each end so corners close;
+    - cut with Blender's Manifold boolean solver;
+    - the Exact solver deleted a closed, positive-volume Leopard wedge
+      (148 → 2 triangles);
+    - a cut that loses faces is a build error.
+  - **Placement:**
+    - **Seams follow the reference's real joints.** Inset lid rectangles on
+      the T-72 side panels read as "cabinet doors"; its skirts show vertical
+      joints only.
+    - **Keep a seam about 10 cm or more clear of an existing edge or gap.**
+      Lid lines 4.5 cm inside the glacis tile gaps merged with the gaps and
+      vanished.
+  - `weld_line` stays for raised welds.
+- **04 finding for lane B (slice 22).** Every Leopard 2A6 render, the
+  control included, shows hard-edged light and dark triangles across the
+  wedge faces that follow its mesh triangulation. It is not a seam effect.
+
+### Lane E2 decisions audit (slice 04)
+
+These are the calls lane E2 made that the slice left open. They are grouped
+by verdict. Within each group the least confident comes first.
+
+**Review these first:** "panel_seam cuts tier 0 only", "the default is
+2 × 2 cm", and "the bake's high source was the groove geometry".
+
+#### Sound
+
+- **The bake's high source was the groove geometry (confidence: medium).**
+  - **What happened.** To make candidate "bake", lane E2 took the same
+    seamed model the grooves used as the high-detail source. It baked that
+    model onto the plain one's surfaces: a tangent-space normal map, and an
+    occlusion map that only counts geometry within 10 cm. It used a fresh
+    automatic UV unwrap per part, at 400 texels per metre.
+  - **What that means.** A groove with square walls looks, from straight
+    above, like a flat floor. So the normal map carried almost nothing, and
+    the bake's only seam signal was its occlusion. The automatic unwrap cut
+    islands along the seams, which caused the dashes and slashes the critique
+    saw.
+  - **The alternative.** A V-shaped or rounded groove as the high source,
+    with an unwrap that keeps each plate face whole. That would give the
+    normal map something to carry, and remove the island-edge artifacts.
+  - **The gap.** The slice named "a baked normal+AO detail map" but no high
+    source or unwrap.
+  - **The reach.** The bake lost partly on artifacts that a second round
+    might remove. It would not remove its cost, though: about 17 to 268 MB
+    per model at the runtime's uncompressed RGBA8.
+  - **Verdict: sound.** The one-round cap applies (Q7). The cost alone rules
+    the bake out under the 640 MiB tripwire.
+- **The default is 2 × 2 cm (confidence: medium).**
+  - **What happened.** The critique scored the 1 cm × 6 mm grooves and the
+    2 × 2 cm grooves equally, and preferred the thin ones in the 10 m view of
+    the T-72. Lane E2 still picked 2 × 2 cm as the default.
+  - **Why.** The slice's one variable is whether seams read at the closest
+    battle camera, and there the deeper groove moved the most pixels on every
+    crop. The thin groove's floor also sits above the occlusion bake's 12 mm
+    ray offset, so it never darkens.
+  - **The gap.** The slice delegated the dimensions.
+  - **The reach.** It sets slice 13's default, and every family's seams with
+    it.
+  - **Verdict: sound.** It follows the slice's variable. A family can pass a
+    thinner width for cinematic-only detail, keeping depth at 1.5 cm or more.
+- **panel_seam cuts tier 0 only (confidence: medium).**
+  - **What happened.** The signature cuts only `<plate>_LOD0`.
+  - **What a player sees.** Tier 0 is drawn while the model's largest extent
+    spans more than 150 px. For a T-72 at 1080p, that is closer than about
+    80 m. Past that, seams disappear with tier 1. At that distance a 2 cm
+    seam is a fraction of a pixel anyway.
+  - **The alternative.** Cut tier 1 too: about 120 more triangles per plate
+    on a tier that must stay much smaller than tier 0.
+  - **The gap.** The slice gave no tier policy for seams.
+  - **Verdict: sound.**
+- **battle_zoom was defined here (confidence: medium).** Slice 01 owns
+  `assets/shots.txt`, which doesn't exist on this lane's branch point. So
+  lane E2 read the camera from `fixtures/presentation.json:28-35` and fixed
+  the rest itself:
+  - 25 m orbit, 0.22 rad pitch, 0.8 rad vertical field of view;
+  - 1920×1080;
+  - the camera 35° off the nose on the left;
+  - the target 1 m above the hull's footprint centre;
+  - the sun at 0.7 rad elevation, 70° left of the camera's bearing.
+
+  It also set the "cinematic" shot: 1.5 m eye height, 10 m out, 60 mm lens.
+  If slice 01's shot differs, slice 13's before/after must use slice 01's.
+  **Verdict: sound.** The pitch, distance and field of view are the game's
+  own; the bearing and sun are a judgement.
+- **Blender, not the game renderer, judged every candidate (confidence:
+  medium).** The bake can only be rendered in Blender (S8). So lane E2
+  rendered all five candidates in Blender EEVEE, with the game shader's
+  colour rule (albedo × vertex colour × `colour_scale`) rebuilt on the
+  imported materials, to compare like with like. The grooves were never seen
+  in the game's renderer; slice 13 is the first time. **Verdict: sound,** and
+  named as unfinished in the slice.
+- **The Manifold boolean as the groove geometry (confidence: medium).** The
+  signature tells slice 13 to cut with a swept box per segment and Blender's
+  Manifold solver. That costs about 120 tier-0 triangles per plate, because
+  the cut leaves n-gons that `finish` triangulates and splits.
+  - **The alternative.** Build grooves into each plate's own topology, as
+    `armour_tiles` already does with its gaps. That is cheaper, but needs a
+    face-aware helper per primitive.
+  - **Verdict: sound.** The cost is measured and well inside the caps:
+    66,588 of 120k on the T-72B3. Slice 13 may still choose topology if it is
+    simpler.
+- **The seam layout was a probe (confidence: high).** Lane E2 placed seams
+  where they would test readability, not where the references show joints:
+  inset lid rectangles on the glacis tiles and side panels, and joints
+  across the Leopard wedge. The critique called the side-panel lids "cabinet
+  doors". **Verdict: sound** for this experiment's variable. The lesson
+  ("seams follow the reference's real joints") is in the signature.
+- **Probe builds drop crew and skip lint (confidence: high).** The crew
+  import needs an infantry GLB that isn't pulled, and slice 12 removes crew
+  anyway. Lint can't see grooves. Neither touches the seam crops.
+  **Verdict: sound.**
+- **Evidence is committed in full (confidence: high).** That is about 25 MB of
+  PNG in LFS: montages, frames, closeups and four bake maps. This follows
+  "keep generated assets". The CC-BY-SA T-72 photo is cited, not copied.
+  **Verdict: sound.**
