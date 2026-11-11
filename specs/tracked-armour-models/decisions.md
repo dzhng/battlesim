@@ -630,3 +630,9 @@ jet" is read) and J05-3 (where the roughness lives).
     spending more.
   - *Verdict.* Sound.
   - *Confidence:* high.
+- **J06-4 Slice 06 was judged under the 0.35 paint, not the shipped 0.38.**
+  The shipped skins and the code candidates were exported while slice 05's
+  tuning stood at 0.35. That run is a little glossier, so it shows the skins'
+  ripples a little more than 0.38 does. Both sides wore the same paint, so
+  the A/B comparison holds. *Verdict:* sound, and not worth a rerun.
+  *Confidence:* medium-high.

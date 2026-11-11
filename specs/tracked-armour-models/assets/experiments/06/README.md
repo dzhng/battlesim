@@ -17,7 +17,7 @@ Q1b).
 blind critique couldn't learn a position.
 
 - **Shipped:** `f_35a.glb` and `eastern_sukhoi_flanker_family_su_35s.glb`,
-  re-exported with slice 05's jet paint.
+  re-exported with slice 05's jet paint at its 0.35 trial (J06-4).
 - **Code candidate:** the committed guide (`guides/f35.py`,
   `guides/flanker.py`), built through `smoothing.py`, which was a throwaway
   wrapper in the lane worktree. It works on the near tier's painted bodies
