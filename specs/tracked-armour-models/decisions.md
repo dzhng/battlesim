@@ -2751,3 +2751,11 @@ adds three:
   - *Reach.* A 1 cm shorter sleeve at the muzzle. The crop re-renders
     pixel-identical (pixelmatch 0), and the export lint shows 0 new issues.
   - *Confidence:* high.
+- **C22 Slice 08's six tracked baseline entries are accepted** (2026-11-11).
+  These are the Bradley's `cannon_sleeve`, the M10's `bore_evacuator`, and
+  `fume_extractor` on the M109A7, 2S19M2 and PLZ-05. Without them, those
+  families can't export until their family slices run. They are false positives
+  from the floating check, which never counts one part cutting through another
+  as contact. Each family slice clears its own entry when its gun moves onto
+  `gun_tube`, under the template's adoption checklist. The floating check
+  itself stays as it is: `gun_tube`'s closed collar removes the case.

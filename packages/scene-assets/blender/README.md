@@ -51,7 +51,7 @@ that defines it:
 | [`roof_parts`](roof_parts.py)       | What stands on a roof: hatches, cupolas, optics, dischargers, antennas                                                                                   |
 | [`hull_fittings`](hull_fittings.py) | What hangs on a hull: lights, towing gear, grilles, exhausts, tanks                                                                                      |
 | [`stowage`](stowage.py)             | What a vehicle carries                                                                                                                                   |
-| [`vehicle_guns`](vehicle_guns.py)   | Machine guns on vehicle and aircraft mounts                                                                                                              |
+| [`vehicle_guns`](vehicle_guns.py)   | Tank gun barrels (`gun_tube`), and machine guns on vehicle and aircraft mounts                                                                           |
 
 A new part joins the module of its concept, or a new module beside them; the
 kernel holds only what every part module shares. A part hung on a hull or
