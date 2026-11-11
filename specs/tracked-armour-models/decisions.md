@@ -3040,3 +3040,6 @@ critique, and the T-14's turret drop (above).
 - **A5 Check the session's model.** Bento sessions created with `--tier google-recommended` once
   ran another model, and the user had to switch it to Argon by hand. Read the first turn's
   `usageByModel` before trusting a run.
+- **A6 At most two Argon rounds per model.** (User, to save money.) Round 1 builds and round 2
+  takes the measured fixes. Anything left after round 2 is fixed by the coordinator or a lane, by
+  editing the committed `build.py` and rebuilding in the pinned local Blender.
