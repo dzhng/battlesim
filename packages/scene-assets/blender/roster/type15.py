@@ -185,7 +185,7 @@ def turret(v, turret, gun, hmg, hmg_gun):
     cyl("barrel_root", 0.12, 0.50, (0.70, 0, 0), "X", m["paint"], gun, seg=24)
     evac, collar = 2.2, 0.50
     VG.gun_tube("main_gun", gun, m, 0.45, reach, 0.070,
-                sleeve=(0.080, [(0.95, evac - collar / 2), (evac + collar / 2, reach - 0.15)]),
+                sleeve=(0.080, [(0.95, evac - collar / 2), (evac + collar / 2, reach - 0.16)]),
                 evacuator=(evac, 0.125, collar, 0), muzzle=(0.080, 0.16), bore=0.055)
     # The remote heavy machine gun station.
     lift = v.frame["mounts"][1]["muzzle_m"][2]
