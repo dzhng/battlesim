@@ -17,7 +17,8 @@ rest is at the end of this file.
 **Status (2026-11-11):** slices 00, 01, 03, 04 and 07 (with the 07b
 reconciliation) are merged. Slice 14 is not needed, because slice 03's smoothed
 dome won. Pickup: slice 02, the split, then the shared slices 08–12. Lane J
-(slices 05 and 06) is running in its own worktree. `air_defence.py` is held
+(slices 05 and 06) is merged. Jets ship at roughness 0.38, but they sit below
+the critique bar for reasons outside the paint (J05-1). `air_defence.py` is held
 back until slice 15 (decision C12).
 
 You are the **coordinator**. Start at
@@ -69,8 +70,8 @@ TODO:
 - [ ] 02 split `vehicle_parts.py` ([slice](slices/02-split-vehicle-parts.md)), then push
 - [x] 03 cast-turret experiment ([slice](slices/03-cast-turret-experiment.md)), lane E1
 - [x] 04 seam experiment ([slice](slices/04-seam-experiment.md)), lane E2
-- [ ] 05 jet paint sheen ([slice](slices/05-jet-sheen.md)), lane J, then push
-- [ ] 06 jet guide experiment ([slice](slices/06-jet-guide-experiment.md)), lane J
+- [x] 05 jet paint sheen ([slice](slices/05-jet-sheen.md)), lane J, then push
+- [x] 06 jet guide experiment ([slice](slices/06-jet-guide-experiment.md)), lane J
 - [x] 07 frame survey ([slice](slices/07-frame-survey.md)), lanes F-A/F-B/F-C
 - [ ] 08 gun tube ([slice](slices/08-gun-tube.md))
 - [ ] 09 hull outline and side panels ([slice](slices/09-hull-outline-and-side-panels.md))
@@ -314,8 +315,10 @@ Each later pass starts with an `explore-unknowns` walk and its own spec.
 4. **Trucks:** HEMTT, MAN HX, Ural.
 5. **Infantry.**
 6. **Drones.**
-7. **Jets off the generator,** only if slice 06 finds code ties or beats the
-   skins.
+7. **Jets off the generator.** Slice 06 found code-smoothed guides beat the
+   generated skins on both airframes (surface 6 against 4 and 3). The code's
+   remaining faults are faceting and fittings. Gloss also shows the skins'
+   ripples (slice 05).
 8. **A per-model baked detail map,** only if slice 04 finds it clearly wins.
    It needs a second unique UV, bundle support and a shader change
    (`models_material.wgsl:35-43`).

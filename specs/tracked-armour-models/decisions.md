@@ -1995,3 +1995,9 @@ jet" is read) and J05-3 (where the roughness lives).
   ripples a little more than 0.38 does. Both sides wore the same paint, so
   the A/B comparison holds. *Verdict:* sound, and not worth a rerun.
   *Confidence:* medium-high.
+
+- **C15 Variants carry their flight model** (2026-11-11). This was lane J's
+  shared-part request. `catalog_frames._variant` now sets `flight` from the
+  unit's `mobility.air.flight`, and `aircraft_jet.fixed_wing` reads it instead
+  of importing the private `_catalogs`. Proof: the F-16C re-export is
+  byte-identical (`62bf05b1…`).

@@ -12,7 +12,6 @@ from aircraft_parts import (body, canopy, fin, fit, gear, intake, nav_lights, no
                             pitot, pylon, round_intake, store)
 from aircraft_canopy import bubble_canopy  # noqa: E402
 from aircraft_skin import skin  # noqa: E402
-from catalog_frames import REPO, _catalogs  # noqa: E402
 from parts import TEXTURED  # noqa: E402
 from textures_air import jet_finish  # noqa: E402
 
@@ -30,10 +29,9 @@ def _both(rows, at):
 
 def fixed_wing(v):
     """Whether `v`'s unit type flies on fixed wings (its catalog flight
-    model); a disabled card has no unit type, so it does not."""
-    units, _ = _catalogs(REPO)
-    unit = next((u for u in units if u["id"] == v.variant["id"]), {})
-    return unit.get("mobility", {}).get("air", {}).get("flight") == "fixed_wing"
+    model, carried on the variant); a disabled card has no unit type, so it
+    does not."""
+    return v.variant.get("flight") == "fixed_wing"
 
 
 def jet(v, spec):
