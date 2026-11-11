@@ -217,3 +217,192 @@ Three drafts, each with a different lens: fewest slices (Opus), risk first
   not ignored (`.gitignore:6` ignores only `throwaway/`). The lineup record now
   lives in `assets/before/`. Everything else moved to
   `throwaway/tracked-lineup/` when the spec was written.
+
+## Lane E1: cast-turret experiment (slice 03, 2026-11-11)
+
+Evidence: [`assets/experiments/03/`](assets/experiments/03/README.md).
+
+- **E1-1 Generator: Tripo H3.1, because the proxy refused Hunyuan.**
+  (Agent, under the coordinator's brief.)
+  - The user declined to hand over a fal key, so every call went through
+    Bento's fal service proxy, never `tools/skin-generate.mjs`.
+  - Hunyuan3D 3.1 Pro (`fal-ai/hunyuan-3d/v3.1/pro/image-to-3d`) came back
+    HTTP 404 twice, with no charge header. Bento's fal list doesn't admit it.
+  - The fallback was Bento's admitted default, `tripo3d/h3.1/image-to-3d`.
+    It takes a single image, so the generator guesses depth. That is the
+    weakness `make-3d-models` names ("one photo means guessed
+    proportions").
+- **E1-2 Its input was the smoothed dome alone.** (Agent.) One shaded
+  three-quarter view (front left, 25° up, grey on white, the `skin_views`
+  look) of tier 0 of the smoothed candidate, with no ERA, fittings or gun.
+  - Why the smoothed dome: a skin inherits its model, so the faceted
+    current dome would have brought its facets back.
+  - Why nothing else: code keeps every fitting (slice 14's seam).
+- **E1-3 One paid call; the second was not spent.** (Agent.)
+  - The call: geometry only (texture and PBR off), detailed geometry, a
+    200,000-face limit; request `01a1cb19-c4ec-7901-a8cb-92a958086e76`.
+  - The proxy reported `x-duet-charge-usd: 0` on submit and on fetch.
+    The workspace ledger doesn't attribute charges to a service, so the
+    real charge wasn't seen. fal lists this request at $0.40.
+  - Why no second call: the skin can at best reproduce its guide, so its
+    best case ties the smoothed candidate. A tie can't meet "clearly wins",
+    so a second paid call couldn't change the verdict.
+- **E1-4 Fit probe: passed, with no unexplained offsets.** (Territory; the
+  fit was done by hand in `throwaway/`.)
+  - The fit:
+    - a quarter turn, because the generator's long axis is its Y;
+    - a per-axis scale to the guide's extents: x 3.01, y 2.88, z 2.72 (a
+      10% spread, explained by the single-view depth guess);
+    - the base set on the guide's base.
+  - The skin came out symmetric front to back, so it lost the dome's
+    0.15 m-longer front half.
+  - Every candidate seats the same way on the ring and mantlet. The base is
+    at −0.04 m against the ring guard's top at −0.02 m. The mantlet cover
+    sits mostly inside the dome by design (155–170 of its 216 vertices),
+    its nearest point 0.002–0.011 m from the shell.
+  - How far each strays from the current dome:
+
+    | Candidate | Mean | p95 | Max |
+    |---|---|---|---|
+    | smoothed | 0.013 m | 0.031 m | 0.038 m |
+    | skin | 0.083 m | 0.210 m | 0.250 m |
+
+  - Where the skin strays: it has a vertical lip round its base and
+    terraced walls, so its shoulders stand proud of the dome's line.
+- **E1-5 The smoothing technique.** (Agent; delegated by the slice.)
+  - The profile is a Hermite curve through `dome_rings`' own five
+    stations, with four sub-rings between each pair.
+  - The plan blends its front and rear radii smoothly across the flanks.
+  - Shading is smooth, with 48 points a ring at tier 0 and the roof poked to
+    a centre vertex.
+  - Tier triangles: current 62,382 / 19,344 / 5,264 / 2,268; smoothed
+    63,806 / 19,574 / 5,244 / 2,190.
+- **E1-6 No candidate carries the head-out commander.** (Agent.) This
+  follows taste T5, and it keeps the dome the only variable.
+- **E1-7 The slice defined its own turret shots.** (Agent.) Slice 01's
+  `assets/shots.txt` isn't on this branch, so the shots come from that
+  slice's definitions. All yaws are 35–50° off the nose toward the right
+  side, round the dome's centre.
+  - `battle_zoom`: 25 m and 0.22 rad, from `fixtures/presentation.json`
+    (`camera.zoom_min`, `pitch_curve[0]`), cropped by a 150 mm lens;
+  - `cinematic`: eye 1.5 m up, 10 m out, 85 mm;
+  - `ref_angle`: 20 m, 0.45 rad, 110 mm, about the reference photo's angle;
+  - `dome_close`: 7 m, 0.55 rad, 60 mm.
+  - When slice 01 lands its shot list, these crops remain the record.
+- **E1-8 compare-screenshots can't separate the three by pixels.**
+  (Territory.)
+  - Against the reference photo's turret crop, all six pair distances lie
+    between 0.716 and 0.732. The camera, light and background all differ
+    from the photo, so the metrics are diagnostic only.
+  - Landmarks, reference → candidates:
+    - The reference shows a cast wall below the cheek ERA, with the bricks
+      standing proud of it. Current and smoothed both keep that. The skin's
+      wall bulges out to the bricks' faces, so they sink in.
+    - The reference's roof is low and flattish. Current steps up it in
+      polygon facets, smoothed rolls into it, and the skin domes it like a
+      helmet.
+- **E1-9 Verdict: the smoothed dome wins, and the skin does not clearly
+  win.** (Unprimed critique, one round, unlabelled, in random order; read in
+  [`critique.md`](assets/experiments/03/critique.md).)
+
+  | Candidate | Silhouette | Surface | Fittings | Materials | Cohesion | Rank |
+  |---|---|---|---|---|---|---|
+  | smoothed | 5 | 7 | 5 | 5 | 6 | 1 |
+  | current | 5 | 4 | 5 | 4 | 5 | 2 |
+  | skin | 3 | 2 | 3 | 4 | 3 | 3 |
+
+  - The skin ranks last. Its surface is 5 below the smoothed dome's, and its
+    silhouette dropped from 5 to 3. The critique saw:
+    - a balloon dome;
+    - a crumpled, spiky lower wall;
+    - ERA sunk to stubs.
+  - My own look confirms all three. The spiky wall is the generator's
+    terracing, which decimation sharpens.
+  - **Slice 14 is not needed.**
+  - **Slice 17** applies `assets/experiments/03/smoothed_dome.py` to
+    `t72.dome_rings`:
+    - Use `parts.mesh_part(..., smooth=True)`, because `loft` can't shade
+      smooth.
+    - The T-80 imports `dome_rings` (`t80.py:32`), so check it on the T-80
+      too.
+    - Then answer the critique's shape note, inside slice 17's critique
+      rounds: the smoothed dome reads as "a soft, low bowl", while the
+      reference has steeper lower walls below the ERA. Tune the five
+      stations so a steeper lower band rolls into the roof through a
+      tight, rounded shoulder. The critique saw the hint of that crease in
+      the current dome, and the smoothing kept its stations.
+  - Findings outside this slice's variable, which every candidate shares,
+    go to slice 17's done list:
+    - the smoke launchers sit front-centre and read like headlights;
+    - the front ERA fans out like petals instead of a forward-jutting
+      chevron;
+    - the mantlet is a box, not a bulged fabric cover.
+- **E1-10 The skin is pinned like a jet skin, and worn by nothing.**
+  (Agent.) Its files: `assets/source/skins/t72/eastern_t_72_t_72b3_2016_turret.glb`,
+  its input view beside it, and `packages/scene-assets/blender/skins/t72.json`.
+  It is kept as a generated asset. No export loads it.
+- **E1-11 The smoothed patch is committed as evidence, not only kept in
+  `throwaway/`.** (Agent.)
+  - The scenario: slice 17 opens on a fresh worktree. `throwaway/` is
+    ignored, so its copy of the patch is gone. Slice 17 would have to
+    rewrite the smoothing from this ledger's prose and could drift from what
+    the critique scored.
+  - What was done: the exact code that built `candidates/smoothed.glb` is
+    committed in the lane's own folder, as
+    `assets/experiments/03/smoothed_dome.py`. Only its docstring was edited
+    after the run. No shipped script changed.
+- **E1-12 The skin's triangles per tier: 6,000 / 2,000 / 500 / 160.**
+  (Agent.)
+  - The scenario: the generator returned 188,182 triangles. Each tier is
+    collapsed, symmetrically across the turret's centreline, to a budget
+    about three times the smoothed dome's. A collapse that tight can sharpen
+    the generator's small terraces into spikes.
+  - The critique's "spiky lower wall" may owe part of its strength to
+    that.
+  - Its other findings don't depend on triangle count:
+    - the balloon profile;
+    - the ERA sunk to stubs;
+    - the front-to-back symmetry.
+- **E1-13 The critique was told what to look at, but not what to find.**
+  (Agent.) Its prompt said "judge the turret, especially its main cast body,
+  against the reference". That is the slice's crop. It named no candidate,
+  defect or expected winner.
+
+### E1 audit: verdicts (the lane auditing its own decisions)
+
+The least-confident calls, to review first: E1-3, E1-12 and E1-2.
+
+- **needs-user**
+  - **E1-3, the second call not spent** (medium confidence). It is an
+    external cost and a call on how thorough to be.
+    - The provisional call: stop at one call. The best a skin can do is
+      reproduce its smooth guide, which ties the smoothed candidate, so no
+      second call could meet "clearly wins".
+    - To reverse it: one Meshy v7.1 call through the proxy, from the same
+      guide's views.
+- **sound**
+  - **E1-12, the skin's triangle budget** (medium confidence). It may make
+    the skin's surface look worse. Its silhouette loss doesn't depend on it,
+    and the rule needs both, so the verdict holds.
+  - **E1-2, the smoothed dome as the guide** (medium confidence). Feeding the
+    faceted dome would have handed the skin its facets. The smoothed guide
+    gives the skin its best case.
+  - **E1-4, fitted to the guide's bounding box per axis** (medium
+    confidence). It is the only fit that needs no unexplained offsets. A fit
+    shaped to keep the ERA proud would be the reshaping machinery the slice
+    rules out.
+  - **E1-7, shots defined in the slice** (medium confidence). Slice 01's
+    shot list isn't on this branch. These shots read the same camera
+    config.
+  - **E1-11, the patch committed** (high confidence). Slice 17 needs it,
+    and it lies inside the lane's own folder.
+  - **E1-1, Tripo as the fallback** (high confidence). The brief forced it.
+  - **E1-6, no crew** (high confidence). Taste T5.
+  - **E1-8, a landmark verdict over pixel metrics** (high confidence). The
+    camera and light mismatch makes pixel distance diagnostic only.
+  - **E1-13, the critique's scope** (high confidence).
+  - **E1-10, the pin kept and worn by nothing** (high confidence). This is
+    the saved "keep generated assets" preference.
+  - **E1-9, the verdict** (high confidence). The skin ranks last, so the
+    rule fails on both of its counts.
+- **unsound:** none.
