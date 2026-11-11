@@ -1,0 +1,12 @@
+us_m1_abrams_sep_v2-cinematic-matcap distance 0.0012 mae 0.05904 diff16 0.00115 pixelmatch 0.00096 edgeDiff32 0.00236 lumDelta -0.01452
+europe_leopard_2_2a6-cinematic-matcap distance 0.00083 mae 0.0522 diff16 0.00086 pixelmatch 0.00065 edgeDiff32 0.00189 lumDelta -0.00828
+us_m1_abrams_sep_v2-fq-matcap distance 0.00062 mae 0.00902 diff16 0.00014 pixelmatch 0.00012 edgeDiff32 0.00053 lumDelta 0.00756
+us_m1_abrams_sep_v2-cinematic-shaded distance 0.00052 mae 0.02642 diff16 0.00042 pixelmatch 0.00026 edgeDiff32 0.00168 lumDelta 0.00905
+europe_leopard_2_2a6-fq-matcap distance 0.00049 mae 0.00419 diff16 8e-05 pixelmatch 6e-05 edgeDiff32 0.00028 lumDelta 0.00335
+europe_leopard_2_2a6-cinematic-shaded distance 0.00045 mae 0.02037 diff16 0.00044 pixelmatch 0.00022 edgeDiff32 0.00105 lumDelta 0.00655
+europe_leopard_2_2a6-battle_zoom-matcap distance 0.00029 mae 0.00142 diff16 3e-05 pixelmatch 1e-05 edgeDiff32 8e-05 lumDelta 0.00012
+us_m1_abrams_sep_v2-battle_zoom-matcap distance 0.00012 mae 0.00165 diff16 4e-05 pixelmatch 2e-05 edgeDiff32 0.00013 lumDelta -0.0005
+us_m1_abrams_sep_v2-fq-shaded distance 9e-05 mae 0.00545 diff16 7e-05 pixelmatch 5e-05 edgeDiff32 0.00013 lumDelta 0.00271
+europe_leopard_2_2a6-fq-shaded distance 7e-05 mae 0.00139 diff16 0 pixelmatch 0 edgeDiff32 0 lumDelta 1e-05
+us_m1_abrams_sep_v2-battle_zoom-shaded distance 2e-05 mae 0.00074 diff16 1e-05 pixelmatch 0 edgeDiff32 1e-05 lumDelta 0.00038
+europe_leopard_2_2a6-battle_zoom-shaded distance 1e-05 mae 0.00044 diff16 0 pixelmatch 0 edgeDiff32 0 lumDelta 0.00032
