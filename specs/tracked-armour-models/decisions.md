@@ -2080,3 +2080,101 @@ Review these first: every receipt now reads as stale, and the kernel's
     that reaches `tyre_wheel` through `wreckage`'s thrown wheels.
   - `aircraft_parts.py` is lane J's file, and its one changed line is the
     `vehicle_guns` import the slice named.
+
+## Slice 12 decisions (2026-11-11, lane for closed hatches and no crew)
+
+Each entry gives the decision, the gap the plan left, its reach, a verdict
+and a confidence, least confident first.
+
+- **The Leopard's own commander's hatch became `RF.cupola`.**
+  - *Scenario.* `leopard.commander_hatch` swung its lid open. Closed, it
+    was `RF.cupola(radius=0.36)` in all but small details: periscope heads
+    1 cm shorter, an arc step of 0.62 rad against the helper's 0.64, and the
+    lid 0.34 m wide against the helper's 0.33 m.
+  - *Gap.* The slice named only `cupola`'s own `lid_open`. The brief asked
+    for every hatch left open by other means, and kept the lane to the crew
+    and lid lines.
+  - *Reach.* The parts were renamed from `commander_ring`, `_periscope_*` and
+    `_lid` to `commander_cupola_*`. No wreck, lint baseline or allowlist
+    names them. `leopard.py` is in no other lane's edit list this wave.
+  - *Verdict.* Sound: closing it meant writing the helper's closed branch a
+    second time, and the README's owner table gives cupolas to
+    `roof_parts`.
+  - *Confidence:* medium. Slice 22 may still want its own periscope arc.
+- **The Abrams' own commander's hatch was closed in place, not replaced.**
+  - *Scenario.* `abrams.commander_hatch` threw its lid rearward onto a
+    stop. Its five periscopes span only the front arc (±1.0 rad), which
+    `RF.cupola` can't draw. The lid now sits on the ring at its old size, and
+    the stop is deleted.
+  - *Gap.* As above. `abrams.py` is edited by other lanes this wave, so the
+    diff stays on the lid lines.
+  - *Reach.* Slice 21 owns any move to the shared helper.
+  - *Verdict.* Sound.
+  - *Confidence:* medium-high.
+- **The test tank's open driver's lid is left and named.**
+  - *Scenario.* `tank.py:559` builds `driver_lid_open`, swung up. It is test
+    art and never game content, and it sits outside the tracked scope and
+    this lane's files.
+  - *Reach.* Slice 30's "`lid_open` anywhere" grep will hit the part name.
+    The coordinator decides whether to close it or scope that grep to the
+    tracked scripts.
+  - *Confidence:* high that it is out of this lane.
+- **The receipt half of the oracle is proved by construction, not by a
+  receipt.**
+  - *Scenario.* A `--variant` export writes no receipt, and the wave forbids
+    committing receipts.
+  - *Proof.* All 25 live appearances of the 16 changed scripts were
+    exported, with the rifle-squad sources left as LFS pointers. A crewed
+    export would load one of those, so these exports never reached
+    `vehicle_crew`. `_receipt` hashes the modules in `sys.modules`, and
+    `vehicle_crew` is imported only under `if v.crew`. Slice 16's receipts
+    are the direct check.
+  - *Confidence:* high.
+- **The shared cupola's closed geometry was kept as it was.**
+  - *Scenario.* The critique saw the Ajax's vision blocks as locking tabs
+    with glass flecks: the closed lid (0.92 r) covers the inner half of each
+    block. The cupolas that were already closed (T-90M, KF51, ZTZ-99A,
+    howitzers) look the same.
+  - *Gap.* The slice's one variable is open against closed.
+  - *Reach.* It is left for the shared helper's owner or slice 27.
+  - *Verdict.* Sound for this slice.
+  - *Confidence:* medium.
+- **The roof crop is a camera in metres.**
+  - *Scenario.* `roof:4.2m,3.4m,7.4m:-0.4m,0m,2.2m:32` at 1000x700 is one
+    view for all three models. Fractions of the bounds would follow each
+    gun's reach instead of the turret.
+  - *Gap.* `assets/shots.txt` has no roof shot.
+  - *Reach.* Families may reuse it. It is not added to `shots.txt`, which
+    is the coordinator's standard list.
+  - *Confidence:* high.
+- **Trivial discretion (3).**
+  - Docstrings that described a rider were trimmed with their calls.
+  - Locals left unused by the deletions were dropped (`pivot`, `gun_mount`,
+    the Abrams' pivot unpack).
+  - `cupola`'s docstring dropped the `dark` role, which only the lid stop
+    used.
+
+### Slice 12 decision audit (the lane auditing its own trace)
+
+The six entries above stand as written. The trace found two more:
+
+- **Wrecks were not exported.**
+  - *Scenario.* A wreck export runs the same `build` as the live model,
+    then the family's `wreck`. That removes parts by name prefix
+    (`wreckage.remove`), and a prefix that matches nothing does nothing.
+    `head_out` already did nothing on a wreck. No family's `wreck` names a
+    part this slice renamed or deleted: the Leopard's `commander_*`, or the
+    Abrams' `commander_lid_stop`.
+  - *Reach.* The wreck GLBs change too, because their lids are now closed.
+    Slice 16 re-exports them, and that export is their first run.
+  - *Verdict.* Sound.
+  - *Confidence:* medium-high.
+- **Two old unused locals were left alone.**
+  - *Scenario.* pyflakes flags `abrams.build`'s `m, hull` and
+    `sp_howitzers.wreck`'s `half`. Both were there before this slice, and
+    both sit outside its crew and lid lines.
+  - *Gap.* "Fix easy issues on sight" meets this wave's rule to keep each
+    diff to its own lines.
+  - *Reach.* Families 21 and 29 own those lines.
+  - *Verdict.* Sound under the wave's rules.
+  - *Confidence:* medium.
