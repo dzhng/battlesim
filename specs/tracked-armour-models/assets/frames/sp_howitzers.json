@@ -1,0 +1,467 @@
+{
+  "family": "sp_howitzers",
+  "lane": "F-C",
+  "surveyed": "2026-11-11",
+  "convention": "The hull box reaches the hull and turret roof; sights, antennas and roof guns are dressing within 0.3 m (bulky) or 0.15 m across (thin); the pivot sits at the centre of the turret ring (a fixed howitzer mount: its trunnion); the muzzle sits at the real barrel length. Box length covers the body (hull plus any armoured turret overhang), centred on the box origin.",
+  "thresholds": {
+    "hull_dimension": "max(0.10 m, 3 %)",
+    "pivot_x_m": 0.15,
+    "muzzle_reach_m": 0.3,
+    "note": "Slice 07's guesses, kept: every fix row below clears them by a wide margin or is named as borderline. muzzle_reach_m is added by lane F-C (the slice set none for muzzles)."
+  },
+  "units": [
+    {
+      "unit": "us_m109_paladin_m109a7",
+      "published": {
+        "hull_length_m": {
+          "value": 6.19,
+          "source": "Wikipedia M109 howitzer (20.3 ft hull, every variant)"
+        },
+        "length_with_gun_m": {
+          "value": 9.7,
+          "source": "army-technology.com Paladin M109A7"
+        },
+        "width_m": {
+          "value": [3.15, 3.9],
+          "source": "Wikipedia 10 ft 4 in (M109 family); army-technology / armyrecognition 3.9 m (A7). Disagree."
+        },
+        "height_m": {
+          "value": [3.25, 3.3, 3.7],
+          "source": "Wikipedia 10 ft 8 in; army-technology 3.3 m; armyrecognition 3.7 m"
+        }
+      },
+      "measured": {
+        "source": "assets/references/m109_paladin/us_m109_paladin_m109a7-side-2.png (M109A6 drawing after the U.S. Army IED sheet, CC BY-SA 4.0)",
+        "scale_px_per_m": 65.6,
+        "scale_from": "hull 209-615 px = 6.19 m",
+        "hull": {
+          "length_m": 6.19,
+          "deck_m": 1.64
+        },
+        "turret": {
+          "front_x_m": 0.87,
+          "rear_x_m": -3.93,
+          "length_m": 4.8,
+          "rear_overhang_m": 0.83,
+          "roof_m": [2.77, 2.8],
+          "cupola_mg_mount_top_m": 3.26
+        },
+        "gun": {
+          "trunnion_x_m": 0.34,
+          "trunnion_z_m": 2.27,
+          "reach_from_trunnion_m": 5.94
+        },
+        "note": "x is from the hull's own centre. The drawing is an A6: same turret, but the A7 hull runs on six Bradley road wheels."
+      },
+      "model_glb": {
+        "hull": {
+          "length_m": 6.8,
+          "deck_m": 1.55
+        },
+        "turret": {
+          "front_x_m": 0.55,
+          "rear_x_m": -3.15,
+          "length_m": 3.7,
+          "roof_m": 2.85,
+          "width_m": 3.1
+        },
+        "gun": {
+          "trunnion": [0.62, 2.3],
+          "tip_x_m": 6.95
+        }
+      },
+      "overlays": [
+        {
+          "view": "side",
+          "image": "sp_howitzers.m109a7-side.png",
+          "drawing": "assets/references/m109_paladin/us_m109_paladin_m109a7-side-2.png (M109A6 drawing after the U.S. Army IED sheet, CC BY-SA 4.0)",
+          "align": "lower-third rear and ground",
+          "drawing_m": [2.58, 2.8, 2.8, 2.77, 2.77, 2.77, 2.96, 2.96, 3.13, 3.64, 3.64, 3.64, 3.69, 3.63, 3.6, 3.6, 3.58, 3.6, 2.59, 2.56, 2.36, 2.38, 2.39, 2.39, 2.41, 2.42, 2.44, 2.45, 2.47, 2.48, 2.5, 2.5, 2.61, 2.62, 2.67, 2.59, 2.61, 2.62, 2.7, 2.74, 2.76],
+          "reading": "Pink at the rear is the turret bustle the model lacks; green at the nose is the model's hull running 0.6 m long. Drawing stations above 3 m are the M2 and antenna."
+        }
+      ],
+      "verdicts": [
+        {
+          "field": "half_extents_m[0]",
+          "frame": 3.4,
+          "verdict": "keep",
+          "why": "The body is the 6.19 m hull plus the 0.83 m bustle overhang: 7.02 m, 3 % over 6.8 m (borderline, kept)."
+        },
+        {
+          "field": "half_extents_m[1]",
+          "frame": 1.95,
+          "verdict": "keep",
+          "why": "Unresolved: 3.15 m (family) against 3.9 m (A7 sources, likely over the turret stowage racks); no front drawing settles it."
+        },
+        {
+          "field": "half_extents_m[2]",
+          "frame": 1.625,
+          "verdict": "fix",
+          "new": 1.4,
+          "source": "turret roof 2.77-2.80 m on the A6 drawing",
+          "why": "3.25 m is the cupola and its MG mount (3.26 m on the drawing)."
+        },
+        {
+          "field": "eye_m",
+          "frame": 2.925,
+          "verdict": "keep",
+          "why": "The cupola's periscopes, about 3.0 m."
+        },
+        {
+          "field": "mounts.gun.pivot_m",
+          "frame": [-2.3, 0, 3.0],
+          "verdict": "fix",
+          "new": [0.7, 0, 2.27],
+          "source": "trunnion on the A6 drawing, moved into a box centred on hull plus bustle (hull centre +0.42 m)",
+          "why": "The fixed gun mount's pivot sits 2-3 m behind the turret front and above its roof, and pivot + muzzle lands short of the real muzzle (placeholder numbers from the artillery roster commit d1518dc4f, no recorded basis). The art already draws the gun near the real trunnion. Off 3.0 m along x and 0.7 m in height."
+        },
+        {
+          "field": "mounts.gun.muzzle_m",
+          "frame": [6.0, 0, 0],
+          "verdict": "keep",
+          "why": "5.94 m from the trunnion on the drawing."
+        }
+      ],
+      "frame": {
+        "file": "fixtures/units/roster/us.json",
+        "half_extents_m": [3.4, 1.95, 1.625],
+        "eye_m": 2.925,
+        "mounts": [
+          {
+            "id": "gun",
+            "pivot_m": [-2.3, 0, 3.0],
+            "muzzle_m": [6.0, 0, 0]
+          }
+        ]
+      }
+    },
+    {
+      "unit": "europe_pzh_2000_tracked_155_mm_howitzer",
+      "published": {
+        "hull_length_m": {
+          "value": 7.92,
+          "source": "globalsecurity.org PzH 2000 specs; armedconflicts.com (7.87 m: military-today)"
+        },
+        "length_with_gun_m": {
+          "value": 11.67,
+          "source": "globalsecurity.org; armedconflicts.com"
+        },
+        "width_m": {
+          "value": 3.58,
+          "source": "same"
+        },
+        "turret_roof_m": {
+          "value": 3.06,
+          "source": "globalsecurity.org 'Heigth 3.06 m (turret roof)'; weaponsystems.net 3.06 m roof, 3.46 m overall"
+        }
+      },
+      "measured": {
+        "source": "assets/references/pzh_2000/europe_pzh_2000_tracked_155_mm_howitzer-side-2.jpg (ILÜ 2012, CC BY 2.0)",
+        "scale_from": "hull = 7.92 m",
+        "hull": {
+          "deck_m": 1.8
+        },
+        "turret": {
+          "front_x_m": 0.4,
+          "rear_x_m": -4.37,
+          "length_m": 4.8,
+          "rear_overhang_m": 0.41,
+          "roof_m": [2.95, 3.06]
+        },
+        "gun": {
+          "trunnion_x_m": [0.2, 0.65],
+          "trunnion_z_m": 2.7
+        },
+        "note": "x from the hull's centre. The camera looks down a little: heights +-0.1 m. Trunnion x: 0.2 m from the photo, 0.65 m from the 8.06 m L52 tube with about 1 m behind the trunnion."
+      },
+      "model_glb": {
+        "hull": {
+          "length_m": 7.87,
+          "deck_m": 1.62
+        },
+        "turret": {
+          "front_x_m": 0.35,
+          "rear_x_m": -3.9,
+          "length_m": 4.25,
+          "roof_m": 2.82,
+          "width_m": 3.15
+        },
+        "gun": {
+          "trunnion": [0.4, 2.36],
+          "tip_x_m": 8.77
+        }
+      },
+      "verdicts": [
+        {
+          "field": "half_extents_m[0]",
+          "frame": 3.935,
+          "verdict": "fix",
+          "new": 4.165,
+          "source": "hull 7.92 m (globalsecurity) plus the 0.41 m turret overhang at the rear (photo)",
+          "why": "The body is 8.33 m: 0.46 m over the frame. Centring the box on it puts the hull's centre 0.2 m ahead of the box origin."
+        },
+        {
+          "field": "half_extents_m[1]",
+          "frame": 1.79,
+          "verdict": "keep"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "frame": 1.53,
+          "verdict": "keep",
+          "why": "3.06 m is the published turret roof. The art's roof is 0.24 m low (art)."
+        },
+        {
+          "field": "eye_m",
+          "frame": 2.754,
+          "verdict": "keep"
+        },
+        {
+          "field": "mounts.gun.pivot_m",
+          "frame": [-3.0, 0, 2.9],
+          "verdict": "fix",
+          "new": [0.6, 0, 2.7],
+          "source": "trunnion 0.2-0.65 m ahead of hull centre (+0.2 m into the box) at 2.7 m, photo",
+          "why": "The fixed gun mount's pivot sits 2-3 m behind the turret front and above its roof, and pivot + muzzle lands short of the real muzzle (placeholder numbers from the artillery roster commit d1518dc4f, no recorded basis). The art already draws the gun near the real trunnion."
+        },
+        {
+          "field": "mounts.gun.muzzle_m",
+          "frame": [8.06, 0, 0],
+          "verdict": "fix",
+          "new": [7.1, 0, 0],
+          "source": "the 11.67 m overall length (muzzle 7.3-7.7 m ahead of hull centre, depending on whether it is taken from the hull or the turret rear)",
+          "why": "8.06 m is the whole tube, breech included; about 7 m of it is ahead of the trunnion."
+        }
+      ],
+      "frame": {
+        "file": "fixtures/units/roster/europe.json",
+        "half_extents_m": [3.935, 1.79, 1.53],
+        "eye_m": 2.754,
+        "mounts": [
+          {
+            "id": "gun",
+            "pivot_m": [-3.0, 0, 2.9],
+            "muzzle_m": [8.06, 0, 0]
+          }
+        ]
+      }
+    },
+    {
+      "unit": "eastern_2s19_msta_s_2s19m2",
+      "published": {
+        "hull_length_m": {
+          "value": 7.15,
+          "source": "Wikipedia 2S19 Msta-S"
+        },
+        "width_m": {
+          "value": 3.38,
+          "source": "same"
+        },
+        "height_m": {
+          "value": 2.985,
+          "source": "same (2.99 m); the cupola top on the side photo (2.97 m)"
+        },
+        "length_with_gun_m": {
+          "value": 11.917,
+          "source": "the commonly published overall length"
+        }
+      },
+      "measured": {
+        "source": "assets/references/2s19_msta_s/eastern_2s19_msta_s_2s19m2-side.jpg (CC BY-SA 3.0) and -side-2.jpg (CC BY 4.0)",
+        "scale_from": "hull = 7.15 m (MSTA-S.jpg, square-on)",
+        "hull": {
+          "deck_m": 1.29,
+          "fender_boxes_top_m": 1.51
+        },
+        "turret": {
+          "front_x_m": 1.53,
+          "rear_x_m": -2.46,
+          "length_m": 3.99,
+          "roof_m": 2.82,
+          "cupola_top_m": 2.97
+        },
+        "gun": {
+          "trunnion_x_m": 1.35,
+          "trunnion_z_m": 2.19
+        },
+        "note": "x from hull centre. Cross-checked on the captured 2S19M2 (side-2): deck edge 1.36 m, roof about 2.9 m at the turret front. The square-on photo's barrel reads 5.5 m from the trunnion at 6 deg elevation; the published overall length gives 7.0 m. The overall length governs (the photo's barrel may belong to the vehicle behind)."
+      },
+      "model_glb": {
+        "hull": {
+          "length_m": 7.15,
+          "deck_m": 1.4
+        },
+        "turret": {
+          "front_x_m": 1.2,
+          "rear_x_m": -2.6,
+          "length_m": 3.8,
+          "roof_m": 2.7,
+          "width_m": 3.25
+        },
+        "gun": {
+          "trunnion": [1.25, 2.2],
+          "tip_x_m": 8.7
+        }
+      },
+      "verdicts": [
+        {
+          "field": "half_extents_m[0]",
+          "frame": 3.575,
+          "verdict": "keep"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "frame": 1.79,
+          "verdict": "fix",
+          "new": 1.69,
+          "source": "published width 3.38 m",
+          "why": "0.2 m wide."
+        },
+        {
+          "field": "half_extents_m[2]",
+          "frame": 1.495,
+          "verdict": "fix",
+          "new": 1.41,
+          "source": "turret roof 2.82 m, side photo",
+          "why": "The published 2.985 m is the cupola (2.97 m on the same photo)."
+        },
+        {
+          "field": "eye_m",
+          "frame": 2.691,
+          "verdict": "keep"
+        },
+        {
+          "field": "mounts.gun.pivot_m",
+          "frame": [-2.1, 0, 3.0],
+          "verdict": "fix",
+          "new": [1.35, 0, 2.19],
+          "source": "trunnion, side photo; the art's is (1.25, 2.20)",
+          "why": "The fixed gun mount's pivot sits 2-3 m behind the turret front and above its roof, and pivot + muzzle lands short of the real muzzle (placeholder numbers from the artillery roster commit d1518dc4f, no recorded basis). The art already draws the gun near the real trunnion."
+        },
+        {
+          "field": "mounts.gun.muzzle_m",
+          "frame": [7.15, 0, 0],
+          "verdict": "keep",
+          "source": "overall length 11.917 m: muzzle 8.34 m ahead of hull centre",
+          "why": "With the new pivot the muzzle lands at 8.50 m: 0.16 m long, inside the 0.3 m muzzle threshold."
+        }
+      ],
+      "frame": {
+        "file": "fixtures/units/roster/eastern.json",
+        "half_extents_m": [3.575, 1.79, 1.495],
+        "eye_m": 2.691,
+        "mounts": [
+          {
+            "id": "gun",
+            "pivot_m": [-2.1, 0, 3.0],
+            "muzzle_m": [7.15, 0, 0]
+          }
+        ]
+      }
+    },
+    {
+      "unit": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+      "published": {
+        "length_with_gun_m": {
+          "value": 11.6,
+          "source": "Wikipedia PLZ-05; armedconflicts.com"
+        },
+        "hull_length_m": {
+          "value": 6.1,
+          "source": "armedconflicts.com only; rejected: the seven-road-wheel hull reads visibly longer than the 2S19's 7.15 m in the photos"
+        },
+        "width_m": {
+          "value": 3.38,
+          "source": "Wikipedia PLZ-05"
+        },
+        "height_m": {
+          "value": 3.55,
+          "source": "same; overall, with the QJC-88 MG"
+        }
+      },
+      "measured": {
+        "note": "No free drawing or square-on photo (the library's sides and Commons' are quarters). Turret against hull judged from the quarters only: long and tall over the rear two-thirds."
+      },
+      "model_glb": {
+        "hull": {
+          "length_m": 7.3,
+          "deck_m": 1.55
+        },
+        "turret": {
+          "front_x_m": 0.45,
+          "rear_x_m": -3.55,
+          "length_m": 4.0,
+          "roof_m": 2.8,
+          "width_m": 3.05
+        },
+        "gun": {
+          "trunnion": [0.5, 2.32],
+          "tip_x_m": 8.86
+        }
+      },
+      "verdicts": [
+        {
+          "field": "half_extents_m",
+          "frame": [3.65, 1.7, 1.55],
+          "verdict": "keep",
+          "why": "Width matches; nothing measures the hull length or the roof. Unresolved, named."
+        },
+        {
+          "field": "eye_m",
+          "frame": 2.79,
+          "verdict": "keep"
+        },
+        {
+          "field": "mounts.gun.pivot_m",
+          "frame": [-3.0, 0, 2.9],
+          "verdict": "fix",
+          "new": [0.5, 0, 2.32],
+          "source": "the art's trunnion (nothing better)",
+          "why": "The fixed gun mount's pivot sits 2-3 m behind the turret front and above its roof, and pivot + muzzle lands short of the real muzzle (placeholder numbers from the artillery roster commit d1518dc4f, no recorded basis). The art already draws the gun near the real trunnion."
+        },
+        {
+          "field": "mounts.gun.muzzle_m",
+          "frame": [8.06, 0, 0],
+          "verdict": "fix",
+          "new": [7.45, 0, 0],
+          "source": "overall 11.6 m on the 7.3 m hull: muzzle 7.95 m ahead of hull centre",
+          "why": "8.06 m is the whole L52 tube."
+        }
+      ],
+      "frame": {
+        "file": "fixtures/units/roster/eastern.json",
+        "half_extents_m": [3.65, 1.7, 1.55],
+        "eye_m": 2.79,
+        "mounts": [
+          {
+            "id": "gun",
+            "pivot_m": [-3.0, 0, 2.9],
+            "muzzle_m": [8.06, 0, 0]
+          }
+        ]
+      }
+    }
+  ],
+  "notes": [
+    {
+      "units": "all four",
+      "note": "turret shape looks too big, or body too small",
+      "class": "frame + art",
+      "why": "Per card in question 3: the M109 and 2S19 frames are too tall for their roofs, and the PzH frame too short for its turret overhang. Every card's gun mount is misplaced. The proportions themselves are art."
+    },
+    {
+      "units": "all four",
+      "note": "front side panel sticks out",
+      "class": "art",
+      "why": "The skirts (sp_howitzers.py:101-105) run to half - 0.30 m at the front, past where the glacis starts; slice 09 side_skirt, adopted in slice 29."
+    }
+  ],
+  "questions": {
+    "3_turret_or_body": {
+      "us_m109_paladin_m109a7": "Neither too big nor too small in plan. The real turret is longer (4.8 m against 3.7 m, overhanging the hull rear by 0.8 m), and the hull shorter (6.19 m against 6.8 m). The real turret stands 1.14 m over a 1.64 m deck; the model's 1.30 m over 1.55 m makes it look tall on a low body. Frame: height 3.25 to 2.80 m and the gun mount. Art: raise the deck 0.09 m, lower the turret roof 0.07 m, lengthen the turret into a rear bustle, shorten the hull at the nose.",
+      "europe_pzh_2000_tracked_155_mm_howitzer": "Body too small. The deck is about 1.8 m (model 1.62 m), the turret roof 3.06 m (model 2.82 m), and the turret 4.8 m long (model 4.25 m), overhanging the rear by 0.4 m. Frame: length 7.87 to 8.33 m and the gun mount; height already right. Art: raise the deck and the turret, lengthen the turret rearward.",
+      "eastern_2s19_msta_s_2s19m2": "Close; the turret is a little low and short. Deck 1.29 m (model 1.40 m); turret roof 2.82 m (model 2.70 m); turret 3.99 m from x +1.53 to -2.46 (model 3.8 m, +1.20 to -2.60). Frame: height 2.99 to 2.82 m, width 3.58 to 3.38 m, the gun mount. Art: drop the deck 0.1 m, raise the turret 0.12 m, bring its front forward 0.3 m; the barrel is drawn 1.7 m long (the 7.15 m tube placed wholly ahead of the trunnion).",
+      "eastern_plz_05_chinese_tracked_155_mm_howitzer": "Unresolved: no square-on reference. The frame keeps its box; only the gun mount moves. The family slice judges the turret against the quarter photos."
+    }
+  }
+}
