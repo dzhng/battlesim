@@ -1,133 +1,269 @@
 {
   "family": "ajax",
   "lane": "F-C",
+  "slice": "07",
   "surveyed": "2026-11-11",
-  "convention": "The hull box reaches the hull and turret roof; sights, antennas and roof guns are dressing within 0.3 m (bulky) or 0.15 m across (thin); the pivot sits at the centre of the turret ring (a fixed howitzer mount: its trunnion); the muzzle sits at the real barrel length. Box length covers the body (hull plus any armoured turret overhang), centred on the box origin.",
-  "thresholds": {
-    "hull_dimension": "max(0.10 m, 3 %)",
-    "pivot_x_m": 0.15,
-    "muzzle_reach_m": 0.3,
-    "note": "Slice 07's guesses, kept: every fix row below clears them by a wide margin or is named as borderline. muzzle_reach_m is added by lane F-C (the slice set none for muzzles)."
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
   },
-  "units": [
-    {
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
+  },
+  "sources": [],
+  "appearances": {
+    "europe_ajax_tracked_reconnaissance_vehicle": {
       "unit": "europe_ajax_tracked_reconnaissance_vehicle",
+      "fixture": "fixtures/units/roster/europe.json",
       "published": {
-        "length_m": {
-          "value": 7.62,
-          "source": "Wikipedia General Dynamics Ajax"
-        },
-        "width_m": {
-          "value": 3.35,
-          "source": "same"
-        },
-        "height_m": {
-          "value": 3.0,
-          "source": "same; overall (the art's ORION sight top is 3.04 m)"
-        }
+        "length_m": 7.62,
+        "width_m": 3.35,
+        "height_m": 3.0,
+        "source": "length_m: Wikipedia General Dynamics Ajax; width_m: same; height_m: same; overall (the art's ORION sight top is 3.04 m)"
       },
-      "model_glb": {
-        "bounds_no_dressing_m": [
-          [-3.84, 3.845],
-          [-1.684, 1.684],
-          [0.0, 3.037]
+      "current": {
+        "extends": "roster_profile_tracked_recon",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.81,
+          1.675,
+          1.5
         ],
-        "turret_roof_m": 2.57,
-        "hull_roof_m": 1.92,
-        "rws_m": {
-          "x": [-0.05, 1.1],
-          "y": [-0.98, -0.54],
-          "z": [2.57, 2.91]
+        "eye_m": 2.82,
+        "mounts": [
+          {
+            "id": "autocannon",
+            "pivot_m": [
+              -0.4,
+              0.0,
+              1.95
+            ],
+            "muzzle_m": [
+              2.65,
+              0.0,
+              0.54
+            ],
+            "turret": true
+          }
+        ]
+      },
+      "measured": {
+        "model_glb": {
+          "bounds_no_dressing_m": [
+            [
+              -3.84,
+              3.845
+            ],
+            [
+              -1.684,
+              1.684
+            ],
+            [
+              0.0,
+              3.037
+            ]
+          ],
+          "turret_roof_m": 2.57,
+          "hull_roof_m": 1.92,
+          "rws_m": {
+            "x": [
+              -0.05,
+              1.1
+            ],
+            "y": [
+              -0.98,
+              -0.54
+            ],
+            "z": [
+              2.57,
+              2.91
+            ]
+          },
+          "orion_m": {
+            "x": [
+              -1.16,
+              -0.655
+            ],
+            "y": [
+              -0.9,
+              -0.5
+            ],
+            "z": [
+              2.57,
+              3.037
+            ]
+          }
         },
-        "orion_m": {
-          "x": [-1.16, -0.655],
-          "y": [-0.9, -0.5],
-          "z": [2.57, 3.037]
+        "dressing_conflicts": [
+          {
+            "part": "commander's ORION sight",
+            "top_m": 3.037,
+            "over_new_roof_m": 0.47,
+            "across_m": 0.42,
+            "why": "Not dressing today. Over the 0.3 m bulky allowance on a 2.6 m box; slice 15 decides with the PERI cases."
+          }
+        ]
+      },
+      "heights": {
+        "roof_m": 2.57,
+        "roof_source": "art (no drawing)",
+        "sight_top_m": 3.0,
+        "sight_part": "ORION",
+        "sight_source": "Wikipedia overall height",
+        "rule_top_m": 2.7,
+        "box_top_m": 2.7,
+        "art": {
+          "hull_top_m": 3.037,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
         }
       },
-      "verdicts": [
+      "rows": [
         {
           "field": "half_extents_m[0]",
-          "frame": 3.81,
-          "verdict": "keep"
+          "old": 3.81,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
         },
         {
           "field": "half_extents_m[1]",
-          "frame": 1.675,
-          "verdict": "keep"
+          "old": 1.675,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
         },
         {
           "field": "half_extents_m[2]",
-          "frame": 1.5,
+          "old": 1.5,
+          "new": 1.35,
           "verdict": "fix",
-          "new": 1.3,
-          "source": "turret roof 2.57 m in the art (built from the photos); the published 3.0 m lands on the art's ORION sight top (3.04 m)",
-          "why": "No free drawing; the art's roof is the measurement, cross-checked by the published overall height meeting its sight top. 2.6 m keeps the roof inside tolerance."
+          "source": "Wikipedia 3.0 m overall (the ORION sight's top); the art's roof 2.57 m",
+          "confidence": "medium",
+          "note": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 2.57 m (the art; no drawing exists); the ORION head reaches 3.0 m, so the top is 2.70 m. The ORION goes under dressing_*, its base stays hull. Lane: No free drawing; the art's roof is the measurement, cross-checked by the published overall height meeting its sight top. 2.6 m keeps the roof inside tolerance."
         },
         {
           "field": "eye_m",
-          "frame": 2.82,
-          "verdict": "keep"
+          "old": 2.82,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
         },
         {
-          "field": "mounts.autocannon",
-          "frame": "pivot [-0.4, 0, 1.95], muzzle [2.65, 0, 0.54]",
-          "verdict": "keep"
+          "field": "mounts.autocannon.pivot_m",
+          "old": [
+            -0.4,
+            0.0,
+            1.95
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
         },
         {
-          "field": "mounts.HMG (new)",
-          "frame": null,
-          "verdict": "fix",
+          "field": "mounts.autocannon.muzzle_m",
+          "old": [
+            2.65,
+            0.0,
+            0.54
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.HMG",
+          "old": null,
           "new": {
             "id": "HMG",
+            "name": "HMG",
             "weapons": [
               "hmg"
             ],
             "turret": true,
             "on": "autocannon",
-            "pivot_m": [0.15, -0.72, 2.78],
-            "muzzle_m": [0.95, 0, 0.05]
+            "pivot_m": [
+              0.15,
+              -0.72,
+              2.78
+            ],
+            "muzzle_m": [
+              0.95,
+              0,
+              0.05
+            ]
           },
-          "source": "the RWS art, ajax.py:119-123",
-          "why": "User decision Q9b. See question 8."
+          "verdict": "fix",
+          "source": "ajax.py:119-123 (the RWS art; slice 07 Q8)",
+          "confidence": "medium",
+          "note": "User decision Q9b: the roof machine gun as a mount on the autocannon, shaped as the Leopard's (europe.json:85). Pivot at the RWS body centre (yaw through the bearing, pitch through the cradle), muzzle 0.95 m ahead and 0.05 m up (FC13). The RWS sits on the turret roof, which does not move under C4. A named balance change. Lane: User decision Q9b. See question 8."
         }
+      ]
+    }
+  },
+  "overlays": null,
+  "notes": [
+    {
+      "appearances": [
+        "europe_ajax_tracked_reconnaissance_vehicle"
       ],
-      "dressing_conflicts": [
-        {
-          "part": "commander's ORION sight",
-          "top_m": 3.037,
-          "over_new_roof_m": 0.47,
-          "across_m": 0.42,
-          "why": "Not dressing today. Over the 0.3 m bulky allowance on a 2.6 m box; slice 15 decides with the PERI cases."
-        }
-      ],
-      "notes": [
-        {
-          "note": "front side panels sticks out",
-          "class": "art",
-          "why": "Side modules (ajax.py:81-98) start at x 3.30 m, ahead of where the glacis takes over (2.0 m up the slope); slice 09 side_skirt, adopted in slice 27."
-        }
-      ],
-      "frame": {
-        "file": "fixtures/units/roster/europe.json",
-        "half_extents_m": [3.81, 1.675, 1.5],
-        "eye_m": 2.82,
-        "mounts": [
-          {
-            "id": "autocannon",
-            "pivot_m": [-0.4, 0, 1.95],
-            "muzzle_m": [2.65, 0, 0.54]
-          }
-        ]
-      }
+      "note": "front side panels sticks out",
+      "class": "art",
+      "why": "Side modules (ajax.py:81-98) start at x 3.30 m, ahead of where the glacis takes over (2.0 m up the slope); slice 09 side_skirt, adopted in slice 27."
     }
   ],
-  "questions": {
+  "answers": {
     "8_ajax_rws": {
-      "pivot_m": [0.15, -0.72, 2.78],
-      "muzzle_m": [0.95, 0, 0.05],
+      "pivot_m": [
+        0.15,
+        -0.72,
+        2.78
+      ],
+      "muzzle_m": [
+        0.95,
+        0,
+        0.05
+      ],
       "derivation": "Turret pivot (-0.4, 0, 1.95) plus the RWS art in turret space: rws_bearing at (0.55, -0.72, ROOF+0.04), rws_body centre (0.55, -0.72, ROOF+0.21), rws_gun axis at ROOF+0.26 from x 0.70 to 1.50, with ROOF 0.62. Yaw through the bearing, pitch through the body centre (z 1.95+0.62+0.21 = 2.78); the gun axis is 0.05 m above it and the barrel tip 0.95 m ahead (hull x 1.10).",
       "clearance": "The RWS spans y -0.98..-0.54 m; the cannon's mantlet is 0.56 m wide (y +-0.28), so 0.26 m clear laterally at every elevation. Its yaw node must sit under the autocannon's turret (on: autocannon), as the Leopard's HMG does."
     }
-  }
+  },
+  "gaps": null
 }

@@ -1,270 +1,707 @@
 {
   "family": "bmp",
   "lane": "F-C",
+  "slice": "07",
   "surveyed": "2026-11-11",
-  "convention": "The hull box reaches the hull and turret roof; sights, antennas and roof guns are dressing within 0.3 m (bulky) or 0.15 m across (thin); the pivot sits at the centre of the turret ring (a fixed howitzer mount: its trunnion); the muzzle sits at the real barrel length. Box length covers the body (hull plus any armoured turret overhang), centred on the box origin.",
-  "thresholds": {
-    "hull_dimension": "max(0.10 m, 3 %)",
-    "pivot_x_m": 0.15,
-    "muzzle_reach_m": 0.3,
-    "note": "Slice 07's guesses, kept: every fix row below clears them by a wide margin or is named as borderline. muzzle_reach_m is added by lane F-C (the slice set none for muzzles)."
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
   },
-  "units": [
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
+  },
+  "sources": [
     {
+      "id": "eastern_bmp_ifv_family_bmp_2m_berezhok:0",
+      "kind": "drawing",
+      "ref": "assets/references/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok-side-2.png",
+      "note": "assets/references/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok-side-2.png (U.S. Army 1981 BMP-2 drawing, public domain)"
+    },
+    {
+      "id": "eastern_bmp_ifv_family_bmp_2m_berezhok:1",
+      "kind": "photo",
+      "ref": "assets/references/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok-side-3.jpg",
+      "note": "assets/references/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok-side-3.jpg (square-on BMP-2, CC0; upload stretched 1.17x horizontally, corrected)"
+    },
+    {
+      "id": "eastern_bmp_ifv_family_bmp_3:2",
+      "kind": "drawing",
+      "ref": "assets/references/bmp/eastern_bmp_ifv_family_bmp_3-side-3.png",
+      "note": "assets/references/bmp/eastern_bmp_ifv_family_bmp_3-side-3.png (U.S. Army FMSO BMP-3 line drawing, public domain)"
+    },
+    {
+      "id": "eastern_bmp_ifv_family_bmp_3:3",
+      "kind": "photo",
+      "ref": "a BMP-3 side photo measured in throwaway/",
+      "note": "a BMP-3 side photo measured in throwaway/ (CC BY-SA 1.0, not committable)"
+    }
+  ],
+  "appearances": {
+    "eastern_bmp_ifv_family_bmp_2m_berezhok": {
       "unit": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "fixture": "fixtures/units/roster/eastern.json",
       "published": {
-        "length_m": {
-          "value": 6.735,
-          "source": "Wikipedia BMP-2"
+        "length_m": 6.735,
+        "width_m": 3.15,
+        "height_m": 2.45,
+        "source": "length_m: Wikipedia BMP-2; width_m: same; height_m: same; overall (launcher and sight tops 2.29-2.36 m on the drawing and photo)"
+      },
+      "current": {
+        "extends": "roster_profile_light_ifv",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 75.0,
+            "turn_deg_s": 45.0
+          }
         },
-        "width_m": {
-          "value": 3.15,
-          "source": "same"
-        },
-        "height_m": {
-          "value": 2.45,
-          "source": "same; overall (launcher and sight tops 2.29-2.36 m on the drawing and photo)"
-        }
+        "half_extents_m": [
+          3.3675,
+          1.575,
+          1.225
+        ],
+        "eye_m": 2.303,
+        "mounts": [
+          {
+            "id": "autocannon",
+            "pivot_m": [
+              0.3,
+              0.0,
+              1.593
+            ],
+            "muzzle_m": [
+              2.829,
+              0.0,
+              0.441
+            ],
+            "turret": true
+          },
+          {
+            "id": "launcher",
+            "pivot_m": [
+              0.3,
+              0.851,
+              2.009
+            ],
+            "muzzle_m": [
+              1.05,
+              0.0,
+              0.0
+            ],
+            "turret": true,
+            "on": "autocannon"
+          }
+        ]
       },
       "measured": {
-        "sources": [
-          "assets/references/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok-side-2.png (U.S. Army 1981 BMP-2 drawing, public domain)",
-          "assets/references/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok-side-3.jpg (square-on BMP-2, CC0; upload stretched 1.17x horizontally, corrected)"
-        ],
-        "hull_roof_m": {
-          "drawing": 1.58,
-          "photo": 1.57
-        },
-        "turret_roof_m": {
-          "drawing": 2.14,
-          "photo": 2.07
-        },
-        "turret_ring_x_m": {
-          "photo": 0.09,
-          "drawing": -0.48,
-          "note": "The 1981 drawing's turret is drawn further back than the photo shows; the photo (a real vehicle, square-on) governs. The U.S. Army BMP-1 graphic has its turret further forward still. The ring position stays the least certain number here (+-0.15 m)."
-        },
-        "muzzle_x_m": {
-          "photo": 2.48,
-          "drawing": 2.5
-        },
-        "glacis": {
-          "nose_tip_m": {
-            "drawing": 1.22,
-            "photo": 1.23,
-            "model": 0.95
+        "measured": {
+          "sources": [
+            "assets/references/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok-side-2.png (U.S. Army 1981 BMP-2 drawing, public domain)",
+            "assets/references/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok-side-3.jpg (square-on BMP-2, CC0; upload stretched 1.17x horizontally, corrected)"
+          ],
+          "hull_roof_m": {
+            "drawing": 1.58,
+            "photo": 1.57
           },
-          "upper_glacis_deg_above_horizontal": {
-            "drawing": 10,
-            "photo": [11, 12],
-            "model": 14.1,
-            "published": "80 deg from vertical for the BMP-1/2 upper plate (10 deg above horizontal)"
+          "turret_roof_m": {
+            "drawing": 2.14,
+            "photo": 2.07
           },
-          "lower_glacis_deg_above_horizontal": {
-            "drawing": 38,
-            "photo": 32,
-            "model": 34.6,
-            "published": "57 deg from vertical for the BMP-1/2 lower plate (33 deg above horizontal)"
+          "turret_ring_x_m": {
+            "photo": 0.09,
+            "drawing": -0.48,
+            "note": "The 1981 drawing's turret is drawn further back than the photo shows; the photo (a real vehicle, square-on) governs. The U.S. Army BMP-1 graphic has its turret further forward still. The ring position stays the least certain number here (+-0.15 m)."
           },
-          "lower_plate_foot": {
-            "real": "0.65-0.77 m up, 0.65-0.75 m behind the nose, where the hull underside takes over above the sprocket",
-            "model": "runs down to the belly at 0.42 m, 0.77 m behind the nose"
+          "muzzle_x_m": {
+            "photo": 2.48,
+            "drawing": 2.5
           },
-          "reading": "The real nose sits 0.25-0.3 m higher. From it the upper plate rises gently (10-12 deg) and the lower plate drops a short way, then the belly. The model's low nose makes its upper glacis fall 4 deg too steeply and stretches its lower plate down to the belly: exactly the user's note."
+          "glacis": {
+            "nose_tip_m": {
+              "drawing": 1.22,
+              "photo": 1.23,
+              "model": 0.95
+            },
+            "upper_glacis_deg_above_horizontal": {
+              "drawing": 10,
+              "photo": [
+                11,
+                12
+              ],
+              "model": 14.1,
+              "published": "80 deg from vertical for the BMP-1/2 upper plate (10 deg above horizontal)"
+            },
+            "lower_glacis_deg_above_horizontal": {
+              "drawing": 38,
+              "photo": 32,
+              "model": 34.6,
+              "published": "57 deg from vertical for the BMP-1/2 lower plate (33 deg above horizontal)"
+            },
+            "lower_plate_foot": {
+              "real": "0.65-0.77 m up, 0.65-0.75 m behind the nose, where the hull underside takes over above the sprocket",
+              "model": "runs down to the belly at 0.42 m, 0.77 m behind the nose"
+            },
+            "reading": "The real nose sits 0.25-0.3 m higher. From it the upper plate rises gently (10-12 deg) and the lower plate drops a short way, then the belly. The model's low nose makes its upper glacis fall 4 deg too steeply and stretches its lower plate down to the belly: exactly the user's note."
+          }
+        },
+        "model_glb": {
+          "bounds_no_dressing_m": [
+            [
+              -3.435,
+              3.346
+            ],
+            [
+              -1.586,
+              1.586
+            ],
+            [
+              0.0,
+              2.46
+            ]
+          ],
+          "turret_roof_m": 2.213,
+          "hull_roof_m": 1.62
+        },
+        "dressing_conflicts": [
+          {
+            "part": "commander's and gunner's sight housings",
+            "top_m": 2.46,
+            "over_new_roof_m": 0.31,
+            "across_m": 0.3,
+            "why": "0.01 m past the 0.3 m bulky allowance on a 2.15 m box: settle with the other sight heads (decisions.md FC3), or seat the housings 0.01 m lower."
+          }
+        ]
+      },
+      "heights": {
+        "roof_m": 2.1,
+        "roof_source": "photo 2.07 m; drawing 2.14 m",
+        "sight_top_m": 2.45,
+        "sight_part": "sight housings and launcher",
+        "sight_source": "Wikipedia overall",
+        "rule_top_m": 2.15,
+        "box_top_m": 2.15,
+        "art": {
+          "hull_top_m": 2.46,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
         }
       },
-      "model_glb": {
-        "bounds_no_dressing_m": [
-          [-3.435, 3.346],
-          [-1.586, 1.586],
-          [0.0, 2.46]
-        ],
-        "turret_roof_m": 2.213,
-        "hull_roof_m": 1.62
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.3675,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.575,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.225,
+          "new": 1.075,
+          "verdict": "fix",
+          "source": "turret roof 2.07 m (photo) / 2.14 m (1981 drawing); 2.45 m overall (Wikipedia)",
+          "confidence": "high",
+          "note": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 2.07-2.14 m; the sight housings and launcher reach 2.45 m, so the top is 2.15 m: F-C's value, now by the rule. Lane: 2.45 m is the launcher and sight tops. The art's roof (2.21 m) stays inside tolerance."
+        },
+        {
+          "field": "eye_m",
+          "old": 2.303,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.autocannon.pivot_m",
+          "old": [
+            0.3,
+            0.0,
+            1.593
+          ],
+          "new": [
+            0.1,
+            0.0,
+            1.593
+          ],
+          "verdict": "fix",
+          "source": "assets/references/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok-side-3.jpg (square-on BMP-2, CC0; upload stretched 1.17x horizontally, corrected)",
+          "confidence": null,
+          "note": "The ring centre is 0.09 m ahead of hull centre: 0.2 m off, just over the 0.15 m threshold (borderline)."
+        },
+        {
+          "field": "mounts.autocannon.muzzle_m",
+          "old": [
+            2.829,
+            0.0,
+            0.441
+          ],
+          "new": [
+            2.39,
+            0.0,
+            0.441
+          ],
+          "verdict": "fix",
+          "source": "muzzle 2.48 m (photo) and 2.50 m (drawing) ahead of hull centre",
+          "confidence": null,
+          "note": "The frame puts the muzzle at 3.13 m, 0.24 m behind the nose; the real 30 mm ends 0.88 m behind it. 0.65 m off."
+        },
+        {
+          "field": "mounts.launcher.pivot_m",
+          "old": [
+            0.3,
+            0.851,
+            2.009
+          ],
+          "new": [
+            0.1,
+            0.851,
+            2.009
+          ],
+          "verdict": "fix",
+          "source": null,
+          "confidence": null,
+          "note": "Moves with the turret pivot."
+        },
+        {
+          "field": "mounts.launcher.muzzle_m",
+          "old": [
+            1.05,
+            0.0,
+            0.0
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        }
+      ]
+    },
+    "eastern_bmp_ifv_family_bmp_3": {
+      "unit": "eastern_bmp_ifv_family_bmp_3",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "published": {
+        "length_m": 7.14,
+        "width_m": 3.2,
+        "height_m": 2.4,
+        "source": "length_m: Wikipedia BMP-3; width_m: same; height_m: same"
       },
-      "overlays": [
+      "current": {
+        "extends": "roster_profile_ifv",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.57,
+          1.6,
+          1.2
+        ],
+        "eye_m": 2.256,
+        "mounts": [
+          {
+            "id": "main_gun",
+            "pivot_m": [
+              0.3,
+              0.0,
+              1.6
+            ],
+            "muzzle_m": [
+              3.8,
+              0.0,
+              0.35
+            ],
+            "turret": true
+          },
+          {
+            "id": "autocannon",
+            "pivot_m": [
+              0.3,
+              -0.22,
+              1.6
+            ],
+            "muzzle_m": [
+              3.25,
+              0.0,
+              0.35
+            ],
+            "turret": true,
+            "on": "main_gun"
+          }
+        ]
+      },
+      "measured": {
+        "measured": {
+          "sources": [
+            "assets/references/bmp/eastern_bmp_ifv_family_bmp_3-side-3.png (U.S. Army FMSO BMP-3 line drawing, public domain)",
+            "a BMP-3 side photo measured in throwaway/ (CC BY-SA 1.0, not committable)"
+          ],
+          "nose_tip_m": [
+            1.39,
+            1.44
+          ],
+          "upper_glacis_deg_above_horizontal": [
+            8,
+            15
+          ],
+          "lower_glacis_deg_above_horizontal": [
+            55,
+            65
+          ],
+          "hull_roof_m": [
+            1.79,
+            1.9
+          ],
+          "turret_roof_m": 2.37,
+          "turret_ring_x_m": 0.27
+        },
+        "model_glb": {
+          "bounds_no_dressing_m": [
+            [
+              -3.635,
+              4.105
+            ],
+            [
+              -1.6,
+              1.6
+            ],
+            [
+              0.0,
+              2.367
+            ]
+          ],
+          "turret_roof_m": 2.16,
+          "hull_roof_m": 1.62,
+          "nose_m": 1.04,
+          "upper_glacis_deg": 24.5,
+          "lower_glacis_deg": 40.7
+        }
+      },
+      "heights": {
+        "roof_m": 2.37,
+        "roof_source": "FMSO drawing",
+        "sight_top_m": 2.4,
+        "sight_part": "sights",
+        "sight_source": "Wikipedia overall",
+        "rule_top_m": 2.37,
+        "box_top_m": 2.4,
+        "art": {
+          "hull_top_m": 2.367,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.57,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "Published 7.14 x 3.2 x 2.4; the drawing's turret roof is 2.37 m."
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.6,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "Published 7.14 x 3.2 x 2.4; the drawing's turret roof is 2.37 m."
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.2,
+          "new": null,
+          "verdict": "keep",
+          "source": "FMSO drawing turret roof 2.37 m; Wikipedia 2.4 m",
+          "confidence": null,
+          "note": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). The box top is the turret roof (2.37 m), 0.03 m under today's 2.4 m. The hull being about 0.2 m low (roof 1.62 m against 1.8-1.9 m) is art: no frame number holds the deck. Lane: Published 7.14 x 3.2 x 2.4; the drawing's turret roof is 2.37 m."
+        },
+        {
+          "field": "eye_m",
+          "old": 2.256,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.main_gun.pivot_m",
+          "old": [
+            0.3,
+            0.0,
+            1.6
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "The drawing's ring centre is +0.27 m."
+        },
+        {
+          "field": "mounts.main_gun.muzzle_m",
+          "old": [
+            3.8,
+            0.0,
+            0.35
+          ],
+          "new": [
+            3.35,
+            0,
+            0.35
+          ],
+          "verdict": "fix",
+          "source": "assets/references/bmp/eastern_bmp_ifv_family_bmp_3-side-3.png (FMSO, public domain; 56.2 px/m)",
+          "confidence": "medium",
+          "note": "C5 audit: on the drawing the 100 mm muzzle stands 0.07 m past the nose (world x about 3.64 m, gun axis 2.03 m). The frame's world point (4.1 m) is 0.46 m past that. Lane: The drawing's ring centre is +0.27 m."
+        },
+        {
+          "field": "mounts.autocannon.pivot_m",
+          "old": [
+            0.3,
+            -0.22,
+            1.6
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "The drawing's ring centre is +0.27 m."
+        },
+        {
+          "field": "mounts.autocannon.muzzle_m",
+          "old": [
+            3.25,
+            0.0,
+            0.35
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "The drawing's ring centre is +0.27 m."
+        },
+        {
+          "field": "art",
+          "old": null,
+          "new": null,
+          "verdict": "art-only",
+          "source": null,
+          "confidence": null,
+          "note": "The hull is 0.2 m low (roof 1.62 against 1.8-1.9 m), and so is the turret (2.16 against 2.37 m). The nose is 0.35-0.4 m low, with the upper glacis 10 deg too steep and the lower one 20 deg too shallow: the BRM's note, on the hull it shares (S13)."
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "Each committed image overlays our model on a free drawing; its attribution and licence are recorded with it (decisions.md C8).",
+    "by_appearance": {
+      "eastern_bmp_ifv_family_bmp_2m_berezhok": [
         {
           "view": "side",
           "image": "bmp.bmp_2m-side.png",
           "drawing": "assets/references/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok-side-2.png (U.S. Army 1981 BMP-2 drawing, public domain)",
           "scale_px_per_m": 46.2,
           "align": "lower hull rear and ground",
-          "drawing_m": [1.3, 1.6, 1.6, 1.6, 1.65, 1.65, 1.6, 1.65, 2.25, 2.34, 2.42, 2.4, 1.97, 1.99, 1.88, 1.86, 1.86, 1.84, 1.84, 1.84, 1.84, 1.84, 1.84, 1.86, 1.36, 1.39, 1.45],
-          "model_m": [0.87, 1.62, 1.62, 1.62, 1.71, 1.71, 1.71, 1.67, 1.67, 1.71, 1.71, 1.71, 2.23, 2.32, 2.47, 2.4, 2.45, 2.23, 2.16, 2.1, 2.08, 2.08, 2.08, 2.08, 2.08, 2.08, 2.1, 0.95],
-          "reading": "Top of silhouette every 0.25 m from the rear; the forward stations are the gun. The pink band over the model's nose is the higher real nose."
+          "drawing_m": [
+            1.3,
+            1.6,
+            1.6,
+            1.6,
+            1.65,
+            1.65,
+            1.6,
+            1.65,
+            2.25,
+            2.34,
+            2.42,
+            2.4,
+            1.97,
+            1.99,
+            1.88,
+            1.86,
+            1.86,
+            1.84,
+            1.84,
+            1.84,
+            1.84,
+            1.84,
+            1.84,
+            1.86,
+            1.36,
+            1.39,
+            1.45
+          ],
+          "model_m": [
+            0.87,
+            1.62,
+            1.62,
+            1.62,
+            1.71,
+            1.71,
+            1.71,
+            1.67,
+            1.67,
+            1.71,
+            1.71,
+            1.71,
+            2.23,
+            2.32,
+            2.47,
+            2.4,
+            2.45,
+            2.23,
+            2.16,
+            2.1,
+            2.08,
+            2.08,
+            2.08,
+            2.08,
+            2.08,
+            2.08,
+            2.1,
+            0.95
+          ],
+          "reading": "Top of silhouette every 0.25 m from the rear; the forward stations are the gun. The pink band over the model's nose is the higher real nose.",
+          "attribution": "U.S. Army (National Defense University clip art, 1981), via Wikimedia Commons File:BMP21981graphic1.gif",
+          "licence": "public-domain (PD-USGov-Military-Army)"
         }
       ],
-      "verdicts": [
-        {
-          "field": "half_extents_m[0]",
-          "frame": 3.3675,
-          "verdict": "keep"
-        },
-        {
-          "field": "half_extents_m[1]",
-          "frame": 1.575,
-          "verdict": "keep"
-        },
-        {
-          "field": "half_extents_m[2]",
-          "frame": 1.225,
-          "verdict": "fix",
-          "new": 1.075,
-          "source": "turret roof 2.07 m (photo) / 2.14 m (1981 drawing)",
-          "why": "2.45 m is the launcher and sight tops. The art's roof (2.21 m) stays inside tolerance."
-        },
-        {
-          "field": "eye_m",
-          "frame": 2.303,
-          "verdict": "keep"
-        },
-        {
-          "field": "mounts.autocannon.pivot_m[0]",
-          "frame": 0.3,
-          "verdict": "fix",
-          "new": 0.1,
-          "source": "assets/references/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok-side-3.jpg (square-on BMP-2, CC0; upload stretched 1.17x horizontally, corrected)",
-          "why": "The ring centre is 0.09 m ahead of hull centre: 0.2 m off, just over the 0.15 m threshold (borderline)."
-        },
-        {
-          "field": "mounts.autocannon.muzzle_m[0]",
-          "frame": 2.829,
-          "verdict": "fix",
-          "new": 2.39,
-          "source": "muzzle 2.48 m (photo) and 2.50 m (drawing) ahead of hull centre",
-          "why": "The frame puts the muzzle at 3.13 m, 0.24 m behind the nose; the real 30 mm ends 0.88 m behind it. 0.65 m off."
-        },
-        {
-          "field": "mounts.launcher.pivot_m[0]",
-          "frame": 0.3,
-          "verdict": "fix",
-          "new": 0.1,
-          "why": "Moves with the turret pivot."
-        }
-      ],
-      "dressing_conflicts": [
-        {
-          "part": "commander's and gunner's sight housings",
-          "top_m": 2.46,
-          "over_new_roof_m": 0.31,
-          "across_m": 0.3,
-          "why": "0.01 m past the 0.3 m bulky allowance on a 2.15 m box: settle with the other sight heads (decisions.md FC3), or seat the housings 0.01 m lower."
-        }
-      ],
-      "notes": [
-        {
-          "note": "front slopes down too much, bottom should actually slope up more",
-          "class": "art",
-          "why": "The glacis geometry (bmp.py Bmp2 hull_upper/hull_lower): raise the nose from 0.95 to about 1.2 m, flatten the upper plate to 10-12 deg, end the lower plate at about 0.7 m. The frame is unaffected (see glacis)."
-        }
-      ],
-      "frame": {
-        "file": "fixtures/units/roster/eastern.json",
-        "half_extents_m": [3.3675, 1.575, 1.225],
-        "eye_m": 2.303,
-        "mounts": [
-          {
-            "id": "autocannon",
-            "pivot_m": [0.3, 0, 1.593],
-            "muzzle_m": [2.829, 0, 0.441]
-          },
-          {
-            "id": "launcher",
-            "pivot_m": [0.3, 0.851, 2.009],
-            "muzzle_m": [1.05, 0, 0],
-            "on": "autocannon"
-          }
-        ]
-      }
-    },
-    {
-      "unit": "eastern_bmp_ifv_family_bmp_3",
-      "published": {
-        "length_m": {
-          "value": 7.14,
-          "source": "Wikipedia BMP-3"
-        },
-        "width_m": {
-          "value": 3.2,
-          "source": "same"
-        },
-        "height_m": {
-          "value": 2.4,
-          "source": "same"
-        }
-      },
-      "measured": {
-        "sources": [
-          "assets/references/bmp/eastern_bmp_ifv_family_bmp_3-side-3.png (U.S. Army FMSO BMP-3 line drawing, public domain)",
-          "a BMP-3 side photo measured in throwaway/ (CC BY-SA 1.0, not committable)"
-        ],
-        "nose_tip_m": [1.39, 1.44],
-        "upper_glacis_deg_above_horizontal": [8, 15],
-        "lower_glacis_deg_above_horizontal": [55, 65],
-        "hull_roof_m": [1.79, 1.9],
-        "turret_roof_m": 2.37,
-        "turret_ring_x_m": 0.27
-      },
-      "model_glb": {
-        "bounds_no_dressing_m": [
-          [-3.635, 4.105],
-          [-1.6, 1.6],
-          [0.0, 2.367]
-        ],
-        "turret_roof_m": 2.16,
-        "hull_roof_m": 1.62,
-        "nose_m": 1.04,
-        "upper_glacis_deg": 24.5,
-        "lower_glacis_deg": 40.7
-      },
-      "overlays": [
+      "eastern_bmp_ifv_family_bmp_3": [
         {
           "view": "side",
           "image": "bmp.bmp_3-side.png",
           "drawing": "assets/references/bmp/eastern_bmp_ifv_family_bmp_3-side-3.png (U.S. Army FMSO BMP-3 line drawing, public domain)",
           "scale_px_per_m": 56.2,
-          "drawing_m": [1.09, 1.8, 1.8, 1.81, 1.9, 1.87, 1.9, 1.9, 1.9, 1.9, 1.92, 1.9, 2.22, 2.63, 2.37, 2.38, 2.44, 2.42, 2.19, 2.24, 2.24, 2.06, 2.05, 2.05, 2.05, 2.03, 2.01, 2.01, 2.01],
-          "model_m": [0.84, 1.62, 1.65, 1.65, 1.65, 1.65, 1.65, 1.65, 1.62, 1.62, 1.62, 1.67, 2.22, 2.24, 2.19, 2.24, 2.24, 2.37, 2.31, 2.12, 2.1, 2.05, 2.05, 2.03, 2.03, 2.05, 2.05, 2.03, 2.03, 2.03, 2.03]
+          "drawing_m": [
+            1.09,
+            1.8,
+            1.8,
+            1.81,
+            1.9,
+            1.87,
+            1.9,
+            1.9,
+            1.9,
+            1.9,
+            1.92,
+            1.9,
+            2.22,
+            2.63,
+            2.37,
+            2.38,
+            2.44,
+            2.42,
+            2.19,
+            2.24,
+            2.24,
+            2.06,
+            2.05,
+            2.05,
+            2.05,
+            2.03,
+            2.01,
+            2.01,
+            2.01
+          ],
+          "model_m": [
+            0.84,
+            1.62,
+            1.65,
+            1.65,
+            1.65,
+            1.65,
+            1.65,
+            1.65,
+            1.62,
+            1.62,
+            1.62,
+            1.67,
+            2.22,
+            2.24,
+            2.19,
+            2.24,
+            2.24,
+            2.37,
+            2.31,
+            2.12,
+            2.1,
+            2.05,
+            2.05,
+            2.03,
+            2.03,
+            2.05,
+            2.05,
+            2.03,
+            2.03,
+            2.03,
+            2.03
+          ],
+          "attribution": "U.S. Army FMSO (Red Thrust Star, January 1996), via Wikimedia Commons File:BMP-3_line_drawing.gif",
+          "licence": "public-domain (PD-USGov-Military-Army)"
         }
-      ],
-      "verdicts": [
-        {
-          "field": "half_extents_m",
-          "frame": [3.57, 1.6, 1.2],
-          "verdict": "keep",
-          "why": "Published 7.14 x 3.2 x 2.4; the drawing's turret roof is 2.37 m."
-        },
-        {
-          "field": "mounts",
-          "frame": "main_gun pivot [0.3, 0, 1.6]",
-          "verdict": "keep",
-          "why": "The drawing's ring centre is +0.27 m."
-        },
-        {
-          "field": "art (no frame change)",
-          "verdict": "art-only",
-          "why": "The hull is 0.2 m low (roof 1.62 against 1.8-1.9 m), and so is the turret (2.16 against 2.37 m). The nose is 0.35-0.4 m low, with the upper glacis 10 deg too steep and the lower one 20 deg too shallow: the BRM's note, on the hull it shares (S13)."
-        }
-      ],
-      "notes": [],
-      "frame": {
-        "file": "fixtures/units/roster/eastern.json",
-        "half_extents_m": [3.57, 1.6, 1.2],
-        "eye_m": 2.256,
-        "mounts": [
-          {
-            "id": "main_gun",
-            "pivot_m": [0.3, 0, 1.6],
-            "muzzle_m": [3.8, 0, 0.35]
-          },
-          {
-            "id": "autocannon",
-            "pivot_m": [0.3, -0.22, 1.6],
-            "muzzle_m": [3.25, 0, 0.35],
-            "on": "main_gun"
-          }
-        ]
-      }
+      ]
     }
-  ]
+  },
+  "notes": [
+    {
+      "appearances": [
+        "eastern_bmp_ifv_family_bmp_2m_berezhok"
+      ],
+      "note": "front slopes down too much, bottom should actually slope up more",
+      "class": "art",
+      "why": "The glacis geometry (bmp.py Bmp2 hull_upper/hull_lower): raise the nose from 0.95 to about 1.2 m, flatten the upper plate to 10-12 deg, end the lower plate at about 0.7 m. The frame is unaffected (see glacis)."
+    },
+    {
+      "appearances": [
+        "eastern_bmp_ifv_family_bmp_3"
+      ],
+      "note": "(F-C finding) the hull is about 0.2 m low",
+      "class": "art",
+      "why": "Under C4 the box top is the turret roof plus the sights' allowance, and the BMP-3's 2.4 m box agrees with the drawing's 2.37 m turret roof. No frame number holds the deck height, so raising the hull roof (1.62 m to 1.8-1.9 m) and the turret with it is slice 28's art."
+    }
+  ],
+  "answers": null,
+  "gaps": null
 }

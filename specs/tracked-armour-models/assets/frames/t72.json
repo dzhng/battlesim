@@ -1,1344 +1,1556 @@
 {
- "family": "T-72 family (slice 17)",
- "lane": "F-A",
- "convention": "Frame axes: x forward, y left, z up, origin on the ground at the hull's middle. half_extents_m is the hull box (z: half the roof height). pivot_m is the turret ring centre; muzzle_m is from the pivot (turret frame). Measured stations are in the same axes.",
- "thresholds": {
-  "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
-  "pivot_x": "fix when off by more than 0.15 m",
-  "pivot_z_and_muzzle": "same as a hull dimension: max(0.10 m, 3 % of the value)"
- },
- "glbs": "assets/source/roster/{t72,t80,t90,type99}/*.glb as committed at 2a68e25d7 (before slice 01's re-export)",
- "drawings": [
-  {
-   "id": "t72b",
-   "page": "https://www.the-blueprints.com/blueprints/tanks/tanks-t/70129/view/t_72b/",
-   "shows": "T-72B top, side, front, rear (colour)",
-   "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
-   "scale_px_per_m": 75.8,
-   "scale_from": "gun forward 9.53 m over muzzle..rear fender (722 px); hull 6.81 m and width 3.55 m then agree with published 6.86 and 3.59",
-   "views": {
-    "top": [
-     0,
-     0,
-     771,
-     285
-    ],
-    "front": [
-     30,
-     500,
-     360,
-     765
-    ]
-   }
+  "family": "t72",
+  "lane": "F-A",
+  "slice": "07",
+  "surveyed": "2026-11-11",
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
   },
-  {
-   "id": "t72b_line",
-   "page": "https://www.the-blueprints.com/blueprints/tanks/russiantanks/6722/view/t_72b/",
-   "shows": "T-72B with Kontakt-1, side (line)",
-   "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
-   "scale_px_per_m": 138.4,
-   "scale_from": "road-wheel pitch (111 px) at about 0.80 m, which also gives gun forward 9.53 m",
-   "views": {
-    "side": [
-     0,
-     0,
-     1370,
-     489
-    ]
-   }
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
   },
-  {
-   "id": "t80bv",
-   "page": "https://www.the-blueprints.com/blueprints/tanks/tanks-t/80100/view/t_80bv/",
-   "shows": "T-80BV with Kontakt-1, side, top, front, rear (line)",
-   "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
-   "scale_px_per_m": 138.3,
-   "scale_from": "gun forward 9.56 m (T-80BVM card) over muzzle..rear plate (1322 px)",
-   "views": {
-    "side": [
-     0,
-     0,
-     1400,
-     405
-    ],
-    "top": [
-     0,
-     412,
-     1400,
-     955
-    ],
-    "front": [
-     1435,
-     20,
-     1980,
-     415
-    ]
-   }
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
   },
-  {
-   "id": "t90m",
-   "page": "https://getoutlines.com/blueprints/18247/t-90-blueprints",
-   "shows": "T-90M Proryv-3, side, top, front, rear (line; a the-blueprints.com sheet)",
-   "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
-   "scale_px_per_m": 198.0,
-   "scale_from": "road-wheel pitch 160 px over the model's 0.81 m, which also gives width 3.79 m (published 3.78)",
-   "views": {
-    "side": [
-     20,
-     20,
-     2060,
-     1125
-    ],
-    "top": [
-     20,
-     1178,
-     2060,
-     1978
-    ],
-    "front": [
-     2108,
-     20,
-     2912,
-     1270
-    ]
-   }
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
   },
-  {
-   "id": "ztz99a",
-   "page": "https://www.the-blueprints.com/blueprints/tanks/tanks-n-p/79830/view/pla_ztz_99a/",
-   "shows": "ZTZ-99A side (line)",
-   "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
-   "scale_px_per_m": 148.4,
-   "scale_from": "gun forward 11.0 m over 1632 px; the hull then measures 7.61 m (published 7.6)",
-   "views": {
-    "side": [
-     0,
-     0,
-     1734,
-     489
-    ]
-   }
-  },
-  {
-   "id": "ztz99",
-   "page": "https://www.the-blueprints.com/blueprints/tanks/tanks-n-p/39065/view/pla_ztz99a/",
-   "shows": "ZTZ-99 (earlier turret; same hull) side, top, front (colour)",
-   "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
-   "scale_px_per_m": 53.6,
-   "scale_from": "gun forward 11.0 m over its side view (590 px)",
-   "views": {
-    "top": [
-     0,
-     358,
-     606,
-     558
-    ],
-    "front": [
-     20,
-     565,
-     247,
-     756
-    ]
-   }
-  }
- ],
- "units": {
-  "eastern_t_72_t_72b3_2016": {
-   "published": {
-    "hull_length_m": 6.86,
-    "gun_forward_m": 9.53,
-    "width_m": 3.59,
-    "height_m": 2.23,
-    "source": "ru.wikipedia.org (T-72B card, as quoted for T-90: 6860 hull, 9530 gun forward, 2230 high); en.wikipedia.org T-72 (6.67-6.86 hull, 3.40-3.59 wide, 2.23 high)"
-   },
-   "frame": {
-    "half_extents_m": [
-     3.43,
-     1.795,
-     1.115
-    ],
-    "eye_m": 2.096,
-    "mounts": {
-     "cannon": {
-      "pivot_m": [
-       0,
-       0,
-       1.338
-      ],
-      "muzzle_m": [
-       6.3,
-       0,
-       0.401
-      ]
-     },
-     "HMG": {
-      "pivot_m": [
-       -0.25,
-       -0.58,
-       2.096
-      ],
-      "muzzle_m": [
-       1.43,
-       0,
-       0.32
-      ],
-      "on": "cannon"
-     }
+  "sources": [
+    {
+      "id": "t72b",
+      "kind": "drawing (copyrighted)",
+      "ref": "https://www.the-blueprints.com/blueprints/tanks/tanks-t/70129/view/t_72b/",
+      "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
+      "note": "shows: T-72B top, side, front, rear (colour); scale_px_per_m: 75.8; scale_from: gun forward 9.53 m over muzzle..rear fender (722 px); hull 6.81 m and width 3.55 m then agree with published 6.86 and 3.59; views: {'top': [0, 0, 771, 285], 'front': [30, 500, 360, 765]}"
+    },
+    {
+      "id": "t72b_line",
+      "kind": "drawing (copyrighted)",
+      "ref": "https://www.the-blueprints.com/blueprints/tanks/russiantanks/6722/view/t_72b/",
+      "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
+      "note": "shows: T-72B with Kontakt-1, side (line); scale_px_per_m: 138.4; scale_from: road-wheel pitch (111 px) at about 0.80 m, which also gives gun forward 9.53 m; views: {'side': [0, 0, 1370, 489]}"
+    },
+    {
+      "id": "t80bv",
+      "kind": "drawing (copyrighted)",
+      "ref": "https://www.the-blueprints.com/blueprints/tanks/tanks-t/80100/view/t_80bv/",
+      "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
+      "note": "shows: T-80BV with Kontakt-1, side, top, front, rear (line); scale_px_per_m: 138.3; scale_from: gun forward 9.56 m (T-80BVM card) over muzzle..rear plate (1322 px); views: {'side': [0, 0, 1400, 405], 'top': [0, 412, 1400, 955], 'front': [1435, 20, 1980, 415]}"
+    },
+    {
+      "id": "t90m",
+      "kind": "drawing (copyrighted)",
+      "ref": "https://getoutlines.com/blueprints/18247/t-90-blueprints",
+      "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
+      "note": "shows: T-90M Proryv-3, side, top, front, rear (line; a the-blueprints.com sheet); scale_px_per_m: 198.0; scale_from: road-wheel pitch 160 px over the model's 0.81 m, which also gives width 3.79 m (published 3.78); views: {'side': [20, 20, 2060, 1125], 'top': [20, 1178, 2060, 1978], 'front': [2108, 20, 2912, 1270]}"
+    },
+    {
+      "id": "ztz99a",
+      "kind": "drawing (copyrighted)",
+      "ref": "https://www.the-blueprints.com/blueprints/tanks/tanks-n-p/79830/view/pla_ztz_99a/",
+      "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
+      "note": "shows: ZTZ-99A side (line); scale_px_per_m: 148.4; scale_from: gun forward 11.0 m over 1632 px; the hull then measures 7.61 m (published 7.6); views: {'side': [0, 0, 1734, 489]}"
+    },
+    {
+      "id": "ztz99",
+      "kind": "drawing (copyrighted)",
+      "ref": "https://www.the-blueprints.com/blueprints/tanks/tanks-n-p/39065/view/pla_ztz99a/",
+      "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
+      "note": "shows: ZTZ-99 (earlier turret; same hull) side, top, front (colour); scale_px_per_m: 53.6; scale_from: gun forward 11.0 m over its side view (590 px); views: {'top': [0, 358, 606, 558], 'front': [20, 565, 247, 756]}"
     }
-   },
-   "measured": {
-    "hull_length_m": 6.81,
-    "width_m": 3.55,
-    "turret_ring_x_m": "within 0.25 m of the hull's middle: the turret dome's centre is 0.25 m ahead of it and the hatches 0.24 m behind it (t72b top)",
-    "muzzle_from_hull_middle_m": 6.12,
-    "model": {
-     "overall_length_m": 9.81,
-     "hull_body_x_m": [
-      -3.504,
-      3.518
-     ],
-     "turret_body_x_m": [
-      -2.195,
-      1.597
-     ],
-     "roof_m": 2.325
-    }
-   },
-   "verdicts": [
-    {
-     "field": "half_extents_m[0]",
-     "frame": 3.43,
-     "verdict": "keep",
-     "measured": 3.405,
-     "source": "t72b top; published 6.86"
-    },
-    {
-     "field": "half_extents_m[1]",
-     "frame": 1.795,
-     "verdict": "keep",
-     "measured": 1.775,
-     "source": "t72b top; published 3.59"
-    },
-    {
-     "field": "half_extents_m[2]",
-     "frame": 1.115,
-     "verdict": "keep",
-     "measured": 1.115,
-     "source": "published 2.23"
-    },
-    {
-     "field": "cannon.pivot_m[0]",
-     "frame": 0,
-     "verdict": "keep",
-     "measured": 0,
-     "source": "t72b top",
-     "why": "the ring sits between the dome centre (+0.25) and the hatches (-0.24)"
-    },
-    {
-     "field": "cannon.pivot_m[2]",
-     "frame": 1.338,
-     "verdict": "keep",
-     "source": "model hull deck"
-    },
-    {
-     "field": "cannon.muzzle_m[0]",
-     "frame": 6.3,
-     "verdict": "fix",
-     "measured": 6.1,
-     "new": 6.1,
-     "source": "published 9.53 - 6.86 = 2.67 m past the hull front (3.43 + 2.67 = 6.10); t72b top 6.12",
-     "why": "0.20 m past the 3 % threshold (0.19 m); the model is 9.81 m gun forward against 9.53"
-    },
-    {
-     "field": "eye_m",
-     "frame": 2.096,
-     "verdict": "keep",
-     "source": "cupola top in the model"
-    },
-    {
-     "field": "HMG",
-     "frame": "pivot and muzzle",
-     "verdict": "keep",
-     "source": "model"
-    }
-   ],
-   "notes": []
-  },
-  "eastern_t_80_t_80bvm": {
-   "published": {
-    "hull_length_m": 7.01,
-    "gun_forward_m": 9.56,
-    "width_m": 3.603,
-    "height_m": 2.202,
-    "source": "ru.wikipedia.org T-80BVM card (7010 hull, 9560 gun forward, 3384 wide, 2220 high); en.wikipedia.org T-80 after Foss 2005 (T-80U 7.0 hull, 3.603 wide, 2.202 high; T-80B hull 7.4, the outlier)"
-   },
-   "frame": {
-    "half_extents_m": [
-     3.7,
-     1.8015,
-     1.101
-    ],
-    "eye_m": 2.07,
-    "mounts": {
-     "cannon": {
-      "pivot_m": [
-       0,
-       0,
-       1.321
-      ],
-      "muzzle_m": [
-       6.2,
-       0,
-       0.396
-      ]
-     },
-     "HMG": {
-      "pivot_m": [
-       -0.25,
-       -0.58,
-       2.07
-      ],
-      "muzzle_m": [
-       1.43,
-       0,
-       0.32
-      ],
-      "on": "cannon"
-     }
-    }
-   },
-   "measured": {
-    "hull_length_m": 6.85,
-    "width_with_skirts_m": 3.59,
-    "roof_m": "2.08-2.12 (side); the front view stands the turret about 0.2 m taller than the model's",
-    "turret_ring_x_m": "at the hull's middle: the dome's centre is 0.20 m ahead of it, the hatches 0.63 m behind (t80bv top)",
-    "turret_m": {
-     "length": "3.0 (side, cheek to rear) to 3.36 (with the rear box)",
-     "dome_diameter": 3.1
-    },
-    "muzzle_from_hull_middle_m": 6.13,
-    "model": {
-     "overall_length_m": 9.98,
-     "hull_body_x_m": [
-      -3.774,
-      3.778
-     ],
-     "turret_body_x_m": [
-      -1.724,
-      1.654
-     ],
-     "turret_body_width_m": 3.14,
-     "roof_m": 2.248
-    }
-   },
-   "verdicts": [
-    {
-     "field": "half_extents_m[0]",
-     "frame": 3.7,
-     "verdict": "fix",
-     "measured": 3.425,
-     "new": 3.505,
-     "source": "T-80BVM card 7.01 m; t80bv drawing 6.85 m",
-     "why": "7.4 m is Foss's T-80B figure; the BVM card, the T-80U and the drawing all give about 7.0 m (0.39 m, 5 %, over)"
-    },
-    {
-     "field": "half_extents_m[1]",
-     "frame": 1.8015,
-     "verdict": "keep",
-     "measured": 1.795,
-     "source": "t80bv top with skirts 3.59; T-80U 3.603"
-    },
-    {
-     "field": "half_extents_m[2]",
-     "frame": 1.101,
-     "verdict": "keep",
-     "source": "published 2.202 / 2.22"
-    },
-    {
-     "field": "cannon.pivot_m[0]",
-     "frame": 0,
-     "verdict": "keep",
-     "measured": 0,
-     "source": "t80bv top"
-    },
-    {
-     "field": "cannon.muzzle_m[0]",
-     "frame": 6.2,
-     "verdict": "keep",
-     "measured": 6.06,
-     "source": "9.56 - 7.01 = 2.55 past the front (3.505 + 2.55 = 6.06); drawing 6.13",
-     "why": "0.14 m, inside 3 % (0.19 m)"
-    },
-    {
-     "field": "eye_m",
-     "frame": 2.07,
-     "verdict": "keep",
-     "source": ""
-    },
-    {
-     "field": "HMG",
-     "frame": "pivot and muzzle",
-     "verdict": "keep",
-     "source": ""
-    }
-   ],
-   "notes": [
-    {
-     "note": "turret seems too small",
-     "classification": "frame + art",
-     "frame_part": "the hull box is 0.39 m too long (7.4 against 7.01), and the model's hull body runs 7.55 m with its rear slat cage, so the turret reads small against it",
-     "art_part": "the turret's footprint already measures right (3.38 x 3.14 m against 3.0-3.4 x 3.1); it is too low and flat. Raise the dome to the frame's roof (2.2 m) and give the Relikt cheeks and brow their bulk; the front view's turret stands about 0.2 m taller over the deck than the model's"
-    }
-   ]
-  },
-  "eastern_t_90_t_90m_proryv": {
-   "published": {
-    "hull_length_m": 6.86,
-    "gun_forward_m": 9.53,
-    "width_m": 3.78,
-    "height_m": 2.23,
-    "source": "ru.wikipedia.org T-90 card (6860, 9530, 3780, 2230); en.wikipedia.org T-90 (9.63, 3.78, 2.22)"
-   },
-   "frame": {
-    "half_extents_m": [
-     3.43,
-     1.89,
-     1.11
-    ],
-    "eye_m": 2.087,
-    "mounts": {
-     "cannon": {
-      "pivot_m": [
-       0,
-       0,
-       1.332
-      ],
-      "muzzle_m": [
-       6.2,
-       0,
-       0.4
-      ]
-     },
-     "HMG": {
-      "pivot_m": [
-       -0.25,
-       -0.58,
-       2.087
-      ],
-      "muzzle_m": [
-       1.43,
-       0,
-       0.32
-      ],
-      "on": "cannon"
-     }
-    }
-   },
-   "measured": {
-    "hull_m": "nose +3.38; hull plate to about -3.5, rear slat cage to -4.1 (side, placed by the road wheels)",
-    "width_m": 3.79,
-    "roof_m": 2.14,
-    "deck_m": 1.38,
-    "turret_body_x_m": {
-     "front": 1.53,
-     "bustle_rear": -3.04,
-     "bustle_slat_rear": -3.7
-    },
-    "muzzle_from_hull_middle_m": 5.93,
-    "model": {
-     "overall_length_m": 9.71,
-     "turret_body_x_m": [
-      -1.465,
-      2.261
-     ],
-     "roof_m": 2.31
-    }
-   },
-   "verdicts": [
-    {
-     "field": "half_extents_m[0]",
-     "frame": 3.43,
-     "verdict": "keep",
-     "source": "published 6.86; the drawing's extra length is the rear slat cage"
-    },
-    {
-     "field": "half_extents_m[1]",
-     "frame": 1.89,
-     "verdict": "keep",
-     "measured": 1.895,
-     "source": "t90m top"
-    },
-    {
-     "field": "half_extents_m[2]",
-     "frame": 1.11,
-     "verdict": "keep",
-     "measured": 1.07,
-     "source": "published 2.22-2.23; drawing 2.14"
-    },
-    {
-     "field": "cannon.pivot_m[0]",
-     "frame": 0,
-     "verdict": "keep",
-     "measured": 0,
-     "source": "same T-72 hull and ring as the T-72B3 (t72b top)"
-    },
-    {
-     "field": "cannon.pivot_m[2]",
-     "frame": 1.332,
-     "verdict": "keep",
-     "measured": 1.38,
-     "source": "t90m side deck"
-    },
-    {
-     "field": "cannon.muzzle_m[0]",
-     "frame": 6.2,
-     "verdict": "keep",
-     "measured": 6.05,
-     "source": "published 6.10; t90m side 5.93",
-     "why": "inside 3 %. The gun and hull are the T-72B3's, so 6.1 would match its fix; a named choice for slice 15"
-    },
-    {
-     "field": "eye_m",
-     "frame": 2.087,
-     "verdict": "keep",
-     "source": ""
-    },
-    {
-     "field": "HMG",
-     "frame": "pivot and muzzle",
-     "verdict": "keep",
-     "source": ""
-    }
-   ],
-   "notes": [
-    {
-     "note": "turret seems too forward",
-     "classification": "art",
-     "why": "pivot_m x = 0 is right (question 1). The turret is drawn ahead of its pivot: the model's turret body spans +2.26..-1.47 m; the drawing's spans +1.53..-3.04 m (-3.70 with the bustle's slat cage). Redraw it about 0.75 m further back at the front and with the bustle, about 1.6 m longer at the rear",
-     "dressing": "the bustle slat cage ends 0.27 m behind the hull box's rear face (-3.43), inside the 0.3 m bulky allowance: build it as dressing or trim it to the box"
-    }
-   ]
-  },
-  "eastern_type_99_ztz_99a": {
-   "published": {
-    "hull_length_m": 7.6,
-    "gun_forward_m": 11.0,
-    "width_m": 3.7,
-    "height_m": 2.35,
-    "source": "en.wikipedia.org Type 99 (army-technology, armyrecognition): hull 7.6, gun forward 11, hull width 3.7, hull height 2.35"
-   },
-   "frame": {
-    "half_extents_m": [
-     3.8,
-     1.85,
-     1.175
-    ],
-    "eye_m": 2.209,
-    "mounts": {
-     "cannon": {
-      "pivot_m": [
-       -0.15,
-       0,
-       1.41
-      ],
-      "muzzle_m": [
-       7.2,
-       0,
-       0.423
-      ]
-     },
-     "HMG": {
-      "pivot_m": [
-       -0.4,
-       -0.58,
-       2.209
-      ],
-      "muzzle_m": [
-       1.43,
-       0,
-       0.32
-      ],
-      "on": "cannon"
-     }
-    }
-   },
-   "measured": {
-    "hull_length_m": 7.61,
-    "roof_m": 2.53,
-    "roof_from_side_photo_m": "about 2.49 (roof against hull length in the library's side photo, a near-side quarter)",
-    "turret_body_x_m": {
-     "front": 1.89,
-     "bustle_rear": -2.49
-    },
-    "muzzle_from_pivot_m": 7.23,
-    "model": {
-     "overall_length_m": 10.92,
-     "turret_body_x_m": [
-      -3.33,
-      2.09
-     ],
-     "roof_m": 2.397
-    }
-   },
-   "verdicts": [
-    {
-     "field": "half_extents_m[0]",
-     "frame": 3.8,
-     "verdict": "keep",
-     "measured": 3.805,
-     "source": "ztz99a side; published 7.6"
-    },
-    {
-     "field": "half_extents_m[1]",
-     "frame": 1.85,
-     "verdict": "keep",
-     "source": "published 3.7; ztz99 top 3.53 (earlier variant)"
-    },
-    {
-     "field": "half_extents_m[2]",
-     "frame": 1.175,
-     "verdict": "fix",
-     "measured": 1.265,
-     "new": 1.25,
-     "source": "ztz99a side 2.53 m; side photo about 2.49",
-     "why": "the published 2.35 m is labelled hull height. The drawing, whose lengths match the published ones exactly, and the photo agree on about 2.5 m to the bustle roof"
-    },
-    {
-     "field": "cannon.pivot_m[0]",
-     "frame": -0.15,
-     "verdict": "keep",
-     "source": "turret centre -0.30 with the bustle behind the ring"
-    },
-    {
-     "field": "cannon.muzzle_m[0]",
-     "frame": 7.2,
-     "verdict": "keep",
-     "measured": 7.23,
-     "source": "ztz99a side"
-    },
-    {
-     "field": "eye_m",
-     "frame": 2.209,
-     "verdict": "keep",
-     "source": "",
-     "why": "check the cupola and HMG against the raised roof in slice 15"
-    },
-    {
-     "field": "HMG",
-     "frame": "pivot and muzzle",
-     "verdict": "keep",
-     "source": ""
-    }
-   ],
-   "notes": [],
-   "art_only": [
-    "the model's turret body runs back to -3.33 m (5.4 m long); the drawing's turret with bustle is 4.4 m long and ends at -2.5 m"
-   ]
-  }
- },
- "overlays": {
-  "eastern_t_72_t_72b3_2016": [
-   {
-    "view": "side",
-    "drawing": "t72b_line",
-    "scale_px_per_m": 138.41,
-    "long_axis_m": 9.566,
-    "drawing_extent_m": [
-     9.57,
-     3.47
-    ],
-    "model_extent_m": [
-     9.81,
-     2.5
-    ],
-    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
-    "drawing_across_m": [
-     0.79,
-     1.2,
-     1.51,
-     2.87,
-     2.86,
-     2.88,
-     2.68,
-     2.41,
-     2.33,
-     2.17,
-     2.08,
-     2.04,
-     1.86,
-     1.55,
-     1.01,
-     0.26,
-     0.27,
-     0.24,
-     0.23
-    ],
-    "model_across_m": [
-     1.24,
-     1.3,
-     1.83,
-     2.04,
-     2.18,
-     2.15,
-     2.48,
-     2.45,
-     2.45,
-     1.94,
-     1.83,
-     1.8,
-     1.78,
-     0.38,
-     0.2,
-     0.2,
-     0.2,
-     0.2,
-     0.2
-    ],
-    "read": "the model's gun runs 0.25 m past the drawing's"
-   },
-   {
-    "view": "top",
-    "drawing": "t72b",
-    "scale_px_per_m": 75.8,
-    "long_axis_m": 9.96,
-    "drawing_extent_m": [
-     9.96,
-     3.68
-    ],
-    "model_extent_m": [
-     9.8,
-     3.63
-    ],
-    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
-    "drawing_across_m": [
-     0.2,
-     0.2,
-     0.25,
-     0.25,
-     0.2,
-     3.52,
-     3.55,
-     3.55,
-     3.55,
-     3.52,
-     3.52,
-     3.52,
-     3.54,
-     3.52,
-     3.54,
-     3.56,
-     3.65,
-     3.52,
-     3.5
-    ],
-    "model_across_m": [
-     0.2,
-     0.2,
-     0.2,
-     0.2,
-     0.2,
-     3.4,
-     3.58,
-     3.58,
-     3.55,
-     3.58,
-     3.58,
-     3.63,
-     3.58,
-     3.58,
-     3.55,
-     3.59,
-     3.59,
-     3.59,
-     3.59
-    ]
-   },
-   {
-    "view": "front",
-    "drawing": "t72b",
-    "scale_px_per_m": 75.79,
-    "long_axis_m": 4.156,
-    "drawing_extent_m": [
-     4.16,
-     3.34
-    ],
-    "model_extent_m": [
-     3.63,
-     2.49
-    ],
-    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
-    "drawing_across_m": [
-     1.7,
-     2.34,
-     2.35,
-     1.93,
-     2.18,
-     2.32,
-     2.65,
-     2.53,
-     2.05,
-     2.06,
-     2.03,
-     2.15,
-     1.93,
-     2.01,
-     1.99,
-     1.99,
-     2.44,
-     2.45,
-     1.7
-    ],
-    "model_across_m": [
-     1.61,
-     1.82,
-     2.14,
-     2.12,
-     1.77,
-     2.06,
-     2.06,
-     1.98,
-     1.77,
-     1.72,
-     1.72,
-     1.72,
-     1.85,
-     1.87,
-     1.7,
-     1.7,
-     2.12,
-     1.82,
-     1.61
-    ]
-   }
   ],
-  "eastern_t_80_t_80bvm": [
-   {
-    "view": "side",
-    "drawing": "t80bv",
-    "scale_px_per_m": 138.29,
-    "long_axis_m": 9.863,
-    "drawing_extent_m": [
-     9.86,
-     2.86
-    ],
-    "model_extent_m": [
-     9.98,
-     2.48
-    ],
-    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
-    "drawing_across_m": [
-     0.22,
-     0.22,
-     0.18,
-     0.24,
-     0.22,
-     1.3,
-     1.63,
-     1.85,
-     1.84,
-     2.67,
-     2.68,
-     2.85,
-     2.72,
-     2.31,
-     2.15,
-     2.47,
-     1.48,
-     1.12,
-     1.11
-    ],
-    "model_across_m": [
-     0.2,
-     0.2,
-     0.2,
-     0.2,
-     1.16,
-     1.73,
-     1.19,
-     1.81,
-     1.86,
-     1.96,
-     2.41,
-     2.41,
-     2.46,
-     2.19,
-     2.14,
-     1.34,
-     1.34,
-     1.29,
-     1.21
-    ],
-    "read": "the model's hull overruns the drawing's at both ends; the drawing's turret stands taller"
-   },
-   {
-    "view": "top",
-    "drawing": "t80bv",
-    "scale_px_per_m": 138.3,
-    "long_axis_m": 9.877,
-    "drawing_extent_m": [
-     9.88,
-     3.85
-    ],
-    "model_extent_m": [
-     9.98,
-     3.63
-    ],
-    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
-    "drawing_across_m": [
-     0.22,
-     0.22,
-     0.18,
-     0.25,
-     0.2,
-     3.55,
-     3.75,
-     3.78,
-     3.8,
-     3.83,
-     3.83,
-     3.62,
-     3.6,
-     3.59,
-     3.58,
-     3.59,
-     3.59,
-     3.59,
-     3.43
-    ],
-    "model_across_m": [
-     0.2,
-     0.2,
-     0.2,
-     0.2,
-     1.28,
-     3.58,
-     3.58,
-     3.58,
-     3.58,
-     3.58,
-     3.56,
-     3.58,
-     3.58,
-     3.55,
-     3.59,
-     3.59,
-     3.59,
-     3.59,
-     3.59
-    ]
-   },
-   {
-    "view": "front",
-    "drawing": "t80bv",
-    "scale_px_per_m": 138.31,
-    "long_axis_m": 3.832,
-    "drawing_extent_m": [
-     3.83,
-     2.78
-    ],
-    "model_extent_m": [
-     3.64,
-     2.47
-    ],
-    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
-    "drawing_across_m": [
-     0.6,
-     2.26,
-     2.3,
-     2.75,
-     2.39,
-     2.4,
-     1.93,
-     2.0,
-     1.6,
-     1.97,
-     2.15,
-     1.87,
-     1.85,
-     1.9,
-     1.83,
-     2.04,
-     2.18,
-     1.92,
-     0.91
-    ],
-    "model_across_m": [
-     1.59,
-     1.86,
-     2.14,
-     1.74,
-     1.76,
-     2.05,
-     2.05,
-     1.78,
-     1.78,
-     1.71,
-     1.78,
-     1.71,
-     1.79,
-     1.81,
-     1.71,
-     1.72,
-     2.14,
-     1.86,
-     1.59
-    ],
-    "read": "pink over the whole turret roof and cheeks"
-   }
+  "appearances": {
+    "eastern_t_72_t_72b3_2016": {
+      "unit": "eastern_t_72_t_72b3_2016",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "published": {
+        "hull_length_m": 6.86,
+        "gun_forward_m": 9.53,
+        "width_m": 3.59,
+        "height_m": 2.23,
+        "source": "ru.wikipedia.org (T-72B card, as quoted for T-90: 6860 hull, 9530 gun forward, 2230 high); en.wikipedia.org T-72 (6.67-6.86 hull, 3.40-3.59 wide, 2.23 high)"
+      },
+      "current": {
+        "extends": "roster_profile_older_mbt",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 24.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 55.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.43,
+          1.795,
+          1.115
+        ],
+        "eye_m": 2.096,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.0,
+              0.0,
+              1.338
+            ],
+            "muzzle_m": [
+              6.3,
+              0.0,
+              0.401
+            ],
+            "turret": true
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.096
+            ],
+            "muzzle_m": [
+              1.43,
+              0.0,
+              0.32
+            ],
+            "turret": true,
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": {
+        "measured": {
+          "hull_length_m": 6.81,
+          "width_m": 3.55,
+          "turret_ring_x_m": "within 0.25 m of the hull's middle: the turret dome's centre is 0.25 m ahead of it and the hatches 0.24 m behind it (t72b top)",
+          "muzzle_from_hull_middle_m": 6.12,
+          "model": {
+            "overall_length_m": 9.81,
+            "hull_body_x_m": [
+              -3.504,
+              3.518
+            ],
+            "turret_body_x_m": [
+              -2.195,
+              1.597
+            ],
+            "roof_m": 2.325
+          }
+        }
+      },
+      "heights": {
+        "roof_m": 2.23,
+        "roof_source": "published",
+        "sight_top_m": null,
+        "sight_part": "none measured; the art's tallest non-dressing part is 2.33 m",
+        "sight_source": null,
+        "rule_top_m": 2.23,
+        "box_top_m": 2.23,
+        "art": {
+          "hull_top_m": 2.325,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.43,
+          "new": null,
+          "verdict": "keep",
+          "source": "t72b top; published 6.86",
+          "confidence": null,
+          "note": "(measured 3.405)"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.795,
+          "new": null,
+          "verdict": "keep",
+          "source": "t72b top; published 3.59",
+          "confidence": null,
+          "note": "(measured 1.775)"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.115,
+          "new": null,
+          "verdict": "keep",
+          "source": "published 2.23",
+          "confidence": null,
+          "note": "(measured 1.115)"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.096,
+          "new": null,
+          "verdict": "keep",
+          "source": "cupola top in the model",
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.0,
+            0.0,
+            1.338
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "t72b top; model hull deck",
+          "confidence": null,
+          "note": "the ring sits between the dome centre (+0.25) and the hatches (-0.24) (measured 0)"
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            6.3,
+            0.0,
+            0.401
+          ],
+          "new": [
+            6.1,
+            0.0,
+            0.401
+          ],
+          "verdict": "fix",
+          "source": "published 9.53 - 6.86 = 2.67 m past the hull front (3.43 + 2.67 = 6.10); t72b top 6.12",
+          "confidence": null,
+          "note": "0.20 m past the 3 % threshold (0.19 m); the model is 9.81 m gun forward against 9.53 (measured 6.1)"
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            -0.25,
+            -0.58,
+            2.096
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "model",
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "model",
+          "confidence": null,
+          "note": null
+        }
+      ]
+    },
+    "eastern_t_80_t_80bvm": {
+      "unit": "eastern_t_80_t_80bvm",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "published": {
+        "hull_length_m": 7.01,
+        "gun_forward_m": 9.56,
+        "width_m": 3.603,
+        "height_m": 2.202,
+        "source": "ru.wikipedia.org T-80BVM card (7010 hull, 9560 gun forward, 3384 wide, 2220 high); en.wikipedia.org T-80 after Foss 2005 (T-80U 7.0 hull, 3.603 wide, 2.202 high; T-80B hull 7.4, the outlier)"
+      },
+      "current": {
+        "extends": "roster_profile_mbt",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 27.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 60.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.7,
+          1.8015,
+          1.101
+        ],
+        "eye_m": 2.07,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.0,
+              0.0,
+              1.321
+            ],
+            "muzzle_m": [
+              6.2,
+              0.0,
+              0.396
+            ],
+            "turret": true
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.07
+            ],
+            "muzzle_m": [
+              1.43,
+              0.0,
+              0.32
+            ],
+            "turret": true,
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": {
+        "measured": {
+          "hull_length_m": 6.85,
+          "width_with_skirts_m": 3.59,
+          "roof_m": "2.08-2.12 (side); the front view stands the turret about 0.2 m taller than the model's",
+          "turret_ring_x_m": "at the hull's middle: the dome's centre is 0.20 m ahead of it, the hatches 0.63 m behind (t80bv top)",
+          "turret_m": {
+            "length": "3.0 (side, cheek to rear) to 3.36 (with the rear box)",
+            "dome_diameter": 3.1
+          },
+          "muzzle_from_hull_middle_m": 6.13,
+          "model": {
+            "overall_length_m": 9.98,
+            "hull_body_x_m": [
+              -3.774,
+              3.778
+            ],
+            "turret_body_x_m": [
+              -1.724,
+              1.654
+            ],
+            "turret_body_width_m": 3.14,
+            "roof_m": 2.248
+          }
+        }
+      },
+      "heights": {
+        "roof_m": 2.2,
+        "roof_source": "published 2.202 m; drawing 2.08-2.12 m",
+        "sight_top_m": null,
+        "sight_part": "none measured",
+        "sight_source": null,
+        "rule_top_m": 2.2,
+        "box_top_m": 2.202,
+        "art": {
+          "hull_top_m": 2.248,
+          "tallest_dressing": "dressing_fuel_drums",
+          "tallest_dressing_top_m": 1.55,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.7,
+          "new": 3.505,
+          "verdict": "fix",
+          "source": "T-80BVM card 7.01 m; t80bv drawing 6.85 m",
+          "confidence": null,
+          "note": "7.4 m is Foss's T-80B figure; the BVM card, the T-80U and the drawing all give about 7.0 m (0.39 m, 5 %, over) (measured 3.425)"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.8015,
+          "new": null,
+          "verdict": "keep",
+          "source": "t80bv top with skirts 3.59; T-80U 3.603",
+          "confidence": null,
+          "note": "(measured 1.795)"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.101,
+          "new": null,
+          "verdict": "keep",
+          "source": "published 2.202 / 2.22",
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "eye_m",
+          "old": 2.07,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.0,
+            0.0,
+            1.321
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "t80bv top",
+          "confidence": null,
+          "note": "(measured 0)"
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            6.2,
+            0.0,
+            0.396
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "9.56 - 7.01 = 2.55 past the front (3.505 + 2.55 = 6.06); drawing 6.13",
+          "confidence": null,
+          "note": "0.14 m, inside 3 % (0.19 m) (measured 6.06)"
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            -0.25,
+            -0.58,
+            2.07
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        }
+      ]
+    },
+    "eastern_t_90_t_90m_proryv": {
+      "unit": "eastern_t_90_t_90m_proryv",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "published": {
+        "hull_length_m": 6.86,
+        "gun_forward_m": 9.53,
+        "width_m": 3.78,
+        "height_m": 2.23,
+        "source": "ru.wikipedia.org T-90 card (6860, 9530, 3780, 2230); en.wikipedia.org T-90 (9.63, 3.78, 2.22)"
+      },
+      "current": {
+        "extends": "roster_profile_improved_mbt",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.43,
+          1.89,
+          1.11
+        ],
+        "eye_m": 2.087,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.0,
+              0.0,
+              1.332
+            ],
+            "muzzle_m": [
+              6.2,
+              0.0,
+              0.4
+            ],
+            "turret": true
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.087
+            ],
+            "muzzle_m": [
+              1.43,
+              0.0,
+              0.32
+            ],
+            "turret": true,
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": {
+        "measured": {
+          "hull_m": "nose +3.38; hull plate to about -3.5, rear slat cage to -4.1 (side, placed by the road wheels)",
+          "width_m": 3.79,
+          "roof_m": 2.14,
+          "deck_m": 1.38,
+          "turret_body_x_m": {
+            "front": 1.53,
+            "bustle_rear": -3.04,
+            "bustle_slat_rear": -3.7
+          },
+          "muzzle_from_hull_middle_m": 5.93,
+          "model": {
+            "overall_length_m": 9.71,
+            "turret_body_x_m": [
+              -1.465,
+              2.261
+            ],
+            "roof_m": 2.31
+          }
+        }
+      },
+      "heights": {
+        "roof_m": 2.22,
+        "roof_source": "published 2.22-2.23 m; drawing 2.14 m",
+        "sight_top_m": 2.52,
+        "sight_part": "sights",
+        "sight_source": "art (dressing_sights)",
+        "rule_top_m": 2.22,
+        "box_top_m": 2.22,
+        "art": {
+          "hull_top_m": 2.31,
+          "tallest_dressing": "dressing_sights",
+          "tallest_dressing_top_m": 2.519,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.43,
+          "new": null,
+          "verdict": "keep",
+          "source": "published 6.86; the drawing's extra length is the rear slat cage",
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.89,
+          "new": null,
+          "verdict": "keep",
+          "source": "t90m top",
+          "confidence": null,
+          "note": "(measured 1.895)"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.11,
+          "new": null,
+          "verdict": "keep",
+          "source": "published 2.22-2.23; drawing 2.14",
+          "confidence": null,
+          "note": "(measured 1.07)"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.087,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.0,
+            0.0,
+            1.332
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "same T-72 hull and ring as the T-72B3 (t72b top); t90m side deck",
+          "confidence": null,
+          "note": "(measured 0) (measured 1.38)"
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            6.2,
+            0.0,
+            0.4
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "ru.wikipedia T-90 card 9.53 m gun forward",
+          "confidence": "medium",
+          "note": "FA13 settled: 6.2 m puts the world muzzle 0.10 m past the published 9.53 m, inside the 0.15 m muzzle threshold (C10), so it is kept and not aligned with the T-72B3's 6.1 m. Lane: inside 3 %. The gun and hull are the T-72B3's, so 6.1 would match its fix; a named choice for slice 15 (measured 6.05)"
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            -0.25,
+            -0.58,
+            2.087
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        }
+      ]
+    },
+    "eastern_type_99_ztz_99a": {
+      "unit": "eastern_type_99_ztz_99a",
+      "fixture": "fixtures/units/roster/eastern.json",
+      "published": {
+        "hull_length_m": 7.6,
+        "gun_forward_m": 11.0,
+        "width_m": 3.7,
+        "height_m": 2.35,
+        "source": "en.wikipedia.org Type 99 (army-technology, armyrecognition): hull 7.6, gun forward 11, hull width 3.7, hull height 2.35"
+      },
+      "current": {
+        "extends": "roster_profile_improved_mbt",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.8,
+          1.85,
+          1.175
+        ],
+        "eye_m": 2.209,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              -0.15,
+              0.0,
+              1.41
+            ],
+            "muzzle_m": [
+              7.2,
+              0.0,
+              0.423
+            ],
+            "turret": true
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              -0.4,
+              -0.58,
+              2.209
+            ],
+            "muzzle_m": [
+              1.43,
+              0.0,
+              0.32
+            ],
+            "turret": true,
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": {
+        "measured": {
+          "hull_length_m": 7.61,
+          "roof_m": 2.53,
+          "roof_from_side_photo_m": "about 2.49 (roof against hull length in the library's side photo, a near-side quarter)",
+          "turret_body_x_m": {
+            "front": 1.89,
+            "bustle_rear": -2.49
+          },
+          "muzzle_from_pivot_m": 7.23,
+          "model": {
+            "overall_length_m": 10.92,
+            "turret_body_x_m": [
+              -3.33,
+              2.09
+            ],
+            "roof_m": 2.397
+          }
+        },
+        "art_only": [
+          "the model's turret body runs back to -3.33 m (5.4 m long); the drawing's turret with bustle is 4.4 m long and ends at -2.5 m"
+        ]
+      },
+      "heights": {
+        "roof_m": 2.5,
+        "roof_source": "drawing 2.53 m; photo about 2.49 m",
+        "sight_top_m": 2.62,
+        "sight_part": "commander's sight",
+        "sight_source": "art",
+        "rule_top_m": 2.5,
+        "box_top_m": 2.5,
+        "art": {
+          "hull_top_m": 2.397,
+          "tallest_dressing": "dressing_commander_sight",
+          "tallest_dressing_top_m": 2.617,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.8,
+          "new": null,
+          "verdict": "keep",
+          "source": "ztz99a side; published 7.6",
+          "confidence": null,
+          "note": "(measured 3.805)"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.85,
+          "new": null,
+          "verdict": "keep",
+          "source": "published 3.7; ztz99 top 3.53 (earlier variant)",
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.175,
+          "new": 1.25,
+          "verdict": "fix",
+          "source": "ztz99a side 2.53 m; side photo about 2.49",
+          "confidence": null,
+          "note": "the published 2.35 m is labelled hull height. The drawing, whose lengths match the published ones exactly, and the photo agree on about 2.5 m to the bustle roof (measured 1.265)"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.209,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "check the cupola and HMG against the raised roof in slice 15"
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            -0.15,
+            0.0,
+            1.41
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "turret centre -0.30 with the bustle behind the ring",
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            7.2,
+            0.0,
+            0.423
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "ztz99a side (7.23 m from the pivot); published 11.0 m gun forward",
+          "confidence": "medium",
+          "note": "C5 audit: 7.2 m equals 11.0 - 3.8, the unsubtracted-pivot pattern, but the drawing measures 7.23 m from the pivot, and the world point (7.05 m) is 0.15 m inside the published 11.0 m, not past the threshold. Kept. Lane: (measured 7.23)"
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            -0.4,
+            -0.58,
+            2.209
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "Station readouts from copyrighted drawings, measured in the lane's throwaway/ (FA3); no image is committed.",
+    "by_appearance": {
+      "eastern_t_72_t_72b3_2016": [
+        {
+          "view": "side",
+          "drawing": "t72b_line",
+          "scale_px_per_m": 138.41,
+          "long_axis_m": 9.566,
+          "drawing_extent_m": [
+            9.57,
+            3.47
+          ],
+          "model_extent_m": [
+            9.81,
+            2.5
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            0.79,
+            1.2,
+            1.51,
+            2.87,
+            2.86,
+            2.88,
+            2.68,
+            2.41,
+            2.33,
+            2.17,
+            2.08,
+            2.04,
+            1.86,
+            1.55,
+            1.01,
+            0.26,
+            0.27,
+            0.24,
+            0.23
+          ],
+          "model_across_m": [
+            1.24,
+            1.3,
+            1.83,
+            2.04,
+            2.18,
+            2.15,
+            2.48,
+            2.45,
+            2.45,
+            1.94,
+            1.83,
+            1.8,
+            1.78,
+            0.38,
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            0.2
+          ],
+          "read": "the model's gun runs 0.25 m past the drawing's"
+        },
+        {
+          "view": "top",
+          "drawing": "t72b",
+          "scale_px_per_m": 75.8,
+          "long_axis_m": 9.96,
+          "drawing_extent_m": [
+            9.96,
+            3.68
+          ],
+          "model_extent_m": [
+            9.8,
+            3.63
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            0.2,
+            0.2,
+            0.25,
+            0.25,
+            0.2,
+            3.52,
+            3.55,
+            3.55,
+            3.55,
+            3.52,
+            3.52,
+            3.52,
+            3.54,
+            3.52,
+            3.54,
+            3.56,
+            3.65,
+            3.52,
+            3.5
+          ],
+          "model_across_m": [
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            3.4,
+            3.58,
+            3.58,
+            3.55,
+            3.58,
+            3.58,
+            3.63,
+            3.58,
+            3.58,
+            3.55,
+            3.59,
+            3.59,
+            3.59,
+            3.59
+          ]
+        },
+        {
+          "view": "front",
+          "drawing": "t72b",
+          "scale_px_per_m": 75.79,
+          "long_axis_m": 4.156,
+          "drawing_extent_m": [
+            4.16,
+            3.34
+          ],
+          "model_extent_m": [
+            3.63,
+            2.49
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            1.7,
+            2.34,
+            2.35,
+            1.93,
+            2.18,
+            2.32,
+            2.65,
+            2.53,
+            2.05,
+            2.06,
+            2.03,
+            2.15,
+            1.93,
+            2.01,
+            1.99,
+            1.99,
+            2.44,
+            2.45,
+            1.7
+          ],
+          "model_across_m": [
+            1.61,
+            1.82,
+            2.14,
+            2.12,
+            1.77,
+            2.06,
+            2.06,
+            1.98,
+            1.77,
+            1.72,
+            1.72,
+            1.72,
+            1.85,
+            1.87,
+            1.7,
+            1.7,
+            2.12,
+            1.82,
+            1.61
+          ]
+        }
+      ],
+      "eastern_t_80_t_80bvm": [
+        {
+          "view": "side",
+          "drawing": "t80bv",
+          "scale_px_per_m": 138.29,
+          "long_axis_m": 9.863,
+          "drawing_extent_m": [
+            9.86,
+            2.86
+          ],
+          "model_extent_m": [
+            9.98,
+            2.48
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            0.22,
+            0.22,
+            0.18,
+            0.24,
+            0.22,
+            1.3,
+            1.63,
+            1.85,
+            1.84,
+            2.67,
+            2.68,
+            2.85,
+            2.72,
+            2.31,
+            2.15,
+            2.47,
+            1.48,
+            1.12,
+            1.11
+          ],
+          "model_across_m": [
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            1.16,
+            1.73,
+            1.19,
+            1.81,
+            1.86,
+            1.96,
+            2.41,
+            2.41,
+            2.46,
+            2.19,
+            2.14,
+            1.34,
+            1.34,
+            1.29,
+            1.21
+          ],
+          "read": "the model's hull overruns the drawing's at both ends; the drawing's turret stands taller"
+        },
+        {
+          "view": "top",
+          "drawing": "t80bv",
+          "scale_px_per_m": 138.3,
+          "long_axis_m": 9.877,
+          "drawing_extent_m": [
+            9.88,
+            3.85
+          ],
+          "model_extent_m": [
+            9.98,
+            3.63
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            0.22,
+            0.22,
+            0.18,
+            0.25,
+            0.2,
+            3.55,
+            3.75,
+            3.78,
+            3.8,
+            3.83,
+            3.83,
+            3.62,
+            3.6,
+            3.59,
+            3.58,
+            3.59,
+            3.59,
+            3.59,
+            3.43
+          ],
+          "model_across_m": [
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            1.28,
+            3.58,
+            3.58,
+            3.58,
+            3.58,
+            3.58,
+            3.56,
+            3.58,
+            3.58,
+            3.55,
+            3.59,
+            3.59,
+            3.59,
+            3.59,
+            3.59
+          ]
+        },
+        {
+          "view": "front",
+          "drawing": "t80bv",
+          "scale_px_per_m": 138.31,
+          "long_axis_m": 3.832,
+          "drawing_extent_m": [
+            3.83,
+            2.78
+          ],
+          "model_extent_m": [
+            3.64,
+            2.47
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            0.6,
+            2.26,
+            2.3,
+            2.75,
+            2.39,
+            2.4,
+            1.93,
+            2.0,
+            1.6,
+            1.97,
+            2.15,
+            1.87,
+            1.85,
+            1.9,
+            1.83,
+            2.04,
+            2.18,
+            1.92,
+            0.91
+          ],
+          "model_across_m": [
+            1.59,
+            1.86,
+            2.14,
+            1.74,
+            1.76,
+            2.05,
+            2.05,
+            1.78,
+            1.78,
+            1.71,
+            1.78,
+            1.71,
+            1.79,
+            1.81,
+            1.71,
+            1.72,
+            2.14,
+            1.86,
+            1.59
+          ],
+          "read": "pink over the whole turret roof and cheeks"
+        }
+      ],
+      "eastern_t_90_t_90m_proryv": [
+        {
+          "view": "side",
+          "drawing": "t90m",
+          "scale_px_per_m": 198.0,
+          "long_axis_m": 10.207,
+          "drawing_extent_m": [
+            10.21,
+            5.52
+          ],
+          "model_extent_m": [
+            9.71,
+            2.53
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            0.01,
+            0.02,
+            0.23,
+            null,
+            0.01,
+            1.42,
+            1.78,
+            1.92,
+            1.9,
+            2.14,
+            2.14,
+            2.42,
+            2.31,
+            2.24,
+            2.98,
+            3.02,
+            1.94,
+            1.62,
+            0.9
+          ],
+          "model_across_m": [
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            1.52,
+            1.78,
+            1.8,
+            2.08,
+            2.21,
+            2.43,
+            2.43,
+            2.51,
+            2.31,
+            2.28,
+            1.36,
+            1.36,
+            1.3,
+            1.24
+          ],
+          "read": "green ahead of the turret front, pink over the whole bustle"
+        },
+        {
+          "view": "top",
+          "drawing": "t90m",
+          "scale_px_per_m": 198.0,
+          "long_axis_m": 10.222,
+          "drawing_extent_m": [
+            10.22,
+            3.98
+          ],
+          "model_extent_m": [
+            9.71,
+            3.75
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            0.03,
+            0.01,
+            0.18,
+            null,
+            0.05,
+            3.64,
+            3.79,
+            3.81,
+            3.79,
+            3.8,
+            3.79,
+            3.82,
+            3.79,
+            3.8,
+            3.86,
+            3.87,
+            3.83,
+            3.86,
+            2.96
+          ],
+          "model_across_m": [
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            3.62,
+            3.7,
+            3.7,
+            3.72,
+            3.7,
+            3.7,
+            3.7,
+            3.75,
+            3.7,
+            3.62,
+            3.72,
+            3.72,
+            3.72,
+            3.72
+          ]
+        },
+        {
+          "view": "front",
+          "drawing": "t90m",
+          "scale_px_per_m": 198.0,
+          "long_axis_m": 4.005,
+          "drawing_extent_m": [
+            4.0,
+            6.29
+          ],
+          "model_extent_m": [
+            3.75,
+            2.53
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            1.83,
+            2.12,
+            2.14,
+            2.18,
+            2.03,
+            1.93,
+            3.67,
+            2.66,
+            2.57,
+            1.94,
+            1.86,
+            2.8,
+            2.99,
+            2.06,
+            2.1,
+            2.18,
+            2.13,
+            2.12,
+            1.85
+          ],
+          "model_across_m": [
+            1.43,
+            2.31,
+            2.29,
+            2.29,
+            1.86,
+            2.1,
+            2.05,
+            2.01,
+            1.86,
+            1.78,
+            1.78,
+            1.83,
+            1.88,
+            1.84,
+            1.86,
+            2.27,
+            2.31,
+            2.31,
+            1.61
+          ]
+        }
+      ],
+      "eastern_type_99_ztz_99a": [
+        {
+          "view": "side",
+          "drawing": "ztz99a",
+          "scale_px_per_m": 148.39,
+          "long_axis_m": 11.557,
+          "drawing_extent_m": [
+            11.56,
+            3.21
+          ],
+          "model_extent_m": [
+            10.92,
+            2.61
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            0.24,
+            0.24,
+            0.24,
+            0.26,
+            0.26,
+            1.44,
+            1.87,
+            2.11,
+            2.1,
+            2.92,
+            2.92,
+            3.08,
+            2.55,
+            2.55,
+            2.48,
+            2.48,
+            1.68,
+            1.34,
+            0.94
+          ],
+          "model_across_m": [
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            0.2,
+            1.18,
+            1.85,
+            1.89,
+            1.93,
+            2.06,
+            2.24,
+            2.56,
+            2.61,
+            2.59,
+            2.3,
+            2.18,
+            2.18,
+            2.06,
+            1.77
+          ],
+          "read": "pink over the turret roof and bustle"
+        },
+        {
+          "view": "top",
+          "drawing": "ztz99",
+          "scale_px_per_m": 53.6,
+          "long_axis_m": 11.007,
+          "drawing_extent_m": [
+            11.01,
+            3.54
+          ],
+          "model_extent_m": [
+            10.91,
+            3.69
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            0.17,
+            0.21,
+            0.17,
+            0.28,
+            0.02,
+            3.36,
+            3.53,
+            3.53,
+            3.53,
+            2.54,
+            3.53,
+            3.53,
+            3.4,
+            3.53,
+            3.53,
+            3.53,
+            3.19,
+            2.87,
+            3.15
+          ],
+          "model_across_m": [
+            0.21,
+            0.21,
+            0.21,
+            0.21,
+            0.21,
+            3.13,
+            3.6,
+            3.6,
+            3.6,
+            3.64,
+            3.6,
+            3.6,
+            3.6,
+            3.6,
+            3.6,
+            3.6,
+            3.6,
+            3.6,
+            3.6
+          ],
+          "read": "earlier ZTZ-99 turret; hull only"
+        },
+        {
+          "view": "front",
+          "drawing": "ztz99",
+          "scale_px_per_m": 53.59,
+          "long_axis_m": 4.049,
+          "drawing_extent_m": [
+            4.05,
+            3.38
+          ],
+          "model_extent_m": [
+            3.68,
+            2.61
+          ],
+          "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+          "drawing_across_m": [
+            1.62,
+            2.09,
+            2.41,
+            1.9,
+            1.49,
+            2.5,
+            2.31,
+            2.85,
+            1.62,
+            2.15,
+            2.11,
+            2.41,
+            2.54,
+            2.56,
+            2.48,
+            2.46,
+            2.39,
+            2.0,
+            1.62
+          ],
+          "model_across_m": [
+            2.02,
+            1.98,
+            2.26,
+            2.26,
+            1.85,
+            1.85,
+            2.16,
+            2.09,
+            1.85,
+            1.72,
+            1.72,
+            1.79,
+            1.81,
+            1.9,
+            1.9,
+            1.83,
+            2.26,
+            2.0,
+            2.0
+          ],
+          "read": "earlier ZTZ-99 turret; hull only"
+        }
+      ]
+    }
+  },
+  "notes": [
+    {
+      "appearances": [
+        "eastern_t_80_t_80bvm"
+      ],
+      "note": "turret seems too small",
+      "class": "frame + art",
+      "why": "frame part: the hull box is 0.39 m too long (7.4 against 7.01), and the model's hull body runs 7.55 m with its rear slat cage, so the turret reads small against it; art part: the turret's footprint already measures right (3.38 x 3.14 m against 3.0-3.4 x 3.1); it is too low and flat. Raise the dome to the frame's roof (2.2 m) and give the Relikt cheeks and brow their bulk; the front view's turret stands about 0.2 m taller over the deck than the model's"
+    },
+    {
+      "appearances": [
+        "eastern_t_90_t_90m_proryv"
+      ],
+      "note": "turret seems too forward",
+      "class": "art",
+      "why": "pivot_m x = 0 is right (question 1). The turret is drawn ahead of its pivot: the model's turret body spans +2.26..-1.47 m; the drawing's spans +1.53..-3.04 m (-3.70 with the bustle's slat cage). Redraw it about 0.75 m further back at the front and with the bustle, about 1.6 m longer at the rear; dressing: the bustle slat cage ends 0.27 m behind the hull box's rear face (-3.43), inside the 0.3 m bulky allowance: build it as dressing or trim it to the box"
+    }
   ],
-  "eastern_t_90_t_90m_proryv": [
-   {
-    "view": "side",
-    "drawing": "t90m",
-    "scale_px_per_m": 198.0,
-    "long_axis_m": 10.207,
-    "drawing_extent_m": [
-     10.21,
-     5.52
-    ],
-    "model_extent_m": [
-     9.71,
-     2.53
-    ],
-    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
-    "drawing_across_m": [
-     0.01,
-     0.02,
-     0.23,
-     null,
-     0.01,
-     1.42,
-     1.78,
-     1.92,
-     1.9,
-     2.14,
-     2.14,
-     2.42,
-     2.31,
-     2.24,
-     2.98,
-     3.02,
-     1.94,
-     1.62,
-     0.9
-    ],
-    "model_across_m": [
-     0.2,
-     0.2,
-     0.2,
-     0.2,
-     0.2,
-     1.52,
-     1.78,
-     1.8,
-     2.08,
-     2.21,
-     2.43,
-     2.43,
-     2.51,
-     2.31,
-     2.28,
-     1.36,
-     1.36,
-     1.3,
-     1.24
-    ],
-    "read": "green ahead of the turret front, pink over the whole bustle"
-   },
-   {
-    "view": "top",
-    "drawing": "t90m",
-    "scale_px_per_m": 198.0,
-    "long_axis_m": 10.222,
-    "drawing_extent_m": [
-     10.22,
-     3.98
-    ],
-    "model_extent_m": [
-     9.71,
-     3.75
-    ],
-    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
-    "drawing_across_m": [
-     0.03,
-     0.01,
-     0.18,
-     null,
-     0.05,
-     3.64,
-     3.79,
-     3.81,
-     3.79,
-     3.8,
-     3.79,
-     3.82,
-     3.79,
-     3.8,
-     3.86,
-     3.87,
-     3.83,
-     3.86,
-     2.96
-    ],
-    "model_across_m": [
-     0.2,
-     0.2,
-     0.2,
-     0.2,
-     0.2,
-     3.62,
-     3.7,
-     3.7,
-     3.72,
-     3.7,
-     3.7,
-     3.7,
-     3.75,
-     3.7,
-     3.62,
-     3.72,
-     3.72,
-     3.72,
-     3.72
-    ]
-   },
-   {
-    "view": "front",
-    "drawing": "t90m",
-    "scale_px_per_m": 198.0,
-    "long_axis_m": 4.005,
-    "drawing_extent_m": [
-     4.0,
-     6.29
-    ],
-    "model_extent_m": [
-     3.75,
-     2.53
-    ],
-    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
-    "drawing_across_m": [
-     1.83,
-     2.12,
-     2.14,
-     2.18,
-     2.03,
-     1.93,
-     3.67,
-     2.66,
-     2.57,
-     1.94,
-     1.86,
-     2.8,
-     2.99,
-     2.06,
-     2.1,
-     2.18,
-     2.13,
-     2.12,
-     1.85
-    ],
-    "model_across_m": [
-     1.43,
-     2.31,
-     2.29,
-     2.29,
-     1.86,
-     2.1,
-     2.05,
-     2.01,
-     1.86,
-     1.78,
-     1.78,
-     1.83,
-     1.88,
-     1.84,
-     1.86,
-     2.27,
-     2.31,
-     2.31,
-     1.61
-    ]
-   }
-  ],
-  "eastern_type_99_ztz_99a": [
-   {
-    "view": "side",
-    "drawing": "ztz99a",
-    "scale_px_per_m": 148.39,
-    "long_axis_m": 11.557,
-    "drawing_extent_m": [
-     11.56,
-     3.21
-    ],
-    "model_extent_m": [
-     10.92,
-     2.61
-    ],
-    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
-    "drawing_across_m": [
-     0.24,
-     0.24,
-     0.24,
-     0.26,
-     0.26,
-     1.44,
-     1.87,
-     2.11,
-     2.1,
-     2.92,
-     2.92,
-     3.08,
-     2.55,
-     2.55,
-     2.48,
-     2.48,
-     1.68,
-     1.34,
-     0.94
-    ],
-    "model_across_m": [
-     0.2,
-     0.2,
-     0.2,
-     0.2,
-     0.2,
-     1.18,
-     1.85,
-     1.89,
-     1.93,
-     2.06,
-     2.24,
-     2.56,
-     2.61,
-     2.59,
-     2.3,
-     2.18,
-     2.18,
-     2.06,
-     1.77
-    ],
-    "read": "pink over the turret roof and bustle"
-   },
-   {
-    "view": "top",
-    "drawing": "ztz99",
-    "scale_px_per_m": 53.6,
-    "long_axis_m": 11.007,
-    "drawing_extent_m": [
-     11.01,
-     3.54
-    ],
-    "model_extent_m": [
-     10.91,
-     3.69
-    ],
-    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
-    "drawing_across_m": [
-     0.17,
-     0.21,
-     0.17,
-     0.28,
-     0.02,
-     3.36,
-     3.53,
-     3.53,
-     3.53,
-     2.54,
-     3.53,
-     3.53,
-     3.4,
-     3.53,
-     3.53,
-     3.53,
-     3.19,
-     2.87,
-     3.15
-    ],
-    "model_across_m": [
-     0.21,
-     0.21,
-     0.21,
-     0.21,
-     0.21,
-     3.13,
-     3.6,
-     3.6,
-     3.6,
-     3.64,
-     3.6,
-     3.6,
-     3.6,
-     3.6,
-     3.6,
-     3.6,
-     3.6,
-     3.6,
-     3.6
-    ],
-    "read": "earlier ZTZ-99 turret; hull only"
-   },
-   {
-    "view": "front",
-    "drawing": "ztz99",
-    "scale_px_per_m": 53.59,
-    "long_axis_m": 4.049,
-    "drawing_extent_m": [
-     4.05,
-     3.38
-    ],
-    "model_extent_m": [
-     3.68,
-     2.61
-    ],
-    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
-    "drawing_across_m": [
-     1.62,
-     2.09,
-     2.41,
-     1.9,
-     1.49,
-     2.5,
-     2.31,
-     2.85,
-     1.62,
-     2.15,
-     2.11,
-     2.41,
-     2.54,
-     2.56,
-     2.48,
-     2.46,
-     2.39,
-     2.0,
-     1.62
-    ],
-    "model_across_m": [
-     2.02,
-     1.98,
-     2.26,
-     2.26,
-     1.85,
-     1.85,
-     2.16,
-     2.09,
-     1.85,
-     1.72,
-     1.72,
-     1.79,
-     1.81,
-     1.9,
-     1.9,
-     1.83,
-     2.26,
-     2.0,
-     2.0
-    ],
-    "read": "earlier ZTZ-99 turret; hull only"
-   }
-  ]
- },
- "questions": {
-  "1": "T-90M 'turret too far forward' is the turret drawn ahead of its pivot, not pivot_m. The pivot at x = 0 matches the T-72 hull's ring; the turret body must move about 0.75 m back at the front and gain about 1.6 m of bustle at the rear.",
-  "2": "T-80BVM 'turret too small': the turret's footprint measures right (3.0-3.4 m long, 3.1 m across the dome); it is too low and flat, and the frame's hull is 0.39 m too long, which shrinks the turret against it. Fix the hull length (slice 15) and raise and bulk out the turret (slice 17)."
- }
+  "answers": {
+    "1": "T-90M 'turret too far forward' is the turret drawn ahead of its pivot, not pivot_m. The pivot at x = 0 matches the T-72 hull's ring; the turret body must move about 0.75 m back at the front and gain about 1.6 m of bustle at the rear.",
+    "2": "T-80BVM 'turret too small': the turret's footprint measures right (3.0-3.4 m long, 3.1 m across the dome); it is too low and flat, and the frame's hull is 0.39 m too long, which shrinks the turret against it. Fix the hull length (slice 15) and raise and bulk out the turret (slice 17)."
+  },
+  "gaps": null
 }

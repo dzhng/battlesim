@@ -1,230 +1,485 @@
 {
   "family": "bradley",
   "lane": "F-C",
+  "slice": "07",
   "surveyed": "2026-11-11",
-  "convention": "The hull box reaches the hull and turret roof; sights, antennas and roof guns are dressing within 0.3 m (bulky) or 0.15 m across (thin); the pivot sits at the centre of the turret ring (a fixed howitzer mount: its trunnion); the muzzle sits at the real barrel length. Box length covers the body (hull plus any armoured turret overhang), centred on the box origin.",
-  "thresholds": {
-    "hull_dimension": "max(0.10 m, 3 %)",
-    "pivot_x_m": 0.15,
-    "muzzle_reach_m": 0.3,
-    "note": "Slice 07's guesses, kept: every fix row below clears them by a wide margin or is named as borderline. muzzle_reach_m is added by lane F-C (the slice set none for muzzles)."
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
   },
-  "units": [
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
+  },
+  "sources": [
     {
-      "unit": "us_m2_bradley_ifv_m2a4",
-      "published": {
-        "length_m": {
-          "value": 6.55,
-          "source": "Wikipedia M2 Bradley (21.49 ft)"
-        },
-        "width_m": {
-          "value": 3.61,
-          "source": "Jane's Tanks and Combat Vehicles, M2 Bradley entry (issuu scan): width 3.61 m, height to gunner's sight 2.972 m, to turret roof 2.565 m; one35th.com M2 data: hull top 1.9 m, turret roof 2.565 m (with the armour tiles)"
-        },
-        "height_m": {
-          "value": 2.98,
-          "source": "Wikipedia M2 Bradley (9.78 ft): the gunner's sight per Jane's (2.972 m)"
-        },
-        "turret_roof_m": {
-          "value": 2.565,
-          "source": "Jane's Tanks and Combat Vehicles, M2 Bradley entry (issuu scan): width 3.61 m, height to gunner's sight 2.972 m, to turret roof 2.565 m; one35th.com M2 data: hull top 1.9 m, turret roof 2.565 m"
-        },
-        "hull_top_m": {
-          "value": 1.9,
-          "source": "one35th.com M2 data"
-        }
-      },
-      "measured": {
-        "source": "assets/references/bradley/us_m3_bradley_cfv_m3a3-side.jpg (square-on, scaled to the 6.55 m hull)",
-        "hull_roof_m": 2.18,
-        "turret_top_edge_m": [2.68, 2.78],
-        "note": "The photo reads the turret's side-armour edge from a low, close camera: an upper bound, 0.1-0.2 m over Jane's roof. Jane's governs."
-      },
-      "model_glb": {
-        "bounds_no_dressing_m": [
-          [-3.355, 3.267],
-          [-1.72, 1.72],
-          [0.0, 3.057]
-        ],
-        "turret_roof_m": 2.537,
-        "hull_roof_m": 1.92,
-        "note": "3.057 m is the commander's independent viewer (M2A4) or the hatch ring; neither is dressing today."
-      },
-      "verdicts": [
-        {
-          "field": "half_extents_m[0]",
-          "frame": 3.275,
-          "verdict": "keep"
-        },
-        {
-          "field": "half_extents_m[1]",
-          "frame": 1.8,
-          "verdict": "keep",
-          "why": "3.61 m with the armour tiles; the art under-fills it (3.44 m), art-only."
-        },
-        {
-          "field": "half_extents_m[2]",
-          "frame": 1.49,
-          "verdict": "fix",
-          "new": 1.2825,
-          "source": "turret roof 2.565 m (Jane's)",
-          "why": "2.98 m is the gunner's sight. The art's roof is already 2.537 m."
-        },
-        {
-          "field": "eye_m",
-          "frame": 2.801,
-          "verdict": "keep",
-          "why": "Below the 2.97 m sight."
-        },
-        {
-          "field": "mounts",
-          "frame": "autocannon pivot [-0.5, -0.2, 1.937], muzzle [3.6, 0, 0.536]; TOW on autocannon",
-          "verdict": "keep",
-          "why": "No measurement contradicts them."
-        }
-      ],
-      "dressing_conflicts": [
-        {
-          "part": "commander's independent viewer (M2A4) / hatch ring",
-          "top_m": 3.057,
-          "over_new_roof_m": 0.49,
-          "across_m": 0.4,
-          "why": "Over the 0.3 m bulky allowance once the roof drops; slice 15 decides how sight heads are held (see decisions.md)."
-        }
-      ],
-      "notes": [
-        {
-          "note": "front side panels sticks out",
-          "class": "art",
-          "why": "The front fender (bradley.py:73) and the lower skirt panels and applique tiles at the nose run past the hull outline; slice 09 track_fender and side_skirt, adopted in slice 26. The frame's length and width match the published figures."
-        }
-      ],
-      "frame": {
-        "file": "fixtures/units/roster/us.json",
-        "half_extents_m": [3.275, 1.8, 1.49],
-        "eye_m": 2.801,
-        "mounts": [
-          {
-            "id": "autocannon",
-            "pivot_m": [-0.5, -0.2, 1.937],
-            "muzzle_m": [3.6, 0, 0.536]
-          },
-          {
-            "id": "launcher",
-            "pivot_m": [-0.5, 0.772, 2.444],
-            "muzzle_m": [1.05, 0, 0],
-            "on": "autocannon"
-          }
-        ]
-      }
+      "id": "us_m2_bradley_ifv_m2a4:0",
+      "kind": "photo",
+      "ref": "assets/references/bradley/us_m3_bradley_cfv_m3a3-side.jpg",
+      "note": "assets/references/bradley/us_m3_bradley_cfv_m3a3-side.jpg (square-on, scaled to the 6.55 m hull)"
     },
     {
-      "unit": "us_m3_bradley_cfv_m3a3",
+      "id": "us_m3_bradley_cfv_m3a3:1",
+      "kind": "photo",
+      "ref": "assets/references/bradley/us_m3_bradley_cfv_m3a3-side.jpg",
+      "note": "assets/references/bradley/us_m3_bradley_cfv_m3a3-side.jpg (square-on, scaled to the 6.55 m hull)"
+    }
+  ],
+  "appearances": {
+    "us_m2_bradley_ifv_m2a4": {
+      "unit": "us_m2_bradley_ifv_m2a4",
+      "fixture": "fixtures/units/roster/us.json",
       "published": {
-        "length_m": {
-          "value": 6.55,
-          "source": "Wikipedia M2 Bradley (21.49 ft)"
-        },
-        "width_m": {
-          "value": 3.61,
-          "source": "Jane's Tanks and Combat Vehicles, M2 Bradley entry (issuu scan): width 3.61 m, height to gunner's sight 2.972 m, to turret roof 2.565 m; one35th.com M2 data: hull top 1.9 m, turret roof 2.565 m (with the armour tiles)"
-        },
-        "height_m": {
-          "value": 2.98,
-          "source": "Wikipedia M2 Bradley (9.78 ft): the gunner's sight per Jane's (2.972 m)"
-        },
-        "turret_roof_m": {
-          "value": 2.565,
-          "source": "Jane's Tanks and Combat Vehicles, M2 Bradley entry (issuu scan): width 3.61 m, height to gunner's sight 2.972 m, to turret roof 2.565 m; one35th.com M2 data: hull top 1.9 m, turret roof 2.565 m"
-        },
-        "hull_top_m": {
-          "value": 1.9,
-          "source": "one35th.com M2 data"
-        }
+        "length_m": 6.55,
+        "width_m": 3.61,
+        "height_m": 2.98,
+        "turret_roof_m": 2.565,
+        "hull_top_m": 1.9,
+        "source": "length_m: Wikipedia M2 Bradley (21.49 ft); width_m: Jane's Tanks and Combat Vehicles, M2 Bradley entry (issuu scan): width 3.61 m, height to gunner's sight 2.972 m, to turret roof 2.565 m; one35th.com M2 data: hull top 1.9 m, turret roof 2.565 m (with the armour tiles); height_m: Wikipedia M2 Bradley (9.78 ft): the gunner's sight per Jane's (2.972 m); turret_roof_m: Jane's Tanks and Combat Vehicles, M2 Bradley entry (issuu scan): width 3.61 m, height to gunner's sight 2.972 m, to turret roof 2.565 m; one35th.com M2 data: hull top 1.9 m, turret roof 2.565 m; hull_top_m: one35th.com M2 data"
       },
-      "measured": {
-        "source": "assets/references/bradley/us_m3_bradley_cfv_m3a3-side.jpg (square-on, scaled to the 6.55 m hull)",
-        "hull_roof_m": 2.18,
-        "turret_top_edge_m": [2.68, 2.78],
-        "note": "The photo reads the turret's side-armour edge from a low, close camera: an upper bound, 0.1-0.2 m over Jane's roof. Jane's governs."
-      },
-      "model_glb": {
-        "bounds_no_dressing_m": [
-          [-3.355, 3.267],
-          [-1.72, 1.72],
-          [0.0, 3.057]
+      "current": {
+        "extends": "roster_profile_ifv",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.275,
+          1.8,
+          1.49
         ],
-        "turret_roof_m": 2.537,
-        "hull_roof_m": 1.92,
-        "note": "3.057 m is the commander's independent viewer (M2A4) or the hatch ring; neither is dressing today."
-      },
-      "verdicts": [
-        {
-          "field": "half_extents_m[0]",
-          "frame": 3.275,
-          "verdict": "keep"
-        },
-        {
-          "field": "half_extents_m[1]",
-          "frame": 1.8,
-          "verdict": "keep",
-          "why": "3.61 m with the armour tiles; the art under-fills it (3.44 m), art-only."
-        },
-        {
-          "field": "half_extents_m[2]",
-          "frame": 1.49,
-          "verdict": "fix",
-          "new": 1.2825,
-          "source": "turret roof 2.565 m (Jane's)",
-          "why": "2.98 m is the gunner's sight. The art's roof is already 2.537 m."
-        },
-        {
-          "field": "eye_m",
-          "frame": 2.801,
-          "verdict": "keep",
-          "why": "Below the 2.97 m sight."
-        },
-        {
-          "field": "mounts",
-          "frame": "autocannon pivot [-0.5, -0.2, 1.937], muzzle [3.6, 0, 0.536]; TOW on autocannon",
-          "verdict": "keep",
-          "why": "No measurement contradicts them."
-        }
-      ],
-      "dressing_conflicts": [
-        {
-          "part": "commander's independent viewer (M2A4) / hatch ring",
-          "top_m": 3.057,
-          "over_new_roof_m": 0.49,
-          "across_m": 0.4,
-          "why": "Over the 0.3 m bulky allowance once the roof drops; slice 15 decides how sight heads are held (see decisions.md)."
-        }
-      ],
-      "notes": [
-        {
-          "note": "front side panels sticks out",
-          "class": "art",
-          "why": "The front fender (bradley.py:73) and the lower skirt panels and applique tiles at the nose run past the hull outline; slice 09 track_fender and side_skirt, adopted in slice 26. The frame's length and width match the published figures."
-        }
-      ],
-      "frame": {
-        "file": "fixtures/units/roster/us.json",
-        "half_extents_m": [3.275, 1.8, 1.49],
         "eye_m": 2.801,
         "mounts": [
           {
             "id": "autocannon",
-            "pivot_m": [-0.5, -0.2, 1.937],
-            "muzzle_m": [3.6, 0, 0.536]
+            "pivot_m": [
+              -0.5,
+              -0.2,
+              1.937
+            ],
+            "muzzle_m": [
+              3.6,
+              0.0,
+              0.536
+            ],
+            "turret": true
           },
           {
             "id": "launcher",
-            "pivot_m": [-0.5, 0.772, 2.444],
-            "muzzle_m": [1.05, 0, 0],
+            "pivot_m": [
+              -0.5,
+              0.772,
+              2.444
+            ],
+            "muzzle_m": [
+              1.05,
+              0.0,
+              0.0
+            ],
+            "turret": true,
             "on": "autocannon"
           }
         ]
-      }
+      },
+      "measured": {
+        "measured": {
+          "source": "assets/references/bradley/us_m3_bradley_cfv_m3a3-side.jpg (square-on, scaled to the 6.55 m hull)",
+          "hull_roof_m": 2.18,
+          "turret_top_edge_m": [
+            2.68,
+            2.78
+          ],
+          "note": "The photo reads the turret's side-armour edge from a low, close camera: an upper bound, 0.1-0.2 m over Jane's roof. Jane's governs."
+        },
+        "model_glb": {
+          "bounds_no_dressing_m": [
+            [
+              -3.355,
+              3.267
+            ],
+            [
+              -1.72,
+              1.72
+            ],
+            [
+              0.0,
+              3.057
+            ]
+          ],
+          "turret_roof_m": 2.537,
+          "hull_roof_m": 1.92,
+          "note": "3.057 m is the commander's independent viewer (M2A4) or the hatch ring; neither is dressing today."
+        },
+        "dressing_conflicts": [
+          {
+            "part": "commander's independent viewer (M2A4) / hatch ring",
+            "top_m": 3.057,
+            "over_new_roof_m": 0.49,
+            "across_m": 0.4,
+            "why": "Over the 0.3 m bulky allowance once the roof drops; slice 15 decides how sight heads are held (see decisions.md)."
+          }
+        ]
+      },
+      "heights": {
+        "roof_m": 2.565,
+        "roof_source": "Jane's",
+        "sight_top_m": 3.06,
+        "sight_part": "commander's independent viewer",
+        "sight_source": "art; Jane's gunner's sight 2.972 m",
+        "rule_top_m": 2.76,
+        "box_top_m": 2.76,
+        "art": {
+          "hull_top_m": 3.057,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.275,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.8,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "3.61 m with the armour tiles; the art under-fills it (3.44 m), art-only."
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.49,
+          "new": 1.38,
+          "verdict": "fix",
+          "source": "Jane's: 2.565 m turret roof, 2.972 m gunner's sight; the art's commander's independent viewer 3.06 m",
+          "confidence": "medium",
+          "note": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 2.565 m; the tallest sight head (the A3/A4's commander's independent viewer, 3.06 m in the art, unmeasured on a real vehicle; Jane's gunner's sight 2.97 m) puts the top at 2.76 m (F-C's 2.565 m left it 0.49 m over). Lane: 2.98 m is the gunner's sight. The art's roof is already 2.537 m."
+        },
+        {
+          "field": "eye_m",
+          "old": 2.801,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "Below the 2.97 m sight."
+        },
+        {
+          "field": "mounts.autocannon.pivot_m",
+          "old": [
+            -0.5,
+            -0.2,
+            1.937
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "No measurement contradicts them."
+        },
+        {
+          "field": "mounts.autocannon.muzzle_m",
+          "old": [
+            3.6,
+            0.0,
+            0.536
+          ],
+          "new": [
+            2.5,
+            0,
+            0.536
+          ],
+          "verdict": "fix",
+          "source": "assets/references/bradley/us_m3_bradley_cfv_m3a3-side.jpg (square-on, 193 px/m on the 6.55 m hull); -m2a4-side.jpg",
+          "confidence": "medium",
+          "note": "C5 audit: the square-on photo puts the 25 mm muzzle 1.98 m ahead of hull centre, about 1.3 m behind the nose, and the M2A4 quarter shows it behind the glacis break too. The frame's world point (3.1 m) overshoots by 1.1 m. The barrel's height in the photo (about 2.05 m against the frame's 2.47 m) is named for slice 26, not fixed: one photo in dust. Lane: No measurement contradicts them."
+        },
+        {
+          "field": "mounts.launcher.pivot_m",
+          "old": [
+            -0.5,
+            0.772,
+            2.444
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "No measurement contradicts them."
+        },
+        {
+          "field": "mounts.launcher.muzzle_m",
+          "old": [
+            1.05,
+            0.0,
+            0.0
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "No measurement contradicts them."
+        }
+      ]
+    },
+    "us_m3_bradley_cfv_m3a3": {
+      "unit": "us_m3_bradley_cfv_m3a3",
+      "fixture": "fixtures/units/roster/us.json",
+      "published": {
+        "length_m": 6.55,
+        "width_m": 3.61,
+        "height_m": 2.98,
+        "turret_roof_m": 2.565,
+        "hull_top_m": 1.9,
+        "source": "length_m: Wikipedia M2 Bradley (21.49 ft); width_m: Jane's Tanks and Combat Vehicles, M2 Bradley entry (issuu scan): width 3.61 m, height to gunner's sight 2.972 m, to turret roof 2.565 m; one35th.com M2 data: hull top 1.9 m, turret roof 2.565 m (with the armour tiles); height_m: Wikipedia M2 Bradley (9.78 ft): the gunner's sight per Jane's (2.972 m); turret_roof_m: Jane's Tanks and Combat Vehicles, M2 Bradley entry (issuu scan): width 3.61 m, height to gunner's sight 2.972 m, to turret roof 2.565 m; one35th.com M2 data: hull top 1.9 m, turret roof 2.565 m; hull_top_m: one35th.com M2 data"
+      },
+      "current": {
+        "extends": "roster_profile_tracked_recon",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.275,
+          1.8,
+          1.49
+        ],
+        "eye_m": 2.801,
+        "mounts": [
+          {
+            "id": "autocannon",
+            "pivot_m": [
+              -0.5,
+              -0.2,
+              1.937
+            ],
+            "muzzle_m": [
+              3.6,
+              0.0,
+              0.536
+            ],
+            "turret": true
+          },
+          {
+            "id": "launcher",
+            "pivot_m": [
+              -0.5,
+              0.772,
+              2.444
+            ],
+            "muzzle_m": [
+              1.05,
+              0.0,
+              0.0
+            ],
+            "turret": true,
+            "on": "autocannon"
+          }
+        ]
+      },
+      "measured": {
+        "measured": {
+          "source": "assets/references/bradley/us_m3_bradley_cfv_m3a3-side.jpg (square-on, scaled to the 6.55 m hull)",
+          "hull_roof_m": 2.18,
+          "turret_top_edge_m": [
+            2.68,
+            2.78
+          ],
+          "note": "The photo reads the turret's side-armour edge from a low, close camera: an upper bound, 0.1-0.2 m over Jane's roof. Jane's governs."
+        },
+        "model_glb": {
+          "bounds_no_dressing_m": [
+            [
+              -3.355,
+              3.267
+            ],
+            [
+              -1.72,
+              1.72
+            ],
+            [
+              0.0,
+              3.057
+            ]
+          ],
+          "turret_roof_m": 2.537,
+          "hull_roof_m": 1.92,
+          "note": "3.057 m is the commander's independent viewer (M2A4) or the hatch ring; neither is dressing today."
+        },
+        "dressing_conflicts": [
+          {
+            "part": "commander's independent viewer (M2A4) / hatch ring",
+            "top_m": 3.057,
+            "over_new_roof_m": 0.49,
+            "across_m": 0.4,
+            "why": "Over the 0.3 m bulky allowance once the roof drops; slice 15 decides how sight heads are held (see decisions.md)."
+          }
+        ]
+      },
+      "heights": {
+        "roof_m": 2.565,
+        "roof_source": "Jane's",
+        "sight_top_m": 3.06,
+        "sight_part": "commander's independent viewer",
+        "sight_source": "art; Jane's gunner's sight 2.972 m",
+        "rule_top_m": 2.76,
+        "box_top_m": 2.76,
+        "art": {
+          "hull_top_m": 3.057,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.275,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.8,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "3.61 m with the armour tiles; the art under-fills it (3.44 m), art-only."
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.49,
+          "new": 1.38,
+          "verdict": "fix",
+          "source": "Jane's: 2.565 m turret roof, 2.972 m gunner's sight; the art's commander's independent viewer 3.06 m",
+          "confidence": "medium",
+          "note": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 2.565 m; the tallest sight head (the A3/A4's commander's independent viewer, 3.06 m in the art, unmeasured on a real vehicle; Jane's gunner's sight 2.97 m) puts the top at 2.76 m (F-C's 2.565 m left it 0.49 m over). Lane: 2.98 m is the gunner's sight. The art's roof is already 2.537 m."
+        },
+        {
+          "field": "eye_m",
+          "old": 2.801,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "Below the 2.97 m sight."
+        },
+        {
+          "field": "mounts.autocannon.pivot_m",
+          "old": [
+            -0.5,
+            -0.2,
+            1.937
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "No measurement contradicts them."
+        },
+        {
+          "field": "mounts.autocannon.muzzle_m",
+          "old": [
+            3.6,
+            0.0,
+            0.536
+          ],
+          "new": [
+            2.5,
+            0,
+            0.536
+          ],
+          "verdict": "fix",
+          "source": "assets/references/bradley/us_m3_bradley_cfv_m3a3-side.jpg (square-on, 193 px/m on the 6.55 m hull); -m2a4-side.jpg",
+          "confidence": "medium",
+          "note": "C5 audit: the square-on photo puts the 25 mm muzzle 1.98 m ahead of hull centre, about 1.3 m behind the nose, and the M2A4 quarter shows it behind the glacis break too. The frame's world point (3.1 m) overshoots by 1.1 m. The barrel's height in the photo (about 2.05 m against the frame's 2.47 m) is named for slice 26, not fixed: one photo in dust. Lane: No measurement contradicts them."
+        },
+        {
+          "field": "mounts.launcher.pivot_m",
+          "old": [
+            -0.5,
+            0.772,
+            2.444
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "No measurement contradicts them."
+        },
+        {
+          "field": "mounts.launcher.muzzle_m",
+          "old": [
+            1.05,
+            0.0,
+            0.0
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "No measurement contradicts them."
+        }
+      ]
     }
-  ]
+  },
+  "overlays": null,
+  "notes": [
+    {
+      "appearances": [
+        "us_m2_bradley_ifv_m2a4"
+      ],
+      "note": "front side panels sticks out",
+      "class": "art",
+      "why": "The front fender (bradley.py:73) and the lower skirt panels and applique tiles at the nose run past the hull outline; slice 09 track_fender and side_skirt, adopted in slice 26. The frame's length and width match the published figures."
+    },
+    {
+      "appearances": [
+        "us_m3_bradley_cfv_m3a3"
+      ],
+      "note": "front side panels sticks out",
+      "class": "art",
+      "why": "The front fender (bradley.py:73) and the lower skirt panels and applique tiles at the nose run past the hull outline; slice 09 track_fender and side_skirt, adopted in slice 26. The frame's length and width match the published figures."
+    }
+  ],
+  "answers": null,
+  "gaps": null
 }

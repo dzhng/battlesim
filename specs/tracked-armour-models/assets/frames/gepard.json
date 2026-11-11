@@ -3,18 +3,31 @@
   "lane": "F-B",
   "slice": "07",
   "surveyed": "2026-11-11",
-  "glbs": "assets/source/roster/<family>/ as committed at 2a68e25d7 (the spec commit); probed tier 0 in vehicle mode (wheels and tracks kept, dressing_* skipped)",
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
+  },
   "convention": {
-    "hull_box": "reaches the hull and turret roof; where a bulky sight stands more than the 0.3 m bulky dressing allowance over the roof, the top is the sight's top less 0.3 m (decisions.md F-B1)",
-    "pivot": "centre of the turret ring; for a fixed mount, the point it is drawn hinged on (only pivot + muzzle reaches the simulation)",
-    "muzzle": "pivot_m + muzzle_m at rest, at the real barrel or launch point",
-    "frame": "hull box centred on x = 0 and y = 0, standing on z = 0; +x forward, +y left"
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
   },
   "thresholds": {
     "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
-    "pivot_x": "fix when off by more than 0.15 m",
-    "muzzle_point": "fix when the world muzzle point is off by more than 0.15 m on any axis (added by lane F-B, decisions.md F-B3)",
-    "eye_m": "kept unless a source contradicts it; nothing measured here does"
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
   },
   "sources": [
     {
@@ -38,6 +51,8 @@
   ],
   "appearances": {
     "europe_gepard_1a2": {
+      "unit": "europe_gepard_1a2",
+      "fixture": "fixtures/units/roster/europe.json",
       "published": {
         "length_m": "7.11 hull (frame); 7.68 overall with the guns forward",
         "width_m": 3.27,
@@ -45,7 +60,16 @@
         "height_note": "with the search radar retracted",
         "source": "kmw"
       },
-      "frame": {
+      "current": {
+        "extends": "roster_profile_ifv",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
         "half_extents_m": [
           3.556,
           1.685,
@@ -56,31 +80,52 @@
           {
             "id": "gun",
             "pivot_m": [
-              0,
-              0,
+              0.0,
+              0.0,
               2.11
             ],
             "muzzle_m": [
               3.56,
               1.28,
-              0
-            ]
+              0.0
+            ],
+            "turret": true
           }
         ]
       },
-      "verdicts": [
+      "measured": null,
+      "heights": {
+        "roof_m": 2.76,
+        "roof_source": "drawing 2.74-2.78 m",
+        "sight_top_m": 3.29,
+        "sight_part": "search radar, retracted",
+        "sight_source": "KMW",
+        "rule_top_m": 2.99,
+        "box_top_m": 3.0,
+        "art": {
+          "hull_top_m": 3.233,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
         {
           "field": "half_extents_m[0]",
           "old": 3.556,
+          "new": null,
           "verdict": "keep",
           "source": "bp-gepard, kmw",
+          "confidence": null,
           "note": "the KMW 7.68 m is with the guns forward: the drawing puts their muzzles 0.48 m past a 7.11 m hull"
         },
         {
           "field": "half_extents_m[1]",
           "old": 1.685,
+          "new": null,
           "verdict": "keep",
           "source": "kmw",
+          "confidence": null,
           "note": "3.37 m against 3.27 m: 0.10 m, not past max(0.10, 3 %). Wikipedia's 3.71 m is not the hull's"
         },
         {
@@ -95,17 +140,23 @@
         {
           "field": "eye_m",
           "old": 2.5,
-          "verdict": "keep"
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
         },
         {
           "field": "mounts.gun.pivot_m",
           "old": [
-            0,
-            0,
+            0.0,
+            0.0,
             2.11
           ],
+          "new": null,
           "verdict": "keep",
           "source": "bp-gepard",
+          "confidence": null,
           "note": "the drawn turret's mid-length is x +0.09 m"
         },
         {
@@ -113,7 +164,7 @@
           "old": [
             3.56,
             1.28,
-            0
+            0.0
           ],
           "new": [
             4.1,
@@ -462,11 +513,14 @@
   },
   "notes": [
     {
+      "appearances": [
+        "europe_gepard_1a2"
+      ],
       "note": "(no note for the Gepard)",
-      "class": null
+      "class": null,
+      "why": ""
     }
   ],
-  "findings": [
-    "The overlays show the drawn turret taller and wider than the model's (art, slice 24); the art draws the gun on the hull rig (assets/catalog.json mounts gun: hull), so the turret does not turn."
-  ]
+  "answers": null,
+  "gaps": null
 }

@@ -3,18 +3,31 @@
   "lane": "F-B",
   "slice": "07",
   "surveyed": "2026-11-11",
-  "glbs": "assets/source/roster/<family>/ as committed at 2a68e25d7 (the spec commit); probed tier 0 in vehicle mode (wheels and tracks kept, dressing_* skipped)",
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
+  },
   "convention": {
-    "hull_box": "reaches the hull and turret roof; where a bulky sight stands more than the 0.3 m bulky dressing allowance over the roof, the top is the sight's top less 0.3 m (decisions.md F-B1)",
-    "pivot": "centre of the turret ring; for a fixed mount, the point it is drawn hinged on (only pivot + muzzle reaches the simulation)",
-    "muzzle": "pivot_m + muzzle_m at rest, at the real barrel or launch point",
-    "frame": "hull box centred on x = 0 and y = 0, standing on z = 0; +x forward, +y left"
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
   },
   "thresholds": {
     "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
-    "pivot_x": "fix when off by more than 0.15 m",
-    "muzzle_point": "fix when the world muzzle point is off by more than 0.15 m on any axis (added by lane F-B, decisions.md F-B3)",
-    "eye_m": "kept unless a source contradicts it; nothing measured here does"
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
   },
   "sources": [
     {
@@ -38,13 +51,24 @@
   ],
   "appearances": {
     "europe_mars_ii_multiple_launch_rocket_system": {
+      "unit": "europe_mars_ii_multiple_launch_rocket_system",
+      "fixture": "fixtures/units/roster/europe.json",
       "published": {
         "length_m": 6.97,
         "width_m": 2.97,
         "height_m": 2.59,
         "source": "bp-m270a1 (dimensioned); MARS II is the M270 carrier and launcher with German fire control"
       },
-      "frame": {
+      "current": {
+        "extends": "roster_profile_light_tank",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 24.0,
+            "reverse_speed_factor": 0.3,
+            "road_kmh": 58.0,
+            "turn_deg_s": 28.0
+          }
+        },
         "half_extents_m": [
           3.485,
           1.485,
@@ -54,42 +78,78 @@
         "mounts": [
           {
             "id": "gun",
-            "turret": false,
             "pivot_m": [
               -1.6,
-              0,
+              0.0,
               2.2
             ],
             "muzzle_m": [
               1.0,
-              0,
-              0
-            ]
+              0.0,
+              0.0
+            ],
+            "turret": false
           }
         ]
       },
-      "verdicts": [
+      "measured": null,
+      "heights": {
+        "roof_m": 2.6,
+        "roof_source": "drawing 2.591 m; published 2.62 m",
+        "sight_top_m": null,
+        "sight_part": "none",
+        "sight_source": null,
+        "rule_top_m": 2.6,
+        "box_top_m": 2.62,
+        "art": {
+          "hull_top_m": 2.75,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
         {
-          "field": "half_extents_m",
-          "old": [
-            3.485,
-            1.485,
-            1.31
-          ],
+          "field": "half_extents_m[0]",
+          "old": 3.485,
+          "new": null,
           "verdict": "keep",
           "source": "bp-m270a1",
+          "confidence": null,
+          "note": "6.97 x 2.97 x 2.62 m against the drawing's 6.972 x 2.972 x 2.591 m"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.485,
+          "new": null,
+          "verdict": "keep",
+          "source": "bp-m270a1",
+          "confidence": null,
+          "note": "6.97 x 2.97 x 2.62 m against the drawing's 6.972 x 2.972 x 2.591 m"
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.31,
+          "new": null,
+          "verdict": "keep",
+          "source": "bp-m270a1",
+          "confidence": null,
           "note": "6.97 x 2.97 x 2.62 m against the drawing's 6.972 x 2.972 x 2.591 m"
         },
         {
           "field": "eye_m",
           "old": 2.358,
-          "verdict": "keep"
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
         },
         {
           "field": "mounts.gun.pivot_m",
           "old": [
             -1.6,
-            0,
+            0.0,
             2.2
           ],
           "new": [
@@ -106,8 +166,8 @@
           "field": "mounts.gun.muzzle_m",
           "old": [
             1.0,
-            0,
-            0
+            0.0,
+            0.0
           ],
           "new": [
             3.7,
@@ -238,13 +298,16 @@
   },
   "notes": [
     {
+      "appearances": [
+        "europe_mars_ii_multiple_launch_rocket_system"
+      ],
       "note": "the pivot for the rocket launcher needs to go in the back",
       "class": "art",
-      "frame_part": "the mount's pivot and muzzle (fix)",
-      "why": "As the M270A2 (m270_mlrs.json); the MARS II photos show the same rear hinge."
+      "why": "As the M270A2 (m270_mlrs.json); the MARS II photos show the same rear hinge.; frame part: the mount's pivot and muzzle (fix)"
     }
   ],
   "answers": {
     "Q7": "Yes; see m270_mlrs.json."
-  }
+  },
+  "gaps": null
 }

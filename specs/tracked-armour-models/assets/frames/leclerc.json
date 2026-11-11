@@ -3,18 +3,31 @@
   "lane": "F-B",
   "slice": "07",
   "surveyed": "2026-11-11",
-  "glbs": "assets/source/roster/<family>/ as committed at 2a68e25d7 (the spec commit); probed tier 0 in vehicle mode (wheels and tracks kept, dressing_* skipped)",
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
+  },
   "convention": {
-    "hull_box": "reaches the hull and turret roof; where a bulky sight stands more than the 0.3 m bulky dressing allowance over the roof, the top is the sight's top less 0.3 m (decisions.md F-B1)",
-    "pivot": "centre of the turret ring; for a fixed mount, the point it is drawn hinged on (only pivot + muzzle reaches the simulation)",
-    "muzzle": "pivot_m + muzzle_m at rest, at the real barrel or launch point",
-    "frame": "hull box centred on x = 0 and y = 0, standing on z = 0; +x forward, +y left"
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
   },
   "thresholds": {
     "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
-    "pivot_x": "fix when off by more than 0.15 m",
-    "muzzle_point": "fix when the world muzzle point is off by more than 0.15 m on any axis (added by lane F-B, decisions.md F-B3)",
-    "eye_m": "kept unless a source contradicts it; nothing measured here does"
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
   },
   "sources": [
     {
@@ -38,6 +51,8 @@
   ],
   "appearances": {
     "europe_leclerc_xlr": {
+      "unit": "europe_leclerc_xlr",
+      "fixture": "fixtures/units/roster/europe.json",
       "published": {
         "length_m": 6.88,
         "length_gun_forward_m": 9.87,
@@ -45,7 +60,16 @@
         "height_m": 2.53,
         "source": "armyrecognition-xlr"
       },
-      "frame": {
+      "current": {
+        "extends": "roster_profile_improved_mbt",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
         "half_extents_m": [
           3.44,
           1.8,
@@ -56,15 +80,16 @@
           {
             "id": "cannon",
             "pivot_m": [
-              0,
-              0,
+              0.0,
+              0.0,
               1.518
             ],
             "muzzle_m": [
               6.43,
-              0,
+              0.0,
               0.455
-            ]
+            ],
+            "turret": true
           },
           {
             "id": "HMG",
@@ -75,17 +100,35 @@
             ],
             "muzzle_m": [
               1.43,
-              0,
+              0.0,
               0.32
             ],
+            "turret": true,
             "on": "cannon"
           }
         ]
       },
-      "verdicts": [
+      "measured": null,
+      "heights": {
+        "roof_m": 2.53,
+        "roof_source": "published",
+        "sight_top_m": null,
+        "sight_part": "none measured; the art draws none over the roof",
+        "sight_source": null,
+        "rule_top_m": 2.53,
+        "box_top_m": 2.53,
+        "art": {
+          "hull_top_m": 2.605,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
         {
           "field": "half_extents_m[0]",
           "old": 3.44,
+          "new": null,
           "verdict": "keep",
           "source": "armyrecognition-xlr, wp-leclerc",
           "confidence": "medium",
@@ -94,30 +137,40 @@
         {
           "field": "half_extents_m[1]",
           "old": 1.8,
+          "new": null,
           "verdict": "keep",
           "source": "armyrecognition-xlr",
+          "confidence": null,
           "note": "3.71 m (XLR) against 3.60 m: 0.11 m, on the threshold (max(0.10, 3 % = 0.111)), not past it. The model already draws 3.80 m"
         },
         {
           "field": "half_extents_m[2]",
           "old": 1.265,
+          "new": null,
           "verdict": "keep",
           "source": "armyrecognition-xlr",
+          "confidence": null,
           "note": "2.53 m; the drawing's 2.39 m is rejected with its hull length"
         },
         {
           "field": "eye_m",
           "old": 2.378,
-          "verdict": "keep"
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
         },
         {
           "field": "mounts.cannon.pivot_m",
           "old": [
-            0,
-            0,
+            0.0,
+            0.0,
             1.518
           ],
+          "new": null,
           "verdict": "keep",
+          "source": null,
           "confidence": "low",
           "note": "the ring is not drawn; the hatches sit 0.47 of the hull length behind the nose, consistent with a ring just ahead of mid-hull"
         },
@@ -125,28 +178,40 @@
           "field": "mounts.cannon.muzzle_m",
           "old": [
             6.43,
-            0,
+            0.0,
             0.455
           ],
+          "new": null,
           "verdict": "keep",
           "source": "armyrecognition-xlr",
+          "confidence": null,
           "note": "world x 6.43 m gives 9.87 m gun forward exactly; z 1.973 m against the drawing's 2.12 m, inside the threshold"
         },
         {
-          "field": "mounts.HMG",
-          "old": {
-            "pivot_m": [
-              -0.25,
-              -0.58,
-              2.378
-            ],
-            "muzzle_m": [
-              1.43,
-              0,
-              0.32
-            ]
-          },
-          "verdict": "keep"
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            -0.25,
+            -0.58,
+            2.378
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
         }
       ]
     }
@@ -376,8 +441,14 @@
   },
   "notes": [
     {
+      "appearances": [
+        "europe_leclerc_xlr"
+      ],
       "note": "(no note for the Leclerc XLR)",
-      "class": null
+      "class": null,
+      "why": ""
     }
-  ]
+  ],
+  "answers": null,
+  "gaps": null
 }

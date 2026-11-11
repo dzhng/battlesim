@@ -1,70 +1,626 @@
 {
   "family": "cv90",
   "lane": "F-C",
+  "slice": "07",
   "surveyed": "2026-11-11",
-  "convention": "The hull box reaches the hull and turret roof; sights, antennas and roof guns are dressing within 0.3 m (bulky) or 0.15 m across (thin); the pivot sits at the centre of the turret ring (a fixed howitzer mount: its trunnion); the muzzle sits at the real barrel length. Box length covers the body (hull plus any armoured turret overhang), centred on the box origin.",
-  "thresholds": {
-    "hull_dimension": "max(0.10 m, 3 %)",
-    "pivot_x_m": 0.15,
-    "muzzle_reach_m": 0.3,
-    "note": "Slice 07's guesses, kept: every fix row below clears them by a wide margin or is named as borderline. muzzle_reach_m is added by lane F-C (the slice set none for muzzles)."
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
   },
-  "units": [
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
+  },
+  "sources": [
     {
+      "id": "europe_cv90_cv9040c:0",
+      "kind": "drawing",
+      "ref": "assets/references/cv90/europe_cv90_cv9040c-side-3.png",
+      "note": "assets/references/cv90/europe_cv90_cv9040c-side-3.png (Mick Bell 1/76 Strf 9040 plan, CC BY 4.0; also -top, -front, -rear-2)"
+    }
+  ],
+  "appearances": {
+    "europe_cv90_cv9040c": {
       "unit": "europe_cv90_cv9040c",
+      "fixture": "fixtures/units/roster/europe.json",
       "published": {
-        "length_m": {
-          "value": 7.0,
-          "source": "hhogman.se Swedish Combat Vehicles (Strf 9040C); Steel Beasts wiki CV 90/40-C: 7 m"
-        },
-        "width_m": {
-          "value": 3.38,
-          "source": "hhogman.se (Strf 9040C, add-on armour); Steel Beasts wiki 3.4 m"
-        },
-        "height_m": {
-          "value": 2.71,
-          "source": "hhogman.se; Steel Beasts wiki. Overall: the C kit puts smoke dischargers on the turret roof"
-        },
+        "length_m": 7.0,
+        "width_m": 3.38,
+        "height_m": 2.71,
         "base_strf_9040": {
           "length_m": 6.47,
           "width_m": 3.19,
           "height_m": 2.5,
           "source": "Army Recognition CV9040 sheet; the base vehicle before the C kit"
-        }
+        },
+        "source": "length_m: hhogman.se Swedish Combat Vehicles (Strf 9040C); Steel Beasts wiki CV 90/40-C: 7 m; width_m: hhogman.se (Strf 9040C, add-on armour); Steel Beasts wiki 3.4 m; height_m: hhogman.se; Steel Beasts wiki. Overall: the C kit puts smoke dischargers on the turret roof"
+      },
+      "current": {
+        "extends": "roster_profile_ifv",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.4,
+          1.6,
+          1.4
+        ],
+        "eye_m": 2.632,
+        "mounts": [
+          {
+            "id": "autocannon",
+            "pivot_m": [
+              -0.35,
+              0.0,
+              1.82
+            ],
+            "muzzle_m": [
+              3.9,
+              0.0,
+              0.504
+            ],
+            "turret": true
+          }
+        ]
       },
       "measured": {
-        "source": "assets/references/cv90/europe_cv90_cv9040c-side-3.png (Mick Bell 1/76 Strf 9040 plan, CC BY 4.0; also -top, -front, -rear-2)",
-        "scale_px_per_m": 236.6,
-        "scale_from": "the sheet's 3 m scale bar",
-        "hull_length_m": 6.54,
-        "width_over_tracks_m": 3.11,
-        "hull_roof_m": [1.78, 1.83],
-        "turret_roof_m": 2.37,
-        "cupola_top_m": 2.53,
-        "turret_ring_x_m": -0.44,
-        "muzzle_x_m": 3.17,
-        "note": "The plan is the 1990 Strf 9040, before the C upgrade: hull, roof and turret shell are shared; the C adds side and roof armour. Its published overall height (2.5 m) is the cupola top on the plan, which says the C's 2.71 m is also an overall figure, not a roof."
+        "measured": {
+          "source": "assets/references/cv90/europe_cv90_cv9040c-side-3.png (Mick Bell 1/76 Strf 9040 plan, CC BY 4.0; also -top, -front, -rear-2)",
+          "scale_px_per_m": 236.6,
+          "scale_from": "the sheet's 3 m scale bar",
+          "hull_length_m": 6.54,
+          "width_over_tracks_m": 3.11,
+          "hull_roof_m": [
+            1.78,
+            1.83
+          ],
+          "turret_roof_m": 2.37,
+          "cupola_top_m": 2.53,
+          "turret_ring_x_m": -0.44,
+          "muzzle_x_m": 3.17,
+          "note": "The plan is the 1990 Strf 9040, before the C upgrade: hull, roof and turret shell are shared; the C adds side and roof armour. Its published overall height (2.5 m) is the cupola top on the plan, which says the C's 2.71 m is also an overall figure, not a roof."
+        },
+        "model_glb": {
+          "bounds_no_dressing_m": [
+            [
+              -3.46,
+              3.555
+            ],
+            [
+              -1.634,
+              1.634
+            ],
+            [
+              0.0,
+              2.807
+            ]
+          ],
+          "turret_roof_m": 2.54,
+          "hull_roof_m": 1.8,
+          "note": "2.807 m is the commander's sight housing: 0.31 m over a 2.50 m box, at the bulky allowance. The head-out crew is dressing (slice 12 removes it)."
+        }
       },
-      "model_glb": {
-        "bounds_no_dressing_m": [
-          [-3.46, 3.555],
-          [-1.634, 1.634],
-          [0.0, 2.807]
+      "heights": {
+        "roof_m": 2.37,
+        "roof_source": "Mick Bell plan (base Strf 9040; the C's roof armour adds up to about 0.1 m)",
+        "sight_top_m": 2.71,
+        "sight_part": "roof fittings",
+        "sight_source": "hhogman overall",
+        "rule_top_m": 2.41,
+        "box_top_m": 2.5,
+        "art": {
+          "hull_top_m": 2.807,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.4,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "6.8 m against the published 7.0 m is 2.9 %, inside the threshold."
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.6,
+          "new": 1.69,
+          "verdict": "fix",
+          "source": "published C width 3.38 m (hhogman.se; Steel Beasts wiki 3.4 m)",
+          "confidence": null,
+          "note": "0.18 m narrow. The base plan's 3.11 m over the tracks plus the C's side armour."
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.4,
+          "new": 1.25,
+          "verdict": "fix",
+          "source": "Mick Bell Strf 9040 plan (roof 2.37 m, cupola 2.53 m); hhogman 2.71 m overall for the C",
+          "confidence": "medium",
+          "note": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). The C's roof lies between the base plan's 2.37 m and about 2.5 m (its roof armour is unmeasured), and its tallest fittings reach 2.71 m, so the rule gives 2.41-2.50 m. F-C's 2.50 m is within 0.10 m of every reading and keeps the art's 2.54 m roof. Lane: 2.8 m is 0.3 m over any reading of the roof. 2.50 keeps the model's own roof (2.54 m) inside tolerance, so the art needs no change for it."
+        },
+        {
+          "field": "eye_m",
+          "old": 2.632,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "Sight height, not the box: the cupola periscopes sit about 2.5-2.6 m."
+        },
+        {
+          "field": "mounts.autocannon.pivot_m",
+          "old": [
+            -0.35,
+            0.0,
+            1.82
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "The plan puts the ring at -0.44 m: 0.09 m off, inside 0.15 m."
+        },
+        {
+          "field": "mounts.autocannon.muzzle_m",
+          "old": [
+            3.9,
+            0.0,
+            0.504
+          ],
+          "new": [
+            3.6,
+            0,
+            0.504
+          ],
+          "verdict": "fix",
+          "source": "Mick Bell Strf 9040 plan: ring -0.44 m, muzzle 3.17 m from hull centre",
+          "confidence": "medium",
+          "note": "C5 audit: on the plan the 40 mm muzzle is 3.61 m from the ring, 0.1 m behind the nose. The frame's 3.9 m from the pivot reaches 0.29 m further. F-C compared world points on different hulls and kept it inside its 0.30 m reach threshold, retired by C10. Lane: Muzzle at x 3.55 m; the plan has 3.17 m on its shorter hull (0.1 m behind the nose). On the C's 7.0 m hull that is about 3.3 m: 0.25 m, inside 0.3 m."
+        }
+      ]
+    },
+    "europe_cv90_mk_iv": {
+      "unit": "europe_cv90_mk_iv",
+      "fixture": "fixtures/units/roster/europe.json",
+      "published": {
+        "length_m": 6.8,
+        "width_m": 3.2,
+        "height_m": 2.8,
+        "source": "length_m: cv90.cz official CV90 Mk IV specification, via Wikipedia Combat Vehicle 90; width_m: same; height_m: same; an overall figure (the commander's sight mast rises above the roof)"
+      },
+      "current": {
+        "extends": "roster_profile_advanced_ifv",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 30.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 70.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.4,
+          1.6,
+          1.4
         ],
-        "turret_roof_m": 2.54,
-        "hull_roof_m": 1.8,
-        "note": "2.807 m is the commander's sight housing: 0.31 m over a 2.50 m box, at the bulky allowance. The head-out crew is dressing (slice 12 removes it)."
+        "eye_m": 2.632,
+        "mounts": [
+          {
+            "id": "autocannon",
+            "pivot_m": [
+              -0.35,
+              0.0,
+              1.82
+            ],
+            "muzzle_m": [
+              3.9,
+              0.0,
+              0.504
+            ],
+            "turret": true
+          }
+        ]
       },
-      "overlays": [
+      "measured": {
+        "measured": {
+          "note": "No free drawing or side-on photo of the Mk IV: the library's side photo is a front quarter. Its roof is unmeasured."
+        },
+        "model_glb": {
+          "bounds_no_dressing_m": [
+            [
+              -3.46,
+              3.555
+            ],
+            [
+              -1.634,
+              1.634
+            ],
+            [
+              0.0,
+              2.88
+            ]
+          ],
+          "turret_roof_m": 2.54,
+          "sight_top_m": 3.04
+        }
+      },
+      "heights": {
+        "roof_m": 2.6,
+        "roof_source": "generated side view, photo-corrected",
+        "sight_top_m": 3.2,
+        "sight_part": "commander's sight on its mast",
+        "sight_source": "generated side view, photo-corrected (3.1-3.25 m)",
+        "rule_top_m": 2.9,
+        "box_top_m": 2.8,
+        "art": {
+          "hull_top_m": 2.88,
+          "tallest_dressing": "dressing_commander_sight",
+          "tallest_dressing_top_m": 3.04,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.4,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "Official 6.8 m."
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.6,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "Official 3.2 m."
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.4,
+          "new": null,
+          "verdict": "unresolved",
+          "source": "europe_cv90_mk_iv-side-2-generated.jpg checked against europe_cv90_mk_iv-side.jpg",
+          "confidence": "medium-low",
+          "note": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). and C7: the generated side view, corrected by the photo, gives a roof of about 2.6 m and the commander's sight head about 3.1-3.25 m, so the rule puts the top at 2.8-2.95 m. Today's 2.8 m sits at the low end and the art (non-dressing top 2.88 m, sight 3.04 m as dressing) fits it. Kept. Lane: Unresolved: the official 2.8 m is an overall height and nothing measures the Mk IV roof. Named for slice 15; a roof between 2.5 and 2.65 m is likely, from the sight mast's height in the quarter photos."
+        },
+        {
+          "field": "eye_m",
+          "old": 2.632,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.autocannon.pivot_m",
+          "old": [
+            -0.35,
+            0.0,
+            1.82
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "Same hull and ring as the 9040C."
+        },
+        {
+          "field": "mounts.autocannon.muzzle_m",
+          "old": [
+            3.9,
+            0.0,
+            0.504
+          ],
+          "new": [
+            3.7,
+            0,
+            0.504
+          ],
+          "verdict": "fix",
+          "source": "europe_cv90_mk_iv-side-2-generated.jpg and -side.jpg; the 9040C's plan",
+          "confidence": "medium-low",
+          "note": "C5 audit and C7: both the generated side view and the photo put the muzzle at the nose line (world x about 3.35 m), and the 9040C's longer 40 mm reaches 3.6 m from the ring. 3.9 m overshoots by 0.2 m. Lane: Same hull and ring as the 9040C."
+        }
+      ]
+    },
+    "europe_cv90120_light_tank": {
+      "unit": "europe_cv90120_light_tank",
+      "fixture": "fixtures/units/roster/europe.json",
+      "published": {
+        "length_m": 6.6,
+        "width_m": 3.3,
+        "height_m": 2.4,
+        "source": "length_m: military-today CV90120-T; Tank Encyclopedia CV90120 (hull); width_m: Tank Encyclopedia (military-today 3.2 m); height_m: military-today 'Height (turret roof) 2.4 m'; Tank Encyclopedia '2.8 m (panoramic sight), 2.4 (turret roof)'"
+      },
+      "current": {
+        "extends": "roster_profile_light_tank",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 32.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 70.0,
+            "turn_deg_s": 50.0
+          }
+        },
+        "half_extents_m": [
+          3.475,
+          1.65,
+          1.325
+        ],
+        "eye_m": 2.52,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              -0.3,
+              0.0,
+              1.82
+            ],
+            "muzzle_m": [
+              5.8,
+              0.0,
+              0.36
+            ],
+            "turret": true
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              -0.6,
+              -0.55,
+              2.52
+            ],
+            "muzzle_m": [
+              1.0,
+              0.0,
+              0.15
+            ],
+            "turret": true,
+            "on": "cannon"
+          }
+        ]
+      },
+      "measured": {
+        "model_glb": {
+          "bounds_no_dressing_m": [
+            [
+              -3.535,
+              5.504
+            ],
+            [
+              -1.634,
+              1.634
+            ],
+            [
+              0.0,
+              2.745
+            ]
+          ],
+          "turret_roof_m": 2.4,
+          "sight_top_m": 2.93
+        },
+        "dressing_conflicts": [
+          {
+            "part": "commander's panoramic sight",
+            "top_m": 2.93,
+            "over_new_roof_m": 0.53,
+            "across_m": 0.4,
+            "why": "Over the 0.3 m bulky allowance and wider than 0.15 m: as the Leopard PERI (slice 07 question 4)."
+          }
+        ]
+      },
+      "heights": {
+        "roof_m": 2.4,
+        "roof_source": "published",
+        "sight_top_m": 2.8,
+        "sight_part": "panoramic sight",
+        "sight_source": "Tank Encyclopedia; globalsecurity",
+        "rule_top_m": 2.5,
+        "box_top_m": 2.5,
+        "art": {
+          "hull_top_m": 2.646,
+          "tallest_dressing": "dressing_commander_sight",
+          "tallest_dressing_top_m": 2.93,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.475,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "6.95 m against 6.6 m is 5 %, but both secondary sites describe the 1998 prototype; the CV90120-T sits on the Mk III/IV chassis, officially 6.8 m (2 % off). Trusting the official chassis figure."
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.65,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "3.3 m published."
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.325,
+          "new": 1.25,
+          "verdict": "fix",
+          "source": "military-today and Tank Encyclopedia: 2.4 m turret roof, 2.8 m panoramic sight",
+          "confidence": "high",
+          "note": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 2.4 m; the panoramic sight reaches 2.8 m, so the top is 2.50 m (F-C's 2.40 m left it 0.4 m over). Lane: 2.65 m is 0.25 m over the roof; the art's turret roof is already 2.40 m."
+        },
+        {
+          "field": "eye_m",
+          "old": 2.52,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "Below the panoramic sight (2.8 m published)."
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            -0.3,
+            0.0,
+            1.82
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            5.8,
+            0.0,
+            0.36
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": "military-today / armedconflicts: 8.9-8.95 m gun forward",
+          "confidence": "medium",
+          "note": "C5 audit: the world muzzle (5.5 m) is 8.98 m from the box's rear, inside 0.1 m of the published 8.9-8.95 m."
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            -0.6,
+            -0.55,
+            2.52
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.0,
+            0.0,
+            0.15
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "Each committed image overlays our model on a free drawing; its attribution and licence are recorded with it (decisions.md C8).",
+    "by_appearance": {
+      "europe_cv90_cv9040c": [
         {
           "view": "side",
           "image": "cv90.cv9040c-side.png",
           "drawing": "assets/references/cv90/europe_cv90_cv9040c-side-3.png (Mick Bell 1/76 Strf 9040 plan, CC BY 4.0; also -top, -front, -rear-2)",
           "align": "hull rear and ground",
           "stations": "top of silhouette every 0.25 m from the rear",
-          "drawing_m": [0.06, 1.78, 1.83, 1.82, 1.81, 1.8, 1.78, 1.7, 2.53, 2.26, 2.51, 2.37, 2.37, 2.48, 2.1, 2.1, 2.08, 2.08, 2.04, 1.95, 1.92, 1.91, 1.91, 1.91, 1.91, 1.92],
-          "model_m": [1.32, 1.81, 1.81, 1.81, 1.9, 1.9, 1.9, 2.54, 2.63, 2.54, 2.66, 2.63, 2.63, 2.81, 2.75, 2.75, 2.51, 2.51, 2.43, 2.42, 2.4, 2.41, 2.41, 2.41, 2.4, 2.4, 2.41, 2.43, 2.42],
-          "reading": "Model 7.01 m over 6.54 m on the plan (the C's applique accounts for 0.46 m of published length). Turret 0.2-0.3 m above the plan's roof; front stations are the barrel."
+          "drawing_m": [
+            0.06,
+            1.78,
+            1.83,
+            1.82,
+            1.81,
+            1.8,
+            1.78,
+            1.7,
+            2.53,
+            2.26,
+            2.51,
+            2.37,
+            2.37,
+            2.48,
+            2.1,
+            2.1,
+            2.08,
+            2.08,
+            2.04,
+            1.95,
+            1.92,
+            1.91,
+            1.91,
+            1.91,
+            1.91,
+            1.92
+          ],
+          "model_m": [
+            1.32,
+            1.81,
+            1.81,
+            1.81,
+            1.9,
+            1.9,
+            1.9,
+            2.54,
+            2.63,
+            2.54,
+            2.66,
+            2.63,
+            2.63,
+            2.81,
+            2.75,
+            2.75,
+            2.51,
+            2.51,
+            2.43,
+            2.42,
+            2.4,
+            2.41,
+            2.41,
+            2.41,
+            2.4,
+            2.4,
+            2.41,
+            2.43,
+            2.42
+          ],
+          "reading": "Model 7.01 m over 6.54 m on the plan (the C's applique accounts for 0.46 m of published length). Turret 0.2-0.3 m above the plan's roof; front stations are the barrel.",
+          "attribution": "Mick Bell, CV90 Stridsfordon 90 (mickbellplans.com), via Wikimedia Commons",
+          "licence": "CC-BY-4.0 (the site: 'The drawings are all released under the Creative Commons 4.0 Attribution licence')"
         },
         {
           "view": "top",
@@ -73,255 +629,119 @@
           "stations": "width every 0.25 m from the rear",
           "drawing_m": "3.07-3.12 m along the whole hull",
           "model_m": "3.26 m along the whole hull",
-          "reading": "The model is 0.15 m wider than the base plan, short of the C's published 3.38 m."
+          "reading": "The model is 0.15 m wider than the base plan, short of the C's published 3.38 m.",
+          "attribution": "Mick Bell, CV90 Stridsfordon 90 (mickbellplans.com), via Wikimedia Commons",
+          "licence": "CC-BY-4.0"
         },
         {
           "view": "front",
           "image": "cv90.cv9040c-front.png",
           "drawing": "assets/references/cv90/europe_cv90_cv9040c-side-3.png (Mick Bell 1/76 Strf 9040 plan, CC BY 4.0; also -top, -front, -rear-2)",
           "stations": "top of silhouette every 0.25 m from the left",
-          "drawing_m": [1.08, 1.76, 1.77, 2.14, 2.28, 2.51, 2.29, 2.4, 2.4, 2.44, 2.41, 2.13, 1.77],
-          "model_m": [1.66, 1.81, 1.81, 2.54, 2.79, 2.68, 2.66, 2.66, 2.66, 2.72, 2.54, 1.81, 1.81, 1.78]
+          "drawing_m": [
+            1.08,
+            1.76,
+            1.77,
+            2.14,
+            2.28,
+            2.51,
+            2.29,
+            2.4,
+            2.4,
+            2.44,
+            2.41,
+            2.13,
+            1.77
+          ],
+          "model_m": [
+            1.66,
+            1.81,
+            1.81,
+            2.54,
+            2.79,
+            2.68,
+            2.66,
+            2.66,
+            2.66,
+            2.72,
+            2.54,
+            1.81,
+            1.81,
+            1.78
+          ],
+          "attribution": "Mick Bell, CV90 Stridsfordon 90 (mickbellplans.com), via Wikimedia Commons",
+          "licence": "CC-BY-4.0"
         }
       ],
-      "verdicts": [
-        {
-          "field": "half_extents_m[0]",
-          "frame": 3.4,
-          "verdict": "keep",
-          "why": "6.8 m against the published 7.0 m is 2.9 %, inside the threshold."
-        },
-        {
-          "field": "half_extents_m[1]",
-          "frame": 1.6,
-          "verdict": "fix",
-          "new": 1.69,
-          "source": "published C width 3.38 m (hhogman.se; Steel Beasts wiki 3.4 m)",
-          "why": "0.18 m narrow. The base plan's 3.11 m over the tracks plus the C's side armour."
-        },
-        {
-          "field": "half_extents_m[2]",
-          "frame": 1.4,
-          "verdict": "fix",
-          "new": 1.25,
-          "source": "turret roof: 2.37 m on the Strf 9040 plan, at most 2.58 m with the C's roof armour (published overall rises 2.5 to 2.71 m); 2.50 m is the middle",
-          "why": "2.8 m is 0.3 m over any reading of the roof. 2.50 keeps the model's own roof (2.54 m) inside tolerance, so the art needs no change for it."
-        },
-        {
-          "field": "eye_m",
-          "frame": 2.632,
-          "verdict": "keep",
-          "why": "Sight height, not the box: the cupola periscopes sit about 2.5-2.6 m."
-        },
-        {
-          "field": "mounts.autocannon.pivot_m[0]",
-          "frame": -0.35,
-          "verdict": "keep",
-          "why": "The plan puts the ring at -0.44 m: 0.09 m off, inside 0.15 m."
-        },
-        {
-          "field": "mounts.autocannon.muzzle_m[0]",
-          "frame": 3.9,
-          "verdict": "keep",
-          "why": "Muzzle at x 3.55 m; the plan has 3.17 m on its shorter hull (0.1 m behind the nose). On the C's 7.0 m hull that is about 3.3 m: 0.25 m, inside 0.3 m."
-        }
-      ],
-      "notes": [
-        {
-          "note": "front side panels sticks out",
-          "class": "art",
-          "why": "The frame's length and width are not what sticks out: the front skirt tiles (cv90.py follow_tiles, the front fender) run forward past where the glacis takes over. Slice 09's side_skirt and track_fender, adopted in slice 25."
-        }
-      ],
-      "frame": {
-        "file": "fixtures/units/roster/europe.json",
-        "half_extents_m": [3.4, 1.6, 1.4],
-        "eye_m": 2.632,
-        "mounts": [
-          {
-            "id": "autocannon",
-            "pivot_m": [-0.35, 0, 1.82],
-            "muzzle_m": [3.9, 0, 0.504]
-          }
-        ]
-      }
-    },
-    {
-      "unit": "europe_cv90_mk_iv",
-      "published": {
-        "length_m": {
-          "value": 6.8,
-          "source": "cv90.cz official CV90 Mk IV specification, via Wikipedia Combat Vehicle 90"
-        },
-        "width_m": {
-          "value": 3.2,
-          "source": "same"
-        },
-        "height_m": {
-          "value": 2.8,
-          "source": "same; an overall figure (the commander's sight mast rises above the roof)"
-        }
-      },
-      "measured": {
-        "note": "No free drawing or side-on photo of the Mk IV: the library's side photo is a front quarter. Its roof is unmeasured."
-      },
-      "model_glb": {
-        "bounds_no_dressing_m": [
-          [-3.46, 3.555],
-          [-1.634, 1.634],
-          [0.0, 2.88]
-        ],
-        "turret_roof_m": 2.54,
-        "sight_top_m": 3.04
-      },
-      "overlays": [
+      "europe_cv90_mk_iv": [
         {
           "view": "side",
           "image": "cv90.mk_iv-side.png",
           "drawing": "assets/references/cv90/europe_cv90_cv9040c-side-3.png (Mick Bell 1/76 Strf 9040 plan, CC BY 4.0; also -top, -front, -rear-2) (the base CV90, not the Mk IV: a hull check only)",
           "drawing_m": "as europe_cv90_cv9040c",
-          "model_m": [1.32, 1.8, 1.8, 1.8, 1.89, 1.89, 1.89, 1.8, 2.54, 2.54, 2.87, 2.87, 2.87, 2.87, 2.79, 2.75, 2.51, 2.51, 2.42, 2.42, 2.38, 2.41, 2.41, 2.41, 2.38, 2.38, 2.41, 2.42, 2.42]
+          "model_m": [
+            1.32,
+            1.8,
+            1.8,
+            1.8,
+            1.89,
+            1.89,
+            1.89,
+            1.8,
+            2.54,
+            2.54,
+            2.87,
+            2.87,
+            2.87,
+            2.87,
+            2.79,
+            2.75,
+            2.51,
+            2.51,
+            2.42,
+            2.42,
+            2.38,
+            2.41,
+            2.41,
+            2.41,
+            2.38,
+            2.38,
+            2.41,
+            2.42,
+            2.42
+          ],
+          "attribution": "Mick Bell, CV90 Stridsfordon 90 (mickbellplans.com), via Wikimedia Commons",
+          "licence": "CC-BY-4.0"
         }
+      ]
+    }
+  },
+  "notes": [
+    {
+      "appearances": [
+        "europe_cv90_cv9040c"
       ],
-      "verdicts": [
-        {
-          "field": "half_extents_m[0]",
-          "frame": 3.4,
-          "verdict": "keep",
-          "why": "Official 6.8 m."
-        },
-        {
-          "field": "half_extents_m[1]",
-          "frame": 1.6,
-          "verdict": "keep",
-          "why": "Official 3.2 m."
-        },
-        {
-          "field": "half_extents_m[2]",
-          "frame": 1.4,
-          "verdict": "keep",
-          "why": "Unresolved: the official 2.8 m is an overall height and nothing measures the Mk IV roof. Named for slice 15; a roof between 2.5 and 2.65 m is likely, from the sight mast's height in the quarter photos."
-        },
-        {
-          "field": "eye_m",
-          "frame": 2.632,
-          "verdict": "keep"
-        },
-        {
-          "field": "mounts.autocannon",
-          "frame": "pivot -0.35, muzzle 3.9",
-          "verdict": "keep",
-          "why": "Same hull and ring as the 9040C."
-        }
-      ],
-      "notes": [
-        {
-          "note": "front side panels sticks out",
-          "class": "art",
-          "why": "As the 9040C: the front skirt tiles and fender, slice 25."
-        }
-      ],
-      "frame": {
-        "file": "fixtures/units/roster/europe.json",
-        "half_extents_m": [3.4, 1.6, 1.4],
-        "eye_m": 2.632,
-        "mounts": [
-          {
-            "id": "autocannon",
-            "pivot_m": [-0.35, 0, 1.82],
-            "muzzle_m": [3.9, 0, 0.504]
-          }
-        ]
-      }
+      "note": "front side panels sticks out",
+      "class": "art",
+      "why": "The frame's length and width are not what sticks out: the front skirt tiles (cv90.py follow_tiles, the front fender) run forward past where the glacis takes over. Slice 09's side_skirt and track_fender, adopted in slice 25."
     },
     {
-      "unit": "europe_cv90120_light_tank",
-      "published": {
-        "length_m": {
-          "value": 6.6,
-          "source": "military-today CV90120-T; Tank Encyclopedia CV90120 (hull)"
-        },
-        "width_m": {
-          "value": 3.3,
-          "source": "Tank Encyclopedia (military-today 3.2 m)"
-        },
-        "height_m": {
-          "value": 2.4,
-          "source": "military-today 'Height (turret roof) 2.4 m'; Tank Encyclopedia '2.8 m (panoramic sight), 2.4 (turret roof)'"
-        }
-      },
-      "model_glb": {
-        "bounds_no_dressing_m": [
-          [-3.535, 5.504],
-          [-1.634, 1.634],
-          [0.0, 2.745]
-        ],
-        "turret_roof_m": 2.4,
-        "sight_top_m": 2.93
-      },
-      "verdicts": [
-        {
-          "field": "half_extents_m[0]",
-          "frame": 3.475,
-          "verdict": "keep",
-          "why": "6.95 m against 6.6 m is 5 %, but both secondary sites describe the 1998 prototype; the CV90120-T sits on the Mk III/IV chassis, officially 6.8 m (2 % off). Trusting the official chassis figure."
-        },
-        {
-          "field": "half_extents_m[1]",
-          "frame": 1.65,
-          "verdict": "keep",
-          "why": "3.3 m published."
-        },
-        {
-          "field": "half_extents_m[2]",
-          "frame": 1.325,
-          "verdict": "fix",
-          "new": 1.2,
-          "source": "turret roof 2.4 m (military-today; Tank Encyclopedia)",
-          "why": "2.65 m is 0.25 m over the roof; the art's turret roof is already 2.40 m."
-        },
-        {
-          "field": "eye_m",
-          "frame": 2.52,
-          "verdict": "keep",
-          "why": "Below the panoramic sight (2.8 m published)."
-        }
+      "appearances": [
+        "europe_cv90_mk_iv"
       ],
-      "dressing_conflicts": [
-        {
-          "part": "commander's panoramic sight",
-          "top_m": 2.93,
-          "over_new_roof_m": 0.53,
-          "across_m": 0.4,
-          "why": "Over the 0.3 m bulky allowance and wider than 0.15 m: as the Leopard PERI (slice 07 question 4)."
-        }
+      "note": "front side panels sticks out",
+      "class": "art",
+      "why": "As the 9040C: the front skirt tiles and fender, slice 25."
+    },
+    {
+      "appearances": [
+        "europe_cv90120_light_tank"
       ],
-      "notes": [
-        {
-          "note": "(no note of its own)",
-          "class": "art",
-          "why": "Judged in slice 25 against the bar."
-        }
-      ],
-      "frame": {
-        "file": "fixtures/units/roster/europe.json",
-        "half_extents_m": [3.475, 1.65, 1.325],
-        "eye_m": 2.52,
-        "mounts": [
-          {
-            "id": "cannon",
-            "pivot_m": [-0.3, 0, 1.82],
-            "muzzle_m": [5.8, 0, 0.36]
-          },
-          {
-            "id": "HMG",
-            "pivot_m": [-0.6, -0.55, 2.52],
-            "muzzle_m": [1.0, 0, 0.15],
-            "on": "cannon"
-          }
-        ]
-      }
+      "note": "(no note of its own)",
+      "class": "art",
+      "why": "Judged in slice 25 against the bar."
     }
   ],
-  "questions": {}
+  "answers": null,
+  "gaps": null
 }

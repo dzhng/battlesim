@@ -3,18 +3,31 @@
   "lane": "F-B",
   "slice": "07",
   "surveyed": "2026-11-11",
-  "glbs": "assets/source/roster/<family>/ as committed at 2a68e25d7 (the spec commit); probed tier 0 in vehicle mode (wheels and tracks kept, dressing_* skipped)",
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
+  },
   "convention": {
-    "hull_box": "reaches the hull and turret roof; where a bulky sight stands more than the 0.3 m bulky dressing allowance over the roof, the top is the sight's top less 0.3 m (decisions.md F-B1)",
-    "pivot": "centre of the turret ring; for a fixed mount, the point it is drawn hinged on (only pivot + muzzle reaches the simulation)",
-    "muzzle": "pivot_m + muzzle_m at rest, at the real barrel or launch point",
-    "frame": "hull box centred on x = 0 and y = 0, standing on z = 0; +x forward, +y left"
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
   },
   "thresholds": {
     "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
-    "pivot_x": "fix when off by more than 0.15 m",
-    "muzzle_point": "fix when the world muzzle point is off by more than 0.15 m on any axis (added by lane F-B, decisions.md F-B3)",
-    "eye_m": "kept unless a source contradicts it; nothing measured here does"
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
   },
   "sources": [
     {
@@ -62,6 +75,8 @@
   ],
   "appearances": {
     "europe_leopard_2_2a6": {
+      "unit": "europe_leopard_2_2a6",
+      "fixture": "fixtures/units/roster/europe.json",
       "published": {
         "length_m": 7.72,
         "length_gun_forward_m": 10.97,
@@ -70,7 +85,16 @@
         "height_peri_m": 3.0,
         "source": "knds-2a6, wp-leopard-2"
       },
-      "frame": {
+      "current": {
+        "extends": "roster_profile_mbt",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 27.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 60.0,
+            "turn_deg_s": 45.0
+          }
+        },
         "half_extents_m": [
           3.85,
           1.875,
@@ -82,14 +106,15 @@
             "id": "cannon",
             "pivot_m": [
               0.3,
-              0,
+              0.0,
               1.8
             ],
             "muzzle_m": [
               7.12,
-              0,
+              0.0,
               0.54
-            ]
+            ],
+            "turret": true
           },
           {
             "id": "HMG",
@@ -100,31 +125,53 @@
             ],
             "muzzle_m": [
               1.43,
-              0,
+              0.0,
               0.32
             ],
+            "turret": true,
             "on": "cannon"
           }
         ]
       },
       "measured": {
-        "model_turret_roof_m": 2.65,
-        "model_peri_top_m": 3.1,
-        "model_gun_axis_m": 2.34
+        "measured": {
+          "model_turret_roof_m": 2.65,
+          "model_peri_top_m": 3.1,
+          "model_gun_axis_m": 2.34
+        }
       },
-      "verdicts": [
+      "heights": {
+        "roof_m": 2.64,
+        "roof_source": "KNDS",
+        "sight_top_m": 3.0,
+        "sight_part": "PERI",
+        "sight_source": "Wikipedia overall; drawing 2.91 m",
+        "rule_top_m": 2.7,
+        "box_top_m": 2.7,
+        "art": {
+          "hull_top_m": 3.097,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
         {
           "field": "half_extents_m[0]",
           "old": 3.85,
+          "new": null,
           "verdict": "keep",
           "source": "wp-leopard-2, bp-leo2a6",
+          "confidence": null,
           "note": "7.72 m hull"
         },
         {
           "field": "half_extents_m[1]",
           "old": 1.875,
+          "new": null,
           "verdict": "keep",
           "source": "knds-2a6, wp-leopard-2",
+          "confidence": null,
           "note": "3.75 to 3.77 m"
         },
         {
@@ -139,17 +186,22 @@
         {
           "field": "eye_m",
           "old": 2.82,
+          "new": null,
           "verdict": "keep",
+          "source": null,
+          "confidence": null,
           "note": "between the EMES and PERI windows; above the new box top, which the simulation allows"
         },
         {
           "field": "mounts.cannon.pivot_m",
           "old": [
             0.3,
-            0,
+            0.0,
             1.8
           ],
+          "new": null,
           "verdict": "keep",
+          "source": null,
           "confidence": "low",
           "note": "the ring is not drawn; the drawn turret's mid-length lies within 0.1 m of the model's"
         },
@@ -157,7 +209,7 @@
           "field": "mounts.cannon.muzzle_m",
           "old": [
             7.12,
-            0,
+            0.0,
             0.54
           ],
           "new": [
@@ -171,25 +223,36 @@
           "note": "world muzzle [7.42, 0, 2.34] m. 10.97 m gun forward on the 7.70 m box puts x at 7.12 m (the old offset is that world x, pivot not subtracted). The gun axis is 2.04 m in the drawing and 2.01 to 2.08 m in the photo, not 2.34 m, so z is 2.05 m"
         },
         {
-          "field": "mounts.HMG",
-          "old": {
-            "pivot_m": [
-              0.05,
-              -0.58,
-              2.82
-            ],
-            "muzzle_m": [
-              1.43,
-              0,
-              0.32
-            ]
-          },
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            0.05,
+            -0.58,
+            2.82
+          ],
+          "new": null,
           "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "loader's MG3 0.5 m over the 2.64 m roof"
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
           "note": "loader's MG3 0.5 m over the 2.64 m roof"
         }
       ]
     },
     "europe_leopard_2_2a7v": {
+      "unit": "europe_leopard_2_2a7v",
+      "fixture": "fixtures/units/roster/europe.json",
       "published": {
         "length_m": 8.05,
         "length_gun_forward_m": 10.97,
@@ -198,7 +261,16 @@
         "height_peri_m": 3.13,
         "source": "knds-2a7, knds-2a8"
       },
-      "frame": {
+      "current": {
+        "extends": "roster_profile_improved_mbt",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
         "half_extents_m": [
           3.85,
           1.875,
@@ -210,14 +282,15 @@
             "id": "cannon",
             "pivot_m": [
               0.3,
-              0,
+              0.0,
               1.8
             ],
             "muzzle_m": [
               7.12,
-              0,
+              0.0,
               0.54
-            ]
+            ],
+            "turret": true
           },
           {
             "id": "HMG",
@@ -228,14 +301,31 @@
             ],
             "muzzle_m": [
               1.43,
-              0,
+              0.0,
               0.32
             ],
+            "turret": true,
             "on": "cannon"
           }
         ]
       },
-      "verdicts": [
+      "measured": null,
+      "heights": {
+        "roof_m": 2.72,
+        "roof_source": "KNDS 2A8 datasheet (2A7: 2.64 m)",
+        "sight_top_m": 3.13,
+        "sight_part": "PERI",
+        "sight_source": "KNDS 2A8 datasheet",
+        "rule_top_m": 2.83,
+        "box_top_m": 2.83,
+        "art": {
+          "hull_top_m": 3.097,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
         {
           "field": "half_extents_m[0]",
           "old": 3.85,
@@ -248,8 +338,10 @@
         {
           "field": "half_extents_m[1]",
           "old": 1.875,
+          "new": null,
           "verdict": "keep",
           "source": "knds-2a7, knds-2a8",
+          "confidence": null,
           "note": "3.77 to 3.80 m"
         },
         {
@@ -264,13 +356,17 @@
         {
           "field": "eye_m",
           "old": 2.82,
-          "verdict": "keep"
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
         },
         {
           "field": "mounts.cannon.pivot_m",
           "old": [
             0.3,
-            0,
+            0.0,
             1.8
           ],
           "new": [
@@ -287,7 +383,7 @@
           "field": "mounts.cannon.muzzle_m",
           "old": [
             7.12,
-            0,
+            0.0,
             0.54
           ],
           "new": [
@@ -314,11 +410,27 @@
           ],
           "verdict": "fix",
           "source": "half_extents_m[0] fix",
+          "confidence": null,
           "note": "moves with the turret"
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
         }
       ]
     },
     "europe_leopard_2_2a8": {
+      "unit": "europe_leopard_2_2a8",
+      "fixture": "fixtures/units/roster/europe.json",
       "inherits": "europe_leopard_2_2a7v (fixture extends): every 2A7V fix applies with no row of its own",
       "published": {
         "length_m": 8.05,
@@ -328,7 +440,16 @@
         "height_peri_m": 3.13,
         "source": "knds-2a8"
       },
-      "frame": {
+      "current": {
+        "extends": "europe_leopard_2_2a7v",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 28.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 65.0,
+            "turn_deg_s": 45.0
+          }
+        },
         "half_extents_m": [
           3.85,
           1.875,
@@ -340,14 +461,15 @@
             "id": "cannon",
             "pivot_m": [
               0.3,
-              0,
+              0.0,
               1.8
             ],
             "muzzle_m": [
               7.12,
-              0,
+              0.0,
               0.54
-            ]
+            ],
+            "turret": true
           },
           {
             "id": "HMG",
@@ -358,17 +480,138 @@
             ],
             "muzzle_m": [
               1.43,
-              0,
+              0.0,
               0.32
             ],
+            "turret": true,
             "on": "cannon"
           }
         ]
       },
-      "verdicts": [
+      "measured": null,
+      "heights": {
+        "roof_m": 2.72,
+        "roof_source": "KNDS 2A8 datasheet (2A7: 2.64 m)",
+        "sight_top_m": 3.13,
+        "sight_part": "PERI",
+        "sight_source": "KNDS 2A8 datasheet",
+        "rule_top_m": 2.83,
+        "box_top_m": 2.83,
+        "art": {
+          "hull_top_m": 3.097,
+          "tallest_dressing": "dressing_trophy_R",
+          "tallest_dressing_top_m": 3.04,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.85,
+          "new": 4.025,
+          "verdict": "fix",
+          "source": "knds-2a8, photos-2a7v-2a8",
+          "confidence": "medium",
+          "note": "As europe_leopard_2_2a7v: it takes the fix through extends, with no row of its own. 8.05 m with the hull-front armour module that both variants carry (0.35 m, 4.5 %). Within the 4.8 m cap. The module adds length at the front only, so the box centre moves 0.175 m forward and every turret point moves 0.175 m aft in box coordinates"
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 1.875,
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.5,
+          "new": 1.415,
+          "verdict": "fix",
+          "source": "knds-2a7, knds-2a8",
+          "confidence": "high",
+          "note": "As europe_leopard_2_2a7v: it takes the fix through extends, with no row of its own. roof 2.64 m (2A7) / 2.72 m (2A8); PERI 3.13 m, 0.41 m over the 2A8's roof, so the box top is 3.13 - 0.3 = 2.83 m (F-B1). The 2A8 inherits the 2A7V frame"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.82,
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.3,
+            0.0,
+            1.8
+          ],
+          "new": [
+            0.125,
+            0,
+            1.8
+          ],
+          "verdict": "fix",
+          "source": "half_extents_m[0] fix",
+          "confidence": "medium",
+          "note": "As europe_leopard_2_2a7v: it takes the fix through extends, with no row of its own. the same ring as the 2A6's, 0.175 m aft of the lengthened box's centre"
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            7.12,
+            0.0,
+            0.54
+          ],
+          "new": [
+            6.82,
+            0,
+            0.25
+          ],
+          "verdict": "fix",
+          "source": "knds-2a7, bp-leo2a6, photo-2a6-side-2",
+          "confidence": "high",
+          "note": "As europe_leopard_2_2a7v: it takes the fix through extends, with no row of its own. the same gun on the same turret as the 2A6, so the same offset; world [6.945, 0, 2.05] m, i.e. 10.97 m gun forward (KNDS's 2A7 page and an earlier 2A8 brochure). The 2A8 datasheet's 11.17 m is rejected: the same gun and ring with a module that only adds hull at the front cannot add 0.2 m of gun reach"
+        },
+        {
+          "field": "mounts.HMG.pivot_m",
+          "old": [
+            0.05,
+            -0.58,
+            2.82
+          ],
+          "new": [
+            -0.125,
+            -0.58,
+            2.82
+          ],
+          "verdict": "fix",
+          "source": "half_extents_m[0] fix",
+          "confidence": null,
+          "note": "As europe_leopard_2_2a7v: it takes the fix through extends, with no row of its own. moves with the turret"
+        },
+        {
+          "field": "mounts.HMG.muzzle_m",
+          "old": [
+            1.43,
+            0.0,
+            0.32
+          ],
+          "new": null,
+          "verdict": "inherits",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
         {
           "field": "*",
+          "old": null,
+          "new": null,
           "verdict": "inherits",
+          "source": null,
+          "confidence": null,
           "note": "the 2A7V's verdicts; the 2A8's 2.72 m roof sits 0.11 m under the shared 2.83 m top"
         }
       ]
@@ -490,6 +733,11 @@
   },
   "notes": [
     {
+      "appearances": [
+        "europe_leopard_2_2a6",
+        "europe_leopard_2_2a7v",
+        "europe_leopard_2_2a8"
+      ],
       "note": "(known before the walk) the frame is 3.0 m tall against about 2.6 m in photos",
       "class": "frame",
       "why": "KNDS gives 2.64 m (2A6, 2A7) and 2.72 m (2A8) to the turret roof; the box top moves to 2.70 m (2A6) and 2.83 m (2A7V, 2A8) so the PERI stays within the dressing allowance."
@@ -497,5 +745,6 @@
   ],
   "answers": {
     "Q4": "No: over the real roof the PERI's top stands 0.36 m (2A6: about 3.0 m over 2.64 m) and 0.41 m (2A8: 3.13 m over 2.72 m) up, past the 0.3 m bulky allowance; the PERI head is about 0.4 m across, so it is not thin. The fix sets each box top at the PERI's top less 0.3 m (2.70 m and 2.83 m), within 0.06 m and 0.11 m of the roofs, so the PERI fits exactly. The 2A8 inherits the 2A7V frame, including the 8.05 m hull with the armour module that both carry. The art must put the PERI under a dressing_* node."
-  }
+  },
+  "gaps": null
 }

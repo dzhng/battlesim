@@ -843,3 +843,311 @@ are in `assets/frames/{t72,armata,ztq15,challengers}.json`.
     evidence is the commander's cupola at -0.42 m in a top drawing, which puts
     the ring near the hull's middle.
   - Agent's call; confidence medium.
+
+## Coordinator decisions, slice 07b: reconciling the frame survey (2026-11-11)
+
+Slice 07b merges lanes F-A, F-B and F-C into one list for slice 15. C4-C9
+are the coordinator's calls; the implementation agent applied them and
+recorded what it found. C10 is the agent's, made to keep the list
+consistent. The numbers are in `assets/frames/<family>.json` and
+`assets/frames/fix-rows.json`.
+
+- **C4 One box-top rule for every lane.** The hull box top is
+  max(the real hull or turret roof, the top of the tallest bulky dressing
+  - 0.3 m). This is F-B1's rule. The `unitArt.ts` allowance stays at 0.3 m
+  bulky and 0.15 m thin.
+  - Why: the allowance stays untouched for every unit, and the box sits at
+    most 0.3 m above the real roof. The art puts each sight head under
+    `dressing_*`. This replaces FC3 and FA-1's "a dressing rule for sight
+    heads", which would have widened the allowance for every unit.
+  - Every height row was re-derived. Each family file's `heights` block
+    holds the roof, the tallest bulky dressing, the rule's top and the box.
+    Where no real sight top is published, the art's is used and labelled.
+  - Rows that moved from the lanes' values:
+    - Puma: 3.1 to 3.30 m (PERI 3.6 m).
+    - Ajax: 2.6 to 2.70 m (ORION 3.0 m).
+    - CV90120: 2.4 to 2.50 m (panoramic sight 2.8 m).
+    - M2A4 and M3A3: 2.565 to 2.76 m (the commander's independent viewer,
+      3.06 m in the art).
+    - M109A7: 2.8 to 2.96 m (cupola and MG mount 3.26 m).
+    - T-14: 2.75 to 2.80 m (panoramic sight 3.1 m).
+  - Rows the rule added:
+    - The Challenger 3 gets its own box at 2.70 m (half 1.35). Calibre
+      Defence gives "over 3 m to the sight", and today it inherits the
+      Challenger 2's 2.49 m.
+    - The PLZ-05 goes from 3.1 to 3.25 m. Its roof MG mount (3.55 m
+      overall) is bulky, as the M109A7's is. The roof itself is unmeasured,
+      so confidence is low.
+  - Kept by the rule:
+    - CV9040C at 2.50 m: the rule reads 2.41-2.50 m over the C kit's
+      unmeasured roof armour.
+    - CV90 Mk IV at 2.8 m (rule 2.8-2.9 m, C7).
+    - PzH 2000 at 3.06 m: the rule's 3.16 m is on the threshold, so the art
+      must hold its tallest roof fitting to 3.36 m or draw it thin.
+    - BMP-3, BRM-3K, Buk, T-15 and every F-A tank but the T-14 and
+      ZTZ-99A.
+  - **The consequence for the art.** `fit.hull_extents` holds the
+    non-dressing art within 0.1 m of the box top (`validate.ts:1031-1037`).
+    Where the box stands more than 0.1 m over the real roof, the art keeps a
+    non-dressing part (the sight's mast or the cupola ring) up to the box top
+    and puts only the head under `dressing_*`. This applies to 11
+    appearances, listed in `fix-rows.json` under `derived.art_fit`. Slice 15
+    makes those minimal fit edits.
+  - **BMP-3 hull "about 0.2 m low" (F-C) is art.** The box top is the turret
+    roof (drawing 2.37 m against the box's 2.4 m), and no frame number holds
+    the deck height. Slice 28 raises the hull roof and the turret with it.
+- **C5 `muzzle_m` is measured from the mount's pivot.**
+  - The simulation fires from pivot + muzzle, confirmed in
+    `crates/sim/src/weapons/muzzle.rs:12-22`: `placed_muzzle` adds the
+    carrier's ring, the pivot round it, then `muzzle` turned by the mount's
+    own bearing, which is pivot + muzzle at rest.
+  - Every gun row in all three lanes was audited: fixed, kept, and those
+    whose pivot moves. F-B's Abrams, Leopard and M10 fixes stand. The KF51
+    stays as F-B left it: a rounded "about 10 m" is no clear error.
+  - Corrections made in the audit:
+    - Challenger 2: 7.1 to 7.2 m. 11.55 - 4.15 - 0.2, the same derivation
+      as the Challenger 3's 6.95 m.
+    - 2S19M2: kept 7.15 to fixed 6.99 m. 11.917 m overall less the trunnion
+      at 1.35 m. Its world point was 0.16 m long.
+    - CV9040C: kept 3.9 to fixed 3.6 m. On the Strf 9040 plan the muzzle is
+      3.61 m from the ring. F-C had compared world points on two different
+      hulls.
+    - CV90 Mk IV: 3.9 to 3.7 m. The generated view and the photo both put
+      the muzzle at the nose line.
+    - BMP-3 100 mm: 3.8 to 3.35 m. On the FMSO drawing the muzzle stands
+      0.07 m past the nose, and the frame's world point was 0.46 m past
+      that.
+    - M2A4 and M3A3 25 mm: 3.6 to 2.5 m. The square-on M3A3 photo puts the
+      muzzle 1.98 m ahead of hull centre, behind the glacis break. The
+      frame's world point overshot by 1.1 m. The barrel's height (about
+      2.05 m against 2.47 m) is named for slice 26 and not fixed: it rests
+      on one photo, taken in dust.
+  - Kept on audit:
+    - T-90M at 6.2 m: 0.10 m past the published 9.53 m, so FA13 is settled
+      by keeping it.
+    - ZTZ-99A at 7.2 m: it matches the unsubtracted pattern by coincidence,
+      but the drawing measures 7.23 m from the pivot.
+    - CV90120 at 5.8 m: within 0.1 m of 8.9-8.95 m gun forward.
+  - Where a pivot moves, the muzzle was recomputed so the real muzzle point
+    stays put: the 2A7V (box lengthened at the front only), the BMP-2M,
+    the T-14 (gun axis re-measured), the four howitzers, the M270 and MARS
+    II, and the Buk.
+  - The four howitzer pivots (M109A7, PzH 2000, 2S19M2, PLZ-05) are
+    placeholders today. Each move is a named shell-origin change.
+- **C6 The Buk-M3 is tracked.** Its fixture moves to `roster_profile_ifv`,
+  the profile the Gepard, M2A4, CV9040C and BMP-3 extend. The two profiles
+  hold the same sensors and sound, so the change that matters is
+  `mobility`: it goes from wheeled to the Gepard's tracked block. The road
+  speed is 65 km/h, which the Buk-M3 shares, and there is no turning
+  radius.
+  - Hull length: 9.3 m (half 4.65 m), from Army Recognition's Buk-M3
+    (9K317M) data sheet, the same figure as the M1/M2 TELAR's. The 8.0 m
+    figure is one the same site repeats across the system's vehicles. 9.3 m
+    is inside the tracked cap (half-length 4.8 m).
+  - The launcher pivot stays F-B's photo estimate (+2.0 ± 0.5 m). Slice 15
+    runs before slice 24 rebuilds `buk.py`, so the art can't supply it.
+    The rebuilt art draws its ring at the frame's pivot.
+  - Fixtures are untouched. The extends, mobility and hull rows are named
+    in `fix-rows.json`.
+- **C7 Generated orthographic views (Q4 rung 3).** Both views were made
+  through the Bento model gateway (`openai/gpt-image-2.6-flare`), with a
+  real photo as input. They are recorded as `generated` in their
+  libraries.
+  - The gateway ignores seeds, so `seed: 0` records none.
+  - The first try at each failed: the Mk IV came back as a front quarter,
+    and the PLZ-05 prompt was refused as violent. The second prompts
+    asked for a "museum catalogue profile".
+  - **CV90 Mk IV: usable, row kept.**
+    - Scaled to 6.8 m, its road-wheel pitch matches the Strf 9040 plan's.
+    - Against the side photo, its hull stands about 7 % taller, measured in
+      road-wheel diameters.
+    - Corrected, the roof is about 2.6 m and the sight head 3.1-3.25 m, so
+      C4 puts the top at 2.8-2.9 m. Today's 2.8 m stands (FC5 resolved).
+    - The view also fixes the Mk IV's muzzle (C5).
+  - **PLZ-05: the view fails its check, row kept.**
+    - Its gun reaches about 1.1 m past the nose, where the museum photos
+      show several metres. No single published number scales the hull,
+      turret and gun together.
+    - The hull length stays unresolved (FC11). The height moves under C4
+      on the published overall figure.
+  - The PLZ-05 library's parade profile (`-side-2.jpg`) was a PLZ-07:
+    Commons files it under PLZ-07 and its description says 122 mm. It is
+    removed and named in the gaps. It was the photo the generated view
+    would have been checked against.
+- **C8 No non-free line art in the repository.** Every committed PNG in
+  `assets/frames/` was checked against its drawing's licence, on the file
+  page and at the source:
+  - `bmp.bmp_2m-side.png`: the U.S. Army's 1981 BMP-2 graphic
+    (PD-USGov-Military-Army). Free.
+  - `bmp.bmp_3-side.png` and `brm.brm_3k-side.png`: the U.S. Army FMSO's
+    BMP-3 line drawing, from Red Thrust Star, January 1996
+    (PD-USGov-Military-Army). Free.
+  - `cv90.*.png`: Mick Bell's Strf 9040 plan, CC BY 4.0. Commons has no
+    licence review, but the rights holder's site says "The drawings are
+    all released under the Creative Commons 4.0 Attribution licence".
+    Free, with attribution.
+  - `sp_howitzers.m109a7-side.png`: A proietti's M109 A6 drawing, CC BY-SA
+    4.0, his own work after a U.S. Army equipment sheet. Free. The overlay
+    is a derivative, so it is shared under the same licence.
+  - The photos F-C measured are free too:
+    - BMP-2: CC0.
+    - 2S19: CC BY-SA 3.0 and CC BY 4.0.
+    - PzH 2000: CC BY 2.0, confirmed by the Flickr review bot.
+  - Nothing was removed. Each overlay's attribution and licence now sit
+    beside it in its family file.
+  - `visualizations/frames.html` is self-contained. Per unit it shows:
+    - the model's outline in three views, rendered from the committed GLB
+      through the asset CLI and split into hull, mount and dressing;
+    - both boxes, the pivots and the muzzle points;
+    - the C4 heights;
+    - the station numbers;
+    - the verdict rows and the user's notes.
+
+    It carries no drawing line art.
+- **C9 One schema.** Every `assets/frames/<family>.json` now has F-B's
+  shape (F-B11):
+  - at family level: `sources`, `overlays`, `notes` and `answers`;
+  - per appearance: `published`, `current` (from the blessed catalog),
+    `measured`, `heights` and `rows`.
+
+  Each row is `{field, old, new, verdict, source, confidence, note}`, with
+  verdicts keep, fix, unresolved, art-only and inherits.
+  `assets/frames/fix-rows.json` is the flat list slice 15 applies: 64 rows
+  in parent-first order. Each names its fixture, JSON path, old and new
+  values, source, reason and digest consequence: hull box 20, shell origin
+  41, mobility 2, eye 1. Rows go only where a fixture owns the field:
+  - The 2A8 and the M1E3's cannon take their parents' fixes through
+    `extends`. F-B's note that the M1E3 restates its cannon row was wrong.
+  - The Abrams Trophy variants restate theirs, so each gets its own rows.
+  - The Challenger 3 gains a box and a cannon muzzle of its own.
+
+  `derived` lists the follow-on steps: wreck footprints, track gauge
+  (CV9040C, 2S19M2), the Ajax mount draw and the art-fit list. Every hull
+  row is inside the tracked caps (`crates/contract/src/limits.rs:21-24`).
+  The generator checks this when it writes the file.
+- **C10 One threshold set (agent's call, confidence medium).**
+  - Hull dimensions: max(0.10 m, 3 %).
+  - Pivots and muzzle points: 0.15 m on any axis (F-B3).
+  - A value written in another convention is fixed whatever its size.
+
+  F-C's 0.30 m muzzle reach and F-A's 3 % muzzle rule are retired. Under
+  the shared rule the 2S19M2 and CV9040C muzzles flip to fix. Every other
+  row keeps its lane's verdict.
+  - Why: one list needs one rule. 0.15 m is the slice's own pivot
+    threshold, and a muzzle is a point, as a pivot is.
+  - To reverse it, put the 0.30 m reach back. The two rows then return to
+    keep.
+
+### Slice 07b decision audit (2026-11-11)
+
+These are the calls the 07b agent made beyond C4-C9 as briefed. Each
+names its verdict and how sure the audit is that the user would have made
+the same call. Least confident first within each group.
+
+**Review these first:** A1 (PLZ-05 height), A2 (Challenger 3 box), A3
+(Bradley muzzle).
+
+Needs the user:
+
+- **A1 The PLZ-05 box rises 0.15 m on one published figure (low).**
+  - The scenario: the only height source is Wikipedia's 3.55 m "overall,
+    with the QJC-88 machine gun". No drawing or square-on photo exists, and
+    the generated view failed its photo check.
+  - C4 counts a roof MG mount as bulky dressing, as it does on the M109A7.
+    So the box top becomes 3.55 - 0.3 = 3.25 m, against today's 3.1 m.
+  - The alternative: treat the MG as thin, or as too poorly sourced, and
+    keep 3.1 m unresolved.
+  - The reach: a hull-box digest change, and slice 29 must put the MG
+    mount under `dressing_*`. The art's non-dressing top is already
+    3.17 m, so the hull fit passes either way.
+  - Provisional call: apply it. To reverse it, drop the PLZ-05
+    `half_extents_m` row from `fix-rows.json` and mark the row unresolved
+    in `sp_howitzers.json`.
+- **A2 The Challenger 3 gets its own 2.70 m box (medium-low).**
+  - The scenario: the Challenger 3 inherits the Challenger 2's 2.49 m box.
+    Calibre Defence says it stands "over 3 m to the sight". Under C4 a
+    3.0 m sight puts the box top at 2.70 m, so the agent gave the Challenger
+    3 its own `half_extents_m`.
+  - The alternative: keep the inherited box and treat "over 3 m" as too
+    vague.
+  - The reach: one more hull-box digest change. Slice 20 must draw the
+    commander's sight at about 3.0 m (the art has 2.76 m today), with a
+    non-dressing mast reaching 2.6 m.
+  - Provisional call: apply it. To reverse it, drop that row.
+
+Sound:
+
+- **A3 Two muzzle fixes no lane asked for: the Bradley 25 mm and the BMP-3
+  100 mm (medium).**
+  - The scenario: auditing every gun row (C5), the agent measured the
+    square-on M3A3 photo. It puts the Bradley's muzzle 1.98 m ahead of hull
+    centre, where the frame has 3.1 m. The M2A4 quarter photo agrees that
+    the muzzle sits behind the glacis.
+  - On the public-domain BMP-3 drawing, the 100 mm muzzle stands 0.07 m
+    past the nose, where the frame has 0.53 m.
+  - F-C had kept both rows ("no measurement contradicts them").
+  - The reach: two shell-origin digest changes, plus shorter barrels in
+    slices 26 and 28.
+  - The Bradley barrel also reads 0.4 m lower than the frame in the photo.
+    That is left unfixed and named, because it rests on one photo taken in
+    dust.
+- **A4 The art's sight top stands in where no real one is published
+  (medium).**
+  - The scenario: C4 needs the tallest bulky dressing's top. For the
+    M2A4/M3A3's commander's independent viewer, and for several tanks, no
+    figure exists. The agent used the committed GLB's height (the M2A4's,
+    3.06 m) and labelled it "art".
+  - The alternative: the gunner's sight (2.97 m, Jane's), which gives a
+    2.67 m box instead of 2.76 m.
+  - The reach: a family slice that redraws the viewer lower should revisit
+    the box.
+- **A5 The CV90 Mk IV muzzle fix rests partly on a generated view
+  (medium-low).**
+  - The scenario: the generated side view puts the muzzle at the nose line,
+    and so does the real quarter photo. The library rule says no view
+    rests on a generated image alone. The photo is the second witness.
+  - The fix is 3.9 to 3.7 m.
+- **A6 The Buk's tracked numbers are the Gepard's (medium).**
+  - The scenario: no off-road speed or turn rate is published for the
+    9A317M. The agent copied the Gepard's tracked block (28 km/h off-road,
+    45°/s), whose 65 km/h road speed matches the Buk-M3's published one.
+  - The reach: the Buk's mobility digest. These are balance numbers, so
+    the balance sample at slice 31 is where they get judged.
+- **A7 Generated references record `seed: 0` (medium).**
+  - The scenario: the reference contract requires an integer seed for a
+    generated view. The Bento gateway ignores seeds. The agent wrote 0 and
+    said in the note that 0 means none.
+  - The alternative: make `seed` optional in `references.ts`. That is a
+    contract change outside this slice.
+- **A8 The two artefacts are generated by scripts that aren't committed
+  (medium).**
+  - The scenario: `fix-rows.json` and `frames.html` were built from the
+    family files and the GLB probe by scripts in the ignored `throwaway/`.
+  - The reach: if a family file is edited before slice 15, its rows in
+    `fix-rows.json` must be edited by hand to match.
+  - Both artefacts are one-shot hand-offs, which is why the scripts weren't
+    promoted into the repo.
+- **A9 Rows go only to the fixture that owns the field (high).**
+  - The scenario: the 2A8 extends the 2A7V, and the M1E3's cannon extends
+    the SEP v3 Trophy's. So they take their parents' fixes, with no row of
+    their own.
+  - The Abrams Trophy variants restate their mounts, so each gets rows.
+  - A JSON path is `units.<id>...mounts[id=X]...`. Where a unit inherits a
+    value today, its row carries `inherited_old`.
+- **A10 The PLZ-07 photo is removed from the PLZ-05 library (high).**
+  Commons files the parade profile under PLZ-07, a 122 mm howitzer. It
+  could only mislead.
+- **A11 The CC BY-SA M109 overlay stays (medium).**
+  - The scenario: it is a derivative of a free drawing, so it may be
+    committed under the same licence. Its family file now records the
+    attribution and licence.
+  - The alternative: remove it to keep share-alike material out of the
+    spec. The library already holds CC BY-SA photos, so nothing new is
+    introduced.
+- **A12 Slice 15 now points at `fix-rows.json` (high).** Its stale "known
+  rows" (a Leopard drop to "about 2.6 m", the HMG and eye dropping with the
+  roof) were replaced by the rows that need more than a value change.
+- Trivial discretion (2 calls):
+  - the page's colours and layout;
+  - each family file keeps the lane's own notes after the coordinator's,
+    prefixed "Lane:".

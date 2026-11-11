@@ -1,130 +1,281 @@
 {
   "family": "puma",
   "lane": "F-C",
+  "slice": "07",
   "surveyed": "2026-11-11",
-  "convention": "The hull box reaches the hull and turret roof; sights, antennas and roof guns are dressing within 0.3 m (bulky) or 0.15 m across (thin); the pivot sits at the centre of the turret ring (a fixed howitzer mount: its trunnion); the muzzle sits at the real barrel length. Box length covers the body (hull plus any armoured turret overhang), centred on the box origin.",
-  "thresholds": {
-    "hull_dimension": "max(0.10 m, 3 %)",
-    "pivot_x_m": 0.15,
-    "muzzle_reach_m": 0.3,
-    "note": "Slice 07's guesses, kept: every fix row below clears them by a wide margin or is named as borderline. muzzle_reach_m is added by lane F-C (the slice set none for muzzles)."
+  "reconciled": {
+    "slice": "07b",
+    "date": "2026-11-11",
+    "decisions": "decisions.md C4-C10"
   },
-  "units": [
-    {
+  "convention": {
+    "frame": "x forward, y left, z up, metres; the hull box is centred on x = 0, y = 0 and stands on z = 0",
+    "hull_box": "the top is max(the real hull or turret roof, the top of the tallest bulky dressing - 0.3 m) (decisions.md C4, after F-B1). Sights, sensors, radars and roof guns that are not a roster mount are dressing, held to unitArt.ts's 0.3 m bulky / 0.15 m thin allowance. The box covers the body, including an armoured turret overhang (FC8)",
+    "pivot": "the centre of the turret ring; for a fixed mount, the trunnion or hinge it is drawn on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "muzzle_m is measured from the mount's pivot: the simulation fires from pivot + muzzle (crates/sim/src/weapons/muzzle.rs:12-22; decisions.md C5)",
+    "eye": "the sight's height over the ground (catalog.rs:181); kept unless a source contradicts it (FA-6)"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot": "fix when off by more than 0.15 m on any axis",
+    "muzzle_point": "fix when the world muzzle point (pivot + muzzle) is off by more than 0.15 m on any axis; a value written in another convention is fixed whatever its size (C5)",
+    "eye_m": "kept unless a source contradicts it",
+    "note": "One set for every lane (decisions.md C10). The lanes' own variants (F-A's max(0.10 m, 3 %) for muzzles, F-C's 0.30 m muzzle reach) are retired."
+  },
+  "verdicts": {
+    "keep": "the frame number agrees with the references within the thresholds",
+    "fix": "slice 15 changes it to `new`: a row in fix-rows.json, or the parent's row where the fixture takes the field through extends",
+    "unresolved": "kept at today's value: nothing measures it well enough to move it; named",
+    "art-only": "not a frame number: the family slice fixes the art",
+    "inherits": "the fixture extends another unit and this appearance takes its rows"
+  },
+  "sources": [],
+  "appearances": {
+    "europe_puma_level_c": {
       "unit": "europe_puma_level_c",
+      "fixture": "fixtures/units/roster/europe.json",
       "published": {
-        "length_m": {
-          "value": 7.4,
-          "source": "KNDS Puma page via Wikipedia"
-        },
-        "width_m": {
-          "value": 4.0,
-          "source": "Wikipedia: 3.7 m base, 4.0 m up-armoured (level C)"
-        },
-        "height_m": {
-          "value": 3.6,
-          "source": "Wikipedia (Bundeswehr): 3.6 m for the optics"
-        },
-        "turret_roof_m": {
-          "value": 3.1,
-          "source": "Wikipedia (Bundeswehr): 3.1 m for the turret roof"
-        }
+        "length_m": 7.4,
+        "width_m": 4.0,
+        "height_m": 3.6,
+        "turret_roof_m": 3.1,
+        "source": "length_m: KNDS Puma page via Wikipedia; width_m: Wikipedia: 3.7 m base, 4.0 m up-armoured (level C); height_m: Wikipedia (Bundeswehr): 3.6 m for the optics; turret_roof_m: Wikipedia (Bundeswehr): 3.1 m for the turret roof"
       },
-      "model_glb": {
-        "bounds_no_dressing_m": [
-          [-3.755, 3.678],
-          [-2.014, 2.044],
-          [0.0, 3.697]
+      "current": {
+        "extends": "roster_profile_heavy_ifv",
+        "mobility": {
+          "tracked": {
+            "offroad_kmh": 25.0,
+            "reverse_speed_factor": 0.4,
+            "road_kmh": 60.0,
+            "turn_deg_s": 45.0
+          }
+        },
+        "half_extents_m": [
+          3.7,
+          2.0,
+          1.8
         ],
-        "turret_roof_m": 3.11,
-        "mells_m": {
-          "x": [-0.7, 0.615],
-          "y": [0.86, 1.32],
-          "z": [2.68, 3.16]
-        },
-        "peri_m": {
-          "x": [-1.42, -1.011],
-          "y": [0.33, 0.77],
-          "z": [3.11, 3.697]
-        }
-      },
-      "verdicts": [
-        {
-          "field": "half_extents_m[0]",
-          "frame": 3.7,
-          "verdict": "keep"
-        },
-        {
-          "field": "half_extents_m[1]",
-          "frame": 2.0,
-          "verdict": "keep",
-          "why": "Level C, 4.0 m."
-        },
-        {
-          "field": "half_extents_m[2]",
-          "frame": 1.8,
-          "verdict": "fix",
-          "new": 1.55,
-          "source": "turret roof 3.1 m (Bundeswehr figures on Wikipedia)",
-          "why": "3.6 m is the PERI optics. The art's roof is already 3.11 m, so the hull fit only changes for the PERI (below)."
-        },
-        {
-          "field": "eye_m",
-          "frame": 3.45,
-          "verdict": "keep",
-          "why": "The PERI head is where the commander looks from."
-        },
-        {
-          "field": "mounts",
-          "frame": "autocannon pivot [-0.45, 0, 2.55], muzzle [4.1, 0, 0.4]; launcher (MELLS) pivot [-0.45, 1.08, 2.95] on autocannon",
-          "verdict": "keep"
-        }
-      ],
-      "dressing_conflicts": [
-        {
-          "part": "PERI commander's sight on its mast",
-          "top_m": 3.697,
-          "over_new_roof_m": 0.6,
-          "across_m": 0.41,
-          "why": "Not dressing today, so it sets the hull top. Marked dressing over a 3.1 m box it breaks both allowances (0.3 m bulky, 0.15 m thin). Same question as the Leopard PERI (slice 07 Q4): slice 15 decides."
-        }
-      ],
-      "notes": [
-        {
-          "note": "body shape wrong",
-          "class": "art",
-          "why": "Length and width match the published figures; the hull roof and turret roof match too. What reads wrong is the hull's own outline (prow, upper glacis, side modules), slice 27. The height fix is the PERI, not the body."
-        },
-        {
-          "note": "front side panels sticks out",
-          "class": "art",
-          "why": "Side modules (puma.py:85-101) run past the prow; slice 09 side_skirt, adopted in slice 27."
-        }
-      ],
-      "frame": {
-        "file": "fixtures/units/roster/europe.json",
-        "half_extents_m": [3.7, 2.0, 1.8],
         "eye_m": 3.45,
         "mounts": [
           {
             "id": "autocannon",
-            "pivot_m": [-0.45, 0, 2.55],
-            "muzzle_m": [4.1, 0, 0.4]
+            "pivot_m": [
+              -0.45,
+              0.0,
+              2.55
+            ],
+            "muzzle_m": [
+              4.1,
+              0.0,
+              0.4
+            ],
+            "turret": true
           },
           {
             "id": "launcher",
-            "pivot_m": [-0.45, 1.08, 2.95],
-            "muzzle_m": [1.05, 0, 0],
+            "pivot_m": [
+              -0.45,
+              1.08,
+              2.95
+            ],
+            "muzzle_m": [
+              1.05,
+              0.0,
+              0.0
+            ],
+            "turret": true,
             "on": "autocannon"
           }
         ]
-      }
+      },
+      "measured": {
+        "model_glb": {
+          "bounds_no_dressing_m": [
+            [
+              -3.755,
+              3.678
+            ],
+            [
+              -2.014,
+              2.044
+            ],
+            [
+              0.0,
+              3.697
+            ]
+          ],
+          "turret_roof_m": 3.11,
+          "mells_m": {
+            "x": [
+              -0.7,
+              0.615
+            ],
+            "y": [
+              0.86,
+              1.32
+            ],
+            "z": [
+              2.68,
+              3.16
+            ]
+          },
+          "peri_m": {
+            "x": [
+              -1.42,
+              -1.011
+            ],
+            "y": [
+              0.33,
+              0.77
+            ],
+            "z": [
+              3.11,
+              3.697
+            ]
+          }
+        },
+        "dressing_conflicts": [
+          {
+            "part": "PERI commander's sight on its mast",
+            "top_m": 3.697,
+            "over_new_roof_m": 0.6,
+            "across_m": 0.41,
+            "why": "Not dressing today, so it sets the hull top. Marked dressing over a 3.1 m box it breaks both allowances (0.3 m bulky, 0.15 m thin). Same question as the Leopard PERI (slice 07 Q4): slice 15 decides."
+          }
+        ]
+      },
+      "heights": {
+        "roof_m": 3.1,
+        "roof_source": "Bundeswehr",
+        "sight_top_m": 3.6,
+        "sight_part": "PERI",
+        "sight_source": "Bundeswehr",
+        "rule_top_m": 3.3,
+        "box_top_m": 3.3,
+        "art": {
+          "hull_top_m": 3.697,
+          "tallest_dressing": null,
+          "tallest_dressing_top_m": null,
+          "note": "tier 0 of the committed GLB: hull is what fit.hull_extents measures (no gun, hmg or dressing_* subtree); crew and antennas are left out of the dressing column"
+        }
+      },
+      "rows": [
+        {
+          "field": "half_extents_m[0]",
+          "old": 3.7,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "half_extents_m[1]",
+          "old": 2.0,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "Level C, 4.0 m."
+        },
+        {
+          "field": "half_extents_m[2]",
+          "old": 1.8,
+          "new": 1.65,
+          "verdict": "fix",
+          "source": "Bundeswehr via Wikipedia: 3.1 m turret roof, 3.6 m to the optics",
+          "confidence": "high",
+          "note": "C4: box top = max(roof, tallest bulky dressing - 0.3 m). Roof 3.1 m; the PERI head reaches 3.6 m, so the top is 3.30 m (F-C's 3.1 m left the PERI 0.5 m over it). The art's PERI (3.70 m) comes down 0.1 m, and a non-dressing part (its mast) must reach 3.2 m for the hull fit's 0.1 m tolerance. Lane: 3.6 m is the PERI optics. The art's roof is already 3.11 m, so the hull fit only changes for the PERI (below)."
+        },
+        {
+          "field": "eye_m",
+          "old": 3.45,
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": "The PERI head is where the commander looks from."
+        },
+        {
+          "field": "mounts.autocannon.pivot_m",
+          "old": [
+            -0.45,
+            0.0,
+            2.55
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.autocannon.muzzle_m",
+          "old": [
+            4.1,
+            0.0,
+            0.4
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.launcher.pivot_m",
+          "old": [
+            -0.45,
+            1.08,
+            2.95
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        },
+        {
+          "field": "mounts.launcher.muzzle_m",
+          "old": [
+            1.05,
+            0.0,
+            0.0
+          ],
+          "new": null,
+          "verdict": "keep",
+          "source": null,
+          "confidence": null,
+          "note": null
+        }
+      ]
+    }
+  },
+  "overlays": null,
+  "notes": [
+    {
+      "appearances": [
+        "europe_puma_level_c"
+      ],
+      "note": "body shape wrong",
+      "class": "art",
+      "why": "Length and width match the published figures; the hull roof and turret roof match too. What reads wrong is the hull's own outline (prow, upper glacis, side modules), slice 27. The height fix is the PERI, not the body."
+    },
+    {
+      "appearances": [
+        "europe_puma_level_c"
+      ],
+      "note": "front side panels sticks out",
+      "class": "art",
+      "why": "Side modules (puma.py:85-101) run past the prow; slice 09 side_skirt, adopted in slice 27."
     }
   ],
-  "questions": {
+  "answers": {
     "5_mells": {
       "answer": "No. The MELLS spans y 0.86-1.32 m against the 2.0 m half-width, and x -0.70..0.62 m inside the length. Its top is 3.16 m: 0.06 m over a 3.1 m roof, inside the 0.1 m hull tolerance, and as the launcher mount (on the autocannon) it is measured outside the hull fit anyway (validate.ts OFF_HULL). It sits at the turret's left side, top about level with the roof, as in the photos.",
       "frame_change": "none for the MELLS; its pivot stays at z 2.95 because the roof does not move."
     }
-  }
+  },
+  "gaps": null
 }
