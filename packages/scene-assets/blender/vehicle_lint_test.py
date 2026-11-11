@@ -249,9 +249,11 @@ class TestGroundContact(unittest.TestCase):
 
     def test_tracks_also_checked(self):
         """Track belts should also be checked for ground contact."""
-        # Track belt hovering
+        # Track belt hovering, under its track node
         hover_height = GROUND_CONTACT_TOLERANCE * 3
-        make_box("track_L_band_LOD0", (3, 0.5, 0.1), (0, 1.5, hover_height + 0.05), self.hull)
+        track = make_empty("track_L")
+        track.parent = self.hull
+        make_box("track_L_band_LOD0", (3, 0.5, 0.1), (0, 1.5, hover_height + 0.05), track)
         
         result = LintResult(vehicle_id="test")
         check_ground_contact(result)

@@ -2090,3 +2090,132 @@ Review these first: every receipt now reads as stale, and the kernel's
     for the exact wheeled entries its narrowing exposes.
   - Slice 13 follows lane 09+11, because it adds `panel_seam` to
     `armour_parts.py`.
+
+## Slice 10 decisions (2026-11-11, coordinator's implementation agent, lane 10)
+
+Each entry gives the decision, the gap the plan left, its reach, a verdict and
+a confidence, least confident first.
+
+Review these first: the roller peaks were kept against the critique, and a
+belt hangs 1 cm over low rollers rather than resting on them.
+
+- **The peak over each return roller stays.**
+  - *Scenario.* The unprimed critique's top fix was to round the hard point
+    where the belt crosses each roller. The belt wraps the roller's rim
+    there: two sagging spans meet across a 10 cm roller (8 cm on the
+    ZTQ-15) at about 14 degrees. A real track bends at a link pin over a
+    small roller. A rounder top would lift the belt off the roller, and
+    smoothing the corner would pull it into the roller.
+  - *Gap.* The slice delegated the curve, not this corner.
+  - *Reach.* Every tracked vehicle whose top run shows. On the three models
+    here, it shows only in the gear-only crop.
+  - *Verdict.* Sound, if the user pictures a steel track. If the user
+    reads the peak as a fault, the cheap change is a larger effective radius
+    for the wrap, about one link pitch.
+  - *Confidence:* medium.
+- **A belt hangs 1 cm over rollers that sit below its straight line, rather
+  than resting on them.**
+  - *Scenario.* A family sets its return rollers low, below the straight
+    line from the idler's top to the sprocket's. The belt's outline is the
+    hull round all the wheels, so those rollers fall inside it and carry
+    nothing. The span from idler to sprocket hangs over them, and the clamp
+    stops its sag 1 cm (`SAG_CLEARANCE`) above the highest of them. In the
+    synthetic rig, a 5.8 m span that would sag 17 cm stops at 5 cm, so the
+    rollers look like they almost carry the belt. The alternative is to let
+    the sag land on the rollers, which then become supports, and hang the
+    span in pieces between them. That would be the "rest on what it sags
+    onto" rule.
+  - *Gap.* The seam specified the clamp, so this behaviour is the plan's.
+    The audit names it because what it looks like is new.
+  - *Reach.* Any family whose rollers sit below that line. No roster survey
+    was run; the three models here have their rollers above it.
+  - *Verdict.* Sound, as the plan's rule. If a family slice finds a belt
+    hovering visibly, switch to "a wheel the sag reaches becomes a support",
+    the same split `_hang` already does for a wheel that touches.
+  - *Confidence:* medium.
+- **Points every 5 cm along a span (`SAG_STEP`), not 8 per span.**
+  - *Scenario.* With 8 points, a 1.6 m span has a point every 18 cm. Where a
+    steep sag leaves a support, the straight piece from the support to the
+    first point cut up to 9 mm into the idler (the test caught it at sag
+    0.2). At 5 cm, finer than the belt's finest rings (6 cm), the points
+    pushed onto the rim trace the wrap.
+  - *Gap.* Samples per span were delegated.
+  - *Reach.* A tier-0 belt keeps its ring count, since rings are spaced by
+    length. The path has about 220 points instead of about 135.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **A wheel the straight span touches becomes a support, and the span splits
+  there.**
+  - *Scenario.* The convex hull drops collinear points. Rollers at equal
+    heights (the Leopard's 0.38 m and −1.02 m pair, any rig with level
+    rollers) left the middle roller inside one span, touching it, so the
+    clamp kept that whole span straight. The test caught it.
+  - *Gap.* The seam said "between two different wheels" and didn't name the
+    case of a third wheel touching the span.
+  - *Reach.* Any level row of rollers now sags span by span. "Touching"
+    means within 0.1 mm (`SAG_TOUCH`), since the hull's points are rounded
+    to 0.01 mm. A wheel 2 mm under the line is not a support: it holds the
+    span straight through the clamp.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **A point that would dip into any wheel is pushed out onto its rim
+  (`_outside`).**
+  - *Scenario.* A parabola leaves its support at an angle, so near the
+    support it lies inside that wheel's grown circle. Rather than solving
+    for the true departure point, each point is pushed radially out of any
+    circle it enters. This is the wrap a sagging belt makes, give or take a
+    slight crossing angle where it leaves the rim.
+  - *Gap.* The seam's clamp covered only the wheels under a span, not the
+    span's own supports.
+  - *Reach.* At the default sag, two points per belt rest on a rim on
+    these three models. At 0.06 it is 7–13.
+  - *Verdict.* Sound.
+  - *Confidence:* medium-high.
+- **The sag is vertical, and the clearance is measured vertically.** The
+  spans that sag are within 60 degrees of horizontal (normal z > 0.5), and
+  gravity is vertical. The least gap to a wheel's circle is found exactly:
+  the gap is convex in x, so it is least where the circle's slope matches
+  the span's. *Confidence:* high.
+- **Ground contact reads `vehicle_lint_core.TRACKS`, not a constant from
+  `running_gear`.**
+  - *Scenario.* The slice asked the check to use the running-gear node
+    contract. `running_gear` imports `bmesh` and `parts`, so the lint's
+    plain-Python core can't import it. The core's `TRACKS` is already the
+    lint's one reading of the contract, used by the overlap grouping.
+    `running_gear.track_loop` still spells the two names in its own guard.
+  - *Gap.* "This module owns" didn't settle which module the lint may
+    import.
+  - *Reach.* The check now groups `track_L` and `track_R` and everything
+    under them. The belt meshes are found through their node, and fenders
+    named `track_*` drop out. The lint test's hovering belt now hangs under
+    a `track_L` node, as every export builds it.
+  - *Verdict.* Sound.
+  - *Confidence:* medium-high.
+- **The test runs in Blender.** `running_gear` can't be imported without
+  `bpy`, and the test checks the built belt mesh, which is what the renderer
+  gets, not just the path. `asset check` routes it by its `import bpy`.
+  *Confidence:* high.
+- **The belt's scroll is proved by its contract, not by eye.** The sheet's
+  running-gear strip draws the belt too small to see its link marks move. So
+  the check is the contract the renderer scrolls by: on every tier the belt's
+  u runs from 0 to `track_length_m / link_pitch_m`, and the renderer's scroll
+  code is untouched. The strip proves the sagged belt draws in the production
+  renderer at every travel step, and the sprocket turns. *Confidence:*
+  medium-high.
+- **Territory: `asset sheet` in a fresh worktree** also needs
+  `build:mechanics`, the runtime pulled (`asset pull`) and
+  `assets/third-party/effects` from LFS. Without the first, the workbench
+  route returns 500; without the effects, it aborts on "Invalid PNG
+  signature". Without either, the sheet times out after 60 s with no reason
+  given.
+- **Trivial discretion (4).**
+  - The closeup crop is two custom shots: the full length from 9 m, 0.75 m
+    up, and the middle rollers from 4.2 m. Both are low side views of the
+    left running gear alone (a throwaway script strips the GLB), plus the
+    whole vehicle.
+  - The evidence is the before/after pairs, the span crops, the whole
+    vehicles and the sheet strip crop.
+  - The test's rigs are synthetic, not a roster vehicle's numbers, so a
+    retune can't break it.
+  - The probe outside Blender stubs `bmesh`, `parts` and `vehicle_parts`;
+    it is throwaway only.

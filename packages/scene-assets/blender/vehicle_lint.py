@@ -32,6 +32,7 @@ from vehicle_lint_core import (
     load_allowlist,
     load_baseline,
     running_gear,
+    TRACKS,
 )
 
 HERE = Path(__file__).resolve().parent
@@ -500,10 +501,9 @@ def check_ground_contact(result: LintResult, tolerance=GROUND_CONTACT_TOLERANCE)
     for obj in bpy.data.objects:
         name = obj.name.lower()
         
-        # Track nodes
-        if obj.get("track_length_m") is not None or "track_" in name:
-            side = "L" if "_l" in name or name.endswith("_l") else "R"
-            gear_groups[f"track_{side}"].append(obj)
+        # Track nodes, by the running-gear node contract: the belt under them
+        if obj.name in TRACKS:
+            gear_groups[obj.name].append(obj)
             continue
         
         # Wheel nodes (with radius property or wheel_ prefix)

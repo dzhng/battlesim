@@ -155,25 +155,113 @@ def _convex_hull_2d(points):
     return lower[:-1] + upper[:-1]
 
 
-def track_loop(name, wheels, y, width, pitch, mats, parent, thickness=0.08):
-    """A closed track belt wrapped round every wheel it touches, as a real run
-    is: `wheels` are (x, z, radius) circles in the side plane (road wheels,
-    sprocket, idler, return rollers), and the belt's centre line is their
-    convex hull grown by half its `thickness`, so the lower run lies under the
-    road wheels, the ends wrap the sprocket and idler and the upper run rests
-    on the rollers. Centred across on `y`, `width` wide. Links are the 'track'
-    texture only: u runs along the belt in links, v across it. Node: the empty
-    `name` (`track_L` or `track_R`) at the parent's origin, carrying
-    `track_length_m` and `link_pitch_m`, returned; its belt is its only mesh.
-    Roles: track."""
-    if name not in ("track_L", "track_R"):
-        raise ValueError(f"a track node is named track_L or track_R: {name}")
-    grown = []
+# The belt's droop between two supports of its top run, per metre of span: gentle.
+TRACK_SAG = 0.03
+# Spacing of the points along a sagging span: finer than the belt's finest
+# rings (`track_loop`), so the curve and its wrap round a support survive them.
+SAG_STEP = 0.05
+# How far a sagging belt's inner face stays above a wheel under its span. Clear
+# of the lint's 5 mm contact tolerance, small beside a wheel or the belt.
+SAG_CLEARANCE = 0.01
+# A wheel this close under a straight span carries it: the hull's points are
+# rounded to 0.01 mm, so wheels in line touch the span only to within that.
+SAG_TOUCH = 1e-4
+
+
+def _clearance(a, b, wheels, supports):
+    """The wheel under the straight span `a`-`b` nearest to it, leaving out
+    its two `supports` (wheel indices), as (vertical gap down to its circle,
+    its index); (infinity, None) when no other wheel lies under the span. The
+    gap to one circle is convex in x, so its least value is where the circle's
+    slope matches the span's, held within the overlap of span and circle."""
+    (ax, az), (bx, bz) = a, b
+    slope = (bz - az) / (bx - ax)
+    least = (math.inf, None)
+    for i, (x, z, r) in enumerate(wheels):
+        lo, hi = max(min(ax, bx), x - r), min(max(ax, bx), x + r)
+        if i in supports or lo > hi:
+            continue
+        at = min(hi, max(lo, x - slope * r / math.hypot(1.0, slope)))
+        least = min(least, (az + slope * (at - ax) - z - math.sqrt(max(0.0, r * r - (at - x) ** 2)), i))
+    return least
+
+
+def _outside(wheels, half, point):
+    """`point`, pushed straight out of any wheel circle grown by `half` that
+    it lies inside onto that circle's edge."""
+    px, pz = point
     for x, z, r in wheels:
+        gap = math.hypot(px - x, pz - z)
+        if 0 < gap < r + half:
+            px, pz = x + (px - x) * (r + half) / gap, z + (pz - z) * (r + half) / gap
+    return px, pz
+
+
+def _hang(a, b, supports, wheels, half, sag):
+    """The points strictly between `a` and `b` of the belt hanging from the
+    wheels `supports` there. A wheel the straight span touches carries it too,
+    so the span hangs from it in two. Otherwise it is a parabola dropping
+    `sag` times its length at its middle, held `SAG_CLEARANCE` above the
+    nearest wheel under it, and resting on a support's rim where it would dip
+    into it."""
+    dx, dz = b[0] - a[0], b[1] - a[1]
+    span = math.hypot(dx, dz)
+    gap, under = _clearance(a, b, wheels, supports)
+    if gap - half < SAG_TOUCH:
+        x, z, r = wheels[under]
+        rest = (x + (r + half) * dz / span, z - (r + half) * dx / span)
+        return (_hang(a, rest, (supports[0], under), wheels, half, sag) + [rest]
+                + _hang(rest, b, (under, supports[1]), wheels, half, sag))
+    drop = min(sag * span, gap - half - SAG_CLEARANCE)
+    if drop <= 0:
+        return []
+    n = max(2, round(span / SAG_STEP))
+    return [_outside(wheels, half, (a[0] + dx * k / n, a[1] + dz * k / n - 4 * drop * k / n * (1 - k / n)))
+            for k in range(1, n)]
+
+
+def track_path(wheels, thickness, sag=TRACK_SAG):
+    """The closed counter-clockwise centre line of a belt `thickness` thick
+    wrapped round `wheels`, (x, z, radius) circles in the side plane: the
+    convex hull of the circles grown by half the thickness, so the lower run
+    lies under the road wheels and the ends wrap the sprocket and idler. Each
+    span of its top run from one wheel to another (outward normal more up than
+    sideways) sags between them (`_hang`). The lint can't see a belt cut into
+    its own wheels, so the belt keeps clear of them here: the sag is held
+    above the wheels under a span (a span with no room stays straight), and
+    where the curve leaves a support it wraps further round its rim, as a
+    sagging belt does."""
+    half = thickness / 2
+    owner = {}
+    for i, (x, z, r) in enumerate(wheels):
         for k in range(96):
             a = k * math.tau / 96
-            grown.append((round(x + (r + thickness / 2) * math.cos(a), 5), round(z + (r + thickness / 2) * math.sin(a), 5)))
-    loop = _convex_hull_2d(grown)
+            owner.setdefault((round(x + (r + half) * math.cos(a), 5), round(z + (r + half) * math.sin(a), 5)), i)
+    hull = _convex_hull_2d(owner)
+    path = []
+    for i, a in enumerate(hull):
+        b = hull[(i + 1) % len(hull)]
+        path.append(a)
+        supports = (owner[a], owner[b])
+        if supports[0] != supports[1] and a[0] - b[0] > 0.5 * math.dist(a, b):
+            path += _hang(a, b, supports, wheels, half, sag)
+    return path
+
+
+def track_loop(name, wheels, y, width, pitch, mats, parent, thickness=0.08, sag=TRACK_SAG):
+    """A closed track belt wrapped round every wheel it touches, as a real run
+    is: `wheels` are (x, z, radius) circles in the side plane (road wheels,
+    sprocket, idler, return rollers), and the belt's centre line is
+    `track_path`: the lower run lies under the road wheels, the ends wrap the
+    sprocket and idler and the upper run rests on the rollers, sagging
+    between them by `sag`. Centred across on `y`, `width` wide. Links are the
+    'track' texture only: u runs along the belt in links, v across it. Node:
+    the empty `name` (`track_L` or `track_R`) at the parent's origin, carrying
+    `track_length_m` (the length of that centre line) and `link_pitch_m`,
+    returned; its belt is its only mesh. Roles: track."""
+    if name not in ("track_L", "track_R"):
+        raise ValueError(f"a track node is named track_L or track_R: {name}")
+    loop = track_path(wheels, thickness, sag)
     segments = []
     length = 0.0
     for i, a in enumerate(loop):
@@ -226,14 +314,14 @@ def track_loop(name, wheels, y, width, pitch, mats, parent, thickness=0.08):
 
 def tracked_running_gear(mats, parent, track_y, track_w, road_x, road_z, road_r, road_w, sprocket_at,
                          idler_at, returns=(), dual=True, bolts=8, ribs=0, teeth=12, arm=(0.48, 0.42), pitch=0.17,
-                         thickness=0.08):
+                         thickness=0.08, sag=TRACK_SAG):
     """Both sides' running gear of a tracked vehicle, placed as the photos
     show it: road wheels at `road_x` (centres at `road_z`, radius `road_r`,
     `road_w` wide; `dual` adds the inner tyre on the same spinning node), each
     on a trailing arm (`arm` = (length, droop in radians), or None), the drive
     sprocket (`sprocket_at`) and the idler (`idler_at`) as (x, z, radius), the `returns` rollers as
-    (x, z, radius), and the belt wrapped round all of them (`track_loop`),
-    centred `track_y` out from the centre line and `track_w` wide. Nodes:
+    (x, z, radius), and the belt wrapped round all of them (`track_loop`,
+    sagging by `sag`), centred `track_y` out from the centre line and `track_w` wide. Nodes:
     `wheel_{L,R}_{1..n}`, `wheel_{L,R}_sprocket`, `wheel_{L,R}_idler`,
     `wheel_{L,R}_return_{k}` and `track_{L,R}`. Roles: rubber, paint, dark,
     steel, track."""
@@ -257,4 +345,5 @@ def tracked_running_gear(mats, parent, track_y, track_w, road_x, road_z, road_r,
         for k, (x, z, r) in enumerate(returns):
             return_roller(f"wheel_{s}_return_{k + 1}", (x, side * track_y, z), r, track_w * 0.6, mats, parent)
             wheels.append((x, z, r))
-        track_loop(f"track_{s}", wheels, side * track_y, track_w, pitch, mats, parent, thickness=thickness)
+        track_loop(f"track_{s}", wheels, side * track_y, track_w, pitch, mats, parent, thickness=thickness,
+                   sag=sag)
