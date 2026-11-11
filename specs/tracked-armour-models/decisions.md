@@ -410,3 +410,234 @@ now needing Blender, and roster scripts run as `__main__`.
   first and falls back to the admitted default, `tripo3d/h3.1/image-to-3d`.
   `tools/skin-generate.mjs`, which calls fal directly with a key, is not used in
   this pass.
+
+## Slice 01 decisions (2026-11-11, coordinator's implementation agent)
+
+Each entry gives the decision, the gap the plan left, its reach, a verdict
+and a confidence, least confident first.
+
+Review these first: the standard shots' framing (`battle_zoom`'s yaw and the
+cinematic's lens), holding back `air_defence.py`, and how the tracked issues
+were sorted into kinds.
+
+- **The standard shots (`assets/shots.txt`).**
+  - `fq` and `side` are `closeups.py`'s own `front-quarter` and `side-low`
+    at 800×500. Rendering the committed T-72B3 with them reproduces the
+    planning closeups at distance 0, so that is what the planning lineup
+    used.
+  - `battle_zoom` is 25 m out (`zoom_min`, `fixtures/presentation.json:30`)
+    at pitch 0.22 rad (`pitch_curve`'s first point, `:33-36`), 45 degrees
+    off the nose on the left, aimed at the ground under the origin. It
+    renders at 1920×1080 with a 23.9 mm lens, which is `fov_y` 0.8 rad
+    (`:28`) at 16:9. There a 10 m tank is about 500 px long, roughly 5 px
+    per 10 cm. That is the scale at which to judge whether a fitting reads.
+  - `cinematic` is 12 m out, 35 degrees off the nose, the eye 1.5 m up, on a
+    70 mm lens at 1920×1080. It frames the front two-thirds of a tank. The
+    slice asked for "8–12 m and a long lens", and the far end of that range
+    keeps most of a tank in frame.
+  - *Gap.* The yaw, the aspect and the cinematic's exact numbers were open.
+  - *Verdict.* Sound.
+  - *Confidence:* medium.
+- **`air_defence.py`'s re-export is held back: its art stays as
+  committed.**
+  - *Scenario.* The bake's fit check compares each model's outer faces
+    with its unit's hull frame (`half_extents_m`), and fails a face more than
+    10 cm off. Re-exported, the Buk-M3, Gepard 1A2 and Pantsir-SM (a
+    wheeled sibling) fail it. Their tow hooks reach
+    12.7 cm past the hull frame, against a 10 cm tolerance
+    (`fit.hull_extents`). The Buk's wreck also fails `fit.footprint`: its
+    right side, stripped of its skirt, stands 11 cm inside the footprint.
+    Their frames grew in the fixtures on 2026-10-15, after the art was last
+    exported on 2026-10-08:
+    - the Buk from 9.28 to 9.75 m and the Gepard from 6.82 to 7.11 m;
+    - the Pantsir's rear by 13 cm.
+
+    The scripts build the hull flush to the frame and hang the tow hooks
+    past it (`air_defence.tracked_hull`, and the Pantsir's rear hook). The
+    committed art passed because its hulls were shorter.
+  - Seating the hooks within the frame is family geometry. On the tracked
+    hull they hang from the upper hull's overhang, and moving them in
+    leaves them floating. It also reaches the wheeled siblings, which this
+    pass only re-exports. So the committed GLBs, wrecks and receipt of all
+    six appearances stay as they were. The lint baseline still holds these
+    appearances' issues as their sources build them.
+  - *Gap.* The plan assumed every tracked script re-exports cleanly.
+  - *Reach.* Lane B's slice 24 starts from art that lags its frames by
+    those lengths. Its before/after will show the lengthening, and it must
+    seat the hooks to pass the bake. The Pantsir's rear hook needs the same
+    fix in the wheeled pass. The Buk and Gepard closeups in
+    `assets/before/reexport/` are of the committed art.
+  - *Verdict.* Sound for a baseline slice. The alternative was a
+    geometry change to a lane-owned family, and a wheeled sibling, outside
+    "trivial".
+  - *Confidence:* medium. The coordinator may prefer to land the hook fix
+    before slice 24.
+- **How the 1,204 tracked issues were sorted into kinds.** The coordinator
+  will set the family slices' "zero issues" rule from this, so the
+  definitions matter.
+  - *Scenario.* Each overlap joins two bodies: the hull, the turret, or a
+    piece of running gear. The kind is read from that pair and the part
+    names:
+    ```
+    floating, and the part sits inside another (a barrel in its receiver) -> other
+    floating otherwise                                   -> real misplacement
+    wheel against wheel on one side                      -> real misplacement
+    hull shape (`hull_*`) or road arm against gear       -> running gear seated into hull
+    any other hull fitting against gear (skirt, bin, light) -> real misplacement
+    turret shell or ring against a hull shape            -> turret seated into hull
+    anything else between hull and turret                -> fittings into armour
+    ```
+    The deepest issue of each kind, in up to five families, was rendered in
+    context and alone to check what it looks like. "Fittings into armour" is
+    split by side in the slice file, because the two halves look different:
+    hull fittings under the turret's overhang are hidden, while the T-72
+    family's ERA bricks sunk into fender boxes are visible.
+  - *Gap.* The brief named four kinds (turret seated, fittings into armour,
+    real misplacements, other) but no way to sort into them. "Running gear
+    seated into hull" was added as a kind of its own: it is 58 % of the
+    issues and would otherwise swamp "other".
+  - *Reach.* The headline, "seven in ten issues never show on screen", rests
+    on these rules plus about 30 rendered samples, not on judging all 1,204.
+    A "real misplacement" by these rules is one the Blender README forbids
+    or a part in the wrong place, not necessarily one a player would notice.
+  - *Verdict.* Sound for setting a strictness level. A family lane judges its
+    own issues in renders anyway.
+  - *Confidence:* medium.
+- **A track belt is not compared with the wheels on its own side.** This
+  reverses slice 00's "Track-against-wheel overlaps stay issues".
+  - *Scenario.* Running-gear closeups of the T-72B3 (hull hidden and shown)
+    show a closed belt wrapping every wheel on its side. The road wheels sit
+    on its lower run, it wraps the idler and sprocket, and the return rollers
+    sit under its upper run. Nothing pokes through. A nearest-face inside
+    test (the outward normal's sign, which a ring can't fool) finds no
+    road-wheel, idler or roller vertex inside the belt. The 400 mm depths
+    were the lint's inside test misreading points in the loop's hollow. That
+    test (ray parity) casts rays from a point and calls it inside a part when
+    the rays cross the part's surface an odd number of times, and a point in
+    the empty middle of a ring-shaped belt can fool it. Only
+    the sprocket's teeth sit 36 mm into the 80 mm belt, which is how they
+    drive it.
+  - The rule is `vehicle_lint_core.compared`: a body `track_L` or `track_R`
+    is not compared with `wheel_L_*` or `wheel_R_*` on its own side. A belt
+    is still compared with the hull, fenders, exhausts, skirts, the turret
+    and the other side. `vehicle_lint_logic_test.py` pins it.
+  - *Gap.* Slice 00 parked these pairs in the baseline without a render.
+  - *Reach.* Roster-wide, the overlap count falls from 4,990 to 3,348, and
+    the T-72B3's from 75 to 43. A wheel that really pokes through its own
+    belt is no longer caught. `track_loop` builds the belt round every wheel
+    it is given, so only a wheel left out of that list could do it, and
+    closeups would show it.
+  - *Verdict.* Sound. It makes the check do what `track_loop`'s docstring
+    says the belt is. Unverified: other ring-shaped parts (turret ring
+    guards) may also be measured too deep by the same ray-parity test.
+    Their pairs stay compared; only the depth may read high.
+  - *Confidence:* medium-high.
+- **What counted as trivial: one fix, the SP howitzers' turret numbers.**
+  - *Scenario.* The slice allows fixing "a part floating less than 2 cm, or
+    an obvious misplacement". A floating part is only reported past 2 cm,
+    so this was read as a gap within 2 cm of that threshold (under 4 cm), in
+    the tracked scripts only. Wheeled siblings are re-exported, never
+    reworked. That leaves three cases:
+    - The turret number on the M109A7, PzH 2000, 2S19M2 and PLZ-05 hovered
+      2.8–3.2 cm off the turret. It was placed at the foot's half-width, but
+      at three quarters of the turret's height the flank has already leaned
+      in toward the crown. It now sits on the flank at its own height and is
+      tilted to the flank's lean (`sp_howitzers.turret`). Fixed.
+    - `mg_barrel` on three of the howitzers sits inside its receiver.
+    - The Gepard's `gun_v0_radar` is a sleeve round its barrel.
+
+    The last two read as floating because the check measures surface
+    distance, so a part contained inside another looks detached. That is
+    the false positive the allowlist's barrel patterns already cover. They
+    are baselined, not allowlisted, because the allowlist is coordinator
+    policy.
+  - The Buk's and Gepard's side skirts (7.2 cm clear of everything, with no
+    brackets) and the T-72 family's ERA bricks sunk 10–12 cm into the fender
+    boxes are real, but fixing them means drawing a hanger or moving armour.
+    That is family work, so they are baselined.
+  - *Gap.* The bound on "trivial" was delegated.
+  - *Reach.* The four howitzers gain 144 tier-0 triangles each from the
+    tilted stencil. Their closeups show the number on the flank.
+  - *Verdict.* Sound.
+  - *Confidence:* medium-high.
+- **A fitting named after running gear belongs to the hull.**
+  - *Scenario.* Categorising the issues turned up the Leopard's and BMP's
+    `track_guard_L/R` fender plates as bodies of their own. Slice 00's
+    grouping took any hull child starting `track_` as running gear, so a
+    fender bolted to the hull was compared against the hull itself
+    (`hull_upper` against `track_guard_L`, 43 mm). The GLB node contract
+    names the belts exactly `track_L` and `track_R`, and
+    `vehicle_lint_core.running_gear` now reads that: `track_L`, `track_R`,
+    `wheel_*` and `gear_*`.
+  - *Gap.* None in the plan. It's a bug in slice 00's grouping.
+  - *Reach.* 30 false issues on the Leopards and BMPs leave the baseline. It
+    also means `--update-baseline` ran twice, not once: first before the
+    find, then after the fix. Only the second run's file is committed. The
+    live exports were re-run afterwards, so their receipts hash the final
+    lint sources. The wreck runs write no receipt, and the lint never
+    changes a GLB's bytes, so they stand.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **`closeups.py` takes metres.** A `--shot` value ending in `m` is metres
+  in the model's own frame, not a fraction of its bounds.
+  - *Scenario.* `battle_zoom` must keep the battle camera's real 25 m. A
+    fraction of the bounds scales with each model's size, so the same shot
+    would stand closer to a short IFV than to a long-gunned tank.
+  - *Gap.* The slice asked for the battle camera's distance in a format that
+    could not hold one.
+  - *Reach.* A three-line change to the make-3d-models skill's script. The
+    existing fraction shots are unchanged; the planning fq and side shots
+    reproduce pixel for pixel.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **Drift found by the re-export, named and not fixed.**
+  - 117 of the 148 planning closeups (fq and side, shaded and matcap) are
+    pixel-identical after the re-export. Most changed GLBs changed only
+    below a pixel.
+  - **The M270A2's and MARS II's three windscreen shutters moved 26 cm
+    aft.** They no longer stand proud of the cab face and now lie over the
+    windscreens, which reads better.
+  - The Ajax's crew meshes lost one polygon (from the infantry source). The
+    S-300 differs only by the last bit of one part's rotation and one UV
+    accessor. Neither changes a pixel.
+  - The SP howitzers' only change is this slice's turret-number fix.
+  - *Verdict.* Every change makes the art match today's sources. None
+    needs a fix here.
+  - The `air_defence` script's drift was larger, and its re-export is held
+    back; see "`air_defence.py`'s re-export is held back" above.
+  - *Confidence:* high.
+- **The exports ran after the baseline, with the lint on.**
+  - *Scenario.* The slice lists the steps as re-export, then lint and fix,
+    then baseline. Every export also lints and fails on any issue the
+    baseline lacks. So exporting first would have needed `--no-lint`. Here,
+    the trivial fix and the baseline came first, and every export then ran
+    with the lint on. That doubles as the slice's check that "every export
+    passes against the baseline it just wrote".
+  - *Gap.* The batch order was delegated.
+  - *Reach.* None beyond this slice. The lint builds from the scripts, not
+    from the GLBs, so the order changes no result.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **The unit icons were regenerated and are committed with the art.**
+  - *Scenario.* `asset check` compares `assets/icons/units/*.svg`, each
+    model's silhouette, against a fresh render of the GLBs. It flagged 11
+    icons as stale, all of them re-exported models (the howitzers, the
+    rocket launchers and their siblings, the BMP-3). `asset icons` rewrote
+    them.
+  - *Gap.* The slice didn't mention icons. The check forced them.
+  - *Reach.* The player-facing unit icons change slightly for those 11.
+  - *Verdict.* Sound: they follow the art.
+  - *Confidence:* high.
+- **Data found, not changed: the Buk-M3's unit is `wheeled_medium`.** The
+  Buk is tracked, but `fixtures/catalog.json` gives its unit
+  `vehicle_class: wheeled_medium`. That class picks its sounds and its
+  triangle caps (70k at tier 0 rather than 120k). Fixtures are the
+  coordinator's, and the class is a game-data decision, so it is reported,
+  not changed.
+- **Trivial discretion (2).**
+  - `assets/before/reexport/` holds only the fq and side shots, the ones the
+    planning closeups can be compared with. `battle_zoom` and `cinematic`
+    are left to the family slices, which render them anyway (about 2 MB
+    each at 1920×1080).
+  - The roster walk's sampling probes and issue dumps stay in
+    `throwaway/reexport/`.

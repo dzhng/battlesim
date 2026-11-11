@@ -1,0 +1,24 @@
+# The standard close-up shots for the make-3d-models skill's scripts/closeups.py,
+# one `--shot` per line. Values are fractions of the model's bounds, or metres in
+# the model's own frame where they end in `m` (x forward, y left, z up, origin on
+# the ground under the hull's centre).
+#
+# Render fq and side at `--res 800x500`: the planning lineup in before/closeups
+# was rendered with them there, and they reproduce it pixel for pixel.
+# Render battle_zoom and cinematic at `--res 1920x1080`: battle_zoom's lens is the
+# battle camera's at that aspect.
+
+# fq: closeups.py's own front-quarter, high from the front left.
+--shot fq:1.15,1.25,1.4:0.65,0.5,0.45:35
+# side: closeups.py's own side-low, from the left.
+--shot side:0.5,2.2,0.3:0.5,0.5,0.45:35
+
+# battle_zoom: the battle camera at its closest, 45 degrees off the nose on the
+# left. Orbit distance 25 m (`zoom_min`, fixtures/presentation.json:30) at pitch
+# 0.22 rad (`pitch_curve`'s first point, :33-36), aimed at the ground under the
+# vehicle's origin; 23.9 mm is the vertical field of view of 0.8 rad (`fov_y`,
+# :28) at 16:9.
+--shot battle_zoom:17.25m,17.25m,5.46m:0m,0m,0m:23.9
+# cinematic: a low three-quarter front, 12 m out and 35 degrees off the nose, the
+# eye 1.5 m up, on a 70 mm lens.
+--shot cinematic:9.83m,6.88m,1.5m:0.5m,0m,1.2m:70
