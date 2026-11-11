@@ -64,7 +64,7 @@ class TestInterpenetration(unittest.TestCase):
     def test_no_issues_with_separate_boxes(self):
         """Two boxes that don't touch should pass."""
         make_box("part_A_LOD0", (1, 1, 1), (0, 0, 0.5), self.hull)
-        make_box("part_B_LOD0", (1, 1, 1), (3, 0, 0.5), self.hull)
+        make_box("part_B_LOD0", (1, 1, 1), (3, 0, 0.5), make_empty("turret"))
         
         result = LintResult(vehicle_id="test")
         check_interpenetration(result)
@@ -75,7 +75,7 @@ class TestInterpenetration(unittest.TestCase):
     def test_no_issues_with_touching_boxes(self):
         """Two boxes that just touch (within tolerance) should pass."""
         make_box("part_A_LOD0", (1, 1, 1), (0, 0, 0.5), self.hull)
-        make_box("part_B_LOD0", (1, 1, 1), (1.0 + INTERPENETRATION_TOLERANCE * 0.5, 0, 0.5), self.hull)
+        make_box("part_B_LOD0", (1, 1, 1), (1.0 + INTERPENETRATION_TOLERANCE * 0.5, 0, 0.5), make_empty("turret"))
         
         result = LintResult(vehicle_id="test")
         check_interpenetration(result)
@@ -108,6 +108,29 @@ class TestInterpenetration(unittest.TestCase):
         # Should not flag wheel components overlapping themselves
         issues = [i for i in result.issues if i.check == "interpenetration"]
         self.assertEqual(len(issues), 0, f"Same-group parts flagged: {issues}")
+
+    def test_hull_and_turret_parts_under_a_vehicle_root_are_compared(self):
+        """A real vehicle hangs its hull and turret off a root carrying
+        `unit_id`; their parts are still separate bodies and must be compared,
+        while fittings fixed to the one hull may overlap its plates."""
+        reset_scene()
+        root = make_empty("tank")
+        root["unit_id"] = "tank"
+        hull = make_empty("hull")
+        hull.parent = root
+        turret = make_empty("turret", (0, 0, 1.0))
+        turret.parent = root
+        make_box("glacis_plate_LOD0", (1, 2, 0.4), (0, 0, 0.9), hull)
+        # A bolt sunk into the plate it holds, clear of the turret.
+        make_box("glacis_bolt_LOD0", (0.1, 0.1, 0.1), (0.45, 0, 1.1), hull)
+        # The turret's cheek plate sinks 0.3 m into the hull's plate.
+        make_box("cheek_plate_LOD0", (0.6, 1.2, 0.4), (0, 0, 0.0), turret)
+
+        result = LintResult(vehicle_id="tank")
+        check_interpenetration(result)
+
+        issues = [i for i in result.issues if i.check == "interpenetration"]
+        self.assertEqual([set(i.parts) for i in issues], [{"glacis_plate", "cheek_plate"}])
 
 
 class TestFloatingParts(unittest.TestCase):

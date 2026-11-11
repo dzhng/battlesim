@@ -42,6 +42,8 @@ INTERPENETRATION_TOLERANCE = 0.005  # 5mm
 FLOATING_PART_THRESHOLD = 0.02  # 2cm
 GROUND_CONTACT_TOLERANCE = 0.01  # 1cm
 GROUND_PLANE_Z = 0.0
+# Hull children that move apart from the hull: compared with it, not part of it.
+RUNNING_GEAR = ("wheel_", "track_", "gear_")
 
 
 # --------------------------------------------------------------------- helpers
@@ -200,22 +202,21 @@ def _bounds_overlap(lo1, hi1, lo2, hi2, margin=0.0):
 
 
 def _part_group(obj):
-    """Get the top-level part group for an object (for detecting separate parts)."""
-    ancestors = []
-    p = obj.parent
-    while p is not None:
-        ancestors.append(p.name)
-        p = p.parent
-    if not ancestors:
-        return _base_part_name(obj.name)
-    for name in reversed(ancestors):
-        if name == "hull":
-            continue
-        if name.startswith("wheel_") or name.startswith("track_") or name.startswith("gear_"):
-            return name
-        if not name.startswith("dressing_"):
-            return name
-    return _base_part_name(obj.name)
+    """The separate body an object belongs to, for the overlap check: the hull
+    with everything fixed to it, each piece of running gear on the hull
+    (`wheel_*`, `track_*`, `gear_*`), or each node articulated off the
+    vehicle's root (the node carrying `unit_id`), such as the turret with all
+    it carries. Plates and fittings fixed to one body overlap by design, so
+    only different bodies are compared."""
+    chain = [obj]
+    while chain[-1].parent is not None:
+        chain.append(chain[-1].parent)
+    below_root = [node.name for node in reversed(chain) if node.get("unit_id") is None]
+    if below_root[0] != "hull":
+        return _base_part_name(below_root[0])
+    if len(below_root) > 1 and below_root[1].startswith(RUNNING_GEAR):
+        return _base_part_name(below_root[1])
+    return "hull"
 
 
 def _is_point_inside_mesh(point, bvh, bounds_lo, bounds_hi):
