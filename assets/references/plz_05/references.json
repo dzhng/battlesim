@@ -34,18 +34,25 @@
    "note": "Side quarter: hull length, the turret set at the rear, its side stowage boxes."
   },
   {
-   "file": "eastern_plz_05_chinese_tracked_155_mm_howitzer-side-2.jpg",
+   "file": "eastern_plz_05_chinese_tracked_155_mm_howitzer-side-2-generated.jpg",
    "variant": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
    "view": "side",
-   "source": "photo",
-   "page": "https://commons.wikimedia.org/wiki/File%3ASelf-propelled_howitzer_in_front_of_Gucci.jpg",
-   "author": "Dan from Beijing, China",
-   "licence": "CC-BY-2.0",
-   "sha256": "655086962674d96b0c82fcc443a31c099936d7aed39bacbda25de99a393e64d4",
-   "note": "Parade profile with the crew up: road wheels, skirts, turret profile."
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "sha256": "753b03d18a7e15a64f419cfa06d36c6c1d4139640a9f254f84c6c4e036e53a2f",
+   "note": "Generated orthographic left side (Q4 rung 3, slice 07b C7). It fails the photo check: its gun reaches only about 1.1 m past the nose, where the museum photos (-three_quarter_front, -side) show the L52 barrel reaching several metres past it, so the hull, turret and gun cannot all be scaled from one published number. Kept to record the attempt; measure nothing from it. The gateway takes no seed, so 0 records none.",
+   "model": "openai/gpt-image-2.6-flare",
+   "prompt": "Museum catalogue profile of the PLZ-05 tracked vehicle shown in the input photo (a static exhibit): a pure 90-degree left side profile, flat elevation like a technical side drawing. The camera looks exactly at the left flank, so the front face and the top of the hull are NOT visible. Nose to the left. Every road wheel on the near side appears as a circle in a row. Orthographic, no perspective, no foreshortening, level with the vehicle. The long barrel lies straight forward and level, resting in its travel lock. Whole vehicle in frame with margin, plain light grey background, flat ground line. Same woodland digital camouflage as the photo, hatches closed, no people, no text.",
+   "inputs": [
+    "eastern_plz_05_chinese_tracked_155_mm_howitzer-three_quarter_front.jpg"
+   ],
+   "seed": 0
   }
  ],
  "gaps": [
-  "eastern_plz_05_chinese_tracked_155_mm_howitzer: no rear or top view; museum and parade cars only"
+  "eastern_plz_05_chinese_tracked_155_mm_howitzer: no rear or top view; museum and parade cars only",
+  "eastern_plz_05_chinese_tracked_155_mm_howitzer: no drawing or square-on photo. The parade profile once filed here as -side-2 was a PLZ-07 (122 mm; Commons files it under PLZ-07) and was removed in slice 07b. The generated side view fails its photo check."
  ]
 }

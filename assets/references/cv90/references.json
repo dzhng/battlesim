@@ -142,6 +142,23 @@
       "licence": "CC-BY-4.0",
       "sha256": "8e49dfaedaf3eba0ec220ec333c0042f625d7e8b6b0f2b02cbecdde3da37911d",
       "note": "Mick Bell 1/76 Strf 9040 plan, rear view; 236.6 px/m."
+    },
+    {
+      "file": "europe_cv90_mk_iv-side-2-generated.jpg",
+      "variant": "europe_cv90_mk_iv",
+      "view": "side",
+      "source": "generated",
+      "page": "",
+      "author": "generated",
+      "licence": "ours",
+      "sha256": "1cb1edb08c4995785dbcf83257b1e60a06b0ed506fc6b3e75978071dbe4fa312",
+      "note": "Generated orthographic left side (Q4 rung 3, slice 07b C7). Scaled to the official 6.8 m length it gives 223 px/m and a road-wheel pitch (length / 10.0) that agrees with the Mick Bell Strf 9040 plan. Against the CC0 side photo (-side.jpg) its hull stands about 7 % taller in road-wheel diameters, so heights read high by about that much: turret roof about 2.6 m (2.72 m raw), commander's sight head about 3.25 m (3.50 m raw). Its muzzle sits at the nose line, as in the photo. Layout and proportions only; the gateway takes no seed, so 0 records none.",
+      "model": "openai/gpt-image-2.6-flare",
+      "prompt": "Museum catalogue profile of the CV90 Mk IV tracked vehicle shown in the input photo: a pure 90-degree left side profile, flat elevation like a technical side drawing. The camera looks exactly at the left flank, so the front face and the top of the hull are NOT visible and both tracks overlap into one. Nose to the left. All seven road wheels on the near side appear as perfect circles in a row. Orthographic, no perspective, no foreshortening, level with the vehicle. The turret's cannon points straight forward, level. Whole vehicle in frame with margin, plain light grey background, flat ground line. Plain green paint, hatches closed, no people, no text.",
+      "inputs": [
+        "europe_cv90_mk_iv-side.jpg"
+      ],
+      "seed": 0
     }
   ],
   "gaps": [
@@ -149,6 +166,7 @@
     "CV9040C: no three_quarter_rear photo.",
     "CV9040C: no close running-gear detail; the top, front and rear views are the base Strf 9040 plan, without the C kit.",
     "CV90 Mk IV: only three-quarter front and side photos (Slovak and Czech vehicles); no rear, three_quarter_rear, top or detail.",
-    "Ukrainian CV9040C command vehicles (Stripbv 90) were left out: different turret."
+    "Ukrainian CV9040C command vehicles (Stripbv 90) were left out: different turret.",
+    "CV90 Mk IV: no drawing or square-on photo; the side view is generated (-side-2-generated) and checked against the quarter photo -side.jpg, so its heights carry about +-0.15 m."
   ]
 }
