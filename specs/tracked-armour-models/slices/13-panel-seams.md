@@ -21,6 +21,13 @@ per-vertex occlusion bake darkens it.
 - **The crop:** the T-72B3 glacis and the Leopard 2A6 turret cheek.
 - **Out of scope:** everything else.
 
+Start from the cutter that won slice 04,
+`assets/experiments/04/scripts/seam_build.py`. It uses Blender's Manifold
+boolean solver; the Exact solver deleted a closed Leopard wedge. Grooves must
+be at least 1.5 cm deep, because the occlusion bake's rays start 12 mm off the
+surface (`parts.py:664`). Place them on the joints the reference photos show,
+not as inset rectangles, which the critique read as "cabinet doors".
+
 ## Steps
 
 1. Write the helper.

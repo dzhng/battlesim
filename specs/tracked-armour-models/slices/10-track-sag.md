@@ -29,6 +29,12 @@ def tracked_running_gear(..., sag=TRACK_SAG)   # passes through
 - The clearance clamp is built into `track_path`, because the lint can't catch
   a sag cutting into a wheel: tracks and wheels sit under the same top node.
 
+## Also in this slice
+
+The lint's ground-contact check finds tracks by name (`"track_" in name`), a
+second definition of what a track is (slice 01). Make it use the running-gear
+node contract this module owns.
+
 ## The variable and crop
 
 - **The one variable:** the shape of the top run.

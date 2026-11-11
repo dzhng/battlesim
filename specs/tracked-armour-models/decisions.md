@@ -1747,3 +1747,26 @@ Sound:
   - the page's colours and layout;
   - each family file keeps the lane's own notes after the coordinator's,
     prefixed "Lane:".
+
+- **C11 How strict the lint is on family slices** (2026-11-11). Slice 01 sorted
+  the 1,204 tracked issues by kind. Seven in ten are seating that never shows:
+  running gear into the hull sides (698), hull fittings under the turret
+  overhang (113), the turret into the roof (46). A strict zero rule would make
+  every family rework hidden geometry beyond its notes.
+  - A family slice must clear the visible kinds: turret fittings into hull
+    fittings, skirts or bins into the belt or wheels, wheels overlapping
+    wheels, and unbraced or floating parts.
+  - Hidden seating may stay in the baseline.
+  - The family template carries this.
+- **C12 `air_defence.py` waits for slice 15** (2026-11-11). Its re-export
+  failed the fit check on tow hooks 12.7 cm past frames that grew on
+  2026-10-15. Slice 15 changes the Buk's and Gepard's frames anyway (C4, C6),
+  so it seats the hooks as its minimal fit edit and checks the Buk's unit
+  class follows its new tracked profile.
+- **C13 The lint's track-by-name test moves to slice 10** (2026-11-11). Slice 10
+  owns the track node contract, so the ground-contact check's second
+  definition of a track goes there.
+- **C14 Slice 04's winning cutter is committed** (2026-11-11). The groove cutter
+  that was scored (`assets/experiments/04/scripts/seam_build.py`, with its
+  render and probe scripts) moved from the lane's ignored folder into the
+  spec, so slice 13 builds from the scored code.

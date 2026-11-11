@@ -74,8 +74,17 @@ and in cinematics:
 
 1. **Full-family export,** live and `--wreck`, through the asset CLI. This
    writes the receipt. Re-export any script that imports this one.
-2. **Lint:** zero issues for this family's appearances. Use `vehicle_lint.py --
-   --variant=<id>` for each appearance. Never update the baseline.
+2. **Lint (decision C11):** for this family's appearances, clear every issue of
+   the visible kinds that slice 01 categorised:
+   - turret fittings into hull fittings;
+   - skirts, bins or lights into the belt or wheels;
+   - wheels overlapping wheels;
+   - unbraced or floating parts.
+
+   Seating that never shows may stay in the baseline: running gear into the
+   hull sides, the turret into the roof, and hull fittings under the turret
+   overhang. Check with `vehicle_lint.py -- --variant=<id>` for each appearance.
+   Never update the baseline; slice 30 does that.
 3. **Fit:** `bun run --cwd web asset -- validate <glb> --type <unit type>` is
    clean. Run `bun run build:wasm` in this worktree first.
 4. **Budget:** the receipt's `triangles_by_tier` sits inside the `unitArt.ts`

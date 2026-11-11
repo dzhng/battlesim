@@ -38,10 +38,17 @@ Data only:
      `fix-rows.json` lists these under `derived.art_fit`.
    - Re-check hatches against moved pivots (`specs/done/off-centre-turrets.md`).
    - The 2A8 inherits the 2A7V frame.
-6. **Minimal fit edits.** Families whose frame changed get only the edits
+6. **`air_defence.py` was held back by slice 01.** Its tow hooks hang 12.7 cm
+   past the frames that grew on 2026-10-15, on the Buk, the Gepard and the
+   wheeled Pantsir, and the Buk's wreck is 11 cm too narrow on one side. Seat
+   the hooks and fix the wreck as this slice's minimal fit edit, then
+   re-export the whole script. Confirm the Buk-M3's unit class in
+   `fixtures/catalog.json` follows its new tracked profile; it is
+   `wheeled_medium` today, which sets its sounds and triangle caps.
+7. **Minimal fit edits.** Families whose frame changed get only the edits
    needed to fit the new frame, so `fit.hull_extents` (`validate.ts:1033`)
    passes. Their full rework is their family slice.
-7. **Re-bless parity:** `BLESS_PARITY=1` on every suite that reads it:
+8. **Re-bless parity:** `BLESS_PARITY=1` on every suite that reads it:
    - `crates/sim/tests/common/mod.rs`;
    - `publication_reader.rs`;
    - `crates/presentation/tests/effects.rs`;
@@ -49,7 +56,7 @@ Data only:
 
    `paris-corner-*.json` hold frozen Abrams data and only change if an Abrams
    frame changed.
-8. **Digest check.** The digest diff may change only for the units in
+9. **Digest check.** The digest diff may change only for the units in
    `fix-rows.json` and the units that extend them (the 2A8, the M1E3). Record every changed digest's cause in `decisions.md`.
 
 ## Known rows
