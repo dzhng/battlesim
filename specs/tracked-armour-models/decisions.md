@@ -1770,3 +1770,82 @@ Sound:
   that was scored (`assets/experiments/04/scripts/seam_build.py`, with its
   render and probe scripts) moved from the lane's ignored folder into the
   spec, so slice 13 builds from the scored code.
+
+## Slice 02 decisions (2026-11-11, coordinator's implementation agent)
+
+Each entry gives the decision, the gap the plan left, its reach, a verdict
+and a confidence, least confident first.
+
+Review these first: every receipt now reads as stale, and the kernel's
+`_arc` was made public too.
+
+- **Every receipt now names a stale `vehicle_parts.py` and none of the new
+  modules.**
+  - *Scenario.* A receipt hashes each script the export loaded. After the
+    split, `vehicle_parts.py` has new bytes, and the seven new modules are
+    in no receipt. Every family that imports vehicle parts reads as stale
+    until it re-exports, even though its GLBs are byte-identical.
+  - *Gap.* The slice forbids re-exporting (its behaviour is identical), and
+    says nothing of receipts.
+  - *Reach.* Slice 30's receipt freshness probe will see every family as
+    stale for this reason alone. Family lanes refresh their own receipts
+    when they re-export. No check reads receipts today.
+  - *Verdict.* Sound: re-exporting 79 scripts to refresh hashes would
+    commit nothing but receipts.
+  - *Confidence:* medium.
+- **`_arc` became public as `arc`, beside `_place` becoming `place`.**
+  - *Scenario.* `tow_hook`, `shackle` and `exhaust` (`hull_fittings`) call
+    the kernel's arc of points. Importing an underscore name across modules
+    says "private" while every part module depends on it.
+  - *Gap.* The slice named only `_place`.
+  - *Reach.* The kernel exports `place`, `wheel_node`, `arc` and
+    `tube_part`; `_tube` stays private, used only by `tube_part`.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **The track node contract moved to `running_gear`'s docstring.** The
+  kernel keeps the general spinning-node contract (`wheel_*`, made by
+  `wheel_node`, which the aircraft gear also uses) and points to
+  `running_gear` for `track_L`/`track_R`, `track_length_m` and
+  `link_pitch_m`. The slice gave both the kernel docstring and the track
+  contract a home; this is how they split. *Confidence:* high.
+- **Callers import each owner under the slice's two-letter aliases.**
+  `import running_gear as RG` and the rest, alongside `VP` for the tier sets,
+  `tube_part` and `wheel_node`. Every alias is as long as `VP`, so no
+  wrapped argument line needed re-aligning, and the diff is the call sites
+  alone. Imports of named functions (`wreckage.py`, `wreckage_test.py`,
+  `aircraft_parts.py`) import from the owner directly. *Confidence:* high.
+- **The lint proof also dumps every issue.** `vehicle_lint.py -- --roster`
+  prints per-check counts per appearance and only the new issues in full, so
+  an identical report could still hide a swapped issue. A throwaway wrapper
+  ran the same walk (`vehicle_lint_roster.walk`) and wrote every issue of
+  every appearance as JSON; before and after are byte-identical.
+  *Confidence:* high.
+- **The machine-gun proof is the UH-60M and Z-20, not the Apache.**
+  - *Scenario.* The slice named the Apache for `aircraft_parts`' guns, but
+    it carries only a chin gun (`aircraft_parts.chin_gun`), which never
+    calls `vehicle_guns`. The door guns do (`door_gun`). `hawk.py`'s UH-60M
+    (an M2) and Z-20 (a Kord) were exported after the split, and both are
+    byte-identical to their committed GLBs. The Apache stays in the set.
+  - *Gap.* The slice's choice of aircraft missed the path it meant to prove.
+  - *Reach.* None beyond this proof.
+  - *Verdict.* Sound.
+  - *Confidence:* high.
+- **Territory: the jets' lint needs their skins pulled.** Without
+  `assets/source/skins/` in LFS, `--roster` fails 25 jet appearances ("is an
+  LFS pointer"); a live export with crew needs its faction's rifle-squad
+  source. The proof runs pulled both.
+- **Trivial discretion (6).**
+  - Each module keeps its functions in the original file's order, and the
+    old section-header comments are dropped, since each module is one
+    section.
+  - New modules repeat their siblings' `sys.path.insert` and `# noqa: E402`
+    imports. `hull_shape` imports nothing local, so it has neither.
+  - The README's table gives each module's kind of part, not its roster.
+    The module docstrings name what each holds, and the kernel's docstring
+    points to the README rather than listing the modules.
+  - The proof exports ran with `--no-lint`. The lint never changes a GLB's
+    bytes (slice 01), and the roster walk proved the lint separately.
+  - The Boxer APC's wreck joined the export set, because it is the only one
+    that reaches `tyre_wheel` through `wreckage`'s thrown wheels.
+  - `aircraft_parts.py` is lane J's file, and its one changed line is the
+    `vehicle_guns` import the slice named.
