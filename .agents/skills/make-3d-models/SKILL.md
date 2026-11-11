@@ -106,8 +106,12 @@ gives its arguments.
   length.
   - Read the stations to size a fix in metres.
   - Read the image to see where the fix goes.
-  - Gear, stores and pylons are left out of the model; the drawing's own are
-    not, so expect them in pink.
+  - Its last argument picks the parts compared. `aircraft` (the default)
+    leaves gear, stores and pylons out of the model. `vehicle` keeps the
+    running gear (wheels and track belts) and leaves every `dressing_*`
+    subtree out, so the outline is the one the battle frame holds, and it
+    stands side and front views on the ground line. Either way the
+    drawing's own gear or antennas show in pink.
 - **`scripts/closeups.py`** renders tier 0 of each model from six framed
   close views, or your own (`--shot`, given as fractions of the bounds so one
   list fits every model). Each view comes out shaded and as a matcap.
