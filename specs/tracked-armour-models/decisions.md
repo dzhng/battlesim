@@ -2609,3 +2609,145 @@ Review these first:
   - **Faceted running gear.** Road wheels and belts read as faceted drums at
     tier 0 (critiques of slices 10 and 11). Fix it in `running_gear`'s tier-0
     segment counts, within the triangle caps.
+
+## Slice 08 decisions (2026-11-11, coordinator's implementation agent)
+
+Least confident first.
+
+- **Six tracked findings joined the baseline, beyond the brief's "wheeled
+  only".**
+  - *Scenario.* Removing the patterns exposed one wheeled finding (the VBCI)
+    and six tracked ones:
+    - the Bradley M2A4 and M3A3's `cannon_sleeve`;
+    - the M10's `bore_evacuator`;
+    - the M109A7, 2S19M2 and PLZ-05's `fume_extractor`.
+
+    All are lint false positives (next entry).
+  - *Gap.* The brief allowed exact baseline entries for wheeled findings only.
+    The slice also requires the lint to stay green.
+  - *Reach.* Without the entries, any export of those families fails, and so
+    does slice 16's full re-export. With them, they pass until each family
+    adopts `gun_tube` in its own slice (S6). Under C11 a family must clear
+    floating parts, so the entries can't outlive the family slices.
+  - *Alternatives.*
+    - Keep the patterns scoped to floating parts, which re-hides the gap.
+    - Leave the lint red and hand the entries to the coordinator.
+  - *Verdict.* Sound, but it oversteps the brief. The coordinator should
+    confirm it or revert it.
+  - *Confidence:* medium.
+- **The floating-part check never counts an intersection as contact.**
+  - *Scenario.* `check_floating_parts` measures from sampled vertices, edge
+    midpoints and face centres. A closed collar whose end caps cut through a
+    barrel has none of those samples on the barrel. So it reads as 2–4 cm
+    "from every part" even though it is seated. That is why the patterns
+    existed, and why every finding above is false.
+  - *Gap.* The slice expected exposed findings to be real gaps.
+  - *Reach.* `gun_tube`'s collar closes onto its tube, so the lint sees the
+    contact. Families that adopt it clear their entries. A real fix in the
+    lint (treat a BVH overlap as distance 0) is outside this slice's files.
+    It is a coordinator call, and would also stale other false floating
+    entries.
+  - *Confidence:* high.
+- **No `checks` scope; the three patterns are gone.** The exposed findings
+  were all `floating_part` and none was an overlap. A scope limited to the
+  overlap check would have hidden nothing, so `vehicle_lint_core` and its
+  tests are unchanged. *Confidence:* high.
+- **Sleeves now run up to the evacuator.**
+  - *Scenario.* Kept at their old lengths, the sleeves left 5–8 cm of bare
+    core either side of each collar. The first critique read that as a
+    pinched barrel.
+  - *Gap.* The slice said to keep lengths and radii.
+  - *Reach.* The four guns' overall length and every radius are unchanged.
+    Each sleeve section near the collar grows by the old gap.
+  - *Verdict.* Sound. The gap was the defect, and a sleeve that meets its
+    collar is what the photos show.
+  - *Confidence:* medium-high.
+- **The evacuator is one turned piece whose ends close onto the tube
+  beneath it.**
+  - *Scenario.* A closed cylinder around the core floats as far as the lint
+    can see (the entry above), and the separate end cones the Abrams and
+    Leopard use are a second and third part.
+  - *Reach.* One profile carries either chamfered shoulders (`cap = 0`, the
+    four migrated guns) or cones (`cap > 0`, probed but no caller yet). A
+    ring one shoulder-width in keeps the shoulder's smoothing off the
+    collar's face; without it, the first critique saw a "comet" highlight.
+    The lathe is private to `vehicle_guns`.
+  - *Confidence:* high.
+- **The Abrams and Leopard evacuator cones are reversed.** `cyl`'s first
+  radius sits at −X, so `evacuator_rear` (`abrams.py:431`, `leopard.py:335`)
+  is widest at its open rear end. `gun_tube`'s `cap` fixes this when lane B
+  adopts it (slices 21 and 22). *Confidence:* high (probed).
+- **The keywords beyond the seam: `band=(proud, length)` and `bore=`.** Band
+  height follows the tube beneath it. Defaults reproduce the T-72 and
+  Type 99 bands, and the Challenger passes `(0.01, 0.06)`. The bore's radius
+  is per gun. *Confidence:* high.
+- **The core is the sleeve's radius minus 1 cm, with no taper.** It must sit
+  inside both the sleeve and the muzzle, and on the ZTQ-15 they are the same
+  0.080. `muzzle_radius` exists for the family slices' taper; the critique
+  asked for one. *Confidence:* medium.
+- **The muzzle reference box now sits on the sleeve (ZTZ-99A, Challenger 2).**
+  It floated 1–1.5 cm above, under the lint's 2 cm threshold. The fix is
+  small, it is on the gun being migrated, and the critique flagged it.
+  *Confidence:* high.
+- **Routed from the last critique** (outside this slice's variable):
+  - lane A's family slices: the ZTZ-99A has no mantlet (17), the Challenger's
+    barrel butts a box (20), the muzzle sensor is a bare cube (17, 20), the
+    T-72B3's root collar runs into an ERA block (17), and the ZTQ-15 has no
+    bands and a dark sliver at its root (19);
+  - every family: plain evacuator cans and no taper;
+  - camouflage stretching along the barrels is the texture mapping on
+    cylinders, a shared `textures` matter for the coordinator.
+- **Trivial discretion.**
+  - The pieces are named under `main_gun` (`main_gun_core`, …). Nothing reads
+    the old names.
+  - Each family keeps its own barrel root or gun-shield collar, and the core
+    starts inside it.
+  - Segment counts are the helper's, so the ZTQ-15 goes from 22 to 24 sides.
+  - The before shots are the committed GLBs. The pixel diff confirms only the
+    gun moved.
+  - The crop is a new `gunside` shot, recorded in the slice rather than in
+    `shots.txt`.
+  - `README.md`'s queue already says to clear the wheeled entries from
+    slices 00 and 08, so it needed no edit.
+
+### Slice 08 decision audit (2026-11-11)
+
+The audit traced the session's own steps. Above all, review the first
+entry of the slice 08 decisions: the six tracked baseline entries. Every
+decision above stands, with the verdict and confidence it gives. The audit
+adds three:
+
+- **The blender README's `vehicle_guns` row is left stale.**
+  - *Scenario.* The README's module table says `vehicle_guns` holds "Machine
+    guns on vehicle and aircraft mounts". It now also owns the tank gun
+    barrel (`gun_tube`), as the spec README's one-owner table already says.
+  - *Gap.* The README is outside this lane's files. Parallel lanes 09–12 edit
+    rows of the same table, and the table is column-padded, so a longer cell
+    would rewrite every row.
+  - *Reach.* An agent reading the module table won't find `gun_tube` until
+    the coordinator updates the row.
+  - *Verdict.* Needs the coordinator. Provisional call: at the merge, change
+    the row to "Tank gun barrels, and machine guns on vehicle and aircraft
+    mounts". It fits the padded column.
+  - *Confidence:* high.
+- **Slice 08 is accepted with critique scores below the family bar.**
+  - *Scenario.* The last critique scored the four barrels 5/6/4/4/5. The bar
+    (no score below 6, an average of 7) is the family slices'. Every finding
+    behind the low scores is outside slice 08's one variable, which is
+    continuity: mantlets, camouflage mapping, taper, bands, the sensor's
+    shape. The critique confirmed continuity itself.
+  - *Gap.* The slice says "critique last" but gives no bar for a shared
+    slice.
+  - *Reach.* The routed findings become inputs to slices 17, 19 and 20.
+  - *Verdict.* Sound: the README's standing gate 3 sets the scored bar for
+    family slices.
+  - *Confidence:* medium-high.
+- **The ZTQ-15's sleeve now ends where its muzzle begins (redone after the
+  audit).**
+  - *Scenario.* The sleeve ran to `reach - 0.15` under a 0.16 m muzzle of the
+    same 0.080 radius. That left 1 cm of two coincident surfaces, which can
+    flicker (z-fight). The other three guns' sleeves already end exactly at
+    the muzzle.
+  - *Reach.* A 1 cm shorter sleeve at the muzzle. The crop re-renders
+    pixel-identical (pixelmatch 0), and the export lint shows 0 new issues.
+  - *Confidence:* high.

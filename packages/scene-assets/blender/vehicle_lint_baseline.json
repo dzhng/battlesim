@@ -530,6 +530,15 @@
         "mg_barrel"
       ],
       "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0394,
+      "message": "Part 'fume_extractor' is 3.9cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "fume_extractor"
+      ],
+      "severity": "error"
     }
   ],
   "eastern_9k515_tornado_s_heavy_rocket_artillery": [
@@ -5430,6 +5439,15 @@
       "message": "Part 'mg_barrel' is 2.5cm from nearest part (threshold: 2cm)",
       "parts": [
         "mg_barrel"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0394,
+      "message": "Part 'fume_extractor' is 3.9cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "fume_extractor"
       ],
       "severity": "error"
     }
@@ -20061,6 +20079,15 @@
         "wheel_R_4_tyre"
       ],
       "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0235,
+      "message": "Part 'gun_sleeve' is 2.3cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "gun_sleeve"
+      ],
+      "severity": "error"
     }
   ],
   "europe_vbl_machine_gun_scout": [
@@ -23272,6 +23299,15 @@
         "wheel_R_idler_body"
       ],
       "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0379,
+      "message": "Part 'fume_extractor' is 3.8cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "fume_extractor"
+      ],
+      "severity": "error"
     }
   ],
   "us_m10_booker": [
@@ -23522,6 +23558,15 @@
       "parts": [
         "tow_cable_R_clip_0",
         "turret_shell"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.034,
+      "message": "Part 'bore_evacuator' is 3.4cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "bore_evacuator"
       ],
       "severity": "error"
     }
@@ -27674,6 +27719,15 @@
         "wheel_R_sprocket_tooth_1"
       ],
       "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0243,
+      "message": "Part 'cannon_sleeve' is 2.4cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "cannon_sleeve"
+      ],
+      "severity": "error"
     }
   ],
   "us_m3_bradley_cfv_m3a3": [
@@ -28124,6 +28178,15 @@
       "parts": [
         "hull_upper",
         "wheel_R_sprocket_tooth_1"
+      ],
+      "severity": "error"
+    },
+    {
+      "check": "floating_part",
+      "distance_m": 0.0243,
+      "message": "Part 'cannon_sleeve' is 2.4cm from nearest part (threshold: 2cm)",
+      "parts": [
+        "cannon_sleeve"
       ],
       "severity": "error"
     }

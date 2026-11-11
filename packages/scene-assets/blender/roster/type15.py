@@ -26,6 +26,7 @@ import hull_shape as HS  # noqa: E402
 import roof_parts as RF  # noqa: E402
 import running_gear as RG  # noqa: E402
 import stowage as SW  # noqa: E402
+import vehicle_guns as VG  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
@@ -177,16 +178,15 @@ def turret(v, turret, gun, hmg, hmg_gun):
     cyl("panorama_post", 0.09, 0.04, (-0.55, -0.55, top + 0.02), "Z", m["dark"], mast, seg=12)
     RF.sight_housing("panorama_head", (-0.55, -0.55, top + 0.02), m, mast, size=(0.32, 0.30, 0.26))
     RF.hatch("loader_hatch", (-0.45, 0.50, top), m, turret, radius=0.26)
-    # The 105 mm: mantlet, sleeve, fume extractor, muzzle.
+    # The 105 mm: mantlet, barrel root, and the barrel with its sleeve, fume
+    # extractor and muzzle.
     reach = v.frame["mounts"][0]["muzzle_m"][0] - TRUNNION
     box("mantlet", (0.55, 0.55, 0.42), (0.20, 0, 0), m["paint"], gun, bevel=0.05)
     cyl("barrel_root", 0.12, 0.50, (0.70, 0, 0), "X", m["paint"], gun, seg=24)
-    evac = 2.2
-    for k, (a, b) in enumerate([(0.95, evac - 0.30), (evac + 0.30, reach - 0.15)]):
-        cyl(f"thermal_sleeve_{k}", 0.080, b - a, ((a + b) / 2, 0, 0), "X", m["paint"], gun, seg=22)
-    cyl("fume_extractor", 0.125, 0.50, (evac, 0, 0), "X", m["paint"], gun, seg=24, bevel=0.02)
-    cyl("muzzle_end", 0.080, 0.16, (reach - 0.08, 0, 0), "X", m["steel"], gun, seg=22)
-    cyl("muzzle_bore", 0.055, 0.012, (reach - 0.002, 0, 0), "X", m["black"], gun, seg=18, lods=MID)
+    evac, collar = 2.2, 0.50
+    VG.gun_tube("main_gun", gun, m, 0.45, reach, 0.070,
+                sleeve=(0.080, [(0.95, evac - collar / 2), (evac + collar / 2, reach - 0.16)]),
+                evacuator=(evac, 0.125, collar, 0), muzzle=(0.080, 0.16), bore=0.055)
     # The remote heavy machine gun station.
     lift = v.frame["mounts"][1]["muzzle_m"][2]
     cyl("rws_bearing", 0.20, 0.08, (0, 0, -0.04), "Z", m["dark"], hmg, seg=20)

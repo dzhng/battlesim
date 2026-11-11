@@ -26,10 +26,6 @@
       "reason": "Gun barrel root requires elevation clearance in mantlet"
     },
     {
-      "part_pattern": "*_sleeve",
-      "reason": "Gun sleeves require elevation clearance in mantlet"
-    },
-    {
       "part_pattern": "*_mg_port*",
       "reason": "Machine gun ports require traverse clearance for firing"
     },
@@ -56,14 +52,6 @@
     {
       "part_pattern": "wheel_*_idler_hub",
       "reason": "Idler hub: center touches wheel body, tips protrude for track guide"
-    },
-    {
-      "part_pattern": "fume_extractor",
-      "reason": "Gun barrel fume extractor: sleeve has clearance around barrel by design"
-    },
-    {
-      "part_pattern": "bore_evacuator",
-      "reason": "Bore evacuator sleeve: same as fume extractor, clearance around barrel"
     },
     {
       "part_pattern": "kornet_sight",
