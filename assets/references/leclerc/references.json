@@ -59,6 +59,7 @@
   "gaps": [
     "Leclerc XLR: one licensable photo on Commons (three-quarter front, Eurosatory 2022). No XLR side, rear, three_quarter_rear, front, top or detail.",
     "Pre-XLR Leclerc photos (variant leclerc_pre_xlr) show the shared hull, running gear and turret core only; the XLR's bar armour at the rear, side armour modules, PL1 remote weapon station and new sights are not in them.",
-    "Every XLR-specific part beyond the one photo must be judged from that photo or a generated view in a later pass."
+    "Every XLR-specific part beyond the one photo must be judged from that photo or a generated view in a later pass.",
+    "no free drawing; the frame survey measured a copyrighted pre-XLR two-side-and-top drawing in throwaway, which disagrees with the published hull length and roof (specs/tracked-armour-models/assets/frames/leclerc.json)"
   ]
 }

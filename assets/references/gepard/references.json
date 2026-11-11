@@ -46,6 +46,7 @@
   }
  ],
  "gaps": [
-  "europe_gepard_1a2: no top view; the search radar is drawn folded as on the museum cars"
+  "europe_gepard_1a2: no top view; the search radar is drawn folded as on the museum cars",
+  "no free drawing; the frame survey measured a copyrighted four-view in throwaway (specs/tracked-armour-models/assets/frames/gepard.json)"
  ]
 }
