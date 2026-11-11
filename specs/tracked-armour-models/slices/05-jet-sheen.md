@@ -75,3 +75,35 @@ tuning change, not renderer work.
 The user picks a different strength. The planning map's options were:
 - **subtle:** about 0.42;
 - **strong:** about 0.2, with slight metalness.
+
+## Result (2026-11-11, lane J)
+
+- **Shipped:** an effective roughness of `JET_ROUGH = 0.38` on the airframe
+  paint of every fixed-wing jet, against 0.55 satin. Metalness stays 0.
+  - `textures_air.jet_finish` registers a jet twin of the scheme's recipe,
+    with the same albedo, normal and wear and a smoother ORM.
+  - `aircraft_jet.jet` uses that twin when the unit's catalog flight model is
+    `fixed_wing`.
+  - A roughness factor wouldn't have survived: `textures.attach` resets it to
+    1 on worn materials.
+- **Re-exported:** all 18 fixed-wing scripts, 25 live appearances. Each GLB
+  differs from its last commit only in the paint's ORM image. The wrecks and
+  the Apache are byte-identical.
+- **Critique,** in three unprimed rounds (sheen, grey at the silhouette,
+  artifacts, overall):
+
+  | Roughness | Scores |
+  |---|---|
+  | 0.35 | 5/4/4/4 |
+  | 0.42 | 4/4/5/4 |
+  | 0.38 | 5/4/5/5 |
+
+  0.38 is the best of the three, but it is **below the bar**. What remains
+  isn't paint:
+  - the shaded sides already went dark teal at satin (the scene's light);
+  - there is no sun glow into the sun, at any roughness;
+  - gloss reveals the generated skins' ripples (slice 06).
+
+  The reference's own scene is brighter and graded.
+- **Evidence:** [`assets/experiments/05/`](../assets/experiments/05/README.md).
+  **Decisions:** J05-1 to J05-8 in [`decisions.md`](../decisions.md).

@@ -41,3 +41,15 @@ The smoothing technique (subdivision, or loft density).
 
 The user wants the jets moved off the generator right away. That would be a
 separate spec, not this one.
+
+## Result (2026-11-11, lane J)
+
+**Code wins on the surface for both airframes.** In one blind, unprimed
+critique round, the code's surface scored 6 against the skins' 4 (F-35A) and
+3 (Su-35S), and the code's mean was 5.6 against 4.6 on both. Neither reaches
+the make-3d-models bar yet. The coordinator adds "jets off the generator" to
+the README queue.
+
+The sheet, scores, telemetry and the throwaway smoothing script are in
+[`assets/experiments/06/`](../assets/experiments/06/README.md). The decisions
+are J06-1 to J06-3 in [`decisions.md`](../decisions.md).

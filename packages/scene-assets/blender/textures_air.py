@@ -4,18 +4,40 @@ registers them.
 """
 import numpy as np
 
-from textures import SIZE, Baked, _bands, blur, chips, fbm, mix, normals_from_height, recipe, scratches
+from textures import RECIPES, SIZE, Baked, _bands, baked, blur, chips, fbm, mix, normals_from_height, recipe, scratches
 
 
 # Aircraft and rotorcraft schemes: the air arms' greys and the army aviation
 # greens, from each family's references. Lighter than ground paint (a grey jet
 # is a light thing on screen) but kept off white so the battle's sun can't
 # blow them out, and a shade cooler than they would be under a white sun (the
-# battle's is warm); chipped edges in a paler tone of the same grey. Tactical
-# paint is satin, not gloss: it sheens toward the sun at a grazing angle
-# without mirroring the sky and the ground, so a curved skin keeps its grey
-# to the silhouette.
+# battle's is warm); chipped edges in a paler tone of the same grey. A
+# helicopter's paint is satin: it sheens toward the sun at a grazing angle
+# without mirroring the sky and the ground. A jet's is smoother (`JET_ROUGH`,
+# `jet_finish`): its skin is kept clean, and in the sun it carries the sky's
+# sheen and a sharper highlight on its curves, while its grey still holds to
+# the silhouette.
 AIR_ROUGH = 0.55
+JET_ROUGH = 0.38
+
+
+def jet_finish(name):
+    """The recipe a jet wears recipe `name` in, registered once as
+    `<name>_jet`: the same colours, relief and wear, its paint smoothed from
+    `AIR_ROUGH` to `JET_ROUGH` (its mottle keeps its share). Only its ORM
+    image differs, so the albedo and normal images stay shared."""
+    jet = f"{name}_jet"
+    if jet not in RECIPES:
+        tile, wear, _ = RECIPES[name]
+
+        def smoothed():
+            b = baked(name)
+            occlusion, rough, metal, tint = b.orm
+            return Baked(b.albedo, b.wear, b.normal, occlusion, rough * (JET_ROUGH / AIR_ROUGH), metal, tint,
+                         b.coverage)
+
+        RECIPES[jet] = (tile, wear, smoothed)
+    return jet
 
 
 def _cuts(rng, lo, hi):
