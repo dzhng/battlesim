@@ -171,7 +171,7 @@ def turret(v):
     cyl("muzzle_bore", bore_r, 0.012, (end + 0.005, 0, gun_z), "X", m["black"], h, seg=16, lods=MID)
     # Cupola with its machine gun, a hatch, sights, smoke banks, boxes.
     cx, cy = s["cupola"]
-    RF.cupola("commander_cupola", (cx, cy, top), m, h, radius=0.32, periscopes=5, lid_open=False)
+    RF.cupola("commander_cupola", (cx, cy, top), m, h, radius=0.32, periscopes=5)
     mg_z = top + 0.30
     box("mg_cradle", (0.30, 0.14, 0.12), (cx + 0.15, cy, mg_z - 0.08), m["dark"], h, lods=MID)
     if s["mg"] == "m2":

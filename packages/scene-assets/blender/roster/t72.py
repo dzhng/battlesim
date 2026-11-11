@@ -13,7 +13,7 @@ cheek, a row of rounded side modules wrapping its flanks, two rows of smaller
 blocks on the roof front, four smoke tubes a side, the gunner's Sosna-U sight
 box on the left, the commander's cupola with its heavy machine gun on the
 right, a stowage box and snorkel on the rear and a slat frame round the
-bustle. The commander rides head out.
+bustle.
 
 The T-72 hull, running gear, skirts, gun and cupola are the T-90M's too
 (`roster/t90.py` imports them): the T-90 is a T-72 derivative.
@@ -357,7 +357,6 @@ def build(variant, v):
     turret_body(v, turret)
     gun_2a46(v, gun)
     cupola_mg(v, hmg, hmg_gun)
-    v.head_out("commander", turret, -0.25, -0.58, 2.13)
 
 
 def wreck(variant, v):

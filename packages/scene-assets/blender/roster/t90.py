@@ -108,7 +108,7 @@ def turret_body(v, turret):
     cyl("commander_sight_drum", 0.24, 0.20, (0.25, -0.88, ROOF + 0.08), "Z", m["paint"], sights, seg=20,
         bevel=0.02, lods=MID)
     RF.sight_housing("commander_sight", (0.25, -0.88, ROOF + 0.18), m, sights, size=(0.40, 0.40, 0.10))
-    RF.cupola("commander_cupola", (-0.75, -0.58, ROOF - 0.06), m, turret, radius=0.30, periscopes=4, lid_open=False)
+    RF.cupola("commander_cupola", (-0.75, -0.58, ROOF - 0.06), m, turret, radius=0.30, periscopes=4)
     RF.hatch("gunner_hatch", (-0.45, 0.58, ROOF - 0.04), m, turret, radius=0.30)
 
 

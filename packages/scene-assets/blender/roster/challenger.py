@@ -14,12 +14,11 @@ stowage bins run along the bustle sides with bar armour round its rear; the
 gunner's sight barbette on the right front roof, the commander's sight and
 cupola behind it, the loader's hatch on the left, the remote weapon station
 on the commander's side and the electronic countermeasures table on posts at
-the rear of the roof. Commander and loader stand in their hatches.
+the rear of the roof.
 
 Built to the catalog frame (hull 8.3 x 4.2 x 2.49 m, turret pivot 0.2 m ahead
 of the hull's middle and 1.494 m up, cannon muzzle 5.561 m ahead): nothing
-here moves it; the turret and the crew in its hatches are built at the
-frame's pivot.
+here moves it; the turret is built at the frame's pivot.
 """
 import math
 import os
@@ -78,13 +77,11 @@ def build(variant, v):
                             RETURNS, bolts=8, teeth=12, arm=(0.55, -0.35), pitch=0.17)
     side_armour(v)
     mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
-    turret, gun, _, pivot = mounts["cannon"]
+    turret, gun, _, _ = mounts["cannon"]
     hmg, hmg_gun, _, _ = mounts["HMG"]
     turret_body(v, turret)
     main_gun(v, gun)
     weapon_station(v, hmg, hmg_gun)
-    v.head_out("commander", turret, pivot.x - 0.95, -0.72, pivot.z + ROOF - 0.04)
-    v.head_out("loader", turret, pivot.x - 0.45, 0.68, pivot.z + ROOF - 0.04, facing=0.4)
 
 
 # ---------------------------------------------------------------- hull

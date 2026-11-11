@@ -144,11 +144,6 @@ def build(variant, v):
     turret_body(v, turret, trophy)
     main_gun(v, gun, sep_v3)
     crows(v, hmg, hmg_gun, sep_v3)
-    # The commander head and shoulders out of his open hatch (photos: SEPv3
-    # three-quarter front).
-    px, py, pz = v.frame["mounts"][0]["pivot_m"]
-    hx, hy = COMMANDER
-    v.head_out("commander", turret, px + hx, py + hy, pz + ROOF)
 
 
 # ---------------------------------------------------------------- hull
@@ -337,7 +332,7 @@ def turret_body(v, turret, trophy):
 
 
 def commander_hatch(v, turret):
-    """The commander's hatch ring with its periscopes, the lid thrown open."""
+    """The commander's hatch ring with its periscopes, the lid closed on it."""
     m = v.mats
     x, y = COMMANDER
     cyl("commander_ring", 0.40, 0.08, (x, y, ROOF + 0.04), "Z", m["paint"], turret, seg=28, bevel=0.012, lods=MID)
@@ -345,10 +340,7 @@ def commander_hatch(v, turret):
         a = -1.0 + k * 0.5
         RF.periscope(f"commander_periscope_{k}", (x + 0.36 * math.cos(a), y + 0.36 * math.sin(a), ROOF + 0.07), m,
                      turret, size=(0.10, 0.12, 0.06), rot=(0, 0, a))
-    # Thrown open rearward, resting on its stop behind the ring.
-    cyl("commander_lid", 0.33, 0.05, (x - 0.70, y, ROOF + 0.08), "Z", m["paint"], turret, seg=28, bevel=0.012,
-        rot=(0, -0.10, 0), lods=MID)
-    box("commander_lid_stop", (0.06, 0.30, 0.10), (x - 0.42, y, ROOF + 0.05), m["dark"], turret, lods=NEAR)
+    cyl("commander_lid", 0.33, 0.05, (x, y, ROOF + 0.105), "Z", m["paint"], turret, seg=28, bevel=0.012, lods=MID)
 
 
 def trophy_station(v, turret, side, s, at, size, launcher_back, rear_drop=0.0, rear_cut=(0.0, 0.0)):

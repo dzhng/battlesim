@@ -12,8 +12,7 @@ deck's broad grille and the exhaust louvre in the rear plate. The cast turret
 carries the broad Relikt cheek kit, a band of flat panels round its front arc
 continuing as modules down its flanks, Relikt tiles on the roof front, smoke
 tubes, the gunner's sight on the left, the commander's cupola with its
-machine gun on the right, and stowage boxes and a slat cage on the rear. The
-commander rides head out.
+machine gun on the right, and stowage boxes and a slat cage on the rear.
 
 Gun, machine gun and Soviet skirts are the T-72's (`roster/t72.py`); the hull
 and running gear are the T-80's own.
@@ -142,7 +141,6 @@ def build(variant, v):
     turret_body(v, turret)
     gun_2a46(v, gun)
     cupola_mg(v, hmg, hmg_gun)
-    v.head_out("commander", turret, -0.25, -0.58, 2.10)
 
 
 def wreck(variant, v):
