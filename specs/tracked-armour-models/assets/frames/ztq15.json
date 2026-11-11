@@ -1,0 +1,133 @@
+{
+ "family": "ZTQ-15 (slice 19)",
+ "lane": "F-A",
+ "convention": "Frame axes: x forward, y left, z up, origin on the ground at the hull's middle. half_extents_m is the hull box (z: half the roof height). pivot_m is the turret ring centre; muzzle_m is from the pivot (turret frame). Measured stations are in the same axes.",
+ "thresholds": {
+  "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+  "pivot_x": "fix when off by more than 0.15 m",
+  "pivot_z_and_muzzle": "same as a hull dimension: max(0.10 m, 3 % of the value)"
+ },
+ "glbs": "assets/source/roster/type15/*.glb as committed at 2a68e25d7",
+ "drawings": [],
+ "units": {
+  "eastern_type_15_ztq_15_light_tank": {
+   "published": {
+    "hull_length_m": 7.5,
+    "gun_forward_m": 9.2,
+    "width_m": 3.3,
+    "height_m": 2.5,
+    "source": "weaponsystems.net ZTQ15 and Chinese press figures: 7.5 hull, 9.2 gun forward, 3.3 wide with appliqué, 2.5 to the turret roof"
+   },
+   "frame": {
+    "half_extents_m": [
+     3.65,
+     1.675,
+     1.25
+    ],
+    "eye_m": 2.44,
+    "mounts": {
+     "cannon": {
+      "pivot_m": [
+       0,
+       0,
+       1.68
+      ],
+      "muzzle_m": [
+       5.36,
+       0,
+       0.504
+      ]
+     },
+     "HMG": {
+      "pivot_m": [
+       -0.25,
+       -0.58,
+       2.44
+      ],
+      "muzzle_m": [
+       1.43,
+       0,
+       0.32
+      ],
+      "on": "cannon"
+     }
+    }
+   },
+   "measured": {
+    "from_side_photo": "assets/references/type15/eastern_type_15_ztq_15_light_tank-side.jpg (low resolution, gun raised): the turret is about 55 % of the hull's length (about 4.0 m) and its centre sits about 0.15 m behind the hull's middle",
+    "model": {
+     "turret_body_x_m": [
+      -2.144,
+      1.735
+     ],
+     "turret_centre_x_m": -0.2
+    }
+   },
+   "verdicts": [
+    {
+     "field": "half_extents_m[0]",
+     "frame": 3.65,
+     "verdict": "keep",
+     "measured": 3.75,
+     "source": "published 7.5",
+     "why": "0.2 m short, inside 3 % (0.225 m)"
+    },
+    {
+     "field": "half_extents_m[1]",
+     "frame": 1.675,
+     "verdict": "keep",
+     "measured": 1.65,
+     "source": "published 3.3"
+    },
+    {
+     "field": "half_extents_m[2]",
+     "frame": 1.25,
+     "verdict": "keep",
+     "measured": 1.25,
+     "source": "published 2.5"
+    },
+    {
+     "field": "cannon.pivot_m[0]",
+     "frame": 0,
+     "verdict": "keep",
+     "source": "side photo; the model's turret centre agrees"
+    },
+    {
+     "field": "cannon.muzzle_m[0]",
+     "frame": 5.36,
+     "verdict": "keep",
+     "measured": 5.35,
+     "source": "9.2 - 7.5 = 1.7 past the front: 3.65 + 1.7"
+    },
+    {
+     "field": "eye_m",
+     "frame": 2.44,
+     "verdict": "keep",
+     "source": ""
+    },
+    {
+     "field": "HMG",
+     "frame": "pivot and muzzle",
+     "verdict": "keep",
+     "source": ""
+    }
+   ],
+   "notes": [
+    {
+     "note": "turret shape seems wrong",
+     "classification": "art",
+     "why": "the frame's size and pivot agree with the published figures and the side photo. The shape is the art's: a flat wedge front, flat slab sides of modular armour and a tall, square bustle box (the display photo and the VT-5 quarters)"
+    }
+   ]
+  }
+ },
+ "overlays": {
+  "eastern_type_15_ztq_15_light_tank": []
+ },
+ "gaps": [
+  "No drawing exists (Commons, the-blueprints.com and the open web searched 2026-11-11), so there is no overlay. The Q4 ladder's third step (a generated orthographic view) is left to slice 19, which rebuilds the turret anyway."
+ ],
+ "questions": {
+  "9": "ZTQ-15 'turret shape seems wrong' is art."
+ }
+}

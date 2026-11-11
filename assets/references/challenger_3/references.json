@@ -59,6 +59,7 @@
  ],
  "gaps": [
   "europe_challenger_challenger_3: no licensable photo exists (Commons holds three, all OGL); every view is generated from the Challenger 2 references and the published description, so turret details (Trophy placement, sight heads, RWS) are guesses",
-  "europe_challenger_challenger_3: the hull and running gear are the Challenger 2 references' (assets/references/challenger/)"
+  "europe_challenger_challenger_3: the hull and running gear are the Challenger 2 references' (assets/references/challenger/)",
+  "europe_challenger_challenger_3: no free three-view drawing exists (Commons and the open web searched 2026-11-11). The tracked-armour-models frame survey measured copyrighted drawings outside the repo and kept only the numbers, with their sources."
  ]
 }
