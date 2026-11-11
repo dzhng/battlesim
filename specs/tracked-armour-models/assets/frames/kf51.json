@@ -1,0 +1,146 @@
+{
+  "family": "kf51",
+  "lane": "F-B",
+  "slice": "07",
+  "surveyed": "2026-11-11",
+  "glbs": "assets/source/roster/<family>/ as committed at 2a68e25d7 (the spec commit); probed tier 0 in vehicle mode (wheels and tracks kept, dressing_* skipped)",
+  "convention": {
+    "hull_box": "reaches the hull and turret roof; where a bulky sight stands more than the 0.3 m bulky dressing allowance over the roof, the top is the sight's top less 0.3 m (decisions.md F-B1)",
+    "pivot": "centre of the turret ring; for a fixed mount, the point it is drawn hinged on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "pivot_m + muzzle_m at rest, at the real barrel or launch point",
+    "frame": "hull box centred on x = 0 and y = 0, standing on z = 0; +x forward, +y left"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot_x": "fix when off by more than 0.15 m",
+    "muzzle_point": "fix when the world muzzle point is off by more than 0.15 m on any axis (added by lane F-B, decisions.md F-B3)",
+    "eye_m": "kept unless a source contradicts it; nothing measured here does"
+  },
+  "sources": [
+    {
+      "id": "rheinmetall",
+      "kind": "published",
+      "ref": "https://www.armyrecognition.com/military-products/army/main-battle-tanks/main-battle-tanks/kf51-panther-mbt-main-battle-tank-germany-technical-data-fact-sheet",
+      "note": "7.8 m hull, 3.7 m wide, 2.5 m high, about 10 m gun forward (Wikidata cites Rheinmetall's page for 7.8 / 3.7 / 2.5 m)"
+    },
+    {
+      "id": "photos",
+      "kind": "photo",
+      "ref": "assets/references/kf51/europe_kf51_panther_prototype_main_battle_tank-three_quarter_front.jpg, -front.jpg",
+      "note": "three-quarter and head-on only; kf51u-side.jpg is a close crop of the KF51U. Nothing measurable in a clean side view"
+    }
+  ],
+  "appearances": {
+    "europe_kf51_panther_prototype_main_battle_tank": {
+      "published": {
+        "length_m": 7.8,
+        "length_gun_forward_m": "about 10",
+        "width_m": 3.7,
+        "height_m": 2.5,
+        "source": "rheinmetall"
+      },
+      "frame": {
+        "half_extents_m": [
+          3.9,
+          1.85,
+          1.25
+        ],
+        "eye_m": 2.35,
+        "mounts": [
+          {
+            "id": "cannon",
+            "pivot_m": [
+              0.3,
+              0,
+              1.5
+            ],
+            "muzzle_m": [
+              6.1,
+              0,
+              0.45
+            ]
+          },
+          {
+            "id": "HMG",
+            "pivot_m": [
+              0.05,
+              -0.58,
+              2.35
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ],
+            "on": "cannon"
+          }
+        ]
+      },
+      "verdicts": [
+        {
+          "field": "half_extents_m",
+          "old": [
+            3.9,
+            1.85,
+            1.25
+          ],
+          "verdict": "keep",
+          "source": "rheinmetall"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.35,
+          "verdict": "keep"
+        },
+        {
+          "field": "mounts.cannon.pivot_m",
+          "old": [
+            0.3,
+            0,
+            1.5
+          ],
+          "verdict": "keep",
+          "note": "the Leopard 2A4 hull and ring, as the 2A6's"
+        },
+        {
+          "field": "mounts.cannon.muzzle_m",
+          "old": [
+            6.1,
+            0,
+            0.45
+          ],
+          "verdict": "keep",
+          "confidence": "low",
+          "note": "world x 6.4 m (10.3 m overall). Rheinmetall's rounded 'about 10 m' says 6.1 m (and 6.1 is the offset, the unsubtracted-pivot pattern); a 6.63 m L51 barrel on the Leopard 2 ring, scaled from the 2A6 (L55, 3.27 m past the nose), says about 7.2 m. The frame sits between two sources that disagree by more than the threshold, so it stays; slice 23 measures the drawn barrel when it rebuilds it"
+        },
+        {
+          "field": "mounts.HMG",
+          "old": {
+            "pivot_m": [
+              0.05,
+              -0.58,
+              2.35
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          },
+          "verdict": "keep"
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "No drawing of the KF51 exists, free or on the-blueprints.com, and the photos are three-quarter views. No generated view was made: the published box agrees with the frame and a generated side view could not settle the barrel, which is the one open number.",
+    "views": []
+  },
+  "notes": [
+    {
+      "note": "turret and barrel shape wrong",
+      "class": "art",
+      "why": "The frame's box and pivot agree with Rheinmetall. The model's turret is a short wedge set back on the hull; the photos show a long, flat, faceted turret whose sloped front runs out over the glacis, and a long thin 130 mm barrel with a large muzzle. Slice 23 rebuilds both with gun_tube; the muzzle's reach is the open number (see the verdict)."
+    }
+  ]
+}

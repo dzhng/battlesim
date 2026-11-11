@@ -1,0 +1,140 @@
+{
+  "family": "buk",
+  "lane": "F-B",
+  "slice": "07",
+  "surveyed": "2026-11-11",
+  "glbs": "assets/source/roster/<family>/ as committed at 2a68e25d7 (the spec commit); probed tier 0 in vehicle mode (wheels and tracks kept, dressing_* skipped)",
+  "convention": {
+    "hull_box": "reaches the hull and turret roof; where a bulky sight stands more than the 0.3 m bulky dressing allowance over the roof, the top is the sight's top less 0.3 m (decisions.md F-B1)",
+    "pivot": "centre of the turret ring; for a fixed mount, the point it is drawn hinged on (only pivot + muzzle reaches the simulation)",
+    "muzzle": "pivot_m + muzzle_m at rest, at the real barrel or launch point",
+    "frame": "hull box centred on x = 0 and y = 0, standing on z = 0; +x forward, +y left"
+  },
+  "thresholds": {
+    "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+    "pivot_x": "fix when off by more than 0.15 m",
+    "muzzle_point": "fix when the world muzzle point is off by more than 0.15 m on any axis (added by lane F-B, decisions.md F-B3)",
+    "eye_m": "kept unless a source contradicts it; nothing measured here does"
+  },
+  "sources": [
+    {
+      "id": "photo-side",
+      "kind": "photo",
+      "ref": "assets/references/buk/eastern_buk_buk_m3_medium_range_air_defense-side.jpg",
+      "note": "nose right, launcher and radar raised. Hull 1391 px. The turret (radar at the front, launcher behind it) spans 0.43 to 1.03 of the hull length from the tail; its base box centres at 0.73. Rear drive sprocket, engine deck behind the turret"
+    },
+    {
+      "id": "photo-rear",
+      "kind": "photo",
+      "ref": "assets/references/buk/eastern_buk_buk_m3_medium_range_air_defense-three_quarter_rear.jpg",
+      "note": "confirms the layout: a low engine deck at the rear, the turret forward with the radar facing forward, the launcher hinged at the turret's rear"
+    },
+    {
+      "id": "armyrecognition-m2",
+      "kind": "published",
+      "ref": "https://www.armyrecognition.com/military-products/army/air-defense-systems/air-defense-vehicles/buk-m2-sa-17-grizzly-russia-uk",
+      "note": "9A317 TELAR 8.0 x 3.3 x 3.8 m; the same figure is repeated for most vehicles of the system, so it is weak. Other sources give 9.3 x 3.25 x 3.8 m for the M1/M2 TELAR; none was found for the M3's 9A317M"
+    }
+  ],
+  "appearances": {
+    "eastern_buk_buk_m3_medium_range_air_defense": {
+      "published": {
+        "length_m": "8.0 to 9.3 (sources disagree; none for the 9A317M)",
+        "width_m": 3.3,
+        "height_m": 3.8,
+        "source": "armyrecognition-m2"
+      },
+      "frame": {
+        "half_extents_m": [
+          4.876,
+          1.6,
+          1.78
+        ],
+        "eye_m": 2.4,
+        "mounts": [
+          {
+            "id": "launcher",
+            "pivot_m": [
+              -2.45,
+              0,
+              2.37
+            ],
+            "muzzle_m": [
+              2.5,
+              0,
+              0.59
+            ]
+          }
+        ],
+        "mobility": "wheeled (extends roster_profile_wheeled_ifv)"
+      },
+      "verdicts": [
+        {
+          "field": "half_extents_m",
+          "old": [
+            4.876,
+            1.6,
+            1.78
+          ],
+          "verdict": "keep",
+          "confidence": "low",
+          "note": "No trustworthy published dimension; the photos have no scale. But 9.75 m is past the tracked cap (4.8 m half-length), which matters once the mobility is fixed (see findings); 9.3 m is the best-supported figure then"
+        },
+        {
+          "field": "eye_m",
+          "old": 2.4,
+          "verdict": "keep"
+        },
+        {
+          "field": "mounts.launcher.pivot_m",
+          "old": [
+            -2.45,
+            0,
+            2.37
+          ],
+          "new": [
+            2.0,
+            0,
+            2.37
+          ],
+          "verdict": "fix",
+          "source": "photo-side, photo-rear",
+          "confidence": "low (x +/- 0.5 m)",
+          "note": "The frame and the art put the turret at the rear behind a cab; the real TELAR's turret stands forward of mid-hull over a rear engine deck, its base centred about 0.23 of the hull length ahead of the middle"
+        },
+        {
+          "field": "mounts.launcher.muzzle_m",
+          "old": [
+            2.5,
+            0,
+            0.59
+          ],
+          "new": [
+            0.3,
+            0,
+            0.93
+          ],
+          "verdict": "fix",
+          "source": "photo-side",
+          "confidence": "low",
+          "note": "In travel the six containers lie on the turret with their noses forward against the radar's back face, about x 2.3 m and z 3.3 m (old world point [0.05, 0, 2.96] m)"
+        }
+      ]
+    }
+  },
+  "overlays": {
+    "note": "No drawing of the Buk-M3 exists free; the-blueprints.com sells vectors only. No generated view was made: the open questions are the layout and the length, and a generated view would guess both.",
+    "views": []
+  },
+  "notes": [
+    {
+      "note": "needs more detail",
+      "class": "art",
+      "frame_part": "the launcher pivot and muzzle (fix), and the mobility and length (unresolved)",
+      "why": "Beyond detail, the layout is wrong: the model draws a crew cab at the front and the launcher on a turret at the rear; the real 9A317M has no cab, a large forward turret carrying the radar in front and the six-container launcher behind it, and a low engine deck at the rear. Slice 24's buk.py rebuilds the layout first, then adds the radar, rails and fittings."
+    }
+  ],
+  "findings": [
+    "The Buk-M3 extends roster_profile_wheeled_ifv, so the simulation drives it on wheels; the real vehicle and its art are tracked (GM-569 chassis, track_gauge 0.75 in assets/catalog.json). Changing the mobility profile is a gameplay change outside the frame survey; once tracked, its 4.876 m half-length breaks the 4.8 m tracked cap and must drop (9.3 m suggested). Named for the coordinator."
+  ]
+}
