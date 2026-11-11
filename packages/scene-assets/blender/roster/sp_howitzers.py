@@ -133,11 +133,13 @@ def turret(v):
     deck = s["deck"]
     top = deck + height
     half_w = width / 2
+    # The flanks stand straight to the waist, then lean in by `tuck` to the crown.
+    waist, tuck = 0.55, 0.08
     foot = [(front, half_w - 0.45), (front - 0.40, half_w), (rear, half_w), (rear, -half_w), (front - 0.40, -half_w),
             (front, -half_w + 0.45)]
-    crown = [(front - 0.40, half_w - 0.55), (front - 0.75, half_w - 0.08), (rear + 0.05, half_w - 0.08),
-             (rear + 0.05, -half_w + 0.08), (front - 0.75, -half_w + 0.08), (front - 0.40, -half_w + 0.55)]
-    loft("turret_shell", [(deck, foot), (deck + height * 0.55, foot), (top, crown)], mat=m["paint"], parent=h,
+    crown = [(front - 0.40, half_w - 0.55), (front - 0.75, half_w - tuck), (rear + 0.05, half_w - tuck),
+             (rear + 0.05, -half_w + tuck), (front - 0.75, -half_w + tuck), (front - 0.40, -half_w + 0.55)]
+    loft("turret_shell", [(deck, foot), (deck + height * waist, foot), (top, crown)], mat=m["paint"], parent=h,
          bevel=0.05)
     gun_x, gun_z, length, bore_r = s["gun"]
     # Mantlet, barrel, evacuator, muzzle brake.
@@ -183,8 +185,11 @@ def turret(v):
                            (0.95, 0.22, 0.55), m, h, rot=(0, 0, 0 if side > 0 else math.pi))
         whip = empty(f"dressing_antenna_{sd}", parent=h)
         VP.antenna(f"antenna_{sd}", (rear + 0.35, side * (half_w - 0.30), top), m, whip, height=2.2)
-        stencil(f"turret_number_{sd}", s["label"], 0.24, (rear + 1.6, side * (half_w + 0.004), deck + height * 0.75),
-                (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], h)
+        # Painted on the leaning flank above the waist, lying on it.
+        at, lean = 0.75, math.atan2(tuck, height * (1 - waist))
+        flank = half_w - tuck * (at - waist) / (1 - waist)
+        stencil(f"turret_number_{sd}", s["label"], 0.24, (rear + 1.6, side * (flank + 0.004), deck + height * at),
+                (math.pi / 2 - lean, 0, math.pi if side > 0 else 0), m["marking"], h)
     VP.bolted_panel("turret_rear_door", (rear - 0.02, 0, deck + 0.35), (0.05, 0.95, 0.85), m, h, bolts=(1, 3),
                     bevel=0.015, lods=VP.ALL)
     VP.tarp_roll("turret_roll", (rear + 0.45, 0, top + 0.12), 1.5, 0.13, m, h, straps=3)
