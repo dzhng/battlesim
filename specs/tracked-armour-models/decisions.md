@@ -217,3 +217,92 @@ Three drafts, each with a different lens: fewest slices (Opus), risk first
   not ignored (`.gitignore:6` ignores only `throwaway/`). The lineup record now
   lives in `assets/before/`. Everything else moved to
   `throwaway/tracked-lineup/` when the spec was written.
+
+## Lane F-A, frame survey (slice 07, 2026-11-11)
+
+T-72 family, Armata, ZTQ-15 and the Challengers. The numbers and their sources
+are in `assets/frames/{t72,armata,ztq15,challengers}.json`.
+
+- **FA1 Thresholds.** The slice's two stand: a hull dimension is fixed past
+  max(0.10 m, 3 %), and a pivot past 0.15 m along x. The slice named none for
+  a muzzle or a pivot height, so both take the hull-dimension rule. The T-72B3
+  muzzle (0.20 m against a 0.19 m threshold) is the only marginal row.
+- **FA2 Which source wins.** A published figure wins when a drawing's own
+  proportions agree with it, and the drawing is then scaled by it. When two
+  independent measurements (a drawing and a photo) agree against one
+  unreferenced published figure, the measurements win, because the published
+  heights for the ZTZ-99A ("hull height") and the T-14 (3.3 m, to the roof
+  sensors) measure something other than the roof. Wikipedia's 13.5 m gun
+  forward for the Challenger 2 is rejected: the L30A1 is 6.6 m, and the
+  drawing agrees with 11.55 m.
+- **FA3 No free drawings exist.** None of the nine models has a free
+  three-view drawing on Commons or the open web, so the Q4 ladder's first step
+  is empty. The drawings measured are the-blueprints.com sheets, which are
+  copyrighted. They and the overlays made from them (which carry their line
+  art) stay in the lane's `throwaway/`, and only numbers are committed. So
+  `visualizations/frames.html` cannot embed this lane's overlays. The
+  coordinator has to choose between showing only the station numbers and
+  re-rendering the overlays without the drawing's lines.
+- **FA4 The overlay's vehicle mode stands side and front views on the ground
+  line.** Centring on the bounding box let a drawing's antenna lift its centre
+  and float the model off its tracks.
+- **FA5 T-90M: the pivot stays at x = 0 (question 1).** The T-72 hull's ring
+  sits at mid-hull, and the T-90M shares it. The note is art: the turret is
+  drawn about 0.75 m ahead of the drawing's, and its bustle is about 1.6 m short.
+- **FA6 T-14 height: a large named change, at medium confidence.** The roof
+  drops from 3.3 to 2.75 m, with the ring, gun axis, HMG and eye following it.
+  Two drawings and a photo agree that the roof is 0.5-0.7 m below the frame's,
+  but no two share a scale anchor. The T-15 shares the chassis but has no
+  drawing, so its height is kept and named as unverified.
+- **FA7 The Challenger 3 gets its own cannon muzzle.** It inherits the
+  Challenger 2's frame. Its L55A1 reaches 11.3 m gun forward against the
+  Challenger 2's 11.55 m, so it needs a muzzle override (6.95 m) once the
+  Challenger 2's moves to 7.1 m.
+- **FA8 ZTQ-15 and T-15 have no overlay.** No drawing of either exists. The
+  ZTQ-15 gains a low-resolution CC-BY-4.0 side photo, which is enough for
+  proportions. A generated orthographic view (the ladder's third step) is left
+  to slices 18 and 19, which rebuild the turrets anyway.
+- **FA9 Frame files are written as rows that slice 15 can apply.** Each
+  `assets/frames/<family>.json` holds, for each unit, its `published`
+  numbers, its current `frame`, what was `measured`, and a list of
+  `verdicts`. A verdict is one row per frame number, for example
+  `{"field": "cannon.muzzle_m[0]", "frame": 5.561, "verdict": "fix",
+  "new": 7.1, "source": …, "why": …}`, followed by `notes`, `overlays` (the
+  station readouts) and `questions`.
+  - The slice listed the contents but not their shape. Slice 15 reads `new`
+    straight into the roster, and `frames.html` reads the station arrays.
+  - The four files are named `t72`, `armata`, `ztq15` and `challengers`,
+    after the family slices 17-20.
+  - Agent's call; confidence high.
+- **FA10 Some drawings are scaled by the model's own road-wheel pitch,
+  checked against a published number.** The T-90M sheet's published length
+  and its proportions disagree by about 8 %, and the T-72B line drawing has
+  no clean end-to-end span. Their scale comes from the spacing of their
+  road-wheel centres, set to the model's spacing (0.81 m). A published width
+  or gun-forward length then confirms it: the T-90M's width comes out at
+  3.79 m against the published 3.78.
+  - The catch is that the model scales the reference, which is circular if
+    the model's wheel pitch is itself wrong. The independent check guards
+    against that.
+  - Agent's call; confidence medium.
+- **FA11 The T-14's eye and HMG heights are derived, not measured.** Once its
+  roof drops to 2.75 m, the HMG pivot is set to 2.8 m (its weapon station
+  sits on the roof) and `eye_m` to 3.0 m (the commander's panoramic sight
+  head, read at 2.9-3.1 m in the line drawing).
+  - These follow from the roof fix rather than from a separate measurement.
+    Slice 15 must check that `dressing_panorama` fits the 0.3 m bulky
+    allowance over the new roof.
+  - Agent's call; confidence medium-low.
+- **FA12 The final thresholds live here, not in slice 07.** The slice asks
+  for them in its own file, but that file is shared by three parallel lanes.
+  Editing it would conflict at merge, so FA1 holds them and the coordinator
+  may copy them into the slice.
+  - Agent's call; confidence high.
+- **FA13 Two near-threshold rows are left for slice 15 to name.**
+  - The T-90M muzzle (6.2 m) is kept because it is inside 3 %. It shares the
+    T-72B3's gun and hull, though, and that tank's muzzle is fixed to 6.1, so
+    aligning both is a named choice.
+  - The Challenger 2 pivot (+0.2 m) is kept at low confidence. The only
+    evidence is the commander's cupola at -0.42 m in a top drawing, which puts
+    the ring near the hull's middle.
+  - Agent's call; confidence medium.

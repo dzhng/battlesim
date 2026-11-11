@@ -1,0 +1,472 @@
+{
+ "family": "Armata (slice 18)",
+ "lane": "F-A",
+ "convention": "Frame axes: x forward, y left, z up, origin on the ground at the hull's middle. half_extents_m is the hull box (z: half the roof height). pivot_m is the turret ring centre; muzzle_m is from the pivot (turret frame). Measured stations are in the same axes.",
+ "thresholds": {
+  "hull_dimension": "fix when off by more than max(0.10 m, 3 %)",
+  "pivot_x": "fix when off by more than 0.15 m",
+  "pivot_z_and_muzzle": "same as a hull dimension: max(0.10 m, 3 % of the value)"
+ },
+ "glbs": "assets/source/roster/{t14,t15}/*.glb as committed at 2a68e25d7",
+ "drawings": [
+  {
+   "id": "t14_line",
+   "page": "https://www.the-blueprints.com/blueprints/tanks/tanks-t/88139/view/t_14_armata/",
+   "shows": "T-14 side (line)",
+   "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
+   "scale_px_per_m": 270.0,
+   "scale_from": "gun forward 10.8 m over muzzle..rear screen (2917 px); the hull then measures 8.27 m with the screen, so a scale from the 8.7 m hull would be 257 px/m",
+   "views": {
+    "side": [
+     0,
+     0,
+     2999,
+     991
+    ]
+   }
+  },
+  {
+   "id": "t14_3view",
+   "page": "https://www.the-blueprints.com/blueprints/tanks/tanks-t/81928/view/t_14_armata/",
+   "shows": "T-14 side, top, front, rear (shaded)",
+   "licence": "copyrighted (the-blueprints.com); measured in throwaway/, not committed",
+   "scale_px_per_m": 127.6,
+   "scale_from": "gun forward 10.8 m over its side view; its front view gives 147 px/m from the 3.5 m width",
+   "views": {
+    "top": [
+     0,
+     527,
+     1405,
+     1086
+    ],
+    "front": [
+     225,
+     1113,
+     780,
+     1592
+    ]
+   }
+  }
+ ],
+ "units": {
+  "eastern_t_14_armata_main_battle_tank": {
+   "published": {
+    "hull_length_m": 8.7,
+    "gun_forward_m": 10.8,
+    "width_m": 3.5,
+    "height_m": 3.3,
+    "source": "en.wikipedia.org T-14 Armata (Army Recognition): 10.8 gun forward, 3.5 wide, 3.3 high; hull 8.7 m (Army Recognition)"
+   },
+   "frame": {
+    "half_extents_m": [
+     4.35,
+     1.75,
+     1.65
+    ],
+    "eye_m": 3.162,
+    "mounts": {
+     "cannon": {
+      "pivot_m": [
+       -0.3,
+       0,
+       1.98
+      ],
+      "muzzle_m": [
+       6.75,
+       0,
+       0.594
+      ]
+     },
+     "HMG": {
+      "pivot_m": [
+       -0.55,
+       -0.58,
+       3.162
+      ],
+      "muzzle_m": [
+       1.43,
+       0,
+       0.32
+      ],
+      "on": "cannon"
+     }
+    }
+   },
+   "measured": {
+    "roof_m": "2.67-2.81: 3.12 road-wheel pitches over the ground in t14_line (2.81 at the model's 0.90 m pitch; 2.67 at the hull-length scale); t14_3view front 2.48; the side photo gives at most 2.74-3.04, inflated by its raised camera",
+    "deck_m": 1.81,
+    "gun_axis_m": 2.26,
+    "rws_and_panorama_top_m": "2.9-3.1",
+    "turret_body_x_m": {
+     "front": 1.7,
+     "bustle_rear": -3.0,
+     "centre": -0.63
+    },
+    "model": {
+     "overall_length_m": 10.8,
+     "roof_m": 3.39,
+     "hull_top_m": 2.43,
+     "gun_axis_m": 2.574,
+     "turret_body_x_m": [
+      -2.824,
+      1.464
+     ]
+    }
+   },
+   "verdicts": [
+    {
+     "field": "half_extents_m[0]",
+     "frame": 4.35,
+     "verdict": "keep",
+     "source": "published 8.7"
+    },
+    {
+     "field": "half_extents_m[1]",
+     "frame": 1.75,
+     "verdict": "keep",
+     "source": "published 3.5"
+    },
+    {
+     "field": "half_extents_m[2]",
+     "frame": 1.65,
+     "verdict": "fix",
+     "measured": 1.375,
+     "new": 1.375,
+     "source": "t14_line, t14_3view and the side photo",
+     "why": "the published 3.3 m reaches the roof sensors and the weapon station, not the turret roof (2.67-2.81 m). The model overruns the drawing's outline over the whole turret and deck"
+    },
+    {
+     "field": "cannon.pivot_m[0]",
+     "frame": -0.3,
+     "verdict": "keep",
+     "measured": -0.3,
+     "source": "t14_line: the turret's centre sits 0.63 m behind the hull's middle, as the model's does (-0.68)"
+    },
+    {
+     "field": "cannon.pivot_m[2]",
+     "frame": 1.98,
+     "verdict": "fix",
+     "measured": 1.81,
+     "new": 1.8,
+     "source": "t14_line deck at the turret"
+    },
+    {
+     "field": "cannon.muzzle_m[0]",
+     "frame": 6.75,
+     "verdict": "keep",
+     "source": "published 10.8 - 8.7 = 2.1 past the front (4.35 + 2.1 + 0.3 = 6.75)"
+    },
+    {
+     "field": "cannon.muzzle_m[2]",
+     "frame": 0.594,
+     "verdict": "fix",
+     "measured": 0.46,
+     "new": 0.46,
+     "source": "t14_line gun axis 2.26 m over the new 1.8 m ring"
+    },
+    {
+     "field": "HMG.pivot_m[2]",
+     "frame": 3.162,
+     "verdict": "fix",
+     "measured": 2.8,
+     "new": 2.8,
+     "source": "the weapon station's base sits on the 2.75 m roof"
+    },
+    {
+     "field": "eye_m",
+     "frame": 3.162,
+     "verdict": "fix",
+     "measured": 3.0,
+     "new": 3.0,
+     "source": "the commander's panoramic sight head, 2.9-3.1 m",
+     "why": "dressing_panorama must then fit the 0.3 m bulky allowance over the 2.75 m roof; check it in slice 15"
+    }
+   ],
+   "notes": [],
+   "confidence": "medium: three measurements agree the roof is 0.5-0.7 m below the frame's, but no two share a scale anchor. This is the largest digest change in the lane (the box loses 17 % of its height)"
+  },
+  "eastern_t_15_armata_heavy_ifv": {
+   "published": {
+    "hull_length_m": "9.5-9.65",
+    "width_m": 3.5,
+    "height_m": null,
+    "source": "en.wikipedia.org T-15 Armata (9.65 length); no height or width given"
+   },
+   "frame": {
+    "half_extents_m": [
+     4.75,
+     1.75,
+     1.6
+    ],
+    "eye_m": 3.2,
+    "mounts": {
+     "autocannon": {
+      "pivot_m": [
+       -1.2,
+       0,
+       2.22
+      ],
+      "muzzle_m": [
+       2.94,
+       0,
+       0.504
+      ]
+     },
+     "launcher": {
+      "pivot_m": [
+       -1.2,
+       1.3,
+       2.696
+      ],
+      "muzzle_m": [
+       1.05,
+       0,
+       0
+      ],
+      "on": "autocannon"
+     }
+    }
+   },
+   "measured": {
+    "barrel": "2A42: 2.416 m barrel (KBP); about 2.2 m shows ahead of the mantlet. In the library's static quarter photo the exposed barrel is 1.9 times the 1.2 m Kornet-EM container beside it, about 2.3 m",
+    "model": {
+     "mantlet_x_m": 0.08,
+     "barrel_drawn_m": 1.54,
+     "barrel_radius_m": 0.05,
+     "muzzle_world_x_m": 1.74
+    }
+   },
+   "verdicts": [
+    {
+     "field": "half_extents_m",
+     "frame": [
+      4.75,
+      1.75,
+      1.6
+     ],
+     "verdict": "keep",
+     "source": "published length within 3 %; no drawing; height unverified",
+     "why": "the T-14 finding (roof 0.6 m below its frame) may carry over to the shared chassis; no T-15 drawing exists to test it"
+    },
+    {
+     "field": "autocannon.pivot_m",
+     "frame": [
+      -1.2,
+      0,
+      2.22
+     ],
+     "verdict": "keep",
+     "source": "no evidence against it"
+    },
+    {
+     "field": "autocannon.muzzle_m[0]",
+     "frame": 2.94,
+     "verdict": "fix",
+     "measured": 3.4,
+     "new": 3.4,
+     "source": "2A42 barrel 2.416 m; quarter photo against the Kornet container",
+     "why": "the mantlet sits 1.28 m ahead of the ring in the model; 1.28 + about 2.2 m of exposed barrel gives 3.4 (plus or minus 0.15). That is 0.46 m past the frame"
+    },
+    {
+     "field": "launcher",
+     "frame": "pivot and muzzle",
+     "verdict": "keep",
+     "source": ""
+    }
+   ],
+   "notes": [
+    {
+     "note": "gun barrel is too small",
+     "classification": "frame + art",
+     "frame_part": "muzzle_m x 2.94 -> 3.4 (question 6)",
+     "art_part": "draw the barrel with gun_tube to the new muzzle: about 2.2 m ahead of the mantlet, a thick jacket over its rear half, not 1.54 m at a 5 cm radius"
+    }
+   ]
+  }
+ },
+ "overlays": {
+  "eastern_t_14_armata_main_battle_tank": [
+   {
+    "view": "side",
+    "drawing": "t14_line",
+    "scale_px_per_m": 270.0,
+    "long_axis_m": 10.985,
+    "drawing_extent_m": [
+     10.98,
+     3.58
+    ],
+    "model_extent_m": [
+     10.8,
+     3.63
+    ],
+    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+    "drawing_across_m": [
+     0.01,
+     0.19,
+     0.19,
+     0.19,
+     1.34,
+     1.78,
+     2.17,
+     2.16,
+     2.19,
+     2.43,
+     2.56,
+     2.6,
+     2.66,
+     3.23,
+     3.21,
+     2.74,
+     1.61,
+     1.22,
+     0.97
+    ],
+    "model_across_m": [
+     0.23,
+     0.22,
+     0.22,
+     1.8,
+     2.4,
+     2.53,
+     2.66,
+     2.7,
+     2.73,
+     2.78,
+     3.53,
+     3.53,
+     3.63,
+     3.26,
+     3.4,
+     3.26,
+     2.84,
+     1.91,
+     2.26
+    ],
+    "read": "green over the whole turret, deck and gun: the model stands about 0.6 m taller"
+   },
+   {
+    "view": "top",
+    "drawing": "t14_3view",
+    "scale_px_per_m": 127.6,
+    "long_axis_m": 10.893,
+    "drawing_extent_m": [
+     10.89,
+     4.3
+    ],
+    "model_extent_m": [
+     10.81,
+     3.53
+    ],
+    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+    "drawing_across_m": [
+     0.19,
+     0.18,
+     0.21,
+     4.02,
+     4.02,
+     4.02,
+     4.02,
+     4.01,
+     4.01,
+     4.01,
+     4.01,
+     4.01,
+     4.01,
+     4.29,
+     4.29,
+     4.3,
+     4.29,
+     4.29,
+     4.29
+    ],
+    "model_across_m": [
+     0.22,
+     0.22,
+     0.22,
+     2.71,
+     3.48,
+     3.48,
+     3.48,
+     3.48,
+     3.5,
+     3.5,
+     3.5,
+     3.48,
+     3.36,
+     3.48,
+     3.48,
+     3.48,
+     3.48,
+     3.48,
+     3.48
+    ]
+   },
+   {
+    "view": "front",
+    "drawing": "t14_3view",
+    "scale_px_per_m": 127.6,
+    "long_axis_m": 4.271,
+    "drawing_extent_m": [
+     4.27,
+     3.68
+    ],
+    "model_extent_m": [
+     3.53,
+     3.63
+    ],
+    "stations": "outline extent across the long axis at 5 %..95 % of its length (front view: height across the span)",
+    "drawing_across_m": [
+     0.92,
+     1.85,
+     1.85,
+     2.88,
+     2.46,
+     2.77,
+     2.77,
+     2.78,
+     2.77,
+     2.34,
+     2.34,
+     2.34,
+     2.34,
+     2.81,
+     2.33,
+     2.88,
+     1.87,
+     1.89,
+     0.91
+    ],
+    "model_across_m": [
+     3.26,
+     3.26,
+     3.28,
+     3.38,
+     3.14,
+     3.05,
+     3.11,
+     2.8,
+     2.95,
+     2.95,
+     2.95,
+     2.95,
+     2.73,
+     2.73,
+     2.81,
+     2.74,
+     3.26,
+     3.26,
+     3.26
+    ],
+    "read": "green over the turret"
+   }
+  ],
+  "eastern_t_15_armata_heavy_ifv": []
+ },
+ "gaps": [
+  "No drawing of the T-15 exists anywhere free or on the-blueprints.com's free tier; its frame is checked against photos and published numbers only."
+ ],
+ "questions": {
+  "6": "The 2A42's real reach is about 3.4 m from the ring: 2.416 m of barrel with about 2.2 m showing ahead of a mantlet 1.28 m ahead of the ring. That moves muzzle_m from 2.94 to 3.4, so it joins slice 15 (decision D4).",
+  "9_t14": "The T-14's turret roof is about 2.75 m, not 3.3; see the fix rows."
+ }
+}
