@@ -4011,8 +4011,8 @@
   "eastern_buk_buk_m3_medium_range_air_defense": [
     {
       "check": "interpenetration",
-      "distance_m": 0.11,
-      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 110.0mm",
+      "distance_m": 0.166,
+      "message": "Parts 'hull_upper' and 'track_L_band' interpenetrate by 166.0mm",
       "parts": [
         "hull_upper",
         "track_L_band"
