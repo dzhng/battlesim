@@ -212,21 +212,19 @@ def soviet_skirts(v, label="21", outer=SKIRT_Y, front=2.95, bars=(-2.28, 2.20), 
 
 # ---------------------------------------------------------------- weapons (shared with the T-90M)
 def gun_2a46(v, gun, sleeve_cover=True):
-    """The 125 mm 2A46M: the mantlet cover, the thermal sleeve in sections,
-    the fume extractor a third of the way out and the plain muzzle."""
+    """The 125 mm 2A46M: the mantlet cover, the barrel root, and the barrel
+    with its thermal sleeve in sections, the fume extractor a third of the way
+    out and the plain muzzle."""
     m = v.mats
     reach = v.frame["mounts"][0]["muzzle_m"][0] - TRUNNION
     if sleeve_cover:
         box("mantlet_cover", (0.62, 0.62, 0.48), (0.20, 0, 0.0), m["canvas"], gun, bevel=0.12)
     cyl("barrel_root", 0.14, 0.40, (0.65, 0, 0), "X", m["paint"], gun, seg=24, bevel=0.015)
-    evac = 2.10
-    for k, (a, b) in enumerate([(0.85, evac - 0.36), (evac + 0.36, reach - 0.18)]):
-        cyl(f"thermal_sleeve_{k}", 0.092, b - a, ((a + b) / 2, 0, 0), "X", m["paint"], gun, seg=24)
-    for k, x in enumerate((1.25, evac + 0.80, evac + 1.80, reach - 0.60)):
-        cyl(f"sleeve_band_{k}", 0.10, 0.05, (x, 0, 0), "X", m["dark"], gun, seg=20, lods=NEAR)
-    cyl("fume_extractor", 0.145, 0.56, (evac, 0, 0), "X", m["paint"], gun, seg=28, bevel=0.02)
-    cyl("muzzle_end", 0.090, 0.18, (reach - 0.09, 0, 0), "X", m["steel"], gun, seg=24)
-    cyl("muzzle_bore", 0.064, 0.012, (reach - 0.002, 0, 0), "X", m["black"], gun, seg=20, lods=MID)
+    evac, collar = 2.10, 0.56
+    VG.gun_tube("main_gun", gun, m, 0.45, reach, 0.082,
+                sleeve=(0.092, [(0.85, evac - collar / 2), (evac + collar / 2, reach - 0.18)]),
+                evacuator=(evac, 0.145, collar, 0), bands=(1.25, evac + 0.80, evac + 1.80, reach - 0.60),
+                muzzle=(0.090, 0.18), bore=0.064)
 
 
 def cupola_mg(v, hmg, hmg_gun, remote=False):

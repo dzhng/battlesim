@@ -216,23 +216,20 @@ def turret_body(v, turret):
 
 # ---------------------------------------------------------------- weapons
 def main_gun(v, gun):
-    """The 120 mm L30A1 rifled gun: a deep mantlet, the thermal sleeve in
-    sections, the fume extractor a third of the way out, the muzzle reference
-    box over the muzzle."""
+    """The 120 mm L30A1 rifled gun: a deep mantlet, and the barrel with its
+    thermal sleeve in sections, the fume extractor a third of the way out, and
+    the muzzle reference box over the muzzle."""
     m = v.mats
     reach = v.frame["mounts"][0]["muzzle_m"][0] - TRUNNION
     box("gun_shield", (0.55, 0.80, 0.56), (0.20, 0, -0.02), m["paint"], gun, bevel=0.06)
     box("gun_shield_collar", (0.18, 0.46, 0.42), (0.55, 0, -0.02), m["paint"], gun, bevel=0.04, lods=MID)
     cyl("coax_port", 0.035, 0.05, (0.50, 0.30, 0.10), "X", m["black"], gun, seg=10, lods=FINE)
-    evac = 1.70
-    for k, (a, b) in enumerate([(0.64, evac - 0.36), (evac + 0.36, reach - 0.24)]):
-        cyl(f"thermal_sleeve_{k}", 0.10, b - a, ((a + b) / 2, 0, 0), "X", m["paint"], gun, seg=24)
-    for k, x in enumerate((1.00, evac + 0.90, reach - 0.80)):
-        cyl(f"sleeve_band_{k}", 0.11, 0.06, (x, 0, 0), "X", m["dark"], gun, seg=20, lods=NEAR)
-    cyl("fume_extractor", 0.165, 0.60, (evac, 0, 0), "X", m["paint"], gun, seg=28, bevel=0.02)
-    cyl("muzzle_end", 0.105, 0.24, (reach - 0.12, 0, 0), "X", m["steel"], gun, seg=24)
-    cyl("muzzle_bore", 0.064, 0.012, (reach - 0.002, 0, 0), "X", m["black"], gun, seg=20, lods=MID)
-    box("muzzle_reference", (0.14, 0.10, 0.09), (reach - 0.30, 0, 0.16), m["dark"], gun, lods=NEAR)
+    evac, collar = 1.70, 0.60
+    VG.gun_tube("main_gun", gun, m, 0.46, reach, 0.090,
+                sleeve=(0.10, [(0.64, evac - collar / 2), (evac + collar / 2, reach - 0.24)]),
+                evacuator=(evac, 0.165, collar, 0), bands=(1.00, evac + 0.90, reach - 0.80), band=(0.01, 0.06),
+                muzzle=(0.105, 0.24), bore=0.064)
+    box("muzzle_reference", (0.14, 0.10, 0.09), (reach - 0.30, 0, 0.10 + 0.045), m["dark"], gun, lods=NEAR)
 
 
 def weapon_station(v, hmg, hmg_gun):

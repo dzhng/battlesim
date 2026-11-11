@@ -179,21 +179,19 @@ def turret_body(v, turret):
 
 
 def main_gun(v, gun):
-    """The 125 mm smoothbore: the mantlet cover, the thermal sleeve, the fume
-    extractor a third of the way out and the muzzle reference box."""
+    """The 125 mm smoothbore: the mantlet cover, the barrel root, the barrel
+    with its thermal sleeve, the fume extractor a third of the way out, and the
+    muzzle reference box."""
     m = v.mats
     reach = v.frame["mounts"][0]["muzzle_m"][0] - TRUNNION
     box("mantlet_cover", (0.60, 0.70, 0.46), (0.25, 0, 0.0), m["canvas"], gun, bevel=0.12)
     cyl("barrel_root", 0.14, 0.40, (0.70, 0, 0), "X", m["paint"], gun, seg=24, bevel=0.015)
-    evac = 2.40
-    for k, (a, b) in enumerate([(0.90, evac - 0.36), (evac + 0.36, reach - 0.20)]):
-        cyl(f"thermal_sleeve_{k}", 0.094, b - a, ((a + b) / 2, 0, 0), "X", m["paint"], gun, seg=24)
-    for k, x in enumerate((1.40, evac + 1.00, evac + 2.10, reach - 0.70)):
-        cyl(f"sleeve_band_{k}", 0.102, 0.05, (x, 0, 0), "X", m["dark"], gun, seg=20, lods=NEAR)
-    cyl("fume_extractor", 0.15, 0.62, (evac, 0, 0), "X", m["paint"], gun, seg=28, bevel=0.02)
-    cyl("muzzle_end", 0.095, 0.20, (reach - 0.10, 0, 0), "X", m["steel"], gun, seg=24)
-    cyl("muzzle_bore", 0.064, 0.012, (reach - 0.002, 0, 0), "X", m["black"], gun, seg=20, lods=MID)
-    box("muzzle_reference", (0.12, 0.09, 0.08), (reach - 0.30, 0, 0.15), m["dark"], gun, lods=NEAR)
+    evac, collar = 2.40, 0.62
+    VG.gun_tube("main_gun", gun, m, 0.50, reach, 0.084,
+                sleeve=(0.094, [(0.90, evac - collar / 2), (evac + collar / 2, reach - 0.20)]),
+                evacuator=(evac, 0.15, collar, 0), bands=(1.40, evac + 1.00, evac + 2.10, reach - 0.70),
+                muzzle=(0.095, 0.20), bore=0.064)
+    box("muzzle_reference", (0.12, 0.09, 0.08), (reach - 0.30, 0, 0.094 + 0.04), m["dark"], gun, lods=NEAR)
 
 
 def roof_gun(v, hmg, hmg_gun):
