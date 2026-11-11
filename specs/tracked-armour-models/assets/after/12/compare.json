@@ -1,0 +1,139 @@
+{
+  "tool": ".agents/skills/compare-screenshots/scripts/visual-parity-diff.mjs",
+  "current": "before/",
+  "candidate": "after/",
+  "results": [
+    {
+      "id": "europe_ajax_tracked_reconnaissance_vehicle-roof-matcap",
+      "full": {
+        "mae": 0.37985,
+        "diffRatio32": 0.00443,
+        "pixelmatchRatio": 0.00535,
+        "edgeEnergyRatio": 0.9113
+      },
+      "crop": {
+        "label": "crew hatches",
+        "bounds": {
+          "x": 400,
+          "y": 220,
+          "width": 300,
+          "height": 180
+        },
+        "mae": 4.92398,
+        "diffRatio32": 0.05737,
+        "pixelmatchRatio": 0.06935,
+        "edgeEnergyRatio": 0.59157
+      }
+    },
+    {
+      "id": "europe_ajax_tracked_reconnaissance_vehicle-roof-shaded",
+      "full": {
+        "mae": 0.23559,
+        "diffRatio32": 0.00169,
+        "pixelmatchRatio": 0.00253,
+        "edgeEnergyRatio": 0.95236
+      },
+      "crop": {
+        "label": "crew hatches",
+        "bounds": {
+          "x": 400,
+          "y": 220,
+          "width": 300,
+          "height": 180
+        },
+        "mae": 3.05399,
+        "diffRatio32": 0.02189,
+        "pixelmatchRatio": 0.03276,
+        "edgeEnergyRatio": 0.67076
+      }
+    },
+    {
+      "id": "europe_leopard_2_2a6-roof-matcap",
+      "full": {
+        "mae": 0.13151,
+        "diffRatio32": 0.00141,
+        "pixelmatchRatio": 0.00185,
+        "edgeEnergyRatio": 0.97252
+      },
+      "crop": {
+        "label": "commander hatch",
+        "bounds": {
+          "x": 340,
+          "y": 170,
+          "width": 240,
+          "height": 180
+        },
+        "mae": 2.13099,
+        "diffRatio32": 0.02282,
+        "pixelmatchRatio": 0.02991,
+        "edgeEnergyRatio": 0.74406
+      }
+    },
+    {
+      "id": "us_m1_abrams_sep_v2-roof-matcap",
+      "full": {
+        "mae": 0.10768,
+        "diffRatio32": 0.0012,
+        "pixelmatchRatio": 0.00154,
+        "edgeEnergyRatio": 0.97437
+      },
+      "crop": {
+        "label": "commander hatch",
+        "bounds": {
+          "x": 360,
+          "y": 200,
+          "width": 240,
+          "height": 180
+        },
+        "mae": 1.74477,
+        "diffRatio32": 0.0194,
+        "pixelmatchRatio": 0.02498,
+        "edgeEnergyRatio": 0.78944
+      }
+    },
+    {
+      "id": "europe_leopard_2_2a6-roof-shaded",
+      "full": {
+        "mae": 0.11222,
+        "diffRatio32": 0.00073,
+        "pixelmatchRatio": 0.00131,
+        "edgeEnergyRatio": 0.98334
+      },
+      "crop": {
+        "label": "commander hatch",
+        "bounds": {
+          "x": 340,
+          "y": 170,
+          "width": 240,
+          "height": 180
+        },
+        "mae": 1.8184,
+        "diffRatio32": 0.01188,
+        "pixelmatchRatio": 0.02125,
+        "edgeEnergyRatio": 0.8607
+      }
+    },
+    {
+      "id": "us_m1_abrams_sep_v2-roof-shaded",
+      "full": {
+        "mae": 0.09599,
+        "diffRatio32": 0.00071,
+        "pixelmatchRatio": 0.00123,
+        "edgeEnergyRatio": 0.9861
+      },
+      "crop": {
+        "label": "commander hatch",
+        "bounds": {
+          "x": 360,
+          "y": 200,
+          "width": 240,
+          "height": 180
+        },
+        "mae": 1.55534,
+        "diffRatio32": 0.01148,
+        "pixelmatchRatio": 0.01988,
+        "edgeEnergyRatio": 0.89206
+      }
+    }
+  ]
+}

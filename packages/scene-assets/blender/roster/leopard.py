@@ -19,8 +19,7 @@ with its heavy machine gun, and the turret front plates (from the Eurosatory
 
 Built to the catalog frame (hull 7.7 x 3.75 x 3.0 m, turret pivot 0.3 m ahead
 of the hull's middle and 1.8 m up, cannon muzzle 7.12 m ahead and 0.54 m up):
-nothing here moves it; the turret and the commander in his hatch are built at
-the frame's pivot. The frame's
+nothing here moves it; the turret is built at the frame's pivot. The frame's
 3.0 m box is taller than the hull and turret roof the photos show (about
 2.6 m); the art stands at its real height inside it (specs/done/unit-models/choices.md). The wreck is cut into hull and turret pieces (wreckage.export_wreck).
 """
@@ -85,14 +84,11 @@ def build(variant, v):
                             RETURNS, bolts=8, teeth=12, arm=(0.50, 0.40), pitch=0.18)
     skirts(v)
     mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
-    turret, gun, _, pivot = mounts["cannon"]
+    turret, gun, _, _ = mounts["cannon"]
     hmg, hmg_gun, _, _ = mounts["HMG"]
     turret_body(v, turret, a7v, a8)
     main_gun(v, gun)
     weapon_station(v, hmg, hmg_gun, a7v, a8)
-    # The 2A6's commander rides head and shoulders out (photos: side).
-    if not a7v:
-        v.head_out("commander", turret, pivot.x - 0.95, -0.78, pivot.z + ROOF)
 
 
 # ---------------------------------------------------------------- hull
@@ -261,7 +257,7 @@ def turret_body(v, turret, a7v, a8):
         lods=MID)
     RF.sight_housing("peri_head", (0.18, -1.00, ROOF + 0.20), m, turret, size=(0.36, 0.32, 0.26))
     RF.hatch("loader_hatch", (-0.55, 0.72, ROOF), m, turret, radius=0.34)
-    commander_hatch(v, turret)
+    RF.cupola("commander_cupola", (-0.95, -0.78, ROOF), m, turret, radius=0.36)
     for k in range(4):
         RF.periscope(f"loader_periscope_{k}", (-0.05, 0.40 + k * 0.20, ROOF), m, turret, size=(0.10, 0.14, 0.07))
     if a7v:
@@ -274,19 +270,6 @@ def turret_body(v, turret, a7v, a8):
         HF.grille("bustle_unit_grille", (-2.785, 0, 0.40), (0.30, 1.10), m, turret, slats=5, rot=(0, -math.pi / 2, 0))
     else:
         bustle_basket(v, turret)
-
-
-def commander_hatch(v, turret):
-    """The commander's hatch ring with its periscopes, the lid swung open."""
-    m = v.mats
-    x, y = -0.95, -0.78
-    cyl("commander_ring", 0.40, 0.09, (x, y, ROOF + 0.045), "Z", m["paint"], turret, seg=28, bevel=0.015, lods=MID)
-    for k in range(6):
-        a = -1.6 + k * 0.62
-        RF.periscope(f"commander_periscope_{k}", (x + 0.36 * math.cos(a), y + 0.36 * math.sin(a), ROOF + 0.08), m,
-                     turret, size=(0.10, 0.12, 0.06), rot=(0, 0, a))
-    cyl("commander_lid", 0.34, 0.06, (x - 0.70, y, ROOF + 0.09), "Z", m["paint"], turret, seg=28, bevel=0.015,
-        rot=(0, -0.10, 0), lods=MID)
 
 
 def bustle_basket(v, turret):

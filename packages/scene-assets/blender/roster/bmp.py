@@ -16,8 +16,7 @@ sprocket at the rear and the idler at the front, six road wheels and four
 return rollers, a skirt with a long bolted rail over the tracks, the
 bow's splash board and the twin machine guns' ports; the cast turret with
 the 100 mm 2A70 and the 30 mm 2A72 beside it on the right, sights on the
-roof, smoke tubes on the front corners. The BMP-3's commander rides head
-out (photo: side).
+roof, smoke tubes on the front corners.
 
 Built to the catalog frames (BMP-2M hull 6.735 x 3.15 x 2.45 m, turret pivot
 1.593 m, 30 mm muzzle 2.829 m ahead, launcher on the left at 0.851 m;
@@ -224,11 +223,9 @@ def build(variant, v):
                             g.IDLER, g.RETURNS, dual=False, bolts=6, ribs=6, teeth=12, arm=(0.40, 0.40), pitch=0.15)
     mounts = rig(v.frame, v.root)
     if three:
-        turret, gun, _, pivot = mounts["main_gun"]
+        turret, gun, _, _ = mounts["main_gun"]
         _, coax_gun, _, _ = mounts["autocannon"]
         bmp3_turret(v, turret, gun, coax_gun)
-        # In the cupola (turret frame (-0.20, 0.45), its roof 0.56 up).
-        v.head_out("commander", turret, pivot.x - 0.20, pivot.y + 0.45, pivot.z + 0.56)
     else:
         turret, gun, _, _ = mounts["autocannon"]
         launcher, tube, _, _ = mounts["launcher"]

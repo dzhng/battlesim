@@ -1,0 +1,8 @@
+{
+  "us_m1_abrams_sep_v2-roof-shaded": {"label": "commander hatch", "x": 360, "y": 200, "width": 240, "height": 180},
+  "us_m1_abrams_sep_v2-roof-matcap": {"label": "commander hatch", "x": 360, "y": 200, "width": 240, "height": 180},
+  "europe_leopard_2_2a6-roof-shaded": {"label": "commander hatch", "x": 340, "y": 170, "width": 240, "height": 180},
+  "europe_leopard_2_2a6-roof-matcap": {"label": "commander hatch", "x": 340, "y": 170, "width": 240, "height": 180},
+  "europe_ajax_tracked_reconnaissance_vehicle-roof-shaded": {"label": "crew hatches", "x": 400, "y": 220, "width": 300, "height": 180},
+  "europe_ajax_tracked_reconnaissance_vehicle-roof-matcap": {"label": "crew hatches", "x": 400, "y": 220, "width": 300, "height": 180}
+}

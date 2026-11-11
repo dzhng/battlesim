@@ -188,7 +188,7 @@ def turret_body(v, turret):
     sight = empty("dressing_commander_sight", parent=turret)
     RF.sight_housing("commander_sight", (0.55, 0.72, ROOF - 0.02), m, sight, size=(0.42, 0.36, 0.38))
     RF.sight_housing("gunner_sight", (1.05, -0.80, ROOF - 0.10), m, turret, size=(0.50, 0.40, 0.22))
-    RF.cupola("commander_cupola", (-0.30, 0.62, ROOF), m, turret, radius=0.34, lid_open=False)
+    RF.cupola("commander_cupola", (-0.30, 0.62, ROOF), m, turret, radius=0.34)
     RF.hatch("loader_hatch", (-0.90, -0.70, ROOF), m, turret, radius=0.30)
     AR.bolted_panel("hero_launcher", (-2.10, 0.30, ROOF - 0.02), (0.90, 0.80, 0.12), m, turret, bolts=(3, 2),
                     bevel=0.03, lods=VP.ALL)

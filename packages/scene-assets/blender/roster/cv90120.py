@@ -16,9 +16,8 @@ Swedish splinter scheme (the CV90 family's home army; the photos' exhibition
 finishes are not followed).
 
 Built to the catalog frame: the CV90 hull's length and width and the turret
-roof's height, measured off the photos against the road wheels. The turret,
-and the commander in his hatch, are built at the frame's pivot, 0.3 m behind
-the hull's middle.
+roof's height, measured off the photos against the road wheels. The turret
+is built at the frame's pivot, 0.3 m behind the hull's middle.
 """
 import math
 import os
@@ -144,8 +143,6 @@ def build(variant, v):
     gun_120(v, gun)
     cyl("pintle", 0.04, 0.20, (0, 0, -0.08), "Z", v.mats["dark"], hmg, seg=10)
     VG.browning_m2(hmg_gun, v.frame["mounts"][1]["muzzle_m"][0], v.mats, grips=True)
-    pivot = v.frame["mounts"][0]["pivot_m"]
-    v.head_out("commander", turret, pivot[0] - 0.55, 0.55, pivot[2] + ROOF)
 
 
 def wreck(variant, v):

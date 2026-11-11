@@ -14,8 +14,7 @@ roof with his cupola beside it, the gunner's sight box on the right front, the
 long autoloader bustle behind, GALIX launchers along the bustle sides. XLR
 (that one photo): stacked armour modules over the front of the hull sides,
 bar armour over the rear and round the bustle, armour blocks on the turret
-sides and the PL1 remote weapon station on the right of the roof. The
-commander stands in his hatch (pre-XLR side photo).
+sides and the PL1 remote weapon station on the right of the roof.
 
 Built to the catalog frame (hull 6.88 x 3.6 x 2.53 m, turret pivot 1.518 m,
 cannon muzzle 6.43 m ahead): nothing here moves it.
@@ -106,7 +105,6 @@ def build(variant, v):
     turret_body(v, turret)
     main_gun(v, gun)
     weapon_station(v, hmg, hmg_gun)
-    v.head_out("commander", turret, -0.30, 0.70, 1.518 + ROOF - 0.02)
 
 
 # ---------------------------------------------------------------- hull

@@ -224,9 +224,8 @@ def build(variant, v):
     turret_body(v, turret)
     gun_105(v, gun)
     cyl("pintle", 0.04, 0.24, (0, 0, -0.10), "Z", v.mats["dark"], hmg, seg=10)
-    gun_mount, hmg_mount = v.frame["mounts"]
+    _, hmg_mount = v.frame["mounts"]
     VG.browning_m2(hmg_gun, hmg_mount["muzzle_m"][0], v.mats, grips=True)
-    v.head_out("commander", turret, gun_mount["pivot_m"][0] + CUPOLA[0], CUPOLA[1], gun_mount["pivot_m"][2] + ROOF)
 
 
 def wreck(variant, v):
